@@ -66,7 +66,7 @@ some of the reasons why we choose to use it:
 - **Sum Types and Pattern Matching** (and no `NULL`).
 - **Local type inference**. Only write types where it matters, no need to repeat
   yourself.
-- A more modern, ƒunctional and expressive style.
+- A more modern, **ƒunctional and expressive style**.
 - **Memory safe and data-race-free!** Get your ideas down without the fear of
   creating pointer spaghetti or segfault time-sinks.
 - **Immutability by default.** Easily distinguish between variables that can
