@@ -1,5 +1,11 @@
+
+### A Quick Note
+
+This project is brand new and there is a lot of work to be done. Feel free to
+help out!
+
 nannou
-------
+======
 
 An open-source, creative-coding toolkit for Rust.
 
@@ -11,11 +17,6 @@ give artists easy access to the tools they need.
 The project was started out of a desire for a creative coding framework inspired
 by Processing, OpenFrameworks and Cinder, but for Rust. <sup>Named after
 [this](https://www.youtube.com/watch?v=A-Pkx37kYf4)</sup>
-
-## A Quick Note
-
-This project is brand new and there is a lot of work to be done. Feel free to
-help out!
 
 ## Getting Started
 
