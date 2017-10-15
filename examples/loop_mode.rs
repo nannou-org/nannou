@@ -1,6 +1,6 @@
 extern crate nannou;
 
-use nannou::{App, Event, Frame, LoopMode, WindowEvent, WindowId, VirtualKeyCode as Key, ElementState};
+use nannou::{App, Event, Frame, LoopMode, WindowEvent, ElementState};
 
 fn main() {
     nannou::run(model, update, draw);
@@ -18,18 +18,15 @@ fn model(app: &App) -> Model {
 
 fn update(app: &App, model: Model, event: Event) -> Model {
     match event {
-        Event::WindowEvent(id, event) => {
+        Event::WindowEvent(_id, event) => {
             println!("{:?}", event);
-            match event {
-                WindowEvent::KeyboardInput { input, .. } => {
-                    if let (ElementState::Pressed, Some(_)) = (input.state, input.virtual_keycode) {
-                        match app.loop_mode() {
-                            LoopMode::Rate { .. } => app.set_loop_mode(LoopMode::wait(3)),
-                            LoopMode::Wait { .. } => app.set_loop_mode(LoopMode::rate_fps(60.0)),
-                        }
+            if let WindowEvent::KeyboardInput { input, .. } = event {
+                if let (ElementState::Pressed, Some(_)) = (input.state, input.virtual_keycode) {
+                    match app.loop_mode() {
+                        LoopMode::Rate { .. } => app.set_loop_mode(LoopMode::wait(3)),
+                        LoopMode::Wait { .. } => app.set_loop_mode(LoopMode::rate_fps(60.0)),
                     }
-                },
-                _ => (),
+                }
             }
         },
         Event::Update(update) => {
