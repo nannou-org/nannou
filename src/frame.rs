@@ -1,4 +1,3 @@
-use WindowId;
 use glium::{self, Surface};
 use glium::framebuffer::{MultiOutputFrameBuffer, SimpleFrameBuffer};
 use glium::uniforms::{MagnifySamplerFilter, Uniforms};
@@ -7,17 +6,18 @@ use glium::index::IndicesSource;
 use std::collections::HashMap;
 use std::cell::{RefMut, RefCell};
 use std::ops::{Deref, DerefMut};
+use window;
 
 /// A **Frame** represents all graphics for the application for a single "frame" of time.
 ///
 /// The **Frame** itself consists of a `WindowFrame` for each window in the `App`.
 pub struct Frame {
-    gl_frames: HashMap<WindowId, RefCell<GlFrame>>,
+    gl_frames: HashMap<window::Id, RefCell<GlFrame>>,
 }
 
 impl Frame {
     /// Return the part of the 
-    pub fn window(&self, id: WindowId) -> Option<WindowFrame> {
+    pub fn window(&self, id: window::Id) -> Option<WindowFrame> {
         self.gl_frames
             .get(&id)
             .map(|wf| WindowFrame { frame: wf.borrow_mut() })
@@ -25,7 +25,7 @@ impl Frame {
 }
 
 // A function (private to the crate) for creating a new `Frame`.
-pub fn new(gl_frames: HashMap<WindowId, RefCell<GlFrame>>) -> Frame {
+pub fn new(gl_frames: HashMap<window::Id, RefCell<GlFrame>>) -> Frame {
     Frame { gl_frames }
 }
 

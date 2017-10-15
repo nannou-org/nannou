@@ -1,1 +1,2 @@
-pub use palette::*;
+extern crate palette;
+pub use self::palette::*;

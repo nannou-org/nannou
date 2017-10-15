@@ -4,5 +4,9 @@ version = "0.1.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 
 [dependencies]
+cgmath = "0.15"
 glium = "0.17"
+image = "0.16"
+noise = "0.4"
 palette = "0.2"
+rand = "0.3"

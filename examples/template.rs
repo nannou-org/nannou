@@ -1,14 +1,15 @@
 extern crate nannou;
 
-use nannou::{App, Frame, WindowId};
+use nannou::{App, Frame};
 use nannou::event::{ElementState, Event, Update, WindowEvent};
+use nannou::window;
 
 fn main() {
     nannou::run(model, event, view);
 }
 
 struct Model {
-    window: nannou::WindowId,
+    window: window::Id,
     // Add the state of your application here.
 }
 
@@ -25,7 +26,7 @@ fn event(app: &App, model: Model, event: Event) -> Model {
     }
 }
 
-fn window_event(_app: &App, model: Model, _window_id: WindowId, event: WindowEvent) -> Model {
+fn window_event(_app: &App, model: Model, _window_id: window::Id, event: WindowEvent) -> Model {
     match event {
         WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
             Some(_key) => match input.state {

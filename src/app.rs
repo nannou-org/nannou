@@ -1,8 +1,8 @@
-use gl_window;
 use glium::{self, glutin};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::time::Duration;
+use window;
 
 /// An **App** represents the entire context of your application.
 ///
@@ -12,7 +12,7 @@ use std::time::Duration;
 /// - all OpenGL windows (for graphics and user input, can be referenced via IDs).
 pub struct App {
     pub(super) events_loop: glutin::EventsLoop,
-    pub(super) displays: RefCell<HashMap<gl_window::Id, glium::Display>>,
+    pub(super) displays: RefCell<HashMap<window::Id, glium::Display>>,
     pub(super) exit_on_escape: Cell<bool>,
     loop_mode: Cell<LoopMode>,
 }
@@ -130,8 +130,8 @@ impl App {
     }
 
     /// Begin building a new OpenGL window.
-    pub fn new_window<'a>(&'a self) -> gl_window::Builder<'a, 'static> {
-        gl_window::Builder::new(self)
+    pub fn new_window<'a>(&'a self) -> window::Builder<'a, 'static> {
+        window::Builder::new(self)
     }
 
     /// The number of windows currently in the application.

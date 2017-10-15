@@ -7,7 +7,7 @@ fn main() {
 }
 
 struct Model {
-    window: nannou::WindowId,
+    window: nannou::window::Id,
 }
 
 fn model(app: &App) -> Model {

@@ -1,5 +1,5 @@
 pub extern crate glium;
-extern crate palette;
+pub extern crate rand;
 
 use event::LoopEvent;
 use glium::glutin;
@@ -10,13 +10,14 @@ pub use app::{App, LoopMode};
 pub use glium::glutin::{WindowBuilder, WindowEvent, ContextBuilder, VirtualKeyCode, ElementState};
 pub use self::event::Event;
 pub use self::frame::Frame;
-pub use self::gl_window::Id as WindowId;
 
 pub mod app;
 pub mod color;
 pub mod event;
 mod frame;
-pub mod gl_window;
+pub mod window;
+pub mod image;
+pub mod math;
 
 pub type ModelFn<Model> = fn(&App) -> Model;
 pub type UpdateFn<Model, Event> = fn(&App, Model, Event) -> Model;
