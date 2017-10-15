@@ -4,3 +4,5 @@ version = "0.1.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 
 [dependencies]
+glium = "0.17"
+palette = "0.2"
