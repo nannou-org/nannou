@@ -62,7 +62,8 @@ some of the reasons why we choose to use it:
   C++ fast](https://benchmarksgame.alioth.debian.org/u64q/compare.php?lang=rust&lang2=gpp).
 - [**A standard package manager**](https://crates.io/) that makes it very
   easy to handle dependencies and share your own projects in seconds.
-- **Highly portable.** Easily move your code between MacOS, Linux or Windows.
+- **Highly portable.** Easily build for MacOS, Linux, Windows, Android, iOS and
+  [so many others](https://forge.rust-lang.org/platform-support.html).
 - **No header files** (and no weird linking errors).
 - **Sum Types and Pattern Matching** (and no `NULL`).
 - **Local type inference**. Only write types where it matters, no need to repeat
