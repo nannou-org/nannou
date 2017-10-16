@@ -4,8 +4,8 @@
 This project is brand new and there is a lot of work to be done. Feel free to
 help out!
 
-nannou
-======
+# nannou [![Build Status](https://travis-ci.org/MindBuffer/nannou.svg?branch=master)](https://travis-ci.org/MindBuffer/nannou) [![Crates.io](https://img.shields.io/crates/v/nannou.svg)](https://crates.io/crates/nannou) [![Crates.io](https://img.shields.io/crates/l/nannou.svg)](https://github.com/MindBuffer/nannou/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/nannou/badge.svg)](https://docs.rs/nannou/)
+
 
 An open-source, creative-coding toolkit for Rust.
 
