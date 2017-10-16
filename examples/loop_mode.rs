@@ -11,6 +11,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    // Start in `Wait` mode. In other words, don't keep looping, just wait for events.
     app.set_loop_mode(LoopMode::wait(3));
     let window = app.new_window().build().unwrap();
     Model { window }
@@ -20,6 +21,7 @@ fn update(app: &App, model: Model, event: Event) -> Model {
     match event {
         Event::WindowEvent(_id, event) => {
             println!("{:?}", event);
+            // If any key was pressed, switch loop mode.
             if let WindowEvent::KeyboardInput { input, .. } = event {
                 if let (ElementState::Pressed, Some(_)) = (input.state, input.virtual_keycode) {
                     match app.loop_mode() {
