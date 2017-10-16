@@ -3,7 +3,7 @@ use glium::framebuffer::{MultiOutputFrameBuffer, SimpleFrameBuffer};
 use glium::uniforms::{MagnifySamplerFilter, Uniforms};
 use glium::vertex::MultiVerticesSource;
 use glium::index::IndicesSource;
-use std::collections::HashMap;
+use std::collections::{hash_map, HashMap};
 use std::cell::{RefMut, RefCell};
 use std::ops::{Deref, DerefMut};
 use window;
@@ -15,12 +15,32 @@ pub struct Frame {
     gl_frames: HashMap<window::Id, RefCell<GlFrame>>,
 }
 
+/// An iterator yielding the `WindowFrame` for each open window in the application.
+pub struct WindowFrames<'a> {
+    iter: hash_map::Iter<'a, window::Id, RefCell<GlFrame>>,
+}
+
 impl Frame {
-    /// Return the part of the 
+    /// Return the part of the `Frame` associated with the given window.
     pub fn window(&self, id: window::Id) -> Option<WindowFrame> {
         self.gl_frames
             .get(&id)
             .map(|wf| WindowFrame { frame: wf.borrow_mut() })
+    }
+
+    /// Return an iterator yielding each `window::Id` along with its `WindowFrame` for drawing.
+    pub fn windows(&self) -> WindowFrames {
+        let iter = self.gl_frames.iter();
+        WindowFrames { iter }
+    }
+}
+
+impl<'a> Iterator for WindowFrames<'a> {
+    type Item = (window::Id, WindowFrame<'a>);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter
+            .next()
+            .map(|(&id, wf)| (id, WindowFrame { frame: wf.borrow_mut() }))
     }
 }
 

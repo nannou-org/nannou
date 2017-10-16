@@ -1,0 +1,49 @@
+extern crate nannou;
+
+use nannou::{App, Event, Frame};
+use nannou::window;
+
+fn main() {
+    nannou::run(model, update, draw);
+}
+
+struct Model {
+    a: window::Id,
+    b: window::Id,
+    c: window::Id,
+}
+
+fn model(app: &App) -> Model {
+    let a = app.new_window().build().unwrap();
+    let b = app.new_window().build().unwrap();
+    let c = app.new_window().build().unwrap();
+    Model { a, b, c }
+}
+
+fn update(_app: &App, model: Model, event: Event) -> Model {
+    match event {
+        // Handle window events like mouse, keyboard, resize, etc here.
+        Event::WindowEvent(id, event) => {
+            println!("Window {:?}: {:?}", id, event);
+        },
+        // `Update` the model here.
+        Event::Update(_update) => {
+        },
+        _ => (),
+    }
+    model
+}
+
+// Draw the state of your `Model` into the given `Frame` here.
+fn draw(_app: &App, model: &Model, frame: Frame) -> Frame {
+    // Clear each window with a different colour.
+    for (id, mut window_frame) in frame.windows() {
+        match id {
+            id if id == model.a => window_frame.clear_color(1.0, 0.0, 0.0, 1.0),
+            id if id == model.b => window_frame.clear_color(0.0, 1.0, 0.0, 1.0),
+            id if id == model.c => window_frame.clear_color(0.0, 0.0, 1.0, 1.0),
+            _ => (),
+        }
+    }
+    frame
+}
