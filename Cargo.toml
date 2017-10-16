@@ -2,6 +2,12 @@
 name = "nannou"
 version = "0.1.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+description = "A Creative Coding Framework for Rust."
+readme = "README.md"
+keywords = ["creative", "sketch", "graphics", "audio"]
+license = "MIT"
+repository = "https://github.com/MindBuffer/nannou.git"
+homepage = "https://github.com/MindBuffer/nannou"
 
 [dependencies]
 cgmath = "0.15"
