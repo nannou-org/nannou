@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use window::{self, Window};
+use ui;
 
 /// An **App** represents the entire context of your application.
 ///
@@ -29,6 +30,11 @@ pub struct App {
 /// An **App**'s audio API.
 pub struct Audio {
     event_loop: Arc<cpal::EventLoop>,
+}
+
+/// An **App**'s graphical user interface API.
+pub struct Ui {
+    arrangement: ui::Arrangmement,
 }
 
 /// A handle to the **App** that can be shared across threads.
@@ -246,6 +252,19 @@ impl Audio {
             device: None,
             sample_format: PhantomData,
         }
+    }
+}
+
+impl Ui {
+    /// Create a new `Ui` for the window with the given `Id`.
+    ///
+    /// Returns `None` if there is no window for the given `window_id`.
+    pub fn new(&self, window_id: window::Id) -> Option<ui::Ui> {
+        self.window(window_id)
+            .map(|window| {
+                let (display_w, display_h) = display.gl_window().get_inner_size_points().unwrap();
+                let ui_dimensions = [display_w as Scalar, display_h as Scalar];
+            })
     }
 }
 

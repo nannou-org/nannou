@@ -12,6 +12,7 @@ pub use glium::glutin::{ContextBuilder, CursorState, ElementState, MonitorId, Mo
                         WindowBuilder, WindowEvent, VirtualKeyCode};
 pub use self::event::Event;
 pub use self::frame::Frame;
+pub use self::ui::Ui;
 
 pub mod app;
 pub mod audio;

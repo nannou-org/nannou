@@ -11,6 +11,7 @@ homepage = "https://github.com/MindBuffer/nannou"
 
 [dependencies]
 cgmath = "0.15"
+conrod = "0.56"
 cpal = "0.5"
 find_folder = "0.3"
 glium = "0.18"
