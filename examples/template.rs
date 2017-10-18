@@ -1,8 +1,8 @@
 extern crate nannou;
 
-use nannou::{App, Frame};
-use nannou::event::{ElementState, Event, Update, WindowEvent};
+use nannou::{App, Event, Frame};
 use nannou::window;
+use nannou::event::SimpleWindowEvent::*;
 
 fn main() {
     nannou::run(model, event, view);
@@ -10,7 +10,6 @@ fn main() {
 
 struct Model {
     window: window::Id,
-    // Add the state of your application here.
 }
 
 fn model(app: &App) -> Model {
@@ -18,44 +17,48 @@ fn model(app: &App) -> Model {
     Model { window }
 }
 
-fn event(app: &App, model: Model, event: Event) -> Model {
+fn event(_app: &App, model: Model, event: Event) -> Model {
     match event {
-        Event::WindowEvent(id, event) => window_event(app, model, id, event),
-        Event::Update(dt) => update(app, model, dt),
-        _ => model,
-    }
-}
+        Event::WindowEvent(_id, event) => match event.simple {
 
-fn window_event(_app: &App, model: Model, _window_id: window::Id, event: WindowEvent) -> Model {
-    match event {
-        WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
-            Some(_key) => match input.state {
-                ElementState::Pressed => {
-                    // Handle key presses.
-                },
-                ElementState::Released => {
-                    // Handle key releases.
-                },
+            Moved(_pos) => {
             },
-            _ => (),
-        },
-        WindowEvent::MouseInput { state, button, .. } => match state {
-            ElementState::Pressed => {
-                // Handle mouse presses.
+
+            KeyPressed(_key) => {
             },
-            ElementState::Released => {
-                // Handle mouse releases.
+
+            KeyReleased(_key) => {
             },
+
+            MouseMoved(_pos) => {
+            },
+
+            MouseDragged(_pos, _button) => {
+            },
+
+            MousePressed(_button) => {
+            },
+
+            MouseReleased(_button) => {
+            },
+
+            MouseEntered => {
+            },
+
+            MouseExited => {
+            },
+
+            Resized(_size) => {
+            },
+
+            _other => (),
         },
-        WindowEvent::MouseMoved { position, .. } => {
-            // Handle mouse movement.
+
+        Event::Update(_dt) => {
         },
+
         _ => (),
     }
-    model
-}
-
-fn update(_app: &App, model: Model, _update: Update) -> Model {
     model
 }
 
