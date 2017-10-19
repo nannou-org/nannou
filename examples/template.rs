@@ -1,15 +1,13 @@
 extern crate nannou;
 
-use nannou::{App, Event, Frame};
-use nannou::window;
-use nannou::event::SimpleWindowEvent::*;
+use nannou::prelude::*;
 
 fn main() {
     nannou::run(model, event, view);
 }
 
 struct Model {
-    window: window::Id,
+    window: WindowId,
 }
 
 fn model(app: &App) -> Model {

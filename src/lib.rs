@@ -18,6 +18,7 @@ mod frame;
 pub mod window;
 pub mod image;
 pub mod math;
+pub mod prelude;
 
 pub type ModelFn<Model> = fn(&App) -> Model;
 pub type UpdateFn<Model, Event> = fn(&App, Model, Event) -> Model;
