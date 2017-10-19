@@ -12,7 +12,7 @@ use window;
 /// - all OpenGL windows (for graphics and user input, can be referenced via IDs).
 pub struct App {
     pub(super) events_loop: glutin::EventsLoop,
-    pub(super) displays: RefCell<HashMap<window::Id, glium::Display>>,
+    pub(crate) displays: RefCell<HashMap<window::Id, glium::Display>>,
     pub(super) exit_on_escape: Cell<bool>,
     loop_mode: Cell<LoopMode>,
 }

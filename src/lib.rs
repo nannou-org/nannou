@@ -77,7 +77,7 @@ fn run_loop<M, E>(mut app: App, mut model: M, update_fn: UpdateFn<M, E>, draw_fn
         glutin_event: glutin::Event,
     ) -> (M, bool)
     where
-        E: From<glutin::Event>,
+        E: LoopEvent,
     {
         // Inspect the event to see if it would require closing the App.
         let mut exit_on_escape = false;
@@ -98,7 +98,8 @@ fn run_loop<M, E>(mut app: App, mut model: M, update_fn: UpdateFn<M, E>, draw_fn
             }
         }
 
-        model = update_fn(&app, model, glutin_event.into());
+        let event = E::from_glutin_event(glutin_event, app);
+        model = update_fn(&app, model, event);
 
         // If exit on escape was triggered, we're done.
         let exit = if exit_on_escape || app.displays.borrow().is_empty() {
