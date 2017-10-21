@@ -22,8 +22,8 @@ fn model(app: &App) -> Model {
 fn update(_app: &App, model: Model, event: Event) -> Model {
     match event {
         // Handle window events like mouse, keyboard, resize, etc here.
-        Event::WindowEvent(id, event) => {
-            println!("Window {:?}: {:?}", id, event.simple);
+        Event::WindowEvent { id, simple: Some(event), .. } => {
+            println!("Window {:?}: {:?}", id, event);
         },
         // `Update` the model here.
         Event::Update(_update) => {

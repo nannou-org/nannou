@@ -3,13 +3,14 @@ use math::{Point2, Vector2};
 use glium::glutin;
 use std::path::PathBuf;
 use std::time::Duration;
+use window;
 
 pub use glium::glutin::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, Touch,
                         TouchPhase, VirtualKeyCode as Key};
 
 /// Event types that are compatible with the nannou app loop.
 pub trait LoopEvent: From<Update> {
-    fn from_glutin_event(glutin::Event, &App) -> Self;
+    fn from_glutin_event(glutin::Event, &App) -> Option<Self>;
 }
 
 /// Update event
@@ -28,7 +29,14 @@ pub struct Update {
 #[derive(Clone, Debug)]
 pub enum Event {
     /// A window-specific event has occurred for the window with the given Id.
-    WindowEvent(glutin::WindowId, WindowEvent),
+    ///
+    /// This event is portrayed both in its "raw" form (the **glutin::WindowEvent**) and its
+    /// simplified, new-user-friendly form **SimpleWindowEvent**.
+    WindowEvent {
+        id: window::Id,
+        raw: glutin::WindowEvent,
+        simple: Option<SimpleWindowEvent>,
+    },
     /// A device-specific event has occurred for the device with the given Id.
     DeviceEvent(glutin::DeviceId, glutin::DeviceEvent),
     /// A timed update alongside the duration since the last update was emitted.
@@ -48,7 +56,7 @@ pub struct WindowEvent {
     /// A simplified, interpreted version of the `raw` `glutin::WindowEvent` emitted via glutin.
     ///
     /// See the [SimpleWindowEvent](./enum.SimpleWindowEvent.html)
-    pub simple: SimpleWindowEvent,
+    pub simple: Option<SimpleWindowEvent>,
     /// The original event type produced by `glutin`.
     pub raw: glutin::WindowEvent,
 }
@@ -132,23 +140,27 @@ pub enum SimpleWindowEvent {
 
     /// The window was closed and is no longer stored in the `App`.
     Closed,
-
-    /// There is no "simple" event mapping from the associated, raw `WindowEvent`.
-    ///
-    /// We use an extra variant here rather than producing a `Option<SimpleWindowEvent>` for the
-    /// sake of simplicity and ease of use by users coming from Processing, OF, Cinder, etc who are
-    /// not yet familiar with the `Option` type.
-    Other,
 }
 
 impl SimpleWindowEvent {
+    /// Produce a simplified, new-user-friendly version of the given `glutin::WindowEvent`.
     ///
+    /// This strips rarely needed technical information from the event type such as information
+    /// about the source device, scancodes for keyboard events, etc to make the experience of
+    /// pattern matching on window events nicer for new users.
+    ///
+    /// This also interprets the raw pixel positions and dimensions of the raw event into a
+    /// dpi-agnostic scalar value where (0, 0, 0) is the centre of the screen with the `y` axis
+    /// increasing in the upwards direction.
+    ///
+    /// If the user requires this extra information, they should use the `raw` field of the
+    /// `WindowEvent` type rather than the `simple` one.
     pub fn from_glutin_window_event(
         event: glutin::WindowEvent,
         dpi_factor: f64,
         win_w: u32,
         win_h: u32,
-    ) -> Self
+    ) -> Option<Self>
     {
         use self::SimpleWindowEvent::*;
 
@@ -161,7 +173,7 @@ impl SimpleWindowEvent {
         let tw = |w: f64| w / dpi_factor;
         let th = |h: f64| h / dpi_factor;
 
-        match event {
+        let event = match event {
 
             glutin::WindowEvent::Resized(new_w, new_h) => {
                 let x = tw(new_w as f64);
@@ -234,33 +246,41 @@ impl SimpleWindowEvent {
                     ElementState::Pressed => KeyPressed(key),
                     ElementState::Released => KeyReleased(key),
                 },
-                None => Other,
+                None => return None,
             },
 
             glutin::WindowEvent::AxisMotion { .. } |
             glutin::WindowEvent::Refresh |
             glutin::WindowEvent::ReceivedCharacter(_) |
             glutin::WindowEvent::Suspended(_) => {
-                Other
+                return None;
             },
-        }
+        };
+
+        Some(event)
     }
 }
 
 impl LoopEvent for Event {
     /// Convert the given `glutin::Event` to a nannou `Event`.
-    fn from_glutin_event(event: glutin::Event, app: &App) -> Self {
-        match event {
+    fn from_glutin_event(event: glutin::Event, app: &App) -> Option<Self> {
+        let event = match event {
             glutin::Event::WindowEvent { window_id, event } => {
                 let displays = app.displays.borrow();
-                let display = displays.get(&window_id).unwrap();
-                let window = display.gl_window();
-                let dpi_factor = window.hidpi_factor() as f64;
-                let (win_w, win_h) = window.get_inner_size().unwrap();
+                let (dpi_factor, win_w, win_h) = match displays.get(&window_id) {
+                    None => (1.0, 0, 0), // The window was likely closed, these will be ignored.
+                    Some(display) => {
+                        let window = display.gl_window();
+                        let dpi_factor = window.hidpi_factor() as f64;
+                        match window.get_inner_size() {
+                            None => (dpi_factor, 0, 0),
+                            Some((w, h)) => (dpi_factor, w, h),
+                        }
+                    },
+                };
                 let raw = event.clone();
                 let simple = SimpleWindowEvent::from_glutin_window_event(event, dpi_factor, win_w, win_h);
-                let event = WindowEvent { raw, simple };
-                Event::WindowEvent(window_id, event)
+                Event::WindowEvent { id: window_id, raw, simple }
             },
             glutin::Event::DeviceEvent { device_id, event } =>
                 Event::DeviceEvent(device_id, event),
@@ -268,7 +288,8 @@ impl LoopEvent for Event {
                 Event::Awakened,
             // glutin::Event::Suspended(b) =>
             //     Event::Suspended(b),
-        }
+        };
+        Some(event)
     }
 }
 
