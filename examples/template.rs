@@ -17,7 +17,7 @@ fn model(app: &App) -> Model {
 
 fn event(_app: &App, model: Model, event: Event) -> Model {
     match event {
-        Event::WindowEvent(_id, event) => match event.simple {
+        Event::WindowEvent { simple: Some(event), .. } => match event {
 
             Moved(_pos) => {
             },

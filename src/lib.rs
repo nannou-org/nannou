@@ -99,8 +99,10 @@ fn run_loop<M, E>(mut app: App, mut model: M, update_fn: UpdateFn<M, E>, draw_fn
             }
         }
 
-        let event = E::from_glutin_event(glutin_event, app);
-        model = update_fn(&app, model, event);
+        // If the glutin::Event could be interpreted as some event `E`, use it to update the model.
+        if let Some(event) = E::from_glutin_event(glutin_event, app) {
+            model = update_fn(&app, model, event);
+        }
 
         // If exit on escape was triggered, we're done.
         let exit = if exit_on_escape || app.displays.borrow().is_empty() {
