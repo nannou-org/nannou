@@ -1,9 +1,12 @@
 use audio;
 use audio::cpal;
+use find_folder;
 use glium::{self, glutin};
+use std;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::marker::PhantomData;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use window;
@@ -125,6 +128,7 @@ impl Default for LoopMode {
 }
 
 impl App {
+    pub const ASSETS_DIRECTORY_NAME: &'static str = "assets";
     pub const DEFAULT_EXIT_ON_ESCAPE: bool = true;
 
     // Create a new `App`.
@@ -141,6 +145,20 @@ impl App {
             loop_mode,
             audio
         }
+    }
+
+    /// Find and return the absolute path to the project's `assets` directory.
+    ///
+    /// This method looks for the assets directory in the following order:
+    ///
+    /// 1. Checks the same directory as the executable.
+    /// 2. Recursively checks exe's parent directories (to a max depth of 5).
+    /// 3. Recursively checks exe's children directories (to a max depth of 3).
+    pub fn assets_path(&self) -> Result<PathBuf, find_folder::Error> {
+        let exe_path = std::env::current_exe()?;
+        find_folder::Search::ParentsThenKids(5, 3)
+            .of(exe_path.parent().expect("executable has no parent directory to search").into())
+            .for_folder(Self::ASSETS_DIRECTORY_NAME)
     }
 
     /// Begin building a new OpenGL window.
