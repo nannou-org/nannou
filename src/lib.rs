@@ -8,7 +8,8 @@ use std::cell::RefCell;
 use std::time::Instant;
 
 pub use app::{App, LoopMode};
-pub use glium::glutin::{WindowBuilder, WindowEvent, ContextBuilder, VirtualKeyCode, ElementState};
+pub use glium::glutin::{ContextBuilder, CursorState, ElementState, MonitorId, MouseCursor,
+                        WindowBuilder, WindowEvent, VirtualKeyCode};
 pub use self::event::Event;
 pub use self::frame::Frame;
 
@@ -42,11 +43,11 @@ fn run_loop<M, E>(mut app: App, mut model: M, update_fn: UpdateFn<M, E>, draw_fn
     // A function to re-use when drawing for each of the loop modes.
     fn draw<M>(app: &App, model: &M, draw_fn: DrawFn<M>) -> Result<(), glium::SwapBuffersError> {
         // Draw the state of the model to the screen.
-        let gl_frames = app.displays
+        let gl_frames = app.windows
             .borrow()
             .iter()
-            .map(|(&id, display)| {
-                let gl_frame = RefCell::new(frame::GlFrame::new(display.draw()));
+            .map(|(&id, window)| {
+                let gl_frame = RefCell::new(frame::GlFrame::new(window.display.draw()));
                 (id, gl_frame)
             })
             .collect();
@@ -97,7 +98,7 @@ fn run_loop<M, E>(mut app: App, mut model: M, update_fn: UpdateFn<M, E>, draw_fn
 
             // If a window was closed, remove it from the display map.
             if let glutin::WindowEvent::Closed = *event {
-                app.displays.borrow_mut().remove(&window_id);
+                app.windows.borrow_mut().remove(&window_id);
             }
         }
 
@@ -107,7 +108,7 @@ fn run_loop<M, E>(mut app: App, mut model: M, update_fn: UpdateFn<M, E>, draw_fn
         }
 
         // If exit on escape was triggered, we're done.
-        let exit = if exit_on_escape || app.displays.borrow().is_empty() {
+        let exit = if exit_on_escape || app.windows.borrow().is_empty() {
             true
         } else {
             false

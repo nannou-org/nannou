@@ -11,7 +11,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let window = app.new_window().build().unwrap();
+    let window = app.new_window().with_title("nannou").build().unwrap();
     Model { window }
 }
 

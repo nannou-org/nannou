@@ -13,7 +13,7 @@ struct Model {
 fn model(app: &App) -> Model {
     // Start in `Wait` mode. In other words, don't keep looping, just wait for events.
     app.set_loop_mode(LoopMode::wait(3));
-    let window = app.new_window().build().unwrap();
+    let window = app.new_window().with_title("`LoopMode` Demonstration").build().unwrap();
     Model { window }
 }
 
