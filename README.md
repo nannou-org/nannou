@@ -37,9 +37,10 @@ by Processing, OpenFrameworks and Cinder, but for Rust. <sup>Named after
 
 - Provide easy, cross-platform access to the things that artists need:
     - [ ] Graphics (via [glium](https://crates.io/crates/glium))
-    - [ ] Audio (via [CPAL](https://crates.io/crates/cpal))
+    - [x] Audio (via [CPAL](https://crates.io/crates/cpal)) *Output streams
+      only, input and duplex are not yet implemented.*
     - [ ] Video
-    - [ ] Windowing (via [winit](https://crates.io/crates/winit) and
+    - [x] Windowing & Events (via [winit](https://crates.io/crates/winit) and
       [glutin](https://crates.io/crates/glutin))
     - [ ] Geometry
     - [ ] GUI
