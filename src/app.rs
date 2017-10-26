@@ -1,6 +1,10 @@
+use audio;
+use audio::cpal;
 use glium::{self, glutin};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
+use std::marker::PhantomData;
+use std::sync::Arc;
 use std::time::Duration;
 use window;
 
@@ -15,6 +19,13 @@ pub struct App {
     pub(crate) displays: RefCell<HashMap<window::Id, glium::Display>>,
     pub(super) exit_on_escape: Cell<bool>,
     loop_mode: Cell<LoopMode>,
+    /// Audio-related functionality.
+    pub audio: Audio,
+}
+
+/// An **App**'s audio API.
+pub struct Audio {
+    event_loop: Arc<cpal::EventLoop>,
 }
 
 /// A handle to the **App** that can be shared across threads.
@@ -121,11 +132,14 @@ impl App {
         let displays = RefCell::new(HashMap::new());
         let exit_on_escape = Cell::new(Self::DEFAULT_EXIT_ON_ESCAPE);
         let loop_mode = Cell::new(LoopMode::default());
+        let cpal_event_loop = Arc::new(cpal::EventLoop::new());
+        let audio = Audio { event_loop: cpal_event_loop };
         App {
             events_loop,
             displays,
             exit_on_escape,
             loop_mode,
+            audio
         }
     }
 
@@ -171,6 +185,39 @@ impl App {
     pub fn create_proxy(&self) -> Proxy {
         let events_loop_proxy = self.events_loop.create_proxy();
         Proxy { events_loop_proxy }
+    }
+
+}
+
+impl Audio {
+    /// Enumerate the available audio output devices on the system.
+    ///
+    /// Produces an iterator yielding a `audio::stream::DeviceId` for each output device.
+    pub fn output_devices(&self) -> audio::stream::output::Devices {
+        let endpoints = cpal::endpoints();
+        audio::stream::output::Devices { endpoints }
+    }
+
+    /// The current default audio output device.
+    pub fn default_output_device(&self) -> Option<audio::stream::output::Device> {
+        cpal::default_endpoint()
+            .map(|endpoint| audio::stream::output::Device { endpoint })
+    }
+
+    /// Begin building a new output audio stream.
+    pub fn new_output_stream<M, F, S>(&self, model: M, render: F)
+        -> audio::stream::output::Builder<M, F, S>
+    {
+        audio::stream::output::Builder {
+            event_loop: self.event_loop.clone(),
+            model,
+            render,
+            sample_rate: None,
+            channels: None,
+            frames_per_buffer: None,
+            device: None,
+            sample_format: PhantomData,
+        }
     }
 }
 

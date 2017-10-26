@@ -2,7 +2,7 @@
 
 pub use app::{App, LoopMode};
 pub use event::SimpleWindowEvent::*;
-pub use event::Event;
+pub use event::{Event, Key};
 pub use frame::Frame;
 pub use math::{Point2, Point3, Vector2, Vector3, vec2, vec3};
 pub use math::prelude::*;

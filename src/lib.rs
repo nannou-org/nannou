@@ -12,6 +12,7 @@ pub use self::event::Event;
 pub use self::frame::Frame;
 
 pub mod app;
+pub mod audio;
 pub mod color;
 pub mod event;
 mod frame;
