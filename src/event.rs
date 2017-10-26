@@ -251,8 +251,7 @@ impl SimpleWindowEvent {
 
             glutin::WindowEvent::AxisMotion { .. } |
             glutin::WindowEvent::Refresh |
-            glutin::WindowEvent::ReceivedCharacter(_) |
-            glutin::WindowEvent::Suspended(_) => {
+            glutin::WindowEvent::ReceivedCharacter(_) => {
                 return None;
             },
         };
@@ -286,8 +285,8 @@ impl LoopEvent for Event {
                 Event::DeviceEvent(device_id, event),
             glutin::Event::Awakened =>
                 Event::Awakened,
-            // glutin::Event::Suspended(b) =>
-            //     Event::Suspended(b),
+            glutin::Event::Suspended(b) =>
+                Event::Suspended(b),
         };
         Some(event)
     }
