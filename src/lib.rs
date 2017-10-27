@@ -12,6 +12,7 @@ pub use glium::glutin::{ContextBuilder, CursorState, ElementState, MonitorId, Mo
                         WindowBuilder, WindowEvent, VirtualKeyCode};
 pub use self::event::Event;
 pub use self::frame::Frame;
+pub use self::ui::Ui;
 
 pub mod app;
 pub mod audio;
@@ -22,6 +23,7 @@ pub mod window;
 pub mod image;
 pub mod math;
 pub mod prelude;
+pub mod ui;
 
 pub type ModelFn<Model> = fn(&App) -> Model;
 pub type UpdateFn<Model, Event> = fn(&App, Model, Event) -> Model;
@@ -99,6 +101,21 @@ fn run_loop<M, E>(mut app: App, mut model: M, update_fn: UpdateFn<M, E>, draw_fn
             // If a window was closed, remove it from the display map.
             if let glutin::WindowEvent::Closed = *event {
                 app.windows.borrow_mut().remove(&window_id);
+            } else {
+
+                // See if the event could be interpreted as a `ui::Input`. If so, submit it to the
+                // `Ui`s associated with this window.
+                if let Some(window) = app.windows.borrow().get(&window_id) {
+                    if let Some(input) = ui::glutin_window_event_to_input(event.clone(), window) {
+                        if let Some(handles) = app.ui.windows.borrow().get(&window_id) {
+                            for handle in handles {
+                                if let Some(ref tx) = handle.input_tx {
+                                    tx.try_send(input.clone()).ok();
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 

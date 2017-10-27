@@ -58,7 +58,7 @@ pub fn finish(Frame { gl_frames }: Frame) -> Result<(), glium::SwapBuffersError>
 }
 
 pub struct WindowFrame<'a> {
-    frame: RefMut<'a, GlFrame>,
+    pub(crate) frame: RefMut<'a, GlFrame>,
 }
 
 impl<'a> Deref for WindowFrame<'a> {
@@ -79,7 +79,7 @@ impl<'a> DerefMut for WindowFrame<'a> {
 /// This is a simple wrapper around the `glium::Frame` type that restricts some undesired
 /// functionality and removes the need for importing the `Surface` trait.
 pub struct GlFrame {
-    frame: glium::Frame,
+    pub(crate) frame: glium::Frame,
 }
 
 impl GlFrame {

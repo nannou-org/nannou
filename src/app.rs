@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use window::{self, Window};
+use ui;
 
 /// An **App** represents the entire context of your application.
 ///
@@ -24,6 +25,7 @@ pub struct App {
     loop_mode: Cell<LoopMode>,
     /// Audio-related functionality.
     pub audio: Audio,
+    pub(crate) ui: ui::Arrangement,
 }
 
 /// An **App**'s audio API.
@@ -138,12 +140,14 @@ impl App {
         let loop_mode = Cell::new(LoopMode::default());
         let cpal_event_loop = Arc::new(cpal::EventLoop::new());
         let audio = Audio { event_loop: cpal_event_loop };
+        let ui = ui::Arrangement::new();
         App {
             events_loop,
             windows,
             exit_on_escape,
             loop_mode,
-            audio
+            audio,
+            ui,
         }
     }
 
@@ -215,6 +219,12 @@ impl App {
         Proxy { events_loop_proxy }
     }
 
+    /// Create a new `Ui` for the window with the given `Id`.
+    ///
+    /// Returns `None` if there is no window for the given `window_id`.
+    pub fn new_ui(&self, window_id: window::Id) -> ui::Builder {
+        ui::Builder::new(self, window_id)
+    }
 }
 
 impl Audio {

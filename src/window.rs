@@ -20,7 +20,7 @@ pub struct Builder<'a, 'b> {
 /// The `Window` acts as a wrapper around the `glium::Display` type, providing a more
 /// nannou-friendly API.
 pub struct Window {
-    pub (super) display: glium::Display,
+    pub (crate) display: glium::Display,
 }
 
 impl<'a, 'b> Builder<'a, 'b> {
