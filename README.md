@@ -43,7 +43,8 @@ by Processing, OpenFrameworks and Cinder, but for Rust. <sup>Named after
     - [x] Windowing & Events (via [winit](https://crates.io/crates/winit) and
       [glutin](https://crates.io/crates/glutin))
     - [ ] Geometry
-    - [ ] GUI
+    - [x] GUI (via [conrod](https://crates.io/crates/conrod), will possibly
+      switch to a native solution in the future).
     - [ ] OSC (via [rosc](https://crates.io/crates/rosc))
     - [ ] Lighting & Lasers (DMX, ILDA)
 - Use only pure-rust libraries. New users should require nothing more than
