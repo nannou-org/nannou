@@ -25,16 +25,12 @@ pub struct App {
     loop_mode: Cell<LoopMode>,
     /// Audio-related functionality.
     pub audio: Audio,
+    pub(crate) ui: ui::Arrangement,
 }
 
 /// An **App**'s audio API.
 pub struct Audio {
     event_loop: Arc<cpal::EventLoop>,
-}
-
-/// An **App**'s graphical user interface API.
-pub struct Ui {
-    arrangement: ui::Arrangmement,
 }
 
 /// A handle to the **App** that can be shared across threads.
@@ -144,12 +140,14 @@ impl App {
         let loop_mode = Cell::new(LoopMode::default());
         let cpal_event_loop = Arc::new(cpal::EventLoop::new());
         let audio = Audio { event_loop: cpal_event_loop };
+        let ui = ui::Arrangement::new();
         App {
             events_loop,
             windows,
             exit_on_escape,
             loop_mode,
-            audio
+            audio,
+            ui,
         }
     }
 
@@ -221,6 +219,12 @@ impl App {
         Proxy { events_loop_proxy }
     }
 
+    /// Create a new `Ui` for the window with the given `Id`.
+    ///
+    /// Returns `None` if there is no window for the given `window_id`.
+    pub fn new_ui(&self, window_id: window::Id) -> ui::Builder {
+        ui::Builder::new(self, window_id)
+    }
 }
 
 impl Audio {
@@ -252,19 +256,6 @@ impl Audio {
             device: None,
             sample_format: PhantomData,
         }
-    }
-}
-
-impl Ui {
-    /// Create a new `Ui` for the window with the given `Id`.
-    ///
-    /// Returns `None` if there is no window for the given `window_id`.
-    pub fn new(&self, window_id: window::Id) -> Option<ui::Ui> {
-        self.window(window_id)
-            .map(|window| {
-                let (display_w, display_h) = display.gl_window().get_inner_size_points().unwrap();
-                let ui_dimensions = [display_w as Scalar, display_h as Scalar];
-            })
     }
 }
 
