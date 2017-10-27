@@ -265,13 +265,13 @@ impl LoopEvent for Event {
     fn from_glutin_event(event: glutin::Event, app: &App) -> Option<Self> {
         let event = match event {
             glutin::Event::WindowEvent { window_id, event } => {
-                let displays = app.displays.borrow();
-                let (dpi_factor, win_w, win_h) = match displays.get(&window_id) {
+                let windows = app.windows.borrow();
+                let (dpi_factor, win_w, win_h) = match windows.get(&window_id) {
                     None => (1.0, 0, 0), // The window was likely closed, these will be ignored.
-                    Some(display) => {
-                        let window = display.gl_window();
+                    Some(window) => {
+                        let window = window.display.gl_window();
                         let dpi_factor = window.hidpi_factor() as f64;
-                        match window.get_inner_size() {
+                        match window.get_inner_size_pixels() {
                             None => (dpi_factor, 0, 0),
                             Some((w, h)) => (dpi_factor, w, h),
                         }

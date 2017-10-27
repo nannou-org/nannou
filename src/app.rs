@@ -1,7 +1,7 @@
 use audio;
 use audio::cpal;
 use find_folder;
-use glium::{self, glutin};
+use glium::glutin;
 use std;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
-use window;
+use window::{self, Window};
 
 /// An **App** represents the entire context of your application.
 ///
@@ -18,8 +18,8 @@ use window;
 /// - the event loop (used to drive the application forward) 
 /// - all OpenGL windows (for graphics and user input, can be referenced via IDs).
 pub struct App {
-    pub(super) events_loop: glutin::EventsLoop,
-    pub(crate) displays: RefCell<HashMap<window::Id, glium::Display>>,
+    pub(crate) events_loop: glutin::EventsLoop,
+    pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
     pub(super) exit_on_escape: Cell<bool>,
     loop_mode: Cell<LoopMode>,
     /// Audio-related functionality.
@@ -133,14 +133,14 @@ impl App {
 
     // Create a new `App`.
     pub(super) fn new(events_loop: glutin::EventsLoop) -> Self {
-        let displays = RefCell::new(HashMap::new());
+        let windows = RefCell::new(HashMap::new());
         let exit_on_escape = Cell::new(Self::DEFAULT_EXIT_ON_ESCAPE);
         let loop_mode = Cell::new(LoopMode::default());
         let cpal_event_loop = Arc::new(cpal::EventLoop::new());
         let audio = Audio { event_loop: cpal_event_loop };
         App {
             events_loop,
-            displays,
+            windows,
             exit_on_escape,
             loop_mode,
             audio
@@ -168,7 +168,17 @@ impl App {
 
     /// The number of windows currently in the application.
     pub fn window_count(&self) -> usize {
-        self.displays.borrow().len()
+        self.windows.borrow().len()
+    }
+
+    /// A reference to the window with the given `Id`.
+    pub fn window(&self, id: window::Id) -> Option<std::cell::Ref<Window>> {
+        let windows = self.windows.borrow();
+        if !windows.contains_key(&id) {
+            None
+        } else {
+            Some(std::cell::Ref::map(windows, |ws| &ws[&id]))
+        }
     }
 
     /// Return whether or not the `App` is currently set to exit when the `Escape` key is pressed.

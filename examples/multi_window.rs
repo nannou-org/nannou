@@ -13,9 +13,9 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let a = app.new_window().build().unwrap();
-    let b = app.new_window().build().unwrap();
-    let c = app.new_window().build().unwrap();
+    let a = app.new_window().with_title("window a").build().unwrap();
+    let b = app.new_window().with_title("window b").build().unwrap();
+    let c = app.new_window().with_title("window c").build().unwrap();
     Model { a, b, c }
 }
 
