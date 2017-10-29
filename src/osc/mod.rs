@@ -72,6 +72,27 @@ impl Into<rosc::OscPacket> for Packet {
     }
 }
 
+impl Packet {
+    /// A recursive function that unfolds the packet into the end of the given buffer of messages.
+    pub fn unfold(self, msgs: &mut Vec<Message>) {
+        match self {
+            Packet::Message(msg) => msgs.push(msg),
+            Packet::Bundle(bundle) => for packet in bundle.content {
+                Packet::unfold(packet.into(), msgs);
+            },
+        }
+    }
+
+    /// Convert the `Packet` into a Vec containing all `Message`s contained within.
+    ///
+    /// This uses the `unfold` method internally.
+    pub fn into_msgs(self) -> Vec<Message> {
+        let mut msgs = vec![];
+        self.unfold(&mut msgs);
+        msgs
+    }
+}
+
 /// The default local IP address.
 pub fn default_ipv4_addr() -> Ipv4Addr {
     Ipv4Addr::new(127, 0, 0, 1)
