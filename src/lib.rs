@@ -22,6 +22,7 @@ mod frame;
 pub mod window;
 pub mod image;
 pub mod math;
+pub mod osc;
 pub mod prelude;
 pub mod ui;
 
