@@ -2,8 +2,8 @@ pub extern crate conrod;
 
 pub use self::conrod::{backend, color, cursor, event, graph, image, input, scroll, text, theme,
                        utils, widget};
-pub use self::conrod::{Bordering, Borderable, Colorable, Dimensions, FontSize, Labelable, Point,
-                       Positionable, Range, Rect, Scalar, Sizeable, Theme, UiCell, Widget};
+pub use self::conrod::{Bordering, Borderable, Color, Colorable, Dimensions, FontSize, Labelable,
+                       Point, Positionable, Range, Rect, Scalar, Sizeable, Theme, UiCell, Widget};
 pub use self::conrod::event::Input;
 
 /// Simplify inclusion of common traits with a `nannou::ui::prelude` module.
@@ -301,6 +301,15 @@ impl Ui {
     /// This allows for making changes to the active theme.
     pub fn theme_mut(&mut self) -> &mut Theme {
         &mut self.ui.theme
+    }
+
+    /// The first of the `Primitives` yielded by `Ui::draw` will always be a `Rectangle` the size
+    /// of the window in which the Ui is instantiated.
+    ///
+    /// This method sets the colour with which this `Rectangle` is drawn (the default being
+    /// `color::TRANSPARENT`).
+    pub fn clear_with(&mut self, color: Color) {
+        self.ui.clear_with(color)
     }
 
     /// Draws the current state of the `Ui` to the given `Frame`.
