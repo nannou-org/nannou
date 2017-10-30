@@ -258,6 +258,11 @@ impl Ui {
     ///
     /// This method *drives* the **Ui** forward and interprets input into higher-level events (like
     /// clicks and drags) for widgets.
+    ///
+    /// Note: By default, this will be called automatically by the nannou `App`, so most of the
+    /// time you should not need to call this (otherwise received inputs may double up). This
+    /// method is particularly useful in the case that automatic input handling has been disabled,
+    /// as this can be used to manually submit inputs.
     pub fn handle_input(&mut self, input: Input) {
         self.ui.handle_event(input)
     }

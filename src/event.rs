@@ -10,6 +10,7 @@ pub use glium::glutin::{ElementState, KeyboardInput, MouseButton, MouseScrollDel
 
 /// Event types that are compatible with the nannou app loop.
 pub trait LoopEvent: From<Update> {
+    /// Produce a loop event from the given glutin event.
     fn from_glutin_event(glutin::Event, &App) -> Option<Self>;
 }
 
