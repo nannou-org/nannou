@@ -315,7 +315,7 @@ impl<M> Output<M> {
         // spawning another thread for each stream.
 
         // If the thread is currently paused, take the lock and immediately apply it as we know
-        // there will be no contention.
+        // there will be no contention with the audio thread.
         if self.is_paused {
             if let Ok(mut guard) = self.model.lock() {
                 let mut model = guard.take().unwrap();
