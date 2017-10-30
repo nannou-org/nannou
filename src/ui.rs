@@ -1,7 +1,7 @@
 pub extern crate conrod;
 
-pub use self::conrod::{backend, color, cursor, event, graph, image, input, scroll, text, theme,
-                       utils, widget};
+pub use self::conrod::{backend, color, cursor, event, graph, image, input, position, scroll, text,
+                       theme, utils, widget};
 pub use self::conrod::{Bordering, Borderable, Color, Colorable, Dimensions, FontSize, Labelable,
                        Point, Positionable, Range, Rect, Scalar, Sizeable, Theme, UiCell, Widget};
 pub use self::conrod::event::Input;
@@ -14,7 +14,7 @@ pub mod prelude {
     pub use super::{Bordering, Dimensions, FontSize, Input, Point, Range, Rect, Scalar, Theme, Ui,
                     UiCell};
     // Modules.
-    pub use super::{color, image, text, widget};
+    pub use super::{color, image, position, text, widget};
 }
 
 use App;
