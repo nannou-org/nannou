@@ -13,7 +13,6 @@ pub trait RenderFn<M, S>: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
 impl<M, S, F> RenderFn<M, S> for F where F: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
 
 /// A handle around an output audio stream.
-#[derive(Clone)]
 pub struct Output<M> {
     /// The user's audio model
     model: Arc<Mutex<Option<M>>>,
@@ -25,6 +24,19 @@ pub struct Output<M> {
     update_tx: mpsc::Sender<Box<super::UpdateFn<M>>>,
     /// Whether or not the stream is currently paused.
     is_paused: bool,
+}
+
+// Manually implement `Clone` to avoid requiring that `M: Clone`.
+impl<M> Clone for Output<M> {
+    fn clone(&self) -> Self {
+        Output {
+            model: self.model.clone(),
+            voice_id: self.voice_id.clone(),
+            event_loop: self.event_loop.clone(),
+            update_tx: self.update_tx.clone(),
+            is_paused: self.is_paused,
+        }
+    }
 }
 
 pub struct Builder<M, F, S=f32> {
