@@ -29,19 +29,67 @@ pub mod ui;
 pub type ModelFn<Model> = fn(&App) -> Model;
 pub type UpdateFn<Model, Event> = fn(&App, Model, Event) -> Model;
 pub type DrawFn<Model> = fn(&App, &Model, Frame) -> Frame;
+pub type ExitFn<Model> = fn(&App, Model);
 
-/// Runs the nannou application!
+/// Begin building a nannou App.
+///
+/// Every nannou App must have `model`, `update` and `draw` functions.
+///
+/// An `exit` function can be optionally specified using the `exit` builder method.
+pub fn app<M, E>(model: ModelFn<M>, update: UpdateFn<M, E>, draw: DrawFn<M>) -> Builder<M, E>
+    where E: LoopEvent,
+{
+    let exit = None;
+    Builder { model, update, draw, exit }
+}
+
+/// A nannou application builder.
+pub struct Builder<M, E> {
+    model: ModelFn<M>,
+    update: UpdateFn<M, E>,
+    draw: DrawFn<M>,
+    exit: Option<ExitFn<M>>,
+}
+
+impl<M, E> Builder<M, E>
+    where E: LoopEvent,
+{
+    /// Specify an `exit` function to be called when the application exits.
+    ///
+    /// The exit function gives ownership of the model back to the user.
+    pub fn exit(mut self, exit: ExitFn<M>) -> Self {
+        self.exit = Some(exit);
+        self
+    }
+
+    /// Creates and runs the nannou `App`.
+    pub fn run(self) {
+        let Builder { model, update, draw, exit } = self;
+        let events_loop = glutin::EventsLoop::new();
+        let app = App::new(events_loop);
+        let model = model(&app);
+        run_loop(app, model, update, draw, exit)
+    }
+}
+
+/// A simple function for creating and running a nannou `App`!
+///
+/// Calling this is just like calling `nannou::app(model, update, draw).run()`.
 pub fn run<M, E>(model: ModelFn<M>, update: UpdateFn<M, E>, draw: DrawFn<M>)
     where E: LoopEvent,
 {
-    let events_loop = glutin::EventsLoop::new();
-    let app = App::new(events_loop);
-    let model = model(&app);
-    run_loop(app, model, update, draw)
+    app(model, update, draw).run()
 }
 
-fn run_loop<M, E>(mut app: App, mut model: M, update_fn: UpdateFn<M, E>, draw_fn: DrawFn<M>)
-    where E: LoopEvent,
+fn run_loop<M, E>(
+    mut app: App,
+    mut model: M,
+    update_fn: UpdateFn<M, E>,
+    draw_fn: DrawFn<M>,
+    exit_fn: Option<ExitFn<M>>,
+)
+where
+    E: LoopEvent,
 {
     // A function to re-use when drawing for each of the loop modes.
     fn draw<M>(app: &App, model: &M, draw_fn: DrawFn<M>) -> Result<(), glium::SwapBuffersError> {
@@ -240,5 +288,10 @@ fn run_loop<M, E>(mut app: App, mut model: M, update_fn: UpdateFn<M, E>, draw_fn
             // Loop mode is always `Some` after the beginning of the `'main` loop.
             None => unreachable!(),
         }
+    }
+
+    // Emit an application exit event.
+    if let Some(exit_fn) = exit_fn {
+        exit_fn(&app, model);
     }
 }
