@@ -6,7 +6,6 @@ use std;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
-use std::thread;
 
 // TODO: For some reason using the render function in the cpal event loop requires it to be
 // Sync, but I don't think this should really be necessary.
@@ -14,6 +13,7 @@ pub trait RenderFn<M, S>: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
 impl<M, S, F> RenderFn<M, S> for F where F: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
 
 /// A handle around an output audio stream.
+#[derive(Clone)]
 pub struct Output<M> {
     /// The user's audio model
     model: Arc<Mutex<Option<M>>>,
@@ -25,8 +25,6 @@ pub struct Output<M> {
     update_tx: mpsc::Sender<Box<super::UpdateFn<M>>>,
     /// Whether or not the stream is currently paused.
     is_paused: bool,
-    /// A handle to the audio stream thread.
-    stream_thread: thread::JoinHandle<()>,
 }
 
 pub struct Builder<M, F, S=f32> {
@@ -180,7 +178,7 @@ impl<M, F, S> Builder<M, F, S> {
         let num_channels = format.channels.len();
         let sample_rate = format.samples_rate.0;
 
-        let stream_thread = std::thread::Builder::new()
+        std::thread::Builder::new()
             .name(format!("cpal audio output stream: {}", endpoint.name()))
             .spawn(move || {
                 // A buffer for collecting model updates.
@@ -258,7 +256,6 @@ impl<M, F, S> Builder<M, F, S> {
             event_loop,
             update_tx,
             is_paused: true,
-            stream_thread,
         };
         Ok(output)
     }
@@ -318,7 +315,7 @@ impl<M> Output<M> {
         // spawning another thread for each stream.
 
         // If the thread is currently paused, take the lock and immediately apply it as we know
-        // there will be no contention.
+        // there will be no contention with the audio thread.
         if self.is_paused {
             if let Ok(mut guard) = self.model.lock() {
                 let mut model = guard.take().unwrap();
