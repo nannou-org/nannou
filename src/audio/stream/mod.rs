@@ -18,4 +18,4 @@ pub mod duplex {}
 pub const DEFAULT_SAMPLE_RATE: u32 = 44_100;
 
 /// The type of function accepted for model updates.
-pub type UpdateFn<M> = FnMut(&mut M) + Send + 'static;
+pub type UpdateFn<M> = FnOnce(&mut M) + Send + 'static;

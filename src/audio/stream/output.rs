@@ -21,7 +21,7 @@ pub struct Output<M> {
     /// A handle to the CPAL audio event loop.
     event_loop: Arc<cpal::EventLoop>,
     /// A channel for sending model updates to the audio thread.
-    update_tx: mpsc::Sender<Box<super::UpdateFn<M>>>,
+    update_tx: mpsc::Sender<Box<FnMut(&mut M) + 'static + Send>>,
     /// Whether or not the stream is currently paused.
     is_paused: bool,
 }
@@ -194,7 +194,7 @@ impl<M, F, S> Builder<M, F, S> {
             .name(format!("cpal audio output stream: {}", endpoint.name()))
             .spawn(move || {
                 // A buffer for collecting model updates.
-                let mut pending_updates: Vec<Box<super::UpdateFn<M>>> = Vec::new();
+                let mut pending_updates: Vec<Box<FnMut(&mut M) + 'static + Send>> = Vec::new();
 
                 // Get the specified frames_per_buffer or fall back to a default.
                 let frames_per_buffer = frames_per_buffer.unwrap_or(Buffer::<S>::DEFAULT_LEN_FRAMES);
@@ -314,9 +314,9 @@ impl<M> Output<M> {
     /// **Note:** This function will be applied on the real-time audio thread so users should
     /// avoid performing any kind of I/O, locking, blocking, (de)allocations or anything that
     /// may run for an indeterminate amount of time.
-    pub fn send<F>(&self, mut update: F)
+    pub fn send<F>(&self, update: F)
         -> Result<(), mpsc::SendError<Box<FnMut(&mut M) + Send + 'static>>>
-        where F: FnMut(&mut M) + Send + 'static,
+        where F: FnOnce(&mut M) + Send + 'static,
     {
         // NOTE: The following code may mean that on extremely rare occasions an update does
         // not get applied for an indeterminate amount of time. This might be the case if a
@@ -336,7 +336,17 @@ impl<M> Output<M> {
             }
         // Otherwise send the update to the audio thread.
         } else {
-            self.update_tx.send(Box::new(update))?;
+            // Move the `FnOnce` into a `FnMut` closure so that it can be called when it gets to
+            // the audio thread. We do this as it's currently not possible to call a `Box<FnOnce>`,
+            // as `FnOnce`'s `call` method takes `self` by value and thus is technically not object
+            // safe.
+            let mut update_opt = Some(update);
+            let update_fn = move |audio: &mut M| {
+                if let Some(update) = update_opt.take() {
+                    update(audio);
+                }
+            };
+            self.update_tx.send(Box::new(update_fn))?;
         }
 
         Ok(())
