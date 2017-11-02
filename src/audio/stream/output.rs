@@ -3,8 +3,10 @@ use audio::Requester;
 use audio::cpal;
 use audio::sample::{Sample, ToSample};
 use std;
+use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{self, AtomicBool};
 use std::sync::mpsc;
 
 // TODO: For some reason using the render function in the cpal event loop requires it to be
@@ -12,35 +14,43 @@ use std::sync::mpsc;
 pub trait RenderFn<M, S>: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
 impl<M, S, F> RenderFn<M, S> for F where F: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
 
-/// A handle around an output audio stream.
+/// A clone-able handle around an output audio stream.
 pub struct Output<M> {
+    /// A channel for sending model updates to the audio thread.
+    update_tx: mpsc::Sender<Box<FnMut(&mut M) + 'static + Send>>,
+    /// A channel used for sending through a new buffer processing callback to the event loop.
+    process_fn_tx: mpsc::Sender<ProcessFnMsg>,
+    /// Data shared between each `Output` handle to a single stream.
+    shared: Arc<Shared<M>>,
+}
+
+impl<M> Clone for Output<M> {
+    fn clone(&self) -> Self {
+        let update_tx = self.update_tx.clone();
+        let process_fn_tx = self.process_fn_tx.clone();
+        let shared = self.shared.clone();
+        Output { update_tx, process_fn_tx, shared }
+    }
+}
+
+// Data shared between each `Output` handle to a single stream.
+struct Shared<M> {
     /// The user's audio model
     model: Arc<Mutex<Option<M>>>,
     /// A unique ID associated with this stream's "voice" on the cpal EventLoop.
     voice_id: cpal::VoiceId,
     /// A handle to the CPAL audio event loop.
     event_loop: Arc<cpal::EventLoop>,
-    /// A channel for sending model updates to the audio thread.
-    update_tx: mpsc::Sender<Box<FnMut(&mut M) + 'static + Send>>,
     /// Whether or not the stream is currently paused.
-    is_paused: bool,
+    is_paused: AtomicBool,
 }
 
-// Manually implement `Clone` to avoid requiring that `M: Clone`.
-impl<M> Clone for Output<M> {
-    fn clone(&self) -> Self {
-        Output {
-            model: self.model.clone(),
-            voice_id: self.voice_id.clone(),
-            event_loop: self.event_loop.clone(),
-            update_tx: self.update_tx.clone(),
-            is_paused: self.is_paused,
-        }
-    }
-}
+pub(crate) type ProcessFn = FnMut(cpal::UnknownTypeBuffer) + 'static + Send;
+pub(crate) type ProcessFnMsg = (cpal::VoiceId, Box<ProcessFn>);
 
 pub struct Builder<M, F, S=f32> {
     pub(crate) event_loop: Arc<cpal::EventLoop>,
+    pub(crate) process_fn_tx: mpsc::Sender<ProcessFnMsg>,
     pub model: M,
     pub render: F,
     pub sample_rate: Option<u32>,
@@ -58,6 +68,47 @@ pub struct Devices {
 /// A device that can be used to spawn an output audio stream.
 pub struct Device {
     pub(crate) endpoint: cpal::Endpoint,
+}
+
+// State that is updated and run on the `cpal::EventLoop::run` thread.
+pub(crate) struct LoopContext {
+    // A channel for receiving callback functions for newly spawned voices.
+    process_fn_rx: mpsc::Receiver<ProcessFnMsg>,
+    // A map from VoiceIds to their associated buffer processing functions.
+    process_fns: HashMap<cpal::VoiceId, Box<ProcessFn>>,
+}
+
+impl LoopContext {
+    /// Create a new loop context.
+    pub fn new(process_fn_rx: mpsc::Receiver<ProcessFnMsg>) -> Self {
+        let process_fns = HashMap::new();
+        LoopContext { process_fn_rx, process_fns }
+    }
+
+    /// Process the given buffer with the voice at the given ID.
+    pub fn process(&mut self, voice_id: cpal::VoiceId, mut buffer: cpal::UnknownTypeBuffer) {
+        // Collect any pending voice process fns.
+        for (voice_id, proc_fn) in self.process_fn_rx.try_iter() {
+            self.process_fns.insert(voice_id, proc_fn);
+        }
+
+        // Process the buffer using the voice at the given ID.
+        if let Some(proc_fn) = self.process_fns.get_mut(&voice_id) {
+            proc_fn(buffer);
+        // If there is not yet a buffer processing function, just silence the buffer.
+        } else {
+            fn silence<S: Sample>(slice: &mut [S]) {
+                for sample in slice {
+                    *sample = S::equilibrium();
+                }
+            }
+            match buffer {
+                cpal::UnknownTypeBuffer::U16(ref mut buffer) => silence(buffer),
+                cpal::UnknownTypeBuffer::I16(ref mut buffer) => silence(buffer),
+                cpal::UnknownTypeBuffer::F32(ref mut buffer) => silence(buffer),
+            }
+        }
+    }
 }
 
 impl Iterator for Devices {
@@ -142,12 +193,13 @@ impl<M, F, S> Builder<M, F, S> {
     }
 
     pub fn build(self) -> Result<Output<M>, BuildError>
-        where S: Sample + ToSample<u16> + ToSample<i16> + ToSample<f32>,
+        where S: 'static + Send + Sample + ToSample<u16> + ToSample<i16> + ToSample<f32>,
               M: 'static + Send,
               F: 'static + RenderFn<M, S> + Send,
     {
         let Builder {
             event_loop,
+            process_fn_tx,
             model,
             render,
             sample_rate,
@@ -186,90 +238,113 @@ impl<M, F, S> Builder<M, F, S> {
         let (update_tx, update_rx) = mpsc::channel();
         let model = Arc::new(Mutex::new(Some(model)));
         let model_2 = model.clone();
-        let event_loop_2 = event_loop.clone();
         let num_channels = format.channels.len();
         let sample_rate = format.samples_rate.0;
 
-        std::thread::Builder::new()
-            .name(format!("cpal audio output stream: {}", endpoint.name()))
-            .spawn(move || {
-                // A buffer for collecting model updates.
-                let mut pending_updates: Vec<Box<FnMut(&mut M) + 'static + Send>> = Vec::new();
+        // A buffer for collecting model updates.
+        let mut pending_updates: Vec<Box<FnMut(&mut M) + 'static + Send>> = Vec::new();
 
-                // Get the specified frames_per_buffer or fall back to a default.
-                let frames_per_buffer = frames_per_buffer.unwrap_or(Buffer::<S>::DEFAULT_LEN_FRAMES);
+        // Get the specified frames_per_buffer or fall back to a default.
+        let frames_per_buffer = frames_per_buffer.unwrap_or(Buffer::<S>::DEFAULT_LEN_FRAMES);
 
-                // An audio requester which requests frames from the model+render pair with a
-                // specific buffer size, regardless of the buffer size requested by the OS.
-                let mut requester = Requester::new(frames_per_buffer, num_channels);
+        // An audio requester which requests frames from the model+render pair with a
+        // specific buffer size, regardless of the buffer size requested by the OS.
+        let mut requester = Requester::new(frames_per_buffer, num_channels);
 
-                // An intermediary buffer for converting cpal samples to the target sample
-                // format.
-                let mut samples = vec![S::equilibrium(); frames_per_buffer * num_channels];
+        // An intermediary buffer for converting cpal samples to the target sample
+        // format.
+        let mut samples = vec![S::equilibrium(); frames_per_buffer * num_channels];
 
-                // Run the loop, in turn blocking the thread.
-                event_loop_2.run(move |_voice_id, mut output| {
+        // The function used to process a buffer of samples.
+        let proc_output = move |mut output: cpal::UnknownTypeBuffer| {
 
-                    // Collect and process any pending updates.
-                    macro_rules! process_pending_updates {
-                        () => {
-                            // Collect any pending updates.
-                            pending_updates.extend(update_rx.try_iter());
+            // Collect and process any pending updates.
+            macro_rules! process_pending_updates {
+                () => {
+                    // Collect any pending updates.
+                    pending_updates.extend(update_rx.try_iter());
 
-                            // If there are some updates available, take the lock and apply them.
-                            if !pending_updates.is_empty() {
-                                if let Ok(mut guard) = model_2.lock() {
-                                    let mut model = guard.take().unwrap();
-                                    for mut update in pending_updates.drain(..) {
-                                        update(&mut model);
-                                    }
-                                    *guard = Some(model);
-                                }
+                    // If there are some updates available, take the lock and apply them.
+                    if !pending_updates.is_empty() {
+                        if let Ok(mut guard) = model_2.lock() {
+                            let mut model = guard.take().unwrap();
+                            for mut update in pending_updates.drain(..) {
+                                update(&mut model);
                             }
-                        };
-                    }
-
-                    process_pending_updates!();
-
-                    samples.clear();
-                    samples.resize(output.len(), S::equilibrium());
-                    if let Ok(mut guard) = model_2.lock() {
-                        let mut m = guard.take().unwrap();
-                        m = requester.fill_buffer(m, &render, &mut samples, num_channels, sample_rate);
-                        *guard = Some(m);
-                    }
-
-                    // A function to simplify filling the unknown buffer type.
-                    fn fill_output<O, S>(output: &mut [O], buffer: &[S])
-                    where
-                        O: Sample,
-                        S: Sample + ToSample<O>,
-                    {
-                        for (out_sample, sample) in output.iter_mut().zip(buffer) {
-                            *out_sample = sample.to_sample();
+                            *guard = Some(model);
                         }
                     }
+                };
+            }
 
-                    // Process the given buffer.
-                    match output {
-                        cpal::UnknownTypeBuffer::U16(ref mut buffer) => fill_output(buffer, &samples),
-                        cpal::UnknownTypeBuffer::I16(ref mut buffer) => fill_output(buffer, &samples),
-                        cpal::UnknownTypeBuffer::F32(ref mut buffer) => fill_output(buffer, &samples),
-                    }
+            process_pending_updates!();
 
-                    process_pending_updates!();
-                })
-            })
-            .expect("Failed to spawn thread for cpal audio output stream");
+            samples.clear();
+            samples.resize(output.len(), S::equilibrium());
 
-        let output = Output {
+            if let Ok(mut guard) = model_2.lock() {
+                let mut m = guard.take().unwrap();
+                m = requester.fill_buffer(m, &render, &mut samples, num_channels, sample_rate);
+                *guard = Some(m);
+            }
+
+            // A function to simplify filling the unknown buffer type.
+            fn fill_output<O, S>(output: &mut [O], buffer: &[S])
+            where
+                O: Sample,
+                S: Sample + ToSample<O>,
+            {
+                for (out_sample, sample) in output.iter_mut().zip(buffer) {
+                    *out_sample = sample.to_sample();
+                }
+            }
+
+            // Process the given buffer.
+            match output {
+                cpal::UnknownTypeBuffer::U16(ref mut buffer) => fill_output(buffer, &samples),
+                cpal::UnknownTypeBuffer::I16(ref mut buffer) => fill_output(buffer, &samples),
+                cpal::UnknownTypeBuffer::F32(ref mut buffer) => fill_output(buffer, &samples),
+            }
+
+            process_pending_updates!();
+        };
+
+        // Send the buffer processing function to the event loop.
+        process_fn_tx.send((voice_id.clone(), Box::new(proc_output))).unwrap();
+
+        let shared = Arc::new(Shared {
             model,
             voice_id,
             event_loop,
+            is_paused: AtomicBool::new(false),
+        });
+
+        let output = Output {
+            shared,
+            process_fn_tx,
             update_tx,
-            is_paused: true,
         };
         Ok(output)
+    }
+}
+
+impl<M> Shared<M> {
+    fn play(&self) {
+        self.event_loop.play(self.voice_id.clone());
+        self.is_paused.store(false, atomic::Ordering::Relaxed);
+    }
+
+    fn pause(&self) {
+        self.is_paused.store(true, atomic::Ordering::Relaxed);
+        self.event_loop.pause(self.voice_id.clone());
+    }
+
+    fn is_playing(&self) -> bool {
+        !self.is_paused.load(atomic::Ordering::Relaxed)
+    }
+
+    fn is_paused(&self) -> bool {
+        self.is_paused.load(atomic::Ordering::Relaxed)
     }
 }
 
@@ -279,9 +354,8 @@ impl<M> Output<M> {
     /// Calling this will activate rendering, in turn calling the given audio render function.
     ///
     /// Has no effect if the stream is already playing.
-    pub fn play(&mut self) {
-        self.event_loop.play(self.voice_id.clone());
-        self.is_paused = false;
+    pub fn play(&self) {
+        self.shared.play()
     }
 
     /// Command the audio device to stop playback.
@@ -289,19 +363,18 @@ impl<M> Output<M> {
     /// Calling this will pause rendering, in turn .
     ///
     /// Has no effect is the voice was already paused.
-    pub fn pause(&mut self) {
-        self.is_paused = true;
-        self.event_loop.pause(self.voice_id.clone());
+    pub fn pause(&self) {
+        self.shared.pause()
     }
 
     /// Whether or not the stream is currently playing.
     pub fn is_playing(&self) -> bool {
-        !self.is_paused
+        self.shared.is_playing()
     }
 
     /// Whether or not the stream is currently paused.
     pub fn is_paused(&self) -> bool {
-        self.is_paused
+        self.shared.is_paused()
     }
 
     /// Send the given model update to the audio thread to be applied ASAP.
@@ -328,8 +401,8 @@ impl<M> Output<M> {
 
         // If the thread is currently paused, take the lock and immediately apply it as we know
         // there will be no contention with the audio thread.
-        if self.is_paused {
-            if let Ok(mut guard) = self.model.lock() {
+        if self.shared.is_paused.load(atomic::Ordering::Relaxed) {
+            if let Ok(mut guard) = self.shared.model.lock() {
                 let mut model = guard.take().unwrap();
                 update(&mut model);
                 *guard = Some(model);
@@ -353,7 +426,7 @@ impl<M> Output<M> {
     }
 }
 
-impl<M> Drop for Output<M> {
+impl<M> Drop for Shared<M> {
     fn drop(&mut self) {
         if self.is_playing() {
             self.pause();

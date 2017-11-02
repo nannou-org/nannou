@@ -7,7 +7,8 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{mpsc, Arc};
+use std::thread;
 use std::time::Duration;
 use window::{self, Window};
 use ui;
@@ -31,6 +32,7 @@ pub struct App {
 /// An **App**'s audio API.
 pub struct Audio {
     event_loop: Arc<cpal::EventLoop>,
+    process_fn_tx: RefCell<Option<mpsc::Sender<audio::stream::output::ProcessFnMsg>>>,
 }
 
 /// A handle to the **App** that can be shared across threads.
@@ -139,7 +141,8 @@ impl App {
         let exit_on_escape = Cell::new(Self::DEFAULT_EXIT_ON_ESCAPE);
         let loop_mode = Cell::new(LoopMode::default());
         let cpal_event_loop = Arc::new(cpal::EventLoop::new());
-        let audio = Audio { event_loop: cpal_event_loop };
+        let process_fn_tx = RefCell::new(None);
+        let audio = Audio { event_loop: cpal_event_loop, process_fn_tx };
         let ui = ui::Arrangement::new();
         App {
             events_loop,
@@ -243,11 +246,29 @@ impl Audio {
     }
 
     /// Begin building a new output audio stream.
+    ///
+    /// The first time this is called, this method will spawn the `cpal::EventLoop::run` method on
+    /// its own thread, ready to run built `Voice`s.
     pub fn new_output_stream<M, F, S>(&self, model: M, render: F)
         -> audio::stream::output::Builder<M, F, S>
     {
+        let process_fn_tx = if self.process_fn_tx.borrow().is_none() {
+            let event_loop = self.event_loop.clone();
+            let (tx, rx) = mpsc::channel();
+            let mut loop_context = audio::stream::output::LoopContext::new(rx);
+            thread::Builder::new()
+                .name("cpal::EventLoop::run thread".into())
+                .spawn(move || event_loop.run(move |v_id, out| loop_context.process(v_id, out)))
+                .expect("failed to spawn cpal::EventLoop::run thread");
+            *self.process_fn_tx.borrow_mut() = Some(tx.clone());
+            tx
+        } else {
+            self.process_fn_tx.borrow().as_ref().unwrap().clone()
+        };
+
         audio::stream::output::Builder {
             event_loop: self.event_loop.clone(),
+            process_fn_tx: process_fn_tx,
             model,
             render,
             sample_rate: None,
