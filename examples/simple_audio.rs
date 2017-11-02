@@ -44,7 +44,7 @@ fn model(app: &App) -> Model {
     Model { window, stream }
 }
 
-fn update(_app: &App, mut model: Model, event: Event) -> Model {
+fn update(_app: &App, model: Model, event: Event) -> Model {
     match event {
         Event::WindowEvent { simple: Some(event), .. } => match event {
 
