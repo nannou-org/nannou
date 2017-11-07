@@ -10,7 +10,7 @@ repository = "https://github.com/MindBuffer/nannou.git"
 homepage = "https://github.com/MindBuffer/nannou"
 
 [dependencies]
-cgmath = "0.15"
+cgmath = { version = "0.15", features = ["serde"] }
 conrod = { version = "0.56", features = ["winit", "glium"] }
 cpal = "0.5"
 find_folder = "0.3"
