@@ -23,6 +23,8 @@ pub struct Output<M> {
     process_fn_tx: mpsc::Sender<ProcessFnMsg>,
     /// Data shared between each `Output` handle to a single stream.
     shared: Arc<Shared<M>>,
+    /// The format with which the stream was created.
+    cpal_format: cpal::Format,
 }
 
 impl<M> Clone for Output<M> {
@@ -30,7 +32,8 @@ impl<M> Clone for Output<M> {
         let update_tx = self.update_tx.clone();
         let process_fn_tx = self.process_fn_tx.clone();
         let shared = self.shared.clone();
-        Output { update_tx, process_fn_tx, shared }
+        let cpal_format = self.cpal_format.clone();
+        Output { update_tx, process_fn_tx, shared, cpal_format }
     }
 }
 
@@ -398,6 +401,7 @@ impl<M, F, S> Builder<M, F, S> {
             shared,
             process_fn_tx,
             update_tx,
+            cpal_format: format,
         };
         Ok(output)
     }
@@ -498,6 +502,16 @@ impl<M> Output<M> {
         }
 
         Ok(())
+    }
+
+    /// The format with which the inner CPAL stream was created.
+    ///
+    /// This **should** match the actual stream format that is running. If not, there may be a bug
+    /// in CPAL. However, note that if the `sample_format` does not match, this just means that
+    /// `nannou` is doing a conversion behind the scenes as the hardware itself does not support
+    /// the target format.
+    pub fn cpal_format(&self) -> &cpal::Format {
+        &self.cpal_format
     }
 }
 
