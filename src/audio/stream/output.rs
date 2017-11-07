@@ -3,6 +3,7 @@ use audio::Requester;
 use audio::cpal;
 use audio::sample::{Sample, ToSample};
 use std;
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
@@ -197,6 +198,63 @@ impl<M, F, S> Builder<M, F, S> {
               M: 'static + Send,
               F: 'static + RenderFn<M, S> + Send,
     {
+        // Checks if the target format has a CPAL sample format equivalent.
+        //
+        // If so, we can use the sample format to target a stream format that already has a
+        // matchingn sample format.
+        //
+        // Otherwise we'll just fall back to the default sample format and do a conversionn.
+        fn cpal_sample_format<S: Any>() -> Option<cpal::SampleFormat> {
+            let type_id = TypeId::of::<S>();
+            if type_id == TypeId::of::<f32>() {
+                Some(cpal::SampleFormat::F32)
+            } else if type_id == TypeId::of::<i16>() {
+                Some(cpal::SampleFormat::I16)
+            } else if type_id == TypeId::of::<u16>() {
+                Some(cpal::SampleFormat::U16)
+            } else {
+                None
+            }
+        }
+
+        // If the target params match the given `SupportedFormat`, returns the matching format.
+        fn matching_format(
+            mut supported_format: cpal::SupportedFormat,
+            sample_format: Option<cpal::SampleFormat>,
+            channels: Option<usize>,
+            sample_rate: Option<cpal::SamplesRate>,
+        ) -> Option<cpal::Format>
+        {
+            // Check for a matching sample format.
+            if let Some(sample_format) = sample_format {
+                if supported_format.data_type != sample_format {
+                    return None;
+                }
+            }
+            // Check for a matching number of channels.
+            //
+            // If there are more than enough channels, truncate the `SupportedFormat` to match.
+            if let Some(channels) = channels {
+                if supported_format.channels.len() < channels {
+                    return None;
+                } else if supported_format.channels.len() > channels {
+                    supported_format.channels.truncate(channels);
+                }
+            }
+            // Check the sample rate.
+            if let Some(sample_rate) = sample_rate {
+                if supported_format.min_samples_rate > sample_rate
+                || supported_format.max_samples_rate < sample_rate
+                {
+                    return None;
+                }
+                let mut format = supported_format.with_max_samples_rate();
+                format.samples_rate = sample_rate;
+                return Some(format);
+            }
+            Some(supported_format.with_max_samples_rate())
+        }
+
         let Builder {
             event_loop,
             process_fn_tx,
@@ -209,30 +267,47 @@ impl<M, F, S> Builder<M, F, S> {
             ..
         } = self;
 
+        let mut sample_rate = sample_rate
+            .map(|sr| cpal::SamplesRate(sr))
+            .or(Some(cpal::SamplesRate(super::DEFAULT_SAMPLE_RATE)));
+        let mut sample_format = cpal_sample_format::<S>();
+
         let endpoint = match device {
             None => cpal::default_endpoint().ok_or(BuildError::DefaultDevice)?,
             Some(Device { endpoint }) => endpoint,
         };
 
-        let supported_format = endpoint
-            .supported_formats()?
-            .next()
-            .expect("Failed to get any output device stream formats");
-        let min_sample_rate = supported_format.min_samples_rate;
-        let max_sample_rate = supported_format.max_samples_rate;
-        let mut format = supported_format.with_max_samples_rate();
+        // Find the best matching format.
+        let format = 'find_format: loop {
+            {
+                let mut sample_formats = endpoint
+                    .supported_formats()?
+                    .filter_map(|fmt| matching_format(fmt, sample_format, channels, sample_rate));
 
-        if let Some(ch) = channels {
-            format.channels.resize(ch, cpal::ChannelPosition::FrontLeft);
-        }
-        if let Some(sr) = sample_rate {
-            format.samples_rate = cpal::SamplesRate(sr);
-        } else {
-            let default = cpal::SamplesRate(super::DEFAULT_SAMPLE_RATE);
-            if default <= max_sample_rate && default >= min_sample_rate {
-                format.samples_rate = default;
+                // Find the supported format with the most channels (this will always be the target
+                // number of channels if some specific target number was specified as all other numbers
+                // will have been filtered out already).
+                if let Some(first) = sample_formats.next() {
+                    let format = sample_formats.fold(first, |max, fmt| {
+                        if fmt.channels.len() > max.channels.len() { fmt } else { max }
+                    });
+                    break 'find_format format;
+                }
             }
-        }
+
+            // If there are no matching formats with the target sample_format, drop the requirement
+            // and we'll do a conversion to it instead.
+            if sample_format.is_some() {
+                sample_format = None;
+            // Otherwise if nannou's default target sample rate is set because the user didn't
+            // specify a sample rate, try and fall back to a supported sample rate in case this was
+            // the reason we could not find a supported sample rate.
+            } else if sample_rate == Some(cpal::SamplesRate(super::DEFAULT_SAMPLE_RATE)) {
+                sample_rate = None;
+            } else {
+                panic!("no matching supported audio output formats for the target device");
+            }
+        };
 
         let voice_id = event_loop.build_voice(&endpoint, &format)?;
         let (update_tx, update_rx) = mpsc::channel();
