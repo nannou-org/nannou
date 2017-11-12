@@ -8,7 +8,6 @@ fn main() {
 }
 
 struct Model {
-    window: nannou::window::Id,
     ui: nannou::Ui,
     ids: Ids,
 }
@@ -34,7 +33,7 @@ fn model(app: &App) -> Model {
         background: ui.generate_widget_id(),
     };
 
-    Model { window, ui, ids }
+    Model { ui, ids }
 }
 
 fn update(_app: &App, mut model: Model, event: Event) -> Model {
@@ -68,7 +67,7 @@ fn update(_app: &App, mut model: Model, event: Event) -> Model {
 // Draw the state of your `Model` into the given `Frame` here.
 fn draw(app: &App, model: &Model, frame: Frame) -> Frame {
     // Draw the state of the `Ui` to the frame.
-    model.ui.draw_to_frame(app, &frame);
+    model.ui.draw_to_frame(app, &frame).unwrap();
     // Return the drawn frame.
     frame
 }
