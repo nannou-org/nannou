@@ -7,7 +7,7 @@ help out!
 # nannou [![Build Status](https://travis-ci.org/MindBuffer/nannou.svg?branch=master)](https://travis-ci.org/MindBuffer/nannou) [![Crates.io](https://img.shields.io/crates/v/nannou.svg)](https://crates.io/crates/nannou) [![Crates.io](https://img.shields.io/crates/l/nannou.svg)](https://github.com/MindBuffer/nannou/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/nannou/badge.svg)](https://docs.rs/nannou/)
 
 
-An open-source, creative-coding toolkit for Rust.
+An open-source creative-coding toolkit for Rust.
 
 **nannou** is a collection of code aimed at making it easy for artists to
 express themselves with simple, fast, reliable, portable code.  Whether working
@@ -20,7 +20,7 @@ by Processing, OpenFrameworks and Cinder, but for Rust. <sup>Named after
 
 ## Getting Started
 
-- See what the code looks like by checking out [the examples]().
+- See what the code looks like by checking out [the examples](https://github.com/MindBuffer/nannou/tree/master/examples).
 - If you're new to Rust, maybe check out [the official
   book](https://doc.rust-lang.org/book/)?
 - Start your own project with:
