@@ -20,18 +20,41 @@ by Processing, OpenFrameworks and Cinder, but for Rust. <sup>Named after
 
 ## Getting Started
 
-- See what the code looks like by checking out [the examples](https://github.com/MindBuffer/nannou/tree/master/examples).
-- If you're new to Rust, maybe check out [the official
+See what the code looks like by checking out [the
+examples](https://github.com/MindBuffer/nannou/tree/master/examples). *See the
+following section to learn how to run these examples.*
+
+If you're new to Rust, maybe check out [the official
   book](https://doc.rust-lang.org/book/)?
-- Start your own project with:
-  ```
-  cargo new my_project
-  cd my_project
-  ```
-- Add `nannou = "0.1"` under the `[dependencies]` line in your Cargo.toml.
-  This is everything you need to use the framework in your own project or
-  sketch. Rust's package manager *cargo* will automatically download and install
-  everything you need!
+
+Start your own project with:
+```
+cargo new my_project
+cd my_project
+```
+Add `nannou = "0.1"` under the `[dependencies]` line in your Cargo.toml.  This
+is everything you need to use the framework in your own project or sketch.
+Rust's package manager *cargo* will automatically download and install
+everything you need!
+
+## Running Examples
+
+Clone this git repo (which contains the examples) to your computer.
+```
+git clone https://github.com/MindBuffer/nannou
+```
+Change the current directory to `nannou`.
+```
+cd nannou
+```
+Run the example using cargo.
+```
+cargo run --release --example simple_window
+```
+The `--release` flag means we want to build with optimisations enabled.
+
+To run any of the other examples, replace `simple_window` with the name of the
+desired example.
 
 ## Goals
 
