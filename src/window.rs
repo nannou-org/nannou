@@ -254,10 +254,16 @@ impl Window {
     ///
     /// The client area is the content of the window, excluding the title bar and borders. To get
     /// the dimensions of the frame buffer when calling `glViewport`, multiply with hidpi factor.
-    pub fn inner_size_points(&self) -> (u32, u32) {
-        self.display
-            .gl_window()
-            .get_inner_size_points()
+    ///
+    /// This is the same as multiplying the result  of `inner_size_pixels()` by `hidpi_factor()`.
+    pub fn inner_size_points(&self) -> (f32, f32) {
+        let gl_window = self.display.gl_window();
+        gl_window
+            .get_inner_size()
+            .map(|(w_px, h_px)| {
+                let dpi_factor = self.hidpi_factor();
+                (w_px as f32 * dpi_factor, h_px as f32 * dpi_factor)
+            })
             .expect(Self::NO_LONGER_EXISTS)
     }
 
@@ -269,7 +275,7 @@ impl Window {
     pub fn inner_size_pixels(&self) -> (u32, u32) {
         self.display
             .gl_window()
-            .get_inner_size_pixels()
+            .get_inner_size()
             .expect(Self::NO_LONGER_EXISTS)
     }
 
