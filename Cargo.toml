@@ -1,6 +1,6 @@
 [package]
 name = "nannou"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A Creative Coding Framework for Rust."
 readme = "README.md"
@@ -11,11 +11,11 @@ homepage = "https://github.com/MindBuffer/nannou"
 
 [dependencies]
 cgmath = { version = "0.15", features = ["serde"] }
-conrod = { version = "0.56", features = ["winit", "glium"] }
-cpal = "0.5"
+conrod = { version = "0.57", features = ["winit", "glium"] }
+cpal = "0.6"
 find_folder = "0.3"
-glium = "0.18"
-image = "0.16"
+glium = "0.19"
+image = "0.18"
 noise = "0.4"
 palette = "0.2"
 rand = "0.3"

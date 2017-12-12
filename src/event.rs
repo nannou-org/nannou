@@ -208,17 +208,17 @@ impl SimpleWindowEvent {
                 Focused(b)
             },
 
-            glutin::WindowEvent::MouseMoved { position: (x, y), .. } => {
+            glutin::WindowEvent::CursorMoved { position: (x, y), .. } => {
                 let x = tx(x as f64);
                 let y = ty(y as f64);
                 MouseMoved(Point2 { x, y })
             },
 
-            glutin::WindowEvent::MouseEntered { .. } => {
+            glutin::WindowEvent::CursorEntered { .. } => {
                 MouseEntered
             },
 
-            glutin::WindowEvent::MouseLeft { .. } => {
+            glutin::WindowEvent::CursorLeft { .. } => {
                 MouseExited
             },
 
@@ -252,7 +252,8 @@ impl SimpleWindowEvent {
 
             glutin::WindowEvent::AxisMotion { .. } |
             glutin::WindowEvent::Refresh |
-            glutin::WindowEvent::ReceivedCharacter(_) => {
+            glutin::WindowEvent::ReceivedCharacter(_) |
+            glutin::WindowEvent::HiDPIFactorChanged(_) => {
                 return None;
             },
         };
@@ -272,7 +273,7 @@ impl LoopEvent for Event {
                     Some(window) => {
                         let window = window.display.gl_window();
                         let dpi_factor = window.hidpi_factor() as f64;
-                        match window.get_inner_size_pixels() {
+                        match window.get_inner_size() {
                             None => (dpi_factor, 0, 0),
                             Some((w, h)) => (dpi_factor, w, h),
                         }
