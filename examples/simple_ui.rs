@@ -2,6 +2,7 @@ extern crate nannou;
 
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
+use nannou::rand::random;
 
 fn main() {
     nannou::run(model, update, draw);
@@ -10,9 +11,11 @@ fn main() {
 struct Model {
     ui: nannou::Ui,
     ids: Ids,
+    bg_color: nannou::ui::Color,
 }
 
 struct Ids {
+    button: widget::Id,
     text: widget::Id,
     background: widget::Id,
 }
@@ -22,18 +25,22 @@ fn model(app: &App) -> Model {
     app.set_loop_mode(LoopMode::wait(3));
 
     // Create the window.
-    let window = app.new_window().build().unwrap();
+    let window = app.new_window().with_vsync(true).build().unwrap();
 
     // Create the UI.
     let mut ui = app.new_ui(window).build().unwrap();
 
     // Generate some ids for our widgets.
     let ids = Ids {
+        button: ui.generate_widget_id(),
         text: ui.generate_widget_id(),
         background: ui.generate_widget_id(),
     };
 
-    Model { ui, ids }
+    // Init background color
+    let bg_color = color::rgba(1.0,0.0,1.0,1.0);
+
+    Model { ui, ids, bg_color }
 }
 
 fn update(_app: &App, mut model: Model, event: Event) -> Model {
@@ -48,9 +55,20 @@ fn update(_app: &App, mut model: Model, event: Event) -> Model {
             // Calling `set_widgets` allows us to instantiate some widgets.
             let ui = &mut model.ui.set_widgets();
 
+
             // Place a canvas as the background. A canvas auto-sizes to the window if no dimensions
             // were specified.
-            widget::Canvas::new().color(color::DARK_BLUE).set(model.ids.background, ui);
+            widget::Canvas::new().color(model.bg_color).set(model.ids.background, ui);
+
+            // Draw the button and increment `count` if pressed.
+            for _click in widget::Button::new()
+                .up_from(model.ids.text,100.0)
+                .w_h(180.0, 80.0)
+                .label("random bg color")
+                .set(model.ids.button, ui)
+            {
+                model.bg_color = color::rgba(random(),random(),random(),1.0);
+            }
 
             // Draw the update event using a `Text` widget.
             let text = format!("{:#?}", update);
