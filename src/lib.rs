@@ -25,6 +25,7 @@ pub mod image;
 pub mod math;
 pub mod osc;
 pub mod prelude;
+pub mod state;
 pub mod ui;
 pub mod window;
 
@@ -128,7 +129,7 @@ where
     // 3. Emits event via `update_fn`.
     // 4. Returns whether or not we should break from the loop.
     fn process_and_emit_glutin_event<M, E>(
-        app: &App,
+        app: &mut App,
         mut model: M,
         update_fn: UpdateFn<M, E>,
         glutin_event: glutin::Event,
@@ -153,6 +154,57 @@ where
             if let glutin::WindowEvent::Closed = *event {
                 app.windows.borrow_mut().remove(&window_id);
             } else {
+
+                // Get the size of the screen for translating coords and dimensions.
+                let (win_w, win_h, dpi_factor) = match app.window(window_id) {
+                    Some(win) => {
+                        let win = app.window(window_id).unwrap();
+                        let (w, h) = win.inner_size_pixels();
+                        let dpi_factor = win.hidpi_factor();
+                        (w, h, dpi_factor as f64)
+                    },
+                    None => (0, 0, 1.0),
+                };
+
+                // Translate the coordinates from top-left-origin-with-y-down to centre-origin-with-y-up.
+                //
+                // winit produces input events in pixels, so these positions need to be divided by the
+                // width and height of the window in order to be DPI agnostic.
+                let tx = |x: f64| (x / dpi_factor) - win_w as f64 / 2.0;
+                let ty = |y: f64| -((y / dpi_factor) - win_h as f64 / 2.0);
+                let tw = |w: f64| w / dpi_factor;
+                let th = |h: f64| h / dpi_factor;
+
+                // Check for events that would update either mouse, keyboard or window state.
+                match *event {
+                    glutin::WindowEvent::CursorMoved { position: (x, y), .. } => {
+                        let x = tx(x as f64);
+                        let y = ty(y as f64);
+                        app.mouse.x = x;
+                        app.mouse.y = y;
+                    },
+
+                    glutin::WindowEvent::MouseInput { state, button, .. } => {
+                        match state {
+                            event::ElementState::Pressed => {
+                                let p = app.mouse.position();
+                                app.mouse.buttons.press(button, p);
+                            },
+                            event::ElementState::Released => {
+                                app.mouse.buttons.release(button);
+                            },
+                        }
+                    },
+
+                    // glutin::WindowEvent::Resized(new_w, new_h) => {
+                    //     let x = tw(new_w as f64);
+                    //     let y = th(new_h as f64);
+
+                    //     Resized(Vector2 { x, y })
+                    // },
+
+                    _ => (),
+                }
 
                 // See if the event could be interpreted as a `ui::Input`. If so, submit it to the
                 // `Ui`s associated with this window.
@@ -216,7 +268,7 @@ where
                 // First handle any pending window events.
                 app.events_loop.poll_events(|event| glutin_events.push(event));
                 for glutin_event in glutin_events.drain(..) {
-                    let (new_model, exit) = process_and_emit_glutin_event(&app, model, update_fn, glutin_event);
+                    let (new_model, exit) = process_and_emit_glutin_event(&mut app, model, update_fn, glutin_event);
                     model = new_model;
                     if exit {
                         break 'main;
@@ -263,7 +315,7 @@ where
                 }
 
                 for glutin_event in glutin_events.drain(..) {
-                    let (new_model, exit) = process_and_emit_glutin_event(&app, model, update_fn, glutin_event);
+                    let (new_model, exit) = process_and_emit_glutin_event(&mut app, model, update_fn, glutin_event);
                     model = new_model;
                     if exit {
                         break 'main;

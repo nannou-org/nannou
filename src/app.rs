@@ -2,6 +2,7 @@ use audio;
 use audio::cpal;
 use find_folder;
 use glium::glutin;
+use state;
 use std;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -23,10 +24,13 @@ pub struct App {
     pub(crate) events_loop: glutin::EventsLoop,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
     pub(super) exit_on_escape: Cell<bool>,
-    loop_mode: Cell<LoopMode>,
-    /// Audio-related functionality.
-    pub audio: Audio,
     pub(crate) ui: ui::Arrangement,
+    loop_mode: Cell<LoopMode>,
+
+    /// The `App`'s audio-related API.
+    pub audio: Audio,
+    /// The current state of the `Mouse`.
+    pub mouse: state::Mouse,
 }
 
 /// An **App**'s audio API.
@@ -144,6 +148,7 @@ impl App {
         let process_fn_tx = RefCell::new(None);
         let audio = Audio { event_loop: cpal_event_loop, process_fn_tx };
         let ui = ui::Arrangement::new();
+        let mouse = state::Mouse::new();
         App {
             events_loop,
             windows,
@@ -151,6 +156,7 @@ impl App {
             loop_mode,
             audio,
             ui,
+            mouse,
         }
     }
 
