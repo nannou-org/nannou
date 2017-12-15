@@ -17,6 +17,7 @@ pub use self::ui::Ui;
 pub mod app;
 pub mod audio;
 pub mod color;
+pub mod ease;
 pub mod event;
 mod frame;
 pub mod window;
