@@ -20,12 +20,13 @@ pub mod color;
 pub mod ease;
 pub mod event;
 mod frame;
-pub mod window;
+pub mod geom;
 pub mod image;
 pub mod math;
 pub mod osc;
 pub mod prelude;
 pub mod ui;
+pub mod window;
 
 pub type ModelFn<Model> = fn(&App) -> Model;
 pub type UpdateFn<Model, Event> = fn(&App, Model, Event) -> Model;
