@@ -156,12 +156,11 @@ where
             } else {
 
                 // Get the size of the screen for translating coords and dimensions.
-                let (win_w, win_h, dpi_factor) = match app.window(window_id) {
+                let (win_w, win_h, hidpi_factor) = match app.window(window_id) {
                     Some(win) => {
-                        let win = app.window(window_id).unwrap();
                         let (w, h) = win.inner_size_pixels();
-                        let dpi_factor = win.hidpi_factor();
-                        (w, h, dpi_factor as f64)
+                        let hidpi_factor = win.hidpi_factor();
+                        (w, h, hidpi_factor as f64)
                     },
                     None => (0, 0, 1.0),
                 };
@@ -170,10 +169,18 @@ where
                 //
                 // winit produces input events in pixels, so these positions need to be divided by the
                 // width and height of the window in order to be DPI agnostic.
-                let tx = |x: f64| (x / dpi_factor) - win_w as f64 / 2.0;
-                let ty = |y: f64| -((y / dpi_factor) - win_h as f64 / 2.0);
-                let tw = |w: f64| w / dpi_factor;
-                let th = |h: f64| h / dpi_factor;
+                let tx = |x: f64| (x / hidpi_factor) - win_w as f64 / 2.0;
+                let ty = |y: f64| -((y / hidpi_factor) - win_h as f64 / 2.0);
+                let tw = |w: f64| w / hidpi_factor;
+                let th = |h: f64| h / hidpi_factor;
+
+                // If the window ID has changed, ensure the dimensions are up to date.
+                if app.window.id != Some(window_id) {
+                    app.window.id = Some(window_id);
+                    app.window.width = tw(win_w as f64);
+                    app.window.height = th(win_h as f64);
+                    app.window.hidpi_factor = hidpi_factor;
+                }
 
                 // Check for events that would update either mouse, keyboard or window state.
                 match *event {
@@ -182,6 +189,7 @@ where
                         let y = ty(y as f64);
                         app.mouse.x = x;
                         app.mouse.y = y;
+                        app.mouse.window = Some(window_id);
                     },
 
                     glutin::WindowEvent::MouseInput { state, button, .. } => {
@@ -194,14 +202,20 @@ where
                                 app.mouse.buttons.release(button);
                             },
                         }
+                        app.mouse.window = Some(window_id);
                     },
 
-                    // glutin::WindowEvent::Resized(new_w, new_h) => {
-                    //     let x = tw(new_w as f64);
-                    //     let y = th(new_h as f64);
+                    glutin::WindowEvent::Resized(new_w, new_h) => {
+                        let x = tw(new_w as f64);
+                        let y = th(new_h as f64);
+                        app.window.width = x;
+                        app.window.height = y;
+                        app.window.hidpi_factor = hidpi_factor;
+                    },
 
-                    //     Resized(Vector2 { x, y })
-                    // },
+                    glutin::WindowEvent::HiDPIFactorChanged(hidpi_factor) => {
+                        app.window.hidpi_factor = hidpi_factor as f64;
+                    },
 
                     _ => (),
                 }

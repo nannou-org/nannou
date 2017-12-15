@@ -1,4 +1,34 @@
 pub use self::mouse::Mouse;
+use window;
+
+/// State of the window in focus.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Window {
+    /// ID of the window currently in focus.
+    pub id: Option<window::Id>,
+    /// The width of the focused window agnostic of DPI.
+    ///
+    /// This is equal to the pixel width divided by the hidpi_factor.
+    pub width: f64,
+    /// The height of the focused window agnostic of DPI.
+    ///
+    /// This is equal to the pixel height divided by the hidpi_factor.
+    pub height: f64,
+    /// The high "dots-per-inch" multiplier that describes the density of the screens pixels.
+    pub hidpi_factor: f64,
+}
+
+impl Window {
+    /// Initialise the window state.
+    pub fn new() -> Self {
+        Window {
+            id: None,
+            width: 0.0,
+            height: 0.0,
+            hidpi_factor: 1.0,
+        }
+    }
+}
 
 /// Tracked state related to the mouse.
 pub mod mouse {

@@ -29,8 +29,11 @@ pub struct App {
 
     /// The `App`'s audio-related API.
     pub audio: Audio,
+
     /// The current state of the `Mouse`.
     pub mouse: state::Mouse,
+    /// State of the window currently in focus.
+    pub window: state::Window,
 }
 
 /// An **App**'s audio API.
@@ -149,6 +152,7 @@ impl App {
         let audio = Audio { event_loop: cpal_event_loop, process_fn_tx };
         let ui = ui::Arrangement::new();
         let mouse = state::Mouse::new();
+        let window = state::Window::new();
         App {
             events_loop,
             windows,
@@ -157,6 +161,7 @@ impl App {
             audio,
             ui,
             mouse,
+            window,
         }
     }
 
