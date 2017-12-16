@@ -1,31 +1,66 @@
+pub use self::keys::Keys;
 pub use self::mouse::Mouse;
-use window;
+pub use self::window::Window;
 
-/// State of the window in focus.
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Window {
-    /// ID of the window currently in focus.
-    pub id: Option<window::Id>,
-    /// The width of the focused window agnostic of DPI.
-    ///
-    /// This is equal to the pixel width divided by the hidpi_factor.
-    pub width: f64,
-    /// The height of the focused window agnostic of DPI.
-    ///
-    /// This is equal to the pixel height divided by the hidpi_factor.
-    pub height: f64,
-    /// The high "dots-per-inch" multiplier that describes the density of the screens pixels.
-    pub hidpi_factor: f64,
+/// Tracked state related to the focused window.
+pub mod window {
+    use window;
+
+    /// State of the window in focus.
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    pub struct Window {
+        /// ID of the window currently in focus.
+        pub id: Option<window::Id>,
+        /// The width of the focused window agnostic of DPI.
+        ///
+        /// This is equal to the pixel width divided by the hidpi_factor.
+        pub width: f64,
+        /// The height of the focused window agnostic of DPI.
+        ///
+        /// This is equal to the pixel height divided by the hidpi_factor.
+        pub height: f64,
+        /// The high "dots-per-inch" multiplier that describes the density of the screens pixels.
+        pub hidpi_factor: f64,
+    }
+
+    impl Window {
+        /// Initialise the window state.
+        pub fn new() -> Self {
+            Window {
+                id: None,
+                width: 0.0,
+                height: 0.0,
+                hidpi_factor: 1.0,
+            }
+        }
+    }
 }
 
-impl Window {
-    /// Initialise the window state.
-    pub fn new() -> Self {
-        Window {
-            id: None,
-            width: 0.0,
-            height: 0.0,
-            hidpi_factor: 1.0,
+/// Tracked state related to the keyboard.
+pub mod keys {
+    use event::{Key, ModifiersState};
+    use std::collections::HashSet;
+    use std::ops::Deref;
+
+    /// The state of the keyboard.
+    #[derive(Clone, Debug, Default)]
+    pub struct Keys {
+        /// The state of the modifier keys as last indicated by winit.
+        pub mods: ModifiersState,
+        /// The state of all keys as tracked via the nannou App event handling.
+        pub down: Down,
+    }
+
+    /// The set of keys that are currently pressed.
+    #[derive(Clone, Debug, Default)]
+    pub struct Down {
+        pub(crate) keys: HashSet<Key>,
+    }
+
+    impl Deref for Down {
+        type Target = HashSet<Key>;
+        fn deref(&self) -> &Self::Target {
+            &self.keys
         }
     }
 }
@@ -219,5 +254,4 @@ pub mod mouse {
             Button::Middle => 8,
         }
     }
-
 }

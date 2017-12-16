@@ -34,6 +34,17 @@ pub struct App {
     pub mouse: state::Mouse,
     /// State of the window currently in focus.
     pub window: state::Window,
+    /// State of the keyboard keys.
+    ///
+    /// `mods` provides state of each of the modifier keys: `shift`, `ctrl`, `alt`, `logo`.
+    ///
+    /// `down` is the set of keys that are currently pressed.
+    ///
+    /// NOTE: `down` this is tracked by the nannou `App` so issues might occur if e.g. a key is
+    /// pressed while the app is in focus and then released when out of focus. Eventually we should
+    /// change this to query the OS somehow, but I don't think `winit` provides a way to do this
+    /// yet.
+    pub keys: state::Keys,
 }
 
 /// An **App**'s audio API.
@@ -153,6 +164,7 @@ impl App {
         let ui = ui::Arrangement::new();
         let mouse = state::Mouse::new();
         let window = state::Window::new();
+        let keys = state::Keys::default();
         App {
             events_loop,
             windows,
@@ -162,6 +174,7 @@ impl App {
             ui,
             mouse,
             window,
+            keys,
         }
     }
 

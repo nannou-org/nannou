@@ -217,6 +217,20 @@ where
                         app.window.hidpi_factor = hidpi_factor as f64;
                     },
 
+                    glutin::WindowEvent::KeyboardInput { input, .. } => {
+                        app.keys.mods = input.modifiers;
+                        if let Some(key) = input.virtual_keycode {
+                            match input.state {
+                                event::ElementState::Pressed => {
+                                    app.keys.down.keys.insert(key);
+                                },
+                                event::ElementState::Released => {
+                                    app.keys.down.keys.remove(&key);
+                                },
+                            }
+                        }
+                    },
+
                     _ => (),
                 }
 
