@@ -5,6 +5,7 @@ pub use self::window::Window;
 /// Tracked state related to the focused window.
 pub mod window {
     use window;
+    use math::Vector2;
 
     /// State of the window in focus.
     #[derive(Copy, Clone, Debug, PartialEq)]
@@ -32,6 +33,11 @@ pub mod window {
                 height: 0.0,
                 hidpi_factor: 1.0,
             }
+        }
+
+        /// Return the `width` and `height` as a `Vector2`.
+        pub fn size(&self) -> Vector2<f64> {
+            Vector2 { x: self.width, y: self.height }
         }
     }
 }
