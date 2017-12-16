@@ -2,6 +2,7 @@ use audio;
 use audio::cpal;
 use find_folder;
 use glium::glutin;
+use state;
 use std;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -23,10 +24,27 @@ pub struct App {
     pub(crate) events_loop: glutin::EventsLoop,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
     pub(super) exit_on_escape: Cell<bool>,
-    loop_mode: Cell<LoopMode>,
-    /// Audio-related functionality.
-    pub audio: Audio,
     pub(crate) ui: ui::Arrangement,
+    loop_mode: Cell<LoopMode>,
+
+    /// The `App`'s audio-related API.
+    pub audio: Audio,
+
+    /// The current state of the `Mouse`.
+    pub mouse: state::Mouse,
+    /// State of the window currently in focus.
+    pub window: state::Window,
+    /// State of the keyboard keys.
+    ///
+    /// `mods` provides state of each of the modifier keys: `shift`, `ctrl`, `alt`, `logo`.
+    ///
+    /// `down` is the set of keys that are currently pressed.
+    ///
+    /// NOTE: `down` this is tracked by the nannou `App` so issues might occur if e.g. a key is
+    /// pressed while the app is in focus and then released when out of focus. Eventually we should
+    /// change this to query the OS somehow, but I don't think `winit` provides a way to do this
+    /// yet.
+    pub keys: state::Keys,
 }
 
 /// An **App**'s audio API.
@@ -144,6 +162,9 @@ impl App {
         let process_fn_tx = RefCell::new(None);
         let audio = Audio { event_loop: cpal_event_loop, process_fn_tx };
         let ui = ui::Arrangement::new();
+        let mouse = state::Mouse::new();
+        let window = state::Window::new();
+        let keys = state::Keys::default();
         App {
             events_loop,
             windows,
@@ -151,6 +172,9 @@ impl App {
             loop_mode,
             audio,
             ui,
+            mouse,
+            window,
+            keys,
         }
     }
 

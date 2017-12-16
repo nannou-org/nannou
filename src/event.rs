@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use std::time::Duration;
 use window;
 
-pub use glium::glutin::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, Touch,
-                        TouchPhase, VirtualKeyCode as Key};
+pub use glium::glutin::{ElementState, KeyboardInput, ModifiersState, MouseButton, MouseScrollDelta,
+                        Touch, TouchPhase, VirtualKeyCode as Key};
 
 /// Event types that are compatible with the nannou app loop.
 pub trait LoopEvent: From<Update> {

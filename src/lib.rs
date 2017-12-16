@@ -25,6 +25,7 @@ pub mod image;
 pub mod math;
 pub mod osc;
 pub mod prelude;
+pub mod state;
 pub mod ui;
 pub mod window;
 
@@ -128,7 +129,7 @@ where
     // 3. Emits event via `update_fn`.
     // 4. Returns whether or not we should break from the loop.
     fn process_and_emit_glutin_event<M, E>(
-        app: &App,
+        app: &mut App,
         mut model: M,
         update_fn: UpdateFn<M, E>,
         glutin_event: glutin::Event,
@@ -153,6 +154,85 @@ where
             if let glutin::WindowEvent::Closed = *event {
                 app.windows.borrow_mut().remove(&window_id);
             } else {
+
+                // Get the size of the screen for translating coords and dimensions.
+                let (win_w, win_h, hidpi_factor) = match app.window(window_id) {
+                    Some(win) => {
+                        let (w, h) = win.inner_size_pixels();
+                        let hidpi_factor = win.hidpi_factor();
+                        (w, h, hidpi_factor as f64)
+                    },
+                    None => (0, 0, 1.0),
+                };
+
+                // Translate the coordinates from top-left-origin-with-y-down to centre-origin-with-y-up.
+                //
+                // winit produces input events in pixels, so these positions need to be divided by the
+                // width and height of the window in order to be DPI agnostic.
+                let tx = |x: f64| (x / hidpi_factor) - win_w as f64 / 2.0;
+                let ty = |y: f64| -((y / hidpi_factor) - win_h as f64 / 2.0);
+                let tw = |w: f64| w / hidpi_factor;
+                let th = |h: f64| h / hidpi_factor;
+
+                // If the window ID has changed, ensure the dimensions are up to date.
+                if app.window.id != Some(window_id) {
+                    app.window.id = Some(window_id);
+                    app.window.width = tw(win_w as f64);
+                    app.window.height = th(win_h as f64);
+                    app.window.hidpi_factor = hidpi_factor;
+                }
+
+                // Check for events that would update either mouse, keyboard or window state.
+                match *event {
+                    glutin::WindowEvent::CursorMoved { position: (x, y), .. } => {
+                        let x = tx(x as f64);
+                        let y = ty(y as f64);
+                        app.mouse.x = x;
+                        app.mouse.y = y;
+                        app.mouse.window = Some(window_id);
+                    },
+
+                    glutin::WindowEvent::MouseInput { state, button, .. } => {
+                        match state {
+                            event::ElementState::Pressed => {
+                                let p = app.mouse.position();
+                                app.mouse.buttons.press(button, p);
+                            },
+                            event::ElementState::Released => {
+                                app.mouse.buttons.release(button);
+                            },
+                        }
+                        app.mouse.window = Some(window_id);
+                    },
+
+                    glutin::WindowEvent::Resized(new_w, new_h) => {
+                        let x = tw(new_w as f64);
+                        let y = th(new_h as f64);
+                        app.window.width = x;
+                        app.window.height = y;
+                        app.window.hidpi_factor = hidpi_factor;
+                    },
+
+                    glutin::WindowEvent::HiDPIFactorChanged(hidpi_factor) => {
+                        app.window.hidpi_factor = hidpi_factor as f64;
+                    },
+
+                    glutin::WindowEvent::KeyboardInput { input, .. } => {
+                        app.keys.mods = input.modifiers;
+                        if let Some(key) = input.virtual_keycode {
+                            match input.state {
+                                event::ElementState::Pressed => {
+                                    app.keys.down.keys.insert(key);
+                                },
+                                event::ElementState::Released => {
+                                    app.keys.down.keys.remove(&key);
+                                },
+                            }
+                        }
+                    },
+
+                    _ => (),
+                }
 
                 // See if the event could be interpreted as a `ui::Input`. If so, submit it to the
                 // `Ui`s associated with this window.
@@ -216,7 +296,7 @@ where
                 // First handle any pending window events.
                 app.events_loop.poll_events(|event| glutin_events.push(event));
                 for glutin_event in glutin_events.drain(..) {
-                    let (new_model, exit) = process_and_emit_glutin_event(&app, model, update_fn, glutin_event);
+                    let (new_model, exit) = process_and_emit_glutin_event(&mut app, model, update_fn, glutin_event);
                     model = new_model;
                     if exit {
                         break 'main;
@@ -263,7 +343,7 @@ where
                 }
 
                 for glutin_event in glutin_events.drain(..) {
-                    let (new_model, exit) = process_and_emit_glutin_event(&app, model, update_fn, glutin_event);
+                    let (new_model, exit) = process_and_emit_glutin_event(&mut app, model, update_fn, glutin_event);
                     model = new_model;
                     if exit {
                         break 'main;
