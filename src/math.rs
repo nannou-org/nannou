@@ -4,6 +4,18 @@ pub use self::cgmath::*;
 use self::cgmath::num_traits::{NumCast, One};
 use std::ops::Add;
 
+pub fn pt1<S>(x: S) -> Point1<S> {
+    Point1 { x }
+}
+
+pub fn pt2<S>(x: S, y: S) -> Point2<S> {
+    Point2 { x, y }
+}
+
+pub fn pt3<S>(x: S, y: S, z: S) -> Point3<S> {
+    Point3 { x, y, z }
+}
+
 /// Map a value from a given range to a new given range.
 pub fn map_range<X, Y>(val: X, in_min: X, in_max: X, out_min: Y, out_max: Y) -> Y
 where
