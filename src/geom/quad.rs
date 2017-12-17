@@ -1,6 +1,13 @@
 use geom::Tri;
 use math::Point2;
 
+/// An `Iterator` yielding the two triangles that make up a quad.
+#[derive(Clone)]
+pub struct Triangles<S> {
+    a: Option<Tri<Point2<S>>>,
+    b: Option<Tri<Point2<S>>>,
+}
+
 /// Triangulates the given quad, represented by four points that describe its edges in either
 /// clockwise or anti-clockwise order.
 ///
@@ -56,4 +63,23 @@ where
 {
     let (a, b, c, d) = (points[0], points[1], points[2], points[3]);
     (Tri([a, b, c]), Tri([a, c, d]))
+}
+
+/// The same as `triangles` but provided as an `Iterator`.
+pub fn triangles_iter<S>(points: &[Point2<S>; 4]) -> Triangles<S>
+where
+    S: Copy,
+{
+    let (a, b) = triangles(points);
+    Triangles {
+        a: Some(a),
+        b: Some(b),
+    }
+}
+
+impl<S> Iterator for Triangles<S> {
+    type Item = Tri<Point2<S>>;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.a.take().or_else(|| self.b.take())
+    }
 }
