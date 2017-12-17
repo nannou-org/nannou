@@ -1,4 +1,6 @@
 pub mod ellipse;
+pub mod line;
+pub mod point_path;
 pub mod polygon;
 pub mod quad;
 pub mod range;
