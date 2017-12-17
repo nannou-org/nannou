@@ -53,10 +53,10 @@ where
 
 /// Returns `true` if the given `Point` is over the polygon described by the given series of
 /// points.
-pub fn contains<I>(points: I, point: I::Item) -> Option<Tri<I::Item>>
+pub fn contains<I>(points: I, point: &I::Item) -> Option<Tri<I::Item>>
 where
     I: IntoIterator,
     I::Item: tri::Vertex2d,
 {
-    triangles(points).and_then(|ts| tri::iter_contains(ts, point))
+    triangles(points).and_then(|ts| tri::iter_contains(ts, &point))
 }
