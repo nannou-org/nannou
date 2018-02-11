@@ -2,8 +2,21 @@ use geom::{quad, tri, Tri};
 use math::prelude::*;
 use math::{two, vec2, BaseFloat, Point2};
 
+/// The iterator type yielding triangles that describe a line.
+pub type Triangles<S> = quad::Triangles<S>;
+
 /// Given two points and half the line thickness, return the four corners of the rectangle
 /// describing the line.
+///
+/// Given a line *a -> b*, the indices are laid out as follows:
+///
+/// ```ignore
+/// 0                                        2
+///  ----------------------------------------
+///  |a                                    b|
+///  ----------------------------------------
+/// 1                                        3
+/// ```
 pub fn quad_corners<S>(a: Point2<S>, b: Point2<S>, half_thickness: S) -> [Point2<S>; 4]
 where
     S: BaseFloat,
@@ -27,6 +40,16 @@ where
     let r = quad_corners(a, b, half_thickness);
     let (t1, t2) = quad::triangles(&r);
     [t1, t2]
+}
+
+/// Given two points and half the line thickness, return the two triangles that describe the line.
+pub fn triangles_iter<S>(a: Point2<S>, b: Point2<S>, half_thickness: S) -> Triangles<S>
+where
+    S: BaseFloat,
+{
+    let r = quad_corners(a, b, half_thickness);
+    let tris = quad::triangles_iter(&r);
+    tris
 }
 
 /// Describes whether or not the given point touches the line described by *a -> b* with the given
