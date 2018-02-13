@@ -14,8 +14,6 @@ pub struct Requester<S> {
     pending_range: Option<std::ops::Range<usize>>,
 }
 
-
-
 impl<S> Requester<S>
 where
     S: Sample,
@@ -89,7 +87,7 @@ where
             }
         }
 
-        // If there is some un-read range of `frames`, read those first.
+        // If there is some un-read range of `samples`, read those first.
         if let Some(range) = pending_range.take() {
 
             // If the pending range would not fill the output, write what we can before going on to
@@ -121,7 +119,7 @@ where
             // The number of frames to write to output on this iteration.
             let num_samples_to_fill = std::cmp::min(samples.len(), num_samples_remaining);
 
-            // Zero the `samples` buffer read for summing.
+            // Zero the `samples` buffer ready for summing.
             silence(samples);
 
             // Render the state of the model to the samples buffer.

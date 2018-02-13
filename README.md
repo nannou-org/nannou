@@ -61,8 +61,7 @@ desired example.
 - Provide easy, cross-platform access to the things that artists need:
     - [x] Windowing & Events (via [winit](https://crates.io/crates/winit) and
       [glutin](https://crates.io/crates/glutin))
-    - [x] Audio (via [CPAL](https://crates.io/crates/cpal)) *Output streams
-      only, input and duplex are not yet implemented.*
+    - [x] Audio (via [CPAL](https://crates.io/crates/cpal)) *Input and output streams. Duplex are not yet supported.*
     - [x] GUI (via [conrod](https://crates.io/crates/conrod), *may switch to a
       native solution in the future*).
     - [x] OSC (via [rosc](https://crates.io/crates/rosc))

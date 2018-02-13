@@ -50,7 +50,7 @@ pub struct App {
 /// An **App**'s audio API.
 pub struct Audio {
     event_loop: Arc<cpal::EventLoop>,
-    process_fn_tx: RefCell<Option<mpsc::Sender<audio::stream::output::ProcessFnMsg>>>,
+    process_fn_tx: RefCell<Option<mpsc::Sender<audio::stream::ProcessFnMsg>>>,
 }
 
 /// A handle to the **App** that can be shared across threads.
@@ -255,34 +255,80 @@ impl App {
 }
 
 impl Audio {
-    /// Enumerate the available audio output devices on the system.
+    /// Enumerate the available audio devices on the system.
     ///
-    /// Produces an iterator yielding a `audio::stream::DeviceId` for each output device.
+    /// Produces an iterator yielding `audio::Device`s.
+    pub fn devices(&self) -> audio::Devices {
+        let devices = cpal::devices();
+        audio::Devices { devices }
+    }
+
+    /// Enumerate the available audio devices on the system that support input streams.
+    ///
+    /// Produces an iterator yielding `audio::Device`s.
+    pub fn input_devices(&self) -> audio::stream::input::Devices {
+        let devices = cpal::input_devices();
+        audio::stream::input::Devices { devices }
+    }
+
+    /// Enumerate the available audio devices on the system that support output streams.
+    ///
+    /// Produces an iterator yielding `audio::Device`s.
     pub fn output_devices(&self) -> audio::stream::output::Devices {
-        let endpoints = cpal::endpoints();
-        audio::stream::output::Devices { endpoints }
+        let devices = cpal::output_devices();
+        audio::stream::output::Devices { devices }
+    }
+
+    /// The current default audio input device.
+    pub fn default_input_device(&self) -> Option<audio::Device> {
+        cpal::default_input_device()
+            .map(|device| audio::Device { device })
     }
 
     /// The current default audio output device.
-    pub fn default_output_device(&self) -> Option<audio::stream::output::Device> {
-        cpal::default_endpoint()
-            .map(|endpoint| audio::stream::output::Device { endpoint })
+    pub fn default_output_device(&self) -> Option<audio::Device> {
+        cpal::default_output_device()
+            .map(|device| audio::Device { device })
+    }
+
+    /// Begin building a new input audio stream.
+    ///
+    /// If this is the first time a stream has been created, this method will spawn the
+    /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
+    pub fn new_input_stream<M, F, S>(&self, model: M, capture: F)
+        -> audio::stream::input::Builder<M, F, S>
+    {
+        audio::stream::input::Builder {
+            capture,
+            builder: self.new_stream(model),
+        }
     }
 
     /// Begin building a new output audio stream.
     ///
-    /// The first time this is called, this method will spawn the `cpal::EventLoop::run` method on
-    /// its own thread, ready to run built `Voice`s.
+    /// If this is the first time a stream has been created, this method will spawn the
+    /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
     pub fn new_output_stream<M, F, S>(&self, model: M, render: F)
         -> audio::stream::output::Builder<M, F, S>
     {
+        audio::stream::output::Builder {
+            render,
+            builder: self.new_stream(model),
+        }
+    }
+
+    // Builder initialisation shared between input and output streams.
+    //
+    // If this is the first time a stream has been created, this method will spawn the
+    // `cpal::EventLoop::run` method on its own thread, ready to run built streams.
+    fn new_stream<M, S>(&self, model: M) -> audio::stream::Builder<M, S> {
         let process_fn_tx = if self.process_fn_tx.borrow().is_none() {
             let event_loop = self.event_loop.clone();
             let (tx, rx) = mpsc::channel();
-            let mut loop_context = audio::stream::output::LoopContext::new(rx);
+            let mut loop_context = audio::stream::LoopContext::new(rx);
             thread::Builder::new()
                 .name("cpal::EventLoop::run thread".into())
-                .spawn(move || event_loop.run(move |v_id, out| loop_context.process(v_id, out)))
+                .spawn(move || event_loop.run(move |id, data| loop_context.process(id, data)))
                 .expect("failed to spawn cpal::EventLoop::run thread");
             *self.process_fn_tx.borrow_mut() = Some(tx.clone());
             tx
@@ -290,11 +336,10 @@ impl Audio {
             self.process_fn_tx.borrow().as_ref().unwrap().clone()
         };
 
-        audio::stream::output::Builder {
+        audio::stream::Builder {
             event_loop: self.event_loop.clone(),
             process_fn_tx: process_fn_tx,
             model,
-            render,
             sample_rate: None,
             channels: None,
             frames_per_buffer: None,

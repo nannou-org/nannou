@@ -1,23 +1,23 @@
-use audio::{Buffer, Device, Requester, Stream};
+use audio::{Buffer, Device, Receiver, Stream};
 use audio::cpal;
-use audio::sample::{Sample, ToSample};
+use audio::sample::{FromSample, Sample, ToSample};
 use audio::stream;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 
-/// The function that will be called when a `Buffer` is ready to be rendered.
-pub trait RenderFn<M, S>: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
-impl<M, S, F> RenderFn<M, S> for F where F: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
+/// The function that will be called when a captured `Buffer` is ready to be read.
+pub trait CaptureFn<M, S>: Fn(M, &Buffer<S>) -> M {}
+impl<M, S, F> CaptureFn<M, S> for F where F: Fn(M, &Buffer<S>) -> M {}
 
 pub struct Builder<M, F, S=f32> {
     pub builder: super::Builder<M, S>,
-    pub render: F,
+    pub capture: F,
 }
 
-/// An iterator yielding all available audio devices that support output streams.
+/// An iterator yielding all available audio devices that support input streams.
 pub struct Devices {
-    pub(crate) devices: cpal::OutputDevices,
+    pub(crate) devices: cpal::InputDevices,
 }
 
 impl Iterator for Devices {
@@ -52,12 +52,12 @@ impl<M, F, S> Builder<M, F, S> {
     }
 
     pub fn build(self) -> Result<Stream<M>, super::BuildError>
-        where S: 'static + Send + Sample + ToSample<u16> + ToSample<i16> + ToSample<f32>,
+        where S: 'static + Send + Sample + FromSample<u16> + FromSample<i16> + FromSample<f32>,
               M: 'static + Send,
-              F: 'static + RenderFn<M, S> + Send,
+              F: 'static + CaptureFn<M, S> + Send,
     {
         let Builder {
-            render,
+            capture,
             builder: stream::Builder {
                 event_loop,
                 process_fn_tx,
@@ -96,16 +96,16 @@ impl<M, F, S> Builder<M, F, S> {
         // Get the specified frames_per_buffer or fall back to a default.
         let frames_per_buffer = frames_per_buffer.unwrap_or(Buffer::<S>::DEFAULT_LEN_FRAMES);
 
-        // An audio requester which requests frames from the model+render pair with a
-        // specific buffer size, regardless of the buffer size requested by the OS.
-        let mut requester = Requester::new(frames_per_buffer, num_channels);
+        // A `Receiver` for converting audio delivered by the backend at varying buffer sizes into
+        // buffers of a fixed size.
+        let mut receiver = Receiver::new(frames_per_buffer, num_channels);
 
         // An intermediary buffer for converting cpal samples to the target sample
         // format.
         let mut samples = vec![S::equilibrium(); frames_per_buffer * num_channels];
 
         // The function used to process a buffer of samples.
-        let proc_output = move |data: cpal::StreamData| {
+        let proc_input = move |data: cpal::StreamData| {
 
             // Collect and process any pending updates.
             macro_rules! process_pending_updates {
@@ -128,50 +128,49 @@ impl<M, F, S> Builder<M, F, S> {
 
             process_pending_updates!();
 
-            // Retrieve the output buffer.
-            let output = match data {
-                cpal::StreamData::Output { mut buffer } => buffer,
+            // Retrieve the input buffer.
+            let input = match data {
+                cpal::StreamData::Input { buffer } => buffer,
                 _ => unreachable!(),
             };
 
             samples.clear();
-            samples.resize(output.len(), S::equilibrium());
+            samples.resize(input.len(), S::equilibrium());
 
-            if let Ok(mut guard) = model_2.lock() {
-                let mut m = guard.take().unwrap();
-                m = requester.fill_buffer(m, &render, &mut samples, num_channels, sample_rate);
-                *guard = Some(m);
-            }
-
-            // A function to simplify filling the unknown buffer type.
-            fn fill_output<O, S>(output: &mut [O], buffer: &[S])
+            // A function to simplify reading from the unknown buffer type.
+            fn fill_input<I, S>(input: &mut [I], buffer: &[S])
             where
-                O: Sample,
-                S: Sample + ToSample<O>,
+                I: Sample,
+                S: Sample + ToSample<I>,
             {
-                for (out_sample, sample) in output.iter_mut().zip(buffer) {
-                    *out_sample = sample.to_sample();
+                for (in_sample, sample) in input.iter_mut().zip(buffer) {
+                    *in_sample = sample.to_sample();
                 }
             }
 
-            // Process the given buffer.
-            match output {
-                cpal::UnknownTypeOutputBuffer::U16(mut buffer) => {
-                    fill_output(&mut buffer, &samples);
+            match input {
+                cpal::UnknownTypeInputBuffer::U16(buffer) => {
+                    fill_input(&mut samples, &buffer);
                 },
-                cpal::UnknownTypeOutputBuffer::I16(mut buffer) => {
-                    fill_output(&mut buffer, &samples);
+                cpal::UnknownTypeInputBuffer::I16(buffer) => {
+                    fill_input(&mut samples, &buffer);
                 },
-                cpal::UnknownTypeOutputBuffer::F32(mut buffer) => {
-                    fill_output(&mut buffer, &samples)
+                cpal::UnknownTypeInputBuffer::F32(buffer) => {
+                    fill_input(&mut samples, &buffer);
                 },
+            }
+
+            if let Ok(mut guard) = model_2.lock() {
+                let mut m = guard.take().unwrap();
+                m = receiver.read_buffer(m, &capture, &samples, num_channels, sample_rate);
+                *guard = Some(m);
             }
 
             process_pending_updates!();
         };
 
         // Send the buffer processing function to the event loop.
-        process_fn_tx.send((stream_id.clone(), Box::new(proc_output))).unwrap();
+        process_fn_tx.send((stream_id.clone(), Box::new(proc_input))).unwrap();
 
         let shared = Arc::new(super::Shared {
             model,
