@@ -1,5 +1,7 @@
 # Unpublished
 
+# Version 0.3.0 (2017-02-18)
+
 - Add audio::Stream::id method.
 - Add ExactSize and DoubleEnded iterator implementations for audio::Buffer.
 - Update for input stream support.
