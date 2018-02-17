@@ -1,6 +1,8 @@
 use std;
 use std::ops::{Deref, DerefMut};
 
+/// An interleaved PCM buffer yielded by either an input or output stream processing function.
+#[derive(Debug)]
 pub struct Buffer<S=f32> {
     pub (crate) interleaved_samples: Box<[S]>,
     pub (crate) channels: usize,
@@ -10,7 +12,7 @@ pub struct Buffer<S=f32> {
 /// An iterator yielding each frame in some Buffer.
 ///
 /// A "frame" is a sample from each channel of audio at a single moment in time.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Frames<'a, S: 'a> {
     chunks: std::slice::Chunks<'a, S>,
 }
@@ -18,22 +20,9 @@ pub struct Frames<'a, S: 'a> {
 /// An iterator yielding mutable references to each frame in some Buffer.
 ///
 /// A frame is a sample from each channel of audio at a single moment in time.
+#[derive(Debug)]
 pub struct FramesMut<'a, S: 'a> {
     chunks: std::slice::ChunksMut<'a, S>,
-}
-
-impl<'a, S> Iterator for Frames<'a, S> {
-    type Item = &'a [S];
-    fn next(&mut self) -> Option<Self::Item> {
-        self.chunks.next()
-    }
-}
-
-impl<'a, S> Iterator for FramesMut<'a, S> {
-    type Item = &'a mut [S];
-    fn next(&mut self) -> Option<Self::Item> {
-        self.chunks.next()
-    }
 }
 
 impl<S> Buffer<S> {
@@ -80,5 +69,49 @@ impl<S> Deref for Buffer<S> {
 impl<S> DerefMut for Buffer<S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.interleaved_samples
+    }
+}
+
+impl<'a, S> Iterator for Frames<'a, S> {
+    type Item = &'a [S];
+    fn next(&mut self) -> Option<Self::Item> {
+        self.chunks.next()
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.chunks.size_hint()
+    }
+}
+
+impl<'a, S> Iterator for FramesMut<'a, S> {
+    type Item = &'a mut [S];
+    fn next(&mut self) -> Option<Self::Item> {
+        self.chunks.next()
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.chunks.size_hint()
+    }
+}
+
+impl<'a, S> ExactSizeIterator for Frames<'a, S> {
+    fn len(&self) -> usize {
+        self.chunks.len()
+    }
+}
+
+impl<'a, S> ExactSizeIterator for FramesMut<'a, S> {
+    fn len(&self) -> usize {
+        self.chunks.len()
+    }
+}
+
+impl<'a, S> DoubleEndedIterator for Frames<'a, S> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.chunks.next_back()
+    }
+}
+
+impl<'a, S> DoubleEndedIterator for FramesMut<'a, S> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.chunks.next_back()
     }
 }

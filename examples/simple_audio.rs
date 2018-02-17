@@ -1,6 +1,6 @@
 extern crate nannou;
 
-use nannou::audio::{stream, Buffer};
+use nannou::audio::{self, Buffer};
 use nannou::prelude::*;
 use std::f64::consts::PI;
 
@@ -10,7 +10,7 @@ fn main() {
 
 struct Model {
     window: WindowId,
-    stream: stream::Output<Audio>,
+    stream: audio::Stream<Audio>,
 }
 
 struct Audio {
