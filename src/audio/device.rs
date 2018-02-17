@@ -11,6 +11,26 @@ pub struct Devices {
     pub(crate) devices: cpal::Devices,
 }
 
+impl Device {
+    /// The maximum number of output channels of any format supported by this device.
+    pub fn max_supported_output_channels(&self) -> usize {
+        self.supported_output_formats()
+            .unwrap()
+            .map(|fmt| fmt.channels as usize)
+            .max()
+            .unwrap_or(0)
+    }
+
+    /// The maximum number of input channels of any format supported by this device.
+    pub fn max_supported_input_channels(&self) -> usize {
+        self.supported_input_formats()
+            .unwrap()
+            .map(|fmt| fmt.channels as usize)
+            .max()
+            .unwrap_or(0)
+    }
+}
+
 impl Deref for Device {
     type Target = cpal::Device;
     fn deref(&self) -> &Self::Target {

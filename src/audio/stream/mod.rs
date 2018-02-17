@@ -157,7 +157,8 @@ impl<M> Stream<M> {
     /// may run for an indeterminate amount of time.
     pub fn send<F>(&self, update: F)
         -> Result<(), mpsc::SendError<Box<FnMut(&mut M) + Send + 'static>>>
-        where F: FnOnce(&mut M) + Send + 'static,
+    where
+        F: FnOnce(&mut M) + Send + 'static,
     {
         // NOTE: The following code may mean that on extremely rare occasions an update does
         // not get applied for an indeterminate amount of time. This might be the case if a
@@ -201,6 +202,11 @@ impl<M> Stream<M> {
     /// the target format.
     pub fn cpal_format(&self) -> &cpal::Format {
         &self.cpal_format
+    }
+
+    /// A reference to the unique ID associated with this stream.
+    pub fn id(&self) -> &cpal::StreamId {
+        &self.shared.stream_id
     }
 }
 
