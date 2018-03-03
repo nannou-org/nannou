@@ -3,7 +3,7 @@ use math::prelude::*;
 use math::{two, vec2, BaseFloat, Point2};
 
 /// The iterator type yielding triangles that describe a line.
-pub type Triangles<S> = quad::Triangles<S>;
+pub type Triangles<S> = quad::Triangles<Point2<S>>;
 
 /// Given two points and half the line thickness, return the four corners of the rectangle
 /// describing the line.

@@ -191,7 +191,7 @@ pub mod join {
         S: Copy,
     {
         type Scalar = S;
-        type Triangles = quad::Triangles<S>;
+        type Triangles = quad::Triangles<Point2<S>>;
         fn triangles(self) -> Self::Triangles {
             let Tris { a, b, il, ir, .. } = self;
             let r = [a, il, b, ir];
@@ -318,7 +318,7 @@ pub mod cap {
         S: BaseFloat,
     {
         type Scalar = S;
-        type Triangles = quad::Triangles<S>;
+        type Triangles = quad::Triangles<Point2<S>>;
         fn triangles(self) -> Self::Triangles {
             let Tris { a, b, half_thickness, .. } = self;
             let direction = b - a;

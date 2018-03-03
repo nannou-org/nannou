@@ -1,11 +1,13 @@
 use geom::Tri;
-use math::Point2;
+
+/// A quad represented by its corners.
+pub type Quad<V> = [V; 4];
 
 /// An `Iterator` yielding the two triangles that make up a quad.
 #[derive(Clone)]
-pub struct Triangles<S> {
-    a: Option<Tri<Point2<S>>>,
-    b: Option<Tri<Point2<S>>>,
+pub struct Triangles<V> {
+    a: Option<Tri<V>>,
+    b: Option<Tri<V>>,
 }
 
 /// Triangulates the given quad, represented by four points that describe its edges in either
@@ -45,30 +47,31 @@ pub struct Triangles<S> {
 /// extern crate nannou;
 ///
 /// use nannou::geom::{self, Tri};
+/// use nannou::math::vec2;
 ///
 /// fn main() {
-///     let a = [0.0, 1.0].into();
-///     let b = [1.0, 1.0].into();
-///     let c = [1.0, 0.0].into();
-///     let d = [0.0, 0.0].into();
+///     let a = vec2(0.0, 1.0);
+///     let b = vec2(1.0, 1.0);
+///     let c = vec2(1.0, 0.0);
+///     let d = vec2(0.0, 0.0);
 ///     let quad = [a, b, c, d];
 ///     let triangles = geom::quad::triangles(&quad);
 ///     assert_eq!(triangles, (Tri([a, b, c]), Tri([a, c, d])));
 /// }
 /// ```
 #[inline]
-pub fn triangles<S>(points: &[Point2<S>; 4]) -> (Tri<Point2<S>>, Tri<Point2<S>>)
+pub fn triangles<V>(points: &[V; 4]) -> (Tri<V>, Tri<V>)
 where
-    S: Copy,
+    V: Copy,
 {
     let (a, b, c, d) = (points[0], points[1], points[2], points[3]);
     (Tri([a, b, c]), Tri([a, c, d]))
 }
 
 /// The same as `triangles` but provided as an `Iterator`.
-pub fn triangles_iter<S>(points: &[Point2<S>; 4]) -> Triangles<S>
+pub fn triangles_iter<V>(points: &[V; 4]) -> Triangles<V>
 where
-    S: Copy,
+    V: Copy,
 {
     let (a, b) = triangles(points);
     Triangles {
@@ -77,9 +80,29 @@ where
     }
 }
 
-impl<S> Iterator for Triangles<S> {
-    type Item = Tri<Point2<S>>;
+impl<V> Iterator for Triangles<V> {
+    type Item = Tri<V>;
     fn next(&mut self) -> Option<Self::Item> {
         self.a.take().or_else(|| self.b.take())
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
+}
+
+impl<V> DoubleEndedIterator for Triangles<V> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.b.take().or_else(|| self.a.take())
+    }
+}
+
+impl<V> ExactSizeIterator for Triangles<V> {
+    fn len(&self) -> usize {
+        match (&self.a, &self.b) {
+            (&Some(_), &Some(_)) => 2,
+            (&None, &Some(_)) => 0,
+            _ => 1,
+        }
     }
 }
