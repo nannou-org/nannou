@@ -5,6 +5,51 @@ use math::{two, vec2, BaseFloat, Point2};
 /// The iterator type yielding triangles that describe a line.
 pub type Triangles<S> = quad::Triangles<Point2<S>>;
 
+/// A line represented by two points.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Line<S> {
+    /// The start point of the line.
+    pub start: Point2<S>,
+    /// The end point of the line.
+    pub end: Point2<S>,
+    /// Half of the thickness of the line.
+    pub half_thickness: S,
+}
+
+impl<S> Line<S>
+where
+    S: BaseFloat,
+{
+    /// Short-hand constructor for a `Line`.
+    pub fn new(start: Point2<S>, end: Point2<S>, half_thickness: S) -> Self {
+        Line { start, end, half_thickness }
+    }
+
+    /// The four corners of the rectangle describing the line.
+    pub fn quad_corners(&self) -> [Point2<S>; 4] {
+        quad_corners(self.start, self.end, self.half_thickness)
+    }
+
+    /// The two triangles that describe the line.
+    pub fn triangles(&self) -> [Tri<Point2<S>>; 2] {
+        triangles(self.start, self.end, self.half_thickness)
+    }
+
+    /// Given two points and half the line thickness, return the two triangles that describe the line.
+    pub fn triangles_iter(&self) -> Triangles<S> {
+        triangles_iter(self.start, self.end, self.half_thickness)
+    }
+
+    /// Describes whether or not the given point touches the line.
+    ///
+    /// If so, the `Tri` containing the point will be returned.
+    ///
+    /// `None` is returned otherwise.
+    pub fn contains(&self, point: &Point2<S>) -> Option<Tri<Point2<S>>> {
+        contains(self.start, self.end, self.half_thickness, point)
+    }
+}
+
 /// Given two points and half the line thickness, return the four corners of the rectangle
 /// describing the line.
 ///

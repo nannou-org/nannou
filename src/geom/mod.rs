@@ -9,6 +9,7 @@ pub mod rect;
 pub mod tri;
 
 pub use self::cuboid::Cuboid;
+pub use self::line::Line;
 pub use self::quad::Quad;
 pub use self::range::{Align, Edge, Range};
 pub use self::rect::{Corner, Padding, Rect};
