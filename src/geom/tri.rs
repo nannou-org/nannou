@@ -105,13 +105,13 @@ impl<V> Tri<V> {
 /// Returns the first `Tri` that contains the given vertex.
 ///
 /// Returns `None` if no `Tri`'s contain the given vertex.
-pub fn iter_contains<I, V>(tris: I, v: V) -> Option<I::Item>
+pub fn iter_contains<I, V>(tris: I, v: &V) -> Option<I::Item>
 where
     I: IntoIterator,
     I::Item: AsRef<Tri<V>>,
     V: Vertex2d,
 {
-    tris.into_iter().find(|tri| tri.as_ref().contains(&v))
+    tris.into_iter().find(|tri| tri.as_ref().contains(v))
 }
 
 impl<V> Deref for Tri<V>

@@ -8,7 +8,7 @@ use std::ops::Neg;
 ///
 /// As an example, a **Rect** is made up of two **Range**s; one along the *x* axis, and one along
 /// the *y* axis.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct Range<S = f64> {
     /// The start of some `Range` along an axis.
     pub start: S,
@@ -17,7 +17,7 @@ pub struct Range<S = f64> {
 }
 
 /// Represents either the **Start** or **End** **Edge** of a **Range**.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum Edge {
     /// The beginning of a **Range**.
     Start,
@@ -26,7 +26,7 @@ pub enum Edge {
 }
 
 /// Describes alignment along a range.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum Align { Start, Middle, End }
 
 impl<S> Range<S>
@@ -210,7 +210,25 @@ where
     /// assert_eq!(Range::new(5.0, 1.0).undirected(), Range::new(1.0, 5.0));
     /// assert_eq!(Range::new(10.0, -10.0).undirected(), Range::new(-10.0, 10.0));
     /// ```
+    #[deprecated = "use `absolute` instead"]
     pub fn undirected(self) -> Self {
+        if self.start > self.end { self.invert() } else { self }
+    }
+
+    /// Converts the Range to an absolute Range by ensuring that `start` <= `end`.
+    ///
+    /// If `start` > `end`, then the start and end points will be swapped.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nannou::geom::Range;
+    ///
+    /// assert_eq!(Range::new(0.0, 5.0).absolute(), Range::new(0.0, 5.0));
+    /// assert_eq!(Range::new(5.0, 1.0).absolute(), Range::new(1.0, 5.0));
+    /// assert_eq!(Range::new(10.0, -10.0).absolute(), Range::new(-10.0, 10.0));
+    /// ```
+    pub fn absolute(self) -> Self {
         if self.start > self.end { self.invert() } else { self }
     }
 
@@ -267,8 +285,8 @@ where
     /// assert_eq!(e.overlap(f), None);
     /// ```
     pub fn overlap(mut self, mut other: Self) -> Option<Self> {
-        self = self.undirected();
-        other = other.undirected();
+        self = self.absolute();
+        other = other.absolute();
         let start = math::partial_max(self.start, other.start);
         let end = math::partial_min(self.end, other.end);
         let magnitude = end - start;
@@ -320,7 +338,7 @@ where
     /// assert!(range.contains(10.0));
     /// ```
     pub fn contains(&self, pos: S) -> bool {
-        let Range { start, end } = self.undirected();
+        let Range { start, end } = self.absolute();
         start <= pos && pos <= end
     }
 
@@ -662,5 +680,4 @@ where
         let end_diff = if scalar < end { end - scalar } else { scalar - end };
         if start_diff <= end_diff { Edge::Start } else { Edge::End }
     }
-
 }

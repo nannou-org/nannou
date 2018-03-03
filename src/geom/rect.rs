@@ -4,7 +4,7 @@ use math::num_traits::Float;
 use std::ops::Neg;
 
 /// Defines a Rectangle's bounds across the x and y axes.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct Rect<S = f64> {
     /// The start and end positions of the Rectangle on the x axis.
     pub x: Range<S>,
@@ -14,7 +14,7 @@ pub struct Rect<S = f64> {
 
 /// The distance between the inner edge of a border and the outer edge of the inner content.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Padding<S> {
+pub struct Padding<S = f64> {
     /// Padding on the start and end of the *x* axis.
     pub x: Range<S>,
     /// Padding on the start and end of the *y* axis.
@@ -34,6 +34,32 @@ pub enum Corner {
     BottomRight,
 }
 
+/// Yields even subdivisions of a `Rect`.
+///
+/// The four subdivisions will each be yielded as a `Rect` whose dimensions are exactly half of the
+/// original `Rect`.
+#[derive(Clone)]
+pub struct Subdivisions<S = f64> {
+    ranges: SubdivisionRanges<S>,
+    subdivision_index: u8,
+}
+
+/// The ranges that describe the subdivisions of a `Rect`.
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
+pub struct SubdivisionRanges<S = f64> {
+    /// The first half of the x range.
+    pub x_a: Range<S>,
+    /// The second half of the x range.
+    pub x_b: Range<S>,
+    /// The first half of the y range.
+    pub y_a: Range<S>,
+    /// The second half of the y range.
+    pub y_b: Range<S>,
+}
+
+/// The number of subdivisions when dividing a `Rect` in half along the *x* and *y* axes.
+pub const NUM_SUBDIVISIONS: u8 = 4;
+
 impl<S> Padding<S>
 where
     S: BaseNum,
@@ -45,6 +71,14 @@ where
             y: Range::new(S::zero(), S::zero()),
         }
     }
+}
+
+// Given some `SubdivisionRanges` and a subdivision index, produce the rect for that subdivision.
+macro_rules! subdivision_from_index {
+    ($ranges:expr, 0) => { Rect { x: $ranges.x_a, y: $ranges.y_a } };
+    ($ranges:expr, 1) => { Rect { x: $ranges.x_b, y: $ranges.y_a } };
+    ($ranges:expr, 2) => { Rect { x: $ranges.x_a, y: $ranges.y_b } };
+    ($ranges:expr, 3) => { Rect { x: $ranges.x_b, y: $ranges.y_b } };
 }
 
 impl<S> Rect<S>
@@ -73,6 +107,14 @@ where
                 end: top,
             },
         }
+    }
+
+    /// Converts `self` to an absolute `Rect` so that the magnitude of each range is always
+    /// positive.
+    pub fn absolute(self) -> Self {
+        let x = self.x.absolute();
+        let y = self.y.absolute();
+        Rect { x, y }
     }
 
     /// The Rect representing the area in which two Rects overlap.
@@ -115,22 +157,22 @@ where
 
     /// The Rect's lowest y value.
     pub fn bottom(&self) -> S {
-        self.y.undirected().start
+        self.y.absolute().start
     }
 
     /// The Rect's highest y value.
     pub fn top(&self) -> S {
-        self.y.undirected().end
+        self.y.absolute().end
     }
 
     /// The Rect's lowest x value.
     pub fn left(&self) -> S {
-        self.x.undirected().start
+        self.x.absolute().start
     }
 
     /// The Rect's highest x value.
     pub fn right(&self) -> S {
-        self.x.undirected().end
+        self.x.absolute().end
     }
 
     /// The top left corner **Point**.
@@ -174,9 +216,9 @@ where
         }
     }
 
-    /// Shift the Rect by the given Point.
-    pub fn shift(self, p: Point2<S>) -> Self {
-        self.shift_x(p.x).shift_y(p.y)
+    /// Shift the Rect by the given vector.
+    pub fn shift(self, v: Vector2<S>) -> Self {
+        self.shift_x(v.x).shift_y(v.y)
     }
 
     /// Does the given point touch the Rectangle.
@@ -185,11 +227,11 @@ where
     }
 
     /// Stretches the closest edge(s) to the given point if the point lies outside of the Rect area.
-    pub fn stretch_to_point(self, point: Point2<S>) -> Self {
+    pub fn stretch_to_point(self, p: Point2<S>) -> Self {
         let Rect { x, y } = self;
         Rect {
-            x: x.stretch_to_value(point[0]),
-            y: y.stretch_to_value(point[1]),
+            x: x.stretch_to_value(p.x),
+            y: y.stretch_to_value(p.y),
         }
     }
 
@@ -361,6 +403,74 @@ where
         let corners = self.corners();
         geom::quad::triangles(&corners)
     }
+
+    /// The four ranges used for the `Rect`'s four subdivisions.
+    pub fn subdivision_ranges(&self) -> SubdivisionRanges<S> {
+        let (x, y) = self.x_y();
+        let x_a = Range::new(self.x.start, x);
+        let x_b = Range::new(x, self.x.end);
+        let y_a = Range::new(self.y.start, y);
+        let y_b = Range::new(y, self.y.end);
+        SubdivisionRanges { x_a, x_b, y_a, y_b }
+    }
+
+    /// Divide the `Rect` in half along the *x* and *y* axes and return the four subdivisions.
+    ///
+    /// Subdivisions are yielded in the following order:
+    ///
+    /// 1. Bottom left
+    /// 2. Bottom right
+    /// 3. Top left
+    /// 4. Top right
+    pub fn subdivisions(&self) -> [Self; NUM_SUBDIVISIONS as usize] {
+        self.subdivision_ranges().rects()
+    }
+
+    /// The same as `subdivisions` but each subdivision is yielded via the returned `Iterator`.
+    pub fn subdivisions_iter(&self) -> Subdivisions<S> {
+        self.subdivision_ranges().rects_iter()
+    }
+}
+
+impl<S> SubdivisionRanges<S>
+where
+    S: Copy,
+{
+    /// The `Rect`s representing each of the four subdivisions.
+    ///
+    /// Subdivisions are yielded in the following order:
+    ///
+    /// 1. Bottom left
+    /// 2. Bottom right
+    /// 3. Top left
+    /// 4. Top right
+    pub fn rects(&self) -> [Rect<S>; NUM_SUBDIVISIONS as usize] {
+        let r1 = subdivision_from_index!(self, 0);
+        let r2 = subdivision_from_index!(self, 1);
+        let r3 = subdivision_from_index!(self, 2);
+        let r4 = subdivision_from_index!(self, 3);
+        [r1, r2, r3, r4]
+    }
+
+    /// The same as `rects` but each subdivision is yielded via the returned `Iterator`.
+    pub fn rects_iter(self) -> Subdivisions<S> {
+        Subdivisions {
+            ranges: self,
+            subdivision_index: 0,
+        }
+    }
+
+    // The subdivision at the given index within the range 0..NUM_SUBDIVISIONS.
+    fn subdivision_at_index(&self, index: u8) -> Option<Rect<S>> {
+        let rect = match index {
+            0 => subdivision_from_index!(self, 0),
+            1 => subdivision_from_index!(self, 1),
+            2 => subdivision_from_index!(self, 2),
+            3 => subdivision_from_index!(self, 3),
+            _ => return None,
+        };
+        Some(rect)
+    }
 }
 
 impl<S> Rect<S>
@@ -483,5 +593,48 @@ where
     /// Returns a `Rect` with a position relative to the given position.
     pub fn relative_to(self, p: Point2<S>) -> Self {
         self.relative_to_x(p.x).relative_to_y(p.y)
+    }
+}
+
+impl<S> Iterator for Subdivisions<S>
+where
+    S: Copy,
+{
+    type Item = Rect<S>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(sd) = self.ranges.subdivision_at_index(self.subdivision_index) {
+            self.subdivision_index += 1;
+            return Some(sd);
+        }
+        None
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
+}
+
+impl<S> DoubleEndedIterator for Subdivisions<S>
+where
+    S: Copy,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let next_index = self.subdivision_index + 1;
+        if let Some(sd) = self.ranges.subdivision_at_index(NUM_SUBDIVISIONS - next_index) {
+            self.subdivision_index = next_index;
+            return Some(sd);
+        }
+        None
+    }
+}
+
+impl<S> ExactSizeIterator for Subdivisions<S>
+where
+    S: Copy,
+{
+    fn len(&self) -> usize {
+        NUM_SUBDIVISIONS as usize - self.subdivision_index as usize
     }
 }
