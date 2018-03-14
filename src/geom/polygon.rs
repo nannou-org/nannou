@@ -1,8 +1,68 @@
+use geom::{Cuboid, Rect, Vertex, Vertex2d, Vertex3d};
 use geom::tri::{self, Tri};
+
+/// A simple type wrapper around a list of points that describe a polygon.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Polygon<I> {
+    /// The iterator yielding all points in the polygon.
+    points: I,
+}
+
+impl<I> Polygon<I>
+where
+    I: Iterator,
+{
+    /// Construct a new polygon from the given list of points describing its vertices.
+    pub fn new<P>(points: P) -> Self
+    where
+        P: IntoIterator<IntoIter = I, Item = I::Item>,
+    {
+        let points = points.into_iter();
+        Polygon { points }
+    }
+
+    /// Triangulate the polygon given as a list of `Point`s describing its sides.
+    ///
+    /// Returns `None` if the polygon's iterator yields less than two points.
+    pub fn triangles(self) -> Option<Triangles<I>> {
+        triangles(self.points)
+    }
+
+    /// Returns `Some` with the touched triangle if the given `Point` is over the polygon described
+    /// by the given series of points.
+    ///
+    /// This uses the `triangles` function internally.
+    pub fn contains(self, p: &I::Item) -> Option<Tri<I::Item>>
+    where
+        I::Item: Vertex2d,
+    {
+        contains(self.points, p)
+    }
+
+    /// The `Rect` that bounds the polygon.
+    ///
+    /// Returns `None` if the polygon's point iterator is empty.
+    pub fn bounding_rect(self) -> Option<Rect<<I::Item as Vertex>::Scalar>>
+    where
+        I::Item: Vertex2d,
+    {
+        super::bounding_rect(self.points)
+    }
+
+    /// The `Cuboid that bounds the polygon.
+    ///
+    /// Returns `None` if the polygon's point iterator is empty.
+    pub fn bounding_cuboid(self) -> Option<Cuboid<<I::Item as Vertex>::Scalar>>
+    where
+        I::Item: Vertex3d,
+    {
+        super::bounding_cuboid(self.points)
+    }
+}
 
 /// An iterator that triangulates a polygon represented by a sequence of points describing its
 /// edges.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Triangles<I>
 where
     I: Iterator,
@@ -18,7 +78,6 @@ where
 pub fn triangles<I>(points: I) -> Option<Triangles<I::IntoIter>>
 where
     I: IntoIterator,
-    I::Item: tri::Vertex2d,
 {
     let mut points = points.into_iter();
     let first = match points.next() {
@@ -39,7 +98,7 @@ where
 impl<I> Iterator for Triangles<I>
 where
     I: Iterator,
-    I::Item: tri::Vertex2d,
+    I::Item: Vertex,
 {
     type Item = Tri<I::Item>;
     fn next(&mut self) -> Option<Self::Item> {
@@ -51,12 +110,14 @@ where
     }
 }
 
-/// Returns `true` if the given `Point` is over the polygon described by the given series of
-/// points.
+/// Returns `Some` with the touched triangle if the given `Point` is over the polygon described by
+/// the given series of points.
+///
+/// This uses the `triangles` function internally.
 pub fn contains<I>(points: I, point: &I::Item) -> Option<Tri<I::Item>>
 where
     I: IntoIterator,
-    I::Item: tri::Vertex2d,
+    I::Item: Vertex2d,
 {
     triangles(points).and_then(|ts| tri::iter_contains(ts, &point))
 }

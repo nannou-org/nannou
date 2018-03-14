@@ -1,4 +1,4 @@
-use geom::{self, Align, Edge, Range, Tri};
+use geom::{quad, Align, Edge, Quad, Range, Tri};
 use math::{self, BaseNum, Point2, Vector2};
 use math::num_traits::Float;
 use std::ops::Neg;
@@ -57,8 +57,24 @@ pub struct SubdivisionRanges<S = f64> {
     pub y_b: Range<S>,
 }
 
+/// An iterator yielding the four corners of a `Rect`.
+#[derive(Clone, Debug)]
+pub struct Corners<S = f64> {
+    rect: Rect<S>,
+    index: u8,
+}
+
+/// The triangles iterator yielded by the `Rect`.
+pub type Triangles<S> = quad::Triangles<Point2<S>>;
+
 /// The number of subdivisions when dividing a `Rect` in half along the *x* and *y* axes.
 pub const NUM_SUBDIVISIONS: u8 = 4;
+
+/// The number of subdivisions when dividing a `Rect` in half along the *x* and *y* axes.
+pub const NUM_CORNERS: u8 = 4;
+
+/// The number of triangles used to represent a `Rect`.
+pub const NUM_TRIANGLES: u8 = 2;
 
 impl<S> Padding<S>
 where
@@ -79,6 +95,14 @@ macro_rules! subdivision_from_index {
     ($ranges:expr, 1) => { Rect { x: $ranges.x_b, y: $ranges.y_a } };
     ($ranges:expr, 2) => { Rect { x: $ranges.x_a, y: $ranges.y_b } };
     ($ranges:expr, 3) => { Rect { x: $ranges.x_b, y: $ranges.y_b } };
+}
+
+// Given some `Rect` and an index, produce the corner for that index.
+macro_rules! corner_from_index {
+    ($rect:expr, 0) => { $rect.bottom_left() };
+    ($rect:expr, 1) => { $rect.bottom_right() };
+    ($rect:expr, 2) => { $rect.top_left() };
+    ($rect:expr, 3) => { $rect.top_right() };
 }
 
 impl<S> Rect<S>
@@ -389,19 +413,30 @@ where
     }
 
     /// Thee four corners of the `Rect`.
-    pub fn corners(&self) -> [Point2<S>; 4] {
+    pub fn corners(&self) -> Quad<Point2<S>> {
         let (l, r, b, t) = self.l_r_b_t();
         let lb = [l, b].into();
         let lt = [l, t].into();
         let rt = [r, t].into();
         let rb = [r, b].into();
-        [lb, lt, rt, rb]
+        Quad::from([lb, lt, rt, rb])
+    }
+
+    /// An iterator yielding the four corners of the `Rect`.
+    pub fn corners_iter(&self) -> Corners<S> {
+        let rect = *self;
+        let index = 0;
+        Corners { rect, index }
     }
 
     /// Return two `Tri`s that represent the `Rect`.
     pub fn triangles(&self) -> (Tri<Point2<S>>, Tri<Point2<S>>) {
-        let corners = self.corners();
-        geom::quad::triangles(&corners)
+        self.corners().triangles()
+    }
+
+    /// An iterator yielding the `Rect`'s two `Tri`'s.
+    pub fn triangles_iter(self) -> Triangles<S> {
+        self.corners().triangles_iter()
     }
 
     /// The four ranges used for the `Rect`'s four subdivisions.
@@ -429,6 +464,17 @@ where
     /// The same as `subdivisions` but each subdivision is yielded via the returned `Iterator`.
     pub fn subdivisions_iter(&self) -> Subdivisions<S> {
         self.subdivision_ranges().rects_iter()
+    }
+
+    /// Produce the corner at the given index.
+    pub fn corner_at_index(&self, index: u8) -> Option<Point2<S>> {
+        match index {
+            0 => Some(corner_from_index!(self, 0)),
+            1 => Some(corner_from_index!(self, 1)),
+            2 => Some(corner_from_index!(self, 2)),
+            3 => Some(corner_from_index!(self, 3)),
+            _ => None,
+        }
     }
 }
 
@@ -636,5 +682,47 @@ where
 {
     fn len(&self) -> usize {
         NUM_SUBDIVISIONS as usize - self.subdivision_index as usize
+    }
+}
+
+impl<S> Iterator for Corners<S>
+where
+    S: BaseNum,
+{
+    type Item = Point2<S>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(corner) = self.rect.corner_at_index(self.index) {
+            self.index += 1;
+            return Some(corner);
+        }
+        None
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
+}
+
+impl<S> DoubleEndedIterator for Corners<S>
+where
+    S: BaseNum,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let next_index = self.index + 1;
+        if let Some(corner) = self.rect.corner_at_index(NUM_CORNERS - next_index) {
+            self.index = next_index;
+            return Some(corner);
+        }
+        None
+    }
+}
+
+impl<S> ExactSizeIterator for Corners<S>
+where
+    S: BaseNum,
+{
+    fn len(&self) -> usize {
+        (NUM_CORNERS - self.index) as usize
     }
 }

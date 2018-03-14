@@ -2,7 +2,7 @@
 //!
 //! The main type is the `Cuboid` type.
 
-use geom::{Quad, Range};
+use geom::{quad, Quad, Range, Tri};
 use math::{BaseNum, Point3, Vector3};
 use math::num_traits::Float;
 use std::ops::Neg;
@@ -43,14 +43,14 @@ pub enum Face {
 }
 
 /// An iterator yielding each corner of a cuboid in the following order.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Corners<'a, S: 'a> {
     cuboid: &'a Cuboid<S>,
     corner_index: u8,
 }
 
 /// An iterator yielding the faces of a cuboid as per their ordering.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Faces {
     next_face_index: u8,
 }
@@ -59,12 +59,19 @@ pub struct Faces {
 pub type FaceQuad<S> = Quad<Point3<S>>;
 
 /// An iterator yielding each face of a cuboid as a quad.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FaceQuads<'a, S: 'a = f64> {
     // The cuboid object from which each face will be yielded.
     cuboid: &'a Cuboid<S>,
     // The next face to yield.
     faces: Faces,
+}
+
+/// An iterator yielding all triangles for all faces.
+#[derive(Clone, Debug)]
+pub struct Triangles<'a, S: 'a> {
+    face_quads: FaceQuads<'a, S>,
+    triangles: quad::Triangles<Point3<S>>,
 }
 
 /// The three ranges that make up the 8 subdivisions of a cuboid.
@@ -301,32 +308,32 @@ where
 
     /// The quad for the face at the start of the range along the x axis.
     pub fn left_quad(&self) -> FaceQuad<S> {
-        quad_from_corner_indices!(self, 4, 6, 2, 0)
+        Quad(quad_from_corner_indices!(self, 4, 6, 2, 0))
     }
 
     /// The quad for the face at the end of the range along the x axis.
     pub fn right_quad(&self) -> FaceQuad<S> {
-        quad_from_corner_indices!(self, 1, 3, 7, 5)
+        Quad(quad_from_corner_indices!(self, 1, 3, 7, 5))
     }
 
     /// The quad for the face at the start of the range along the y axis.
     pub fn bottom_quad(&self) -> FaceQuad<S> {
-        quad_from_corner_indices!(self, 0, 1, 5, 4)
+        Quad(quad_from_corner_indices!(self, 0, 1, 5, 4))
     }
 
     /// The quad for the face at the end of the range along the y axis.
     pub fn top_quad(&self) -> FaceQuad<S> {
-        quad_from_corner_indices!(self, 2, 6, 7, 3)
+        Quad(quad_from_corner_indices!(self, 2, 6, 7, 3))
     }
 
     /// The quad for the face at the start of the range along the z axis.
     pub fn front_quad(&self) -> FaceQuad<S> {
-        quad_from_corner_indices!(self, 0, 2, 3, 1)
+        Quad(quad_from_corner_indices!(self, 0, 2, 3, 1))
     }
 
     /// The quad for the face at the end of the range along the z axis.
     pub fn back_quad(&self) -> FaceQuad<S> {
-        quad_from_corner_indices!(self, 5, 7, 6, 4)
+        Quad(quad_from_corner_indices!(self, 5, 7, 6, 4))
     }
 
     /// The quad for the given face.
@@ -395,6 +402,16 @@ where
             faces: Faces { next_face_index: 0 },
             cuboid: self,
         }
+    }
+
+    /// Produce an iterator yielding every triangle in the cuboid (two for each face).
+    ///
+    /// Uses the `faces_iter` method internally.
+    pub fn triangles_iter(&self) -> Triangles<S> {
+        let mut face_quads = self.faces_iter();
+        let first_quad = face_quads.next().unwrap();
+        let triangles = first_quad.triangles_iter();
+        Triangles { face_quads, triangles }
     }
 
     /// The six ranges used for the `Cuboid`'s eight subdivisions.
@@ -641,6 +658,9 @@ impl Face {
     }
 }
 
+impl<'a, S> FaceQuads<'a, S> {
+}
+
 impl Iterator for Faces {
     type Item = Face;
     fn next(&mut self) -> Option<Self::Item> {
@@ -697,6 +717,56 @@ where
 {
     fn len(&self) -> usize {
         self.faces.len()
+    }
+}
+
+impl<'a, S> Iterator for Triangles<'a, S>
+where
+    S: BaseNum,
+{
+    type Item = Tri<Point3<S>>;
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(tri) = self.triangles.next() {
+                return Some(tri);
+            }
+            self.triangles = match self.face_quads.next() {
+                Some(quad) => quad.triangles_iter(),
+                None => return None,
+            }
+        }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
+}
+
+impl<'a, S> DoubleEndedIterator for Triangles<'a, S>
+where
+    S: BaseNum,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(tri) = self.triangles.next_back() {
+                return Some(tri);
+            }
+            self.triangles = match self.face_quads.next_back() {
+                Some(quad) => quad.triangles_iter(),
+                None => return None,
+            }
+        }
+    }
+}
+
+impl<'a, S> ExactSizeIterator for Triangles<'a, S>
+where
+    S: BaseNum,
+{
+    fn len(&self) -> usize {
+        let remaining_triangles = self.triangles.len();
+        let remaining_quads = self.face_quads.len();
+        remaining_triangles + remaining_quads * 2
     }
 }
 

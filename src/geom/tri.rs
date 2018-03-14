@@ -1,67 +1,54 @@
-use color::Rgba;
-use math::{BaseNum, Point2, Point3, Zero};
+use geom::{vertex, Cuboid, Range, Rect, Vertex, Vertex2d, Vertex3d};
+use math::{BaseNum, EuclideanSpace, Point2, Zero};
 use std::ops::Deref;
 
+/// The number of vertices in a triangle.
+pub const NUM_VERTICES: u8 = 3;
+
 /// A triangle as three vertices.
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Tri<V = Point3<f64>>(pub [V; 3]);
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Tri<V = vertex::Default>(pub [V; NUM_VERTICES as usize]);
 
-/// A vertex that is colored with the given linear `RGBA` color.
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct RgbaVertex<V = Point3<f64>>(pub V, pub Rgba);
-
-/// Types used as vertices that can be used to describe a triangle.
-pub trait Vertex: Clone + Copy + PartialEq {
-    /// The values used to describe the vertex position.
-    type Scalar: BaseNum;
+/// An iterator yielding each of the vertices of the triangle.
+#[derive(Clone, Debug)]
+pub struct Vertices<V = vertex::Default> {
+    tri: Tri<V>,
+    index: u8,
 }
 
-/// Two dimensional vertices.
-pub trait Vertex2d: Vertex {
-    /// The x, y location of the vertex.
-    fn point2(self) -> Point2<Self::Scalar>;
-}
-
-impl<S> Vertex for Point2<S>
-where
-    S: BaseNum,
-{
-    type Scalar = S;
-}
-
-impl<S> Vertex for Point3<S>
-where
-    S: BaseNum,
-{
-    type Scalar = S;
-}
-
-impl<V> Vertex for RgbaVertex<V>
+impl<V> Tri<V>
 where
     V: Vertex,
 {
-    type Scalar = V::Scalar;
-}
+    /// Produce an iterator yielding each of the vertices of the triangle.
+    pub fn vertices(self) -> Vertices<V> {
+        let tri = self;
+        let index = 0;
+        Vertices { tri, index }
+    }
 
-impl<S> Vertex2d for Point2<S>
-where
-    S: BaseNum + Zero,
-{
-    fn point2(self) -> Point2<S> {
-        self
+    /// Produce the centroid of the triangle aka the "mean"/"average" of all the points.
+    pub fn centroid(self) -> V
+    where
+        V: EuclideanSpace,
+    {
+        EuclideanSpace::centroid(&self[..])
+    }
+
+    /// Maps the underlying vertices to a new type and returns the resulting `Tri`.
+    pub fn map<F, V2>(self, mut map: F) -> Tri<V2>
+    where
+        F: FnMut(V) -> V2,
+    {
+        let (a, b, c) = self.into();
+        Tri([map(a), map(b), map(c)])
     }
 }
 
-impl<V> Vertex2d for RgbaVertex<V>
+impl<V> Tri<V>
 where
     V: Vertex2d,
 {
-    fn point2(self) -> Point2<V::Scalar> {
-        self.0.point2()
-    }
-}
-
-impl<V> Tri<V> {
     /// Returns `true` if the given 2D vertex is contained within the 2D `Tri`.
     ///
     /// # Example
@@ -99,6 +86,48 @@ impl<V> Tri<V> {
         let b3 = sign(v, c, a) < V::Scalar::zero();
 
         (b1 == b2) && (b2 == b3)
+    }
+
+    /// The bounding `Rect` of the triangle.
+    pub fn bounding_rect(self) -> Rect<V::Scalar>
+    where
+        V: Vertex2d,
+    {
+        let (a, b, c) = self.into();
+        let (a, b, c) = (a.point2(), b.point2(), c.point2());
+        let rect = Rect { x: Range::new(a.x, a.x), y: Range::new(a.y, a.y) };
+        rect.stretch_to_point(b).stretch_to_point(c)
+    }
+
+    /// The bounding `Rect` of the triangle.
+    pub fn bounding_cuboid(self) -> Cuboid<V::Scalar>
+    where
+        V: Vertex3d,
+    {
+        let (a, b, c) = self.into();
+        let (a, b, c) = (a.point3(), b.point3(), c.point3());
+        let cuboid = Cuboid {
+            x: Range::new(a.x, a.x),
+            y: Range::new(a.y, a.y),
+            z: Range::new(a.z, a.z),
+        };
+        cuboid.stretch_to_point(b).stretch_to_point(c)
+    }
+}
+
+impl<V> Iterator for Vertices<V>
+where
+    V: Clone,
+{
+    type Item = V;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < NUM_VERTICES {
+            let v = self.tri.0[self.index as usize].clone();
+            self.index += 1;
+            Some(v)
+        } else {
+            None
+        }
     }
 }
 

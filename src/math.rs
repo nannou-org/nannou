@@ -1,7 +1,6 @@
 extern crate cgmath;
 pub use self::cgmath::*;
-
-use self::cgmath::num_traits::{NumCast, One};
+pub use self::cgmath::num_traits::{NumCast, One};
 use std::ops::Add;
 
 pub fn pt1<S>(x: S) -> Point1<S> {

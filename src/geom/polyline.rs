@@ -50,7 +50,7 @@
 //! polyline::contains(points, thickness, &point); 
 //! ```
 
-use geom::{quad, line, Tri};
+use geom::{self, quad, line, Rect, Tri, Vertex};
 use math::{self, BaseFloat, InnerSpace, Point2, vec2};
 pub use self::cap::Cap;
 pub use self::join::Join;
@@ -61,12 +61,16 @@ pub use self::join::Join;
 /// A **Polyline** can be triangulated using the `triangles()` method.
 ///
 /// You can check if a `Polyline` contains a given point using the `contains(&point)` method.
+#[derive(Clone, Debug)]
 pub struct Polyline<C, J, I, S> {
     pub cap: C,
     pub join: J,
     pub points: I,
     pub thickness: S,
 }
+
+/// A `Polyline` whose cap and join types may change at run-time.
+pub type Dynamic<I, S> = Polyline<cap::Dynamic, join::Dynamic, I, S>;
 
 #[derive(Clone)]
 struct StartCap<C, T> {
@@ -129,10 +133,21 @@ where
     current: Option<Part<<cap::Tris<C, S> as Cap>::Triangles, <join::Tris<J, S> as Join>::Triangles, S>>,
 }
 
+/// A `Triangles` iterator yielding triangles from a polyline whose cap and join types may change
+/// at runtime.
+#[derive(Clone)]
+pub struct DynamicTriangles<I>
+where
+    I: Iterator,
+    I::Item: Clone + Vertex,
+    <I::Item as Vertex>::Scalar: BaseFloat,
+{
+    tris: Triangles<cap::Dynamic, join::Dynamic, I, <I::Item as Vertex>::Scalar>,
+}
 
 pub mod join {
     use geom::{ellipse, quad, Rect, Tri};
-    use math::{vec2, BaseFloat, InnerSpace, Point2, Vector2};
+    use math::{vec2, BaseNum, BaseFloat, InnerSpace, Point2, Vector2};
     use math::num_traits::NumCast;
     use std;
     use std::f64::consts::PI;
@@ -172,6 +187,74 @@ pub mod join {
     #[derive(Clone, Copy, Debug)]
     pub struct Bevel;
 
+    // Join type that may change kind at runtime.
+    #[derive(Clone, Copy, Debug)]
+    pub enum Dynamic {
+        Miter(Miter),
+        Round(Round),
+        Bevel(Bevel),
+    }
+
+    pub type MiterTris<S> = quad::Triangles<Point2<S>>;
+    pub type RoundTris<S> = ellipse::Triangles<S>;
+    pub type BevelTris<S> = iter::Once<Tri<Point2<S>>>;
+
+    #[derive(Clone)]
+    pub enum DynamicTris<S> {
+        Miter(MiterTris<S>),
+        Round(RoundTris<S>),
+        Bevel(BevelTris<S>),
+    }
+
+    impl<S> Iterator for DynamicTris<S>
+    where
+        S: BaseFloat,
+    {
+        type Item = Tri<Point2<S>>;
+        fn next(&mut self) -> Option<Self::Item> {
+            match *self {
+                DynamicTris::Miter(ref mut tris) => tris.next(),
+                DynamicTris::Round(ref mut tris) => tris.next(),
+                DynamicTris::Bevel(ref mut tris) => tris.next(),
+            }
+        }
+
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            match *self {
+                DynamicTris::Miter(ref tris) => tris.size_hint(),
+                DynamicTris::Round(ref tris) => tris.size_hint(),
+                DynamicTris::Bevel(ref tris) => tris.size_hint(),
+            }
+        }
+    }
+
+    // TODO: Implement `DoubleEndedIterator` for `ellipse::Triangles` first.
+    // impl<S> DoubleEndedIterator for DynamicTris<S>
+    // where
+    //     S: BaseFloat,
+    // {
+    //     fn next_back(&mut self) -> Option<Self::Item> {
+    //         match *self {
+    //             DynamicTris::Miter(ref mut tris) => tris.next_back(),
+    //             DynamicTris::Round(ref mut tris) => tris.next_back(),
+    //             DynamicTris::Bevel(ref mut tris) => tris.next_back(),
+    //         }
+    //     }
+    // }
+
+    impl<S> ExactSizeIterator for DynamicTris<S>
+    where
+        S: BaseFloat,
+    {
+        fn len(&self) -> usize {
+            match *self {
+                DynamicTris::Miter(ref tris) => tris.len(),
+                DynamicTris::Round(ref tris) => tris.len(),
+                DynamicTris::Bevel(ref tris) => tris.len(),
+            }
+        }
+    }
+
     impl<J, S> Tris<J, S> {
         pub fn new(
             join: J,
@@ -188,23 +271,23 @@ pub mod join {
 
     impl<S> Join for Tris<Miter, S>
     where
-        S: Copy,
+        S: BaseNum,
     {
         type Scalar = S;
-        type Triangles = quad::Triangles<Point2<S>>;
+        type Triangles = MiterTris<S>;
         fn triangles(self) -> Self::Triangles {
             let Tris { a, b, il, ir, .. } = self;
-            let r = [a, il, b, ir];
-            quad::triangles_iter(&r)
+            let quad = [a, il, b, ir].into();
+            quad::triangles_iter(&quad)
         }
     }
 
     impl<S> Join for Tris<Round, S>
     where
-        S: BaseFloat + NumCast,
+        S: BaseFloat,
     {
         type Scalar = S;
-        type Triangles = ellipse::Triangles<S>;
+        type Triangles = RoundTris<S>;
         fn triangles(self) -> Self::Triangles {
             const CIRCLE_RESOLUTION: f64 = 50.0;
             const TWO_PI: f64 = 2.0 * PI;
@@ -232,7 +315,7 @@ pub mod join {
         S: Clone,
     {
         type Scalar = S;
-        type Triangles = iter::Once<Tri<Point2<S>>>;
+        type Triangles = BevelTris<S>;
         fn triangles(self) -> Self::Triangles {
             let Tris { a, b, il, ir, turn, .. } = self;
             // Circle positioned at shortest intersection.
@@ -244,12 +327,30 @@ pub mod join {
             iter::once(tri)
         }
     }
+
+    impl<S> Join for Tris<Dynamic, S>
+    where
+        S: BaseFloat,
+    {
+        type Scalar = S;
+        type Triangles = DynamicTris<S>;
+        fn triangles(self) -> Self::Triangles {
+            let Tris { join, a, b, il, ir, turn, thickness } = self;
+            macro_rules! join_tris {
+                ($join:expr) => { Tris { join: $join, a, b, il, ir, turn, thickness } };
+            }
+            match join {
+                Dynamic::Miter(join) => DynamicTris::Miter(join_tris!(join).triangles()),
+                Dynamic::Round(join) => DynamicTris::Round(join_tris!(join).triangles()),
+                Dynamic::Bevel(join) => DynamicTris::Bevel(join_tris!(join).triangles()),
+            }
+        }
+    }
 }
 
 pub mod cap {
     use geom::{ellipse, quad, Rect, Tri};
     use math::{vec2, BaseFloat, InnerSpace, Point2};
-    use math::num_traits::NumCast;
     use std::f64::consts::PI;
     use std::iter;
 
@@ -278,6 +379,74 @@ pub mod cap {
     #[derive(Clone, Copy, Debug)]
     pub struct Square;
 
+    // A type representing a line cap whose kind may change at runtime.
+    #[derive(Clone, Copy, Debug)]
+    pub enum Dynamic {
+        Butt(Butt),
+        Round(Round),
+        Square(Square),
+    }
+
+    pub type ButtTris<S> = iter::Empty<Tri<Point2<S>>>;
+    pub type RoundTris<S> = ellipse::Triangles<S>;
+    pub type SquareTris<S> = quad::Triangles<Point2<S>>;
+
+    #[derive(Clone)]
+    pub enum DynamicTris<S> {
+        Butt(ButtTris<S>),
+        Round(RoundTris<S>),
+        Square(SquareTris<S>),
+    }
+
+    impl<S> Iterator for DynamicTris<S>
+    where
+        S: BaseFloat,
+    {
+        type Item = Tri<Point2<S>>;
+        fn next(&mut self) -> Option<Self::Item> {
+            match *self {
+                DynamicTris::Butt(ref mut tris) => tris.next(),
+                DynamicTris::Round(ref mut tris) => tris.next(),
+                DynamicTris::Square(ref mut tris) => tris.next(),
+            }
+        }
+
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            match *self {
+                DynamicTris::Butt(ref tris) => tris.size_hint(),
+                DynamicTris::Round(ref tris) => tris.size_hint(),
+                DynamicTris::Square(ref tris) => tris.size_hint(),
+            }
+        }
+    }
+
+    // TODO: Implement `DoubleEndedIterator` for `ellipse::Triangles` first.
+    // impl<S> DoubleEndedIterator for DynamicTris<S>
+    // where
+    //     S: BaseFloat,
+    // {
+    //     fn next_back(&mut self) -> Option<Self::Item> {
+    //         match *self {
+    //             DynamicTris::Miter(ref mut tris) => tris.next_back(),
+    //             DynamicTris::Round(ref mut tris) => tris.next_back(),
+    //             DynamicTris::Bevel(ref mut tris) => tris.next_back(),
+    //         }
+    //     }
+    // }
+
+    impl<S> ExactSizeIterator for DynamicTris<S>
+    where
+        S: BaseFloat,
+    {
+        fn len(&self) -> usize {
+            match *self {
+                DynamicTris::Butt(ref tris) => tris.len(),
+                DynamicTris::Round(ref tris) => tris.len(),
+                DynamicTris::Square(ref tris) => tris.len(),
+            }
+        }
+    }
+
     impl<C, S> Tris<C, S> {
         pub fn new(cap: C, a: Point2<S>, b: Point2<S>, half_thickness: S) -> Self {
             Tris { cap, a, b, half_thickness }
@@ -286,7 +455,7 @@ pub mod cap {
 
     impl<S> Cap for Tris<Butt, S> {
         type Scalar = S;
-        type Triangles = iter::Empty<Tri<Point2<S>>>;
+        type Triangles = ButtTris<S>;
         fn triangles(self) -> Self::Triangles {
             iter::empty()
         }
@@ -294,10 +463,10 @@ pub mod cap {
 
     impl<S> Cap for Tris<Round, S>
     where
-        S: BaseFloat + NumCast,
+        S: BaseFloat,
     {
         type Scalar = S;
-        type Triangles = ellipse::Triangles<S>;
+        type Triangles = RoundTris<S>;
         fn triangles(self) -> Self::Triangles {
             let Tris { a, b, .. } = self;
             // TODO: Should make this configurable somehow, or at least adaptive to the thickness.
@@ -318,7 +487,7 @@ pub mod cap {
         S: BaseFloat,
     {
         type Scalar = S;
-        type Triangles = quad::Triangles<Point2<S>>;
+        type Triangles = SquareTris<S>;
         fn triangles(self) -> Self::Triangles {
             let Tris { a, b, half_thickness, .. } = self;
             let direction = b - a;
@@ -327,8 +496,27 @@ pub mod cap {
             let n = normal.normalize_to(half_thickness);
             let c = b + n;
             let d = a + n;
-            let quad = [a, b, c, d];
+            let quad = [a, b, c, d].into();
             quad::triangles_iter(&quad)
+        }
+    }
+
+    impl<S> Cap for Tris<Dynamic, S>
+    where
+        S: BaseFloat,
+    {
+        type Scalar = S;
+        type Triangles = DynamicTris<S>;
+        fn triangles(self) -> Self::Triangles {
+            let Tris { cap, a, b, half_thickness } = self;
+            macro_rules! cap_tris {
+                ($cap:expr) => { Tris { cap: $cap, a, b, half_thickness } };
+            }
+            match cap {
+                Dynamic::Butt(cap) => DynamicTris::Butt(cap_tris!(cap).triangles()),
+                Dynamic::Round(cap) => DynamicTris::Round(cap_tris!(cap).triangles()),
+                Dynamic::Square(cap) => DynamicTris::Square(cap_tris!(cap).triangles()),
+            }
         }
     }
 }
@@ -412,20 +600,41 @@ where
             end_cap_complete: false,
         }
     }
+}
 
+impl<C, J, I, S> Polyline<C, J, I, S>
+where
+    C: Copy,
+    J: Copy,
+    join::Tris<J, S>: Join<Scalar=S>,
+    cap::Tris<C, S>: Cap<Scalar = S>,
+    I: Iterator<Item=Point2<S>>,
+    S: BaseFloat,
+    Point2<S>: Vertex<Scalar = S>,
+{
     /// Produce an iterator yielding all triangles that make up the polyline.
     pub fn triangles(self) -> Triangles<C, J, I, S>
     where
         J: Copy,
-        C: Copy,
         join::Tris<J, S>: Join<Scalar=S>,
         cap::Tris<C, S>: Cap<Scalar=S>,
         I: Iterator<Item=Point2<S>>,
-        S: BaseFloat,
     {
         self.parts().triangles()
     }
+
+    /// The bounding `Rect` of the polyline.
+    ///
+    /// This method triangulates the polyline (with joins, caps, etc) to ensure we get the *actual*
+    /// bounds (not just the bounds of the points that describe the line).
+    ///
+    /// Returns `None` if the polyline contains no points.
+    pub fn bounding_rect(self) -> Option<Rect<S>> {
+        let vertices = self.triangles().flat_map(|tri| tri.vertices());
+        geom::bounding_rect(vertices)
+    }
 }
+
 
 /// Construct a `Polyline` which can be either triangulated or checked for containing points.
 ///
@@ -531,8 +740,8 @@ where
             }
             *next_line_start = (b, bl, br);
 
-            let corners = [al, ar, br, bl];
-            let tris = quad::triangles_iter(&corners);
+            let quad = [al, ar, br, bl].into();
+            let tris = quad::triangles_iter(&quad);
             return Some(Part::Line { line: tris });
         }
 
@@ -603,3 +812,14 @@ where
         }
     }
 }
+
+// impl<I> Iterator for DynamicTriangles<I>
+//     I: Iterator,
+//     I::Item: Clone + Vertex2d,
+//     <I::Item as Vertex>::Scalar: BaseFloat,
+// {
+//     type Item = Tri<I::Item>;
+//     fn next(&mut self) -> Option<Self::Item> {
+//         self.tris.next()
+//     }
+// }
