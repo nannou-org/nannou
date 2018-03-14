@@ -1,13 +1,18 @@
-use geom::{quad, tri, Tri};
-use math::prelude::*;
-use math::{two, vec2, BaseFloat, Point2};
+use geom::{quad, tri, vertex};
+use math::{two, vec2, BaseFloat, EuclideanSpace, InnerSpace, Point2};
 
-/// The iterator type yielding triangles that describe a line.
+/// The quad used to describe a line.
+pub type Quad<S> = quad::Quad<Point2<S>>;
+/// The triangle types used to describe a line quad.
+pub type Tri<S> = tri::Tri<Point2<S>>;
+/// The vertices used to describe the quad of a line.
+pub type Vertices<S> = quad::Vertices<Point2<S>>;
+/// The triangles used to describe the quad of a line.
 pub type Triangles<S> = quad::Triangles<Point2<S>>;
 
 /// A line represented by two points.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Line<S> {
+pub struct Line<S = vertex::DefaultScalar> {
     /// The start point of the line.
     pub start: Point2<S>,
     /// The end point of the line.
@@ -25,13 +30,28 @@ where
         Line { start, end, half_thickness }
     }
 
+    /// The centre of the line.
+    pub fn centroid(&self) -> Point2<S> {
+        EuclideanSpace::midpoint(self.start, self.end)
+    }
+}
+
+impl<S> Line<S>
+where
+    S: BaseFloat,
+{
     /// The four corners of the rectangle describing the line.
-    pub fn quad_corners(&self) -> [Point2<S>; 4] {
+    pub fn quad_corners(&self) -> Quad<S> {
         quad_corners(self.start, self.end, self.half_thickness)
     }
 
+    /// Produce an iterator yielding the four corners of the rectangle describing the line.
+    pub fn quad_corners_iter(&self) -> Vertices<S> {
+        quad::vertices(self.quad_corners())
+    }
+
     /// The two triangles that describe the line.
-    pub fn triangles(&self) -> [Tri<Point2<S>>; 2] {
+    pub fn triangles(&self) -> (Tri<S>, Tri<S>) {
         triangles(self.start, self.end, self.half_thickness)
     }
 
@@ -45,7 +65,7 @@ where
     /// If so, the `Tri` containing the point will be returned.
     ///
     /// `None` is returned otherwise.
-    pub fn contains(&self, point: &Point2<S>) -> Option<Tri<Point2<S>>> {
+    pub fn contains(&self, point: &Point2<S>) -> Option<Tri<S>> {
         contains(self.start, self.end, self.half_thickness, point)
     }
 }
@@ -62,29 +82,30 @@ where
 ///  ----------------------------------------
 /// 1                                        3
 /// ```
-pub fn quad_corners<S>(a: Point2<S>, b: Point2<S>, half_thickness: S) -> [Point2<S>; 4]
+pub fn quad_corners<S>(a: Point2<S>, b: Point2<S>, half_thickness: S) -> Quad<S>
 where
     S: BaseFloat,
 {
     let direction = b - a;
     let unit = direction.normalize();
-    let normal = vec2(-unit.y, unit.x);
+    let neg_1 = S::from(-1).unwrap();
+    let normal = vec2(unit.y * neg_1, unit.x);
     let n = normal.normalize_to(half_thickness);
-    let r1 = [a.x - n.x, a.y - n.y].into();
-    let r2 = [a.x + n.x, a.y + n.y].into();
-    let r3 = [b.x - n.x, b.y - n.y].into();
-    let r4 = [b.x + n.x, b.y + n.y].into();
-    [r1, r2, r3, r4]
+    let neg_n = n * neg_1;
+    let r1 = a + neg_n;
+    let r2 = a + n;
+    let r3 = b + neg_n;
+    let r4 = b + n;
+    Quad::from([r1, r2, r3, r4])
 }
 
 /// Given two points and half the line thickness, return the two triangles that describe the line.
-pub fn triangles<S>(a: Point2<S>, b: Point2<S>, half_thickness: S) -> [Tri<Point2<S>>; 2]
+pub fn triangles<S>(a: Point2<S>, b: Point2<S>, half_thickness: S) -> (Tri<S>, Tri<S>)
 where
     S: BaseFloat,
 {
-    let r = quad_corners(a, b, half_thickness);
-    let (t1, t2) = quad::triangles(&r);
-    [t1, t2]
+    let q = quad_corners(a, b, half_thickness);
+    quad::triangles(&q)
 }
 
 /// Given two points and half the line thickness, return the two triangles that describe the line.
@@ -92,8 +113,8 @@ pub fn triangles_iter<S>(a: Point2<S>, b: Point2<S>, half_thickness: S) -> Trian
 where
     S: BaseFloat,
 {
-    let r = quad_corners(a, b, half_thickness);
-    let tris = quad::triangles_iter(&r);
+    let q = quad_corners(a, b, half_thickness);
+    let tris = quad::triangles_iter(&q);
     tris
 }
 
@@ -103,16 +124,11 @@ where
 /// If so, the `Tri` containing the point will be returned.
 ///
 /// `None` is returned otherwise.
-pub fn contains<S>(
-    a: Point2<S>,
-    b: Point2<S>,
-    thickness: S,
-    point: &Point2<S>,
-) -> Option<Tri<Point2<S>>>
+pub fn contains<S>(a: Point2<S>, b: Point2<S>, thickness: S, point: &Point2<S>) -> Option<Tri<S>>
 where
     S: BaseFloat,
 {
     let half_thickness = thickness / two::<S>();
-    let tris = triangles(a, b, half_thickness);
-    tri::iter_contains(tris.iter(), point).map(|&t| t)
+    let tris = triangles_iter(a, b, half_thickness);
+    tri::iter_contains(tris, point)
 }

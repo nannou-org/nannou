@@ -1,3 +1,4 @@
+pub extern crate daggy;
 pub extern crate find_folder;
 pub extern crate glium;
 pub extern crate rand;
