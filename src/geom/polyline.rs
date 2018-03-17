@@ -195,6 +195,24 @@ pub mod join {
         Bevel(Bevel),
     }
 
+    impl From<Miter> for Dynamic {
+        fn from(miter: Miter) -> Self {
+            Dynamic::Miter(miter)
+        }
+    }
+
+    impl From<Round> for Dynamic {
+        fn from(round: Round) -> Self {
+            Dynamic::Round(round)
+        }
+    }
+
+    impl From<Bevel> for Dynamic {
+        fn from(bevel: Bevel) -> Self {
+            Dynamic::Bevel(bevel)
+        }
+    }
+
     pub type MiterTris<S> = quad::Triangles<Point2<S>>;
     pub type RoundTris<S> = ellipse::Triangles<S>;
     pub type BevelTris<S> = iter::Once<Tri<Point2<S>>>;
@@ -385,6 +403,24 @@ pub mod cap {
         Butt(Butt),
         Round(Round),
         Square(Square),
+    }
+
+    impl From<Butt> for Dynamic {
+        fn from(butt: Butt) -> Self {
+            Dynamic::Butt(butt)
+        }
+    }
+
+    impl From<Round> for Dynamic {
+        fn from(round: Round) -> Self {
+            Dynamic::Round(round)
+        }
+    }
+
+    impl From<Square> for Dynamic {
+        fn from(square: Square) -> Self {
+            Dynamic::Square(square)
+        }
     }
 
     pub type ButtTris<S> = iter::Empty<Tri<Point2<S>>>;
