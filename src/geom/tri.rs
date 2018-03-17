@@ -16,10 +16,37 @@ pub struct Vertices<V = vertex::Default> {
     index: u8,
 }
 
+/// An iterator yielding triangles whose vertices are produced by the given iterator yielding
+/// vertices.
+#[derive(Clone, Debug)]
+pub struct IterFromVertices<I> {
+    vertices: I,
+}
+
 impl<V> Tri<V>
 where
     V: Vertex,
 {
+    /// Create a **Tri** by indexing into the given buffer.
+    ///
+    /// **Panics** if any of the given indices are out of range of the given `vertices` slice.
+    pub fn from_index_tri(vertices: &[V], indices: &[usize; 3]) -> Self
+    where
+        V: Vertex,
+    {
+        from_index_tri(vertices, indices)
+    }
+
+    /// Create a **Tri** from the next three vertices yielded by the given `vertices` iterator.
+    ///
+    /// Returns **None** if there were not at least 3 vertices in the given iterator.
+    pub fn from_vertices<I>(vertices: I) -> Option<Self>
+    where
+        I: IntoIterator<Item = V>,
+    {
+        from_vertices(vertices)
+    }
+
     /// Produce an iterator yielding each of the vertices of the triangle.
     pub fn vertices(self) -> Vertices<V> {
         let tri = self;
@@ -36,7 +63,7 @@ where
     }
 
     /// Maps the underlying vertices to a new type and returns the resulting `Tri`.
-    pub fn map<F, V2>(self, mut map: F) -> Tri<V2>
+    pub fn map_vertices<F, V2>(self, mut map: F) -> Tri<V2>
     where
         F: FnMut(V) -> V2,
     {
@@ -143,6 +170,43 @@ where
     tris.into_iter().find(|tri| tri.as_ref().contains(v))
 }
 
+/// Create a **Tri** from the next three vertices yielded by the given `vertices` iterator.
+///
+/// Returns **None** if there were not at least 3 vertices in the given iterator.
+pub fn from_vertices<I>(vertices: I) -> Option<Tri<I::Item>>
+where
+    I: IntoIterator,
+{
+    let mut vertices = vertices.into_iter();
+    match (vertices.next(), vertices.next(), vertices.next()) {
+        (Some(a), Some(b), Some(c)) => Some(Tri([a, b, c])),
+        _ => None,
+    }
+}
+
+/// Produce an iterator yielding a triangle for every three vertices yielded by the given
+/// `vertices` iterator.
+pub fn iter_from_vertices<I>(vertices: I) -> IterFromVertices<I::IntoIter>
+where
+    I: IntoIterator,
+{
+    let vertices = vertices.into_iter();
+    IterFromVertices { vertices }
+}
+
+/// Create a **Tri** by indexing into the given buffer.
+///
+/// **Panics** if any of the given indices are out of range of the given `vertices` slice.
+pub fn from_index_tri<V>(vertices: &[V], indices: &[usize; 3]) -> Tri<V>
+where
+    V: Clone,
+{
+    let a = vertices[indices[0]].clone();
+    let b = vertices[indices[1]].clone();
+    let c = vertices[indices[2]].clone();
+    Tri([a, b, c])
+}
+
 impl<V> Deref for Tri<V>
 where
     V: Vertex,
@@ -204,5 +268,15 @@ where
 {
     fn as_ref(&self) -> &[V; 3] {
         &self.0
+    }
+}
+
+impl<I> Iterator for IterFromVertices<I>
+where
+    I: Iterator,
+{
+    type Item = Tri<I::Item>;
+    fn next(&mut self) -> Option<Self::Item> {
+        from_vertices(&mut self.vertices)
     }
 }
