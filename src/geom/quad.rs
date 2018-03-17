@@ -1,9 +1,22 @@
-use geom::{vertex, Tri, Vertex};
+use geom::{tri, vertex, Tri, Vertex};
 use math::EuclideanSpace;
 use std::ops::{Deref, Index};
 
 /// The number of vertices in a quad.
 pub const NUM_VERTICES: u8 = 4;
+
+/// The number of triangles that make up a quad.
+pub const NUM_TRIANGLES: u8 = 2;
+
+/// The same as `triangles`, but instead returns the vertex indices for each triangle.
+pub const TRIANGLE_INDEX_TRIS: TrianglesIndexTris = [[0, 1, 2], [0, 2, 3]];
+pub type TrianglesIndexTris = [[usize; tri::NUM_VERTICES as usize]; NUM_TRIANGLES as usize];
+
+/// The number of indices used to describe each triangle in the quad.
+pub const NUM_TRIANGLE_INDICES: u8 = 6;
+
+/// The same as `triangles`, but instead returns the vertex indices for each triangle.
+pub const TRIANGLE_INDICES: [usize; NUM_TRIANGLE_INDICES as usize] = [0, 1, 2, 0, 2, 3];
 
 /// A quad represented by its four vertices.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
@@ -93,13 +106,22 @@ where
         triangles(self)
     }
 
-    /// The same as `triangles` but provided as an `Iterator`.
+    /// The same as `triangles` but provided as an **Iterator**.
     pub fn triangles_iter(&self) -> Triangles<V> {
         triangles_iter(self)
     }
+
+    /// Map the **Quad**'s vertices to a new type.
+    pub fn map_vertices<F, V2>(self, mut map: F) -> Quad<V2>
+    where
+        F: FnMut(V) -> V2,
+    {
+        let (a, b, c, d) = self.into();
+        Quad([map(a), map(b), map(c), map(d)])
+    }
 }
 
-/// Produce an iterator yielding each vertex in the given `Quad`.
+/// Produce an iterator yielding each vertex in the given **Quad**.
 pub fn vertices<V>(quad: Quad<V>) -> Vertices<V> {
     let index = 0;
     Vertices { quad, index }
@@ -163,12 +185,13 @@ where
 /// }
 /// ```
 #[inline]
-pub fn triangles<V>(points: &Quad<V>) -> (Tri<V>, Tri<V>)
+pub fn triangles<V>(q: &Quad<V>) -> (Tri<V>, Tri<V>)
 where
     V: Vertex,
 {
-    let (a, b, c, d) = (points[0], points[1], points[2], points[3]);
-    (Tri([a, b, c]), Tri([a, c, d]))
+    let a = Tri::from_index_tri(&q.0, &TRIANGLE_INDEX_TRIS[0]);
+    let b = Tri::from_index_tri(&q.0, &TRIANGLE_INDEX_TRIS[1]);
+    (a, b)
 }
 
 /// The same as `triangles` but provided as an `Iterator`.
@@ -223,6 +246,20 @@ where
         } else {
             None
         }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
+}
+
+impl<V> ExactSizeIterator for Vertices<V>
+where
+    V: Clone,
+{
+    fn len(&self) -> usize {
+        NUM_VERTICES as usize - self.index as usize
     }
 }
 
