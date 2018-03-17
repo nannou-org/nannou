@@ -5,7 +5,7 @@ use geom::tri::{self, Tri};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Polygon<I> {
     /// The iterator yielding all points in the polygon.
-    points: I,
+    pub points: I,
 }
 
 impl<I> Polygon<I>
