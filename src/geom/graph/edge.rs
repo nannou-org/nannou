@@ -1,5 +1,6 @@
 //! Items related to the edges of a geometry graph.
 use daggy;
+use math::{BaseFloat, Euler, Rad, Vector3};
 
 /// Unique index for an **Edge** within a **Graph**.
 pub type Index = daggy::EdgeIndex<usize>;
@@ -186,4 +187,19 @@ impl<S> Edge<S> {
     pub fn z_scale(weight: S) -> Self {
         Edge::new(Kind::z_scale(), weight)
     }
+}
+
+/// The three edges describing the given position displacement.
+pub fn displace<S>(v: Vector3<S>) -> [Edge<S>; 3] {
+    [Edge::x_position(v.x), Edge::y_position(v.y), Edge::z_position(v.z)]
+}
+
+/// The three edges describing the given orientation rotation.
+pub fn rotate<S: BaseFloat>(e: Euler<Rad<S>>) -> [Edge<S>; 3] {
+    [Edge::x_orientation(e.x.0), Edge::y_orientation(e.x.0), Edge::z_orientation(e.z.0)]
+}
+
+/// An edge for scaling each axis using the given single scalar scale value.
+pub fn scale<S: Copy>(scale: S) -> [Edge<S>; 3] {
+    [Edge::x_scale(scale), Edge::y_scale(scale), Edge::z_scale(scale)]
 }
