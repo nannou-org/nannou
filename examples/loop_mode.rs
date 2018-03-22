@@ -3,21 +3,20 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::run(model, update, draw);
+    nannou::run(model, event, view);
 }
 
-struct Model {
-    window: WindowId,
-}
+struct Model;
 
 fn model(app: &App) -> Model {
     // Start in `Wait` mode. In other words, don't keep looping, just wait for events.
     app.set_loop_mode(LoopMode::wait(3));
-    let window = app.new_window().with_title("`LoopMode` Demonstration").build().unwrap();
-    Model { window }
+    // Set a window title.
+    app.main_window().set_title("`LoopMode` Demonstration");
+    Model
 }
 
-fn update(app: &App, model: Model, event: Event) -> Model {
+fn event(app: &App, model: Model, event: Event) -> Model {
     match event {
         Event::WindowEvent { simple: Some(event), .. } => match event {
             KeyPressed(_) => {
@@ -38,7 +37,7 @@ fn update(app: &App, model: Model, event: Event) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn draw(_app: &App, model: &Model, frame: Frame) -> Frame {
-    frame.window(model.window).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
+fn view(app: &App, _model: &Model, frame: Frame) -> Frame {
+    frame.window(app.window.id()).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
     frame
 }

@@ -34,28 +34,66 @@ pub mod ui;
 pub mod window;
 
 pub type ModelFn<Model> = fn(&App) -> Model;
-pub type UpdateFn<Model, Event> = fn(&App, Model, Event) -> Model;
-pub type DrawFn<Model> = fn(&App, &Model, Frame) -> Frame;
+pub type EventFn<Model, Event> = fn(&App, Model, Event) -> Model;
+pub type ViewFn<Model> = fn(&App, &Model, Frame) -> Frame;
+pub type SimpleViewFn = fn(&App, Frame) -> Frame;
 pub type ExitFn<Model> = fn(&App, Model);
+
+/// The **App**'s view function.
+pub enum View<Model = ()> {
+    /// A **Full** view function allows for viewing the user's model.
+    Full(ViewFn<Model>),
+    /// A **Simple** view function does not require a user **Model**. Simpler to get started.
+    Simple(SimpleViewFn),
+}
 
 /// Begin building a nannou App.
 ///
-/// Every nannou App must have `model`, `update` and `draw` functions.
+/// Every nannou App must have `model`, `event` and `draw` functions.
 ///
 /// An `exit` function can be optionally specified using the `exit` builder method.
-pub fn app<M, E>(model: ModelFn<M>, update: UpdateFn<M, E>, draw: DrawFn<M>) -> Builder<M, E>
-    where E: LoopEvent,
+pub fn app<M, E>(model: ModelFn<M>, event: EventFn<M, E>, view: ViewFn<M>) -> Builder<M, E>
+where
+    E: LoopEvent,
+{
+    let view = view.into();
+    app_inner(model, event, view)
+}
+
+fn app_inner<M, E>(model: ModelFn<M>, event: EventFn<M, E>, view: View<M>) -> Builder<M, E>
+where
+    E: LoopEvent,
 {
     let exit = None;
-    Builder { model, update, draw, exit }
+    let create_default_window = false;
+    Builder {
+        model,
+        event,
+        view,
+        exit,
+        create_default_window,
+    }
+}
+
+/// Build a simple nannou `App` with a default window and a view function.
+///
+/// This is the same as calling `app` and providing `model` and `event` functions that do nothing.
+pub fn view(view: SimpleViewFn) {
+    fn default_model(_app: &App) -> () {
+    }
+    fn default_event(_app: &App, _model: (), _event: Event) -> () {
+    }
+    let view: View<()> = view.into();
+    app_inner(default_model, default_event, view).run_window()
 }
 
 /// A nannou application builder.
 pub struct Builder<M, E> {
     model: ModelFn<M>,
-    update: UpdateFn<M, E>,
-    draw: DrawFn<M>,
+    event: EventFn<M, E>,
+    view: View<M>,
     exit: Option<ExitFn<M>>,
+    create_default_window: bool,
 }
 
 impl<M, E> Builder<M, E>
@@ -69,37 +107,56 @@ impl<M, E> Builder<M, E>
         self
     }
 
+    /// Creates and runs the nannou `App` with a default window.
+    pub fn run_window(mut self) {
+        self.create_default_window = true;
+        self.run()
+    }
+
     /// Creates and runs the nannou `App`.
     pub fn run(self) {
-        let Builder { model, update, draw, exit } = self;
+        let Builder { model, event, view, exit, create_default_window } = self;
         let events_loop = glutin::EventsLoop::new();
-        let app = App::new(events_loop);
+        let mut app = App::new(events_loop);
+        if create_default_window {
+            let window_id = app.new_window().build().expect("could not build default app window");
+            let (w, h, hidpi_factor) = {
+                let win = app.window(window_id).unwrap();
+                let (w, h) = win.inner_size_pixels();
+                let hidpi_factor = win.hidpi_factor();
+                (w, h, hidpi_factor as f64)
+            };
+            app.window.id = Some(window_id);
+            app.window.hidpi_factor = hidpi_factor;
+            app.window.width = w as f64 / hidpi_factor;
+            app.window.height = h as f64 / hidpi_factor;
+        }
         let model = model(&app);
-        run_loop(app, model, update, draw, exit)
+        run_loop(app, model, event, view, exit)
     }
 }
 
-/// A simple function for creating and running a nannou `App`!
+/// A simple function for creating and running a nannou `App` with a default window!
 ///
-/// Calling this is just like calling `nannou::app(model, update, draw).run()`.
-pub fn run<M, E>(model: ModelFn<M>, update: UpdateFn<M, E>, draw: DrawFn<M>)
+/// Calling this is just like calling `nannou::app(model, event, view).run_window()`.
+pub fn run<M, E>(model: ModelFn<M>, event: EventFn<M, E>, view: ViewFn<M>)
     where E: LoopEvent,
 {
-    app(model, update, draw).run()
+    app(model, event, view).run_window()
 }
 
 fn run_loop<M, E>(
     mut app: App,
     mut model: M,
-    update_fn: UpdateFn<M, E>,
-    draw_fn: DrawFn<M>,
+    event_fn: EventFn<M, E>,
+    view: View<M>,
     exit_fn: Option<ExitFn<M>>,
 )
 where
     E: LoopEvent,
 {
     // A function to re-use when drawing for each of the loop modes.
-    fn draw<M>(app: &App, model: &M, draw_fn: DrawFn<M>) -> Result<(), glium::SwapBuffersError> {
+    fn draw<M>(app: &App, model: &M, view: &View<M>) -> Result<(), glium::SwapBuffersError> {
         // Draw the state of the model to the screen.
         let gl_frames = app.windows
             .borrow()
@@ -109,7 +166,11 @@ where
                 (id, gl_frame)
             })
             .collect();
-        let frame = draw_fn(&app, &model, frame::new(gl_frames));
+        let undrawn_frame = frame::new(gl_frames);
+        let frame = match *view {
+            View::Full(view_fn) => view_fn(&app, &model, undrawn_frame),
+            View::Simple(view_fn) => view_fn(&app, undrawn_frame),
+        };
         frame::finish(frame)
     }
 
@@ -130,12 +191,12 @@ where
     //
     // 1. Checks for exit on escape.
     // 2. Removes closed windows from app.
-    // 3. Emits event via `update_fn`.
+    // 3. Emits event via `event_fn`.
     // 4. Returns whether or not we should break from the loop.
     fn process_and_emit_glutin_event<M, E>(
         app: &mut App,
         mut model: M,
-        update_fn: UpdateFn<M, E>,
+        event_fn: EventFn<M, E>,
         glutin_event: glutin::Event,
     ) -> (M, bool)
     where
@@ -258,7 +319,7 @@ where
 
         // If the glutin::Event could be interpreted as some event `E`, use it to update the model.
         if let Some(event) = E::from_glutin_event(glutin_event, app) {
-            model = update_fn(&app, model, event);
+            model = event_fn(&app, model, event);
         }
 
         // If exit on escape was triggered, we're done.
@@ -302,7 +363,7 @@ where
                 // First handle any pending window events.
                 app.events_loop.poll_events(|event| glutin_events.push(event));
                 for glutin_event in glutin_events.drain(..) {
-                    let (new_model, exit) = process_and_emit_glutin_event(&mut app, model, update_fn, glutin_event);
+                    let (new_model, exit) = process_and_emit_glutin_event(&mut app, model, event_fn, glutin_event);
                     model = new_model;
                     if exit {
                         break 'main;
@@ -311,10 +372,10 @@ where
 
                 // Emit an update event.
                 let event = E::from(update_event(loop_start, &mut last_update));
-                model = update_fn(&app, model, event);
+                model = event_fn(&app, model, event);
 
                 // Draw the state of the model to the screen.
-                draw(&app, &model, draw_fn).unwrap();
+                draw(&app, &model, &view).unwrap();
 
                 // Sleep if there's still some time left within the interval.
                 let now = Instant::now();
@@ -349,7 +410,7 @@ where
                 }
 
                 for glutin_event in glutin_events.drain(..) {
-                    let (new_model, exit) = process_and_emit_glutin_event(&mut app, model, update_fn, glutin_event);
+                    let (new_model, exit) = process_and_emit_glutin_event(&mut app, model, event_fn, glutin_event);
                     model = new_model;
                     if exit {
                         break 'main;
@@ -358,11 +419,11 @@ where
 
                 // Emit an update event.
                 let event = E::from(update_event(loop_start, &mut last_update));
-                model = update_fn(&app, model, event);
+                model = event_fn(&app, model, event);
                 updates_remaining -= 1;
 
                 // Draw the state of the model to the screen.
-                draw(&app, &model, draw_fn).unwrap();
+                draw(&app, &model, &view).unwrap();
 
                 // Sleep if there's still some time left within the interval.
                 let now = Instant::now();
@@ -381,5 +442,17 @@ where
     // Emit an application exit event.
     if let Some(exit_fn) = exit_fn {
         exit_fn(&app, model);
+    }
+}
+
+impl<M> From<ViewFn<M>> for View<M> {
+    fn from(v: ViewFn<M>) -> Self {
+        View::Full(v)
+    }
+}
+
+impl From<SimpleViewFn> for View<()> {
+    fn from(v: SimpleViewFn) -> Self {
+        View::Simple(v)
     }
 }

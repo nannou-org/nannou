@@ -3,7 +3,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::run(model, update, draw);
+    nannou::app(model, update, draw).run();
 }
 
 struct Model {

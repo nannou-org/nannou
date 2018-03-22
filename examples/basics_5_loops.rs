@@ -6,13 +6,9 @@ fn main() {
     nannou::run(model, event, view);
 }
 
-struct Model {
-    window: WindowId,
-}
+struct Model;
 
-fn model(app: &App) -> Model {
-    let window = app.new_window().with_dimensions(640,480).build().unwrap();
-
+fn model(_app: &App) -> Model {
     // For loops in Rust is an iterator which gives back a series of elemaents 
     // one at a time. The current value of the iterator is assigned in this case to 'i'
     for i in 0..10 {
@@ -41,20 +37,17 @@ fn model(app: &App) -> Model {
             break; 
         }
     }
-    
 
-    Model { window }
+    Model
 }
 
-fn event(_app: &App, model: Model, event: Event) -> Model {
-    if let Event::Update(_dt) = event {
-    } 
+fn event(_app: &App, model: Model, _event: Event) -> Model {
     model
 }
 
-fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, _model: &Model, frame: Frame) -> Frame {
     // Our app only has one window, so retrieve this part of the `Frame`. Color it gray.
-    frame.window(model.window).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
+    frame.window(app.window.id()).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
     // Return the drawn frame.
     frame
 }

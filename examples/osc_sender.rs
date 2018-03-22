@@ -5,7 +5,7 @@ use nannou::prelude::*;
 use nannou::ui::prelude::*;
 
 fn main() {
-    nannou::run(model, event, view);
+    nannou::app(model, event, view).run();
 }
 
 struct Model {

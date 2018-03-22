@@ -5,7 +5,7 @@ use nannou::prelude::*;
 use nannou::ui::prelude::*;
 
 fn main() {
-    nannou::run(model, update, draw);
+    nannou::app(model, event, view).run();
 }
 
 struct Model {
@@ -38,7 +38,7 @@ fn model(app: &App) -> Model {
     Model { receiver, received_packets, ui, text }
 }
 
-fn update(_app: &App, mut model: Model, event: Event) -> Model {
+fn event(_app: &App, mut model: Model, event: Event) -> Model {
     match event {
         Event::Update(_update) => {
             // Receive any pending osc packets.
@@ -73,7 +73,7 @@ fn update(_app: &App, mut model: Model, event: Event) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn draw(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     model.ui.draw_to_frame(app, &frame).unwrap();
     frame
 }

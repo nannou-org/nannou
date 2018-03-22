@@ -5,7 +5,7 @@ use nannou::ui::prelude::*;
 use nannou::rand::random;
 
 fn main() {
-    nannou::run(model, update, draw);
+    nannou::run(model, event, view);
 }
 
 struct Model {
@@ -24,11 +24,8 @@ fn model(app: &App) -> Model {
     // Set the loop mode to wait for events, an energy-efficient option for pure-GUI apps.
     app.set_loop_mode(LoopMode::wait(3));
 
-    // Create the window.
-    let window = app.new_window().with_vsync(true).build().unwrap();
-
     // Create the UI.
-    let mut ui = app.new_ui(window).build().unwrap();
+    let mut ui = app.new_ui(app.window.id()).build().unwrap();
 
     // Generate some ids for our widgets.
     let ids = Ids {
@@ -43,7 +40,7 @@ fn model(app: &App) -> Model {
     Model { ui, ids, bg_color }
 }
 
-fn update(_app: &App, mut model: Model, event: Event) -> Model {
+fn event(_app: &App, mut model: Model, event: Event) -> Model {
     match event {
         // Handle window events like mouse, keyboard, resize, etc here.
         Event::WindowEvent { simple: Some(event), .. } => {
@@ -83,7 +80,7 @@ fn update(_app: &App, mut model: Model, event: Event) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn draw(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     // Draw the state of the `Ui` to the frame.
     model.ui.draw_to_frame(app, &frame).unwrap();
     // Return the drawn frame.

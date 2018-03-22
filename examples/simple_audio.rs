@@ -5,11 +5,10 @@ use nannou::prelude::*;
 use std::f64::consts::PI;
 
 fn main() {
-    nannou::run(model, update, draw);
+    nannou::run(model, event, view);
 }
 
 struct Model {
-    window: WindowId,
     stream: audio::Stream<Audio>,
 }
 
@@ -39,12 +38,10 @@ fn model(app: &App) -> Model {
     // Initialise the state that we want to live on the audio thread.
     let model = Audio { phase: 0.0, hz: 440.0 };
     let stream = app.audio.new_output_stream(model, audio).build().unwrap();
-
-    let window = app.new_window().build().unwrap();
-    Model { window, stream }
+    Model { stream }
 }
 
-fn update(_app: &App, model: Model, event: Event) -> Model {
+fn event(_app: &App, model: Model, event: Event) -> Model {
     match event {
         Event::WindowEvent { simple: Some(event), .. } => match event {
 
@@ -81,7 +78,7 @@ fn update(_app: &App, model: Model, event: Event) -> Model {
     model
 }
 
-fn draw(_app: &App, model: &Model, frame: Frame) -> Frame {
-    frame.window(model.window).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
+fn view(app: &App, _model: &Model, frame: Frame) -> Frame {
+    frame.window(app.window.id()).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
     frame
 }

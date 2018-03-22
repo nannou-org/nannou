@@ -3,25 +3,12 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::run(model, event, view);
+    nannou::view(view);
 }
 
-struct Model {
-    window: WindowId,
-}
-
-fn model(app: &App) -> Model {
-    let window = app.new_window().build().unwrap();
-    Model { window }
-}
-
-fn event(_app: &App, model: Model, _event: Event) -> Model {
-    model
-}
-
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, frame: Frame) -> Frame {
     // Begin drawing 
-    let draw = app.draw(model.window).unwrap();
+    let draw = app.draw();
 
     // Clear the background to blue.
     draw.background().color(BLUE);
