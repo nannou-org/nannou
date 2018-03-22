@@ -257,6 +257,7 @@ pub enum BufferCreationError {
 }
 
 /// A type used for rendering a **nannou::draw::Mesh** to an OpenGL surface via glium.
+#[derive(Debug)]
 pub struct Renderer {
     program: glium::Program,
     vertices: Vec<Vertex>,
