@@ -1,6 +1,6 @@
 pub extern crate daggy;
 pub extern crate find_folder;
-pub extern crate glium;
+#[macro_use] pub extern crate glium;
 pub extern crate rand;
 
 use event::LoopEvent;
@@ -9,6 +9,7 @@ use std::cell::RefCell;
 use std::time::Instant;
 
 pub use app::{App, LoopMode};
+pub use draw::Draw;
 pub use glium::glutin::{ContextBuilder, CursorState, ElementState, MonitorId, MouseCursor,
                         WindowBuilder, WindowEvent, VirtualKeyCode};
 pub use self::event::Event;
@@ -18,12 +19,14 @@ pub use self::ui::Ui;
 pub mod app;
 pub mod audio;
 pub mod color;
+pub mod draw;
 pub mod ease;
 pub mod event;
 mod frame;
 pub mod geom;
 pub mod image;
 pub mod math;
+pub mod mesh;
 pub mod osc;
 pub mod prelude;
 pub mod state;
@@ -177,10 +180,12 @@ where
 
                 // If the window ID has changed, ensure the dimensions are up to date.
                 if app.window.id != Some(window_id) {
-                    app.window.id = Some(window_id);
-                    app.window.width = tw(win_w as f64);
-                    app.window.height = th(win_h as f64);
-                    app.window.hidpi_factor = hidpi_factor;
+                    if app.window(window_id).is_some() {
+                        app.window.id = Some(window_id);
+                        app.window.width = tw(win_w as f64);
+                        app.window.height = th(win_h as f64);
+                        app.window.hidpi_factor = hidpi_factor;
+                    }
                 }
 
                 // Check for events that would update either mouse, keyboard or window state.

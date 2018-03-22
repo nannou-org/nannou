@@ -1,5 +1,6 @@
 //! Items related to the edges of a geometry graph.
 use daggy;
+use math::{BaseFloat, Euler, Rad, Vector3};
 
 /// Unique index for an **Edge** within a **Graph**.
 pub type Index = daggy::EdgeIndex<usize>;
@@ -75,6 +76,24 @@ impl Kind {
         Kind::new(Axis::Z, relative)
     }
 
+    /// Simple constructor for an Edge describing a relative position along the given axis.
+    pub fn position(axis: Axis) -> Self {
+        let relative = Relative::Position;
+        Kind { axis, relative }
+    }
+
+    /// Simple constructor for an Edge describing a relative orientation along the given axis.
+    pub fn orientation(axis: Axis) -> Self {
+        let relative = Relative::Orientation;
+        Kind { axis, relative }
+    }
+
+    /// Simple constructor for an Edge describing a relative scale along the given axis.
+    pub fn scale(axis: Axis) -> Self {
+        let relative = Relative::Scale;
+        Kind { axis, relative }
+    }
+
     /// Simple constructor for and Edge describing a relative position over the **X** axis.
     pub fn x_position() -> Self {
         Kind::x(Relative::Position)
@@ -142,6 +161,21 @@ impl<S> Edge<S> {
         Edge::new(Kind::z(relative), weight)
     }
 
+    /// Simple constructor for an `Edge` describing a relative position over the given axis.
+    pub fn position(axis: Axis, weight: S) -> Self {
+        Edge::new(Kind::position(axis), weight)
+    }
+
+    /// Simple constructor for an `Edge` describing a relative orientation over the given axis.
+    pub fn orientation(axis: Axis, weight: S) -> Self {
+        Edge::new(Kind::orientation(axis), weight)
+    }
+
+    /// Simple constructor for an `Edge` describing a relative scale over the given axis.
+    pub fn scale(axis: Axis, weight: S) -> Self {
+        Edge::new(Kind::scale(axis), weight)
+    }
+
     /// Simple constructor for an `Edge` describing a relative position over the **X** axis.
     pub fn x_position(weight: S) -> Self {
         Edge::new(Kind::x_position(), weight)
@@ -186,4 +220,19 @@ impl<S> Edge<S> {
     pub fn z_scale(weight: S) -> Self {
         Edge::new(Kind::z_scale(), weight)
     }
+}
+
+/// The three edges describing the given position displacement.
+pub fn displace<S>(v: Vector3<S>) -> [Edge<S>; 3] {
+    [Edge::x_position(v.x), Edge::y_position(v.y), Edge::z_position(v.z)]
+}
+
+/// The three edges describing the given orientation rotation.
+pub fn rotate<S: BaseFloat>(e: Euler<Rad<S>>) -> [Edge<S>; 3] {
+    [Edge::x_orientation(e.x.0), Edge::y_orientation(e.x.0), Edge::z_orientation(e.z.0)]
+}
+
+/// An edge for scaling each axis using the given single scalar scale value.
+pub fn scale<S: Copy>(scale: S) -> [Edge<S>; 3] {
+    [Edge::x_scale(scale), Edge::y_scale(scale), Edge::z_scale(scale)]
 }

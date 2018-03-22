@@ -31,7 +31,7 @@ pub struct Section<S = f64> {
 pub struct Circumference<S = f64> {
     index: usize,
     num_points: usize,
-    point: Point2<S>,
+    middle: Point2<S>,
     rad_step: S,
     rad_offset: S,
     half_w: S,
@@ -118,7 +118,7 @@ where
         Circumference {
             index: 0,
             num_points: num_points,
-            point: [x, y].into(),
+            middle: [x, y].into(),
             half_w: w / two,
             half_h: h / two,
             rad_step: rad_step,
@@ -177,7 +177,7 @@ where
     where
         S: Float,
     {
-        let last = self.next().unwrap_or(self.point);
+        let last = self.next().unwrap_or(self.middle);
         Triangles { last, points: self }
     }
 }
@@ -191,7 +191,7 @@ where
         let Circumference {
             ref mut index,
             num_points,
-            point,
+            middle,
             rad_step,
             rad_offset,
             half_w,
@@ -201,8 +201,8 @@ where
             return None;
         }
         let index_s: S = NumCast::from(*index).unwrap();
-        let x = point.x + half_w * (rad_offset + rad_step * index_s).cos();
-        let y = point.y + half_h * (rad_offset + rad_step * index_s).sin();
+        let x = middle.x + half_w * (rad_offset + rad_step * index_s).cos();
+        let y = middle.y + half_h * (rad_offset + rad_step * index_s).sin();
         *index += 1;
         Some([x, y].into())
     }
@@ -237,7 +237,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let Triangles { ref mut points, ref mut last } = *self;
         points.next().map(|next| {
-            let triangle = Tri([points.point, *last, next]);
+            let triangle = Tri([points.middle, *last, next]);
             *last = next;
             triangle
         })

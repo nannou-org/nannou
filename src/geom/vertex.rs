@@ -25,9 +25,61 @@ pub type DefaultScalar = f64;
 /// If a type is not specified for a piece of geometry, this is the default type used.
 pub type Default = Point3<DefaultScalar>;
 
+/// An iterator yielding a vertex for each index yielded by the given indices iterator.
+#[derive(Clone, Debug)]
+pub struct IterFromIndices<'a, I, V: 'a = Default> {
+    indices: I,
+    vertices: &'a [V],
+}
+
 /// A vertex that is colored with the given linear `RGBA` color.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Rgba<V = Default>(pub V, pub color::Rgba);
+
+/// Produce an iterator yielding a vertex for each index yielded by the given indices iterator.
+pub fn iter_from_indices<I, V>(indices: I, vertices: &[V]) -> IterFromIndices<I::IntoIter, V>
+where
+    I: IntoIterator<Item = usize>,
+{
+    let indices = indices.into_iter();
+    IterFromIndices { indices, vertices }
+}
+
+// Iterators
+
+impl<'a, I, V> Iterator for IterFromIndices<'a, I, V>
+where
+    I: Iterator<Item = usize>,
+{
+    type Item = &'a V;
+    fn next(&mut self) -> Option<Self::Item> {
+        let IterFromIndices { ref mut indices, ref vertices } = *self;
+        indices.next().map(|i| &vertices[i])
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.indices.size_hint()
+    }
+}
+
+impl<'a, I, V> DoubleEndedIterator for IterFromIndices<'a, I, V>
+where
+    I: Iterator<Item = usize> + DoubleEndedIterator,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let IterFromIndices { ref mut indices, ref vertices } = *self;
+        indices.next_back().map(|i| &vertices[i])
+    }
+}
+
+impl<'a, I, V> ExactSizeIterator for IterFromIndices<'a, I, V>
+where
+    I: Iterator<Item = usize> + ExactSizeIterator,
+{
+    fn len(&self) -> usize {
+        self.indices.len()
+    }
+}
 
 // Rgba impls.
 

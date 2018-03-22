@@ -5,66 +5,13 @@ use daggy::petgraph::visit::{self, Visitable};
 use geom;
 use geom::{DefaultScalar, Graph};
 use geom::graph::Edge;
-use math::{self, BaseFloat, Basis3, Euler, Point2, Point3, Rad, Rotation, Vector3, Zero};
+use math::{self, BaseFloat, Basis3, Euler, Point3, Rad, Rotation, Vector3};
 use std::collections::HashMap;
-use std::{iter, ops, slice};
+use std::marker::PhantomData;
+use std::ops;
 
 /// Unique index for a **Node** within a **Graph**.
 pub type Index = daggy::NodeIndex<usize>;
-
-/// Each of the primitive graphics types that may be instantiated within the graph.
-///
-/// Primitives that are described by a dynamic number of vertices share a single vertex buffer
-/// that is owned by the graph. These variants store a range into this vertex buffer indicating
-/// which slice of vertices describe it.
-#[derive(Clone, Debug)]
-pub enum Primitive<S = DefaultScalar> {
-    Cuboid(geom::Cuboid<S>),
-    Ellipse(geom::Ellipse<S>),
-    Line(geom::Line<S>),
-    Polygon {
-        range: ops::Range<usize>,
-    },
-    Polyline {
-        join: geom::polyline::join::Dynamic,
-        cap: geom::polyline::cap::Dynamic,
-        range: ops::Range<usize>,
-        thickness: S,
-    },
-    Quad(geom::Quad<Point3<S>>),
-    Rect(geom::Rect<S>),
-    Tri(geom::Tri<Point3<S>>),
-}
-
-/// An iterator yielding all vertices for a primitive.
-#[derive(Clone)]
-pub enum PrimitiveVertices<'a, S: 'a = DefaultScalar> {
-    Cuboid(geom::cuboid::Corners<'a, S>),
-    Ellipse(geom::ellipse::Circumference<S>),
-    Line(geom::line::Vertices<S>),
-    Polygon(iter::Cloned<slice::Iter<'a, Point3<S>>>),
-    // TODO: Add a `polyline::Part::vertices` method and use `polyline::Vertices` instead.
-    //Polyline(geom::polyline::DynamicTriangles<slice::Iter<'a, Point3<S>>, S>),
-    Quad(geom::quad::Vertices<Point3<S>>),
-    Rect(geom::rect::Corners<S>),
-    Tri(geom::tri::Vertices<Point3<S>>),
-}
-
-/// An iterator yielding all triangles for a primitive.
-#[derive(Clone)]
-pub enum PrimitiveTriangles<'a, S: 'a = DefaultScalar>
-where
-    S: BaseFloat,
-{
-    Cuboid(geom::cuboid::Triangles<'a, S>),
-    Ellipse(geom::ellipse::Triangles<S>),
-    Line(geom::line::Triangles<S>),
-    Polygon(Option<geom::polygon::Triangles<iter::Cloned<slice::Iter<'a, Point3<S>>>>>),
-    Polyline(geom::polyline::DynamicTriangles<iter::Cloned<slice::Iter<'a, Point3<S>>>>),
-    Quad(geom::quad::Triangles<Point3<S>>),
-    Rect(geom::rect::Triangles<S>),
-    Tri(Option<geom::Tri<Point3<S>>>),
-}
 
 /// The **Node** type used within the **Graph**.
 #[derive(Clone, Debug)]
@@ -78,51 +25,29 @@ where
     ///
     /// Also used to represent the graph's "origin" node.
     Point,
-    /// A node representing some primitive geometric type (e.g. `Tri`, `Cuboid`, `Quad`, etc).
-    Primitive(Primitive<S>),
     /// A nested Graph.
-    Graph {
-        graph: super::Graph<S>,
-        dfs: Dfs<S>,
-    },
-}
-
-/// An iterator yielding all vertices from a node.
-pub enum Vertices<'a, S: 'a = DefaultScalar>
-where
-    S: BaseFloat,
-{
-    Point(Option<Point3<S>>),
-    Primitive(PrimitiveVertices<'a, S>),
-    Graph(geom::graph::Vertices<'a, S>),
-}
-
-/// An iterator yielding all triangles from a node.
-pub enum Triangles<'a, S: 'a = DefaultScalar>
-where
-    S: BaseFloat,
-{
-    Point,
-    Primitive(PrimitiveTriangles<'a, S>),
-    Graph(geom::graph::Triangles<'a, S>),
+    Graph { graph: super::Graph<S>, dfs: Dfs<S> },
 }
 
 /// An iterator yielding all vertices for a node transformed by some given transform.
-pub struct TransformedVertices<'a, S: 'a = DefaultScalar>
+#[derive(Clone, Debug)]
+pub struct TransformedVertices<I, S = DefaultScalar>
 where
     S: BaseFloat,
 {
     transform: Transform<S>,
-    vertices: Vertices<'a, S>,
+    vertices: I,
 }
 
 /// An iterator yielding all vertices for a node transformed by some given transform.
-pub struct TransformedTriangles<'a, S: 'a = DefaultScalar>
+#[derive(Clone, Debug)]
+pub struct TransformedTriangles<I, V, S = DefaultScalar>
 where
     S: BaseFloat,
 {
     transform: Transform<S>,
-    triangles: Triangles<'a, S>,
+    triangles: I,
+    _vertex: PhantomData<V>,
 }
 
 /// A node's resulting rotation, displacement and scale relative to the graph's origin.
@@ -149,6 +74,17 @@ where
     ///
     /// This vector is added onto the position of each vertex of the node.
     pub disp: Vector3<S>,
+}
+
+/// Mappings from node indices to their respective transform within the graph.
+///
+/// This is calculated via the `Graph::update_transform_map` method.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TransformMap<S = DefaultScalar>
+where
+    S: BaseFloat,
+{
+    map: HashMap<Index, Transform<S>>,
 }
 
 /// A depth-first-search over nodes in the graph, yielding each node's unique index alongside its
@@ -186,6 +122,7 @@ where
     /// Clears the visit state.
     pub fn reset(&mut self, graph: &Graph<S>) {
         self.dfs.reset(graph);
+        self.dfs.move_to(graph.origin());
     }
 
     /// Keep the discovered map but clear the visit stack and restart the dfs from the given node.
@@ -213,22 +150,24 @@ where
 
     /// Return the vertices for the next node in the DFS.
     ///
-    /// Uses `Dfs::next_transform` and `Node::vertices` internally.
+    /// Uses `Dfs::next_transform` internally.
     ///
     /// Returns `None` if the traversal is finished.
-    pub fn next_vertices<'a>(
+    pub fn next_vertices<F, I>(
         &mut self,
-        graph: &'a Graph<S>,
-    ) -> Option<(Index, TransformedVertices<'a, S>)>
+        graph: &Graph<S>,
+        vertices_fn: F,
+    ) -> Option<(Index, TransformedVertices<I::IntoIter, S>)>
+    where
+        F: FnOnce(&Index) -> I,
+        I: IntoIterator,
+        I::Item: ApplyTransform<S>,
     {
-        self.next_transform(graph)
-            .and_then(|(n, transform)| {
-                graph.node(n)
-                    .map(|node| {
-                        let vertices = node.vertices(&graph.vertices);
-                        (n, TransformedVertices { vertices, transform })
-                    })
-            })
+        self.next_transform(graph).map(|(n, transform)| {
+            let vertices = vertices_fn(&n);
+            let vertices = vertices.into_iter();
+            (n, transform.vertices(vertices))
+        })
     }
 
     /// Return the triangles for the next node in the DFS.
@@ -236,19 +175,21 @@ where
     /// Uses `Dfs::next_transform` and `Node::triangles` internally.
     ///
     /// Returns `None` if the traversal is finished.
-    pub fn next_triangles<'a>(
+    pub fn next_triangles<F, I, V>(
         &mut self,
-        graph: &'a Graph<S>,
-    ) -> Option<(Index, TransformedTriangles<'a, S>)>
+        graph: &Graph<S>,
+        triangles_fn: F,
+    ) -> Option<(Index, TransformedTriangles<I::IntoIter, V, S>)>
+    where
+        F: FnOnce(&Index) -> I,
+        I: IntoIterator<Item = geom::Tri<V>>,
+        V: geom::Vertex + ApplyTransform<S>,
     {
-        self.next_transform(graph)
-            .and_then(|(n, transform)| {
-                graph.node(n)
-                    .map(|node| {
-                        let triangles = node.triangles(&graph.vertices);
-                        (n, TransformedTriangles { triangles, transform })
-                    })
-            })
+        self.next_transform(graph).map(|(n, transform)| {
+            let triangles = triangles_fn(&n);
+            let triangles = triangles.into_iter();
+            (n, transform.triangles(triangles))
+        })
     }
 }
 
@@ -260,17 +201,6 @@ where
     fn walk_next(&mut self, graph: &'a Graph<S>) -> Option<Self::Item> {
         self.next_transform(graph)
     }
-}
-
-/// Mappings from node indices to their respective transform within the graph.
-///
-/// This is calculated via the `Graph::update_transform_map` method.
-#[derive(Clone, Debug, PartialEq)]
-pub struct TransformMap<S = DefaultScalar>
-where
-    S: BaseFloat,
-{
-    map: HashMap<Index, Transform<S>>
 }
 
 impl<S> Default for TransformMap<S>
@@ -322,6 +252,36 @@ where
             (Relative::Scale, Axis::Z) => self.scale.z *= parent.scale.z * edge.weight,
         }
     }
+
+    /// Transform the given vertices.
+    pub fn vertices<I>(self, vertices: I) -> TransformedVertices<I::IntoIter, S>
+    where
+        I: IntoIterator,
+        I::Item: ApplyTransform<S>,
+    {
+        let transform = self;
+        let vertices = vertices.into_iter();
+        TransformedVertices {
+            transform,
+            vertices,
+        }
+    }
+
+    /// Transform the given vertices.
+    pub fn triangles<I, V>(self, triangles: I) -> TransformedTriangles<I::IntoIter, V, S>
+    where
+        I: IntoIterator<Item = geom::Tri<V>>,
+        V: geom::Vertex + ApplyTransform<S>,
+    {
+        let transform = self;
+        let triangles = triangles.into_iter();
+        let _vertex = PhantomData;
+        TransformedTriangles {
+            transform,
+            triangles,
+            _vertex,
+        }
+    }
 }
 
 impl<S> Default for Transform<S>
@@ -331,9 +291,21 @@ where
     fn default() -> Self {
         let zero = S::zero();
         let one = S::one();
-        let scale = Vector3 { x: one, y: one, z: one };
-        let rot = Euler { x: Rad(zero), y: Rad(zero), z: Rad(zero) };
-        let disp = Vector3 { x: zero, y: zero, z: zero };
+        let scale = Vector3 {
+            x: one,
+            y: one,
+            z: one,
+        };
+        let rot = Euler {
+            x: Rad(zero),
+            y: Rad(zero),
+            z: Rad(zero),
+        };
+        let disp = Vector3 {
+            x: zero,
+            y: zero,
+            z: zero,
+        };
         Transform { scale, rot, disp }
     }
 }
@@ -347,28 +319,32 @@ where
         let (x, y, z) = (one, one, one);
         Transform {
             scale: Vector3 { x, y, z },
-            rot: Euler { x: Rad(x), y: Rad(y), z: Rad(z) },
+            rot: Euler {
+                x: Rad(x),
+                y: Rad(y),
+                z: Rad(z),
+            },
             disp: Vector3 { x, y, z },
         }
     }
 
-    fn look_at(eye: Point3<S>, center: Point3<S>, up: Vector3<S>) -> Self {
+    fn look_at(_eye: Point3<S>, _center: Point3<S>, _up: Vector3<S>) -> Self {
         unimplemented!();
     }
 
-    fn transform_vector(&self, vec: Vector3<S>) -> Vector3<S> {
+    fn transform_vector(&self, _vec: Vector3<S>) -> Vector3<S> {
         unimplemented!();
     }
 
-    fn inverse_transform_vector(&self, vec: Vector3<S>) -> Option<Vector3<S>> {
+    fn inverse_transform_vector(&self, _vec: Vector3<S>) -> Option<Vector3<S>> {
         unimplemented!();
     }
 
-    fn transform_point(&self, point: Point3<S>) -> Point3<S> {
+    fn transform_point(&self, _point: Point3<S>) -> Point3<S> {
         unimplemented!();
     }
 
-    fn concat(&self, other: &Self) -> Self {
+    fn concat(&self, _other: &Self) -> Self {
         unimplemented!();
     }
 
@@ -377,7 +353,8 @@ where
     }
 }
 
-fn transform_point<S>(transform: &Transform<S>, mut point: Point3<S>) -> Point3<S>
+/// Apply the given transform to the given 3D point.
+pub fn transform_point<S>(transform: &Transform<S>, mut point: Point3<S>) -> Point3<S>
 where
     S: BaseFloat,
 {
@@ -392,332 +369,48 @@ where
     point
 }
 
-impl<'a, S> Iterator for TransformedVertices<'a, S>
+/// Vertex types which may apply a transform and produce a resulting transform.
+pub trait ApplyTransform<S>
 where
     S: BaseFloat,
 {
-    type Item = Point3<S>;
+    /// Apply the given transform and return the result.
+    fn apply_transform(self, transform: &Transform<S>) -> Self;
+}
+
+impl<S> ApplyTransform<S> for Point3<S>
+where
+    S: BaseFloat,
+{
+    fn apply_transform(self, transform: &Transform<S>) -> Self {
+        transform_point(transform, self)
+    }
+}
+
+impl<I, S> Iterator for TransformedVertices<I, S>
+where
+    I: Iterator,
+    I::Item: ApplyTransform<S>,
+    S: BaseFloat,
+{
+    type Item = I::Item;
     fn next(&mut self) -> Option<Self::Item> {
         self.vertices
             .next()
-            .map(|point| transform_point(&self.transform, point))
+            .map(|vertex| vertex.apply_transform(&self.transform))
     }
 }
 
-impl<'a, S> Iterator for TransformedTriangles<'a, S>
+impl<I, V, S> Iterator for TransformedTriangles<I, V, S>
 where
+    I: Iterator<Item = geom::Tri<V>>,
+    V: geom::Vertex + ApplyTransform<S>,
     S: BaseFloat,
 {
-    type Item = geom::Tri<Point3<S>>;
+    type Item = geom::Tri<V>;
     fn next(&mut self) -> Option<Self::Item> {
         self.triangles
             .next()
-            .map(|tri| tri.map(|point| transform_point(&self.transform, point)))
-    }
-}
-
-impl<S> Primitive<S>
-where
-    S: BaseFloat,
-{
-    /// The `Cuboid` that bounds the primitive.
-    ///
-    /// Returns `None` if the primitive is a polygon or polyline with no points.
-    pub fn bounding_cuboid(&self, vertices: &[Point3<S>]) -> Option<geom::Cuboid<S>> {
-        match *self {
-            Primitive::Cuboid(ref cuboid) => {
-                geom::bounding_cuboid(cuboid.corners_iter())
-            },
-            Primitive::Ellipse(ref ellipse) => {
-                let (x, y) = (ellipse.rect.x, ellipse.rect.y);
-                let z = geom::Range::new(Zero::zero(), Zero::zero());
-                Some(geom::Cuboid { x, y, z })
-            },
-            Primitive::Line(ref line) => {
-                let q = line.quad_corners();
-                let vertices = q.iter()
-                    .map(|p| {
-                        let x = p.x;
-                        let y = p.y;
-                        let z = Zero::zero();
-                        Point3 { x, y, z }
-                    });
-                geom::bounding_cuboid(vertices)
-            },
-            Primitive::Polygon { ref range } => {
-                let vertices = vertices[range.clone()].iter().cloned();
-                geom::bounding_cuboid(vertices)
-            },
-            Primitive::Polyline { join, cap, ref range, thickness } => {
-                let vertices = vertices[range.clone()]
-                    .iter()
-                    .cloned()
-                    .map(|p| Point2 { x: p.x, y: p.y });
-                geom::Polyline::new(cap, join, vertices, thickness)
-                    .bounding_rect()
-                    .map(|rect| {
-                        let (x, y) = (rect.x, rect.y);
-                        let z = geom::Range::new(Zero::zero(), Zero::zero());
-                        geom::Cuboid { x, y, z }
-                    })
-            },
-            Primitive::Quad(ref quad) => {
-                let vertices = quad.iter().cloned();
-                geom::bounding_cuboid(vertices)
-            },
-            Primitive::Rect(ref rect) => {
-                let (x, y) = (rect.x, rect.y);
-                let z = geom::Range::new(Zero::zero(), Zero::zero());
-                Some(geom::Cuboid { x, y, z })
-            },
-            Primitive::Tri(ref tri) => {
-                let r = tri.bounding_rect();
-                let (x, y) = (r.x, r.y);
-                let z = geom::Range::new(Zero::zero(), Zero::zero());
-                Some(geom::Cuboid { x, y, z })
-            },
-        }
-    }
-
-    /// Produce an iterator yielding all vertices within the primitive.
-    pub fn vertices<'a>(&'a self, vertices: &'a [Point3<S>]) -> PrimitiveVertices<'a, S> {
-        match *self {
-            Primitive::Cuboid(ref cuboid) => {
-                PrimitiveVertices::Cuboid(cuboid.corners_iter())
-            },
-            Primitive::Ellipse(ref ellipse) => {
-                PrimitiveVertices::Ellipse(ellipse.circumference())
-            },
-            Primitive::Line(ref line) => {
-                PrimitiveVertices::Line(line.quad_corners_iter())
-            },
-            Primitive::Polygon { ref range } => {
-                let slice = &vertices[range.clone()];
-                PrimitiveVertices::Polygon(slice.iter().cloned())
-            },
-            Primitive::Polyline { .. } => {
-                unimplemented!();
-            },
-            Primitive::Quad(ref quad) => {
-                PrimitiveVertices::Quad(quad.vertices())
-            },
-            Primitive::Rect(ref rect) => {
-                PrimitiveVertices::Rect(rect.corners_iter())
-            },
-            Primitive::Tri(ref tri) => {
-                PrimitiveVertices::Tri(tri.vertices())
-            },
-        }
-    }
-
-    /// Produce an iterator yielding all triangles within the primitive.
-    pub fn triangles<'a>(&'a self, vertices: &'a [Point3<S>]) -> PrimitiveTriangles<'a, S> {
-        match *self {
-            Primitive::Cuboid(ref cuboid) => {
-                PrimitiveTriangles::Cuboid(cuboid.triangles_iter())
-            },
-            Primitive::Ellipse(ref ellipse) => {
-                PrimitiveTriangles::Ellipse(ellipse.triangles())
-            },
-            Primitive::Line(ref line) => {
-                PrimitiveTriangles::Line(line.triangles_iter())
-            },
-            Primitive::Polygon { ref range } => {
-                let slice = &vertices[range.clone()];
-                let polygon = geom::Polygon::new(slice.iter().cloned());
-                PrimitiveTriangles::Polygon(polygon.triangles())
-            },
-            Primitive::Polyline { .. } => {
-                unimplemented!();
-            },
-            Primitive::Quad(ref quad) => {
-                PrimitiveTriangles::Quad(quad.triangles_iter())
-            },
-            Primitive::Rect(ref rect) => {
-                PrimitiveTriangles::Rect(rect.triangles_iter())
-            },
-            Primitive::Tri(ref tri) => {
-                PrimitiveTriangles::Tri(Some(*tri))
-            },
-        }
-    }
-}
-
-// A small function used for mapping 2D points to 3D ones within the PrimitiveVertices and
-// PrimitiveTriangles iterators.
-fn pt2_to_pt3<S>(p: Point2<S>) -> Point3<S>
-where
-    S: BaseFloat,
-{
-    let x = p.x;
-    let y = p.y;
-    let z = Zero::zero();
-    Point3 { x, y, z }
-}
-
-impl<'a, S> Iterator for PrimitiveVertices<'a, S>
-where
-    S: BaseFloat,
-{
-    type Item = Point3<S>;
-    fn next(&mut self) -> Option<Self::Item> {
-        match *self {
-            PrimitiveVertices::Cuboid(ref mut corners) => {
-                corners.next()
-            },
-            PrimitiveVertices::Ellipse(ref mut circumference) => {
-                circumference.next().map(pt2_to_pt3)
-            },
-            PrimitiveVertices::Line(ref mut vertices) => {
-                vertices.next().map(pt2_to_pt3)
-            },
-            PrimitiveVertices::Polygon(ref mut vertices) => {
-                vertices.next()
-            },
-            // PrimitiveVertices::Polyline(ref mut vertices) => {
-            //     vertices.next()
-            // },
-            PrimitiveVertices::Quad(ref mut vertices) => {
-                vertices.next()
-            },
-            PrimitiveVertices::Rect(ref mut corners) => {
-                corners.next().map(pt2_to_pt3)
-            },
-            PrimitiveVertices::Tri(ref mut vertices) => {
-                vertices.next()
-            },
-        }
-    }
-}
-
-impl<'a, S> Iterator for PrimitiveTriangles<'a, S>
-where
-    S: BaseFloat,
-{
-    type Item = geom::Tri<Point3<S>>;
-    fn next(&mut self) -> Option<Self::Item> {
-        match *self {
-            PrimitiveTriangles::Cuboid(ref mut tris) => {
-                tris.next()
-            },
-            PrimitiveTriangles::Ellipse(ref mut tris) => {
-                tris.next().map(|t| t.map(pt2_to_pt3))
-            },
-            PrimitiveTriangles::Line(ref mut tris) => {
-                tris.next().map(|t| t.map(pt2_to_pt3))
-            },
-            PrimitiveTriangles::Polygon(ref mut tris) => {
-                tris.as_mut().and_then(|ts| ts.next())
-            },
-            PrimitiveTriangles::Polyline(ref mut _tris) => {
-                unimplemented!();
-                // TODO: Implement Iterator for DynamicTriangles
-                //tris.next().map(|t| t.map(pt2_to_pt3))
-            },
-            PrimitiveTriangles::Quad(ref mut tris) => {
-                tris.next()
-            },
-            PrimitiveTriangles::Rect(ref mut tris) => {
-                tris.next().map(|t| t.map(pt2_to_pt3))
-            },
-            PrimitiveTriangles::Tri(ref mut tri) => {
-                tri.take()
-            },
-        }
-    }
-}
-
-impl<'a, S> Iterator for Vertices<'a, S>
-where
-    S: BaseFloat,
-{
-    type Item = Point3<S>;
-    fn next(&mut self) -> Option<Self::Item> {
-        match *self {
-            // A node point is always at the node's origin.
-            Vertices::Point(ref mut point) => {
-                point.take()
-            },
-            Vertices::Primitive(ref mut vertices) => {
-                vertices.next()
-            },
-            Vertices::Graph(ref mut vertices) => {
-                vertices.next()
-            },
-        }
-    }
-}
-
-impl<'a, S> Iterator for Triangles<'a, S>
-where
-    S: BaseFloat,
-{
-    type Item = geom::Tri<Point3<S>>;
-    fn next(&mut self) -> Option<Self::Item> {
-        match *self {
-            Triangles::Point => {
-                None
-            },
-            Triangles::Primitive(ref mut triangles) => {
-                triangles.next()
-            },
-            Triangles::Graph(ref mut triangles) => {
-                triangles.next()
-            },
-        }
-    }
-}
-
-impl<S> Node<S>
-where
-    S: BaseFloat,
-{
-    /// The `Cuboid` that bounds the primitive.
-    ///
-    /// Returns `None` if the primitive is a polygon, polyline or graph with no points.
-    pub fn bounding_cuboid(&self, vertices: &[Point3<S>]) -> Option<geom::Cuboid<S>> {
-        match *self {
-            Node::Point => {
-                let zero = Zero::zero();
-                let x = geom::Range::new(zero, zero);
-                let y = geom::Range::new(zero, zero);
-                let z = geom::Range::new(zero, zero);
-                Some(geom::Cuboid { x, y, z })
-            },
-            Node::Primitive(ref primitive) => primitive.bounding_cuboid(vertices),
-            Node::Graph { ref graph, .. } => graph.bounding_cuboid(),
-        }
-    }
-
-    /// Produce an iterator yielding all vertices within the node.
-    pub fn vertices<'a>(&'a self, vertices: &'a [Point3<S>]) -> Vertices<'a, S> {
-        match *self {
-            Node::Point => {
-                let zero = Zero::zero();
-                let (x, y, z) = (zero, zero, zero);
-                Vertices::Point(Some(Point3 { x, y, z }))
-            },
-            Node::Primitive(ref primitive) => {
-                Vertices::Primitive(primitive.vertices(vertices))
-            },
-            Node::Graph { .. } => {
-                unimplemented!();
-            },
-        }
-    }
-
-    /// Produce an iterator yielding all triangles within the node.
-    pub fn triangles<'a>(&'a self, vertices: &'a [Point3<S>]) -> Triangles<'a, S> {
-        match *self {
-            Node::Point => {
-                Triangles::Point
-            },
-            Node::Primitive(ref primitive) => {
-                Triangles::Primitive(primitive.triangles(vertices))
-            },
-            Node::Graph { .. } => {
-                unimplemented!();
-            }
-        }
+            .map(|tri| tri.map_vertices(|vertex| vertex.apply_transform(&self.transform)))
     }
 }

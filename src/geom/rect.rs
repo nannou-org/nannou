@@ -117,6 +117,12 @@ where
         }
     }
 
+    /// Construct a Rect at origin with the given dimensions.
+    pub fn from_wh(wh: Vector2<S>) -> Self {
+        let p = Point2 { x: S::zero(), y: S::zero() };
+        Self::from_xy_wh(p, wh)
+    }
+
     /// Construct a Rect from the coordinates of two points.
     pub fn from_corners(a: Point2<S>, b: Point2<S>) -> Self {
         let (left, right) = if a.x < b.x { (a.x, b.x) } else { (b.x, a.x) };

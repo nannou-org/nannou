@@ -1,7 +1,7 @@
 use daggy::{self, Walker};
 use daggy::petgraph::visit::{GraphBase, IntoNeighbors, Visitable};
-use geom::{self, DefaultScalar};
-use math::{BaseFloat, Point3};
+use geom;
+use math::{BaseFloat, Point3, Vector3};
 use std::iter;
 use std::ops;
 use std::option;
@@ -12,7 +12,7 @@ pub use self::node::Node;
 pub mod edge;
 pub mod node;
 
-/// A composition of primitive geometry described by an acyclic directed graph.
+/// A composition of geometry described by an acyclic directed graph.
 ///
 /// The `Node`s within a graph may describe some primitive geometry (e.g. `Line`, `Cuboid`, etc) or
 /// may contain other `Graph`s. This allows graphs to be composed of other graphs, which may then
@@ -23,20 +23,12 @@ pub mod node;
 ///
 /// All `Node`s other than the graph's "origin" node must have at least one parent, but may never
 /// have more than one parent of each `edge::Kind`.
-///
-/// The `Graph` is made up of three primary internal `Vec`s:
-///
-/// 1. The node `Vec` containing all `Node`s.
-/// 2. The edge `Vec` containing all `Edge`s.
-/// 3. The vertices `Vec` containing all vertices for all primitives that may be described by a
-///    dynamic number of vertices.
 #[derive(Clone, Debug)]
-pub struct Graph<S>
+pub struct Graph<S = geom::DefaultScalar>
 where
     S: BaseFloat,
 {
     dag: Dag<S>,
-    vertices: Vec<Point3<S>>,
     origin: node::Index,
 }
 
@@ -44,7 +36,7 @@ where
 pub type Dag<S> = daggy::Dag<Node<S>, Edge<S>, usize>;
 
 /// A **Walker** over some node's parent nodes.
-pub struct Parents<S>
+pub struct Parents<S = geom::DefaultScalar>
 where
     S: BaseFloat,
 {
@@ -52,7 +44,7 @@ where
 }
 
 /// A **Walker** over some node's children nodes.
-pub struct Children<S>
+pub struct Children<S = geom::DefaultScalar>
 where
     S: BaseFloat,
 {
@@ -96,98 +88,128 @@ pub type YParents = ThreeNodes;
 pub type ZParents = ThreeNodes;
 
 /// A **Walker** type yielding all transformed vertices of all nodes within the graph.
-// TODO: Rewrite these to use a new `node::WalkTransformedVertices` walker type
-pub struct WalkVertices<'a, S: 'a = DefaultScalar>
+pub struct WalkVertices<'a, F, I, S: 'a = geom::DefaultScalar>
 where
+    F: Fn(&node::Index) -> I,
+    I: IntoIterator,
     S: BaseFloat,
 {
     dfs: &'a mut node::Dfs<S>,
-    node: node::TransformedVertices<'a, S>,
+    vertices_fn: F,
+    node: Option<node::TransformedVertices<I::IntoIter, S>>,
 }
 
 /// A **Walker** type yielding all transformed triangles of all nodes within the graph.
-// TODO: Rewrite these to use a new `node::WalkTransformedTriangles` walker type
-pub struct WalkTriangles<'a, S: 'a = DefaultScalar>
+pub struct WalkTriangles<'a, F, I, V, S: 'a = geom::DefaultScalar>
 where
+    F: Fn(&node::Index) -> I,
+    I: IntoIterator,
     S: BaseFloat,
 {
     dfs: &'a mut node::Dfs<S>,
-    node: Option<node::TransformedTriangles<'a, S>>,
+    triangles_fn: F,
+    node: Option<node::TransformedTriangles<I::IntoIter, V, S>>,
 }
 
 /// An iterator yielding all vertices of all nodes within the graph.
 ///
 /// Uses the `WalkVertices` internally.
-pub struct Vertices<'a, S: 'a = DefaultScalar>
+pub struct Vertices<'a, 'b, F, I, S: 'a + 'b = geom::DefaultScalar>
 where
+    F: Fn(&node::Index) -> I,
+    I: IntoIterator,
     S: BaseFloat,
 {
     graph: &'a Graph<S>,
-    walker: Box<WalkVertices<'a, S>>,
+    walker: WalkVertices<'b, F, I, S>,
 }
 
 /// An iterator yielding all triangles of all nodes within the graph.
 ///
 /// Uses the `WalkTriangles` internally.
-pub struct Triangles<'a, S: 'a = DefaultScalar>
+pub struct Triangles<'a, 'b, F, I, V, S: 'a + 'b = geom::DefaultScalar>
 where
+    F: Fn(&node::Index) -> I,
+    I: IntoIterator,
     S: BaseFloat,
 {
     graph: &'a Graph<S>,
-    walker: Box<WalkTriangles<'a, S>>,
+    walker: WalkTriangles<'b, F, I, V, S>,
 }
 
-impl<'a, S> WalkVertices<'a, S>
+impl<'a, F, I, S> WalkVertices<'a, F, I, S>
 where
+    F: Fn(&node::Index) -> I,
+    I: IntoIterator,
+    I::Item: node::ApplyTransform<S>,
     S: BaseFloat,
 {
     /// Return the next vertex in the graph.
-    pub fn next(&mut self, graph: &'a Graph<S>) -> Option<Point3<S>> {
+    pub fn next(&mut self, graph: &Graph<S>) -> Option<I::Item> {
+        let WalkVertices {
+            ref mut dfs,
+            ref vertices_fn,
+            ref mut node,
+        } = *self;
         loop {
-            if let Some(v) = self.node.next() {
+            if let Some(v) = node.as_mut().and_then(|n| n.next()) {
                 return Some(v);
             }
-            match self.dfs.next_vertices(graph) {
-                Some((_n, vs)) => self.node = vs,
+            match dfs.next_vertices(graph, vertices_fn) {
+                Some((_n, vs)) => *node = Some(vs),
                 None => return None,
             }
         }
     }
 }
 
-impl<'a, S> WalkTriangles<'a, S>
+impl<'a, F, I, V, S> WalkTriangles<'a, F, I, V, S>
 where
+    F: Fn(&node::Index) -> I,
+    I: IntoIterator<Item = geom::Tri<V>>,
+    V: geom::Vertex + node::ApplyTransform<S>,
     S: BaseFloat,
 {
     /// Return the next vertex in the graph.
-    pub fn next(&mut self, graph: &'a Graph<S>) -> Option<geom::Tri<Point3<S>>> {
+    pub fn next(&mut self, graph: &Graph<S>) -> Option<geom::Tri<V>> {
+        let WalkTriangles {
+            ref mut dfs,
+            ref triangles_fn,
+            ref mut node,
+        } = *self;
         loop {
-            if let Some(v) = self.node.as_mut().and_then(|n| n.next()) {
+            if let Some(v) = node.as_mut().and_then(|n| n.next()) {
                 return Some(v);
             }
-            match self.dfs.next_triangles(graph) {
-                Some((_n, ts)) => self.node = Some(ts),
+            match dfs.next_triangles(graph, triangles_fn) {
+                Some((_n, ts)) => *node = Some(ts),
                 None => return None,
             }
         }
     }
 }
 
-impl<'a, S> Iterator for Vertices<'a, S>
+impl<'a, 'b, F, I, S> Iterator for Vertices<'a, 'b, F, I, S>
 where
+    F: Fn(&node::Index) -> I,
+    I: IntoIterator,
+    I::Item: node::ApplyTransform<S>,
     S: BaseFloat,
 {
-    type Item = Point3<S>;
+    type Item = I::Item;
     fn next(&mut self) -> Option<Self::Item> {
         self.walker.next(self.graph)
     }
 }
 
-impl<'a, S> Iterator for Triangles<'a, S>
+impl<'a, 'b, F, I, V, S> Iterator for Triangles<'a, 'b, F, I, V, S>
 where
+    F: Fn(&node::Index) -> I,
+    I: IntoIterator<Item = geom::Tri<V>>,
+    V: geom::Vertex + node::ApplyTransform<S>,
     S: BaseFloat,
 {
-    type Item = geom::Tri<Point3<S>>;
+    type Item = geom::Tri<V>;
     fn next(&mut self) -> Option<Self::Item> {
         self.walker.next(self.graph)
     }
@@ -212,18 +234,12 @@ where
         self.origin
     }
 
-    /// A view of the raw vertex slice, used for primitives with a dynamic number of vertices.
-    pub fn raw_vertices(&self) -> &[Point3<S>] {
-        &self.vertices[..]
-    }
-
     /// Construct the graph with pre-allocated buffers for the given `nodes`, `edges` and
     /// `vertices` capacities.
-    pub fn with_capacity(nodes: usize, edges: usize, vertices: usize) -> Self {
+    pub fn with_capacity(nodes: usize, edges: usize) -> Self {
         let mut dag = Dag::with_capacity(nodes, edges);
         let origin = dag.add_node(Node::Point);
-        let vertices = Vec::with_capacity(vertices);
-        Graph { dag, vertices, origin }
+        Graph { dag, origin }
     }
 
     /// The total number of **Node**s in the **Graph**.
@@ -236,16 +252,66 @@ where
         self.dag.edge_count()
     }
 
-    /// The number of vertices stored for all primitives.
-    ///
-    /// This is sometimes useful for reasoning about the possible use of `with_capacity`.
-    pub fn vertex_count(&self) -> usize {
-        self.vertices.len()
-    }
-
     /// Borrow the node at the given **node::Index** if there is one.
     pub fn node(&self, idx: node::Index) -> Option<&Node<S>> {
         self.dag.node_weight(idx)
+    }
+
+    /// Determine the full **Transform** for the **Node**.
+    ///
+    /// Returns **None** if the node does not exist.
+    pub fn node_transform(&self, idx: node::Index) -> Option<node::Transform<S>> {
+        // If there is no node for the index, return **None**.
+        if self.node(idx).is_none() {
+            return None;
+        }
+
+        // Calculate the transform.
+        let mut transform = node::Transform::default();
+        for (e, parent) in self.parents(idx).iter(self) {
+            let parent_transform = self.node_transform(parent)
+                .expect("no node for yielded parent");
+            let edge = &self[e];
+            transform.apply_edge(&parent_transform, edge);
+        }
+
+        Some(transform)
+    }
+
+    /// Transform the given vertices with the given node's **Transform**.
+    ///
+    /// This method uses the **node_transform** method internally.
+    ///
+    /// Returns **None** if the node does not exist.
+    pub fn node_vertices<I>(
+        &self,
+        idx: node::Index,
+        vertices: I,
+    ) -> Option<node::TransformedVertices<I::IntoIter, S>>
+    where
+        I: IntoIterator,
+        I::Item: node::ApplyTransform<S>,
+    {
+        self.node_transform(idx)
+            .map(|transform| transform.vertices(vertices.into_iter()))
+    }
+
+    /// Transform the given triangles with the given node's **Transform**.
+    ///
+    /// This method uses the **node_transform** method internally.
+    ///
+    /// Returns **None** if the node does not exist.
+    pub fn node_triangles<I, V>(
+        &self,
+        idx: node::Index,
+        triangles: I,
+    ) -> Option<node::TransformedTriangles<I::IntoIter, V, S>>
+    where
+        I: IntoIterator<Item = geom::Tri<V>>,
+        V: geom::Vertex + node::ApplyTransform<S>,
+    {
+        self.node_transform(idx)
+            .map(|transform| transform.triangles(triangles.into_iter()))
     }
 
     /// Borrow the edge at the given **edge::Index** if there is one.
@@ -263,27 +329,14 @@ where
         self.dag.raw_edges()
     }
 
-    /// The `Cuboid` that bounds all nodes within the geometry graph.
-    ///
-    /// Returns `None` if the graph contains no vertices.
-    ///
-    /// 1. Iterates over all nodes.
-    /// 2. Expands a cuboid to the max bounds of each node.
-    /// 3. Returns the resulting cuboid.
-    pub fn bounding_cuboid(&self) -> Option<geom::Cuboid<S>> {
-        let mut node_bounds = self.raw_nodes()
-            .iter()
-            .filter_map(|node| node.weight.bounding_cuboid(&self.vertices));
-        node_bounds.next()
-            .map(|bounds| node_bounds.fold(bounds, geom::Cuboid::max))
-    }
-
-    /// Removes all **Node**s, **Edge**s and vertices from the **Graph**.
+    /// Removes all **Node**s, **Edge**s and vertices from the **Graph** and resets the origin node.
     ///
     /// This does not de-allocate any buffers and should retain capacity. To drop all inner
     /// buffers, use `mem::replace` with a new empty **Graph**.
     pub fn clear(&mut self) {
-        self.dag.clear()
+        self.dag.clear();
+        let origin = self.dag.add_node(Node::Point);
+        self.origin = origin;
     }
 
     /// Return the parent and child nodes on either end of the **Edge** at the given index.
@@ -308,13 +361,18 @@ where
         &self.dag
     }
 
-    // Add the given **Node** to the graph.
-    //
-    // Computes in **O(1)** time.
-    //
-    // Returns the index of the new node.
-    fn add_node(&mut self, node: Node<S>) -> node::Index {
-        self.dag.add_node(node)
+    /// Add the given **Node** to the graph.
+    ///
+    /// The created node will be a child of the graph's origin node.
+    ///
+    /// Returns the index of the new node.
+    pub fn add_node(&mut self, node: Node<S>) -> node::Index {
+        let origin = self.origin();
+        let zero = S::zero();
+        let (x, y, z) = (zero, zero, zero);
+        let edges = edge::displace(Vector3 { x, y, z });
+        let (_es, n) = self.add_child(origin, edges.iter().cloned(), node);
+        n
     }
 
     // Remove and return the **Edge** at the given index.
@@ -356,6 +414,7 @@ where
         while let Some((in_edge_idx, in_node_idx)) = parents.walk_next(self) {
             if edge.kind == self[in_edge_idx].kind {
                 if in_node_idx == a {
+                    self.dag[in_edge_idx].weight = edge.weight;
                     already_set = Some(in_edge_idx);
                 } else {
                     self.remove_edge(in_edge_idx);
@@ -392,19 +451,17 @@ where
     where
         E: IntoIterator<Item = Edge<S>>,
     {
-        let n = self.add_node(node);
+        let n = self.dag.add_node(node);
         let mut edges = edges.into_iter().peekable();
         match edges.next() {
             None => panic!("`edges` must contain at least one edge"),
             Some(first) => {
-                let edges = Some(first).into_iter()
-                    .chain(edges)
-                    .map(|e| (parent, n, e));
+                let edges = Some(first).into_iter().chain(edges).map(|e| (parent, n, e));
                 let edge_indices = self.dag
                     .add_edges(edges)
                     .expect("cannot create a cycle when adding a new child");
                 (edge_indices, n)
-            },
+            }
         }
     }
 
@@ -436,44 +493,99 @@ where
         children_indices
     }
 
-    // Produce a walker yielding all vertices from all nodes within the graph in order of
-    // discovery within a depth-first-search.
-    // TODO: Remove the lifetime from self (only need DFS after WalkTransformedVertices is added)
-    // and make this public.
-    fn walk_vertices<'a>(&'a self, dfs: &'a mut node::Dfs<S>) -> WalkVertices<'a, S> {
-        let (_, node) = dfs.next_vertices(self).unwrap();
-        WalkVertices { dfs, node }
+    /// Produce a walker yielding all vertices from all nodes within the graph in order of
+    /// discovery within a depth-first-search.
+    pub fn walk_vertices<'a, F, I>(
+        &self,
+        dfs: &'a mut node::Dfs<S>,
+        vertices_fn: F,
+    ) -> WalkVertices<'a, F, I, S>
+    where
+        F: Fn(&node::Index) -> I,
+        I: IntoIterator,
+        I::Item: node::ApplyTransform<S>,
+    {
+        let node = None;
+        WalkVertices {
+            dfs,
+            vertices_fn,
+            node,
+        }
     }
 
-    // Produce a walker yielding all vertices from all nodes within the graph in order of
-    // discovery within a depth-first-search.
-    // TODO: Remove the lifetime from self (only need DFS after WalkTransformedVertices is added)
-    // and make this public.
-    fn walk_triangles<'a>(&'a self, dfs: &'a mut node::Dfs<S>) -> WalkTriangles<'a, S> {
-        let node = dfs.next_triangles(self).map(|(_, node)| node);
-        WalkTriangles { dfs, node }
+    /// Produce a walker yielding all vertices from all nodes within the graph in order of
+    /// discovery within a depth-first-search.
+    pub fn walk_triangles<'a, F, I, V>(
+        &self,
+        dfs: &'a mut node::Dfs<S>,
+        triangles_fn: F,
+    ) -> WalkTriangles<'a, F, I, V, S>
+    where
+        F: Fn(&node::Index) -> I,
+        I: IntoIterator<Item = geom::Tri<V>>,
+        V: geom::Vertex + node::ApplyTransform<S>,
+    {
+        let node = None;
+        WalkTriangles {
+            dfs,
+            triangles_fn,
+            node,
+        }
     }
 
     /// Produce an iterator yielding all vertices from all nodes within the graph in order of
     /// discovery within a depth-first-search.
-    pub fn vertices<'a>(&'a self, dfs: &'a mut node::Dfs<S>) -> Vertices<'a, S> {
-        let walker = Box::new(self.walk_vertices(dfs));
-        Vertices { graph: self, walker }
+    pub fn vertices<'a, 'b, F, I>(
+        &'a self,
+        dfs: &'b mut node::Dfs<S>,
+        vertices_fn: F,
+    ) -> Vertices<'a, 'b, F, I, S>
+    where
+        F: Fn(&node::Index) -> I,
+        I: IntoIterator,
+        I::Item: node::ApplyTransform<S>,
+    {
+        let walker = self.walk_vertices(dfs, vertices_fn);
+        let graph = self;
+        Vertices { graph, walker }
     }
 
     /// Produce an iterator yielding all triangles from all nodes within the graph in order of
     /// discovery within a depth-first-search.
-    pub fn triangles<'a>(&'a self, dfs: &'a mut node::Dfs<S>) -> Triangles<'a, S> {
-        let walker = Box::new(self.walk_triangles(dfs));
-        Triangles { graph: self, walker }
+    pub fn triangles<'a, 'b, F, I, V>(
+        &'a self,
+        dfs: &'b mut node::Dfs<S>,
+        triangles_fn: F,
+    ) -> Triangles<'a, 'b, F, I, V, S>
+    where
+        F: Fn(&node::Index) -> I,
+        I: IntoIterator<Item = geom::Tri<V>>,
+        V: geom::Vertex + node::ApplyTransform<S>,
+    {
+        let walker = self.walk_triangles(dfs, triangles_fn);
+        let graph = self;
+        Triangles { graph, walker }
     }
 
-    // TODO:
-    //
-    // - `set_edges`: take an `IntoIterator<Item=Edge>` (or perhaps more flexible (IntoEdges).
-    // - `add_child`: public facing way of adding nodes along with an initial edge.
-    // - `add_children`
-    // - Methods for adding nodes with `scale`, etc methods that do all axes at once.
+    /// The `Cuboid` that bounds all nodes within the geometry graph.
+    ///
+    /// Returns `None` if the graph contains no vertices.
+    ///
+    /// 1. Iterates over all nodes.
+    /// 2. Expands a cuboid to the max bounds of each node.
+    /// 3. Returns the resulting cuboid.
+    pub fn bounding_cuboid<F, I>(
+        &self,
+        dfs: &mut node::Dfs<S>,
+        vertices_fn: F,
+    ) -> Option<geom::Cuboid<S>>
+    where
+        F: Fn(&node::Index) -> I,
+        I: IntoIterator<Item = Point3<S>>,
+    {
+        let vertices = self.vertices(dfs, vertices_fn);
+        geom::bounding_cuboid(vertices)
+    }
 
     //---------------
     // PARENT METHODS
@@ -637,8 +749,7 @@ where
     fn default() -> Self {
         let mut dag = Dag::new();
         let origin = dag.add_node(Node::Point);
-        let vertices = Default::default();
-        Graph { dag, vertices, origin }
+        Graph { dag, origin }
     }
 }
 

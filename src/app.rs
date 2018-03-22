@@ -1,12 +1,16 @@
 use audio;
 use audio::cpal;
+use draw;
 use find_folder;
+use frame::Frame;
+use geom;
 use glium::glutin;
 use state;
 use std;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, RefMut};
 use std::collections::HashMap;
 use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::sync::{mpsc, Arc};
 use std::thread;
@@ -18,14 +22,16 @@ use ui;
 ///
 /// The **App** owns and manages:
 ///
-/// - the event loop (used to drive the application forward) 
-/// - all OpenGL windows (for graphics and user input, can be referenced via IDs).
+/// - The **window and input event loop** used to drive the application forward.
+/// - **All OpenGL windows** for graphics and user input. Windows can be referenced via their IDs.
+/// - The **audio event loop** from which you can receive or send audio via streams.
 pub struct App {
     pub(crate) events_loop: glutin::EventsLoop,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
     pub(super) exit_on_escape: Cell<bool>,
     pub(crate) ui: ui::Arrangement,
     loop_mode: Cell<LoopMode>,
+    draw_state: DrawState,
 
     /// The `App`'s audio-related API.
     pub audio: Audio,
@@ -46,6 +52,28 @@ pub struct App {
     /// yet.
     pub keys: state::Keys,
 }
+
+/// A `nannou::Draw` instance owned by the `App`.
+///
+/// This is a conveniently accessible `Draw` instance which can be easily re-used between calls to
+/// an app's `view` function.
+pub struct Draw<'a> {
+    window_id: window::Id,
+    draw: RefMut<'a, draw::Draw<DrawScalar>>,
+    renderer: RefMut<'a, RefCell<draw::backend::glium::Renderer>>,
+}
+
+// Draw state managed by the **App**.
+struct DrawState {
+    draw: RefCell<draw::Draw<DrawScalar>>,
+    renderer: RefCell<Option<RefCell<draw::backend::glium::Renderer>>>,
+}
+
+/// The app uses a set scalar type in order to provide a simplistic API to users.
+///
+/// If you require changing the scalar type to something else, consider using a custom
+/// `nannou::draw::Draw` instance.
+pub type DrawScalar = geom::DefaultScalar;
 
 /// An **App**'s audio API.
 pub struct Audio {
@@ -158,9 +186,15 @@ impl App {
         let windows = RefCell::new(HashMap::new());
         let exit_on_escape = Cell::new(Self::DEFAULT_EXIT_ON_ESCAPE);
         let loop_mode = Cell::new(LoopMode::default());
+        let draw = RefCell::new(draw::Draw::default());
+        let renderer = RefCell::new(None);
+        let draw_state = DrawState { draw, renderer };
         let cpal_event_loop = Arc::new(cpal::EventLoop::new());
         let process_fn_tx = RefCell::new(None);
-        let audio = Audio { event_loop: cpal_event_loop, process_fn_tx };
+        let audio = Audio {
+            event_loop: cpal_event_loop,
+            process_fn_tx,
+        };
         let ui = ui::Arrangement::new();
         let mouse = state::Mouse::new();
         let window = state::Window::new();
@@ -170,6 +204,7 @@ impl App {
             windows,
             exit_on_escape,
             loop_mode,
+            draw_state,
             audio,
             ui,
             mouse,
@@ -188,7 +223,10 @@ impl App {
     pub fn assets_path(&self) -> Result<PathBuf, find_folder::Error> {
         let exe_path = std::env::current_exe()?;
         find_folder::Search::ParentsThenKids(5, 3)
-            .of(exe_path.parent().expect("executable has no parent directory to search").into())
+            .of(exe_path
+                .parent()
+                .expect("executable has no parent directory to search")
+                .into())
             .for_folder(Self::ASSETS_DIRECTORY_NAME)
     }
 
@@ -252,6 +290,35 @@ impl App {
     pub fn new_ui(&self, window_id: window::Id) -> ui::Builder {
         ui::Builder::new(self, window_id)
     }
+
+    /// Produce the **App**'s **Draw** API for drawing geometry and text with colors and textures.
+    ///
+    /// **Note:** There may only be a single **app::Draw** instance at any point in time. If this
+    /// method is called while there is a pre-existing instance of **app::Draw** this method will
+    /// **panic**.
+    ///
+    /// Returns **None** if there is no window for the given **window::Id**.
+    pub fn draw(&self, window_id: window::Id) -> Option<Draw> {
+        let window = match self.window(window_id) {
+            None => return None,
+            Some(window) => window,
+        };
+        let facade = window.inner_glium_display();
+        let draw = self.draw_state.draw.borrow_mut();
+        draw.reset();
+        if self.draw_state.renderer.borrow().is_none() {
+            let renderer = draw::backend::glium::Renderer::new(facade)
+                .expect("failed to create `Draw` renderer for glium backend");
+            *self.draw_state.renderer.borrow_mut() = Some(RefCell::new(renderer));
+        }
+        let renderer = self.draw_state.renderer.borrow_mut();
+        let renderer = RefMut::map(renderer, |r| r.as_mut().unwrap());
+        Some(Draw {
+            window_id,
+            draw,
+            renderer,
+        })
+    }
 }
 
 impl Audio {
@@ -281,23 +348,23 @@ impl Audio {
 
     /// The current default audio input device.
     pub fn default_input_device(&self) -> Option<audio::Device> {
-        cpal::default_input_device()
-            .map(|device| audio::Device { device })
+        cpal::default_input_device().map(|device| audio::Device { device })
     }
 
     /// The current default audio output device.
     pub fn default_output_device(&self) -> Option<audio::Device> {
-        cpal::default_output_device()
-            .map(|device| audio::Device { device })
+        cpal::default_output_device().map(|device| audio::Device { device })
     }
 
     /// Begin building a new input audio stream.
     ///
     /// If this is the first time a stream has been created, this method will spawn the
     /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
-    pub fn new_input_stream<M, F, S>(&self, model: M, capture: F)
-        -> audio::stream::input::Builder<M, F, S>
-    {
+    pub fn new_input_stream<M, F, S>(
+        &self,
+        model: M,
+        capture: F,
+    ) -> audio::stream::input::Builder<M, F, S> {
         audio::stream::input::Builder {
             capture,
             builder: self.new_stream(model),
@@ -308,9 +375,11 @@ impl Audio {
     ///
     /// If this is the first time a stream has been created, this method will spawn the
     /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
-    pub fn new_output_stream<M, F, S>(&self, model: M, render: F)
-        -> audio::stream::output::Builder<M, F, S>
-    {
+    pub fn new_output_stream<M, F, S>(
+        &self,
+        model: M,
+        render: F,
+    ) -> audio::stream::output::Builder<M, F, S> {
         audio::stream::output::Builder {
             render,
             builder: self.new_stream(model),
@@ -355,5 +424,37 @@ impl Proxy {
     /// This wakes up the **App**'s inner event loop and inserts an **Awakened** event.
     pub fn wakeup(&self) -> Result<(), glutin::EventsLoopClosed> {
         self.events_loop_proxy.wakeup()
+    }
+}
+
+impl<'a> Draw<'a> {
+    /// Draw the current state of the inner mesh to the given frame.
+    pub fn to_frame(
+        &self,
+        app: &App,
+        frame: &Frame,
+    ) -> Result<(), draw::backend::glium::RendererDrawError> {
+        let window = app.window(self.window_id)
+            .expect("no window to draw to for `app::Draw`'s window_id");
+        let dpi_factor = window.hidpi_factor();
+        let facade = window.inner_glium_display();
+        let mut renderer = self.renderer.borrow_mut();
+        let mut window_frame = frame
+            .window(self.window_id)
+            .expect("no frame to draw to for `app::Draw`'s window_id");
+        renderer.draw(&self.draw, facade, dpi_factor, &mut (**window_frame).frame)
+    }
+}
+
+impl<'a> Deref for Draw<'a> {
+    type Target = RefMut<'a, draw::Draw<DrawScalar>>;
+    fn deref(&self) -> &Self::Target {
+        &self.draw
+    }
+}
+
+impl<'a> DerefMut for Draw<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.draw
     }
 }
