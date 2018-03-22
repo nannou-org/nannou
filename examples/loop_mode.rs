@@ -37,7 +37,7 @@ fn event(app: &App, model: Model, event: Event) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, _model: &Model, frame: Frame) -> Frame {
-    frame.window(app.window.id()).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
+fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
+    frame.clear_all(DARK_CHARCOAL);
     frame
 }

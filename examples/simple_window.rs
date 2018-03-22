@@ -32,8 +32,8 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
-    // Our app only has one window, so retrieve this part of the `Frame`. Color it grey.
-    frame.window(model.window).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
+    // Our app only has one window, so retrieve this part of the `Frame`. Color it dark charcoal.
+    frame.window(model.window).unwrap().clear(DARK_CHARCOAL);
     // Return the cleared frame.
     frame
 }

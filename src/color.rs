@@ -3,6 +3,8 @@ extern crate palette;
 pub use self::named::*;
 pub use self::palette::*;
 
+// TODO: These named colors are actually SRGBA values but we treat them as linear RGBA. These
+// named color values should be adjusted for linear RGBA.
 pub mod named {
     use super::{Alpha, Rgb, Rgba};
     // Built-in colors.

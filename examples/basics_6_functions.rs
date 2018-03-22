@@ -69,9 +69,9 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
     model
 }
 
-fn view(app: &App, _model: &Model, frame: Frame) -> Frame {
-    // Our app only has one window, so retrieve this part of the `Frame`. Color it gray.
-    frame.window(app.window.id()).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
+fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
+    // Clear the window with dark charcoal.
+    frame.clear_all(DARK_CHARCOAL);
     // Return the drawn frame.
     frame
 }

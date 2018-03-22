@@ -166,7 +166,8 @@ where
                 (id, gl_frame)
             })
             .collect();
-        let undrawn_frame = frame::new(gl_frames);
+        // TODO: This currently passes the *focused* window but should pass the *main* one.
+        let undrawn_frame = frame::new(gl_frames, app.window.id);
         let frame = match *view {
             View::Full(view_fn) => view_fn(&app, &model, undrawn_frame),
             View::Simple(view_fn) => view_fn(&app, undrawn_frame),

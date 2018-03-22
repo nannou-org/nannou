@@ -6,13 +6,10 @@ fn main() {
     nannou::run(model, event, view);
 }
 
-struct Model {
-    window: WindowId,
-}
+struct Model {}
 
-fn model(app: &App) -> Model {
-    let window = app.new_window().build().unwrap();
-    Model { window }
+fn model(_app: &App) -> Model {
+    Model {}
 }
 
 fn event(_app: &App, model: Model, event: Event) -> Model {
@@ -60,9 +57,9 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
     model
 }
 
-fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
-    // Our app only has one window, so retrieve this part of the `Frame`. Color it gray.
-    frame.window(model.window).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
+fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
+    // Color the window with a "dark charcoal" color.
+    frame.clear_all(DARK_CHARCOAL);
     // Return the drawn frame.
     frame
 }

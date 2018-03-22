@@ -1,3 +1,4 @@
+use draw::properties::color::IntoRgba;
 use glium::{self, Surface};
 use glium::framebuffer::{MultiOutputFrameBuffer, SimpleFrameBuffer};
 use glium::uniforms::{MagnifySamplerFilter, Uniforms};
@@ -13,6 +14,7 @@ use window;
 /// The **Frame** itself consists of a `WindowFrame` for each window in the `App`.
 pub struct Frame {
     gl_frames: HashMap<window::Id, RefCell<GlFrame>>,
+    main_window: Option<window::Id>,
 }
 
 /// An iterator yielding the `WindowFrame` for each open window in the application.
@@ -28,10 +30,34 @@ impl Frame {
             .map(|wf| WindowFrame { frame: wf.borrow_mut() })
     }
 
+    /// Return the part of the `Frame` associated with the main window.
+    pub fn main_window(&self) -> WindowFrame {
+        self.main_window
+            .and_then(|id| self.window(id))
+            .or_else(|| {
+                self.gl_frames
+                    .values()
+                    .next()
+                    .map(|wf| WindowFrame { frame: wf.borrow_mut() })
+            })
+            .expect("no `main_window` in `Frame`")
+    }
+
     /// Return an iterator yielding each `window::Id` along with its `WindowFrame` for drawing.
     pub fn windows(&self) -> WindowFrames {
         let iter = self.gl_frames.iter();
         WindowFrames { iter }
+    }
+
+    /// Short-hand for clearing all windows with the given color.
+    pub fn clear_all<C>(&self, color: C)
+    where
+        C: IntoRgba<f32>,
+    {
+        let rgba = color.into_rgba();
+        for (_, mut frame) in self.windows() {
+            frame.clear(rgba);
+        }
     }
 }
 
@@ -45,12 +71,12 @@ impl<'a> Iterator for WindowFrames<'a> {
 }
 
 // A function (private to the crate) for creating a new `Frame`.
-pub fn new(gl_frames: HashMap<window::Id, RefCell<GlFrame>>) -> Frame {
-    Frame { gl_frames }
+pub fn new(gl_frames: HashMap<window::Id, RefCell<GlFrame>>, main_window: Option<window::Id>) -> Frame {
+    Frame { gl_frames, main_window }
 }
 
 // A function (private to the crate) for finishing and submitting a `Frame`.
-pub fn finish(Frame { gl_frames }: Frame) -> Result<(), glium::SwapBuffersError> {
+pub fn finish(Frame { gl_frames, .. }: Frame) -> Result<(), glium::SwapBuffersError> {
     for (_, gl_frame) in gl_frames {
         gl_frame.into_inner().frame.finish()?;
     }
@@ -88,7 +114,7 @@ impl GlFrame {
     }
 
     /// Clears some attachments of the target.
-    pub fn clear(
+    pub fn clear_raw(
         &mut self,
         rect: Option<&glium::Rect>,
         color: Option<(f32, f32, f32, f32)>,
@@ -198,8 +224,15 @@ impl GlFrame {
     }
 
     /// Clears the color attachment of the target.
-    ///
-    /// TODO: Replace these params with a `nannou::Color`.
+    pub fn clear<C>(&mut self, color: C)
+    where
+        C: IntoRgba<f32>,
+    {
+        let color = color.into_rgba();
+        self.clear_color(color.red, color.green, color.blue, color.alpha);
+    }
+
+    /// Clears the color attachment of the target.
     pub fn clear_color(&mut self, red: f32, green: f32, blue: f32, alpha: f32) {
         self.frame.clear_color(red, green, blue, alpha)
     }
