@@ -76,6 +76,24 @@ impl Kind {
         Kind::new(Axis::Z, relative)
     }
 
+    /// Simple constructor for an Edge describing a relative position along the given axis.
+    pub fn position(axis: Axis) -> Self {
+        let relative = Relative::Position;
+        Kind { axis, relative }
+    }
+
+    /// Simple constructor for an Edge describing a relative orientation along the given axis.
+    pub fn orientation(axis: Axis) -> Self {
+        let relative = Relative::Orientation;
+        Kind { axis, relative }
+    }
+
+    /// Simple constructor for an Edge describing a relative scale along the given axis.
+    pub fn scale(axis: Axis) -> Self {
+        let relative = Relative::Scale;
+        Kind { axis, relative }
+    }
+
     /// Simple constructor for and Edge describing a relative position over the **X** axis.
     pub fn x_position() -> Self {
         Kind::x(Relative::Position)
@@ -141,6 +159,21 @@ impl<S> Edge<S> {
     /// Simple constructor for an `Edge` describing a relative association over the **Z** axis.
     pub fn z(relative: Relative, weight: S) -> Self {
         Edge::new(Kind::z(relative), weight)
+    }
+
+    /// Simple constructor for an `Edge` describing a relative position over the given axis.
+    pub fn position(axis: Axis, weight: S) -> Self {
+        Edge::new(Kind::position(axis), weight)
+    }
+
+    /// Simple constructor for an `Edge` describing a relative orientation over the given axis.
+    pub fn orientation(axis: Axis, weight: S) -> Self {
+        Edge::new(Kind::orientation(axis), weight)
+    }
+
+    /// Simple constructor for an `Edge` describing a relative scale over the given axis.
+    pub fn scale(axis: Axis, weight: S) -> Self {
+        Edge::new(Kind::scale(axis), weight)
     }
 
     /// Simple constructor for an `Edge` describing a relative position over the **X** axis.
