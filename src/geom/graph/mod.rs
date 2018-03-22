@@ -100,7 +100,7 @@ where
 }
 
 /// A **Walker** type yielding all transformed triangles of all nodes within the graph.
-pub struct WalkTriangles<'a, F, I, S: 'a = geom::DefaultScalar>
+pub struct WalkTriangles<'a, F, I, V, S: 'a = geom::DefaultScalar>
 where
     F: Fn(&node::Index) -> I,
     I: IntoIterator,
@@ -108,7 +108,7 @@ where
 {
     dfs: &'a mut node::Dfs<S>,
     triangles_fn: F,
-    node: Option<node::TransformedTriangles<I::IntoIter, S>>,
+    node: Option<node::TransformedTriangles<I::IntoIter, V, S>>,
 }
 
 /// An iterator yielding all vertices of all nodes within the graph.
@@ -127,25 +127,30 @@ where
 /// An iterator yielding all triangles of all nodes within the graph.
 ///
 /// Uses the `WalkTriangles` internally.
-pub struct Triangles<'a, 'b, F, I, S: 'a + 'b = geom::DefaultScalar>
+pub struct Triangles<'a, 'b, F, I, V, S: 'a + 'b = geom::DefaultScalar>
 where
     F: Fn(&node::Index) -> I,
     I: IntoIterator,
     S: BaseFloat,
 {
     graph: &'a Graph<S>,
-    walker: WalkTriangles<'b, F, I, S>,
+    walker: WalkTriangles<'b, F, I, V, S>,
 }
 
 impl<'a, F, I, S> WalkVertices<'a, F, I, S>
 where
     F: Fn(&node::Index) -> I,
-    I: IntoIterator<Item = Point3<S>>,
+    I: IntoIterator,
+    I::Item: node::ApplyTransform<S>,
     S: BaseFloat,
 {
     /// Return the next vertex in the graph.
-    pub fn next(&mut self, graph: &Graph<S>) -> Option<Point3<S>> {
-        let WalkVertices { ref mut dfs, ref vertices_fn, ref mut node } = *self;
+    pub fn next(&mut self, graph: &Graph<S>) -> Option<I::Item> {
+        let WalkVertices {
+            ref mut dfs,
+            ref vertices_fn,
+            ref mut node,
+        } = *self;
         loop {
             if let Some(v) = node.as_mut().and_then(|n| n.next()) {
                 return Some(v);
@@ -158,15 +163,20 @@ where
     }
 }
 
-impl<'a, F, I, S> WalkTriangles<'a, F, I, S>
+impl<'a, F, I, V, S> WalkTriangles<'a, F, I, V, S>
 where
     F: Fn(&node::Index) -> I,
-    I: IntoIterator<Item = geom::Tri<Point3<S>>>,
+    I: IntoIterator<Item = geom::Tri<V>>,
+    V: geom::Vertex + node::ApplyTransform<S>,
     S: BaseFloat,
 {
     /// Return the next vertex in the graph.
-    pub fn next(&mut self, graph: &Graph<S>) -> Option<geom::Tri<Point3<S>>> {
-        let WalkTriangles { ref mut dfs, ref triangles_fn, ref mut node } = *self;
+    pub fn next(&mut self, graph: &Graph<S>) -> Option<geom::Tri<V>> {
+        let WalkTriangles {
+            ref mut dfs,
+            ref triangles_fn,
+            ref mut node,
+        } = *self;
         loop {
             if let Some(v) = node.as_mut().and_then(|n| n.next()) {
                 return Some(v);
@@ -182,22 +192,24 @@ where
 impl<'a, 'b, F, I, S> Iterator for Vertices<'a, 'b, F, I, S>
 where
     F: Fn(&node::Index) -> I,
-    I: IntoIterator<Item = Point3<S>>,
+    I: IntoIterator,
+    I::Item: node::ApplyTransform<S>,
     S: BaseFloat,
 {
-    type Item = Point3<S>;
+    type Item = I::Item;
     fn next(&mut self) -> Option<Self::Item> {
         self.walker.next(self.graph)
     }
 }
 
-impl<'a, 'b, F, I, S> Iterator for Triangles<'a, 'b, F, I, S>
+impl<'a, 'b, F, I, V, S> Iterator for Triangles<'a, 'b, F, I, V, S>
 where
     F: Fn(&node::Index) -> I,
-    I: IntoIterator<Item = geom::Tri<Point3<S>>>,
+    I: IntoIterator<Item = geom::Tri<V>>,
+    V: geom::Vertex + node::ApplyTransform<S>,
     S: BaseFloat,
 {
-    type Item = geom::Tri<Point3<S>>;
+    type Item = geom::Tri<V>;
     fn next(&mut self) -> Option<Self::Item> {
         self.walker.next(self.graph)
     }
@@ -243,6 +255,63 @@ where
     /// Borrow the node at the given **node::Index** if there is one.
     pub fn node(&self, idx: node::Index) -> Option<&Node<S>> {
         self.dag.node_weight(idx)
+    }
+
+    /// Determine the full **Transform** for the **Node**.
+    ///
+    /// Returns **None** if the node does not exist.
+    pub fn node_transform(&self, idx: node::Index) -> Option<node::Transform<S>> {
+        // If there is no node for the index, return **None**.
+        if self.node(idx).is_none() {
+            return None;
+        }
+
+        // Calculate the transform.
+        let mut transform = node::Transform::default();
+        for (e, parent) in self.parents(idx).iter(self) {
+            let parent_transform = self.node_transform(parent)
+                .expect("no node for yielded parent");
+            let edge = &self[e];
+            transform.apply_edge(&parent_transform, edge);
+        }
+
+        Some(transform)
+    }
+
+    /// Transform the given vertices with the given node's **Transform**.
+    ///
+    /// This method uses the **node_transform** method internally.
+    ///
+    /// Returns **None** if the node does not exist.
+    pub fn node_vertices<I>(
+        &self,
+        idx: node::Index,
+        vertices: I,
+    ) -> Option<node::TransformedVertices<I::IntoIter, S>>
+    where
+        I: IntoIterator,
+        I::Item: node::ApplyTransform<S>,
+    {
+        self.node_transform(idx)
+            .map(|transform| transform.vertices(vertices.into_iter()))
+    }
+
+    /// Transform the given triangles with the given node's **Transform**.
+    ///
+    /// This method uses the **node_transform** method internally.
+    ///
+    /// Returns **None** if the node does not exist.
+    pub fn node_triangles<I, V>(
+        &self,
+        idx: node::Index,
+        triangles: I,
+    ) -> Option<node::TransformedTriangles<I::IntoIter, V, S>>
+    where
+        I: IntoIterator<Item = geom::Tri<V>>,
+        V: geom::Vertex + node::ApplyTransform<S>,
+    {
+        self.node_transform(idx)
+            .map(|transform| transform.triangles(triangles.into_iter()))
     }
 
     /// Borrow the edge at the given **edge::Index** if there is one.
@@ -345,6 +414,7 @@ where
         while let Some((in_edge_idx, in_node_idx)) = parents.walk_next(self) {
             if edge.kind == self[in_edge_idx].kind {
                 if in_node_idx == a {
+                    self.dag[in_edge_idx].weight = edge.weight;
                     already_set = Some(in_edge_idx);
                 } else {
                     self.remove_edge(in_edge_idx);
@@ -386,14 +456,12 @@ where
         match edges.next() {
             None => panic!("`edges` must contain at least one edge"),
             Some(first) => {
-                let edges = Some(first).into_iter()
-                    .chain(edges)
-                    .map(|e| (parent, n, e));
+                let edges = Some(first).into_iter().chain(edges).map(|e| (parent, n, e));
                 let edge_indices = self.dag
                     .add_edges(edges)
                     .expect("cannot create a cycle when adding a new child");
                 (edge_indices, n)
-            },
+            }
         }
     }
 
@@ -434,25 +502,35 @@ where
     ) -> WalkVertices<'a, F, I, S>
     where
         F: Fn(&node::Index) -> I,
-        I: IntoIterator<Item = Point3<S>>,
+        I: IntoIterator,
+        I::Item: node::ApplyTransform<S>,
     {
         let node = None;
-        WalkVertices { dfs, vertices_fn, node }
+        WalkVertices {
+            dfs,
+            vertices_fn,
+            node,
+        }
     }
 
     /// Produce a walker yielding all vertices from all nodes within the graph in order of
     /// discovery within a depth-first-search.
-    pub fn walk_triangles<'a, F, I>(
+    pub fn walk_triangles<'a, F, I, V>(
         &self,
         dfs: &'a mut node::Dfs<S>,
         triangles_fn: F,
-    ) -> WalkTriangles<'a, F, I, S>
+    ) -> WalkTriangles<'a, F, I, V, S>
     where
         F: Fn(&node::Index) -> I,
-        I: IntoIterator<Item = geom::Tri<Point3<S>>>,
+        I: IntoIterator<Item = geom::Tri<V>>,
+        V: geom::Vertex + node::ApplyTransform<S>,
     {
         let node = None;
-        WalkTriangles { dfs, triangles_fn, node }
+        WalkTriangles {
+            dfs,
+            triangles_fn,
+            node,
+        }
     }
 
     /// Produce an iterator yielding all vertices from all nodes within the graph in order of
@@ -464,7 +542,8 @@ where
     ) -> Vertices<'a, 'b, F, I, S>
     where
         F: Fn(&node::Index) -> I,
-        I: IntoIterator<Item = Point3<S>>,
+        I: IntoIterator,
+        I::Item: node::ApplyTransform<S>,
     {
         let walker = self.walk_vertices(dfs, vertices_fn);
         let graph = self;
@@ -473,14 +552,15 @@ where
 
     /// Produce an iterator yielding all triangles from all nodes within the graph in order of
     /// discovery within a depth-first-search.
-    pub fn triangles<'a, 'b, F, I>(
+    pub fn triangles<'a, 'b, F, I, V>(
         &'a self,
         dfs: &'b mut node::Dfs<S>,
         triangles_fn: F,
-    ) -> Triangles<'a, 'b, F, I, S>
+    ) -> Triangles<'a, 'b, F, I, V, S>
     where
         F: Fn(&node::Index) -> I,
-        I: IntoIterator<Item = geom::Tri<Point3<S>>>,
+        I: IntoIterator<Item = geom::Tri<V>>,
+        V: geom::Vertex + node::ApplyTransform<S>,
     {
         let walker = self.walk_triangles(dfs, triangles_fn);
         let graph = self;

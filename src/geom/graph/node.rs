@@ -5,8 +5,9 @@ use daggy::petgraph::visit::{self, Visitable};
 use geom;
 use geom::{DefaultScalar, Graph};
 use geom::graph::Edge;
-use math::{self, BaseFloat, Basis3, Euler, Point3, Rad, Rotation, Vector3, Zero};
+use math::{self, BaseFloat, Basis3, Euler, Point3, Rad, Rotation, Vector3};
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::ops;
 
 /// Unique index for a **Node** within a **Graph**.
@@ -25,13 +26,11 @@ where
     /// Also used to represent the graph's "origin" node.
     Point,
     /// A nested Graph.
-    Graph {
-        graph: super::Graph<S>,
-        dfs: Dfs<S>,
-    },
+    Graph { graph: super::Graph<S>, dfs: Dfs<S> },
 }
- 
+
 /// An iterator yielding all vertices for a node transformed by some given transform.
+#[derive(Clone, Debug)]
 pub struct TransformedVertices<I, S = DefaultScalar>
 where
     S: BaseFloat,
@@ -41,12 +40,14 @@ where
 }
 
 /// An iterator yielding all vertices for a node transformed by some given transform.
-pub struct TransformedTriangles<I, S = DefaultScalar>
+#[derive(Clone, Debug)]
+pub struct TransformedTriangles<I, V, S = DefaultScalar>
 where
     S: BaseFloat,
 {
     transform: Transform<S>,
     triangles: I,
+    _vertex: PhantomData<V>,
 }
 
 /// A node's resulting rotation, displacement and scale relative to the graph's origin.
@@ -83,7 +84,7 @@ pub struct TransformMap<S = DefaultScalar>
 where
     S: BaseFloat,
 {
-    map: HashMap<Index, Transform<S>>
+    map: HashMap<Index, Transform<S>>,
 }
 
 /// A depth-first-search over nodes in the graph, yielding each node's unique index alongside its
@@ -121,6 +122,7 @@ where
     /// Clears the visit state.
     pub fn reset(&mut self, graph: &Graph<S>) {
         self.dfs.reset(graph);
+        self.dfs.move_to(graph.origin());
     }
 
     /// Keep the discovered map but clear the visit stack and restart the dfs from the given node.
@@ -158,14 +160,14 @@ where
     ) -> Option<(Index, TransformedVertices<I::IntoIter, S>)>
     where
         F: FnOnce(&Index) -> I,
-        I: IntoIterator<Item = Point3<S>>,
+        I: IntoIterator,
+        I::Item: ApplyTransform<S>,
     {
-        self.next_transform(graph)
-            .map(|(n, transform)| {
-                let vertices = vertices_fn(&n);
-                let vertices = vertices.into_iter();
-                (n, TransformedVertices { vertices, transform })
-            })
+        self.next_transform(graph).map(|(n, transform)| {
+            let vertices = vertices_fn(&n);
+            let vertices = vertices.into_iter();
+            (n, transform.vertices(vertices))
+        })
     }
 
     /// Return the triangles for the next node in the DFS.
@@ -173,21 +175,21 @@ where
     /// Uses `Dfs::next_transform` and `Node::triangles` internally.
     ///
     /// Returns `None` if the traversal is finished.
-    pub fn next_triangles<F, I>(
+    pub fn next_triangles<F, I, V>(
         &mut self,
         graph: &Graph<S>,
         triangles_fn: F,
-    ) -> Option<(Index, TransformedTriangles<I::IntoIter, S>)>
+    ) -> Option<(Index, TransformedTriangles<I::IntoIter, V, S>)>
     where
         F: FnOnce(&Index) -> I,
-        I: IntoIterator<Item = geom::Tri<Point3<S>>>,
+        I: IntoIterator<Item = geom::Tri<V>>,
+        V: geom::Vertex + ApplyTransform<S>,
     {
-        self.next_transform(graph)
-            .map(|(n, transform)| {
-                let triangles = triangles_fn(&n);
-                let triangles = triangles.into_iter();
-                (n, TransformedTriangles { triangles, transform })
-            })
+        self.next_transform(graph).map(|(n, transform)| {
+            let triangles = triangles_fn(&n);
+            let triangles = triangles.into_iter();
+            (n, transform.triangles(triangles))
+        })
     }
 }
 
@@ -250,6 +252,36 @@ where
             (Relative::Scale, Axis::Z) => self.scale.z *= parent.scale.z * edge.weight,
         }
     }
+
+    /// Transform the given vertices.
+    pub fn vertices<I>(self, vertices: I) -> TransformedVertices<I::IntoIter, S>
+    where
+        I: IntoIterator,
+        I::Item: ApplyTransform<S>,
+    {
+        let transform = self;
+        let vertices = vertices.into_iter();
+        TransformedVertices {
+            transform,
+            vertices,
+        }
+    }
+
+    /// Transform the given vertices.
+    pub fn triangles<I, V>(self, triangles: I) -> TransformedTriangles<I::IntoIter, V, S>
+    where
+        I: IntoIterator<Item = geom::Tri<V>>,
+        V: geom::Vertex + ApplyTransform<S>,
+    {
+        let transform = self;
+        let triangles = triangles.into_iter();
+        let _vertex = PhantomData;
+        TransformedTriangles {
+            transform,
+            triangles,
+            _vertex,
+        }
+    }
 }
 
 impl<S> Default for Transform<S>
@@ -259,9 +291,21 @@ where
     fn default() -> Self {
         let zero = S::zero();
         let one = S::one();
-        let scale = Vector3 { x: one, y: one, z: one };
-        let rot = Euler { x: Rad(zero), y: Rad(zero), z: Rad(zero) };
-        let disp = Vector3 { x: zero, y: zero, z: zero };
+        let scale = Vector3 {
+            x: one,
+            y: one,
+            z: one,
+        };
+        let rot = Euler {
+            x: Rad(zero),
+            y: Rad(zero),
+            z: Rad(zero),
+        };
+        let disp = Vector3 {
+            x: zero,
+            y: zero,
+            z: zero,
+        };
         Transform { scale, rot, disp }
     }
 }
@@ -275,28 +319,32 @@ where
         let (x, y, z) = (one, one, one);
         Transform {
             scale: Vector3 { x, y, z },
-            rot: Euler { x: Rad(x), y: Rad(y), z: Rad(z) },
+            rot: Euler {
+                x: Rad(x),
+                y: Rad(y),
+                z: Rad(z),
+            },
             disp: Vector3 { x, y, z },
         }
     }
 
-    fn look_at(eye: Point3<S>, center: Point3<S>, up: Vector3<S>) -> Self {
+    fn look_at(_eye: Point3<S>, _center: Point3<S>, _up: Vector3<S>) -> Self {
         unimplemented!();
     }
 
-    fn transform_vector(&self, vec: Vector3<S>) -> Vector3<S> {
+    fn transform_vector(&self, _vec: Vector3<S>) -> Vector3<S> {
         unimplemented!();
     }
 
-    fn inverse_transform_vector(&self, vec: Vector3<S>) -> Option<Vector3<S>> {
+    fn inverse_transform_vector(&self, _vec: Vector3<S>) -> Option<Vector3<S>> {
         unimplemented!();
     }
 
-    fn transform_point(&self, point: Point3<S>) -> Point3<S> {
+    fn transform_point(&self, _point: Point3<S>) -> Point3<S> {
         unimplemented!();
     }
 
-    fn concat(&self, other: &Self) -> Self {
+    fn concat(&self, _other: &Self) -> Self {
         unimplemented!();
     }
 
@@ -305,7 +353,8 @@ where
     }
 }
 
-fn transform_point<S>(transform: &Transform<S>, mut point: Point3<S>) -> Point3<S>
+/// Apply the given transform to the given 3D point.
+pub fn transform_point<S>(transform: &Transform<S>, mut point: Point3<S>) -> Point3<S>
 where
     S: BaseFloat,
 {
@@ -320,28 +369,48 @@ where
     point
 }
 
-impl<I, S> Iterator for TransformedVertices<I, S>
+/// Vertex types which may apply a transform and produce a resulting transform.
+pub trait ApplyTransform<S>
 where
-    I: Iterator<Item = Point3<S>>,
     S: BaseFloat,
 {
-    type Item = Point3<S>;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.vertices
-            .next()
-            .map(|point| transform_point(&self.transform, point))
+    /// Apply the given transform and return the result.
+    fn apply_transform(self, transform: &Transform<S>) -> Self;
+}
+
+impl<S> ApplyTransform<S> for Point3<S>
+where
+    S: BaseFloat,
+{
+    fn apply_transform(self, transform: &Transform<S>) -> Self {
+        transform_point(transform, self)
     }
 }
 
-impl<I, S> Iterator for TransformedTriangles<I, S>
+impl<I, S> Iterator for TransformedVertices<I, S>
 where
-    I: Iterator<Item = geom::Tri<Point3<S>>>,
+    I: Iterator,
+    I::Item: ApplyTransform<S>,
     S: BaseFloat,
 {
-    type Item = geom::Tri<Point3<S>>;
+    type Item = I::Item;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.vertices
+            .next()
+            .map(|vertex| vertex.apply_transform(&self.transform))
+    }
+}
+
+impl<I, V, S> Iterator for TransformedTriangles<I, V, S>
+where
+    I: Iterator<Item = geom::Tri<V>>,
+    V: geom::Vertex + ApplyTransform<S>,
+    S: BaseFloat,
+{
+    type Item = geom::Tri<V>;
     fn next(&mut self) -> Option<Self::Item> {
         self.triangles
             .next()
-            .map(|tri| tri.map_vertices(|point| transform_point(&self.transform, point)))
+            .map(|tri| tri.map_vertices(|vertex| vertex.apply_transform(&self.transform)))
     }
 }
