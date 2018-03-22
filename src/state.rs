@@ -4,6 +4,7 @@ pub use self::window::Window;
 
 /// Tracked state related to the focused window.
 pub mod window {
+    use geom;
     use window;
     use math::Vector2;
 
@@ -33,6 +34,25 @@ pub mod window {
                 height: 0.0,
                 hidpi_factor: 1.0,
             }
+        }
+
+        /// Get the range along the *x* axis occupied by the window.
+        pub fn x_range(&self) -> geom::Range<f64> {
+            let half_w = self.width * 0.5;
+            geom::Range { start: -half_w, end: half_w }
+        }
+
+        /// Get the range along the *y* axis occupied by the window.
+        pub fn y_range(&self) -> geom::Range<f64> {
+            let half_h = self.height * 0.5;
+            geom::Range { start: -half_h, end: half_h }
+        }
+
+        /// Get the x coordinate for the left edge of the window.
+        pub fn rect(&self) -> geom::Rect<f64> {
+            let x = self.x_range();
+            let y = self.y_range();
+            geom::Rect { x, y }
         }
 
         /// Return the `width` and `height` as a `Vector2`.
