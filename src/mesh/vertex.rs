@@ -1,7 +1,8 @@
 //! Vertex types yielded by the mesh adaptors and their implementations.
 
 use geom;
-use math::{Point2, Point3};
+use geom::graph::node::{self, ApplyTransform};
+use math::{BaseFloat, Point2, Point3};
 use std::ops::{Deref, DerefMut};
 
 /// A vertex with a specified color.
@@ -23,6 +24,46 @@ pub struct WithTexCoords<V, T> {
 pub struct WithNormal<V, N> {
     pub vertex: V,
     pub normal: N,
+}
+
+// Node Transform application implementations.
+
+impl<S, V, C> ApplyTransform<S> for WithColor<V, C>
+where
+    V: ApplyTransform<S>,
+    S: BaseFloat,
+{
+    fn apply_transform(self, transform: &node::Transform<S>) -> Self {
+        let WithColor { mut vertex, color } = self;
+        vertex = vertex.apply_transform(transform);
+        WithColor { vertex, color }
+    }
+}
+
+impl<S, V, T> ApplyTransform<S> for WithTexCoords<V, T>
+where
+    V: ApplyTransform<S>,
+    S: BaseFloat,
+{
+    fn apply_transform(self, transform: &node::Transform<S>) -> Self {
+        let WithTexCoords { mut vertex, tex_coords } = self;
+        vertex = vertex.apply_transform(transform);
+        WithTexCoords { vertex, tex_coords }
+    }
+}
+
+impl<S, V, N> ApplyTransform<S> for WithNormal<V, N>
+where
+    V: ApplyTransform<S>,
+    S: BaseFloat,
+{
+    fn apply_transform(self, _transform: &node::Transform<S>) -> Self {
+        //let WithNormal { mut vertex, mut normal } = self;
+        //vertex = vertex.apply_transform(transform);
+        // TODO: Apply transform to the `normal`.
+        unimplemented!();
+        //WithNormal { vertex, normal }
+    }
 }
 
 // Deref implementations for each vertex adaptor to their inner vertex type.
