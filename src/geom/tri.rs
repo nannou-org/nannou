@@ -23,6 +23,13 @@ pub struct IterFromVertices<I> {
     vertices: I,
 }
 
+/// An iterator that flattens an iterator yielding triangles into its vertices.
+#[derive(Clone, Debug)]
+pub struct VerticesFromIter<I, V> {
+    tris: I,
+    tri: Option<Vertices<V>>,
+}
+
 impl<V> Tri<V>
 where
     V: Vertex,
@@ -142,22 +149,6 @@ where
     }
 }
 
-impl<V> Iterator for Vertices<V>
-where
-    V: Clone,
-{
-    type Item = V;
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index < NUM_VERTICES {
-            let v = self.tri.0[self.index as usize].clone();
-            self.index += 1;
-            Some(v)
-        } else {
-            None
-        }
-    }
-}
-
 /// Returns the first `Tri` that contains the given vertex.
 ///
 /// Returns `None` if no `Tri`'s contain the given vertex.
@@ -205,6 +196,16 @@ where
     let b = vertices[indices[1]].clone();
     let c = vertices[indices[2]].clone();
     Tri([a, b, c])
+}
+
+/// Produce an iterator that flattens the given iterator yielding triangles into its vertices.
+pub fn vertices_from_iter<I, V>(tris: I) -> VerticesFromIter<I::IntoIter, V>
+where
+    I: IntoIterator<Item = Tri<V>>,
+{
+    let tris = tris.into_iter();
+    let tri = None;
+    VerticesFromIter { tris, tri }
 }
 
 impl<V> Deref for Tri<V>
@@ -271,6 +272,31 @@ where
     }
 }
 
+impl<V> Iterator for Vertices<V>
+where
+    V: Clone,
+{
+    type Item = V;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < NUM_VERTICES {
+            let v = self.tri.0[self.index as usize].clone();
+            self.index += 1;
+            Some(v)
+        } else {
+            None
+        }
+    }
+}
+
+impl<V> ExactSizeIterator for Vertices<V>
+where
+    V: Clone,
+{
+    fn len(&self) -> usize {
+        NUM_VERTICES as usize - self.index as usize
+    }
+}
+
 impl<I> Iterator for IterFromVertices<I>
 where
     I: Iterator,
@@ -278,5 +304,36 @@ where
     type Item = Tri<I::Item>;
     fn next(&mut self) -> Option<Self::Item> {
         from_vertices(&mut self.vertices)
+    }
+}
+
+impl<I, V> Iterator for VerticesFromIter<I, V>
+where
+    I: Iterator<Item = Tri<V>>,
+    V: Vertex,
+{
+    type Item = V;
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(v) = self.tri.as_mut().and_then(|vs| vs.next()) {
+                return Some(v);
+            }
+            match self.tris.next() {
+                Some(t) => self.tri = Some(t.vertices()),
+                None => return None,
+            }
+        }
+    }
+}
+
+impl<I, V> ExactSizeIterator for VerticesFromIter<I, V>
+where
+    I: Iterator<Item = Tri<V>> + ExactSizeIterator,
+    V: Vertex,
+{
+    fn len(&self) -> usize {
+        let current_tri_vs = self.tri.as_ref().map(|vs| vs.len()).unwrap_or(0);
+        let remaining_tri_vs = self.tris.len() * NUM_VERTICES as usize;
+        current_tri_vs + remaining_tri_vs
     }
 }
