@@ -24,13 +24,13 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     let draw = app.draw(model.window).unwrap();
 
     // Clear the background to blue.
-    draw.background().rgb(0.0, 0.0, 1.0);
+    draw.background().color(BLUE);
 
     // Short-hand helper functions.
     draw.ellipse()
         .x_y(app.mouse.x, app.mouse.y)
         .w_h(app.window.width * 0.5, app.window.height * 0.5)
-        .rgb(1.0, 0.0, 0.0);
+        .color(RED);
 
     // Write the result of our drawing to the window's OpenGL frame.
     draw.to_frame(app, &frame).unwrap();
