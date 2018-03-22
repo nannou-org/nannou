@@ -192,7 +192,7 @@ pub mod mouse {
         /// Returns the position at which the button was pressed.
         pub fn if_down(&self) -> Option<Point2<f64>> {
             match *self {
-                ButtonPosition::Down(xy) => Some((xy)),
+                ButtonPosition::Down(xy) => Some(xy),
                 _ => None,
             }
         }
