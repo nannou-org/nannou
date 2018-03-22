@@ -55,6 +55,11 @@ pub mod window {
             geom::Rect { x, y }
         }
 
+        /// Expects that there will be a `window::Id` (the common case) and **panic!**s otherwise.
+        pub fn id(&self) -> window::Id {
+            self.id.unwrap()
+        }
+
         /// Return the `width` and `height` as a `Vector2`.
         pub fn size(&self) -> Vector2<f64> {
             Vector2 { x: self.width, y: self.height }
