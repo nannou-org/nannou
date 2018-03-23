@@ -15,7 +15,7 @@ impl Device {
     /// The maximum number of output channels of any format supported by this device.
     pub fn max_supported_output_channels(&self) -> usize {
         self.supported_output_formats()
-            .unwrap()
+            .expect("failed to get supported output audio stream formats")
             .map(|fmt| fmt.channels as usize)
             .max()
             .unwrap_or(0)
@@ -24,7 +24,7 @@ impl Device {
     /// The maximum number of input channels of any format supported by this device.
     pub fn max_supported_input_channels(&self) -> usize {
         self.supported_input_formats()
-            .unwrap()
+            .expect("failed to get supported input audio stream formats")
             .map(|fmt| fmt.channels as usize)
             .max()
             .unwrap_or(0)
