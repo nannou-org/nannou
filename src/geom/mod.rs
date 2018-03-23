@@ -1,4 +1,6 @@
-use math::{Point2, Point3};
+use math::{BaseFloat, EuclideanSpace, Point2, Point3};
+use math::num_traits::cast;
+use std::ops;
 
 pub mod cuboid;
 pub mod ellipse;
@@ -72,5 +74,24 @@ where
                 let point = Point3 { x, y, z };
                 b.stretch_to_point(point)
             })
+        })
+}
+
+/// The `centroid` (average position) of all vertices in the given iterator.
+///
+/// Returns `None` if the given iterator contains no vertices.
+pub fn centroid<I, S>(vertices: I) -> Option<I::Item>
+where
+    I: IntoIterator,
+    I::Item: Vertex<Scalar = S> + EuclideanSpace<Scalar = S>,
+    <I::Item as EuclideanSpace>::Diff: ops::Div<S, Output = <I::Item as EuclideanSpace>::Diff>,
+    S: BaseFloat,
+{
+    let mut vertices = vertices.into_iter();
+    vertices.next()
+        .map(|first| {
+            let init = (1, first.to_vec());
+            let (len, total) = vertices.fold(init, |(i, acc), p| (i + 1, acc + p.to_vec()));
+            EuclideanSpace::from_vec(total / cast(len).unwrap())
         })
 }
