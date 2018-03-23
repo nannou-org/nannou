@@ -3,7 +3,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::run(model, event, view);
+    nannou::app(model, event, view).run();
 }
 
 struct Model {
@@ -13,7 +13,7 @@ struct Model {
 fn model(app: &App) -> Model {
     // Construct and define the size of our window using .with_dimensions(.,.)
     // Argument 1 = width of window; Argument 2 = height of window
-    let window = app.new_window().with_dimensions(640,480).build().unwrap();
+    let window = app.new_window().with_dimensions(640, 480).build().unwrap();
     
     // Below are the different variable types available in Rust
     let i = 50; // Ints store whole numbers
@@ -32,15 +32,13 @@ fn model(app: &App) -> Model {
     Model { window }
 }
 
-fn event(_app: &App, model: Model, event: Event) -> Model {
-    if let Event::Update(_dt) = event {
-    } 
+fn event(_app: &App, model: Model, _event: Event) -> Model {
     model
 }
 
 fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
-    // Our app only has one window, so retrieve this part of the `Frame`. Color it gray.
-    frame.window(model.window).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
+    // Clear the window with dark charcoal.
+    frame.window(model.window).unwrap().clear(DARK_CHARCOAL);
     // Return the drawn frame.
     frame
 }

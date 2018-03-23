@@ -3,7 +3,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::run(model, update, draw);
+    nannou::app(model, update, draw).run();
 }
 
 struct Model {
@@ -38,9 +38,9 @@ fn draw(_app: &App, model: &Model, frame: Frame) -> Frame {
     // Clear each window with a different colour.
     for (id, mut window_frame) in frame.windows() {
         match id {
-            id if id == model.a => window_frame.clear_color(1.0, 0.0, 0.0, 1.0),
-            id if id == model.b => window_frame.clear_color(0.0, 1.0, 0.0, 1.0),
-            id if id == model.c => window_frame.clear_color(0.0, 0.0, 1.0, 1.0),
+            id if id == model.a => window_frame.clear(RED),
+            id if id == model.b => window_frame.clear(GREEN),
+            id if id == model.c => window_frame.clear(BLUE),
             _ => (),
         }
     }

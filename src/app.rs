@@ -57,6 +57,7 @@ pub struct App {
 ///
 /// This is a conveniently accessible `Draw` instance which can be easily re-used between calls to
 /// an app's `view` function.
+#[derive(Debug)]
 pub struct Draw<'a> {
     window_id: window::Id,
     draw: RefMut<'a, draw::Draw<DrawScalar>>,
@@ -64,6 +65,7 @@ pub struct Draw<'a> {
 }
 
 // Draw state managed by the **App**.
+#[derive(Debug)]
 struct DrawState {
     draw: RefCell<draw::Draw<DrawScalar>>,
     renderer: RefCell<Option<RefCell<draw::backend::glium::Renderer>>>,
@@ -250,6 +252,18 @@ impl App {
         }
     }
 
+    /// A reference to the window currently in focus.
+    ///
+    /// **Panics** if their are no windows open in the **App**.
+    ///
+    /// Uses the **App::window** method internally.
+    ///
+    /// TODO: Currently this produces a reference to the *focused* window, but this behaviour
+    /// should be changed to track the "main" window (the first window created?).
+    pub fn main_window(&self) -> std::cell::Ref<Window> {
+        self.window(self.window.id.expect("no window in focus")).expect("no window for focused id")
+    }
+
     /// Return whether or not the `App` is currently set to exit when the `Escape` key is pressed.
     pub fn exit_on_escape(&self) -> bool {
         self.exit_on_escape.get()
@@ -298,7 +312,7 @@ impl App {
     /// **panic**.
     ///
     /// Returns **None** if there is no window for the given **window::Id**.
-    pub fn draw(&self, window_id: window::Id) -> Option<Draw> {
+    pub fn draw_for_window(&self, window_id: window::Id) -> Option<Draw> {
         let window = match self.window(window_id) {
             None => return None,
             Some(window) => window,
@@ -318,6 +332,21 @@ impl App {
             draw,
             renderer,
         })
+    }
+
+    /// Produce the **App**'s **Draw** API for drawing geometry and text with colors and textures.
+    ///
+    /// This is a simplified wrapper around the **App::draw_for_window** method that draws to the
+    /// window currently in focus.
+    ///
+    /// **Panics** if there are no windows open.
+    ///
+    /// **Note:** There may only be a single **app::Draw** instance at any point in time. If this
+    /// method is called while there is a pre-existing instance of **app::Draw** this method will
+    /// **panic**.
+    pub fn draw(&self) -> Draw {
+        self.draw_for_window(self.window.id.expect("no window in focus"))
+            .expect("no window open for `app.window.id`")
     }
 }
 

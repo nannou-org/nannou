@@ -50,8 +50,8 @@
 //! polyline::contains(points, thickness, &point); 
 //! ```
 
-use geom::{self, quad, line, Rect, Tri, Vertex};
-use math::{self, BaseFloat, InnerSpace, Point2, vec2};
+use geom::{self, line, Rect, Tri, Vertex};
+use math::{self, BaseFloat, Point2};
 pub use self::cap::Cap;
 pub use self::join::Join;
 
@@ -620,7 +620,6 @@ where
         let b = points.next().expect(PANIC_MSG);
         let half_thickness = thickness / math::two::<S>();
         let corners = line::quad_corners(a, b, half_thickness);
-        let (tri_1, tri_2) = quad::triangles(&corners);
         let (al, ar, bl, br) = (corners[0], corners[1], corners[2], corners[3]);
         let start_cap = cap::Tris::new(cap, al, ar, half_thickness).triangles();
         Parts {
@@ -710,87 +709,89 @@ where
         <join::Tris<J, S> as Join>::Triangles,
         S>;
     fn next(&mut self) -> Option<Self::Item> {
-        let Parts {
-            ref cap,
-            ref join,
-            ref mut points,
-            thickness,
-            half_thickness,
-            ref mut start_cap,
-            ref mut next_join,
-            ref mut next_line_start,
-            ref mut next_line_end,
-            ref mut end_cap_complete,
-        } = *self;
+        // TODO: Uncomment the below code and finish TODO sections.
+        unimplemented!();
+        // let Parts {
+        //     ref cap,
+        //     ref join,
+        //     ref mut points,
+        //     thickness,
+        //     half_thickness,
+        //     ref mut start_cap,
+        //     ref mut next_join,
+        //     ref mut next_line_start,
+        //     ref mut next_line_end,
+        //     ref mut end_cap_complete,
+        // } = *self;
 
-        // First check for the beginning line cap.
-        if let Some(cap) = start_cap.take() {
-            return Some(Part::Cap { cap });
-        }
+        // // First check for the beginning line cap.
+        // if let Some(cap) = start_cap.take() {
+        //     return Some(Part::Cap { cap });
+        // }
 
-        // Next, check for a pending line join.
-        if let Some(join) = next_join.take() {
-            return Some(Part::Join { join });
-        }
+        // // Next, check for a pending line join.
+        // if let Some(join) = next_join.take() {
+        //     return Some(Part::Join { join });
+        // }
 
-        // Otherwise, check for the next line.
-        if let Some((b, mut bl, mut br)) = next_line_end.take() {
-            let (a, al, ar) = *next_line_start;
-            let ab_direction = b - a;
-            let ab_unit = ab_direction.normalize();
-            let ab_normal = vec2(-ab_unit.y, ab_unit.x);
-            let n = ab_normal.normalize_to(half_thickness);
+        // // Otherwise, check for the next line.
+        // if let Some((b, mut bl, mut br)) = next_line_end.take() {
+        //     let (a, al, ar) = *next_line_start;
+        //     let ab_direction = b - a;
+        //     let ab_unit = ab_direction.normalize();
+        //     let ab_normal = vec2(-ab_unit.y, ab_unit.x);
+        //     let n = ab_normal.normalize_to(half_thickness);
 
-            // If there's another point remaining, adjust bl and br for the join.
-            //
-            // TODO:
-            //
-            // - Find where bl, br intersect with the next line edges.
-            // - Adjust `next_line_start` for angle towards `c`.
-            if let Some(c) = points.next() {
+        //     // If there's another point remaining, adjust bl and br for the join.
+        //     //
+        //     // TODO:
+        //     //
+        //     // - Find where bl, br intersect with the next line edges.
+        //     // - Adjust `next_line_start` for angle towards `c`.
+        //     if let Some(c) = points.next() {
 
-                // TODO: Store this in the iterator for re-use.
-                let bc_direction = c - b;
-                let bc_unit = bc_direction.normalize();
-                let bc_normal = vec2(-bc_unit.y, bc_unit.x);
-                let n = bc_normal.normalize_to(half_thickness);
-                let mut cl = [c.x - n.x, c.y - n.y].into();
-                let mut cr = [c.x + n.x, c.y + n.y].into();
+        //         // TODO: Store this in the iterator for re-use.
+        //         let bc_direction = c - b;
+        //         let bc_unit = bc_direction.normalize();
+        //         let bc_normal = vec2(-bc_unit.y, bc_unit.x);
+        //         let n = bc_normal.normalize_to(half_thickness);
+        //         let mut cl = [c.x - n.x, c.y - n.y].into();
+        //         let mut cr = [c.x + n.x, c.y + n.y].into();
 
-                // TODO: Find the left and right intersections.
-                let il = unimplemented!();
-                let ir = unimplemented!();
+        //         // TODO: Find the left and right intersections.
+        //         let il = unimplemented!();
+        //         let ir = unimplemented!();
 
-                // TODO: Create join triangles here.
-                let turn: join::Turn = unimplemented!();
-                let (a, b) = match turn {
-                    join::Turn::Left => (ar, br),
-                    join::Turn::Right => (al, bl),
-                };
-                let tris = join::Tris::new(*join, a, b, il, ir, turn, thickness).triangles();
+        //         // TODO: Create join triangles here.
+        //         let turn: join::Turn = unimplemented!();
+        //         let (a, b) = match turn {
+        //             join::Turn::Left => (ar, br),
+        //             join::Turn::Right => (al, bl),
+        //         };
+        //         let tris = join::Tris::new(*join, a, b, il, ir, turn, thickness).triangles();
 
-                // TODO: Shorten `bl` and `br` to shortest intersection point.
+        //         // TODO: Shorten `bl` and `br` to shortest intersection point.
 
-                *next_join = Some(tris);
-                *next_line_end = Some((c, cl, cr));
-            }
-            *next_line_start = (b, bl, br);
+        //         *next_join = Some(tris);
+        //         *next_line_end = Some((c, cl, cr));
+        //     }
+        //     *next_line_start = (b, bl, br);
 
-            let quad = [al, ar, br, bl].into();
-            let tris = quad::triangles_iter(&quad);
-            return Some(Part::Line { line: tris });
-        }
+        //     let quad = [al, ar, br, bl].into();
+        //     let tris = quad::triangles_iter(&quad);
+        //     return Some(Part::Line { line: tris });
+        // }
 
-        // If the end_cap has been returned, we're done.
-        if *end_cap_complete {
-            return None;
-        }
+        // // If the end_cap has been returned, we're done.
+        // if *end_cap_complete {
+        //     return None;
+        // }
 
-        // Otherwise, return the end cap.
-        *end_cap_complete = true;
-        let (_, l, r) = *next_line_start;
-        let cap = cap::Tris::new(*cap, l, r, half_thickness).triangles();
-        return Some(Part::Cap { cap });
+        // // Otherwise, return the end cap.
+        // *end_cap_complete = true;
+        // let (_, l, r) = *next_line_start;
+        // let cap = cap::Tris::new(*cap, l, r, half_thickness).triangles();
+        // return Some(Part::Cap { cap });
     }
 }
 

@@ -10,21 +10,17 @@ fn main() {
 }
 
 struct Model {
-    // Declare the variables that our model contains here
-    window: WindowId,
     foo: i32,
     bar: f64,
 }
 
-fn model(app: &App) -> Model {
+fn model(_app: &App) -> Model {
     // Initialise our models variables 
     let foo = 80;
     let bar = 3.14;
 
-    let window = app.new_window().with_dimensions(640,480).build().unwrap();
-
     // Construct and return the model with our initialised values
-    Model { window, foo, bar }
+    Model { foo, bar }
 }
 
 fn event(_app: &App, model: Model, event: Event) -> Model {
@@ -33,7 +29,7 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
 
             match event {
 
-                /*            KEY EVENTS              */
+                // KEY EVENTS
                 KeyPressed(_key) => {
                     println!("foo = {}", model.foo);
                     println!("bar = {}", model.bar);
@@ -44,7 +40,7 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
                     println!("local_variable to KeyReleased = {}", local_var);
                 },
 
-                /*            MOUSE EVENTS             */
+                // MOUSE EVENTS
                 MousePressed(_button) => {
                     println!("global scope: GLOBAL = {}", GLOBAL);
                 },
@@ -62,9 +58,9 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
     model
 }
 
-fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
-    // Our app only has one window, so retrieve this part of the `Frame`. Color it gray.
-    frame.window(model.window).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
+fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
+    // Color the window gray.
+    frame.clear_all(DARK_CHARCOAL);
     // Return the drawn frame.
     frame
 }

@@ -9,14 +9,11 @@ fn main() {
 }
 
 // model represents the state of our app
-struct Model {
-    window: WindowId,
-}
+struct Model;
 
 // put your setup code here, to run once before the application loop:
-fn model(app: &App) -> Model {
-    let window = app.new_window().build().unwrap();
-    Model { window }
+fn model(_app: &App) -> Model {
+    Model
 }
 
 // put your update code here, to set variables and handle 
@@ -29,14 +26,14 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
 
             match event {
 
-                /*            KEY EVENTS              */
+                // KEY EVENTS
                 KeyPressed(_key) => {
                 },
 
                 KeyReleased(_key) => {
                 },
 
-                /*            MOUSE EVENTS             */
+                // MOUSE EVENTS
                 MouseMoved(_pos) => {
                 },
 
@@ -55,7 +52,7 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
                 MouseExited => {
                 },
 
-                /*            WINDOW EVENTS            */
+                // WINDOW EVENTS
                 Resized(_size) => {
                 },
 
@@ -76,9 +73,9 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
 }
 
 // put your main code here, to run repeatedly:  
-fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
-    // Our app only has one window, so retrieve this part of the `Frame`. Color it gray.
-    frame.window(model.window).unwrap().clear_color(0.1, 0.11, 0.12, 1.0);
+fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
+    // Clear the window to a dark charcoal color.
+    frame.clear_all(DARK_CHARCOAL);
     // Return the drawn frame.
     frame
 }

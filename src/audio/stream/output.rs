@@ -81,8 +81,14 @@ impl<M, F, S> Builder<M, F, S> {
         };
 
         // Find the best matching format.
-        let format = super::find_best_matching_format(&device, sample_format, channels, sample_rate)?
-            .expect("no matching supported audio output formats for the target device");
+        let format = super::find_best_matching_format(
+            &device,
+            sample_format,
+            channels,
+            sample_rate,
+            device.default_output_format().ok(),
+            |device| device.supported_output_formats().map(|fs| fs.collect()),
+        )?.expect("no matching supported audio output formats for the target device");
         let stream_id = event_loop.build_output_stream(&device, &format)?;
         let (update_tx, update_rx) = mpsc::channel();
         let model = Arc::new(Mutex::new(Some(model)));

@@ -11,8 +11,6 @@ use std::sync::{mpsc, Arc, Mutex};
 pub mod output;
 
 /// Items related to input audio streams.
-///
-/// *Progress is currently pending implementation of input audio streams in CPAL.*
 pub mod input;
 
 /// Items related to duplex (synchronised input/output) audio streams.
@@ -342,14 +340,17 @@ fn matching_supported_formats(
 
 // Given some audio device find the supported stream format that best matches the given optional
 // format parameters (specified by the user).
-fn find_best_matching_format(
+fn find_best_matching_format<F>(
     device: &cpal::Device,
     mut sample_format: Option<cpal::SampleFormat>,
     channels: Option<usize>,
     mut sample_rate: Option<cpal::SampleRate>,
+    default_format: Option<cpal::Format>,
+    supported_formats: F,
 ) -> Result<Option<cpal::Format>, cpal::FormatsEnumerationError>
+where
+    F: Fn(&cpal::Device) -> Result<Vec<cpal::SupportedFormat>, cpal::FormatsEnumerationError>,
 {
-    let default_format = device.default_output_format().ok();
     loop {
         {
             // First, see if the default format satisfies the request.
@@ -363,8 +364,8 @@ fn find_best_matching_format(
             }
 
             // Otherwise search through all supported formats for compatible formats.
-            let mut stream_formats = device
-                .supported_output_formats()?
+            let mut stream_formats = supported_formats(device)?
+                .into_iter()
                 .filter_map(|fmt| {
                     matching_supported_formats(fmt, sample_format, channels, sample_rate)
                 });

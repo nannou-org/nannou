@@ -1,6 +1,7 @@
 //! A collection of commonly used items that we recommend importing for ease of use.
 
 pub use app::{App, LoopMode};
+pub use color::named::*;
 pub use event::SimpleWindowEvent::*;
 pub use event::{Event, Key};
 pub use frame::Frame;

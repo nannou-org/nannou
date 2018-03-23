@@ -305,6 +305,7 @@ where
         self.ranges.clear();
         self.mesh.clear();
         self.background_color = None;
+        self.last_node_drawn = None;
     }
 
     // // Produce the transformed mesh vertices for the node at the given index.

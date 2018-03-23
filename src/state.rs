@@ -55,6 +55,11 @@ pub mod window {
             geom::Rect { x, y }
         }
 
+        /// Expects that there will be a `window::Id` (the common case) and **panic!**s otherwise.
+        pub fn id(&self) -> window::Id {
+            self.id.unwrap()
+        }
+
         /// Return the `width` and `height` as a `Vector2`.
         pub fn size(&self) -> Vector2<f64> {
             Vector2 { x: self.width, y: self.height }
@@ -187,7 +192,7 @@ pub mod mouse {
         /// Returns the position at which the button was pressed.
         pub fn if_down(&self) -> Option<Point2<f64>> {
             match *self {
-                ButtonPosition::Down(xy) => Some((xy)),
+                ButtonPosition::Down(xy) => Some(xy),
                 _ => None,
             }
         }

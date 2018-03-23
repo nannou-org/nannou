@@ -989,39 +989,43 @@ impl<V> ClearVertices for MeshPoints<Vec<V>> {
     }
 }
 
-impl<M, I> ClearVertices for WithIndices<M, I>
+impl<M> ClearVertices for WithIndices<M, Vec<usize>>
 where
     M: ClearVertices,
 {
     fn clear_vertices(&mut self) {
         self.mesh.clear_vertices();
+        self.indices.clear();
     }
 }
 
-impl<M, C> ClearVertices for WithColors<M, C>
+impl<M, C> ClearVertices for WithColors<M, Vec<C>>
 where
     M: ClearVertices,
 {
     fn clear_vertices(&mut self) {
         self.mesh.clear_vertices();
+        self.colors.clear();
     }
 }
 
-impl<M, T, S> ClearVertices for WithTexCoords<M, T, S>
+impl<M, T, S> ClearVertices for WithTexCoords<M, Vec<T>, S>
 where
     M: ClearVertices,
 {
     fn clear_vertices(&mut self) {
         self.mesh.clear_vertices();
+        self.tex_coords.clear();
     }
 }
 
-impl<M, N> ClearVertices for WithNormals<M, N>
+impl<M, N> ClearVertices for WithNormals<M, Vec<N>>
 where
     M: ClearVertices,
 {
     fn clear_vertices(&mut self) {
         self.mesh.clear_vertices();
+        self.normals.clear();
     }
 }
 
