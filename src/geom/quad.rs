@@ -1,4 +1,4 @@
-use geom::{tri, vertex, Tri, Vertex};
+use geom::{tri, vertex, Cuboid, Range, Rect, Tri, Vertex, Vertex2d, Vertex3d};
 use math::EuclideanSpace;
 use std::ops::{Deref, Index};
 
@@ -109,6 +109,32 @@ where
     /// The same as `triangles` but provided as an **Iterator**.
     pub fn triangles_iter(&self) -> Triangles<V> {
         triangles_iter(self)
+    }
+
+    /// The bounding `Rect` of the triangle.
+    pub fn bounding_rect(self) -> Rect<V::Scalar>
+    where
+        V: Vertex2d,
+    {
+        let (a, b, c, d) = self.into();
+        let (a, b, c, d) = (a.point2(), b.point2(), c.point2(), d.point2());
+        let rect = Rect { x: Range::new(a.x, a.x), y: Range::new(a.y, a.y) };
+        rect.stretch_to_point(b).stretch_to_point(c).stretch_to_point(d)
+    }
+
+    /// The bounding `Rect` of the triangle.
+    pub fn bounding_cuboid(self) -> Cuboid<V::Scalar>
+    where
+        V: Vertex3d,
+    {
+        let (a, b, c, d) = self.into();
+        let (a, b, c, d) = (a.point3(), b.point3(), c.point3(), d.point3());
+        let cuboid = Cuboid {
+            x: Range::new(a.x, a.x),
+            y: Range::new(a.y, a.y),
+            z: Range::new(a.z, a.z),
+        };
+        cuboid.stretch_to_point(b).stretch_to_point(c).stretch_to_point(d)
     }
 
     /// Map the **Quad**'s vertices to a new type.
