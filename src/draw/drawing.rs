@@ -1,6 +1,6 @@
 use draw::{self, Draw};
 use draw::properties::spatial::{dimension, position};
-use draw::properties::{primitive, ColorScalar, IntoDrawn, IntoRgba, Primitive, SetColor, SetDimensions, SetPosition};
+use draw::properties::{ColorScalar, IntoDrawn, IntoRgba, Primitive, SetColor, SetDimensions, SetPosition};
 use geom;
 use geom::graph::node;
 use math::{BaseFloat, Point2, Point3, Vector2, Vector3};
@@ -106,22 +106,22 @@ where
         self
     }
 
-    // Map the given function onto the type stored within **Draw** at `index`.
-    //
-    // The functionn is only applied if the node has not yet been **Drawn**.
-    //
-    // **Panics** if the primitive does not contain type **T**.
-    fn map_ty<F>(self, map: F) -> Self
+    /// Apply the given function to the type stored within **Draw**.
+    ///
+    /// The function is only applied if the node has not yet been **Drawn**.
+    ///
+    /// **Panics** if the primitive does not contain type **T**.
+    pub fn map_ty<F, T2>(self, map: F) -> Self
     where
-        F: FnOnce(T) -> T,
-        T: Into<Primitive<S>>,
+        F: FnOnce(T) -> T2,
+        T2: Into<Primitive<S>>,
         Primitive<S>: Into<Option<T>>,
     {
         self.map_primitive(|prim| {
             let maybe_ty: Option<T> = prim.into();
-            let mut ty = maybe_ty.expect("expected `T` but primitive contained different type");
-            ty = map(ty);
-            ty.into()
+            let ty = maybe_ty.expect("expected `T` but primitive contained different type");
+            let ty2 = map(ty);
+            ty2.into()
         })
     }
 }
@@ -949,22 +949,5 @@ where
     /// Align the node to the middle bottom of the given Node.
     pub fn mid_bottom_of(self, other: node::Index) -> Self {
         self.map_ty(|ty| SetPosition::mid_bottom_of(ty, other))
-    }
-}
-
-// Primitive-specific methods.
-
-impl<'a, S> Drawing<'a, primitive::Ellipse<S>, S>
-where
-    S: BaseFloat,
-{
-    /// Specify the width and height of the **Ellipse** via a given **radius**.
-    pub fn radius(self, radius: S) -> Self {
-        self.map_ty(|ty| ty.radius(radius))
-    }
-
-    /// The number of sides used to draw the ellipse.
-    pub fn resolution(self, resolution: usize) -> Self {
-        self.map_ty(|ty| ty.resolution(resolution))
     }
 }
