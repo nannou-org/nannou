@@ -9,6 +9,71 @@ pub type Color = color::Rgba;
 pub type TexCoords<S> = Point2<S>;
 pub type Normal<S> = Vector3<S>;
 
+/// Types that can be converted into a `draw::mesh::vertex::Point`.
+pub trait IntoPoint<S> {
+    /// Convert self into a `Point`.
+    fn into_point(self) -> Point<S>;
+}
+
+impl<S> IntoPoint<S> for Point<S> {
+    fn into_point(self) -> Self {
+        self
+    }
+}
+
+impl<S> IntoPoint<S> for Point2<S>
+where
+    S: BaseFloat,
+{
+    fn into_point(self) -> Point<S> {
+        let Point2 { x, y } = self;
+        let z = S::zero();
+        Point3 { x, y, z }
+    }
+}
+
+impl<S> IntoPoint<S> for (S, S)
+where
+    S: BaseFloat,
+{
+    fn into_point(self) -> Point<S> {
+        let (x, y) = self;
+        let z = S::zero();
+        Point3 { x, y, z }
+    }
+}
+
+impl<S> IntoPoint<S> for (S, S, S) {
+    fn into_point(self) -> Point<S> {
+        let (x, y, z) = self;
+        Point3 { x, y, z }
+    }
+}
+
+impl<S> IntoPoint<S> for [S; 2]
+where
+    S: BaseFloat,
+{
+    fn into_point(self) -> Point<S> {
+        let x = self[0];
+        let y = self[1];
+        let z = S::zero();
+        Point3 { x, y, z }
+    }
+}
+
+impl<S> IntoPoint<S> for [S; 3]
+where
+    S: Copy,
+{
+    fn into_point(self) -> Point<S> {
+        let x = self[0];
+        let y = self[1];
+        let z = self[2];
+        Point3 { x, y, z }
+    }
+}
+
 /// The vertex type produced by the **draw::Mesh**'s inner **MeshType**.
 pub type Vertex<S> = WithTexCoords<WithColor<Point<S>, Color>, TexCoords<S>>;
 
