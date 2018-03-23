@@ -1,6 +1,6 @@
 use draw::{self, Draw};
 use draw::properties::spatial::{dimension, position};
-use draw::properties::{ColorScalar, IntoDrawn, IntoRgba, Primitive, SetColor, SetDimensions, SetPosition};
+use draw::properties::{primitive, ColorScalar, IntoDrawn, IntoRgba, Primitive, SetColor, SetDimensions, SetPosition};
 use geom;
 use geom::graph::node;
 use math::{BaseFloat, Point2, Point3, Vector2, Vector3};
@@ -949,5 +949,22 @@ where
     /// Align the node to the middle bottom of the given Node.
     pub fn mid_bottom_of(self, other: node::Index) -> Self {
         self.map_ty(|ty| SetPosition::mid_bottom_of(ty, other))
+    }
+}
+
+// Primitive-specific methods.
+
+impl<'a, S> Drawing<'a, primitive::Ellipse<S>, S>
+where
+    S: BaseFloat,
+{
+    /// Specify the width and height of the **Ellipse** via a given **radius**.
+    pub fn radius(self, radius: S) -> Self {
+        self.map_ty(|ty| ty.radius(radius))
+    }
+
+    /// The number of sides used to draw the ellipse.
+    pub fn resolution(self, resolution: usize) -> Self {
+        self.map_ty(|ty| ty.resolution(resolution))
     }
 }
