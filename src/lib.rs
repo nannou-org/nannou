@@ -181,8 +181,8 @@ where
     fn update_event(loop_start: Instant, last_update: &mut Instant) -> event::Update {
         // Emit an update event.
         let now = Instant::now();
-        let since_last = now.duration_since(*last_update);
-        let since_start = now.duration_since(loop_start);
+        let since_last = now.duration_since(*last_update).into();
+        let since_start = now.duration_since(loop_start).into();
         let update = event::Update { since_last, since_start };
         *last_update = now;
         update
@@ -371,6 +371,13 @@ where
                     }
                 }
 
+                // Update the app's durations.
+                let now = Instant::now();
+                let since_last = now.duration_since(last_update).into();
+                let since_start = now.duration_since(loop_start).into();
+                app.duration.since_start = since_start;
+                app.duration.since_prev_update = since_last;
+
                 // Emit an update event.
                 let event = E::from(update_event(loop_start, &mut last_update));
                 model = event_fn(&app, model, event);
@@ -417,6 +424,13 @@ where
                         break 'main;
                     }
                 }
+
+                // Update the app's durations.
+                let now = Instant::now();
+                let since_last = now.duration_since(last_update).into();
+                let since_start = now.duration_since(loop_start).into();
+                app.duration.since_start = since_start;
+                app.duration.since_prev_update = since_last;
 
                 // Emit an update event.
                 let event = E::from(update_event(loop_start, &mut last_update));

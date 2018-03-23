@@ -51,6 +51,12 @@ pub struct App {
     /// change this to query the OS somehow, but I don't think `winit` provides a way to do this
     /// yet.
     pub keys: state::Keys,
+    /// Key time measurements tracked by the App.
+    ///
+    /// `duration.since_start` specifies the duration since the app started running.
+    ///
+    /// `duration.since_prev_update` specifies the duration since the previous update event.
+    pub duration: state::Time,
 }
 
 /// A `nannou::Draw` instance owned by the `App`.
@@ -201,6 +207,7 @@ impl App {
         let mouse = state::Mouse::new();
         let window = state::Window::new();
         let keys = state::Keys::default();
+        let duration = state::Time::default();
         App {
             events_loop,
             windows,
@@ -212,6 +219,7 @@ impl App {
             mouse,
             window,
             keys,
+            duration,
         }
     }
 

@@ -1,5 +1,6 @@
 pub use self::keys::Keys;
 pub use self::mouse::Mouse;
+pub use self::time::Time;
 pub use self::window::Window;
 
 /// Tracked state related to the focused window.
@@ -283,6 +284,84 @@ pub mod mouse {
             Button::Left => 6,
             Button::Right => 7,
             Button::Middle => 8,
+        }
+    }
+}
+
+/// Tracked durations related to the App.
+pub mod time {
+    use std::{ops, time};
+
+    /// The state of time tracked by the App.
+    #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
+    pub struct Time {
+        /// The duration since the app started running.
+        pub since_start: Duration,
+        /// The duration since the previous update.
+        pub since_prev_update: Duration,
+    }
+
+    /// A wrapper around a std duration with simpler methods.
+    #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd)]
+    pub struct Duration {
+        /// The inner std duration.
+        pub duration: time::Duration,
+    }
+
+    impl From<time::Duration> for Duration {
+        fn from(duration: time::Duration) -> Self {
+            Duration { duration }
+        }
+    }
+
+    impl Into<time::Duration> for Duration {
+        fn into(self) -> time::Duration {
+            self.duration
+        }
+    }
+
+    impl ops::Deref for Duration {
+        type Target = time::Duration;
+        fn deref(&self) -> &Self::Target {
+            &self.duration
+        }
+    }
+
+    impl ops::DerefMut for Duration {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.duration
+        }
+    }
+
+    impl Duration {
+        /// A simple way of retrieving the duration as weeks.
+        pub fn weeks(&self) -> f64 {
+            self.days() / 7.0
+        }
+
+        /// A simple way of retrieving the duration as days.
+        pub fn days(&self) -> f64 {
+            self.hrs() / 24.0
+        }
+
+        /// A simple way of retrieving the duration as hrs.
+        pub fn hrs(&self) -> f64 {
+            self.mins() / 60.0
+        }
+
+        /// A simple way of retrieving the duration as minutes.
+        pub fn mins(&self) -> f64 {
+            self.secs() / 60.0
+        }
+
+        /// A simple way of retrieving the duration in seconds.
+        pub fn secs(&self) -> f64 {
+            self.as_secs() as f64 + self.subsec_nanos() as f64 * 1e-9
+        }
+
+        /// A simple way of retrieving the duration in milliseconds.
+        pub fn ms(&self) -> f64 {
+            self.secs() * 1_000.0
         }
     }
 }

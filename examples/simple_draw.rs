@@ -21,8 +21,8 @@ fn view(app: &App, frame: Frame) -> Frame {
 
     // Draw an ellipse to follow the mouse.
     draw.ellipse()
-        .x_y(app.mouse.x, app.mouse.y)
-        .radius(app.window.width * 0.125)
+        .x_y(app.mouse.x * app.duration.since_start.secs().cos(), app.mouse.y)
+        .radius(app.window.width * 0.125 * app.duration.since_start.secs().sin())
         .color(RED);
 
     // Draw a quad that follows the inverse of the ellipse.
