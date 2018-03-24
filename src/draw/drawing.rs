@@ -157,19 +157,55 @@ where
     }
 
     /// Specify the color via hue, saturation and luminance.
-    pub fn hsl<H>(self, h: H, s: ColorScalar, l: ColorScalar) -> Self
-    where
-        H: Into<::color::RgbHue<ColorScalar>>,
-    {
+    ///
+    /// If you're looking for HSVA or HSBA, use the `hsva` method instead.
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    pub fn hsl(self, h: ColorScalar, s: ColorScalar, l: ColorScalar) -> Self {
         self.map_ty(|ty| SetColor::hsl(ty, h, s, l))
     }
 
     /// Specify the color via hue, saturation, luminance and an alpha channel.
-    pub fn hsla<H>(self, h: H, s: ColorScalar, l: ColorScalar, a: ColorScalar) -> Self
-    where
-        H: Into<::color::RgbHue<ColorScalar>>,
-    {
+    ///
+    /// If you're looking for HSVA or HSBA, use the `hsva` method instead.
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    pub fn hsla(self, h: ColorScalar, s: ColorScalar, l: ColorScalar, a: ColorScalar) -> Self {
         self.map_ty(|ty| SetColor::hsla(ty, h, s, l, a))
+    }
+
+    /// Specify the color via hue, saturation and *value* (brightness).
+    ///
+    /// This is sometimes also known as "hsb".
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    pub fn hsv(self, h: ColorScalar, s: ColorScalar, v: ColorScalar) -> Self {
+        self.map_ty(|ty| SetColor::hsv(ty, h, s, v))
+    }
+
+    /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
+    ///
+    /// This is sometimes also known as "hsba".
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    pub fn hsva(self, h: ColorScalar, s: ColorScalar, v: ColorScalar, a: ColorScalar) -> Self {
+        self.map_ty(|ty| SetColor::hsva(ty, h, s, v, a))
     }
 }
 
