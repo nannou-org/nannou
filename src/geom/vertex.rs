@@ -21,7 +21,7 @@ pub trait Vertex3d: Vertex2d {
 }
 
 /// If a type is not specified for a scalar along an axis, this is the default type used.
-pub type DefaultScalar = f64;
+pub type DefaultScalar = f32;
 /// If a type is not specified for a piece of geometry, this is the default type used.
 pub type Default = Point3<DefaultScalar>;
 

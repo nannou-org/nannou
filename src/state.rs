@@ -7,50 +7,56 @@ pub use self::window::Window;
 pub mod window {
     use geom;
     use window;
-    use math::Vector2;
+    use math::{BaseFloat, Vector2};
+
+    /// The default scalar value used for window positioning and sizing.
+    pub type DefaultScalar = geom::DefaultScalar;
 
     /// State of the window in focus.
     #[derive(Copy, Clone, Debug, PartialEq)]
-    pub struct Window {
+    pub struct Window<S = DefaultScalar> {
         /// ID of the window currently in focus.
         pub id: Option<window::Id>,
         /// The width of the focused window agnostic of DPI.
         ///
         /// This is equal to the pixel width divided by the hidpi_factor.
-        pub width: f64,
+        pub width: S,
         /// The height of the focused window agnostic of DPI.
         ///
         /// This is equal to the pixel height divided by the hidpi_factor.
-        pub height: f64,
+        pub height: S,
         /// The high "dots-per-inch" multiplier that describes the density of the screens pixels.
-        pub hidpi_factor: f64,
+        pub hidpi_factor: S,
     }
 
-    impl Window {
+    impl<S> Window<S>
+    where
+        S: BaseFloat,
+    {
         /// Initialise the window state.
         pub fn new() -> Self {
             Window {
                 id: None,
-                width: 0.0,
-                height: 0.0,
-                hidpi_factor: 1.0,
+                width: S::zero(),
+                height: S::zero(),
+                hidpi_factor: S::one(),
             }
         }
 
         /// Get the range along the *x* axis occupied by the window.
-        pub fn x_range(&self) -> geom::Range<f64> {
-            let half_w = self.width * 0.5;
+        pub fn x_range(&self) -> geom::Range<S> {
+            let half_w = self.width / (S::one() + S::one());
             geom::Range { start: -half_w, end: half_w }
         }
 
         /// Get the range along the *y* axis occupied by the window.
-        pub fn y_range(&self) -> geom::Range<f64> {
-            let half_h = self.height * 0.5;
+        pub fn y_range(&self) -> geom::Range<S> {
+            let half_h = self.height / (S::one() + S::one());
             geom::Range { start: -half_h, end: half_h }
         }
 
         /// Get the x coordinate for the left edge of the window.
-        pub fn rect(&self) -> geom::Rect<f64> {
+        pub fn rect(&self) -> geom::Rect<S> {
             let x = self.x_range();
             let y = self.y_range();
             geom::Rect { x, y }
@@ -62,7 +68,7 @@ pub mod window {
         }
 
         /// Return the `width` and `height` as a `Vector2`.
-        pub fn size(&self) -> Vector2<f64> {
+        pub fn size(&self) -> Vector2<S> {
             Vector2 { x: self.width, y: self.height }
         }
     }
@@ -99,9 +105,13 @@ pub mod keys {
 
 /// Tracked state related to the mouse.
 pub mod mouse {
-    use math::Point2;
+    use geom;
+    use math::{BaseFloat, Point2};
     use std;
     use window;
+
+    /// The default scalar value used for positions.
+    pub type DefaultScalar = geom::DefaultScalar;
 
     #[doc(inline)]
     pub use event::MouseButton as Button;
@@ -111,60 +121,66 @@ pub mod mouse {
 
     /// The state of the `Mouse` at a single moment in time.
     #[derive(Copy, Clone, Debug, PartialEq)]
-    pub struct Mouse {
+    pub struct Mouse<S = DefaultScalar> {
         /// The ID of the last window currently in focus.
         pub window: Option<window::Id>,
         /// *x* position relative to the middle of `window`.
-        pub x: f64,
+        pub x: S,
         /// *y* position relative to the middle of `window`.
-        pub y: f64,
+        pub y: S,
         /// A map describing the state of each mouse button.
         pub buttons: ButtonMap,
     }
 
     /// Whether the button is up or down.
     #[derive(Copy, Clone, Debug, PartialEq)]
-    pub enum ButtonPosition {
+    pub enum ButtonPosition<S = DefaultScalar> {
         /// The button is up (i.e. pressed).
         Up,
         /// The button is down and was originally pressed down at the given `Point2`.
-        Down(Point2<f64>),
+        Down(Point2<S>),
     }
 
     /// Stores the state of all mouse buttons.
     ///
     /// If the mouse button is down, it stores the position of the mouse when the button was pressed
     #[derive(Copy, Clone, Debug, PartialEq)]
-    pub struct ButtonMap {
-        buttons: [ButtonPosition; NUM_BUTTONS],
+    pub struct ButtonMap<S = DefaultScalar> {
+        buttons: [ButtonPosition<S>; NUM_BUTTONS],
     }
 
     /// An iterator yielding all pressed buttons.
     #[derive(Clone)]
-    pub struct PressedButtons<'a> {
-        buttons: std::iter::Enumerate<std::slice::Iter<'a, ButtonPosition>>,
+    pub struct PressedButtons<'a, S: 'a = DefaultScalar> {
+        buttons: std::iter::Enumerate<std::slice::Iter<'a, ButtonPosition<S>>>,
     }
 
-    impl Mouse {
+    impl<S> Mouse<S>
+    where
+        S: BaseFloat,
+    {
         /// Construct a new default `Mouse`.
         pub fn new() -> Self {
             Mouse {
                 window: None,
                 buttons: ButtonMap::new(),
-                x: 0.0,
-                y: 0.0,
+                x: S::zero(),
+                y: S::zero(),
             }
         }
 
         /// The position of the mouse relative to the middle of the window in focus..
-        pub fn position(&self) -> Point2<f64> {
+        pub fn position(&self) -> Point2<S> {
             Point2 { x: self.x, y: self.y }
         }
     }
 
-    impl ButtonPosition {
+    impl<S> ButtonPosition<S>
+    where
+        S: BaseFloat,
+    {
         /// If the mouse button is down, return a new one with position relative to the given `xy`.
-        pub fn relative_to(self, xy: Point2<f64>) -> Self {
+        pub fn relative_to(self, xy: Point2<S>) -> Self {
             match self {
                 ButtonPosition::Down(pos) => {
                     let rel_p = pos - xy;
@@ -191,7 +207,7 @@ pub mod mouse {
         }
 
         /// Returns the position at which the button was pressed.
-        pub fn if_down(&self) -> Option<Point2<f64>> {
+        pub fn if_down(&self) -> Option<Point2<S>> {
             match *self {
                 ButtonPosition::Down(xy) => Some(xy),
                 _ => None,
@@ -199,14 +215,17 @@ pub mod mouse {
         }
     }
 
-    impl ButtonMap {
+    impl<S> ButtonMap<S>
+    where
+        S: BaseFloat,
+    {
         /// Returns a new button map with all states set to `None`
         pub fn new() -> Self {
             ButtonMap { buttons: [ButtonPosition::Up; NUM_BUTTONS] }
         }
 
         /// Returns a copy of the ButtonMap relative to the given `Point`
-        pub fn relative_to(self, xy: Point2<f64>) -> Self {
+        pub fn relative_to(self, xy: Point2<S>) -> Self {
             self.buttons.iter().enumerate().fold(
                 ButtonMap::new(),
                 |mut map,
@@ -218,22 +237,22 @@ pub mod mouse {
         }
 
         /// The state of the left mouse button.
-        pub fn left(&self) -> &ButtonPosition {
+        pub fn left(&self) -> &ButtonPosition<S> {
             &self[Button::Left]
         }
 
         /// The state of the middle mouse button.
-        pub fn middle(&self) -> &ButtonPosition {
+        pub fn middle(&self) -> &ButtonPosition<S> {
             &self[Button::Middle]
         }
 
         /// The state of the right mouse button.
-        pub fn right(&self) -> &ButtonPosition {
+        pub fn right(&self) -> &ButtonPosition<S> {
             &self[Button::Right]
         }
 
         /// Sets the `Button` in the `Down` position.
-        pub fn press(&mut self, button: Button, xy: Point2<f64>) {
+        pub fn press(&mut self, button: Button, xy: Point2<S>) {
             self.buttons[button_to_idx(button)] = ButtonPosition::Down(xy);
         }
 
@@ -244,20 +263,23 @@ pub mod mouse {
 
         /// An iterator yielding all pressed mouse buttons along with the location at which they
         /// were originally pressed.
-        pub fn pressed(&self) -> PressedButtons {
+        pub fn pressed(&self) -> PressedButtons<S> {
             PressedButtons { buttons: self.buttons.iter().enumerate() }
         }
     }
 
-    impl std::ops::Index<Button> for ButtonMap {
-        type Output = ButtonPosition;
+    impl<S> std::ops::Index<Button> for ButtonMap<S> {
+        type Output = ButtonPosition<S>;
         fn index(&self, button: Button) -> &Self::Output {
             &self.buttons[button_to_idx(button)]
         }
     }
 
-    impl<'a> Iterator for PressedButtons<'a> {
-        type Item = (Button, Point2<f64>);
+    impl<'a, S> Iterator for PressedButtons<'a, S>
+    where
+        S: BaseFloat,
+    {
+        type Item = (Button, Point2<S>);
         fn next(&mut self) -> Option<Self::Item> {
             while let Some((idx, button_pos)) = self.buttons.next() {
                 if let ButtonPosition::Down(xy) = *button_pos {
