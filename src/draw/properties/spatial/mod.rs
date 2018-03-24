@@ -2,7 +2,7 @@ use geom;
 
 pub mod dimension;
 pub mod position;
-// pub mod orientation;
+pub mod orientation;
 
 pub use self::dimension::SetDimensions;
 pub use self::position::SetPosition;
