@@ -269,9 +269,18 @@ where
     S: BaseFloat,
 {
     match primitive {
-        Primitive::Ellipse(ellipse) => {
-            into_drawn(draw, node_index, ellipse)
+        Primitive::Ellipse(prim) => {
+            into_drawn(draw, node_index, prim)
         },
+        Primitive::Quad(prim) => {
+            into_drawn(draw, node_index, prim)
+        }
+        Primitive::Rect(prim) => {
+            into_drawn(draw, node_index, prim)
+        }
+        Primitive::Tri(prim) => {
+            into_drawn(draw, node_index, prim)
+        }
     }
 }
 
@@ -440,12 +449,20 @@ where
         self.a(Default::default())
     }
 
-    // /// Draw a single **Tri** with the given points.
-    // pub fn tri(&mut self, a: Point3<S>, b: Point3<S>, c: Point3<S>) -> Drawing<S> {
-    //     let tri = geom::Tri([a, b, c]);
-    //     let node_id = self.geom_graph.add_node(tri);
-    //     unimplemented!()
-    // }
+    /// Begin drawing a **Quad**.
+    pub fn quad(&self) -> Drawing<properties::Quad<S>, S> {
+        self.a(Default::default())
+    }
+
+    /// Begin drawing a **Rect**.
+    pub fn rect(&self) -> Drawing<properties::Rect<S>, S> {
+        self.a(Default::default())
+    }
+
+    /// Begin drawing a **Triangle**.
+    pub fn tri(&self) -> Drawing<properties::Tri<S>, S> {
+        self.a(Default::default())
+    }
 
     /// Produce the transformed mesh vertices for the node at the given index.
     ///

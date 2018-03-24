@@ -1,8 +1,14 @@
 use geom;
 
 pub mod ellipse;
+pub mod quad;
+pub mod rect;
+pub mod tri;
 
 pub use self::ellipse::Ellipse;
+pub use self::quad::Quad;
+pub use self::rect::Rect;
+pub use self::tri::Tri;
 
 /// A wrapper around all primitive sets of properties so that they may be stored within the
 /// **Draw**'s `drawing` field while they are being drawn.
@@ -12,19 +18,7 @@ pub use self::ellipse::Ellipse;
 #[derive(Clone, Debug)]
 pub enum Primitive<S = geom::DefaultScalar> {
     Ellipse(Ellipse<S>),
-}
-
-impl<S> From<Ellipse<S>> for Primitive<S> {
-    fn from(prim: Ellipse<S>) -> Self {
-        Primitive::Ellipse(prim)
-    }
-}
-
-impl<S> Into<Option<Ellipse<S>>> for Primitive<S> {
-    fn into(self) -> Option<Ellipse<S>> {
-        match self {
-            Primitive::Ellipse(prim) => Some(prim),
-            //_ => None,
-        }
-    }
+    Quad(Quad<S>),
+    Rect(Rect<S>),
+    Tri(Tri<S>),
 }

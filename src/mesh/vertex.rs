@@ -33,7 +33,7 @@ where
     V: ApplyTransform<S>,
     S: BaseFloat,
 {
-    fn apply_transform(self, transform: &node::Transform<S>) -> Self {
+    fn apply_transform(self, transform: &node::PreparedTransform<S>) -> Self {
         let WithColor { mut vertex, color } = self;
         vertex = vertex.apply_transform(transform);
         WithColor { vertex, color }
@@ -45,7 +45,7 @@ where
     V: ApplyTransform<S>,
     S: BaseFloat,
 {
-    fn apply_transform(self, transform: &node::Transform<S>) -> Self {
+    fn apply_transform(self, transform: &node::PreparedTransform<S>) -> Self {
         let WithTexCoords { mut vertex, tex_coords } = self;
         vertex = vertex.apply_transform(transform);
         WithTexCoords { vertex, tex_coords }
@@ -57,7 +57,7 @@ where
     V: ApplyTransform<S>,
     S: BaseFloat,
 {
-    fn apply_transform(self, _transform: &node::Transform<S>) -> Self {
+    fn apply_transform(self, _transform: &node::PreparedTransform<S>) -> Self {
         //let WithNormal { mut vertex, mut normal } = self;
         //vertex = vertex.apply_transform(transform);
         // TODO: Apply transform to the `normal`.

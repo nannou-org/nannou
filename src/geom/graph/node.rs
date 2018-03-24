@@ -35,7 +35,7 @@ pub struct TransformedVertices<I, S = DefaultScalar>
 where
     S: BaseFloat,
 {
-    transform: Transform<S>,
+    transform: PreparedTransform<S>,
     vertices: I,
 }
 
@@ -45,7 +45,7 @@ pub struct TransformedTriangles<I, V, S = DefaultScalar>
 where
     S: BaseFloat,
 {
-    transform: Transform<S>,
+    transform: PreparedTransform<S>,
     triangles: I,
     _vertex: PhantomData<V>,
 }
@@ -70,6 +70,26 @@ where
     ///
     /// Rotates all vertices around the node origin when applied.
     pub rot: Euler<Rad<S>>,
+    /// A displacement amount along each axis.
+    ///
+    /// This vector is added onto the position of each vertex of the node.
+    pub disp: Vector3<S>,
+}
+
+/// A node's resulting rotation, displacement and scale relative to the graph's origin.
+///
+/// The same as **Transfrom** but the euler has been converted to a matrix for more efficient
+/// application.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PreparedTransform<S = DefaultScalar> {
+    /// A scaling amount along each axis.
+    ///
+    /// The scaling amount is multiplied onto each vertex of the node.
+    pub scale: Vector3<S>,
+    /// A rotation amount along each axis, describing a relative orientation.
+    ///
+    /// Rotates all vertices around the node origin when applied.
+    pub rot: Basis3<S>,
     /// A displacement amount along each axis.
     ///
     /// This vector is added onto the position of each vertex of the node.
@@ -253,13 +273,20 @@ where
         }
     }
 
+    /// Prepare this transform for application.
+    pub fn prepare(self) -> PreparedTransform<S> {
+        let Transform { disp, rot, scale } = self;
+        let rot = Basis3::from(rot);
+        PreparedTransform { disp, rot, scale }
+    }
+
     /// Transform the given vertices.
     pub fn vertices<I>(self, vertices: I) -> TransformedVertices<I::IntoIter, S>
     where
         I: IntoIterator,
         I::Item: ApplyTransform<S>,
     {
-        let transform = self;
+        let transform = self.prepare();
         let vertices = vertices.into_iter();
         TransformedVertices {
             transform,
@@ -273,7 +300,7 @@ where
         I: IntoIterator<Item = geom::Tri<V>>,
         V: geom::Vertex + ApplyTransform<S>,
     {
-        let transform = self;
+        let transform = self.prepare();
         let triangles = triangles.into_iter();
         let _vertex = PhantomData;
         TransformedTriangles {
@@ -354,7 +381,7 @@ where
 }
 
 /// Apply the given transform to the given 3D point.
-pub fn transform_point<S>(transform: &Transform<S>, mut point: Point3<S>) -> Point3<S>
+pub fn transform_point<S>(transform: &PreparedTransform<S>, mut point: Point3<S>) -> Point3<S>
 where
     S: BaseFloat,
 {
@@ -363,7 +390,7 @@ where
     point.y *= transform.scale.y;
     point.z *= transform.scale.z;
     // Rotate the point around the node origin.
-    point = Basis3::from(transform.rot).rotate_point(point);
+    point = transform.rot.rotate_point(point);
     // Displace the point from the node origin.
     point += transform.disp;
     point
@@ -375,14 +402,14 @@ where
     S: BaseFloat,
 {
     /// Apply the given transform and return the result.
-    fn apply_transform(self, transform: &Transform<S>) -> Self;
+    fn apply_transform(self, transform: &PreparedTransform<S>) -> Self;
 }
 
 impl<S> ApplyTransform<S> for Point3<S>
 where
     S: BaseFloat,
 {
-    fn apply_transform(self, transform: &Transform<S>) -> Self {
+    fn apply_transform(self, transform: &PreparedTransform<S>) -> Self {
         transform_point(transform, self)
     }
 }

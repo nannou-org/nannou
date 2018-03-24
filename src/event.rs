@@ -1,8 +1,8 @@
 use App;
 use math::{Point2, Vector2};
 use glium::glutin;
+use state;
 use std::path::PathBuf;
-use std::time::Duration;
 use window;
 
 pub use glium::glutin::{ElementState, KeyboardInput, ModifiersState, MouseButton, MouseScrollDelta,
@@ -20,11 +20,11 @@ pub struct Update {
     /// The duration since the last update was emitted.
     ///
     /// The first update's delta will be the time since the given `model` function returned.
-    pub since_last: Duration,
+    pub since_last: state::time::Duration,
     /// The duration since the start of the app loop.
     ///
     /// Specifically, this is the duration of time since the given `model` function returned.
-    pub since_start: Duration,
+    pub since_start: state::time::Duration,
 }
 
 #[derive(Clone, Debug)]

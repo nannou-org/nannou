@@ -106,22 +106,22 @@ where
         self
     }
 
-    // Map the given function onto the type stored within **Draw** at `index`.
-    //
-    // The functionn is only applied if the node has not yet been **Drawn**.
-    //
-    // **Panics** if the primitive does not contain type **T**.
-    fn map_ty<F>(self, map: F) -> Self
+    /// Apply the given function to the type stored within **Draw**.
+    ///
+    /// The function is only applied if the node has not yet been **Drawn**.
+    ///
+    /// **Panics** if the primitive does not contain type **T**.
+    pub fn map_ty<F, T2>(self, map: F) -> Self
     where
-        F: FnOnce(T) -> T,
-        T: Into<Primitive<S>>,
+        F: FnOnce(T) -> T2,
+        T2: Into<Primitive<S>>,
         Primitive<S>: Into<Option<T>>,
     {
         self.map_primitive(|prim| {
             let maybe_ty: Option<T> = prim.into();
-            let mut ty = maybe_ty.expect("expected `T` but primitive contained different type");
-            ty = map(ty);
-            ty.into()
+            let ty = maybe_ty.expect("expected `T` but primitive contained different type");
+            let ty2 = map(ty);
+            ty2.into()
         })
     }
 }

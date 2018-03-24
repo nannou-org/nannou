@@ -1,9 +1,8 @@
-use draw;
-use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Rgba, SetColor, SetDimensions, SetPosition};
+use draw::{self, Drawing};
+use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions, SetPosition};
 use draw::properties::spatial::{dimension, position};
 use geom;
-use math::{BaseFloat, Point2, Vector2};
-use std::ops;
+use math::{BaseFloat, Vector2};
 
 /// Properties related to drawing an **Ellipse**.
 #[derive(Clone, Debug)]
@@ -38,11 +37,8 @@ impl<S> IntoDrawn<S> for Ellipse<S>
 where
     S: BaseFloat,
 {
-    type Vertices = draw::mesh::vertex::IterFromPoint2s<
-        geom::tri::VerticesFromIter<geom::ellipse::Triangles<S>, Point2<S>>,
-        S,
-    >;
-    type Indices = ops::Range<usize>;
+    type Vertices = draw::mesh::vertex::IterFromPoint2s<geom::ellipse::TriangleVertices<S>, S>;
+    type Indices = geom::ellipse::TriangleIndices;
     fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
         let Ellipse {
             spatial,
@@ -78,12 +74,9 @@ where
             .unwrap_or(draw.theme(|t| t.color.default));
 
         // TODO: Optimise this using the Circumference and ellipse indices iterators.
-        let tris = geom::Ellipse::new(rect, resolution).triangles();
-        let points = geom::tri::vertices_from_iter(tris);
-        let num_points = points.len();
+        let ellipse = geom::Ellipse::new(rect, resolution);
+        let (points, indices) = ellipse.triangle_indices();
         let vertices = draw::mesh::vertex::IterFromPoint2s::new(points, color);
-        let indices = 0..num_points;
-
         (spatial, vertices, indices)
     }
 }
@@ -116,5 +109,39 @@ impl<S> SetDimensions<S> for Ellipse<S> {
 impl<S> SetColor<ColorScalar> for Ellipse<S> {
     fn rgba_mut(&mut self) -> &mut Option<Rgba> {
         SetColor::rgba_mut(&mut self.color)
+    }
+}
+
+// Primitive conversion.
+
+impl<S> From<Ellipse<S>> for Primitive<S> {
+    fn from(prim: Ellipse<S>) -> Self {
+        Primitive::Ellipse(prim)
+    }
+}
+
+impl<S> Into<Option<Ellipse<S>>> for Primitive<S> {
+    fn into(self) -> Option<Ellipse<S>> {
+        match self {
+            Primitive::Ellipse(prim) => Some(prim),
+            _ => None,
+        }
+    }
+}
+
+// Drawing methods.
+
+impl<'a, S> Drawing<'a, Ellipse<S>, S>
+where
+    S: BaseFloat,
+{
+    /// Specify the width and height of the **Ellipse** via a given **radius**.
+    pub fn radius(self, radius: S) -> Self {
+        self.map_ty(|ty| ty.radius(radius))
+    }
+
+    /// The number of sides used to draw the ellipse.
+    pub fn resolution(self, resolution: usize) -> Self {
+        self.map_ty(|ty| ty.resolution(resolution))
     }
 }

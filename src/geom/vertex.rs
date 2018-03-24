@@ -21,7 +21,7 @@ pub trait Vertex3d: Vertex2d {
 }
 
 /// If a type is not specified for a scalar along an axis, this is the default type used.
-pub type DefaultScalar = f64;
+pub type DefaultScalar = f32;
 /// If a type is not specified for a piece of geometry, this is the default type used.
 pub type Default = Point3<DefaultScalar>;
 
@@ -136,6 +136,34 @@ where
     type Scalar = S;
 }
 
+impl<S> Vertex for [S; 2]
+where
+    S: BaseNum,
+{
+    type Scalar = S;
+}
+
+impl<S> Vertex for [S; 3]
+where
+    S: BaseNum,
+{
+    type Scalar = S;
+}
+
+impl<S> Vertex for (S, S)
+where
+    S: BaseNum,
+{
+    type Scalar = S;
+}
+
+impl<S> Vertex for (S, S, S)
+where
+    S: BaseNum,
+{
+    type Scalar = S;
+}
+
 // impl<S> Vertex for Vector2<S>
 // where
 //     S: BaseNum,
@@ -177,6 +205,44 @@ where
     }
 }
 
+impl<S> Vertex2d for [S; 2]
+where
+    S: BaseNum,
+{
+    fn point2(self) -> Point2<S> {
+        Point2 { x: self[0], y: self[1] }
+    }
+}
+
+impl<S> Vertex2d for [S; 3]
+where
+    S: BaseNum,
+{
+    fn point2(self) -> Point2<S> {
+        Point2 { x: self[0], y: self[1] }
+    }
+}
+
+impl<S> Vertex2d for (S, S)
+where
+    S: BaseNum,
+{
+    fn point2(self) -> Point2<S> {
+        let (x, y) = self;
+        Point2 { x, y }
+    }
+}
+
+impl<S> Vertex2d for (S, S, S)
+where
+    S: BaseNum,
+{
+    fn point2(self) -> Point2<S> {
+        let (x, y, _) = self;
+        Point2 { x, y }
+    }
+}
+
 // impl<S> Vertex2d for Vector2<S>
 // where
 //     S: BaseNum,
@@ -212,6 +278,25 @@ where
 {
     fn point3(self) -> Point3<S> {
         Point3 { x: self.x, y: self.y, z: self.z }
+    }
+}
+
+impl<S> Vertex3d for [S; 3]
+where
+    S: BaseNum,
+{
+    fn point3(self) -> Point3<S> {
+        Point3 { x: self[0], y: self[1], z: self[2] }
+    }
+}
+
+impl<S> Vertex3d for (S, S, S)
+where
+    S: BaseNum,
+{
+    fn point3(self) -> Point3<S> {
+        let (x, y, z) = self;
+        Point3 { x, y, z }
     }
 }
 
