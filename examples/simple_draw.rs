@@ -30,7 +30,7 @@ fn view(app: &App, frame: Frame) -> Frame {
     draw.quad().x_y(-app.mouse.x, app.mouse.y).color(DARK_GREEN);
 
     // Draw a rect that follows a different inverse of the ellipse.
-    draw.rect().x_y(app.mouse.y, app.mouse.x).w(app.mouse.x * 0.25).color(DARK_CHARCOAL);
+    draw.rect().x_y(app.mouse.y, app.mouse.x).w(app.mouse.x * 0.25).hsv(t, 1.0, 1.0);
 
     // Write the result of our drawing to the window's OpenGL frame.
     draw.to_frame(app, &frame).unwrap();
