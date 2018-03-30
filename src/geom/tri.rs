@@ -25,7 +25,7 @@ pub struct IterFromVertices<I> {
 
 /// An iterator that flattens an iterator yielding triangles into its vertices.
 #[derive(Clone, Debug)]
-pub struct VerticesFromIter<I, V> {
+pub struct VerticesFromIter<I, V = vertex::Default> {
     tris: I,
     tri: Option<Vertices<V>>,
 }

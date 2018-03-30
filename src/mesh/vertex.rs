@@ -14,14 +14,14 @@ pub struct WithColor<V, C> {
 
 /// A vertex with some specified texture coordinates.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
-pub struct WithTexCoords<V, T> {
+pub struct WithTexCoords<V, T = Point2<geom::DefaultScalar>> {
     pub vertex: V,
     pub tex_coords: T,
 }
 
 /// A vertex with its normal vector.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
-pub struct WithNormal<V, N> {
+pub struct WithNormal<V, N = geom::vertex::Default> {
     pub vertex: V,
     pub normal: N,
 }

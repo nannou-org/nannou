@@ -7,7 +7,7 @@ use std::{iter, slice};
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]
-pub struct Rect<S> {
+pub struct Rect<S = geom::DefaultScalar> {
     spatial: spatial::Properties<S>,
     color: Option<Rgba>,
 }

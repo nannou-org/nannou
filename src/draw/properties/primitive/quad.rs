@@ -8,7 +8,7 @@ use std::{iter, slice};
 
 /// Properties related to drawing a **Quad**.
 #[derive(Clone, Debug)]
-pub struct Quad<S> {
+pub struct Quad<S = geom::DefaultScalar> {
     quad: geom::Quad<Point3<S>>,
     spatial: spatial::Properties<S>,
     color: Option<Rgba>,

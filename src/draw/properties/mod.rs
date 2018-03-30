@@ -7,6 +7,7 @@
 //! a unique **node::Index** to simplify this.
 
 use draw;
+use geom;
 use geom::graph::node;
 use math::BaseFloat;
 use std::cell::RefCell;
@@ -37,7 +38,7 @@ pub type Drawn<S, V, I> = (spatial::Properties<S>, V, I);
 
 /// A wrapper around the `draw::State` for the **IntoDrawn** trait implementations.
 #[derive(Debug)]
-pub struct Draw<'a, S>
+pub struct Draw<'a, S = geom::DefaultScalar>
 where
     S: 'a + BaseFloat,
 {

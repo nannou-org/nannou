@@ -50,7 +50,7 @@
 //! polyline::contains(points, thickness, &point); 
 //! ```
 
-use geom::{self, line, Rect, Tri, Vertex};
+use geom::{self, line, DefaultScalar, Rect, Tri, Vertex};
 use math::{self, BaseFloat, Point2};
 pub use self::cap::Cap;
 pub use self::join::Join;
@@ -62,7 +62,7 @@ pub use self::join::Join;
 ///
 /// You can check if a `Polyline` contains a given point using the `contains(&point)` method.
 #[derive(Clone, Debug)]
-pub struct Polyline<C, J, I, S> {
+pub struct Polyline<C, J, I, S = DefaultScalar> {
     pub cap: C,
     pub join: J,
     pub points: I,
@@ -70,7 +70,7 @@ pub struct Polyline<C, J, I, S> {
 }
 
 /// A `Polyline` whose cap and join types may change at run-time.
-pub type Dynamic<I, S> = Polyline<cap::Dynamic, join::Dynamic, I, S>;
+pub type Dynamic<I, S = DefaultScalar> = Polyline<cap::Dynamic, join::Dynamic, I, S>;
 
 #[derive(Clone)]
 struct StartCap<C, T> {
@@ -80,7 +80,7 @@ struct StartCap<C, T> {
 
 /// Iterator yielding triangles that describe some `Polyline`.
 #[derive(Clone)]
-pub struct Parts<C, J, I, S>
+pub struct Parts<C, J, I, S = DefaultScalar>
 where
     cap::Tris<C, S>: Cap,
     join::Tris<J, S>: Join,
@@ -105,7 +105,7 @@ where
 
 /// A segment of a polyline represented by a sequence of triangles.
 #[derive(Clone)]
-pub enum Part<C, J, S> {
+pub enum Part<C, J, S = DefaultScalar> {
     /// The line caps at the start and end of the polyline.
     Cap {
         cap: C,
@@ -122,7 +122,7 @@ pub enum Part<C, J, S> {
 
 /// Iterator yielding triangles that describe some `Polyline`.
 #[derive(Clone)]
-pub struct Triangles<C, J, I, S>
+pub struct Triangles<C, J, I, S = DefaultScalar>
 where
     cap::Tris<C, S>: Cap,
     join::Tris<J, S>: Join,
@@ -146,7 +146,7 @@ where
 }
 
 pub mod join {
-    use geom::{ellipse, quad, Rect, Tri};
+    use geom::{ellipse, quad, DefaultScalar, Rect, Tri};
     use math::{vec2, BaseNum, BaseFloat, InnerSpace, Point2, Vector2};
     use math::num_traits::NumCast;
     use std;
@@ -168,7 +168,7 @@ pub mod join {
     pub enum Turn { Left, Right }
 
     #[derive(Clone)]
-    pub struct Tris<J, S> {
+    pub struct Tris<J, S = DefaultScalar> {
         join: J,
         a: Point2<S>,
         b: Point2<S>,
@@ -213,12 +213,12 @@ pub mod join {
         }
     }
 
-    pub type MiterTris<S> = quad::Triangles<Point2<S>>;
-    pub type RoundTris<S> = ellipse::Triangles<S>;
-    pub type BevelTris<S> = iter::Once<Tri<Point2<S>>>;
+    pub type MiterTris<S = DefaultScalar> = quad::Triangles<Point2<S>>;
+    pub type RoundTris<S = DefaultScalar> = ellipse::Triangles<S>;
+    pub type BevelTris<S = DefaultScalar> = iter::Once<Tri<Point2<S>>>;
 
     #[derive(Clone)]
-    pub enum DynamicTris<S> {
+    pub enum DynamicTris<S = DefaultScalar> {
         Miter(MiterTris<S>),
         Round(RoundTris<S>),
         Bevel(BevelTris<S>),
@@ -367,7 +367,7 @@ pub mod join {
 }
 
 pub mod cap {
-    use geom::{ellipse, quad, Rect, Tri};
+    use geom::{ellipse, quad, DefaultScalar, Rect, Tri};
     use math::{vec2, BaseFloat, InnerSpace, Point2};
     use std::f64::consts::PI;
     use std::iter;
@@ -383,7 +383,7 @@ pub mod cap {
     }
 
     #[derive(Clone)]
-    pub struct Tris<C, S> {
+    pub struct Tris<C, S = DefaultScalar> {
         cap: C,
         a: Point2<S>,
         b: Point2<S>,
@@ -423,12 +423,12 @@ pub mod cap {
         }
     }
 
-    pub type ButtTris<S> = iter::Empty<Tri<Point2<S>>>;
-    pub type RoundTris<S> = ellipse::Triangles<S>;
-    pub type SquareTris<S> = quad::Triangles<Point2<S>>;
+    pub type ButtTris<S = DefaultScalar> = iter::Empty<Tri<Point2<S>>>;
+    pub type RoundTris<S = DefaultScalar> = ellipse::Triangles<S>;
+    pub type SquareTris<S = DefaultScalar> = quad::Triangles<Point2<S>>;
 
     #[derive(Clone)]
-    pub enum DynamicTris<S> {
+    pub enum DynamicTris<S = DefaultScalar> {
         Butt(ButtTris<S>),
         Round(RoundTris<S>),
         Square(SquareTris<S>),

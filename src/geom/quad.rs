@@ -24,14 +24,14 @@ pub struct Quad<V = vertex::Default>(pub [V; NUM_VERTICES as usize]);
 
 /// An `Iterator` yielding the two triangles that make up a quad.
 #[derive(Clone, Debug)]
-pub struct Triangles<V> {
+pub struct Triangles<V = vertex::Default> {
     a: Option<Tri<V>>,
     b: Option<Tri<V>>,
 }
 
 /// A simple iterator yielding each vertex in a `Quad`.
 #[derive(Clone, Debug)]
-pub struct Vertices<V> {
+pub struct Vertices<V = vertex::Default> {
     quad: Quad<V>,
     index: u8,
 }

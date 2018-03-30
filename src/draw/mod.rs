@@ -92,21 +92,24 @@ const WOULD_CYCLE: &'static str =
     within the geometry graph";
 
 /// An iterator yielding the transformed, indexed vertices for a node.
-pub type NodeVertices<'a, S> = node::TransformedVertices<::mesh::Vertices<Ref<'a, Mesh<S>>>, S>;
+pub type NodeVertices<'a, S = geom::DefaultScalar> =
+    node::TransformedVertices<::mesh::Vertices<Ref<'a, Mesh<S>>>, S>;
 
 // /// An iterator yielding the transformed vertices for a node.
 // pub struct NodeVertices<'a, S> {
 // }
 
 /// An iterator yielding the transformed raw vertices for a node.
-pub type RawNodeVertices<'a, S> = node::TransformedVertices<::mesh::RawVertices<Ref<'a, Mesh<S>>>, S>;
+pub type RawNodeVertices<'a, S = geom::DefaultScalar> =
+    node::TransformedVertices<::mesh::RawVertices<Ref<'a, Mesh<S>>>, S>;
 
 /// An iterator yielding the transformed triangles for a node.
-pub type NodeTriangles<'a, S> = geom::tri::IterFromVertices<NodeVertices<'a, S>>;
+pub type NodeTriangles<'a, S = geom::DefaultScalar> =
+    geom::tri::IterFromVertices<NodeVertices<'a, S>>;
 
 /// An iterator yielding all indexed mesh vertices transformed via the geometry graph.
 #[derive(Debug)]
-pub struct Vertices<'a, S>
+pub struct Vertices<'a, S = geom::DefaultScalar>
 where
     S: 'a + BaseFloat,
 {
@@ -115,11 +118,11 @@ where
 }
 
 /// An iterator yielding all indexed mesh triangles transformed via the geometry graph.
-pub type Triangles<'a, S> = geom::tri::IterFromVertices<Vertices<'a, S>>;
+pub type Triangles<'a, S = geom::DefaultScalar> = geom::tri::IterFromVertices<Vertices<'a, S>>;
 
 /// An iterator yielding all raw mesh vertices transformed via the geometry graph.
 #[derive(Debug)]
-pub struct RawVertices<'a, S>
+pub struct RawVertices<'a, S = geom::DefaultScalar>
 where
     S: 'a + BaseFloat,
 {

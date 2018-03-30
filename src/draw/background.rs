@@ -1,10 +1,11 @@
 use color::{self, Rgb, Rgba};
 use draw::Draw;
 use draw::properties::{ColorScalar, IntoRgba};
+use geom;
 use math::BaseFloat;
 
 /// A type used to update the background colour.
-pub struct Background<'a, S>
+pub struct Background<'a, S = geom::DefaultScalar>
 where
     S: 'a + BaseFloat,
 {
