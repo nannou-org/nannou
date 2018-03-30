@@ -3,14 +3,17 @@ pub use self::cgmath::*;
 pub use self::cgmath::num_traits::{NumCast, One};
 use std::ops::Add;
 
+/// Shorthand constructor for a `Point1`.
 pub fn pt1<S>(x: S) -> Point1<S> {
     Point1 { x }
 }
 
+/// Shorthand constructor for a `Point2`.
 pub fn pt2<S>(x: S, y: S) -> Point2<S> {
     Point2 { x, y }
 }
 
+/// Shorthand constructor for a `Point3`.
 pub fn pt3<S>(x: S, y: S, z: S) -> Point3<S> {
     Point3 { x, y, z }
 }
