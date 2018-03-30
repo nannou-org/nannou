@@ -163,6 +163,22 @@ where
         math::map_range(value, self.start, self.end, other.start, other.end)
     }
 
+    /// Interpolates the **Range** using the given `weight`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nannou::geom::Range;
+    ///
+    /// let r = Range::new(-5.0, 5.0);
+    /// assert_eq!(r.lerp(0.0), -5.0);
+    /// assert_eq!(r.lerp(1.0), 5.0);
+    /// assert_eq!(r.lerp(0.5), 0.0);
+    /// ```
+    pub fn lerp(&self, amount: S) -> S {
+        self.start + ((self.end - self.start) * amount)
+    }
+
     /// Shift the `Range` start and end points by a given scalar.
     ///
     /// # Examples
