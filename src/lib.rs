@@ -1,7 +1,6 @@
 pub extern crate daggy;
 pub extern crate find_folder;
 #[macro_use] pub extern crate glium;
-pub extern crate rand;
 
 use event::LoopEvent;
 use glium::glutin;
@@ -29,6 +28,7 @@ pub mod math;
 pub mod mesh;
 pub mod osc;
 pub mod prelude;
+pub mod rand;
 pub mod state;
 pub mod ui;
 pub mod window;

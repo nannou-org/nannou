@@ -117,10 +117,20 @@ where
         }
     }
 
+    /// Construct a Rect from the given `x` `y` coordinates and `w` `h` dimensions.
+    pub fn from_x_y_w_h(x: S, y: S, w: S, h: S) -> Self {
+        Rect::from_xy_wh(Point2 { x, y }, Vector2 { x: w, y: h })
+    }
+
     /// Construct a Rect at origin with the given dimensions.
     pub fn from_wh(wh: Vector2<S>) -> Self {
         let p = Point2 { x: S::zero(), y: S::zero() };
         Self::from_xy_wh(p, wh)
+    }
+
+    /// Construct a Rect at origin with the given width and height.
+    pub fn from_w_h(w: S, h: S) -> Self {
+        Self::from_wh(Vector2 { x: w, y: h })
     }
 
     /// Construct a Rect from the coordinates of two points.
