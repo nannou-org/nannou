@@ -48,7 +48,7 @@ pub enum Direction {
 
 /// The orientation of **Align**ment along some **Axis**.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Align<S> {
+pub enum Align<S = geom::DefaultScalar> {
     /// **Align** our **Start** with the **Start** of some other node along the **Axis** with the
     /// given margin.
     Start(Option<S>),

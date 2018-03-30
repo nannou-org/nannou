@@ -8,7 +8,7 @@ use std::ops;
 
 /// Properties related to drawing a **Tri**.
 #[derive(Clone, Debug)]
-pub struct Tri<S> {
+pub struct Tri<S = geom::DefaultScalar> {
     tri: geom::Tri<Point3<S>>,
     spatial: spatial::Properties<S>,
     color: Option<Rgba>,

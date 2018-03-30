@@ -58,7 +58,7 @@ pub struct TriangleIndices {
 
 /// An iterator yielding triangles that describe an oval or some section of an oval.
 #[derive(Clone, Debug)]
-pub struct Triangles<S> {
+pub struct Triangles<S = DefaultScalar> {
     // The last circumference point yielded by the `CircumferenceOffset` iterator.
     last: Point2<S>,
     // The circumference points used to yield yielded by the `CircumferenceOffset` iterator.

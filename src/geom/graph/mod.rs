@@ -33,7 +33,7 @@ where
 }
 
 /// The `daggy` "directed acyclic graph" type used within the geometry graph.
-pub type Dag<S> = daggy::Dag<Node<S>, Edge<S>, usize>;
+pub type Dag<S = geom::DefaultScalar> = daggy::Dag<Node<S>, Edge<S>, usize>;
 
 /// A **Walker** over some node's parent nodes.
 pub struct Parents<S = geom::DefaultScalar>
@@ -52,16 +52,16 @@ where
 }
 
 /// The slice of all nodes stored within the graph.
-pub type RawNodes<'a, S> = daggy::RawNodes<'a, Node<S>, usize>;
+pub type RawNodes<'a, S = geom::DefaultScalar> = daggy::RawNodes<'a, Node<S>, usize>;
 
 /// The slice of all edges stored within the graph.
-pub type RawEdges<'a, S> = daggy::RawEdges<'a, Edge<S>, usize>;
+pub type RawEdges<'a, S = geom::DefaultScalar> = daggy::RawEdges<'a, Edge<S>, usize>;
 
 /// An alias for our Graph's **WouldCycle** error type.
-pub type WouldCycle<S> = daggy::WouldCycle<Edge<S>>;
+pub type WouldCycle<S = geom::DefaultScalar> = daggy::WouldCycle<Edge<S>>;
 
 /// An alias for our Graph's recursive walker.
-pub type RecursiveWalk<S, F> = daggy::walker::Recursive<Graph<S>, F>;
+pub type RecursiveWalk<F, S = geom::DefaultScalar> = daggy::walker::Recursive<Graph<S>, F>;
 
 // An alias for the iterator yielding three parents that may or may not exist.
 //
@@ -347,7 +347,7 @@ where
     /// A **Walker** type that recursively walks the **Graph** using the given `recursive_fn`.
     ///
     /// **Panics** If the given start index does not exist within the **Graph**.
-    pub fn recursive_walk<F>(&self, start: node::Index, recursive_fn: F) -> RecursiveWalk<S, F>
+    pub fn recursive_walk<F>(&self, start: node::Index, recursive_fn: F) -> RecursiveWalk<F, S>
     where
         F: FnMut(&Self, node::Index) -> Option<(edge::Index, node::Index)>,
     {

@@ -1,14 +1,14 @@
-use geom::{quad, tri, vertex};
+use geom::{quad, tri, vertex, DefaultScalar};
 use math::{two, vec2, BaseFloat, EuclideanSpace, InnerSpace, Point2};
 
 /// The quad used to describe a line.
-pub type Quad<S> = quad::Quad<Point2<S>>;
+pub type Quad<S = DefaultScalar> = quad::Quad<Point2<S>>;
 /// The triangle types used to describe a line quad.
-pub type Tri<S> = tri::Tri<Point2<S>>;
+pub type Tri<S = DefaultScalar> = tri::Tri<Point2<S>>;
 /// The vertices used to describe the quad of a line.
-pub type Vertices<S> = quad::Vertices<Point2<S>>;
+pub type Vertices<S = DefaultScalar> = quad::Vertices<Point2<S>>;
 /// The triangles used to describe the quad of a line.
-pub type Triangles<S> = quad::Triangles<Point2<S>>;
+pub type Triangles<S = DefaultScalar> = quad::Triangles<Point2<S>>;
 
 /// A line represented by two points.
 #[derive(Copy, Clone, Debug, PartialEq)]
