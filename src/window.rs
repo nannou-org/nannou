@@ -1,6 +1,7 @@
 use App;
 use glium::{self, glutin};
 use glium::glutin::{CursorState, GlContext, MonitorId, MouseCursor};
+use std::env;
 
 pub use glium::glutin::WindowId as Id;
 
@@ -13,6 +14,7 @@ pub struct Builder<'a, 'b> {
     app: &'a App,
     window: glutin::WindowBuilder,
     context: glutin::ContextBuilder<'b>,
+    title_was_set: bool,
 }
 
 /// An OpenGL window.
@@ -30,6 +32,7 @@ impl<'a, 'b> Builder<'a, 'b> {
             app,
             window: glutin::WindowBuilder::new(),
             context: glutin::ContextBuilder::new(),
+            title_was_set: false,
         }
     }
 
@@ -41,13 +44,26 @@ impl<'a, 'b> Builder<'a, 'b> {
 
     /// Build the GL window with some custom OpenGL Context parameters.
     pub fn context<'c>(self, context: glutin::ContextBuilder<'c>) -> Builder<'a, 'c> {
-        let Builder { app, window, .. } = self;
-        Builder { app, window, context }
+        let Builder { app, window, title_was_set, .. } = self;
+        Builder { app, window, context, title_was_set }
     }
 
     /// Builds the window, inserts it into the `App`'s display map and returns the unique ID.
     pub fn build(self) -> Result<Id, glium::backend::glutin::DisplayCreationError> {
-        let Builder { app, window, context } = self;
+        let Builder { app, mut window, context, title_was_set } = self;
+
+        // If the title was not set, default to the "nannou - <exe_name>".
+        if !title_was_set {
+            if let Ok(exe_path) = env::current_exe() {
+                if let Some(os_str) = exe_path.file_stem() {
+                    if let Some(exe_name) = os_str.to_str() {
+                        let title = format!("nannou - {}", exe_name);
+                        window = window.with_title(title);
+                    }
+                }
+            }
+        }
+
         let display = glium::Display::new(window, context, &app.events_loop)?;
         let window_id = display.gl_window().id();
         app.windows.borrow_mut().insert(window_id, Window { display });
@@ -57,17 +73,17 @@ impl<'a, 'b> Builder<'a, 'b> {
     fn map_window<F>(self, map: F) -> Self
         where F: FnOnce(glutin::WindowBuilder) -> glutin::WindowBuilder,
     {
-        let Builder { app, window, context } = self;
+        let Builder { app, window, context, title_was_set } = self;
         let window = map(window);
-        Builder { app, window, context }
+        Builder { app, window, context, title_was_set }
     }
 
     fn map_context<F>(self, map: F) -> Self
         where F: FnOnce(glutin::ContextBuilder) -> glutin::ContextBuilder,
     {
-        let Builder { app, window, context } = self;
+        let Builder { app, window, context, title_was_set } = self;
         let context = map(context);
-        Builder { app, window, context }
+        Builder { app, window, context, title_was_set }
     }
 
     // Window builder methods.
@@ -88,10 +104,11 @@ impl<'a, 'b> Builder<'a, 'b> {
     }
 
     /// Requests a specific title for the window.
-    pub fn with_title<T>(self, title: T) -> Self
+    pub fn with_title<T>(mut self, title: T) -> Self
     where
         T: Into<String>,
     {
+        self.title_was_set = true;
         self.map_window(|w| w.with_title(title))
     }
 
