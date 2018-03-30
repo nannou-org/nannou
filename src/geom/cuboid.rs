@@ -2,7 +2,7 @@
 //!
 //! The main type is the `Cuboid` type.
 
-use geom::{quad, Quad, Range, Tri};
+use geom::{quad, DefaultScalar, Quad, Range, Tri};
 use math::{BaseNum, Point3, Vector3};
 use math::num_traits::Float;
 use std::ops::Neg;
@@ -22,7 +22,7 @@ pub const NUM_SUBDIVISIONS: u8 = 8;
 ///
 /// `Cuboid` is implemented similarly to `geom::Rect` but with 3 axes instead of 2.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct Cuboid<S = f64> {
+pub struct Cuboid<S = DefaultScalar> {
     /// The start and end along the x axis.
     pub x: Range<S>,
     /// The start and end along the y axis.
@@ -60,7 +60,7 @@ pub type FaceQuad<S> = Quad<Point3<S>>;
 
 /// An iterator yielding each face of a cuboid as a quad.
 #[derive(Clone, Debug)]
-pub struct FaceQuads<'a, S: 'a = f64> {
+pub struct FaceQuads<'a, S: 'a = DefaultScalar> {
     // The cuboid object from which each face will be yielded.
     cuboid: &'a Cuboid<S>,
     // The next face to yield.
@@ -96,7 +96,7 @@ pub struct SubdivisionRanges<S> {
 /// The eight subdivisions will each be yielded as a `Cuboid` whose dimensions are exactly half of
 /// the original `Cuboid`.
 #[derive(Clone)]
-pub struct Subdivisions<S = f64> {
+pub struct Subdivisions<S = DefaultScalar> {
     ranges: SubdivisionRanges<S>,
     subdivision_index: u8,
 }
