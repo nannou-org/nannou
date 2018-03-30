@@ -1,5 +1,6 @@
 //! A type for working with one-dimensional ranges.
 
+use geom::DefaultScalar;
 use math::{self, BaseNum, two};
 use math::num_traits::{Float, One, Zero};
 use std::ops::Neg;
@@ -9,7 +10,7 @@ use std::ops::Neg;
 /// As an example, a **Rect** is made up of two **Range**s; one along the *x* axis, and one along
 /// the *y* axis.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct Range<S = f64> {
+pub struct Range<S = DefaultScalar> {
     /// The start of some `Range` along an axis.
     pub start: S,
     /// The end of some `Range` along an axis.
