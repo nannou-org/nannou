@@ -1,11 +1,13 @@
 use geom;
 
 pub mod ellipse;
+pub mod line;
 pub mod quad;
 pub mod rect;
 pub mod tri;
 
 pub use self::ellipse::Ellipse;
+pub use self::line::Line;
 pub use self::quad::Quad;
 pub use self::rect::Rect;
 pub use self::tri::Tri;
@@ -18,6 +20,7 @@ pub use self::tri::Tri;
 #[derive(Clone, Debug)]
 pub enum Primitive<S = geom::DefaultScalar> {
     Ellipse(Ellipse<S>),
+    Line(Line<S>),
     Quad(Quad<S>),
     Rect(Rect<S>),
     Tri(Tri<S>),

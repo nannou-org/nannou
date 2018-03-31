@@ -26,6 +26,13 @@ fn view(app: &App, frame: Frame) -> Frame {
         .radius(app.window.width * 0.125 * t.sin())
         .color(RED);
 
+    // Draw a line!
+    draw.line()
+        .start(win.top_left() * t.sin())
+        .end(win.bottom_right() * t.cos())
+        .thickness(win.h() / (50.0 * t.sin()))
+        .color(DARK_BLUE);
+
     // Draw a quad that follows the inverse of the ellipse.
     draw.quad().x_y(-app.mouse.x, app.mouse.y).color(DARK_GREEN);
 

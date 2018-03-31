@@ -1,4 +1,4 @@
-use geom::{quad, tri, vertex, DefaultScalar};
+use geom::{quad, tri, vertex, DefaultScalar, Rect};
 use math::{two, vec2, BaseFloat, EuclideanSpace, InnerSpace, Point2};
 
 /// The quad used to describe a line.
@@ -34,12 +34,12 @@ where
     pub fn centroid(&self) -> Point2<S> {
         EuclideanSpace::midpoint(self.start, self.end)
     }
-}
 
-impl<S> Line<S>
-where
-    S: BaseFloat,
-{
+    /// The bounding **Rect** of the **Line** including thickness and line caps.
+    pub fn bounding_rect(&self) -> Rect<S> {
+        self.quad_corners().bounding_rect()
+    }
+
     /// The four corners of the rectangle describing the line.
     pub fn quad_corners(&self) -> Quad<S> {
         quad_corners(self.start, self.end, self.half_thickness)
@@ -93,9 +93,9 @@ where
     let n = normal.normalize_to(half_thickness);
     let neg_n = n * neg_1;
     let r1 = a + neg_n;
-    let r2 = a + n;
-    let r3 = b + neg_n;
-    let r4 = b + n;
+    let r2 = b + neg_n;
+    let r3 = b + n;
+    let r4 = a + n;
     Quad::from([r1, r2, r3, r4])
 }
 
