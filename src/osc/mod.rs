@@ -95,7 +95,7 @@ impl Packet {
 
 /// The default local IP address.
 pub fn default_ipv4_addr() -> Ipv4Addr {
-    Ipv4Addr::new(127, 0, 0, 1)
+    Ipv4Addr::new(0, 0, 0, 0)
 }
 
 /// A simple wrapper around the most commonly used `Receiver` constructor.
