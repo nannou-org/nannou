@@ -50,18 +50,61 @@ where
     }
 
     /// Specify the color via hue, saturation and luminance.
-    pub fn hsl<H>(self, h: H, s: ColorScalar, l: ColorScalar) -> Self
-    where
-        H: Into<color::RgbHue<ColorScalar>>,
-    {
-        self.color(color::Hsl::new(h.into(), s, l))
+    ///
+    /// If you're looking for HSV or HSB, use the `hsv` method instead.
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    pub fn hsl(self, h: ColorScalar, s: ColorScalar, l: ColorScalar) -> Self {
+        let hue = h * 360.0;
+        self.color(color::Hsl::new(hue.into(), s, l))
     }
 
     /// Specify the color via hue, saturation, luminance and an alpha channel.
-    pub fn hsla<H>(self, h: H, s: ColorScalar, l: ColorScalar, a: ColorScalar) -> Self
+    ///
+    /// If you're looking for HSVA or HSBA, use the `hsva` method instead.
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    pub fn hsla(self, h: ColorScalar, s: ColorScalar, l: ColorScalar, a: ColorScalar) -> Self {
+        let hue = h * 360.0;
+        self.color(color::Hsla::new(hue.into(), s, l, a))
+    }
+
+    /// Specify the color via hue, saturation and *value* (brightness).
+    ///
+    /// This is sometimes also known as "hsb".
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    pub fn hsv(self, h: ColorScalar, s: ColorScalar, v: ColorScalar) -> Self {
+        let hue = h * 360.0;
+        self.color(color::Hsv::new(hue.into(), s, v))
+    }
+
+    /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
+    ///
+    /// This is sometimes also known as "hsba".
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    pub fn hsva(self, h: ColorScalar, s: ColorScalar, v: ColorScalar, a: ColorScalar) -> Self
     where
-        H: Into<color::RgbHue<ColorScalar>>,
+        S: Into<color::RgbHue<S>>,
     {
-        self.color(color::Hsla::new(h.into(), s, l, a))
+        let hue = h * 360.0;
+        self.color(color::Hsva::new(hue.into(), s, v, a))
     }
 }
