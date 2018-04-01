@@ -275,6 +275,9 @@ where
         Primitive::Ellipse(prim) => {
             into_drawn(draw, node_index, prim)
         },
+        Primitive::Line(prim) => {
+            into_drawn(draw, node_index, prim)
+        },
         Primitive::Quad(prim) => {
             into_drawn(draw, node_index, prim)
         }
@@ -449,6 +452,11 @@ where
 
     /// Begin drawing an **Ellipse**.
     pub fn ellipse(&self) -> Drawing<properties::Ellipse<S>, S> {
+        self.a(Default::default())
+    }
+
+    /// Begin drawing a **Line**.
+    pub fn line(&self) -> Drawing<properties::Line<S>, S> {
         self.a(Default::default())
     }
 

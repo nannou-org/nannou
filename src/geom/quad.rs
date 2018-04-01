@@ -111,7 +111,7 @@ where
         triangles_iter(self)
     }
 
-    /// The bounding `Rect` of the triangle.
+    /// The bounding `Rect` of the quad.
     pub fn bounding_rect(self) -> Rect<V::Scalar>
     where
         V: Vertex2d,
