@@ -1,0 +1,8 @@
+[package]
+name = "nannou-new"
+version = "0.1.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+
+[dependencies]
+names = "0.11" # For generating random project names.
+rand = "0.4" # For generating random beverages (very important).
