@@ -1,0 +1,10 @@
+[package]
+name = "nannou-package"
+version = "0.1.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+
+[dependencies]
+chrono = "0.4"
+copy_dir = "0.1"
+walkdir = "2"
+zip = "0.3"
