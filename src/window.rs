@@ -593,4 +593,18 @@ impl Window {
     pub fn inner_glium_display(&self) -> &glium::Display {
         &self.display
     }
+
+    /// Attempts to determine whether or not the window is currently fullscreen.
+    ///
+    /// TODO: This currently relies on comparing `outer_size_pixels` to the dimensions of the
+    /// `current_monitor`, which may not be exactly accurate on some platforms or even conceptually
+    /// correct in the case that a title bar is included or something. This should probably be a
+    /// method upstream within the `winit` crate itself. Alternatively we could attempt to manually
+    /// track whether or not the window is fullscreen ourselves, however this could get quite
+    /// complicated quite quickly.
+    pub fn is_fullscreen(&self) -> bool {
+        let (w, h) = self.outer_size_pixels();
+        let (mw, mh) = self.current_monitor().get_dimensions();
+        w == mw && h == mh
+    }
 }
