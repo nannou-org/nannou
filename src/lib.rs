@@ -199,6 +199,44 @@ where
         frame::finish(frame)
     }
 
+    // Whether or not the given event should toggle fullscreen.
+    fn should_toggle_fullscreen(glutin_event: &glutin::WindowEvent) -> bool {
+        let input = match *glutin_event {
+            glutin::WindowEvent::KeyboardInput { ref input, .. } => match input.state {
+                event::ElementState::Pressed => input,
+                _ => return false,
+            },
+            _ => return false,
+        };
+
+        let key = match input.virtual_keycode {
+            None => return false,
+            Some(k) => k,
+        };
+        let mods = &input.modifiers;
+
+        // On linux, check for the F11 key (with no modifiers down).
+        //
+        // TODO: Somehow add special case for KDE?
+        if cfg!(target_os = "linux") {
+            if !mods.logo && !mods.shift && !mods.alt && !mods.ctrl {
+                if let VirtualKeyCode::F11 = key {
+                    return true;
+                }
+            }
+
+        // On macos and windows check for the logo key plus `f` with no other modifiers.
+        } else if cfg!(target_os = "macos") || cfg!(target_os = "windows") {
+            if mods.logo && !mods.shift && !mods.alt && !mods.ctrl {
+                if let VirtualKeyCode::F = key {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
     // A function to simplify the creation of an `Update` event.
     //
     // Also updates the given `last_update` instant to `Instant::now()`.
@@ -232,7 +270,7 @@ where
         if let glutin::Event::WindowEvent { window_id, ref event } = glutin_event {
 
             // If we should exit the app on escape, check for the escape key.
-            if app.exit_on_escape.get() {
+            if app.exit_on_escape() {
                 if let glutin::WindowEvent::KeyboardInput { input, .. } = *event {
                     if let Some(VirtualKeyCode::Escape) = input.virtual_keycode {
                         exit_on_escape = true;
@@ -244,10 +282,22 @@ where
             if let glutin::WindowEvent::Closed = *event {
                 app.windows.borrow_mut().remove(&window_id);
             } else {
-
                 // Get the size of the screen for translating coords and dimensions.
                 let (win_w, win_h, hidpi_factor) = match app.window(window_id) {
                     Some(win) => {
+
+                        // If we should toggle fullscreen for this window, do so.
+                        if app.fullscreen_on_shortcut() {
+                            if should_toggle_fullscreen(event) {
+                                if win.is_fullscreen() {
+                                    win.set_fullscreen(None);
+                                } else {
+                                    let monitor = win.current_monitor();
+                                    win.set_fullscreen(Some(monitor));
+                                }
+                            }
+                        }
+
                         let (w, h) = win.inner_size_pixels();
                         let hidpi_factor = win.hidpi_factor();
                         (w, h, hidpi_factor)

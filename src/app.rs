@@ -7,7 +7,7 @@ use geom;
 use glium::glutin;
 use state;
 use std;
-use std::cell::{Cell, RefCell, RefMut};
+use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
@@ -28,9 +28,8 @@ use ui;
 pub struct App {
     pub(crate) events_loop: glutin::EventsLoop,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
-    pub(super) exit_on_escape: Cell<bool>,
+    config: RefCell<Config>,
     pub(crate) ui: ui::Arrangement,
-    loop_mode: Cell<LoopMode>,
     draw_state: DrawState,
 
     /// The `App`'s audio-related API.
@@ -57,6 +56,14 @@ pub struct App {
     ///
     /// `duration.since_prev_update` specifies the duration since the previous update event.
     pub duration: state::Time,
+}
+
+/// Miscellaneous app configuration parameters.
+#[derive(Debug)]
+struct Config {
+    loop_mode: LoopMode,
+    exit_on_escape: bool,
+    fullscreen_on_shortcut: bool,
 }
 
 /// A `nannou::Draw` instance owned by the `App`.
@@ -185,16 +192,29 @@ impl Default for LoopMode {
     }
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        let loop_mode = Default::default();
+        let exit_on_escape = App::DEFAULT_EXIT_ON_ESCAPE;
+        let fullscreen_on_shortcut = App::DEFAULT_FULLSCREEN_ON_SHORTCUT;
+        Config {
+            loop_mode,
+            exit_on_escape,
+            fullscreen_on_shortcut,
+        }
+    }
+}
+
 impl App {
     pub const ASSETS_DIRECTORY_NAME: &'static str = "assets";
     pub const DEFAULT_EXIT_ON_ESCAPE: bool = true;
+    pub const DEFAULT_FULLSCREEN_ON_SHORTCUT: bool = true;
 
     // Create a new `App`.
     pub(super) fn new(events_loop: glutin::EventsLoop) -> Self {
         let windows = RefCell::new(HashMap::new());
-        let exit_on_escape = Cell::new(Self::DEFAULT_EXIT_ON_ESCAPE);
-        let loop_mode = Cell::new(LoopMode::default());
         let draw = RefCell::new(draw::Draw::default());
+        let config = RefCell::new(Default::default());
         let renderer = RefCell::new(None);
         let draw_state = DrawState { draw, renderer };
         let cpal_event_loop = Arc::new(cpal::EventLoop::new());
@@ -211,8 +231,7 @@ impl App {
         App {
             events_loop,
             windows,
-            exit_on_escape,
-            loop_mode,
+            config,
             draw_state,
             audio,
             ui,
@@ -274,19 +293,39 @@ impl App {
 
     /// Return whether or not the `App` is currently set to exit when the `Escape` key is pressed.
     pub fn exit_on_escape(&self) -> bool {
-        self.exit_on_escape.get()
+        self.config.borrow().exit_on_escape
     }
 
     /// Specify whether or not the app should close when the `Escape` key is pressed.
     ///
     /// By default this is `true`.
     pub fn set_exit_on_escape(&self, b: bool) {
-        self.exit_on_escape.set(b);
+        self.config.borrow_mut().exit_on_escape = b;
+    }
+
+    /// Returns whether or not the `App` is currently allows the focused window to enter or exit
+    /// fullscreen via typical platform-specific shortcuts.
+    ///
+    /// - Linux uses F11.
+    /// - macOS uses apple key + f.
+    /// - Windows uses windows key + f.
+    pub fn fullscreen_on_shortcut(&self) -> bool {
+        self.config.borrow().fullscreen_on_shortcut
+    }
+
+    /// Set whether or not the `App` should allow the focused window to enter or exit fullscreen
+    /// via typical platform-specific shortcuts.
+    ///
+    /// - Linux uses F11.
+    /// - macOS uses apple key + f.
+    /// - Windows uses windows key + f.
+    pub fn set_fullscreen_on_shortcut(&self, b: bool) {
+        self.config.borrow_mut().fullscreen_on_shortcut = b;
     }
 
     /// Returns the **App**'s current **LoopMode**.
     pub fn loop_mode(&self) -> LoopMode {
-        self.loop_mode.get()
+        self.config.borrow().loop_mode
     }
 
     /// Sets the loop mode of the **App**.
@@ -295,7 +334,7 @@ impl App {
     /// iteration. The behaviour of a single loop iteration is described under each of the
     /// **LoopMode** variants.
     pub fn set_loop_mode(&self, mode: LoopMode) {
-        self.loop_mode.set(mode);
+        self.config.borrow_mut().loop_mode = mode;
     }
 
     /// A handle to the **App** that can be shared across threads.
