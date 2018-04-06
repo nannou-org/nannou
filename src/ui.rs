@@ -58,6 +58,7 @@ pub struct Builder<'a> {
     automatically_handle_input: bool,
     pending_input_limit: usize,
     default_font_path: Option<PathBuf>,
+    glyph_cache_dimensions: Option<(u32, u32)>,
 }
 
 /// A map from `image::Id`s to their associatd `Texture2d`.
@@ -91,6 +92,7 @@ impl<'a> Builder<'a> {
             automatically_handle_input: true,
             pending_input_limit: Ui::DEFAULT_PENDING_INPUT_LIMIT,
             default_font_path: None,
+            glyph_cache_dimensions: None,
         }
     }
 
@@ -149,6 +151,19 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Specify the dimensions of the texture used to cache glyphs on the GPU.
+    ///
+    /// By default this is equal to the framebuffer dimensions of the associated window at the time
+    /// of building the `UI`.
+    ///
+    /// If you notice any glitching of UI text, this may be due to exceeding the bounds of the
+    /// texture used to cache glyphs. Try using this to specify a larger glyph cache size to fix
+    /// this.
+    pub fn with_glyph_cache_dimensions(mut self, width: u32, height: u32) -> Self {
+        self.glyph_cache_dimensions = Some((width, height));
+        self
+    }
+
     /// Build a `Ui` with the specified parameters.
     ///
     /// Returns `None` if the window at the given `Id` is closed or if the inner `Renderer` returns
@@ -162,6 +177,7 @@ impl<'a> Builder<'a> {
             pending_input_limit,
             automatically_handle_input,
             default_font_path,
+            glyph_cache_dimensions,
         } = self;
         let dimensions = match dimensions {
             None => match app.window(window_id) {
@@ -198,9 +214,19 @@ impl<'a> Builder<'a> {
         // Initialise the renderer which draws conrod::render::Primitives to the frame..
         let renderer = match app.windows.borrow().get(&window_id) {
             None => return None,
-            Some(window) => match conrod::backend::glium::Renderer::new(&window.display) {
-                Ok(renderer) => Mutex::new(renderer),
-                Err(_) => return None,
+            Some(window) => {
+                let renderer = match glyph_cache_dimensions {
+                    Some((w, h)) => {
+                        conrod::backend::glium::Renderer::with_glyph_cache_dimensions(&window.display, w, h)
+                    },
+                    None => {
+                        conrod::backend::glium::Renderer::new(&window.display)
+                    },
+                };
+                match renderer {
+                    Ok(renderer) => Mutex::new(renderer),
+                    Err(_) => return None,
+                }
             },
         };
 
