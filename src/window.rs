@@ -31,7 +31,9 @@ impl<'a, 'b> Builder<'a, 'b> {
         Builder {
             app,
             window: glutin::WindowBuilder::new(),
-            context: glutin::ContextBuilder::new(),
+            context: glutin::ContextBuilder::new()
+                .with_vsync(true)
+                .with_multisampling(4),
             title_was_set: false,
         }
     }
