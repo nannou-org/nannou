@@ -126,16 +126,7 @@ impl<M, E> Builder<M, E>
         // Create the default window if necessary
         if create_default_window {
             let window_id = app.new_window().build().expect("could not build default app window");
-            let (w, h, hidpi_factor) = {
-                let win = app.window(window_id).unwrap();
-                let (w, h) = win.inner_size_pixels();
-                let hidpi_factor = win.hidpi_factor();
-                (w, h, hidpi_factor)
-            };
             app.window.id = Some(window_id);
-            app.window.hidpi_factor = hidpi_factor;
-            app.window.width = w as geom::DefaultScalar / hidpi_factor;
-            app.window.height = h as geom::DefaultScalar / hidpi_factor;
         }
 
         // Call the user's model function.
@@ -143,16 +134,8 @@ impl<M, E> Builder<M, E>
 
         // If there is not yet some default window in "focus" check to see if one has been created.
         if app.window.id.is_none() {
-            if let Some((id, win)) = app.windows.borrow().iter().next() {
-                let (w, h, hidpi_factor) = {
-                    let (w, h) = win.inner_size_pixels();
-                    let hidpi_factor = win.hidpi_factor();
-                    (w, h, hidpi_factor)
-                };
+            if let Some(id) = app.windows.borrow().keys().next() {
                 app.window.id = Some(id.clone());
-                app.window.hidpi_factor = hidpi_factor;
-                app.window.width = w as geom::DefaultScalar / hidpi_factor;
-                app.window.height = h as geom::DefaultScalar / hidpi_factor;
             }
         }
 
@@ -311,16 +294,11 @@ where
                 // width and height of the window in order to be DPI agnostic.
                 let tx = |x: geom::DefaultScalar| (x / hidpi_factor) - win_w as geom::DefaultScalar / 2.0;
                 let ty = |y: geom::DefaultScalar| -((y / hidpi_factor) - win_h as geom::DefaultScalar / 2.0);
-                let tw = |w: geom::DefaultScalar| w / hidpi_factor;
-                let th = |h: geom::DefaultScalar| h / hidpi_factor;
 
                 // If the window ID has changed, ensure the dimensions are up to date.
                 if app.window.id != Some(window_id) {
                     if app.window(window_id).is_some() {
                         app.window.id = Some(window_id);
-                        app.window.width = tw(win_w as _);
-                        app.window.height = th(win_h as _);
-                        app.window.hidpi_factor = hidpi_factor;
                     }
                 }
 
@@ -345,18 +323,6 @@ where
                             },
                         }
                         app.mouse.window = Some(window_id);
-                    },
-
-                    glutin::WindowEvent::Resized(new_w, new_h) => {
-                        let x = tw(new_w as _);
-                        let y = th(new_h as _);
-                        app.window.width = x;
-                        app.window.height = y;
-                        app.window.hidpi_factor = hidpi_factor;
-                    },
-
-                    glutin::WindowEvent::HiDPIFactorChanged(hidpi_factor) => {
-                        app.window.hidpi_factor = hidpi_factor;
                     },
 
                     glutin::WindowEvent::KeyboardInput { input, .. } => {
