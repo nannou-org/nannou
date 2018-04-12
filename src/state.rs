@@ -7,69 +7,28 @@ pub use self::window::Window;
 pub mod window {
     use geom;
     use window;
-    use math::{BaseFloat, Vector2};
 
     /// The default scalar value used for window positioning and sizing.
     pub type DefaultScalar = geom::DefaultScalar;
 
     /// State of the window in focus.
     #[derive(Copy, Clone, Debug, PartialEq)]
-    pub struct Window<S = DefaultScalar> {
+    pub struct Window {
         /// ID of the window currently in focus.
         pub id: Option<window::Id>,
-        /// The width of the focused window agnostic of DPI.
-        ///
-        /// This is equal to the pixel width divided by the hidpi_factor.
-        pub width: S,
-        /// The height of the focused window agnostic of DPI.
-        ///
-        /// This is equal to the pixel height divided by the hidpi_factor.
-        pub height: S,
-        /// The high "dots-per-inch" multiplier that describes the density of the screens pixels.
-        pub hidpi_factor: S,
     }
 
-    impl<S> Window<S>
-    where
-        S: BaseFloat,
-    {
+    impl Window {
         /// Initialise the window state.
         pub fn new() -> Self {
             Window {
                 id: None,
-                width: S::zero(),
-                height: S::zero(),
-                hidpi_factor: S::one(),
             }
-        }
-
-        /// Get the range along the *x* axis occupied by the window.
-        pub fn x_range(&self) -> geom::Range<S> {
-            let half_w = self.width / (S::one() + S::one());
-            geom::Range { start: -half_w, end: half_w }
-        }
-
-        /// Get the range along the *y* axis occupied by the window.
-        pub fn y_range(&self) -> geom::Range<S> {
-            let half_h = self.height / (S::one() + S::one());
-            geom::Range { start: -half_h, end: half_h }
-        }
-
-        /// Get the x coordinate for the left edge of the window.
-        pub fn rect(&self) -> geom::Rect<S> {
-            let x = self.x_range();
-            let y = self.y_range();
-            geom::Rect { x, y }
         }
 
         /// Expects that there will be a `window::Id` (the common case) and **panic!**s otherwise.
         pub fn id(&self) -> window::Id {
             self.id.unwrap()
-        }
-
-        /// Return the `width` and `height` as a `Vector2`.
-        pub fn size(&self) -> Vector2<S> {
-            Vector2 { x: self.width, y: self.height }
         }
     }
 }

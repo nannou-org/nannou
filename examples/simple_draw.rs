@@ -14,7 +14,7 @@ fn view(app: &App, frame: Frame) -> Frame {
     draw.background().color(BLUE);
 
     // Draw a purple triangle in the top left half of the window.
-    let win = app.window.rect();
+    let win = app.window_rect();
     draw.tri()
         .points(win.bottom_left(), win.top_left(), win.top_right())
         .color(DARK_PURPLE);
@@ -23,7 +23,7 @@ fn view(app: &App, frame: Frame) -> Frame {
     let t = app.duration.since_start.secs() as f32;
     draw.ellipse()
         .x_y(app.mouse.x * t.cos(), app.mouse.y)
-        .radius(app.window.width * 0.125 * t.sin())
+        .radius(win.w() * 0.125 * t.sin())
         .color(RED);
 
     // Draw a line!

@@ -279,6 +279,16 @@ impl App {
         }
     }
 
+    /// Return the **Rect** for the currently focused window.
+    ///
+    /// The **Rect** coords are described in "points" (pixels divided by the hidpi factor).
+    ///
+    /// **Panics** if there are no windows or if no window is in focus.
+    pub fn window_rect(&self) -> geom::Rect<DrawScalar> {
+        let (w, h) = self.main_window().inner_size_points();
+        geom::Rect::from_w_h(w as _, h as _)
+    }
+
     /// A reference to the window currently in focus.
     ///
     /// **Panics** if their are no windows open in the **App**.
