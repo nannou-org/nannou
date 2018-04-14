@@ -17,7 +17,7 @@ cpal = "0.8"
 daggy = "0.6"
 find_folder = "0.3"
 #glium = "0.20"
-glium = { git = "https://github.com/mitchmindtree/glium", branch = "update_glutin" }
+glium = { git = "https://github.com/mitchmindtree/glium", branch = "publish" }
 image = "0.18"
 noise = "0.4"
 palette = "0.2"
