@@ -32,7 +32,7 @@ Start your own project with:
 cargo new my_project
 cd my_project
 ```
-Add `nannou = "0.1"` under the `[dependencies]` line in your Cargo.toml.  This
+Add `nannou = "0.5"` under the `[dependencies]` line in your Cargo.toml.  This
 is everything you need to use the framework in your own project or sketch.
 Rust's package manager *cargo* will automatically download and install
 everything you need!
