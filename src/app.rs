@@ -70,9 +70,9 @@ pub struct App {
     /// `app.time.sin()` for simple oscillation behaviour.
     ///
     /// **Note:** This is suitable for use in short sketches, however should be avoided in long
-    /// running installations. This is because the "resolution" of `f64` values reduces the higher
-    /// the number becomes. Instead, we recommend using `app.duration.since_start` or
-    /// `app.duration.since_last` to access a more precise form of this time.,
+    /// running installations. This is because the "resolution" of floating point values reduces as
+    /// the number becomes higher. Instead, we recommend using `app.duration.since_start` or
+    /// `app.duration.since_prev_update` to access a more precise form of app time.
     pub time: DrawScalar,
 }
 
