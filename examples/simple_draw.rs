@@ -20,7 +20,7 @@ fn view(app: &App, frame: Frame) -> Frame {
         .color(DARK_PURPLE);
 
     // Draw an ellipse to follow the mouse.
-    let t = app.duration.since_start.secs() as f32;
+    let t = app.time;
     draw.ellipse()
         .x_y(app.mouse.x * t.cos(), app.mouse.y)
         .radius(win.w() * 0.125 * t.sin())

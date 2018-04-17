@@ -56,6 +56,24 @@ pub struct App {
     ///
     /// `duration.since_prev_update` specifies the duration since the previous update event.
     pub duration: state::Time,
+
+    /// The time in seconds since the `App` started running.
+    ///
+    /// Primarily, this field is a convenience that removes the need to call
+    /// `app.duration.since_start.secs()`. Normally we would try to avoid using such an ambiguous
+    /// field name, however due to the sheer amount of use that this value has we feel it is
+    /// beneficial to provide easier access.
+    ///
+    /// This value is of the same type as the scalar value used for describing space in animations.
+    /// This makes it very easy to animate graphics and create changes over time without having to
+    /// cast values or repeatedly calculate it from a `Duration` type. A small example might be
+    /// `app.time.sin()` for simple oscillation behaviour.
+    ///
+    /// **Note:** This is suitable for use in short sketches, however should be avoided in long
+    /// running installations. This is because the "resolution" of floating point values reduces as
+    /// the number becomes higher. Instead, we recommend using `app.duration.since_start` or
+    /// `app.duration.since_prev_update` to access a more precise form of app time.
+    pub time: DrawScalar,
 }
 
 /// Miscellaneous app configuration parameters.
@@ -228,6 +246,7 @@ impl App {
         let window = state::Window::new();
         let keys = state::Keys::default();
         let duration = state::Time::default();
+        let time = duration.since_start.secs() as _;
         App {
             events_loop,
             windows,
@@ -239,6 +258,7 @@ impl App {
             window,
             keys,
             duration,
+            time,
         }
     }
 
