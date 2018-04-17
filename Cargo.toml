@@ -11,8 +11,7 @@ homepage = "https://github.com/MindBuffer/nannou"
 
 [dependencies]
 cgmath = { version = "0.16", features = ["serde"] }
-#conrod = { version = "0.58", features = ["winit", "glium"] }
-conrod = { git = "https://github.com/mitchmindtree/conrod", branch = "winit_glium_update", features = ["winit", "glium"] }
+conrod = { version = "0.59", features = ["winit", "glium"] }
 cpal = "0.8"
 daggy = "0.6"
 find_folder = "0.3"
