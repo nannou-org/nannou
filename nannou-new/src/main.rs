@@ -85,7 +85,7 @@ fn main() {
     // TODO: Ask the user for additional cargo args.
 
     // TODO: Find the current version of nannou.
-    let nannou_version = "0.4";
+    let nannou_version = "0.5";
     let nannou_dependency = format!("nannou = \"{}\"", nannou_version);
 
     // TODO: Load the template example or fallback to compiled template.
