@@ -4,7 +4,7 @@
 This project is brand new and there is a lot of work to be done. Feel free to
 help out!
 
-# nannou [![Build Status](https://travis-ci.org/MindBuffer/nannou.svg?branch=master)](https://travis-ci.org/MindBuffer/nannou) [![Crates.io](https://img.shields.io/crates/v/nannou.svg)](https://crates.io/crates/nannou) [![Crates.io](https://img.shields.io/crates/l/nannou.svg)](https://github.com/MindBuffer/nannou/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/nannou/badge.svg)](https://docs.rs/nannou/)
+# nannou [![Build Status](https://travis-ci.org/nannou-org/nannou.svg?branch=master)](https://travis-ci.org/nannou-org/nannou) [![Crates.io](https://img.shields.io/crates/v/nannou.svg)](https://crates.io/crates/nannou) [![Crates.io](https://img.shields.io/crates/l/nannou.svg)](https://github.com/nannou-org/nannou/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/nannou/badge.svg)](https://docs.rs/nannou/)
 
 
 An open-source creative-coding toolkit for Rust.
@@ -21,7 +21,7 @@ by Processing, OpenFrameworks and Cinder, but for Rust. <sup>Named after
 ## Getting Started
 
 See what the code looks like by checking out [the
-examples](https://github.com/MindBuffer/nannou/tree/master/examples). *See the
+examples](https://github.com/nannou-org/nannou/tree/master/examples). *See the
 following section to learn how to run these examples.*
 
 If you're new to Rust, maybe check out [the official
@@ -41,7 +41,7 @@ everything you need!
 
 Clone this git repo (which contains the examples) to your computer.
 ```
-git clone https://github.com/MindBuffer/nannou
+git clone https://github.com/nannou-org/nannou
 ```
 Change the current directory to `nannou`.
 ```
