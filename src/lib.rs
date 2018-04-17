@@ -417,6 +417,7 @@ where
                 let since_start = now.duration_since(loop_start).into();
                 app.duration.since_start = since_start;
                 app.duration.since_prev_update = since_last;
+                app.time = app.duration.since_start.secs() as _;
 
                 // Emit an update event.
                 let event = E::from(update_event(loop_start, &mut last_update));
@@ -471,6 +472,7 @@ where
                 let since_start = now.duration_since(loop_start).into();
                 app.duration.since_start = since_start;
                 app.duration.since_prev_update = since_last;
+                app.time = app.duration.since_start.secs() as _;
 
                 // Emit an update event.
                 let event = E::from(update_event(loop_start, &mut last_update));
