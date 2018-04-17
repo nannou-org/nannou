@@ -11,11 +11,11 @@ homepage = "https://github.com/MindBuffer/nannou"
 
 [dependencies]
 cgmath = { version = "0.16", features = ["serde"] }
-conrod = { version = "0.58", features = ["winit", "glium"] }
+conrod = { version = "0.59", features = ["winit", "glium"] }
 cpal = "0.8"
 daggy = "0.6"
 find_folder = "0.3"
-glium = "0.20"
+glium = "0.21"
 image = "0.18"
 noise = "0.4"
 palette = "0.2"
