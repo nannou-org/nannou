@@ -1,6 +1,6 @@
 extern crate cgmath;
 pub use self::cgmath::*;
-pub use self::cgmath::num_traits::{NumCast, One};
+pub use self::cgmath::num_traits::{Float, NumCast, One};
 use std::ops::Add;
 
 /// Shorthand constructor for a `Point1`.
@@ -67,4 +67,14 @@ where
     S: Add<Output=S> + One,
 {
     S::one() + S::one()
+}
+
+/// Models the C++ fmod function.
+#[inline]
+pub fn fmod<F>(numer: F, denom: F) -> F
+where
+    F: Float,
+{
+    let rquot: F = (numer / denom).floor();
+    numer - rquot * denom
 }
