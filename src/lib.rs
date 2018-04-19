@@ -1,6 +1,9 @@
 pub extern crate daggy;
 pub extern crate find_folder;
 #[macro_use] pub extern crate glium;
+extern crate serde;
+extern crate serde_json;
+extern crate toml;
 
 use event::LoopEvent;
 use glium::glutin;
@@ -24,6 +27,7 @@ pub mod event;
 mod frame;
 pub mod geom;
 pub mod image;
+pub mod io;
 pub mod math;
 pub mod mesh;
 pub mod osc;
