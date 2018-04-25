@@ -3,13 +3,17 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::run(model, event, view);
+    nannou::app(model, event, view).run();
 }
 
-struct Model {}
+struct Model {
+    window: WindowId,
+}
 
-fn model(_app: &App) -> Model {
-    Model {}
+fn model(app: &App) -> Model {
+
+    let window = app.new_window().with_dimensions(720,720).build().unwrap();
+    Model {window}
 }
 
 fn event(_app: &App, model: Model, event: Event) -> Model {
@@ -57,9 +61,20 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
     model
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
-    // Color the window with a "dark charcoal" color.
-    frame.clear_all(DARK_CHARCOAL);
+fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+    // Prepare to draw.
+    let draw = app.draw();
+
+    // Clear the background to pink.
+    draw.background().color(LIGHT_PURPLE);
+
+    // Draw a red ellipse with default size and position.
+    draw.ellipse().color(DARK_BLUE);
+
+    // Write to the window frame.
+    draw.to_frame(app, &frame).unwrap();
+
     // Return the drawn frame.
     frame
 }
+
