@@ -8,6 +8,7 @@ extern crate toml;
 use event::LoopEvent;
 use glium::glutin;
 use std::cell::RefCell;
+use std::sync::atomic;
 use std::time::Instant;
 
 pub use app::{App, LoopMode};
@@ -451,7 +452,10 @@ where
                 // If there are no events and the `Ui` does not need updating,
                 // wait for the next event.
                 if glutin_events.is_empty() && updates_remaining == 0 {
+                    let events_loop_is_asleep = app.events_loop_is_asleep.clone();
+                    events_loop_is_asleep.store(true, atomic::Ordering::Relaxed);
                     app.events_loop.run_forever(|event| {
+                        events_loop_is_asleep.store(false, atomic::Ordering::Relaxed);
                         glutin_events.push(event);
                         glium::glutin::ControlFlow::Break
                     });

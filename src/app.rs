@@ -13,6 +13,7 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::sync::{mpsc, Arc};
+use std::sync::atomic::{self, AtomicBool};
 use std::thread;
 use std::time::Duration;
 use window::{self, Window};
@@ -31,6 +32,14 @@ pub struct App {
     config: RefCell<Config>,
     pub(crate) ui: ui::Arrangement,
     draw_state: DrawState,
+
+    /// Indicates whether or not the events loop is currently asleep.
+    ///
+    /// This is set to `true` each time the events loop is ready to return and the `LoopMode` is
+    /// set to `Wait` for events.
+    ///
+    /// This value is set back to `false` each time the events loop receives any kind of event.
+    pub(crate) events_loop_is_asleep: Arc<AtomicBool>,
 
     /// The `App`'s audio-related API.
     pub audio: Audio,
@@ -119,6 +128,7 @@ pub struct Audio {
 /// This can be used to "wake up" the **App**'s inner event loop.
 pub struct Proxy {
     events_loop_proxy: glutin::EventsLoopProxy,
+    events_loop_is_asleep: Arc<AtomicBool>,
 }
 
 /// The mode in which the **App** is currently running the event loop.
@@ -247,8 +257,10 @@ impl App {
         let keys = state::Keys::default();
         let duration = state::Time::default();
         let time = duration.since_start.secs() as _;
+        let events_loop_is_asleep = Arc::new(AtomicBool::new(false));
         App {
             events_loop,
+            events_loop_is_asleep,
             windows,
             config,
             draw_state,
@@ -372,7 +384,8 @@ impl App {
     /// This can be used to "wake up" the **App**'s inner event loop.
     pub fn create_proxy(&self) -> Proxy {
         let events_loop_proxy = self.events_loop.create_proxy();
-        Proxy { events_loop_proxy }
+        let events_loop_is_asleep = self.events_loop_is_asleep.clone();
+        Proxy { events_loop_proxy, events_loop_is_asleep }
     }
 
     /// Create a new `Ui` for the window with the given `Id`.
@@ -528,8 +541,19 @@ impl Proxy {
     /// Wake up the application!
     ///
     /// This wakes up the **App**'s inner event loop and inserts an **Awakened** event.
+    ///
+    /// The `app::Proxy` stores a flag in order to track whether or not the `EventsLoop` is
+    /// currently blocking and waiting for events. This method will only call the underlying
+    /// `winit::EventsLoopProxy::wakeup` method if this flag is set to true and will immediately
+    /// set the flag to false afterwards. This makes it safe to call the `wakeup` method as
+    /// frequently as necessary across methods without causing any underlying OS methods to be
+    /// called more than necessary.
     pub fn wakeup(&self) -> Result<(), glutin::EventsLoopClosed> {
-        self.events_loop_proxy.wakeup()
+        if self.events_loop_is_asleep.load(atomic::Ordering::Relaxed) {
+            self.events_loop_proxy.wakeup()?;
+            self.events_loop_is_asleep.store(false, atomic::Ordering::Relaxed);
+        }
+        Ok(())
     }
 }
 

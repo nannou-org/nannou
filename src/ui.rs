@@ -377,8 +377,10 @@ impl Ui {
     /// method offers more flexibility.
     ///
     /// This has no effect if the window originally associated with the `Ui` no longer exists.
+    ///
+    /// Returns `true` if the call resulted in re-drawing the `Ui` due to changes.
     pub fn draw_to_frame_if_changed(&self, app: &App, frame: &Frame)
-        -> Result<(), conrod::backend::glium::DrawError>
+        -> Result<bool, conrod::backend::glium::DrawError>
     {
         let Ui { ref ui, ref renderer, ref image_map, window_id, .. } = *self;
         if let Some(window) = app.window(window_id) {
@@ -388,11 +390,12 @@ impl Ui {
                         renderer.fill(&window.display, primitives, &image_map);
                         window_frame.clear_color(0.0, 0.0, 0.0, 1.0);
                         renderer.draw(&window.display, &mut window_frame.frame.frame, image_map)?;
+                        return Ok(true);
                     }
                 }
             }
         }
-        Ok(())
+        Ok(false)
     }
 }
 
