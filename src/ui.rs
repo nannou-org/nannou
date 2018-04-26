@@ -367,6 +367,33 @@ impl Ui {
         }
         Ok(())
     }
+
+    /// Draws the current state of the `Ui` to the given `Frame` but only if the `Ui` has changed
+    /// since last time either `draw_to_frame` or `draw_to_frame_if_changed` was called.
+    ///
+    /// The `Ui` will automatically draw to its associated window within the given `Frame`.
+    ///
+    /// If you require more control over where the `Ui` is drawn within the `Frame`, the `draw`
+    /// method offers more flexibility.
+    ///
+    /// This has no effect if the window originally associated with the `Ui` no longer exists.
+    pub fn draw_to_frame_if_changed(&self, app: &App, frame: &Frame)
+        -> Result<(), conrod::backend::glium::DrawError>
+    {
+        let Ui { ref ui, ref renderer, ref image_map, window_id, .. } = *self;
+        if let Some(window) = app.window(window_id) {
+            if let Some(mut window_frame) = frame.window(window_id) {
+                if let Ok(mut renderer) = renderer.lock() {
+                    if let Some(primitives) = ui.draw_if_changed() {
+                        renderer.fill(&window.display, primitives, &image_map);
+                        window_frame.clear_color(0.0, 0.0, 0.0, 1.0);
+                        renderer.draw(&window.display, &mut window_frame.frame.frame, image_map)?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 /// Convert the given window event to a UI Input.
