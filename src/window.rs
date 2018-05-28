@@ -281,7 +281,7 @@ impl Window {
             .get_inner_size()
             .map(|(w_px, h_px)| {
                 let dpi_factor = self.hidpi_factor();
-                (w_px as f32 * dpi_factor, h_px as f32 * dpi_factor)
+                (w_px as f32 / dpi_factor, h_px as f32 / dpi_factor)
             })
             .expect(Self::NO_LONGER_EXISTS)
     }
