@@ -1,9 +1,9 @@
 use draw::{self, Draw};
-use draw::properties::spatial::{dimension, position};
-use draw::properties::{ColorScalar, IntoDrawn, IntoRgba, Primitive, SetColor, SetDimensions, SetPosition};
+use draw::properties::spatial::{dimension, orientation, position};
+use draw::properties::{ColorScalar, IntoDrawn, IntoRgba, Primitive, SetColor, SetDimensions, SetOrientation, SetPosition};
 use geom;
 use geom::graph::node;
-use math::{BaseFloat, Point2, Point3, Vector2, Vector3};
+use math::{Angle, BaseFloat, Euler, Point2, Point3, Quaternion, Rad, Vector2, Vector3};
 use std::marker::PhantomData;
 
 /// A **Drawing** in progress.
@@ -986,4 +986,424 @@ where
     pub fn mid_bottom_of(self, other: node::Index) -> Self {
         self.map_ty(|ty| SetPosition::mid_bottom_of(ty, other))
     }
+}
+
+// SetOrientation methods.
+
+impl<'a, T, S> Drawing<'a, T, S>
+where
+    T: IntoDrawn<S> + SetOrientation<S> + Into<Primitive<S>>,
+    Primitive<S>: Into<Option<T>>,
+    S: BaseFloat,
+{
+    /// Describe orientation via the vector that points to the given target.
+    pub fn look_at(self, target: orientation::LookAt<S>) -> Self {
+        self.map_ty(|ty| SetOrientation::look_at(ty, target))
+    }
+
+    /// Describe orientation via the vector that points to the given node.
+    pub fn look_at_node(self, node: node::Index) -> Self {
+        self.map_ty(|ty| SetOrientation::look_at_node(ty, node))
+    }
+
+    /// Describe orientation via the vector that points to the given point.
+    pub fn look_at_point(self, point: Point3<S>) -> Self {
+        self.map_ty(|ty| SetOrientation::look_at_point(ty, point))
+    }
+
+    /// Build with the given **Orientation** along the *x* axis.
+    pub fn x_orientation(self, orientation: orientation::Orientation<S>) -> Self {
+        self.map_ty(|ty| SetOrientation::x_orientation(ty, orientation))
+    }
+
+    /// Build with the given **Orientation** along the *y* axis.
+    pub fn y_orientation(self, orientation: orientation::Orientation<S>) -> Self {
+        self.map_ty(|ty| SetOrientation::y_orientation(ty, orientation))
+    }
+
+    /// Build with the given **Orientation** along the *z* axis.
+    pub fn z_orientation(self, orientation: orientation::Orientation<S>) -> Self {
+        self.map_ty(|ty| SetOrientation::z_orientation(ty, orientation))
+    }
+
+    /// Specify the orientation around the *x* axis as an absolute value in radians.
+    pub fn x_radians(self, x: S) -> Self {
+        self.map_ty(|ty| SetOrientation::x_radians(ty, x))
+    }
+
+    /// Specify the orientation around the *y* axis as an absolute value in radians.
+    pub fn y_radians(self, y: S) -> Self {
+        self.map_ty(|ty| SetOrientation::y_radians(ty, y))
+    }
+
+    /// Specify the orientation around the *z* axis as an absolute value in radians.
+    pub fn z_radians(self, z: S) -> Self {
+        self.map_ty(|ty| SetOrientation::y_radians(ty, z))
+    }
+
+    /// Specify the orientation around the *x* axis as an absolute value in radians.
+    pub fn x_degrees(self, x: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::x_degrees(ty, x))
+    }
+
+    /// Specify the orientation around the *y* axis as an absolute value in radians.
+    pub fn y_degrees(self, y: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::y_degrees(ty, y))
+    }
+
+    /// Specify the orientation around the *z* axis as an absolute value in radians.
+    pub fn z_degrees(self, z: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::z_degrees(ty, z))
+    }
+
+    /// Specify the orientation around the *x* axis as a number of turns around the axis.
+    pub fn x_turns(self, x: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::x_turns(ty, x))
+    }
+
+    /// Specify the orientation around the *y* axis as a number of turns around the axis.
+    pub fn y_turns(self, y: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::y_turns(ty, y))
+    }
+
+    /// Specify the orientation around the *z* axis as a number of turns around the axis.
+    pub fn z_turns(self, z: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::z_turns(ty, z))
+    }
+
+    /// Specify the orientation along each axis with the given **Vector** of radians.
+    ///
+    /// This has the same affect as calling `self.x_radians(v.x).y_radians(v.y).z_radians(v.z)`.
+    pub fn radians(self, v: Vector3<S>) -> Self {
+        self.map_ty(|ty| SetOrientation::radians(ty, v))
+    }
+
+    /// Specify the orientation along each axis with the given **Vector** of degrees.
+    ///
+    /// This has the same affect as calling `self.x_degrees(v.x).y_degrees(v.y).z_degrees(v.z)`.
+    pub fn degrees(self, v: Vector3<S>) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::degrees(ty, v))
+    }
+
+    /// Specify the orientation along each axis with the given **Vector** of "turns".
+    ///
+    /// This has the same affect as calling `self.x_turns(v.x).y_turns(v.y).z_turns(v.z)`.
+    pub fn turns(self, v: Vector3<S>) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::turns(ty, v))
+    }
+
+    /// Specify the orientation with the given **Euler**.
+    ///
+    /// The euler can be specified in either radians (via **Rad**) or degrees (via **Deg**).
+    pub fn euler<A>(self, e: Euler<A>) -> Self
+    where
+        S: BaseFloat,
+        A: Angle + Into<Rad<S>>,
+    {
+        self.map_ty(|ty| SetOrientation::euler(ty, e))
+    }
+
+    /// Specify the orientation with the given **Quaternion**.
+    pub fn quaternion(self, q: Quaternion<S>) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::quaternion(ty, q))
+    }
+
+    // Relative orientation.
+
+    /// Specify the orientation around the *x* axis as a relative value in radians.
+    pub fn x_radians_relative(self, x: S) -> Self {
+        self.map_ty(|ty| SetOrientation::x_radians_relative(ty, x))
+    }
+
+    /// Specify the orientation around the *y* axis as a relative value in radians.
+    pub fn y_radians_relative(self, y: S) -> Self {
+        self.map_ty(|ty| SetOrientation::y_radians_relative(ty, y))
+    }
+
+    /// Specify the orientation around the *z* axis as a relative value in radians.
+    pub fn z_radians_relative(self, z: S) -> Self {
+        self.map_ty(|ty| SetOrientation::z_radians_relative(ty, z))
+    }
+
+    /// Specify the orientation around the *x* axis as a relative value in radians.
+    pub fn x_radians_relative_to(self, other: node::Index, x: S) -> Self {
+        self.map_ty(|ty| SetOrientation::x_radians_relative_to(ty, other, x))
+    }
+
+    /// Specify the orientation around the *y* axis as a relative value in radians.
+    pub fn y_radians_relative_to(self, other: node::Index, y: S) -> Self {
+        self.map_ty(|ty| SetOrientation::y_radians_relative_to(ty, other, y))
+    }
+
+    /// Specify the orientation around the *z* axis as a relative value in radians.
+    pub fn z_radians_relative_to(self, other: node::Index, z: S) -> Self {
+        self.map_ty(|ty| SetOrientation::z_radians_relative_to(ty, other, z))
+    }
+
+    /// Specify the orientation around the *x* axis as a relative value in degrees.
+    pub fn x_degrees_relative(self, x: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::x_degrees_relative(ty, x))
+    }
+
+    /// Specify the orientation around the *y* axis as a relative value in degrees.
+    pub fn y_degrees_relative(self, y: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::y_degrees_relative(ty, y))
+    }
+
+    /// Specify the orientation around the *z* axis as a relative value in degrees.
+    pub fn z_degrees_relative(self, z: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::z_degrees_relative(ty, z))
+    }
+
+    /// Specify the orientation around the *x* axis as a relative value in degrees.
+    pub fn x_degrees_relative_to(self, other: node::Index, x: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::x_degrees_relative_to(ty, other, x))
+    }
+
+    /// Specify the orientation around the *y* axis as a relative value in degrees.
+    pub fn y_degrees_relative_to(self, other: node::Index, y: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::y_degrees_relative_to(ty, other, y))
+    }
+
+    /// Specify the orientation around the *z* axis as a relative value in degrees.
+    pub fn z_degrees_relative_to(self, other: node::Index, z: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::z_degrees_relative_to(ty, other, z))
+    }
+
+    /// Specify the relative orientation around the *x* axis as a number of turns around the axis.
+    pub fn x_turns_relative(self, x: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::x_turns_relative(ty, x))
+    }
+
+    /// Specify the relative orientation around the *y* axis as a number of turns around the axis.
+    pub fn y_turns_relative(self, y: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::y_turns_relative(ty, y))
+    }
+
+    /// Specify the relative orientation around the *z* axis as a number of turns around the axis.
+    pub fn z_turns_relative(self, z: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::z_turns_relative(ty, z))
+    }
+
+    /// Specify the relative orientation around the *x* axis as a number of turns around the axis.
+    pub fn x_turns_relative_to(self, other: node::Index, x: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::x_turns_relative_to(ty, other, x))
+    }
+
+    /// Specify the relative orientation around the *y* axis as a number of turns around the axis.
+    pub fn y_turns_relative_to(self, other: node::Index, y: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::y_turns_relative_to(ty, other, y))
+    }
+
+    /// Specify the relative orientation around the *z* axis as a number of turns around the axis.
+    pub fn z_turns_relative_to(self, other: node::Index, z: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::z_turns_relative_to(ty, other, z))
+    }
+
+    /// Specify a relative orientation along each axis with the given **Vector** of radians.
+    ///
+    /// This has the same affect as the following:
+    ///
+    /// ```ignore
+    /// self.x_radians_relative(v.x)
+    ///     .y_radians_relative(v.y)
+    ///     .z_radians_relative(v.z)
+    /// ```
+    pub fn radians_relative(self, v: Vector3<S>) -> Self {
+        self.map_ty(|ty| SetOrientation::radians_relative(ty, v))
+    }
+
+    /// Specify a relative orientation along each axis with the given **Vector** of radians.
+    ///
+    /// This has the same affect as the following:
+    ///
+    /// ```ignore
+    /// self.x_radians_relative_to(other, v.x)
+    ///     .y_radians_relative_to(other, v.y)
+    ///     .z_radians_relative_to(other, v.z)
+    /// ```
+    pub fn radians_relative_to(self, other: node::Index, v: Vector3<S>) -> Self {
+        self.map_ty(|ty| SetOrientation::radians_relative_to(ty, other, v))
+    }
+
+    /// Specify a relative orientation along each axis with the given **Vector** of degrees.
+    ///
+    /// This has the same affect as the following:
+    ///
+    /// ```ignore
+    /// self.x_degrees_relative(v.x)
+    ///     .y_degrees_relative(v.y)
+    ///     .z_degrees_relative(v.z)
+    /// ```
+    pub fn degrees_relative(self, v: Vector3<S>) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::degrees_relative(ty, v))
+    }
+
+    /// Specify a relative orientation along each axis with the given **Vector** of degrees.
+    ///
+    /// This has the same affect as the following:
+    ///
+    /// ```ignore
+    /// self.x_degrees_relative_to(other, v.x)
+    ///     .y_degrees_relative_to(other, v.y)
+    ///     .z_degrees_relative_to(other, v.z)
+    /// ```
+    pub fn degrees_relative_to(self, other: node::Index, v: Vector3<S>) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::degrees_relative_to(ty, other, v))
+    }
+
+    /// Specify a relative orientation along each axis with the given **Vector** of "turns".
+    ///
+    /// This has the same affect as the following:
+    ///
+    /// ```ignore
+    /// self.x_turns_relative(v.x)
+    ///     .y_turns_relative(v.y)
+    ///     .z_turns_relative(v.z)
+    /// ```
+    pub fn turns_relative(self, v: Vector3<S>) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::turns_relative(ty, v))
+    }
+
+    /// Specify a relative orientation along each axis with the given **Vector** of "turns".
+    ///
+    /// This has the same affect as the following:
+    ///
+    /// ```ignore
+    /// self.x_turns_relative_to(other, v.x)
+    ///     .y_turns_relative_to(other, v.y)
+    ///     .z_turns_relative_to(other, v.z)
+    /// ```
+    pub fn turns_relative_to(self, other: node::Index, v: Vector3<S>) -> Self
+    where
+        S: BaseFloat,
+    {
+        self.map_ty(|ty| SetOrientation::turns_relative_to(ty, other, v))
+    }
+
+    /// Specify a relative orientation with the given **Euler**.
+    ///
+    /// The euler can be specified in either radians (via **Rad**) or degrees (via **Deg**).
+    pub fn euler_relative<A>(self, e: Euler<A>) -> Self
+    where
+        S: BaseFloat,
+        A: Angle + Into<Rad<S>>,
+    {
+        self.map_ty(|ty| SetOrientation::euler_relative(ty, e))
+    }
+
+    /// Specify a relative orientation with the given **Euler**.
+    ///
+    /// The euler can be specified in either radians (via **Rad**) or degrees (via **Deg**).
+    pub fn euler_relative_to<A>(self, other: node::Index, e: Euler<A>) -> Self
+    where
+        S: BaseFloat,
+        A: Angle + Into<Rad<S>>,
+    {
+        self.map_ty(|ty| SetOrientation::euler_relative_to(ty, other, e))
+    }
+
+    // Higher level methods.
+
+    /// Specify the "pitch" of the orientation in radians.
+    ///
+    /// This has the same effect as calling `x_radians`.
+    pub fn pitch(self, pitch: S) -> Self {
+        self.map_ty(|ty| SetOrientation::pitch(ty, pitch))
+    }
+
+    /// Specify the "yaw" of the orientation in radians.
+    ///
+    /// This has the same effect as calling `y_radians`.
+    pub fn yaw(self, yaw: S) -> Self {
+        self.map_ty(|ty| SetOrientation::yaw(ty, yaw))
+    }
+
+    /// Specify the "roll" of the orientation in radians.
+    ///
+    /// This has the same effect as calling `z_radians`.
+    pub fn roll(self, roll: S) -> Self {
+        self.map_ty(|ty| SetOrientation::roll(ty, roll))
+    }
+
+    /// Assuming we're looking at a 2D plane, positive values cause a clockwise rotation where the
+    /// given value is specified in radians.
+    ///
+    /// This is equivalent to calling the `z_radians` or `roll` methods.
+    pub fn rotate(self, radians: S) -> Self {
+        self.map_ty(|ty| SetOrientation::rotate(ty, radians))
+    }
+
 }

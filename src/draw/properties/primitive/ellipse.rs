@@ -1,6 +1,6 @@
 use draw::{self, Drawing};
-use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions, SetPosition};
-use draw::properties::spatial::{dimension, position};
+use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions, SetOrientation, SetPosition};
+use draw::properties::spatial::{dimension, orientation, position};
 use geom;
 use math::{BaseFloat, Vector2};
 
@@ -91,6 +91,12 @@ impl<S> Default for Ellipse<S> {
             color,
             resolution,
         }
+    }
+}
+
+impl<S> SetOrientation<S> for Ellipse<S> {
+    fn properties(&mut self) -> &mut orientation::Properties<S> {
+        SetOrientation::properties(&mut self.spatial)
     }
 }
 

@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::mem;
 use std::ops;
 
+use self::properties::spatial::orientation::{self, Orientation};
 use self::properties::spatial::position::{self, Position};
 use self::properties::{IntoDrawn, Primitive};
 pub use self::background::Background;
@@ -204,6 +205,32 @@ where
     }
 }
 
+// Given some `orientation` around the given axis return the resulting `geom::Graph` edge and the
+// parent.
+fn orientation_to_edge<S>(
+    orientation: &Orientation<S>,
+    draw: &mut State<S>,
+    axis: edge::Axis,
+) -> (geom::graph::Edge<S>, node::Index)
+where
+    S: BaseFloat,
+{
+    match *orientation {
+        Orientation::Absolute(s) => {
+            let edge = geom::graph::Edge::orientation(axis, s);
+            let origin = draw.geom_graph.origin();
+            (edge, origin)
+        }
+        Orientation::Relative(s, maybe_parent) => {
+            let parent = maybe_parent
+                .or(draw.last_node_drawn)
+                .unwrap_or(draw.geom_graph.origin());
+            let edge = geom::graph::Edge::orientation(axis, s);
+            (edge, parent)
+        }
+    }
+}
+
 fn point_x<S: Clone>(p: &mesh::vertex::Point<S>) -> S {
     p.x.clone()
 }
@@ -242,7 +269,7 @@ where
     let ranges = Ranges { vertices, indices };
     draw.ranges.insert(node_index, ranges);
 
-    // Update the edges within the geometry graph.
+    // Update the position edges within the geometry graph.
     let p = &spatial.position;
     let x = p.x
         .map(|pos| (pos, edge::Axis::X, point_x as fn(&mesh::vertex::Point<S>) -> S));
@@ -253,6 +280,28 @@ where
         let (edge, parent) =
             position_to_edge(node_index, &position, draw, axis, &point_axis);
         draw.geom_graph.set_edge(parent, node_index, edge)?;
+    }
+
+    // Update the orientation edges within the geometry graph.
+    match spatial.orientation {
+        orientation::Properties::LookAt(look_at) => {
+            // The location of the target.
+            let _p = match look_at {
+                orientation::LookAt::Node(_node) => unimplemented!(),
+                orientation::LookAt::Point(point) => point,
+            };
+            unimplemented!();
+        },
+        orientation::Properties::Axes(axes) => {
+            let x = axes.x.map(|axis| (axis, edge::Axis::X));
+            let y = axes.y.map(|axis| (axis, edge::Axis::Y));
+            let z = axes.z.map(|axis| (axis, edge::Axis::Z));
+            let axes = x.into_iter().chain(y).chain(z);
+            for (orientation, axis) in axes {
+                let (edge, parent) = orientation_to_edge(&orientation, draw, axis);
+                draw.geom_graph.set_edge(parent, node_index, edge)?;
+            }
+        },
     }
 
     // Set this node as the last drawn node.
