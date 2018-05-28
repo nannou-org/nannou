@@ -21,6 +21,7 @@ use self::spatial::dimension;
 pub use self::color::{IntoRgba, SetColor};
 pub use self::primitive::{Ellipse, Line, Quad, Primitive, Rect, Tri};
 pub use self::spatial::dimension::SetDimensions;
+pub use self::spatial::orientation::SetOrientation;
 pub use self::spatial::position::SetPosition;
 
 /// The scalar type used for the color channel values.

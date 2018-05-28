@@ -1,6 +1,6 @@
 use draw::{self, Drawing};
-use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions, SetPosition};
-use draw::properties::spatial::{dimension, position};
+use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions, SetOrientation, SetPosition};
+use draw::properties::spatial::{dimension, orientation, position};
 use geom;
 use math::{BaseFloat, ElementWise, Point2, Vector2};
 use std::{iter, slice};
@@ -142,6 +142,12 @@ where
         let a = Point2 { x: left, y: zero };
         let b = Point2 { x: right, y: zero };
         Line::new(a, b, half_thickness)
+    }
+}
+
+impl<S> SetOrientation<S> for Line<S> {
+    fn properties(&mut self) -> &mut orientation::Properties<S> {
+        SetOrientation::properties(&mut self.spatial)
     }
 }
 

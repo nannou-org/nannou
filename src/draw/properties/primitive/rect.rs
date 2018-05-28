@@ -1,6 +1,6 @@
 use draw;
-use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions, SetPosition};
-use draw::properties::spatial::{dimension, position};
+use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions, SetOrientation, SetPosition};
+use draw::properties::spatial::{dimension, orientation, position};
 use geom;
 use math::{BaseFloat, Point2, Vector2};
 use std::{iter, slice};
@@ -76,6 +76,12 @@ where
         let spatial = <_>::default();
         let color = <_>::default();
         Rect { spatial, color }
+    }
+}
+
+impl<S> SetOrientation<S> for Rect<S> {
+    fn properties(&mut self) -> &mut orientation::Properties<S> {
+        SetOrientation::properties(&mut self.spatial)
     }
 }
 
