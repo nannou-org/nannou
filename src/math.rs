@@ -78,3 +78,35 @@ where
     let rquot: F = (numer / denom).floor();
     numer - rquot * denom
 }
+
+/// Convert the given angle in degrees to the same angle in radians.
+pub fn deg_to_rad<S>(deg: S) -> S
+where
+    S: BaseFloat,
+{
+    Rad::from(Deg(deg)).0
+}
+
+/// Convert the given angle in radians to the same angle in degrees.
+pub fn rad_to_deg<S>(rad: S) -> S
+where
+    S: BaseFloat,
+{
+    Deg::from(Rad(rad)).0
+}
+
+/// Convert the given value as a number of "turns" into the equivalent angle in radians.
+pub fn turns_to_rad<S>(turns: S) -> S
+where
+    S: BaseFloat,
+{
+    turns * NumCast::from(2.0 * ::std::f64::consts::PI).unwrap()
+}
+
+/// Convert the given value in radians to the equivalent value as a number of turns.
+pub fn rad_to_turns<S>(rad: S) -> S
+where
+    S: BaseFloat,
+{
+    rad / NumCast::from(2.0 * ::std::f64::consts::PI).unwrap()
+}
