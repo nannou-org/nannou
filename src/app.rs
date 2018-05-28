@@ -32,6 +32,8 @@ pub struct App {
     config: RefCell<Config>,
     pub(crate) ui: ui::Arrangement,
     draw_state: DrawState,
+    /// The window that is currently in focus.
+    pub(crate) focused_window: RefCell<Option<window::Id>>,
 
     /// Indicates whether or not the events loop is currently asleep.
     ///
@@ -46,8 +48,6 @@ pub struct App {
 
     /// The current state of the `Mouse`.
     pub mouse: state::Mouse,
-    /// State of the window currently in focus.
-    pub window: state::Window,
     /// State of the keyboard keys.
     ///
     /// `mods` provides state of each of the modifier keys: `shift`, `ctrl`, `alt`, `logo`.
@@ -251,9 +251,9 @@ impl App {
             event_loop: cpal_event_loop,
             process_fn_tx,
         };
+        let focused_window = RefCell::new(None);
         let ui = ui::Arrangement::new();
         let mouse = state::Mouse::new();
-        let window = state::Window::new();
         let keys = state::Keys::default();
         let duration = state::Time::default();
         let time = duration.since_start.secs() as _;
@@ -261,13 +261,13 @@ impl App {
         App {
             events_loop,
             events_loop_is_asleep,
+            focused_window,
             windows,
             config,
             draw_state,
             audio,
             ui,
             mouse,
-            window,
             keys,
             duration,
             time,
@@ -311,6 +311,15 @@ impl App {
         }
     }
 
+    /// Return the **Id** of the currently focused window.
+    ///
+    /// **Panics** if there are no windows or if no window is in focus.
+    pub fn window_id(&self) -> window::Id {
+        self.focused_window
+            .borrow()
+            .expect("called `App::window_id` but there is no window currently in focus")
+    }
+
     /// Return the **Rect** for the currently focused window.
     ///
     /// The **Rect** coords are described in "points" (pixels divided by the hidpi factor).
@@ -330,7 +339,7 @@ impl App {
     /// TODO: Currently this produces a reference to the *focused* window, but this behaviour
     /// should be changed to track the "main" window (the first window created?).
     pub fn main_window(&self) -> std::cell::Ref<Window> {
-        self.window(self.window.id.expect("no window in focus")).expect("no window for focused id")
+        self.window(self.window_id()).expect("no window for focused id")
     }
 
     /// Return whether or not the `App` is currently set to exit when the `Escape` key is pressed.
@@ -388,11 +397,12 @@ impl App {
         Proxy { events_loop_proxy, events_loop_is_asleep }
     }
 
-    /// Create a new `Ui` for the window with the given `Id`.
+    /// A builder for creating a new **Ui**.
     ///
-    /// Returns `None` if there is no window for the given `window_id`.
-    pub fn new_ui(&self, window_id: window::Id) -> ui::Builder {
-        ui::Builder::new(self, window_id)
+    /// Each **Ui** is associated with one specific window. By default, this is the window returned
+    /// by `App::window_id` (the currently focused window).
+    pub fn new_ui(&self) -> ui::Builder {
+        ui::Builder::new(self)
     }
 
     /// Produce the **App**'s **Draw** API for drawing geometry and text with colors and textures.
@@ -435,8 +445,8 @@ impl App {
     /// method is called while there is a pre-existing instance of **app::Draw** this method will
     /// **panic**.
     pub fn draw(&self) -> Draw {
-        self.draw_for_window(self.window.id.expect("no window in focus"))
-            .expect("no window open for `app.window.id`")
+        self.draw_for_window(self.window_id())
+            .expect("no window open for `app.window_id`")
     }
 }
 

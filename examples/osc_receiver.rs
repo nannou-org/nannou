@@ -19,7 +19,7 @@ struct Model {
 const PORT: u16 = 34254;
 
 fn model(app: &App) -> Model {
-    let window = app.new_window()
+    app.new_window()
         .with_title("OSC Receiver")
         .with_dimensions(1400, 480)
         .build()
@@ -32,7 +32,7 @@ fn model(app: &App) -> Model {
     let received_packets = vec![];
 
     // Create a simple UI to display received messages.
-    let mut ui = app.new_ui(window).build().unwrap();
+    let mut ui = app.new_ui().build().unwrap();
     let text = ui.generate_widget_id();
 
     Model { receiver, received_packets, ui, text }

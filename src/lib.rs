@@ -126,21 +126,21 @@ impl<M, E> Builder<M, E>
         let events_loop = glutin::EventsLoop::new();
 
         // Initialise the app.
-        let mut app = App::new(events_loop);
+        let app = App::new(events_loop);
 
         // Create the default window if necessary
         if create_default_window {
             let window_id = app.new_window().build().expect("could not build default app window");
-            app.window.id = Some(window_id);
+            *app.focused_window.borrow_mut() = Some(window_id);
         }
 
         // Call the user's model function.
         let model = model(&app);
 
         // If there is not yet some default window in "focus" check to see if one has been created.
-        if app.window.id.is_none() {
+        if app.focused_window.borrow().is_none() {
             if let Some(id) = app.windows.borrow().keys().next() {
-                app.window.id = Some(id.clone());
+                *app.focused_window.borrow_mut() = Some(id.clone());
             }
         }
 
@@ -179,7 +179,7 @@ where
             })
             .collect();
         // TODO: This currently passes the *focused* window but should pass the *main* one.
-        let undrawn_frame = frame::new(gl_frames, app.window.id);
+        let undrawn_frame = frame::new(gl_frames, *app.focused_window.borrow());
         let frame = match *view {
             View::Full(view_fn) => view_fn(&app, &model, undrawn_frame),
             View::Simple(view_fn) => view_fn(&app, undrawn_frame),
@@ -301,9 +301,9 @@ where
                 let ty = |y: geom::DefaultScalar| -((y / hidpi_factor) - win_h as geom::DefaultScalar / 2.0);
 
                 // If the window ID has changed, ensure the dimensions are up to date.
-                if app.window.id != Some(window_id) {
+                if *app.focused_window.borrow() != Some(window_id) {
                     if app.window(window_id).is_some() {
-                        app.window.id = Some(window_id);
+                        *app.focused_window.borrow_mut() = Some(window_id);
                     }
                 }
 

@@ -69,6 +69,12 @@ impl<'a, 'b> Builder<'a, 'b> {
         let display = glium::Display::new(window, context, &app.events_loop)?;
         let window_id = display.gl_window().id();
         app.windows.borrow_mut().insert(window_id, Window { display });
+
+        // If this is the first window, set it as the app's "focused" window.
+        if app.windows.borrow().len() == 1 {
+            *app.focused_window.borrow_mut() = Some(window_id);
+        }
+
         Ok(window_id)
     }
 
