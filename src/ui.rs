@@ -52,7 +52,7 @@ pub struct Ui {
 /// A type used for building a new `Ui`.
 pub struct Builder<'a> {
     app: &'a App,
-    window_id: window::Id,
+    window_id: Option<window::Id>,
     dimensions: Option<[Scalar; 2]>,
     theme: Option<Theme>,
     automatically_handle_input: bool,
@@ -83,10 +83,10 @@ impl Arrangement {
 
 impl<'a> Builder<'a> {
     /// Begin building a new `Ui`.
-    pub(super) fn new(app: &'a App, window_id: window::Id) -> Self {
+    pub(super) fn new(app: &'a App) -> Self {
         Builder {
             app,
-            window_id,
+            window_id: None,
             dimensions: None,
             theme: None,
             automatically_handle_input: true,
@@ -94,6 +94,15 @@ impl<'a> Builder<'a> {
             default_font_path: None,
             glyph_cache_dimensions: None,
         }
+    }
+
+    /// Specify the window on which the **Ui** will be instantiated.
+    ///
+    /// By default, this is the currently focused window, aka the window returned via
+    /// **App::window_id**.
+    pub fn window(mut self, window_id: window::Id) -> Self {
+        self.window_id = Some(window_id);
+        self
     }
 
     /// Build the `Ui` with the given dimensions.
@@ -179,6 +188,9 @@ impl<'a> Builder<'a> {
             default_font_path,
             glyph_cache_dimensions,
         } = self;
+
+        let window_id = window_id.unwrap_or(app.window_id());
+
         let dimensions = match dimensions {
             None => match app.window(window_id) {
                 None => return None,
@@ -360,7 +372,6 @@ impl Ui {
                 if let Ok(mut renderer) = renderer.lock() {
                     let primitives = ui.draw();
                     renderer.fill(&window.display, primitives, &image_map);
-                    window_frame.clear_color(0.0, 0.0, 0.0, 1.0);
                     renderer.draw(&window.display, &mut window_frame.frame.frame, image_map)?;
                 }
             }
@@ -388,7 +399,6 @@ impl Ui {
                 if let Ok(mut renderer) = renderer.lock() {
                     if let Some(primitives) = ui.draw_if_changed() {
                         renderer.fill(&window.display, primitives, &image_map);
-                        window_frame.clear_color(0.0, 0.0, 0.0, 1.0);
                         renderer.draw(&window.display, &mut window_frame.frame.frame, image_map)?;
                         return Ok(true);
                     }

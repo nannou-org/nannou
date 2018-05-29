@@ -25,7 +25,7 @@ fn model(app: &App) -> Model {
     app.set_loop_mode(LoopMode::wait(3));
 
     // Create the UI.
-    let mut ui = app.new_ui(app.window.id()).build().unwrap();
+    let mut ui = app.new_ui().build().unwrap();
 
     // Generate some ids for our widgets.
     let ids = Ids {
