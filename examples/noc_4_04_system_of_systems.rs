@@ -2,7 +2,7 @@
 // Daniel Shiffman
 // http://natureofcode.com
 //
-// example 4-02: Vector Particle
+// example 4-04: System of Systems
 extern crate nannou;
 
 use nannou::prelude::*;
@@ -16,7 +16,7 @@ fn main() {
 
 struct Model {
     window: WindowId,
-    ps: ParticleSystem,
+    systems: Vec<ParticleSystem>,
 }
 
 // A simple particle type
@@ -30,7 +30,7 @@ struct Particle {
 impl Particle {
     fn new(l: Vector2<f32>) -> Self {
         let acceleration = Vector2::new(0.0, 0.05);
-        let velocity = Vector2::new(random::<f32>() * 2.0 - 1.0, random::<f32>() - 1.0);
+        let velocity = Vector2::new(random::<f32>() * 2.0 - 1.0, random::<f32>() - 2.0);
         let position = l;
         let life_span = 255.0;
         Particle{ acceleration, velocity, position, life_span }
@@ -68,9 +68,12 @@ struct ParticleSystem {
 }
 
 impl ParticleSystem {
-    fn new(position: Vector2<f32>) -> Self {
-        let origin = position;
-        let particles = Vec::new(); 
+    fn new(num: i32, position: Vector2<f32>) -> Self {
+        let origin = position; // An origin point for where particles are birthed
+        let mut particles = Vec::new(); // Initialise the Vector
+        for i in 0..num {
+            particles.push(Particle::new(origin)); // Add "num" amount of particles to the vector
+        }
         ParticleSystem{ origin, particles }
     } 
 
@@ -92,13 +95,21 @@ impl ParticleSystem {
             p.display(&draw);
         }
     }
+
+    // A method to test if the particle system still has particles
+    fn dead(&self) -> bool {
+        if self.particles.is_empty() {
+            true
+        } else {
+            false
+        }
+    } 
 }
 
 fn model(app: &App) -> Model {
     let window = app.new_window().with_dimensions(640,360).build().unwrap();
-    let (w, h) = app.window(window).unwrap().framebuffer_dimensions();
-    let ps = ParticleSystem::new(Vector2::new(0.0,(h as f32 / 2.0) - 50.0));
-    Model { window, ps }
+    let systems = Vec::new(); 
+    Model { window, systems }
 }
 
 fn event(app: &App, mut m: Model, event: Event) -> Model {
@@ -112,15 +123,19 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
                 KeyPressed(_key) => {}
 
                 // MOUSE EVENTS
-                MouseReleased(_button) => {}
+                MousePressed(_button) => {
+                    m.systems.push(ParticleSystem::new(1, Vector2::new(app.mouse.x, app.mouse.y)));
+                }
 
                 _other => (),
             }
         }
         // update gets called just before view every frame
         Event::Update(_dt) => {
-            m.ps.add_particle();
-            m.ps.update();
+            for ps in m.systems.iter_mut() {
+                ps.add_particle();
+                ps.update();
+            }
         }
         _ => (),
     }
@@ -128,13 +143,15 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
-    app.main_window().set_title("Particle System Type");
+    app.main_window().set_title("System of Systems");
 
     // Begin drawing
     let draw = app.draw();
     draw.background().rgb(0.0, 0.0, 0.0);
 
-    m.ps.draw(&draw);
+    for i in 0..m.systems.len() {
+        m.systems[i].draw(&draw);
+    }
 
     // Write the result of our drawing to the window's OpenGL frame.
     draw.to_frame(app, &frame).unwrap();

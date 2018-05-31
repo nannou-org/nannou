@@ -61,7 +61,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     draw.background().rgb(1.0, 1.0, 1.0);
 
     let mut angle = model.start_angle;
-    let rect = app.window.rect();
+    let rect = app.window_rect();
     let mut x = rect.left();
     while x <= rect.right() {
         let y = map_range(angle.sin(), -1.0, 1.0, rect.top(), rect.bottom()); 
