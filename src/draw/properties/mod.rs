@@ -11,6 +11,7 @@ use geom;
 use geom::graph::node;
 use math::BaseFloat;
 use std::cell::RefCell;
+use std::ops;
 
 pub mod color;
 pub mod primitive;

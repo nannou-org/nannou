@@ -23,7 +23,11 @@ pub use self::tri::Tri;
 pub enum Primitive<S = geom::DefaultScalar> {
     Ellipse(Ellipse<S>),
     Line(Line<S>),
-    Polygon(Polygon<S>),
+
+    PolygonPointless(polygon::Pointless),
+    PolygonFill(Polygon<polygon::Fill, S>),
+    PolygonColorPerVertex(Polygon<polygon::PerVertex, S>),
+
     Quad(Quad<S>),
     Rect(Rect<S>),
     Tri(Tri<S>),

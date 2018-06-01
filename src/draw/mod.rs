@@ -67,6 +67,8 @@ where
     geom_graph: geom::Graph<S>,
     /// For performing a depth-first search over the geometry graph.
     geom_graph_dfs: RefCell<geom::graph::node::Dfs<S>>,
+    /// Buffers of vertex data that may be re-used for polylines, polygons, etc between view calls.
+    geom_vertex_data: RefCell<GeomVertexData<S>>,
     /// The mesh containing vertices for all drawn shapes, etc.
     mesh: Mesh<S>,
     /// The map from node indices to their vertex and index ranges within the mesh.
@@ -79,6 +81,46 @@ where
     theme: Theme,
     /// If `Some`, the **Draw** should first clear the frame's gl context with the given color.
     background_color: Option<properties::Rgba>,
+}
+
+/// A set of intermediary buffers for collecting geometry point data for geometry types that may
+/// produce a dynamic number of vertices that may or not also contain colour or texture data.
+#[derive(Clone, Debug)]
+pub(crate) struct GeomVertexData<S> {
+    pub(crate) points: Vec<mesh::vertex::Point<S>>,
+    pub(crate) colors: Vec<mesh::vertex::Color>,
+    pub(crate) tex_coords: Vec<mesh::vertex::TexCoords<S>>,
+}
+
+/// A set of ranges into the **GeomVertexData**.
+///
+/// This allows polygons, polylines, etc to track which slices of data are associated with their
+/// own instance.
+#[derive(Clone, Debug)]
+pub(crate) struct GeomVertexDataRanges {
+    pub points: ops::Range<usize>,
+    pub colors: ops::Range<usize>,
+    pub tex_coords: ops::Range<usize>,
+}
+
+impl<S> Default for GeomVertexData<S> {
+    fn default() -> Self {
+        GeomVertexData {
+            points: Default::default(),
+            colors: Default::default(),
+            tex_coords: Default::default(),
+        }
+    }
+}
+
+impl Default for GeomVertexDataRanges {
+    fn default() -> Self {
+        GeomVertexDataRanges {
+            points: 0..0,
+            colors: 0..0,
+            tex_coords: 0..0,
+        }
+    }
 }
 
 /// The vertex and index ranges into a mesh for a particular node.
@@ -327,6 +369,17 @@ where
         Primitive::Line(prim) => {
             into_drawn(draw, node_index, prim)
         },
+        Primitive::PolygonPointless(_) => {
+            Ok(())
+        },
+        Primitive::PolygonFill(prim) => {
+            unimplemented!();
+            //into_drawn(draw, node_index, prim)
+        },
+        Primitive::PolygonColorPerVertex(prim) => {
+            unimplemented!();
+            //into_drawn(draw, node_index, prim)
+        },
         Primitive::Quad(prim) => {
             into_drawn(draw, node_index, prim)
         }
@@ -357,6 +410,15 @@ where
     })
 }
 
+impl<S> GeomVertexData<S> {
+    /// Clears all buffers.
+    pub fn reset(&mut self) {
+        self.points.clear();
+        self.colors.clear();
+        self.tex_coords.clear();
+    }
+}
+
 impl<S> State<S>
 where
     S: BaseFloat,
@@ -367,6 +429,7 @@ where
         self.geom_graph_dfs.borrow_mut().reset(&self.geom_graph);
         self.drawing.clear();
         self.ranges.clear();
+        self.geom_vertex_data.borrow_mut().reset();
         self.mesh.clear();
         self.background_color = None;
         self.last_node_drawn = None;
@@ -524,6 +587,11 @@ where
         self.a(Default::default())
     }
 
+    /// Begin drawing a **Polygon**.
+    pub fn polygon(&self) -> Drawing<properties::primitive::polygon::Pointless, S> {
+        self.a(Default::default())
+    }
+
     /// Produce the transformed mesh vertices for the node at the given index.
     ///
     /// Returns **None** if there is no node for the given index.
@@ -678,6 +746,7 @@ where
         let geom_graph = Default::default();
         let geom_graph_dfs = RefCell::new(geom::graph::node::Dfs::new(&geom_graph));
         let drawing = Default::default();
+        let geom_vertex_data = RefCell::new(Default::default());
         let mesh = Default::default();
         let ranges = Default::default();
         let theme = Default::default();
@@ -686,6 +755,7 @@ where
         State {
             geom_graph,
             geom_graph_dfs,
+            geom_vertex_data,
             mesh,
             drawing,
             ranges,
