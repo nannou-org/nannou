@@ -93,9 +93,10 @@ where
     // Map the given function onto the primitive stored within **Draw** at `index`.
     //
     // The functionn is only applied if the node has not yet been **Drawn**.
-    fn map_primitive<F>(self, map: F) -> Self
+    fn map_primitive<F, T2>(self, map: F) -> Drawing<'a, T2, S>
     where
         F: FnOnce(draw::properties::Primitive<S>) -> draw::properties::Primitive<S>,
+        T2: IntoDrawn<S> + Into<Primitive<S>>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
@@ -103,7 +104,29 @@ where
                 state.drawing.insert(self.index, primitive);
             }
         }
-        self
+        let Drawing { draw, index, .. } = self;
+        Drawing { draw, index, _ty: PhantomData }
+    }
+
+    // The same as `map_primitive` but also passes a mutable reference to the vertex data to the
+    // map function. This is useful for types that may have an unknown number of arbitrary
+    // vertices.
+    fn map_primitive_with_vertices<F, T2>(self, map: F) -> Drawing<'a, T2, S>
+    where
+        F: FnOnce(draw::properties::Primitive<S>, &mut draw::GeomVertexData<S>) -> draw::properties::Primitive<S>,
+        T2: IntoDrawn<S> + Into<Primitive<S>>,
+    {
+        if let Ok(mut state) = self.draw.state.try_borrow_mut() {
+            if let Some(mut primitive) = state.drawing.remove(&self.index) {
+                {
+                    let mut geom_vertex_data = state.geom_vertex_data.borrow_mut();
+                    primitive = map(primitive, &mut *geom_vertex_data);
+                }
+                state.drawing.insert(self.index, primitive);
+            }
+        }
+        let Drawing { draw, index, .. } = self;
+        Drawing { draw, index, _ty: PhantomData }
     }
 
     /// Apply the given function to the type stored within **Draw**.
@@ -111,16 +134,35 @@ where
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub fn map_ty<F, T2>(self, map: F) -> Self
+    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2, S>
     where
         F: FnOnce(T) -> T2,
-        T2: Into<Primitive<S>>,
+        T2: IntoDrawn<S> + Into<Primitive<S>>,
         Primitive<S>: Into<Option<T>>,
     {
         self.map_primitive(|prim| {
             let maybe_ty: Option<T> = prim.into();
             let ty = maybe_ty.expect("expected `T` but primitive contained different type");
             let ty2 = map(ty);
+            ty2.into()
+        })
+    }
+
+    /// Apply the given function to the type stored within **Draw**.
+    ///
+    /// The function is only applied if the node has not yet been **Drawn**.
+    ///
+    /// **Panics** if the primitive does not contain type **T**.
+    pub(crate) fn map_ty_with_vertices<F, T2>(self, map: F) -> Drawing<'a, T2, S>
+    where
+        F: FnOnce(T, &mut draw::GeomVertexData<S>) -> T2,
+        T2: IntoDrawn<S> + Into<Primitive<S>>,
+        Primitive<S>: Into<Option<T>>,
+    {
+        self.map_primitive_with_vertices(|prim, v_data| {
+            let maybe_ty: Option<T> = prim.into();
+            let ty = maybe_ty.expect("expected `T` but primitive contained different type");
+            let ty2 = map(ty, v_data);
             ty2.into()
         })
     }
