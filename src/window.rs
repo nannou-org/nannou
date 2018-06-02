@@ -275,23 +275,6 @@ impl Window {
         self.display.gl_window().set_position(x, y)
     }
 
-    /// The size in points of the client area of the window.
-    ///
-    /// The client area is the content of the window, excluding the title bar and borders. To get
-    /// the dimensions of the frame buffer when calling `glViewport`, multiply with hidpi factor.
-    ///
-    /// This is the same as multiplying the result  of `inner_size_pixels()` by `hidpi_factor()`.
-    pub fn inner_size_points(&self) -> (f32, f32) {
-        let gl_window = self.display.gl_window();
-        gl_window
-            .get_inner_size()
-            .map(|(w_px, h_px)| {
-                let dpi_factor = self.hidpi_factor();
-                (w_px as f32 / dpi_factor, h_px as f32 / dpi_factor)
-            })
-            .expect(Self::NO_LONGER_EXISTS)
-    }
-
     /// The size in pixels of the client area of the window.
     ///
     /// The client area is the content of the window, excluding the title bar and borders. These
@@ -302,6 +285,18 @@ impl Window {
             .gl_window()
             .get_inner_size()
             .expect(Self::NO_LONGER_EXISTS)
+    }
+
+    /// The size in points of the client area of the window.
+    ///
+    /// The client area is the content of the window, excluding the title bar and borders. To get
+    /// the dimensions of the frame buffer when calling `glViewport`, multiply with hidpi factor.
+    ///
+    /// This is the same as dividing the result  of `inner_size_pixels()` by `hidpi_factor()`.
+    pub fn inner_size_points(&self) -> (f32, f32) {
+        let (w_px, h_px) = self.inner_size_pixels();
+        let hidpi_factor = self.hidpi_factor();
+        (w_px as f32 / hidpi_factor, h_px as f32 / hidpi_factor)
     }
 
     /// The size of the window in pixels.
@@ -315,11 +310,34 @@ impl Window {
             .expect(Self::NO_LONGER_EXISTS)
     }
 
+    /// The size of the window in points.
+    ///
+    /// These dimensions include title bar and borders. If you don't want these, you should use
+    /// `inner_size_points` instead.
+    ///
+    /// This is the same as dividing the result  of `outer_size_pixels()` by `hidpi_factor()`.
+    pub fn outer_size_points(&self) -> (f32, f32) {
+        let (w_px, h_px) = self.outer_size_pixels();
+        let hidpi_factor = self.hidpi_factor();
+        (w_px as f32 / hidpi_factor, h_px as f32 / hidpi_factor)
+    }
+
     /// Modifies the inner size of the window.
     ///
     /// See the `inner_size` methods for more informations about the values.
     pub fn set_inner_size_pixels(&self, width: u32, height: u32) {
         self.display.gl_window().set_inner_size(width, height)
+    }
+
+    /// Modifies the inner size of the window using point values.
+    ///
+    /// Internally, the given width and height are multiplied by the `hidpi_factor` to get the
+    /// values in pixels before calling `set_inner_size_pixels` internally.
+    pub fn set_inner_size_points(&self, width: f32, height: f32) {
+        let hidpi_factor = self.hidpi_factor();
+        let w_px = (width * hidpi_factor) as _;
+        let h_px = (height * hidpi_factor) as _;
+        self.set_inner_size_pixels(w_px, h_px);
     }
 
     /// Modifies the mouse cursor of the window.
