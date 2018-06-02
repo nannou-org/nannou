@@ -159,8 +159,8 @@ impl SimpleWindowEvent {
     pub fn from_glutin_window_event(
         event: glutin::WindowEvent,
         dpi_factor: f64,
-        win_w: u32,
-        win_h: u32,
+        win_w_px: u32,
+        win_h_px: u32,
     ) -> Option<Self>
     {
         use self::SimpleWindowEvent::*;
@@ -169,13 +169,12 @@ impl SimpleWindowEvent {
         //
         // winit produces input events in pixels, so these positions need to be divided by the
         // width and height of the window in order to be DPI agnostic.
-        let tx = |x: f64| (x / dpi_factor) - win_w as f64 / 2.0;
-        let ty = |y: f64| -((y / dpi_factor) - win_h as f64 / 2.0);
         let tw = |w: f64| w / dpi_factor;
         let th = |h: f64| h / dpi_factor;
+        let tx = |x: f64| (x - win_w_px as f64 / 2.0) / dpi_factor;
+        let ty = |y: f64| -((y - win_h_px as f64 / 2.0) / dpi_factor);
 
         let event = match event {
-
             glutin::WindowEvent::Resized(new_w, new_h) => {
                 let x = tw(new_w as f64);
                 let y = th(new_h as f64);
@@ -268,7 +267,7 @@ impl LoopEvent for Event {
         let event = match event {
             glutin::Event::WindowEvent { window_id, event } => {
                 let windows = app.windows.borrow();
-                let (dpi_factor, win_w, win_h) = match windows.get(&window_id) {
+                let (dpi_factor, win_w_px, win_h_px) = match windows.get(&window_id) {
                     None => (1.0, 0, 0), // The window was likely closed, these will be ignored.
                     Some(window) => {
                         let window = window.display.gl_window();
@@ -280,7 +279,12 @@ impl LoopEvent for Event {
                     },
                 };
                 let raw = event.clone();
-                let simple = SimpleWindowEvent::from_glutin_window_event(event, dpi_factor, win_w, win_h);
+                let simple = SimpleWindowEvent::from_glutin_window_event(
+                    event,
+                    dpi_factor,
+                    win_w_px,
+                    win_h_px,
+                );
                 Event::WindowEvent { id: window_id, raw, simple }
             },
             glutin::Event::DeviceEvent { device_id, event } =>
