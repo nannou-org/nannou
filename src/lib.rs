@@ -430,6 +430,7 @@ where
 
                 // Draw the state of the model to the screen.
                 draw(&app, &model, &view).unwrap();
+                app.elapsed_frames += 1;
 
                 // Sleep if there's still some time left within the interval.
                 let now = Instant::now();
@@ -489,6 +490,7 @@ where
 
                 // Draw the state of the model to the screen.
                 draw(&app, &model, &view).unwrap();
+                app.elapsed_frames += 1;
 
                 // Sleep if there's still some time left within the interval.
                 let now = Instant::now();

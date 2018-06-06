@@ -34,6 +34,9 @@ pub struct App {
     draw_state: DrawState,
     /// The window that is currently in focus.
     pub(crate) focused_window: RefCell<Option<window::Id>>,
+    /// The number of times the **App**'s **view** function has been called since the start of the
+    /// program.
+    pub(crate) elapsed_frames: u64,
 
     /// Indicates whether or not the events loop is currently asleep.
     ///
@@ -258,10 +261,12 @@ impl App {
         let duration = state::Time::default();
         let time = duration.since_start.secs() as _;
         let events_loop_is_asleep = Arc::new(AtomicBool::new(false));
+        let elapsed_frames = 0;
         App {
             events_loop,
             events_loop_is_asleep,
             focused_window,
+            elapsed_frames,
             windows,
             config,
             draw_state,
@@ -447,6 +452,12 @@ impl App {
     pub fn draw(&self) -> Draw {
         self.draw_for_window(self.window_id())
             .expect("no window open for `app.window_id`")
+    }
+
+    /// The number of times the **App**'s **view** function has been called since the start of the
+    /// program.
+    pub fn elapsed_frames(&self) -> u64 {
+        self.elapsed_frames
     }
 }
 
