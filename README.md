@@ -16,44 +16,16 @@ by Processing, OpenFrameworks and Cinder, but for Rust. <sup>Named after
 This project is brand new and there is a lot of work to be done. Feel free to
 help out!
 
-## Getting Started
+## Contents
 
-See what the code looks like by checking out [the
-examples](https://github.com/nannou-org/nannou/tree/master/examples). See the
-[following section](https://github.com/nannou-org/nannou#running-examples) to
-learn how to run these examples.
-
-If you're new to Rust, maybe check out [the official
-  book](https://doc.rust-lang.org/book/)?
-
-Start your own project with:
-```
-cargo new my_project
-cd my_project
-```
-Add `nannou = "0.5"` under the `[dependencies]` line in your Cargo.toml.  This
-is everything you need to use the framework in your own project or sketch.
-Rust's package manager cargo will automatically download and install
-everything you need!
-
-## Running Examples
-
-Clone this git repo (which contains the examples) to your computer.
-```
-git clone https://github.com/nannou-org/nannou
-```
-Change the current directory to `nannou`.
-```
-cd nannou
-```
-Run the example using cargo.
-```
-cargo run --release --example simple_window
-```
-The `--release` flag means we want to build with optimisations enabled.
-
-To run any of the other examples, replace `simple_window` with the name of the
-desired example.
+- [**Goals**](#goals)
+- [**Why Rust?**](#why-rust)
+- [**Getting Started**](#getting-started)
+  - [**Install Rust**](#install-rust)
+  - [**IDE Setup**](#ide-setup)
+  - [**Nannou Examples**](#nannou-examples)
+  - [**More Resources**](#more-resources)
+- [**License**](#license)
 
 ## Goals
 
@@ -148,3 +120,95 @@ some of the reasons why we choose to use it:
 - **Module system** resulting in very clean and concise name spaces.
 - One of the kindest internet communities we've come across (please visit
   mozilla's #rust or /r/rust if you're starting out and need any pointers)
+
+## Getting Started
+
+Nannou is a library written for the Rust programming language. Thus, the first
+step step is to install Rust!
+
+### Install Rust
+
+To install Rust, open up your terminal, copy the text below, paste it into your
+terminal and hit enter.
+
+```bash
+curl https://sh.rustup.rs -sSf | sh
+```
+
+Please see [this link](https://www.rust-lang.org/en-US/install.html) if you
+would like more information on the Rust installation process.
+
+### IDE Setup 
+
+**VS Code**
+
+For new Rust users we recommend using VS-Code as your editor and IDE for Nannou
+development. Currently it seems to have the best support for the Rust language
+including syntax highlighting, auto-complete, code formatting, etc. It also
+comes with an integrated unix terminal and file navigation system. Below are the
+steps we recommend for getting started with Nannou development using VS-Code.
+
+1. [Download VS-Code](https://code.visualstudio.com/download) for your OS. 
+2. [Install
+   RLS](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust) (the
+   Rust Language Server) plugin for VS-Code.
+3. Click on the 'view' menu and select 'integrated terminal'.
+
+**Other IDEs**
+
+Although we recommend VS-Code, it is also possible to configure the following
+development environments.
+
+1. [Sublime Text](https://packagecontrol.io/packages/Rust%20Enhanced) 
+2. [Atom](https://atom.io/packages/language-rust)
+3. [Intellij IDEA](https://intellij-rust.github.io)
+4. [Vim](https://github.com/rust-lang/rust.vim) 
+5. [Emacs](https://github.com/rust-lang/rust-mode) 
+6. [Visual Studio](https://github.com/PistonDevelopers/VisualRust)
+7. [Eclipse](https://github.com/RustDT/RustDT) (No longer maintained)
+
+### Nannou Examples
+
+The easiest way to get familiar with Nannou is to explore the examples. To get
+the examples we just need to clone this repository.
+
+```
+git clone https://github.com/nannou-org/nannou
+```
+Change the current directory to `nannou`.
+```
+cd nannou
+```
+Run the example using cargo.
+```
+cargo run --release --example simple_window
+```
+The `--release` flag means we want to build with optimisations enabled.
+
+To run any of the other examples, replace `simple_window` with the name of the
+desired example.
+
+### More Resources
+
+- [Official Rust Book](https://doc.rust-lang.org/book/second-edition/index.html)
+- [Rust by Example](https://rustbyexample.com/)
+- [Porting C++ projects to Rust GitHub Book](https://locka99.gitbooks.io/a-guide-to-porting-c-to-rust/content/)
+- [Udemy Rust Course](https://www.udemy.com/rust-lang/)  (paid)
+- [Nannou Website](http://nannou.cc)
+- [Nannou Forum](http://forum.nannou.cc) 
+- [#rust-beginners IRC](https://chat.mibbit.com/?server=irc.mozilla.org&channel=%23rust-beginners)
+
+## License
+
+Licensed under either of
+
+ * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+**Contributions**
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
