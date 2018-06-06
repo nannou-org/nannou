@@ -1,5 +1,6 @@
 # Unpublished
 
+- Add `App::elapsed_frames` method.
 - Remove `app.window.id` field in favour of more reliable `app.window_id`
   method.
 - Change `ui::Builder` so that it no longer requires `window::Id`. Now defaults
