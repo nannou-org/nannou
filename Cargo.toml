@@ -26,3 +26,219 @@ sample = "0.9"
 serde = "1"
 serde_json = "1"
 toml = "0.4"
+
+# --------------- Nannou Examples 
+[[example]] 
+name = "loop_mode" 
+path = "examples/loop_mode.rs"
+[[example]] 
+name = "multi_window" 
+path = "examples/multi_window.rs"
+[[example]] 
+name = "osc_receiver" 
+path = "examples/osc_receiver.rs"
+[[example]] 
+name = "osc_sender" 
+path = "examples/osc_sender.rs"
+[[example]] 
+name = "simple_audio" 
+path = "examples/simple_audio.rs"
+[[example]] 
+name = "simple_draw" 
+path = "examples/simple_draw.rs"
+[[example]] 
+name = "simple_ui" 
+path = "examples/simple_ui.rs"
+[[example]] 
+name = "simple_window" 
+path = "examples/simple_window.rs"
+[[example]] 
+name = "template_app" 
+path = "examples/template_app.rs"
+[[example]] 
+name = "template_sketch" 
+path = "examples/template_sketch.rs"
+
+# --------------- Examples Basics
+[[example]] 
+name = "1_nannou_events" 
+path = "examples/basics/1_nannou_events.rs"
+[[example]] 
+name = "2_variables_window_console" 
+path = "examples/basics/2_variables_window_console.rs"
+[[example]] 
+name = "3_variable_scope" 
+path = "examples/basics/3_variable_scope.rs"
+[[example]] 
+name = "4_conditionals" 
+path = "examples/basics/4_conditionals.rs"
+[[example]] 
+name = "5_loops" 
+path = "examples/basics/5_loops.rs"
+[[example]] 
+name = "6_functions" 
+path = "examples/basics/6_functions.rs"
+
+# --------------- Generative Design 
+[[example]] 
+name = "p_1_0_01" 
+path = "examples/generative_design/color/p_1_0_01.rs"
+[[example]] 
+name = "p_1_1_01" 
+path = "examples/generative_design/color/p_1_1_01.rs"
+[[example]] 
+name = "p_1_2_3_01" 
+path = "examples/generative_design/color/p_1_2_3_01.rs"
+[[example]] 
+name = "p_1_2_3_02" 
+path = "examples/generative_design/color/p_1_2_3_02.rs"
+# --------------- Nature of Code
+# --------------- Chapter 1 Vectors
+[[example]] 
+name = "1_1_bouncingball_novectors" 
+path = "examples/nature_of_code/chp_01_vectors/1_1_bouncingball_novectors.rs"
+[[example]] 
+name = "1_2_bouncingball_vectors_object" 
+path = "examples/nature_of_code/chp_01_vectors/1_2_bouncingball_vectors_object.rs"
+[[example]] 
+name = "1_2_bouncingball_vectors" 
+path = "examples/nature_of_code/chp_01_vectors/1_2_bouncingball_vectors.rs"
+[[example]] 
+name = "1_3_vector_subtraction" 
+path = "examples/nature_of_code/chp_01_vectors/1_3_vector_subtraction.rs"
+[[example]] 
+name = "1_4_vector_multiplication" 
+path = "examples/nature_of_code/chp_01_vectors/1_4_vector_multiplication.rs"
+[[example]] 
+name = "1_5_vector_magnitude" 
+path = "examples/nature_of_code/chp_01_vectors/1_5_vector_magnitude.rs"
+[[example]] 
+name = "1_6_vector_normalize" 
+path = "examples/nature_of_code/chp_01_vectors/1_6_vector_normalize.rs"
+[[example]] 
+name = "1_7_motion101" 
+path = "examples/nature_of_code/chp_01_vectors/1_7_motion101.rs"
+[[example]] 
+name = "1_8_motion101_acceleration" 
+path = "examples/nature_of_code/chp_01_vectors/1_8_motion101_acceleration.rs"
+[[example]] 
+name = "1_9_motion101_acceleration" 
+path = "examples/nature_of_code/chp_01_vectors/1_9_motion101_acceleration.rs"
+[[example]] 
+name = "1_10_motion101_acceleration" 
+path = "examples/nature_of_code/chp_01_vectors/1_10_motion101_acceleration.rs"
+[[example]] 
+name = "1_11_motion101_acceleration_array" 
+path = "examples/nature_of_code/chp_01_vectors/1_11_motion101_acceleration_array.rs"
+# --------------- Chapter 2 Forces
+[[example]] 
+name = "2_1_forces" 
+path = "examples/nature_of_code/chp_02_forces/2_1_forces.rs"
+[[example]] 
+name = "2_2_forces_many" 
+path = "examples/nature_of_code/chp_02_forces/2_2_forces_many.rs"
+[[example]] 
+name = "2_3_forces_many_real_gravity" 
+path = "examples/nature_of_code/chp_02_forces/2_3_forces_many_real_gravity.rs"
+[[example]] 
+name = "2_4_forces_friction" 
+path = "examples/nature_of_code/chp_02_forces/2_4_forces_friction.rs"
+[[example]] 
+name = "2_4_forces_no_friction" 
+path = "examples/nature_of_code/chp_02_forces/2_4_forces_no_friction.rs"
+[[example]] 
+name = "2_5_fluid_resistance" 
+path = "examples/nature_of_code/chp_02_forces/2_5_fluid_resistance.rs"
+[[example]] 
+name = "2_6_attraction" 
+path = "examples/nature_of_code/chp_02_forces/2_6_attraction.rs"
+[[example]] 
+name = "2_7_attraction_many" 
+path = "examples/nature_of_code/chp_02_forces/2_7_attraction_many.rs"
+[[example]] 
+name = "2_8_mutual_attraction" 
+path = "examples/nature_of_code/chp_02_forces/2_8_mutual_attraction.rs"
+[[example]] 
+name = "2_10_exercise_attract_repel" 
+path = "examples/nature_of_code/chp_02_forces/2_10_exercise_attract_repel.rs"
+[[example]] 
+name = "2_forces_many_mutual_boundaries" 
+path = "examples/nature_of_code/chp_02_forces/2_forces_many_mutual_boundaries.rs"
+# --------------- Chapter 3 Oscillation
+[[example]] 
+name = "3_01_angular_motion" 
+path = "examples/nature_of_code/chp_03_oscillation/3_01_angular_motion.rs"
+[[example]] 
+name = "3_02_forces_angular_motion" 
+path = "examples/nature_of_code/chp_03_oscillation/3_02_forces_angular_motion.rs"
+[[example]] 
+name = "3_04_polar_to_cartesian" 
+path = "examples/nature_of_code/chp_03_oscillation/3_04_polar_to_cartesian.rs"
+[[example]] 
+name = "3_04_polar_to_cartesian_trail" 
+path = "examples/nature_of_code/chp_03_oscillation/3_04_polar_to_cartesian_trail.rs"
+[[example]] 
+name = "3_04_exercise_spiral" 
+path = "examples/nature_of_code/chp_03_oscillation/3_04_exercise_spiral.rs"
+[[example]] 
+name = "3_05_simple_harmonic_motion" 
+path = "examples/nature_of_code/chp_03_oscillation/3_05_simple_harmonic_motion.rs"
+[[example]] 
+name = "3_06_simple_harmonic_motion" 
+path = "examples/nature_of_code/chp_03_oscillation/3_06_simple_harmonic_motion.rs"
+[[example]] 
+name = "3_07_oscillating_objects" 
+path = "examples/nature_of_code/chp_03_oscillation/3_07_oscillating_objects.rs"
+[[example]] 
+name = "3_09_wave_a" 
+path = "examples/nature_of_code/chp_03_oscillation/3_09_wave_a.rs"
+[[example]] 
+name = "3_09_wave_b" 
+path = "examples/nature_of_code/chp_03_oscillation/3_09_wave_b.rs"
+[[example]] 
+name = "3_09_wave_c" 
+path = "examples/nature_of_code/chp_03_oscillation/3_09_wave_c.rs"
+[[example]] 
+name = "3_09_wave" 
+path = "examples/nature_of_code/chp_03_oscillation/3_09_wave.rs"
+[[example]] 
+name = "3_10_exercise_oop_wave" 
+path = "examples/nature_of_code/chp_03_oscillation/3_10_exercise_oop_wave.rs"
+[[example]] 
+name = "3_extra_oscillating_up_and_down" 
+path = "examples/nature_of_code/chp_03_oscillation/3_extra_oscillating_up_and_down.rs"
+[[example]] 
+name = "3_multiple_oscillations" 
+path = "examples/nature_of_code/chp_03_oscillation/3_multiple_oscillations.rs"
+[[example]] 
+name = "3_oop_wave_particles" 
+path = "examples/nature_of_code/chp_03_oscillation/3_oop_wave_particles.rs"
+# --------------- Chapter 4 Systems
+[[example]] 
+name = "4_01_single_particle" 
+path = "examples/nature_of_code/chp_04_systems/4_01_single_particle.rs"
+[[example]] 
+name = "4_02_vector_particle" 
+path = "examples/nature_of_code/chp_04_systems/4_02_vector_particle.rs"
+[[example]] 
+name = "4_03_particle_system_type" 
+path = "examples/nature_of_code/chp_04_systems/4_03_particle_system_type.rs"
+[[example]] 
+name = "4_04_system_of_systems" 
+path = "examples/nature_of_code/chp_04_systems/4_04_system_of_systems.rs"
+# --------------- Chapter 7 Cellular Automata
+[[example]] 
+name = "7_01_wolfram_ca_figures" 
+path = "examples/nature_of_code/chp_07_cellular_automata/7_01_wolfram_ca_figures.rs"
+[[example]] 
+name = "7_01_wolfram_ca_simple" 
+path = "examples/nature_of_code/chp_07_cellular_automata/7_01_wolfram_ca_simple.rs"
+[[example]] 
+name = "7_02_game_of_life_simple" 
+path = "examples/nature_of_code/chp_07_cellular_automata/7_02_game_of_life_simple.rs"
+[[example]] 
+name = "7_03_game_of_life_oop" 
+path = "examples/nature_of_code/chp_07_cellular_automata/7_03_game_of_life_oop.rs"
+[[example]] 
+name = "7_04_exercise_wolfram_ca_scrolling" 
+path = "examples/nature_of_code/chp_07_cellular_automata/7_04_exercise_wolfram_ca_scrolling.rs"

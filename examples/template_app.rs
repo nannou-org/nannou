@@ -6,62 +6,50 @@ fn main() {
     nannou::app(model, event, view).run();
 }
 
-struct Model {
-    window: WindowId,
-}
+struct Model {}
 
 fn model(app: &App) -> Model {
-
-    let window = app.new_window().with_dimensions(720,720).build().unwrap();
-    Model {window}
+    let _window = app.new_window().with_dimensions(720, 720).build().unwrap();
+    Model {}
 }
 
 fn event(_app: &App, model: Model, event: Event) -> Model {
     match event {
-        Event::WindowEvent { simple: Some(event), .. } => match event {
+        Event::WindowEvent {
+            simple: Some(event),
+            ..
+        } => match event {
+            Moved(_pos) => {}
 
-            Moved(_pos) => {
-            },
+            KeyPressed(_key) => {}
 
-            KeyPressed(_key) => {
-            },
+            KeyReleased(_key) => {}
 
-            KeyReleased(_key) => {
-            },
+            MouseMoved(_pos) => {}
 
-            MouseMoved(_pos) => {
-            },
+            MouseDragged(_pos, _button) => {}
 
-            MouseDragged(_pos, _button) => {
-            },
+            MousePressed(_button) => {}
 
-            MousePressed(_button) => {
-            },
+            MouseReleased(_button) => {}
 
-            MouseReleased(_button) => {
-            },
+            MouseEntered => {}
 
-            MouseEntered => {
-            },
+            MouseExited => {}
 
-            MouseExited => {
-            },
-
-            Resized(_size) => {
-            },
+            Resized(_size) => {}
 
             _other => (),
         },
 
-        Event::Update(_dt) => {
-        },
+        Event::Update(_dt) => {}
 
         _ => (),
     }
     model
 }
 
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, _model: &Model, frame: Frame) -> Frame {
     // Prepare to draw.
     let draw = app.draw();
 
@@ -77,4 +65,3 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     // Return the drawn frame.
     frame
 }
-
