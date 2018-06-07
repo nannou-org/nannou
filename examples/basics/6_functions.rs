@@ -37,32 +37,28 @@ fn random() -> f32 {
     nannou::rand::random()
 }
 
-// Remap a value from one range to another 
-fn map(value: f32, in_min: f32, in_max: f32, out_min: f32, out_max: f32 ) -> f32 {
-    ( (value - in_min) / ( in_max - in_min ) * ( out_max - out_min ) ) + out_min 
-}
-
 fn event(_app: &App, model: Model, event: Event) -> Model {
     match event {
-        Event::WindowEvent { simple: Some(event), .. } => match event {
-
+        Event::WindowEvent {
+            simple: Some(event),
+            ..
+        } => match event {
             KeyPressed(_key) => {
-                println!("add 10 + 2 = {}", add(10,2));
-                println!("subtract 100 - 30 = {}", subtract(100,30));
-                println!("multiply 3.5 * 10.2 = {}", multiply(3.5,10.2));
+                println!("add 10 + 2 = {}", add(10, 2));
+                println!("subtract 100 - 30 = {}", subtract(100, 30));
+                println!("multiply 3.5 * 10.2 = {}", multiply(3.5, 10.2));
                 println!("random = {}", random());
-                println!("remaped value = {}", map(random(),0.0,1.0,0.0,100.0));
-            },
+                println!("remaped value = {}", random_range(0.0f32, 100.0));
+            }
 
             MousePressed(_button) => {
                 do_something();
-            },
+            }
 
             _other => (),
         },
 
-        Event::Update(_dt) => {
-        },
+        Event::Update(_dt) => {}
 
         _ => (),
     }

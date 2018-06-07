@@ -1,6 +1,6 @@
 //! A collection of commonly used items that we recommend importing for ease of use.
 
-pub use app::{App, LoopMode};
+pub use app::{self, App, LoopMode};
 pub use color::{Hsl, Hsla, Hsv, Hsva, Rgb, Rgba};
 pub use color::named::*;
 pub use event::SimpleWindowEvent::*;

@@ -3,63 +3,65 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::run(model, event, view);
+    nannou::app(model, event, view).run();
 }
 
 struct Model {}
 
-fn model(_app: &App) -> Model {
+fn model(app: &App) -> Model {
+    let _window = app.new_window().with_dimensions(720, 720).build().unwrap();
     Model {}
 }
 
 fn event(_app: &App, model: Model, event: Event) -> Model {
     match event {
-        Event::WindowEvent { simple: Some(event), .. } => match event {
+        Event::WindowEvent {
+            simple: Some(event),
+            ..
+        } => match event {
+            Moved(_pos) => {}
 
-            Moved(_pos) => {
-            },
+            KeyPressed(_key) => {}
 
-            KeyPressed(_key) => {
-            },
+            KeyReleased(_key) => {}
 
-            KeyReleased(_key) => {
-            },
+            MouseMoved(_pos) => {}
 
-            MouseMoved(_pos) => {
-            },
+            MouseDragged(_pos, _button) => {}
 
-            MouseDragged(_pos, _button) => {
-            },
+            MousePressed(_button) => {}
 
-            MousePressed(_button) => {
-            },
+            MouseReleased(_button) => {}
 
-            MouseReleased(_button) => {
-            },
+            MouseEntered => {}
 
-            MouseEntered => {
-            },
+            MouseExited => {}
 
-            MouseExited => {
-            },
-
-            Resized(_size) => {
-            },
+            Resized(_size) => {}
 
             _other => (),
         },
 
-        Event::Update(_dt) => {
-        },
+        Event::Update(_dt) => {}
 
         _ => (),
     }
     model
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
-    // Color the window with a "dark charcoal" color.
-    frame.clear_all(DARK_CHARCOAL);
+fn view(app: &App, _model: &Model, frame: Frame) -> Frame {
+    // Prepare to draw.
+    let draw = app.draw();
+
+    // Clear the background to pink.
+    draw.background().color(LIGHT_PURPLE);
+
+    // Draw a red ellipse with default size and position.
+    draw.ellipse().color(DARK_BLUE);
+
+    // Write to the window frame.
+    draw.to_frame(app, &frame).unwrap();
+
     // Return the drawn frame.
     frame
 }

@@ -1,0 +1,71 @@
+// The Nature of Code
+// Daniel Shiffman
+// http://natureofcode.com
+//
+// Example 3-x: Multiple Oscillations
+extern crate nannou;
+
+use nannou::prelude::*;
+
+fn main() {
+    nannou::app(model, event, view).run();
+}
+
+struct Model {
+    angle1: f32,
+    a_velocity1: f32,
+    amplitude1: f32,
+    angle2: f32,
+    a_velocity2: f32,
+    amplitude2: f32,
+}
+
+fn model(app: &App) -> Model {
+    let angle1 = 0.0;
+    let a_velocity1 = 0.01;
+    let amplitude1 = 300.0;
+
+    let angle2 = 0.0;
+    let a_velocity2 = 0.3;
+    let amplitude2 = 10.0;
+
+    let _window = app.new_window().with_dimensions(640, 360).build().unwrap();
+    Model {
+        angle1,
+        a_velocity1,
+        amplitude1,
+        angle2,
+        a_velocity2,
+        amplitude2,
+    }
+}
+
+fn event(_app: &App, mut model: Model, event: Event) -> Model {
+    // update gets called just before view every frame
+    if let Event::Update(_update) = event {
+        model.angle1 += model.a_velocity1;
+        model.angle2 += model.a_velocity2;
+    }
+    model
+}
+
+fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+    // Begin drawing
+    let draw = app.draw();
+    draw.background().color(WHITE);
+
+    let mut x = 0.0;
+    x += model.amplitude1 * model.angle1.cos();
+    x += model.amplitude2 * model.angle2.sin();
+
+    draw.ellipse()
+        .x_y(x as f32, 0.0)
+        .w_h(20.0, 20.0)
+        .rgba(0.7, 0.7, 0.7, 1.0);
+
+    // Write the result of our drawing to the window's OpenGL frame.
+    draw.to_frame(app, &frame).unwrap();
+
+    // Return the drawn frame.
+    frame
+}
