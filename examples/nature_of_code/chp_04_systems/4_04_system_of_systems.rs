@@ -17,16 +17,16 @@ struct Model {
 
 // A simple particle type
 struct Particle {
-    position: Vector2<f32>,
+    position: Point2<f32>,
     velocity: Vector2<f32>,
     acceleration: Vector2<f32>,
     life_span: f32,
 }
 
 impl Particle {
-    fn new(l: Vector2<f32>) -> Self {
-        let acceleration = Vector2::new(0.0, 0.05);
-        let velocity = Vector2::new(random::<f32>() * 2.0 - 1.0, random::<f32>() - 2.0);
+    fn new(l: Point2<f32>) -> Self {
+        let acceleration = vec2(0.0, 0.05);
+        let velocity = vec2(random_f32() * 2.0 - 1.0, random_f32() - 2.0);
         let position = l;
         let life_span = 255.0;
         Particle {
@@ -47,10 +47,12 @@ impl Particle {
     // Method to display
     fn display(&self, draw: &app::Draw) {
         let size = 12.0;
-        draw.ellipse()
-            .x_y(self.position.x, self.position.y)
-            .w_h(size, size)
-            .rgba(0.5, 0.5, 0.5, self.life_span / 255.0);
+        draw.ellipse().xy(self.position).w_h(size, size).rgba(
+            0.5,
+            0.5,
+            0.5,
+            self.life_span / 255.0,
+        );
     }
 
     // Is the poarticel still useful?
@@ -65,11 +67,11 @@ impl Particle {
 
 struct ParticleSystem {
     particles: Vec<Particle>,
-    origin: Vector2<f32>,
+    origin: Point2<f32>,
 }
 
 impl ParticleSystem {
-    fn new(num: i32, position: Vector2<f32>) -> Self {
+    fn new(num: i32, position: Point2<f32>) -> Self {
         let origin = position; // An origin point for where particles are birthed
         let mut particles = Vec::new(); // Initialise the Vector
         for _i in 0..num {
@@ -119,10 +121,8 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
             simple: Some(MousePressed(_button)),
             ..
         } => {
-            m.systems.push(ParticleSystem::new(
-                1,
-                Vector2::new(app.mouse.x, app.mouse.y),
-            ));
+            m.systems
+                .push(ParticleSystem::new(1, pt2(app.mouse.x, app.mouse.y)));
         }
         // update gets called just before view every frame
         Event::Update(_dt) => {
@@ -139,7 +139,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(0.0, 0.0, 0.0);
+    draw.background().color(BLACK);
 
     for i in 0..m.systems.len() {
         m.systems[i].draw(&draw);

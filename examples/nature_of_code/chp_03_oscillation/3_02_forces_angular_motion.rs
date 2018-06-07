@@ -57,9 +57,9 @@ struct Mover {
 impl Mover {
     fn new(m: f32, x: f32, y: f32) -> Self {
         let mass = m;
-        let location = Point2::new(x, y);
-        let velocity = Vector2::new(random_f32() * 2.0 - 1.0, random_f32() * 2.0 - 1.0);
-        let acceleration = Vector2::new(0.0, 0.0);
+        let location = pt2(x, y);
+        let velocity = vec2(random_f32() * 2.0 - 1.0, random_f32() * 2.0 - 1.0);
+        let acceleration = vec2(0.0, 0.0);
         let angle = 0.0;
         let a_velocity = 0.0;
         let a_acceleration = 0.0;
@@ -106,7 +106,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_wh(Vector2::new(800.0, 200.0));
+    let rect = Rect::from_w_h(800.0, 200.0);
     let _window = app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
         .build()
@@ -115,9 +115,9 @@ fn model(app: &App) -> Model {
     let movers = (0..20)
         .map(|_| {
             Mover::new(
-                map_range(random(), 0.0, 1.0, 0.1, 2.0),
-                map_range(random(), 0.0, 1.0, rect.left(), rect.right()),
-                map_range(random(), 0.0, 1.0, rect.top(), rect.bottom()),
+                random_range(0.1f32, 2.0),
+                random_range(rect.left(), rect.right()),
+                random_range(rect.top(), rect.bottom()),
             )
         })
         .collect();
@@ -142,7 +142,7 @@ fn event(_app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     m.attractor.display(&draw);
 

@@ -17,7 +17,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_wh(Vector2::new(640.0, 360.0));
+    let rect = Rect::from_w_h(640.0, 360.0);
     let _window = app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
         .build()

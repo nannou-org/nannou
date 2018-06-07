@@ -24,9 +24,9 @@ struct Mover {
 
 impl Mover {
     fn new(rect: Rect<f32>) -> Self {
-        let position = Point2::new(rect.x(), rect.y());
-        let velocity = Vector2::new(0.0, 0.0);
-        let acceleration = Vector2::new(0.0, 0.0);
+        let position = pt2(rect.x(), rect.y());
+        let velocity = vec2(0.0, 0.0);
+        let acceleration = vec2(0.0, 0.0);
         let top_speed = 5.0;
         Mover {
             position,
@@ -44,10 +44,7 @@ impl Mover {
         // Velocity chages according to acceleration
         self.velocity += self.acceleration;
         // Limit the velocity by top_speed
-        self.velocity = vec2(
-            self.velocity.x.min(self.top_speed),
-            self.velocity.y.min(self.top_speed),
-        );
+        self.velocity - limit_magnitude(self.velocity, self.top_speed);
         // Position changes velocity
         self.position += self.velocity;
     }
@@ -55,7 +52,7 @@ impl Mover {
     fn display(&self, draw: &app::Draw) {
         // Display circle at x position
         draw.ellipse()
-            .x_y(self.position.x, self.position.y)
+            .xy(self.position)
             .w_h(48.0, 48.0)
             .rgb(0.5, 0.5, 0.5);
     }
@@ -70,7 +67,7 @@ fn model(app: &App) -> Model {
 fn event(app: &App, mut m: Model, event: Event) -> Model {
     // update gets called just before view every frame
     if let Event::Update(_update) = event {
-        m.mover.update(Point2::new(app.mouse.x, app.mouse.y));
+        m.mover.update(pt2(app.mouse.x, app.mouse.y));
     }
     m
 }
@@ -78,7 +75,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     m.mover.display(&draw);
 
@@ -87,4 +84,13 @@ fn view(app: &App, m: &Model, frame: Frame) -> Frame {
 
     // Return the drawn frame.
     frame
+}
+
+// This will be a removed in favour of limir_magnitude method of vector
+fn limit_magnitude(v: Vector2<f32>, limit: f32) -> Vector2<f32> {
+    if v.magnitude() > limit {
+        v.normalize() * limit
+    } else {
+        v
+    }
 }

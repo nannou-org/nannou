@@ -17,16 +17,16 @@ struct Model {
 
 // A simple particle type
 struct Particle {
-    position: Vector2<f32>,
+    position: Point2<f32>,
     velocity: Vector2<f32>,
     acceleration: Vector2<f32>,
     life_span: f32,
 }
 
 impl Particle {
-    fn new(l: Vector2<f32>) -> Self {
-        let acceleration = Vector2::new(0.0, 0.05);
-        let velocity = Vector2::new(random::<f32>() * 2.0 - 1.0, random::<f32>() - 1.0);
+    fn new(l: Point2<f32>) -> Self {
+        let acceleration = vec2(0.0, 0.05);
+        let velocity = vec2(random_f32() * 2.0 - 1.0, random_f32() - 1.0);
         let position = l;
         let life_span = 255.0;
         Particle {
@@ -46,10 +46,12 @@ impl Particle {
 
     // Method to display
     fn display(&self, draw: &app::Draw) {
-        draw.ellipse()
-            .x_y(self.position.x, self.position.y)
-            .w_h(12.0, 12.0)
-            .rgba(0.5, 0.5, 0.5, self.life_span / 255.0);
+        draw.ellipse().xy(self.position).w_h(12.0, 12.0).rgba(
+            0.5,
+            0.5,
+            0.5,
+            self.life_span / 255.0,
+        );
     }
 
     // Is the poarticel still useful?
@@ -64,7 +66,7 @@ impl Particle {
 
 fn model(app: &App) -> Model {
     let _window = app.new_window().with_dimensions(640, 360).build().unwrap();
-    let p = Particle::new(Vector2::new(0.0, app.window_rect().top() - 20.0));
+    let p = Particle::new(pt2(0.0, app.window_rect().top() - 20.0));
     Model { p }
 }
 
@@ -73,7 +75,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
     if let Event::Update(_update) = event {
         m.p.update();
         if m.p.is_dead() {
-            m.p = Particle::new(Vector2::new(0.0, app.window_rect().top() - 20.0));
+            m.p = Particle::new(pt2(0.0, app.window_rect().top() - 20.0));
         }
     }
     m
@@ -82,7 +84,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     m.p.display(&draw);
 

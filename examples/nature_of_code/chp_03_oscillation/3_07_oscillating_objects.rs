@@ -25,11 +25,11 @@ struct Oscillator {
 
 impl Oscillator {
     fn new(rect: Rect<f32>) -> Self {
-        let angle = Vector2::new(0.0, 0.0);
-        let velocity = Vector2::new(random::<f32>() * 0.1 - 0.05, random::<f32>() * 0.1 - 0.05);
-        let rand_amp_x = map_range(random(), 0.0, 1.0, 20.0, rect.right());
-        let rand_amp_y = map_range(random(), 0.0, 1.0, 20.0, rect.top());
-        let amplitude = Vector2::new(rand_amp_x, rand_amp_y);
+        let angle = vec2(0.0, 0.0);
+        let velocity = vec2(random_f32() * 0.1 - 0.05, random_f32() * 0.1 - 0.05);
+        let rand_amp_x = random_range(20.0, rect.right());
+        let rand_amp_y = random_range(20.0, rect.top());
+        let amplitude = vec2(rand_amp_x, rand_amp_y);
         Oscillator {
             angle,
             velocity,
@@ -50,7 +50,7 @@ impl Oscillator {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_wh(Vector2::new(640.0, 360.0));
+    let rect = Rect::from_w_h(640.0, 360.0);
     let _window = app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
         .build()

@@ -25,9 +25,9 @@ struct Mover {
 impl Mover {
     fn new(m: f32, x: f32, y: f32) -> Self {
         let mass = m;
-        let position = Point2::new(x, y);
-        let velocity = Vector2::new(0.0, 0.0);
-        let acceleration = Vector2::new(0.0, 0.0);
+        let position = pt2(x, y);
+        let velocity = vec2(0.0, 0.0);
+        let acceleration = vec2(0.0, 0.0);
         Mover {
             position,
             velocity,
@@ -50,7 +50,7 @@ impl Mover {
     fn display(&self, draw: &app::Draw) {
         // Display circle at x position
         draw.ellipse()
-            .x_y(self.position.x, self.position.y)
+            .xy(self.position)
             .w_h(self.mass * 16.0, self.mass * 16.0)
             .rgba(0.3, 0.3, 0.3, 0.5);
     }
@@ -71,20 +71,14 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_wh(Vector2::new(640.0, 360.0));
+    let rect = Rect::from_w_h(640.0, 360.0);
     let _window = app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
         .build()
         .unwrap();
 
     let movers = (0..20)
-        .map(|_| {
-            Mover::new(
-                map_range(random(), 0.0, 1.0, 0.01, 4.0),
-                rect.left(),
-                rect.top(),
-            )
-        })
+        .map(|_| Mover::new(random_range(0.01f32, 4.0), rect.left(), rect.top()))
         .collect();
     Model { movers }
 }
@@ -93,8 +87,8 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
     // update gets called just before view every frame
     if let Event::Update(_update) = event {
         for i in 0..m.movers.len() {
-            let wind = Vector2::new(0.01, 0.0);
-            let gravity = Vector2::new(0.0, -0.1);
+            let wind = vec2(0.01, 0.0);
+            let gravity = vec2(0.0, -0.1);
             m.movers[i].apply_force(wind);
             m.movers[i].apply_force(gravity);
             m.movers[i].update();
@@ -107,7 +101,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     for mover in &m.movers {
         mover.display(&draw);

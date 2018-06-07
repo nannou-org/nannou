@@ -22,13 +22,13 @@ struct Mover {
 
 impl Mover {
     fn new(rect: Rect<f32>) -> Self {
-        let position = Point2::new(
-            map_range(random(), 0.0, 1.0, rect.left(), rect.right()),
-            map_range(random(), 0.0, 1.0, rect.top(), rect.bottom()),
+        let position = pt2(
+            random_range(rect.left(), rect.right()),
+            random_range(rect.top(), rect.bottom()),
         );
-        let velocity = Vector2::new(
-            map_range(random(), 0.0, 1.0, -2.0, 2.0),
-            map_range(random(), 0.0, 1.0, -2.0, 2.0),
+        let velocity = vec2(
+            random_range(-2.0f32, 2.0),
+            random_range(-2.0f32, 2.0),
         );
         Mover { position, velocity }
     }
@@ -54,7 +54,7 @@ impl Mover {
     fn display(&self, draw: &app::Draw) {
         // Display circle at x position
         draw.ellipse()
-            .x_y(self.position.x, self.position.y)
+            .xy(self.position)
             .w_h(16.0, 16.0)
             .rgb(0.5, 0.5, 0.5);
     }

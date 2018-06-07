@@ -49,12 +49,12 @@ fn event(_app: &App, mut model: Model, event: Event) -> Model {
         // create palette
         for i in 0..model.color_count {
             if i % 2 == 0 {
-                model.hue_values[i as usize] = random::<f32>(); // * 0.36 + 0.61;
+                model.hue_values[i as usize] = random_f32(); // * 0.36 + 0.61;
                 model.saturation_values[i as usize] = 1.0;
-                model.brightness_values[i as usize] = random::<f32>() * 0.85 + 0.15;
+                model.brightness_values[i as usize] = random_f32() * 0.85 + 0.15;
             } else {
                 model.hue_values[i as usize] = 0.54;
-                model.saturation_values[i as usize] = random::<f32>() * 0.8 + 0.2;
+                model.saturation_values[i as usize] = random_f32() * 0.8 + 0.2;
                 model.brightness_values[i as usize] = 1.0;
             }
         }
@@ -70,7 +70,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     // count tiles
     let mut counter = 0;
     // row count and row height
-    let row_count = (random::<f32>() * 25.0 + 5.0) as i32;
+    let row_count = (random_f32() * 25.0 + 5.0) as i32;
     let row_height = (app.window_rect().h() as i32 / row_count) as i32;
 
     // seperate each line in parts
@@ -82,15 +82,15 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         let mut ii = 0;
         while ii < part_count {
             // sub fragment of not?
-            if random::<f32>() < 0.075 {
+            if random_f32() < 0.075 {
                 // take care of big values
-                let fragments = (random::<f32>() * 18.0 + 2.0) as i32;
+                let fragments = (random_f32() * 18.0 + 2.0) as i32;
                 part_count = part_count + fragments;
                 for _ in 0..fragments {
-                    parts.push(random::<f32>() * 2.0);
+                    parts.push(random_f32() * 2.0);
                 }
             } else {
-                parts.push(random::<f32>() * 18.0 + 2.0);
+                parts.push(random_f32() * 18.0 + 2.0);
             }
             ii += 1;
         }

@@ -29,11 +29,11 @@ struct Mover {
 
 impl Mover {
     fn new(rect: Rect<f32>) -> Self {
-        let rand_x = map_range(random(), 0.0, 1.0, rect.left(), rect.right());
-        let rand_y = map_range(random(), 0.0, 1.0, rect.top(), rect.bottom());
-        let position = Point2::new(rand_x, rand_y);
-        let velocity = Vector2::new(0.0, 0.0);
-        let acceleration = Vector2::new(0.0, 0.0);
+        let rand_x = random_range(rect.left(), rect.right());
+        let rand_y = random_range(rect.top(), rect.bottom());
+        let position = pt2(rand_x, rand_y);
+        let velocity = vec2(0.0, 0.0);
+        let acceleration = vec2(0.0, 0.0);
         let top_speed = 5.0;
         Mover {
             position,
@@ -62,14 +62,14 @@ impl Mover {
     fn display(&self, draw: &app::Draw) {
         // Display circle at x position
         draw.ellipse()
-            .x_y(self.position.x, self.position.y)
+            .xy(self.position)
             .w_h(48.0, 48.0)
             .rgba(0.5, 0.5, 0.5, 0.7);
     }
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_wh(Vector2::new(640.0, 360.0));
+    let rect = Rect::from_w_h(640.0, 360.0);
     let _window = app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
         .build()
@@ -83,7 +83,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
     // update gets called just before view every frame
     if let Event::Update(_update) = event {
         for mover in &mut m.movers {
-            mover.update(Point2::new(app.mouse.x, app.mouse.y));
+            mover.update(pt2(app.mouse.x, app.mouse.y));
         }
     }
     m
@@ -92,7 +92,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     for mover in &m.movers {
         mover.display(&draw);

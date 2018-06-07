@@ -28,11 +28,6 @@ fn model(app: &App) -> Model {
     let tile_count_x = 50;
     let tile_count_y = 10;
 
-    // Note you can decalre and pack a vector with random values like this in rust
-    //let hue_values = (0..tile_count_x).map(|_| random()).collect();
-    //let saturation_values = (0..tile_count_x).map(|_| random()).collect();
-    //let brightness_values = (0..tile_count_x).map(|_| random()).collect();
-
     let mut hue_values: Vec<f32> = Vec::new();
     let mut saturation_values: Vec<f32> = Vec::new();
     let mut brightness_values: Vec<f32> = Vec::new();
@@ -106,16 +101,16 @@ fn event(_app: &App, mut model: Model, event: Event) -> Model {
                     }
                     Key::Key7 => {
                         for i in 0..model.tile_count_x as i32 {
-                            model.hue_values[i as usize] = random::<f32>() * 0.5;
-                            model.saturation_values[i as usize] = random::<f32>() * 0.2 + 0.8;
-                            model.brightness_values[i as usize] = random::<f32>() * 0.4 + 0.5;
+                            model.hue_values[i as usize] = random_f32() * 0.5;
+                            model.saturation_values[i as usize] = random_f32() * 0.2 + 0.8;
+                            model.brightness_values[i as usize] = random_f32() * 0.4 + 0.5;
                         }
                     }
                     Key::Key8 => {
                         for i in 0..model.tile_count_x as i32 {
-                            model.hue_values[i as usize] = random::<f32>() * 0.5 + 0.5;
-                            model.saturation_values[i as usize] = random::<f32>() * 0.2 + 0.8;
-                            model.brightness_values[i as usize] = random::<f32>() * 0.4 + 0.5;
+                            model.hue_values[i as usize] = random_f32() * 0.5 + 0.5;
+                            model.saturation_values[i as usize] = random_f32() * 0.2 + 0.8;
+                            model.brightness_values[i as usize] = random_f32() * 0.4 + 0.5;
                         }
                     }
                     Key::Key9 => {
@@ -135,12 +130,12 @@ fn event(_app: &App, mut model: Model, event: Event) -> Model {
                         for i in 0..model.tile_count_x as i32 {
                             if i % 2 == 0 {
                                 model.hue_values[i as usize] = 0.38;
-                                model.saturation_values[i as usize] = random::<f32>() * 0.7 + 0.3;
-                                model.brightness_values[i as usize] = random::<f32>() * 0.6 + 0.4;
+                                model.saturation_values[i as usize] = random_f32() * 0.7 + 0.3;
+                                model.brightness_values[i as usize] = random_f32() * 0.6 + 0.4;
                             } else {
                                 model.hue_values[i as usize] = 0.58;
-                                model.saturation_values[i as usize] = random::<f32>() * 0.6 + 0.4;
-                                model.brightness_values[i as usize] = random::<f32>() * 0.5 + 0.5;
+                                model.saturation_values[i as usize] = random_f32() * 0.6 + 0.4;
+                                model.brightness_values[i as usize] = random_f32() * 0.5 + 0.5;
                             }
                         }
                     }

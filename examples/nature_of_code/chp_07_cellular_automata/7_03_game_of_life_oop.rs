@@ -40,12 +40,15 @@ impl Cell {
     }
 
     fn display(&self, draw: &app::Draw, x: f32, y: f32) {
-        let mut fill = Rgb::new(1.0, 1.0, 1.0);
-        if self.previous == 0 && self.state == 1 {
-            fill = Rgb::new(0.0, 0.0, 1.0);
+        let fill = if self.previous == 0 && self.state == 1 {
+            Rgb::new(0.0, 0.0, 1.0)
+        } else if self.state == 1 {
+            Rgb::new(0.0, 0.0, 0.0)
         } else if self.previous == 1 && self.state == 0 {
-            fill = Rgb::new(1.0, 0.0, 0.0);
-        }
+            Rgb::new(1.0, 0.0, 0.0)
+        } else {
+            Rgb::new(1.0, 1.0, 1.0)
+        };
         draw.rect()
             .x_y(x, y)
             .w_h(self.w, self.w)
@@ -150,7 +153,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_wh(Vector2::new(640.0 * 2.0, 360.0 * 2.0));
+    let rect = Rect::from_w_h(640.0 * 2.0, 360.0 * 2.0);
     let _window = app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
         .build()
@@ -182,7 +185,7 @@ fn event(_app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     m.gol.display(&draw, &app.window_rect());
 

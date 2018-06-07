@@ -16,10 +16,10 @@ fn view(app: &App, frame: Frame) -> Frame {
 
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
-    let mut mouse = Vector2::new(app.mouse.x, app.mouse.y);
-    let center = Vector2::new(0.0, 0.0);
+    let mut mouse = vec2(app.mouse.x, app.mouse.y);
+    let center = vec2(0.0, 0.0);
     mouse -= center;
 
     let m = mouse.magnitude();
@@ -27,13 +27,13 @@ fn view(app: &App, frame: Frame) -> Frame {
     draw.rect()
         .xy(app.window_rect().top_left())
         .w_h(m, 10.0)
-        .rgb(0.0, 0.0, 0.0);
+        .color(BLACK);
 
     draw.line()
-        .start(Point2::new(0.0, 0.0))
-        .end(Point2::new(mouse.x, mouse.y))
+        .start(pt2(0.0, 0.0))
+        .end(pt2(mouse.x, mouse.y))
         .thickness(2.0)
-        .rgb(0.0, 0.0, 0.0);
+        .color(BLACK);
 
     // Write the result of our drawing to the window's OpenGL frame.
     draw.to_frame(app, &frame).unwrap();

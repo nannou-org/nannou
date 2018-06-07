@@ -35,7 +35,7 @@ impl Wave {
         let _w = w;
         let _period = p;
         let amplitude = a;
-        let dx = (((std::f32::consts::PI * 2.0) / _period) * x_spacing) as f32;
+        let dx = (((PI * 2.0) / _period) * x_spacing) as f32;
         let y_values = (0..(w / x_spacing) as i32).map(|_| 0.0).collect();
         Wave {
             origin,
@@ -77,8 +77,8 @@ impl Wave {
 
 fn model(app: &App) -> Model {
     let _window = app.new_window().with_dimensions(750, 200).build().unwrap();
-    let wave0 = Wave::new(Vector2::new(-325.0, 25.0), 100.0, 20.0, 500.0);
-    let wave1 = Wave::new(Vector2::new(-75.0, 0.0), 300.0, 40.0, 220.0);
+    let wave0 = Wave::new(vec2(-325.0, 25.0), 100.0, 20.0, 500.0);
+    let wave1 = Wave::new(vec2(-75.0, 0.0), 300.0, 40.0, 220.0);
     Model { wave0, wave1 }
 }
 
@@ -95,7 +95,7 @@ fn event(_app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     // display waves
     m.wave0.display(&draw);

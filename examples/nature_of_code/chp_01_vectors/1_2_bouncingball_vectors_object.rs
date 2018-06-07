@@ -22,8 +22,8 @@ struct Ball {
 
 impl Ball {
     fn new() -> Self {
-        let position = Point2::new(100.0, 100.0);
-        let velocity = Vector2::new(2.5, 5.0);
+        let position = pt2(100.0, 100.0);
+        let velocity = vec2(2.5, 5.0);
         Ball { position, velocity }
     }
 
@@ -31,10 +31,10 @@ impl Ball {
         // Add the current speed to the position.
         self.position += self.velocity;
 
-        if (self.position.x > rect.right()) || (self.position.x < rect.left()) {
+        if self.position.x > rect.right() || self.position.x < rect.left() {
             self.velocity.x = self.velocity.x * -1.0;
         }
-        if (self.position.y > rect.top()) || (self.position.y < rect.bottom()) {
+        if self.position.y > rect.top() || self.position.y < rect.bottom() {
             self.velocity.y = self.velocity.y * -1.0;
         }
     }
@@ -42,7 +42,7 @@ impl Ball {
     fn display(&self, draw: &app::Draw) {
         // Display circle at x position
         draw.ellipse()
-            .x_y(self.position.x, self.position.y)
+            .xy(self.position)
             .w_h(16.0, 16.0)
             .rgb(0.5, 0.5, 0.5);
     }

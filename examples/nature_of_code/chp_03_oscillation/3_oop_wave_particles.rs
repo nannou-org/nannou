@@ -17,14 +17,14 @@ struct Model {
 }
 
 struct Particle {
-    position: Vector2<f32>,
+    position: Point2<f32>,
 }
 
 struct Wave {
-    x_spacing: f32,       // How far apart should each horizontal position be spaced
-    origin: Vector2<f32>, // Where does the wave's first point start
-    theta: f32,           // Start angle at 0
-    amplitude: f32,       // Height of the wave
+    x_spacing: f32,      // How far apart should each horizontal position be spaced
+    origin: Point2<f32>, // Where does the wave's first point start
+    theta: f32,          // Start angle at 0
+    amplitude: f32,      // Height of the wave
     dx: f32, // Value for incementing X, to be calculated as a function of period and x_spacing
     _y_values: Vec<f32>, // Using a vector to store the height values for the wave (not entirely necessary)
     particles: Vec<Particle>,
@@ -32,7 +32,7 @@ struct Wave {
 
 impl Particle {
     fn new() -> Self {
-        let position = Vector2::new(0.0, 0.0);
+        let position = pt2(0.0, 0.0);
         Particle { position }
     }
 
@@ -43,14 +43,15 @@ impl Particle {
 
     fn display(&self, draw: &app::Draw) {
         let random_color = random();
-        draw.ellipse()
-            .x_y(self.position.x, self.position.y)
-            .w_h(16.0, 16.0)
-            .rgb(random_color, random_color, random_color);
+        draw.ellipse().xy(self.position).w_h(16.0, 16.0).rgb(
+            random_color,
+            random_color,
+            random_color,
+        );
     }
 }
 impl Wave {
-    fn new(o: Vector2<f32>, w: f32, a: f32, p: f32) -> Self {
+    fn new(o: Point2<f32>, w: f32, a: f32, p: f32) -> Self {
         let origin = o;
         let x_spacing = 8.0 as f32;
         let theta = 0.0 as f32;
@@ -97,8 +98,8 @@ impl Wave {
 
 fn model(app: &App) -> Model {
     let _window = app.new_window().with_dimensions(750, 200).build().unwrap();
-    let wave0 = Wave::new(Vector2::new(-325.0, 25.0), 100.0, 20.0, 500.0);
-    let wave1 = Wave::new(Vector2::new(-75.0, 0.0), 300.0, 40.0, 220.0);
+    let wave0 = Wave::new(pt2(-325.0, 25.0), 100.0, 20.0, 500.0);
+    let wave1 = Wave::new(pt2(-75.0, 0.0), 300.0, 40.0, 220.0);
     Model { wave0, wave1 }
 }
 
@@ -115,7 +116,7 @@ fn event(_app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     // display waves
     m.wave0.display(&draw);

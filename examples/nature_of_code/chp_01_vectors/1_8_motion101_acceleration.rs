@@ -24,9 +24,9 @@ struct Mover {
 
 impl Mover {
     fn new(_rect: Rect<f32>) -> Self {
-        let position = Point2::new(0.0, 0.0);
-        let velocity = Vector2::new(0.0, 0.0);
-        let acceleration = Vector2::new(-0.001, 0.01);
+        let position = pt2(0.0, 0.0);
+        let velocity = vec2(0.0, 0.0);
+        let acceleration = vec2(-0.001, 0.01);
         let top_speed = 10.0;
         Mover {
             position,
@@ -61,7 +61,7 @@ impl Mover {
     fn display(&self, draw: &app::Draw) {
         // Display circle at x position
         draw.ellipse()
-            .x_y(self.position.x, self.position.y)
+            .xy(self.position)
             .w_h(48.0, 48.0)
             .rgb(0.5, 0.5, 0.5);
     }

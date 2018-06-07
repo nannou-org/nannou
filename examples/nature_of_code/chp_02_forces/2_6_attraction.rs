@@ -37,7 +37,7 @@ impl Attractor {
     fn new(rect: Rect<f32>) -> Self {
         let position = rect.xy();
         let mass = 20.0;
-        let drag_offset = Vector2::new(0.0, 0.0);
+        let drag_offset = vec2(0.0, 0.0);
         let dragging = false;
         let roll_over = false;
         Attractor {
@@ -68,14 +68,14 @@ impl Attractor {
             0.75
         };
         draw.rect()
-            .x_y(self.position.x, self.position.y)
+            .xy(self.position)
             .w_h(self.mass * 2.0, self.mass * 2.0)
             .rgba(gray, gray, gray, 0.8);
     }
 
     // The methods below are for mouse interaction
     fn clicked(&mut self, mx: f32, my: f32) {
-        let d = self.position.distance(Point2::new(mx, my));
+        let d = self.position.distance(pt2(mx, my));
         if d < self.mass {
             self.dragging = true;
             self.drag_offset.x = self.position.x - mx;
@@ -84,7 +84,7 @@ impl Attractor {
     }
 
     fn hover(&mut self, mx: f32, my: f32) {
-        let d = self.position.distance(Point2::new(mx, my));
+        let d = self.position.distance(pt2(mx, my));
         if d < self.mass {
             self.roll_over = true;
         } else {
@@ -106,9 +106,9 @@ impl Attractor {
 
 impl Mover {
     fn new() -> Self {
-        let position = Point2::new(80.0, 130.0);
-        let velocity = Vector2::new(1.0, 0.0);
-        let acceleration = Vector2::new(0.0, 0.0);
+        let position = pt2(80.0, 130.0);
+        let velocity = vec2(1.0, 0.0);
+        let acceleration = vec2(0.0, 0.0);
         let mass = 1.0;
         Mover {
             position,
@@ -131,7 +131,7 @@ impl Mover {
 
     fn display(&self, draw: &app::Draw) {
         draw.ellipse()
-            .x_y(self.position.x, self.position.y)
+            .xy(self.position)
             .w_h(16.0, 16.0)
             .rgb(0.3, 0.3, 0.3);
     }
@@ -150,7 +150,7 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_wh(Vector2::new(640.0, 360.0));
+    let rect = Rect::from_w_h(640.0, 360.0);
     let _window = app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
         .build()
@@ -196,7 +196,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     m.attractor.display(&draw);
     m.mover.display(&draw);

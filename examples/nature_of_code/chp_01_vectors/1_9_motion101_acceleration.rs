@@ -24,9 +24,9 @@ struct Mover {
 
 impl Mover {
     fn new(_rect: Rect<f32>) -> Self {
-        let position = Point2::new(0.0, 0.0);
-        let velocity = Vector2::new(0.0, 0.0);
-        let acceleration = Vector2::new(0.0, 0.0);
+        let position = pt2(0.0, 0.0);
+        let velocity = vec2(0.0, 0.0);
+        let acceleration = vec2(0.0, 0.0);
         let top_speed = 6.0;
         Mover {
             position,
@@ -37,8 +37,8 @@ impl Mover {
     }
 
     fn update(&mut self) {
-        self.acceleration = vec2(1.0 - random::<f32>() * 2.0, 1.0 - random::<f32>() * 2.0);
-        self.acceleration *= random::<f32>() * 2.0;
+        self.acceleration = vec2(1.0 - random_f32() * 2.0, 1.0 - random_f32() * 2.0);
+        self.acceleration *= random_f32() * 2.0;
         self.velocity += self.acceleration;
         self.velocity = vec2(
             self.velocity.x.min(self.top_speed),
@@ -63,7 +63,7 @@ impl Mover {
     fn display(&self, draw: &app::Draw) {
         // Display circle at x position
         draw.ellipse()
-            .x_y(self.position.x, self.position.y)
+            .xy(self.position)
             .w_h(48.0, 48.0)
             .rgb(0.5, 0.5, 0.5);
     }
@@ -86,7 +86,7 @@ fn event(_app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     m.mover.display(&draw);
 

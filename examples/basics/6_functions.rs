@@ -48,10 +48,7 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
                 println!("subtract 100 - 30 = {}", subtract(100, 30));
                 println!("multiply 3.5 * 10.2 = {}", multiply(3.5, 10.2));
                 println!("random = {}", random());
-                println!(
-                    "remaped value = {}",
-                    map_range(random(), 0.0, 1.0, 0.0, 100.0)
-                );
+                println!("remaped value = {}", random_range(0.0f32, 100.0));
             }
 
             MousePressed(_button) => {

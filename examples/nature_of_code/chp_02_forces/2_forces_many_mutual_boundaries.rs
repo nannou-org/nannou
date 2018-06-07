@@ -21,9 +21,9 @@ struct Mover {
 impl Mover {
     fn new(m: f32, x: f32, y: f32) -> Self {
         let mass = m;
-        let position = Point2::new(x, y);
-        let velocity = Vector2::new(0.0, 0.0);
-        let acceleration = Vector2::new(0.0, 0.0);
+        let position = pt2(x, y);
+        let velocity = vec2(0.0, 0.0);
+        let acceleration = vec2(0.0, 0.0);
         Mover {
             position,
             velocity,
@@ -45,7 +45,7 @@ impl Mover {
 
     fn display(&self, draw: &app::Draw) {
         draw.ellipse()
-            .x_y(self.position.x, self.position.y)
+            .xy(self.position)
             .w_h(self.mass * 16.0, self.mass * 16.0)
             .rgba(0.6, 0.6, 0.6, 0.7);
     }
@@ -62,7 +62,7 @@ impl Mover {
 
     fn boundaries(&mut self, rect: Rect<f32>) {
         let d = 50.0;
-        let mut force = Vector2::new(0.0, 0.0);
+        let mut force = vec2(0.0, 0.0);
 
         if self.position.x < rect.pad(d).left() {
             force.x = 1.0;
@@ -87,7 +87,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_wh(Vector2::new(640.0, 360.0));
+    let rect = Rect::from_w_h(640.0, 360.0);
     let _window = app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
         .build()
@@ -96,9 +96,9 @@ fn model(app: &App) -> Model {
     let movers = (0..20)
         .map(|_| {
             Mover::new(
-                map_range(random(), 0.0, 1.0, 1.0, 2.0),
-                map_range(random(), 0.0, 1.0, rect.left(), rect.right()),
-                map_range(random(), 0.0, 1.0, rect.top(), rect.bottom()),
+                random_range(1.0f32, 2.0),
+                random_range(rect.left(), rect.right()),
+                random_range(rect.top(), rect.bottom()),
             )
         })
         .collect();
@@ -126,7 +126,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     // Draw movers
     for mover in &m.movers {

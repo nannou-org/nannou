@@ -21,13 +21,13 @@ fn view(app: &App, frame: Frame) -> Frame {
     // A vector that points to the mouse position
     let mut mouse = vec2(app.mouse.x, app.mouse.y);
     // A vector that points to the center of the window
-    let center = vec2(0.0,0.0);
+    let center = vec2(0.0, 0.0);
     // Subtract center from mouse which results in a vector that points from center to mouse
     mouse -= center;
 
     // Normalize the vector
     mouse = mouse.normalize();
-        
+
     // Multiply its length by 150
     mouse *= 150.0;
 
@@ -35,7 +35,7 @@ fn view(app: &App, frame: Frame) -> Frame {
         .start(pt2(0.0, 0.0))
         .end(pt2(mouse.x, mouse.y))
         .thickness(2.0)
-        .rgb(0.0, 0.0, 0.0);
+        .color(BLACK);
 
     // Write the result of our drawing to the window's OpenGL frame.
     draw.to_frame(app, &frame).unwrap();

@@ -37,7 +37,7 @@ fn event(_app: &App, mut model: Model, event: Event) -> Model {
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     let mut angle = model.start_angle;
     let rect = app.window_rect();

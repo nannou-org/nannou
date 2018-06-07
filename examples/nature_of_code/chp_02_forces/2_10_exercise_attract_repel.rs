@@ -33,7 +33,7 @@ impl Attractor {
         let position = rect.xy();
         let mass = 10.0;
         let radius = mass * 3.0;
-        let drag = Vector2::new(0.0, 0.0);
+        let drag = vec2(0.0, 0.0);
         let dragging = false;
         let roll_over = false;
         Attractor {
@@ -66,14 +66,14 @@ impl Attractor {
             0.0
         };
         draw.ellipse()
-            .x_y(self.position.x, self.position.y)
+            .xy(self.position)
             .w_h(self.radius * 2.0, self.radius * 2.0)
             .rgb(gray, gray, gray);
     }
 
     // The methods below are for mouse interaction
     fn clicked(&mut self, mx: f32, my: f32) {
-        let d = self.position.distance(Point2::new(mx, my));
+        let d = self.position.distance(pt2(mx, my));
         if d < self.mass {
             self.dragging = true;
             self.drag.x = self.position.x - mx;
@@ -82,7 +82,7 @@ impl Attractor {
     }
 
     fn rollover(&mut self, mx: f32, my: f32) {
-        let d = self.position.distance(Point2::new(mx, my));
+        let d = self.position.distance(pt2(mx, my));
         if d < self.mass {
             self.roll_over = true;
         } else {
@@ -105,9 +105,9 @@ impl Attractor {
 impl Mover {
     fn new(m: f32, x: f32, y: f32) -> Self {
         let mass = m;
-        let position = Point2::new(x, y);
-        let velocity = Vector2::new(0.0, 0.0);
-        let acceleration = Vector2::new(0.0, 0.0);
+        let position = pt2(x, y);
+        let velocity = vec2(0.0, 0.0);
+        let acceleration = vec2(0.0, 0.0);
         Mover {
             position,
             velocity,
@@ -129,7 +129,7 @@ impl Mover {
 
     fn display(&self, draw: &app::Draw) {
         draw.ellipse()
-            .x_y(self.position.x, self.position.y)
+            .xy(self.position)
             .w_h(self.mass * 2.0, self.mass * 2.0)
             .rgba(0.6, 0.6, 0.6, 0.5);
     }
@@ -168,7 +168,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_wh(Vector2::new(640.0, 360.0));
+    let rect = Rect::from_w_h(640.0, 360.0);
     let _window = app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
         .build()
@@ -177,9 +177,9 @@ fn model(app: &App) -> Model {
     let movers = (0..20)
         .map(|_| {
             Mover::new(
-                map_range(random(), 0.0, 1.0, 4.0, 12.0),
-                map_range(random(), 0.0, 1.0, rect.left(), rect.right()),
-                map_range(random(), 0.0, 1.0, rect.top(), rect.bottom()),
+                random_range(4.0f32, 12.0),
+                random_range(rect.left(), rect.right()),
+                random_range(rect.top(), rect.bottom()),
             )
         })
         .collect();
@@ -231,7 +231,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     m.attractor.display(&draw);
 

@@ -55,7 +55,7 @@ fn event(app: &App, mut model: Model, event: Event) -> Model {
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     draw.ellipse()
         .x_y(model.x, model.y)

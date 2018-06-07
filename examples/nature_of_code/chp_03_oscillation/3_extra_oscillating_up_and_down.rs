@@ -32,13 +32,13 @@ fn event(_app: &App, mut model: Model, event: Event) -> Model {
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     let y = 100.0 * model.angle.sin();
 
     draw.line()
-        .start(Point2::new(0.0, 0.0))
-        .end(Point2::new(0.0, y))
+        .start(pt2(0.0, 0.0))
+        .end(pt2(0.0, y))
         .rgb(0.4, 0.4, 0.4);
     draw.ellipse()
         .x_y(0.0, y)

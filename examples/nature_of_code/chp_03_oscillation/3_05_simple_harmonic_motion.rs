@@ -15,7 +15,7 @@ fn view(app: &App, frame: Frame) -> Frame {
     app.main_window().set_inner_size_points(640.0, 360.0);
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgb(1.0, 1.0, 1.0);
+    draw.background().color(WHITE);
 
     let period = 0.2;
     let amplitude = 300.0;

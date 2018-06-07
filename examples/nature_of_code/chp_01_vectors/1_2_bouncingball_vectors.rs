@@ -17,8 +17,8 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let position = Point2::new(100.0, 100.0);
-    let velocity = Vector2::new(2.5, 5.0);
+    let position = pt2(100.0, 100.0);
+    let velocity = vec2(2.5, 5.0);
 
     let _window = app.new_window().with_dimensions(200, 200).build().unwrap();
     Model { position, velocity }
@@ -44,7 +44,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
-    
+
     draw.rect()
         .wh(app.window_rect().wh())
         .rgba(1.0, 1.0, 1.0, 0.03);
