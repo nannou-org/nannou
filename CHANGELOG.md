@@ -1,5 +1,9 @@
 # Unpublished
 
+- Add better `panic!` message to `map_range` if cast fails
+
+# Version 0.6.0 (2017-06-07)
+
 - Add beginnings of Nature of Code and Generative Gestaltung examples.
 - Add `App::elapsed_frames` method.
 - Remove `app.window.id` field in favour of more reliable `app.window_id`

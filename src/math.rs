@@ -24,14 +24,20 @@ where
     X: NumCast,
     Y: NumCast,
 {
-    let val_f: f64 = NumCast::from(val).unwrap();
-    let in_min_f: f64 = NumCast::from(in_min).unwrap();
-    let in_max_f: f64 = NumCast::from(in_max).unwrap();
-    let out_min_f: f64 = NumCast::from(out_min).unwrap();
-    let out_max_f: f64 = NumCast::from(out_max).unwrap();
-    NumCast::from(
-        (val_f - in_min_f) / (in_max_f - in_min_f) * (out_max_f - out_min_f) + out_min_f
-    ).unwrap()
+    macro_rules! unwrap_or_panic {
+        ($result:expr, $arg:expr) => {
+            $result.unwrap_or_else(|| panic!("[map_range] failed to cast {} arg to `f64`"))
+        };
+    }
+
+    let val_f: f64 = unwrap_or_panic!(NumCast::from(val), "first");
+    let in_min_f: f64 = unwrap_or_panic!(NumCast::from(in_min), "second");
+    let in_max_f: f64 = unwrap_or_panic!(NumCast::from(in_max), "third");
+    let out_min_f: f64 = unwrap_or_panic!(NumCast::from(out_min), "fourth");
+    let out_max_f: f64 = unwrap_or_panic!(NumCast::from(out_max), "fifth");
+
+    NumCast::from((val_f - in_min_f) / (in_max_f - in_min_f) * (out_max_f - out_min_f) + out_min_f)
+        .unwrap_or_else(|| panic!("[map_range] failed to cast result to target type"))
 }
 
 /// The max between two partially ordered values.
