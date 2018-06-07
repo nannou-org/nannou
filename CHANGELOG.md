@@ -1,5 +1,6 @@
 # Unpublished
 
+- Add beginnings of Nature of Code and Generative Gestaltung examples.
 - Add `App::elapsed_frames` method.
 - Remove `app.window.id` field in favour of more reliable `app.window_id`
   method.
