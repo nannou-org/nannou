@@ -135,8 +135,26 @@ terminal and hit enter.
 curl https://sh.rustup.rs -sSf | sh
 ```
 
+Now Rust is installed! Next we will install some tools that help IDEs do fancy
+things like auto-completion and go-to-definition.
+
+```bash
+rustup component add rust-src rustmft-preview rust-analysis
+```
+
 Please see [this link](https://www.rust-lang.org/en-US/install.html) if you
 would like more information on the Rust installation process.
+
+### Platform-Specific Setup
+
+Depending on what OS you are running, you might require an extra step or two.
+
+- **macOS**: Ensure that you have `xcode-tools` installed:
+  ```
+  xcode-select --install
+  ```
+  If you already have `xcode-tools` installed don't worry! This command will let
+  you know.
 
 ### IDE Setup 
 
@@ -149,10 +167,11 @@ comes with an integrated unix terminal and file navigation system. Below are the
 steps we recommend for getting started with Nannou development using VS-Code.
 
 1. [Download VS-Code](https://code.visualstudio.com/download) for your OS. 
-2. [Install
+2. In VS code user settings, set `"rust-client.channel": "stable"`.
+3. [Install
    RLS](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust) (the
    Rust Language Server) plugin for VS-Code.
-3. Click on the 'view' menu and select 'integrated terminal'.
+4. Click on the 'view' menu and select 'integrated terminal'.
 
 **Other IDEs**
 
@@ -175,14 +194,22 @@ the examples we just need to clone this repository.
 ```
 git clone https://github.com/nannou-org/nannou
 ```
-Change the current directory to `nannou`.
+
+If you do not have `git` installed you can press the "Clone or download" button
+at the top of this page and then press "Download .zip".
+
+Now, change the current directory to `nannou`.
+
 ```
 cd nannou
 ```
+
 Run the example using cargo.
+
 ```
 cargo run --release --example simple_window
 ```
+
 The `--release` flag means we want to build with optimisations enabled.
 
 To run any of the other examples, replace `simple_window` with the name of the
@@ -193,10 +220,11 @@ desired example.
 - [Official Rust Book](https://doc.rust-lang.org/book/second-edition/index.html)
 - [Rust by Example](https://rustbyexample.com/)
 - [Porting C++ projects to Rust GitHub Book](https://locka99.gitbooks.io/a-guide-to-porting-c-to-rust/content/)
-- [Udemy Rust Course](https://www.udemy.com/rust-lang/)  (paid)
-- [Nannou Website](http://nannou.cc)
-- [Nannou Forum](http://forum.nannou.cc) 
 - [#rust-beginners IRC](https://chat.mibbit.com/?server=irc.mozilla.org&channel=%23rust-beginners)
+- [Udemy Rust Course](https://www.udemy.com/rust-lang/) (paid)
+- [Nannou Website](http://nannou.cc)
+- [Nannou Forum](http://forum.nannou.cc)
+- [Nannou Slack](https://nannou.slack.com)
 
 ## License
 
