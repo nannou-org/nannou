@@ -77,7 +77,7 @@ fn model(app: &App) -> Model {
             Mover::new(
                 random_range(0.1f32, 2.0),
                 random_range(rect.left(), rect.right()),
-                random_range(rect.top(), rect.bottom()),
+                random_range(rect.bottom(), rect.top()),
             )
         })
         .collect();
