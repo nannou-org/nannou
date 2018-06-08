@@ -44,7 +44,7 @@ impl Mover {
         // Velocity chages according to acceleration
         self.velocity += self.acceleration;
         // Limit the velocity by top_speed
-        self.velocity - limit_magnitude(self.velocity, self.top_speed);
+        self.velocity = limit_magnitude(self.velocity, self.top_speed);
         // Position changes velocity
         self.position += self.velocity;
     }
