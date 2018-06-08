@@ -47,7 +47,7 @@ fn event(_app: &App, mut model: Model, event: Event) -> Model {
 
             MouseMoved(pos) => {
                 let addr = "/example/mouse_moved/";
-                let args = vec![Type::Double(pos.x), Type::Double(pos.y)];
+                let args = vec![Type::Float(pos.x), Type::Float(pos.y)];
                 model.sender.send((addr, args)).ok();
             },
 
