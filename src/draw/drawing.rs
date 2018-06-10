@@ -30,6 +30,8 @@ where
     // **Drawing** may yet describe further positioning, orientation or scaling and in turn using
     // the index to refer to a node before these properties are set may yield unexpected behaviour.
     index: node::Index,
+    // Whether or not the **Drawing** should attempt to finish the drawing on drop.
+    finish_on_drop: bool,
     // The node type currently being drawn.
     _ty: PhantomData<T>,
 }
@@ -41,7 +43,8 @@ where
     S: BaseFloat,
 {
     let _ty = PhantomData;
-    Drawing { draw, index, _ty }
+    let finish_on_drop = true;
+    Drawing { draw, index, finish_on_drop, _ty }
 }
 
 impl<'a, T, S> Drop for Drawing<'a, T, S>
@@ -50,8 +53,11 @@ where
     S: BaseFloat,
 {
     fn drop(&mut self) {
-        self.finish_inner()
-            .expect("the drawing contained a relative edge that would have caused a cycle within the geometry graph");
+        if self.finish_on_drop {
+            self.finish_inner()
+                .expect("the drawing contained a relative edge that would have \
+                        caused a cycle within the geometry graph");
+        }
     }
 }
 
@@ -93,7 +99,7 @@ where
     // Map the given function onto the primitive stored within **Draw** at `index`.
     //
     // The functionn is only applied if the node has not yet been **Drawn**.
-    fn map_primitive<F, T2>(self, map: F) -> Drawing<'a, T2, S>
+    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
     where
         F: FnOnce(draw::properties::Primitive<S>) -> draw::properties::Primitive<S>,
         T2: IntoDrawn<S> + Into<Primitive<S>>,
@@ -104,14 +110,15 @@ where
                 state.drawing.insert(self.index, primitive);
             }
         }
+        self.finish_on_drop = false;
         let Drawing { draw, index, .. } = self;
-        Drawing { draw, index, _ty: PhantomData }
+        Drawing { draw, index, finish_on_drop: true, _ty: PhantomData }
     }
 
     // The same as `map_primitive` but also passes a mutable reference to the vertex data to the
     // map function. This is useful for types that may have an unknown number of arbitrary
     // vertices.
-    fn map_primitive_with_vertices<F, T2>(self, map: F) -> Drawing<'a, T2, S>
+    fn map_primitive_with_vertices<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
     where
         F: FnOnce(draw::properties::Primitive<S>, &mut draw::GeomVertexData<S>) -> draw::properties::Primitive<S>,
         T2: IntoDrawn<S> + Into<Primitive<S>>,
@@ -125,8 +132,9 @@ where
                 state.drawing.insert(self.index, primitive);
             }
         }
+        self.finish_on_drop = false;
         let Drawing { draw, index, .. } = self;
-        Drawing { draw, index, _ty: PhantomData }
+        Drawing { draw, index, finish_on_drop: true, _ty: PhantomData }
     }
 
     /// Apply the given function to the type stored within **Draw**.
