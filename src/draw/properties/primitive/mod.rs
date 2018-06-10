@@ -2,12 +2,14 @@ use geom;
 
 pub mod ellipse;
 pub mod line;
+pub mod polygon;
 pub mod quad;
 pub mod rect;
 pub mod tri;
 
 pub use self::ellipse::Ellipse;
 pub use self::line::Line;
+pub use self::polygon::Polygon;
 pub use self::quad::Quad;
 pub use self::rect::Rect;
 pub use self::tri::Tri;
@@ -21,6 +23,11 @@ pub use self::tri::Tri;
 pub enum Primitive<S = geom::DefaultScalar> {
     Ellipse(Ellipse<S>),
     Line(Line<S>),
+
+    PolygonPointless(polygon::Pointless),
+    PolygonFill(Polygon<polygon::Fill, S>),
+    PolygonColorPerVertex(Polygon<polygon::PerVertex, S>),
+
     Quad(Quad<S>),
     Rect(Rect<S>),
     Tri(Tri<S>),

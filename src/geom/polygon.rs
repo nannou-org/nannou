@@ -8,6 +8,13 @@ pub struct Polygon<I> {
     pub points: I,
 }
 
+/// An iterator yielding indices into a polygon's vertices required to triangulate the polygon.
+#[derive(Clone, Debug)]
+pub struct TriangleIndices {
+    index: usize,
+    n_points: usize,
+}
+
 impl<I> Polygon<I>
 where
     I: Iterator,
@@ -95,6 +102,24 @@ where
     })
 }
 
+/// An iterator yielding indices into a polygon's vertices required to triangulate the polygon.
+pub fn triangle_indices(n_points: usize) -> TriangleIndices {
+    let index = 0;
+    TriangleIndices { index, n_points, }
+}
+
+/// Returns `Some` with the touched triangle if the given `Point` is over the polygon described by
+/// the given series of points.
+///
+/// This uses the `triangles` function internally.
+pub fn contains<I>(points: I, point: &I::Item) -> Option<Tri<I::Item>>
+where
+    I: IntoIterator,
+    I::Item: Vertex2d,
+{
+    triangles(points).and_then(|ts| tri::iter_contains(ts, &point))
+}
+
 impl<I> Iterator for Triangles<I>
 where
     I: Iterator,
@@ -110,14 +135,18 @@ where
     }
 }
 
-/// Returns `Some` with the touched triangle if the given `Point` is over the polygon described by
-/// the given series of points.
-///
-/// This uses the `triangles` function internally.
-pub fn contains<I>(points: I, point: &I::Item) -> Option<Tri<I::Item>>
-where
-    I: IntoIterator,
-    I::Item: Vertex2d,
-{
-    triangles(points).and_then(|ts| tri::iter_contains(ts, &point))
+impl Iterator for TriangleIndices {
+    type Item = usize;
+    fn next(&mut self) -> Option<Self::Item> {
+        let index = self.index;
+        let tri_index = index / 3;
+        if self.n_points < tri_index + 3 {
+            return None;
+        }
+        self.index += 1;
+        match index % 3 {
+            0 => Some(0),
+            remainder => Some(tri_index + remainder),
+        }
+    }
 }

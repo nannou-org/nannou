@@ -192,3 +192,42 @@ where
         self.vertex.point3()
     }
 }
+
+// For converting from a tuples to vertices.
+
+impl<A, V, C> From<(A, C)> for WithColor<V, C>
+where
+    A: Into<V>,
+{
+    fn from((vertex, color): (A, C)) -> Self {
+        let vertex = vertex.into();
+        WithColor { vertex, color }
+    }
+}
+
+impl<A, V, T> From<(A, T)> for WithTexCoords<V, T>
+where
+    A: Into<V>,
+{
+    fn from((vertex, tex_coords): (A, T)) -> Self {
+        let vertex = vertex.into();
+        WithTexCoords { vertex, tex_coords }
+    }
+}
+
+impl<A, V, N> From<(A, N)> for WithNormal<V, N>
+where
+    A: Into<V>,
+{
+    fn from((vertex, normal): (A, N)) -> Self {
+        let vertex = vertex.into();
+        WithNormal { vertex, normal }
+    }
+}
+
+#[test]
+fn test_tuple_conv() {
+    use color::named::GREEN;
+    let _: Point2<_> = [0.0, 0.0].into();
+    let _: WithColor<Point2<_>, _> = ([0.0, 0.0], GREEN).into();
+}
