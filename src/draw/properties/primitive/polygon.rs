@@ -1,8 +1,8 @@
 use draw::{self, mesh, Drawing};
-use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions, SetOrientation, SetPosition};
-use draw::properties::spatial::{dimension, orientation, position};
+use draw::properties::{ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetOrientation, SetPosition};
+use draw::properties::spatial::{self, orientation, position};
 use geom;
-use math::{BaseFloat, Vector2, Point3};
+use math::BaseFloat;
 use std::iter;
 
 /// A polygon prior to being initialised.
@@ -12,7 +12,8 @@ pub struct Pointless;
 /// Properties related to drawing a **Polygon**.
 #[derive(Clone, Debug)]
 pub struct Polygon<C = Fill, S = geom::DefaultScalar> {
-    spatial: spatial::Properties<S>,
+    position: position::Properties<S>,
+    orientation: orientation::Properties<S>,
     color: C,
     ranges: draw::GeomVertexDataRanges,
 }
@@ -24,6 +25,12 @@ pub struct Fill(Option<mesh::vertex::Color>);
 /// Color each vertex individually.
 #[derive(Clone, Debug)]
 pub struct PerVertex;
+
+/// The vertices type yielded for drawing into the mesh.
+pub struct Vertices {
+    ranges: draw::GeomVertexDataRanges,
+    fill_color: Option<draw::mesh::vertex::Color>,
+}
 
 impl Pointless {
     /// Draw a filled, convex polygon whose edges are defined by the given list of vertices.
@@ -79,12 +86,41 @@ where
     //
     // The given `GeomVertexData` is use used to fill points.
     fn new(color: C, ranges: draw::GeomVertexDataRanges) -> Self {
-        let spatial = Default::default();
+        let orientation = Default::default();
+        let position = Default::default();
         Polygon {
-            spatial,
+            orientation,
+            position,
             color,
             ranges,
         }
+    }
+}
+
+impl<'a, S> Drawing<'a, Pointless, S>
+where
+    S: BaseFloat,
+{
+    /// Describe the polygon's edges with the given list of consecutive vertices that join them.
+    pub fn points<P>(self, points: P) -> Drawing<'a, Polygon<Fill, S>, S>
+    where
+        P: IntoIterator,
+        P::Item: Into<mesh::vertex::Point<S>>,
+        S: BaseFloat,
+    {
+        self.map_ty_with_vertices(|ty, data| ty.points(data, points))
+    }
+
+    /// Describe the polygon's edges with the given list of consecutive vertices that join them.
+    ///
+    /// Each vertex may be colored uniquely.
+    pub fn colored_points<P>(self, points: P) -> Drawing<'a, Polygon<PerVertex, S>, S>
+    where
+        P: IntoIterator,
+        P::Item: Into<mesh::vertex::ColoredPoint<S>>,
+        S: BaseFloat,
+    {
+        self.map_ty_with_vertices(|ty, data| ty.colored_points(data, points))
     }
 }
 
@@ -94,7 +130,7 @@ where
 {
     type Vertices = iter::Empty<draw::mesh::Vertex<S>>;
     type Indices = iter::Empty<usize>;
-    fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+    fn into_drawn(self, _draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
         let properties = Default::default();
         let vertices = iter::empty();
         let indices = iter::empty();
@@ -102,39 +138,124 @@ where
     }
 }
 
-// impl<S> IntoDrawn<S> for Polygon<Fill, S>
-// where
-//     S: BaseFloat,
-// {
-//     type Vertices = (draw::GeomVertexDataRanges, Color);
-//     type Indices = ops::Range<usize>;
-//     fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
-//         let Polygon {
-//             spatial,
-//             color: Fill(color),
-//             ranges,
-//         } = self;
-//         unimplemented!();
-//     }
-// }
+impl<S> IntoDrawn<S> for Polygon<Fill, S>
+where
+    S: BaseFloat,
+{
+    type Vertices = Vertices;
+    type Indices = geom::polygon::TriangleIndices;
+    fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+        let Polygon {
+            orientation,
+            position,
+            color: Fill(color),
+            ranges,
+        } = self;
+
+        // If color is not specified within the ranges, determine the fill colour to use.
+        let fill_color = match ranges.colors.len() {
+            0 => {
+                let color = color
+                    .or_else(|| {
+                        draw.theme(|theme| {
+                            theme
+                                .color
+                                .primitive
+                                .get(&draw::theme::Primitive::Polygon)
+                                .map(|&c| c)
+                        })
+                    })
+                    .unwrap_or(draw.theme(|t| t.color.default));
+                Some(color)
+            },
+            _ => None,
+        };
+
+        let dimensions = spatial::dimension::Properties::default();
+        let spatial = spatial::Properties { dimensions, orientation, position };
+        let indices = geom::polygon::triangle_indices(ranges.points.len());
+        let vertices = Vertices { ranges, fill_color };
+        (spatial, vertices, indices)
+    }
+}
+
+impl<S> IntoDrawn<S> for Polygon<PerVertex, S>
+where
+    S: BaseFloat,
+{
+    type Vertices = Vertices;
+    type Indices = geom::polygon::TriangleIndices;
+    fn into_drawn(self, _draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+        let Polygon {
+            orientation,
+            position,
+            ranges,
+            ..
+        } = self;
+        let fill_color = None;
+        let dimensions = spatial::dimension::Properties::default();
+        let spatial = spatial::Properties { dimensions, orientation, position };
+        let indices = geom::polygon::triangle_indices(ranges.points.len());
+        let vertices = Vertices { ranges, fill_color };
+        (spatial, vertices, indices)
+    }
+}
+
+impl<S> draw::properties::Vertices<S> for Vertices
+where
+    S: BaseFloat,
+{
+    fn next(&mut self, data: &mut draw::GeomVertexData<S>) -> Option<draw::mesh::Vertex<S>> {
+        let Vertices {
+            ref mut ranges,
+            fill_color,
+        } = *self;
+
+        let point = ranges.points.next();
+        let color = ranges.colors.next();
+        let tex_coords = ranges.tex_coords.next();
+
+        let point = match point {
+            None => return None,
+            Some(point_ix) => {
+                *data.points
+                    .get(point_ix)
+                    .expect("no point for point index in GeomVertexData")
+            },
+        };
+
+        let color = color
+            .map(|color_ix| {
+                *data.colors
+                    .get(color_ix)
+                    .expect("no color for color index in GeomVertexData")
+            })
+            .or(fill_color)
+            .expect("no color for vertex");
+
+        let tex_coords = tex_coords
+            .map(|tex_coords_ix| {
+                *data.tex_coords
+                    .get(tex_coords_ix)
+                    .expect("no tex_coords for tex_coords index in GeomVertexData")
+            })
+            .unwrap_or_else(draw::mesh::vertex::default_tex_coords);
+
+        Some(draw::mesh::vertex::new(point, color, tex_coords))
+    }
+}
 
 impl<C, S> SetOrientation<S> for Polygon<C, S> {
     fn properties(&mut self) -> &mut orientation::Properties<S> {
-        SetOrientation::properties(&mut self.spatial)
+        SetOrientation::properties(&mut self.orientation)
     }
 }
 
 impl<C, S> SetPosition<S> for Polygon<C, S> {
     fn properties(&mut self) -> &mut position::Properties<S> {
-        SetPosition::properties(&mut self.spatial)
+        SetPosition::properties(&mut self.position)
     }
 }
-
-// impl<C, S> SetDimensions<S> for Polygon<C, S> {
-//     fn properties(&mut self) -> &mut dimension::Properties<S> {
-//         SetDimensions::properties(&mut self.spatial)
-//     }
-// }
 
 impl<S> SetColor<ColorScalar> for Polygon<Fill, S> {
     fn rgba_mut(&mut self) -> &mut Option<Rgba> {
@@ -186,18 +307,3 @@ impl<S> Into<Option<Polygon<PerVertex, S>>> for Primitive<S> {
         }
     }
 }
-
-// impl<'a, S> Drawing<'a, Pointless, S>
-// where
-//     S: BaseFloat,
-// {
-//     /// Describe the polygon's edges with the given list of consecutive vertices that join them.
-//     pub fn points<P>(self, points: P) -> Drawing<'a, Polygon<Fill, S>, S>
-//     where
-//         P: IntoIterator,
-//         P::Item: Into<mesh::vertex::Point<S>>,
-//         S: BaseFloat,
-//     {
-//         self.map_ty_with_vertices(|ty, data| ty.points(data, points))
-//     }
-// }
