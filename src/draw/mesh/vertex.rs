@@ -8,6 +8,7 @@ pub type Point<S> = Point3<S>;
 pub type Color = color::Rgba;
 pub type TexCoords<S> = Point2<S>;
 pub type Normal<S> = Vector3<S>;
+pub type ColoredPoint<S> = WithColor<Point<S>, Color>;
 
 /// Types that can be converted into a `draw::mesh::vertex::Point`.
 pub trait IntoPoint<S> {
@@ -166,6 +167,20 @@ pub struct IterFromPoints<I, S = geom::DefaultScalar> {
     _scalar: PhantomData<S>,
 }
 
+/// A type that converts an iterator yielding 2D points to an iterator yielding **Vertex**s.
+///
+/// The `z` position for each vertex will be `0.0`.
+///
+/// The given `default_color` is used to color every vertex.
+///
+/// The default value of `(0.0, 0.0)` is used for tex_coords.
+#[derive(Clone, Debug)]
+pub struct IterFromPoint2s<I, S = geom::DefaultScalar> {
+    points: I,
+    default_color: Color,
+    _scalar: PhantomData<S>,
+}
+
 impl<I, S> IterFromPoints<I, S> {
     /// Produce an iterator that converts an iterator yielding points to an iterator yielding
     /// **Vertex**s.
@@ -188,37 +203,6 @@ impl<I, S> IterFromPoints<I, S> {
     }
 }
 
-impl<I, S> Iterator for IterFromPoints<I, S>
-where
-    I: Iterator<Item = Point<S>>,
-    S: BaseFloat,
-{
-    type Item = Vertex<S>;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.points.next().map(|vertex| {
-            let color = self.default_color;
-            let vertex = WithColor { vertex, color };
-            let tex_coords = default_tex_coords();
-            let vertex = WithTexCoords { vertex, tex_coords };
-            vertex
-        })
-    }
-}
-
-/// A type that converts an iterator yielding 2D points to an iterator yielding **Vertex**s.
-///
-/// The `z` position for each vertex will be `0.0`.
-///
-/// The given `default_color` is used to color every vertex.
-///
-/// The default value of `(0.0, 0.0)` is used for tex_coords.
-#[derive(Clone, Debug)]
-pub struct IterFromPoint2s<I, S = geom::DefaultScalar> {
-    points: I,
-    default_color: Color,
-    _scalar: PhantomData<S>,
-}
-
 impl<I, S> IterFromPoint2s<I, S> {
     /// A type that converts an iterator yielding 2D points to an iterator yielding **Vertex**s.
     ///
@@ -239,6 +223,23 @@ impl<I, S> IterFromPoint2s<I, S> {
             default_color,
             _scalar,
         }
+    }
+}
+
+impl<I, S> Iterator for IterFromPoints<I, S>
+where
+    I: Iterator<Item = Point<S>>,
+    S: BaseFloat,
+{
+    type Item = Vertex<S>;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.points.next().map(|vertex| {
+            let color = self.default_color;
+            let vertex = WithColor { vertex, color };
+            let tex_coords = default_tex_coords();
+            let vertex = WithTexCoords { vertex, tex_coords };
+            vertex
+        })
     }
 }
 
