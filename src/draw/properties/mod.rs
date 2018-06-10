@@ -11,7 +11,6 @@ use geom;
 use geom::graph::node;
 use math::BaseFloat;
 use std::cell::RefCell;
-use std::ops;
 
 pub mod color;
 pub mod primitive;
@@ -120,6 +119,21 @@ where
     }
 }
 
+/// Similar to the `Iterator` trait, but provides access to the **GeomVertexData** on each call to
+/// the **next** method.
+pub trait Vertices<S>: Sized {
+    /// Return the next **Vertex** within the sequence.
+    fn next(&mut self, data: &mut draw::GeomVertexData<S>) -> Option<draw::mesh::Vertex<S>>;
+
+    /// Converts `self` and the given `data` into an iterator yielding vertices.
+    fn into_iter(self, data: &mut draw::GeomVertexData<S>) -> IterVertices<Self, S> {
+        IterVertices {
+            vertices: self,
+            data,
+        }
+    }
+}
+
 /// Types that can be **Drawn** into a parent **Draw** geometry graph and mesh.
 pub trait IntoDrawn<S>
 where
@@ -129,11 +143,18 @@ where
     ///
     /// The position of each yielded vertex should be relative to `0, 0, 0` as all displacement,
     /// scaling and rotation transformations will be performed via the geometry graph.
-    type Vertices: IntoIterator<Item = draw::mesh::Vertex<S>>;
+    type Vertices: Vertices<S>;
     /// The iterator type yielding all vertex indices, describing edges of the drawing.
     type Indices: IntoIterator<Item = usize>;
     /// Consume `self` and return its **Drawn** form.
     fn into_drawn(self, Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices>;
+}
+
+/// An iterator adaptor around a type implementing the **Vertices** trait and the
+/// **GeomVertexData** necessary for producing vertices.
+pub struct IterVertices<'a, V, S: 'a> {
+    vertices: V,
+    data: &'a mut draw::GeomVertexData<S>,
 }
 
 // Implement a method to simplify retrieving the dimensions of a type from `dimension::Properties`.
@@ -155,5 +176,28 @@ where
             .as_ref()
             .map(|z| z.to_scalar(|n| draw.untransformed_z_dimension_of(n).expect(EXPECT_DIMENSION)));
         (x, y, z)
+    }
+}
+
+impl<S, I> Vertices<S> for I
+where
+    I: Iterator<Item = draw::mesh::Vertex<S>>,
+{
+    fn next(&mut self, _data: &mut draw::GeomVertexData<S>) -> Option<draw::mesh::Vertex<S>> {
+        self.next()
+    }
+}
+
+impl<'a, V, S> Iterator for IterVertices<'a, V, S>
+where
+    V: Vertices<S>,
+{
+    type Item = draw::mesh::Vertex<S>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let IterVertices {
+            ref mut vertices,
+            ref mut data,
+        } = *self;
+        Vertices::next(vertices, *data)
     }
 }

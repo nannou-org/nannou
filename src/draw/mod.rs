@@ -86,7 +86,7 @@ where
 /// A set of intermediary buffers for collecting geometry point data for geometry types that may
 /// produce a dynamic number of vertices that may or not also contain colour or texture data.
 #[derive(Clone, Debug)]
-pub(crate) struct GeomVertexData<S> {
+pub struct GeomVertexData<S> {
     pub(crate) points: Vec<mesh::vertex::Point<S>>,
     pub(crate) colors: Vec<mesh::vertex::Color>,
     pub(crate) tex_coords: Vec<mesh::vertex::TexCoords<S>>,
@@ -301,7 +301,17 @@ where
     let vertices_start_index = draw.mesh.raw_vertex_count();
     let indices_start_index = draw.mesh.indices().len();
     let indices = indices.into_iter().map(|i| vertices_start_index + i);
-    draw.mesh.extend(vertices, indices);
+
+    {
+        let State {
+            ref mut mesh,
+            ref mut geom_vertex_data,
+            ..
+        } = *draw;
+        let data = &mut *geom_vertex_data.borrow_mut();
+        let vertices = properties::Vertices::into_iter(vertices, data);
+        mesh.extend(vertices, indices);
+    }
 
     // Update the **Draw**'s range map.
     let vertices_end_index = draw.mesh.raw_vertex_count();
@@ -373,12 +383,10 @@ where
             Ok(())
         },
         Primitive::PolygonFill(prim) => {
-            unimplemented!();
-            //into_drawn(draw, node_index, prim)
+            into_drawn(draw, node_index, prim)
         },
         Primitive::PolygonColorPerVertex(prim) => {
-            unimplemented!();
-            //into_drawn(draw, node_index, prim)
+            into_drawn(draw, node_index, prim)
         },
         Primitive::Quad(prim) => {
             into_drawn(draw, node_index, prim)
