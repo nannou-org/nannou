@@ -81,7 +81,9 @@ path = "examples/basics/5_loops.rs"
 [[example]] 
 name = "6_functions" 
 path = "examples/basics/6_functions.rs"
-
+[[example]] 
+name = "7_modules" 
+path = "examples/basics/7_modules/7_modules.rs"
 # --------------- Generative Design 
 [[example]] 
 name = "p_1_0_01" 
