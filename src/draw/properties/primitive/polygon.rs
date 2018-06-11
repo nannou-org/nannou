@@ -15,7 +15,7 @@ pub struct Polygon<C = Fill, S = geom::DefaultScalar> {
     position: position::Properties<S>,
     orientation: orientation::Properties<S>,
     color: C,
-    ranges: draw::GeomVertexDataRanges,
+    ranges: draw::IntermediaryVertexDataRanges,
 }
 
 /// Color all vertices of the polygon with a single color.
@@ -28,7 +28,7 @@ pub struct PerVertex;
 
 /// The vertices type yielded for drawing into the mesh.
 pub struct Vertices {
-    ranges: draw::GeomVertexDataRanges,
+    ranges: draw::IntermediaryVertexDataRanges,
     fill_color: Option<draw::mesh::vertex::Color>,
 }
 
@@ -36,7 +36,7 @@ impl Pointless {
     /// Draw a filled, convex polygon whose edges are defined by the given list of vertices.
     pub(crate) fn points<P, S>(
         self,
-        vertex_data: &mut draw::GeomVertexData<S>,
+        vertex_data: &mut draw::IntermediaryVertexData<S>,
         points: P,
     ) -> Polygon<Fill, S>
     where
@@ -44,7 +44,7 @@ impl Pointless {
         P::Item: Into<mesh::vertex::Point<S>>,
         S: BaseFloat,
     {
-        let mut ranges = draw::GeomVertexDataRanges::default();
+        let mut ranges = draw::IntermediaryVertexDataRanges::default();
         ranges.points.start = vertex_data.points.len();
         vertex_data.points.extend(points.into_iter().map(Into::into));
         ranges.points.end = vertex_data.points.len();
@@ -56,7 +56,7 @@ impl Pointless {
     /// vertices.
     pub(crate) fn colored_points<P, S>(
         self,
-        vertex_data: &mut draw::GeomVertexData<S>,
+        vertex_data: &mut draw::IntermediaryVertexData<S>,
         points: P,
     ) -> Polygon<PerVertex, S>
     where
@@ -64,7 +64,7 @@ impl Pointless {
         P::Item: Into<::mesh::vertex::WithColor<mesh::vertex::Point<S>, mesh::vertex::Color>>,
         S: BaseFloat,
     {
-        let mut ranges = draw::GeomVertexDataRanges::default();
+        let mut ranges = draw::IntermediaryVertexDataRanges::default();
         ranges.points.start = vertex_data.points.len();
         ranges.colors.start = vertex_data.colors.len();
         for v in points.into_iter().map(Into::into) {
@@ -83,9 +83,7 @@ where
     S: BaseFloat,
 {
     // Initialise a new `Polygon` with no points, ready for drawing.
-    //
-    // The given `GeomVertexData` is use used to fill points.
-    fn new(color: C, ranges: draw::GeomVertexDataRanges) -> Self {
+    fn new(color: C, ranges: draw::IntermediaryVertexDataRanges) -> Self {
         let orientation = Default::default();
         let position = Default::default();
         Polygon {
@@ -108,7 +106,7 @@ where
         P::Item: Into<mesh::vertex::Point<S>>,
         S: BaseFloat,
     {
-        self.map_ty_with_vertices(|ty, data| ty.points(data, points))
+        self.map_ty_with_vertices(|ty, mesh| ty.points(&mut mesh.vertex_data, points))
     }
 
     /// Describe the polygon's edges with the given list of consecutive vertices that join them.
@@ -120,7 +118,7 @@ where
         P::Item: Into<mesh::vertex::ColoredPoint<S>>,
         S: BaseFloat,
     {
-        self.map_ty_with_vertices(|ty, data| ty.colored_points(data, points))
+        self.map_ty_with_vertices(|ty, mesh| ty.colored_points(&mut mesh.vertex_data, points))
     }
 }
 
@@ -205,7 +203,7 @@ impl<S> draw::properties::Vertices<S> for Vertices
 where
     S: BaseFloat,
 {
-    fn next(&mut self, data: &mut draw::GeomVertexData<S>) -> Option<draw::mesh::Vertex<S>> {
+    fn next(&mut self, mesh: &mut draw::IntermediaryMesh<S>) -> Option<draw::mesh::Vertex<S>> {
         let Vertices {
             ref mut ranges,
             fill_color,
@@ -218,26 +216,29 @@ where
         let point = match point {
             None => return None,
             Some(point_ix) => {
-                *data.points
+                *mesh.vertex_data
+                    .points
                     .get(point_ix)
-                    .expect("no point for point index in GeomVertexData")
+                    .expect("no point for point index in IntermediaryMesh")
             },
         };
 
         let color = color
             .map(|color_ix| {
-                *data.colors
+                *mesh.vertex_data
+                    .colors
                     .get(color_ix)
-                    .expect("no color for color index in GeomVertexData")
+                    .expect("no color for color index in IntermediaryMesh")
             })
             .or(fill_color)
             .expect("no color for vertex");
 
         let tex_coords = tex_coords
             .map(|tex_coords_ix| {
-                *data.tex_coords
+                *mesh.vertex_data
+                    .tex_coords
                     .get(tex_coords_ix)
-                    .expect("no tex_coords for tex_coords index in GeomVertexData")
+                    .expect("no tex_coords for tex_coords index in IntermediaryMesh")
             })
             .unwrap_or_else(draw::mesh::vertex::default_tex_coords);
 

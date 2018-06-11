@@ -119,14 +119,14 @@ where
     }
 }
 
-/// Similar to the `Iterator` trait, but provides access to the **GeomVertexData** on each call to
+/// Similar to the `Iterator` trait, but provides access to the **IntermediaryMesh** on each call to
 /// the **next** method.
 pub trait Vertices<S>: Sized {
     /// Return the next **Vertex** within the sequence.
-    fn next(&mut self, data: &mut draw::GeomVertexData<S>) -> Option<draw::mesh::Vertex<S>>;
+    fn next(&mut self, data: &mut draw::IntermediaryMesh<S>) -> Option<draw::mesh::Vertex<S>>;
 
     /// Converts `self` and the given `data` into an iterator yielding vertices.
-    fn into_iter(self, data: &mut draw::GeomVertexData<S>) -> IterVertices<Self, S> {
+    fn into_iter(self, data: &mut draw::IntermediaryMesh<S>) -> IterVertices<Self, S> {
         IterVertices {
             vertices: self,
             data,
@@ -151,10 +151,10 @@ where
 }
 
 /// An iterator adaptor around a type implementing the **Vertices** trait and the
-/// **GeomVertexData** necessary for producing vertices.
+/// **IntermediaryMesh** necessary for producing vertices.
 pub struct IterVertices<'a, V, S: 'a> {
     vertices: V,
-    data: &'a mut draw::GeomVertexData<S>,
+    data: &'a mut draw::IntermediaryMesh<S>,
 }
 
 // Implement a method to simplify retrieving the dimensions of a type from `dimension::Properties`.
@@ -183,7 +183,7 @@ impl<S, I> Vertices<S> for I
 where
     I: Iterator<Item = draw::mesh::Vertex<S>>,
 {
-    fn next(&mut self, _data: &mut draw::GeomVertexData<S>) -> Option<draw::mesh::Vertex<S>> {
+    fn next(&mut self, _data: &mut draw::IntermediaryMesh<S>) -> Option<draw::mesh::Vertex<S>> {
         self.next()
     }
 }

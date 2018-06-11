@@ -10,11 +10,127 @@ pub type TexCoords<S> = Point2<S>;
 pub type Normal<S> = Vector3<S>;
 pub type ColoredPoint<S> = WithColor<Point<S>, Color>;
 
+/// The vertex type produced by the **draw::Mesh**'s inner **MeshType**.
+pub type Vertex<S> = WithTexCoords<WithColor<Point<S>, Color>, TexCoords<S>>;
+
+/// Types that can be converted directly into a **draw::mesh::Vertex**.
+pub trait IntoVertex<S> {
+    /// Convert `self` into a **Vertex**.
+    fn into_vertex(self) -> Vertex<S>;
+}
+
 /// Types that can be converted into a `draw::mesh::vertex::Point`.
 pub trait IntoPoint<S> {
     /// Convert self into a `Point`.
     fn into_point(self) -> Point<S>;
 }
+
+// IntoVertex Implementations.
+
+const DEFAULT_VERTEX_COLOR: Color = color::WHITE;
+
+impl<'a, S, T> IntoVertex<S> for &'a T
+where
+    T: Clone + IntoVertex<S>,
+{
+    fn into_vertex(self) -> Vertex<S> {
+        self.clone().into_vertex()
+    }
+}
+
+impl<S> IntoVertex<S> for Vertex<S> {
+    fn into_vertex(self) -> Vertex<S> {
+        self
+    }
+}
+
+impl<S> IntoVertex<S> for ColoredPoint<S>
+where
+    S: BaseFloat,
+{
+    fn into_vertex(self) -> Vertex<S> {
+        let WithColor { vertex, color } = self;
+        let tex_coords = default_tex_coords();
+        new(vertex, color, tex_coords)
+    }
+}
+
+impl<S> IntoVertex<S> for Point<S>
+where
+    S: BaseFloat,
+{
+    fn into_vertex(self) -> Vertex<S> {
+        let colored_point = WithColor { vertex: self, color: DEFAULT_VERTEX_COLOR };
+        colored_point.into_vertex()
+    }
+}
+
+impl<S> IntoVertex<S> for Point2<S>
+where
+    S: BaseFloat,
+{
+    fn into_vertex(self) -> Vertex<S> {
+        let pt = Point3::new(self.x, self.y, S::zero());
+        pt.into_vertex()
+    }
+}
+
+impl<S> IntoVertex<S> for [S; 2]
+where
+    S: BaseFloat,
+{
+    fn into_vertex(self) -> Vertex<S> {
+        let pt = Point2::new(self[0].clone(), self[1].clone());
+        pt.into_vertex()
+    }
+}
+
+impl<S> IntoVertex<S> for [S; 3]
+where
+    S: BaseFloat,
+{
+    fn into_vertex(self) -> Vertex<S> {
+        let pt = Point3::new(self[0].clone(), self[1].clone(), self[2].clone());
+        pt.into_vertex()
+    }
+}
+
+impl<S> IntoVertex<S> for (S, S)
+where
+    S: BaseFloat,
+{
+    fn into_vertex(self) -> Vertex<S> {
+        let (x, y) = self;
+        let pt = Point2::new(x, y);
+        pt.into_vertex()
+    }
+}
+
+impl<S> IntoVertex<S> for (S, S, S)
+where
+    S: BaseFloat,
+{
+    fn into_vertex(self) -> Vertex<S> {
+        let (x, y, z) = self;
+        let pt = Point3::new(x, y, z);
+        pt.into_vertex()
+    }
+}
+
+impl<S, T> IntoVertex<S> for (T, Color)
+where
+    S: BaseFloat,
+    T: IntoPoint<S>,
+{
+    fn into_vertex(self) -> Vertex<S> {
+        let (t, color) = self;
+        let vertex = t.into_point();
+        let with_color = WithColor { vertex, color };
+        with_color.into_vertex()
+    }
+}
+
+// IntoPoint Implementations.
 
 impl<S> IntoPoint<S> for Point<S> {
     fn into_point(self) -> Self {
@@ -74,9 +190,6 @@ where
         Point3 { x, y, z }
     }
 }
-
-/// The vertex type produced by the **draw::Mesh**'s inner **MeshType**.
-pub type Vertex<S> = WithTexCoords<WithColor<Point<S>, Color>, TexCoords<S>>;
 
 /// Simplified constructor for a **draw::mesh::Vertex**.
 pub fn new<S>(point: Point<S>, color: Color, tex_coords: TexCoords<S>) -> Vertex<S> {

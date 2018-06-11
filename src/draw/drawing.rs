@@ -120,14 +120,14 @@ where
     // vertices.
     fn map_primitive_with_vertices<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
     where
-        F: FnOnce(draw::properties::Primitive<S>, &mut draw::GeomVertexData<S>) -> draw::properties::Primitive<S>,
+        F: FnOnce(draw::properties::Primitive<S>, &mut draw::IntermediaryMesh<S>) -> draw::properties::Primitive<S>,
         T2: IntoDrawn<S> + Into<Primitive<S>>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
                 {
-                    let mut geom_vertex_data = state.geom_vertex_data.borrow_mut();
-                    primitive = map(primitive, &mut *geom_vertex_data);
+                    let mut intermediary_mesh = state.intermediary_mesh.borrow_mut();
+                    primitive = map(primitive, &mut *intermediary_mesh);
                 }
                 state.drawing.insert(self.index, primitive);
             }
@@ -163,7 +163,7 @@ where
     /// **Panics** if the primitive does not contain type **T**.
     pub(crate) fn map_ty_with_vertices<F, T2>(self, map: F) -> Drawing<'a, T2, S>
     where
-        F: FnOnce(T, &mut draw::GeomVertexData<S>) -> T2,
+        F: FnOnce(T, &mut draw::IntermediaryMesh<S>) -> T2,
         T2: IntoDrawn<S> + Into<Primitive<S>>,
         Primitive<S>: Into<Option<T>>,
     {

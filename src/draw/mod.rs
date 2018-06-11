@@ -68,7 +68,7 @@ where
     /// For performing a depth-first search over the geometry graph.
     geom_graph_dfs: RefCell<geom::graph::node::Dfs<S>>,
     /// Buffers of vertex data that may be re-used for polylines, polygons, etc between view calls.
-    geom_vertex_data: RefCell<GeomVertexData<S>>,
+    intermediary_mesh: RefCell<IntermediaryMesh<S>>,
     /// The mesh containing vertices for all drawn shapes, etc.
     mesh: Mesh<S>,
     /// The map from node indices to their vertex and index ranges within the mesh.
@@ -86,26 +86,34 @@ where
 /// A set of intermediary buffers for collecting geometry point data for geometry types that may
 /// produce a dynamic number of vertices that may or not also contain colour or texture data.
 #[derive(Clone, Debug)]
-pub struct GeomVertexData<S> {
+pub struct IntermediaryVertexData<S> {
     pub(crate) points: Vec<mesh::vertex::Point<S>>,
     pub(crate) colors: Vec<mesh::vertex::Color>,
     pub(crate) tex_coords: Vec<mesh::vertex::TexCoords<S>>,
 }
 
-/// A set of ranges into the **GeomVertexData**.
+/// An intermediary mesh to which drawings-in-progress may store vertex data and indices until they
+/// are submitted to the **Draw**'s inner mesh.
+#[derive(Clone, Debug)]
+pub struct IntermediaryMesh<S> {
+    pub(crate) vertex_data: IntermediaryVertexData<S>,
+    pub(crate) indices: Vec<usize>,
+}
+
+/// A set of ranges into the **IntermediaryVertexData**.
 ///
 /// This allows polygons, polylines, etc to track which slices of data are associated with their
 /// own instance.
 #[derive(Clone, Debug)]
-pub(crate) struct GeomVertexDataRanges {
+pub(crate) struct IntermediaryVertexDataRanges {
     pub points: ops::Range<usize>,
     pub colors: ops::Range<usize>,
     pub tex_coords: ops::Range<usize>,
 }
 
-impl<S> Default for GeomVertexData<S> {
+impl<S> Default for IntermediaryVertexData<S> {
     fn default() -> Self {
-        GeomVertexData {
+        IntermediaryVertexData {
             points: Default::default(),
             colors: Default::default(),
             tex_coords: Default::default(),
@@ -113,9 +121,18 @@ impl<S> Default for GeomVertexData<S> {
     }
 }
 
-impl Default for GeomVertexDataRanges {
+impl<S> Default for IntermediaryMesh<S> {
     fn default() -> Self {
-        GeomVertexDataRanges {
+        IntermediaryMesh {
+            vertex_data: Default::default(),
+            indices: Default::default(),
+        }
+    }
+}
+
+impl Default for IntermediaryVertexDataRanges {
+    fn default() -> Self {
+        IntermediaryVertexDataRanges {
             points: 0..0,
             colors: 0..0,
             tex_coords: 0..0,
@@ -305,10 +322,10 @@ where
     {
         let State {
             ref mut mesh,
-            ref mut geom_vertex_data,
+            ref mut intermediary_mesh,
             ..
         } = *draw;
-        let data = &mut *geom_vertex_data.borrow_mut();
+        let data = &mut *intermediary_mesh.borrow_mut();
         let vertices = properties::Vertices::into_iter(vertices, data);
         mesh.extend(vertices, indices);
     }
@@ -418,12 +435,20 @@ where
     })
 }
 
-impl<S> GeomVertexData<S> {
+impl<S> IntermediaryVertexData<S> {
     /// Clears all buffers.
     pub fn reset(&mut self) {
         self.points.clear();
         self.colors.clear();
         self.tex_coords.clear();
+    }
+}
+
+impl<S> IntermediaryMesh<S> {
+    /// Clears all buffers.
+    pub fn reset(&mut self) {
+        self.vertex_data.reset();
+        self.indices.clear();
     }
 }
 
@@ -437,7 +462,7 @@ where
         self.geom_graph_dfs.borrow_mut().reset(&self.geom_graph);
         self.drawing.clear();
         self.ranges.clear();
-        self.geom_vertex_data.borrow_mut().reset();
+        self.intermediary_mesh.borrow_mut().reset();
         self.mesh.clear();
         self.background_color = None;
         self.last_node_drawn = None;
@@ -754,7 +779,7 @@ where
         let geom_graph = Default::default();
         let geom_graph_dfs = RefCell::new(geom::graph::node::Dfs::new(&geom_graph));
         let drawing = Default::default();
-        let geom_vertex_data = RefCell::new(Default::default());
+        let intermediary_mesh = RefCell::new(Default::default());
         let mesh = Default::default();
         let ranges = Default::default();
         let theme = Default::default();
@@ -763,7 +788,7 @@ where
         State {
             geom_graph,
             geom_graph_dfs,
-            geom_vertex_data,
+            intermediary_mesh,
             mesh,
             drawing,
             ranges,
