@@ -47,6 +47,9 @@ path = "examples/simple_audio.rs"
 name = "simple_draw" 
 path = "examples/simple_draw.rs"
 [[example]] 
+name = "simple_mesh" 
+path = "examples/simple_mesh.rs"
+[[example]] 
 name = "simple_polygon" 
 path = "examples/simple_polygon.rs"
 [[example]] 

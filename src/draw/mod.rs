@@ -68,7 +68,7 @@ where
     /// For performing a depth-first search over the geometry graph.
     geom_graph_dfs: RefCell<geom::graph::node::Dfs<S>>,
     /// Buffers of vertex data that may be re-used for polylines, polygons, etc between view calls.
-    geom_vertex_data: RefCell<GeomVertexData<S>>,
+    intermediary_mesh: RefCell<IntermediaryMesh<S>>,
     /// The mesh containing vertices for all drawn shapes, etc.
     mesh: Mesh<S>,
     /// The map from node indices to their vertex and index ranges within the mesh.
@@ -86,26 +86,34 @@ where
 /// A set of intermediary buffers for collecting geometry point data for geometry types that may
 /// produce a dynamic number of vertices that may or not also contain colour or texture data.
 #[derive(Clone, Debug)]
-pub struct GeomVertexData<S> {
+pub struct IntermediaryVertexData<S> {
     pub(crate) points: Vec<mesh::vertex::Point<S>>,
     pub(crate) colors: Vec<mesh::vertex::Color>,
     pub(crate) tex_coords: Vec<mesh::vertex::TexCoords<S>>,
 }
 
-/// A set of ranges into the **GeomVertexData**.
+/// An intermediary mesh to which drawings-in-progress may store vertex data and indices until they
+/// are submitted to the **Draw**'s inner mesh.
+#[derive(Clone, Debug)]
+pub struct IntermediaryMesh<S> {
+    pub(crate) vertex_data: IntermediaryVertexData<S>,
+    pub(crate) indices: Vec<usize>,
+}
+
+/// A set of ranges into the **IntermediaryVertexData**.
 ///
 /// This allows polygons, polylines, etc to track which slices of data are associated with their
 /// own instance.
 #[derive(Clone, Debug)]
-pub(crate) struct GeomVertexDataRanges {
+pub struct IntermediaryVertexDataRanges {
     pub points: ops::Range<usize>,
     pub colors: ops::Range<usize>,
     pub tex_coords: ops::Range<usize>,
 }
 
-impl<S> Default for GeomVertexData<S> {
+impl<S> Default for IntermediaryVertexData<S> {
     fn default() -> Self {
-        GeomVertexData {
+        IntermediaryVertexData {
             points: Default::default(),
             colors: Default::default(),
             tex_coords: Default::default(),
@@ -113,9 +121,18 @@ impl<S> Default for GeomVertexData<S> {
     }
 }
 
-impl Default for GeomVertexDataRanges {
+impl<S> Default for IntermediaryMesh<S> {
     fn default() -> Self {
-        GeomVertexDataRanges {
+        IntermediaryMesh {
+            vertex_data: Default::default(),
+            indices: Default::default(),
+        }
+    }
+}
+
+impl Default for IntermediaryVertexDataRanges {
+    fn default() -> Self {
+        IntermediaryVertexDataRanges {
             points: 0..0,
             colors: 0..0,
             tex_coords: 0..0,
@@ -300,16 +317,17 @@ where
     // Update the mesh with the non-transformed vertices.
     let vertices_start_index = draw.mesh.raw_vertex_count();
     let indices_start_index = draw.mesh.indices().len();
-    let indices = indices.into_iter().map(|i| vertices_start_index + i);
 
     {
         let State {
             ref mut mesh,
-            ref mut geom_vertex_data,
+            ref intermediary_mesh,
             ..
         } = *draw;
-        let data = &mut *geom_vertex_data.borrow_mut();
-        let vertices = properties::Vertices::into_iter(vertices, data);
+        let intermediary_mesh = &*intermediary_mesh.borrow();
+        let vertices = properties::Vertices::into_iter(vertices, intermediary_mesh);
+        let indices = properties::Indices::into_iter(indices, &intermediary_mesh.indices)
+            .map(|i| vertices_start_index + i);
         mesh.extend(vertices, indices);
     }
 
@@ -379,8 +397,14 @@ where
         Primitive::Line(prim) => {
             into_drawn(draw, node_index, prim)
         },
-        Primitive::PolygonPointless(_) => {
-            Ok(())
+        Primitive::MeshVertexless(prim) => {
+            into_drawn(draw, node_index, prim)
+        },
+        Primitive::Mesh(prim) => {
+            into_drawn(draw, node_index, prim)
+        }
+        Primitive::PolygonPointless(prim) => {
+            into_drawn(draw, node_index, prim)
         },
         Primitive::PolygonFill(prim) => {
             into_drawn(draw, node_index, prim)
@@ -418,12 +442,20 @@ where
     })
 }
 
-impl<S> GeomVertexData<S> {
+impl<S> IntermediaryVertexData<S> {
     /// Clears all buffers.
     pub fn reset(&mut self) {
         self.points.clear();
         self.colors.clear();
         self.tex_coords.clear();
+    }
+}
+
+impl<S> IntermediaryMesh<S> {
+    /// Clears all buffers.
+    pub fn reset(&mut self) {
+        self.vertex_data.reset();
+        self.indices.clear();
     }
 }
 
@@ -437,7 +469,7 @@ where
         self.geom_graph_dfs.borrow_mut().reset(&self.geom_graph);
         self.drawing.clear();
         self.ranges.clear();
-        self.geom_vertex_data.borrow_mut().reset();
+        self.intermediary_mesh.borrow_mut().reset();
         self.mesh.clear();
         self.background_color = None;
         self.last_node_drawn = None;
@@ -600,6 +632,11 @@ where
         self.a(Default::default())
     }
 
+    /// Begin drawing a **Mesh**.
+    pub fn mesh(&self) -> Drawing<properties::primitive::mesh::Vertexless, S> {
+        self.a(Default::default())
+    }
+
     /// Produce the transformed mesh vertices for the node at the given index.
     ///
     /// Returns **None** if there is no node for the given index.
@@ -609,7 +646,7 @@ where
             None => return None,
             Some(ranges) => ranges.indices.clone(),
         };
-        let vertices = ::mesh::vertices(self.mesh()).index_range(index_range);
+        let vertices = ::mesh::vertices(self.inner_mesh()).index_range(index_range);
         self.state.borrow().geom_graph.node_vertices(n, vertices)
     }
 
@@ -668,7 +705,7 @@ where
     }
 
     /// Borrow the **Draw**'s inner **Mesh**.
-    pub fn mesh(&self) -> Ref<Mesh<S>> {
+    pub fn inner_mesh(&self) -> Ref<Mesh<S>> {
         Ref::map(self.state.borrow(), |s| &s.mesh)
     }
 
@@ -754,7 +791,7 @@ where
         let geom_graph = Default::default();
         let geom_graph_dfs = RefCell::new(geom::graph::node::Dfs::new(&geom_graph));
         let drawing = Default::default();
-        let geom_vertex_data = RefCell::new(Default::default());
+        let intermediary_mesh = RefCell::new(Default::default());
         let mesh = Default::default();
         let ranges = Default::default();
         let theme = Default::default();
@@ -763,7 +800,7 @@ where
         State {
             geom_graph,
             geom_graph_dfs,
-            geom_vertex_data,
+            intermediary_mesh,
             mesh,
             drawing,
             ranges,
@@ -807,7 +844,7 @@ where
                         None => continue,
                         Some(ranges) => ranges.indices.clone(),
                     };
-                    let vertices = ::mesh::vertices(draw.mesh()).index_range(index_range);
+                    let vertices = ::mesh::vertices(draw.inner_mesh()).index_range(index_range);
                     let transformed_vertices = transform.vertices(vertices);
                     *node_vertices = Some(transformed_vertices);
                 },
@@ -839,7 +876,7 @@ where
                         None => continue,
                         Some(ranges) => ranges.vertices.clone(),
                     };
-                    let vertices = ::mesh::raw_vertices(draw.mesh()).range(vertex_range);
+                    let vertices = ::mesh::raw_vertices(draw.inner_mesh()).range(vertex_range);
                     let transformed_vertices = transform.vertices(vertices);
                     *node_vertices = Some(transformed_vertices);
                 },
