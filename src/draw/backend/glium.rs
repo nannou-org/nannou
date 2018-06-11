@@ -300,7 +300,7 @@ impl Renderer {
         let (w, h) = facade.get_context().get_framebuffer_dimensions();
         let map_vertex = |v| Vertex::from_mesh_vertex(v, w as _, h as _, dpi_factor);
         self.vertices.extend(draw.raw_vertices().map(map_vertex));
-        self.indices.extend(draw.mesh().indices().iter().map(|&u| u as u32));
+        self.indices.extend(draw.inner_mesh().indices().iter().map(|&u| u as u32));
         let index_prim = glium::index::PrimitiveType::TrianglesList;
         let vertex_buffer = glium::VertexBuffer::new(facade, &self.vertices[..])?;
         let index_buffer = glium::IndexBuffer::new(facade, index_prim, &self.indices[..])?;

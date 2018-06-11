@@ -26,12 +26,6 @@ pub struct Fill(Option<mesh::vertex::Color>);
 #[derive(Clone, Debug)]
 pub struct PerVertex;
 
-/// The vertices type yielded for drawing into the mesh.
-pub struct Vertices {
-    ranges: draw::IntermediaryVertexDataRanges,
-    fill_color: Option<draw::mesh::vertex::Color>,
-}
-
 impl Pointless {
     /// Draw a filled, convex polygon whose edges are defined by the given list of vertices.
     pub(crate) fn points<P, S>(
@@ -140,7 +134,7 @@ impl<S> IntoDrawn<S> for Polygon<Fill, S>
 where
     S: BaseFloat,
 {
-    type Vertices = Vertices;
+    type Vertices = draw::properties::VerticesFromRanges;
     type Indices = geom::polygon::TriangleIndices;
     fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
         let Polygon {
@@ -172,7 +166,7 @@ where
         let dimensions = spatial::dimension::Properties::default();
         let spatial = spatial::Properties { dimensions, orientation, position };
         let indices = geom::polygon::triangle_indices(ranges.points.len());
-        let vertices = Vertices { ranges, fill_color };
+        let vertices = draw::properties::VerticesFromRanges { ranges, fill_color };
         (spatial, vertices, indices)
     }
 }
@@ -181,7 +175,7 @@ impl<S> IntoDrawn<S> for Polygon<PerVertex, S>
 where
     S: BaseFloat,
 {
-    type Vertices = Vertices;
+    type Vertices = draw::properties::VerticesFromRanges;
     type Indices = geom::polygon::TriangleIndices;
     fn into_drawn(self, _draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
         let Polygon {
@@ -194,55 +188,8 @@ where
         let dimensions = spatial::dimension::Properties::default();
         let spatial = spatial::Properties { dimensions, orientation, position };
         let indices = geom::polygon::triangle_indices(ranges.points.len());
-        let vertices = Vertices { ranges, fill_color };
+        let vertices = draw::properties::VerticesFromRanges { ranges, fill_color };
         (spatial, vertices, indices)
-    }
-}
-
-impl<S> draw::properties::Vertices<S> for Vertices
-where
-    S: BaseFloat,
-{
-    fn next(&mut self, mesh: &mut draw::IntermediaryMesh<S>) -> Option<draw::mesh::Vertex<S>> {
-        let Vertices {
-            ref mut ranges,
-            fill_color,
-        } = *self;
-
-        let point = ranges.points.next();
-        let color = ranges.colors.next();
-        let tex_coords = ranges.tex_coords.next();
-
-        let point = match point {
-            None => return None,
-            Some(point_ix) => {
-                *mesh.vertex_data
-                    .points
-                    .get(point_ix)
-                    .expect("no point for point index in IntermediaryMesh")
-            },
-        };
-
-        let color = color
-            .map(|color_ix| {
-                *mesh.vertex_data
-                    .colors
-                    .get(color_ix)
-                    .expect("no color for color index in IntermediaryMesh")
-            })
-            .or(fill_color)
-            .expect("no color for vertex");
-
-        let tex_coords = tex_coords
-            .map(|tex_coords_ix| {
-                *mesh.vertex_data
-                    .tex_coords
-                    .get(tex_coords_ix)
-                    .expect("no tex_coords for tex_coords index in IntermediaryMesh")
-            })
-            .unwrap_or_else(draw::mesh::vertex::default_tex_coords);
-
-        Some(draw::mesh::vertex::new(point, color, tex_coords))
     }
 }
 

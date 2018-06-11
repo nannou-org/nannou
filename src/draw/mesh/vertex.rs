@@ -130,6 +130,18 @@ where
     }
 }
 
+impl<S, V> IntoVertex<S> for geom::vertex::Rgba<V>
+where
+    S: BaseFloat,
+    V: geom::Vertex<Scalar = S>,
+    (V, Color): IntoVertex<S>,
+{
+    fn into_vertex(self) -> Vertex<S> {
+        let geom::vertex::Rgba(v, color) = self;
+        (v, color).into_vertex()
+    }
+}
+
 // IntoPoint Implementations.
 
 impl<S> IntoPoint<S> for Point<S> {

@@ -105,7 +105,7 @@ pub struct IntermediaryMesh<S> {
 /// This allows polygons, polylines, etc to track which slices of data are associated with their
 /// own instance.
 #[derive(Clone, Debug)]
-pub(crate) struct IntermediaryVertexDataRanges {
+pub struct IntermediaryVertexDataRanges {
     pub points: ops::Range<usize>,
     pub colors: ops::Range<usize>,
     pub tex_coords: ops::Range<usize>,
@@ -317,16 +317,17 @@ where
     // Update the mesh with the non-transformed vertices.
     let vertices_start_index = draw.mesh.raw_vertex_count();
     let indices_start_index = draw.mesh.indices().len();
-    let indices = indices.into_iter().map(|i| vertices_start_index + i);
 
     {
         let State {
             ref mut mesh,
-            ref mut intermediary_mesh,
+            ref intermediary_mesh,
             ..
         } = *draw;
-        let data = &mut *intermediary_mesh.borrow_mut();
-        let vertices = properties::Vertices::into_iter(vertices, data);
+        let intermediary_mesh = &*intermediary_mesh.borrow();
+        let vertices = properties::Vertices::into_iter(vertices, intermediary_mesh);
+        let indices = properties::Indices::into_iter(indices, &intermediary_mesh.indices)
+            .map(|i| vertices_start_index + i);
         mesh.extend(vertices, indices);
     }
 
@@ -396,8 +397,14 @@ where
         Primitive::Line(prim) => {
             into_drawn(draw, node_index, prim)
         },
-        Primitive::PolygonPointless(_) => {
-            Ok(())
+        Primitive::MeshVertexless(prim) => {
+            into_drawn(draw, node_index, prim)
+        },
+        Primitive::Mesh(prim) => {
+            into_drawn(draw, node_index, prim)
+        }
+        Primitive::PolygonPointless(prim) => {
+            into_drawn(draw, node_index, prim)
         },
         Primitive::PolygonFill(prim) => {
             into_drawn(draw, node_index, prim)
@@ -625,6 +632,11 @@ where
         self.a(Default::default())
     }
 
+    /// Begin drawing a **Mesh**.
+    pub fn mesh(&self) -> Drawing<properties::primitive::mesh::Vertexless, S> {
+        self.a(Default::default())
+    }
+
     /// Produce the transformed mesh vertices for the node at the given index.
     ///
     /// Returns **None** if there is no node for the given index.
@@ -634,7 +646,7 @@ where
             None => return None,
             Some(ranges) => ranges.indices.clone(),
         };
-        let vertices = ::mesh::vertices(self.mesh()).index_range(index_range);
+        let vertices = ::mesh::vertices(self.inner_mesh()).index_range(index_range);
         self.state.borrow().geom_graph.node_vertices(n, vertices)
     }
 
@@ -693,7 +705,7 @@ where
     }
 
     /// Borrow the **Draw**'s inner **Mesh**.
-    pub fn mesh(&self) -> Ref<Mesh<S>> {
+    pub fn inner_mesh(&self) -> Ref<Mesh<S>> {
         Ref::map(self.state.borrow(), |s| &s.mesh)
     }
 
@@ -832,7 +844,7 @@ where
                         None => continue,
                         Some(ranges) => ranges.indices.clone(),
                     };
-                    let vertices = ::mesh::vertices(draw.mesh()).index_range(index_range);
+                    let vertices = ::mesh::vertices(draw.inner_mesh()).index_range(index_range);
                     let transformed_vertices = transform.vertices(vertices);
                     *node_vertices = Some(transformed_vertices);
                 },
@@ -864,7 +876,7 @@ where
                         None => continue,
                         Some(ranges) => ranges.vertices.clone(),
                     };
-                    let vertices = ::mesh::raw_vertices(draw.mesh()).range(vertex_range);
+                    let vertices = ::mesh::raw_vertices(draw.inner_mesh()).range(vertex_range);
                     let transformed_vertices = transform.vertices(vertices);
                     *node_vertices = Some(transformed_vertices);
                 },
