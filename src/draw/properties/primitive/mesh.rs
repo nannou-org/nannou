@@ -65,6 +65,7 @@ impl Vertexless {
             mesh.vertex_data.tex_coords.push(tex_coords);
             mesh.indices.push(i);
         }
+
         vertex_data_ranges.points.end = mesh.vertex_data.points.len();
         vertex_data_ranges.colors.end = mesh.vertex_data.colors.len();
         vertex_data_ranges.tex_coords.end = mesh.vertex_data.tex_coords.len();
@@ -144,7 +145,6 @@ where
     /// Describe the mesh with the given sequence of triangles.
     pub fn tris<I, V>(self, tris: I) -> Drawing<'a, Mesh<S>, S>
     where
-        S: BaseFloat,
         I: IntoIterator<Item = geom::Tri<V>>,
         V: geom::Vertex + IntoVertex<S>,
     {
@@ -154,7 +154,6 @@ where
     /// Describe the mesh with the given sequence of indexed vertices.
     pub fn indexed<V, I>(self, vertices: V, indices: I) -> Drawing<'a, Mesh<S>, S>
     where
-        S: BaseFloat,
         V: IntoIterator,
         V::Item: IntoVertex<S>,
         I: IntoIterator<Item = [usize; 3]>,
