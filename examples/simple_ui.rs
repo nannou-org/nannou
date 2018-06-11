@@ -2,22 +2,27 @@ extern crate nannou;
 
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
-use nannou::rand::random;
 
 fn main() {
     nannou::run(model, event, view);
 }
 
 struct Model {
-    ui: nannou::Ui,
+    ui: Ui,
     ids: Ids,
-    bg_color: nannou::ui::Color,
+    resolution: usize,
+    scale: f32,
+    rotation: f32,
+    color: Rgb,
+    position: Point2<f32>,
 }
 
 struct Ids {
-    button: widget::Id,
-    text: widget::Id,
-    background: widget::Id,
+    resolution: widget::Id,
+    scale: widget::Id,
+    rotation: widget::Id,
+    random_color: widget::Id,
+    position: widget::Id,
 }
 
 fn model(app: &App) -> Model {
@@ -29,60 +34,124 @@ fn model(app: &App) -> Model {
 
     // Generate some ids for our widgets.
     let ids = Ids {
-        button: ui.generate_widget_id(),
-        text: ui.generate_widget_id(),
-        background: ui.generate_widget_id(),
+        resolution: ui.generate_widget_id(),
+        scale: ui.generate_widget_id(),
+        rotation: ui.generate_widget_id(),
+        random_color: ui.generate_widget_id(),
+        position: ui.generate_widget_id(),
     };
 
-    // Init background color
-    let bg_color = color::rgba(1.0,0.0,1.0,1.0);
+    // Init our variables
+    let resolution = 6;
+    let scale = 200.0;
+    let rotation = 0.0;
+    let position = pt2(0.0, 0.0);
+    let color = Rgb::new(1.0, 0.0, 1.0);
 
-    Model { ui, ids, bg_color }
+    Model {
+        ui,
+        ids,
+        resolution,
+        scale,
+        rotation,
+        position,
+        color,
+    }
 }
 
 fn event(_app: &App, mut model: Model, event: Event) -> Model {
-    match event {
-        // Handle window events like mouse, keyboard, resize, etc here.
-        Event::WindowEvent { simple: Some(event), .. } => {
-            println!("{:?}", event);
-        },
-        // `Update` the model here.
-        Event::Update(update) => {
+    if let Event::Update(_update) = event {
+        // Calling `set_widgets` allows us to instantiate some widgets.
+        let ui = &mut model.ui.set_widgets();
 
-            // Calling `set_widgets` allows us to instantiate some widgets.
-            let ui = &mut model.ui.set_widgets();
+        fn slider(val: f32, min: f32, max: f32) -> widget::Slider<'static, f32> {
+            widget::Slider::new(val, min, max)
+                .w_h(200.0, 30.0)
+                .label_font_size(15)
+                .rgb(0.3, 0.3, 0.3)
+                .label_rgb(1.0, 1.0, 1.0)
+                .border(0.0)
+        }
 
+        for value in slider(model.resolution as f32, 3.0, 15.0)
+            .top_left_with_margin(20.0)
+            .label("Resolution")
+            .set(model.ids.resolution, ui)
+        {
+            model.resolution = value as usize;
+        }
 
-            // Place a canvas as the background. A canvas auto-sizes to the window if no dimensions
-            // were specified.
-            widget::Canvas::new().color(model.bg_color).set(model.ids.background, ui);
+        for value in slider(model.scale, 10.0, 500.0)
+            .down(10.0)
+            .label("Scale")
+            .set(model.ids.scale, ui)
+        {
+            model.scale = value;
+        }
 
-            // Draw the button and increment `count` if pressed.
-            for _click in widget::Button::new()
-                .up_from(model.ids.text,100.0)
-                .w_h(180.0, 80.0)
-                .label("random bg color")
-                .set(model.ids.button, ui)
-            {
-                model.bg_color = color::rgba(random(),random(),random(),1.0);
-            }
+        for value in slider(model.rotation, -PI, PI)
+            .down(10.0)
+            .label("Rotation")
+            .set(model.ids.rotation, ui)
+        {
+            model.rotation = value;
+        }
 
-            // Draw the update event using a `Text` widget.
-            let text = format!("{:#?}", update);
-            widget::Text::new(&text)
-                .color(color::WHITE)
-                .middle_of(model.ids.background)
-                .set(model.ids.text, ui);
-        },
-        _ => (),
+        for _click in widget::Button::new()
+            .down(10.0)
+            .w_h(200.0, 60.0)
+            .label("Random Color")
+            .label_font_size(15)
+            .rgb(0.3, 0.3, 0.3)
+            .label_rgb(1.0, 1.0, 1.0)
+            .border(0.0)
+            .set(model.ids.random_color, ui)
+        {
+            model.color = Rgb::new(random(), random(), random());
+        }
+
+        for (x, y) in widget::XYPad::new(
+            model.position.x,
+            -200.0,
+            200.0,
+            model.position.y,
+            -200.0,
+            200.0,
+        ).down(10.0)
+            .w_h(200.0, 200.0)
+            .label("Position")
+            .label_font_size(15)
+            .rgb(0.3, 0.3, 0.3)
+            .label_rgb(1.0, 1.0, 1.0)
+            .border(0.0)
+            .set(model.ids.position, ui)
+        {
+            model.position = Point2::new(x, y);
+        }
     }
     model
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+    // Begin drawing
+    let draw = app.draw();
+
+    draw.background().rgb(0.02, 0.02, 0.02);
+
+    draw.ellipse()
+        .xy(model.position)
+        .radius(model.scale)
+        .resolution(model.resolution)
+        .rotate(model.rotation)
+        .color(model.color);
+
+    // Write the result of our drawing to the window's OpenGL frame.
+    draw.to_frame(app, &frame).unwrap();
+
     // Draw the state of the `Ui` to the frame.
     model.ui.draw_to_frame(app, &frame).unwrap();
+
     // Return the drawn frame.
     frame
 }
