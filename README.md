@@ -218,7 +218,7 @@ If you are compiling nannou for the first time you will see cargo download and b
 
 Once the example compiles you should see the following window appear. 
 
-<img src="https://thumbs.gfycat.com/MalePracticalIberianchiffchaff-size_restricted.gif" width="560" height="400" />
+<img src="https://thumbs.gfycat.com/MalePracticalIberianchiffchaff-size_restricted.gif" width="600" height="400" />
 
 
 To run any of the other examples, replace `simple_window` with the name of the
