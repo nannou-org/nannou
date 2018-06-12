@@ -212,6 +212,15 @@ cargo run --release --example simple_window
 
 The `--release` flag means we want to build with optimisations enabled.
 
+If you are compiling nannou for the first time you will see cargo download and build all the necessary dependancies. 
+
+![Alt Text](https://thumbs.gfycat.com/ShabbyWildGermanspitz-size_restricted.gif)
+
+Once the example compiles you should see the following window appear. 
+
+<img src="https://thumbs.gfycat.com/MalePracticalIberianchiffchaff-size_restricted.gif" width="600" height="400" />
+
+
 To run any of the other examples, replace `simple_window` with the name of the
 desired example.
 
