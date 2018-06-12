@@ -1,17 +1,21 @@
 use draw::{self, Drawing};
-use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions, SetOrientation, SetPosition};
-use draw::properties::spatial::{dimension, orientation, position};
+use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetOrientation, SetPosition};
+use draw::properties::spatial::{orientation, position};
 use geom;
-use math::{BaseFloat, ElementWise, Point2, Vector2};
-use std::{iter, slice};
+use math::{BaseFloat, Point2};
 
 /// Properties related to drawing a **Line**.
 #[derive(Clone, Debug)]
 pub struct Line<S = geom::DefaultScalar> {
-    line: geom::Line<S>,
-    spatial: spatial::Properties<S>,
+    position: position::Properties<S>,
+    orientation: orientation::Properties<S>,
+    capped: geom::line::Capped<S>,
     color: Option<Rgba>,
 }
+
+/// The default resolution of the rounded line caps.
+pub const DEFAULT_ROUND_RESOLUTION: usize = 25;
+
 // Line-specific methods.
 
 impl<S> Line<S>
@@ -21,9 +25,12 @@ where
     /// Create a new **Line**. from its geometric parts.
     pub fn new(start: Point2<S>, end: Point2<S>, half_thickness: S) -> Self {
         let color = Default::default();
-        let spatial = Default::default();
+        let position = Default::default();
+        let orientation = Default::default();
         let line = geom::Line::new(start, end, half_thickness);
-        Line { line, spatial, color }
+        let cap = geom::line::Cap::Butt;
+        let capped = geom::line::Capped { line, cap };
+        Line { position, orientation, capped, color }
     }
 
     /// Specify the thickness of the **Line**.
@@ -36,25 +43,48 @@ where
     /// As the half-thickness is used more commonly within **Line** geometric calculations, this
     /// can be *slightly* more efficient than the full `thickness` method.
     pub fn half_thickness(mut self, half_thickness: S) -> Self {
-        self.line.half_thickness = half_thickness;
+        self.capped.line.half_thickness = half_thickness.abs();
         self
     }
 
     /// Specify the `start` point for the line.
     pub fn start(mut self, start: Point2<S>) -> Self {
-        self.line.start = start;
+        self.capped.line.start = start;
         self
     }
 
     /// Specify the `end` point for the line.
     pub fn end(mut self, end: Point2<S>) -> Self {
-        self.line.end = end;
+        self.capped.line.end = end;
         self
     }
 
     /// Use the given four points as the vertices (corners) of the quad.
     pub fn points(self, start: Point2<S>, end: Point2<S>) -> Self {
         self.start(start).end(end)
+    }
+
+    /// Draw rounded caps on the ends of the line.
+    ///
+    /// The radius of the semi-circle is equal to the line's `half_thickness`.
+    pub fn caps_round(self) -> Self {
+        self.caps_round_with_resolution(DEFAULT_ROUND_RESOLUTION)
+    }
+
+    /// Draw rounded caps on the ends of the line.
+    ///
+    /// The radius of the semi-circle is equal to the line's `half_thickness`.
+    pub fn caps_round_with_resolution(mut self, resolution: usize) -> Self {
+        self.capped.cap = geom::line::Cap::Round { resolution };
+        self
+    }
+
+    /// Draw squared caps on the ends of the line.
+    ///
+    /// The length of the protrusion is equal to the line's `half_thickness`.
+    pub fn caps_square(mut self) -> Self {
+        self.capped.cap = geom::line::Cap::Square;
+        self
     }
 }
 
@@ -64,37 +94,15 @@ impl<S> IntoDrawn<S> for Line<S>
 where
     S: BaseFloat,
 {
-    type Vertices = draw::mesh::vertex::IterFromPoint2s<geom::line::Vertices<S>, S>;
-    type Indices = iter::Cloned<slice::Iter<'static, usize>>;
+    type Vertices = draw::mesh::vertex::IterFromPoint2s<geom::line::CappedVertices<S>, S>;
+    type Indices = geom::polygon::TriangleIndices;
     fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
         let Line {
-            line,
-            spatial,
+            capped,
+            position,
+            orientation,
             color,
         } = self;
-
-        // If dimensions were specified, scale the points to those dimensions.
-        let (maybe_x, maybe_y, maybe_z) = spatial.dimensions.to_scalars(&draw);
-        assert!(
-            maybe_z.is_none(),
-            "z dimension support for ellipse is unimplemented"
-        );
-
-        let mut quad = line.quad_corners();
-        if maybe_x.is_some() || maybe_y.is_some() {
-            let rect = line.bounding_rect();
-            let centroid = line.centroid();
-            let x_scale = maybe_x.map(|x| x / rect.w()).unwrap_or_else(S::one);
-            let y_scale = maybe_y.map(|y| y / rect.h()).unwrap_or_else(S::one);
-            let scale = Vector2 { x: x_scale, y: y_scale };
-            let (a, b, c, d) = quad.into();
-            let translate = |v: Point2<S>| centroid + ((v - centroid).mul_element_wise(scale));
-            let new_a = translate(a);
-            let new_b = translate(b);
-            let new_c = translate(c);
-            let new_d = translate(d);
-            quad = geom::Quad([new_a, new_b, new_c, new_d]);
-        }
 
         // The color.
         let color = color
@@ -109,9 +117,11 @@ where
             })
             .unwrap_or(draw.theme(|t| t.color.default));
 
-        let points = quad.vertices();
+        let dimensions = Default::default();
+        let spatial = spatial::Properties { dimensions, position, orientation };
+        let points = capped.vertices();
+        let indices = geom::polygon::triangle_indices(points.len());
         let vertices = draw::mesh::vertex::IterFromPoint2s::new(points, color);
-        let indices = geom::quad::TRIANGLE_INDICES.iter().cloned();
 
         (spatial, vertices, indices)
     }
@@ -122,9 +132,21 @@ where
     S: BaseFloat,
 {
     fn from(line: geom::Line<S>) -> Self {
-        let spatial = <_>::default();
+        let cap = <_>::default();
+        let capped = geom::line::Capped { line, cap };
+        capped.into()
+    }
+}
+
+impl<S> From<geom::line::Capped<S>> for Line<S>
+where
+    S: BaseFloat,
+{
+    fn from(capped: geom::line::Capped<S>) -> Self {
+        let position = <_>::default();
+        let orientation = <_>::default();
         let color = <_>::default();
-        Line { line, spatial, color }
+        Line { capped, position, orientation, color }
     }
 }
 
@@ -147,19 +169,13 @@ where
 
 impl<S> SetOrientation<S> for Line<S> {
     fn properties(&mut self) -> &mut orientation::Properties<S> {
-        SetOrientation::properties(&mut self.spatial)
+        SetOrientation::properties(&mut self.orientation)
     }
 }
 
 impl<S> SetPosition<S> for Line<S> {
     fn properties(&mut self) -> &mut position::Properties<S> {
-        SetPosition::properties(&mut self.spatial)
-    }
-}
-
-impl<S> SetDimensions<S> for Line<S> {
-    fn properties(&mut self) -> &mut dimension::Properties<S> {
-        SetDimensions::properties(&mut self.spatial)
+        SetPosition::properties(&mut self.position)
     }
 }
 
@@ -218,5 +234,26 @@ where
     /// Use the given four points as the vertices (corners) of the quad.
     pub fn points(self, start: Point2<S>, end: Point2<S>) -> Self {
         self.map_ty(|ty| ty.points(start, end))
+    }
+
+    /// Draw rounded caps on the ends of the line.
+    ///
+    /// The radius of the semi-circle is equal to the line's `half_thickness`.
+    pub fn caps_round(self) -> Self {
+        self.map_ty(|ty| ty.caps_round())
+    }
+
+    /// Draw rounded caps on the ends of the line.
+    ///
+    /// The radius of the semi-circle is equal to the line's `half_thickness`.
+    pub fn caps_round_with_resolution(self, resolution: usize) -> Self {
+        self.map_ty(|ty| ty.caps_round_with_resolution(resolution))
+    }
+
+    /// Draw squared caps on the ends of the line.
+    ///
+    /// The length of the protrusion is equal to the line's `half_thickness`.
+    pub fn caps_square(self) -> Self {
+        self.map_ty(|ty| ty.caps_square())
     }
 }
