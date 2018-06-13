@@ -1,4 +1,4 @@
-# Unpublished
+# Version 0.7.0 (2018-06-13)
 
 - Add better `panic!` message to `map_range` if cast fails.
 - Add many items to prelude (audio, io, math, osc, ui, window).
@@ -9,7 +9,7 @@
   vertices.
 - Update `Drawing` API to allow builders to produce new `Drawing` types.
 
-# Version 0.6.0 (2017-06-07)
+# Version 0.6.0 (2018-06-07)
 
 - Add beginnings of Nature of Code and Generative Gestaltung examples.
 - Add `App::elapsed_frames` method.
@@ -20,11 +20,11 @@
 - Fix several HiDPI related bugs introduced in the last winit update.
 - Add support for rotation and orientation to `draw` API.
 
-# Version 0.5.2 (2017-04-28)
+# Version 0.5.2 (2018-04-28)
 
 - Improve efficiency of the `App` proxy by only making OS calls when needed.
 
-# Version 0.5.1 (2017-04-26)
+# Version 0.5.1 (2018-04-26)
 
 - Add `Ui::draw_to_frame_if_changed` method which only draws if necessary.
 - Add README to nannou-package.
@@ -32,7 +32,7 @@
 - Add an `io` module with some helper functions simplifying `std::io`.
 - Add `fmod` function to `math` module.
 
-# Version 0.5.0 (2017-04-17)
+# Version 0.5.0 (2018-04-17)
 
 - Add simple accessor field for getting the time since app start in secs.
 - Add ability to adjust glyph cache size for text (ui).
@@ -50,7 +50,7 @@
 - Window name defaults to "nannou - exe_name" if no name is given.
 - Correct existing and add missing geometry scalar default types.
 
-# Version 0.4.0 (2017-03-25)
+# Version 0.4.0 (2018-03-25)
 
 - Add hsv (aka hsb) color builder methods to Draw API.
 - Add nicer panic message for when `max_supported_input/output_channels` methods
@@ -78,7 +78,7 @@
 - Add `geom::polyline` module.
 - Add `geom::line` module.
 
-# Version 0.3.0 (2017-02-18)
+# Version 0.3.0 (2018-02-18)
 
 - Add `audio::Stream::id` method.
 - Add `ExactSize` and `DoubleEnded` iterator implementations for
