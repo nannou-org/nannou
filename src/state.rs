@@ -1,3 +1,7 @@
+//! Small tracked parts of the application state. Includes [**window**](mod.window.html),
+//! [**keys**](mod.keys.html), [**mouse**](mod.mouse.html), [**time**](mod.mouse.html) - each of
+//! which are stored in the **App**.
+
 pub use self::keys::Keys;
 pub use self::mouse::Mouse;
 pub use self::time::Time;

@@ -1,18 +1,25 @@
+//! Color items, including everything from rgb, hsb/l/v, lap, alpha, luma and more, provided by the
+//! palette crate. See [the palette docs](https://docs.rs/palette) for more details or see the
+//! [**named**](./named/index.html) module for a set of provided color constants.
+
 extern crate palette;
 
 pub use self::named::*;
+
+#[doc(inline)]
 pub use self::palette::*;
 
 // TODO: These named colors are actually SRGBA values but we treat them as linear RGBA. These
 // named color values should be adjusted for linear RGBA.
 pub mod named {
+    //! A set of provided, named color constants.
+    //!
+    //! These colors come from the [Tango
+    //! palette](http://tango.freedesktop.org/Tango_Icon_Theme_Guidelines) which provides
+    //! aesthetically reasonable defaults for colors. Each color also comes with a light and dark
+    //! version.
     use super::{Alpha, Rgb, Rgba};
-    // Built-in colors.
-    //
-    // These colors come from the
-    // [Tango palette](http://tango.freedesktop.org/Tango_Icon_Theme_Guidelines) which provides
-    // aesthetically reasonable defaults for colors. Each color also comes with a light and dark
-    // version.
+
     macro_rules! make_color {
         ($r:expr, $g:expr, $b:expr, $a:expr) => (
             Alpha {

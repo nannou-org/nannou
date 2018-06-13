@@ -1,3 +1,6 @@
+//! A mathematical foundation for nannou including point and vector types and a range of
+//! helper/utility functions.
+
 extern crate cgmath;
 pub use self::cgmath::*;
 pub use self::cgmath::num_traits::{Float, NumCast, One};

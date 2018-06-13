@@ -1,3 +1,7 @@
+//! An API for composing **Mesh**s. **Mesh**s may be composed of different sets of channels
+//! including position, color, texture-coordinate and normals. Note that this is quite a low-level
+//! representation. For a higher-level, graphics-related mesh API, see the `draw` module.
+
 use geom;
 use math::{BaseFloat, BaseNum, EuclideanSpace, Point2};
 use std::cell::{Ref, RefMut};

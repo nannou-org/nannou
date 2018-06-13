@@ -1,3 +1,14 @@
+//! An open-source creative-coding toolkit for Rust.
+//! 
+//! [**Nannou**](http://nannou.cc) is a collection of code aimed at making it easy for artists to
+//! express themselves with simple, fast, reliable, portable code. Whether working on a 12-month
+//! laser installation or a 5 minute sketch, this framework aims to give artists easy access to the
+//! tools they need.
+//!
+//! If you're new to nannou, we recommend checking out [the
+//! examples](https://github.com/nannou-org/nannou/tree/master/examples) to get an idea of how
+//! nannou applications are structured and how the API works.
+
 pub extern crate daggy;
 pub extern crate find_folder;
 #[macro_use] pub extern crate glium;
@@ -31,6 +42,7 @@ pub mod image;
 pub mod io;
 pub mod math;
 pub mod mesh;
+pub mod noise;
 pub mod osc;
 pub mod prelude;
 pub mod rand;

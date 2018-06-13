@@ -1,3 +1,6 @@
+//! A simple API for drawing 2D and 3D graphics. See the [**Draw** type](./struct.Draw.html) for
+//! more details.
+
 use geom;
 use geom::graph::{edge, node};
 use math::{BaseFloat, Vector3};
@@ -38,6 +41,10 @@ pub mod theme;
 /// 2. **Rendering**: These methods provide ways of rendering the graphics either directly to the
 ///    frame for the current display or to a list of vertices or triangles for lower-level, more
 ///    flexible access.
+///
+/// See the
+/// [simple_draw.rs](https://github.com/nannou-org/nannou/blob/master/examples/simple_draw.rs)
+/// example for a demonstration of how to use the **App**'s custom **Draw** type.
 #[derive(Clone, Debug)]
 pub struct Draw<S = geom::DefaultScalar>
 where

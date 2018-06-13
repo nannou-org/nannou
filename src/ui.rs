@@ -1,3 +1,5 @@
+//! The User Interface API. Instantiate a [**Ui**](struct.Ui.html) via `app.new_ui()`.
+
 pub extern crate conrod;
 
 pub use self::conrod::{backend, color, cursor, event, graph, image, input, position, scroll, text,
