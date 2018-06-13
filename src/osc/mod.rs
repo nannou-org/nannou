@@ -1,3 +1,6 @@
+//! Tools for working with OSC. [**sender()**](./fn.sender.html) creates an OSC sender,
+//! [**receiver(port)**](./fn.receiver.html) creates an OSC receiver.
+
 pub extern crate rosc;
 
 // Re-export rosc items.

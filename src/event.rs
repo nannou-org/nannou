@@ -1,3 +1,10 @@
+//! Application, event loop and window event definitions and implementations.
+//!
+//! - [**Event**](./enum.Event.html) - the defualt application event type.
+//! - [**WindowEvent**](./struct.WindowEvent.html) - events related to a single window.
+//! - [**SimpleWindowEvent**](./struct.WindowEvent.html) - a stripped-back, simplified,
+//!   newcomer-friendly version of the **raw**, low-level glutin event.
+
 use App;
 use math::{Point2, Vector2};
 use geom;
@@ -28,6 +35,7 @@ pub struct Update {
     pub since_start: state::time::Duration,
 }
 
+/// The default application **Event** type.
 #[derive(Clone, Debug)]
 pub enum Event {
     /// A window-specific event has occurred for the window with the given Id.
@@ -53,6 +61,10 @@ pub enum Event {
     Suspended(bool),
 }
 
+/// The nannou window event type.
+///
+/// The **simple** field offers a stripped-back, simplified, newcomer-friendly version of the
+/// **raw**, low-level glutin event.
 #[derive(Clone, Debug)]
 pub struct WindowEvent {
     /// A simplified, interpreted version of the `raw` `glutin::WindowEvent` emitted via glutin.

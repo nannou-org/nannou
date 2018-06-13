@@ -1,4 +1,5 @@
-//! An extension of the `std::io` module.
+//! An extension of the `std::io` module. Includes functions for safely saving and loading files
+//! from any serializable types, along with functions specifically for working with JSON and TOML.
 
 use serde;
 use serde_json;

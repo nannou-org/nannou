@@ -1,3 +1,6 @@
+//! The nannou [**Window**](./struct.Window.html) API. Create a new window via `.app.new_window()`.
+//! This produces a [**Builder**](./struct.Builder.html) which can be used to build a window.
+
 use App;
 use glium::{self, glutin};
 use glium::glutin::{CursorState, GlContext, MonitorId, MouseCursor};

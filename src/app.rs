@@ -1,3 +1,15 @@
+//! The application context. See here for items related to the event loop, device access, creating
+//! and managing windows and streams and more.
+//!
+//! - [**App**](./struct.App.html) - provides a context and API for windowing, audio, devices, etc.
+//! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
+//!   thread.
+//! - [**Audio**](./struct.Audio.html) - an API accessed via `app.audio` for enumerating audio
+//!   devices, spawning audio input/output streams, etc.
+//! - [**Draw**](./struct.Draw.html) - a simple API for drawing graphics, accessible via
+//!   `app.draw()`.
+//! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
+
 use audio;
 use audio::cpal;
 use draw;
@@ -19,7 +31,11 @@ use std::time::Duration;
 use window::{self, Window};
 use ui;
 
-/// An **App** represents the entire context of your application.
+/// Each nannou application has a single **App** instance. This **App** represents the entire
+/// context of the application.
+///
+/// The **App** provides access to most "IO" related APIs. In other words, if you need access to
+/// windowing, audio devices, laser fixtures, etc, the **App** will provide access to this.
 ///
 /// The **App** owns and manages:
 ///
@@ -96,10 +112,11 @@ struct Config {
     fullscreen_on_shortcut: bool,
 }
 
-/// A `nannou::Draw` instance owned by the `App`.
+/// A **nannou::Draw** instance owned by the **App**. A simple API for sketching with 2D and 3D
+/// graphics.
 ///
-/// This is a conveniently accessible `Draw` instance which can be easily re-used between calls to
-/// an app's `view` function.
+/// This is a conveniently accessible **Draw** instance which can be easily re-used between calls
+/// to an app's **view** function.
 #[derive(Debug)]
 pub struct Draw<'a> {
     window_id: window::Id,
@@ -117,18 +134,18 @@ struct DrawState {
 /// The app uses a set scalar type in order to provide a simplistic API to users.
 ///
 /// If you require changing the scalar type to something else, consider using a custom
-/// `nannou::draw::Draw` instance.
+/// **nannou::draw::Draw** instance.
 pub type DrawScalar = geom::DefaultScalar;
 
-/// An **App**'s audio API.
+/// An API accessed via `app.audio` for enumerating audio devices and spawning input/output audio
+/// streams with either default or custom stream format.
 pub struct Audio {
     event_loop: Arc<cpal::EventLoop>,
     process_fn_tx: RefCell<Option<mpsc::Sender<audio::stream::ProcessFnMsg>>>,
 }
 
-/// A handle to the **App** that can be shared across threads.
-///
-/// This can be used to "wake up" the **App**'s inner event loop.
+/// A handle to the **App** that can be shared across threads. This may be used to "wake up" the
+/// **App**'s inner event loop.
 pub struct Proxy {
     events_loop_proxy: glutin::EventsLoopProxy,
     events_loop_is_asleep: Arc<AtomicBool>,
