@@ -139,7 +139,7 @@ Now Rust is installed! Next we will install some tools that help IDEs do fancy
 things like auto-completion and go-to-definition.
 
 ```bash
-rustup component add rust-src rustmft-preview rust-analysis
+rustup component add rust-src rustfmt-preview rust-analysis
 ```
 
 Please see [this link](https://www.rust-lang.org/en-US/install.html) if you
