@@ -15,7 +15,7 @@ pub fn ellipse_section<S>(
 where
     S: BaseFloat,
 {
-    let section_radians = S::from(PI).expect("could not cast from f64");
+    let section_radians = S::from(-PI).expect("could not cast from f64");
     let av = vec2(line_corner_a.x, line_corner_a.y);
     let bv = vec2(line_corner_b.x, line_corner_b.y);
     let direction = av - bv;

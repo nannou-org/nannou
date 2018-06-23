@@ -2,6 +2,7 @@ use geom::{self, ellipse, quad, tri, vertex, DefaultScalar, Rect};
 use math::{two, vec2, BaseFloat, EuclideanSpace, InnerSpace, Point2};
 
 pub mod cap;
+pub mod join;
 
 /// The quad used to describe a line.
 pub type Quad<S = DefaultScalar> = quad::Quad<Point2<S>>;
@@ -230,6 +231,29 @@ where
 ///  ----------------------------------------
 /// 0                                        3
 /// ```
+///
+/// ## Examples
+///
+/// ```
+/// extern crate nannou;
+///
+/// use nannou::prelude::*;
+/// use nannou::geom::line;
+///
+/// fn main() {
+///     let half_thickness = 1.0;
+///     let a = pt2(0.0, 0.0);
+///     let b = pt2(2.0, 0.0);
+///
+///     // ab
+///     let expected = [pt2(0.0, -1.0), pt2(0.0, 1.0), pt2(2.0, 1.0), pt2(2.0, -1.0)];
+///     assert_eq!(expected, line::quad_corners(a, b, half_thickness).0);
+///
+///     // ba
+///     let expected = [pt2(2.0, 1.0), pt2(2.0, -1.0), pt2(0.0, -1.0), pt2(0.0, 1.0)];
+///     assert_eq!(expected, line::quad_corners(b, a, half_thickness).0);
+/// }
+/// ```
 pub fn quad_corners<S>(a: Point2<S>, b: Point2<S>, half_thickness: S) -> Quad<S>
 where
     S: BaseFloat,
@@ -240,10 +264,10 @@ where
     let normal = vec2(unit.y * neg_1, unit.x);
     let n = normal.normalize_to(half_thickness);
     let neg_n = n * neg_1;
-    let r1 = a + n;
-    let r2 = a + neg_n;
-    let r3 = b + neg_n;
-    let r4 = b + n;
+    let r1 = a + neg_n;
+    let r2 = a + n;
+    let r3 = b + n;
+    let r4 = b + neg_n;
     let quad = Quad::from([r1, r2, r3, r4]);
     quad
 }
