@@ -221,6 +221,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # #![allow(deprecated)]
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(0.0, 5.0).undirected(), Range::new(0.0, 5.0));
