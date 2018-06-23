@@ -53,6 +53,9 @@ path = "examples/simple_mesh.rs"
 name = "simple_polygon" 
 path = "examples/simple_polygon.rs"
 [[example]] 
+name = "simple_polyline"
+path = "examples/simple_polyline.rs"
+[[example]]
 name = "simple_ui" 
 path = "examples/simple_ui.rs"
 [[example]] 
