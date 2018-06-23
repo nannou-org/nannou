@@ -16,6 +16,9 @@ pub const NUM_CORNERS: u8 = 8;
 /// The number of subdivisions for a Cuboid.
 pub const NUM_SUBDIVISIONS: u8 = 8;
 
+/// The number of triangles used to triangulate a cuboid.
+pub const NUM_TRIANGLES: u8 = NUM_FACES * 2;
+
 /// A light-weight `Cuboid` type with many helper and utility methods.
 ///
 /// The cuboid is also known as a "rectangular prism".
