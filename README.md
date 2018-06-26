@@ -207,7 +207,7 @@ cd nannou
 Run the example using cargo.
 
 ```
-cargo run --release --example simple_window
+cargo run --release --example simple_draw
 ```
 
 The `--release` flag means we want to build with optimisations enabled.
@@ -221,7 +221,7 @@ Once the example compiles you should see the following window appear.
 <img src="https://thumbs.gfycat.com/MalePracticalIberianchiffchaff-size_restricted.gif" width="600" height="400" />
 
 
-To run any of the other examples, replace `simple_window` with the name of the
+To run any of the other examples, replace `simple_draw` with the name of the
 desired example.
 
 ### More Resources
