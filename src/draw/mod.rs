@@ -419,6 +419,12 @@ where
         Primitive::PolygonColorPerVertex(prim) => {
             into_drawn(draw, node_index, prim)
         },
+        Primitive::PolylineVertexless(prim) => {
+            into_drawn(draw, node_index, prim)
+        }
+        Primitive::Polyline(prim) => {
+            into_drawn(draw, node_index, prim)
+        }
         Primitive::Quad(prim) => {
             into_drawn(draw, node_index, prim)
         }
@@ -641,6 +647,11 @@ where
 
     /// Begin drawing a **Mesh**.
     pub fn mesh(&self) -> Drawing<properties::primitive::mesh::Vertexless, S> {
+        self.a(Default::default())
+    }
+
+    /// Begin drawing a **Polyline**.
+    pub fn polyline(&self) -> Drawing<properties::primitive::polyline::Vertexless, S> {
         self.a(Default::default())
     }
 

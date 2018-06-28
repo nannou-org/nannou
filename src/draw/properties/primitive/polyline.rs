@@ -1,11 +1,12 @@
 use draw::{self, Drawing};
-use draw::mesh::vertex::IntoVertex;
+use draw::mesh::vertex::{IntoPoint, IntoVertex};
 use draw::properties::{Draw, Drawn, IntoDrawn, Primitive, SetOrientation, SetPosition};
 use draw::properties::spatial::{self, orientation, position};
 use geom;
-use math::BaseFloat;
+use geom::line::join::miter;
+use math::{pt2, BaseFloat, Point2};
 use mesh::vertex::{WithColor, WithTexCoords};
-use std::{iter, ops};
+use std::iter;
 
 /// A polyline prior to being initialised.
 #[derive(Clone, Debug, Default)]
@@ -24,6 +25,7 @@ impl Vertexless {
     pub(crate) fn vertices<S, I>(
         self,
         mesh: &mut draw::IntermediaryMesh<S>,
+        half_thickness: S,
         vertices: I,
     ) -> Polyline<S>
     where
@@ -36,17 +38,50 @@ impl Vertexless {
         vertex_data_ranges.colors.start = mesh.vertex_data.colors.len();
         vertex_data_ranges.tex_coords.start = mesh.vertex_data.tex_coords.len();
 
-        for vertex in vertices {
+        fn v_to_pt2<S>(v: draw::mesh::Vertex<S>) -> Point2<S>
+        where
+            S: BaseFloat,
+        {
+            pt2(v.x, v.y)
+        }
+
+        // For each vertex in the given sequence, generate the miter point pairs. Colour and
+        // texture each pair of points by using the colour and texture coords of the original
+        // vertex.
+        let mut v_iter = vertices.into_iter().map(IntoVertex::into_vertex);
+        let mut a = None;
+        let mut v = v_iter.next();
+        let mut b = v.clone().map(v_to_pt2);
+        loop {
+            let next_v = v_iter.next();
+            let next = next_v.clone().map(v_to_pt2);
+            let [l, r] = match miter::next_pair(half_thickness, &mut a, &mut b, next) {
+                None => break,
+                Some(pair) => pair,
+            };
+
+            // `v` should always be `Some` if `Some` next miter pair was yielded.
             let WithTexCoords {
                 tex_coords,
                 vertex: WithColor {
                     color,
-                    vertex: point,
+                    ..
                 },
-            } = vertex.into_vertex();
-            mesh.vertex_data.points.push(point);
-            mesh.vertex_data.colors.push(color);
-            mesh.vertex_data.tex_coords.push(tex_coords);
+            } = v.clone().expect("no vertex for the next miter pair");
+
+            // A function for pushing the left and right miter points.
+            let mut push_point = |point| {
+                mesh.vertex_data.points.push(point);
+                mesh.vertex_data.colors.push(color);
+                mesh.vertex_data.tex_coords.push(tex_coords);
+            };
+            push_point(l.into_point());
+            push_point(r.into_point());
+
+            // Update the vertex used for texturing and colouring the next miter pair.
+            if next_v.is_some() {
+                v = next_v;
+            }
         }
 
         vertex_data_ranges.points.end = mesh.vertex_data.points.len();
@@ -76,13 +111,14 @@ impl<'a, S> Drawing<'a, Vertexless, S>
 where
     S: BaseFloat,
 {
-    /// Describe the mesh with the given sequence of triangles.
-    pub fn vertices<I>(self, vertices: I) -> Drawing<'a, Polyline<S>, S>
+    /// Describe the polyline with some "half_thickness" of the line and the given sequence of
+    /// vertices.
+    pub fn vertices<I>(self, half_thickness: S, vertices: I) -> Drawing<'a, Polyline<S>, S>
     where
         I: IntoIterator,
         I::Item: IntoVertex<S>,
     {
-        self.map_ty_with_vertices(|ty, mesh| ty.vertices(mesh, vertices))
+        self.map_ty_with_vertices(|ty, mesh| ty.vertices(mesh, half_thickness, vertices))
     }
 }
 
@@ -104,9 +140,8 @@ impl<S> IntoDrawn<S> for Polyline<S>
 where
     S: BaseFloat,
 {
-    // TODO: A `Vertices` type that converts the `VerticesFromRange`
-    type Vertices = Vertices;
-    type Indices = geom::polyline::Indices;
+    type Vertices = draw::properties::VerticesFromRanges;
+    type Indices = geom::tri::FlattenIndices<miter::TriangleIndices>;
     fn into_drawn(self, _draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
         let Polyline {
             orientation,
@@ -115,12 +150,13 @@ where
         } = self;
         let dimensions = spatial::dimension::Properties::default();
         let spatial = spatial::Properties { dimensions, orientation, position };
-        let vertices_from_range = draw::properties::VerticesFromRanges {
+        let n_points = (vertex_data_ranges.points.end - vertex_data_ranges.points.start) / 2;
+        let vertices = draw::properties::VerticesFromRanges {
             ranges: vertex_data_ranges,
             fill_color: None,
         };
-        let vertices = unimplemented!();
-        let indices = unimplemented!();
+        let index_tris = miter::TriangleIndices::new(n_points);
+        let indices = geom::tri::flatten_index_tris(index_tris);
         (spatial, vertices, indices)
     }
 }
