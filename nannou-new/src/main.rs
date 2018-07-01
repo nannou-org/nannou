@@ -1,11 +1,16 @@
 //! A simple tool for creating a new nannou project.
 //!
-//! 1. Determines whether the user is just sketching or wants an App (with model and event `fn`s).
-//! 2. Asks for a sketch/app name.
+//! 1. Asks if the user is just sketching.
+//! 2. If so, generates a project from `template_sketch`.
+//! 3. Otherwise generates a project fro `template_app`.
+//! 4. Adds the latest nannou version as a dep to the `Cargo.toml`.
+//! 5. Builds the project with optimisations. Suggests getting a beverage.
 
+extern crate cargo;
 extern crate names;
 extern crate rand;
 
+use cargo::CargoResult;
 use std::env;
 use std::io::{self, BufRead, Write};
 use std::fs::{self, File};
@@ -14,16 +19,20 @@ use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
 
-enum Goal { Sketch, App }
+enum Project { Sketch, App }
 
-const TEMPLATE_SKETCH: &[u8] = include_bytes!("../../examples/template_sketch.rs");
-const TEMPLATE_APP: &[u8] = include_bytes!("../../examples/template_app.rs");
-
-impl Goal {
-    fn template_bytes(&self) -> &[u8] {
+impl Project {
+    fn lowercase(&self) -> &str {
         match *self {
-            Goal::Sketch => TEMPLATE_SKETCH,
-            Goal::App => TEMPLATE_APP,
+            Project::Sketch => "sketch",
+            Project::App => "app",
+        }
+    }
+
+    fn template_file_name(&self) -> &str {
+        match *self {
+            Project::Sketch => "template_sketch.rs",
+            Project::App => "template_app.rs",
         }
     }
 }
@@ -56,12 +65,44 @@ fn random_beverage() -> &'static str {
     }
 }
 
+// Retrieve the latest version of the crates.io package with the given name using cargo.
+fn crates_io_package_latest_version(name: &str) -> CargoResult<cargo::core::Package> {
+    use cargo::core::source::Source;
+
+    // Setup the cargo config.
+    let cargo_config = cargo::Config::default()?;
+
+    // The crates.io source ID.
+    let src_id = cargo::core::SourceId::crates_io(&cargo_config)?;
+
+    // The crates.io registry source.
+    let mut registry_source = cargo::sources::registry::RegistrySource::remote(
+        &src_id,
+        &cargo_config,
+    );
+
+    // The nannou dependency (don't really understand why we need "Dependency").
+    let vers = None;
+    let dep = cargo::core::dependency::Dependency::parse_no_deprecated(name, vers, &src_id)?;
+
+    // Retrieve the `Summary` by querying the source.
+    let mut maybe_summary = None;
+    registry_source.query(&dep, &mut |summary| maybe_summary = Some(summary))?;
+    let summary = match maybe_summary {
+        Some(s) => s,
+        None => panic!("could not find {} summary in crates.io registry", name),
+    };
+
+    // Retrieve the `Package` by querying the source with the id we got from the `Summary`.
+    registry_source.download(&summary.package_id())
+}
+
 fn main() {
     // Retrieve the name of the exe that the user wishes to package.
     let response = ask_user("Are you sketching? (Y/n): ").expect("failed to get user input");
-    let goal = match yes_or_no(&response) {
-        Some(Response::Yes) => Goal::Sketch,
-        Some(Response::No) => Goal::App,
+    let project = match yes_or_no(&response) {
+        Some(Response::Yes) => Project::Sketch,
+        Some(Response::No) => Project::App,
         _ => {
             println!("I don't understand \"{}\", I was expecting \"y\" or \"n\". Exiting", response);
             return;
@@ -70,7 +111,8 @@ fn main() {
 
     // Get a name for the sketch.
     let name = loop {
-        let response = ask_user("Name your sketch: ").expect("failed to get user input");
+        let name_your = format!("Name your {}: ", project.lowercase());
+        let response = ask_user(&name_your).expect("failed to get user input");
         if !response.is_empty() {
             break response;
         }
@@ -82,14 +124,22 @@ fn main() {
         }
     };
 
-    // TODO: Ask the user for additional cargo args.
+    // Retrieve the nannou package from crates.io.
+    let nannou_package = crates_io_package_latest_version("nannou")
+        .expect("failed to retrieve `nannou` package from crates.io");
 
-    // TODO: Find the current version of nannou.
-    let nannou_version = "0.5";
+    // Get the latest nannou version.
+    let nannou_version = format!("{}", nannou_package.version());
     let nannou_dependency = format!("nannou = \"{}\"", nannou_version);
 
-    // TODO: Load the template example or fallback to compiled template.
-    let template_bytes = goal.template_bytes();
+    // Find the template file within the nannou package.
+    let template_bytes = {
+        let template_path = nannou_package.root()
+            .join("examples")
+            .join(&project.template_file_name());
+        std::fs::read(&template_path)
+            .expect(&format!("failed to read template bytes from {}", template_path.display()))
+    };
 
     // Get the current directory.
     let current_directory = env::current_dir()
@@ -118,19 +168,19 @@ fn main() {
     {
         println!("Writing template file \"{}\"", main_path.display());
         let mut file = File::create(main_path).expect("failed to create new main file");
-        file.write_all(template_bytes).expect("failed to write to new main file");
+        file.write_all(&template_bytes).expect("failed to write to new main file");
     }
 
     // Append the nannou dependency to the "Cargo.toml" file.
     {
-        println!("Adding nannou dependency \"{}\"", nannou_dependency);
+        println!("Adding nannou dependency `{}`", nannou_dependency);
         let cargo_toml_path = project_path.join("Cargo").with_extension("toml");
         let mut file = fs::OpenOptions::new()
             .write(true)
             .append(true)
             .open(&cargo_toml_path)
             .expect("failed to open \"Cargo.toml\" to add nannou dependency");
-        writeln!(file, "\n{}", nannou_dependency).expect("failed to append nannou dependency");
+        writeln!(file, "{}", nannou_dependency).expect("failed to append nannou dependency");
     }
 
     // Change the directory to the newly created path.

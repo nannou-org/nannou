@@ -2,7 +2,14 @@
 name = "nannou-new"
 version = "0.1.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+description = "A tool for easily starting Nannou projects."
+readme = "README.md"
+keywords = ["tool", "build", "nannou", "creative", "sketch"]
+license = "MIT"
+repository = "https://github.com/nannou-org/nannou-new.git"
+homepage = "https://github.com/nannou-org/nannou-new"
 
 [dependencies]
+cargo = "0.28" # For retrieving the latest `nannou` version and working with cargo-clone.
 names = "0.11" # For generating random project names.
 rand = "0.4" # For generating random beverages (very important).
