@@ -30,6 +30,14 @@ pub struct VerticesFromIter<I, V = vertex::Default> {
     tri: Option<Vertices<V>>,
 }
 
+/// Converts an iterator yielding `[usize; 3]` into an iterator yielding `usize`s.
+#[derive(Clone, Debug)]
+pub struct FlattenIndices<I> {
+    indices: I,
+    b: Option<usize>,
+    c: Option<usize>,
+}
+
 impl<V> Tri<V>
 where
     V: Vertex,
@@ -208,6 +216,19 @@ where
     VerticesFromIter { tris, tri }
 }
 
+/// Given an iterator yielding trios of indices, produce an iterator that yields each index one at
+/// a time.
+pub fn flatten_index_tris<I>(index_tris: I) -> FlattenIndices<I::IntoIter>
+where
+    I: IntoIterator<Item = [usize; 3]>,
+{
+    FlattenIndices {
+        indices: index_tris.into_iter(),
+        b: None,
+        c: None,
+    }
+}
+
 impl<V> Deref for Tri<V>
 where
     V: Vertex,
@@ -335,5 +356,35 @@ where
         let current_tri_vs = self.tri.as_ref().map(|vs| vs.len()).unwrap_or(0);
         let remaining_tri_vs = self.tris.len() * NUM_VERTICES as usize;
         current_tri_vs + remaining_tri_vs
+    }
+}
+
+impl<I> Iterator for FlattenIndices<I>
+where
+    I: Iterator<Item = [usize; 3]>,
+{
+    type Item = usize;
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(next) = self.b.take() {
+            return Some(next);
+        }
+        if let Some(next) = self.c.take() {
+            return Some(next);
+        }
+        if let Some([next, b, c]) = self.indices.next() {
+            self.b = Some(b);
+            self.c = Some(c);
+            return Some(next);
+        }
+        None
+    }
+}
+
+impl<I> ExactSizeIterator for FlattenIndices<I>
+where
+    I: Iterator<Item = [usize; 3]> + ExactSizeIterator,
+{
+    fn len(&self) -> usize {
+        self.indices.len() * 3 + self.b.map(|_| 1).unwrap_or(0) + self.c.map(|_| 1).unwrap_or(0)
     }
 }

@@ -1,3 +1,10 @@
+# Unreleased
+
+- Fix the order of `geom::line` vertices.
+- Add a `draw.polygon()` API.
+- Remove `geom::polyline` module.
+- Add `geom::line::join` module with `miter` submodule implementation.
+
 # Version 0.7.0 (2018-06-13)
 
 - Add better `panic!` message to `map_range` if cast fails.
