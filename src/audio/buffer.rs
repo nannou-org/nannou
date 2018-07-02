@@ -3,10 +3,10 @@ use std::ops::{Deref, DerefMut};
 
 /// An interleaved PCM buffer yielded by either an input or output stream processing function.
 #[derive(Debug)]
-pub struct Buffer<S=f32> {
-    pub (crate) interleaved_samples: Box<[S]>,
-    pub (crate) channels: usize,
-    pub (crate) sample_rate: u32,
+pub struct Buffer<S = f32> {
+    pub(crate) interleaved_samples: Box<[S]>,
+    pub(crate) channels: usize,
+    pub(crate) sample_rate: u32,
 }
 
 /// An iterator yielding each frame in some Buffer.

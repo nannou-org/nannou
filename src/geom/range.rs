@@ -1,8 +1,8 @@
 //! A type for working with one-dimensional ranges.
 
 use geom::DefaultScalar;
-use math::{self, BaseNum, two};
 use math::num_traits::{Float, One, Zero};
+use math::{self, two, BaseNum};
 use std::ops::Neg;
 
 /// Some start and end position along a single axis.
@@ -28,7 +28,11 @@ pub enum Edge {
 
 /// Describes alignment along a range.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub enum Align { Start, Middle, End }
+pub enum Align {
+    Start,
+    Middle,
+    End,
+}
 
 impl<S> Range<S>
 where
@@ -96,11 +100,15 @@ where
     /// ```
     pub fn len(&self) -> S
     where
-        S: Neg<Output=S>,
+        S: Neg<Output = S>,
     {
         let mag = self.magnitude();
         let zero = S::zero();
-        if mag < zero { -mag } else { mag }
+        if mag < zero {
+            -mag
+        } else {
+            mag
+        }
     }
 
     /// Return the value directly between the start and end values.
@@ -133,7 +141,10 @@ where
     /// assert_eq!(Range::new(5.0, 1.0).invert(), Range::new(1.0, 5.0));
     /// ```
     pub fn invert(self) -> Self {
-        Range { start: self.end, end: self.start }
+        Range {
+            start: self.end,
+            end: self.start,
+        }
     }
 
     /// Map the given scalar from `Self` to some other given `Range`.
@@ -191,7 +202,10 @@ where
     /// assert_eq!(Range::new(5.0, -5.0).shift(-5.0), Range::new(0.0, -10.0));
     /// ```
     pub fn shift(self, amount: S) -> Self {
-        Range { start: self.start + amount, end: self.end + amount }
+        Range {
+            start: self.start + amount,
+            end: self.end + amount,
+        }
     }
 
     /// The direction of the Range represented as a normalised scalar.
@@ -207,11 +221,15 @@ where
     /// ```
     pub fn direction(&self) -> S
     where
-        S: Neg<Output=S> + One + Zero,
+        S: Neg<Output = S> + One + Zero,
     {
-        if      self.start < self.end { S::one() }
-        else if self.start > self.end { -S::one() }
-        else                          { S::zero() }
+        if self.start < self.end {
+            S::one()
+        } else if self.start > self.end {
+            -S::one()
+        } else {
+            S::zero()
+        }
     }
 
     /// Converts the Range to an undirected Range. By ensuring that `start` <= `end`.
@@ -230,7 +248,11 @@ where
     /// ```
     #[deprecated = "use `absolute` instead"]
     pub fn undirected(self) -> Self {
-        if self.start > self.end { self.invert() } else { self }
+        if self.start > self.end {
+            self.invert()
+        } else {
+            self
+        }
     }
 
     /// Converts the Range to an absolute Range by ensuring that `start` <= `end`.
@@ -247,7 +269,11 @@ where
     /// assert_eq!(Range::new(10.0, -10.0).absolute(), Range::new(-10.0, 10.0));
     /// ```
     pub fn absolute(self) -> Self {
-        if self.start > self.end { self.invert() } else { self }
+        if self.start > self.end {
+            self.invert()
+        } else {
+            self
+        }
     }
 
     /// The Range that encompasses both self and the given Range.
@@ -297,7 +323,7 @@ where
     /// let c = Range::new(10.0, -30.0);
     /// let d = Range::new(-5.0, 20.0);
     /// assert_eq!(c.overlap(d), Some(Range::new(-5.0, 10.0)));
-    /// 
+    ///
     /// let e = Range::new(0.0, 2.5);
     /// let f = Range::new(50.0, 100.0);
     /// assert_eq!(e.overlap(f), None);
@@ -337,8 +363,11 @@ where
     where
         S: Float,
     {
-        if self.start <= self.end { self.max(other) }
-        else                      { self.max(other).invert() }
+        if self.start <= self.end {
+            self.max(other)
+        } else {
+            self.max(other).invert()
+        }
     }
 
     /// Is the given scalar within our range.
@@ -406,7 +435,7 @@ where
     /// ```
     pub fn pad_start(mut self, pad: S) -> Self
     where
-        S: Neg<Output=S>,
+        S: Neg<Output = S>,
     {
         self.start += if self.start <= self.end { pad } else { -pad };
         self
@@ -424,7 +453,7 @@ where
     /// ```
     pub fn pad_end(mut self, pad: S) -> Self
     where
-        S: Neg<Output=S>,
+        S: Neg<Output = S>,
     {
         self.end += if self.start <= self.end { -pad } else { pad };
         self
@@ -442,7 +471,7 @@ where
     /// ```
     pub fn pad(self, pad: S) -> Self
     where
-        S: Neg<Output=S>,
+        S: Neg<Output = S>,
     {
         self.pad_start(pad).pad_end(pad)
     }
@@ -459,7 +488,7 @@ where
     /// ```
     pub fn pad_ends(self, start: S, end: S) -> Self
     where
-        S: Neg<Output=S>,
+        S: Neg<Output = S>,
     {
         self.pad_start(start).pad_end(end)
     }
@@ -500,17 +529,29 @@ where
         let Range { start, end } = self;
         if start <= end {
             if value < start {
-                Range { start: value, end: end }
+                Range {
+                    start: value,
+                    end: end,
+                }
             } else if value > end {
-                Range { start: start, end: value }
+                Range {
+                    start: start,
+                    end: value,
+                }
             } else {
                 self
             }
         } else {
             if value < end {
-                Range { start: start, end: value }
+                Range {
+                    start: start,
+                    end: value,
+                }
             } else if value > start {
-                Range { start: value, end: end }
+                Range {
+                    start: value,
+                    end: end,
+                }
             } else {
                 self
             }
@@ -694,8 +735,20 @@ where
     /// ```
     pub fn closest_edge(&self, scalar: S) -> Edge {
         let Range { start, end } = *self;
-        let start_diff = if scalar < start { start - scalar } else { scalar - start };
-        let end_diff = if scalar < end { end - scalar } else { scalar - end };
-        if start_diff <= end_diff { Edge::Start } else { Edge::End }
+        let start_diff = if scalar < start {
+            start - scalar
+        } else {
+            scalar - start
+        };
+        let end_diff = if scalar < end {
+            end - scalar
+        } else {
+            scalar - end
+        };
+        if start_diff <= end_diff {
+            Edge::Start
+        } else {
+            Edge::End
+        }
     }
 }

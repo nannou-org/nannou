@@ -15,7 +15,7 @@ struct Model {
 }
 
 fn model(_app: &App) -> Model {
-    // Initialise our models variables 
+    // Initialise our models variables
     let foo = 80;
     let bar = 3.14;
 
@@ -25,36 +25,36 @@ fn model(_app: &App) -> Model {
 
 fn event(_app: &App, model: Model, event: Event) -> Model {
     match event {
-        Event::WindowEvent { simple: Some(event), .. } =>{
-
+        Event::WindowEvent {
+            simple: Some(event),
+            ..
+        } => {
             match event {
-
                 // KEY EVENTS
                 KeyPressed(_key) => {
                     println!("foo = {}", model.foo);
                     println!("bar = {}", model.bar);
-                },
+                }
 
                 KeyReleased(_key) => {
                     let local_var = 94;
                     println!("local_variable to KeyReleased = {}", local_var);
-                },
+                }
 
                 // MOUSE EVENTS
                 MousePressed(_button) => {
                     println!("global scope: GLOBAL = {}", GLOBAL);
-                },
-                
+                }
+
                 _other => (),
             }
-        },
+        }
 
         // update gets called just before view every frame
-        Event::Update(_dt) => {
-        },
+        Event::Update(_dt) => {}
 
         _ => (),
-    } 
+    }
     model
 }
 

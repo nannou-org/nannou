@@ -7,7 +7,7 @@ fn main() {
 }
 
 fn view(app: &App, frame: Frame) -> Frame {
-    // Begin drawing 
+    // Begin drawing
     let draw = app.draw();
 
     // Clear the background.

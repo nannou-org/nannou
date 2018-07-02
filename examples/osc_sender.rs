@@ -43,27 +43,29 @@ fn model(app: &App) -> Model {
 
 fn event(_app: &App, mut model: Model, event: Event) -> Model {
     match event {
-        Event::WindowEvent { simple: Some(event), .. } => match event {
-
+        Event::WindowEvent {
+            simple: Some(event),
+            ..
+        } => match event {
             MouseMoved(pos) => {
                 let addr = "/example/mouse_moved/";
                 let args = vec![Type::Float(pos.x), Type::Float(pos.y)];
                 model.sender.send((addr, args)).ok();
-            },
+            }
 
             MousePressed(button) => {
                 let addr = "/example/mouse_pressed/";
                 let button = format!("{:?}", button);
                 let args = vec![Type::String(button)];
                 model.sender.send((addr, args)).ok();
-            },
+            }
 
             MouseReleased(button) => {
                 let addr = "/example/mouse_released/";
                 let button = format!("{:?}", button);
                 let args = vec![Type::String(button)];
                 model.sender.send((addr, args)).ok();
-            },
+            }
 
             _other => (),
         },
@@ -72,16 +74,18 @@ fn event(_app: &App, mut model: Model, event: Event) -> Model {
             // Use the UI to show the user where packets are being sent.
             model.ui.clear_with(color::DARK_RED);
             let mut ui = model.ui.set_widgets();
-            let text = format!("Move or click the mouse to send\nmessages to the \
-                               receiver example!\n\nSending OSC packets to {}",
-                               target_address_string());
+            let text = format!(
+                "Move or click the mouse to send\nmessages to the \
+                 receiver example!\n\nSending OSC packets to {}",
+                target_address_string()
+            );
             widget::Text::new(&text)
                 .middle_of(ui.window)
                 .center_justify()
                 .color(color::WHITE)
                 .line_spacing(10.0)
                 .set(model.text, &mut ui);
-        },
+        }
 
         _ => (),
     }

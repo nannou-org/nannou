@@ -2,32 +2,37 @@
 
 pub extern crate conrod;
 
-pub use self::conrod::{backend, color, cursor, event, graph, image, input, position, scroll, text,
-                       theme, utils, widget};
-pub use self::conrod::{Bordering, Borderable, Color, Colorable, Dimensions, FontSize, Labelable,
-                       Point, Positionable, Range, Rect, Scalar, Sizeable, Theme, UiCell, Widget};
 pub use self::conrod::event::Input;
+pub use self::conrod::{
+    backend, color, cursor, event, graph, image, input, position, scroll, text, theme, utils,
+    widget,
+};
+pub use self::conrod::{
+    Borderable, Bordering, Color, Colorable, Dimensions, FontSize, Labelable, Point, Positionable,
+    Range, Rect, Scalar, Sizeable, Theme, UiCell, Widget,
+};
 
 /// Simplify inclusion of common traits with a `nannou::ui::prelude` module.
 pub mod prelude {
     // Traits.
     pub use super::{Borderable, Colorable, Labelable, Positionable, Sizeable, Widget};
     // Types.
-    pub use super::{Bordering, Dimensions, FontSize, Input, Point, Range, Rect, Scalar, Theme, Ui,
-                    UiCell};
+    pub use super::{
+        Bordering, Dimensions, FontSize, Input, Point, Range, Rect, Scalar, Theme, Ui, UiCell,
+    };
     // Modules.
     pub use super::{color, image, position, text, widget};
 }
 
-use App;
 use frame::Frame;
 use glium::{self, glutin};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::{mpsc, Mutex};
-use std::ops::Deref;
 use window::{self, Window};
+use App;
 
 /// Owned by the `App`, the `Arrangement` handles the mapping between `Ui`s and their associated
 /// windows.
@@ -199,7 +204,7 @@ impl<'a> Builder<'a> {
                 Some(window) => {
                     let (win_w, win_h) = window.inner_size_points();
                     [win_w as Scalar, win_h as Scalar]
-                },
+                }
             },
             Some(dimensions) => dimensions,
         };
@@ -220,7 +225,9 @@ impl<'a> Builder<'a> {
         };
 
         // Insert the handle into the app's UI arrangement.
-        app.ui.windows.borrow_mut()
+        app.ui
+            .windows
+            .borrow_mut()
             .entry(window_id)
             .or_insert(Vec::new())
             .push(handle);
@@ -230,29 +237,38 @@ impl<'a> Builder<'a> {
             None => return None,
             Some(window) => {
                 let renderer = match glyph_cache_dimensions {
-                    Some((w, h)) => {
-                        conrod::backend::glium::Renderer::with_glyph_cache_dimensions(&window.display, w, h)
-                    },
-                    None => {
-                        conrod::backend::glium::Renderer::new(&window.display)
-                    },
+                    Some((w, h)) => conrod::backend::glium::Renderer::with_glyph_cache_dimensions(
+                        &window.display,
+                        w,
+                        h,
+                    ),
+                    None => conrod::backend::glium::Renderer::new(&window.display),
                 };
                 match renderer {
                     Ok(renderer) => Mutex::new(renderer),
                     Err(_) => return None,
                 }
-            },
+            }
         };
 
         // Initialise the image map.
         let image_map = image::Map::new();
 
         // Initialise the `Ui`.
-        let mut ui = Ui { window_id, ui, input_rx, renderer, image_map };
+        let mut ui = Ui {
+            window_id,
+            ui,
+            input_rx,
+            renderer,
+            image_map,
+        };
 
         // If the default font is in the assets/fonts directory, load it into the UI font map.
-        let default_font_path = default_font_path
-            .or_else(|| app.assets_path().ok().map(|p| p.join(Ui::DEFAULT_FONT_PATH)));
+        let default_font_path = default_font_path.or_else(|| {
+            app.assets_path()
+                .ok()
+                .map(|p| p.join(Ui::DEFAULT_FONT_PATH))
+        });
 
         // If there is some font path to use for the default font, attempt to load it.
         if let Some(font_path) = default_font_path {
@@ -315,7 +331,11 @@ impl Ui {
     ///
     /// This has no effect if automatic input handling is disabled.
     pub fn handle_pending_input(&mut self) {
-        let Ui { ref mut ui, ref input_rx, .. } = *self;
+        let Ui {
+            ref mut ui,
+            ref input_rx,
+            ..
+        } = *self;
         if let Some(ref rx) = *input_rx {
             for input in rx.try_iter() {
                 ui.handle_event(input);
@@ -365,10 +385,18 @@ impl Ui {
     /// method offers more flexibility.
     ///
     /// This has no effect if the window originally associated with the `Ui` no longer exists.
-    pub fn draw_to_frame(&self, app: &App, frame: &Frame)
-        -> Result<(), conrod::backend::glium::DrawError>
-    {
-        let Ui { ref ui, ref renderer, ref image_map, window_id, .. } = *self;
+    pub fn draw_to_frame(
+        &self,
+        app: &App,
+        frame: &Frame,
+    ) -> Result<(), conrod::backend::glium::DrawError> {
+        let Ui {
+            ref ui,
+            ref renderer,
+            ref image_map,
+            window_id,
+            ..
+        } = *self;
         if let Some(window) = app.window(window_id) {
             if let Some(mut window_frame) = frame.window(window_id) {
                 if let Ok(mut renderer) = renderer.lock() {
@@ -392,10 +420,18 @@ impl Ui {
     /// This has no effect if the window originally associated with the `Ui` no longer exists.
     ///
     /// Returns `true` if the call resulted in re-drawing the `Ui` due to changes.
-    pub fn draw_to_frame_if_changed(&self, app: &App, frame: &Frame)
-        -> Result<bool, conrod::backend::glium::DrawError>
-    {
-        let Ui { ref ui, ref renderer, ref image_map, window_id, .. } = *self;
+    pub fn draw_to_frame_if_changed(
+        &self,
+        app: &App,
+        frame: &Frame,
+    ) -> Result<bool, conrod::backend::glium::DrawError> {
+        let Ui {
+            ref ui,
+            ref renderer,
+            ref image_map,
+            window_id,
+            ..
+        } = *self;
         if let Some(window) = app.window(window_id) {
             if let Some(mut window_frame) = frame.window(window_id) {
                 if let Ok(mut renderer) = renderer.lock() {

@@ -1,21 +1,17 @@
 use geom;
 
 pub mod dimension;
-pub mod position;
 pub mod orientation;
+pub mod position;
 
 pub use self::dimension::SetDimensions;
-pub use self::position::SetPosition;
 pub use self::orientation::SetOrientation;
+pub use self::position::SetPosition;
 
 /// Types that may be positioned, sized and oriented within 3D space.
 pub trait SetSpatial<S>: SetDimensions<S> + SetPosition<S> + SetOrientation<S> {}
 
-impl<S, T> SetSpatial<S> for T
-where
-    T: SetDimensions<S> + SetPosition<S> + SetOrientation<S>,
-{
-}
+impl<S, T> SetSpatial<S> for T where T: SetDimensions<S> + SetPosition<S> + SetOrientation<S> {}
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Properties<S = geom::DefaultScalar> {

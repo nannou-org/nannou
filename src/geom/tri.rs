@@ -137,7 +137,10 @@ where
     {
         let (a, b, c) = self.into();
         let (a, b, c) = (a.point2(), b.point2(), c.point2());
-        let rect = Rect { x: Range::new(a.x, a.x), y: Range::new(a.y, a.y) };
+        let rect = Rect {
+            x: Range::new(a.x, a.x),
+            y: Range::new(a.y, a.y),
+        };
         rect.stretch_to_point(b).stretch_to_point(c)
     }
 

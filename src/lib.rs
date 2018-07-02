@@ -1,5 +1,5 @@
 //! An open-source creative-coding toolkit for Rust.
-//! 
+//!
 //! [**Nannou**](http://nannou.cc) is a collection of code aimed at making it easy for artists to
 //! express themselves with simple, fast, reliable, portable code. Whether working on a 12-month
 //! laser installation or a 5 minute sketch, this framework aims to give artists easy access to the
@@ -11,7 +11,8 @@
 
 pub extern crate daggy;
 pub extern crate find_folder;
-#[macro_use] pub extern crate glium;
+#[macro_use]
+pub extern crate glium;
 extern crate serde;
 extern crate serde_json;
 extern crate toml;
@@ -22,13 +23,15 @@ use std::cell::RefCell;
 use std::sync::atomic;
 use std::time::Instant;
 
-pub use app::{App, LoopMode};
-pub use draw::Draw;
-pub use glium::glutin::{ContextBuilder, CursorState, ElementState, MonitorId, MouseCursor,
-                        WindowBuilder, WindowEvent, VirtualKeyCode};
 pub use self::event::Event;
 pub use self::frame::Frame;
 pub use self::ui::Ui;
+pub use app::{App, LoopMode};
+pub use draw::Draw;
+pub use glium::glutin::{
+    ContextBuilder, CursorState, ElementState, MonitorId, MouseCursor, VirtualKeyCode,
+    WindowBuilder, WindowEvent,
+};
 
 pub mod app;
 pub mod audio;
@@ -96,10 +99,8 @@ where
 ///
 /// This is the same as calling `app` and providing `model` and `event` functions that do nothing.
 pub fn view(view: SimpleViewFn) {
-    fn default_model(_app: &App) -> () {
-    }
-    fn default_event(_app: &App, _model: (), _event: Event) -> () {
-    }
+    fn default_model(_app: &App) -> () {}
+    fn default_event(_app: &App, _model: (), _event: Event) -> () {}
     let view: View<()> = view.into();
     app_inner(default_model, default_event, view).run_window()
 }
@@ -114,7 +115,8 @@ pub struct Builder<M, E> {
 }
 
 impl<M, E> Builder<M, E>
-    where E: LoopEvent,
+where
+    E: LoopEvent,
 {
     /// Specify an `exit` function to be called when the application exits.
     ///
@@ -132,7 +134,13 @@ impl<M, E> Builder<M, E>
 
     /// Creates and runs the nannou `App`.
     pub fn run(self) {
-        let Builder { model, event, view, exit, create_default_window } = self;
+        let Builder {
+            model,
+            event,
+            view,
+            exit,
+            create_default_window,
+        } = self;
 
         // Start the glutin window event loop.
         let events_loop = glutin::EventsLoop::new();
@@ -142,7 +150,10 @@ impl<M, E> Builder<M, E>
 
         // Create the default window if necessary
         if create_default_window {
-            let window_id = app.new_window().build().expect("could not build default app window");
+            let window_id = app
+                .new_window()
+                .build()
+                .expect("could not build default app window");
             *app.focused_window.borrow_mut() = Some(window_id);
         }
 
@@ -164,7 +175,8 @@ impl<M, E> Builder<M, E>
 ///
 /// Calling this is just like calling `nannou::app(model, event, view).run_window()`.
 pub fn run<M, E>(model: ModelFn<M>, event: EventFn<M, E>, view: ViewFn<M>)
-    where E: LoopEvent,
+where
+    E: LoopEvent,
 {
     app(model, event, view).run_window()
 }
@@ -175,14 +187,14 @@ fn run_loop<M, E>(
     event_fn: EventFn<M, E>,
     view: View<M>,
     exit_fn: Option<ExitFn<M>>,
-)
-where
+) where
     E: LoopEvent,
 {
     // A function to re-use when drawing for each of the loop modes.
     fn draw<M>(app: &App, model: &M, view: &View<M>) -> Result<(), glium::SwapBuffersError> {
         // Draw the state of the model to the screen.
-        let gl_frames = app.windows
+        let gl_frames = app
+            .windows
             .borrow()
             .iter()
             .map(|(&id, window)| {
@@ -245,7 +257,10 @@ where
         let now = Instant::now();
         let since_last = now.duration_since(*last_update).into();
         let since_start = now.duration_since(loop_start).into();
-        let update = event::Update { since_last, since_start };
+        let update = event::Update {
+            since_last,
+            since_start,
+        };
         *last_update = now;
         update
     };
@@ -267,8 +282,11 @@ where
     {
         // Inspect the event to see if it would require closing the App.
         let mut exit_on_escape = false;
-        if let glutin::Event::WindowEvent { window_id, ref event } = glutin_event {
-
+        if let glutin::Event::WindowEvent {
+            window_id,
+            ref event,
+        } = glutin_event
+        {
             // If we should exit the app on escape, check for the escape key.
             if app.exit_on_escape() {
                 if let glutin::WindowEvent::KeyboardInput { input, .. } = *event {
@@ -285,7 +303,6 @@ where
                 // Get the size of the screen for translating coords and dimensions.
                 let (win_w_px, win_h_px, hidpi_factor) = match app.window(window_id) {
                     Some(win) => {
-
                         // If we should toggle fullscreen for this window, do so.
                         if app.fullscreen_on_shortcut() {
                             if should_toggle_fullscreen(event) {
@@ -301,7 +318,7 @@ where
                         let (w_px, h_px) = win.inner_size_pixels();
                         let hidpi_factor = win.hidpi_factor();
                         (w_px, h_px, hidpi_factor)
-                    },
+                    }
                     None => (0, 0, 1.0),
                 };
 
@@ -309,8 +326,12 @@ where
                 //
                 // winit produces input events in pixels, so these positions need to be divided by the
                 // width and height of the window in order to be DPI agnostic.
-                let tx = |x: geom::DefaultScalar| (x - win_w_px as geom::DefaultScalar / 2.0) / hidpi_factor;
-                let ty = |y: geom::DefaultScalar| -((y - win_h_px as geom::DefaultScalar / 2.0) / hidpi_factor);
+                let tx = |x: geom::DefaultScalar| {
+                    (x - win_w_px as geom::DefaultScalar / 2.0) / hidpi_factor
+                };
+                let ty = |y: geom::DefaultScalar| {
+                    -((y - win_h_px as geom::DefaultScalar / 2.0) / hidpi_factor)
+                };
 
                 // If the window ID has changed, ensure the dimensions are up to date.
                 if *app.focused_window.borrow() != Some(window_id) {
@@ -321,26 +342,28 @@ where
 
                 // Check for events that would update either mouse, keyboard or window state.
                 match *event {
-                    glutin::WindowEvent::CursorMoved { position: (x, y), .. } => {
+                    glutin::WindowEvent::CursorMoved {
+                        position: (x, y), ..
+                    } => {
                         let x = tx(x as _);
                         let y = ty(y as _);
                         app.mouse.x = x;
                         app.mouse.y = y;
                         app.mouse.window = Some(window_id);
-                    },
+                    }
 
                     glutin::WindowEvent::MouseInput { state, button, .. } => {
                         match state {
                             event::ElementState::Pressed => {
                                 let p = app.mouse.position();
                                 app.mouse.buttons.press(button, p);
-                            },
+                            }
                             event::ElementState::Released => {
                                 app.mouse.buttons.release(button);
-                            },
+                            }
                         }
                         app.mouse.window = Some(window_id);
-                    },
+                    }
 
                     glutin::WindowEvent::KeyboardInput { input, .. } => {
                         app.keys.mods = input.modifiers;
@@ -348,13 +371,13 @@ where
                             match input.state {
                                 event::ElementState::Pressed => {
                                     app.keys.down.keys.insert(key);
-                                },
+                                }
                                 event::ElementState::Released => {
                                     app.keys.down.keys.remove(&key);
-                                },
+                                }
                             }
                         }
-                    },
+                    }
 
                     _ => (),
                 }
@@ -403,7 +426,6 @@ where
 
     // Begin looping.
     'main: loop {
-
         // See if the loop mode has changed.
         let new_loop_mode = app.loop_mode();
         let loop_mode_has_changed = loop_mode != Some(new_loop_mode);
@@ -411,17 +433,17 @@ where
 
         // The kind of iteration to perform will depend on the loop mode.
         match loop_mode {
-
             Some(LoopMode::Rate { update_interval }) => {
                 // If the loop mode has changed since the last iteration, initialise the necessary
                 // `Rate` state.
-                if loop_mode_has_changed {
-                }
+                if loop_mode_has_changed {}
 
                 // First handle any pending window events.
-                app.events_loop.poll_events(|event| glutin_events.push(event));
+                app.events_loop
+                    .poll_events(|event| glutin_events.push(event));
                 for glutin_event in glutin_events.drain(..) {
-                    let (new_model, exit) = process_and_emit_glutin_event(&mut app, model, event_fn, glutin_event);
+                    let (new_model, exit) =
+                        process_and_emit_glutin_event(&mut app, model, event_fn, glutin_event);
                     model = new_model;
                     if exit {
                         break 'main;
@@ -451,16 +473,20 @@ where
                     std::thread::sleep(update_interval - since_last_loop_end);
                 }
                 last_loop_end = Instant::now();
-            },
+            }
 
-            Some(LoopMode::Wait { updates_following_event, update_interval }) => {
+            Some(LoopMode::Wait {
+                updates_following_event,
+                update_interval,
+            }) => {
                 // If the loop mode has changed, initialise the necessary `Rate` state.
                 if loop_mode_has_changed {
                     updates_remaining = updates_following_event;
                 }
 
                 // First collect any pending window events.
-                app.events_loop.poll_events(|event| glutin_events.push(event));
+                app.events_loop
+                    .poll_events(|event| glutin_events.push(event));
 
                 // If there are no events and the `Ui` does not need updating,
                 // wait for the next event.
@@ -480,7 +506,8 @@ where
                 }
 
                 for glutin_event in glutin_events.drain(..) {
-                    let (new_model, exit) = process_and_emit_glutin_event(&mut app, model, event_fn, glutin_event);
+                    let (new_model, exit) =
+                        process_and_emit_glutin_event(&mut app, model, event_fn, glutin_event);
                     model = new_model;
                     if exit {
                         break 'main;
@@ -511,7 +538,7 @@ where
                     std::thread::sleep(update_interval - since_last_loop_end);
                 }
                 last_loop_end = Instant::now();
-            },
+            }
 
             // Loop mode is always `Some` after the beginning of the `'main` loop.
             None => unreachable!(),

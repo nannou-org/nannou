@@ -59,7 +59,8 @@ where
 
         // Ensure that the input length makes sense given the number of channels.
         assert_eq!(
-            input.len() % channels, 0,
+            input.len() % channels,
+            0,
             "the input length must be a multiple of the number of channels"
         );
         // Ensure that the number of channels has not changed.
@@ -86,7 +87,11 @@ where
 
             // Capture the input data and update the model.
             let interleaved_samples = std::mem::replace(samples, Vec::new()).into_boxed_slice();
-            let buffer = audio::Buffer { interleaved_samples, channels, sample_rate };
+            let buffer = audio::Buffer {
+                interleaved_samples,
+                channels,
+                sample_rate,
+            };
             model = capture(model, &buffer);
             std::mem::swap(samples, &mut buffer.interleaved_samples.into_vec());
             samples.clear();

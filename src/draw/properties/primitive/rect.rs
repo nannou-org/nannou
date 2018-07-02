@@ -1,6 +1,9 @@
 use draw;
-use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions, SetOrientation, SetPosition};
 use draw::properties::spatial::{dimension, orientation, position};
+use draw::properties::{
+    spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions,
+    SetOrientation, SetPosition,
+};
 use geom;
 use math::{BaseFloat, Point2, Vector2};
 use std::{iter, slice};
@@ -21,10 +24,7 @@ where
     type Vertices = draw::mesh::vertex::IterFromPoint2s<geom::quad::Vertices<Point2<S>>, S>;
     type Indices = iter::Cloned<slice::Iter<'static, usize>>;
     fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
-        let Rect {
-            spatial,
-            color,
-        } = self;
+        let Rect { spatial, color } = self;
 
         // If dimensions were specified, scale the points to those dimensions.
         let (maybe_x, maybe_y, maybe_z) = spatial.dimensions.to_scalars(&draw);

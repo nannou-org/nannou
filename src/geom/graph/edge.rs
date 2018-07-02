@@ -225,15 +225,27 @@ impl<S> Edge<S> {
 
 /// The three edges describing the given position displacement.
 pub fn displace<S>(v: Vector3<S>) -> [Edge<S>; 3] {
-    [Edge::x_position(v.x), Edge::y_position(v.y), Edge::z_position(v.z)]
+    [
+        Edge::x_position(v.x),
+        Edge::y_position(v.y),
+        Edge::z_position(v.z),
+    ]
 }
 
 /// The three edges describing the given orientation rotation.
 pub fn rotate<S: BaseFloat>(e: Euler<Rad<S>>) -> [Edge<S>; 3] {
-    [Edge::x_orientation(e.x.0), Edge::y_orientation(e.x.0), Edge::z_orientation(e.z.0)]
+    [
+        Edge::x_orientation(e.x.0),
+        Edge::y_orientation(e.x.0),
+        Edge::z_orientation(e.z.0),
+    ]
 }
 
 /// An edge for scaling each axis using the given single scalar scale value.
 pub fn scale<S: Copy>(scale: S) -> [Edge<S>; 3] {
-    [Edge::x_scale(scale), Edge::y_scale(scale), Edge::z_scale(scale)]
+    [
+        Edge::x_scale(scale),
+        Edge::y_scale(scale),
+        Edge::z_scale(scale),
+    ]
 }

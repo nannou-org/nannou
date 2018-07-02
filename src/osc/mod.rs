@@ -7,11 +7,12 @@ pub extern crate rosc;
 //
 // Remove `Osc` prefix as items are already namespaced via a module, e.g. `OscMessage` becomes
 // `osc::Message`.
-#[doc(inline)]
-pub use self::rosc::{decoder, encoder, OscBundle as Bundle, OscColor as Color,
-                     OscMessage as Message, OscMidiMessage as MidiMessage, OscError as Error,
-                     OscType as Type};
 pub use self::recv::Receiver;
+#[doc(inline)]
+pub use self::rosc::{
+    decoder, encoder, OscBundle as Bundle, OscColor as Color, OscError as Error,
+    OscMessage as Message, OscMidiMessage as MidiMessage, OscType as Type,
+};
 pub use self::send::Sender;
 
 use std;
@@ -59,7 +60,8 @@ impl From<rosc::OscPacket> for Packet {
 }
 
 impl<A> From<(A, Vec<Type>)> for Packet
-    where A: Into<String>,
+where
+    A: Into<String>,
 {
     fn from((addr, args): (A, Vec<Type>)) -> Self {
         msg(addr, args).into()
@@ -113,7 +115,8 @@ pub fn sender() -> Result<Sender, std::io::Error> {
 
 /// A simplified constructor for an OSC `Message`.
 pub fn msg<A>(addr: A, args: Vec<Type>) -> Message
-    where A: Into<String>,
+where
+    A: Into<String>,
 {
     let addr = addr.into();
     let args = Some(args);

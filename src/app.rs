@@ -24,12 +24,12 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
-use std::sync::{mpsc, Arc};
 use std::sync::atomic::{self, AtomicBool};
+use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::Duration;
-use window::{self, Window};
 use ui;
+use window::{self, Window};
 
 /// Each nannou application has a single **App** instance. This **App** represents the entire
 /// context of the application.
@@ -361,7 +361,8 @@ impl App {
     /// TODO: Currently this produces a reference to the *focused* window, but this behaviour
     /// should be changed to track the "main" window (the first window created?).
     pub fn main_window(&self) -> std::cell::Ref<Window> {
-        self.window(self.window_id()).expect("no window for focused id")
+        self.window(self.window_id())
+            .expect("no window for focused id")
     }
 
     /// Return whether or not the `App` is currently set to exit when the `Escape` key is pressed.
@@ -416,7 +417,10 @@ impl App {
     pub fn create_proxy(&self) -> Proxy {
         let events_loop_proxy = self.events_loop.create_proxy();
         let events_loop_is_asleep = self.events_loop_is_asleep.clone();
-        Proxy { events_loop_proxy, events_loop_is_asleep }
+        Proxy {
+            events_loop_proxy,
+            events_loop_is_asleep,
+        }
     }
 
     /// A builder for creating a new **Ui**.
@@ -589,7 +593,8 @@ impl Proxy {
     pub fn wakeup(&self) -> Result<(), glutin::EventsLoopClosed> {
         if self.events_loop_is_asleep.load(atomic::Ordering::Relaxed) {
             self.events_loop_proxy.wakeup()?;
-            self.events_loop_is_asleep.store(false, atomic::Ordering::Relaxed);
+            self.events_loop_is_asleep
+                .store(false, atomic::Ordering::Relaxed);
         }
         Ok(())
     }
@@ -602,7 +607,8 @@ impl<'a> Draw<'a> {
         app: &App,
         frame: &Frame,
     ) -> Result<(), draw::backend::glium::RendererDrawError> {
-        let window = app.window(self.window_id)
+        let window = app
+            .window(self.window_id)
             .expect("no window to draw to for `app::Draw`'s window_id");
         let dpi_factor = window.hidpi_factor();
         let facade = window.inner_glium_display();

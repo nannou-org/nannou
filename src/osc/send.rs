@@ -1,8 +1,8 @@
 //! Items related to the `osc::Sender` implementation.
 
+use super::{encode, CommunicationError, Connected, Packet, Unconnected};
 use std;
 use std::net::{SocketAddr, SocketAddrV4, ToSocketAddrs, UdpSocket};
-use super::{encode, CommunicationError, Connected, Packet, Unconnected};
 
 /// The default port bound to by the `Sender`.
 ///
@@ -11,7 +11,7 @@ use super::{encode, CommunicationError, Connected, Packet, Unconnected};
 pub const DEFAULT_PORT: u16 = 0;
 
 /// A type used for sending OSC packets.
-pub struct Sender<M=Unconnected> {
+pub struct Sender<M = Unconnected> {
     socket: UdpSocket,
     mode: M,
 }
@@ -51,7 +51,8 @@ impl Sender<Unconnected> {
     /// calling `send`. To connect the `Sender` to a specific target address, use the `connect`
     /// builder method which will return a `Sender` in the `Connected` mode.
     pub fn bind_to<A>(addr: A) -> Result<Self, std::io::Error>
-        where A: ToSocketAddrs,
+    where
+        A: ToSocketAddrs,
     {
         let socket = UdpSocket::bind(addr)?;
         let mode = Unconnected;
@@ -85,7 +86,8 @@ impl Sender<Unconnected> {
     /// }
     /// ```
     pub fn connect<A>(self, addr: A) -> Result<Sender<Connected>, std::io::Error>
-        where A: ToSocketAddrs,
+    where
+        A: ToSocketAddrs,
     {
         let Sender { socket, .. } = self;
         let mut addrs = addr.to_socket_addrs()?;
@@ -135,7 +137,8 @@ impl Sender<Connected> {
     /// - The IP version of the local socket does not match the connected socket or
     /// - The inner `UdpSocket::send` call fails.
     pub fn send<P>(&self, packet: P) -> Result<usize, CommunicationError>
-        where P: Into<Packet>,
+    where
+        P: Into<Packet>,
     {
         let bytes = encode(packet.into())?;
         let bytes_written = self.socket.send(&bytes)?;

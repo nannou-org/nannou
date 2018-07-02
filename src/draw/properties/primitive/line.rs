@@ -1,6 +1,9 @@
-use draw::{self, Drawing};
-use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetOrientation, SetPosition};
 use draw::properties::spatial::{orientation, position};
+use draw::properties::{
+    spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetOrientation,
+    SetPosition,
+};
+use draw::{self, Drawing};
 use geom;
 use math::{BaseFloat, Point2};
 
@@ -30,7 +33,12 @@ where
         let line = geom::Line::new(start, end, half_thickness);
         let cap = geom::line::Cap::Butt;
         let capped = geom::line::Capped { line, cap };
-        Line { position, orientation, capped, color }
+        Line {
+            position,
+            orientation,
+            capped,
+            color,
+        }
     }
 
     /// Specify the thickness of the **Line**.
@@ -118,7 +126,11 @@ where
             .unwrap_or(draw.theme(|t| t.color.default));
 
         let dimensions = Default::default();
-        let spatial = spatial::Properties { dimensions, position, orientation };
+        let spatial = spatial::Properties {
+            dimensions,
+            position,
+            orientation,
+        };
         let points = capped.vertices();
         let indices = geom::polygon::triangle_indices(points.len());
         let vertices = draw::mesh::vertex::IterFromPoint2s::new(points, color);
@@ -146,7 +158,12 @@ where
         let position = <_>::default();
         let orientation = <_>::default();
         let color = <_>::default();
-        Line { capped, position, orientation, color }
+        Line {
+            capped,
+            position,
+            orientation,
+            color,
+        }
     }
 }
 

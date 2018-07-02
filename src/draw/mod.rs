@@ -9,19 +9,19 @@ use std::collections::HashMap;
 use std::mem;
 use std::ops;
 
-use self::properties::spatial::orientation::{self, Orientation};
-use self::properties::spatial::position::{self, Position};
-use self::properties::{IntoDrawn, Primitive};
 pub use self::background::Background;
 pub use self::drawing::Drawing;
 pub use self::mesh::Mesh;
+use self::properties::spatial::orientation::{self, Orientation};
+use self::properties::spatial::position::{self, Position};
+use self::properties::{IntoDrawn, Primitive};
 pub use self::theme::Theme;
 
 pub mod backend;
 pub mod background;
 mod drawing;
-pub mod properties;
 pub mod mesh;
+pub mod properties;
 pub mod theme;
 
 /// A simple API for drawing 2D and 3D graphics.
@@ -156,7 +156,7 @@ struct Ranges {
 
 const WOULD_CYCLE: &'static str =
     "drawing the given primitive with the given relative positioning would have caused a cycle \
-    within the geometry graph";
+     within the geometry graph";
 
 /// An iterator yielding the transformed, indexed vertices for a node.
 pub type NodeVertices<'a, S = geom::DefaultScalar> =
@@ -238,9 +238,11 @@ where
                             position::Align::End(mgn) => (one, mgn.unwrap_or(S::zero())),
                             _ => unreachable!(),
                         };
-                        let node_dimension =
-                            draw.untransformed_dimension_of(&node_index, point_axis).unwrap();
-                        let parent_dimension = draw.dimension_of(&parent, point_axis)
+                        let node_dimension = draw
+                            .untransformed_dimension_of(&node_index, point_axis)
+                            .unwrap();
+                        let parent_dimension = draw
+                            .dimension_of(&parent, point_axis)
                             .expect("no node for relative position");
                         let half = S::from(0.5).unwrap();
                         let node_half_dim = node_dimension * half;
@@ -256,8 +258,11 @@ where
                         position::Direction::Backwards => -one,
                         position::Direction::Forwards => one,
                     };
-                    let node_dimension = draw.untransformed_dimension_of(&node_index, point_axis).unwrap();
-                    let parent_dimension = draw.dimension_of(&parent, point_axis)
+                    let node_dimension = draw
+                        .untransformed_dimension_of(&node_index, point_axis)
+                        .unwrap();
+                    let parent_dimension = draw
+                        .dimension_of(&parent, point_axis)
                         .expect("no node for relative position");
                     let half = S::from(0.5).unwrap();
                     let node_half_dim = node_dimension * half;
@@ -348,14 +353,18 @@ where
 
     // Update the position edges within the geometry graph.
     let p = &spatial.position;
-    let x = p.x
-        .map(|pos| (pos, edge::Axis::X, point_x as fn(&mesh::vertex::Point<S>) -> S));
+    let x = p.x.map(|pos| {
+        (
+            pos,
+            edge::Axis::X,
+            point_x as fn(&mesh::vertex::Point<S>) -> S,
+        )
+    });
     let y = p.y.map(|pos| (pos, edge::Axis::Y, point_y as _));
     let z = p.z.map(|pos| (pos, edge::Axis::Z, point_z as _));
     let positions = x.into_iter().chain(y).chain(z);
     for (position, axis, point_axis) in positions {
-        let (edge, parent) =
-            position_to_edge(node_index, &position, draw, axis, &point_axis);
+        let (edge, parent) = position_to_edge(node_index, &position, draw, axis, &point_axis);
         draw.geom_graph.set_edge(parent, node_index, edge)?;
     }
 
@@ -368,7 +377,7 @@ where
                 orientation::LookAt::Point(point) => point,
             };
             unimplemented!();
-        },
+        }
         orientation::Properties::Axes(axes) => {
             let x = axes.x.map(|axis| (axis, edge::Axis::X));
             let y = axes.y.map(|axis| (axis, edge::Axis::Y));
@@ -378,7 +387,7 @@ where
                 let (edge, parent) = orientation_to_edge(&orientation, draw, axis);
                 draw.geom_graph.set_edge(parent, node_index, edge)?;
             }
-        },
+        }
     }
 
     // Set this node as the last drawn node.
@@ -398,42 +407,18 @@ where
     S: BaseFloat,
 {
     match primitive {
-        Primitive::Ellipse(prim) => {
-            into_drawn(draw, node_index, prim)
-        },
-        Primitive::Line(prim) => {
-            into_drawn(draw, node_index, prim)
-        },
-        Primitive::MeshVertexless(prim) => {
-            into_drawn(draw, node_index, prim)
-        },
-        Primitive::Mesh(prim) => {
-            into_drawn(draw, node_index, prim)
-        }
-        Primitive::PolygonPointless(prim) => {
-            into_drawn(draw, node_index, prim)
-        },
-        Primitive::PolygonFill(prim) => {
-            into_drawn(draw, node_index, prim)
-        },
-        Primitive::PolygonColorPerVertex(prim) => {
-            into_drawn(draw, node_index, prim)
-        },
-        Primitive::PolylineVertexless(prim) => {
-            into_drawn(draw, node_index, prim)
-        }
-        Primitive::Polyline(prim) => {
-            into_drawn(draw, node_index, prim)
-        }
-        Primitive::Quad(prim) => {
-            into_drawn(draw, node_index, prim)
-        }
-        Primitive::Rect(prim) => {
-            into_drawn(draw, node_index, prim)
-        }
-        Primitive::Tri(prim) => {
-            into_drawn(draw, node_index, prim)
-        }
+        Primitive::Ellipse(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Line(prim) => into_drawn(draw, node_index, prim),
+        Primitive::MeshVertexless(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Mesh(prim) => into_drawn(draw, node_index, prim),
+        Primitive::PolygonPointless(prim) => into_drawn(draw, node_index, prim),
+        Primitive::PolygonFill(prim) => into_drawn(draw, node_index, prim),
+        Primitive::PolygonColorPerVertex(prim) => into_drawn(draw, node_index, prim),
+        Primitive::PolylineVertexless(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Polyline(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Quad(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Rect(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Tri(prim) => into_drawn(draw, node_index, prim),
     }
 }
 
@@ -557,7 +542,8 @@ where
         self.finish_drawing(n).expect(WOULD_CYCLE);
         self.ranges.get(n).and_then(|ranges| {
             let points = self.mesh.points()[ranges.vertices.clone()].iter().cloned();
-            let points = self.geom_graph
+            let points = self
+                .geom_graph
                 .node_vertices(*n, points)
                 .expect("no node at index");
             min_max_dimension(points, point_axis).map(|(min, max)| max - min)
@@ -609,7 +595,11 @@ where
         T: IntoDrawn<S> + Into<Primitive<S>>,
         Primitive<S>: Into<Option<T>>,
     {
-        let index = self.state.borrow_mut().geom_graph.add_node(geom::graph::Node::Point);
+        let index = self
+            .state
+            .borrow_mut()
+            .geom_graph
+            .add_node(geom::graph::Node::Point);
         let primitive: Primitive<S> = primitive.into();
         self.state.borrow_mut().drawing.insert(index, primitive);
         drawing::new(self, index)
@@ -659,7 +649,10 @@ where
     ///
     /// Returns **None** if there is no node for the given index.
     pub fn node_vertices(&self, n: node::Index) -> Option<NodeVertices<S>> {
-        self.state.borrow_mut().finish_drawing(&n).expect(WOULD_CYCLE);
+        self.state
+            .borrow_mut()
+            .finish_drawing(&n)
+            .expect(WOULD_CYCLE);
         let index_range = match self.state.borrow().ranges.get(&n) {
             None => return None,
             Some(ranges) => ranges.indices.clone(),
@@ -673,8 +666,7 @@ where
     /// **Note:** If the node's **Drawing** was still in progress, it will first be finished and
     /// inserted into the mesh and geometry graph before producing the triangles iterator.
     pub fn node_triangles(&self, n: node::Index) -> Option<NodeTriangles<S>> {
-        self.node_vertices(n)
-            .map(geom::tri::iter_from_vertices)
+        self.node_vertices(n).map(geom::tri::iter_from_vertices)
     }
 
     /// Produce an iterator yielding all vertices from the inner mesh transformed via the inner
@@ -690,7 +682,10 @@ where
         state.geom_graph_dfs.borrow_mut().reset(&state.geom_graph);
         let draw = self;
         let node_vertices = None;
-        RawVertices { draw, node_vertices }
+        RawVertices {
+            draw,
+            node_vertices,
+        }
     }
 
     /// Produce an iterator yielding all indexed vertices from the inner mesh transformed via the
@@ -707,7 +702,10 @@ where
         state.geom_graph_dfs.borrow_mut().reset(&state.geom_graph);
         let draw = self;
         let node_vertices = None;
-        Vertices { draw, node_vertices }
+        Vertices {
+            draw,
+            node_vertices,
+        }
     }
 
     /// Produce an iterator yielding all triangles from the inner mesh transformed via the inner
@@ -735,7 +733,9 @@ where
     where
         F: Fn(&mesh::vertex::Point<S>) -> S,
     {
-        self.state.borrow_mut().untransformed_dimension_of(n, point_axis)
+        self.state
+            .borrow_mut()
+            .untransformed_dimension_of(n, point_axis)
     }
 
     /// The length of the untransformed node at the given index along the *x* axis.
@@ -759,7 +759,8 @@ where
     /// the node has not yet been **Drawn**.
     pub fn untransformed_dimensions_of(&self, n: &node::Index) -> Option<Vector3<S>> {
         if self.state.borrow().geom_graph.node(*n).is_none()
-        || !self.state.borrow().ranges.contains_key(n) {
+            || !self.state.borrow().ranges.contains_key(n)
+        {
             return None;
         }
         let dimensions = Vector3 {
@@ -845,7 +846,10 @@ where
 {
     type Item = mesh::Vertex<S>;
     fn next(&mut self) -> Option<Self::Item> {
-        let Vertices { ref draw, ref mut node_vertices } = *self;
+        let Vertices {
+            ref draw,
+            ref mut node_vertices,
+        } = *self;
         loop {
             if let Some(v) = node_vertices.as_mut().and_then(|n| n.next()) {
                 return Some(v);
@@ -865,7 +869,7 @@ where
                     let vertices = ::mesh::vertices(draw.inner_mesh()).index_range(index_range);
                     let transformed_vertices = transform.vertices(vertices);
                     *node_vertices = Some(transformed_vertices);
-                },
+                }
             }
         }
     }
@@ -877,7 +881,10 @@ where
 {
     type Item = mesh::Vertex<S>;
     fn next(&mut self) -> Option<Self::Item> {
-        let RawVertices { ref draw, ref mut node_vertices } = *self;
+        let RawVertices {
+            ref draw,
+            ref mut node_vertices,
+        } = *self;
         loop {
             if let Some(v) = node_vertices.as_mut().and_then(|n| n.next()) {
                 return Some(v);
@@ -897,7 +904,7 @@ where
                     let vertices = ::mesh::raw_vertices(draw.inner_mesh()).range(vertex_range);
                     let transformed_vertices = transform.vertices(vertices);
                     *node_vertices = Some(transformed_vertices);
-                },
+                }
             }
         }
     }

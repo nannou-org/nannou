@@ -1,10 +1,10 @@
 //! Items related to the nodes of a geometry graph.
 
-use daggy::{self, Walker};
 use daggy::petgraph::visit::{self, Visitable};
+use daggy::{self, Walker};
 use geom;
-use geom::{DefaultScalar, Graph};
 use geom::graph::Edge;
+use geom::{DefaultScalar, Graph};
 use math::{self, BaseFloat, Basis3, Euler, Point3, Rad, Rotation, Vector3};
 use std::collections::HashMap;
 use std::marker::PhantomData;

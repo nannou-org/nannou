@@ -1,5 +1,5 @@
-use audio::{cpal, Device};
 use audio::sample::Sample;
+use audio::{cpal, Device};
 use std;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
@@ -60,7 +60,7 @@ struct Shared<M> {
 }
 
 /// Stream building parameters that are common between input and output streams.
-pub struct Builder<M, S=f32> {
+pub struct Builder<M, S = f32> {
     pub(crate) event_loop: Arc<cpal::EventLoop>,
     pub(crate) process_fn_tx: mpsc::Sender<ProcessFnMsg>,
     pub model: M,
@@ -82,7 +82,10 @@ impl LoopContext {
     /// Create a new loop context.
     pub fn new(process_fn_rx: mpsc::Receiver<ProcessFnMsg>) -> Self {
         let process_fns = HashMap::new();
-        LoopContext { process_fn_rx, process_fns }
+        LoopContext {
+            process_fn_rx,
+            process_fns,
+        }
     }
 
     /// Process the given buffer with the stream at the given ID.
@@ -153,8 +156,10 @@ impl<M> Stream<M> {
     /// **Note:** This function will be applied on the real-time audio thread so users should
     /// avoid performing any kind of I/O, locking, blocking, (de)allocations or anything that
     /// may run for an indeterminate amount of time.
-    pub fn send<F>(&self, update: F)
-        -> Result<(), mpsc::SendError<Box<FnMut(&mut M) + Send + 'static>>>
+    pub fn send<F>(
+        &self,
+        update: F,
+    ) -> Result<(), mpsc::SendError<Box<FnMut(&mut M) + Send + 'static>>>
     where
         F: FnOnce(&mut M) + Send + 'static,
     {
@@ -234,7 +239,12 @@ impl<M> Clone for Stream<M> {
         let process_fn_tx = self.process_fn_tx.clone();
         let shared = self.shared.clone();
         let cpal_format = self.cpal_format.clone();
-        Stream { update_tx, process_fn_tx, shared, cpal_format }
+        Stream {
+            update_tx,
+            process_fn_tx,
+            shared,
+            cpal_format,
+        }
     }
 }
 
@@ -305,8 +315,7 @@ fn matching_supported_formats(
     sample_format: Option<cpal::SampleFormat>,
     channels: Option<usize>,
     sample_rate: Option<cpal::SampleRate>,
-) -> Option<cpal::Format>
-{
+) -> Option<cpal::Format> {
     // Check for a matching sample format.
     if let Some(sample_format) = sample_format {
         if supported_format.data_type != sample_format {
@@ -327,7 +336,7 @@ fn matching_supported_formats(
     // Check the sample rate.
     if let Some(sample_rate) = sample_rate {
         if supported_format.min_sample_rate > sample_rate
-        || supported_format.max_sample_rate < sample_rate
+            || supported_format.max_sample_rate < sample_rate
         {
             return None;
         }
@@ -356,7 +365,9 @@ where
             // First, see if the default format satisfies the request.
             if let Some(ref format) = default_format {
                 if sample_format == Some(format.data_type)
-                    && channels.map(|ch| ch <= format.channels as usize).unwrap_or(true)
+                    && channels
+                        .map(|ch| ch <= format.channels as usize)
+                        .unwrap_or(true)
                     && sample_rate == Some(format.sample_rate)
                 {
                     return Ok(Some(format.clone()));
@@ -364,18 +375,20 @@ where
             }
 
             // Otherwise search through all supported formats for compatible formats.
-            let mut stream_formats = supported_formats(device)?
-                .into_iter()
-                .filter_map(|fmt| {
-                    matching_supported_formats(fmt, sample_format, channels, sample_rate)
-                });
+            let mut stream_formats = supported_formats(device)?.into_iter().filter_map(|fmt| {
+                matching_supported_formats(fmt, sample_format, channels, sample_rate)
+            });
 
             // Find the supported format with the most channels (this will always be the target
             // number of channels if some specific target number was specified as all other numbers
             // will have been filtered out already).
             if let Some(first) = stream_formats.next() {
                 let format = stream_formats.fold(first, |max, fmt| {
-                    if fmt.channels > max.channels { fmt } else { max }
+                    if fmt.channels > max.channels {
+                        fmt
+                    } else {
+                        max
+                    }
                 });
                 return Ok(Some(format));
             }

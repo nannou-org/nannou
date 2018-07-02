@@ -53,7 +53,10 @@ where
 {
     type Item = &'a V;
     fn next(&mut self) -> Option<Self::Item> {
-        let IterFromIndices { ref mut indices, ref vertices } = *self;
+        let IterFromIndices {
+            ref mut indices,
+            ref vertices,
+        } = *self;
         indices.next().map(|i| &vertices[i])
     }
 
@@ -67,7 +70,10 @@ where
     I: Iterator<Item = usize> + DoubleEndedIterator,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
-        let IterFromIndices { ref mut indices, ref vertices } = *self;
+        let IterFromIndices {
+            ref mut indices,
+            ref vertices,
+        } = *self;
         indices.next_back().map(|i| &vertices[i])
     }
 }
@@ -170,7 +176,7 @@ where
 // {
 //     type Scalar = S;
 // }
-// 
+//
 // impl<S> Vertex for Vector3<S>
 // where
 //     S: BaseNum,
@@ -192,7 +198,10 @@ where
     S: BaseNum,
 {
     fn point2(self) -> Point2<S> {
-        Point2 { x: self.x, y: self.y }
+        Point2 {
+            x: self.x,
+            y: self.y,
+        }
     }
 }
 
@@ -201,7 +210,10 @@ where
     S: BaseNum,
 {
     fn point2(self) -> Point2<S> {
-        Point2 { x: self.x, y: self.y }
+        Point2 {
+            x: self.x,
+            y: self.y,
+        }
     }
 }
 
@@ -210,7 +222,10 @@ where
     S: BaseNum,
 {
     fn point2(self) -> Point2<S> {
-        Point2 { x: self[0], y: self[1] }
+        Point2 {
+            x: self[0],
+            y: self[1],
+        }
     }
 }
 
@@ -219,7 +234,10 @@ where
     S: BaseNum,
 {
     fn point2(self) -> Point2<S> {
-        Point2 { x: self[0], y: self[1] }
+        Point2 {
+            x: self[0],
+            y: self[1],
+        }
     }
 }
 
@@ -251,7 +269,7 @@ where
 //         self
 //     }
 // }
-// 
+//
 // impl<S> Vertex2d for Vector3<S>
 // where
 //     S: BaseNum,
@@ -277,7 +295,11 @@ where
     S: BaseNum,
 {
     fn point3(self) -> Point3<S> {
-        Point3 { x: self.x, y: self.y, z: self.z }
+        Point3 {
+            x: self.x,
+            y: self.y,
+            z: self.z,
+        }
     }
 }
 
@@ -286,7 +308,11 @@ where
     S: BaseNum,
 {
     fn point3(self) -> Point3<S> {
-        Point3 { x: self[0], y: self[1], z: self[2] }
+        Point3 {
+            x: self[0],
+            y: self[1],
+            z: self[2],
+        }
     }
 }
 

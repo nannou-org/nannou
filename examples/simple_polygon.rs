@@ -7,7 +7,7 @@ fn main() {
 }
 
 fn view(app: &App, frame: Frame) -> Frame {
-    // Begin drawing 
+    // Begin drawing
     let win = app.window_rect();
     let t = app.time;
     let draw = app.draw();
@@ -18,14 +18,13 @@ fn view(app: &App, frame: Frame) -> Frame {
     // Create an `ngon` of points.
     let n_points = 5;
     let radius = win.w().min(win.h()) * 0.25;
-    let points = (0..n_points)
-        .map(|i| {
-            let fract = i as f32 / n_points as f32;
-            let phase = fract;
-            let x = radius * (TAU * phase).cos();
-            let y = radius * (TAU * phase).sin();
-            pt3(x, y, 0.0)
-        });
+    let points = (0..n_points).map(|i| {
+        let fract = i as f32 / n_points as f32;
+        let phase = fract;
+        let x = radius * (TAU * phase).cos();
+        let y = radius * (TAU * phase).sin();
+        pt3(x, y, 0.0)
+    });
     draw.polygon()
         .points(points)
         .x(-win.w() * 0.25)
@@ -34,19 +33,18 @@ fn view(app: &App, frame: Frame) -> Frame {
 
     // Do the same, but give each point a unique colour.
     let n_points = 7;
-    let colored_points = (0..n_points)
-        .map(|i| {
-            let fract = i as f32 / n_points as f32;
-            let phase = fract;
-            let x = radius * (TAU * phase).cos();
-            let y = radius * (TAU * phase).sin();
-            let r = fract;
-            let g = 1.0 - fract;
-            let b = (0.5 + fract) % 1.0;
-            let a = 1.0;
-            let color = Rgba::new(r, g, b, a);
-            (pt3(x, y, 0.0), color)
-        });
+    let colored_points = (0..n_points).map(|i| {
+        let fract = i as f32 / n_points as f32;
+        let phase = fract;
+        let x = radius * (TAU * phase).cos();
+        let y = radius * (TAU * phase).sin();
+        let r = fract;
+        let g = 1.0 - fract;
+        let b = (0.5 + fract) % 1.0;
+        let a = 1.0;
+        let color = Rgba::new(r, g, b, a);
+        (pt3(x, y, 0.0), color)
+    });
     draw.polygon()
         .colored_points(colored_points)
         .x(win.w() * 0.25)

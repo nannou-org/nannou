@@ -1,16 +1,16 @@
-use audio::{Buffer, Device, Receiver, Stream};
 use audio::cpal;
 use audio::sample::{FromSample, Sample, ToSample};
 use audio::stream;
-use std::sync::{Arc, Mutex};
+use audio::{Buffer, Device, Receiver, Stream};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 
 /// The function that will be called when a captured `Buffer` is ready to be read.
 pub trait CaptureFn<M, S>: Fn(M, &Buffer<S>) -> M {}
 impl<M, S, F> CaptureFn<M, S> for F where F: Fn(M, &Buffer<S>) -> M {}
 
-pub struct Builder<M, F, S=f32> {
+pub struct Builder<M, F, S = f32> {
     pub builder: super::Builder<M, S>,
     pub capture: F,
 }
@@ -52,22 +52,24 @@ impl<M, F, S> Builder<M, F, S> {
     }
 
     pub fn build(self) -> Result<Stream<M>, super::BuildError>
-        where S: 'static + Send + Sample + FromSample<u16> + FromSample<i16> + FromSample<f32>,
-              M: 'static + Send,
-              F: 'static + CaptureFn<M, S> + Send,
+    where
+        S: 'static + Send + Sample + FromSample<u16> + FromSample<i16> + FromSample<f32>,
+        M: 'static + Send,
+        F: 'static + CaptureFn<M, S> + Send,
     {
         let Builder {
             capture,
-            builder: stream::Builder {
-                event_loop,
-                process_fn_tx,
-                model,
-                sample_rate,
-                channels,
-                frames_per_buffer,
-                device,
-                ..
-            },
+            builder:
+                stream::Builder {
+                    event_loop,
+                    process_fn_tx,
+                    model,
+                    sample_rate,
+                    channels,
+                    frames_per_buffer,
+                    device,
+                    ..
+                },
         } = self;
 
         let sample_rate = sample_rate
@@ -112,7 +114,6 @@ impl<M, F, S> Builder<M, F, S> {
 
         // The function used to process a buffer of samples.
         let proc_input = move |data: cpal::StreamData| {
-
             // Collect and process any pending updates.
             macro_rules! process_pending_updates {
                 () => {
@@ -157,13 +158,13 @@ impl<M, F, S> Builder<M, F, S> {
             match input {
                 cpal::UnknownTypeInputBuffer::U16(buffer) => {
                     fill_input(&mut samples, &buffer);
-                },
+                }
                 cpal::UnknownTypeInputBuffer::I16(buffer) => {
                     fill_input(&mut samples, &buffer);
-                },
+                }
                 cpal::UnknownTypeInputBuffer::F32(buffer) => {
                     fill_input(&mut samples, &buffer);
-                },
+                }
             }
 
             if let Ok(mut guard) = model_2.lock() {
@@ -176,7 +177,9 @@ impl<M, F, S> Builder<M, F, S> {
         };
 
         // Send the buffer processing function to the event loop.
-        process_fn_tx.send((stream_id.clone(), Box::new(proc_input))).unwrap();
+        process_fn_tx
+            .send((stream_id.clone(), Box::new(proc_input)))
+            .unwrap();
 
         let shared = Arc::new(super::Shared {
             model,

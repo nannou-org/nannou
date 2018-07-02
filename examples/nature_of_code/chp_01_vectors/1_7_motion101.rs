@@ -26,10 +26,7 @@ impl Mover {
             random_range(rect.left(), rect.right()),
             random_range(rect.top(), rect.bottom()),
         );
-        let velocity = vec2(
-            random_range(-2.0f32, 2.0),
-            random_range(-2.0f32, 2.0),
-        );
+        let velocity = vec2(random_range(-2.0f32, 2.0), random_range(-2.0f32, 2.0));
         Mover { position, velocity }
     }
 

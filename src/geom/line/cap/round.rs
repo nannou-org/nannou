@@ -24,6 +24,10 @@ where
     let p = EuclideanSpace::midpoint(line_corner_a, line_corner_b);
     let rect = Rect::from_x_y_w_h(p.x, p.y, side, side);
     let ellipse = Ellipse { rect, resolution };
-    let section = ellipse::Section { ellipse, section_radians, offset_radians };
+    let section = ellipse::Section {
+        ellipse,
+        section_radians,
+        offset_radians,
+    };
     section
 }

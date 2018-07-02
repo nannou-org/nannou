@@ -1,7 +1,7 @@
-use draw::{self, Drawing};
 use draw::mesh::vertex::{IntoPoint, IntoVertex};
-use draw::properties::{Draw, Drawn, IntoDrawn, Primitive, SetOrientation, SetPosition};
 use draw::properties::spatial::{self, orientation, position};
+use draw::properties::{Draw, Drawn, IntoDrawn, Primitive, SetOrientation, SetPosition};
+use draw::{self, Drawing};
 use geom;
 use geom::line::join::miter;
 use math::{pt2, BaseFloat, Point2};
@@ -63,10 +63,7 @@ impl Vertexless {
             // `v` should always be `Some` if `Some` next miter pair was yielded.
             let WithTexCoords {
                 tex_coords,
-                vertex: WithColor {
-                    color,
-                    ..
-                },
+                vertex: WithColor { color, .. },
             } = v.clone().expect("no vertex for the next miter pair");
 
             // A function for pushing the left and right miter points.
@@ -149,7 +146,11 @@ where
             vertex_data_ranges,
         } = self;
         let dimensions = spatial::dimension::Properties::default();
-        let spatial = spatial::Properties { dimensions, orientation, position };
+        let spatial = spatial::Properties {
+            dimensions,
+            orientation,
+            position,
+        };
         let n_points = (vertex_data_ranges.points.end - vertex_data_ranges.points.start) / 2;
         let vertices = draw::properties::VerticesFromRanges {
             ranges: vertex_data_ranges,

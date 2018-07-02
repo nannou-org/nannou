@@ -1,7 +1,10 @@
-use draw::{self, Drawing};
 use draw::mesh::vertex::IntoPoint;
-use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions, SetOrientation,  SetPosition};
 use draw::properties::spatial::{dimension, orientation, position};
+use draw::properties::{
+    spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions,
+    SetOrientation, SetPosition,
+};
+use draw::{self, Drawing};
 use geom;
 use math::{BaseFloat, ElementWise, Point3, Vector3};
 use std::ops;
@@ -54,7 +57,11 @@ where
             let x_scale = maybe_x.map(|x| x / cuboid.w()).unwrap_or_else(S::one);
             let y_scale = maybe_y.map(|y| y / cuboid.h()).unwrap_or_else(S::one);
             let z_scale = maybe_z.map(|z| z / cuboid.d()).unwrap_or_else(S::one);
-            let scale = Vector3 { x: x_scale, y: y_scale, z: z_scale };
+            let scale = Vector3 {
+                x: x_scale,
+                y: y_scale,
+                z: z_scale,
+            };
             let (a, b, c) = tri.into();
             let translate = |v: Point3<S>| centroid + ((v - centroid).mul_element_wise(scale));
             let new_a = translate(a);
@@ -91,7 +98,11 @@ where
     fn from(tri: geom::Tri<Point3<S>>) -> Self {
         let spatial = <_>::default();
         let color = <_>::default();
-        Tri { tri, spatial, color }
+        Tri {
+            tri,
+            spatial,
+            color,
+        }
     }
 }
 
@@ -104,9 +115,21 @@ where
         let zero = S::zero();
         let fifty = S::from(50.0).unwrap();
         let thirty_three = S::from(33.0).unwrap();
-        let a = Point3 { x: -fifty, y: thirty_three, z: zero };
-        let b = Point3 { x: fifty, y: zero, z: zero };
-        let c = Point3 { x: -fifty, y: -thirty_three, z: zero };
+        let a = Point3 {
+            x: -fifty,
+            y: thirty_three,
+            z: zero,
+        };
+        let b = Point3 {
+            x: fifty,
+            y: zero,
+            z: zero,
+        };
+        let c = Point3 {
+            x: -fifty,
+            y: -thirty_three,
+            z: zero,
+        };
         Tri::from(geom::Tri([a, b, c]))
     }
 }

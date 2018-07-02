@@ -9,8 +9,8 @@
 //! - Functions for determining the bounding rectangle or cuboid.
 //! - A function for finding the centroid.
 
-use math::{BaseFloat, EuclideanSpace, Point2, Point3};
 use math::num_traits::cast;
+use math::{BaseFloat, EuclideanSpace, Point2, Point3};
 use std::ops;
 
 pub mod cuboid;
@@ -46,19 +46,18 @@ where
     I::Item: Vertex2d,
 {
     let mut vertices = vertices.into_iter();
-    vertices.next()
-        .map(|first| {
-            let Point2 { x, y } = first.point2();
-            let bounds = Rect {
-                x: Range::new(x, x),
-                y: Range::new(y, y),
-            };
-            vertices.fold(bounds, |b, v| {
-                let Point2 { x, y } = v.point2();
-                let point = Point2 { x, y };
-                b.stretch_to_point(point)
-            })
+    vertices.next().map(|first| {
+        let Point2 { x, y } = first.point2();
+        let bounds = Rect {
+            x: Range::new(x, x),
+            y: Range::new(y, y),
+        };
+        vertices.fold(bounds, |b, v| {
+            let Point2 { x, y } = v.point2();
+            let point = Point2 { x, y };
+            b.stretch_to_point(point)
         })
+    })
 }
 
 /// The `Cuboid` that bounds the given sequence of vertices.
@@ -70,20 +69,19 @@ where
     I::Item: Vertex3d,
 {
     let mut vertices = vertices.into_iter();
-    vertices.next()
-        .map(|first| {
-            let Point3 { x, y, z } = first.point3();
-            let bounds = Cuboid {
-                x: Range::new(x, x),
-                y: Range::new(y, y),
-                z: Range::new(z, z),
-            };
-            vertices.fold(bounds, |b, v| {
-                let Point3 { x, y, z } = v.point3();
-                let point = Point3 { x, y, z };
-                b.stretch_to_point(point)
-            })
+    vertices.next().map(|first| {
+        let Point3 { x, y, z } = first.point3();
+        let bounds = Cuboid {
+            x: Range::new(x, x),
+            y: Range::new(y, y),
+            z: Range::new(z, z),
+        };
+        vertices.fold(bounds, |b, v| {
+            let Point3 { x, y, z } = v.point3();
+            let point = Point3 { x, y, z };
+            b.stretch_to_point(point)
         })
+    })
 }
 
 /// The `centroid` (average position) of all vertices in the given iterator.
@@ -97,10 +95,9 @@ where
     S: BaseFloat,
 {
     let mut vertices = vertices.into_iter();
-    vertices.next()
-        .map(|first| {
-            let init = (1, first.to_vec());
-            let (len, total) = vertices.fold(init, |(i, acc), p| (i + 1, acc + p.to_vec()));
-            EuclideanSpace::from_vec(total / cast(len).unwrap())
-        })
+    vertices.next().map(|first| {
+        let init = (1, first.to_vec());
+        let (len, total) = vertices.fold(init, |(i, acc), p| (i + 1, acc + p.to_vec()));
+        EuclideanSpace::from_vec(total / cast(len).unwrap())
+    })
 }

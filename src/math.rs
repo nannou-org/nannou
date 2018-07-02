@@ -2,8 +2,8 @@
 //! helper/utility functions.
 
 extern crate cgmath;
-pub use self::cgmath::*;
 pub use self::cgmath::num_traits::{Float, NumCast, One};
+pub use self::cgmath::*;
 use std::ops::Add;
 
 /// Shorthand constructor for a `Point1`.
@@ -48,7 +48,11 @@ pub fn partial_max<T>(a: T, b: T) -> T
 where
     T: PartialOrd,
 {
-    if a >= b { a } else { b }
+    if a >= b {
+        a
+    } else {
+        b
+    }
 }
 
 /// The min between two partially ordered values.
@@ -56,7 +60,11 @@ pub fn partial_min<T>(a: T, b: T) -> T
 where
     T: PartialOrd,
 {
-    if a <= b { a } else { b }
+    if a <= b {
+        a
+    } else {
+        b
+    }
 }
 
 /// Clamp a value between some range.
@@ -65,15 +73,27 @@ where
     T: PartialOrd,
 {
     if start <= end {
-        if n < start { start } else if n > end { end } else { n }
+        if n < start {
+            start
+        } else if n > end {
+            end
+        } else {
+            n
+        }
     } else {
-        if n < end { end } else if n > start { start } else { n }
+        if n < end {
+            end
+        } else if n > start {
+            start
+        } else {
+            n
+        }
     }
 }
 
 pub fn two<S>() -> S
 where
-    S: Add<Output=S> + One,
+    S: Add<Output = S> + One,
 {
     S::one() + S::one()
 }

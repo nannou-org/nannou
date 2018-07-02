@@ -35,7 +35,12 @@ fn model(app: &App) -> Model {
     let mut ui = app.new_ui().build().unwrap();
     let text = ui.generate_widget_id();
 
-    Model { receiver, received_packets, ui, text }
+    Model {
+        receiver,
+        received_packets,
+        ui,
+        text,
+    }
 }
 
 fn event(_app: &App, mut model: Model, event: Event) -> Model {
@@ -66,7 +71,7 @@ fn event(_app: &App, mut model: Model, event: Event) -> Model {
                 .color(color::WHITE)
                 .line_spacing(10.0)
                 .set(model.text, &mut ui);
-        },
+        }
         _ => (),
     }
     model

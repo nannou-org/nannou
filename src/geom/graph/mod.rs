@@ -1,5 +1,5 @@
-use daggy::{self, Walker};
 use daggy::petgraph::visit::{GraphBase, IntoNeighbors, Visitable};
+use daggy::{self, Walker};
 use geom;
 use math::{BaseFloat, Point3, Vector3};
 use std::iter;
@@ -269,7 +269,8 @@ where
         // Calculate the transform.
         let mut transform = node::Transform::default();
         for (e, parent) in self.parents(idx).iter(self) {
-            let parent_transform = self.node_transform(parent)
+            let parent_transform = self
+                .node_transform(parent)
                 .expect("no node for yielded parent");
             let edge = &self[e];
             transform.apply_edge(&parent_transform, edge);
@@ -457,7 +458,8 @@ where
             None => panic!("`edges` must contain at least one edge"),
             Some(first) => {
                 let edges = Some(first).into_iter().chain(edges).map(|e| (parent, n, e));
-                let edge_indices = self.dag
+                let edge_indices = self
+                    .dag
                     .add_edges(edges)
                     .expect("cannot create a cycle when adding a new child");
                 (edge_indices, n)

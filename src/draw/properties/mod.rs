@@ -20,7 +20,7 @@ pub mod spatial;
 use self::spatial::dimension;
 
 pub use self::color::{IntoRgba, SetColor};
-pub use self::primitive::{Ellipse, Line, Quad, Primitive, Rect, Tri};
+pub use self::primitive::{Ellipse, Line, Primitive, Quad, Rect, Tri};
 pub use self::spatial::dimension::SetDimensions;
 pub use self::spatial::orientation::SetOrientation;
 pub use self::spatial::position::SetPosition;
@@ -66,7 +66,9 @@ where
 {
     /// Create a new **Draw**.
     pub fn new(state: &'a mut draw::State<S>) -> Self {
-        Draw { state: RefCell::new(state) }
+        Draw {
+            state: RefCell::new(state),
+        }
     }
 
     /// The length of the untransformed node at the given index along the axis returned by the
@@ -78,7 +80,9 @@ where
     where
         F: Fn(&draw::mesh::vertex::Point<S>) -> S,
     {
-        self.state.borrow_mut().untransformed_dimension_of(n, point_axis)
+        self.state
+            .borrow_mut()
+            .untransformed_dimension_of(n, point_axis)
     }
 
     /// The length of the untransformed node at the given index along the *x* axis.
@@ -126,7 +130,7 @@ where
     /// Retrieve the given element from the inner **Theme**.
     pub fn theme<F, T>(&self, get: F) -> T
     where
-        F: FnOnce(&draw::Theme) -> T
+        F: FnOnce(&draw::Theme) -> T,
     {
         let state = self.state.borrow();
         get(&state.theme)
@@ -200,15 +204,24 @@ where
     /// Return the **Dimension**s as scalar values.
     pub fn to_scalars(&self, draw: &Draw<S>) -> (Option<S>, Option<S>, Option<S>) {
         const EXPECT_DIMENSION: &'static str = "no raw dimension for node";
-        let x = self.x
-            .as_ref()
-            .map(|x| x.to_scalar(|n| draw.untransformed_x_dimension_of(n).expect(EXPECT_DIMENSION)));
-        let y = self.y
-            .as_ref()
-            .map(|y| y.to_scalar(|n| draw.untransformed_y_dimension_of(n).expect(EXPECT_DIMENSION)));
-        let z = self.z
-            .as_ref()
-            .map(|z| z.to_scalar(|n| draw.untransformed_z_dimension_of(n).expect(EXPECT_DIMENSION)));
+        let x = self.x.as_ref().map(|x| {
+            x.to_scalar(|n| {
+                draw.untransformed_x_dimension_of(n)
+                    .expect(EXPECT_DIMENSION)
+            })
+        });
+        let y = self.y.as_ref().map(|y| {
+            y.to_scalar(|n| {
+                draw.untransformed_y_dimension_of(n)
+                    .expect(EXPECT_DIMENSION)
+            })
+        });
+        let z = self.z.as_ref().map(|z| {
+            z.to_scalar(|n| {
+                draw.untransformed_z_dimension_of(n)
+                    .expect(EXPECT_DIMENSION)
+            })
+        });
         (x, y, z)
     }
 }
@@ -275,17 +288,17 @@ where
 
         let point = match point {
             None => return None,
-            Some(point_ix) => {
-                *mesh.vertex_data
-                    .points
-                    .get(point_ix)
-                    .expect("no point for point index in IntermediaryMesh")
-            },
+            Some(point_ix) => *mesh
+                .vertex_data
+                .points
+                .get(point_ix)
+                .expect("no point for point index in IntermediaryMesh"),
         };
 
         let color = color
             .map(|color_ix| {
-                *mesh.vertex_data
+                *mesh
+                    .vertex_data
                     .colors
                     .get(color_ix)
                     .expect("no color for color index in IntermediaryMesh")
@@ -295,7 +308,8 @@ where
 
         let tex_coords = tex_coords
             .map(|tex_coords_ix| {
-                *mesh.vertex_data
+                *mesh
+                    .vertex_data
                     .tex_coords
                     .get(tex_coords_ix)
                     .expect("no tex_coords for tex_coords index in IntermediaryMesh")
@@ -308,11 +322,10 @@ where
 
 impl Indices for IndicesFromRange {
     fn next(&mut self, intermediary_indices: &[usize]) -> Option<usize> {
-        Iterator::next(&mut self.range)
-            .map(|ix| {
-                *intermediary_indices
-                    .get(ix)
-                    .expect("index into `intermediary_indices` is out of range")
-            })
+        Iterator::next(&mut self.range).map(|ix| {
+            *intermediary_indices
+                .get(ix)
+                .expect("index into `intermediary_indices` is out of range")
+        })
     }
 }

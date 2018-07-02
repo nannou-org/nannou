@@ -1,10 +1,10 @@
 //! The nannou [**Window**](./struct.Window.html) API. Create a new window via `.app.new_window()`.
 //! This produces a [**Builder**](./struct.Builder.html) which can be used to build a window.
 
-use App;
-use glium::{self, glutin};
 use glium::glutin::{CursorState, GlContext, MonitorId, MouseCursor};
+use glium::{self, glutin};
 use std::env;
+use App;
 
 pub use glium::glutin::WindowId as Id;
 
@@ -25,7 +25,7 @@ pub struct Builder<'a, 'b> {
 /// The `Window` acts as a wrapper around the `glium::Display` type, providing a more
 /// nannou-friendly API.
 pub struct Window {
-    pub (crate) display: glium::Display,
+    pub(crate) display: glium::Display,
 }
 
 impl<'a, 'b> Builder<'a, 'b> {
@@ -49,13 +49,28 @@ impl<'a, 'b> Builder<'a, 'b> {
 
     /// Build the GL window with some custom OpenGL Context parameters.
     pub fn context<'c>(self, context: glutin::ContextBuilder<'c>) -> Builder<'a, 'c> {
-        let Builder { app, window, title_was_set, .. } = self;
-        Builder { app, window, context, title_was_set }
+        let Builder {
+            app,
+            window,
+            title_was_set,
+            ..
+        } = self;
+        Builder {
+            app,
+            window,
+            context,
+            title_was_set,
+        }
     }
 
     /// Builds the window, inserts it into the `App`'s display map and returns the unique ID.
     pub fn build(self) -> Result<Id, glium::backend::glutin::DisplayCreationError> {
-        let Builder { app, mut window, context, title_was_set } = self;
+        let Builder {
+            app,
+            mut window,
+            context,
+            title_was_set,
+        } = self;
 
         // If the title was not set, default to the "nannou - <exe_name>".
         if !title_was_set {
@@ -71,7 +86,9 @@ impl<'a, 'b> Builder<'a, 'b> {
 
         let display = glium::Display::new(window, context, &app.events_loop)?;
         let window_id = display.gl_window().id();
-        app.windows.borrow_mut().insert(window_id, Window { display });
+        app.windows
+            .borrow_mut()
+            .insert(window_id, Window { display });
 
         // If this is the first window, set it as the app's "focused" window.
         if app.windows.borrow().len() == 1 {
@@ -82,19 +99,41 @@ impl<'a, 'b> Builder<'a, 'b> {
     }
 
     fn map_window<F>(self, map: F) -> Self
-        where F: FnOnce(glutin::WindowBuilder) -> glutin::WindowBuilder,
+    where
+        F: FnOnce(glutin::WindowBuilder) -> glutin::WindowBuilder,
     {
-        let Builder { app, window, context, title_was_set } = self;
+        let Builder {
+            app,
+            window,
+            context,
+            title_was_set,
+        } = self;
         let window = map(window);
-        Builder { app, window, context, title_was_set }
+        Builder {
+            app,
+            window,
+            context,
+            title_was_set,
+        }
     }
 
     fn map_context<F>(self, map: F) -> Self
-        where F: FnOnce(glutin::ContextBuilder) -> glutin::ContextBuilder,
+    where
+        F: FnOnce(glutin::ContextBuilder) -> glutin::ContextBuilder,
     {
-        let Builder { app, window, context, title_was_set } = self;
+        let Builder {
+            app,
+            window,
+            context,
+            title_was_set,
+        } = self;
         let context = map(context);
-        Builder { app, window, context, title_was_set }
+        Builder {
+            app,
+            window,
+            context,
+            title_was_set,
+        }
     }
 
     // Window builder methods.
@@ -433,8 +472,7 @@ impl Window {
         window: glutin::WindowBuilder,
         context: glutin::ContextBuilder,
         app: &App,
-    ) -> Result<(), glium::backend::glutin::DisplayCreationError>
-    {
+    ) -> Result<(), glium::backend::glutin::DisplayCreationError> {
         self.display.rebuild(window, context, &app.events_loop)
     }
 

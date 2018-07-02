@@ -36,9 +36,9 @@
 use geom::Line;
 use math::{BaseFloat, Point2};
 
+pub mod bevel;
 pub mod miter;
 pub mod round;
-pub mod bevel;
 
 /// Given three points that describe two lines and half the thickness of the line, return the two
 /// points that intersect on either side of the line.
@@ -101,8 +101,16 @@ pub fn intersections<S>(
 where
     S: BaseFloat,
 {
-    let ab = Line { start: a, end: b, half_thickness };
-    let bc = Line { start: b, end: c, half_thickness };
+    let ab = Line {
+        start: a,
+        end: b,
+        half_thickness,
+    };
+    let bc = Line {
+        start: b,
+        end: c,
+        half_thickness,
+    };
     let ab_corners = ab.quad_corners();
     let bc_corners = bc.quad_corners();
     let (ar, al, bl_ab, br_ab) = ab_corners.into();
@@ -111,8 +119,7 @@ where
         Some(il) => il,
         None => return None,
     };
-    let ir = intersect((ar, br_ab), (cr, br_bc))
-        .expect("no intersection due to parallel lines");
+    let ir = intersect((ar, br_ab), (cr, br_bc)).expect("no intersection due to parallel lines");
     Some((il, ir))
 }
 

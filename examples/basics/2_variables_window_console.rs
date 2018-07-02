@@ -14,7 +14,7 @@ fn model(app: &App) -> Model {
     // Construct and define the size of our window using .with_dimensions(.,.)
     // Argument 1 = width of window; Argument 2 = height of window
     let window = app.new_window().with_dimensions(640, 480).build().unwrap();
-    
+
     // Below are the different variable types available in Rust
     let i = 50; // Ints store whole numbers
     let f = 36.6; // Floats are used to store numbers with decimals or fractions of numbers

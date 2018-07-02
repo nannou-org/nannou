@@ -18,19 +18,22 @@ fn model(app: &App) -> Model {
 
 fn event(app: &App, model: Model, event: Event) -> Model {
     match event {
-        Event::WindowEvent { simple: Some(event), .. } => match event {
+        Event::WindowEvent {
+            simple: Some(event),
+            ..
+        } => match event {
             KeyPressed(_) => {
                 match app.loop_mode() {
                     LoopMode::Rate { .. } => app.set_loop_mode(LoopMode::wait(3)),
                     LoopMode::Wait { .. } => app.set_loop_mode(LoopMode::rate_fps(60.0)),
                 }
                 println!("Loop mode switched to: {:?}", app.loop_mode());
-            },
+            }
             _ => (),
         },
         Event::Update(update) => {
             println!("{:?}", update);
-        },
+        }
         _ => (),
     }
     model
