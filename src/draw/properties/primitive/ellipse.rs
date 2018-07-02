@@ -9,7 +9,7 @@ use math::{BaseFloat, Vector2};
 
 /// Properties related to drawing an **Ellipse**.
 #[derive(Clone, Debug)]
-pub struct Ellipse<S = geom::DefaultScalar> {
+pub struct Ellipse<S = geom::scalar::Default> {
     spatial: spatial::Properties<S>,
     color: Option<Rgba>,
     resolution: Option<usize>,

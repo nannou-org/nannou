@@ -14,7 +14,7 @@ pub struct WithColor<V, C> {
 
 /// A vertex with some specified texture coordinates.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
-pub struct WithTexCoords<V, T = Point2<geom::DefaultScalar>> {
+pub struct WithTexCoords<V, T = Point2<geom::scalar::Default>> {
     pub vertex: V,
     pub tex_coords: T,
 }

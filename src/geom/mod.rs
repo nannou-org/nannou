@@ -21,6 +21,7 @@ pub mod polygon;
 pub mod quad;
 pub mod range;
 pub mod rect;
+pub mod scalar;
 pub mod tri;
 pub mod vertex;
 
@@ -33,7 +34,7 @@ pub use self::quad::Quad;
 pub use self::range::{Align, Edge, Range};
 pub use self::rect::{Corner, Padding, Rect};
 pub use self::tri::Tri;
-pub use self::vertex::{DefaultScalar, Vertex, Vertex2d, Vertex3d};
+pub use self::vertex::{Vertex, Vertex2d, Vertex3d};
 
 // General geometry utility functions
 

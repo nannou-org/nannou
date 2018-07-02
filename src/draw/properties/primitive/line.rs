@@ -9,7 +9,7 @@ use math::{BaseFloat, Point2};
 
 /// Properties related to drawing a **Line**.
 #[derive(Clone, Debug)]
-pub struct Line<S = geom::DefaultScalar> {
+pub struct Line<S = geom::scalar::Default> {
     position: position::Properties<S>,
     orientation: orientation::Properties<S>,
     capped: geom::line::Capped<S>,

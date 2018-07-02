@@ -14,7 +14,7 @@ pub trait SetSpatial<S>: SetDimensions<S> + SetPosition<S> + SetOrientation<S> {
 impl<S, T> SetSpatial<S> for T where T: SetDimensions<S> + SetPosition<S> + SetOrientation<S> {}
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Properties<S = geom::DefaultScalar> {
+pub struct Properties<S = geom::scalar::Default> {
     pub position: position::Properties<S>,
     pub dimensions: dimension::Properties<S>,
     pub orientation: orientation::Properties<S>,

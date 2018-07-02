@@ -13,7 +13,7 @@ pub struct Vertexless;
 
 /// Properties related to drawing an arbitrary mesh of colours, geometry and texture.
 #[derive(Clone, Debug)]
-pub struct Mesh<S = geom::DefaultScalar> {
+pub struct Mesh<S = geom::scalar::Default> {
     position: position::Properties<S>,
     orientation: orientation::Properties<S>,
     vertex_data_ranges: draw::IntermediaryVertexDataRanges,

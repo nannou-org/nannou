@@ -13,7 +13,7 @@ pub struct Pointless;
 
 /// Properties related to drawing a **Polygon**.
 #[derive(Clone, Debug)]
-pub struct Polygon<C = Fill, S = geom::DefaultScalar> {
+pub struct Polygon<C = Fill, S = geom::scalar::Default> {
     position: position::Properties<S>,
     orientation: orientation::Properties<S>,
     color: C,

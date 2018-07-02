@@ -4,7 +4,7 @@ use math::{BaseFloat, Vector2, Vector3};
 
 /// Dimension properties for **Drawing** a **Node**.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Properties<S = geom::DefaultScalar> {
+pub struct Properties<S = geom::scalar::Default> {
     /// Dimension over the *x* axis.
     pub x: Option<Dimension<S>>,
     /// Dimension over the *y* axis.
@@ -17,7 +17,7 @@ pub struct Properties<S = geom::DefaultScalar> {
 ///
 /// This type is used to represent the different ways in which a dimension may be sized.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum Dimension<S = geom::DefaultScalar> {
+pub enum Dimension<S = geom::scalar::Default> {
     /// Some specific length has been given.
     Absolute(S),
     /// The dimension is described as relative to the node at the given index.
@@ -26,7 +26,7 @@ pub enum Dimension<S = geom::DefaultScalar> {
 
 /// Describes a dimension that is relative to some other node.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum Relative<S = geom::DefaultScalar> {
+pub enum Relative<S = geom::scalar::Default> {
     /// Match the exact dimension of the other node.
     Matching,
     /// Match the dimension but pad it with the given Scalar.

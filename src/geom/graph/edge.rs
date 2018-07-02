@@ -11,7 +11,7 @@ pub type Indices = daggy::EdgeIndices<usize>;
 
 /// Describes an edge within the geometry graph.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Edge<S = geom::DefaultScalar> {
+pub struct Edge<S = geom::scalar::Default> {
     /// The unique kind of edge.
     ///
     /// Represents the combination of `Axis` and `Relative` association described by the edge.

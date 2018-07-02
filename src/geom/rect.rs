@@ -1,11 +1,11 @@
-use geom::{quad, Align, DefaultScalar, Edge, Quad, Range, Tri};
+use geom::{quad, scalar, Align, Edge, Quad, Range, Tri};
 use math::num_traits::Float;
 use math::{self, BaseNum, Point2, Vector2};
 use std::ops::Neg;
 
 /// Defines a Rectangle's bounds across the x and y axes.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct Rect<S = DefaultScalar> {
+pub struct Rect<S = scalar::Default> {
     /// The start and end positions of the Rectangle on the x axis.
     pub x: Range<S>,
     /// The start and end positions of the Rectangle on the y axis.
@@ -14,7 +14,7 @@ pub struct Rect<S = DefaultScalar> {
 
 /// The distance between the inner edge of a border and the outer edge of the inner content.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Padding<S = DefaultScalar> {
+pub struct Padding<S = scalar::Default> {
     /// Padding on the start and end of the *x* axis.
     pub x: Range<S>,
     /// Padding on the start and end of the *y* axis.
@@ -39,14 +39,14 @@ pub enum Corner {
 /// The four subdivisions will each be yielded as a `Rect` whose dimensions are exactly half of the
 /// original `Rect`.
 #[derive(Clone)]
-pub struct Subdivisions<S = DefaultScalar> {
+pub struct Subdivisions<S = scalar::Default> {
     ranges: SubdivisionRanges<S>,
     subdivision_index: u8,
 }
 
 /// The ranges that describe the subdivisions of a `Rect`.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct SubdivisionRanges<S = DefaultScalar> {
+pub struct SubdivisionRanges<S = scalar::Default> {
     /// The first half of the x range.
     pub x_a: Range<S>,
     /// The second half of the x range.
@@ -59,7 +59,7 @@ pub struct SubdivisionRanges<S = DefaultScalar> {
 
 /// An iterator yielding the four corners of a `Rect`.
 #[derive(Clone, Debug)]
-pub struct Corners<S = DefaultScalar> {
+pub struct Corners<S = scalar::Default> {
     rect: Rect<S>,
     index: u8,
 }

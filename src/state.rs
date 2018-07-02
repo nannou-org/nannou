@@ -13,7 +13,7 @@ pub mod window {
     use window;
 
     /// The default scalar value used for window positioning and sizing.
-    pub type DefaultScalar = geom::DefaultScalar;
+    pub type DefaultScalar = geom::scalar::Default;
 
     /// State of the window in focus.
     #[derive(Copy, Clone, Debug, PartialEq)]
@@ -72,7 +72,7 @@ pub mod mouse {
     use window;
 
     /// The default scalar value used for positions.
-    pub type DefaultScalar = geom::DefaultScalar;
+    pub type DefaultScalar = geom::scalar::Default;
 
     #[doc(inline)]
     pub use event::MouseButton as Button;

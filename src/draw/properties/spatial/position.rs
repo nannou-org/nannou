@@ -6,7 +6,7 @@ use math::{Point2, Point3};
 
 /// Position properties for **Drawing** a **Node**.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Properties<S = geom::DefaultScalar> {
+pub struct Properties<S = geom::scalar::Default> {
     /// Position along the *x* axis.
     pub x: Option<Position<S>>,
     /// Position along the *y* axis.
@@ -17,7 +17,7 @@ pub struct Properties<S = geom::DefaultScalar> {
 
 /// A **Position** along a single axis.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum Position<S = geom::DefaultScalar> {
+pub enum Position<S = geom::scalar::Default> {
     /// A specific position.
     Absolute(S),
     /// A position relative to some other Node.
@@ -28,7 +28,7 @@ pub enum Position<S = geom::DefaultScalar> {
 ///
 /// **Relative** describes a relative position along a single axis.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum Relative<S = geom::DefaultScalar> {
+pub enum Relative<S = geom::scalar::Default> {
     /// A relative scalar distance.
     Scalar(S),
     /// Aligned to either the `Start`, `Middle` or `End`.
@@ -48,7 +48,7 @@ pub enum Direction {
 
 /// The orientation of **Align**ment along some **Axis**.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Align<S = geom::DefaultScalar> {
+pub enum Align<S = geom::scalar::Default> {
     /// **Align** our **Start** with the **Start** of some other node along the **Axis** with the
     /// given margin.
     Start(Option<S>),

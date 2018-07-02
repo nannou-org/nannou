@@ -24,7 +24,7 @@ pub mod node;
 /// All `Node`s other than the graph's "origin" node must have at least one parent, but may never
 /// have more than one parent of each `edge::Kind`.
 #[derive(Clone, Debug)]
-pub struct Graph<S = geom::DefaultScalar>
+pub struct Graph<S = geom::scalar::Default>
 where
     S: BaseFloat,
 {
@@ -33,10 +33,10 @@ where
 }
 
 /// The `daggy` "directed acyclic graph" type used within the geometry graph.
-pub type Dag<S = geom::DefaultScalar> = daggy::Dag<Node<S>, Edge<S>, usize>;
+pub type Dag<S = geom::scalar::Default> = daggy::Dag<Node<S>, Edge<S>, usize>;
 
 /// A **Walker** over some node's parent nodes.
-pub struct Parents<S = geom::DefaultScalar>
+pub struct Parents<S = geom::scalar::Default>
 where
     S: BaseFloat,
 {
@@ -44,7 +44,7 @@ where
 }
 
 /// A **Walker** over some node's children nodes.
-pub struct Children<S = geom::DefaultScalar>
+pub struct Children<S = geom::scalar::Default>
 where
     S: BaseFloat,
 {
@@ -52,16 +52,16 @@ where
 }
 
 /// The slice of all nodes stored within the graph.
-pub type RawNodes<'a, S = geom::DefaultScalar> = daggy::RawNodes<'a, Node<S>, usize>;
+pub type RawNodes<'a, S = geom::scalar::Default> = daggy::RawNodes<'a, Node<S>, usize>;
 
 /// The slice of all edges stored within the graph.
-pub type RawEdges<'a, S = geom::DefaultScalar> = daggy::RawEdges<'a, Edge<S>, usize>;
+pub type RawEdges<'a, S = geom::scalar::Default> = daggy::RawEdges<'a, Edge<S>, usize>;
 
 /// An alias for our Graph's **WouldCycle** error type.
-pub type WouldCycle<S = geom::DefaultScalar> = daggy::WouldCycle<Edge<S>>;
+pub type WouldCycle<S = geom::scalar::Default> = daggy::WouldCycle<Edge<S>>;
 
 /// An alias for our Graph's recursive walker.
-pub type RecursiveWalk<F, S = geom::DefaultScalar> = daggy::walker::Recursive<Graph<S>, F>;
+pub type RecursiveWalk<F, S = geom::scalar::Default> = daggy::walker::Recursive<Graph<S>, F>;
 
 // An alias for the iterator yielding three parents that may or may not exist.
 //
@@ -88,7 +88,7 @@ pub type YParents = ThreeNodes;
 pub type ZParents = ThreeNodes;
 
 /// A **Walker** type yielding all transformed vertices of all nodes within the graph.
-pub struct WalkVertices<'a, F, I, S: 'a = geom::DefaultScalar>
+pub struct WalkVertices<'a, F, I, S: 'a = geom::scalar::Default>
 where
     F: Fn(&node::Index) -> I,
     I: IntoIterator,
@@ -100,7 +100,7 @@ where
 }
 
 /// A **Walker** type yielding all transformed triangles of all nodes within the graph.
-pub struct WalkTriangles<'a, F, I, V, S: 'a = geom::DefaultScalar>
+pub struct WalkTriangles<'a, F, I, V, S: 'a = geom::scalar::Default>
 where
     F: Fn(&node::Index) -> I,
     I: IntoIterator,
@@ -114,7 +114,7 @@ where
 /// An iterator yielding all vertices of all nodes within the graph.
 ///
 /// Uses the `WalkVertices` internally.
-pub struct Vertices<'a, 'b, F, I, S: 'a + 'b = geom::DefaultScalar>
+pub struct Vertices<'a, 'b, F, I, S: 'a + 'b = geom::scalar::Default>
 where
     F: Fn(&node::Index) -> I,
     I: IntoIterator,
@@ -127,7 +127,7 @@ where
 /// An iterator yielding all triangles of all nodes within the graph.
 ///
 /// Uses the `WalkTriangles` internally.
-pub struct Triangles<'a, 'b, F, I, V, S: 'a + 'b = geom::DefaultScalar>
+pub struct Triangles<'a, 'b, F, I, V, S: 'a + 'b = geom::scalar::Default>
 where
     F: Fn(&node::Index) -> I,
     I: IntoIterator,

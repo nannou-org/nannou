@@ -90,7 +90,7 @@ pub struct WindowEvent {
 #[derive(Clone, Debug, PartialEq)]
 pub enum SimpleWindowEvent {
     /// The window has been moved to a new position.
-    Moved(Point2<geom::DefaultScalar>),
+    Moved(Point2<geom::scalar::Default>),
 
     /// The given keyboard key was pressed.
     KeyPressed(Key),
@@ -99,10 +99,10 @@ pub enum SimpleWindowEvent {
     KeyReleased(Key),
 
     /// The mouse moved to the given x, y position.
-    MouseMoved(Point2<geom::DefaultScalar>),
+    MouseMoved(Point2<geom::scalar::Default>),
 
     /// The given mouse button was dragged to the given x, y position.
-    MouseDragged(Point2<geom::DefaultScalar>, MouseButton),
+    MouseDragged(Point2<geom::scalar::Default>, MouseButton),
 
     /// The given mouse button was pressed.
     MousePressed(MouseButton),
@@ -120,7 +120,7 @@ pub enum SimpleWindowEvent {
     MouseWheel(MouseScrollDelta, TouchPhase),
 
     /// The window was resized to the given dimensions.
-    Resized(Vector2<geom::DefaultScalar>),
+    Resized(Vector2<geom::scalar::Default>),
 
     /// A file at the given path was hovered over the window.
     HoveredFile(PathBuf),
@@ -134,7 +134,7 @@ pub enum SimpleWindowEvent {
     /// Received a touch event.
     Touch {
         phase: TouchPhase,
-        position: Point2<geom::DefaultScalar>,
+        position: Point2<geom::scalar::Default>,
         id: u64,
     },
 
@@ -179,10 +179,10 @@ impl SimpleWindowEvent {
         //
         // winit produces input events in pixels, so these positions need to be divided by the
         // width and height of the window in order to be DPI agnostic.
-        let tw = |w: f64| (w / dpi_factor) as geom::DefaultScalar;
-        let th = |h: f64| (h / dpi_factor) as geom::DefaultScalar;
-        let tx = |x: f64| ((x - win_w_px as f64 / 2.0) / dpi_factor) as geom::DefaultScalar;
-        let ty = |y: f64| (-((y - win_h_px as f64 / 2.0) / dpi_factor)) as geom::DefaultScalar;
+        let tw = |w: f64| (w / dpi_factor) as geom::scalar::Default;
+        let th = |h: f64| (h / dpi_factor) as geom::scalar::Default;
+        let tx = |x: f64| ((x - win_w_px as f64 / 2.0) / dpi_factor) as geom::scalar::Default;
+        let ty = |y: f64| (-((y - win_h_px as f64 / 2.0) / dpi_factor)) as geom::scalar::Default;
 
         let event = match event {
             glutin::WindowEvent::Resized(new_w, new_h) => {

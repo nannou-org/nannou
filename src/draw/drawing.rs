@@ -20,7 +20,7 @@ use std::marker::PhantomData;
 /// graph. As a result, each **Drawing** is associated with a single, unique node. Thus a
 /// **Drawing** can be thought of as a way of specifying properties for a node.
 #[derive(Debug)]
-pub struct Drawing<'a, T, S = geom::DefaultScalar>
+pub struct Drawing<'a, T, S = geom::scalar::Default>
 where
     T: IntoDrawn<S>,
     S: 'a + BaseFloat,

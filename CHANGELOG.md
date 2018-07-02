@@ -1,5 +1,6 @@
 # Unreleased
 
+- Add `geom::scalar` module. Move `DefaultScalar` to `scalar::Default`.
 - Fix the order of `geom::line` vertices.
 - Add a `draw.polygon()` API.
 - Remove `geom::polyline` module.

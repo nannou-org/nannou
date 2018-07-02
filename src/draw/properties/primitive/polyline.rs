@@ -14,7 +14,7 @@ pub struct Vertexless;
 
 /// Properties related to drawing a **Polyline**.
 #[derive(Clone, Debug)]
-pub struct Polyline<S = geom::DefaultScalar> {
+pub struct Polyline<S = geom::scalar::Default> {
     position: position::Properties<S>,
     orientation: orientation::Properties<S>,
     vertex_data_ranges: draw::IntermediaryVertexDataRanges,

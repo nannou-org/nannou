@@ -21,14 +21,14 @@ pub struct Axes<S> {
 
 /// Describe the orientation of a node via a target towards which it is facing.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum LookAt<S = geom::DefaultScalar> {
+pub enum LookAt<S = geom::scalar::Default> {
     Node(node::Index),
     Point(Point3<S>),
 }
 
 /// The orientation of a node along a single axis.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum Orientation<S = geom::DefaultScalar> {
+pub enum Orientation<S = geom::scalar::Default> {
     /// The orientation of the node along the axis in radians.
     Absolute(S),
     /// The orientation of the node described relatively to another node in radians.

@@ -1,21 +1,21 @@
-use geom::{self, ellipse, quad, tri, vertex, DefaultScalar, Rect};
+use geom::{self, ellipse, quad, scalar, tri, Rect};
 use math::{two, vec2, BaseFloat, EuclideanSpace, InnerSpace, Point2};
 
 pub mod cap;
 pub mod join;
 
 /// The quad used to describe a line.
-pub type Quad<S = DefaultScalar> = quad::Quad<Point2<S>>;
+pub type Quad<S = scalar::Default> = quad::Quad<Point2<S>>;
 /// The triangle types used to describe a line quad.
-pub type Tri<S = DefaultScalar> = tri::Tri<Point2<S>>;
+pub type Tri<S = scalar::Default> = tri::Tri<Point2<S>>;
 /// The vertices used to describe the quad of a line.
-pub type Vertices<S = DefaultScalar> = quad::Vertices<Point2<S>>;
+pub type Vertices<S = scalar::Default> = quad::Vertices<Point2<S>>;
 /// The triangles used to describe the quad of a line.
-pub type Triangles<S = DefaultScalar> = quad::Triangles<Point2<S>>;
+pub type Triangles<S = scalar::Default> = quad::Triangles<Point2<S>>;
 
 /// A line represented by two points.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Line<S = vertex::DefaultScalar> {
+pub struct Line<S = scalar::Default> {
     /// The start point of the line.
     pub start: Point2<S>,
     /// The end point of the line.
@@ -43,7 +43,7 @@ pub enum Cap {
 
 /// A line whose ends are capped with protruding geometry (either rounded or squared).
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Capped<S = vertex::DefaultScalar> {
+pub struct Capped<S = scalar::Default> {
     /// The line itself.
     pub line: Line<S>,
     /// The kind of geometry with which the line is capped.
@@ -52,7 +52,7 @@ pub struct Capped<S = vertex::DefaultScalar> {
 
 /// An iterator yielding the vertices that describe the outer edges of a **Capped** line.
 #[derive(Clone, Debug)]
-pub struct CappedVertices<S> {
+pub struct CappedVertices<S = scalar::Default> {
     start: Option<cap::Vertices<S>>,
     line: Option<Vertices<S>>,
     end: Option<cap::Vertices<S>>,

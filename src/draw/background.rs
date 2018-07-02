@@ -5,7 +5,7 @@ use geom;
 use math::BaseFloat;
 
 /// A type used to update the background colour.
-pub struct Background<'a, S = geom::DefaultScalar>
+pub struct Background<'a, S = geom::scalar::Default>
 where
     S: 'a + BaseFloat,
 {
