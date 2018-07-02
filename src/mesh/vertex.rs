@@ -46,7 +46,10 @@ where
     S: BaseFloat,
 {
     fn apply_transform(self, transform: &node::PreparedTransform<S>) -> Self {
-        let WithTexCoords { mut vertex, tex_coords } = self;
+        let WithTexCoords {
+            mut vertex,
+            tex_coords,
+        } = self;
         vertex = vertex.apply_transform(transform);
         WithTexCoords { vertex, tex_coords }
     }

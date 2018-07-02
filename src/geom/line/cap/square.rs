@@ -10,11 +10,7 @@ pub struct Square;
 ///
 /// `protrusion` is the distance past the line end over which the **Quad** should protrude. This is
 /// normally equal to half of the line's thickness.
-pub fn quad<S>(
-    line_corner_a: Point2<S>,
-    line_corner_b: Point2<S>,
-    protrusion: S,
-) -> Quad<Point2<S>>
+pub fn quad<S>(line_corner_a: Point2<S>, line_corner_b: Point2<S>, protrusion: S) -> Quad<Point2<S>>
 where
     S: BaseFloat,
 {

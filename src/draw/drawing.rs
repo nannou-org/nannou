@@ -1,6 +1,9 @@
-use draw::{self, Draw};
 use draw::properties::spatial::{dimension, orientation, position};
-use draw::properties::{ColorScalar, IntoDrawn, IntoRgba, Primitive, SetColor, SetDimensions, SetOrientation, SetPosition};
+use draw::properties::{
+    ColorScalar, IntoDrawn, IntoRgba, Primitive, SetColor, SetDimensions, SetOrientation,
+    SetPosition,
+};
+use draw::{self, Draw};
 use geom;
 use geom::graph::node;
 use math::{Angle, BaseFloat, Euler, Point2, Point3, Quaternion, Rad, Vector2, Vector3};
@@ -44,7 +47,12 @@ where
 {
     let _ty = PhantomData;
     let finish_on_drop = true;
-    Drawing { draw, index, finish_on_drop, _ty }
+    Drawing {
+        draw,
+        index,
+        finish_on_drop,
+        _ty,
+    }
 }
 
 impl<'a, T, S> Drop for Drawing<'a, T, S>
@@ -54,9 +62,10 @@ where
 {
     fn drop(&mut self) {
         if self.finish_on_drop {
-            self.finish_inner()
-                .expect("the drawing contained a relative edge that would have \
-                        caused a cycle within the geometry graph");
+            self.finish_inner().expect(
+                "the drawing contained a relative edge that would have \
+                 caused a cycle within the geometry graph",
+            );
         }
     }
 }
@@ -112,7 +121,12 @@ where
         }
         self.finish_on_drop = false;
         let Drawing { draw, index, .. } = self;
-        Drawing { draw, index, finish_on_drop: true, _ty: PhantomData }
+        Drawing {
+            draw,
+            index,
+            finish_on_drop: true,
+            _ty: PhantomData,
+        }
     }
 
     // The same as `map_primitive` but also passes a mutable reference to the vertex data to the
@@ -120,7 +134,8 @@ where
     // vertices.
     fn map_primitive_with_vertices<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
     where
-        F: FnOnce(draw::properties::Primitive<S>, &mut draw::IntermediaryMesh<S>) -> draw::properties::Primitive<S>,
+        F: FnOnce(draw::properties::Primitive<S>, &mut draw::IntermediaryMesh<S>)
+            -> draw::properties::Primitive<S>,
         T2: IntoDrawn<S> + Into<Primitive<S>>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
@@ -134,7 +149,12 @@ where
         }
         self.finish_on_drop = false;
         let Drawing { draw, index, .. } = self;
-        Drawing { draw, index, finish_on_drop: true, _ty: PhantomData }
+        Drawing {
+            draw,
+            index,
+            finish_on_drop: true,
+            _ty: PhantomData,
+        }
     }
 
     /// Apply the given function to the type stored within **Draw**.
@@ -1455,5 +1475,4 @@ where
     pub fn rotate(self, radians: S) -> Self {
         self.map_ty(|ty| SetOrientation::rotate(ty, radians))
     }
-
 }

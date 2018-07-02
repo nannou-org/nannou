@@ -1,5 +1,5 @@
-use geom::{Cuboid, Rect, Vertex, Vertex2d, Vertex3d};
 use geom::tri::{self, Tri};
+use geom::{Cuboid, Rect, Vertex, Vertex2d, Vertex3d};
 
 /// A simple type wrapper around a list of points that describe a polygon.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -105,7 +105,7 @@ where
 /// An iterator yielding indices into a polygon's vertices required to triangulate the polygon.
 pub fn triangle_indices(n_points: usize) -> TriangleIndices {
     let index = 0;
-    TriangleIndices { index, n_points, }
+    TriangleIndices { index, n_points }
 }
 
 /// Returns `Some` with the touched triangle if the given `Point` is over the polygon described by

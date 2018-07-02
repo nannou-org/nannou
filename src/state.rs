@@ -25,9 +25,7 @@ pub mod window {
     impl Window {
         /// Initialise the window state.
         pub fn new() -> Self {
-            Window {
-                id: None,
-            }
+            Window { id: None }
         }
 
         /// Expects that there will be a `window::Id` (the common case) and **panic!**s otherwise.
@@ -134,7 +132,10 @@ pub mod mouse {
 
         /// The position of the mouse relative to the middle of the window in focus..
         pub fn position(&self) -> Point2<S> {
-            Point2 { x: self.x, y: self.y }
+            Point2 {
+                x: self.x,
+                y: self.y,
+            }
         }
     }
 
@@ -147,7 +148,10 @@ pub mod mouse {
             match self {
                 ButtonPosition::Down(pos) => {
                     let rel_p = pos - xy;
-                    ButtonPosition::Down(Point2 { x: rel_p.x, y: rel_p.y })
+                    ButtonPosition::Down(Point2 {
+                        x: rel_p.x,
+                        y: rel_p.y,
+                    })
                 }
                 button_pos => button_pos,
             }
@@ -184,19 +188,20 @@ pub mod mouse {
     {
         /// Returns a new button map with all states set to `None`
         pub fn new() -> Self {
-            ButtonMap { buttons: [ButtonPosition::Up; NUM_BUTTONS] }
+            ButtonMap {
+                buttons: [ButtonPosition::Up; NUM_BUTTONS],
+            }
         }
 
         /// Returns a copy of the ButtonMap relative to the given `Point`
         pub fn relative_to(self, xy: Point2<S>) -> Self {
-            self.buttons.iter().enumerate().fold(
-                ButtonMap::new(),
-                |mut map,
-                 (idx, button_pos)| {
+            self.buttons
+                .iter()
+                .enumerate()
+                .fold(ButtonMap::new(), |mut map, (idx, button_pos)| {
                     map.buttons[idx] = button_pos.relative_to(xy);
                     map
-                },
-            )
+                })
         }
 
         /// The state of the left mouse button.
@@ -227,7 +232,9 @@ pub mod mouse {
         /// An iterator yielding all pressed mouse buttons along with the location at which they
         /// were originally pressed.
         pub fn pressed(&self) -> PressedButtons<S> {
-            PressedButtons { buttons: self.buttons.iter().enumerate() }
+            PressedButtons {
+                buttons: self.buttons.iter().enumerate(),
+            }
         }
     }
 

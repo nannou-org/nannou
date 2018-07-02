@@ -236,15 +236,12 @@ where
 {
     type Vertex = vertex::WithColor<M::Vertex, C::Element>;
     fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
-        self.mesh.get_vertex(index)
-            .and_then(|vertex| {
-                self.colors.channel()
-                    .get(index)
-                    .map(|color| {
-                        let color = color.clone();
-                        vertex::WithColor { vertex, color }
-                    })
+        self.mesh.get_vertex(index).and_then(|vertex| {
+            self.colors.channel().get(index).map(|color| {
+                let color = color.clone();
+                vertex::WithColor { vertex, color }
             })
+        })
     }
 }
 
@@ -256,15 +253,12 @@ where
 {
     type Vertex = vertex::WithTexCoords<M::Vertex, T::Element>;
     fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
-        self.mesh.get_vertex(index)
-            .and_then(|vertex| {
-                self.tex_coords.channel()
-                    .get(index)
-                    .map(|tex_coords| {
-                        let tex_coords = tex_coords.clone();
-                        vertex::WithTexCoords { vertex, tex_coords }
-                    })
+        self.mesh.get_vertex(index).and_then(|vertex| {
+            self.tex_coords.channel().get(index).map(|tex_coords| {
+                let tex_coords = tex_coords.clone();
+                vertex::WithTexCoords { vertex, tex_coords }
             })
+        })
     }
 }
 
@@ -276,15 +270,12 @@ where
 {
     type Vertex = vertex::WithNormal<M::Vertex, N::Element>;
     fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
-        self.mesh.get_vertex(index)
-            .and_then(|vertex| {
-                self.normals.channel()
-                    .get(index)
-                    .map(|normal| {
-                        let normal = normal.clone();
-                        vertex::WithNormal { vertex, normal }
-                    })
+        self.mesh.get_vertex(index).and_then(|vertex| {
+            self.normals.channel().get(index).map(|normal| {
+                let normal = normal.clone();
+                vertex::WithNormal { vertex, normal }
             })
+        })
     }
 }
 
@@ -1082,7 +1073,11 @@ where
         let mesh = Default::default();
         let tex_coords = Default::default();
         let _tex_coord_scalar = PhantomData;
-        WithTexCoords { mesh, tex_coords, _tex_coord_scalar }
+        WithTexCoords {
+            mesh,
+            tex_coords,
+            _tex_coord_scalar,
+        }
     }
 }
 
@@ -1221,7 +1216,11 @@ where
 {
     assert_eq!(raw_vertex_count(&mesh), tex_coords.channel().len());
     let _tex_coord_scalar = PhantomData;
-    WithTexCoords { mesh, tex_coords, _tex_coord_scalar }
+    WithTexCoords {
+        mesh,
+        tex_coords,
+        _tex_coord_scalar,
+    }
 }
 
 /// Combine the given mesh with the given **Normals** channel.

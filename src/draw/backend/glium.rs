@@ -17,7 +17,6 @@ pub struct Vertex {
     // ///
     // /// If any other value is given, the fragment shader will not output any color.
     // pub mode: u32,
-    
     /// The position of the vertex within vector space.
     ///
     /// [-1.0, -1.0, 0.0] is the leftmost, bottom position of the display.
@@ -71,7 +70,11 @@ impl Vertex {
         let position = [x, y, z];
         let color = [v.color.red, v.color.green, v.color.blue, v.color.alpha];
         let tex_coords = [tex_x, tex_y];
-        Vertex { position, color, tex_coords }
+        Vertex {
+            position,
+            color,
+            tex_coords,
+        }
     }
 }
 
@@ -229,7 +232,8 @@ pub const FRAGMENT_SHADER_300_ES: &'static str = "
 
 /// Construct the glium shader program that can be used to render `Vertex`es.
 pub fn program<F>(facade: &F) -> Result<glium::Program, glium::program::ProgramChooserCreationError>
-    where F: glium::backend::Facade,
+where
+    F: glium::backend::Facade,
 {
     program!(facade,
              120 => { vertex: VERTEX_SHADER_120, fragment: FRAGMENT_SHADER_120 },
@@ -240,7 +244,11 @@ pub fn program<F>(facade: &F) -> Result<glium::Program, glium::program::ProgramC
 /// Default glium `DrawParameters` with alpha blending enabled.
 pub fn draw_parameters() -> glium::DrawParameters<'static> {
     let blend = glium::Blend::alpha_blending();
-    glium::DrawParameters { multisampling: true, blend: blend, ..Default::default() }
+    glium::DrawParameters {
+        multisampling: true,
+        blend: blend,
+        ..Default::default()
+    }
 }
 
 /// Errors that might occur during a call to `Renderer::draw`.
@@ -273,7 +281,11 @@ impl Renderer {
         let program = program(facade)?;
         let vertices = vec![];
         let indices = vec![];
-        Ok(Renderer { program, vertices, indices })
+        Ok(Renderer {
+            program,
+            vertices,
+            indices,
+        })
     }
 
     /// Draw the given mesh to the given glium surface.
@@ -300,7 +312,8 @@ impl Renderer {
         let (w, h) = facade.get_context().get_framebuffer_dimensions();
         let map_vertex = |v| Vertex::from_mesh_vertex(v, w as _, h as _, dpi_factor);
         self.vertices.extend(draw.raw_vertices().map(map_vertex));
-        self.indices.extend(draw.inner_mesh().indices().iter().map(|&u| u as u32));
+        self.indices
+            .extend(draw.inner_mesh().indices().iter().map(|&u| u as u32));
         let index_prim = glium::index::PrimitiveType::TrianglesList;
         let vertex_buffer = glium::VertexBuffer::new(facade, &self.vertices[..])?;
         let index_buffer = glium::IndexBuffer::new(facade, index_prim, &self.indices[..])?;
@@ -312,7 +325,13 @@ impl Renderer {
         let uniforms = uniform!{};
 
         // Draw to the given surface.
-        surface.draw(&vertex_buffer, &index_buffer, &self.program, &uniforms, &draw_params)?;
+        surface.draw(
+            &vertex_buffer,
+            &index_buffer,
+            &self.program,
+            &uniforms,
+            &draw_params,
+        )?;
 
         Ok(())
     }

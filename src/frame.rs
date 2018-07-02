@@ -1,11 +1,11 @@
 use draw::properties::color::IntoRgba;
-use glium::{self, Surface};
 use glium::framebuffer::{MultiOutputFrameBuffer, SimpleFrameBuffer};
+use glium::index::IndicesSource;
 use glium::uniforms::{MagnifySamplerFilter, Uniforms};
 use glium::vertex::MultiVerticesSource;
-use glium::index::IndicesSource;
+use glium::{self, Surface};
+use std::cell::{RefCell, RefMut};
 use std::collections::{hash_map, HashMap};
-use std::cell::{RefMut, RefCell};
 use std::ops::{Deref, DerefMut};
 use window;
 
@@ -25,9 +25,9 @@ pub struct WindowFrames<'a> {
 impl Frame {
     /// Return the part of the `Frame` associated with the given window.
     pub fn window(&self, id: window::Id) -> Option<WindowFrame> {
-        self.gl_frames
-            .get(&id)
-            .map(|wf| WindowFrame { frame: wf.borrow_mut() })
+        self.gl_frames.get(&id).map(|wf| WindowFrame {
+            frame: wf.borrow_mut(),
+        })
     }
 
     /// Return the part of the `Frame` associated with the main window.
@@ -35,10 +35,9 @@ impl Frame {
         self.main_window
             .and_then(|id| self.window(id))
             .or_else(|| {
-                self.gl_frames
-                    .values()
-                    .next()
-                    .map(|wf| WindowFrame { frame: wf.borrow_mut() })
+                self.gl_frames.values().next().map(|wf| WindowFrame {
+                    frame: wf.borrow_mut(),
+                })
             })
             .expect("no `main_window` in `Frame`")
     }
@@ -64,15 +63,26 @@ impl Frame {
 impl<'a> Iterator for WindowFrames<'a> {
     type Item = (window::Id, WindowFrame<'a>);
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .next()
-            .map(|(&id, wf)| (id, WindowFrame { frame: wf.borrow_mut() }))
+        self.iter.next().map(|(&id, wf)| {
+            (
+                id,
+                WindowFrame {
+                    frame: wf.borrow_mut(),
+                },
+            )
+        })
     }
 }
 
 // A function (private to the crate) for creating a new `Frame`.
-pub fn new(gl_frames: HashMap<window::Id, RefCell<GlFrame>>, main_window: Option<window::Id>) -> Frame {
-    Frame { gl_frames, main_window }
+pub fn new(
+    gl_frames: HashMap<window::Id, RefCell<GlFrame>>,
+    main_window: Option<window::Id>,
+) -> Frame {
+    Frame {
+        gl_frames,
+        main_window,
+    }
 }
 
 // A function (private to the crate) for finishing and submitting a `Frame`.
@@ -154,7 +164,13 @@ impl GlFrame {
         U: Uniforms,
         V: MultiVerticesSource<'b>,
     {
-        self.frame.draw(vertex_buffer, index_buffer, program, uniforms, draw_parameters)
+        self.frame.draw(
+            vertex_buffer,
+            index_buffer,
+            program,
+            uniforms,
+            draw_parameters,
+        )
     }
 
     /// Copies a rectangle of pixels from this surface to another surface.
@@ -164,11 +180,11 @@ impl GlFrame {
         target: &S,
         target_rect: &glium::BlitTarget,
         filter: MagnifySamplerFilter,
-    )
-    where
+    ) where
         S: Surface,
     {
-        self.frame.blit_color(source_rect, target, target_rect, filter)
+        self.frame
+            .blit_color(source_rect, target, target_rect, filter)
     }
 
     /// Blits from the default framebuffer.
@@ -189,7 +205,8 @@ impl GlFrame {
         target_rect: &glium::BlitTarget,
         filter: MagnifySamplerFilter,
     ) {
-        self.frame.blit_from_simple_framebuffer(source, source_rect, target_rect, filter)
+        self.frame
+            .blit_from_simple_framebuffer(source, source_rect, target_rect, filter)
     }
 
     /// Blits from a multi-output framebuffer.
@@ -200,7 +217,8 @@ impl GlFrame {
         target_rect: &glium::BlitTarget,
         filter: MagnifySamplerFilter,
     ) {
-        self.frame.blit_from_multioutput_framebuffer(source, source_rect, target_rect, filter)
+        self.frame
+            .blit_from_multioutput_framebuffer(source, source_rect, target_rect, filter)
     }
 
     /// Copies the entire surface to a target surface.
@@ -209,8 +227,7 @@ impl GlFrame {
         target: &S,
         target_rect: &glium::BlitTarget,
         filter: MagnifySamplerFilter,
-    )
-    where
+    ) where
         S: Surface,
     {
         self.frame.blit_whole_color_to(target, target_rect, filter)
@@ -218,7 +235,8 @@ impl GlFrame {
 
     /// Copies the entire surface to a target surface.
     pub fn fill<S>(&self, target: &S, filter: MagnifySamplerFilter)
-        where S: Surface,
+    where
+        S: Surface,
     {
         self.frame.fill(target, filter)
     }

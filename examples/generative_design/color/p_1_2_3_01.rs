@@ -180,7 +180,8 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     while grid_y < model.tile_count_y {
         let mut grid_x = 0;
         while grid_x < model.tile_count_x {
-            let r = r.shift_x((tile_width * grid_x) as f32)
+            let r = r
+                .shift_x((tile_width * grid_x) as f32)
                 .shift_y(-(tile_height * grid_y) as f32);
             let index = counter % current_tile_count_x as usize;
             draw.rect().xy(r.xy()).wh(r.wh()).hsv(

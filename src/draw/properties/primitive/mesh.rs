@@ -1,7 +1,7 @@
-use draw::{self, Drawing};
 use draw::mesh::vertex::IntoVertex;
-use draw::properties::{Draw, Drawn, IntoDrawn, Primitive, SetOrientation, SetPosition};
 use draw::properties::spatial::{self, orientation, position};
+use draw::properties::{Draw, Drawn, IntoDrawn, Primitive, SetOrientation, SetPosition};
+use draw::{self, Drawing};
 use geom;
 use math::BaseFloat;
 use mesh::vertex::{WithColor, WithTexCoords};
@@ -32,11 +32,7 @@ impl Vertexless {
     ///
     /// Each triangle may be composed of any vertex type that may be converted directly into the
     /// `draw;;mesh::vertex` type.
-    pub fn tris<S, I, V>(
-        self,
-        mesh: &mut draw::IntermediaryMesh<S>,
-        tris: I,
-    ) -> Mesh<S>
+    pub fn tris<S, I, V>(self, mesh: &mut draw::IntermediaryMesh<S>, tris: I) -> Mesh<S>
     where
         S: BaseFloat,
         I: IntoIterator<Item = geom::Tri<V>>,
@@ -49,16 +45,18 @@ impl Vertexless {
         vertex_data_ranges.tex_coords.start = mesh.vertex_data.tex_coords.len();
         index_range.start = mesh.indices.len();
 
-        let vertices = tris.into_iter()
+        let vertices = tris
+            .into_iter()
             .flat_map(geom::Tri::vertices)
             .map(IntoVertex::into_vertex);
         for (i, vertex) in vertices.enumerate() {
             let WithTexCoords {
                 tex_coords,
-                vertex: WithColor {
-                    color,
-                    vertex: point,
-                },
+                vertex:
+                    WithColor {
+                        color,
+                        vertex: point,
+                    },
             } = vertex;
             mesh.vertex_data.points.push(point);
             mesh.vertex_data.colors.push(color);
@@ -98,10 +96,11 @@ impl Vertexless {
         for vertex in vertices {
             let WithTexCoords {
                 tex_coords,
-                vertex: WithColor {
-                    color,
-                    vertex: point,
-                },
+                vertex:
+                    WithColor {
+                        color,
+                        vertex: point,
+                    },
             } = vertex.into_vertex();
             mesh.vertex_data.points.push(point);
             mesh.vertex_data.colors.push(color);
@@ -111,7 +110,11 @@ impl Vertexless {
         vertex_data_ranges.colors.end = mesh.vertex_data.colors.len();
         vertex_data_ranges.tex_coords.end = mesh.vertex_data.tex_coords.len();
         let mut index_range = mesh.indices.len()..mesh.indices.len();
-        let iter = FlattenIndices { iter: indices.into_iter(), current: [0; 3], index: 3 };
+        let iter = FlattenIndices {
+            iter: indices.into_iter(),
+            current: [0; 3],
+            index: 3,
+        };
         mesh.indices.extend(iter);
         index_range.end = mesh.indices.len();
         Mesh::new(vertex_data_ranges, index_range)
@@ -191,7 +194,11 @@ where
         } = self;
 
         let dimensions = spatial::dimension::Properties::default();
-        let spatial = spatial::Properties { dimensions, orientation, position };
+        let spatial = spatial::Properties {
+            dimensions,
+            orientation,
+            position,
+        };
         let vertices = draw::properties::VerticesFromRanges {
             ranges: vertex_data_ranges,
             fill_color: None,
@@ -218,7 +225,7 @@ where
                 Some(trio) => {
                     self.current = trio;
                     self.index = 0;
-                },
+                }
             }
         }
     }

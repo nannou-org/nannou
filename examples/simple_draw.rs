@@ -7,7 +7,7 @@ fn main() {
 }
 
 fn view(app: &App, frame: Frame) -> Frame {
-    // Begin drawing 
+    // Begin drawing
     let draw = app.draw();
 
     // Clear the background to blue.
@@ -35,10 +35,16 @@ fn view(app: &App, frame: Frame) -> Frame {
         .color(LIGHT_YELLOW);
 
     // Draw a quad that follows the inverse of the ellipse.
-    draw.quad().x_y(-app.mouse.x, app.mouse.y).color(DARK_GREEN).rotate(t);
+    draw.quad()
+        .x_y(-app.mouse.x, app.mouse.y)
+        .color(DARK_GREEN)
+        .rotate(t);
 
     // Draw a rect that follows a different inverse of the ellipse.
-    draw.rect().x_y(app.mouse.y, app.mouse.x).w(app.mouse.x * 0.25).hsv(t, 1.0, 1.0);
+    draw.rect()
+        .x_y(app.mouse.y, app.mouse.x)
+        .w(app.mouse.x * 0.25)
+        .hsv(t, 1.0, 1.0);
 
     // Write the result of our drawing to the window's OpenGL frame.
     draw.to_frame(app, &frame).unwrap();

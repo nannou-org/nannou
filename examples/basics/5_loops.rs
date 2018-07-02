@@ -9,7 +9,7 @@ fn main() {
 struct Model;
 
 fn model(_app: &App) -> Model {
-    // For loops in Rust is an iterator which gives back a series of elemaents 
+    // For loops in Rust is an iterator which gives back a series of elemaents
     // one at a time. The current value of the iterator is assigned in this case to 'i'
     for i in 0..10 {
         println!("for iterator = {}", i);
@@ -23,18 +23,18 @@ fn model(_app: &App) -> Model {
         x += 1;
     }
 
-    // If you want to loop forever, Rust provides a dedicated keyword to handle this 
+    // If you want to loop forever, Rust provides a dedicated keyword to handle this
     // Note your code will be stuck in this loop until you decide to break.
     // In this case we loop while y is less than 30 and then we use the 'break'
-    // keyword to exit the loop.  
+    // keyword to exit the loop.
     let mut y = 0;
     loop {
         y += 1;
         println!("loooooping");
 
-        if y > 30 { 
+        if y > 30 {
             println!("breaking out of loop");
-            break; 
+            break;
         }
     }
 

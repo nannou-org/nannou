@@ -21,7 +21,7 @@ pub mod named {
     use super::{Alpha, Rgb, Rgba};
 
     macro_rules! make_color {
-        ($r:expr, $g:expr, $b:expr, $a:expr) => (
+        ($r:expr, $g:expr, $b:expr, $a:expr) => {
             Alpha {
                 color: Rgb {
                     red: $r as f32 / 255.0,
@@ -30,10 +30,10 @@ pub mod named {
                 },
                 alpha: $a as f32 / 255.0,
             }
-        );
-        ($r:expr, $g:expr, $b:expr) => (
+        };
+        ($r:expr, $g:expr, $b:expr) => {
             make_color!($r, $g, $b, 255)
-        );
+        };
     }
 
     /// Scarlet Red - Light - #EF2929

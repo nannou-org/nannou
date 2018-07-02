@@ -89,7 +89,6 @@ where
 
         // If there is some un-read range of `samples`, read those first.
         if let Some(range) = pending_range.take() {
-
             // If the pending range would not fill the output, write what we can before going on to
             // request more frames.
             if range.len() < output.len() {
@@ -124,7 +123,11 @@ where
 
             // Render the state of the model to the samples buffer.
             let interleaved_samples = std::mem::replace(samples, Vec::new()).into_boxed_slice();
-            let buffer = audio::Buffer { interleaved_samples, channels, sample_rate };
+            let buffer = audio::Buffer {
+                interleaved_samples,
+                channels,
+                sample_rate,
+            };
             let (new_model, new_buffer) = render(model, buffer);
             let mut new_samples = new_buffer.interleaved_samples.into_vec();
             model = new_model;
@@ -137,7 +140,6 @@ where
 
             // If this was the last frame, break from the loop.
             if end == output.len() {
-
                 // If this is the last iteration and not all of `frames` were read, store the
                 // `pending_range` to be read next time this method is called.
                 if range.len() < samples.len() {

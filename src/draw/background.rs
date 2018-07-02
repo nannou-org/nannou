@@ -1,6 +1,6 @@
 use color::{self, Rgb, Rgba};
-use draw::Draw;
 use draw::properties::{ColorScalar, IntoRgba};
+use draw::Draw;
 use geom;
 use math::BaseFloat;
 
@@ -9,7 +9,7 @@ pub struct Background<'a, S = geom::DefaultScalar>
 where
     S: 'a + BaseFloat,
 {
-    draw: &'a Draw<S>
+    draw: &'a Draw<S>,
 }
 
 /// Begin coloring the background.

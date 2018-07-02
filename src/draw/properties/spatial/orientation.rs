@@ -1,6 +1,6 @@
 use geom;
 use geom::graph::node;
-use math::{deg_to_rad, turns_to_rad, Angle, BaseFloat, Euler, Point3, Rad, Quaternion, Vector3};
+use math::{deg_to_rad, turns_to_rad, Angle, BaseFloat, Euler, Point3, Quaternion, Rad, Vector3};
 
 /// Orientation properties for **Drawing** a **Node**.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -32,7 +32,7 @@ pub enum Orientation<S = geom::DefaultScalar> {
     /// The orientation of the node along the axis in radians.
     Absolute(S),
     /// The orientation of the node described relatively to another node in radians.
-    Relative(S, Option<node::Index>)
+    Relative(S, Option<node::Index>),
 }
 
 impl<S> Properties<S> {

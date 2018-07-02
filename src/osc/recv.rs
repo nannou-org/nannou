@@ -1,21 +1,21 @@
 //! Items related to the `osc::Receiver` implementation.
 
+use super::{decode, rosc, CommunicationError, Connected, Packet, Unconnected};
 use std;
 use std::net::{SocketAddr, SocketAddrV4, ToSocketAddrs, UdpSocket};
-use std::sync::Mutex;
 use std::sync::atomic::{self, AtomicBool};
-use super::{decode, rosc, CommunicationError, Connected, Packet, Unconnected};
+use std::sync::Mutex;
 
 /// The default "maximum transmission unit" size as a number of bytes.
 ///
 /// This is a common MTU size for ethernet.
-pub const DEFAULT_MTU: usize = rosc::decoder::MTU; 
+pub const DEFAULT_MTU: usize = rosc::decoder::MTU;
 /// By default UDP sockets are blocking so this is the mode in which the receiver is
 /// initialised.
 pub const DEFAULT_NON_BLOCKING: bool = false;
 
 /// A type used for receiving OSC packets.
-pub struct Receiver<M=Unconnected> {
+pub struct Receiver<M = Unconnected> {
     buffer: Mutex<Vec<u8>>,
     socket: UdpSocket,
     non_blocking: AtomicBool,
@@ -30,8 +30,9 @@ pub struct Receiver<M=Unconnected> {
 ///
 /// Each call to `next` will block until the next packet is received or until some error
 /// occurs.
-pub struct Iter<'a, M=Unconnected>
-    where M: 'a,
+pub struct Iter<'a, M = Unconnected>
+where
+    M: 'a,
 {
     receiver: &'a Receiver<M>,
 }
@@ -44,8 +45,9 @@ pub struct Iter<'a, M=Unconnected>
 ///
 /// Each call to `next` will only return `Some` while there are pending messages and will
 /// return `None` otherwise.
-pub struct TryIter<'a, M=Unconnected>
-    where M: 'a,
+pub struct TryIter<'a, M = Unconnected>
+where
+    M: 'a,
 {
     receiver: &'a Receiver<M>,
 }
@@ -90,7 +92,8 @@ impl Receiver<Unconnected> {
     /// }
     /// ```
     pub fn bind_to<A>(addr: A) -> Result<Self, std::io::Error>
-        where A: ToSocketAddrs,
+    where
+        A: ToSocketAddrs,
     {
         Self::bind_to_with_mtu(addr, DEFAULT_MTU)
     }
@@ -114,7 +117,8 @@ impl Receiver<Unconnected> {
     /// }
     /// ```
     pub fn bind_to_with_mtu<A>(addr: A, mtu: usize) -> Result<Self, std::io::Error>
-        where A: ToSocketAddrs,
+    where
+        A: ToSocketAddrs,
     {
         let buffer = Mutex::new(vec![0; mtu]);
         let socket = UdpSocket::bind(addr)?;
@@ -184,14 +188,25 @@ impl Receiver<Unconnected> {
     /// }
     /// ```
     pub fn connect<A>(self, addr: A) -> Result<Receiver<Connected>, std::io::Error>
-        where A: ToSocketAddrs,
+    where
+        A: ToSocketAddrs,
     {
-        let Receiver { buffer, socket, non_blocking, .. } = self;
+        let Receiver {
+            buffer,
+            socket,
+            non_blocking,
+            ..
+        } = self;
         let mut addrs = addr.to_socket_addrs()?;
         let addr = addrs.next().expect("could not resolve any `SocketAddr`s");
         socket.connect(addr)?;
         let mode = Connected { addr };
-        Ok(Receiver { buffer, socket, non_blocking, mode })
+        Ok(Receiver {
+            buffer,
+            socket,
+            non_blocking,
+            mode,
+        })
     }
 
     /// Waits for the next OSC packet to be received and returns it along with the source address.

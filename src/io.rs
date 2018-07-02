@@ -4,9 +4,9 @@
 use serde;
 use serde_json;
 use std::error::Error;
-use std::{fmt, fs, io};
 use std::io::{Read, Write};
 use std::path::Path;
+use std::{fmt, fs, io};
 use toml;
 
 /// Errors that might occur when saving a file.

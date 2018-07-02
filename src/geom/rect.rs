@@ -1,6 +1,6 @@
 use geom::{quad, Align, DefaultScalar, Edge, Quad, Range, Tri};
-use math::{self, BaseNum, Point2, Vector2};
 use math::num_traits::Float;
+use math::{self, BaseNum, Point2, Vector2};
 use std::ops::Neg;
 
 /// Defines a Rectangle's bounds across the x and y axes.
@@ -91,18 +91,46 @@ where
 
 // Given some `SubdivisionRanges` and a subdivision index, produce the rect for that subdivision.
 macro_rules! subdivision_from_index {
-    ($ranges:expr, 0) => { Rect { x: $ranges.x_a, y: $ranges.y_a } };
-    ($ranges:expr, 1) => { Rect { x: $ranges.x_b, y: $ranges.y_a } };
-    ($ranges:expr, 2) => { Rect { x: $ranges.x_a, y: $ranges.y_b } };
-    ($ranges:expr, 3) => { Rect { x: $ranges.x_b, y: $ranges.y_b } };
+    ($ranges:expr,0) => {
+        Rect {
+            x: $ranges.x_a,
+            y: $ranges.y_a,
+        }
+    };
+    ($ranges:expr,1) => {
+        Rect {
+            x: $ranges.x_b,
+            y: $ranges.y_a,
+        }
+    };
+    ($ranges:expr,2) => {
+        Rect {
+            x: $ranges.x_a,
+            y: $ranges.y_b,
+        }
+    };
+    ($ranges:expr,3) => {
+        Rect {
+            x: $ranges.x_b,
+            y: $ranges.y_b,
+        }
+    };
 }
 
 // Given some `Rect` and an index, produce the corner for that index.
 macro_rules! corner_from_index {
-    ($rect:expr, 0) => { $rect.bottom_left() };
-    ($rect:expr, 1) => { $rect.bottom_right() };
-    ($rect:expr, 2) => { $rect.top_left() };
-    ($rect:expr, 3) => { $rect.top_right() };
+    ($rect:expr,0) => {
+        $rect.bottom_left()
+    };
+    ($rect:expr,1) => {
+        $rect.bottom_right()
+    };
+    ($rect:expr,2) => {
+        $rect.top_left()
+    };
+    ($rect:expr,3) => {
+        $rect.top_right()
+    };
 }
 
 impl<S> Rect<S>
@@ -124,7 +152,10 @@ where
 
     /// Construct a Rect at origin with the given dimensions.
     pub fn from_wh(wh: Vector2<S>) -> Self {
-        let p = Point2 { x: S::zero(), y: S::zero() };
+        let p = Point2 {
+            x: S::zero(),
+            y: S::zero(),
+        };
         Self::from_xy_wh(p, wh)
     }
 
@@ -159,9 +190,9 @@ where
 
     /// The Rect representing the area in which two Rects overlap.
     pub fn overlap(self, other: Self) -> Option<Self> {
-        self.x.overlap(other.x).and_then(|x| {
-            self.y.overlap(other.y).map(|y| Rect { x: x, y: y })
-        })
+        self.x
+            .overlap(other.x)
+            .and_then(|x| self.y.overlap(other.y).map(|y| Rect { x: x, y: y }))
     }
 
     /// The Rect that encompass the two given sets of Rect.
@@ -684,7 +715,10 @@ where
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         let next_index = self.subdivision_index + 1;
-        if let Some(sd) = self.ranges.subdivision_at_index(NUM_SUBDIVISIONS - next_index) {
+        if let Some(sd) = self
+            .ranges
+            .subdivision_at_index(NUM_SUBDIVISIONS - next_index)
+        {
             self.subdivision_index = next_index;
             return Some(sd);
         }

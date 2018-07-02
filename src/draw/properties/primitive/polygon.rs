@@ -1,6 +1,8 @@
-use draw::{self, mesh, Drawing};
-use draw::properties::{ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetOrientation, SetPosition};
 use draw::properties::spatial::{self, orientation, position};
+use draw::properties::{
+    ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetOrientation, SetPosition,
+};
+use draw::{self, mesh, Drawing};
 use geom;
 use math::BaseFloat;
 use std::iter;
@@ -40,7 +42,9 @@ impl Pointless {
     {
         let mut ranges = draw::IntermediaryVertexDataRanges::default();
         ranges.points.start = vertex_data.points.len();
-        vertex_data.points.extend(points.into_iter().map(Into::into));
+        vertex_data
+            .points
+            .extend(points.into_iter().map(Into::into));
         ranges.points.end = vertex_data.points.len();
         let color = Fill(None);
         Polygon::new(color, ranges)
@@ -159,12 +163,16 @@ where
                     })
                     .unwrap_or(draw.theme(|t| t.color.default));
                 Some(color)
-            },
+            }
             _ => None,
         };
 
         let dimensions = spatial::dimension::Properties::default();
-        let spatial = spatial::Properties { dimensions, orientation, position };
+        let spatial = spatial::Properties {
+            dimensions,
+            orientation,
+            position,
+        };
         let indices = geom::polygon::triangle_indices(ranges.points.len());
         let vertices = draw::properties::VerticesFromRanges { ranges, fill_color };
         (spatial, vertices, indices)
@@ -186,7 +194,11 @@ where
         } = self;
         let fill_color = None;
         let dimensions = spatial::dimension::Properties::default();
-        let spatial = spatial::Properties { dimensions, orientation, position };
+        let spatial = spatial::Properties {
+            dimensions,
+            orientation,
+            position,
+        };
         let indices = geom::polygon::triangle_indices(ranges.points.len());
         let vertices = draw::properties::VerticesFromRanges { ranges, fill_color };
         (spatial, vertices, indices)

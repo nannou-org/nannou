@@ -118,8 +118,13 @@ where
     {
         let (a, b, c, d) = self.into();
         let (a, b, c, d) = (a.point2(), b.point2(), c.point2(), d.point2());
-        let rect = Rect { x: Range::new(a.x, a.x), y: Range::new(a.y, a.y) };
-        rect.stretch_to_point(b).stretch_to_point(c).stretch_to_point(d)
+        let rect = Rect {
+            x: Range::new(a.x, a.x),
+            y: Range::new(a.y, a.y),
+        };
+        rect.stretch_to_point(b)
+            .stretch_to_point(c)
+            .stretch_to_point(d)
     }
 
     /// The bounding `Rect` of the triangle.
@@ -134,7 +139,10 @@ where
             y: Range::new(a.y, a.y),
             z: Range::new(a.z, a.z),
         };
-        cuboid.stretch_to_point(b).stretch_to_point(c).stretch_to_point(d)
+        cuboid
+            .stretch_to_point(b)
+            .stretch_to_point(c)
+            .stretch_to_point(d)
     }
 
     /// Map the **Quad**'s vertices to a new type.

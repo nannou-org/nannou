@@ -36,17 +36,21 @@ fn audio(mut audio: Audio, mut buffer: Buffer) -> (Audio, Buffer) {
 
 fn model(app: &App) -> Model {
     // Initialise the state that we want to live on the audio thread.
-    let model = Audio { phase: 0.0, hz: 440.0 };
+    let model = Audio {
+        phase: 0.0,
+        hz: 440.0,
+    };
     let stream = app.audio.new_output_stream(model, audio).build().unwrap();
     Model { stream }
 }
 
 fn event(_app: &App, model: Model, event: Event) -> Model {
     match event {
-        Event::WindowEvent { simple: Some(event), .. } => match event {
-
+        Event::WindowEvent {
+            simple: Some(event),
+            ..
+        } => match event {
             KeyPressed(key) => match key {
-
                 // Pause or unpause the audio when Space is pressed.
                 Key::Space => {
                     if model.stream.is_playing() {
@@ -54,25 +58,34 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
                     } else {
                         model.stream.play();
                     }
-                },
+                }
 
                 // Raise the frequency when the up key is pressed.
                 Key::Up => {
-                    model.stream.send(|audio| { audio.hz += 10.0; }).unwrap();
-                },
+                    model
+                        .stream
+                        .send(|audio| {
+                            audio.hz += 10.0;
+                        })
+                        .unwrap();
+                }
 
                 // Lower the frequency when the down key is pressed.
                 Key::Down => {
-                    model.stream.send(|audio| { audio.hz -= 10.0; }).unwrap();
-                },
+                    model
+                        .stream
+                        .send(|audio| {
+                            audio.hz -= 10.0;
+                        })
+                        .unwrap();
+                }
 
                 _ => (),
             },
 
             _ => (),
         },
-        Event::Update(_update) => {
-        },
+        Event::Update(_update) => {}
         _ => (),
     }
     model

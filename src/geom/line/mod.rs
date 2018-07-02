@@ -64,7 +64,11 @@ where
 {
     /// Short-hand constructor for a `Line`.
     pub fn new(start: Point2<S>, end: Point2<S>, half_thickness: S) -> Self {
-        Line { start, end, half_thickness }
+        Line {
+            start,
+            end,
+            half_thickness,
+        }
     }
 
     /// The centre of the line.
@@ -161,7 +165,7 @@ where
     /// Produce a `Capped` line with no protrusion beyond the line ends.
     pub fn capped_butt(self) -> Capped<S> {
         let line = self;
-        let cap = Cap::Butt;;
+        let cap = Cap::Butt;
         Capped { line, cap }
     }
 
@@ -193,13 +197,13 @@ where
                 let start = cap::Vertices::Round(start_cap.circumference());
                 let end = cap::Vertices::Round(end_cap.circumference());
                 (start, end)
-            },
+            }
             Cap::Square => {
                 let (start_cap, end_cap) = self.line.caps_square();
                 let start = cap::Vertices::Square(start_cap.vertices());
                 let end = cap::Vertices::Square(end_cap.vertices());
                 (start, end)
-            },
+            }
         };
         let line = self.line.quad_corners_iter();
         CappedVertices {

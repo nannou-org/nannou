@@ -1,16 +1,16 @@
-use audio::{Buffer, Device, Requester, Stream};
 use audio::cpal;
 use audio::sample::{Sample, ToSample};
 use audio::stream;
-use std::sync::{Arc, Mutex};
+use audio::{Buffer, Device, Requester, Stream};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 
 /// The function that will be called when a `Buffer` is ready to be rendered.
 pub trait RenderFn<M, S>: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
 impl<M, S, F> RenderFn<M, S> for F where F: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
 
-pub struct Builder<M, F, S=f32> {
+pub struct Builder<M, F, S = f32> {
     pub builder: super::Builder<M, S>,
     pub render: F,
 }
@@ -52,22 +52,24 @@ impl<M, F, S> Builder<M, F, S> {
     }
 
     pub fn build(self) -> Result<Stream<M>, super::BuildError>
-        where S: 'static + Send + Sample + ToSample<u16> + ToSample<i16> + ToSample<f32>,
-              M: 'static + Send,
-              F: 'static + RenderFn<M, S> + Send,
+    where
+        S: 'static + Send + Sample + ToSample<u16> + ToSample<i16> + ToSample<f32>,
+        M: 'static + Send,
+        F: 'static + RenderFn<M, S> + Send,
     {
         let Builder {
             render,
-            builder: stream::Builder {
-                event_loop,
-                process_fn_tx,
-                model,
-                sample_rate,
-                channels,
-                frames_per_buffer,
-                device,
-                ..
-            },
+            builder:
+                stream::Builder {
+                    event_loop,
+                    process_fn_tx,
+                    model,
+                    sample_rate,
+                    channels,
+                    frames_per_buffer,
+                    device,
+                    ..
+                },
         } = self;
 
         let sample_rate = sample_rate
@@ -81,14 +83,15 @@ impl<M, F, S> Builder<M, F, S> {
         };
 
         // Find the best matching format.
-        let format = super::find_best_matching_format(
-            &device,
-            sample_format,
-            channels,
-            sample_rate,
-            device.default_output_format().ok(),
-            |device| device.supported_output_formats().map(|fs| fs.collect()),
-        )?.expect("no matching supported audio output formats for the target device");
+        let format =
+            super::find_best_matching_format(
+                &device,
+                sample_format,
+                channels,
+                sample_rate,
+                device.default_output_format().ok(),
+                |device| device.supported_output_formats().map(|fs| fs.collect()),
+            )?.expect("no matching supported audio output formats for the target device");
         let stream_id = event_loop.build_output_stream(&device, &format)?;
         let (update_tx, update_rx) = mpsc::channel();
         let model = Arc::new(Mutex::new(Some(model)));
@@ -112,7 +115,6 @@ impl<M, F, S> Builder<M, F, S> {
 
         // The function used to process a buffer of samples.
         let proc_output = move |data: cpal::StreamData| {
-
             // Collect and process any pending updates.
             macro_rules! process_pending_updates {
                 () => {
@@ -164,20 +166,22 @@ impl<M, F, S> Builder<M, F, S> {
             match output {
                 cpal::UnknownTypeOutputBuffer::U16(mut buffer) => {
                     fill_output(&mut buffer, &samples);
-                },
+                }
                 cpal::UnknownTypeOutputBuffer::I16(mut buffer) => {
                     fill_output(&mut buffer, &samples);
-                },
+                }
                 cpal::UnknownTypeOutputBuffer::F32(mut buffer) => {
                     fill_output(&mut buffer, &samples)
-                },
+                }
             }
 
             process_pending_updates!();
         };
 
         // Send the buffer processing function to the event loop.
-        process_fn_tx.send((stream_id.clone(), Box::new(proc_output))).unwrap();
+        process_fn_tx
+            .send((stream_id.clone(), Box::new(proc_output)))
+            .unwrap();
 
         let shared = Arc::new(super::Shared {
             model,

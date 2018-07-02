@@ -5,16 +5,18 @@
 //! - [**SimpleWindowEvent**](./struct.WindowEvent.html) - a stripped-back, simplified,
 //!   newcomer-friendly version of the **raw**, low-level glutin event.
 
-use App;
-use math::{Point2, Vector2};
 use geom;
 use glium::glutin;
+use math::{Point2, Vector2};
 use state;
 use std::path::PathBuf;
 use window;
+use App;
 
-pub use glium::glutin::{ElementState, KeyboardInput, ModifiersState, MouseButton, MouseScrollDelta,
-                        Touch, TouchPhase, VirtualKeyCode as Key};
+pub use glium::glutin::{
+    ElementState, KeyboardInput, ModifiersState, MouseButton, MouseScrollDelta, Touch, TouchPhase,
+    VirtualKeyCode as Key,
+};
 
 /// Event types that are compatible with the nannou app loop.
 pub trait LoopEvent: From<Update> {
@@ -87,7 +89,6 @@ pub struct WindowEvent {
 /// - positive `z` points into the screen, negative `z` points out of the screen.
 #[derive(Clone, Debug, PartialEq)]
 pub enum SimpleWindowEvent {
-
     /// The window has been moved to a new position.
     Moved(Point2<geom::DefaultScalar>),
 
@@ -142,10 +143,7 @@ pub enum SimpleWindowEvent {
     /// At the moment, only supported on Apple forcetouch-capable macbooks.
     /// The parameters are: pressure level (value between 0 and 1 representing how hard the touchpad
     /// is being pressed) and stage (integer representing the click level).
-    TouchpadPressure {
-        pressure: f32,
-        stage: i64,
-    },
+    TouchpadPressure { pressure: f32, stage: i64 },
 
     /// The window gained or lost focus.
     ///
@@ -174,8 +172,7 @@ impl SimpleWindowEvent {
         dpi_factor: f64,
         win_w_px: u32,
         win_h_px: u32,
-    ) -> Option<Self>
-    {
+    ) -> Option<Self> {
         use self::SimpleWindowEvent::*;
 
         // Translate the coordinates from top-left-origin-with-y-down to centre-origin-with-y-up.
@@ -192,67 +189,62 @@ impl SimpleWindowEvent {
                 let x = tw(new_w as f64);
                 let y = th(new_h as f64);
                 Resized(Vector2 { x, y })
-            },
+            }
 
             glutin::WindowEvent::Moved(x, y) => {
                 let x = tx(x as f64);
                 let y = ty(y as f64);
                 Moved(Point2 { x, y })
-            },
+            }
 
-            glutin::WindowEvent::Closed => {
-                Closed
-            },
+            glutin::WindowEvent::Closed => Closed,
 
-            glutin::WindowEvent::DroppedFile(path) => {
-                DroppedFile(path)
-            },
+            glutin::WindowEvent::DroppedFile(path) => DroppedFile(path),
 
-            glutin::WindowEvent::HoveredFile(path) => {
-                HoveredFile(path)
-            },
+            glutin::WindowEvent::HoveredFile(path) => HoveredFile(path),
 
-            glutin::WindowEvent::HoveredFileCancelled => {
-                HoveredFileCancelled
-            },
+            glutin::WindowEvent::HoveredFileCancelled => HoveredFileCancelled,
 
-            glutin::WindowEvent::Focused(b) => {
-                Focused(b)
-            },
+            glutin::WindowEvent::Focused(b) => Focused(b),
 
-            glutin::WindowEvent::CursorMoved { position: (x, y), .. } => {
+            glutin::WindowEvent::CursorMoved {
+                position: (x, y), ..
+            } => {
                 let x = tx(x as f64);
                 let y = ty(y as f64);
                 MouseMoved(Point2 { x, y })
-            },
+            }
 
-            glutin::WindowEvent::CursorEntered { .. } => {
-                MouseEntered
-            },
+            glutin::WindowEvent::CursorEntered { .. } => MouseEntered,
 
-            glutin::WindowEvent::CursorLeft { .. } => {
-                MouseExited
-            },
+            glutin::WindowEvent::CursorLeft { .. } => MouseExited,
 
-            glutin::WindowEvent::MouseWheel { delta, phase, .. } => {
-                MouseWheel(delta, phase)
-            },
+            glutin::WindowEvent::MouseWheel { delta, phase, .. } => MouseWheel(delta, phase),
 
             glutin::WindowEvent::MouseInput { state, button, .. } => match state {
                 ElementState::Pressed => MousePressed(button),
                 ElementState::Released => MouseReleased(button),
             },
 
-            glutin::WindowEvent::Touch(glutin::Touch { phase, location: (x, y), id, .. }) => {
+            glutin::WindowEvent::Touch(glutin::Touch {
+                phase,
+                location: (x, y),
+                id,
+                ..
+            }) => {
                 let x = tx(x);
                 let y = ty(y);
                 let position = Point2 { x, y };
-                Touch { phase, position, id }
-            },
+                Touch {
+                    phase,
+                    position,
+                    id,
+                }
+            }
 
-            glutin::WindowEvent::TouchpadPressure { pressure, stage, .. } => {
-                TouchpadPressure { pressure, stage }
-            },
+            glutin::WindowEvent::TouchpadPressure {
+                pressure, stage, ..
+            } => TouchpadPressure { pressure, stage },
 
             glutin::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
                 Some(key) => match input.state {
@@ -262,12 +254,12 @@ impl SimpleWindowEvent {
                 None => return None,
             },
 
-            glutin::WindowEvent::AxisMotion { .. } |
-            glutin::WindowEvent::Refresh |
-            glutin::WindowEvent::ReceivedCharacter(_) |
-            glutin::WindowEvent::HiDPIFactorChanged(_) => {
+            glutin::WindowEvent::AxisMotion { .. }
+            | glutin::WindowEvent::Refresh
+            | glutin::WindowEvent::ReceivedCharacter(_)
+            | glutin::WindowEvent::HiDPIFactorChanged(_) => {
                 return None;
-            },
+            }
         };
 
         Some(event)
@@ -289,23 +281,21 @@ impl LoopEvent for Event {
                             None => (dpi_factor, 0, 0),
                             Some((w, h)) => (dpi_factor, w, h),
                         }
-                    },
+                    }
                 };
                 let raw = event.clone();
                 let simple = SimpleWindowEvent::from_glutin_window_event(
-                    event,
-                    dpi_factor,
-                    win_w_px,
-                    win_h_px,
+                    event, dpi_factor, win_w_px, win_h_px,
                 );
-                Event::WindowEvent { id: window_id, raw, simple }
-            },
-            glutin::Event::DeviceEvent { device_id, event } =>
-                Event::DeviceEvent(device_id, event),
-            glutin::Event::Awakened =>
-                Event::Awakened,
-            glutin::Event::Suspended(b) =>
-                Event::Suspended(b),
+                Event::WindowEvent {
+                    id: window_id,
+                    raw,
+                    simple,
+                }
+            }
+            glutin::Event::DeviceEvent { device_id, event } => Event::DeviceEvent(device_id, event),
+            glutin::Event::Awakened => Event::Awakened,
+            glutin::Event::Suspended(b) => Event::Suspended(b),
         };
         Some(event)
     }

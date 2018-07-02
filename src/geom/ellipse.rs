@@ -1,6 +1,6 @@
 use geom::{self, DefaultScalar, Rect, Tri};
-use math::{self, BaseFloat, BaseNum, Point2};
 use math::num_traits::NumCast;
+use math::{self, BaseFloat, BaseNum, Point2};
 use std;
 use std::ops::Neg;
 
@@ -67,7 +67,7 @@ pub struct Triangles<S = DefaultScalar> {
 
 impl<S> Ellipse<S>
 where
-    S: BaseNum + Neg<Output=S>,
+    S: BaseNum + Neg<Output = S>,
 {
     /// Construct a new ellipse from its bounding rect and resolution (number of sides).
     pub fn new(rect: Rect<S>, resolution: usize) -> Self {
@@ -114,11 +114,15 @@ where
 
 impl<S> Section<S>
 where
-    S: BaseNum + Neg<Output=S>,
+    S: BaseNum + Neg<Output = S>,
 {
     /// Produces an iterator yielding the points of the ellipse circumference.
     pub fn circumference(self) -> Circumference<S> {
-        let Section { ellipse, offset_radians, section_radians } = self;
+        let Section {
+            ellipse,
+            offset_radians,
+            section_radians,
+        } = self;
         let circ = Circumference::new_section(ellipse.rect, ellipse.resolution, section_radians);
         circ.offset_radians(offset_radians)
     }
@@ -144,7 +148,7 @@ where
 
 impl<S> Circumference<S>
 where
-    S: BaseNum + Neg<Output=S>,
+    S: BaseNum + Neg<Output = S>,
 {
     fn new_inner(rect: Rect<S>, num_points: usize, rad_step: S) -> Self {
         let (x, y, w, h) = rect.x_y_w_h();
@@ -220,7 +224,10 @@ where
         let middle = Some(self.middle);
         let num_vertices = self.len();
         let circumference = self;
-        let vertices = TriangleVertices { middle, circumference };
+        let vertices = TriangleVertices {
+            middle,
+            circumference,
+        };
         let indices = TriangleIndices {
             yield_middle: true,
             left: Some(1),
@@ -336,7 +343,10 @@ impl ExactSizeIterator for TriangleIndices {
             let remaining_middle = if self.yield_middle { 1 } else { 0 };
             let remaining_left = if self.left.is_some() { 1 } else { 0 };
             let remaining_right = 1;
-            n_tris * geom::tri::NUM_VERTICES as usize + remaining_middle + remaining_left + remaining_right
+            n_tris * geom::tri::NUM_VERTICES as usize
+                + remaining_middle
+                + remaining_left
+                + remaining_right
         } else {
             0
         }
@@ -349,7 +359,10 @@ where
 {
     type Item = Tri<Point2<S>>;
     fn next(&mut self) -> Option<Self::Item> {
-        let Triangles { ref mut points, ref mut last } = *self;
+        let Triangles {
+            ref mut points,
+            ref mut last,
+        } = *self;
         points.next().map(|next| {
             let triangle = Tri([points.middle, *last, next]);
             *last = next;

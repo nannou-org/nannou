@@ -31,7 +31,7 @@ use math::{BaseFloat, Point2};
 ///                  /  /  /
 ///                 /  /  4-----------------------6
 ///                /  /  
-///               /  c----------------------------d 
+///               /  c----------------------------d
 ///              /
 ///             5---------------------------------7
 /// ```
@@ -124,7 +124,11 @@ impl TriangleIndices {
     pub fn new(n_points: usize) -> Self {
         let n_normals = n_points * 2;
         let n_tris = n_normals - 2;
-        TriangleIndices { i: 0, n_tris, second: false }
+        TriangleIndices {
+            i: 0,
+            n_tris,
+            second: false,
+        }
     }
 }
 
@@ -183,12 +187,16 @@ where
                 None => return None,
             };
             // Get the line quad between the two points.
-            let line = Line { start: b, end: c, half_thickness };
+            let line = Line {
+                start: b,
+                end: c,
+                half_thickness,
+            };
             let Quad([r, l, _, _]) = line.quad_corners();
             *point_a = Some(b);
             *point_b = Some(c);
             Some([l, r])
-        },
+        }
 
         // Every other point.
         (Some(a), Some(b)) => {
@@ -197,33 +205,41 @@ where
                 // If this is the last point.
                 None => {
                     // Get the line quad between the two points.
-                    let line = Line { start: a, end: b, half_thickness };
+                    let line = Line {
+                        start: a,
+                        end: b,
+                        half_thickness,
+                    };
                     let Quad([_, _, l, r]) = line.quad_corners();
                     *point_a = Some(b);
                     return Some([l, r]);
-                },
+                }
             };
-            let ab = Line { start: a, end: b, half_thickness };
-            let bc = Line { start: b, end: c, half_thickness };
+            let ab = Line {
+                start: a,
+                end: b,
+                half_thickness,
+            };
+            let bc = Line {
+                start: b,
+                end: c,
+                half_thickness,
+            };
             let Quad([ar, al, bl_ab, br_ab]) = ab.quad_corners();
             let Quad([br_bc, bl_bc, cl, cr]) = bc.quad_corners();
             let mut il = match line::join::intersect((al, bl_ab), (cl, bl_bc)) {
                 Some(il) => il,
                 // If the lines are parallel, produce the join vertices.
-                None => {
-                    bl_ab
-                },
+                None => bl_ab,
             };
             let mut ir = match line::join::intersect((ar, br_ab), (cr, br_bc)) {
                 Some(ir) => ir,
-                None => {
-                    br_ab
-                },
+                None => br_ab,
             };
             *point_a = Some(b);
             *point_b = Some(c);
             Some([il, ir])
-        },
+        }
     }
 }
 
@@ -237,7 +253,11 @@ where
         let a = self.point_a.is_some();
         let b = self.point_b.is_some();
         match (a, b) {
-            (false, true) => if remaining_points <= 1 { 0 } else { remaining_points },
+            (false, true) => if remaining_points <= 1 {
+                0
+            } else {
+                remaining_points
+            },
             (true, true) => remaining_points + 1,
             _ => 0,
         }

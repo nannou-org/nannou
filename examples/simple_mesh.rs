@@ -7,7 +7,7 @@ fn main() {
 }
 
 fn view(app: &App, frame: Frame) -> Frame {
-    // Begin drawing 
+    // Begin drawing
     let win = app.window_rect();
     let t = app.time;
     let draw = app.draw();

@@ -3,8 +3,8 @@
 //! The main type is the `Cuboid` type.
 
 use geom::{quad, DefaultScalar, Quad, Range, Tri};
-use math::{BaseNum, Point3, Vector3};
 use math::num_traits::Float;
+use math::{BaseNum, Point3, Vector3};
 use std::ops::Neg;
 
 /// The number of faces on a Cuboid.
@@ -105,23 +105,51 @@ pub struct Subdivisions<S = DefaultScalar> {
 }
 
 macro_rules! corner_from_index {
-    (0, $cuboid:expr) => { [$cuboid.x.start, $cuboid.y.start, $cuboid.z.start] };
-    (1, $cuboid:expr) => { [$cuboid.x.end, $cuboid.y.start, $cuboid.z.start] };
-    (2, $cuboid:expr) => { [$cuboid.x.start, $cuboid.y.end, $cuboid.z.start] };
-    (3, $cuboid:expr) => { [$cuboid.x.end, $cuboid.y.end, $cuboid.z.start] };
-    (4, $cuboid:expr) => { [$cuboid.x.start, $cuboid.y.start, $cuboid.z.end] };
-    (5, $cuboid:expr) => { [$cuboid.x.end, $cuboid.y.start, $cuboid.z.end] };
-    (6, $cuboid:expr) => { [$cuboid.x.start, $cuboid.y.end, $cuboid.z.end] };
-    (7, $cuboid:expr) => { [$cuboid.x.end, $cuboid.y.end, $cuboid.z.end] };
+    (0, $cuboid:expr) => {
+        [$cuboid.x.start, $cuboid.y.start, $cuboid.z.start]
+    };
+    (1, $cuboid:expr) => {
+        [$cuboid.x.end, $cuboid.y.start, $cuboid.z.start]
+    };
+    (2, $cuboid:expr) => {
+        [$cuboid.x.start, $cuboid.y.end, $cuboid.z.start]
+    };
+    (3, $cuboid:expr) => {
+        [$cuboid.x.end, $cuboid.y.end, $cuboid.z.start]
+    };
+    (4, $cuboid:expr) => {
+        [$cuboid.x.start, $cuboid.y.start, $cuboid.z.end]
+    };
+    (5, $cuboid:expr) => {
+        [$cuboid.x.end, $cuboid.y.start, $cuboid.z.end]
+    };
+    (6, $cuboid:expr) => {
+        [$cuboid.x.start, $cuboid.y.end, $cuboid.z.end]
+    };
+    (7, $cuboid:expr) => {
+        [$cuboid.x.end, $cuboid.y.end, $cuboid.z.end]
+    };
 }
 
 macro_rules! face_from_index {
-    (0) => { Face::Back };
-    (1) => { Face::Right };
-    (2) => { Face::Top };
-    (3) => { Face::Front };
-    (4) => { Face::Bottom };
-    (5) => { Face::Left };
+    (0) => {
+        Face::Back
+    };
+    (1) => {
+        Face::Right
+    };
+    (2) => {
+        Face::Top
+    };
+    (3) => {
+        Face::Front
+    };
+    (4) => {
+        Face::Bottom
+    };
+    (5) => {
+        Face::Left
+    };
 }
 
 macro_rules! quad_from_corner_indices {
@@ -146,14 +174,62 @@ macro_rules! quad_from_corner_indices {
 // 7. Back top left
 // 8. Back top right
 macro_rules! subdivision_from_index {
-    ($ranges:expr, 0) => { Cuboid { x: $ranges.x_a, y: $ranges.y_a, z: $ranges.z_a } };
-    ($ranges:expr, 1) => { Cuboid { x: $ranges.x_b, y: $ranges.y_a, z: $ranges.z_a } };
-    ($ranges:expr, 2) => { Cuboid { x: $ranges.x_a, y: $ranges.y_b, z: $ranges.z_a } };
-    ($ranges:expr, 3) => { Cuboid { x: $ranges.x_b, y: $ranges.y_b, z: $ranges.z_a } };
-    ($ranges:expr, 4) => { Cuboid { x: $ranges.x_a, y: $ranges.y_a, z: $ranges.z_b } };
-    ($ranges:expr, 5) => { Cuboid { x: $ranges.x_b, y: $ranges.y_a, z: $ranges.z_b } };
-    ($ranges:expr, 6) => { Cuboid { x: $ranges.x_a, y: $ranges.y_b, z: $ranges.z_b } };
-    ($ranges:expr, 7) => { Cuboid { x: $ranges.x_b, y: $ranges.y_b, z: $ranges.z_b } };
+    ($ranges:expr,0) => {
+        Cuboid {
+            x: $ranges.x_a,
+            y: $ranges.y_a,
+            z: $ranges.z_a,
+        }
+    };
+    ($ranges:expr,1) => {
+        Cuboid {
+            x: $ranges.x_b,
+            y: $ranges.y_a,
+            z: $ranges.z_a,
+        }
+    };
+    ($ranges:expr,2) => {
+        Cuboid {
+            x: $ranges.x_a,
+            y: $ranges.y_b,
+            z: $ranges.z_a,
+        }
+    };
+    ($ranges:expr,3) => {
+        Cuboid {
+            x: $ranges.x_b,
+            y: $ranges.y_b,
+            z: $ranges.z_a,
+        }
+    };
+    ($ranges:expr,4) => {
+        Cuboid {
+            x: $ranges.x_a,
+            y: $ranges.y_a,
+            z: $ranges.z_b,
+        }
+    };
+    ($ranges:expr,5) => {
+        Cuboid {
+            x: $ranges.x_b,
+            y: $ranges.y_a,
+            z: $ranges.z_b,
+        }
+    };
+    ($ranges:expr,6) => {
+        Cuboid {
+            x: $ranges.x_a,
+            y: $ranges.y_b,
+            z: $ranges.z_b,
+        }
+    };
+    ($ranges:expr,7) => {
+        Cuboid {
+            x: $ranges.x_b,
+            y: $ranges.y_b,
+            z: $ranges.z_b,
+        }
+    };
 }
 
 impl<S> Cuboid<S>
@@ -261,9 +337,9 @@ where
     /// The cuboid representing the area in which two cuboids overlap.
     pub fn overlap(self, other: Self) -> Option<Self> {
         self.x.overlap(other.x).and_then(|x| {
-            self.y.overlap(other.y).and_then(|y| {
-                self.z.overlap(other.z).map(|z| Cuboid { x, y, z })
-            })
+            self.y
+                .overlap(other.y)
+                .and_then(|y| self.z.overlap(other.z).map(|z| Cuboid { x, y, z }))
         })
     }
 
@@ -363,7 +439,7 @@ where
     ///  /|  /|
     /// 2---3 |
     /// | 4-|-5
-    /// |/  |/ 
+    /// |/  |/
     /// 0---1
     /// ```
     pub fn corners(&self) -> [Point3<S>; NUM_CORNERS as usize] {
@@ -414,7 +490,10 @@ where
         let mut face_quads = self.faces_iter();
         let first_quad = face_quads.next().unwrap();
         let triangles = first_quad.triangles_iter();
-        Triangles { face_quads, triangles }
+        Triangles {
+            face_quads,
+            triangles,
+        }
     }
 
     /// The six ranges used for the `Cuboid`'s eight subdivisions.
@@ -426,7 +505,14 @@ where
         let y_b = Range::new(y, self.y.end);
         let z_a = Range::new(self.z.start, z);
         let z_b = Range::new(z, self.z.end);
-        SubdivisionRanges { x_a, x_b, y_a, y_b, z_a, z_b }
+        SubdivisionRanges {
+            x_a,
+            x_b,
+            y_a,
+            y_b,
+            z_a,
+            z_b,
+        }
     }
 }
 
@@ -661,8 +747,7 @@ impl Face {
     }
 }
 
-impl<'a, S> FaceQuads<'a, S> {
-}
+impl<'a, S> FaceQuads<'a, S> {}
 
 impl Iterator for Faces {
     type Item = Face;
@@ -798,7 +883,10 @@ where
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         let next_index = self.subdivision_index + 1;
-        if let Some(sd) = self.ranges.subdivision_at_index(NUM_SUBDIVISIONS - next_index) {
+        if let Some(sd) = self
+            .ranges
+            .subdivision_at_index(NUM_SUBDIVISIONS - next_index)
+        {
             self.subdivision_index = next_index;
             return Some(sd);
         }

@@ -1,6 +1,9 @@
-use draw::{self, Drawing};
-use draw::properties::{spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions, SetOrientation, SetPosition};
 use draw::properties::spatial::{dimension, orientation, position};
+use draw::properties::{
+    spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions,
+    SetOrientation, SetPosition,
+};
+use draw::{self, Drawing};
 use geom;
 use math::{BaseFloat, Vector2};
 

@@ -60,7 +60,10 @@ where
     S: BaseFloat,
 {
     fn into_vertex(self) -> Vertex<S> {
-        let colored_point = WithColor { vertex: self, color: DEFAULT_VERTEX_COLOR };
+        let colored_point = WithColor {
+            vertex: self,
+            color: DEFAULT_VERTEX_COLOR,
+        };
         colored_point.into_vertex()
     }
 }
