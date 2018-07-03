@@ -12,9 +12,9 @@ fn main() {
 }
 
 struct Mover {
-    position: Point2<f32>,
-    velocity: Vector2<f32>,
-    acceleration: Vector2<f32>,
+    position: Point2,
+    velocity: Vector2,
+    acceleration: Vector2,
     mass: f32,
 }
 
@@ -32,7 +32,7 @@ impl Mover {
         }
     }
 
-    fn apply_force(&mut self, force: Vector2<f32>) {
+    fn apply_force(&mut self, force: Vector2) {
         let f = force / self.mass;
         self.acceleration += f;
     }
@@ -50,7 +50,7 @@ impl Mover {
             .rgba(0.6, 0.6, 0.6, 0.7);
     }
 
-    fn attract(&self, m: &Mover) -> Vector2<f32> {
+    fn attract(&self, m: &Mover) -> Vector2 {
         let mut force = self.position - m.position; // Calculate direction of force
         let mut distance = force.magnitude(); // Distance between objects
         distance = distance.max(5.0).min(25.0); // Limiting the distance to eliminate "extreme" results for very cose or very far object
@@ -60,7 +60,7 @@ impl Mover {
         force * strength // Get force vector --> magnitude * direction
     }
 
-    fn boundaries(&mut self, rect: Rect<f32>) {
+    fn boundaries(&mut self, rect: Rect) {
         let d = 50.0;
         let mut force = vec2(0.0, 0.0);
 

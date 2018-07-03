@@ -21,9 +21,9 @@ struct Model {
 }
 
 struct Mover {
-    position: Point2<f32>,
-    velocity: Vector2<f32>,
-    acceleration: Vector2<f32>,
+    position: Point2,
+    velocity: Vector2,
+    acceleration: Vector2,
     top_speed: f32,
 }
 
@@ -43,7 +43,7 @@ impl Mover {
         }
     }
 
-    fn update(&mut self, mouse: Point2<f32>) {
+    fn update(&mut self, mouse: Point2) {
         // Computer a vector that points from position to mouse
         self.acceleration = mouse - self.position;
         // Set magnitude of acceleration
@@ -51,10 +51,7 @@ impl Mover {
         // Velocity chages according to acceleration
         self.velocity += self.acceleration;
         // Limit the velocity by top_speed
-        self.velocity = vec2(
-            self.velocity.x.min(self.top_speed),
-            self.velocity.y.min(self.top_speed),
-        );
+        self.velocity = self.velocity.limit_magnitude(self.top_speed);
         // Position changes velocity
         self.position += self.velocity;
     }

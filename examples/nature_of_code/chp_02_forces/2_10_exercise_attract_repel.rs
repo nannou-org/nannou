@@ -12,9 +12,9 @@ fn main() {
 }
 
 struct Mover {
-    position: Point2<f32>,
-    velocity: Vector2<f32>,
-    acceleration: Vector2<f32>,
+    position: Point2,
+    velocity: Vector2,
+    acceleration: Vector2,
     mass: f32,
 }
 
@@ -22,14 +22,14 @@ struct Mover {
 struct Attractor {
     mass: f32,             // Mass, tied to size
     radius: f32,           // Radius of the attractor
-    position: Point2<f32>, // position
+    position: Point2,      // position
     dragging: bool,        // Is the object being dragged?
     roll_over: bool,       // Is the mouse over the ellipse?
-    drag: Vector2<f32>,    // holds the offset for when the object is clicked on
+    drag: Vector2,         // holds the offset for when the object is clicked on
 }
 
 impl Attractor {
-    fn new(rect: Rect<f32>) -> Self {
+    fn new(rect: Rect) -> Self {
         let position = rect.xy();
         let mass = 10.0;
         let radius = mass * 3.0;
@@ -46,7 +46,7 @@ impl Attractor {
         }
     }
 
-    fn attract(&self, m: &Mover) -> Vector2<f32> {
+    fn attract(&self, m: &Mover) -> Vector2 {
         let mut force = self.position - m.position; // Calculate direction of force
         let mut d = force.magnitude(); // Distance between objects
         d = d.max(5.0).min(25.0); // Limiting the distance to eliminate "extreme" results for very cose or very far object
@@ -116,7 +116,7 @@ impl Mover {
         }
     }
 
-    fn apply_force(&mut self, force: Vector2<f32>) {
+    fn apply_force(&mut self, force: Vector2) {
         let f = force / self.mass;
         self.acceleration += f;
     }
@@ -134,7 +134,7 @@ impl Mover {
             .rgba(0.6, 0.6, 0.6, 0.5);
     }
 
-    fn repel(&self, m: &Mover) -> Vector2<f32> {
+    fn repel(&self, m: &Mover) -> Vector2 {
         let mut force = self.position - m.position; // Calculate direction of force
         let mut distance = force.magnitude(); // Distance between objects
         distance = distance.max(1.0).min(10000.0); // Limiting the distance to eliminate "extreme" results for very cose or very far object
@@ -144,7 +144,7 @@ impl Mover {
         force * (-1.0 * strength) // Get force vector --> magnitude * direction
     }
 
-    fn _check_edges(&mut self, rect: Rect<f32>) {
+    fn _check_edges(&mut self, rect: Rect) {
         if self.position.x < rect.left() {
             self.position.x = rect.left();
             self.velocity.x *= -1.0;

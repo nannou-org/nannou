@@ -33,7 +33,7 @@ fn view(app: &App, frame: Frame) -> Frame {
 
     draw.line()
         .start(pt2(0.0, 0.0))
-        .end(pt2(mouse.x, mouse.y))
+        .end(mouse)
         .thickness(2.0)
         .color(BLACK);
 

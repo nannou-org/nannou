@@ -18,13 +18,13 @@ struct Model {
 
 #[derive(Clone)]
 struct Oscillator {
-    angle: Vector2<f32>,
-    velocity: Vector2<f32>,
-    amplitude: Vector2<f32>,
+    angle: Vector2,
+    velocity: Vector2,
+    amplitude: Vector2,
 }
 
 impl Oscillator {
-    fn new(rect: Rect<f32>) -> Self {
+    fn new(rect: Rect) -> Self {
         let angle = vec2(0.0, 0.0);
         let velocity = vec2(random_f32() * 0.1 - 0.05, random_f32() * 0.1 - 0.05);
         let rand_amp_x = random_range(20.0, rect.right());

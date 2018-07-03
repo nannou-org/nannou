@@ -6,16 +6,16 @@
 //! distinct types. For now, we are attempting to monitor usage and feedback to determine whether
 //! or not this change is worth it.
 
-use geom::vector::{Vector2, Vector3, Vector4};
+use geom::{scalar, Vector2, Vector3, Vector4};
 
 /// A 2-dimensional point type.
-pub type Point2<S> = Vector2<S>;
+pub type Point2<S = scalar::Default> = Vector2<S>;
 
 /// A 3-dimensional point type.
-pub type Point3<S> = Vector3<S>;
+pub type Point3<S = scalar::Default> = Vector3<S>;
 
 /// A 4-dimensional point type.
-pub type Point4<S> = Vector4<S>;
+pub type Point4<S = scalar::Default> = Vector4<S>;
 
 /// Construct a 2-dimensional point.
 pub fn pt2<S>(x: S, y: S) -> Point2<S> {

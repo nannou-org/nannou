@@ -21,22 +21,22 @@ struct Model {
 }
 
 struct Mover {
-    position: Point2<f32>,
-    velocity: Vector2<f32>,
-    acceleration: Vector2<f32>,
+    position: Point2,
+    velocity: Vector2,
+    acceleration: Vector2,
     mass: f32,
 }
 
 // Liquid type
 struct Liquid {
     // Liquid is a rectangle
-    rect: Rect<f32>,
+    rect: Rect,
     // Coefficient of drag
     c: f32,
 }
 
 impl Liquid {
-    fn new(rect: Rect<f32>, c: f32) -> Self {
+    fn new(rect: Rect, c: f32) -> Self {
         let rect = rect;
         let c = c;
         Liquid { rect, c }
@@ -48,7 +48,7 @@ impl Liquid {
     }
 
     // Calculate drag force
-    fn drag(&self, m: &Mover) -> Vector2<f32> {
+    fn drag(&self, m: &Mover) -> Vector2 {
         // Magnitude is coefficient * speed squared
         let speed = m.velocity.magnitude();
         let drag_magnitude = self.c * speed * speed;
@@ -86,7 +86,7 @@ impl Mover {
         }
     }
 
-    fn new_random(rect: &Rect<f32>) -> Self {
+    fn new_random(rect: &Rect) -> Self {
         Mover::new(
             random_range(0.5f32, 4.0),
             random_range(rect.left(), rect.right()),
@@ -96,7 +96,7 @@ impl Mover {
 
     // Newton's 2nd law: F = M * A
     // or A = F / M
-    fn apply_force(&mut self, force: Vector2<f32>) {
+    fn apply_force(&mut self, force: Vector2) {
         // Divide by mass
         let f = force / self.mass;
         // Accumulate all forces in acceleration
@@ -121,7 +121,7 @@ impl Mover {
     }
 
     // Bounce off bottom of window
-    fn check_edges(&mut self, rect: Rect<f32>) {
+    fn check_edges(&mut self, rect: Rect) {
         if self.position.y < rect.bottom() {
             self.velocity.y *= -0.9; // A little dampening when hitting the bottom
             self.position.y = rect.bottom();
