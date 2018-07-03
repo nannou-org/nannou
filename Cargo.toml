@@ -10,6 +10,7 @@ repository = "https://github.com/MindBuffer/nannou.git"
 homepage = "https://github.com/MindBuffer/nannou"
 
 [dependencies]
+approx = "0.1"
 cgmath = { version = "0.16", features = ["serde"] }
 conrod = { version = "0.59", features = ["winit", "glium"] }
 cpal = "0.8"
@@ -20,10 +21,11 @@ image = "0.18"
 noise = "0.4"
 palette = "0.2"
 pennereq = "0.2"
-rand = "0.3"
+rand = "0.5"
 rosc = "0.1"
 sample = "0.9"
 serde = "1"
+serde_derive = "1"
 serde_json = "1"
 toml = "0.4"
 

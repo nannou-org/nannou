@@ -14,6 +14,8 @@ pub extern crate find_folder;
 #[macro_use]
 pub extern crate glium;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
 extern crate toml;
 
