@@ -14,12 +14,12 @@ fn main() {
 // A type for a draggable attractive body in our world
 struct Attractor {
     mass: f32,             // Mass, tied to size
-    location: Point2<f32>, // Location
+    location: Point2,      // Location
     g: f32,                // Gravity
 }
 
 impl Attractor {
-    fn new(rect: Rect<f32>) -> Self {
+    fn new(rect: Rect) -> Self {
         let location = rect.xy();
         let mass = 20.0;
         let g = 0.4;
@@ -45,7 +45,7 @@ impl Attractor {
 }
 
 struct Mover {
-    location: Point2<f32>,
+    location: Point2,
     velocity: Vector2<f32>,
     acceleration: Vector2<f32>,
     mass: f32,

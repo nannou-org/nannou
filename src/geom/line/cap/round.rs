@@ -1,5 +1,5 @@
-use geom::{ellipse, Ellipse, Rect};
-use math::{vec2, BaseFloat, EuclideanSpace, InnerSpace, Point2};
+use geom::{ellipse, vec2, Ellipse, Point2, Rect};
+use math::{BaseFloat, EuclideanSpace, InnerSpace};
 use std::f64::consts::PI;
 
 /// A line cap with a rounded edge around a line's start or end.

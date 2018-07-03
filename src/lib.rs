@@ -14,6 +14,8 @@ pub extern crate find_folder;
 #[macro_use]
 pub extern crate glium;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
 extern crate toml;
 
@@ -326,11 +328,11 @@ fn run_loop<M, E>(
                 //
                 // winit produces input events in pixels, so these positions need to be divided by the
                 // width and height of the window in order to be DPI agnostic.
-                let tx = |x: geom::DefaultScalar| {
-                    (x - win_w_px as geom::DefaultScalar / 2.0) / hidpi_factor
+                let tx = |x: geom::scalar::Default| {
+                    (x - win_w_px as geom::scalar::Default / 2.0) / hidpi_factor
                 };
-                let ty = |y: geom::DefaultScalar| {
-                    -((y - win_h_px as geom::DefaultScalar / 2.0) / hidpi_factor)
+                let ty = |y: geom::scalar::Default| {
+                    -((y - win_h_px as geom::scalar::Default / 2.0) / hidpi_factor)
                 };
 
                 // If the window ID has changed, ensure the dimensions are up to date.

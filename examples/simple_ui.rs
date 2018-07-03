@@ -14,7 +14,7 @@ struct Model {
     scale: f32,
     rotation: f32,
     color: Rgb,
-    position: Point2<f32>,
+    position: Point2,
 }
 
 struct Ids {

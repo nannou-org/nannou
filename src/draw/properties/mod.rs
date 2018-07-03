@@ -40,7 +40,7 @@ pub type Drawn<S, V, I> = (spatial::Properties<S>, V, I);
 
 /// A wrapper around the `draw::State` for the **IntoDrawn** trait implementations.
 #[derive(Debug)]
-pub struct Draw<'a, S = geom::DefaultScalar>
+pub struct Draw<'a, S = geom::scalar::Default>
 where
     S: 'a + BaseFloat,
 {

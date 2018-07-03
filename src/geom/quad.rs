@@ -88,8 +88,7 @@ where
     /// ```
     /// extern crate nannou;
     ///
-    /// use nannou::geom::{self, Quad, Tri};
-    /// use nannou::math::pt2;
+    /// use nannou::geom::{self, pt2, Quad, Tri};
     ///
     /// fn main() {
     ///     let a = pt2(0.0, 1.0);
@@ -205,8 +204,7 @@ where
 /// ```
 /// extern crate nannou;
 ///
-/// use nannou::geom::{self, Quad, Tri};
-/// use nannou::math::pt2;
+/// use nannou::geom::{self, pt2, Quad, Tri};
 ///
 /// fn main() {
 ///     let a = pt2(0.0, 1.0);

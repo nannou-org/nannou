@@ -4,9 +4,9 @@ use draw::properties::{
     SetPosition,
 };
 use draw::{self, Draw};
-use geom;
 use geom::graph::node;
-use math::{Angle, BaseFloat, Euler, Point2, Point3, Quaternion, Rad, Vector2, Vector3};
+use geom::{self, Point2, Point3, Vector2, Vector3};
+use math::{Angle, BaseFloat, Euler, Quaternion, Rad};
 use std::marker::PhantomData;
 
 /// A **Drawing** in progress.
@@ -20,7 +20,7 @@ use std::marker::PhantomData;
 /// graph. As a result, each **Drawing** is associated with a single, unique node. Thus a
 /// **Drawing** can be thought of as a way of specifying properties for a node.
 #[derive(Debug)]
-pub struct Drawing<'a, T, S = geom::DefaultScalar>
+pub struct Drawing<'a, T, S = geom::scalar::Default>
 where
     T: IntoDrawn<S>,
     S: 'a + BaseFloat,

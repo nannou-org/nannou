@@ -1,5 +1,5 @@
-use geom::{line, Line, Quad};
-use math::{BaseFloat, Point2};
+use geom::{line, Line, Point2, Quad};
+use math::BaseFloat;
 
 /// An iterator yielding the normal vertices of a miter polyline.
 ///

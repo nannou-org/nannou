@@ -16,9 +16,9 @@ struct Model {
 }
 
 struct Mover {
-    position: Point2<f32>,
-    velocity: Vector2<f32>,
-    acceleration: Vector2<f32>,
+    position: Point2,
+    velocity: Vector2,
+    acceleration: Vector2,
     mass: f32,
 }
 
@@ -36,7 +36,7 @@ impl Mover {
         }
     }
 
-    fn apply_force(&mut self, force: Vector2<f32>) {
+    fn apply_force(&mut self, force: Vector2) {
         let f = force / self.mass;
         self.acceleration += f;
     }
@@ -55,7 +55,7 @@ impl Mover {
             .rgba(0.3, 0.3, 0.3, 0.5);
     }
 
-    fn check_edges(&mut self, rect: Rect<f32>) {
+    fn check_edges(&mut self, rect: Rect) {
         if self.position.x > rect.right() {
             self.position.x = rect.right();
             self.velocity.x *= -1.0;

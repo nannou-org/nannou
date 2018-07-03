@@ -1,5 +1,5 @@
-use geom::Quad;
-use math::{vec2, BaseFloat, InnerSpace, Point2};
+use geom::{vec2, Point2, Quad};
+use math::{BaseFloat, InnerSpace};
 
 /// A line cap with a square edge that extends past the end of the start or end by half the line's
 /// thickness.

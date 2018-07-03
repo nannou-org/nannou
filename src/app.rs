@@ -135,7 +135,7 @@ struct DrawState {
 ///
 /// If you require changing the scalar type to something else, consider using a custom
 /// **nannou::draw::Draw** instance.
-pub type DrawScalar = geom::DefaultScalar;
+pub type DrawScalar = geom::scalar::Default;
 
 /// An API accessed via `app.audio` for enumerating audio devices and spawning input/output audio
 /// streams with either default or custom stream format.

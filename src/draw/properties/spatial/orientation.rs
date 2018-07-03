@@ -1,6 +1,6 @@
-use geom;
 use geom::graph::node;
-use math::{deg_to_rad, turns_to_rad, Angle, BaseFloat, Euler, Point3, Quaternion, Rad, Vector3};
+use geom::{self, Point3, Vector3};
+use math::{deg_to_rad, turns_to_rad, Angle, BaseFloat, Euler, Quaternion, Rad};
 
 /// Orientation properties for **Drawing** a **Node**.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -21,14 +21,14 @@ pub struct Axes<S> {
 
 /// Describe the orientation of a node via a target towards which it is facing.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum LookAt<S = geom::DefaultScalar> {
+pub enum LookAt<S = geom::scalar::Default> {
     Node(node::Index),
     Point(Point3<S>),
 }
 
 /// The orientation of a node along a single axis.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum Orientation<S = geom::DefaultScalar> {
+pub enum Orientation<S = geom::scalar::Default> {
     /// The orientation of the node along the axis in radians.
     Absolute(S),
     /// The orientation of the node described relatively to another node in radians.

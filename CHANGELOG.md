@@ -1,5 +1,9 @@
 # Unreleased
 
+- Add custom `Vector` types - replaces the use of `cgmath::{VectorN, PointN}`
+  types.
+- Update `rand` to version `0.5`.
+- Add `geom::scalar` module. Move `DefaultScalar` to `scalar::Default`.
 - Fix the order of `geom::line` vertices.
 - Add a `draw.polygon()` API.
 - Remove `geom::polyline` module.

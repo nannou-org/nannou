@@ -1,7 +1,7 @@
 //! Items related to the edges of a geometry graph.
 use daggy;
-use geom;
-use math::{BaseFloat, Euler, Rad, Vector3};
+use geom::{self, Vector3};
+use math::{BaseFloat, Euler, Rad};
 
 /// Unique index for an **Edge** within a **Graph**.
 pub type Index = daggy::EdgeIndex<usize>;
@@ -11,7 +11,7 @@ pub type Indices = daggy::EdgeIndices<usize>;
 
 /// Describes an edge within the geometry graph.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Edge<S = geom::DefaultScalar> {
+pub struct Edge<S = geom::scalar::Default> {
     /// The unique kind of edge.
     ///
     /// Represents the combination of `Axis` and `Relative` association described by the edge.

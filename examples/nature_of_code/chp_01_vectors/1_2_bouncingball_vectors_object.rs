@@ -16,8 +16,8 @@ struct Model {
 }
 
 struct Ball {
-    position: Point2<f32>,
-    velocity: Vector2<f32>,
+    position: Point2,
+    velocity: Vector2,
 }
 
 impl Ball {

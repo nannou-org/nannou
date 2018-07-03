@@ -1,9 +1,9 @@
 //! A simple API for drawing 2D and 3D graphics. See the [**Draw** type](./struct.Draw.html) for
 //! more details.
 
-use geom;
 use geom::graph::{edge, node};
-use math::{BaseFloat, Vector3};
+use geom::{self, Vector3};
+use math::BaseFloat;
 use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
 use std::mem;
@@ -46,7 +46,7 @@ pub mod theme;
 /// [simple_draw.rs](https://github.com/nannou-org/nannou/blob/master/examples/simple_draw.rs)
 /// example for a demonstration of how to use the **App**'s custom **Draw** type.
 #[derive(Clone, Debug)]
-pub struct Draw<S = geom::DefaultScalar>
+pub struct Draw<S = geom::scalar::Default>
 where
     S: BaseFloat,
 {
@@ -66,7 +66,7 @@ where
 /// drawing stuff. In order to be friendlier to new users, we want to avoid requiring them to think
 /// about mutability and instead focus on creativity. Rust-lang nuances can come later.
 #[derive(Clone, Debug)]
-pub struct State<S = geom::DefaultScalar>
+pub struct State<S = geom::scalar::Default>
 where
     S: BaseFloat,
 {
@@ -159,7 +159,7 @@ const WOULD_CYCLE: &'static str =
      within the geometry graph";
 
 /// An iterator yielding the transformed, indexed vertices for a node.
-pub type NodeVertices<'a, S = geom::DefaultScalar> =
+pub type NodeVertices<'a, S = geom::scalar::Default> =
     node::TransformedVertices<::mesh::Vertices<Ref<'a, Mesh<S>>>, S>;
 
 // /// An iterator yielding the transformed vertices for a node.
@@ -167,16 +167,16 @@ pub type NodeVertices<'a, S = geom::DefaultScalar> =
 // }
 
 /// An iterator yielding the transformed raw vertices for a node.
-pub type RawNodeVertices<'a, S = geom::DefaultScalar> =
+pub type RawNodeVertices<'a, S = geom::scalar::Default> =
     node::TransformedVertices<::mesh::RawVertices<Ref<'a, Mesh<S>>>, S>;
 
 /// An iterator yielding the transformed triangles for a node.
-pub type NodeTriangles<'a, S = geom::DefaultScalar> =
+pub type NodeTriangles<'a, S = geom::scalar::Default> =
     geom::tri::IterFromVertices<NodeVertices<'a, S>>;
 
 /// An iterator yielding all indexed mesh vertices transformed via the geometry graph.
 #[derive(Debug)]
-pub struct Vertices<'a, S = geom::DefaultScalar>
+pub struct Vertices<'a, S = geom::scalar::Default>
 where
     S: 'a + BaseFloat,
 {
@@ -185,11 +185,11 @@ where
 }
 
 /// An iterator yielding all indexed mesh triangles transformed via the geometry graph.
-pub type Triangles<'a, S = geom::DefaultScalar> = geom::tri::IterFromVertices<Vertices<'a, S>>;
+pub type Triangles<'a, S = geom::scalar::Default> = geom::tri::IterFromVertices<Vertices<'a, S>>;
 
 /// An iterator yielding all raw mesh vertices transformed via the geometry graph.
 #[derive(Debug)]
-pub struct RawVertices<'a, S = geom::DefaultScalar>
+pub struct RawVertices<'a, S = geom::scalar::Default>
 where
     S: 'a + BaseFloat,
 {

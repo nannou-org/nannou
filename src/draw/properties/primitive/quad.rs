@@ -5,13 +5,13 @@ use draw::properties::{
     SetOrientation, SetPosition,
 };
 use draw::{self, Drawing};
-use geom;
-use math::{BaseFloat, ElementWise, Point3, Vector3};
+use geom::{self, Point3, Vector3};
+use math::{BaseFloat, ElementWise};
 use std::{iter, slice};
 
 /// Properties related to drawing a **Quad**.
 #[derive(Clone, Debug)]
-pub struct Quad<S = geom::DefaultScalar> {
+pub struct Quad<S = geom::scalar::Default> {
     quad: geom::Quad<Point3<S>>,
     spatial: spatial::Properties<S>,
     color: Option<Rgba>,

@@ -31,7 +31,7 @@ struct Ca {
 }
 
 impl Ca {
-    fn new(r: Vec<i32>, rect: Rect<f32>) -> Self {
+    fn new(r: Vec<i32>, rect: Rect) -> Self {
         let rule_set = r;
         let generation = 0;
         let w = 4;
@@ -84,7 +84,7 @@ impl Ca {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &app::Draw, rect: &Rect<f32>) {
+    fn display(&self, draw: &app::Draw, rect: &Rect) {
         let offset = (self.generation % self.rows as i32) as usize;
         for i in 0..self.columns {
             for j in 0..self.rows {
@@ -142,7 +142,7 @@ impl Ca {
     }
 
     // The CA is done if it reaches the bottom of the screen
-    fn _finished(&self, rect: &Rect<f32>) -> bool {
+    fn _finished(&self, rect: &Rect) -> bool {
         if self.generation > rect.h() as i32 / self.w as i32 {
             true
         } else {

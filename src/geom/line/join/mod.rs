@@ -33,8 +33,8 @@
 //! - [**bevel**](./bevel/index.html): Cuts the outside edge off where a circle the diameter of the
 //!   thickness intersects
 
-use geom::Line;
-use math::{BaseFloat, Point2};
+use geom::{Line, Point2};
+use math::BaseFloat;
 
 pub mod bevel;
 pub mod miter;

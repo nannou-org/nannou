@@ -5,13 +5,13 @@ use draw::properties::{
     SetOrientation, SetPosition,
 };
 use draw::{self, Drawing};
-use geom;
-use math::{BaseFloat, ElementWise, Point3, Vector3};
+use geom::{self, Point3, Vector3};
+use math::{BaseFloat, ElementWise};
 use std::ops;
 
 /// Properties related to drawing a **Tri**.
 #[derive(Clone, Debug)]
-pub struct Tri<S = geom::DefaultScalar> {
+pub struct Tri<S = geom::scalar::Default> {
     tri: geom::Tri<Point3<S>>,
     spatial: spatial::Properties<S>,
     color: Option<Rgba>,

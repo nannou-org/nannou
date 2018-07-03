@@ -16,17 +16,17 @@ struct Model {
 }
 
 struct Mover {
-    position: Point2<f32>,
-    velocity: Vector2<f32>,
+    position: Point2,
+    velocity: Vector2,
 }
 
 impl Mover {
-    fn new(rect: Rect<f32>) -> Self {
+    fn new(rect: Rect) -> Self {
         let position = pt2(
             random_range(rect.left(), rect.right()),
             random_range(rect.top(), rect.bottom()),
         );
-        let velocity = vec2(random_range(-2.0f32, 2.0), random_range(-2.0f32, 2.0));
+        let velocity = vec2(random_range(-2.0, 2.0), random_range(-2.0, 2.0));
         Mover { position, velocity }
     }
 
@@ -35,7 +35,7 @@ impl Mover {
         self.position += self.velocity;
     }
 
-    fn check_edges(&mut self, rect: Rect<f32>) {
+    fn check_edges(&mut self, rect: Rect) {
         if self.position.x > rect.right() {
             self.position.x = rect.left();
         } else if self.position.x < rect.left() {

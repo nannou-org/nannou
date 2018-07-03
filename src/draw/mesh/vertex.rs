@@ -1,6 +1,6 @@
 use color;
-use geom;
-use math::{BaseFloat, Point2, Point3, Vector3};
+use geom::{self, Point2, Point3, Vector3};
+use math::BaseFloat;
 use mesh::vertex::{WithColor, WithTexCoords};
 use std::marker::PhantomData;
 
@@ -244,7 +244,7 @@ impl<S> Vertex<S> {
 ///
 /// Default values are used for tex_coords.
 #[derive(Clone, Debug)]
-pub struct IterFromColoredPoints<I, S = geom::DefaultScalar> {
+pub struct IterFromColoredPoints<I, S = geom::scalar::Default> {
     colored_points: I,
     _scalar: PhantomData<S>,
 }
@@ -289,7 +289,7 @@ where
 ///
 /// The default value of `(0.0, 0.0)` is used for tex_coords.
 #[derive(Clone, Debug)]
-pub struct IterFromPoints<I, S = geom::DefaultScalar> {
+pub struct IterFromPoints<I, S = geom::scalar::Default> {
     points: I,
     default_color: Color,
     _scalar: PhantomData<S>,
@@ -303,7 +303,7 @@ pub struct IterFromPoints<I, S = geom::DefaultScalar> {
 ///
 /// The default value of `(0.0, 0.0)` is used for tex_coords.
 #[derive(Clone, Debug)]
-pub struct IterFromPoint2s<I, S = geom::DefaultScalar> {
+pub struct IterFromPoint2s<I, S = geom::scalar::Default> {
     points: I,
     default_color: Color,
     _scalar: PhantomData<S>,

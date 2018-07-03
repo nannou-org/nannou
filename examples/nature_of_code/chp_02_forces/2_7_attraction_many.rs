@@ -17,24 +17,24 @@ struct Model {
 }
 
 struct Mover {
-    position: Point2<f32>,
-    velocity: Vector2<f32>,
-    acceleration: Vector2<f32>,
+    position: Point2,
+    velocity: Vector2,
+    acceleration: Vector2,
     mass: f32,
 }
 
 // A type for a draggable attractive body in our world
 struct Attractor {
     mass: f32,                 // Maxx, tied to size
-    position: Point2<f32>,     // position
+    position: Point2,          // position
     dragging: bool,            // Is the object being dragged?
     roll_over: bool,           // Is the mouse over the ellipse?
-    drag_offset: Vector2<f32>, // holds the offset for when the object is clicked on
+    drag_offset: Vector2,      // holds the offset for when the object is clicked on
 }
 
 impl Attractor {
     const G: f32 = 1.0; // Gravitational Constant
-    fn new(rect: Rect<f32>) -> Self {
+    fn new(rect: Rect) -> Self {
         let position = rect.xy();
         let mass = 20.0;
         let drag_offset = vec2(0.0, 0.0);
@@ -49,7 +49,7 @@ impl Attractor {
         }
     }
 
-    fn attract(&self, m: &Mover) -> Vector2<f32> {
+    fn attract(&self, m: &Mover) -> Vector2 {
         let mut force = self.position - m.position; // Calculate direction of force
         let mut d = force.magnitude(); // Distance between objects
         d = d.max(5.0).min(25.0); // Limiting the distance to eliminate "extreme" results for very cose or very far object
@@ -118,7 +118,7 @@ impl Mover {
         }
     }
 
-    fn apply_force(&mut self, force: Vector2<f32>) {
+    fn apply_force(&mut self, force: Vector2) {
         let f = force / self.mass;
         self.acceleration += f;
     }

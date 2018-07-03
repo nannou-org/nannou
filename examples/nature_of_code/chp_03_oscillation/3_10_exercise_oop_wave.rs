@@ -19,7 +19,7 @@ struct Model {
 struct Wave {
     x_spacing: f32,       // How far apart should each horizontal position be spaced
     _w: f32,              // Width of entire wave
-    origin: Vector2<f32>, // Where does the wave's first point start
+    origin: Point2,       // Where does the wave's first point start
     theta: f32,           // Start angle at 0
     amplitude: f32,       // Height of the wave
     _period: f32,         // How many pixels before the wave repeats
@@ -28,7 +28,7 @@ struct Wave {
 }
 
 impl Wave {
-    fn new(o: Vector2<f32>, w: f32, a: f32, p: f32) -> Self {
+    fn new(o: Point2, w: f32, a: f32, p: f32) -> Self {
         let origin = o;
         let x_spacing = 8.0 as f32;
         let theta = 0.0 as f32;
@@ -77,8 +77,8 @@ impl Wave {
 
 fn model(app: &App) -> Model {
     let _window = app.new_window().with_dimensions(750, 200).build().unwrap();
-    let wave0 = Wave::new(vec2(-325.0, 25.0), 100.0, 20.0, 500.0);
-    let wave1 = Wave::new(vec2(-75.0, 0.0), 300.0, 40.0, 220.0);
+    let wave0 = Wave::new(pt2(-325.0, 25.0), 100.0, 20.0, 500.0);
+    let wave1 = Wave::new(pt2(-75.0, 0.0), 300.0, 40.0, 220.0);
     Model { wave0, wave1 }
 }
 

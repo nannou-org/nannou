@@ -4,12 +4,12 @@ use draw::properties::{
     SetOrientation, SetPosition,
 };
 use draw::{self, Drawing};
-use geom;
-use math::{BaseFloat, Vector2};
+use geom::{self, Vector2};
+use math::BaseFloat;
 
 /// Properties related to drawing an **Ellipse**.
 #[derive(Clone, Debug)]
-pub struct Ellipse<S = geom::DefaultScalar> {
+pub struct Ellipse<S = geom::scalar::Default> {
     spatial: spatial::Properties<S>,
     color: Option<Rgba>,
     resolution: Option<usize>,

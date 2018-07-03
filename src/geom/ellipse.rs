@@ -1,12 +1,12 @@
-use geom::{self, DefaultScalar, Rect, Tri};
+use geom::{self, scalar, Point2, Rect, Tri};
 use math::num_traits::NumCast;
-use math::{self, BaseFloat, BaseNum, Point2};
+use math::{self, BaseFloat, BaseNum};
 use std;
 use std::ops::Neg;
 
 /// A simple ellipse type with helper methods around the `ellipse` module's functions.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct Ellipse<S = DefaultScalar> {
+pub struct Ellipse<S = scalar::Default> {
     /// The width and height off the `Ellipse`.
     pub rect: Rect<S>,
     /// The resolution (number of sides) of the `Ellipse`.
@@ -15,7 +15,7 @@ pub struct Ellipse<S = DefaultScalar> {
 
 /// A subsection of an `Ellipse`.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct Section<S = DefaultScalar> {
+pub struct Section<S = scalar::Default> {
     /// The ellipse from which this section is produced.
     pub ellipse: Ellipse<S>,
     /// The angle in radians of the start of the section.
@@ -28,7 +28,7 @@ pub struct Section<S = DefaultScalar> {
 /// points.
 #[derive(Clone, Debug)]
 #[allow(missing_copy_implementations)]
-pub struct Circumference<S = DefaultScalar> {
+pub struct Circumference<S = scalar::Default> {
     index: usize,
     num_points: usize,
     middle: Point2<S>,
@@ -41,7 +41,7 @@ pub struct Circumference<S = DefaultScalar> {
 /// All vertices necessary for yielding the triangles that make up the centre.
 #[derive(Clone, Debug)]
 #[allow(missing_copy_implementations)]
-pub struct TriangleVertices<S = DefaultScalar> {
+pub struct TriangleVertices<S = scalar::Default> {
     middle: Option<Point2<S>>,
     circumference: Circumference<S>,
 }
@@ -58,7 +58,7 @@ pub struct TriangleIndices {
 
 /// An iterator yielding triangles that describe an oval or some section of an oval.
 #[derive(Clone, Debug)]
-pub struct Triangles<S = DefaultScalar> {
+pub struct Triangles<S = scalar::Default> {
     // The last circumference point yielded by the `CircumferenceOffset` iterator.
     last: Point2<S>,
     // The circumference points used to yield yielded by the `CircumferenceOffset` iterator.

@@ -4,13 +4,13 @@ use draw::properties::{
     spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions,
     SetOrientation, SetPosition,
 };
-use geom;
-use math::{BaseFloat, Point2, Vector2};
+use geom::{self, Point2, Vector2};
+use math::BaseFloat;
 use std::{iter, slice};
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]
-pub struct Rect<S = geom::DefaultScalar> {
+pub struct Rect<S = geom::scalar::Default> {
     spatial: spatial::Properties<S>,
     color: Option<Rgba>,
 }

@@ -1,25 +1,23 @@
 //! A mathematical foundation for nannou including point and vector types and a range of
 //! helper/utility functions.
 
-extern crate cgmath;
-pub use self::cgmath::num_traits::{Float, NumCast, One};
-pub use self::cgmath::*;
+pub extern crate approx;
+pub extern crate cgmath;
+
+pub use self::cgmath::num_traits::{self, Bounded, Float, NumCast, One, Zero};
+// cgmath modules
+pub use self::cgmath::prelude;
+// cgmath types
+pub use self::cgmath::{
+    Basis2, Basis3, Decomposed, Deg, Euler, Matrix2, Matrix3, Matrix4, Ortho, Perspective,
+    PerspectiveFov, Quaternion, Rad,
+};
+// cgmath traits
+pub use self::cgmath::{
+    Angle, Array, BaseFloat, BaseNum, ElementWise, EuclideanSpace, InnerSpace, Matrix, MetricSpace,
+    Rotation, Rotation2, Rotation3, SquareMatrix, Transform, Transform2, Transform3, VectorSpace,
+};
 use std::ops::Add;
-
-/// Shorthand constructor for a `Point1`.
-pub fn pt1<S>(x: S) -> Point1<S> {
-    Point1 { x }
-}
-
-/// Shorthand constructor for a `Point2`.
-pub fn pt2<S>(x: S, y: S) -> Point2<S> {
-    Point2 { x, y }
-}
-
-/// Shorthand constructor for a `Point3`.
-pub fn pt3<S>(x: S, y: S, z: S) -> Point3<S> {
-    Point3 { x, y, z }
-}
 
 /// Map a value from a given range to a new given range.
 pub fn map_range<X, Y>(val: X, in_min: X, in_max: X, out_min: Y, out_max: Y) -> Y

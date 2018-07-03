@@ -16,14 +16,14 @@ struct Model {
 }
 
 struct Mover {
-    position: Point2<f32>,
-    velocity: Vector2<f32>,
-    acceleration: Vector2<f32>,
+    position: Point2,
+    velocity: Vector2,
+    acceleration: Vector2,
     top_speed: f32,
 }
 
 impl Mover {
-    fn new(_rect: Rect<f32>) -> Self {
+    fn new(_rect: Rect) -> Self {
         let position = pt2(0.0, 0.0);
         let velocity = vec2(0.0, 0.0);
         let acceleration = vec2(0.0, 0.0);
@@ -47,7 +47,7 @@ impl Mover {
         self.position += self.velocity;
     }
 
-    fn _check_edges(&mut self, rect: Rect<f32>) {
+    fn _check_edges(&mut self, rect: Rect) {
         if self.position.x > rect.right() {
             self.position.x = rect.left();
         } else if self.position.x < rect.left() {

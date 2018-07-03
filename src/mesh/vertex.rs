@@ -1,8 +1,8 @@
 //! Vertex types yielded by the mesh adaptors and their implementations.
 
-use geom;
 use geom::graph::node::{self, ApplyTransform};
-use math::{BaseFloat, Point2, Point3};
+use geom::{self, Point2, Point3};
+use math::BaseFloat;
 use std::ops::{Deref, DerefMut};
 
 /// A vertex with a specified color.
@@ -14,7 +14,7 @@ pub struct WithColor<V, C> {
 
 /// A vertex with some specified texture coordinates.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
-pub struct WithTexCoords<V, T = Point2<geom::DefaultScalar>> {
+pub struct WithTexCoords<V, T = Point2<geom::scalar::Default>> {
     pub vertex: V,
     pub tex_coords: T,
 }

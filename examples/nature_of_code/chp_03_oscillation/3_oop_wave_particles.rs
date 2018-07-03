@@ -17,12 +17,12 @@ struct Model {
 }
 
 struct Particle {
-    position: Point2<f32>,
+    position: Point2,
 }
 
 struct Wave {
     x_spacing: f32,      // How far apart should each horizontal position be spaced
-    origin: Point2<f32>, // Where does the wave's first point start
+    origin: Point2,      // Where does the wave's first point start
     theta: f32,          // Start angle at 0
     amplitude: f32,      // Height of the wave
     dx: f32, // Value for incementing X, to be calculated as a function of period and x_spacing
@@ -51,7 +51,7 @@ impl Particle {
     }
 }
 impl Wave {
-    fn new(o: Point2<f32>, w: f32, a: f32, p: f32) -> Self {
+    fn new(o: Point2, w: f32, a: f32, p: f32) -> Self {
         let origin = o;
         let x_spacing = 8.0 as f32;
         let theta = 0.0 as f32;

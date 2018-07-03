@@ -20,7 +20,7 @@ pub type MeshType<S> =
 
 /// The custom mesh type used internally by the **Draw** API.
 #[derive(Clone, Debug)]
-pub struct Mesh<S = geom::DefaultScalar> {
+pub struct Mesh<S = geom::scalar::Default> {
     mesh: MeshType<S>,
 }
 

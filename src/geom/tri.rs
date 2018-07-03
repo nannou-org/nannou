@@ -1,5 +1,5 @@
-use geom::{vertex, Cuboid, Range, Rect, Vertex, Vertex2d, Vertex3d};
-use math::{BaseNum, EuclideanSpace, Point2, Zero};
+use geom::{vertex, Cuboid, Point2, Range, Rect, Vertex, Vertex2d, Vertex3d};
+use math::{BaseNum, EuclideanSpace, Zero};
 use std::ops::Deref;
 
 /// The number of vertices in a triangle.

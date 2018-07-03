@@ -4,8 +4,8 @@ use daggy::petgraph::visit::{self, Visitable};
 use daggy::{self, Walker};
 use geom;
 use geom::graph::Edge;
-use geom::{DefaultScalar, Graph};
-use math::{self, BaseFloat, Basis3, Euler, Point3, Rad, Rotation, Vector3};
+use geom::{scalar, Graph, Point3, Vector3};
+use math::{self, BaseFloat, Basis3, Euler, Rad, Rotation};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::ops;
@@ -15,7 +15,7 @@ pub type Index = daggy::NodeIndex<usize>;
 
 /// The **Node** type used within the **Graph**.
 #[derive(Clone, Debug)]
-pub enum Node<S = DefaultScalar>
+pub enum Node<S = scalar::Default>
 where
     S: BaseFloat,
 {
@@ -31,7 +31,7 @@ where
 
 /// An iterator yielding all vertices for a node transformed by some given transform.
 #[derive(Clone, Debug)]
-pub struct TransformedVertices<I, S = DefaultScalar>
+pub struct TransformedVertices<I, S = scalar::Default>
 where
     S: BaseFloat,
 {
@@ -41,7 +41,7 @@ where
 
 /// An iterator yielding all vertices for a node transformed by some given transform.
 #[derive(Clone, Debug)]
-pub struct TransformedTriangles<I, V, S = DefaultScalar>
+pub struct TransformedTriangles<I, V, S = scalar::Default>
 where
     S: BaseFloat,
 {
@@ -58,7 +58,7 @@ where
 /// 2. **rotation**: `0.0 + parent_position + edge_displacement`
 /// 3. **displacement**: 0.0 + parent_orientation + edge_orientation`
 #[derive(Clone, Debug, PartialEq)]
-pub struct Transform<S = DefaultScalar>
+pub struct Transform<S = scalar::Default>
 where
     S: BaseFloat,
 {
@@ -81,7 +81,7 @@ where
 /// The same as **Transfrom** but the euler has been converted to a matrix for more efficient
 /// application.
 #[derive(Clone, Debug, PartialEq)]
-pub struct PreparedTransform<S = DefaultScalar> {
+pub struct PreparedTransform<S = scalar::Default> {
     /// A scaling amount along each axis.
     ///
     /// The scaling amount is multiplied onto each vertex of the node.
@@ -100,7 +100,7 @@ pub struct PreparedTransform<S = DefaultScalar> {
 ///
 /// This is calculated via the `Graph::update_transform_map` method.
 #[derive(Clone, Debug, PartialEq)]
-pub struct TransformMap<S = DefaultScalar>
+pub struct TransformMap<S = scalar::Default>
 where
     S: BaseFloat,
 {
@@ -115,7 +115,7 @@ where
 /// **Note:** The algorithm may not behave correctly if nodes are removed during iteration. It may
 /// not necessarily visit added nodes or edges.
 #[derive(Clone, Debug)]
-pub struct Dfs<S = DefaultScalar>
+pub struct Dfs<S = scalar::Default>
 where
     S: BaseFloat,
 {
@@ -390,7 +390,7 @@ where
     point.y *= transform.scale.y;
     point.z *= transform.scale.z;
     // Rotate the point around the node origin.
-    point = transform.rot.rotate_point(point);
+    point = transform.rot.rotate_point(point.into()).into();
     // Displace the point from the node origin.
     point += transform.disp;
     point

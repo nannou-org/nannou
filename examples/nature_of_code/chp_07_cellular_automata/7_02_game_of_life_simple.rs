@@ -29,7 +29,7 @@ struct Gol {
 }
 
 impl Gol {
-    fn new(rect: Rect<f32>) -> Self {
+    fn new(rect: Rect) -> Self {
         let w = 8;
         let columns = rect.w() as usize / w;
         let rows = rect.h() as usize / w;
@@ -106,7 +106,7 @@ impl Gol {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &app::Draw, rect: &Rect<f32>) {
+    fn display(&self, draw: &app::Draw, rect: &Rect) {
         for i in 0..self.columns {
             for j in 0..self.rows {
                 let mut fill = 1.0;

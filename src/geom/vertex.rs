@@ -1,5 +1,6 @@
 use color;
-use math::{BaseNum, Point2, Point3};
+use geom::{scalar, Point2, Point3};
+use math::BaseNum;
 use std::ops::{Deref, DerefMut};
 
 /// Types used as vertices that can be used to describe geometric points in space.
@@ -20,10 +21,8 @@ pub trait Vertex3d: Vertex2d {
     fn point3(self) -> Point3<Self::Scalar>;
 }
 
-/// If a type is not specified for a scalar along an axis, this is the default type used.
-pub type DefaultScalar = f32;
 /// If a type is not specified for a piece of geometry, this is the default type used.
-pub type Default = Point3<DefaultScalar>;
+pub type Default = Point3<scalar::Default>;
 
 /// An iterator yielding a vertex for each index yielded by the given indices iterator.
 #[derive(Clone, Debug)]
