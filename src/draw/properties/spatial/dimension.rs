@@ -1,5 +1,5 @@
-use geom::{self, Vector2, Vector3};
 use geom::graph::node;
+use geom::{self, Vector2, Vector3};
 use math::BaseFloat;
 
 /// Dimension properties for **Drawing** a **Node**.

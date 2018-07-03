@@ -8,7 +8,7 @@ pub use event::SimpleWindowEvent::*;
 pub use event::{Event, Key};
 pub use frame::Frame;
 pub use geom::{
-    self, pt2, pt3, vec2, vec3, vec4, Point2, Point3, Vector2, Vector3, Vector4, Cuboid, Rect,
+    self, pt2, pt3, vec2, vec3, vec4, Cuboid, Point2, Point3, Rect, Vector2, Vector3, Vector4,
 };
 pub use io::{load_from_json, load_from_toml, safe_file_save, save_to_json, save_to_toml};
 pub use math::num_traits::*;

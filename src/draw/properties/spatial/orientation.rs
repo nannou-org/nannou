@@ -1,5 +1,5 @@
-use geom::{self, Point3, Vector3};
 use geom::graph::node;
+use geom::{self, Point3, Vector3};
 use math::{deg_to_rad, turns_to_rad, Angle, BaseFloat, Euler, Quaternion, Rad};
 
 /// Orientation properties for **Drawing** a **Node**.

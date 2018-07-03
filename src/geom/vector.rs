@@ -5,15 +5,14 @@
 //! implementations in order to gain some flexibility.
 
 use geom::scalar;
-use math::{self, BaseFloat, Bounded, InnerSpace, NumCast, Zero, One};
+use math::{self, BaseFloat, Bounded, InnerSpace, NumCast, One, Zero};
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use std::{iter, ops};
 
 /// A 2-dimensional vector.
 #[repr(C)]
-#[derive(Default, Debug, PartialEq, Eq, Copy, Clone, Hash)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, PartialEq, Eq, Copy, Clone, Hash, Serialize, Deserialize)]
 pub struct Vector2<S = scalar::Default> {
     pub x: S,
     pub y: S,
@@ -21,8 +20,7 @@ pub struct Vector2<S = scalar::Default> {
 
 /// A 3-dimensional vector.
 #[repr(C)]
-#[derive(Default, Debug, PartialEq, Eq, Copy, Clone, Hash)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, PartialEq, Eq, Copy, Clone, Hash, Serialize, Deserialize)]
 pub struct Vector3<S = scalar::Default> {
     pub x: S,
     pub y: S,
@@ -31,8 +29,7 @@ pub struct Vector3<S = scalar::Default> {
 
 /// A 4-dimensional vector.
 #[repr(C)]
-#[derive(Default, Debug, PartialEq, Eq, Copy, Clone, Hash)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, PartialEq, Eq, Copy, Clone, Hash, Serialize, Deserialize)]
 pub struct Vector4<S = scalar::Default> {
     pub x: S,
     pub y: S,
@@ -44,23 +41,25 @@ pub struct Vector4<S = scalar::Default> {
 //
 // Code originally from `cgmath` macros module.
 macro_rules! impl_index_operators {
-    ($VectorN:ident<$S:ident>, $n:expr, $Output:ty, $I:ty) => {
+    ($VectorN:ident < $S:ident > , $n:expr, $Output:ty, $I:ty) => {
         impl<$S> ::std::ops::Index<$I> for $VectorN<$S> {
             type Output = $Output;
 
             #[inline]
             fn index<'a>(&'a self, i: $I) -> &'a $Output {
-                let v: &[$S; $n] = self.as_ref(); &v[i]
+                let v: &[$S; $n] = self.as_ref();
+                &v[i]
             }
         }
 
         impl<$S> ::std::ops::IndexMut<$I> for $VectorN<$S> {
             #[inline]
             fn index_mut<'a>(&'a mut self, i: $I) -> &'a mut $Output {
-                let v: &mut [$S; $n] = self.as_mut(); &mut v[i]
+                let v: &mut [$S; $n] = self.as_mut();
+                &mut v[i]
             }
         }
-    }
+    };
 }
 
 // Utility macro for generating associated functions for the vectors
@@ -574,23 +573,39 @@ macro_rules! impl_vector {
 mod cgmath_impl {
     // From `cgmath`
     macro_rules! fold_array {
-        (&$method:ident, { $x:expr })                            => { *$x };
-        (&$method:ident, { $x:expr, $y:expr })                   => { $x.$method(&$y) };
-        (&$method:ident, { $x:expr, $y:expr, $z:expr })          => { $x.$method(&$y).$method(&$z) };
-        (&$method:ident, { $x:expr, $y:expr, $z:expr, $w:expr }) => { $x.$method(&$y).$method(&$z).$method(&$w) };
-        ($method:ident, { $x:expr })                             => { $x };
-        ($method:ident, { $x:expr, $y:expr })                    => { $x.$method($y) };
-        ($method:ident, { $x:expr, $y:expr, $z:expr })           => { $x.$method($y).$method($z) };
-        ($method:ident, { $x:expr, $y:expr, $z:expr, $w:expr })  => { $x.$method($y).$method($z).$method($w) };
+        (& $method:ident, { $x:expr }) => {
+            *$x
+        };
+        (& $method:ident, { $x:expr, $y:expr }) => {
+            $x.$method(&$y)
+        };
+        (& $method:ident, { $x:expr, $y:expr, $z:expr }) => {
+            $x.$method(&$y).$method(&$z)
+        };
+        (& $method:ident, { $x:expr, $y:expr, $z:expr, $w:expr }) => {
+            $x.$method(&$y).$method(&$z).$method(&$w)
+        };
+        ($method:ident, { $x:expr }) => {
+            $x
+        };
+        ($method:ident, { $x:expr, $y:expr }) => {
+            $x.$method($y)
+        };
+        ($method:ident, { $x:expr, $y:expr, $z:expr }) => {
+            $x.$method($y).$method($z)
+        };
+        ($method:ident, { $x:expr, $y:expr, $z:expr, $w:expr }) => {
+            $x.$method($y).$method($z).$method($w)
+        };
     }
 
+    use super::{Vector2, Vector3, Vector4};
     use math::approx::ApproxEq;
     use math::cgmath::{
         self, Angle, Array, BaseFloat, BaseNum, ElementWise, EuclideanSpace, InnerSpace,
         MetricSpace, Rad, VectorSpace,
     };
     use std::ops;
-    use super::{Vector2, Vector3, Vector4};
 
     macro_rules! impl_vector_cgmath {
         ($VectorN:ident { $($field:ident),+ }, $n:expr) => {
@@ -991,7 +1006,7 @@ impl<S> Vector3<S> {
     #[inline]
     pub fn unit_x() -> Vector3<S>
     where
-        S: Zero + One
+        S: Zero + One,
     {
         Vector3::new(S::one(), S::zero(), S::zero())
     }
