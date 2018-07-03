@@ -390,7 +390,7 @@ where
     point.y *= transform.scale.y;
     point.z *= transform.scale.z;
     // Rotate the point around the node origin.
-    point = transform.rot.rotate_point(point);
+    point = transform.rot.rotate_point(point.into()).into();
     // Displace the point from the node origin.
     point += transform.disp;
     point

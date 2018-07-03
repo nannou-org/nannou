@@ -10,30 +10,34 @@
 //! - A function for finding the centroid.
 
 use math::num_traits::cast;
-use math::{BaseFloat, EuclideanSpace, Point2, Point3};
+use math::{BaseFloat, EuclideanSpace};
 use std::ops;
 
 pub mod cuboid;
 pub mod ellipse;
 pub mod graph;
 pub mod line;
+pub mod point;
 pub mod polygon;
 pub mod quad;
 pub mod range;
 pub mod rect;
 pub mod scalar;
 pub mod tri;
+pub mod vector;
 pub mod vertex;
 
 pub use self::cuboid::Cuboid;
 pub use self::ellipse::Ellipse;
 pub use self::graph::Graph;
 pub use self::line::Line;
+pub use self::point::{pt2, pt3, pt4, Point2, Point3, Point4};
 pub use self::polygon::Polygon;
 pub use self::quad::Quad;
 pub use self::range::{Align, Edge, Range};
 pub use self::rect::{Corner, Padding, Rect};
 pub use self::tri::Tri;
+pub use self::vector::{vec2, vec3, vec4, Vector2, Vector3, Vector4};
 pub use self::vertex::{Vertex, Vertex2d, Vertex3d};
 
 // General geometry utility functions
