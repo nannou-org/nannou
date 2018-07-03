@@ -2,9 +2,9 @@ use draw::mesh::vertex::{IntoPoint, IntoVertex};
 use draw::properties::spatial::{self, orientation, position};
 use draw::properties::{Draw, Drawn, IntoDrawn, Primitive, SetOrientation, SetPosition};
 use draw::{self, Drawing};
-use geom;
+use geom::{self, pt2, Point2};
 use geom::line::join::miter;
-use math::{pt2, BaseFloat, Point2};
+use math::BaseFloat;
 use mesh::vertex::{WithColor, WithTexCoords};
 use std::iter;
 

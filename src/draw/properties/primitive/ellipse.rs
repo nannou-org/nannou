@@ -4,8 +4,8 @@ use draw::properties::{
     SetOrientation, SetPosition,
 };
 use draw::{self, Drawing};
-use geom;
-use math::{BaseFloat, Vector2};
+use geom::{self, Vector2};
+use math::BaseFloat;
 
 /// Properties related to drawing an **Ellipse**.
 #[derive(Clone, Debug)]

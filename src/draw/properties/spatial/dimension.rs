@@ -1,6 +1,6 @@
-use geom;
+use geom::{self, Vector2, Vector3};
 use geom::graph::node;
-use math::{BaseFloat, Vector2, Vector3};
+use math::BaseFloat;
 
 /// Dimension properties for **Drawing** a **Node**.
 #[derive(Copy, Clone, Debug, PartialEq)]

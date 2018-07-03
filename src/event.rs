@@ -5,9 +5,8 @@
 //! - [**SimpleWindowEvent**](./struct.WindowEvent.html) - a stripped-back, simplified,
 //!   newcomer-friendly version of the **raw**, low-level glutin event.
 
-use geom;
+use geom::{self, Point2, Vector2};
 use glium::glutin;
-use math::{Point2, Vector2};
 use state;
 use std::path::PathBuf;
 use window;

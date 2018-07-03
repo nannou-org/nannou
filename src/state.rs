@@ -66,8 +66,8 @@ pub mod keys {
 
 /// Tracked state related to the mouse.
 pub mod mouse {
-    use geom;
-    use math::{BaseFloat, Point2};
+    use geom::{self, Point2};
+    use math::BaseFloat;
     use std;
     use window;
 

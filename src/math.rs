@@ -3,9 +3,20 @@
 
 pub extern crate approx;
 pub extern crate cgmath;
-pub use self::cgmath::num_traits::{Float, NumCast, One};
-pub use self::cgmath::*;
-pub use geom::{pt2, pt3, pt4, vec2, vec3, vec4, Point2, Point3, Point4, Vector2, Vector3, Vector4};
+
+pub use self::cgmath::num_traits::{self, Bounded, Float, NumCast, One, Zero};
+// cgmath modules
+pub use self::cgmath::prelude;
+// cgmath types
+pub use self::cgmath::{
+    Basis2, Basis3, Decomposed, Deg, Euler, Matrix2, Matrix3, Matrix4, Ortho, Perspective,
+    PerspectiveFov, Quaternion, Rad,
+};
+// cgmath traits
+pub use self::cgmath::{
+    Angle, Array, BaseFloat, BaseNum, ElementWise, EuclideanSpace, InnerSpace, Matrix, MetricSpace,
+    Rotation, Rotation2, Rotation3, SquareMatrix, Transform, Transform2, Transform3, VectorSpace,
+};
 use std::ops::Add;
 
 /// Map a value from a given range to a new given range.

@@ -1,6 +1,6 @@
-use geom;
+use geom::{self, Point3, Vector3};
 use geom::graph::node;
-use math::{deg_to_rad, turns_to_rad, Angle, BaseFloat, Euler, Point3, Quaternion, Rad, Vector3};
+use math::{deg_to_rad, turns_to_rad, Angle, BaseFloat, Euler, Quaternion, Rad};
 
 /// Orientation properties for **Drawing** a **Node**.
 #[derive(Copy, Clone, Debug, PartialEq)]

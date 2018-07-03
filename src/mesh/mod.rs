@@ -2,8 +2,8 @@
 //! including position, color, texture-coordinate and normals. Note that this is quite a low-level
 //! representation. For a higher-level, graphics-related mesh API, see the `draw` module.
 
-use geom;
-use math::{BaseFloat, BaseNum, EuclideanSpace, Point2};
+use geom::{self, Point2};
+use math::{BaseFloat, BaseNum, EuclideanSpace};
 use std::cell::{Ref, RefMut};
 use std::cmp;
 use std::marker::PhantomData;

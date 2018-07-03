@@ -1,5 +1,5 @@
-use geom::{self, ellipse, quad, scalar, tri, Rect};
-use math::{two, vec2, BaseFloat, EuclideanSpace, InnerSpace, Point2};
+use geom::{self, ellipse, quad, scalar, tri, vec2, Point2, Rect};
+use math::{two, BaseFloat, EuclideanSpace, InnerSpace};
 
 pub mod cap;
 pub mod join;

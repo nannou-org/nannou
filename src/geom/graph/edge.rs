@@ -1,7 +1,7 @@
 //! Items related to the edges of a geometry graph.
 use daggy;
-use geom;
-use math::{BaseFloat, Euler, Rad, Vector3};
+use geom::{self, Vector3};
+use math::{BaseFloat, Euler, Rad};
 
 /// Unique index for an **Edge** within a **Graph**.
 pub type Index = daggy::EdgeIndex<usize>;

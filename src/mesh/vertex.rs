@@ -1,8 +1,8 @@
 //! Vertex types yielded by the mesh adaptors and their implementations.
 
-use geom;
+use geom::{self, Point2, Point3};
 use geom::graph::node::{self, ApplyTransform};
-use math::{BaseFloat, Point2, Point3};
+use math::BaseFloat;
 use std::ops::{Deref, DerefMut};
 
 /// A vertex with a specified color.

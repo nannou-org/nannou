@@ -1,8 +1,7 @@
 //! Items related to describing positioning along each axis as
 
-use geom;
+use geom::{self, Point2, Point3};
 use geom::graph::node;
-use math::{Point2, Point3};
 
 /// Position properties for **Drawing** a **Node**.
 #[derive(Copy, Clone, Debug, PartialEq)]

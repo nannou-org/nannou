@@ -1,6 +1,6 @@
-use geom::{quad, scalar, Align, Edge, Quad, Range, Tri};
+use geom::{quad, scalar, Align, Edge, Point2, Quad, Range, Tri, Vector2};
 use math::num_traits::Float;
-use math::{self, BaseNum, Point2, Vector2};
+use math::{self, BaseNum};
 use std::ops::Neg;
 
 /// Defines a Rectangle's bounds across the x and y axes.

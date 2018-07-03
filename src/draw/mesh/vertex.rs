@@ -1,6 +1,6 @@
 use color;
-use geom;
-use math::{BaseFloat, Point2, Point3, Vector3};
+use geom::{self, Point2, Point3, Vector3};
+use math::BaseFloat;
 use mesh::vertex::{WithColor, WithTexCoords};
 use std::marker::PhantomData;
 

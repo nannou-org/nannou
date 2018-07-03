@@ -4,8 +4,8 @@ use draw::properties::{
     SetPosition,
 };
 use draw::{self, Drawing};
-use geom;
-use math::{BaseFloat, Point2};
+use geom::{self, Point2};
+use math::BaseFloat;
 
 /// Properties related to drawing a **Line**.
 #[derive(Clone, Debug)]

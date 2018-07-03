@@ -2,9 +2,9 @@
 //!
 //! The main type is the `Cuboid` type.
 
-use geom::{quad, scalar, Quad, Range, Tri};
+use geom::{quad, scalar, Point3, Quad, Range, Tri, Vector3};
 use math::num_traits::Float;
-use math::{BaseNum, Point3, Vector3};
+use math::BaseNum;
 use std::ops::Neg;
 
 /// The number of faces on a Cuboid.

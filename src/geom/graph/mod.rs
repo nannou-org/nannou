@@ -1,7 +1,7 @@
 use daggy::petgraph::visit::{GraphBase, IntoNeighbors, Visitable};
 use daggy::{self, Walker};
-use geom;
-use math::{BaseFloat, Point3, Vector3};
+use geom::{self, Point3, Vector3};
+use math::BaseFloat;
 use std::iter;
 use std::ops;
 use std::option;

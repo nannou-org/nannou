@@ -4,9 +4,9 @@ use draw::properties::{
     SetPosition,
 };
 use draw::{self, Draw};
-use geom;
+use geom::{self, Point2, Point3, Vector2, Vector3};
 use geom::graph::node;
-use math::{Angle, BaseFloat, Euler, Point2, Point3, Quaternion, Rad, Vector2, Vector3};
+use math::{Angle, BaseFloat, Euler, Quaternion, Rad};
 use std::marker::PhantomData;
 
 /// A **Drawing** in progress.

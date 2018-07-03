@@ -1,9 +1,9 @@
 //! A simple API for drawing 2D and 3D graphics. See the [**Draw** type](./struct.Draw.html) for
 //! more details.
 
-use geom;
+use geom::{self, Vector3};
 use geom::graph::{edge, node};
-use math::{BaseFloat, Vector3};
+use math::BaseFloat;
 use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
 use std::mem;
