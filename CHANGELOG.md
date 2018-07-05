@@ -2,6 +2,7 @@
 
 - Change `random_range` to check that `min` is smaller than `max`, swapping the
   two if not. This avoids some common `panic!`s.
+- Add expanding conversion implementations that vector types.
 - Add custom `Vector` types - replaces the use of `cgmath::{VectorN, PointN}`
   types.
 - Update `rand` to version `0.5`.
