@@ -17,12 +17,12 @@ struct Model {
 }
 
 struct Wave {
-    x_spacing: f32,       // How far apart should each horizontal position be spaced
-    _w: f32,              // Width of entire wave
-    origin: Point2,       // Where does the wave's first point start
-    theta: f32,           // Start angle at 0
-    amplitude: f32,       // Height of the wave
-    _period: f32,         // How many pixels before the wave repeats
+    x_spacing: f32,     // How far apart should each horizontal position be spaced
+    _w: f32,            // Width of entire wave
+    origin: Point2,     // Where does the wave's first point start
+    theta: f32,         // Start angle at 0
+    amplitude: f32,     // Height of the wave
+    _period: f32,       // How many pixels before the wave repeats
     dx: f32, // Value for incementing X, to be calculated as a function of period and x_spacing
     y_values: Vec<f32>, // Using a vector to store the height values for the wave (not entirely necessary)
 }

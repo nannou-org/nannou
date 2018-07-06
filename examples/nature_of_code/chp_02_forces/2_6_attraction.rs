@@ -25,11 +25,11 @@ struct Mover {
 
 // A type for a draggable attractive body in our world
 struct Attractor {
-    mass: f32,                 // Maxx, tied to size
-    position: Point2,          // position
-    dragging: bool,            // Is the object being dragged?
-    roll_over: bool,           // Is the mouse over the ellipse?
-    drag_offset: Vector2,      // holds the offset for when the object is clicked on
+    mass: f32,            // Maxx, tied to size
+    position: Point2,     // position
+    dragging: bool,       // Is the object being dragged?
+    roll_over: bool,      // Is the mouse over the ellipse?
+    drag_offset: Vector2, // holds the offset for when the object is clicked on
 }
 
 impl Attractor {
