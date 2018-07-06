@@ -13,9 +13,9 @@ fn main() {
 
 // A type for a draggable attractive body in our world
 struct Attractor {
-    mass: f32,             // Mass, tied to size
-    location: Point2,      // Location
-    g: f32,                // Gravity
+    mass: f32,        // Mass, tied to size
+    location: Point2, // Location
+    g: f32,           // Gravity
 }
 
 impl Attractor {
