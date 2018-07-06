@@ -25,11 +25,15 @@ pub fn random_f64() -> f64 {
 /// The generated value may be within the range [min, max). That is, the result is inclusive of
 /// `min`, but will never be `max`.
 ///
+/// If the given `min` is greater than the given `max`, they will be swapped before calling
+/// `gen_range` internally to avoid triggering a `panic!`.
+///
 /// This calls `rand::thread_rng().gen_range(min, max)` internally, in turn using the thread-local
 /// default random number generator.
 pub fn random_range<T>(min: T, max: T) -> T
 where
     T: PartialOrd + distributions::range::SampleRange,
 {
+    let (min, max) = if min <= max { (min, max) } else { (max, min) };
     rand::thread_rng().gen_range(min, max)
 }
