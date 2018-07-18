@@ -1,5 +1,6 @@
-# Unreleased
+# Version 0.8.0 (2018-07-19)
 
+- Update deps: glium 0.22, image 0.19.
 - Change `random_range` to check that `min` is smaller than `max`, swapping the
   two if not. This avoids some common `panic!`s.
 - Add expanding conversion implementations that vector types.

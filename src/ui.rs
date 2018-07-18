@@ -73,7 +73,8 @@ pub type Texture2dMap = conrod::image::Map<glium::texture::Texture2d>;
 
 impl conrod::backend::winit::WinitWindow for Window {
     fn get_inner_size(&self) -> Option<(u32, u32)> {
-        Some(self.inner_size_pixels())
+        let (w, h) = self.inner_size_points();
+        Some((w as _, h as _))
     }
     fn hidpi_factor(&self) -> f32 {
         self.hidpi_factor()
