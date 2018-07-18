@@ -473,10 +473,7 @@ macro_rules! impl_vector {
             }
         }
 
-        impl<S> Into<[S; $n]> for $VectorN<S>
-        where
-            S: Copy,
-        {
+        impl<S> Into<[S; $n]> for $VectorN<S> {
             #[inline]
             fn into(self) -> [S; $n] {
                 let $VectorN { $($field),+ } = self;
@@ -912,6 +909,8 @@ impl_vector!(Vector2 { x, y }, 2, vec2);
 impl_vector!(Vector3 { x, y, z }, 3, vec3);
 impl_vector!(Vector4 { x, y, z, w }, 4, vec4);
 
+// tuple conversions
+
 impl<S> From<(S, S)> for Vector2<S> {
     fn from((x, y): (S, S)) -> Self {
         Vector2 { x, y }
@@ -948,6 +947,105 @@ impl<S> Into<(S, S, S, S)> for Vector4<S> {
     fn into(self) -> (S, S, S, S) {
         let Vector4 { x, y, z, w } = self;
         (x, y, z, w)
+    }
+}
+
+// expanding tuple conversions
+
+impl<S> From<(S, S)> for Vector3<S>
+where
+    S: Zero,
+{
+    fn from((x, y): (S, S)) -> Self {
+        let z = S::zero();
+        Vector3 { x, y, z }
+    }
+}
+
+impl<S> From<(S, S)> for Vector4<S>
+where
+    S: Zero,
+{
+    fn from((x, y): (S, S)) -> Self {
+        let z = S::zero();
+        let w = S::zero();
+        Vector4 { x, y, z, w }
+    }
+}
+
+impl<S> From<(S, S, S)> for Vector4<S>
+where
+    S: Zero,
+{
+    fn from((x, y, z): (S, S, S)) -> Self {
+        let w = S::zero();
+        Vector4 { x, y, z, w }
+    }
+}
+
+// expanding fixed-size array conversions
+
+impl<S> From<[S; 2]> for Vector3<S>
+where
+    S: Zero,
+{
+    fn from([x, y]: [S; 2]) -> Self {
+        let z = S::zero();
+        Vector3 { x, y, z }
+    }
+}
+
+impl<S> From<[S; 2]> for Vector4<S>
+where
+    S: Zero,
+{
+    fn from([x, y]: [S; 2]) -> Self {
+        let z = S::zero();
+        let w = S::zero();
+        Vector4 { x, y, z, w }
+    }
+}
+
+impl<S> From<[S; 3]> for Vector4<S>
+where
+    S: Zero,
+{
+    fn from([x, y, z]: [S; 3]) -> Self {
+        let w = S::zero();
+        Vector4 { x, y, z, w }
+    }
+}
+
+// expanding vector conversions
+
+impl<S> From<Vector2<S>> for Vector3<S>
+where
+    S: Zero,
+{
+    fn from(Vector2 { x, y }: Vector2<S>) -> Self {
+        let z = S::zero();
+        Vector3 { x, y, z }
+    }
+}
+
+impl<S> From<Vector2<S>> for Vector4<S>
+where
+    S: Zero,
+{
+    fn from(Vector2 { x, y }: Vector2<S>) -> Self {
+        let z = S::zero();
+        let w = S::zero();
+        Vector4 { x, y, z, w }
+    }
+}
+
+impl<S> From<Vector3<S>> for Vector4<S>
+where
+    S: Zero,
+{
+    fn from(Vector3 { x, y, z }: Vector3<S>) -> Self {
+        let w = S::zero();
+        Vector4 { x, y, z, w }
     }
 }
 
@@ -1120,6 +1218,8 @@ impl<S> Vector4<S> {
 
     //impl_swizzle_functions!(Vector1, Vector2, Vector3, Vector4, S, xyzw);
 }
+
+// utility functions
 
 fn limit_magnitude<V>(v: V, limit: V::Scalar) -> V
 where
