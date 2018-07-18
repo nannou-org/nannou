@@ -233,7 +233,7 @@ desired example.
 - [Udemy Rust Course](https://www.udemy.com/rust-lang/) (paid)
 - [Nannou Website](http://nannou.cc)
 - [Nannou Forum](http://forum.nannou.cc)
-- [Nannou Slack](https://nannou.slack.com)
+- [Nannou Slack](https://communityinviter.com/apps/nannou/nannou-slack)
 
 ## License
 
