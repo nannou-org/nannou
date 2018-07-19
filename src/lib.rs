@@ -31,8 +31,8 @@ pub use self::ui::Ui;
 pub use app::{App, LoopMode};
 pub use draw::Draw;
 pub use glium::glutin::{
-    ContextBuilder, CursorState, ElementState, MonitorId, MouseCursor, VirtualKeyCode,
-    WindowBuilder, WindowEvent,
+    ContextBuilder, ElementState, MonitorId, MouseCursor, VirtualKeyCode, WindowBuilder,
+    WindowEvent,
 };
 
 pub mod app;
@@ -298,8 +298,12 @@ fn run_loop<M, E>(
                 }
             }
 
-            // If a window was closed, remove it from the display map.
-            if let glutin::WindowEvent::Closed = *event {
+            // If a window was destroyed, remove it from the display map.
+            if let glutin::WindowEvent::Destroyed = *event {
+                app.windows.borrow_mut().remove(&window_id);
+            // TODO: We should allow the user to handle this case. E.g. allow for doing things like
+            // "would you like to save".
+            } else if let glutin::WindowEvent::CloseRequested = *event {
                 app.windows.borrow_mut().remove(&window_id);
             } else {
                 // Get the size of the screen for translating coords and dimensions.
@@ -345,8 +349,9 @@ fn run_loop<M, E>(
                 // Check for events that would update either mouse, keyboard or window state.
                 match *event {
                     glutin::WindowEvent::CursorMoved {
-                        position: (x, y), ..
+                        position, ..
                     } => {
+                        let (x, y): (f64, f64) = position.into();
                         let x = tx(x as _);
                         let y = ty(y as _);
                         app.mouse.x = x;

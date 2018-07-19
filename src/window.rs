@@ -1,7 +1,8 @@
 //! The nannou [**Window**](./struct.Window.html) API. Create a new window via `.app.new_window()`.
 //! This produces a [**Builder**](./struct.Builder.html) which can be used to build a window.
 
-use glium::glutin::{CursorState, GlContext, MonitorId, MouseCursor};
+use geom;
+use glium::glutin::{GlContext, MonitorId, MouseCursor};
 use glium::{self, glutin};
 use std::env;
 use App;
@@ -140,17 +141,17 @@ impl<'a, 'b> Builder<'a, 'b> {
 
     /// Requests the window to be specific dimensions pixels.
     pub fn with_dimensions(self, width: u32, height: u32) -> Self {
-        self.map_window(|w| w.with_dimensions(width, height))
+        self.map_window(|w| w.with_dimensions((width, height).into()))
     }
 
     /// Set the minimum dimensions in pixels for the window.
     pub fn with_min_dimensions(self, width: u32, height: u32) -> Self {
-        self.map_window(|w| w.with_min_dimensions(width, height))
+        self.map_window(|w| w.with_min_dimensions((width, height).into()))
     }
 
     /// Set the maximum dimensions in pixels for the window.
     pub fn with_max_dimensions(self, width: u32, height: u32) -> Self {
-        self.map_window(|w| w.with_max_dimensions(width, height))
+        self.map_window(|w| w.with_max_dimensions((width, height).into()))
     }
 
     /// Requests a specific title for the window.
@@ -308,13 +309,14 @@ impl Window {
             .gl_window()
             .get_position()
             .expect(Self::NO_LONGER_EXISTS)
+            .into()
     }
 
     /// Modifies the position of the window.
     ///
     /// See `get_position` for more information about the returned coordinates.
     pub fn set_position(&self, x: i32, y: i32) {
-        self.display.gl_window().set_position(x, y)
+        self.display.gl_window().set_position((x, y).into())
     }
 
     /// The size in pixels of the client area of the window.
@@ -326,7 +328,12 @@ impl Window {
         self.display
             .gl_window()
             .get_inner_size()
+            .map(|logical_px| {
+                let hidpi_factor = self.display.gl_window().get_hidpi_factor();
+                logical_px.to_physical(hidpi_factor)
+            })
             .expect(Self::NO_LONGER_EXISTS)
+            .into()
     }
 
     /// The size in points of the client area of the window.
@@ -335,10 +342,13 @@ impl Window {
     /// the dimensions of the frame buffer when calling `glViewport`, multiply with hidpi factor.
     ///
     /// This is the same as dividing the result  of `inner_size_pixels()` by `hidpi_factor()`.
-    pub fn inner_size_points(&self) -> (f32, f32) {
-        let (w_px, h_px) = self.inner_size_pixels();
-        let hidpi_factor = self.hidpi_factor();
-        (w_px as f32 / hidpi_factor, h_px as f32 / hidpi_factor)
+    pub fn inner_size_points(&self) -> (geom::scalar::Default, geom::scalar::Default) {
+        let size = self.display
+            .gl_window()
+            .get_inner_size()
+            .expect(Self::NO_LONGER_EXISTS);
+        let (w, h): (f64, f64) = size.into();
+        (w as _, h as _)
     }
 
     /// The size of the window in pixels.
@@ -349,7 +359,12 @@ impl Window {
         self.display
             .gl_window()
             .get_outer_size()
+            .map(|logical_px| {
+                let hidpi_factor = self.display.gl_window().get_hidpi_factor();
+                logical_px.to_physical(hidpi_factor)
+            })
             .expect(Self::NO_LONGER_EXISTS)
+            .into()
     }
 
     /// The size of the window in points.
@@ -359,16 +374,19 @@ impl Window {
     ///
     /// This is the same as dividing the result  of `outer_size_pixels()` by `hidpi_factor()`.
     pub fn outer_size_points(&self) -> (f32, f32) {
-        let (w_px, h_px) = self.outer_size_pixels();
-        let hidpi_factor = self.hidpi_factor();
-        (w_px as f32 / hidpi_factor, h_px as f32 / hidpi_factor)
+        let size = self.display
+            .gl_window()
+            .get_outer_size()
+            .expect(Self::NO_LONGER_EXISTS);
+        let (w, h): (f64, f64) = size.into();
+        (w as _, h as _)
     }
 
     /// Modifies the inner size of the window.
     ///
     /// See the `inner_size` methods for more informations about the values.
     pub fn set_inner_size_pixels(&self, width: u32, height: u32) {
-        self.display.gl_window().set_inner_size(width, height)
+        self.display.gl_window().set_inner_size((width, height).into())
     }
 
     /// Modifies the inner size of the window using point values.
@@ -382,26 +400,17 @@ impl Window {
         self.set_inner_size_pixels(w_px, h_px);
     }
 
-    /// Modifies the mouse cursor of the window.
-    ///
-    /// ## Platform-specific
-    ///
-    /// Has no effect on Android.
-    pub fn set_cursor(&self, cursor: MouseCursor) {
-        self.display.gl_window().set_cursor(cursor)
-    }
-
     /// The ratio between the backing framebuffer resolution and the window size in screen pixels.
     ///
     /// This is typically `1.0` for a normal display, `2.0` for a retina display and higher on more
     /// modern displays.
-    pub fn hidpi_factor(&self) -> f32 {
-        self.display.gl_window().hidpi_factor()
+    pub fn hidpi_factor(&self) -> geom::scalar::Default {
+        self.display.gl_window().get_hidpi_factor() as _
     }
 
     /// Changes the position of the cursor in window coordinates.
-    pub fn set_cursor_position(&self, x: i32, y: i32) -> Result<(), ()> {
-        self.display.gl_window().set_cursor_position(x, y)
+    pub fn set_cursor_position(&self, x: i32, y: i32) -> Result<(), String> {
+        self.display.gl_window().set_cursor_position((x, y).into())
     }
 
     /// Modifies the mouse cursor of the window.
@@ -409,8 +418,8 @@ impl Window {
     /// ## Platform-specific
     ///
     /// Has no effect on Android.
-    pub fn set_cursor_state(&self, state: CursorState) -> Result<(), String> {
-        self.display.gl_window().set_cursor_state(state)
+    pub fn set_cursor(&self, state: MouseCursor) {
+        self.display.gl_window().set_cursor(state);
     }
 
     /// Sets the window to maximized or back.
@@ -420,7 +429,7 @@ impl Window {
 
     /// Sets how winit handles the cursor.
     ///
-    /// See the documentation of `CursorState` for details.
+    /// See the documentation of `MouseCursor` for details.
     ///
     /// ## Platform-specific
     ///
@@ -671,7 +680,7 @@ impl Window {
     /// complicated quite quickly.
     pub fn is_fullscreen(&self) -> bool {
         let (w, h) = self.outer_size_pixels();
-        let (mw, mh) = self.current_monitor().get_dimensions();
+        let (mw, mh): (u32, u32) = self.current_monitor().get_dimensions().into();
         w == mw && h == mh
     }
 }

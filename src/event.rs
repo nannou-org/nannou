@@ -168,9 +168,8 @@ impl SimpleWindowEvent {
     /// `WindowEvent` type rather than the `simple` one.
     pub fn from_glutin_window_event(
         event: glutin::WindowEvent,
-        dpi_factor: f64,
-        win_w_px: u32,
-        win_h_px: u32,
+        win_w: f64,
+        win_h: f64,
     ) -> Option<Self> {
         use self::SimpleWindowEvent::*;
 
@@ -178,25 +177,29 @@ impl SimpleWindowEvent {
         //
         // winit produces input events in pixels, so these positions need to be divided by the
         // width and height of the window in order to be DPI agnostic.
-        let tw = |w: f64| (w / dpi_factor) as geom::scalar::Default;
-        let th = |h: f64| (h / dpi_factor) as geom::scalar::Default;
-        let tx = |x: f64| ((x - win_w_px as f64 / 2.0) / dpi_factor) as geom::scalar::Default;
-        let ty = |y: f64| (-((y - win_h_px as f64 / 2.0) / dpi_factor)) as geom::scalar::Default;
+        let tw = |w: f64| w as geom::scalar::Default;
+        let th = |h: f64| h as geom::scalar::Default;
+        let tx = |x: f64| (x - win_w / 2.0) as geom::scalar::Default;
+        let ty = |y: f64| (-(y - win_h / 2.0)) as geom::scalar::Default;
 
         let event = match event {
-            glutin::WindowEvent::Resized(new_w, new_h) => {
-                let x = tw(new_w as f64);
-                let y = th(new_h as f64);
+            glutin::WindowEvent::Resized(new_size) => {
+                let (new_w, new_h) = new_size.into();
+                let x = tw(new_w);
+                let y = th(new_h);
                 Resized(Vector2 { x, y })
             }
 
-            glutin::WindowEvent::Moved(x, y) => {
-                let x = tx(x as f64);
-                let y = ty(y as f64);
+            glutin::WindowEvent::Moved(new_pos) => {
+                let (new_x, new_y) = new_pos.into();
+                let x = tx(new_x);
+                let y = ty(new_y);
                 Moved(Point2 { x, y })
             }
 
-            glutin::WindowEvent::Closed => Closed,
+            // TODO: Should separate the behaviour of close requested and destroyed.
+            glutin::WindowEvent::CloseRequested |
+            glutin::WindowEvent::Destroyed => Closed,
 
             glutin::WindowEvent::DroppedFile(path) => DroppedFile(path),
 
@@ -207,10 +210,11 @@ impl SimpleWindowEvent {
             glutin::WindowEvent::Focused(b) => Focused(b),
 
             glutin::WindowEvent::CursorMoved {
-                position: (x, y), ..
+                position, ..
             } => {
-                let x = tx(x as f64);
-                let y = ty(y as f64);
+                let (x, y) = position.into();
+                let x = tx(x);
+                let y = ty(y);
                 MouseMoved(Point2 { x, y })
             }
 
@@ -227,10 +231,11 @@ impl SimpleWindowEvent {
 
             glutin::WindowEvent::Touch(glutin::Touch {
                 phase,
-                location: (x, y),
+                location,
                 id,
                 ..
             }) => {
+                let (x, y) = location.into();
                 let x = tx(x);
                 let y = ty(y);
                 let position = Point2 { x, y };
@@ -256,7 +261,7 @@ impl SimpleWindowEvent {
             glutin::WindowEvent::AxisMotion { .. }
             | glutin::WindowEvent::Refresh
             | glutin::WindowEvent::ReceivedCharacter(_)
-            | glutin::WindowEvent::HiDPIFactorChanged(_) => {
+            | glutin::WindowEvent::HiDpiFactorChanged(_) => {
                 return None;
             }
         };
@@ -271,21 +276,17 @@ impl LoopEvent for Event {
         let event = match event {
             glutin::Event::WindowEvent { window_id, event } => {
                 let windows = app.windows.borrow();
-                let (dpi_factor, win_w_px, win_h_px) = match windows.get(&window_id) {
-                    None => (1.0, 0, 0), // The window was likely closed, these will be ignored.
+                let (win_w, win_h) = match windows.get(&window_id) {
+                    None => (0.0, 0.0), // The window was likely closed, these will be ignored.
                     Some(window) => {
-                        let window = window.display.gl_window();
-                        let dpi_factor = window.hidpi_factor() as f64;
-                        match window.get_inner_size() {
-                            None => (dpi_factor, 0, 0),
-                            Some((w, h)) => (dpi_factor, w, h),
+                        match window.display.gl_window().get_inner_size() {
+                            None => (0.0, 0.0),
+                            Some(size) => size.into(),
                         }
                     }
                 };
                 let raw = event.clone();
-                let simple = SimpleWindowEvent::from_glutin_window_event(
-                    event, dpi_factor, win_w_px, win_h_px,
-                );
+                let simple = SimpleWindowEvent::from_glutin_window_event(event, win_w, win_h);
                 Event::WindowEvent {
                     id: window_id,
                     raw,
