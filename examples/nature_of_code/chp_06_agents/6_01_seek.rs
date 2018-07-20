@@ -10,6 +10,7 @@
 extern crate nannou;
 
 use nannou::prelude::*;
+use nannou::Draw;
 
 fn main() {
     nannou::app(model, event, view).run();
@@ -49,6 +50,17 @@ impl Vehicle {
         }
     }
 
+    // Method to update position
+    fn update(&mut self) {
+        // Update velocity
+        self.velocity += self.acceleration;
+        // Limit speed
+        self.velocity.limit_magnitude(self.max_speed);
+        self.position += self.velocity;
+        // Reset accelerationelertion to 0 each cycle
+        self.acceleration *= 0.0;
+    }
+
     fn apply_force(&mut self, force: Vector2) {
         // We could add mass here if we want A = F / M
         self.acceleration += force;
@@ -71,6 +83,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
         // update gets called just before view every frame
         if let Event::Update(_update) = event {
             seek(vehicle, mouse);
+            vehicle.update();
         }
     }
     m
@@ -88,6 +101,7 @@ fn view(app: &App, m: &Model, frame: Frame) -> Frame {
         .x_y(mouse.x, mouse.y)
         .radius(48.0)
         .color(Rgb::new(0.78, 0.78, 0.78));
+    display(&m.vehicle, &draw);
 
     // Write the result of our drawing to the window's OpenGL frame.
     draw.to_frame(app, &frame).unwrap();
@@ -117,4 +131,28 @@ fn seek(vehicle: &mut Vehicle, target: Vector2) {
     };
 
     vehicle.apply_force(steer);
+}
+
+fn display(vehicle: &Vehicle, draw: &Draw) {
+    let Vehicle {
+        position,
+        velocity,
+        r,
+        ..
+    } = vehicle;
+    // Draw a triangle rotated in the direction of velocity
+    // This calculation is wrong
+    let theta = velocity.angle() + 3.0 * (PI / 2.0);
+    let points = vec![
+        pt3(0.0, -r * 2.0, 0.0),
+        pt3(-r, r * 2.0, 0.0),
+        pt3(*r, r * 2.0, 0.0),
+    ];
+    draw.polygon()
+        .points(points)
+        .xy(*position)
+        .color(DARK_GREY)
+        //stroke(0);
+        //strokeWeight(1);
+        .rotate(theta);
 }
