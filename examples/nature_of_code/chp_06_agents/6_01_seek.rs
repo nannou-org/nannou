@@ -142,7 +142,7 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
     } = vehicle;
     // Draw a triangle rotated in the direction of velocity
     // This calculation is wrong
-    let theta = velocity.angle() + 3.0 * (PI / 2.0);
+    let theta = (velocity.angle() + PI/2.0) * -1.0;
     let points = vec![
         pt3(0.0, -r * 2.0, 0.0),
         pt3(-r, r * 2.0, 0.0),
@@ -151,8 +151,9 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
     draw.polygon()
         .points(points)
         .xy(*position)
-        .color(DARK_GREY)
-        //stroke(0);
-        //strokeWeight(1);
+        .color(Rgb::new(0.5, 0.5, 0.5))
+        //TODO add outline
+        //stroke(0),
+        //strokeWeight(1),
         .rotate(theta);
 }

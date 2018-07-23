@@ -1087,6 +1087,22 @@ impl<S> Vector2<S> {
     }
 
     /// Returns the angle of the vector in radians.
+    ///
+    /// # Examples
+    /// ```
+    /// # extern crate nannou;
+    /// # use nannou::prelude::*; 
+    /// # use nannou::Draw;
+    /// # fn main() { 
+    /// let vector = Vector2::new(-0.5, 0.5);
+    /// let theta = vector.angle() * -1.0;
+    /// # let draw = Draw::new();
+    /// draw.quad()
+    /// .rotate(theta);
+    /// assert_eq!(theta, -2.356194490192345);
+    /// # }
+    /// ```
+    ///
     pub fn angle(self) -> S
     where
         S: BaseFloat,
