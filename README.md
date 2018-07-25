@@ -46,17 +46,17 @@ Nannou aims to provide easy, cross-platform access to the things that artists ne
   - [x] 3D - `Cuboid`.
   - [ ] 3D TODO - `Ellipsoid`, `Cube`, Prisms, Pyramids, *Hedrons, etc.
   - [x] Vertex & index iterators.
-  - [x] [Graph](https://docs.rs/nannou/0.8./nannou/geom/graph/index.html) for
+  - [x] [Graph](https://docs.rs/nannou/0.8.0/nannou/geom/graph/index.html) for
     composing geometry.
 - **Graphics** currently via [glium](https://crates.io/crates/glium), will
   switch to [vulkano](https://github.com/vulkano-rs/vulkano) soon:
-  - [x] [Draw](https://docs.rs/nannou/0.8./nannou/draw/index.html) API. E.g.
+  - [x] [Draw](https://docs.rs/nannou/0.8.0/nannou/draw/index.html) API. E.g.
     `draw.ellipse().w_h(20.0, 20.0).color(RED)`.
-  - [x] [Mesh](https://docs.rs/nannou/0.8./nannou/mesh/index.html) API.
+  - [x] [Mesh](https://docs.rs/nannou/0.8.0/nannou/mesh/index.html) API.
   - [ ] Image API (currently only supported via GUI).
   - [ ] Framebuffer object API.
 - **Protocols**:
-  - [x] [OSC](https://docs.rs/nannou/0.8./nannou/osc/index.html) - Open Sound
+  - [x] [OSC](https://docs.rs/nannou/0.8.0/nannou/osc/index.html) - Open Sound
     Control.
   - [x] [CITP](https://github.com/nannou-org/citp) - Controller Interface
     Transport Protocol (network implementation is in progress).
