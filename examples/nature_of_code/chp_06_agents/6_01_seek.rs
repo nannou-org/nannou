@@ -33,9 +33,9 @@ struct Vehicle {
 
 impl Vehicle {
     fn new(x: f32, y: f32) -> Self {
-        let position = Vector2::new(x, y);
-        let velocity = Vector2::new(0.0, -2.0);
-        let acceleration = Vector2::new(0.0, 0.0);
+        let position = vec2(x, y);
+        let velocity = vec2(0.0, -2.0);
+        let acceleration = vec2(0.0, 0.0);
         let r = 6.0;
         let max_force = 0.1;
         let max_speed = 4.0;
@@ -79,7 +79,7 @@ fn event(app: &App, mut m: Model, event: Event) -> Model {
         let Model {
             ref mut vehicle, ..
         } = m;
-        let mouse = Vector2::new(app.mouse.x, app.mouse.y);
+        let mouse = vec2(app.mouse.x, app.mouse.y);
         // update gets called just before view every frame
         if let Event::Update(_update) = event {
             seek(vehicle, mouse);
@@ -94,13 +94,13 @@ fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     let draw = app.draw();
     draw.background().color(WHITE);
 
-    let mouse = Vector2::new(app.mouse.x, app.mouse.y);
+    let mouse = vec2(app.mouse.x, app.mouse.y);
 
     draw.ellipse()
         // Missing Stroke
         .x_y(mouse.x, mouse.y)
         .radius(48.0)
-        .color(Rgb::new(0.78, 0.78, 0.78));
+        .rgb(0.78, 0.78, 0.78);
     display(&m.vehicle, &draw);
 
     // Write the result of our drawing to the window's OpenGL frame.
@@ -151,7 +151,7 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
     draw.polygon()
         .points(points)
         .xy(*position)
-        .color(Rgb::new(0.5, 0.5, 0.5))
+        .rgb(0.5, 0.5, 0.5)
         //TODO add outline
         //stroke(0),
         //strokeWeight(1),
