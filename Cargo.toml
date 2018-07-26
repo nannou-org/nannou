@@ -246,6 +246,9 @@ path = "examples/nature_of_code/chp_06_agents/6_01_seek.rs"
 [[example]] 
 name = "6_01_seek_trail" 
 path = "examples/nature_of_code/chp_06_agents/6_01_seek_trail.rs"
+[[example]] 
+name = "6_02_arrive" 
+path = "examples/nature_of_code/chp_06_agents/6_02_arrive.rs"
 # --------------- Chapter 7 Cellular Automata
 [[example]] 
 name = "7_01_wolfram_ca_figures" 
