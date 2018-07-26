@@ -152,18 +152,18 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
 
     let thickness = 1.0;
     if history.len() > 1 {
-        let vertices = history.iter().map(|v| {
-            geom::vertex::Rgba(pt2(v.x, v.y), Rgba::new(0.0, 0.0, 0.0, 1.0))
-        }); 
-    draw.polyline().vertices(thickness, vertices);
+        let vertices = history
+            .iter()
+            .map(|v| geom::vertex::Rgba(pt2(v.x, v.y), Rgba::new(0.0, 0.0, 0.0, 1.0)));
+        draw.polyline().vertices(thickness, vertices);
         //TODO change to outline
-        //stroke(0),
+        //stroke(0) ,
         //strokeWeight(1),
     }
 
     // Draw a triangle rotated in the direction of velocity
     // This calculation is wrong
-    let theta = (velocity.angle() + PI/2.0) * -1.0;
+    let theta = (velocity.angle() + PI / 2.0) * -1.0;
     let points = vec![
         pt3(0.0, -r * 2.0, 0.0),
         pt3(-r, r * 2.0, 0.0),
