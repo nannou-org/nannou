@@ -127,7 +127,7 @@ fn arrive(vehicle: &mut Vehicle, target: Vector2) {
         let magnitude = desired.magnitude();
         let damped_mag = if magnitude < 100.0 {
             map_range(magnitude, 0.0, 100.0, 0.0, *max_speed)
-        }else{
+        } else {
             *max_speed
         };
         let desired = desired.with_magnitude(damped_mag);
