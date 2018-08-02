@@ -37,7 +37,7 @@ struct Vehicle {
 impl Vehicle {
     fn new(x: f32, y: f32) -> Self {
         let position = vec2(x, y);
-        let velocity = vec2(3.0, -2.0).map(|i| i * 5.0);
+        let velocity = vec2(3.0, -2.0) * 5.0;
         let acceleration = vec2(0.0, 0.0);
         let r = 6.0;
         let max_force = 0.15;
@@ -157,20 +157,16 @@ fn boundaries(m: &mut Model, window_rect: &Rect) {
     let top = window_rect.top() - d;
     let bottom = window_rect.bottom() + d;
 
-    let desired = if position.x < left {
-        Some(vec2(max_speed, velocity.y))
-    } else if position.x > right {
-        Some(vec2(-max_speed, velocity.y))
-    } else if position.y < bottom {
-        Some(vec2(velocity.x, max_speed))
-    } else if position.y > top {
-        Some(vec2(velocity.x, -max_speed))
-    } else {
-        None
+    let desired = match position {
+        Vector2{x, ..} if x < left => Some(vec2(max_speed, velocity.y)),
+        Vector2{x, ..} if x > right => Some(vec2(-max_speed, velocity.y)),
+        Vector2{y, ..} if y < bottom => Some(vec2(velocity.x, max_speed)),
+        Vector2{y, ..} if y > top => Some(vec2(velocity.x, -max_speed)),
+        _ => None,
     };
 
     if let Some(desired) = desired {
-        let desired = desired.normalize().map(|i| i * max_speed);
+        let mut desired = desired.normalize() * max_speed;
         let steer = desired - velocity;
         steer.limit_magnitude(max_force);
         vehicle.apply_force(steer);
