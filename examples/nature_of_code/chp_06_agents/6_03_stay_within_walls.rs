@@ -82,9 +82,13 @@ fn model(app: &App) -> Model {
 fn event(app: &App, mut m: Model, event: Event) -> Model {
     {
         // update gets called just before view every frame
-        if let Event::Update(_update) = event {
-            boundaries(&mut m, &app.window_rect());
-            m.vehicle.update();
+        match event { 
+            Event::Update(_update) => {
+                boundaries(&mut m, &app.window_rect());
+                m.vehicle.update();
+            },
+            Event::WindowEvent{ simple:Some(MousePressed(_button)), ..} => m.debug = !m.debug,
+            _ => (),
         }
     }
     m
