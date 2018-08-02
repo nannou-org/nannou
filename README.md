@@ -21,7 +21,7 @@ help out!
 - [**Goals**](#goals)
 - [**Why Rust?**](#why-rust)
 - [**Getting Started**](#getting-started)
-  - [**Install dependencies**](#install-deps)
+  - [**Platform-specific Setup**](#platform-specific-setup)
   - [**Install Rust**](#install-rust)
   - [**IDE Setup**](#ide-setup)
   - [**Nannou Examples**](#nannou-examples)
@@ -146,7 +146,7 @@ rustup component add rust-src rustfmt-preview rust-analysis
 Please see [this link](https://www.rust-lang.org/en-US/install.html) if you
 would like more information on the Rust installation process.
 
-### Platform-Specific Setup
+### Platform-specific Setup
 
 Depending on what OS you are running, you might require an extra step or two.
 
@@ -160,11 +160,16 @@ Depending on what OS you are running, you might require an extra step or two.
 - **linux** ensure you have the following system packages installed:
   - alsa dev package
 
-  For Fedora users:
-  `$ sudo dnf install alsa-lib-devel`
+    For Fedora users:
+    `$ sudo dnf install alsa-lib-devel`
 
-   For Debian/Ubuntu users:
-   `$ sudo apt-get install libasound2-dev`
+    For Debian/Ubuntu users:
+    `$ sudo apt-get install libasound2-dev`
+
+  - curl lib dev package
+
+    Nannou depends on the `curl-sys` crate. Some Linux distributions use LibreSSL instead of OpenSSL (such as AlpineLinux, Voidlinux, possibly [others](https://en.wikipedia.org/wiki/LibreSSL#Adoption) if manually installed).
+
 
 ### IDE Setup
 
