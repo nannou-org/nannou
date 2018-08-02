@@ -15,3 +15,10 @@ fn angle_test() {
     let vector = Vector2::new(70.7, -60.8);
     assert_eq!(vector.angle(), -0.7102547457375739);
 }
+
+#[test]
+fn limit_magnitude_test() {
+    let vector = Vector2::new(10.0, 10.0);
+    let vector = vector.limit_magnitude(2.0.sqrt());
+    assert_eq!(vector, vec2(1.0, 1.0));
+}

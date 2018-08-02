@@ -57,9 +57,7 @@ impl Vehicle {
     // Method to update position
     fn update(&mut self) {
         // Update velocity
-        self.velocity += self.acceleration;
-        // Limit speed
-        self.velocity.limit_magnitude(self.max_speed);
+        self.velocity = (self.velocity + self.acceleration).limit_magnitude(self.max_speed);
         self.position += self.velocity;
         // Reset accelerationelertion to 0 each cycle
         self.acceleration *= 0.0;
