@@ -12,6 +12,7 @@ extern crate nannou;
 
 use nannou::prelude::*;
 use nannou::Draw;
+use std::collections::VecDeque;
 
 fn main() {
     nannou::app(model, event, view).run();
@@ -24,6 +25,7 @@ struct Model {
 }
 
 struct Vehicle {
+    history: VecDeque<Vector2>,
     position: Vector2,
     velocity: Vector2,
     acceleration: Vector2,
@@ -36,6 +38,7 @@ struct Vehicle {
 
 impl Vehicle {
     fn new(x: f32, y: f32) -> Self {
+        let history = VecDeque::<Vector2>::with_capacity(100);
         let position = vec2(x, y);
         let velocity = vec2(3.0, -2.0) * 5.0;
         let acceleration = vec2(0.0, 0.0);
@@ -44,6 +47,7 @@ impl Vehicle {
         let max_speed = 3.0;
 
         Vehicle {
+            history,
             position,
             velocity,
             acceleration,
@@ -60,6 +64,10 @@ impl Vehicle {
         self.position += self.velocity;
         // Reset accelerationelertion to 0 each cycle
         self.acceleration *= 0.0;
+        self.history.push_back(self.position);
+        if self.history.len() > 500 {
+            self.history.pop_front();
+        }
     }
 
     fn apply_force(&mut self, force: Vector2) {
@@ -118,11 +126,23 @@ fn view(app: &App, m: &Model, frame: Frame) -> Frame {
 
 fn display(vehicle: &Vehicle, draw: &Draw) {
     let Vehicle {
+        history,
         position,
         velocity,
         r,
         ..
     } = vehicle;
+    // Draw trailing line
+    let thickness = 1.0;
+    if history.len() > 1 {
+        let vertices = history
+            .iter()
+            .map(|v| geom::vertex::Rgba(pt2(v.x, v.y), Rgba::new(0.0, 0.0, 0.0, 1.0)));
+        draw.polyline().vertices(thickness, vertices);
+        //TODO change to outline
+        //stroke(0) ,
+        //strokeWeight(1),
+    }
     // Draw a triangle rotated in the direction of velocity
     // This calculation is wrong
     let theta = (velocity.angle() + 90.0.to_radians()) * -1.0;
