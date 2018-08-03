@@ -181,7 +181,7 @@ including syntax highlighting, auto-complete, code formatting, etc. It also
 comes with an integrated unix terminal and file navigation system. Below are the
 steps we recommend for getting started with Nannou development using VS-Code.
 
-1. [Download VS-Code](https://code.visualstudio.com/download) for your OS. 
+1. [Download VS-Code](https://code.visualstudio.com/download) for your OS.
 2. In VS code user settings, set `"rust-client.channel": "stable"`.
 3. [Install
    RLS](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust) (the
@@ -193,11 +193,11 @@ steps we recommend for getting started with Nannou development using VS-Code.
 Although we recommend VS-Code, it is also possible to configure the following
 development environments.
 
-1. [Sublime Text](https://packagecontrol.io/packages/Rust%20Enhanced) 
+1. [Sublime Text](https://packagecontrol.io/packages/Rust%20Enhanced)
 2. [Atom](https://atom.io/packages/language-rust)
 3. [Intellij IDEA](https://intellij-rust.github.io)
-4. [Vim](https://github.com/rust-lang/rust.vim) 
-5. [Emacs](https://github.com/rust-lang/rust-mode) 
+4. [Vim](https://github.com/rust-lang/rust.vim)
+5. [Emacs](https://github.com/rust-lang/rust-mode)
 6. [Visual Studio](https://github.com/PistonDevelopers/VisualRust)
 7. [Eclipse](https://github.com/RustDT/RustDT) (No longer maintained)
 
@@ -227,11 +227,11 @@ cargo run --release --example simple_draw
 
 The `--release` flag means we want to build with optimisations enabled.
 
-If you are compiling nannou for the first time you will see cargo download and build all the necessary dependancies. 
+If you are compiling nannou for the first time you will see cargo download and build all the necessary dependencies.
 
 ![Alt Text](https://thumbs.gfycat.com/ShabbyWildGermanspitz-size_restricted.gif)
 
-Once the example compiles you should see the following window appear. 
+Once the example compiles you should see the following window appear.
 
 <img src="https://thumbs.gfycat.com/MalePracticalIberianchiffchaff-size_restricted.gif" width="600" height="400" />
 
