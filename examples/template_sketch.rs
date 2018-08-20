@@ -10,10 +10,10 @@ fn view(app: &App, frame: Frame) -> Frame {
     // Prepare to draw.
     let draw = app.draw();
 
-    // Clear the background to pink.
+    // Clear the background to purple.
     draw.background().color(LIGHT_PURPLE);
 
-    // Draw a red ellipse with default size and position.
+    // Draw a blue ellipse with default size and position.
     draw.ellipse().color(DARK_BLUE);
 
     // Write to the window frame.
