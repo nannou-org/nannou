@@ -6,8 +6,8 @@ description = "A tool for easily starting Nannou projects."
 readme = "README.md"
 keywords = ["tool", "build", "nannou", "creative", "sketch"]
 license = "MIT"
-repository = "https://github.com/nannou-org/nannou-new.git"
-homepage = "https://github.com/nannou-org/nannou-new"
+repository = "https://github.com/nannou-org/nannou.git"
+homepage = "https://github.com/nannou-org/nannou/tree/master/nannou-new"
 
 [dependencies]
 cargo = "0.28" # For retrieving the latest `nannou` version and working with cargo-clone.
