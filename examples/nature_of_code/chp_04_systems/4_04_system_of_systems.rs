@@ -55,7 +55,7 @@ impl Particle {
         );
     }
 
-    // Is the poarticel still useful?
+    // Is the particle still useful?
     fn is_dead(&self) -> bool {
         if self.life_span < 0.0 {
             true
