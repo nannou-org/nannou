@@ -71,7 +71,7 @@ pub enum View<Model = ()> {
 
 /// Begin building a nannou App.
 ///
-/// Every nannou App must have `model`, `event` and `draw` functions.
+/// Every nannou App must have `model`, `event` and `view` functions.
 ///
 /// An `exit` function can be optionally specified using the `exit` builder method.
 pub fn app<M, E>(model: ModelFn<M>, event: EventFn<M, E>, view: ViewFn<M>) -> Builder<M, E>
