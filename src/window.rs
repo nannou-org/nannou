@@ -427,9 +427,9 @@ impl Window {
         self.display.gl_window().set_maximized(maximized)
     }
 
-    /// Sets how winit handles the cursor.
+    /// Set the window to fullscreen on the monitor associated with the given `Id`.
     ///
-    /// See the documentation of `MouseCursor` for details.
+    /// Call this method again with `None` to revert back from fullscreen.
     ///
     /// ## Platform-specific
     ///
