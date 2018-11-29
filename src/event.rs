@@ -3,24 +3,24 @@
 //! - [**Event**](./enum.Event.html) - the defualt application event type.
 //! - [**WindowEvent**](./struct.WindowEvent.html) - events related to a single window.
 //! - [**SimpleWindowEvent**](./struct.WindowEvent.html) - a stripped-back, simplified,
-//!   newcomer-friendly version of the **raw**, low-level glutin event.
+//!   newcomer-friendly version of the **raw**, low-level winit event.
 
 use geom::{self, Point2, Vector2};
-use glium::glutin;
 use state;
 use std::path::PathBuf;
 use window;
+use winit;
 use App;
 
-pub use glium::glutin::{
+pub use winit::{
     ElementState, KeyboardInput, ModifiersState, MouseButton, MouseScrollDelta, Touch, TouchPhase,
     VirtualKeyCode as Key,
 };
 
 /// Event types that are compatible with the nannou app loop.
 pub trait LoopEvent: From<Update> {
-    /// Produce a loop event from the given glutin event.
-    fn from_glutin_event(glutin::Event, &App) -> Option<Self>;
+    /// Produce a loop event from the given winit event.
+    fn from_winit_event(winit::Event, &App) -> Option<Self>;
 }
 
 /// Update event
@@ -41,15 +41,15 @@ pub struct Update {
 pub enum Event {
     /// A window-specific event has occurred for the window with the given Id.
     ///
-    /// This event is portrayed both in its "raw" form (the **glutin::WindowEvent**) and its
+    /// This event is portrayed both in its "raw" form (the **winit::WindowEvent**) and its
     /// simplified, new-user-friendly form **SimpleWindowEvent**.
     WindowEvent {
         id: window::Id,
-        raw: glutin::WindowEvent,
+        raw: winit::WindowEvent,
         simple: Option<SimpleWindowEvent>,
     },
     /// A device-specific event has occurred for the device with the given Id.
-    DeviceEvent(glutin::DeviceId, glutin::DeviceEvent),
+    DeviceEvent(winit::DeviceId, winit::DeviceEvent),
     /// A timed update alongside the duration since the last update was emitted.
     ///
     /// The first update's delta will be the time since the `model` function returned.
@@ -65,18 +65,18 @@ pub enum Event {
 /// The nannou window event type.
 ///
 /// The **simple** field offers a stripped-back, simplified, newcomer-friendly version of the
-/// **raw**, low-level glutin event.
+/// **raw**, low-level winit event.
 #[derive(Clone, Debug)]
 pub struct WindowEvent {
-    /// A simplified, interpreted version of the `raw` `glutin::WindowEvent` emitted via glutin.
+    /// A simplified, interpreted version of the `raw` `winit::WindowEvent` emitted via winit.
     ///
     /// See the [SimpleWindowEvent](./enum.SimpleWindowEvent.html)
     pub simple: Option<SimpleWindowEvent>,
-    /// The original event type produced by `glutin`.
-    pub raw: glutin::WindowEvent,
+    /// The original event type produced by `winit`.
+    pub raw: winit::WindowEvent,
 }
 
-/// A simplified version of glutin's `WindowEvent` type to make it easier to get started.
+/// A simplified version of winit's `WindowEvent` type to make it easier to get started.
 ///
 /// All co-ordinates and dimensions are DPI-agnostic scalar values.
 ///
@@ -154,7 +154,7 @@ pub enum SimpleWindowEvent {
 }
 
 impl SimpleWindowEvent {
-    /// Produce a simplified, new-user-friendly version of the given `glutin::WindowEvent`.
+    /// Produce a simplified, new-user-friendly version of the given `winit::WindowEvent`.
     ///
     /// This strips rarely needed technical information from the event type such as information
     /// about the source device, scancodes for keyboard events, etc to make the experience of
@@ -166,8 +166,8 @@ impl SimpleWindowEvent {
     ///
     /// If the user requires this extra information, they should use the `raw` field of the
     /// `WindowEvent` type rather than the `simple` one.
-    pub fn from_glutin_window_event(
-        event: glutin::WindowEvent,
+    pub fn from_winit_window_event(
+        event: winit::WindowEvent,
         win_w: f64,
         win_h: f64,
     ) -> Option<Self> {
@@ -183,14 +183,14 @@ impl SimpleWindowEvent {
         let ty = |y: f64| (-(y - win_h / 2.0)) as geom::scalar::Default;
 
         let event = match event {
-            glutin::WindowEvent::Resized(new_size) => {
+            winit::WindowEvent::Resized(new_size) => {
                 let (new_w, new_h) = new_size.into();
                 let x = tw(new_w);
                 let y = th(new_h);
                 Resized(Vector2 { x, y })
             }
 
-            glutin::WindowEvent::Moved(new_pos) => {
+            winit::WindowEvent::Moved(new_pos) => {
                 let (new_x, new_y) = new_pos.into();
                 let x = tx(new_x);
                 let y = ty(new_y);
@@ -198,18 +198,18 @@ impl SimpleWindowEvent {
             }
 
             // TODO: Should separate the behaviour of close requested and destroyed.
-            glutin::WindowEvent::CloseRequested |
-            glutin::WindowEvent::Destroyed => Closed,
+            winit::WindowEvent::CloseRequested |
+            winit::WindowEvent::Destroyed => Closed,
 
-            glutin::WindowEvent::DroppedFile(path) => DroppedFile(path),
+            winit::WindowEvent::DroppedFile(path) => DroppedFile(path),
 
-            glutin::WindowEvent::HoveredFile(path) => HoveredFile(path),
+            winit::WindowEvent::HoveredFile(path) => HoveredFile(path),
 
-            glutin::WindowEvent::HoveredFileCancelled => HoveredFileCancelled,
+            winit::WindowEvent::HoveredFileCancelled => HoveredFileCancelled,
 
-            glutin::WindowEvent::Focused(b) => Focused(b),
+            winit::WindowEvent::Focused(b) => Focused(b),
 
-            glutin::WindowEvent::CursorMoved {
+            winit::WindowEvent::CursorMoved {
                 position, ..
             } => {
                 let (x, y) = position.into();
@@ -218,18 +218,18 @@ impl SimpleWindowEvent {
                 MouseMoved(Point2 { x, y })
             }
 
-            glutin::WindowEvent::CursorEntered { .. } => MouseEntered,
+            winit::WindowEvent::CursorEntered { .. } => MouseEntered,
 
-            glutin::WindowEvent::CursorLeft { .. } => MouseExited,
+            winit::WindowEvent::CursorLeft { .. } => MouseExited,
 
-            glutin::WindowEvent::MouseWheel { delta, phase, .. } => MouseWheel(delta, phase),
+            winit::WindowEvent::MouseWheel { delta, phase, .. } => MouseWheel(delta, phase),
 
-            glutin::WindowEvent::MouseInput { state, button, .. } => match state {
+            winit::WindowEvent::MouseInput { state, button, .. } => match state {
                 ElementState::Pressed => MousePressed(button),
                 ElementState::Released => MouseReleased(button),
             },
 
-            glutin::WindowEvent::Touch(glutin::Touch {
+            winit::WindowEvent::Touch(winit::Touch {
                 phase,
                 location,
                 id,
@@ -246,11 +246,11 @@ impl SimpleWindowEvent {
                 }
             }
 
-            glutin::WindowEvent::TouchpadPressure {
+            winit::WindowEvent::TouchpadPressure {
                 pressure, stage, ..
             } => TouchpadPressure { pressure, stage },
 
-            glutin::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
+            winit::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
                 Some(key) => match input.state {
                     ElementState::Pressed => KeyPressed(key),
                     ElementState::Released => KeyReleased(key),
@@ -258,10 +258,10 @@ impl SimpleWindowEvent {
                 None => return None,
             },
 
-            glutin::WindowEvent::AxisMotion { .. }
-            | glutin::WindowEvent::Refresh
-            | glutin::WindowEvent::ReceivedCharacter(_)
-            | glutin::WindowEvent::HiDpiFactorChanged(_) => {
+            winit::WindowEvent::AxisMotion { .. }
+            | winit::WindowEvent::Refresh
+            | winit::WindowEvent::ReceivedCharacter(_)
+            | winit::WindowEvent::HiDpiFactorChanged(_) => {
                 return None;
             }
         };
@@ -271,31 +271,31 @@ impl SimpleWindowEvent {
 }
 
 impl LoopEvent for Event {
-    /// Convert the given `glutin::Event` to a nannou `Event`.
-    fn from_glutin_event(event: glutin::Event, app: &App) -> Option<Self> {
+    /// Convert the given `winit::Event` to a nannou `Event`.
+    fn from_winit_event(event: winit::Event, app: &App) -> Option<Self> {
         let event = match event {
-            glutin::Event::WindowEvent { window_id, event } => {
+            winit::Event::WindowEvent { window_id, event } => {
                 let windows = app.windows.borrow();
                 let (win_w, win_h) = match windows.get(&window_id) {
                     None => (0.0, 0.0), // The window was likely closed, these will be ignored.
                     Some(window) => {
-                        match window.display.gl_window().get_inner_size() {
+                        match window.surface.window().get_inner_size() {
                             None => (0.0, 0.0),
                             Some(size) => size.into(),
                         }
                     }
                 };
                 let raw = event.clone();
-                let simple = SimpleWindowEvent::from_glutin_window_event(event, win_w, win_h);
+                let simple = SimpleWindowEvent::from_winit_window_event(event, win_w, win_h);
                 Event::WindowEvent {
                     id: window_id,
                     raw,
                     simple,
                 }
             }
-            glutin::Event::DeviceEvent { device_id, event } => Event::DeviceEvent(device_id, event),
-            glutin::Event::Awakened => Event::Awakened,
-            glutin::Event::Suspended(b) => Event::Suspended(b),
+            winit::Event::DeviceEvent { device_id, event } => Event::DeviceEvent(device_id, event),
+            winit::Event::Awakened => Event::Awakened,
+            winit::Event::Suspended(b) => Event::Suspended(b),
         };
         Some(event)
     }

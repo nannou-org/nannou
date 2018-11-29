@@ -25,13 +25,13 @@ pub mod prelude {
 }
 
 use frame::Frame;
-use glium::{self, glutin};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::sync::{mpsc, Mutex};
+use std::sync::mpsc;
 use window::{self, Window};
+use winit;
 use App;
 
 /// Owned by the `App`, the `Arrangement` handles the mapping between `Ui`s and their associated
@@ -52,7 +52,7 @@ pub struct Ui {
     window_id: window::Id,
     ui: conrod::Ui,
     input_rx: Option<mpsc::Receiver<Input>>,
-    renderer: Mutex<conrod::backend::glium::Renderer>,
+    // renderer: Mutex<conrod::backend::glium::Renderer>,
     pub image_map: conrod::image::Map<glium::texture::Texture2d>,
 }
 
@@ -233,24 +233,24 @@ impl<'a> Builder<'a> {
             .or_insert(Vec::new())
             .push(handle);
 
-        // Initialise the renderer which draws conrod::render::Primitives to the frame..
-        let renderer = match app.windows.borrow().get(&window_id) {
-            None => return None,
-            Some(window) => {
-                let renderer = match glyph_cache_dimensions {
-                    Some((w, h)) => conrod::backend::glium::Renderer::with_glyph_cache_dimensions(
-                        &window.display,
-                        w,
-                        h,
-                    ),
-                    None => conrod::backend::glium::Renderer::new(&window.display),
-                };
-                match renderer {
-                    Ok(renderer) => Mutex::new(renderer),
-                    Err(_) => return None,
-                }
-            }
-        };
+        // // Initialise the renderer which draws conrod::render::Primitives to the frame..
+        // let renderer = match app.windows.borrow().get(&window_id) {
+        //     None => return None,
+        //     Some(window) => {
+        //         let renderer = match glyph_cache_dimensions {
+        //             Some((w, h)) => conrod::backend::glium::Renderer::with_glyph_cache_dimensions(
+        //                 &window.display,
+        //                 w,
+        //                 h,
+        //             ),
+        //             None => conrod::backend::glium::Renderer::new(&window.display),
+        //         };
+        //         match renderer {
+        //             Ok(renderer) => Mutex::new(renderer),
+        //             Err(_) => return None,
+        //         }
+        //     }
+        // };
 
         // Initialise the image map.
         let image_map = image::Map::new();
@@ -260,7 +260,7 @@ impl<'a> Builder<'a> {
             window_id,
             ui,
             input_rx,
-            renderer,
+            // renderer,
             image_map,
         };
 
@@ -390,24 +390,25 @@ impl Ui {
         &self,
         app: &App,
         frame: &Frame,
-    ) -> Result<(), conrod::backend::glium::DrawError> {
-        let Ui {
-            ref ui,
-            ref renderer,
-            ref image_map,
-            window_id,
-            ..
-        } = *self;
-        if let Some(window) = app.window(window_id) {
-            if let Some(mut window_frame) = frame.window(window_id) {
-                if let Ok(mut renderer) = renderer.lock() {
-                    let primitives = ui.draw();
-                    renderer.fill(&window.display, primitives, &image_map);
-                    renderer.draw(&window.display, &mut window_frame.frame.frame, image_map)?;
-                }
-            }
-        }
-        Ok(())
+    ) -> Result<(), ()> {
+        unimplemented!()
+        // let Ui {
+        //     ref ui,
+        //     ref renderer,
+        //     ref image_map,
+        //     window_id,
+        //     ..
+        // } = *self;
+        // if let Some(window) = app.window(window_id) {
+        //     if let Some(mut window_frame) = frame.window(window_id) {
+        //         if let Ok(mut renderer) = renderer.lock() {
+        //             let primitives = ui.draw();
+        //             renderer.fill(&window.display, primitives, &image_map);
+        //             renderer.draw(&window.display, &mut window_frame.frame.frame, image_map)?;
+        //         }
+        //     }
+        // }
+        // Ok(())
     }
 
     /// Draws the current state of the `Ui` to the given `Frame` but only if the `Ui` has changed
@@ -425,32 +426,35 @@ impl Ui {
         &self,
         app: &App,
         frame: &Frame,
-    ) -> Result<bool, conrod::backend::glium::DrawError> {
-        let Ui {
-            ref ui,
-            ref renderer,
-            ref image_map,
-            window_id,
-            ..
-        } = *self;
-        if let Some(window) = app.window(window_id) {
-            if let Some(mut window_frame) = frame.window(window_id) {
-                if let Ok(mut renderer) = renderer.lock() {
-                    if let Some(primitives) = ui.draw_if_changed() {
-                        renderer.fill(&window.display, primitives, &image_map);
-                        renderer.draw(&window.display, &mut window_frame.frame.frame, image_map)?;
-                        return Ok(true);
-                    }
-                }
-            }
-        }
-        Ok(false)
+    ) -> Result<bool, ()> {
+        unimplemented!()
+        // let Ui {
+        //     ref ui,
+        //     ref renderer,
+        //     ref image_map,
+        //     window_id,
+        //     ..
+        // } = *self;
+        // if let Some(window) = app.window(window_id) {
+        //     if let Some(mut window_frame) = frame.window(window_id) {
+        //         if let Ok(mut renderer) = renderer.lock() {
+        //             if let Some(primitives) = ui.draw_if_changed() {
+        //                 renderer.fill(&window.display, primitives, &image_map);
+        //                 renderer.draw(&window.display, &mut window_frame.frame.frame, image_map)?;
+        //                 return Ok(true);
+        //             }
+        //         }
+        //     }
+        // }
+        // Ok(false)
     }
 }
 
 /// Convert the given window event to a UI Input.
 ///
 /// Returns `None` if there's no associated UI Input for the given event.
-pub fn glutin_window_event_to_input(event: glutin::WindowEvent, window: &Window) -> Option<Input> {
-    conrod::backend::winit::convert_window_event(event, window)
+pub fn winit_window_event_to_input(event: winit::WindowEvent, window: &Window) -> Option<Input> {
+    // TODO: fix this once conrod winit and nannou winit versions match");
+    None
+    //conrod::backend::winit::convert_window_event(event, window)
 }

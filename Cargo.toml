@@ -12,7 +12,7 @@ homepage = "https://github.com/MindBuffer/nannou"
 [dependencies]
 approx = "0.1"
 cgmath = { version = "0.16", features = ["serde"] }
-conrod = { version = "0.61", features = ["winit", "glium"] }
+conrod = { version = "0.61", features = ["winit"] }
 cpal = "0.8"
 daggy = "0.6"
 find_folder = "0.3"
@@ -28,6 +28,13 @@ serde = "1"
 serde_derive = "1"
 serde_json = "1"
 toml = "0.4"
+vulkano = "0.11.1"
+vulkano-win = "0.11"
+vulkano-shaders = "0.11"
+winit = "0.18"
+
+[replace]
+"vulkano:0.11.1" = { git = "https://github.com/mitchmindtree/vulkano", branch = "initial_layout_undefined" }
 
 # --------------- Nannou Examples 
 [[example]] 

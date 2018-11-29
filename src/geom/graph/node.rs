@@ -441,3 +441,25 @@ where
             .map(|tri| tri.map_vertices(|vertex| vertex.apply_transform(&self.transform)))
     }
 }
+
+impl<I, S> ExactSizeIterator for TransformedVertices<I, S>
+where
+    I: ExactSizeIterator,
+    I::Item: ApplyTransform<S>,
+    S: BaseFloat,
+{
+    fn len(&self) -> usize {
+        self.vertices.len()
+    }
+}
+
+impl<I, V, S> ExactSizeIterator for TransformedTriangles<I, V, S>
+where
+    I: Iterator<Item = geom::Tri<V>> + ExactSizeIterator,
+    V: geom::Vertex + ApplyTransform<S>,
+    S: BaseFloat,
+{
+    fn len(&self) -> usize {
+        self.triangles.len()
+    }
+}
