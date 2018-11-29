@@ -1447,6 +1447,15 @@ where
     }
 }
 
+impl<M> ExactSizeIterator for RawVertices<M>
+where
+    M: GetVertex,
+{
+    fn len(&self) -> usize {
+        self.range.len()
+    }
+}
+
 impl<M> DoubleEndedIterator for Vertices<M>
 where
     M: Indices + GetVertex,
