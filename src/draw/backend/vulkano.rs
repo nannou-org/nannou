@@ -42,8 +42,8 @@ pub struct Vertex {
     // pub mode: u32,
     /// The position of the vertex within vector space.
     ///
-    /// [-1.0, -1.0, 0.0] is the leftmost, bottom position of the display.
-    /// [1.0, 1.0, 0.0] is the rightmost, top position of the display.
+    /// [-1.0, 1.0, 0.0] is the leftmost, bottom position of the display.
+    /// [1.0, -1.0, 0.0] is the rightmost, top position of the display.
     pub position: [f32; 3],
     /// A color associated with the `Vertex`.
     ///
@@ -173,8 +173,9 @@ impl Vertex {
         let y_f: f32 = NumCast::from(point.y).unwrap();
         let z_f: f32 = NumCast::from(point.z).unwrap();
         // Map coords from (-fb_dim, +fb_dim) to (-1.0, 1.0)
+        // In vulkan, *y* increases in the downwards direction, so we negate it.
         let x = 2.0 * x_f * dpi_factor / framebuffer_width;
-        let y = 2.0 * y_f * dpi_factor / framebuffer_height;
+        let y = -(2.0 * y_f * dpi_factor / framebuffer_height);
         let z = 2.0 * z_f * dpi_factor / framebuffer_height;
         let tex_x = NumCast::from(v.tex_coords.x).unwrap();
         let tex_y = NumCast::from(v.tex_coords.y).unwrap();
