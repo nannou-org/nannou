@@ -257,6 +257,7 @@ where
         .triangle_list()
         .viewports_dynamic_scissors_irrelevant(1)
         .fragment_shader(fs.main_entry_point(), ())
+        .blend_alpha_blending()
         .render_pass(subpass)
         .build(device)?;
     Ok(Arc::new(pipeline))
