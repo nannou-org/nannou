@@ -16,7 +16,7 @@ use std::ops::Range;
 const RULE: i32 = 2;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).event(event).view(view).run();
 }
 
 // A Type to manage the CA

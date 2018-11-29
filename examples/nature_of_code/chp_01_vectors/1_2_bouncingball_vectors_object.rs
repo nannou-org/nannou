@@ -8,7 +8,10 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::run(model, event, view);
+    nannou::app(model)
+        .event(event)
+        .simple_window(view)
+        .run();
 }
 
 struct Model {

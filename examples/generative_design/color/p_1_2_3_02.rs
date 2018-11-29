@@ -12,7 +12,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).event(event).view(view).run();
 }
 
 struct Model {
