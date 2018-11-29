@@ -13,7 +13,7 @@ use nannou::prelude::*;
 use std::ops::Range;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).event(event).view(view).run();
 }
 
 #[derive(Clone)]

@@ -5,7 +5,7 @@ use nannou::prelude::*;
 use std::f64::consts::PI;
 
 fn main() {
-    nannou::run(model, event, view);
+    nannou::app(model).event(event).view(view).run();
 }
 
 struct Model {
@@ -92,6 +92,6 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
 }
 
 fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
-    frame.clear_all(DARK_CHARCOAL);
+    frame.clear(DARK_CHARCOAL);
     frame
 }
