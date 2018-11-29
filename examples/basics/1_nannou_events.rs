@@ -5,7 +5,7 @@ use nannou::prelude::*;
 // every rust program has to have a main function which gets
 // called when the program is run.
 fn main() {
-    nannou::run(model, event, view);
+    nannou::app(model).event(event).simple_window(view).run();
 }
 
 // model represents the state of our app
@@ -66,7 +66,7 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
 // put your main code here, to run repeatedly:
 fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
     // Clear the window to a dark charcoal color.
-    frame.clear_all(DARK_CHARCOAL);
+    frame.clear(DARK_CHARCOAL);
     // Return the drawn frame.
     frame
 }

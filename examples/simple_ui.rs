@@ -4,7 +4,7 @@ use nannou::prelude::*;
 use nannou::ui::prelude::*;
 
 fn main() {
-    nannou::run(model, event, view);
+    nannou::app(model).event(event).simple_window(view).run();
 }
 
 struct Model {

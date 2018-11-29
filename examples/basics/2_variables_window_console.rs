@@ -3,7 +3,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).event(event).view(view).run();
 }
 
 struct Model {
@@ -38,7 +38,7 @@ fn event(_app: &App, model: Model, _event: Event) -> Model {
 
 fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     // Clear the window with dark charcoal.
-    frame.window(model.window).unwrap().clear(DARK_CHARCOAL);
+    frame.clear(DARK_CHARCOAL);
     // Return the drawn frame.
     frame
 }
