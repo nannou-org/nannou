@@ -38,6 +38,7 @@ pub mod ease;
 pub mod event;
 mod frame;
 pub mod geom;
+pub mod gpu;
 pub mod image;
 pub mod io;
 pub mod math;
