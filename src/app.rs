@@ -34,11 +34,18 @@ use std::time::{Duration, Instant};
 use ui;
 use vulkano;
 use vulkano::device::DeviceOwned;
+use vulkano::format::Format;
 use vulkano::instance::InstanceExtensions;
 use vulkano::swapchain::SwapchainCreationError;
 use vulkano::sync::GpuFuture;
 use window::{self, Window};
 use winit;
+
+// TODO: This value is just copied from an example, need to:
+// 1. Verify that this is actually a good default
+// 2. Allow for choosing a custom depth format
+// 3. Validate the format (whether default or custom selected)
+const DEPTH_FORMAT: Format = Format::D16Unorm;
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -849,11 +856,11 @@ impl App {
             Some(window) => window,
         };
         let device = window.swapchain.swapchain.device().clone();
-        let format = window.swapchain.swapchain.format();
+        let color_format = window.swapchain.swapchain.format();
         let draw = self.draw_state.draw.borrow_mut();
         draw.reset();
         if self.draw_state.renderer.borrow().is_none() {
-            let renderer = draw::backend::vulkano::Renderer::new(device, format)
+            let renderer = draw::backend::vulkano::Renderer::new(device, color_format, DEPTH_FORMAT)
                 .expect("failed to create `Draw` renderer for vulkano backend");
             *self.draw_state.renderer.borrow_mut() = Some(RefCell::new(renderer));
         }
@@ -1028,7 +1035,7 @@ impl<'a> Draw<'a> {
         );
         let dpi_factor = window.hidpi_factor();
         let mut renderer = self.renderer.borrow_mut();
-        renderer.draw_to_frame(&self.draw, dpi_factor, frame)
+        renderer.draw_to_frame(&self.draw, dpi_factor, frame, DEPTH_FORMAT)
     }
 }
 
