@@ -193,32 +193,45 @@ impl Vertex {
 /// The render pass used for the graphics pipeline.
 pub fn render_pass(
     device: Arc<Device>,
-    format: Format,
+    color_format: Format,
+    depth_format: Format,
     msaa_samples: u32,
 ) -> Result<Arc<RenderPassAbstract + Send + Sync>, RenderPassCreationError> {
     let rp = single_pass_renderpass!(
         device,
         attachments: {
-            // The msaa intermediary image.
-            msaa: {
+            multisampled_color: {
                 load: Clear,
                 store: DontCare,
-                format: format,
+                format: color_format,
                 samples: msaa_samples,
             },
-            // The final image that will be used for the swapchain.
             color: {
                 load: DontCare,
                 store: Store,
-                format: format,
+                format: color_format,
                 samples: 1,
+            },
+            multisampled_depth: {
+                load: Clear,
+                store: DontCare,
+                format: depth_format,
+                samples: msaa_samples,
+            },
+            depth: {
+                load: DontCare,
+                store: Store,
+                format: depth_format,
+                samples: 1,
+                initial_layout: ImageLayout::Undefined,
+                final_layout: ImageLayout::DepthStencilAttachmentOptimal,
             }
         },
         pass: {
             // We use the attachment named `color` as the one and only color attachment.
-            color: [msaa],
+            color: [multisampled_color],
             // No depth-stencil attachment is indicated with empty brackets.
-            depth_stencil: {}
+            depth_stencil: {multisampled_depth},
             // Resolve the msaa image to the final color image.
             resolve: [color],
         }
@@ -278,9 +291,13 @@ impl Renderer {
     /// Create the `Renderer`.
     ///
     /// This creates the `RenderPass` and `GraphicsPipeline` ready for drawing.
-    pub fn new(device: Arc<Device>, format: Format) -> Result<Self, RendererCreationError> {
+    pub fn new(
+        device: Arc<Device>,
+        color_format: Format,
+        depth_format: Format,
+    ) -> Result<Self, RendererCreationError> {
         let msaa_samples = msaa_samples(&device.physical_device());
-        let render_pass = Arc::new(render_pass(device, format, msaa_samples)?)
+        let render_pass = Arc::new(render_pass(device, color_format, depth_format, msaa_samples)?)
             as Arc<RenderPassAbstract + Send + Sync>;
         let graphics_pipeline = Arc::new(graphics_pipeline(render_pass.clone())?)
             as Arc<GraphicsPipelineAbstract + Send + Sync>;
@@ -297,6 +314,7 @@ impl Renderer {
         draw: &draw::Draw<S>,
         dpi_factor: f32,
         frame: &Frame,
+        depth_format: Format,
     ) -> Result<(), DrawError>
     where
         S: BaseFloat,
@@ -308,9 +326,17 @@ impl Renderer {
             .map(|c| [c.red, c.green, c.blue, c.alpha])
             .unwrap_or([0.2, 0.2, 0.2, 1.0]);
 
-        let clear_msaa = clear_value.into();
+        // Prepare clear values.
+        let clear_multisampled_color = clear_value.into();
         let clear_color = ClearValue::None;
-        let clear_values = vec![clear_msaa, clear_color];
+        let clear_multisampled_depth = 1f32.into();
+        let clear_depth = ClearValue::None;
+        let clear_values = vec![
+            clear_multisampled_color,
+            clear_color,
+            clear_multisampled_depth,
+            clear_depth,
+        ];
 
         let [w, h] = frame.swapchain_image().dimensions();
         let device = frame.swapchain_image().swapchain().device().clone();
@@ -338,19 +364,29 @@ impl Renderer {
             render_pass: Arc<RenderPassAbstract + Send + Sync>,
             swapchain_image: Arc<SwapchainImage>,
             msaa_samples: u32,
+            depth_format: Format,
         ) -> Result<Arc<FramebufferAbstract + Send + Sync>, FramebufferCreationError> {
             let device = swapchain_image.swapchain().device().clone();
             let dimensions = swapchain_image.dimensions();
-            let format = swapchain_image.swapchain().format();
-            let msaa_image = AttachmentImage::transient_multisampled(
+            let color_format = swapchain_image.swapchain().format();
+            let depth = AttachmentImage::transient(device.clone(), dimensions, depth_format)?;
+            let multisampled_color = AttachmentImage::transient_multisampled(
+                device.clone(),
+                dimensions,
+                msaa_samples,
+                color_format,
+            )?;
+            let multisampled_depth = AttachmentImage::transient_multisampled(
                 device,
                 dimensions,
                 msaa_samples,
-                format,
+                depth_format,
             )?;
             let fb = Framebuffer::start(render_pass)
-                .add(msaa_image)?
+                .add(multisampled_color)?
                 .add(swapchain_image)?
+                .add(multisampled_depth)?
+                .add(depth)?
                 .build()?;
             Ok(Arc::new(fb) as _)
         }
@@ -361,6 +397,7 @@ impl Renderer {
                 self.render_pass.clone(),
                 frame.swapchain_image().clone(),
                 msaa_samples(&device.physical_device()),
+                depth_format,
             )?;
             self.framebuffers.push(Arc::new(fb));
         }
@@ -374,6 +411,7 @@ impl Renderer {
                     self.render_pass.clone(),
                     frame.swapchain_image().clone(),
                     msaa_samples(&device.physical_device()),
+                    depth_format,
                 )?;
                 *fb = Arc::new(new_fb);
             }
