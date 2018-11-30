@@ -19,6 +19,7 @@ use event::{self, Event, LoopEvent, Key};
 use find_folder;
 use frame::Frame;
 use geom;
+use gpu;
 use state;
 use std;
 use std::cell::{RefCell, RefMut};
@@ -33,6 +34,7 @@ use std::time::{Duration, Instant};
 use ui;
 use vulkano;
 use vulkano::device::DeviceOwned;
+use vulkano::instance::InstanceExtensions;
 use vulkano::swapchain::SwapchainCreationError;
 use vulkano::sync::GpuFuture;
 use window::{self, Window};
@@ -67,6 +69,8 @@ pub struct Builder<M = (), E = Event> {
     event: EventFn<M, E>,
     view: Option<View<M>>,
     exit: Option<ExitFn<M>>,
+    vulkan_instance: Option<Arc<vulkano::instance::Instance>>,
+    vulkan_debug_callback: Option<gpu::VulkanDebugCallbackBuilder>,
     create_default_window: bool,
 }
 
@@ -336,6 +340,8 @@ impl<M> Builder<M, Event> {
             event: default_event,
             view: None,
             exit: None,
+            vulkan_instance: None,
+            vulkan_debug_callback: None,
             create_default_window: false,
         }
     }
@@ -356,6 +362,8 @@ impl<M> Builder<M, Event> {
             view,
             exit,
             create_default_window,
+            vulkan_instance,
+            vulkan_debug_callback,
             ..
         } = self;
         Builder {
@@ -364,6 +372,8 @@ impl<M> Builder<M, Event> {
             view,
             exit,
             create_default_window,
+            vulkan_instance,
+            vulkan_debug_callback,
         }
     }
 }
@@ -410,6 +420,54 @@ where
         self
     }
 
+    /// The vulkan instance to use for interfacing with the system vulkan API.
+    ///
+    /// If unspecified, nannou will create one via the following:
+    ///
+    /// ```norun
+    /// # extern crate nannou;
+    /// # fn main() {
+    /// nannou::gpu::VulkanInstanceBuilder::new()
+    ///     .build()
+    ///     .expect("failed to creat vulkan instance")
+    /// # ;
+    /// # }
+    /// ```
+    ///
+    /// If a `vulkan_debug_callback` was specified but the `vulkan_instance` is unspecified, nannou
+    /// will do the following:
+    ///
+    /// ```norun
+    /// # extern crate nannou;
+    /// # fn main() {
+    /// nannou::gpu::VulkanInstanceBuilder::new()
+    ///     .extensions(nannou::vulkano::instance::InstanceExtensions {
+    ///         ext_debug_report: true,
+    ///         ..nannou::gpu::required_windowing_extensions()
+    ///     })
+    ///     .layers(vec!["VK_LAYER_LUNARG_standard_validation"])
+    ///     .build()
+    ///     .expect("failed to creat vulkan instance")
+    /// # ;
+    /// # }
+    /// ```
+    pub fn vulkan_instance(mut self, vulkan_instance: Arc<vulkano::instance::Instance>) -> Self {
+        self.vulkan_instance = Some(vulkan_instance);
+        self
+    }
+
+    /// Specify a debug callback to be used with the vulkan instance.
+    ///
+    /// If you just want to print messages from the standard validation layers to stdout, you can
+    /// call this method with `Default::default()` as the argument.
+    ///
+    /// Note that if you have specified a custom `vulkan_instance`, that instance must have the
+    /// `ext_debug_report` extension enabled and must have been constructed with a debug layer.
+    pub fn vulkan_debug_callback(mut self, debug_cb: gpu::VulkanDebugCallbackBuilder) -> Self {
+        self.vulkan_debug_callback = Some(debug_cb);
+        self
+    }
+
     /// Build and run an `App` with the specified parameters.
     ///
     /// This function will not return until the application has exited.
@@ -417,12 +475,43 @@ where
     /// If you wish to remain cross-platform frienly, we recommend that you call this on the main
     /// thread as some platforms require that their application event loop and windows are
     /// initialised on the main thread.
-    pub fn run(self) {
+    pub fn run(mut self) {
         // Start the winit window event loop.
         let events_loop = winit::EventsLoop::new();
 
+        // Keep track of whether or not a debug cb was specified so we know what default extensions
+        // and layers are necessary.
+        let debug_callback_specified = self.vulkan_debug_callback.is_some();
+
+        // The vulkan instance necessary for graphics.
+        let vulkan_instance = self.vulkan_instance.take().unwrap_or_else(|| {
+            if debug_callback_specified {
+                gpu::VulkanInstanceBuilder::new()
+                    .extensions(InstanceExtensions {
+                        ext_debug_report: true,
+                        ..gpu::required_windowing_extensions()
+                    })
+                    .layers(vec!["VK_LAYER_LUNARG_standard_validation"])
+                    .build()
+                    .expect("failed to create vulkan instance")
+            } else {
+                gpu::VulkanInstanceBuilder::new()
+                    .build()
+                    .expect("failed to create vulkan instance")
+            }
+        });
+
+        // If a callback was specified, build it with the created instance.
+        let _vulkan_debug_callback = self.vulkan_debug_callback
+            .take()
+            .map(|builder| {
+                builder
+                    .build(&vulkan_instance)
+                    .expect("failed to build vulkan debug callback")
+            });
+
         // Initialise the app.
-        let app = App::new(events_loop).expect("failed to construct `App`");
+        let app = App::new(events_loop, vulkan_instance).expect("failed to construct `App`");
 
         // Create the default window if necessary
         if self.create_default_window {
@@ -443,7 +532,7 @@ where
             }
         }
 
-        run_loop(app, model, self.event, self.view, self.exit)
+        run_loop(app, model, self.event, self.view, self.exit);
     }
 }
 
@@ -460,6 +549,8 @@ impl Builder<(), Event> {
             view: Some(View::Sketch(view)),
             exit: None,
             create_default_window: true,
+            vulkan_instance: None,
+            vulkan_debug_callback: None,
         };
         builder.run()
     }
@@ -552,13 +643,8 @@ impl App {
     // Create a new `App`.
     pub(super) fn new(
         events_loop: winit::EventsLoop,
+        vulkan_instance: Arc<vulkano::instance::Instance>,
     ) -> Result<Self, vulkano::instance::InstanceCreationError> {
-        let vulkan_instance = {
-            let app_infos = None;
-            let extensions = vulkano_win::required_extensions();
-            let layers = None;
-            vulkano::instance::Instance::new(app_infos, &extensions, layers)?
-        };
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());
         let config = RefCell::new(Default::default());
