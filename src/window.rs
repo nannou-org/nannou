@@ -39,11 +39,14 @@ pub struct Window {
     pub(crate) queue: Arc<device::Queue>,
     pub(crate) surface: Arc<Surface<winit::Window>>,
     pub(crate) swapchain: Arc<WindowSwapchain>,
-    pub(crate) frame_count: usize,
+    pub(crate) frame_count: u64,
 }
 
 /// The vulkan image type associated with a winit window surface.
 pub type SwapchainImage = vulkano::image::swapchain::SwapchainImage<winit::Window>;
+
+/// The future representing the moment that the GPU will have access to the swapchain image.
+pub type SwapchainAcquireFuture = vulkano::swapchain::SwapchainAcquireFuture<winit::Window>;
 
 /// A swapchain and its images associated with a single window.
 pub(crate) struct WindowSwapchain {
@@ -71,6 +74,7 @@ pub enum BuildError {
     DeviceCreation(vulkano::device::DeviceCreationError),
     SwapchainCreation(vulkano::swapchain::SwapchainCreationError),
     SwapchainCapabilities(vulkano::swapchain::CapabilitiesError),
+    SurfaceDoesNotSupportCompositeAlphaOpaque,
 }
 
 impl<'app> Builder<'app> {
@@ -184,7 +188,7 @@ impl<'app> Builder<'app> {
             let alpha = if capabilities.supported_composite_alpha.opaque {
                 vulkano::swapchain::CompositeAlpha::Opaque
             } else {
-                return Err(unimplemented!("`CompositeAlpha::Opaque` not supported by window surface"));
+                return Err(BuildError::SurfaceDoesNotSupportCompositeAlphaOpaque);
             };
 
             // Nannou expects sRGB colour space.
@@ -591,6 +595,8 @@ impl StdError for BuildError {
             BuildError::DeviceCreation(ref err) => err.description(),
             BuildError::SwapchainCreation(ref err) => err.description(),
             BuildError::SwapchainCapabilities(ref err) => err.description(),
+            BuildError::SurfaceDoesNotSupportCompositeAlphaOpaque =>
+                "`CompositeAlpha::Opaque` not supported by window surface",
         }
     }
 }

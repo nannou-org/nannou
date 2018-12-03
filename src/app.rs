@@ -111,11 +111,6 @@ pub struct App {
     pub(crate) ui: ui::Arrangement,
     /// The window that is currently in focus.
     pub(crate) focused_window: RefCell<Option<window::Id>>,
-    /// The number of times the **App**'s **view** function has been called since the start of the
-    /// program.
-    ///
-    /// TODO: Move this to the window struct (see issue #213).
-    pub(crate) elapsed_frames: u64,
 
     /// Indicates whether or not the events loop is currently asleep.
     ///
@@ -300,7 +295,7 @@ pub enum LoopMode {
     /// It is worth noting that, in the case that you have more than one window and they are
     /// situated on different displays with different refresh rates, `update` will almost certainly
     /// not be called at a consistent interval. Instead, it will be called as often as necessary -
-    /// if it has been longer than `minimum_latency_interval` or if some user input was received
+    /// if it has been longer than `minimum_update_interval` or if some user input was received
     /// since the last `Update`. That said, each `Update` event contains the duration since the
     /// last `Update` occurred, so as long as all time-based state (like animations or physics
     /// simulations) are driven by this, the `update` interval consistency should not cause issues.
@@ -312,10 +307,17 @@ pub enum LoopMode {
     /// the swap chain
     /// [here](https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain).*
     RefreshSync {
-        /// The minimum amount of latency that is allowed to occur between the moment at which
-        /// `event` was last called with an `Update` and the moment at which `view` is called by
-        /// a window's swapchain.
-        minimum_latency_interval: Duration,
+        /// The minimum duration that must occur between calls to `update`. Under the `RefreshSync`
+        /// mode, the application loop will attempt to emit an `Update` event once every time a new
+        /// image is acquired from a window's swapchain. Thus, this value is very useful when
+        /// working with multiple windows in order to avoid updating at an unnecessarily high rate.
+        ///
+        /// We recommend using a `Duration` that is roughly half the duration between refreshes of
+        /// the window on the display with the highest refresh rate. For example, if the highest
+        /// display refresh rate is 60hz (with an interval of ~16ms) a suitable
+        /// `minimum_update_interval` might be 8ms. This should result in `update` being called
+        /// once every 16ms regardless of the number of windows.
+        minimum_update_interval: Duration,
         /// The windows to which `Update` events should be synchronised.
         ///
         /// If this is `Some`, an `Update` will only occur for those windows that are contained
@@ -623,7 +625,7 @@ impl Default for LoopMode {
     fn default() -> Self {
         //LoopMode::rate_fps(Self::DEFAULT_RATE_FPS)
         LoopMode::RefreshSync {
-            minimum_latency_interval: update_interval(Self::DEFAULT_RATE_FPS),
+            minimum_update_interval: update_interval(Self::DEFAULT_RATE_FPS * 2.0),
             windows: None,
         }
     }
@@ -670,13 +672,11 @@ impl App {
         let duration = state::Time::default();
         let time = duration.since_start.secs() as _;
         let events_loop_is_asleep = Arc::new(AtomicBool::new(false));
-        let elapsed_frames = 0;
         let app = App {
             vulkan_instance,
             events_loop,
             events_loop_is_asleep,
             focused_window,
-            elapsed_frames,
             windows,
             config,
             draw_state,
@@ -750,6 +750,13 @@ impl App {
         self.focused_window
             .borrow()
             .expect("called `App::window_id` but there is no window currently in focus")
+    }
+
+    /// Return a `Vec` containing a unique `window::Id` for each currently open window managed by
+    /// the `App`.
+    pub fn window_ids(&self) -> Vec<window::Id> {
+        let windows = self.windows.borrow();
+        windows.keys().cloned().collect()
     }
 
     /// Return the **Rect** for the currently focused window.
@@ -888,12 +895,10 @@ impl App {
             .expect("no window open for `app.window_id`")
     }
 
-    /// The number of times the **App**'s **view** function has been called since the start of the
-    /// program.
-    ///
-    /// TODO: Move this to the window struct as **view** is now called per-window (see issue #213).
+    /// The number of times the focused window's **view** function has been called since the start
+    /// of the program.
     pub fn elapsed_frames(&self) -> u64 {
-        self.elapsed_frames
+        self.main_window().frame_count
     }
 }
 
@@ -1065,7 +1070,7 @@ impl<'a> DerefMut for Draw<'a> {
 // issue and ask!
 fn run_loop<M, E>(
     mut app: App,
-    model: M,
+    mut model: M,
     event_fn: EventFn<M, E>,
     view: Option<View<M>>,
     exit_fn: Option<ExitFn<M>>,
@@ -1090,7 +1095,7 @@ where
 
     // Begin running the application loop based on the current `LoopMode`.
     'mode: loop {
-        let Break { model, reason } = match loop_mode {
+        let Break { model: new_model, reason } = match loop_mode {
             LoopMode::Rate { update_interval } => {
                 run_loop_mode_rate(
                     &mut app,
@@ -1109,17 +1114,18 @@ where
                     update_interval,
                 )
             }
-            LoopMode::RefreshSync { minimum_latency_interval, windows } => {
+            LoopMode::RefreshSync { minimum_update_interval, windows } => {
                 run_loop_mode_refresh_sync(
                     &mut app,
                     model,
                     &mut loop_ctxt,
-                    minimum_latency_interval,
+                    minimum_update_interval,
                     windows,
                 )
             }
         };
 
+        model = new_model;
         match reason {
             // If the break reason was due to the `LoopMode` changing, switch to the new loop mode
             // and continue.
@@ -1143,21 +1149,12 @@ fn run_loop_mode_rate<M, E>(
     app: &mut App,
     mut model: M,
     loop_ctxt: &mut LoopContext<M, E>,
-    _update_interval: Duration,
+    mut update_interval: Duration,
 ) -> Break<M>
 where
     E: LoopEvent,
 {
     loop {
-        // See if the loop mode has changed. If so, break.
-        let update_interval = match app.loop_mode() {
-            LoopMode::Rate { update_interval } => update_interval,
-            loop_mode => {
-                let reason = BreakReason::NewLoopMode(loop_mode);
-                return Break { model, reason };
-            }
-        };
-
         // Handle any pending window events.
         app.events_loop
             .poll_events(|event| loop_ctxt.winit_events.push(event));
@@ -1187,13 +1184,13 @@ where
         let event = E::from(update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update));
         model = (loop_ctxt.event_fn)(&app, model, event);
 
-        // Draw the state of the model to the screen.
-        draw(
-            &app,
-            &model,
-            loop_ctxt.view.as_ref().expect("no default window view"),
-        ).unwrap();
-        app.elapsed_frames += 1;
+        // Draw to each window.
+        {
+            let view = loop_ctxt.view.as_ref().expect("no default window view function");
+            for window_id in app.window_ids() {
+                acquire_image_and_view_frame(app, window_id, &model, view);
+            }
+        }
 
         // Sleep if there's still some time left within the interval.
         let now = Instant::now();
@@ -1202,6 +1199,15 @@ where
             std::thread::sleep(update_interval - since_last_loop_end);
         }
         loop_ctxt.last_loop_end = Instant::now();
+
+        // See if the loop mode has changed. If so, break.
+        update_interval = match app.loop_mode() {
+            LoopMode::Rate { update_interval } => update_interval,
+            loop_mode => {
+                let reason = BreakReason::NewLoopMode(loop_mode);
+                return Break { model, reason };
+            }
+        };
     }
 }
 
@@ -1210,27 +1216,15 @@ fn run_loop_mode_wait<M, E>(
     app: &mut App,
     mut model: M,
     loop_ctxt: &mut LoopContext<M, E>,
-    _updates_following_event: usize,
-    _update_interval: Duration,
+    mut updates_following_event: usize,
+    mut update_interval: Duration,
 ) -> Break<M>
 where
     E: LoopEvent,
 {
     loop {
-        // See if the loop mode has changed. If so, break.
-        let (update_interval, updates_following_event) = match app.loop_mode() {
-            LoopMode::Wait { update_interval, updates_following_event } => {
-                (update_interval, updates_following_event)
-            },
-            loop_mode => {
-                let reason = BreakReason::NewLoopMode(loop_mode);
-                return Break { model, reason };
-            }
-        };
-
         // First collect any pending window events.
-        app.events_loop
-            .poll_events(|event| loop_ctxt.winit_events.push(event));
+        app.events_loop.poll_events(|event| loop_ctxt.winit_events.push(event));
 
         // If there are no events and the `Ui` does not need updating,
         // wait for the next event.
@@ -1272,13 +1266,13 @@ where
         model = (loop_ctxt.event_fn)(&app, model, event);
         loop_ctxt.updates_remaining -= 1;
 
-        // Draw the state of the model to the screen.
-        draw(
-            &app,
-            &model,
-            loop_ctxt.view.as_ref().expect("no default window view"),
-        ).unwrap();
-        app.elapsed_frames += 1;
+        // Draw to each window.
+        {
+            let view = loop_ctxt.view.as_ref().expect("no default window view function");
+            for window_id in app.window_ids() {
+                acquire_image_and_view_frame(app, window_id, &model, view);
+            }
+        }
 
         // Sleep if there's still some time left within the interval.
         let now = Instant::now();
@@ -1287,6 +1281,18 @@ where
             std::thread::sleep(update_interval - since_last_loop_end);
         }
         loop_ctxt.last_loop_end = Instant::now();
+
+        // See if the loop mode has changed. If so, break.
+        match app.loop_mode() {
+            LoopMode::Wait { update_interval: ui, updates_following_event: ufe } => {
+                update_interval = ui;
+                updates_following_event = ufe;
+            },
+            loop_mode => {
+                let reason = BreakReason::NewLoopMode(loop_mode);
+                return Break { model, reason };
+            }
+        };
     }
 }
 
@@ -1295,211 +1301,199 @@ fn run_loop_mode_refresh_sync<M, E>(
     app: &mut App,
     mut model: M,
     loop_ctxt: &mut LoopContext<M, E>,
-    mut minimum_latency_interval: Duration,
+    mut minimum_update_interval: Duration,
     mut windows: Option<HashSet<window::Id>>,
 ) -> Break<M>
 where
     E: LoopEvent,
 {
     loop {
-        // See if the loop mode has changed. If so, break.
-        let (minimum_latency_interval, windows) = match app.loop_mode() {
-            LoopMode::RefreshSync { minimum_latency_interval, windows } => {
-                (minimum_latency_interval, windows)
-            },
-            loop_mode => {
-                let reason = BreakReason::NewLoopMode(loop_mode);
-                return Break { model, reason };
-            }
-        };
-
         // TODO: Properly consider the impact of an individual window blocking.
-        let windows = {
-            let windows = app.windows.borrow();
-            windows.iter()
-                .map(|(&id, window)| (id, window.queue.clone()))
-                .collect::<Vec<_>>()
-        };
-        for (window_id, queue) in windows {
-            // Skip closed windows and cleanup unused GPU resources.
-            {
-                let windows = app.windows.borrow();
-                let window = match windows.get(&window_id) {
-                    Some(w) => w,
-                    None => continue,
-                };
-                windows[&window_id]
-                    .swapchain
-                    .previous_frame_end
-                    .lock()
-                    .expect("failed to lock `previous_frame_end`")
-                    .as_mut()
-                    .expect("`previous_frame_end` was `None`")
-                    .cleanup_finished();
+        for window_id in app.window_ids() {
+            // Skip closed windows.
+            if app.window(window_id).is_none() {
+                continue;
             }
 
-            // Swapchain Recreation
-            //
-            // If the swapchain requires recreation, we must do the following:
-            //
-            // - Retrieve the `current_extent` of the window surface capabilities.
-            // - Recreate the swapchain and its images with the current_extent.
-            // - Recreate framebuffers.
-            // - Update the `viewports` of the dynamic state.
-            // - Signal recreation is complete.
-            let recreate_swapchain = {
-                let windows = app.windows.borrow();
-                let window = &windows[&window_id];
-                window.swapchain.needs_recreation.load(atomic::Ordering::Relaxed)
-            };
-            if recreate_swapchain {
-                let mut windows = app.windows.borrow_mut();
-                let window = windows.get_mut(&window_id).expect("no window for id");
+            cleanup_unused_gpu_resources_for_window(app, window_id);
 
-                // Get the new dimensions for the viewport/framebuffers.
-                let dimensions = window
-                    .surface
-                    .capabilities(window.swapchain.device().physical_device())
-                    .expect("failed to get surface capabilities")
-                    .current_extent
-                    .expect("current_extent was `None`");
-
-                // Recreate the swapchain with the current dimensions.
-                let new_swapchain = window.swapchain.swapchain.recreate_with_dimension(dimensions);
-                let (new_swapchain, new_images) = match new_swapchain {
-                    Ok(r) => r,
-                    // This error tends to happen when the user is manually resizing the window.
-                    // Simply restarting the loop is the easiest way to fix this issue.
-                    Err(SwapchainCreationError::UnsupportedDimensions) => {
-                        continue;
-                    },
-                    Err(err) => panic!("{:?}", err)
-                };
-
-                // Update the window's swapchain and images.
-                window.replace_swapchain(new_swapchain, new_images);
-
-                // TODO
-                //framebuffers = None;
-
-                //dynamic_state.viewports = Some(vec![Viewport {
-                //    origin: [0.0, 0.0],
-                //    dimensions: [dimensions[0] as f32, dimensions[1] as f32],
-                //    depth_range: 0.0 .. 1.0,
-                //}]);
+            // Ensure swapchain dimensions are up to date.
+            loop {
+                if window_swapchain_needs_recreation(app, window_id) {
+                    match recreate_window_swapchain(app, window_id) {
+                        Ok(()) => break,
+                        Err(SwapchainCreationError::UnsupportedDimensions) => {
+                            set_window_swapchain_needs_recreation(app, window_id, true);
+                            continue
+                        },
+                        Err(err) => panic!("{:?}", err),
+                    }
+                }
+                break;
             }
 
             // Acquire the next image from the swapchain.
             let timeout = None;
             let swapchain = app.windows.borrow()[&window_id].swapchain.clone();
-            let next_img = vulkano::swapchain::acquire_next_image(swapchain.swapchain.clone(), timeout);
-            let (image_num, acquire_future) = match next_img {
+            let next_img = vulkano::swapchain::acquire_next_image(
+                swapchain.swapchain.clone(),
+                timeout,
+            );
+            let (swapchain_image_index, swapchain_image_acquire_future) = match next_img {
                 Ok(r) => r,
                 Err(vulkano::swapchain::AcquireError::OutOfDate) => {
-                    let mut windows = app.windows.borrow_mut();
-                    let window = windows.get_mut(&window_id).expect("no window for id");
-                    window.swapchain.needs_recreation.store(true, atomic::Ordering::Relaxed);
+                    set_window_swapchain_needs_recreation(app, window_id, true);
                     continue;
                 },
                 Err(err) => panic!("{:?}", err)
             };
 
             // Process pending app events.
-            app.events_loop
-                .poll_events(|event| loop_ctxt.winit_events.push(event));
-            for winit_event in loop_ctxt.winit_events.drain(..) {
-                let (new_model, exit) = process_and_emit_winit_event(
-                    app,
-                    model,
-                    loop_ctxt.event_fn,
-                    winit_event,
-                );
-                model = new_model;
-                if exit {
-                    let reason = BreakReason::Exit;
-                    return Break { model, reason };
-                }
+            let (new_model, exit, event_count) = poll_and_process_events(app, model, loop_ctxt);
+            model = new_model;
+            if exit {
+                let reason = BreakReason::Exit;
+                return Break { model, reason };
             }
 
-            // Update the app's durations.
+            // Only emit an `update` if there was some user input or if it's been less than
+            // `minimum_update_interval`.
             let now = Instant::now();
             let since_last = now.duration_since(loop_ctxt.last_update).into();
-            let since_start = now.duration_since(loop_ctxt.loop_start).into();
-            app.duration.since_start = since_start;
-            app.duration.since_prev_update = since_last;
-            app.time = app.duration.since_start.secs() as _;
+            let should_emit_update = windows
+                .as_ref()
+                .map(|ws| ws.contains(&window_id))
+                .unwrap_or(true)
+                && (event_count > 0 || since_last > minimum_update_interval);
+            if should_emit_update {
+                let since_start = now.duration_since(loop_ctxt.loop_start).into();
+                app.duration.since_start = since_start;
+                app.duration.since_prev_update = since_last;
+                app.time = app.duration.since_start.secs() as _;
 
-            // Emit an update event.
-            let event = E::from(update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update));
-            model = (loop_ctxt.event_fn)(&app, model, event);
+                // Emit an update event.
+                let event = E::from(update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update));
+                model = (loop_ctxt.event_fn)(&app, model, event);
+            }
 
             // If the window has been removed, continue.
-            if !app.windows.borrow().contains_key(&window_id) {
+            if app.window(window_id).is_none() {
                 continue;
             }
 
-            // Draw the state of the model to the screen.
-            let (swapchain_image, nth_frame) = {
-                let mut windows = app.windows.borrow_mut();
-                let window = windows.get_mut(&window_id).expect("no window for id");
-                let swapchain_image = window.swapchain.images[image_num].clone();
-                let frame_count = window.frame_count;
-                window.frame_count += 1;
-                (swapchain_image, frame_count)
-            };
-            let frame = Frame::new_empty(
-                queue.clone(),
+            view_frame(
+                app,
+                &model,
                 window_id,
-                nth_frame,
-                image_num,
-                swapchain_image,
-            ).expect("failed to create `Frame`");
-            let frame = match loop_ctxt.view.as_ref().expect("no default window view") {
-                View::Sketch(view) => view(app, frame),
-                View::WithModel(view) => view(app, &model, frame),
-            };
-            app.elapsed_frames += 1;
-            let command_buffer = frame.finish().build().expect("failed to build command buffer");
-
-            let mut windows = app.windows.borrow_mut();
-            let window = windows.get_mut(&window_id).expect("no window for id");
-            let future = window
-                .swapchain
-                .previous_frame_end
-                .lock()
-                .expect("failed to lock `previous_frame_end`")
-                .take()
-                .expect("`previous_frame_end` was `None`")
-                .join(acquire_future)
-                .then_execute(queue.clone(), command_buffer)
-                .expect("failed to execute future")
-                // The image color output is now expected to contain the user's graphics.
-                // But in order to show it on the screen, we have to `present` the image.
-                .then_swapchain_present(queue.clone(), swapchain.swapchain.clone(), image_num)
-                // Flush forwards the future to the GPU to begin the actual processing.
-                .then_signal_fence_and_flush();
-            let previous_frame_end = match future {
-                Ok(future) => {
-                    Some(Box::new(future) as Box<_>)
-                }
-                Err(vulkano::sync::FlushError::OutOfDate) => {
-                    window.swapchain.needs_recreation.store(true, atomic::Ordering::Relaxed);
-                    Some(Box::new(vulkano::sync::now(queue.device().clone())) as Box<_>)
-                }
-                Err(e) => {
-                    println!("{:?}", e);
-                    Some(Box::new(vulkano::sync::now(queue.device().clone())) as Box<_>)
-                }
-            };
-            *window
-                .swapchain
-                .previous_frame_end
-                .lock()
-                .expect("failed to acquire `previous_frame_end` lock") = previous_frame_end;
+                swapchain_image_index,
+                swapchain_image_acquire_future,
+                &loop_ctxt.view.as_ref().expect("no default window view function"),
+            );
         }
 
         loop_ctxt.last_loop_end = Instant::now();
+
+        // See if the loop mode has changed. If so, break.
+        match app.loop_mode() {
+            LoopMode::RefreshSync { minimum_update_interval: mli, windows: w } => {
+                minimum_update_interval = mli;
+                windows = w;
+            },
+            loop_mode => {
+                let reason = BreakReason::NewLoopMode(loop_mode);
+                return Break { model, reason };
+            }
+        }
     }
+}
+
+// Each window has its own associated GPU future associated with displaying the last frame.
+// This method cleans up any unused resources associated with this GPU future.
+fn cleanup_unused_gpu_resources_for_window(app: &App, window_id: window::Id) {
+    let windows = app.windows.borrow();
+    windows[&window_id]
+        .swapchain
+        .previous_frame_end
+        .lock()
+        .expect("failed to lock `previous_frame_end`")
+        .as_mut()
+        .expect("`previous_frame_end` was `None`")
+        .cleanup_finished();
+}
+
+// Returns `true` if the window's swapchain needs to be recreated.
+fn window_swapchain_needs_recreation(app: &App, window_id: window::Id) -> bool {
+    let windows = app.windows.borrow();
+    let window = &windows[&window_id];
+    window.swapchain.needs_recreation.load(atomic::Ordering::Relaxed)
+}
+
+// Attempt to recreate a window's swapchain with the window's current dimensions.
+fn recreate_window_swapchain(
+    app: &App,
+    window_id: window::Id,
+) -> Result<(), SwapchainCreationError> {
+    let mut windows = app.windows.borrow_mut();
+    let window = windows.get_mut(&window_id).expect("no window for id");
+
+    // Get the new dimensions for the viewport/framebuffers.
+    let dimensions = window
+        .surface
+        .capabilities(window.swapchain.device().physical_device())
+        .expect("failed to get surface capabilities")
+        .current_extent
+        .expect("current_extent was `None`");
+
+    // Recreate the swapchain with the current dimensions.
+    let (new_swapchain, new_images) = window
+        .swapchain
+        .swapchain
+        .recreate_with_dimension(dimensions)?;
+
+    // Update the window's swapchain and images.
+    window.replace_swapchain(new_swapchain, new_images);
+
+    Ok(())
+}
+
+// Shorthand for setting a window's swapchain.needs_recreation atomic bool.
+fn set_window_swapchain_needs_recreation(app: &App, window_id: window::Id, b: bool) {
+    let windows = app.windows.borrow_mut();
+    let window = windows.get(&window_id).expect("no window for id");
+    window.swapchain.needs_recreation.store(b, atomic::Ordering::Relaxed);
+}
+
+// Poll and process any pending application events.
+//
+// Returns:
+//
+// - the resulting state of the model.
+// - whether or not an event should cause exiting the application loop.
+// - the number of winit events processed processed.
+fn poll_and_process_events<M, E>(
+    app: &mut App,
+    mut model: M,
+    loop_ctxt: &mut LoopContext<M, E>,
+) -> (M, bool, usize)
+where
+    E: LoopEvent,
+{
+    let mut event_count = 0;
+    app.events_loop.poll_events(|event| loop_ctxt.winit_events.push(event));
+    for winit_event in loop_ctxt.winit_events.drain(..) {
+        event_count += 1;
+        let (new_model, exit) = process_and_emit_winit_event(
+            app,
+            model,
+            loop_ctxt.event_fn,
+            winit_event,
+        );
+        model = new_model;
+        if exit {
+            return (model, exit, event_count);
+        }
+    }
+    (model, false, event_count)
 }
 
 // Whether or not the given event should toggle fullscreen.
@@ -1538,29 +1532,6 @@ fn should_toggle_fullscreen(winit_event: &winit::WindowEvent) -> bool {
     }
 
     false
-}
-
-// A function to re-use when drawing for each of the loop modes.
-fn draw<M>(app: &App, model: &M, view: &View<M>) -> Result<(), ()> {
-    // Draw the state of the model to the screen.
-    // let gl_frames = app
-    //     .windows
-    //     .borrow()
-    //     .iter()
-    //     .map(|(&id, window)| {
-    //         let gl_frame = RefCell::new(frame::GlFrame::new(window.display.draw()));
-    //         (id, gl_frame)
-    //     })
-    //     .collect();
-    // TODO: This currently passes the *focused* window but should pass the *main* one.
-    //let undrawn_frame = frame::new(gl_frames, *app.focused_window.borrow());
-    let undrawn_frame: Frame = unimplemented!();
-    let frame = match *view {
-        View::WithModel(view_fn) => view_fn(&app, &model, undrawn_frame),
-        View::Sketch(view_fn) => view_fn(&app, undrawn_frame),
-    };
-    //frame::finish(frame)
-    Ok(())
 }
 
 // A function to simplify the creation of an `Update` event.
@@ -1732,71 +1703,145 @@ where
     (model, exit)
 }
 
+// Draw the state of the model to the swapchain image associated with the given index..
+//
+// This calls the `view` function specified by the user.
+fn view_frame<M>(
+    app: &mut App,
+    model: &M,
+    window_id: window::Id,
+    swapchain_image_index: usize,
+    swapchain_image_acquire_future: window::SwapchainAcquireFuture,
+    view: &View<M>,
+) {
+    // Retrieve the queue and swapchain associated with this window.
+    let (queue, swapchain) = {
+        let windows = app.windows.borrow();
+        let window = &windows[&window_id];
+        (window.queue.clone(), window.swapchain.clone())
+    };
 
+    // Draw the state of the model to the screen.
+    let (swapchain_image, nth_frame) = {
+        let mut windows = app.windows.borrow_mut();
+        let window = windows.get_mut(&window_id).expect("no window for id");
+        let swapchain_image = window.swapchain.images[swapchain_image_index].clone();
+        let frame_count = window.frame_count;
+        window.frame_count += 1;
+        (swapchain_image, frame_count)
+    };
 
+    // Construct and emit a frame via `view` for receiving the user's graphics commands.
+    let frame = Frame::new_empty(
+        queue.clone(),
+        window_id,
+        nth_frame,
+        swapchain_image_index,
+        swapchain_image,
+    ).expect("failed to create `Frame`");
+    let frame = match view {
+        View::Sketch(view) => view(app, frame),
+        View::WithModel(view) => view(app, &model, frame),
+    };
+    let command_buffer = frame.finish().build().expect("failed to build command buffer");
 
+    let mut windows = app.windows.borrow_mut();
+    let window = windows.get_mut(&window_id).expect("no window for id");
+    let future = window
+        .swapchain
+        .previous_frame_end
+        .lock()
+        .expect("failed to lock `previous_frame_end`")
+        .take()
+        .expect("`previous_frame_end` was `None`")
+        .join(swapchain_image_acquire_future)
+        .then_execute(queue.clone(), command_buffer)
+        .expect("failed to execute future")
+        // The image color output is now expected to contain the user's graphics.
+        // But in order to show it on the screen, we have to `present` the image.
+        .then_swapchain_present(
+            queue.clone(),
+            swapchain.swapchain.clone(),
+            swapchain_image_index,
+        )
+        // Flush forwards the future to the GPU to begin the actual processing.
+        .then_signal_fence_and_flush();
+    let previous_frame_end = match future {
+        Ok(future) => {
+            Some(Box::new(future) as Box<_>)
+        }
+        Err(vulkano::sync::FlushError::OutOfDate) => {
+            window.swapchain.needs_recreation.store(true, atomic::Ordering::Relaxed);
+            Some(Box::new(vulkano::sync::now(queue.device().clone())) as Box<_>)
+        }
+        Err(e) => {
+            println!("{:?}", e);
+            Some(Box::new(vulkano::sync::now(queue.device().clone())) as Box<_>)
+        }
+    };
+    *window
+        .swapchain
+        .previous_frame_end
+        .lock()
+        .expect("failed to acquire `previous_frame_end` lock") = previous_frame_end;
+}
 
-    // // A threaded function for polling the window swapchains for available images.
-    // //
-    // // TODO:
-    // //
-    // // Sync the swapchains on this thread when windows are created/destroyed via `App`. Possibly
-    // // share the swapchains hashmap between threads with an Arc<Mutex<>>? Consider the following:
-    // //   - The swapchain (and in turn images) might need to be recreated at any time (e.g. resize).
-    // //   - When recreated, swapchain needs current `window` dimensions.
-    // //   - A user may create or destroy a window via the `App` at any time.
-    // fn run_vulkan_swapchains(
-    //     swapchains: HashMap<window::Id, Arc<WindowSwapchain>>,
-    // ) -> Result<(), vulkano::swapchain::AcquireError> {
-    //     // NOTE: Temporary just to get things working with one window for now.
-    //     let (window_id, swapchain) = swapchains.into_iter().next().expect("no window swapchains");
+// Acquire the next swapchain image for the given window and draw to it using the user's
+// view function.
+//
+// Returns whether or not `view_frame` was called. This will be `false` if the given window
+// no longer exists or if the swapchain is `OutOfDate` and needs recreation by the time
+// `acquire_next_image` is called.
+fn acquire_image_and_view_frame<M>(
+    app: &mut App,
+    window_id: window::Id,
+    model: &M,
+    view: &View<M>,
+) -> bool {
+    // Skip closed windows.
+    if app.window(window_id).is_none() {
+        return false;
+    }
+    cleanup_unused_gpu_resources_for_window(app, window_id);
 
-    //     // The device with which the swapchain is associated with.
-    //     let device = swapchain.device();
+    // Ensure swapchain dimensions are up to date.
+    loop {
+        if window_swapchain_needs_recreation(app, window_id) {
+            match recreate_window_swapchain(app, window_id) {
+                Ok(()) => break,
+                Err(SwapchainCreationError::UnsupportedDimensions) => {
+                    set_window_swapchain_needs_recreation(app, window_id, true);
+                    continue
+                },
+                Err(err) => panic!("{:?}", err),
+            }
+        }
+        break;
+    }
 
-    //     // TODO:
-    //     // Whether or not we need to recreate the swapchain due to resizing, etc.
-    //     let mut recreate_swapchain = false;
+    // Acquire the next image from the swapchain.
+    let timeout = None;
+    let swapchain = app.windows.borrow()[&window_id].swapchain.clone();
+    let next_img = vulkano::swapchain::acquire_next_image(
+        swapchain.swapchain.clone(),
+        timeout,
+    );
+    let (swapchain_image_index, swapchain_image_acquire_future) = match next_img {
+        Ok(r) => r,
+        Err(vulkano::swapchain::AcquireError::OutOfDate) => {
+            set_window_swapchain_needs_recreation(app, window_id, true);
+            return false;
+        },
+        Err(err) => panic!("{:?}", err)
+    };
 
-    //     // Hold onto the previous frame as `drop` blocks until the GPU has finished executing it.
-    //     let mut previous_frame_end = Box::new(vulkano::sync::now(device.clone())) as Box<GpuFuture>;
-
-    //     loop {
-    //         // Clean up resources associated with commands that have finished processing.
-    //         previous_frame_end.cleanup_finished();
-
-    //         // TODO: Recreate swapchain.
-    //         if recreate_swapchain {
-    //             unimplemented!();
-    //         }
-
-    //         // Acquire an image from the swapchain.
-    //         let next = swapchain::acquire_next_image(swapchain.clone(), None);
-    //         let (image_num, acquire_future) = match next {
-    //             Ok(next) => next,
-    //             Err(AcquireError::OutOfDate) => {
-    //                 recreate_swapchain = true;
-    //                 continue;
-    //             }
-    //             Err(err) => {
-    //                 eprintln!("swapchain::acquire_next_image failed with: {}", err);
-    //                 return Err(err);
-    //             }
-    //         };
-
-
-    // }
-
-    // // Spawn a thread for acquiring window swapchain images for rendering via Vulkan.
-    // //
-    // // The reason we spawn a thread here is that the `swapchain::acquire_next_image` function may
-    // // or may not block depending on the platform implementation. To avoid locking up the main
-    // // thread due to this, we acquire swapchain images on a separate thread.
-    // let vulkan_swapchain_thread = thread::Builder::new()
-    //     .name("vulkan-swapchains".to_string())
-    //     .spawn(move || {
-    //         run_vulkan_swapchains(windows)
-    //     })
-    //     .expect("failed to spawn `vulkan-swapchains` thread");
-
-
+    view_frame(
+        app,
+        model,
+        window_id,
+        swapchain_image_index,
+        swapchain_image_acquire_future,
+        view,
+    );
+    true
+}

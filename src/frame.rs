@@ -124,7 +124,7 @@ pub struct Frame {
     // The `Id` whose surface the swapchain image is associated with.
     window_id: window::Id,
     // The `nth` frame that has been presented to the window since the start of the application.
-    nth: usize,
+    nth: u64,
     // The index associated with the swapchain image.
     swapchain_image_index: usize,
     // The image to which this frame is drawing.
@@ -148,7 +148,7 @@ impl Frame {
     pub(crate) fn new_empty(
         queue: Arc<Queue>,
         window_id: window::Id,
-        nth: usize,
+        nth: u64,
         swapchain_image_index: usize,
         swapchain_image: Arc<SwapchainImage>,
     ) -> Result<Self, vulkano::OomError> {
@@ -203,7 +203,7 @@ impl Frame {
     /// The `nth` frame for the associated window since the application started.
     ///
     /// E.g. the first frame yielded will return `0`, the second will return `1`, and so on.
-    pub fn nth(&self) -> usize {
+    pub fn nth(&self) -> u64 {
         self.nth
     }
 
