@@ -283,6 +283,7 @@ pub mod mouse {
 /// Tracked durations related to the App.
 pub mod time {
     use std::{ops, time};
+    use std::cmp::Ordering;
 
     /// The state of time tracked by the App.
     #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
@@ -322,6 +323,18 @@ pub mod time {
     impl ops::DerefMut for Duration {
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut self.duration
+        }
+    }
+
+    impl PartialEq<time::Duration> for Duration {
+        fn eq(&self, other: &time::Duration) -> bool {
+            self.duration == *other
+        }
+    }
+
+    impl PartialOrd<time::Duration> for Duration {
+        fn partial_cmp(&self, other: &time::Duration) -> Option<Ordering> {
+            self.duration.partial_cmp(other)
         }
     }
 
