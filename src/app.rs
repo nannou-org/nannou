@@ -619,15 +619,22 @@ impl LoopMode {
             update_interval,
         }
     }
-}
 
-impl Default for LoopMode {
-    fn default() -> Self {
-        //LoopMode::rate_fps(Self::DEFAULT_RATE_FPS)
+    /// A simplified constructor for the default `RefreshSync` loop mode.
+    ///
+    /// Assumes a display refresh rate of ~60hz and in turn specifies a `minimum_update_latency` of
+    /// ~8.33ms. The `windows` field is set to `None`.
+    pub fn refresh_sync() -> Self {
         LoopMode::RefreshSync {
             minimum_update_interval: update_interval(Self::DEFAULT_RATE_FPS * 2.0),
             windows: None,
         }
+    }
+}
+
+impl Default for LoopMode {
+    fn default() -> Self {
+        LoopMode::refresh_sync()
     }
 }
 
@@ -1131,8 +1138,39 @@ where
             // and continue.
             BreakReason::NewLoopMode(new_loop_mode) => {
                 loop_mode = new_loop_mode;
-                unimplemented!();
-            }
+
+                // Re-build the window swapchains so that they are optimal for the new loop mode.
+                let mut windows = app.windows.borrow_mut();
+                for window in windows.values_mut() {
+                    let device = window.swapchain.swapchain.device().clone();
+                    let surface = window.surface.clone();
+                    let queue = window.queue.clone();
+
+                    // Initialise a swapchain builder from the current swapchain's params.
+                    let mut swapchain_builder =
+                        window::SwapchainBuilder::from_swapchain(&window.swapchain.swapchain);
+
+                    // Let the new present mode and image count be chosen by nannou or the user if
+                    // they have a preference.
+                    swapchain_builder.present_mode = window.user_specified_present_mode;
+                    swapchain_builder.image_count = window.user_specified_image_count;
+
+                    // Create the new swapchain.
+                    let (new_swapchain, new_swapchain_images) = swapchain_builder
+                        .build(
+                            device,
+                            surface,
+                            &queue,
+                            &loop_mode,
+                            None,
+                            Some(&window.swapchain.swapchain),
+                        )
+                        .expect("failed to recreate swapchain for new `LoopMode`");
+
+                    // Replace the window's swapchain with the newly created one.
+                    window.replace_swapchain(new_swapchain, new_swapchain_images);
+                }
+            },
             // If the loop broke due to the application exiting, we're done!
             BreakReason::Exit => {
                 if let Some(exit_fn) = exit_fn {
@@ -1722,13 +1760,14 @@ fn view_frame<M>(
     };
 
     // Draw the state of the model to the screen.
-    let (swapchain_image, nth_frame) = {
+    let (swapchain_image, nth_frame, swapchain_frame_created) = {
         let mut windows = app.windows.borrow_mut();
         let window = windows.get_mut(&window_id).expect("no window for id");
         let swapchain_image = window.swapchain.images[swapchain_image_index].clone();
         let frame_count = window.frame_count;
+        let swapchain_frame_created = window.swapchain.frame_created;
         window.frame_count += 1;
-        (swapchain_image, frame_count)
+        (swapchain_image, frame_count, swapchain_frame_created)
     };
 
     // Construct and emit a frame via `view` for receiving the user's graphics commands.
@@ -1738,6 +1777,7 @@ fn view_frame<M>(
         nth_frame,
         swapchain_image_index,
         swapchain_image,
+        swapchain_frame_created,
     ).expect("failed to create `Frame`");
     let frame = match view {
         View::Sketch(view) => view(app, frame),

@@ -403,18 +403,15 @@ impl Renderer {
         }
 
         // If the dimensions for the current framebuffer do not match, recreate it.
-        {
+        if frame.swapchain_image_is_new() {
             let fb = &mut self.framebuffers[frame.swapchain_image_index()];
-            let [fb_w, fb_h, _] = fb.dimensions();
-            if fb_w != w || fb_h != h {
-                let new_fb = create_framebuffer(
-                    self.render_pass.clone(),
-                    frame.swapchain_image().clone(),
-                    msaa_samples(&device.physical_device()),
-                    depth_format,
-                )?;
-                *fb = Arc::new(new_fb);
-            }
+            let new_fb = create_framebuffer(
+                self.render_pass.clone(),
+                frame.swapchain_image().clone(),
+                msaa_samples(&device.physical_device()),
+                depth_format,
+            )?;
+            *fb = Arc::new(new_fb);
         }
 
         // Submit the draw commands.

@@ -129,6 +129,8 @@ pub struct Frame {
     swapchain_image_index: usize,
     // The image to which this frame is drawing.
     swapchain_image: Arc<SwapchainImage>,
+    // The index of the frame before which this swapchain was created.
+    swapchain_frame_created: u64,
     // The queue on which the swapchain image will be drawn.
     queue: Arc<Queue>,
 }
@@ -151,6 +153,7 @@ impl Frame {
         nth: u64,
         swapchain_image_index: usize,
         swapchain_image: Arc<SwapchainImage>,
+        swapchain_frame_created: u64,
     ) -> Result<Self, vulkano::OomError> {
         let device = queue.device().clone();
         let cb_builder = AutoCommandBufferBuilder::primary_one_time_submit(device, queue.family())?;
@@ -161,6 +164,7 @@ impl Frame {
             nth,
             swapchain_image_index,
             swapchain_image,
+            swapchain_frame_created,
             queue,
         };
         Ok(frame)
@@ -174,6 +178,19 @@ impl Frame {
             .expect("failed to lock `command_buffer_builder`")
             .take()
             .expect("`command_buffer_builder` was `None`")
+    }
+
+    /// Returns whether or not this is the first time this swapchain image has been presented.
+    ///
+    /// This will be `true` following each occurrence at which the swapchain has been recreated,
+    /// which may occur during resize, loop mode switch, etc.
+    ///
+    /// It is important to call this each frame to determine whether or not framebuffers associated
+    /// with the swapchain need to be recreated.
+    pub fn swapchain_image_is_new(&self) -> bool {
+        // TODO: This is based on the assumption that the images will be acquired starting from
+        // index `0` each time the swapchain is recreated. Verify that this is the case.
+        (self.nth - self.swapchain_image_index as u64) == self.swapchain_frame_created
     }
 
     /// Add commands to be executed by the GPU once the **Frame** is returned.
