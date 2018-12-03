@@ -1,22 +1,27 @@
 //! The nannou [**Window**](./struct.Window.html) API. Create a new window via `.app.new_window()`.
 //! This produces a [**Builder**](./struct.Builder.html) which can be used to build a window.
 
+use app::LoopMode;
 use geom;
-use std::env;
+use std::{cmp, env, fmt, ops};
 use std::error::Error as StdError;
-use std::fmt;
-use std::ops;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use vulkano::device::{self, Device};
+use vulkano::format::Format;
 use vulkano::instance::PhysicalDevice;
-use vulkano::swapchain::{ColorSpace, Surface, Swapchain};
+use vulkano::swapchain::{ColorSpace, CompositeAlpha, PresentMode, SurfaceTransform,
+                         SwapchainCreationError};
 use vulkano::sync::GpuFuture;
 use vulkano_win::{VkSurfaceBuild};
 use winit::{self, MonitorId, MouseCursor};
+use winit::dpi::LogicalSize;
 use App;
 
 pub use winit::WindowId as Id;
+
+/// The default dimensions used for a window in the case that none are specified.
+pub const DEFAULT_DIMENSIONS: LogicalSize = LogicalSize { width: 1024.0, height: 768.0 };
 
 /// For building an OpenGL window.
 ///
@@ -28,6 +33,7 @@ pub struct Builder<'app> {
     vulkan_physical_device: Option<PhysicalDevice<'app>>,
     window: winit::WindowBuilder,
     title_was_set: bool,
+    swapchain_builder: SwapchainBuilder,
 }
 
 /// An OpenGL window.
@@ -37,10 +43,20 @@ pub struct Builder<'app> {
 #[derive(Debug)]
 pub struct Window {
     pub(crate) queue: Arc<device::Queue>,
-    pub(crate) surface: Arc<Surface<winit::Window>>,
+    pub(crate) surface: Arc<Surface>,
     pub(crate) swapchain: Arc<WindowSwapchain>,
     pub(crate) frame_count: u64,
+    // If the user specified one of the following parameters, use these when recreating the
+    // swapchain rather than our heuristics.
+    pub(crate) user_specified_present_mode: Option<PresentMode>,
+    pub(crate) user_specified_image_count: Option<u32>,
 }
+
+/// The surface type associated with a winit window.
+pub type Surface = vulkano::swapchain::Surface<winit::Window>;
+
+/// The swapchain type associated with a winit window surface.
+pub type Swapchain = vulkano::swapchain::Swapchain<winit::Window>;
 
 /// The vulkan image type associated with a winit window surface.
 pub type SwapchainImage = vulkano::image::swapchain::SwapchainImage<winit::Window>;
@@ -52,7 +68,12 @@ pub type SwapchainAcquireFuture = vulkano::swapchain::SwapchainAcquireFuture<win
 pub(crate) struct WindowSwapchain {
     // Tracks whether or not the swapchain needs recreation due to resizing, etc.
     pub(crate) needs_recreation: AtomicBool,
-    pub(crate) swapchain: Arc<Swapchain<winit::Window>>,
+    // The index of the frame at which this swapchain was first presented.
+    //
+    // This is necessary for allowing the user to determine whether or not they need to recreate
+    // framebuffers in the case that the swapchain has recently been recreated.
+    pub(crate) frame_created: u64,
+    pub(crate) swapchain: Arc<Swapchain>,
     pub(crate) images: Vec<Arc<SwapchainImage>>,
     // In the application loop we are going to submit commands to the GPU. Submitting a command
     // produces an object that implements the `GpuFuture` trait, which holds the resources for as
@@ -72,9 +93,257 @@ pub(crate) struct WindowSwapchain {
 pub enum BuildError {
     SurfaceCreation(vulkano_win::CreationError),
     DeviceCreation(vulkano::device::DeviceCreationError),
-    SwapchainCreation(vulkano::swapchain::SwapchainCreationError),
+    SwapchainCreation(SwapchainCreationError),
     SwapchainCapabilities(vulkano::swapchain::CapabilitiesError),
     SurfaceDoesNotSupportCompositeAlphaOpaque,
+}
+
+/// Swapchain building parameters for which Nannou will provide a default if unspecified.
+///
+/// See the builder methods for more details on each parameter.
+///
+/// Valid parameters can be determined prior to building by checking the result of
+/// [vulkano::swapchain::Surface::capabilities](https://docs.rs/vulkano/latest/vulkano/swapchain/struct.Surface.html#method.capabilities).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SwapchainBuilder {
+    pub format: Option<Format>,
+    pub color_space: Option<ColorSpace>,
+    pub layers: Option<u32>,
+    pub present_mode: Option<PresentMode>,
+    pub composite_alpha: Option<CompositeAlpha>,
+    pub clipped: Option<bool>,
+    pub image_count: Option<u32>,
+    pub surface_transform: Option<SurfaceTransform>,
+    pub sharing_mode: Option<vulkano::sync::SharingMode>,
+}
+
+impl SwapchainBuilder {
+    pub const DEFAULT_CLIPPED: bool = true;
+    pub const DEFAULT_COLOR_SPACE: ColorSpace = ColorSpace::SrgbNonLinear;
+    pub const DEFAULT_COMPOSITE_ALPHA: CompositeAlpha = CompositeAlpha::Opaque;
+    pub const DEFAULT_LAYERS: u32 = 1;
+    pub const DEFAULT_SURFACE_TRANSFORM: SurfaceTransform = SurfaceTransform::Identity;
+
+    /// A new empty **SwapchainBuilder** with all parameters set to `None`.
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    /// Create a **SwapchainBuilder** from an existing swapchain.
+    ///
+    /// The resulting swapchain parameters will match that of the given `Swapchain`.
+    ///
+    /// Note that `sharing_mode` will be `None` regardless of how the given `Swapchain` was built,
+    /// as there is no way to determine this via the vulkano swapchain API.
+    pub fn from_swapchain(swapchain: &Swapchain) -> Self {
+        SwapchainBuilder::new()
+            .format(swapchain.format())
+            .image_count(swapchain.num_images())
+            .layers(swapchain.layers())
+            .surface_transform(swapchain.transform())
+            .composite_alpha(swapchain.composite_alpha())
+            .present_mode(swapchain.present_mode())
+            .clipped(swapchain.clipped())
+    }
+
+    /// Specify the pixel format for the swapchain.
+    ///
+    /// By default, nannou attempts to use the first format valid for the `SrgbNonLinear` color
+    /// space.
+    ///
+    /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/format/enum.Format.html).
+    pub fn format(mut self, format: Format) -> Self {
+        self.format = Some(format);
+        self
+    }
+
+    /// If `format` is `None`, will attempt to find the first available `Format` that supports this
+    /// `ColorSpace`.
+    ///
+    /// If `format` is `Some`, this parameter is ignored.
+    ///
+    /// By default, nannou attempts to use the first format valid for the `SrgbNonLinear` color
+    /// space.
+    ///
+    /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/swapchain/enum.ColorSpace.html).
+    pub fn color_space(mut self, color_space: ColorSpace) -> Self {
+        self.color_space = Some(color_space);
+        self
+    }
+
+    /// How the alpha values of the pixels of the window are treated.
+    ///
+    /// By default, nannou uses `CompositeAlpha::Opaque`.
+    ///
+    /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/swapchain/enum.CompositeAlpha.html).
+    pub fn composite_alpha(mut self, composite_alpha: CompositeAlpha) -> Self {
+        self.composite_alpha = Some(composite_alpha);
+        self
+    }
+
+    /// The way in which swapchain images are presented to the display.
+    ///
+    /// By default, nannou will attempt to select the ideal present mode depending on the current
+    /// app `LoopMode`. If the current loop mode is `Wait` or `Rate`, nannou will attempt to use
+    /// the `Mailbox` present mode with an `image_count` of `3`. If the current loop mode is
+    /// `RefreshSync`, nannou will use the `Fifo` present m ode with an `image_count` of `2`.
+    ///
+    /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/swapchain/enum.PresentMode.html).
+    pub fn present_mode(mut self, present_mode: PresentMode) -> Self {
+        self.present_mode = Some(present_mode);
+        self
+    }
+
+    /// The number of images used by the swapchain.
+    ///
+    /// By default, nannou will attempt to select the ideal image count depending on the current
+    /// app `LoopMode`. If the current loop mode is `Wait` or `Rate`, nannou will attempt to use
+    /// the `Mailbox` present mode with an `image_count` of `3`. If the current loop mode is
+    /// `RefreshSync`, nannou will use the `Fifo` present m ode with an `image_count` of `2`.
+    pub fn image_count(mut self, image_count: u32) -> Self {
+        self.image_count = Some(image_count);
+        self
+    }
+
+    /// Whether the implementation is allowed to discard rendering operations that affect regions
+    /// of the surface which aren't visible.
+    ///
+    /// This is important to take into account if your fragment shader has side-effects or if you
+    /// want to read back the content of the image afterwards.
+    pub fn clipped(mut self, clipped: bool) -> Self {
+        self.clipped = Some(clipped);
+        self
+    }
+
+    /// A transformation to apply to the image before showing it on the screen.
+    ///
+    /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/swapchain/enum.SurfaceTransform.html).
+    pub fn surface_transform(mut self, surface_transform: SurfaceTransform) -> Self {
+        self.surface_transform = Some(surface_transform);
+        self
+    }
+
+    pub fn layers(mut self, layers: u32) -> Self {
+        self.layers = Some(layers);
+        self
+    }
+
+    /// Build the swapchain.
+    ///
+    /// `fallback_dimensions` are dimensions to use in the case that the surface capabilities
+    /// `current_extent` field is `None`, which may happen if a surface's size is determined by the
+    /// swapchain's size.
+    pub(crate) fn build<S>(
+        self,
+        device: Arc<Device>,
+        surface: Arc<Surface>,
+        sharing_mode: S,
+        loop_mode: &LoopMode,
+        fallback_dimensions: Option<[u32; 2]>,
+        old_swapchain: Option<&Arc<Swapchain>>,
+    ) -> Result<(Arc<Swapchain>, Vec<Arc<SwapchainImage>>), SwapchainCreationError>
+    where
+        S: Into<vulkano::sync::SharingMode>,
+    {
+        let capabilities = surface.capabilities(device.physical_device())
+            .expect("failed to retrieve surface capabilities");
+
+        let dimensions = capabilities
+            .current_extent
+            .or(fallback_dimensions)
+            .unwrap_or([DEFAULT_DIMENSIONS.width as _, DEFAULT_DIMENSIONS.height as _]);
+
+        // Retrieve the format.
+        let format = match self.format {
+            Some(fmt) => fmt,
+            None => {
+                let color_space = self.color_space.unwrap_or(Self::DEFAULT_COLOR_SPACE);
+                capabilities
+                    .supported_formats
+                    .into_iter()
+                    .filter(|(_, cs)| *cs == color_space)
+                    .map(|(fmt, _)| fmt)
+                    .next()
+                    .ok_or(SwapchainCreationError::UnsupportedFormat)?
+            }
+        };
+
+        // Determine the optimal present mode and image count based on the specified parameters and
+        // the current loop mode.
+        let min_image_count = capabilities.min_image_count;
+        let (present_mode, image_count) = preferred_present_mode_and_image_count(
+            &loop_mode,
+            capabilities.min_image_count,
+            self.present_mode,
+            self.image_count,
+        );
+
+        // Attempt to retrieve the desired composite alpha.
+        let composite_alpha = match self.composite_alpha {
+            Some(alpha) => alpha,
+            None => match capabilities.supported_composite_alpha.opaque {
+                true => Self::DEFAULT_COMPOSITE_ALPHA,
+                false => return Err(SwapchainCreationError::UnsupportedCompositeAlpha),
+            }
+        };
+
+        let layers = self.layers.unwrap_or(Self::DEFAULT_LAYERS);
+        let clipped = self.clipped.unwrap_or(Self::DEFAULT_CLIPPED);
+        let surface_transform = self.surface_transform.unwrap_or(Self::DEFAULT_SURFACE_TRANSFORM);
+
+        Swapchain::new(
+            device,
+            surface,
+            image_count,
+            format,
+            dimensions,
+            layers,
+            capabilities.supported_usage_flags,
+            sharing_mode,
+            surface_transform,
+            composite_alpha,
+            present_mode,
+            clipped,
+            old_swapchain,
+        )
+    }
+}
+
+/// Determine the optimal present mode and image count for the given loop mode.
+///
+/// If a specific present mode or image count is desired, they may be optionally specified.
+pub fn preferred_present_mode_and_image_count(
+    loop_mode: &LoopMode,
+    min_image_count: u32,
+    present_mode: Option<PresentMode>,
+    image_count: Option<u32>,
+) -> (PresentMode, u32) {
+    match (present_mode, image_count) {
+        (Some(pm), Some(ic)) => (pm, ic),
+        (None, _) => match *loop_mode {
+            LoopMode::RefreshSync { .. } => {
+                let image_count = image_count.unwrap_or_else(|| {
+                    cmp::max(min_image_count, 2)
+                });
+                (PresentMode::Fifo, image_count)
+            }
+            LoopMode::Wait { .. } | LoopMode::Rate { .. } => {
+                let image_count = image_count.unwrap_or_else(|| {
+                    cmp::max(min_image_count, 3)
+                });
+                (PresentMode::Mailbox, image_count)
+            }
+        }
+        (Some(present_mode), None) => {
+            let image_count = match present_mode {
+                PresentMode::Immediate => min_image_count,
+                PresentMode::Mailbox => cmp::max(min_image_count, 3),
+                PresentMode::Fifo => cmp::max(min_image_count, 2),
+                PresentMode::Relaxed => cmp::max(min_image_count, 2),
+            };
+            (present_mode, image_count)
+        }
+    }
 }
 
 impl<'app> Builder<'app> {
@@ -85,6 +354,7 @@ impl<'app> Builder<'app> {
             vulkan_physical_device: None,
             window: winit::WindowBuilder::new(),
             title_was_set: false,
+            swapchain_builder: Default::default(),
         }
     }
 
@@ -100,6 +370,12 @@ impl<'app> Builder<'app> {
         self
     }
 
+    /// Specify a set of parameters for building the window surface swapchain.
+    pub fn swapchain_builder(mut self, swapchain_builder: SwapchainBuilder) -> Self {
+        self.swapchain_builder = swapchain_builder;
+        self
+    }
+
     /// Builds the window, inserts it into the `App`'s display map and returns the unique ID.
     pub fn build(self) -> Result<Id, BuildError> {
         let Builder {
@@ -107,6 +383,7 @@ impl<'app> Builder<'app> {
             vulkan_physical_device,
             mut window,
             title_was_set,
+            swapchain_builder,
         } = self;
 
         // If the title was not set, default to the "nannou - <exe_name>".
@@ -122,17 +399,42 @@ impl<'app> Builder<'app> {
         }
 
         // Retrieve the physical, vulkan-supported device to use.
-        let physical_device = vulkan_physical_device.or_else(|| {
-            vulkano::instance::PhysicalDevice::enumerate(&app.vulkan_instance).next()
-        });
-        let physical_device = physical_device.unwrap_or_else(|| unimplemented!());
+        let physical_device = vulkan_physical_device
+            .or_else(|| app.default_vulkan_physical_device())
+            .unwrap_or_else(|| unimplemented!());
+
+        // Retrieve dimensions to use as a fallback in case vulkano swapchain capabilities
+        // `current_extent` is `None`. This happens when the window size is determined by the size
+        // of the swapchain.
+        let initial_swapchain_dimensions = window.window.dimensions
+            .or_else(|| {
+                window.window.fullscreen.as_ref().map(|monitor| {
+                    monitor.get_dimensions().to_logical(1.0)
+                })
+            })
+            .unwrap_or_else(|| {
+                let mut dim = DEFAULT_DIMENSIONS;
+                if let Some(min) = window.window.min_dimensions {
+                    dim.width = dim.width.max(min.width);
+                    dim.height = dim.height.max(min.height);
+                }
+                if let Some(max) = window.window.max_dimensions {
+                    dim.width = dim.width.min(max.width);
+                    dim.height = dim.height.min(max.height);
+                }
+                dim
+            });
+
+        // Use the `initial_swapchain_dimensions` as the default dimensions for the window if none
+        // were specified.
+        if window.window.dimensions.is_none() && window.window.fullscreen.is_none() {
+            window.window.dimensions = Some(initial_swapchain_dimensions);
+        }
 
         // Build the vulkan surface.
         let surface = window.build_vk_surface(&app.events_loop, app.vulkan_instance.clone())?;
 
         // Select the queue family to use. Default to the first graphics-supporting queue.
-        //
-        // TODO: May want to have two queues - one for graphics and one for data transfer.
         let queue_family = physical_device.queue_families()
             .find(|&q| q.supports_graphics() && surface.is_supported(q).unwrap_or(false))
             .unwrap_or_else(|| unimplemented!("couldn't find a graphical queue family"));
@@ -171,66 +473,24 @@ impl<'app> Builder<'app> {
             }
         };
 
+        let user_specified_present_mode = swapchain_builder.present_mode;
+        let user_specified_image_count = swapchain_builder.image_count;
+
         // Build the swapchain used for displaying the window contents.
         let (swapchain, images) = {
             let capabilities = surface.capabilities(physical_device)?;
 
             // Set the dimensions of the swapchain to that of the surface.
-            //
-            // TODO: Should investigate if this is the best value for the case where a user wants
-            // to share graphics across multiple windows.
-            let dimensions = capabilities.current_extent.unwrap_or([1280, 1024]);
+            let fallback_dimensions =
+                [initial_swapchain_dimensions.width as _, initial_swapchain_dimensions.height as _];
 
-            // Window surfaces are almost always expected to be opaque.
-            //
-            // TODO: It could be cool to allow for different composite alpha modes as there could
-            // be some creative uses for semi-transparent windows.
-            let alpha = if capabilities.supported_composite_alpha.opaque {
-                vulkano::swapchain::CompositeAlpha::Opaque
-            } else {
-                return Err(BuildError::SurfaceDoesNotSupportCompositeAlphaOpaque);
-            };
-
-            // Nannou expects sRGB colour space.
-            //
-            // TODO: If a user comes across this error, it may be worth allowing for other colour
-            // spaces, keeping track of windows that use a different colour space and doing the
-            // necessary conversion behind the scenes.
-            let (format, _color_space) = capabilities
-                .supported_formats
-                .into_iter()
-                .filter(|(_, color_space)| match color_space {
-                    ColorSpace::SrgbNonLinear => true,
-                    _ => false,
-                })
-                .next()
-                .unwrap_or_else(|| unimplemented!("Srgb not supported by window surface"));
-
-            // TODO: Select this based on `LoopMode`.
-            //
-            // `LoopMode::Fps` => (`Mailbox`, 3).
-            // `LoopMode::RefreshSync` => (`Fifo`, 2).
-            let presentation_mode = vulkano::swapchain::PresentMode::Fifo;
-
-            let layers = 1;
-            let clipped = true;
-            let old_swapchain = None;
-
-            // Construct the swapchain.
-            Swapchain::new(
+            swapchain_builder.build(
                 device.clone(),
                 surface.clone(),
-                capabilities.min_image_count,
-                format,
-                dimensions,
-                layers,
-                capabilities.supported_usage_flags,
                 &queue,
-                vulkano::swapchain::SurfaceTransform::Identity,
-                alpha,
-                presentation_mode,
-                clipped,
-                old_swapchain,
+                &app.loop_mode(),
+                Some(fallback_dimensions),
+                None,
             )?
         };
 
@@ -238,17 +498,23 @@ impl<'app> Builder<'app> {
         let needs_recreation = AtomicBool::new(false);
         let now = Box::new(vulkano::sync::now(queue.device().clone())) as Box<GpuFuture>;
         let previous_frame_end = Mutex::new(Some(now));
+        let frame_count = 0;
         let swapchain = Arc::new(WindowSwapchain {
             needs_recreation,
+            frame_created: frame_count,
             swapchain,
             images,
             previous_frame_end,
         });
-        let frame_count = 0;
-        let window = Window { queue, surface, swapchain, frame_count };
-        app.windows
-            .borrow_mut()
-            .insert(window_id, window);
+        let window = Window {
+            queue,
+            surface,
+            swapchain,
+            frame_count,
+            user_specified_present_mode,
+            user_specified_image_count,
+        };
+        app.windows.borrow_mut().insert(window_id, window);
 
         // If this is the first window, set it as the app's "focused" window.
         if app.windows.borrow().len() == 1 {
@@ -267,6 +533,7 @@ impl<'app> Builder<'app> {
             vulkan_physical_device,
             window,
             title_was_set,
+            swapchain_builder,
         } = self;
         let window = map(window);
         Builder {
@@ -274,6 +541,7 @@ impl<'app> Builder<'app> {
             vulkan_physical_device,
             window,
             title_was_set,
+            swapchain_builder,
         }
     }
 
@@ -525,12 +793,12 @@ impl Window {
     // Access to vulkano API.
 
     /// Returns a reference to the window's Vulkan swapchain surface.
-    pub fn surface(&self) -> &Surface<winit::Window> {
+    pub fn surface(&self) -> &Surface {
         &self.surface
     }
 
     /// The swapchain associated with this window's vulkan surface.
-    pub fn swapchain(&self) -> &Swapchain<winit::Window> {
+    pub fn swapchain(&self) -> &Swapchain {
         &self.swapchain.swapchain
     }
 
@@ -553,7 +821,7 @@ impl Window {
     /// A utility function to simplify the recreation of a swapchain.
     pub(crate) fn replace_swapchain(
         &mut self,
-        new_swapchain: Arc<Swapchain<winit::Window>>,
+        new_swapchain: Arc<Swapchain>,
         new_images: Vec<Arc<SwapchainImage>>,
     ) {
         let previous_frame_end = self
@@ -565,6 +833,7 @@ impl Window {
             .expect("`previous_frame_end` was `None`");
         self.swapchain = Arc::new(WindowSwapchain {
             needs_recreation: AtomicBool::new(false),
+            frame_created: self.frame_count,
             swapchain: new_swapchain,
             images: new_images,
             previous_frame_end: Mutex::new(Some(previous_frame_end)),
@@ -573,7 +842,7 @@ impl Window {
 }
 
 impl ops::Deref for WindowSwapchain {
-    type Target = Arc<Swapchain<winit::Window>>;
+    type Target = Arc<Swapchain>;
     fn deref(&self) -> &Self::Target {
         &self.swapchain
     }
