@@ -114,7 +114,6 @@ pub struct SwapchainBuilder {
     pub clipped: Option<bool>,
     pub image_count: Option<u32>,
     pub surface_transform: Option<SurfaceTransform>,
-    pub sharing_mode: Option<vulkano::sync::SharingMode>,
 }
 
 impl SwapchainBuilder {
