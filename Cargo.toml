@@ -102,6 +102,18 @@ path = "examples/basics/6_functions.rs"
 [[example]] 
 name = "7_modules" 
 path = "examples/basics/7_modules/7_modules.rs"
+
+# --------------- Vulkan Examples 
+[[example]] 
+name = "vk_triangle" 
+path = "examples/vulkan/vk_triangle.rs"
+[[example]] 
+name = "vk_image" 
+path = "examples/vulkan/vk_image.rs"
+[[example]] 
+name = "vk_image_sequence" 
+path = "examples/vulkan/vk_image_sequence.rs"
+
 # --------------- Generative Design 
 [[example]] 
 name = "p_1_0_01" 
