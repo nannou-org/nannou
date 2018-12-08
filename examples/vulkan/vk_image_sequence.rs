@@ -39,7 +39,7 @@ nannou::vulkano::impl_vertex!(Vertex, position);
 
 fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
-    let _window = app.new_window().with_dimensions(512, 512).with_title("nannou").build().unwrap();
+    let _window = app.new_window().with_dimensions(220, 220).with_title("nannou").build().unwrap();
 
     // The gpu device associated with the window's swapchain
     let device = app.main_window().swapchain().device().clone();
@@ -93,7 +93,7 @@ fn model(app: &App) -> Model {
     ).unwrap());
 
     let (texture, _tex_future) = {
-        let sequence_path = app.assets_path().unwrap().join("images").join("microbe_sequence");
+        let sequence_path = app.assets_path().unwrap().join("images").join("sequence");
         let mut images = vec![];
         let (mut width, mut height) = (0, 0);
         for entry in std::fs::read_dir(sequence_path).unwrap() {
