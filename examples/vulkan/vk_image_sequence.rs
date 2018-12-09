@@ -38,8 +38,11 @@ struct Vertex { position: [f32; 2] }
 nannou::vulkano::impl_vertex!(Vertex, position);
 
 fn model(app: &App) -> Model {
+
+    let device = app.vulkan_physical_devices().nth(0).unwrap();
+    println!("name = {:?}", device.name());
     // Create a new window! Store the ID so we can refer to it later.
-    let _window = app.new_window().with_dimensions(220, 220).with_title("nannou").build().unwrap();
+    let _window = app.new_window().with_dimensions(220, 220).vulkan_physical_device(device).with_title("nannou").build().unwrap();
 
     // The gpu device associated with the window's swapchain
     let device = app.main_window().swapchain().device().clone();
@@ -99,7 +102,10 @@ fn model(app: &App) -> Model {
         for entry in std::fs::read_dir(sequence_path).unwrap() {
             let entry = entry.unwrap();
             let path = entry.path();
-            println!("loading image: {}", path.display());
+            if path.to_str().unwrap() == "/Users/joshuabatty/Documents/Software/rust/nannou/assets/images/sequence/.DS_Store" {
+                continue;
+            }
+            //println!("loading image: {}", path.display());
             let image = image::open(&path).unwrap().to_rgba();
             let (w, h) = image.dimensions();
             width = w;
@@ -226,9 +232,8 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
 
     // Specify the color to clear the framebuffer with i.e. blue
     let clear_values = vec!([0.0, 1.0, 0.0, 1.0].into());
-    println!("time {}", (app.time * 24.0) as i32 % 40);
     let push_constants = fs::ty::PushConstantData {
-        sequence_idx: (app.time * 124.0) as i32 % 40,
+        sequence_idx: (app.time * 124.0) as i32 % 86,
         time: app.time * 20.0,
     };
 

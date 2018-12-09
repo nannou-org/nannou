@@ -113,6 +113,9 @@ path = "examples/vulkan/vk_image.rs"
 [[example]] 
 name = "vk_image_sequence" 
 path = "examples/vulkan/vk_image_sequence.rs"
+[[example]] 
+name = "vk_compute_shader" 
+path = "examples/vulkan/vk_compute_shader.rs"
 
 # --------------- Generative Design 
 [[example]] 
