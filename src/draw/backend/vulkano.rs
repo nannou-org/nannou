@@ -347,12 +347,12 @@ impl Renderer {
         self.vertices.extend(draw.raw_vertices().map(map_vertex));
         let (vertex_buffer, _vb_future) = ImmutableBuffer::from_iter(
             self.vertices.drain(..),
-            BufferUsage::all(),
+            BufferUsage::vertex_buffer(),
             queue.clone(),
         )?;
         let (index_buffer, _ib_future) = ImmutableBuffer::from_iter(
             draw.inner_mesh().indices().iter().map(|&u| u as u32),
-            BufferUsage::all(),
+            BufferUsage::index_buffer(),
             queue.clone(),
         )?;
 
