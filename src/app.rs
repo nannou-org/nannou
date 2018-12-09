@@ -100,7 +100,7 @@ fn default_event<M>(_: &App, model: M, _: Event) -> M {
 /// The **App** owns and manages:
 ///
 /// - The **window and input event loop** used to drive the application forward.
-/// - **All OpenGL windows** for graphics and user input. Windows can be referenced via their IDs.
+/// - **All windows** for graphics and user input. Windows can be referenced via their IDs.
 /// - The **audio event loop** from which you can receive or send audio via streams.
 pub struct App {
     config: RefCell<Config>,
