@@ -11,8 +11,8 @@ use vulkano::buffer::{BufferUsage, ImmutableBuffer};
 use vulkano::command_buffer::{BeginRenderPassError, DrawIndexedError, DynamicState};
 use vulkano::device::{Device, DeviceOwned};
 use vulkano::format::{ClearValue, Format};
-use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract,
-                           RenderPassCreationError, Subpass};
+use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, FramebufferCreationError,
+                           RenderPassAbstract, RenderPassCreationError, Subpass};
 use vulkano::image::attachment::AttachmentImage;
 use vulkano::image::ImageCreationError;
 use vulkano::instance::PhysicalDevice;
@@ -25,8 +25,9 @@ use window::SwapchainImage;
 pub struct Renderer {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     graphics_pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
-    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
     vertices: Vec<Vertex>,
+    render_pass_images: Option<RenderPassImages>,
+    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
 }
 
 /// The `Vertex` type passed to the vertex shader.
@@ -63,6 +64,13 @@ pub struct Vertex {
 // /// Ignore `tex` and draw simple, colored 2D geometry.
 // pub const MODE_GEOMETRY: u32 = 2;
 
+// The images used within the `Draw` render pass.
+struct RenderPassImages {
+    multisampled_color: Arc<AttachmentImage>,
+    multisampled_depth: Arc<AttachmentImage>,
+    depth: Arc<AttachmentImage>,
+}
+
 /// Errors that might occur while building the **Renderer**.
 #[derive(Debug)]
 pub enum RendererCreationError {
@@ -80,16 +88,10 @@ pub enum GraphicsPipelineError {
 
 /// Errors that might occur while drawing to a framebuffer.
 #[derive(Debug)]
-pub enum FramebufferCreationError {
-    FramebufferCreation(vulkano::framebuffer::FramebufferCreationError),
-    ImageCreation(ImageCreationError),
-}
-
-/// Errors that might occur while drawing to a framebuffer.
-#[derive(Debug)]
 pub enum DrawError {
     BufferCreation(DeviceMemoryAllocError),
-    FramebufferCreation(FramebufferCreationError),
+    ImageCreation(ImageCreationError),
+    FramebufferCreation(vulkano::framebuffer::FramebufferCreationError),
     BeginRenderPass(BeginRenderPassError),
     DrawIndexed(DrawIndexedError),
 }
@@ -190,6 +192,198 @@ impl Vertex {
     }
 }
 
+impl RenderPassImages {
+    // Create all the necessary images for the `RenderPass` besides the swapchain image which will
+    // be provided by the `Frame`.
+    fn new(
+        device: Arc<Device>,
+        dimensions: [u32; 2],
+        color_format: Format,
+        depth_format: Format,
+        msaa_samples: u32,
+    ) -> Result<Self, ImageCreationError> {
+        let multisampled_color = AttachmentImage::transient_multisampled(
+            device.clone(),
+            dimensions,
+            msaa_samples,
+            color_format,
+        )?;
+        let multisampled_depth = AttachmentImage::transient_multisampled(
+            device.clone(),
+            dimensions,
+            msaa_samples,
+            depth_format,
+        )?;
+        let depth = AttachmentImage::transient(device, dimensions, depth_format)?;
+        Ok(RenderPassImages {
+            multisampled_color,
+            multisampled_depth,
+            depth,
+        })
+    }
+}
+
+impl Renderer {
+    /// Create the `Renderer`.
+    ///
+    /// This creates the `RenderPass` and `GraphicsPipeline` ready for drawing.
+    pub fn new(
+        device: Arc<Device>,
+        color_format: Format,
+        depth_format: Format,
+    ) -> Result<Self, RendererCreationError> {
+        let msaa_samples = msaa_samples(&device.physical_device());
+        let render_pass = Arc::new(render_pass(device, color_format, depth_format, msaa_samples)?)
+            as Arc<RenderPassAbstract + Send + Sync>;
+        let graphics_pipeline = Arc::new(graphics_pipeline(render_pass.clone())?)
+            as Arc<GraphicsPipelineAbstract + Send + Sync>;
+        let vertices = vec![];
+        let render_pass_images = None;
+        let framebuffers = vec![];
+        Ok(Renderer {
+            render_pass,
+            graphics_pipeline,
+            vertices,
+            render_pass_images,
+            framebuffers,
+        })
+    }
+
+    /// Draw the given mesh to the given frame.
+    ///
+    /// TODO: Make this generic over any "framebuffer" type.
+    pub fn draw_to_frame<S>(
+        &mut self,
+        draw: &draw::Draw<S>,
+        dpi_factor: f32,
+        frame: &Frame,
+        depth_format: Format,
+    ) -> Result<(), DrawError>
+    where
+        S: BaseFloat,
+    {
+        let Renderer {
+            ref render_pass,
+            ref graphics_pipeline,
+            ref mut vertices,
+            ref mut render_pass_images,
+            ref mut framebuffers,
+        } = *self;
+
+        let clear_value = draw
+            .state
+            .borrow()
+            .background_color
+            .map(|c| [c.red, c.green, c.blue, c.alpha])
+            .unwrap_or([0.2, 0.2, 0.2, 1.0]);
+
+        // Prepare clear values.
+        let clear_multisampled_color = clear_value.into();
+        let clear_color = ClearValue::None;
+        let clear_multisampled_depth = 1f32.into();
+        let clear_depth = ClearValue::None;
+        let clear_values = vec![
+            clear_multisampled_color,
+            clear_color,
+            clear_multisampled_depth,
+            clear_depth,
+        ];
+
+        let image_dims = frame.swapchain_image().dimensions();
+        let [img_w, img_h] = image_dims;
+        let device = frame.swapchain_image().swapchain().device().clone();
+        let queue = frame.queue().clone();
+
+        // Create the vertex and index buffers.
+        let map_vertex = |v| Vertex::from_mesh_vertex(v, img_w as _, img_h as _, dpi_factor);
+        vertices.extend(draw.raw_vertices().map(map_vertex));
+        let (vertex_buffer, _vb_future) = ImmutableBuffer::from_iter(
+            vertices.drain(..),
+            BufferUsage::vertex_buffer(),
+            queue.clone(),
+        )?;
+        let (index_buffer, _ib_future) = ImmutableBuffer::from_iter(
+            draw.inner_mesh().indices().iter().map(|&u| u as u32),
+            BufferUsage::index_buffer(),
+            queue.clone(),
+        )?;
+
+        // Create (or recreate) the render pass images if necessary.
+        match *render_pass_images {
+            Some(ref mut imgs) => {
+                if image_dims != imgs.multisampled_color.dimensions() {
+                    let color_format = frame.swapchain_image().swapchain().format();
+                    *imgs = RenderPassImages::new(
+                        device.clone(),
+                        image_dims,
+                        color_format,
+                        depth_format,
+                        msaa_samples(&device.physical_device()),
+                    )?;
+                }
+            }
+            ref mut imgs @ None => {
+                let color_format = frame.swapchain_image().swapchain().format();
+                *imgs = Some(RenderPassImages::new(
+                    device.clone(),
+                    image_dims,
+                    color_format,
+                    depth_format,
+                    msaa_samples(&device.physical_device()),
+                )?);
+            }
+        };
+
+        // Safe to `unwrap` here as we have ensured that `render_pass_images` is `Some` above.
+        let render_pass_images = render_pass_images.as_mut().expect("render_pass_images is `None`");
+
+        // Update the framebuffers if necessary.
+        while frame.swapchain_image_index() >= framebuffers.len() {
+            let fb = create_framebuffer(
+                render_pass.clone(),
+                frame.swapchain_image().clone(),
+                &render_pass_images,
+            )?;
+            framebuffers.push(Arc::new(fb));
+        }
+
+        // If the dimensions for the current framebuffer do not match, recreate it.
+        if frame.swapchain_image_is_new() {
+            let fb = &mut framebuffers[frame.swapchain_image_index()];
+            let new_fb = create_framebuffer(
+                render_pass.clone(),
+                frame.swapchain_image().clone(),
+                &render_pass_images,
+            )?;
+            *fb = Arc::new(new_fb);
+        }
+
+        // Create the dynamic state.
+        let dynamic_state = dynamic_state([img_w as _, img_h as _]);
+
+        // Submit the draw commands.
+        frame
+            .add_commands()
+            .begin_render_pass(
+                framebuffers[frame.swapchain_image_index()].clone(),
+                false,
+                clear_values,
+            )?
+            .draw_indexed(
+                graphics_pipeline.clone(),
+                &dynamic_state,
+                vec![vertex_buffer],
+                index_buffer,
+                (),
+                (),
+            )?
+            .end_render_pass()
+            .expect("failed to add `end_render_pass` command");
+
+        Ok(())
+    }
+}
+
 /// The render pass used for the graphics pipeline.
 pub fn render_pass(
     device: Arc<Device>,
@@ -287,155 +481,22 @@ pub fn msaa_samples(physical_device: &PhysicalDevice) -> u32 {
     std::cmp::min(limit, TARGET_SAMPLES)
 }
 
-impl Renderer {
-    /// Create the `Renderer`.
-    ///
-    /// This creates the `RenderPass` and `GraphicsPipeline` ready for drawing.
-    pub fn new(
-        device: Arc<Device>,
-        color_format: Format,
-        depth_format: Format,
-    ) -> Result<Self, RendererCreationError> {
-        let msaa_samples = msaa_samples(&device.physical_device());
-        let render_pass = Arc::new(render_pass(device, color_format, depth_format, msaa_samples)?)
-            as Arc<RenderPassAbstract + Send + Sync>;
-        let graphics_pipeline = Arc::new(graphics_pipeline(render_pass.clone())?)
-            as Arc<GraphicsPipelineAbstract + Send + Sync>;
-        let framebuffers = vec![];
-        let vertices = vec![];
-        Ok(Renderer { render_pass, graphics_pipeline, framebuffers, vertices })
-    }
-
-    /// Draw the given mesh to the given frame.
-    ///
-    /// TODO: Make this generic over any "framebuffer" type.
-    pub fn draw_to_frame<S>(
-        &mut self,
-        draw: &draw::Draw<S>,
-        dpi_factor: f32,
-        frame: &Frame,
-        depth_format: Format,
-    ) -> Result<(), DrawError>
-    where
-        S: BaseFloat,
-    {
-        let clear_value = draw
-            .state
-            .borrow()
-            .background_color
-            .map(|c| [c.red, c.green, c.blue, c.alpha])
-            .unwrap_or([0.2, 0.2, 0.2, 1.0]);
-
-        // Prepare clear values.
-        let clear_multisampled_color = clear_value.into();
-        let clear_color = ClearValue::None;
-        let clear_multisampled_depth = 1f32.into();
-        let clear_depth = ClearValue::None;
-        let clear_values = vec![
-            clear_multisampled_color,
-            clear_color,
-            clear_multisampled_depth,
-            clear_depth,
-        ];
-
-        let [w, h] = frame.swapchain_image().dimensions();
-        let device = frame.swapchain_image().swapchain().device().clone();
-        let queue = frame.queue().clone();
-
-        // Create the vertex and index buffers.
-        let map_vertex = |v| Vertex::from_mesh_vertex(v, w as _, h as _, dpi_factor);
-        self.vertices.extend(draw.raw_vertices().map(map_vertex));
-        let (vertex_buffer, _vb_future) = ImmutableBuffer::from_iter(
-            self.vertices.drain(..),
-            BufferUsage::vertex_buffer(),
-            queue.clone(),
-        )?;
-        let (index_buffer, _ib_future) = ImmutableBuffer::from_iter(
-            draw.inner_mesh().indices().iter().map(|&u| u as u32),
-            BufferUsage::index_buffer(),
-            queue.clone(),
-        )?;
-
-        // Create the dynamic state.
-        let dynamic_state = dynamic_state([w as _, h as _]);
-
-        // Create the framebuffer for the image.
-        fn create_framebuffer(
-            render_pass: Arc<RenderPassAbstract + Send + Sync>,
-            swapchain_image: Arc<SwapchainImage>,
-            msaa_samples: u32,
-            depth_format: Format,
-        ) -> Result<Arc<FramebufferAbstract + Send + Sync>, FramebufferCreationError> {
-            let device = swapchain_image.swapchain().device().clone();
-            let dimensions = swapchain_image.dimensions();
-            let color_format = swapchain_image.swapchain().format();
-            let depth = AttachmentImage::transient(device.clone(), dimensions, depth_format)?;
-            let multisampled_color = AttachmentImage::transient_multisampled(
-                device.clone(),
-                dimensions,
-                msaa_samples,
-                color_format,
-            )?;
-            let multisampled_depth = AttachmentImage::transient_multisampled(
-                device,
-                dimensions,
-                msaa_samples,
-                depth_format,
-            )?;
-            let fb = Framebuffer::start(render_pass)
-                .add(multisampled_color)?
-                .add(swapchain_image)?
-                .add(multisampled_depth)?
-                .add(depth)?
-                .build()?;
-            Ok(Arc::new(fb) as _)
-        }
-
-        // Update the framebuffers if necessary.
-        while frame.swapchain_image_index() >= self.framebuffers.len() {
-            let fb = create_framebuffer(
-                self.render_pass.clone(),
-                frame.swapchain_image().clone(),
-                msaa_samples(&device.physical_device()),
-                depth_format,
-            )?;
-            self.framebuffers.push(Arc::new(fb));
-        }
-
-        // If the dimensions for the current framebuffer do not match, recreate it.
-        if frame.swapchain_image_is_new() {
-            let fb = &mut self.framebuffers[frame.swapchain_image_index()];
-            let new_fb = create_framebuffer(
-                self.render_pass.clone(),
-                frame.swapchain_image().clone(),
-                msaa_samples(&device.physical_device()),
-                depth_format,
-            )?;
-            *fb = Arc::new(new_fb);
-        }
-
-        // Submit the draw commands.
-        frame
-            .add_commands()
-            .begin_render_pass(
-                self.framebuffers[frame.swapchain_image_index()].clone(),
-                false,
-                clear_values,
-            )?
-            .draw_indexed(
-                self.graphics_pipeline.clone(),
-                &dynamic_state,
-                vec![vertex_buffer],
-                index_buffer,
-                (),
-                (),
-            )?
-            .end_render_pass()
-            .expect("failed to add `end_render_pass` command");
-
-        Ok(())
-    }
+// Create the framebuffer for the image.
+fn create_framebuffer(
+    render_pass: Arc<RenderPassAbstract + Send + Sync>,
+    swapchain_image: Arc<SwapchainImage>,
+    render_pass_images: &RenderPassImages,
+) -> Result<Arc<FramebufferAbstract + Send + Sync>, FramebufferCreationError> {
+    let fb = Framebuffer::start(render_pass)
+        .add(render_pass_images.multisampled_color.clone())?
+        .add(swapchain_image)?
+        .add(render_pass_images.multisampled_depth.clone())?
+        .add(render_pass_images.depth.clone())?
+        .build()?;
+    Ok(Arc::new(fb) as _)
 }
+
+// Error Implementations
 
 impl From<RenderPassCreationError> for RendererCreationError {
     fn from(err: RenderPassCreationError) -> Self {
@@ -455,21 +516,15 @@ impl From<vulkano::pipeline::GraphicsPipelineCreationError> for GraphicsPipeline
     }
 }
 
-impl From<vulkano::framebuffer::FramebufferCreationError> for FramebufferCreationError {
-    fn from(err: vulkano::framebuffer::FramebufferCreationError) -> Self {
-        FramebufferCreationError::FramebufferCreation(err)
-    }
-}
-
-impl From<ImageCreationError> for FramebufferCreationError {
-    fn from(err: ImageCreationError) -> Self {
-        FramebufferCreationError::ImageCreation(err)
-    }
-}
-
 impl From<DeviceMemoryAllocError> for DrawError {
     fn from(err: DeviceMemoryAllocError) -> Self {
         DrawError::BufferCreation(err)
+    }
+}
+
+impl From<ImageCreationError> for DrawError {
+    fn from(err: ImageCreationError) -> Self {
+        DrawError::ImageCreation(err)
     }
 }
 
@@ -510,19 +565,11 @@ impl StdError for GraphicsPipelineError {
     }
 }
 
-impl StdError for FramebufferCreationError {
-    fn description(&self) -> &str {
-        match *self {
-            FramebufferCreationError::FramebufferCreation(ref err) => err.description(),
-            FramebufferCreationError::ImageCreation(ref err) => err.description(),
-        }
-    }
-}
-
 impl StdError for DrawError {
     fn description(&self) -> &str {
         match *self {
             DrawError::BufferCreation(ref err) => err.description(),
+            DrawError::ImageCreation(ref err) => err.description(),
             DrawError::FramebufferCreation(ref err) => err.description(),
             DrawError::BeginRenderPass(ref err) => err.description(),
             DrawError::DrawIndexed(ref err) => err.description(),
@@ -537,12 +584,6 @@ impl fmt::Display for RendererCreationError {
 }
 
 impl fmt::Display for GraphicsPipelineError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.description())
-    }
-}
-
-impl fmt::Display for FramebufferCreationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.description())
     }
