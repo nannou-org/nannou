@@ -697,6 +697,14 @@ impl App {
         Ok(app)
     }
 
+    /// A reference to the vulkan instance associated with the `App`.
+    ///
+    /// If you would like to construct the app with a custom vulkan instance, see the
+    /// `app::Builder::vulkan_instance` method.
+    pub fn vulkan_instance(&self) -> &Arc<vulkano::instance::Instance> {
+        &self.vulkan_instance
+    }
+
     /// Returns an iterator yielding each of the physical devices on the system that are vulkan
     /// compatible.
     ///
