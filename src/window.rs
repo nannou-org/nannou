@@ -269,7 +269,6 @@ impl SwapchainBuilder {
 
         // Determine the optimal present mode and image count based on the specified parameters and
         // the current loop mode.
-        let min_image_count = capabilities.min_image_count;
         let (present_mode, image_count) = preferred_present_mode_and_image_count(
             &loop_mode,
             capabilities.min_image_count,
@@ -477,8 +476,6 @@ impl<'app> Builder<'app> {
 
         // Build the swapchain used for displaying the window contents.
         let (swapchain, images) = {
-            let capabilities = surface.capabilities(physical_device)?;
-
             // Set the dimensions of the swapchain to that of the surface.
             let fallback_dimensions =
                 [initial_swapchain_dimensions.width as _, initial_swapchain_dimensions.height as _];
@@ -797,6 +794,27 @@ impl Window {
     /// The swapchain associated with this window's vulkan surface.
     pub fn swapchain(&self) -> &Swapchain {
         &self.swapchain.swapchain
+    }
+
+    /// The vulkan logical device on which the window's swapchain is running.
+    ///
+    /// This is shorthand for `DeviceOwned::device(window.swapchain())`.
+    pub fn swapchain_device(&self) -> &Arc<device::Device> {
+        device::DeviceOwned::device(self.swapchain())
+    }
+
+    /// The vulkan graphics queue on which the window swapchain work is run.
+    pub fn swapchain_queue(&self) -> &Arc<device::Queue> {
+        &self.queue
+    }
+
+    /// The vulkan images associated with the window's swapchain.
+    ///
+    /// This method is exposed in order to allow for interop with low-level vulkano code (e.g.
+    /// framebuffer creation). We recommend that you avoid storing these images as the swapchain
+    /// and its images may be recreated at any moment in time.
+    pub fn swapchain_images(&self) -> &[Arc<SwapchainImage>] {
+        &self.swapchain.images
     }
 
     // Custom methods.
