@@ -835,6 +835,11 @@ impl Window {
         w == mw && h == mh
     }
 
+    /// The number of times `view` has been called with a `Frame` for this window.
+    pub fn elapsed_frames(&self) -> u64 {
+        self.frame_count
+    }
+
     /// A utility function to simplify the recreation of a swapchain.
     pub(crate) fn replace_swapchain(
         &mut self,
