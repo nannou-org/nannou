@@ -1,6 +1,6 @@
 [package]
 name = "nannou-new"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A tool for easily starting Nannou projects."
 readme = "README.md"

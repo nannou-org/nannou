@@ -183,6 +183,10 @@ fn main() {
         writeln!(file, "{}", nannou_dependency).expect("failed to append nannou dependency");
     }
 
+    // Create the assets directory.
+    let assets_path = project_path.join("assets");
+    fs::create_dir(assets_path).expect("failed to create assets directory");
+
     // Change the directory to the newly created path.
     println!("Changing the current directory to \"{}\"", project_path.display());
     env::set_current_dir(&project_path).expect("failed to change directories");
