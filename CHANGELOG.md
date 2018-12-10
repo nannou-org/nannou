@@ -1,3 +1,22 @@
+# Unreleased
+
+- Change graphics rendering backend from glium to vulkano! This affects a wide
+  range of nannou's API including:
+  - Window creation and methods. Each window now has it's own associated Vulkan
+    swapchain and related methods.
+  - The `Frame` API now wraps a single swapchain image and a vulkan command
+    buffer builder.
+  - The `draw` API's renderer now renders via a vulkan pipeline.
+  - The `Ui` API's renderer now renders via a vulkan pipeline.
+  - The `App` includes methods for accessing the vulkan instance.
+  - The `App` can be built with a custom vulkan instance and custom debug
+    callback function.
+- Improve the clarity of the `App` creation process by introducing an
+  `app::Builder` type. Examples have been updated accordingly.
+- The `view` function is now called separately for each frame for each window,
+  rather than a single frame for all windows at once. The window a frame is
+  associated with can be determined via `Frame::window_id`.
+
 # Version 0.8.0 (2018-07-19)
 
 - Update deps: glium 0.22, image 0.19.
