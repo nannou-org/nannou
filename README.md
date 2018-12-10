@@ -57,8 +57,7 @@ Nannou aims to provide easy, cross-platform access to the things that artists ne
   - [x] Vertex & index iterators.
   - [x] [Graph](https://docs.rs/nannou/latest/nannou/geom/graph/index.html) for
     composing geometry.
-- **Graphics** currently via [glium](https://crates.io/crates/glium), will
-  switch to [vulkano](https://github.com/vulkano-rs/vulkano) soon:
+- **Graphics** via Vulkan (via [vulkano](https://github.com/vulkano-rs/vulkano)):
   - [x] [Draw](https://docs.rs/nannou/latest/nannou/draw/index.html) API. E.g.
     `draw.ellipse().w_h(20.0, 20.0).color(RED)`.
   - [x] [Mesh](https://docs.rs/nannou/latest/nannou/mesh/index.html) API.
