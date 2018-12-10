@@ -11,8 +11,8 @@ use vulkano::buffer::{BufferUsage, ImmutableBuffer};
 use vulkano::command_buffer::{BeginRenderPassError, DrawIndexedError, DynamicState};
 use vulkano::device::{Device, DeviceOwned};
 use vulkano::format::{ClearValue, Format};
-use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, FramebufferCreationError,
-                           RenderPassAbstract, RenderPassCreationError, Subpass};
+use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, FramebufferCreationError, LoadOp,
+                           RenderPassAbstract, RenderPassCreationError, RenderPassDesc, Subpass};
 use vulkano::image::attachment::AttachmentImage;
 use vulkano::image::ImageCreationError;
 use vulkano::instance::PhysicalDevice;
@@ -89,6 +89,8 @@ pub enum GraphicsPipelineError {
 /// Errors that might occur while drawing to a framebuffer.
 #[derive(Debug)]
 pub enum DrawError {
+    RenderPassCreation(RenderPassCreationError),
+    GraphicsPipelineCreation(GraphicsPipelineError),
     BufferCreation(DeviceMemoryAllocError),
     ImageCreation(ImageCreationError),
     FramebufferCreation(vulkano::framebuffer::FramebufferCreationError),
@@ -233,9 +235,11 @@ impl Renderer {
         depth_format: Format,
     ) -> Result<Self, RendererCreationError> {
         let msaa_samples = msaa_samples(&device.physical_device());
-        let render_pass = Arc::new(render_pass(device, color_format, depth_format, msaa_samples)?)
-            as Arc<RenderPassAbstract + Send + Sync>;
-        let graphics_pipeline = Arc::new(graphics_pipeline(render_pass.clone())?)
+        let load_op = LoadOp::DontCare;
+        let render_pass = Arc::new(
+            create_render_pass(device, color_format, depth_format, load_op, msaa_samples)?
+        ) as Arc<RenderPassAbstract + Send + Sync>;
+        let graphics_pipeline = create_graphics_pipeline(render_pass.clone())?
             as Arc<GraphicsPipelineAbstract + Send + Sync>;
         let vertices = vec![];
         let render_pass_images = None;
@@ -263,35 +267,59 @@ impl Renderer {
         S: BaseFloat,
     {
         let Renderer {
-            ref render_pass,
-            ref graphics_pipeline,
+            ref mut render_pass,
+            ref mut graphics_pipeline,
             ref mut vertices,
             ref mut render_pass_images,
             ref mut framebuffers,
         } = *self;
 
-        let clear_value = draw
-            .state
-            .borrow()
-            .background_color
-            .map(|c| [c.red, c.green, c.blue, c.alpha])
-            .unwrap_or([0.2, 0.2, 0.2, 1.0]);
+        // Retrieve the color/depth image load op and clear values based on the bg color.
+        let bg_color = draw.state.borrow().background_color;
+        let (load_op, clear_ms_color, clear_ms_depth) = match bg_color {
+            None => (LoadOp::DontCare, ClearValue::None, ClearValue::None),
+            Some(color) => {
+                let clear_color = [color.red, color.green, color.blue, color.alpha].into();
+                let clear_depth = 1f32.into();
+                (LoadOp::Clear, clear_color, clear_depth)
+            },
+        };
+
+        // Ensure that the render pass has the correct load op. If not, recreate it.
+        let recreate_render_pass = render_pass
+            .attachment_descs()
+            .next()
+            .map(|desc| desc.load != load_op)
+            .unwrap_or(true);
+
+        let device = frame.swapchain_image().swapchain().device().clone();
+        let color_format = frame.swapchain_image().swapchain().format();
+        let msaa_samples = msaa_samples(&device.physical_device());
+
+        // If necessary, recreate the render pass and in turn the graphics pipeline.
+        if recreate_render_pass {
+            *render_pass = create_render_pass(
+                device.clone(),
+                color_format,
+                depth_format,
+                load_op,
+                msaa_samples,
+            )?;
+            *graphics_pipeline = create_graphics_pipeline(render_pass.clone())?;
+        }
 
         // Prepare clear values.
-        let clear_multisampled_color = clear_value.into();
         let clear_color = ClearValue::None;
-        let clear_multisampled_depth = 1f32.into();
         let clear_depth = ClearValue::None;
         let clear_values = vec![
-            clear_multisampled_color,
+            clear_ms_color,
+            clear_ms_depth,
             clear_color,
-            clear_multisampled_depth,
             clear_depth,
         ];
 
         let image_dims = frame.swapchain_image().dimensions();
         let [img_w, img_h] = image_dims;
-        let device = frame.swapchain_image().swapchain().device().clone();
         let queue = frame.queue().clone();
 
         // Create the vertex and index buffers.
@@ -312,24 +340,22 @@ impl Renderer {
         match *render_pass_images {
             Some(ref mut imgs) => {
                 if image_dims != imgs.multisampled_color.dimensions() {
-                    let color_format = frame.swapchain_image().swapchain().format();
                     *imgs = RenderPassImages::new(
                         device.clone(),
                         image_dims,
                         color_format,
                         depth_format,
-                        msaa_samples(&device.physical_device()),
+                        msaa_samples,
                     )?;
                 }
             }
             ref mut imgs @ None => {
-                let color_format = frame.swapchain_image().swapchain().format();
                 *imgs = Some(RenderPassImages::new(
                     device.clone(),
                     image_dims,
                     color_format,
                     depth_format,
-                    msaa_samples(&device.physical_device()),
+                    msaa_samples,
                 )?);
             }
         };
@@ -338,6 +364,7 @@ impl Renderer {
         let render_pass_images = render_pass_images.as_mut().expect("render_pass_images is `None`");
 
         // Update the framebuffers if necessary.
+        let mut just_created = false;
         while frame.swapchain_image_index() >= framebuffers.len() {
             let fb = create_framebuffer(
                 render_pass.clone(),
@@ -345,10 +372,11 @@ impl Renderer {
                 &render_pass_images,
             )?;
             framebuffers.push(Arc::new(fb));
+            just_created = true;
         }
 
         // If the dimensions for the current framebuffer do not match, recreate it.
-        if frame.swapchain_image_is_new() {
+        if !just_created && (frame.swapchain_image_is_new() || recreate_render_pass) {
             let fb = &mut framebuffers[frame.swapchain_image_index()];
             let new_fb = create_framebuffer(
                 render_pass.clone(),
@@ -385,7 +413,28 @@ impl Renderer {
 }
 
 /// The render pass used for the graphics pipeline.
-pub fn render_pass(
+pub fn create_render_pass(
+    device: Arc<Device>,
+    color_format: Format,
+    depth_format: Format,
+    load_op: LoadOp,
+    msaa_samples: u32,
+) -> Result<Arc<RenderPassAbstract + Send + Sync>, RenderPassCreationError> {
+    // TODO: Remove this in favour of a nannou-specific, dynamic `RenderPassDesc` implementation.
+    match load_op {
+        LoadOp::Clear => {
+            create_render_pass_clear(device, color_format, depth_format, msaa_samples)
+        }
+        LoadOp::DontCare => {
+            create_render_pass_dont_care(device, color_format, depth_format, msaa_samples)
+        }
+        LoadOp::Load => unreachable!(),
+    }
+}
+
+/// Create a render pass that uses `LoadOp::Clear` for the multisampled color and depth
+/// attachments.
+pub fn create_render_pass_clear(
     device: Arc<Device>,
     color_format: Format,
     depth_format: Format,
@@ -400,17 +449,17 @@ pub fn render_pass(
                 format: color_format,
                 samples: msaa_samples,
             },
-            color: {
-                load: DontCare,
-                store: Store,
-                format: color_format,
-                samples: 1,
-            },
             multisampled_depth: {
                 load: Clear,
                 store: DontCare,
                 format: depth_format,
                 samples: msaa_samples,
+            },
+            color: {
+                load: DontCare,
+                store: Store,
+                format: color_format,
+                samples: 1,
             },
             depth: {
                 load: DontCare,
@@ -422,11 +471,55 @@ pub fn render_pass(
             }
         },
         pass: {
-            // We use the attachment named `color` as the one and only color attachment.
             color: [multisampled_color],
-            // No depth-stencil attachment is indicated with empty brackets.
             depth_stencil: {multisampled_depth},
-            // Resolve the msaa image to the final color image.
+            resolve: [color],
+        }
+    )?;
+    Ok(Arc::new(rp))
+}
+
+/// Create a render pass that uses `LoadOp::Clear` for the multisampled color and depth
+/// attachments.
+pub fn create_render_pass_dont_care(
+    device: Arc<Device>,
+    color_format: Format,
+    depth_format: Format,
+    msaa_samples: u32,
+) -> Result<Arc<RenderPassAbstract + Send + Sync>, RenderPassCreationError> {
+    let rp = single_pass_renderpass!(
+        device,
+        attachments: {
+            multisampled_color: {
+                load: DontCare,
+                store: DontCare,
+                format: color_format,
+                samples: msaa_samples,
+            },
+            multisampled_depth: {
+                load: DontCare,
+                store: DontCare,
+                format: depth_format,
+                samples: msaa_samples,
+            },
+            color: {
+                load: DontCare,
+                store: Store,
+                format: color_format,
+                samples: 1,
+            },
+            depth: {
+                load: DontCare,
+                store: Store,
+                format: depth_format,
+                samples: 1,
+                initial_layout: ImageLayout::Undefined,
+                final_layout: ImageLayout::DepthStencilAttachmentOptimal,
+            }
+        },
+        pass: {
+            color: [multisampled_color],
+            depth_stencil: {multisampled_depth},
             resolve: [color],
         }
     )?;
@@ -447,7 +540,7 @@ pub fn dynamic_state(viewport_dimensions: [f32; 2]) -> DynamicState {
 }
 
 /// The graphics pipeline used by the renderer.
-pub fn graphics_pipeline<R>(
+pub fn create_graphics_pipeline<R>(
     render_pass: R,
 ) -> Result<Arc<GraphicsPipelineAbstract + Send + Sync>, GraphicsPipelineError>
 where
@@ -489,8 +582,8 @@ fn create_framebuffer(
 ) -> Result<Arc<FramebufferAbstract + Send + Sync>, FramebufferCreationError> {
     let fb = Framebuffer::start(render_pass)
         .add(render_pass_images.multisampled_color.clone())?
-        .add(swapchain_image)?
         .add(render_pass_images.multisampled_depth.clone())?
+        .add(swapchain_image)?
         .add(render_pass_images.depth.clone())?
         .build()?;
     Ok(Arc::new(fb) as _)
@@ -513,6 +606,18 @@ impl From<GraphicsPipelineError> for RendererCreationError {
 impl From<vulkano::pipeline::GraphicsPipelineCreationError> for GraphicsPipelineError {
     fn from(err: vulkano::pipeline::GraphicsPipelineCreationError) -> Self {
         GraphicsPipelineError::Creation(err)
+    }
+}
+
+impl From<RenderPassCreationError> for DrawError {
+    fn from(err: RenderPassCreationError) -> Self {
+        DrawError::RenderPassCreation(err)
+    }
+}
+
+impl From<GraphicsPipelineError> for DrawError {
+    fn from(err: GraphicsPipelineError) -> Self {
+        DrawError::GraphicsPipelineCreation(err)
     }
 }
 
@@ -568,6 +673,8 @@ impl StdError for GraphicsPipelineError {
 impl StdError for DrawError {
     fn description(&self) -> &str {
         match *self {
+            DrawError::RenderPassCreation(ref err) => err.description(),
+            DrawError::GraphicsPipelineCreation(ref err) => err.description(),
             DrawError::BufferCreation(ref err) => err.description(),
             DrawError::ImageCreation(ref err) => err.description(),
             DrawError::FramebufferCreation(ref err) => err.description(),
