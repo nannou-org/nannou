@@ -375,29 +375,23 @@ where
             }
 
             // Otherwise search through all supported formats for compatible formats.
-            let mut stream_formats = supported_formats(device)?.into_iter().filter_map(|fmt| {
+            let stream_formats = supported_formats(device)?.into_iter().filter_map(|fmt| {
                 matching_supported_formats(fmt, sample_format, channels, sample_rate)
             });
 
             // Find the supported format with the most channels (this will always be the target
             // number of channels if some specific target number was specified as all other numbers
             // will have been filtered out already).
-            if let Some(first) = stream_formats.next() {
-                let format = stream_formats.fold(first, |max, fmt| {
-                    if fmt.channels > max.channels {
-                        fmt
-                    } else {
-                        max
-                    }
-                });
+            if let Some(format) = stream_formats.max_by_key(|fmt| fmt.channels) {
                 return Ok(Some(format));
             }
         }
 
         // If there are no matching formats with the target sample_format, drop the requirement
         // and we'll do a conversion from the default format instead.
-        if sample_format.is_some() {
-            sample_format = default_format.as_ref().map(|fmt| fmt.data_type);
+        let default_sample_format = default_format.as_ref().map(|f| f.data_type);
+        if sample_format.is_some() && sample_format != default_sample_format {
+            sample_format = default_sample_format;
         // Otherwise if nannou's default target sample rate is set because the user didn't
         // specify a sample rate, try and fall back to a supported sample rate in case this was
         // the reason we could not find a supported format.
