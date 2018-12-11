@@ -11,10 +11,6 @@ use nannou::vulkano::device::DeviceOwned;
 use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use nannou::vulkano::pipeline::viewport::Viewport;
 use nannou::vulkano::framebuffer::{Framebuffer, FramebufferAbstract, Subpass, RenderPassAbstract, FramebufferCreationError};
-use nannou::vulkano::image::{ImmutableImage, Dimensions};
-use nannou::vulkano::sampler::{Sampler, SamplerAddressMode, Filter, MipmapMode};
-use nannou::vulkano::format::Format;
-use nannou::vulkano::descriptor::descriptor_set::{DescriptorSet, PersistentDescriptorSet};
 
 fn main() {
     nannou::app(model)
@@ -30,7 +26,6 @@ struct Model {
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
     framebuffers: RefCell<Vec<Arc<FramebufferAbstract + Send + Sync>>>,
-    desciptor_set: Arc<DescriptorSet + Send + Sync>,
 }
 
 #[derive(Debug, Clone)]
@@ -39,7 +34,7 @@ nannou::vulkano::impl_vertex!(Vertex, position);
 
 fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
-    let _window = app.new_window().with_dimensions(512, 512).with_title("nannou").build().unwrap();
+    let _window = app.new_window().with_dimensions(1024, 512).with_title("nannou").build().unwrap();
 
     // The gpu device associated with the window's swapchain
     let device = app.main_window().swapchain().device().clone();
@@ -92,34 +87,6 @@ fn model(app: &App) -> Model {
         }
     ).unwrap());
 
-    let (texture, _tex_future) = {
-        let logo_path = app.assets_path().unwrap().join("images").join("Nannou.png");
-        let image = image::open(logo_path).unwrap().to_rgba();
-        let (width, height) = image.dimensions();
-        let image_data = image.into_raw().clone();
-
-        ImmutableImage::from_iter(
-            image_data.iter().cloned(),
-            Dimensions::Dim2d { width, height },
-            Format::R8G8B8A8Srgb,
-            app.main_window().queue().clone(),
-        ).unwrap()
-    };
-
-    let sampler = Sampler::new(
-        device.clone(),
-        Filter::Linear,
-        Filter::Linear,
-        MipmapMode::Nearest,
-        SamplerAddressMode::ClampToEdge,
-        SamplerAddressMode::ClampToEdge,
-        SamplerAddressMode::ClampToEdge,
-        0.0,
-        1.0,
-        0.0,
-        0.0,
-    ).unwrap();
-
     // Before we draw we have to create what is called a pipeline. This is similar to an OpenGL
     // program, but much more specific.
     let pipeline = Arc::new(GraphicsPipeline::start()
@@ -146,14 +113,6 @@ fn model(app: &App) -> Model {
         .build(device.clone())
         .unwrap());
 
-    let desciptor_set = Arc::new(
-        PersistentDescriptorSet::start(pipeline.clone(), 0)
-            .add_sampled_image(texture.clone(), sampler.clone())
-            .unwrap()
-            .build()
-            .unwrap()
-    );
-
     // The render pass we created above only describes the layout of our framebuffers. Before we
     // can draw we also need to create the actual framebuffers.
     //
@@ -161,7 +120,7 @@ fn model(app: &App) -> Model {
     // each image.
     let framebuffers = RefCell::new(Vec::new());    
 
-    Model { _window, render_pass, pipeline, vertex_buffer, framebuffers, desciptor_set }
+    Model { _window, render_pass, pipeline, vertex_buffer, framebuffers }
 }
 
 // Handle events related to the window and update the model if necessary
@@ -213,7 +172,9 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     let clear_values = vec!([0.0, 1.0, 0.0, 1.0].into());
 
     let push_constants = fs::ty::PushConstantData {
-        time: app.time * 30.0,
+        time: app.time,
+        width: w as f32,
+        height: h as f32,
     };
 
     // Submit the draw commands.
@@ -229,7 +190,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
             model.pipeline.clone(),
             &dynamic_state,
             vec![model.vertex_buffer.clone()],
-            model.desciptor_set.clone(),
+            (),
             push_constants,
         )
         .unwrap()
@@ -259,21 +220,51 @@ void main() {
 mod fs {
     nannou::vulkano_shaders::shader!{
         ty: "fragment",
+        // We declare what directories to search for when using the `#include <...>`
+        // syntax. Specified directories have descending priorities based on their order.
+        include: [ "examples/vulkan/vk_shader_include/common_shaders" ],
         src: "
 #version 450
+// Substitutes this line with the contents of the file `lfos.glsl` found in one of the standard
+// `include` directories specified above.
+// Note, that relative inclusion (`#include \"...\"`), although it falls back to standard
+// inclusion, should not be used for **embedded** shader source, as it may be misleading and/or
+// confusing.
+#include <lfos.glsl>
 
 layout(location = 0) in vec2 tex_coords;
 layout(location = 0) out vec4 f_color;
 
-layout(set = 0, binding = 0) uniform sampler2D tex;
-
 layout(push_constant) uniform PushConstantData {
     float time;
+    float width;
+    float height;
 } pc;
 
+float circle(in vec2 _st, in float _radius){
+    vec2 dist = _st-vec2(0.5);
+	return 1.-smoothstep(_radius-(_radius*0.01),
+                         _radius+(_radius*0.01),
+                         dot(dist,dist)*4.0);
+}
+
 void main() {
-    vec4 c = vec4( abs(tex_coords.x + sin(pc.time)), tex_coords.x, tex_coords.y * abs(cos(pc.time)), 1.0);    
-    f_color = texture(tex, tex_coords) + c;
+
+    // Background
+	vec3 bg = vec3(0.8,0.9,0.9);
+
+    float aspect = pc.width / pc.height;
+    vec2 center = vec2(0.5,0.5);
+    float radius = 0.25 * aspect;
+
+    // Here we use the 'lfo' function imported from our include shader
+    float x = tex_coords.x + lfo(2, pc.time * 3.0) * 0.7;
+    vec3 color = vec3(lfo(3,pc.time * 6.0),0.0,0.9);
+    vec3 shape = vec3(circle(vec2((x * aspect) - 0.45, tex_coords.y), radius) );
+    shape *= color;
+
+    // Blend the two
+	f_color = vec4( vec3(mix(shape, bg, 0.5)),1.0 );
 }"
     }
 }

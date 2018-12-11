@@ -33,9 +33,9 @@ struct Model {
 
 fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
-    let _window = app.new_window().with_dimensions(1024, 512).with_title("nannou").build().unwrap();
+    let _window = app.new_window().with_dimensions(1440, 512).with_title("nannou").build().unwrap();
 
-    let instance = Arc::new(app.vulkan_instance());
+    let instance = app.vulkan_instance().clone();
 
     // Choose which physical device to use.
     let physical = PhysicalDevice::enumerate(&instance).next().unwrap();
@@ -93,6 +93,10 @@ fn model(app: &App) -> Model {
 // Handle events related to the window and update the model if necessary
 fn event(app: &App, model: Model, event: Event) -> Model {
     if let Event::Update(_update) = event {
+
+        // Lets pass through the app.time to our Compute Shader
+        // using a push constants. This will allow us to animate the 
+        // Waveform. 
         let push_constants = cs::ty::PushConstantData {
             time: app.time,
         };
@@ -145,7 +149,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     let win = app.window_rect();
 
     // Clear the background to blue.
-    draw.background().color(BLUE);
+    draw.background().color(BLACK);
 
     // Now that the GPU is done, the content of the buffer should have been modified. Let's
     // check it out.
@@ -153,11 +157,11 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     let data_buffer_content = model.data_buffer.read().unwrap();
     for n in 0 .. 1024u32 {
         //println!("data {} = {:?}", n, data_buffer_content[n as usize]);
-        let x = win.left() + n as f32;
+        let x = map_range(n as f32, 0.0, 1024.0, win.left(), win.right());
         let y = 0.0;
         let h = data_buffer_content[n as usize] as f32;
 
-        let hue = map_range(h, 0.0, 1024.0, 0.0, 1.0);
+        let hue = map_range(h, 0.0, 512.0, 0.4, 0.6);
         draw.rect()
             .x_y(x, y)
             .w_h(1.0, h)
