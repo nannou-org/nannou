@@ -5,19 +5,21 @@ use nannou::vulkano;
 use std::sync::Arc;
 use std::cell::RefCell;
 
+use nannou::vulkano::sync;
+use nannou::vulkano::sync::GpuFuture;
+use nannou::vulkano::instance::{PhysicalDevice};
+use nannou::vulkano::command_buffer::AutoCommandBufferBuilder;
 use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use nannou::vulkano::command_buffer::DynamicState;
-use nannou::vulkano::device::DeviceOwned;
-use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
+use nannou::vulkano::device::{Device, DeviceExtensions, DeviceOwned, Queue};
+use nannou::vulkano::pipeline::{ComputePipeline, ComputePipelineAbstract, GraphicsPipeline, GraphicsPipelineAbstract};
 use nannou::vulkano::pipeline::viewport::Viewport;
 use nannou::vulkano::framebuffer::{Framebuffer, FramebufferAbstract, Subpass, RenderPassAbstract, FramebufferCreationError};
-use nannou::vulkano::image::{ImmutableImage, Dimensions};
-use nannou::vulkano::sampler::{Sampler, SamplerAddressMode, Filter, MipmapMode};
-use nannou::vulkano::format::Format;
 use nannou::vulkano::descriptor::descriptor_set::{DescriptorSet, PersistentDescriptorSet};
 
 fn main() {
     nannou::app(model)
+        //.vulkan_debug_callback(Default::default())
         .event(event) // The function that will be called when the app receives events.
         .view(view) // The function that will be called for drawing to the window.
         .run();
@@ -26,11 +28,14 @@ fn main() {
 struct Model {
     // Store the window ID so we can refer to this specific window later if needed.
     _window: WindowId,
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
+    device: Arc<Device>,
+    compute_pipeline: Arc<ComputePipelineAbstract + Send + Sync>,
+    compute_queue: Arc<Queue>,    
+    compute_desciptor_set: Arc<DescriptorSet + Send + Sync>,      
+    graphics_pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
+    render_pass: Arc<RenderPassAbstract + Send + Sync>,
     framebuffers: RefCell<Vec<Arc<FramebufferAbstract + Send + Sync>>>,
-    desciptor_set: Arc<DescriptorSet + Send + Sync>,
 }
 
 #[derive(Debug, Clone)]
@@ -41,20 +46,37 @@ fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
     let _window = app.new_window().with_dimensions(512, 512).with_title("nannou").build().unwrap();
 
+    // let instance = app.vulkan_instance().clone();
+
+    // // Choose which physical device to use.
+    // let physical = PhysicalDevice::enumerate(&instance).next().unwrap();
+
+    // // Choose the queue of the physical device which is going to run our compute operation.
+    // //
+    // // The Vulkan specs guarantee that a compliant implementation must provide at least one queue
+    // // that supports compute operations.
+    // let queue_family = physical.queue_families().find(|&q| q.supports_compute()).unwrap();
+
+    // // Now initializing the device.
+    // let (_, mut queues) = Device::new(physical, physical.supported_features(),
+    //     &DeviceExtensions::none(), [(queue_family, 0.5)].iter().cloned()).unwrap();
+
+    // Since we can request multiple queues, the `queues` variable is in fact an iterator. In this
+    // example we use only one queue, so we just retrieve the first and only element of the
+    // iterator and throw it away.
+    //let compute_queue = queues.next().unwrap();
+    let compute_queue = app.main_window().queue().clone();
+
     // The gpu device associated with the window's swapchain
     let device = app.main_window().swapchain().device().clone();
 
-    // We now create a buffer that will store the shape of our triangle.
-    let vertex_buffer = CpuAccessibleBuffer::from_iter(
-        device.clone(),
-        BufferUsage::all(),
-        [
-            Vertex { position: [-1.0, -1.0 ] },
-            Vertex { position: [-1.0,  1.0 ] },
-            Vertex { position: [ 1.0, -1.0 ] },
-            Vertex { position: [ 1.0,  1.0 ] },
-        ].iter().cloned()
-    ).unwrap();
+    // We start by creating the buffer that will store the data.
+    let vertex_buffer = {
+        // Iterator that produces the data.
+        let data_iter = (0 .. 1024).map(|n| Vertex{position: [0.0; 2]});
+        // Builds the buffer and fills it with this iterator.
+        CpuAccessibleBuffer::from_iter(device.clone(), BufferUsage::all(), data_iter).unwrap()
+    };
 
     let vertex_shader = vs::Shader::load(device.clone()).unwrap();
     let fragment_shader = fs::Shader::load(device.clone()).unwrap();
@@ -92,37 +114,18 @@ fn model(app: &App) -> Model {
         }
     ).unwrap());
 
-    let (texture, _tex_future) = {
-        let logo_path = app.assets_path().unwrap().join("images").join("Nannou.png");
-        let image = image::open(logo_path).unwrap().to_rgba();
-        let (width, height) = image.dimensions();
-        let image_data = image.into_raw().clone();
-
-        ImmutableImage::from_iter(
-            image_data.iter().cloned(),
-            Dimensions::Dim2d { width, height },
-            Format::R8G8B8A8Srgb,
-            app.main_window().queue().clone(),
-        ).unwrap()
-    };
-
-    let sampler = Sampler::new(
-        device.clone(),
-        Filter::Linear,
-        Filter::Linear,
-        MipmapMode::Nearest,
-        SamplerAddressMode::ClampToEdge,
-        SamplerAddressMode::ClampToEdge,
-        SamplerAddressMode::ClampToEdge,
-        0.0,
-        1.0,
-        0.0,
-        0.0,
-    ).unwrap();
+    // We need to create the compute pipeline that describes our operation.
+    //
+    // If you are familiar with graphics pipeline, the principle is the same except that compute
+    // pipelines are much simpler to create.
+    let compute_pipeline = Arc::new({
+        let compute_shader = cs::Shader::load(device.clone()).unwrap();
+        ComputePipeline::new(device.clone(), &compute_shader.main_entry_point(), &()).unwrap()        
+    });
 
     // Before we draw we have to create what is called a pipeline. This is similar to an OpenGL
     // program, but much more specific.
-    let pipeline = Arc::new(GraphicsPipeline::start()
+    let graphics_pipeline = Arc::new(GraphicsPipeline::start()
         // We need to indicate the layout of the vertices.
         // The type `SingleBufferDefinition` actually contains a template parameter corresponding
         // to the type of each vertex. But in this code it is automatically inferred.
@@ -132,27 +135,19 @@ fn model(app: &App) -> Model {
         // the entry point.
         .vertex_shader(vertex_shader.main_entry_point(), ())
         // The content of the vertex buffer describes a list of triangles.
-        .triangle_strip()
+        .triangle_list()
+        //.point_list()
+        //.line_width(1.0)
         // Use a resizable viewport set to draw over the entire window
         .viewports_dynamic_scissors_irrelevant(1)
         // See `vertex_shader`.
         .fragment_shader(fragment_shader.main_entry_point(), ())
-        // Enable Alpha Blending
-        .blend_alpha_blending()
         // We have to indicate which subpass of which render pass this pipeline is going to be used
         // in. The pipeline will only be usable from this particular subpass.
         .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
         // Now that our builder is filled, we call `build()` to obtain an actual pipeline.
         .build(device.clone())
         .unwrap());
-
-    let desciptor_set = Arc::new(
-        PersistentDescriptorSet::start(pipeline.clone(), 0)
-            .add_sampled_image(texture.clone(), sampler.clone())
-            .unwrap()
-            .build()
-            .unwrap()
-    );
 
     // The render pass we created above only describes the layout of our framebuffers. Before we
     // can draw we also need to create the actual framebuffers.
@@ -161,18 +156,85 @@ fn model(app: &App) -> Model {
     // each image.
     let framebuffers = RefCell::new(Vec::new());    
 
-    Model { _window, render_pass, pipeline, vertex_buffer, framebuffers, desciptor_set }
+    // In order to let the shader access the buffer, we need to build a *descriptor set* that
+    // contains the buffer.
+    //
+    // The resources that we bind to the descriptor set must match the resources expected by the
+    // pipeline which we pass as the first parameter.
+    //
+    // If you want to run the pipeline on multiple different buffers, you need to create multiple
+    // descriptor sets that each contain the buffer you want to run the shader on.
+    let compute_desciptor_set = Arc::new(PersistentDescriptorSet::start(compute_pipeline.clone(), 0)
+        .add_buffer(vertex_buffer.clone()).unwrap()
+        .build().unwrap()
+    );
+
+    Model { 
+        _window, 
+        device, 
+        compute_pipeline, 
+        compute_queue, 
+        compute_desciptor_set, 
+        graphics_pipeline, 
+        vertex_buffer, 
+        render_pass,
+        framebuffers 
+    }
 }
 
 // Handle events related to the window and update the model if necessary
-fn event(_app: &App, model: Model, event: Event) -> Model {
+fn event(app: &App, model: Model, event: Event) -> Model {
     if let Event::Update(_update) = event {
+// Lets pass through the app.time to our Compute Shader
+        // using a push constants. This will allow us to animate the 
+        // Waveform. 
+        let push_constants = cs::ty::PushConstantData {
+            time: app.time,
+        };
+
+        // In order to execute our operation, we have to build a command buffer.
+        let command_buffer = AutoCommandBufferBuilder::primary_one_time_submit(model.device.clone(), model.compute_queue.family()).unwrap()
+            // The command buffer only does one thing: execute the compute pipeline.
+            // This is called a *dispatch* operation.
+            //
+            // Note that we clone the pipeline and the set. Since they are both wrapped around an
+            // `Arc`, this only clones the `Arc` and not the whole pipeline or set (which aren't
+            // cloneable anyway). In this example we would avoid cloning them since this is the last
+            // time we use them, but in a real code you would probably need to clone them.            
+            .dispatch([1024, 1, 1], model.compute_pipeline.clone(), model.compute_desciptor_set.clone(), push_constants).unwrap()
+            // Finish building the command buffer by calling `build`.
+            .build().unwrap();
+
+        // Let's execute this command buffer now.
+        let future = sync::now(model.device.clone())
+            .then_execute(model.compute_queue.clone(), command_buffer).unwrap()    
+            // This line instructs the GPU to signal a *fence* once the command buffer has finished
+            // execution. A fence is a Vulkan object that allows the CPU to know when the GPU has
+            // reached a certain point.
+            // We need to signal a fence here because below we want to block the CPU until the GPU has
+            // reached that point in the execution.
+            .then_signal_fence_and_flush().unwrap();        
+
+        // Blocks execution until the GPU has finished the operation. This method only exists on the
+        // future that corresponds to a signalled fence. In other words, this method wouldn't be
+        // available if we didn't call `.then_signal_fence_and_flush()` earlier.
+        // The `None` parameter is an optional timeout.
+        //
+        // Note however that dropping the `future` variable (with `drop(future)` for example) would
+        // block execution as well, and this would be the case even if we didn't call
+        // `.then_signal_fence_and_flush()`.
+        // Therefore the actual point of calling `.then_signal_fence_and_flush()` and `.wait()` is to
+        // make things more explicit. In the future, if the Rust language gets linear types vulkano may
+        // get modified so that only fence-signalled futures can get destroyed like this.
+        future.wait(None).unwrap();  
+
+        
     }
     model
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     // Clear the window with a "dark charcoal" shade.
     frame.clear(BLUE);
 
@@ -210,12 +272,9 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     }
 
     // Specify the color to clear the framebuffer with i.e. blue
-    let clear_values = vec!([0.0, 1.0, 0.0, 1.0].into());
+    let clear_values = vec!([0.0, 0.0, 1.0, 1.0].into());
 
-    let push_constants = fs::ty::PushConstantData {
-        time: app.time * 30.0,
-    };
-
+    //println!("values = {:#?}", &*model.vertex_buffer.read().unwrap());
     // Submit the draw commands.
     frame
         .add_commands()
@@ -226,11 +285,11 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         )
         .unwrap()
         .draw(
-            model.pipeline.clone(),
+            model.graphics_pipeline.clone(),
             &dynamic_state,
             vec![model.vertex_buffer.clone()],
-            model.desciptor_set.clone(),
-            push_constants,
+            (),
+            (),
         )
         .unwrap()
         .end_render_pass()
@@ -241,20 +300,18 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
 }
 
 mod vs {
-    nannou::vulkano_shaders::shader!{
-        ty: "vertex",
-        src: "
+        nannou::vulkano_shaders::shader!{
+            ty: "vertex",
+            src: "
 #version 450
 
 layout(location = 0) in vec2 position;
-layout(location = 0) out vec2 tex_coords;
 
 void main() {
     gl_Position = vec4(position, 0.0, 1.0);
-    tex_coords = position + vec2(0.5);
 }"
+        }
     }
-}
 
 mod fs {
     nannou::vulkano_shaders::shader!{
@@ -262,21 +319,43 @@ mod fs {
         src: "
 #version 450
 
-layout(location = 0) in vec2 tex_coords;
 layout(location = 0) out vec4 f_color;
 
-layout(set = 0, binding = 0) uniform sampler2D tex;
+void main() {
+    f_color = vec4(1.0, 0.0, 0.0, 1.0);
+}
+"
+    }
+}
+
+mod cs {
+    nannou::vulkano_shaders::shader!{
+        ty: "compute",
+        src: "
+#version 450
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) buffer Data {
+    vec2 data[];
+} data;
 
 layout(push_constant) uniform PushConstantData {
     float time;
 } pc;
 
 void main() {
-    vec4 c = vec4( abs(tex_coords.x + sin(pc.time)), tex_coords.x, tex_coords.y * abs(cos(pc.time)), 1.0);    
-    f_color = texture(tex, tex_coords) + c;
+    uint idx = gl_GlobalInvocationID.x;
+    float lfo = 1.0;// cos(pc.time * 0.15) * 0.01;
+    if(mod(idx,3) == 0) {
+        data.data[idx] = vec2(0.0);
+        return;
+    }
+    data.data[idx] = vec2(sin(idx * lfo + pc.time * 1000.0), cos(idx * -lfo + pc.time * -1000.0));
 }"
     }
 }
+
 // Create the framebuffer for the image.
 fn create_framebuffer(
     render_pass: Arc<RenderPassAbstract + Send + Sync>,

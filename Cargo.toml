@@ -31,13 +31,14 @@ serde = "1"
 serde_derive = "1"
 serde_json = "1"
 toml = "0.4"
-vulkano = "0.11.1"
-vulkano-win = "0.11"
-vulkano-shaders = "0.11"
+vulkano = { path = "../crates/vulkano/vulkano" }# "0.11.1"
+vulkano-win = { path = "../crates/vulkano/vulkano-win" }#"0.11"
+vulkano-shaders = { path = "../crates/vulkano/vulkano-shaders" }# "0.11"
 winit = "0.18"
 
 [replace]
-"vulkano:0.11.1" = { git = "https://github.com/mitchmindtree/vulkano", branch = "initial_layout_undefined" }
+#"vulkano:0.11.1" = { git = "https://github.com/mitchmindtree/vulkano", branch = "initial_layout_undefined" }
+#"vulkano:0.11.1" = { git = "https://github.com/freesig/vulkano", branch = "mac_fix_nannou" }
 
 # --------------- Nannou Examples 
 [[example]] 
@@ -116,6 +117,15 @@ path = "examples/vulkan/vk_image_sequence.rs"
 [[example]] 
 name = "vk_compute_shader" 
 path = "examples/vulkan/vk_compute_shader.rs"
+[[example]] 
+name = "vk_shader_include" 
+path = "examples/vulkan/vk_shader_include/mod.rs"
+[[example]] 
+name = "vk_compute_and_graphics" 
+path = "examples/vulkan/vk_compute_and_graphics.rs"
+[[example]] 
+name = "vk_attatch_multiple_images" 
+path = "examples/vulkan/vk_attatch_multiple_images.rs"
 
 # --------------- Generative Design 
 [[example]] 
