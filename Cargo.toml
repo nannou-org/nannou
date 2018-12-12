@@ -12,7 +12,10 @@ homepage = "https://github.com/MindBuffer/nannou"
 [dependencies]
 approx = "0.1"
 cgmath = { version = "0.16", features = ["serde"] }
-conrod = { version = "0.61", features = ["winit", "glium"] }
+#conrod = { version = "0.62" }
+conrod_core = { git = "https://github.com/mitchmindtree/conrod", branch = "vulkano" }
+conrod_winit = { git = "https://github.com/mitchmindtree/conrod", branch = "vulkano" }
+conrod_vulkano = { git = "https://github.com/mitchmindtree/conrod", branch = "vulkano" }
 cpal = "0.8"
 daggy = "0.6"
 find_folder = "0.3"
@@ -28,234 +31,263 @@ serde = "1"
 serde_derive = "1"
 serde_json = "1"
 toml = "0.4"
+vulkano = "0.11.1"
+vulkano-win = "0.11"
+vulkano-shaders = "0.11"
+winit = "0.18"
 
-# --------------- Nannou Examples 
-[[example]] 
-name = "loop_mode" 
+[replace]
+"vulkano:0.11.1" = { git = "https://github.com/freesig/vulkano", branch = "mac_fix_nannou" }
+"vulkano-shaders:0.11.1" = { git = "https://github.com/vulkano-rs/vulkano", branch = "master" }
+
+# --------------- Nannou Examples
+[[example]]
+name = "loop_mode"
 path = "examples/loop_mode.rs"
-[[example]] 
-name = "multi_window" 
+[[example]]
+name = "multi_window"
 path = "examples/multi_window.rs"
-[[example]] 
-name = "osc_receiver" 
+[[example]]
+name = "osc_receiver"
 path = "examples/osc_receiver.rs"
-[[example]] 
-name = "osc_sender" 
+[[example]]
+name = "osc_sender"
 path = "examples/osc_sender.rs"
-[[example]] 
-name = "simple_audio" 
+[[example]]
+name = "simple_audio"
 path = "examples/simple_audio.rs"
-[[example]] 
-name = "simple_draw" 
+[[example]]
+name = "simple_draw"
 path = "examples/simple_draw.rs"
-[[example]] 
-name = "simple_mesh" 
+[[example]]
+name = "simple_mesh"
 path = "examples/simple_mesh.rs"
-[[example]] 
-name = "simple_polygon" 
+[[example]]
+name = "simple_polygon"
 path = "examples/simple_polygon.rs"
-[[example]] 
+[[example]]
 name = "simple_polyline"
 path = "examples/simple_polyline.rs"
 [[example]]
-name = "simple_ui" 
+name = "simple_ui"
 path = "examples/simple_ui.rs"
-[[example]] 
-name = "simple_window" 
+[[example]]
+name = "simple_window"
 path = "examples/simple_window.rs"
-[[example]] 
-name = "template_app" 
+[[example]]
+name = "template_app"
 path = "examples/template_app.rs"
-[[example]] 
-name = "template_sketch" 
+[[example]]
+name = "template_sketch"
 path = "examples/template_sketch.rs"
 
 # --------------- Examples Basics
-[[example]] 
-name = "1_nannou_events" 
+[[example]]
+name = "1_nannou_events"
 path = "examples/basics/1_nannou_events.rs"
-[[example]] 
-name = "2_variables_window_console" 
+[[example]]
+name = "2_variables_window_console"
 path = "examples/basics/2_variables_window_console.rs"
-[[example]] 
-name = "3_variable_scope" 
+[[example]]
+name = "3_variable_scope"
 path = "examples/basics/3_variable_scope.rs"
-[[example]] 
-name = "4_conditionals" 
+[[example]]
+name = "4_conditionals"
 path = "examples/basics/4_conditionals.rs"
-[[example]] 
-name = "5_loops" 
+[[example]]
+name = "5_loops"
 path = "examples/basics/5_loops.rs"
-[[example]] 
-name = "6_functions" 
+[[example]]
+name = "6_functions"
 path = "examples/basics/6_functions.rs"
-[[example]] 
-name = "7_modules" 
+[[example]]
+name = "7_modules"
 path = "examples/basics/7_modules/7_modules.rs"
-# --------------- Generative Design 
-[[example]] 
-name = "p_1_0_01" 
+
+# --------------- Vulkan Examples
+[[example]]
+name = "vk_triangle"
+path = "examples/vulkan/vk_triangle.rs"
+[[example]]
+name = "vk_image"
+path = "examples/vulkan/vk_image.rs"
+[[example]]
+name = "vk_images"
+path = "examples/vulkan/vk_images.rs"
+[[example]]
+name = "vk_image_sequence"
+path = "examples/vulkan/vk_image_sequence.rs"
+[[example]]
+name = "vk_compute_shader"
+path = "examples/vulkan/vk_compute_shader.rs"
+[[example]]
+name = "vk_shader_include"
+path = "examples/vulkan/vk_shader_include/mod.rs"
+
+# --------------- Generative Design
+[[example]]
+name = "p_1_0_01"
 path = "examples/generative_design/color/p_1_0_01.rs"
-[[example]] 
-name = "p_1_1_01" 
+[[example]]
+name = "p_1_1_01"
 path = "examples/generative_design/color/p_1_1_01.rs"
-[[example]] 
-name = "p_1_2_3_01" 
+[[example]]
+name = "p_1_2_3_01"
 path = "examples/generative_design/color/p_1_2_3_01.rs"
-[[example]] 
-name = "p_1_2_3_02" 
+[[example]]
+name = "p_1_2_3_02"
 path = "examples/generative_design/color/p_1_2_3_02.rs"
 # --------------- Nature of Code
 # --------------- Chapter 1 Vectors
-[[example]] 
-name = "1_1_bouncingball_novectors" 
+[[example]]
+name = "1_1_bouncingball_novectors"
 path = "examples/nature_of_code/chp_01_vectors/1_1_bouncingball_novectors.rs"
-[[example]] 
-name = "1_2_bouncingball_vectors_object" 
+[[example]]
+name = "1_2_bouncingball_vectors_object"
 path = "examples/nature_of_code/chp_01_vectors/1_2_bouncingball_vectors_object.rs"
-[[example]] 
-name = "1_2_bouncingball_vectors" 
+[[example]]
+name = "1_2_bouncingball_vectors"
 path = "examples/nature_of_code/chp_01_vectors/1_2_bouncingball_vectors.rs"
-[[example]] 
-name = "1_3_vector_subtraction" 
+[[example]]
+name = "1_3_vector_subtraction"
 path = "examples/nature_of_code/chp_01_vectors/1_3_vector_subtraction.rs"
-[[example]] 
-name = "1_4_vector_multiplication" 
+[[example]]
+name = "1_4_vector_multiplication"
 path = "examples/nature_of_code/chp_01_vectors/1_4_vector_multiplication.rs"
-[[example]] 
-name = "1_5_vector_magnitude" 
+[[example]]
+name = "1_5_vector_magnitude"
 path = "examples/nature_of_code/chp_01_vectors/1_5_vector_magnitude.rs"
-[[example]] 
-name = "1_6_vector_normalize" 
+[[example]]
+name = "1_6_vector_normalize"
 path = "examples/nature_of_code/chp_01_vectors/1_6_vector_normalize.rs"
-[[example]] 
-name = "1_7_motion101" 
+[[example]]
+name = "1_7_motion101"
 path = "examples/nature_of_code/chp_01_vectors/1_7_motion101.rs"
-[[example]] 
-name = "1_8_motion101_acceleration" 
+[[example]]
+name = "1_8_motion101_acceleration"
 path = "examples/nature_of_code/chp_01_vectors/1_8_motion101_acceleration.rs"
-[[example]] 
-name = "1_9_motion101_acceleration" 
+[[example]]
+name = "1_9_motion101_acceleration"
 path = "examples/nature_of_code/chp_01_vectors/1_9_motion101_acceleration.rs"
-[[example]] 
-name = "1_10_motion101_acceleration" 
+[[example]]
+name = "1_10_motion101_acceleration"
 path = "examples/nature_of_code/chp_01_vectors/1_10_motion101_acceleration.rs"
-[[example]] 
-name = "1_11_motion101_acceleration_array" 
+[[example]]
+name = "1_11_motion101_acceleration_array"
 path = "examples/nature_of_code/chp_01_vectors/1_11_motion101_acceleration_array.rs"
 # --------------- Chapter 2 Forces
-[[example]] 
-name = "2_1_forces" 
+[[example]]
+name = "2_1_forces"
 path = "examples/nature_of_code/chp_02_forces/2_1_forces.rs"
-[[example]] 
-name = "2_2_forces_many" 
+[[example]]
+name = "2_2_forces_many"
 path = "examples/nature_of_code/chp_02_forces/2_2_forces_many.rs"
-[[example]] 
-name = "2_3_forces_many_real_gravity" 
+[[example]]
+name = "2_3_forces_many_real_gravity"
 path = "examples/nature_of_code/chp_02_forces/2_3_forces_many_real_gravity.rs"
-[[example]] 
-name = "2_4_forces_friction" 
+[[example]]
+name = "2_4_forces_friction"
 path = "examples/nature_of_code/chp_02_forces/2_4_forces_friction.rs"
-[[example]] 
-name = "2_4_forces_no_friction" 
+[[example]]
+name = "2_4_forces_no_friction"
 path = "examples/nature_of_code/chp_02_forces/2_4_forces_no_friction.rs"
-[[example]] 
-name = "2_5_fluid_resistance" 
+[[example]]
+name = "2_5_fluid_resistance"
 path = "examples/nature_of_code/chp_02_forces/2_5_fluid_resistance.rs"
-[[example]] 
-name = "2_6_attraction" 
+[[example]]
+name = "2_6_attraction"
 path = "examples/nature_of_code/chp_02_forces/2_6_attraction.rs"
-[[example]] 
-name = "2_7_attraction_many" 
+[[example]]
+name = "2_7_attraction_many"
 path = "examples/nature_of_code/chp_02_forces/2_7_attraction_many.rs"
-[[example]] 
-name = "2_8_mutual_attraction" 
+[[example]]
+name = "2_8_mutual_attraction"
 path = "examples/nature_of_code/chp_02_forces/2_8_mutual_attraction.rs"
-[[example]] 
-name = "2_10_exercise_attract_repel" 
+[[example]]
+name = "2_10_exercise_attract_repel"
 path = "examples/nature_of_code/chp_02_forces/2_10_exercise_attract_repel.rs"
-[[example]] 
-name = "2_forces_many_mutual_boundaries" 
+[[example]]
+name = "2_forces_many_mutual_boundaries"
 path = "examples/nature_of_code/chp_02_forces/2_forces_many_mutual_boundaries.rs"
 # --------------- Chapter 3 Oscillation
-[[example]] 
-name = "3_01_angular_motion" 
+[[example]]
+name = "3_01_angular_motion"
 path = "examples/nature_of_code/chp_03_oscillation/3_01_angular_motion.rs"
-[[example]] 
-name = "3_02_forces_angular_motion" 
+[[example]]
+name = "3_02_forces_angular_motion"
 path = "examples/nature_of_code/chp_03_oscillation/3_02_forces_angular_motion.rs"
-[[example]] 
-name = "3_04_polar_to_cartesian" 
+[[example]]
+name = "3_04_polar_to_cartesian"
 path = "examples/nature_of_code/chp_03_oscillation/3_04_polar_to_cartesian.rs"
-[[example]] 
-name = "3_04_polar_to_cartesian_trail" 
+[[example]]
+name = "3_04_polar_to_cartesian_trail"
 path = "examples/nature_of_code/chp_03_oscillation/3_04_polar_to_cartesian_trail.rs"
-[[example]] 
-name = "3_04_exercise_spiral" 
+[[example]]
+name = "3_04_exercise_spiral"
 path = "examples/nature_of_code/chp_03_oscillation/3_04_exercise_spiral.rs"
-[[example]] 
-name = "3_05_simple_harmonic_motion" 
+[[example]]
+name = "3_05_simple_harmonic_motion"
 path = "examples/nature_of_code/chp_03_oscillation/3_05_simple_harmonic_motion.rs"
-[[example]] 
-name = "3_06_simple_harmonic_motion" 
+[[example]]
+name = "3_06_simple_harmonic_motion"
 path = "examples/nature_of_code/chp_03_oscillation/3_06_simple_harmonic_motion.rs"
-[[example]] 
-name = "3_07_oscillating_objects" 
+[[example]]
+name = "3_07_oscillating_objects"
 path = "examples/nature_of_code/chp_03_oscillation/3_07_oscillating_objects.rs"
-[[example]] 
-name = "3_09_wave_a" 
+[[example]]
+name = "3_09_wave_a"
 path = "examples/nature_of_code/chp_03_oscillation/3_09_wave_a.rs"
-[[example]] 
-name = "3_09_wave_b" 
+[[example]]
+name = "3_09_wave_b"
 path = "examples/nature_of_code/chp_03_oscillation/3_09_wave_b.rs"
-[[example]] 
-name = "3_09_wave_c" 
+[[example]]
+name = "3_09_wave_c"
 path = "examples/nature_of_code/chp_03_oscillation/3_09_wave_c.rs"
-[[example]] 
-name = "3_09_wave" 
+[[example]]
+name = "3_09_wave"
 path = "examples/nature_of_code/chp_03_oscillation/3_09_wave.rs"
-[[example]] 
-name = "3_10_exercise_oop_wave" 
+[[example]]
+name = "3_10_exercise_oop_wave"
 path = "examples/nature_of_code/chp_03_oscillation/3_10_exercise_oop_wave.rs"
-[[example]] 
-name = "3_extra_oscillating_up_and_down" 
+[[example]]
+name = "3_extra_oscillating_up_and_down"
 path = "examples/nature_of_code/chp_03_oscillation/3_extra_oscillating_up_and_down.rs"
-[[example]] 
-name = "3_multiple_oscillations" 
+[[example]]
+name = "3_multiple_oscillations"
 path = "examples/nature_of_code/chp_03_oscillation/3_multiple_oscillations.rs"
-[[example]] 
-name = "3_oop_wave_particles" 
+[[example]]
+name = "3_oop_wave_particles"
 path = "examples/nature_of_code/chp_03_oscillation/3_oop_wave_particles.rs"
 # --------------- Chapter 4 Systems
-[[example]] 
-name = "4_01_single_particle" 
+[[example]]
+name = "4_01_single_particle"
 path = "examples/nature_of_code/chp_04_systems/4_01_single_particle.rs"
-[[example]] 
-name = "4_02_vector_particle" 
+[[example]]
+name = "4_02_vector_particle"
 path = "examples/nature_of_code/chp_04_systems/4_02_vector_particle.rs"
-[[example]] 
-name = "4_03_particle_system_type" 
+[[example]]
+name = "4_03_particle_system_type"
 path = "examples/nature_of_code/chp_04_systems/4_03_particle_system_type.rs"
-[[example]] 
-name = "4_04_system_of_systems" 
+[[example]]
+name = "4_04_system_of_systems"
 path = "examples/nature_of_code/chp_04_systems/4_04_system_of_systems.rs"
-# --------------- Chapter 6 Agents 
-[[example]] 
-name = "6_01_seek" 
+# --------------- Chapter 6 Agents
+[[example]]
+name = "6_01_seek"
 path = "examples/nature_of_code/chp_06_agents/6_01_seek.rs"
 # --------------- Chapter 7 Cellular Automata
-[[example]] 
-name = "7_01_wolfram_ca_figures" 
+[[example]]
+name = "7_01_wolfram_ca_figures"
 path = "examples/nature_of_code/chp_07_cellular_automata/7_01_wolfram_ca_figures.rs"
-[[example]] 
-name = "7_01_wolfram_ca_simple" 
+[[example]]
+name = "7_01_wolfram_ca_simple"
 path = "examples/nature_of_code/chp_07_cellular_automata/7_01_wolfram_ca_simple.rs"
-[[example]] 
-name = "7_02_game_of_life_simple" 
+[[example]]
+name = "7_02_game_of_life_simple"
 path = "examples/nature_of_code/chp_07_cellular_automata/7_02_game_of_life_simple.rs"
-[[example]] 
-name = "7_03_game_of_life_oop" 
+[[example]]
+name = "7_03_game_of_life_oop"
 path = "examples/nature_of_code/chp_07_cellular_automata/7_03_game_of_life_oop.rs"
-[[example]] 
-name = "7_04_exercise_wolfram_ca_scrolling" 
+[[example]]
+name = "7_04_exercise_wolfram_ca_scrolling"
 path = "examples/nature_of_code/chp_07_cellular_automata/7_04_exercise_wolfram_ca_scrolling.rs"

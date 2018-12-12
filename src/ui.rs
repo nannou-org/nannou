@@ -1,16 +1,15 @@
 //! The User Interface API. Instantiate a [**Ui**](struct.Ui.html) via `app.new_ui()`.
 
-pub extern crate conrod;
+pub extern crate conrod_core;
+pub extern crate conrod_winit;
+pub extern crate conrod_vulkano;
 
-pub use self::conrod::event::Input;
-pub use self::conrod::{
-    backend, color, cursor, event, graph, image, input, position, scroll, text, theme, utils,
-    widget,
-};
-pub use self::conrod::{
-    Borderable, Bordering, Color, Colorable, Dimensions, FontSize, Labelable, Point, Positionable,
-    Range, Rect, Scalar, Sizeable, Theme, UiCell, Widget,
-};
+pub use self::conrod_core::event::Input;
+pub use self::conrod_core::{color, cursor, event, graph, image, input, position, scroll, text,
+                            theme, utils, widget};
+pub use self::conrod_core::{Borderable, Bordering, Color, Colorable, Dimensions, FontSize,
+                            Labelable, Point, Positionable, Range, Rect, Scalar, Sizeable, Theme,
+                            UiCell, Widget};
 
 /// Simplify inclusion of common traits with a `nannou::ui::prelude` module.
 pub mod prelude {
@@ -25,13 +24,23 @@ pub mod prelude {
 }
 
 use frame::Frame;
-use glium::{self, glutin};
+use self::conrod_core::text::rt::gpu_cache::CacheWriteErr;
+use self::conrod_vulkano::RendererCreationError;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::error::Error as StdError;
+use std::fmt;
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::sync::{mpsc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
+use vulkano::command_buffer::CopyBufferImageError;
+use vulkano::format::{ClearValue, D16Unorm, Format};
+use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, FramebufferCreationError,
+                           RenderPassAbstract, RenderPassCreationError};
+use vulkano::image::{AttachmentImage, ImageCreationError};
+use vulkano::instance::PhysicalDevice;
 use window::{self, Window};
+use winit;
 use App;
 
 /// Owned by the `App`, the `Arrangement` handles the mapping between `Ui`s and their associated
@@ -50,10 +59,36 @@ pub(crate) struct Handle {
 pub struct Ui {
     /// The `Id` of the window upon which this `Ui` is instantiated.
     window_id: window::Id,
-    ui: conrod::Ui,
+    ui: conrod_core::Ui,
     input_rx: Option<mpsc::Receiver<Input>>,
-    renderer: Mutex<conrod::backend::glium::Renderer>,
-    pub image_map: conrod::image::Map<glium::texture::Texture2d>,
+    pub image_map: ImageMap,
+    renderer: Mutex<conrod_vulkano::Renderer>,
+    render_mode: Mutex<RenderMode>,
+}
+
+// The mode in which the `Ui` is to be rendered.
+enum RenderMode {
+    // The `Ui` is to be rendered as a subpass within an existing render pass.
+    //
+    // This subpass was specified when building the `Ui`.
+    Subpass,
+    // The `Ui` has its own render pass and in turn also owns it's own buffers.
+    //
+    // This mode is necessary for `draw_to_frame` to work.
+    OwnedRenderTarget(RenderTarget),
+}
+
+// The render pass in which the `Ui` will be rendered along with the owned buffers.
+struct RenderTarget {
+    render_pass: Arc<RenderPassAbstract + Send + Sync>,
+    buffers: RenderTargetBuffers,
+    msaa_samples: u32,
+}
+
+// The buffers associated with a render target.
+struct RenderTargetBuffers {
+    // A framebuffer for each image in the window's swapchain.
+    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
 }
 
 /// A type used for building a new `Ui`.
@@ -66,12 +101,67 @@ pub struct Builder<'a> {
     pending_input_limit: usize,
     default_font_path: Option<PathBuf>,
     glyph_cache_dimensions: Option<(u32, u32)>,
+    render_pass_subpass: Option<Subpass>,
+    msaa_samples: Option<u32>,
 }
 
-/// A map from `image::Id`s to their associatd `Texture2d`.
-pub type Texture2dMap = conrod::image::Map<glium::texture::Texture2d>;
+/// Failed to build the `Ui`.
+#[derive(Debug)]
+pub enum BuildError {
+    /// Either the given window `Id` is not associated with any open windows or the window was
+    /// closed during the build process.
+    InvalidWindow,
+    RendererCreation(RendererCreationError),
+    RenderTargetCreation(RenderTargetCreationError),
+}
 
-impl conrod::backend::winit::WinitWindow for Window {
+/// Failed to create the custom render target for the `Ui`.
+#[derive(Debug)]
+pub enum RenderTargetCreationError {
+    RenderPassCreation(RenderPassCreationError),
+    BuffersCreation(RenderTargetBuffersCreationError),
+}
+
+/// An error that might occur while constructing the render target's buffers.
+#[derive(Debug)]
+pub enum RenderTargetBuffersCreationError {
+    FramebufferCreation(FramebufferCreationError),
+    ImageCreation(ImageCreationError),
+}
+
+/// An error that might occur while drawing to a `Frame`.
+#[derive(Debug)]
+pub enum DrawToFrameError {
+    InvalidWindow,
+    RendererPoisoned,
+    RenderModePoisoned,
+    InvalidRenderMode,
+    RenderTargetBuffersCreation(RenderTargetBuffersCreationError),
+    RendererFill(CacheWriteErr),
+    CopyBufferImageCommand(CopyBufferImageError),
+    RendererDraw(conrod_vulkano::DrawError),
+    DrawCommand(vulkano::command_buffer::DrawError),
+}
+
+/// The subpass type to which the `Ui` may be rendered.
+pub type Subpass = vulkano::framebuffer::Subpass<Arc<RenderPassAbstract + Send + Sync>>;
+
+/// A map from `image::Id`s to their associated `Texture2d`.
+pub type ImageMap = conrod_core::image::Map<conrod_vulkano::Image>;
+
+/// The depth format type used by the depth buffer in the default render target.
+pub type DepthFormat = D16Unorm;
+
+/// The depth format type used by the depth buffer in the default render target.
+pub const DEPTH_FORMAT_TY: DepthFormat = D16Unorm;
+
+/// The depth format used by the depth buffer in the default render target.
+pub const DEPTH_FORMAT: Format = Format::D16Unorm;
+
+/// The default samples used for multisampling the `Ui` when using this module's render target.
+pub const DEFAULT_MSAA_SAMPLES: u32 = 4;
+
+impl conrod_winit::WinitWindow for Window {
     fn get_inner_size(&self) -> Option<(u32, u32)> {
         let (w, h) = self.inner_size_points();
         Some((w as _, h as _))
@@ -101,6 +191,8 @@ impl<'a> Builder<'a> {
             pending_input_limit: Ui::DEFAULT_PENDING_INPUT_LIMIT,
             default_font_path: None,
             glyph_cache_dimensions: None,
+            render_pass_subpass: None,
+            msaa_samples: None,
         }
     }
 
@@ -181,11 +273,31 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Optionally specify a render pass subpass in which this `Ui` should be drawn.
+    ///
+    /// If unspecified, the `Ui` will implicitly create its own single-pass render pass and
+    /// necessary buffers.
+    pub fn subpass(mut self, subpass: Subpass) -> Self {
+        self.render_pass_subpass = Some(subpass);
+        self
+    }
+
+    /// The number of samples to use for multisample anti aliasing.
+    ///
+    /// If unspecified, uses `DEFAULT_MSAA_SAMPLES`.
+    ///
+    /// This parameter is only valid if the `Ui` has it's own render target and render pass. In
+    /// other words, if `subpass` has been specified, this parameter will have no effect.
+    pub fn msaa_samples(mut self, msaa_samples: u32) -> Self {
+        self.msaa_samples = Some(msaa_samples);
+        self
+    }
+
     /// Build a `Ui` with the specified parameters.
     ///
     /// Returns `None` if the window at the given `Id` is closed or if the inner `Renderer` returns
     /// an error upon creation.
-    pub fn build(self) -> Option<Ui> {
+    pub fn build(self) -> Result<Ui, BuildError> {
         let Builder {
             app,
             window_id,
@@ -195,23 +307,27 @@ impl<'a> Builder<'a> {
             automatically_handle_input,
             default_font_path,
             glyph_cache_dimensions,
+            render_pass_subpass,
+            msaa_samples,
         } = self;
 
+        // If the user didn't specify a window, use the "main" one.
         let window_id = window_id.unwrap_or(app.window_id());
 
-        let dimensions = match dimensions {
-            None => match app.window(window_id) {
-                None => return None,
-                Some(window) => {
-                    let (win_w, win_h) = window.inner_size_points();
-                    [win_w as Scalar, win_h as Scalar]
-                }
-            },
-            Some(dimensions) => dimensions,
-        };
-        let theme = theme.unwrap_or_else(Theme::default);
-        let ui = conrod::UiBuilder::new(dimensions).theme(theme).build();
+        // The window on which the `Ui` will exist.
+        let window = app.window(window_id).ok_or(BuildError::InvalidWindow)?;
 
+        // The dimensions of the `Ui`.
+        let dimensions = dimensions.unwrap_or_else(|| {
+            let (win_w, win_h) = window.inner_size_points();
+            [win_w as Scalar, win_h as Scalar]
+        });
+
+        // Build the conrod `Ui`.
+        let theme = theme.unwrap_or_else(Theme::default);
+        let ui = conrod_core::UiBuilder::new(dimensions).theme(theme).build();
+
+        // The queue for receiving application events.
         let (input_rx, handle) = if automatically_handle_input {
             let (input_tx, input_rx) = mpsc::sync_channel(pending_input_limit);
             let input_tx = Some(input_tx);
@@ -233,24 +349,44 @@ impl<'a> Builder<'a> {
             .or_insert(Vec::new())
             .push(handle);
 
-        // Initialise the renderer which draws conrod::render::Primitives to the frame..
-        let renderer = match app.windows.borrow().get(&window_id) {
-            None => return None,
-            Some(window) => {
-                let renderer = match glyph_cache_dimensions {
-                    Some((w, h)) => conrod::backend::glium::Renderer::with_glyph_cache_dimensions(
-                        &window.display,
-                        w,
-                        h,
-                    ),
-                    None => conrod::backend::glium::Renderer::new(&window.display),
+        // Determine the render_mode and retrieve the subpass for drawing the `Ui`.
+        let (subpass, render_mode) = match render_pass_subpass {
+            Some(subpass) => (subpass, Mutex::new(RenderMode::Subpass)),
+            None => {
+                let device = window.swapchain_device();
+                let msaa_samples = match msaa_samples {
+                    None => valid_msaa_samples(&device.physical_device()),
+                    Some(samples) => samples,
                 };
-                match renderer {
-                    Ok(renderer) => Mutex::new(renderer),
-                    Err(_) => return None,
-                }
+                let render_target = RenderTarget::new(&window, msaa_samples)?;
+                let subpass = Subpass::from(render_target.render_pass.clone(), 0)
+                    .expect("unable to retrieve subpass for index `0`");
+                let render_mode = Mutex::new(RenderMode::OwnedRenderTarget(render_target));
+                (subpass, render_mode)
             }
         };
+
+        // The device and queue with which to create the `Ui` renderer.
+        let device = window.swapchain_device().clone();
+        let queue = window.swapchain_queue().clone();
+
+        // Initialise the renderer which draws conrod::render::Primitives to the frame.
+        let renderer = match glyph_cache_dimensions {
+            Some((w, h)) => conrod_vulkano::Renderer::with_glyph_cache_dimensions(
+                device,
+                subpass,
+                queue.family(),
+                [w as _, h as _],
+            )?,
+            None => conrod_vulkano::Renderer::new(
+                device,
+                subpass,
+                queue.family(),
+                [dimensions[0] as _, dimensions[1] as _],
+                window.hidpi_factor() as _,
+            )?,
+        };
+        let renderer = Mutex::new(renderer);
 
         // Initialise the image map.
         let image_map = image::Map::new();
@@ -260,15 +396,14 @@ impl<'a> Builder<'a> {
             window_id,
             ui,
             input_rx,
-            renderer,
             image_map,
+            renderer,
+            render_mode,
         };
 
         // If the default font is in the assets/fonts directory, load it into the UI font map.
         let default_font_path = default_font_path.or_else(|| {
-            app.assets_path()
-                .ok()
-                .map(|p| p.join(Ui::DEFAULT_FONT_PATH))
+            app.assets_path().ok().map(|p| p.join(Ui::DEFAULT_FONT_PATH))
         });
 
         // If there is some font path to use for the default font, attempt to load it.
@@ -276,12 +411,125 @@ impl<'a> Builder<'a> {
             ui.fonts_mut().insert_from_file(font_path).ok();
         }
 
-        Some(ui)
+        Ok(ui)
     }
 }
 
+/// Determine the number of samples to use for MSAA.
+///
+/// The target is `DEFAULT_MSAA_SAMPLES`, but we fall back to the limit if its lower.
+pub fn valid_msaa_samples(physical_device: &PhysicalDevice) -> u32 {
+    let color = physical_device.limits().framebuffer_color_sample_counts();
+    let depth = physical_device.limits().framebuffer_depth_sample_counts();
+    let limit = std::cmp::min(color, depth);
+    std::cmp::min(limit, DEFAULT_MSAA_SAMPLES)
+}
+
+/// Create a minimal, single-pass render pass with which the `Ui` may be rendered.
+///
+/// This is used internally within the `Ui` build process so in most cases you should not need to
+/// know about it. However, it is exposed in case for some reason you require manually creating it.
+pub fn create_render_pass(
+    device: Arc<vulkano::device::Device>,
+    color_format: vulkano::format::Format,
+    depth_format: vulkano::format::Format,
+    msaa_samples: u32,
+) -> Result<Arc<RenderPassAbstract + Send + Sync>, RenderPassCreationError> {
+    let render_pass = single_pass_renderpass!(
+        device,
+        attachments: {
+            multisampled_color: {
+                load: DontCare,
+                store: DontCare,
+                format: color_format,
+                samples: msaa_samples,
+            },
+            color: {
+                load: DontCare,
+                store: Store,
+                format: color_format,
+                samples: 1,
+                initial_layout: ImageLayout::PresentSrc,
+                final_layout: ImageLayout::PresentSrc,
+            },
+            multisampled_depth: {
+                load: DontCare,
+                store: DontCare,
+                format: depth_format,
+                samples: msaa_samples,
+            },
+            depth: {
+                load: DontCare,
+                store: Store,
+                format: depth_format,
+                samples: 1,
+                initial_layout: ImageLayout::Undefined,
+                final_layout: ImageLayout::DepthStencilAttachmentOptimal,
+            }
+        },
+        pass: {
+            color: [multisampled_color],
+            depth_stencil: {multisampled_depth},
+            resolve: [color],
+        }
+    )?;
+    Ok(Arc::new(render_pass))
+}
+
+impl RenderTargetBuffers {
+    // Create the buffers for a default render target.
+    fn new(
+        window: &Window,
+        render_pass: &Arc<RenderPassAbstract + Send + Sync>,
+        msaa_samples: u32,
+    ) -> Result<Self, RenderTargetBuffersCreationError> {
+        let device = window.swapchain_device().clone();
+        // TODO: Change this to use `window.inner_size_pixels/points` (which is correct?).
+        let image_dims = window.swapchain_images()[0].dimensions();
+        let color_format = window.swapchain().format();
+        let multisampled_color = AttachmentImage::transient_multisampled(
+            device.clone(),
+            image_dims,
+            msaa_samples,
+            color_format,
+        )?;
+        let multisampled_depth = AttachmentImage::transient_multisampled(
+            device.clone(),
+            image_dims,
+            msaa_samples,
+            DEPTH_FORMAT,
+        )?;
+        let depth = AttachmentImage::transient(device, image_dims, DEPTH_FORMAT_TY)?;
+        let mut framebuffers = vec![];
+        for swapchain_image in window.swapchain_images() {
+            let fb = Framebuffer::start(render_pass.clone())
+                .add(multisampled_color.clone())?
+                .add(swapchain_image.clone())?
+                .add(multisampled_depth.clone())?
+                .add(depth.clone())?
+                .build()?;
+            framebuffers.push(Arc::new(fb) as Arc<_>);
+        }
+        Ok(RenderTargetBuffers {
+            framebuffers,
+        })
+    }
+}
+
+impl RenderTarget {
+    // Initialise a new render target.
+    fn new(window: &Window, msaa_samples: u32) -> Result<Self, RenderTargetCreationError> {
+        let device = window.swapchain_device().clone();
+        let color_format = window.swapchain().format();
+        let render_pass = create_render_pass(device, color_format, DEPTH_FORMAT, msaa_samples)?;
+        let buffers = RenderTargetBuffers::new(window, &render_pass, msaa_samples)?;
+        Ok(RenderTarget { render_pass, buffers, msaa_samples })
+    }
+}
+
+
 impl Deref for Ui {
-    type Target = conrod::Ui;
+    type Target = conrod_core::Ui;
     fn deref(&self) -> &Self::Target {
         &self.ui
     }
@@ -390,24 +638,9 @@ impl Ui {
         &self,
         app: &App,
         frame: &Frame,
-    ) -> Result<(), conrod::backend::glium::DrawError> {
-        let Ui {
-            ref ui,
-            ref renderer,
-            ref image_map,
-            window_id,
-            ..
-        } = *self;
-        if let Some(window) = app.window(window_id) {
-            if let Some(mut window_frame) = frame.window(window_id) {
-                if let Ok(mut renderer) = renderer.lock() {
-                    let primitives = ui.draw();
-                    renderer.fill(&window.display, primitives, &image_map);
-                    renderer.draw(&window.display, &mut window_frame.frame.frame, image_map)?;
-                }
-            }
-        }
-        Ok(())
+    ) -> Result<(), DrawToFrameError> {
+        let primitives = self.ui.draw();
+        draw_primitives(self, app, frame, primitives)
     }
 
     /// Draws the current state of the `Ui` to the given `Frame` but only if the `Ui` has changed
@@ -425,32 +658,299 @@ impl Ui {
         &self,
         app: &App,
         frame: &Frame,
-    ) -> Result<bool, conrod::backend::glium::DrawError> {
-        let Ui {
-            ref ui,
-            ref renderer,
-            ref image_map,
-            window_id,
-            ..
-        } = *self;
-        if let Some(window) = app.window(window_id) {
-            if let Some(mut window_frame) = frame.window(window_id) {
-                if let Ok(mut renderer) = renderer.lock() {
-                    if let Some(primitives) = ui.draw_if_changed() {
-                        renderer.fill(&window.display, primitives, &image_map);
-                        renderer.draw(&window.display, &mut window_frame.frame.frame, image_map)?;
-                        return Ok(true);
-                    }
-                }
-            }
+    ) -> Result<bool, DrawToFrameError> {
+        match self.ui.draw_if_changed() {
+            None => Ok(false),
+            Some(primitives) => draw_primitives(self, app, frame, primitives).map(|()| true),
         }
-        Ok(false)
     }
+}
+
+/// A function shared by the `draw_to_frame` and `draw_to_frame_if_changed` methods for renderering
+/// the list of conrod primitives and presenting them to the frame.
+pub fn draw_primitives(
+    ui: &Ui,
+    app: &App,
+    frame: &Frame,
+    primitives: conrod_core::render::Primitives,
+) -> Result<(), DrawToFrameError> {
+    let Ui {
+        ref renderer,
+        ref render_mode,
+        ref image_map,
+        window_id,
+        ..
+    } = *ui;
+
+    let window = match app.window(window_id) {
+        Some(window) => window,
+        None=> return Err(DrawToFrameError::InvalidWindow),
+    };
+
+    let mut renderer = renderer.lock().map_err(|_| DrawToFrameError::RendererPoisoned)?;
+    let mut render_mode = render_mode.lock().map_err(|_| DrawToFrameError::RenderModePoisoned)?;
+
+    let render_target = match *render_mode {
+        RenderMode::Subpass => return Err(DrawToFrameError::InvalidRenderMode),
+        RenderMode::OwnedRenderTarget(ref mut render_target) => render_target,
+    };
+
+    // Recreate buffers if the swapchain was recreated.
+    if frame.swapchain_image_is_new() {
+        let new_buffers = RenderTargetBuffers::new(
+            &window,
+            &render_target.render_pass,
+            render_target.msaa_samples,
+        )?;
+        render_target.buffers = new_buffers;
+    }
+
+    // Fill renderer with the primitives and cache glyphs.
+    let (win_w, win_h) = window.inner_size_pixels();
+    let dpi_factor = window.hidpi_factor() as f64;
+    let viewport = [0.0, 0.0, win_w as f32, win_h as f32];
+    let mut cmds = renderer.fill(image_map, viewport, dpi_factor, primitives)?;
+    for cmd in cmds.commands.drain(..) {
+        let buffer = cmds
+            .glyph_cpu_buffer_pool
+            .chunk(cmd.data.iter().cloned())
+            .unwrap();
+        let offset = [cmd.offset[0], cmd.offset[1], 0];
+        let size = [cmd.size[0], cmd.size[1], 1];
+        let first_layer = 0;
+        let num_layers = 1;
+        let mipmap = 0;
+        frame
+            .add_commands()
+            .copy_buffer_to_image_dimensions(
+                buffer,
+                cmds.glyph_cache_texture.clone(),
+                offset,
+                size,
+                first_layer,
+                num_layers,
+                mipmap,
+            )?;
+    }
+
+    // Generate the draw commands and submit them.
+    let queue = window.swapchain_queue().clone();
+    let cmds = renderer.draw(queue, image_map, viewport)?;
+    if !cmds.is_empty() {
+        let multisampled_color = ClearValue::None;
+        let color = ClearValue::None;
+        let multisampled_depth = ClearValue::None;
+        let depth = ClearValue::None;
+        let clear_values = vec![multisampled_color, color, multisampled_depth, depth];
+        frame
+            .add_commands()
+            .begin_render_pass(
+                render_target.buffers.framebuffers[frame.swapchain_image_index()].clone(),
+                false,
+                clear_values.clone(),
+            )
+            .unwrap();
+        for cmd in cmds {
+            let conrod_vulkano::DrawCommand {
+                graphics_pipeline,
+                dynamic_state,
+                vertex_buffer,
+                descriptor_set,
+            } = cmd;
+            frame
+                .add_commands()
+                .draw(
+                    graphics_pipeline,
+                    &dynamic_state,
+                    vec![vertex_buffer],
+                    descriptor_set,
+                    (),
+                )?;
+        }
+        frame
+            .add_commands()
+            .end_render_pass()
+            .unwrap();
+    }
+
+    Ok(())
 }
 
 /// Convert the given window event to a UI Input.
 ///
 /// Returns `None` if there's no associated UI Input for the given event.
-pub fn glutin_window_event_to_input(event: glutin::WindowEvent, window: &Window) -> Option<Input> {
-    conrod::backend::winit::convert_window_event(event, window)
+pub fn winit_window_event_to_input(event: winit::WindowEvent, window: &Window) -> Option<Input> {
+    conrod_winit::convert_window_event(event, window)
+}
+
+impl From<RenderTargetCreationError> for BuildError {
+    fn from(err: RenderTargetCreationError) -> Self {
+        BuildError::RenderTargetCreation(err)
+    }
+}
+
+impl From<RendererCreationError> for BuildError {
+    fn from(err: RendererCreationError) -> Self {
+        BuildError::RendererCreation(err)
+    }
+}
+
+impl From<RenderTargetBuffersCreationError> for RenderTargetCreationError {
+    fn from(err: RenderTargetBuffersCreationError) -> Self {
+        RenderTargetCreationError::BuffersCreation(err)
+    }
+}
+
+impl From<RenderPassCreationError> for RenderTargetCreationError {
+    fn from(err: RenderPassCreationError) -> Self {
+        RenderTargetCreationError::RenderPassCreation(err)
+    }
+}
+
+impl From<ImageCreationError> for RenderTargetBuffersCreationError {
+    fn from(err: ImageCreationError) -> Self {
+        RenderTargetBuffersCreationError::ImageCreation(err)
+    }
+}
+
+impl From<FramebufferCreationError> for RenderTargetBuffersCreationError {
+    fn from(err: FramebufferCreationError) -> Self {
+        RenderTargetBuffersCreationError::FramebufferCreation(err)
+    }
+}
+
+impl From<RenderTargetBuffersCreationError> for DrawToFrameError {
+    fn from(err: RenderTargetBuffersCreationError) -> Self {
+        DrawToFrameError::RenderTargetBuffersCreation(err)
+    }
+}
+
+impl From<CacheWriteErr> for DrawToFrameError {
+    fn from(err: CacheWriteErr) -> Self {
+        DrawToFrameError::RendererFill(err)
+    }
+}
+
+impl From<CopyBufferImageError> for DrawToFrameError {
+    fn from(err: CopyBufferImageError) -> Self {
+        DrawToFrameError::CopyBufferImageCommand(err)
+    }
+}
+
+impl From<conrod_vulkano::DrawError> for DrawToFrameError {
+    fn from(err: conrod_vulkano::DrawError) -> Self {
+        DrawToFrameError::RendererDraw(err)
+    }
+}
+
+impl From<vulkano::command_buffer::DrawError> for DrawToFrameError {
+    fn from(err: vulkano::command_buffer::DrawError) -> Self {
+        DrawToFrameError::DrawCommand(err)
+    }
+}
+
+impl StdError for BuildError {
+    fn description(&self) -> &str {
+        match *self {
+            BuildError::InvalidWindow => "no open window associated with the given `window_id`",
+            BuildError::RendererCreation(ref err) => err.description(),
+            BuildError::RenderTargetCreation(ref err) => err.description(),
+        }
+    }
+
+    fn cause(&self) -> Option<&StdError> {
+        match *self {
+            BuildError::InvalidWindow => None,
+            BuildError::RendererCreation(ref err) => Some(err),
+            BuildError::RenderTargetCreation(ref err) => Some(err),
+        }
+    }
+}
+
+impl StdError for RenderTargetCreationError {
+    fn description(&self) -> &str {
+        match *self {
+            RenderTargetCreationError::RenderPassCreation(ref err) => err.description(),
+            RenderTargetCreationError::BuffersCreation(ref err) => err.description(),
+        }
+    }
+
+    fn cause(&self) -> Option<&StdError> {
+        match *self {
+            RenderTargetCreationError::RenderPassCreation(ref err) => Some(err),
+            RenderTargetCreationError::BuffersCreation(ref err) => Some(err),
+        }
+    }
+}
+
+impl StdError for RenderTargetBuffersCreationError {
+    fn description(&self) -> &str {
+        match *self {
+            RenderTargetBuffersCreationError::FramebufferCreation(ref err) => err.description(),
+            RenderTargetBuffersCreationError::ImageCreation(ref err) => err.description(),
+        }
+    }
+
+    fn cause(&self) -> Option<&StdError> {
+        match *self {
+            RenderTargetBuffersCreationError::FramebufferCreation(ref err) => Some(err),
+            RenderTargetBuffersCreationError::ImageCreation(ref err) => Some(err),
+        }
+    }
+}
+
+impl StdError for DrawToFrameError {
+    fn description(&self) -> &str {
+        match *self {
+            DrawToFrameError::InvalidWindow =>
+                "no open window associated with the given `window_id`",
+            DrawToFrameError::RendererPoisoned => "`Mutex` containing `Renderer` was poisoned",
+            DrawToFrameError::RenderModePoisoned => "`Mutex` containing `RenderMode` was poisoned",
+            DrawToFrameError::InvalidRenderMode =>
+                "`draw_to_frame` was called while `Ui` was in `Subpass` render mode",
+            DrawToFrameError::RenderTargetBuffersCreation(ref err) => err.description(),
+            DrawToFrameError::RendererFill(ref err) => err.description(),
+            DrawToFrameError::CopyBufferImageCommand(ref err) => err.description(),
+            DrawToFrameError::RendererDraw(ref err) => err.description(),
+            DrawToFrameError::DrawCommand(ref err) => err.description(),
+        }
+    }
+
+    fn cause(&self) -> Option<&StdError> {
+        match *self {
+            DrawToFrameError::InvalidWindow => None,
+            DrawToFrameError::RendererPoisoned => None,
+            DrawToFrameError::RenderModePoisoned => None,
+            DrawToFrameError::InvalidRenderMode => None,
+            DrawToFrameError::RenderTargetBuffersCreation(ref err) => Some(err),
+            DrawToFrameError::RendererFill(ref err) => Some(err),
+            DrawToFrameError::CopyBufferImageCommand(ref err) => Some(err),
+            DrawToFrameError::RendererDraw(ref err) => Some(err),
+            DrawToFrameError::DrawCommand(ref err) => Some(err),
+        }
+    }
+}
+
+impl fmt::Display for BuildError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
+}
+
+impl fmt::Display for RenderTargetCreationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
+}
+
+impl fmt::Display for RenderTargetBuffersCreationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
+}
+
+impl fmt::Display for DrawToFrameError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
 }
