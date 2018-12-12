@@ -19,7 +19,10 @@ use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use nannou::vulkano::sampler::{Filter, MipmapMode, Sampler, SamplerAddressMode};
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model)
+        .event(event)
+        .view(view)
+        .run();
 }
 
 struct Model {
@@ -35,6 +38,7 @@ struct Model {
 struct Vertex {
     position: [f32; 2],
 }
+
 nannou::vulkano::impl_vertex!(Vertex, position);
 
 fn model(app: &App) -> Model {
@@ -93,36 +97,46 @@ fn model(app: &App) -> Model {
         .unwrap(),
     );
 
-    // Load the image from file to memory, then from memory to GPU memory.
-    let (texture, _tex_future) = {
-        let logo_path = app.assets_path().unwrap().join("images").join("Nannou.png");
-        let image = image::open(logo_path).unwrap().to_rgba();
-        let (width, height) = image.dimensions();
-        let image_data = image.into_raw().clone();
+    let mut textures = Vec::new();
+    let mut samplers = Vec::new();
+    let num_images = 4;
+    for i in 0..num_images {
+        let (texture, _tex_future) = {
+            let logo_path = app
+                .assets_path()
+                .unwrap()
+                .join("images")
+                .join(format!("nature_{}.jpg", i as i32 + 1));
+            let image = image::open(logo_path).unwrap().to_rgba();
+            let (width, height) = image.dimensions();
+            let image_data = image.into_raw().clone();
+            ImmutableImage::from_iter(
+                image_data.iter().cloned(),
+                Dimensions::Dim2d { width, height },
+                Format::R8G8B8A8Srgb,
+                app.main_window().swapchain_queue().clone(),
+            )
+            .unwrap()
+        };
 
-        ImmutableImage::from_iter(
-            image_data.iter().cloned(),
-            Dimensions::Dim2d { width, height },
-            Format::R8G8B8A8Srgb,
-            app.main_window().swapchain_queue().clone(),
+        let sampler = Sampler::new(
+            device.clone(),
+            Filter::Linear,
+            Filter::Linear,
+            MipmapMode::Nearest,
+            SamplerAddressMode::ClampToEdge,
+            SamplerAddressMode::ClampToEdge,
+            SamplerAddressMode::ClampToEdge,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
         )
-        .unwrap()
-    };
+        .unwrap();
 
-    let sampler = Sampler::new(
-        device.clone(),
-        Filter::Linear,
-        Filter::Linear,
-        MipmapMode::Nearest,
-        SamplerAddressMode::ClampToEdge,
-        SamplerAddressMode::ClampToEdge,
-        SamplerAddressMode::ClampToEdge,
-        0.0,
-        1.0,
-        0.0,
-        0.0,
-    )
-    .unwrap();
+        textures.push(texture);
+        samplers.push(sampler);
+    }
 
     let pipeline = Arc::new(
         GraphicsPipeline::start()
@@ -139,7 +153,13 @@ fn model(app: &App) -> Model {
 
     let desciptor_set = Arc::new(
         PersistentDescriptorSet::start(pipeline.clone(), 0)
-            .add_sampled_image(texture.clone(), sampler.clone())
+            .add_sampled_image(textures[0].clone(), samplers[0].clone())
+            .unwrap()
+            .add_sampled_image(textures[1].clone(), samplers[1].clone())
+            .unwrap()
+            .add_sampled_image(textures[2].clone(), samplers[2].clone())
+            .unwrap()
+            .add_sampled_image(textures[3].clone(), samplers[3].clone())
             .unwrap()
             .build()
             .unwrap(),
@@ -162,7 +182,7 @@ fn event(_app: &App, model: Model, event: Event) -> Model {
     model
 }
 
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     let [w, h] = frame.swapchain_image().dimensions();
     let viewport = Viewport {
         origin: [0.0, 0.0],
@@ -175,14 +195,12 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         scissors: None,
     };
 
-    // Update the framebuffers if necessary.
     while frame.swapchain_image_index() >= model.framebuffers.borrow().len() {
         let fb =
             create_framebuffer(model.render_pass.clone(), frame.swapchain_image().clone()).unwrap();
         model.framebuffers.borrow_mut().push(Arc::new(fb));
     }
 
-    // If the dimensions for the current framebuffer do not match, recreate it.
     if frame.swapchain_image_is_new() {
         let fb = &mut model.framebuffers.borrow_mut()[frame.swapchain_image_index()];
         let new_fb =
@@ -191,10 +209,6 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     }
 
     let clear_values = vec![[0.0, 1.0, 0.0, 1.0].into()];
-
-    let push_constants = fs::ty::PushConstantData {
-        time: app.time * 30.0,
-    };
 
     frame
         .add_commands()
@@ -209,7 +223,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
             &dynamic_state,
             vec![model.vertex_buffer.clone()],
             model.desciptor_set.clone(),
-            push_constants,
+            (),
         )
         .unwrap()
         .end_render_pass()
@@ -243,19 +257,43 @@ mod fs {
 layout(location = 0) in vec2 tex_coords;
 layout(location = 0) out vec4 f_color;
 
-layout(set = 0, binding = 0) uniform sampler2D tex;
-
-layout(push_constant) uniform PushConstantData {
-    float time;
-} pc;
+layout(set = 0, binding = 0) uniform sampler2D tex1;
+layout(set = 0, binding = 1) uniform sampler2D tex2;
+layout(set = 0, binding = 2) uniform sampler2D tex3;
+layout(set = 0, binding = 3) uniform sampler2D tex4;
 
 void main() {
-    vec4 c = vec4( abs(tex_coords.x + sin(pc.time)), tex_coords.x, tex_coords.y * abs(cos(pc.time)), 1.0);    
-    f_color = texture(tex, tex_coords) + c;
+    // Texture coordinates
+    vec2 uv = tex_coords;
+    uv.y *= -1.0;
+    float aspect = uv.x / uv.y;
+
+    float squares = pow(2.0,2.0);    
+    float sw = sqrt(squares) / aspect;
+    float sh = sqrt(squares);
+
+    float vx = mod(uv.x * sw * aspect, 1.0);
+    float vy = mod(uv.y * sh*-1.0, 1.0);
+
+    float b = float(int(mod(uv.y*sh,2.0)));
+	float a = float(int(mod(uv.x*sw * aspect + b,4.0)));
+
+    vec4 c = vec4(0.0);
+    if(a == 0) {
+        c += texture(tex1, vec2(vx,vy));
+    } else if(a == 1) {
+        c += texture(tex2, vec2(vx,vy));    
+    } else if(a == 2) {
+        c += texture(tex3, vec2(vx,vy));    
+    } else if(a == 3) {
+        c += texture(tex4, vec2(vx,vy));    
+    }
+    f_color = c;
 }"
     }
 }
 
+// Create the framebuffer for the image.
 fn create_framebuffer(
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     swapchain_image: Arc<nannou::window::SwapchainImage>,

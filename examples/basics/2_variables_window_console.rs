@@ -36,7 +36,7 @@ fn event(_app: &App, model: Model, _event: Event) -> Model {
     model
 }
 
-fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
     // Clear the window with dark charcoal.
     frame.clear(DARK_CHARCOAL);
     // Return the drawn frame.

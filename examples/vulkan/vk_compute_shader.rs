@@ -4,36 +4,36 @@ use nannou::prelude::*;
 use nannou::vulkano;
 use std::sync::Arc;
 
-use nannou::vulkano::sync;
-use nannou::vulkano::sync::GpuFuture;
-use nannou::vulkano::instance::{PhysicalDevice};
-use nannou::vulkano::device::{Device, DeviceExtensions};
 use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use nannou::vulkano::command_buffer::AutoCommandBufferBuilder;
-use nannou::vulkano::pipeline::{ComputePipeline, ComputePipelineAbstract};
 use nannou::vulkano::descriptor::descriptor_set::{DescriptorSet, PersistentDescriptorSet};
 use nannou::vulkano::device::Queue;
+use nannou::vulkano::device::{Device, DeviceExtensions};
+use nannou::vulkano::instance::PhysicalDevice;
+use nannou::vulkano::pipeline::{ComputePipeline, ComputePipelineAbstract};
+use nannou::vulkano::sync;
+use nannou::vulkano::sync::GpuFuture;
 
 fn main() {
-    nannou::app(model)
-        .event(event) // The function that will be called when the app receives events.
-        .view(view) // The function that will be called for drawing to the window.
-        .run();
+    nannou::app(model).event(event).view(view).run();
 }
 
 struct Model {
-    // Store the window ID so we can refer to this specific window later if needed.
     _window: WindowId,
     device: Arc<Device>,
     queue: Arc<Queue>,
     pipeline: Arc<ComputePipelineAbstract + Send + Sync>,
-    desciptor_set: Arc<DescriptorSet + Send + Sync>,  
-    data_buffer: Arc<CpuAccessibleBuffer<[f32]>>,  
+    desciptor_set: Arc<DescriptorSet + Send + Sync>,
+    data_buffer: Arc<CpuAccessibleBuffer<[f32]>>,
 }
 
 fn model(app: &App) -> Model {
-    // Create a new window! Store the ID so we can refer to it later.
-    let _window = app.new_window().with_dimensions(1440, 512).with_title("nannou").build().unwrap();
+    let _window = app
+        .new_window()
+        .with_dimensions(1440, 512)
+        .with_title("nannou")
+        .build()
+        .unwrap();
 
     let instance = app.vulkan_instance().clone();
 
@@ -44,18 +44,24 @@ fn model(app: &App) -> Model {
     //
     // The Vulkan specs guarantee that a compliant implementation must provide at least one queue
     // that supports compute operations.
-    let queue_family = physical.queue_families().find(|&q| q.supports_compute()).unwrap();
+    let queue_family = physical
+        .queue_families()
+        .find(|&q| q.supports_compute())
+        .unwrap();
 
     // Now initializing the device.
-    let (device, mut queues) = Device::new(physical, physical.supported_features(),
-        &DeviceExtensions::none(), [(queue_family, 0.5)].iter().cloned()).unwrap();
+    let (device, mut queues) = Device::new(
+        physical,
+        physical.supported_features(),
+        &DeviceExtensions::none(),
+        [(queue_family, 0.5)].iter().cloned(),
+    )
+    .unwrap();
 
     // Since we can request multiple queues, the `queues` variable is in fact an iterator. In this
     // example we use only one queue, so we just retrieve the first and only element of the
     // iterator and throw it away.
     let queue = queues.next().unwrap();
-
-    println!("Device initialized");
 
     // We need to create the compute pipeline that describes our operation.
     //
@@ -63,13 +69,13 @@ fn model(app: &App) -> Model {
     // pipelines are much simpler to create.
     let pipeline = Arc::new({
         let compute_shader = cs::Shader::load(device.clone()).unwrap();
-        ComputePipeline::new(device.clone(), &compute_shader.main_entry_point(), &()).unwrap()        
+        ComputePipeline::new(device.clone(), &compute_shader.main_entry_point(), &()).unwrap()
     });
 
     // We start by creating the buffer that will store the data.
     let data_buffer = {
         // Iterator that produces the data.
-        let data_iter = (0 .. 1024).map(|n| n as f32);
+        let data_iter = (0..1024).map(|n| n as f32);
         // Builds the buffer and fills it with this iterator.
         CpuAccessibleBuffer::from_iter(device.clone(), BufferUsage::all(), data_iter).unwrap()
     };
@@ -82,67 +88,84 @@ fn model(app: &App) -> Model {
     //
     // If you want to run the pipeline on multiple different buffers, you need to create multiple
     // descriptor sets that each contain the buffer you want to run the shader on.
-    let desciptor_set = Arc::new(PersistentDescriptorSet::start(pipeline.clone(), 0)
-        .add_buffer(data_buffer.clone()).unwrap()
-        .build().unwrap()
+    let desciptor_set = Arc::new(
+        PersistentDescriptorSet::start(pipeline.clone(), 0)
+            .add_buffer(data_buffer.clone())
+            .unwrap()
+            .build()
+            .unwrap(),
     );
 
-    Model { _window, pipeline, device, queue, desciptor_set, data_buffer }
+    Model {
+        _window,
+        pipeline,
+        device,
+        queue,
+        desciptor_set,
+        data_buffer,
+    }
 }
 
-// Handle events related to the window and update the model if necessary
 fn event(app: &App, model: Model, event: Event) -> Model {
     if let Event::Update(_update) = event {
-
         // Lets pass through the app.time to our Compute Shader
-        // using a push constants. This will allow us to animate the 
-        // Waveform. 
-        let push_constants = cs::ty::PushConstantData {
-            time: app.time,
-        };
+        // using a push constants. This will allow us to animate the
+        // Waveform.
+        let push_constants = cs::ty::PushConstantData { time: app.time };
 
         // In order to execute our operation, we have to build a command buffer.
-        let command_buffer = AutoCommandBufferBuilder::primary_one_time_submit(model.device.clone(), model.queue.family()).unwrap()
-            // The command buffer only does one thing: execute the compute pipeline.
-            // This is called a *dispatch* operation.
-            //
-            // Note that we clone the pipeline and the set. Since they are both wrapped around an
-            // `Arc`, this only clones the `Arc` and not the whole pipeline or set (which aren't
-            // cloneable anyway). In this example we would avoid cloning them since this is the last
-            // time we use them, but in a real code you would probably need to clone them.            
-            .dispatch([1024, 1, 1], model.pipeline.clone(), model.desciptor_set.clone(), push_constants).unwrap()
-            // Finish building the command buffer by calling `build`.
-            .build().unwrap();
+        let command_buffer = AutoCommandBufferBuilder::primary_one_time_submit(
+            model.device.clone(),
+            model.queue.family(),
+        )
+        .unwrap()
+        // The command buffer only does one thing: execute the compute pipeline.
+        // This is called a *dispatch* operation.
+        //
+        // Note that we clone the pipeline and the set. Since they are both wrapped around an
+        // `Arc`, this only clones the `Arc` and not the whole pipeline or set (which aren't
+        // cloneable anyway). In this example we would avoid cloning them since this is the last
+        // time we use them, but in a real code you would probably need to clone them.
+        .dispatch(
+            [1024, 1, 1],
+            model.pipeline.clone(),
+            model.desciptor_set.clone(),
+            push_constants,
+        )
+        .unwrap()
+        // Finish building the command buffer by calling `build`.
+        .build()
+        .unwrap();
 
         // Let's execute this command buffer now.
         let future = sync::now(model.device.clone())
-            .then_execute(model.queue.clone(), command_buffer).unwrap()    
+            .then_execute(model.queue.clone(), command_buffer)
+            .unwrap()
             // This line instructs the GPU to signal a *fence* once the command buffer has finished
             // execution. A fence is a Vulkan object that allows the CPU to know when the GPU has
             // reached a certain point.
-            // We need to signal a fence here because below we want to block the CPU until the GPU has
-            // reached that point in the execution.
-            .then_signal_fence_and_flush().unwrap();        
+            // We need to signal a fence here because below we want to block the CPU until the GPU
+            // has reached that point in the execution.
+            .then_signal_fence_and_flush()
+            .unwrap();
 
-        // Blocks execution until the GPU has finished the operation. This method only exists on the
-        // future that corresponds to a signalled fence. In other words, this method wouldn't be
-        // available if we didn't call `.then_signal_fence_and_flush()` earlier.
+        // Blocks execution until the GPU has finished the operation. This method only exists on
+        // the future that corresponds to a signalled fence. In other words, this method wouldn't
+        // be available if we didn't call `.then_signal_fence_and_flush()` earlier.
+        //
         // The `None` parameter is an optional timeout.
         //
         // Note however that dropping the `future` variable (with `drop(future)` for example) would
         // block execution as well, and this would be the case even if we didn't call
-        // `.then_signal_fence_and_flush()`.
-        // Therefore the actual point of calling `.then_signal_fence_and_flush()` and `.wait()` is to
-        // make things more explicit. In the future, if the Rust language gets linear types vulkano may
-        // get modified so that only fence-signalled futures can get destroyed like this.
+        // `.then_signal_fence_and_flush()`. Therefore the actual point of calling
+        // `.then_signal_fence_and_flush()` and `.wait()` is to make things more explicit. In the
+        // future, if the Rust language gets linear types vulkano may get modified so that only
+        // fence-signalled futures can get destroyed like this.
         future.wait(None).unwrap();
-
-
     }
     model
 }
 
-// Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
@@ -153,20 +176,16 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
 
     // Now that the GPU is done, the content of the buffer should have been modified. Let's
     // check it out.
+    //
     // The call to `read()` would return an error if the buffer was still in use by the GPU.
     let data_buffer_content = model.data_buffer.read().unwrap();
-    for n in 0 .. 1024u32 {
-        //println!("data {} = {:?}", n, data_buffer_content[n as usize]);
+    for (n, &f) in data_buffer_content.iter().enumerate() {
         let x = map_range(n as f32, 0.0, 1024.0, win.left(), win.right());
         let y = 0.0;
-        let h = data_buffer_content[n as usize] as f32;
-
+        let h = f;
         let hue = map_range(h, 0.0, 512.0, 0.4, 0.6);
-        draw.rect()
-            .x_y(x, y)
-            .w_h(1.0, h)
-            .hsv(hue, 1.0, 1.0);
-    }      
+        draw.rect().x_y(x, y).w_h(1.0, h).hsv(hue, 1.0, 1.0);
+    }
 
     // Write the result of our drawing to the window's OpenGL frame.
     draw.to_frame(app, &frame).unwrap();
@@ -176,8 +195,8 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
 }
 
 mod cs {
-    vulkano_shaders::shader!{
-        ty: "compute",
+    vulkano_shaders::shader! {
+    ty: "compute",
         src: "
 #version 450
 
@@ -198,4 +217,3 @@ void main() {
 }"
     }
 }
-
