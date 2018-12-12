@@ -8,7 +8,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -24,7 +24,7 @@ fn model(app: &App) -> Model {
     let x_speed = 2.5;
     let y_speed = 2.0;
 
-    let _window = app.new_window().with_dimensions(800, 200).build().unwrap();
+    let _window = app.new_window().with_dimensions(800, 200).view(view).build().unwrap();
     Model {
         x,
         y,
@@ -33,23 +33,19 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn event(app: &App, mut model: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        // Add the current speed to the position
-        model.x = model.x + model.x_speed;
-        model.y = model.y + model.y_speed;
+fn update(app: &App, model: &mut Model, _update: Update) {
+    // Add the current speed to the position
+    model.x = model.x + model.x_speed;
+    model.y = model.y + model.y_speed;
 
-        let win_rect = app.window_rect();
+    let win_rect = app.window_rect();
 
-        if (model.x > win_rect.right()) || (model.x < win_rect.left()) {
-            model.x_speed = model.x_speed * -1.0;
-        }
-        if (model.y > win_rect.top()) || (model.y < win_rect.bottom()) {
-            model.y_speed = model.y_speed * -1.0;
-        }
+    if (model.x > win_rect.right()) || (model.x < win_rect.left()) {
+        model.x_speed = model.x_speed * -1.0;
     }
-    model
+    if (model.y > win_rect.top()) || (model.y < win_rect.bottom()) {
+        model.y_speed = model.y_speed * -1.0;
+    }
 }
 
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {

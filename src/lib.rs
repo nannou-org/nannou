@@ -22,7 +22,7 @@ extern crate toml;
 pub extern crate vulkano;
 pub extern crate vulkano_shaders;
 pub extern crate vulkano_win;
-extern crate winit;
+pub extern crate winit;
 
 pub use self::event::Event;
 pub use self::frame::Frame;
@@ -62,7 +62,7 @@ pub mod window;
 ///
 /// The Model that is returned by the function is the same model that will be passed to the
 /// given event and view functions.
-pub fn app<M>(model: app::ModelFn<M>) -> app::Builder<M, Event> {
+pub fn app<M: 'static>(model: app::ModelFn<M>) -> app::Builder<M, Event> {
     app::Builder::new(model)
 }
 

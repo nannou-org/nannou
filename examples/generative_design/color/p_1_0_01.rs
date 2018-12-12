@@ -46,7 +46,7 @@ fn view(app: &App, frame: Frame) -> Frame {
     draw.background().hsl(norm_mouse_y, 1.0, 0.5);
 
     draw.rect()
-        .w_h(app.mouse.x, app.mouse.x)
+        .w_h(app.mouse.x * 2.0, app.mouse.x * 2.0)
         .hsv(1.0 - (norm_mouse_y), 1.0, 0.5);
 
     // Write to the window frame.

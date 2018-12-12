@@ -92,7 +92,7 @@ where
                 channels,
                 sample_rate,
             };
-            model = capture(model, &buffer);
+            capture(&mut model, &buffer);
             std::mem::swap(samples, &mut buffer.interleaved_samples.into_vec());
             samples.clear();
         }

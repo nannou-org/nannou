@@ -8,7 +8,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).update(update).run();
 }
 
 // A type for a draggable attractive body in our world
@@ -107,9 +107,9 @@ struct Model {
 
 fn model(app: &App) -> Model {
     let rect = Rect::from_w_h(800.0, 200.0);
-    let _window = app
-        .new_window()
+    app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
+        .view(view)
         .build()
         .unwrap();
 
@@ -128,16 +128,12 @@ fn model(app: &App) -> Model {
     Model { movers, attractor }
 }
 
-fn event(_app: &App, mut m: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        for i in 0..m.movers.len() {
-            let force = m.attractor.attract(&m.movers[i]);
-            m.movers[i].apply_force(force);
-            m.movers[i].update();
-        }
+fn update(_app: &App, m: &mut Model, _update: Update) {
+    for i in 0..m.movers.len() {
+        let force = m.attractor.attract(&m.movers[i]);
+        m.movers[i].apply_force(force);
+        m.movers[i].update();
     }
-    m
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
