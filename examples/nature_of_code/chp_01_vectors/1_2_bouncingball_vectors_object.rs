@@ -9,7 +9,7 @@ use nannou::prelude::*;
 
 fn main() {
     nannou::app(model)
-        .event(event)
+        .update(update)
         .simple_window(view)
         .run();
 }
@@ -52,17 +52,13 @@ impl Ball {
 }
 
 fn model(app: &App) -> Model {
-    app.main_window().set_inner_size_points(200.0, 200.0);
+    app.main_window().set_inner_size_points(300.0, 300.0);
     let ball = Ball::new();
     Model { ball }
 }
 
-fn event(app: &App, mut m: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        m.ball.update(app.window_rect());
-    }
-    m
+fn update(app: &App, m: &mut Model, _update: Update) {
+    m.ball.update(app.window_rect());
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

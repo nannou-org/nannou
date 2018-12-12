@@ -15,7 +15,7 @@
 use audio;
 use audio::cpal;
 use draw;
-use event::{self, Event, LoopEvent, Key};
+use event::{self, Event, LoopEvent, Key, Update};
 use find_folder;
 use frame::Frame;
 use geom;
@@ -51,7 +51,10 @@ const DEPTH_FORMAT: Format = Format::D16Unorm;
 pub type ModelFn<Model> = fn(&App) -> Model;
 
 /// The user function type for updating their model in accordance with some event.
-pub type EventFn<Model, Event> = fn(&App, Model, Event) -> Model;
+pub type EventFn<Model, Event> = fn(&App, &mut Model, Event);
+
+/// The user function type for updating the user model within the application loop.
+pub type UpdateFn<Model> = fn(&App, &mut Model, Update);
 
 /// The user function type for drawing their model to the surface of a single window.
 pub type ViewFn<Model> = fn(&App, &Model, Frame) -> Frame;
@@ -73,8 +76,9 @@ enum View<Model = ()> {
 /// A nannou `App` builder.
 pub struct Builder<M = (), E = Event> {
     model: ModelFn<M>,
-    event: EventFn<M, E>,
-    view: Option<View<M>>,
+    event: Option<EventFn<M, E>>,
+    update: Option<UpdateFn<M>>,
+    default_view: Option<View<M>>,
     exit: Option<ExitFn<M>>,
     vulkan_instance: Option<Arc<vulkano::instance::Instance>>,
     vulkan_debug_callback: Option<gpu::VulkanDebugCallbackBuilder>,
@@ -84,11 +88,6 @@ pub struct Builder<M = (), E = Event> {
 /// The default `model` function used when none is specified by the user.
 fn default_model(_: &App) -> () {
     ()
-}
-
-/// The default `event` function used when none is specified by the user.
-fn default_event<M>(_: &App, model: M, _: Event) -> M {
-    model
 }
 
 /// Each nannou application has a single **App** instance. This **App** represents the entire
@@ -234,9 +233,12 @@ enum BreakReason {
 // State related specifically to the application loop, shared between loop modes.
 struct LoopContext<M, E> {
     // The user's application event function.
-    event_fn: EventFn<M, E>,
-    // The user's default function for drawing to a window's swapchain's image.
-    view: Option<View<M>>,
+    event_fn: Option<EventFn<M, E>>,
+    // The user's update function.
+    update_fn: Option<UpdateFn<M>>,
+    // The user's default function for drawing to a window's swapchain's image, used in the case
+    // that the user has not provided a window-specific view function.
+    default_view: Option<View<M>>,
     // The moment at which `run_loop` began.
     loop_start: Instant,
     // A buffer for collecting polled events.
@@ -331,7 +333,10 @@ pub enum LoopMode {
     },
 }
 
-impl<M> Builder<M, Event> {
+impl<M> Builder<M, Event>
+where
+    M: 'static,
+{
     /// Begin building the `App`.
     ///
     /// The `model` argument is the function that the App will call to initialise your Model.
@@ -346,8 +351,9 @@ impl<M> Builder<M, Event> {
     pub fn new(model: ModelFn<M>) -> Self {
         Builder {
             model,
-            event: default_event,
-            view: None,
+            event: None,
+            update: None,
+            default_view: None,
             exit: None,
             vulkan_instance: None,
             vulkan_debug_callback: None,
@@ -368,7 +374,8 @@ impl<M> Builder<M, Event> {
     {
         let Builder {
             model,
-            view,
+            update,
+            default_view,
             exit,
             create_default_window,
             vulkan_instance,
@@ -377,8 +384,9 @@ impl<M> Builder<M, Event> {
         } = self;
         Builder {
             model,
-            event,
-            view,
+            event: Some(event),
+            update,
+            default_view,
             exit,
             create_default_window,
             vulkan_instance,
@@ -389,15 +397,32 @@ impl<M> Builder<M, Event> {
 
 impl<M, E> Builder<M, E>
 where
+    M: 'static,
     E: LoopEvent,
 {
-    /// The `view` function that the app will call to allow you to present your Model to the
-    /// surface of a window on your display.
+    /// The default `view` function that the app will call to allow you to present your Model to
+    /// the surface of a window on your display.
+    ///
+    /// This function will be used in the case that a window-specific view function has not been
+    /// provided, e.g. via `window::Builder::view` or `window::Builder::sketch`.
     ///
     /// Note that when working with more than one window, you can use `frame.window_id()` to
     /// determine which window the current call is associated with.
     pub fn view(mut self, view: ViewFn<M>) -> Self {
-        self.view = Some(View::WithModel(view));
+        self.default_view = Some(View::WithModel(view));
+        self
+    }
+
+    /// A function for updating the model within the application loop.
+    ///
+    /// See the `LoopMode` documentation for more information about the different kinds of
+    /// application loop modes available in nannou and how they behave.
+    ///
+    /// Update events are also emitted as a variant of the `event` function. Note that if you
+    /// specify both an `event` function and an `update` function, the `event` function will always
+    /// be called with an update event prior to this `update` function.
+    pub fn update(mut self, update: UpdateFn<M>) -> Self {
+        self.update = Some(update);
         self
     }
 
@@ -415,7 +440,7 @@ where
     /// quick-and-easy way to start with a simple window. This can be very useful for quick ideas,
     /// small single-window applications and examples.
     pub fn simple_window(mut self, view: ViewFn<M>) -> Self {
-        self.view = Some(View::WithModel(view));
+        self.default_view = Some(View::WithModel(view));
         self.create_default_window = true;
         self
     }
@@ -541,7 +566,7 @@ where
             }
         }
 
-        run_loop(app, model, self.event, self.view, self.exit);
+        run_loop(app, model, self.event, self.update, self.default_view, self.exit);
     }
 }
 
@@ -552,10 +577,11 @@ impl Builder<(), Event> {
     /// This is useful for late night hack sessions where you just don't care about all that other
     /// stuff, you just want to play around with some ideas or make something pretty.
     pub fn sketch(view: SketchViewFn) {
-        let builder = Builder {
+        let builder: Self = Builder {
             model: default_model,
-            event: default_event,
-            view: Some(View::Sketch(view)),
+            event: None,
+            update: None,
+            default_view: Some(View::Sketch(view)),
             exit: None,
             create_default_window: true,
             vulkan_instance: None,
@@ -1086,11 +1112,13 @@ impl<'a> DerefMut for Draw<'a> {
 fn run_loop<M, E>(
     mut app: App,
     mut model: M,
-    event_fn: EventFn<M, E>,
-    view: Option<View<M>>,
+    event_fn: Option<EventFn<M, E>>,
+    update_fn: Option<UpdateFn<M>>,
+    default_view: Option<View<M>>,
     exit_fn: Option<ExitFn<M>>,
 )
 where
+    M: 'static,
     E: LoopEvent,
 {
     let loop_start = Instant::now();
@@ -1098,7 +1126,8 @@ where
     // Initialise the loop context.
     let mut loop_ctxt = LoopContext {
         event_fn,
-        view,
+        update_fn,
+        default_view,
         loop_start,
         winit_events: vec![],
         last_update: loop_start,
@@ -1198,6 +1227,7 @@ fn run_loop_mode_rate<M, E>(
     mut update_interval: Duration,
 ) -> Break<M>
 where
+    M: 'static,
     E: LoopEvent,
 {
     loop {
@@ -1227,15 +1257,18 @@ where
         app.time = app.duration.since_start.secs() as _;
 
         // Emit an update event.
-        let event = E::from(update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update));
-        model = (loop_ctxt.event_fn)(&app, model, event);
+        let update = update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update);
+        if let Some(event_fn) = loop_ctxt.event_fn {
+            let event = E::from(update.clone());
+            event_fn(&app, &mut model, event);
+        }
+        if let Some(update_fn) = loop_ctxt.update_fn {
+            update_fn(&app, &mut model, update);
+        }
 
         // Draw to each window.
-        {
-            let view = loop_ctxt.view.as_ref().expect("no default window view function");
-            for window_id in app.window_ids() {
-                acquire_image_and_view_frame(app, window_id, &model, view);
-            }
+        for window_id in app.window_ids() {
+            acquire_image_and_view_frame(app, window_id, &model, loop_ctxt.default_view.as_ref());
         }
 
         // Sleep if there's still some time left within the interval.
@@ -1266,6 +1299,7 @@ fn run_loop_mode_wait<M, E>(
     mut update_interval: Duration,
 ) -> Break<M>
 where
+    M: 'static,
     E: LoopEvent,
 {
     loop {
@@ -1308,16 +1342,19 @@ where
         app.time = app.duration.since_start.secs() as _;
 
         // Emit an update event.
-        let event = E::from(update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update));
-        model = (loop_ctxt.event_fn)(&app, model, event);
+        let update = update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update);
+        if let Some(event_fn) = loop_ctxt.event_fn {
+            let event = E::from(update.clone());
+            event_fn(&app, &mut model, event);
+        }
+        if let Some(update_fn) = loop_ctxt.update_fn {
+            update_fn(&app, &mut model, update);
+        }
         loop_ctxt.updates_remaining -= 1;
 
         // Draw to each window.
-        {
-            let view = loop_ctxt.view.as_ref().expect("no default window view function");
-            for window_id in app.window_ids() {
-                acquire_image_and_view_frame(app, window_id, &model, view);
-            }
+        for window_id in app.window_ids() {
+            acquire_image_and_view_frame(app, window_id, &model, loop_ctxt.default_view.as_ref());
         }
 
         // Sleep if there's still some time left within the interval.
@@ -1351,6 +1388,7 @@ fn run_loop_mode_refresh_sync<M, E>(
     mut windows: Option<HashSet<window::Id>>,
 ) -> Break<M>
 where
+    M: 'static,
     E: LoopEvent,
 {
     loop {
@@ -1418,8 +1456,14 @@ where
                 app.time = app.duration.since_start.secs() as _;
 
                 // Emit an update event.
-                let event = E::from(update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update));
-                model = (loop_ctxt.event_fn)(&app, model, event);
+                let update = update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update);
+                if let Some(event_fn) = loop_ctxt.event_fn {
+                    let event = E::from(update.clone());
+                    event_fn(&app, &mut model, event);
+                }
+                if let Some(update_fn) = loop_ctxt.update_fn {
+                    update_fn(&app, &mut model, update);
+                }
             }
 
             // If the window has been removed, continue.
@@ -1433,7 +1477,7 @@ where
                 window_id,
                 swapchain_image_index,
                 swapchain_image_acquire_future,
-                &loop_ctxt.view.as_ref().expect("no default window view function"),
+                loop_ctxt.default_view.as_ref(),
             );
         }
 
@@ -1522,6 +1566,7 @@ fn poll_and_process_events<M, E>(
     loop_ctxt: &mut LoopContext<M, E>,
 ) -> (M, bool, usize)
 where
+    M: 'static,
     E: LoopEvent,
 {
     let mut event_count = 0;
@@ -1605,14 +1650,16 @@ fn update_event(loop_start: Instant, last_update: &mut Instant) -> event::Update
 fn process_and_emit_winit_event<M, E>(
     app: &mut App,
     mut model: M,
-    event_fn: EventFn<M, E>,
+    event_fn: Option<EventFn<M, E>>,
     winit_event: winit::Event,
 ) -> (M, bool)
 where
+    M: 'static,
     E: LoopEvent,
 {
     // Inspect the event to see if it would require closing the App.
     let mut exit_on_escape = false;
+    let mut removed_window = None;
     if let winit::Event::WindowEvent {
         window_id,
         ref event,
@@ -1629,11 +1676,11 @@ where
 
         // If a window was destroyed, remove it from the display map.
         if let winit::WindowEvent::Destroyed = *event {
-            app.windows.borrow_mut().remove(&window_id);
+            removed_window = app.windows.borrow_mut().remove(&window_id);
         // TODO: We should allow the user to handle this case. E.g. allow for doing things like
         // "would you like to save".
         } else if let winit::WindowEvent::CloseRequested = *event {
-            app.windows.borrow_mut().remove(&window_id);
+            removed_window = app.windows.borrow_mut().remove(&window_id);
         } else {
             // Get the size of the screen for translating coords and dimensions.
             let (win_w_px, win_h_px, hidpi_factor) = match app.window(window_id) {
@@ -1734,9 +1781,154 @@ where
         }
     }
 
-    // If the winit::Event could be interpreted as some event `E`, use it to update the model.
-    if let Some(event) = E::from_winit_event(winit_event, app) {
-        model = event_fn(&app, model, event);
+    // If the user provided an event function and winit::Event could be interpreted as some event
+    // `E`, use it to update the model.
+    if let Some(event_fn) = event_fn {
+        if let Some(event) = E::from_winit_event(winit_event.clone(), app) {
+            event_fn(&app, &mut model, event);
+        }
+    }
+
+    // If the event was a window event, and the user specified an event function for this window,
+    // call it.
+    if let winit::Event::WindowEvent { window_id, event } = winit_event {
+        // Raw window events.
+        if let Some(raw_window_event_fn) = {
+            let windows = app.windows.borrow();
+            windows
+                .get(&window_id)
+                .and_then(|w| w.user_functions.raw_event.clone())
+                .or_else(|| {
+                    removed_window
+                        .as_ref()
+                        .and_then(|w| w.user_functions.raw_event.clone())
+                })
+        } {
+            let raw_window_event_fn = raw_window_event_fn
+                .to_fn_ptr::<M>()
+                .expect("unexpected model argument given to window event function");
+            (*raw_window_event_fn)(&app, &mut model, event.clone());
+        }
+
+        let (win_w, win_h) = {
+            let windows = app.windows.borrow();
+            windows
+                .get(&window_id)
+                .and_then(|w| {
+                    w.surface
+                        .window()
+                        .get_inner_size()
+                        .map(|size| size.into())
+                })
+                .unwrap_or((0f64, 0f64))
+        };
+
+        // If the event can be represented by a simplified nannou event, check for relevant user
+        // functions to be called.
+        if let Some(simple) = event::WindowEvent::from_winit_window_event(event, win_w, win_h) {
+            // Nannou window events.
+            if let Some(window_event_fn) = {
+                let windows = app.windows.borrow();
+                windows
+                    .get(&window_id)
+                    .and_then(|w| w.user_functions.event.clone())
+                    .or_else(|| {
+                        removed_window
+                            .as_ref()
+                            .and_then(|w| w.user_functions.event.clone())
+                    })
+            } {
+                let window_event_fn = window_event_fn
+                    .to_fn_ptr::<M>()
+                    .expect("unexpected model argument given to window event function");
+                (*window_event_fn)(&app, &mut model, simple.clone());
+            }
+
+            // A macro to simplify calling event-specific user functions.
+            macro_rules! call_user_function {
+                ($fn_name:ident $(,$arg:expr)*) => {{
+                    if let Some(event_fn) = {
+                        let windows = app.windows.borrow();
+                        windows
+                            .get(&window_id)
+                            .and_then(|w| w.user_functions.$fn_name.clone())
+                            .or_else(|| {
+                                removed_window
+                                    .as_ref()
+                                    .and_then(|w| w.user_functions.$fn_name.clone())
+                            })
+                    } {
+                        let event_fn = event_fn
+                            .to_fn_ptr::<M>()
+                            .unwrap_or_else(|| {
+                                panic!(
+                                    "unexpected model argument given to {} function",
+                                    stringify!($fn_name),
+                                );
+                            });
+                        (*event_fn)(&app, &mut model, $($arg),*);
+                    }
+                }};
+            }
+
+            // Check for more specific event functions.
+            match simple {
+                event::WindowEvent::KeyPressed(key) => {
+                    call_user_function!(key_pressed, key)
+                }
+                event::WindowEvent::KeyReleased(key) => {
+                    call_user_function!(key_released, key)
+                }
+                event::WindowEvent::MouseMoved(pos) => {
+                    call_user_function!(mouse_moved, pos)
+                }
+                event::WindowEvent::MousePressed(button) => {
+                    call_user_function!(mouse_pressed, button)
+                }
+                event::WindowEvent::MouseReleased(button) => {
+                    call_user_function!(mouse_released, button)
+                }
+                event::WindowEvent::MouseEntered => {
+                    call_user_function!(mouse_entered)
+                }
+                event::WindowEvent::MouseExited => {
+                    call_user_function!(mouse_exited)
+                }
+                event::WindowEvent::MouseWheel(amount, phase) => {
+                    call_user_function!(mouse_wheel, amount, phase)
+                }
+                event::WindowEvent::Moved(pos) => {
+                    call_user_function!(moved, pos)
+                }
+                event::WindowEvent::Resized(size) => {
+                    call_user_function!(resized, size)
+                }
+                event::WindowEvent::Touch(touch) => {
+                    call_user_function!(touch, touch)
+                }
+                event::WindowEvent::TouchPressure(pressure) => {
+                    call_user_function!(touchpad_pressure, pressure)
+                }
+                event::WindowEvent::HoveredFile(path) => {
+                    call_user_function!(hovered_file, path)
+                }
+                event::WindowEvent::HoveredFileCancelled => {
+                    call_user_function!(hovered_file_cancelled)
+                }
+                event::WindowEvent::DroppedFile(path) => {
+                    call_user_function!(dropped_file, path)
+                }
+                event::WindowEvent::Focused => {
+                    call_user_function!(focused)
+                }
+                event::WindowEvent::Unfocused => {
+                    call_user_function!(unfocused)
+                }
+                event::WindowEvent::Closed => {
+                    call_user_function!(closed)
+                }
+            }
+        }
     }
 
     // If exit on escape was triggered, we're done.
@@ -1758,8 +1950,11 @@ fn view_frame<M>(
     window_id: window::Id,
     swapchain_image_index: usize,
     swapchain_image_acquire_future: window::SwapchainAcquireFuture,
-    view: &View<M>,
-) {
+    default_view: Option<&View<M>>,
+)
+where
+    M: 'static,
+{
     // Retrieve the queue and swapchain associated with this window.
     let (queue, swapchain) = {
         let windows = app.windows.borrow();
@@ -1787,9 +1982,27 @@ fn view_frame<M>(
         swapchain_image,
         swapchain_frame_created,
     ).expect("failed to create `Frame`");
-    let frame = match view {
-        View::Sketch(view) => view(app, frame),
-        View::WithModel(view) => view(app, &model, frame),
+    // If the user specified a view function specifically for this window, use it.
+    // Otherwise, use the fallback, default view passed to the app if there was one.
+    let window_view = {
+        let windows = app.windows.borrow();
+        windows
+            .get(&window_id)
+            .and_then(|w| w.user_functions.view.clone())
+    };
+    let frame = match window_view {
+        Some(window::View::Sketch(view)) => view(app, frame),
+        Some(window::View::WithModel(view)) => {
+            let view = view
+                .to_fn_ptr::<M>()
+                .expect("unexpected model argument given to window view function");
+            (*view)(app, model, frame)
+        },
+        None => match default_view {
+            Some(View::Sketch(view)) => view(app, frame),
+            Some(View::WithModel(view)) => view(app, &model, frame),
+            None => frame,
+        },
     };
     let command_buffer = frame.finish().build().expect("failed to build command buffer");
 
@@ -1844,8 +2057,11 @@ fn acquire_image_and_view_frame<M>(
     app: &mut App,
     window_id: window::Id,
     model: &M,
-    view: &View<M>,
-) -> bool {
+    view: Option<&View<M>>,
+) -> bool
+where
+    M: 'static,
+{
     // Skip closed windows.
     if app.window(window_id).is_none() {
         return false;

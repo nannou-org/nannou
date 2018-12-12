@@ -8,7 +8,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -110,30 +110,25 @@ impl ParticleSystem {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().with_dimensions(640, 360).build().unwrap();
+    app.new_window()
+        .with_dimensions(640, 360)
+        .mouse_pressed(mouse_pressed)
+        .view(view)
+        .build()
+        .unwrap();
     let systems = Vec::new();
     Model { systems }
 }
 
-fn event(app: &App, mut m: Model, event: Event) -> Model {
-    match event {
-        Event::WindowEvent {
-            simple: Some(MousePressed(_button)),
-            ..
-        } => {
-            m.systems
-                .push(ParticleSystem::new(1, pt2(app.mouse.x, app.mouse.y)));
-        }
-        // update gets called just before view every frame
-        Event::Update(_dt) => {
-            for ps in m.systems.iter_mut() {
-                ps.add_particle();
-                ps.update();
-            }
-        }
-        _ => (),
+fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
+    m.systems.push(ParticleSystem::new(1, pt2(app.mouse.x, app.mouse.y)));
+}
+
+fn update(_app: &App, m: &mut Model, _update: Update) {
+    for ps in m.systems.iter_mut() {
+        ps.add_particle();
+        ps.update();
     }
-    m
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

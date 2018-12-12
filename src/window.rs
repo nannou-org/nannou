@@ -2,9 +2,14 @@
 //! This produces a [**Builder**](./struct.Builder.html) which can be used to build a window.
 
 use app::LoopMode;
+use event::{Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase, TouchpadPressure, WindowEvent};
+use frame::Frame;
 use geom;
+use geom::{Point2, Vector2};
+use std::any::Any;
 use std::{cmp, env, fmt, ops};
 use std::error::Error as StdError;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use vulkano::device::{self, Device};
@@ -34,7 +39,168 @@ pub struct Builder<'app> {
     window: winit::WindowBuilder,
     title_was_set: bool,
     swapchain_builder: SwapchainBuilder,
+    user_functions: UserFunctions,
 }
+
+/// For storing all user functions within the window.
+#[derive(Debug, Default)]
+pub(crate) struct UserFunctions {
+    pub(crate) view: Option<View>,
+    pub(crate) event: Option<EventFnAny>,
+    pub(crate) raw_event: Option<RawEventFnAny>,
+    pub(crate) key_pressed: Option<KeyPressedFnAny>,
+    pub(crate) key_released: Option<KeyReleasedFnAny>,
+    pub(crate) mouse_moved: Option<MouseMovedFnAny>,
+    pub(crate) mouse_pressed: Option<MousePressedFnAny>,
+    pub(crate) mouse_released: Option<MouseReleasedFnAny>,
+    pub(crate) mouse_entered: Option<MouseEnteredFnAny>,
+    pub(crate) mouse_exited: Option<MouseExitedFnAny>,
+    pub(crate) mouse_wheel: Option<MouseWheelFnAny>,
+    pub(crate) moved: Option<MovedFnAny>,
+    pub(crate) resized: Option<ResizedFnAny>,
+    pub(crate) touch: Option<TouchFnAny>,
+    pub(crate) touchpad_pressure: Option<TouchpadPressureFnAny>,
+    pub(crate) hovered_file: Option<HoveredFileFnAny>,
+    pub(crate) hovered_file_cancelled: Option<HoveredFileCancelledFnAny>,
+    pub(crate) dropped_file: Option<DroppedFileFnAny>,
+    pub(crate) focused: Option<FocusedFnAny>,
+    pub(crate) unfocused: Option<UnfocusedFnAny>,
+    pub(crate) closed: Option<ClosedFnAny>,
+}
+
+/// The user function type for drawing their model to the surface of a single window.
+pub type ViewFn<Model> = fn(&App, &Model, Frame) -> Frame;
+
+/// The same as `ViewFn`, but provides no user model to draw from.
+///
+/// Useful for simple, stateless sketching.
+pub type SketchFn = fn(&App, Frame) -> Frame;
+
+/// The user's view function, whether with a model or without one.
+#[derive(Clone)]
+pub(crate) enum View {
+    WithModel(ViewFnAny),
+    Sketch(SketchFn),
+}
+
+/// A function for processing raw winit window events.
+pub type RawEventFn<Model> = fn(&App, &mut Model, winit::WindowEvent);
+
+/// A function for processing window events.
+pub type EventFn<Model> = fn(&App, &mut Model, WindowEvent);
+
+/// A function for processing key press events.
+pub type KeyPressedFn<Model> = fn(&App, &mut Model, Key);
+
+/// A function for processing key release events.
+pub type KeyReleasedFn<Model> = fn(&App, &mut Model, Key);
+
+/// A function for processing mouse moved events.
+pub type MouseMovedFn<Model> = fn(&App, &mut Model, Point2);
+
+/// A function for processing mouse pressed events.
+pub type MousePressedFn<Model> = fn(&App, &mut Model, MouseButton);
+
+/// A function for processing mouse released events.
+pub type MouseReleasedFn<Model> = fn(&App, &mut Model, MouseButton);
+
+/// A function for processing mouse entered events.
+pub type MouseEnteredFn<Model> = fn(&App, &mut Model);
+
+/// A function for processing mouse exited events.
+pub type MouseExitedFn<Model> = fn(&App, &mut Model);
+
+/// A function for processing mouse wheel events.
+pub type MouseWheelFn<Model> = fn(&App, &mut Model, MouseScrollDelta, TouchPhase);
+
+/// A function for processing window moved events.
+pub type MovedFn<Model> = fn(&App, &mut Model, Vector2);
+
+/// A function for processing window resized events.
+pub type ResizedFn<Model> = fn(&App, &mut Model, Vector2);
+
+/// A function for processing touch events.
+pub type TouchFn<Model> = fn(&App, &mut Model, TouchEvent);
+
+/// A function for processing touchpad pressure events.
+pub type TouchpadPressureFn<Model> = fn(&App, &mut Model, TouchpadPressure);
+
+/// A function for processing hovered file events.
+pub type HoveredFileFn<Model> = fn(&App, &mut Model, PathBuf);
+
+/// A function for processing hovered file cancelled events.
+pub type HoveredFileCancelledFn<Model> = fn(&App, &mut Model);
+
+/// A function for processing dropped file events.
+pub type DroppedFileFn<Model> = fn(&App, &mut Model, PathBuf);
+
+/// A function for processing window focused events.
+pub type FocusedFn<Model> = fn(&App, &mut Model);
+
+/// A function for processing window unfocused events.
+pub type UnfocusedFn<Model> = fn(&App, &mut Model);
+
+/// A function for processing window closed events.
+pub type ClosedFn<Model> = fn(&App, &mut Model);
+
+// A macro for generating a handle to a function that can be stored within the Window without
+// requiring a type param. $TFn is the function pointer type that will be wrapped by $TFnAny.
+macro_rules! fn_any {
+    ($TFn:ident<M>, $TFnAny:ident) => {
+        // A handle to a function that can be stored without requiring a type param.
+        #[derive(Clone)]
+        pub(crate) struct $TFnAny {
+            fn_ptr: Arc<Any>
+        }
+
+        impl $TFnAny {
+            // Create the `$TFnAny` from a view function pointer.
+            pub fn from_fn_ptr<M>(fn_ptr: $TFn<M>) -> Self
+            where
+                M: 'static,
+            {
+                let fn_ptr = Arc::new(fn_ptr) as Arc<Any>;
+                $TFnAny { fn_ptr }
+            }
+        
+            // Retrieve the view function pointer from the `$TFnAny`.
+            pub fn to_fn_ptr<M>(&self) -> Option<&$TFn<M>>
+            where
+                M: 'static,
+            {
+                self.fn_ptr.downcast_ref::<$TFn<M>>()
+            }
+        }
+
+        impl fmt::Debug for $TFnAny {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "{}", stringify!($TFnAny))
+            }
+        }
+    };
+}
+
+fn_any!(ViewFn<M>, ViewFnAny);
+fn_any!(EventFn<M>, EventFnAny);
+fn_any!(RawEventFn<M>, RawEventFnAny);
+fn_any!(KeyPressedFn<M>, KeyPressedFnAny);
+fn_any!(KeyReleasedFn<M>, KeyReleasedFnAny);
+fn_any!(MouseMovedFn<M>, MouseMovedFnAny);
+fn_any!(MousePressedFn<M>, MousePressedFnAny);
+fn_any!(MouseReleasedFn<M>, MouseReleasedFnAny);
+fn_any!(MouseEnteredFn<M>, MouseEnteredFnAny);
+fn_any!(MouseExitedFn<M>, MouseExitedFnAny);
+fn_any!(MouseWheelFn<M>, MouseWheelFnAny);
+fn_any!(MovedFn<M>, MovedFnAny);
+fn_any!(ResizedFn<M>, ResizedFnAny);
+fn_any!(TouchFn<M>, TouchFnAny);
+fn_any!(TouchpadPressureFn<M>, TouchpadPressureFnAny);
+fn_any!(HoveredFileFn<M>, HoveredFileFnAny);
+fn_any!(HoveredFileCancelledFn<M>, HoveredFileCancelledFnAny);
+fn_any!(DroppedFileFn<M>, DroppedFileFnAny);
+fn_any!(FocusedFn<M>, FocusedFnAny);
+fn_any!(UnfocusedFn<M>, UnfocusedFnAny);
+fn_any!(ClosedFn<M>, ClosedFnAny);
 
 /// An OpenGL window.
 ///
@@ -46,6 +212,7 @@ pub struct Window {
     pub(crate) surface: Arc<Surface>,
     pub(crate) swapchain: Arc<WindowSwapchain>,
     pub(crate) frame_count: u64,
+    pub(crate) user_functions: UserFunctions,
     // If the user specified one of the following parameters, use these when recreating the
     // swapchain rather than our heuristics.
     pub(crate) user_specified_present_mode: Option<PresentMode>,
@@ -353,6 +520,7 @@ impl<'app> Builder<'app> {
             window: winit::WindowBuilder::new(),
             title_was_set: false,
             swapchain_builder: Default::default(),
+            user_functions: Default::default(),
         }
     }
 
@@ -374,6 +542,230 @@ impl<'app> Builder<'app> {
         self
     }
 
+    /// Provide a simple function for drawing to the window.
+    ///
+    /// This is similar to `view` but does not provide access to user data via a Model type. This
+    /// is useful for sketches where you don't require tracking any state.
+    pub fn sketch(mut self, sketch_fn: SketchFn) -> Self {
+        self.user_functions.view = Some(View::Sketch(sketch_fn));
+        self
+    }
+
+    /// The `view` function that the app will call to allow you to present your Model to the
+    /// surface of the window on your display.
+    pub fn view<M>(mut self, view_fn: ViewFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.view = Some(View::WithModel(ViewFnAny::from_fn_ptr(view_fn)));
+        self
+    }
+
+    /// A function for updating your model on `WindowEvent`s associated with this window.
+    ///
+    /// These include events such as key presses, mouse movement, clicks, resizing, etc.
+    ///
+    /// ## Event Function Call Order
+    ///
+    /// In nannou, if multiple functions require being called for a single kind of event, the more
+    /// general event function will always be called before the more specific event function.
+    ///
+    /// If an `event` function was also submitted to the `App`, that function will always be called
+    /// immediately before window-specific event functions. Similarly, if a function associated
+    /// with a more specific event type (e.g. `key_pressed`) was given, that function will be
+    /// called *after* this function will be called.
+    ///
+    /// ## Specific Events Variants
+    ///
+    /// Note that if you only care about a certain kind of event, you can submit a function that
+    /// only gets called for that specific event instead. For example, if you only care about key
+    /// presses, you may wish to use the `key_pressed` method instead.
+    pub fn event<M>(mut self, event_fn: EventFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.event = Some(EventFnAny::from_fn_ptr(event_fn));
+        self
+    }
+
+    /// The same as the `event` method, but allows for processing raw `winit::WindowEvent`s rather
+    /// than Nannou's simplified `event::WindowEvent`s.
+    ///
+    /// ## Event Function Call Order
+    ///
+    /// If both `raw_event` and `event` functions have been provided, the given `raw_event`
+    /// function will always be called immediately before the given `event` function.
+    pub fn raw_event<M>(mut self, raw_event_fn: RawEventFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.raw_event = Some(RawEventFnAny::from_fn_ptr(raw_event_fn));
+        self
+    }
+
+    /// A function for processing key press events associated with this window.
+    pub fn key_pressed<M>(mut self, f: KeyPressedFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.key_pressed = Some(KeyPressedFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing key release events associated with this window.
+    pub fn key_released<M>(mut self, f: KeyReleasedFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.key_released = Some(KeyReleasedFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing mouse moved events associated with this window.
+    pub fn mouse_moved<M>(mut self, f: MouseMovedFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.mouse_moved = Some(MouseMovedFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing mouse pressed events associated with this window.
+    pub fn mouse_pressed<M>(mut self, f: MousePressedFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.mouse_pressed = Some(MousePressedFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing mouse released events associated with this window.
+    pub fn mouse_released<M>(mut self, f: MouseReleasedFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.mouse_released = Some(MouseReleasedFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing mouse wheel events associated with this window.
+    pub fn mouse_wheel<M>(mut self, f: MouseWheelFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.mouse_wheel = Some(MouseWheelFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing mouse entered events associated with this window.
+    pub fn mouse_entered<M>(mut self, f: MouseEnteredFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.mouse_entered = Some(MouseEnteredFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing mouse exited events associated with this window.
+    pub fn mouse_exited<M>(mut self, f: MouseExitedFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.mouse_exited = Some(MouseExitedFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing touch events associated with this window.
+    pub fn touch<M>(mut self, f: TouchFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.touch = Some(TouchFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing touchpad pressure events associated with this window.
+    pub fn touchpad_pressure<M>(mut self, f: TouchpadPressureFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.touchpad_pressure = Some(TouchpadPressureFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing window moved events associated with this window.
+    pub fn moved<M>(mut self, f: MovedFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.moved = Some(MovedFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing window resized events associated with this window.
+    pub fn resized<M>(mut self, f: ResizedFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.resized = Some(ResizedFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing hovered file events associated with this window.
+    pub fn hovered_file<M>(mut self, f: HoveredFileFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.hovered_file = Some(HoveredFileFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing hovered file cancelled events associated with this window.
+    pub fn hovered_file_cancelled<M>(mut self, f: HoveredFileCancelledFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.hovered_file_cancelled =
+            Some(HoveredFileCancelledFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing dropped file events associated with this window.
+    pub fn dropped_file<M>(mut self, f: DroppedFileFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.dropped_file = Some(DroppedFileFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing the focused event associated with this window.
+    pub fn focused<M>(mut self, f: FocusedFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.focused = Some(FocusedFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing the unfocused event associated with this window.
+    pub fn unfocused<M>(mut self, f: UnfocusedFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.unfocused = Some(UnfocusedFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing the window closed event associated with this window.
+    pub fn closed<M>(mut self, f: ClosedFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.closed = Some(ClosedFnAny::from_fn_ptr(f));
+        self
+    }
+
     /// Builds the window, inserts it into the `App`'s display map and returns the unique ID.
     pub fn build(self) -> Result<Id, BuildError> {
         let Builder {
@@ -382,6 +774,7 @@ impl<'app> Builder<'app> {
             mut window,
             title_was_set,
             swapchain_builder,
+            user_functions,
         } = self;
 
         // If the title was not set, default to the "nannou - <exe_name>".
@@ -507,6 +900,7 @@ impl<'app> Builder<'app> {
             surface,
             swapchain,
             frame_count,
+            user_functions,
             user_specified_present_mode,
             user_specified_image_count,
         };
@@ -530,6 +924,7 @@ impl<'app> Builder<'app> {
             window,
             title_was_set,
             swapchain_builder,
+            user_functions,
         } = self;
         let window = map(window);
         Builder {
@@ -538,6 +933,7 @@ impl<'app> Builder<'app> {
             window,
             title_was_set,
             swapchain_builder,
+            user_functions,
         }
     }
 
@@ -863,6 +1259,20 @@ impl Window {
     }
 }
 
+// Debug implementations for function wrappers.
+
+impl fmt::Debug for View {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let variant = match *self {
+            View::WithModel(ref v) => format!("WithModel({:?})", v),
+            View::Sketch(_) => "Sketch".to_string(),
+        };
+        write!(f, "View::{}", variant)
+    }
+}
+
+// Deref implementations.
+
 impl ops::Deref for WindowSwapchain {
     type Target = Arc<Swapchain>;
     fn deref(&self) -> &Self::Target {
@@ -880,6 +1290,8 @@ impl fmt::Debug for WindowSwapchain {
         )
     }
 }
+
+// Error implementations.
 
 impl StdError for BuildError {
     fn description(&self) -> &str {

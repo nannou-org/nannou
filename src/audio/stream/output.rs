@@ -7,8 +7,8 @@ use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
 /// The function that will be called when a `Buffer` is ready to be rendered.
-pub trait RenderFn<M, S>: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
-impl<M, S, F> RenderFn<M, S> for F where F: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
+pub trait RenderFn<M, S>: Fn(&mut M, &mut Buffer<S>) {}
+impl<M, S, F> RenderFn<M, S> for F where F: Fn(&mut M, &mut Buffer<S>) {}
 
 pub struct Builder<M, F, S = f32> {
     pub builder: super::Builder<M, S>,

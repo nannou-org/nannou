@@ -3,10 +3,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model)
-        .event(event) // The function that will be called when the app receives events.
-        .view(view) // The function that will be called for drawing to the window.
-        .run();
+    nannou::app(model).run();
 }
 
 struct Model {
@@ -16,14 +13,19 @@ struct Model {
 
 fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
-    let _window = app.new_window().with_dimensions(512, 512).with_title("nannou").build().unwrap();
+    let _window = app.new_window()
+        .with_dimensions(512, 512)
+        .with_title("nannou")
+        .view(view) // The function that will be called for presenting graphics to a frame.
+        .event(event) // The function that will be called when the window receives events.
+        .build()
+        .unwrap();
     Model { _window }
 }
 
 // Handle events related to the window and update the model if necessary
-fn event(_app: &App, model: Model, event: Event) -> Model {
+fn event(_app: &App, _model: &mut Model, event: WindowEvent) {
     println!("{:?}", event);
-    model
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
