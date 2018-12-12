@@ -8,7 +8,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -70,17 +70,13 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().with_dimensions(640, 360).build().unwrap();
+    app.new_window().with_dimensions(640, 360).view(view).build().unwrap();
     let mover = Mover::new(app.window_rect());
     Model { mover }
 }
 
-fn event(_app: &App, mut m: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        m.mover.update();
-    }
-    m
+fn update(_app: &App, m: &mut Model, _update: Update) {
+    m.mover.update();
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

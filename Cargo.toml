@@ -42,6 +42,9 @@ winit = "0.18"
 
 # --------------- Nannou Examples
 [[example]]
+name = "all_functions"
+path = "examples/all_functions.rs"
+[[example]]
 name = "loop_mode"
 path = "examples/loop_mode.rs"
 [[example]]

@@ -12,54 +12,45 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).update(update).simple_window(view).run();
 }
 
 struct Model {
-    color_count: i32,
-    _act_random_seed: i32,
+    color_count: usize,
     hue_values: Vec<f32>,
     saturation_values: Vec<f32>,
     brightness_values: Vec<f32>,
 }
 
-fn model(app: &App) -> Model {
+fn model(_app: &App) -> Model {
     let color_count = 20;
-    let _act_random_seed = 0;
 
     // Note you can decalre and pack a vector with random values like this in rust
-    let hue_values = (0..color_count).map(|_| 0.0).collect();
-    let saturation_values = (0..color_count).map(|_| 0.0).collect();
-    let brightness_values = (0..color_count).map(|_| 0.0).collect();
+    let hue_values = vec![0.0; color_count];
+    let saturation_values = vec![0.0; color_count];
+    let brightness_values = vec![0.0; color_count];
 
-    let _window = app.new_window().with_dimensions(720, 720).build().unwrap();
     Model {
         color_count,
-        _act_random_seed,
         hue_values,
         saturation_values,
         brightness_values,
     }
 }
 
-fn event(_app: &App, mut model: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        // ------ colors ------
-        // create palette
-        for i in 0..model.color_count {
-            if i % 2 == 0 {
-                model.hue_values[i as usize] = random_f32(); // * 0.36 + 0.61;
-                model.saturation_values[i as usize] = 1.0;
-                model.brightness_values[i as usize] = random_f32() * 0.85 + 0.15;
-            } else {
-                model.hue_values[i as usize] = 0.54;
-                model.saturation_values[i as usize] = random_f32() * 0.8 + 0.2;
-                model.brightness_values[i as usize] = 1.0;
-            }
+fn update(_app: &App, model: &mut Model, _update: Update) {
+    // Create palette
+    for i in 0..model.color_count {
+        if i % 2 == 0 {
+            model.hue_values[i] = random_f32(); // * 0.36 + 0.61;
+            model.saturation_values[i] = 1.0;
+            model.brightness_values[i] = random_f32() * 0.85 + 0.15;
+        } else {
+            model.hue_values[i] = 0.54;
+            model.saturation_values[i] = random_f32() * 0.8 + 0.2;
+            model.brightness_values[i] = 1.0;
         }
     }
-    model
 }
 
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {
@@ -134,7 +125,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         }
     }
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
 
     // Return the drawn frame.

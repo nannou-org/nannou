@@ -12,7 +12,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -131,9 +131,10 @@ impl Mover {
 
 fn model(app: &App) -> Model {
     let rect = Rect::from_w_h(640.0, 360.0);
-    let _window = app
-        .new_window()
+    app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
+        .mouse_pressed(mouse_pressed)
+        .view(view)
         .build()
         .unwrap();
 
@@ -155,39 +156,30 @@ fn model(app: &App) -> Model {
     Model { movers, liquid }
 }
 
-fn event(app: &App, mut m: Model, event: Event) -> Model {
-    match event {
-        Event::WindowEvent {
-            simple: Some(MousePressed(_button)),
-            ..
-        } => {
-            // Restart all the Mover objects randomly
-            for mover in &mut m.movers {
-                *mover = Mover::new_random(&app.window_rect());
-            }
-        }
-        // update gets called just before view every frame
-        Event::Update(_update) => {
-            for i in 0..m.movers.len() {
-                // Is the Mover in the liquid?
-                if m.liquid.contains(&m.movers[i]) {
-                    let drag_force = m.liquid.drag(&m.movers[i]);
-                    // Apply drag force to Mover
-                    m.movers[i].apply_force(drag_force);
-                }
-
-                // Gravity is scaled by mass here!
-                let gravity = vec2(0.0, -0.1 * m.movers[i].mass);
-
-                // Apply gravity
-                m.movers[i].apply_force(gravity);
-                m.movers[i].update();
-                m.movers[i].check_edges(app.window_rect());
-            }
-        }
-        _ => (),
+fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
+    // Restart all the Mover objects randomly
+    for mover in &mut m.movers {
+        *mover = Mover::new_random(&app.window_rect());
     }
-    m
+}
+
+fn update(app: &App, m: &mut Model, _update: Update) {
+    for i in 0..m.movers.len() {
+        // Is the Mover in the liquid?
+        if m.liquid.contains(&m.movers[i]) {
+            let drag_force = m.liquid.drag(&m.movers[i]);
+            // Apply drag force to Mover
+            m.movers[i].apply_force(drag_force);
+        }
+    
+        // Gravity is scaled by mass here!
+        let gravity = vec2(0.0, -0.1 * m.movers[i].mass);
+    
+        // Apply gravity
+        m.movers[i].apply_force(gravity);
+        m.movers[i].update();
+        m.movers[i].check_edges(app.window_rect());
+    }
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

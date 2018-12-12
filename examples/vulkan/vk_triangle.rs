@@ -15,11 +15,10 @@ use nannou::vulkano::pipeline::viewport::Viewport;
 use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).run();
 }
 
 struct Model {
-    _window: WindowId,
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
@@ -34,10 +33,9 @@ struct Vertex {
 nannou::vulkano::impl_vertex!(Vertex, position);
 
 fn model(app: &App) -> Model {
-    let _window = app
-        .new_window()
+    app.new_window()
         .with_dimensions(512, 512)
-        .with_title("nannou")
+        .view(view)
         .build()
         .unwrap();
 
@@ -140,18 +138,11 @@ fn model(app: &App) -> Model {
     let framebuffers = RefCell::new(Vec::new());
 
     Model {
-        _window,
         render_pass,
         pipeline,
         vertex_buffer,
         framebuffers,
     }
-}
-
-// Handle events related to the window and update the model if necessary
-fn event(_app: &App, model: Model, event: Event) -> Model {
-    if let Event::Update(_update) = event {}
-    model
 }
 
 // Draw the state of your `Model` into the given `Frame` here.

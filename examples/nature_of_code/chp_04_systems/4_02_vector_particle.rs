@@ -8,7 +8,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -66,24 +66,20 @@ impl Particle {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().with_dimensions(640, 360).build().unwrap();
+    app.new_window().with_dimensions(640, 360).view(view).build().unwrap();
     let particles = Vec::new();
     Model { particles }
 }
 
-fn event(app: &App, mut m: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        m.particles
-            .push(Particle::new(pt2(0.0, app.window_rect().top() - 50.0)));
-        for i in (0..m.particles.len()).rev() {
-            m.particles[i].update();
-            if m.particles[i].is_dead() {
-                m.particles.remove(i);
-            }
+fn update(app: &App, m: &mut Model, _update: Update) {
+    m.particles
+        .push(Particle::new(pt2(0.0, app.window_rect().top() - 50.0)));
+    for i in (0..m.particles.len()).rev() {
+        m.particles[i].update();
+        if m.particles[i].is_dead() {
+            m.particles.remove(i);
         }
     }
-    m
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

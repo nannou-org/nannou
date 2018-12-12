@@ -8,7 +8,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -97,20 +97,16 @@ impl Wave {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().with_dimensions(750, 200).build().unwrap();
+    app.new_window().with_dimensions(750, 200).view(view).build().unwrap();
     let wave0 = Wave::new(pt2(-325.0, 25.0), 100.0, 20.0, 500.0);
     let wave1 = Wave::new(pt2(-75.0, 0.0), 300.0, 40.0, 220.0);
     Model { wave0, wave1 }
 }
 
-fn event(_app: &App, mut m: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        // Update waves
-        m.wave0.calculate();
-        m.wave1.calculate();
-    }
-    m
+fn update(_app: &App, m: &mut Model, _update: Update) {
+    // Update waves
+    m.wave0.calculate();
+    m.wave1.calculate();
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
