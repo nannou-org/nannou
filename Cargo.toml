@@ -1,6 +1,6 @@
 [package]
 name = "nannou"
-version = "0.8.0"
+version = "0.9.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A Creative Coding Framework for Rust."
 readme = "README.md"
