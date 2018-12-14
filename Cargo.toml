@@ -126,6 +126,9 @@ path = "examples/vulkan/vk_compute_shader.rs"
 [[example]]
 name = "vk_shader_include"
 path = "examples/vulkan/vk_shader_include/mod.rs"
+[[example]]
+name = "vk_debug"
+path = "examples/vulkan/vk_debug.rs"
 
 # --------------- Generative Design
 [[example]]
