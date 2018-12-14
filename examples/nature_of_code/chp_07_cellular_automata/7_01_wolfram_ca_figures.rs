@@ -12,7 +12,7 @@ use nannou::prelude::*;
 use std::ops::Range;
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).update(update).run();
 }
 
 // A Type to manage the CA
@@ -146,9 +146,9 @@ struct Model {
 
 fn model(app: &App) -> Model {
     let rect = Rect::from_w_h(1800.0, 600.0);
-    let _window = app
-        .new_window()
+    app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
+        .view(view)
         .build()
         .unwrap();
 
@@ -157,17 +157,13 @@ fn model(app: &App) -> Model {
     Model { ca }
 }
 
-fn event(app: &App, mut m: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        if m.ca.finished(&app.window_rect()) == false {
-            m.ca.generate();
-        } else {
-            m.ca.randomize();
-            m.ca.restart();
-        }
+fn update(app: &App, m: &mut Model, _update: Update) {
+    if m.ca.finished(&app.window_rect()) == false {
+        m.ca.generate();
+    } else {
+        m.ca.randomize();
+        m.ca.restart();
     }
-    m
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

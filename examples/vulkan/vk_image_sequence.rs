@@ -19,14 +19,10 @@ use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use nannou::vulkano::sampler::{Filter, MipmapMode, Sampler, SamplerAddressMode};
 
 fn main() {
-    nannou::app(model)
-        .event(event)
-        .view(view)
-        .run();
+    nannou::app(model).run();
 }
 
 struct Model {
-    _window: WindowId,
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
@@ -42,10 +38,9 @@ struct Vertex {
 nannou::vulkano::impl_vertex!(Vertex, position);
 
 fn model(app: &App) -> Model {
-    let _window = app
-        .new_window()
+    app.new_window()
         .with_dimensions(220, 220)
-        .with_title("nannou")
+        .view(view)
         .build()
         .unwrap();
 
@@ -176,17 +171,12 @@ fn model(app: &App) -> Model {
     let framebuffers = RefCell::new(Vec::new());
 
     Model {
-        _window,
         render_pass,
         pipeline,
         vertex_buffer,
         framebuffers,
         desciptor_set,
     }
-}
-
-fn event(_app: &App, model: Model, _event: Event) -> Model {
-    model
 }
 
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {

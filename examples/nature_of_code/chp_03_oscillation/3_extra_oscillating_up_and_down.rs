@@ -8,7 +8,7 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -16,17 +16,13 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().with_dimensions(400, 400).build().unwrap();
+    app.new_window().with_dimensions(400, 400).view(view).build().unwrap();
     let angle = 0.0;
     Model { angle }
 }
 
-fn event(_app: &App, mut model: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        model.angle += 0.02;
-    }
-    model
+fn update(_app: &App, model: &mut Model, _update: Update) {
+    model.angle += 0.02;
 }
 
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {

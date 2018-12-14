@@ -5,7 +5,7 @@ use nannou::prelude::*;
 use std::f64::consts::PI;
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).run();
 }
 
 struct Model {
@@ -17,10 +17,18 @@ struct Audio {
     hz: f64,
 }
 
-// A function that renders the given `Audio` to the given `Buffer`, returning the result of both.
-//
-// In this case we play a simple sine wave at the audio's current frequency in `hz`..
-fn audio(mut audio: Audio, mut buffer: Buffer) -> (Audio, Buffer) {
+fn model(app: &App) -> Model {
+    // Create a window to receive key pressed events.
+    app.new_window().key_pressed(key_pressed).view(view).build().unwrap();
+    // Initialise the state that we want to live on the audio thread.
+    let model = Audio { phase: 0.0, hz: 440.0 };
+    let stream = app.audio.new_output_stream(model, audio).build().unwrap();
+    Model { stream }
+}
+
+// A function that renders the given `Audio` to the given `Buffer`.
+// In this case we play a simple sine wave at the audio's current frequency in `hz`.
+fn audio(audio: &mut Audio, buffer: &mut Buffer) {
     let sample_rate = buffer.sample_rate() as f64;
     let volume = 0.5;
     for frame in buffer.frames_mut() {
@@ -31,64 +39,38 @@ fn audio(mut audio: Audio, mut buffer: Buffer) -> (Audio, Buffer) {
             *channel = sine_amp * volume;
         }
     }
-    (audio, buffer)
 }
 
-fn model(app: &App) -> Model {
-    // Initialise the state that we want to live on the audio thread.
-    let model = Audio {
-        phase: 0.0,
-        hz: 440.0,
-    };
-    let stream = app.audio.new_output_stream(model, audio).build().unwrap();
-    Model { stream }
-}
-
-fn event(_app: &App, model: Model, event: Event) -> Model {
-    match event {
-        Event::WindowEvent {
-            simple: Some(event),
-            ..
-        } => match event {
-            KeyPressed(key) => match key {
-                // Pause or unpause the audio when Space is pressed.
-                Key::Space => {
-                    if model.stream.is_playing() {
-                        model.stream.pause();
-                    } else {
-                        model.stream.play();
-                    }
-                }
-
-                // Raise the frequency when the up key is pressed.
-                Key::Up => {
-                    model
-                        .stream
-                        .send(|audio| {
-                            audio.hz += 10.0;
-                        })
-                        .unwrap();
-                }
-
-                // Lower the frequency when the down key is pressed.
-                Key::Down => {
-                    model
-                        .stream
-                        .send(|audio| {
-                            audio.hz -= 10.0;
-                        })
-                        .unwrap();
-                }
-
-                _ => (),
-            },
-
-            _ => (),
-        },
-        Event::Update(_update) => {}
-        _ => (),
+fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+    match key {
+        // Pause or unpause the audio when Space is pressed.
+        Key::Space => {
+            if model.stream.is_playing() {
+                model.stream.pause();
+            } else {
+                model.stream.play();
+            }
+        }
+        // Raise the frequency when the up key is pressed.
+        Key::Up => {
+            model
+                .stream
+                .send(|audio| {
+                    audio.hz += 10.0;
+                })
+                .unwrap();
+        }
+        // Lower the frequency when the down key is pressed.
+        Key::Down => {
+            model
+                .stream
+                .send(|audio| {
+                    audio.hz -= 10.0;
+                })
+                .unwrap();
+        }
+        _ => {}
     }
-    model
 }
 
 fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {

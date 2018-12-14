@@ -5,7 +5,7 @@ use nannou::prelude::*;
 use nannou::ui::prelude::*;
 
 fn main() {
-    nannou::app(model).event(event).view(view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -22,6 +22,7 @@ fn model(app: &App) -> Model {
     app.new_window()
         .with_title("OSC Receiver")
         .with_dimensions(1400, 480)
+        .view(view)
         .build()
         .unwrap();
 
@@ -43,38 +44,32 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn event(_app: &App, mut model: Model, event: Event) -> Model {
-    match event {
-        Event::Update(_update) => {
-            // Receive any pending osc packets.
-            for (packet, addr) in model.receiver.try_iter() {
-                model.received_packets.push((addr, packet));
-            }
-
-            // We'll display 10 packets at a time, so remove any excess.
-            let max_packets = 10;
-            while model.received_packets.len() > max_packets {
-                model.received_packets.remove(0);
-            }
-
-            // Create a string showing all the packets.
-            let mut packets_text = format!("Listening on port {}\nReceived packets:\n", PORT);
-            for &(addr, ref packet) in model.received_packets.iter().rev() {
-                packets_text.push_str(&format!("{}: {:?}\n", addr, packet));
-            }
-
-            // Use the UI to display the packet string.
-            model.ui.clear_with(color::DARK_BLUE);
-            let mut ui = model.ui.set_widgets();
-            widget::Text::new(&packets_text)
-                .top_left_with_margin_on(ui.window, 20.0)
-                .color(color::WHITE)
-                .line_spacing(10.0)
-                .set(model.text, &mut ui);
-        }
-        _ => (),
+fn update(_app: &App, model: &mut Model, _update: Update) {
+    // Receive any pending osc packets.
+    for (packet, addr) in model.receiver.try_iter() {
+        model.received_packets.push((addr, packet));
     }
-    model
+
+    // We'll display 10 packets at a time, so remove any excess.
+    let max_packets = 10;
+    while model.received_packets.len() > max_packets {
+        model.received_packets.remove(0);
+    }
+
+    // Create a string showing all the packets.
+    let mut packets_text = format!("Listening on port {}\nReceived packets:\n", PORT);
+    for &(addr, ref packet) in model.received_packets.iter().rev() {
+        packets_text.push_str(&format!("{}: {:?}\n", addr, packet));
+    }
+
+    // Use the UI to display the packet string.
+    model.ui.clear_with(color::DARK_BLUE);
+    let mut ui = model.ui.set_widgets();
+    widget::Text::new(&packets_text)
+        .top_left_with_margin_on(ui.window, 20.0)
+        .color(color::WHITE)
+        .line_spacing(10.0)
+        .set(model.text, &mut ui);
 }
 
 // Draw the state of your `Model` into the given `Frame` here.

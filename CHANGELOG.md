@@ -16,6 +16,10 @@
 - The `view` function is now called separately for each frame for each window,
   rather than a single frame for all windows at once. The window a frame is
   associated with can be determined via `Frame::window_id`.
+- A suite of new event handling functions have been added as an alternative to
+  matching on the raw `Event` type. This has simplified a lot of the examples.
+  See the `app::Builder` and `window::Builder` docs for the newly available
+  methods and more documentation.
 
 # Version 0.8.0 (2018-07-19)
 
