@@ -114,6 +114,9 @@ path = "examples/vulkan/vk_triangle.rs"
 name = "vk_teapot"
 path = "examples/vulkan/vk_teapot.rs"
 [[example]]
+name = "vk_teapot_camera"
+path = "examples/vulkan/vk_teapot_camera.rs"
+[[example]]
 name = "vk_image"
 path = "examples/vulkan/vk_image.rs"
 [[example]]
