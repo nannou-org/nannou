@@ -20,6 +20,7 @@
   matching on the raw `Event` type. This has simplified a lot of the examples.
   See the `app::Builder` and `window::Builder` docs for the newly available
   methods and more documentation.
+- Add `Window::grab_cursor` and `Window::hide_cursor` methods.
 
 # Version 0.8.0 (2018-07-19)
 
