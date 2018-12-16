@@ -1156,6 +1156,32 @@ impl Window {
         self.surface.window().set_cursor(state);
     }
 
+    /// Grabs the cursor, preventing it from leaving the window.
+    ///
+    /// ## Platform-specific
+    ///
+    /// On macOS, this presently merely locks the cursor in a fixed location, which looks visually
+    /// awkward.
+    ///
+    /// This has no effect on Android or iOS.
+    pub fn grab_cursor(&self, grab: bool) -> Result<(), String> {
+        self.surface.window().grab_cursor(grab)
+    }
+
+    /// Hides the cursor, making it invisible but still usable.
+    ///
+    /// ## Platform-specific
+    ///
+    /// On Windows and X11, the cursor is only hidden within the confines of the window.
+    ///
+    /// On macOS, the cursor is hidden as long as the window has input focus, even if the cursor is
+    /// outside of the window.
+    ///
+    /// This has no effect on Android or iOS.
+    pub fn hide_cursor(&self, hide: bool) {
+        self.surface.window().hide_cursor(hide)
+    }
+
     /// Sets the window to maximized or back.
     pub fn set_maximized(&self, maximized: bool) {
         self.surface.window().set_maximized(maximized)
