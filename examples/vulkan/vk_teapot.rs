@@ -10,14 +10,13 @@ use nannou::vulkano::command_buffer::DynamicState;
 use nannou::vulkano::descriptor::descriptor_set::PersistentDescriptorSet;
 use nannou::vulkano::device::{Device, DeviceOwned};
 use nannou::vulkano::format::Format;
-use nannou::vulkano::framebuffer::{
-    Framebuffer, FramebufferAbstract, FramebufferCreationError, RenderPassAbstract, Subpass,
-};
+use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
 use nannou::vulkano::image::attachment::AttachmentImage;
 use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract,
                                 GraphicsPipelineCreationError};
 use nannou::vulkano::pipeline::vertex::TwoBuffersDefinition;
 use nannou::vulkano::pipeline::viewport::Viewport;
+use nannou::window::SwapchainFramebuffers;
 use std::cell::RefCell;
 use std::sync::Arc;
 
@@ -39,7 +38,7 @@ struct Graphics {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     graphics_pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     depth_image: Arc<AttachmentImage>,
-    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
+    framebuffers: SwapchainFramebuffers,
 }
 
 #[derive(Copy, Clone)]
@@ -125,7 +124,7 @@ fn model(app: &App) -> Model {
     let depth_image = AttachmentImage::transient(device.clone(), [w, h], Format::D16Unorm)
         .unwrap();
 
-    let framebuffers = Vec::new();
+    let framebuffers = SwapchainFramebuffers::default();
 
     let graphics = RefCell::new(Graphics {
         vertex_buffer,
@@ -167,25 +166,12 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         ).unwrap();
     }
 
-    // Create new framebuffers if we don't have one for each swapchain image.
-    while frame.swapchain_image_index() >= graphics.framebuffers.len() {
-        let fb = create_framebuffer(
-            graphics.render_pass.clone(),
-            frame.swapchain_image().clone(),
-            graphics.depth_image.clone(),
-        ).unwrap();
-        graphics.framebuffers.push(Arc::new(fb));
-    }
-
-    // If the dimensions for the current framebuffer do not match, recreate it.
-    if frame.swapchain_image_is_new() {
-        let new_fb = create_framebuffer(
-            graphics.render_pass.clone(),
-            frame.swapchain_image().clone(),
-            graphics.depth_image.clone(),
-        ).unwrap();
-        graphics.framebuffers[frame.swapchain_image_index()] = Arc::new(new_fb);
-    }
+    // Update framebuffers so that count matches swapchain image count and dimensions match.
+    let render_pass = graphics.render_pass.clone();
+    let depth_image = graphics.depth_image.clone();
+    graphics.framebuffers
+        .update(&frame, render_pass, |builder, image| builder.add(image)?.add(depth_image.clone()))
+        .unwrap();
 
     // Create a uniform buffer slice with the world, view and projection matrices.
     let uniform_buffer_slice = {
@@ -275,19 +261,6 @@ fn create_graphics_pipeline(
         .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
         .build(device.clone())?;
     Ok(Arc::new(pipeline) as Arc<_>)
-}
-
-// Create the framebuffer for the image.
-fn create_framebuffer(
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    swapchain_image: Arc<nannou::window::SwapchainImage>,
-    depth_image: Arc<AttachmentImage>,
-) -> Result<Arc<FramebufferAbstract + Send + Sync>, FramebufferCreationError> {
-    let fb = Framebuffer::start(render_pass)
-        .add(swapchain_image)?
-        .add(depth_image)?
-        .build()?;
-    Ok(Arc::new(fb) as _)
 }
 
 // GLSL Shaders
