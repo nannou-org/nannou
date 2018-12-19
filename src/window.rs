@@ -12,8 +12,11 @@ use std::error::Error as StdError;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
+use vulkano::VulkanObject;
 use vulkano::device::{self, Device};
 use vulkano::format::Format;
+use vulkano::framebuffer::{AttachmentsList, Framebuffer, FramebufferAbstract, FramebufferBuilder,
+                           FramebufferCreationError, RenderPassAbstract};
 use vulkano::instance::PhysicalDevice;
 use vulkano::swapchain::{ColorSpace, CompositeAlpha, PresentMode, SurfaceTransform,
                          SwapchainCreationError};
@@ -255,16 +258,6 @@ pub(crate) struct WindowSwapchain {
     pub(crate) previous_frame_end: Mutex<Option<Box<GpuFuture>>>,
 }
 
-/// The errors that might occur while constructing a `Window`.
-#[derive(Debug)]
-pub enum BuildError {
-    SurfaceCreation(vulkano_win::CreationError),
-    DeviceCreation(vulkano::device::DeviceCreationError),
-    SwapchainCreation(SwapchainCreationError),
-    SwapchainCapabilities(vulkano::swapchain::CapabilitiesError),
-    SurfaceDoesNotSupportCompositeAlphaOpaque,
-}
-
 /// Swapchain building parameters for which Nannou will provide a default if unspecified.
 ///
 /// See the builder methods for more details on each parameter.
@@ -281,6 +274,83 @@ pub struct SwapchainBuilder {
     pub clipped: Option<bool>,
     pub image_count: Option<u32>,
     pub surface_transform: Option<SurfaceTransform>,
+}
+
+/// A helper type for managing framebuffers associated with a window's swapchain images.
+///
+/// Creating the swapchain image framebuffers manually and maintaining them throughout the duration
+/// of a program can be a tedious task that requires a lot of boilerplate code. This type
+/// simplifies the process with a single `update` method that creates or recreates the framebuffers
+/// if any of the following conditions are met:
+/// - The given render pass is different to that which was used to create the existing
+///   framebuffers.
+/// - There are less framebuffers than the given frame's swapchain image index indicates are
+///   required.
+/// - The `frame.swapchain_image_is_new()` method indicates that the swapchain or its images have
+///   recently been recreated and the framebuffers should be recreated accordingly.
+#[derive(Default)]
+pub struct SwapchainFramebuffers {
+    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
+}
+
+type SwapchainFramebufferBuilder<A> = FramebufferBuilder<Arc<RenderPassAbstract + Send + Sync>, A>;
+type FramebufferBuildResult<A> = Result<SwapchainFramebufferBuilder<A>, FramebufferCreationError>;
+
+impl SwapchainFramebuffers {
+    /// Ensure the framebuffers are up to date with the render pass and frame's swapchain image.
+    pub fn update<F, A>(
+        &mut self,
+        frame: &Frame,
+        render_pass: Arc<RenderPassAbstract + Send + Sync>,
+        builder: F,
+    ) -> Result<(), FramebufferCreationError>
+    where
+        F: Fn(SwapchainFramebufferBuilder<()>, Arc<SwapchainImage>) -> FramebufferBuildResult<A>,
+        A: 'static + AttachmentsList + Send + Sync,
+    {
+        let mut just_created = false;
+        while frame.swapchain_image_index() >= self.framebuffers.len() {
+            let builder = builder(
+                Framebuffer::start(render_pass.clone()),
+                frame.swapchain_image().clone(),
+            )?;
+            let fb = builder.build()?;
+            self.framebuffers.push(Arc::new(fb));
+            just_created = true;
+        }
+
+        // If the dimensions for the current framebuffer do not match, recreate it.
+        let old_rp = RenderPassAbstract::inner(&self.framebuffers[frame.swapchain_image_index()])
+            .internal_object();
+        let new_rp = render_pass.inner().internal_object();
+        if !just_created && (frame.swapchain_image_is_new() || old_rp != new_rp) {
+            let fb = &mut self.framebuffers[frame.swapchain_image_index()];
+            let builder = builder(
+                Framebuffer::start(render_pass.clone()),
+                frame.swapchain_image().clone(),
+            )?;
+            let new_fb = builder.build()?;
+            *fb = Arc::new(new_fb);
+        }
+        Ok(())
+    }
+}
+
+impl ops::Deref for SwapchainFramebuffers {
+    type Target = [Arc<FramebufferAbstract + Send + Sync>];
+    fn deref(&self) -> &Self::Target {
+        &self.framebuffers
+    }
+}
+
+/// The errors that might occur while constructing a `Window`.
+#[derive(Debug)]
+pub enum BuildError {
+    SurfaceCreation(vulkano_win::CreationError),
+    DeviceCreation(vulkano::device::DeviceCreationError),
+    SwapchainCreation(SwapchainCreationError),
+    SwapchainCapabilities(vulkano::swapchain::CapabilitiesError),
+    SurfaceDoesNotSupportCompositeAlphaOpaque,
 }
 
 impl SwapchainBuilder {

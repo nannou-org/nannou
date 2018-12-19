@@ -8,11 +8,10 @@ use std::sync::Arc;
 use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use nannou::vulkano::command_buffer::DynamicState;
 use nannou::vulkano::device::DeviceOwned;
-use nannou::vulkano::framebuffer::{
-    Framebuffer, FramebufferAbstract, FramebufferCreationError, RenderPassAbstract, Subpass,
-};
+use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
 use nannou::vulkano::pipeline::viewport::Viewport;
 use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
+use nannou::window::SwapchainFramebuffers;
 
 fn main() {
     nannou::app(model).run();
@@ -22,7 +21,7 @@ struct Model {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
-    framebuffers: RefCell<Vec<Arc<FramebufferAbstract + Send + Sync>>>,
+    framebuffers: RefCell<SwapchainFramebuffers>,
 }
 
 #[derive(Debug, Clone)]
@@ -109,8 +108,7 @@ fn model(app: &App) -> Model {
         GraphicsPipeline::start()
             // We need to indicate the layout of the vertices.
             // The type `SingleBufferDefinition` actually contains a template parameter
-            // corresponding to the type of each vertex. But in this code it is automatically
-            // inferred.
+            // corresponding to the type of each vertex.
             .vertex_input_single_buffer::<Vertex>()
             // A Vulkan shader can in theory contain multiple entry points, so we have to specify
             // which one. The `main` word of `main_entry_point` actually corresponds to the name of
@@ -135,7 +133,7 @@ fn model(app: &App) -> Model {
     //
     // Since we need to draw to multiple images, we are going to create a different framebuffer for
     // each image.
-    let framebuffers = RefCell::new(Vec::new());
+    let framebuffers = RefCell::new(SwapchainFramebuffers::default());
 
     Model {
         render_pass,
@@ -161,20 +159,10 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
         scissors: None,
     };
 
-    // Update the framebuffers if necessary.
-    while frame.swapchain_image_index() >= model.framebuffers.borrow().len() {
-        let fb =
-            create_framebuffer(model.render_pass.clone(), frame.swapchain_image().clone()).unwrap();
-        model.framebuffers.borrow_mut().push(Arc::new(fb));
-    }
-
-    // If the dimensions for the current framebuffer do not match, recreate it.
-    if frame.swapchain_image_is_new() {
-        let fb = &mut model.framebuffers.borrow_mut()[frame.swapchain_image_index()];
-        let new_fb =
-            create_framebuffer(model.render_pass.clone(), frame.swapchain_image().clone()).unwrap();
-        *fb = Arc::new(new_fb);
-    }
+    // Update framebuffers so that count matches swapchain image count and dimensions match.
+    model.framebuffers.borrow_mut()
+        .update(&frame, model.render_pass.clone(), |builder, image| builder.add(image))
+        .unwrap();
 
     // Specify the color to clear the framebuffer with i.e. blue
     let clear_values = vec![[0.0, 0.0, 1.0, 1.0].into()];
@@ -229,15 +217,4 @@ void main() {
 }
 "
     }
-}
-
-// Create the framebuffer for the image.
-fn create_framebuffer(
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    swapchain_image: Arc<nannou::window::SwapchainImage>,
-) -> Result<Arc<FramebufferAbstract + Send + Sync>, FramebufferCreationError> {
-    let fb = Framebuffer::start(render_pass)
-        .add(swapchain_image)?
-        .build()?;
-    Ok(Arc::new(fb) as _)
 }

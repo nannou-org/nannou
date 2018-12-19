@@ -35,11 +35,10 @@ use std::path::PathBuf;
 use std::sync::{mpsc, Arc, Mutex};
 use vulkano::command_buffer::CopyBufferImageError;
 use vulkano::format::{ClearValue, D16Unorm, Format};
-use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, FramebufferCreationError,
-                           RenderPassAbstract, RenderPassCreationError};
+use vulkano::framebuffer::{FramebufferCreationError, RenderPassAbstract, RenderPassCreationError};
 use vulkano::image::{AttachmentImage, ImageCreationError};
 use vulkano::instance::PhysicalDevice;
-use window::{self, Window};
+use window::{self, SwapchainFramebuffers, Window};
 use winit;
 use App;
 
@@ -81,14 +80,16 @@ enum RenderMode {
 // The render pass in which the `Ui` will be rendered along with the owned buffers.
 struct RenderTarget {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    buffers: RenderTargetBuffers,
+    images: RenderPassImages,
+    swapchain_framebuffers: SwapchainFramebuffers,
     msaa_samples: u32,
 }
 
 // The buffers associated with a render target.
-struct RenderTargetBuffers {
-    // A framebuffer for each image in the window's swapchain.
-    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
+struct RenderPassImages {
+    multisampled_color: Arc<AttachmentImage>,
+    multisampled_depth: Arc<AttachmentImage>,
+    depth: Arc<AttachmentImage<D16Unorm>>,
 }
 
 /// A type used for building a new `Ui`.
@@ -119,13 +120,6 @@ pub enum BuildError {
 #[derive(Debug)]
 pub enum RenderTargetCreationError {
     RenderPassCreation(RenderPassCreationError),
-    BuffersCreation(RenderTargetBuffersCreationError),
-}
-
-/// An error that might occur while constructing the render target's buffers.
-#[derive(Debug)]
-pub enum RenderTargetBuffersCreationError {
-    FramebufferCreation(FramebufferCreationError),
     ImageCreation(ImageCreationError),
 }
 
@@ -136,7 +130,8 @@ pub enum DrawToFrameError {
     RendererPoisoned,
     RenderModePoisoned,
     InvalidRenderMode,
-    RenderTargetBuffersCreation(RenderTargetBuffersCreationError),
+    ImageCreation(ImageCreationError),
+    FramebufferCreation(FramebufferCreationError),
     RendererFill(CacheWriteErr),
     CopyBufferImageCommand(CopyBufferImageError),
     RendererDraw(conrod_vulkano::DrawError),
@@ -476,13 +471,12 @@ pub fn create_render_pass(
     Ok(Arc::new(render_pass))
 }
 
-impl RenderTargetBuffers {
+impl RenderPassImages {
     // Create the buffers for a default render target.
     fn new(
         window: &Window,
-        render_pass: &Arc<RenderPassAbstract + Send + Sync>,
         msaa_samples: u32,
-    ) -> Result<Self, RenderTargetBuffersCreationError> {
+    ) -> Result<Self, ImageCreationError> {
         let device = window.swapchain_device().clone();
         // TODO: Change this to use `window.inner_size_pixels/points` (which is correct?).
         let image_dims = window.swapchain_images()[0].dimensions();
@@ -500,18 +494,10 @@ impl RenderTargetBuffers {
             DEPTH_FORMAT,
         )?;
         let depth = AttachmentImage::transient(device, image_dims, DEPTH_FORMAT_TY)?;
-        let mut framebuffers = vec![];
-        for swapchain_image in window.swapchain_images() {
-            let fb = Framebuffer::start(render_pass.clone())
-                .add(multisampled_color.clone())?
-                .add(swapchain_image.clone())?
-                .add(multisampled_depth.clone())?
-                .add(depth.clone())?
-                .build()?;
-            framebuffers.push(Arc::new(fb) as Arc<_>);
-        }
-        Ok(RenderTargetBuffers {
-            framebuffers,
+        Ok(RenderPassImages {
+            multisampled_color,
+            multisampled_depth,
+            depth,
         })
     }
 }
@@ -522,8 +508,9 @@ impl RenderTarget {
         let device = window.swapchain_device().clone();
         let color_format = window.swapchain().format();
         let render_pass = create_render_pass(device, color_format, DEPTH_FORMAT, msaa_samples)?;
-        let buffers = RenderTargetBuffers::new(window, &render_pass, msaa_samples)?;
-        Ok(RenderTarget { render_pass, buffers, msaa_samples })
+        let images = RenderPassImages::new(window, msaa_samples)?;
+        let swapchain_framebuffers = SwapchainFramebuffers::default();
+        Ok(RenderTarget { render_pass, images, msaa_samples, swapchain_framebuffers })
     }
 }
 
@@ -695,15 +682,27 @@ pub fn draw_primitives(
         RenderMode::OwnedRenderTarget(ref mut render_target) => render_target,
     };
 
+    let RenderTarget {
+        ref render_pass,
+        ref mut images,
+        ref mut swapchain_framebuffers,
+        msaa_samples,
+    } = *render_target;
+
     // Recreate buffers if the swapchain was recreated.
-    if frame.swapchain_image_is_new() {
-        let new_buffers = RenderTargetBuffers::new(
-            &window,
-            &render_target.render_pass,
-            render_target.msaa_samples,
-        )?;
-        render_target.buffers = new_buffers;
+    let image_dims = frame.swapchain_image().dimensions();
+    if image_dims != images.multisampled_color.dimensions() {
+        *images = RenderPassImages::new(&window, msaa_samples)?;
     }
+
+    // Ensure swapchain framebuffers are up to date.
+    swapchain_framebuffers.update(&frame, render_pass.clone(), |builder, image| {
+        builder
+            .add(images.multisampled_color.clone())?
+            .add(image.clone())?
+            .add(images.multisampled_depth.clone())?
+            .add(images.depth.clone())
+    })?;
 
     // Fill renderer with the primitives and cache glyphs.
     let (win_w, win_h) = window.inner_size_pixels();
@@ -745,7 +744,7 @@ pub fn draw_primitives(
         frame
             .add_commands()
             .begin_render_pass(
-                render_target.buffers.framebuffers[frame.swapchain_image_index()].clone(),
+                swapchain_framebuffers[frame.swapchain_image_index()].clone(),
                 false,
                 clear_values.clone(),
             )
@@ -795,9 +794,9 @@ impl From<RendererCreationError> for BuildError {
     }
 }
 
-impl From<RenderTargetBuffersCreationError> for RenderTargetCreationError {
-    fn from(err: RenderTargetBuffersCreationError) -> Self {
-        RenderTargetCreationError::BuffersCreation(err)
+impl From<ImageCreationError> for RenderTargetCreationError {
+    fn from(err: ImageCreationError) -> Self {
+        RenderTargetCreationError::ImageCreation(err)
     }
 }
 
@@ -807,21 +806,15 @@ impl From<RenderPassCreationError> for RenderTargetCreationError {
     }
 }
 
-impl From<ImageCreationError> for RenderTargetBuffersCreationError {
+impl From<ImageCreationError> for DrawToFrameError {
     fn from(err: ImageCreationError) -> Self {
-        RenderTargetBuffersCreationError::ImageCreation(err)
+        DrawToFrameError::ImageCreation(err)
     }
 }
 
-impl From<FramebufferCreationError> for RenderTargetBuffersCreationError {
+impl From<FramebufferCreationError> for DrawToFrameError {
     fn from(err: FramebufferCreationError) -> Self {
-        RenderTargetBuffersCreationError::FramebufferCreation(err)
-    }
-}
-
-impl From<RenderTargetBuffersCreationError> for DrawToFrameError {
-    fn from(err: RenderTargetBuffersCreationError) -> Self {
-        DrawToFrameError::RenderTargetBuffersCreation(err)
+        DrawToFrameError::FramebufferCreation(err)
     }
 }
 
@@ -871,30 +864,14 @@ impl StdError for RenderTargetCreationError {
     fn description(&self) -> &str {
         match *self {
             RenderTargetCreationError::RenderPassCreation(ref err) => err.description(),
-            RenderTargetCreationError::BuffersCreation(ref err) => err.description(),
+            RenderTargetCreationError::ImageCreation(ref err) => err.description(),
         }
     }
 
     fn cause(&self) -> Option<&StdError> {
         match *self {
             RenderTargetCreationError::RenderPassCreation(ref err) => Some(err),
-            RenderTargetCreationError::BuffersCreation(ref err) => Some(err),
-        }
-    }
-}
-
-impl StdError for RenderTargetBuffersCreationError {
-    fn description(&self) -> &str {
-        match *self {
-            RenderTargetBuffersCreationError::FramebufferCreation(ref err) => err.description(),
-            RenderTargetBuffersCreationError::ImageCreation(ref err) => err.description(),
-        }
-    }
-
-    fn cause(&self) -> Option<&StdError> {
-        match *self {
-            RenderTargetBuffersCreationError::FramebufferCreation(ref err) => Some(err),
-            RenderTargetBuffersCreationError::ImageCreation(ref err) => Some(err),
+            RenderTargetCreationError::ImageCreation(ref err) => Some(err),
         }
     }
 }
@@ -908,7 +885,8 @@ impl StdError for DrawToFrameError {
             DrawToFrameError::RenderModePoisoned => "`Mutex` containing `RenderMode` was poisoned",
             DrawToFrameError::InvalidRenderMode =>
                 "`draw_to_frame` was called while `Ui` was in `Subpass` render mode",
-            DrawToFrameError::RenderTargetBuffersCreation(ref err) => err.description(),
+            DrawToFrameError::ImageCreation(ref err) => err.description(),
+            DrawToFrameError::FramebufferCreation(ref err) => err.description(),
             DrawToFrameError::RendererFill(ref err) => err.description(),
             DrawToFrameError::CopyBufferImageCommand(ref err) => err.description(),
             DrawToFrameError::RendererDraw(ref err) => err.description(),
@@ -922,7 +900,8 @@ impl StdError for DrawToFrameError {
             DrawToFrameError::RendererPoisoned => None,
             DrawToFrameError::RenderModePoisoned => None,
             DrawToFrameError::InvalidRenderMode => None,
-            DrawToFrameError::RenderTargetBuffersCreation(ref err) => Some(err),
+            DrawToFrameError::ImageCreation(ref err) => Some(err),
+            DrawToFrameError::FramebufferCreation(ref err) => Some(err),
             DrawToFrameError::RendererFill(ref err) => Some(err),
             DrawToFrameError::CopyBufferImageCommand(ref err) => Some(err),
             DrawToFrameError::RendererDraw(ref err) => Some(err),
@@ -938,12 +917,6 @@ impl fmt::Display for BuildError {
 }
 
 impl fmt::Display for RenderTargetCreationError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.description())
-    }
-}
-
-impl fmt::Display for RenderTargetBuffersCreationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.description())
     }
