@@ -19,7 +19,6 @@ conrod_vulkano = { git = "https://github.com/mitchmindtree/conrod", branch = "vu
 cpal = "0.8"
 daggy = "0.6"
 find_folder = "0.3"
-glium = "0.22"
 image = "0.19"
 noise = "0.4"
 palette = "0.2"
