@@ -10,13 +10,12 @@ use nannou::vulkano::command_buffer::DynamicState;
 use nannou::vulkano::descriptor::descriptor_set::{DescriptorSet, PersistentDescriptorSet};
 use nannou::vulkano::device::DeviceOwned;
 use nannou::vulkano::format::Format;
-use nannou::vulkano::framebuffer::{
-    Framebuffer, FramebufferAbstract, FramebufferCreationError, RenderPassAbstract, Subpass,
-};
+use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
 use nannou::vulkano::image::{Dimensions, ImmutableImage};
 use nannou::vulkano::pipeline::viewport::Viewport;
 use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use nannou::vulkano::sampler::{Filter, MipmapMode, Sampler, SamplerAddressMode};
+use nannou::window::SwapchainFramebuffers;
 
 fn main() {
     nannou::app(model).run();
@@ -26,7 +25,7 @@ struct Model {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
-    framebuffers: RefCell<Vec<Arc<FramebufferAbstract + Send + Sync>>>,
+    framebuffers: RefCell<SwapchainFramebuffers>,
     desciptor_set: Arc<DescriptorSet + Send + Sync>,
 }
 
@@ -168,7 +167,7 @@ fn model(app: &App) -> Model {
             .unwrap(),
     );
 
-    let framebuffers = RefCell::new(Vec::new());
+    let framebuffers = RefCell::new(SwapchainFramebuffers::default());
 
     Model {
         render_pass,
@@ -192,20 +191,10 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         scissors: None,
     };
 
-    // Update the framebuffers if necessary.
-    while frame.swapchain_image_index() >= model.framebuffers.borrow().len() {
-        let fb =
-            create_framebuffer(model.render_pass.clone(), frame.swapchain_image().clone()).unwrap();
-        model.framebuffers.borrow_mut().push(Arc::new(fb));
-    }
-
-    // If the dimensions for the current framebuffer do not match, recreate it.
-    if frame.swapchain_image_is_new() {
-        let fb = &mut model.framebuffers.borrow_mut()[frame.swapchain_image_index()];
-        let new_fb =
-            create_framebuffer(model.render_pass.clone(), frame.swapchain_image().clone()).unwrap();
-        *fb = Arc::new(new_fb);
-    }
+    // Update framebuffers so that count matches swapchain image count and dimensions match.
+    model.framebuffers.borrow_mut()
+        .update(&frame, model.render_pass.clone(), |builder, image| builder.add(image))
+        .unwrap();
 
     let clear_values = vec![[0.0, 1.0, 0.0, 1.0].into()];
 
@@ -281,15 +270,4 @@ void main() {
     f_color = texture(tex, vec3(tex_coords, pc.sequence_idx)) + (c*0.6);
 }"
     }
-}
-
-// Create the framebuffer for the image.
-fn create_framebuffer(
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    swapchain_image: Arc<nannou::window::SwapchainImage>,
-) -> Result<Arc<FramebufferAbstract + Send + Sync>, FramebufferCreationError> {
-    let fb = Framebuffer::start(render_pass)
-        .add(swapchain_image)?
-        .build()?;
-    Ok(Arc::new(fb) as _)
 }

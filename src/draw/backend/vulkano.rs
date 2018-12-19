@@ -11,15 +11,15 @@ use vulkano::buffer::{BufferUsage, ImmutableBuffer};
 use vulkano::command_buffer::{BeginRenderPassError, DrawIndexedError, DynamicState};
 use vulkano::device::{Device, DeviceOwned};
 use vulkano::format::{ClearValue, Format};
-use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, FramebufferCreationError, LoadOp,
-                           RenderPassAbstract, RenderPassCreationError, RenderPassDesc, Subpass};
+use vulkano::framebuffer::{FramebufferCreationError, LoadOp, RenderPassAbstract,
+                           RenderPassCreationError, RenderPassDesc, Subpass};
 use vulkano::image::attachment::AttachmentImage;
 use vulkano::image::ImageCreationError;
 use vulkano::instance::PhysicalDevice;
 use vulkano::memory::DeviceMemoryAllocError;
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use vulkano::pipeline::viewport::Viewport;
-use window::SwapchainImage;
+use window::SwapchainFramebuffers;
 
 /// A type used for rendering a **nannou::draw::Mesh** with a vulkan graphics pipeline.
 pub struct Renderer {
@@ -27,7 +27,7 @@ pub struct Renderer {
     graphics_pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertices: Vec<Vertex>,
     render_pass_images: Option<RenderPassImages>,
-    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
+    swapchain_framebuffers: SwapchainFramebuffers,
 }
 
 /// The `Vertex` type passed to the vertex shader.
@@ -243,13 +243,13 @@ impl Renderer {
             as Arc<GraphicsPipelineAbstract + Send + Sync>;
         let vertices = vec![];
         let render_pass_images = None;
-        let framebuffers = vec![];
+        let swapchain_framebuffers = SwapchainFramebuffers::default();
         Ok(Renderer {
             render_pass,
             graphics_pipeline,
             vertices,
             render_pass_images,
-            framebuffers,
+            swapchain_framebuffers,
         })
     }
 
@@ -271,7 +271,7 @@ impl Renderer {
             ref mut graphics_pipeline,
             ref mut vertices,
             ref mut render_pass_images,
-            ref mut framebuffers,
+            ref mut swapchain_framebuffers,
         } = *self;
 
         // Retrieve the color/depth image load op and clear values based on the bg color.
@@ -337,54 +337,31 @@ impl Renderer {
         )?;
 
         // Create (or recreate) the render pass images if necessary.
-        match *render_pass_images {
-            Some(ref mut imgs) => {
-                if image_dims != imgs.multisampled_color.dimensions() {
-                    *imgs = RenderPassImages::new(
-                        device.clone(),
-                        image_dims,
-                        color_format,
-                        depth_format,
-                        msaa_samples,
-                    )?;
-                }
-            }
-            ref mut imgs @ None => {
-                *imgs = Some(RenderPassImages::new(
-                    device.clone(),
-                    image_dims,
-                    color_format,
-                    depth_format,
-                    msaa_samples,
-                )?);
-            }
-        };
+        let recreate_images = render_pass_images
+            .as_ref()
+            .map(|imgs| image_dims != imgs.multisampled_color.dimensions())
+            .unwrap_or(true);
+        if recreate_images {
+            *render_pass_images = Some(RenderPassImages::new(
+                device.clone(),
+                image_dims,
+                color_format,
+                depth_format,
+                msaa_samples,
+            )?);
+        }
 
         // Safe to `unwrap` here as we have ensured that `render_pass_images` is `Some` above.
         let render_pass_images = render_pass_images.as_mut().expect("render_pass_images is `None`");
 
-        // Update the framebuffers if necessary.
-        let mut just_created = false;
-        while frame.swapchain_image_index() >= framebuffers.len() {
-            let fb = create_framebuffer(
-                render_pass.clone(),
-                frame.swapchain_image().clone(),
-                &render_pass_images,
-            )?;
-            framebuffers.push(Arc::new(fb));
-            just_created = true;
-        }
-
-        // If the dimensions for the current framebuffer do not match, recreate it.
-        if !just_created && (frame.swapchain_image_is_new() || recreate_render_pass) {
-            let fb = &mut framebuffers[frame.swapchain_image_index()];
-            let new_fb = create_framebuffer(
-                render_pass.clone(),
-                frame.swapchain_image().clone(),
-                &render_pass_images,
-            )?;
-            *fb = Arc::new(new_fb);
-        }
+        // Ensure framebuffers are up to date with the frame's swapchain image and render pass.
+        swapchain_framebuffers.update(&frame, render_pass.clone(), |builder, image| {
+            builder
+                .add(render_pass_images.multisampled_color.clone())?
+                .add(render_pass_images.multisampled_depth.clone())?
+                .add(image)?
+                .add(render_pass_images.depth.clone())
+        }).unwrap();
 
         // Create the dynamic state.
         let dynamic_state = dynamic_state([img_w as _, img_h as _]);
@@ -393,7 +370,7 @@ impl Renderer {
         frame
             .add_commands()
             .begin_render_pass(
-                framebuffers[frame.swapchain_image_index()].clone(),
+                swapchain_framebuffers[frame.swapchain_image_index()].clone(),
                 false,
                 clear_values,
             )?
@@ -574,21 +551,6 @@ pub fn msaa_samples(physical_device: &PhysicalDevice) -> u32 {
     std::cmp::min(limit, TARGET_SAMPLES)
 }
 
-// Create the framebuffer for the image.
-fn create_framebuffer(
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    swapchain_image: Arc<SwapchainImage>,
-    render_pass_images: &RenderPassImages,
-) -> Result<Arc<FramebufferAbstract + Send + Sync>, FramebufferCreationError> {
-    let fb = Framebuffer::start(render_pass)
-        .add(render_pass_images.multisampled_color.clone())?
-        .add(render_pass_images.multisampled_depth.clone())?
-        .add(swapchain_image)?
-        .add(render_pass_images.depth.clone())?
-        .build()?;
-    Ok(Arc::new(fb) as _)
-}
-
 // Error Implementations
 
 impl From<RenderPassCreationError> for RendererCreationError {
@@ -707,7 +669,7 @@ impl fmt::Debug for Renderer {
         write!(
             f,
             "Renderer ( render_pass, graphics_pipeline, framebuffers: {} )",
-            self.framebuffers.len(),
+            self.swapchain_framebuffers.len(),
         )
     }
 }
