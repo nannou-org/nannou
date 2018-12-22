@@ -120,16 +120,16 @@ macro_rules! subdivision_from_index {
 // Given some `Rect` and an index, produce the corner for that index.
 macro_rules! corner_from_index {
     ($rect:expr,0) => {
-        $rect.bottom_left()
-    };
-    ($rect:expr,1) => {
-        $rect.bottom_right()
-    };
-    ($rect:expr,2) => {
         $rect.top_left()
     };
-    ($rect:expr,3) => {
+    ($rect:expr,1) => {
         $rect.top_right()
+    };
+    ($rect:expr,2) => {
+        $rect.bottom_right()
+    };
+    ($rect:expr,3) => {
+        $rect.bottom_left()
     };
 }
 
@@ -459,14 +459,14 @@ where
         }
     }
 
-    /// Thee four corners of the `Rect`.
+    /// The four corners of the `Rect`.
     pub fn corners(&self) -> Quad<Point2<S>> {
-        let (l, r, b, t) = self.l_r_b_t();
-        let lb = [l, b].into();
-        let lt = [l, t].into();
-        let rt = [r, t].into();
-        let rb = [r, b].into();
-        Quad::from([lb, lt, rt, rb])
+        Quad::from([
+             corner_from_index!(self, 0),
+             corner_from_index!(self, 1),
+             corner_from_index!(self, 2),
+             corner_from_index!(self, 3),
+        ])
     }
 
     /// An iterator yielding the four corners of the `Rect`.
