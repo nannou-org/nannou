@@ -1501,14 +1501,14 @@ where
 // This method cleans up any unused resources associated with this GPU future.
 fn cleanup_unused_gpu_resources_for_window(app: &App, window_id: window::Id) {
     let windows = app.windows.borrow();
-    windows[&window_id]
+    let mut guard = windows[&window_id]
         .swapchain
         .previous_frame_end
         .lock()
-        .expect("failed to lock `previous_frame_end`")
-        .as_mut()
-        .expect("`previous_frame_end` was `None`")
-        .cleanup_finished();
+        .expect("failed to lock `previous_frame_end`");
+    if let Some(future) = guard.as_mut() {
+        future.cleanup_finished();
+    }
 }
 
 // Returns `true` if the window's swapchain needs to be recreated.
@@ -2008,43 +2008,53 @@ where
 
     let mut windows = app.windows.borrow_mut();
     let window = windows.get_mut(&window_id).expect("no window for id");
-    let future = window
+
+    // Wait for the previous frame presentation to be finished to avoid out-pacing the GPU on macos.
+    if let Some(mut previous_frame_fence_signal_future) = window
         .swapchain
         .previous_frame_end
         .lock()
         .expect("failed to lock `previous_frame_end`")
         .take()
-        .expect("`previous_frame_end` was `None`")
-        .join(swapchain_image_acquire_future)
-        .then_execute(queue.clone(), command_buffer)
-        .expect("failed to execute future")
-        // The image color output is now expected to contain the user's graphics.
-        // But in order to show it on the screen, we have to `present` the image.
-        .then_swapchain_present(
-            queue.clone(),
-            swapchain.swapchain.clone(),
-            swapchain_image_index,
-        )
-        // Flush forwards the future to the GPU to begin the actual processing.
-        .then_signal_fence_and_flush();
-    let previous_frame_end = match future {
-        Ok(future) => {
-            Some(Box::new(future) as Box<_>)
-        }
+    {
+        previous_frame_fence_signal_future.cleanup_finished();
+        previous_frame_fence_signal_future
+            .wait(None)
+            .expect("failed to wait for `previous_frame_end` future to signal fence");
+    }
+
+    // The future associated with the end of the current frame.
+    let future_result = {
+        let present_future = swapchain_image_acquire_future
+            .then_execute(queue.clone(), command_buffer)
+            .expect("failed to execute future")
+            .then_swapchain_present(
+                queue.clone(),
+                swapchain.swapchain.clone(),
+                swapchain_image_index,
+            );
+        (Box::new(present_future) as Box<GpuFuture>)
+            .then_signal_fence_and_flush()
+    };
+
+    // Handle the result of the future.
+    let current_frame_end = match future_result {
+        Ok(future) => Some(future),
         Err(vulkano::sync::FlushError::OutOfDate) => {
             window.swapchain.needs_recreation.store(true, atomic::Ordering::Relaxed);
-            Some(Box::new(vulkano::sync::now(queue.device().clone())) as Box<_>)
+            None
         }
         Err(e) => {
             println!("{:?}", e);
-            Some(Box::new(vulkano::sync::now(queue.device().clone())) as Box<_>)
+            None
         }
     };
+
     *window
         .swapchain
         .previous_frame_end
         .lock()
-        .expect("failed to acquire `previous_frame_end` lock") = previous_frame_end;
+        .expect("failed to acquire `previous_frame_end` lock") = current_frame_end;
 }
 
 // Acquire the next swapchain image for the given window and draw to it using the user's
