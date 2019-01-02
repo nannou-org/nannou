@@ -20,7 +20,7 @@ use vulkano::framebuffer::{AttachmentsList, Framebuffer, FramebufferAbstract, Fr
 use vulkano::instance::PhysicalDevice;
 use vulkano::swapchain::{ColorSpace, CompositeAlpha, PresentMode, SurfaceTransform,
                          SwapchainCreationError};
-use vulkano::sync::GpuFuture;
+use vulkano::sync::{FenceSignalFuture, GpuFuture};
 use vulkano_win::{VkSurfaceBuild};
 use winit::{self, MonitorId, MouseCursor};
 use winit::dpi::LogicalSize;
@@ -251,11 +251,7 @@ pub(crate) struct WindowSwapchain {
     //
     // Destroying the `GpuFuture` blocks until the GPU is finished executing it. In order to avoid
     // that, we store the submission of the previous frame here.
-    //
-    // This is initialised to `Some(vulkano::sync::now(device))`. An `Option` is used to allow for
-    // taking ownership in the application loop where we are required to join `previous_frame_end`
-    // with the future associated with acquiring an image from the GPU.
-    pub(crate) previous_frame_end: Mutex<Option<Box<GpuFuture>>>,
+    pub(crate) previous_frame_end: Mutex<Option<FenceSignalFuture<Box<GpuFuture>>>>,
 }
 
 /// Swapchain building parameters for which Nannou will provide a default if unspecified.
@@ -955,8 +951,7 @@ impl<'app> Builder<'app> {
 
         let window_id = surface.window().id();
         let needs_recreation = AtomicBool::new(false);
-        let now = Box::new(vulkano::sync::now(queue.device().clone())) as Box<GpuFuture>;
-        let previous_frame_end = Mutex::new(Some(now));
+        let previous_frame_end = Mutex::new(None);
         let frame_count = 0;
         let swapchain = Arc::new(WindowSwapchain {
             needs_recreation,
@@ -1341,14 +1336,13 @@ impl Window {
             .previous_frame_end
             .lock()
             .expect("failed to lock `previous_frame_end`")
-            .take()
-            .expect("`previous_frame_end` was `None`");
+            .take();
         self.swapchain = Arc::new(WindowSwapchain {
             needs_recreation: AtomicBool::new(false),
             frame_created: self.frame_count,
             swapchain: new_swapchain,
             images: new_images,
-            previous_frame_end: Mutex::new(Some(previous_frame_end)),
+            previous_frame_end: Mutex::new(previous_frame_end),
         });
     }
 }
