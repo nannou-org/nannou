@@ -8,9 +8,10 @@ use std::sync::Arc;
 use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use nannou::vulkano::command_buffer::DynamicState;
 use nannou::vulkano::device::DeviceOwned;
-use nannou::vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract, Subpass};
+use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
 use nannou::vulkano::pipeline::viewport::Viewport;
 use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
+use nannou::window::SwapchainFramebuffers;
 
 fn main() {
     nannou::app(model).run();
@@ -20,7 +21,7 @@ struct Model {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
-    framebuffer: RefCell<Option<Arc<FramebufferAbstract + Send + Sync>>>,
+    framebuffers: RefCell<SwapchainFramebuffers>,
 }
 
 #[derive(Debug, Clone)]
@@ -33,7 +34,7 @@ nannou::vulkano::impl_vertex!(Vertex, position);
 fn model(app: &App) -> Model {
     app.new_window()
         .with_dimensions(512, 512)
-        .view(view)
+        .raw_view(view)
         .build()
         .unwrap();
 
@@ -86,7 +87,9 @@ fn model(app: &App) -> Model {
                     // same format as the swapchain.
                     format: app.main_window().swapchain().format(),
                     // TODO:
-                    samples: Frame::DEFAULT_MSAA_SAMPLES,
+                    samples: 1,
+                    initial_layout: ImageLayout::PresentSrc,
+                    final_layout: ImageLayout::PresentSrc,
                 }
             },
             pass: {
@@ -125,20 +128,23 @@ fn model(app: &App) -> Model {
             .unwrap(),
     );
 
-    // The render pass we created above only describes the layout of our framebuffer. Before we
-    // can draw we also need to create the actual framebuffer.
-    let framebuffer = RefCell::new(None);
+    // The render pass we created above only describes the layout of our framebuffers. Before we
+    // can draw we also need to create the actual framebuffers.
+    //
+    // Since we need to draw to multiple images, we are going to create a different framebuffer for
+    // each image.
+    let framebuffers = RefCell::new(SwapchainFramebuffers::default());
 
     Model {
         render_pass,
         pipeline,
         vertex_buffer,
-        framebuffer,
+        framebuffers,
     }
 }
 
-// Draw the state of your `Model` into the given `Frame` here.
-fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
+// Draw the state of your `Model` into the given `RawFrame` here.
+fn view(_app: &App, model: &Model, frame: RawFrame) -> RawFrame {
     // Dynamic viewports allow us to recreate just the viewport when the window is resized
     // Otherwise we would have to recreate the whole pipeline.
     let [w, h] = frame.swapchain_image().dimensions();
@@ -153,26 +159,22 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
         scissors: None,
     };
 
-    // Update the framebuffer.
-    let framebuffer = {
-        if model.framebuffer.borrow().is_none() || frame.image_is_new() {
-            let fb = Framebuffer::start(model.render_pass.clone())
-                .add(frame.image().clone())
-                .unwrap()
-                .build()
-                .unwrap();
-            *model.framebuffer.borrow_mut() = Some(Arc::new(fb));
-        }
-        model.framebuffer.borrow().as_ref().unwrap().clone()
-    };
+    // Update framebuffers so that count matches swapchain image count and dimensions match.
+    model.framebuffers.borrow_mut()
+        .update(&frame, model.render_pass.clone(), |builder, image| builder.add(image))
+        .unwrap();
 
-    // Specify the color to clear the framebuffer with i.e. blue.
+    // Specify the color to clear the framebuffer with i.e. blue
     let clear_values = vec![[0.0, 0.0, 1.0, 1.0].into()];
 
     // Submit the draw commands.
     frame
         .add_commands()
-        .begin_render_pass(framebuffer, false, clear_values)
+        .begin_render_pass(
+            model.framebuffers.borrow()[frame.swapchain_image_index()].clone(),
+            false,
+            clear_values,
+        )
         .unwrap()
         .draw(
             model.pipeline.clone(),
