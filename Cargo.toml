@@ -109,6 +109,9 @@ path = "examples/basics/7_modules/7_modules.rs"
 name = "vk_triangle"
 path = "examples/vulkan/vk_triangle.rs"
 [[example]]
+name = "vk_triangle_raw_frame"
+path = "examples/vulkan/vk_triangle_raw_frame.rs"
+[[example]]
 name = "vk_teapot"
 path = "examples/vulkan/vk_teapot.rs"
 [[example]]
