@@ -2,6 +2,7 @@
 
 use draw;
 use frame::Frame;
+use gpu;
 use math::{BaseFloat, NumCast};
 use std::error::Error as StdError;
 use std::fmt;
@@ -553,10 +554,7 @@ where
 /// The target is 4, but we fall back to the limit if its lower.
 pub fn msaa_samples(physical_device: &PhysicalDevice) -> u32 {
     const TARGET_SAMPLES: u32 = 4;
-    let color = physical_device.limits().framebuffer_color_sample_counts();
-    let depth = physical_device.limits().framebuffer_depth_sample_counts();
-    let limit = std::cmp::min(color, depth);
-    std::cmp::min(limit, TARGET_SAMPLES)
+    gpu::msaa_samples_limited(physical_device, TARGET_SAMPLES)
 }
 
 // Error Implementations

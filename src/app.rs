@@ -17,7 +17,7 @@ use audio::cpal;
 use draw;
 use event::{self, Event, LoopEvent, Key, Update};
 use find_folder;
-use frame::Frame;
+use frame::{Frame, RawFrame, RenderData};
 use geom;
 use gpu;
 use state;
@@ -2011,7 +2011,7 @@ where
     };
 
     // Construct and emit a frame via `view` for receiving the user's graphics commands.
-    let frame = Frame::new_empty(
+    let raw_frame = RawFrame::new_empty(
         queue.clone(),
         window_id,
         nth_frame,
@@ -2027,21 +2027,84 @@ where
             .get(&window_id)
             .and_then(|w| w.user_functions.view.clone())
     };
-    let frame = match window_view {
-        Some(window::View::Sketch(view)) => view(app, frame),
+
+    // A function to simplify taking a window's render data.
+    fn take_window_frame_render_data(app: &App, window_id: window::Id) -> Option<RenderData> {
+        let mut windows = app.windows.borrow_mut();
+        windows
+            .get_mut(&window_id)
+            .and_then(|w| w.frame_render_data.take())
+    }
+
+    // A function to simplify giving the frame render data back to the window.
+    fn set_window_frame_render_data(app: &App, window_id: window::Id, render_data: RenderData) {
+        let mut windows = app.windows.borrow_mut();
+        if let Some(window) = windows.get_mut(&window_id) {
+            window.frame_render_data = Some(render_data);
+        }
+    }
+
+    let command_buffer = match window_view {
+        Some(window::View::Sketch(view)) => {
+            let render_data = take_window_frame_render_data(app, window_id)
+                .expect("failed to take window's `frame_render_data`");
+            let frame = Frame::new_empty(raw_frame, render_data)
+                .expect("failed to create `Frame`");
+            let frame = view(app, frame);
+            let (render_data, raw_frame) = frame.finish()
+                .expect("failed to resolve frame's intermediary_image to the swapchain_image");
+            set_window_frame_render_data(app, window_id, render_data);
+            raw_frame.finish().build().expect("failed to build command buffer")
+        }
         Some(window::View::WithModel(view)) => {
+            let render_data = take_window_frame_render_data(app, window_id)
+                .expect("failed to take window's `frame_render_data`");
+            let frame = Frame::new_empty(raw_frame, render_data)
+                .expect("failed to create `Frame`");
             let view = view
                 .to_fn_ptr::<M>()
                 .expect("unexpected model argument given to window view function");
-            (*view)(app, model, frame)
-        },
+            let frame = (*view)(app, model, frame);
+            let (render_data, raw_frame) = frame.finish()
+                .expect("failed to resolve frame's intermediary_image to the swapchain_image");
+            set_window_frame_render_data(app, window_id, render_data);
+            raw_frame.finish().build().expect("failed to build command buffer")
+        }
+        Some(window::View::WithModelRaw(raw_view)) => {
+            let raw_view = raw_view
+                .to_fn_ptr::<M>()
+                .expect("unexpected model argument given to window raw_view function");
+            let raw_frame = (*raw_view)(app, model, raw_frame);
+            raw_frame.finish().build().expect("failed to build command buffer")
+        }
         None => match default_view {
-            Some(View::Sketch(view)) => view(app, frame),
-            Some(View::WithModel(view)) => view(app, &model, frame),
-            None => frame,
-        },
+            Some(View::Sketch(view)) => {
+                let render_data = take_window_frame_render_data(app, window_id)
+                    .expect("failed to take window's `frame_render_data`");
+                let frame = Frame::new_empty(raw_frame, render_data)
+                    .expect("failed to create `Frame`");
+                let frame = view(app, frame);
+                let (render_data, raw_frame) = frame.finish()
+                    .expect("failed to resolve frame's intermediary_image to the swapchain_image");
+                set_window_frame_render_data(app, window_id, render_data);
+                raw_frame.finish().build().expect("failed to build command buffer")
+            }
+            Some(View::WithModel(view)) => {
+                let render_data = take_window_frame_render_data(app, window_id)
+                    .expect("failed to take window's `frame_render_data`");
+                let frame = Frame::new_empty(raw_frame, render_data)
+                    .expect("failed to create `Frame`");
+                let frame = view(app, &model, frame);
+                let (render_data, raw_frame) = frame.finish()
+                    .expect("failed to resolve frame's intermediary_image to the swapchain_image");
+                set_window_frame_render_data(app, window_id, render_data);
+                raw_frame.finish().build().expect("failed to build command buffer")
+            }
+            None => {
+                raw_frame.finish().build().expect("failed to build command buffer")
+            }
+        }
     };
-    let command_buffer = frame.finish().build().expect("failed to build command buffer");
 
     let mut windows = app.windows.borrow_mut();
     let window = windows.get_mut(&window_id).expect("no window for id");

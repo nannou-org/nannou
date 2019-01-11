@@ -4,7 +4,8 @@ use std::borrow::Cow;
 use std::panic::RefUnwindSafe;
 use std::sync::Arc;
 use vulkano::format::Format;
-use vulkano::instance::{ApplicationInfo, Instance, InstanceCreationError, InstanceExtensions};
+use vulkano::instance::{ApplicationInfo, Instance, InstanceCreationError, InstanceExtensions,
+                        PhysicalDevice};
 use vulkano::instance::debug::{DebugCallback, DebugCallbackCreationError, Message, MessageTypes};
 use vulkano::instance::loader::{FunctionPointers, Loader};
 use vulkano_win;
@@ -234,4 +235,18 @@ pub fn format_is_srgb(format: Format) -> bool {
         ASTC_12x12SrgbBlock => true,
         _ => false,
     }
+}
+
+/// Given some target MSAA samples, limit it by the capabilities of the given `physical_device`.
+///
+/// This is useful for attempting a specific multisampling sample count but falling back to a
+/// supported count in the case that the desired count is unsupported.
+///
+/// Specifically, this function limits the given `target_msaa_samples` to the minimum of the color
+/// and depth sample count limits.
+pub fn msaa_samples_limited(physical_device: &PhysicalDevice, target_msaa_samples: u32) -> u32 {
+    let color_limit = physical_device.limits().framebuffer_color_sample_counts();
+    let depth_limit = physical_device.limits().framebuffer_depth_sample_counts();
+    let msaa_limit = std::cmp::min(color_limit, depth_limit);
+    std::cmp::min(msaa_limit, target_msaa_samples)
 }
