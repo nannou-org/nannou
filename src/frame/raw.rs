@@ -1,4 +1,5 @@
-use draw::properties::color::IntoRgba;
+//! The lower-level "raw" frame type allowing to draw directly to the window's swapchain image.
+
 use std::sync::{Arc, Mutex};
 use vulkano;
 use vulkano::buffer::{BufferAccess, TypedBufferAccess};
@@ -19,15 +20,15 @@ use vulkano::sampler::Filter;
 use window;
 use window::SwapchainImage;
 
-/// Allows the user to draw a single **Frame** to the surface of a window.
+/// Allows the user to draw a single **RawFrame** to the surface of a window.
 ///
 /// The application's **view** function is called each time the application is ready to retrieve a
-/// new image that will be displayed to a window. The **Frame** type can be thought of as the
+/// new image that will be displayed to a window. The **RawFrame** type can be thought of as the
 /// canvas to which you draw this image.
 ///
 /// ## Under the hood - Vulkan
 ///
-/// There are a couple of main goals for the **Frame** type:
+/// There are a couple of main goals for the **RawFrame** type:
 ///
 /// - Allow for maximum flexibility and customisation over the:
 ///   - Render Pass
@@ -113,7 +114,7 @@ use window::SwapchainImage;
 ///
 /// **Note:** If you find you are unable to do something or that this API is too restrictive,
 /// please open an issue about it so that might be able to work out a solution!
-pub struct Frame {
+pub struct RawFrame {
     // The `AutoCommandBufferBuilder` type used for building the frame's command buffer.
     //
     // An `Option` is used here to allow for taking the builder by `self` as type's builder methods
@@ -136,16 +137,16 @@ pub struct Frame {
 }
 
 /// A builder type that allows chaining together commands for the command buffer that will be used
-/// to draw to the swapchain image framebuffer associated with this **Frame**.
+/// to draw to the swapchain image framebuffer associated with this **RawFrame**.
 pub struct AddCommands<'a> {
-    frame: &'a Frame,
+    frame: &'a RawFrame,
 }
 
 // The `AutoCommandBufferBuilder` type used for building the frame's command buffer.
 type AutoCommandBufferBuilder =
     vulkano::command_buffer::AutoCommandBufferBuilder<StandardCommandPoolBuilder>;
 
-impl Frame {
+impl RawFrame {
     // Initialise a new empty frame ready for "drawing".
     pub(crate) fn new_empty(
         queue: Arc<Queue>,
@@ -158,7 +159,7 @@ impl Frame {
         let device = queue.device().clone();
         let cb_builder = AutoCommandBufferBuilder::primary_one_time_submit(device, queue.family())?;
         let command_buffer_builder = Mutex::new(Some(cb_builder));
-        let frame = Frame {
+        let frame = RawFrame {
             command_buffer_builder,
             window_id,
             nth,
@@ -170,7 +171,7 @@ impl Frame {
         Ok(frame)
     }
 
-    // Called after the user's `view` function, this consumes the `Frame` and returns the inner
+    // Called after the user's `view` function, this consumes the `RawFrame` and returns the inner
     // command buffer builder so that it can be completed.
     pub(crate) fn finish(self) -> AutoCommandBufferBuilder {
         self.command_buffer_builder
@@ -193,23 +194,10 @@ impl Frame {
         (self.nth - self.swapchain_image_index as u64) == self.swapchain_frame_created
     }
 
-    /// Add commands to be executed by the GPU once the **Frame** is returned.
+    /// Add commands to be executed by the GPU once the **RawFrame** is returned.
     pub fn add_commands(&self) -> AddCommands {
         let frame = self;
         AddCommands { frame }
-    }
-
-    /// Clear the image with the given color.
-    pub fn clear<C>(&self, color: C)
-    where
-        C: IntoRgba<f32>,
-    {
-        let rgba = color.into_rgba();
-        let value = ClearValue::Float([rgba.red, rgba.green, rgba.blue, rgba.alpha]);
-        let image = self.swapchain_image.clone();
-        self.add_commands()
-            .clear_color_image(image, value)
-            .expect("failed to submit `clear_color_image` command");
     }
 
     /// The `Id` of the window whose vulkan surface is associated with this frame.
@@ -254,10 +242,10 @@ impl<'a> AddCommands<'a> {
         {
             let mut guard = self.frame.command_buffer_builder
                 .lock()
-                .expect("failed to lock `Frame`'s inner command buffer builder");
+                .expect("failed to lock `RawFrame`'s inner command buffer builder");
             let mut builder = guard
                 .take()
-                .expect("the `Frame`'s inner command buffer should always be `Some`");
+                .expect("the `RawFrame`'s inner command buffer should always be `Some`");
             builder = map(builder)?;
             *guard = Some(builder);
         }
