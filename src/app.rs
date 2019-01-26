@@ -164,7 +164,7 @@ pub struct App {
 // /// Graphics related items within the `App`.
 // pub struct Graphics {
 // }
-// 
+//
 // /// Items related to the presence of one or more windows within the App.
 // pub struct Windowing {
 // }
@@ -563,6 +563,32 @@ where
         if app.focused_window.borrow().is_none() {
             if let Some(id) = app.windows.borrow().keys().next() {
                 *app.focused_window.borrow_mut() = Some(id.clone());
+            }
+        }
+
+        // If the loop mode was set in the user's model function, ensure all window swapchains are
+        // re-created appropriately.
+        let loop_mode = app.loop_mode();
+        if loop_mode != LoopMode::default() {
+            let mut windows = app.windows.borrow_mut();
+            for window in windows.values_mut() {
+                let min_image_count = window
+                    .surface
+                    .capabilities(window.swapchain.device().physical_device())
+                    .expect("failed to get surface capabilities")
+                    .min_image_count;
+                let user_specified_present_mode = window.user_specified_present_mode;
+                let user_specified_image_count = window.user_specified_image_count;
+                let (present_mode, image_count) = window::preferred_present_mode_and_image_count(
+                    &loop_mode,
+                    min_image_count,
+                    user_specified_present_mode,
+                    user_specified_image_count,
+                );
+                if window.swapchain.present_mode() != present_mode
+                || window.swapchain.num_images() != image_count {
+                    change_loop_mode_for_window(window, &loop_mode);
+                }
             }
         }
 
@@ -1175,38 +1201,7 @@ where
             // and continue.
             BreakReason::NewLoopMode(new_loop_mode) => {
                 loop_mode = new_loop_mode;
-
-                // Re-build the window swapchains so that they are optimal for the new loop mode.
-                let mut windows = app.windows.borrow_mut();
-                for window in windows.values_mut() {
-                    let device = window.swapchain.swapchain.device().clone();
-                    let surface = window.surface.clone();
-                    let queue = window.queue.clone();
-
-                    // Initialise a swapchain builder from the current swapchain's params.
-                    let mut swapchain_builder =
-                        window::SwapchainBuilder::from_swapchain(&window.swapchain.swapchain);
-
-                    // Let the new present mode and image count be chosen by nannou or the user if
-                    // they have a preference.
-                    swapchain_builder.present_mode = window.user_specified_present_mode;
-                    swapchain_builder.image_count = window.user_specified_image_count;
-
-                    // Create the new swapchain.
-                    let (new_swapchain, new_swapchain_images) = swapchain_builder
-                        .build(
-                            device,
-                            surface,
-                            &queue,
-                            &loop_mode,
-                            None,
-                            Some(&window.swapchain.swapchain),
-                        )
-                        .expect("failed to recreate swapchain for new `LoopMode`");
-
-                    // Replace the window's swapchain with the newly created one.
-                    window.replace_swapchain(new_swapchain, new_swapchain_images);
-                }
+                change_loop_mode(&app, &loop_mode);
             },
             // If the loop broke due to the application exiting, we're done!
             BreakReason::Exit => {
@@ -1495,6 +1490,46 @@ where
             }
         }
     }
+}
+
+// Recreate window swapchains as necessary due to `loop_mode` switch.
+fn change_loop_mode(app: &App, loop_mode: &LoopMode) {
+    // Re-build the window swapchains so that they are optimal for the new loop mode.
+    let mut windows = app.windows.borrow_mut();
+    for window in windows.values_mut() {
+        change_loop_mode_for_window(window, loop_mode);
+    }
+}
+
+// Recreate the window swapchain to match the loop mode.
+fn change_loop_mode_for_window(window: &mut Window, loop_mode: &LoopMode) {
+    let device = window.swapchain.swapchain.device().clone();
+    let surface = window.surface.clone();
+    let queue = window.queue.clone();
+
+    // Initialise a swapchain builder from the current swapchain's params.
+    let mut swapchain_builder =
+        window::SwapchainBuilder::from_swapchain(&window.swapchain.swapchain);
+
+    // Let the new present mode and image count be chosen by nannou or the user if
+    // they have a preference.
+    swapchain_builder.present_mode = window.user_specified_present_mode;
+    swapchain_builder.image_count = window.user_specified_image_count;
+
+    // Create the new swapchain.
+    let (new_swapchain, new_swapchain_images) = swapchain_builder
+        .build(
+            device,
+            surface,
+            &queue,
+            &loop_mode,
+            None,
+            Some(&window.swapchain.swapchain),
+        )
+        .expect("failed to recreate swapchain for new `LoopMode`");
+
+    // Replace the window's swapchain with the newly created one.
+    window.replace_swapchain(new_swapchain, new_swapchain_images);
 }
 
 // Each window has its own associated GPU future associated with displaying the last frame.
