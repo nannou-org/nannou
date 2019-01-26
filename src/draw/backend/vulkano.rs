@@ -19,6 +19,7 @@ use vulkano::instance::PhysicalDevice;
 use vulkano::memory::DeviceMemoryAllocError;
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use vulkano::pipeline::viewport::Viewport;
+use vulkano::sync::GpuFuture;
 use window::SwapchainFramebuffers;
 
 /// A type used for rendering a **nannou::draw::Mesh** with a vulkan graphics pipeline.
@@ -325,12 +326,12 @@ impl Renderer {
         // Create the vertex and index buffers.
         let map_vertex = |v| Vertex::from_mesh_vertex(v, img_w as _, img_h as _, dpi_factor);
         vertices.extend(draw.raw_vertices().map(map_vertex));
-        let (vertex_buffer, _vb_future) = ImmutableBuffer::from_iter(
+        let (vertex_buffer, vb_future) = ImmutableBuffer::from_iter(
             vertices.drain(..),
             BufferUsage::vertex_buffer(),
             queue.clone(),
         )?;
-        let (index_buffer, _ib_future) = ImmutableBuffer::from_iter(
+        let (index_buffer, ib_future) = ImmutableBuffer::from_iter(
             draw.inner_mesh().indices().iter().map(|&u| u as u32),
             BufferUsage::index_buffer(),
             queue.clone(),
@@ -365,6 +366,13 @@ impl Renderer {
 
         // Create the dynamic state.
         let dynamic_state = dynamic_state([img_w as _, img_h as _]);
+
+        vb_future
+            .join(ib_future)
+            .then_signal_fence_and_flush()
+            .expect("`then_signal_fence_and_flush` failed")
+            .wait(None)
+            .expect("failed to wait for `vb` and `ib` futures");
 
         // Submit the draw commands.
         frame
