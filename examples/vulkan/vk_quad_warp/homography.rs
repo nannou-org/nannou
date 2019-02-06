@@ -87,35 +87,3 @@ fn gaussian_elimination(a: &mut [f32; 72]) {
         }
     }
 }
-
-pub fn test() {
-    let mut src = [[0.0; 2]; 4]; 
-    let mut dst = [[0.0; 2]; 4]; 
-    let homography = [0.0; 16];
-
-    let width = 500.0;
-    let height = 600.0;
-
-    src[0][0] = 0.0;
-    src[0][1] = 0.0;
-    src[1][0] = width;
-    src[1][1] = 0.0;
-    src[2][0] = width;
-    src[2][1] = height;
-    src[3][0] = 0.0;
-    src[3][1] = height;
-    
-
-    dst[0][0] = -1.0;
-    dst[0][1] = -1.0;
-    dst[1][0] = 1.0;
-    dst[1][1] = -1.0;
-    dst[2][0] = -1.0;
-    dst[2][1] = 1.0;
-    dst[3][0] = 1.0;
-    dst[3][1] = 1.0; 
-    println!("{:?}", &src);
-    println!("{:?}", &dst);
-    let homography = find_homography(src, dst);
-    assert_eq!(homography, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, 0.0, 1.0])
-}

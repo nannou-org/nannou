@@ -112,6 +112,9 @@ path = "examples/vulkan/vk_triangle.rs"
 name = "vk_teapot"
 path = "examples/vulkan/vk_teapot.rs"
 [[example]]
+name = "vk_quad_warp"
+path = "examples/vulkan/vk_quad_warp/vk_quad_warp.rs"
+[[example]]
 name = "vk_teapot_camera"
 path = "examples/vulkan/vk_teapot_camera.rs"
 [[example]]
