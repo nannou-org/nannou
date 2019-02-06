@@ -10,9 +10,8 @@ use nannou::prelude::*;
 use self::warp::Warp;
 use self::teapot_verts::{VERTICES, INDICES, NORMALS};
 use self::controls::{Controls, Corners, Corner, Ids};
-use nannou::ui::{Ui, widget};
+use nannou::ui::Ui;
 use nannou::math::cgmath::{self, Matrix3, Matrix4, Rad, Point3, Vector3};
-use nannou::vulkano;
 use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use nannou::vulkano::buffer::cpu_pool::CpuBufferPool;
 use nannou::vulkano::command_buffer::DynamicState;
@@ -25,8 +24,6 @@ use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract,
                                 GraphicsPipelineCreationError};
 use nannou::vulkano::pipeline::vertex::TwoBuffersDefinition;
 use nannou::vulkano::pipeline::viewport::Viewport;
-use nannou::window::SwapchainFramebuffers;
-use nannou::geom::Quad;
 use std::cell::RefCell;
 use std::sync::Arc;
 
@@ -78,7 +75,7 @@ pub struct Normal {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .with_dimensions(500, 400)
+        .with_dimensions(500, 700)
         .view(view)
         .build()
         .unwrap();
@@ -146,7 +143,6 @@ fn model(app: &App) -> Model {
         .unwrap();
 
     let inter_image = AttachmentImage::sampled(device.clone(), [w, h], app.main_window().swapchain().format()).unwrap();
-    //let framebuffers = SwapchainFramebuffers::default();
     let framebuffer = Framebuffer::start(render_pass.clone())
     .add(inter_image.clone()).unwrap()
     .add(depth_image.clone()).unwrap()
@@ -165,7 +161,6 @@ fn model(app: &App) -> Model {
         depth_image,
         framebuffer,
         inter_image,
-        //framebuffers,
     });
     
     let gui_window = app.new_window()
@@ -209,7 +204,7 @@ fn model(app: &App) -> Model {
     Model { graphics, controls, ui, ids, warp }
 }
 
-fn update(_: &App, model: &mut Model, update: Update) {
+fn update(_: &App, model: &mut Model, _update: Update) {
     controls::update(model);
 }
 
@@ -237,15 +232,6 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
             Format::D16Unorm,
         ).unwrap();
     }
-
-    // Update framebuffers so that count matches swapchain image count and dimensions match.
-    let render_pass = graphics.render_pass.clone();
-    let depth_image = graphics.depth_image.clone();
-    /*
-    graphics.framebuffers
-        .update(&frame, render_pass, |builder, image| builder.add(image)?.add(depth_image.clone()))
-        .unwrap();
-        */
 
     // Create a uniform buffer slice with the world, view and projection matrices.
     let uniform_buffer_slice = {
@@ -311,7 +297,6 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .expect("failed to add `end_render_pass` command");
 
     warp::view(&app, model, inter_image, frame)
-    //frame
 }
 
 // Create the graphics pipeline.

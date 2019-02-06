@@ -1,16 +1,13 @@
 use nannou::prelude::*;
-use nannou::vulkano;
 use std::cell::RefCell;
 use std::sync::Arc;
 use crate::homography;
 
-use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer, ImmutableBuffer};
+use nannou::vulkano::buffer::{BufferUsage, ImmutableBuffer};
 use nannou::vulkano::command_buffer::DynamicState;
-use nannou::vulkano::descriptor::descriptor_set::{DescriptorSet, PersistentDescriptorSet};
+use nannou::vulkano::descriptor::descriptor_set::{PersistentDescriptorSet};
 use nannou::vulkano::device::DeviceOwned;
-use nannou::vulkano::format::Format;
 use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
-use nannou::vulkano::image::{Dimensions, ImmutableImage};
 use nannou::vulkano::pipeline::viewport::Viewport;
 use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use nannou::vulkano::sampler::{Filter, MipmapMode, Sampler, SamplerAddressMode};
@@ -18,9 +15,7 @@ use nannou::window::SwapchainFramebuffers;
 use nannou::vulkano::image::attachment::AttachmentImage;
 use nannou::vulkano::sync::GpuFuture;
 use nannou::math::Matrix4;
-use nannou::math::cgmath;
 use nannou::vulkano::buffer::CpuBufferPool;
-use std::cmp::Ordering::Equal;
 
 use crate::Model;
 
@@ -108,87 +103,14 @@ pub(crate) fn warp(app: &App) -> Warp {
     }
 }
 
-pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>,frame: Frame) -> Frame {
+pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>, frame: Frame) -> Frame {
     let Model {
         warp,
         controls,
         ..
     } = model;
-
+    
     let n_corners = controls.corners.normalized();
-    let inter_dims = inter_image.dimensions();
-    /*
-    let src_dims = [[0.0, 0.0],
-    [inter_dims[0] as f32, 0.0],
-    [inter_dims[0] as f32, inter_dims[1] as f32],
-    [0.0, inter_dims[1] as f32]];
-
-
-    let src_dims = [[-1.0, 1.0],
-    [1.0, 1.0],
-    [1.0, -1.0],
-    [-1.0, -1.0]];
-    let dst_dims = [[n_corners[0].x, n_corners[0].y],
-    [n_corners[1].x, n_corners[1].y],
-    [n_corners[3].x, n_corners[3].y],
-    [n_corners[2].x, n_corners[2].y]];
-    let w = inter_dims[0] as f32 / 2.0;
-    let h = inter_dims[1] as f32 / 2.0;
-    let src_dims = [
-    [-w, h],
-    [w, h],
-    [w, -h],
-    [-w, -h]];
-
-    let tl = controls.corners.top_left.pos;
-    let tr = controls.corners.top_right.pos;
-    let br = controls.corners.bottom_right.pos;
-    let bl = controls.corners.bottom_left.pos;
-    let dst_dims = [[tl.x, tl.y],
-    [tr.x, tr.y],
-    [br.x, br.y],
-    [bl.x, bl.y]];
-
-    let src_dims = [[0.0, 0.0],
-    [1.0, 0.0],
-    [1.0, 1.0],
-    [0.0, 1.0]];
-    let src_dims = [[-1.0, 1.0],
-    [1.0, 1.0],
-    [1.0, -1.0],
-    [-1.0, -1.0]];
-    let min_x = n_corners.iter()
-        .map(|c| c.x)
-        .min_by(|a, b| a.partial_cmp(b).unwrap_or(Equal))
-        .unwrap();
-    let max_x = n_corners.iter()
-        .map(|c| c.x)
-        .max_by(|a, b| a.partial_cmp(b).unwrap_or(Equal))
-        .unwrap();
-    let min_y = n_corners.iter()
-        .map(|c| c.y)
-        .min_by(|a, b| a.partial_cmp(b).unwrap_or(Equal))
-        .unwrap();
-    let max_y = n_corners.iter()
-        .map(|c| c.y)
-        .max_by(|a, b| a.partial_cmp(b).unwrap_or(Equal))
-        .unwrap();
-    let src_dims = [[0.0, 0.0],
-    [max_x, 0.0],
-    [max_x, max_y],
-    [0.0, max_y]];
-    let dst_dims = [[n_corners[0].x, n_corners[0].y],
-    [n_corners[1].x, n_corners[1].y],
-    [n_corners[3].x, n_corners[3].y],
-    [n_corners[2].x, n_corners[2].y]];
-    let src_dims = [[0.0, 0.0],
-    [inter_dims[0] as f32, 0.0],
-    [inter_dims[0] as f32, inter_dims[1] as f32],
-    [0.0, inter_dims[1] as f32]];
-    */
-    let inter_dims = inter_image.dimensions();
-    let w = inter_dims[0] as f32 / 2.0;
-    let h = inter_dims[1] as f32 / 2.0;
     let src_dims = [
     [-1.0, -1.0],
     [1.0, -1.0],
@@ -202,6 +124,7 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>,f
     [tr.x, -tr.y],
     [br.x, -br.y],
     [bl.x, -bl.y]];
+
     let h_matrix = homography::find_homography(src_dims, dst_dims);
     let h_matrix: &Matrix4<f32> = From::from(&h_matrix);
     let h_matrix = h_matrix.clone();
@@ -209,34 +132,23 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>,f
     let uniform_data = vs::ty::Data {
         homography: h_matrix.into(),
     };
-    let tl = h_matrix * cgmath::Vector4::new(n_corners[0].x, n_corners[0].y, 0.0, 1.0);
-    let tr = h_matrix * cgmath::Vector4::new(n_corners[1].x, n_corners[1].y, 0.0, 1.0);
-    let bl = h_matrix * cgmath::Vector4::new(n_corners[2].x, n_corners[2].y, 0.0, 1.0);
-    let br = h_matrix * cgmath::Vector4::new(n_corners[3].x, n_corners[3].y, 0.0, 1.0);
+
     let (vertex_buffer, buffer_future) = ImmutableBuffer::from_iter(
         [
         Vertex {
-            //position: [tl.x, tl.y, tl.z],
-            //position: [n_corners[0].x, n_corners[0].y, 0.0],
             position: [-1.0, -1.0, 0.0],
             v_tex_coords: [0.0, 0.0],
             
         },
         Vertex {
-            //position: [bl.x, bl.y, bl.z],
-            //position: [n_corners[2].x, n_corners[2].y, 0.0],
             position: [-1.0, 1.0, 0.0],
             v_tex_coords: [0.0, 1.0],
         },
         Vertex {
-            //position: [tr.x, tr.y, tr.z],
-            //position: [n_corners[1].x, n_corners[1].y, 0.0],
             position: [1.0, -1.0, 0.0],
             v_tex_coords: [1.0, 0.0],
         },
         Vertex {
-            //position: [br.x, br.y, br.z],
-            //position: [n_corners[3].x, n_corners[3].y, 0.0],
             position: [1.0, 1.0, 0.0],
             v_tex_coords: [1.0, 1.0],
         },
@@ -277,10 +189,6 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>,f
 
     let clear_values = vec![[0.0, 1.0, 0.0, 1.0].into()];
 
-    let push_constants = fs::ty::PushConstantData {
-        time: app.time * 30.0,
-    };
-
     let uniform_buffer_slice = warp.uniform_buffer.next(uniform_data).unwrap();
     
     let desciptor_set = Arc::new(
@@ -306,7 +214,7 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>,f
             &dynamic_state,
             vec![vertex_buffer.clone()],
             desciptor_set.clone(),
-            push_constants,
+            (),
         )
         .expect("Failed to draw")
         .end_render_pass()
@@ -331,10 +239,8 @@ layout(set = 0, binding = 1) uniform Data {
 } uniforms;
 
 void main() {
-    vec4 flipped = uniforms.homography * vec4(position, 1.0);
-    //flipped.y *= -1.0;
-    gl_Position = flipped;
-    //gl_Position = vec4(position, 1.0);
+    vec4 pos = uniforms.homography * vec4(position, 1.0);
+    gl_Position = pos;
     tex_coords = v_tex_coords;
 }"
     }
@@ -350,19 +256,9 @@ layout(location = 0) in vec2 tex_coords;
 layout(location = 0) out vec4 f_color;
 
 layout(set = 0, binding = 0) uniform sampler2D tex;
-layout(set = 0, binding = 1) uniform Data {
-    mat4 homography;
-} uniforms;
-
-layout(push_constant) uniform PushConstantData {
-    float time;
-} pc;
 
 void main() {
-    //vec4 c = vec4( abs(tex_coords.x + sin(pc.time)), tex_coords.x, tex_coords.y * abs(cos(pc.time)), 1.0);    
-    //vec4 tx = uniforms.homography * vec4(tex_coords, 0.0, 1.0);
    f_color = texture(tex, tex_coords);
-   //f_color = texture(tex, tx.xy);
 }"
     }
 }
