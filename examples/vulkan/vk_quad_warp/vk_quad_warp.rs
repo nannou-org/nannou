@@ -9,8 +9,9 @@ use nannou::prelude::*;
 
 use self::warp::Warp;
 use self::teapot_verts::{VERTICES, INDICES, NORMALS};
-use self::controls::{Controls, Corners, Corner, Ids};
+use self::controls::{Controls, Corners, Ids};
 use nannou::ui::Ui;
+use nannou::geom::range::Range;
 use nannou::math::cgmath::{self, Matrix3, Matrix4, Rad, Point3, Vector3};
 use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use nannou::vulkano::buffer::cpu_pool::CpuBufferPool;
@@ -52,7 +53,6 @@ struct Graphics {
     depth_image: Arc<AttachmentImage>,
     inter_image: Arc<AttachmentImage>,
     framebuffer: Arc<FramebufferAbstract + Send + Sync>
-    //framebuffers: SwapchainFramebuffers,
 }
 
 
@@ -74,11 +74,15 @@ pub struct Normal {
 
 
 fn model(app: &App) -> Model {
-    app.new_window()
+    let window_id = app.new_window()
         .with_dimensions(500, 700)
         .view(view)
         .build()
         .unwrap();
+    
+    app.window(window_id)
+        .expect("No window")
+        .set_position(0, 0);
 
     let device = app.main_window().swapchain().device().clone();
 
@@ -163,13 +167,21 @@ fn model(app: &App) -> Model {
         inter_image,
     });
     
-    let gui_window = app.new_window()
+    let gui_window_id = app.new_window()
         .with_dimensions(500, 400)
         .view(ui_view)
         .event(controls::event)
         .build()
         .expect("Failed to build second window");
-    let mut ui = app.new_ui().window(gui_window).build().unwrap();
+
+    let gui_window = app.window(gui_window_id)
+        .expect("No window");
+    let monitor_size = gui_window.current_monitor()
+        .get_dimensions();
+
+    gui_window.set_position((monitor_size.width / 2.0) as i32, 0);
+
+    let mut ui = app.new_ui().window(gui_window_id).build().unwrap();
     
     let ids = Ids {
         top_left_corner: ui.generate_widget_id(),
@@ -184,17 +196,14 @@ fn model(app: &App) -> Model {
         br_text: ui.generate_widget_id(),
     };
 
-    let (window_w, window_h) = app.window(gui_window).expect("Gui window doesn't exist").inner_size_points();
+    let (window_w, window_h) = app.window(gui_window_id).expect("Gui window doesn't exist").inner_size_points();
     let w = window_w / 2.0;
     let h = window_h / 2.0;
-    let corners = Corners {
-        window_w,
-        window_h,
-        top_left: Corner{ drag: false, pos: pt2(-w, h) },
-        top_right: Corner{ drag: false, pos: pt2(w, h) },
-        bottom_left: Corner{ drag: false, pos: pt2(-w, -h) },
-        bottom_right: Corner{ drag: false, pos: pt2(w, -h) },
+    let init_dims = Rect{ 
+        x: Range::new(-w + controls::PAD_X, w - controls::PAD_X), 
+        y: Range::new(-h + controls::PAD_Y, h - controls::PAD_Y)
     };
+    let corners = Corners::new(init_dims);
     let controls = Controls {
         corners,
     };
