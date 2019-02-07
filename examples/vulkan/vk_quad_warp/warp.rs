@@ -110,16 +110,25 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>, 
         ..
     } = model;
     
-    let n_corners = controls.corners.normalized();
+    let [w, h] = frame.swapchain_image().dimensions();
+    let half_w = w as f32 / 2.0;
+    let half_h = h as f32 / 2.0;
+    let ref corners = controls.corners;
+    
+    let remap = | a: &Point2| -> Point2 {
+        pt2(a.x / half_w as f32, a.y / half_h as f32)
+    };
+
+    let tl = remap(&corners.top_left.pos);
+    let tr = remap(&corners.top_right.pos);
+    let bl = remap(&corners.bottom_left.pos);
+    let br = remap(&corners.bottom_right.pos);
+
     let src_dims = [
     [-1.0, -1.0],
     [1.0, -1.0],
     [1.0, 1.0],
     [-1.0, 1.0]];
-    let tl = n_corners[0];
-    let tr = n_corners[1];
-    let bl = n_corners[2];
-    let br = n_corners[3];
     let dst_dims = [[tl.x, -tl.y],
     [tr.x, -tr.y],
     [br.x, -br.y],

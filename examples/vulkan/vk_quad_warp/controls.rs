@@ -1,15 +1,18 @@
 use crate::Model;
 use nannou::ui::prelude::*;
 use nannou::prelude::*;
+use nannou::geom::rect::Rect;
 use self::ui::input::state::mouse::ButtonPosition;
+
+pub const PAD_X: f32 = 20.0;
+pub const PAD_Y: f32 = 20.0;
 
 pub struct Controls {
     pub corners: Corners,
 }
 
 pub struct Corners {
-    pub window_w: f32,
-    pub window_h: f32,
+    pub dims: Rect<f32>,
     pub top_left: Corner,
     pub top_right: Corner,
     pub bottom_left: Corner,
@@ -36,20 +39,15 @@ pub struct Ids {
 }
 
 impl Corners {
-    pub fn normalized(&self) -> [Point2; 4] {
-        let remap = | a: &Point2| -> Point2 {
-            let x_range = (-(self.window_w / 2.0))..(self.window_w / 2.0);
-            let y_range = (-(self.window_h / 2.0))..(self.window_h / 2.0);
-            pt2(map_range(a.x, x_range.start, x_range.end, -1.0, 1.0),
-            map_range(a.y, y_range.start, y_range.end, -1.0, 1.0))
-
-        };
-        [remap(&self.top_left.pos),
-        remap(&self.top_right.pos),
-        remap(&self.bottom_left.pos),
-        remap(&self.bottom_right.pos)]
+    pub fn new(init: Rect<f32>) -> Self {
+        Corners {
+            dims: init,
+            top_left: Corner{ drag: false, pos: pt2(init.x.start, init.y.end) },
+            top_right: Corner{ drag: false, pos: pt2(init.x.end, init.y.end) },
+            bottom_left: Corner{ drag: false, pos: pt2(init.x.start, init.y.start) },
+            bottom_right: Corner{ drag: false, pos: pt2(init.x.end, init.y.start) },
+        }
     }
-    
 }
 
 
@@ -131,6 +129,8 @@ pub(crate) fn event(_app: &App, model: &mut Model, event: WindowEvent) {
     let ref mut corners = model.controls.corners;
     match event {
         MouseMoved(pos) => {
+            let pos = pt2(clamp(pos.x, corners.dims.x.start, corners.dims.x.end), 
+            clamp(pos.y, corners.dims.y.end, corners.dims.y.start));
             if corners.top_left.drag {
                 corners.top_left.pos = pos;
             } else if corners.top_right.drag {
