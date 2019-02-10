@@ -6,7 +6,6 @@
 //!   newcomer-friendly version of the **raw**, low-level winit event.
 
 use geom::{self, Point2, Vector2};
-use state;
 use std::path::PathBuf;
 use window;
 use winit;
@@ -29,11 +28,11 @@ pub struct Update {
     /// The duration since the last update was emitted.
     ///
     /// The first update's delta will be the time since the given `model` function returned.
-    pub since_last: state::time::Duration,
+    pub since_last: std::time::Duration,
     /// The duration since the start of the app loop.
     ///
     /// Specifically, this is the duration of time since the given `model` function returned.
-    pub since_start: state::time::Duration,
+    pub since_start: std::time::Duration,
 }
 
 /// The default application **Event** type.
