@@ -48,6 +48,7 @@ pub mod osc;
 pub mod prelude;
 pub mod rand;
 pub mod state;
+pub mod time;
 pub mod ui;
 pub mod window;
 
