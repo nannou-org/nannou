@@ -31,6 +31,7 @@ use std::sync::atomic::{self, AtomicBool};
 use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::{Duration, Instant};
+use time::DurationF64;
 use ui;
 use vulkano;
 use vulkano::device::DeviceOwned;

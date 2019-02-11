@@ -22,6 +22,7 @@
   methods and more documentation.
 - Add `Window::grab_cursor` and `Window::hide_cursor` methods.
 - Add `window::SwapchainFramebuffers` helper type.
+- Remove the `state::time::Duration` type in favour of a `DurationF64` trait.
 
 # Version 0.8.0 (2018-07-19)
 

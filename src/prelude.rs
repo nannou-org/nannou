@@ -20,6 +20,7 @@ pub use math::{
 };
 pub use osc;
 pub use rand::{random, random_f32, random_f64, random_range};
+pub use time::DurationF64;
 pub use ui;
 pub use window::{self, Id as WindowId};
 
