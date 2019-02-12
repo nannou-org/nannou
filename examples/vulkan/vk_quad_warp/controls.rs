@@ -60,8 +60,8 @@ pub(crate) fn update(model: &mut Model) {
 
     widget::Circle::fill(20.0)
         .rgb(0.0, 0.7, 0.0)
-        .x_position(position::Position::Absolute(corners.top_left.pos.x as f64))
-        .y_position(position::Position::Absolute(corners.top_left.pos.y as f64))
+        .x(corners.top_left.pos.x as f64)
+        .y(corners.top_left.pos.y as f64)
         .set(model.ids.top_left_corner, ui);
     
     widget::Text::new(&format!("top left: {:?}", corners.top_left.pos))
