@@ -6,6 +6,7 @@ use event::{Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase, Touchpad
 use frame::Frame;
 use geom;
 use geom::{Point2, Vector2};
+use gpu;
 use std::any::Any;
 use std::{cmp, env, fmt, ops};
 use std::error::Error as StdError;
@@ -490,12 +491,22 @@ impl SwapchainBuilder {
             Some(fmt) => fmt,
             None => {
                 let color_space = self.color_space.unwrap_or(Self::DEFAULT_COLOR_SPACE);
+
+                // First, try to pick an Srgb format.
                 capabilities
                     .supported_formats
-                    .into_iter()
-                    .filter(|(_, cs)| *cs == color_space)
-                    .map(|(fmt, _)| fmt)
+                    .iter()
+                    .filter(|&&(fmt, cs)| gpu::format_is_srgb(fmt) && cs == color_space)
                     .next()
+                    .or_else(|| {
+                        // Otherwise just try and math the color space.
+                        capabilities
+                            .supported_formats
+                            .iter()
+                            .filter(|&&(_, cs)| cs == color_space)
+                            .next()
+                    })
+                    .map(|&(fmt, _cs)| fmt)
                     .ok_or(SwapchainCreationError::UnsupportedFormat)?
             }
         };
