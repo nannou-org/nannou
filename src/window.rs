@@ -19,8 +19,8 @@ use vulkano::format::Format;
 use vulkano::framebuffer::{AttachmentsList, Framebuffer, FramebufferAbstract, FramebufferBuilder,
                            FramebufferCreationError, RenderPassAbstract};
 use vulkano::instance::PhysicalDevice;
-use vulkano::swapchain::{ColorSpace, CompositeAlpha, PresentMode, SurfaceTransform,
-                         SwapchainCreationError};
+use vulkano::swapchain::{ColorSpace, CompositeAlpha, PresentMode, SupportedPresentModes,
+                         SurfaceTransform, SwapchainCreationError};
 use vulkano::sync::{FenceSignalFuture, GpuFuture};
 use vulkano_win::{VkSurfaceBuild};
 use winit::{self, MonitorId, MouseCursor};
@@ -518,6 +518,7 @@ impl SwapchainBuilder {
             capabilities.min_image_count,
             self.present_mode,
             self.image_count,
+            &capabilities.present_modes,
         );
 
         // Attempt to retrieve the desired composite alpha.
@@ -559,6 +560,7 @@ pub fn preferred_present_mode_and_image_count(
     min_image_count: u32,
     present_mode: Option<PresentMode>,
     image_count: Option<u32>,
+    supported_present_modes: &SupportedPresentModes,
 ) -> (PresentMode, u32) {
     match (present_mode, image_count) {
         (Some(pm), Some(ic)) => (pm, ic),
@@ -570,10 +572,15 @@ pub fn preferred_present_mode_and_image_count(
                 (PresentMode::Fifo, image_count)
             }
             LoopMode::Wait { .. } | LoopMode::Rate { .. } => {
-                let image_count = image_count.unwrap_or_else(|| {
-                    cmp::max(min_image_count, 3)
-                });
-                (PresentMode::Mailbox, image_count)
+                if supported_present_modes.mailbox {
+                    let image_count = image_count
+                        .unwrap_or_else(|| cmp::max(min_image_count, 3));
+                    (PresentMode::Mailbox, image_count)
+                } else {
+                    let image_count = image_count
+                        .unwrap_or_else(|| cmp::max(min_image_count, 2));
+                    (PresentMode::Fifo, image_count)
+                }
             }
         }
         (Some(present_mode), None) => {
