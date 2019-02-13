@@ -38,7 +38,7 @@ pub mod color;
 pub mod draw;
 pub mod ease;
 pub mod event;
-mod frame;
+pub mod frame;
 pub mod geom;
 pub mod gpu;
 pub mod image;

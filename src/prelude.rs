@@ -7,7 +7,7 @@ pub use color::{Hsl, Hsla, Hsv, Hsva, Rgb, Rgba};
 pub use event::WindowEvent::*;
 pub use event::{AxisMotion, Event, Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase,
                 TouchpadPressure, Update, WindowEvent};
-pub use frame::{Frame, RawFrame};
+pub use frame::{Frame, RawFrame, ViewFramebuffer};
 pub use geom::{
     self, pt2, pt3, vec2, vec3, vec4, Cuboid, Point2, Point3, Rect, Vector2, Vector3, Vector4,
 };
