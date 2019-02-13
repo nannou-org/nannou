@@ -936,8 +936,13 @@ impl App {
         let draw = self.draw_state.draw.borrow_mut();
         draw.reset();
         if self.draw_state.renderer.borrow().is_none() {
-            let renderer = draw::backend::vulkano::Renderer::new(device, color_format, DEPTH_FORMAT)
-                .expect("failed to create `Draw` renderer for vulkano backend");
+            let msaa_samples = window.msaa_samples();
+            let renderer = draw::backend::vulkano::Renderer::new(
+                device,
+                color_format,
+                DEPTH_FORMAT,
+                msaa_samples,
+            ).expect("failed to create `Draw` renderer for vulkano backend");
             *self.draw_state.renderer.borrow_mut() = Some(RefCell::new(renderer));
         }
         let renderer = self.draw_state.renderer.borrow_mut();

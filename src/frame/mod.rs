@@ -85,7 +85,7 @@ pub enum FrameFinishError {
 impl Frame {
     /// The default number of multisample anti-aliasing samples used if the window with which the
     /// `Frame` is associated supports it.
-    pub const DEFAULT_MSAA_SAMPLES: u32 = 4;
+    pub const DEFAULT_MSAA_SAMPLES: u32 = 8;
 
     /// Initialise a new empty frame ready for "drawing".
     pub(crate) fn new_empty(
@@ -164,6 +164,16 @@ impl Frame {
     /// reconstruction in the case that it targets the frame's image.
     pub fn image_is_new(&self) -> bool {
         self.raw_frame.nth() == 0 || self.data.intermediary_image_is_new
+    }
+
+    /// The color format of the `Frame`'s intermediary image.
+    pub fn image_format(&self) -> Format {
+        vulkano::image::ImageAccess::format(self.image())
+    }
+
+    /// The number of MSAA samples of the `Frame`'s intermediary image.
+    pub fn image_msaa_samples(&self) -> u32 {
+        vulkano::image::ImageAccess::samples(self.image())
     }
 
     /// Clear the image with the given color.

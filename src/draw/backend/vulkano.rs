@@ -1,8 +1,7 @@
 //! The `vulkano` backend for rendering the contents of a **Draw**'s mesh.
 
 use draw;
-use frame::Frame;
-use gpu;
+use frame::{Frame, ViewFramebuffer};
 use math::{BaseFloat, NumCast};
 use std::error::Error as StdError;
 use std::fmt;
@@ -16,12 +15,10 @@ use vulkano::framebuffer::{FramebufferCreationError, LoadOp, RenderPassAbstract,
                            RenderPassCreationError, RenderPassDesc, Subpass};
 use vulkano::image::attachment::AttachmentImage;
 use vulkano::image::ImageCreationError;
-use vulkano::instance::PhysicalDevice;
 use vulkano::memory::DeviceMemoryAllocError;
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::sync::GpuFuture;
-use window::SwapchainFramebuffers;
 
 /// A type used for rendering a **nannou::draw::Mesh** with a vulkan graphics pipeline.
 pub struct Renderer {
@@ -29,7 +26,7 @@ pub struct Renderer {
     graphics_pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertices: Vec<Vertex>,
     render_pass_images: Option<RenderPassImages>,
-    swapchain_framebuffers: SwapchainFramebuffers,
+    view_framebuffer: ViewFramebuffer,
 }
 
 /// The `Vertex` type passed to the vertex shader.
@@ -68,8 +65,6 @@ pub struct Vertex {
 
 // The images used within the `Draw` render pass.
 struct RenderPassImages {
-    multisampled_color: Arc<AttachmentImage>,
-    multisampled_depth: Arc<AttachmentImage>,
     depth: Arc<AttachmentImage>,
 }
 
@@ -202,26 +197,16 @@ impl RenderPassImages {
     fn new(
         device: Arc<Device>,
         dimensions: [u32; 2],
-        color_format: Format,
         depth_format: Format,
         msaa_samples: u32,
     ) -> Result<Self, ImageCreationError> {
-        let multisampled_color = AttachmentImage::transient_multisampled(
-            device.clone(),
-            dimensions,
-            msaa_samples,
-            color_format,
-        )?;
-        let multisampled_depth = AttachmentImage::transient_multisampled(
-            device.clone(),
+        let depth = AttachmentImage::transient_multisampled(
+            device,
             dimensions,
             msaa_samples,
             depth_format,
         )?;
-        let depth = AttachmentImage::transient(device, dimensions, depth_format)?;
         Ok(RenderPassImages {
-            multisampled_color,
-            multisampled_depth,
             depth,
         })
     }
@@ -235,9 +220,9 @@ impl Renderer {
         device: Arc<Device>,
         color_format: Format,
         depth_format: Format,
+        msaa_samples: u32,
     ) -> Result<Self, RendererCreationError> {
-        let msaa_samples = msaa_samples(&device.physical_device());
-        let load_op = LoadOp::DontCare;
+        let load_op = LoadOp::Load;
         let render_pass = Arc::new(
             create_render_pass(device, color_format, depth_format, load_op, msaa_samples)?
         ) as Arc<RenderPassAbstract + Send + Sync>;
@@ -245,13 +230,13 @@ impl Renderer {
             as Arc<GraphicsPipelineAbstract + Send + Sync>;
         let vertices = vec![];
         let render_pass_images = None;
-        let swapchain_framebuffers = SwapchainFramebuffers::default();
+        let view_framebuffer = ViewFramebuffer::default();
         Ok(Renderer {
             render_pass,
             graphics_pipeline,
             vertices,
             render_pass_images,
-            swapchain_framebuffers,
+            view_framebuffer,
         })
     }
 
@@ -273,13 +258,13 @@ impl Renderer {
             ref mut graphics_pipeline,
             ref mut vertices,
             ref mut render_pass_images,
-            ref mut swapchain_framebuffers,
+            ref mut view_framebuffer,
         } = *self;
 
         // Retrieve the color/depth image load op and clear values based on the bg color.
         let bg_color = draw.state.borrow().background_color;
-        let (load_op, clear_ms_color, clear_ms_depth) = match bg_color {
-            None => (LoadOp::DontCare, ClearValue::None, ClearValue::None),
+        let (load_op, clear_color, clear_depth) = match bg_color {
+            None => (LoadOp::Load, ClearValue::None, ClearValue::None),
             Some(color) => {
                 let clear_color = [color.red, color.green, color.blue, color.alpha].into();
                 let clear_depth = 1f32.into();
@@ -294,9 +279,9 @@ impl Renderer {
             .map(|desc| desc.load != load_op)
             .unwrap_or(true);
 
-        let device = frame.swapchain_image().swapchain().device().clone();
-        let color_format = frame.swapchain_image().swapchain().format();
-        let msaa_samples = msaa_samples(&device.physical_device());
+        let device = frame.queue().device().clone();
+        let color_format = frame.image_format();
+        let msaa_samples = frame.image_msaa_samples();
 
         // If necessary, recreate the render pass and in turn the graphics pipeline.
         if recreate_render_pass {
@@ -311,16 +296,12 @@ impl Renderer {
         }
 
         // Prepare clear values.
-        let clear_color = ClearValue::None;
-        let clear_depth = ClearValue::None;
         let clear_values = vec![
-            clear_ms_color,
-            clear_ms_depth,
             clear_color,
             clear_depth,
         ];
 
-        let image_dims = frame.swapchain_image().dimensions();
+        let image_dims = frame.image().dimensions();
         let [img_w, img_h] = image_dims;
         let queue = frame.queue().clone();
 
@@ -341,13 +322,12 @@ impl Renderer {
         // Create (or recreate) the render pass images if necessary.
         let recreate_images = render_pass_images
             .as_ref()
-            .map(|imgs| image_dims != imgs.multisampled_color.dimensions())
+            .map(|imgs| image_dims != imgs.depth.dimensions())
             .unwrap_or(true);
         if recreate_images {
             *render_pass_images = Some(RenderPassImages::new(
                 device.clone(),
                 image_dims,
-                color_format,
                 depth_format,
                 msaa_samples,
             )?);
@@ -357,10 +337,8 @@ impl Renderer {
         let render_pass_images = render_pass_images.as_mut().expect("render_pass_images is `None`");
 
         // Ensure framebuffers are up to date with the frame's swapchain image and render pass.
-        swapchain_framebuffers.update(&frame, render_pass.clone(), |builder, image| {
+        view_framebuffer.update(&frame, render_pass.clone(), |builder, image| {
             builder
-                .add(render_pass_images.multisampled_color.clone())?
-                .add(render_pass_images.multisampled_depth.clone())?
                 .add(image)?
                 .add(render_pass_images.depth.clone())
         }).unwrap();
@@ -379,7 +357,7 @@ impl Renderer {
         frame
             .add_commands()
             .begin_render_pass(
-                swapchain_framebuffers[frame.swapchain_image_index()].clone(),
+                view_framebuffer.as_ref().unwrap().clone(),
                 false,
                 clear_values,
             )?
@@ -411,10 +389,10 @@ pub fn create_render_pass(
         LoadOp::Clear => {
             create_render_pass_clear(device, color_format, depth_format, msaa_samples)
         }
-        LoadOp::DontCare => {
-            create_render_pass_dont_care(device, color_format, depth_format, msaa_samples)
+        LoadOp::Load => {
+            create_render_pass_load(device, color_format, depth_format, msaa_samples)
         }
-        LoadOp::Load => unreachable!(),
+        LoadOp::DontCare => unreachable!(),
     }
 }
 
@@ -429,37 +407,24 @@ pub fn create_render_pass_clear(
     let rp = single_pass_renderpass!(
         device,
         attachments: {
-            multisampled_color: {
-                load: Clear,
-                store: DontCare,
-                format: color_format,
-                samples: msaa_samples,
-            },
-            multisampled_depth: {
-                load: Clear,
-                store: DontCare,
-                format: depth_format,
-                samples: msaa_samples,
-            },
             color: {
-                load: DontCare,
+                load: Clear,
                 store: Store,
                 format: color_format,
-                samples: 1,
+                samples: msaa_samples,
             },
             depth: {
-                load: DontCare,
+                load: Clear,
                 store: Store,
                 format: depth_format,
-                samples: 1,
+                samples: msaa_samples,
                 initial_layout: ImageLayout::Undefined,
                 final_layout: ImageLayout::DepthStencilAttachmentOptimal,
             }
         },
         pass: {
-            color: [multisampled_color],
-            depth_stencil: {multisampled_depth},
-            resolve: [color],
+            color: [color],
+            depth_stencil: {depth}
         }
     )?;
     Ok(Arc::new(rp))
@@ -467,7 +432,7 @@ pub fn create_render_pass_clear(
 
 /// Create a render pass that uses `LoadOp::Clear` for the multisampled color and depth
 /// attachments.
-pub fn create_render_pass_dont_care(
+pub fn create_render_pass_load(
     device: Arc<Device>,
     color_format: Format,
     depth_format: Format,
@@ -476,37 +441,24 @@ pub fn create_render_pass_dont_care(
     let rp = single_pass_renderpass!(
         device,
         attachments: {
-            multisampled_color: {
-                load: DontCare,
-                store: DontCare,
-                format: color_format,
-                samples: msaa_samples,
-            },
-            multisampled_depth: {
-                load: DontCare,
-                store: DontCare,
-                format: depth_format,
-                samples: msaa_samples,
-            },
             color: {
-                load: DontCare,
+                load: Load,
                 store: Store,
                 format: color_format,
-                samples: 1,
+                samples: msaa_samples,
             },
             depth: {
-                load: DontCare,
+                load: Load,
                 store: Store,
                 format: depth_format,
-                samples: 1,
+                samples: msaa_samples,
                 initial_layout: ImageLayout::Undefined,
                 final_layout: ImageLayout::DepthStencilAttachmentOptimal,
             }
         },
         pass: {
-            color: [multisampled_color],
-            depth_stencil: {multisampled_depth},
-            resolve: [color],
+            color: [color],
+            depth_stencil: {depth}
         }
     )?;
     Ok(Arc::new(rp))
@@ -547,14 +499,6 @@ where
         .render_pass(subpass)
         .build(device)?;
     Ok(Arc::new(pipeline))
-}
-
-/// Determine the number of samples to use for MSAA.
-///
-/// The target is 4, but we fall back to the limit if its lower.
-pub fn msaa_samples(physical_device: &PhysicalDevice) -> u32 {
-    const TARGET_SAMPLES: u32 = 4;
-    gpu::msaa_samples_limited(physical_device, TARGET_SAMPLES)
 }
 
 // Error Implementations
@@ -674,8 +618,8 @@ impl fmt::Debug for Renderer {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Renderer ( render_pass, graphics_pipeline, framebuffers: {} )",
-            self.swapchain_framebuffers.len(),
+            "Renderer ( render_pass, graphics_pipeline, framebuffer: {} )",
+            if self.view_framebuffer.is_some() { "Some" } else { "None" },
         )
     }
 }
