@@ -8,9 +8,7 @@ use std::sync::Arc;
 use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use nannou::vulkano::command_buffer::DynamicState;
 use nannou::vulkano::device::DeviceOwned;
-use nannou::vulkano::framebuffer::{
-    Framebuffer, FramebufferAbstract, FramebufferCreationError, RenderPassAbstract, Subpass,
-};
+use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
 use nannou::vulkano::pipeline::viewport::Viewport;
 use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 
@@ -22,7 +20,7 @@ struct Model {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
-    framebuffers: RefCell<Vec<Arc<FramebufferAbstract + Send + Sync>>>,
+    framebuffer: RefCell<ViewFramebuffer>,
 }
 
 #[derive(Debug, Clone)]
@@ -75,7 +73,7 @@ fn model(app: &App) -> Model {
                     load: Clear,
                     store: Store,
                     format: app.main_window().swapchain().format(),
-                    samples: 1,
+                    samples: app.main_window().msaa_samples(),
                     initial_layout: ImageLayout::PresentSrc,
                     final_layout: ImageLayout::PresentSrc,
                 }
@@ -101,13 +99,13 @@ fn model(app: &App) -> Model {
             .unwrap(),
     );
 
-    let framebuffers = RefCell::new(Vec::new());
+    let framebuffer = RefCell::new(ViewFramebuffer::default());
 
     Model {
         render_pass,
         pipeline,
         vertex_buffer,
-        framebuffers,
+        framebuffer,
     }
 }
 
@@ -124,20 +122,10 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         scissors: None,
     };
 
-    // Update the framebuffers if necessary.
-    while frame.swapchain_image_index() >= model.framebuffers.borrow().len() {
-        let fb =
-            create_framebuffer(model.render_pass.clone(), frame.swapchain_image().clone()).unwrap();
-        model.framebuffers.borrow_mut().push(Arc::new(fb));
-    }
-
-    // If the dimensions for the current framebuffer do not match, recreate it.
-    if frame.swapchain_image_is_new() {
-        let fb = &mut model.framebuffers.borrow_mut()[frame.swapchain_image_index()];
-        let new_fb =
-            create_framebuffer(model.render_pass.clone(), frame.swapchain_image().clone()).unwrap();
-        *fb = Arc::new(new_fb);
-    }
+    // Update the framebuffer in case of window resize.
+    model.framebuffer.borrow_mut()
+        .update(&frame, model.render_pass.clone(), |builder, image| builder.add(image))
+        .unwrap();
 
     let clear_values = vec![[0.0, 1.0, 0.0, 1.0].into()];
 
@@ -150,7 +138,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     frame
         .add_commands()
         .begin_render_pass(
-            model.framebuffers.borrow()[frame.swapchain_image_index()].clone(),
+            model.framebuffer.borrow().as_ref().unwrap().clone(),
             false,
             clear_values,
         )
@@ -235,14 +223,4 @@ void main() {
 	f_color = vec4( vec3(mix(shape, bg, 0.5)),1.0 );
 }"
     }
-}
-
-fn create_framebuffer(
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    swapchain_image: Arc<nannou::window::SwapchainImage>,
-) -> Result<Arc<FramebufferAbstract + Send + Sync>, FramebufferCreationError> {
-    let fb = Framebuffer::start(render_pass)
-        .add(swapchain_image)?
-        .build()?;
-    Ok(Arc::new(fb) as _)
 }

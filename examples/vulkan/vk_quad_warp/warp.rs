@@ -11,7 +11,6 @@ use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
 use nannou::vulkano::pipeline::viewport::Viewport;
 use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use nannou::vulkano::sampler::{Filter, MipmapMode, Sampler, SamplerAddressMode};
-use nannou::window::SwapchainFramebuffers;
 use nannou::vulkano::image::attachment::AttachmentImage;
 use nannou::vulkano::sync::GpuFuture;
 use nannou::math::Matrix4;
@@ -22,7 +21,7 @@ use crate::Model;
 pub struct Warp {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
-    framebuffers: RefCell<SwapchainFramebuffers>,
+    framebuffer: RefCell<ViewFramebuffer>,
     uniform_buffer: CpuBufferPool<vs::ty::Data>,
     sampler: Arc<Sampler>,
 }
@@ -51,7 +50,7 @@ pub(crate) fn warp(app: &App) -> Warp {
                     load: Clear,
                     store: Store,
                     format: app.main_window().swapchain().format(),
-                    samples: 1,
+                    samples: app.main_window().msaa_samples(),
                     initial_layout: ImageLayout::PresentSrc,
                     final_layout: ImageLayout::PresentSrc,
                 }
@@ -92,12 +91,12 @@ pub(crate) fn warp(app: &App) -> Warp {
             .unwrap(),
     );
 
-    let framebuffers = RefCell::new(SwapchainFramebuffers::default());
+    let framebuffer = RefCell::new(ViewFramebuffer::default());
 
     Warp {
         render_pass,
         pipeline,
-        framebuffers,
+        framebuffer,
         sampler,
         uniform_buffer,
     }
@@ -191,8 +190,8 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>, 
         scissors: None,
     };
 
-    // Update framebuffers so that count matches swapchain image count and dimensions match.
-    warp.framebuffers.borrow_mut()
+    // Update framebuffer in case of window resize.
+    warp.framebuffer.borrow_mut()
         .update(&frame, warp.render_pass.clone(), |builder, image| builder.add(image))
         .expect("framebuffer failed to create");
 
@@ -213,7 +212,7 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>, 
     frame
         .add_commands()
         .begin_render_pass(
-            warp.framebuffers.borrow()[frame.swapchain_image_index()].clone(),
+            warp.framebuffer.borrow().as_ref().unwrap().clone(),
             false,
             clear_values,
         )

@@ -18,7 +18,6 @@ use vulkano::device::{self, Device};
 use vulkano::format::Format;
 use vulkano::framebuffer::{AttachmentsList, Framebuffer, FramebufferAbstract, FramebufferBuilder,
                            FramebufferCreationError, RenderPassAbstract};
-use vulkano::image::ImageAccess;
 use vulkano::instance::PhysicalDevice;
 use vulkano::swapchain::{ColorSpace, CompositeAlpha, PresentMode, SupportedPresentModes,
                          SurfaceTransform, SwapchainCreationError};
@@ -224,6 +223,7 @@ fn_any!(ClosedFn<M>, ClosedFnAny);
 pub struct Window {
     pub(crate) queue: Arc<device::Queue>,
     pub(crate) surface: Arc<Surface>,
+    msaa_samples: u32,
     pub(crate) swapchain: Arc<WindowSwapchain>,
     // Data for rendering a `Frame`'s intermediary image to a swapchain image.
     pub(crate) frame_render_data: Option<frame::RenderData>,
@@ -1025,7 +1025,7 @@ impl<'app> Builder<'app> {
 
         // If we're using an intermediary image for rendering frames to swapchain images, create
         // the necessary render data.
-        let frame_render_data = match user_functions.view {
+        let (frame_render_data, msaa_samples) = match user_functions.view {
             Some(View::WithModel(_)) | Some(View::Sketch(_)) | None => {
                 let target_msaa_samples = msaa_samples.unwrap_or(Frame::DEFAULT_MSAA_SAMPLES);
                 let msaa_samples = gpu::msaa_samples_limited(&physical_device, target_msaa_samples);
@@ -1035,9 +1035,9 @@ impl<'app> Builder<'app> {
                     msaa_samples,
                     swapchain.format(),
                 )?;
-                Some(render_data)
+                (Some(render_data), msaa_samples)
             }
-            Some(View::WithModelRaw(_)) => None,
+            Some(View::WithModelRaw(_)) => (None, 1),
         };
 
         let window_id = surface.window().id();
@@ -1054,6 +1054,7 @@ impl<'app> Builder<'app> {
         let window = Window {
             queue,
             surface,
+            msaa_samples,
             swapchain,
             frame_render_data,
             frame_count,
@@ -1404,10 +1405,7 @@ impl Window {
     /// **Note:** If the user specified a `raw_view` function rather than a `view` function, this
     /// value will always return `1`.
     pub fn msaa_samples(&self) -> u32 {
-        self.frame_render_data
-            .as_ref()
-            .map(|d| d.intermediary_image.samples())
-            .unwrap_or(1)
+        self.msaa_samples
     }
 
     // Custom methods.
