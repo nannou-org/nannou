@@ -24,6 +24,13 @@
 - Add `window::SwapchainFramebuffers` helper type.
 - Remove the `state::time::Duration` type in favour of a `DurationF64` trait.
 - Prefer sRGB colour formats when building swapchain
+- Update deps:
+  - conrod crates 0.63
+  - image 0.21
+  - noise 0.5
+  - pennereq 0.3
+  - rand 0.6
+  - sample 0.10
 
 # Version 0.8.0 (2018-07-19)
 
