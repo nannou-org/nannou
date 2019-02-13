@@ -32,7 +32,7 @@ pub fn random_f64() -> f64 {
 /// default random number generator.
 pub fn random_range<T>(min: T, max: T) -> T
 where
-    T: PartialOrd + distributions::range::SampleRange,
+    T: PartialOrd + distributions::uniform::SampleUniform,
 {
     let (min, max) = if min <= max { (min, max) } else { (max, min) };
     rand::thread_rng().gen_range(min, max)
