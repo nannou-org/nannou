@@ -18,6 +18,7 @@ use vulkano::device::{self, Device};
 use vulkano::format::Format;
 use vulkano::framebuffer::{AttachmentsList, Framebuffer, FramebufferAbstract, FramebufferBuilder,
                            FramebufferCreationError, RenderPassAbstract};
+use vulkano::image::ImageAccess;
 use vulkano::instance::PhysicalDevice;
 use vulkano::swapchain::{ColorSpace, CompositeAlpha, PresentMode, SupportedPresentModes,
                          SurfaceTransform, SwapchainCreationError};
@@ -301,8 +302,8 @@ pub struct SwapchainFramebuffers {
     framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
 }
 
-type SwapchainFramebufferBuilder<A> = FramebufferBuilder<Arc<RenderPassAbstract + Send + Sync>, A>;
-type FramebufferBuildResult<A> = Result<SwapchainFramebufferBuilder<A>, FramebufferCreationError>;
+pub type SwapchainFramebufferBuilder<A> = FramebufferBuilder<Arc<RenderPassAbstract + Send + Sync>, A>;
+pub type FramebufferBuildResult<A> = Result<SwapchainFramebufferBuilder<A>, FramebufferCreationError>;
 
 impl SwapchainFramebuffers {
     /// Ensure the framebuffers are up to date with the render pass and frame's swapchain image.
@@ -1395,6 +1396,18 @@ impl Window {
     /// and its images may be recreated at any moment in time.
     pub fn swapchain_images(&self) -> &[Arc<SwapchainImage>] {
         &self.swapchain.images
+    }
+
+    /// The number of samples used in the MSAA for the image associated with the `view` function's
+    /// `Frame` type.
+    ///
+    /// **Note:** If the user specified a `raw_view` function rather than a `view` function, this
+    /// value will always return `1`.
+    pub fn msaa_samples(&self) -> u32 {
+        self.frame_render_data
+            .as_ref()
+            .map(|d| d.intermediary_image.samples())
+            .unwrap_or(1)
     }
 
     // Custom methods.

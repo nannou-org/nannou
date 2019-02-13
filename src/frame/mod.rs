@@ -8,8 +8,10 @@ use vulkano;
 use vulkano::command_buffer::BeginRenderPassError;
 use vulkano::device::{Device, DeviceOwned};
 use vulkano::format::{ClearValue, Format};
-use vulkano::framebuffer::{FramebufferCreationError, RenderPassAbstract, RenderPassCreationError};
+use vulkano::framebuffer::{AttachmentsList, Framebuffer, FramebufferAbstract, FramebufferBuilder,
+                           FramebufferCreationError, RenderPassAbstract, RenderPassCreationError};
 use vulkano::image::{AttachmentImage, ImageCreationError, ImageUsage};
+use vulkano::VulkanObject;
 use window::SwapchainFramebuffers;
 
 pub mod raw;
@@ -29,6 +31,21 @@ pub struct Frame {
     data: RenderData,
 }
 
+/// A helper type for managing a framebuffer associated with a window's `view` function.
+///
+/// Creating and maintaining the framebuffer that targets the `Frame`s image can be a tedious task
+/// that requires a lot of boilerplate code. This type simplifies the process with a single
+/// `update` method that creates or recreates the framebuffer if any of the following conditions
+/// are met:
+/// - The `update` method is called for the first time.
+/// - The `frame.image_is_new()` method indicates that the swapchain or its images have recently
+///   been recreated and the framebuffer should be recreated accordingly.
+/// - The given render pass is different to that which was used to create the existing framebuffer.
+#[derive(Default)]
+pub struct ViewFramebuffer {
+    framebuffer: Option<Arc<FramebufferAbstract + Send + Sync>>,
+}
+
 /// Data necessary for rendering the **Frame**'s `image` to the the `swapchain_image` of the inner
 /// raw frame.
 pub(crate) struct RenderData {
@@ -37,10 +54,13 @@ pub(crate) struct RenderData {
     //
     // The number of multisampling samples may be specified by the user when constructing the
     // window with which the `Frame` is associated.
-    intermediary_image: Arc<AttachmentImage>,
+    pub(crate) intermediary_image: Arc<AttachmentImage>,
     intermediary_image_is_new: bool,
     swapchain_framebuffers: SwapchainFramebuffers,
 }
+
+pub type ViewFramebufferBuilder<A> = FramebufferBuilder<Arc<RenderPassAbstract + Send + Sync>, A>;
+pub type FramebufferBuildResult<A> = Result<ViewFramebufferBuilder<A>, FramebufferCreationError>;
 
 /// Errors that might occur during creation of the `RenderData` for a frame.
 #[derive(Debug)]
@@ -160,6 +180,34 @@ impl Frame {
     }
 }
 
+impl ViewFramebuffer {
+    /// Ensure the framebuffer is up to date with the render pass and `frame`'s image.
+    pub fn update<F, A>(
+        &mut self,
+        frame: &Frame,
+        render_pass: Arc<RenderPassAbstract + Send + Sync>,
+        builder: F,
+    ) -> Result<(), FramebufferCreationError>
+    where
+        F: Fn(ViewFramebufferBuilder<()>, Arc<AttachmentImage>) -> FramebufferBuildResult<A>,
+        A: 'static + AttachmentsList + Send + Sync,
+    {
+        let needs_creation = frame.image_is_new()
+            || self.framebuffer.is_none()
+            || RenderPassAbstract::inner(self.framebuffer.as_ref().unwrap()).internal_object()
+                != render_pass.inner().internal_object();
+        if needs_creation {
+            let builder = builder(
+                Framebuffer::start(render_pass.clone()),
+                frame.data.intermediary_image.clone(),
+            )?;
+            let fb = builder.build()?;
+            self.framebuffer = Some(Arc::new(fb));
+        }
+        Ok(())
+    }
+}
+
 impl RenderData {
     /// Initialise the render data.
     ///
@@ -190,6 +238,13 @@ impl ops::Deref for Frame {
     type Target = RawFrame;
     fn deref(&self) -> &Self::Target {
         &self.raw_frame
+    }
+}
+
+impl ops::Deref for ViewFramebuffer {
+    type Target = Option<Arc<FramebufferAbstract + Send + Sync>>;
+    fn deref(&self) -> &Self::Target {
+        &self.framebuffer
     }
 }
 
