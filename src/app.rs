@@ -573,11 +573,11 @@ where
         if loop_mode != LoopMode::default() {
             let mut windows = app.windows.borrow_mut();
             for window in windows.values_mut() {
-                let min_image_count = window
+                let capabilities = window
                     .surface
                     .capabilities(window.swapchain.device().physical_device())
-                    .expect("failed to get surface capabilities")
-                    .min_image_count;
+                    .expect("failed to get surface capabilities");
+                let min_image_count = capabilities.min_image_count;
                 let user_specified_present_mode = window.user_specified_present_mode;
                 let user_specified_image_count = window.user_specified_image_count;
                 let (present_mode, image_count) = window::preferred_present_mode_and_image_count(
@@ -585,6 +585,7 @@ where
                     min_image_count,
                     user_specified_present_mode,
                     user_specified_image_count,
+                    &capabilities.present_modes,
                 );
                 if window.swapchain.present_mode() != present_mode
                 || window.swapchain.num_images() != image_count {
