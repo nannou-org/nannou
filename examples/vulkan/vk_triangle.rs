@@ -20,7 +20,7 @@ struct Model {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
-    framebuffer: RefCell<Option<Arc<FramebufferAbstract + Send + Sync>>>,
+    framebuffer: RefCell<ViewFramebuffer>,
 }
 
 #[derive(Debug, Clone)]
@@ -86,7 +86,7 @@ fn model(app: &App) -> Model {
                     // same format as the swapchain.
                     format: app.main_window().swapchain().format(),
                     // TODO:
-                    samples: Frame::DEFAULT_MSAA_SAMPLES,
+                    samples: app.main_window().msaa_samples(),
                 }
             },
             pass: {
@@ -127,7 +127,7 @@ fn model(app: &App) -> Model {
 
     // The render pass we created above only describes the layout of our framebuffer. Before we
     // can draw we also need to create the actual framebuffer.
-    let framebuffer = RefCell::new(None);
+    let framebuffer = RefCell::new(ViewFramebuffer::default());
 
     Model {
         render_pass,
@@ -154,17 +154,9 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     };
 
     // Update the framebuffer.
-    let framebuffer = {
-        if model.framebuffer.borrow().is_none() || frame.image_is_new() {
-            let fb = Framebuffer::start(model.render_pass.clone())
-                .add(frame.image().clone())
-                .unwrap()
-                .build()
-                .unwrap();
-            *model.framebuffer.borrow_mut() = Some(Arc::new(fb));
-        }
-        model.framebuffer.borrow().as_ref().unwrap().clone()
-    };
+    model.framebuffer.borrow_mut()
+        .update(&frame, model.render_pass.clone(), |builder, image| builder.add(image))
+        .unwrap();
 
     // Specify the color to clear the framebuffer with i.e. blue.
     let clear_values = vec![[0.0, 0.0, 1.0, 1.0].into()];
@@ -172,7 +164,11 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     // Submit the draw commands.
     frame
         .add_commands()
-        .begin_render_pass(framebuffer, false, clear_values)
+        .begin_render_pass(
+            model.framebuffer.borrow().as_ref().unwrap().clone(),
+            false,
+            clear_values,
+        )
         .unwrap()
         .draw(
             model.pipeline.clone(),
