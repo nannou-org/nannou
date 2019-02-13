@@ -8,7 +8,7 @@ use std::sync::Arc;
 use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use nannou::vulkano::command_buffer::DynamicState;
 use nannou::vulkano::device::DeviceOwned;
-use nannou::vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract, Subpass};
+use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
 use nannou::vulkano::pipeline::viewport::Viewport;
 use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 

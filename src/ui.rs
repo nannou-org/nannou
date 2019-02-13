@@ -23,7 +23,7 @@ pub mod prelude {
     pub use super::{color, image, position, text, widget};
 }
 
-use frame::Frame;
+use frame::{Frame, ViewFramebuffer};
 use self::conrod_core::text::rt::gpu_cache::CacheWriteErr;
 use self::conrod_vulkano::RendererCreationError;
 use std::cell::RefCell;
@@ -37,8 +37,7 @@ use vulkano::command_buffer::CopyBufferImageError;
 use vulkano::format::{ClearValue, D16Unorm, Format};
 use vulkano::framebuffer::{FramebufferCreationError, RenderPassAbstract, RenderPassCreationError};
 use vulkano::image::{AttachmentImage, ImageCreationError};
-use vulkano::instance::PhysicalDevice;
-use window::{self, SwapchainFramebuffers, Window};
+use window::{self, Window};
 use winit;
 use App;
 
@@ -81,14 +80,11 @@ enum RenderMode {
 struct RenderTarget {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     images: RenderPassImages,
-    swapchain_framebuffers: SwapchainFramebuffers,
-    msaa_samples: u32,
+    view_framebuffer: ViewFramebuffer,
 }
 
 // The buffers associated with a render target.
 struct RenderPassImages {
-    multisampled_color: Arc<AttachmentImage>,
-    multisampled_depth: Arc<AttachmentImage>,
     depth: Arc<AttachmentImage<D16Unorm>>,
 }
 
@@ -103,7 +99,6 @@ pub struct Builder<'a> {
     default_font_path: Option<PathBuf>,
     glyph_cache_dimensions: Option<(u32, u32)>,
     render_pass_subpass: Option<Subpass>,
-    msaa_samples: Option<u32>,
 }
 
 /// Failed to build the `Ui`.
@@ -153,9 +148,6 @@ pub const DEPTH_FORMAT_TY: DepthFormat = D16Unorm;
 /// The depth format used by the depth buffer in the default render target.
 pub const DEPTH_FORMAT: Format = Format::D16Unorm;
 
-/// The default samples used for multisampling the `Ui` when using this module's render target.
-pub const DEFAULT_MSAA_SAMPLES: u32 = 4;
-
 impl conrod_winit::WinitWindow for Window {
     fn get_inner_size(&self) -> Option<(u32, u32)> {
         let (w, h) = self.inner_size_points();
@@ -187,7 +179,6 @@ impl<'a> Builder<'a> {
             default_font_path: None,
             glyph_cache_dimensions: None,
             render_pass_subpass: None,
-            msaa_samples: None,
         }
     }
 
@@ -277,17 +268,6 @@ impl<'a> Builder<'a> {
         self
     }
 
-    /// The number of samples to use for multisample anti aliasing.
-    ///
-    /// If unspecified, uses `DEFAULT_MSAA_SAMPLES`.
-    ///
-    /// This parameter is only valid if the `Ui` has it's own render target and render pass. In
-    /// other words, if `subpass` has been specified, this parameter will have no effect.
-    pub fn msaa_samples(mut self, msaa_samples: u32) -> Self {
-        self.msaa_samples = Some(msaa_samples);
-        self
-    }
-
     /// Build a `Ui` with the specified parameters.
     ///
     /// Returns `None` if the window at the given `Id` is closed or if the inner `Renderer` returns
@@ -303,7 +283,6 @@ impl<'a> Builder<'a> {
             default_font_path,
             glyph_cache_dimensions,
             render_pass_subpass,
-            msaa_samples,
         } = self;
 
         // If the user didn't specify a window, use the "main" one.
@@ -348,12 +327,7 @@ impl<'a> Builder<'a> {
         let (subpass, render_mode) = match render_pass_subpass {
             Some(subpass) => (subpass, Mutex::new(RenderMode::Subpass)),
             None => {
-                let device = window.swapchain_device();
-                let msaa_samples = match msaa_samples {
-                    None => valid_msaa_samples(&device.physical_device()),
-                    Some(samples) => samples,
-                };
-                let render_target = RenderTarget::new(&window, msaa_samples)?;
+                let render_target = RenderTarget::new(&window)?;
                 let subpass = Subpass::from(render_target.render_pass.clone(), 0)
                     .expect("unable to retrieve subpass for index `0`");
                 let render_mode = Mutex::new(RenderMode::OwnedRenderTarget(render_target));
@@ -410,16 +384,6 @@ impl<'a> Builder<'a> {
     }
 }
 
-/// Determine the number of samples to use for MSAA.
-///
-/// The target is `DEFAULT_MSAA_SAMPLES`, but we fall back to the limit if its lower.
-pub fn valid_msaa_samples(physical_device: &PhysicalDevice) -> u32 {
-    let color = physical_device.limits().framebuffer_color_sample_counts();
-    let depth = physical_device.limits().framebuffer_depth_sample_counts();
-    let limit = std::cmp::min(color, depth);
-    std::cmp::min(limit, DEFAULT_MSAA_SAMPLES)
-}
-
 /// Create a minimal, single-pass render pass with which the `Ui` may be rendered.
 ///
 /// This is used internally within the `Ui` build process so in most cases you should not need to
@@ -433,39 +397,24 @@ pub fn create_render_pass(
     let render_pass = single_pass_renderpass!(
         device,
         attachments: {
-            multisampled_color: {
-                load: DontCare,
-                store: DontCare,
-                format: color_format,
-                samples: msaa_samples,
-            },
             color: {
-                load: DontCare,
+                load: Load,
                 store: Store,
                 format: color_format,
-                samples: 1,
-                initial_layout: ImageLayout::PresentSrc,
-                final_layout: ImageLayout::PresentSrc,
-            },
-            multisampled_depth: {
-                load: DontCare,
-                store: DontCare,
-                format: depth_format,
                 samples: msaa_samples,
             },
             depth: {
-                load: DontCare,
+                load: Load,
                 store: Store,
                 format: depth_format,
-                samples: 1,
+                samples: msaa_samples,
                 initial_layout: ImageLayout::Undefined,
                 final_layout: ImageLayout::DepthStencilAttachmentOptimal,
             }
         },
         pass: {
-            color: [multisampled_color],
-            depth_stencil: {multisampled_depth},
-            resolve: [color],
+            color: [color],
+            depth_stencil: {depth}
         }
     )?;
     Ok(Arc::new(render_pass))
@@ -473,30 +422,18 @@ pub fn create_render_pass(
 
 impl RenderPassImages {
     // Create the buffers for a default render target.
-    fn new(
-        window: &Window,
-        msaa_samples: u32,
-    ) -> Result<Self, ImageCreationError> {
+    fn new(window: &Window) -> Result<Self, ImageCreationError> {
         let device = window.swapchain_device().clone();
         // TODO: Change this to use `window.inner_size_pixels/points` (which is correct?).
         let image_dims = window.swapchain_images()[0].dimensions();
-        let color_format = window.swapchain().format();
-        let multisampled_color = AttachmentImage::transient_multisampled(
+        let msaa_samples = window.msaa_samples();
+        let depth = AttachmentImage::transient_multisampled(
             device.clone(),
             image_dims,
             msaa_samples,
-            color_format,
+            DEPTH_FORMAT_TY,
         )?;
-        let multisampled_depth = AttachmentImage::transient_multisampled(
-            device.clone(),
-            image_dims,
-            msaa_samples,
-            DEPTH_FORMAT,
-        )?;
-        let depth = AttachmentImage::transient(device, image_dims, DEPTH_FORMAT_TY)?;
         Ok(RenderPassImages {
-            multisampled_color,
-            multisampled_depth,
             depth,
         })
     }
@@ -504,13 +441,14 @@ impl RenderPassImages {
 
 impl RenderTarget {
     // Initialise a new render target.
-    fn new(window: &Window, msaa_samples: u32) -> Result<Self, RenderTargetCreationError> {
+    fn new(window: &Window) -> Result<Self, RenderTargetCreationError> {
         let device = window.swapchain_device().clone();
         let color_format = window.swapchain().format();
+        let msaa_samples = window.msaa_samples();
         let render_pass = create_render_pass(device, color_format, DEPTH_FORMAT, msaa_samples)?;
-        let images = RenderPassImages::new(window, msaa_samples)?;
-        let swapchain_framebuffers = SwapchainFramebuffers::default();
-        Ok(RenderTarget { render_pass, images, msaa_samples, swapchain_framebuffers })
+        let images = RenderPassImages::new(window)?;
+        let view_framebuffer = ViewFramebuffer::default();
+        Ok(RenderTarget { render_pass, images, view_framebuffer })
     }
 }
 
@@ -685,22 +623,19 @@ pub fn draw_primitives(
     let RenderTarget {
         ref render_pass,
         ref mut images,
-        ref mut swapchain_framebuffers,
-        msaa_samples,
+        ref mut view_framebuffer,
     } = *render_target;
 
     // Recreate buffers if the swapchain was recreated.
     let image_dims = frame.swapchain_image().dimensions();
-    if image_dims != images.multisampled_color.dimensions() {
-        *images = RenderPassImages::new(&window, msaa_samples)?;
+    if image_dims != images.depth.dimensions() {
+        *images = RenderPassImages::new(&window)?;
     }
 
-    // Ensure swapchain framebuffers are up to date.
-    swapchain_framebuffers.update(&frame, render_pass.clone(), |builder, image| {
+    // Ensure image framebuffer are up to date.
+    view_framebuffer.update(&frame, render_pass.clone(), |builder, image| {
         builder
-            .add(images.multisampled_color.clone())?
             .add(image.clone())?
-            .add(images.multisampled_depth.clone())?
             .add(images.depth.clone())
     })?;
 
@@ -736,15 +671,13 @@ pub fn draw_primitives(
     let queue = window.swapchain_queue().clone();
     let cmds = renderer.draw(queue, image_map, viewport)?;
     if !cmds.is_empty() {
-        let multisampled_color = ClearValue::None;
         let color = ClearValue::None;
-        let multisampled_depth = ClearValue::None;
         let depth = ClearValue::None;
-        let clear_values = vec![multisampled_color, color, multisampled_depth, depth];
+        let clear_values = vec![color, depth];
         frame
             .add_commands()
             .begin_render_pass(
-                swapchain_framebuffers[frame.swapchain_image_index()].clone(),
+                view_framebuffer.as_ref().unwrap().clone(),
                 false,
                 clear_values.clone(),
             )
