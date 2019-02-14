@@ -16,7 +16,6 @@ use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract,
                                 GraphicsPipelineCreationError};
 use nannou::vulkano::pipeline::vertex::TwoBuffersDefinition;
 use nannou::vulkano::pipeline::viewport::Viewport;
-use nannou::window::SwapchainFramebuffers;
 use std::cell::RefCell;
 use std::sync::Arc;
 
@@ -36,7 +35,7 @@ struct Graphics {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     graphics_pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     depth_image: Arc<AttachmentImage>,
-    framebuffers: SwapchainFramebuffers,
+    framebuffer: ViewFramebuffer,
 }
 
 // A simple first person camera.
@@ -132,7 +131,7 @@ fn model(app: &App) -> Model {
                     load: Clear,
                     store: Store,
                     format: app.main_window().swapchain().format(),
-                    samples: 1,
+                    samples: app.main_window().msaa_samples(),
                     initial_layout: ImageLayout::PresentSrc,
                     final_layout: ImageLayout::PresentSrc,
                 },
@@ -140,7 +139,7 @@ fn model(app: &App) -> Model {
                     load: Clear,
                     store: DontCare,
                     format: Format::D16Unorm,
-                    samples: 1,
+                    samples: app.main_window().msaa_samples(),
                 }
             },
             pass: {
@@ -160,10 +159,14 @@ fn model(app: &App) -> Model {
         [w as f32, h as f32],
     ).unwrap();
 
-    let depth_image = AttachmentImage::transient(device.clone(), [w, h], Format::D16Unorm)
-        .unwrap();
+    let depth_image = AttachmentImage::transient_multisampled(
+        device.clone(),
+        [w, h],
+        app.main_window().msaa_samples(),
+        Format::D16Unorm,
+    ).unwrap();
 
-    let framebuffers = SwapchainFramebuffers::default();
+    let framebuffer = ViewFramebuffer::default();
 
     let graphics = RefCell::new(Graphics {
         vertex_buffer,
@@ -175,7 +178,7 @@ fn model(app: &App) -> Model {
         render_pass,
         graphics_pipeline,
         depth_image,
-        framebuffers,
+        framebuffer,
     });
 
     let eye = Point3::new(0.0, 0.0, 1.0);
@@ -293,17 +296,18 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
             [w as f32, h as f32],
         ).unwrap();
 
-        graphics.depth_image = AttachmentImage::transient(
+        graphics.depth_image = AttachmentImage::transient_multisampled(
             device.clone(),
             [w, h],
+            frame.image_msaa_samples(),
             Format::D16Unorm,
         ).unwrap();
     }
 
-    // Update framebuffers so that count matches swapchain image count and dimensions match.
+    // Update framebuffer in case of window resize.
     let render_pass = graphics.render_pass.clone();
     let depth_image = graphics.depth_image.clone();
-    graphics.framebuffers
+    graphics.framebuffer
         .update(&frame, render_pass, |builder, image| builder.add(image)?.add(depth_image.clone()))
         .unwrap();
 
@@ -348,7 +352,7 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     frame
         .add_commands()
         .begin_render_pass(
-            graphics.framebuffers[frame.swapchain_image_index()].clone(),
+            graphics.framebuffer.as_ref().unwrap().clone(),
             false,
             clear_values,
         )

@@ -15,7 +15,6 @@ use nannou::vulkano::image::{Dimensions, ImmutableImage};
 use nannou::vulkano::pipeline::viewport::Viewport;
 use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use nannou::vulkano::sampler::{Filter, MipmapMode, Sampler, SamplerAddressMode};
-use nannou::window::SwapchainFramebuffers;
 
 fn main() {
     nannou::app(model).run();
@@ -25,7 +24,7 @@ struct Model {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
-    framebuffers: RefCell<SwapchainFramebuffers>,
+    framebuffer: RefCell<ViewFramebuffer>,
     desciptor_set: Arc<DescriptorSet + Send + Sync>,
 }
 
@@ -77,7 +76,7 @@ fn model(app: &App) -> Model {
                     load: Clear,
                     store: Store,
                     format: app.main_window().swapchain().format(),
-                    samples: 1,
+                    samples: app.main_window().msaa_samples(),
                     initial_layout: ImageLayout::PresentSrc,
                     final_layout: ImageLayout::PresentSrc,
                 }
@@ -142,13 +141,13 @@ fn model(app: &App) -> Model {
             .unwrap(),
     );
 
-    let framebuffers = RefCell::new(SwapchainFramebuffers::default());
+    let framebuffer = RefCell::new(ViewFramebuffer::default());
 
     Model {
         render_pass,
         pipeline,
         vertex_buffer,
-        framebuffers,
+        framebuffer,
         desciptor_set,
     }
 }
@@ -166,8 +165,8 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         scissors: None,
     };
 
-    // Update framebuffers so that count matches swapchain image count and dimensions match.
-    model.framebuffers.borrow_mut()
+    // Update framebuffer in case of resize.
+    model.framebuffer.borrow_mut()
         .update(&frame, model.render_pass.clone(), |builder, image| builder.add(image))
         .unwrap();
 
@@ -180,7 +179,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     frame
         .add_commands()
         .begin_render_pass(
-            model.framebuffers.borrow()[frame.swapchain_image_index()].clone(),
+            model.framebuffer.borrow().as_ref().unwrap().clone(),
             false,
             clear_values,
         )

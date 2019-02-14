@@ -3,7 +3,7 @@
 
 use app::LoopMode;
 use event::{Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase, TouchpadPressure, WindowEvent};
-use frame::Frame;
+use frame::{self, Frame, RawFrame};
 use geom;
 use geom::{Point2, Vector2};
 use gpu;
@@ -44,6 +44,7 @@ pub struct Builder<'app> {
     title_was_set: bool,
     swapchain_builder: SwapchainBuilder,
     user_functions: UserFunctions,
+    msaa_samples: Option<u32>,
 }
 
 /// For storing all user functions within the window.
@@ -75,6 +76,12 @@ pub(crate) struct UserFunctions {
 /// The user function type for drawing their model to the surface of a single window.
 pub type ViewFn<Model> = fn(&App, &Model, Frame) -> Frame;
 
+/// The user function type for drawing their model to the surface of a single window.
+///
+/// Unlike the `ViewFn`, the `RawViewFn` is designed for drawing directly to a window's swapchain
+/// images rather than to a convenient intermediary image.
+pub type RawViewFn<Model> = fn(&App, &Model, RawFrame) -> RawFrame;
+
 /// The same as `ViewFn`, but provides no user model to draw from.
 ///
 /// Useful for simple, stateless sketching.
@@ -84,6 +91,7 @@ pub type SketchFn = fn(&App, Frame) -> Frame;
 #[derive(Clone)]
 pub(crate) enum View {
     WithModel(ViewFnAny),
+    WithModelRaw(RawViewFnAny),
     Sketch(SketchFn),
 }
 
@@ -185,6 +193,7 @@ macro_rules! fn_any {
 }
 
 fn_any!(ViewFn<M>, ViewFnAny);
+fn_any!(RawViewFn<M>, RawViewFnAny);
 fn_any!(EventFn<M>, EventFnAny);
 fn_any!(RawEventFn<M>, RawEventFnAny);
 fn_any!(KeyPressedFn<M>, KeyPressedFnAny);
@@ -214,7 +223,10 @@ fn_any!(ClosedFn<M>, ClosedFnAny);
 pub struct Window {
     pub(crate) queue: Arc<device::Queue>,
     pub(crate) surface: Arc<Surface>,
+    msaa_samples: u32,
     pub(crate) swapchain: Arc<WindowSwapchain>,
+    // Data for rendering a `Frame`'s intermediary image to a swapchain image.
+    pub(crate) frame_render_data: Option<frame::RenderData>,
     pub(crate) frame_count: u64,
     pub(crate) user_functions: UserFunctions,
     // If the user specified one of the following parameters, use these when recreating the
@@ -290,14 +302,14 @@ pub struct SwapchainFramebuffers {
     framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
 }
 
-type SwapchainFramebufferBuilder<A> = FramebufferBuilder<Arc<RenderPassAbstract + Send + Sync>, A>;
-type FramebufferBuildResult<A> = Result<SwapchainFramebufferBuilder<A>, FramebufferCreationError>;
+pub type SwapchainFramebufferBuilder<A> = FramebufferBuilder<Arc<RenderPassAbstract + Send + Sync>, A>;
+pub type FramebufferBuildResult<A> = Result<SwapchainFramebufferBuilder<A>, FramebufferCreationError>;
 
 impl SwapchainFramebuffers {
     /// Ensure the framebuffers are up to date with the render pass and frame's swapchain image.
     pub fn update<F, A>(
         &mut self,
-        frame: &Frame,
+        frame: &RawFrame,
         render_pass: Arc<RenderPassAbstract + Send + Sync>,
         builder: F,
     ) -> Result<(), FramebufferCreationError>
@@ -347,6 +359,7 @@ pub enum BuildError {
     DeviceCreation(vulkano::device::DeviceCreationError),
     SwapchainCreation(SwapchainCreationError),
     SwapchainCapabilities(vulkano::swapchain::CapabilitiesError),
+    RenderDataCreation(frame::RenderDataCreationError),
     SurfaceDoesNotSupportCompositeAlphaOpaque,
 }
 
@@ -605,6 +618,7 @@ impl<'app> Builder<'app> {
             title_was_set: false,
             swapchain_builder: Default::default(),
             user_functions: Default::default(),
+            msaa_samples: None,
         }
     }
 
@@ -626,6 +640,33 @@ impl<'app> Builder<'app> {
         self
     }
 
+    /// Specify the number of samples per pixel for the multisample anti-aliasing render pass.
+    ///
+    /// If `msaa_samples` is unspecified, the first default value that nannou will attempt to use
+    /// can be found via the `Frame::DEFAULT_MSAA_SAMPLES` constant. If however this value is not
+    /// supported by the window's swapchain, nannou will fallback to the next smaller power of 2
+    /// that is supported. If MSAA is not supported at all, then the default will be 1.
+    ///
+    /// **Note:** This parameter has no meaning if the window uses a **raw_view** function for
+    /// rendering graphics to the window rather than a **view** function. This is because the
+    /// **raw_view** function provides a **RawFrame** with direct access to the swapchain image
+    /// itself and thus must manage their own MSAA pass.
+    ///
+    /// On the other hand, the `view` function provides the `Frame` type which allows the user to
+    /// render to a multisampled intermediary image allowing Nannou to take care of resolving the
+    /// multisampled image to the swapchain image. In order to avoid confusion, The `Window::build`
+    /// method will `panic!` if the user tries to specify `msaa_samples` as well as a `raw_view`
+    /// method.
+    ///
+    /// *TODO: Perhaps it would be worth adding two separate methods for specifying msaa samples.
+    /// One for forcing a certain number of samples and returning an error otherwise, and another
+    /// for attempting to use the given number of samples but falling back to a supported value in
+    /// the case that the specified number is not supported.*
+    pub fn msaa_samples(mut self, msaa_samples: u32) -> Self {
+        self.msaa_samples = Some(msaa_samples);
+        self
+    }
+
     /// Provide a simple function for drawing to the window.
     ///
     /// This is similar to `view` but does not provide access to user data via a Model type. This
@@ -635,13 +676,27 @@ impl<'app> Builder<'app> {
         self
     }
 
-    /// The `view` function that the app will call to allow you to present your Model to the
+    /// The **view** function that the app will call to allow you to present your Model to the
     /// surface of the window on your display.
     pub fn view<M>(mut self, view_fn: ViewFn<M>) -> Self
     where
         M: 'static,
     {
         self.user_functions.view = Some(View::WithModel(ViewFnAny::from_fn_ptr(view_fn)));
+        self
+    }
+
+    /// The **view** function that the app will call to allow you to present your Model to the
+    /// surface of the window on your display.
+    ///
+    /// Unlike the **ViewFn**, the **RawViewFn** provides a **RawFrame** that is designed for
+    /// drawing directly to a window's swapchain images, rather than to a convenient intermediary
+    /// image.
+    pub fn raw_view<M>(mut self, raw_view_fn: RawViewFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.view = Some(View::WithModelRaw(RawViewFnAny::from_fn_ptr(raw_view_fn)));
         self
     }
 
@@ -859,6 +914,7 @@ impl<'app> Builder<'app> {
             title_was_set,
             swapchain_builder,
             user_functions,
+            msaa_samples,
         } = self;
 
         // If the title was not set, default to the "nannou - <exe_name>".
@@ -967,6 +1023,23 @@ impl<'app> Builder<'app> {
             )?
         };
 
+        // If we're using an intermediary image for rendering frames to swapchain images, create
+        // the necessary render data.
+        let (frame_render_data, msaa_samples) = match user_functions.view {
+            Some(View::WithModel(_)) | Some(View::Sketch(_)) | None => {
+                let target_msaa_samples = msaa_samples.unwrap_or(Frame::DEFAULT_MSAA_SAMPLES);
+                let msaa_samples = gpu::msaa_samples_limited(&physical_device, target_msaa_samples);
+                let render_data = frame::RenderData::new(
+                    device.clone(),
+                    swapchain.dimensions(),
+                    msaa_samples,
+                    swapchain.format(),
+                )?;
+                (Some(render_data), msaa_samples)
+            }
+            Some(View::WithModelRaw(_)) => (None, 1),
+        };
+
         let window_id = surface.window().id();
         let needs_recreation = AtomicBool::new(false);
         let previous_frame_end = Mutex::new(None);
@@ -981,7 +1054,9 @@ impl<'app> Builder<'app> {
         let window = Window {
             queue,
             surface,
+            msaa_samples,
             swapchain,
+            frame_render_data,
             frame_count,
             user_functions,
             user_specified_present_mode,
@@ -1008,6 +1083,7 @@ impl<'app> Builder<'app> {
             title_was_set,
             swapchain_builder,
             user_functions,
+            msaa_samples,
         } = self;
         let window = map(window);
         Builder {
@@ -1017,6 +1093,7 @@ impl<'app> Builder<'app> {
             title_was_set,
             swapchain_builder,
             user_functions,
+            msaa_samples,
         }
     }
 
@@ -1322,7 +1399,38 @@ impl Window {
         &self.swapchain.images
     }
 
+    /// The number of samples used in the MSAA for the image associated with the `view` function's
+    /// `Frame` type.
+    ///
+    /// **Note:** If the user specified a `raw_view` function rather than a `view` function, this
+    /// value will always return `1`.
+    pub fn msaa_samples(&self) -> u32 {
+        self.msaa_samples
+    }
+
     // Custom methods.
+
+    // A utility function to simplify the recreation of a swapchain.
+    pub(crate) fn replace_swapchain(
+        &mut self,
+        new_swapchain: Arc<Swapchain>,
+        new_images: Vec<Arc<SwapchainImage>>,
+    ) {
+        let previous_frame_end = self
+            .swapchain
+            .previous_frame_end
+            .lock()
+            .expect("failed to lock `previous_frame_end`")
+            .take();
+        self.swapchain = Arc::new(WindowSwapchain {
+            needs_recreation: AtomicBool::new(false),
+            frame_created: self.frame_count,
+            swapchain: new_swapchain,
+            images: new_images,
+            previous_frame_end: Mutex::new(previous_frame_end),
+        });
+        // TODO: Update frame_render_data?
+    }
 
     /// Attempts to determine whether or not the window is currently fullscreen.
     ///
@@ -1342,27 +1450,6 @@ impl Window {
     pub fn elapsed_frames(&self) -> u64 {
         self.frame_count
     }
-
-    /// A utility function to simplify the recreation of a swapchain.
-    pub(crate) fn replace_swapchain(
-        &mut self,
-        new_swapchain: Arc<Swapchain>,
-        new_images: Vec<Arc<SwapchainImage>>,
-    ) {
-        let previous_frame_end = self
-            .swapchain
-            .previous_frame_end
-            .lock()
-            .expect("failed to lock `previous_frame_end`")
-            .take();
-        self.swapchain = Arc::new(WindowSwapchain {
-            needs_recreation: AtomicBool::new(false),
-            frame_created: self.frame_count,
-            swapchain: new_swapchain,
-            images: new_images,
-            previous_frame_end: Mutex::new(previous_frame_end),
-        });
-    }
 }
 
 // Debug implementations for function wrappers.
@@ -1371,6 +1458,7 @@ impl fmt::Debug for View {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let variant = match *self {
             View::WithModel(ref v) => format!("WithModel({:?})", v),
+            View::WithModelRaw(ref v) => format!("WithModelRaw({:?})", v),
             View::Sketch(_) => "Sketch".to_string(),
         };
         write!(f, "View::{}", variant)
@@ -1406,6 +1494,7 @@ impl StdError for BuildError {
             BuildError::DeviceCreation(ref err) => err.description(),
             BuildError::SwapchainCreation(ref err) => err.description(),
             BuildError::SwapchainCapabilities(ref err) => err.description(),
+            BuildError::RenderDataCreation(ref err) => err.description(),
             BuildError::SurfaceDoesNotSupportCompositeAlphaOpaque =>
                 "`CompositeAlpha::Opaque` not supported by window surface",
         }
@@ -1439,5 +1528,11 @@ impl From<vulkano::swapchain::SwapchainCreationError> for BuildError {
 impl From<vulkano::swapchain::CapabilitiesError> for BuildError {
     fn from(e: vulkano::swapchain::CapabilitiesError) -> Self {
         BuildError::SwapchainCapabilities(e)
+    }
+}
+
+impl From<frame::RenderDataCreationError> for BuildError {
+    fn from(e: frame::RenderDataCreationError) -> Self {
+        BuildError::RenderDataCreation(e)
     }
 }
