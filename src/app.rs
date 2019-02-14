@@ -626,7 +626,12 @@ impl Builder<(), Event> {
 fn check_moltenvk() {
     #[cfg(not(test))]
     #[cfg(target_os = "macos")]
-    moltenvk_deps::check_or_install();
+    match moltenvk_deps::check_or_install(Default::default()) {
+        Err(moltenvk_deps::Error::NonDefaultDir) | Err(moltenvk_deps::Error::ResetEnvVars) => (),
+        Err(moltenvk_deps::Error::ChoseNotToInstall) => panic!("Moltenvk is required for Nannou on MacOS"),
+        Err(e) => panic!("Moltenvk installation failed {:?}", e),
+        Ok(_) => (),
+    }
 }
 
 /// Given some "frames per second", return the interval between frames as a `Duration`.
