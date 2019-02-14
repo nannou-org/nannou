@@ -41,6 +41,8 @@ use vulkano::swapchain::SwapchainCreationError;
 use vulkano::sync::GpuFuture;
 use window::{self, Window};
 use winit;
+#[cfg(target_os = "macos")]
+use moltenvk_deps;
 
 // TODO: This value is just copied from an example, need to:
 // 1. Verify that this is actually a good default
@@ -350,6 +352,7 @@ where
     /// The Model that is returned by the function is the same model that will be passed to the
     /// given event and view functions.
     pub fn new(model: ModelFn<M>) -> Self {
+        check_moltenvk();
         Builder {
             model,
             event: None,
@@ -605,6 +608,7 @@ impl Builder<(), Event> {
     /// This is useful for late night hack sessions where you just don't care about all that other
     /// stuff, you just want to play around with some ideas or make something pretty.
     pub fn sketch(view: SketchViewFn) {
+        check_moltenvk();
         let builder: Self = Builder {
             model: default_model,
             event: None,
@@ -617,6 +621,12 @@ impl Builder<(), Event> {
         };
         builder.run()
     }
+}
+
+fn check_moltenvk() {
+    #[cfg(not(test))]
+    #[cfg(target_os = "macos")]
+    moltenvk_deps::check_or_install();
 }
 
 /// Given some "frames per second", return the interval between frames as a `Duration`.
