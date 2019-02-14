@@ -1724,8 +1724,8 @@ where
         } else if let winit::WindowEvent::CloseRequested = *event {
             removed_window = app.windows.borrow_mut().remove(&window_id);
         } else {
-            // Get the size of the screen for translating coords and dimensions.
-            let (win_w_px, win_h_px, hidpi_factor) = match app.window(window_id) {
+            // Get the size of the window for translating coords and dimensions.
+            let (win_w, win_h) = match app.window(window_id) {
                 Some(win) => {
                     // If we should toggle fullscreen for this window, do so.
                     if app.fullscreen_on_shortcut() {
@@ -1739,22 +1739,17 @@ where
                         }
                     }
 
-                    let (w_px, h_px) = win.inner_size_pixels();
-                    let hidpi_factor = win.hidpi_factor();
-                    (w_px, h_px, hidpi_factor)
+                    win.inner_size_points()
                 }
-                None => (0, 0, 1.0),
+                None => (0.0, 0.0),
             };
 
             // Translate the coordinates from top-left-origin-with-y-down to centre-origin-with-y-up.
-            //
-            // winit produces input events in pixels, so these positions need to be divided by the
-            // width and height of the window in order to be DPI agnostic.
             let tx = |x: geom::scalar::Default| {
-                (x - win_w_px as geom::scalar::Default / 2.0) / hidpi_factor
+                x - win_w as geom::scalar::Default / 2.0
             };
             let ty = |y: geom::scalar::Default| {
-                -((y - win_h_px as geom::scalar::Default / 2.0) / hidpi_factor)
+                -(y - win_h as geom::scalar::Default / 2.0)
             };
 
             // If the window ID has changed, ensure the dimensions are up to date.
