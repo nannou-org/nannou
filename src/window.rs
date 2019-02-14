@@ -14,7 +14,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use vulkano::VulkanObject;
-use vulkano::device::{self, Device};
+use vulkano::device::{self, Device, DeviceExtensions};
 use vulkano::format::Format;
 use vulkano::framebuffer::{AttachmentsList, Framebuffer, FramebufferAbstract, FramebufferBuilder,
                            FramebufferCreationError, RenderPassAbstract};
@@ -40,6 +40,8 @@ pub const DEFAULT_DIMENSIONS: LogicalSize = LogicalSize { width: 1024.0, height:
 pub struct Builder<'app> {
     app: &'app App,
     vulkan_physical_device: Option<PhysicalDevice<'app>>,
+    vulkan_device_extensions: Option<DeviceExtensions>,
+    vulkan_device_queue: Option<Arc<device::Queue>>,
     window: winit::WindowBuilder,
     title_was_set: bool,
     swapchain_builder: SwapchainBuilder,
@@ -601,6 +603,8 @@ impl<'app> Builder<'app> {
         Builder {
             app,
             vulkan_physical_device: None,
+            vulkan_device_extensions: None,
+            vulkan_device_queue: None,
             window: winit::WindowBuilder::new(),
             title_was_set: false,
             swapchain_builder: Default::default(),
@@ -617,6 +621,32 @@ impl<'app> Builder<'app> {
     /// The physical device to associate with the window surface's swapchain.
     pub fn vulkan_physical_device(mut self, device: PhysicalDevice<'app>) -> Self {
         self.vulkan_physical_device = Some(device);
+        self
+    }
+
+    /// Specify a set of required extensions.
+    ///
+    /// The device associated with the window's swapchain *must* always have the `khr_swapchain`
+    /// feature enabled, so it will be implicitly enabled whether or not it is specified in this
+    /// given set of extensions.
+    pub fn vulkan_device_extensions(mut self, extensions: DeviceExtensions) -> Self {
+        self.vulkan_device_extensions = Some(extensions);
+        self
+    }
+
+    /// Specify the vulkan device queue for this window.
+    ///
+    /// This queue is used as the `SharingMode` for the swapchain, and is also used for
+    /// constructing the `Frame`'s intermediary image.
+    ///
+    /// Once the window is built, this queue can be accessed via the `window.swapchain_queue()`
+    /// method.
+    ///
+    /// Note: If this builder method is called, previous calls to `vulkan_physical_device` and
+    /// `vulkan_device_extensions` will be ignored as specifying the queue for the sharing mode
+    /// implies which logical device is desired.
+    pub fn vulkan_device_queue(mut self, queue: Arc<device::Queue>) -> Self {
+        self.vulkan_device_queue = Some(queue);
         self
     }
 
@@ -855,6 +885,8 @@ impl<'app> Builder<'app> {
         let Builder {
             app,
             vulkan_physical_device,
+            vulkan_device_extensions,
+            vulkan_device_queue,
             mut window,
             title_was_set,
             swapchain_builder,
@@ -872,11 +904,6 @@ impl<'app> Builder<'app> {
                 }
             }
         }
-
-        // Retrieve the physical, vulkan-supported device to use.
-        let physical_device = vulkan_physical_device
-            .or_else(|| app.default_vulkan_physical_device())
-            .unwrap_or_else(|| unimplemented!());
 
         // Retrieve dimensions to use as a fallback in case vulkano swapchain capabilities
         // `current_extent` is `None`. This happens when the window size is determined by the size
@@ -909,42 +936,45 @@ impl<'app> Builder<'app> {
         // Build the vulkan surface.
         let surface = window.build_vk_surface(&app.events_loop, app.vulkan_instance.clone())?;
 
-        // Select the queue family to use. Default to the first graphics-supporting queue.
-        let queue_family = physical_device.queue_families()
-            .find(|&q| q.supports_graphics() && surface.is_supported(q).unwrap_or(false))
-            .unwrap_or_else(|| unimplemented!("couldn't find a graphical queue family"));
-
-        // We only have one queue, so give an arbitrary priority.
-        let queue_priority = 0.5;
-
-        // If a window already exists, use the same logical device queue.
-        //
-        // Otherwise, create the logical device describing a channel of communication with the
-        // physical device.
-        let (device, queue) = match app
-            .windows
-            .borrow()
-            .values()
-            .next()
-            .map(|w| w.queue.clone())
-        {
-            Some(queue) => (queue.device().clone(), queue),
+        // The logical device queue to use as the swapchain sharing mode.
+        // This queue will also be used for constructing the `Frame`'s intermediary image.
+        let queue = match vulkan_device_queue {
+            Some(queue) => queue,
             None => {
-                let device_ext = vulkano::device::DeviceExtensions {
-                    khr_swapchain: true,
-                    ..vulkano::device::DeviceExtensions::none()
-                };
-                let (device, mut queues) = Device::new(
+                // Retrieve the physical, vulkan-supported device to use.
+                let physical_device = vulkan_physical_device
+                    .or_else(|| app.default_vulkan_physical_device())
+                    .unwrap_or_else(|| unimplemented!());
+
+                // Select the queue family to use. Default to the first graphics-supporting queue.
+                let queue_family = physical_device.queue_families()
+                    .find(|&q| q.supports_graphics() && surface.is_supported(q).unwrap_or(false))
+                    .unwrap_or_else(|| unimplemented!("couldn't find a graphical queue family"));
+
+                // We only have one queue, so give an arbitrary priority.
+                let queue_priority = 0.5;
+
+                // The required device extensions.
+                let mut device_ext = vulkan_device_extensions
+                    .unwrap_or_else(DeviceExtensions::none);
+                device_ext.khr_swapchain = true;
+
+                // Enable all supported device features.
+                let features = physical_device.supported_features();
+
+                // Construct the logical device and queues.
+                let (_device, mut queues) = Device::new(
                     physical_device,
-                    physical_device.supported_features(),
+                    features,
                     &device_ext,
                     [(queue_family, queue_priority)].iter().cloned(),
                 )?;
+
                 // Since it is possible to request multiple queues, the queues variable returned by
                 // the function is in fact an iterator. In this case this iterator contains just
                 // one element, so let's extract it.
                 let queue = queues.next().expect("expected a single device queue");
-                (device, queue)
+                queue
             }
         };
 
@@ -958,7 +988,7 @@ impl<'app> Builder<'app> {
                 [initial_swapchain_dimensions.width as _, initial_swapchain_dimensions.height as _];
 
             swapchain_builder.build(
-                device.clone(),
+                queue.device().clone(),
                 surface.clone(),
                 &queue,
                 &app.loop_mode(),
@@ -1004,6 +1034,8 @@ impl<'app> Builder<'app> {
         let Builder {
             app,
             vulkan_physical_device,
+            vulkan_device_extensions,
+            vulkan_device_queue,
             window,
             title_was_set,
             swapchain_builder,
@@ -1013,6 +1045,8 @@ impl<'app> Builder<'app> {
         Builder {
             app,
             vulkan_physical_device,
+            vulkan_device_extensions,
+            vulkan_device_queue,
             window,
             title_was_set,
             swapchain_builder,
