@@ -1058,9 +1058,10 @@ impl<'app> Builder<'app> {
         let (frame_render_data, msaa_samples) = match user_functions.view {
             Some(View::WithModel(_)) | Some(View::Sketch(_)) | None => {
                 let target_msaa_samples = msaa_samples.unwrap_or(Frame::DEFAULT_MSAA_SAMPLES);
+                let physical_device = queue.device().physical_device();
                 let msaa_samples = gpu::msaa_samples_limited(&physical_device, target_msaa_samples);
                 let render_data = frame::RenderData::new(
-                    device.clone(),
+                    queue.device().clone(),
                     swapchain.dimensions(),
                     msaa_samples,
                     swapchain.format(),
