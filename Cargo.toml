@@ -29,21 +29,16 @@ serde = "1"
 serde_derive = "1"
 serde_json = "1"
 toml = "0.4"
-#vulkano = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
-vulkano = { path = "../vulkano/vulkano" }
-#vulkano-win = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
-vulkano-win = { path = "../vulkano/vulkano-win" }
-#vulkano-shaders = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
-vulkano-shaders = { path = "../vulkano/vulkano-shaders" }
+vulkano = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
+vulkano-win = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
+vulkano-shaders = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
 winit = "0.18"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-#moltenvk_deps = "0.1"
-moltenvk_deps = { path = "../moltenvk_deps" } 
+moltenvk_deps = "0.1"
 
 [replace]
-#"vulkano:0.11.1" = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
-"vulkano:0.11.1" = { path = "../vulkano/vulkano" }
+"vulkano:0.11.1" = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
 
 # --------------- Nannou Examples
 [[example]]

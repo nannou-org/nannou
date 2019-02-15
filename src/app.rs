@@ -41,8 +41,6 @@ use vulkano::swapchain::SwapchainCreationError;
 use vulkano::sync::GpuFuture;
 use window::{self, Window};
 use winit;
-#[cfg(target_os = "macos")]
-use moltenvk_deps;
 
 // TODO: This value is just copied from an example, need to:
 // 1. Verify that this is actually a good default
@@ -520,20 +518,40 @@ where
         // and layers are necessary.
         let debug_callback_specified = self.vulkan_debug_callback.is_some();
 
+        let moltenvk = gpu::check_moltenvk();
+
         // The vulkan instance necessary for graphics.
         let vulkan_instance = self.vulkan_instance.take().unwrap_or_else(|| {
             if debug_callback_specified {
-                gpu::VulkanInstanceBuilder::new()
-                    .extensions(InstanceExtensions {
-                        ext_debug_report: true,
-                        ..gpu::required_windowing_extensions()
-                    })
-                    .layers(vec!["VK_LAYER_LUNARG_standard_validation"])
+                let vulkan_builder = gpu::VulkanInstanceBuilder::new();
+                let vulkan_builder = match moltenvk {
+                    Some(loader) => {
+                        let required_extensions = gpu::required_extensions_with_loader(&loader);
+                        vulkan_builder.extensions(InstanceExtensions {
+                            ext_debug_report: true,
+                            ..required_extensions
+                        })
+                        .add_loader(loader)
+                    },
+                    None => vulkan_builder.extensions(InstanceExtensions {
+                            ext_debug_report: true,
+                            ..gpu::required_windowing_extensions()
+                    }),
+                };
+                vulkan_builder.layers(vec!["VK_LAYER_LUNARG_standard_validation"])
                     .build()
                     .expect("failed to create vulkan instance")
             } else {
-                gpu::VulkanInstanceBuilder::new()
-                    .build()
+                let vulkan_builder = gpu::VulkanInstanceBuilder::new();
+                let vulkan_builder = match moltenvk {
+                    Some(loader) => {
+                        let required_extensions = gpu::required_extensions_with_loader(&loader);
+                        vulkan_builder.add_extensions(required_extensions)
+                            .add_loader(loader)
+                    },
+                    None => vulkan_builder,
+                };
+                vulkan_builder.build()
                     .expect("failed to create vulkan instance")
             }
         });
@@ -618,17 +636,6 @@ impl Builder<(), Event> {
             vulkan_debug_callback: None,
         };
         builder.run()
-    }
-}
-
-fn check_moltenvk() {
-    #[cfg(not(test))]
-    #[cfg(target_os = "macos")]
-    match moltenvk_deps::check_or_install(Default::default()) {
-        Err(moltenvk_deps::Error::NonDefaultDir) | Err(moltenvk_deps::Error::ResetEnvVars) => (),
-        Err(moltenvk_deps::Error::ChoseNotToInstall) => panic!("Moltenvk is required for Nannou on MacOS"),
-        Err(e) => panic!("Moltenvk installation failed {:?}", e),
-        Ok(_) => (),
     }
 }
 
