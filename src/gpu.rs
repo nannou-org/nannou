@@ -7,8 +7,10 @@ use vulkano::format::Format;
 use vulkano::instance::{ApplicationInfo, Instance, InstanceCreationError, InstanceExtensions,
                         PhysicalDevice};
 use vulkano::instance::debug::{DebugCallback, DebugCallbackCreationError, Message, MessageTypes};
-use vulkano::instance::loader::{FunctionPointers, Loader};
+use vulkano::instance::loader::{FunctionPointers, Loader, DynamicLibraryLoader};
 use vulkano_win;
+#[cfg(target_os = "macos")]
+use moltenvk_deps;
 
 /// The default application name used with the default `ApplicationInfo`.
 pub const DEFAULT_APPLICATION_NAME: &'static str = "nannou-app";
@@ -104,6 +106,12 @@ impl VulkanInstanceBuilder {
         L::Item: Into<String>,
     {
         self.layers.extend(layers.into_iter().map(Into::into));
+        self
+    }
+
+    /// Add custom vulkan loader
+    pub fn add_loader(mut self, loader: FunctionPointers<Box<dyn Loader + Send + Sync>>) -> Self {
+        self.loader = Some(loader);
         self
     }
 
@@ -249,4 +257,50 @@ pub fn msaa_samples_limited(physical_device: &PhysicalDevice, target_msaa_sample
     let depth_limit = physical_device.limits().framebuffer_depth_sample_counts();
     let msaa_limit = std::cmp::min(color_limit, depth_limit);
     std::cmp::min(msaa_limit, target_msaa_samples)
+}
+
+#[cfg(all(target_os = "macos", not(test)))]
+pub fn check_moltenvk() -> Option<FunctionPointers<Box<dyn Loader + Send + Sync>>> {
+    let path = match moltenvk_deps::check_or_install(Default::default()) {
+        Err(moltenvk_deps::Error::ResetEnvVars(p)) => Some(p),
+        Err(moltenvk_deps::Error::NonDefaultDir) => None,
+        Err(moltenvk_deps::Error::ChoseNotToInstall) => panic!("Moltenvk is required for Nannou on MacOS"),
+        Err(e) => panic!("Moltenvk installation failed {:?}", e),
+        Ok(p) => Some(p),
+    };
+    let loader = path.map(|p| {
+        unsafe { DynamicLibraryLoader::new(p) }
+    });
+    match loader {
+        Some(Ok(l)) => Some(FunctionPointers::new(Box::new(l))),
+        _ => None,
+    }
+}
+
+
+#[cfg(any(not(target_os = "macos"), test))]
+pub fn check_moltenvk() -> Option<FunctionPointers<Box<dyn Loader + Send + Sync>>> {
+    None
+}
+
+pub fn required_extensions_with_loader<L>(ptrs: &FunctionPointers<L>)
+    -> InstanceExtensions 
+    where L: Loader
+{
+    let ideal = InstanceExtensions {
+        khr_surface: true,
+        khr_xlib_surface: true,
+        khr_xcb_surface: true,
+        khr_wayland_surface: true,
+        khr_android_surface: true,
+        khr_win32_surface: true,
+        mvk_ios_surface: true,
+        mvk_macos_surface: true,
+        ..InstanceExtensions::none()
+    };
+
+    match InstanceExtensions::supported_by_core_with_loader(ptrs) {
+        Ok(supported) => supported.intersection(&ideal),
+        Err(_) => InstanceExtensions::none(),
+    }
 }
