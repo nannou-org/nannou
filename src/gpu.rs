@@ -260,8 +260,12 @@ pub fn msaa_samples_limited(physical_device: &PhysicalDevice, target_msaa_sample
 }
 
 #[cfg(all(target_os = "macos", not(test)))]
-pub fn check_moltenvk() -> Option<FunctionPointers<Box<dyn Loader + Send + Sync>>> {
-    let path = match moltenvk_deps::check_or_install(Default::default()) {
+pub fn check_moltenvk(settings: Option<moltenvk_deps::Install>) -> Option<FunctionPointers<Box<dyn Loader + Send + Sync>>> {
+    let settings = match settings {
+        Some(s) => s,
+        None => Default::default(),
+    };
+    let path = match moltenvk_deps::check_or_install(settings) {
         Err(moltenvk_deps::Error::ResetEnvVars(p)) => Some(p),
         Err(moltenvk_deps::Error::NonDefaultDir) => None,
         Err(moltenvk_deps::Error::ChoseNotToInstall) => panic!("Moltenvk is required for Nannou on MacOS"),

@@ -41,6 +41,7 @@ use vulkano::swapchain::SwapchainCreationError;
 use vulkano::sync::GpuFuture;
 use window::{self, Window};
 use winit;
+use moltenvk_deps as mvkd;
 
 // TODO: This value is just copied from an example, need to:
 // 1. Verify that this is actually a good default
@@ -84,6 +85,8 @@ pub struct Builder<M = (), E = Event> {
     vulkan_instance: Option<Arc<vulkano::instance::Instance>>,
     vulkan_debug_callback: Option<gpu::VulkanDebugCallbackBuilder>,
     create_default_window: bool,
+    #[cfg(all(target_os = "macos", not(test)))]
+    moltenvk_settings: Option<mvkd::Install>,
 }
 
 /// The default `model` function used when none is specified by the user.
@@ -359,6 +362,7 @@ where
             vulkan_instance: None,
             vulkan_debug_callback: None,
             create_default_window: false,
+            moltenvk_settings: None,
         }
     }
 
@@ -381,6 +385,7 @@ where
             create_default_window,
             vulkan_instance,
             vulkan_debug_callback,
+            moltenvk_settings,
             ..
         } = self;
         Builder {
@@ -392,6 +397,7 @@ where
             create_default_window,
             vulkan_instance,
             vulkan_debug_callback,
+            moltenvk_settings,
         }
     }
 }
@@ -503,6 +509,21 @@ where
         self
     }
 
+    #[cfg(all(target_os = "macos", not(test)))]
+    /// Set custom settings for the moltenvk dependacy 
+    /// installer.
+    ///
+    /// Install silently
+    /// `Install::Silent`
+    /// Install with callbacks
+    /// `Install::Message(message)`
+    ///
+    /// See moltenvk_deps::Message docs for more information.
+    pub fn macos_installer(mut self,  settings: mvkd::Install) -> Self {
+        self.moltenvk_settings = Some(settings);
+        self
+    }
+
     /// Build and run an `App` with the specified parameters.
     ///
     /// This function will not return until the application has exited.
@@ -518,6 +539,10 @@ where
         // and layers are necessary.
         let debug_callback_specified = self.vulkan_debug_callback.is_some();
 
+        #[cfg(all(target_os = "macos", not(test)))]
+        let moltenvk = gpu::check_moltenvk(self.moltenvk_settings);
+        
+        #[cfg(any(not(target_os = "macos"), test))]
         let moltenvk = gpu::check_moltenvk();
 
         // The vulkan instance necessary for graphics.
@@ -634,6 +659,7 @@ impl Builder<(), Event> {
             create_default_window: true,
             vulkan_instance: None,
             vulkan_debug_callback: None,
+            moltenvk_settings: None,
         };
         builder.run()
     }
