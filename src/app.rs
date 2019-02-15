@@ -352,7 +352,6 @@ where
     /// The Model that is returned by the function is the same model that will be passed to the
     /// given event and view functions.
     pub fn new(model: ModelFn<M>) -> Self {
-        check_moltenvk();
         Builder {
             model,
             event: None,
@@ -608,7 +607,6 @@ impl Builder<(), Event> {
     /// This is useful for late night hack sessions where you just don't care about all that other
     /// stuff, you just want to play around with some ideas or make something pretty.
     pub fn sketch(view: SketchViewFn) {
-        check_moltenvk();
         let builder: Self = Builder {
             model: default_model,
             event: None,
