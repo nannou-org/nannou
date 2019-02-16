@@ -24,7 +24,7 @@ struct Model {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
-    framebuffer: RefCell<ViewFramebuffer>,
+    view_fbo: RefCell<ViewFbo>,
     desciptor_set: Arc<DescriptorSet + Send + Sync>,
 }
 
@@ -166,13 +166,13 @@ fn model(app: &App) -> Model {
             .unwrap(),
     );
 
-    let framebuffer = RefCell::new(ViewFramebuffer::default());
+    let view_fbo = RefCell::new(ViewFbo::default());
 
     Model {
         render_pass,
         pipeline,
         vertex_buffer,
-        framebuffer,
+        view_fbo,
         desciptor_set,
     }
 }
@@ -190,8 +190,8 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         scissors: None,
     };
 
-    // Update framebuffer in case of window resize.
-    model.framebuffer.borrow_mut()
+    // Update view_fbo in case of window resize.
+    model.view_fbo.borrow_mut()
         .update(&frame, model.render_pass.clone(), |builder, image| builder.add(image))
         .unwrap();
 
@@ -205,7 +205,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     frame
         .add_commands()
         .begin_render_pass(
-            model.framebuffer.borrow().as_ref().unwrap().clone(),
+            model.view_fbo.borrow().expect_inner(),
             false,
             clear_values,
         )

@@ -23,7 +23,7 @@ pub mod prelude {
     pub use super::{color, image, position, text, widget};
 }
 
-use frame::{Frame, ViewFramebuffer};
+use frame::{Frame, ViewFbo};
 use self::conrod_core::text::rt::gpu_cache::CacheWriteErr;
 use self::conrod_vulkano::RendererCreationError;
 use std::cell::RefCell;
@@ -80,7 +80,7 @@ enum RenderMode {
 struct RenderTarget {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     images: RenderPassImages,
-    view_framebuffer: ViewFramebuffer,
+    view_fbo: ViewFbo,
 }
 
 // The buffers associated with a render target.
@@ -447,8 +447,8 @@ impl RenderTarget {
         let msaa_samples = window.msaa_samples();
         let render_pass = create_render_pass(device, color_format, DEPTH_FORMAT, msaa_samples)?;
         let images = RenderPassImages::new(window)?;
-        let view_framebuffer = ViewFramebuffer::default();
-        Ok(RenderTarget { render_pass, images, view_framebuffer })
+        let view_fbo = ViewFbo::default();
+        Ok(RenderTarget { render_pass, images, view_fbo })
     }
 }
 
@@ -623,7 +623,7 @@ pub fn draw_primitives(
     let RenderTarget {
         ref render_pass,
         ref mut images,
-        ref mut view_framebuffer,
+        ref mut view_fbo,
     } = *render_target;
 
     // Recreate buffers if the swapchain was recreated.
@@ -633,7 +633,7 @@ pub fn draw_primitives(
     }
 
     // Ensure image framebuffer are up to date.
-    view_framebuffer.update(&frame, render_pass.clone(), |builder, image| {
+    view_fbo.update(&frame, render_pass.clone(), |builder, image| {
         builder
             .add(image.clone())?
             .add(images.depth.clone())
@@ -676,11 +676,7 @@ pub fn draw_primitives(
         let clear_values = vec![color, depth];
         frame
             .add_commands()
-            .begin_render_pass(
-                view_framebuffer.as_ref().unwrap().clone(),
-                false,
-                clear_values.clone(),
-            )
+            .begin_render_pass(view_fbo.expect_inner(), false, clear_values.clone())
             .unwrap();
         for cmd in cmds {
             let conrod_vulkano::DrawCommand {

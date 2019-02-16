@@ -1,7 +1,7 @@
 //! The `vulkano` backend for rendering the contents of a **Draw**'s mesh.
 
 use draw;
-use frame::{Frame, ViewFramebuffer};
+use frame::{Frame, ViewFbo};
 use math::{BaseFloat, NumCast};
 use std::error::Error as StdError;
 use std::fmt;
@@ -26,7 +26,7 @@ pub struct Renderer {
     graphics_pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertices: Vec<Vertex>,
     render_pass_images: Option<RenderPassImages>,
-    view_framebuffer: ViewFramebuffer,
+    view_fbo: ViewFbo,
 }
 
 /// The `Vertex` type passed to the vertex shader.
@@ -230,13 +230,13 @@ impl Renderer {
             as Arc<GraphicsPipelineAbstract + Send + Sync>;
         let vertices = vec![];
         let render_pass_images = None;
-        let view_framebuffer = ViewFramebuffer::default();
+        let view_fbo = ViewFbo::default();
         Ok(Renderer {
             render_pass,
             graphics_pipeline,
             vertices,
             render_pass_images,
-            view_framebuffer,
+            view_fbo,
         })
     }
 
@@ -258,7 +258,7 @@ impl Renderer {
             ref mut graphics_pipeline,
             ref mut vertices,
             ref mut render_pass_images,
-            ref mut view_framebuffer,
+            ref mut view_fbo,
         } = *self;
 
         // Retrieve the color/depth image load op and clear values based on the bg color.
@@ -337,7 +337,7 @@ impl Renderer {
         let render_pass_images = render_pass_images.as_mut().expect("render_pass_images is `None`");
 
         // Ensure framebuffers are up to date with the frame's swapchain image and render pass.
-        view_framebuffer.update(&frame, render_pass.clone(), |builder, image| {
+        view_fbo.update(&frame, render_pass.clone(), |builder, image| {
             builder
                 .add(image)?
                 .add(render_pass_images.depth.clone())
@@ -356,11 +356,7 @@ impl Renderer {
         // Submit the draw commands.
         frame
             .add_commands()
-            .begin_render_pass(
-                view_framebuffer.as_ref().unwrap().clone(),
-                false,
-                clear_values,
-            )?
+            .begin_render_pass(view_fbo.expect_inner(), false, clear_values)?
             .draw_indexed(
                 graphics_pipeline.clone(),
                 &dynamic_state,
@@ -619,7 +615,7 @@ impl fmt::Debug for Renderer {
         write!(
             f,
             "Renderer ( render_pass, graphics_pipeline, framebuffer: {} )",
-            if self.view_framebuffer.is_some() { "Some" } else { "None" },
+            if self.view_fbo.is_some() { "Some" } else { "None" },
         )
     }
 }
