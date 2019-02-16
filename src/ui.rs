@@ -33,10 +33,7 @@ use std::fmt;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::{mpsc, Arc, Mutex};
-use vulkano::command_buffer::CopyBufferImageError;
-use vulkano::format::{ClearValue, D16Unorm, Format};
-use vulkano::framebuffer::{FramebufferCreationError, RenderPassAbstract, RenderPassCreationError};
-use vulkano::image::{AttachmentImage, ImageCreationError};
+use vk;
 use window::{self, Window};
 use winit;
 use App;
@@ -78,14 +75,14 @@ enum RenderMode {
 
 // The render pass in which the `Ui` will be rendered along with the owned buffers.
 struct RenderTarget {
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
+    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
     images: RenderPassImages,
     view_fbo: ViewFbo,
 }
 
 // The buffers associated with a render target.
 struct RenderPassImages {
-    depth: Arc<AttachmentImage<D16Unorm>>,
+    depth: Arc<vk::AttachmentImage<DepthFormat>>,
 }
 
 /// A type used for building a new `Ui`.
@@ -114,8 +111,8 @@ pub enum BuildError {
 /// Failed to create the custom render target for the `Ui`.
 #[derive(Debug)]
 pub enum RenderTargetCreationError {
-    RenderPassCreation(RenderPassCreationError),
-    ImageCreation(ImageCreationError),
+    RenderPassCreation(vk::RenderPassCreationError),
+    ImageCreation(vk::ImageCreationError),
 }
 
 /// An error that might occur while drawing to a `Frame`.
@@ -125,28 +122,28 @@ pub enum DrawToFrameError {
     RendererPoisoned,
     RenderModePoisoned,
     InvalidRenderMode,
-    ImageCreation(ImageCreationError),
-    FramebufferCreation(FramebufferCreationError),
+    ImageCreation(vk::ImageCreationError),
+    FramebufferCreation(vk::FramebufferCreationError),
     RendererFill(CacheWriteErr),
-    CopyBufferImageCommand(CopyBufferImageError),
+    CopyBufferImageCommand(vk::command_buffer::CopyBufferImageError),
     RendererDraw(conrod_vulkano::DrawError),
-    DrawCommand(vulkano::command_buffer::DrawError),
+    DrawCommand(vk::command_buffer::DrawError),
 }
 
 /// The subpass type to which the `Ui` may be rendered.
-pub type Subpass = vulkano::framebuffer::Subpass<Arc<RenderPassAbstract + Send + Sync>>;
+pub type Subpass = vk::framebuffer::Subpass<Arc<vk::RenderPassAbstract + Send + Sync>>;
 
 /// A map from `image::Id`s to their associated `Texture2d`.
 pub type ImageMap = conrod_core::image::Map<conrod_vulkano::Image>;
 
 /// The depth format type used by the depth buffer in the default render target.
-pub type DepthFormat = D16Unorm;
+pub type DepthFormat = vk::format::D16Unorm;
 
 /// The depth format type used by the depth buffer in the default render target.
-pub const DEPTH_FORMAT_TY: DepthFormat = D16Unorm;
+pub const DEPTH_FORMAT_TY: DepthFormat = vk::format::D16Unorm;
 
 /// The depth format used by the depth buffer in the default render target.
-pub const DEPTH_FORMAT: Format = Format::D16Unorm;
+pub const DEPTH_FORMAT: vk::Format = vk::Format::D16Unorm;
 
 impl conrod_winit::WinitWindow for Window {
     fn get_inner_size(&self) -> Option<(u32, u32)> {
@@ -389,11 +386,11 @@ impl<'a> Builder<'a> {
 /// This is used internally within the `Ui` build process so in most cases you should not need to
 /// know about it. However, it is exposed in case for some reason you require manually creating it.
 pub fn create_render_pass(
-    device: Arc<vulkano::device::Device>,
-    color_format: vulkano::format::Format,
-    depth_format: vulkano::format::Format,
+    device: Arc<vk::device::Device>,
+    color_format: vk::Format,
+    depth_format: vk::Format,
     msaa_samples: u32,
-) -> Result<Arc<RenderPassAbstract + Send + Sync>, RenderPassCreationError> {
+) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     let render_pass = single_pass_renderpass!(
         device,
         attachments: {
@@ -422,12 +419,12 @@ pub fn create_render_pass(
 
 impl RenderPassImages {
     // Create the buffers for a default render target.
-    fn new(window: &Window) -> Result<Self, ImageCreationError> {
+    fn new(window: &Window) -> Result<Self, vk::ImageCreationError> {
         let device = window.swapchain_device().clone();
         // TODO: Change this to use `window.inner_size_pixels/points` (which is correct?).
         let image_dims = window.swapchain_images()[0].dimensions();
         let msaa_samples = window.msaa_samples();
-        let depth = AttachmentImage::transient_multisampled(
+        let depth = vk::AttachmentImage::transient_multisampled(
             device.clone(),
             image_dims,
             msaa_samples,
@@ -671,8 +668,8 @@ pub fn draw_primitives(
     let queue = window.swapchain_queue().clone();
     let cmds = renderer.draw(queue, image_map, viewport)?;
     if !cmds.is_empty() {
-        let color = ClearValue::None;
-        let depth = ClearValue::None;
+        let color = vk::ClearValue::None;
+        let depth = vk::ClearValue::None;
         let clear_values = vec![color, depth];
         frame
             .add_commands()
@@ -723,26 +720,26 @@ impl From<RendererCreationError> for BuildError {
     }
 }
 
-impl From<ImageCreationError> for RenderTargetCreationError {
-    fn from(err: ImageCreationError) -> Self {
+impl From<vk::ImageCreationError> for RenderTargetCreationError {
+    fn from(err: vk::ImageCreationError) -> Self {
         RenderTargetCreationError::ImageCreation(err)
     }
 }
 
-impl From<RenderPassCreationError> for RenderTargetCreationError {
-    fn from(err: RenderPassCreationError) -> Self {
+impl From<vk::RenderPassCreationError> for RenderTargetCreationError {
+    fn from(err: vk::RenderPassCreationError) -> Self {
         RenderTargetCreationError::RenderPassCreation(err)
     }
 }
 
-impl From<ImageCreationError> for DrawToFrameError {
-    fn from(err: ImageCreationError) -> Self {
+impl From<vk::ImageCreationError> for DrawToFrameError {
+    fn from(err: vk::ImageCreationError) -> Self {
         DrawToFrameError::ImageCreation(err)
     }
 }
 
-impl From<FramebufferCreationError> for DrawToFrameError {
-    fn from(err: FramebufferCreationError) -> Self {
+impl From<vk::FramebufferCreationError> for DrawToFrameError {
+    fn from(err: vk::FramebufferCreationError) -> Self {
         DrawToFrameError::FramebufferCreation(err)
     }
 }
@@ -753,8 +750,8 @@ impl From<CacheWriteErr> for DrawToFrameError {
     }
 }
 
-impl From<CopyBufferImageError> for DrawToFrameError {
-    fn from(err: CopyBufferImageError) -> Self {
+impl From<vk::command_buffer::CopyBufferImageError> for DrawToFrameError {
+    fn from(err: vk::command_buffer::CopyBufferImageError) -> Self {
         DrawToFrameError::CopyBufferImageCommand(err)
     }
 }
@@ -765,8 +762,8 @@ impl From<conrod_vulkano::DrawError> for DrawToFrameError {
     }
 }
 
-impl From<vulkano::command_buffer::DrawError> for DrawToFrameError {
-    fn from(err: vulkano::command_buffer::DrawError) -> Self {
+impl From<vk::command_buffer::DrawError> for DrawToFrameError {
+    fn from(err: vk::command_buffer::DrawError) -> Self {
         DrawToFrameError::DrawCommand(err)
     }
 }

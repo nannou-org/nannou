@@ -41,7 +41,6 @@ pub mod ease;
 pub mod event;
 pub mod frame;
 pub mod geom;
-pub mod gpu;
 pub mod image;
 pub mod io;
 pub mod math;
@@ -53,6 +52,7 @@ pub mod rand;
 pub mod state;
 pub mod time;
 pub mod ui;
+pub mod vk;
 pub mod window;
 
 /// Begin building the `App`.

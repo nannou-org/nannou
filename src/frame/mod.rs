@@ -1,17 +1,10 @@
 //! Items related to the **Frame** type, describing a single frame of graphics for a single window.
 
 use draw::properties::color::IntoRgba;
-use gpu::{Fbo, FramebufferBuilderResult};
 use std::error::Error as StdError;
 use std::{fmt, ops};
 use std::sync::Arc;
-use vulkano;
-use vulkano::command_buffer::BeginRenderPassError;
-use vulkano::device::{Device, DeviceOwned};
-use vulkano::format::{ClearValue, Format};
-use vulkano::framebuffer::{AttachmentsList, FramebufferBuilder, FramebufferCreationError,
-                           RenderPassAbstract, RenderPassCreationError};
-use vulkano::image::{AttachmentImage, ImageCreationError, ImageUsage};
+use vk::{self, DeviceOwned};
 use window::SwapchainFramebuffers;
 
 pub mod raw;
@@ -43,7 +36,7 @@ pub struct Frame {
 /// - The given render pass is different to that which was used to create the existing framebuffer.
 #[derive(Default)]
 pub struct ViewFramebufferObject {
-    fbo: Fbo,
+    fbo: vk::Fbo,
 }
 
 /// Shorthand for the **ViewFramebufferObject** type.
@@ -52,12 +45,12 @@ pub type ViewFbo = ViewFramebufferObject;
 /// Data necessary for rendering the **Frame**'s `image` to the the `swapchain_image` of the inner
 /// raw frame.
 pub(crate) struct RenderData {
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
+    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
     // The intermediary image to which the user will draw.
     //
     // The number of multisampling samples may be specified by the user when constructing the
     // window with which the `Frame` is associated.
-    pub(crate) intermediary_image: Arc<AttachmentImage>,
+    pub(crate) intermediary_image: Arc<vk::AttachmentImage>,
     intermediary_image_is_new: bool,
     swapchain_framebuffers: SwapchainFramebuffers,
 }
@@ -65,21 +58,21 @@ pub(crate) struct RenderData {
 /// Errors that might occur during creation of the `RenderData` for a frame.
 #[derive(Debug)]
 pub enum RenderDataCreationError {
-    RenderPassCreation(RenderPassCreationError),
-    ImageCreation(ImageCreationError),
+    RenderPassCreation(vk::RenderPassCreationError),
+    ImageCreation(vk::ImageCreationError),
 }
 
 /// Errors that might occur during creation of the `Frame`.
 #[derive(Debug)]
 pub enum FrameCreationError {
-    ImageCreation(ImageCreationError),
-    FramebufferCreation(FramebufferCreationError),
+    ImageCreation(vk::ImageCreationError),
+    FramebufferCreation(vk::FramebufferCreationError),
 }
 
 /// Errors that might occur during `Frame::finish`.
 #[derive(Debug)]
 pub enum FrameFinishError {
-    BeginRenderPass(BeginRenderPassError),
+    BeginRenderPass(vk::command_buffer::BeginRenderPassError),
 }
 
 impl Frame {
@@ -95,8 +88,8 @@ impl Frame {
         // If the image dimensions differ to that of the swapchain image, recreate it.
         let image_dims = raw_frame.swapchain_image().dimensions();
 
-        if AttachmentImage::dimensions(&data.intermediary_image) != image_dims {
-            let msaa_samples = vulkano::image::ImageAccess::samples(&data.intermediary_image);
+        if vk::AttachmentImage::dimensions(&data.intermediary_image) != image_dims {
+            let msaa_samples = vk::image::ImageAccess::samples(&data.intermediary_image);
             data.intermediary_image = create_intermediary_image(
                 raw_frame.swapchain_image().swapchain().device().clone(),
                 image_dims,
@@ -134,7 +127,7 @@ impl Frame {
         let framebuffer = data.swapchain_framebuffers[raw_frame.swapchain_image_index()].clone();
 
         // Neither the intermediary image nor swapchain image require clearing upon load.
-        let clear_values = vec![ClearValue::None, ClearValue::None];
+        let clear_values = vec![vk::ClearValue::None, vk::ClearValue::None];
         let is_secondary = false;
 
         raw_frame
@@ -153,7 +146,7 @@ impl Frame {
     ///
     /// After the **view** function returns, this image will be resolved to the swapchain image for
     /// this frame and then that swapchain image will be presented to the screen.
-    pub fn image(&self) -> &Arc<AttachmentImage> {
+    pub fn image(&self) -> &Arc<vk::AttachmentImage> {
         &self.data.intermediary_image
     }
 
@@ -167,13 +160,13 @@ impl Frame {
     }
 
     /// The color format of the `Frame`'s intermediary image.
-    pub fn image_format(&self) -> Format {
-        vulkano::image::ImageAccess::format(self.image())
+    pub fn image_format(&self) -> vk::Format {
+        vk::image::ImageAccess::format(self.image())
     }
 
     /// The number of MSAA samples of the `Frame`'s intermediary image.
     pub fn image_msaa_samples(&self) -> u32 {
-        vulkano::image::ImageAccess::samples(self.image())
+        vk::image::ImageAccess::samples(self.image())
     }
 
     /// Clear the image with the given color.
@@ -182,7 +175,7 @@ impl Frame {
         C: IntoRgba<f32>,
     {
         let rgba = color.into_rgba();
-        let value = ClearValue::Float([rgba.red, rgba.green, rgba.blue, rgba.alpha]);
+        let value = vk::ClearValue::Float([rgba.red, rgba.green, rgba.blue, rgba.alpha]);
         let image = self.data.intermediary_image.clone();
         self.add_commands()
             .clear_color_image(image, value)
@@ -197,11 +190,12 @@ impl ViewFramebufferObject {
         frame: &Frame,
         render_pass: R,
         builder: F,
-    ) -> Result<(), FramebufferCreationError>
+    ) -> Result<(), vk::FramebufferCreationError>
     where
-        R: 'static + RenderPassAbstract + Send + Sync,
-        F: FnOnce(FramebufferBuilder<R, ()>, Arc<AttachmentImage>) -> FramebufferBuilderResult<R, A>,
-        A: 'static + AttachmentsList + Send + Sync,
+        R: 'static + vk::RenderPassAbstract + Send + Sync,
+        F: FnOnce(vk::FramebufferBuilder<R, ()>, Arc<vk::AttachmentImage>)
+            -> vk::FramebufferBuilderResult<R, A>,
+        A: 'static + vk::AttachmentsList + Send + Sync,
     {
         let image = frame.image().clone();
         let [w, h] = image.dimensions();
@@ -213,15 +207,15 @@ impl ViewFramebufferObject {
 impl RenderData {
     /// Initialise the render data.
     ///
-    /// Creates an `AttachmentImage` with the given parameters.
+    /// Creates an `vk::AttachmentImage` with the given parameters.
     ///
     /// If `msaa_samples` is greater than 1 a `multisampled` image will be created. Otherwise the
     /// a regular non-multisampled image will be created.
     pub(crate) fn new(
-        device: Arc<Device>,
+        device: Arc<vk::Device>,
         dimensions: [u32; 2],
         msaa_samples: u32,
-        format: Format,
+        format: vk::Format,
     ) -> Result<Self, RenderDataCreationError> {
         let render_pass = create_render_pass(device.clone(), format, msaa_samples)?;
         let intermediary_image = create_intermediary_image(device, dimensions, msaa_samples, format)?;
@@ -244,38 +238,38 @@ impl ops::Deref for Frame {
 }
 
 impl ops::Deref for ViewFramebufferObject {
-    type Target = Fbo;
+    type Target = vk::Fbo;
     fn deref(&self) -> &Self::Target {
         &self.fbo
     }
 }
 
-impl From<RenderPassCreationError> for RenderDataCreationError {
-    fn from(err: RenderPassCreationError) -> Self {
+impl From<vk::RenderPassCreationError> for RenderDataCreationError {
+    fn from(err: vk::RenderPassCreationError) -> Self {
         RenderDataCreationError::RenderPassCreation(err)
     }
 }
 
-impl From<ImageCreationError> for RenderDataCreationError {
-    fn from(err: ImageCreationError) -> Self {
+impl From<vk::ImageCreationError> for RenderDataCreationError {
+    fn from(err: vk::ImageCreationError) -> Self {
         RenderDataCreationError::ImageCreation(err)
     }
 }
 
-impl From<ImageCreationError> for FrameCreationError {
-    fn from(err: ImageCreationError) -> Self {
+impl From<vk::ImageCreationError> for FrameCreationError {
+    fn from(err: vk::ImageCreationError) -> Self {
         FrameCreationError::ImageCreation(err)
     }
 }
 
-impl From<FramebufferCreationError> for FrameCreationError {
-    fn from(err: FramebufferCreationError) -> Self {
+impl From<vk::FramebufferCreationError> for FrameCreationError {
+    fn from(err: vk::FramebufferCreationError) -> Self {
         FrameCreationError::FramebufferCreation(err)
     }
 }
 
-impl From<BeginRenderPassError> for FrameFinishError {
-    fn from(err: BeginRenderPassError) -> Self {
+impl From<vk::command_buffer::BeginRenderPassError> for FrameFinishError {
+    fn from(err: vk::command_buffer::BeginRenderPassError) -> Self {
         FrameFinishError::BeginRenderPass(err)
     }
 }
@@ -350,27 +344,27 @@ impl fmt::Debug for RenderData {
     }
 }
 
-// A function to simplify creating the `AttachmentImage` used as the intermediary image render
+// A function to simplify creating the `vk::AttachmentImage` used as the intermediary image render
 // target.
 //
 // If `msaa_samples` is 0 or 1, a non-multisampled image will be created.
 fn create_intermediary_image(
-    device: Arc<Device>,
+    device: Arc<vk::Device>,
     dimensions: [u32; 2],
     msaa_samples: u32,
-    format: Format,
-) -> Result<Arc<AttachmentImage>, ImageCreationError> {
-    let usage = ImageUsage {
+    format: vk::Format,
+) -> Result<Arc<vk::AttachmentImage>, vk::ImageCreationError> {
+    let usage = vk::ImageUsage {
         transfer_source: true,
         transfer_destination: true,
         color_attachment: true,
         //sampled: true,
-        ..ImageUsage::none()
+        ..vk::ImageUsage::none()
     };
     match msaa_samples {
-        0 | 1 => AttachmentImage::with_usage(device, dimensions, format, usage),
+        0 | 1 => vk::AttachmentImage::with_usage(device, dimensions, format, usage),
         _ => {
-            AttachmentImage::multisampled_with_usage(
+            vk::AttachmentImage::multisampled_with_usage(
                 device,
                 dimensions,
                 msaa_samples,
@@ -383,10 +377,10 @@ fn create_intermediary_image(
 
 // Create the render pass for drawing the intermediary image to the swapchain image.
 fn create_render_pass(
-    device: Arc<Device>,
-    color_format: Format,
+    device: Arc<vk::Device>,
+    color_format: vk::Format,
     msaa_samples: u32,
-) -> Result<Arc<RenderPassAbstract + Send + Sync>, RenderPassCreationError> {
+) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     match msaa_samples {
         // Render pass without multisampling.
         0 | 1 => {
@@ -413,7 +407,7 @@ fn create_render_pass(
                     depth_stencil: {}
                 }
             )?;
-            Ok(Arc::new(rp) as Arc<RenderPassAbstract + Send + Sync>)
+            Ok(Arc::new(rp) as Arc<vk::RenderPassAbstract + Send + Sync>)
         }
 
         // Renderpass with multisampling.
@@ -442,7 +436,7 @@ fn create_render_pass(
                     resolve: [swapchain_color],
                 }
             )?;
-            Ok(Arc::new(rp) as Arc<RenderPassAbstract + Send + Sync>)
+            Ok(Arc::new(rp) as Arc<vk::RenderPassAbstract + Send + Sync>)
         }
     }
 }

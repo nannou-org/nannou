@@ -19,7 +19,6 @@ use event::{self, Event, LoopEvent, Key, Update};
 use find_folder;
 use frame::{Frame, RawFrame, RenderData};
 use geom;
-use gpu;
 use state;
 use std;
 use std::cell::{RefCell, RefMut};
@@ -33,12 +32,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use time::DurationF64;
 use ui;
-use vulkano;
-use vulkano::device::DeviceOwned;
-use vulkano::format::Format;
-use vulkano::instance::InstanceExtensions;
-use vulkano::swapchain::SwapchainCreationError;
-use vulkano::sync::GpuFuture;
+use vk::{self, DeviceOwned, GpuFuture};
 use window::{self, Window};
 use winit;
 
@@ -49,7 +43,7 @@ use moltenvk_deps as mvkd;
 // 1. Verify that this is actually a good default
 // 2. Allow for choosing a custom depth format
 // 3. Validate the format (whether default or custom selected)
-const DEPTH_FORMAT: Format = Format::D16Unorm;
+const DEPTH_FORMAT: vk::Format = vk::Format::D16Unorm;
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -84,8 +78,8 @@ pub struct Builder<M = (), E = Event> {
     update: Option<UpdateFn<M>>,
     default_view: Option<View<M>>,
     exit: Option<ExitFn<M>>,
-    vulkan_instance: Option<Arc<vulkano::instance::Instance>>,
-    vulkan_debug_callback: Option<gpu::VulkanDebugCallbackBuilder>,
+    vk_instance: Option<Arc<vk::Instance>>,
+    vk_debug_callback: Option<vk::DebugCallbackBuilder>,
     create_default_window: bool,
     #[cfg(all(target_os = "macos", not(test)))]
     moltenvk_settings: Option<mvkd::Install>,
@@ -109,7 +103,7 @@ fn default_model(_: &App) -> () {
 /// - The **audio event loop** from which you can receive or send audio via streams.
 pub struct App {
     config: RefCell<Config>,
-    pub(crate) vulkan_instance: Arc<vulkano::instance::Instance>,
+    pub(crate) vk_instance: Arc<vk::Instance>,
     pub(crate) events_loop: winit::EventsLoop,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
     draw_state: DrawState,
@@ -361,8 +355,8 @@ where
             update: None,
             default_view: None,
             exit: None,
-            vulkan_instance: None,
-            vulkan_debug_callback: None,
+            vk_instance: None,
+            vk_debug_callback: None,
             create_default_window: false,
             #[cfg(all(target_os = "macos", not(test)))]
             moltenvk_settings: None,
@@ -386,8 +380,8 @@ where
             default_view,
             exit,
             create_default_window,
-            vulkan_instance,
-            vulkan_debug_callback,
+            vk_instance,
+            vk_debug_callback,
             #[cfg(all(target_os = "macos", not(test)))]
             moltenvk_settings,
             ..
@@ -399,8 +393,8 @@ where
             default_view,
             exit,
             create_default_window,
-            vulkan_instance,
-            vulkan_debug_callback,
+            vk_instance,
+            vk_debug_callback,
             #[cfg(all(target_os = "macos", not(test)))]
             moltenvk_settings,
         }
@@ -472,24 +466,26 @@ where
     ///
     /// ```norun
     /// # extern crate nannou;
+    /// # use nannou::prelude::*;
     /// # fn main() {
-    /// nannou::gpu::VulkanInstanceBuilder::new()
+    /// vk::InstanceBuilder::new()
     ///     .build()
     ///     .expect("failed to creat vulkan instance")
     /// # ;
     /// # }
     /// ```
     ///
-    /// If a `vulkan_debug_callback` was specified but the `vulkan_instance` is unspecified, nannou
+    /// If a `vk_debug_callback` was specified but the `vk_instance` is unspecified, nannou
     /// will do the following:
     ///
     /// ```norun
     /// # extern crate nannou;
+    /// # use nannou::prelude::*;
     /// # fn main() {
-    /// nannou::gpu::VulkanInstanceBuilder::new()
-    ///     .extensions(nannou::vulkano::instance::InstanceExtensions {
+    /// vk::InstanceBuilder::new()
+    ///     .extensions(vk::InstanceExtensions {
     ///         ext_debug_report: true,
-    ///         ..nannou::gpu::required_windowing_extensions()
+    ///         ..vk::required_windowing_extensions()
     ///     })
     ///     .layers(vec!["VK_LAYER_LUNARG_standard_validation"])
     ///     .build()
@@ -497,8 +493,8 @@ where
     /// # ;
     /// # }
     /// ```
-    pub fn vulkan_instance(mut self, vulkan_instance: Arc<vulkano::instance::Instance>) -> Self {
-        self.vulkan_instance = Some(vulkan_instance);
+    pub fn vk_instance(mut self, vk_instance: Arc<vk::Instance>) -> Self {
+        self.vk_instance = Some(vk_instance);
         self
     }
 
@@ -507,10 +503,10 @@ where
     /// If you just want to print messages from the standard validation layers to stdout, you can
     /// call this method with `Default::default()` as the argument.
     ///
-    /// Note that if you have specified a custom `vulkan_instance`, that instance must have the
+    /// Note that if you have specified a custom `vk_instance`, that instance must have the
     /// `ext_debug_report` extension enabled and must have been constructed with a debug layer.
-    pub fn vulkan_debug_callback(mut self, debug_cb: gpu::VulkanDebugCallbackBuilder) -> Self {
-        self.vulkan_debug_callback = Some(debug_cb);
+    pub fn vk_debug_callback(mut self, debug_cb: vk::DebugCallbackBuilder) -> Self {
+        self.vk_debug_callback = Some(debug_cb);
         self
     }
 
@@ -542,54 +538,54 @@ where
 
         // Keep track of whether or not a debug cb was specified so we know what default extensions
         // and layers are necessary.
-        let debug_callback_specified = self.vulkan_debug_callback.is_some();
+        let debug_callback_specified = self.vk_debug_callback.is_some();
 
         #[cfg(all(target_os = "macos", not(test)))]
         let moltenvk_settings = self.moltenvk_settings;
 
         // The vulkan instance necessary for graphics.
-        let vulkan_instance = self.vulkan_instance.take().unwrap_or_else(|| {
+        let vk_instance = self.vk_instance.take().unwrap_or_else(|| {
             if debug_callback_specified {
-                let vulkan_builder = gpu::VulkanInstanceBuilder::new();
+                let vk_builder = vk::InstanceBuilder::new();
                 
                 #[cfg(all(target_os = "macos", not(test)))]
-                let vulkan_builder = gpu::check_moltenvk(vulkan_builder, moltenvk_settings);
+                let vk_builder = vk::check_moltenvk(vk_builder, moltenvk_settings);
                 
                 #[cfg(any(not(target_os = "macos"), test))]
-                let vulkan_builder = vulkan_builder.extensions(gpu::required_windowing_extensions());
+                let vk_builder = vk_builder.extensions(vk::required_windowing_extensions());
 
-                vulkan_builder.add_extensions(InstanceExtensions{ 
+                vk_builder.add_extensions(vk::InstanceExtensions{ 
                     ext_debug_report: true,
-                    ..InstanceExtensions::none()
+                    ..vk::InstanceExtensions::none()
                 })
                 .layers(vec!["VK_LAYER_LUNARG_standard_validation"])
                     .build()
                     .expect("failed to create vulkan instance")
             } else {
-                let vulkan_builder = gpu::VulkanInstanceBuilder::new();
+                let vk_builder = vk::InstanceBuilder::new();
                 
                 #[cfg(all(target_os = "macos", not(test)))]
-                let vulkan_builder = gpu::check_moltenvk(vulkan_builder, moltenvk_settings);
+                let vk_builder = vk::check_moltenvk(vk_builder, moltenvk_settings);
                 
                 #[cfg(any(not(target_os = "macos"), test))]
-                let vulkan_builder = vulkan_builder.extensions(gpu::required_windowing_extensions());
+                let vk_builder = vk_builder.extensions(vk::required_windowing_extensions());
                 
-                vulkan_builder.build()
+                vk_builder.build()
                     .expect("failed to create vulkan instance")
             }
         });
 
         // If a callback was specified, build it with the created instance.
-        let _vulkan_debug_callback = self.vulkan_debug_callback
+        let _vk_debug_callback = self.vk_debug_callback
             .take()
             .map(|builder| {
                 builder
-                    .build(&vulkan_instance)
+                    .build(&vk_instance)
                     .expect("failed to build vulkan debug callback")
             });
 
         // Initialise the app.
-        let app = App::new(events_loop, vulkan_instance).expect("failed to construct `App`");
+        let app = App::new(events_loop, vk_instance).expect("failed to construct `App`");
 
         // Create the default window if necessary
         if self.create_default_window {
@@ -655,8 +651,8 @@ impl Builder<(), Event> {
             default_view: Some(View::Sketch(view)),
             exit: None,
             create_default_window: true,
-            vulkan_instance: None,
-            vulkan_debug_callback: None,
+            vk_instance: None,
+            vk_debug_callback: None,
             #[cfg(all(target_os = "macos", not(test)))]
             moltenvk_settings: None,
         };
@@ -758,8 +754,8 @@ impl App {
     // Create a new `App`.
     pub(super) fn new(
         events_loop: winit::EventsLoop,
-        vulkan_instance: Arc<vulkano::instance::Instance>,
-    ) -> Result<Self, vulkano::instance::InstanceCreationError> {
+        vk_instance: Arc<vk::Instance>,
+    ) -> Result<Self, vk::InstanceCreationError> {
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());
         let config = RefCell::new(Default::default());
@@ -779,7 +775,7 @@ impl App {
         let time = duration.since_start.secs() as _;
         let events_loop_is_asleep = Arc::new(AtomicBool::new(false));
         let app = App {
-            vulkan_instance,
+            vk_instance,
             events_loop,
             events_loop_is_asleep,
             focused_window,
@@ -799,9 +795,9 @@ impl App {
     /// A reference to the vulkan instance associated with the `App`.
     ///
     /// If you would like to construct the app with a custom vulkan instance, see the
-    /// `app::Builder::vulkan_instance` method.
-    pub fn vulkan_instance(&self) -> &Arc<vulkano::instance::Instance> {
-        &self.vulkan_instance
+    /// `app::Builder::vk_instance` method.
+    pub fn vk_instance(&self) -> &Arc<vk::instance::Instance> {
+        &self.vk_instance
     }
 
     /// Returns an iterator yielding each of the physical devices on the system that are vulkan
@@ -809,15 +805,15 @@ impl App {
     ///
     /// If a physical device is not specified for a window surface's swapchain, the first device
     /// yielded by this iterator is used as the default.
-    pub fn vulkan_physical_devices(&self) -> vulkano::instance::PhysicalDevicesIter {
-        vulkano::instance::PhysicalDevice::enumerate(&self.vulkan_instance)
+    pub fn vk_physical_devices(&self) -> vk::instance::PhysicalDevicesIter {
+        vk::instance::PhysicalDevice::enumerate(&self.vk_instance)
     }
 
     /// Retrieve the default vulkan physical device.
     ///
-    /// This is simply the first device yielded by the `vulkan_physical_devices` method.
-    pub fn default_vulkan_physical_device(&self) -> Option<vulkano::instance::PhysicalDevice> {
-        self.vulkan_physical_devices().next()
+    /// This is simply the first device yielded by the `vk_physical_devices` method.
+    pub fn default_vk_physical_device(&self) -> Option<vk::instance::PhysicalDevice> {
+        self.vk_physical_devices().next()
     }
 
     /// Find and return the absolute path to the project's `assets` directory.
@@ -1453,7 +1449,7 @@ where
                 if window_swapchain_needs_recreation(app, window_id) {
                     match recreate_window_swapchain(app, window_id) {
                         Ok(()) => break,
-                        Err(SwapchainCreationError::UnsupportedDimensions) => {
+                        Err(vk::SwapchainCreationError::UnsupportedDimensions) => {
                             set_window_swapchain_needs_recreation(app, window_id, true);
                             continue
                         },
@@ -1466,13 +1462,13 @@ where
             // Acquire the next image from the swapchain.
             let timeout = None;
             let swapchain = app.windows.borrow()[&window_id].swapchain.clone();
-            let next_img = vulkano::swapchain::acquire_next_image(
+            let next_img = vk::swapchain::acquire_next_image(
                 swapchain.swapchain.clone(),
                 timeout,
             );
             let (swapchain_image_index, swapchain_image_acquire_future) = match next_img {
                 Ok(r) => r,
-                Err(vulkano::swapchain::AcquireError::OutOfDate) => {
+                Err(vk::swapchain::AcquireError::OutOfDate) => {
                     set_window_swapchain_needs_recreation(app, window_id, true);
                     continue;
                 },
@@ -1609,7 +1605,7 @@ fn window_swapchain_needs_recreation(app: &App, window_id: window::Id) -> bool {
 fn recreate_window_swapchain(
     app: &App,
     window_id: window::Id,
-) -> Result<(), SwapchainCreationError> {
+) -> Result<(), vk::SwapchainCreationError> {
     let mut windows = app.windows.borrow_mut();
     let window = windows.get_mut(&window_id).expect("no window for id");
 
@@ -2185,7 +2181,7 @@ where
     // Handle the result of the future.
     let current_frame_end = match future_result {
         Ok(future) => Some(future),
-        Err(vulkano::sync::FlushError::OutOfDate) => {
+        Err(vk::sync::FlushError::OutOfDate) => {
             window.swapchain.needs_recreation.store(true, atomic::Ordering::Relaxed);
             None
         }
@@ -2228,7 +2224,7 @@ where
         if window_swapchain_needs_recreation(app, window_id) {
             match recreate_window_swapchain(app, window_id) {
                 Ok(()) => break,
-                Err(SwapchainCreationError::UnsupportedDimensions) => {
+                Err(vk::SwapchainCreationError::UnsupportedDimensions) => {
                     set_window_swapchain_needs_recreation(app, window_id, true);
                     continue
                 },
@@ -2241,13 +2237,13 @@ where
     // Acquire the next image from the swapchain.
     let timeout = None;
     let swapchain = app.windows.borrow()[&window_id].swapchain.clone();
-    let next_img = vulkano::swapchain::acquire_next_image(
+    let next_img = vk::swapchain::acquire_next_image(
         swapchain.swapchain.clone(),
         timeout,
     );
     let (swapchain_image_index, swapchain_image_acquire_future) = match next_img {
         Ok(r) => r,
-        Err(vulkano::swapchain::AcquireError::OutOfDate) => {
+        Err(vk::swapchain::AcquireError::OutOfDate) => {
             set_window_swapchain_needs_recreation(app, window_id, true);
             return false;
         },
