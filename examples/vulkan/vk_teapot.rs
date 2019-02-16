@@ -1,21 +1,7 @@
 extern crate nannou;
 
 use nannou::prelude::*;
-
 use nannou::math::cgmath::{self, Matrix3, Matrix4, Rad, Point3, Vector3};
-use nannou::vulkano;
-use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
-use nannou::vulkano::buffer::cpu_pool::CpuBufferPool;
-use nannou::vulkano::command_buffer::DynamicState;
-use nannou::vulkano::descriptor::descriptor_set::PersistentDescriptorSet;
-use nannou::vulkano::device::{Device, DeviceOwned};
-use nannou::vulkano::format::Format;
-use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
-use nannou::vulkano::image::attachment::AttachmentImage;
-use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract,
-                                GraphicsPipelineCreationError};
-use nannou::vulkano::pipeline::vertex::TwoBuffersDefinition;
-use nannou::vulkano::pipeline::viewport::Viewport;
 use std::cell::RefCell;
 use std::sync::Arc;
 
@@ -28,15 +14,15 @@ struct Model {
 }
 
 struct Graphics {
-    vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
-    normal_buffer: Arc<CpuAccessibleBuffer<[Normal]>>,
-    index_buffer: Arc<CpuAccessibleBuffer<[u16]>>,
-    uniform_buffer: CpuBufferPool<vs::ty::Data>,
+    vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
+    normal_buffer: Arc<vk::CpuAccessibleBuffer<[Normal]>>,
+    index_buffer: Arc<vk::CpuAccessibleBuffer<[u16]>>,
+    uniform_buffer: vk::CpuBufferPool<vs::ty::Data>,
     vertex_shader: vs::Shader,
     fragment_shader: fs::Shader,
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    graphics_pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
-    depth_image: Arc<AttachmentImage>,
+    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+    graphics_pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    depth_image: Arc<vk::AttachmentImage>,
     view_fbo: ViewFbo,
 }
 
@@ -50,9 +36,9 @@ struct Normal {
     normal: (f32, f32, f32)
 }
 
-nannou::vulkano::impl_vertex!(Vertex, position);
+vk::impl_vertex!(Vertex, position);
 
-nannou::vulkano::impl_vertex!(Normal, normal);
+vk::impl_vertex!(Normal, normal);
 
 fn model(app: &App) -> Model {
     app.new_window()
@@ -63,29 +49,29 @@ fn model(app: &App) -> Model {
 
     let device = app.main_window().swapchain().device().clone();
 
-    let vertex_buffer = CpuAccessibleBuffer::from_iter(
+    let vertex_buffer = vk::CpuAccessibleBuffer::from_iter(
         device.clone(),
-        BufferUsage::all(),
+        vk::BufferUsage::all(),
         VERTICES.iter().cloned(),
     ).unwrap();
-    let normal_buffer = CpuAccessibleBuffer::from_iter(
+    let normal_buffer = vk::CpuAccessibleBuffer::from_iter(
         device.clone(),
-        BufferUsage::all(),
+        vk::BufferUsage::all(),
         NORMALS.iter().cloned(),
     ).unwrap();
-    let index_buffer = CpuAccessibleBuffer::from_iter(
+    let index_buffer = vk::CpuAccessibleBuffer::from_iter(
         device.clone(),
-        BufferUsage::all(),
+        vk::BufferUsage::all(),
         INDICES.iter().cloned(),
     ).unwrap();
 
-    let uniform_buffer = CpuBufferPool::<vs::ty::Data>::new(device.clone(), BufferUsage::all());
+    let uniform_buffer = vk::CpuBufferPool::<vs::ty::Data>::new(device.clone(), vk::BufferUsage::all());
 
     let vertex_shader = vs::Shader::load(device.clone()).unwrap();
     let fragment_shader = fs::Shader::load(device.clone()).unwrap();
 
     let render_pass = Arc::new(
-        nannou::vulkano::single_pass_renderpass!(
+        vk::single_pass_renderpass!(
             device.clone(),
             attachments: {
                 color: {
@@ -99,7 +85,7 @@ fn model(app: &App) -> Model {
                 depth: {
                     load: Clear,
                     store: DontCare,
-                    format: Format::D16Unorm,
+                    format: vk::Format::D16Unorm,
                     samples: app.main_window().msaa_samples(),
                 }
             },
@@ -120,11 +106,11 @@ fn model(app: &App) -> Model {
         [w as f32, h as f32],
     ).unwrap();
 
-    let depth_image = AttachmentImage::transient_multisampled(
+    let depth_image = vk::AttachmentImage::transient_multisampled(
         device.clone(),
         [w, h],
         app.main_window().msaa_samples(),
-        Format::D16Unorm,
+        vk::Format::D16Unorm,
     ).unwrap();
 
     let view_fbo = ViewFbo::default();
@@ -162,11 +148,11 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
             [w as f32, h as f32],
         ).unwrap();
 
-        graphics.depth_image = AttachmentImage::transient_multisampled(
+        graphics.depth_image = vk::AttachmentImage::transient_multisampled(
             device.clone(),
             [w, h],
             frame.image_msaa_samples(),
-            Format::D16Unorm,
+            vk::Format::D16Unorm,
         ).unwrap();
     }
 
@@ -207,7 +193,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     };
 
     let descriptor_set = Arc::new(
-        PersistentDescriptorSet::start(graphics.graphics_pipeline.clone(), 0)
+        vk::PersistentDescriptorSet::start(graphics.graphics_pipeline.clone(), 0)
             .add_buffer(uniform_buffer_slice)
             .unwrap()
             .build()
@@ -225,7 +211,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .unwrap()
         .draw_indexed(
             graphics.graphics_pipeline.clone(),
-            &DynamicState::none(),
+            &vk::DynamicState::none(),
             vec![graphics.vertex_buffer.clone(), graphics.normal_buffer.clone()],
             graphics.index_buffer.clone(),
             descriptor_set,
@@ -240,25 +226,25 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
 
 // Create the graphics pipeline.
 fn create_graphics_pipeline(
-    device: Arc<Device>,
+    device: Arc<vk::Device>,
     vertex_shader: &vs::Shader,
     fragment_shader: &fs::Shader,
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
+    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
     dimensions: [f32; 2],
-) -> Result<Arc<GraphicsPipelineAbstract + Send + Sync>, GraphicsPipelineCreationError> {
-    let pipeline = GraphicsPipeline::start()
-        .vertex_input(TwoBuffersDefinition::<Vertex, Normal>::new())
+) -> Result<Arc<vk::GraphicsPipelineAbstract + Send + Sync>, vk::GraphicsPipelineCreationError> {
+    let pipeline = vk::GraphicsPipeline::start()
+        .vertex_input(vk::TwoBuffersDefinition::<Vertex, Normal>::new())
         .vertex_shader(vertex_shader.main_entry_point(), ())
         .triangle_list()
         .viewports_dynamic_scissors_irrelevant(1)
-        .viewports(Some(Viewport {
+        .viewports(Some(vk::Viewport {
             origin: [0.0, 0.0],
             dimensions,
             depth_range: 0.0..1.0,
         }))
         .fragment_shader(fragment_shader.main_entry_point(), ())
         .depth_stencil_simple_depth()
-        .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
+        .render_pass(vk::Subpass::from(render_pass.clone(), 0).unwrap())
         .build(device.clone())?;
     Ok(Arc::new(pipeline) as Arc<_>)
 }
@@ -266,7 +252,7 @@ fn create_graphics_pipeline(
 // GLSL Shaders
 
 mod vs {
-    nannou::vulkano_shaders::shader! {
+    nannou::vk::shaders::shader! {
         ty: "vertex",
         src: "
 #version 450
@@ -292,7 +278,7 @@ void main() {
 }
 
 mod fs {
-    nannou::vulkano_shaders::shader! {
+    nannou::vk::shaders::shader! {
         ty: "fragment",
         src: "
 #version 450

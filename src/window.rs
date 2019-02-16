@@ -6,23 +6,13 @@ use event::{Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase, Touchpad
 use frame::{self, Frame, RawFrame};
 use geom;
 use geom::{Point2, Vector2};
-use gpu;
 use std::any::Any;
 use std::{cmp, env, fmt, ops};
 use std::error::Error as StdError;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
-use vulkano::VulkanObject;
-use vulkano::device::{self, Device, DeviceExtensions};
-use vulkano::format::Format;
-use vulkano::framebuffer::{AttachmentsList, Framebuffer, FramebufferAbstract, FramebufferBuilder,
-                           FramebufferCreationError, RenderPassAbstract};
-use vulkano::instance::PhysicalDevice;
-use vulkano::swapchain::{ColorSpace, CompositeAlpha, PresentMode, SupportedPresentModes,
-                         SurfaceTransform, SwapchainCreationError};
-use vulkano::sync::{FenceSignalFuture, GpuFuture};
-use vulkano_win::{VkSurfaceBuild};
+use vk::{self, VulkanObject, win::VkSurfaceBuild};
 use winit::{self, MonitorId, MouseCursor};
 use winit::dpi::LogicalSize;
 use App;
@@ -39,9 +29,9 @@ pub const DEFAULT_DIMENSIONS: LogicalSize = LogicalSize { width: 1024.0, height:
 /// OpenGL context parameters can be specified via the `context` method.
 pub struct Builder<'app> {
     app: &'app App,
-    vulkan_physical_device: Option<PhysicalDevice<'app>>,
-    vulkan_device_extensions: Option<DeviceExtensions>,
-    vulkan_device_queue: Option<Arc<device::Queue>>,
+    vk_physical_device: Option<vk::PhysicalDevice<'app>>,
+    vk_device_extensions: Option<vk::DeviceExtensions>,
+    vk_device_queue: Option<Arc<vk::Queue>>,
     window: winit::WindowBuilder,
     title_was_set: bool,
     swapchain_builder: SwapchainBuilder,
@@ -223,7 +213,7 @@ fn_any!(ClosedFn<M>, ClosedFnAny);
 /// nannou-friendly API.
 #[derive(Debug)]
 pub struct Window {
-    pub(crate) queue: Arc<device::Queue>,
+    pub(crate) queue: Arc<vk::Queue>,
     pub(crate) surface: Arc<Surface>,
     msaa_samples: u32,
     pub(crate) swapchain: Arc<WindowSwapchain>,
@@ -233,21 +223,21 @@ pub struct Window {
     pub(crate) user_functions: UserFunctions,
     // If the user specified one of the following parameters, use these when recreating the
     // swapchain rather than our heuristics.
-    pub(crate) user_specified_present_mode: Option<PresentMode>,
+    pub(crate) user_specified_present_mode: Option<vk::swapchain::PresentMode>,
     pub(crate) user_specified_image_count: Option<u32>,
 }
 
 /// The surface type associated with a winit window.
-pub type Surface = vulkano::swapchain::Surface<winit::Window>;
+pub type Surface = vk::swapchain::Surface<winit::Window>;
 
 /// The swapchain type associated with a winit window surface.
-pub type Swapchain = vulkano::swapchain::Swapchain<winit::Window>;
+pub type Swapchain = vk::swapchain::Swapchain<winit::Window>;
 
 /// The vulkan image type associated with a winit window surface.
-pub type SwapchainImage = vulkano::image::swapchain::SwapchainImage<winit::Window>;
+pub type SwapchainImage = vk::image::swapchain::SwapchainImage<winit::Window>;
 
 /// The future representing the moment that the GPU will have access to the swapchain image.
-pub type SwapchainAcquireFuture = vulkano::swapchain::SwapchainAcquireFuture<winit::Window>;
+pub type SwapchainAcquireFuture = vk::swapchain::SwapchainAcquireFuture<winit::Window>;
 
 /// A swapchain and its images associated with a single window.
 pub(crate) struct WindowSwapchain {
@@ -266,7 +256,7 @@ pub(crate) struct WindowSwapchain {
     //
     // Destroying the `GpuFuture` blocks until the GPU is finished executing it. In order to avoid
     // that, we store the submission of the previous frame here.
-    pub(crate) previous_frame_end: Mutex<Option<FenceSignalFuture<Box<GpuFuture>>>>,
+    pub(crate) previous_frame_end: Mutex<Option<vk::FenceSignalFuture<Box<vk::GpuFuture>>>>,
 }
 
 /// Swapchain building parameters for which Nannou will provide a default if unspecified.
@@ -274,17 +264,17 @@ pub(crate) struct WindowSwapchain {
 /// See the builder methods for more details on each parameter.
 ///
 /// Valid parameters can be determined prior to building by checking the result of
-/// [vulkano::swapchain::Surface::capabilities](https://docs.rs/vulkano/latest/vulkano/swapchain/struct.Surface.html#method.capabilities).
+/// [vk::swapchain::Surface::capabilities](https://docs.rs/vulkano/latest/vulkano/swapchain/struct.Surface.html#method.capabilities).
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SwapchainBuilder {
-    pub format: Option<Format>,
-    pub color_space: Option<ColorSpace>,
+    pub format: Option<vk::Format>,
+    pub color_space: Option<vk::swapchain::ColorSpace>,
     pub layers: Option<u32>,
-    pub present_mode: Option<PresentMode>,
-    pub composite_alpha: Option<CompositeAlpha>,
+    pub present_mode: Option<vk::swapchain::PresentMode>,
+    pub composite_alpha: Option<vk::swapchain::CompositeAlpha>,
     pub clipped: Option<bool>,
     pub image_count: Option<u32>,
-    pub surface_transform: Option<SurfaceTransform>,
+    pub surface_transform: Option<vk::swapchain::SurfaceTransform>,
 }
 
 /// A helper type for managing framebuffers associated with a window's swapchain images.
@@ -301,28 +291,30 @@ pub struct SwapchainBuilder {
 ///   recently been recreated and the framebuffers should be recreated accordingly.
 #[derive(Default)]
 pub struct SwapchainFramebuffers {
-    framebuffers: Vec<Arc<FramebufferAbstract + Send + Sync>>,
+    framebuffers: Vec<Arc<vk::FramebufferAbstract + Send + Sync>>,
 }
 
-pub type SwapchainFramebufferBuilder<A> = FramebufferBuilder<Arc<RenderPassAbstract + Send + Sync>, A>;
-pub type FramebufferBuildResult<A> = Result<SwapchainFramebufferBuilder<A>, FramebufferCreationError>;
+pub type SwapchainFramebufferBuilder<A> =
+    vk::FramebufferBuilder<Arc<vk::RenderPassAbstract + Send + Sync>, A>;
+pub type FramebufferBuildResult<A> =
+    Result<SwapchainFramebufferBuilder<A>, vk::FramebufferCreationError>;
 
 impl SwapchainFramebuffers {
     /// Ensure the framebuffers are up to date with the render pass and frame's swapchain image.
     pub fn update<F, A>(
         &mut self,
         frame: &RawFrame,
-        render_pass: Arc<RenderPassAbstract + Send + Sync>,
+        render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
         builder: F,
-    ) -> Result<(), FramebufferCreationError>
+    ) -> Result<(), vk::FramebufferCreationError>
     where
         F: Fn(SwapchainFramebufferBuilder<()>, Arc<SwapchainImage>) -> FramebufferBuildResult<A>,
-        A: 'static + AttachmentsList + Send + Sync,
+        A: 'static + vk::AttachmentsList + Send + Sync,
     {
         let mut just_created = false;
         while frame.swapchain_image_index() >= self.framebuffers.len() {
             let builder = builder(
-                Framebuffer::start(render_pass.clone()),
+                vk::Framebuffer::start(render_pass.clone()),
                 frame.swapchain_image().clone(),
             )?;
             let fb = builder.build()?;
@@ -331,13 +323,13 @@ impl SwapchainFramebuffers {
         }
 
         // If the dimensions for the current framebuffer do not match, recreate it.
-        let old_rp = RenderPassAbstract::inner(&self.framebuffers[frame.swapchain_image_index()])
+        let old_rp = vk::RenderPassAbstract::inner(&self.framebuffers[frame.swapchain_image_index()])
             .internal_object();
         let new_rp = render_pass.inner().internal_object();
         if !just_created && (frame.swapchain_image_is_new() || old_rp != new_rp) {
             let fb = &mut self.framebuffers[frame.swapchain_image_index()];
             let builder = builder(
-                Framebuffer::start(render_pass.clone()),
+                vk::Framebuffer::start(render_pass.clone()),
                 frame.swapchain_image().clone(),
             )?;
             let new_fb = builder.build()?;
@@ -348,7 +340,7 @@ impl SwapchainFramebuffers {
 }
 
 impl ops::Deref for SwapchainFramebuffers {
-    type Target = [Arc<FramebufferAbstract + Send + Sync>];
+    type Target = [Arc<vk::FramebufferAbstract + Send + Sync>];
     fn deref(&self) -> &Self::Target {
         &self.framebuffers
     }
@@ -357,20 +349,23 @@ impl ops::Deref for SwapchainFramebuffers {
 /// The errors that might occur while constructing a `Window`.
 #[derive(Debug)]
 pub enum BuildError {
-    SurfaceCreation(vulkano_win::CreationError),
-    DeviceCreation(vulkano::device::DeviceCreationError),
-    SwapchainCreation(SwapchainCreationError),
-    SwapchainCapabilities(vulkano::swapchain::CapabilitiesError),
+    SurfaceCreation(vk::win::CreationError),
+    DeviceCreation(vk::DeviceCreationError),
+    SwapchainCreation(vk::SwapchainCreationError),
+    SwapchainCapabilities(vk::swapchain::CapabilitiesError),
     RenderDataCreation(frame::RenderDataCreationError),
     SurfaceDoesNotSupportCompositeAlphaOpaque,
 }
 
 impl SwapchainBuilder {
     pub const DEFAULT_CLIPPED: bool = true;
-    pub const DEFAULT_COLOR_SPACE: ColorSpace = ColorSpace::SrgbNonLinear;
-    pub const DEFAULT_COMPOSITE_ALPHA: CompositeAlpha = CompositeAlpha::Opaque;
+    pub const DEFAULT_COLOR_SPACE: vk::swapchain::ColorSpace =
+        vk::swapchain::ColorSpace::SrgbNonLinear;
+    pub const DEFAULT_COMPOSITE_ALPHA: vk::swapchain::CompositeAlpha =
+        vk::swapchain::CompositeAlpha::Opaque;
     pub const DEFAULT_LAYERS: u32 = 1;
-    pub const DEFAULT_SURFACE_TRANSFORM: SurfaceTransform = SurfaceTransform::Identity;
+    pub const DEFAULT_SURFACE_TRANSFORM: vk::swapchain::SurfaceTransform =
+        vk::swapchain::SurfaceTransform::Identity;
 
     /// A new empty **SwapchainBuilder** with all parameters set to `None`.
     pub fn new() -> Self {
@@ -400,7 +395,7 @@ impl SwapchainBuilder {
     /// space.
     ///
     /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/format/enum.Format.html).
-    pub fn format(mut self, format: Format) -> Self {
+    pub fn format(mut self, format: vk::Format) -> Self {
         self.format = Some(format);
         self
     }
@@ -414,7 +409,7 @@ impl SwapchainBuilder {
     /// space.
     ///
     /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/swapchain/enum.ColorSpace.html).
-    pub fn color_space(mut self, color_space: ColorSpace) -> Self {
+    pub fn color_space(mut self, color_space: vk::swapchain::ColorSpace) -> Self {
         self.color_space = Some(color_space);
         self
     }
@@ -424,7 +419,7 @@ impl SwapchainBuilder {
     /// By default, nannou uses `CompositeAlpha::Opaque`.
     ///
     /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/swapchain/enum.CompositeAlpha.html).
-    pub fn composite_alpha(mut self, composite_alpha: CompositeAlpha) -> Self {
+    pub fn composite_alpha(mut self, composite_alpha: vk::swapchain::CompositeAlpha) -> Self {
         self.composite_alpha = Some(composite_alpha);
         self
     }
@@ -437,7 +432,7 @@ impl SwapchainBuilder {
     /// `RefreshSync`, nannou will use the `Fifo` present m ode with an `image_count` of `2`.
     ///
     /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/swapchain/enum.PresentMode.html).
-    pub fn present_mode(mut self, present_mode: PresentMode) -> Self {
+    pub fn present_mode(mut self, present_mode: vk::swapchain::PresentMode) -> Self {
         self.present_mode = Some(present_mode);
         self
     }
@@ -466,7 +461,7 @@ impl SwapchainBuilder {
     /// A transformation to apply to the image before showing it on the screen.
     ///
     /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/swapchain/enum.SurfaceTransform.html).
-    pub fn surface_transform(mut self, surface_transform: SurfaceTransform) -> Self {
+    pub fn surface_transform(mut self, surface_transform: vk::swapchain::SurfaceTransform) -> Self {
         self.surface_transform = Some(surface_transform);
         self
     }
@@ -483,15 +478,15 @@ impl SwapchainBuilder {
     /// swapchain's size.
     pub(crate) fn build<S>(
         self,
-        device: Arc<Device>,
+        device: Arc<vk::Device>,
         surface: Arc<Surface>,
         sharing_mode: S,
         loop_mode: &LoopMode,
         fallback_dimensions: Option<[u32; 2]>,
         old_swapchain: Option<&Arc<Swapchain>>,
-    ) -> Result<(Arc<Swapchain>, Vec<Arc<SwapchainImage>>), SwapchainCreationError>
+    ) -> Result<(Arc<Swapchain>, Vec<Arc<SwapchainImage>>), vk::SwapchainCreationError>
     where
-        S: Into<vulkano::sync::SharingMode>,
+        S: Into<vk::sync::SharingMode>,
     {
         let capabilities = surface.capabilities(device.physical_device())
             .expect("failed to retrieve surface capabilities");
@@ -511,7 +506,7 @@ impl SwapchainBuilder {
                 capabilities
                     .supported_formats
                     .iter()
-                    .filter(|&&(fmt, cs)| gpu::format_is_srgb(fmt) && cs == color_space)
+                    .filter(|&&(fmt, cs)| vk::format_is_srgb(fmt) && cs == color_space)
                     .next()
                     .or_else(|| {
                         // Otherwise just try and math the color space.
@@ -522,7 +517,7 @@ impl SwapchainBuilder {
                             .next()
                     })
                     .map(|&(fmt, _cs)| fmt)
-                    .ok_or(SwapchainCreationError::UnsupportedFormat)?
+                    .ok_or(vk::SwapchainCreationError::UnsupportedFormat)?
             }
         };
 
@@ -541,7 +536,7 @@ impl SwapchainBuilder {
             Some(alpha) => alpha,
             None => match capabilities.supported_composite_alpha.opaque {
                 true => Self::DEFAULT_COMPOSITE_ALPHA,
-                false => return Err(SwapchainCreationError::UnsupportedCompositeAlpha),
+                false => return Err(vk::SwapchainCreationError::UnsupportedCompositeAlpha),
             }
         };
 
@@ -573,10 +568,10 @@ impl SwapchainBuilder {
 pub fn preferred_present_mode_and_image_count(
     loop_mode: &LoopMode,
     min_image_count: u32,
-    present_mode: Option<PresentMode>,
+    present_mode: Option<vk::swapchain::PresentMode>,
     image_count: Option<u32>,
-    supported_present_modes: &SupportedPresentModes,
-) -> (PresentMode, u32) {
+    supported_present_modes: &vk::swapchain::SupportedPresentModes,
+) -> (vk::swapchain::PresentMode, u32) {
     match (present_mode, image_count) {
         (Some(pm), Some(ic)) => (pm, ic),
         (None, _) => match *loop_mode {
@@ -584,26 +579,26 @@ pub fn preferred_present_mode_and_image_count(
                 let image_count = image_count.unwrap_or_else(|| {
                     cmp::max(min_image_count, 2)
                 });
-                (PresentMode::Fifo, image_count)
+                (vk::swapchain::PresentMode::Fifo, image_count)
             }
             LoopMode::Wait { .. } | LoopMode::Rate { .. } => {
                 if supported_present_modes.mailbox {
                     let image_count = image_count
                         .unwrap_or_else(|| cmp::max(min_image_count, 3));
-                    (PresentMode::Mailbox, image_count)
+                    (vk::swapchain::PresentMode::Mailbox, image_count)
                 } else {
                     let image_count = image_count
                         .unwrap_or_else(|| cmp::max(min_image_count, 2));
-                    (PresentMode::Fifo, image_count)
+                    (vk::swapchain::PresentMode::Fifo, image_count)
                 }
             }
         }
         (Some(present_mode), None) => {
             let image_count = match present_mode {
-                PresentMode::Immediate => min_image_count,
-                PresentMode::Mailbox => cmp::max(min_image_count, 3),
-                PresentMode::Fifo => cmp::max(min_image_count, 2),
-                PresentMode::Relaxed => cmp::max(min_image_count, 2),
+                vk::swapchain::PresentMode::Immediate => min_image_count,
+                vk::swapchain::PresentMode::Mailbox => cmp::max(min_image_count, 3),
+                vk::swapchain::PresentMode::Fifo => cmp::max(min_image_count, 2),
+                vk::swapchain::PresentMode::Relaxed => cmp::max(min_image_count, 2),
             };
             (present_mode, image_count)
         }
@@ -615,9 +610,9 @@ impl<'app> Builder<'app> {
     pub fn new(app: &'app App) -> Self {
         Builder {
             app,
-            vulkan_physical_device: None,
-            vulkan_device_extensions: None,
-            vulkan_device_queue: None,
+            vk_physical_device: None,
+            vk_device_extensions: None,
+            vk_device_queue: None,
             window: winit::WindowBuilder::new(),
             title_was_set: false,
             swapchain_builder: Default::default(),
@@ -633,8 +628,8 @@ impl<'app> Builder<'app> {
     }
 
     /// The physical device to associate with the window surface's swapchain.
-    pub fn vulkan_physical_device(mut self, device: PhysicalDevice<'app>) -> Self {
-        self.vulkan_physical_device = Some(device);
+    pub fn vk_physical_device(mut self, device: vk::PhysicalDevice<'app>) -> Self {
+        self.vk_physical_device = Some(device);
         self
     }
 
@@ -643,8 +638,8 @@ impl<'app> Builder<'app> {
     /// The device associated with the window's swapchain *must* always have the `khr_swapchain`
     /// feature enabled, so it will be implicitly enabled whether or not it is specified in this
     /// given set of extensions.
-    pub fn vulkan_device_extensions(mut self, extensions: DeviceExtensions) -> Self {
-        self.vulkan_device_extensions = Some(extensions);
+    pub fn vk_device_extensions(mut self, extensions: vk::DeviceExtensions) -> Self {
+        self.vk_device_extensions = Some(extensions);
         self
     }
 
@@ -656,11 +651,11 @@ impl<'app> Builder<'app> {
     /// Once the window is built, this queue can be accessed via the `window.swapchain_queue()`
     /// method.
     ///
-    /// Note: If this builder method is called, previous calls to `vulkan_physical_device` and
-    /// `vulkan_device_extensions` will be ignored as specifying the queue for the sharing mode
+    /// Note: If this builder method is called, previous calls to `vk_physical_device` and
+    /// `vk_device_extensions` will be ignored as specifying the queue for the sharing mode
     /// implies which logical device is desired.
-    pub fn vulkan_device_queue(mut self, queue: Arc<device::Queue>) -> Self {
-        self.vulkan_device_queue = Some(queue);
+    pub fn vk_device_queue(mut self, queue: Arc<vk::Queue>) -> Self {
+        self.vk_device_queue = Some(queue);
         self
     }
 
@@ -939,9 +934,9 @@ impl<'app> Builder<'app> {
     pub fn build(self) -> Result<Id, BuildError> {
         let Builder {
             app,
-            vulkan_physical_device,
-            vulkan_device_extensions,
-            vulkan_device_queue,
+            vk_physical_device,
+            vk_device_extensions,
+            vk_device_queue,
             mut window,
             title_was_set,
             swapchain_builder,
@@ -990,16 +985,16 @@ impl<'app> Builder<'app> {
         }
 
         // Build the vulkan surface.
-        let surface = window.build_vk_surface(&app.events_loop, app.vulkan_instance.clone())?;
+        let surface = window.build_vk_surface(&app.events_loop, app.vk_instance.clone())?;
 
         // The logical device queue to use as the swapchain sharing mode.
         // This queue will also be used for constructing the `Frame`'s intermediary image.
-        let queue = match vulkan_device_queue {
+        let queue = match vk_device_queue {
             Some(queue) => queue,
             None => {
                 // Retrieve the physical, vulkan-supported device to use.
-                let physical_device = vulkan_physical_device
-                    .or_else(|| app.default_vulkan_physical_device())
+                let physical_device = vk_physical_device
+                    .or_else(|| app.default_vk_physical_device())
                     .unwrap_or_else(|| unimplemented!());
 
                 // Select the queue family to use. Default to the first graphics-supporting queue.
@@ -1011,15 +1006,15 @@ impl<'app> Builder<'app> {
                 let queue_priority = 0.5;
 
                 // The required device extensions.
-                let mut device_ext = vulkan_device_extensions
-                    .unwrap_or_else(DeviceExtensions::none);
+                let mut device_ext = vk_device_extensions
+                    .unwrap_or_else(vk::DeviceExtensions::none);
                 device_ext.khr_swapchain = true;
 
                 // Enable all supported device features.
                 let features = physical_device.supported_features();
 
                 // Construct the logical device and queues.
-                let (_device, mut queues) = Device::new(
+                let (_device, mut queues) = vk::Device::new(
                     physical_device,
                     features,
                     &device_ext,
@@ -1059,7 +1054,7 @@ impl<'app> Builder<'app> {
             Some(View::WithModel(_)) | Some(View::Sketch(_)) | None => {
                 let target_msaa_samples = msaa_samples.unwrap_or(Frame::DEFAULT_MSAA_SAMPLES);
                 let physical_device = queue.device().physical_device();
-                let msaa_samples = gpu::msaa_samples_limited(&physical_device, target_msaa_samples);
+                let msaa_samples = vk::msaa_samples_limited(&physical_device, target_msaa_samples);
                 let render_data = frame::RenderData::new(
                     queue.device().clone(),
                     swapchain.dimensions(),
@@ -1109,9 +1104,9 @@ impl<'app> Builder<'app> {
     {
         let Builder {
             app,
-            vulkan_physical_device,
-            vulkan_device_extensions,
-            vulkan_device_queue,
+            vk_physical_device,
+            vk_device_extensions,
+            vk_device_queue,
             window,
             title_was_set,
             swapchain_builder,
@@ -1121,9 +1116,9 @@ impl<'app> Builder<'app> {
         let window = map(window);
         Builder {
             app,
-            vulkan_physical_device,
-            vulkan_device_extensions,
-            vulkan_device_queue,
+            vk_physical_device,
+            vk_device_extensions,
+            vk_device_queue,
             window,
             title_was_set,
             swapchain_builder,
@@ -1418,12 +1413,12 @@ impl Window {
     /// The vulkan logical device on which the window's swapchain is running.
     ///
     /// This is shorthand for `DeviceOwned::device(window.swapchain())`.
-    pub fn swapchain_device(&self) -> &Arc<device::Device> {
-        device::DeviceOwned::device(self.swapchain())
+    pub fn swapchain_device(&self) -> &Arc<vk::Device> {
+        vk::DeviceOwned::device(self.swapchain())
     }
 
     /// The vulkan graphics queue on which the window swapchain work is run.
-    pub fn swapchain_queue(&self) -> &Arc<device::Queue> {
+    pub fn swapchain_queue(&self) -> &Arc<vk::Queue> {
         &self.queue
     }
 
@@ -1544,26 +1539,26 @@ impl fmt::Display for BuildError {
     }
 }
 
-impl From<vulkano_win::CreationError> for BuildError {
-    fn from(e: vulkano_win::CreationError) -> Self {
+impl From<vk::win::CreationError> for BuildError {
+    fn from(e: vk::win::CreationError) -> Self {
         BuildError::SurfaceCreation(e)
     }
 }
 
-impl From<vulkano::device::DeviceCreationError> for BuildError {
-    fn from(e: vulkano::device::DeviceCreationError) -> Self {
+impl From<vk::DeviceCreationError> for BuildError {
+    fn from(e: vk::DeviceCreationError) -> Self {
         BuildError::DeviceCreation(e)
     }
 }
 
-impl From<vulkano::swapchain::SwapchainCreationError> for BuildError {
-    fn from(e: vulkano::swapchain::SwapchainCreationError) -> Self {
+impl From<vk::swapchain::SwapchainCreationError> for BuildError {
+    fn from(e: vk::swapchain::SwapchainCreationError) -> Self {
         BuildError::SwapchainCreation(e)
     }
 }
 
-impl From<vulkano::swapchain::CapabilitiesError> for BuildError {
-    fn from(e: vulkano::swapchain::CapabilitiesError) -> Self {
+impl From<vk::swapchain::CapabilitiesError> for BuildError {
+    fn from(e: vk::swapchain::CapabilitiesError) -> Self {
         BuildError::SwapchainCapabilities(e)
     }
 }

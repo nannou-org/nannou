@@ -1,31 +1,19 @@
 extern crate nannou;
 
 use nannou::prelude::*;
-use nannou::vulkano;
 use std::cell::RefCell;
 use std::sync::Arc;
-
-use nannou::gpu::SamplerBuilder;
-use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
-use nannou::vulkano::command_buffer::DynamicState;
-use nannou::vulkano::descriptor::descriptor_set::{DescriptorSet, PersistentDescriptorSet};
-use nannou::vulkano::device::DeviceOwned;
-use nannou::vulkano::format::Format;
-use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
-use nannou::vulkano::image::{Dimensions, ImmutableImage};
-use nannou::vulkano::pipeline::viewport::Viewport;
-use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 
 fn main() {
     nannou::app(model).run();
 }
 
 struct Model {
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
-    vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
+    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+    pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
     view_fbo: RefCell<ViewFbo>,
-    desciptor_set: Arc<DescriptorSet + Send + Sync>,
+    desciptor_set: Arc<vk::DescriptorSet + Send + Sync>,
 }
 
 #[derive(Debug, Clone)]
@@ -33,7 +21,7 @@ struct Vertex {
     position: [f32; 2],
 }
 
-nannou::vulkano::impl_vertex!(Vertex, position);
+vk::impl_vertex!(Vertex, position);
 
 fn model(app: &App) -> Model {
     app.new_window()
@@ -44,33 +32,16 @@ fn model(app: &App) -> Model {
 
     let device = app.main_window().swapchain().device().clone();
 
-    let vertex_buffer = CpuAccessibleBuffer::from_iter(
-        device.clone(),
-        BufferUsage::all(),
-        [
-            Vertex {
-                position: [-1.0, -1.0],
-            },
-            Vertex {
-                position: [-1.0, 1.0],
-            },
-            Vertex {
-                position: [1.0, -1.0],
-            },
-            Vertex {
-                position: [1.0, 1.0],
-            },
-        ]
-        .iter()
-        .cloned(),
-    )
-    .unwrap();
+    let positions = [[-1.0, -1.0], [-1.0, 1.0], [1.0, -1.0], [1.0, 1.0]];
+    let data = positions.iter().map(|&position| Vertex { position });
+    let usage = vk::BufferUsage::all();
+    let vertex_buffer = vk::CpuAccessibleBuffer::from_iter(device.clone(), usage, data).unwrap();
 
     let vertex_shader = vs::Shader::load(device.clone()).unwrap();
     let fragment_shader = fs::Shader::load(device.clone()).unwrap();
 
     let render_pass = Arc::new(
-        nannou::vulkano::single_pass_renderpass!(
+        vk::single_pass_renderpass!(
             device.clone(),
             attachments: {
                 color: {
@@ -117,36 +88,36 @@ fn model(app: &App) -> Model {
             .iter()
             .flat_map(|(_, img)| img.iter().cloned())
             .collect();
-        ImmutableImage::from_iter(
+        vk::ImmutableImage::from_iter(
             image_data.into_iter(),
-            Dimensions::Dim2dArray {
+            vk::image::Dimensions::Dim2dArray {
                 width,
                 height,
                 array_layers,
             },
-            Format::R8G8B8A8Srgb,
+            vk::Format::R8G8B8A8Srgb,
             app.main_window().swapchain_queue().clone(),
         )
         .unwrap()
     };
 
-    let sampler = SamplerBuilder::new().build(device.clone()).unwrap();
+    let sampler = vk::SamplerBuilder::new().build(device.clone()).unwrap();
 
     let pipeline = Arc::new(
-        GraphicsPipeline::start()
+        vk::GraphicsPipeline::start()
             .vertex_input_single_buffer::<Vertex>()
             .vertex_shader(vertex_shader.main_entry_point(), ())
             .triangle_strip()
             .viewports_dynamic_scissors_irrelevant(1)
             .fragment_shader(fragment_shader.main_entry_point(), ())
             .blend_alpha_blending()
-            .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
+            .render_pass(vk::Subpass::from(render_pass.clone(), 0).unwrap())
             .build(device.clone())
             .unwrap(),
     );
 
     let desciptor_set = Arc::new(
-        PersistentDescriptorSet::start(pipeline.clone(), 0)
+        vk::PersistentDescriptorSet::start(pipeline.clone(), 0)
             .add_sampled_image(texture.clone(), sampler.clone())
             .unwrap()
             .build()
@@ -166,12 +137,12 @@ fn model(app: &App) -> Model {
 
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     let [w, h] = frame.swapchain_image().dimensions();
-    let viewport = Viewport {
+    let viewport = vk::Viewport {
         origin: [0.0, 0.0],
         dimensions: [w as _, h as _],
         depth_range: 0.0..1.0,
     };
-    let dynamic_state = DynamicState {
+    let dynamic_state = vk::DynamicState {
         line_width: None,
         viewports: Some(vec![viewport]),
         scissors: None,
@@ -220,7 +191,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
 }
 
 mod vs {
-    nannou::vulkano_shaders::shader! {
+    nannou::vk::shaders::shader! {
     ty: "vertex",
         src: "
 #version 450
@@ -236,7 +207,7 @@ void main() {
 }
 
 mod fs {
-    nannou::vulkano_shaders::shader! {
+    nannou::vk::shaders::shader! {
     ty: "fragment",
         src: "
 #version 450

@@ -1,29 +1,18 @@
 extern crate nannou;
 
 use nannou::prelude::*;
-use nannou::vulkano;
 use std::sync::Arc;
-
-use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
-use nannou::vulkano::command_buffer::AutoCommandBufferBuilder;
-use nannou::vulkano::descriptor::descriptor_set::{DescriptorSet, PersistentDescriptorSet};
-use nannou::vulkano::device::Queue;
-use nannou::vulkano::device::{Device, DeviceExtensions};
-use nannou::vulkano::instance::PhysicalDevice;
-use nannou::vulkano::pipeline::{ComputePipeline, ComputePipelineAbstract};
-use nannou::vulkano::sync;
-use nannou::vulkano::sync::GpuFuture;
 
 fn main() {
     nannou::app(model).update(update).run();
 }
 
 struct Model {
-    device: Arc<Device>,
-    queue: Arc<Queue>,
-    pipeline: Arc<ComputePipelineAbstract + Send + Sync>,
-    desciptor_set: Arc<DescriptorSet + Send + Sync>,
-    data_buffer: Arc<CpuAccessibleBuffer<[f32]>>,
+    device: Arc<vk::Device>,
+    queue: Arc<vk::Queue>,
+    pipeline: Arc<vk::ComputePipelineAbstract + Send + Sync>,
+    desciptor_set: Arc<vk::DescriptorSet + Send + Sync>,
+    data_buffer: Arc<vk::CpuAccessibleBuffer<[f32]>>,
 }
 
 fn model(app: &App) -> Model {
@@ -34,10 +23,10 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    let instance = app.vulkan_instance().clone();
+    let instance = app.vk_instance().clone();
 
     // Choose which physical device to use.
-    let physical = PhysicalDevice::enumerate(&instance).next().unwrap();
+    let physical = vk::PhysicalDevice::enumerate(&instance).next().unwrap();
 
     // Choose the queue of the physical device which is going to run our compute operation.
     //
@@ -49,10 +38,10 @@ fn model(app: &App) -> Model {
         .unwrap();
 
     // Now initializing the device.
-    let (device, mut queues) = Device::new(
+    let (device, mut queues) = vk::Device::new(
         physical,
         physical.supported_features(),
-        &DeviceExtensions::none(),
+        &vk::DeviceExtensions::none(),
         [(queue_family, 0.5)].iter().cloned(),
     )
     .unwrap();
@@ -68,7 +57,7 @@ fn model(app: &App) -> Model {
     // pipelines are much simpler to create.
     let pipeline = Arc::new({
         let compute_shader = cs::Shader::load(device.clone()).unwrap();
-        ComputePipeline::new(device.clone(), &compute_shader.main_entry_point(), &()).unwrap()
+        vk::ComputePipeline::new(device.clone(), &compute_shader.main_entry_point(), &()).unwrap()
     });
 
     // We start by creating the buffer that will store the data.
@@ -76,7 +65,8 @@ fn model(app: &App) -> Model {
         // Iterator that produces the data.
         let data_iter = (0..1024).map(|n| n as f32);
         // Builds the buffer and fills it with this iterator.
-        CpuAccessibleBuffer::from_iter(device.clone(), BufferUsage::all(), data_iter).unwrap()
+        let usage = vk::BufferUsage::all();
+        vk::CpuAccessibleBuffer::from_iter(device.clone(), usage, data_iter).unwrap()
     };
 
     // In order to let the shader access the buffer, we need to build a *descriptor set* that
@@ -88,7 +78,7 @@ fn model(app: &App) -> Model {
     // If you want to run the pipeline on multiple different buffers, you need to create multiple
     // descriptor sets that each contain the buffer you want to run the shader on.
     let desciptor_set = Arc::new(
-        PersistentDescriptorSet::start(pipeline.clone(), 0)
+        vk::PersistentDescriptorSet::start(pipeline.clone(), 0)
             .add_buffer(data_buffer.clone())
             .unwrap()
             .build()
@@ -111,31 +101,30 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     let push_constants = cs::ty::PushConstantData { time: app.time };
 
     // In order to execute our operation, we have to build a command buffer.
-    let command_buffer = AutoCommandBufferBuilder::primary_one_time_submit(
-        model.device.clone(),
-        model.queue.family(),
-    )
-    .unwrap()
-    // The command buffer only does one thing: execute the compute pipeline.
-    // This is called a *dispatch* operation.
-    //
-    // Note that we clone the pipeline and the set. Since they are both wrapped around an
-    // `Arc`, this only clones the `Arc` and not the whole pipeline or set (which aren't
-    // cloneable anyway). In this example we would avoid cloning them since this is the last
-    // time we use them, but in a real code you would probably need to clone them.
-    .dispatch(
-        [1024, 1, 1],
-        model.pipeline.clone(),
-        model.desciptor_set.clone(),
-        push_constants,
-    )
-    .unwrap()
-    // Finish building the command buffer by calling `build`.
-    .build()
-    .unwrap();
+    let device = model.device.clone();
+    let queue_fam = model.queue.family();
+    let command_buffer = vk::AutoCommandBufferBuilder::primary_one_time_submit(device, queue_fam)
+        .unwrap()
+        // The command buffer only does one thing: execute the compute pipeline.
+        // This is called a *dispatch* operation.
+        //
+        // Note that we clone the pipeline and the set. Since they are both wrapped around an
+        // `Arc`, this only clones the `Arc` and not the whole pipeline or set (which aren't
+        // cloneable anyway). In this example we would avoid cloning them since this is the last
+        // time we use them, but in a real code you would probably need to clone them.
+        .dispatch(
+            [1024, 1, 1],
+            model.pipeline.clone(),
+            model.desciptor_set.clone(),
+            push_constants,
+        )
+        .unwrap()
+        // Finish building the command buffer by calling `build`.
+        .build()
+        .unwrap();
 
     // Let's execute this command buffer now.
-    let future = sync::now(model.device.clone())
+    let future = vk::sync::now(model.device.clone())
         .then_execute(model.queue.clone(), command_buffer)
         .unwrap()
         // This line instructs the GPU to signal a *fence* once the command buffer has finished
@@ -190,8 +179,8 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
 }
 
 mod cs {
-    vulkano_shaders::shader! {
-    ty: "compute",
+    nannou::vk::shaders::shader! {
+        ty: "compute",
         src: "
 #version 450
 
