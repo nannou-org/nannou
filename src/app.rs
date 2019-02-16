@@ -364,7 +364,7 @@ where
             vulkan_instance: None,
             vulkan_debug_callback: None,
             create_default_window: false,
-            #[cfg(any(not(target_os = "macos"), test))]
+            #[cfg(all(target_os = "macos", not(test)))]
             moltenvk_settings: None,
         }
     }
@@ -388,7 +388,7 @@ where
             create_default_window,
             vulkan_instance,
             vulkan_debug_callback,
-            #[cfg(any(not(target_os = "macos"), test))]
+            #[cfg(all(target_os = "macos", not(test)))]
             moltenvk_settings,
             ..
         } = self;
@@ -401,7 +401,7 @@ where
             create_default_window,
             vulkan_instance,
             vulkan_debug_callback,
-            #[cfg(any(not(target_os = "macos"), test))]
+            #[cfg(all(target_os = "macos", not(test)))]
             moltenvk_settings,
         }
     }
@@ -657,7 +657,7 @@ impl Builder<(), Event> {
             create_default_window: true,
             vulkan_instance: None,
             vulkan_debug_callback: None,
-            #[cfg(any(not(target_os = "macos"), test))]
+            #[cfg(all(target_os = "macos", not(test)))]
             moltenvk_settings: None,
         };
         builder.run()
