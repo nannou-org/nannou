@@ -41,7 +41,8 @@ use vulkano::swapchain::SwapchainCreationError;
 use vulkano::sync::GpuFuture;
 use window::{self, Window};
 use winit;
-#[cfg(target_os = "macos")]
+
+#[cfg(all(target_os = "macos", not(test)))]
 use moltenvk_deps as mvkd;
 
 // TODO: This value is just copied from an example, need to:
@@ -88,8 +89,6 @@ pub struct Builder<M = (), E = Event> {
     create_default_window: bool,
     #[cfg(all(target_os = "macos", not(test)))]
     moltenvk_settings: Option<mvkd::Install>,
-    #[cfg(any(not(target_os = "macos"), test))]
-    moltenvk_settings: Option<PhantomData>,
 }
 
 /// The default `model` function used when none is specified by the user.
@@ -542,39 +541,36 @@ where
         // and layers are necessary.
         let debug_callback_specified = self.vulkan_debug_callback.is_some();
 
-        let moltenvk = gpu::check_moltenvk(self.moltenvk_settings);
-        
+        #[cfg(all(target_os = "macos", not(test)))]
+        let moltenvk_settings = self.moltenvk_settings;
+
         // The vulkan instance necessary for graphics.
         let vulkan_instance = self.vulkan_instance.take().unwrap_or_else(|| {
             if debug_callback_specified {
                 let vulkan_builder = gpu::VulkanInstanceBuilder::new();
-                let vulkan_builder = match moltenvk {
-                    Some(loader) => {
-                        let required_extensions = gpu::required_extensions_with_loader(&loader);
-                        vulkan_builder.extensions(InstanceExtensions {
-                            ext_debug_report: true,
-                            ..required_extensions
-                        })
-                        .add_loader(loader)
-                    },
-                    None => vulkan_builder.extensions(InstanceExtensions {
-                            ext_debug_report: true,
-                            ..gpu::required_windowing_extensions()
-                    }),
-                };
-                vulkan_builder.layers(vec!["VK_LAYER_LUNARG_standard_validation"])
+                
+                #[cfg(all(target_os = "macos", not(test)))]
+                let vulkan_builder = gpu::check_moltenvk(vulkan_builder, moltenvk_settings);
+                
+                #[cfg(any(not(target_os = "macos"), test))]
+                let vulkan_builder = vulkan_builder.extensions(gpu::required_windowing_extensions());
+
+                vulkan_builder.add_extensions(InstanceExtensions{ 
+                    ext_debug_report: true,
+                    ..InstanceExtensions::none()
+                })
+                .layers(vec!["VK_LAYER_LUNARG_standard_validation"])
                     .build()
                     .expect("failed to create vulkan instance")
             } else {
                 let vulkan_builder = gpu::VulkanInstanceBuilder::new();
-                let vulkan_builder = match moltenvk {
-                    Some(loader) => {
-                        let required_extensions = gpu::required_extensions_with_loader(&loader);
-                        vulkan_builder.add_extensions(required_extensions)
-                            .add_loader(loader)
-                    },
-                    None => vulkan_builder,
-                };
+                
+                #[cfg(all(target_os = "macos", not(test)))]
+                let vulkan_builder = gpu::check_moltenvk(vulkan_builder, moltenvk_settings);
+                
+                #[cfg(any(not(target_os = "macos"), test))]
+                let vulkan_builder = vulkan_builder.extensions(gpu::required_windowing_extensions());
+                
                 vulkan_builder.build()
                     .expect("failed to create vulkan instance")
             }

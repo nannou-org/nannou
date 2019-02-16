@@ -7,10 +7,14 @@ use vulkano::format::Format;
 use vulkano::instance::{ApplicationInfo, Instance, InstanceCreationError, InstanceExtensions,
                         PhysicalDevice};
 use vulkano::instance::debug::{DebugCallback, DebugCallbackCreationError, Message, MessageTypes};
-use vulkano::instance::loader::{FunctionPointers, Loader, DynamicLibraryLoader};
+use vulkano::instance::loader::{FunctionPointers, Loader};
 use vulkano_win;
-#[cfg(target_os = "macos")]
+
+#[cfg(all(target_os = "macos", not(test)))]
 use moltenvk_deps;
+
+#[cfg(all(target_os = "macos", not(test)))]
+use vulkano::instance::loader::DynamicLibraryLoader;
 
 /// The default application name used with the default `ApplicationInfo`.
 pub const DEFAULT_APPLICATION_NAME: &'static str = "nannou-app";
@@ -260,7 +264,7 @@ pub fn msaa_samples_limited(physical_device: &PhysicalDevice, target_msaa_sample
 }
 
 #[cfg(all(target_os = "macos", not(test)))]
-pub fn check_moltenvk(settings: Option<moltenvk_deps::Install>) -> Option<FunctionPointers<Box<dyn Loader + Send + Sync>>> {
+pub fn check_moltenvk(vulkan_builder: VulkanInstanceBuilder, settings: Option<moltenvk_deps::Install>) -> VulkanInstanceBuilder {
     let settings = match settings {
         Some(s) => s,
         None => Default::default(),
@@ -276,16 +280,16 @@ pub fn check_moltenvk(settings: Option<moltenvk_deps::Install>) -> Option<Functi
         unsafe { DynamicLibraryLoader::new(p) }
     });
     match loader {
-        Some(Ok(l)) => Some(FunctionPointers::new(Box::new(l))),
-        _ => None,
+        Some(Ok(l)) => {
+            let loader: FunctionPointers<Box<(dyn Loader + Send + Sync + 'static)>> = FunctionPointers::new(Box::new(l));
+            let required_extensions = required_extensions_with_loader(&loader);
+            vulkan_builder.extensions(required_extensions)
+            .add_loader(loader)
+        },
+        _ => vulkan_builder,
     }
 }
 
-
-#[cfg(any(not(target_os = "macos"), test))]
-pub fn check_moltenvk(_: Option<PhantomData>) -> Option<FunctionPointers<Box<dyn Loader + Send + Sync>>> {
-    None
-}
 
 pub fn required_extensions_with_loader<L>(ptrs: &FunctionPointers<L>)
     -> InstanceExtensions 
