@@ -20,7 +20,7 @@ struct Model {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
-    framebuffer: RefCell<ViewFramebuffer>,
+    view_fbo: RefCell<ViewFbo>,
 }
 
 #[derive(Debug, Clone)]
@@ -127,13 +127,13 @@ fn model(app: &App) -> Model {
 
     // The render pass we created above only describes the layout of our framebuffer. Before we
     // can draw we also need to create the actual framebuffer.
-    let framebuffer = RefCell::new(ViewFramebuffer::default());
+    let view_fbo = RefCell::new(ViewFbo::default());
 
     Model {
         render_pass,
         pipeline,
         vertex_buffer,
-        framebuffer,
+        view_fbo,
     }
 }
 
@@ -153,8 +153,8 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
         scissors: None,
     };
 
-    // Update the framebuffer.
-    model.framebuffer.borrow_mut()
+    // Update the view_fbo.
+    model.view_fbo.borrow_mut()
         .update(&frame, model.render_pass.clone(), |builder, image| builder.add(image))
         .unwrap();
 
@@ -164,11 +164,7 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     // Submit the draw commands.
     frame
         .add_commands()
-        .begin_render_pass(
-            model.framebuffer.borrow().as_ref().unwrap().clone(),
-            false,
-            clear_values,
-        )
+        .begin_render_pass(model.view_fbo.borrow().expect_inner(), false, clear_values)
         .unwrap()
         .draw(
             model.pipeline.clone(),

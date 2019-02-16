@@ -1,6 +1,7 @@
 //! Items related to the **Frame** type, describing a single frame of graphics for a single window.
 
 use draw::properties::color::IntoRgba;
+use gpu::{Fbo, FramebufferBuilderResult};
 use std::error::Error as StdError;
 use std::{fmt, ops};
 use std::sync::Arc;
@@ -8,10 +9,9 @@ use vulkano;
 use vulkano::command_buffer::BeginRenderPassError;
 use vulkano::device::{Device, DeviceOwned};
 use vulkano::format::{ClearValue, Format};
-use vulkano::framebuffer::{AttachmentsList, Framebuffer, FramebufferAbstract, FramebufferBuilder,
-                           FramebufferCreationError, RenderPassAbstract, RenderPassCreationError};
+use vulkano::framebuffer::{AttachmentsList, FramebufferBuilder, FramebufferCreationError,
+                           RenderPassAbstract, RenderPassCreationError};
 use vulkano::image::{AttachmentImage, ImageCreationError, ImageUsage};
-use vulkano::VulkanObject;
 use window::SwapchainFramebuffers;
 
 pub mod raw;
@@ -42,9 +42,12 @@ pub struct Frame {
 ///   been recreated and the framebuffer should be recreated accordingly.
 /// - The given render pass is different to that which was used to create the existing framebuffer.
 #[derive(Default)]
-pub struct ViewFramebuffer {
-    framebuffer: Option<Arc<FramebufferAbstract + Send + Sync>>,
+pub struct ViewFramebufferObject {
+    fbo: Fbo,
 }
+
+/// Shorthand for the **ViewFramebufferObject** type.
+pub type ViewFbo = ViewFramebufferObject;
 
 /// Data necessary for rendering the **Frame**'s `image` to the the `swapchain_image` of the inner
 /// raw frame.
@@ -58,9 +61,6 @@ pub(crate) struct RenderData {
     intermediary_image_is_new: bool,
     swapchain_framebuffers: SwapchainFramebuffers,
 }
-
-pub type ViewFramebufferBuilder<A> = FramebufferBuilder<Arc<RenderPassAbstract + Send + Sync>, A>;
-pub type FramebufferBuildResult<A> = Result<ViewFramebufferBuilder<A>, FramebufferCreationError>;
 
 /// Errors that might occur during creation of the `RenderData` for a frame.
 #[derive(Debug)]
@@ -190,31 +190,23 @@ impl Frame {
     }
 }
 
-impl ViewFramebuffer {
+impl ViewFramebufferObject {
     /// Ensure the framebuffer is up to date with the render pass and `frame`'s image.
-    pub fn update<F, A>(
+    pub fn update<R, F, A>(
         &mut self,
         frame: &Frame,
-        render_pass: Arc<RenderPassAbstract + Send + Sync>,
+        render_pass: R,
         builder: F,
     ) -> Result<(), FramebufferCreationError>
     where
-        F: Fn(ViewFramebufferBuilder<()>, Arc<AttachmentImage>) -> FramebufferBuildResult<A>,
+        R: 'static + RenderPassAbstract + Send + Sync,
+        F: FnOnce(FramebufferBuilder<R, ()>, Arc<AttachmentImage>) -> FramebufferBuilderResult<R, A>,
         A: 'static + AttachmentsList + Send + Sync,
     {
-        let needs_creation = frame.image_is_new()
-            || self.framebuffer.is_none()
-            || RenderPassAbstract::inner(self.framebuffer.as_ref().unwrap()).internal_object()
-                != render_pass.inner().internal_object();
-        if needs_creation {
-            let builder = builder(
-                Framebuffer::start(render_pass.clone()),
-                frame.data.intermediary_image.clone(),
-            )?;
-            let fb = builder.build()?;
-            self.framebuffer = Some(Arc::new(fb));
-        }
-        Ok(())
+        let image = frame.image().clone();
+        let [w, h] = image.dimensions();
+        let dimensions = [w, h, 1];
+        self.fbo.update(render_pass, dimensions, |b| builder(b, image))
     }
 }
 
@@ -251,10 +243,10 @@ impl ops::Deref for Frame {
     }
 }
 
-impl ops::Deref for ViewFramebuffer {
-    type Target = Option<Arc<FramebufferAbstract + Send + Sync>>;
+impl ops::Deref for ViewFramebufferObject {
+    type Target = Fbo;
     fn deref(&self) -> &Self::Target {
-        &self.framebuffer
+        &self.fbo
     }
 }
 
