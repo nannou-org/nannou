@@ -21,7 +21,7 @@ use crate::Model;
 pub struct Warp {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
-    framebuffer: RefCell<ViewFramebuffer>,
+    view_fbo: RefCell<ViewFbo>,
     uniform_buffer: CpuBufferPool<vs::ty::Data>,
     sampler: Arc<Sampler>,
 }
@@ -91,12 +91,12 @@ pub(crate) fn warp(app: &App) -> Warp {
             .unwrap(),
     );
 
-    let framebuffer = RefCell::new(ViewFramebuffer::default());
+    let view_fbo = RefCell::new(ViewFbo::default());
 
     Warp {
         render_pass,
         pipeline,
-        framebuffer,
+        view_fbo,
         sampler,
         uniform_buffer,
     }
@@ -190,10 +190,10 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>, 
         scissors: None,
     };
 
-    // Update framebuffer in case of window resize.
-    warp.framebuffer.borrow_mut()
+    // Update view_fbo in case of window resize.
+    warp.view_fbo.borrow_mut()
         .update(&frame, warp.render_pass.clone(), |builder, image| builder.add(image))
-        .expect("framebuffer failed to create");
+        .expect("view_fbo failed to create");
 
     let clear_values = vec![[0.0, 1.0, 0.0, 1.0].into()];
 
@@ -212,7 +212,7 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>, 
     frame
         .add_commands()
         .begin_render_pass(
-            warp.framebuffer.borrow().as_ref().unwrap().clone(),
+            warp.view_fbo.borrow().expect_inner(),
             false,
             clear_values,
         )

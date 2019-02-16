@@ -7,10 +7,11 @@ pub use color::{Hsl, Hsla, Hsv, Hsva, Rgb, Rgba};
 pub use event::WindowEvent::*;
 pub use event::{AxisMotion, Event, Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase,
                 TouchpadPressure, Update, WindowEvent};
-pub use frame::{Frame, RawFrame, ViewFramebuffer};
+pub use frame::{Frame, RawFrame, ViewFbo, ViewFramebufferObject};
 pub use geom::{
     self, pt2, pt3, vec2, vec3, vec4, Cuboid, Point2, Point3, Rect, Vector2, Vector3, Vector4,
 };
+pub use gpu::{Fbo, FramebufferObject};
 pub use io::{load_from_json, load_from_toml, safe_file_save, save_to_json, save_to_toml};
 pub use math::num_traits::*;
 pub use math::prelude::*;
