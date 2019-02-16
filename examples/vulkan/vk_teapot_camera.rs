@@ -35,7 +35,7 @@ struct Graphics {
     render_pass: Arc<RenderPassAbstract + Send + Sync>,
     graphics_pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
     depth_image: Arc<AttachmentImage>,
-    framebuffer: ViewFramebuffer,
+    view_fbo: ViewFbo,
 }
 
 // A simple first person camera.
@@ -166,7 +166,7 @@ fn model(app: &App) -> Model {
         Format::D16Unorm,
     ).unwrap();
 
-    let framebuffer = ViewFramebuffer::default();
+    let view_fbo = ViewFbo::default();
 
     let graphics = RefCell::new(Graphics {
         vertex_buffer,
@@ -178,7 +178,7 @@ fn model(app: &App) -> Model {
         render_pass,
         graphics_pipeline,
         depth_image,
-        framebuffer,
+        view_fbo,
     });
 
     let eye = Point3::new(0.0, 0.0, 1.0);
@@ -304,10 +304,10 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
         ).unwrap();
     }
 
-    // Update framebuffer in case of window resize.
+    // Update view_fbo in case of window resize.
     let render_pass = graphics.render_pass.clone();
     let depth_image = graphics.depth_image.clone();
-    graphics.framebuffer
+    graphics.view_fbo
         .update(&frame, render_pass, |builder, image| builder.add(image)?.add(depth_image.clone()))
         .unwrap();
 
@@ -351,11 +351,7 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     // Submit the draw commands.
     frame
         .add_commands()
-        .begin_render_pass(
-            graphics.framebuffer.as_ref().unwrap().clone(),
-            false,
-            clear_values,
-        )
+        .begin_render_pass(graphics.view_fbo.expect_inner(), false, clear_values)
         .unwrap()
         .draw_indexed(
             graphics.graphics_pipeline.clone(),

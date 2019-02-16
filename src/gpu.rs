@@ -1,13 +1,17 @@
 //! Items related to interaction with GPUs via Vulkan.
 
 use std::borrow::Cow;
+use std::ops;
 use std::panic::RefUnwindSafe;
 use std::sync::Arc;
 use vulkano::format::Format;
+use vulkano::framebuffer::{AttachmentsList, Framebuffer, FramebufferAbstract, FramebufferBuilder,
+                           FramebufferCreationError, RenderPassAbstract};
 use vulkano::instance::{ApplicationInfo, Instance, InstanceCreationError, InstanceExtensions,
                         PhysicalDevice};
 use vulkano::instance::debug::{DebugCallback, DebugCallbackCreationError, Message, MessageTypes};
 use vulkano::instance::loader::{FunctionPointers, Loader};
+use vulkano::VulkanObject;
 use vulkano_win;
 
 /// The default application name used with the default `ApplicationInfo`.
@@ -20,6 +24,27 @@ pub const DEFAULT_APPLICATION_INFO: ApplicationInfo<'static> = ApplicationInfo {
     engine_name: None,
     engine_version: None,
 };
+
+/// The **FramebufferObject** or **Fbo** type for easy management of a framebuffer.
+///
+/// Creating and maintaining a framebuffer and ensuring it is up to date with the given renderpass
+/// and images can be a tedious task that requires a lot of boilerplate code. This type simplifies
+/// the process with a single `update` method that creates or recreates the framebuffer if any of
+/// the following conditions are met:
+/// - The `update` method is called for the first time.
+/// - The given render pass is different to that which was used to create the existing framebuffer.
+/// - The dimensions of the framebuffer don't match the dimensions of the images.
+#[derive(Default)]
+pub struct FramebufferObject {
+    framebuffer: Option<Arc<FramebufferAbstract + Send + Sync>>,
+}
+
+/// Shorthand for the **FramebufferObject** type.
+pub type Fbo = FramebufferObject;
+
+/// Shorthand for the builder result type expected by the function given to `Fbo::update`.
+pub type FramebufferBuilderResult<R, A> =
+    Result<FramebufferBuilder<R, A>, FramebufferCreationError>;
 
 /// A builder struct that makes the process of building an instance more modular.
 #[derive(Default)]
@@ -40,14 +65,74 @@ pub struct VulkanDebugCallbackBuilder {
 // The user vulkan debug callback allocated on the heap to avoid complicated type params.
 type BoxedUserCallback = Box<Fn(&Message) + 'static + Send + RefUnwindSafe>;
 
+impl FramebufferObject {
+    /// Access the inner framebuffer trait object.
+    pub fn inner(&self) -> &Option<Arc<FramebufferAbstract + Send + Sync>> {
+        &self.framebuffer
+    }
+
+    /// Ensure the framebuffer is up to date with the given dimensions and render pass.
+    pub fn update<R, F, A>(
+        &mut self,
+        render_pass: R,
+        dimensions: [u32; 3],
+        builder: F,
+    ) -> Result<(), FramebufferCreationError>
+    where
+        R: 'static + RenderPassAbstract + Send + Sync,
+        F: FnOnce(FramebufferBuilder<R, ()>) -> FramebufferBuilderResult<R, A>,
+        A: 'static + AttachmentsList + Send + Sync,
+    {
+        let needs_creation = self.framebuffer.is_none()
+            || !self.dimensions_match(dimensions)
+            || !self.render_passes_match(&render_pass);
+        if needs_creation {
+            let builder = builder(Framebuffer::start(render_pass))?;
+            let fb = builder.build()?;
+            self.framebuffer = Some(Arc::new(fb));
+        }
+        Ok(())
+    }
+
+    /// Expects that there is a inner framebuffer object instantiated and returns it.
+    ///
+    /// **panic!**s if the `update` method has not yet been called.
+    ///
+    /// This method is shorthand for `fbo.as_ref().expect("inner framebuffer was None").clone()`.
+    pub fn expect_inner(&self) -> Arc<FramebufferAbstract + Send + Sync> {
+        self.framebuffer
+            .as_ref()
+            .expect("inner framebuffer was `None` - you must call the `update` method first")
+            .clone()
+    }
+
+    /// Whether or not the given renderpass matches the framebuffer's render pass.
+    pub fn render_passes_match<R>(&self, render_pass: R) -> bool
+    where
+        R: RenderPassAbstract,
+    {
+        self.framebuffer
+            .as_ref()
+            .map(|fb| RenderPassAbstract::inner(fb).internal_object())
+            .map(|obj| obj == render_pass.inner().internal_object())
+            .unwrap_or(false)
+    }
+
+    /// Whether or not the given dimensions match the current dimensions.
+    pub fn dimensions_match(&self, dimensions: [u32; 3]) -> bool {
+        self.framebuffer
+            .as_ref()
+            .map(|fb| fb.dimensions() == dimensions)
+            .unwrap_or(false)
+    }
+}
+
 impl VulkanInstanceBuilder {
     /// Begin building a vulkano instance.
     pub fn new() -> Self {
         Default::default()
     }
-}
 
-impl VulkanInstanceBuilder {
     /// Specify the application info with which the instance should be created.
     pub fn app_info(mut self, app_info: ApplicationInfo<'static>) -> Self {
         self.app_info = Some(app_info);
@@ -190,6 +275,13 @@ impl VulkanDebugCallbackBuilder {
             };
         };
         DebugCallback::new(instance, message_types, user_callback)
+    }
+}
+
+impl ops::Deref for FramebufferObject {
+    type Target = Option<Arc<FramebufferAbstract + Send + Sync>>;
+    fn deref(&self) -> &Self::Target {
+        &self.framebuffer
     }
 }
 
