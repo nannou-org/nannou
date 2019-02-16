@@ -41,6 +41,7 @@ use vulkano::swapchain::SwapchainCreationError;
 use vulkano::sync::GpuFuture;
 use window::{self, Window};
 use winit;
+#[cfg(target_os = "macos")]
 use moltenvk_deps as mvkd;
 
 // TODO: This value is just copied from an example, need to:
@@ -87,6 +88,8 @@ pub struct Builder<M = (), E = Event> {
     create_default_window: bool,
     #[cfg(all(target_os = "macos", not(test)))]
     moltenvk_settings: Option<mvkd::Install>,
+    #[cfg(any(not(target_os = "macos"), test))]
+    moltenvk_settings: Option<PhantomData>,
 }
 
 /// The default `model` function used when none is specified by the user.
@@ -539,12 +542,8 @@ where
         // and layers are necessary.
         let debug_callback_specified = self.vulkan_debug_callback.is_some();
 
-        #[cfg(all(target_os = "macos", not(test)))]
         let moltenvk = gpu::check_moltenvk(self.moltenvk_settings);
         
-        #[cfg(any(not(target_os = "macos"), test))]
-        let moltenvk = gpu::check_moltenvk();
-
         // The vulkan instance necessary for graphics.
         let vulkan_instance = self.vulkan_instance.take().unwrap_or_else(|| {
             if debug_callback_specified {
