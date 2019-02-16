@@ -5,6 +5,7 @@ use nannou::vulkano;
 use std::cell::RefCell;
 use std::sync::Arc;
 
+use nannou::gpu::SamplerBuilder;
 use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use nannou::vulkano::command_buffer::DynamicState;
 use nannou::vulkano::descriptor::descriptor_set::{DescriptorSet, PersistentDescriptorSet};
@@ -14,7 +15,6 @@ use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
 use nannou::vulkano::image::{Dimensions, ImmutableImage};
 use nannou::vulkano::pipeline::viewport::Viewport;
 use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
-use nannou::vulkano::sampler::{Filter, MipmapMode, Sampler, SamplerAddressMode};
 
 fn main() {
     nannou::app(model).run();
@@ -130,20 +130,7 @@ fn model(app: &App) -> Model {
         .unwrap()
     };
 
-    let sampler = Sampler::new(
-        device.clone(),
-        Filter::Linear,
-        Filter::Linear,
-        MipmapMode::Nearest,
-        SamplerAddressMode::ClampToEdge,
-        SamplerAddressMode::ClampToEdge,
-        SamplerAddressMode::ClampToEdge,
-        0.0,
-        1.0,
-        0.0,
-        0.0,
-    )
-    .unwrap();
+    let sampler = SamplerBuilder::new().build(device.clone()).unwrap();
 
     let pipeline = Arc::new(
         GraphicsPipeline::start()
