@@ -1,22 +1,14 @@
 //! The lower-level "raw" frame type allowing to draw directly to the window's swapchain image.
 
 use std::sync::{Arc, Mutex};
-use vulkano;
-use vulkano::buffer::{BufferAccess, TypedBufferAccess};
-use vulkano::command_buffer::{AutoCommandBufferBuilderContextError, BeginRenderPassError,
-                              BlitImageError, ClearColorImageError, CopyBufferError,
-                              CopyBufferImageError, DrawError, DrawIndexedError, DynamicState,
-                              FillBufferError, UpdateBufferError};
-use vulkano::command_buffer::pool::standard::StandardCommandPoolBuilder;
-use vulkano::descriptor::descriptor_set::DescriptorSetsCollection;
-use vulkano::device::Queue;
-use vulkano::format::{AcceptsPixels, ClearValue, Format};
-use vulkano::framebuffer::{FramebufferAbstract, RenderPassDescClearValues};
-use vulkano::image::ImageAccess;
-use vulkano::pipeline::GraphicsPipelineAbstract;
-use vulkano::pipeline::input_assembly::Index;
-use vulkano::pipeline::vertex::VertexSource;
-use vulkano::sampler::Filter;
+use vk;
+use vk::command_buffer::{
+    AutoCommandBufferBuilderContextError, BeginRenderPassError, BlitImageError,
+    ClearColorImageError, CopyBufferError, CopyBufferImageError, DrawError, DrawIndexedError,
+    DynamicState, FillBufferError, UpdateBufferError,
+};
+use vk::command_buffer::pool::standard::StandardCommandPoolBuilder;
+use vk::pipeline::input_assembly::Index;
 use window;
 use window::SwapchainImage;
 
@@ -55,7 +47,7 @@ use window::SwapchainImage;
 /// rendering synchronisation behind the scenes.
 ///
 /// ### Render Pass and Swapchain Framebuffers.
-/// 
+///
 /// The render pass describes the destination for the output of the graphics pipeline. It is
 /// essential that the render pass uses the same pixel format of the window's surface. It also must
 /// be initialised with the same logical device with which the surface was initialised.
@@ -133,7 +125,7 @@ pub struct RawFrame {
     // The index of the frame before which this swapchain was created.
     swapchain_frame_created: u64,
     // The queue on which the swapchain image will be drawn.
-    queue: Arc<Queue>,
+    queue: Arc<vk::Queue>,
 }
 
 /// A builder type that allows chaining together commands for the command buffer that will be used
@@ -144,18 +136,18 @@ pub struct AddCommands<'a> {
 
 // The `AutoCommandBufferBuilder` type used for building the frame's command buffer.
 type AutoCommandBufferBuilder =
-    vulkano::command_buffer::AutoCommandBufferBuilder<StandardCommandPoolBuilder>;
+    vk::AutoCommandBufferBuilder<StandardCommandPoolBuilder>;
 
 impl RawFrame {
     // Initialise a new empty frame ready for "drawing".
     pub(crate) fn new_empty(
-        queue: Arc<Queue>,
+        queue: Arc<vk::Queue>,
         window_id: window::Id,
         nth: u64,
         swapchain_image_index: usize,
         swapchain_image: Arc<SwapchainImage>,
         swapchain_frame_created: u64,
-    ) -> Result<Self, vulkano::OomError> {
+    ) -> Result<Self, vk::OomError> {
         let device = queue.device().clone();
         let cb_builder = AutoCommandBufferBuilder::primary_one_time_submit(device, queue.family())?;
         let command_buffer_builder = Mutex::new(Some(cb_builder));
@@ -228,7 +220,7 @@ impl RawFrame {
     }
 
     /// The queue on which the swapchain image will be drawn.
-    pub fn queue(&self) -> &Arc<Queue> {
+    pub fn queue(&self) -> &Arc<vk::Queue> {
         &self.queue
     }
 }
@@ -264,27 +256,27 @@ impl<'a> AddCommands<'a> {
     ///
     /// [*Documentation taken from the corresponding vulkano method.*](https://docs.rs/vulkano/latest/vulkano/command_buffer/struct.AutoCommandBufferBuilder.html)
     pub fn begin_render_pass<F, C>(
-        self, 
-        framebuffer: F, 
-        secondary: bool, 
+        self,
+        framebuffer: F,
+        secondary: bool,
         clear_values: C
     ) -> Result<Self, BeginRenderPassError>
     where
-        F: FramebufferAbstract + RenderPassDescClearValues<C> + Clone + Send + Sync + 'static, 
+        F: vk::FramebufferAbstract + vk::RenderPassDescClearValues<C> + Clone + Send + Sync + 'static,
     {
         self.map_cb(move |cb| cb.begin_render_pass(framebuffer, secondary, clear_values))
     }
 
     /// Adds a command that jumps to the next subpass of the current render pass.
     pub fn next_subpass(
-        self, 
+        self,
         secondary: bool
     ) -> Result<Self, AutoCommandBufferBuilderContextError> {
         self.map_cb(move |cb| cb.next_subpass(secondary))
     }
 
     /// Adds a command that ends the current render pass.
-    /// 
+    ///
     /// This must be called after you went through all the subpasses and before you can add further
     /// commands.
     pub fn end_render_pass(self) -> Result<Self, AutoCommandBufferBuilderContextError> {
@@ -324,23 +316,23 @@ impl<'a> AddCommands<'a> {
     ///
     /// [*Documentation taken from the corresponding vulkano method.*](https://docs.rs/vulkano/latest/vulkano/command_buffer/struct.AutoCommandBufferBuilder.html)
     pub fn blit_image<S, D>(
-        self, 
-        source: S, 
-        source_top_left: [i32; 3], 
-        source_bottom_right: [i32; 3], 
-        source_base_array_layer: u32, 
-        source_mip_level: u32, 
-        destination: D, 
-        destination_top_left: [i32; 3], 
-        destination_bottom_right: [i32; 3], 
-        destination_base_array_layer: u32, 
-        destination_mip_level: u32, 
-        layer_count: u32, 
-        filter: Filter,
+        self,
+        source: S,
+        source_top_left: [i32; 3],
+        source_bottom_right: [i32; 3],
+        source_base_array_layer: u32,
+        source_mip_level: u32,
+        destination: D,
+        destination_top_left: [i32; 3],
+        destination_bottom_right: [i32; 3],
+        destination_base_array_layer: u32,
+        destination_mip_level: u32,
+        layer_count: u32,
+        filter: vk::sampler::Filter,
     ) -> Result<Self, BlitImageError>
     where
-        S: ImageAccess + Send + Sync + 'static,
-        D: ImageAccess + Send + Sync + 'static, 
+        S: vk::ImageAccess + Send + Sync + 'static,
+        D: vk::ImageAccess + Send + Sync + 'static,
     {
         self.map_cb(move |cb| {
             cb.blit_image(
@@ -361,9 +353,9 @@ impl<'a> AddCommands<'a> {
     }
 
     /// Adds a command that copies an image to another.
-    /// 
+    ///
     /// Copy operations have several restrictions:
-    /// 
+    ///
     /// - Copy operations are only allowed on queue families that support transfer, graphics, or
     ///   compute operations.
     /// - The number of samples in the source and destination images must be equal.
@@ -374,31 +366,31 @@ impl<'a> AddCommands<'a> {
     /// - For two-dimensional images, the Z coordinate must be 0 for the image offsets and 1 for
     ///   the extent. Same for the Y coordinate for one-dimensional images.
     /// - For non-array images, the base array layer must be 0 and the number of layers must be 1.
-    /// 
+    ///
     /// If layer_count is greater than 1, the copy will happen between each individual layer as if
     /// they were separate images.
     ///
     /// # Panic
-    /// 
+    ///
     /// - Panics if the source or the destination was not created with device.
     ///
     /// [*Documentation taken from the corresponding vulkano method.*](https://docs.rs/vulkano/latest/vulkano/command_buffer/struct.AutoCommandBufferBuilder.html)
     pub fn copy_image<S, D>(
-        self, 
-        source: S, 
-        source_offset: [i32; 3], 
-        source_base_array_layer: u32, 
-        source_mip_level: u32, 
-        destination: D, 
-        destination_offset: [i32; 3], 
-        destination_base_array_layer: u32, 
-        destination_mip_level: u32, 
-        extent: [u32; 3], 
+        self,
+        source: S,
+        source_offset: [i32; 3],
+        source_base_array_layer: u32,
+        source_mip_level: u32,
+        destination: D,
+        destination_offset: [i32; 3],
+        destination_base_array_layer: u32,
+        destination_mip_level: u32,
+        extent: [u32; 3],
         layer_count: u32,
     ) -> Result<Self, ()> // TODO: Expose error: https://github.com/vulkano-rs/vulkano/pull/1112
     where
-        S: ImageAccess + Send + Sync + 'static,
-        D: ImageAccess + Send + Sync + 'static, 
+        S: vk::ImageAccess + Send + Sync + 'static,
+        D: vk::ImageAccess + Send + Sync + 'static,
     {
         self.map_cb(move |cb| {
                 cb.copy_image(
@@ -426,12 +418,12 @@ impl<'a> AddCommands<'a> {
     ///
     /// [*Documentation taken from the corresponding vulkano method.*](https://docs.rs/vulkano/latest/vulkano/command_buffer/struct.AutoCommandBufferBuilder.html)
     pub fn clear_color_image<I>(
-        self, 
-        image: I, 
-        color: ClearValue,
+        self,
+        image: I,
+        color: vk::ClearValue,
     ) -> Result<Self, ClearColorImageError>
     where
-        I: ImageAccess + Send + Sync + 'static,
+        I: vk::ImageAccess + Send + Sync + 'static,
     {
         self.map_cb(move |cb| cb.clear_color_image(image, color))
     }
@@ -439,19 +431,19 @@ impl<'a> AddCommands<'a> {
     /// Adds a command that clears a color image with a specific value.
     ///
     /// # Panic
-    /// 
+    ///
     /// Panics if color is not a color value.
     pub fn clear_color_image_dimensions<I>(
-        self, 
-        image: I, 
-        first_layer: u32, 
-        num_layers: u32, 
-        first_mipmap: u32, 
-        num_mipmaps: u32, 
-        color: ClearValue
+        self,
+        image: I,
+        first_layer: u32,
+        num_layers: u32,
+        first_mipmap: u32,
+        num_mipmaps: u32,
+        color: vk::ClearValue
     ) -> Result<Self, ClearColorImageError>
     where
-        I: ImageAccess + Send + Sync + 'static, 
+        I: vk::ImageAccess + Send + Sync + 'static,
     {
         self.map_cb(move |cb| {
             cb.clear_color_image_dimensions(
@@ -466,17 +458,17 @@ impl<'a> AddCommands<'a> {
     }
 
     /// Adds a command that copies from a buffer to another.
-    /// 
+    ///
     /// This command will copy from the source to the destination. If their size is not equal, then
     /// the amount of data copied is equal to the smallest of the two.
     pub fn copy_buffer<S, D, T>(
-        self, 
-        source: S, 
+        self,
+        source: S,
         destination: D
     ) -> Result<Self, CopyBufferError>
     where
-        S: TypedBufferAccess<Content = T> + Send + Sync + 'static,
-        D: TypedBufferAccess<Content = T> + Send + Sync + 'static,
+        S: vk::TypedBufferAccess<Content = T> + Send + Sync + 'static,
+        D: vk::TypedBufferAccess<Content = T> + Send + Sync + 'static,
         T: ?Sized,
     {
         self.map_cb(move |cb| cb.copy_buffer(source, destination))
@@ -484,33 +476,33 @@ impl<'a> AddCommands<'a> {
 
     /// Adds a command that copies from a buffer to an image.
     pub fn copy_buffer_to_image<S, D, Px>(
-        self, 
-        source: S, 
+        self,
+        source: S,
         destination: D
     ) -> Result<Self, CopyBufferImageError>
     where
-        S: TypedBufferAccess<Content = [Px]> + Send + Sync + 'static,
-        D: ImageAccess + Send + Sync + 'static,
-        Format: AcceptsPixels<Px>, 
+        S: vk::TypedBufferAccess<Content = [Px]> + Send + Sync + 'static,
+        D: vk::ImageAccess + Send + Sync + 'static,
+        vk::Format: vk::AcceptsPixels<Px>,
     {
         self.map_cb(move |cb| cb.copy_buffer_to_image(source, destination))
     }
 
     /// Adds a command that copies from a buffer to an image.
     pub fn copy_buffer_to_image_dimensions<S, D, Px>(
-        self, 
-        source: S, 
-        destination: D, 
-        offset: [u32; 3], 
-        size: [u32; 3], 
-        first_layer: u32, 
-        num_layers: u32, 
+        self,
+        source: S,
+        destination: D,
+        offset: [u32; 3],
+        size: [u32; 3],
+        first_layer: u32,
+        num_layers: u32,
         mipmap: u32
     ) -> Result<Self, CopyBufferImageError>
     where
-        S: TypedBufferAccess<Content = [Px]> + Send + Sync + 'static,
-        D: ImageAccess + Send + Sync + 'static,
-        Format: AcceptsPixels<Px>, 
+        S: vk::TypedBufferAccess<Content = [Px]> + Send + Sync + 'static,
+        D: vk::ImageAccess + Send + Sync + 'static,
+        vk::Format: vk::AcceptsPixels<Px>,
     {
         self.map_cb(move |cb| {
             cb.copy_buffer_to_image_dimensions(
@@ -527,33 +519,33 @@ impl<'a> AddCommands<'a> {
 
     /// Adds a command that copies from an image to a buffer.
     pub fn copy_image_to_buffer<S, D, Px>(
-        self, 
-        source: S, 
+        self,
+        source: S,
         destination: D
     ) -> Result<Self, CopyBufferImageError>
     where
-        S: ImageAccess + Send + Sync + 'static,
-        D: TypedBufferAccess<Content = [Px]> + Send + Sync + 'static,
-        Format: AcceptsPixels<Px>, 
+        S: vk::ImageAccess + Send + Sync + 'static,
+        D: vk::TypedBufferAccess<Content = [Px]> + Send + Sync + 'static,
+        vk::Format: vk::AcceptsPixels<Px>,
     {
         self.map_cb(move |cb| cb.copy_image_to_buffer(source, destination))
     }
 
     /// Adds a command that copies from an image to a buffer.
     pub fn copy_image_to_buffer_dimensions<S, D, Px>(
-        self, 
-        source: S, 
-        destination: D, 
-        offset: [u32; 3], 
-        size: [u32; 3], 
-        first_layer: u32, 
-        num_layers: u32, 
+        self,
+        source: S,
+        destination: D,
+        offset: [u32; 3],
+        size: [u32; 3],
+        first_layer: u32,
+        num_layers: u32,
         mipmap: u32
     ) -> Result<Self, CopyBufferImageError>
     where
-        S: ImageAccess + Send + Sync + 'static,
-        D: TypedBufferAccess<Content = [Px]> + Send + Sync + 'static,
-        Format: AcceptsPixels<Px>,
+        S: vk::ImageAccess + Send + Sync + 'static,
+        D: vk::TypedBufferAccess<Content = [Px]> + Send + Sync + 'static,
+        vk::Format: vk::AcceptsPixels<Px>,
     {
         self.map_cb(move |cb| {
             cb.copy_image_to_buffer_dimensions(
@@ -569,19 +561,19 @@ impl<'a> AddCommands<'a> {
     }
 
     /// Draw once, using the vertex_buffer.
-    /// 
-    /// To use only some data in the buffer, wrap it in a `vulkano::buffer::BufferSlice`.
+    ///
+    /// To use only some data in the buffer, wrap it in a `vk::BufferSlice`.
     pub fn draw<V, Gp, S, Pc>(
-        self, 
-        pipeline: Gp, 
-        dynamic: &DynamicState, 
-        vertex_buffer: V, 
-        sets: S, 
+        self,
+        pipeline: Gp,
+        dynamic: &DynamicState,
+        vertex_buffer: V,
+        sets: S,
         constants: Pc
     ) -> Result<Self, DrawError>
     where
-        Gp: GraphicsPipelineAbstract + VertexSource<V> + Send + Sync + 'static + Clone,
-        S: DescriptorSetsCollection,
+        Gp: vk::GraphicsPipelineAbstract + vk::VertexSource<V> + Send + Sync + 'static + Clone,
+        S: vk::DescriptorSetsCollection,
     {
         self.map_cb(move |cb| {
             cb.draw(
@@ -596,21 +588,21 @@ impl<'a> AddCommands<'a> {
 
 
     /// Draw once, using the vertex_buffer and the index_buffer.
-    /// 
-    /// To use only some data in a buffer, wrap it in a `vulkano::buffer::BufferSlice`.
+    ///
+    /// To use only some data in a buffer, wrap it in a `vk::BufferSlice`.
     pub fn draw_indexed<V, Gp, S, Pc, Ib, I>(
-        self, 
-        pipeline: Gp, 
-        dynamic: &DynamicState, 
-        vertex_buffer: V, 
-        index_buffer: Ib, 
-        sets: S, 
+        self,
+        pipeline: Gp,
+        dynamic: &DynamicState,
+        vertex_buffer: V,
+        index_buffer: Ib,
+        sets: S,
         constants: Pc
     ) -> Result<Self, DrawIndexedError>
     where
-        Gp: GraphicsPipelineAbstract + VertexSource<V> + Send + Sync + 'static + Clone,
-        S: DescriptorSetsCollection,
-        Ib: BufferAccess + TypedBufferAccess<Content = [I]> + Send + Sync + 'static,
+        Gp: vk::GraphicsPipelineAbstract + vk::VertexSource<V> + Send + Sync + 'static + Clone,
+        S: vk::DescriptorSetsCollection,
+        Ib: vk::BufferAccess + vk::TypedBufferAccess<Content = [I]> + Send + Sync + 'static,
         I: Index + 'static,
     {
         self.map_cb(move |cb| {
@@ -636,23 +628,23 @@ impl<'a> AddCommands<'a> {
     /// > this function only for zeroing the content of a buffer by passing `0` for the data.
     pub fn fill_buffer<B>(self, buffer: B, data: u32) -> Result<Self, FillBufferError>
     where
-        B: BufferAccess + Send + Sync + 'static,
+        B: vk::BufferAccess + Send + Sync + 'static,
     {
         self.map_cb(move |cb| cb.fill_buffer(buffer, data))
     }
 
 
     /// Adds a command that writes data to a buffer.
-    /// 
+    ///
     /// If data is larger than the buffer, only the part of data that fits is written. If the
     /// buffer is larger than data, only the start of the buffer is written.
     pub fn update_buffer<B, D>(
-        self, 
-        buffer: B, 
+        self,
+        buffer: B,
         data: D
     ) -> Result<Self, UpdateBufferError>
     where
-        B: TypedBufferAccess<Content = D> + Send + Sync + 'static,
+        B: vk::TypedBufferAccess<Content = D> + Send + Sync + 'static,
         D: Send + Sync + 'static,
     {
         self.map_cb(move |cb| cb.update_buffer(buffer, data))

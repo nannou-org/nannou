@@ -11,7 +11,6 @@ pub use frame::{Frame, RawFrame, ViewFbo, ViewFramebufferObject};
 pub use geom::{
     self, pt2, pt3, vec2, vec3, vec4, Cuboid, Point2, Point3, Rect, Vector2, Vector3, Vector4,
 };
-pub use gpu::{Fbo, FramebufferObject};
 pub use io::{load_from_json, load_from_toml, safe_file_save, save_to_json, save_to_toml};
 pub use math::num_traits::*;
 pub use math::prelude::*;
@@ -23,6 +22,7 @@ pub use osc;
 pub use rand::{random, random_f32, random_f64, random_range};
 pub use time::DurationF64;
 pub use ui;
+pub use vk::{self, DeviceOwned as VulkanDeviceOwned, GpuFuture};
 pub use window::{self, Id as WindowId};
 
 // The following constants have "regular" names for the `DefaultScalar` type and type suffixes for

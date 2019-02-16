@@ -63,7 +63,7 @@ pub(crate) fn update(model: &mut Model) {
         .x(corners.top_left.pos.x as f64)
         .y(corners.top_left.pos.y as f64)
         .set(model.ids.top_left_corner, ui);
-    
+
     widget::Text::new(&format!("top left: {:?}", corners.top_left.pos))
         .font_size(12)
         .rgb(1.0, 0.3, 0.0)
@@ -75,7 +75,7 @@ pub(crate) fn update(model: &mut Model) {
         .x_position(position::Position::Absolute(corners.top_right.pos.x as f64))
         .y_position(position::Position::Absolute(corners.top_right.pos.y as f64))
         .set(model.ids.top_right_corner, ui);
-    
+
     widget::Text::new(&format!("top right: {:?}", corners.top_right.pos))
         .font_size(12)
         .rgb(1.0, 0.3, 0.0)
@@ -87,7 +87,7 @@ pub(crate) fn update(model: &mut Model) {
         .x_position(position::Position::Absolute(corners.bottom_left.pos.x as f64))
         .y_position(position::Position::Absolute(corners.bottom_left.pos.y as f64))
         .set(model.ids.bottom_left_corner, ui);
-    
+
     widget::Text::new(&format!("bottom left: {:?}", corners.bottom_left.pos))
         .font_size(12)
         .rgb(1.0, 0.3, 0.0)
@@ -99,7 +99,7 @@ pub(crate) fn update(model: &mut Model) {
         .x_position(position::Position::Absolute(corners.bottom_right.pos.x as f64))
         .y_position(position::Position::Absolute(corners.bottom_right.pos.y as f64))
         .set(model.ids.bottom_right_corner, ui);
-    
+
     widget::Text::new(&format!("bottom right: {:?}", corners.bottom_right.pos))
         .font_size(12)
         .rgb(1.0, 0.3, 0.0)
@@ -107,9 +107,9 @@ pub(crate) fn update(model: &mut Model) {
         .set(model.ids.br_text, ui);
 
     let points = vec![
-        corners.top_left.pos, 
-        corners.top_right.pos, 
-        corners.bottom_right.pos, 
+        corners.top_left.pos,
+        corners.top_right.pos,
+        corners.bottom_right.pos,
         corners.bottom_left.pos,
         corners.top_left.pos];
     widget::PointPath::new(points.into_iter().map(|v| [v.x as f64, v.y as f64]))
@@ -129,7 +129,7 @@ pub(crate) fn event(_app: &App, model: &mut Model, event: WindowEvent) {
     let ref mut corners = model.controls.corners;
     match event {
         MouseMoved(pos) => {
-            let pos = pt2(clamp(pos.x, corners.dims.x.start, corners.dims.x.end), 
+            let pos = pt2(clamp(pos.x, corners.dims.x.start, corners.dims.x.end),
             clamp(pos.y, corners.dims.y.end, corners.dims.y.start));
             if corners.top_left.drag {
                 corners.top_left.pos = pos;
