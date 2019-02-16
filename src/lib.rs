@@ -22,6 +22,9 @@ pub extern crate vulkano_shaders;
 pub extern crate vulkano_win;
 pub extern crate winit;
 
+#[cfg(target_os = "macos")]
+extern crate moltenvk_deps;
+
 pub use self::event::Event;
 pub use self::frame::Frame;
 pub use self::ui::Ui;

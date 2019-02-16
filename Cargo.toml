@@ -34,6 +34,9 @@ vulkano-win = { git = "https://github.com/mitchmindtree/vulkano", branch = "nann
 vulkano-shaders = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
 winit = "0.18"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+moltenvk_deps = "0.1"
+
 [replace]
 "vulkano:0.11.1" = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
 

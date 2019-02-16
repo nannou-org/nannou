@@ -42,6 +42,9 @@ use vulkano::sync::GpuFuture;
 use window::{self, Window};
 use winit;
 
+#[cfg(all(target_os = "macos", not(test)))]
+use moltenvk_deps as mvkd;
+
 // TODO: This value is just copied from an example, need to:
 // 1. Verify that this is actually a good default
 // 2. Allow for choosing a custom depth format
@@ -84,6 +87,8 @@ pub struct Builder<M = (), E = Event> {
     vulkan_instance: Option<Arc<vulkano::instance::Instance>>,
     vulkan_debug_callback: Option<gpu::VulkanDebugCallbackBuilder>,
     create_default_window: bool,
+    #[cfg(all(target_os = "macos", not(test)))]
+    moltenvk_settings: Option<mvkd::Install>,
 }
 
 /// The default `model` function used when none is specified by the user.
@@ -359,6 +364,8 @@ where
             vulkan_instance: None,
             vulkan_debug_callback: None,
             create_default_window: false,
+            #[cfg(all(target_os = "macos", not(test)))]
+            moltenvk_settings: None,
         }
     }
 
@@ -381,6 +388,8 @@ where
             create_default_window,
             vulkan_instance,
             vulkan_debug_callback,
+            #[cfg(all(target_os = "macos", not(test)))]
+            moltenvk_settings,
             ..
         } = self;
         Builder {
@@ -392,6 +401,8 @@ where
             create_default_window,
             vulkan_instance,
             vulkan_debug_callback,
+            #[cfg(all(target_os = "macos", not(test)))]
+            moltenvk_settings,
         }
     }
 }
@@ -503,6 +514,21 @@ where
         self
     }
 
+    #[cfg(all(target_os = "macos", not(test)))]
+    /// Set custom settings for the moltenvk dependacy 
+    /// installer.
+    ///
+    /// Install silently
+    /// `Install::Silent`
+    /// Install with callbacks
+    /// `Install::Message(message)`
+    ///
+    /// See moltenvk_deps::Message docs for more information.
+    pub fn macos_installer(mut self,  settings: mvkd::Install) -> Self {
+        self.moltenvk_settings = Some(settings);
+        self
+    }
+
     /// Build and run an `App` with the specified parameters.
     ///
     /// This function will not return until the application has exited.
@@ -518,20 +544,37 @@ where
         // and layers are necessary.
         let debug_callback_specified = self.vulkan_debug_callback.is_some();
 
+        #[cfg(all(target_os = "macos", not(test)))]
+        let moltenvk_settings = self.moltenvk_settings;
+
         // The vulkan instance necessary for graphics.
         let vulkan_instance = self.vulkan_instance.take().unwrap_or_else(|| {
             if debug_callback_specified {
-                gpu::VulkanInstanceBuilder::new()
-                    .extensions(InstanceExtensions {
-                        ext_debug_report: true,
-                        ..gpu::required_windowing_extensions()
-                    })
-                    .layers(vec!["VK_LAYER_LUNARG_standard_validation"])
+                let vulkan_builder = gpu::VulkanInstanceBuilder::new();
+                
+                #[cfg(all(target_os = "macos", not(test)))]
+                let vulkan_builder = gpu::check_moltenvk(vulkan_builder, moltenvk_settings);
+                
+                #[cfg(any(not(target_os = "macos"), test))]
+                let vulkan_builder = vulkan_builder.extensions(gpu::required_windowing_extensions());
+
+                vulkan_builder.add_extensions(InstanceExtensions{ 
+                    ext_debug_report: true,
+                    ..InstanceExtensions::none()
+                })
+                .layers(vec!["VK_LAYER_LUNARG_standard_validation"])
                     .build()
                     .expect("failed to create vulkan instance")
             } else {
-                gpu::VulkanInstanceBuilder::new()
-                    .build()
+                let vulkan_builder = gpu::VulkanInstanceBuilder::new();
+                
+                #[cfg(all(target_os = "macos", not(test)))]
+                let vulkan_builder = gpu::check_moltenvk(vulkan_builder, moltenvk_settings);
+                
+                #[cfg(any(not(target_os = "macos"), test))]
+                let vulkan_builder = vulkan_builder.extensions(gpu::required_windowing_extensions());
+                
+                vulkan_builder.build()
                     .expect("failed to create vulkan instance")
             }
         });
@@ -614,6 +657,8 @@ impl Builder<(), Event> {
             create_default_window: true,
             vulkan_instance: None,
             vulkan_debug_callback: None,
+            #[cfg(all(target_os = "macos", not(test)))]
+            moltenvk_settings: None,
         };
         builder.run()
     }
