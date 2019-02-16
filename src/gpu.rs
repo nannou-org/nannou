@@ -283,7 +283,7 @@ pub fn check_moltenvk(settings: Option<moltenvk_deps::Install>) -> Option<Functi
 
 
 #[cfg(any(not(target_os = "macos"), test))]
-pub fn check_moltenvk() -> Option<FunctionPointers<Box<dyn Loader + Send + Sync>>> {
+pub fn check_moltenvk(_: Option<PhantomData>) -> Option<FunctionPointers<Box<dyn Loader + Send + Sync>>> {
     None
 }
 
