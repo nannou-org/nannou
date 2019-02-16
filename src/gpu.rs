@@ -4,6 +4,7 @@ use std::borrow::Cow;
 use std::ops;
 use std::panic::RefUnwindSafe;
 use std::sync::Arc;
+use vulkano::device::Device;
 use vulkano::format::Format;
 use vulkano::framebuffer::{AttachmentsList, Framebuffer, FramebufferAbstract, FramebufferBuilder,
                            FramebufferCreationError, RenderPassAbstract};
@@ -11,6 +12,7 @@ use vulkano::instance::{ApplicationInfo, Instance, InstanceCreationError, Instan
                         PhysicalDevice};
 use vulkano::instance::debug::{DebugCallback, DebugCallbackCreationError, Message, MessageTypes};
 use vulkano::instance::loader::{FunctionPointers, Loader};
+use vulkano::sampler::{Filter, MipmapMode, Sampler, SamplerAddressMode, SamplerCreationError};
 use vulkano::VulkanObject;
 use vulkano_win;
 
@@ -66,6 +68,21 @@ pub struct VulkanInstanceBuilder {
 pub struct VulkanDebugCallbackBuilder {
     pub message_types: Option<MessageTypes>,
     pub user_callback: Option<BoxedUserCallback>,
+}
+
+/// A builder struct that makes the process of building a **Sampler** more modular.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SamplerBuilder {
+    pub mag_filter: Option<Filter>,
+    pub min_filter: Option<Filter>,
+    pub mipmap_mode: Option<MipmapMode>,
+    pub address_u: Option<SamplerAddressMode>,
+    pub address_v: Option<SamplerAddressMode>,
+    pub address_w: Option<SamplerAddressMode>,
+    pub mip_lod_bias: Option<f32>,
+    pub max_anisotropy: Option<f32>,
+    pub min_lod: Option<f32>,
+    pub max_lod: Option<f32>,
 }
 
 // The user vulkan debug callback allocated on the heap to avoid complicated type params.
@@ -287,6 +304,122 @@ impl VulkanDebugCallbackBuilder {
             };
         };
         DebugCallback::new(instance, message_types, user_callback)
+    }
+}
+
+impl SamplerBuilder {
+    pub const DEFAULT_MAG_FILTER: Filter = Filter::Linear;
+    pub const DEFAULT_MIN_FILTER: Filter = Filter::Linear;
+    pub const DEFAULT_MIPMAP_MODE: MipmapMode = MipmapMode::Nearest;
+    pub const DEFAULT_ADDRESS_U: SamplerAddressMode = SamplerAddressMode::ClampToEdge;
+    pub const DEFAULT_ADDRESS_V: SamplerAddressMode = SamplerAddressMode::ClampToEdge;
+    pub const DEFAULT_ADDRESS_W: SamplerAddressMode = SamplerAddressMode::ClampToEdge;
+    pub const DEFAULT_MIP_LOD_BIAS: f32 = 0.0;
+    pub const DEFAULT_MAX_ANISOTROPY: f32 = 1.0;
+    pub const DEFAULT_MIN_LOD: f32 = 0.0;
+    pub const DEFAULT_MAX_LOD: f32 = 0.0;
+
+    /// Begin building a new vulkan **Sampler**.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// How the implementation should sample from the image when it is respectively larger than the
+    /// original.
+    pub fn mag_filter(mut self, filter: Filter) -> Self {
+        self.mag_filter = Some(filter);
+        self
+    }
+
+    /// How the implementation should sample from the image when it is respectively smaller than
+    /// the original.
+    pub fn min_filter(mut self, filter: Filter) -> Self {
+        self.min_filter = Some(filter);
+        self
+    }
+
+    /// How the implementation should choose which mipmap to use.
+    pub fn mipmap_mode(mut self, mode: MipmapMode) -> Self {
+        self.mipmap_mode = Some(mode);
+        self
+    }
+
+    /// How the implementation should behave when sampling outside of the texture coordinates range
+    /// [0.0, 1.0].
+    pub fn address_u(mut self, mode: SamplerAddressMode) -> Self {
+        self.address_u = Some(mode);
+        self
+    }
+
+    /// How the implementation should behave when sampling outside of the texture coordinates range
+    /// [0.0, 1.0].
+    pub fn address_v(mut self, mode: SamplerAddressMode) -> Self {
+        self.address_v = Some(mode);
+        self
+    }
+
+    /// How the implementation should behave when sampling outside of the texture coordinates range
+    /// [0.0, 1.0].
+    pub fn address_w(mut self, mode: SamplerAddressMode) -> Self {
+        self.address_w = Some(mode);
+        self
+    }
+
+    /// Level of detail bias.
+    pub fn mip_lod_bias(mut self, bias: f32) -> Self {
+        self.mip_lod_bias = Some(bias);
+        self
+    }
+
+    /// Must be greater than oro equal to 1.0.
+    ///
+    /// If greater than 1.0, the implementation will use anisotropic filtering. Using a value
+    /// greater than 1.0 requires the sampler_anisotropy feature to be enabled when creating the
+    /// device.
+    pub fn max_anisotropy(mut self, max: f32) -> Self {
+        self.max_anisotropy = Some(max);
+        self
+    }
+
+    /// The minimum mipmap level to use.
+    pub fn min_lod(mut self, lod: f32) -> Self {
+        self.min_lod = Some(lod);
+        self
+    }
+
+    /// The maximum mipmap level to use.
+    pub fn max_lod(mut self, lod: f32) -> Self {
+        self.max_lod = Some(lod);
+        self
+    }
+
+    /// Build the sampler with the givenn behaviour.
+    pub fn build(self, device: Arc<Device>) -> Result<Arc<Sampler>, SamplerCreationError> {
+        let SamplerBuilder {
+            mag_filter,
+            min_filter,
+            mipmap_mode,
+            address_u,
+            address_v,
+            address_w,
+            mip_lod_bias,
+            max_anisotropy,
+            min_lod,
+            max_lod,
+        } = self;
+        Sampler::new(
+            device,
+            mag_filter.unwrap_or(Self::DEFAULT_MAG_FILTER),
+            min_filter.unwrap_or(Self::DEFAULT_MIN_FILTER),
+            mipmap_mode.unwrap_or(Self::DEFAULT_MIPMAP_MODE),
+            address_u.unwrap_or(Self::DEFAULT_ADDRESS_U),
+            address_v.unwrap_or(Self::DEFAULT_ADDRESS_V),
+            address_w.unwrap_or(Self::DEFAULT_ADDRESS_W),
+            mip_lod_bias.unwrap_or(Self::DEFAULT_MIP_LOD_BIAS),
+            max_anisotropy.unwrap_or(Self::DEFAULT_MAX_ANISOTROPY),
+            min_lod.unwrap_or(Self::DEFAULT_MIN_LOD),
+            max_lod.unwrap_or(Self::DEFAULT_MAX_LOD),
+        )
     }
 }
 
