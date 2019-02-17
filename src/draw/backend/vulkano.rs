@@ -6,24 +6,12 @@ use math::{BaseFloat, NumCast};
 use std::error::Error as StdError;
 use std::fmt;
 use std::sync::Arc;
-use vulkano;
-use vulkano::buffer::{BufferUsage, ImmutableBuffer};
-use vulkano::command_buffer::{BeginRenderPassError, DrawIndexedError, DynamicState};
-use vulkano::device::{Device, DeviceOwned};
-use vulkano::format::{ClearValue, Format};
-use vulkano::framebuffer::{FramebufferCreationError, LoadOp, RenderPassAbstract,
-                           RenderPassCreationError, RenderPassDesc, Subpass};
-use vulkano::image::attachment::AttachmentImage;
-use vulkano::image::ImageCreationError;
-use vulkano::memory::DeviceMemoryAllocError;
-use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
-use vulkano::pipeline::viewport::Viewport;
-use vulkano::sync::GpuFuture;
+use vk::{self, DeviceOwned, GpuFuture, RenderPassDesc};
 
 /// A type used for rendering a **nannou::draw::Mesh** with a vulkan graphics pipeline.
 pub struct Renderer {
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    graphics_pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+    graphics_pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
     vertices: Vec<Vertex>,
     render_pass_images: Option<RenderPassImages>,
     view_fbo: ViewFbo,
@@ -65,34 +53,34 @@ pub struct Vertex {
 
 // The images used within the `Draw` render pass.
 struct RenderPassImages {
-    depth: Arc<AttachmentImage>,
+    depth: Arc<vk::AttachmentImage>,
 }
 
 /// Errors that might occur while building the **Renderer**.
 #[derive(Debug)]
 pub enum RendererCreationError {
-    RenderPass(RenderPassCreationError),
+    RenderPass(vk::RenderPassCreationError),
     GraphicsPipeline(GraphicsPipelineError),
 }
 
-/// Errors that might occur while building the **GraphicsPipeline**.
+/// Errors that might occur while building the **vk::GraphicsPipeline**.
 #[derive(Debug)]
 pub enum GraphicsPipelineError {
-    Creation(vulkano::pipeline::GraphicsPipelineCreationError),
-    VertexShaderLoad(vulkano::OomError),
-    FragmentShaderLoad(vulkano::OomError),
+    Creation(vk::GraphicsPipelineCreationError),
+    VertexShaderLoad(vk::OomError),
+    FragmentShaderLoad(vk::OomError),
 }
 
 /// Errors that might occur while drawing to a framebuffer.
 #[derive(Debug)]
 pub enum DrawError {
-    RenderPassCreation(RenderPassCreationError),
+    RenderPassCreation(vk::RenderPassCreationError),
     GraphicsPipelineCreation(GraphicsPipelineError),
-    BufferCreation(DeviceMemoryAllocError),
-    ImageCreation(ImageCreationError),
-    FramebufferCreation(vulkano::framebuffer::FramebufferCreationError),
-    BeginRenderPass(BeginRenderPassError),
-    DrawIndexed(DrawIndexedError),
+    BufferCreation(vk::memory::DeviceMemoryAllocError),
+    ImageCreation(vk::ImageCreationError),
+    FramebufferCreation(vk::FramebufferCreationError),
+    BeginRenderPass(vk::command_buffer::BeginRenderPassError),
+    DrawIndexed(vk::command_buffer::DrawIndexedError),
 }
 
 mod vertex_impl {
@@ -101,7 +89,7 @@ mod vertex_impl {
 }
 
 mod vs {
-    vulkano_shaders::shader!{
+    crate::vk::shaders::shader!{
         ty: "vertex",
         src: "
 #version 450
@@ -126,7 +114,7 @@ void main() {
 }
 
 mod fs {
-    vulkano_shaders::shader!{
+    crate::vk::shaders::shader!{
         ty: "fragment",
         src: "
 #version 450
@@ -195,12 +183,12 @@ impl RenderPassImages {
     // Create all the necessary images for the `RenderPass` besides the swapchain image which will
     // be provided by the `Frame`.
     fn new(
-        device: Arc<Device>,
+        device: Arc<vk::Device>,
         dimensions: [u32; 2],
-        depth_format: Format,
+        depth_format: vk::Format,
         msaa_samples: u32,
-    ) -> Result<Self, ImageCreationError> {
-        let depth = AttachmentImage::transient_multisampled(
+    ) -> Result<Self, vk::ImageCreationError> {
+        let depth = vk::AttachmentImage::transient_multisampled(
             device,
             dimensions,
             msaa_samples,
@@ -215,19 +203,19 @@ impl RenderPassImages {
 impl Renderer {
     /// Create the `Renderer`.
     ///
-    /// This creates the `RenderPass` and `GraphicsPipeline` ready for drawing.
+    /// This creates the `RenderPass` and `vk::GraphicsPipeline` ready for drawing.
     pub fn new(
-        device: Arc<Device>,
-        color_format: Format,
-        depth_format: Format,
+        device: Arc<vk::Device>,
+        color_format: vk::Format,
+        depth_format: vk::Format,
         msaa_samples: u32,
     ) -> Result<Self, RendererCreationError> {
-        let load_op = LoadOp::Load;
+        let load_op = vk::LoadOp::Load;
         let render_pass = Arc::new(
             create_render_pass(device, color_format, depth_format, load_op, msaa_samples)?
-        ) as Arc<RenderPassAbstract + Send + Sync>;
+        ) as Arc<vk::RenderPassAbstract + Send + Sync>;
         let graphics_pipeline = create_graphics_pipeline(render_pass.clone())?
-            as Arc<GraphicsPipelineAbstract + Send + Sync>;
+            as Arc<vk::GraphicsPipelineAbstract + Send + Sync>;
         let vertices = vec![];
         let render_pass_images = None;
         let view_fbo = ViewFbo::default();
@@ -248,7 +236,7 @@ impl Renderer {
         draw: &draw::Draw<S>,
         dpi_factor: f32,
         frame: &Frame,
-        depth_format: Format,
+        depth_format: vk::Format,
     ) -> Result<(), DrawError>
     where
         S: BaseFloat,
@@ -264,11 +252,11 @@ impl Renderer {
         // Retrieve the color/depth image load op and clear values based on the bg color.
         let bg_color = draw.state.borrow().background_color;
         let (load_op, clear_color, clear_depth) = match bg_color {
-            None => (LoadOp::Load, ClearValue::None, ClearValue::None),
+            None => (vk::LoadOp::Load, vk::ClearValue::None, vk::ClearValue::None),
             Some(color) => {
                 let clear_color = [color.red, color.green, color.blue, color.alpha].into();
                 let clear_depth = 1f32.into();
-                (LoadOp::Clear, clear_color, clear_depth)
+                (vk::LoadOp::Clear, clear_color, clear_depth)
             },
         };
 
@@ -308,14 +296,14 @@ impl Renderer {
         // Create the vertex and index buffers.
         let map_vertex = |v| Vertex::from_mesh_vertex(v, img_w as _, img_h as _, dpi_factor);
         vertices.extend(draw.raw_vertices().map(map_vertex));
-        let (vertex_buffer, vb_future) = ImmutableBuffer::from_iter(
+        let (vertex_buffer, vb_future) = vk::ImmutableBuffer::from_iter(
             vertices.drain(..),
-            BufferUsage::vertex_buffer(),
+            vk::BufferUsage::vertex_buffer(),
             queue.clone(),
         )?;
-        let (index_buffer, ib_future) = ImmutableBuffer::from_iter(
+        let (index_buffer, ib_future) = vk::ImmutableBuffer::from_iter(
             draw.inner_mesh().indices().iter().map(|&u| u as u32),
-            BufferUsage::index_buffer(),
+            vk::BufferUsage::index_buffer(),
             queue.clone(),
         )?;
 
@@ -374,32 +362,32 @@ impl Renderer {
 
 /// The render pass used for the graphics pipeline.
 pub fn create_render_pass(
-    device: Arc<Device>,
-    color_format: Format,
-    depth_format: Format,
-    load_op: LoadOp,
+    device: Arc<vk::Device>,
+    color_format: vk::Format,
+    depth_format: vk::Format,
+    load_op: vk::LoadOp,
     msaa_samples: u32,
-) -> Result<Arc<RenderPassAbstract + Send + Sync>, RenderPassCreationError> {
+) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     // TODO: Remove this in favour of a nannou-specific, dynamic `RenderPassDesc` implementation.
     match load_op {
-        LoadOp::Clear => {
+        vk::LoadOp::Clear => {
             create_render_pass_clear(device, color_format, depth_format, msaa_samples)
         }
-        LoadOp::Load => {
+        vk::LoadOp::Load => {
             create_render_pass_load(device, color_format, depth_format, msaa_samples)
         }
-        LoadOp::DontCare => unreachable!(),
+        vk::LoadOp::DontCare => unreachable!(),
     }
 }
 
-/// Create a render pass that uses `LoadOp::Clear` for the multisampled color and depth
+/// Create a render pass that uses `vk::LoadOp::Clear` for the multisampled color and depth
 /// attachments.
 pub fn create_render_pass_clear(
-    device: Arc<Device>,
-    color_format: Format,
-    depth_format: Format,
+    device: Arc<vk::Device>,
+    color_format: vk::Format,
+    depth_format: vk::Format,
     msaa_samples: u32,
-) -> Result<Arc<RenderPassAbstract + Send + Sync>, RenderPassCreationError> {
+) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     let rp = single_pass_renderpass!(
         device,
         attachments: {
@@ -426,14 +414,14 @@ pub fn create_render_pass_clear(
     Ok(Arc::new(rp))
 }
 
-/// Create a render pass that uses `LoadOp::Clear` for the multisampled color and depth
+/// Create a render pass that uses `vk::LoadOp::Clear` for the multisampled color and depth
 /// attachments.
 pub fn create_render_pass_load(
-    device: Arc<Device>,
-    color_format: Format,
-    depth_format: Format,
+    device: Arc<vk::Device>,
+    color_format: vk::Format,
+    depth_format: vk::Format,
     msaa_samples: u32,
-) -> Result<Arc<RenderPassAbstract + Send + Sync>, RenderPassCreationError> {
+) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     let rp = single_pass_renderpass!(
         device,
         attachments: {
@@ -461,8 +449,8 @@ pub fn create_render_pass_load(
 }
 
 /// The dynamic state for the renderer.
-pub fn dynamic_state(viewport_dimensions: [f32; 2]) -> DynamicState {
-    let viewport = Viewport {
+pub fn dynamic_state(viewport_dimensions: [f32; 2]) -> vk::DynamicState {
+    let viewport = vk::Viewport {
         origin: [0.0, 0.0],
         dimensions: viewport_dimensions,
         depth_range: 0.0 .. 1.0,
@@ -470,21 +458,21 @@ pub fn dynamic_state(viewport_dimensions: [f32; 2]) -> DynamicState {
     let viewports = Some(vec![viewport]);
     let line_width = None;
     let scissors = None;
-    DynamicState { line_width, viewports, scissors }
+    vk::DynamicState { line_width, viewports, scissors }
 }
 
 /// The graphics pipeline used by the renderer.
 pub fn create_graphics_pipeline<R>(
     render_pass: R,
-) -> Result<Arc<GraphicsPipelineAbstract + Send + Sync>, GraphicsPipelineError>
+) -> Result<Arc<vk::GraphicsPipelineAbstract + Send + Sync>, GraphicsPipelineError>
 where
-    R: RenderPassAbstract + Send + Sync + 'static,
+    R: vk::RenderPassAbstract + Send + Sync + 'static,
 {
     let device = render_pass.device().clone();
     let vs = vs::Shader::load(device.clone()).map_err(GraphicsPipelineError::VertexShaderLoad)?;
     let fs = fs::Shader::load(device.clone()).map_err(GraphicsPipelineError::FragmentShaderLoad)?;
-    let subpass = Subpass::from(render_pass, 0).expect("no subpass for `id`");
-    let pipeline = GraphicsPipeline::start()
+    let subpass = vk::Subpass::from(render_pass, 0).expect("no subpass for `id`");
+    let pipeline = vk::GraphicsPipeline::start()
         //.sample_shading_enabled(1.0)
         .vertex_input_single_buffer::<Vertex>()
         .vertex_shader(vs.main_entry_point(), ())
@@ -499,8 +487,8 @@ where
 
 // Error Implementations
 
-impl From<RenderPassCreationError> for RendererCreationError {
-    fn from(err: RenderPassCreationError) -> Self {
+impl From<vk::RenderPassCreationError> for RendererCreationError {
+    fn from(err: vk::RenderPassCreationError) -> Self {
         RendererCreationError::RenderPass(err)
     }
 }
@@ -511,14 +499,14 @@ impl From<GraphicsPipelineError> for RendererCreationError {
     }
 }
 
-impl From<vulkano::pipeline::GraphicsPipelineCreationError> for GraphicsPipelineError {
-    fn from(err: vulkano::pipeline::GraphicsPipelineCreationError) -> Self {
+impl From<vk::GraphicsPipelineCreationError> for GraphicsPipelineError {
+    fn from(err: vk::GraphicsPipelineCreationError) -> Self {
         GraphicsPipelineError::Creation(err)
     }
 }
 
-impl From<RenderPassCreationError> for DrawError {
-    fn from(err: RenderPassCreationError) -> Self {
+impl From<vk::RenderPassCreationError> for DrawError {
+    fn from(err: vk::RenderPassCreationError) -> Self {
         DrawError::RenderPassCreation(err)
     }
 }
@@ -529,32 +517,32 @@ impl From<GraphicsPipelineError> for DrawError {
     }
 }
 
-impl From<DeviceMemoryAllocError> for DrawError {
-    fn from(err: DeviceMemoryAllocError) -> Self {
+impl From<vk::memory::DeviceMemoryAllocError> for DrawError {
+    fn from(err: vk::memory::DeviceMemoryAllocError) -> Self {
         DrawError::BufferCreation(err)
     }
 }
 
-impl From<ImageCreationError> for DrawError {
-    fn from(err: ImageCreationError) -> Self {
+impl From<vk::ImageCreationError> for DrawError {
+    fn from(err: vk::ImageCreationError) -> Self {
         DrawError::ImageCreation(err)
     }
 }
 
-impl From<FramebufferCreationError> for DrawError {
-    fn from(err: FramebufferCreationError) -> Self {
+impl From<vk::FramebufferCreationError> for DrawError {
+    fn from(err: vk::FramebufferCreationError) -> Self {
         DrawError::FramebufferCreation(err)
     }
 }
 
-impl From<BeginRenderPassError> for DrawError {
-    fn from(err: BeginRenderPassError) -> Self {
+impl From<vk::command_buffer::BeginRenderPassError> for DrawError {
+    fn from(err: vk::command_buffer::BeginRenderPassError) -> Self {
         DrawError::BeginRenderPass(err)
     }
 }
 
-impl From<DrawIndexedError> for DrawError {
-    fn from(err: DrawIndexedError) -> Self {
+impl From<vk::command_buffer::DrawIndexedError> for DrawError {
+    fn from(err: vk::command_buffer::DrawIndexedError) -> Self {
         DrawError::DrawIndexed(err)
     }
 }

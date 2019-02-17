@@ -1,49 +1,35 @@
+use crate::homography;
+use crate::Model;
+use nannou::math::Matrix4;
 use nannou::prelude::*;
 use std::cell::RefCell;
 use std::sync::Arc;
-use crate::homography;
-
-use nannou::vulkano::buffer::{BufferUsage, ImmutableBuffer};
-use nannou::vulkano::command_buffer::DynamicState;
-use nannou::vulkano::descriptor::descriptor_set::{PersistentDescriptorSet};
-use nannou::vulkano::device::DeviceOwned;
-use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
-use nannou::vulkano::pipeline::viewport::Viewport;
-use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
-use nannou::vulkano::sampler::{Filter, MipmapMode, Sampler, SamplerAddressMode};
-use nannou::vulkano::image::attachment::AttachmentImage;
-use nannou::vulkano::sync::GpuFuture;
-use nannou::math::Matrix4;
-use nannou::vulkano::buffer::CpuBufferPool;
-
-use crate::Model;
 
 pub struct Warp {
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+    pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
     view_fbo: RefCell<ViewFbo>,
-    uniform_buffer: CpuBufferPool<vs::ty::Data>,
-    sampler: Arc<Sampler>,
+    uniform_buffer: vk::CpuBufferPool<vs::ty::Data>,
+    sampler: Arc<vk::Sampler>,
 }
 
 #[derive(Debug, Clone)]
 struct Vertex {
     position: [f32; 3],
     v_tex_coords: [f32; 2],
-    
 }
 
-nannou::vulkano::impl_vertex!(Vertex, position, v_tex_coords);
+vk::impl_vertex!(Vertex, position, v_tex_coords);
 
 pub(crate) fn warp(app: &App) -> Warp {
     let device = app.main_window().swapchain().device().clone();
-
-    let uniform_buffer = CpuBufferPool::<vs::ty::Data>::new(device.clone(), BufferUsage::all());
+    let usage = vk::BufferUsage::all();
+    let uniform_buffer = vk::CpuBufferPool::<vs::ty::Data>::new(device.clone(), usage);
     let vertex_shader = vs::Shader::load(device.clone()).unwrap();
     let fragment_shader = fs::Shader::load(device.clone()).unwrap();
 
     let render_pass = Arc::new(
-        nannou::vulkano::single_pass_renderpass!(
+        vk::single_pass_renderpass!(
             device.clone(),
             attachments: {
                 color: {
@@ -63,30 +49,20 @@ pub(crate) fn warp(app: &App) -> Warp {
         .unwrap(),
     );
 
-    let sampler = Sampler::new(
-        device.clone(),
-        Filter::Linear,
-        Filter::Linear,
-        MipmapMode::Linear,
-        SamplerAddressMode::ClampToEdge,
-        SamplerAddressMode::ClampToEdge,
-        SamplerAddressMode::ClampToEdge,
-        0.0,
-        1.0,
-        0.0,
-        1.0,
-    )
-    .unwrap();
+    let sampler = vk::SamplerBuilder::new()
+        .mipmap_mode(vk::sampler::MipmapMode::Linear)
+        .build(device.clone())
+        .unwrap();
 
     let pipeline = Arc::new(
-        GraphicsPipeline::start()
+        vk::GraphicsPipeline::start()
             .vertex_input_single_buffer::<Vertex>()
             .vertex_shader(vertex_shader.main_entry_point(), ())
             .triangle_strip()
             .viewports_dynamic_scissors_irrelevant(1)
             .fragment_shader(fragment_shader.main_entry_point(), ())
             .blend_alpha_blending()
-            .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
+            .render_pass(vk::Subpass::from(render_pass.clone(), 0).unwrap())
             .build(device.clone())
             .unwrap(),
     );
@@ -102,18 +78,18 @@ pub(crate) fn warp(app: &App) -> Warp {
     }
 }
 
-pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>, frame: Frame) -> Frame {
+pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<vk::AttachmentImage>, frame: Frame) -> Frame {
     let Model {
         warp,
         controls,
         ..
     } = model;
-    
+
     let [w, h] = frame.swapchain_image().dimensions();
     let half_w = w as f32 / 2.0;
     let half_h = h as f32 / 2.0;
     let ref corners = controls.corners;
-    
+
     let remap = | a: &Point2| -> Point2 {
         pt2(a.x / half_w as f32, a.y / half_h as f32)
     };
@@ -123,16 +99,8 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>, 
     let bl = remap(&corners.bottom_left.pos);
     let br = remap(&corners.bottom_right.pos);
 
-    let src_dims = [
-    [-1.0, -1.0],
-    [1.0, -1.0],
-    [1.0, 1.0],
-    [-1.0, 1.0]];
-    let dst_dims = [[tl.x, -tl.y],
-    [tr.x, -tr.y],
-    [br.x, -br.y],
-    [bl.x, -bl.y]];
-
+    let src_dims = [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]];
+    let dst_dims = [[tl.x, -tl.y], [tr.x, -tr.y], [br.x, -br.y], [bl.x, -bl.y]];
     let h_matrix = homography::find_homography(src_dims, dst_dims);
     let h_matrix: &Matrix4<f32> = From::from(&h_matrix);
     let h_matrix = h_matrix.clone();
@@ -141,35 +109,17 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>, 
         homography: h_matrix.into(),
     };
 
-    let (vertex_buffer, buffer_future) = ImmutableBuffer::from_iter(
-        [
-        Vertex {
-            position: [-1.0, -1.0, 0.0],
-            v_tex_coords: [0.0, 0.0],
-            
-        },
-        Vertex {
-            position: [-1.0, 1.0, 0.0],
-            v_tex_coords: [0.0, 1.0],
-        },
-        Vertex {
-            position: [1.0, -1.0, 0.0],
-            v_tex_coords: [1.0, 0.0],
-        },
-        Vertex {
-            position: [1.0, 1.0, 0.0],
-            v_tex_coords: [1.0, 1.0],
-        },
-        ]
-        .iter()
-        .cloned(),
-        BufferUsage::all(),
-        app.window(frame.window_id())
+    let positions = [[-1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [1.0, -1.0, 0.0], [1.0, 1.0, 0.0]];
+    let tex_coords = [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]];
+    let data = positions.iter()
+        .zip(&tex_coords)
+        .map(|(&position, &v_tex_coords)| Vertex { position, v_tex_coords });
+    let queue = app.window(frame.window_id())
         .expect("no window for frame's window_id")
         .swapchain_queue()
-        .clone(),
-        )
-            .unwrap();
+        .clone();
+    let usage = vk::BufferUsage::all();
+    let (vertex_buffer, buffer_future) = vk::ImmutableBuffer::from_iter(data, usage, queue).unwrap();
 
 
     buffer_future
@@ -179,12 +129,12 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>, 
         .expect("failed to wait for buffer and image creation future");
 
     let [w, h] = frame.swapchain_image().dimensions();
-    let viewport = Viewport {
+    let viewport = vk::Viewport {
         origin: [0.0, 0.0],
         dimensions: [w as _, h as _],
         depth_range: 0.0..1.0,
     };
-    let dynamic_state = DynamicState {
+    let dynamic_state = vk::DynamicState {
         line_width: None,
         viewports: Some(vec![viewport]),
         scissors: None,
@@ -198,9 +148,9 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>, 
     let clear_values = vec![[0.0, 1.0, 0.0, 1.0].into()];
 
     let uniform_buffer_slice = warp.uniform_buffer.next(uniform_data).unwrap();
-    
+
     let desciptor_set = Arc::new(
-        PersistentDescriptorSet::start(warp.pipeline.clone(), 0)
+        vk::PersistentDescriptorSet::start(warp.pipeline.clone(), 0)
             .add_sampled_image(inter_image.clone(), warp.sampler.clone())
             .expect("Failed to create desciptor set")
             .add_buffer(uniform_buffer_slice)
@@ -232,7 +182,7 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<AttachmentImage>, 
 }
 
 mod vs {
-    nannou::vulkano_shaders::shader! {
+    nannou::vk::shaders::shader! {
     ty: "vertex",
         src: "
 #version 450
@@ -255,7 +205,7 @@ void main() {
 }
 
 mod fs {
-    nannou::vulkano_shaders::shader! {
+    nannou::vk::shaders::shader! {
     ty: "fragment",
         src: "
 #version 450

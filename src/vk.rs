@@ -1,26 +1,146 @@
-//! Items related to interaction with GPUs via Vulkan.
+//! Items related to Vulkan and the Rust API used by Nannou called Vulkano.
+//!
+//! This module re-exports the entire `vulkano` crate along with all of its documentation while
+//! also adding some additional helper types.
+//!
+//! Individual items from throughout the vulkano crate have been re-exported within this module for
+//! ease of access via the `vk::` prefix, removing the need for a lot of boilerplate when coding.
+//! However, as a result, the documentation for this module is quite noisey! You can find cleaner
+//! information about how the different areas of Vulkan interoperate by checking out the
+//! module-level documentation for that area. For example, read about Framebuffers and RenderPasses
+//! in the `nannou::vk::framebuffer` module, or read about the CommandBuffer within the
+//! `nannou::vk::command_buffer` module.
+//!
+//! For more information on extensions to the vulkano crate added by nannou, scroll past the
+//! "Re-exports" items below.
 
+// Re-export `vulkano` along with its docs under this short-hand `vk` module.
+#[doc(inline)]
+pub use vulkano::*;
+
+// Re-export type and trait names whose meaning are still obvious outside of their module.
+pub use vulkano::{
+    buffer::{
+        BufferAccess, BufferInner, BufferSlice, BufferUsage, TypedBufferAccess,
+        CpuAccessibleBuffer, CpuBufferPool, DeviceLocalBuffer, ImmutableBuffer,
+        BufferCreationError, BufferView, BufferViewRef
+    },
+    buffer::cpu_pool::{
+        CpuBufferPoolChunk, CpuBufferPoolSubbuffer,
+    },
+    command_buffer::{
+        AutoCommandBuffer, AutoCommandBufferBuilder, CommandBufferExecFuture,
+        DispatchIndirectCommand, DrawIndirectCommand, DynamicState,
+        AutoCommandBufferBuilderContextError, ExecuteCommandsError, StateCacherOutcome,
+        UpdateBufferError, CommandBuffer,
+    },
+    descriptor::{
+        DescriptorSet, PipelineLayoutAbstract,
+    },
+    descriptor::descriptor::{
+        DescriptorBufferDesc, DescriptorDesc, DescriptorImageDesc, ShaderStages,
+        DescriptorDescSupersetError, DescriptorDescTy, DescriptorImageDescArray,
+        DescriptorImageDescDimensions, DescriptorType, ShaderStagesSupersetError,
+    },
+    descriptor::descriptor_set::{
+        DescriptorSetsCollection, DescriptorWrite, DescriptorsCount, FixedSizeDescriptorSet,
+        FixedSizeDescriptorSetBuilder, FixedSizeDescriptorSetBuilderArray,
+        FixedSizeDescriptorSetsPool, PersistentDescriptorSet, PersistentDescriptorSetBuf,
+        PersistentDescriptorSetBufView, PersistentDescriptorSetBuilder,
+        PersistentDescriptorSetBuilderArray, PersistentDescriptorSetImg,
+        PersistentDescriptorSetSampler, StdDescriptorPool, StdDescriptorPoolAlloc,
+        UnsafeDescriptorPool, UnsafeDescriptorPoolAllocIter, UnsafeDescriptorSet,
+        UnsafeDescriptorSetLayout, DescriptorPoolAllocError, PersistentDescriptorSetBuildError,
+        PersistentDescriptorSetError, DescriptorPool, DescriptorPoolAlloc, DescriptorSetDesc,
+    },
+    descriptor::pipeline_layout::{
+        EmptyPipelineDesc, PipelineLayout, PipelineLayoutDescPcRange, PipelineLayoutDescUnion,
+        PipelineLayoutSys, RuntimePipelineDesc, PipelineLayoutCreationError,
+        PipelineLayoutLimitsError, PipelineLayoutNotSupersetError, RuntimePipelineDescError,
+        PipelineLayoutDesc, PipelineLayoutPushConstantsCompatible, PipelineLayoutSetsCompatible,
+        PipelineLayoutSuperset,
+    },
+    device::{
+        Device, DeviceExtensions, DeviceOwned, DeviceCreationError, RawDeviceExtensions, Queue,
+        QueuesIter,
+    },
+    format::{
+        ClearValue, Format, FormatTy, AcceptsPixels, ClearValuesTuple, FormatDesc,
+        PossibleCompressedFormatDesc, PossibleDepthFormatDesc, PossibleDepthStencilFormatDesc,
+        PossibleFloatFormatDesc, PossibleFloatOrCompressedFormatDesc, PossibleSintFormatDesc,
+        PossibleStencilFormatDesc, PossibleUintFormatDesc, StrongStorage,
+    },
+    framebuffer::{
+        AttachmentDescription, Framebuffer, FramebufferBuilder, FramebufferSys,
+        PassDependencyDescription, PassDescription, RenderPass, RenderPassDescAttachments,
+        RenderPassDescDependencies, RenderPassDescSubpasses, RenderPassSys, Subpass,
+        FramebufferCreationError, IncompatibleRenderPassAttachmentError, LoadOp,
+        RenderPassCreationError, StoreOp, SubpassContents, AttachmentsList, FramebufferAbstract,
+        RenderPassAbstract, RenderPassCompatible, RenderPassDesc, RenderPassDescClearValues,
+        RenderPassSubpassInterface,
+    },
+    image::{
+        AttachmentImage, ImmutableImage, SwapchainImage,
+        ImageCreationError, ImageAccess, ImageInner, ImageViewAccess, ImageUsage, StorageImage,
+        ImageDimensions, ImageLayout, MipmapsCount,
+    },
+    image::immutable::{
+        ImmutableImageInitialization,
+    },
+    image::traits::{
+        ImageAccessFromUndefinedLayout, AttachmentImageView, ImageClearValue, ImageContent,
+    },
+    instance::{
+        ApplicationInfo, Instance, InstanceExtensions, Limits, PhysicalDevice, PhysicalDevicesIter,
+        QueueFamiliesIter, QueueFamily, RawInstanceExtensions, Version, InstanceCreationError,
+        PhysicalDeviceType,
+    },
+    pipeline::{
+        ComputePipeline, ComputePipelineSys, GraphicsPipeline, GraphicsPipelineBuilder,
+        GraphicsPipelineSys, ComputePipelineCreationError, GraphicsPipelineCreationError,
+        ComputePipelineAbstract, GraphicsPipelineAbstract,
+    },
+    pipeline::blend::{
+        AttachmentBlend, Blend, AttachmentsBlend, BlendFactor, BlendOp, LogicOp,
+    },
+    pipeline::depth_stencil::{
+        DepthStencil, Stencil, DepthBounds, StencilOp,
+    },
+    pipeline::vertex::{
+        AttributeInfo, BufferlessDefinition, BufferlessVertices, OneVertexOneInstanceDefinition,
+        SingleBufferDefinition, SingleInstanceBufferDefinition, TwoBuffersDefinition,
+        VertexMemberInfo, IncompatibleVertexDefinitionError, VertexMemberTy, Vertex,
+        VertexDefinition, VertexMember, VertexSource,
+    },
+    pipeline::viewport::{
+        Scissor, Viewport, ViewportsState,
+    },
+    query::{
+        OcclusionQueriesPool, QueryPipelineStatisticFlags, UnsafeQueriesRange, UnsafeQuery,
+        UnsafeQueryPool, QueryPoolCreationError, QueryType,
+    },
+    sampler::{
+        Compare as DepthStencilCompare, Sampler, SamplerAddressMode, SamplerCreationError,
+        UnnormalizedSamplerAddressMode,
+    },
+    swapchain::{
+        Surface, Swapchain, SwapchainAcquireFuture, SwapchainCreationError,
+    },
+    sync::{
+        Fence, FenceSignalFuture, JoinFuture, NowFuture, Semaphore, SemaphoreSignalFuture,
+        GpuFuture,
+    },
+};
+pub use vulkano_shaders as shaders;
+pub use vulkano_win as win;
+
+use crate::vk;
+use crate::vk::instance::debug::{DebugCallback, DebugCallbackCreationError, Message, MessageTypes};
+use crate::vk::instance::loader::{FunctionPointers, Loader};
 use std::borrow::Cow;
 use std::ops;
 use std::panic::RefUnwindSafe;
 use std::sync::Arc;
-use vulkano::device::Device;
-use vulkano::format::Format;
-use vulkano::framebuffer::{AttachmentsList, Framebuffer, FramebufferAbstract, FramebufferBuilder,
-                           FramebufferCreationError, RenderPassAbstract};
-use vulkano::instance::{ApplicationInfo, Instance, InstanceCreationError, InstanceExtensions,
-                        PhysicalDevice};
-use vulkano::instance::debug::{DebugCallback, DebugCallbackCreationError, Message, MessageTypes};
-use vulkano::instance::loader::{FunctionPointers, Loader};
-use vulkano::sampler::{Filter, MipmapMode, Sampler, SamplerAddressMode, SamplerCreationError};
-use vulkano::VulkanObject;
-use vulkano_win;
-
-#[cfg(all(target_os = "macos", not(test)))]
-use moltenvk_deps;
-
-#[cfg(all(target_os = "macos", not(test)))]
-use vulkano::instance::loader::DynamicLibraryLoader;
 
 /// The default application name used with the default `ApplicationInfo`.
 pub const DEFAULT_APPLICATION_NAME: &'static str = "nannou-app";
@@ -56,7 +176,7 @@ pub type FramebufferBuilderResult<R, A> =
 
 /// A builder struct that makes the process of building an instance more modular.
 #[derive(Default)]
-pub struct VulkanInstanceBuilder {
+pub struct InstanceBuilder {
     pub app_info: Option<ApplicationInfo<'static>>,
     pub extensions: Option<InstanceExtensions>,
     pub layers: Vec<String>,
@@ -65,7 +185,7 @@ pub struct VulkanInstanceBuilder {
 
 /// A builder struct that makes the process of building a debug callback more modular.
 #[derive(Default)]
-pub struct VulkanDebugCallbackBuilder {
+pub struct DebugCallbackBuilder {
     pub message_types: Option<MessageTypes>,
     pub user_callback: Option<BoxedUserCallback>,
 }
@@ -73,9 +193,9 @@ pub struct VulkanDebugCallbackBuilder {
 /// A builder struct that makes the process of building a **Sampler** more modular.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SamplerBuilder {
-    pub mag_filter: Option<Filter>,
-    pub min_filter: Option<Filter>,
-    pub mipmap_mode: Option<MipmapMode>,
+    pub mag_filter: Option<vk::sampler::Filter>,
+    pub min_filter: Option<vk::sampler::Filter>,
+    pub mipmap_mode: Option<vk::sampler::MipmapMode>,
     pub address_u: Option<SamplerAddressMode>,
     pub address_v: Option<SamplerAddressMode>,
     pub address_w: Option<SamplerAddressMode>,
@@ -102,9 +222,9 @@ impl FramebufferObject {
         builder: F,
     ) -> Result<(), FramebufferCreationError>
     where
-        R: 'static + RenderPassAbstract + Send + Sync,
+        R: 'static + vk::framebuffer::RenderPassAbstract + Send + Sync,
         F: FnOnce(FramebufferBuilder<R, ()>) -> FramebufferBuilderResult<R, A>,
-        A: 'static + AttachmentsList + Send + Sync,
+        A: 'static + vk::framebuffer::AttachmentsList + Send + Sync,
     {
         let needs_creation = self.framebuffer.is_none()
             || !self.dimensions_match(dimensions)
@@ -132,11 +252,11 @@ impl FramebufferObject {
     /// Whether or not the given renderpass matches the framebuffer's render pass.
     pub fn render_passes_match<R>(&self, render_pass: R) -> bool
     where
-        R: RenderPassAbstract,
+        R: vk::framebuffer::RenderPassAbstract,
     {
         self.framebuffer
             .as_ref()
-            .map(|fb| RenderPassAbstract::inner(fb).internal_object())
+            .map(|fb| vk::framebuffer::RenderPassAbstract::inner(fb).internal_object())
             .map(|obj| obj == render_pass.inner().internal_object())
             .unwrap_or(false)
     }
@@ -150,7 +270,7 @@ impl FramebufferObject {
     }
 }
 
-impl VulkanInstanceBuilder {
+impl InstanceBuilder {
     /// Begin building a vulkano instance.
     pub fn new() -> Self {
         Default::default()
@@ -215,15 +335,9 @@ impl VulkanInstanceBuilder {
         self
     }
 
-    /// Add custom vulkan loader
-    pub fn add_loader(mut self, loader: FunctionPointers<Box<dyn Loader + Send + Sync>>) -> Self {
-        self.loader = Some(loader);
-        self
-    }
-
     /// Build the vulkan instance with the existing parameters.
     pub fn build(self) -> Result<Arc<Instance>, InstanceCreationError> {
-        let VulkanInstanceBuilder {
+        let InstanceBuilder {
             app_info,
             extensions,
             layers,
@@ -240,7 +354,7 @@ impl VulkanInstanceBuilder {
     }
 }
 
-impl VulkanDebugCallbackBuilder {
+impl DebugCallbackBuilder {
     /// Begin building a vulkan debug callback.
     pub fn new() -> Self {
         Default::default()
@@ -270,7 +384,7 @@ impl VulkanDebugCallbackBuilder {
         self,
         instance: &Arc<Instance>,
     ) -> Result<DebugCallback, DebugCallbackCreationError> {
-        let VulkanDebugCallbackBuilder {
+        let DebugCallbackBuilder {
             message_types,
             user_callback,
         } = self;
@@ -308,16 +422,16 @@ impl VulkanDebugCallbackBuilder {
 }
 
 impl SamplerBuilder {
-    pub const DEFAULT_MAG_FILTER: Filter = Filter::Linear;
-    pub const DEFAULT_MIN_FILTER: Filter = Filter::Linear;
-    pub const DEFAULT_MIPMAP_MODE: MipmapMode = MipmapMode::Nearest;
+    pub const DEFAULT_MAG_FILTER: vk::sampler::Filter = vk::sampler::Filter::Linear;
+    pub const DEFAULT_MIN_FILTER: vk::sampler::Filter = vk::sampler::Filter::Linear;
+    pub const DEFAULT_MIPMAP_MODE: vk::sampler::MipmapMode = vk::sampler::MipmapMode::Nearest;
     pub const DEFAULT_ADDRESS_U: SamplerAddressMode = SamplerAddressMode::ClampToEdge;
     pub const DEFAULT_ADDRESS_V: SamplerAddressMode = SamplerAddressMode::ClampToEdge;
     pub const DEFAULT_ADDRESS_W: SamplerAddressMode = SamplerAddressMode::ClampToEdge;
     pub const DEFAULT_MIP_LOD_BIAS: f32 = 0.0;
     pub const DEFAULT_MAX_ANISOTROPY: f32 = 1.0;
     pub const DEFAULT_MIN_LOD: f32 = 0.0;
-    pub const DEFAULT_MAX_LOD: f32 = 0.0;
+    pub const DEFAULT_MAX_LOD: f32 = 1.0;
 
     /// Begin building a new vulkan **Sampler**.
     pub fn new() -> Self {
@@ -326,20 +440,20 @@ impl SamplerBuilder {
 
     /// How the implementation should sample from the image when it is respectively larger than the
     /// original.
-    pub fn mag_filter(mut self, filter: Filter) -> Self {
+    pub fn mag_filter(mut self, filter: vk::sampler::Filter) -> Self {
         self.mag_filter = Some(filter);
         self
     }
 
     /// How the implementation should sample from the image when it is respectively smaller than
     /// the original.
-    pub fn min_filter(mut self, filter: Filter) -> Self {
+    pub fn min_filter(mut self, filter: vk::sampler::Filter) -> Self {
         self.min_filter = Some(filter);
         self
     }
 
     /// How the implementation should choose which mipmap to use.
-    pub fn mipmap_mode(mut self, mode: MipmapMode) -> Self {
+    pub fn mipmap_mode(mut self, mode: vk::sampler::MipmapMode) -> Self {
         self.mipmap_mode = Some(mode);
         self
     }
@@ -432,14 +546,14 @@ impl ops::Deref for FramebufferObject {
 
 /// The default set of required extensions used by Nannou.
 ///
-/// This is the same as calling `vulkano_win::required_extensions()`.
+/// This is the same as calling `vk::win::required_extensions()`.
 pub fn required_windowing_extensions() -> InstanceExtensions {
     vulkano_win::required_extensions()
 }
 
 /// Whether or not the format is sRGB.
 pub fn format_is_srgb(format: Format) -> bool {
-    use vulkano::format::Format::*;
+    use vk::format::Format::*;
     match format {
         R8Srgb |
         R8G8Srgb |
@@ -489,7 +603,10 @@ pub fn msaa_samples_limited(physical_device: &PhysicalDevice, target_msaa_sample
 }
 
 #[cfg(all(target_os = "macos", not(test)))]
-pub fn check_moltenvk(vulkan_builder: VulkanInstanceBuilder, settings: Option<moltenvk_deps::Install>) -> VulkanInstanceBuilder {
+pub fn check_moltenvk(
+    vulkan_builder: InstanceBuilder,
+    settings: Option<moltenvk_deps::Install>,
+) -> InstanceBuilder {
     let settings = match settings {
         Some(s) => s,
         None => Default::default(),
@@ -515,9 +632,8 @@ pub fn check_moltenvk(vulkan_builder: VulkanInstanceBuilder, settings: Option<mo
     }
 }
 
-
 pub fn required_extensions_with_loader<L>(ptrs: &FunctionPointers<L>)
-    -> InstanceExtensions 
+    -> InstanceExtensions
     where L: Loader
 {
     let ideal = InstanceExtensions {

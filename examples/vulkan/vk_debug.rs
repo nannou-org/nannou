@@ -2,12 +2,12 @@
 //!
 //! Use `Default::default()` to simply use the default callback which will enable all message types
 //! including error, warning, performance_warning, information and debug. See the
-//! `nannou::gpu::VulkanDebugCallbackBuilder` docs for more information on how to customise this.
+//! `nannou::vk::DebugCallbackBuilder` docs for more information on how to customise this.
 //!
 //! If you require specifying custom validation layers, please see
-//! `nannou::app::Builder::vulkan_instance` and the `nannou::gpu::VulkanInstanceBuilder` which will
+//! `nannou::app::Builder::vulkan_instance` and the `nannou::vk::InstanceBuilder` which will
 //! allow you to specify your own custom set of validation layers. To determine what layers are
-//! available on a system, see the `nannou::vulkano::instance::layers_list` function.
+//! available on a system, see the `nannou::vk::instance::layers_list` function.
 
 extern crate nannou;
 
@@ -15,7 +15,7 @@ use nannou::prelude::*;
 
 fn main() {
     nannou::app(model)
-        .vulkan_debug_callback(Default::default()) // The vulkan debug callback.
+        .vk_debug_callback(Default::default()) // The vulkan debug callback.
         .simple_window(view)
         .run();
 }

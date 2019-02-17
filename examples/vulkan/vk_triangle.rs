@@ -1,25 +1,17 @@
 extern crate nannou;
 
 use nannou::prelude::*;
-use nannou::vulkano;
 use std::cell::RefCell;
 use std::sync::Arc;
-
-use nannou::vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
-use nannou::vulkano::command_buffer::DynamicState;
-use nannou::vulkano::device::DeviceOwned;
-use nannou::vulkano::framebuffer::{RenderPassAbstract, Subpass};
-use nannou::vulkano::pipeline::viewport::Viewport;
-use nannou::vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 
 fn main() {
     nannou::app(model).run();
 }
 
 struct Model {
-    render_pass: Arc<RenderPassAbstract + Send + Sync>,
-    pipeline: Arc<GraphicsPipelineAbstract + Send + Sync>,
-    vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
+    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+    pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
     view_fbo: RefCell<ViewFbo>,
 }
 
@@ -28,7 +20,7 @@ struct Vertex {
     position: [f32; 2],
 }
 
-nannou::vulkano::impl_vertex!(Vertex, position);
+vk::impl_vertex!(Vertex, position);
 
 fn model(app: &App) -> Model {
     app.new_window()
@@ -42,24 +34,10 @@ fn model(app: &App) -> Model {
 
     // We now create a buffer that will store the shape of our triangle.
     let vertex_buffer = {
-        CpuAccessibleBuffer::from_iter(
-            device.clone(),
-            BufferUsage::all(),
-            [
-                Vertex {
-                    position: [-0.5, -0.25],
-                },
-                Vertex {
-                    position: [0.0, 0.5],
-                },
-                Vertex {
-                    position: [0.25, -0.1],
-                },
-            ]
-            .iter()
-            .cloned(),
-        )
-        .unwrap()
+        let positions = [[-0.5, -0.25], [0.0, 0.5], [0.25, -0.1]];
+        let vertices = positions.iter().map(|&position| Vertex { position });
+        vk::CpuAccessibleBuffer::from_iter(device.clone(), vk::BufferUsage::all(), vertices)
+            .unwrap()
     };
 
     let vertex_shader = vs::Shader::load(device.clone()).unwrap();
@@ -69,7 +47,7 @@ fn model(app: &App) -> Model {
     // output of the graphics pipeline will go. It describes the layout of the images
     // where the colors, depth and/or stencil information will be written.
     let render_pass = Arc::new(
-        nannou::vulkano::single_pass_renderpass!(
+        vk::single_pass_renderpass!(
             device.clone(),
             attachments: {
                 // `color` is a custom name we give to the first and only attachment.
@@ -102,7 +80,7 @@ fn model(app: &App) -> Model {
     // Before we draw we have to create what is called a pipeline. This is similar to an OpenGL
     // program, but much more specific.
     let pipeline = Arc::new(
-        GraphicsPipeline::start()
+        vk::GraphicsPipeline::start()
             // We need to indicate the layout of the vertices.
             // The type `SingleBufferDefinition` actually contains a template parameter
             // corresponding to the type of each vertex.
@@ -119,7 +97,7 @@ fn model(app: &App) -> Model {
             .fragment_shader(fragment_shader.main_entry_point(), ())
             // We have to indicate which subpass of which render pass this pipeline is going to be
             // used in. The pipeline will only be usable from this particular subpass.
-            .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
+            .render_pass(vk::Subpass::from(render_pass.clone(), 0).unwrap())
             // Now that our builder is filled, we call `build()` to obtain an actual pipeline.
             .build(device.clone())
             .unwrap(),
@@ -142,12 +120,13 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     // Dynamic viewports allow us to recreate just the viewport when the window is resized
     // Otherwise we would have to recreate the whole pipeline.
     let [w, h] = frame.swapchain_image().dimensions();
-    let viewport = Viewport {
+    let viewport = vk::Viewport {
         origin: [0.0, 0.0],
         dimensions: [w as _, h as _],
         depth_range: 0.0..1.0,
     };
-    let dynamic_state = DynamicState {
+
+    let dynamic_state = vk::DynamicState {
         line_width: None,
         viewports: Some(vec![viewport]),
         scissors: None,
@@ -166,13 +145,7 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
         .add_commands()
         .begin_render_pass(model.view_fbo.borrow().expect_inner(), false, clear_values)
         .unwrap()
-        .draw(
-            model.pipeline.clone(),
-            &dynamic_state,
-            vec![model.vertex_buffer.clone()],
-            (),
-            (),
-        )
+        .draw(model.pipeline.clone(), &dynamic_state, vec![model.vertex_buffer.clone()], (), ())
         .unwrap()
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
@@ -181,7 +154,7 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
 }
 
 mod vs {
-    nannou::vulkano_shaders::shader! {
+    nannou::vk::shaders::shader! {
     ty: "vertex",
             src: "
 #version 450
@@ -195,7 +168,7 @@ void main() {
 }
 
 mod fs {
-    nannou::vulkano_shaders::shader! {
+    nannou::vk::shaders::shader! {
     ty: "fragment",
         src: "
 #version 450
