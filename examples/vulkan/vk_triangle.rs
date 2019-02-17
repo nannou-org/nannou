@@ -121,11 +121,7 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     // Otherwise we would have to recreate the whole pipeline.
     let [w, h] = frame.swapchain_image().dimensions();
     let viewport = vk::ViewportBuilder::new().build([w as _, h as _]);
-    let dynamic_state = vk::DynamicState {
-        line_width: None,
-        viewports: Some(vec![viewport]),
-        scissors: None,
-    };
+    let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
 
     // Update the view_fbo.
     model.view_fbo.borrow_mut()
