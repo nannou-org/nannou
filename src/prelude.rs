@@ -22,7 +22,7 @@ pub use osc;
 pub use rand::{random, random_f32, random_f64, random_range};
 pub use time::DurationF64;
 pub use ui;
-pub use vk::{self, DeviceOwned as VulkanDeviceOwned, GpuFuture};
+pub use vk::{self, DeviceOwned as VulkanDeviceOwned, DynamicStateBuilder, GpuFuture};
 pub use window::{self, Id as WindowId};
 
 // The following constants have "regular" names for the `DefaultScalar` type and type suffixes for

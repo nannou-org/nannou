@@ -6,7 +6,7 @@ use math::{BaseFloat, NumCast};
 use std::error::Error as StdError;
 use std::fmt;
 use std::sync::Arc;
-use vk::{self, DeviceOwned, GpuFuture, RenderPassDesc};
+use vk::{self, DeviceOwned, DynamicStateBuilder, GpuFuture, RenderPassDesc};
 
 /// A type used for rendering a **nannou::draw::Mesh** with a vulkan graphics pipeline.
 pub struct Renderer {
@@ -451,10 +451,7 @@ pub fn create_render_pass_load(
 /// The dynamic state for the renderer.
 pub fn dynamic_state(viewport_dimensions: [f32; 2]) -> vk::DynamicState {
     let viewport = vk::ViewportBuilder::new().build(viewport_dimensions);
-    let viewports = Some(vec![viewport]);
-    let line_width = None;
-    let scissors = None;
-    vk::DynamicState { line_width, viewports, scissors }
+    vk::DynamicState::default().viewports(vec![viewport])
 }
 
 /// The graphics pipeline used by the renderer.
