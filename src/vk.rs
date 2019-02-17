@@ -136,7 +136,7 @@ pub use vulkano_win as win;
 
 use crate::vk;
 use crate::vk::instance::debug::{DebugCallback, DebugCallbackCreationError, Message, MessageTypes};
-use crate::vk::instance::loader::{FunctionPointers, Loader};
+use crate::vk::instance::loader::{DynamicLibraryLoader, FunctionPointers, Loader};
 use std::borrow::Cow;
 use std::ops;
 use std::panic::RefUnwindSafe;
