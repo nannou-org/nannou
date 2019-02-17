@@ -125,11 +125,7 @@ fn view(_app: &App, model: &Model, frame: RawFrame) -> RawFrame {
     // Dynamic viewports allow us to recreate just the viewport when the window is resized
     // Otherwise we would have to recreate the whole pipeline.
     let [w, h] = frame.swapchain_image().dimensions();
-    let viewport = vk::Viewport {
-        origin: [0.0, 0.0],
-        dimensions: [w as _, h as _],
-        depth_range: 0.0..1.0,
-    };
+    let viewport = vk::ViewportBuilder::new().build([w as _, h as _]);
     let dynamic_state = vk::DynamicState {
         line_width: None,
         viewports: Some(vec![viewport]),
