@@ -450,11 +450,7 @@ pub fn create_render_pass_load(
 
 /// The dynamic state for the renderer.
 pub fn dynamic_state(viewport_dimensions: [f32; 2]) -> vk::DynamicState {
-    let viewport = vk::Viewport {
-        origin: [0.0, 0.0],
-        dimensions: viewport_dimensions,
-        depth_range: 0.0 .. 1.0,
-    };
+    let viewport = vk::ViewportBuilder::new().build(viewport_dimensions);
     let viewports = Some(vec![viewport]);
     let line_width = None;
     let scissors = None;

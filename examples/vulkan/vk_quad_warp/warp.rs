@@ -129,11 +129,7 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<vk::AttachmentImag
         .expect("failed to wait for buffer and image creation future");
 
     let [w, h] = frame.swapchain_image().dimensions();
-    let viewport = vk::Viewport {
-        origin: [0.0, 0.0],
-        dimensions: [w as _, h as _],
-        depth_range: 0.0..1.0,
-    };
+    let viewport = vk::ViewportBuilder::new().build([w as _, h as _]);
     let dynamic_state = vk::DynamicState {
         line_width: None,
         viewports: Some(vec![viewport]),

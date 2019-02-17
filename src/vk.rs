@@ -138,7 +138,7 @@ use crate::vk;
 use crate::vk::instance::debug::{DebugCallback, DebugCallbackCreationError, Message, MessageTypes};
 use crate::vk::instance::loader::{FunctionPointers, Loader};
 use std::borrow::Cow;
-use std::ops;
+use std::ops::{self, Range};
 use std::panic::RefUnwindSafe;
 use std::sync::Arc;
 
@@ -203,6 +203,13 @@ pub struct SamplerBuilder {
     pub max_anisotropy: Option<f32>,
     pub min_lod: Option<f32>,
     pub max_lod: Option<f32>,
+}
+
+/// A builder struct that makes the process of building a **Viewport** more modular.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ViewportBuilder {
+    pub origin: Option<[f32; 2]>,
+    pub depth_range: Option<Range<f32>>,
 }
 
 // The user vulkan debug callback allocated on the heap to avoid complicated type params.
@@ -534,6 +541,51 @@ impl SamplerBuilder {
             min_lod.unwrap_or(Self::DEFAULT_MIN_LOD),
             max_lod.unwrap_or(Self::DEFAULT_MAX_LOD),
         )
+    }
+}
+
+impl ViewportBuilder {
+    pub const DEFAULT_ORIGIN: [f32; 2] = [0.0; 2];
+    pub const DEFAULT_DEPTH_RANGE: Range<f32> = 0.0..1.0;
+
+    /// Begin building a new **Viewport**.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Coordinates in pixels of the top-left hand corner of the viewport.
+    ///
+    /// By default this is `ViewportDefault::DEFAULT_ORIGIN`.
+    pub fn origin(mut self, origin: [f32; 2]) -> Self {
+        self.origin = Some(origin);
+        self
+    }
+
+    /// Minimum and maximum values of the depth.
+    ///
+    /// The values `0.0` to `1.0` of each vertex's Z coordinate will be mapped to this
+    /// `depth_range` before being compared to the existing depth value.
+    ///
+    /// This is equivalents to `glDepthRange` in OpenGL, except that OpenGL uses the Z coordinate
+    /// range from `-1.0` to `1.0` instead.
+    ///
+    /// By default this is `ViewportDefault::DEFAULT_DEPTH_RANGE`.
+    pub fn depth_range(mut self, range: Range<f32>) -> Self {
+        self.depth_range = Some(range);
+        self
+    }
+
+    /// Construct the viewport with its dimensions in pixels.
+    pub fn build(self, dimensions: [f32; 2]) -> Viewport {
+        let ViewportBuilder {
+            origin,
+            depth_range,
+        } = self;
+        Viewport {
+            origin: origin.unwrap_or(Self::DEFAULT_ORIGIN),
+            depth_range: depth_range.unwrap_or(Self::DEFAULT_DEPTH_RANGE),
+            dimensions,
+        }
     }
 }
 

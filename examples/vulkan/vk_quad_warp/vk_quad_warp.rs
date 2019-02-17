@@ -311,11 +311,7 @@ fn create_graphics_pipeline(
         .vertex_shader(vertex_shader.main_entry_point(), ())
         .triangle_list()
         .viewports_dynamic_scissors_irrelevant(1)
-        .viewports(Some(vk::Viewport {
-            origin: [0.0, 0.0],
-            dimensions,
-            depth_range: 0.0..1.0,
-        }))
+        .viewports(Some(vk::ViewportBuilder::new().build(dimensions)))
         .fragment_shader(fragment_shader.main_entry_point(), ())
         .depth_stencil_simple_depth()
         .render_pass(vk::Subpass::from(render_pass.clone(), 0).unwrap())
