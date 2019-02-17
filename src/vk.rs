@@ -212,6 +212,34 @@ pub struct ViewportBuilder {
     pub depth_range: Option<Range<f32>>,
 }
 
+/// A simple trait that extends the `DynamicState` type with builder methods.
+///
+/// This fills a similar role to the `SamplerBuilder` and `ViewportBuilder` structs, but seeing as
+/// `DynamicState` already uses `Option`s for all its fields, a trait allows for a simpler
+/// approach.
+///
+/// This trait is included within the `nannou::prelude` for ease of access.
+pub trait DynamicStateBuilder {
+    fn line_width(self, line_width: f32) -> Self;
+    fn viewports(self, viewports: Vec<Viewport>) -> Self;
+    fn scissors(self, scissors: Vec<Scissor>) -> Self;
+}
+
+impl DynamicStateBuilder for DynamicState {
+    fn line_width(mut self, line_width: f32) -> Self {
+        self.line_width = Some(line_width);
+        self
+    }
+    fn viewports(mut self, viewports: Vec<Viewport>) -> Self {
+        self.viewports = Some(viewports);
+        self
+    }
+    fn scissors(mut self, scissors: Vec<Scissor>) -> Self {
+        self.scissors = Some(scissors);
+        self
+    }
+}
+
 // The user vulkan debug callback allocated on the heap to avoid complicated type params.
 type BoxedUserCallback = Box<Fn(&Message) + 'static + Send + RefUnwindSafe>;
 
