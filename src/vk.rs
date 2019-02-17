@@ -136,11 +136,16 @@ pub use vulkano_win as win;
 
 use crate::vk;
 use crate::vk::instance::debug::{DebugCallback, DebugCallbackCreationError, Message, MessageTypes};
-use crate::vk::instance::loader::{DynamicLibraryLoader, FunctionPointers, Loader};
+use crate::vk::instance::loader::{FunctionPointers, Loader};
 use std::borrow::Cow;
 use std::ops::{self, Range};
 use std::panic::RefUnwindSafe;
 use std::sync::Arc;
+
+#[cfg(all(target_os = "macos", not(test)))]
+use moltenvk_deps;
+#[cfg(all(target_os = "macos", not(test)))]
+use vulkano::instance::loader::DynamicLibraryLoader;
 
 /// The default application name used with the default `ApplicationInfo`.
 pub const DEFAULT_APPLICATION_NAME: &'static str = "nannou-app";
@@ -367,6 +372,15 @@ impl InstanceBuilder {
         L::Item: Into<String>,
     {
         self.layers.extend(layers.into_iter().map(Into::into));
+        self
+    }
+
+    /// Add custom vulkan loader
+    pub fn add_loader(
+        mut self,
+        loader: FunctionPointers<Box<dyn Loader + Send + Sync>>,
+    ) -> Self {
+        self.loader = Some(loader);
         self
     }
 
@@ -705,8 +719,7 @@ pub fn check_moltenvk(
         Some(Ok(l)) => {
             let loader: FunctionPointers<Box<(dyn Loader + Send + Sync + 'static)>> = FunctionPointers::new(Box::new(l));
             let required_extensions = required_extensions_with_loader(&loader);
-            vulkan_builder.extensions(required_extensions)
-            .add_loader(loader)
+            vulkan_builder.extensions(required_extensions).add_loader(loader)
         },
         _ => vulkan_builder,
     }
