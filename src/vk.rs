@@ -721,7 +721,7 @@ pub fn check_moltenvk(
             let required_extensions = required_extensions_with_loader(&loader);
             vulkan_builder.extensions(required_extensions).add_loader(loader)
         },
-        _ => vulkan_builder,
+        _ => vulkan_builder.extensions(required_windowing_extensions()),
     }
 }
 
