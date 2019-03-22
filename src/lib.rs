@@ -1,3 +1,5 @@
+#![doc(html_logo_url = "https://raw.githubusercontent.com/nannou-org/nannou/master/assets/images/logo.png")]
+
 //! An open-source creative-coding toolkit for Rust.
 //!
 //! [**Nannou**](http://nannou.cc) is a collection of code aimed at making it easy for artists to
