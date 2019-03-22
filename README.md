@@ -2,16 +2,23 @@
 
 # nannou [![Build Status](https://travis-ci.org/nannou-org/nannou.svg?branch=master)](https://travis-ci.org/nannou-org/nannou) [![Crates.io](https://img.shields.io/crates/v/nannou.svg)](https://crates.io/crates/nannou) [![Crates.io](https://img.shields.io/crates/l/nannou.svg)](https://github.com/nannou-org/nannou/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/nannou/badge.svg)](https://docs.rs/nannou/)[![Backers on Open Collective](https://opencollective.com/nannou/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/nannou/sponsors/badge.svg)](#sponsors) 
 
+![sdf](https://i.imgur.com/1ldLFfj.png)
+
 An open-source creative-coding toolkit for Rust.
 
 **nannou** is a collection of code aimed at making it easy for artists to
 express themselves with simple, fast, reliable, portable code.  Whether working
-on a 12-month laser installation or a 5 minute sketch, this framework aims to
+on a 12-month installation or a 5 minute sketch, this framework aims to
 give artists easy access to the tools they need.
 
 The project was started out of a desire for a creative coding framework inspired
 by Processing, OpenFrameworks and Cinder, but for Rust. <sup>Named after
 [this](https://www.youtube.com/watch?v=A-Pkx37kYf4).</sup>
+
+|     |     |     |
+| --- |:---:| ---:|
+| [![1](https://i.imgur.com/4TtL8kP.gif)](https://github.com/nannou-org/nannou/blob/master/examples/generative_design/color/p_1_0_01.rs) | [![2](https://i.imgur.com/ly3Uk3g.gif)](https://github.com/nannou-org/nannou/blob/master/examples/simple_mesh.rs) | [![3](https://i.imgur.com/GP6zlSR.gif)](https://github.com/nannou-org/nannou/blob/master/examples/simple_draw.rs) |
+| [![4](https://i.imgur.com/kPn91tW.gif)](https://github.com/nannou-org/nannou/blob/master/examples/simple_polygon.rs) | [![5](https://i.imgur.com/gaiWHZX.gif)](https://github.com/nannou-org/nannou/blob/master/examples/simple_ui.rs) | [![6](https://i.imgur.com/lm4RI4N.gif)](https://github.com/nannou-org/nannou/blob/master/examples/simple_polyline.rs) |
 
 ### A Quick Note
 
@@ -231,11 +238,12 @@ The `--release` flag means we want to build with optimisations enabled.
 
 If you are compiling nannou for the first time you will see cargo download and build all the necessary dependencies.
 
-![Alt Text](https://thumbs.gfycat.com/ShabbyWildGermanspitz-size_restricted.gif)
+![cargo](https://i.imgur.com/5OBNqMB.gif)
+
 
 Once the example compiles you should see the following window appear.
 
-<img src="https://thumbs.gfycat.com/MalePracticalIberianchiffchaff-size_restricted.gif" width="600" height="400" />
+![simple_draw_HD](https://i.imgur.com/HVVamUI.gif)
 
 
 To run any of the other examples, replace `simple_draw` with the name of the
