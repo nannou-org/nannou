@@ -1,9 +1,8 @@
 //! The User Interface API. Instantiate a [**Ui**](struct.Ui.html) via `app.new_ui()`.
 
-pub extern crate conrod_core;
-pub extern crate conrod_winit;
-pub extern crate conrod_vulkano;
-
+pub use crate::conrod_core;
+pub use crate::conrod_vulkano;
+pub use crate::conrod_winit;
 pub use self::conrod_core::event::Input;
 pub use self::conrod_core::{color, cursor, event, graph, image, input, position, scroll, text,
                             theme, utils, widget};
@@ -701,11 +700,15 @@ pub fn draw_primitives(
     Ok(())
 }
 
+mod conrod_winit_conv {
+    conrod_winit::conversion_fns!();
+}
+
 /// Convert the given window event to a UI Input.
 ///
 /// Returns `None` if there's no associated UI Input for the given event.
 pub fn winit_window_event_to_input(event: winit::WindowEvent, window: &Window) -> Option<Input> {
-    conrod_winit::convert_window_event(event, window)
+    conrod_winit_conv::convert_window_event(event, window)
 }
 
 impl From<RenderTargetCreationError> for BuildError {
