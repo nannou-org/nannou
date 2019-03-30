@@ -11,6 +11,10 @@
 //! examples](https://github.com/nannou-org/nannou/tree/master/examples) to get an idea of how
 //! nannou applications are structured and how the API works.
 
+pub extern crate conrod_core;
+pub extern crate conrod_vulkano;
+#[macro_use]
+pub extern crate conrod_winit;
 pub extern crate daggy;
 pub extern crate find_folder;
 extern crate serde;
