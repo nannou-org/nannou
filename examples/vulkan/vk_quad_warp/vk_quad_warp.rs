@@ -106,8 +106,6 @@ fn model(app: &App) -> Model {
                     store: Store,
                     format: app.main_window().swapchain().format(),
                     samples: 1,
-                    initial_layout: ImageLayout::Undefined,
-                    final_layout: ImageLayout::ShaderReadOnlyOptimal,
                 },
                 depth: {
                     load: Clear,
