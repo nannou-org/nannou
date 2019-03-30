@@ -85,26 +85,23 @@ impl Ca {
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
     fn display(&self, draw: &app::Draw, rect: &Rect) {
-        let offset = (self.generation % self.rows as i32) as usize;
-        for i in 0..self.columns {
-            for j in 0..self.rows {
-                let mut y = j - offset;
-                // if y <= 0 {
-                if y >= rect.top() as usize {
-                    y = self.rows + y;
+        let offset = self.generation % self.rows as i32;
+        for col in 0..self.columns {
+            for row in 0..self.rows {
+                let mut y = row as i32 - offset;
+                if y >= rect.top() as i32 {
+                    y = self.rows as i32 + y;
                 }
                 // Only draw if cell state is 1
                 let mut fill = 1.0;
-                if self.matrix[i][j] == 1 {
+                if self.matrix[col][row] == 1 {
                     fill = 0.0;
                 }
+                let x = ((self.w as i32 / 2) + col as i32 * self.w as i32) as f32
+                    - rect.right() as f32;
+                let y = rect.top() - (self.w / 2) as f32 - ((y - 1) * self.w as i32) as f32;
                 draw.rect()
-                    .x_y(
-                        ((self.w as i32 / 2) + i as i32 * self.w as i32) as f32
-                            - rect.right() as f32,
-                        rect.top() - (self.w / 2) as f32 - ((y - 1) * self.w) as f32,
-                        //                        rect.top() as f32 - ((y - 1) * self.w + (self.w / 2)) as f32,
-                    )
+                    .x_y(x, y)
                     .w_h(self.w as f32, self.w as f32)
                     .rgb(fill, fill, fill);
             }
