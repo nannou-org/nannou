@@ -402,8 +402,6 @@ pub fn create_render_pass_clear(
                 store: Store,
                 format: depth_format,
                 samples: msaa_samples,
-                initial_layout: ImageLayout::Undefined,
-                final_layout: ImageLayout::DepthStencilAttachmentOptimal,
             }
         },
         pass: {
@@ -436,8 +434,6 @@ pub fn create_render_pass_load(
                 store: Store,
                 format: depth_format,
                 samples: msaa_samples,
-                initial_layout: ImageLayout::Undefined,
-                final_layout: ImageLayout::DepthStencilAttachmentOptimal,
             }
         },
         pass: {

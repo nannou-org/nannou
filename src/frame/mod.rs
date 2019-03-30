@@ -398,8 +398,6 @@ fn create_render_pass(
                         store: Store,
                         format: color_format,
                         samples: 1,
-                        initial_layout: ImageLayout::PresentSrc,
-                        final_layout: ImageLayout::PresentSrc,
                     }
                 },
                 pass: {
@@ -426,8 +424,6 @@ fn create_render_pass(
                         store: Store,
                         format: color_format,
                         samples: 1,
-                        initial_layout: ImageLayout::PresentSrc,
-                        final_layout: ImageLayout::PresentSrc,
                     }
                 },
                 pass: {
