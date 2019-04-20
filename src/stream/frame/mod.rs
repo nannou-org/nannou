@@ -1,10 +1,9 @@
 use crate::Point;
-use crate::lerp::Lerp;
 use crate::stream;
 use crate::stream::raw::{self, Buffer};
 use std::io;
 use std::ops::{Deref, DerefMut};
-use std::sync::{Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 
 pub mod opt;
 
@@ -14,8 +13,21 @@ impl<M, F> RenderFn<M> for F where F: Fn(&mut M, &mut Frame) {}
 
 /// A clone-able handle around a laser stream of frames.
 pub struct Stream<M> {
+    // A handle to the inner raw stream that drives this frame stream.
     raw: raw::Stream<M>,
+    // A channel over which updates to the interpolation conf can be sent.
+    state_update_tx: mpsc::Sender<StateUpdate>,
 }
+
+// State associated with the frame stream shared between the handle and laser stream.
+#[derive(Clone)]
+struct State {
+    frame_hz: u32,
+    interpolation_conf: opt::InterpolationConfig,
+}
+
+// Updates for the interpolation config sent from the stream handle to the laser thread.
+type StateUpdate = Box<FnMut(&mut State) + 'static + Send>;
 
 /// A wrapper around the `Vec` of points being collected for the frame.
 ///
@@ -43,6 +55,63 @@ pub struct Builder<M, F> {
     pub model: M,
     pub render: F,
     pub frame_hz: Option<u32>,
+    pub interpolation_conf: opt::InterpolationConfigBuilder,
+}
+
+impl<M> Stream<M> {
+    /// Update the `distance_per_point` field of the interpolation configuration.
+    ///
+    /// The value will be updated on the laser thread prior to requesting the next frame.
+    ///
+    /// Returns an `Err` if communication with the laser thread has been closed.
+    pub fn set_distance_per_point(&self, d: f32) -> Result<(), mpsc::SendError<()>> {
+        self.send_frame_state_update(move |state| state.interpolation_conf.distance_per_point = d)
+            .map_err(|_| mpsc::SendError(()))
+    }
+
+    /// Update the `blank_delay_points` field of the interpolation configuration.
+    ///
+    /// The value will be updated on the laser thread prior to requesting the next frame.
+    ///
+    /// Returns an `Err` if communication with the laser thread has been closed.
+    pub fn set_blank_delay_points(&self, ps: u32) -> Result<(), mpsc::SendError<()>> {
+        self.send_frame_state_update(move |state| state.interpolation_conf.blank_delay_points = ps)
+            .map_err(|_| mpsc::SendError(()))
+    }
+
+    /// Update the `radians_per_point` field of the interpolation configuration.
+    ///
+    /// The value will be updated on the laser thread prior to requesting the next frame.
+    ///
+    /// Returns an `Err` if communication with the laser thread has been closed.
+    pub fn set_radians_per_point(&self, rad: f32) -> Result<(), mpsc::SendError<()>> {
+        self.send_frame_state_update(move |state| state.interpolation_conf.radians_per_point = rad)
+            .map_err(|_| mpsc::SendError(()))
+    }
+
+    /// Update the rate at which the stream will attempt to present images via the DAC.
+    ///
+    /// The value will be updated on the laser thread prior to requesting the next frame.
+    ///
+    /// Returns an `Err` if communication with the laser thread has been closed.
+    pub fn set_frame_hz(&self, fps: u32) -> Result<(), mpsc::SendError<()>> {
+        self.send_frame_state_update(move |state| state.frame_hz = fps)
+            .map_err(|_| mpsc::SendError(()))
+    }
+
+    // Simplify sending a `StateUpdate` to the laser thread.
+    fn send_frame_state_update<F>(&self, update: F) -> Result<(), mpsc::SendError<StateUpdate>>
+    where
+        F: FnOnce(&mut State) + Send + 'static,
+    {
+        let mut update_opt = Some(update);
+        let update_fn = move |state: &mut State| {
+            if let Some(update) = update_opt.take() {
+                update(state);
+            }
+        };
+        self.state_update_tx.send(Box::new(update_fn))
+    }
 }
 
 impl<M, F> Builder<M, F> {
@@ -83,6 +152,31 @@ impl<M, F> Builder<M, F> {
         self
     }
 
+    /// The minimum distance the interpolator can travel along an edge before a new point is
+    /// required.
+    ///
+    /// By default, this value is `InterpolationConfig::DEFAULT_DISTANCE_PER_POINT`.
+    pub fn distance_per_point(mut self, dpp: f32) -> Self {
+        self.interpolation_conf.distance_per_point = Some(dpp);
+        self
+    }
+
+    /// The number of points to insert at the end of a blank to account for light modulator delay.
+    ///
+    /// By default, this value is `InterpolationConfig::DEFAULT_BLANK_DELAY_POINTS`.
+    pub fn blank_delay_points(mut self, points: u32) -> Self {
+        self.interpolation_conf.blank_delay_points = Some(points);
+        self
+    }
+
+    /// The amount of delay to add based on the angle of the corner in radians.
+    ///
+    /// By default, this value is `InterpolationConfig::DEFAULT_RADIANS_PER_POINT`.
+    pub fn radians_per_point(mut self, radians: f32) -> Self {
+        self.interpolation_conf.radians_per_point = Some(radians);
+        self
+    }
+
     /// Build the stream with the specified parameters.
     ///
     /// **Note:** If no `dac` was specified, this will method will block until a DAC is detected.
@@ -92,24 +186,42 @@ impl<M, F> Builder<M, F> {
         M: 'static + Send,
         F: 'static + RenderFn<M> + Send,
     {
-        let Builder { api_inner, builder, model, render, frame_hz } = self;
+        let Builder { api_inner, builder, model, render, frame_hz, interpolation_conf } = self;
 
+        // Retrieve the interpolation configuration.
+        let interpolation_conf = interpolation_conf.build();
         // Retrieve the frame rate to initialise the stream with.
         let frame_hz = frame_hz.unwrap_or(stream::DEFAULT_FRAME_HZ);
 
         // The type used for buffering frames and using them to serve points to the raw stream.
         let requester = Arc::new(Mutex::new(Requester { last_frame_point: None, points: vec![] }));
 
+        // A channel for updating the interpolation config.
+        let (state_update_tx, state_update_rx) = mpsc::channel();
+        let state_update_tx: mpsc::Sender<StateUpdate> = state_update_tx;
+
+        // State to live on the stream thread.
+        let state = Arc::new(Mutex::new(State { frame_hz, interpolation_conf }));
+
         // A render function for the inner raw stream.
         let raw_render = move |model: &mut M, buffer: &mut Buffer| {
+            // Check for updates and retrieve a copy of the state.
+            let state = {
+                let mut state = state.lock().expect("failed to lock");
+                for mut state_update in state_update_rx.try_iter() {
+                    (*state_update)(&mut state);
+                }
+                state.clone()
+            };
+
             let mut guard = requester.lock().expect("failed to lock frame requester");
-            guard.fill_buffer(model, &render, buffer, frame_hz);
+            guard.fill_buffer(model, &render, buffer, &state);
         };
 
         // Create the raw builder and build the raw stream.
         let raw_builder = raw::Builder { api_inner, builder, model, render: raw_render };
         let raw_stream = raw_builder.build()?;
-        let stream = Stream { raw: raw_stream };
+        let stream = Stream { raw: raw_stream, state_update_tx };
         Ok(stream)
     }
 }
@@ -165,13 +277,13 @@ impl Requester {
         model: &mut M,
         render: F,
         buffer: &mut Buffer,
-        frame_hz: u32,
+        state: &State,
     )
     where
         F: RenderFn<M>,
     {
         // If the frame rate is `0`, leave the buffer empty.
-        if frame_hz == 0 {
+        if state.frame_hz == 0 {
             return;
         }
 
@@ -211,7 +323,7 @@ impl Requester {
         }
 
         // The number of points to fill for each frame.
-        let points_per_frame = point_hz / frame_hz;
+        let points_per_frame = point_hz / state.frame_hz;
 
         // If we reached this point, `self.points` is empty so we should fill buffer with frames
         // until it is full.
@@ -227,7 +339,7 @@ impl Requester {
             let mut frame = Frame {
                 point_hz,
                 latency_points,
-                frame_hz,
+                frame_hz: state.frame_hz,
                 points,
             };
             render(model, &mut frame);
@@ -241,35 +353,35 @@ impl Requester {
             let end = start + num_points_to_fill;
             let range = start..end;
 
-            // TODO: Remove this and replace with optimiser and proper interpolater.
+            // Optimisation passes.
+            let segs = opt::points_to_segments(frame.iter().cloned());
+            let pg = opt::segments_to_point_graph(segs);
+            let eg = opt::point_graph_to_euler_graph(&pg);
+            let ec = opt::euler_graph_to_euler_circuit(&eg);
+            let inter_frame_blank_points = 2;
+            let target_points = points_per_frame - inter_frame_blank_points;
+            let interp_conf = &state.interpolation_conf;
+            frame.points = opt::interpolate_euler_circuit(&ec, target_points, interp_conf);
+
+            // TODO: Is there a better way?
             {
                 // Blank from last of prev frame to first of next.
                 if let Some(last) = self.last_frame_point.take() {
                     let a = last.blanked();
                     let b = frame.points[0].blanked();
-                    frame.insert(0, b);
-                    frame.insert(0, a);
+                    frame.points.insert(0, b);
+                    frame.points.insert(0, a);
                 }
 
                 // Assign the last frame point.
-                self.last_frame_point = frame.last().map(|&p| p);
-
-                // Lerp the frame points into the requester's points buffer.
-                for i in 0..points_per_frame {
-                    let i_fract = i as f32 / points_per_frame as f32;
-                    let point_lerp = i_fract * (frame.points.len() - 1) as f32;
-                    let ix_a = point_lerp as usize;
-                    let ix_b = ix_a + 1;
-                    let a = frame.points[ix_a];
-                    let b = &frame.points[ix_b];
-                    let lerp_amt = point_lerp.fract();
-                    let p = a.lerp(b, lerp_amt);
-                    self.points.push(p);
-                }
-
-                buffer[range.clone()].copy_from_slice(&self.points[..range.len()]);
-                self.points.drain(..range.len());
+                self.last_frame_point = frame.points.last().map(|&p| p);
             }
+
+            self.points.extend(frame.points.iter().cloned());
+
+            // Write the points to buffer.
+            buffer[range.clone()].copy_from_slice(&self.points[..range.len()]);
+            self.points.drain(..range.len());
 
             // If this output filled the buffer, break.
             if end == buffer.len() {

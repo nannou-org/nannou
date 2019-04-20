@@ -1,4 +1,4 @@
-use crate::Point;
+use crate::{DetectedDac, Point};
 use crate::util::{clamp, map_range};
 use derive_more::From;
 use failure::Fail;
@@ -12,11 +12,21 @@ pub trait RenderFn<M>: Fn(&mut M, &mut Buffer) {}
 impl<M, F> RenderFn<M> for F where F: Fn(&mut M, &mut Buffer) {}
 
 /// A clone-able handle around a raw laser stream.
+#[derive(Clone)]
 pub struct Stream<M> {
-    /// A channel for sending model updates to the laser stream thread.
-    update_tx: mpsc::Sender<Box<FnMut(&mut M) + 'static + Send>>,
-    /// Data shared between each `Stream` handle to a single stream.
+    // A channel of updating the raw laser stream thread state.
+    state_update_tx: mpsc::Sender<StateUpdate>,
+    // A channel for sending model updates to the laser stream thread.
+    model_update_tx: mpsc::Sender<ModelUpdate<M>>,
+    // Data shared between each `Stream` handle to a single stream.
     shared: Arc<Shared<M>>,
+}
+
+// State managed on the laser thread.
+#[derive(Clone)]
+struct State {
+    point_hz: u32,
+    latency_points: u32,
 }
 
 // Data shared between each `Stream` handle to a single stream.
@@ -43,6 +53,12 @@ pub struct Builder<M, F> {
     pub model: M,
     pub render: F,
 }
+
+// The type used for sending state updates from the stream handle thread to the laser thread.
+type StateUpdate = Box<FnMut(&mut State) + 'static + Send>;
+
+/// The type used for sending model updates from the stream handle thread to the laser thread.
+pub type ModelUpdate<M> = Box<FnMut(&mut M) + 'static + Send>;
 
 /// Errors that may occur while running a laser stream.
 #[derive(Debug, Fail, From)]
@@ -82,9 +98,35 @@ pub enum EtherDreamStreamError {
         #[fail(cause)]
         err: ether_dream::dac::stream::CommunicationError,
     },
+    #[fail(display = "failed to submit point rate change over the DAC stream: {}", err)]
+    FailedToSubmitPointRate {
+        #[fail(cause)]
+        err: ether_dream::dac::stream::CommunicationError,
+    },
 }
 
 impl<M> Stream<M> {
+    /// Update the rate at which the DAC should process points per second.
+    ///
+    /// This value should be no greater than the detected DAC's `max_point_hz`.
+    ///
+    /// By default this value is `stream::DEFAULT_POINT_HZ`.
+    pub fn set_point_hz(&self, point_hz: u32) -> Result<(), mpsc::SendError<()>> {
+        self.send_raw_state_update(move |state| state.point_hz = point_hz)
+            .map_err(|_| mpsc::SendError(()))
+    }
+
+    /// The maximum latency specified as a number of points.
+    ///
+    /// Each time the laser indicates its "fullness", the raw stream will request enough points
+    /// from the render function to fill the DAC buffer up to `latency_points`.
+    ///
+    /// This value should be no greaterthan the DAC's `buffer_capacity`.
+    pub fn set_latency_points(&self, points: u32) -> Result<(), mpsc::SendError<()>> {
+        self.send_raw_state_update(move |state| state.latency_points = points)
+            .map_err(|_| mpsc::SendError(()))
+    }
+
     /// Send the given model update to the laser thread to be applied ASAP.
     ///
     /// If the laser is currently rendering, the update will be applied immediately after the
@@ -95,10 +137,7 @@ impl<M> Stream<M> {
     /// **Note:** This function will be applied on the real-time laser thread so users should avoid
     /// performing any kind of I/O, locking, blocking, (de)allocations or anything that may run for
     /// an indeterminate amount of time.
-    pub fn send<F>(
-        &self,
-        update: F,
-    ) -> Result<(), mpsc::SendError<Box<FnMut(&mut M) + Send + 'static>>>
+    pub fn send<F>(&self, update: F) -> Result<(), mpsc::SendError<ModelUpdate<M>>>
     where
         F: FnOnce(&mut M) + Send + 'static,
     {
@@ -130,10 +169,24 @@ impl<M> Stream<M> {
                     update(model);
                 }
             };
-            self.update_tx.send(Box::new(update_fn))?;
+            self.model_update_tx.send(Box::new(update_fn))?;
         }
 
         Ok(())
+    }
+
+    // Simplify sending a `StateUpdate` to the laser thread.
+    fn send_raw_state_update<F>(&self, update: F) -> Result<(), mpsc::SendError<StateUpdate>>
+    where
+        F: FnOnce(&mut State) + Send + 'static,
+    {
+        let mut update_opt = Some(update);
+        let update_fn = move |state: &mut State| {
+            if let Some(update) = update_opt.take() {
+                update(state);
+            }
+        };
+        self.state_update_tx.send(Box::new(update_fn))
     }
 }
 
@@ -151,7 +204,17 @@ impl Buffer {
 
 impl<M, F> Builder<M, F> {
     /// The DAC with which the stream should be established.
-    pub fn detected_dac(mut self, dac: super::super::DetectedDac) -> Self {
+    ///
+    /// If none is specified, the stream will associate itself with the first DAC detecged on the
+    /// system.
+    ///
+    /// ## DAC Dropouts
+    ///
+    /// If communication is lost with the DAC that was specified by this method, the stream will
+    /// attempt to re-establish connection with this DAC as quickly as possible. If no DAC was
+    /// specified, the stream will attempt to establish a new connection with the next DAC that is
+    /// detected on the system.
+    pub fn detected_dac(mut self, dac: DetectedDac) -> Self {
         self.builder.dac = Some(dac);
         self
     }
@@ -184,14 +247,27 @@ impl<M, F> Builder<M, F> {
         M: 'static + Send,
         F: 'static + RenderFn<M> + Send,
     {
-        let Builder { api_inner, mut builder, model, render } = self;
+        let Builder { api_inner, builder, model, render } = self;
 
         // Prepare the model for sharing between the laser thread and stream handle.
         let model = Arc::new(Mutex::new(Some(model)));
         let model_2 = model.clone();
 
-        // The channel used for sending updates to the model via the stream handle.
-        let (update_tx, update_rx) = mpsc::channel();
+        // The channels used for sending updates to the model via the stream handle.
+        let (model_update_tx, m_rx) = mpsc::channel();
+        let (state_update_tx, s_rx) = mpsc::channel();
+
+        // Retrieve the specified point rate or use a default.
+        let point_hz = builder.point_hz.unwrap_or(super::DEFAULT_POINT_HZ);
+        // Retrieve the latency as a number of points.
+        let latency_points = builder.latency_points
+            .unwrap_or_else(|| default_latency_points(point_hz));
+
+        // The raw laser stream state to live on the laser thread.
+        let state = Arc::new(Mutex::new(State { point_hz, latency_points }));
+
+        // Retrieve whether or not the user specified a detected DAC.
+        let mut maybe_dac = builder.dac;
 
         // Spawn the thread for communicating with the DAC.
         std::thread::Builder::new()
@@ -203,7 +279,7 @@ impl<M, F> Builder<M, F> {
                     // if a specific DAC was specified by the user.
                     if connect_attempts == 0 {
                         connect_attempts = 3;
-                        if let Some(ref mut dac) = builder.dac {
+                        if let Some(ref mut dac) = maybe_dac {
                             let dac_id = dac.id();
                             eprintln!("re-attempting to detect DAC with id: {:?}", dac_id);
                             *dac = match api_inner.detect_dac(dac_id) {
@@ -216,8 +292,18 @@ impl<M, F> Builder<M, F> {
                         }
                     }
 
+                    // Retrieve the DAC or find one.
+                    let dac = match maybe_dac {
+                        Some(ref dac) => dac.clone(),
+                        None => api_inner.detect_dacs()
+                            .map_err(|err| EtherDreamStreamError::FailedToDetectDacs { err })?
+                            .next()
+                            .expect("ether dream DAC detection iterator should never return `None`")
+                            .map_err(|err| EtherDreamStreamError::FailedToDetectDacs { err })?,
+                    };
+
                     // Connect and run the laser stream.
-                    match run_laser_stream(&model_2, &render, &api_inner, &builder, &update_rx) {
+                    match run_laser_stream(&dac, &state, &model_2, &render, &s_rx, &m_rx) {
                         Ok(()) => return Ok(()),
                         Err(RawStreamError::EtherDreamStream { err }) => match err {
                             // If we failed to connect to the DAC, keep track of attempts.
@@ -235,7 +321,8 @@ impl<M, F> Builder<M, F> {
                             // If we failed to prepare the stream or submit data, retry.
                             EtherDreamStreamError::FailedToPrepareStream { .. }
                             | EtherDreamStreamError::FailedToBeginStream { .. }
-                            | EtherDreamStreamError::FailedToSubmitData { .. } => {
+                            | EtherDreamStreamError::FailedToSubmitData { .. }
+                            | EtherDreamStreamError::FailedToSubmitPointRate { .. } => {
                                 eprintln!("{} - will now attempt to reconnect", err);
                             }
 
@@ -248,7 +335,7 @@ impl<M, F> Builder<M, F> {
 
         let is_paused = AtomicBool::new(false);
         let shared = Arc::new(Shared { model, is_paused });
-        let stream = Stream { shared, update_tx };
+        let stream = Stream { shared, state_update_tx, model_update_tx };
         Ok(stream)
     }
 }
@@ -273,52 +360,25 @@ pub fn default_latency_points(point_hz: u32) -> u32 {
 
 // The function to run on the laser stream thread.
 fn run_laser_stream<M, F>(
+    dac: &DetectedDac,
+    state: &Arc<Mutex<State>>,
     model: &Arc<Mutex<Option<M>>>,
     render: F,
-    api_inner: &Arc<super::super::Inner>,
-    builder: &super::Builder,
-    update_rx: &mpsc::Receiver<Box<FnMut(&mut M) + 'static + Send>>,
+    state_update_rx: &mpsc::Receiver<StateUpdate>,
+    model_update_rx: &mpsc::Receiver<ModelUpdate<M>>,
 ) -> Result<(), RawStreamError>
 where
     F: RenderFn<M>,
 {
-    // Retrieve the DAC or find one.
-    let dac = match builder.dac {
-        Some(ref dac) => dac.clone(),
-        None => api_inner.detect_dacs()
-            .map_err(|err| EtherDreamStreamError::FailedToDetectDacs { err })?
-            .next()
-            .expect("ether dream DAC detection iterator should never return `None`")
-            .map_err(|err| EtherDreamStreamError::FailedToDetectDacs { err })?,
-    };
-
-    // Keep track of the DAC's unique identifier. This is what we'll use to attempt to re-establish
-    // connection with the DAC if we lose connection.
-    // TODO: Do this using `api_inner.detect_dac(dac_id)` ^
-    let _dac_id = dac.id();
-
-    // Retrieve the specified point rate or use a default. Clamp the result by the DAC's
-    // maximum point rate.
-    let point_hz = {
-        let hz = builder.point_hz.unwrap_or(super::DEFAULT_POINT_HZ);
-        std::cmp::min(hz, dac.max_point_hz())
-    };
-
-    // Retrieve the latency as a number of points..
-    let latency_points = {
-        let points = builder.latency_points.unwrap_or_else(|| default_latency_points(point_hz));
-        std::cmp::min(points, dac.buffer_capacity())
-    };
-
     // Currently only ether dream is supported, so retrieve the broadcast and addr.
     let (broadcast, src_addr) = match dac {
-        super::super::DetectedDac::EtherDream { broadcast, source_addr } => {
+        DetectedDac::EtherDream { broadcast, source_addr } => {
             (broadcast, source_addr)
         }
     };
 
     // A buffer for collecting model updates.
-    let mut pending_updates: Vec<Box<FnMut(&mut M) + 'static + Send>> = Vec::new();
+    let mut pending_model_updates: Vec<ModelUpdate<M>> = Vec::new();
 
     // Establish the TCP connection.
     let ip = src_addr.ip().clone();
@@ -334,34 +394,74 @@ where
         .submit()
         .map_err(|err| EtherDreamStreamError::FailedToPrepareStream { err })?;
 
+    let dac_max_point_hz = dac.max_point_hz();
+
+    // Get the initial point hz by clamping via the DAC's maximum point rate.
+    let init_point_hz = {
+        let hz = state.lock().expect("failed to acquire raw state lock").point_hz;
+        std::cmp::min(hz, dac_max_point_hz)
+    };
+
     // Queue the initial frame and tell the DAC to begin producing output.
-    let latency_points = latency_points as u16;
     let low_water_mark = 0;
     let n_points = dac_remaining_buffer_capacity(stream.dac());
-    //let n_points = points_to_generate(stream.dac(), latency_points);
     stream
         .queue_commands()
         .data((0..n_points).map(|_| centered_blank()))
-        .begin(low_water_mark, point_hz)
+        .begin(low_water_mark, init_point_hz)
         .submit()
         .map_err(|err| EtherDreamStreamError::FailedToBeginStream { err })?;
 
+    // For collecting the ether-dream points.
+    let mut ether_dream_points = vec![];
+
     loop {
         // Collect any pending updates.
-        pending_updates.extend(update_rx.try_iter());
+        pending_model_updates.extend(model_update_rx.try_iter());
         // If there are some updates available, take the lock and apply them.
-        if !pending_updates.is_empty() {
+        if !pending_model_updates.is_empty() {
             if let Ok(mut guard) = model.lock() {
                 let mut model = guard.take().unwrap();
-                for mut update in pending_updates.drain(..) {
+                for mut update in pending_model_updates.drain(..) {
                     update(&mut model);
                 }
                 *guard = Some(model);
             }
         }
 
+        // Check for updates and retrieve a copy of the state.
+        let (state, prev_point_hz) = {
+            let mut state = state.lock().expect("failed to acquare raw state lock");
+
+            // Keep track of whether or not the `point_hz` as changed.
+            let prev_point_hz = std::cmp::min(state.point_hz, dac.max_point_hz());
+
+            // Apply updates.
+            for mut state_update in state_update_rx.try_iter() {
+                (*state_update)(&mut state);
+            }
+
+            (state.clone(), prev_point_hz)
+        };
+
+        // Clamp the point hz by the DAC's maximum point rate.
+        let point_hz = std::cmp::min(state.point_hz, dac.max_point_hz());
+
+        // If the point rate changed, we need to tell the DAC and set the control value on point 0.
+        // TODO
+        let point_rate_changed = point_hz != prev_point_hz;
+        if point_rate_changed {
+            stream
+                .queue_commands()
+                .point_rate(point_hz)
+                .submit()
+                .map_err(|err| EtherDreamStreamError::FailedToSubmitPointRate { err })?;
+        }
+
+        // Clamp the latency by the DAC's buffer capacity.
+        let latency_points = std::cmp::min(state.latency_points, dac.buffer_capacity());
         // Determine how many points the DAC can currently receive.
-        let n_points = points_to_generate(stream.dac(), latency_points) as usize;
+        let n_points = points_to_generate(stream.dac(), latency_points as u16) as usize;
 
         // The buffer that the user will write to. TODO: Re-use this.
         let mut buffer = Buffer {
@@ -378,12 +478,17 @@ where
         }
 
         // Retrieve the points.
-        let points = buffer.iter().cloned().map(point_to_ether_dream_point);
+        ether_dream_points.extend(buffer.iter().cloned().map(point_to_ether_dream_point));
+
+        // If the point rate changed, set the control value on the first point to trigger it.
+        if point_rate_changed {
+            ether_dream_points[0].control = ether_dream::dac::PointControl::CHANGE_RATE.bits();
+        }
 
         // Submit the points.
         stream
             .queue_commands()
-            .data(points)
+            .data(ether_dream_points.drain(..))
             .submit()
             .map_err(|err| EtherDreamStreamError::FailedToSubmitData { err })?;
     }
