@@ -309,7 +309,12 @@ pub fn point_graph_to_euler_graph(pg: &PointGraph) -> EulerGraph {
         match iter.peek() {
             Some((_, next)) => pairs.push((this.next, next.prev)),
             None if i > 0 => pairs.push((this.next, to_connect[0].prev)),
-            None => (), // If there is only one component, no need to connect to itself.
+            None => match euler_components.contains(&0) {
+                // If there is only one component and it is euler, we are done.
+                true => (),
+                // If there is only one non-euler, connect it to itself.
+                false => pairs.push((this.next, this.prev)),
+            },
         }
     }
 

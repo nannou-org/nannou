@@ -35,6 +35,8 @@ struct Shared<M> {
     model: Arc<Mutex<Option<M>>>,
     // Whether or not the stream is currently paused.
     is_paused: AtomicBool,
+    // Whether or not the stream has been closed.
+    is_closed: Arc<AtomicBool>,
 }
 
 /// A buffer of laser points yielded by either a raw or frame stream source function.
@@ -100,6 +102,11 @@ pub enum EtherDreamStreamError {
     },
     #[fail(display = "failed to submit point rate change over the DAC stream: {}", err)]
     FailedToSubmitPointRate {
+        #[fail(cause)]
+        err: ether_dream::dac::stream::CommunicationError,
+    },
+    #[fail(display = "failed to submit stop command to the DAC stream: {}", err)]
+    FailedToStopStream {
         #[fail(cause)]
         err: ether_dream::dac::stream::CommunicationError,
     },
@@ -269,12 +276,16 @@ impl<M, F> Builder<M, F> {
         // Retrieve whether or not the user specified a detected DAC.
         let mut maybe_dac = builder.dac;
 
+        // A flag for tracking whether or not the stream has been closed.
+        let is_closed = Arc::new(AtomicBool::new(false));
+        let is_closed2 = is_closed.clone();
+
         // Spawn the thread for communicating with the DAC.
         std::thread::Builder::new()
             .name("raw_laser_stream_thread".into())
             .spawn(move || {
                 let mut connect_attempts = 3;
-                loop {
+                while !is_closed2.load(atomic::Ordering::Relaxed) {
                     // If there are no more remaining connection attempts, try to redetect the DAC
                     // if a specific DAC was specified by the user.
                     if connect_attempts == 0 {
@@ -303,7 +314,7 @@ impl<M, F> Builder<M, F> {
                     };
 
                     // Connect and run the laser stream.
-                    match run_laser_stream(&dac, &state, &model_2, &render, &s_rx, &m_rx) {
+                    match run_laser_stream(&dac, &state, &model_2, &render, &s_rx, &m_rx, &is_closed2) {
                         Ok(()) => return Ok(()),
                         Err(RawStreamError::EtherDreamStream { err }) => match err {
                             // If we failed to connect to the DAC, keep track of attempts.
@@ -331,10 +342,12 @@ impl<M, F> Builder<M, F> {
                         }
                     }
                 }
+
+                Ok(())
             })?;
 
         let is_paused = AtomicBool::new(false);
-        let shared = Arc::new(Shared { model, is_paused });
+        let shared = Arc::new(Shared { model, is_paused, is_closed });
         let stream = Stream { shared, state_update_tx, model_update_tx };
         Ok(stream)
     }
@@ -353,6 +366,12 @@ impl DerefMut for Buffer {
     }
 }
 
+impl<M> Drop for Stream<M> {
+    fn drop(&mut self) {
+        self.shared.is_closed.store(true, atomic::Ordering::Relaxed)
+    }
+}
+
 /// Given the point rate, determine a default latency at ~16ms.
 pub fn default_latency_points(point_hz: u32) -> u32 {
     super::points_per_frame(point_hz, 60)
@@ -366,6 +385,7 @@ fn run_laser_stream<M, F>(
     render: F,
     state_update_rx: &mpsc::Receiver<StateUpdate>,
     model_update_rx: &mpsc::Receiver<ModelUpdate<M>>,
+    is_closed: &AtomicBool,
 ) -> Result<(), RawStreamError>
 where
     F: RenderFn<M>,
@@ -383,7 +403,6 @@ where
     // Establish the TCP connection.
     let ip = src_addr.ip().clone();
 
-    //'attempt_connection: loop {
     let mut stream = ether_dream::dac::stream::connect(&broadcast, ip)
         .map_err(|err| EtherDreamStreamError::FailedToConnectStream { err })?;
 
@@ -415,7 +434,7 @@ where
     // For collecting the ether-dream points.
     let mut ether_dream_points = vec![];
 
-    loop {
+    while !is_closed.load(atomic::Ordering::Relaxed) {
         // Collect any pending updates.
         pending_model_updates.extend(model_update_rx.try_iter());
         // If there are some updates available, take the lock and apply them.
@@ -492,6 +511,13 @@ where
             .submit()
             .map_err(|err| EtherDreamStreamError::FailedToSubmitData { err })?;
     }
+
+    stream
+        .queue_commands()
+        .stop()
+        .submit()
+        .map_err(|err| EtherDreamStreamError::FailedToStopStream { err })?;
+    Ok(())
 }
 
 // The number of remaining points in the DAC.
