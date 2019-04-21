@@ -837,6 +837,7 @@ mod test {
         Point {
             position,
             color: [1.0; 3],
+            weight: 0,
         }
     }
 
@@ -844,6 +845,7 @@ mod test {
         Point {
             position,
             color: [0.0; 3],
+            weight: 0,
         }
     }
 
