@@ -1,7 +1,7 @@
 //! A series of optimisation passes for laser frames.
 
 use crate::lerp::Lerp;
-use crate::point::{Point, Position};
+use crate::point::{Point, Position, RawPoint};
 use hashbrown::{HashMap, HashSet};
 use petgraph::visit::{EdgeRef, Walker};
 use petgraph::{Directed, Undirected};
@@ -71,6 +71,9 @@ pub struct InterpolationConfigBuilder {
     pub blank_delay_points: Option<u32>,
     pub radians_per_point: Option<f32>,
 }
+
+/// For the blank ab: `[a, a.blanked(), b.blanked(), (0..delay).map(|_| b.blanked())]`.
+pub const BLANK_MIN_POINTS: u32 = 3;
 
 impl EulerCircuitWalk {
     /// Construct a walk from the starting node.
@@ -207,6 +210,11 @@ where
         rgb: [u32; 3],
     }
 
+    struct Node {
+        ix: NodeIndex,
+        weight: u32,
+    }
+
     impl From<Point> for HashPoint {
         fn from(p: Point) -> Self {
             let [px, py] = p.position;
@@ -232,8 +240,24 @@ where
             SegmentKind::Lit => {
                 let ha = HashPoint::from(seg.start);
                 let hb = HashPoint::from(seg.end);
-                let na = *pt_to_id.entry(ha).or_insert_with(|| g.add_node(seg.start));
-                let nb = *pt_to_id.entry(hb).or_insert_with(|| g.add_node(seg.end));
+                let na = {
+                    let n = pt_to_id.entry(ha).or_insert_with(|| {
+                        let ix = g.add_node(seg.start);
+                        let weight = seg.start.weight;
+                        Node { ix, weight }
+                    });
+                    n.weight = std::cmp::max(n.weight, seg.start.weight);
+                    n.ix
+                };
+                let nb = {
+                    let n = pt_to_id.entry(hb).or_insert_with(|| {
+                        let ix = g.add_node(seg.end);
+                        let weight = seg.end.weight;
+                        Node { ix, weight }
+                    });
+                    n.weight = std::cmp::max(n.weight, seg.end.weight);
+                    n.ix
+                };
                 g.add_edge(na, nb, ());
             }
         }
@@ -489,6 +513,76 @@ fn distance_squared(a: Position, b: Position) -> f32 {
     abx * abx + aby * aby
 }
 
+/// The number of points used per blank segment given the `blank_delay_points` from a config.
+pub fn blank_segment_point_count(a_weight: u32, blank_delay_points: u32) -> u32 {
+    a_weight + BLANK_MIN_POINTS + blank_delay_points
+}
+
+/// Returns the points used to blank between two given lit points *a* and *b*.
+pub fn blank_segment_points(
+    a: Point,
+    br: RawPoint,
+    blank_delay_points: u32,
+) -> impl Iterator<Item = RawPoint> {
+    let ar = a.to_raw();
+    Some(ar)
+        .into_iter()
+        .chain(a.to_raw_weighted())
+        .chain(Some(ar.blanked()))
+        .chain(Some(br.blanked()))
+        .chain((0..blank_delay_points).map(move |_| br.blanked()))
+}
+
+/// The number of points added at a lit corner given its angle and angular delay rate.
+pub fn corner_point_count(rad: f32, corner_delay_radians_per_point: f32) -> u32 {
+    (rad / corner_delay_radians_per_point) as _
+}
+
+/// The minimum points for traversing a lit segment (not including end corner delays).
+pub fn distance_min_point_count(dist: f32, min_distance_per_point: f32) -> u32 {
+    // There must be at least one point at the beginning of the line.
+    const MIN_COUNT: u32 = 1;
+    MIN_COUNT + (dist * min_distance_per_point) as u32
+}
+
+/// The minimum number of points used for a lit segment of the given distance and end angle.
+///
+/// `a_weight` refers to the weight of the point at the beginning of the segment.
+pub fn lit_segment_min_point_count(
+    distance: f32,
+    end_corner_radians: f32,
+    distance_per_point: f32,
+    radians_per_point: f32,
+    a_weight: u32,
+) -> u32 {
+    a_weight
+        + corner_point_count(end_corner_radians, radians_per_point)
+        + distance_min_point_count(distance, distance_per_point)
+}
+
+/// Returns the points that make up a lit segment between *a* and *b* including delay for the end
+/// corner.
+///
+/// `excess_points` are distributed across the distance point count. This is used to allow the
+/// interpolation process to evenly distribute left-over points across a frame.
+pub fn lit_segment_points(
+    a: Point,
+    br: RawPoint,
+    corner_point_count: u32,
+    distance_min_point_count: u32,
+    excess_points: u32,
+) -> impl Iterator<Item = RawPoint> {
+    let dist_point_count = distance_min_point_count + excess_points;
+    let weight_points = a.to_raw_weighted();
+    let ar = a.to_raw();
+    let dist_points = (0..dist_point_count).map(move |i| {
+        let lerp_amt = i as f32 / dist_point_count as f32;
+        ar.lerp(&br, lerp_amt)
+    });
+    let corner_points = (0..corner_point_count).map(move |_| br);
+    weight_points.chain(dist_points).chain(corner_points)
+}
+
 /// Interpolate the given `EulerCircuit` with the given configuration in order to produce a path
 /// ready to be submitted to the DAC.
 ///
@@ -515,9 +609,14 @@ pub fn interpolate_euler_circuit(
     ec: &EulerCircuit,
     target_points: u32,
     conf: &InterpolationConfig,
-) -> Vec<Point> {
+) -> Vec<RawPoint> {
     // Capture a profile of each edge to assist with interpolation.
-    enum EdgeProfile {
+    struct EdgeProfile {
+        a_weight: u32,
+        kind: EdgeProfileKind,
+    }
+
+    enum EdgeProfileKind {
         Blank,
         Lit {
             distance: f32,
@@ -525,61 +624,56 @@ pub fn interpolate_euler_circuit(
         }
     }
 
-    fn corner_point_count(rad: f32, corner_delay_radians_per_point: f32) -> u32 {
-        (rad / corner_delay_radians_per_point) as _
-    }
-
-    fn distance_min_point_count(dist: f32, min_distance_per_point: f32) -> u32 {
-        // There must be at least one point at the beginning of the line.
-        const MIN_COUNT: u32 = 1;
-        MIN_COUNT + (dist * min_distance_per_point) as u32
-    }
-
     impl EdgeProfile {
-        // For the blank ab: [a, a.blanked(), b.blanked(), ..delay].
-        const BLANK_MIN_POINTS: u32 = 3;
-
         // Create an `EdgeProfile` for the edge at the given index.
         fn from_index(e: EdgeIndex, ec: &EulerCircuit) -> Self {
             let e_ref = &ec.raw_edges()[e.index()];
-            match e_ref.weight {
-                SegmentKind::Blank => EdgeProfile::Blank,
+            let a = ec[e_ref.source()];
+            let a_weight = a.weight;
+            let kind = match e_ref.weight {
+                SegmentKind::Blank => EdgeProfileKind::Blank,
                 SegmentKind::Lit => {
-                    let a = ec[e_ref.source()].position;
-                    let b = ec[e_ref.target()].position;
-                    let distance = distance_squared(a, b).sqrt();
+                    let a_pos = a.position;
+                    let b_pos = ec[e_ref.target()].position;
+                    let distance = distance_squared(a_pos, b_pos).sqrt();
                     let e_ref = EulerCircuitWalk::new(e_ref.target()).next(ec);
-                    let c = ec[e_ref.target()].position;
-                    let end_corner = straight_angle_variance(a, b, c);
-                    EdgeProfile::Lit { distance, end_corner }
+                    let c_pos = ec[e_ref.target()].position;
+                    let end_corner = straight_angle_variance(a_pos, b_pos, c_pos);
+                    EdgeProfileKind::Lit { distance, end_corner }
                 }
-            }
+            };
+            EdgeProfile { a_weight, kind }
         }
 
         fn is_lit(&self) -> bool {
-            match *self {
-                EdgeProfile::Lit { .. } => true,
-                EdgeProfile::Blank => false,
+            match self.kind {
+                EdgeProfileKind::Lit { .. } => true,
+                EdgeProfileKind::Blank => false,
             }
         }
 
         // The lit distance covered by this edge.
         fn lit_distance(&self) -> f32 {
-            match *self {
-                EdgeProfile::Lit { distance, .. } => distance,
+            match self.kind {
+                EdgeProfileKind::Lit { distance, .. } => distance,
                 _ => 0.0,
             }
         }
 
         // The minimum number of points required to draw the edge.
         fn min_points(&self, conf: &InterpolationConfig) -> u32 {
-            match *self {
-                EdgeProfile::Blank => {
-                    Self::BLANK_MIN_POINTS + conf.blank_delay_points
+            match self.kind {
+                EdgeProfileKind::Blank => {
+                    blank_segment_point_count(self.a_weight, conf.blank_delay_points)
                 }
-                EdgeProfile::Lit { distance, end_corner } => {
-                    corner_point_count(end_corner, conf.radians_per_point)
-                        + distance_min_point_count(distance, conf.distance_per_point)
+                EdgeProfileKind::Lit { distance, end_corner } => {
+                    lit_segment_min_point_count(
+                        distance,
+                        end_corner,
+                        conf.distance_per_point,
+                        conf.radians_per_point,
+                        self.a_weight,
+                    )
                 }
             }
         }
@@ -591,31 +685,22 @@ pub fn interpolate_euler_circuit(
             ec: &EulerCircuit,
             conf: &InterpolationConfig,
             excess_points: u32,
-        ) -> Vec<Point> {
-            let total_points = self.min_points(conf) + excess_points;
+        ) -> Vec<RawPoint> {
             let e_ref = &ec.raw_edges()[e.index()];
             let a = ec[e_ref.source()];
             let b = ec[e_ref.target()];
-            match *self {
-                EdgeProfile::Blank => {
-                    debug_assert!(total_points >= Self::BLANK_MIN_POINTS);
-                    debug_assert_eq!(excess_points, 0); // Sanity check.
-                    let delay = (total_points - Self::BLANK_MIN_POINTS) as usize;
-                    Some(a)
-                        .into_iter()
-                        .chain(Some(a.blanked()))
-                        .chain(Some(b.blanked()))
-                        .chain((0..delay).map(|_| b.blanked()))
+            match self.kind {
+                EdgeProfileKind::Blank => {
+                    blank_segment_points(a, b.to_raw(), conf.blank_delay_points)
                         .collect()
                 }
-                EdgeProfile::Lit { end_corner, .. } => {
+                EdgeProfileKind::Lit { end_corner, distance } => {
+                    let dist_point_count =
+                        distance_min_point_count(distance, conf.distance_per_point);
                     let corner_point_count =
                         corner_point_count(end_corner, conf.radians_per_point);
-                    debug_assert!(corner_point_count <= total_points); // Sanity check.
-                    let dist_point_count = total_points - corner_point_count;
-                    (0..dist_point_count)
-                        .map(|i| a.lerp(&b, i as f32 / dist_point_count as f32))
-                        .chain((0..corner_point_count).map(|_| b))
+                    let br = b.to_raw();
+                    lit_segment_points(a, br, corner_point_count, dist_point_count, excess_points)
                         .collect()
                 }
             }
@@ -704,7 +789,7 @@ pub fn interpolate_euler_circuit(
 
     // Push the last point.
     let last_point = ec[ec.raw_edges()[edge_indices.last().unwrap().index()].target()];
-    points.push(last_point);
+    points.push(last_point.to_raw());
 
     // Sanity check that we generated at least `target_points`.
     debug_assert!(points.len() >= target_points as usize);

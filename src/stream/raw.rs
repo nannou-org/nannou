@@ -1,4 +1,4 @@
-use crate::{DetectedDac, Point};
+use crate::{DetectedDac, RawPoint};
 use crate::util::{clamp, map_range};
 use derive_more::From;
 use failure::Fail;
@@ -44,7 +44,7 @@ struct Shared<M> {
 pub struct Buffer {
     pub(crate) point_hz: u32,
     pub(crate) latency_points: u32,
-    pub(crate) points: Box<[Point]>,
+    pub(crate) points: Box<[RawPoint]>,
 }
 
 /// A type allowing to build a raw laser stream.
@@ -354,7 +354,7 @@ impl<M, F> Builder<M, F> {
 }
 
 impl Deref for Buffer {
-    type Target = [Point];
+    type Target = [RawPoint];
     fn deref(&self) -> &Self::Target {
         &self.points
     }
@@ -486,7 +486,7 @@ where
         let mut buffer = Buffer {
             point_hz,
             latency_points: latency_points as _,
-            points: vec![Point::centered_blank(); n_points].into_boxed_slice(),
+            points: vec![RawPoint::centered_blank(); n_points].into_boxed_slice(),
         };
 
         // Request the points from the user.
@@ -569,7 +569,7 @@ fn color_to_ether_dream_color([pr, pg, pb]: crate::point::Rgb) -> [u16; 3] {
 }
 
 // Convert the laser point to an ether dream DAC point.
-fn point_to_ether_dream_point(p: Point) -> ether_dream::protocol::DacPoint {
+fn point_to_ether_dream_point(p: RawPoint) -> ether_dream::protocol::DacPoint {
     let [x, y] = position_to_ether_dream_position(p.position);
     let [r, g, b] = color_to_ether_dream_color(p.color);
     let (control, i, u1, u2) = (0, 0, 0, 0);

@@ -1,4 +1,4 @@
-use crate::Point;
+use crate::{Point, RawPoint};
 use crate::stream;
 use crate::stream::raw::{self, Buffer};
 use std::io;
@@ -43,8 +43,8 @@ pub struct Frame {
 
 // A type used for requesting frames from the user and feeding them to the raw buffer.
 struct Requester {
-    last_frame_point: Option<Point>,
-    points: Vec<Point>,
+    last_frame_point: Option<RawPoint>,
+    raw_points: Vec<RawPoint>,
 }
 
 /// A type allowing to build a raw laser stream.
@@ -194,7 +194,8 @@ impl<M, F> Builder<M, F> {
         let frame_hz = frame_hz.unwrap_or(stream::DEFAULT_FRAME_HZ);
 
         // The type used for buffering frames and using them to serve points to the raw stream.
-        let requester = Arc::new(Mutex::new(Requester { last_frame_point: None, points: vec![] }));
+        let requester = Requester { last_frame_point: None, raw_points: vec![] };
+        let requester = Arc::new(Mutex::new(requester));
 
         // A channel for updating the interpolation config.
         let (state_update_tx, state_update_rx) = mpsc::channel();
@@ -300,24 +301,24 @@ impl Requester {
         let mut start = 0;
 
         // If there are still un-read points, use those first.
-        if !self.points.is_empty() {
+        if !self.raw_points.is_empty() {
             // If the pending range would not fill the buffer, write what we can.
-            if self.points.len() < buffer.len() {
-                start = self.points.len();
-                buffer[..start].copy_from_slice(&self.points);
-                self.points.clear();
+            if self.raw_points.len() < buffer.len() {
+                start = self.raw_points.len();
+                buffer[..start].copy_from_slice(&self.raw_points);
+                self.raw_points.clear();
 
             // If we have the exact number of frames as output, write them and return.
-            } else if self.points.len() == buffer.len() {
-                buffer.copy_from_slice(&self.points);
-                self.points.clear();
+            } else if self.raw_points.len() == buffer.len() {
+                buffer.copy_from_slice(&self.raw_points);
+                self.raw_points.clear();
                 return;
 
             // If we have too many points, write what we can and leave the rest.
             } else {
                 let end = buffer.len();
-                buffer.copy_from_slice(&self.points[..end]);
-                self.points.drain(0..end);
+                buffer.copy_from_slice(&self.raw_points[..end]);
+                self.raw_points.drain(0..end);
                 return;
             }
         }
@@ -325,8 +326,8 @@ impl Requester {
         // The number of points to fill for each frame.
         let points_per_frame = point_hz / state.frame_hz;
 
-        // If we reached this point, `self.points` is empty so we should fill buffer with frames
-        // until it is full.
+        // If we reached this point, `self.raw_points` is empty so we should fill buffer with
+        // frames until it is full.
         loop {
             // See how many points are left to fill.
             let num_points_remaining = buffer.len() - start;
@@ -335,12 +336,13 @@ impl Requester {
             let num_points_to_fill = std::cmp::min(points_per_frame as usize, num_points_remaining);
 
             // Render a frame of points.
-            let points = std::mem::replace(&mut self.points, Vec::new());
+            // TODO: Why where we using `points` returned from this?
+            //let points = std::mem::replace(&mut self.raw_points, Vec::new());
             let mut frame = Frame {
                 point_hz,
                 latency_points,
                 frame_hz: state.frame_hz,
-                points,
+                points: vec![],
             };
             render(model, &mut frame);
 
@@ -349,39 +351,49 @@ impl Requester {
                 continue;
             }
 
-            // The buffer range to fill.
-            let end = start + num_points_to_fill;
-            let range = start..end;
-
             // Optimisation passes.
             let segs = opt::points_to_segments(frame.iter().cloned());
             let pg = opt::segments_to_point_graph(segs);
             let eg = opt::point_graph_to_euler_graph(&pg);
             let ec = opt::euler_graph_to_euler_circuit(&eg);
-            let inter_frame_blank_points = 2;
-            let target_points = points_per_frame - inter_frame_blank_points;
-            let interp_conf = &state.interpolation_conf;
-            frame.points = opt::interpolate_euler_circuit(&ec, target_points, interp_conf);
 
-            // TODO: Is there a better way?
-            {
-                // Blank from last of prev frame to first of next.
-                if let Some(last) = self.last_frame_point.take() {
-                    let a = last.blanked();
-                    let b = frame.points[0].blanked();
-                    frame.points.insert(0, b);
-                    frame.points.insert(0, a);
+            // Blank from last point of the previous frame to first point of this one.
+            let inter_frame_blank_points = match self.last_frame_point.take() {
+                Some(last) => {
+                    let next = ec[ec.node_indices().next().expect("no points in ec")];
+                    if last.position != next.position {
+                        let a = last.blanked().with_weight(0);
+                        let b = next.to_raw().blanked();
+                        let blank_delay_points = state.interpolation_conf.blank_delay_points;
+                        opt::blank_segment_points(a, b, blank_delay_points).collect()
+                    } else {
+                        vec![]
+                    }
                 }
+                None => vec![],
+            };
 
-                // Assign the last frame point.
-                self.last_frame_point = frame.points.last().map(|&p| p);
-            }
+            // Subtract the inter-frame blank points from points per frame to maintain frame_hz.
+            let inter_frame_point_count = inter_frame_blank_points.len() as u32;
+            let target_points = if points_per_frame > inter_frame_point_count {
+                points_per_frame - inter_frame_point_count
+            } else {
+                0
+            };
 
-            self.points.extend(frame.points.iter().cloned());
+            // Join the inter-frame points with the interpolated frame.
+            let interp_conf = &state.interpolation_conf;
+            self.raw_points.extend(inter_frame_blank_points);
+            self.raw_points.extend(opt::interpolate_euler_circuit(&ec, target_points, interp_conf));
+
+            // Update the last frame point.
+            self.last_frame_point = self.raw_points.last().map(|&p| p);
 
             // Write the points to buffer.
-            buffer[range.clone()].copy_from_slice(&self.points[..range.len()]);
-            self.points.drain(..range.len());
+            let end = start + num_points_to_fill;
+            let range = start..end;
+            buffer[range.clone()].copy_from_slice(&self.raw_points[..range.len()]);
+            self.raw_points.drain(..range.len());
 
             // If this output filled the buffer, break.
             if end == buffer.len() {

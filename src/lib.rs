@@ -8,7 +8,7 @@ pub mod stream;
 pub mod util;
 
 pub use lerp::Lerp;
-pub use point::Point;
+pub use point::{Point, RawPoint};
 pub use stream::raw::Buffer;
 pub use stream::raw::Stream as RawStream;
 pub use stream::frame::Frame;
