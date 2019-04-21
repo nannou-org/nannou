@@ -536,6 +536,9 @@ pub fn interpolate_euler_circuit(
     }
 
     impl EdgeProfile {
+        // For the blank ab: [a, a.blanked(), b.blanked(), ..delay].
+        const BLANK_MIN_POINTS: u32 = 3;
+
         // Create an `EdgeProfile` for the edge at the given index.
         fn from_index(e: EdgeIndex, ec: &EulerCircuit) -> Self {
             let e_ref = &ec.raw_edges()[e.index()];
@@ -545,13 +548,9 @@ pub fn interpolate_euler_circuit(
                     let a = ec[e_ref.source()].position;
                     let b = ec[e_ref.target()].position;
                     let distance = distance_squared(a, b).sqrt();
-                    let end_corner = match EulerCircuitWalk::new(e_ref.target()).next(ec) {
-                        e if *e.weight() == SegmentKind::Blank => 0.0,
-                        e_ref => {
-                            let c = ec[e_ref.target()].position;
-                            straight_angle_variance(a, b, c)
-                        }
-                    };
+                    let e_ref = EulerCircuitWalk::new(e_ref.target()).next(ec);
+                    let c = ec[e_ref.target()].position;
+                    let end_corner = straight_angle_variance(a, b, c);
                     EdgeProfile::Lit { distance, end_corner }
                 }
             }
@@ -576,7 +575,7 @@ pub fn interpolate_euler_circuit(
         fn min_points(&self, conf: &InterpolationConfig) -> u32 {
             match *self {
                 EdgeProfile::Blank => {
-                    2 + conf.blank_delay_points
+                    Self::BLANK_MIN_POINTS + conf.blank_delay_points
                 }
                 EdgeProfile::Lit { distance, end_corner } => {
                     corner_point_count(end_corner, conf.radians_per_point)
@@ -599,11 +598,15 @@ pub fn interpolate_euler_circuit(
             let b = ec[e_ref.target()];
             match *self {
                 EdgeProfile::Blank => {
-                    debug_assert!(total_points >= 2); // Sanity check. Must be start and end.
+                    debug_assert!(total_points >= Self::BLANK_MIN_POINTS);
                     debug_assert_eq!(excess_points, 0); // Sanity check.
-                    let mut v = vec![a.blanked(), b.blanked()];
-                    v.extend(vec![b.blanked(); (total_points - 2) as usize]);
-                    v
+                    let delay = (total_points - Self::BLANK_MIN_POINTS) as usize;
+                    Some(a)
+                        .into_iter()
+                        .chain(Some(a.blanked()))
+                        .chain(Some(b.blanked()))
+                        .chain((0..delay).map(|_| b.blanked()))
+                        .collect()
                 }
                 EdgeProfile::Lit { end_corner, .. } => {
                     let corner_point_count =
