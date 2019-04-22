@@ -38,7 +38,7 @@ winit = "0.19"
 moltenvk_deps = "0.1"
 
 [dev-dependencies]
-lasy = { git = "https://github.com/nannou-org/lasy", branch = "master" }
+lasy = "0.2"
 
 # --------------- Nannou Examples
 [[example]]
@@ -159,6 +159,9 @@ path = "examples/generative_design/color/p_1_2_3_02.rs"
 [[example]]
 name = "laser_frame_stream"
 path = "examples/laser/laser_frame_stream.rs"
+[[example]]
+name = "laser_frame_stream_gui"
+path = "examples/laser/laser_frame_stream_gui.rs"
 [[example]]
 name = "laser_raw_stream"
 path = "examples/laser/laser_raw_stream.rs"
