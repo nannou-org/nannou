@@ -1,5 +1,4 @@
-//! A simple example demonstrating how to use the position of the mouse to control a single-point
-//! beam via a raw laser stream.
+//! A simple example demonstrating how to use draw various patterns via a laser frame streams.
 
 extern crate nannou;
 
@@ -28,6 +27,10 @@ pub enum TestPattern {
     Crosshair,
     // Three vertical lines. One to the far left, one in the centre and one on the right.
     ThreeVerticalLines,
+    // A circle whose diameter reaches the edges of the projection field.
+    Circle,
+    // A spiral that starts from the centre and revolves out towards the edge of the field.
+    Spiral,
 }
 
 fn model(app: &App) -> Model {
@@ -51,7 +54,7 @@ fn model(app: &App) -> Model {
 
 fn laser(laser: &mut Laser, frame: &mut lasy::Frame) {
     // Simple constructors for white or blank points.
-    let white_p = |position| lasy::Point { position, color: [1.0; 3] };
+    let lit_p = |position| lasy::Point::new(position, [1.0; 3]);
 
     // Draw the frame with the selected pattern.
     match laser.test_pattern {
@@ -61,8 +64,8 @@ fn laser(laser: &mut Laser, frame: &mut lasy::Frame) {
             let br = [1.0, -1.0];
             let bl = [-1.0, -1.0];
             let positions = [tl, tr, br, bl, tl];
-            let points = positions.iter().cloned().map(white_p);
-            frame.add_points(points);
+            let points = positions.iter().cloned().map(lit_p);
+            frame.add_lines(points);
         }
 
         TestPattern::Triangle => {
@@ -70,8 +73,8 @@ fn laser(laser: &mut Laser, frame: &mut lasy::Frame) {
             let b = [0.0, 0.75];
             let c = [0.75, -0.75];
             let positions = [a, b, c, a];
-            let points = positions.iter().cloned().map(white_p);
-            frame.add_points(points);
+            let points = positions.iter().cloned().map(lit_p);
+            frame.add_lines(points);
         }
 
         TestPattern::Crosshair => {
@@ -79,10 +82,10 @@ fn laser(laser: &mut Laser, frame: &mut lasy::Frame) {
             let xb = [1.0, 0.0];
             let ya = [0.0, -1.0];
             let yb = [0.0, 1.0];
-            let x = [white_p(xa), white_p(xb)];
-            let y = [white_p(ya), white_p(yb)];
-            frame.add_points(&x);
-            frame.add_points(&y);
+            let x = [lit_p(xa), lit_p(xb)];
+            let y = [lit_p(ya), lit_p(yb)];
+            frame.add_lines(&x);
+            frame.add_lines(&y);
         }
 
         TestPattern::ThreeVerticalLines => {
@@ -92,12 +95,39 @@ fn laser(laser: &mut Laser, frame: &mut lasy::Frame) {
             let mb = [0.0, -0.5];
             let ra = [1.0, -0.5];
             let rb = [1.0, 0.5];
-            let l = [white_p(la), white_p(lb)];
-            let m = [white_p(ma), white_p(mb)];
-            let r = [white_p(ra), white_p(rb)];
-            frame.add_points(&l);
-            frame.add_points(&m);
-            frame.add_points(&r);
+            let l = [lit_p(la), lit_p(lb)];
+            let m = [lit_p(ma), lit_p(mb)];
+            let r = [lit_p(ra), lit_p(rb)];
+            frame.add_lines(&l);
+            frame.add_lines(&m);
+            frame.add_lines(&r);
+        }
+
+        TestPattern::Circle => {
+            let n_points = frame.points_per_frame() as usize / 4;
+            let rect = Rect::from_w_h(1.0, 1.0);
+            let ellipse: Vec<_> = geom::ellipse::Circumference::new(rect, n_points)
+                .map(|p| lit_p([p.x, p.y]))
+                .collect();
+            frame.add_lines(&ellipse);
+        }
+
+        TestPattern::Spiral => {
+            let n_points = frame.points_per_frame() as usize / 2;
+            let radius = 1.0;
+            let rings = 5.0;
+            let points = (0..n_points)
+                .map(|i| {
+                    let fract = i as f32 / n_points as f32;
+                    let mag = fract * radius;
+                    let phase = rings * fract * 2.0 * std::f32::consts::PI;
+                    let y = mag * -phase.sin();
+                    let x = mag * phase.cos();
+                    [x, y]
+                })
+                .map(lit_p)
+                .collect::<Vec<_>>();
+            frame.add_lines(points);
         }
     }
 }
@@ -109,6 +139,8 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
         Key::Key2 => TestPattern::Triangle,
         Key::Key3 => TestPattern::Crosshair,
         Key::Key4 => TestPattern::ThreeVerticalLines,
+        Key::Key5 => TestPattern::Circle,
+        Key::Key6 => TestPattern::Spiral,
         _ => return,
     };
     model.laser_stream.send(|laser| {
