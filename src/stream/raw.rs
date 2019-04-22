@@ -467,7 +467,6 @@ where
         let point_hz = std::cmp::min(state.point_hz, dac.max_point_hz());
 
         // If the point rate changed, we need to tell the DAC and set the control value on point 0.
-        // TODO
         let point_rate_changed = point_hz != prev_point_hz;
         if point_rate_changed {
             stream
@@ -482,7 +481,7 @@ where
         // Determine how many points the DAC can currently receive.
         let n_points = points_to_generate(stream.dac(), latency_points as u16) as usize;
 
-        // The buffer that the user will write to. TODO: Re-use this.
+        // The buffer that the user will write to. TODO: Re-use this points buffer.
         let mut buffer = Buffer {
             point_hz,
             latency_points: latency_points as _,
@@ -517,6 +516,7 @@ where
         .stop()
         .submit()
         .map_err(|err| EtherDreamStreamError::FailedToStopStream { err })?;
+
     Ok(())
 }
 

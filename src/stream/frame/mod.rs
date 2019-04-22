@@ -351,13 +351,11 @@ impl Requester {
             let num_points_to_fill = std::cmp::min(points_per_frame as usize, num_points_remaining);
 
             // Render a frame of points.
-            // TODO: Why where we using `points` returned from this?
-            //let points = std::mem::replace(&mut self.raw_points, Vec::new());
             let mut frame = Frame {
                 point_hz,
                 latency_points,
                 frame_hz: state.frame_hz,
-                points: vec![],
+                points: vec![], // TODO: Reuse this buffer rather than allocating every loop.
             };
             render(model, &mut frame);
 
