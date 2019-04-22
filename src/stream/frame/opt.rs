@@ -225,7 +225,10 @@ where
                     n.weight = std::cmp::max(n.weight, seg.end.weight);
                     n.ix
                 };
-                g.add_edge(na, nb, ());
+
+                if g.find_edge(na, nb).is_none() {
+                    g.add_edge(na, nb, ());
+                }
             }
         }
     }
