@@ -3,8 +3,8 @@
 use crate::lerp::Lerp;
 use crate::point::{Point, Position, RawPoint};
 use hashbrown::{HashMap, HashSet};
-use petgraph::visit::{EdgeRef, Walker};
-use petgraph::{Directed, Undirected};
+use petgraph::visit::EdgeRef;
+use petgraph::{Undirected};
 
 /// Represents a line segment over which the laser scanner will travel.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -29,27 +29,17 @@ pub type PointGraph = petgraph::Graph<Point, (), Undirected, u32>;
 /// A type used to represent a graph of points that contains at least one euler circuit.
 pub type EulerGraph = petgraph::Graph<Point, SegmentKind, Undirected, u32>;
 
-/// A type used to represent a directed graph describing a euler circuit.
-pub type EulerCircuit = petgraph::Graph<Point, SegmentKind, Directed, u32>;
+/// A type used to represent a eulerian circuit through a eulerian graph.
+pub type EulerCircuit = Vec<EdgeIndex>;
 
 type EdgeIndex = petgraph::graph::EdgeIndex<u32>;
 type NodeIndex = petgraph::graph::NodeIndex<u32>;
-type EulerCircuitEdgeRef<'a> = petgraph::graph::EdgeReference<'a, SegmentKind, u32>;
 
 /// An iterator yielding all lit line segments.
 #[derive(Clone)]
 pub struct Segments<I> {
     points: I,
     last_point: Option<Point>,
-}
-
-/// A walker for traversing a Eulerian circuit.
-///
-/// Note that the resulting walk is an infinite walk, and care should be taken to break when
-/// returning to the starting node if necessary.
-#[derive(Clone)]
-pub struct EulerCircuitWalk {
-    current_node: NodeIndex,
 }
 
 /// Configuration options for eulerian circuit interpolation.
@@ -74,24 +64,6 @@ pub struct InterpolationConfigBuilder {
 
 /// For the blank ab: `[a, a.blanked(), b.blanked(), (0..delay).map(|_| b.blanked())]`.
 pub const BLANK_MIN_POINTS: u32 = 3;
-
-impl EulerCircuitWalk {
-    /// Construct a walk from the starting node.
-    pub fn new(current_node: NodeIndex) -> Self {
-        EulerCircuitWalk { current_node }
-    }
-
-    /// The next edge in the given `EulerCircuit`.
-    ///
-    /// **Panic!**s if the given `EulerCircuit` is not in fact a true `EulerCircuit`.
-    pub fn next<'a>(&mut self, ec: &'a EulerCircuit) -> EulerCircuitEdgeRef<'a> {
-        let e_ref = ec.edges_directed(self.current_node, petgraph::Outgoing)
-            .next()
-            .expect("expected a eulerian circuit but current nod has no edges");
-        self.current_node = e_ref.target();
-        e_ref
-    }
-}
 
 impl InterpolationConfig {
     /// The default distance the interpolator can travel before a new point is required.
@@ -146,13 +118,6 @@ impl InterpolationConfigBuilder {
     }
 }
 
-impl<'a> Walker<&'a EulerCircuit> for EulerCircuitWalk {
-    type Item = EulerCircuitEdgeRef<'a>;
-    fn walk_next(&mut self, ec: &'a EulerCircuit) -> Option<Self::Item> {
-        Some(self.next(ec))
-    }
-}
-
 impl Default for InterpolationConfig {
     fn default() -> Self {
         Self::start().build()
@@ -172,11 +137,13 @@ where
             };
 
             // Skip duplicates.
-            if start.position == end.position {
-                continue;
-            }
-
-            let kind = if start.is_blank() && end.is_blank() {
+            let kind = if start.position == end.position {
+                if !start.is_blank() && !end.is_blank() {
+                    SegmentKind::Lit
+                } else {
+                    continue;
+                }
+            } else if start.is_blank() && end.is_blank() {
                 SegmentKind::Blank
             } else {
                 SegmentKind::Lit
@@ -310,15 +277,28 @@ pub fn point_graph_to_euler_graph(pg: &PointGraph) -> EulerGraph {
                 .iter()
                 .filter(|&&n| pg.edges(n).count() % 2 != 0)
                 .collect();
-            assert_eq!(
-                v.len() % 2,
-                0,
-                "expected even number of odd-degree nodes for non-Euler component",
-            );
-            let prev = *v[0];
-            let inner = v[1..v.len() - 1].iter().map(|&&n| n).collect();
-            let next = *v[v.len() - 1];
-            to_connect.push(ToConnect { prev, inner, next });
+
+            // If there's a single point, connect to itself.
+            if v.len() == 1 {
+                let p = *v[0];
+                let prev = p;
+                let inner = vec![];
+                let next = p;
+                to_connect.push(ToConnect { prev, inner, next });
+                continue;
+
+            // Otherwise convert to a euler component.
+            } else {
+                assert_eq!(
+                    v.len() % 2,
+                    0,
+                    "expected even number of odd-degree nodes for non-Euler component",
+                );
+                let prev = *v[0];
+                let inner = v[1..v.len() - 1].iter().map(|&&n| n).collect();
+                let next = *v[v.len() - 1];
+                to_connect.push(ToConnect { prev, inner, next });
+            }
         }
     }
 
@@ -359,9 +339,7 @@ pub fn point_graph_to_euler_graph(pg: &PointGraph) -> EulerGraph {
 pub fn euler_graph_to_euler_circuit(eg: &EulerGraph) -> EulerCircuit {
     // If there is one or less nodes, there's no place for edges.
     if eg.node_count() == 0 || eg.node_count() == 1 {
-        return eg
-            .map(|_ni, nw| nw.clone(), |_ei, ew| ew.clone())
-            .into_edge_type();
+        return vec![];
     }
 
     // Begin the traversals to build the circuit, starting at `v0`.
@@ -402,21 +380,7 @@ pub fn euler_graph_to_euler_circuit(eg: &EulerGraph) -> EulerCircuit {
         visit_order = new_visit_order;
     }
 
-    // Construct the Euler Circuit.
-    let mut ec = EulerCircuit::with_capacity(eg.node_count(), eg.edge_count());
-
-    // Add the nodes.
-    for n in eg.raw_nodes() {
-        ec.add_node(n.weight.clone());
-    }
-
-    // Now re-add all edges directed in order of visitation.
-    for e in visit_order {
-        let e_ref = &eg.raw_edges()[e.index()];
-        ec.add_edge(e_ref.source(), e_ref.target(), e_ref.weight.clone());
-    }
-
-    ec
+    visit_order
 }
 
 // A traversal through unvisited edges of the graph starting from `n`.
@@ -607,15 +571,18 @@ pub fn lit_segment_points(
 /// **Panic!**s if the given graph is not actually a `EulerCircuit`.
 pub fn interpolate_euler_circuit(
     ec: &EulerCircuit,
+    eg: &EulerGraph,
     target_points: u32,
     conf: &InterpolationConfig,
 ) -> Vec<RawPoint> {
     // Capture a profile of each edge to assist with interpolation.
+    #[derive(Debug)]
     struct EdgeProfile {
         a_weight: u32,
         kind: EdgeProfileKind,
     }
 
+    #[derive(Debug)]
     enum EdgeProfileKind {
         Blank,
         Lit {
@@ -626,18 +593,20 @@ pub fn interpolate_euler_circuit(
 
     impl EdgeProfile {
         // Create an `EdgeProfile` for the edge at the given index.
-        fn from_index(e: EdgeIndex, ec: &EulerCircuit) -> Self {
-            let e_ref = &ec.raw_edges()[e.index()];
-            let a = ec[e_ref.source()];
+        fn from_index(ix: usize, ec: &EulerCircuit, eg: &EulerGraph) -> Self {
+            let e = ec[ix];
+            let e_ref = &eg.raw_edges()[e.index()];
+            let a = eg[e_ref.source()];
             let a_weight = a.weight;
             let kind = match e_ref.weight {
                 SegmentKind::Blank => EdgeProfileKind::Blank,
                 SegmentKind::Lit => {
                     let a_pos = a.position;
-                    let b_pos = ec[e_ref.target()].position;
+                    let b_pos = eg[e_ref.target()].position;
                     let distance = distance_squared(a_pos, b_pos).sqrt();
-                    let e_ref = EulerCircuitWalk::new(e_ref.target()).next(ec);
-                    let c_pos = ec[e_ref.target()].position;
+                    let next_ix = (ix + 1) % ec.len();
+                    let e_ref = &eg.raw_edges()[ec[next_ix].index()];
+                    let c_pos = eg[e_ref.target()].position;
                     let end_corner = straight_angle_variance(a_pos, b_pos, c_pos);
                     EdgeProfileKind::Lit { distance, end_corner }
                 }
@@ -682,13 +651,13 @@ pub fn interpolate_euler_circuit(
         fn points(
             &self,
             e: EdgeIndex,
-            ec: &EulerCircuit,
+            eg: &EulerGraph,
             conf: &InterpolationConfig,
             excess_points: u32,
         ) -> Vec<RawPoint> {
-            let e_ref = &ec.raw_edges()[e.index()];
-            let a = ec[e_ref.source()];
-            let b = ec[e_ref.target()];
+            let e_ref = &eg.raw_edges()[e.index()];
+            let a = eg[e_ref.source()];
+            let b = eg[e_ref.target()];
             match self.kind {
                 EdgeProfileKind::Blank => {
                     blank_segment_points(a, b.to_raw(), conf.blank_delay_points)
@@ -707,22 +676,14 @@ pub fn interpolate_euler_circuit(
         }
     }
 
-    // If the graph is empty, so is our path.
-    let first_n = match ec.node_indices().next() {
-        None => return vec![],
-        Some(n) => n,
-    };
-
-    // The index of each edge in order of the eulerian circuit walk for faster lookup.
-    let edge_indices = EulerCircuitWalk::new(first_n)
-        .iter(ec)
-        .take(ec.edge_count())
-        .map(|e| e.id())
-        .collect::<Vec<_>>();
+    // If the circuit is empty, so is our path.
+    if ec.is_empty() {
+        return vec![];
+    }
 
     // Create a profile of each edge containing useful information for interpolation.
-    let edge_profiles = edge_indices.iter()
-        .map(|&ix| EdgeProfile::from_index(ix, ec))
+    let edge_profiles = (0..ec.len())
+        .map(|ix| EdgeProfile::from_index(ix, ec, eg))
         .collect::<Vec<_>>();
 
     // The minimum number of points required to display the image.
@@ -738,18 +699,34 @@ pub fn interpolate_euler_circuit(
         // A multiplier for determining excess points. This should be distributed across distance.
         let excess_points = target_points_minus_last - min_points;
         // The lit distance covered by each edge.
-        let edge_lit_dists = edge_profiles.iter().map(EdgeProfile::lit_distance);
+        let edge_lit_dists = edge_profiles.iter()
+            .map(|ep| (ep.is_lit(), ep.lit_distance()))
+            .collect::<Vec<_>>();
         // The total lit distance covered by the traversal.
-        let total_lit_dist = edge_lit_dists.clone().fold(0.0, |acc, d| acc + d);
+        let total_lit_dist = edge_lit_dists.iter().fold(0.0, |acc, &(_, d)| acc + d);
         // Determine the weights for each edge based on distance.
-        let edge_weights = edge_lit_dists.map(|lit_dist| lit_dist / total_lit_dist);
+        let edge_weights: Vec<(bool, f32)> = match total_lit_dist == 0.0 {
+            true => {
+                // If there was no total distance, distribute evenly.
+                let n_lit_edges = edge_lit_dists.iter().filter(|&&(b, _)| b).count();
+                edge_lit_dists.iter()
+                    .map(|&(is_lit, _)| (is_lit, 1.0 / n_lit_edges as f32))
+                    .collect()
+            },
+            false => {
+                // Otherwise weight by distance.
+                edge_lit_dists.iter()
+                    .map(|&(is_lit, dist)| (is_lit, dist / total_lit_dist))
+                    .collect()
+            }
+        };
 
         // Multiply the weight by the excess points. Track fractional error and distribute.
-        let mut v = Vec::with_capacity(ec.edge_count());
+        let mut v = Vec::with_capacity(ec.len());
         let mut err = 0.0;
         let mut count = 0;
-        for w in edge_weights {
-            if w == 0.0 {
+        for (is_lit, w) in edge_weights {
+            if !is_lit {
                 v.push(0);
                 continue;
             }
@@ -776,19 +753,19 @@ pub fn interpolate_euler_circuit(
 
         v
     } else {
-        vec![0; ec.edge_count()]
+        vec![0; ec.len()]
     };
 
     // Collect all points.
     let total_points = std::cmp::max(min_points, target_points);
     let mut points = Vec::with_capacity(total_points as usize);
-    for elem in edge_indices.iter().zip(&edge_profiles).zip(&edge_excess_point_counts) {
+    for elem in ec.iter().zip(&edge_profiles).zip(&edge_excess_point_counts) {
         let ((&ix, ep), &excess) = elem;
-        points.extend(ep.points(ix, ec, conf, excess));
+        points.extend(ep.points(ix, eg, conf, excess));
     }
 
     // Push the last point.
-    let last_point = ec[ec.raw_edges()[edge_indices.last().unwrap().index()].target()];
+    let last_point = eg[eg.raw_edges()[ec.last().unwrap().index()].target()];
     points.push(last_point.to_raw());
 
     // Sanity check that we generated at least `target_points`.
@@ -801,10 +778,9 @@ pub fn interpolate_euler_circuit(
 mod test {
     use crate::point::{Point, Position};
     use hashbrown::HashSet;
-    use petgraph::visit::EdgeRef;
     use super::{euler_graph_to_euler_circuit, point_graph_to_euler_graph, points_to_segments,
                 segments_to_point_graph};
-    use super::{EulerCircuit, EulerCircuitWalk, EulerGraph, PointGraph, SegmentKind};
+    use super::{EulerGraph, PointGraph, SegmentKind};
 
     fn graph_eq<N, E, Ty, Ix>(
         a: &petgraph::Graph<N, E, Ty, Ix>,
@@ -955,17 +931,20 @@ mod test {
         let eg = point_graph_to_euler_graph(&pg);
         let ec = euler_graph_to_euler_circuit(&eg);
 
-        let mut expected = EulerCircuit::new();
-        let na = expected.add_node(pts[0]);
-        let nb = expected.add_node(pts[1]);
-        let nc = expected.add_node(pts[2]);
-        let nd = expected.add_node(pts[3]);
-        expected.add_edge(na, nb, SegmentKind::Lit);
-        expected.add_edge(nb, nc, SegmentKind::Lit);
-        expected.add_edge(nc, nd, SegmentKind::Lit);
-        expected.add_edge(nd, na, SegmentKind::Lit);
+        let mut ns = eg.node_indices();
+        let na = ns.next().unwrap();
+        let nb = ns.next().unwrap();
+        let nc = ns.next().unwrap();
+        let nd = ns.next().unwrap();
 
-        assert!(graph_eq(&ec, &expected));
+        let expected = vec![
+            eg.find_edge(na, nb).unwrap(),
+            eg.find_edge(nb, nc).unwrap(),
+            eg.find_edge(nc, nd).unwrap(),
+            eg.find_edge(nd, na).unwrap(),
+        ];
+
+        assert_eq!(ec, expected);
     }
 
     #[test]
@@ -976,18 +955,13 @@ mod test {
         let eg = point_graph_to_euler_graph(&pg);
         let ec = euler_graph_to_euler_circuit(&eg);
 
-        let pg_ns: Vec<_> = pg.raw_nodes().iter().map(|n| n.weight).collect();
-        let ec_ns: Vec<_> = ec.raw_nodes().iter().map(|n| n.weight).collect();
-        assert_eq!(pg_ns, ec_ns);
-
-        assert_eq!(ec.raw_edges().iter().filter(|e| e.weight == SegmentKind::Blank).count(), 2);
-        assert_eq!(ec.raw_edges().iter().filter(|e| e.weight == SegmentKind::Lit).count(), 2);
+        assert_eq!(ec.len(), eg.edge_count());
 
         let mut visited = HashSet::new();
-        let mut walk = EulerCircuitWalk::new(ec.node_indices().next().unwrap());
+        let mut walk = ec.iter().cycle().map(|&e| (e, &eg.raw_edges()[e.index()]));
         while visited.len() < 4 {
-            let e_ref = walk.next(&ec);
-            assert!(visited.insert(e_ref.id()));
+            let (e_id, _) = walk.next().unwrap();
+            assert!(visited.insert(e_id));
         }
     }
 }

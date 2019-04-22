@@ -248,11 +248,26 @@ impl Frame {
         self.point_hz / self.frame_hz
     }
 
-    /// Add a sequence of consecutive points.
+    /// Add a sequence of consecutive points separated by blank space.
     ///
     /// If some points already exist in the frame, this method will create a blank segment between
     /// the previous point and the first point before appending this sequence.
     pub fn add_points<I>(&mut self, points: I)
+    where
+        I: IntoIterator,
+        I::Item: AsRef<Point>,
+    {
+        for p in points {
+            let p = *p.as_ref();
+            self.add_lines([p, p].iter().cloned());
+        }
+    }
+
+    /// Add a sequence of consecutive lines.
+    ///
+    /// If some points already exist in the frame, this method will create a blank segment between
+    /// the previous point and the first point before appending this sequence.
+    pub fn add_lines<I>(&mut self, points: I)
     where
         I: IntoIterator,
         I::Item: AsRef<Point>,
@@ -360,7 +375,7 @@ impl Requester {
             // Blank from last point of the previous frame to first point of this one.
             let inter_frame_blank_points = match self.last_frame_point.take() {
                 Some(last) => {
-                    let next = ec[ec.node_indices().next().expect("no points in ec")];
+                    let next = eg[eg.node_indices().next().expect("no points in eg")];
                     if last.position != next.position {
                         let a = last.blanked().with_weight(0);
                         let b = next.to_raw().blanked();
@@ -383,8 +398,9 @@ impl Requester {
 
             // Join the inter-frame points with the interpolated frame.
             let interp_conf = &state.interpolation_conf;
+            let interpolated = opt::interpolate_euler_circuit(&ec, &eg, target_points, interp_conf);
             self.raw_points.extend(inter_frame_blank_points);
-            self.raw_points.extend(opt::interpolate_euler_circuit(&ec, target_points, interp_conf));
+            self.raw_points.extend(interpolated);
 
             // Update the last frame point.
             self.last_frame_point = self.raw_points.last().map(|&p| p);
