@@ -34,6 +34,11 @@ vulkano-win = { git = "https://github.com/mitchmindtree/vulkano", branch = "nann
 vulkano-shaders = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
 winit = "0.19"
 
+[dev-dependencies]
+notify = "4"
+shaderc = "0.3"
+spirv-reflect = "0.2"
+
 [target.'cfg(target_os = "macos")'.dependencies]
 moltenvk_deps = "0.1"
 
@@ -141,6 +146,9 @@ path = "examples/vulkan/vk_shader_include/mod.rs"
 [[example]]
 name = "vk_debug"
 path = "examples/vulkan/vk_debug.rs"
+[[example]]
+name = "vk_hotload"
+path = "examples/vulkan/vk_hotload/vk_hotload.rs"
 
 # --------------- Generative Design
 [[example]]
