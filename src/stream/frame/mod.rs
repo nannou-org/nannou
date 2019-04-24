@@ -396,7 +396,20 @@ impl Requester {
 
             // Join the inter-frame points with the interpolated frame.
             let interp_conf = &state.interpolation_conf;
-            let interpolated = opt::interpolate_euler_circuit(&ec, &eg, target_points, interp_conf);
+            let mut interpolated =
+                opt::interpolate_euler_circuit(&ec, &eg, target_points, interp_conf);
+
+            // If the interpolated frame is empty there were no lit points or lines.
+            // In this case, we'll produce an empty frame.
+            if interpolated.is_empty() {
+                let blank_frame = (0..target_points).map(|_| {
+                    self.last_frame_point
+                        .map(|p| p.blanked())
+                        .unwrap_or_else(RawPoint::centered_blank)
+                });
+                interpolated.extend(blank_frame);
+            }
+
             self.raw_points.extend(inter_frame_blank_points);
             self.raw_points.extend(interpolated);
 
