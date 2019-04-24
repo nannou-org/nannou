@@ -406,14 +406,20 @@ impl Requester {
                 let last_frame_point = self.last_frame_point.take();
                 let inter_frame_blank_points = match last_frame_point {
                     Some(last) => {
-                        let next = eg[eg.node_indices().next().expect("no points in eg")];
-                        if last.position != next.position {
-                            let a = last.blanked().with_weight(0);
-                            let b = next.to_raw().blanked();
-                            let blank_delay_points = state.interpolation_conf.blank_delay_points;
-                            opt::blank_segment_points(a, b, blank_delay_points).collect()
-                        } else {
-                            vec![]
+                        match eg.node_indices().next() {
+                            None => vec![],
+                            Some(next_id) => {
+                                let next = eg[next_id];
+                                if last.position != next.position {
+                                    let a = last.blanked().with_weight(0);
+                                    let b = next.to_raw().blanked();
+                                    let blank_delay_points =
+                                        state.interpolation_conf.blank_delay_points;
+                                    opt::blank_segment_points(a, b, blank_delay_points).collect()
+                                } else {
+                                    vec![]
+                                }
+                            }
                         }
                     }
                     None => vec![],
