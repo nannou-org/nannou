@@ -89,7 +89,16 @@ impl Lasy {
         let builder = Default::default();
         let frame_hz = None;
         let interpolation_conf = Default::default();
-        stream::frame::Builder { api_inner, builder, model, render, frame_hz, interpolation_conf }
+        let process_raw = stream::frame::default_process_raw_fn;
+        stream::frame::Builder {
+            api_inner,
+            builder,
+            model,
+            render,
+            process_raw,
+            frame_hz,
+            interpolation_conf,
+        }
     }
 
     /// Begin building a new laser raw stream.

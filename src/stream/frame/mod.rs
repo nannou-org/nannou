@@ -47,13 +47,17 @@ struct Requester {
     raw_points: Vec<RawPoint>,
 }
 
+// The type of the default function used for the `process_raw` function if none is specified.
+type DefaultProcessRawFn<M> = fn(&mut M, &mut Buffer);
+
 /// A type allowing to build a raw laser stream.
-pub struct Builder<M, F> {
+pub struct Builder<M, F, R = DefaultProcessRawFn<M>> {
     /// The laser API inner state, used to find a DAC during `build` if one isn't specified.
     pub(crate) api_inner: Arc<crate::Inner>,
     pub builder: stream::Builder,
     pub model: M,
     pub render: F,
+    pub process_raw: R,
     pub frame_hz: Option<u32>,
     pub interpolation_conf: opt::InterpolationConfigBuilder,
 }
@@ -114,7 +118,7 @@ impl<M> Stream<M> {
     }
 }
 
-impl<M, F> Builder<M, F> {
+impl<M, F, R> Builder<M, F, R> {
     /// The DAC with which the stream should be established.
     pub fn detected_dac(mut self, dac: crate::DetectedDac) -> Self {
         self.builder.dac = Some(dac);
@@ -177,6 +181,21 @@ impl<M, F> Builder<M, F> {
         self
     }
 
+    /// Specify a function that allows for processing the raw points before submission to the DAC.
+    ///
+    /// This mgiht be useful for:
+    ///
+    /// - applying post-processing effects onto the optimised, interpolated points.
+    /// - monitoring the raw points resulting from the optimisation and interpolation processes.
+    /// - tuning brightness of colours based on safety zones.
+    ///
+    /// The given function will get called right before submission of the optimised, interpolated
+    /// buffer.
+    pub fn process_raw<R2>(self, process_raw: R2) -> Builder<M, F, R2> {
+        let Builder { api_inner, builder, model, render, frame_hz, interpolation_conf, .. } = self;
+        Builder { api_inner, builder, model, render, process_raw, frame_hz, interpolation_conf }
+    }
+
     /// Build the stream with the specified parameters.
     ///
     /// **Note:** If no `dac` was specified, this will method will block until a DAC is detected.
@@ -185,8 +204,17 @@ impl<M, F> Builder<M, F> {
     where
         M: 'static + Send,
         F: 'static + RenderFn<M> + Send,
+        R: 'static + raw::RenderFn<M> + Send,
     {
-        let Builder { api_inner, builder, model, render, frame_hz, interpolation_conf } = self;
+        let Builder {
+            api_inner,
+            builder,
+            model,
+            render,
+            process_raw,
+            frame_hz,
+            interpolation_conf,
+        } = self;
 
         // Retrieve the interpolation configuration.
         let interpolation_conf = interpolation_conf.build();
@@ -217,6 +245,7 @@ impl<M, F> Builder<M, F> {
 
             let mut guard = requester.lock().expect("failed to lock frame requester");
             guard.fill_buffer(model, &render, buffer, &state);
+            process_raw(model, buffer);
         };
 
         // Create the raw builder and build the raw stream.
@@ -455,4 +484,8 @@ impl<M> Deref for Stream<M> {
     fn deref(&self) -> &Self::Target {
         &self.raw
     }
+}
+
+// The default function used for the `process_raw` function if none is specified.
+pub(crate) fn default_process_raw_fn<M>(_model: &mut M, _buffer: &mut Buffer) {
 }
