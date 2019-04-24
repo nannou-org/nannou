@@ -8,7 +8,7 @@ use crate::shader::compile_shader;
 pub struct Handler {
     thread_tx: mpsc::Sender<()>,
     handle: Option<thread::JoinHandle<()>>,
-    _watcher: notify::FsEventWatcher,
+    _watcher: RecommendedWatcher,
 }
 
 pub enum ShaderMsg {
@@ -45,7 +45,7 @@ pub fn new(vert_path: &PathBuf, frag_path: &PathBuf) -> (Handler, mpsc::Receiver
         if let Ok(_) = thread_rx.try_recv() {
             break 'watch_loop;
         }
-        if let Ok(notify::DebouncedEvent::Create(p)) = notify_rx.recv() {
+        if let Ok(notify::DebouncedEvent::Create(p)) = notify_rx.recv_timeout(Duration::from_secs(1)) {
             if p.ends_with("hotload_vert.glsl") {
                 match compile_shader(p.clone(), shaderc::ShaderKind::Vertex) {
                     Ok(v) => { shader_tx.send(ShaderMsg::Vert(v)).ok(); },
