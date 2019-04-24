@@ -359,59 +359,63 @@ impl Requester {
             };
             render(model, &mut frame);
 
-            // If we were given no points, back to the top of the loop to collect more.
+            // If we were given no points, the user must be expecting an empty frame.
             if frame.points.is_empty() {
-                continue;
-            }
+                let blank_point = self.last_frame_point.map(|p| p.blanked())
+                    .unwrap_or_else(RawPoint::centered_blank);
+                self.raw_points.extend((0..points_per_frame).map(|_| blank_point));
 
-            // Optimisation passes.
-            let segs = opt::points_to_segments(frame.iter().cloned());
-            let pg = opt::segments_to_point_graph(segs);
-            let eg = opt::point_graph_to_euler_graph(&pg);
-            let ec = opt::euler_graph_to_euler_circuit(&eg);
-
-            // Blank from last point of the previous frame to first point of this one.
-            let inter_frame_blank_points = match self.last_frame_point.take() {
-                Some(last) => {
-                    let next = eg[eg.node_indices().next().expect("no points in eg")];
-                    if last.position != next.position {
-                        let a = last.blanked().with_weight(0);
-                        let b = next.to_raw().blanked();
-                        let blank_delay_points = state.interpolation_conf.blank_delay_points;
-                        opt::blank_segment_points(a, b, blank_delay_points).collect()
-                    } else {
-                        vec![]
-                    }
-                }
-                None => vec![],
-            };
-
-            // Subtract the inter-frame blank points from points per frame to maintain frame_hz.
-            let inter_frame_point_count = inter_frame_blank_points.len() as u32;
-            let target_points = if points_per_frame > inter_frame_point_count {
-                points_per_frame - inter_frame_point_count
+            // Otherwise, we'll optimise and interpolate the given points.
             } else {
-                0
-            };
+                // Optimisation passes.
+                let segs = opt::points_to_segments(frame.iter().cloned());
+                let pg = opt::segments_to_point_graph(segs);
+                let eg = opt::point_graph_to_euler_graph(&pg);
+                let ec = opt::euler_graph_to_euler_circuit(&eg);
 
-            // Join the inter-frame points with the interpolated frame.
-            let interp_conf = &state.interpolation_conf;
-            let mut interpolated =
-                opt::interpolate_euler_circuit(&ec, &eg, target_points, interp_conf);
+                // Blank from last point of the previous frame to first point of this one.
+                let last_frame_point = self.last_frame_point.take();
+                let inter_frame_blank_points = match last_frame_point {
+                    Some(last) => {
+                        let next = eg[eg.node_indices().next().expect("no points in eg")];
+                        if last.position != next.position {
+                            let a = last.blanked().with_weight(0);
+                            let b = next.to_raw().blanked();
+                            let blank_delay_points = state.interpolation_conf.blank_delay_points;
+                            opt::blank_segment_points(a, b, blank_delay_points).collect()
+                        } else {
+                            vec![]
+                        }
+                    }
+                    None => vec![],
+                };
 
-            // If the interpolated frame is empty there were no lit points or lines.
-            // In this case, we'll produce an empty frame.
-            if interpolated.is_empty() {
-                let blank_frame = (0..target_points).map(|_| {
-                    self.last_frame_point
-                        .map(|p| p.blanked())
-                        .unwrap_or_else(RawPoint::centered_blank)
-                });
-                interpolated.extend(blank_frame);
+                // Subtract the inter-frame blank points from points per frame to maintain frame_hz.
+                let inter_frame_point_count = inter_frame_blank_points.len() as u32;
+                let target_points = if points_per_frame > inter_frame_point_count {
+                    points_per_frame - inter_frame_point_count
+                } else {
+                    0
+                };
+
+                // Join the inter-frame points with the interpolated frame.
+                let interp_conf = &state.interpolation_conf;
+                let mut interpolated =
+                    opt::interpolate_euler_circuit(&ec, &eg, target_points, interp_conf);
+
+                // If the interpolated frame is empty there were no lit points or lines.
+                // In this case, we'll produce an empty frame.
+                if interpolated.is_empty() {
+                    let blank_point = inter_frame_blank_points.last()
+                        .map(|&p| p)
+                        .or_else(|| last_frame_point.map(|p| p.blanked()))
+                        .unwrap_or_else(RawPoint::centered_blank);
+                    interpolated.extend((0..target_points).map(|_| blank_point));
+                }
+
+                self.raw_points.extend(inter_frame_blank_points);
+                self.raw_points.extend(interpolated);
             }
-
-            self.raw_points.extend(inter_frame_blank_points);
-            self.raw_points.extend(interpolated);
 
             // Update the last frame point.
             self.last_frame_point = self.raw_points.last().map(|&p| p);
