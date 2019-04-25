@@ -499,7 +499,7 @@ where
         ether_dream_points.extend(buffer.iter().cloned().map(point_to_ether_dream_point));
 
         // If the point rate changed, set the control value on the first point to trigger it.
-        if point_rate_changed {
+        if point_rate_changed && !ether_dream_points.is_empty() {
             ether_dream_points[0].control = ether_dream::dac::PointControl::CHANGE_RATE.bits();
         }
 
