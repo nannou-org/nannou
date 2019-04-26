@@ -35,9 +35,7 @@ vulkano-shaders = { git = "https://github.com/mitchmindtree/vulkano", branch = "
 winit = "0.19"
 
 [dev-dependencies]
-notify = "4"
-shaderc = "0.3"
-spirv-reflect = "0.2"
+shade_runner = { git = "https://github.com/freesig/shade_runner.git" }
 lasy = "0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -146,7 +144,7 @@ name = "vk_debug"
 path = "examples/vulkan/vk_debug.rs"
 [[example]]
 name = "vk_hotload"
-path = "examples/vulkan/vk_hotload/vk_hotload.rs"
+path = "examples/vulkan/vk_hotload.rs"
 
 # --------------- Generative Design
 [[example]]

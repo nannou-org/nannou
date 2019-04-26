@@ -1,31 +1,21 @@
 extern crate nannou;
-extern crate notify;
-extern crate shaderc;
-extern crate spirv_reflect;
-
-mod shader;
-mod watch;
+extern crate shade_runner;
 
 use nannou::prelude::*;
-use spirv_reflect as sr;
 use std::cell::RefCell;
+use std::ffi::CStr;
 use std::path::PathBuf;
-use std::sync::{mpsc, Arc};
-
-use shader::{compile_shader, create_interfaces, ShaderInterfaces};
-use watch::{Handler, ShaderMsg};
+use std::sync::Arc;
 
 struct Model {
     render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
     pipeline: Option<Arc<vk::GraphicsPipelineAbstract + Send + Sync>>,
     vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
     view_fbo: RefCell<ViewFbo>,
-    _shader_watch: Handler,
-    shader_change: mpsc::Receiver<ShaderMsg>,
+    shade_watcher: shade_runner::Watch,
+    shade_msg: shade_runner::Message,
     vert_shader: Arc<vk::pipeline::shader::ShaderModule>,
     frag_shader: Arc<vk::pipeline::shader::ShaderModule>,
-    vert_interfaces: ShaderInterfaces,
-    frag_interfaces: ShaderInterfaces,
     device: Arc<vk::Device>,
 }
 
@@ -62,25 +52,21 @@ fn model(app: &App) -> Model {
     vert_path.push(PathBuf::from("examples/vulkan/shaders/hotload_vert.glsl"));
     let mut frag_path = nannou_root.clone();
     frag_path.push(PathBuf::from("examples/vulkan/shaders/hotload_frag.glsl"));
-    let (vs, vert_interfaces) = {
-        let v = compile_shader(vert_path.clone(), shaderc::ShaderKind::Vertex)
-            .expect("Failed to load shader");
-        let s = create_interfaces(&v);
-        (
-            unsafe { vk::pipeline::shader::ShaderModule::from_words(device.clone(), &v) }.unwrap(),
-            s,
-        )
-    };
+    let shade_watcher = shade_runner::Watch::new(vert_path, frag_path);
+    let shade_msg = shade_watcher
+        .rx
+        .recv()
+        .expect("Failed to receive shader")
+        .expect("failed to compile shader");
+    let vs = unsafe {
+        vk::pipeline::shader::ShaderModule::from_words(device.clone(), &shade_msg.shaders.vertex)
+    }
+    .unwrap();
 
-    let (fs, frag_interfaces) = {
-        let v = compile_shader(frag_path.clone(), shaderc::ShaderKind::Fragment)
-            .expect("Failed to load shader");
-        let s = create_interfaces(&v);
-        (
-            unsafe { vk::pipeline::shader::ShaderModule::from_words(device.clone(), &v) }.unwrap(),
-            s,
-        )
-    };
+    let fs = unsafe {
+        vk::pipeline::shader::ShaderModule::from_words(device.clone(), &shade_msg.shaders.fragment)
+    }
+    .unwrap();
 
     // The next step is to create a *render pass*, which is an object that describes where the
     // output of the graphics pipeline will go. It describes the layout of the images
@@ -121,27 +107,49 @@ fn model(app: &App) -> Model {
     // can draw we also need to create the actual framebuffer.
     let view_fbo = RefCell::new(ViewFbo::default());
 
-    let (shader_watch, shader_change) = watch::new(&vert_path, &frag_path);
-
     let mut model = Model {
         render_pass,
         pipeline,
         vertex_buffer,
         view_fbo,
-        _shader_watch: shader_watch,
-        shader_change,
+        shade_watcher,
+        shade_msg,
         vert_shader: vs,
         frag_shader: fs,
-        vert_interfaces,
-        frag_interfaces,
         device,
     };
-    shader::update_pipeline(&mut model);
+    update_pipeline(&mut model);
     model
 }
 
 fn update(_app: &App, model: &mut Model, _: Update) {
-    shader::update(model);
+    let shader_msg = model.shade_watcher.rx.try_recv();
+    if let Ok(shade_msg) = shader_msg {
+        match shade_msg {
+            Ok(shade_msg) => {
+                model.vert_shader = unsafe {
+                    vk::pipeline::shader::ShaderModule::from_words(
+                        model.device.clone(),
+                        &shade_msg.shaders.vertex,
+                    )
+                }
+                .unwrap();
+
+                model.frag_shader = unsafe {
+                    vk::pipeline::shader::ShaderModule::from_words(
+                        model.device.clone(),
+                        &shade_msg.shaders.fragment,
+                    )
+                }
+                .unwrap();
+                model.shade_msg = shade_msg;
+                update_pipeline(model);
+            }
+            Err(e) => {
+                println!("Error compiling shader {:?}", e);
+            }
+        }
+    }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
@@ -181,4 +189,58 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
         .expect("failed to add `end_render_pass` command");
 
     frame
+}
+
+fn update_pipeline(model: &mut Model) {
+    let Model {
+        ref vert_shader,
+        ref frag_shader,
+        ref shade_msg,
+        ref device,
+        ref render_pass,
+        ref mut pipeline,
+        ..
+    } = model;
+    let entry = shade_msg.entry.clone();
+    let vert_main = unsafe {
+        vert_shader.graphics_entry_point(
+            CStr::from_bytes_with_nul_unchecked(b"main\0"),
+            entry.vert_input,
+            entry.vert_output,
+            entry.vert_layout,
+            vk::pipeline::shader::GraphicsShaderType::Vertex,
+        )
+    };
+    let frag_main = unsafe {
+        frag_shader.graphics_entry_point(
+            CStr::from_bytes_with_nul_unchecked(b"main\0"),
+            entry.frag_input,
+            entry.frag_output,
+            entry.frag_layout,
+            vk::pipeline::shader::GraphicsShaderType::Fragment,
+        )
+    };
+    *pipeline = Some(Arc::new(
+        vk::GraphicsPipeline::start()
+            // We need to indicate the layout of the vertices.
+            // The type `SingleBufferDefinition` actually contains a template parameter
+            // corresponding to the type of each vertex.
+            .vertex_input_single_buffer::<Vertex>()
+            // A Vulkan shader can in theory contain multiple entry points, so we have to specify
+            // which one. The `main` word of `main_entry_point` actually corresponds to the name of
+            // the entry point.
+            .vertex_shader(vert_main, ())
+            // The content of the vertex buffer describes a list of triangles.
+            .triangle_list()
+            // Use a resizable viewport set to draw over the entire window
+            .viewports_dynamic_scissors_irrelevant(1)
+            // See `vertex_shader`.
+            .fragment_shader(frag_main, ())
+            // We have to indicate which subpass of which render pass this pipeline is going to be
+            // used in. The pipeline will only be usable from this particular subpass.
+            .render_pass(vk::Subpass::from(render_pass.clone(), 0).unwrap())
+            // Now that our builder is filled, we call `build()` to obtain an actual pipeline.
+            .build(device.clone())
+            .unwrap(),
+    ));
 }
