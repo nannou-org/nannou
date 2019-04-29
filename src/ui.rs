@@ -124,6 +124,7 @@ pub enum DrawToFrameError {
     ImageCreation(vk::ImageCreationError),
     FramebufferCreation(vk::FramebufferCreationError),
     RendererFill(CacheWriteErr),
+    GlyphPixelDataUpload(vk::memory::DeviceMemoryAllocError),
     CopyBufferImageCommand(vk::command_buffer::CopyBufferImageError),
     RendererDraw(conrod_vulkano::DrawError),
     DrawCommand(vk::command_buffer::DrawError),
@@ -637,28 +638,12 @@ pub fn draw_primitives(
     let (win_w, win_h) = window.inner_size_pixels();
     let dpi_factor = window.hidpi_factor() as f64;
     let viewport = [0.0, 0.0, win_w as f32, win_h as f32];
-    let mut cmds = renderer.fill(image_map, viewport, dpi_factor, primitives)?;
-    for cmd in cmds.commands.drain(..) {
-        let buffer = cmds
-            .glyph_cpu_buffer_pool
-            .chunk(cmd.data.iter().cloned())
-            .unwrap();
-        let offset = [cmd.offset[0], cmd.offset[1], 0];
-        let size = [cmd.size[0], cmd.size[1], 1];
-        let first_layer = 0;
-        let num_layers = 1;
-        let mipmap = 0;
+    if let Some(cmd) = renderer.fill(image_map, viewport, dpi_factor, primitives)? {
+        let buffer = cmd.glyph_cpu_buffer_pool
+            .chunk(cmd.glyph_cache_pixel_buffer.iter().cloned())?;
         frame
             .add_commands()
-            .copy_buffer_to_image_dimensions(
-                buffer,
-                cmds.glyph_cache_texture.clone(),
-                offset,
-                size,
-                first_layer,
-                num_layers,
-                mipmap,
-            )?;
+            .copy_buffer_to_image(buffer, cmd.glyph_cache_texture)?;
     }
 
     // Generate the draw commands and submit them.
@@ -751,6 +736,12 @@ impl From<CacheWriteErr> for DrawToFrameError {
     }
 }
 
+impl From<vk::memory::DeviceMemoryAllocError> for DrawToFrameError {
+    fn from(err: vk::memory::DeviceMemoryAllocError) -> Self {
+        DrawToFrameError::GlyphPixelDataUpload(err)
+    }
+}
+
 impl From<vk::command_buffer::CopyBufferImageError> for DrawToFrameError {
     fn from(err: vk::command_buffer::CopyBufferImageError) -> Self {
         DrawToFrameError::CopyBufferImageCommand(err)
@@ -815,6 +806,7 @@ impl StdError for DrawToFrameError {
             DrawToFrameError::ImageCreation(ref err) => err.description(),
             DrawToFrameError::FramebufferCreation(ref err) => err.description(),
             DrawToFrameError::RendererFill(ref err) => err.description(),
+            DrawToFrameError::GlyphPixelDataUpload(ref err) => err.description(),
             DrawToFrameError::CopyBufferImageCommand(ref err) => err.description(),
             DrawToFrameError::RendererDraw(ref err) => err.description(),
             DrawToFrameError::DrawCommand(ref err) => err.description(),
@@ -830,6 +822,7 @@ impl StdError for DrawToFrameError {
             DrawToFrameError::ImageCreation(ref err) => Some(err),
             DrawToFrameError::FramebufferCreation(ref err) => Some(err),
             DrawToFrameError::RendererFill(ref err) => Some(err),
+            DrawToFrameError::GlyphPixelDataUpload(ref err) => Some(err),
             DrawToFrameError::CopyBufferImageCommand(ref err) => Some(err),
             DrawToFrameError::RendererDraw(ref err) => Some(err),
             DrawToFrameError::DrawCommand(ref err) => Some(err),
