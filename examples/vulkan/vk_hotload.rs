@@ -4,8 +4,8 @@ extern crate shade_runner;
 use nannou::prelude::*;
 use std::cell::RefCell;
 use std::ffi::CStr;
-use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
 struct Model {
     render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
@@ -47,12 +47,9 @@ fn model(app: &App) -> Model {
         vk::CpuAccessibleBuffer::from_iter(device.clone(), vk::BufferUsage::all(), vertices)
             .unwrap()
     };
-    let nannou_root = std::env::current_dir().expect("failed to get root directory");
-    let mut vert_path = nannou_root.clone();
-    vert_path.push(PathBuf::from("examples/vulkan/shaders/hotload_vert.glsl"));
-    let mut frag_path = nannou_root.clone();
-    frag_path.push(PathBuf::from("examples/vulkan/shaders/hotload_frag.glsl"));
-    let shade_watcher = shade_runner::Watch::create(vert_path, frag_path).expect("failed to create watcher");
+    let vert_path = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/vulkan/shaders/hotload_vert.glsl");
+    let frag_path = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/vulkan/shaders/hotload_frag.glsl");
+    let shade_watcher = shade_runner::Watch::create(vert_path, frag_path, Duration::from_millis(50)).expect("failed to create watcher");
     let shade_msg = shade_watcher
         .rx
         .recv()
@@ -123,8 +120,8 @@ fn model(app: &App) -> Model {
 }
 
 fn update(_app: &App, model: &mut Model, _: Update) {
-    let shader_msg = model.shade_watcher.rx.try_recv();
-    if let Ok(shade_msg) = shader_msg {
+    let shader_msg = model.shade_watcher.rx.try_iter().last();
+    if let Some(shade_msg) = shader_msg {
         match shade_msg {
             Ok(shade_msg) => {
                 model.vert_shader = unsafe {
