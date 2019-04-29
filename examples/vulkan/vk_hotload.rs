@@ -52,7 +52,7 @@ fn model(app: &App) -> Model {
     vert_path.push(PathBuf::from("examples/vulkan/shaders/hotload_vert.glsl"));
     let mut frag_path = nannou_root.clone();
     frag_path.push(PathBuf::from("examples/vulkan/shaders/hotload_frag.glsl"));
-    let shade_watcher = shade_runner::Watch::new(vert_path, frag_path);
+    let shade_watcher = shade_runner::Watch::create(vert_path, frag_path).expect("failed to create watcher");
     let shade_msg = shade_watcher
         .rx
         .recv()
