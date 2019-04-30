@@ -47,14 +47,25 @@ fn model(app: &App) -> Model {
         vk::CpuAccessibleBuffer::from_iter(device.clone(), vk::BufferUsage::all(), vertices)
             .unwrap()
     };
+
+    // Get the paths to your vertex and fragment shaders.
     let vert_path = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/vulkan/shaders/hotload_vert.glsl");
     let frag_path = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/vulkan/shaders/hotload_frag.glsl");
+    // Create a watcher that will reload both shaders if there is any change to the
+    // parent directory eg. '/examples/vulkan/shaders/'
     let shade_watcher = shade_runner::Watch::create(vert_path, frag_path, Duration::from_millis(50)).expect("failed to create watcher");
+    // Wait on the first message,
+    // which is the shaders compiling and parsing.
+    // The message is a Result which indicates if
+    // the shader successfully compiled and parsed.
     let shade_msg = shade_watcher
         .rx
         .recv()
         .expect("Failed to receive shader")
         .expect("failed to compile shader");
+    // Create the shader module from the compiled 
+    // shader in the message. It is simply 
+    // a Vec<u8>.
     let vs = unsafe {
         vk::pipeline::shader::ShaderModule::from_words(device.clone(), &shade_msg.shaders.vertex)
     }
@@ -115,15 +126,22 @@ fn model(app: &App) -> Model {
         frag_shader: fs,
         device,
     };
+    // Here we won't to update the pipeline but
+    // we need data from the model so it has to
+    // happen after model is created.
     update_pipeline(&mut model);
     model
 }
 
 fn update(_app: &App, model: &mut Model, _: Update) {
+    // Get the latest message from the watcher.
+    // There will be a message for any change to the shaders.
     let shader_msg = model.shade_watcher.rx.try_iter().last();
     if let Some(shade_msg) = shader_msg {
         match shade_msg {
             Ok(shade_msg) => {
+                // Got a successfully compiled and parsed message.
+                // Recreate the shader modules and update the pipeline.
                 model.vert_shader = unsafe {
                     vk::pipeline::shader::ShaderModule::from_words(
                         model.device.clone(),
@@ -143,6 +161,8 @@ fn update(_app: &App, model: &mut Model, _: Update) {
                 update_pipeline(model);
             }
             Err(e) => {
+                // The shader changed but failed to compile.
+                // This contains the reason why it failed.
                 println!("Error compiling shader {:?}", e);
             }
         }
@@ -198,6 +218,12 @@ fn update_pipeline(model: &mut Model) {
         ref mut pipeline,
         ..
     } = model;
+    // Here we use the other part of the latest message
+    // from shade_runner. It is the entry point for vulkano
+    // to use your compiled shader.
+    // If there is any errors here make sure you have the 
+    // same version of vulkano in your application and shade_runner.
+    // Cargo patch can be handy for this.
     let entry = shade_msg.entry.clone();
     let vert_main = unsafe {
         vert_shader.graphics_entry_point(
