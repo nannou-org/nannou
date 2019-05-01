@@ -1,5 +1,5 @@
-use audio;
-use audio::sample::Sample;
+use crate::audio;
+use crate::audio::sample::Sample;
 use std;
 
 /// A `sound::Requester` for converting backend audio requests into requests for buffers of a fixed

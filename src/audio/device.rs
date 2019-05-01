@@ -1,4 +1,4 @@
-use audio::cpal;
+use crate::audio::cpal;
 use std::ops::Deref;
 
 /// A device that can be used to spawn an audio stream.

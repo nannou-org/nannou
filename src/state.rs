@@ -9,8 +9,8 @@ pub use self::window::Window;
 
 /// Tracked state related to the focused window.
 pub mod window {
-    use geom;
-    use window;
+    use crate::geom;
+    use crate::window;
 
     /// The default scalar value used for window positioning and sizing.
     pub type DefaultScalar = geom::scalar::Default;
@@ -37,7 +37,7 @@ pub mod window {
 
 /// Tracked state related to the keyboard.
 pub mod keys {
-    use event::{Key, ModifiersState};
+    use crate::event::{Key, ModifiersState};
     use std::collections::HashSet;
     use std::ops::Deref;
 
@@ -66,16 +66,16 @@ pub mod keys {
 
 /// Tracked state related to the mouse.
 pub mod mouse {
-    use geom::{self, Point2};
-    use math::BaseFloat;
+    use crate::geom::{self, Point2};
+    use crate::math::BaseFloat;
+    use crate::window;
     use std;
-    use window;
 
     /// The default scalar value used for positions.
     pub type DefaultScalar = geom::scalar::Default;
 
     #[doc(inline)]
-    pub use event::MouseButton as Button;
+    pub use crate::event::MouseButton as Button;
 
     /// The max total number of buttons on a mouse.
     pub const NUM_BUTTONS: usize = 9;

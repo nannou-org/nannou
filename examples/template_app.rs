@@ -1,5 +1,3 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -11,7 +9,8 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window()
+    let _window = app
+        .new_window()
         .with_dimensions(720, 720)
         .view(view)
         .event(window_event)
@@ -20,8 +19,7 @@ fn model(app: &App) -> Model {
     Model { _window }
 }
 
-fn update(_app: &App, _model: &mut Model, _update: Update) {
-}
+fn update(_app: &App, _model: &mut Model, _update: Update) {}
 
 fn window_event(_app: &App, _model: &mut Model, event: WindowEvent) {
     match event {

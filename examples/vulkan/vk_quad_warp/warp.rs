@@ -76,21 +76,20 @@ pub(crate) fn warp(app: &App) -> Warp {
     }
 }
 
-pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<vk::AttachmentImage>, frame: Frame) -> Frame {
-    let Model {
-        warp,
-        controls,
-        ..
-    } = model;
+pub(crate) fn view(
+    app: &App,
+    model: &Model,
+    inter_image: Arc<vk::AttachmentImage>,
+    frame: Frame,
+) -> Frame {
+    let Model { warp, controls, .. } = model;
 
     let [w, h] = frame.swapchain_image().dimensions();
     let half_w = w as f32 / 2.0;
     let half_h = h as f32 / 2.0;
     let ref corners = controls.corners;
 
-    let remap = | a: &Point2| -> Point2 {
-        pt2(a.x / half_w as f32, a.y / half_h as f32)
-    };
+    let remap = |a: &Point2| -> Point2 { pt2(a.x / half_w as f32, a.y / half_h as f32) };
 
     let tl = remap(&corners.top_left.pos);
     let tr = remap(&corners.top_right.pos);
@@ -107,18 +106,28 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<vk::AttachmentImag
         homography: h_matrix.into(),
     };
 
-    let positions = [[-1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [1.0, -1.0, 0.0], [1.0, 1.0, 0.0]];
+    let positions = [
+        [-1.0, -1.0, 0.0],
+        [-1.0, 1.0, 0.0],
+        [1.0, -1.0, 0.0],
+        [1.0, 1.0, 0.0],
+    ];
     let tex_coords = [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]];
-    let data = positions.iter()
+    let data = positions
+        .iter()
         .zip(&tex_coords)
-        .map(|(&position, &v_tex_coords)| Vertex { position, v_tex_coords });
-    let queue = app.window(frame.window_id())
+        .map(|(&position, &v_tex_coords)| Vertex {
+            position,
+            v_tex_coords,
+        });
+    let queue = app
+        .window(frame.window_id())
         .expect("no window for frame's window_id")
         .swapchain_queue()
         .clone();
     let usage = vk::BufferUsage::all();
-    let (vertex_buffer, buffer_future) = vk::ImmutableBuffer::from_iter(data, usage, queue).unwrap();
-
+    let (vertex_buffer, buffer_future) =
+        vk::ImmutableBuffer::from_iter(data, usage, queue).unwrap();
 
     buffer_future
         .then_signal_fence_and_flush()
@@ -131,8 +140,11 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<vk::AttachmentImag
     let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
 
     // Update view_fbo in case of window resize.
-    warp.view_fbo.borrow_mut()
-        .update(&frame, warp.render_pass.clone(), |builder, image| builder.add(image))
+    warp.view_fbo
+        .borrow_mut()
+        .update(&frame, warp.render_pass.clone(), |builder, image| {
+            builder.add(image)
+        })
         .expect("view_fbo failed to create");
 
     let clear_values = vec![[0.0, 1.0, 0.0, 1.0].into()];
@@ -151,11 +163,7 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<vk::AttachmentImag
 
     frame
         .add_commands()
-        .begin_render_pass(
-            warp.view_fbo.borrow().expect_inner(),
-            false,
-            clear_values,
-        )
+        .begin_render_pass(warp.view_fbo.borrow().expect_inner(), false, clear_values)
         .expect("Failed to start render pass")
         .draw(
             warp.pipeline.clone(),

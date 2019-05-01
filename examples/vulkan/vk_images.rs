@@ -1,5 +1,3 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -148,8 +146,12 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
 
     // Update view_fbo in case of window resize.
-    model.view_fbo.borrow_mut()
-        .update(&frame, model.render_pass.clone(), |builder, image| builder.add(image))
+    model
+        .view_fbo
+        .borrow_mut()
+        .update(&frame, model.render_pass.clone(), |builder, image| {
+            builder.add(image)
+        })
         .unwrap();
 
     let clear_values = vec![[0.0, 1.0, 0.0, 1.0].into()];
@@ -208,7 +210,7 @@ void main() {
     uv.y *= -1.0;
     float aspect = uv.x / uv.y;
 
-    float squares = pow(2.0,2.0);    
+    float squares = pow(2.0,2.0);
     float sw = sqrt(squares) / aspect;
     float sh = sqrt(squares);
 
@@ -222,11 +224,11 @@ void main() {
     if(a == 0) {
         c += texture(tex1, vec2(vx,vy));
     } else if(a == 1) {
-        c += texture(tex2, vec2(vx,vy));    
+        c += texture(tex2, vec2(vx,vy));
     } else if(a == 2) {
-        c += texture(tex3, vec2(vx,vy));    
+        c += texture(tex3, vec2(vx,vy));
     } else if(a == 3) {
-        c += texture(tex4, vec2(vx,vy));    
+        c += texture(tex4, vec2(vx,vy));
     }
     f_color = c;
 }"

@@ -3,15 +3,10 @@
 // http://natureofcode.com
 //
 // Example 1-2: Bouncing Ball, with Vector!
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model)
-        .update(update)
-        .simple_window(view)
-        .run();
+    nannou::app(model).update(update).simple_window(view).run();
 }
 
 struct Model {

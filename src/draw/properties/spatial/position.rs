@@ -1,7 +1,7 @@
 //! Items related to describing positioning along each axis as
 
-use geom::graph::node;
-use geom::{self, Point2, Point3};
+use crate::geom::graph::node;
+use crate::geom::{self, Point2, Point3};
 
 /// Position properties for **Drawing** a **Node**.
 #[derive(Copy, Clone, Debug, PartialEq)]

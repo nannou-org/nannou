@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 5-07: Oscillating Objects
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

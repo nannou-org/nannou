@@ -1,8 +1,8 @@
-use color::{self, Rgb, Rgba};
-use draw::properties::{ColorScalar, IntoRgba};
-use draw::Draw;
-use geom;
-use math::BaseFloat;
+use crate::color::{self, Rgb, Rgba};
+use crate::draw::properties::{ColorScalar, IntoRgba};
+use crate::draw::Draw;
+use crate::geom;
+use crate::math::BaseFloat;
 
 /// A type used to update the background colour.
 pub struct Background<'a, S = geom::scalar::Default>

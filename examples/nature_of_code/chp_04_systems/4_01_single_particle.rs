@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // example 4-01: Single Particle
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -65,7 +63,11 @@ impl Particle {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().with_dimensions(640, 360).view(view).build().unwrap();
+    app.new_window()
+        .with_dimensions(640, 360)
+        .view(view)
+        .build()
+        .unwrap();
     let p = Particle::new(pt2(0.0, app.window_rect().top() - 20.0));
     Model { p }
 }

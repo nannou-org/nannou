@@ -6,10 +6,10 @@
 //! Each **Drawing** instance is associated with a specific **Node** in the geometry graph and has
 //! a unique **node::Index** to simplify this.
 
-use draw;
-use geom;
-use geom::graph::node;
-use math::BaseFloat;
+use crate::draw;
+use crate::geom;
+use crate::geom::graph::node;
+use crate::math::BaseFloat;
 use std::cell::RefCell;
 use std::ops;
 
@@ -178,7 +178,7 @@ where
     /// The iterator type yielding all vertex indices, describing edges of the drawing.
     type Indices: Indices;
     /// Consume `self` and return its **Drawn** form.
-    fn into_drawn(self, Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices>;
+    fn into_drawn(self, _: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices>;
 }
 
 /// An iterator adaptor around a type implementing the **Vertices** trait and the

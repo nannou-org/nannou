@@ -20,122 +20,108 @@ pub use vulkano::*;
 
 // Re-export type and trait names whose meaning are still obvious outside of their module.
 pub use vulkano::{
+    buffer::cpu_pool::{CpuBufferPoolChunk, CpuBufferPoolSubbuffer},
     buffer::{
-        BufferAccess, BufferInner, BufferSlice, BufferUsage, TypedBufferAccess,
-        CpuAccessibleBuffer, CpuBufferPool, DeviceLocalBuffer, ImmutableBuffer,
-        BufferCreationError, BufferView, BufferViewRef
-    },
-    buffer::cpu_pool::{
-        CpuBufferPoolChunk, CpuBufferPoolSubbuffer,
+        BufferAccess, BufferCreationError, BufferInner, BufferSlice, BufferUsage, BufferView,
+        BufferViewRef, CpuAccessibleBuffer, CpuBufferPool, DeviceLocalBuffer, ImmutableBuffer,
+        TypedBufferAccess,
     },
     command_buffer::{
-        AutoCommandBuffer, AutoCommandBufferBuilder, CommandBufferExecFuture,
-        DispatchIndirectCommand, DrawIndirectCommand, DynamicState,
-        AutoCommandBufferBuilderContextError, ExecuteCommandsError, StateCacherOutcome,
-        UpdateBufferError, CommandBuffer,
-    },
-    descriptor::{
-        DescriptorSet, PipelineLayoutAbstract,
+        AutoCommandBuffer, AutoCommandBufferBuilder, AutoCommandBufferBuilderContextError,
+        CommandBuffer, CommandBufferExecFuture, DispatchIndirectCommand, DrawIndirectCommand,
+        DynamicState, ExecuteCommandsError, StateCacherOutcome, UpdateBufferError,
     },
     descriptor::descriptor::{
-        DescriptorBufferDesc, DescriptorDesc, DescriptorImageDesc, ShaderStages,
-        DescriptorDescSupersetError, DescriptorDescTy, DescriptorImageDescArray,
-        DescriptorImageDescDimensions, DescriptorType, ShaderStagesSupersetError,
+        DescriptorBufferDesc, DescriptorDesc, DescriptorDescSupersetError, DescriptorDescTy,
+        DescriptorImageDesc, DescriptorImageDescArray, DescriptorImageDescDimensions,
+        DescriptorType, ShaderStages, ShaderStagesSupersetError,
     },
     descriptor::descriptor_set::{
+        DescriptorPool, DescriptorPoolAlloc, DescriptorPoolAllocError, DescriptorSetDesc,
         DescriptorSetsCollection, DescriptorWrite, DescriptorsCount, FixedSizeDescriptorSet,
         FixedSizeDescriptorSetBuilder, FixedSizeDescriptorSetBuilderArray,
         FixedSizeDescriptorSetsPool, PersistentDescriptorSet, PersistentDescriptorSetBuf,
-        PersistentDescriptorSetBufView, PersistentDescriptorSetBuilder,
-        PersistentDescriptorSetBuilderArray, PersistentDescriptorSetImg,
-        PersistentDescriptorSetSampler, StdDescriptorPool, StdDescriptorPoolAlloc,
-        UnsafeDescriptorPool, UnsafeDescriptorPoolAllocIter, UnsafeDescriptorSet,
-        UnsafeDescriptorSetLayout, DescriptorPoolAllocError, PersistentDescriptorSetBuildError,
-        PersistentDescriptorSetError, DescriptorPool, DescriptorPoolAlloc, DescriptorSetDesc,
+        PersistentDescriptorSetBufView, PersistentDescriptorSetBuildError,
+        PersistentDescriptorSetBuilder, PersistentDescriptorSetBuilderArray,
+        PersistentDescriptorSetError, PersistentDescriptorSetImg, PersistentDescriptorSetSampler,
+        StdDescriptorPool, StdDescriptorPoolAlloc, UnsafeDescriptorPool,
+        UnsafeDescriptorPoolAllocIter, UnsafeDescriptorSet, UnsafeDescriptorSetLayout,
     },
     descriptor::pipeline_layout::{
-        EmptyPipelineDesc, PipelineLayout, PipelineLayoutDescPcRange, PipelineLayoutDescUnion,
-        PipelineLayoutSys, RuntimePipelineDesc, PipelineLayoutCreationError,
-        PipelineLayoutLimitsError, PipelineLayoutNotSupersetError, RuntimePipelineDescError,
-        PipelineLayoutDesc, PipelineLayoutPushConstantsCompatible, PipelineLayoutSetsCompatible,
-        PipelineLayoutSuperset,
+        EmptyPipelineDesc, PipelineLayout, PipelineLayoutCreationError, PipelineLayoutDesc,
+        PipelineLayoutDescPcRange, PipelineLayoutDescUnion, PipelineLayoutLimitsError,
+        PipelineLayoutNotSupersetError, PipelineLayoutPushConstantsCompatible,
+        PipelineLayoutSetsCompatible, PipelineLayoutSuperset, PipelineLayoutSys,
+        RuntimePipelineDesc, RuntimePipelineDescError,
     },
+    descriptor::{DescriptorSet, PipelineLayoutAbstract},
     device::{
-        Device, DeviceExtensions, DeviceOwned, DeviceCreationError, RawDeviceExtensions, Queue,
-        QueuesIter,
+        Device, DeviceCreationError, DeviceExtensions, DeviceOwned, Queue, QueuesIter,
+        RawDeviceExtensions,
     },
     format::{
-        ClearValue, Format, FormatTy, AcceptsPixels, ClearValuesTuple, FormatDesc,
+        AcceptsPixels, ClearValue, ClearValuesTuple, Format, FormatDesc, FormatTy,
         PossibleCompressedFormatDesc, PossibleDepthFormatDesc, PossibleDepthStencilFormatDesc,
         PossibleFloatFormatDesc, PossibleFloatOrCompressedFormatDesc, PossibleSintFormatDesc,
         PossibleStencilFormatDesc, PossibleUintFormatDesc, StrongStorage,
     },
     framebuffer::{
-        AttachmentDescription, Framebuffer, FramebufferBuilder, FramebufferSys,
-        PassDependencyDescription, PassDescription, RenderPass, RenderPassDescAttachments,
-        RenderPassDescDependencies, RenderPassDescSubpasses, RenderPassSys, Subpass,
-        FramebufferCreationError, IncompatibleRenderPassAttachmentError, LoadOp,
-        RenderPassCreationError, StoreOp, SubpassContents, AttachmentsList, FramebufferAbstract,
-        RenderPassAbstract, RenderPassCompatible, RenderPassDesc, RenderPassDescClearValues,
-        RenderPassSubpassInterface,
+        AttachmentDescription, AttachmentsList, Framebuffer, FramebufferAbstract,
+        FramebufferBuilder, FramebufferCreationError, FramebufferSys,
+        IncompatibleRenderPassAttachmentError, LoadOp, PassDependencyDescription, PassDescription,
+        RenderPass, RenderPassAbstract, RenderPassCompatible, RenderPassCreationError,
+        RenderPassDesc, RenderPassDescAttachments, RenderPassDescClearValues,
+        RenderPassDescDependencies, RenderPassDescSubpasses, RenderPassSubpassInterface,
+        RenderPassSys, StoreOp, Subpass, SubpassContents,
+    },
+    image::immutable::ImmutableImageInitialization,
+    image::traits::{
+        AttachmentImageView, ImageAccessFromUndefinedLayout, ImageClearValue, ImageContent,
     },
     image::{
-        AttachmentImage, ImmutableImage, SwapchainImage,
-        ImageCreationError, ImageAccess, ImageInner, ImageViewAccess, ImageUsage, StorageImage,
-        ImageDimensions, ImageLayout, MipmapsCount,
-    },
-    image::immutable::{
-        ImmutableImageInitialization,
-    },
-    image::traits::{
-        ImageAccessFromUndefinedLayout, AttachmentImageView, ImageClearValue, ImageContent,
+        AttachmentImage, ImageAccess, ImageCreationError, ImageDimensions, ImageInner, ImageLayout,
+        ImageUsage, ImageViewAccess, ImmutableImage, MipmapsCount, StorageImage, SwapchainImage,
     },
     instance::{
-        ApplicationInfo, Instance, InstanceExtensions, Limits, PhysicalDevice, PhysicalDevicesIter,
-        QueueFamiliesIter, QueueFamily, RawInstanceExtensions, Version, InstanceCreationError,
-        PhysicalDeviceType,
+        ApplicationInfo, Instance, InstanceCreationError, InstanceExtensions, Limits,
+        PhysicalDevice, PhysicalDeviceType, PhysicalDevicesIter, QueueFamiliesIter, QueueFamily,
+        RawInstanceExtensions, Version,
     },
-    pipeline::{
-        ComputePipeline, ComputePipelineSys, GraphicsPipeline, GraphicsPipelineBuilder,
-        GraphicsPipelineSys, ComputePipelineCreationError, GraphicsPipelineCreationError,
-        ComputePipelineAbstract, GraphicsPipelineAbstract,
-    },
-    pipeline::blend::{
-        AttachmentBlend, Blend, AttachmentsBlend, BlendFactor, BlendOp, LogicOp,
-    },
-    pipeline::depth_stencil::{
-        DepthStencil, Stencil, DepthBounds, StencilOp,
-    },
+    pipeline::blend::{AttachmentBlend, AttachmentsBlend, Blend, BlendFactor, BlendOp, LogicOp},
+    pipeline::depth_stencil::{DepthBounds, DepthStencil, Stencil, StencilOp},
     pipeline::vertex::{
-        AttributeInfo, BufferlessDefinition, BufferlessVertices, OneVertexOneInstanceDefinition,
-        SingleBufferDefinition, SingleInstanceBufferDefinition, TwoBuffersDefinition,
-        VertexMemberInfo, IncompatibleVertexDefinitionError, VertexMemberTy, Vertex,
-        VertexDefinition, VertexMember, VertexSource,
+        AttributeInfo, BufferlessDefinition, BufferlessVertices, IncompatibleVertexDefinitionError,
+        OneVertexOneInstanceDefinition, SingleBufferDefinition, SingleInstanceBufferDefinition,
+        TwoBuffersDefinition, Vertex, VertexDefinition, VertexMember, VertexMemberInfo,
+        VertexMemberTy, VertexSource,
     },
-    pipeline::viewport::{
-        Scissor, Viewport, ViewportsState,
+    pipeline::viewport::{Scissor, Viewport, ViewportsState},
+    pipeline::{
+        ComputePipeline, ComputePipelineAbstract, ComputePipelineCreationError, ComputePipelineSys,
+        GraphicsPipeline, GraphicsPipelineAbstract, GraphicsPipelineBuilder,
+        GraphicsPipelineCreationError, GraphicsPipelineSys,
     },
     query::{
-        OcclusionQueriesPool, QueryPipelineStatisticFlags, UnsafeQueriesRange, UnsafeQuery,
-        UnsafeQueryPool, QueryPoolCreationError, QueryType,
+        OcclusionQueriesPool, QueryPipelineStatisticFlags, QueryPoolCreationError, QueryType,
+        UnsafeQueriesRange, UnsafeQuery, UnsafeQueryPool,
     },
     sampler::{
         Compare as DepthStencilCompare, Sampler, SamplerAddressMode, SamplerCreationError,
         UnnormalizedSamplerAddressMode,
     },
-    swapchain::{
-        Surface, Swapchain, SwapchainAcquireFuture, SwapchainCreationError,
-    },
+    swapchain::{Surface, Swapchain, SwapchainAcquireFuture, SwapchainCreationError},
     sync::{
-        Fence, FenceSignalFuture, JoinFuture, NowFuture, Semaphore, SemaphoreSignalFuture,
-        GpuFuture,
+        Fence, FenceSignalFuture, GpuFuture, JoinFuture, NowFuture, Semaphore,
+        SemaphoreSignalFuture,
     },
 };
 pub use vulkano_shaders as shaders;
 pub use vulkano_win as win;
 
 use crate::vk;
-use crate::vk::instance::debug::{DebugCallback, DebugCallbackCreationError, Message, MessageTypes};
+use crate::vk::instance::debug::{
+    DebugCallback, DebugCallbackCreationError, Message, MessageTypes,
+};
 use crate::vk::instance::loader::{FunctionPointers, Loader};
 use std::borrow::Cow;
 use std::ops::{self, Range};
@@ -332,7 +318,9 @@ impl InstanceBuilder {
     ///
     /// Unlike the `extensions` method, this does not disable pre-existing extensions.
     pub fn add_extensions(mut self, ext: InstanceExtensions) -> Self {
-        self.extensions = self.extensions.take()
+        self.extensions = self
+            .extensions
+            .take()
             .map(|mut e| {
                 // TODO: Remove this when `InstanceExtensions::union` gets merged.
                 e.khr_surface |= ext.khr_surface;
@@ -376,10 +364,7 @@ impl InstanceBuilder {
     }
 
     /// Add custom vulkan loader
-    pub fn add_loader(
-        mut self,
-        loader: FunctionPointers<Box<dyn Loader + Send + Sync>>,
-    ) -> Self {
+    pub fn add_loader(mut self, loader: FunctionPointers<Box<dyn Loader + Send + Sync>>) -> Self {
         self.loader = Some(loader);
         self
     }
@@ -647,37 +632,37 @@ pub fn required_windowing_extensions() -> InstanceExtensions {
 
 /// Whether or not the format is sRGB.
 pub fn format_is_srgb(format: Format) -> bool {
-    use vk::format::Format::*;
+    use crate::vk::format::Format::*;
     match format {
-        R8Srgb |
-        R8G8Srgb |
-        R8G8B8Srgb |
-        B8G8R8Srgb |
-        R8G8B8A8Srgb |
-        B8G8R8A8Srgb |
-        A8B8G8R8SrgbPack32 |
-        BC1_RGBSrgbBlock |
-        BC1_RGBASrgbBlock |
-        BC2SrgbBlock |
-        BC3SrgbBlock |
-        BC7SrgbBlock |
-        ETC2_R8G8B8SrgbBlock |
-        ETC2_R8G8B8A1SrgbBlock |
-        ETC2_R8G8B8A8SrgbBlock |
-        ASTC_4x4SrgbBlock |
-        ASTC_5x4SrgbBlock |
-        ASTC_5x5SrgbBlock |
-        ASTC_6x5SrgbBlock |
-        ASTC_6x6SrgbBlock |
-        ASTC_8x5SrgbBlock |
-        ASTC_8x6SrgbBlock |
-        ASTC_8x8SrgbBlock |
-        ASTC_10x5SrgbBlock |
-        ASTC_10x6SrgbBlock |
-        ASTC_10x8SrgbBlock |
-        ASTC_10x10SrgbBlock |
-        ASTC_12x10SrgbBlock |
-        ASTC_12x12SrgbBlock => true,
+        R8Srgb
+        | R8G8Srgb
+        | R8G8B8Srgb
+        | B8G8R8Srgb
+        | R8G8B8A8Srgb
+        | B8G8R8A8Srgb
+        | A8B8G8R8SrgbPack32
+        | BC1_RGBSrgbBlock
+        | BC1_RGBASrgbBlock
+        | BC2SrgbBlock
+        | BC3SrgbBlock
+        | BC7SrgbBlock
+        | ETC2_R8G8B8SrgbBlock
+        | ETC2_R8G8B8A1SrgbBlock
+        | ETC2_R8G8B8A8SrgbBlock
+        | ASTC_4x4SrgbBlock
+        | ASTC_5x4SrgbBlock
+        | ASTC_5x5SrgbBlock
+        | ASTC_6x5SrgbBlock
+        | ASTC_6x6SrgbBlock
+        | ASTC_8x5SrgbBlock
+        | ASTC_8x6SrgbBlock
+        | ASTC_8x8SrgbBlock
+        | ASTC_10x5SrgbBlock
+        | ASTC_10x6SrgbBlock
+        | ASTC_10x8SrgbBlock
+        | ASTC_10x10SrgbBlock
+        | ASTC_12x10SrgbBlock
+        | ASTC_12x12SrgbBlock => true,
         _ => false,
     }
 }
@@ -708,26 +693,29 @@ pub fn check_moltenvk(
     let path = match moltenvk_deps::check_or_install(settings) {
         Err(moltenvk_deps::Error::ResetEnvVars(p)) => Some(p),
         Err(moltenvk_deps::Error::NonDefaultDir) => None,
-        Err(moltenvk_deps::Error::ChoseNotToInstall) => panic!("Moltenvk is required for Nannou on MacOS"),
+        Err(moltenvk_deps::Error::ChoseNotToInstall) => {
+            panic!("Moltenvk is required for Nannou on MacOS")
+        }
         Err(e) => panic!("Moltenvk installation failed {:?}", e),
         Ok(p) => Some(p),
     };
-    let loader = path.map(|p| {
-        unsafe { DynamicLibraryLoader::new(p) }
-    });
+    let loader = path.map(|p| unsafe { DynamicLibraryLoader::new(p) });
     match loader {
         Some(Ok(l)) => {
-            let loader: FunctionPointers<Box<(dyn Loader + Send + Sync + 'static)>> = FunctionPointers::new(Box::new(l));
+            let loader: FunctionPointers<Box<(dyn Loader + Send + Sync + 'static)>> =
+                FunctionPointers::new(Box::new(l));
             let required_extensions = required_extensions_with_loader(&loader);
-            vulkan_builder.extensions(required_extensions).add_loader(loader)
-        },
+            vulkan_builder
+                .extensions(required_extensions)
+                .add_loader(loader)
+        }
         _ => vulkan_builder.extensions(required_windowing_extensions()),
     }
 }
 
-pub fn required_extensions_with_loader<L>(ptrs: &FunctionPointers<L>)
-    -> InstanceExtensions
-    where L: Loader
+pub fn required_extensions_with_loader<L>(ptrs: &FunctionPointers<L>) -> InstanceExtensions
+where
+    L: Loader,
 {
     let ideal = InstanceExtensions {
         khr_surface: true,

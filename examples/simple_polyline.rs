@@ -1,5 +1,3 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -23,7 +21,7 @@ fn view(app: &App, frame: Frame) -> Frame {
     let vertices = (0..n_points)
         // A sine wave mapped to the range of the window.
         .map(|i| {
-            let x = map_range(i, 0, n_points-1, win.left(), win.right());
+            let x = map_range(i, 0, n_points - 1, win.left(), win.right());
             let fract = i as f32 / n_points as f32;
             let amp = (t + fract * hz * TAU).sin();
             let y = map_range(amp, -1.0, 1.0, win.bottom() * 0.75, win.top() * 0.75);

@@ -6,10 +6,6 @@
 //! 4. Adds the latest nannou version as a dep to the `Cargo.toml`.
 //! 5. Builds the project with optimisations. Suggests getting a beverage.
 
-extern crate cargo;
-extern crate names;
-extern crate rand;
-
 use cargo::CargoResult;
 use std::env;
 use std::io::{self, BufRead, Write};

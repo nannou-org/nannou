@@ -12,14 +12,18 @@
 //!   `app.draw()`.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
 
-use audio;
-use audio::cpal;
-use draw;
-use event::{self, Event, LoopEvent, Key, Update};
+use crate::audio;
+use crate::audio::cpal;
+use crate::draw;
+use crate::event::{self, Event, Key, LoopEvent, Update};
+use crate::frame::{Frame, RawFrame, RenderData};
+use crate::geom;
+use crate::state;
+use crate::time::DurationF64;
+use crate::ui;
+use crate::vk::{self, DeviceOwned, GpuFuture};
+use crate::window::{self, Window};
 use find_folder;
-use frame::{Frame, RawFrame, RenderData};
-use geom;
-use state;
 use std;
 use std::cell::{RefCell, RefMut};
 use std::collections::{HashMap, HashSet};
@@ -30,10 +34,6 @@ use std::sync::atomic::{self, AtomicBool};
 use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::{Duration, Instant};
-use time::DurationF64;
-use ui;
-use vk::{self, DeviceOwned, GpuFuture};
-use window::{self, Window};
 use winit;
 
 #[cfg(all(target_os = "macos", not(test)))]
@@ -465,7 +465,6 @@ where
     /// If unspecified, nannou will create one via the following:
     ///
     /// ```norun
-    /// # extern crate nannou;
     /// # use nannou::prelude::*;
     /// # fn main() {
     /// vk::InstanceBuilder::new()
@@ -479,7 +478,6 @@ where
     /// will do the following:
     ///
     /// ```norun
-    /// # extern crate nannou;
     /// # use nannou::prelude::*;
     /// # fn main() {
     /// vk::InstanceBuilder::new()
@@ -511,7 +509,7 @@ where
     }
 
     #[cfg(all(target_os = "macos", not(test)))]
-    /// Set custom settings for the moltenvk dependacy 
+    /// Set custom settings for the moltenvk dependacy
     /// installer.
     ///
     /// Install silently
@@ -520,7 +518,7 @@ where
     /// `Install::Message(message)`
     ///
     /// See moltenvk_deps::Message docs for more information.
-    pub fn macos_installer(mut self,  settings: mvkd::Install) -> Self {
+    pub fn macos_installer(mut self, settings: mvkd::Install) -> Self {
         self.moltenvk_settings = Some(settings);
         self
     }
@@ -547,42 +545,42 @@ where
         let vk_instance = self.vk_instance.take().unwrap_or_else(|| {
             if debug_callback_specified {
                 let vk_builder = vk::InstanceBuilder::new();
-                
+
                 #[cfg(all(target_os = "macos", not(test)))]
                 let vk_builder = vk::check_moltenvk(vk_builder, moltenvk_settings);
-                
+
                 #[cfg(any(not(target_os = "macos"), test))]
                 let vk_builder = vk_builder.extensions(vk::required_windowing_extensions());
 
-                vk_builder.add_extensions(vk::InstanceExtensions{ 
-                    ext_debug_report: true,
-                    ..vk::InstanceExtensions::none()
-                })
-                .layers(vec!["VK_LAYER_LUNARG_standard_validation"])
+                vk_builder
+                    .add_extensions(vk::InstanceExtensions {
+                        ext_debug_report: true,
+                        ..vk::InstanceExtensions::none()
+                    })
+                    .layers(vec!["VK_LAYER_LUNARG_standard_validation"])
                     .build()
                     .expect("failed to create vulkan instance")
             } else {
                 let vk_builder = vk::InstanceBuilder::new();
-                
+
                 #[cfg(all(target_os = "macos", not(test)))]
                 let vk_builder = vk::check_moltenvk(vk_builder, moltenvk_settings);
-                
+
                 #[cfg(any(not(target_os = "macos"), test))]
                 let vk_builder = vk_builder.extensions(vk::required_windowing_extensions());
-                
-                vk_builder.build()
+
+                vk_builder
+                    .build()
                     .expect("failed to create vulkan instance")
             }
         });
 
         // If a callback was specified, build it with the created instance.
-        let _vk_debug_callback = self.vk_debug_callback
-            .take()
-            .map(|builder| {
-                builder
-                    .build(&vk_instance)
-                    .expect("failed to build vulkan debug callback")
-            });
+        let _vk_debug_callback = self.vk_debug_callback.take().map(|builder| {
+            builder
+                .build(&vk_instance)
+                .expect("failed to build vulkan debug callback")
+        });
 
         // Initialise the app.
         let app = App::new(events_loop, vk_instance).expect("failed to construct `App`");
@@ -627,13 +625,21 @@ where
                     &capabilities.present_modes,
                 );
                 if window.swapchain.present_mode() != present_mode
-                || window.swapchain.num_images() != image_count {
+                    || window.swapchain.num_images() != image_count
+                {
                     change_loop_mode_for_window(window, &loop_mode);
                 }
             }
         }
 
-        run_loop(app, model, self.event, self.update, self.default_view, self.exit);
+        run_loop(
+            app,
+            model,
+            self.event,
+            self.update,
+            self.default_view,
+            self.exit,
+        );
     }
 }
 
@@ -983,7 +989,8 @@ impl App {
                 color_format,
                 DEPTH_FORMAT,
                 msaa_samples,
-            ).expect("failed to create `Draw` renderer for vulkano backend");
+            )
+            .expect("failed to create `Draw` renderer for vulkano backend");
             *self.draw_state.renderer.borrow_mut() = Some(RefCell::new(renderer));
         }
         let renderer = self.draw_state.renderer.borrow_mut();
@@ -1149,7 +1156,7 @@ impl<'a> Draw<'a> {
             self.window_id,
             frame.window_id(),
             "attempted to draw content intended for window {:?} in a frame \
-            associated with window {:?}",
+             associated with window {:?}",
             self.window_id,
             frame.window_id(),
         );
@@ -1190,8 +1197,7 @@ fn run_loop<M, E>(
     update_fn: Option<UpdateFn<M>>,
     default_view: Option<View<M>>,
     exit_fn: Option<ExitFn<M>>,
-)
-where
+) where
     M: 'static,
     E: LoopEvent,
 {
@@ -1213,16 +1219,17 @@ where
 
     // Begin running the application loop based on the current `LoopMode`.
     'mode: loop {
-        let Break { model: new_model, reason } = match loop_mode {
+        let Break {
+            model: new_model,
+            reason,
+        } = match loop_mode {
             LoopMode::Rate { update_interval } => {
-                run_loop_mode_rate(
-                    &mut app,
-                    model,
-                    &mut loop_ctxt,
-                    update_interval,
-                )
+                run_loop_mode_rate(&mut app, model, &mut loop_ctxt, update_interval)
             }
-            LoopMode::Wait { updates_following_event, update_interval, } => {
+            LoopMode::Wait {
+                updates_following_event,
+                update_interval,
+            } => {
                 loop_ctxt.updates_remaining = updates_following_event;
                 run_loop_mode_wait(
                     &mut app,
@@ -1232,15 +1239,16 @@ where
                     update_interval,
                 )
             }
-            LoopMode::RefreshSync { minimum_update_interval, windows } => {
-                run_loop_mode_refresh_sync(
-                    &mut app,
-                    model,
-                    &mut loop_ctxt,
-                    minimum_update_interval,
-                    windows,
-                )
-            }
+            LoopMode::RefreshSync {
+                minimum_update_interval,
+                windows,
+            } => run_loop_mode_refresh_sync(
+                &mut app,
+                model,
+                &mut loop_ctxt,
+                minimum_update_interval,
+                windows,
+            ),
         };
 
         model = new_model;
@@ -1250,7 +1258,7 @@ where
             BreakReason::NewLoopMode(new_loop_mode) => {
                 loop_mode = new_loop_mode;
                 change_loop_mode(&app, &loop_mode);
-            },
+            }
             // If the loop broke due to the application exiting, we're done!
             BreakReason::Exit => {
                 if let Some(exit_fn) = exit_fn {
@@ -1278,12 +1286,8 @@ where
         app.events_loop
             .poll_events(|event| loop_ctxt.winit_events.push(event));
         for winit_event in loop_ctxt.winit_events.drain(..) {
-            let (new_model, exit) = process_and_emit_winit_event(
-                app,
-                model,
-                loop_ctxt.event_fn,
-                winit_event,
-            );
+            let (new_model, exit) =
+                process_and_emit_winit_event(app, model, loop_ctxt.event_fn, winit_event);
             model = new_model;
             if exit {
                 let reason = BreakReason::Exit;
@@ -1347,7 +1351,8 @@ where
 {
     loop {
         // First collect any pending window events.
-        app.events_loop.poll_events(|event| loop_ctxt.winit_events.push(event));
+        app.events_loop
+            .poll_events(|event| loop_ctxt.winit_events.push(event));
 
         // If there are no events and the `Ui` does not need updating,
         // wait for the next event.
@@ -1410,10 +1415,13 @@ where
 
         // See if the loop mode has changed. If so, break.
         match app.loop_mode() {
-            LoopMode::Wait { update_interval: ui, updates_following_event: ufe } => {
+            LoopMode::Wait {
+                update_interval: ui,
+                updates_following_event: ufe,
+            } => {
                 update_interval = ui;
                 updates_following_event = ufe;
-            },
+            }
             loop_mode => {
                 let reason = BreakReason::NewLoopMode(loop_mode);
                 return Break { model, reason };
@@ -1451,8 +1459,8 @@ where
                         Ok(()) => break,
                         Err(vk::SwapchainCreationError::UnsupportedDimensions) => {
                             set_window_swapchain_needs_recreation(app, window_id, true);
-                            continue
-                        },
+                            continue;
+                        }
                         Err(err) => panic!("{:?}", err),
                     }
                 }
@@ -1462,17 +1470,14 @@ where
             // Acquire the next image from the swapchain.
             let timeout = None;
             let swapchain = app.windows.borrow()[&window_id].swapchain.clone();
-            let next_img = vk::swapchain::acquire_next_image(
-                swapchain.swapchain.clone(),
-                timeout,
-            );
+            let next_img = vk::swapchain::acquire_next_image(swapchain.swapchain.clone(), timeout);
             let (swapchain_image_index, swapchain_image_acquire_future) = match next_img {
                 Ok(r) => r,
                 Err(vk::swapchain::AcquireError::OutOfDate) => {
                     set_window_swapchain_needs_recreation(app, window_id, true);
                     continue;
-                },
-                Err(err) => panic!("{:?}", err)
+                }
+                Err(err) => panic!("{:?}", err),
             };
 
             // Process pending app events.
@@ -1528,10 +1533,13 @@ where
 
         // See if the loop mode has changed. If so, break.
         match app.loop_mode() {
-            LoopMode::RefreshSync { minimum_update_interval: mli, windows: w } => {
+            LoopMode::RefreshSync {
+                minimum_update_interval: mli,
+                windows: w,
+            } => {
                 minimum_update_interval = mli;
                 windows = w;
-            },
+            }
             loop_mode => {
                 let reason = BreakReason::NewLoopMode(loop_mode);
                 return Break { model, reason };
@@ -1598,7 +1606,10 @@ fn cleanup_unused_gpu_resources_for_window(app: &App, window_id: window::Id) {
 fn window_swapchain_needs_recreation(app: &App, window_id: window::Id) -> bool {
     let windows = app.windows.borrow();
     let window = &windows[&window_id];
-    window.swapchain.needs_recreation.load(atomic::Ordering::Relaxed)
+    window
+        .swapchain
+        .needs_recreation
+        .load(atomic::Ordering::Relaxed)
 }
 
 // Attempt to recreate a window's swapchain with the window's current dimensions.
@@ -1633,7 +1644,10 @@ fn recreate_window_swapchain(
 fn set_window_swapchain_needs_recreation(app: &App, window_id: window::Id, b: bool) {
     let windows = app.windows.borrow_mut();
     let window = windows.get(&window_id).expect("no window for id");
-    window.swapchain.needs_recreation.store(b, atomic::Ordering::Relaxed);
+    window
+        .swapchain
+        .needs_recreation
+        .store(b, atomic::Ordering::Relaxed);
 }
 
 // Poll and process any pending application events.
@@ -1653,15 +1667,12 @@ where
     E: LoopEvent,
 {
     let mut event_count = 0;
-    app.events_loop.poll_events(|event| loop_ctxt.winit_events.push(event));
+    app.events_loop
+        .poll_events(|event| loop_ctxt.winit_events.push(event));
     for winit_event in loop_ctxt.winit_events.drain(..) {
         event_count += 1;
-        let (new_model, exit) = process_and_emit_winit_event(
-            app,
-            model,
-            loop_ctxt.event_fn,
-            winit_event,
-        );
+        let (new_model, exit) =
+            process_and_emit_winit_event(app, model, loop_ctxt.event_fn, winit_event);
         model = new_model;
         if exit {
             return (model, exit, event_count);
@@ -1786,12 +1797,8 @@ where
             };
 
             // Translate the coordinates from top-left-origin-with-y-down to centre-origin-with-y-up.
-            let tx = |x: geom::scalar::Default| {
-                x - win_w as geom::scalar::Default / 2.0
-            };
-            let ty = |y: geom::scalar::Default| {
-                -(y - win_h as geom::scalar::Default / 2.0)
-            };
+            let tx = |x: geom::scalar::Default| x - win_w as geom::scalar::Default / 2.0;
+            let ty = |y: geom::scalar::Default| -(y - win_h as geom::scalar::Default / 2.0);
 
             // If the window ID has changed, ensure the dimensions are up to date.
             if *app.focused_window.borrow() != Some(window_id) {
@@ -1802,9 +1809,7 @@ where
 
             // Check for events that would update either mouse, keyboard or window state.
             match *event {
-                winit::WindowEvent::CursorMoved {
-                    position, ..
-                } => {
+                winit::WindowEvent::CursorMoved { position, .. } => {
                     let (x, y): (f64, f64) = position.into();
                     let x = tx(x as _);
                     let y = ty(y as _);
@@ -1892,12 +1897,7 @@ where
             let windows = app.windows.borrow();
             windows
                 .get(&window_id)
-                .and_then(|w| {
-                    w.surface
-                        .window()
-                        .get_inner_size()
-                        .map(|size| size.into())
-                })
+                .and_then(|w| w.surface.window().get_inner_size().map(|size| size.into()))
                 .unwrap_or((0f64, 0f64))
         };
 
@@ -1951,60 +1951,34 @@ where
 
             // Check for more specific event functions.
             match simple {
-                event::WindowEvent::KeyPressed(key) => {
-                    call_user_function!(key_pressed, key)
-                }
-                event::WindowEvent::KeyReleased(key) => {
-                    call_user_function!(key_released, key)
-                }
-                event::WindowEvent::MouseMoved(pos) => {
-                    call_user_function!(mouse_moved, pos)
-                }
+                event::WindowEvent::KeyPressed(key) => call_user_function!(key_pressed, key),
+                event::WindowEvent::KeyReleased(key) => call_user_function!(key_released, key),
+                event::WindowEvent::MouseMoved(pos) => call_user_function!(mouse_moved, pos),
                 event::WindowEvent::MousePressed(button) => {
                     call_user_function!(mouse_pressed, button)
                 }
                 event::WindowEvent::MouseReleased(button) => {
                     call_user_function!(mouse_released, button)
                 }
-                event::WindowEvent::MouseEntered => {
-                    call_user_function!(mouse_entered)
-                }
-                event::WindowEvent::MouseExited => {
-                    call_user_function!(mouse_exited)
-                }
+                event::WindowEvent::MouseEntered => call_user_function!(mouse_entered),
+                event::WindowEvent::MouseExited => call_user_function!(mouse_exited),
                 event::WindowEvent::MouseWheel(amount, phase) => {
                     call_user_function!(mouse_wheel, amount, phase)
                 }
-                event::WindowEvent::Moved(pos) => {
-                    call_user_function!(moved, pos)
-                }
-                event::WindowEvent::Resized(size) => {
-                    call_user_function!(resized, size)
-                }
-                event::WindowEvent::Touch(touch) => {
-                    call_user_function!(touch, touch)
-                }
+                event::WindowEvent::Moved(pos) => call_user_function!(moved, pos),
+                event::WindowEvent::Resized(size) => call_user_function!(resized, size),
+                event::WindowEvent::Touch(touch) => call_user_function!(touch, touch),
                 event::WindowEvent::TouchPressure(pressure) => {
                     call_user_function!(touchpad_pressure, pressure)
                 }
-                event::WindowEvent::HoveredFile(path) => {
-                    call_user_function!(hovered_file, path)
-                }
+                event::WindowEvent::HoveredFile(path) => call_user_function!(hovered_file, path),
                 event::WindowEvent::HoveredFileCancelled => {
                     call_user_function!(hovered_file_cancelled)
                 }
-                event::WindowEvent::DroppedFile(path) => {
-                    call_user_function!(dropped_file, path)
-                }
-                event::WindowEvent::Focused => {
-                    call_user_function!(focused)
-                }
-                event::WindowEvent::Unfocused => {
-                    call_user_function!(unfocused)
-                }
-                event::WindowEvent::Closed => {
-                    call_user_function!(closed)
-                }
+                event::WindowEvent::DroppedFile(path) => call_user_function!(dropped_file, path),
+                event::WindowEvent::Focused => call_user_function!(focused),
+                event::WindowEvent::Unfocused => call_user_function!(unfocused),
+                event::WindowEvent::Closed => call_user_function!(closed),
             }
         }
     }
@@ -2029,8 +2003,7 @@ fn view_frame<M>(
     swapchain_image_index: usize,
     swapchain_image_acquire_future: window::SwapchainAcquireFuture,
     default_view: Option<&View<M>>,
-)
-where
+) where
     M: 'static,
 {
     // Retrieve the queue and swapchain associated with this window.
@@ -2059,7 +2032,8 @@ where
         swapchain_image_index,
         swapchain_image,
         swapchain_frame_created,
-    ).expect("failed to create `Frame`");
+    )
+    .expect("failed to create `Frame`");
     // If the user specified a view function specifically for this window, use it.
     // Otherwise, use the fallback, default view passed to the app if there was one.
     let window_view = {
@@ -2089,62 +2063,80 @@ where
         Some(window::View::Sketch(view)) => {
             let render_data = take_window_frame_render_data(app, window_id)
                 .expect("failed to take window's `frame_render_data`");
-            let frame = Frame::new_empty(raw_frame, render_data)
-                .expect("failed to create `Frame`");
+            let frame = Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
             let frame = view(app, frame);
-            let (render_data, raw_frame) = frame.finish()
+            let (render_data, raw_frame) = frame
+                .finish()
                 .expect("failed to resolve frame's intermediary_image to the swapchain_image");
             set_window_frame_render_data(app, window_id, render_data);
-            raw_frame.finish().build().expect("failed to build command buffer")
+            raw_frame
+                .finish()
+                .build()
+                .expect("failed to build command buffer")
         }
         Some(window::View::WithModel(view)) => {
             let render_data = take_window_frame_render_data(app, window_id)
                 .expect("failed to take window's `frame_render_data`");
-            let frame = Frame::new_empty(raw_frame, render_data)
-                .expect("failed to create `Frame`");
+            let frame = Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
             let view = view
                 .to_fn_ptr::<M>()
                 .expect("unexpected model argument given to window view function");
             let frame = (*view)(app, model, frame);
-            let (render_data, raw_frame) = frame.finish()
+            let (render_data, raw_frame) = frame
+                .finish()
                 .expect("failed to resolve frame's intermediary_image to the swapchain_image");
             set_window_frame_render_data(app, window_id, render_data);
-            raw_frame.finish().build().expect("failed to build command buffer")
+            raw_frame
+                .finish()
+                .build()
+                .expect("failed to build command buffer")
         }
         Some(window::View::WithModelRaw(raw_view)) => {
             let raw_view = raw_view
                 .to_fn_ptr::<M>()
                 .expect("unexpected model argument given to window raw_view function");
             let raw_frame = (*raw_view)(app, model, raw_frame);
-            raw_frame.finish().build().expect("failed to build command buffer")
+            raw_frame
+                .finish()
+                .build()
+                .expect("failed to build command buffer")
         }
         None => match default_view {
             Some(View::Sketch(view)) => {
                 let render_data = take_window_frame_render_data(app, window_id)
                     .expect("failed to take window's `frame_render_data`");
-                let frame = Frame::new_empty(raw_frame, render_data)
-                    .expect("failed to create `Frame`");
+                let frame =
+                    Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
                 let frame = view(app, frame);
-                let (render_data, raw_frame) = frame.finish()
+                let (render_data, raw_frame) = frame
+                    .finish()
                     .expect("failed to resolve frame's intermediary_image to the swapchain_image");
                 set_window_frame_render_data(app, window_id, render_data);
-                raw_frame.finish().build().expect("failed to build command buffer")
+                raw_frame
+                    .finish()
+                    .build()
+                    .expect("failed to build command buffer")
             }
             Some(View::WithModel(view)) => {
                 let render_data = take_window_frame_render_data(app, window_id)
                     .expect("failed to take window's `frame_render_data`");
-                let frame = Frame::new_empty(raw_frame, render_data)
-                    .expect("failed to create `Frame`");
+                let frame =
+                    Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
                 let frame = view(app, &model, frame);
-                let (render_data, raw_frame) = frame.finish()
+                let (render_data, raw_frame) = frame
+                    .finish()
                     .expect("failed to resolve frame's intermediary_image to the swapchain_image");
                 set_window_frame_render_data(app, window_id, render_data);
-                raw_frame.finish().build().expect("failed to build command buffer")
+                raw_frame
+                    .finish()
+                    .build()
+                    .expect("failed to build command buffer")
             }
-            None => {
-                raw_frame.finish().build().expect("failed to build command buffer")
-            }
-        }
+            None => raw_frame
+                .finish()
+                .build()
+                .expect("failed to build command buffer"),
+        },
     };
 
     let mut windows = app.windows.borrow_mut();
@@ -2174,15 +2166,17 @@ where
                 swapchain.swapchain.clone(),
                 swapchain_image_index,
             );
-        (Box::new(present_future) as Box<GpuFuture>)
-            .then_signal_fence_and_flush()
+        (Box::new(present_future) as Box<GpuFuture>).then_signal_fence_and_flush()
     };
 
     // Handle the result of the future.
     let current_frame_end = match future_result {
         Ok(future) => Some(future),
         Err(vk::sync::FlushError::OutOfDate) => {
-            window.swapchain.needs_recreation.store(true, atomic::Ordering::Relaxed);
+            window
+                .swapchain
+                .needs_recreation
+                .store(true, atomic::Ordering::Relaxed);
             None
         }
         Err(e) => {
@@ -2226,8 +2220,8 @@ where
                 Ok(()) => break,
                 Err(vk::SwapchainCreationError::UnsupportedDimensions) => {
                     set_window_swapchain_needs_recreation(app, window_id, true);
-                    continue
-                },
+                    continue;
+                }
                 Err(err) => panic!("{:?}", err),
             }
         }
@@ -2237,17 +2231,14 @@ where
     // Acquire the next image from the swapchain.
     let timeout = None;
     let swapchain = app.windows.borrow()[&window_id].swapchain.clone();
-    let next_img = vk::swapchain::acquire_next_image(
-        swapchain.swapchain.clone(),
-        timeout,
-    );
+    let next_img = vk::swapchain::acquire_next_image(swapchain.swapchain.clone(), timeout);
     let (swapchain_image_index, swapchain_image_acquire_future) = match next_img {
         Ok(r) => r,
         Err(vk::swapchain::AcquireError::OutOfDate) => {
             set_window_swapchain_needs_recreation(app, window_id, true);
             return false;
-        },
-        Err(err) => panic!("{:?}", err)
+        }
+        Err(err) => panic!("{:?}", err),
     };
 
     view_frame(

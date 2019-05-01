@@ -1,6 +1,6 @@
-use geom::graph::node;
-use geom::{self, Vector2, Vector3};
-use math::BaseFloat;
+use crate::geom::graph::node;
+use crate::geom::{self, Vector2, Vector3};
+use crate::math::BaseFloat;
 
 /// Dimension properties for **Drawing** a **Node**.
 #[derive(Copy, Clone, Debug, PartialEq)]

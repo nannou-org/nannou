@@ -1,8 +1,8 @@
 //! A mathematical foundation for nannou including point and vector types and a range of
 //! helper/utility functions.
 
-pub extern crate approx;
-pub extern crate cgmath;
+pub use approx;
+pub use cgmath;
 
 pub use self::cgmath::num_traits::{self, Bounded, Float, NumCast, One, Zero};
 // cgmath modules

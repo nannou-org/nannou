@@ -1,10 +1,10 @@
-use draw::mesh::vertex::IntoVertex;
-use draw::properties::spatial::{self, orientation, position};
-use draw::properties::{Draw, Drawn, IntoDrawn, Primitive, SetOrientation, SetPosition};
-use draw::{self, Drawing};
-use geom;
-use math::BaseFloat;
-use mesh::vertex::{WithColor, WithTexCoords};
+use crate::draw::mesh::vertex::IntoVertex;
+use crate::draw::properties::spatial::{self, orientation, position};
+use crate::draw::properties::{Draw, Drawn, IntoDrawn, Primitive, SetOrientation, SetPosition};
+use crate::draw::{self, Drawing};
+use crate::geom;
+use crate::math::BaseFloat;
+use crate::mesh::vertex::{WithColor, WithTexCoords};
 use std::{iter, ops};
 
 /// The mesh type prior to being initialised with vertices or indices.

@@ -8,8 +8,6 @@
 // with the system scrolling by
 // Also implements wrap around
 
-extern crate nannou;
-
 use nannou::prelude::*;
 use std::ops::Range;
 
@@ -97,8 +95,8 @@ impl Ca {
                 if self.matrix[col][row] == 1 {
                     fill = 0.0;
                 }
-                let x = ((self.w as i32 / 2) + col as i32 * self.w as i32) as f32
-                    - rect.right() as f32;
+                let x =
+                    ((self.w as i32 / 2) + col as i32 * self.w as i32) as f32 - rect.right() as f32;
                 let y = rect.top() - (self.w / 2) as f32 - ((y - 1) * self.w as i32) as f32;
                 draw.rect()
                     .x_y(x, y)

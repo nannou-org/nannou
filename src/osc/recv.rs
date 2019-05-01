@@ -83,8 +83,6 @@ impl Receiver<Unconnected> {
     /// Create a `Receiver` that listen for OSC packets on the given address.
     ///
     /// ```no_run
-    /// extern crate nannou;
-    ///
     /// use nannou::osc::Receiver;
     ///
     /// fn main() {
@@ -107,8 +105,6 @@ impl Receiver<Unconnected> {
     /// By default this is `DEFAULT_MTU`.
     ///
     /// ```no_run
-    /// extern crate nannou;
-    ///
     /// use nannou::osc::Receiver;
     ///
     /// fn main() {
@@ -138,8 +134,6 @@ impl Receiver<Unconnected> {
     /// The resulting socket address will be `0.0.0.0:<port>`.
     ///
     /// ```no_run
-    /// extern crate nannou;
-    ///
     /// use nannou::osc::Receiver;
     ///
     /// fn main() {
@@ -155,8 +149,6 @@ impl Receiver<Unconnected> {
     /// The resulting socket address will be `0.0.0.0:<port>`.
     ///
     /// ```no_run
-    /// extern crate nannou;
-    ///
     /// use nannou::osc::Receiver;
     ///
     /// fn main() {
@@ -176,8 +168,6 @@ impl Receiver<Unconnected> {
     /// **Panic!**s if the given `addr` cannot resolve to a valid `SocketAddr`.
     ///
     /// ```no_run
-    /// extern crate nannou;
-    ///
     /// use nannou::osc::Receiver;
     ///
     /// fn main() {

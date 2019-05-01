@@ -1,16 +1,16 @@
 //! The lower-level "raw" frame type allowing to draw directly to the window's swapchain image.
 
-use std::sync::{Arc, Mutex};
-use vk;
-use vk::command_buffer::{
+use crate::vk;
+use crate::vk::command_buffer::pool::standard::StandardCommandPoolBuilder;
+use crate::vk::command_buffer::{
     AutoCommandBufferBuilderContextError, BeginRenderPassError, BlitImageError,
     ClearColorImageError, CopyBufferError, CopyBufferImageError, DrawError, DrawIndexedError,
     DynamicState, FillBufferError, UpdateBufferError,
 };
-use vk::command_buffer::pool::standard::StandardCommandPoolBuilder;
-use vk::pipeline::input_assembly::Index;
-use window;
-use window::SwapchainImage;
+use crate::vk::pipeline::input_assembly::Index;
+use crate::window;
+use crate::window::SwapchainImage;
+use std::sync::{Arc, Mutex};
 
 /// Allows the user to draw a single **RawFrame** to the surface of a window.
 ///
@@ -135,8 +135,7 @@ pub struct AddCommands<'a> {
 }
 
 // The `AutoCommandBufferBuilder` type used for building the frame's command buffer.
-type AutoCommandBufferBuilder =
-    vk::AutoCommandBufferBuilder<StandardCommandPoolBuilder>;
+type AutoCommandBufferBuilder = vk::AutoCommandBufferBuilder<StandardCommandPoolBuilder>;
 
 impl RawFrame {
     // Initialise a new empty frame ready for "drawing".
@@ -229,10 +228,12 @@ impl<'a> AddCommands<'a> {
     // Maps a call onto the command buffer builder.
     fn map_cb<F, E>(self, map: F) -> Result<Self, E>
     where
-        F: FnOnce(AutoCommandBufferBuilder) -> Result<AutoCommandBufferBuilder, E>
+        F: FnOnce(AutoCommandBufferBuilder) -> Result<AutoCommandBufferBuilder, E>,
     {
         {
-            let mut guard = self.frame.command_buffer_builder
+            let mut guard = self
+                .frame
+                .command_buffer_builder
                 .lock()
                 .expect("failed to lock `RawFrame`'s inner command buffer builder");
             let mut builder = guard
@@ -259,10 +260,15 @@ impl<'a> AddCommands<'a> {
         self,
         framebuffer: F,
         secondary: bool,
-        clear_values: C
+        clear_values: C,
     ) -> Result<Self, BeginRenderPassError>
     where
-        F: vk::FramebufferAbstract + vk::RenderPassDescClearValues<C> + Clone + Send + Sync + 'static,
+        F: vk::FramebufferAbstract
+            + vk::RenderPassDescClearValues<C>
+            + Clone
+            + Send
+            + Sync
+            + 'static,
     {
         self.map_cb(move |cb| cb.begin_render_pass(framebuffer, secondary, clear_values))
     }
@@ -270,7 +276,7 @@ impl<'a> AddCommands<'a> {
     /// Adds a command that jumps to the next subpass of the current render pass.
     pub fn next_subpass(
         self,
-        secondary: bool
+        secondary: bool,
     ) -> Result<Self, AutoCommandBufferBuilderContextError> {
         self.map_cb(move |cb| cb.next_subpass(secondary))
     }
@@ -387,26 +393,27 @@ impl<'a> AddCommands<'a> {
         destination_mip_level: u32,
         extent: [u32; 3],
         layer_count: u32,
-    ) -> Result<Self, ()> // TODO: Expose error: https://github.com/vulkano-rs/vulkano/pull/1112
+    ) -> Result<Self, ()>
+    // TODO: Expose error: https://github.com/vulkano-rs/vulkano/pull/1112
     where
         S: vk::ImageAccess + Send + Sync + 'static,
         D: vk::ImageAccess + Send + Sync + 'static,
     {
         self.map_cb(move |cb| {
-                cb.copy_image(
-                    source,
-                    source_offset,
-                    source_base_array_layer,
-                    source_mip_level,
-                    destination,
-                    destination_offset,
-                    destination_base_array_layer,
-                    destination_mip_level,
-                    extent,
-                    layer_count,
-                )
-            })
-            .map_err(|err| panic!("{}", err))
+            cb.copy_image(
+                source,
+                source_offset,
+                source_base_array_layer,
+                source_mip_level,
+                destination,
+                destination_offset,
+                destination_base_array_layer,
+                destination_mip_level,
+                extent,
+                layer_count,
+            )
+        })
+        .map_err(|err| panic!("{}", err))
     }
 
     /// Adds a command that clears all the layers and mipmap levels of a color image with a
@@ -440,7 +447,7 @@ impl<'a> AddCommands<'a> {
         num_layers: u32,
         first_mipmap: u32,
         num_mipmaps: u32,
-        color: vk::ClearValue
+        color: vk::ClearValue,
     ) -> Result<Self, ClearColorImageError>
     where
         I: vk::ImageAccess + Send + Sync + 'static,
@@ -461,11 +468,7 @@ impl<'a> AddCommands<'a> {
     ///
     /// This command will copy from the source to the destination. If their size is not equal, then
     /// the amount of data copied is equal to the smallest of the two.
-    pub fn copy_buffer<S, D, T>(
-        self,
-        source: S,
-        destination: D
-    ) -> Result<Self, CopyBufferError>
+    pub fn copy_buffer<S, D, T>(self, source: S, destination: D) -> Result<Self, CopyBufferError>
     where
         S: vk::TypedBufferAccess<Content = T> + Send + Sync + 'static,
         D: vk::TypedBufferAccess<Content = T> + Send + Sync + 'static,
@@ -478,7 +481,7 @@ impl<'a> AddCommands<'a> {
     pub fn copy_buffer_to_image<S, D, Px>(
         self,
         source: S,
-        destination: D
+        destination: D,
     ) -> Result<Self, CopyBufferImageError>
     where
         S: vk::TypedBufferAccess<Content = [Px]> + Send + Sync + 'static,
@@ -497,7 +500,7 @@ impl<'a> AddCommands<'a> {
         size: [u32; 3],
         first_layer: u32,
         num_layers: u32,
-        mipmap: u32
+        mipmap: u32,
     ) -> Result<Self, CopyBufferImageError>
     where
         S: vk::TypedBufferAccess<Content = [Px]> + Send + Sync + 'static,
@@ -521,7 +524,7 @@ impl<'a> AddCommands<'a> {
     pub fn copy_image_to_buffer<S, D, Px>(
         self,
         source: S,
-        destination: D
+        destination: D,
     ) -> Result<Self, CopyBufferImageError>
     where
         S: vk::ImageAccess + Send + Sync + 'static,
@@ -540,7 +543,7 @@ impl<'a> AddCommands<'a> {
         size: [u32; 3],
         first_layer: u32,
         num_layers: u32,
-        mipmap: u32
+        mipmap: u32,
     ) -> Result<Self, CopyBufferImageError>
     where
         S: vk::ImageAccess + Send + Sync + 'static,
@@ -569,23 +572,14 @@ impl<'a> AddCommands<'a> {
         dynamic: &DynamicState,
         vertex_buffer: V,
         sets: S,
-        constants: Pc
+        constants: Pc,
     ) -> Result<Self, DrawError>
     where
         Gp: vk::GraphicsPipelineAbstract + vk::VertexSource<V> + Send + Sync + 'static + Clone,
         S: vk::DescriptorSetsCollection,
     {
-        self.map_cb(move |cb| {
-            cb.draw(
-                pipeline,
-                dynamic,
-                vertex_buffer,
-                sets,
-                constants,
-            )
-        })
+        self.map_cb(move |cb| cb.draw(pipeline, dynamic, vertex_buffer, sets, constants))
     }
-
 
     /// Draw once, using the vertex_buffer and the index_buffer.
     ///
@@ -597,7 +591,7 @@ impl<'a> AddCommands<'a> {
         vertex_buffer: V,
         index_buffer: Ib,
         sets: S,
-        constants: Pc
+        constants: Pc,
     ) -> Result<Self, DrawIndexedError>
     where
         Gp: vk::GraphicsPipelineAbstract + vk::VertexSource<V> + Send + Sync + 'static + Clone,
@@ -633,16 +627,11 @@ impl<'a> AddCommands<'a> {
         self.map_cb(move |cb| cb.fill_buffer(buffer, data))
     }
 
-
     /// Adds a command that writes data to a buffer.
     ///
     /// If data is larger than the buffer, only the part of data that fits is written. If the
     /// buffer is larger than data, only the start of the buffer is written.
-    pub fn update_buffer<B, D>(
-        self,
-        buffer: B,
-        data: D
-    ) -> Result<Self, UpdateBufferError>
+    pub fn update_buffer<B, D>(self, buffer: B, data: D) -> Result<Self, UpdateBufferError>
     where
         B: vk::TypedBufferAccess<Content = D> + Send + Sync + 'static,
         D: Send + Sync + 'static,

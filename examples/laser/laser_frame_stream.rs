@@ -1,7 +1,5 @@
 //! A simple example demonstrating how to use draw various patterns via a laser frame streams.
 
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -42,14 +40,19 @@ fn model(app: &App) -> Model {
         .unwrap();
 
     // Initialise the state that we want to live on the laser thread and spawn the stream.
-    let laser_model = Laser { test_pattern: TestPattern::Rectangle };
+    let laser_model = Laser {
+        test_pattern: TestPattern::Rectangle,
+    };
     let laser_api = lasy::Lasy::new();
     let laser_stream = laser_api
         .new_frame_stream(laser_model, laser)
         .build()
         .unwrap();
 
-    Model { laser_api, laser_stream }
+    Model {
+        laser_api,
+        laser_stream,
+    }
 }
 
 fn laser(laser: &mut Laser, frame: &mut lasy::Frame) {
@@ -143,9 +146,12 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
         Key::Key6 => TestPattern::Spiral,
         _ => return,
     };
-    model.laser_stream.send(|laser| {
-        laser.test_pattern = new_pattern;
-    }).unwrap();
+    model
+        .laser_stream
+        .send(|laser| {
+            laser.test_pattern = new_pattern;
+        })
+        .unwrap();
 }
 
 fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {

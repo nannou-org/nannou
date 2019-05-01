@@ -1,5 +1,5 @@
-use audio;
-use audio::sample::Sample;
+use crate::audio;
+use crate::audio::sample::Sample;
 use std;
 
 /// A `Receiver` for converting audio delivered by the backend at varying buffer sizes into buffers

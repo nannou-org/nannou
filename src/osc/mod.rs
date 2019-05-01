@@ -1,7 +1,7 @@
 //! Tools for working with OSC. [**sender()**](./fn.sender.html) creates an OSC sender,
 //! [**receiver(port)**](./fn.receiver.html) creates an OSC receiver.
 
-pub extern crate rosc;
+pub use rosc;
 
 // Re-export rosc items.
 //
@@ -82,9 +82,11 @@ impl Packet {
     pub fn unfold(self, msgs: &mut Vec<Message>) {
         match self {
             Packet::Message(msg) => msgs.push(msg),
-            Packet::Bundle(bundle) => for packet in bundle.content {
-                Packet::unfold(packet.into(), msgs);
-            },
+            Packet::Bundle(bundle) => {
+                for packet in bundle.content {
+                    Packet::unfold(packet.into(), msgs);
+                }
+            }
         }
     }
 

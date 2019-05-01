@@ -1,11 +1,11 @@
-use draw::properties::spatial::{orientation, position};
-use draw::properties::{
+use crate::draw::properties::spatial::{orientation, position};
+use crate::draw::properties::{
     spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetOrientation,
     SetPosition,
 };
-use draw::{self, Drawing};
-use geom::{self, Point2};
-use math::BaseFloat;
+use crate::draw::{self, Drawing};
+use crate::geom::{self, Point2};
+use crate::math::BaseFloat;
 
 /// Properties related to drawing a **Line**.
 #[derive(Clone, Debug)]

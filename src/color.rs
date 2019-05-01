@@ -2,12 +2,10 @@
 //! palette crate. See [the palette docs](https://docs.rs/palette) for more details or see the
 //! [**named**](./named/index.html) module for a set of provided color constants.
 
-extern crate palette;
-
 pub use self::named::*;
 
 #[doc(inline)]
-pub use self::palette::*;
+pub use palette::*;
 
 // TODO: These named colors are actually SRGBA values but we treat them as linear RGBA. These
 // named color values should be adjusted for linear RGBA.

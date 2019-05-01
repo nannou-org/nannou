@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Exercise 3-04: Spiral
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

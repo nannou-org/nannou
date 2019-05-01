@@ -1,8 +1,8 @@
-use crate::Model;
-use nannou::ui::prelude::*;
-use nannou::prelude::*;
-use nannou::geom::rect::Rect;
 use self::ui::input::state::mouse::ButtonPosition;
+use crate::Model;
+use nannou::geom::rect::Rect;
+use nannou::prelude::*;
+use nannou::ui::prelude::*;
 
 pub const PAD_X: f32 = 20.0;
 pub const PAD_Y: f32 = 20.0;
@@ -22,7 +22,6 @@ pub struct Corners {
 pub struct Corner {
     pub drag: bool,
     pub pos: Point2,
-
 }
 
 pub struct Ids {
@@ -42,21 +41,34 @@ impl Corners {
     pub fn new(init: Rect<f32>) -> Self {
         Corners {
             dims: init,
-            top_left: Corner{ drag: false, pos: pt2(init.x.start, init.y.end) },
-            top_right: Corner{ drag: false, pos: pt2(init.x.end, init.y.end) },
-            bottom_left: Corner{ drag: false, pos: pt2(init.x.start, init.y.start) },
-            bottom_right: Corner{ drag: false, pos: pt2(init.x.end, init.y.start) },
+            top_left: Corner {
+                drag: false,
+                pos: pt2(init.x.start, init.y.end),
+            },
+            top_right: Corner {
+                drag: false,
+                pos: pt2(init.x.end, init.y.end),
+            },
+            bottom_left: Corner {
+                drag: false,
+                pos: pt2(init.x.start, init.y.start),
+            },
+            bottom_right: Corner {
+                drag: false,
+                pos: pt2(init.x.end, init.y.start),
+            },
         }
     }
 }
-
 
 pub(crate) fn update(model: &mut Model) {
     let ui = &mut model.ui.set_widgets();
 
     let ref mut corners = model.controls.corners;
 
-    widget::Canvas::new().rgb(0.2, 0.0, 0.2).set(model.ids.background, ui);
+    widget::Canvas::new()
+        .rgb(0.2, 0.0, 0.2)
+        .set(model.ids.background, ui);
 
     widget::Circle::fill(20.0)
         .rgb(0.0, 0.7, 0.0)
@@ -84,8 +96,12 @@ pub(crate) fn update(model: &mut Model) {
 
     widget::Circle::fill(20.0)
         .rgb(0.0, 0.7, 0.0)
-        .x_position(position::Position::Absolute(corners.bottom_left.pos.x as f64))
-        .y_position(position::Position::Absolute(corners.bottom_left.pos.y as f64))
+        .x_position(position::Position::Absolute(
+            corners.bottom_left.pos.x as f64,
+        ))
+        .y_position(position::Position::Absolute(
+            corners.bottom_left.pos.y as f64,
+        ))
         .set(model.ids.bottom_left_corner, ui);
 
     widget::Text::new(&format!("bottom left: {:?}", corners.bottom_left.pos))
@@ -96,8 +112,12 @@ pub(crate) fn update(model: &mut Model) {
 
     widget::Circle::fill(20.0)
         .rgb(0.0, 0.7, 0.0)
-        .x_position(position::Position::Absolute(corners.bottom_right.pos.x as f64))
-        .y_position(position::Position::Absolute(corners.bottom_right.pos.y as f64))
+        .x_position(position::Position::Absolute(
+            corners.bottom_right.pos.x as f64,
+        ))
+        .y_position(position::Position::Absolute(
+            corners.bottom_right.pos.y as f64,
+        ))
         .set(model.ids.bottom_right_corner, ui);
 
     widget::Text::new(&format!("bottom right: {:?}", corners.bottom_right.pos))
@@ -111,17 +131,28 @@ pub(crate) fn update(model: &mut Model) {
         corners.top_right.pos,
         corners.bottom_right.pos,
         corners.bottom_left.pos,
-        corners.top_left.pos];
+        corners.top_left.pos,
+    ];
     widget::PointPath::new(points.into_iter().map(|v| [v.x as f64, v.y as f64]))
         .set(model.ids.points, ui);
 
-    match (ui.global_input().current.widget_capturing_mouse, ui.global_input().current.mouse.buttons.left()) {
-        (Some(id), ButtonPosition::Down(_, _)) if id == model.ids.top_left_corner => corners.top_left.drag = true,
-        (Some(id), ButtonPosition::Down(_, _)) if id == model.ids.top_right_corner => corners.top_right.drag = true,
-        (Some(id), ButtonPosition::Down(_, _)) if id == model.ids.bottom_left_corner => corners.bottom_left.drag = true,
-        (Some(id), ButtonPosition::Down(_, _)) if id == model.ids.bottom_right_corner => corners.bottom_right.drag = true,
+    match (
+        ui.global_input().current.widget_capturing_mouse,
+        ui.global_input().current.mouse.buttons.left(),
+    ) {
+        (Some(id), ButtonPosition::Down(_, _)) if id == model.ids.top_left_corner => {
+            corners.top_left.drag = true
+        }
+        (Some(id), ButtonPosition::Down(_, _)) if id == model.ids.top_right_corner => {
+            corners.top_right.drag = true
+        }
+        (Some(id), ButtonPosition::Down(_, _)) if id == model.ids.bottom_left_corner => {
+            corners.bottom_left.drag = true
+        }
+        (Some(id), ButtonPosition::Down(_, _)) if id == model.ids.bottom_right_corner => {
+            corners.bottom_right.drag = true
+        }
         _ => (),
-
     }
 }
 
@@ -129,8 +160,10 @@ pub(crate) fn event(_app: &App, model: &mut Model, event: WindowEvent) {
     let ref mut corners = model.controls.corners;
     match event {
         MouseMoved(pos) => {
-            let pos = pt2(clamp(pos.x, corners.dims.x.start, corners.dims.x.end),
-            clamp(pos.y, corners.dims.y.end, corners.dims.y.start));
+            let pos = pt2(
+                clamp(pos.x, corners.dims.x.start, corners.dims.x.end),
+                clamp(pos.y, corners.dims.y.end, corners.dims.y.start),
+            );
             if corners.top_left.drag {
                 corners.top_left.pos = pos;
             } else if corners.top_right.drag {
@@ -140,7 +173,7 @@ pub(crate) fn event(_app: &App, model: &mut Model, event: WindowEvent) {
             } else if corners.bottom_right.drag {
                 corners.bottom_right.pos = pos;
             }
-        },
+        }
         MouseReleased(b) if b == MouseButton::Left => {
             corners.top_left.drag = false;
             corners.top_right.drag = false;

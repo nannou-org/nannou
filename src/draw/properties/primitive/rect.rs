@@ -1,11 +1,11 @@
-use draw;
-use draw::properties::spatial::{dimension, orientation, position};
-use draw::properties::{
+use crate::draw;
+use crate::draw::properties::spatial::{dimension, orientation, position};
+use crate::draw::properties::{
     spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions,
     SetOrientation, SetPosition,
 };
-use geom::{self, Point2, Vector2};
-use math::BaseFloat;
+use crate::geom::{self, Point2, Vector2};
+use crate::math::BaseFloat;
 use std::{iter, slice};
 
 /// Properties related to drawing a **Rect**.

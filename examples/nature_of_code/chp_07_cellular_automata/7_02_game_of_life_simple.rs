@@ -10,8 +10,6 @@
 // to describe each individual cell and a "cellular automata" class
 // to describe a collection of cells
 
-extern crate nannou;
-
 use nannou::prelude::*;
 use std::ops::Range;
 

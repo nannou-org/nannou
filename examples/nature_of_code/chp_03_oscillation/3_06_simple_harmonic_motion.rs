@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 5-6: Simple Harmonic Motion
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -20,7 +18,11 @@ fn model(app: &App) -> Model {
     let angle = 0.0;
     let a_velocity = 0.03;
 
-    app.new_window().with_dimensions(640, 360).view(view).build().unwrap();
+    app.new_window()
+        .with_dimensions(640, 360)
+        .view(view)
+        .build()
+        .unwrap();
     Model { angle, a_velocity }
 }
 

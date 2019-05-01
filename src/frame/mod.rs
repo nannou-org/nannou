@@ -1,11 +1,11 @@
 //! Items related to the **Frame** type, describing a single frame of graphics for a single window.
 
-use draw::properties::color::IntoRgba;
+use crate::draw::properties::color::IntoRgba;
+use crate::vk::{self, DeviceOwned};
+use crate::window::SwapchainFramebuffers;
 use std::error::Error as StdError;
-use std::{fmt, ops};
 use std::sync::Arc;
-use vk::{self, DeviceOwned};
-use window::SwapchainFramebuffers;
+use std::{fmt, ops};
 
 pub mod raw;
 
@@ -121,7 +121,10 @@ impl Frame {
     /// `RenderData` and `RawFrame` so that the `RenderData` may be stored back within the `Window`
     /// and the `RawFrame` may be `finish`ed.
     pub(crate) fn finish(self) -> Result<(RenderData, RawFrame), FrameFinishError> {
-        let Frame { mut data, raw_frame } = self;
+        let Frame {
+            mut data,
+            raw_frame,
+        } = self;
 
         // The framebuffer for the current swapchain image.
         let framebuffer = data.swapchain_framebuffers[raw_frame.swapchain_image_index()].clone();
@@ -193,14 +196,17 @@ impl ViewFramebufferObject {
     ) -> Result<(), vk::FramebufferCreationError>
     where
         R: 'static + vk::RenderPassAbstract + Send + Sync,
-        F: FnOnce(vk::FramebufferBuilder<R, ()>, Arc<vk::AttachmentImage>)
-            -> vk::FramebufferBuilderResult<R, A>,
+        F: FnOnce(
+            vk::FramebufferBuilder<R, ()>,
+            Arc<vk::AttachmentImage>,
+        ) -> vk::FramebufferBuilderResult<R, A>,
         A: 'static + vk::AttachmentsList + Send + Sync,
     {
         let image = frame.image().clone();
         let [w, h] = image.dimensions();
         let dimensions = [w, h, 1];
-        self.fbo.update(render_pass, dimensions, |b| builder(b, image))
+        self.fbo
+            .update(render_pass, dimensions, |b| builder(b, image))
     }
 }
 
@@ -218,7 +224,8 @@ impl RenderData {
         format: vk::Format,
     ) -> Result<Self, RenderDataCreationError> {
         let render_pass = create_render_pass(device.clone(), format, msaa_samples)?;
-        let intermediary_image = create_intermediary_image(device, dimensions, msaa_samples, format)?;
+        let intermediary_image =
+            create_intermediary_image(device, dimensions, msaa_samples, format)?;
         let swapchain_framebuffers = Default::default();
         let intermediary_image_is_new = true;
         Ok(RenderData {
@@ -363,15 +370,13 @@ fn create_intermediary_image(
     };
     match msaa_samples {
         0 | 1 => vk::AttachmentImage::with_usage(device, dimensions, format, usage),
-        _ => {
-            vk::AttachmentImage::multisampled_with_usage(
-                device,
-                dimensions,
-                msaa_samples,
-                format,
-                usage,
-            )
-        },
+        _ => vk::AttachmentImage::multisampled_with_usage(
+            device,
+            dimensions,
+            msaa_samples,
+            format,
+            usage,
+        ),
     }
 }
 
@@ -384,7 +389,7 @@ fn create_render_pass(
     match msaa_samples {
         // Render pass without multisampling.
         0 | 1 => {
-            let rp = single_pass_renderpass!(
+            let rp = vk::single_pass_renderpass!(
                 device,
                 attachments: {
                     intermediary_color: {
@@ -410,7 +415,7 @@ fn create_render_pass(
 
         // Renderpass with multisampling.
         _ => {
-            let rp = single_pass_renderpass!(
+            let rp = vk::single_pass_renderpass!(
                 device,
                 attachments: {
                     intermediary_color: {

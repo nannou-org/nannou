@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 2-8: Mutual Attraction
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

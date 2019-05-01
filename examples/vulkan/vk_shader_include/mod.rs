@@ -1,4 +1,5 @@
-extern crate nannou;
+
+
 
 use nannou::prelude::*;
 use std::cell::RefCell;
@@ -105,8 +106,12 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
 
     // Update the view_fbo in case of window resize.
-    model.view_fbo.borrow_mut()
-        .update(&frame, model.render_pass.clone(), |builder, image| builder.add(image))
+    model
+        .view_fbo
+        .borrow_mut()
+        .update(&frame, model.render_pass.clone(), |builder, image| {
+            builder.add(image)
+        })
         .unwrap();
 
     let clear_values = vec![[0.0, 1.0, 0.0, 1.0].into()];

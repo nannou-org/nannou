@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 3-5: Simple Harmonic Motion
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

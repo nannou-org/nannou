@@ -1,5 +1,3 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 
 // Every rust program has to have a main function which gets called when the program is run.
@@ -20,8 +18,7 @@ fn model(app: &App) -> Model {
 }
 
 // Update the state of your application here. By default, this gets called right before `view`.
-fn update(_app: &App, _model: &mut Model, _update: Update) {
-}
+fn update(_app: &App, _model: &mut Model, _update: Update) {}
 
 // We can also update the application based on events received by the window like key presses and
 // mouse movement here.
