@@ -1,6 +1,6 @@
-use color;
-use geom::{scalar, Point2, Point3};
-use math::BaseNum;
+use crate::color;
+use crate::geom::{scalar, Point2, Point3};
+use crate::math::BaseNum;
 use std::ops::{Deref, DerefMut};
 
 /// Types used as vertices that can be used to describe geometric points in space.

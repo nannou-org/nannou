@@ -1,5 +1,3 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -127,8 +125,12 @@ fn view(_app: &App, model: &Model, frame: RawFrame) -> RawFrame {
     let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
 
     // Update framebuffers so that count matches swapchain image count and dimensions match.
-    model.framebuffers.borrow_mut()
-        .update(&frame, model.render_pass.clone(), |builder, image| builder.add(image))
+    model
+        .framebuffers
+        .borrow_mut()
+        .update(&frame, model.render_pass.clone(), |builder, image| {
+            builder.add(image)
+        })
         .unwrap();
 
     // Specify the color to clear the framebuffer with i.e. blue

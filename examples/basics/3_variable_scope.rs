@@ -1,5 +1,3 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 
 // This is how you make a global constant value.

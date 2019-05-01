@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 2-0 Many Mutual Boundaries
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

@@ -1,9 +1,6 @@
 //! A clone of the `laser_frame_stream.rs` example that allows for configuring laser settings via a
 //! UI.
 
-extern crate lasy;
-extern crate nannou;
-
 use nannou::geom::Rect;
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
@@ -56,7 +53,10 @@ struct RgbProfile {
 }
 
 #[derive(Clone, Copy)]
-enum DrawMode { Lines, Points }
+enum DrawMode {
+    Lines,
+    Points,
+}
 
 // A collection of laser test patterns. We'll toggle between these with the numeric keys.
 #[derive(Copy, Clone)]
@@ -114,7 +114,10 @@ impl Default for LaserSettings {
         use lasy::stream::frame::opt::InterpolationConfig;
         LaserSettings {
             point_hz: stream::DEFAULT_POINT_HZ,
-            latency_points: stream::points_per_frame(stream::DEFAULT_POINT_HZ, stream::DEFAULT_FRAME_HZ),
+            latency_points: stream::points_per_frame(
+                stream::DEFAULT_POINT_HZ,
+                stream::DEFAULT_FRAME_HZ,
+            ),
             frame_hz: stream::DEFAULT_FRAME_HZ,
             distance_per_point: InterpolationConfig::DEFAULT_DISTANCE_PER_POINT,
             blank_delay_points: InterpolationConfig::DEFAULT_BLANK_DELAY_POINTS,
@@ -156,7 +159,10 @@ fn model(app: &App) -> Model {
     let laser_api2 = laser_api.clone();
     std::thread::spawn(move || {
         let mut detected = std::collections::HashSet::new();
-        for res in laser_api2.detect_dacs().expect("failed to start detecting DACs") {
+        for res in laser_api2
+            .detect_dacs()
+            .expect("failed to start detecting DACs")
+        {
             let dac = res.expect("error occurred during DAC detection");
             if detected.insert(dac.id()) {
                 println!("{:#?}", dac);
@@ -230,7 +236,11 @@ fn laser(laser: &mut Laser, frame: &mut lasy::Frame) {
         laser.color_profile.blue,
     ];
     let weight = laser.point_weight;
-    let lit_p = |position| lasy::Point { position, color, weight };
+    let lit_p = |position| lasy::Point {
+        position,
+        color,
+        weight,
+    };
 
     // Retrieve some points to draw based on the pattern.
     match laser.test_pattern {
@@ -312,7 +322,8 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     // First, check for new laser DACs.
     for dac in model.dac_rx.try_recv() {
         println!("Detected DAC {:?}!", dac.id());
-        let stream = model.laser_api
+        let stream = model
+            .laser_api
             .new_frame_stream(model.laser_model.clone(), laser)
             .detected_dac(dac)
             .build()
@@ -401,7 +412,9 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     {
         model.laser_model.point_weight = value as _;
         for stream in &model.laser_streams {
-            stream.send(move |laser| laser.point_weight = value as _).ok();
+            stream
+                .send(move |laser| laser.point_weight = value as _)
+                .ok();
         }
     }
 
@@ -450,7 +463,10 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         .font_size(16)
         .set(model.ids.laser_path_interpolation_text, ui);
 
-    let label = format!("Distance per point: {:.2}", model.laser_settings.distance_per_point);
+    let label = format!(
+        "Distance per point: {:.2}",
+        model.laser_settings.distance_per_point
+    );
     for value in slider(model.laser_settings.distance_per_point, 0.01, 1.0)
         .down(20.0)
         .label(&label)
@@ -462,7 +478,10 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         }
     }
 
-    let label = format!("Blank delay: {} points", model.laser_settings.blank_delay_points);
+    let label = format!(
+        "Blank delay: {} points",
+        model.laser_settings.blank_delay_points
+    );
     for value in slider(model.laser_settings.blank_delay_points as _, 0.0, 32.0)
         .label(&label)
         .set(model.ids.blank_delay_points_slider, ui)
@@ -499,7 +518,9 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     {
         model.laser_model.color_profile.red = value;
         for stream in &model.laser_streams {
-            stream.send(move |model| model.color_profile.red = value).ok();
+            stream
+                .send(move |model| model.color_profile.red = value)
+                .ok();
         }
     }
 
@@ -509,7 +530,9 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     {
         model.laser_model.color_profile.green = value;
         for stream in &model.laser_streams {
-            stream.send(move |model| model.color_profile.green = value).ok();
+            stream
+                .send(move |model| model.color_profile.green = value)
+                .ok();
         }
     }
 
@@ -519,7 +542,9 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     {
         model.laser_model.color_profile.blue = value;
         for stream in &model.laser_streams {
-            stream.send(move |model| model.color_profile.blue = value).ok();
+            stream
+                .send(move |model| model.color_profile.blue = value)
+                .ok();
         }
     }
 }
@@ -536,7 +561,9 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
         _ => return,
     };
     for stream in &model.laser_streams {
-        stream.send(move |laser| laser.test_pattern = new_pattern).ok();
+        stream
+            .send(move |laser| laser.test_pattern = new_pattern)
+            .ok();
     }
 }
 

@@ -7,8 +7,6 @@
 // Implements Craig Reynold's autonomous steering behaviors
 // One vehicle "seeks"
 // See: http://www.red3d.com/cwr/
-extern crate nannou;
-
 use nannou::prelude::*;
 use nannou::Draw;
 
@@ -68,7 +66,11 @@ impl Vehicle {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().with_dimensions(640, 360).view(view).build().unwrap();
+    app.new_window()
+        .with_dimensions(640, 360)
+        .view(view)
+        .build()
+        .unwrap();
     let middle = app.window_rect().xy();
     let vehicle = Vehicle::new(middle.x, middle.y);
     Model { vehicle }

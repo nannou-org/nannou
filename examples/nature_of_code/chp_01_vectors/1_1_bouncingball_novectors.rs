@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 1-1: Bouncing Ball, no vectors
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -24,7 +22,12 @@ fn model(app: &App) -> Model {
     let x_speed = 2.5;
     let y_speed = 2.0;
 
-    let _window = app.new_window().with_dimensions(800, 200).view(view).build().unwrap();
+    let _window = app
+        .new_window()
+        .with_dimensions(800, 200)
+        .view(view)
+        .build()
+        .unwrap();
     Model {
         x,
         y,

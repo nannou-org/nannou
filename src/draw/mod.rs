@@ -1,9 +1,9 @@
 //! A simple API for drawing 2D and 3D graphics. See the [**Draw** type](./struct.Draw.html) for
 //! more details.
 
-use geom::graph::{edge, node};
-use geom::{self, Vector3};
-use math::BaseFloat;
+use crate::geom::graph::{edge, node};
+use crate::geom::{self, Vector3};
+use crate::math::BaseFloat;
 use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
 use std::mem;
@@ -160,7 +160,7 @@ const WOULD_CYCLE: &'static str =
 
 /// An iterator yielding the transformed, indexed vertices for a node.
 pub type NodeVertices<'a, S = geom::scalar::Default> =
-    node::TransformedVertices<::mesh::Vertices<Ref<'a, Mesh<S>>>, S>;
+    node::TransformedVertices<crate::mesh::Vertices<Ref<'a, Mesh<S>>>, S>;
 
 // /// An iterator yielding the transformed vertices for a node.
 // pub struct NodeVertices<'a, S> {
@@ -168,7 +168,7 @@ pub type NodeVertices<'a, S = geom::scalar::Default> =
 
 /// An iterator yielding the transformed raw vertices for a node.
 pub type RawNodeVertices<'a, S = geom::scalar::Default> =
-    node::TransformedVertices<::mesh::RawVertices<Ref<'a, Mesh<S>>>, S>;
+    node::TransformedVertices<crate::mesh::RawVertices<Ref<'a, Mesh<S>>>, S>;
 
 /// An iterator yielding the transformed triangles for a node.
 pub type NodeTriangles<'a, S = geom::scalar::Default> =
@@ -657,7 +657,7 @@ where
             None => return None,
             Some(ranges) => ranges.indices.clone(),
         };
-        let vertices = ::mesh::vertices(self.inner_mesh()).index_range(index_range);
+        let vertices = crate::mesh::vertices(self.inner_mesh()).index_range(index_range);
         self.state.borrow().geom_graph.node_vertices(n, vertices)
     }
 
@@ -866,7 +866,8 @@ where
                         None => continue,
                         Some(ranges) => ranges.indices.clone(),
                     };
-                    let vertices = ::mesh::vertices(draw.inner_mesh()).index_range(index_range);
+                    let vertices =
+                        crate::mesh::vertices(draw.inner_mesh()).index_range(index_range);
                     let transformed_vertices = transform.vertices(vertices);
                     *node_vertices = Some(transformed_vertices);
                 }
@@ -901,7 +902,7 @@ where
                         None => continue,
                         Some(ranges) => ranges.vertices.clone(),
                     };
-                    let vertices = ::mesh::raw_vertices(draw.inner_mesh()).range(vertex_range);
+                    let vertices = crate::mesh::raw_vertices(draw.inner_mesh()).range(vertex_range);
                     let transformed_vertices = transform.vertices(vertices);
                     *node_vertices = Some(transformed_vertices);
                 }

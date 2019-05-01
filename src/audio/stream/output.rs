@@ -1,7 +1,7 @@
-use audio::cpal;
-use audio::sample::{Sample, ToSample};
-use audio::stream;
-use audio::{Buffer, Device, Requester, Stream};
+use crate::audio::cpal;
+use crate::audio::sample::{Sample, ToSample};
+use crate::audio::stream;
+use crate::audio::{Buffer, Device, Requester, Stream};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -138,7 +138,7 @@ impl<M, F, S> Builder<M, F, S> {
 
             // Retrieve the output buffer.
             let output = match data {
-                cpal::StreamData::Output { mut buffer } => buffer,
+                cpal::StreamData::Output { buffer } => buffer,
                 _ => unreachable!(),
             };
 

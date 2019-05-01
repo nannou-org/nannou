@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // example 4-04: System of Systems
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -121,7 +119,8 @@ fn model(app: &App) -> Model {
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
-    m.systems.push(ParticleSystem::new(1, pt2(app.mouse.x, app.mouse.y)));
+    m.systems
+        .push(ParticleSystem::new(1, pt2(app.mouse.x, app.mouse.y)));
 }
 
 fn update(_app: &App, m: &mut Model, _update: Update) {

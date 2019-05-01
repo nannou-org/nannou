@@ -1,17 +1,18 @@
-extern crate nannou;
+
+
 
 mod controls;
+mod homography;
 mod teapot_verts;
 mod warp;
-mod homography;
 
+use self::controls::{Controls, Corners, Ids};
+use self::teapot_verts::{INDICES, NORMALS, VERTICES};
+use self::warp::Warp;
+use nannou::geom::range::Range;
+use nannou::math::cgmath::{self, Matrix3, Matrix4, Point3, Rad, Vector3};
 use nannou::prelude::*;
 use nannou::ui::Ui;
-use nannou::geom::range::Range;
-use nannou::math::cgmath::{self, Matrix3, Matrix4, Rad, Point3, Vector3};
-use self::warp::Warp;
-use self::teapot_verts::{VERTICES, INDICES, NORMALS};
-use self::controls::{Controls, Corners, Ids};
 use std::cell::RefCell;
 use std::sync::Arc;
 
@@ -27,7 +28,6 @@ struct Model {
     ids: Ids,
 }
 
-
 struct Graphics {
     vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
     normal_buffer: Arc<vk::CpuAccessibleBuffer<[Normal]>>,
@@ -39,9 +39,8 @@ struct Graphics {
     graphics_pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
     depth_image: Arc<vk::AttachmentImage>,
     inter_image: Arc<vk::AttachmentImage>,
-    framebuffer: Arc<vk::FramebufferAbstract + Send + Sync>
+    framebuffer: Arc<vk::FramebufferAbstract + Send + Sync>,
 }
-
 
 vk::impl_vertex!(Vertex, position);
 
@@ -51,25 +50,23 @@ vk::impl_vertex!(Normal, normal);
 
 #[derive(Copy, Clone)]
 pub struct Vertex {
-    position: (f32, f32, f32)
+    position: (f32, f32, f32),
 }
 
 #[derive(Copy, Clone)]
 pub struct Normal {
-    normal: (f32, f32, f32)
+    normal: (f32, f32, f32),
 }
 
-
 fn model(app: &App) -> Model {
-    let window_id = app.new_window()
+    let window_id = app
+        .new_window()
         .with_dimensions(500, 700)
         .view(view)
         .build()
         .unwrap();
 
-    app.window(window_id)
-        .expect("No window")
-        .set_position(0, 0);
+    app.window(window_id).expect("No window").set_position(0, 0);
 
     let device = app.main_window().swapchain().device().clone();
 
@@ -77,22 +74,23 @@ fn model(app: &App) -> Model {
         device.clone(),
         vk::BufferUsage::all(),
         VERTICES.iter().cloned(),
-    ).unwrap();
+    )
+    .unwrap();
     let normal_buffer = vk::CpuAccessibleBuffer::from_iter(
         device.clone(),
         vk::BufferUsage::all(),
         NORMALS.iter().cloned(),
-    ).unwrap();
+    )
+    .unwrap();
     let index_buffer = vk::CpuAccessibleBuffer::from_iter(
         device.clone(),
         vk::BufferUsage::all(),
         INDICES.iter().cloned(),
-    ).unwrap();
+    )
+    .unwrap();
 
-    let uniform_buffer = vk::CpuBufferPool::<vs::ty::Data>::new(
-        device.clone(),
-        vk::BufferUsage::all(),
-    );
+    let uniform_buffer =
+        vk::CpuBufferPool::<vs::ty::Data>::new(device.clone(), vk::BufferUsage::all());
 
     let vertex_shader = vs::Shader::load(device.clone()).unwrap();
     let fragment_shader = fs::Shader::load(device.clone()).unwrap();
@@ -118,7 +116,8 @@ fn model(app: &App) -> Model {
                 color: [color],
                 depth_stencil: {depth}
             }
-        ).unwrap(),
+        )
+        .unwrap(),
     );
 
     let [w, h] = app.main_window().swapchain().dimensions();
@@ -129,16 +128,25 @@ fn model(app: &App) -> Model {
         &fragment_shader,
         render_pass.clone(),
         [w as f32, h as f32],
-    ).unwrap();
+    )
+    .unwrap();
 
-    let depth_image = vk::AttachmentImage::transient(device.clone(), [w, h], vk::Format::D16Unorm)
-        .unwrap();
+    let depth_image =
+        vk::AttachmentImage::transient(device.clone(), [w, h], vk::Format::D16Unorm).unwrap();
 
-    let inter_image = vk::AttachmentImage::sampled(device.clone(), [w, h], app.main_window().swapchain().format()).unwrap();
+    let inter_image = vk::AttachmentImage::sampled(
+        device.clone(),
+        [w, h],
+        app.main_window().swapchain().format(),
+    )
+    .unwrap();
     let framebuffer = vk::Framebuffer::start(render_pass.clone())
-        .add(inter_image.clone()).unwrap()
-        .add(depth_image.clone()).unwrap()
-        .build().unwrap();
+        .add(inter_image.clone())
+        .unwrap()
+        .add(depth_image.clone())
+        .unwrap()
+        .build()
+        .unwrap();
     let framebuffer = Arc::new(framebuffer);
 
     let graphics = RefCell::new(Graphics {
@@ -155,17 +163,16 @@ fn model(app: &App) -> Model {
         inter_image,
     });
 
-    let gui_window_id = app.new_window()
+    let gui_window_id = app
+        .new_window()
         .with_dimensions(500, 400)
         .view(ui_view)
         .event(controls::event)
         .build()
         .expect("Failed to build second window");
 
-    let gui_window = app.window(gui_window_id)
-        .expect("No window");
-    let monitor_size = gui_window.current_monitor()
-        .get_dimensions();
+    let gui_window = app.window(gui_window_id).expect("No window");
+    let monitor_size = gui_window.current_monitor().get_dimensions();
 
     gui_window.set_position((monitor_size.width / 2.0) as i32, 0);
 
@@ -184,21 +191,28 @@ fn model(app: &App) -> Model {
         br_text: ui.generate_widget_id(),
     };
 
-    let (window_w, window_h) = app.window(gui_window_id).expect("Gui window doesn't exist").inner_size_points();
+    let (window_w, window_h) = app
+        .window(gui_window_id)
+        .expect("Gui window doesn't exist")
+        .inner_size_points();
     let w = window_w / 2.0;
     let h = window_h / 2.0;
-    let init_dims = Rect{
+    let init_dims = Rect {
         x: Range::new(-w + controls::PAD_X, w - controls::PAD_X),
-        y: Range::new(-h + controls::PAD_Y, h - controls::PAD_Y)
+        y: Range::new(-h + controls::PAD_Y, h - controls::PAD_Y),
     };
     let corners = Corners::new(init_dims);
-    let controls = Controls {
-        corners,
-    };
+    let controls = Controls { corners };
 
     let warp = warp::warp(app);
 
-    Model { graphics, controls, ui, ids, warp }
+    Model {
+        graphics,
+        controls,
+        ui,
+        ids,
+        warp,
+    }
 }
 
 fn update(_: &App, model: &mut Model, _update: Update) {
@@ -221,13 +235,11 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
             &graphics.fragment_shader,
             graphics.render_pass.clone(),
             [w as f32, h as f32],
-        ).unwrap();
+        )
+        .unwrap();
 
-        graphics.depth_image = vk::AttachmentImage::transient(
-            device.clone(),
-            [w, h],
-            vk::Format::D16Unorm,
-        ).unwrap();
+        graphics.depth_image =
+            vk::AttachmentImage::transient(device.clone(), [w, h], vk::Format::D16Unorm).unwrap();
     }
 
     // Create a uniform buffer slice with the world, view and projection matrices.
@@ -237,12 +249,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         // note: this teapot was meant for OpenGL where the origin is at the lower left instead the
         // origin is at the upper left in Vulkan, so we reverse the Y axis
         let aspect_ratio = w as f32 / h as f32;
-        let proj = cgmath::perspective(
-            Rad(std::f32::consts::FRAC_PI_2),
-            aspect_ratio,
-            0.01,
-            100.0,
-        );
+        let proj = cgmath::perspective(Rad(std::f32::consts::FRAC_PI_2), aspect_ratio, 0.01, 100.0);
         let view = Matrix4::look_at(
             Point3::new(0.3, 0.3, 1.0),
             Point3::new(0.0, 0.0, 0.0),
@@ -264,7 +271,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
             .add_buffer(uniform_buffer_slice)
             .unwrap()
             .build()
-            .unwrap()
+            .unwrap(),
     );
 
     let clear_color = [0.0, 0.0, 0.0, 1.0].into();
@@ -284,7 +291,10 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .draw_indexed(
             graphics.graphics_pipeline.clone(),
             &vk::DynamicState::none(),
-            vec![graphics.vertex_buffer.clone(), graphics.normal_buffer.clone()],
+            vec![
+                graphics.vertex_buffer.clone(),
+                graphics.normal_buffer.clone(),
+            ],
             graphics.index_buffer.clone(),
             descriptor_set,
             (),
@@ -372,4 +382,3 @@ void main() {
 "
     }
 }
-

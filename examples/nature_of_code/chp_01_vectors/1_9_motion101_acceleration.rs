@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 1-9: Motion 101 Acceleration
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -70,7 +68,11 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().with_dimensions(640, 360).view(view).build().unwrap();
+    app.new_window()
+        .with_dimensions(640, 360)
+        .view(view)
+        .build()
+        .unwrap();
     let mover = Mover::new(app.window_rect());
     Model { mover }
 }

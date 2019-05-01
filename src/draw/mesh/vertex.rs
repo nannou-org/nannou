@@ -1,7 +1,7 @@
-use color;
-use geom::{self, Point2, Point3, Vector3};
-use math::BaseFloat;
-use mesh::vertex::{WithColor, WithTexCoords};
+use crate::color;
+use crate::geom::{self, Point2, Point3, Vector3};
+use crate::math::BaseFloat;
+use crate::mesh::vertex::{WithColor, WithTexCoords};
 use std::marker::PhantomData;
 
 pub type Point<S> = Point3<S>;

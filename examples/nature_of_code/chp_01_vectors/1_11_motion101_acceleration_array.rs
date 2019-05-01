@@ -8,8 +8,6 @@
 // A "Mover" object stores position, velocity, and acceleration as vectors
 // The motion is controlled by affecting the acceleration
 // (in this case towards the mouse)
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

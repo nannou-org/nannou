@@ -1,5 +1,3 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 use std::sync::Arc;
 

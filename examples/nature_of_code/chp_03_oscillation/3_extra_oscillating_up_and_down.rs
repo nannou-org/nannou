@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 3-9: Wave_A
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -16,7 +14,11 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().with_dimensions(400, 400).view(view).build().unwrap();
+    app.new_window()
+        .with_dimensions(400, 400)
+        .view(view)
+        .build()
+        .unwrap();
     let angle = 0.0;
     Model { angle }
 }

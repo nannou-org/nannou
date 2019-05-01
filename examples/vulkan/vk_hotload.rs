@@ -1,6 +1,3 @@
-extern crate nannou;
-extern crate shade_runner;
-
 use nannou::prelude::*;
 use std::cell::RefCell;
 use std::ffi::CStr;
@@ -49,11 +46,19 @@ fn model(app: &App) -> Model {
     };
 
     // Get the paths to your vertex and fragment shaders.
-    let vert_path = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/vulkan/shaders/hotload_vert.glsl");
-    let frag_path = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/vulkan/shaders/hotload_frag.glsl");
+    let vert_path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/examples/vulkan/shaders/hotload_vert.glsl"
+    );
+    let frag_path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/examples/vulkan/shaders/hotload_frag.glsl"
+    );
     // Create a watcher that will reload both shaders if there is any change to the
     // parent directory eg. '/examples/vulkan/shaders/'
-    let shade_watcher = shade_runner::Watch::create(vert_path, frag_path, Duration::from_millis(50)).expect("failed to create watcher");
+    let shade_watcher =
+        shade_runner::Watch::create(vert_path, frag_path, Duration::from_millis(50))
+            .expect("failed to create watcher");
     // Wait on the first message,
     // which is the shaders compiling and parsing.
     // The message is a Result which indicates if
@@ -63,8 +68,8 @@ fn model(app: &App) -> Model {
         .recv()
         .expect("Failed to receive shader")
         .expect("failed to compile shader");
-    // Create the shader module from the compiled 
-    // shader in the message. It is simply 
+    // Create the shader module from the compiled
+    // shader in the message. It is simply
     // a Vec<u8>.
     let vs = unsafe {
         vk::pipeline::shader::ShaderModule::from_words(device.clone(), &shade_msg.shaders.vertex)
@@ -221,7 +226,7 @@ fn update_pipeline(model: &mut Model) {
     // Here we use the other part of the latest message
     // from shade_runner. It is the entry point for vulkano
     // to use your compiled shader.
-    // If there is any errors here make sure you have the 
+    // If there is any errors here make sure you have the
     // same version of vulkano in your application and shade_runner.
     // Cargo patch can be handy for this.
     let entry = shade_msg.entry.clone();

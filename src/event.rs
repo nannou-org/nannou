@@ -5,11 +5,11 @@
 //! - [**WindowEvent**](./struct.WindowEvent.html) - a stripped-back, simplified,
 //!   newcomer-friendly version of the **raw**, low-level winit event.
 
-use geom::{self, Point2, Vector2};
+use crate::geom::{self, Point2, Vector2};
+use crate::window;
+use crate::App;
 use std::path::PathBuf;
-use window;
 use winit;
-use App;
 
 pub use winit::{
     ElementState, KeyboardInput, ModifiersState, MouseButton, MouseScrollDelta, TouchPhase,
@@ -19,7 +19,7 @@ pub use winit::{
 /// Event types that are compatible with the nannou app loop.
 pub trait LoopEvent: From<Update> {
     /// Produce a loop event from the given winit event.
-    fn from_winit_event(winit::Event, &App) -> Option<Self>;
+    fn from_winit_event(_: winit::Event, _: &App) -> Option<Self>;
 }
 
 /// Update event, emitted on each pass of an application loop.
@@ -222,7 +222,13 @@ impl WindowEvent {
 
             winit::WindowEvent::HoveredFileCancelled => HoveredFileCancelled,
 
-            winit::WindowEvent::Focused(b) => if b { Focused } else { Unfocused },
+            winit::WindowEvent::Focused(b) => {
+                if b {
+                    Focused
+                } else {
+                    Unfocused
+                }
+            }
 
             winit::WindowEvent::CursorMoved { position, .. } => {
                 let (x, y) = position.into();
@@ -261,8 +267,14 @@ impl WindowEvent {
             }
 
             winit::WindowEvent::TouchpadPressure {
-                device_id, pressure, stage,
-            } => TouchPressure(TouchpadPressure { device_id, pressure, stage }),
+                device_id,
+                pressure,
+                stage,
+            } => TouchPressure(TouchpadPressure {
+                device_id,
+                pressure,
+                stage,
+            }),
 
             winit::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
                 Some(key) => match input.state {
@@ -292,12 +304,10 @@ impl LoopEvent for Event {
                 let windows = app.windows.borrow();
                 let (win_w, win_h) = match windows.get(&window_id) {
                     None => (0.0, 0.0), // The window was likely closed, these will be ignored.
-                    Some(window) => {
-                        match window.surface.window().get_inner_size() {
-                            None => (0.0, 0.0),
-                            Some(size) => size.into(),
-                        }
-                    }
+                    Some(window) => match window.surface.window().get_inner_size() {
+                        None => (0.0, 0.0),
+                        Some(size) => size.into(),
+                    },
                 };
                 let raw = event.clone();
                 let simple = WindowEvent::from_winit_window_event(event, win_w, win_h);

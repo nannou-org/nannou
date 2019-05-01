@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Exercise 2-10 Attract Repel
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

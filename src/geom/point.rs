@@ -6,7 +6,7 @@
 //! distinct types. For now, we are attempting to monitor usage and feedback to determine whether
 //! or not this change is worth it.
 
-use geom::{scalar, Vector2, Vector3, Vector4};
+use crate::geom::{scalar, Vector2, Vector3, Vector4};
 
 /// A 2-dimensional point type.
 pub type Point2<S = scalar::Default> = Vector2<S>;

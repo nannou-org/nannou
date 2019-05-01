@@ -6,8 +6,6 @@
 
 // Simple demonstration of a Wolfram 1-dimensional cellular automata
 
-extern crate nannou;
-
 use nannou::prelude::*;
 use std::ops::Range;
 

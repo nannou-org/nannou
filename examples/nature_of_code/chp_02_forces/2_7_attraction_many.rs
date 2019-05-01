@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 2-7: Attraction Many
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

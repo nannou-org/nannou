@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // example 4-02: Vector Particle
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -66,7 +64,11 @@ impl Particle {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().with_dimensions(640, 360).view(view).build().unwrap();
+    app.new_window()
+        .with_dimensions(640, 360)
+        .view(view)
+        .build()
+        .unwrap();
     let particles = Vec::new();
     Model { particles }
 }

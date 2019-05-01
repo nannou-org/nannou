@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Exercise 3-02: Forces Angular Motion
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

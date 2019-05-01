@@ -1,26 +1,31 @@
 //! The nannou [**Window**](./struct.Window.html) API. Create a new window via `.app.new_window()`.
 //! This produces a [**Builder**](./struct.Builder.html) which can be used to build a window.
 
-use app::LoopMode;
-use event::{Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase, TouchpadPressure, WindowEvent};
-use frame::{self, Frame, RawFrame};
-use geom;
-use geom::{Point2, Vector2};
+use crate::app::LoopMode;
+use crate::event::{
+    Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase, TouchpadPressure, WindowEvent,
+};
+use crate::frame::{self, Frame, RawFrame};
+use crate::geom;
+use crate::geom::{Point2, Vector2};
+use crate::vk::{self, win::VkSurfaceBuild, VulkanObject};
+use crate::App;
 use std::any::Any;
-use std::{cmp, env, fmt, ops};
 use std::error::Error as StdError;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
-use vk::{self, VulkanObject, win::VkSurfaceBuild};
-use winit::{self, MonitorId, MouseCursor};
+use std::sync::{Arc, Mutex};
+use std::{cmp, env, fmt, ops};
 use winit::dpi::LogicalSize;
-use App;
+use winit::{self, MonitorId, MouseCursor};
 
 pub use winit::WindowId as Id;
 
 /// The default dimensions used for a window in the case that none are specified.
-pub const DEFAULT_DIMENSIONS: LogicalSize = LogicalSize { width: 1024.0, height: 768.0 };
+pub const DEFAULT_DIMENSIONS: LogicalSize = LogicalSize {
+    width: 1024.0,
+    height: 768.0,
+};
 
 /// For building an OpenGL window.
 ///
@@ -154,7 +159,7 @@ macro_rules! fn_any {
         // A handle to a function that can be stored without requiring a type param.
         #[derive(Clone)]
         pub(crate) struct $TFnAny {
-            fn_ptr: Arc<Any>
+            fn_ptr: Arc<Any>,
         }
 
         impl $TFnAny {
@@ -166,7 +171,7 @@ macro_rules! fn_any {
                 let fn_ptr = Arc::new(fn_ptr) as Arc<Any>;
                 $TFnAny { fn_ptr }
             }
-        
+
             // Retrieve the view function pointer from the `$TFnAny`.
             pub fn to_fn_ptr<M>(&self) -> Option<&$TFn<M>>
             where
@@ -323,8 +328,9 @@ impl SwapchainFramebuffers {
         }
 
         // If the dimensions for the current framebuffer do not match, recreate it.
-        let old_rp = vk::RenderPassAbstract::inner(&self.framebuffers[frame.swapchain_image_index()])
-            .internal_object();
+        let old_rp =
+            vk::RenderPassAbstract::inner(&self.framebuffers[frame.swapchain_image_index()])
+                .internal_object();
         let new_rp = render_pass.inner().internal_object();
         if !just_created && (frame.swapchain_image_is_new() || old_rp != new_rp) {
             let fb = &mut self.framebuffers[frame.swapchain_image_index()];
@@ -488,13 +494,17 @@ impl SwapchainBuilder {
     where
         S: Into<vk::sync::SharingMode>,
     {
-        let capabilities = surface.capabilities(device.physical_device())
+        let capabilities = surface
+            .capabilities(device.physical_device())
             .expect("failed to retrieve surface capabilities");
 
         let dimensions = capabilities
             .current_extent
             .or(fallback_dimensions)
-            .unwrap_or([DEFAULT_DIMENSIONS.width as _, DEFAULT_DIMENSIONS.height as _]);
+            .unwrap_or([
+                DEFAULT_DIMENSIONS.width as _,
+                DEFAULT_DIMENSIONS.height as _,
+            ]);
 
         // Retrieve the format.
         let format = match self.format {
@@ -537,12 +547,14 @@ impl SwapchainBuilder {
             None => match capabilities.supported_composite_alpha.opaque {
                 true => Self::DEFAULT_COMPOSITE_ALPHA,
                 false => return Err(vk::SwapchainCreationError::UnsupportedCompositeAlpha),
-            }
+            },
         };
 
         let layers = self.layers.unwrap_or(Self::DEFAULT_LAYERS);
         let clipped = self.clipped.unwrap_or(Self::DEFAULT_CLIPPED);
-        let surface_transform = self.surface_transform.unwrap_or(Self::DEFAULT_SURFACE_TRANSFORM);
+        let surface_transform = self
+            .surface_transform
+            .unwrap_or(Self::DEFAULT_SURFACE_TRANSFORM);
 
         Swapchain::new(
             device,
@@ -576,23 +588,19 @@ pub fn preferred_present_mode_and_image_count(
         (Some(pm), Some(ic)) => (pm, ic),
         (None, _) => match *loop_mode {
             LoopMode::RefreshSync { .. } => {
-                let image_count = image_count.unwrap_or_else(|| {
-                    cmp::max(min_image_count, 2)
-                });
+                let image_count = image_count.unwrap_or_else(|| cmp::max(min_image_count, 2));
                 (vk::swapchain::PresentMode::Fifo, image_count)
             }
             LoopMode::Wait { .. } | LoopMode::Rate { .. } => {
                 if supported_present_modes.mailbox {
-                    let image_count = image_count
-                        .unwrap_or_else(|| cmp::max(min_image_count, 3));
+                    let image_count = image_count.unwrap_or_else(|| cmp::max(min_image_count, 3));
                     (vk::swapchain::PresentMode::Mailbox, image_count)
                 } else {
-                    let image_count = image_count
-                        .unwrap_or_else(|| cmp::max(min_image_count, 2));
+                    let image_count = image_count.unwrap_or_else(|| cmp::max(min_image_count, 2));
                     (vk::swapchain::PresentMode::Fifo, image_count)
                 }
             }
-        }
+        },
         (Some(present_mode), None) => {
             let image_count = match present_mode {
                 vk::swapchain::PresentMode::Immediate => min_image_count,
@@ -959,11 +967,15 @@ impl<'app> Builder<'app> {
         // Retrieve dimensions to use as a fallback in case vulkano swapchain capabilities
         // `current_extent` is `None`. This happens when the window size is determined by the size
         // of the swapchain.
-        let initial_swapchain_dimensions = window.window.dimensions
+        let initial_swapchain_dimensions = window
+            .window
+            .dimensions
             .or_else(|| {
-                window.window.fullscreen.as_ref().map(|monitor| {
-                    monitor.get_dimensions().to_logical(1.0)
-                })
+                window
+                    .window
+                    .fullscreen
+                    .as_ref()
+                    .map(|monitor| monitor.get_dimensions().to_logical(1.0))
             })
             .unwrap_or_else(|| {
                 let mut dim = DEFAULT_DIMENSIONS;
@@ -998,7 +1010,8 @@ impl<'app> Builder<'app> {
                     .unwrap_or_else(|| unimplemented!());
 
                 // Select the queue family to use. Default to the first graphics-supporting queue.
-                let queue_family = physical_device.queue_families()
+                let queue_family = physical_device
+                    .queue_families()
                     .find(|&q| q.supports_graphics() && surface.is_supported(q).unwrap_or(false))
                     .unwrap_or_else(|| unimplemented!("couldn't find a graphical queue family"));
 
@@ -1006,8 +1019,8 @@ impl<'app> Builder<'app> {
                 let queue_priority = 0.5;
 
                 // The required device extensions.
-                let mut device_ext = vk_device_extensions
-                    .unwrap_or_else(vk::DeviceExtensions::none);
+                let mut device_ext =
+                    vk_device_extensions.unwrap_or_else(vk::DeviceExtensions::none);
                 device_ext.khr_swapchain = true;
 
                 // Enable all supported device features.
@@ -1035,8 +1048,10 @@ impl<'app> Builder<'app> {
         // Build the swapchain used for displaying the window contents.
         let (swapchain, images) = {
             // Set the dimensions of the swapchain to that of the surface.
-            let fallback_dimensions =
-                [initial_swapchain_dimensions.width as _, initial_swapchain_dimensions.height as _];
+            let fallback_dimensions = [
+                initial_swapchain_dimensions.width as _,
+                initial_swapchain_dimensions.height as _,
+            ];
 
             swapchain_builder.build(
                 queue.device().clone(),
@@ -1527,8 +1542,9 @@ impl StdError for BuildError {
             BuildError::SwapchainCreation(ref err) => err.description(),
             BuildError::SwapchainCapabilities(ref err) => err.description(),
             BuildError::RenderDataCreation(ref err) => err.description(),
-            BuildError::SurfaceDoesNotSupportCompositeAlphaOpaque =>
-                "`CompositeAlpha::Opaque` not supported by window surface",
+            BuildError::SurfaceDoesNotSupportCompositeAlphaOpaque => {
+                "`CompositeAlpha::Opaque` not supported by window surface"
+            }
         }
     }
 }

@@ -36,8 +36,8 @@ pub mod butt;
 pub mod round;
 pub mod square;
 
-use geom::{ellipse, quad, Point2};
-use math::BaseFloat;
+use crate::geom::{ellipse, quad, Point2};
+use crate::math::BaseFloat;
 
 /// An iterator yielding the vertices of a line cap.
 #[derive(Clone, Debug)]

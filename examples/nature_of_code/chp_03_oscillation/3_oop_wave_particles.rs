@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // example 3-x: OOP Wave Particle
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -97,7 +95,11 @@ impl Wave {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().with_dimensions(750, 200).view(view).build().unwrap();
+    app.new_window()
+        .with_dimensions(750, 200)
+        .view(view)
+        .build()
+        .unwrap();
     let wave0 = Wave::new(pt2(-325.0, 25.0), 100.0, 20.0, 500.0);
     let wave1 = Wave::new(pt2(-75.0, 0.0), 300.0, 40.0, 220.0);
     Model { wave0, wave1 }

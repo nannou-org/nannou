@@ -1,5 +1,5 @@
-use color::{self, Alpha, IntoColor, Rgb, Rgba};
-use math::num_traits::{Float, One};
+use crate::color::{self, Alpha, IntoColor, Rgb, Rgba};
+use crate::math::num_traits::{Float, One};
 
 /// The default scalar value for working with color channels, hues, etc.
 pub type DefaultScalar = f32;

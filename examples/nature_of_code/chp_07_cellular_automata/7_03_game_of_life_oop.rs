@@ -7,8 +7,6 @@
 // A basic implementation of John Conway's Game of Life CA
 // Each cell is now an object!
 
-extern crate nannou;
-
 use nannou::prelude::*;
 use std::ops::Range;
 

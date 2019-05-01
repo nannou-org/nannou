@@ -1,4 +1,4 @@
-use geom;
+use crate::geom;
 
 pub mod dimension;
 pub mod orientation;

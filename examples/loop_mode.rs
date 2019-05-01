@@ -7,8 +7,6 @@
 //!
 //! https://docs.rs/nannou/latest/nannou/app/enum.LoopMode.html
 
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -20,8 +18,12 @@ struct Model;
 fn model(app: &App) -> Model {
     // Start in `Wait` mode. In other words, don't keep looping, just wait for events.
     app.set_loop_mode(LoopMode::wait(3));
-    let _window = app.new_window()
-        .with_title(format!("`LoopMode` Demonstration - `{:?}`", app.loop_mode()))
+    let _window = app
+        .new_window()
+        .with_title(format!(
+            "`LoopMode` Demonstration - `{:?}`",
+            app.loop_mode()
+        ))
         .key_pressed(key_pressed)
         .view(view)
         .build()

@@ -1,5 +1,3 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
 
@@ -117,14 +115,15 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         model.position.y,
         -200.0,
         200.0,
-    ).down(10.0)
-        .w_h(200.0, 200.0)
-        .label("Position")
-        .label_font_size(15)
-        .rgb(0.3, 0.3, 0.3)
-        .label_rgb(1.0, 1.0, 1.0)
-        .border(0.0)
-        .set(model.ids.position, ui)
+    )
+    .down(10.0)
+    .w_h(200.0, 200.0)
+    .label("Position")
+    .label_font_size(15)
+    .rgb(0.3, 0.3, 0.3)
+    .label_rgb(1.0, 1.0, 1.0)
+    .border(0.0)
+    .set(model.ids.position, ui)
     {
         model.position = Point2::new(x, y);
     }

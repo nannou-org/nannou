@@ -1,12 +1,12 @@
-use draw::mesh::vertex::IntoPoint;
-use draw::properties::spatial::{dimension, orientation, position};
-use draw::properties::{
+use crate::draw::mesh::vertex::IntoPoint;
+use crate::draw::properties::spatial::{dimension, orientation, position};
+use crate::draw::properties::{
     spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions,
     SetOrientation, SetPosition,
 };
-use draw::{self, Drawing};
-use geom::{self, Point3, Vector3};
-use math::{BaseFloat, ElementWise};
+use crate::draw::{self, Drawing};
+use crate::geom::{self, Point3, Vector3};
+use crate::math::{BaseFloat, ElementWise};
 use std::{iter, slice};
 
 /// Properties related to drawing a **Quad**.

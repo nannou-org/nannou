@@ -1,6 +1,6 @@
-use geom::{quad, scalar, Align, Edge, Point2, Quad, Range, Tri, Vector2};
-use math::num_traits::Float;
-use math::{self, BaseNum};
+use crate::geom::{quad, scalar, Align, Edge, Point2, Quad, Range, Tri, Vector2};
+use crate::math::num_traits::Float;
+use crate::math::{self, BaseNum};
 use std::ops::Neg;
 
 /// Defines a Rectangle's bounds across the x and y axes.
@@ -462,10 +462,10 @@ where
     /// The four corners of the `Rect`.
     pub fn corners(&self) -> Quad<Point2<S>> {
         Quad::from([
-             corner_from_index!(self, 0),
-             corner_from_index!(self, 1),
-             corner_from_index!(self, 2),
-             corner_from_index!(self, 3),
+            corner_from_index!(self, 0),
+            corner_from_index!(self, 1),
+            corner_from_index!(self, 2),
+            corner_from_index!(self, 3),
         ])
     }
 

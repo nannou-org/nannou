@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Exercise 3-04: Spiral
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -20,7 +18,11 @@ fn model(app: &App) -> Model {
     let r = 0.0;
     let theta = 0.0;
 
-    app.new_window().with_dimensions(640, 360).view(view).build().unwrap();
+    app.new_window()
+        .with_dimensions(640, 360)
+        .view(view)
+        .build()
+        .unwrap();
     Model { r, theta }
 }
 

@@ -1,7 +1,7 @@
-use audio::cpal;
-use audio::sample::{FromSample, Sample, ToSample};
-use audio::stream;
-use audio::{Buffer, Device, Receiver, Stream};
+use crate::audio::cpal;
+use crate::audio::sample::{FromSample, Sample, ToSample};
+use crate::audio::stream;
+use crate::audio::{Buffer, Device, Receiver, Stream};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};

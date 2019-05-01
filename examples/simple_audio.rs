@@ -1,5 +1,3 @@
-extern crate nannou;
-
 use nannou::audio::{self, Buffer};
 use nannou::prelude::*;
 use std::f64::consts::PI;
@@ -19,9 +17,16 @@ struct Audio {
 
 fn model(app: &App) -> Model {
     // Create a window to receive key pressed events.
-    app.new_window().key_pressed(key_pressed).view(view).build().unwrap();
+    app.new_window()
+        .key_pressed(key_pressed)
+        .view(view)
+        .build()
+        .unwrap();
     // Initialise the state that we want to live on the audio thread.
-    let model = Audio { phase: 0.0, hz: 440.0 };
+    let model = Audio {
+        phase: 0.0,
+        hz: 440.0,
+    };
     let stream = app.audio.new_output_stream(model, audio).build().unwrap();
     Model { stream }
 }
