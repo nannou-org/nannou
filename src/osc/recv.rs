@@ -149,6 +149,8 @@ impl Receiver<Unconnected> {
     /// The resulting socket address will be `0.0.0.0:<port>`.
     ///
     /// ```no_run
+    /// use nannou::osc::Receiver;
+    ///
     /// fn main() {
     ///     let port = 34254;
     ///     let mtu = 60_000;
