@@ -33,8 +33,8 @@
 //! - [**bevel**](./bevel/index.html): Cuts the outside edge off where a circle the diameter of the
 //!   thickness intersects
 
-use geom::{Line, Point2};
-use math::BaseFloat;
+use crate::geom::{Line, Point2};
+use crate::math::BaseFloat;
 
 pub mod bevel;
 pub mod miter;
@@ -64,7 +64,8 @@ pub mod round;
 /// ## Example
 ///
 /// ```
-/// extern crate nannou;
+/// 
+
 ///
 /// use nannou::prelude::*;
 /// use nannou::geom::line;
@@ -151,7 +152,8 @@ where
 /// ## Example
 ///
 /// ```
-/// extern crate nannou;
+/// 
+
 ///
 /// use nannou::prelude::*;
 /// use nannou::geom::line;

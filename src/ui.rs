@@ -1,14 +1,16 @@
 //! The User Interface API. Instantiate a [**Ui**](struct.Ui.html) via `app.new_ui()`.
 
+pub use self::conrod_core::event::Input;
+pub use self::conrod_core::{
+    color, cursor, event, graph, image, input, position, scroll, text, theme, utils, widget,
+};
+pub use self::conrod_core::{
+    Borderable, Bordering, Color, Colorable, Dimensions, FontSize, Labelable, Point, Positionable,
+    Range, Rect, Scalar, Sizeable, Theme, UiCell, Widget,
+};
 pub use crate::conrod_core;
 pub use crate::conrod_vulkano;
 pub use crate::conrod_winit;
-pub use self::conrod_core::event::Input;
-pub use self::conrod_core::{color, cursor, event, graph, image, input, position, scroll, text,
-                            theme, utils, widget};
-pub use self::conrod_core::{Borderable, Bordering, Color, Colorable, Dimensions, FontSize,
-                            Labelable, Point, Positionable, Range, Rect, Scalar, Sizeable, Theme,
-                            UiCell, Widget};
 
 /// Simplify inclusion of common traits with a `nannou::ui::prelude` module.
 pub mod prelude {
@@ -22,9 +24,12 @@ pub mod prelude {
     pub use super::{color, image, position, text, widget};
 }
 
-use frame::{Frame, ViewFbo};
 use self::conrod_core::text::rt::gpu_cache::CacheWriteErr;
 use self::conrod_vulkano::RendererCreationError;
+use crate::frame::{Frame, ViewFbo};
+use crate::vk;
+use crate::window::{self, Window};
+use crate::App;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::error::Error as StdError;
@@ -32,10 +37,7 @@ use std::fmt;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::{mpsc, Arc, Mutex};
-use vk;
-use window::{self, Window};
 use winit;
-use App;
 
 /// Owned by the `App`, the `Arrangement` handles the mapping between `Ui`s and their associated
 /// windows.
@@ -369,7 +371,9 @@ impl<'a> Builder<'a> {
 
         // If the default font is in the assets/fonts directory, load it into the UI font map.
         let default_font_path = default_font_path.or_else(|| {
-            app.assets_path().ok().map(|p| p.join(Ui::DEFAULT_FONT_PATH))
+            app.assets_path()
+                .ok()
+                .map(|p| p.join(Ui::DEFAULT_FONT_PATH))
         });
 
         // If there is some font path to use for the default font, attempt to load it.
@@ -391,7 +395,7 @@ pub fn create_render_pass(
     depth_format: vk::Format,
     msaa_samples: u32,
 ) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
-    let render_pass = single_pass_renderpass!(
+    let render_pass = vk::single_pass_renderpass!(
         device,
         attachments: {
             color: {
@@ -428,9 +432,7 @@ impl RenderPassImages {
             msaa_samples,
             DEPTH_FORMAT_TY,
         )?;
-        Ok(RenderPassImages {
-            depth,
-        })
+        Ok(RenderPassImages { depth })
     }
 }
 
@@ -443,10 +445,13 @@ impl RenderTarget {
         let render_pass = create_render_pass(device, color_format, DEPTH_FORMAT, msaa_samples)?;
         let images = RenderPassImages::new(window)?;
         let view_fbo = ViewFbo::default();
-        Ok(RenderTarget { render_pass, images, view_fbo })
+        Ok(RenderTarget {
+            render_pass,
+            images,
+            view_fbo,
+        })
     }
 }
-
 
 impl Deref for Ui {
     type Target = conrod_core::Ui;
@@ -554,11 +559,7 @@ impl Ui {
     /// method offers more flexibility.
     ///
     /// This has no effect if the window originally associated with the `Ui` no longer exists.
-    pub fn draw_to_frame(
-        &self,
-        app: &App,
-        frame: &Frame,
-    ) -> Result<(), DrawToFrameError> {
+    pub fn draw_to_frame(&self, app: &App, frame: &Frame) -> Result<(), DrawToFrameError> {
         let primitives = self.ui.draw();
         draw_primitives(self, app, frame, primitives)
     }
@@ -604,11 +605,15 @@ pub fn draw_primitives(
 
     let window = match app.window(window_id) {
         Some(window) => window,
-        None=> return Err(DrawToFrameError::InvalidWindow),
+        None => return Err(DrawToFrameError::InvalidWindow),
     };
 
-    let mut renderer = renderer.lock().map_err(|_| DrawToFrameError::RendererPoisoned)?;
-    let mut render_mode = render_mode.lock().map_err(|_| DrawToFrameError::RenderModePoisoned)?;
+    let mut renderer = renderer
+        .lock()
+        .map_err(|_| DrawToFrameError::RendererPoisoned)?;
+    let mut render_mode = render_mode
+        .lock()
+        .map_err(|_| DrawToFrameError::RenderModePoisoned)?;
 
     let render_target = match *render_mode {
         RenderMode::Subpass => return Err(DrawToFrameError::InvalidRenderMode),
@@ -629,9 +634,7 @@ pub fn draw_primitives(
 
     // Ensure image framebuffer are up to date.
     view_fbo.update(&frame, render_pass.clone(), |builder, image| {
-        builder
-            .add(image.clone())?
-            .add(images.depth.clone())
+        builder.add(image.clone())?.add(images.depth.clone())
     })?;
 
     // Fill renderer with the primitives and cache glyphs.
@@ -639,7 +642,8 @@ pub fn draw_primitives(
     let dpi_factor = window.hidpi_factor() as f64;
     let viewport = [0.0, 0.0, win_w as f32, win_h as f32];
     if let Some(cmd) = renderer.fill(image_map, viewport, dpi_factor, primitives)? {
-        let buffer = cmd.glyph_cpu_buffer_pool
+        let buffer = cmd
+            .glyph_cpu_buffer_pool
             .chunk(cmd.glyph_cache_pixel_buffer.iter().cloned())?;
         frame
             .add_commands()
@@ -664,26 +668,22 @@ pub fn draw_primitives(
                 vertex_buffer,
                 descriptor_set,
             } = cmd;
-            frame
-                .add_commands()
-                .draw(
-                    graphics_pipeline,
-                    &dynamic_state,
-                    vec![vertex_buffer],
-                    descriptor_set,
-                    (),
-                )?;
+            frame.add_commands().draw(
+                graphics_pipeline,
+                &dynamic_state,
+                vec![vertex_buffer],
+                descriptor_set,
+                (),
+            )?;
         }
-        frame
-            .add_commands()
-            .end_render_pass()
-            .unwrap();
+        frame.add_commands().end_render_pass().unwrap();
     }
 
     Ok(())
 }
 
 mod conrod_winit_conv {
+    use crate::conrod_winit::*;
     conrod_winit::conversion_fns!();
 }
 
@@ -797,12 +797,14 @@ impl StdError for RenderTargetCreationError {
 impl StdError for DrawToFrameError {
     fn description(&self) -> &str {
         match *self {
-            DrawToFrameError::InvalidWindow =>
-                "no open window associated with the given `window_id`",
+            DrawToFrameError::InvalidWindow => {
+                "no open window associated with the given `window_id`"
+            }
             DrawToFrameError::RendererPoisoned => "`Mutex` containing `Renderer` was poisoned",
             DrawToFrameError::RenderModePoisoned => "`Mutex` containing `RenderMode` was poisoned",
-            DrawToFrameError::InvalidRenderMode =>
-                "`draw_to_frame` was called while `Ui` was in `Subpass` render mode",
+            DrawToFrameError::InvalidRenderMode => {
+                "`draw_to_frame` was called while `Ui` was in `Subpass` render mode"
+            }
             DrawToFrameError::ImageCreation(ref err) => err.description(),
             DrawToFrameError::FramebufferCreation(ref err) => err.description(),
             DrawToFrameError::RendererFill(ref err) => err.description(),

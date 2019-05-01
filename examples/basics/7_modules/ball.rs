@@ -1,4 +1,3 @@
-extern crate nannou;
 use nannou::prelude::*;
 
 pub struct Ball {

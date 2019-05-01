@@ -1,5 +1,5 @@
-use audio::sample::Sample;
-use audio::{cpal, Device};
+use crate::audio::sample::Sample;
+use crate::audio::{cpal, Device};
 use std;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;

@@ -9,8 +9,8 @@
 //! - Functions for determining the bounding rectangle or cuboid.
 //! - A function for finding the centroid.
 
-use math::num_traits::cast;
-use math::{BaseFloat, EuclideanSpace};
+use crate::math::num_traits::cast;
+use crate::math::{BaseFloat, EuclideanSpace};
 use std::ops;
 
 pub mod cuboid;

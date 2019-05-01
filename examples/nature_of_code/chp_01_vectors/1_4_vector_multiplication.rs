@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 1-4: Vector Multiplication
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

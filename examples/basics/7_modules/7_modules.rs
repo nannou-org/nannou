@@ -1,9 +1,7 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 
 mod ball;
-use ball::Ball;
+use crate::ball::Ball;
 
 fn main() {
     nannou::app(model).update(update).simple_window(view).run();

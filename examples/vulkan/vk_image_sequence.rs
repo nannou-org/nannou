@@ -1,5 +1,3 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -139,8 +137,12 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
 
     // Update view_fbo in case of window resize.
-    model.view_fbo.borrow_mut()
-        .update(&frame, model.render_pass.clone(), |builder, image| builder.add(image))
+    model
+        .view_fbo
+        .borrow_mut()
+        .update(&frame, model.render_pass.clone(), |builder, image| {
+            builder.add(image)
+        })
         .unwrap();
 
     let clear_values = vec![[0.0, 1.0, 0.0, 1.0].into()];
@@ -152,11 +154,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
 
     frame
         .add_commands()
-        .begin_render_pass(
-            model.view_fbo.borrow().expect_inner(),
-            false,
-            clear_values,
-        )
+        .begin_render_pass(model.view_fbo.borrow().expect_inner(), false, clear_values)
         .unwrap()
         .draw(
             model.pipeline.clone(),
@@ -213,7 +211,7 @@ layout(push_constant) uniform PushConstantData {
 } pc;
 
 void main() {
-    vec4 c = vec4( abs(tex_coords.x + sin(pc.time)), tex_coords.x, tex_coords.y * abs(cos(pc.time)), 1.0);    
+    vec4 c = vec4( abs(tex_coords.x + sin(pc.time)), tex_coords.x, tex_coords.y * abs(cos(pc.time)), 1.0);
     f_color = texture(tex, vec3(tex_coords, pc.sequence_idx)) + (c*0.6);
 }"
     }

@@ -1,5 +1,5 @@
-use geom::{tri, vertex, Cuboid, Range, Rect, Tri, Vertex, Vertex2d, Vertex3d};
-use math::EuclideanSpace;
+use crate::geom::{tri, vertex, Cuboid, Range, Rect, Tri, Vertex, Vertex2d, Vertex3d};
+use crate::math::EuclideanSpace;
 use std::ops::{Deref, Index};
 
 /// The number of vertices in a quad.
@@ -86,8 +86,6 @@ where
     /// Here's a basic code example:
     ///
     /// ```
-    /// extern crate nannou;
-    ///
     /// use nannou::geom::{self, pt2, Quad, Tri};
     ///
     /// fn main() {
@@ -202,8 +200,6 @@ where
 /// Here's a basic code example:
 ///
 /// ```
-/// extern crate nannou;
-///
 /// use nannou::geom::{self, pt2, Quad, Tri};
 ///
 /// fn main() {

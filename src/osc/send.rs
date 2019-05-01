@@ -37,7 +37,6 @@ impl Sender<Unconnected> {
     /// bound to the default address.
     ///
     /// ```no_run
-    /// extern crate nannou;
     ///
     /// use nannou::osc::Sender;
     ///
@@ -74,7 +73,6 @@ impl Sender<Unconnected> {
     /// **Panic!**s if the given `addr` cannot resolve to a valid `SocketAddr`.
     ///
     /// ```no_run
-    /// extern crate nannou;
     ///
     /// use nannou::osc::Sender;
     ///

@@ -28,8 +28,6 @@
 * s                   : save png
 */
 
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

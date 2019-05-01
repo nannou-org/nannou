@@ -8,7 +8,6 @@
 * s                   : save png
 * c                   : save color palette
 */
-extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {

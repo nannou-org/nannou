@@ -1,8 +1,8 @@
 //! A type for working with one-dimensional ranges.
 
-use geom::scalar;
-use math::num_traits::{Float, One, Zero};
-use math::{self, two, BaseNum};
+use crate::geom::scalar;
+use crate::math::num_traits::{Float, One, Zero};
+use crate::math::{self, two, BaseNum};
 use std::ops::Neg;
 
 /// Some start and end position along a single axis.

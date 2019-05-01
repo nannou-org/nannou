@@ -1,5 +1,5 @@
-use geom::{vec2, Point2, Quad};
-use math::{BaseFloat, InnerSpace};
+use crate::geom::{vec2, Point2, Quad};
+use crate::math::{BaseFloat, InnerSpace};
 
 /// A line cap with a square edge that extends past the end of the start or end by half the line's
 /// thickness.

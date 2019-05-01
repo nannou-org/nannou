@@ -1,11 +1,11 @@
-use draw::mesh::vertex::{IntoPoint, IntoVertex};
-use draw::properties::spatial::{self, orientation, position};
-use draw::properties::{Draw, Drawn, IntoDrawn, Primitive, SetOrientation, SetPosition};
-use draw::{self, Drawing};
-use geom::line::join::miter;
-use geom::{self, pt2, Point2};
-use math::BaseFloat;
-use mesh::vertex::{WithColor, WithTexCoords};
+use crate::draw::mesh::vertex::{IntoPoint, IntoVertex};
+use crate::draw::properties::spatial::{self, orientation, position};
+use crate::draw::properties::{Draw, Drawn, IntoDrawn, Primitive, SetOrientation, SetPosition};
+use crate::draw::{self, Drawing};
+use crate::geom::line::join::miter;
+use crate::geom::{self, pt2, Point2};
+use crate::math::BaseFloat;
+use crate::mesh::vertex::{WithColor, WithTexCoords};
 use std::iter;
 
 /// A polyline prior to being initialised.

@@ -1,5 +1,3 @@
-extern crate nannou;
-
 use nannou::osc;
 use nannou::prelude::*;
 use nannou::ui::prelude::*;

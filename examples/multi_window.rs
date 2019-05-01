@@ -1,5 +1,3 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -13,14 +11,28 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let a = app.new_window().with_title("window a").event(event_a).build().unwrap();
-    let b = app.new_window().with_title("window b").event(event_b).build().unwrap();
-    let c = app.new_window().with_title("window c").event(event_c).build().unwrap();
+    let a = app
+        .new_window()
+        .with_title("window a")
+        .event(event_a)
+        .build()
+        .unwrap();
+    let b = app
+        .new_window()
+        .with_title("window b")
+        .event(event_b)
+        .build()
+        .unwrap();
+    let c = app
+        .new_window()
+        .with_title("window c")
+        .event(event_c)
+        .build()
+        .unwrap();
     Model { a, b, c }
 }
 
-fn update(_app: &App, _model: &mut Model, _update: Update) {
-}
+fn update(_app: &App, _model: &mut Model, _update: Update) {}
 
 fn event_a(_app: &App, _model: &mut Model, event: WindowEvent) {
     println!("window a: {:?}", event);

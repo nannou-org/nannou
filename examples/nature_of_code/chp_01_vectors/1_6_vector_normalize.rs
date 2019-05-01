@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 1-6: Vector Normalize
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

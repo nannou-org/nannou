@@ -1,12 +1,12 @@
 //! The `vulkano` backend for rendering the contents of a **Draw**'s mesh.
 
-use draw;
-use frame::{Frame, ViewFbo};
-use math::{BaseFloat, NumCast};
+use crate::draw;
+use crate::frame::{Frame, ViewFbo};
+use crate::math::{BaseFloat, NumCast};
+use crate::vk::{self, DeviceOwned, DynamicStateBuilder, GpuFuture, RenderPassDesc};
 use std::error::Error as StdError;
 use std::fmt;
 use std::sync::Arc;
-use vk::{self, DeviceOwned, DynamicStateBuilder, GpuFuture, RenderPassDesc};
 
 /// A type used for rendering a **nannou::draw::Mesh** with a vulkan graphics pipeline.
 pub struct Renderer {
@@ -85,11 +85,11 @@ pub enum DrawError {
 
 mod vertex_impl {
     use super::Vertex;
-    impl_vertex!(Vertex, position, color, tex_coords);
+    crate::vk::impl_vertex!(Vertex, position, color, tex_coords);
 }
 
 mod vs {
-    crate::vk::shaders::shader!{
+    crate::vk::shaders::shader! {
         ty: "vertex",
         src: "
 #version 450
@@ -114,7 +114,7 @@ void main() {
 }
 
 mod fs {
-    crate::vk::shaders::shader!{
+    crate::vk::shaders::shader! {
         ty: "fragment",
         src: "
 #version 450
@@ -194,9 +194,7 @@ impl RenderPassImages {
             msaa_samples,
             depth_format,
         )?;
-        Ok(RenderPassImages {
-            depth,
-        })
+        Ok(RenderPassImages { depth })
     }
 }
 
@@ -211,9 +209,13 @@ impl Renderer {
         msaa_samples: u32,
     ) -> Result<Self, RendererCreationError> {
         let load_op = vk::LoadOp::Load;
-        let render_pass = Arc::new(
-            create_render_pass(device, color_format, depth_format, load_op, msaa_samples)?
-        ) as Arc<vk::RenderPassAbstract + Send + Sync>;
+        let render_pass = Arc::new(create_render_pass(
+            device,
+            color_format,
+            depth_format,
+            load_op,
+            msaa_samples,
+        )?) as Arc<vk::RenderPassAbstract + Send + Sync>;
         let graphics_pipeline = create_graphics_pipeline(render_pass.clone())?
             as Arc<vk::GraphicsPipelineAbstract + Send + Sync>;
         let vertices = vec![];
@@ -257,7 +259,7 @@ impl Renderer {
                 let clear_color = [color.red, color.green, color.blue, color.alpha].into();
                 let clear_depth = 1f32.into();
                 (vk::LoadOp::Clear, clear_color, clear_depth)
-            },
+            }
         };
 
         // Ensure that the render pass has the correct load op. If not, recreate it.
@@ -284,10 +286,7 @@ impl Renderer {
         }
 
         // Prepare clear values.
-        let clear_values = vec![
-            clear_color,
-            clear_depth,
-        ];
+        let clear_values = vec![clear_color, clear_depth];
 
         let image_dims = frame.image().dimensions();
         let [img_w, img_h] = image_dims;
@@ -322,14 +321,16 @@ impl Renderer {
         }
 
         // Safe to `unwrap` here as we have ensured that `render_pass_images` is `Some` above.
-        let render_pass_images = render_pass_images.as_mut().expect("render_pass_images is `None`");
+        let render_pass_images = render_pass_images
+            .as_mut()
+            .expect("render_pass_images is `None`");
 
         // Ensure framebuffers are up to date with the frame's swapchain image and render pass.
-        view_fbo.update(&frame, render_pass.clone(), |builder, image| {
-            builder
-                .add(image)?
-                .add(render_pass_images.depth.clone())
-        }).unwrap();
+        view_fbo
+            .update(&frame, render_pass.clone(), |builder, image| {
+                builder.add(image)?.add(render_pass_images.depth.clone())
+            })
+            .unwrap();
 
         // Create the dynamic state.
         let dynamic_state = dynamic_state([img_w as _, img_h as _]);
@@ -388,7 +389,7 @@ pub fn create_render_pass_clear(
     depth_format: vk::Format,
     msaa_samples: u32,
 ) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
-    let rp = single_pass_renderpass!(
+    let rp = vk::single_pass_renderpass!(
         device,
         attachments: {
             color: {
@@ -420,7 +421,7 @@ pub fn create_render_pass_load(
     depth_format: vk::Format,
     msaa_samples: u32,
 ) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
-    let rp = single_pass_renderpass!(
+    let rp = vk::single_pass_renderpass!(
         device,
         attachments: {
             color: {
@@ -592,7 +593,11 @@ impl fmt::Debug for Renderer {
         write!(
             f,
             "Renderer ( render_pass, graphics_pipeline, framebuffer: {} )",
-            if self.view_fbo.is_some() { "Some" } else { "None" },
+            if self.view_fbo.is_some() {
+                "Some"
+            } else {
+                "None"
+            },
         )
     }
 }

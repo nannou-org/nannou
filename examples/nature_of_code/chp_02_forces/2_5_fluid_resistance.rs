@@ -7,8 +7,6 @@
 // Demonstration of multiple forces acting on bodies (Mover type)
 // Bodies experience gravity continuously
 // Bodies experience fluid resistance when in *water*
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
@@ -171,10 +169,10 @@ fn update(app: &App, m: &mut Model, _update: Update) {
             // Apply drag force to Mover
             m.movers[i].apply_force(drag_force);
         }
-    
+
         // Gravity is scaled by mass here!
         let gravity = vec2(0.0, -0.1 * m.movers[i].mass);
-    
+
         // Apply gravity
         m.movers[i].apply_force(gravity);
         m.movers[i].update();

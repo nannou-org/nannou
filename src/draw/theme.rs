@@ -1,4 +1,4 @@
-use color::{Alpha, Rgb, Rgba};
+use crate::color::{Alpha, Rgb, Rgba};
 use std::collections::HashMap;
 
 /// A set of styling defaults used for coloring texturing geometric primitives that have no entry

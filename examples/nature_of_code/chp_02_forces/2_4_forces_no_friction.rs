@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 2-4: Forces No Friction
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

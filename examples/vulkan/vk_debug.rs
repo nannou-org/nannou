@@ -9,8 +9,6 @@
 //! allow you to specify your own custom set of validation layers. To determine what layers are
 //! available on a system, see the `nannou::vk::instance::layers_list` function.
 
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

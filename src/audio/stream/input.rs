@@ -1,7 +1,7 @@
-use audio::cpal;
-use audio::sample::{FromSample, Sample, ToSample};
-use audio::stream;
-use audio::{Buffer, Device, Receiver, Stream};
+use crate::audio::cpal;
+use crate::audio::sample::{FromSample, Sample, ToSample};
+use crate::audio::stream;
+use crate::audio::{Buffer, Device, Receiver, Stream};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -90,7 +90,8 @@ impl<M, F, S> Builder<M, F, S> {
             sample_rate,
             device.default_input_format().ok(),
             |device| device.supported_input_formats().map(|fs| fs.collect()),
-        )?.expect("no matching supported audio input formats for the target device");
+        )?
+        .expect("no matching supported audio input formats for the target device");
         let stream_id = event_loop.build_input_stream(&device, &format)?;
         let (update_tx, update_rx) = mpsc::channel();
         let model = Arc::new(Mutex::new(Some(model)));

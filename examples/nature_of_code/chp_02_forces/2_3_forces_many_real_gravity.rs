@@ -3,8 +3,6 @@
 // http://natureofcode.com
 //
 // Example 2-3: Forces Many Real Gravity
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {

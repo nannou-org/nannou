@@ -11,8 +11,8 @@
 //!   [**Requester**](./requester/struct.Requester.html) for buffering input and output streams that
 //!   may deliver buffers of inconsistent sizes into a stream of consistently sized buffers.
 
-pub extern crate cpal;
-pub extern crate sample;
+pub use cpal;
+pub use sample;
 
 pub use self::buffer::Buffer;
 pub use self::device::{Device, Devices};

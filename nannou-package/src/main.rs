@@ -1,10 +1,5 @@
 //! A small rust script for packaging a nannou project.
 
-extern crate chrono;
-extern crate copy_dir;
-extern crate walkdir;
-extern crate zip;
-
 use copy_dir::copy_dir;
 use std::env;
 use std::fs;
