@@ -382,6 +382,7 @@ where
             create_default_window,
             vk_instance,
             vk_debug_callback,
+            #[cfg(all(target_os = "macos", not(test)))]
             moltenvk_settings,
             ..
         } = self;
