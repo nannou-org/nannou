@@ -146,6 +146,9 @@ path = "examples/vulkan/vk_debug.rs"
 [[example]]
 name = "vk_hotload"
 path = "examples/vulkan/vk_hotload.rs"
+[[example]]
+name = "vk_hottoy"
+path = "examples/vulkan/vk_hottoy.rs"
 
 # --------------- Generative Design
 [[example]]
