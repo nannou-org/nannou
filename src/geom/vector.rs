@@ -1091,9 +1091,9 @@ impl<S> Vector2<S> {
     /// # Examples
     /// ```
     /// # extern crate nannou;
-    /// # use nannou::prelude::*; 
+    /// # use nannou::prelude::*;
     /// # use nannou::Draw;
-    /// # fn main() { 
+    /// # fn main() {
     /// let vector = Vector2::new(-0.5, 0.5);
     /// let theta = vector.angle() * -1.0;
     /// # let draw = Draw::new();

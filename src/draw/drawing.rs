@@ -134,8 +134,10 @@ where
     // vertices.
     fn map_primitive_with_vertices<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
     where
-        F: FnOnce(draw::properties::Primitive<S>, &mut draw::IntermediaryMesh<S>)
-            -> draw::properties::Primitive<S>,
+        F: FnOnce(
+            draw::properties::Primitive<S>,
+            &mut draw::IntermediaryMesh<S>,
+        ) -> draw::properties::Primitive<S>,
         T2: IntoDrawn<S> + Into<Primitive<S>>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {

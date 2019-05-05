@@ -82,9 +82,11 @@ impl Packet {
     pub fn unfold(self, msgs: &mut Vec<Message>) {
         match self {
             Packet::Message(msg) => msgs.push(msg),
-            Packet::Bundle(bundle) => for packet in bundle.content {
-                Packet::unfold(packet.into(), msgs);
-            },
+            Packet::Bundle(bundle) => {
+                for packet in bundle.content {
+                    Packet::unfold(packet.into(), msgs);
+                }
+            }
         }
     }
 

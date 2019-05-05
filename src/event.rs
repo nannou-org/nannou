@@ -198,8 +198,7 @@ impl SimpleWindowEvent {
             }
 
             // TODO: Should separate the behaviour of close requested and destroyed.
-            glutin::WindowEvent::CloseRequested |
-            glutin::WindowEvent::Destroyed => Closed,
+            glutin::WindowEvent::CloseRequested | glutin::WindowEvent::Destroyed => Closed,
 
             glutin::WindowEvent::DroppedFile(path) => DroppedFile(path),
 
@@ -209,9 +208,7 @@ impl SimpleWindowEvent {
 
             glutin::WindowEvent::Focused(b) => Focused(b),
 
-            glutin::WindowEvent::CursorMoved {
-                position, ..
-            } => {
+            glutin::WindowEvent::CursorMoved { position, .. } => {
                 let (x, y) = position.into();
                 let x = tx(x);
                 let y = ty(y);
@@ -278,12 +275,10 @@ impl LoopEvent for Event {
                 let windows = app.windows.borrow();
                 let (win_w, win_h) = match windows.get(&window_id) {
                     None => (0.0, 0.0), // The window was likely closed, these will be ignored.
-                    Some(window) => {
-                        match window.display.gl_window().get_inner_size() {
-                            None => (0.0, 0.0),
-                            Some(size) => size.into(),
-                        }
-                    }
+                    Some(window) => match window.display.gl_window().get_inner_size() {
+                        None => (0.0, 0.0),
+                        Some(size) => size.into(),
+                    },
                 };
                 let raw = event.clone();
                 let simple = SimpleWindowEvent::from_glutin_window_event(event, win_w, win_h);

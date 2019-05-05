@@ -343,7 +343,8 @@ impl Window {
     ///
     /// This is the same as dividing the result  of `inner_size_pixels()` by `hidpi_factor()`.
     pub fn inner_size_points(&self) -> (geom::scalar::Default, geom::scalar::Default) {
-        let size = self.display
+        let size = self
+            .display
             .gl_window()
             .get_inner_size()
             .expect(Self::NO_LONGER_EXISTS);
@@ -374,7 +375,8 @@ impl Window {
     ///
     /// This is the same as dividing the result  of `outer_size_pixels()` by `hidpi_factor()`.
     pub fn outer_size_points(&self) -> (f32, f32) {
-        let size = self.display
+        let size = self
+            .display
             .gl_window()
             .get_outer_size()
             .expect(Self::NO_LONGER_EXISTS);
@@ -386,7 +388,9 @@ impl Window {
     ///
     /// See the `inner_size` methods for more informations about the values.
     pub fn set_inner_size_pixels(&self, width: u32, height: u32) {
-        self.display.gl_window().set_inner_size((width, height).into())
+        self.display
+            .gl_window()
+            .set_inner_size((width, height).into())
     }
 
     /// Modifies the inner size of the window using point values.

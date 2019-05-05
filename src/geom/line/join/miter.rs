@@ -253,11 +253,13 @@ where
         let a = self.point_a.is_some();
         let b = self.point_b.is_some();
         match (a, b) {
-            (false, true) => if remaining_points <= 1 {
-                0
-            } else {
-                remaining_points
-            },
+            (false, true) => {
+                if remaining_points <= 1 {
+                    0
+                } else {
+                    remaining_points
+                }
+            }
             (true, true) => remaining_points + 1,
             _ => 0,
         }
