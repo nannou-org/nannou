@@ -10,7 +10,7 @@
 //!   `app.draw()`.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
 
-use audio;
+use  audio ;
 use audio::cpal;
 use draw;
 use find_folder;
