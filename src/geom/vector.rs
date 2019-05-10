@@ -81,7 +81,7 @@ macro_rules! impl_vector {
                 $VectorN { $($field: scalar.clone()),+ }
             }
 
-            /// The length of the vector.
+            /// The number of dimensions in the vector.
             #[inline]
             pub fn len(&self) -> usize {
                 $n
