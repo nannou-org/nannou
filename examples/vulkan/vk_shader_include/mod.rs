@@ -1,6 +1,3 @@
-
-
-
 use nannou::prelude::*;
 use std::cell::RefCell;
 use std::sync::Arc;

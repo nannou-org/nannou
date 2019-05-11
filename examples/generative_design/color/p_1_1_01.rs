@@ -1,6 +1,3 @@
-
-
-
 use nannou::prelude::*;
 
 fn main() {

@@ -64,7 +64,7 @@ pub mod round;
 /// ## Example
 ///
 /// ```
-/// 
+///
 
 ///
 /// use nannou::prelude::*;
@@ -152,7 +152,7 @@ where
 /// ## Example
 ///
 /// ```
-/// 
+///
 
 ///
 /// use nannou::prelude::*;

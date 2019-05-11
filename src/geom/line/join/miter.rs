@@ -39,7 +39,7 @@ use crate::math::BaseFloat;
 /// ## Example
 ///
 /// ```
-/// 
+///
 
 ///
 /// use nannou::prelude::*;

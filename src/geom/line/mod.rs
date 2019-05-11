@@ -239,7 +239,7 @@ where
 /// ## Examples
 ///
 /// ```
-/// 
+///
 
 ///
 /// use nannou::prelude::*;

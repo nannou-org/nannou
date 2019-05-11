@@ -57,7 +57,6 @@ fn model(app: &App) -> Model {
     }
 }
 
-
 fn update(_app: &App, model: &mut Model, _update: Update) {
     // Calling `set_widgets` allows us to instantiate some widgets.
     let ui = &mut model.ui.set_widgets();

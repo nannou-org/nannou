@@ -370,6 +370,7 @@ where
     /// event type is an `enum` that describes all the different kinds of I/O events that might
     /// occur during the life of the program. These include things like `Update`s and
     /// `WindowEvent`s such as `KeyPressed`, `MouseMoved`, and so on.
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     pub fn event<E>(self, event: EventFn<M, E>) -> Builder<M, E>
     where
         E: LoopEvent,

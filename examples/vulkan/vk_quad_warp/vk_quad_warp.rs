@@ -1,6 +1,3 @@
-
-
-
 mod controls;
 mod homography;
 mod teapot_verts;
