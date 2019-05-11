@@ -1,4 +1,6 @@
-#![doc(html_logo_url = "https://raw.githubusercontent.com/nannou-org/nannou/master/assets/images/logo.png")]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/nannou-org/nannou/master/assets/images/logo.png"
+)]
 
 //! An open-source creative-coding toolkit for Rust.
 //!
@@ -350,9 +352,7 @@ fn run_loop<M, E>(
 
                 // Check for events that would update either mouse, keyboard or window state.
                 match *event {
-                    glutin::WindowEvent::CursorMoved {
-                        position, ..
-                    } => {
+                    glutin::WindowEvent::CursorMoved { position, .. } => {
                         let (x, y): (f64, f64) = position.into();
                         let x = tx(x as _);
                         let y = ty(y as _);

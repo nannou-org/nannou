@@ -322,7 +322,7 @@ impl Renderer {
         let draw_params = draw_parameters();
 
         // Create the uniforms.
-        let uniforms = uniform!{};
+        let uniforms = uniform! {};
 
         // Draw to the given surface.
         surface.draw(

@@ -1,4 +1,10 @@
 language: rust
+
+cache: cargo
+
+before_script:
+- rustup component add rustfmt
+
 addons:
     apt:
         packages:
@@ -7,7 +13,9 @@ rust:
     - nightly
     - beta
     - stable
+
 script:
+    - cargo fmt --all -- --check
     - cargo build -v
     - cargo test -v
     - cargo doc -v

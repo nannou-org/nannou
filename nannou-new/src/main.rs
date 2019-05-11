@@ -12,14 +12,17 @@ extern crate rand;
 
 use cargo::CargoResult;
 use std::env;
-use std::io::{self, BufRead, Write};
 use std::fs::{self, File};
+use std::io::{self, BufRead, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
 
-enum Project { Sketch, App }
+enum Project {
+    Sketch,
+    App,
+}
 
 impl Project {
     fn lowercase(&self) -> &str {
@@ -46,7 +49,10 @@ fn ask_user(question: &str) -> io::Result<String> {
     Ok(response.trim().to_string())
 }
 
-enum Response { Yes, No }
+enum Response {
+    Yes,
+    No,
+}
 
 fn yes_or_no(s: &str) -> Option<Response> {
     let s = s.to_ascii_lowercase();
@@ -76,10 +82,8 @@ fn crates_io_package_latest_version(name: &str) -> CargoResult<cargo::core::Pack
     let src_id = cargo::core::SourceId::crates_io(&cargo_config)?;
 
     // The crates.io registry source.
-    let mut registry_source = cargo::sources::registry::RegistrySource::remote(
-        &src_id,
-        &cargo_config,
-    );
+    let mut registry_source =
+        cargo::sources::registry::RegistrySource::remote(&src_id, &cargo_config);
 
     // The nannou dependency (don't really understand why we need "Dependency").
     let vers = None;
@@ -104,7 +108,10 @@ fn main() {
         Some(Response::Yes) => Project::Sketch,
         Some(Response::No) => Project::App,
         _ => {
-            println!("I don't understand \"{}\", I was expecting \"y\" or \"n\". Exiting", response);
+            println!(
+                "I don't understand \"{}\", I was expecting \"y\" or \"n\". Exiting",
+                response
+            );
             return;
         }
     };
@@ -116,7 +123,9 @@ fn main() {
         if !response.is_empty() {
             break response;
         }
-        let random_name = names::Generator::default().next().expect("failed to generate name");
+        let random_name = names::Generator::default()
+            .next()
+            .expect("failed to generate name");
         let question = format!("Hmmm... How about the name, \"{}\"? (Y/n): ", random_name);
         let response = ask_user(&question).expect("failed to get user input");
         if let Some(Response::Yes) = yes_or_no(&response) {
@@ -134,16 +143,18 @@ fn main() {
 
     // Find the template file within the nannou package.
     let template_bytes = {
-        let template_path = nannou_package.root()
+        let template_path = nannou_package
+            .root()
             .join("examples")
             .join(&project.template_file_name());
-        std::fs::read(&template_path)
-            .expect(&format!("failed to read template bytes from {}", template_path.display()))
+        std::fs::read(&template_path).expect(&format!(
+            "failed to read template bytes from {}",
+            template_path.display()
+        ))
     };
 
     // Get the current directory.
-    let current_directory = env::current_dir()
-        .expect("could not retrieve current directory");
+    let current_directory = env::current_dir().expect("could not retrieve current directory");
 
     // Create the project path.
     let project_path = current_directory.join(&name);
@@ -168,7 +179,8 @@ fn main() {
     {
         println!("Writing template file \"{}\"", main_path.display());
         let mut file = File::create(main_path).expect("failed to create new main file");
-        file.write_all(&template_bytes).expect("failed to write to new main file");
+        file.write_all(&template_bytes)
+            .expect("failed to write to new main file");
     }
 
     // Append the nannou dependency to the "Cargo.toml" file.
@@ -188,12 +200,18 @@ fn main() {
     fs::create_dir(assets_path).expect("failed to create assets directory");
 
     // Change the directory to the newly created path.
-    println!("Changing the current directory to \"{}\"", project_path.display());
+    println!(
+        "Changing the current directory to \"{}\"",
+        project_path.display()
+    );
     env::set_current_dir(&project_path).expect("failed to change directories");
 
     // Building and running.
     let bev = random_beverage();
-    println!("Building `{}`. This might take a while for the first time. Grab a {}?", name, bev);
+    println!(
+        "Building `{}`. This might take a while for the first time. Grab a {}?",
+        name, bev
+    );
     let mut child = Command::new("cargo")
         .arg("build")
         .arg("--release")

@@ -43,7 +43,8 @@ where
     let entries = WalkDir::new(dir).into_iter().filter_map(Result::ok);
     for entry in entries {
         let path = entry.path();
-        let name = path.strip_prefix(Path::new(dir))
+        let name = path
+            .strip_prefix(Path::new(dir))
             .ok()
             .and_then(|s| s.to_str())
             .expect("could not get path name while zipping directory");
@@ -123,21 +124,28 @@ fn main() {
     let name = name.trim();
 
     // Find the Cargo.toml directory.
-    let current_directory = env::current_dir()
-        .expect("could not retrieve current directory");
+    let current_directory = env::current_dir().expect("could not retrieve current directory");
     let cargo_toml_path = check_parents(&current_directory, "Cargo.toml")
         .expect("error finding `Cargo.toml` root directory")
         .expect("could not find `Cargo.toml` root directory");
-    let cargo_directory = cargo_toml_path.parent().expect("could not find cargo root directory");
+    let cargo_directory = cargo_toml_path
+        .parent()
+        .expect("could not find cargo root directory");
 
     // Find the path to the `exe` that we're going to package.
     let target_path = cargo_directory.join("target");
     if !target_path.exists() || !target_path.is_dir() {
-        panic!("The directory \"{}\" does not exist.", target_path.display());
+        panic!(
+            "The directory \"{}\" does not exist.",
+            target_path.display()
+        );
     }
     let release_path = target_path.join("release");
     if !release_path.exists() || !release_path.is_dir() {
-        panic!("The directory \"{}\" does not exist.", release_path.display());
+        panic!(
+            "The directory \"{}\" does not exist.",
+            release_path.display()
+        );
     }
     let exe_path = release_path.join(&name);
     if !exe_path.exists() || !exe_path.is_file() {
@@ -157,10 +165,9 @@ fn main() {
     // same architecture with which this `nannou-package` exe was built. This should be fixed to
     // use the *actual* target that we're packaging properly somehow. This would be especially
     // useful if someone was cross-compiling for multiple platforms on one machine.
-    let arch = target_arch()
-        .expect("unknown `target_arch` - please let us know at the nannou repo!");
-    let os = target_os()
-        .expect("unknown `target_os` - please let us know at the nannou repo!");
+    let arch =
+        target_arch().expect("unknown `target_arch` - please let us know at the nannou repo!");
+    let os = target_os().expect("unknown `target_os` - please let us know at the nannou repo!");
     let now = chrono::Local::now().format("%Y%m%d-%H%M%S");
     let build_name = format!("{}-{}-{}-{}", name, arch, os, now);
     let build_path = builds_path.join(build_name);
@@ -168,22 +175,35 @@ fn main() {
     fs::create_dir(&build_path).expect("could not create build directory");
 
     // Copy the exe to the build directory.
-    let exe_name = exe_path.file_name().and_then(|s| s.to_str()).expect("could not get exe name");
+    let exe_name = exe_path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .expect("could not get exe name");
     let build_exe_path = build_path.join(&exe_name);
-    println!("Copying \"{}\" to \"{}\"", exe_path.display(), build_exe_path.display());
+    println!(
+        "Copying \"{}\" to \"{}\"",
+        exe_path.display(),
+        build_exe_path.display()
+    );
     fs::copy(&exe_path, build_exe_path).expect("could not copy exe to build directory");
 
     // If there's an `assets` directory, copy it to the build directory.
     let assets_path = cargo_directory.join("assets");
     if assets_path.exists() && assets_path.is_dir() {
         let build_assets_path = build_path.join("assets");
-        println!("Copying \"{}\" to \"{}\"", assets_path.display(), build_assets_path.display());
+        println!(
+            "Copying \"{}\" to \"{}\"",
+            assets_path.display(),
+            build_assets_path.display()
+        );
         copy_dir(assets_path, build_assets_path).expect("could not copy assets directory");
     }
 
     // Create a `.zip` of the build.
     let zip_path = build_path.with_extension("zip");
-    let zip_file_name = zip_path.file_name().and_then(|s| s.to_str())
+    let zip_file_name = zip_path
+        .file_name()
+        .and_then(|s| s.to_str())
         .expect("could not create zip file name");
     println!("Creating \"{}\"", zip_path.display());
     let file = fs::File::create(&zip_path).expect("could not create zip file");
