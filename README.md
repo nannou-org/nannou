@@ -1,4 +1,4 @@
-# nannou - The Guide
+# the nannou guide [![Build Status](https://travis-ci.org/nannou-org/guide.svg?branch=master)](https://travis-ci.org/nannou-org/guide)
 
 The one-stop-shop for everything someone might want to know about nannou!
 
