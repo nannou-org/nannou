@@ -37,7 +37,7 @@ create a new project with just a few small steps:
 4. Replace the code in `src/main.rs` with the following to setup our nannou
    application.
 
-   ```rust
+   ```rust,norun
    use nannou::prelude::*;
 
    fn main() {
