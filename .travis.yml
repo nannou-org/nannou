@@ -1,0 +1,18 @@
+language: rust
+
+cache: cargo
+
+before_script:
+- cargo install mdbook
+
+addons:
+    apt:
+        packages:
+            - libasound2-dev
+rust:
+    - nightly
+    - stable
+
+script:
+    - mdbook build
+    - cd book-tests && cargo test -v
