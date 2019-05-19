@@ -1,6 +1,6 @@
-# The Nannou Guide
+# nannou - The Guide
 
-The one-stop-shop for everything someone might want to know about Nannou!
+The one-stop-shop for everything someone might want to know about nannou!
 
 ## Working on the Book
 
