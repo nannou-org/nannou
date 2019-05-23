@@ -11,7 +11,7 @@ The easiest way to build, render and read the book is as follows:
   git clone https://github.com/nannou-org/guide
   cd guide
   ```
-- Install the Rust markdown book tool.
+- Install the [Rust markdown book](https://github.com/rust-lang-nursery/mdBook) tool.
   ```
   cargo install mdbook
   ```
