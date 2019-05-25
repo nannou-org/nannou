@@ -8,7 +8,7 @@ fn main() {
 }
 
 struct Model {
-    laser_api: lasy::Lasy,
+    _laser_api: lasy::Lasy,
     laser_stream: lasy::RawStream<Laser>,
 }
 
@@ -30,14 +30,14 @@ fn model(app: &App) -> Model {
         point_idx: 0,
         position: pt2(0.0, 0.0),
     };
-    let laser_api = lasy::Lasy::new();
-    let laser_stream = laser_api
+    let _laser_api = lasy::Lasy::new();
+    let laser_stream = _laser_api
         .new_raw_stream(laser_model, laser)
         .build()
         .unwrap();
 
     Model {
-        laser_api,
+        _laser_api,
         laser_stream,
     }
 }

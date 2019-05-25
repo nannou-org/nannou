@@ -13,9 +13,9 @@ edition = "2018"
 [dependencies]
 approx = "0.1"
 cgmath = { version = "0.16", features = ["serde"] }
-conrod_core = { git = "https://github.com/mitchmindtree/conrod", branch = "update_vulkano_nannou_patches" }
-conrod_winit = { git = "https://github.com/mitchmindtree/conrod", branch = "update_vulkano_nannou_patches" }
-conrod_vulkano = { git = "https://github.com/mitchmindtree/conrod", branch = "update_vulkano_nannou_patches" }
+conrod_core = "0.65"
+conrod_winit = "0.65"
+conrod_vulkano = "0.65"
 cpal = "0.8"
 daggy = "0.6"
 find_folder = "0.3"
@@ -30,13 +30,13 @@ serde = "1"
 serde_derive = "1"
 serde_json = "1"
 toml = "0.4"
-vulkano = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
-vulkano-win = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
-vulkano-shaders = { git = "https://github.com/mitchmindtree/vulkano", branch = "nannou_patches" }
+vulkano = "0.12"
+vulkano-win = "0.12"
+vulkano-shaders = "0.12"
 winit = "0.19"
 
 [dev-dependencies]
-shade_runner = { git = "https://github.com/freesig/shade_runner.git" }
+shade_runner = { git = "https://github.com/mitchmindtree/shade_runner.git", branch = "vulkano_update" }
 lasy = "0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
