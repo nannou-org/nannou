@@ -7,7 +7,7 @@ fn main() {
 }
 
 struct Model {
-    laser_api: lasy::Lasy,
+    _laser_api: lasy::Lasy,
     laser_stream: lasy::FrameStream<Laser>,
 }
 
@@ -43,14 +43,14 @@ fn model(app: &App) -> Model {
     let laser_model = Laser {
         test_pattern: TestPattern::Rectangle,
     };
-    let laser_api = lasy::Lasy::new();
-    let laser_stream = laser_api
+    let _laser_api = lasy::Lasy::new();
+    let laser_stream = _laser_api
         .new_frame_stream(laser_model, laser)
         .build()
         .unwrap();
 
     Model {
-        laser_api,
+        _laser_api,
         laser_stream,
     }
 }
