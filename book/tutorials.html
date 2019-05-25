@@ -1,0 +1,319 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Tutorials - The Nannou Guide</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A one-stop shop for Nannou Knowledge!">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li class="affix"><a href="welcome.html">Welcome!</a></li><li><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.1.</strong> Installing Rust</a></li><li><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.2.</strong> Platform-specific Setup</a></li><li><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li></ol></li><li><a href="tutorials.html" class="active"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><a href="developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="contributors.html">Contributors</a></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Nannou Guide</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#tutorials" id="tutorials"><h1>Tutorials</h1></a>
+<p>In the previous chapter we prepared everything needed to start our own Nannou
+project! In this chapter, we will take a more focused look at all of the
+different features we can add to our Nannou project.</p>
+<p>If you are new to Nannou or Rust we recommend starting with the first tutorial
+before going on. If you are feeling more confident, feel free to choose your own
+adventure through the following tutorials depending on what you want to add to
+your project!</p>
+<a class="header" href="#basics" id="basics"><h2>Basics</h2></a>
+<p>A suite of tutorials for getting familiar with Rust and the Nannou environment.</p>
+<ul>
+<li>Nannou app</li>
+<li>Nannou events</li>
+<li>Rust variables</li>
+<li>Rust conditions</li>
+<li>Rust loops</li>
+<li>Rust functions</li>
+</ul>
+<a class="header" href="#drawing" id="drawing"><h2>Drawing</h2></a>
+<p>Working with Nannou's <code>Draw</code> API - a simple approach of coding graphics.</p>
+<ul>
+<li>Drawing 2D shapes</li>
+<li>Drawing 3D shapes</li>
+<li>Drawing images</li>
+<li>Drawing meshes</li>
+</ul>
+<a class="header" href="#windowing" id="windowing"><h2>Windowing</h2></a>
+<p>Walk-throughs for creating and working with one or more windows.</p>
+<ul>
+<li>Building a custom window</li>
+<li>Creating multiple windows</li>
+<li>Drawing to different windows</li>
+<li>Fullscreen on startup</li>
+<li>Automatically positioning windows</li>
+</ul>
+<a class="header" href="#gui" id="gui"><h2>GUI</h2></a>
+<p>How to create a GUI (Graphical User Interface) for you Nannou project.</p>
+<ul>
+<li>Creating a UI</li>
+<li>Exploring available UI widgets</li>
+<li>Multi-window UI</li>
+</ul>
+<a class="header" href="#audio" id="audio"><h2>Audio</h2></a>
+<p>A suite of guides for working with audio in Nannou.</p>
+<ul>
+<li>Setting up audio output</li>
+<li>Setting up audio input</li>
+<li>Selecting specific audio devices</li>
+<li>Playing an audio file</li>
+<li>Basic audio synthesis</li>
+<li>Many channel audio streams</li>
+<li>Feeding audio input to output</li>
+<li>Visualising audio</li>
+</ul>
+<a class="header" href="#video" id="video"><h2>Video</h2></a>
+<p>Loading, playing and recording video in Nannou.</p>
+<ul>
+<li>Drawing video</li>
+<li>Recording a window to video</li>
+<li>Manipulating video playback</li>
+</ul>
+<a class="header" href="#vulkan" id="vulkan"><h2>Vulkan</h2></a>
+<p>Understanding the lower level that underlies all graphics in Nannou.</p>
+<ul>
+<li>What is Vulkan?</li>
+<li>The graphics pipeline</li>
+<li>Compute shaders</li>
+<li>Fragment shaders</li>
+<li>Vertex shaders</li>
+</ul>
+<a class="header" href="#projection-mapping" id="projection-mapping"><h2>Projection Mapping</h2></a>
+<p>Getting started with using Nannou for projection mapping.</p>
+<ul>
+<li>Basic quad-warping.</li>
+</ul>
+<a class="header" href="#lasers" id="lasers"><h2>LASERs</h2></a>
+<p>Detecting and outputting to LASER DACs on a network.</p>
+<ul>
+<li>Connecting to a LASER.</li>
+<li>Detecting LASER DACs.</li>
+<li>Tweaking LASER interpolation and optimisations.</li>
+</ul>
+<a class="header" href="#osc" id="osc"><h2>OSC</h2></a>
+<ul>
+<li>Setting up an OSC sender.</li>
+<li>Setting up an OSC receiver.</li>
+</ul>
+<a class="header" href="#dmx" id="dmx"><h2>DMX</h2></a>
+<p>Working with DMX over the network via sACN.</p>
+<ul>
+<li>Working with the sacn crate.</li>
+</ul>
+<a class="header" href="#serial-over-usb" id="serial-over-usb"><h2>Serial over USB</h2></a>
+<p>Working with Serial data in a cross-platform manner.</p>
+<ul>
+<li>Reading USB serial data.</li>
+<li>Writing USB serial data.</li>
+</ul>
+<p>If you were unable to find what you were looking for above, or if you have an
+idea for a tutorial not yet present, please feel free to create an issue or a
+pull request!</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="getting_started/create_a_project.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="developer_reference.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="getting_started/create_a_project.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="developer_reference.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload(true); // force reload from server (not from cache)
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

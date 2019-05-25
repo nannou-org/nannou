@@ -1,0 +1,558 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>The Nannou Guide</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A one-stop shop for Nannou Knowledge!">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li class="affix"><a href="welcome.html">Welcome!</a></li><li><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.1.</strong> Installing Rust</a></li><li><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.2.</strong> Platform-specific Setup</a></li><li><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li></ol></li><li><a href="tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><a href="developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="contributors.html">Contributors</a></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Nannou Guide</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#welcome" id="welcome"><h1>Welcome!</h1></a>
+<p><strong>Nannou is an open-source, creative-coding toolkit for Rust.</strong></p>
+<p>This aim of this guide is to help you find the information you are looking for.
+Whether you are new to Nannou and are looking for a place to start, or you are
+an experienced Nannou user looking for more advanced tutorials, this book should
+have something for you!</p>
+<a class="header" href="#a-hrefwhy_nannouhtmlwhy-nannoua" id="a-hrefwhy_nannouhtmlwhy-nannoua"><h3><a href="/why_nannou.html">Why Nannou?</a></h3></a>
+<p>Here you can read about the motivations and philosophy behind Nannou. Why start
+Nannou? What drives forward progress?</p>
+<a class="header" href="#a-hrefgetting_startedhtmlgetting-starteda" id="a-hrefgetting_startedhtmlgetting-starteda"><h3><a href="/getting_started.html">Getting Started</a></h3></a>
+<p>Is this your first time using Nannou or Rust? This is the chapter for you.
+This chapter covers everything from installing Rust right through to starting
+your own Nannou project.</p>
+<a class="header" href="#a-hrefguided_tutorialshtmlguided-tutorialsa" id="a-hrefguided_tutorialshtmlguided-tutorialsa"><h3><a href="/guided_tutorials.html">Guided Tutorials</a></h3></a>
+<p>A suite of tutorials demonstrating how to do different things with Nannou. For
+example, &quot;How do I output sounds?&quot;, &quot;How do I draw shapes?&quot;, &quot;How can I connect
+to my laser?&quot;</p>
+<a class="header" href="#a-hrefdeveloper_referencehtmldeveloper-referencea" id="a-hrefdeveloper_referencehtmldeveloper-referencea"><h3><a href="/developer_reference.html">Developer Reference</a></h3></a>
+<p>Learn more about the design philosophy behind Nannou, how the project is
+architected and how you can contribute.</p>
+<a class="header" href="#a-hrefhttpsdocsrsnannouapi-referencea" id="a-hrefhttpsdocsrsnannouapi-referencea"><h3><a href="https://docs.rs/nannou">API Reference</a></h3></a>
+<p>If you are looking for the source code reference, check out
+<a href="https://docs.rs/nannou">docs.rs/nannou</a>. Here you can find documentation about
+the API generated from the code itself.</p>
+<a class="header" href="#a-hrefshowcaseshtmlshowcasesa" id="a-hrefshowcaseshtmlshowcasesa"><h3><a href="/showcases.html">Showcases</a></h3></a>
+<p>See what's possible with Nannou! A collection of projects made with Nannou.</p>
+<a class="header" href="#why-nannou" id="why-nannou"><h1>Why Nannou?</h1></a>
+<p>Nannou aims to provide easy, cross-platform access to the things that artists
+need.</p>
+<a class="header" href="#getting-started" id="getting-started"><h1>Getting Started</h1></a>
+<p>If you are new to Nannou or Rust, you are in the right place!</p>
+<p>In this section, we will:</p>
+<ol>
+<li>Install the Rust programming language.</li>
+<li>Check for platform-specific requirements.</li>
+<li>Setup our code editor for working with Rust.</li>
+<li>Run some Nannou examples.</li>
+<li>Make our own, new Nannou project!</li>
+</ol>
+<p>Let's get started.</p>
+<a class="header" href="#installing-rust" id="installing-rust"><h1>Installing Rust</h1></a>
+<p>Nannou is a library written for the <a href="https://www.rust-lang.org/">Rust programming
+language</a>. Thus, the first step is to install Rust!</p>
+<p>To install Rust, open up your terminal, copy the text below, paste it into your
+terminal and hit enter.</p>
+<pre><code class="language-bash">curl https://sh.rustup.rs -sSf | sh
+</code></pre>
+<p>Now Rust is installed!</p>
+<p>Next we will install some tools that help IDEs do fancy things like
+auto-completion and go-to-definition.</p>
+<pre><code class="language-bash">rustup component add rust-src rustfmt-preview rust-analysis
+</code></pre>
+<p>Please see <a href="https://www.rust-lang.org/tools/install">this link</a> if you would
+like more information on the Rust installation process.</p>
+<a class="header" href="#platform-specific-setup" id="platform-specific-setup"><h1>Platform-specific Setup</h1></a>
+<p>Depending on what OS you are running, you might require an extra step or two.</p>
+<ul>
+<li>
+<p><strong>macOS</strong>: Ensure that you have xcode-tools installed:</p>
+<pre><code class="language-bash">xcode-select --install
+</code></pre>
+</li>
+<li>
+<p><strong>Linux</strong>: ensure you have the following system packages installed:</p>
+<ul>
+<li>
+<p><strong>alsa dev package</strong></p>
+<p>For Fedora users:</p>
+<pre><code class="language-bash">sudo dnf install alsa-lib-devel
+</code></pre>
+<p>For Debian/Ubuntu users:</p>
+<pre><code class="language-bash">sudo apt-get install libasound2-dev
+</code></pre>
+<p>For Arch users:</p>
+<pre><code class="language-bash">sudo pacman -S alsa-lib
+</code></pre>
+</li>
+<li>
+<p><strong>curl lib dev package</strong></p>
+<p>Nannou depends on the <code>curl-sys</code> crate. Some Linux distributions use
+LibreSSL instead of OpenSSL (such as AlpineLinux, Voidlinux, possibly
+<a href="https://en.wikipedia.org/wiki/LibreSSL#Adoption">others</a> if manually
+installed).</p>
+</li>
+</ul>
+</li>
+</ul>
+<a class="header" href="#editor-setup" id="editor-setup"><h1>Editor Setup</h1></a>
+<p>While most popular development environments support Rust, support for certain
+features like auto-completion and go-to-definition is better in some than
+others.</p>
+<a class="header" href="#vs-code" id="vs-code"><h3>VS Code</h3></a>
+<p>For new Rust users we recommend using VS-Code as your editor and IDE for Nannou
+development. Currently it seems to have the best support for the Rust language
+including syntax highlighting, auto-complete, code formatting and more. It also
+comes with an integrated unix terminal and file navigation system. Below are the
+steps we recommend for getting started with Nannou development using VS-Code.</p>
+<ol>
+<li><a href="https://code.visualstudio.com/download">Download VS-Code</a> for your OS.</li>
+<li>In VS code user settings, set <code>&quot;rust-client.channel&quot;: &quot;stable&quot;</code>.</li>
+<li><a href="https://marketplace.visualstudio.com/items?itemName=rust-lang.rust">Install
+RLS</a> (the
+Rust Language Server) plugin for VS-Code.</li>
+<li>Click on the 'view' menu and select 'integrated terminal'.</li>
+</ol>
+<a class="header" href="#other-environments" id="other-environments"><h3>Other Environments</h3></a>
+<p>Here are links to assist with setting up other popular development environments
+for supporting Rust.</p>
+<ol>
+<li><a href="https://packagecontrol.io/packages/Rust%20Enhanced">Sublime Text</a></li>
+<li><a href="https://atom.io/packages/language-rust">Atom</a></li>
+<li><a href="https://intellij-rust.github.io">Intellij IDEA</a></li>
+<li><a href="https://github.com/rust-lang/rust.vim">Vim</a></li>
+<li><a href="https://github.com/rust-lang/rust-mode">Emacs</a></li>
+<li><a href="https://github.com/PistonDevelopers/VisualRust">Visual Studio</a></li>
+<li><a href="https://github.com/RustDT/RustDT">Eclipse</a> (No longer maintained)</li>
+</ol>
+<a class="header" href="#running-examples" id="running-examples"><h1>Running Examples</h1></a>
+<p>The easiest way to get familiar with Nannou is to explore the examples. To get
+the examples we just need to clone the Nannou repository.</p>
+<pre><code class="language-bash">git clone https://github.com/nannou-org/nannou
+</code></pre>
+<p>If you do not have <code>git</code> installed you can press the &quot;Clone or download&quot; button
+at the top of this page and then press &quot;Download .zip&quot;.</p>
+<p>Now, change the current directory to <code>nannou</code>.</p>
+<pre><code class="language-bash">cd nannou
+</code></pre>
+<p>Run the example using cargo.</p>
+<pre><code class="language-bash">cargo run --release --example simple_draw
+</code></pre>
+<p>The <code>--release</code> flag means we want to build with optimisations enabled.</p>
+<p>If you are compiling nannou for the first time you will see cargo download and build all the necessary dependencies.</p>
+<p><img src="https://i.imgur.com/5OBNqMB.gif" alt="cargo" /></p>
+<p>Once the example compiles you should see the following window appear.</p>
+<p><img src="https://i.imgur.com/HVVamUI.gif" alt="simple_draw_HD" /></p>
+<p>To run any of the other examples, replace <code>simple_draw</code> with the name of the
+desired example.</p>
+<a class="header" href="#create-a-project" id="create-a-project"><h1>Create A Project</h1></a>
+<p>Whether we are creating an artwork, an app, a quick sketch or an installation,
+we want to begin by creating a new project. A new nannou project lets us build a
+nannou application the way that <em>we</em> want to use it.</p>
+<p>Eventually, the aim for Nannou is to provide a project generator tool which will
+allow us to do the following and much more in just a few clicks. For now, we can
+create a new project with just a few small steps:</p>
+<ol>
+<li>
+<p>Create the Rust project with the name of our project:</p>
+<pre><code class="language-bash">cargo new my-project
+</code></pre>
+</li>
+<li>
+<p>Change directory to the generated project.</p>
+<pre><code class="language-bash">cd my-project
+</code></pre>
+</li>
+<li>
+<p>Edit the <code>Cargo.toml</code> file and add the latest version of nannou to the bottom
+like so:</p>
+<pre><code class="language-toml">[package]
+name = &quot;my_project&quot;
+version = &quot;0.1.0&quot;
+authors = [&quot;mitchmindtree &lt;mitchell.nordine@gmail.com&gt;&quot;]
+edition = &quot;2018&quot;
+
+[dependencies]
+nannou = &quot;0.9&quot;
+</code></pre>
+</li>
+<li>
+<p>Replace the code in <code>src/main.rs</code> with the following to setup our nannou
+application.</p>
+<pre><pre class="playpen"><code class="language-rust no_run"># extern crate nannou;
+use nannou::prelude::*;
+
+fn main() {
+    nannou::app(model)
+        .update(update)
+        .simple_window(view)
+        .run();
+}
+
+struct Model {}
+
+fn model(app: &amp;App) -&gt; Model {
+    Model {}
+}
+
+fn update(app: &amp;App, model: &amp;mut Model, update: Update) {
+}
+
+fn view(app: &amp;App, model: &amp;Model, frame: Frame) -&gt; Frame {
+    frame.clear(PURPLE);
+    frame
+}
+</code></pre></pre>
+<p>If you are new to Rust or simply do not understand the code above just yet,
+do not fear! In the first tutorial of the next chapter we will break down
+this code step-by-step.</p>
+</li>
+<li>
+<p>Trigger the initial build and check that everything is working nicely by
+running our app!</p>
+<pre><code class="language-bash">cargo run --release
+</code></pre>
+<p>The first build might take a while, as we must build nannou and all of its
+dependencies from scratch. The following times that we run our app should be
+much faster!</p>
+<p>Once the project has finished building, it will begin running and we should
+be able to see a purple window.</p>
+</li>
+</ol>
+<p><strong>That's it!</strong> If everything went as planned, you are now ready to start
+building your own nannou project. Of course, we probably want our application to
+be more than just a purple window.</p>
+<p>To find out how to add more features to our project like graphics, audio,
+multiple windows, laser output, projection mapping and much more, let's take a
+look at the next chapter.</p>
+<a class="header" href="#tutorials" id="tutorials"><h1>Tutorials</h1></a>
+<p>In the previous chapter we prepared everything needed to start our own Nannou
+project! In this chapter, we will take a more focused look at all of the
+different features we can add to our Nannou project.</p>
+<p>If you are new to Nannou or Rust we recommend starting with the first tutorial
+before going on. If you are feeling more confident, feel free to choose your own
+adventure through the following tutorials depending on what you want to add to
+your project!</p>
+<a class="header" href="#basics" id="basics"><h2>Basics</h2></a>
+<p>A suite of tutorials for getting familiar with Rust and the Nannou environment.</p>
+<ul>
+<li>Nannou app</li>
+<li>Nannou events</li>
+<li>Rust variables</li>
+<li>Rust conditions</li>
+<li>Rust loops</li>
+<li>Rust functions</li>
+</ul>
+<a class="header" href="#drawing" id="drawing"><h2>Drawing</h2></a>
+<p>Working with Nannou's <code>Draw</code> API - a simple approach of coding graphics.</p>
+<ul>
+<li>Drawing 2D shapes</li>
+<li>Drawing 3D shapes</li>
+<li>Drawing images</li>
+<li>Drawing meshes</li>
+</ul>
+<a class="header" href="#windowing" id="windowing"><h2>Windowing</h2></a>
+<p>Walk-throughs for creating and working with one or more windows.</p>
+<ul>
+<li>Building a custom window</li>
+<li>Creating multiple windows</li>
+<li>Drawing to different windows</li>
+<li>Fullscreen on startup</li>
+<li>Automatically positioning windows</li>
+</ul>
+<a class="header" href="#gui" id="gui"><h2>GUI</h2></a>
+<p>How to create a GUI (Graphical User Interface) for you Nannou project.</p>
+<ul>
+<li>Creating a UI</li>
+<li>Exploring available UI widgets</li>
+<li>Multi-window UI</li>
+</ul>
+<a class="header" href="#audio" id="audio"><h2>Audio</h2></a>
+<p>A suite of guides for working with audio in Nannou.</p>
+<ul>
+<li>Setting up audio output</li>
+<li>Setting up audio input</li>
+<li>Selecting specific audio devices</li>
+<li>Playing an audio file</li>
+<li>Basic audio synthesis</li>
+<li>Many channel audio streams</li>
+<li>Feeding audio input to output</li>
+<li>Visualising audio</li>
+</ul>
+<a class="header" href="#video" id="video"><h2>Video</h2></a>
+<p>Loading, playing and recording video in Nannou.</p>
+<ul>
+<li>Drawing video</li>
+<li>Recording a window to video</li>
+<li>Manipulating video playback</li>
+</ul>
+<a class="header" href="#vulkan" id="vulkan"><h2>Vulkan</h2></a>
+<p>Understanding the lower level that underlies all graphics in Nannou.</p>
+<ul>
+<li>What is Vulkan?</li>
+<li>The graphics pipeline</li>
+<li>Compute shaders</li>
+<li>Fragment shaders</li>
+<li>Vertex shaders</li>
+</ul>
+<a class="header" href="#projection-mapping" id="projection-mapping"><h2>Projection Mapping</h2></a>
+<p>Getting started with using Nannou for projection mapping.</p>
+<ul>
+<li>Basic quad-warping.</li>
+</ul>
+<a class="header" href="#lasers" id="lasers"><h2>LASERs</h2></a>
+<p>Detecting and outputting to LASER DACs on a network.</p>
+<ul>
+<li>Connecting to a LASER.</li>
+<li>Detecting LASER DACs.</li>
+<li>Tweaking LASER interpolation and optimisations.</li>
+</ul>
+<a class="header" href="#osc" id="osc"><h2>OSC</h2></a>
+<ul>
+<li>Setting up an OSC sender.</li>
+<li>Setting up an OSC receiver.</li>
+</ul>
+<a class="header" href="#dmx" id="dmx"><h2>DMX</h2></a>
+<p>Working with DMX over the network via sACN.</p>
+<ul>
+<li>Working with the sacn crate.</li>
+</ul>
+<a class="header" href="#serial-over-usb" id="serial-over-usb"><h2>Serial over USB</h2></a>
+<p>Working with Serial data in a cross-platform manner.</p>
+<ul>
+<li>Reading USB serial data.</li>
+<li>Writing USB serial data.</li>
+</ul>
+<p>If you were unable to find what you were looking for above, or if you have an
+idea for a tutorial not yet present, please feel free to create an issue or a
+pull request!</p>
+<a class="header" href="#developer-reference" id="developer-reference"><h1>Developer Reference</h1></a>
+<p><strong>TODO:</strong> A guide to the architecture of Nannou's internals to help onboard new
+developers. Describes the layout of modules, how to navigate the reference, the
+scope of the main nannou crate i.e. the kinds of work that should go inside the
+main repo and the kinds that might be better off in separate repos, etc.</p>
+<a class="header" href="#api-reference" id="api-reference"><h1>API Reference</h1></a>
+<p>Eventually, we would like to host the API documentation here. For now, you can
+find it at <a href="https://docs.rs/nannou">docs.rs/nannou</a>.</p>
+<a class="header" href="#showcases" id="showcases"><h1>Showcases</h1></a>
+<p><strong>TODO:</strong> A collection of work made with nannou, perhaps ordered from most
+recent to the past. Users could do a PR to have their own nannou projects
+published.</p>
+<a class="header" href="#contributors" id="contributors"><h1>Contributors</h1></a>
+<p>This project exists thanks to all the people who contribute.</p>
+<p><a href="https://github.com/nannou-org/nannou/graphs/contributors"><img src="https://opencollective.com/nannou/contributors.svg?width=890&button=false" /></a></p>
+<a class="header" href="#backers" id="backers"><h2>Backers</h2></a>
+<p>Thank you to all our backers! 🙏</p>
+<p><a href="https://opencollective.com/nannou#backers" target="_blank"><img src="https://opencollective.com/nannou/backers.svg?width=890"></a></p>
+<a class="header" href="#sponsors" id="sponsors"><h2>Sponsors</h2></a>
+<p>Support this project by becoming a sponsor. Your logo will show up here with a link to your website.</p>
+<p><a href="https://opencollective.com/nannou/sponsor/0/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/0/avatar.svg"></a>
+<a href="https://opencollective.com/nannou/sponsor/1/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/1/avatar.svg"></a>
+<a href="https://opencollective.com/nannou/sponsor/2/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/2/avatar.svg"></a>
+<a href="https://opencollective.com/nannou/sponsor/3/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/3/avatar.svg"></a>
+<a href="https://opencollective.com/nannou/sponsor/4/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/4/avatar.svg"></a>
+<a href="https://opencollective.com/nannou/sponsor/5/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/5/avatar.svg"></a>
+<a href="https://opencollective.com/nannou/sponsor/6/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/6/avatar.svg"></a>
+<a href="https://opencollective.com/nannou/sponsor/7/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/7/avatar.svg"></a>
+<a href="https://opencollective.com/nannou/sponsor/8/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/8/avatar.svg"></a>
+<a href="https://opencollective.com/nannou/sponsor/9/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/9/avatar.svg"></a></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload(true); // force reload from server (not from cache)
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+        
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+        
+        
+
+    </body>
+</html>
