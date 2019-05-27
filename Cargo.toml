@@ -36,7 +36,7 @@ vulkano-shaders = "0.12"
 winit = "0.19"
 
 [dev-dependencies]
-shade_runner = { git = "https://github.com/mitchmindtree/shade_runner.git", branch = "vulkano_update" }
+shade_runner = "0.1"
 lasy = "0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
