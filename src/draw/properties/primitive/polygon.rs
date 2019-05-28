@@ -1,10 +1,10 @@
-use draw::properties::spatial::{self, orientation, position};
-use draw::properties::{
+use crate::draw::properties::spatial::{self, orientation, position};
+use crate::draw::properties::{
     ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetOrientation, SetPosition,
 };
-use draw::{self, mesh, Drawing};
-use geom;
-use math::BaseFloat;
+use crate::draw::{self, mesh, Drawing};
+use crate::geom;
+use crate::math::BaseFloat;
 use std::iter;
 
 /// A polygon prior to being initialised.
@@ -59,7 +59,7 @@ impl Pointless {
     ) -> Polygon<PerVertex, S>
     where
         P: IntoIterator,
-        P::Item: Into<::mesh::vertex::WithColor<mesh::vertex::Point<S>, mesh::vertex::Color>>,
+        P::Item: Into<crate::mesh::vertex::WithColor<mesh::vertex::Point<S>, mesh::vertex::Color>>,
         S: BaseFloat,
     {
         let mut ranges = draw::IntermediaryVertexDataRanges::default();

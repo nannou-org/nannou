@@ -1,5 +1,5 @@
-use audio;
-use audio::sample::Sample;
+use crate::audio;
+use crate::audio::sample::Sample;
 use std;
 
 /// A `sound::Requester` for converting backend audio requests into requests for buffers of a fixed
@@ -123,14 +123,13 @@ where
 
             // Render the state of the model to the samples buffer.
             let interleaved_samples = std::mem::replace(samples, Vec::new()).into_boxed_slice();
-            let buffer = audio::Buffer {
+            let mut buffer = audio::Buffer {
                 interleaved_samples,
                 channels,
                 sample_rate,
             };
-            let (new_model, new_buffer) = render(model, buffer);
-            let mut new_samples = new_buffer.interleaved_samples.into_vec();
-            model = new_model;
+            render(&mut model, &mut buffer);
+            let mut new_samples = buffer.interleaved_samples.into_vec();
             std::mem::swap(samples, &mut new_samples);
 
             // Write the `frames` to output.

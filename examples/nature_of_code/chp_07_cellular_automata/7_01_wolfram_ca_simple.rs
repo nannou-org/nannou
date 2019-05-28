@@ -6,13 +6,11 @@
 
 // Simple demonstration of a Wolfram 1-dimensional cellular automata
 
-extern crate nannou;
-
 use nannou::prelude::*;
 use std::ops::Range;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 // A Type to manage the CA
@@ -117,6 +115,7 @@ fn model(app: &App) -> Model {
     let _window = app
         .new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
+        .view(view)
         .build()
         .unwrap();
 
@@ -124,14 +123,10 @@ fn model(app: &App) -> Model {
     Model { ca }
 }
 
-fn event(app: &App, mut m: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        if m.ca.generation < app.window_rect().h() as i32 / m.ca.w {
-            m.ca.generate();
-        }
+fn update(app: &App, m: &mut Model, _update: Update) {
+    if m.ca.generation < app.window_rect().h() as i32 / m.ca.w {
+        m.ca.generate();
     }
-    m
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

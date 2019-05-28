@@ -1,9 +1,7 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::view(view);
+    nannou::sketch(view);
 }
 
 fn view(app: &App, frame: Frame) -> Frame {
@@ -31,7 +29,7 @@ fn view(app: &App, frame: Frame) -> Frame {
         draw.ellipse().color(DARK_GREEN);
     }
 
-    // Write to the window frame.
+    // Draw to the window frame.
     draw.to_frame(app, &frame).unwrap();
 
     // Return the drawn frame.

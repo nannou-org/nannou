@@ -1,11 +1,11 @@
-use draw::properties::spatial::{dimension, orientation, position};
-use draw::properties::{
+use crate::draw::properties::spatial::{dimension, orientation, position};
+use crate::draw::properties::{
     spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions,
     SetOrientation, SetPosition,
 };
-use draw::{self, Drawing};
-use geom::{self, Vector2};
-use math::BaseFloat;
+use crate::draw::{self, Drawing};
+use crate::geom::{self, Vector2};
+use crate::math::BaseFloat;
 
 /// Properties related to drawing an **Ellipse**.
 #[derive(Clone, Debug)]

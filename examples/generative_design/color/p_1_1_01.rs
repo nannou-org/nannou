@@ -1,9 +1,7 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::view(view);
+    nannou::sketch(view);
 }
 
 fn view(app: &App, frame: Frame) -> Frame {
@@ -15,8 +13,8 @@ fn view(app: &App, frame: Frame) -> Frame {
     draw.background().color(BLACK);
     let win_rect = app.window_rect();
 
-    let step_x = (app.mouse.x - win_rect.left()).max(1.0);
-    let step_y = (win_rect.top() - app.mouse.y).max(1.0);
+    let step_x = (app.mouse.x - win_rect.left()).max(5.0);
+    let step_y = (win_rect.top() - app.mouse.y).max(5.0);
 
     let size = vec2(step_x, step_y);
     let r = nannou::geom::Rect::from_wh(size)
@@ -35,7 +33,7 @@ fn view(app: &App, frame: Frame) -> Frame {
         grid_y += step_y;
     }
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
 
     // Return the drawn frame.

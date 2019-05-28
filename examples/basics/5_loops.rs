@@ -1,39 +1,40 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::run(model, event, view);
+    nannou::app(model).simple_window(view).run();
 }
 
 struct Model;
 
 fn model(_app: &App) -> Model {
-    // For loops in Rust is an iterator which gives back a series of elemaents
-    // one at a time. The current value of the iterator is assigned in this case to 'i'
+    // For loops let us loop over many items, one at a time.
+    // The part between `for` and `in` is the name that we give the item we are currently handling.
+    // The part between `in` and `{` is the sequence we will loop over, known as an `Iterator`.
+    // The part between `{` and `}` is where we put everything we want to happen for every `i`.
+    println!("`for` loop:");
     for i in 0..10 {
-        println!("for iterator = {}", i);
+        println!("{}", i);
     }
 
-    // While loops continue until a certain condition is met. Note that we need
-    // to make x 'mutable' so we can change its value inside of the loop.
+    // While loops continue until a certain condition is met.
+    // Note that we need to make x 'mutable' so we can change its value inside of the loop.
+    println!("`while` loop:");
     let mut x = 0;
     while x < 10 {
-        println!("while = {}", x);
+        println!("{}", x);
         x += 1;
     }
 
-    // If you want to loop forever, Rust provides a dedicated keyword to handle this
-    // Note your code will be stuck in this loop until you decide to break.
-    // In this case we loop while y is less than 30 and then we use the 'break'
-    // keyword to exit the loop.
+    // If you want to loop forever, Rust provides a dedicated keyword called `loop`.
+    // Note your code will be stuck in this loop until you decide to `break` from the loop.
+    // In this case we loop while y is less than 30 and then we use 'break' to exit.
+    println!("`loop`:");
     let mut y = 0;
     loop {
+        println!("{}", y);
         y += 1;
-        println!("loooooping");
-
         if y > 30 {
-            println!("breaking out of loop");
+            println!("`break`");
             break;
         }
     }
@@ -41,13 +42,7 @@ fn model(_app: &App) -> Model {
     Model
 }
 
-fn event(_app: &App, model: Model, _event: Event) -> Model {
-    model
-}
-
 fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
-    // Color the window dark charcoal.
-    frame.clear_all(DARK_CHARCOAL);
-    // Return the drawn frame.
+    frame.clear(DARK_CHARCOAL);
     frame
 }

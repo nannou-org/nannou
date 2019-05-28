@@ -1,72 +1,65 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 
-// every rust program has to have a main function which gets
-// called when the program is run.
+// Every rust program has to have a main function which gets called when the program is run.
+// In the main function, we build the nannou app and run it.
 fn main() {
-    nannou::run(model, event, view);
+    nannou::app(model).update(update).run();
 }
 
-// model represents the state of our app
+// Model represents the state of our application. We don't have any state in this demonstration, so
+// for now it is just an empty struct.
 struct Model;
 
-// put your setup code here, to run once before the application loop:
-fn model(_app: &App) -> Model {
+// This function is where we setup the application and create the `Model` for the first time.
+fn model(app: &App) -> Model {
+    // Create a window that can receive user input like mouse and keyboard events.
+    app.new_window().event(event).view(view).build().unwrap();
     Model
 }
 
-// put your update code here, to set variables and handle
-// keyboard and mouse events before drawing each frame:
-fn event(_app: &App, model: Model, event: Event) -> Model {
+// Update the state of your application here. By default, this gets called right before `view`.
+fn update(_app: &App, _model: &mut Model, _update: Update) {}
+
+// We can also update the application based on events received by the window like key presses and
+// mouse movement here.
+fn event(_app: &App, _model: &mut Model, event: WindowEvent) {
+    // Print events as they occur to the console
+    println!("{:?}", event);
+
+    // We can `match` on the event to do something different depending on the kind of event.
     match event {
-        Event::WindowEvent {
-            simple: Some(event),
-            ..
-        } => {
-            // Print events as they occur to the console
-            println!("{:#?}", event);
+        // Keyboard events
+        KeyPressed(_key) => {}
+        KeyReleased(_key) => {}
 
-            match event {
-                // KEY EVENTS
-                KeyPressed(_key) => {}
+        // Mouse events
+        MouseMoved(_pos) => {}
+        MousePressed(_button) => {}
+        MouseReleased(_button) => {}
+        MouseWheel(_amount, _phase) => {}
+        MouseEntered => {}
+        MouseExited => {}
 
-                KeyReleased(_key) => {}
+        // Touch events
+        Touch(_touch) => {}
+        TouchPressure(_pressure) => {}
 
-                // MOUSE EVENTS
-                MouseMoved(_pos) => {}
-
-                MouseDragged(_pos, _button) => {}
-
-                MousePressed(_button) => {}
-
-                MouseReleased(_button) => {}
-
-                MouseEntered => {}
-
-                MouseExited => {}
-
-                // WINDOW EVENTS
-                Resized(_size) => {}
-
-                Moved(_pos) => {}
-
-                _other => (),
-            }
-        }
-
-        // update gets called just before view every frame
-        Event::Update(_dt) => {}
-
-        _ => (),
+        // Window events
+        Moved(_pos) => {}
+        Resized(_size) => {}
+        HoveredFile(_path) => {}
+        DroppedFile(_path) => {}
+        HoveredFileCancelled => {}
+        Focused => {}
+        Unfocused => {}
+        Closed => {}
     }
-    model
 }
 
 // put your main code here, to run repeatedly:
 fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
     // Clear the window to a dark charcoal color.
-    frame.clear_all(DARK_CHARCOAL);
+    frame.clear(DARK_CHARCOAL);
     // Return the drawn frame.
     frame
 }

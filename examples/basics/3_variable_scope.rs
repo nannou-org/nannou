@@ -1,12 +1,11 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 
-// This is how you make a global constant value. Accessible anywhere in your app
+// This is how you make a global constant value.
+// Constant values are accessible anywhere in your app but cannot be changed.
 const GLOBAL: i32 = 10;
 
 fn main() {
-    nannou::run(model, event, view);
+    nannou::app(model).run();
 }
 
 struct Model {
@@ -14,53 +13,36 @@ struct Model {
     bar: f64,
 }
 
-fn model(_app: &App) -> Model {
-    // Initialise our models variables
+fn model(app: &App) -> Model {
+    // Make a window.
+    app.new_window().event(event).view(view).build().unwrap();
+    // Initialise our model's fields.
     let foo = 80;
     let bar = 3.14;
-
-    // Construct and return the model with our initialised values
+    // Construct and return the model with our initialised values.
     Model { foo, bar }
 }
 
-fn event(_app: &App, model: Model, event: Event) -> Model {
+fn event(_app: &App, model: &mut Model, event: WindowEvent) {
     match event {
-        Event::WindowEvent {
-            simple: Some(event),
-            ..
-        } => {
-            match event {
-                // KEY EVENTS
-                KeyPressed(_key) => {
-                    println!("foo = {}", model.foo);
-                    println!("bar = {}", model.bar);
-                }
-
-                KeyReleased(_key) => {
-                    let local_var = 94;
-                    println!("local_variable to KeyReleased = {}", local_var);
-                }
-
-                // MOUSE EVENTS
-                MousePressed(_button) => {
-                    println!("global scope: GLOBAL = {}", GLOBAL);
-                }
-
-                _other => (),
-            }
+        KeyPressed(_key) => {
+            println!("foo = {}", model.foo);
+            println!("bar = {}", model.bar);
         }
-
-        // update gets called just before view every frame
-        Event::Update(_dt) => {}
-
-        _ => (),
+        KeyReleased(_key) => {
+            let local_var = 94;
+            println!("local_variable to KeyReleased = {}", local_var);
+        }
+        MousePressed(_button) => {
+            println!("global scope: GLOBAL = {}", GLOBAL);
+        }
+        _other => (),
     }
-    model
 }
 
 fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
     // Color the window gray.
-    frame.clear_all(DARK_CHARCOAL);
+    frame.clear(DARK_CHARCOAL);
     // Return the drawn frame.
     frame
 }

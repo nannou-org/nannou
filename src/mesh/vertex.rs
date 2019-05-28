@@ -1,8 +1,8 @@
 //! Vertex types yielded by the mesh adaptors and their implementations.
 
-use geom::graph::node::{self, ApplyTransform};
-use geom::{self, Point2, Point3};
-use math::BaseFloat;
+use crate::geom::graph::node::{self, ApplyTransform};
+use crate::geom::{self, Point2, Point3};
+use crate::math::BaseFloat;
 use std::ops::{Deref, DerefMut};
 
 /// A vertex with a specified color.
@@ -230,7 +230,7 @@ where
 
 #[test]
 fn test_tuple_conv() {
-    use color::named::GREEN;
+    use crate::color::named::GREEN;
     let _: Point2<_> = [0.0, 0.0].into();
     let _: WithColor<Point2<_>, _> = ([0.0, 0.0], GREEN).into();
 }

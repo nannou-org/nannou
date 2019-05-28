@@ -3,12 +3,10 @@
 // http://natureofcode.com
 //
 // Example 2-4: Forces Friction
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -72,9 +70,9 @@ impl Mover {
 
 fn model(app: &App) -> Model {
     let rect = Rect::from_w_h(383.0, 200.0);
-    let _window = app
-        .new_window()
+    app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
+        .view(view)
         .build()
         .unwrap();
 
@@ -90,30 +88,25 @@ fn model(app: &App) -> Model {
     Model { movers }
 }
 
-fn event(app: &App, mut m: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        for i in 0..m.movers.len() {
-            let wind = vec2(0.01, 0.0);
-            let gravity = vec2(0.0, -0.1 * m.movers[i].mass);
+fn update(app: &App, m: &mut Model, _update: Update) {
+    for mover in &mut m.movers {
+        let wind = vec2(0.01, 0.0);
+        let gravity = vec2(0.0, -0.1 * mover.mass);
 
-            let c = 0.05;
-            let mut friction = m.movers[i].velocity;
-            if friction.magnitude() > 0.0 {
-                friction *= -1.0;
-                friction = friction.normalize();
-                friction *= c;
-                m.movers[i].apply_force(friction);
-            }
-
-            m.movers[i].apply_force(wind);
-            m.movers[i].apply_force(gravity);
-
-            m.movers[i].update();
-            m.movers[i].check_edges(app.window_rect());
+        let c = 0.05;
+        let mut friction = mover.velocity;
+        if friction.magnitude() > 0.0 {
+            friction *= -1.0;
+            friction = friction.normalize();
+            friction *= c;
+            mover.apply_force(friction);
         }
+
+        mover.apply_force(wind);
+        mover.apply_force(gravity);
+        mover.update();
+        mover.check_edges(app.window_rect());
     }
-    m
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

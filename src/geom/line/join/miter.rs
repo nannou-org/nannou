@@ -1,5 +1,5 @@
-use geom::{line, Line, Point2, Quad};
-use math::BaseFloat;
+use crate::geom::{line, Line, Point2, Quad};
+use crate::math::BaseFloat;
 
 /// An iterator yielding the normal vertices of a miter polyline.
 ///
@@ -39,7 +39,8 @@ use math::BaseFloat;
 /// ## Example
 ///
 /// ```
-/// extern crate nannou;
+///
+
 ///
 /// use nannou::prelude::*;
 /// use nannou::geom::line;
@@ -227,12 +228,12 @@ where
             };
             let Quad([ar, al, bl_ab, br_ab]) = ab.quad_corners();
             let Quad([br_bc, bl_bc, cl, cr]) = bc.quad_corners();
-            let mut il = match line::join::intersect((al, bl_ab), (cl, bl_bc)) {
+            let il = match line::join::intersect((al, bl_ab), (cl, bl_bc)) {
                 Some(il) => il,
                 // If the lines are parallel, produce the join vertices.
                 None => bl_ab,
             };
-            let mut ir = match line::join::intersect((ar, br_ab), (cr, br_bc)) {
+            let ir = match line::join::intersect((ar, br_ab), (cr, br_bc)) {
                 Some(ir) => ir,
                 None => br_ab,
             };

@@ -1,16 +1,16 @@
 //! The User Interface API. Instantiate a [**Ui**](struct.Ui.html) via `app.new_ui()`.
 
-pub extern crate conrod;
-
-pub use self::conrod::event::Input;
-pub use self::conrod::{
-    backend, color, cursor, event, graph, image, input, position, scroll, text, theme, utils,
-    widget,
+pub use self::conrod_core::event::Input;
+pub use self::conrod_core::{
+    color, cursor, event, graph, image, input, position, scroll, text, theme, utils, widget,
 };
-pub use self::conrod::{
+pub use self::conrod_core::{
     Borderable, Bordering, Color, Colorable, Dimensions, FontSize, Labelable, Point, Positionable,
     Range, Rect, Scalar, Sizeable, Theme, UiCell, Widget,
 };
+pub use crate::conrod_core;
+pub use crate::conrod_vulkano;
+pub use crate::conrod_winit;
 
 /// Simplify inclusion of common traits with a `nannou::ui::prelude` module.
 pub mod prelude {
@@ -24,15 +24,20 @@ pub mod prelude {
     pub use super::{color, image, position, text, widget};
 }
 
-use frame::Frame;
-use glium::{self, glutin};
+use self::conrod_core::text::rt::gpu_cache::CacheWriteErr;
+use self::conrod_vulkano::RendererCreationError;
+use crate::frame::{Frame, ViewFbo};
+use crate::vk;
+use crate::window::{self, Window};
+use crate::App;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::error::Error as StdError;
+use std::fmt;
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::sync::{mpsc, Mutex};
-use window::{self, Window};
-use App;
+use std::sync::{mpsc, Arc, Mutex};
+use winit;
 
 /// Owned by the `App`, the `Arrangement` handles the mapping between `Ui`s and their associated
 /// windows.
@@ -50,10 +55,35 @@ pub(crate) struct Handle {
 pub struct Ui {
     /// The `Id` of the window upon which this `Ui` is instantiated.
     window_id: window::Id,
-    ui: conrod::Ui,
+    ui: conrod_core::Ui,
     input_rx: Option<mpsc::Receiver<Input>>,
-    renderer: Mutex<conrod::backend::glium::Renderer>,
-    pub image_map: conrod::image::Map<glium::texture::Texture2d>,
+    pub image_map: ImageMap,
+    renderer: Mutex<conrod_vulkano::Renderer>,
+    render_mode: Mutex<RenderMode>,
+}
+
+// The mode in which the `Ui` is to be rendered.
+enum RenderMode {
+    // The `Ui` is to be rendered as a subpass within an existing render pass.
+    //
+    // This subpass was specified when building the `Ui`.
+    Subpass,
+    // The `Ui` has its own render pass and in turn also owns it's own buffers.
+    //
+    // This mode is necessary for `draw_to_frame` to work.
+    OwnedRenderTarget(RenderTarget),
+}
+
+// The render pass in which the `Ui` will be rendered along with the owned buffers.
+struct RenderTarget {
+    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+    images: RenderPassImages,
+    view_fbo: ViewFbo,
+}
+
+// The buffers associated with a render target.
+struct RenderPassImages {
+    depth: Arc<vk::AttachmentImage<DepthFormat>>,
 }
 
 /// A type used for building a new `Ui`.
@@ -66,12 +96,58 @@ pub struct Builder<'a> {
     pending_input_limit: usize,
     default_font_path: Option<PathBuf>,
     glyph_cache_dimensions: Option<(u32, u32)>,
+    render_pass_subpass: Option<Subpass>,
 }
 
-/// A map from `image::Id`s to their associatd `Texture2d`.
-pub type Texture2dMap = conrod::image::Map<glium::texture::Texture2d>;
+/// Failed to build the `Ui`.
+#[derive(Debug)]
+pub enum BuildError {
+    /// Either the given window `Id` is not associated with any open windows or the window was
+    /// closed during the build process.
+    InvalidWindow,
+    RendererCreation(RendererCreationError),
+    RenderTargetCreation(RenderTargetCreationError),
+}
 
-impl conrod::backend::winit::WinitWindow for Window {
+/// Failed to create the custom render target for the `Ui`.
+#[derive(Debug)]
+pub enum RenderTargetCreationError {
+    RenderPassCreation(vk::RenderPassCreationError),
+    ImageCreation(vk::ImageCreationError),
+}
+
+/// An error that might occur while drawing to a `Frame`.
+#[derive(Debug)]
+pub enum DrawToFrameError {
+    InvalidWindow,
+    RendererPoisoned,
+    RenderModePoisoned,
+    InvalidRenderMode,
+    ImageCreation(vk::ImageCreationError),
+    FramebufferCreation(vk::FramebufferCreationError),
+    RendererFill(CacheWriteErr),
+    GlyphPixelDataUpload(vk::memory::DeviceMemoryAllocError),
+    CopyBufferImageCommand(vk::command_buffer::CopyBufferImageError),
+    RendererDraw(conrod_vulkano::DrawError),
+    DrawCommand(vk::command_buffer::DrawError),
+}
+
+/// The subpass type to which the `Ui` may be rendered.
+pub type Subpass = vk::framebuffer::Subpass<Arc<vk::RenderPassAbstract + Send + Sync>>;
+
+/// A map from `image::Id`s to their associated `Texture2d`.
+pub type ImageMap = conrod_core::image::Map<conrod_vulkano::Image>;
+
+/// The depth format type used by the depth buffer in the default render target.
+pub type DepthFormat = vk::format::D16Unorm;
+
+/// The depth format type used by the depth buffer in the default render target.
+pub const DEPTH_FORMAT_TY: DepthFormat = vk::format::D16Unorm;
+
+/// The depth format used by the depth buffer in the default render target.
+pub const DEPTH_FORMAT: vk::Format = vk::Format::D16Unorm;
+
+impl conrod_winit::WinitWindow for Window {
     fn get_inner_size(&self) -> Option<(u32, u32)> {
         let (w, h) = self.inner_size_points();
         Some((w as _, h as _))
@@ -101,6 +177,7 @@ impl<'a> Builder<'a> {
             pending_input_limit: Ui::DEFAULT_PENDING_INPUT_LIMIT,
             default_font_path: None,
             glyph_cache_dimensions: None,
+            render_pass_subpass: None,
         }
     }
 
@@ -181,11 +258,20 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Optionally specify a render pass subpass in which this `Ui` should be drawn.
+    ///
+    /// If unspecified, the `Ui` will implicitly create its own single-pass render pass and
+    /// necessary buffers.
+    pub fn subpass(mut self, subpass: Subpass) -> Self {
+        self.render_pass_subpass = Some(subpass);
+        self
+    }
+
     /// Build a `Ui` with the specified parameters.
     ///
     /// Returns `None` if the window at the given `Id` is closed or if the inner `Renderer` returns
     /// an error upon creation.
-    pub fn build(self) -> Option<Ui> {
+    pub fn build(self) -> Result<Ui, BuildError> {
         let Builder {
             app,
             window_id,
@@ -195,23 +281,26 @@ impl<'a> Builder<'a> {
             automatically_handle_input,
             default_font_path,
             glyph_cache_dimensions,
+            render_pass_subpass,
         } = self;
 
+        // If the user didn't specify a window, use the "main" one.
         let window_id = window_id.unwrap_or(app.window_id());
 
-        let dimensions = match dimensions {
-            None => match app.window(window_id) {
-                None => return None,
-                Some(window) => {
-                    let (win_w, win_h) = window.inner_size_points();
-                    [win_w as Scalar, win_h as Scalar]
-                }
-            },
-            Some(dimensions) => dimensions,
-        };
-        let theme = theme.unwrap_or_else(Theme::default);
-        let ui = conrod::UiBuilder::new(dimensions).theme(theme).build();
+        // The window on which the `Ui` will exist.
+        let window = app.window(window_id).ok_or(BuildError::InvalidWindow)?;
 
+        // The dimensions of the `Ui`.
+        let dimensions = dimensions.unwrap_or_else(|| {
+            let (win_w, win_h) = window.inner_size_points();
+            [win_w as Scalar, win_h as Scalar]
+        });
+
+        // Build the conrod `Ui`.
+        let theme = theme.unwrap_or_else(Theme::default);
+        let ui = conrod_core::UiBuilder::new(dimensions).theme(theme).build();
+
+        // The queue for receiving application events.
         let (input_rx, handle) = if automatically_handle_input {
             let (input_tx, input_rx) = mpsc::sync_channel(pending_input_limit);
             let input_tx = Some(input_tx);
@@ -233,24 +322,39 @@ impl<'a> Builder<'a> {
             .or_insert(Vec::new())
             .push(handle);
 
-        // Initialise the renderer which draws conrod::render::Primitives to the frame..
-        let renderer = match app.windows.borrow().get(&window_id) {
-            None => return None,
-            Some(window) => {
-                let renderer = match glyph_cache_dimensions {
-                    Some((w, h)) => conrod::backend::glium::Renderer::with_glyph_cache_dimensions(
-                        &window.display,
-                        w,
-                        h,
-                    ),
-                    None => conrod::backend::glium::Renderer::new(&window.display),
-                };
-                match renderer {
-                    Ok(renderer) => Mutex::new(renderer),
-                    Err(_) => return None,
-                }
+        // Determine the render_mode and retrieve the subpass for drawing the `Ui`.
+        let (subpass, render_mode) = match render_pass_subpass {
+            Some(subpass) => (subpass, Mutex::new(RenderMode::Subpass)),
+            None => {
+                let render_target = RenderTarget::new(&window)?;
+                let subpass = Subpass::from(render_target.render_pass.clone(), 0)
+                    .expect("unable to retrieve subpass for index `0`");
+                let render_mode = Mutex::new(RenderMode::OwnedRenderTarget(render_target));
+                (subpass, render_mode)
             }
         };
+
+        // The device and queue with which to create the `Ui` renderer.
+        let device = window.swapchain_device().clone();
+        let queue = window.swapchain_queue().clone();
+
+        // Initialise the renderer which draws conrod::render::Primitives to the frame.
+        let renderer = match glyph_cache_dimensions {
+            Some((w, h)) => conrod_vulkano::Renderer::with_glyph_cache_dimensions(
+                device,
+                subpass,
+                queue.family(),
+                [w as _, h as _],
+            )?,
+            None => conrod_vulkano::Renderer::new(
+                device,
+                subpass,
+                queue.family(),
+                [dimensions[0] as _, dimensions[1] as _],
+                window.hidpi_factor() as _,
+            )?,
+        };
+        let renderer = Mutex::new(renderer);
 
         // Initialise the image map.
         let image_map = image::Map::new();
@@ -260,8 +364,9 @@ impl<'a> Builder<'a> {
             window_id,
             ui,
             input_rx,
-            renderer,
             image_map,
+            renderer,
+            render_mode,
         };
 
         // If the default font is in the assets/fonts directory, load it into the UI font map.
@@ -276,12 +381,80 @@ impl<'a> Builder<'a> {
             ui.fonts_mut().insert_from_file(font_path).ok();
         }
 
-        Some(ui)
+        Ok(ui)
+    }
+}
+
+/// Create a minimal, single-pass render pass with which the `Ui` may be rendered.
+///
+/// This is used internally within the `Ui` build process so in most cases you should not need to
+/// know about it. However, it is exposed in case for some reason you require manually creating it.
+pub fn create_render_pass(
+    device: Arc<vk::device::Device>,
+    color_format: vk::Format,
+    depth_format: vk::Format,
+    msaa_samples: u32,
+) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
+    let render_pass = vk::single_pass_renderpass!(
+        device,
+        attachments: {
+            color: {
+                load: Load,
+                store: Store,
+                format: color_format,
+                samples: msaa_samples,
+            },
+            depth: {
+                load: Load,
+                store: Store,
+                format: depth_format,
+                samples: msaa_samples,
+            }
+        },
+        pass: {
+            color: [color],
+            depth_stencil: {depth}
+        }
+    )?;
+    Ok(Arc::new(render_pass))
+}
+
+impl RenderPassImages {
+    // Create the buffers for a default render target.
+    fn new(window: &Window) -> Result<Self, vk::ImageCreationError> {
+        let device = window.swapchain_device().clone();
+        // TODO: Change this to use `window.inner_size_pixels/points` (which is correct?).
+        let image_dims = window.swapchain_images()[0].dimensions();
+        let msaa_samples = window.msaa_samples();
+        let depth = vk::AttachmentImage::transient_multisampled(
+            device.clone(),
+            image_dims,
+            msaa_samples,
+            DEPTH_FORMAT_TY,
+        )?;
+        Ok(RenderPassImages { depth })
+    }
+}
+
+impl RenderTarget {
+    // Initialise a new render target.
+    fn new(window: &Window) -> Result<Self, RenderTargetCreationError> {
+        let device = window.swapchain_device().clone();
+        let color_format = window.swapchain().format();
+        let msaa_samples = window.msaa_samples();
+        let render_pass = create_render_pass(device, color_format, DEPTH_FORMAT, msaa_samples)?;
+        let images = RenderPassImages::new(window)?;
+        let view_fbo = ViewFbo::default();
+        Ok(RenderTarget {
+            render_pass,
+            images,
+            view_fbo,
+        })
     }
 }
 
 impl Deref for Ui {
-    type Target = conrod::Ui;
+    type Target = conrod_core::Ui;
     fn deref(&self) -> &Self::Target {
         &self.ui
     }
@@ -386,28 +559,9 @@ impl Ui {
     /// method offers more flexibility.
     ///
     /// This has no effect if the window originally associated with the `Ui` no longer exists.
-    pub fn draw_to_frame(
-        &self,
-        app: &App,
-        frame: &Frame,
-    ) -> Result<(), conrod::backend::glium::DrawError> {
-        let Ui {
-            ref ui,
-            ref renderer,
-            ref image_map,
-            window_id,
-            ..
-        } = *self;
-        if let Some(window) = app.window(window_id) {
-            if let Some(mut window_frame) = frame.window(window_id) {
-                if let Ok(mut renderer) = renderer.lock() {
-                    let primitives = ui.draw();
-                    renderer.fill(&window.display, primitives, &image_map);
-                    renderer.draw(&window.display, &mut window_frame.frame.frame, image_map)?;
-                }
-            }
-        }
-        Ok(())
+    pub fn draw_to_frame(&self, app: &App, frame: &Frame) -> Result<(), DrawToFrameError> {
+        let primitives = self.ui.draw();
+        draw_primitives(self, app, frame, primitives)
     }
 
     /// Draws the current state of the `Ui` to the given `Frame` but only if the `Ui` has changed
@@ -425,32 +579,273 @@ impl Ui {
         &self,
         app: &App,
         frame: &Frame,
-    ) -> Result<bool, conrod::backend::glium::DrawError> {
-        let Ui {
-            ref ui,
-            ref renderer,
-            ref image_map,
-            window_id,
-            ..
-        } = *self;
-        if let Some(window) = app.window(window_id) {
-            if let Some(mut window_frame) = frame.window(window_id) {
-                if let Ok(mut renderer) = renderer.lock() {
-                    if let Some(primitives) = ui.draw_if_changed() {
-                        renderer.fill(&window.display, primitives, &image_map);
-                        renderer.draw(&window.display, &mut window_frame.frame.frame, image_map)?;
-                        return Ok(true);
-                    }
-                }
-            }
+    ) -> Result<bool, DrawToFrameError> {
+        match self.ui.draw_if_changed() {
+            None => Ok(false),
+            Some(primitives) => draw_primitives(self, app, frame, primitives).map(|()| true),
         }
-        Ok(false)
     }
+}
+
+/// A function shared by the `draw_to_frame` and `draw_to_frame_if_changed` methods for renderering
+/// the list of conrod primitives and presenting them to the frame.
+pub fn draw_primitives(
+    ui: &Ui,
+    app: &App,
+    frame: &Frame,
+    primitives: conrod_core::render::Primitives,
+) -> Result<(), DrawToFrameError> {
+    let Ui {
+        ref renderer,
+        ref render_mode,
+        ref image_map,
+        window_id,
+        ..
+    } = *ui;
+
+    let window = match app.window(window_id) {
+        Some(window) => window,
+        None => return Err(DrawToFrameError::InvalidWindow),
+    };
+
+    let mut renderer = renderer
+        .lock()
+        .map_err(|_| DrawToFrameError::RendererPoisoned)?;
+    let mut render_mode = render_mode
+        .lock()
+        .map_err(|_| DrawToFrameError::RenderModePoisoned)?;
+
+    let render_target = match *render_mode {
+        RenderMode::Subpass => return Err(DrawToFrameError::InvalidRenderMode),
+        RenderMode::OwnedRenderTarget(ref mut render_target) => render_target,
+    };
+
+    let RenderTarget {
+        ref render_pass,
+        ref mut images,
+        ref mut view_fbo,
+    } = *render_target;
+
+    // Recreate buffers if the swapchain was recreated.
+    let image_dims = frame.swapchain_image().dimensions();
+    if image_dims != images.depth.dimensions() {
+        *images = RenderPassImages::new(&window)?;
+    }
+
+    // Ensure image framebuffer are up to date.
+    view_fbo.update(&frame, render_pass.clone(), |builder, image| {
+        builder.add(image.clone())?.add(images.depth.clone())
+    })?;
+
+    // Fill renderer with the primitives and cache glyphs.
+    let (win_w, win_h) = window.inner_size_pixels();
+    let dpi_factor = window.hidpi_factor() as f64;
+    let viewport = [0.0, 0.0, win_w as f32, win_h as f32];
+    if let Some(cmd) = renderer.fill(image_map, viewport, dpi_factor, primitives)? {
+        let buffer = cmd
+            .glyph_cpu_buffer_pool
+            .chunk(cmd.glyph_cache_pixel_buffer.iter().cloned())?;
+        frame
+            .add_commands()
+            .copy_buffer_to_image(buffer, cmd.glyph_cache_texture)?;
+    }
+
+    // Generate the draw commands and submit them.
+    let queue = window.swapchain_queue().clone();
+    let cmds = renderer.draw(queue, image_map, viewport)?;
+    if !cmds.is_empty() {
+        let color = vk::ClearValue::None;
+        let depth = vk::ClearValue::None;
+        let clear_values = vec![color, depth];
+        frame
+            .add_commands()
+            .begin_render_pass(view_fbo.expect_inner(), false, clear_values.clone())
+            .unwrap();
+        for cmd in cmds {
+            let conrod_vulkano::DrawCommand {
+                graphics_pipeline,
+                dynamic_state,
+                vertex_buffer,
+                descriptor_set,
+            } = cmd;
+            frame.add_commands().draw(
+                graphics_pipeline,
+                &dynamic_state,
+                vec![vertex_buffer],
+                descriptor_set,
+                (),
+            )?;
+        }
+        frame.add_commands().end_render_pass().unwrap();
+    }
+
+    Ok(())
+}
+
+mod conrod_winit_conv {
+    use crate::conrod_winit::*;
+    conrod_winit::conversion_fns!();
 }
 
 /// Convert the given window event to a UI Input.
 ///
 /// Returns `None` if there's no associated UI Input for the given event.
-pub fn glutin_window_event_to_input(event: glutin::WindowEvent, window: &Window) -> Option<Input> {
-    conrod::backend::winit::convert_window_event(event, window)
+pub fn winit_window_event_to_input(event: winit::WindowEvent, window: &Window) -> Option<Input> {
+    conrod_winit_conv::convert_window_event(event, window)
+}
+
+impl From<RenderTargetCreationError> for BuildError {
+    fn from(err: RenderTargetCreationError) -> Self {
+        BuildError::RenderTargetCreation(err)
+    }
+}
+
+impl From<RendererCreationError> for BuildError {
+    fn from(err: RendererCreationError) -> Self {
+        BuildError::RendererCreation(err)
+    }
+}
+
+impl From<vk::ImageCreationError> for RenderTargetCreationError {
+    fn from(err: vk::ImageCreationError) -> Self {
+        RenderTargetCreationError::ImageCreation(err)
+    }
+}
+
+impl From<vk::RenderPassCreationError> for RenderTargetCreationError {
+    fn from(err: vk::RenderPassCreationError) -> Self {
+        RenderTargetCreationError::RenderPassCreation(err)
+    }
+}
+
+impl From<vk::ImageCreationError> for DrawToFrameError {
+    fn from(err: vk::ImageCreationError) -> Self {
+        DrawToFrameError::ImageCreation(err)
+    }
+}
+
+impl From<vk::FramebufferCreationError> for DrawToFrameError {
+    fn from(err: vk::FramebufferCreationError) -> Self {
+        DrawToFrameError::FramebufferCreation(err)
+    }
+}
+
+impl From<CacheWriteErr> for DrawToFrameError {
+    fn from(err: CacheWriteErr) -> Self {
+        DrawToFrameError::RendererFill(err)
+    }
+}
+
+impl From<vk::memory::DeviceMemoryAllocError> for DrawToFrameError {
+    fn from(err: vk::memory::DeviceMemoryAllocError) -> Self {
+        DrawToFrameError::GlyphPixelDataUpload(err)
+    }
+}
+
+impl From<vk::command_buffer::CopyBufferImageError> for DrawToFrameError {
+    fn from(err: vk::command_buffer::CopyBufferImageError) -> Self {
+        DrawToFrameError::CopyBufferImageCommand(err)
+    }
+}
+
+impl From<conrod_vulkano::DrawError> for DrawToFrameError {
+    fn from(err: conrod_vulkano::DrawError) -> Self {
+        DrawToFrameError::RendererDraw(err)
+    }
+}
+
+impl From<vk::command_buffer::DrawError> for DrawToFrameError {
+    fn from(err: vk::command_buffer::DrawError) -> Self {
+        DrawToFrameError::DrawCommand(err)
+    }
+}
+
+impl StdError for BuildError {
+    fn description(&self) -> &str {
+        match *self {
+            BuildError::InvalidWindow => "no open window associated with the given `window_id`",
+            BuildError::RendererCreation(ref err) => err.description(),
+            BuildError::RenderTargetCreation(ref err) => err.description(),
+        }
+    }
+
+    fn cause(&self) -> Option<&StdError> {
+        match *self {
+            BuildError::InvalidWindow => None,
+            BuildError::RendererCreation(ref err) => Some(err),
+            BuildError::RenderTargetCreation(ref err) => Some(err),
+        }
+    }
+}
+
+impl StdError for RenderTargetCreationError {
+    fn description(&self) -> &str {
+        match *self {
+            RenderTargetCreationError::RenderPassCreation(ref err) => err.description(),
+            RenderTargetCreationError::ImageCreation(ref err) => err.description(),
+        }
+    }
+
+    fn cause(&self) -> Option<&StdError> {
+        match *self {
+            RenderTargetCreationError::RenderPassCreation(ref err) => Some(err),
+            RenderTargetCreationError::ImageCreation(ref err) => Some(err),
+        }
+    }
+}
+
+impl StdError for DrawToFrameError {
+    fn description(&self) -> &str {
+        match *self {
+            DrawToFrameError::InvalidWindow => {
+                "no open window associated with the given `window_id`"
+            }
+            DrawToFrameError::RendererPoisoned => "`Mutex` containing `Renderer` was poisoned",
+            DrawToFrameError::RenderModePoisoned => "`Mutex` containing `RenderMode` was poisoned",
+            DrawToFrameError::InvalidRenderMode => {
+                "`draw_to_frame` was called while `Ui` was in `Subpass` render mode"
+            }
+            DrawToFrameError::ImageCreation(ref err) => err.description(),
+            DrawToFrameError::FramebufferCreation(ref err) => err.description(),
+            DrawToFrameError::RendererFill(ref err) => err.description(),
+            DrawToFrameError::GlyphPixelDataUpload(ref err) => err.description(),
+            DrawToFrameError::CopyBufferImageCommand(ref err) => err.description(),
+            DrawToFrameError::RendererDraw(ref err) => err.description(),
+            DrawToFrameError::DrawCommand(ref err) => err.description(),
+        }
+    }
+
+    fn cause(&self) -> Option<&StdError> {
+        match *self {
+            DrawToFrameError::InvalidWindow => None,
+            DrawToFrameError::RendererPoisoned => None,
+            DrawToFrameError::RenderModePoisoned => None,
+            DrawToFrameError::InvalidRenderMode => None,
+            DrawToFrameError::ImageCreation(ref err) => Some(err),
+            DrawToFrameError::FramebufferCreation(ref err) => Some(err),
+            DrawToFrameError::RendererFill(ref err) => Some(err),
+            DrawToFrameError::GlyphPixelDataUpload(ref err) => Some(err),
+            DrawToFrameError::CopyBufferImageCommand(ref err) => Some(err),
+            DrawToFrameError::RendererDraw(ref err) => Some(err),
+            DrawToFrameError::DrawCommand(ref err) => Some(err),
+        }
+    }
+}
+
+impl fmt::Display for BuildError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
+}
+
+impl fmt::Display for RenderTargetCreationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
+}
+
+impl fmt::Display for DrawToFrameError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
 }

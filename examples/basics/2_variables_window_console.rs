@@ -1,26 +1,18 @@
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).view(view).run();
 }
 
-struct Model {
-    window: WindowId,
-}
+struct Model;
 
 fn model(app: &App) -> Model {
-    // Construct and define the size of our window using .with_dimensions(.,.)
-    // Argument 1 = width of window; Argument 2 = height of window
-    let window = app.new_window().with_dimensions(640, 480).build().unwrap();
-
-    // Below are the different variable types available in Rust
-    let i = 50; // Ints store whole numbers
-    let f = 36.6; // Floats are used to store numbers with decimals or fractions of numbers
-    let b = true; // Boolean values can be either 'true' or 'false'
-    let c = '!'; // Char can only hold a single character
-    let message = "hello world"; // Strings hold a collection of characters
+    // Below are some of the different primitive types available in Rust.
+    let i = 50; // Integers store whole numbers.
+    let f = 36.6; // Floats are used to store numbers with decimals or fractions.
+    let b = true; // Boolean values can be either 'true' or 'false'.
+    let c = '!'; // Characters represent a single UTF8 character.
+    let message = "hello world"; // Strings are a sequence of characters.
 
     // Print the values stored in our varibales to the console
     println!("i = {}", i);
@@ -29,16 +21,15 @@ fn model(app: &App) -> Model {
     println!("c = {}", c);
     println!("message = {}", message);
 
-    Model { window }
+    // Construct and define the size of our window using `.with_dimensions(width, height)`.
+    app.new_window().with_dimensions(640, 480).build().unwrap();
+
+    Model
 }
 
-fn event(_app: &App, model: Model, _event: Event) -> Model {
-    model
-}
-
-fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
     // Clear the window with dark charcoal.
-    frame.window(model.window).unwrap().clear(DARK_CHARCOAL);
+    frame.clear(DARK_CHARCOAL);
     // Return the drawn frame.
     frame
 }

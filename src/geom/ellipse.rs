@@ -1,6 +1,6 @@
-use geom::{self, scalar, Point2, Rect, Tri};
-use math::num_traits::NumCast;
-use math::{self, BaseFloat, BaseNum};
+use crate::geom::{self, scalar, Point2, Rect, Tri};
+use crate::math::num_traits::NumCast;
+use crate::math::{self, BaseFloat, BaseNum};
 use std;
 use std::ops::Neg;
 

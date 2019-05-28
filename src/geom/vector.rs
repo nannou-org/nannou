@@ -4,10 +4,11 @@
 //! crate. Originally we used the `cgmath` types directly, however we decided to switch to our own
 //! implementations in order to gain some flexibility.
 
-use geom::scalar;
-use math::{self, BaseFloat, Bounded, InnerSpace, NumCast, One, Zero};
-use rand::distributions::{Distribution, Standard};
-use rand::Rng;
+use crate::geom::scalar;
+use crate::math::{self, BaseFloat, Bounded, InnerSpace, NumCast, One, Zero};
+use crate::rand::distributions::{Distribution, Standard};
+use crate::rand::Rng;
+use crate::serde_derive::{Deserialize, Serialize};
 use std::{iter, ops};
 
 /// A 2-dimensional vector.
@@ -597,8 +598,8 @@ mod cgmath_impl {
     }
 
     use super::{Vector2, Vector3, Vector4};
-    use math::approx::ApproxEq;
-    use math::cgmath::{
+    use crate::math::approx::ApproxEq;
+    use crate::math::cgmath::{
         self, Angle, Array, BaseFloat, BaseNum, ElementWise, EuclideanSpace, InnerSpace,
         MetricSpace, Rad, VectorSpace,
     };
@@ -1090,7 +1091,6 @@ impl<S> Vector2<S> {
     ///
     /// # Examples
     /// ```
-    /// # extern crate nannou;
     /// # use nannou::prelude::*;
     /// # use nannou::Draw;
     /// # fn main() {

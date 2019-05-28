@@ -10,13 +10,11 @@
 // to describe each individual cell and a "cellular automata" class
 // to describe a collection of cells
 
-extern crate nannou;
-
 use nannou::prelude::*;
 use std::ops::Range;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Gol {
@@ -131,9 +129,10 @@ struct Model {
 
 fn model(app: &App) -> Model {
     let rect = Rect::from_w_h(640.0 * 2.0, 360.0 * 2.0);
-    let _window = app
-        .new_window()
+    app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
+        .mouse_pressed(mouse_pressed)
+        .view(view)
         .build()
         .unwrap();
 
@@ -141,23 +140,13 @@ fn model(app: &App) -> Model {
     Model { gol }
 }
 
-fn event(_app: &App, mut m: Model, event: Event) -> Model {
-    match event {
-        Event::WindowEvent {
-            simple: Some(MousePressed(_button)),
-            ..
-        } => {
-            // Reset board when mouse is pressed
-            m.gol.init();
-        }
+fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {
+    // Reset board when mouse is pressed
+    m.gol.init();
+}
 
-        // update gets called just before view every frame
-        Event::Update(_dt) => {
-            m.gol.generate();
-        }
-        _ => (),
-    }
-    m
+fn update(_app: &App, m: &mut Model, _update: Update) {
+    m.gol.generate();
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

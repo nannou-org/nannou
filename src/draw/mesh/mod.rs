@@ -1,8 +1,8 @@
 //! Items related to the custom mesh type used by the `Draw` API.
 
-use geom;
-use math::{BaseFloat, BaseNum};
-use mesh::{self, MeshPoints, WithColors, WithIndices, WithTexCoords};
+use crate::geom;
+use crate::math::{BaseFloat, BaseNum};
+use crate::mesh::{self, MeshPoints, WithColors, WithIndices, WithTexCoords};
 use std::ops::{Deref, DerefMut};
 
 pub mod vertex;

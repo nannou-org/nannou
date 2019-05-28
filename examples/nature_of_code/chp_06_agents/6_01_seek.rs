@@ -7,13 +7,11 @@
 // Implements Craig Reynold's autonomous steering behaviors
 // One vehicle "seeks"
 // See: http://www.red3d.com/cwr/
-extern crate nannou;
-
 use nannou::prelude::*;
 use nannou::Draw;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -68,25 +66,19 @@ impl Vehicle {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().with_dimensions(640, 360).build().unwrap();
+    app.new_window()
+        .with_dimensions(640, 360)
+        .view(view)
+        .build()
+        .unwrap();
     let middle = app.window_rect().xy();
     let vehicle = Vehicle::new(middle.x, middle.y);
     Model { vehicle }
 }
 
-fn event(app: &App, mut m: Model, event: Event) -> Model {
-    {
-        let Model {
-            ref mut vehicle, ..
-        } = m;
-        let mouse = vec2(app.mouse.x, app.mouse.y);
-        // update gets called just before view every frame
-        if let Event::Update(_update) = event {
-            seek(vehicle, mouse);
-            vehicle.update();
-        }
-    }
-    m
+fn update(app: &App, m: &mut Model, _update: Update) {
+    seek(&mut m.vehicle, app.mouse.position());
+    m.vehicle.update();
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {
@@ -112,7 +104,7 @@ fn view(app: &App, m: &Model, frame: Frame) -> Frame {
 
 // A method that calculates a steering force towards a target
 // STEER = DESIRED MINUS VELOCITY
-fn seek(vehicle: &mut Vehicle, target: Vector2) {
+fn seek(vehicle: &mut Vehicle, target: Point2) {
     let steer = {
         let Vehicle {
             ref position,

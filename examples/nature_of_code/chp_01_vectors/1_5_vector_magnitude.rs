@@ -3,12 +3,10 @@
 // http://natureofcode.com
 //
 // Example 1-5: Vector Magnitude
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::view(view);
+    nannou::sketch(view);
 }
 
 fn view(app: &App, frame: Frame) -> Frame {

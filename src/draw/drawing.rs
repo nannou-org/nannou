@@ -1,12 +1,12 @@
-use draw::properties::spatial::{dimension, orientation, position};
-use draw::properties::{
+use crate::draw::properties::spatial::{dimension, orientation, position};
+use crate::draw::properties::{
     ColorScalar, IntoDrawn, IntoRgba, Primitive, SetColor, SetDimensions, SetOrientation,
     SetPosition,
 };
-use draw::{self, Draw};
-use geom::graph::node;
-use geom::{self, Point2, Point3, Vector2, Vector3};
-use math::{Angle, BaseFloat, Euler, Quaternion, Rad};
+use crate::draw::{self, Draw};
+use crate::geom::graph::node;
+use crate::geom::{self, Point2, Point3, Vector2, Vector3};
+use crate::math::{Angle, BaseFloat, Euler, Quaternion, Rad};
 use std::marker::PhantomData;
 
 /// A **Drawing** in progress.

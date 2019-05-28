@@ -3,12 +3,10 @@
 // http://natureofcode.com
 //
 // example 4-03: Particle System Type
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -98,19 +96,19 @@ impl ParticleSystem {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().with_dimensions(640, 360).build().unwrap();
+    app.new_window()
+        .with_dimensions(640, 360)
+        .view(view)
+        .build()
+        .unwrap();
     let (_w, h) = app.window_rect().w_h();
     let ps = ParticleSystem::new(pt2(0.0, (h as f32 / 2.0) - 50.0));
     Model { ps }
 }
 
-fn event(_app: &App, mut m: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        m.ps.add_particle();
-        m.ps.update();
-    }
-    m
+fn update(_app: &App, m: &mut Model, _update: Update) {
+    m.ps.add_particle();
+    m.ps.update();
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

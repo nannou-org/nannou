@@ -1,11 +1,11 @@
 //! Items related to the nodes of a geometry graph.
 
+use crate::geom;
+use crate::geom::graph::Edge;
+use crate::geom::{scalar, Graph, Point3, Vector3};
+use crate::math::{self, BaseFloat, Basis3, Euler, Rad, Rotation};
 use daggy::petgraph::visit::{self, Visitable};
 use daggy::{self, Walker};
-use geom;
-use geom::graph::Edge;
-use geom::{scalar, Graph, Point3, Vector3};
-use math::{self, BaseFloat, Basis3, Euler, Rad, Rotation};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::ops;
@@ -259,7 +259,7 @@ where
 {
     /// Apply the given parent `Edge` to this transform.
     pub fn apply_edge(&mut self, parent: &Self, edge: &Edge<S>) {
-        use geom::graph::edge::{Axis, Relative};
+        use crate::geom::graph::edge::{Axis, Relative};
         match (edge.kind.relative, edge.kind.axis) {
             (Relative::Position, Axis::X) => self.disp.x += parent.disp.x + edge.weight,
             (Relative::Position, Axis::Y) => self.disp.y += parent.disp.y + edge.weight,
@@ -439,5 +439,27 @@ where
         self.triangles
             .next()
             .map(|tri| tri.map_vertices(|vertex| vertex.apply_transform(&self.transform)))
+    }
+}
+
+impl<I, S> ExactSizeIterator for TransformedVertices<I, S>
+where
+    I: ExactSizeIterator,
+    I::Item: ApplyTransform<S>,
+    S: BaseFloat,
+{
+    fn len(&self) -> usize {
+        self.vertices.len()
+    }
+}
+
+impl<I, V, S> ExactSizeIterator for TransformedTriangles<I, V, S>
+where
+    I: Iterator<Item = geom::Tri<V>> + ExactSizeIterator,
+    V: geom::Vertex + ApplyTransform<S>,
+    S: BaseFloat,
+{
+    fn len(&self) -> usize {
+        self.triangles.len()
     }
 }

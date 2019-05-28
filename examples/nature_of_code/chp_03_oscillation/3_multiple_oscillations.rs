@@ -3,12 +3,10 @@
 // http://natureofcode.com
 //
 // Example 3-x: Multiple Oscillations
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -29,7 +27,11 @@ fn model(app: &App) -> Model {
     let a_velocity2 = 0.3;
     let amplitude2 = 10.0;
 
-    let _window = app.new_window().with_dimensions(640, 360).build().unwrap();
+    app.new_window()
+        .with_dimensions(640, 360)
+        .view(view)
+        .build()
+        .unwrap();
     Model {
         angle1,
         a_velocity1,
@@ -40,13 +42,9 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn event(_app: &App, mut model: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        model.angle1 += model.a_velocity1;
-        model.angle2 += model.a_velocity2;
-    }
-    model
+fn update(_app: &App, model: &mut Model, _update: Update) {
+    model.angle1 += model.a_velocity1;
+    model.angle2 += model.a_velocity2;
 }
 
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {

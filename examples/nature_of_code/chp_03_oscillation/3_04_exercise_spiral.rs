@@ -3,12 +3,10 @@
 // http://natureofcode.com
 //
 // Exercise 3-04: Spiral
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -20,19 +18,19 @@ fn model(app: &App) -> Model {
     let r = 0.0;
     let theta = 0.0;
 
-    let _window = app.new_window().with_dimensions(640, 360).build().unwrap();
+    app.new_window()
+        .with_dimensions(640, 360)
+        .view(view)
+        .build()
+        .unwrap();
     Model { r, theta }
 }
 
-fn event(_app: &App, mut model: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        // Increment the angle
-        model.theta += 0.01;
-        // Increment the radius
-        model.r += 0.05;
-    }
-    model
+fn update(_app: &App, model: &mut Model, _update: Update) {
+    // Increment the angle
+    model.theta += 0.01;
+    // Increment the radius
+    model.r += 0.05;
 }
 
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {

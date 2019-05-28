@@ -1,5 +1,5 @@
-use geom::{self, ellipse, quad, scalar, tri, vec2, Point2, Rect};
-use math::{two, BaseFloat, EuclideanSpace, InnerSpace};
+use crate::geom::{self, ellipse, quad, scalar, tri, vec2, Point2, Rect};
+use crate::math::{two, BaseFloat, EuclideanSpace, InnerSpace};
 
 pub mod cap;
 pub mod join;
@@ -239,7 +239,8 @@ where
 /// ## Examples
 ///
 /// ```
-/// extern crate nannou;
+///
+
 ///
 /// use nannou::prelude::*;
 /// use nannou::geom::line;

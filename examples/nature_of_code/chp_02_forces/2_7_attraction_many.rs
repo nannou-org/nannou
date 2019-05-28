@@ -3,12 +3,10 @@
 // http://natureofcode.com
 //
 // Example 2-7: Attraction Many
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -142,6 +140,8 @@ fn model(app: &App) -> Model {
     let _window = app
         .new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
+        .event(event)
+        .view(view)
         .build()
         .unwrap();
 
@@ -160,37 +160,26 @@ fn model(app: &App) -> Model {
     Model { movers, attractor }
 }
 
-fn event(app: &App, mut m: Model, event: Event) -> Model {
+fn event(app: &App, m: &mut Model, event: WindowEvent) {
     match event {
-        Event::WindowEvent {
-            simple: Some(event),
-            ..
-        } => {
-            match event {
-                // MOUSE EVENTS
-                MousePressed(_button) => {
-                    m.attractor.clicked(app.mouse.x, app.mouse.y);
-                }
-                MouseReleased(_buttom) => {
-                    m.attractor.stop_dragging();
-                }
-                _other => (),
-            }
+        MousePressed(_button) => {
+            m.attractor.clicked(app.mouse.x, app.mouse.y);
         }
-        // update gets called just before view every frame
-        Event::Update(_dt) => {
-            m.attractor.drag(app.mouse.x, app.mouse.y);
-            m.attractor.hover(app.mouse.x, app.mouse.y);
-
-            for i in 0..m.movers.len() {
-                let force = m.attractor.attract(&m.movers[i]);
-                m.movers[i].apply_force(force);
-                m.movers[i].update();
-            }
+        MouseReleased(_buttom) => {
+            m.attractor.stop_dragging();
         }
-        _ => (),
+        _other => (),
     }
-    m
+}
+
+fn update(app: &App, m: &mut Model, _update: Update) {
+    m.attractor.drag(app.mouse.x, app.mouse.y);
+    m.attractor.hover(app.mouse.x, app.mouse.y);
+    for i in 0..m.movers.len() {
+        let force = m.attractor.attract(&m.movers[i]);
+        m.movers[i].apply_force(force);
+        m.movers[i].update();
+    }
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

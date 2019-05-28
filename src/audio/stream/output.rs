@@ -1,14 +1,14 @@
-use audio::cpal;
-use audio::sample::{Sample, ToSample};
-use audio::stream;
-use audio::{Buffer, Device, Requester, Stream};
+use crate::audio::cpal;
+use crate::audio::sample::{Sample, ToSample};
+use crate::audio::stream;
+use crate::audio::{Buffer, Device, Requester, Stream};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
 /// The function that will be called when a `Buffer` is ready to be rendered.
-pub trait RenderFn<M, S>: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
-impl<M, S, F> RenderFn<M, S> for F where F: Fn(M, Buffer<S>) -> (M, Buffer<S>) {}
+pub trait RenderFn<M, S>: Fn(&mut M, &mut Buffer<S>) {}
+impl<M, S, F> RenderFn<M, S> for F where F: Fn(&mut M, &mut Buffer<S>) {}
 
 pub struct Builder<M, F, S = f32> {
     pub builder: super::Builder<M, S>,
@@ -138,7 +138,7 @@ impl<M, F, S> Builder<M, F, S> {
 
             // Retrieve the output buffer.
             let output = match data {
-                cpal::StreamData::Output { mut buffer } => buffer,
+                cpal::StreamData::Output { buffer } => buffer,
                 _ => unreachable!(),
             };
 

@@ -1,5 +1,5 @@
-use audio;
-use audio::sample::Sample;
+use crate::audio;
+use crate::audio::sample::Sample;
 use std;
 
 /// A `Receiver` for converting audio delivered by the backend at varying buffer sizes into buffers
@@ -92,7 +92,7 @@ where
                 channels,
                 sample_rate,
             };
-            model = capture(model, &buffer);
+            capture(&mut model, &buffer);
             std::mem::swap(samples, &mut buffer.interleaved_samples.into_vec());
             samples.clear();
         }

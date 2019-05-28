@@ -3,12 +3,10 @@
 // http://natureofcode.com
 //
 // Exercise 3-01: Angular Motion
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -21,8 +19,11 @@ fn model(app: &App) -> Model {
     let angle = 0.0;
     let a_velocity = 0.0;
     let a_acceleration = 0.0001;
-
-    let _window = app.new_window().with_dimensions(800, 200).build().unwrap();
+    app.new_window()
+        .with_dimensions(800, 200)
+        .view(view)
+        .build()
+        .unwrap();
     Model {
         angle,
         a_velocity,
@@ -30,13 +31,9 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn event(_app: &App, mut model: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        model.angle += model.a_velocity;
-        model.a_velocity += model.a_acceleration;
-    }
-    model
+fn update(_app: &App, model: &mut Model, _update: Update) {
+    model.angle += model.a_velocity;
+    model.a_velocity += model.a_acceleration;
 }
 
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {

@@ -3,12 +3,10 @@
 // http://natureofcode.com
 //
 // Example 5-6: Simple Harmonic Motion
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -20,16 +18,16 @@ fn model(app: &App) -> Model {
     let angle = 0.0;
     let a_velocity = 0.03;
 
-    let _window = app.new_window().with_dimensions(640, 360).build().unwrap();
+    app.new_window()
+        .with_dimensions(640, 360)
+        .view(view)
+        .build()
+        .unwrap();
     Model { angle, a_velocity }
 }
 
-fn event(_app: &App, mut model: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        model.angle += model.a_velocity;
-    }
-    model
+fn update(_app: &App, model: &mut Model, _update: Update) {
+    model.angle += model.a_velocity;
 }
 
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {

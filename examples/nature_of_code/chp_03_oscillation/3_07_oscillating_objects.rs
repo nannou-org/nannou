@@ -3,12 +3,10 @@
 // http://natureofcode.com
 //
 // Example 5-07: Oscillating Objects
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -51,9 +49,9 @@ impl Oscillator {
 
 fn model(app: &App) -> Model {
     let rect = Rect::from_w_h(640.0, 360.0);
-    let _window = app
-        .new_window()
+    app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
+        .view(view)
         .build()
         .unwrap();
     //let oscillators = vec![Oscillator::new(app.window_rect()); 10];
@@ -61,14 +59,10 @@ fn model(app: &App) -> Model {
     Model { oscillators }
 }
 
-fn event(_app: &App, mut m: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        for osc in &mut m.oscillators {
-            osc.oscillate();
-        }
+fn update(_app: &App, m: &mut Model, _update: Update) {
+    for osc in &mut m.oscillators {
+        osc.oscillate();
     }
-    m
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

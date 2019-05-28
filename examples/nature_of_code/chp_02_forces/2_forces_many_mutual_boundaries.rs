@@ -3,12 +3,10 @@
 // http://natureofcode.com
 //
 // Example 2-0 Many Mutual Boundaries
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Mover {
@@ -88,9 +86,9 @@ struct Model {
 
 fn model(app: &App) -> Model {
     let rect = Rect::from_w_h(640.0, 360.0);
-    let _window = app
-        .new_window()
+    app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
+        .view(view)
         .build()
         .unwrap();
 
@@ -107,21 +105,17 @@ fn model(app: &App) -> Model {
     Model { movers }
 }
 
-fn event(app: &App, mut m: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        for i in 0..m.movers.len() {
-            for j in 0..m.movers.len() {
-                if i != j {
-                    let force = m.movers[j].attract(&m.movers[i]);
-                    m.movers[i].apply_force(force);
-                }
+fn update(app: &App, m: &mut Model, _update: Update) {
+    for i in 0..m.movers.len() {
+        for j in 0..m.movers.len() {
+            if i != j {
+                let force = m.movers[j].attract(&m.movers[i]);
+                m.movers[i].apply_force(force);
             }
-            m.movers[i].boundaries(app.window_rect());
-            m.movers[i].update();
         }
+        m.movers[i].boundaries(app.window_rect());
+        m.movers[i].update();
     }
-    m
 }
 
 fn view(app: &App, m: &Model, frame: Frame) -> Frame {

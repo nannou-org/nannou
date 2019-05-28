@@ -3,12 +3,10 @@
 // http://natureofcode.com
 //
 // Example 3-9: Wave_A
-extern crate nannou;
-
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model, event, view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -17,7 +15,11 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().with_dimensions(200, 200).build().unwrap();
+    app.new_window()
+        .with_dimensions(200, 200)
+        .view(view)
+        .build()
+        .unwrap();
     let start_angle = 0.0;
     let angle_vel = 0.05;
     Model {
@@ -26,12 +28,8 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn event(_app: &App, mut model: Model, event: Event) -> Model {
-    // update gets called just before view every frame
-    if let Event::Update(_update) = event {
-        model.start_angle += 0.015;
-    }
-    model
+fn update(_app: &App, model: &mut Model, _update: Update) {
+    model.start_angle += 0.015;
 }
 
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {

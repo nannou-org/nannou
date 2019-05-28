@@ -1,14 +1,14 @@
-use audio::cpal;
-use audio::sample::{FromSample, Sample, ToSample};
-use audio::stream;
-use audio::{Buffer, Device, Receiver, Stream};
+use crate::audio::cpal;
+use crate::audio::sample::{FromSample, Sample, ToSample};
+use crate::audio::stream;
+use crate::audio::{Buffer, Device, Receiver, Stream};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
 /// The function that will be called when a captured `Buffer` is ready to be read.
-pub trait CaptureFn<M, S>: Fn(M, &Buffer<S>) -> M {}
-impl<M, S, F> CaptureFn<M, S> for F where F: Fn(M, &Buffer<S>) -> M {}
+pub trait CaptureFn<M, S>: Fn(&mut M, &Buffer<S>) {}
+impl<M, S, F> CaptureFn<M, S> for F where F: Fn(&mut M, &Buffer<S>) {}
 
 pub struct Builder<M, F, S = f32> {
     pub builder: super::Builder<M, S>,

@@ -1,5 +1,5 @@
-use geom::tri::{self, Tri};
-use geom::{Cuboid, Rect, Vertex, Vertex2d, Vertex3d};
+use crate::geom::tri::{self, Tri};
+use crate::geom::{Cuboid, Rect, Vertex, Vertex2d, Vertex3d};
 
 /// A simple type wrapper around a list of points that describe a polygon.
 #[derive(Clone, Debug, PartialEq, Eq)]

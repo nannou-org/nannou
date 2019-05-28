@@ -2,8 +2,8 @@
 //! including position, color, texture-coordinate and normals. Note that this is quite a low-level
 //! representation. For a higher-level, graphics-related mesh API, see the `draw` module.
 
-use geom::{self, Point2};
-use math::{BaseFloat, BaseNum, EuclideanSpace};
+use crate::geom::{self, Point2};
+use crate::math::{BaseFloat, BaseNum, EuclideanSpace};
 use std::cell::{Ref, RefMut};
 use std::cmp;
 use std::marker::PhantomData;
@@ -1444,6 +1444,15 @@ where
     fn size_hint(&self) -> (usize, Option<usize>) {
         let len = self.len();
         (len, Some(len))
+    }
+}
+
+impl<M> ExactSizeIterator for RawVertices<M>
+where
+    M: GetVertex,
+{
+    fn len(&self) -> usize {
+        self.range.len()
     }
 }
 
