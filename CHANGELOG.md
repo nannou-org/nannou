@@ -1,4 +1,4 @@
-# Unreleased
+# Version 0.9.0 (2019-05-28)
 
 - Change graphics rendering backend from glium to vulkano! This affects a wide
   range of nannou's API including:
@@ -11,6 +11,7 @@
   - The `App` includes methods for accessing the vulkan instance.
   - The `App` can be built with a custom vulkan instance and custom debug
     callback function.
+  - A suite of examples demonstrating low-level vulkano access have been added.
 - Improve the clarity of the `App` creation process by introducing an
   `app::Builder` type. Examples have been updated accordingly.
 - The `view` function is now called separately for each frame for each window,
@@ -22,15 +23,21 @@
   methods and more documentation.
 - Add `Window::grab_cursor` and `Window::hide_cursor` methods.
 - Add `window::SwapchainFramebuffers` helper type.
+- Add `vk::Framebuffer` to simplify framebuffer management.
 - Remove the `state::time::Duration` type in favour of a `DurationF64` trait.
-- Prefer sRGB colour formats when building swapchain
+- Prefer sRGB colour formats when building swapchain.
 - Update deps:
-  - conrod crates 0.63
+  - conrod crates 0.65
   - image 0.21
   - noise 0.5
   - pennereq 0.3
   - rand 0.6
   - sample 0.10
+  - winit 0.19
+- Fix mouse positioning on HiDPI macOS displays.
+- Draw to an intermediary frame before resolving to the swapchain to simplify
+  MSAA and keeping the image consistent between frames.
+- Add some laser streaming examples using the `nannou-org/lasy` crate.
 
 # Version 0.8.0 (2018-07-19)
 
