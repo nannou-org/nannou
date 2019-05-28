@@ -10,4 +10,4 @@ skeptic = '0.13'
 
 [dev-dependencies]
 skeptic = '0.13'
-nannou = { git = 'https://github.com/nannou-org/nannou', branch = 'v0.9' }
+nannou = { git = 'https://github.com/nannou-org/nannou', branch = 'master' }
