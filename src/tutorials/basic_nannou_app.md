@@ -1,4 +1,5 @@
 # Making Nothing from Something - Anatomy of a Nannou App
+_written by tpltnt_
 
 Nannou is a framework for creative coding in Rust. A framework like a general outline of building blocks to accomplish a goal. If romance stories were a framework, then you have the protagonist, her love interest, some struggles, and a (happy) end as the building blocks. All these need to be fleshed out by the author, but using clichés helps telling a story without having to introduce everyone and everything in incruciating detail. If the author wants to tell a horror story, then the clichés of a romance story aren't very helpful. In the same way you can use nannou to create programs for artisitc expression, but you will find it hard to build an office suite. So let's look at the building blocks for creative coding.
 
