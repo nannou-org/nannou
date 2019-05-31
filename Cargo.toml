@@ -12,6 +12,7 @@ edition = "2018"
 
 [features]
 default = ["notosans"]
+video = ["glib", "gstreamer", "gstreamer-app", "gstreamer-video", "gstreamer-pbutils"]
 
 [dependencies]
 approx = "0.1"
@@ -37,6 +38,11 @@ vulkano-win = "0.13"
 vulkano-shaders = "0.13"
 walkdir = "2"
 winit = "0.19"
+glib = { version = "0.7", optional = true }
+gstreamer = { version = "0.13", optional = true }
+gstreamer-app = { version = "0.13", optional = true }
+gstreamer-video = { version = "0.13", optional = true }
+gstreamer-pbutils = { version = "0.13", optional = true }
 
 [dev-dependencies]
 audrey = "0.2"
@@ -47,6 +53,9 @@ shade_runner = "0.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 moltenvk_deps = "0.1"
+
+[profile.release]
+debug = true
 
 # --------------- Nannou Examples
 [[example]]
@@ -158,6 +167,12 @@ path = "examples/vulkan/vk_debug.rs"
 [[example]]
 name = "vk_hotload"
 path = "examples/vulkan/vk_hotload.rs"
+[[example]]
+name = "vk_screenshot"
+path = "examples/vulkan/vk_screenshot.rs"
+[[example]]
+name = "vk_save_video"
+path = "examples/vulkan/vk_save_video/vk_save_video.rs"
 
 # --------------- Generative Design
 [[example]]
