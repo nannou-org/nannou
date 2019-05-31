@@ -10,6 +10,7 @@
     - [Running Examples](./getting_started/running_examples.md)
     - [Create A Project](./getting_started/create_a_project.md)
 - [Tutorials](./tutorials.md)
+    - [Making Nothing from Something - Anatomy of a Nannou App](./tutorials/basic_nannou_app.md)
 - [Developer Reference](./developer_reference.md)
 - [API Reference](./api_reference.md)
 - [Showcases](./showcases.md)
