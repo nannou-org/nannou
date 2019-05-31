@@ -3,8 +3,8 @@ use nannou::prelude::*;
 use palette::named;
 use std::cell::{Cell, RefCell};
 use std::convert::TryInto;
-use std::sync::Arc;
 use std::slice;
+use std::sync::Arc;
 
 // These must be smaller then your actual screen
 const IMAGE_DIMS: (usize, usize) = (1366, 600);
@@ -145,7 +145,10 @@ fn write(screenshot_buffer: &[[u8; NUM_COLOURS]]) {
     // to
     // [u8; NUM_COLOURS * IMAGE_DIMS.0 * IMAGE_DIMS.1]
     let buf: &[u8] = unsafe {
-        slice::from_raw_parts(&screenshot_buffer[0] as *const u8, NUM_COLOURS * IMAGE_DIMS.0 * IMAGE_DIMS.1)
+        slice::from_raw_parts(
+            &screenshot_buffer[0] as *const u8,
+            NUM_COLOURS * IMAGE_DIMS.0 * IMAGE_DIMS.1,
+        )
     };
 
     let screenshot_path = concat!(env!("CARGO_MANIFEST_DIR"), "/screenshot.png");
@@ -157,8 +160,8 @@ fn write(screenshot_buffer: &[[u8; NUM_COLOURS]]) {
         IMAGE_DIMS.0 as u32,
         IMAGE_DIMS.1 as u32,
         nannou::image::ColorType::BGRA(8),
-        )
-        .expect("Failed to save image");
+    )
+    .expect("Failed to save image");
 }
 
 fn update(_app: &App, model: &mut Model, _: Update) {
@@ -169,7 +172,7 @@ fn update(_app: &App, model: &mut Model, _: Update) {
             Err(_) => {
                 model.save_screenshot.set(true);
                 return ();
-            },
+            }
         };
         write(&(*screenshot_buffer));
         model.take_screenshot.set(true);
