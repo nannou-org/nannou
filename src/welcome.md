@@ -18,7 +18,7 @@ Is this your first time using Nannou or Rust? This is the chapter for you.
 This chapter covers everything from installing Rust right through to starting
 your own Nannou project.
 
-### [Guided Tutorials](/guided_tutorials.md)
+### [Tutorials](/tutorials.md)
 
 A suite of tutorials demonstrating how to do different things with Nannou. For
 example, "How do I output sounds?", "How do I draw shapes?", "How can I connect

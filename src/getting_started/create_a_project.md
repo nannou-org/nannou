@@ -50,14 +50,14 @@ create a new project with just a few small steps:
 
    struct Model {}
 
-   fn model(app: &App) -> Model {
+   fn model(_app: &App) -> Model {
        Model {}
    }
 
-   fn update(app: &App, model: &mut Model, update: Update) {
+   fn update(_app: &App, _model: &mut Model, _update: Update) {
    }
 
-   fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+   fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
        frame.clear(PURPLE);
        frame
    }
