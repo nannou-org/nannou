@@ -108,7 +108,7 @@ impl ScreenShot {
         let screenshot_buffer = vk::CpuAccessibleBuffer::from_iter(
             device.clone(),
             vk::BufferUsage {
-                storage_buffer: true,
+                transfer_destination: true,
                 ..vk::BufferUsage::none()
             },
             buf.into_iter(),
@@ -176,7 +176,7 @@ impl ScreenShot {
         let output_image = vk::AttachmentImage::with_usage(
             device.clone(),
             [dims.0 as u32, dims.1 as u32],
-            vk::Format::R8G8B8A8Srgb,
+            vk::Format::R8G8B8A8Uint,
             vk::ImageUsage {
                 transfer_source: true,
                 storage: true,
@@ -387,6 +387,8 @@ mod cs {
     ty: "compute",
         src: "
 #version 450
+const uint WIDTH = 1366;
+const uint HEIGHT = 600;
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
@@ -395,7 +397,10 @@ layout(set = 0, binding = 0) uniform sampler2D tex;
 layout(set = 0, binding = 1, rgba8) uniform image2D storage_image;
 
 void main() {
-    vec4 t = texture(tex, vec2(gl_LocalInvocationID.x / 32.0, gl_LocalInvocationID.y / 32.0));
+    if(gl_GlobalInvocationID.x >= WIDTH || gl_GlobalInvocationID.y >= HEIGHT) {
+        return;
+    }
+    vec4 t = texture(tex, vec2(gl_GlobalInvocationID.x / float(WIDTH), gl_GlobalInvocationID.y / float(HEIGHT)));
     imageStore(storage_image, ivec2(gl_GlobalInvocationID.xy), t);
 }"
     }
