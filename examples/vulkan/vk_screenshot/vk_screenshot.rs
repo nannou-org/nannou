@@ -3,13 +3,13 @@ use std::convert::TryInto;
 
 mod screenshot;
 
-use screenshot::FrameLock;
+use screenshot::Shots;
 
 // These must be smaller then your actual screen
 const IMAGE_DIMS: (usize, usize) = (1366, 600);
 
 struct Model {
-    screenshot: FrameLock,
+    screenshot: Shots,
 }
 
 fn main() {
@@ -17,7 +17,7 @@ fn main() {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window()
+    let window_id = app.new_window()
         .with_dimensions(
             IMAGE_DIMS.0.try_into().unwrap(),
             IMAGE_DIMS.1.try_into().unwrap(),
@@ -26,14 +26,13 @@ fn model(app: &App) -> Model {
         .event(window_event)
         .build()
         .unwrap();
-    let screenshot = screenshot::new(app, IMAGE_DIMS);
+    let screenshot = screenshot::new(app, window_id);
     Model {
         screenshot,
     }
 }
 
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {
-    model.screenshot.take(&frame);
     // Begin drawing
     let draw = app.draw();
 
@@ -76,7 +75,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     // Write the result of our drawing to the window's OpenGL frame.
     draw.to_frame(app, &frame).unwrap();
 
-    model.screenshot.copy_frame(&frame);
+    model.screenshot.capture(&frame);
 
 
     // Return the drawn frame.
@@ -87,7 +86,7 @@ fn window_event(_app: &App, model: &mut Model, event: WindowEvent) {
     match event {
         KeyPressed(key) => {
             if let Key::S = key {
-                unimplemented!();
+                model.screenshot.take();
             }
         }
         KeyReleased(_key) => {}

@@ -161,10 +161,7 @@ name = "vk_hotload"
 path = "examples/vulkan/vk_hotload.rs"
 [[example]]
 name = "vk_screenshot"
-path = "examples/vulkan/vk_screenshot.rs"
-[[example]]
-name = "vk_screenshot_2"
-path = "examples/vulkan/vk_screenshot_2/vk_screenshot_2.rs"
+path = "examples/vulkan/vk_screenshot/vk_screenshot.rs"
 
 # --------------- Generative Design
 [[example]]
