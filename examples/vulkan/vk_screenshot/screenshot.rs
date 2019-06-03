@@ -1,9 +1,12 @@
 use nannou::prelude::*;
+use std::cell::Cell;
+use std::cell::RefCell;
+use std::collections::VecDeque;
 use std::slice;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc::{self, Receiver, SyncSender};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
-use std::thread;
+use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 // This must match the number of colours per
 // pixel.
@@ -12,23 +15,28 @@ use std::thread;
 // RG = 2 etc.
 pub const NUM_COLOURS: usize = 4;
 
-type SaveImage = Option<Arc<vk::AttachmentImage>>;
-
 struct ScreenShot {
     pipeline: Arc<vk::ComputePipelineAbstract + Send + Sync>,
-    screenshot_buffer: Arc<vk::CpuAccessibleBuffer<[[u8; NUM_COLOURS]]>>,
-    output_image: Arc<vk::StorageImage<vk::Format>>,
+    screenshot_buffer: RefCell<Arc<vk::CpuAccessibleBuffer<[[u8; NUM_COLOURS]]>>>,
+    output_image: RefCell<Arc<vk::StorageImage<vk::Format>>>,
     sampler: Arc<vk::Sampler>,
     queue: Arc<vk::Queue>,
-    dims: (usize, usize),
     num_images: usize,
 }
 
 // Hack to get around wait issue
 pub struct Shots {
-    num_shots: AtomicUsize,
-    images_in: Receiver<SaveImage>,
-    images_out: SyncSender<SaveImage>,
+    num_shots: Cell<usize>,
+    frames_since_empty: Cell<usize>,
+    images_in: Receiver<Arc<vk::AttachmentImage>>,
+    images_out: Sender<Msg>,
+    saving_thread: Option<JoinHandle<()>>,
+}
+
+enum Msg {
+    Buffer(Arc<vk::AttachmentImage>),
+    Flush,
+    Kill,
 }
 
 #[derive(Debug, Clone)]
@@ -45,55 +53,99 @@ pub fn new(app: &App, window_id: WindowId) -> Shots {
         let d = window.inner_size_pixels();
         (d.0 as usize, d.1 as usize)
     };
-    let (save_out, images_in) = mpsc::sync_channel(3);
-    let (images_out, save_in) = mpsc::sync_channel(3);
-    for _ in 0..2 {
-        images_out.send(None).expect("Failed to start out channel");
-    }
+    let (save_out, images_in) = mpsc::channel();
+    let (images_out, save_in) = mpsc::channel();
+
     for _ in 0..3 {
-        let input_image = vk::AttachmentImage::with_usage(
-            queue.device().clone(),
-            [dims.0 as u32, dims.1 as u32],
-            window.swapchain().format(),
-            vk::ImageUsage {
-                transfer_destination: true,
-                sampled: true,
-                ..vk::ImageUsage::none()
-            },
-        )
-        .expect("Failed to create input image");
+        let input_image = new_input_image(queue.device().clone(), [dims.0 as u32, dims.1 as u32]);
         save_out
-            .send(Some(input_image))
+            .send(input_image)
             .expect("Failed to send initial images");
     }
     let screenshot = ScreenShot::new(queue, dims);
-    thread::spawn({ || save_images(screenshot, save_in, save_out) });
+    let saving_thread = thread::spawn({ || save_images(screenshot, save_in, save_out) });
+    let saving_thread = Some(saving_thread);
     Shots {
-        num_shots: AtomicUsize::new(0),
+        num_shots: Cell::new(0),
+        frames_since_empty: Cell::new(3),
         images_in,
         images_out,
+        saving_thread,
+    }
+}
+
+fn save_images(
+    mut screenshot: ScreenShot,
+    save_in: Receiver<Msg>,
+    save_out: Sender<Arc<vk::AttachmentImage>>,
+) {
+    let mut q = VecDeque::new();
+    while let Ok(msg) = save_in.recv() {
+        match msg {
+            Msg::Buffer(image) => {
+                q.push_back(image);
+                if q.len() > 2 {
+                    let image = q.pop_front().unwrap();
+                    screenshot.take(image.clone());
+                    screenshot.save(image.dimensions());
+                    save_out.send(image).ok();
+                }
+            }
+            Msg::Flush => {
+                while let Some(image) = q.pop_front() {
+                    screenshot.take(image.clone());
+                    screenshot.save(image.dimensions());
+                    save_out.send(image).ok();
+                }
+            }
+            Msg::Kill => {
+                while let Some(image) = q.pop_front() {
+                    screenshot.take(image.clone());
+                    screenshot.save(image.dimensions());
+                    save_out.send(image).ok();
+                }
+                return ();
+            }
+        }
     }
 }
 
 impl Shots {
     pub fn capture(&self, frame: &Frame) {
-        if self.num_shots.load(Ordering::SeqCst) > 0 {
-            if let Ok(image) = self.images_in.recv() {
-                match image {
-                    Some(image) => {
-                        copy_frame(frame, image.clone());
-                        self.images_out.send(Some(image)).ok();
-                        self.num_shots.fetch_sub(1, Ordering::SeqCst);
-                    }
-                    None => {
-                        self.images_out.send(None).ok();
-                    }
+        let num_shots = self.num_shots.get();
+        let frames_since_empty = self.frames_since_empty.get();
+        if num_shots > 0 && frames_since_empty >= 3 {
+            if let Ok(mut image) = self.images_in.recv() {
+                if frame.swapchain_image().dimensions() != image.dimensions() {
+                    image = new_input_image(
+                        frame.queue().device().clone(),
+                        frame.swapchain_image().dimensions(),
+                    );
+                }
+                copy_frame(frame, image.clone());
+                self.images_out.send(Msg::Buffer(image)).ok();
+                self.num_shots.set(num_shots - 1);
+                if num_shots == 1 {
+                    self.frames_since_empty.set(0);
                 }
             }
+        } else {
+            if frames_since_empty == 2 {
+                self.images_out.send(Msg::Flush).ok();
+            }
+            self.frames_since_empty.set(frames_since_empty + 1);
         }
     }
+
     pub fn take(&self) {
-        self.num_shots.fetch_add(1, Ordering::SeqCst);
+        self.num_shots.set(self.num_shots.get() + 1);
+    }
+
+    // Call this in the exit function to make sure all images are written
+    pub fn flush(mut self, wait: Duration) {
+        thread::sleep(wait);
+        self.images_out.send(Msg::Kill).ok();
+        self.saving_thread.take().map(|t| t.join());
     }
 }
 
@@ -101,16 +153,7 @@ impl ScreenShot {
     fn new(queue: Arc<vk::Queue>, dims: (usize, usize)) -> Self {
         assert!(queue.family().supports_compute());
         let device = queue.device().clone();
-        let buf = vec![[0u8; NUM_COLOURS]; dims.0 * dims.1];
-        let screenshot_buffer = vk::CpuAccessibleBuffer::from_iter(
-            device.clone(),
-            vk::BufferUsage {
-                transfer_destination: true,
-                ..vk::BufferUsage::none()
-            },
-            buf.into_iter(),
-        )
-        .expect("Failed to create screenshot buffer");
+        let screenshot_buffer = RefCell::new(new_screenshot_buffer(device.clone(), dims));
 
         let compute_shader = cs::Shader::load(device.clone()).unwrap();
 
@@ -119,24 +162,16 @@ impl ScreenShot {
             .build(device.clone())
             .unwrap();
 
-
         let pipeline = Arc::new(
             vk::ComputePipeline::new(device.clone(), &compute_shader.main_entry_point(), &())
                 .expect("Faile to create compute pipeline"),
         );
 
-        let output_image = vk::StorageImage::with_usage(
-            device.clone(),
-            vk::image::Dimensions::Dim2d{ width: dims.0 as u32, height: dims.1 as u32},
-            vk::Format::R8G8B8A8Uint,
-            vk::ImageUsage {
-                transfer_source: true,
-                storage: true,
-                ..vk::ImageUsage::none()
-            },
-            device.active_queue_families(),
-        )
-        .expect("Failed to create output image");
+        let dims2d = vk::image::Dimensions::Dim2d {
+            width: dims.0 as u32,
+            height: dims.1 as u32,
+        };
+        let output_image = RefCell::new(new_output_image(device.clone(), dims2d));
 
         ScreenShot {
             pipeline,
@@ -144,7 +179,6 @@ impl ScreenShot {
             output_image,
             sampler,
             queue,
-            dims,
             num_images: 0,
         }
     }
@@ -153,30 +187,57 @@ impl ScreenShot {
         let queue = &self.queue;
         let device = queue.device();
         let [w, h] = frame_capture.dimensions();
-        self.dims = (w as usize, h as usize);
+
+        let storage_dims = self.output_image.borrow().dimensions();
+        let frame_dims = vk::image::Dimensions::Dim2d {
+            width: w,
+            height: h,
+        };
+        if storage_dims != frame_dims {
+            self.output_image
+                .replace(new_output_image(self.queue.device().clone(), frame_dims));
+            self.screenshot_buffer.replace(new_screenshot_buffer(
+                self.queue.device().clone(),
+                (w as usize, h as usize),
+            ));
+        }
 
         // TODO shoudn't be Persistent
         let desciptor_set = Arc::new(
             vk::PersistentDescriptorSet::start(self.pipeline.clone(), 0)
                 .add_sampled_image(frame_capture.clone(), self.sampler.clone())
                 .expect("Failed to add output_color image to descriptor set")
-                .add_image(self.output_image.clone())
+                .add_image(self.output_image.borrow().clone())
                 .expect("Failed to add output image")
                 //.add_buffer_view(buf_view)
                 // .expect("Failed to add screenshot buffer")
                 .build()
                 .expect("Failed to build record desciptor set"),
         );
-        let command_buffer = vk::AutoCommandBufferBuilder::primary_one_time_submit(device.clone(), queue.family())
+        let push_constants = cs::ty::PushConstantData {
+            width: w,
+            height: h,
+        };
+        let command_buffer =
+            vk::AutoCommandBufferBuilder::primary_one_time_submit(device.clone(), queue.family())
                 .expect("Failed to create command buffer")
                 // TODO this should be the dims from the actual image
                 // for this run.
-                .dispatch([(self.dims.0 as f32 / 32.0).ceil() as u32, (self.dims.1 as f32 / 32.0).ceil() as u32, 1],
-                          self.pipeline.clone(),
-                          desciptor_set.clone(),
-                          ())
-                .expect("Failed to add descriptor set")
-                .copy_image_to_buffer(self.output_image.clone(), self.screenshot_buffer.clone())
+                .dispatch(
+                    [
+                        (w as f32 / 32.0).ceil() as u32,
+                        (h as f32 / 32.0).ceil() as u32,
+                        1,
+                    ],
+                    self.pipeline.clone(),
+                    desciptor_set.clone(),
+                    push_constants,
+                )
+                .expect("Failed to dispatch")
+                .copy_image_to_buffer(
+                    self.output_image.borrow().clone(),
+                    self.screenshot_buffer.borrow().clone(),
+                )
                 .expect("Failed to copy image to buffer")
                 .build()
                 .expect("Failed to build command buffer");
@@ -189,7 +250,7 @@ impl ScreenShot {
             .expect("Failed to wait on future");
     }
 
-    fn save(&mut self) {
+    fn save(&mut self, dims: [u32; 2]) {
         fn write(
             screenshot_buffer: &[[u8; NUM_COLOURS]],
             screenshot_path: String,
@@ -213,35 +274,69 @@ impl ScreenShot {
             )
             .expect("Failed to save image");
         }
-        if let Ok(screenshot_buffer) = self.screenshot_buffer.read() {
+        if let Ok(screenshot_buffer) = self.screenshot_buffer.borrow().read() {
             self.num_images += 1;
             let screenshot_path = format!(
                 "{}{}",
                 env!("CARGO_MANIFEST_DIR"),
                 format!("/screenshot{}.png", self.num_images)
             );
-            write(&(*screenshot_buffer), screenshot_path, self.dims);
+            write(
+                &(*screenshot_buffer),
+                screenshot_path,
+                (dims[0] as usize, dims[1] as usize),
+            );
         }
     }
 }
 
-fn save_images(
-    mut screenshot: ScreenShot,
-    save_in: Receiver<SaveImage>,
-    save_out: SyncSender<SaveImage>,
-) {
-    while let Ok(image) = save_in.recv() {
-        match image {
-            Some(image) => {
-                screenshot.take(image.clone());
-                screenshot.save();
-                save_out.send(Some(image)).ok();
-            }
-            None => {
-                save_out.send(None).ok();
-            }
-        }
-    }
+fn new_input_image(device: Arc<vk::Device>, dims: [u32; 2]) -> Arc<vk::AttachmentImage> {
+    vk::AttachmentImage::with_usage(
+        device,
+        dims,
+        // TODO this needs to check if the swapchain is in BGRA or RGBA
+        vk::Format::B8G8R8A8Unorm,
+        vk::ImageUsage {
+            transfer_destination: true,
+            sampled: true,
+            ..vk::ImageUsage::none()
+        },
+    )
+    .expect("Failed to create input image")
+}
+
+fn new_output_image(
+    device: Arc<vk::Device>,
+    dims: vk::image::Dimensions,
+) -> Arc<vk::StorageImage<vk::Format>> {
+    vk::StorageImage::with_usage(
+        device.clone(),
+        dims,
+        vk::Format::R8G8B8A8Uint,
+        vk::ImageUsage {
+            transfer_source: true,
+            storage: true,
+            ..vk::ImageUsage::none()
+        },
+        device.active_queue_families(),
+    )
+    .expect("Failed to create output image")
+}
+
+fn new_screenshot_buffer(
+    device: Arc<vk::Device>,
+    dims: (usize, usize),
+) -> Arc<vk::CpuAccessibleBuffer<[[u8; NUM_COLOURS]]>> {
+    let buf = vec![[0u8; NUM_COLOURS]; dims.0 * dims.1];
+    vk::CpuAccessibleBuffer::from_iter(
+        device.clone(),
+        vk::BufferUsage {
+            transfer_destination: true,
+            ..vk::BufferUsage::none()
+        },
+        buf.into_iter(),
+    )
+    .expect("Failed to create screenshot buffer")
 }
 
 fn copy_frame(frame: &Frame, input_color: Arc<vk::AttachmentImage>) {
@@ -263,7 +358,6 @@ fn copy_frame(frame: &Frame, input_color: Arc<vk::AttachmentImage>) {
         .expect("Failed to copy image");
 }
 
-
 // TODO width and height are hard coded and should be passed in as
 // push constants
 mod cs {
@@ -271,8 +365,6 @@ mod cs {
     ty: "compute",
         src: "
 #version 450
-const uint WIDTH = 1366;
-const uint HEIGHT = 600;
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
@@ -280,11 +372,16 @@ layout(set = 0, binding = 0) uniform sampler2D tex;
 
 layout(set = 0, binding = 1, rgba8ui) uniform uimage2D storage_image;
 
+layout(push_constant) uniform PushConstantData {
+    uint width;
+    uint height;
+} pc;
+
 void main() {
-    if(gl_GlobalInvocationID.x >= WIDTH || gl_GlobalInvocationID.y >= HEIGHT) {
+    if(gl_GlobalInvocationID.x >= pc.width || gl_GlobalInvocationID.y >= pc.height) {
         return;
     }
-    vec4 t = texture(tex, vec2(gl_GlobalInvocationID.x / float(WIDTH), gl_GlobalInvocationID.y / float(HEIGHT)));
+    vec4 t = texture(tex, vec2(gl_GlobalInvocationID.x / float(pc.width), gl_GlobalInvocationID.y / float(pc.height)));
     uvec4 col = uvec4(uint(255*t.x), uint(255*t.y), uint(255*t.z), uint(255*t.w));
     imageStore(storage_image, ivec2(gl_GlobalInvocationID.xy), col);
 }"

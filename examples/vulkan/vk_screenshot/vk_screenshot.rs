@@ -1,35 +1,28 @@
 use nannou::prelude::*;
-use std::convert::TryInto;
+use std::time::Duration;
 
 mod screenshot;
 
 use screenshot::Shots;
-
-// These must be smaller then your actual screen
-const IMAGE_DIMS: (usize, usize) = (1366, 600);
 
 struct Model {
     screenshot: Shots,
 }
 
 fn main() {
-    nannou::app(model).run();
+    nannou::app(model).exit(exit).run();
 }
 
 fn model(app: &App) -> Model {
-    let window_id = app.new_window()
-        .with_dimensions(
-            IMAGE_DIMS.0.try_into().unwrap(),
-            IMAGE_DIMS.1.try_into().unwrap(),
-        )
+    let window_id = app
+        .new_window()
+        .with_dimensions(1024, 768)
         .view(view)
         .event(window_event)
         .build()
         .unwrap();
     let screenshot = screenshot::new(app, window_id);
-    Model {
-        screenshot,
-    }
+    Model { screenshot }
 }
 
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {
@@ -75,8 +68,8 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     // Write the result of our drawing to the window's OpenGL frame.
     draw.to_frame(app, &frame).unwrap();
 
+    // This only captures if take() is called
     model.screenshot.capture(&frame);
-
 
     // Return the drawn frame.
     frame
@@ -86,6 +79,7 @@ fn window_event(_app: &App, model: &mut Model, event: WindowEvent) {
     match event {
         KeyPressed(key) => {
             if let Key::S = key {
+                // Adds a screenshot to the queue to be taken
                 model.screenshot.take();
             }
         }
@@ -107,4 +101,10 @@ fn window_event(_app: &App, model: &mut Model, event: WindowEvent) {
         Unfocused => {}
         Closed => {}
     }
+}
+
+fn exit(_: &App, model: Model) {
+    // If you are getting an Access error then you
+    // might need to raise the wait time
+    model.screenshot.flush(Duration::from_secs(2));
 }
