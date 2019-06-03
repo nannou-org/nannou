@@ -15,12 +15,9 @@ pub const NUM_COLOURS: usize = 4;
 type SaveImage = Option<Arc<vk::AttachmentImage>>;
 
 struct ScreenShot {
-    //render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
     pipeline: Arc<vk::ComputePipelineAbstract + Send + Sync>,
-    //frame_buffer: Arc<vk::FramebufferAbstract + Send + Sync>,
     screenshot_buffer: Arc<vk::CpuAccessibleBuffer<[[u8; NUM_COLOURS]]>>,
-    //vertex_buffer: Arc<vk::ImmutableBuffer<[Vertex]>>,
-    output_image: Arc<vk::AttachmentImage>,
+    output_image: Arc<vk::StorageImage<vk::Format>>,
     sampler: Arc<vk::Sampler>,
     queue: Arc<vk::Queue>,
     dims: (usize, usize),
@@ -115,91 +112,35 @@ impl ScreenShot {
         )
         .expect("Failed to create screenshot buffer");
 
-        let vertex_shader_record = vs_record::Shader::load(device.clone()).unwrap();
-        let fragment_shader_record = fs_record::Shader::load(device.clone()).unwrap();
         let compute_shader = cs::Shader::load(device.clone()).unwrap();
-
-        let positions = [[-1.0, -1.0], [-1.0, 1.0], [1.0, -1.0], [1.0, 1.0]];
-        let data = positions.iter().map(|&position| Vertex { position });
-        let usage = vk::BufferUsage::vertex_buffer();
-        let (vertex_buffer, buffer_future) =
-            vk::ImmutableBuffer::from_iter(data, usage, queue.clone()).unwrap();
 
         let sampler = vk::SamplerBuilder::new()
             .mipmap_mode(vk::sampler::MipmapMode::Linear)
             .build(device.clone())
             .unwrap();
-        buffer_future
-            .then_signal_fence_and_flush()
-            .expect("failed to signal_fence_and_flush buffer and image creation future")
-            .wait(None)
-            .expect("failed to wait for buffer and image creation future");
 
-        /*
-        let render_pass = Arc::new(
-            vk::single_pass_renderpass!(
-                device.clone(),
-                attachments: {
-                color: {
-                    load: DontCare,
-                    store: Store,
-                    format: vk::Format::R8G8B8A8Uint,
-                    samples: 1,
-                }
-                },
-                pass: {
-                    color: [color],
-                    depth_stencil: {}
-                }
-            )
-            .unwrap(),
-        );
-
-        let pipeline = Arc::new(
-            vk::GraphicsPipeline::start()
-                .vertex_input_single_buffer::<Vertex>()
-                .vertex_shader(vertex_shader_record.main_entry_point(), ())
-                .triangle_list()
-                .viewports_dynamic_scissors_irrelevant(1)
-                .fragment_shader(fragment_shader_record.main_entry_point(), ())
-                .render_pass(vk::Subpass::from(render_pass.clone(), 0).unwrap())
-                .build(device.clone())
-                .unwrap(),
-        );
-        */
 
         let pipeline = Arc::new(
             vk::ComputePipeline::new(device.clone(), &compute_shader.main_entry_point(), &())
                 .expect("Faile to create compute pipeline"),
         );
 
-        let output_image = vk::AttachmentImage::with_usage(
+        let output_image = vk::StorageImage::with_usage(
             device.clone(),
-            [dims.0 as u32, dims.1 as u32],
+            vk::image::Dimensions::Dim2d{ width: dims.0 as u32, height: dims.1 as u32},
             vk::Format::R8G8B8A8Uint,
             vk::ImageUsage {
                 transfer_source: true,
                 storage: true,
                 ..vk::ImageUsage::none()
             },
+            device.active_queue_families(),
         )
-        .expect("Failed to create input image");
-        /*
-        let frame_buffer = Arc::new(
-            vk::Framebuffer::start(render_pass.clone())
-                .add(output_image.clone())
-                .expect("Failed to add uint image")
-                .build()
-                .expect("Failed to build fbo"),
-        );
-        */
+        .expect("Failed to create output image");
 
         ScreenShot {
-            //render_pass,
             pipeline,
-            //frame_buffer,
             screenshot_buffer,
-            //vertex_buffer,
             output_image,
             sampler,
             queue,
@@ -213,14 +154,6 @@ impl ScreenShot {
         let device = queue.device();
         let [w, h] = frame_capture.dimensions();
         self.dims = (w as usize, h as usize);
-        let viewport = vk::ViewportBuilder::new().build([w as _, h as _]);
-        let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
-
-        /*
-        let buf_view =
-            vk::BufferView::new(self.screenshot_buffer.clone(), vk::format::R8G8B8A8Uint)
-                .expect("Failed to make buffer view");
-                */
 
         // TODO shoudn't be Persistent
         let desciptor_set = Arc::new(
@@ -234,25 +167,8 @@ impl ScreenShot {
                 .build()
                 .expect("Failed to build record desciptor set"),
         );
-        //let clear_values = vec![vk::format::ClearValue::None];
         let command_buffer = vk::AutoCommandBufferBuilder::primary_one_time_submit(device.clone(), queue.family())
                 .expect("Failed to create command buffer")
-                /*
-                .begin_render_pass(self.frame_buffer.clone(), false, clear_values)
-                .unwrap()
-                .draw(
-                    self.pipeline.clone(),
-                    &dynamic_state,
-                    vec![self.vertex_buffer.clone()],
-                    desciptor_set_record,
-                    (),
-                )
-                .unwrap()
-                .end_render_pass()
-                .expect("failed to add `end_render_pass` command")
-                .copy_image_to_buffer(self.output_image.clone(), self.screenshot_buffer.clone())
-                .expect("Failed to copy image to buffer")
-                */
                 // TODO this should be the dims from the actual image
                 // for this run.
                 .dispatch([(self.dims.0 as f32 / 32.0).ceil() as u32, (self.dims.1 as f32 / 32.0).ceil() as u32, 1],
@@ -279,7 +195,6 @@ impl ScreenShot {
             screenshot_path: String,
             dims: (usize, usize),
         ) {
-            dbg!(&screenshot_buffer[..10]);
             let buf: &[u8] = unsafe {
                 slice::from_raw_parts(
                     &screenshot_buffer[0] as *const u8,
@@ -348,40 +263,9 @@ fn copy_frame(frame: &Frame, input_color: Arc<vk::AttachmentImage>) {
         .expect("Failed to copy image");
 }
 
-mod vs_record {
-    nannou::vk::shaders::shader! {
-    ty: "vertex",
-        src: "
-#version 450
 
-layout(location = 0) in vec2 position;
-layout(location = 0) out vec2 tex_coords;
-
-void main() {
-    gl_Position = vec4(position, 0.0, 0.0);
-    tex_coords = position + vec2(0.5);
-}"
-    }
-}
-
-mod fs_record {
-    nannou::vk::shaders::shader! {
-    ty: "fragment",
-        src: "
-#version 450
-
-layout(location = 0) in vec2 tex_coords;
-layout(set = 0, binding = 0) uniform sampler2D tex;
-layout(location = 0) out vec4 f_color;
-
-void main() {
-    //f_color = texture(tex, tex_coords);
-    f_color = vec4(1.0);
-}"
-    }
-}
-
-// TODO might pass in more workgroups then necessary
+// TODO width and height are hard coded and should be passed in as
+// push constants
 mod cs {
     nannou::vk::shaders::shader! {
     ty: "compute",
@@ -394,14 +278,15 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform sampler2D tex;
 
-layout(set = 0, binding = 1, rgba8) uniform image2D storage_image;
+layout(set = 0, binding = 1, rgba8ui) uniform uimage2D storage_image;
 
 void main() {
     if(gl_GlobalInvocationID.x >= WIDTH || gl_GlobalInvocationID.y >= HEIGHT) {
         return;
     }
     vec4 t = texture(tex, vec2(gl_GlobalInvocationID.x / float(WIDTH), gl_GlobalInvocationID.y / float(HEIGHT)));
-    imageStore(storage_image, ivec2(gl_GlobalInvocationID.xy), t);
+    uvec4 col = uvec4(uint(255*t.x), uint(255*t.y), uint(255*t.z), uint(255*t.w));
+    imageStore(storage_image, ivec2(gl_GlobalInvocationID.xy), col);
 }"
     }
 }
