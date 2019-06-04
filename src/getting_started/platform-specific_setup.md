@@ -34,17 +34,17 @@ Depending on what OS you are running, you might require an extra step or two.
 
     For Fedora users:
     ```bash
-    sudo dnf install alsa-lib-devel
+    sudo dnf install alsa-lib-devel vulkan vulkan-info xorg-x11-drv-nvidia akmod-nvidia vulkan-tools
     ```
 
     For Debian/Ubuntu users:
     ```bash
-    sudo apt-get install libasound2-dev
+    sudo apt-get install libasound2-dev mesa-vulkan-drivers vulkan-utils
     ```
 
     For Arch users:
     ```bash
-    sudo pacman -S alsa-lib
+    sudo pacman -S alsa-lib vulkan-radeon lib32-vulkan-radeon nvidia lib32-nvidia-utils
     ```
 
   - **curl lib dev package**
