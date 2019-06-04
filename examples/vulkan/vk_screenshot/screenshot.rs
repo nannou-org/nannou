@@ -114,7 +114,7 @@ impl Shots {
     pub fn capture(&self, frame: &Frame) {
         let num_shots = self.num_shots.get();
         let frames_since_empty = self.frames_since_empty.get();
-        if num_shots > 0 && frames_since_empty >= 3 {
+        if num_shots > 0 {
             if let Ok(mut image) = self.images_in.recv() {
                 if frame.swapchain_image().dimensions() != image.dimensions() {
                     image = new_input_image(
@@ -129,12 +129,11 @@ impl Shots {
                     self.frames_since_empty.set(0);
                 }
             }
-        } else {
-            if frames_since_empty == 2 {
-                self.images_out.send(Msg::Flush).ok();
-            }
-            self.frames_since_empty.set(frames_since_empty + 1);
         }
+        if frames_since_empty == 2 {
+            self.images_out.send(Msg::Flush).ok();
+        }
+        self.frames_since_empty.set(frames_since_empty + 1);
     }
 
     pub fn take(&self) {
