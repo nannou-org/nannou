@@ -14,7 +14,7 @@ your project!
 
 A suite of tutorials for getting familiar with Rust and the Nannou environment.
 
-- Nannou app
+- [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md)
 - Nannou events
 - Rust variables
 - Rust conditions
