@@ -34,17 +34,17 @@ Depending on what OS you are running, you might require an extra step or two.
 
     For Fedora users:
     ```bash
-    sudo dnf install alsa-lib-devel vulkan vulkan-info xorg-x11-drv-nvidia akmod-nvidia vulkan-tools
+    sudo dnf install alsa-lib-devel
     ```
 
     For Debian/Ubuntu users:
     ```bash
-    sudo apt-get install libasound2-dev mesa-vulkan-drivers vulkan-utils
+    sudo apt-get install libasound2-dev
     ```
 
     For Arch users:
     ```bash
-    sudo pacman -S alsa-lib vulkan-radeon lib32-vulkan-radeon nvidia lib32-nvidia-utils
+    sudo pacman -S alsa-lib
     ```
 
   - **curl lib dev package**
@@ -53,6 +53,67 @@ Depending on what OS you are running, you might require an extra step or two.
     LibreSSL instead of OpenSSL (such as AlpineLinux, Voidlinux, possibly
     [others](https://en.wikipedia.org/wiki/LibreSSL#Adoption) if manually
     installed).
+
+  - **vulkan**
+
+    For Fedora with AMD graphic cards:
+    ```bash
+    sudo dnf install vulkan vulkan-info
+    ```
+
+    For Fedora with NVIDIA graphic cards:
+    Add the proprietary drivers
+    ```bash
+    sudo dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+    ```
+    and run
+    ```bash
+    sudo dnf install xorg-x11-drv-nvidia akmod-nvidia vulkan-tools
+    ```
+
+    For Debian with AMD graphic cards:
+    ```bash
+    sudo apt-get install libvulkan1 mesa-vulkan-drivers vulkan-utils
+    ```
+
+    For Debian with NVIDIA graphic cards:
+    ```bash
+    sudo apt-get install vulkan-utils
+    ```
+
+    For Ubuntu users with AMD graphic cards:
+    Add a PPA for the latest drivers
+    ```bash
+    sudo add-apt-repository ppa:oibaf/graphics-drivers
+    sudo apt-get update
+    sudo apt-apt upgrade
+    ```
+    and run
+    ```bash
+    sudo apt-get install libvulkan1 mesa-vulkan-drivers vulkan-utils
+    ```
+
+    For Ubuntu users with NVIDIA graphic cards:
+    Add a PPA for the latest drivers
+    ```bash
+    sudo add-apt-repository ppa:graphics-drivers/ppa
+    sudo apt-get update
+    sudo apt-get upgrade
+    ```
+    and run
+    ```bash
+    sudo apt-get install nvidia-graphics-drivers-396 nvidia-settings vulkan vulkan-utils
+    ```
+
+    For Arch with AMD graphic cards:
+    ```bash
+    sudo pacman -S vulkan-radeon lib32-vulkan-radeon
+    ```
+
+    For Arch with NVIDIA graphic cards:
+    ```bash
+    sudo pacman -S nvidia lib32-nvidia-utils
+    ```
 
 - **Windows**: Install the `ninja` tool.
 
