@@ -106,5 +106,5 @@ fn window_event(_app: &App, model: &mut Model, event: WindowEvent) {
 fn exit(_: &App, model: Model) {
     // If you are getting an Access error then you
     // might need to raise the wait time
-    model.screenshot.flush(Duration::from_secs(2));
+    model.screenshot.flush(Duration::from_secs(1));
 }

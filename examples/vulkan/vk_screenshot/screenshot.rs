@@ -113,7 +113,7 @@ fn save_images(
 impl Shots {
     pub fn capture(&self, frame: &Frame) {
         let num_shots = self.num_shots.get();
-        let frames_since_empty = self.frames_since_empty.get();
+        let mut frames_since_empty = self.frames_since_empty.get();
         if num_shots > 0 {
             if let Ok(mut image) = self.images_in.recv() {
                 if frame.swapchain_image().dimensions() != image.dimensions() {
@@ -125,9 +125,9 @@ impl Shots {
                 copy_frame(frame, image.clone());
                 self.images_out.send(Msg::Buffer(image)).ok();
                 self.num_shots.set(num_shots - 1);
-                if num_shots == 1 {
-                    self.frames_since_empty.set(0);
-                }
+            }
+            if num_shots == 1 {
+                frames_since_empty = 0;
             }
         }
         if frames_since_empty == 2 {
