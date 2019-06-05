@@ -56,6 +56,15 @@ Depending on what OS you are running, you might require an extra step or two.
 
   - **vulkan**
 
+    Installing Vulkan support on Linux is generally quite easy using your
+    distro's package manager. That said, there may be different driver
+    options to consider depending on your graphics card and tolerance for
+    proprietary software. The following are rough guidelines on how to get
+    going quickly, however if you are at all concerned with finding the
+    approach that suits you best we recommend searching for vulkan driver
+    installation for your graphics card on your distro.
+
+
     For Fedora with AMD graphic cards:
     ```bash
     sudo dnf install vulkan vulkan-info
