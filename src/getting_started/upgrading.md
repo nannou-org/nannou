@@ -9,7 +9,7 @@ inside the nannou directory to upgrade all dependencies.
 
 Building Nannou examples might still fail. This is most likely due to new language features.
 Nannou 0.9 for example requires rustc 1.35.0.
-You can upgrade you (local) rust toolchain by executing
+You can upgrade your (local) rust toolchain by executing
 ```bash
 rustup update
 ```
