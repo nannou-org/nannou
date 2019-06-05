@@ -54,6 +54,76 @@ Depending on what OS you are running, you might require an extra step or two.
     [others](https://en.wikipedia.org/wiki/LibreSSL#Adoption) if manually
     installed).
 
+  - **vulkan**
+
+    Installing Vulkan support on Linux is generally quite easy using your
+    distro's package manager. That said, there may be different driver
+    options to consider depending on your graphics card and tolerance for
+    proprietary software. The following are rough guidelines on how to get
+    going quickly, however if you are at all concerned with finding the
+    approach that suits you best we recommend searching for vulkan driver
+    installation for your graphics card on your distro.
+
+
+    For Fedora with AMD graphic cards:
+    ```bash
+    sudo dnf install vulkan vulkan-info
+    ```
+
+    For Fedora with NVIDIA graphic cards:
+    Add the proprietary drivers
+    ```bash
+    sudo dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+    ```
+    and run
+    ```bash
+    sudo dnf install xorg-x11-drv-nvidia akmod-nvidia vulkan-tools
+    ```
+
+    For Debian with AMD graphic cards:
+    ```bash
+    sudo apt-get install libvulkan1 mesa-vulkan-drivers vulkan-utils
+    ```
+
+    For Debian with NVIDIA graphic cards:
+    ```bash
+    sudo apt-get install vulkan-utils
+    ```
+
+    For Ubuntu users with AMD graphic cards:
+    Add a PPA for the latest drivers
+    ```bash
+    sudo add-apt-repository ppa:oibaf/graphics-drivers
+    sudo apt-get update
+    sudo apt-apt upgrade
+    ```
+    and run
+    ```bash
+    sudo apt-get install libvulkan1 mesa-vulkan-drivers vulkan-utils
+    ```
+
+    For Ubuntu users with NVIDIA graphic cards:
+    Add a PPA for the latest drivers
+    ```bash
+    sudo add-apt-repository ppa:graphics-drivers/ppa
+    sudo apt-get update
+    sudo apt-get upgrade
+    ```
+    and run
+    ```bash
+    sudo apt-get install nvidia-graphics-drivers-396 nvidia-settings vulkan vulkan-utils
+    ```
+
+    For Arch with AMD graphic cards:
+    ```bash
+    sudo pacman -S vulkan-radeon lib32-vulkan-radeon
+    ```
+
+    For Arch with NVIDIA graphic cards:
+    ```bash
+    sudo pacman -S nvidia lib32-nvidia-utils
+    ```
+
 - **Windows**: Install the `ninja` tool.
 
   This tool is another required by the `shaderc` tool as mentioned under the

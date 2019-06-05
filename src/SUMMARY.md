@@ -9,6 +9,7 @@
     - [Editor Setup](./getting_started/editor_setup.md)
     - [Running Examples](./getting_started/running_examples.md)
     - [Create A Project](./getting_started/create_a_project.md)
+    - [Upgrading to a New Release](./getting_started/upgrading.md)
 - [Tutorials](./tutorials.md)
     - [Basics - Anatomy of a Nannou App](./tutorials/basics/anatomy-of-a-nannou-app.md)
 - [Developer Reference](./developer_reference.md)
