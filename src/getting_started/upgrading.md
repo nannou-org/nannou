@@ -1,13 +1,7 @@
 # Upgrading nannou
 
-You can upgrade to a new version of nannou by downloading the release from [github](https://github.com/nannou-org/nannou).
-To do that run either
-```bash
-git clone https://github.com/nannou-org/nannou.git
-```
-or download the repo as an archive.
-
-Finally run
+You can upgrade to a new version of nannou by editing your `Cargo.toml` file to use the new
+crate. For v0.9 use the line `nannou = "0.9"`. Run
 ```bash
 cargo update
 ```
