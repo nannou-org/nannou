@@ -1023,6 +1023,11 @@ impl App {
     pub fn elapsed_frames(&self) -> u64 {
         self.main_window().frame_count
     }
+
+    /// The number of frames that can currently be displayed a second
+    pub fn fps(&self) -> f32 {
+        self.duration.updates_per_second()
+    }
 }
 
 impl Audio {
