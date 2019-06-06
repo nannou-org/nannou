@@ -295,7 +295,7 @@ pub mod time {
         /// The number of updates per second if `since_prev_update` were to remain constant
         pub fn updates_per_second(&self) -> f32 {
             if self.since_prev_update.as_secs() > 0 {
-                return 0.0
+                return 0.0;
             }
 
             let millis = self.since_prev_update.subsec_millis() as f32;
