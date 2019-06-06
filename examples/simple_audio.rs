@@ -1,5 +1,6 @@
-use nannou::audio::{self, Buffer};
 use nannou::prelude::*;
+use nannou_audio as audio;
+use nannou_audio::Buffer;
 use std::f64::consts::PI;
 
 fn main() {
@@ -22,12 +23,14 @@ fn model(app: &App) -> Model {
         .view(view)
         .build()
         .unwrap();
+    // Initialise the audio API so we can spawn an audio stream.
+    let audio_api = audio::Api::new();
     // Initialise the state that we want to live on the audio thread.
     let model = Audio {
         phase: 0.0,
         hz: 440.0,
     };
-    let stream = app.audio.new_output_stream(model, audio).build().unwrap();
+    let stream = audio_api.new_output_stream(model, audio).build().unwrap();
     Model { stream }
 }
 

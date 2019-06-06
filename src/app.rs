@@ -3,17 +3,13 @@
 //! See here for items relating to the event loop, device access, creating and managing windows,
 //! streams and more.
 //!
-//! - [**App**](./struct.App.html) - provides a context and API for windowing, audio, devices, etc.
+//! - [**App**](./struct.App.html) - provides a context and API for windowing, devices, etc.
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
-//! - [**Audio**](./struct.Audio.html) - an API accessed via `app.audio` for enumerating audio
-//!   devices, spawning audio input/output streams, etc.
 //! - [**Draw**](./struct.Draw.html) - a simple API for drawing graphics, accessible via
 //!   `app.draw()`.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
 
-use crate::audio;
-use crate::audio::cpal;
 use crate::draw;
 use crate::event::{self, Event, Key, LoopEvent, Update};
 use crate::frame::{Frame, RawFrame, RenderData};
@@ -27,12 +23,10 @@ use find_folder;
 use std;
 use std::cell::{RefCell, RefMut};
 use std::collections::{HashMap, HashSet};
-use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::sync::atomic::{self, AtomicBool};
-use std::sync::{mpsc, Arc};
-use std::thread;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use winit;
 
@@ -93,14 +87,14 @@ fn default_model(_: &App) -> () {
 /// Each nannou application has a single **App** instance. This **App** represents the entire
 /// context of the application.
 ///
-/// The **App** provides access to most "IO" related APIs. In other words, if you need access to
-/// windowing, audio devices, laser fixtures, etc, the **App** will provide access to this.
+/// The **App** provides access to most application and windowing related "IO" related APIs. In
+/// other words, if you need access to windowing, the Vulkan instance, etc, the **App** will
+/// provide access to this.
 ///
 /// The **App** owns and manages:
 ///
 /// - The **window and input event loop** used to drive the application forward.
 /// - **All windows** for graphics and user input. Windows can be referenced via their IDs.
-/// - The **audio event loop** from which you can receive or send audio via streams.
 pub struct App {
     config: RefCell<Config>,
     pub(crate) vk_instance: Arc<vk::Instance>,
@@ -118,9 +112,6 @@ pub struct App {
     ///
     /// This value is set back to `false` each time the events loop receives any kind of event.
     pub(crate) events_loop_is_asleep: Arc<AtomicBool>,
-
-    /// The `App`'s audio-related API.
-    pub audio: Audio,
 
     /// The current state of the `Mouse`.
     pub mouse: state::Mouse,
@@ -201,13 +192,6 @@ struct DrawState {
 /// If you require changing the scalar type to something else, consider using a custom
 /// **nannou::draw::Draw** instance.
 pub type DrawScalar = geom::scalar::Default;
-
-/// An API accessed via `app.audio` for enumerating audio devices and spawning input/output audio
-/// streams with either default or custom stream format.
-pub struct Audio {
-    event_loop: Arc<cpal::EventLoop>,
-    process_fn_tx: RefCell<Option<mpsc::Sender<audio::stream::ProcessFnMsg>>>,
-}
 
 /// A handle to the **App** that can be shared across threads. This may be used to "wake up" the
 /// **App**'s inner event loop.
@@ -768,12 +752,6 @@ impl App {
         let config = RefCell::new(Default::default());
         let renderer = RefCell::new(None);
         let draw_state = DrawState { draw, renderer };
-        let cpal_event_loop = Arc::new(cpal::EventLoop::new());
-        let process_fn_tx = RefCell::new(None);
-        let audio = Audio {
-            event_loop: cpal_event_loop,
-            process_fn_tx,
-        };
         let focused_window = RefCell::new(None);
         let ui = ui::Arrangement::new();
         let mouse = state::Mouse::new();
@@ -789,7 +767,6 @@ impl App {
             windows,
             config,
             draw_state,
-            audio,
             ui,
             mouse,
             keys,
@@ -1022,103 +999,6 @@ impl App {
     /// of the program.
     pub fn elapsed_frames(&self) -> u64 {
         self.main_window().frame_count
-    }
-}
-
-impl Audio {
-    /// Enumerate the available audio devices on the system.
-    ///
-    /// Produces an iterator yielding `audio::Device`s.
-    pub fn devices(&self) -> audio::Devices {
-        let devices = cpal::devices();
-        audio::Devices { devices }
-    }
-
-    /// Enumerate the available audio devices on the system that support input streams.
-    ///
-    /// Produces an iterator yielding `audio::Device`s.
-    pub fn input_devices(&self) -> audio::stream::input::Devices {
-        let devices = cpal::input_devices();
-        audio::stream::input::Devices { devices }
-    }
-
-    /// Enumerate the available audio devices on the system that support output streams.
-    ///
-    /// Produces an iterator yielding `audio::Device`s.
-    pub fn output_devices(&self) -> audio::stream::output::Devices {
-        let devices = cpal::output_devices();
-        audio::stream::output::Devices { devices }
-    }
-
-    /// The current default audio input device.
-    pub fn default_input_device(&self) -> Option<audio::Device> {
-        cpal::default_input_device().map(|device| audio::Device { device })
-    }
-
-    /// The current default audio output device.
-    pub fn default_output_device(&self) -> Option<audio::Device> {
-        cpal::default_output_device().map(|device| audio::Device { device })
-    }
-
-    /// Begin building a new input audio stream.
-    ///
-    /// If this is the first time a stream has been created, this method will spawn the
-    /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
-    pub fn new_input_stream<M, F, S>(
-        &self,
-        model: M,
-        capture: F,
-    ) -> audio::stream::input::Builder<M, F, S> {
-        audio::stream::input::Builder {
-            capture,
-            builder: self.new_stream(model),
-        }
-    }
-
-    /// Begin building a new output audio stream.
-    ///
-    /// If this is the first time a stream has been created, this method will spawn the
-    /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
-    pub fn new_output_stream<M, F, S>(
-        &self,
-        model: M,
-        render: F,
-    ) -> audio::stream::output::Builder<M, F, S> {
-        audio::stream::output::Builder {
-            render,
-            builder: self.new_stream(model),
-        }
-    }
-
-    // Builder initialisation shared between input and output streams.
-    //
-    // If this is the first time a stream has been created, this method will spawn the
-    // `cpal::EventLoop::run` method on its own thread, ready to run built streams.
-    fn new_stream<M, S>(&self, model: M) -> audio::stream::Builder<M, S> {
-        let process_fn_tx = if self.process_fn_tx.borrow().is_none() {
-            let event_loop = self.event_loop.clone();
-            let (tx, rx) = mpsc::channel();
-            let mut loop_context = audio::stream::LoopContext::new(rx);
-            thread::Builder::new()
-                .name("cpal::EventLoop::run thread".into())
-                .spawn(move || event_loop.run(move |id, data| loop_context.process(id, data)))
-                .expect("failed to spawn cpal::EventLoop::run thread");
-            *self.process_fn_tx.borrow_mut() = Some(tx.clone());
-            tx
-        } else {
-            self.process_fn_tx.borrow().as_ref().unwrap().clone()
-        };
-
-        audio::stream::Builder {
-            event_loop: self.event_loop.clone(),
-            process_fn_tx: process_fn_tx,
-            model,
-            sample_rate: None,
-            channels: None,
-            frames_per_buffer: None,
-            device: None,
-            sample_format: PhantomData,
-        }
     }
 }
 

@@ -1,7 +1,6 @@
 //! A collection of commonly used items that we recommend importing for ease of use.
 
 pub use crate::app::{self, App, LoopMode};
-pub use crate::audio;
 pub use crate::color::named::*;
 pub use crate::color::{Hsl, Hsla, Hsv, Hsva, Rgb, Rgba};
 pub use crate::event::WindowEvent::*;

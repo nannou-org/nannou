@@ -31,7 +31,6 @@ pub use crate::app::{App, LoopMode};
 pub use crate::draw::Draw;
 
 pub mod app;
-pub mod audio;
 pub mod color;
 pub mod draw;
 pub mod ease;
