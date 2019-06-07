@@ -2,7 +2,7 @@
 
 **Nannou is an open-source, creative-coding toolkit for Rust.**
 
-This aim of this guide is to help you find the information you are looking for.
+The aim of this guide is to help you find the information you are looking for.
 Whether you are new to Nannou and are looking for a place to start, or you are
 an experienced Nannou user looking for more advanced tutorials, this book should
 have something for you!
