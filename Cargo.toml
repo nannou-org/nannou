@@ -1,13 +1,13 @@
 [package]
-name = "lasy"
-version = "0.2.4"
+name = "nannou_laser"
+version = "0.3.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A cross-platform laser DAC detection and streaming API."
 edition = "2018"
 keywords = ["laser", "dac", "stream", "frame", "ether-dream"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/nannou-org/lasy.git"
-homepage = "https://github.com/nannou-org/lasy"
+repository = "https://github.com/nannou-org/nannou_laser.git"
+homepage = "https://github.com/nannou-org/nannou_laser"
 
 [dependencies]
 derive_more = "0.14"
