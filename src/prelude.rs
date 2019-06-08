@@ -19,7 +19,6 @@ pub use crate::math::{
     clamp, deg_to_rad, fmod, map_range, partial_max, partial_min, rad_to_deg, rad_to_turns,
     turns_to_rad,
 };
-pub use crate::osc;
 pub use crate::rand::{random, random_f32, random_f64, random_range};
 pub use crate::time::DurationF64;
 pub use crate::ui;
