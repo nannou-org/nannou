@@ -19,11 +19,11 @@ use std::sync::Arc;
 
 /// A general API that allows for detecting and enumerating laser DACs on a network and
 /// establishing new streams of communication with them.
-pub struct Lasy {
+pub struct Api {
     inner: Arc<Inner>,
 }
 
-// The inner state of the `Lasy` that can be easily shared between laser threads in an `Arc`.
+// The inner state of the `Api` that can be easily shared between laser threads in an `Arc`.
 //
 // This is useful for allowing streams to re-scan and find their associated DAC in the case it
 // drops out for some reason.
@@ -54,10 +54,10 @@ pub enum DacId {
     }
 }
 
-impl Lasy {
+impl Api {
     /// Instantiate the laser API.
     pub fn new() -> Self {
-        Lasy { inner: Arc::new(Inner) }
+        Api { inner: Arc::new(Inner) }
     }
 
     /// An iterator yielding laser DACs available on the system as they are discovered.
@@ -116,7 +116,7 @@ impl Lasy {
 }
 
 impl Inner {
-    // See the `Lasy::detect_dacs` docs.
+    // See the `Api::detect_dacs` docs.
     pub(crate) fn detect_dacs(&self) -> io::Result<DetectDacs> {
         let dac_broadcasts = ether_dream::recv_dac_broadcasts()?;
         Ok(DetectDacs { dac_broadcasts })
