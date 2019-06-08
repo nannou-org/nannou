@@ -12,7 +12,7 @@ Some of the features of this API include:
 
 - [x] Simple OSC `Sender` and `Receiver` API around the raw UDP socket and OSC
   protocol.
-- [x] Reasonable defaults sender and receiver binding UDP addresses.
+- [x] Reasonable defaults for sender and receiver binding UDP addresses.
 - [x] Type-safe distinction between "connected" and "unconnected" senders and
   receivers.
 - [x] Blocking and non-blocking `Iterator` APIs for `Receiver` type.
