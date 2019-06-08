@@ -38,7 +38,7 @@ impl Sender<Unconnected> {
     ///
     /// ```no_run
     ///
-    /// use nannou::osc::Sender;
+    /// use nannou_osc::Sender;
     ///
     /// fn main() {
     ///     let tx = Sender::bind_to("0.0.0.0:0").expect("Couldn't bind socket to the address");
@@ -74,7 +74,7 @@ impl Sender<Unconnected> {
     ///
     /// ```no_run
     ///
-    /// use nannou::osc::Sender;
+    /// use nannou_osc::Sender;
     ///
     /// fn main() {
     ///     let tx = Sender::bind()

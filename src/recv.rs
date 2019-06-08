@@ -83,7 +83,7 @@ impl Receiver<Unconnected> {
     /// Create a `Receiver` that listen for OSC packets on the given address.
     ///
     /// ```no_run
-    /// use nannou::osc::Receiver;
+    /// use nannou_osc::Receiver;
     ///
     /// fn main() {
     ///     let rx = Receiver::bind_to("127.0.0.1:34254").expect("Couldn't bind socket to address");
@@ -105,7 +105,7 @@ impl Receiver<Unconnected> {
     /// By default this is `DEFAULT_MTU`.
     ///
     /// ```no_run
-    /// use nannou::osc::Receiver;
+    /// use nannou_osc::Receiver;
     ///
     /// fn main() {
     ///     let rx = Receiver::bind_to_with_mtu("127.0.0.1:34254", 60_000)
@@ -134,7 +134,7 @@ impl Receiver<Unconnected> {
     /// The resulting socket address will be `0.0.0.0:<port>`.
     ///
     /// ```no_run
-    /// use nannou::osc::Receiver;
+    /// use nannou_osc::Receiver;
     ///
     /// fn main() {
     ///     let rx = Receiver::bind(34254).expect("Couldn't bind socket to default address");
@@ -149,7 +149,7 @@ impl Receiver<Unconnected> {
     /// The resulting socket address will be `0.0.0.0:<port>`.
     ///
     /// ```no_run
-    /// use nannou::osc::Receiver;
+    /// use nannou_osc::Receiver;
     ///
     /// fn main() {
     ///     let port = 34254;
@@ -168,7 +168,7 @@ impl Receiver<Unconnected> {
     /// **Panic!**s if the given `addr` cannot resolve to a valid `SocketAddr`.
     ///
     /// ```no_run
-    /// use nannou::osc::Receiver;
+    /// use nannou_osc::Receiver;
     ///
     /// fn main() {
     ///     let tx = Receiver::bind(34254)
