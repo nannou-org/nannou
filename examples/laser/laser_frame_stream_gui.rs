@@ -4,6 +4,7 @@
 use nannou::geom::Rect;
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
+use nannou_laser as laser;
 use std::sync::{mpsc, Arc};
 
 fn main() {
@@ -12,15 +13,15 @@ fn main() {
 
 struct Model {
     // A handle to the laser API used for spawning streams and detecting DACs.
-    laser_api: Arc<lasy::Lasy>,
+    laser_api: Arc<laser::Api>,
     // All of the live stream handles.
-    laser_streams: Vec<lasy::FrameStream<Laser>>,
+    laser_streams: Vec<laser::FrameStream<Laser>>,
     // A copy of the state that will live on the laser thread so we can present a GUI.
     laser_model: Laser,
     // A copy of the laser settings so that we can control them with the GUI.
     laser_settings: LaserSettings,
     // For receiving newly detected DACs.
-    dac_rx: mpsc::Receiver<lasy::DetectedDac>,
+    dac_rx: mpsc::Receiver<laser::DetectedDac>,
     // The UI for control over laser parameters and settings.
     ui: Ui,
     // The unique ID for each UI widget.
@@ -101,7 +102,7 @@ impl Default for Laser {
         Laser {
             draw_mode: DrawMode::Lines,
             scale: 1.0,
-            point_weight: lasy::Point::DEFAULT_LINE_POINT_WEIGHT,
+            point_weight: laser::Point::DEFAULT_LINE_POINT_WEIGHT,
             test_pattern: TestPattern::Rectangle,
             color_profile: Default::default(),
         }
@@ -110,8 +111,8 @@ impl Default for Laser {
 
 impl Default for LaserSettings {
     fn default() -> Self {
-        use lasy::stream;
-        use lasy::stream::frame::opt::InterpolationConfig;
+        use laser::stream;
+        use laser::stream::frame::opt::InterpolationConfig;
         LaserSettings {
             point_hz: stream::DEFAULT_POINT_HZ,
             latency_points: stream::points_per_frame(
@@ -149,8 +150,8 @@ fn model(app: &App) -> Model {
     let laser_settings = LaserSettings::default();
     let laser_model = Laser::default();
 
-    // TODO Implement `Clone` for `Lasy` so that we don't have to `Arc` it.
-    let laser_api = Arc::new(lasy::Lasy::new());
+    // TODO Implement `Clone` for `Api` so that we don't have to `Arc` it.
+    let laser_api = Arc::new(laser::Api::new());
 
     // A channel for receiving newly detected DACs.
     let (dac_tx, dac_rx) = mpsc::channel();
@@ -211,10 +212,10 @@ fn model(app: &App) -> Model {
 }
 
 // Draw lines or points based on the `DrawMode`.
-fn add_points<I>(points: I, mode: DrawMode, scale: f32, frame: &mut lasy::Frame)
+fn add_points<I>(points: I, mode: DrawMode, scale: f32, frame: &mut laser::Frame)
 where
     I: IntoIterator,
-    I::Item: AsRef<lasy::Point>,
+    I::Item: AsRef<laser::Point>,
 {
     let points = points.into_iter().map(|p| {
         let mut p = p.as_ref().clone();
@@ -228,7 +229,7 @@ where
     }
 }
 
-fn laser(laser: &mut Laser, frame: &mut lasy::Frame) {
+fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
     // Simple constructor for a lit point.
     let color = [
         laser.color_profile.red,
@@ -236,7 +237,7 @@ fn laser(laser: &mut Laser, frame: &mut lasy::Frame) {
         laser.color_profile.blue,
     ];
     let weight = laser.point_weight;
-    let lit_p = |position| lasy::Point {
+    let lit_p = |position| laser::Point {
         position,
         color,
         weight,
