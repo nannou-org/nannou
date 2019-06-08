@@ -2,14 +2,15 @@
 //! beam via a raw laser stream.
 
 use nannou::prelude::*;
+use nannou_laser as laser;
 
 fn main() {
     nannou::app(model).run();
 }
 
 struct Model {
-    _laser_api: lasy::Lasy,
-    laser_stream: lasy::RawStream<Laser>,
+    _laser_api: laser::Api,
+    laser_stream: laser::RawStream<Laser>,
 }
 
 struct Laser {
@@ -30,7 +31,7 @@ fn model(app: &App) -> Model {
         point_idx: 0,
         position: pt2(0.0, 0.0),
     };
-    let _laser_api = lasy::Lasy::new();
+    let _laser_api = laser::Api::new();
     let laser_stream = _laser_api
         .new_raw_stream(laser_model, laser)
         .build()
@@ -42,7 +43,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn laser(laser: &mut Laser, buffer: &mut lasy::Buffer) {
+fn laser(laser: &mut Laser, buffer: &mut laser::Buffer) {
     // Write white points to the laser stream at the current position.
     for point in buffer.iter_mut() {
         point.color = [1.0, 1.0, 1.0];

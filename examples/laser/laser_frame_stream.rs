@@ -1,14 +1,15 @@
 //! A simple example demonstrating how to use draw various patterns via a laser frame streams.
 
 use nannou::prelude::*;
+use nannou_laser as laser;
 
 fn main() {
     nannou::app(model).run();
 }
 
 struct Model {
-    _laser_api: lasy::Lasy,
-    laser_stream: lasy::FrameStream<Laser>,
+    _laser_api: laser::Api,
+    laser_stream: laser::FrameStream<Laser>,
 }
 
 struct Laser {
@@ -43,7 +44,7 @@ fn model(app: &App) -> Model {
     let laser_model = Laser {
         test_pattern: TestPattern::Rectangle,
     };
-    let _laser_api = lasy::Lasy::new();
+    let _laser_api = laser::Api::new();
     let laser_stream = _laser_api
         .new_frame_stream(laser_model, laser)
         .build()
@@ -55,9 +56,9 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn laser(laser: &mut Laser, frame: &mut lasy::Frame) {
+fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
     // Simple constructors for white or blank points.
-    let lit_p = |position| lasy::Point::new(position, [1.0; 3]);
+    let lit_p = |position| laser::Point::new(position, [1.0; 3]);
 
     // Draw the frame with the selected pattern.
     match laser.test_pattern {
