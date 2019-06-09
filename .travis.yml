@@ -2,6 +2,10 @@ language: rust
 cache: cargo
 before_script:
 - rustup component add rustfmt
+addons:
+    apt:
+        packages:
+            - libasound2-dev
 rust:
     - nightly
     - stable
