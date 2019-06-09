@@ -1,0 +1,15 @@
+[package]
+name = "timeline"
+version = "0.1.3"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+
+[dependencies]
+conrod_derive = "0.65"
+conrod_core = "0.65"
+itertools = "0.4.16"
+num = "0.1.27"
+
+[dev-dependencies]
+conrod = { version = "0.54", features = ["winit", "glium"] }
+find_folder = "0.3.0"
+rand = "0.3.12"

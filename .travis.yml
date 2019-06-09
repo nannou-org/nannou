@@ -1,0 +1,10 @@
+language: rust
+
+rust:
+    - nightly
+    - stable
+
+script:
+    - cargo build --verbose
+    - cargo test --verbose
+    - cargo doc --verbose
