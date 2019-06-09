@@ -111,16 +111,15 @@ impl Ruler {
 
             // Check for the smallest step in terms of width that would be produced by a ruler
             // with markers divided by the current `num_bars`.
-            let step_in_width = time_sigs
-                .clone()
-                .chunks_lazy(num_bars)
-                .into_iter()
-                .fold(::std::f64::MAX, |smallest_step, time_sigs| {
+            let step_in_width = time_sigs.clone().chunks_lazy(num_bars).into_iter().fold(
+                ::std::f64::MAX,
+                |smallest_step, time_sigs| {
                     let step = time_sigs.fold(0.0, |total, ts| {
                         total + (ts.beats_per_bar() * width_per_beat)
                     });
                     step.min(smallest_step)
-                });
+                },
+            );
 
             // If our step is still greater than the MIN_STEP_WIDTH, we'll keep
             // searching smaller and smaller num_bars steps.
@@ -314,9 +313,8 @@ where
 {
     type Item = BarMarkersInDivisions;
     fn next(&mut self) -> Option<BarMarkersInDivisions> {
-        self.markers_in_ticks_with_bars_and_starts
-            .next()
-            .map(|(markers_in_ticks, (time_sig, start))| {
+        self.markers_in_ticks_with_bars_and_starts.next().map(
+            |(markers_in_ticks, (time_sig, start))| {
                 let time_sig_bottom = time_sig.bottom;
                 let markers_in_ticks = BarMarkersInTicks {
                     maybe_next: markers_in_ticks.maybe_next.map(|ticks| ticks - start),
@@ -326,17 +324,15 @@ where
                 let ppqn = self.ppqn;
                 let duration_ticks = time_sig.ticks_per_bar(ppqn);
                 let ticks_iter = markers_in_ticks;
-                let simplest_divisions = bars::SimplestDivisions::new(
-                    ticks_iter,
-                    ppqn,
-                    duration_ticks,
-                );
+                let simplest_divisions =
+                    bars::SimplestDivisions::new(ticks_iter, ppqn, duration_ticks);
                 BarMarkersInDivisions {
                     time_sig_bottom: time_sig_bottom,
                     simplest_divisions: simplest_divisions,
                     marker_div: self.marker_div,
                 }
-            })
+            },
+        )
     }
 }
 

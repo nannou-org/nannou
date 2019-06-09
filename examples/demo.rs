@@ -1,18 +1,18 @@
 #[macro_use]
 extern crate conrod_core;
 extern crate nannou;
+extern crate nannou_timeline as timeline;
 extern crate pitch_calc;
 extern crate time_calc;
-extern crate nannou_timeline as timeline;
 
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
-use std::iter::once;
 use pitch_calc as pitch;
+use std::iter::once;
 use time_calc as time;
-use timeline::{bars, track};
 use timeline::track::automation::{BangValue as Bang, Envelope, Point, ToggleValue as Toggle};
 use timeline::track::piano_roll;
+use timeline::{bars, track};
 
 const BPM: time::calc::Bpm = 140.0;
 const ONE_SECOND_MS: time::calc::Ms = 1_000.0;
@@ -136,20 +136,18 @@ fn model(app: &App) -> Model {
             ticks: time::Ticks(0),
             value: Toggle(random()),
         };
-        let points = bars::Periods::new(bars.iter().cloned(), PPQN)
-            .map(|period| Point {
-                ticks: period.end,
-                value: Toggle(random()),
-            });
+        let points = bars::Periods::new(bars.iter().cloned(), PPQN).map(|period| Point {
+            ticks: period.end,
+            value: Toggle(random()),
+        });
         Envelope::from_points(once(start).chain(points), Toggle(false), Toggle(true))
     };
 
     let bang_envelope = {
-        let points = bars::Periods::new(bars.iter().cloned(), PPQN)
-            .map(|period| Point {
-                ticks: period.start,
-                value: Bang,
-            });
+        let points = bars::Periods::new(bars.iter().cloned(), PPQN).map(|period| Point {
+            ticks: period.start,
+            value: Bang,
+        });
         Envelope::from_points(points, Bang, Bang)
     };
 
@@ -183,7 +181,8 @@ fn update(_app: &App, model: &mut Model, update: Update) {
     set_widgets(&mut ui.set_widgets(), ids, timeline_data);
 
     // Update the playhead.
-    let total_duration_ticks = timeline::bars_duration_ticks(timeline_data.bars.iter().cloned(), PPQN);
+    let total_duration_ticks =
+        timeline::bars_duration_ticks(timeline_data.bars.iter().cloned(), PPQN);
     let total_duration_ms = total_duration_ticks.ms(BPM, PPQN);
     let total_duration_secs = total_duration_ms / ONE_SECOND_MS;
     let delta_secs = update.since_last.secs();
@@ -281,7 +280,8 @@ fn set_widgets(ui: &mut UiCell, ids: &Ids, data: &mut TimelineData) {
             ($envelope:expr) => {
                 let track = {
                     let automation =
-                        track::automation::Numeric::new(&context.bars, PPQN, $envelope).color(color);
+                        track::automation::Numeric::new(&context.bars, PPQN, $envelope)
+                            .color(color);
                     context.set_next_track(automation, ui)
                 };
                 for event in track.event {

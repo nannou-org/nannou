@@ -5,7 +5,7 @@ use ruler;
 use time_calc::{self as time, Ticks};
 use track;
 
-pub use env::{Point, PointTrait, Trait as EnvelopeTrait, Toggle as ToggleValue};
+pub use env::{Point, PointTrait, Toggle as ToggleValue, Trait as EnvelopeTrait};
 
 /// The envelope type compatible with the `Toggle` automation track.
 pub type Envelope = env::bounded::Envelope<ToggleValue>;

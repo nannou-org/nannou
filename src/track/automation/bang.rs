@@ -1,8 +1,8 @@
+use super::EnvelopeTrait;
 use bars_duration_ticks;
 use conrod_core::{self as conrod, widget};
 use env;
 use ruler;
-use super::EnvelopeTrait;
 use time_calc::{self as time, Ticks};
 use track;
 

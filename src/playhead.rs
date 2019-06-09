@@ -122,7 +122,8 @@ impl conrod::Widget for Playhead {
                 // Only react if the new position is different to the current position.
                 if (rect.x() - new_x).abs() > 0.5 {
                     let x_offset = new_x - visible_tracks_x.start;
-                    let target_position = time::Ticks((ruler.ticks_per_width(ppqn) * x_offset) as _);
+                    let target_position =
+                        time::Ticks((ruler.ticks_per_width(ppqn) * x_offset) as _);
                     events.push(Event::DraggedTo(target_position));
                 }
             }

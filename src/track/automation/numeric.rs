@@ -6,7 +6,7 @@ use ruler;
 use time_calc::{self as time, Ticks};
 use track;
 
-pub use env::{Point, PointTrait, Trait as EnvelopeTrait, bounded::Envelope};
+pub use env::{bounded::Envelope, Point, PointTrait, Trait as EnvelopeTrait};
 
 /// For viewing and manipulating series of numerically valued points over time.
 #[derive(WidgetCommon)]

@@ -3,11 +3,11 @@ use num::{self, NumCast};
 use time_calc::{self as time, Ticks};
 use track;
 
-pub use env::{Bang, Number, Point, Toggle, ValueKind};
 pub use env::bounded::Dynamic as DynamicEnvelope;
 pub use env::bounded::Envelope;
 pub use env::PointTrait;
 pub use env::Trait as EnvelopeTrait;
+pub use env::{Bang, Number, Point, Toggle, ValueKind};
 
 /// A widget used for viewing and manipulating a series of points over time.
 #[derive(WidgetCommon)]

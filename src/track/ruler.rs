@@ -91,7 +91,9 @@ impl<'a> conrod::Widget for Ruler<'a> {
             ui,
             ..
         } = args;
-        let Ruler { ruler, bars, ppqn, .. } = self;
+        let Ruler {
+            ruler, bars, ppqn, ..
+        } = self;
 
         // All that remains is to instantiate the graphics widgets.
         //

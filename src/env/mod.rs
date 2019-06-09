@@ -1,12 +1,12 @@
 use std;
 use time_calc as time;
 
-pub use envelope::interpolation::Spatial;
-pub use envelope::Envelope as Trait;
 pub use self::bang::Bang;
 pub use self::point::Point;
 pub use self::point::Trait as PointTrait;
 pub use self::toggle::Toggle;
+pub use envelope::interpolation::Spatial;
+pub use envelope::Envelope as Trait;
 
 pub mod bang;
 pub mod bounded;

@@ -1,9 +1,9 @@
 use bars_duration_ticks;
 use conrod_core::{self as conrod, widget};
 use period::Period;
-use track;
 use pitch_calc::{self as pitch, Letter, LetterOctave};
 use time_calc::{self as time, Ticks};
+use track;
 
 /// A PianoRoll widget builder type.
 #[derive(WidgetCommon)]
@@ -244,14 +244,13 @@ impl<'a> conrod::Widget for PianoRoll<'a> {
         };
 
         // Converts the period along the timeline to a Scalar Range.
-        let period_to_w_and_x_offset =
-            move |period: Period| -> (conrod::Scalar, conrod::Scalar) {
-                let half_duration = Ticks(period.duration().ticks() / 2);
-                let period_middle = period.start + half_duration;
-                let middle_x_offset = ticks_to_x_offset(period_middle) - half_w;
-                let width = ticks_to_x_offset(period.duration());
-                (width, middle_x_offset)
-            };
+        let period_to_w_and_x_offset = move |period: Period| -> (conrod::Scalar, conrod::Scalar) {
+            let half_duration = Ticks(period.duration().ticks() / 2);
+            let period_middle = period.start + half_duration;
+            let middle_x_offset = ticks_to_x_offset(period_middle) - half_w;
+            let width = ticks_to_x_offset(period.duration());
+            (width, middle_x_offset)
+        };
 
         let iter = notes.iter().enumerate().zip(state.ids.notes.iter());
         for ((i, note), &note_id) in iter {
