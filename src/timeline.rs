@@ -6,7 +6,6 @@ use std;
 use std::collections::HashMap;
 use track;
 
-
 /// A widget for viewing and controlling time related data.
 #[derive(WidgetCommon)]
 pub struct Timeline<B> {
@@ -79,7 +78,6 @@ pub struct Style {
     #[conrod(default = "theme.border_color")]
     pub separator_color: Option<conrod::Color>,
 }
-
 
 /// Styling attributes for the tracks that make up the timeline.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -180,25 +178,28 @@ pub struct Track<E> {
 /// The thickness of the scrollbar.
 pub const SCROLLBAR_THICKNESS: conrod::Scalar = 10.0;
 
-
 impl Context {
-
     /// Instantiate the next `Track` in the `Timeline`'s list of tracks.
     ///
     /// The user never calls this directly. Instead, this method is called via
     /// `PinnedTracks::set_next_pinned_track` or `Tracks::set_next_track`.
-    fn set_next_track<T>(&self,
-                         widget: T,
-                         parent_id: widget::Id,
-                         track_sibling_index: usize,
-                         ui: &mut conrod::UiCell) -> Track<T::Event>
-        where T: track::Widget,
+    fn set_next_track<T>(
+        &self,
+        widget: T,
+        parent_id: widget::Id,
+        track_sibling_index: usize,
+        ui: &mut conrod::UiCell,
+    ) -> Track<T::Event>
+    where
+        T: track::Widget,
     {
         // Retrieve the state that is shared with the `Timeline`.
-        let shared = self.shared.upgrade().expect("No shared timeline state found. Check that the \
-                                                   `Ui` has not been dropped and that the \
-                                                   timeline's state has not been dropped from \
-                                                   the widget graph.");
+        let shared = self.shared.upgrade().expect(
+            "No shared timeline state found. Check that the \
+             `Ui` has not been dropped and that the \
+             timeline's state has not been dropped from \
+             the widget graph.",
+        );
         let mut shared = shared.lock().unwrap();
 
         // Retrieve the index for this track within the list of all tracks.
@@ -248,7 +249,10 @@ impl Context {
             let half_separator_h = separator_h / 2.0;
             let y_top_max = match track_sibling_index {
                 0 => ui.kid_area_of(parent_id).unwrap().top(),
-                _ => ui.rect_of(shared.separator_ids[track_index-1]).unwrap().bottom(),
+                _ => ui
+                    .rect_of(shared.separator_ids[track_index - 1])
+                    .unwrap()
+                    .bottom(),
             };
             let y_middle_max = y_top_max - half_separator_h;
             const MIN_TRACK_HEIGHT: conrod::Scalar = 1.0;
@@ -261,7 +265,9 @@ impl Context {
         // If the track does not yet have a specified height, check to see whether the `TrackStyle`
         // specifies some default height that should be used.
         let maybe_height = {
-            shared.overridden_track_heights.get(&track_id)
+            shared
+                .overridden_track_heights
+                .get(&track_id)
                 .map(|&h| h)
                 .or_else(|| match widget.common().style.maybe_y_dimension {
                     None => self.track_style.maybe_height,
@@ -277,9 +283,9 @@ impl Context {
             .and(|w| match track_sibling_index {
                 0 => w.top_left_of(parent_id),
                 _ => {
-                    let last_separator_id = shared.separator_ids[track_index-1];
+                    let last_separator_id = shared.separator_ids[track_index - 1];
                     w.down_from(last_separator_id, 0.0)
-                },
+                }
             })
             .and_then(maybe_height, |w, h| w.h(h))
             .crop_kids()
@@ -292,12 +298,20 @@ impl Context {
 
             // Expand the height of the separator slightly when the mouse is nearby.
             let separator_h = match ui.widget_input(separator_id).mouse() {
-                Some(_) => self.track_style.separator_thickness.max(MIN_HOVERED_SEPARATOR_H),
+                Some(_) => self
+                    .track_style
+                    .separator_thickness
+                    .max(MIN_HOVERED_SEPARATOR_H),
                 None => match ui.global_input().current.widget_capturing_mouse {
                     Some(widget) => match ui.widget_input(track_id).mouse().is_some()
-                        || ui.widget_graph().does_recursive_depth_edge_exist(track_id, widget)
+                        || ui
+                            .widget_graph()
+                            .does_recursive_depth_edge_exist(track_id, widget)
                     {
-                        true => self.track_style.separator_thickness.max(MIN_NEAR_SEPARATOR_H),
+                        true => self
+                            .track_style
+                            .separator_thickness
+                            .max(MIN_NEAR_SEPARATOR_H),
                         false => self.track_style.separator_thickness,
                     },
                     None => self.track_style.separator_thickness,
@@ -322,7 +336,8 @@ impl Context {
 
         let track_h = ui.h_of(track_id).unwrap();
         let separator_h = ui.h_of(separator_id).unwrap();
-        self.combined_track_height.set(self.combined_track_height.get() + track_h + separator_h);
+        self.combined_track_height
+            .set(self.combined_track_height.get() + track_h + separator_h);
         self.track_index.set(track_index + 1);
 
         Track {
@@ -333,7 +348,6 @@ impl Context {
             event: event,
         }
     }
-
 }
 
 impl Drop for Context {
@@ -349,16 +363,17 @@ impl Drop for Context {
 }
 
 impl PinnedTracks {
-
     /// Set the given `widget` as the next pinned track.
     ///
     /// Returns information about the `Track` as well as the `widget`'s `Event`.
     pub fn set_next_pinned_track<T>(&self, widget: T, ui: &mut conrod::UiCell) -> Track<T::Event>
-        where T: track::Widget,
+    where
+        T: track::Widget,
     {
         let parent_id = self.context.canvas_id;
         let sibling_track_index = self.context.track_index.get();
-        self.context.set_next_track(widget, parent_id, sibling_track_index, ui)
+        self.context
+            .set_next_track(widget, parent_id, sibling_track_index, ui)
     }
 
     /// Finalizes the `PinnedTracksContext` and returns a `TracksContext` that allows for setting
@@ -367,7 +382,10 @@ impl PinnedTracks {
         let PinnedTracks { context } = self;
 
         // Place the scrollable canvas in the area underneath the pinned tracks.
-        let inner_rect = ui.rect_of(context.timeline_id).unwrap().pad(context.track_style.border);
+        let inner_rect = ui
+            .rect_of(context.timeline_id)
+            .unwrap()
+            .pad(context.track_style.border);
         let pinned_tracks_h = context.combined_track_height.get();
         let scrollable_rectangle_w = inner_rect.w();
         let scrollable_rectangle_h = inner_rect.h() - pinned_tracks_h;
@@ -383,21 +401,22 @@ impl PinnedTracks {
             pinned_tracks_height: pinned_tracks_h,
         }
     }
-
 }
 
 impl Tracks {
-
     /// Set the given `widget` as the next track.
     ///
     /// Returns information about the `Track` as well as the `widget`'s `Event`.
     pub fn set_next_track<T>(&self, widget: T, ui: &mut conrod::UiCell) -> Track<T::Event>
-        where T: track::Widget,
+    where
+        T: track::Widget,
     {
         let parent_id = self.context.scrollable_rectangle_id;
         let sibling_track_index = self.next_non_pinned_track_index.get();
-        self.next_non_pinned_track_index.set(sibling_track_index + 1);
-        self.context.set_next_track(widget, parent_id, sibling_track_index, ui)
+        self.next_non_pinned_track_index
+            .set(sibling_track_index + 1);
+        self.context
+            .set_next_track(widget, parent_id, sibling_track_index, ui)
     }
 
     /// To be called when all tracks have been instantiated.
@@ -407,11 +426,9 @@ impl Tracks {
         let Tracks { context, .. } = self;
         Final { context: context }
     }
-
 }
 
 impl Final {
-
     /// Instantiate the `Playhead` widget, visible over all tracks that have been instantiated so
     /// far. To show the `Playhead` over all tracks, call this after all tracks have been set.
     pub fn set_playhead(&self, ui: &mut conrod::UiCell) -> Vec<playhead::Event> {
@@ -466,7 +483,6 @@ impl Final {
             None
         }
     }
-
 }
 
 impl std::ops::Deref for PinnedTracks {
@@ -490,12 +506,11 @@ impl std::ops::Deref for Final {
     }
 }
 
-
 impl<B> Timeline<B> {
-
     /// Construct a new Timeline widget in it's default state.
     pub fn new(bars: B) -> Self
-        where B: IntoIterator<Item=core::Bar>,
+    where
+        B: IntoIterator<Item = core::Bar>,
     {
         Timeline {
             common: widget::CommonBuilder::default(),
@@ -506,7 +521,7 @@ impl<B> Timeline<B> {
         }
     }
 
-    builder_methods!{
+    builder_methods! {
         pub playhead { playhead = Some(time::Ticks) }
         pub track_height { maybe_track_height = Some(conrod::Scalar) }
         pub label_color { style.label_color = Some(conrod::Color) }
@@ -514,12 +529,11 @@ impl<B> Timeline<B> {
         pub separator_thickness { style.separator_thickness = Some(conrod::Scalar) }
         pub separator_color { style.separator_color = Some(conrod::Color) }
     }
-
 }
 
-
 impl<B> conrod::Widget for Timeline<B>
-    where B: IntoIterator<Item=core::Bar>,
+where
+    B: IntoIterator<Item = core::Bar>,
 {
     type State = State;
     type Style = Style;
@@ -546,7 +560,9 @@ impl<B> conrod::Widget for Timeline<B>
 
     /// The area of the widget below the title bar, upon which child widgets will be placed.
     fn kid_area(&self, args: widget::KidAreaArgs<Self>) -> widget::KidArea {
-        let widget::KidAreaArgs { rect, style, theme, .. } = args;
+        let widget::KidAreaArgs {
+            rect, style, theme, ..
+        } = args;
         widget::KidArea {
             rect: rect.pad(style.border(theme) / 2.0),
             pad: conrod::position::Padding::none(),
@@ -555,11 +571,23 @@ impl<B> conrod::Widget for Timeline<B>
 
     /// Update the state of the Timeline.
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
-        use conrod::{Colorable, Borderable, Positionable, Sizeable};
+        use conrod::{Borderable, Colorable, Positionable, Sizeable};
         use diff::{iter_diff, IterDiff};
 
-        let widget::UpdateArgs { id, state, rect, style, ui, .. } = args;
-        let Timeline { playhead, bars, maybe_track_height, .. } = self;
+        let widget::UpdateArgs {
+            id,
+            state,
+            rect,
+            style,
+            ui,
+            ..
+        } = args;
+        let Timeline {
+            playhead,
+            bars,
+            maybe_track_height,
+            ..
+        } = self;
         let color = style.color(&ui.theme);
         let border = style.border(&ui.theme) / 2.0;
         let border_color = style.border_color(&ui.theme);
@@ -577,8 +605,9 @@ impl<B> conrod::Widget for Timeline<B>
         // First, ensure that our `state`'s `bars` is up to date.
         if let Some(diff) = iter_diff(&shared.bars, bars) {
             match diff {
-                IterDiff::FirstMismatch(i, bs) =>
-                    shared.bars = shared.bars.iter().cloned().take(i).chain(bs).collect(),
+                IterDiff::FirstMismatch(i, bs) => {
+                    shared.bars = shared.bars.iter().cloned().take(i).chain(bs).collect()
+                }
                 IterDiff::Longer(bs) => shared.bars.extend(bs),
                 IterDiff::Shorter(len) => shared.bars.truncate(len),
             }
@@ -595,7 +624,9 @@ impl<B> conrod::Widget for Timeline<B>
             .set(state.ids.canvas, ui);
 
         // If the timeline is scrollable, adjust the width of the tracks to fit the Scrollbar.
-        let is_scrollable = ui.widget_graph().widget(state.ids.scrollable_rectangle)
+        let is_scrollable = ui
+            .widget_graph()
+            .widget(state.ids.scrollable_rectangle)
             .and_then(|w| w.maybe_y_scroll_state.as_ref())
             .map(|scroll_state| scroll_state.offset_bounds.magnitude().is_sign_negative())
             .unwrap_or(false);
@@ -621,7 +652,10 @@ impl<B> conrod::Widget for Timeline<B>
         let num_markers = ruler.marker_count(shared.bars.iter().cloned());
         if state.ids.grid_lines.len() < num_markers {
             state.update(|state| {
-                state.ids.grid_lines.resize(num_markers, &mut ui.widget_id_generator());
+                state
+                    .ids
+                    .grid_lines
+                    .resize(num_markers, &mut ui.widget_id_generator());
             });
         }
         let mut grid_line_idx = 0;
@@ -647,7 +681,10 @@ impl<B> conrod::Widget for Timeline<B>
         }
 
         let maybe_playhead = playhead.map(|playhead| {
-            let delta = state.playhead.map(|old| playhead - old).unwrap_or(time::Ticks(0));
+            let delta = state
+                .playhead
+                .map(|old| playhead - old)
+                .unwrap_or(time::Ticks(0));
             (playhead, delta)
         });
 
@@ -689,16 +726,14 @@ impl<B> conrod::Widget for Timeline<B>
 
         PinnedTracks { context: context }
     }
-
 }
-
 
 impl<B> conrod::Colorable for Timeline<B> {
     builder_method!(color { style.color = Some(conrod::Color) });
 }
 
 impl<B> conrod::Borderable for Timeline<B> {
-    builder_methods!{
+    builder_methods! {
         border { style.border = Some(conrod::Scalar) }
         border_color { style.border_color = Some(conrod::Color) }
     }

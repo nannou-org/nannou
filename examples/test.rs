@@ -1,4 +1,5 @@
-#[macro_use] extern crate conrod;
+#[macro_use]
+extern crate conrod;
 extern crate core;
 extern crate find_folder;
 extern crate rand;
@@ -48,7 +49,9 @@ fn main() {
     let mut ui = conrod::UiBuilder::new([WIDTH as f64, HEIGHT as f64]).build();
 
     // Add a `Font` to the `Ui`'s `font::Map` from file.
-    let assets = find_folder::Search::KidsThenParents(3, 5).for_folder("assets").unwrap();
+    let assets = find_folder::Search::KidsThenParents(3, 5)
+        .for_folder("assets")
+        .unwrap();
     let font_path = assets.join("fonts/NotoSans/NotoSans-Regular.ttf");
     ui.fonts.insert_from_file(font_path).unwrap();
 
@@ -60,98 +63,120 @@ fn main() {
     // A short-hand constructor for a Bar.
     fn new_bar(top: u16, bottom: u16) -> core::Bar {
         core::Bar {
-            time_sig: time::TimeSig { top: top, bottom: bottom },
+            time_sig: time::TimeSig {
+                top: top,
+                bottom: bottom,
+            },
             maybe_swing: None,
         }
     }
 
     // Construct our initial App data.
-    let mut app = {
-        use timeline::track::automation::{BangValue as Bang, Envelope, Point, ToggleValue as Toggle};
+    let mut app =
+        {
+            use timeline::track::automation::{
+                BangValue as Bang, Envelope, Point, ToggleValue as Toggle,
+            };
 
-        let bars = vec![
-            new_bar(4, 4),
-            new_bar(4, 4),
-            new_bar(6, 8),
-            new_bar(6, 8),
-            new_bar(4, 4),
-            new_bar(4, 4),
-            new_bar(7, 8),
-            new_bar(7, 8),
-        ];
+            let bars = vec![
+                new_bar(4, 4),
+                new_bar(4, 4),
+                new_bar(6, 8),
+                new_bar(6, 8),
+                new_bar(4, 4),
+                new_bar(4, 4),
+                new_bar(7, 8),
+                new_bar(7, 8),
+            ];
 
-        let notes = bars.iter().cloned().periods().enumerate().map(|(i, period)| {
-            Note {
-                period: period,
-                pitch: core::pitch::Step((24 + (i * 5) % 12) as f32).to_letter_octave(),
-                velocity: 1.0,
-            }
-        }).collect();
-
-        let tempo_envelope = {
-            let start = Point { ticks: time::Ticks(0), value: 20.0 };
-            let points = bars.iter().cloned().periods().enumerate().map(|(i, period)| {
-                Point {
-                    ticks: period.end(),
-                    value: 20.0 + (i + 1) as f32 * 60.0 % 220.0,
-                }
-            });
-            Envelope::from_points(once(start).chain(points), 20.0, 240.0)
-        };
-
-        let octave_envelope = {
-            let start = Point { ticks: time::Ticks(0), value: 0 };
-            let points = bars.iter().cloned().with_starts().enumerate().flat_map(|(i, (bar, start))| {
-                bar.division_periods(time::Division::Beat).enumerate().map(move |(j, period)| {
-                    Point {
-                        ticks: start + period.end(),
-                        value: 1 + ((i as i32 + j as i32) * 3) % 12,
-                    }
+            let notes = bars
+                .iter()
+                .cloned()
+                .periods()
+                .enumerate()
+                .map(|(i, period)| Note {
+                    period: period,
+                    pitch: core::pitch::Step((24 + (i * 5) % 12) as f32).to_letter_octave(),
+                    velocity: 1.0,
                 })
-            });
-            Envelope::from_points(once(start).chain(points), 0, 12)
-        };
+                .collect();
 
-        let toggle_envelope = {
-            let start = Point { ticks: time::Ticks(0), value: Toggle(rand::random()) };
-            let points = bars.iter().cloned().periods().map(|period| {
-                Point {
+            let tempo_envelope = {
+                let start = Point {
+                    ticks: time::Ticks(0),
+                    value: 20.0,
+                };
+                let points = bars
+                    .iter()
+                    .cloned()
+                    .periods()
+                    .enumerate()
+                    .map(|(i, period)| Point {
+                        ticks: period.end(),
+                        value: 20.0 + (i + 1) as f32 * 60.0 % 220.0,
+                    });
+                Envelope::from_points(once(start).chain(points), 20.0, 240.0)
+            };
+
+            let octave_envelope =
+                {
+                    let start = Point {
+                        ticks: time::Ticks(0),
+                        value: 0,
+                    };
+                    let points = bars.iter().cloned().with_starts().enumerate().flat_map(
+                        |(i, (bar, start))| {
+                            bar.division_periods(time::Division::Beat).enumerate().map(
+                                move |(j, period)| Point {
+                                    ticks: start + period.end(),
+                                    value: 1 + ((i as i32 + j as i32) * 3) % 12,
+                                },
+                            )
+                        },
+                    );
+                    Envelope::from_points(once(start).chain(points), 0, 12)
+                };
+
+            let toggle_envelope = {
+                let start = Point {
+                    ticks: time::Ticks(0),
+                    value: Toggle(rand::random()),
+                };
+                let points = bars.iter().cloned().periods().map(|period| Point {
                     ticks: period.end(),
                     value: Toggle(rand::random()),
-                }
-            });
-            Envelope::from_points(once(start).chain(points), Toggle(false), Toggle(true))
-        };
+                });
+                Envelope::from_points(once(start).chain(points), Toggle(false), Toggle(true))
+            };
 
-        let bang_envelope = {
-            let points = bars.iter().cloned().periods().map(|period| {
-                Point {
+            let bang_envelope = {
+                let points = bars.iter().cloned().periods().map(|period| Point {
                     ticks: period.start(),
                     value: Bang,
-                }
-            });
-            Envelope::from_points(points, Bang, Bang)
-        };
+                });
+                Envelope::from_points(points, Bang, Bang)
+            };
 
-        App {
-            playhead_secs: 0.0,
-            bars: bars,
-            notes: notes,
-            tempo_envelope: tempo_envelope,
-            octave_envelope: octave_envelope,
-            toggle_envelope: toggle_envelope,
-            bang_envelope: bang_envelope,
-        }
-    };
+            App {
+                playhead_secs: 0.0,
+                bars: bars,
+                notes: notes,
+                tempo_envelope: tempo_envelope,
+                octave_envelope: octave_envelope,
+                toggle_envelope: toggle_envelope,
+                bang_envelope: bang_envelope,
+            }
+        };
 
     let ids = Ids::new(ui.widget_id_generator());
 
     // Draws the given `primitives` to the given `Display`.
-    fn draw(display: &glium::Display,
-            renderer: &mut conrod::backend::glium::Renderer,
-            image_map: &conrod::image::Map<glium::Texture2d>,
-            primitives: conrod::render::Primitives)
-    {
+    fn draw(
+        display: &glium::Display,
+        renderer: &mut conrod::backend::glium::Renderer,
+        image_map: &conrod::image::Map<glium::Texture2d>,
+        primitives: conrod::render::Primitives,
+    ) {
         renderer.fill(display, primitives, &image_map);
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 0.0, 1.0);
@@ -161,10 +186,8 @@ fn main() {
 
     let mut closed = false;
     while !closed {
-
         // Poll for events.
         events_loop.poll_events(|event| {
-
             // Use the `glutin` backend feature to convert the glutin event to a conrod one.
             if let Some(event) = conrod::backend::winit::convert_event(event.clone(), &display) {
                 ui.handle_event(event);
@@ -172,7 +195,6 @@ fn main() {
 
             match event {
                 glium::glutin::Event::WindowEvent { event, .. } => match event {
-
                     // Update the GUI and redraw on Resized because macOS will block.
                     glium::glutin::WindowEvent::Resized(..) => {
                         // Instantiate a GUI demonstrating the timeline.
@@ -182,15 +204,16 @@ fn main() {
                         }
                         let primitives = ui.draw();
                         draw(&display, &mut renderer, &image_map, primitives);
-                    },
+                    }
 
                     // Break from the loop upon `Escape`.
-                    glium::glutin::WindowEvent::Closed |
-                    glium::glutin::WindowEvent::KeyboardInput {
-                        input: glium::glutin::KeyboardInput {
-                            virtual_keycode: Some(glium::glutin::VirtualKeyCode::Escape),
-                            ..
-                        },
+                    glium::glutin::WindowEvent::Closed
+                    | glium::glutin::WindowEvent::KeyboardInput {
+                        input:
+                            glium::glutin::KeyboardInput {
+                                virtual_keycode: Some(glium::glutin::VirtualKeyCode::Escape),
+                                ..
+                            },
                         ..
                     } => closed = true,
                     _ => (),
@@ -219,13 +242,11 @@ fn main() {
         // Avoid hogging the CPU.
         std::thread::sleep(std::time::Duration::from_millis(16));
     }
-
 }
-
 
 // Update / draw the Ui.
 fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
-    use conrod::{widget, Colorable, Borderable, Positionable, Sizeable, Widget};
+    use conrod::{widget, Borderable, Colorable, Positionable, Sizeable, Widget};
     use timeline::{track, Timeline};
 
     // Main window canvas.
@@ -309,7 +330,8 @@ fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
         macro_rules! numeric_automation {
             ($envelope:expr) => {
                 let track = {
-                    let automation = track::automation::Numeric::new(&context.bars, $envelope).color(color);
+                    let automation =
+                        track::automation::Numeric::new(&context.bars, $envelope).color(color);
                     context.set_next_track(automation, ui)
                 };
                 for event in track.event {
@@ -329,7 +351,8 @@ fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
 
         // Toggle automation.
         let track = {
-            let automation = track::automation::Toggle::new(&context.bars, toggle_envelope).color(color);
+            let automation =
+                track::automation::Toggle::new(&context.bars, toggle_envelope).color(color);
             context.set_next_track(automation, ui)
         };
         for event in track.event {
@@ -343,7 +366,8 @@ fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
 
         // Bang automation.
         let track = {
-            let automation = track::automation::Bang::new(&context.bars, bang_envelope).color(color);
+            let automation =
+                track::automation::Bang::new(&context.bars, bang_envelope).color(color);
             context.set_next_track(automation, ui)
         };
         for event in track.event {

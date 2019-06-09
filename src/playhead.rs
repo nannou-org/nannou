@@ -4,7 +4,6 @@ use conrod::{self, widget};
 use core::time;
 use ruler;
 
-
 /// A widget representing a snappable playhead over some given range.
 #[derive(WidgetCommon)]
 pub struct Playhead {
@@ -15,7 +14,6 @@ pub struct Playhead {
     visible_tracks_x: conrod::Range,
     style: Style,
 }
-
 
 /// The unique playhead state to be cached within the `Ui` between updates.
 pub struct State {
@@ -30,7 +28,6 @@ widget_ids! {
 pub struct Style {
     #[conrod(default = "theme.border_color")]
     color: Option<conrod::Color>,
-
 }
 
 /// Events that may occur within the Playhead widget.
@@ -41,9 +38,7 @@ pub enum Event {
     Released,
 }
 
-
 impl Playhead {
-
     /// Start building a new Playhead widget.
     pub fn new(ruler: ruler::Ruler, visible_tracks_x: conrod::Range) -> Self {
         Playhead {
@@ -53,9 +48,7 @@ impl Playhead {
             style: Style::default(),
         }
     }
-
 }
-
 
 impl conrod::Widget for Playhead {
     type State = State;
@@ -76,25 +69,35 @@ impl conrod::Widget for Playhead {
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
         use conrod::{Colorable, Positionable};
 
-        let widget::UpdateArgs { id, rect, state, style, ui, .. } = args;
-        let Playhead { ruler, visible_tracks_x, .. } = self;
+        let widget::UpdateArgs {
+            id,
+            rect,
+            state,
+            style,
+            ui,
+            ..
+        } = args;
+        let Playhead {
+            ruler,
+            visible_tracks_x,
+            ..
+        } = self;
 
         let mut events = Vec::new();
 
         // Check for widget events:
-        // - Press to 
+        // - Press to
         for widget_event in ui.widget_input(id).events() {
             use conrod::{event, input};
 
             match widget_event {
-
                 // If the `Playhead` was pressed with the left mouse button, react with a `Pressed`
                 // event.
                 event::Widget::Press(press) => {
                     if let event::Button::Mouse(input::MouseButton::Left, _) = press.button {
                         events.push(Event::Pressed);
                     }
-                },
+                }
 
                 // If the left mouse button was released from the playhead, reacti with a
                 // `Released` event.
@@ -102,7 +105,7 @@ impl conrod::Widget for Playhead {
                     if let event::Button::Mouse(input::MouseButton::Left, _) = release.button {
                         events.push(Event::Released);
                     }
-                },
+                }
 
                 _ => (),
             }
@@ -142,9 +145,7 @@ impl conrod::Widget for Playhead {
 
         events
     }
-
 }
-
 
 impl conrod::Colorable for Playhead {
     builder_method!(color { style.color = Some(conrod::Color) });

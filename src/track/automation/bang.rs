@@ -1,15 +1,10 @@
 use conrod::{self, widget};
-use core::{self, BarIterator};
 use core::time::Ticks;
+use core::{self, BarIterator};
 use ruler;
 use track;
 
-pub use core::automation::{
-    EnvelopeTrait,
-    Point,
-    PointTrait,
-    Bang as BangValue,
-};
+pub use core::automation::{Bang as BangValue, EnvelopeTrait, Point, PointTrait};
 
 /// The bounded envelope type compatible with the `Bang` automation track.
 pub type Envelope = core::automation::BoundedEnvelope<BangValue>;
@@ -63,9 +58,7 @@ pub enum Event {
     Mutate(super::Mutate<BangValue>),
 }
 
-
 impl<'a> Bang<'a> {
-
     /// Construct a new default Automation.
     pub fn new(bars: &'a [core::Bar], envelope: &'a Envelope) -> Self {
         Bang {
@@ -82,7 +75,6 @@ impl<'a> Bang<'a> {
         self.style.point_radius = Some(radius);
         self
     }
-
 }
 
 impl<'a> track::Widget for Bang<'a> {
@@ -91,7 +83,6 @@ impl<'a> track::Widget for Bang<'a> {
         self
     }
 }
-
 
 impl Pole {
     pub fn new(id_gen: &mut widget::id::Generator) -> Self {
@@ -103,14 +94,12 @@ impl Pole {
     }
 }
 
-
 impl<'a> conrod::Colorable for Bang<'a> {
     fn color(mut self, color: conrod::Color) -> Self {
         self.style.color = Some(color);
         self
     }
 }
-
 
 impl<'a> conrod::Widget for Bang<'a> {
     type State = State;
@@ -129,17 +118,32 @@ impl<'a> conrod::Widget for Bang<'a> {
     }
 
     fn default_y_dimension(&self, ui: &conrod::Ui) -> conrod::position::Dimension {
-        ui.theme.widget_style::<Style>()
+        ui.theme
+            .widget_style::<Style>()
             .and_then(|default| default.common.maybe_y_dimension)
-            .unwrap_or(conrod::position::Dimension::Absolute(super::super::DEFAULT_HEIGHT))
+            .unwrap_or(conrod::position::Dimension::Absolute(
+                super::super::DEFAULT_HEIGHT,
+            ))
     }
 
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
-        use conrod::{Colorable, Positionable};
         use super::Elem;
+        use conrod::{Colorable, Positionable};
 
-        let widget::UpdateArgs { id, rect, state, style, ui, .. } = args;
-        let Bang { envelope, bars, maybe_playhead, .. } = self;
+        let widget::UpdateArgs {
+            id,
+            rect,
+            state,
+            style,
+            ui,
+            ..
+        } = args;
+        let Bang {
+            envelope,
+            bars,
+            maybe_playhead,
+            ..
+        } = self;
 
         // Ensure we've a `Pole` for each point in the envelope.
         let num_points = envelope.points().count();
@@ -160,18 +164,21 @@ impl<'a> conrod::Widget for Bang<'a> {
         let total_ticks = bars.iter().cloned().total_duration();
 
         // Get the x position of the given ticks relative to the centre of the Bang automation.
-        let rel_x_from_ticks = |ticks: Ticks| -> conrod::Scalar {
-            ruler::x_offset_from_ticks(ticks, total_ticks, w)
-        };
+        let rel_x_from_ticks =
+            |ticks: Ticks| -> conrod::Scalar { ruler::x_offset_from_ticks(ticks, total_ticks, w) };
 
         // Get the absolute x value from the given ticks.
-        let x_from_ticks = |ticks: Ticks| -> conrod::Scalar {
-            rel_x_from_ticks(ticks) + x
-        };
+        let x_from_ticks = |ticks: Ticks| -> conrod::Scalar { rel_x_from_ticks(ticks) + x };
 
         // Get the time in ticks from some position over the Bang automation.
         let ticks_from_x = |x: conrod::Scalar| -> Ticks {
-            Ticks(conrod::utils::map_range(x, rect.left(), rect.right(), 0, total_ticks.ticks()))
+            Ticks(conrod::utils::map_range(
+                x,
+                rect.left(),
+                rect.right(),
+                0,
+                total_ticks.ticks(),
+            ))
         };
 
         // Same as `ticks_from_x` but clamps the ticks to the total_ticks range.
@@ -192,7 +199,7 @@ impl<'a> conrod::Widget for Bang<'a> {
                 let start = playhead - delta;
                 let end = playhead;
                 super::maybe_surrounding_elems(total_ticks, envelope, start, end)
-            },
+            }
             _ => None,
         };
 
@@ -205,8 +212,7 @@ impl<'a> conrod::Widget for Bang<'a> {
                              thickness: conrod::Scalar,
                              x: conrod::Scalar,
                              ui: &mut conrod::UiCell,
-                             is_graphic: bool|
-        {
+                             is_graphic: bool| {
             let start = [x, bottom_y];
             let end = [x, top_y];
             widget::Line::abs(start, end)
@@ -222,7 +228,8 @@ impl<'a> conrod::Widget for Bang<'a> {
                 .parent(pole.line_id);
 
             // The circle at the bottom of the line.
-            circle.clone()
+            circle
+                .clone()
                 .y_relative_to(pole.line_id, -half_h)
                 .set(pole.bottom_circle_id, ui);
 
@@ -244,7 +251,6 @@ impl<'a> conrod::Widget for Bang<'a> {
             for widget_event in ui.widget_input(pole.line_id).events() {
                 use conrod::{event, input};
                 match widget_event {
-
                     // Check to see whether or not a point was dragged.
                     event::Widget::Drag(drag) if drag.button == input::MouseButton::Left => {
                         let line_rect = ui.rect_of(pole.line_id).unwrap();
@@ -255,13 +261,13 @@ impl<'a> conrod::Widget for Bang<'a> {
                             value: BangValue,
                         };
                         events.push(Event::Mutate(drag_point.into()));
-                    },
+                    }
 
                     // If the point was clicked with a right mouse button, remove it.
                     event::Widget::Click(click) if click.button == input::MouseButton::Right => {
                         let remove_point = super::RemovePoint { idx: i };
                         events.push(Event::Mutate(remove_point.into()));
-                    },
+                    }
 
                     _ => (),
                 }
@@ -284,7 +290,7 @@ impl<'a> conrod::Widget for Bang<'a> {
                         (Some(start), Some(end)) if i >= start && i <= end => color.clicked(),
                         _ => color,
                     }
-                },
+                }
                 None => color,
             };
 
@@ -311,16 +317,24 @@ impl<'a> conrod::Widget for Bang<'a> {
         }
 
         // If the mouse is over the widget, check if we should draw the phantom point `Pole`.
-        if let Some((mouse_abs_x, is_left_down)) = ui.widget_input(id).mouse()
+        if let Some((mouse_abs_x, is_left_down)) = ui
+            .widget_input(id)
+            .mouse()
             .map(|m| (m.abs_xy()[0], m.buttons.left().is_down()))
         {
             // Check if the playhead should affect the color of the phantom point.
             let ticks = clamped_ticks_from_x(mouse_abs_x);
             let playhead_passed_over = match maybe_playhead {
-                Some((playhead, delta)) => delta > Ticks(0) && (playhead - delta) < ticks && ticks < playhead,
+                Some((playhead, delta)) => {
+                    delta > Ticks(0) && (playhead - delta) < ticks && ticks < playhead
+                }
                 None => false,
             };
-            let color = if playhead_passed_over { color.clicked() } else { color };
+            let color = if playhead_passed_over {
+                color.clicked()
+            } else {
+                color
+            };
             let color = match is_left_down {
                 false => color.highlighted().alpha(0.25),
                 true => color.clicked().alpha(0.5),

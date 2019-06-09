@@ -1,12 +1,12 @@
 use conrod::{self, widget};
-use core::{self, BarIterator};
 use core::time::Ticks;
+use core::{self, BarIterator};
 use ruler;
 use track;
 
-pub use core::automation::envelope::Trait as EnvelopeTrait;
 pub use core::automation::envelope::Point;
 pub use core::automation::envelope::PointTrait;
+pub use core::automation::envelope::Trait as EnvelopeTrait;
 pub use core::automation::toggle::Toggle as ToggleValue;
 
 /// The envelope type compatible with the `Toggle` automation track.
@@ -56,9 +56,7 @@ pub enum Event {
     Mutate(super::Mutate<ToggleValue>),
 }
 
-
 impl<'a> Toggle<'a> {
-
     /// Construct a new default Automation.
     pub fn new(bars: &'a [core::Bar], envelope: &'a Envelope) -> Self {
         Toggle {
@@ -70,10 +68,9 @@ impl<'a> Toggle<'a> {
         }
     }
 
-    builder_methods!{
+    builder_methods! {
         pub point_radius { style.point_radius = Some(conrod::Scalar) }
     }
-
 }
 
 impl<'a> track::Widget for Toggle<'a> {
@@ -86,7 +83,6 @@ impl<'a> track::Widget for Toggle<'a> {
 impl<'a> conrod::Colorable for Toggle<'a> {
     builder_method!(color { style.color = Some(conrod::Color) });
 }
-
 
 impl<'a> conrod::Widget for Toggle<'a> {
     type State = State;
@@ -104,33 +100,51 @@ impl<'a> conrod::Widget for Toggle<'a> {
     }
 
     fn default_y_dimension(&self, ui: &conrod::Ui) -> conrod::position::Dimension {
-        ui.theme.widget_style::<Style>()
+        ui.theme
+            .widget_style::<Style>()
             .and_then(|default| default.common.maybe_y_dimension)
-            .unwrap_or(conrod::position::Dimension::Absolute(super::super::DEFAULT_HEIGHT))
+            .unwrap_or(conrod::position::Dimension::Absolute(
+                super::super::DEFAULT_HEIGHT,
+            ))
     }
 
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
-        use conrod::{Colorable, Positionable};
-        use conrod::utils::{clamp, map_range};
         use super::Elem;
+        use conrod::utils::{clamp, map_range};
+        use conrod::{Colorable, Positionable};
 
-        let widget::UpdateArgs { id, rect, state, style, ui, .. } = args;
-        let Toggle { envelope, bars, maybe_playhead, .. } = self;
+        let widget::UpdateArgs {
+            id,
+            rect,
+            state,
+            style,
+            ui,
+            ..
+        } = args;
+        let Toggle {
+            envelope,
+            bars,
+            maybe_playhead,
+            ..
+        } = self;
 
         let num_points = envelope.points().count();
         let num_rectangles = {
             let mut points = envelope.points();
-            points.next().map(|first| {
-                let mut prev_toggle = first.value;
-                let mut count = 0;
-                for point in points {
-                    if prev_toggle == ToggleValue(true) {
-                        count += 1;
+            points
+                .next()
+                .map(|first| {
+                    let mut prev_toggle = first.value;
+                    let mut count = 0;
+                    for point in points {
+                        if prev_toggle == ToggleValue(true) {
+                            count += 1;
+                        }
+                        prev_toggle = point.value;
                     }
-                    prev_toggle = point.value;
-                }
-                count
-            }).unwrap_or(0)
+                    count
+                })
+                .unwrap_or(0)
         };
 
         // Ensure we have a circle index for each point.
@@ -152,16 +166,28 @@ impl<'a> conrod::Widget for Toggle<'a> {
         let total_ticks = bars.iter().cloned().total_duration();
 
         // Get the time in ticks from some position over the Bang automation.
-        let ticks_from_x = |x: conrod::Scalar| Ticks(map_range(x, rect.left(), rect.right(), 0, total_ticks.ticks()));
+        let ticks_from_x = |x: conrod::Scalar| {
+            Ticks(map_range(
+                x,
+                rect.left(),
+                rect.right(),
+                0,
+                total_ticks.ticks(),
+            ))
+        };
         // `false` if `y` is closer to the bottom, `true` if y is closer to the top.
         let value_from_y = |y: conrod::Scalar| {
             let perc = map_range(y, rect.bottom(), rect.top(), 0.0, 1.0);
-            if perc < 0.5 { ToggleValue(false) } else { ToggleValue(true) }
+            if perc < 0.5 {
+                ToggleValue(false)
+            } else {
+                ToggleValue(true)
+            }
         };
 
-
         // Same as `ticks_from_x` but clamps the ticks to the total_ticks range.
-        let clamped_ticks_from_x = |x: conrod::Scalar| clamp(ticks_from_x(x), Ticks(0), total_ticks);
+        let clamped_ticks_from_x =
+            |x: conrod::Scalar| clamp(ticks_from_x(x), Ticks(0), total_ticks);
 
         // All that remains is to instantiate the graphics widgets.
         //
@@ -176,7 +202,7 @@ impl<'a> conrod::Widget for Toggle<'a> {
                 let start = playhead - delta;
                 let end = playhead;
                 super::maybe_surrounding_elems(total_ticks, envelope, start, end)
-            },
+            }
             _ => None,
         };
 
@@ -186,13 +212,11 @@ impl<'a> conrod::Widget for Toggle<'a> {
                             value: ToggleValue,
                             point_id: widget::Id,
                             ui: &mut conrod::UiCell,
-                            events: &mut Vec<Event>|
-        {
+                            events: &mut Vec<Event>| {
             for widget_event in ui.widget_input(point_id).events() {
                 use conrod::{event, input};
 
                 match widget_event {
-
                     // Check to see if the toggle point is being dragged.
                     event::Widget::Drag(drag) if drag.button == input::MouseButton::Left => {
                         let point_rect = ui.rect_of(point_id).unwrap();
@@ -203,19 +227,23 @@ impl<'a> conrod::Widget for Toggle<'a> {
                             value: value_from_y(drag_to_abs_xy[1]),
                         };
                         events.push(Event::Mutate(drag_point.into()));
-                    },
+                    }
 
                     // Check to see if the toggle point is being removed.
                     event::Widget::Click(click) if click.button == input::MouseButton::Right => {
                         let remove_point = super::RemovePoint { idx: i };
                         events.push(Event::Mutate(remove_point.into()));
-                    },
+                    }
 
                     _ => (),
                 }
             }
 
-            let y_offset = if value == ToggleValue(false) { -half_h } else { half_h };
+            let y_offset = if value == ToggleValue(false) {
+                -half_h
+            } else {
+                half_h
+            };
             let point_elem = Elem::Point(i);
             let color = super::color_elem_by_playhead(point_elem, playhead_delta_range, color);
 
@@ -239,7 +267,6 @@ impl<'a> conrod::Widget for Toggle<'a> {
         // Instantiate the widgets in a big loop.
         let mut iter = envelope.points().zip(state.ids.circles.iter()).enumerate();
         if let Some((i, (&first, &first_id))) = iter.next() {
-
             // The first point widget.
             let first_offset = ruler::x_offset_from_ticks(first.ticks, total_ticks, w);
             point_widget(i, first_offset, first.value, first_id, ui, &mut events);
@@ -249,7 +276,6 @@ impl<'a> conrod::Widget for Toggle<'a> {
             let mut rectangle_ids = state.ids.rectangles.iter();
             let mut prev_point_id = first_id;
             for (i, (&point, &point_id)) in iter {
-
                 // All following point widgets.
                 let point_x_offset = ruler::x_offset_from_ticks(point.ticks, total_ticks, w);
                 point_widget(i, point_x_offset, point.value, point_id, ui, &mut events);
@@ -260,10 +286,12 @@ impl<'a> conrod::Widget for Toggle<'a> {
                     let right = point_x_offset;
                     let left = prev_offset;
                     let width = right - left;
-                    let elem = Elem::BetweenPoints(i-1, i);
+                    let elem = Elem::BetweenPoints(i - 1, i);
                     let color = super::color_elem_by_playhead(elem, playhead_delta_range, color);
 
-                    let color = match ui.widget_input(prev_point_id).mouse()
+                    let color = match ui
+                        .widget_input(prev_point_id)
+                        .mouse()
                         .or_else(|| ui.widget_input(point_id).mouse())
                     {
                         Some(mouse) => match mouse.buttons.left().is_down() {
@@ -361,4 +389,3 @@ impl<'a> conrod::Widget for Toggle<'a> {
         events
     }
 }
-

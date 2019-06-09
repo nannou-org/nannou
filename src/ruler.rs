@@ -2,7 +2,6 @@ use conrod::Scalar;
 use core::{self, time, BarIterator};
 use std::iter::{Enumerate, Zip};
 
-
 /// For converting a duration in bars to a viewable grid.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Ruler {
@@ -28,10 +27,8 @@ pub struct BarMarkersInTicks {
     end_ticks: time::Ticks,
 }
 
-
 /// An alias for markers in ticks per bar along with the TimeSig for each bar.
-type MarkersInTicksWithBarsAndStarts<I> =
-    Zip<MarkersInTicks<I>, Zip<I, core::BarStarts<I>>>;
+type MarkersInTicksWithBarsAndStarts<I> = Zip<MarkersInTicks<I>, Zip<I, core::BarStarts<I>>>;
 
 /// An iterator that yields an iterator producing the simplest Division for each marker in a Bar.
 #[derive(Clone)]
@@ -48,13 +45,11 @@ pub struct BarMarkersInDivisions {
     marker_div: time::Division,
 }
 
-
-
 impl Ruler {
-
     /// Constructor for a Ruler.
     pub fn new<I>(total_width: f64, bars: I) -> Ruler
-        where I: BarIterator + ExactSizeIterator + Clone
+    where
+        I: BarIterator + ExactSizeIterator + Clone,
     {
         let total_ticks = bars.clone().total_duration();
         let total_beats = total_ticks.ticks() as f64 / core::PPQN as f64;
@@ -96,7 +91,11 @@ impl Ruler {
 
             // Check for the smallest step in terms of width that would be produced by a ruler
             // with markers divided by the current `num_bars`.
-            let step_in_width = bars.clone().time_sigs().chunks_lazy(num_bars).into_iter()
+            let step_in_width = bars
+                .clone()
+                .time_sigs()
+                .chunks_lazy(num_bars)
+                .into_iter()
                 .fold(::std::f64::MAX, |smallest_step, time_sigs| {
                     let step = time_sigs.fold(0.0, |total, ts| {
                         total + (ts.beats_in_a_bar() * width_per_beat)
@@ -127,7 +126,6 @@ impl Ruler {
         let mut use_quaver_step = false;
         let mut maybe_div_step = None;
         if maybe_bars_step.is_none() {
-
             // First we need to check if the time_sig denominator measure would create
             // a suitable step, before trying smaller measures.
             let quaver_step_in_pixels = width_per_beat / 2.0;
@@ -171,7 +169,8 @@ impl Ruler {
     /// Produce an iterator that yields an iterator for each bar that yields each marker position
     /// in ticks.
     pub fn markers_in_ticks<I>(&self, bars: I) -> MarkersInTicks<I>
-        where I: BarIterator + Clone
+    where
+        I: BarIterator + Clone,
     {
         MarkersInTicks {
             marker_step: self.marker_step,
@@ -182,21 +181,26 @@ impl Ruler {
     /// Produce an iterator that yields an iterator for each bar that yields each marker's simplest
     /// division representation suitable for the Ruler.
     pub fn markers_in_divisions<I>(&self, bars: I) -> MarkersInDivisions<I>
-        where I: BarIterator + Clone,
+    where
+        I: BarIterator + Clone,
     {
         MarkersInDivisions {
-            markers_in_ticks_with_bars_and_starts:
-                self.markers_in_ticks(bars.clone()).zip(bars.with_starts()),
+            markers_in_ticks_with_bars_and_starts: self
+                .markers_in_ticks(bars.clone())
+                .zip(bars.with_starts()),
             marker_div: self.marker_step.1,
         }
     }
 
     /// Produces the number of visible markers on the `Ruler` for the given bars.
     pub fn marker_count<I>(&self, bars: I) -> usize
-        where I: BarIterator + Clone,
+    where
+        I: BarIterator + Clone,
     {
         // TODO: Could probably do this more efficiently, but this is easy for now.
-        self.markers_in_ticks(bars).flat_map(|bar_markers| bar_markers).count()
+        self.markers_in_ticks(bars)
+            .flat_map(|bar_markers| bar_markers)
+            .count()
     }
 
     // /// The total spatial width representing the duration of a single tick.
@@ -208,7 +212,6 @@ impl Ruler {
     pub fn ticks_per_width(&self) -> Scalar {
         (1.0 / self.width_per_beat) * core::PPQN as Scalar
     }
-
 }
 
 /// Maps the given `ticks` to some offset along a given `width`.
@@ -218,20 +221,27 @@ pub fn x_offset_from_ticks(ticks: time::Ticks, total: time::Ticks, width: Scalar
     (ticks.ticks() as Scalar / total.ticks() as Scalar) * width - width / 2.0
 }
 
-
-impl<I> Iterator for MarkersInTicks<I> where I: BarIterator + Clone {
+impl<I> Iterator for MarkersInTicks<I>
+where
+    I: BarIterator + Clone,
+{
     type Item = BarMarkersInTicks;
     fn next(&mut self) -> Option<BarMarkersInTicks> {
-        self.bars_with_starts_enumerated.next().map(|(i, (bar, start))| {
-            match self.marker_step {
+        self.bars_with_starts_enumerated
+            .next()
+            .map(|(i, (bar, start))| match self.marker_step {
                 (n, time::Division::Bar) => {
                     let bar_ticks = bar.ticks();
                     BarMarkersInTicks {
-                        maybe_next: if i % n as usize == 0 { Some(start) } else { None },
+                        maybe_next: if i % n as usize == 0 {
+                            Some(start)
+                        } else {
+                            None
+                        },
                         marker_step_ticks: bar_ticks,
                         end_ticks: start + bar_ticks,
                     }
-                },
+                }
                 (1, div) => BarMarkersInTicks {
                     maybe_next: Some(start),
                     marker_step_ticks: time::Measure(1, div, time::DivType::Whole)
@@ -239,11 +249,9 @@ impl<I> Iterator for MarkersInTicks<I> where I: BarIterator + Clone {
                     end_ticks: start + bar.ticks(),
                 },
                 _ => unreachable!(),
-            }
-        })
+            })
     }
 }
-
 
 impl Iterator for BarMarkersInTicks {
     type Item = time::Ticks;
@@ -258,32 +266,35 @@ impl Iterator for BarMarkersInTicks {
                     None
                 };
                 Some(this_marker_ticks)
-            },
+            }
         }
     }
 }
 
-
-impl<I> Iterator for MarkersInDivisions<I> where I: BarIterator + Clone {
+impl<I> Iterator for MarkersInDivisions<I>
+where
+    I: BarIterator + Clone,
+{
     type Item = BarMarkersInDivisions;
     fn next(&mut self) -> Option<BarMarkersInDivisions> {
-        self.markers_in_ticks_with_bars_and_starts.next().map(|(markers_in_ticks, (bar, start))| {
-            let time_sig_bottom = bar.time_sig.bottom;
-            let markers_in_ticks = BarMarkersInTicks {
-                maybe_next: markers_in_ticks.maybe_next.map(|ticks| ticks - start),
-                end_ticks: markers_in_ticks.end_ticks - start,
-                ..markers_in_ticks
-            };
-            let simplest_divisions = bar.simplest_divisions(markers_in_ticks);
-            BarMarkersInDivisions {
-                time_sig_bottom: time_sig_bottom,
-                simplest_divisions: simplest_divisions,
-                marker_div: self.marker_div,
-            }
-        })
+        self.markers_in_ticks_with_bars_and_starts
+            .next()
+            .map(|(markers_in_ticks, (bar, start))| {
+                let time_sig_bottom = bar.time_sig.bottom;
+                let markers_in_ticks = BarMarkersInTicks {
+                    maybe_next: markers_in_ticks.maybe_next.map(|ticks| ticks - start),
+                    end_ticks: markers_in_ticks.end_ticks - start,
+                    ..markers_in_ticks
+                };
+                let simplest_divisions = bar.simplest_divisions(markers_in_ticks);
+                BarMarkersInDivisions {
+                    time_sig_bottom: time_sig_bottom,
+                    simplest_divisions: simplest_divisions,
+                    marker_div: self.marker_div,
+                }
+            })
     }
 }
-
 
 impl Iterator for BarMarkersInDivisions {
     type Item = time::Division;
@@ -292,22 +303,17 @@ impl Iterator for BarMarkersInDivisions {
             let div = maybe_div.expect("No simplest division found.");
             match self.time_sig_bottom {
                 4 => match div {
-                    time::Division::Bar    |
-                    time::Division::Beat   |
-                    time::Division::Quaver => div,
-                    time::Division::Minim  => time::Division::Beat,
-                    _                      => self.marker_div,
+                    time::Division::Bar | time::Division::Beat | time::Division::Quaver => div,
+                    time::Division::Minim => time::Division::Beat,
+                    _ => self.marker_div,
                 },
                 8 => match div {
-                    time::Division::Bar    |
-                    time::Division::Quaver => div,
-                    time::Division::Minim  |
-                    time::Division::Beat   => time::Division::Quaver,
-                    _                      => self.marker_div,
+                    time::Division::Bar | time::Division::Quaver => div,
+                    time::Division::Minim | time::Division::Beat => time::Division::Quaver,
+                    _ => self.marker_div,
                 },
                 _ => unreachable!(),
             }
         })
     }
 }
-

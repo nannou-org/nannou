@@ -1,9 +1,8 @@
 use conrod::{self, widget};
-use core::{self, BarIterator, Note, Period};
-use core::pitch::{self, LetterOctave, Letter};
+use core::pitch::{self, Letter, LetterOctave};
 use core::time::Ticks;
+use core::{self, BarIterator, Note, Period};
 use track;
-
 
 /// A PianoRoll widget builder type.
 #[derive(WidgetCommon)]
@@ -52,9 +51,7 @@ pub enum Event {
     NotePlayed(NoteIdx),
 }
 
-
 impl<'a> PianoRoll<'a> {
-
     /// Construct a new, default PianoRoll.
     pub fn new(bars: &'a [core::Bar], notes: &'a [Note]) -> Self {
         PianoRoll {
@@ -65,7 +62,6 @@ impl<'a> PianoRoll<'a> {
             style: Style::default(),
         }
     }
-
 }
 
 impl<'a> track::Widget for PianoRoll<'a> {
@@ -74,7 +70,6 @@ impl<'a> track::Widget for PianoRoll<'a> {
         self
     }
 }
-
 
 impl<'a> conrod::Widget for PianoRoll<'a> {
     type State = State;
@@ -104,10 +99,22 @@ impl<'a> conrod::Widget for PianoRoll<'a> {
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
         use conrod::{Borderable, Colorable, Positionable};
 
-        let widget::UpdateArgs { id, rect, state, style, ui, .. } = args;
+        let widget::UpdateArgs {
+            id,
+            rect,
+            state,
+            style,
+            ui,
+            ..
+        } = args;
 
         // let visible_height = self.get_visible_height(&ui);
-        let PianoRoll { bars, maybe_playhead, notes, .. } = self;
+        let PianoRoll {
+            bars,
+            maybe_playhead,
+            notes,
+            ..
+        } = self;
 
         let (min_step, max_step) = note_step_range(self.notes);
         // let note_track_height = note_track_height(visible_height, min_step, max_step);
@@ -125,7 +132,7 @@ impl<'a> conrod::Widget for PianoRoll<'a> {
                     (Some(start_idx), Some(end_idx)) => Some((start_idx, end_idx)),
                     _ => None,
                 }
-            },
+            }
             _ => None,
         };
 
@@ -186,7 +193,11 @@ impl<'a> conrod::Widget for PianoRoll<'a> {
 
         // Only draw the note tracks if there is more than one note track visible.
         if num_note_tracks > 1 {
-            let note_track_color = color.plain_contrast().plain_contrast().highlighted().alpha(0.075);
+            let note_track_color = color
+                .plain_contrast()
+                .plain_contrast()
+                .highlighted()
+                .alpha(0.075);
             let iter = (start_step..end_step)
                 .enumerate()
                 .filter(|&(_, step)| is_black_key_step(&step))
@@ -217,13 +228,14 @@ impl<'a> conrod::Widget for PianoRoll<'a> {
         };
 
         // Converts the period along the timeline to a Scalar Range.
-        let period_to_w_and_x_offset = move |period: core::Period| -> (conrod::Scalar, conrod::Scalar) {
-            let half_duration = Ticks(period.duration().ticks() / 2);
-            let period_middle = period.start() + half_duration;
-            let middle_x_offset = ticks_to_x_offset(period_middle) - half_w;
-            let width = ticks_to_x_offset(period.duration());
-            (width, middle_x_offset)
-        };
+        let period_to_w_and_x_offset =
+            move |period: core::Period| -> (conrod::Scalar, conrod::Scalar) {
+                let half_duration = Ticks(period.duration().ticks() / 2);
+                let period_middle = period.start() + half_duration;
+                let middle_x_offset = ticks_to_x_offset(period_middle) - half_w;
+                let width = ticks_to_x_offset(period.duration());
+                (width, middle_x_offset)
+            };
 
         let iter = notes.iter().enumerate().zip(state.ids.notes.iter());
         for ((i, note), &note_id) in iter {
@@ -247,16 +259,13 @@ impl<'a> conrod::Widget for PianoRoll<'a> {
 
         events
     }
-
 }
-
 
 /// A single note range at C 1.
 fn default_step_range() -> (pitch::calc::Step, pitch::calc::Step) {
     let c_1_step = LetterOctave(Letter::C, 1).step();
     (c_1_step, c_1_step)
 }
-
 
 /// The lowest and heighest pitch notes found within the given slice of notes.
 fn note_step_range(notes: &[Note]) -> (pitch::calc::Step, pitch::calc::Step) {
@@ -273,12 +282,12 @@ fn note_step_range(notes: &[Note]) -> (pitch::calc::Step, pitch::calc::Step) {
     }
 }
 
-
 /// Determine the height to be used for the note tracks.
-fn note_track_height(visible_height: conrod::Scalar,
-                     min_step: pitch::calc::Step,
-                     max_step: pitch::calc::Step) -> conrod::Scalar
-{
+fn note_track_height(
+    visible_height: conrod::Scalar,
+    min_step: pitch::calc::Step,
+    max_step: pitch::calc::Step,
+) -> conrod::Scalar {
     // Define the bounds for the height of a displayed `Step`.
     let max_note_track_height: conrod::Scalar = visible_height;
 
@@ -287,9 +296,10 @@ fn note_track_height(visible_height: conrod::Scalar,
     let height_per_step_for_range = visible_height / num_steps_in_range as f64;
 
     // Ensure that the height_per_step is within the min and max range.
-    height_per_step_for_range.max(MIN_NOTE_TRACK_HEIGHT).min(max_note_track_height)
+    height_per_step_for_range
+        .max(MIN_NOTE_TRACK_HEIGHT)
+        .min(max_note_track_height)
 }
-                     
 
 impl<'a> conrod::Colorable for PianoRoll<'a> {
     builder_method!(color { style.color = Some(conrod::Color) });

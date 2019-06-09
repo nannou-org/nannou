@@ -4,20 +4,18 @@ use num::NumCast;
 
 pub use core::automation::envelope::bounded::Dynamic as DynamicEnvelope;
 pub use core::automation::envelope::bounded::Envelope;
-pub use core::automation::envelope::{Trait as EnvelopeTrait, PointTrait};
 pub use core::automation::envelope::{Number, Point, Spatial, ValueKind};
+pub use core::automation::envelope::{PointTrait, Trait as EnvelopeTrait};
 
 pub use self::bang::{Bang, BangValue};
 pub use self::dynamic::Dynamic;
 pub use self::numeric::Numeric;
 pub use self::toggle::{Toggle, ToggleValue};
 
-
 pub mod bang;
 pub mod dynamic;
 pub mod numeric;
 pub mod toggle;
-
 
 /// The different interactive elements of the automation widget.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -29,7 +27,6 @@ pub enum Elem {
     /// Some point in the automation envelope.
     Point(usize),
 }
-
 
 /// An event used to drag the point at the given index to the target ticks and value.
 #[derive(Copy, Clone, Debug)]
@@ -44,7 +41,8 @@ pub struct DragPoint<T> {
 
 impl<T> DragPoint<T> {
     pub fn apply(self, env: &mut Envelope<T>)
-        where T: Copy,
+    where
+        T: Copy,
     {
         let mut ticks = self.ticks;
 
@@ -74,8 +72,9 @@ pub struct AddPoint<T> {
 
 impl<T> AddPoint<T> {
     pub fn apply(self, env: &mut Envelope<T>)
-        where T: Copy + PartialEq + Spatial,
-              Point<T>: PointTrait<X=Ticks, Y=T>,
+    where
+        T: Copy + PartialEq + Spatial,
+        Point<T>: PointTrait<X = Ticks, Y = T>,
     {
         let num_points = env.env.points.len();
         let insert_idx = match env.point_idx_before(self.point.ticks) {
@@ -117,19 +116,20 @@ pub enum Mutate<T> {
 impl<T> Mutate<T> {
     /// Apply the mutation to the given `Envelope`.
     pub fn apply(self, envelope: &mut Envelope<T>)
-        where T: Copy + PartialEq + Spatial,
-              Point<T>: PointTrait<X=Ticks, Y=T>,
+    where
+        T: Copy + PartialEq + Spatial,
+        Point<T>: PointTrait<X = Ticks, Y = T>,
     {
         match self {
             Mutate::DragPoint(drag_point) => {
                 drag_point.apply(envelope);
-            },
+            }
             Mutate::AddPoint(add_point) => {
                 add_point.apply(envelope);
-            },
+            }
             Mutate::RemovePoint(remove_point) => {
                 remove_point.apply(envelope);
-            },
+            }
         }
     }
 }
@@ -149,53 +149,62 @@ impl_from_for_mutation!(DragPoint<T>, DragPoint);
 impl_from_for_mutation!(AddPoint<T>, AddPoint);
 impl_from_for_mutation!(RemovePoint, RemovePoint);
 
-
 // Determines the points that lie on either side of the playhead movement.
-fn maybe_surrounding_elems<T>(total: Ticks,
-                              env: &Envelope<T>,
-                              start: Ticks,
-                              end: Ticks) -> Option<(Elem, Elem)>
-    where Point<T>: PointTrait<X=Ticks, Y=T>,
-          T: PartialEq + Spatial,
+fn maybe_surrounding_elems<T>(
+    total: Ticks,
+    env: &Envelope<T>,
+    start: Ticks,
+    end: Ticks,
+) -> Option<(Elem, Elem)>
+where
+    Point<T>: PointTrait<X = Ticks, Y = T>,
+    T: PartialEq + Spatial,
 {
     elem_at_ticks(total, env, start)
         .and_then(|start| elem_at_ticks(total, env, end).map(|end| (start, end)))
 }
 
-
 // If there is some envelope element at the given time in `ticks`, return it.
 fn elem_at_ticks<T>(total: Ticks, env: &Envelope<T>, x: Ticks) -> Option<Elem>
-    where Point<T>: PointTrait<X=Ticks, Y=T>,
-          T: PartialEq + Spatial,
+where
+    Point<T>: PointTrait<X = Ticks, Y = T>,
+    T: PartialEq + Spatial,
 {
     if Ticks(0) < x && x < total {
         env.point_at_with_idx(x)
             .map(|(i, _)| Elem::Point(i))
-            .or_else(|| env.point_idx_before(x).and_then(|start| {
-                let end = start + 1;
-                env.env.points.get(end).map(|_| Elem::BetweenPoints(start, end))
-            }))
+            .or_else(|| {
+                env.point_idx_before(x).and_then(|start| {
+                    let end = start + 1;
+                    env.env
+                        .points
+                        .get(end)
+                        .map(|_| Elem::BetweenPoints(start, end))
+                })
+            })
             .or(Some(Elem::EmptyRect))
     } else {
         None
     }
 }
 
-
 // Alter the given color depending upon its playhead.
-fn color_elem_by_playhead(elem: Elem,
-                          playhead_delta_range: Option<(Elem, Elem)>,
-                          color: conrod::Color) -> conrod::Color
-{
+fn color_elem_by_playhead(
+    elem: Elem,
+    playhead_delta_range: Option<(Elem, Elem)>,
+    color: conrod::Color,
+) -> conrod::Color {
     match is_elem_in_range(playhead_delta_range, elem) {
         true => color.clicked(),
         false => color,
     }
 }
 
-
 /// Converts the given value from its range to a y offset relative to the center of the height.
-fn y_offset_from_value<T>(value: T, min: T, max: T, height: Scalar) -> Scalar where T: NumCast {
+fn y_offset_from_value<T>(value: T, min: T, max: T, height: Scalar) -> Scalar
+where
+    T: NumCast,
+{
     let value: Scalar = NumCast::from(value).expect("Can not cast to Scalar");
     let min: Scalar = NumCast::from(min).expect("Can not cast to Scalar");
     let max: Scalar = NumCast::from(max).expect("Can not cast to Scalar");
@@ -231,6 +240,6 @@ fn is_elem_in_range(playhead_range: Option<(Elem, Elem)>, elem: Elem) -> bool {
                 // TODO: This should be fixed to consider the Rect area properly.
                 _ => return false,
             }
-        },
+        }
     }
 }

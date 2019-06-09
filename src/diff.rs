@@ -48,20 +48,24 @@ pub enum IterDiff<E, I> {
 ///
 /// See [`copy_on_diff`](./fn.copy_on_diff.html) for an application of `iter_diff`.
 pub fn iter_diff<'a, A, B>(a: A, b: B) -> Option<IterDiff<B::Item, B::IntoIter>>
-    where A: IntoIterator<Item=&'a B::Item>,
-          B: IntoIterator,
-          B::Item: PartialEq + 'a,
+where
+    A: IntoIterator<Item = &'a B::Item>,
+    B: IntoIterator,
+    B::Item: PartialEq + 'a,
 {
     let mut b = b.into_iter();
     for (i, a_elem) in a.into_iter().enumerate() {
         match b.next() {
             None => return Some(IterDiff::Shorter(i)),
-            Some(b_elem) => if *a_elem != b_elem {
-                return Some(IterDiff::FirstMismatch(i, iter::once(b_elem).chain(b)));
-            },
+            Some(b_elem) => {
+                if *a_elem != b_elem {
+                    return Some(IterDiff::FirstMismatch(i, iter::once(b_elem).chain(b)));
+                }
+            }
         }
     }
-    b.next().map(|elem| IterDiff::Longer(iter::once(elem).chain(b)))
+    b.next()
+        .map(|elem| IterDiff::Longer(iter::once(elem).chain(b)))
 }
 
 /// Returns `Cow::Borrowed` `a` if `a` contains the same elements as yielded by `b`'s iterator.
@@ -71,21 +75,23 @@ pub fn iter_diff<'a, A, B>(a: A, b: B) -> Option<IterDiff<B::Item, B::IntoIter>>
 /// ```
 #[allow(dead_code)]
 pub fn copy_on_diff<'a, A, B, T: 'a>(a: &'a A, b: B) -> Cow<'a, A>
-    where &'a A: IntoIterator<Item=&'a T>,
-          <&'a A as IntoIterator>::IntoIter: Clone,
-          A: ToOwned,
-          <A as ToOwned>::Owned: iter::FromIterator<T>,
-          B: IntoIterator<Item=T>,
-          T: Clone + PartialEq,
+where
+    &'a A: IntoIterator<Item = &'a T>,
+    <&'a A as IntoIterator>::IntoIter: Clone,
+    A: ToOwned,
+    <A as ToOwned>::Owned: iter::FromIterator<T>,
+    B: IntoIterator<Item = T>,
+    T: Clone + PartialEq,
 {
     let a_iter = a.into_iter();
     match iter_diff(a_iter.clone(), b.into_iter()) {
-        Some(IterDiff::FirstMismatch(i, mismatch)) =>
-            Cow::Owned(a_iter.take(i).cloned().chain(mismatch).collect()),
-        Some(IterDiff::Longer(remaining)) =>
-            Cow::Owned(a_iter.cloned().chain(remaining).collect()),
-        Some(IterDiff::Shorter(num_new_elems)) =>
-            Cow::Owned(a_iter.cloned().take(num_new_elems).collect()),
+        Some(IterDiff::FirstMismatch(i, mismatch)) => {
+            Cow::Owned(a_iter.take(i).cloned().chain(mismatch).collect())
+        }
+        Some(IterDiff::Longer(remaining)) => Cow::Owned(a_iter.cloned().chain(remaining).collect()),
+        Some(IterDiff::Shorter(num_new_elems)) => {
+            Cow::Owned(a_iter.cloned().take(num_new_elems).collect())
+        }
         None => Cow::Borrowed(a),
     }
 }
