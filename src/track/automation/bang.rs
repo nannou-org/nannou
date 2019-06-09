@@ -1,13 +1,15 @@
-use conrod::{self, widget};
-use core::time::Ticks;
-use core::{self, BarIterator};
+use bars_duration_ticks;
+use conrod_core::{self as conrod, widget};
+use env;
 use ruler;
+use super::EnvelopeTrait;
+use time_calc::{self as time, Ticks};
 use track;
 
-pub use core::automation::{Bang as BangValue, EnvelopeTrait, Point, PointTrait};
+pub use env::{Bang as BangValue, Point, PointTrait};
 
 /// The bounded envelope type compatible with the `Bang` automation track.
-pub type Envelope = core::automation::BoundedEnvelope<BangValue>;
+pub type Envelope = env::bounded::Envelope<BangValue>;
 
 /// For viewing and manipulating a series of discrete points over time.
 #[derive(WidgetCommon)]
@@ -15,7 +17,8 @@ pub struct Bang<'a> {
     #[conrod(common_builder)]
     common: widget::CommonBuilder,
     envelope: &'a Envelope,
-    bars: &'a [core::Bar],
+    bars: &'a [time::TimeSig],
+    ppqn: time::Ppqn,
     /// The position of the playhead in ticks, along with its change in position.
     pub maybe_playhead: Option<(Ticks, Ticks)>,
     style: Style,
@@ -60,9 +63,10 @@ pub enum Event {
 
 impl<'a> Bang<'a> {
     /// Construct a new default Automation.
-    pub fn new(bars: &'a [core::Bar], envelope: &'a Envelope) -> Self {
+    pub fn new(bars: &'a [time::TimeSig], ppqn: time::Ppqn, envelope: &'a Envelope) -> Self {
         Bang {
             bars: bars,
+            ppqn: ppqn,
             maybe_playhead: None,
             envelope: envelope,
             common: widget::CommonBuilder::default(),
@@ -128,7 +132,7 @@ impl<'a> conrod::Widget for Bang<'a> {
 
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
         use super::Elem;
-        use conrod::{Colorable, Positionable};
+        use conrod_core::{Colorable, Positionable};
 
         let widget::UpdateArgs {
             id,
@@ -141,6 +145,7 @@ impl<'a> conrod::Widget for Bang<'a> {
         let Bang {
             envelope,
             bars,
+            ppqn,
             maybe_playhead,
             ..
         } = self;
@@ -161,7 +166,7 @@ impl<'a> conrod::Widget for Bang<'a> {
         let color = style.color(ui.theme());
         let point_radius = style.point_radius(ui.theme());
         const THICKNESS: conrod::Scalar = 2.0;
-        let total_ticks = bars.iter().cloned().total_duration();
+        let total_ticks = bars_duration_ticks(bars.iter().cloned(), ppqn);
 
         // Get the x position of the given ticks relative to the centre of the Bang automation.
         let rel_x_from_ticks =
@@ -249,7 +254,7 @@ impl<'a> conrod::Widget for Bang<'a> {
 
             // Check for events received by the `Bang`.
             for widget_event in ui.widget_input(pole.line_id).events() {
-                use conrod::{event, input};
+                use conrod_core::{event, input};
                 match widget_event {
                     // Check to see whether or not a point was dragged.
                     event::Widget::Drag(drag) if drag.button == input::MouseButton::Left => {
@@ -308,7 +313,7 @@ impl<'a> conrod::Widget for Bang<'a> {
         // Check to see whether or not a new point should be added.
         for click in ui.widget_input(id).clicks().left() {
             let click_x = click.xy[0] + rect.x();
-            let point = core::automation::Point {
+            let point = env::Point {
                 ticks: clamped_ticks_from_x(click_x),
                 value: BangValue,
             };

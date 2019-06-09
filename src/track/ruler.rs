@@ -1,7 +1,8 @@
-use conrod::{self, widget, Colorable, Positionable};
-use core::{self, time};
+use bars_duration_ticks;
+use conrod_core::{self as conrod, widget, Colorable, Positionable};
 use ruler;
 use std;
+use time_calc as time;
 use track;
 
 /// A track used for drawing the
@@ -10,7 +11,8 @@ pub struct Ruler<'a> {
     #[conrod(common_builder)]
     common: widget::CommonBuilder,
     ruler: ruler::Ruler,
-    bars: &'a [core::Bar],
+    bars: &'a [time::TimeSig],
+    ppqn: time::Ppqn,
     style: Style,
 }
 
@@ -41,10 +43,11 @@ pub struct TicksTriggered {
 
 impl<'a> Ruler<'a> {
     /// Construct a new default Ruler track.
-    pub fn new(ruler: ruler::Ruler, bars: &'a [core::Bar]) -> Self {
+    pub fn new(ruler: ruler::Ruler, bars: &'a [time::TimeSig], ppqn: time::Ppqn) -> Self {
         Ruler {
             ruler: ruler,
             bars: bars,
+            ppqn: ppqn,
             common: widget::CommonBuilder::default(),
             style: Style::default(),
         }
@@ -80,7 +83,6 @@ impl<'a> conrod::Widget for Ruler<'a> {
     }
 
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
-        use core::BarIterator;
         let widget::UpdateArgs {
             id,
             rect,
@@ -89,7 +91,7 @@ impl<'a> conrod::Widget for Ruler<'a> {
             ui,
             ..
         } = args;
-        let Ruler { ruler, bars, .. } = self;
+        let Ruler { ruler, bars, ppqn, .. } = self;
 
         // All that remains is to instantiate the graphics widgets.
         //
@@ -101,13 +103,12 @@ impl<'a> conrod::Widget for Ruler<'a> {
         let (x, y, w, h) = rect.x_y_w_h();
         let line_color = style.color(ui.theme());
         let half_w = w / 2.0;
-        let total_ticks = bars.iter().cloned().total_duration();
+        let total_ticks = bars_duration_ticks(bars.iter().cloned(), ppqn);
 
         // `TicksTriggered` occurs while the ruler is pressed by the left mouse button.
         let mut ticks_triggered = None;
         if let Some(mouse) = ui.widget_input(id).mouse() {
             if mouse.buttons.left().is_down() {
-                use std;
                 let abs_x = mouse.abs_xy()[0];
                 let x = abs_x - rect.left();
                 let ticks = time::Ticks(
@@ -127,7 +128,7 @@ impl<'a> conrod::Widget for Ruler<'a> {
             .parent(id)
             .set(state.ids.base_line, ui);
 
-        let markers_in_ticks = ruler.markers_in_ticks(bars.iter().cloned());
+        let markers_in_ticks = ruler.markers_in_ticks(bars.iter().cloned(), ppqn);
 
         // Find the number of text and line widgets that we'll need.
         let mut num_texts = 0;
@@ -152,8 +153,8 @@ impl<'a> conrod::Widget for Ruler<'a> {
         }
 
         let markers_in_width_steps = markers_in_ticks
-            .map(|markers| markers.map(|ticks| ticks.beats(core::PPQN) * ruler.width_per_beat));
-        let markers_in_ruler_divs = ruler.markers_in_divisions(bars.iter().cloned());
+            .map(|markers| markers.map(|ticks| ticks.beats(ppqn) * ruler.width_per_beat));
+        let markers_in_ruler_divs = ruler.markers_in_divisions(bars.iter().cloned(), ppqn);
         let width_steps_with_divisions = markers_in_width_steps.zip(markers_in_ruler_divs);
         let mut line_ids = state.ids.lines.iter();
         let iter = width_steps_with_divisions

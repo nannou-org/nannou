@@ -1,31 +1,48 @@
 #[macro_use]
-extern crate conrod;
-extern crate core;
-extern crate find_folder;
-extern crate rand;
-extern crate timeline;
+extern crate conrod_core;
+extern crate nannou;
+extern crate pitch_calc;
+extern crate time_calc;
+extern crate nannou_timeline as timeline;
 
-use conrod::backend::glium::glium::{self, Surface};
-use core::{time, BarIterator, Note};
+use nannou::prelude::*;
+use nannou::ui::prelude::*;
 use std::iter::once;
-use timeline::track;
+use pitch_calc as pitch;
+use time_calc as time;
+use timeline::{bars, track};
+use timeline::track::automation::{BangValue as Bang, Envelope, Point, ToggleValue as Toggle};
+use timeline::track::piano_roll;
 
-/// Demonstration app data.
-struct App {
+const BPM: time::calc::Bpm = 140.0;
+const ONE_SECOND_MS: time::calc::Ms = 1_000.0;
+const PPQN: time::Ppqn = 9600;
+const WIDTH: u32 = 800;
+const HEIGHT: u32 = 600;
+
+fn main() {
+    nannou::app(model).update(update).run();
+}
+
+struct Model {
+    _window: window::Id,
+    ui: Ui,
+    ids: Ids,
+    timeline_data: TimelineData,
+}
+
+struct TimelineData {
     playhead_secs: f64,
-    bars: Vec<core::Bar>,
-    notes: Vec<Note>,
+    bars: Vec<time::TimeSig>,
+    notes: Vec<piano_roll::Note>,
     tempo_envelope: track::automation::numeric::Envelope<f32>,
     octave_envelope: track::automation::numeric::Envelope<i32>,
     toggle_envelope: track::automation::toggle::Envelope,
     bang_envelope: track::automation::bang::Envelope,
 }
 
-const ONE_SECOND_MS: time::calc::Ms = 1_000.0;
-const BPM: time::calc::Bpm = 140.0;
-
 // Create all of our unique `WidgetId`s with the `widget_ids!` macro.
-widget_ids! {
+conrod_core::widget_ids! {
     struct Ids {
         window,
         ruler,
@@ -33,229 +50,162 @@ widget_ids! {
     }
 }
 
-fn main() {
-    const WIDTH: u32 = 800;
-    const HEIGHT: u32 = 600;
-
-    // Build the window.
-    let mut events_loop = glium::glutin::EventsLoop::new();
-    let window = glium::glutin::WindowBuilder::new()
+fn model(app: &App) -> Model {
+    let _window = app
+        .new_window()
         .with_dimensions(WIDTH, HEIGHT)
-        .with_title("Timeline Demo");
-    let context = glium::glutin::ContextBuilder::new().with_vsync(true);
-    let display = glium::Display::new(window, context, &events_loop).unwrap();
-
-    // construct our `Ui`.
-    let mut ui = conrod::UiBuilder::new([WIDTH as f64, HEIGHT as f64]).build();
-
-    // Add a `Font` to the `Ui`'s `font::Map` from file.
-    let assets = find_folder::Search::KidsThenParents(3, 5)
-        .for_folder("assets")
+        .with_title("Timeline Demo")
+        .view(view)
+        .build()
         .unwrap();
-    let font_path = assets.join("fonts/NotoSans/NotoSans-Regular.ttf");
-    ui.fonts.insert_from_file(font_path).unwrap();
 
-    let mut renderer = conrod::backend::glium::Renderer::new(&display).unwrap();
-
-    // The image map describing each of our widget->image mappings (in our case, none).
-    let image_map = conrod::image::Map::<glium::texture::Texture2d>::new();
-
-    // A short-hand constructor for a Bar.
-    fn new_bar(top: u16, bottom: u16) -> core::Bar {
-        core::Bar {
-            time_sig: time::TimeSig {
-                top: top,
-                bottom: bottom,
-            },
-            maybe_swing: None,
-        }
-    }
-
-    // Construct our initial App data.
-    let mut app =
-        {
-            use timeline::track::automation::{
-                BangValue as Bang, Envelope, Point, ToggleValue as Toggle,
-            };
-
-            let bars = vec![
-                new_bar(4, 4),
-                new_bar(4, 4),
-                new_bar(6, 8),
-                new_bar(6, 8),
-                new_bar(4, 4),
-                new_bar(4, 4),
-                new_bar(7, 8),
-                new_bar(7, 8),
-            ];
-
-            let notes = bars
-                .iter()
-                .cloned()
-                .periods()
-                .enumerate()
-                .map(|(i, period)| Note {
-                    period: period,
-                    pitch: core::pitch::Step((24 + (i * 5) % 12) as f32).to_letter_octave(),
-                    velocity: 1.0,
-                })
-                .collect();
-
-            let tempo_envelope = {
-                let start = Point {
-                    ticks: time::Ticks(0),
-                    value: 20.0,
-                };
-                let points = bars
-                    .iter()
-                    .cloned()
-                    .periods()
-                    .enumerate()
-                    .map(|(i, period)| Point {
-                        ticks: period.end(),
-                        value: 20.0 + (i + 1) as f32 * 60.0 % 220.0,
-                    });
-                Envelope::from_points(once(start).chain(points), 20.0, 240.0)
-            };
-
-            let octave_envelope =
-                {
-                    let start = Point {
-                        ticks: time::Ticks(0),
-                        value: 0,
-                    };
-                    let points = bars.iter().cloned().with_starts().enumerate().flat_map(
-                        |(i, (bar, start))| {
-                            bar.division_periods(time::Division::Beat).enumerate().map(
-                                move |(j, period)| Point {
-                                    ticks: start + period.end(),
-                                    value: 1 + ((i as i32 + j as i32) * 3) % 12,
-                                },
-                            )
-                        },
-                    );
-                    Envelope::from_points(once(start).chain(points), 0, 12)
-                };
-
-            let toggle_envelope = {
-                let start = Point {
-                    ticks: time::Ticks(0),
-                    value: Toggle(rand::random()),
-                };
-                let points = bars.iter().cloned().periods().map(|period| Point {
-                    ticks: period.end(),
-                    value: Toggle(rand::random()),
-                });
-                Envelope::from_points(once(start).chain(points), Toggle(false), Toggle(true))
-            };
-
-            let bang_envelope = {
-                let points = bars.iter().cloned().periods().map(|period| Point {
-                    ticks: period.start(),
-                    value: Bang,
-                });
-                Envelope::from_points(points, Bang, Bang)
-            };
-
-            App {
-                playhead_secs: 0.0,
-                bars: bars,
-                notes: notes,
-                tempo_envelope: tempo_envelope,
-                octave_envelope: octave_envelope,
-                toggle_envelope: toggle_envelope,
-                bang_envelope: bang_envelope,
-            }
-        };
-
+    // Create the UI.
+    let mut ui = app.new_ui().build().unwrap();
     let ids = Ids::new(ui.widget_id_generator());
 
-    // Draws the given `primitives` to the given `Display`.
-    fn draw(
-        display: &glium::Display,
-        renderer: &mut conrod::backend::glium::Renderer,
-        image_map: &conrod::image::Map<glium::Texture2d>,
-        primitives: conrod::render::Primitives,
-    ) {
-        renderer.fill(display, primitives, &image_map);
-        let mut target = display.draw();
-        target.clear_color(0.0, 0.0, 0.0, 1.0);
-        renderer.draw(display, &mut target, &image_map).unwrap();
-        target.finish().unwrap();
-    }
+    // Start the playhead at the beginning.
+    let playhead_secs = 0.0;
 
-    let mut closed = false;
-    while !closed {
-        // Poll for events.
-        events_loop.poll_events(|event| {
-            // Use the `glutin` backend feature to convert the glutin event to a conrod one.
-            if let Some(event) = conrod::backend::winit::convert_event(event.clone(), &display) {
-                ui.handle_event(event);
-            }
+    // A sequence of bars with varying time signatures.
+    let bars = vec![
+        time::TimeSig { top: 4, bottom: 4 },
+        time::TimeSig { top: 4, bottom: 4 },
+        time::TimeSig { top: 6, bottom: 8 },
+        time::TimeSig { top: 6, bottom: 8 },
+        time::TimeSig { top: 4, bottom: 4 },
+        time::TimeSig { top: 4, bottom: 4 },
+        time::TimeSig { top: 7, bottom: 8 },
+        time::TimeSig { top: 7, bottom: 8 },
+    ];
 
-            match event {
-                glium::glutin::Event::WindowEvent { event, .. } => match event {
-                    // Update the GUI and redraw on Resized because macOS will block.
-                    glium::glutin::WindowEvent::Resized(..) => {
-                        // Instantiate a GUI demonstrating the timeline.
-                        {
-                            let mut ui = ui.set_widgets();
-                            set_widgets(&mut ui, &ids, &mut app);
-                        }
-                        let primitives = ui.draw();
-                        draw(&display, &mut renderer, &image_map, primitives);
+    let notes = bars::WithStarts::new(bars.iter().cloned(), PPQN)
+        .enumerate()
+        .map(|(i, (time_sig, start))| {
+            let end = start + time_sig.ticks_per_bar(PPQN);
+            let period = timeline::Period { start, end };
+            let pitch = pitch::Step((24 + (i * 5) % 12) as f32).to_letter_octave();
+            piano_roll::Note { period, pitch }
+        })
+        .collect();
+
+    let tempo_envelope = {
+        let start = Point {
+            ticks: time::Ticks(0),
+            value: 20.0,
+        };
+        let points = bars::Periods::new(bars.iter().cloned(), PPQN)
+            .enumerate()
+            .map(|(i, period)| Point {
+                ticks: period.end,
+                value: 20.0 + (i + 1) as f32 * 60.0 % 220.0,
+            });
+        Envelope::from_points(once(start).chain(points), 20.0, 240.0)
+    };
+
+    let octave_envelope = {
+        let start = Point {
+            ticks: time::Ticks(0),
+            value: 0,
+        };
+        let points = bars::WithStarts::new(bars.iter().cloned(), PPQN)
+            .enumerate()
+            .flat_map(|(i, (ts, mut start))| {
+                let bar_end = start + ts.ticks_per_bar(PPQN);
+                let mut j = 0;
+                std::iter::from_fn(move || {
+                    if start >= bar_end {
+                        return None;
                     }
 
-                    // Break from the loop upon `Escape`.
-                    glium::glutin::WindowEvent::Closed
-                    | glium::glutin::WindowEvent::KeyboardInput {
-                        input:
-                            glium::glutin::KeyboardInput {
-                                virtual_keycode: Some(glium::glutin::VirtualKeyCode::Escape),
-                                ..
-                            },
-                        ..
-                    } => closed = true,
-                    _ => (),
-                },
-                _ => (),
-            }
-        });
+                    let end = start + time::Ticks(PPQN as _);
+                    let end = if end > bar_end { bar_end } else { end };
+                    let point = Point {
+                        ticks: end,
+                        value: 1 + ((i as i32 + j as i32) * 3) % 12,
+                    };
+                    start = end;
+                    j += 1;
+                    Some(point)
+                })
+            });
+        Envelope::from_points(once(start).chain(points), 0, 12)
+    };
 
-        // Instantiate a GUI demonstrating the timeline.
-        {
-            let mut ui = ui.set_widgets();
-            set_widgets(&mut ui, &ids, &mut app);
-        }
+    let toggle_envelope = {
+        let start = Point {
+            ticks: time::Ticks(0),
+            value: Toggle(random()),
+        };
+        let points = bars::Periods::new(bars.iter().cloned(), PPQN)
+            .map(|period| Point {
+                ticks: period.end,
+                value: Toggle(random()),
+            });
+        Envelope::from_points(once(start).chain(points), Toggle(false), Toggle(true))
+    };
 
-        // Draw the `Ui`.
-        if let Some(primitives) = ui.draw_if_changed() {
-            draw(&display, &mut renderer, &image_map, primitives);
-        }
+    let bang_envelope = {
+        let points = bars::Periods::new(bars.iter().cloned(), PPQN)
+            .map(|period| Point {
+                ticks: period.start,
+                value: Bang,
+            });
+        Envelope::from_points(points, Bang, Bang)
+    };
 
-        // Update the playhead. This is just a rough estimate based on the sleep duration.
-        let total_duration_ticks = app.bars.iter().cloned().total_duration();
-        let total_duration_ms = total_duration_ticks.ms(BPM, core::PPQN);
-        let total_duration_secs = total_duration_ms / ONE_SECOND_MS;
-        app.playhead_secs = (app.playhead_secs + 1.0 / 60.0) % total_duration_secs;
+    let timeline_data = TimelineData {
+        playhead_secs,
+        bars,
+        notes,
+        tempo_envelope,
+        octave_envelope,
+        toggle_envelope,
+        bang_envelope,
+    };
 
-        // Avoid hogging the CPU.
-        std::thread::sleep(std::time::Duration::from_millis(16));
+    Model {
+        _window,
+        ui,
+        ids,
+        timeline_data,
     }
 }
 
+fn update(_app: &App, model: &mut Model, update: Update) {
+    let Model {
+        ref ids,
+        ref mut ui,
+        ref mut timeline_data,
+        ..
+    } = *model;
+
+    // Update the user interface.
+    set_widgets(&mut ui.set_widgets(), ids, timeline_data);
+
+    // Update the playhead.
+    let total_duration_ticks = timeline::bars_duration_ticks(timeline_data.bars.iter().cloned(), PPQN);
+    let total_duration_ms = total_duration_ticks.ms(BPM, PPQN);
+    let total_duration_secs = total_duration_ms / ONE_SECOND_MS;
+    let delta_secs = update.since_last.secs();
+    timeline_data.playhead_secs = (timeline_data.playhead_secs + delta_secs) % total_duration_secs;
+}
+
+fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+    model.ui.draw_to_frame(app, &frame).unwrap();
+    frame
+}
+
 // Update / draw the Ui.
-fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
-    use conrod::{widget, Borderable, Colorable, Positionable, Sizeable, Widget};
-    use timeline::{track, Timeline};
+fn set_widgets(ui: &mut UiCell, ids: &Ids, data: &mut TimelineData) {
+    use timeline::Timeline;
 
     // Main window canvas.
     widget::Canvas::new()
         .border(0.0)
-        .color(conrod::color::DARK_CHARCOAL.alpha(0.5))
+        .color(ui::color::DARK_CHARCOAL.alpha(0.5))
         .set(ids.window, ui);
 
-    let App {
+    let TimelineData {
         ref mut playhead_secs,
         ref bars,
         ref notes,
@@ -263,10 +213,10 @@ fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
         ref mut octave_envelope,
         ref mut toggle_envelope,
         ref mut bang_envelope,
-    } = *app;
+    } = *data;
 
-    let ticks = time::Ms(*playhead_secs * ONE_SECOND_MS).to_ticks(BPM, core::PPQN);
-    let color = conrod::color::LIGHT_BLUE;
+    let ticks = time::Ms(*playhead_secs * ONE_SECOND_MS).to_ticks(BPM, PPQN);
+    let color = ui::color::LIGHT_BLUE;
 
     ////////////////////
     ///// TIMELINE /////
@@ -282,13 +232,13 @@ fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
     // 2. `Tracks` for setting regular tracks.
     // 3. `Final` for setting the `Playhead` and `Scrollbar` widgets after all tracks are set.
 
-    let context = Timeline::new(bars.iter().cloned())
+    let context = Timeline::new(bars.iter().cloned(), PPQN)
         .playhead(ticks)
         .color(color)
         .wh_of(ids.window)
         .middle_of(ids.window)
         .border(1.0)
-        .border_color(conrod::color::CHARCOAL)
+        .border_color(ui::color::CHARCOAL)
         .set(ids.timeline, ui);
 
     /////////////////////////
@@ -299,10 +249,10 @@ fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
     //
     // All pinned tracks must be `set` prior to non-pinned tracks.
     {
-        let ruler = track::Ruler::new(context.ruler, &context.bars).color(color);
+        let ruler = track::Ruler::new(context.ruler, &context.bars, PPQN).color(color);
         let track = context.set_next_pinned_track(ruler, ui);
         for triggered in track.event {
-            *playhead_secs = triggered.ticks.ms(BPM, core::PPQN) / ONE_SECOND_MS;
+            *playhead_secs = triggered.ticks.ms(BPM, PPQN) / ONE_SECOND_MS;
         }
     }
 
@@ -315,7 +265,7 @@ fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
 
     {
         // Piano roll.
-        let piano_roll = track::PianoRoll::new(&context.bars, &notes[..]).color(color);
+        let piano_roll = track::PianoRoll::new(&context.bars, PPQN, &notes[..]).color(color);
         let track = context.set_next_track(piano_roll, ui);
         for event in track.event {
             use timeline::track::piano_roll::Event;
@@ -331,7 +281,7 @@ fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
             ($envelope:expr) => {
                 let track = {
                     let automation =
-                        track::automation::Numeric::new(&context.bars, $envelope).color(color);
+                        track::automation::Numeric::new(&context.bars, PPQN, $envelope).color(color);
                     context.set_next_track(automation, ui)
                 };
                 for event in track.event {
@@ -352,7 +302,7 @@ fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
         // Toggle automation.
         let track = {
             let automation =
-                track::automation::Toggle::new(&context.bars, toggle_envelope).color(color);
+                track::automation::Toggle::new(&context.bars, PPQN, toggle_envelope).color(color);
             context.set_next_track(automation, ui)
         };
         for event in track.event {
@@ -367,7 +317,7 @@ fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
         // Bang automation.
         let track = {
             let automation =
-                track::automation::Bang::new(&context.bars, bang_envelope).color(color);
+                track::automation::Bang::new(&context.bars, PPQN, bang_envelope).color(color);
             context.set_next_track(automation, ui)
         };
         for event in track.event {
@@ -391,7 +341,7 @@ fn set_widgets(ui: &mut conrod::UiCell, ids: &Ids, app: &mut App) {
         use timeline::playhead::Event;
         match event {
             Event::Pressed => println!("Playhead pressed!"),
-            Event::DraggedTo(ticks) => *playhead_secs = ticks.ms(BPM, core::PPQN) / ONE_SECOND_MS,
+            Event::DraggedTo(ticks) => *playhead_secs = ticks.ms(BPM, PPQN) / ONE_SECOND_MS,
             Event::Released => println!("Playhead released!"),
         }
     }

@@ -1,23 +1,21 @@
-use conrod::{self, widget};
-use core;
-use core::time::Ticks;
+use conrod_core::{self as conrod, widget};
 use num::{self, NumCast};
+use time_calc::{self as time, Ticks};
 use track;
 
-pub use core::automation::bang::Bang;
-pub use core::automation::envelope::bounded::Dynamic as DynamicEnvelope;
-pub use core::automation::envelope::bounded::Envelope;
-pub use core::automation::envelope::PointTrait;
-pub use core::automation::envelope::Trait as EnvelopeTrait;
-pub use core::automation::envelope::{Number, Point, ValueKind};
-pub use core::automation::toggle::Toggle;
+pub use env::{Bang, Number, Point, Toggle, ValueKind};
+pub use env::bounded::Dynamic as DynamicEnvelope;
+pub use env::bounded::Envelope;
+pub use env::PointTrait;
+pub use env::Trait as EnvelopeTrait;
 
 /// A widget used for viewing and manipulating a series of points over time.
 #[derive(WidgetCommon)]
 pub struct Dynamic<'a> {
     #[conrod(common_builder)]
     common: widget::CommonBuilder,
-    bars: &'a [core::Bar],
+    bars: &'a [time::TimeSig],
+    ppqn: time::Ppqn,
     envelope: &'a DynamicEnvelope,
     /// The position of the playhead in ticks along with the change in position.
     pub maybe_playhead: Option<(Ticks, Ticks)>,
@@ -58,9 +56,10 @@ pub enum Event {
 
 impl<'a> Dynamic<'a> {
     /// Construct a new default Dynamic.
-    pub fn new(bars: &'a [core::Bar], envelope: &'a DynamicEnvelope) -> Self {
+    pub fn new(bars: &'a [time::TimeSig], ppqn: time::Ppqn, envelope: &'a DynamicEnvelope) -> Self {
         Dynamic {
             bars: bars,
+            ppqn: ppqn,
             maybe_playhead: None,
             envelope: envelope,
             common: widget::CommonBuilder::default(),
@@ -105,7 +104,7 @@ impl<'a> conrod::Widget for Dynamic<'a> {
     }
 
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
-        use conrod::{Colorable, Positionable, Sizeable};
+        use conrod_core::{Colorable, Positionable, Sizeable};
 
         // A function for instantiating a `automation::Numeric` widget.
         fn numeric_automation<T>(
@@ -117,13 +116,12 @@ impl<'a> conrod::Widget for Dynamic<'a> {
             T: NumCast
                 + Copy
                 + Into<Number>
-                + core::envelope::interpolation::Spatial
+                + envelope::interpolation::Spatial
                 + PartialEq
                 + PartialOrd,
             T::Scalar: num::Float,
             Point<T>: PointTrait<X = Ticks, Y = T>,
         {
-            use conrod::{Colorable, Positionable, Sizeable};
             let widget::UpdateArgs {
                 id,
                 state,
@@ -134,13 +132,14 @@ impl<'a> conrod::Widget for Dynamic<'a> {
             let Dynamic {
                 maybe_playhead,
                 bars,
+                ppqn,
                 ..
             } = automation;
 
             let color = style.color(ui.theme());
             let point_radius = style.point_radius(ui.theme());
 
-            super::numeric::Numeric::new(bars, env)
+            super::numeric::Numeric::new(bars, ppqn, env)
                 .and_mut(|numeric| numeric.maybe_playhead = maybe_playhead)
                 .middle_of(id)
                 .wh_of(id)
@@ -210,6 +209,7 @@ impl<'a> conrod::Widget for Dynamic<'a> {
                 } = args;
                 let Dynamic {
                     bars,
+                    ppqn,
                     maybe_playhead,
                     ..
                 } = self;
@@ -217,7 +217,7 @@ impl<'a> conrod::Widget for Dynamic<'a> {
                 let color = style.color(&ui.theme);
                 let point_radius = style.point_radius(&ui.theme);
 
-                super::toggle::Toggle::new(bars, env)
+                super::toggle::Toggle::new(bars, ppqn, env)
                     .and_mut(|toggle| toggle.maybe_playhead = maybe_playhead)
                     .middle_of(id)
                     .wh_of(id)
@@ -240,6 +240,7 @@ impl<'a> conrod::Widget for Dynamic<'a> {
                 } = args;
                 let Dynamic {
                     bars,
+                    ppqn,
                     maybe_playhead,
                     ..
                 } = self;
@@ -247,7 +248,7 @@ impl<'a> conrod::Widget for Dynamic<'a> {
                 let color = style.color(&ui.theme);
                 let point_radius = style.point_radius(&ui.theme);
 
-                super::bang::Bang::new(bars, env)
+                super::bang::Bang::new(bars, ppqn, env)
                     .and_mut(|bang| bang.maybe_playhead = maybe_playhead)
                     .middle_of(id)
                     .wh_of(id)

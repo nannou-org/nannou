@@ -1,19 +1,30 @@
-use conrod::{self, widget};
-use core::pitch::{self, Letter, LetterOctave};
-use core::time::Ticks;
-use core::{self, BarIterator, Note, Period};
+use bars_duration_ticks;
+use conrod_core::{self as conrod, widget};
+use period::Period;
 use track;
+use pitch_calc::{self as pitch, Letter, LetterOctave};
+use time_calc::{self as time, Ticks};
 
 /// A PianoRoll widget builder type.
 #[derive(WidgetCommon)]
 pub struct PianoRoll<'a> {
     #[conrod(common_builder)]
     common: widget::CommonBuilder,
-    bars: &'a [core::Bar],
+    bars: &'a [time::TimeSig],
+    ppqn: time::Ppqn,
     /// The current position of the playhead and the amount it has changed respectively.
     maybe_playhead: Option<(Ticks, Ticks)>,
     notes: &'a [Note],
     style: Style,
+}
+
+/// Used to represent a musical note within the piano roll.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Note {
+    /// The period over which the note is played.
+    pub period: Period,
+    /// The pitch of the note.
+    pub pitch: LetterOctave,
 }
 
 /// An alias for an index into the note buffer.
@@ -53,9 +64,10 @@ pub enum Event {
 
 impl<'a> PianoRoll<'a> {
     /// Construct a new, default PianoRoll.
-    pub fn new(bars: &'a [core::Bar], notes: &'a [Note]) -> Self {
+    pub fn new(bars: &'a [time::TimeSig], ppqn: time::Ppqn, notes: &'a [Note]) -> Self {
         PianoRoll {
             bars: bars,
+            ppqn: ppqn,
             maybe_playhead: None,
             notes: notes,
             common: widget::CommonBuilder::default(),
@@ -97,7 +109,7 @@ impl<'a> conrod::Widget for PianoRoll<'a> {
     }
 
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
-        use conrod::{Borderable, Colorable, Positionable};
+        use conrod_core::{Borderable, Colorable, Positionable};
 
         let widget::UpdateArgs {
             id,
@@ -111,6 +123,7 @@ impl<'a> conrod::Widget for PianoRoll<'a> {
         // let visible_height = self.get_visible_height(&ui);
         let PianoRoll {
             bars,
+            ppqn,
             maybe_playhead,
             notes,
             ..
@@ -125,7 +138,7 @@ impl<'a> conrod::Widget for PianoRoll<'a> {
             Some((playhead, delta)) if delta > Ticks(0) => {
                 let start = playhead - delta;
                 let end = playhead;
-                let predicate = |n: &Note| n.period.is_in_range(start) || n.period.is_in_range(end);
+                let predicate = |n: &Note| n.period.contains(start) || n.period.contains(end);
                 let maybe_start_idx = notes.iter().position(&predicate);
                 let maybe_end_idx = notes.iter().rposition(&predicate);
                 match (maybe_start_idx, maybe_end_idx) {
@@ -141,15 +154,18 @@ impl<'a> conrod::Widget for PianoRoll<'a> {
         // If the playhead passed over some note(s), react accordingly.
         if let Some((start_idx, end_idx)) = playhead_delta_range {
             if let Some((playhead, delta)) = maybe_playhead {
-                let playhead_range = Period(playhead - delta, delta);
+                let playhead_range = Period {
+                    start: playhead - delta,
+                    end: playhead,
+                };
                 for i in start_idx..end_idx {
-                    if playhead_range.is_in_range(notes[i].period.start()) {
+                    if playhead_range.contains(notes[i].period.start) {
                         events.push(Event::NoteOn(i))
                     }
-                    if playhead_range.is_in_range(notes[i].period.end()) {
+                    if playhead_range.contains(notes[i].period.end) {
                         events.push(Event::NoteOff(i))
                     }
-                    if playhead_range.does_intersect(&notes[i].period) {
+                    if playhead_range.intersects(&notes[i].period) {
                         events.push(Event::NotePlayed(i))
                     }
                 }
@@ -219,7 +235,7 @@ impl<'a> conrod::Widget for PianoRoll<'a> {
         }
 
         // Instantiate a **Rectangle** for each note on our PianoRoll.
-        let total_ticks = bars.iter().cloned().total_duration();
+        let total_ticks = bars_duration_ticks(bars.iter().cloned(), ppqn);
         let half_w = w / 2.0;
 
         // Converts the given position along the timeline in ticks to an x_offset.
@@ -229,9 +245,9 @@ impl<'a> conrod::Widget for PianoRoll<'a> {
 
         // Converts the period along the timeline to a Scalar Range.
         let period_to_w_and_x_offset =
-            move |period: core::Period| -> (conrod::Scalar, conrod::Scalar) {
+            move |period: Period| -> (conrod::Scalar, conrod::Scalar) {
                 let half_duration = Ticks(period.duration().ticks() / 2);
-                let period_middle = period.start() + half_duration;
+                let period_middle = period.start + half_duration;
                 let middle_x_offset = ticks_to_x_offset(period_middle) - half_w;
                 let width = ticks_to_x_offset(period.duration());
                 (width, middle_x_offset)

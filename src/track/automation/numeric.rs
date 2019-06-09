@@ -1,14 +1,12 @@
-use conrod::{self, widget};
-use core::time::Ticks;
-use core::{self, BarIterator};
+use bars_duration_ticks;
+use conrod_core::{self as conrod, widget};
+use env;
 use num::{self, NumCast};
 use ruler;
+use time_calc::{self as time, Ticks};
 use track;
 
-pub use core::automation::envelope::bounded::Envelope;
-pub use core::automation::envelope::Point;
-pub use core::automation::envelope::PointTrait;
-pub use core::automation::envelope::Trait as EnvelopeTrait;
+pub use env::{Point, PointTrait, Trait as EnvelopeTrait, bounded::Envelope};
 
 /// For viewing and manipulating series of numerically valued points over time.
 #[derive(WidgetCommon)]
@@ -16,7 +14,8 @@ pub struct Numeric<'a, T: 'a> {
     #[conrod(common_builder)]
     common: widget::CommonBuilder,
     envelope: &'a Envelope<T>,
-    bars: &'a [core::Bar],
+    bars: &'a [time::TimeSig],
+    ppqn: time::Ppqn,
     /// The position and change in position of the playhead in ticks, respectively.
     pub maybe_playhead: Option<(Ticks, Ticks)>,
     style: Style,
@@ -56,9 +55,10 @@ pub enum Event<T> {
 
 impl<'a, T> Numeric<'a, T> {
     /// Construct a new default Automation.
-    pub fn new(bars: &'a [core::Bar], envelope: &'a Envelope<T>) -> Self {
+    pub fn new(bars: &'a [time::TimeSig], ppqn: time::Ppqn, envelope: &'a Envelope<T>) -> Self {
         Numeric {
             bars: bars,
+            ppqn: ppqn,
             maybe_playhead: None,
             envelope: envelope,
             common: widget::CommonBuilder::default(),
@@ -87,7 +87,7 @@ impl<'a, T> conrod::Colorable for Numeric<'a, T> {
 
 impl<'a, T> conrod::Widget for Numeric<'a, T>
 where
-    T: NumCast + Copy + core::envelope::interpolation::Spatial + PartialEq + PartialOrd,
+    T: NumCast + Copy + envelope::interpolation::Spatial + PartialEq + PartialOrd,
     T::Scalar: num::Float,
     Point<T>: PointTrait<X = Ticks, Y = T>,
 {
@@ -116,8 +116,8 @@ where
 
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
         use super::Elem;
-        use conrod::utils::{clamp, map_range};
-        use conrod::{Colorable, Positionable};
+        use conrod_core::utils::{clamp, map_range};
+        use conrod_core::{Colorable, Positionable};
 
         let widget::UpdateArgs {
             id,
@@ -130,6 +130,7 @@ where
         let Numeric {
             envelope,
             bars,
+            ppqn,
             maybe_playhead,
             ..
         } = self;
@@ -152,7 +153,7 @@ where
         let (x, y, w, h) = rect.x_y_w_h();
         let color = style.color(&ui.theme);
         let point_radius = style.point_radius(&ui.theme);
-        let total_ticks = bars.iter().cloned().total_duration();
+        let total_ticks = bars_duration_ticks(bars.iter().cloned(), ppqn);
         let min = envelope.min;
         let max = envelope.max;
 
@@ -233,7 +234,7 @@ where
                             ui: &mut conrod::UiCell,
                             events: &mut Vec<Event<T>>| {
             for widget_event in ui.widget_input(point_id).events() {
-                use conrod::{event, input};
+                use conrod_core::{event, input};
 
                 match widget_event {
                     // Check to see whether or not the point has been dragged.
@@ -323,7 +324,7 @@ where
         // Check to see whether or not a new point should be added.
         for click in ui.widget_input(id).clicks().left() {
             let click_abs_xy = conrod::utils::vec2_add(click.xy, rect.xy());
-            let point = core::automation::Point {
+            let point = env::Point {
                 ticks: clamped_ticks_from_x(click_abs_xy[0]),
                 value: clamped_value_from_y(click_abs_xy[1]),
             };

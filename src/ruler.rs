@@ -1,6 +1,7 @@
-use conrod::Scalar;
-use core::{self, time, BarIterator};
+use bars;
+use conrod_core::Scalar;
 use std::iter::{Enumerate, Zip};
+use time_calc as time;
 
 /// For converting a duration in bars to a viewable grid.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -9,14 +10,23 @@ pub struct Ruler {
     marker_step: (time::NumDiv, time::Division),
 }
 
-/// Alias for an enumerated, zipped Bars and BarStarts.
-type BarsWithStartsEnumerated<I> = Enumerate<Zip<I, core::BarStarts<I>>>;
+/// The information required to construct a new `Ruler` instance.
+#[derive(Clone, Debug)]
+pub struct RangeDescription<T> {
+    pub ppqn: time::Ppqn,
+    pub duration_ticks: time::Ticks,
+    pub duration_bars: time::Bars,
+    pub time_sigs: T,
+}
+
+// Iterators
 
 /// An iterator that yields an iterator of marker positions (in ticks) for each Bar.
 #[derive(Clone)]
 pub struct MarkersInTicks<I> {
+    ppqn: time::Ppqn,
     marker_step: (time::NumDiv, time::Division),
-    bars_with_starts_enumerated: BarsWithStartsEnumerated<I>,
+    bars_with_starts_enumerated: Enumerate<I>,
 }
 
 /// An iterator that yields each marker position on a ruler in ticks.
@@ -28,11 +38,12 @@ pub struct BarMarkersInTicks {
 }
 
 /// An alias for markers in ticks per bar along with the TimeSig for each bar.
-type MarkersInTicksWithBarsAndStarts<I> = Zip<MarkersInTicks<I>, Zip<I, core::BarStarts<I>>>;
+type MarkersInTicksWithBarsAndStarts<I> = Zip<MarkersInTicks<I>, I>;
 
 /// An iterator that yields an iterator producing the simplest Division for each marker in a Bar.
 #[derive(Clone)]
 pub struct MarkersInDivisions<I> {
+    ppqn: time::Ppqn,
     markers_in_ticks_with_bars_and_starts: MarkersInTicksWithBarsAndStarts<I>,
     marker_div: time::Division,
 }
@@ -41,20 +52,29 @@ pub struct MarkersInDivisions<I> {
 #[derive(Clone)]
 pub struct BarMarkersInDivisions {
     time_sig_bottom: u16,
-    simplest_divisions: core::bar::SimplestDivisions<BarMarkersInTicks>,
+    simplest_divisions: bars::SimplestDivisions<BarMarkersInTicks>,
     marker_div: time::Division,
 }
 
+// Implementations
+
 impl Ruler {
     /// Constructor for a Ruler.
-    pub fn new<I>(total_width: f64, bars: I) -> Ruler
+    pub fn new<T>(total_width: f64, desc: RangeDescription<T>) -> Ruler
     where
-        I: BarIterator + ExactSizeIterator + Clone,
+        T: Iterator<Item = time::TimeSig> + Clone,
     {
-        let total_ticks = bars.clone().total_duration();
-        let total_beats = total_ticks.ticks() as f64 / core::PPQN as f64;
+        let RangeDescription {
+            ppqn,
+            duration_ticks,
+            duration_bars,
+            time_sigs,
+        } = desc;
+
+        let total_ticks = duration_ticks;
+        let total_beats = total_ticks.ticks() as f64 / ppqn as f64;
         let width_per_beat = total_width / total_beats;
-        let total_num_bars = bars.len();
+        let total_num_bars = duration_bars.0 as usize;
 
         // If we don't have a duration, our Ruler is meaningless.
         if total_num_bars == 0 {
@@ -91,14 +111,13 @@ impl Ruler {
 
             // Check for the smallest step in terms of width that would be produced by a ruler
             // with markers divided by the current `num_bars`.
-            let step_in_width = bars
+            let step_in_width = time_sigs
                 .clone()
-                .time_sigs()
                 .chunks_lazy(num_bars)
                 .into_iter()
                 .fold(::std::f64::MAX, |smallest_step, time_sigs| {
                     let step = time_sigs.fold(0.0, |total, ts| {
-                        total + (ts.beats_in_a_bar() * width_per_beat)
+                        total + (ts.beats_per_bar() * width_per_beat)
                     });
                     step.min(smallest_step)
                 });
@@ -166,39 +185,55 @@ impl Ruler {
         }
     }
 
-    /// Produce an iterator that yields an iterator for each bar that yields each marker position
-    /// in ticks.
-    pub fn markers_in_ticks<I>(&self, bars: I) -> MarkersInTicks<I>
+    /// Produce an iterator that yields an iterator for each bar along with its start position in
+    /// ticks.
+    pub fn markers_in_ticks<I>(
+        &self,
+        bars: I,
+        ppqn: time::Ppqn,
+    ) -> MarkersInTicks<bars::WithStarts<I::IntoIter>>
     where
-        I: BarIterator + Clone,
+        I: IntoIterator<Item = time::TimeSig>,
+        I::IntoIter: Clone,
     {
+        let bars_with_starts = bars::WithStarts::new(bars, ppqn);
         MarkersInTicks {
             marker_step: self.marker_step,
-            bars_with_starts_enumerated: bars.with_starts().enumerate(),
+            bars_with_starts_enumerated: bars_with_starts.into_iter().enumerate(),
+            ppqn,
         }
     }
 
     /// Produce an iterator that yields an iterator for each bar that yields each marker's simplest
     /// division representation suitable for the Ruler.
-    pub fn markers_in_divisions<I>(&self, bars: I) -> MarkersInDivisions<I>
+    pub fn markers_in_divisions<I>(
+        &self,
+        bars: I,
+        ppqn: time::Ppqn,
+    ) -> MarkersInDivisions<bars::WithStarts<I::IntoIter>>
     where
-        I: BarIterator + Clone,
+        I: IntoIterator<Item = time::TimeSig>,
+        I::IntoIter: Clone,
     {
+        let bars = bars.into_iter();
+        let bars_with_starts = bars::WithStarts::new(bars.clone(), ppqn);
         MarkersInDivisions {
+            ppqn,
             markers_in_ticks_with_bars_and_starts: self
-                .markers_in_ticks(bars.clone())
-                .zip(bars.with_starts()),
+                .markers_in_ticks(bars, ppqn)
+                .zip(bars_with_starts),
             marker_div: self.marker_step.1,
         }
     }
 
     /// Produces the number of visible markers on the `Ruler` for the given bars.
-    pub fn marker_count<I>(&self, bars: I) -> usize
+    pub fn marker_count<I>(&self, bars: I, ppqn: time::Ppqn) -> usize
     where
-        I: BarIterator + Clone,
+        I: IntoIterator<Item = time::TimeSig>,
+        I::IntoIter: Clone,
     {
         // TODO: Could probably do this more efficiently, but this is easy for now.
-        self.markers_in_ticks(bars)
+        self.markers_in_ticks(bars, ppqn)
             .flat_map(|bar_markers| bar_markers)
             .count()
     }
@@ -209,8 +244,8 @@ impl Ruler {
     // }
 
     /// The fractional number of ticks that may fit within one unit of space.
-    pub fn ticks_per_width(&self) -> Scalar {
-        (1.0 / self.width_per_beat) * core::PPQN as Scalar
+    pub fn ticks_per_width(&self, ppqn: time::Ppqn) -> Scalar {
+        (1.0 / self.width_per_beat) * ppqn as Scalar
     }
 }
 
@@ -221,17 +256,19 @@ pub fn x_offset_from_ticks(ticks: time::Ticks, total: time::Ticks, width: Scalar
     (ticks.ticks() as Scalar / total.ticks() as Scalar) * width - width / 2.0
 }
 
+// Iterator implementations.
+
 impl<I> Iterator for MarkersInTicks<I>
 where
-    I: BarIterator + Clone,
+    I: Iterator<Item = (time::TimeSig, time::Ticks)> + Clone,
 {
     type Item = BarMarkersInTicks;
     fn next(&mut self) -> Option<BarMarkersInTicks> {
         self.bars_with_starts_enumerated
             .next()
-            .map(|(i, (bar, start))| match self.marker_step {
+            .map(|(i, (time_sig, start))| match self.marker_step {
                 (n, time::Division::Bar) => {
-                    let bar_ticks = bar.ticks();
+                    let bar_ticks = time_sig.ticks_per_bar(self.ppqn);
                     BarMarkersInTicks {
                         maybe_next: if i % n as usize == 0 {
                             Some(start)
@@ -245,8 +282,8 @@ where
                 (1, div) => BarMarkersInTicks {
                     maybe_next: Some(start),
                     marker_step_ticks: time::Measure(1, div, time::DivType::Whole)
-                        .to_ticks(bar.time_sig, core::PPQN),
-                    end_ticks: start + bar.ticks(),
+                        .to_ticks(time_sig, self.ppqn),
+                    end_ticks: start + time_sig.ticks_per_bar(self.ppqn),
                 },
                 _ => unreachable!(),
             })
@@ -273,20 +310,27 @@ impl Iterator for BarMarkersInTicks {
 
 impl<I> Iterator for MarkersInDivisions<I>
 where
-    I: BarIterator + Clone,
+    I: Iterator<Item = (time::TimeSig, time::Ticks)> + Clone,
 {
     type Item = BarMarkersInDivisions;
     fn next(&mut self) -> Option<BarMarkersInDivisions> {
         self.markers_in_ticks_with_bars_and_starts
             .next()
-            .map(|(markers_in_ticks, (bar, start))| {
-                let time_sig_bottom = bar.time_sig.bottom;
+            .map(|(markers_in_ticks, (time_sig, start))| {
+                let time_sig_bottom = time_sig.bottom;
                 let markers_in_ticks = BarMarkersInTicks {
                     maybe_next: markers_in_ticks.maybe_next.map(|ticks| ticks - start),
                     end_ticks: markers_in_ticks.end_ticks - start,
                     ..markers_in_ticks
                 };
-                let simplest_divisions = bar.simplest_divisions(markers_in_ticks);
+                let ppqn = self.ppqn;
+                let duration_ticks = time_sig.ticks_per_bar(ppqn);
+                let ticks_iter = markers_in_ticks;
+                let simplest_divisions = bars::SimplestDivisions::new(
+                    ticks_iter,
+                    ppqn,
+                    duration_ticks,
+                );
                 BarMarkersInDivisions {
                     time_sig_bottom: time_sig_bottom,
                     simplest_divisions: simplest_divisions,

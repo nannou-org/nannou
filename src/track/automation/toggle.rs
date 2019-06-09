@@ -1,16 +1,14 @@
-use conrod::{self, widget};
-use core::time::Ticks;
-use core::{self, BarIterator};
+use bars_duration_ticks;
+use conrod_core::{self as conrod, widget};
+use env;
 use ruler;
+use time_calc::{self as time, Ticks};
 use track;
 
-pub use core::automation::envelope::Point;
-pub use core::automation::envelope::PointTrait;
-pub use core::automation::envelope::Trait as EnvelopeTrait;
-pub use core::automation::toggle::Toggle as ToggleValue;
+pub use env::{Point, PointTrait, Trait as EnvelopeTrait, Toggle as ToggleValue};
 
 /// The envelope type compatible with the `Toggle` automation track.
-pub type Envelope = core::automation::envelope::bounded::Envelope<ToggleValue>;
+pub type Envelope = env::bounded::Envelope<ToggleValue>;
 
 /// For viewing and manipulating series of boolean valued points over time.
 #[derive(WidgetCommon)]
@@ -18,7 +16,8 @@ pub struct Toggle<'a> {
     #[conrod(common_builder)]
     common: widget::CommonBuilder,
     envelope: &'a Envelope,
-    bars: &'a [core::Bar],
+    bars: &'a [time::TimeSig],
+    ppqn: time::Ppqn,
     /// The position of the playhead in ticks along with the change in its position in ticks.
     pub maybe_playhead: Option<(Ticks, Ticks)>,
     style: Style,
@@ -58,9 +57,10 @@ pub enum Event {
 
 impl<'a> Toggle<'a> {
     /// Construct a new default Automation.
-    pub fn new(bars: &'a [core::Bar], envelope: &'a Envelope) -> Self {
+    pub fn new(bars: &'a [time::TimeSig], ppqn: time::Ppqn, envelope: &'a Envelope) -> Self {
         Toggle {
             bars: bars,
+            ppqn: ppqn,
             maybe_playhead: None,
             envelope: envelope,
             common: widget::CommonBuilder::default(),
@@ -110,8 +110,8 @@ impl<'a> conrod::Widget for Toggle<'a> {
 
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
         use super::Elem;
-        use conrod::utils::{clamp, map_range};
-        use conrod::{Colorable, Positionable};
+        use conrod_core::utils::{clamp, map_range};
+        use conrod_core::{Colorable, Positionable};
 
         let widget::UpdateArgs {
             id,
@@ -124,6 +124,7 @@ impl<'a> conrod::Widget for Toggle<'a> {
         let Toggle {
             envelope,
             bars,
+            ppqn,
             maybe_playhead,
             ..
         } = self;
@@ -163,7 +164,7 @@ impl<'a> conrod::Widget for Toggle<'a> {
         let half_h = h / 2.0;
         let color = style.color(ui.theme());
         let point_radius = style.point_radius(ui.theme());
-        let total_ticks = bars.iter().cloned().total_duration();
+        let total_ticks = bars_duration_ticks(bars.iter().cloned(), ppqn);
 
         // Get the time in ticks from some position over the Bang automation.
         let ticks_from_x = |x: conrod::Scalar| {
@@ -214,7 +215,7 @@ impl<'a> conrod::Widget for Toggle<'a> {
                             ui: &mut conrod::UiCell,
                             events: &mut Vec<Event>| {
             for widget_event in ui.widget_input(point_id).events() {
-                use conrod::{event, input};
+                use conrod_core::{event, input};
 
                 match widget_event {
                     // Check to see if the toggle point is being dragged.

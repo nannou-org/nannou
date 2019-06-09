@@ -1,9 +1,10 @@
-use conrod::{self, widget, Colorable, Positionable, Sizeable, Widget};
-use core::{self, time, BarIterator};
+use bars_duration_ticks;
+use conrod_core::{self as conrod, widget, Colorable, Positionable, Sizeable, Widget};
 use playhead::{self, Playhead};
-use ruler::Ruler;
+use ruler::{self, Ruler};
 use std;
 use std::collections::HashMap;
+use time_calc as time;
 use track;
 
 /// A widget for viewing and controlling time related data.
@@ -18,6 +19,8 @@ pub struct Timeline<B> {
     playhead: Option<time::Ticks>,
     /// The duration of the timeline given as a list of Bars.
     bars: B,
+    /// The resolution of a single quarter note.
+    ppqn: time::Ppqn,
     /// A height for tracks that haven't been given some uniquely specified height.
     maybe_track_height: Option<conrod::Scalar>,
 }
@@ -43,7 +46,7 @@ struct Shared {
     /// The index of the next available `widget::Id` for each `Track` type.
     next_track_id_indices: HashMap<std::any::TypeId, usize>,
     /// The duration of the timeline given as a cached list of Bars.
-    bars: Vec<core::Bar>,
+    bars: Vec<time::TimeSig>,
 }
 
 widget_ids! {
@@ -100,7 +103,9 @@ pub struct Context {
     /// To avoid unnecessary allocations, this `Vec` is "taken" from the `Timeline`'s `State` before
     /// the `Context` is returned. The `Vec` is then swapped back to the `Timeline`'s `State` when
     /// the `Context` is `drop`ped.
-    pub bars: Vec<core::Bar>,
+    pub bars: Vec<time::TimeSig>,
+    /// The resolution of a single quarter note.
+    pub ppqn: time::Ppqn,
     /// The `Ruler` constructed by the `Timeline`.
     pub ruler: Ruler,
     /// Track-specific styling attributes.
@@ -443,7 +448,7 @@ impl Final {
         let timeline_rect = ui.rect_of(context.timeline_id).unwrap();
 
         const PLAYHEAD_WIDTH: conrod::Scalar = 6.0;
-        let total_duration = context.bars.iter().cloned().total_duration();
+        let total_duration = bars_duration_ticks(context.bars.iter().cloned(), self.ppqn);
         let clamped_playhead = conrod::utils::clamp(playhead, time::Ticks(0), total_duration);
         let playhead_weight = clamped_playhead.ticks() as f64 / total_duration.ticks() as f64;
         let half_combined_track_height = context.combined_track_height.get() / 2.0;
@@ -457,7 +462,7 @@ impl Final {
         let visible_tracks_x = conrod::Range::from_pos_and_len(timeline_rect.x(), track_w);
         let playhead_h = context.combined_track_height.get() - border * 2.0;
 
-        Playhead::new(context.ruler, visible_tracks_x)
+        Playhead::new(context.ruler, self.ppqn, visible_tracks_x)
             .w_h(PLAYHEAD_WIDTH, playhead_h)
             .x_y(playhead_x, playhead_y)
             .color(context.track_style.color.complement())
@@ -508,15 +513,16 @@ impl std::ops::Deref for Final {
 
 impl<B> Timeline<B> {
     /// Construct a new Timeline widget in it's default state.
-    pub fn new(bars: B) -> Self
+    pub fn new(bars: B, ppqn: time::Ppqn) -> Self
     where
-        B: IntoIterator<Item = core::Bar>,
+        B: IntoIterator<Item = time::TimeSig>,
     {
         Timeline {
             common: widget::CommonBuilder::default(),
             style: Style::default(),
             playhead: None,
             bars: bars,
+            ppqn: ppqn,
             maybe_track_height: None,
         }
     }
@@ -533,7 +539,7 @@ impl<B> Timeline<B> {
 
 impl<B> conrod::Widget for Timeline<B>
 where
-    B: IntoIterator<Item = core::Bar>,
+    B: IntoIterator<Item = time::TimeSig>,
 {
     type State = State;
     type Style = Style;
@@ -571,7 +577,7 @@ where
 
     /// Update the state of the Timeline.
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
-        use conrod::{Borderable, Colorable, Positionable, Sizeable};
+        use conrod_core::Borderable;
         use diff::{iter_diff, IterDiff};
 
         let widget::UpdateArgs {
@@ -585,6 +591,7 @@ where
         let Timeline {
             playhead,
             bars,
+            ppqn,
             maybe_track_height,
             ..
         } = self;
@@ -638,10 +645,19 @@ where
         };
 
         // Construct the ruler for the Timeline in it's current state.
-        let ruler = Ruler::new(tracks_w, shared.bars.iter().cloned());
+        let total_ticks = bars_duration_ticks(shared.bars.iter().cloned(), ppqn);
+        let duration_bars = time::Bars(shared.bars.len() as _);
+        let ruler = {
+            let desc = ruler::RangeDescription {
+                ppqn,
+                duration_ticks: total_ticks,
+                duration_bars,
+                time_sigs: shared.bars.iter().cloned(),
+            };
+            Ruler::new(tracks_w, desc)
+        };
 
         // Draw a light grid over the background to clarify ruler divisions.
-        let total_ticks = shared.bars.iter().cloned().total_duration();
         let tracks_x = {
             let start = inner_rect.left();
             let end = start + tracks_w;
@@ -649,7 +665,7 @@ where
         };
 
         // Ensure there are enough grid line `widget::Id`s.
-        let num_markers = ruler.marker_count(shared.bars.iter().cloned());
+        let num_markers = ruler.marker_count(shared.bars.iter().cloned(), ppqn);
         if state.ids.grid_lines.len() < num_markers {
             state.update(|state| {
                 state
@@ -659,7 +675,7 @@ where
             });
         }
         let mut grid_line_idx = 0;
-        for bar_markers in ruler.markers_in_ticks(shared.bars.iter().cloned()) {
+        for bar_markers in ruler.markers_in_ticks(shared.bars.iter().cloned(), ppqn) {
             for (i, ticks) in bar_markers.enumerate() {
                 let x_offset = super::ruler::x_offset_from_ticks(ticks, total_ticks, tracks_w);
                 let line_x = tracks_x.middle() + x_offset;
@@ -710,6 +726,7 @@ where
 
         let context = Context {
             bars: std::mem::replace(&mut shared.bars, Vec::new()),
+            ppqn,
             ruler: ruler,
             track_style: track_style,
             shared: std::sync::Arc::downgrade(&state.shared),

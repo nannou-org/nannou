@@ -1,7 +1,7 @@
 pub use self::piano_roll::PianoRoll;
 pub use self::ruler::Ruler;
-use conrod;
-use core::time;
+use conrod_core as conrod;
+use time_calc as time;
 
 pub mod automation;
 pub mod piano_roll;

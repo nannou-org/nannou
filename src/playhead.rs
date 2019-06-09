@@ -1,8 +1,8 @@
 //! A widget representing a snappable playhead over some given range.
 
-use conrod::{self, widget};
-use core::time;
+use conrod_core::{self as conrod, widget};
 use ruler;
+use time_calc as time;
 
 /// A widget representing a snappable playhead over some given range.
 #[derive(WidgetCommon)]
@@ -10,6 +10,7 @@ pub struct Playhead {
     #[conrod(common_builder)]
     common: widget::CommonBuilder,
     ruler: ruler::Ruler,
+    ppqn: time::Ppqn,
     /// The x dimensional range of the visible area of the tracks.
     visible_tracks_x: conrod::Range,
     style: Style,
@@ -40,9 +41,10 @@ pub enum Event {
 
 impl Playhead {
     /// Start building a new Playhead widget.
-    pub fn new(ruler: ruler::Ruler, visible_tracks_x: conrod::Range) -> Self {
+    pub fn new(ruler: ruler::Ruler, ppqn: time::Ppqn, visible_tracks_x: conrod::Range) -> Self {
         Playhead {
             ruler: ruler,
+            ppqn: ppqn,
             visible_tracks_x: visible_tracks_x,
             common: widget::CommonBuilder::default(),
             style: Style::default(),
@@ -67,7 +69,7 @@ impl conrod::Widget for Playhead {
 
     /// Update the state of the Playhead.
     fn update(self, args: widget::UpdateArgs<Self>) -> Self::Event {
-        use conrod::{Colorable, Positionable};
+        use conrod_core::{Colorable, Positionable};
 
         let widget::UpdateArgs {
             id,
@@ -79,6 +81,7 @@ impl conrod::Widget for Playhead {
         } = args;
         let Playhead {
             ruler,
+            ppqn,
             visible_tracks_x,
             ..
         } = self;
@@ -88,7 +91,7 @@ impl conrod::Widget for Playhead {
         // Check for widget events:
         // - Press to
         for widget_event in ui.widget_input(id).events() {
-            use conrod::{event, input};
+            use conrod_core::{event, input};
 
             match widget_event {
                 // If the `Playhead` was pressed with the left mouse button, react with a `Pressed`
@@ -119,7 +122,7 @@ impl conrod::Widget for Playhead {
                 // Only react if the new position is different to the current position.
                 if (rect.x() - new_x).abs() > 0.5 {
                     let x_offset = new_x - visible_tracks_x.start;
-                    let target_position = time::Ticks((ruler.ticks_per_width() * x_offset) as _);
+                    let target_position = time::Ticks((ruler.ticks_per_width(ppqn) * x_offset) as _);
                     events.push(Event::DraggedTo(target_position));
                 }
             }

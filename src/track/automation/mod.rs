@@ -1,11 +1,11 @@
-use conrod::{self, Scalar};
-use core::time::Ticks;
+use conrod_core::{self as conrod, Scalar};
 use num::NumCast;
+use time_calc::Ticks;
 
-pub use core::automation::envelope::bounded::Dynamic as DynamicEnvelope;
-pub use core::automation::envelope::bounded::Envelope;
-pub use core::automation::envelope::{Number, Point, Spatial, ValueKind};
-pub use core::automation::envelope::{PointTrait, Trait as EnvelopeTrait};
+pub use env::bounded::Dynamic as DynamicEnvelope;
+pub use env::bounded::Envelope;
+pub use env::{Number, Point, Spatial, ValueKind};
+pub use env::{PointTrait, Trait as EnvelopeTrait};
 
 pub use self::bang::{Bang, BangValue};
 pub use self::dynamic::Dynamic;
