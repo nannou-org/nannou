@@ -75,7 +75,7 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <ol class="chapter"><li class="affix"><a href="welcome.html">Welcome!</a></li><li><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.1.</strong> Installing Rust</a></li><li><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.2.</strong> Platform-specific Setup</a></li><li><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li></ol></li><li><a href="tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><a href="developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="contributors.html">Contributors</a></li></ol>
+            <ol class="chapter"><li class="affix"><a href="welcome.html">Welcome!</a></li><li><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.1.</strong> Installing Rust</a></li><li><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.2.</strong> Platform-specific Setup</a></li><li><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="contributors.html">Contributors</a></li></ol>
         </nav>
 
         <div id="page-wrapper" class="page-wrapper">
@@ -142,7 +142,7 @@
                     <main>
                         <a class="header" href="#welcome" id="welcome"><h1>Welcome!</h1></a>
 <p><strong>Nannou is an open-source, creative-coding toolkit for Rust.</strong></p>
-<p>This aim of this guide is to help you find the information you are looking for.
+<p>The aim of this guide is to help you find the information you are looking for.
 Whether you are new to Nannou and are looking for a place to start, or you are
 an experienced Nannou user looking for more advanced tutorials, this book should
 have something for you!</p>
@@ -153,7 +153,7 @@ Nannou? What drives forward progress?</p>
 <p>Is this your first time using Nannou or Rust? This is the chapter for you.
 This chapter covers everything from installing Rust right through to starting
 your own Nannou project.</p>
-<a class="header" href="#a-hrefguided_tutorialshtmlguided-tutorialsa" id="a-hrefguided_tutorialshtmlguided-tutorialsa"><h3><a href="/guided_tutorials.html">Guided Tutorials</a></h3></a>
+<a class="header" href="#a-hreftutorialshtmltutorialsa" id="a-hreftutorialshtmltutorialsa"><h3><a href="/tutorials.html">Tutorials</a></h3></a>
 <p>A suite of tutorials demonstrating how to do different things with Nannou. For
 example, &quot;How do I output sounds?&quot;, &quot;How do I draw shapes?&quot;, &quot;How can I connect
 to my laser?&quot;</p>
@@ -349,7 +349,57 @@ LibreSSL instead of OpenSSL (such as AlpineLinux, Voidlinux, possibly
 <a href="https://en.wikipedia.org/wiki/LibreSSL#Adoption">others</a> if manually
 installed).</p>
 </li>
+<li>
+<p><strong>vulkan</strong></p>
+<p>Installing Vulkan support on Linux is generally quite easy using your
+distro's package manager. That said, there may be different driver
+options to consider depending on your graphics card and tolerance for
+proprietary software. The following are rough guidelines on how to get
+going quickly, however if you are at all concerned with finding the
+approach that suits you best we recommend searching for vulkan driver
+installation for your graphics card on your distro.</p>
+</li>
 </ul>
+<p>For Fedora with AMD graphic cards:</p>
+<pre><code class="language-bash">sudo dnf install vulkan vulkan-info
+</code></pre>
+<p>For Fedora with NVIDIA graphic cards:
+Add the proprietary drivers</p>
+<pre><code class="language-bash">sudo dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+</code></pre>
+<p>and run</p>
+<pre><code class="language-bash">sudo dnf install xorg-x11-drv-nvidia akmod-nvidia vulkan-tools
+</code></pre>
+<p>For Debian with AMD graphic cards:</p>
+<pre><code class="language-bash">sudo apt-get install libvulkan1 mesa-vulkan-drivers vulkan-utils
+</code></pre>
+<p>For Debian with NVIDIA graphic cards:</p>
+<pre><code class="language-bash">sudo apt-get install vulkan-utils
+</code></pre>
+<p>For Ubuntu users with AMD graphic cards:
+Add a PPA for the latest drivers</p>
+<pre><code class="language-bash">sudo add-apt-repository ppa:oibaf/graphics-drivers
+sudo apt-get update
+sudo apt-apt upgrade
+</code></pre>
+<p>and run</p>
+<pre><code class="language-bash">sudo apt-get install libvulkan1 mesa-vulkan-drivers vulkan-utils
+</code></pre>
+<p>For Ubuntu users with NVIDIA graphic cards:
+Add a PPA for the latest drivers</p>
+<pre><code class="language-bash">sudo add-apt-repository ppa:graphics-drivers/ppa
+sudo apt-get update
+sudo apt-get upgrade
+</code></pre>
+<p>and run</p>
+<pre><code class="language-bash">sudo apt-get install nvidia-graphics-drivers-396 nvidia-settings vulkan vulkan-utils
+</code></pre>
+<p>For Arch with AMD graphic cards:</p>
+<pre><code class="language-bash">sudo pacman -S vulkan-radeon lib32-vulkan-radeon
+</code></pre>
+<p>For Arch with NVIDIA graphic cards:</p>
+<pre><code class="language-bash">sudo pacman -S nvidia lib32-nvidia-utils
+</code></pre>
 </li>
 <li>
 <p><strong>Windows</strong>: Install the <code>ninja</code> tool.</p>
@@ -456,14 +506,14 @@ fn main() {
 
 struct Model {}
 
-fn model(app: &amp;App) -&gt; Model {
+fn model(_app: &amp;App) -&gt; Model {
     Model {}
 }
 
-fn update(app: &amp;App, model: &amp;mut Model, update: Update) {
+fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
 }
 
-fn view(app: &amp;App, model: &amp;Model, frame: Frame) -&gt; Frame {
+fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
     frame.clear(PURPLE);
     frame
 }
@@ -490,6 +540,17 @@ be more than just a purple window.</p>
 <p>To find out how to add more features to our project like graphics, audio,
 multiple windows, laser output, projection mapping and much more, let's take a
 look at the next chapter.</p>
+<a class="header" href="#upgrading-nannou" id="upgrading-nannou"><h1>Upgrading nannou</h1></a>
+<p>You can upgrade to a new version of nannou by editing your <code>Cargo.toml</code> file to use the new
+crate. For v0.9 use the line <code>nannou = &quot;0.9&quot;</code>. Run</p>
+<pre><code class="language-bash">cargo update
+</code></pre>
+<p>inside the nannou directory to upgrade all dependencies.</p>
+<p>Building Nannou examples might still fail. This is most likely due to new language features.
+Nannou 0.9 for example requires rustc 1.35.0.
+You can upgrade your (local) rust toolchain by executing</p>
+<pre><code class="language-bash">rustup update
+</code></pre>
 <a class="header" href="#tutorials" id="tutorials"><h1>Tutorials</h1></a>
 <p>In the previous chapter we prepared everything needed to start our own Nannou
 project! In this chapter, we will take a more focused look at all of the
@@ -501,7 +562,7 @@ your project!</p>
 <a class="header" href="#basics" id="basics"><h2>Basics</h2></a>
 <p>A suite of tutorials for getting familiar with Rust and the Nannou environment.</p>
 <ul>
-<li>Nannou app</li>
+<li><a href="/tutorials/basics/anatomy-of-a-nannou-app.html">Anatomy of a nannou app</a></li>
 <li>Nannou events</li>
 <li>Rust variables</li>
 <li>Rust conditions</li>
@@ -591,6 +652,269 @@ your project!</p>
 <p>If you were unable to find what you were looking for above, or if you have an
 idea for a tutorial not yet present, please feel free to create an issue or a
 pull request!</p>
+<a class="header" href="#anatomy-of-a-nannou-app" id="anatomy-of-a-nannou-app"><h1>Anatomy of a Nannou App</h1></a>
+<p><strong>Tutorial Info</strong></p>
+<ul>
+<li>Author: tpltnt, mitchmindtree</li>
+<li>Required Knowledge: <a href="tutorials/basics//getting_started.html">Getting Started</a></li>
+<li>Reading Time: 10 minutes</li>
+</ul>
+<hr />
+<p><strong>Nannou is a framework for creative coding in Rust.</strong> A framework can be
+thought of as a collection of building blocks to help accomplish a goal.</p>
+<p>If romance stories were frameworks, then you might have the protagonist, their
+love interest, some struggles, and a happy ending as the building blocks. All of
+these need to be fleshed out by the author, but using clichés help to tell a
+story without having to introduce everyone and everything in excruciating
+detail. If the author wants to tell a horror story, then the clichés of a
+romance story aren't very helpful.</p>
+<p>In the same way you can use nannou to create programs for artisitc expression,
+but you might find it hard to build an office suite. So let's take a look at the
+building blocks for creative coding together.</p>
+<p>Here's an example of a bare-bones nannou app that opens an empty window:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"># extern crate nannou;
+#
+use nannou::prelude::*;
+
+struct Model {}
+
+fn main() {
+    nannou::app(model)
+        .event(event)
+        .simple_window(view)
+        .run();
+}
+
+fn model(_app: &amp;App) -&gt; Model {
+    Model {}
+}
+
+fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
+}
+
+fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
+    frame
+}
+</code></pre></pre>
+<p>We will start from the top!</p>
+<a class="header" href="#import-common-items" id="import-common-items"><h2>Import Common Items</h2></a>
+<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(unused_imports)] 
+# extern crate nannou;
+use nannou::prelude::*;
+# fn main() {}
+</code></pre></pre>
+<p>This line imports all of the commonly used items from nannou into scope. These
+include items such as <code>App</code>, <code>Frame</code>, and many more that we will learn about
+over time. To see the full list of items re-exported by the prelude, see
+<a href="https://docs.rs/nannou/latest/nannou/prelude/index.html">here</a>.</p>
+<blockquote>
+<p>Note: Unlike some other languages, Rust does not automatically include
+everything from the libraries added to the project. This approach results in
+very clean namespaces and avoids conflicts between different items from
+different crates. That said, it also means we need to manually import every
+item we <em>do</em> want to use into scope. By providing a prelude nannou makes it a
+little easier to access all of the commonly used items.</p>
+</blockquote>
+<a class="header" href="#model---our-app-state" id="model---our-app-state"><h2><strong>Model</strong> - Our app state</h2></a>
+<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
+struct Model {}
+# fn main() {}
+</code></pre></pre>
+<p>The <strong>Model</strong> is where we define the state of our application. We can think of
+the model as the representation of our program at any point in time. Throughout
+the life of our program, we can update the model as certain events occur such as
+mouse presses, key presses or timed updates. We can then present the model using
+some kind of output, e.g. by drawing to the screen or outputting to a laser. We
+will look at these input and output events in more detail in another tutorial!
+Our example is as simple as possible, and we have no state to track. Thus our
+model can stay empty.</p>
+<blockquote>
+<p>Note: A <code>struct</code> describes a set of data. Our struct has no fields and thus is
+empty. There is no state information to be tracked in this example.</p>
+</blockquote>
+<a class="header" href="#main---where-rust-programs-begin-and-end" id="main---where-rust-programs-begin-and-end"><h2><strong>main</strong> - Where Rust programs begin and end</h2></a>
+<pre><pre class="playpen"><code class="language-rust no_run"># extern crate nannou;
+# use nannou::prelude::*;
+# struct Model {}
+fn main() {
+    nannou::app(model)
+        .event(event)
+        .simple_window(view)
+        .run();
+}
+# fn model(_app: &amp;App) -&gt; Model {
+#     Model {}
+# }
+# fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
+# }
+# fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
+#     frame
+# }
+</code></pre></pre>
+<p>All Rust programs begin executing at the start of the <code>main</code> function and end
+when the <code>main</code> function ends. In most nannou programs, the main function is
+quite small. In short, we build a description of our app and then run it!</p>
+<pre><pre class="playpen"><code class="language-rust no_run"># extern crate nannou;
+# use nannou::prelude::*;
+# struct Model {}
+# fn main() {
+    nannou::app(model)       // Start building the app and specify our `model`
+        .event(event)        // Specify that we want to handle app events with `event`
+        .simple_window(view) // Request a simple window to which we'll draw with `view`
+        .run();              // Run it!
+# }
+# fn model(_app: &amp;App) -&gt; Model {
+#     Model {}
+# }
+# fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
+# }
+# fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
+#     frame
+# }
+</code></pre></pre>
+<p>We will describe what these <strong>model</strong>, <strong>event</strong> and <strong>view</strong> functions do
+below!</p>
+<blockquote>
+<p>Note: In this app building process we get a hint at the fundamental design
+archetype of nannou apps. The approach is roughly based on the
+<a href="https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller">Model-View-Controller (MVC)
+pattern</a>,
+though equally inspired by <a href="https://en.wikipedia.org/wiki/Functional_reactive_programming">Functional Reactive Programming
+(FRP)</a>.</p>
+<p>In general, these paradigms split a program into:</p>
+<ul>
+<li>a <strong>model</strong> describing the internal state</li>
+<li>a <strong>view</strong> describing how to present the model and</li>
+<li>a <strong>controller</strong> describing how to update the model on certain events.</li>
+</ul>
+<p>If you zoom out a bit you can think of the computer as a model, the screen as
+a view (the audio output could also be thought of as a view), and the keyboard
+(or mouse) as the controller. A user looks at the view and can change the
+state of the model using the controller. If a program does not require user
+input, the controller might use an algorithm based on time or some other
+application event to modify the model.</p>
+</blockquote>
+<a class="header" href="#model---initialise-our-model" id="model---initialise-our-model"><h2><strong>model</strong> - initialise our Model</h2></a>
+<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
+# extern crate nannou;
+# use nannou::prelude::*;
+# struct Model {}
+fn model(_app: &amp;App) -&gt; Model {
+    Model {}
+}
+# fn main() {}
+</code></pre></pre>
+<p>The <code>model</code> function is run once at the beginning of the nannou app and produces
+a fresh, new instance of the <strong>Model</strong> that we declared previously, AKA the app
+state. This can be thought of as the &quot;setup&quot; stage of our application. Here, we
+might do things like create some windows, create a GUI, load some images or
+anything else that we want to happen once at the beginning of our program. We
+will learn how to do all of these things in future tutorials, but for now we
+will just return an instance of our empty <strong>Model</strong>.</p>
+<blockquote>
+<p>Note: To assist with the creation of windows, GUIs, audio streams and other
+kinds of I/O, access to the <strong>App</strong> is provided as an <em>input</em> to the function.
+The <strong>App</strong> type can be thought of as a helper type that wraps up the finicky
+details of the application (such as establishing event loops, spawning I/O
+streams, etc) and provides an easy to use, high-level API on top. Providing
+access to the <strong>App</strong> via a function's first argument is a common practise
+throughout nannou's API.</p>
+<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
+# extern crate nannou;
+# use nannou::prelude::*;
+# struct Model {}
+//                ----- Access to the `App` passed as an input to the function.
+//               /
+//              v
+fn model(_app: &amp;App) -&gt; Model {
+    Model {}
+}
+# fn main() {}
+</code></pre></pre>
+<p>You can learn more about what the <strong>App</strong> is responsible for and capable of
+<a href="https://docs.rs/nannou/0.9.0/nannou/app/struct.App.html">here</a>.</p>
+</blockquote>
+<a class="header" href="#event---updating-the-model-on-app-events" id="event---updating-the-model-on-app-events"><h2><strong>event</strong> - updating the Model on app events</h2></a>
+<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
+# extern crate nannou;
+# use nannou::prelude::*;
+# struct Model {}
+fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
+}
+# fn main() {}
+</code></pre></pre>
+<p>The <strong>event</strong> function is some code that will run every time some kind of app
+event occurs. There are many different kinds of app events including mouse and
+keyboard presses, window resizes, timed updates and many more. Each of these are
+events during which we may wish to update our <strong>Model</strong> in some way. For
+example, we may wish to turn a camera when a mouse is moved, begin drawing a
+shape when a button is pressed, or step forward an animation on timed updates.</p>
+<p>All of these events are described within the <strong>Event</strong> type. One way to
+distinguish between which event is currently occurring is to <a href="https://doc.rust-lang.org/book/ch06-02-match.html">&quot;pattern
+match&quot;</a> on the event and
+handle only those events that we care about, ignoring all the others. A simpler
+approach is to not register an <strong>event</strong> function while building the app at all,
+and instead only register more specific functions for those events that we care
+about.</p>
+<p>For example, if instead of handling <em>all</em> events we only want to handle timed
+updates (an event that by default occurs 60 times per second) we could change
+our app building code to this:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
+# extern crate nannou;
+# use nannou::prelude::*;
+# struct Model {}
+fn main() {
+    nannou::app(model)
+        .update(update) // rather than `.event(event)`, now we only subscribe to updates
+        .simple_window(view)
+        .run();
+}
+# fn model(_app: &amp;App) -&gt; Model {
+#     Model {}
+# }
+# fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
+# }
+# fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
+#     frame
+# }
+</code></pre></pre>
+<p>And remove our <code>event</code> function in favour of an <code>update</code> function:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
+# extern crate nannou;
+# use nannou::prelude::*;
+# struct Model {}
+fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
+}
+# fn main() {}
+</code></pre></pre>
+<p>Now, our new <strong>update</strong> function will only run each time a timed update
+occurs.</p>
+<blockquote>
+<p>Note: Nannou provides a whole suite of different events that may be registered
+while building an app or window in this way. See the <a href="https://github.com/nannou-org/nannou/blob/master/examples/all_functions.rs">all_functions.rs
+example</a>
+for a demonstration of most of the different kinds of events that are
+available.</p>
+</blockquote>
+<a class="header" href="#view---presenting-the-model-to-a-window" id="view---presenting-the-model-to-a-window"><h2><strong>view</strong> - presenting the Model to a window</h2></a>
+<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
+# extern crate nannou;
+# use nannou::prelude::*;
+# struct Model {}
+fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
+    frame
+}
+# fn main() {}
+</code></pre></pre>
+<p>Finally, the <strong>view</strong> allows us to present the state of the model to a window by
+drawing to its <strong>Frame</strong> and returning the frame at the end. Here we can change
+the background colour, use the <strong>Draw</strong> API to draw a scene, draw a GUI to the
+window or even use the low-level Vulkan API to draw to the frame using our own
+graphics pipeline. All of this will be covered by future tutorials.</p>
+<a class="header" href="#concluding-remarks" id="concluding-remarks"><h2>Concluding Remarks</h2></a>
+<p>Hopefully this has given you a rough idea of how nannou apps work! Do not stress
+if some of the syntax looks confusing or some of the specifics still seem
+unclear - we will aim to cover these and more in future tutorials :)</p>
 <a class="header" href="#developer-reference" id="developer-reference"><h1>Developer Reference</h1></a>
 <p><strong>TODO:</strong> A guide to the architecture of Nannou's internals to help onboard new
 developers. Describes the layout of modules, how to navigate the reference, the

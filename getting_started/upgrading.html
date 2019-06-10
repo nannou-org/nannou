@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Create A Project - The Nannou Guide</title>
+        <title>Upgrading to a New Release - The Nannou Guide</title>
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -75,7 +75,7 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <ol class="chapter"><li class="affix"><a href="../welcome.html">Welcome!</a></li><li><a href="../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="../getting_started/installing_rust.html"><strong aria-hidden="true">2.1.</strong> Installing Rust</a></li><li><a href="../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.2.</strong> Platform-specific Setup</a></li><li><a href="../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="../getting_started/create_a_project.html" class="active"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="../contributors.html">Contributors</a></li></ol>
+            <ol class="chapter"><li class="affix"><a href="../welcome.html">Welcome!</a></li><li><a href="../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="../getting_started/installing_rust.html"><strong aria-hidden="true">2.1.</strong> Installing Rust</a></li><li><a href="../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.2.</strong> Platform-specific Setup</a></li><li><a href="../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="../getting_started/upgrading.html" class="active"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="../contributors.html">Contributors</a></li></ol>
         </nav>
 
         <div id="page-wrapper" class="page-wrapper">
@@ -140,99 +140,30 @@
 
                 <div id="content" class="content">
                     <main>
-                        <a class="header" href="#create-a-project" id="create-a-project"><h1>Create A Project</h1></a>
-<p>Whether we are creating an artwork, an app, a quick sketch or an installation,
-we want to begin by creating a new project. A new nannou project lets us build a
-nannou application the way that <em>we</em> want to use it.</p>
-<p>Eventually, the aim for Nannou is to provide a project generator tool which will
-allow us to do the following and much more in just a few clicks. For now, we can
-create a new project with just a few small steps:</p>
-<ol>
-<li>
-<p>Create the Rust project with the name of our project:</p>
-<pre><code class="language-bash">cargo new my-project
+                        <a class="header" href="#upgrading-nannou" id="upgrading-nannou"><h1>Upgrading nannou</h1></a>
+<p>You can upgrade to a new version of nannou by editing your <code>Cargo.toml</code> file to use the new
+crate. For v0.9 use the line <code>nannou = &quot;0.9&quot;</code>. Run</p>
+<pre><code class="language-bash">cargo update
 </code></pre>
-</li>
-<li>
-<p>Change directory to the generated project.</p>
-<pre><code class="language-bash">cd my-project
+<p>inside the nannou directory to upgrade all dependencies.</p>
+<p>Building Nannou examples might still fail. This is most likely due to new language features.
+Nannou 0.9 for example requires rustc 1.35.0.
+You can upgrade your (local) rust toolchain by executing</p>
+<pre><code class="language-bash">rustup update
 </code></pre>
-</li>
-<li>
-<p>Edit the <code>Cargo.toml</code> file and add the latest version of nannou to the bottom
-like so:</p>
-<pre><code class="language-toml">[package]
-name = &quot;my_project&quot;
-version = &quot;0.1.0&quot;
-authors = [&quot;mitchmindtree &lt;mitchell.nordine@gmail.com&gt;&quot;]
-edition = &quot;2018&quot;
-
-[dependencies]
-nannou = &quot;0.9&quot;
-</code></pre>
-</li>
-<li>
-<p>Replace the code in <code>src/main.rs</code> with the following to setup our nannou
-application.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"># extern crate nannou;
-use nannou::prelude::*;
-
-fn main() {
-    nannou::app(model)
-        .update(update)
-        .simple_window(view)
-        .run();
-}
-
-struct Model {}
-
-fn model(_app: &amp;App) -&gt; Model {
-    Model {}
-}
-
-fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
-}
-
-fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
-    frame.clear(PURPLE);
-    frame
-}
-</code></pre></pre>
-<p>If you are new to Rust or simply do not understand the code above just yet,
-do not fear! In the first tutorial of the next chapter we will break down
-this code step-by-step.</p>
-</li>
-<li>
-<p>Trigger the initial build and check that everything is working nicely by
-running our app!</p>
-<pre><code class="language-bash">cargo run --release
-</code></pre>
-<p>The first build might take a while, as we must build nannou and all of its
-dependencies from scratch. The following times that we run our app should be
-much faster!</p>
-<p>Once the project has finished building, it will begin running and we should
-be able to see a purple window.</p>
-</li>
-</ol>
-<p><strong>That's it!</strong> If everything went as planned, you are now ready to start
-building your own nannou project. Of course, we probably want our application to
-be more than just a purple window.</p>
-<p>To find out how to add more features to our project like graphics, audio,
-multiple windows, laser output, projection mapping and much more, let's take a
-look at the next chapter.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
-                            <a rel="prev" href="../getting_started/running_examples.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../getting_started/create_a_project.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
                         
 
                         
-                            <a rel="next" href="../getting_started/upgrading.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../tutorials.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -244,13 +175,13 @@ look at the next chapter.</p>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
-                    <a href="../getting_started/running_examples.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a href="../getting_started/create_a_project.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
                 
-                    <a href="../getting_started/upgrading.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a href="../tutorials.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
