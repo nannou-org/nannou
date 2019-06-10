@@ -19,7 +19,7 @@ story without having to introduce everyone and everything in excruciating
 detail. If the author wants to tell a horror story, then the clichés of a
 romance story aren't very helpful.
 
-In the same way you can use nannou to create programs for artisitc expression,
+In the same way you can use nannou to create programs for artistic expression,
 but you might find it hard to build an office suite. So let's take a look at the
 building blocks for creative coding together.
 
