@@ -64,7 +64,6 @@ Depending on what OS you are running, you might require an extra step or two.
     approach that suits you best we recommend searching for vulkan driver
     installation for your graphics card on your distro.
 
-
     For Fedora with AMD graphic cards:
     ```bash
     sudo dnf install vulkan vulkan-info
