@@ -324,3 +324,8 @@ path = "examples/nature_of_code/chp_07_cellular_automata/7_03_game_of_life_oop.r
 [[example]]
 name = "7_04_exercise_wolfram_ca_scrolling"
 path = "examples/nature_of_code/chp_07_cellular_automata/7_04_exercise_wolfram_ca_scrolling.rs"
+
+# --------------- Offline examples
+[[example]]
+name = "offline_01"
+path = "examples/offline/tree.rs"
