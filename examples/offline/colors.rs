@@ -1,4 +1,6 @@
-//use nannou::prelude::*;
+// Colors tools
+// Alexis Andre (@mactuitui)
+
 use nannou::color::pixel::Srgb;
 use nannou::color::Mix;
 use nannou::color::Rgb;
