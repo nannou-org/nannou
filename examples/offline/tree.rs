@@ -1,3 +1,6 @@
+// Daily Sketch 2019-04-22
+// Alexis Andre (@mactuitui)
+
 mod colors;
 mod quadtree;
 use nannou::prelude::*;
