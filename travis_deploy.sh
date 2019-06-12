@@ -5,6 +5,8 @@ git stash &&
 mdbook build &&
 git remote add nannou-org https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git
 git fetch nannou-org &&
+git config credential.helper "store --file=.git/credentials" &&
+echo "https://${GH_TOKEN}:@github.com" > .git/credentials &&
 git checkout deploy &&
 cp -r book/* . &&
 git add -A . &&
