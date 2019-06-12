@@ -12,6 +12,7 @@ rust:
 script:
 - mdbook build
 - cd book-tests && cargo test -v
+- cd ..
 deploy:
   provider: script
   script: bash ./travis_deploy.sh
