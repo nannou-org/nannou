@@ -7,7 +7,6 @@ addons:
     packages:
     - libasound2-dev
 rust:
-- nightly
 - stable
 script:
 - mdbook build
