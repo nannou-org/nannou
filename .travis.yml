@@ -1,18 +1,22 @@
 language: rust
-
 cache: cargo
-
 before_script:
 - cargo install mdbook || true
-
 addons:
-    apt:
-        packages:
-            - libasound2-dev
+  apt:
+    packages:
+    - libasound2-dev
 rust:
-    - nightly
-    - stable
-
+- nightly
+- stable
 script:
-    - mdbook build
-    - cd book-tests && cargo test -v
+- mdbook build
+- cd book-tests && cargo test -v
+deploy:
+  provider: script
+  script: bash ./travis_deploy.sh
+  on:
+    branch: master
+env:
+  global:
+    secure: jZM1yRxZ0P9sc8C9eRBSecxVfu6BF9VSyTqNh4e1RHh3RVnnYrY4bceHzxFVsAeztn5lW8RlgU1b8rzlYGSqzYKRqXYXz6Xzgt0LDxqh9RBH5kqGTPaxYaMy44RXJyThho7Iezj1vw/zQvXliGoBLoP/ZxJZ4V4MsjZ9Im4fWrvNg2ZVdX3sZsKB8TlTTNbO9FsedhGZz/ghYHPNBDcluMt8Tq8apd4ypHxX4pOt+gM2eJCL8arApzXf3l5nsucLBSnfprhMxENGH2y7rXwG6w74iInYADCpofCnsppZtjamN+9uRRah+aYu7U2ZtWrGLZjxxlXzu+tZPkPmMsA0XSP99s3dKgxQNnKuMlutAk0C/AMLtchcdjNkFKsH9iJr238Uh+uWmFVoYODEjGOsTVuPLu+/mWOGyFFEDRxlpE2oQFAknAnw4U0+rRIF0kBEC6z7fzJHpAALkKB00R8i4mk4zOYoaSmHGfjvXF/D6oVR8vhiqaz6BYMFQgqu+OQBQpyzGMUADebPHWnhTu3aCbkV3hrzeykyfyouNB2WwWHG94apoaVj5m9azEqBmKpTM+xXrZUvnlseayK9QXQ+akgID/SX4GFNQl9aeOEimgNYrRoBNmbrVQlHwvQV57l9PJTRqN6ByJSqt9JXS4+nyTTGgIoVU/T86EzemDhNwX0=
