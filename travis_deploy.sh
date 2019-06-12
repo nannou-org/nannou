@@ -11,4 +11,4 @@ git checkout deploy &&
 cp -r book/* . &&
 git add -A . &&
 git commit -m "Automated commit in preparation for deployment: $TRAVIS_BUILD_NUMBER" &&
-git push --force --quiet nannou-org deploy
+git push --force --quiet nannou-org deploy &>/dev/null
