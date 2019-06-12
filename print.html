@@ -358,8 +358,6 @@ proprietary software. The following are rough guidelines on how to get
 going quickly, however if you are at all concerned with finding the
 approach that suits you best we recommend searching for vulkan driver
 installation for your graphics card on your distro.</p>
-</li>
-</ul>
 <p>For Fedora with AMD graphic cards:</p>
 <pre><code class="language-bash">sudo dnf install vulkan vulkan-info
 </code></pre>
@@ -400,6 +398,8 @@ sudo apt-get upgrade
 <p>For Arch with NVIDIA graphic cards:</p>
 <pre><code class="language-bash">sudo pacman -S nvidia lib32-nvidia-utils
 </code></pre>
+</li>
+</ul>
 </li>
 <li>
 <p><strong>Windows</strong>: Install the <code>ninja</code> tool.</p>
@@ -668,7 +668,7 @@ these need to be fleshed out by the author, but using clichés help to tell a
 story without having to introduce everyone and everything in excruciating
 detail. If the author wants to tell a horror story, then the clichés of a
 romance story aren't very helpful.</p>
-<p>In the same way you can use nannou to create programs for artisitc expression,
+<p>In the same way you can use nannou to create programs for artistic expression,
 but you might find it hard to build an office suite. So let's take a look at the
 building blocks for creative coding together.</p>
 <p>Here's an example of a bare-bones nannou app that opens an empty window:</p>
@@ -967,21 +967,6 @@ published.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload(true); // force reload from server (not from cache)
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

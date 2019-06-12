@@ -198,8 +198,6 @@ proprietary software. The following are rough guidelines on how to get
 going quickly, however if you are at all concerned with finding the
 approach that suits you best we recommend searching for vulkan driver
 installation for your graphics card on your distro.</p>
-</li>
-</ul>
 <p>For Fedora with AMD graphic cards:</p>
 <pre><code class="language-bash">sudo dnf install vulkan vulkan-info
 </code></pre>
@@ -240,6 +238,8 @@ sudo apt-get upgrade
 <p>For Arch with NVIDIA graphic cards:</p>
 <pre><code class="language-bash">sudo pacman -S nvidia lib32-nvidia-utils
 </code></pre>
+</li>
+</ul>
 </li>
 <li>
 <p><strong>Windows</strong>: Install the <code>ninja</code> tool.</p>
@@ -288,21 +288,6 @@ releases</a>.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload(true); // force reload from server (not from cache)
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         
