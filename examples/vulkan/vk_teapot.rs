@@ -237,7 +237,8 @@ fn create_graphics_pipeline(
     fragment_shader: &fs::Shader,
     render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
     dimensions: [f32; 2],
-) -> Result<Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>, vk::GraphicsPipelineCreationError> {
+) -> Result<Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>, vk::GraphicsPipelineCreationError>
+{
     let pipeline = vk::GraphicsPipeline::start()
         .vertex_input(vk::TwoBuffersDefinition::<Vertex, Normal>::new())
         .vertex_shader(vertex_shader.main_entry_point(), ())
