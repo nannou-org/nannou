@@ -31,9 +31,9 @@ pub struct IterFromIndices<'a, I, V: 'a = Default> {
     vertices: &'a [V],
 }
 
-/// A vertex that is colored with the given linear `RGBA` color.
+/// A vertex that is colored with the given `sRGBA` color.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Rgba<V = Default>(pub V, pub color::Rgba);
+pub struct Srgba<V = Default>(pub V, pub color::Srgba);
 
 /// Produce an iterator yielding a vertex for each index yielded by the given indices iterator.
 pub fn iter_from_indices<I, V>(indices: I, vertices: &[V]) -> IterFromIndices<I::IntoIter, V>
@@ -86,41 +86,41 @@ where
     }
 }
 
-// Rgba impls.
+// Srgba impls.
 
-impl<V> Rgba<V> {
+impl<V> Srgba<V> {
     /// A reference to the inner vertex.
     pub fn vertex(&self) -> &V {
         &self.0
     }
     /// A reference to the inner rgba.
-    pub fn rgba(&self) -> &color::Rgba {
+    pub fn rgba(&self) -> &color::Srgba {
         &self.1
     }
 }
 
-impl<V> Deref for Rgba<V> {
+impl<V> Deref for Srgba<V> {
     type Target = V;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<V> DerefMut for Rgba<V> {
+impl<V> DerefMut for Srgba<V> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<V> From<(V, color::Rgba)> for Rgba<V> {
-    fn from((v, rgba): (V, color::Rgba)) -> Self {
-        Rgba(v, rgba)
+impl<V> From<(V, color::Srgba)> for Srgba<V> {
+    fn from((v, rgba): (V, color::Srgba)) -> Self {
+        Srgba(v, rgba)
     }
 }
 
-impl<V> Into<(V, color::Rgba)> for Rgba<V> {
-    fn into(self) -> (V, color::Rgba) {
-        let Rgba(v, rgba) = self;
+impl<V> Into<(V, color::Srgba)> for Srgba<V> {
+    fn into(self) -> (V, color::Srgba) {
+        let Srgba(v, rgba) = self;
         (v, rgba)
     }
 }
@@ -183,7 +183,7 @@ where
 //     type Scalar = S;
 // }
 
-impl<V> Vertex for Rgba<V>
+impl<V> Vertex for Srgba<V>
 where
     V: Vertex,
 {
@@ -278,7 +278,7 @@ where
 //     }
 // }
 
-impl<V> Vertex2d for Rgba<V>
+impl<V> Vertex2d for Srgba<V>
 where
     V: Vertex2d,
 {
@@ -334,7 +334,7 @@ where
 //     }
 // }
 
-impl<V> Vertex3d for Rgba<V>
+impl<V> Vertex3d for Srgba<V>
 where
     V: Vertex3d,
 {

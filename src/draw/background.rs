@@ -1,5 +1,5 @@
-use crate::color::{self, Rgb, Rgba};
-use crate::draw::properties::{ColorScalar, IntoRgba};
+use crate::color::{self, Srgb, Srgba};
+use crate::draw::properties::{ColorScalar, IntoSrgba};
 use crate::draw::Draw;
 use crate::geom;
 use crate::math::BaseFloat;
@@ -31,22 +31,22 @@ where
     /// Colors that have no alpha channel will be given an opaque alpha channel value `1.0`.
     pub fn color<C>(self, color: C) -> Self
     where
-        C: IntoRgba<ColorScalar>,
+        C: IntoSrgba<ColorScalar>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
-            state.background_color = Some(color.into_rgba());
+            state.background_color = Some(color.into_srgba());
         }
         self
     }
 
     /// Specify the color via red, green and blue channels.
     pub fn rgb(self, r: ColorScalar, g: ColorScalar, b: ColorScalar) -> Self {
-        self.color(Rgb::new(r, g, b))
+        self.color(Srgb::new(r, g, b))
     }
 
     /// Specify the color via red, green, blue and alpha channels.
     pub fn rgba(self, r: ColorScalar, g: ColorScalar, b: ColorScalar, a: ColorScalar) -> Self {
-        self.color(Rgba::new(r, g, b, a))
+        self.color(Srgba::new(r, g, b, a))
     }
 
     /// Specify the color via hue, saturation and luminance.
@@ -60,7 +60,7 @@ where
     /// this color space.
     pub fn hsl(self, h: ColorScalar, s: ColorScalar, l: ColorScalar) -> Self {
         let hue = h * 360.0;
-        self.color(color::Hsl::new(hue.into(), s, l))
+        self.color(color::Hsl::new(hue, s, l))
     }
 
     /// Specify the color via hue, saturation, luminance and an alpha channel.
@@ -74,7 +74,7 @@ where
     /// this color space.
     pub fn hsla(self, h: ColorScalar, s: ColorScalar, l: ColorScalar, a: ColorScalar) -> Self {
         let hue = h * 360.0;
-        self.color(color::Hsla::new(hue.into(), s, l, a))
+        self.color(color::Hsla::new(hue, s, l, a))
     }
 
     /// Specify the color via hue, saturation and *value* (brightness).
@@ -88,7 +88,7 @@ where
     /// this color space.
     pub fn hsv(self, h: ColorScalar, s: ColorScalar, v: ColorScalar) -> Self {
         let hue = h * 360.0;
-        self.color(color::Hsv::new(hue.into(), s, v))
+        self.color(color::Hsv::new(hue, s, v))
     }
 
     /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
@@ -105,6 +105,6 @@ where
         S: Into<color::RgbHue<S>>,
     {
         let hue = h * 360.0;
-        self.color(color::Hsva::new(hue.into(), s, v, a))
+        self.color(color::Hsva::new(hue, s, v, a))
     }
 }

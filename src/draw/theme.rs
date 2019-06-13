@@ -1,4 +1,4 @@
-use crate::color::{Alpha, Rgb, Rgba};
+use crate::color::{Alpha, Srgb, Srgba};
 use std::collections::HashMap;
 
 /// A set of styling defaults used for coloring texturing geometric primitives that have no entry
@@ -12,8 +12,8 @@ pub struct Theme {
 /// A set of defaults used for coloring.
 #[derive(Clone, Debug)]
 pub struct Color {
-    pub default: Rgba,
-    pub primitive: HashMap<Primitive, Rgba>,
+    pub default: Srgba,
+    pub primitive: HashMap<Primitive, Srgba>,
 }
 
 /// Primitive geometry types that may have unique default styles.
@@ -34,7 +34,7 @@ pub enum Primitive {
 impl Default for Color {
     fn default() -> Self {
         let default = Alpha {
-            color: Rgb::new(1.0, 1.0, 1.0),
+            color: Srgb::new(1.0, 1.0, 1.0),
             alpha: 1.0,
         };
         let primitive = Default::default();

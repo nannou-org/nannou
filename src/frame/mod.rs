@@ -1,6 +1,6 @@
 //! Items related to the **Frame** type, describing a single frame of graphics for a single window.
 
-use crate::draw::properties::color::IntoRgba;
+use crate::draw::properties::color::IntoSrgba;
 use crate::vk::{self, DeviceOwned};
 use crate::window::SwapchainFramebuffers;
 use std::error::Error as StdError;
@@ -175,9 +175,9 @@ impl Frame {
     /// Clear the image with the given color.
     pub fn clear<C>(&self, color: C)
     where
-        C: IntoRgba<f32>,
+        C: IntoSrgba<f32>,
     {
-        let rgba = color.into_rgba();
+        let rgba = color.into_srgba();
         let value = vk::ClearValue::Float([rgba.red, rgba.green, rgba.blue, rgba.alpha]);
         let image = self.data.intermediary_image.clone();
         self.add_commands()

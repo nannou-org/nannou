@@ -1,8 +1,8 @@
 use crate::draw;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions,
-    SetOrientation, SetPosition,
+    spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, SetColor, SetDimensions,
+    SetOrientation, SetPosition, Srgba,
 };
 use crate::geom::{self, Point2, Vector2};
 use crate::math::BaseFloat;
@@ -12,7 +12,7 @@ use std::{iter, slice};
 #[derive(Clone, Debug)]
 pub struct Rect<S = geom::scalar::Default> {
     spatial: spatial::Properties<S>,
-    color: Option<Rgba>,
+    color: Option<Srgba>,
 }
 
 // Trait implementations.
@@ -98,7 +98,7 @@ impl<S> SetDimensions<S> for Rect<S> {
 }
 
 impl<S> SetColor<ColorScalar> for Rect<S> {
-    fn rgba_mut(&mut self) -> &mut Option<Rgba> {
+    fn rgba_mut(&mut self) -> &mut Option<Srgba> {
         SetColor::rgba_mut(&mut self.color)
     }
 }

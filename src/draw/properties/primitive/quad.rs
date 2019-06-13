@@ -1,8 +1,8 @@
 use crate::draw::mesh::vertex::IntoPoint;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions,
-    SetOrientation, SetPosition,
+    spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, SetColor, SetDimensions,
+    SetOrientation, SetPosition, Srgba,
 };
 use crate::draw::{self, Drawing};
 use crate::geom::{self, Point3, Vector3};
@@ -14,7 +14,7 @@ use std::{iter, slice};
 pub struct Quad<S = geom::scalar::Default> {
     quad: geom::Quad<Point3<S>>,
     spatial: spatial::Properties<S>,
-    color: Option<Rgba>,
+    color: Option<Srgba>,
 }
 // Quad-specific methods.
 
@@ -161,7 +161,7 @@ impl<S> SetDimensions<S> for Quad<S> {
 }
 
 impl<S> SetColor<ColorScalar> for Quad<S> {
-    fn rgba_mut(&mut self) -> &mut Option<Rgba> {
+    fn rgba_mut(&mut self) -> &mut Option<Srgba> {
         SetColor::rgba_mut(&mut self.color)
     }
 }
