@@ -8,8 +8,8 @@ fn main() {
 struct Model {
     device: Arc<vk::Device>,
     queue: Arc<vk::Queue>,
-    pipeline: Arc<vk::ComputePipelineAbstract + Send + Sync>,
-    desciptor_set: Arc<vk::DescriptorSet + Send + Sync>,
+    pipeline: Arc<dyn vk::ComputePipelineAbstract + Send + Sync>,
+    desciptor_set: Arc<dyn vk::DescriptorSet + Send + Sync>,
     data_buffer: Arc<vk::CpuAccessibleBuffer<[f32]>>,
 }
 

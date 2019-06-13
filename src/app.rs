@@ -2172,7 +2172,7 @@ fn view_frame<M>(
                 swapchain.swapchain.clone(),
                 swapchain_image_index,
             );
-        (Box::new(present_future) as Box<GpuFuture>).then_signal_fence_and_flush()
+        (Box::new(present_future) as Box<dyn GpuFuture>).then_signal_fence_and_flush()
     };
 
     // Handle the result of the future.
