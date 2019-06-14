@@ -155,7 +155,7 @@ pub const DEFAULT_APPLICATION_INFO: ApplicationInfo<'static> = ApplicationInfo {
 /// - The dimensions of the framebuffer don't match the dimensions of the images.
 #[derive(Default)]
 pub struct FramebufferObject {
-    framebuffer: Option<Arc<FramebufferAbstract + Send + Sync>>,
+    framebuffer: Option<Arc<dyn FramebufferAbstract + Send + Sync>>,
 }
 
 /// Shorthand for the **FramebufferObject** type.
@@ -232,11 +232,11 @@ impl DynamicStateBuilder for DynamicState {
 }
 
 // The user vulkan debug callback allocated on the heap to avoid complicated type params.
-type BoxedUserCallback = Box<Fn(&Message) + 'static + Send + RefUnwindSafe>;
+type BoxedUserCallback = Box<dyn Fn(&Message) + 'static + Send + RefUnwindSafe>;
 
 impl FramebufferObject {
     /// Access the inner framebuffer trait object.
-    pub fn inner(&self) -> &Option<Arc<FramebufferAbstract + Send + Sync>> {
+    pub fn inner(&self) -> &Option<Arc<dyn FramebufferAbstract + Send + Sync>> {
         &self.framebuffer
     }
 
@@ -268,7 +268,7 @@ impl FramebufferObject {
     /// **panic!**s if the `update` method has not yet been called.
     ///
     /// This method is shorthand for `fbo.as_ref().expect("inner framebuffer was None").clone()`.
-    pub fn expect_inner(&self) -> Arc<FramebufferAbstract + Send + Sync> {
+    pub fn expect_inner(&self) -> Arc<dyn FramebufferAbstract + Send + Sync> {
         self.framebuffer
             .as_ref()
             .expect("inner framebuffer was `None` - you must call the `update` method first")
@@ -617,7 +617,7 @@ impl ViewportBuilder {
 }
 
 impl ops::Deref for FramebufferObject {
-    type Target = Option<Arc<FramebufferAbstract + Send + Sync>>;
+    type Target = Option<Arc<dyn FramebufferAbstract + Send + Sync>>;
     fn deref(&self) -> &Self::Target {
         &self.framebuffer
     }

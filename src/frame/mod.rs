@@ -45,7 +45,7 @@ pub type ViewFbo = ViewFramebufferObject;
 /// Data necessary for rendering the **Frame**'s `image` to the the `swapchain_image` of the inner
 /// raw frame.
 pub(crate) struct RenderData {
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
     // The intermediary image to which the user will draw.
     //
     // The number of multisampling samples may be specified by the user when constructing the
@@ -289,7 +289,7 @@ impl StdError for RenderDataCreationError {
         }
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn cause(&self) -> Option<&dyn StdError> {
         match *self {
             RenderDataCreationError::RenderPassCreation(ref err) => Some(err),
             RenderDataCreationError::ImageCreation(ref err) => Some(err),
@@ -305,7 +305,7 @@ impl StdError for FrameCreationError {
         }
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn cause(&self) -> Option<&dyn StdError> {
         match *self {
             FrameCreationError::ImageCreation(ref err) => Some(err),
             FrameCreationError::FramebufferCreation(ref err) => Some(err),
@@ -320,7 +320,7 @@ impl StdError for FrameFinishError {
         }
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn cause(&self) -> Option<&dyn StdError> {
         match *self {
             FrameFinishError::BeginRenderPass(ref err) => Some(err),
         }
@@ -385,7 +385,7 @@ fn create_render_pass(
     device: Arc<vk::Device>,
     color_format: vk::Format,
     msaa_samples: u32,
-) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
+) -> Result<Arc<dyn vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     match msaa_samples {
         // Render pass without multisampling.
         0 | 1 => {
@@ -410,7 +410,7 @@ fn create_render_pass(
                     depth_stencil: {}
                 }
             )?;
-            Ok(Arc::new(rp) as Arc<vk::RenderPassAbstract + Send + Sync>)
+            Ok(Arc::new(rp) as Arc<dyn vk::RenderPassAbstract + Send + Sync>)
         }
 
         // Renderpass with multisampling.
@@ -437,7 +437,7 @@ fn create_render_pass(
                     resolve: [swapchain_color],
                 }
             )?;
-            Ok(Arc::new(rp) as Arc<vk::RenderPassAbstract + Send + Sync>)
+            Ok(Arc::new(rp) as Arc<dyn vk::RenderPassAbstract + Send + Sync>)
         }
     }
 }

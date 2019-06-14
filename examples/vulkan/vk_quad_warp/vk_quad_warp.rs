@@ -32,11 +32,11 @@ struct Graphics {
     uniform_buffer: vk::CpuBufferPool<vs::ty::Data>,
     vertex_shader: vs::Shader,
     fragment_shader: fs::Shader,
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    graphics_pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    graphics_pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     depth_image: Arc<vk::AttachmentImage>,
     inter_image: Arc<vk::AttachmentImage>,
-    framebuffer: Arc<vk::FramebufferAbstract + Send + Sync>,
+    framebuffer: Arc<dyn vk::FramebufferAbstract + Send + Sync>,
 }
 
 vk::impl_vertex!(Vertex, position);
@@ -308,9 +308,10 @@ fn create_graphics_pipeline(
     device: Arc<vk::Device>,
     vertex_shader: &vs::Shader,
     fragment_shader: &fs::Shader,
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
     dimensions: [f32; 2],
-) -> Result<Arc<vk::GraphicsPipelineAbstract + Send + Sync>, vk::GraphicsPipelineCreationError> {
+) -> Result<Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>, vk::GraphicsPipelineCreationError>
+{
     let pipeline = vk::GraphicsPipeline::start()
         .vertex_input(vk::TwoBuffersDefinition::<Vertex, Normal>::new())
         .vertex_shader(vertex_shader.main_entry_point(), ())

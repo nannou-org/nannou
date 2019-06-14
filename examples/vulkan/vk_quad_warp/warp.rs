@@ -6,8 +6,8 @@ use std::cell::RefCell;
 use std::sync::Arc;
 
 pub struct Warp {
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     view_fbo: RefCell<ViewFbo>,
     uniform_buffer: vk::CpuBufferPool<vs::ty::Data>,
     sampler: Arc<vk::Sampler>,

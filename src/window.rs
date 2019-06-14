@@ -159,7 +159,7 @@ macro_rules! fn_any {
         // A handle to a function that can be stored without requiring a type param.
         #[derive(Clone)]
         pub(crate) struct $TFnAny {
-            fn_ptr: Arc<Any>,
+            fn_ptr: Arc<dyn Any>,
         }
 
         impl $TFnAny {
@@ -168,7 +168,7 @@ macro_rules! fn_any {
             where
                 M: 'static,
             {
-                let fn_ptr = Arc::new(fn_ptr) as Arc<Any>;
+                let fn_ptr = Arc::new(fn_ptr) as Arc<dyn Any>;
                 $TFnAny { fn_ptr }
             }
 
@@ -261,7 +261,7 @@ pub(crate) struct WindowSwapchain {
     //
     // Destroying the `GpuFuture` blocks until the GPU is finished executing it. In order to avoid
     // that, we store the submission of the previous frame here.
-    pub(crate) previous_frame_end: Mutex<Option<vk::FenceSignalFuture<Box<vk::GpuFuture>>>>,
+    pub(crate) previous_frame_end: Mutex<Option<vk::FenceSignalFuture<Box<dyn vk::GpuFuture>>>>,
 }
 
 /// Swapchain building parameters for which Nannou will provide a default if unspecified.
@@ -296,11 +296,11 @@ pub struct SwapchainBuilder {
 ///   recently been recreated and the framebuffers should be recreated accordingly.
 #[derive(Default)]
 pub struct SwapchainFramebuffers {
-    framebuffers: Vec<Arc<vk::FramebufferAbstract + Send + Sync>>,
+    framebuffers: Vec<Arc<dyn vk::FramebufferAbstract + Send + Sync>>,
 }
 
 pub type SwapchainFramebufferBuilder<A> =
-    vk::FramebufferBuilder<Arc<vk::RenderPassAbstract + Send + Sync>, A>;
+    vk::FramebufferBuilder<Arc<dyn vk::RenderPassAbstract + Send + Sync>, A>;
 pub type FramebufferBuildResult<A> =
     Result<SwapchainFramebufferBuilder<A>, vk::FramebufferCreationError>;
 
@@ -309,7 +309,7 @@ impl SwapchainFramebuffers {
     pub fn update<F, A>(
         &mut self,
         frame: &RawFrame,
-        render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+        render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
         builder: F,
     ) -> Result<(), vk::FramebufferCreationError>
     where
@@ -346,7 +346,7 @@ impl SwapchainFramebuffers {
 }
 
 impl ops::Deref for SwapchainFramebuffers {
-    type Target = [Arc<vk::FramebufferAbstract + Send + Sync>];
+    type Target = [Arc<dyn vk::FramebufferAbstract + Send + Sync>];
     fn deref(&self) -> &Self::Target {
         &self.framebuffers
     }

@@ -76,7 +76,7 @@ enum RenderMode {
 
 // The render pass in which the `Ui` will be rendered along with the owned buffers.
 struct RenderTarget {
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
     images: RenderPassImages,
     view_fbo: ViewFbo,
 }
@@ -133,7 +133,7 @@ pub enum DrawToFrameError {
 }
 
 /// The subpass type to which the `Ui` may be rendered.
-pub type Subpass = vk::framebuffer::Subpass<Arc<vk::RenderPassAbstract + Send + Sync>>;
+pub type Subpass = vk::framebuffer::Subpass<Arc<dyn vk::RenderPassAbstract + Send + Sync>>;
 
 /// A map from `image::Id`s to their associated `Texture2d`.
 pub type ImageMap = conrod_core::image::Map<conrod_vulkano::Image>;
@@ -394,7 +394,7 @@ pub fn create_render_pass(
     color_format: vk::Format,
     depth_format: vk::Format,
     msaa_samples: u32,
-) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
+) -> Result<Arc<dyn vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     let render_pass = vk::single_pass_renderpass!(
         device,
         attachments: {
@@ -769,7 +769,7 @@ impl StdError for BuildError {
         }
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn cause(&self) -> Option<&dyn StdError> {
         match *self {
             BuildError::InvalidWindow => None,
             BuildError::RendererCreation(ref err) => Some(err),
@@ -786,7 +786,7 @@ impl StdError for RenderTargetCreationError {
         }
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn cause(&self) -> Option<&dyn StdError> {
         match *self {
             RenderTargetCreationError::RenderPassCreation(ref err) => Some(err),
             RenderTargetCreationError::ImageCreation(ref err) => Some(err),
@@ -815,7 +815,7 @@ impl StdError for DrawToFrameError {
         }
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn cause(&self) -> Option<&dyn StdError> {
         match *self {
             DrawToFrameError::InvalidWindow => None,
             DrawToFrameError::RendererPoisoned => None,

@@ -10,8 +10,8 @@ use std::sync::Arc;
 
 /// A type used for rendering a **nannou::draw::Mesh** with a vulkan graphics pipeline.
 pub struct Renderer {
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    graphics_pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    graphics_pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     vertices: Vec<Vertex>,
     render_pass_images: Option<RenderPassImages>,
     view_fbo: ViewFbo,
@@ -215,9 +215,9 @@ impl Renderer {
             depth_format,
             load_op,
             msaa_samples,
-        )?) as Arc<vk::RenderPassAbstract + Send + Sync>;
+        )?) as Arc<dyn vk::RenderPassAbstract + Send + Sync>;
         let graphics_pipeline = create_graphics_pipeline(render_pass.clone())?
-            as Arc<vk::GraphicsPipelineAbstract + Send + Sync>;
+            as Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>;
         let vertices = vec![];
         let render_pass_images = None;
         let view_fbo = ViewFbo::default();
@@ -368,7 +368,7 @@ pub fn create_render_pass(
     depth_format: vk::Format,
     load_op: vk::LoadOp,
     msaa_samples: u32,
-) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
+) -> Result<Arc<dyn vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     // TODO: Remove this in favour of a nannou-specific, dynamic `RenderPassDesc` implementation.
     match load_op {
         vk::LoadOp::Clear => {
@@ -388,7 +388,7 @@ pub fn create_render_pass_clear(
     color_format: vk::Format,
     depth_format: vk::Format,
     msaa_samples: u32,
-) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
+) -> Result<Arc<dyn vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     let rp = vk::single_pass_renderpass!(
         device,
         attachments: {
@@ -420,7 +420,7 @@ pub fn create_render_pass_load(
     color_format: vk::Format,
     depth_format: vk::Format,
     msaa_samples: u32,
-) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
+) -> Result<Arc<dyn vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     let rp = vk::single_pass_renderpass!(
         device,
         attachments: {
@@ -454,7 +454,7 @@ pub fn dynamic_state(viewport_dimensions: [f32; 2]) -> vk::DynamicState {
 /// The graphics pipeline used by the renderer.
 pub fn create_graphics_pipeline<R>(
     render_pass: R,
-) -> Result<Arc<vk::GraphicsPipelineAbstract + Send + Sync>, GraphicsPipelineError>
+) -> Result<Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>, GraphicsPipelineError>
 where
     R: vk::RenderPassAbstract + Send + Sync + 'static,
 {

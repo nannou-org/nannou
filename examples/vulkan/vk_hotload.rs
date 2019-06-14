@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 struct Model {
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    pipeline: Option<Arc<vk::GraphicsPipelineAbstract + Send + Sync>>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    pipeline: Option<Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>>,
     vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
     view_fbo: RefCell<ViewFbo>,
     shade_watcher: shade_runner::Watch,
