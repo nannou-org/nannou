@@ -308,6 +308,12 @@ pub enum LoopMode {
     /// (calls to `view` in nannou) with the refresh rate of the screen. *You can learn more about
     /// the swap chain
     /// [here](https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain).*
+    NTimes {
+        /// The number of updates that must be emited since last recieveng a non-update event
+        number_of_updates: usize,
+        /// The minimum interval between emitted updates.
+        update_interval: Duration,
+    },
     RefreshSync {
         /// The minimum duration that must occur between calls to `update`. Under the `RefreshSync`
         /// mode, the application loop will attempt to emit an `Update` event once every time a new
@@ -718,6 +724,18 @@ impl LoopMode {
     pub fn wait_with_interval(updates_following_event: usize, update_interval: Duration) -> Self {
         LoopMode::Wait {
             updates_following_event,
+            update_interval,
+        }
+    }
+
+    /// Specify the **Ntimes** mode with one update
+    ///
+    /// Waits long enough to ensure loop iteration never occurs faster than the given `max_fps`.
+    pub fn loop_once() -> Self {
+        let update_interval = update_interval(Self::DEFAULT_RATE_FPS);
+        let number_of_updates = 1;
+        LoopMode::NTimes {
+            number_of_updates,
             update_interval,
         }
     }
@@ -1245,6 +1263,19 @@ fn run_loop<M, E>(
                     update_interval,
                 )
             }
+            LoopMode::NTimes {
+                number_of_updates,
+                update_interval,
+            } => {
+                loop_ctxt.updates_remaining = number_of_updates;
+                run_loop_mode_NTimes(
+                    &mut app,
+                    model,
+                    &mut loop_ctxt,
+                    number_of_updates,
+                    update_interval,
+                )
+            }
             LoopMode::RefreshSync {
                 minimum_update_interval,
                 windows,
@@ -1436,6 +1467,99 @@ where
     }
 }
 
+
+// Run the application loop under the `Wait` mode.
+fn run_loop_mode_NTimes<M, E>(
+    app: &mut App,
+    mut model: M,
+    loop_ctxt: &mut LoopContext<M, E>,
+    mut number_of_updates: usize,
+    mut update_interval: Duration,
+) -> Break<M>
+where
+    M: 'static,
+    E: LoopEvent,
+{
+    loop {
+        // First collect any pending window events.
+        app.events_loop
+            .poll_events(|event| loop_ctxt.winit_events.push(event));
+
+        // If there are no events and the `Ui` does not need updating,
+        // wait for the next event.
+        if loop_ctxt.winit_events.is_empty() && loop_ctxt.updates_remaining == 0 {
+            let events_loop_is_asleep = app.events_loop_is_asleep.clone();
+            events_loop_is_asleep.store(true, atomic::Ordering::Relaxed);
+            app.events_loop.run_forever(|event| {
+                events_loop_is_asleep.store(false, atomic::Ordering::Relaxed);
+                loop_ctxt.winit_events.push(event);
+                winit::ControlFlow::Break
+            });
+        }
+
+        // If there are some winit events to process, reset the updates-remaining count.
+        if !loop_ctxt.winit_events.is_empty() {
+            loop_ctxt.updates_remaining = number_of_updates;
+        }
+
+        for winit_event in loop_ctxt.winit_events.drain(..) {
+            let (new_model, exit) =
+                process_and_emit_winit_event(app, model, loop_ctxt.event_fn, winit_event);
+            model = new_model;
+            if exit {
+                let reason = BreakReason::Exit;
+                return Break { model, reason };
+            }
+        }
+
+        // Update the app's durations.
+        let now = Instant::now();
+        let since_last = now.duration_since(loop_ctxt.last_update).into();
+        let since_start = now.duration_since(loop_ctxt.loop_start).into();
+        app.duration.since_start = since_start;
+        app.duration.since_prev_update = since_last;
+        app.time = app.duration.since_start.secs() as _;
+
+        // Emit an update event.
+        let update = update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update);
+        if let Some(event_fn) = loop_ctxt.event_fn {
+            let event = E::from(update.clone());
+            event_fn(&app, &mut model, event);
+        }
+        if let Some(update_fn) = loop_ctxt.update_fn {
+            update_fn(&app, &mut model, update);
+        }
+        loop_ctxt.updates_remaining -= 1;
+
+        // Draw to each window.
+        for window_id in app.window_ids() {
+            acquire_image_and_view_frame(app, window_id, &model, loop_ctxt.default_view.as_ref());
+        }
+
+        // Sleep if there's still some time left within the interval.
+        let now = Instant::now();
+        let since_last_loop_end = now.duration_since(loop_ctxt.last_loop_end);
+        if since_last_loop_end < update_interval {
+            std::thread::sleep(update_interval - since_last_loop_end);
+        }
+        loop_ctxt.last_loop_end = Instant::now();
+
+        // See if the loop mode has changed. If so, break.
+        match app.loop_mode() {
+            LoopMode::NTimes {
+                update_interval: ui,
+                number_of_updates: ufe,
+            } => {
+                update_interval = ui;
+                number_of_updates = ufe;
+            }
+            loop_mode => {
+                let reason = BreakReason::NewLoopMode(loop_mode);
+                return Break { model, reason };
+            }
+        };
+    }
+}
 // Run the application loop under the `RefreshSync` mode.
 fn run_loop_mode_refresh_sync<M, E>(
     app: &mut App,
