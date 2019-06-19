@@ -26,7 +26,7 @@ pub use self::spatial::orientation::SetOrientation;
 pub use self::spatial::position::SetPosition;
 
 /// The scalar type used for the color channel values.
-pub type ColorScalar = color::DefaultScalar;
+pub type ColorScalar = crate::color::DefaultScalar;
 
 /// The RGBA type used by the `Common` params.
 pub type Srgba = color::DefaultSrgba;

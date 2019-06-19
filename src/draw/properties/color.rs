@@ -1,15 +1,11 @@
-use crate::color::encoding;
 use crate::color::white_point::D65;
-use crate::color::{self, Alpha, Component, IntoColor, Srgb, Srgba};
-use crate::math::num_traits::{Float, One};
-
-/// The default scalar value for working with color channels, hues, etc.
-pub type DefaultScalar = f32;
+use crate::color::{self, encoding, Alpha, Component, IntoColor, RgbHue, Srgb, Srgba};
+use crate::math::num_traits::Float;
 
 /// An **Srgba** type with the default Scalar.
 ///
 /// Used by the **draw::properties::Common** type.
-pub type DefaultSrgba = Srgba<DefaultScalar>;
+pub type DefaultSrgba = Srgba<color::DefaultScalar>;
 
 /// Types that may be converted directly into an RGBA color.
 pub trait IntoSrgba<S>
@@ -70,8 +66,8 @@ where
     where
         S: Float + Into<color::RgbHue<S>>,
     {
-        let hue = h * S::from(360.0).unwrap();
-        self.color(color::Hsl::new(hue.into(), s, l))
+        let hue = RgbHue::from_degrees(h * S::from(360.0).unwrap());
+        self.color(color::Hsl::new(hue, s, l))
     }
 
     /// Specify the color via hue, saturation, luminance and an alpha channel.
@@ -87,8 +83,8 @@ where
     where
         S: Float + Into<color::RgbHue<S>>,
     {
-        let hue = h * S::from(360.0).unwrap();
-        self.color(color::Hsla::new(hue.into(), s, l, a))
+        let hue = RgbHue::from_degrees(h * S::from(360.0).unwrap());
+        self.color(color::Hsla::new(hue, s, l, a))
     }
 
     /// Specify the color via hue, saturation and *value* (brightness).
@@ -102,10 +98,10 @@ where
     /// this color space.
     fn hsv(self, h: S, s: S, v: S) -> Self
     where
-        S: Float + Into<color::RgbHue<S>>,
+        S: Float,
     {
-        let hue = h * S::from(360.0).unwrap();
-        self.color(color::Hsv::new(hue.into(), s, v))
+        let hue = RgbHue::from_degrees(h * S::from(360.0).unwrap());
+        self.color(color::Hsv::new(hue, s, v))
     }
 
     /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
@@ -119,16 +115,16 @@ where
     /// this color space.
     fn hsva(self, h: S, s: S, v: S, a: S) -> Self
     where
-        S: Float + Into<color::RgbHue<S>>,
+        S: Float,
     {
-        let hue = h * S::from(360.0).unwrap();
-        self.color(color::Hsva::new(hue.into(), s, v, a))
+        let hue = RgbHue::from_degrees(h * S::from(360.0).unwrap());
+        self.color(color::Hsva::new(hue, s, v, a))
     }
 }
 
 impl<S> SetColor<S> for Option<Srgba<S>>
 where
-    S: Component + Float,
+    S: Component,
 {
     fn rgba_mut(&mut self) -> &mut Option<Srgba<S>> {
         self
@@ -138,17 +134,17 @@ where
 fn into_rgb_with_alpha<C, S>(color: C) -> Srgba<S>
 where
     C: IntoColor<D65, S>,
-    S: Component + Float + One,
+    S: Component + Float,
 {
     let linsrgb: color::LinSrgb<S> = color.into_rgb::<encoding::Srgb>();
     let color: Srgb<S> = linsrgb.into_encoding();
-    let alpha = One::one();
+    let alpha = S::max_intensity();
     Alpha { color, alpha }
 }
 
 impl<S> IntoSrgba<S> for color::Xyz<D65, S>
 where
-    S: Component + Float + One,
+    S: Component + Float,
 {
     fn into_srgba(self) -> Srgba<S> {
         into_rgb_with_alpha(self)
@@ -157,7 +153,7 @@ where
 
 impl<S> IntoSrgba<S> for color::Yxy<D65, S>
 where
-    S: Component + Float + One,
+    S: Component + Float,
 {
     fn into_srgba(self) -> Srgba<S> {
         into_rgb_with_alpha(self)
@@ -166,7 +162,7 @@ where
 
 impl<S> IntoSrgba<S> for color::Lab<D65, S>
 where
-    S: Component + Float + One,
+    S: Component + Float,
 {
     fn into_srgba(self) -> Srgba<S> {
         into_rgb_with_alpha(self)
@@ -175,7 +171,7 @@ where
 
 impl<S> IntoSrgba<S> for color::Lch<D65, S>
 where
-    S: Component + Float + One,
+    S: Component + Float,
 {
     fn into_srgba(self) -> Srgba<S> {
         into_rgb_with_alpha(self)
@@ -184,7 +180,7 @@ where
 
 impl<S> IntoSrgba<S> for color::Srgb<S>
 where
-    S: Component + Float + One,
+    S: Component + Float,
 {
     fn into_srgba(self) -> Srgba<S> {
         into_rgb_with_alpha(self)
@@ -193,7 +189,7 @@ where
 
 impl<S> IntoSrgba<S> for color::Hsl<encoding::Srgb, S>
 where
-    S: Component + Float + One,
+    S: Component + Float,
 {
     fn into_srgba(self) -> Srgba<S> {
         into_rgb_with_alpha(self)
@@ -202,7 +198,7 @@ where
 
 impl<S> IntoSrgba<S> for color::Hsv<encoding::Srgb, S>
 where
-    S: Component + Float + One,
+    S: Component + Float,
 {
     fn into_srgba(self) -> Srgba<S> {
         into_rgb_with_alpha(self)
@@ -211,7 +207,7 @@ where
 
 impl<S> IntoSrgba<S> for color::Hwb<encoding::Srgb, S>
 where
-    S: Component + Float + One,
+    S: Component + Float,
 {
     fn into_srgba(self) -> Srgba<S> {
         into_rgb_with_alpha(self)
@@ -220,7 +216,7 @@ where
 
 impl<S> IntoSrgba<S> for color::SrgbLuma<S>
 where
-    S: Component + Float + One,
+    S: Component + Float,
 {
     fn into_srgba(self) -> Srgba<S> {
         into_rgb_with_alpha(self)
