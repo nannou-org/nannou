@@ -1,6 +1,6 @@
-use nannou::osc;
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
+use nannou_osc as osc;
 
 fn main() {
     nannou::app(model).update(update).run();

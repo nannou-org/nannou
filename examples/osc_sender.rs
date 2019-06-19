@@ -1,6 +1,7 @@
-use nannou::osc::{self, Type};
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
+use nannou_osc as osc;
+use nannou_osc::Type;
 
 fn main() {
     nannou::app(model).update(update).run();
