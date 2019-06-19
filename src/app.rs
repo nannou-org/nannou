@@ -285,6 +285,21 @@ pub enum LoopMode {
         update_interval: Duration,
     },
 
+    /// Loops for the given number of updates and then finishes.
+    ///
+    /// This is similar to the **Wait** loop mode, except that windowing, application and input
+    /// events will not cause the loop to update or view again after the initial
+    /// `number_of_updates` have already been applied.
+    ///
+    /// This is useful for sketches where you only want to draw one frame, or if you know exactly
+    /// how many updates you require for an animation, etc.
+    NTimes {
+        /// The number of updates that must be emited regardless of non-update events
+        number_of_updates: usize,
+        /// The minimum interval between emitted updates.
+        update_interval: Duration,
+    },
+
     /// Synchronises `Update` events with requests for a new image by the swapchain for each
     /// window in order to achieve minimal latency between the state of the model and what is
     /// displayed on screen. This mode should be particularly useful for interactive applications
@@ -308,12 +323,6 @@ pub enum LoopMode {
     /// (calls to `view` in nannou) with the refresh rate of the screen. *You can learn more about
     /// the swap chain
     /// [here](https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain).*
-    NTimes {
-        /// The number of updates that must be emited regardless of non-update events
-        number_of_updates: usize,
-        /// The minimum interval between emitted updates.
-        update_interval: Duration,
-    },
     RefreshSync {
         /// The minimum duration that must occur between calls to `update`. Under the `RefreshSync`
         /// mode, the application loop will attempt to emit an `Update` event once every time a new
@@ -1277,13 +1286,7 @@ fn run_loop<M, E>(
                 update_interval,
             } => {
                 loop_ctxt.updates_remaining = number_of_updates;
-                run_loop_mode_ntimes(
-                    &mut app,
-                    model,
-                    &mut loop_ctxt,
-                    number_of_updates,
-                    update_interval,
-                )
+                run_loop_mode_ntimes(&mut app, model, &mut loop_ctxt, update_interval)
             }
             LoopMode::RefreshSync {
                 minimum_update_interval,
@@ -1476,13 +1479,11 @@ where
     }
 }
 
-
 // Run the application loop under the `Wait` mode.
 fn run_loop_mode_ntimes<M, E>(
     app: &mut App,
     mut model: M,
     loop_ctxt: &mut LoopContext<M, E>,
-    mut number_of_updates: usize,
     mut update_interval: Duration,
 ) -> Break<M>
 where
@@ -1490,8 +1491,9 @@ where
     E: LoopEvent,
 {
     loop {
-         //First collect any pending window events.
-         app.events_loop.poll_events(|event| loop_ctxt.winit_events.push(event));
+        // First collect any pending window events.
+        app.events_loop
+            .poll_events(|event| loop_ctxt.winit_events.push(event));
 
         // If there are no events and the `Ui` does not need updating,
         // wait for the next event.
@@ -1505,6 +1507,14 @@ where
             });
         }
 
+        // Update the app's durations.
+        let now = Instant::now();
+        let since_last = now.duration_since(loop_ctxt.last_update).into();
+        let since_start = now.duration_since(loop_ctxt.loop_start).into();
+        app.duration.since_start = since_start;
+        app.duration.since_prev_update = since_last;
+        app.time = app.duration.since_start.secs() as _;
+
         for winit_event in loop_ctxt.winit_events.drain(..) {
             let (new_model, exit) =
                 process_and_emit_winit_event(app, model, loop_ctxt.event_fn, winit_event);
@@ -1515,16 +1525,7 @@ where
             }
         }
 
-        // Update the app's durations.
-        let now = Instant::now();
-        let since_last = now.duration_since(loop_ctxt.last_update).into();
-        let since_start = now.duration_since(loop_ctxt.loop_start).into();
-        app.duration.since_start = since_start;
-        app.duration.since_prev_update = since_last;
-        app.time = app.duration.since_start.secs() as _;
-
-        // Emit an update event.
-
+        // Only `update` and `view` if there are updates remaining.
         if loop_ctxt.updates_remaining > 0 {
             let update = update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update);
             if let Some(event_fn) = loop_ctxt.event_fn {
@@ -1535,11 +1536,16 @@ where
                 update_fn(&app, &mut model, update);
             }
             loop_ctxt.updates_remaining -= 1;
-        }
 
-        // Draw to each window.
-        for window_id in app.window_ids() {
-            acquire_image_and_view_frame(app, window_id, &model, loop_ctxt.default_view.as_ref());
+            // Draw to each window.
+            for window_id in app.window_ids() {
+                acquire_image_and_view_frame(
+                    app,
+                    window_id,
+                    &model,
+                    loop_ctxt.default_view.as_ref(),
+                );
+            }
         }
 
         // Sleep if there's still some time left within the interval.
@@ -1554,10 +1560,9 @@ where
         match app.loop_mode() {
             LoopMode::NTimes {
                 update_interval: ui,
-                number_of_updates: ufe,
+                ..
             } => {
                 update_interval = ui;
-                number_of_updates = ufe;
             }
             loop_mode => {
                 let reason = BreakReason::NewLoopMode(loop_mode);
