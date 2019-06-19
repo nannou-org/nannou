@@ -309,7 +309,7 @@ pub enum LoopMode {
     /// the swap chain
     /// [here](https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain).*
     NTimes {
-        /// The number of updates that must be emited since last recieveng a non-update event
+        /// The number of updates that must be emited regardless of non-update events
         number_of_updates: usize,
         /// The minimum interval between emitted updates.
         update_interval: Duration,
@@ -731,6 +731,15 @@ impl LoopMode {
     /// Specify the **Ntimes** mode with one update
     ///
     /// Waits long enough to ensure loop iteration never occurs faster than the given `max_fps`.
+    pub fn loop_ntimes(number_of_updates: usize) -> Self {
+        let update_interval = update_interval(Self::DEFAULT_RATE_FPS);
+        LoopMode::NTimes {
+            number_of_updates,
+            update_interval,
+        }
+    }
+
+    /// Specify the **Ntimes** mode with one update
     pub fn loop_once() -> Self {
         let update_interval = update_interval(Self::DEFAULT_RATE_FPS);
         let number_of_updates = 1;
@@ -1268,7 +1277,7 @@ fn run_loop<M, E>(
                 update_interval,
             } => {
                 loop_ctxt.updates_remaining = number_of_updates;
-                run_loop_mode_NTimes(
+                run_loop_mode_ntimes(
                     &mut app,
                     model,
                     &mut loop_ctxt,
@@ -1469,7 +1478,7 @@ where
 
 
 // Run the application loop under the `Wait` mode.
-fn run_loop_mode_NTimes<M, E>(
+fn run_loop_mode_ntimes<M, E>(
     app: &mut App,
     mut model: M,
     loop_ctxt: &mut LoopContext<M, E>,
@@ -1481,9 +1490,8 @@ where
     E: LoopEvent,
 {
     loop {
-        // First collect any pending window events.
-        app.events_loop
-            .poll_events(|event| loop_ctxt.winit_events.push(event));
+         //First collect any pending window events.
+         app.events_loop.poll_events(|event| loop_ctxt.winit_events.push(event));
 
         // If there are no events and the `Ui` does not need updating,
         // wait for the next event.
@@ -1495,11 +1503,6 @@ where
                 loop_ctxt.winit_events.push(event);
                 winit::ControlFlow::Break
             });
-        }
-
-        // If there are some winit events to process, reset the updates-remaining count.
-        if !loop_ctxt.winit_events.is_empty() {
-            loop_ctxt.updates_remaining = number_of_updates;
         }
 
         for winit_event in loop_ctxt.winit_events.drain(..) {
@@ -1521,15 +1524,18 @@ where
         app.time = app.duration.since_start.secs() as _;
 
         // Emit an update event.
-        let update = update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update);
-        if let Some(event_fn) = loop_ctxt.event_fn {
-            let event = E::from(update.clone());
-            event_fn(&app, &mut model, event);
+
+        if loop_ctxt.updates_remaining > 0 {
+            let update = update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update);
+            if let Some(event_fn) = loop_ctxt.event_fn {
+                let event = E::from(update.clone());
+                event_fn(&app, &mut model, event);
+            }
+            if let Some(update_fn) = loop_ctxt.update_fn {
+                update_fn(&app, &mut model, update);
+            }
+            loop_ctxt.updates_remaining -= 1;
         }
-        if let Some(update_fn) = loop_ctxt.update_fn {
-            update_fn(&app, &mut model, update);
-        }
-        loop_ctxt.updates_remaining -= 1;
 
         // Draw to each window.
         for window_id in app.window_ids() {
