@@ -11,6 +11,33 @@ pub use self::tango::*;
 /// The default scalar value for working with color components, hues, etc.
 pub type DefaultScalar = f32;
 
+/// A color represented as red, green and blue intensities.
+///
+/// This type is an alias for the `Srgb` type, a type that represents the sRGB color space.
+///
+/// If you are looking for more advanced control over the RGB space and component type, please see
+/// the `palette` crate's generic `Rgb` type.
+pub type Rgb<S = DefaultScalar> = Srgb<S>;
+
+/// The same as `Rgb`, but with an alpha value representing opacity.
+///
+/// This type is an alias for the `Srgba` type, a type that represents the sRGB color space
+/// alongside an alpha value.
+///
+/// If you are looking for more advanced control over the RGB space and component type, please see
+/// the `palette` crate's generic `Rgb` type.
+pub type Rgba<S = DefaultScalar> = Srgba<S>;
+
+/// A short-hand constructor for `Rgb::new`.
+pub fn rgb(r: f32, g: f32, b: f32) -> Rgb {
+    srgb(r, g, b)
+}
+
+/// A short-hand constructor for `Rgba::new`.
+pub fn rgba(r: f32, g: f32, b: f32, a: f32) -> Rgba {
+    srgba(r, g, b, a)
+}
+
 /// A short-hand constructor for `Srgb::new`.
 pub fn srgb(r: f32, g: f32, b: f32) -> Srgb {
     Srgb::new(r, g, b)
