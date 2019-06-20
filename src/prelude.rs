@@ -2,7 +2,8 @@
 
 pub use crate::app::{self, App, LoopMode};
 pub use crate::color::named::*;
-pub use crate::color::{Hsl, Hsla, Hsv, Hsva, Srgb, Srgba};
+pub use crate::color::{hsl, hsla, hsv, hsva, rgb, rgba, srgb, srgba};
+pub use crate::color::{Hsl, Hsla, Hsv, Hsva, Rgb, Rgba, Srgb, Srgba};
 pub use crate::event::WindowEvent::*;
 pub use crate::event::{
     AxisMotion, Event, Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase,

@@ -38,18 +38,12 @@ where
     }
 
     /// Specify the color via red, green and blue channels.
-    fn rgb(self, r: S, g: S, b: S) -> Self
-    where
-        S: Float,
-    {
+    fn rgb(self, r: S, g: S, b: S) -> Self {
         self.color(Srgb::new(r, g, b))
     }
 
     /// Specify the color via red, green, blue and alpha channels.
-    fn rgba(self, r: S, g: S, b: S, a: S) -> Self
-    where
-        S: Float,
-    {
+    fn rgba(self, r: S, g: S, b: S, a: S) -> Self {
         self.color(Srgba::new(r, g, b, a))
     }
 
@@ -178,12 +172,15 @@ where
     }
 }
 
-impl<S> IntoSrgba<S> for color::Srgb<S>
+impl<T, S> IntoSrgba<S> for color::Srgb<T>
 where
-    S: Component + Float,
+    T: Component,
+    S: Component,
 {
     fn into_srgba(self) -> Srgba<S> {
-        into_rgb_with_alpha(self)
+        let color = self.into_format();
+        let alpha = S::max_intensity();
+        Alpha { color, alpha }
     }
 }
 
@@ -225,13 +222,13 @@ where
 
 impl<C, S> IntoSrgba<S> for Alpha<C, S>
 where
-    C: IntoColor<D65, S>,
-    S: Component + Float,
+    C: IntoSrgba<S>,
+    S: Component,
 {
     fn into_srgba(self) -> Srgba<S> {
         let Alpha { color, alpha } = self;
-        let linsrgb: color::LinSrgb<S> = color.into_rgb::<encoding::Srgb>();
-        let color: Srgb<S> = linsrgb.into_encoding();
-        Alpha { color, alpha }
+        let mut srgba = color.into_srgba();
+        srgba.alpha = alpha;
+        srgba
     }
 }
