@@ -43,5 +43,5 @@ fn model(_app: &App) -> Model {
 }
 
 fn view(_app: &App, _model: &Model, frame: &Frame) {
-    frame.clear(DARK_CHARCOAL);
+    frame.clear(DIMGRAY);
 }

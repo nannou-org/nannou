@@ -2,11 +2,11 @@ use nannou::prelude::*;
 
 pub struct Ball {
     pub position: Point2,
-    color: Rgba,
+    color: Srgb<u8>,
 }
 
 impl Ball {
-    pub fn new(color: Rgba) -> Self {
+    pub fn new(color: Srgb<u8>) -> Self {
         let position = pt2(0.0, 0.0);
         Ball { position, color }
     }

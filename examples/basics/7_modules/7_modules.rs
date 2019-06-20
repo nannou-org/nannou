@@ -27,7 +27,7 @@ fn view(app: &App, model: &Model, frame: &Frame) {
     // Begin drawing.
     let draw = app.draw();
     // Draw dark gray for the background
-    draw.background().color(DARK_CHARCOAL);
+    draw.background().color(DIMGRAY);
     // Draw our ball
     model.ball.display(&draw);
     // Write the result of our drawing to the window's frame.
