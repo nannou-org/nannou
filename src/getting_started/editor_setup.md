@@ -30,6 +30,6 @@ for supporting Rust.
 4. [Vim](https://github.com/rust-lang/rust.vim)
 5. [Emacs](https://github.com/rust-lang/rust-mode)
 6. [Visual Studio](https://github.com/PistonDevelopers/VisualRust)
-7. [Eclipse](https://github.com/RustDT/RustDT) (No longer maintained)
+7. [Eclipse](https://github.com/eclipse/corrosion)
 
 
