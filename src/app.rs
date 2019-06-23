@@ -1479,7 +1479,7 @@ where
     }
 }
 
-// Run the application loop under the `Wait` mode.
+// Run the application loop under the `NTimes` mode.
 fn run_loop_mode_ntimes<M, E>(
     app: &mut App,
     mut model: M,
