@@ -324,3 +324,16 @@ path = "examples/nature_of_code/chp_07_cellular_automata/7_03_game_of_life_oop.r
 [[example]]
 name = "7_04_exercise_wolfram_ca_scrolling"
 path = "examples/nature_of_code/chp_07_cellular_automata/7_04_exercise_wolfram_ca_scrolling.rs"
+# --------------- Chapter 8 Fractals
+[[example]] 
+name = "8_1_recursion" 
+path = "examples/nature_of_code/chp_08_fractals/8_1_recursion.rs"
+[[example]] 
+name = "8_2_recursion" 
+path = "examples/nature_of_code/chp_08_fractals/8_2_recursion.rs"
+[[example]] 
+name = "8_3_recursion" 
+path = "examples/nature_of_code/chp_08_fractals/8_3_recursion.rs"
+[[example]] 
+name = "8_4_cantor_set" 
+path = "examples/nature_of_code/chp_08_fractals/8_4_cantor_set.rs"
