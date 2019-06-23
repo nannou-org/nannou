@@ -23,8 +23,6 @@ fn model(app: &App) -> Model {
     Model
 }
 
-
-
 fn view(app: &App, _model: &Model, frame: Frame) -> Frame {
     // Begin drawing
     let draw = app.draw();
@@ -52,7 +50,7 @@ fn cantor(draw: &app::Draw, x: f32, mut y: f32, len: f32) {
             .w_h(len, h / 3.0)
             .color(BLACK);
 
-        // Go down to next y position 
+        // Go down to next y position
         y -= h;
         // Draw 2 more lines 1/3rd the length (without the middle section)
         let length = len / 3.0;
