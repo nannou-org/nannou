@@ -40,7 +40,8 @@ fn key_pressed(app: &App, _model: &mut Model, _key: Key) {
     match app.loop_mode() {
         LoopMode::Wait { .. } => app.set_loop_mode(LoopMode::refresh_sync()),
         LoopMode::RefreshSync { .. } => app.set_loop_mode(LoopMode::rate_fps(60.0)),
-        LoopMode::Rate { .. } => app.set_loop_mode(LoopMode::wait(3)),
+        LoopMode::Rate { .. } => app.set_loop_mode(LoopMode::loop_once()),
+        LoopMode::NTimes { .. } => app.set_loop_mode(LoopMode::wait(3)),
     }
     println!("Loop mode switched to: {:?}", app.loop_mode());
     let title = format!("`LoopMode` Demonstration - `{:?}`", app.loop_mode());

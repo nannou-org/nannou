@@ -591,7 +591,7 @@ pub fn preferred_present_mode_and_image_count(
                 let image_count = image_count.unwrap_or_else(|| cmp::max(min_image_count, 2));
                 (vk::swapchain::PresentMode::Fifo, image_count)
             }
-            LoopMode::Wait { .. } | LoopMode::Rate { .. } => {
+            LoopMode::Wait { .. } | LoopMode::Rate { .. } | LoopMode::NTimes { .. } => {
                 if supported_present_modes.mailbox {
                     let image_count = image_count.unwrap_or_else(|| cmp::max(min_image_count, 3));
                     (vk::swapchain::PresentMode::Mailbox, image_count)
