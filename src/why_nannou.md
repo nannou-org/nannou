@@ -102,3 +102,26 @@ some of the reasons why we choose to use it:
 - **Module system** resulting in very clean and concise name spaces.
 - One of the kindest internet communities we've come across (please visit
   mozilla's #rust or /r/rust if you're starting out and need any pointers)
+
+## Why the Apache/MIT dual licensing?
+
+For the most part, nannou is trying to maintain as much flexibility and compatibility
+with the licensing of Rust itself, which is also [dual licensed](https://www.rust-lang.org/policies/licenses).
+
+The Apache 2.0 and MIT license are very similar, but have a few key differences.
+Using the Apache 2.0 license for contributions triggers the Apache 2.0 patent grant.
+This grant is designed to protect against leveraging the patent law system to bypass
+(some) terms of the license. If the contribution is under the Apache 2.0 license, the
+contributor assures that they will not claim a violation of (their own) patents. If
+someone makes a work based on Apache 2.0 licensed code, they in turn also vow to
+not sue their users (for patent infringement).
+The MIT license provides compatibility with a lot of other FLOSS licenses.
+
+Further reading:
+
+* [Apache License, Version 2.0](https://opensource.org/licenses/Apache-2.0)
+* [MIT License](https://opensource.org/licenses/MIT)
+* [Please read: Rust license changing (very slightly)](https://mail.mozilla.org/pipermail/rust-dev/2012-November/002664.html)
+* [Rationale of Apache dual licensing](https://internals.rust-lang.org/t/rationale-of-apache-dual-licensing/8952)
+* [Against what does the Apache 2.0 patent clause protect?](https://opensource.stackexchange.com/questions/1881/against-what-does-the-apache-2-0-patent-clause-protect)
+* [GPLv2 Combination Exception for the Apache 2 License]https://blog.gerv.net/2016/09/gplv2-combination-exception-for-the-apache-2-license/)
