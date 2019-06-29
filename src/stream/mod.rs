@@ -1,8 +1,15 @@
+use cpal::EventLoop as EventLoopTrait;
+use cpal::platform::{
+    Device as CpalDevice,
+    EventLoop as CpalEventLoop,
+    Host as CpalHost,
+    StreamId as CpalStreamId,
+};
 use crate::Device;
+use failure::Fail;
 use sample::Sample;
 use std;
 use std::any::{Any, TypeId};
-use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::{mpsc, Arc, Mutex};
@@ -22,23 +29,23 @@ pub mod duplex {}
 pub const DEFAULT_SAMPLE_RATE: u32 = 44_100;
 
 /// The type of function accepted for model updates.
-pub type UpdateFn<M> = FnOnce(&mut M) + Send + 'static;
+pub type UpdateFn<M> = dyn FnOnce(&mut M) + Send + 'static;
 
-pub(crate) type ProcessFn = FnMut(cpal::StreamData) + 'static + Send;
-pub(crate) type ProcessFnMsg = (cpal::StreamId, Box<ProcessFn>);
+pub(crate) type ProcessFn = dyn FnMut(cpal::StreamDataResult) + 'static + Send;
+pub(crate) type ProcessFnMsg = (CpalStreamId, Box<ProcessFn>);
 
 // State that is updated and run on the `cpal::EventLoop::run` thread.
 pub(crate) struct LoopContext {
     // A channel for receiving callback functions for newly spawned streams.
     process_fn_rx: mpsc::Receiver<ProcessFnMsg>,
     // A map from StreamIds to their associated buffer processing functions.
-    process_fns: HashMap<cpal::StreamId, Box<ProcessFn>>,
+    process_fns: Vec<(CpalStreamId, Box<ProcessFn>)>,
 }
 
 /// A clone-able handle around an audio stream.
 pub struct Stream<M> {
     /// A channel for sending model updates to the audio thread.
-    update_tx: mpsc::Sender<Box<FnMut(&mut M) + 'static + Send>>,
+    update_tx: mpsc::Sender<Box<dyn FnMut(&mut M) + 'static + Send>>,
     /// A channel used for sending through a new buffer processing callback to the event loop.
     process_fn_tx: mpsc::Sender<ProcessFnMsg>,
     /// Data shared between each `Stream` handle to a single stream.
@@ -52,16 +59,17 @@ struct Shared<M> {
     // The user's audio model
     model: Arc<Mutex<Option<M>>>,
     // A unique ID associated with this stream on the cpal EventLoop.
-    stream_id: cpal::StreamId,
+    stream_id: CpalStreamId,
     // A handle to the CPAL audio event loop.
-    event_loop: Arc<cpal::EventLoop>,
+    event_loop: Arc<CpalEventLoop>,
     // Whether or not the stream is currently paused.
     is_paused: AtomicBool,
 }
 
 /// Stream building parameters that are common between input and output streams.
 pub struct Builder<M, S = f32> {
-    pub(crate) event_loop: Arc<cpal::EventLoop>,
+    pub(crate) host: Arc<CpalHost>,
+    pub(crate) event_loop: Arc<CpalEventLoop>,
     pub(crate) process_fn_tx: mpsc::Sender<ProcessFnMsg>,
     pub model: M,
     pub sample_rate: Option<u32>,
@@ -71,17 +79,25 @@ pub struct Builder<M, S = f32> {
     pub(crate) sample_format: PhantomData<S>,
 }
 
-#[derive(Debug)]
+/// Errors that might occur when attempting to build a stream.
+#[derive(Debug, Fail)]
 pub enum BuildError {
+    #[fail(display = "failed to get default device")]
     DefaultDevice,
-    FormatEnumeration(cpal::FormatsEnumerationError),
-    Creation(cpal::CreationError),
+    #[fail(display = "failed to enumerate available formats: {}", err)]
+    SupportedFormats {
+        err: cpal::SupportedFormatsError,
+    },
+    #[fail(display = "failed to build stream: {}", err)]
+    BuildStream {
+        err: cpal::BuildStreamError,
+    },
 }
 
 impl LoopContext {
     /// Create a new loop context.
     pub fn new(process_fn_rx: mpsc::Receiver<ProcessFnMsg>) -> Self {
-        let process_fns = HashMap::new();
+        let process_fns = vec![];
         LoopContext {
             process_fn_rx,
             process_fns,
@@ -89,18 +105,19 @@ impl LoopContext {
     }
 
     /// Process the given buffer with the stream at the given ID.
-    pub fn process(&mut self, stream_id: cpal::StreamId, data: cpal::StreamData) {
+    pub fn process(&mut self, stream_id: CpalStreamId, data: cpal::StreamDataResult) {
         // Collect any pending stream process fns.
         for (stream_id, proc_fn) in self.process_fn_rx.try_iter() {
-            self.process_fns.insert(stream_id, proc_fn);
+            self.process_fns.retain(|&(ref id, _)| *id != stream_id);
+            self.process_fns.push((stream_id, proc_fn));
         }
 
         // Process the data using the stream at the given ID.
-        if let Some(proc_fn) = self.process_fns.get_mut(&stream_id) {
+        if let Some(proc_fn) = self.process_fn_mut(&stream_id) {
             proc_fn(data);
         // If there is not yet a buffer processing function, just silence the output buffer.
         } else {
-            if let cpal::StreamData::Output { mut buffer } = data {
+            if let Ok(cpal::StreamData::Output { mut buffer }) = data {
                 fn silence<S: Sample>(slice: &mut [S]) {
                     for sample in slice {
                         *sample = S::equilibrium();
@@ -114,6 +131,14 @@ impl LoopContext {
             }
         }
     }
+
+    // Retrieve a mutable reference to the process fn associated with the given stream ID.
+    fn process_fn_mut(&mut self, stream_id: &CpalStreamId) -> Option<&mut Box<ProcessFn>> {
+        self.process_fns
+            .iter_mut()
+            .find(|&&mut (ref id, _)| id == stream_id)
+            .map(|&mut (_, ref mut f)| f)
+    }
 }
 
 impl<M> Stream<M> {
@@ -123,7 +148,7 @@ impl<M> Stream<M> {
     /// capture/render function.
     ///
     /// Has no effect if the stream is already running.
-    pub fn play(&self) {
+    pub fn play(&self) -> Result<(), cpal::PlayStreamError> {
         self.shared.play()
     }
 
@@ -132,7 +157,7 @@ impl<M> Stream<M> {
     /// Calling this will pause rendering/capturing.
     ///
     /// Has no effect is the stream was already paused.
-    pub fn pause(&self) {
+    pub fn pause(&self) -> Result<(), cpal::PauseStreamError> {
         self.shared.pause()
     }
 
@@ -159,7 +184,7 @@ impl<M> Stream<M> {
     pub fn send<F>(
         &self,
         update: F,
-    ) -> Result<(), mpsc::SendError<Box<FnMut(&mut M) + Send + 'static>>>
+    ) -> Result<(), mpsc::SendError<Box<dyn FnMut(&mut M) + Send + 'static>>>
     where
         F: FnOnce(&mut M) + Send + 'static,
     {
@@ -208,20 +233,22 @@ impl<M> Stream<M> {
     }
 
     /// A reference to the unique ID associated with this stream.
-    pub fn id(&self) -> &cpal::StreamId {
+    pub fn id(&self) -> &CpalStreamId {
         &self.shared.stream_id
     }
 }
 
 impl<M> Shared<M> {
-    fn play(&self) {
-        self.event_loop.play_stream(self.stream_id.clone());
+    fn play(&self) -> Result<(), cpal::PlayStreamError> {
+        self.event_loop.play_stream(self.stream_id.clone())?;
         self.is_paused.store(false, atomic::Ordering::Relaxed);
+        Ok(())
     }
 
-    fn pause(&self) {
+    fn pause(&self) -> Result<(), cpal::PauseStreamError> {
         self.is_paused.store(true, atomic::Ordering::Relaxed);
-        self.event_loop.pause_stream(self.stream_id.clone());
+        self.event_loop.pause_stream(self.stream_id.clone())?;
+        Ok(())
     }
 
     fn is_playing(&self) -> bool {
@@ -251,38 +278,21 @@ impl<M> Clone for Stream<M> {
 impl<M> Drop for Shared<M> {
     fn drop(&mut self) {
         if self.is_playing() {
-            self.pause();
+            self.pause().ok();
         }
         self.event_loop.destroy_stream(self.stream_id.clone());
     }
 }
 
-impl From<cpal::CreationError> for BuildError {
-    fn from(e: cpal::CreationError) -> Self {
-        BuildError::Creation(e)
+impl From<cpal::BuildStreamError> for BuildError {
+    fn from(err: cpal::BuildStreamError) -> Self {
+        BuildError::BuildStream { err }
     }
 }
 
-impl From<cpal::FormatsEnumerationError> for BuildError {
-    fn from(e: cpal::FormatsEnumerationError) -> Self {
-        BuildError::FormatEnumeration(e)
-    }
-}
-
-impl std::error::Error for BuildError {
-    fn description(&self) -> &str {
-        match *self {
-            BuildError::DefaultDevice => "Failed to get default device",
-            BuildError::FormatEnumeration(ref err) => err.description(),
-            BuildError::Creation(ref err) => err.description(),
-        }
-    }
-}
-
-impl std::fmt::Display for BuildError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-        write!(f, "{}", self.description())
+impl From<cpal::SupportedFormatsError> for BuildError {
+    fn from(err: cpal::SupportedFormatsError) -> Self {
+        BuildError::SupportedFormats { err }
     }
 }
 
@@ -350,15 +360,15 @@ fn matching_supported_formats(
 // Given some audio device find the supported stream format that best matches the given optional
 // format parameters (specified by the user).
 fn find_best_matching_format<F>(
-    device: &cpal::Device,
+    device: &CpalDevice,
     mut sample_format: Option<cpal::SampleFormat>,
     channels: Option<usize>,
     mut sample_rate: Option<cpal::SampleRate>,
     default_format: Option<cpal::Format>,
     supported_formats: F,
-) -> Result<Option<cpal::Format>, cpal::FormatsEnumerationError>
+) -> Result<Option<cpal::Format>, cpal::SupportedFormatsError>
 where
-    F: Fn(&cpal::Device) -> Result<Vec<cpal::SupportedFormat>, cpal::FormatsEnumerationError>,
+    F: Fn(&CpalDevice) -> Result<Vec<cpal::SupportedFormat>, cpal::SupportedFormatsError>,
 {
     loop {
         {

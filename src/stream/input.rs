@@ -1,31 +1,109 @@
+use cpal::{Device as DeviceTrait, EventLoop as EventLoopTrait, Host as HostTrait};
 use crate::{stream, Buffer, Device, Receiver, Stream};
 use sample::{FromSample, Sample, ToSample};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
+/// The buffer if it is ready for reading, or an error if something went wrong with the stream.
+pub type Result<'a, S = f32> = std::result::Result<&'a Buffer<S>, cpal::StreamError>;
+
 /// The function that will be called when a captured `Buffer` is ready to be read.
 pub trait CaptureFn<M, S>: Fn(&mut M, &Buffer<S>) {}
-impl<M, S, F> CaptureFn<M, S> for F where F: Fn(&mut M, &Buffer<S>) {}
+/// The function that will be called when a stream result is ready to be handled.
+pub trait CaptureResultFn<M, S>: Fn(&mut M, Result<S>) {}
 
-pub struct Builder<M, F, S = f32> {
-    pub builder: super::Builder<M, S>,
-    pub capture: F,
+/// The default capture function type used when unspecified.
+pub type DefaultCaptureFn<M, S> = fn(&mut M, &Buffer<S>);
+/// The default capture function type used when unspecified.
+pub type DefaultCaptureResultFn<M, S> = fn(&mut M, Result<S>);
+
+// The default render function used when unspecified.
+pub(crate) fn default_capture_fn<M, S>(_: &mut M, _: &Buffer<S>) {}
+
+/// Either a function for processing a stream result, or a function for processing the buffer
+/// directly.
+pub enum Capture<A, B> {
+    /// A function that works directly with the buffer.
+    ///
+    /// Any stream errors that occur will cause a `panic!`.
+    BufferFn(A),
+    /// A function that handles the stream result and in turn the inner buffer.
+    ResultFn(B),
 }
+
+/// A type used for building an input stream.
+pub struct Builder<M, FA, FB, S = f32> {
+    pub builder: super::Builder<M, S>,
+    pub capture: Capture<FA, FB>,
+}
+
+/// The builder when first initialised.
+pub type BuilderInit<M, S = f32> =
+    Builder<M, DefaultCaptureFn<M, S>, DefaultCaptureResultFn<M, S>, S>;
+
+type InputDevices = cpal::InputDevices<cpal::platform::Devices>;
 
 /// An iterator yielding all available audio devices that support input streams.
 pub struct Devices {
-    pub(crate) devices: cpal::InputDevices,
+    pub(crate) devices: InputDevices,
 }
 
-impl Iterator for Devices {
-    type Item = Device;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.devices.next().map(|device| Device { device })
+impl<M, S, F> CaptureFn<M, S> for F where F: Fn(&mut M, &Buffer<S>) {}
+impl<M, S, F> CaptureResultFn<M, S> for F where F: Fn(&mut M, Result<S>) {}
+
+impl<A, B> Capture<A, B> {
+    pub(crate) fn capture<M, S>(&self, model: &mut M, result: Result<S>)
+    where
+        A: CaptureFn<M, S>,
+        B: CaptureResultFn<M, S>,
+    {
+        match *self {
+            Capture::BufferFn(ref f) => {
+                let buffer = match result {
+                    Ok(b) => b,
+                    Err(err) => {
+                        panic!(
+                            "An input stream error occurred: {}\nIf you wish to handle this \
+                            error within your code, consider building your input stream with \
+                            a `capture_result` function rather than a `capture` function.",
+                            err,
+                        );
+                    }
+                };
+                f(model, buffer);
+            }
+            Capture::ResultFn(ref f) => f(model, result),
+        }
     }
 }
 
-impl<M, F, S> Builder<M, F, S> {
+impl<M, FA, FB, S> Builder<M, FA, FB, S> {
+    /// Specify the capture function to use for updating the model in accordance with the captured
+    /// input samples.
+    ///
+    /// If you wish to handle errors produced by the stream, you should use `capture_result`
+    /// instead and ensure your `capture` function accepts a `input::Result<S>` rather than a
+    /// `&mut Buffer<S>`.
+    ///
+    /// Please note that only one `capture` or `capture_result` function may be submitted. Only the
+    /// last function submitted will be used.
+    pub fn capture<G>(self, capture: G) -> Builder<M, G, DefaultCaptureResultFn<M, S>, S> {
+        let Builder { builder, .. } = self;
+        let capture = Capture::BufferFn(capture);
+        Builder { capture, builder }
+    }
+
+    /// Specify a function for processing capture stream results.
+    ///
+    /// Please note that only one `capture` or `capture_result` function may be submitted. Only the
+    /// last function submitted will be used.
+    pub fn capture_result<G>(self, capture_result: G) -> Builder<M, DefaultCaptureFn<M, S>, G, S> {
+        let Builder { builder, .. } = self;
+        let capture = Capture::ResultFn(capture_result);
+        Builder { capture, builder }
+    }
+
     pub fn sample_rate(mut self, sample_rate: u32) -> Self {
         assert!(sample_rate > 0);
         self.builder.sample_rate = Some(sample_rate);
@@ -49,16 +127,18 @@ impl<M, F, S> Builder<M, F, S> {
         self
     }
 
-    pub fn build(self) -> Result<Stream<M>, super::BuildError>
+    pub fn build(self) -> std::result::Result<Stream<M>, super::BuildError>
     where
         S: 'static + Send + Sample + FromSample<u16> + FromSample<i16> + FromSample<f32>,
         M: 'static + Send,
-        F: 'static + CaptureFn<M, S> + Send,
+        FA: 'static + CaptureFn<M, S> + Send,
+        FB: 'static + CaptureResultFn<M, S> + Send,
     {
         let Builder {
             capture,
             builder:
                 stream::Builder {
+                    host,
                     event_loop,
                     process_fn_tx,
                     model,
@@ -76,7 +156,7 @@ impl<M, F, S> Builder<M, F, S> {
         let sample_format = super::cpal_sample_format::<S>();
 
         let device = match device {
-            None => cpal::default_input_device().ok_or(super::BuildError::DefaultDevice)?,
+            None => host.default_input_device().ok_or(super::BuildError::DefaultDevice)?,
             Some(Device { device }) => device,
         };
 
@@ -98,7 +178,7 @@ impl<M, F, S> Builder<M, F, S> {
         let sample_rate = format.sample_rate.0;
 
         // A buffer for collecting model updates.
-        let mut pending_updates: Vec<Box<FnMut(&mut M) + 'static + Send>> = Vec::new();
+        let mut pending_updates: Vec<Box<dyn FnMut(&mut M) + 'static + Send>> = Vec::new();
 
         // Get the specified frames_per_buffer or fall back to a default.
         let frames_per_buffer = frames_per_buffer.unwrap_or(Buffer::<S>::DEFAULT_LEN_FRAMES);
@@ -112,7 +192,7 @@ impl<M, F, S> Builder<M, F, S> {
         let mut samples = vec![S::equilibrium(); frames_per_buffer * num_channels];
 
         // The function used to process a buffer of samples.
-        let proc_input = move |data: cpal::StreamData| {
+        let proc_input = move |data: cpal::StreamDataResult| {
             // Collect and process any pending updates.
             macro_rules! process_pending_updates {
                 () => {
@@ -136,7 +216,14 @@ impl<M, F, S> Builder<M, F, S> {
 
             // Retrieve the input buffer.
             let input = match data {
-                cpal::StreamData::Input { buffer } => buffer,
+                Err(err) => {
+                    if let Ok(mut guard) = model_2.lock() {
+                        let mut m = guard.take().unwrap();
+                        capture.capture(&mut m, Err(err));
+                    }
+                    return;
+                }
+                Ok(cpal::StreamData::Input { buffer }) => buffer,
                 _ => unreachable!(),
             };
 
@@ -194,5 +281,18 @@ impl<M, F, S> Builder<M, F, S> {
             cpal_format: format,
         };
         Ok(stream)
+    }
+}
+
+impl<M, S> Default for Capture<DefaultCaptureFn<M, S>, DefaultCaptureResultFn<M, S>> {
+    fn default() -> Self {
+        Capture::BufferFn(default_capture_fn)
+    }
+}
+
+impl Iterator for Devices {
+    type Item = Device;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.devices.next().map(|device| Device { device })
     }
 }

@@ -1,31 +1,108 @@
+use cpal::{Device as DeviceTrait, EventLoop as EventLoopTrait, Host as HostTrait};
 use crate::{stream, Buffer, Device, Requester, Stream};
 use sample::{Sample, ToSample};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
+/// The buffer if it is ready for reading, or an error if something went wrong with the stream.
+pub type Result<'a, S = f32> = std::result::Result<&'a mut Buffer<S>, cpal::StreamError>;
+
 /// The function that will be called when a `Buffer` is ready to be rendered.
 pub trait RenderFn<M, S>: Fn(&mut M, &mut Buffer<S>) {}
-impl<M, S, F> RenderFn<M, S> for F where F: Fn(&mut M, &mut Buffer<S>) {}
+/// The function that will be called when a `StreamResult` is ready to be rendered.
+pub trait RenderResultFn<M, S>: Fn(&mut M, Result<S>) {}
 
-pub struct Builder<M, F, S = f32> {
-    pub builder: super::Builder<M, S>,
-    pub render: F,
+/// The default render function type used when unspecified.
+pub type DefaultRenderFn<M, S> = fn(&mut M, &mut Buffer<S>);
+/// The default render function type used when unspecified.
+pub type DefaultRenderResultFn<M, S> = fn(&mut M, Result<S>);
+
+// The default render function used when unspecified.
+pub(crate) fn default_render_fn<M, S>(_: &mut M, _: &mut Buffer<S>) {}
+
+/// Either a function for processing a stream result, or a function for processing the buffer
+/// directly.
+pub enum Render<A, B> {
+    /// A function that works directly with the buffer.
+    ///
+    /// Any stream errors that occur will cause a `panic!`.
+    BufferFn(A),
+    /// A function that handles the stream result and in turn the inner buffer.
+    ResultFn(B),
 }
+
+/// A type used for building an output stream.
+pub struct Builder<M, FA, FB, S = f32> {
+    pub builder: super::Builder<M, S>,
+    pub render: Render<FA, FB>
+}
+
+/// The builder when first initialised.
+pub type BuilderInit<M, S = f32> =
+    Builder<M, DefaultRenderFn<M, S>, DefaultRenderResultFn<M, S>, S>;
+
+type OutputDevices = cpal::OutputDevices<cpal::platform::Devices>;
 
 /// An iterator yielding all available audio devices that support output streams.
 pub struct Devices {
-    pub(crate) devices: cpal::OutputDevices,
+    pub(crate) devices: OutputDevices,
 }
 
-impl Iterator for Devices {
-    type Item = Device;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.devices.next().map(|device| Device { device })
+impl<M, S, F> RenderFn<M, S> for F where F: Fn(&mut M, &mut Buffer<S>) {}
+impl<M, S, F> RenderResultFn<M, S> for F where F: Fn(&mut M, Result<S>) {}
+
+impl<A, B> Render<A, B> {
+    pub(crate) fn render<M, S>(&self, model: &mut M, result: Result<S>)
+    where
+        A: RenderFn<M, S>,
+        B: RenderResultFn<M, S>,
+    {
+        match *self {
+            Render::BufferFn(ref f) => {
+                let buffer = match result {
+                    Ok(b) => b,
+                    Err(err) => {
+                        panic!(
+                            "An output stream error occurred: {}\nIf you wish to handle this \
+                            error within your code, consider building your output stream with \
+                            a `render_result` function rather than a `render` function.",
+                            err,
+                        );
+                    }
+                };
+                f(model, buffer);
+            }
+            Render::ResultFn(ref f) => f(model, result),
+        }
     }
 }
 
-impl<M, F, S> Builder<M, F, S> {
+impl<M, FA, FB, S> Builder<M, FA, FB, S> {
+    /// Specify the render function to use for rendering the model to the buffer.
+    ///
+    /// If you wish to handle errors produced by the stream, you should use `render_result` instead
+    /// and ensure your `render` function accepts a `output::Result<S>` rather than a `&mut
+    /// Buffer<S>`.
+    ///
+    /// Please note that only one `render` or `render_result` function may be submitted. Only the
+    /// last function submitted will be used.
+    pub fn render<G>(self, render: G) -> Builder<M, G, DefaultRenderResultFn<M, S>, S> {
+        let Builder { builder, .. } = self;
+        let render = Render::BufferFn(render);
+        Builder { render, builder }
+    }
+
+    /// Specify a function for processing render stream results.
+    ///
+    /// Please note that only one `render` or `render_result` function may be submitted. Only the
+    /// last function submitted will be used.
+    pub fn render_result<G>(self, render_result: G) -> Builder<M, DefaultRenderFn<M, S>, G, S> {
+        let Builder { builder, .. } = self;
+        let render = Render::ResultFn(render_result);
+        Builder { render, builder }
+    }
+
     pub fn sample_rate(mut self, sample_rate: u32) -> Self {
         assert!(sample_rate > 0);
         self.builder.sample_rate = Some(sample_rate);
@@ -49,16 +126,18 @@ impl<M, F, S> Builder<M, F, S> {
         self
     }
 
-    pub fn build(self) -> Result<Stream<M>, super::BuildError>
+    pub fn build(self) -> std::result::Result<Stream<M>, super::BuildError>
     where
         S: 'static + Send + Sample + ToSample<u16> + ToSample<i16> + ToSample<f32>,
         M: 'static + Send,
-        F: 'static + RenderFn<M, S> + Send,
+        FA: 'static + RenderFn<M, S> + Send,
+        FB: 'static + RenderResultFn<M, S> + Send,
     {
         let Builder {
             render,
             builder:
                 stream::Builder {
+                    host,
                     event_loop,
                     process_fn_tx,
                     model,
@@ -76,7 +155,7 @@ impl<M, F, S> Builder<M, F, S> {
         let sample_format = super::cpal_sample_format::<S>();
 
         let device = match device {
-            None => cpal::default_output_device().ok_or(super::BuildError::DefaultDevice)?,
+            None => host.default_output_device().ok_or(super::BuildError::DefaultDevice)?,
             Some(Device { device }) => device,
         };
 
@@ -98,7 +177,7 @@ impl<M, F, S> Builder<M, F, S> {
         let sample_rate = format.sample_rate.0;
 
         // A buffer for collecting model updates.
-        let mut pending_updates: Vec<Box<FnMut(&mut M) + 'static + Send>> = Vec::new();
+        let mut pending_updates: Vec<Box<dyn FnMut(&mut M) + 'static + Send>> = Vec::new();
 
         // Get the specified frames_per_buffer or fall back to a default.
         let frames_per_buffer = frames_per_buffer.unwrap_or(Buffer::<S>::DEFAULT_LEN_FRAMES);
@@ -112,7 +191,7 @@ impl<M, F, S> Builder<M, F, S> {
         let mut samples = vec![S::equilibrium(); frames_per_buffer * num_channels];
 
         // The function used to process a buffer of samples.
-        let proc_output = move |data: cpal::StreamData| {
+        let proc_output = move |data: cpal::StreamDataResult| {
             // Collect and process any pending updates.
             macro_rules! process_pending_updates {
                 () => {
@@ -136,7 +215,14 @@ impl<M, F, S> Builder<M, F, S> {
 
             // Retrieve the output buffer.
             let output = match data {
-                cpal::StreamData::Output { buffer } => buffer,
+                Err(err) =>  {
+                    if let Ok(mut guard) = model_2.lock() {
+                        let mut m = guard.take().unwrap();
+                        render.render(&mut m, Err(err));
+                    }
+                    return;
+                }
+                Ok(cpal::StreamData::Output { buffer }) => buffer,
                 _ => unreachable!(),
             };
 
@@ -195,5 +281,18 @@ impl<M, F, S> Builder<M, F, S> {
             cpal_format: format,
         };
         Ok(stream)
+    }
+}
+
+impl<M, S> Default for Render<DefaultRenderFn<M, S>, DefaultRenderResultFn<M, S>> {
+    fn default() -> Self {
+        Render::BufferFn(default_render_fn)
+    }
+}
+
+impl Iterator for Devices {
+    type Item = Device;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.devices.next().map(|device| Device { device })
     }
 }

@@ -1,13 +1,15 @@
+use cpal::Device as DeviceTrait;
+use cpal::platform::{Device as CpalDevice, Devices as CpalDevices};
 use std::ops::Deref;
 
 /// A device that can be used to spawn an audio stream.
 pub struct Device {
-    pub(crate) device: cpal::Device,
+    pub(crate) device: CpalDevice,
 }
 
 /// An iterator yielding all available audio devices.
 pub struct Devices {
-    pub(crate) devices: cpal::Devices,
+    pub(crate) devices: CpalDevices,
 }
 
 impl Device {
@@ -31,7 +33,7 @@ impl Device {
 }
 
 impl Deref for Device {
-    type Target = cpal::Device;
+    type Target = CpalDevice;
     fn deref(&self) -> &Self::Target {
         &self.device
     }

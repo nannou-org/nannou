@@ -36,16 +36,17 @@ where
     ///
     /// `Panic!`s if `sample_rate` is not greater than `0` or if the output buffer's length is not
     /// a multiple of the given number of channels.
-    pub fn fill_buffer<M, F>(
+    pub fn fill_buffer<M, FA, FB>(
         &mut self,
         mut model: M,
-        render: F,
+        render: &stream::output::Render<FA, FB>,
         output: &mut [S],
         channels: usize,
         sample_rate: u32,
     ) -> M
     where
-        F: stream::output::RenderFn<M, S>,
+        FA: stream::output::RenderFn<M, S>,
+        FB: stream::output::RenderResultFn<M, S>,
     {
         let Requester {
             ref mut samples,
@@ -128,7 +129,7 @@ where
                 channels,
                 sample_rate,
             };
-            render(&mut model, &mut buffer);
+            render.render(&mut model, Ok(&mut buffer));
             let mut new_samples = buffer.interleaved_samples.into_vec();
             std::mem::swap(samples, &mut new_samples);
 
