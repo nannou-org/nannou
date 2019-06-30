@@ -139,11 +139,7 @@ fn model(app: &App) -> Model {
     // Nine moving bodies
     let movers = (0..9)
         .map(|_| {
-            Mover::new(
-                random_range(1.0f32, 4.0),
-                random_range(rect.left(), rect.right()),
-                rect.top(),
-            )
+            Mover::new_random(&app.window_rect())
         })
         .collect();
 
