@@ -11,7 +11,6 @@ homepage = "https://nannou.cc"
 edition = "2018"
 
 [dependencies]
-#cpal = "0.8"
 cpal = { git = "https://github.com/mitchmindtree/cpal", branch = "asio" }
 failure = "0.1"
 sample = "0.10"

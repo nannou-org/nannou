@@ -20,6 +20,7 @@ use std::thread;
 
 pub use cpal;
 pub use cpal::HostUnavailable;
+pub use sample;
 pub use self::buffer::Buffer;
 pub use self::device::{Device, Devices};
 pub use self::receiver::Receiver;
