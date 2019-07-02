@@ -33,6 +33,7 @@ vulkano-shaders = "0.12"
 winit = "0.19"
 
 [dev-dependencies]
+audrey = "0.2"
 nannou_audio = "0.1"
 nannou_laser = "0.3"
 nannou_osc = "0.1"
@@ -60,6 +61,9 @@ path = "examples/osc_sender.rs"
 [[example]]
 name = "simple_audio"
 path = "examples/simple_audio.rs"
+[[example]]
+name = "simple_audio_file"
+path = "examples/simple_audio_file.rs"
 [[example]]
 name = "simple_draw"
 path = "examples/simple_draw.rs"
