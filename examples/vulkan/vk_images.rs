@@ -14,7 +14,7 @@ struct Model {
     desciptor_set: Arc<dyn vk::DescriptorSet + Send + Sync>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 struct Vertex {
     position: [f32; 2],
 }

@@ -45,12 +45,12 @@ vk::impl_vertex!(Normal, normal);
 
 // Teapot data, sourced from `vulkano-examples`.
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Vertex {
     position: (f32, f32, f32),
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Normal {
     normal: (f32, f32, f32),
 }

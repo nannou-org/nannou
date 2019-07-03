@@ -32,12 +32,12 @@ struct Camera {
     yaw: f32,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 struct Vertex {
     position: (f32, f32, f32),
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 struct Normal {
     normal: (f32, f32, f32),
 }
