@@ -79,7 +79,7 @@ Depending on what OS you are running, you might require an extra step or two.
     sudo dnf install xorg-x11-drv-nvidia akmod-nvidia vulkan-tools
     ```
 
-    For Debian with AMD graphic cards:
+    For Debian with AMD or Intel graphic cards:
     ```bash
     sudo apt-get install libvulkan1 mesa-vulkan-drivers vulkan-utils
     ```
@@ -89,12 +89,12 @@ Depending on what OS you are running, you might require an extra step or two.
     sudo apt-get install vulkan-utils
     ```
 
-    For Ubuntu users with AMD graphic cards:
+    For Ubuntu users with AMD or Intel graphic cards:
     Add a PPA for the latest drivers
     ```bash
     sudo add-apt-repository ppa:oibaf/graphics-drivers
     sudo apt-get update
-    sudo apt-apt upgrade
+    sudo apt-get upgrade
     ```
     and run
     ```bash
@@ -113,7 +113,7 @@ Depending on what OS you are running, you might require an extra step or two.
     sudo apt-get install nvidia-graphics-drivers-396 nvidia-settings vulkan vulkan-utils
     ```
 
-    For Arch with AMD graphic cards:
+    For Arch with AMD or Intel graphic cards:
     ```bash
     sudo pacman -S vulkan-radeon lib32-vulkan-radeon
     ```
