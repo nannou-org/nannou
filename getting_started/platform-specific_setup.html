@@ -208,17 +208,17 @@ Add the proprietary drivers</p>
 <p>and run</p>
 <pre><code class="language-bash">sudo dnf install xorg-x11-drv-nvidia akmod-nvidia vulkan-tools
 </code></pre>
-<p>For Debian with AMD graphic cards:</p>
+<p>For Debian with AMD or Intel graphic cards:</p>
 <pre><code class="language-bash">sudo apt-get install libvulkan1 mesa-vulkan-drivers vulkan-utils
 </code></pre>
 <p>For Debian with NVIDIA graphic cards:</p>
 <pre><code class="language-bash">sudo apt-get install vulkan-utils
 </code></pre>
-<p>For Ubuntu users with AMD graphic cards:
+<p>For Ubuntu users with AMD or Intel graphic cards:
 Add a PPA for the latest drivers</p>
 <pre><code class="language-bash">sudo add-apt-repository ppa:oibaf/graphics-drivers
 sudo apt-get update
-sudo apt-apt upgrade
+sudo apt-get upgrade
 </code></pre>
 <p>and run</p>
 <pre><code class="language-bash">sudo apt-get install libvulkan1 mesa-vulkan-drivers vulkan-utils
@@ -232,7 +232,7 @@ sudo apt-get upgrade
 <p>and run</p>
 <pre><code class="language-bash">sudo apt-get install nvidia-graphics-drivers-396 nvidia-settings vulkan vulkan-utils
 </code></pre>
-<p>For Arch with AMD graphic cards:</p>
+<p>For Arch with AMD or Intel graphic cards:</p>
 <pre><code class="language-bash">sudo pacman -S vulkan-radeon lib32-vulkan-radeon
 </code></pre>
 <p>For Arch with NVIDIA graphic cards:</p>
