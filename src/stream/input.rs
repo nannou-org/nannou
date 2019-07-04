@@ -1,4 +1,4 @@
-use cpal::{Device as DeviceTrait, EventLoop as EventLoopTrait, Host as HostTrait};
+use cpal::traits::{DeviceTrait, EventLoopTrait, HostTrait};
 use crate::{stream, Buffer, Device, Receiver, Stream};
 use sample::{FromSample, Sample, ToSample};
 use std::sync::atomic::AtomicBool;

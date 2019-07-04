@@ -12,8 +12,7 @@
 //!   [**Requester**](./requester/struct.Requester.html) for buffering input and output streams that
 //!   may deliver buffers of inconsistent sizes into a stream of consistently sized buffers.
 
-use cpal::{EventLoop as EventLoopTrait, Host as HostTrait};
-use cpal::platform::{Host as CpalHost, EventLoop as CpalEventLoop};
+use cpal::traits::{EventLoopTrait, HostTrait};
 use std::marker::PhantomData;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
@@ -35,8 +34,8 @@ pub mod stream;
 
 /// The top-level audio API, for enumerating devices and spawning input/output streams.
 pub struct Host {
-    host: Arc<CpalHost>,
-    event_loop: Arc<CpalEventLoop>,
+    host: Arc<cpal::Host>,
+    event_loop: Arc<cpal::EventLoop>,
     process_fn_tx: Mutex<Option<mpsc::Sender<stream::ProcessFnMsg>>>,
 }
 
@@ -58,7 +57,7 @@ impl Host {
     }
 
     /// Initialise the `Host` from an existing CPAL host.
-    fn from_cpal_host(host: CpalHost) -> Self {
+    fn from_cpal_host(host: cpal::Host) -> Self {
         let host = Arc::new(host);
         let event_loop = Arc::new(host.event_loop());
         let process_fn_tx = Mutex::new(None);
