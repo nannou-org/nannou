@@ -34,7 +34,7 @@ winit = "0.19"
 
 [dev-dependencies]
 audrey = "0.2"
-nannou_audio = "0.1"
+nannou_audio = "0.2"
 nannou_laser = "0.3"
 nannou_osc = "0.1"
 shade_runner = "0.1"
