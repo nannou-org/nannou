@@ -1,5 +1,5 @@
-use cpal::traits::EventLoopTrait;
 use crate::Device;
+use cpal::traits::EventLoopTrait;
 use failure::Fail;
 use sample::Sample;
 use std;
@@ -79,13 +79,9 @@ pub enum BuildError {
     #[fail(display = "failed to get default device")]
     DefaultDevice,
     #[fail(display = "failed to enumerate available formats: {}", err)]
-    SupportedFormats {
-        err: cpal::SupportedFormatsError,
-    },
+    SupportedFormats { err: cpal::SupportedFormatsError },
     #[fail(display = "failed to build stream: {}", err)]
-    BuildStream {
-        err: cpal::BuildStreamError,
-    },
+    BuildStream { err: cpal::BuildStreamError },
 }
 
 impl LoopContext {

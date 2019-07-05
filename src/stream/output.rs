@@ -1,12 +1,12 @@
+use crate::{stream, Buffer, Device, Requester, Stream, StreamError};
 use cpal::traits::{DeviceTrait, EventLoopTrait, HostTrait};
-use crate::{stream, Buffer, Device, Requester, Stream};
 use sample::{Sample, ToSample};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
 /// The buffer if it is ready for reading, or an error if something went wrong with the stream.
-pub type Result<'a, S = f32> = std::result::Result<&'a mut Buffer<S>, cpal::StreamError>;
+pub type Result<'a, S = f32> = std::result::Result<&'a mut Buffer<S>, StreamError>;
 
 /// The function that will be called when a `Buffer` is ready to be rendered.
 pub trait RenderFn<M, S>: Fn(&mut M, &mut Buffer<S>) {}
@@ -35,14 +35,14 @@ pub enum Render<A, B> {
 /// A type used for building an output stream.
 pub struct Builder<M, FA, FB, S = f32> {
     pub builder: super::Builder<M, S>,
-    pub render: Render<FA, FB>
+    pub render: Render<FA, FB>,
 }
 
 /// The builder when first initialised.
 pub type BuilderInit<M, S = f32> =
     Builder<M, DefaultRenderFn<M, S>, DefaultRenderResultFn<M, S>, S>;
 
-type OutputDevices = cpal::OutputDevices<cpal::platform::Devices>;
+type OutputDevices = cpal::OutputDevices<cpal::Devices>;
 
 /// An iterator yielding all available audio devices that support output streams.
 pub struct Devices {
@@ -65,8 +65,8 @@ impl<A, B> Render<A, B> {
                     Err(err) => {
                         panic!(
                             "An output stream error occurred: {}\nIf you wish to handle this \
-                            error within your code, consider building your output stream with \
-                            a `render_result` function rather than a `render` function.",
+                             error within your code, consider building your output stream with \
+                             a `render_result` function rather than a `render` function.",
                             err,
                         );
                     }
@@ -155,7 +155,9 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
         let sample_format = super::cpal_sample_format::<S>();
 
         let device = match device {
-            None => host.default_output_device().ok_or(super::BuildError::DefaultDevice)?,
+            None => host
+                .default_output_device()
+                .ok_or(super::BuildError::DefaultDevice)?,
             Some(Device { device }) => device,
         };
 
@@ -215,7 +217,7 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
 
             // Retrieve the output buffer.
             let output = match data {
-                Err(err) =>  {
+                Err(err) => {
                     if let Ok(mut guard) = model_2.lock() {
                         let mut m = guard.take().unwrap();
                         render.render(&mut m, Err(err));

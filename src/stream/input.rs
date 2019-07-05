@@ -1,12 +1,12 @@
+use crate::{stream, Buffer, Device, Receiver, Stream, StreamError};
 use cpal::traits::{DeviceTrait, EventLoopTrait, HostTrait};
-use crate::{stream, Buffer, Device, Receiver, Stream};
 use sample::{FromSample, Sample, ToSample};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
 /// The buffer if it is ready for reading, or an error if something went wrong with the stream.
-pub type Result<'a, S = f32> = std::result::Result<&'a Buffer<S>, cpal::StreamError>;
+pub type Result<'a, S = f32> = std::result::Result<&'a Buffer<S>, StreamError>;
 
 /// The function that will be called when a captured `Buffer` is ready to be read.
 pub trait CaptureFn<M, S>: Fn(&mut M, &Buffer<S>) {}
@@ -42,7 +42,7 @@ pub struct Builder<M, FA, FB, S = f32> {
 pub type BuilderInit<M, S = f32> =
     Builder<M, DefaultCaptureFn<M, S>, DefaultCaptureResultFn<M, S>, S>;
 
-type InputDevices = cpal::InputDevices<cpal::platform::Devices>;
+type InputDevices = cpal::InputDevices<cpal::Devices>;
 
 /// An iterator yielding all available audio devices that support input streams.
 pub struct Devices {
@@ -65,8 +65,8 @@ impl<A, B> Capture<A, B> {
                     Err(err) => {
                         panic!(
                             "An input stream error occurred: {}\nIf you wish to handle this \
-                            error within your code, consider building your input stream with \
-                            a `capture_result` function rather than a `capture` function.",
+                             error within your code, consider building your input stream with \
+                             a `capture_result` function rather than a `capture` function.",
                             err,
                         );
                     }
@@ -156,7 +156,9 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
         let sample_format = super::cpal_sample_format::<S>();
 
         let device = match device {
-            None => host.default_input_device().ok_or(super::BuildError::DefaultDevice)?,
+            None => host
+                .default_input_device()
+                .ok_or(super::BuildError::DefaultDevice)?,
             Some(Device { device }) => device,
         };
 
