@@ -1,6 +1,6 @@
 [package]
 name = "nannou_audio"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "The audio API for Nannou, the creative coding framework."
 readme = "README.md"
@@ -11,5 +11,9 @@ homepage = "https://nannou.cc"
 edition = "2018"
 
 [dependencies]
-cpal = "0.8"
+cpal = "0.10"
+failure = "0.1"
 sample = "0.10"
+
+[features]
+asio = ["cpal/asio"]
