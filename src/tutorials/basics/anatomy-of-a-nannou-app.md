@@ -189,7 +189,7 @@ will just return an instance of our empty **Model**.
 > The **App** type can be thought of as a helper type that wraps up the finicky
 > details of the application (such as establishing event loops, spawning I/O
 > streams, etc) and provides an easy to use, high-level API on top. Providing
-> access to the **App** via a function's first argument is a common practise
+> access to the **App** via a function's first argument is a common practice
 > throughout nannou's API.
 >
 > ```rust,no_run
