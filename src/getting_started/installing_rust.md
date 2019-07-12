@@ -3,7 +3,9 @@
 Nannou is a library written for the [Rust programming
 language](https://www.rust-lang.org/). Thus, the first step is to install Rust!
 
-To install Rust, open up your terminal, copy the text below, paste it into your
+To install Rust on **Windows**, download and run the installer from
+[here](https://www.rust-lang.org/tools/install). If you're on **macOS** or
+**Linux**, open up your terminal, copy the text below, paste it into your
 terminal and hit enter.
 
 ```bash
