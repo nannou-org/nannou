@@ -75,7 +75,7 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <ol class="chapter"><li class="affix"><a href="../welcome.html">Welcome!</a></li><li><a href="../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="../getting_started/installing_rust.html"><strong aria-hidden="true">2.1.</strong> Installing Rust</a></li><li><a href="../getting_started/platform-specific_setup.html" class="active"><strong aria-hidden="true">2.2.</strong> Platform-specific Setup</a></li><li><a href="../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="../contributors.html">Contributors</a></li></ol>
+            <ol class="chapter"><li class="affix"><a href="../welcome.html">Welcome!</a></li><li><a href="../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="../getting_started/platform-specific_setup.html" class="active"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li><a href="../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li><a href="../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="../contributors.html">Contributors</a></li></ol>
         </nav>
 
         <div id="page-wrapper" class="page-wrapper">
@@ -141,16 +141,19 @@
                 <div id="content" class="content">
                     <main>
                         <a class="header" href="#platform-specific-setup" id="platform-specific-setup"><h1>Platform-specific Setup</h1></a>
+<p>Before we get started, let's make sure we have all the necessary ingredients for
+installing Rust and building nannou projects.</p>
 <p>Depending on what OS you are running, you might require an extra step or two.</p>
 <ul>
 <li>
 <p><strong>All Platforms</strong></p>
 <p>For now, nannou requires that you have both <code>python</code> and <code>cmake</code> installed.
-These are required by a tool called <code>shaderc</code>. The role of this tool is to
-compile GLSL shaders to SPIR-V so that we may run them using the system's
-Vulkan implementation. There are a few attempts at pure-rust alternatives to
-this tool in the works and we hope to switch to one of these in the near
-future to avoid the need for these extra dependencies.</p>
+These are required by a tool called <code>shaderc</code>, a part of nannou's graphics
+stack. The role of this tool is to compile GLSL shaders to SPIR-V so that we
+may run them using the system's Vulkan implementation. There are a few
+attempts at pure-rust alternatives to this tool in the works and we hope to
+switch to one of these in the near future to avoid the need for these extra
+dependencies.</p>
 </li>
 <li>
 <p><strong>macOS</strong>: Ensure that you have xcode-tools installed:</p>
@@ -168,8 +171,31 @@ downloading and installing the next version the next time you attempt to build
 a nannou project.</p>
 </li>
 <li>
+<p><strong>Windows</strong>: Install the <code>ninja</code> tool.</p>
+<p>This tool is another required by the <code>shaderc</code> tool as mentioned under the
+&quot;All Platforms&quot; section above.</p>
+<ol>
+<li>Download the latest release of ninja from the <a href="https://github.com/ninja-build/ninja/releases">ninja releases
+page</a>.</li>
+<li>Place the <code>ninja.exe</code> file somewhere you are happy for it to stay.</li>
+<li>Add the directory containing <code>ninja.exe</code> to your <code>Path</code> environment
+variable if it is not already included.</li>
+</ol>
+</li>
+<li>
 <p><strong>Linux</strong>: ensure you have the following system packages installed:</p>
 <ul>
+<li>
+<p><strong>Basic dev packages</strong></p>
+<p>First make sure our basic dev packages are installed. <code>curl</code> will be
+required by <code>rustup</code> the rust toolchain manager. <code>build-essentials</code> will be
+required by <code>rustc</code> the rust compiler for linking. <code>cmake</code> and <code>python</code> are
+necessary for nannou's <code>shaderc</code> dependency to build, as mentioned in the
+&quot;All Platforms&quot; section above.</p>
+<p>For Debian/Ubuntu users:</p>
+<pre><code class="language-bash">sudo apt-get install curl build-essentials python cmake
+</code></pre>
+</li>
 <li>
 <p><strong>alsa dev package</strong></p>
 <p>For Fedora users:</p>
@@ -241,28 +267,21 @@ sudo apt-get upgrade
 </li>
 </ul>
 </li>
-<li>
-<p><strong>Windows</strong>: Install the <code>ninja</code> tool.</p>
-<p>This tool is another required by the <code>shaderc</code> tool as mentioned under the
-&quot;All Platforms&quot; section above. Installation of this tool can be a little
-finicky so we are aiming to improve this section of the guide soon, but for
-now, here is a link to the <a href="https://github.com/ninja-build/ninja/releases">ninja
-releases</a>.</p>
-</li>
 </ul>
+<p>OK, we should now be ready to install Rust!</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
-                            <a rel="prev" href="../getting_started/installing_rust.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../getting_started.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
                         
 
                         
-                            <a rel="next" href="../getting_started/editor_setup.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../getting_started/installing_rust.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -274,13 +293,13 @@ releases</a>.</p>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
-                    <a href="../getting_started/installing_rust.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a href="../getting_started.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
                 
-                    <a href="../getting_started/editor_setup.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a href="../getting_started/installing_rust.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
