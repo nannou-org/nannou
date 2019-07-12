@@ -1,15 +1,19 @@
 # Platform-specific Setup
 
+Before we get started, let's make sure we have all the necessary ingredients for
+installing Rust and building nannou projects.
+
 Depending on what OS you are running, you might require an extra step or two.
 
 - **All Platforms**
 
   For now, nannou requires that you have both `python` and `cmake` installed.
-  These are required by a tool called `shaderc`. The role of this tool is to
-  compile GLSL shaders to SPIR-V so that we may run them using the system's
-  Vulkan implementation. There are a few attempts at pure-rust alternatives to
-  this tool in the works and we hope to switch to one of these in the near
-  future to avoid the need for these extra dependencies.
+  These are required by a tool called `shaderc`, a part of nannou's graphics
+  stack. The role of this tool is to compile GLSL shaders to SPIR-V so that we
+  may run them using the system's Vulkan implementation. There are a few
+  attempts at pure-rust alternatives to this tool in the works and we hope to
+  switch to one of these in the near future to avoid the need for these extra
+  dependencies.
 
 - **macOS**: Ensure that you have xcode-tools installed:
 
@@ -28,7 +32,31 @@ Depending on what OS you are running, you might require an extra step or two.
   downloading and installing the next version the next time you attempt to build
   a nannou project.
 
+- **Windows**: Install the `ninja` tool.
+
+  This tool is another required by the `shaderc` tool as mentioned under the
+  "All Platforms" section above.
+
+  1. Download the latest release of ninja from the [ninja releases
+     page](https://github.com/ninja-build/ninja/releases).
+  2. Place the `ninja.exe` file somewhere you are happy for it to stay.
+  3. Add the directory containing `ninja.exe` to your `Path` environment
+     variable if it is not already included.
+
 - **Linux**: ensure you have the following system packages installed:
+
+  - **Basic dev packages**
+
+    First make sure our basic dev packages are installed. `curl` will be
+    required by `rustup` the rust toolchain manager. `build-essentials` will be
+    required by `rustc` the rust compiler for linking. `cmake` and `python` are
+    necessary for nannou's `shaderc` dependency to build, as mentioned in the
+    "All Platforms" section above.
+
+    For Debian/Ubuntu users:
+    ```bash
+    sudo apt-get install curl build-essentials python cmake
+    ```
 
   - **alsa dev package**
 
@@ -123,10 +151,4 @@ Depending on what OS you are running, you might require an extra step or two.
     sudo pacman -S nvidia lib32-nvidia-utils
     ```
 
-- **Windows**: Install the `ninja` tool.
-
-  This tool is another required by the `shaderc` tool as mentioned under the
-  "All Platforms" section above. Installation of this tool can be a little
-  finicky so we are aiming to improve this section of the guide soon, but for
-  now, here is a link to the [ninja
-  releases](https://github.com/ninja-build/ninja/releases).
+OK, we should now be ready to install Rust!
