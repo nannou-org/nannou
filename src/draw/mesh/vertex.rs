@@ -5,7 +5,7 @@ use crate::mesh::vertex::{WithColor, WithTexCoords};
 use std::marker::PhantomData;
 
 pub type Point<S> = Point3<S>;
-pub type Color = color::Srgba;
+pub type Color = color::LinSrgba;
 pub type TexCoords<S> = Point2<S>;
 pub type Normal<S> = Vector3<S>;
 pub type ColoredPoint<S> = WithColor<Point<S>, Color>;
@@ -149,7 +149,7 @@ where
 {
     fn into_vertex(self) -> Vertex<S> {
         let geom::vertex::Srgba(v, color) = self;
-        (v, color).into_vertex()
+        (v, color.into_linear()).into_vertex()
     }
 }
 

@@ -1,6 +1,6 @@
 //! Items related to the **Frame** type, describing a single frame of graphics for a single window.
 
-use crate::draw::properties::color::IntoSrgba;
+use crate::draw::properties::color::IntoLinSrgba;
 use crate::vk::{self, DeviceOwned};
 use crate::window::SwapchainFramebuffers;
 use std::error::Error as StdError;
@@ -175,10 +175,18 @@ impl Frame {
     /// Clear the image with the given color.
     pub fn clear<C>(&self, color: C)
     where
-        C: IntoSrgba<f32>,
+        C: IntoLinSrgba<f32>,
     {
-        let rgba = color.into_srgba();
-        let value = vk::ClearValue::Float([rgba.red, rgba.green, rgba.blue, rgba.alpha]);
+        // Convert the colour into non-linear sRGB to match the format of the intermediary image.
+        //
+        // TODO: This uses the `IntoLinSrgba` trait for maximum flexibility, but really
+        // `Into<Srgba<f32>>` should be used. The problem currently is that the current palette
+        // `Into` conversions aren't complete and don't support conversions from common
+        // representations like srgb bytes.
+        let lin_srgba = color.into_lin_srgba();
+        let srgba: crate::color::Srgba = lin_srgba.into_encoding();
+        let (r, g, b, a) = srgba.into_components();
+        let value = vk::ClearValue::Float([r, g, b, a]);
         let image = self.data.intermediary_image.clone();
         self.add_commands()
             .clear_color_image(image, value)

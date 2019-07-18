@@ -1,7 +1,7 @@
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, SetColor, SetDimensions,
-    SetOrientation, SetPosition, Srgba,
+    spatial, ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, Primitive, SetColor, SetDimensions,
+    SetOrientation, SetPosition,
 };
 use crate::draw::{self, Drawing};
 use crate::geom::{self, Vector2};
@@ -11,7 +11,7 @@ use crate::math::BaseFloat;
 #[derive(Clone, Debug)]
 pub struct Ellipse<S = geom::scalar::Default> {
     spatial: spatial::Properties<S>,
-    color: Option<Srgba>,
+    color: Option<LinSrgba>,
     resolution: Option<usize>,
 }
 
@@ -71,10 +71,10 @@ where
                         .color
                         .primitive
                         .get(&draw::theme::Primitive::Ellipse)
-                        .map(|&c| c)
+                        .map(|&c| c.into_linear())
                 })
             })
-            .unwrap_or(draw.theme(|t| t.color.default));
+            .unwrap_or(draw.theme(|t| t.color.default.into_linear()));
 
         // TODO: Optimise this using the Circumference and ellipse indices iterators.
         let ellipse = geom::Ellipse::new(rect, resolution);
@@ -116,7 +116,7 @@ impl<S> SetDimensions<S> for Ellipse<S> {
 }
 
 impl<S> SetColor<ColorScalar> for Ellipse<S> {
-    fn rgba_mut(&mut self) -> &mut Option<Srgba> {
+    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.color)
     }
 }

@@ -1,7 +1,7 @@
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{
     spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, SetColor, SetOrientation, SetPosition,
-    Srgba,
+    LinSrgba,
 };
 use crate::draw::{self, Drawing};
 use crate::geom::{self, Point2};
@@ -13,7 +13,7 @@ pub struct Line<S = geom::scalar::Default> {
     position: position::Properties<S>,
     orientation: orientation::Properties<S>,
     capped: geom::line::Capped<S>,
-    color: Option<Srgba>,
+    color: Option<LinSrgba>,
 }
 
 /// The default resolution of the rounded line caps.
@@ -120,10 +120,10 @@ where
                         .color
                         .primitive
                         .get(&draw::theme::Primitive::Line)
-                        .map(|&c| c)
+                        .map(|&c| c.into_linear())
                 })
             })
-            .unwrap_or(draw.theme(|t| t.color.default));
+            .unwrap_or(draw.theme(|t| t.color.default.into_linear()));
 
         let dimensions = Default::default();
         let spatial = spatial::Properties {
@@ -197,7 +197,7 @@ impl<S> SetPosition<S> for Line<S> {
 }
 
 impl<S> SetColor<ColorScalar> for Line<S> {
-    fn rgba_mut(&mut self) -> &mut Option<Srgba> {
+    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.color)
     }
 }

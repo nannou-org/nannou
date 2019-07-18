@@ -1,6 +1,6 @@
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    ColorScalar, IntoDrawn, IntoSrgba, Primitive, SetColor, SetDimensions, SetOrientation,
+    ColorScalar, IntoDrawn, IntoLinSrgba, Primitive, SetColor, SetDimensions, SetOrientation,
     SetPosition,
 };
 use crate::draw::{self, Draw};
@@ -213,7 +213,7 @@ where
     /// Colors that have no alpha channel will be given an opaque alpha channel value `1.0`.
     pub fn color<C>(self, color: C) -> Self
     where
-        C: IntoSrgba<ColorScalar>,
+        C: IntoLinSrgba<ColorScalar>,
     {
         self.map_ty(|ty| SetColor::color(ty, color))
     }

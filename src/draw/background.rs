@@ -1,5 +1,5 @@
 use crate::color::{self, Srgb, Srgba};
-use crate::draw::properties::{ColorScalar, IntoSrgba};
+use crate::draw::properties::{ColorScalar, IntoLinSrgba};
 use crate::draw::Draw;
 use crate::geom;
 use crate::math::BaseFloat;
@@ -31,10 +31,10 @@ where
     /// Colors that have no alpha channel will be given an opaque alpha channel value `1.0`.
     pub fn color<C>(self, color: C) -> Self
     where
-        C: IntoSrgba<ColorScalar>,
+        C: IntoLinSrgba<ColorScalar>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
-            state.background_color = Some(color.into_srgba());
+            state.background_color = Some(color.into_lin_srgba());
         }
         self
     }

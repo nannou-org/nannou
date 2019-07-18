@@ -19,7 +19,7 @@ pub mod spatial;
 
 use self::spatial::dimension;
 
-pub use self::color::{IntoSrgba, SetColor};
+pub use self::color::{IntoLinSrgba, SetColor};
 pub use self::primitive::{Ellipse, Line, Primitive, Quad, Rect, Tri};
 pub use self::spatial::dimension::SetDimensions;
 pub use self::spatial::orientation::SetOrientation;
@@ -30,6 +30,9 @@ pub type ColorScalar = crate::color::DefaultScalar;
 
 /// The RGBA type used by the `Common` params.
 pub type Srgba = color::DefaultSrgba;
+
+/// The RGBA type used by the `Common` params.
+pub type LinSrgba = color::DefaultLinSrgba;
 
 // Methods for updating **Draw**'s geometry graph and mesh upon completion of **Drawing**.
 
