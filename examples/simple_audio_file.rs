@@ -22,13 +22,17 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    // Initialise the audio API so we can spawn an audio stream.
-    let audio_api = audio::Api::new();
+    // Initialise the audio host so we can spawn an audio stream.
+    let audio_host = audio::Host::new();
 
     // Initialise the state that we want to live on the audio thread.
     let sounds = vec![];
     let model = Audio { sounds };
-    let stream = audio_api.new_output_stream(model, audio).build().unwrap();
+    let stream = audio_host
+        .new_output_stream(model)
+        .render(audio)
+        .build()
+        .unwrap();
     Model { stream }
 }
 
