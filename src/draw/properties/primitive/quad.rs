@@ -1,8 +1,8 @@
 use crate::draw::mesh::vertex::IntoPoint;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, SetColor, SetDimensions,
-    SetOrientation, SetPosition, LinSrgba,
+    spatial, ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, Primitive, SetColor, SetDimensions,
+    SetOrientation, SetPosition,
 };
 use crate::draw::{self, Drawing};
 use crate::geom::{self, Point3, Vector3};

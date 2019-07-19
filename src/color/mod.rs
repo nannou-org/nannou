@@ -4,10 +4,10 @@
 
 pub mod conv;
 
-#[doc(inline)]
-pub use palette::*;
 pub use self::conv::IntoLinSrgba;
 pub use self::named::*;
+#[doc(inline)]
+pub use palette::*;
 
 /// The default scalar value for working with color components, hues, etc.
 pub type DefaultScalar = f32;
