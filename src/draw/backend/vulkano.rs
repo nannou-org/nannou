@@ -259,9 +259,7 @@ impl Renderer {
         let (load_op, clear_color, clear_depth) = match bg_color {
             None => (vk::LoadOp::Load, vk::ClearValue::None, vk::ClearValue::None),
             Some(color) => {
-                // Non-linear sRGB to match the swapchain image.
-                let srgba: crate::color::Srgba<f32> = color.into_encoding();
-                let (r, g, b, a) = srgba.into();
+                let (r, g, b, a) = color.into();
                 let clear_color = [r, g, b, a].into();
                 let clear_depth = 1f32.into();
                 (vk::LoadOp::Clear, clear_color, clear_depth)

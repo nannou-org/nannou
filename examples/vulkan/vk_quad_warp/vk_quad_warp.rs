@@ -99,7 +99,7 @@ fn model(app: &App) -> Model {
                 color: {
                     load: Clear,
                     store: Store,
-                    format: app.main_window().swapchain().format(),
+                    format: nannou::frame::COLOR_FORMAT,
                     samples: 1,
                 },
                 depth: {
@@ -134,7 +134,7 @@ fn model(app: &App) -> Model {
     let inter_image = vk::AttachmentImage::sampled(
         device.clone(),
         [w, h],
-        app.main_window().swapchain().format(),
+        nannou::frame::COLOR_FORMAT,
     )
     .unwrap();
     let framebuffer = vk::Framebuffer::start(render_pass.clone())
