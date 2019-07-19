@@ -1,7 +1,7 @@
 //! A simple example presenting all of the named colors in alphabetical order.
 //!
-//! This is also used as a test for nannou developers to test that colors specified via the `Draw`
-//! API look like they should, and easily compare them to the online css reference:
+//! This is also used as a test for nannou developers to test that colors specified via the `Ui`
+//! and `Draw` API behave as expected, and easily compare them to the online css reference:
 //! https://www.w3schools.com/cssref/css_colors.asp
 
 use nannou::prelude::*;
@@ -47,7 +47,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     let (mut events, scrollbar) = widget::ListSelect::single(ALL_NAMED_COLORS.len())
         .flow_down()
         .item_size(30.0)
-        .scrollbar_next_to()
+        .scrollbar_on_top()
         .w_h(200.0, win_rect.h() as _)
         .top_left()
         .set(color_list, ui);
@@ -83,10 +83,25 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     let draw = app.draw();
+
+    // Draw the background with the color.
     draw.background()
         .color(ALL_NAMED_COLORS[model.selected_color_index]);
+
+    // Also draw a rectangle with the same color to ensure our vertex data is accurate too!
+    // If we can see this rectangle on the bottom half of the window, something has gone wrong.
+    let win = app.main_window().rect();
+    draw.rect()
+        .w_h(win.w(), win.h() * 0.5)
+        .x_y(0.0, -win.h() * 0.25)
+        .color(ALL_NAMED_COLORS[model.selected_color_index]);
+
+    // Clear the background and draw the rect.
     draw.to_frame(app, &frame).unwrap();
+
+    // Draw the color list to the frame.
     model.ui.draw_to_frame(app, &frame).unwrap();
+
     frame
 }
 
