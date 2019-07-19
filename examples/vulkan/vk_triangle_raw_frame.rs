@@ -13,7 +13,7 @@ struct Model {
     framebuffers: RefCell<window::SwapchainFramebuffers>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 struct Vertex {
     position: [f32; 2],
 }

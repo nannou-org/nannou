@@ -13,7 +13,7 @@ pub struct Warp {
     sampler: Arc<vk::Sampler>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 struct Vertex {
     position: [f32; 3],
     v_tex_coords: [f32; 2],

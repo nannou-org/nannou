@@ -13,7 +13,7 @@ struct Model {
     view_fbo: RefCell<ViewFbo>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 struct Vertex {
     position: [f32; 2],
 }

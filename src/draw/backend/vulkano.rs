@@ -18,7 +18,7 @@ pub struct Renderer {
 }
 
 /// The `Vertex` type passed to the vertex shader.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct Vertex {
     // /// The mode with which the `Vertex` will be drawn within the fragment shader.
     // ///

@@ -135,6 +135,11 @@ pub enum DrawToFrameError {
 /// The subpass type to which the `Ui` may be rendered.
 pub type Subpass = vk::framebuffer::Subpass<Arc<dyn vk::RenderPassAbstract + Send + Sync>>;
 
+/// The image type compatible with nannou's UI image map.
+///
+/// The `vk::Format` format type allows for specifying dynamically determined image formats.
+pub type Image = Arc<vk::ImmutableImage<vk::Format>>;
+
 /// A map from `image::Id`s to their associated `Texture2d`.
 pub type ImageMap = conrod_core::image::Map<conrod_vulkano::Image>;
 
@@ -683,7 +688,6 @@ pub fn draw_primitives(
 }
 
 mod conrod_winit_conv {
-    use crate::conrod_winit::*;
     conrod_winit::conversion_fns!();
 }
 
