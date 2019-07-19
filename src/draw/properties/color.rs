@@ -1,21 +1,11 @@
-use crate::color::white_point::D65;
-use crate::color::{self, encoding, Alpha, Component, IntoColor, LinSrgba, RgbHue, Srgb, Srgba};
+use crate::color::{self, Component, IntoLinSrgba, LinSrgba};
 use crate::math::num_traits::Float;
 
 /// A **Srgba** type with the default Scalar.
-pub type DefaultSrgba = Srgba<color::DefaultScalar>;
+pub type DefaultSrgba = color::Srgba<color::DefaultScalar>;
 
 /// A **LinSrgba** type with the default Scalar.
-pub type DefaultLinSrgba = LinSrgba<color::DefaultScalar>;
-
-/// Types that may be converted directly into an RGBA color.
-pub trait IntoLinSrgba<S>
-where
-    S: Component,
-{
-    /// Convert self into RGBA.
-    fn into_lin_srgba(self) -> LinSrgba<S>;
-}
+pub type DefaultLinSrgba = color::LinSrgba<color::DefaultScalar>;
 
 /// Nodes that support setting colors.
 pub trait SetColor<S>: Sized
@@ -44,7 +34,7 @@ where
         T: Component,
         S: Float,
     {
-        self.color(Srgb::new(r, g, b))
+        self.color(color::Srgb::new(r, g, b))
     }
 
     /// Specify the color via red, green, blue and alpha channels.
@@ -53,7 +43,7 @@ where
         T: Component,
         S: Float,
     {
-        self.color(Srgba::new(r, g, b, a))
+        self.color(color::Srgba::new(r, g, b, a))
     }
 
     /// Specify the color via hue, saturation and luminance.
@@ -69,7 +59,7 @@ where
     where
         S: Float + Into<color::RgbHue<S>>,
     {
-        let hue = RgbHue::from_degrees(h * S::from(360.0).unwrap());
+        let hue = color::RgbHue::from_degrees(h * S::from(360.0).unwrap());
         self.color(color::Hsl::new(hue, s, l))
     }
 
@@ -86,7 +76,7 @@ where
     where
         S: Float + Into<color::RgbHue<S>>,
     {
-        let hue = RgbHue::from_degrees(h * S::from(360.0).unwrap());
+        let hue = color::RgbHue::from_degrees(h * S::from(360.0).unwrap());
         self.color(color::Hsla::new(hue, s, l, a))
     }
 
@@ -103,7 +93,7 @@ where
     where
         S: Float,
     {
-        let hue = RgbHue::from_degrees(h * S::from(360.0).unwrap());
+        let hue = color::RgbHue::from_degrees(h * S::from(360.0).unwrap());
         self.color(color::Hsv::new(hue, s, v))
     }
 
@@ -120,7 +110,7 @@ where
     where
         S: Float,
     {
-        let hue = RgbHue::from_degrees(h * S::from(360.0).unwrap());
+        let hue = color::RgbHue::from_degrees(h * S::from(360.0).unwrap());
         self.color(color::Hsva::new(hue, s, v, a))
     }
 }
@@ -131,125 +121,5 @@ where
 {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba<S>> {
         self
-    }
-}
-
-fn into_lin_srgb_with_alpha<C, S>(color: C) -> LinSrgba<S>
-where
-    C: IntoColor<D65, S>,
-    S: Component + Float,
-{
-    let color: color::LinSrgb<S> = color.into_rgb::<encoding::Srgb>();
-    let alpha = S::max_intensity();
-    Alpha { color, alpha }
-}
-
-impl<S> IntoLinSrgba<S> for color::Xyz<D65, S>
-where
-    S: Component + Float,
-{
-    fn into_lin_srgba(self) -> LinSrgba<S> {
-        into_lin_srgb_with_alpha(self)
-    }
-}
-
-impl<S> IntoLinSrgba<S> for color::Yxy<D65, S>
-where
-    S: Component + Float,
-{
-    fn into_lin_srgba(self) -> LinSrgba<S> {
-        into_lin_srgb_with_alpha(self)
-    }
-}
-
-impl<S> IntoLinSrgba<S> for color::Lab<D65, S>
-where
-    S: Component + Float,
-{
-    fn into_lin_srgba(self) -> LinSrgba<S> {
-        into_lin_srgb_with_alpha(self)
-    }
-}
-
-impl<S> IntoLinSrgba<S> for color::Lch<D65, S>
-where
-    S: Component + Float,
-{
-    fn into_lin_srgba(self) -> LinSrgba<S> {
-        into_lin_srgb_with_alpha(self)
-    }
-}
-
-impl<T, S> IntoLinSrgba<S> for color::LinSrgb<T>
-where
-    T: Component,
-    S: Component,
-{
-    fn into_lin_srgba(self) -> LinSrgba<S> {
-        let color = self.into_format();
-        let alpha = S::max_intensity();
-        Alpha { color, alpha }
-    }
-}
-
-impl<T, S> IntoLinSrgba<S> for color::Srgb<T>
-where
-    T: Component,
-    S: Component + Float,
-{
-    fn into_lin_srgba(self) -> LinSrgba<S> {
-        let color = self.into_format().into_linear();
-        let alpha = S::max_intensity();
-        Alpha { color, alpha }
-    }
-}
-
-impl<S> IntoLinSrgba<S> for color::Hsl<encoding::Srgb, S>
-where
-    S: Component + Float,
-{
-    fn into_lin_srgba(self) -> LinSrgba<S> {
-        into_lin_srgb_with_alpha(self)
-    }
-}
-
-impl<S> IntoLinSrgba<S> for color::Hsv<encoding::Srgb, S>
-where
-    S: Component + Float,
-{
-    fn into_lin_srgba(self) -> LinSrgba<S> {
-        into_lin_srgb_with_alpha(self)
-    }
-}
-
-impl<S> IntoLinSrgba<S> for color::Hwb<encoding::Srgb, S>
-where
-    S: Component + Float,
-{
-    fn into_lin_srgba(self) -> LinSrgba<S> {
-        into_lin_srgb_with_alpha(self)
-    }
-}
-
-impl<S> IntoLinSrgba<S> for color::SrgbLuma<S>
-where
-    S: Component + Float,
-{
-    fn into_lin_srgba(self) -> LinSrgba<S> {
-        into_lin_srgb_with_alpha(self)
-    }
-}
-
-impl<C, S, T> IntoLinSrgba<S> for Alpha<C, T>
-where
-    C: IntoLinSrgba<S>,
-    S: Component,
-    T: Component,
-{
-    fn into_lin_srgba(self) -> LinSrgba<S> {
-        let Alpha { color, alpha } = self;
-        let mut srgba = color.into_lin_srgba();
-        srgba.alpha = alpha.convert();
-        srgba
     }
 }

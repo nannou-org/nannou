@@ -1,5 +1,5 @@
-use crate::color::{self, Srgb, Srgba};
-use crate::draw::properties::{ColorScalar, IntoLinSrgba};
+use crate::color::{self, IntoLinSrgba, Srgb, Srgba};
+use crate::draw::properties::ColorScalar;
 use crate::draw::Draw;
 use crate::geom;
 use crate::math::BaseFloat;

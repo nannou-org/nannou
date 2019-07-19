@@ -1,6 +1,6 @@
 //! Vertex types yielded by the mesh adaptors and their implementations.
 
-use crate::draw::properties::IntoLinSrgba;
+use crate::color::IntoLinSrgba;
 use crate::geom::graph::node::{self, ApplyTransform};
 use crate::geom::{self, Point2, Point3};
 use crate::math::BaseFloat;

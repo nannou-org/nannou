@@ -19,7 +19,7 @@ pub mod spatial;
 
 use self::spatial::dimension;
 
-pub use self::color::{IntoLinSrgba, SetColor};
+pub use self::color::SetColor;
 pub use self::primitive::{Ellipse, Line, Primitive, Quad, Rect, Tri};
 pub use self::spatial::dimension::SetDimensions;
 pub use self::spatial::orientation::SetOrientation;

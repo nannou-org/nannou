@@ -2,9 +2,11 @@
 //! palette crate. See [the palette docs](https://docs.rs/palette) for more details or see the
 //! [**named**](./named/index.html) module for a set of provided color constants.
 
+pub mod conv;
+
 #[doc(inline)]
 pub use palette::*;
-
+pub use self::conv::IntoLinSrgba;
 pub use self::named::*;
 
 /// The default scalar value for working with color components, hues, etc.

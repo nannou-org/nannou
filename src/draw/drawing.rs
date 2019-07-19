@@ -1,7 +1,7 @@
+use crate::color::IntoLinSrgba;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    ColorScalar, IntoDrawn, IntoLinSrgba, Primitive, SetColor, SetDimensions, SetOrientation,
-    SetPosition,
+    ColorScalar, IntoDrawn, Primitive, SetColor, SetDimensions, SetOrientation, SetPosition,
 };
 use crate::draw::{self, Draw};
 use crate::geom::graph::node;

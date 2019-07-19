@@ -1,6 +1,6 @@
 //! Items related to the **Frame** type, describing a single frame of graphics for a single window.
 
-use crate::draw::properties::color::IntoLinSrgba;
+use crate::color::IntoLinSrgba;
 use crate::vk::{self, DeviceOwned};
 use crate::window::SwapchainFramebuffers;
 use std::error::Error as StdError;
