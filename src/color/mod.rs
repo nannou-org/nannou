@@ -30,23 +30,51 @@ pub type Rgb<S = DefaultScalar> = Srgb<S>;
 pub type Rgba<S = DefaultScalar> = Srgba<S>;
 
 /// A short-hand constructor for `Rgb::new`.
-pub fn rgb(r: f32, g: f32, b: f32) -> Rgb {
+pub fn rgb<T>(r: T, g: T, b: T) -> Rgb<T>
+where
+    T: Component,
+{
     srgb(r, g, b)
 }
 
 /// A short-hand constructor for `Rgba::new`.
-pub fn rgba(r: f32, g: f32, b: f32, a: f32) -> Rgba {
+pub fn rgba<T>(r: T, g: T, b: T, a: T) -> Rgba<T>
+where
+    T: Component,
+{
     srgba(r, g, b, a)
 }
 
 /// A short-hand constructor for `Srgb::new`.
-pub fn srgb(r: f32, g: f32, b: f32) -> Srgb {
+pub fn srgb<T>(r: T, g: T, b: T) -> Srgb<T>
+where
+    T: Component,
+{
     Srgb::new(r, g, b)
 }
 
 /// A short-hand constructor for `Srgba::new`.
-pub fn srgba(r: f32, g: f32, b: f32, a: f32) -> Srgba {
+pub fn srgba<T>(r: T, g: T, b: T, a: T) -> Srgba<T>
+where
+    T: Component,
+{
     Srgba::new(r, g, b, a)
+}
+
+/// A short-hand constructor for `LinSrgb::new`.
+pub fn lin_srgb<T>(r: T, g: T, b: T) -> LinSrgb<T>
+where
+    T: Component,
+{
+    LinSrgb::new(r, g, b)
+}
+
+/// A short-hand constructor for `LinSrgba::new`.
+pub fn lin_srgba<T>(r: T, g: T, b: T, a: T) -> LinSrgba<T>
+where
+    T: Component,
+{
+    LinSrgba::new(r, g, b, a)
 }
 
 /// A short-hand constructor for `Hsl::new(RgbHue::from_degrees(h * 360.0), s, l)`.
