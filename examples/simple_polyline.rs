@@ -4,7 +4,7 @@ fn main() {
     nannou::sketch(view);
 }
 
-fn view(app: &App, frame: Frame) -> Frame {
+fn view(app: &App, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
 
@@ -41,9 +41,6 @@ fn view(app: &App, frame: Frame) -> Frame {
     // Draw the polyline.
     draw.polyline().vertices(half_thickness, vertices);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

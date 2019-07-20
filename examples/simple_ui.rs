@@ -129,7 +129,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
 
@@ -142,12 +142,9 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .rotate(model.rotation)
         .color(model.color);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
 
     // Draw the state of the `Ui` to the frame.
     model.ui.draw_to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

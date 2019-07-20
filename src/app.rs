@@ -49,10 +49,10 @@ pub type EventFn<Model, Event> = fn(&App, &mut Model, Event);
 pub type UpdateFn<Model> = fn(&App, &mut Model, Update);
 
 /// The user function type for drawing their model to the surface of a single window.
-pub type ViewFn<Model> = fn(&App, &Model, Frame) -> Frame;
+pub type ViewFn<Model> = fn(&App, &Model, &Frame);
 
 /// A shorthand version of `ViewFn` for sketches where the user does not need a model.
-pub type SketchViewFn = fn(&App, Frame) -> Frame;
+pub type SketchViewFn = fn(&App, &Frame);
 
 /// The user function type allowing them to consume the `model` when the application exits.
 pub type ExitFn<Model> = fn(&App, Model);
@@ -853,7 +853,7 @@ impl App {
             .for_folder(Self::ASSETS_DIRECTORY_NAME)
     }
 
-    /// Begin building a new OpenGL window.
+    /// Begin building a new window.
     pub fn new_window(&self) -> window::Builder {
         window::Builder::new(self)
     }
@@ -2085,7 +2085,7 @@ fn view_frame<M>(
             let render_data = take_window_frame_render_data(app, window_id)
                 .expect("failed to take window's `frame_render_data`");
             let frame = Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
-            let frame = view(app, frame);
+            view(app, &frame);
             let (render_data, raw_frame) = frame
                 .finish()
                 .expect("failed to resolve frame's intermediary_image to the swapchain_image");
@@ -2102,7 +2102,7 @@ fn view_frame<M>(
             let view = view
                 .to_fn_ptr::<M>()
                 .expect("unexpected model argument given to window view function");
-            let frame = (*view)(app, model, frame);
+            (*view)(app, model, &frame);
             let (render_data, raw_frame) = frame
                 .finish()
                 .expect("failed to resolve frame's intermediary_image to the swapchain_image");
@@ -2116,7 +2116,7 @@ fn view_frame<M>(
             let raw_view = raw_view
                 .to_fn_ptr::<M>()
                 .expect("unexpected model argument given to window raw_view function");
-            let raw_frame = (*raw_view)(app, model, raw_frame);
+            (*raw_view)(app, model, &raw_frame);
             raw_frame
                 .finish()
                 .build()
@@ -2128,7 +2128,7 @@ fn view_frame<M>(
                     .expect("failed to take window's `frame_render_data`");
                 let frame =
                     Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
-                let frame = view(app, frame);
+                view(app, &frame);
                 let (render_data, raw_frame) = frame
                     .finish()
                     .expect("failed to resolve frame's intermediary_image to the swapchain_image");
@@ -2143,7 +2143,7 @@ fn view_frame<M>(
                     .expect("failed to take window's `frame_render_data`");
                 let frame =
                     Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
-                let frame = view(app, &model, frame);
+                view(app, &model, &frame);
                 let (render_data, raw_frame) = frame
                     .finish()
                     .expect("failed to resolve frame's intermediary_image to the swapchain_image");

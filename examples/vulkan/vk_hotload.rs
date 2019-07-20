@@ -175,7 +175,7 @@ fn update(_app: &App, model: &mut Model, _: Update) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(_app: &App, model: &Model, frame: &Frame) {
     // Dynamic viewports allow us to recreate just the viewport when the window is resized
     // Otherwise we would have to recreate the whole pipeline.
     let [w, h] = frame.swapchain_image().dimensions();
@@ -186,7 +186,7 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     model
         .view_fbo
         .borrow_mut()
-        .update(&frame, model.render_pass.clone(), |builder, image| {
+        .update(frame, model.render_pass.clone(), |builder, image| {
             builder.add(image)
         })
         .unwrap();
@@ -209,8 +209,6 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
         .unwrap()
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
-
-    frame
 }
 
 fn update_pipeline(model: &mut Model) {

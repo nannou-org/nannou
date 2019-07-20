@@ -269,7 +269,7 @@ fn key_pressed(app: &App, model: &mut Model, key: Key) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(_app: &App, model: &Model, frame: &Frame) {
     let mut graphics = model.graphics.borrow_mut();
 
     let [w, h] = frame.swapchain_image().dimensions();
@@ -300,7 +300,7 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     let depth_image = graphics.depth_image.clone();
     graphics
         .view_fbo
-        .update(&frame, render_pass, |builder, image| {
+        .update(frame, render_pass, |builder, image| {
             builder.add(image)?.add(depth_image.clone())
         })
         .unwrap();
@@ -356,8 +356,6 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
         .unwrap()
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
-
-    frame
 }
 
 // Create the graphics pipeline.

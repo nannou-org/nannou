@@ -33,7 +33,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     model.theta += 0.02;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -49,9 +49,6 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     // Draw an ellipse at cartesian coordinate
     draw.ellipse().x_y(x, y).w_h(48.0, 48.0).rgb(0.5, 0.5, 0.5);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

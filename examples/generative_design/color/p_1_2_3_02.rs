@@ -52,7 +52,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
 
@@ -126,7 +126,4 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

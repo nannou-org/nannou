@@ -54,9 +54,8 @@ fn event(_app: &App, _model: &mut Model, event: Event) {
 
 fn update(_app: &App, _model: &mut Model, _update: Update) {}
 
-fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
+fn view(_app: &App, _model: &Model, frame: &Frame) {
     frame.clear(DARK_BLUE);
-    frame
 }
 
 fn window_event(_app: &App, _model: &mut Model, event: WindowEvent) {

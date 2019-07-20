@@ -44,7 +44,7 @@ fn window_event(_app: &App, _model: &mut Model, event: WindowEvent) {
     }
 }
 
-fn view(app: &App, _model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, _model: &Model, frame: &Frame) {
     // Prepare to draw.
     let draw = app.draw();
     // Clear the background to pink.
@@ -53,6 +53,4 @@ fn view(app: &App, _model: &Model, frame: Frame) -> Frame {
     draw.ellipse().color(DARK_BLUE);
     // Write to the window frame.
     draw.to_frame(app, &frame).unwrap();
-    // Return the drawn frame.
-    frame
 }

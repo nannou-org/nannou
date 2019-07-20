@@ -135,7 +135,7 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     let mut graphics = model.graphics.borrow_mut();
 
     let [w, h] = frame.swapchain_image().dimensions();
@@ -166,7 +166,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     let depth_image = graphics.depth_image.clone();
     graphics
         .view_fbo
-        .update(&frame, render_pass, |builder, image| {
+        .update(frame, render_pass, |builder, image| {
             builder.add(image)?.add(depth_image.clone())
         })
         .unwrap();
@@ -226,8 +226,6 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .unwrap()
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
-
-    frame
 }
 
 // Create the graphics pipeline.

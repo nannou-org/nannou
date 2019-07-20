@@ -27,11 +27,7 @@ pub const DEFAULT_DIMENSIONS: LogicalSize = LogicalSize {
     height: 768.0,
 };
 
-/// For building an OpenGL window.
-///
-/// Window parameters can be specified via the `window` method.
-///
-/// OpenGL context parameters can be specified via the `context` method.
+/// A context for building a window.
 pub struct Builder<'app> {
     app: &'app App,
     vk_physical_device: Option<vk::PhysicalDevice<'app>>,
@@ -71,18 +67,18 @@ pub(crate) struct UserFunctions {
 }
 
 /// The user function type for drawing their model to the surface of a single window.
-pub type ViewFn<Model> = fn(&App, &Model, Frame) -> Frame;
+pub type ViewFn<Model> = fn(&App, &Model, &Frame);
 
 /// The user function type for drawing their model to the surface of a single window.
 ///
 /// Unlike the `ViewFn`, the `RawViewFn` is designed for drawing directly to a window's swapchain
 /// images rather than to a convenient intermediary image.
-pub type RawViewFn<Model> = fn(&App, &Model, RawFrame) -> RawFrame;
+pub type RawViewFn<Model> = fn(&App, &Model, &RawFrame);
 
 /// The same as `ViewFn`, but provides no user model to draw from.
 ///
 /// Useful for simple, stateless sketching.
-pub type SketchFn = fn(&App, Frame) -> Frame;
+pub type SketchFn = fn(&App, &Frame);
 
 /// The user's view function, whether with a model or without one.
 #[derive(Clone)]
@@ -212,10 +208,10 @@ fn_any!(FocusedFn<M>, FocusedFnAny);
 fn_any!(UnfocusedFn<M>, UnfocusedFnAny);
 fn_any!(ClosedFn<M>, ClosedFnAny);
 
-/// An OpenGL window.
+/// A nannou window.
 ///
-/// The `Window` acts as a wrapper around the `glium::Display` type, providing a more
-/// nannou-friendly API.
+/// The `Window` acts as a wrapper around the `winit::Window` and `vulkano::Surface` types and
+/// manages the associated swapchain, providing a more nannou-friendly API.
 #[derive(Debug)]
 pub struct Window {
     pub(crate) queue: Arc<vk::Queue>,

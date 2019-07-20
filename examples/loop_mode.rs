@@ -48,7 +48,6 @@ fn key_pressed(app: &App, _model: &mut Model, _key: Key) {
     app.main_window().set_title(&title);
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
+fn view(_app: &App, _model: &Model, frame: &Frame) {
     frame.clear(DARK_CHARCOAL);
-    frame
 }

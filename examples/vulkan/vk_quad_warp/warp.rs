@@ -76,12 +76,7 @@ pub(crate) fn warp(app: &App) -> Warp {
     }
 }
 
-pub(crate) fn view(
-    app: &App,
-    model: &Model,
-    inter_image: Arc<vk::AttachmentImage>,
-    frame: Frame,
-) -> Frame {
+pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<vk::AttachmentImage>, frame: &Frame) {
     let Model { warp, controls, .. } = model;
 
     let [w, h] = frame.swapchain_image().dimensions();
@@ -175,8 +170,6 @@ pub(crate) fn view(
         .expect("Failed to draw")
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
-
-    frame
 }
 
 mod vs {

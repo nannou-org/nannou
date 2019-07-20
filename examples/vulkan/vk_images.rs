@@ -140,7 +140,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(_app: &App, model: &Model, frame: &Frame) {
     let [w, h] = frame.swapchain_image().dimensions();
     let viewport = vk::ViewportBuilder::new().build([w as _, h as _]);
     let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
@@ -149,7 +149,7 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     model
         .view_fbo
         .borrow_mut()
-        .update(&frame, model.render_pass.clone(), |builder, image| {
+        .update(frame, model.render_pass.clone(), |builder, image| {
             builder.add(image)
         })
         .unwrap();
@@ -170,8 +170,6 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
         .unwrap()
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
-
-    frame
 }
 
 mod vs {
