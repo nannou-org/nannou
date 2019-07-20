@@ -12,7 +12,13 @@ pub mod raw;
 pub use self::raw::{AddCommands, RawFrame};
 
 /// The vulkan color format used by the intermediary linear sRGBA image.
-pub const COLOR_FORMAT: vk::Format = vk::Format::B8G8R8A8Unorm;
+///
+/// We use a high bit depth format in order to retain as much information as possible when
+/// converting from the linear representation to the swapchain format (normally a non-linear
+/// representation).
+///
+/// NOTE: Could possibly get away with `R16G16B16A16Unorm` instead?
+pub const COLOR_FORMAT: vk::Format = vk::Format::R32G32B32A32Sfloat;
 
 /// A **Frame** to which the user can draw graphics before it is presented to the display.
 ///
