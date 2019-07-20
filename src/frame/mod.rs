@@ -253,10 +253,21 @@ impl Frame {
         Ok((data, raw_frame))
     }
 
-    /// The image to which all graphics should be drawn this frame.
+    /// The image to which all user graphics should be drawn this frame.
     ///
-    /// After the **view** function returns, this image will be resolved to the swapchain image for
-    /// this frame and then that swapchain image will be presented to the screen.
+    /// This is **not** the swapchain image, but rather an intermediary linear sRGBA image. This
+    /// intermediary image is used in order to ensure consistent MSAA resolve behaviour across
+    /// platforms, and to avoid the need for multiple implicit conversions to and from linear sRGBA
+    /// for each graphics pipeline render pass that is used.
+    ///
+    /// The exact format of the image is equal to `Frame::image_format`, which is equal to
+    /// `nannou::frame::COLOR_FORMAT`.
+    ///
+    /// If the number of MSAA samples specified is greater than `1` (which it is by default if
+    /// supported by the platform), this will be a multisampled image. After the **view** function
+    /// returns, this image will be resolved to a non-multisampled linear sRGBA image. After the
+    /// image has been resolved if necessary, it will then be used as a shader input within a
+    /// graphics pipeline used to draw the swapchain image.
     pub fn image(&self) -> &Arc<vk::AttachmentImage> {
         match self.data.intermediary.images.lin_srgba_msaa.as_ref() {
             None => &self.data.intermediary.images.lin_srgba,
