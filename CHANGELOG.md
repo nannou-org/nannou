@@ -7,6 +7,7 @@
   act as a test of color accuracy.
 - Change the `Frame` image type from the swapchain color format (non-linear
   sRGB) to a linear sRGB format for better consistency across platforms.
+- Add Window::rect method.
 
 # Version 0.9.0 (2019-05-28)
 
