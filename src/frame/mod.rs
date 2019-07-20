@@ -96,6 +96,8 @@ pub enum RenderDataCreationError {
     RenderPassCreation(vk::RenderPassCreationError),
     ImageCreation(vk::ImageCreationError),
     GraphicsPipelineCreation(GraphicsPipelineError),
+    DeviceMemoryAlloc(vk::memory::DeviceMemoryAllocError),
+    SamplerCreation(vk::SamplerCreationError),
 }
 
 /// Errors that might occur during creation of the `Frame`.
@@ -360,11 +362,8 @@ impl RenderData {
             device.clone(),
             vk::BufferUsage::all(),
             vs.iter().cloned(),
-        )
-        .expect("failed to construct vertex buffer");
-        let sampler = vk::SamplerBuilder::new()
-            .build(device)
-            .expect("failed to build sampler");
+        )?;
+        let sampler = vk::SamplerBuilder::new().build(device)?;
 
         let swapchain = SwapchainData {
             render_pass: swapchain_render_pass,
@@ -413,6 +412,18 @@ impl From<GraphicsPipelineError> for RenderDataCreationError {
     }
 }
 
+impl From<vk::memory::DeviceMemoryAllocError> for RenderDataCreationError {
+    fn from(err: vk::memory::DeviceMemoryAllocError) -> Self {
+        RenderDataCreationError::DeviceMemoryAlloc(err)
+    }
+}
+
+impl From<vk::SamplerCreationError> for RenderDataCreationError {
+    fn from(err: vk::SamplerCreationError) -> Self {
+        RenderDataCreationError::SamplerCreation(err)
+    }
+}
+
 impl From<vk::ImageCreationError> for FrameCreationError {
     fn from(err: vk::ImageCreationError) -> Self {
         FrameCreationError::ImageCreation(err)
@@ -443,6 +454,8 @@ impl StdError for RenderDataCreationError {
             RenderDataCreationError::RenderPassCreation(ref err) => err.description(),
             RenderDataCreationError::ImageCreation(ref err) => err.description(),
             RenderDataCreationError::GraphicsPipelineCreation(ref err) => err.description(),
+            RenderDataCreationError::DeviceMemoryAlloc(ref err) => err.description(),
+            RenderDataCreationError::SamplerCreation(ref err) => err.description(),
         }
     }
 
@@ -451,6 +464,8 @@ impl StdError for RenderDataCreationError {
             RenderDataCreationError::RenderPassCreation(ref err) => Some(err),
             RenderDataCreationError::ImageCreation(ref err) => Some(err),
             RenderDataCreationError::GraphicsPipelineCreation(ref err) => Some(err),
+            RenderDataCreationError::DeviceMemoryAlloc(ref err) => Some(err),
+            RenderDataCreationError::SamplerCreation(ref err) => Some(err),
         }
     }
 }
