@@ -131,12 +131,8 @@ fn model(app: &App) -> Model {
     let depth_image =
         vk::AttachmentImage::transient(device.clone(), [w, h], vk::Format::D16Unorm).unwrap();
 
-    let inter_image = vk::AttachmentImage::sampled(
-        device.clone(),
-        [w, h],
-        nannou::frame::COLOR_FORMAT,
-    )
-    .unwrap();
+    let inter_image =
+        vk::AttachmentImage::sampled(device.clone(), [w, h], nannou::frame::COLOR_FORMAT).unwrap();
     let framebuffer = vk::Framebuffer::start(render_pass.clone())
         .add(inter_image.clone())
         .unwrap()

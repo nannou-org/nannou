@@ -1,8 +1,8 @@
 //! Items related to the **Frame** type, describing a single frame of graphics for a single window.
 
 use crate::color::IntoLinSrgba;
-use crate::window::SwapchainFramebuffers;
 use crate::vk::{self, DeviceOwned, DynamicStateBuilder};
+use crate::window::SwapchainFramebuffers;
 use std::error::Error as StdError;
 use std::sync::Arc;
 use std::{fmt, ops};
@@ -158,12 +158,13 @@ impl Frame {
 
         {
             let RenderData {
-                intermediary: IntermediaryData {
-                    ref images,
-                    ref mut resolve_framebuffer,
-                    ref resolve_render_pass,
-                    ..
-                },
+                intermediary:
+                    IntermediaryData {
+                        ref images,
+                        ref mut resolve_framebuffer,
+                        ref resolve_render_pass,
+                        ..
+                    },
                 ref mut swapchain,
             } = data;
 
@@ -173,18 +174,16 @@ impl Frame {
             if let Some(msaa_img) = images.lin_srgba_msaa.as_ref() {
                 if let Some(rp) = resolve_render_pass.as_ref() {
                     resolve_framebuffer.update(rp.clone(), dims, |builder| {
-                        builder
-                            .add(msaa_img.clone())?
-                            .add(images.lin_srgba.clone())
+                        builder.add(msaa_img.clone())?.add(images.lin_srgba.clone())
                     })?;
                 }
             }
 
             // Update the swapchain renderpass fbo.
             let renderpass = swapchain.render_pass.clone();
-            swapchain.framebuffers.update(&raw_frame, renderpass, |builder, image| {
-                builder.add(image)
-            })?;
+            swapchain
+                .framebuffers
+                .update(&raw_frame, renderpass, |builder, image| builder.add(image))?;
         }
 
         Ok(Frame { raw_frame, data })
@@ -222,14 +221,21 @@ impl Frame {
         let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
         let descriptor_set = Arc::new(
             vk::PersistentDescriptorSet::start(data.swapchain.graphics_pipeline.clone(), 0)
-                .add_sampled_image(data.intermediary.images.lin_srgba.clone(), data.swapchain.sampler.clone())
+                .add_sampled_image(
+                    data.intermediary.images.lin_srgba.clone(),
+                    data.swapchain.sampler.clone(),
+                )
                 .expect("failed to add smapled image")
                 .build()
-                .expect("failed to build descriptor set")
+                .expect("failed to build descriptor set"),
         );
         raw_frame
             .add_commands()
-            .begin_render_pass(data.swapchain.framebuffers[image_ix].clone(), is_secondary, clear_values)?
+            .begin_render_pass(
+                data.swapchain.framebuffers[image_ix].clone(),
+                is_secondary,
+                clear_values,
+            )?
             .draw(
                 data.swapchain.graphics_pipeline.clone(),
                 &dynamic_state,
@@ -343,7 +349,8 @@ impl RenderData {
         };
 
         let swapchain_framebuffers = Default::default();
-        let swapchain_render_pass = create_swapchain_render_pass(device.clone(), swapchain_color_format)?;
+        let swapchain_render_pass =
+            create_swapchain_render_pass(device.clone(), swapchain_color_format)?;
         let graphics_pipeline = create_graphics_pipeline(swapchain_render_pass.clone())?;
         let v = |x, y| Vertex { position: [x, y] };
         let tl = v(-1.0, -1.0);
@@ -357,7 +364,9 @@ impl RenderData {
             vs.iter().cloned(),
         )
         .expect("failed to construct vertex buffer");
-        let sampler = vk::SamplerBuilder::new().build(device).expect("failed to build sampler");
+        let sampler = vk::SamplerBuilder::new()
+            .build(device)
+            .expect("failed to build sampler");
 
         let swapchain = SwapchainData {
             render_pass: swapchain_render_pass,
@@ -528,7 +537,6 @@ fn create_intermediary_images(
     msaa_samples: u32,
     format: vk::Format,
 ) -> Result<IntermediaryImages, vk::ImageCreationError> {
-
     let lin_srgba_msaa = match msaa_samples {
         0 | 1 => None,
         _ => {
@@ -595,7 +603,9 @@ fn create_resolve_render_pass(
                     resolve: [lin_srgba],
                 }
             )?;
-            Ok(Some(Arc::new(rp) as Arc<dyn vk::RenderPassAbstract + Send + Sync>))
+            Ok(Some(
+                Arc::new(rp) as Arc<dyn vk::RenderPassAbstract + Send + Sync>
+            ))
         }
     }
 }
