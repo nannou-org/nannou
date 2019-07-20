@@ -33,12 +33,6 @@ use winit;
 #[cfg(all(target_os = "macos", not(test)))]
 use moltenvk_deps as mvkd;
 
-// TODO: This value is just copied from an example, need to:
-// 1. Verify that this is actually a good default
-// 2. Allow for choosing a custom depth format
-// 3. Validate the format (whether default or custom selected)
-const DEPTH_FORMAT: vk::Format = vk::Format::D16Unorm;
-
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
 
@@ -178,6 +172,7 @@ pub struct Draw<'a> {
     window_id: window::Id,
     draw: RefMut<'a, draw::Draw<DrawScalar>>,
     renderer: RefMut<'a, RefCell<draw::backend::vulkano::Renderer>>,
+    depth_format: vk::Format,
 }
 
 // Draw state managed by the **App**.
@@ -185,6 +180,11 @@ pub struct Draw<'a> {
 struct DrawState {
     draw: RefCell<draw::Draw<DrawScalar>>,
     renderer: RefCell<Option<RefCell<draw::backend::vulkano::Renderer>>>,
+    // The supported depth format for each device.
+    //
+    // Devices are mapped via their `index`, which is stated to "never change" according to the
+    // vulkano docs.
+    supported_depth_formats: RefCell<HashMap<usize, vk::Format>>,
 }
 
 /// The app uses a set scalar type in order to provide a simplistic API to users.
@@ -787,7 +787,12 @@ impl App {
         let draw = RefCell::new(draw::Draw::default());
         let config = RefCell::new(Default::default());
         let renderer = RefCell::new(None);
-        let draw_state = DrawState { draw, renderer };
+        let supported_depth_formats = RefCell::new(HashMap::new());
+        let draw_state = DrawState {
+            draw,
+            renderer,
+            supported_depth_formats,
+        };
         let focused_window = RefCell::new(None);
         let ui = ui::Arrangement::new();
         let mouse = state::Mouse::new();
@@ -994,6 +999,13 @@ impl App {
         };
         let device = window.swapchain.swapchain.device().clone();
         let color_format = window.swapchain.swapchain.format();
+        let mut supported_depth_formats = self.draw_state.supported_depth_formats.borrow_mut();
+        let depth_format = *supported_depth_formats
+            .entry(device.physical_device().index())
+            .or_insert_with(|| {
+                find_draw_depth_format(device.clone())
+                    .expect("no supported vulkan depth format for the App's `Draw` API")
+            });
         let draw = self.draw_state.draw.borrow_mut();
         draw.reset();
         if self.draw_state.renderer.borrow().is_none() {
@@ -1001,7 +1013,7 @@ impl App {
             let renderer = draw::backend::vulkano::Renderer::new(
                 device,
                 color_format,
-                DEPTH_FORMAT,
+                depth_format,
                 msaa_samples,
             )
             .expect("failed to create `Draw` renderer for vulkano backend");
@@ -1013,6 +1025,7 @@ impl App {
             window_id,
             draw,
             renderer,
+            depth_format,
         })
     }
 
@@ -1084,7 +1097,7 @@ impl<'a> Draw<'a> {
         );
         let dpi_factor = window.hidpi_factor();
         let mut renderer = self.renderer.borrow_mut();
-        renderer.draw_to_frame(&self.draw, dpi_factor, frame, DEPTH_FORMAT)
+        renderer.draw_to_frame(&self.draw, dpi_factor, frame, self.depth_format)
     }
 }
 
@@ -1099,6 +1112,18 @@ impl<'a> DerefMut for Draw<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.draw
     }
+}
+
+/// Find a compatible depth format for the `App`'s `Draw` API.
+pub fn find_draw_depth_format(device: Arc<vk::Device>) -> Option<vk::Format> {
+    let candidates = [
+        vk::Format::D32Sfloat,
+        vk::Format::D32Sfloat_S8Uint,
+        vk::Format::D24Unorm_S8Uint,
+        vk::Format::D16Unorm,
+        vk::Format::D16Unorm_S8Uint,
+    ];
+    vk::find_supported_depth_image_format(device, &candidates)
 }
 
 // Application Loop.

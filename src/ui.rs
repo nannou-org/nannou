@@ -83,7 +83,7 @@ struct RenderTarget {
 
 // The buffers associated with a render target.
 struct RenderPassImages {
-    depth: Arc<vk::AttachmentImage<DepthFormat>>,
+    depth: Arc<vk::AttachmentImage<vk::Format>>,
 }
 
 /// A type used for building a new `Ui`.
@@ -114,6 +114,7 @@ pub enum BuildError {
 pub enum RenderTargetCreationError {
     RenderPassCreation(vk::RenderPassCreationError),
     ImageCreation(vk::ImageCreationError),
+    NoSupportedDepthFormat,
 }
 
 /// An error that might occur while drawing to a `Frame`.
@@ -137,15 +138,6 @@ pub type Subpass = vk::framebuffer::Subpass<Arc<dyn vk::RenderPassAbstract + Sen
 
 /// A map from `image::Id`s to their associated `Texture2d`.
 pub type ImageMap = conrod_core::image::Map<conrod_vulkano::Image>;
-
-/// The depth format type used by the depth buffer in the default render target.
-pub type DepthFormat = vk::format::D16Unorm;
-
-/// The depth format type used by the depth buffer in the default render target.
-pub const DEPTH_FORMAT_TY: DepthFormat = vk::format::D16Unorm;
-
-/// The depth format used by the depth buffer in the default render target.
-pub const DEPTH_FORMAT: vk::Format = vk::Format::D16Unorm;
 
 impl conrod_winit::WinitWindow for Window {
     fn get_inner_size(&self) -> Option<(u32, u32)> {
@@ -421,7 +413,7 @@ pub fn create_render_pass(
 
 impl RenderPassImages {
     // Create the buffers for a default render target.
-    fn new(window: &Window) -> Result<Self, vk::ImageCreationError> {
+    fn new(window: &Window, depth_format: vk::Format) -> Result<Self, vk::ImageCreationError> {
         let device = window.swapchain_device().clone();
         // TODO: Change this to use `window.inner_size_pixels/points` (which is correct?).
         let image_dims = window.swapchain_images()[0].dimensions();
@@ -430,7 +422,7 @@ impl RenderPassImages {
             device.clone(),
             image_dims,
             msaa_samples,
-            DEPTH_FORMAT_TY,
+            depth_format,
         )?;
         Ok(RenderPassImages { depth })
     }
@@ -442,8 +434,10 @@ impl RenderTarget {
         let device = window.swapchain_device().clone();
         let color_format = window.swapchain().format();
         let msaa_samples = window.msaa_samples();
-        let render_pass = create_render_pass(device, color_format, DEPTH_FORMAT, msaa_samples)?;
-        let images = RenderPassImages::new(window)?;
+        let depth_format = find_depth_format(device.clone())
+            .ok_or(RenderTargetCreationError::NoSupportedDepthFormat)?;
+        let render_pass = create_render_pass(device, color_format, depth_format, msaa_samples)?;
+        let images = RenderPassImages::new(window, depth_format)?;
         let view_fbo = ViewFbo::default();
         Ok(RenderTarget {
             render_pass,
@@ -629,7 +623,8 @@ pub fn draw_primitives(
     // Recreate buffers if the swapchain was recreated.
     let image_dims = frame.swapchain_image().dimensions();
     if image_dims != images.depth.dimensions() {
-        *images = RenderPassImages::new(&window)?;
+        let depth_format = vk::ImageAccess::format(&images.depth);
+        *images = RenderPassImages::new(&window, depth_format)?;
     }
 
     // Ensure image framebuffer are up to date.
@@ -783,6 +778,9 @@ impl StdError for RenderTargetCreationError {
         match *self {
             RenderTargetCreationError::RenderPassCreation(ref err) => err.description(),
             RenderTargetCreationError::ImageCreation(ref err) => err.description(),
+            RenderTargetCreationError::NoSupportedDepthFormat => {
+                "no supported vulkan depth format for UI"
+            }
         }
     }
 
@@ -790,6 +788,7 @@ impl StdError for RenderTargetCreationError {
         match *self {
             RenderTargetCreationError::RenderPassCreation(ref err) => Some(err),
             RenderTargetCreationError::ImageCreation(ref err) => Some(err),
+            RenderTargetCreationError::NoSupportedDepthFormat => None,
         }
     }
 }
@@ -848,4 +847,16 @@ impl fmt::Display for DrawToFrameError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.description())
     }
+}
+
+/// Find a compatible vulkan depth format for the UI.
+pub fn find_depth_format(device: Arc<vk::Device>) -> Option<vk::Format> {
+    let candidates = [
+        vk::Format::D16Unorm,
+        vk::Format::D32Sfloat,
+        vk::Format::D16Unorm_S8Uint,
+        vk::Format::D24Unorm_S8Uint,
+        vk::Format::D32Sfloat_S8Uint,
+    ];
+    vk::find_supported_depth_image_format(device, &candidates)
 }
