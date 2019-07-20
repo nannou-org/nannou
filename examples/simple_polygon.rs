@@ -40,8 +40,7 @@ fn view(app: &App, frame: &Frame) {
         let g = 1.0 - fract;
         let b = (0.5 + fract) % 1.0;
         let a = 1.0;
-        let color = Rgba::new(r, g, b, a);
-        (pt3(x, y, 0.0), color)
+        (pt3(x, y, 0.0), rgba(r, g, b, a))
     });
     draw.polygon()
         .colored_points(colored_points)

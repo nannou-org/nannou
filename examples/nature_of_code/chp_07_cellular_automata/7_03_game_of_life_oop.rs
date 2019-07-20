@@ -39,13 +39,13 @@ impl Cell {
 
     fn display(&self, draw: &app::Draw, x: f32, y: f32) {
         let fill = if self.previous == 0 && self.state == 1 {
-            Rgb::new(0.0, 0.0, 1.0)
+            rgb(0.0, 0.0, 1.0)
         } else if self.state == 1 {
-            Rgb::new(0.0, 0.0, 0.0)
+            rgb(0.0, 0.0, 0.0)
         } else if self.previous == 1 && self.state == 0 {
-            Rgb::new(1.0, 0.0, 0.0)
+            rgb(1.0, 0.0, 0.0)
         } else {
-            Rgb::new(1.0, 1.0, 1.0)
+            rgb(1.0, 1.0, 1.0)
         };
         draw.rect()
             .x_y(x, y)

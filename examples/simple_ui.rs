@@ -44,7 +44,7 @@ fn model(app: &App) -> Model {
     let scale = 200.0;
     let rotation = 0.0;
     let position = pt2(0.0, 0.0);
-    let color = Rgb::new(1.0, 0.0, 1.0);
+    let color = rgb(1.0, 0.0, 1.0);
 
     Model {
         ui,
@@ -104,7 +104,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         .border(0.0)
         .set(model.ids.random_color, ui)
     {
-        model.color = Rgb::new(random(), random(), random());
+        model.color = rgb(random(), random(), random());
     }
 
     for (x, y) in widget::XYPad::new(
