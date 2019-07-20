@@ -139,7 +139,6 @@ impl Frame {
     ) -> Result<Self, FrameCreationError> {
         // If the image dimensions differ to that of the swapchain image, recreate it.
         let image_dims = raw_frame.swapchain_image().dimensions();
-
         if data.intermediary.images.dimensions() != image_dims {
             let msaa_samples = data
                 .intermediary

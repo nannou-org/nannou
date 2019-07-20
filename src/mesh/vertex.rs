@@ -1,6 +1,6 @@
 //! Vertex types yielded by the mesh adaptors and their implementations.
 
-use crate::color::IntoLinSrgba;
+use crate::color::{self, IntoLinSrgba};
 use crate::geom::graph::node::{self, ApplyTransform};
 use crate::geom::{self, Point2, Point3};
 use crate::math::BaseFloat;
@@ -8,7 +8,7 @@ use std::ops::{Deref, DerefMut};
 
 /// A vertex with a specified color.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
-pub struct WithColor<V, C> {
+pub struct WithColor<V, C = color::LinSrgba<color::DefaultScalar>> {
     pub vertex: V,
     pub color: C,
 }
@@ -241,5 +241,5 @@ where
 fn test_tuple_conv() {
     use crate::color::named::GREEN;
     let _: Point2<_> = [0.0, 0.0].into();
-    let _: WithColor<Point2<_>, _> = ([0.0, 0.0], GREEN).into();
+    let _: WithColor<Point2<_>> = ([0.0, 0.0], GREEN).into();
 }
