@@ -155,7 +155,6 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
         .unwrap();
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
+fn view(_app: &App, _model: &Model, frame: &Frame) {
     frame.clear(DARK_CHARCOAL);
-    frame
 }

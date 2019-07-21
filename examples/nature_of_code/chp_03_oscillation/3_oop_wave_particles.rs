@@ -111,7 +111,7 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     m.wave1.calculate();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) -> Frame {
+fn view(app: &App, m: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -120,9 +120,6 @@ fn view(app: &App, m: &Model, frame: Frame) -> Frame {
     m.wave0.display(&draw);
     m.wave1.display(&draw);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

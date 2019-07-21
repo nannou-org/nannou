@@ -22,18 +22,15 @@ fn model(app: &App) -> Model {
     Model
 }
 
-fn view(app: &App, _model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, _model: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     draw_circle(&draw, 0.0, 0.0, 400.0);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }
 
 // Recursive function

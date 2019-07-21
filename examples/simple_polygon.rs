@@ -4,7 +4,7 @@ fn main() {
     nannou::sketch(view);
 }
 
-fn view(app: &App, frame: Frame) -> Frame {
+fn view(app: &App, frame: &Frame) {
     // Begin drawing
     let win = app.window_rect();
     let t = app.time;
@@ -48,9 +48,6 @@ fn view(app: &App, frame: Frame) -> Frame {
         .x(win.w() * 0.25)
         .rotate(t * 0.2);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

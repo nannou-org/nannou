@@ -4,7 +4,7 @@ fn main() {
     nannou::sketch(view);
 }
 
-fn view(app: &App, frame: Frame) -> Frame {
+fn view(app: &App, frame: &Frame) {
     app.main_window().set_inner_size_pixels(800, 400);
 
     // Begin drawing
@@ -35,7 +35,4 @@ fn view(app: &App, frame: Frame) -> Frame {
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

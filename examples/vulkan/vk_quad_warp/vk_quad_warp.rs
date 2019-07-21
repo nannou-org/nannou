@@ -217,7 +217,7 @@ fn update(_: &App, model: &mut Model, _update: Update) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     let mut graphics = model.graphics.borrow_mut();
     let inter_image = graphics.inter_image.clone();
 
@@ -300,7 +300,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
 
-    warp::view(&app, model, inter_image, frame)
+    warp::view(&app, model, inter_image, frame);
 }
 
 // Create the graphics pipeline.
@@ -325,10 +325,9 @@ fn create_graphics_pipeline(
     Ok(Arc::new(pipeline) as Arc<_>)
 }
 
-fn ui_view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn ui_view(app: &App, model: &Model, frame: &Frame) {
     // Draw the state of the `Ui` to the frame.
-    model.ui.draw_to_frame(app, &frame).unwrap();
-    frame
+    model.ui.draw_to_frame(app, frame).unwrap();
 }
 
 // GLSL Shaders
