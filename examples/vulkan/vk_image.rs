@@ -123,7 +123,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(_app: &App, model: &Model, frame: &Frame) {
     let [w, h] = frame.swapchain_image().dimensions();
     let viewport = vk::ViewportBuilder::new().build([w as _, h as _]);
     let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
