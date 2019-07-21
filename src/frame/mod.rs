@@ -1,8 +1,7 @@
 //! Items related to the **Frame** type, describing a single frame of graphics for a single window.
 
 use crate::color::IntoLinSrgba;
-use crate::vk::{self, DeviceOwned, DynamicStateBuilder};
-use crate::window::SwapchainFramebuffers;
+use crate::vk::{self, DeviceOwned};
 use std::error::Error as StdError;
 use std::sync::Arc;
 use std::{fmt, ops};
@@ -53,7 +52,6 @@ pub type ViewFbo = ViewFramebufferObject;
 /// raw frame.
 pub(crate) struct RenderData {
     intermediary: IntermediaryData,
-    swapchain: SwapchainData,
 }
 
 // Data related to the intermediary MSAA linear sRGBA image and the non-MSAA linear sRGBA image to
@@ -70,15 +68,6 @@ struct IntermediaryData {
 struct IntermediaryImages {
     lin_srgba_msaa: Option<Arc<vk::AttachmentImage>>,
     lin_srgba: Arc<vk::AttachmentImage>,
-}
-
-// Data related to writing the intermediary linear sRGBA image to the swapchain image.
-struct SwapchainData {
-    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
-    framebuffers: SwapchainFramebuffers,
-    graphics_pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
-    vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
-    sampler: Arc<vk::Sampler>,
 }
 
 // The vertex type used to specify the quad to which the linear sRGBA image is drawn on the
@@ -165,7 +154,6 @@ impl Frame {
                         ref resolve_render_pass,
                         ..
                     },
-                ref mut swapchain,
             } = data;
 
             // Ensure resolve fbo is up to date with the frame's swapchain image and render pass.
@@ -178,12 +166,6 @@ impl Frame {
                     })?;
                 }
             }
-
-            // Update the swapchain renderpass fbo.
-            let renderpass = swapchain.render_pass.clone();
-            swapchain
-                .framebuffers
-                .update(&raw_frame, renderpass, |builder, image| builder.add(image))?;
         }
 
         Ok(Frame { raw_frame, data })
@@ -210,42 +192,40 @@ impl Frame {
                 .expect("failed to add `end_render_pass` command");
         }
 
-        // Draw the linear sRGBA image to the swapchain image.
+        // Blit the linear sRGBA image to the swapchain image.
         //
-        // The output of the fragment shader is assumed to be linear by the Vulkan implementation,
-        // and it should automatically convert the output to sRGBA for the swapchain if necessary.
-        let clear_values = vec![vk::ClearValue::None];
-        let image_ix = raw_frame.swapchain_image_index();
-        let [w, h] = raw_frame.swapchain_image().dimensions();
-        let viewport = vk::ViewportBuilder::new().build([w as _, h as _]);
-        let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
-        let descriptor_set = Arc::new(
-            vk::PersistentDescriptorSet::start(data.swapchain.graphics_pipeline.clone(), 0)
-                .add_sampled_image(
-                    data.intermediary.images.lin_srgba.clone(),
-                    data.swapchain.sampler.clone(),
-                )
-                .expect("failed to add smapled image")
-                .build()
-                .expect("failed to build descriptor set"),
-        );
+        // We use blit here rather than copy, as blit will take care of the conversion from linear
+        // to non-linear if necessar.
+        let [w, h] = data.intermediary.images.dimensions();
+        let src = data.intermediary.images.lin_srgba.clone();
+        let src_tl = [0; 3];
+        let src_br = [w as i32, h as i32, 1];
+        let src_base_layer = 0;
+        let src_mip_level = 0;
+        let dst = raw_frame.swapchain_image().clone();
+        let dst_tl = [0; 3];
+        let dst_br = [w as i32, h as i32, 1];
+        let dst_base_layer = 0;
+        let dst_mip_level = 0;
+        let layer_count = 1;
+        let filter = vk::sampler::Filter::Linear;
         raw_frame
             .add_commands()
-            .begin_render_pass(
-                data.swapchain.framebuffers[image_ix].clone(),
-                is_secondary,
-                clear_values,
-            )?
-            .draw(
-                data.swapchain.graphics_pipeline.clone(),
-                &dynamic_state,
-                vec![data.swapchain.vertex_buffer.clone()],
-                descriptor_set,
-                (),
+            .blit_image(
+                src,
+                src_tl,
+                src_br,
+                src_base_layer,
+                src_mip_level,
+                dst,
+                dst_tl,
+                dst_br,
+                dst_base_layer,
+                dst_mip_level,
+                layer_count,
+                filter,
             )
-            .expect("failed to add `draw` command")
-            .end_render_pass()
-            .expect("failed to add `end_render_pass` command");
+            .expect("failed to blit linear sRGBA image to swapchain image");
 
         // The intermediary linear sRGBA image is no longer "new".
         data.intermediary.images_are_new = false;
@@ -345,49 +325,18 @@ impl RenderData {
         device: Arc<vk::Device>,
         dimensions: [u32; 2],
         msaa_samples: u32,
-        swapchain_color_format: vk::Format,
     ) -> Result<Self, RenderDataCreationError> {
         let intermediary_images =
             create_intermediary_images(device.clone(), dimensions, msaa_samples, COLOR_FORMAT)?;
         let resolve_render_pass = create_resolve_render_pass(device.clone(), msaa_samples)?;
         let resolve_framebuffer = Default::default();
-
         let intermediary = IntermediaryData {
             images: intermediary_images,
             images_are_new: true,
             resolve_render_pass,
             resolve_framebuffer,
         };
-
-        let swapchain_framebuffers = Default::default();
-        let swapchain_render_pass =
-            create_swapchain_render_pass(device.clone(), swapchain_color_format)?;
-        let graphics_pipeline = create_graphics_pipeline(swapchain_render_pass.clone())?;
-        let v = |x, y| Vertex { position: [x, y] };
-        let tl = v(-1.0, -1.0);
-        let bl = v(-1.0, 1.0);
-        let tr = v(1.0, -1.0);
-        let br = v(1.0, 1.0);
-        let vs = [tl, bl, tr, bl, tr, br];
-        let vertex_buffer = vk::CpuAccessibleBuffer::from_iter(
-            device.clone(),
-            vk::BufferUsage::all(),
-            vs.iter().cloned(),
-        )?;
-        let sampler = vk::SamplerBuilder::new().build(device)?;
-
-        let swapchain = SwapchainData {
-            render_pass: swapchain_render_pass,
-            framebuffers: swapchain_framebuffers,
-            graphics_pipeline,
-            vertex_buffer,
-            sampler,
-        };
-
-        Ok(RenderData {
-            intermediary,
-            swapchain,
-        })
+        Ok(RenderData { intermediary })
     }
 }
 
@@ -631,83 +580,5 @@ fn create_resolve_render_pass(
                 Arc::new(rp) as Arc<dyn vk::RenderPassAbstract + Send + Sync>
             ))
         }
-    }
-}
-
-// Create the render pass for drawing the intermediary image to the swapchain image.
-fn create_swapchain_render_pass(
-    device: Arc<vk::Device>,
-    swapchain_color_format: vk::Format,
-) -> Result<Arc<dyn vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
-    let rp = vk::single_pass_renderpass!(
-        device,
-        attachments: {
-            swapchain_image: {
-                load: DontCare,
-                store: Store,
-                format: swapchain_color_format,
-                samples: 1,
-            }
-        },
-        pass: {
-            color: [swapchain_image],
-            depth_stencil: {}
-        }
-    )?;
-    Ok(Arc::new(rp) as Arc<dyn vk::RenderPassAbstract + Send + Sync>)
-}
-
-// A simple graphics pipeline for drawing the linear sRGBA image to the swapchain image.
-fn create_graphics_pipeline<R>(
-    render_pass: R,
-) -> Result<Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>, GraphicsPipelineError>
-where
-    R: vk::RenderPassAbstract + Send + Sync + 'static,
-{
-    let device = render_pass.device().clone();
-    let vs = vs::Shader::load(device.clone()).map_err(GraphicsPipelineError::VertexShaderLoad)?;
-    let fs = fs::Shader::load(device.clone()).map_err(GraphicsPipelineError::FragmentShaderLoad)?;
-    let subpass = vk::Subpass::from(render_pass, 0).expect("no subpass for `id`");
-    let pipeline = vk::GraphicsPipeline::start()
-        .vertex_input_single_buffer::<Vertex>()
-        .vertex_shader(vs.main_entry_point(), ())
-        .triangle_list()
-        .viewports_dynamic_scissors_irrelevant(1)
-        .fragment_shader(fs.main_entry_point(), ())
-        .render_pass(subpass)
-        .build(device.clone())?;
-    Ok(Arc::new(pipeline))
-}
-
-mod vs {
-    crate::vk::shaders::shader! {
-    ty: "vertex",
-        src: "
-#version 450
-
-layout(location = 0) in vec2 position;
-layout(location = 0) out vec2 tex_coords;
-
-void main() {
-    gl_Position = vec4(position * 2.0, 0.0, 1.0);
-    tex_coords = position + vec2(0.5);
-}"
-    }
-}
-
-mod fs {
-    crate::vk::shaders::shader! {
-    ty: "fragment",
-        src: "
-#version 450
-
-layout(location = 0) in vec2 tex_coords;
-layout(location = 0) out vec4 f_color;
-
-layout(set = 0, binding = 0) uniform sampler2D tex;
-
-void main() {
-    f_color = texture(tex, tex_coords);
-}"
     }
 }

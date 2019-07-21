@@ -1070,7 +1070,6 @@ impl<'app> Builder<'app> {
                     queue.device().clone(),
                     swapchain.dimensions(),
                     msaa_samples,
-                    swapchain.format(),
                 )?;
                 (Some(render_data), msaa_samples)
             }
