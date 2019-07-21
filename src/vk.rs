@@ -667,6 +667,28 @@ pub fn format_is_srgb(format: Format) -> bool {
     }
 }
 
+/// Given a slice of depth format candidates in order of preference, return the first that is
+/// supported by the given device.
+pub fn find_supported_depth_image_format(
+    device: Arc<Device>,
+    candidates: &[Format],
+) -> Option<Format> {
+    // NOTE: This is a hack because it's not possible to just query supported formats with vulkano
+    // right now.
+    for &format in candidates {
+        match format.ty() {
+            vk::FormatTy::Depth | vk::FormatTy::DepthStencil => {
+                let dims = [1; 2];
+                if vk::AttachmentImage::new(device.clone(), dims, format).is_ok() {
+                    return Some(format);
+                }
+            }
+            _ => (),
+        }
+    }
+    None
+}
+
 /// Given some target MSAA samples, limit it by the capabilities of the given `physical_device`.
 ///
 /// This is useful for attempting a specific multisampling sample count but falling back to a
