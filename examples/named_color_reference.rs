@@ -81,7 +81,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     let draw = app.draw();
 
     // Draw the background with the color.
@@ -101,8 +101,6 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
 
     // Draw the color list to the frame.
     model.ui.draw_to_frame(app, &frame).unwrap();
-
-    frame
 }
 
 fn check_color_list_lengths() {
