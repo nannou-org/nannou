@@ -138,9 +138,7 @@ fn model(app: &App) -> Model {
 
     // Nine moving bodies
     let movers = (0..9)
-        .map(|_| {
-            Mover::new_random(&app.window_rect())
-        })
+        .map(|_| Mover::new_random(&app.window_rect()))
         .collect();
 
     // Create an instance of our Liquid type
