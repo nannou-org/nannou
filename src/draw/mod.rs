@@ -87,7 +87,7 @@ where
     /// The theme containing default values.
     theme: Theme,
     /// If `Some`, the **Draw** should first clear the frame's gl context with the given color.
-    background_color: Option<properties::Rgba>,
+    background_color: Option<properties::LinSrgba>,
 }
 
 /// A set of intermediary buffers for collecting geometry point data for geometry types that may

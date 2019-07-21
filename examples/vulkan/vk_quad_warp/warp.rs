@@ -35,7 +35,7 @@ pub(crate) fn warp(app: &App) -> Warp {
                 color: {
                     load: Clear,
                     store: Store,
-                    format: app.main_window().swapchain().format(),
+                    format: nannou::frame::COLOR_FORMAT,
                     samples: app.main_window().msaa_samples(),
                 }
             },

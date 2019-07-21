@@ -35,6 +35,8 @@ pub struct Vertex {
     pub position: [f32; 3],
     /// A color associated with the `Vertex`.
     ///
+    /// These values should be in the linear sRGB format.
+    ///
     /// The way that the color is used depends on the `mode`.
     pub color: [f32; 4],
     /// The coordinates of the texture used by this `Vertex`.
@@ -169,7 +171,8 @@ impl Vertex {
         let tex_x = NumCast::from(v.tex_coords.x).unwrap();
         let tex_y = NumCast::from(v.tex_coords.y).unwrap();
         let position = [x, y, z];
-        let color = [v.color.red, v.color.green, v.color.blue, v.color.alpha];
+        let (r, g, b, a) = v.color.into();
+        let color = [r, g, b, a];
         let tex_coords = [tex_x, tex_y];
         Vertex {
             position,
@@ -256,7 +259,8 @@ impl Renderer {
         let (load_op, clear_color, clear_depth) = match bg_color {
             None => (vk::LoadOp::Load, vk::ClearValue::None, vk::ClearValue::None),
             Some(color) => {
-                let clear_color = [color.red, color.green, color.blue, color.alpha].into();
+                let (r, g, b, a) = color.into();
+                let clear_color = [r, g, b, a].into();
                 let clear_depth = 1f32.into();
                 (vk::LoadOp::Clear, clear_color, clear_depth)
             }

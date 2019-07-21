@@ -1,7 +1,7 @@
 use crate::draw;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions,
+    spatial, ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, Primitive, SetColor, SetDimensions,
     SetOrientation, SetPosition,
 };
 use crate::geom::{self, Point2, Vector2};
@@ -12,7 +12,7 @@ use std::{iter, slice};
 #[derive(Clone, Debug)]
 pub struct Rect<S = geom::scalar::Default> {
     spatial: spatial::Properties<S>,
-    color: Option<Rgba>,
+    color: Option<LinSrgba>,
 }
 
 // Trait implementations.
@@ -45,10 +45,10 @@ where
                         .color
                         .primitive
                         .get(&draw::theme::Primitive::Rect)
-                        .map(|&c| c)
+                        .map(|&c| c.into_linear())
                 })
             })
-            .unwrap_or(draw.theme(|t| t.color.default));
+            .unwrap_or(draw.theme(|t| t.color.default.into_linear()));
         let points = rect.corners().vertices();
         let vertices = draw::mesh::vertex::IterFromPoint2s::new(points, color);
         let indices = geom::quad::TRIANGLE_INDICES.iter().cloned();
@@ -98,7 +98,7 @@ impl<S> SetDimensions<S> for Rect<S> {
 }
 
 impl<S> SetColor<ColorScalar> for Rect<S> {
-    fn rgba_mut(&mut self) -> &mut Option<Rgba> {
+    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.color)
     }
 }

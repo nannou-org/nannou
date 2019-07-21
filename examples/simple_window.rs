@@ -29,6 +29,5 @@ fn event(_app: &App, _model: &mut Model, event: WindowEvent) {
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(_app: &App, _model: &Model, frame: &Frame) {
-    // Clear the window with a "dark charcoal" shade.
-    frame.clear(BLUE);
+    frame.clear(CORNFLOWERBLUE);
 }

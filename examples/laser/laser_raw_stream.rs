@@ -79,7 +79,7 @@ fn mouse_moved(app: &App, model: &mut Model, pos: Point2) {
 fn view(app: &App, _model: &Model, frame: &Frame) {
     // Visualise the point in the window.
     let draw = app.draw();
-    draw.background().color(DARK_CHARCOAL);
+    draw.background().color(DIMGRAY);
     draw.ellipse().w_h(5.0, 5.0).xy(app.mouse.position());
     draw.to_frame(app, &frame).unwrap();
 }

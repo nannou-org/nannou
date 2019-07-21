@@ -45,7 +45,7 @@ fn model(app: &App) -> Model {
                 color: {
                     load: Clear,
                     store: Store,
-                    format: app.main_window().swapchain().format(),
+                    format: nannou::frame::COLOR_FORMAT,
                     samples: app.main_window().msaa_samples(),
                 }
             },
@@ -149,7 +149,6 @@ fn view(app: &App, model: &Model, frame: &Frame) {
 
     let push_constants = fs::ty::PushConstantData {
         sequence_idx: (app.time * 124.0) as i32 % 86,
-        time: app.time * 20.0,
     };
 
     frame
@@ -205,12 +204,10 @@ layout(set = 0, binding = 0) uniform sampler2DArray tex;
 
 layout(push_constant) uniform PushConstantData {
   int sequence_idx;
-  float time;
 } pc;
 
 void main() {
-    vec4 c = vec4( abs(tex_coords.x + sin(pc.time)), tex_coords.x, tex_coords.y * abs(cos(pc.time)), 1.0);
-    f_color = texture(tex, vec3(tex_coords, pc.sequence_idx)) + (c*0.6);
+    f_color = texture(tex, vec3(tex_coords, pc.sequence_idx));
 }"
     }
 }

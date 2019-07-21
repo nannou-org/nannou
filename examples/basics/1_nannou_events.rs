@@ -58,6 +58,5 @@ fn event(_app: &App, _model: &mut Model, event: WindowEvent) {
 
 // Put your drawing code, called once per frame, per window.
 fn view(_app: &App, _model: &Model, frame: &Frame) {
-    // Clear the window to a dark charcoal color.
-    frame.clear(DARK_CHARCOAL);
+    frame.clear(DIMGRAY);
 }

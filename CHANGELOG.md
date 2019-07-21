@@ -1,3 +1,14 @@
+# Unreleased
+
+- Update from palette 0.2 to 0.4.
+- Add shorthand color constructors to the `color` module.
+- Remove nannou named colors in favour of using palette's.
+- Added a `named_color_reference.rs` example for finding suitable colors and to
+  act as a test of color accuracy.
+- Change the `Frame` image type from the swapchain color format (non-linear
+  sRGB) to a linear sRGB format for better consistency across platforms.
+- Add Window::rect method.
+
 # Version 0.9.0 (2019-05-28)
 
 - Change graphics rendering backend from glium to vulkano! This affects a wide

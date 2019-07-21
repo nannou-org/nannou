@@ -998,7 +998,7 @@ impl App {
             Some(window) => window,
         };
         let device = window.swapchain.swapchain.device().clone();
-        let color_format = window.swapchain.swapchain.format();
+        let color_format = crate::frame::COLOR_FORMAT;
         let mut supported_depth_formats = self.draw_state.supported_depth_formats.borrow_mut();
         let depth_format = *supported_depth_formats
             .entry(device.physical_device().index())

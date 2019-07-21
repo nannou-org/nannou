@@ -34,8 +34,8 @@ fn view(app: &App, frame: &Frame) {
             let r = (t + fract) % 1.0;
             let g = (t + 1.0 - fract) % 1.0;
             let b = (t + 0.5 + fract) % 1.0;
-            let rgba = nannou::color::Rgba::new(r, g, b, 1.0);
-            geom::vertex::Rgba(p, rgba)
+            let rgba = srgba(r, g, b, 1.0);
+            geom::vertex::Srgba(p, rgba)
         });
 
     // Draw the polyline.

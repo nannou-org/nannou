@@ -24,9 +24,9 @@ fn view(app: &App, frame: &Frame) {
     draw.background().color(bg_color);
 
     if app.mouse.x < 0.0 {
-        draw.ellipse().color(DARK_BLUE);
+        draw.ellipse().color(STEELBLUE);
     } else {
-        draw.ellipse().color(DARK_GREEN);
+        draw.ellipse().color(SEAGREEN);
     }
 
     // Draw to the window frame.

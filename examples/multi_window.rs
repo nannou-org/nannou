@@ -48,9 +48,9 @@ fn event_c(_app: &App, _model: &mut Model, event: WindowEvent) {
 
 fn view(_app: &App, model: &Model, frame: &Frame) {
     match frame.window_id() {
-        id if id == model.a => frame.clear(RED),
-        id if id == model.b => frame.clear(GREEN),
-        id if id == model.c => frame.clear(BLUE),
+        id if id == model.a => frame.clear(INDIANRED),
+        id if id == model.b => frame.clear(LIGHTGREEN),
+        id if id == model.c => frame.clear(CORNFLOWERBLUE),
         _ => (),
     }
 }

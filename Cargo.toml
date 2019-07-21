@@ -20,7 +20,7 @@ daggy = "0.6"
 find_folder = "0.3"
 image = "0.21"
 noise = "0.5"
-palette = "0.2"
+palette = "0.4"
 pennereq = "0.3"
 rand = "0.7"
 serde = "1"
@@ -52,6 +52,9 @@ path = "examples/loop_mode.rs"
 [[example]]
 name = "multi_window"
 path = "examples/multi_window.rs"
+[[example]]
+name = "named_color_reference"
+path = "examples/named_color_reference.rs"
 [[example]]
 name = "osc_receiver"
 path = "examples/osc_receiver.rs"

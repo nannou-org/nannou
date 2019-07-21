@@ -1070,7 +1070,6 @@ impl<'app> Builder<'app> {
                     queue.device().clone(),
                     swapchain.dimensions(),
                     msaa_samples,
-                    swapchain.format(),
                 )?;
                 (Some(render_data), msaa_samples)
             }
@@ -1492,6 +1491,19 @@ impl Window {
     /// The number of times `view` has been called with a `Frame` for this window.
     pub fn elapsed_frames(&self) -> u64 {
         self.frame_count
+    }
+
+    /// The rectangle representing the position and dimensions of the window.
+    ///
+    /// The window's position will always be `[0.0, 0.0]`, as positions are generally described
+    /// relative to the centre of the window itself.
+    ///
+    /// The dimensions will be equal to the result of `inner_size_points`. This represents the area
+    /// of the that we can draw to in a DPI-agnostic manner, typically useful for drawing and UI
+    /// positioning.
+    pub fn rect(&self) -> geom::Rect {
+        let (w, h) = self.inner_size_points();
+        geom::Rect::from_w_h(w, h)
     }
 }
 

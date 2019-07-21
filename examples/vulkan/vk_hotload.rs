@@ -100,7 +100,7 @@ fn model(app: &App) -> Model {
                     // be one of the types of the `vulkano::format` module (or alternatively one
                     // of your structs that implements the `FormatDesc` trait). Here we use the
                     // same format as the swapchain.
-                    format: app.main_window().swapchain().format(),
+                    format: nannou::frame::COLOR_FORMAT,
                     // TODO:
                     samples: app.main_window().msaa_samples(),
                 }

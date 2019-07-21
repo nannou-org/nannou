@@ -437,7 +437,7 @@ impl RenderTarget {
     // Initialise a new render target.
     fn new(window: &Window) -> Result<Self, RenderTargetCreationError> {
         let device = window.swapchain_device().clone();
-        let color_format = window.swapchain().format();
+        let color_format = crate::frame::COLOR_FORMAT;
         let msaa_samples = window.msaa_samples();
         let depth_format = find_depth_format(device.clone())
             .ok_or(RenderTargetCreationError::NoSupportedDepthFormat)?;

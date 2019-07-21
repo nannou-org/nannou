@@ -48,9 +48,9 @@ fn view(app: &App, _model: &Model, frame: &Frame) {
     // Prepare to draw.
     let draw = app.draw();
     // Clear the background to pink.
-    draw.background().color(LIGHT_PURPLE);
+    draw.background().color(PLUM);
     // Draw a red ellipse with default size and position.
-    draw.ellipse().color(DARK_BLUE);
+    draw.ellipse().color(STEELBLUE);
     // Write to the window frame.
     draw.to_frame(app, &frame).unwrap();
 }
