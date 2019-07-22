@@ -32,11 +32,11 @@ struct Graphics {
     uniform_buffer: vk::CpuBufferPool<vs::ty::Data>,
     vertex_shader: vs::Shader,
     fragment_shader: fs::Shader,
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    graphics_pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    graphics_pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     depth_image: Arc<vk::AttachmentImage>,
     inter_image: Arc<vk::AttachmentImage>,
-    framebuffer: Arc<vk::FramebufferAbstract + Send + Sync>,
+    framebuffer: Arc<dyn vk::FramebufferAbstract + Send + Sync>,
 }
 
 vk::impl_vertex!(Vertex, position);
@@ -45,12 +45,12 @@ vk::impl_vertex!(Normal, normal);
 
 // Teapot data, sourced from `vulkano-examples`.
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Vertex {
     position: (f32, f32, f32),
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Normal {
     normal: (f32, f32, f32),
 }
@@ -99,7 +99,7 @@ fn model(app: &App) -> Model {
                 color: {
                     load: Clear,
                     store: Store,
-                    format: app.main_window().swapchain().format(),
+                    format: nannou::frame::COLOR_FORMAT,
                     samples: 1,
                 },
                 depth: {
@@ -131,12 +131,8 @@ fn model(app: &App) -> Model {
     let depth_image =
         vk::AttachmentImage::transient(device.clone(), [w, h], vk::Format::D16Unorm).unwrap();
 
-    let inter_image = vk::AttachmentImage::sampled(
-        device.clone(),
-        [w, h],
-        app.main_window().swapchain().format(),
-    )
-    .unwrap();
+    let inter_image =
+        vk::AttachmentImage::sampled(device.clone(), [w, h], nannou::frame::COLOR_FORMAT).unwrap();
     let framebuffer = vk::Framebuffer::start(render_pass.clone())
         .add(inter_image.clone())
         .unwrap()
@@ -217,7 +213,7 @@ fn update(_: &App, model: &mut Model, _update: Update) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     let mut graphics = model.graphics.borrow_mut();
     let inter_image = graphics.inter_image.clone();
 
@@ -300,7 +296,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
 
-    warp::view(&app, model, inter_image, frame)
+    warp::view(&app, model, inter_image, frame);
 }
 
 // Create the graphics pipeline.
@@ -308,9 +304,10 @@ fn create_graphics_pipeline(
     device: Arc<vk::Device>,
     vertex_shader: &vs::Shader,
     fragment_shader: &fs::Shader,
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
     dimensions: [f32; 2],
-) -> Result<Arc<vk::GraphicsPipelineAbstract + Send + Sync>, vk::GraphicsPipelineCreationError> {
+) -> Result<Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>, vk::GraphicsPipelineCreationError>
+{
     let pipeline = vk::GraphicsPipeline::start()
         .vertex_input(vk::TwoBuffersDefinition::<Vertex, Normal>::new())
         .vertex_shader(vertex_shader.main_entry_point(), ())
@@ -324,10 +321,9 @@ fn create_graphics_pipeline(
     Ok(Arc::new(pipeline) as Arc<_>)
 }
 
-fn ui_view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn ui_view(app: &App, model: &Model, frame: &Frame) {
     // Draw the state of the `Ui` to the frame.
-    model.ui.draw_to_frame(app, &frame).unwrap();
-    frame
+    model.ui.draw_to_frame(app, frame).unwrap();
 }
 
 // GLSL Shaders

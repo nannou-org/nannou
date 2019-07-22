@@ -7,13 +7,13 @@ fn main() {
 }
 
 struct Model {
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
     view_fbo: RefCell<ViewFbo>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 struct Vertex {
     position: [f32; 2],
 }
@@ -58,9 +58,10 @@ fn model(app: &App) -> Model {
                     store: Store,
                     // `format: <ty>` indicates the type of the format of the image. This has to
                     // be one of the types of the `vulkano::format` module (or alternatively one
-                    // of your structs that implements the `FormatDesc` trait). Here we use the
-                    // same format as the swapchain.
-                    format: app.main_window().swapchain().format(),
+                    // of your structs that implements the `FormatDesc` trait). We're going to draw
+                    // directly to the image associated with nannou's frame, so we'll use the
+                    // frame image color format.
+                    format: nannou::frame::COLOR_FORMAT,
                     // TODO:
                     samples: app.main_window().msaa_samples(),
                 }
@@ -114,7 +115,7 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(_app: &App, model: &Model, frame: &Frame) {
     // Dynamic viewports allow us to recreate just the viewport when the window is resized
     // Otherwise we would have to recreate the whole pipeline.
     let [w, h] = frame.swapchain_image().dimensions();
@@ -125,7 +126,7 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     model
         .view_fbo
         .borrow_mut()
-        .update(&frame, model.render_pass.clone(), |builder, image| {
+        .update(frame, model.render_pass.clone(), |builder, image| {
             builder.add(image)
         })
         .unwrap();
@@ -148,8 +149,6 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
         .unwrap()
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
-
-    frame
 }
 
 mod vs {

@@ -88,16 +88,13 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     m.mover.check_edges(app.window_rect());
 }
 
-fn view(app: &App, m: &Model, frame: Frame) -> Frame {
+fn view(app: &App, m: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     m.mover.display(&draw);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

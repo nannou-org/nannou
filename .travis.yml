@@ -1,7 +1,4 @@
 language: rust
-
-cache: cargo
-
 before_script:
 - rustup component add rustfmt
 

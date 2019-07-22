@@ -7,13 +7,13 @@ fn main() {
 }
 
 struct Model {
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
     view_fbo: RefCell<ViewFbo>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Default)]
 struct Vertex {
     position: [f32; 2],
 }
@@ -62,7 +62,7 @@ fn model(app: &App) -> Model {
                 color: {
                     load: Clear,
                     store: Store,
-                    format: app.main_window().swapchain().format(),
+                    format: nannou::frame::COLOR_FORMAT,
                     samples: app.main_window().msaa_samples(),
                 }
             },
@@ -97,7 +97,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     let [w, h] = frame.swapchain_image().dimensions();
     let viewport = vk::ViewportBuilder::new().build([w as _, h as _]);
     let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
@@ -106,7 +106,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     model
         .view_fbo
         .borrow_mut()
-        .update(&frame, model.render_pass.clone(), |builder, image| {
+        .update(frame, model.render_pass.clone(), |builder, image| {
             builder.add(image)
         })
         .unwrap();
@@ -133,8 +133,6 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .unwrap()
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
-
-    frame
 }
 
 mod vs {

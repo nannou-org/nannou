@@ -1,5 +1,6 @@
 //! Vertex types yielded by the mesh adaptors and their implementations.
 
+use crate::color::{self, IntoLinSrgba};
 use crate::geom::graph::node::{self, ApplyTransform};
 use crate::geom::{self, Point2, Point3};
 use crate::math::BaseFloat;
@@ -7,7 +8,7 @@ use std::ops::{Deref, DerefMut};
 
 /// A vertex with a specified color.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
-pub struct WithColor<V, C> {
+pub struct WithColor<V, C = color::LinSrgba<color::DefaultScalar>> {
     pub vertex: V,
     pub color: C,
 }
@@ -198,12 +199,20 @@ where
 
 // For converting from a tuples to vertices.
 
-impl<A, V, C> From<(A, C)> for WithColor<V, C>
+impl<A, V, B, C> From<(A, B)> for WithColor<V, C>
 where
     A: Into<V>,
+    B: IntoLinSrgba<f32>,
+    C: From<crate::color::LinSrgba<f32>>,
 {
-    fn from((vertex, color): (A, C)) -> Self {
+    fn from((vertex, color): (A, B)) -> Self {
         let vertex = vertex.into();
+        // TODO: Using `into_lin_srgba` solely because palette's conversion implementations (e.g.
+        // `From` and `Into`) are not exhaustive. Using this gives more flexibility in terms of
+        // supported color conversions, but these conversions should really be added upstream to
+        // palette itself.
+        let lin_srgba = color.into_lin_srgba();
+        let color = lin_srgba.into();
         WithColor { vertex, color }
     }
 }
@@ -232,5 +241,5 @@ where
 fn test_tuple_conv() {
     use crate::color::named::GREEN;
     let _: Point2<_> = [0.0, 0.0].into();
-    let _: WithColor<Point2<_>, _> = ([0.0, 0.0], GREEN).into();
+    let _: WithColor<Point2<_>> = ([0.0, 0.0], GREEN).into();
 }

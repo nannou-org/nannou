@@ -1,6 +1,6 @@
 use crate::draw::properties::spatial::{self, orientation, position};
 use crate::draw::properties::{
-    ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetOrientation, SetPosition,
+    ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, Primitive, SetColor, SetOrientation, SetPosition,
 };
 use crate::draw::{self, mesh, Drawing};
 use crate::geom;
@@ -158,10 +158,10 @@ where
                                 .color
                                 .primitive
                                 .get(&draw::theme::Primitive::Polygon)
-                                .map(|&c| c)
+                                .map(|&c| c.into_linear())
                         })
                     })
-                    .unwrap_or(draw.theme(|t| t.color.default));
+                    .unwrap_or(draw.theme(|t| t.color.default.into_linear()));
                 Some(color)
             }
             _ => None,
@@ -218,7 +218,7 @@ impl<C, S> SetPosition<S> for Polygon<C, S> {
 }
 
 impl<S> SetColor<ColorScalar> for Polygon<Fill, S> {
-    fn rgba_mut(&mut self) -> &mut Option<Rgba> {
+    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.color.0)
     }
 }

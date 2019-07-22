@@ -44,7 +44,7 @@ fn model(app: &App) -> Model {
     let scale = 200.0;
     let rotation = 0.0;
     let position = pt2(0.0, 0.0);
-    let color = Rgb::new(1.0, 0.0, 1.0);
+    let color = rgb(1.0, 0.0, 1.0);
 
     Model {
         ui,
@@ -104,7 +104,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         .border(0.0)
         .set(model.ids.random_color, ui)
     {
-        model.color = Rgb::new(random(), random(), random());
+        model.color = rgb(random(), random(), random());
     }
 
     for (x, y) in widget::XYPad::new(
@@ -129,7 +129,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
 
@@ -142,12 +142,9 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .rotate(model.rotation)
         .color(model.color);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
 
     // Draw the state of the `Ui` to the frame.
     model.ui.draw_to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

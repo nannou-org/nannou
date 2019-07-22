@@ -7,13 +7,13 @@ fn main() {
 }
 
 struct Model {
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
     framebuffers: RefCell<window::SwapchainFramebuffers>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 struct Vertex {
     position: [f32; 2],
 }
@@ -117,7 +117,7 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `RawFrame` here.
-fn view(_app: &App, model: &Model, frame: RawFrame) -> RawFrame {
+fn view(_app: &App, model: &Model, frame: &RawFrame) {
     // Dynamic viewports allow us to recreate just the viewport when the window is resized
     // Otherwise we would have to recreate the whole pipeline.
     let [w, h] = frame.swapchain_image().dimensions();
@@ -128,7 +128,7 @@ fn view(_app: &App, model: &Model, frame: RawFrame) -> RawFrame {
     model
         .framebuffers
         .borrow_mut()
-        .update(&frame, model.render_pass.clone(), |builder, image| {
+        .update(frame, model.render_pass.clone(), |builder, image| {
             builder.add(image)
         })
         .unwrap();
@@ -155,8 +155,6 @@ fn view(_app: &App, model: &Model, frame: RawFrame) -> RawFrame {
         .unwrap()
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
-
-    frame
 }
 
 mod vs {

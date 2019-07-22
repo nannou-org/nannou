@@ -5,7 +5,7 @@ use crate::mesh::vertex::{WithColor, WithTexCoords};
 use std::marker::PhantomData;
 
 pub type Point<S> = Point3<S>;
-pub type Color = color::Rgba;
+pub type Color = color::LinSrgba;
 pub type TexCoords<S> = Point2<S>;
 pub type Normal<S> = Vector3<S>;
 pub type ColoredPoint<S> = WithColor<Point<S>, Color>;
@@ -27,7 +27,15 @@ pub trait IntoPoint<S> {
 
 // IntoVertex Implementations.
 
-const DEFAULT_VERTEX_COLOR: Color = color::WHITE;
+const DEFAULT_VERTEX_COLOR: Color = color::Alpha {
+    color: color::rgb::Rgb {
+        red: 1.0,
+        green: 1.0,
+        blue: 1.0,
+        standard: std::marker::PhantomData,
+    },
+    alpha: 1.0,
+};
 
 impl<'a, S, T> IntoVertex<S> for &'a T
 where
@@ -133,15 +141,15 @@ where
     }
 }
 
-impl<S, V> IntoVertex<S> for geom::vertex::Rgba<V>
+impl<S, V> IntoVertex<S> for geom::vertex::Srgba<V>
 where
     S: BaseFloat,
     V: geom::Vertex<Scalar = S>,
     (V, Color): IntoVertex<S>,
 {
     fn into_vertex(self) -> Vertex<S> {
-        let geom::vertex::Rgba(v, color) = self;
-        (v, color).into_vertex()
+        let geom::vertex::Srgba(v, color) = self;
+        (v, color.into_linear()).into_vertex()
     }
 }
 

@@ -3,17 +3,13 @@
 //! See here for items relating to the event loop, device access, creating and managing windows,
 //! streams and more.
 //!
-//! - [**App**](./struct.App.html) - provides a context and API for windowing, audio, devices, etc.
+//! - [**App**](./struct.App.html) - provides a context and API for windowing, devices, etc.
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
-//! - [**Audio**](./struct.Audio.html) - an API accessed via `app.audio` for enumerating audio
-//!   devices, spawning audio input/output streams, etc.
 //! - [**Draw**](./struct.Draw.html) - a simple API for drawing graphics, accessible via
 //!   `app.draw()`.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
 
-use crate::audio;
-use crate::audio::cpal;
 use crate::draw;
 use crate::event::{self, Event, Key, LoopEvent, Update};
 use crate::frame::{Frame, RawFrame, RenderData};
@@ -27,23 +23,15 @@ use find_folder;
 use std;
 use std::cell::{RefCell, RefMut};
 use std::collections::{HashMap, HashSet};
-use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::sync::atomic::{self, AtomicBool};
-use std::sync::{mpsc, Arc};
-use std::thread;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use winit;
 
 #[cfg(all(target_os = "macos", not(test)))]
 use moltenvk_deps as mvkd;
-
-// TODO: This value is just copied from an example, need to:
-// 1. Verify that this is actually a good default
-// 2. Allow for choosing a custom depth format
-// 3. Validate the format (whether default or custom selected)
-const DEPTH_FORMAT: vk::Format = vk::Format::D16Unorm;
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -55,10 +43,10 @@ pub type EventFn<Model, Event> = fn(&App, &mut Model, Event);
 pub type UpdateFn<Model> = fn(&App, &mut Model, Update);
 
 /// The user function type for drawing their model to the surface of a single window.
-pub type ViewFn<Model> = fn(&App, &Model, Frame) -> Frame;
+pub type ViewFn<Model> = fn(&App, &Model, &Frame);
 
 /// A shorthand version of `ViewFn` for sketches where the user does not need a model.
-pub type SketchViewFn = fn(&App, Frame) -> Frame;
+pub type SketchViewFn = fn(&App, &Frame);
 
 /// The user function type allowing them to consume the `model` when the application exits.
 pub type ExitFn<Model> = fn(&App, Model);
@@ -93,14 +81,14 @@ fn default_model(_: &App) -> () {
 /// Each nannou application has a single **App** instance. This **App** represents the entire
 /// context of the application.
 ///
-/// The **App** provides access to most "IO" related APIs. In other words, if you need access to
-/// windowing, audio devices, laser fixtures, etc, the **App** will provide access to this.
+/// The **App** provides access to most application and windowing related "IO" related APIs. In
+/// other words, if you need access to windowing, the Vulkan instance, etc, the **App** will
+/// provide access to this.
 ///
 /// The **App** owns and manages:
 ///
 /// - The **window and input event loop** used to drive the application forward.
 /// - **All windows** for graphics and user input. Windows can be referenced via their IDs.
-/// - The **audio event loop** from which you can receive or send audio via streams.
 pub struct App {
     config: RefCell<Config>,
     pub(crate) vk_instance: Arc<vk::Instance>,
@@ -118,9 +106,6 @@ pub struct App {
     ///
     /// This value is set back to `false` each time the events loop receives any kind of event.
     pub(crate) events_loop_is_asleep: Arc<AtomicBool>,
-
-    /// The `App`'s audio-related API.
-    pub audio: Audio,
 
     /// The current state of the `Mouse`.
     pub mouse: state::Mouse,
@@ -187,6 +172,7 @@ pub struct Draw<'a> {
     window_id: window::Id,
     draw: RefMut<'a, draw::Draw<DrawScalar>>,
     renderer: RefMut<'a, RefCell<draw::backend::vulkano::Renderer>>,
+    depth_format: vk::Format,
 }
 
 // Draw state managed by the **App**.
@@ -194,6 +180,11 @@ pub struct Draw<'a> {
 struct DrawState {
     draw: RefCell<draw::Draw<DrawScalar>>,
     renderer: RefCell<Option<RefCell<draw::backend::vulkano::Renderer>>>,
+    // The supported depth format for each device.
+    //
+    // Devices are mapped via their `index`, which is stated to "never change" according to the
+    // vulkano docs.
+    supported_depth_formats: RefCell<HashMap<usize, vk::Format>>,
 }
 
 /// The app uses a set scalar type in order to provide a simplistic API to users.
@@ -201,13 +192,6 @@ struct DrawState {
 /// If you require changing the scalar type to something else, consider using a custom
 /// **nannou::draw::Draw** instance.
 pub type DrawScalar = geom::scalar::Default;
-
-/// An API accessed via `app.audio` for enumerating audio devices and spawning input/output audio
-/// streams with either default or custom stream format.
-pub struct Audio {
-    event_loop: Arc<cpal::EventLoop>,
-    process_fn_tx: RefCell<Option<mpsc::Sender<audio::stream::ProcessFnMsg>>>,
-}
 
 /// A handle to the **App** that can be shared across threads. This may be used to "wake up" the
 /// **App**'s inner event loop.
@@ -281,6 +265,21 @@ pub enum LoopMode {
         /// The number of `update`s (and in turn `view` calls per window) that should occur since
         /// the application last received a non-`Update` event.
         updates_following_event: usize,
+        /// The minimum interval between emitted updates.
+        update_interval: Duration,
+    },
+
+    /// Loops for the given number of updates and then finishes.
+    ///
+    /// This is similar to the **Wait** loop mode, except that windowing, application and input
+    /// events will not cause the loop to update or view again after the initial
+    /// `number_of_updates` have already been applied.
+    ///
+    /// This is useful for sketches where you only want to draw one frame, or if you know exactly
+    /// how many updates you require for an animation, etc.
+    NTimes {
+        /// The number of updates that must be emited regardless of non-update events
+        number_of_updates: usize,
         /// The minimum interval between emitted updates.
         update_interval: Duration,
     },
@@ -722,6 +721,27 @@ impl LoopMode {
         }
     }
 
+    /// Specify the **Ntimes** mode with one update
+    ///
+    /// Waits long enough to ensure loop iteration never occurs faster than the given `max_fps`.
+    pub fn loop_ntimes(number_of_updates: usize) -> Self {
+        let update_interval = update_interval(Self::DEFAULT_RATE_FPS);
+        LoopMode::NTimes {
+            number_of_updates,
+            update_interval,
+        }
+    }
+
+    /// Specify the **Ntimes** mode with one update
+    pub fn loop_once() -> Self {
+        let update_interval = update_interval(Self::DEFAULT_RATE_FPS);
+        let number_of_updates = 1;
+        LoopMode::NTimes {
+            number_of_updates,
+            update_interval,
+        }
+    }
+
     /// A simplified constructor for the default `RefreshSync` loop mode.
     ///
     /// Assumes a display refresh rate of ~60hz and in turn specifies a `minimum_update_latency` of
@@ -767,12 +787,11 @@ impl App {
         let draw = RefCell::new(draw::Draw::default());
         let config = RefCell::new(Default::default());
         let renderer = RefCell::new(None);
-        let draw_state = DrawState { draw, renderer };
-        let cpal_event_loop = Arc::new(cpal::EventLoop::new());
-        let process_fn_tx = RefCell::new(None);
-        let audio = Audio {
-            event_loop: cpal_event_loop,
-            process_fn_tx,
+        let supported_depth_formats = RefCell::new(HashMap::new());
+        let draw_state = DrawState {
+            draw,
+            renderer,
+            supported_depth_formats,
         };
         let focused_window = RefCell::new(None);
         let ui = ui::Arrangement::new();
@@ -789,7 +808,6 @@ impl App {
             windows,
             config,
             draw_state,
-            audio,
             ui,
             mouse,
             keys,
@@ -840,7 +858,7 @@ impl App {
             .for_folder(Self::ASSETS_DIRECTORY_NAME)
     }
 
-    /// Begin building a new OpenGL window.
+    /// Begin building a new window.
     pub fn new_window(&self) -> window::Builder {
         window::Builder::new(self)
     }
@@ -980,7 +998,14 @@ impl App {
             Some(window) => window,
         };
         let device = window.swapchain.swapchain.device().clone();
-        let color_format = window.swapchain.swapchain.format();
+        let color_format = crate::frame::COLOR_FORMAT;
+        let mut supported_depth_formats = self.draw_state.supported_depth_formats.borrow_mut();
+        let depth_format = *supported_depth_formats
+            .entry(device.physical_device().index())
+            .or_insert_with(|| {
+                find_draw_depth_format(device.clone())
+                    .expect("no supported vulkan depth format for the App's `Draw` API")
+            });
         let draw = self.draw_state.draw.borrow_mut();
         draw.reset();
         if self.draw_state.renderer.borrow().is_none() {
@@ -988,7 +1013,7 @@ impl App {
             let renderer = draw::backend::vulkano::Renderer::new(
                 device,
                 color_format,
-                DEPTH_FORMAT,
+                depth_format,
                 msaa_samples,
             )
             .expect("failed to create `Draw` renderer for vulkano backend");
@@ -1000,6 +1025,7 @@ impl App {
             window_id,
             draw,
             renderer,
+            depth_format,
         })
     }
 
@@ -1027,103 +1053,6 @@ impl App {
     /// The number of frames that can currently be displayed a second
     pub fn fps(&self) -> f32 {
         self.duration.updates_per_second()
-    }
-}
-
-impl Audio {
-    /// Enumerate the available audio devices on the system.
-    ///
-    /// Produces an iterator yielding `audio::Device`s.
-    pub fn devices(&self) -> audio::Devices {
-        let devices = cpal::devices();
-        audio::Devices { devices }
-    }
-
-    /// Enumerate the available audio devices on the system that support input streams.
-    ///
-    /// Produces an iterator yielding `audio::Device`s.
-    pub fn input_devices(&self) -> audio::stream::input::Devices {
-        let devices = cpal::input_devices();
-        audio::stream::input::Devices { devices }
-    }
-
-    /// Enumerate the available audio devices on the system that support output streams.
-    ///
-    /// Produces an iterator yielding `audio::Device`s.
-    pub fn output_devices(&self) -> audio::stream::output::Devices {
-        let devices = cpal::output_devices();
-        audio::stream::output::Devices { devices }
-    }
-
-    /// The current default audio input device.
-    pub fn default_input_device(&self) -> Option<audio::Device> {
-        cpal::default_input_device().map(|device| audio::Device { device })
-    }
-
-    /// The current default audio output device.
-    pub fn default_output_device(&self) -> Option<audio::Device> {
-        cpal::default_output_device().map(|device| audio::Device { device })
-    }
-
-    /// Begin building a new input audio stream.
-    ///
-    /// If this is the first time a stream has been created, this method will spawn the
-    /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
-    pub fn new_input_stream<M, F, S>(
-        &self,
-        model: M,
-        capture: F,
-    ) -> audio::stream::input::Builder<M, F, S> {
-        audio::stream::input::Builder {
-            capture,
-            builder: self.new_stream(model),
-        }
-    }
-
-    /// Begin building a new output audio stream.
-    ///
-    /// If this is the first time a stream has been created, this method will spawn the
-    /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
-    pub fn new_output_stream<M, F, S>(
-        &self,
-        model: M,
-        render: F,
-    ) -> audio::stream::output::Builder<M, F, S> {
-        audio::stream::output::Builder {
-            render,
-            builder: self.new_stream(model),
-        }
-    }
-
-    // Builder initialisation shared between input and output streams.
-    //
-    // If this is the first time a stream has been created, this method will spawn the
-    // `cpal::EventLoop::run` method on its own thread, ready to run built streams.
-    fn new_stream<M, S>(&self, model: M) -> audio::stream::Builder<M, S> {
-        let process_fn_tx = if self.process_fn_tx.borrow().is_none() {
-            let event_loop = self.event_loop.clone();
-            let (tx, rx) = mpsc::channel();
-            let mut loop_context = audio::stream::LoopContext::new(rx);
-            thread::Builder::new()
-                .name("cpal::EventLoop::run thread".into())
-                .spawn(move || event_loop.run(move |id, data| loop_context.process(id, data)))
-                .expect("failed to spawn cpal::EventLoop::run thread");
-            *self.process_fn_tx.borrow_mut() = Some(tx.clone());
-            tx
-        } else {
-            self.process_fn_tx.borrow().as_ref().unwrap().clone()
-        };
-
-        audio::stream::Builder {
-            event_loop: self.event_loop.clone(),
-            process_fn_tx: process_fn_tx,
-            model,
-            sample_rate: None,
-            channels: None,
-            frames_per_buffer: None,
-            device: None,
-            sample_format: PhantomData,
-        }
     }
 }
 
@@ -1168,7 +1097,7 @@ impl<'a> Draw<'a> {
         );
         let dpi_factor = window.hidpi_factor();
         let mut renderer = self.renderer.borrow_mut();
-        renderer.draw_to_frame(&self.draw, dpi_factor, frame, DEPTH_FORMAT)
+        renderer.draw_to_frame(&self.draw, dpi_factor, frame, self.depth_format)
     }
 }
 
@@ -1183,6 +1112,18 @@ impl<'a> DerefMut for Draw<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.draw
     }
+}
+
+/// Find a compatible depth format for the `App`'s `Draw` API.
+pub fn find_draw_depth_format(device: Arc<vk::Device>) -> Option<vk::Format> {
+    let candidates = [
+        vk::Format::D32Sfloat,
+        vk::Format::D32Sfloat_S8Uint,
+        vk::Format::D24Unorm_S8Uint,
+        vk::Format::D16Unorm,
+        vk::Format::D16Unorm_S8Uint,
+    ];
+    vk::find_supported_depth_image_format(device, &candidates)
 }
 
 // Application Loop.
@@ -1244,6 +1185,13 @@ fn run_loop<M, E>(
                     updates_following_event,
                     update_interval,
                 )
+            }
+            LoopMode::NTimes {
+                number_of_updates,
+                update_interval,
+            } => {
+                loop_ctxt.updates_remaining = number_of_updates;
+                run_loop_mode_ntimes(&mut app, model, &mut loop_ctxt, update_interval)
             }
             LoopMode::RefreshSync {
                 minimum_update_interval,
@@ -1436,6 +1384,98 @@ where
     }
 }
 
+// Run the application loop under the `NTimes` mode.
+fn run_loop_mode_ntimes<M, E>(
+    app: &mut App,
+    mut model: M,
+    loop_ctxt: &mut LoopContext<M, E>,
+    mut update_interval: Duration,
+) -> Break<M>
+where
+    M: 'static,
+    E: LoopEvent,
+{
+    loop {
+        // First collect any pending window events.
+        app.events_loop
+            .poll_events(|event| loop_ctxt.winit_events.push(event));
+
+        // If there are no events and the `Ui` does not need updating,
+        // wait for the next event.
+        if loop_ctxt.winit_events.is_empty() && loop_ctxt.updates_remaining == 0 {
+            let events_loop_is_asleep = app.events_loop_is_asleep.clone();
+            events_loop_is_asleep.store(true, atomic::Ordering::Relaxed);
+            app.events_loop.run_forever(|event| {
+                events_loop_is_asleep.store(false, atomic::Ordering::Relaxed);
+                loop_ctxt.winit_events.push(event);
+                winit::ControlFlow::Break
+            });
+        }
+
+        // Update the app's durations.
+        let now = Instant::now();
+        let since_last = now.duration_since(loop_ctxt.last_update).into();
+        let since_start = now.duration_since(loop_ctxt.loop_start).into();
+        app.duration.since_start = since_start;
+        app.duration.since_prev_update = since_last;
+        app.time = app.duration.since_start.secs() as _;
+
+        for winit_event in loop_ctxt.winit_events.drain(..) {
+            let (new_model, exit) =
+                process_and_emit_winit_event(app, model, loop_ctxt.event_fn, winit_event);
+            model = new_model;
+            if exit {
+                let reason = BreakReason::Exit;
+                return Break { model, reason };
+            }
+        }
+
+        // Only `update` and `view` if there are updates remaining.
+        if loop_ctxt.updates_remaining > 0 {
+            let update = update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update);
+            if let Some(event_fn) = loop_ctxt.event_fn {
+                let event = E::from(update.clone());
+                event_fn(&app, &mut model, event);
+            }
+            if let Some(update_fn) = loop_ctxt.update_fn {
+                update_fn(&app, &mut model, update);
+            }
+            loop_ctxt.updates_remaining -= 1;
+
+            // Draw to each window.
+            for window_id in app.window_ids() {
+                acquire_image_and_view_frame(
+                    app,
+                    window_id,
+                    &model,
+                    loop_ctxt.default_view.as_ref(),
+                );
+            }
+        }
+
+        // Sleep if there's still some time left within the interval.
+        let now = Instant::now();
+        let since_last_loop_end = now.duration_since(loop_ctxt.last_loop_end);
+        if since_last_loop_end < update_interval {
+            std::thread::sleep(update_interval - since_last_loop_end);
+        }
+        loop_ctxt.last_loop_end = Instant::now();
+
+        // See if the loop mode has changed. If so, break.
+        match app.loop_mode() {
+            LoopMode::NTimes {
+                update_interval: ui,
+                ..
+            } => {
+                update_interval = ui;
+            }
+            loop_mode => {
+                let reason = BreakReason::NewLoopMode(loop_mode);
+                return Break { model, reason };
+            }
+        };
+    }
+}
 // Run the application loop under the `RefreshSync` mode.
 fn run_loop_mode_refresh_sync<M, E>(
     app: &mut App,
@@ -2070,7 +2110,7 @@ fn view_frame<M>(
             let render_data = take_window_frame_render_data(app, window_id)
                 .expect("failed to take window's `frame_render_data`");
             let frame = Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
-            let frame = view(app, frame);
+            view(app, &frame);
             let (render_data, raw_frame) = frame
                 .finish()
                 .expect("failed to resolve frame's intermediary_image to the swapchain_image");
@@ -2087,7 +2127,7 @@ fn view_frame<M>(
             let view = view
                 .to_fn_ptr::<M>()
                 .expect("unexpected model argument given to window view function");
-            let frame = (*view)(app, model, frame);
+            (*view)(app, model, &frame);
             let (render_data, raw_frame) = frame
                 .finish()
                 .expect("failed to resolve frame's intermediary_image to the swapchain_image");
@@ -2101,7 +2141,7 @@ fn view_frame<M>(
             let raw_view = raw_view
                 .to_fn_ptr::<M>()
                 .expect("unexpected model argument given to window raw_view function");
-            let raw_frame = (*raw_view)(app, model, raw_frame);
+            (*raw_view)(app, model, &raw_frame);
             raw_frame
                 .finish()
                 .build()
@@ -2113,7 +2153,7 @@ fn view_frame<M>(
                     .expect("failed to take window's `frame_render_data`");
                 let frame =
                     Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
-                let frame = view(app, frame);
+                view(app, &frame);
                 let (render_data, raw_frame) = frame
                     .finish()
                     .expect("failed to resolve frame's intermediary_image to the swapchain_image");
@@ -2128,7 +2168,7 @@ fn view_frame<M>(
                     .expect("failed to take window's `frame_render_data`");
                 let frame =
                     Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
-                let frame = view(app, &model, frame);
+                view(app, &model, &frame);
                 let (render_data, raw_frame) = frame
                     .finish()
                     .expect("failed to resolve frame's intermediary_image to the swapchain_image");
@@ -2172,7 +2212,7 @@ fn view_frame<M>(
                 swapchain.swapchain.clone(),
                 swapchain_image_index,
             );
-        (Box::new(present_future) as Box<GpuFuture>).then_signal_fence_and_flush()
+        (Box::new(present_future) as Box<dyn GpuFuture>).then_signal_fence_and_flush()
     };
 
     // Handle the result of the future.

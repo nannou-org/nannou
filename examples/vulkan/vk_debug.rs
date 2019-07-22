@@ -24,7 +24,6 @@ fn model(_app: &App) -> Model {
     Model
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
-    frame.clear(DARK_BLUE);
-    frame
+fn view(_app: &App, _model: &Model, frame: &Frame) {
+    frame.clear(SKYBLUE);
 }

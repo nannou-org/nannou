@@ -18,18 +18,18 @@ struct Graphics {
     uniform_buffer: vk::CpuBufferPool<vs::ty::Data>,
     vertex_shader: vs::Shader,
     fragment_shader: fs::Shader,
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    graphics_pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    graphics_pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     depth_image: Arc<vk::AttachmentImage>,
     view_fbo: ViewFbo,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 struct Vertex {
     position: (f32, f32, f32),
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 struct Normal {
     normal: (f32, f32, f32),
 }
@@ -79,7 +79,7 @@ fn model(app: &App) -> Model {
                 color: {
                     load: Clear,
                     store: Store,
-                    format: app.main_window().swapchain().format(),
+                    format: nannou::frame::COLOR_FORMAT,
                     samples: app.main_window().msaa_samples(),
                 },
                 depth: {
@@ -135,7 +135,7 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     let mut graphics = model.graphics.borrow_mut();
 
     let [w, h] = frame.swapchain_image().dimensions();
@@ -166,7 +166,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     let depth_image = graphics.depth_image.clone();
     graphics
         .view_fbo
-        .update(&frame, render_pass, |builder, image| {
+        .update(frame, render_pass, |builder, image| {
             builder.add(image)?.add(depth_image.clone())
         })
         .unwrap();
@@ -226,8 +226,6 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .unwrap()
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
-
-    frame
 }
 
 // Create the graphics pipeline.
@@ -235,9 +233,10 @@ fn create_graphics_pipeline(
     device: Arc<vk::Device>,
     vertex_shader: &vs::Shader,
     fragment_shader: &fs::Shader,
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
     dimensions: [f32; 2],
-) -> Result<Arc<vk::GraphicsPipelineAbstract + Send + Sync>, vk::GraphicsPipelineCreationError> {
+) -> Result<Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>, vk::GraphicsPipelineCreationError>
+{
     let pipeline = vk::GraphicsPipeline::start()
         .vertex_input(vk::TwoBuffersDefinition::<Vertex, Normal>::new())
         .vertex_shader(vertex_shader.main_entry_point(), ())

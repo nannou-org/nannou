@@ -27,11 +27,7 @@ pub const DEFAULT_DIMENSIONS: LogicalSize = LogicalSize {
     height: 768.0,
 };
 
-/// For building an OpenGL window.
-///
-/// Window parameters can be specified via the `window` method.
-///
-/// OpenGL context parameters can be specified via the `context` method.
+/// A context for building a window.
 pub struct Builder<'app> {
     app: &'app App,
     vk_physical_device: Option<vk::PhysicalDevice<'app>>,
@@ -71,18 +67,18 @@ pub(crate) struct UserFunctions {
 }
 
 /// The user function type for drawing their model to the surface of a single window.
-pub type ViewFn<Model> = fn(&App, &Model, Frame) -> Frame;
+pub type ViewFn<Model> = fn(&App, &Model, &Frame);
 
 /// The user function type for drawing their model to the surface of a single window.
 ///
 /// Unlike the `ViewFn`, the `RawViewFn` is designed for drawing directly to a window's swapchain
 /// images rather than to a convenient intermediary image.
-pub type RawViewFn<Model> = fn(&App, &Model, RawFrame) -> RawFrame;
+pub type RawViewFn<Model> = fn(&App, &Model, &RawFrame);
 
 /// The same as `ViewFn`, but provides no user model to draw from.
 ///
 /// Useful for simple, stateless sketching.
-pub type SketchFn = fn(&App, Frame) -> Frame;
+pub type SketchFn = fn(&App, &Frame);
 
 /// The user's view function, whether with a model or without one.
 #[derive(Clone)]
@@ -159,7 +155,7 @@ macro_rules! fn_any {
         // A handle to a function that can be stored without requiring a type param.
         #[derive(Clone)]
         pub(crate) struct $TFnAny {
-            fn_ptr: Arc<Any>,
+            fn_ptr: Arc<dyn Any>,
         }
 
         impl $TFnAny {
@@ -168,7 +164,7 @@ macro_rules! fn_any {
             where
                 M: 'static,
             {
-                let fn_ptr = Arc::new(fn_ptr) as Arc<Any>;
+                let fn_ptr = Arc::new(fn_ptr) as Arc<dyn Any>;
                 $TFnAny { fn_ptr }
             }
 
@@ -212,10 +208,10 @@ fn_any!(FocusedFn<M>, FocusedFnAny);
 fn_any!(UnfocusedFn<M>, UnfocusedFnAny);
 fn_any!(ClosedFn<M>, ClosedFnAny);
 
-/// An OpenGL window.
+/// A nannou window.
 ///
-/// The `Window` acts as a wrapper around the `glium::Display` type, providing a more
-/// nannou-friendly API.
+/// The `Window` acts as a wrapper around the `winit::Window` and `vulkano::Surface` types and
+/// manages the associated swapchain, providing a more nannou-friendly API.
 #[derive(Debug)]
 pub struct Window {
     pub(crate) queue: Arc<vk::Queue>,
@@ -261,7 +257,7 @@ pub(crate) struct WindowSwapchain {
     //
     // Destroying the `GpuFuture` blocks until the GPU is finished executing it. In order to avoid
     // that, we store the submission of the previous frame here.
-    pub(crate) previous_frame_end: Mutex<Option<vk::FenceSignalFuture<Box<vk::GpuFuture>>>>,
+    pub(crate) previous_frame_end: Mutex<Option<vk::FenceSignalFuture<Box<dyn vk::GpuFuture>>>>,
 }
 
 /// Swapchain building parameters for which Nannou will provide a default if unspecified.
@@ -296,11 +292,11 @@ pub struct SwapchainBuilder {
 ///   recently been recreated and the framebuffers should be recreated accordingly.
 #[derive(Default)]
 pub struct SwapchainFramebuffers {
-    framebuffers: Vec<Arc<vk::FramebufferAbstract + Send + Sync>>,
+    framebuffers: Vec<Arc<dyn vk::FramebufferAbstract + Send + Sync>>,
 }
 
 pub type SwapchainFramebufferBuilder<A> =
-    vk::FramebufferBuilder<Arc<vk::RenderPassAbstract + Send + Sync>, A>;
+    vk::FramebufferBuilder<Arc<dyn vk::RenderPassAbstract + Send + Sync>, A>;
 pub type FramebufferBuildResult<A> =
     Result<SwapchainFramebufferBuilder<A>, vk::FramebufferCreationError>;
 
@@ -309,7 +305,7 @@ impl SwapchainFramebuffers {
     pub fn update<F, A>(
         &mut self,
         frame: &RawFrame,
-        render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
+        render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
         builder: F,
     ) -> Result<(), vk::FramebufferCreationError>
     where
@@ -346,7 +342,7 @@ impl SwapchainFramebuffers {
 }
 
 impl ops::Deref for SwapchainFramebuffers {
-    type Target = [Arc<vk::FramebufferAbstract + Send + Sync>];
+    type Target = [Arc<dyn vk::FramebufferAbstract + Send + Sync>];
     fn deref(&self) -> &Self::Target {
         &self.framebuffers
     }
@@ -591,7 +587,7 @@ pub fn preferred_present_mode_and_image_count(
                 let image_count = image_count.unwrap_or_else(|| cmp::max(min_image_count, 2));
                 (vk::swapchain::PresentMode::Fifo, image_count)
             }
-            LoopMode::Wait { .. } | LoopMode::Rate { .. } => {
+            LoopMode::Wait { .. } | LoopMode::Rate { .. } | LoopMode::NTimes { .. } => {
                 if supported_present_modes.mailbox {
                     let image_count = image_count.unwrap_or_else(|| cmp::max(min_image_count, 3));
                     (vk::swapchain::PresentMode::Mailbox, image_count)
@@ -1074,7 +1070,6 @@ impl<'app> Builder<'app> {
                     queue.device().clone(),
                     swapchain.dimensions(),
                     msaa_samples,
-                    swapchain.format(),
                 )?;
                 (Some(render_data), msaa_samples)
             }
@@ -1496,6 +1491,19 @@ impl Window {
     /// The number of times `view` has been called with a `Frame` for this window.
     pub fn elapsed_frames(&self) -> u64 {
         self.frame_count
+    }
+
+    /// The rectangle representing the position and dimensions of the window.
+    ///
+    /// The window's position will always be `[0.0, 0.0]`, as positions are generally described
+    /// relative to the centre of the window itself.
+    ///
+    /// The dimensions will be equal to the result of `inner_size_points`. This represents the area
+    /// of the that we can draw to in a DPI-agnostic manner, typically useful for drawing and UI
+    /// positioning.
+    pub fn rect(&self) -> geom::Rect {
+        let (w, h) = self.inner_size_points();
+        geom::Rect::from_w_h(w, h)
     }
 }
 

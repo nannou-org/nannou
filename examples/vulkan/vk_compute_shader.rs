@@ -8,8 +8,8 @@ fn main() {
 struct Model {
     device: Arc<vk::Device>,
     queue: Arc<vk::Queue>,
-    pipeline: Arc<vk::ComputePipelineAbstract + Send + Sync>,
-    desciptor_set: Arc<vk::DescriptorSet + Send + Sync>,
+    pipeline: Arc<dyn vk::ComputePipelineAbstract + Send + Sync>,
+    desciptor_set: Arc<dyn vk::DescriptorSet + Send + Sync>,
     data_buffer: Arc<vk::CpuAccessibleBuffer<[f32]>>,
 }
 
@@ -148,7 +148,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     future.wait(None).unwrap();
 }
 
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
     let win = app.window_rect();
@@ -169,11 +169,8 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         draw.rect().x_y(x, y).w_h(1.0, h).hsv(hue, 1.0, 1.0);
     }
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the cleared frame.
-    frame
 }
 
 mod cs {

@@ -6,14 +6,14 @@ use std::cell::RefCell;
 use std::sync::Arc;
 
 pub struct Warp {
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     view_fbo: RefCell<ViewFbo>,
     uniform_buffer: vk::CpuBufferPool<vs::ty::Data>,
     sampler: Arc<vk::Sampler>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 struct Vertex {
     position: [f32; 3],
     v_tex_coords: [f32; 2],
@@ -35,7 +35,7 @@ pub(crate) fn warp(app: &App) -> Warp {
                 color: {
                     load: Clear,
                     store: Store,
-                    format: app.main_window().swapchain().format(),
+                    format: nannou::frame::COLOR_FORMAT,
                     samples: app.main_window().msaa_samples(),
                 }
             },
@@ -76,12 +76,7 @@ pub(crate) fn warp(app: &App) -> Warp {
     }
 }
 
-pub(crate) fn view(
-    app: &App,
-    model: &Model,
-    inter_image: Arc<vk::AttachmentImage>,
-    frame: Frame,
-) -> Frame {
+pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<vk::AttachmentImage>, frame: &Frame) {
     let Model { warp, controls, .. } = model;
 
     let [w, h] = frame.swapchain_image().dimensions();
@@ -175,8 +170,6 @@ pub(crate) fn view(
         .expect("Failed to draw")
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
-
-    frame
 }
 
 mod vs {

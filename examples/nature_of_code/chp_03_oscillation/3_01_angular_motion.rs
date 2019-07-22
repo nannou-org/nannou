@@ -36,7 +36,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     model.a_velocity += model.a_acceleration;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -59,9 +59,6 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .color(BLACK)
         .rotate(model.angle);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

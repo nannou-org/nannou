@@ -7,14 +7,14 @@ fn main() {
 }
 
 struct Model {
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
     view_fbo: RefCell<ViewFbo>,
-    desciptor_set: Arc<vk::DescriptorSet + Send + Sync>,
+    desciptor_set: Arc<dyn vk::DescriptorSet + Send + Sync>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 struct Vertex {
     position: [f32; 2],
 }
@@ -45,7 +45,7 @@ fn model(app: &App) -> Model {
                 color: {
                     load: Clear,
                     store: Store,
-                    format: app.main_window().swapchain().format(),
+                    format: nannou::frame::COLOR_FORMAT,
                     samples: app.main_window().msaa_samples(),
                 }
             },
@@ -131,7 +131,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     let [w, h] = frame.swapchain_image().dimensions();
     let viewport = vk::ViewportBuilder::new().build([w as _, h as _]);
     let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
@@ -140,7 +140,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     model
         .view_fbo
         .borrow_mut()
-        .update(&frame, model.render_pass.clone(), |builder, image| {
+        .update(frame, model.render_pass.clone(), |builder, image| {
             builder.add(image)
         })
         .unwrap();
@@ -149,7 +149,6 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
 
     let push_constants = fs::ty::PushConstantData {
         sequence_idx: (app.time * 124.0) as i32 % 86,
-        time: app.time * 20.0,
     };
 
     frame
@@ -174,8 +173,6 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .x_y(app.mouse.x * t.cos(), app.mouse.y)
         .radius(win.w() * 0.125 * t.sin())
         .rgba(1.0, 0.0, 0.0, 0.4);
-
-    frame
 }
 
 mod vs {
@@ -207,12 +204,10 @@ layout(set = 0, binding = 0) uniform sampler2DArray tex;
 
 layout(push_constant) uniform PushConstantData {
   int sequence_idx;
-  float time;
 } pc;
 
 void main() {
-    vec4 c = vec4( abs(tex_coords.x + sin(pc.time)), tex_coords.x, tex_coords.y * abs(cos(pc.time)), 1.0);
-    f_color = texture(tex, vec3(tex_coords, pc.sequence_idx)) + (c*0.6);
+    f_color = texture(tex, vec3(tex_coords, pc.sequence_idx));
 }"
     }
 }

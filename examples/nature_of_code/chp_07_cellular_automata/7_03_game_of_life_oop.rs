@@ -39,13 +39,13 @@ impl Cell {
 
     fn display(&self, draw: &app::Draw, x: f32, y: f32) {
         let fill = if self.previous == 0 && self.state == 1 {
-            Rgb::new(0.0, 0.0, 1.0)
+            rgb(0.0, 0.0, 1.0)
         } else if self.state == 1 {
-            Rgb::new(0.0, 0.0, 0.0)
+            rgb(0.0, 0.0, 0.0)
         } else if self.previous == 1 && self.state == 0 {
-            Rgb::new(1.0, 0.0, 0.0)
+            rgb(1.0, 0.0, 0.0)
         } else {
-            Rgb::new(1.0, 1.0, 1.0)
+            rgb(1.0, 1.0, 1.0)
         };
         draw.rect()
             .x_y(x, y)
@@ -172,16 +172,13 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     m.gol.generate();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) -> Frame {
+fn view(app: &App, m: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     m.gol.display(&draw, &app.window_rect());
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

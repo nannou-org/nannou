@@ -1,6 +1,7 @@
-use nannou::osc::{self, Type};
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
+use nannou_osc as osc;
+use nannou_osc::Type;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -84,7 +85,6 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         .set(model.text, &mut ui);
 }
 
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     model.ui.draw_to_frame(app, &frame).unwrap();
-    frame
 }

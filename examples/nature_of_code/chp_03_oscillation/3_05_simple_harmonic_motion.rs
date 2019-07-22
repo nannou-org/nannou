@@ -9,7 +9,7 @@ fn main() {
     nannou::sketch(view);
 }
 
-fn view(app: &App, frame: Frame) -> Frame {
+fn view(app: &App, frame: &Frame) {
     app.main_window().set_inner_size_points(640.0, 360.0);
     // Begin drawing
     let draw = app.draw();
@@ -25,9 +25,6 @@ fn view(app: &App, frame: Frame) -> Frame {
         .w_h(50.0, 50.0)
         .rgba(0.5, 0.5, 0.5, 1.0);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

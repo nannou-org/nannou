@@ -1,7 +1,7 @@
 use crate::draw::mesh::vertex::IntoPoint;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    spatial, ColorScalar, Draw, Drawn, IntoDrawn, Primitive, Rgba, SetColor, SetDimensions,
+    spatial, ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, Primitive, SetColor, SetDimensions,
     SetOrientation, SetPosition,
 };
 use crate::draw::{self, Drawing};
@@ -14,7 +14,7 @@ use std::ops;
 pub struct Tri<S = geom::scalar::Default> {
     tri: geom::Tri<Point3<S>>,
     spatial: spatial::Properties<S>,
-    color: Option<Rgba>,
+    color: Option<LinSrgba>,
 }
 
 // Tri-specific methods.
@@ -78,10 +78,10 @@ where
                         .color
                         .primitive
                         .get(&draw::theme::Primitive::Tri)
-                        .map(|&c| c)
+                        .map(|&c| c.into_linear())
                 })
             })
-            .unwrap_or(draw.theme(|t| t.color.default));
+            .unwrap_or(draw.theme(|t| t.color.default.into_linear()));
 
         let points = tri.vertices();
         let vertices = draw::mesh::vertex::IterFromPoints::new(points, color);
@@ -153,7 +153,7 @@ impl<S> SetDimensions<S> for Tri<S> {
 }
 
 impl<S> SetColor<ColorScalar> for Tri<S> {
-    fn rgba_mut(&mut self) -> &mut Option<Rgba> {
+    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.color)
     }
 }

@@ -1,9 +1,9 @@
 //! A collection of commonly used items that we recommend importing for ease of use.
 
 pub use crate::app::{self, App, LoopMode};
-pub use crate::audio;
 pub use crate::color::named::*;
-pub use crate::color::{Hsl, Hsla, Hsv, Hsva, Rgb, Rgba};
+pub use crate::color::{hsl, hsla, hsv, hsva, lin_srgb, lin_srgba, rgb, rgba, srgb, srgba};
+pub use crate::color::{Hsl, Hsla, Hsv, Hsva, LinSrgb, LinSrgba, Rgb, Rgba, Srgb, Srgba};
 pub use crate::event::WindowEvent::*;
 pub use crate::event::{
     AxisMotion, Event, Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase,
@@ -20,7 +20,6 @@ pub use crate::math::{
     clamp, deg_to_rad, fmod, map_range, partial_max, partial_min, rad_to_deg, rad_to_turns,
     turns_to_rad,
 };
-pub use crate::osc;
 pub use crate::rand::{random, random_f32, random_f64, random_range};
 pub use crate::time::DurationF64;
 pub use crate::ui;

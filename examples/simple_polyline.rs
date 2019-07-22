@@ -4,7 +4,7 @@ fn main() {
     nannou::sketch(view);
 }
 
-fn view(app: &App, frame: Frame) -> Frame {
+fn view(app: &App, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
 
@@ -34,16 +34,13 @@ fn view(app: &App, frame: Frame) -> Frame {
             let r = (t + fract) % 1.0;
             let g = (t + 1.0 - fract) % 1.0;
             let b = (t + 0.5 + fract) % 1.0;
-            let rgba = nannou::color::Rgba::new(r, g, b, 1.0);
-            geom::vertex::Rgba(p, rgba)
+            let rgba = srgba(r, g, b, 1.0);
+            geom::vertex::Srgba(p, rgba)
         });
 
     // Draw the polyline.
     draw.polyline().vertices(half_thickness, vertices);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

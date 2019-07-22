@@ -10,15 +10,15 @@ use std::sync::Arc;
 
 /// A type used for rendering a **nannou::draw::Mesh** with a vulkan graphics pipeline.
 pub struct Renderer {
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    graphics_pipeline: Arc<vk::GraphicsPipelineAbstract + Send + Sync>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    graphics_pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     vertices: Vec<Vertex>,
     render_pass_images: Option<RenderPassImages>,
     view_fbo: ViewFbo,
 }
 
 /// The `Vertex` type passed to the vertex shader.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct Vertex {
     // /// The mode with which the `Vertex` will be drawn within the fragment shader.
     // ///
@@ -34,6 +34,8 @@ pub struct Vertex {
     /// [1.0, -1.0, 0.0] is the rightmost, top position of the display.
     pub position: [f32; 3],
     /// A color associated with the `Vertex`.
+    ///
+    /// These values should be in the linear sRGB format.
     ///
     /// The way that the color is used depends on the `mode`.
     pub color: [f32; 4],
@@ -169,7 +171,8 @@ impl Vertex {
         let tex_x = NumCast::from(v.tex_coords.x).unwrap();
         let tex_y = NumCast::from(v.tex_coords.y).unwrap();
         let position = [x, y, z];
-        let color = [v.color.red, v.color.green, v.color.blue, v.color.alpha];
+        let (r, g, b, a) = v.color.into();
+        let color = [r, g, b, a];
         let tex_coords = [tex_x, tex_y];
         Vertex {
             position,
@@ -215,9 +218,9 @@ impl Renderer {
             depth_format,
             load_op,
             msaa_samples,
-        )?) as Arc<vk::RenderPassAbstract + Send + Sync>;
+        )?) as Arc<dyn vk::RenderPassAbstract + Send + Sync>;
         let graphics_pipeline = create_graphics_pipeline(render_pass.clone())?
-            as Arc<vk::GraphicsPipelineAbstract + Send + Sync>;
+            as Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>;
         let vertices = vec![];
         let render_pass_images = None;
         let view_fbo = ViewFbo::default();
@@ -256,7 +259,8 @@ impl Renderer {
         let (load_op, clear_color, clear_depth) = match bg_color {
             None => (vk::LoadOp::Load, vk::ClearValue::None, vk::ClearValue::None),
             Some(color) => {
-                let clear_color = [color.red, color.green, color.blue, color.alpha].into();
+                let (r, g, b, a) = color.into();
+                let clear_color = [r, g, b, a].into();
                 let clear_depth = 1f32.into();
                 (vk::LoadOp::Clear, clear_color, clear_depth)
             }
@@ -368,7 +372,7 @@ pub fn create_render_pass(
     depth_format: vk::Format,
     load_op: vk::LoadOp,
     msaa_samples: u32,
-) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
+) -> Result<Arc<dyn vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     // TODO: Remove this in favour of a nannou-specific, dynamic `RenderPassDesc` implementation.
     match load_op {
         vk::LoadOp::Clear => {
@@ -388,7 +392,7 @@ pub fn create_render_pass_clear(
     color_format: vk::Format,
     depth_format: vk::Format,
     msaa_samples: u32,
-) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
+) -> Result<Arc<dyn vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     let rp = vk::single_pass_renderpass!(
         device,
         attachments: {
@@ -420,7 +424,7 @@ pub fn create_render_pass_load(
     color_format: vk::Format,
     depth_format: vk::Format,
     msaa_samples: u32,
-) -> Result<Arc<vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
+) -> Result<Arc<dyn vk::RenderPassAbstract + Send + Sync>, vk::RenderPassCreationError> {
     let rp = vk::single_pass_renderpass!(
         device,
         attachments: {
@@ -454,7 +458,7 @@ pub fn dynamic_state(viewport_dimensions: [f32; 2]) -> vk::DynamicState {
 /// The graphics pipeline used by the renderer.
 pub fn create_graphics_pipeline<R>(
     render_pass: R,
-) -> Result<Arc<vk::GraphicsPipelineAbstract + Send + Sync>, GraphicsPipelineError>
+) -> Result<Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>, GraphicsPipelineError>
 where
     R: vk::RenderPassAbstract + Send + Sync + 'static,
 {

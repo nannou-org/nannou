@@ -27,9 +27,6 @@ fn model(app: &App) -> Model {
     Model
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
-    // Clear the window with dark charcoal.
-    frame.clear(DARK_CHARCOAL);
-    // Return the drawn frame.
-    frame
+fn view(_app: &App, _model: &Model, frame: &Frame) {
+    frame.clear(DIMGRAY);
 }

@@ -1,3 +1,28 @@
+# Unreleased
+
+# Version 0.10.0 (2019-07-21)
+
+- Change the `view` function signature to take `Frame` by reference rather than
+  by value.
+- Remove depth format constants in favour of querying supported formats.
+- Update from palette 0.2 to 0.4.
+- Add shorthand color constructors to the `color` module.
+- Remove nannou named colors in favour of using palette's.
+- Added a `named_color_reference.rs` example for finding suitable colors and to
+  act as a test of color accuracy.
+- Change the `Frame` image type from the swapchain color format (non-linear
+  sRGB) to a linear sRGB format for better consistency across platforms.
+- Add Window::rect method.
+- Add `simple_audio_file.rs` playback example.
+- Add a new `NTimes` loop mode.
+- Separate the OSC API out into a `nannou_osc` crate.
+- Separate the audio API out into a `nannou_audio` crate.
+- Update laser examples for switch from `lasy` to `nannou_laser`.
+- Update deps:
+  - rand 0.7
+  - conrod 0.66
+  - vulkano 0.13
+
 # Version 0.9.0 (2019-05-28)
 
 - Change graphics rendering backend from glium to vulkano! This affects a wide

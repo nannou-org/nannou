@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 struct Model {
-    render_pass: Arc<vk::RenderPassAbstract + Send + Sync>,
-    pipeline: Option<Arc<vk::GraphicsPipelineAbstract + Send + Sync>>,
+    render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
+    pipeline: Option<Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>>,
     vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
     view_fbo: RefCell<ViewFbo>,
     shade_watcher: shade_runner::Watch,
@@ -16,7 +16,7 @@ struct Model {
     device: Arc<vk::Device>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 struct Vertex {
     position: [f32; 2],
 }
@@ -100,7 +100,7 @@ fn model(app: &App) -> Model {
                     // be one of the types of the `vulkano::format` module (or alternatively one
                     // of your structs that implements the `FormatDesc` trait). Here we use the
                     // same format as the swapchain.
-                    format: app.main_window().swapchain().format(),
+                    format: nannou::frame::COLOR_FORMAT,
                     // TODO:
                     samples: app.main_window().msaa_samples(),
                 }
@@ -175,7 +175,7 @@ fn update(_app: &App, model: &mut Model, _: Update) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(_app: &App, model: &Model, frame: &Frame) {
     // Dynamic viewports allow us to recreate just the viewport when the window is resized
     // Otherwise we would have to recreate the whole pipeline.
     let [w, h] = frame.swapchain_image().dimensions();
@@ -186,7 +186,7 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
     model
         .view_fbo
         .borrow_mut()
-        .update(&frame, model.render_pass.clone(), |builder, image| {
+        .update(frame, model.render_pass.clone(), |builder, image| {
             builder.add(image)
         })
         .unwrap();
@@ -209,8 +209,6 @@ fn view(_app: &App, model: &Model, frame: Frame) -> Frame {
         .unwrap()
         .end_render_pass()
         .expect("failed to add `end_render_pass` command");
-
-    frame
 }
 
 fn update_pipeline(model: &mut Model) {

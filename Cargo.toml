@@ -1,6 +1,6 @@
 [package]
 name = "nannou"
-version = "0.9.0"
+version = "0.10.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A Creative Coding Framework for Rust."
 readme = "README.md"
@@ -13,31 +13,31 @@ edition = "2018"
 [dependencies]
 approx = "0.1"
 cgmath = { version = "0.16", features = ["serde"] }
-conrod_core = "0.65"
-conrod_winit = "0.65"
-conrod_vulkano = "0.65"
-cpal = "0.8"
+conrod_core = "0.66"
+conrod_winit = "0.66"
+conrod_vulkano = "0.66"
 daggy = "0.6"
 find_folder = "0.3"
 image = "0.21"
 noise = "0.5"
-palette = "0.2"
+palette = "0.4"
 pennereq = "0.3"
-rand = "0.6"
-rosc = "0.1"
-sample = "0.10"
+rand = "0.7"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
 toml = "0.4"
-vulkano = "0.12"
-vulkano-win = "0.12"
-vulkano-shaders = "0.12"
+vulkano = "0.13"
+vulkano-win = "0.13"
+vulkano-shaders = "0.13"
 winit = "0.19"
 
 [dev-dependencies]
-shade_runner = "0.1"
+audrey = "0.2"
+nannou_audio = "0.2"
 nannou_laser = "0.3"
+nannou_osc = "0.1"
+shade_runner = "0.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 moltenvk_deps = "0.1"
@@ -53,6 +53,9 @@ path = "examples/loop_mode.rs"
 name = "multi_window"
 path = "examples/multi_window.rs"
 [[example]]
+name = "named_color_reference"
+path = "examples/named_color_reference.rs"
+[[example]]
 name = "osc_receiver"
 path = "examples/osc_receiver.rs"
 [[example]]
@@ -61,6 +64,9 @@ path = "examples/osc_sender.rs"
 [[example]]
 name = "simple_audio"
 path = "examples/simple_audio.rs"
+[[example]]
+name = "simple_audio_file"
+path = "examples/simple_audio_file.rs"
 [[example]]
 name = "simple_draw"
 path = "examples/simple_draw.rs"
@@ -324,6 +330,20 @@ path = "examples/nature_of_code/chp_07_cellular_automata/7_03_game_of_life_oop.r
 [[example]]
 name = "7_04_exercise_wolfram_ca_scrolling"
 path = "examples/nature_of_code/chp_07_cellular_automata/7_04_exercise_wolfram_ca_scrolling.rs"
+
+# --------------- Chapter 8 Fractals
+[[example]] 
+name = "8_1_recursion" 
+path = "examples/nature_of_code/chp_08_fractals/8_1_recursion.rs"
+[[example]] 
+name = "8_2_recursion" 
+path = "examples/nature_of_code/chp_08_fractals/8_2_recursion.rs"
+[[example]] 
+name = "8_3_recursion" 
+path = "examples/nature_of_code/chp_08_fractals/8_3_recursion.rs"
+[[example]] 
+name = "8_4_cantor_set" 
+path = "examples/nature_of_code/chp_08_fractals/8_4_cantor_set.rs"
 
 # --------------- Offline examples
 [[example]]

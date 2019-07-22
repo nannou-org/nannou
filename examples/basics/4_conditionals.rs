@@ -4,7 +4,7 @@ fn main() {
     nannou::sketch(view);
 }
 
-fn view(app: &App, frame: Frame) -> Frame {
+fn view(app: &App, frame: &Frame) {
     // Prepare to draw.
     let draw = app.draw();
 
@@ -24,14 +24,11 @@ fn view(app: &App, frame: Frame) -> Frame {
     draw.background().color(bg_color);
 
     if app.mouse.x < 0.0 {
-        draw.ellipse().color(DARK_BLUE);
+        draw.ellipse().color(STEELBLUE);
     } else {
-        draw.ellipse().color(DARK_GREEN);
+        draw.ellipse().color(SEAGREEN);
     }
 
     // Draw to the window frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

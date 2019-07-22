@@ -56,10 +56,7 @@ fn event(_app: &App, _model: &mut Model, event: WindowEvent) {
     }
 }
 
-// put your main code here, to run repeatedly:
-fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
-    // Clear the window to a dark charcoal color.
-    frame.clear(DARK_CHARCOAL);
-    // Return the drawn frame.
-    frame
+// Put your drawing code, called once per frame, per window.
+fn view(_app: &App, _model: &Model, frame: &Frame) {
+    frame.clear(DIMGRAY);
 }

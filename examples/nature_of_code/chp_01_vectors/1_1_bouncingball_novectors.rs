@@ -51,7 +51,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -61,9 +61,6 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .w_h(50.0, 50.0)
         .rgba(0.5, 0.5, 0.5, 1.0);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

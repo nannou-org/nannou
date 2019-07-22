@@ -4,7 +4,7 @@ fn main() {
     nannou::sketch(view);
 }
 
-fn view(app: &App, frame: Frame) -> Frame {
+fn view(app: &App, frame: &Frame) {
     // Begin drawing
     let win = app.window_rect();
     let t = app.time;
@@ -40,17 +40,13 @@ fn view(app: &App, frame: Frame) -> Frame {
         let g = 1.0 - fract;
         let b = (0.5 + fract) % 1.0;
         let a = 1.0;
-        let color = Rgba::new(r, g, b, a);
-        (pt3(x, y, 0.0), color)
+        (pt3(x, y, 0.0), rgba(r, g, b, a))
     });
     draw.polygon()
         .colored_points(colored_points)
         .x(win.w() * 0.25)
         .rotate(t * 0.2);
 
-    // Write the result of our drawing to the window's OpenGL frame.
+    // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
-
-    // Return the drawn frame.
-    frame
 }

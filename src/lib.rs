@@ -31,7 +31,6 @@ pub use crate::app::{App, LoopMode};
 pub use crate::draw::Draw;
 
 pub mod app;
-pub mod audio;
 pub mod color;
 pub mod draw;
 pub mod ease;
@@ -43,7 +42,6 @@ pub mod io;
 pub mod math;
 pub mod mesh;
 pub mod noise;
-pub mod osc;
 pub mod prelude;
 pub mod rand;
 pub mod state;
