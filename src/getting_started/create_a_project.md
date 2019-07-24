@@ -31,7 +31,7 @@ create a new project with just a few small steps:
    edition = "2018"
    
    [dependencies]
-   nannou = "0.9"
+   nannou = "0.10"
    ```
 
 4. Replace the code in `src/main.rs` with the following to setup our nannou
@@ -57,9 +57,8 @@ create a new project with just a few small steps:
    fn update(_app: &App, _model: &mut Model, _update: Update) {
    }
 
-   fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
+   fn view(_app: &App, _model: &Model, frame: &Frame){
        frame.clear(PURPLE);
-       frame
    }
    ```
 
