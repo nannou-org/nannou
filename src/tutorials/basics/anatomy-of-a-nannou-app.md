@@ -46,8 +46,7 @@ fn model(_app: &App) -> Model {
 fn event(_app: &App, _model: &mut Model, _event: Event) {
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
-    frame
+fn view(_app: &App, _model: &Model, _frame: &Frame) {
 }
 ```
 
@@ -111,8 +110,7 @@ fn main() {
 # }
 # fn event(_app: &App, _model: &mut Model, _event: Event) {
 # }
-# fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
-#     frame
+# fn view(_app: &App, _model: &Model, _frame: &Frame) {
 # }
 ```
 
@@ -135,8 +133,7 @@ quite small. In short, we build a description of our app and then run it!
 # }
 # fn event(_app: &App, _model: &mut Model, _event: Event) {
 # }
-# fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
-#     frame
+# fn view(_app: &App, _model: &Model, _frame: &Frame) {
 # }
 ```
 
@@ -256,8 +253,7 @@ fn main() {
 # }
 # fn update(_app: &App, _model: &mut Model, _update: Update) {
 # }
-# fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
-#     frame
+# fn view(_app: &App, _model: &Model, _frame: &Frame) {
 # }
 ```
 
@@ -289,8 +285,7 @@ occurs.
 # extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
-fn view(_app: &App, _model: &Model, frame: Frame) -> Frame {
-    frame
+fn view(_app: &App, _model: &Model, _frame: &Frame) {
 }
 # fn main() {}
 ```
