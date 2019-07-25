@@ -180,8 +180,7 @@ fn model(_app: &amp;App) -&gt; Model {
 fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 }
 
-fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
-    frame
+fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
 }
 </code></pre></pre>
 <p>We will start from the top!</p>
@@ -235,8 +234,7 @@ fn main() {
 # }
 # fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 # }
-# fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
-#     frame
+# fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
 # }
 </code></pre></pre>
 <p>All Rust programs begin executing at the start of the <code>main</code> function and end
@@ -256,8 +254,7 @@ quite small. In short, we build a description of our app and then run it!</p>
 # }
 # fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 # }
-# fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
-#     frame
+# fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
 # }
 </code></pre></pre>
 <p>We will describe what these <strong>model</strong>, <strong>event</strong> and <strong>view</strong> functions do
@@ -362,8 +359,7 @@ fn main() {
 # }
 # fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
 # }
-# fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
-#     frame
+# fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
 # }
 </code></pre></pre>
 <p>And remove our <code>event</code> function in favour of an <code>update</code> function:</p>
@@ -389,8 +385,7 @@ available.</p>
 # extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
-fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
-    frame
+fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
 }
 # fn main() {}
 </code></pre></pre>

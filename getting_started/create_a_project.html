@@ -168,7 +168,7 @@ authors = [&quot;mitchmindtree &lt;mitchell.nordine@gmail.com&gt;&quot;]
 edition = &quot;2018&quot;
 
 [dependencies]
-nannou = &quot;0.9&quot;
+nannou = &quot;0.10&quot;
 </code></pre>
 </li>
 <li>
@@ -193,9 +193,8 @@ fn model(_app: &amp;App) -&gt; Model {
 fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
 }
 
-fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) -&gt; Frame {
+fn view(_app: &amp;App, _model: &amp;Model, frame: &amp;Frame){
     frame.clear(PURPLE);
-    frame
 }
 </code></pre></pre>
 <p>If you are new to Rust or simply do not understand the code above just yet,
