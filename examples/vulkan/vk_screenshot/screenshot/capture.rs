@@ -1,21 +1,33 @@
+use super::{new_input_image, new_output_image, Buffer};
 use nannou::prelude::*;
 use std::cell::RefCell;
 use std::sync::Arc;
+use vk::image::Dimensions;
 
 pub(crate) struct FrameCapture {
     render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
     resolve_fbo: RefCell<vk::Fbo>,
+    inter_color: Arc<vk::AttachmentImage>,
+    output_image: Arc<vk::StorageImage<vk::Format>>,
 }
 
 impl FrameCapture {
-    pub(crate) fn new(device: Arc<vk::Device>, msaa_samples: u32) -> Self {
+    pub(crate) fn new(device: Arc<vk::Device>, msaa_samples: u32, dims: [u32; 2]) -> Self {
         FrameCapture {
-            render_pass: create_render_pass(device, msaa_samples),
+            render_pass: create_render_pass(device.clone(), msaa_samples),
             resolve_fbo: Default::default(),
+            inter_color: new_input_image(device.clone(), dims),
+            output_image: new_output_image(
+                device,
+                Dimensions::Dim2d {
+                    width: dims[0],
+                    height: dims[1],
+                },
+            ),
         }
     }
 
-    pub(crate) fn capture(&self, frame: &Frame, input_color: Arc<vk::AttachmentImage>) {
+    pub(crate) fn capture(&self, frame: &Frame, screenshot_buffer: Buffer) {
         let [w, h] = frame.swapchain_image().dimensions();
         let dims = [w, h, 1];
         // Copy image in a pass so that we can resolve if needed
@@ -25,7 +37,7 @@ impl FrameCapture {
                 builder
                     .add(frame.image().clone())
                     .expect("Failed to add frame image")
-                    .add(input_color.clone())
+                    .add(self.inter_color.clone())
             })
             .expect("Failed to add input image");
         let clear_values = vec![vk::ClearValue::None, vk::ClearValue::None];
@@ -43,28 +55,54 @@ impl FrameCapture {
             .expect("failed to begin render pass for screenshot copy")
             .end_render_pass()
             .expect("failed to add `end_render_pass` command");
-        /*
+        let [w, h] = self.inter_color.dimensions();
+        let src = self.inter_color.clone();
+        let src_tl = [0; 3];
+        let src_br = [w as i32, h as i32, 1];
+        let src_base_layer = 0;
+        let src_mip_level = 0;
+        let dst = self.output_image.clone();
+        let dst_tl = [0; 3];
+        let dst_br = [w as i32, h as i32, 1];
+        let dst_base_layer = 0;
+        let dst_mip_level = 0;
+        let layer_count = 1;
+        let filter = vk::sampler::Filter::Linear;
         frame
             .add_commands()
-            .copy_image(
-                frame.swapchain_image().clone(),
-                [0, 0, 0],
-                0,
-                0,
-                input_color.clone(),
-                [0, 0, 0],
-                0,
-                0,
-                [w, h, 1],
-                1,
+            .blit_image(
+                src,
+                src_tl,
+                src_br,
+                src_base_layer,
+                src_mip_level,
+                dst,
+                dst_tl,
+                dst_br,
+                dst_base_layer,
+                dst_mip_level,
+                layer_count,
+                filter,
             )
-            .expect("Failed to copy image");
-            */
+            .expect("failed to blit linear sRGBA image to swapchain image")
+            .copy_image_to_buffer(self.output_image.clone(), screenshot_buffer.buffer.clone())
+            .expect("Failed to copy image to buffer");
     }
 
     pub(crate) fn clear(&self) {
         let mut fb = self.resolve_fbo.borrow_mut();
         *fb = Default::default();
+    }
+
+    pub(crate) fn update_images(&mut self, device: Arc<vk::Device>, dims: (usize, usize)) {
+        self.inter_color = new_input_image(device.clone(), [dims.0 as u32, dims.1 as u32]);
+        self.output_image = new_output_image(
+            device,
+            Dimensions::Dim2d {
+                width: dims.0 as u32,
+                height: dims.1 as u32,
+            },
+        );
     }
 }
 
@@ -85,7 +123,9 @@ fn create_render_pass(
                 load: DontCare,
                 store: Store,
                 //format: super::INPUT_IMAGE_FORMAT,
-                format: nannou::frame::COLOR_FORMAT,
+                //format: nannou::frame::COLOR_FORMAT,
+
+                format: vk::Format::R8G8B8A8Uint,
                 samples: 1,
             }
         },
