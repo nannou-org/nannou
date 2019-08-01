@@ -8,6 +8,8 @@ use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
+mod capture;
+
 // This must match the number of colours per
 // pixel.
 // RGBA = 4
@@ -16,7 +18,7 @@ use std::time::Duration;
 pub const NUM_COLOURS: usize = 4;
 
 struct ScreenShot {
-    pipeline: Arc<vk::ComputePipelineAbstract + Send + Sync>,
+    pipeline: Arc<dyn vk::ComputePipelineAbstract + Send + Sync>,
     screenshot_buffer: RefCell<Arc<vk::CpuAccessibleBuffer<[[u8; NUM_COLOURS]]>>>,
     output_image: RefCell<Arc<vk::StorageImage<vk::Format>>>,
     sampler: Arc<vk::Sampler>,
@@ -31,6 +33,7 @@ pub struct Shots {
     images_in: Receiver<Arc<vk::AttachmentImage>>,
     images_out: Sender<Msg>,
     saving_thread: Option<JoinHandle<()>>,
+    frame_capture: capture::FrameCapture,
 }
 
 enum Msg {
@@ -39,7 +42,7 @@ enum Msg {
     Kill,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 struct Vertex {
     position: [f32; 2],
 }
@@ -62,15 +65,17 @@ pub fn new(app: &App, window_id: WindowId) -> Shots {
             .send(input_image)
             .expect("Failed to send initial images");
     }
-    let screenshot = ScreenShot::new(queue, dims);
+    let screenshot = ScreenShot::new(queue.clone(), dims);
     let saving_thread = thread::spawn({ || save_images(screenshot, save_in, save_out) });
     let saving_thread = Some(saving_thread);
+    let frame_capture = capture::FrameCapture::new(queue.device().clone(), window.msaa_samples());
     Shots {
         num_shots: Cell::new(0),
         frames_since_empty: Cell::new(3),
         images_in,
         images_out,
         saving_thread,
+        frame_capture,
     }
 }
 
@@ -114,6 +119,7 @@ impl Shots {
     pub fn capture(&self, frame: &Frame) {
         let num_shots = self.num_shots.get();
         let mut frames_since_empty = self.frames_since_empty.get();
+        self.frame_capture.clear();
         if num_shots > 0 {
             if let Ok(mut image) = self.images_in.recv() {
                 if frame.swapchain_image().dimensions() != image.dimensions() {
@@ -122,7 +128,7 @@ impl Shots {
                         frame.swapchain_image().dimensions(),
                     );
                 }
-                copy_frame(frame, image.clone());
+                self.frame_capture.capture(frame, image.clone());
                 self.images_out.send(Msg::Buffer(image)).ok();
                 self.num_shots.set(num_shots - 1);
             }
@@ -294,7 +300,8 @@ fn new_input_image(device: Arc<vk::Device>, dims: [u32; 2]) -> Arc<vk::Attachmen
         device,
         dims,
         // TODO this needs to check if the swapchain is in BGRA or RGBA
-        vk::Format::B8G8R8A8Unorm,
+        //INPUT_IMAGE_FORMAT,
+        nannou::frame::COLOR_FORMAT,
         vk::ImageUsage {
             transfer_destination: true,
             sampled: true,
@@ -336,25 +343,6 @@ fn new_screenshot_buffer(
         buf.into_iter(),
     )
     .expect("Failed to create screenshot buffer")
-}
-
-fn copy_frame(frame: &Frame, input_color: Arc<vk::AttachmentImage>) {
-    let [w, h] = frame.swapchain_image().dimensions();
-    frame
-        .add_commands()
-        .copy_image(
-            frame.swapchain_image().clone(),
-            [0, 0, 0],
-            0,
-            0,
-            input_color.clone(),
-            [0, 0, 0],
-            0,
-            0,
-            [w, h, 1],
-            1,
-        )
-        .expect("Failed to copy image");
 }
 
 // TODO width and height are hard coded and should be passed in as

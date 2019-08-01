@@ -25,7 +25,7 @@ fn model(app: &App) -> Model {
     Model { screenshot }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
+fn view(app: &App, model: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
 
@@ -36,7 +36,7 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     let win = app.window_rect();
     draw.tri()
         .points(win.bottom_left(), win.top_left(), win.top_right())
-        .color(DARK_PURPLE);
+        .color(DARKVIOLET);
 
     // Draw an ellipse to follow the mouse.
     let t = app.time;
@@ -51,12 +51,12 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
         .end(win.bottom_right() * t.cos())
         .thickness(win.h() / (50.0 * t.sin()))
         .caps_round()
-        .color(LIGHT_YELLOW);
+        .color(LIGHTYELLOW);
 
     // Draw a quad that follows the inverse of the ellipse.
     draw.quad()
         .x_y(-app.mouse.x, app.mouse.y)
-        .color(DARK_GREEN)
+        .color(DARKGREEN)
         .rotate(t);
 
     // Draw a rect that follows a different inverse of the ellipse.
@@ -69,10 +69,8 @@ fn view(app: &App, model: &Model, frame: Frame) -> Frame {
     draw.to_frame(app, &frame).unwrap();
 
     // This only captures if take() is called
+    model.screenshot.take();
     model.screenshot.capture(&frame);
-
-    // Return the drawn frame.
-    frame
 }
 
 fn window_event(_app: &App, model: &mut Model, event: WindowEvent) {
@@ -106,5 +104,5 @@ fn window_event(_app: &App, model: &mut Model, event: WindowEvent) {
 fn exit(_: &App, model: Model) {
     // If you are getting an Access error then you
     // might need to raise the wait time
-    model.screenshot.flush(Duration::from_secs(1));
+    model.screenshot.flush(Duration::from_secs(3));
 }
