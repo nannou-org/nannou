@@ -69,7 +69,6 @@ fn view(app: &App, model: &Model, frame: &Frame) {
     draw.to_frame(app, &frame).unwrap();
 
     // This only captures if take() is called
-    model.screenshot.take();
     model.screenshot.capture(&frame);
 }
 
