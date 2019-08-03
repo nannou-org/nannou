@@ -1,59 +1,59 @@
 use crate::draw::mesh::vertex::IntoPoint;
+use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    spatial, ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, Primitive, SetColor, SetDimensions,
+    spatial, ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, SetColor, SetDimensions,
     SetOrientation, SetPosition,
 };
 use crate::draw::{self, Drawing};
 use crate::geom::{self, Point3, Vector3};
 use crate::math::{BaseFloat, ElementWise};
-use std::ops;
+use std::{iter, slice};
 
-/// Properties related to drawing a **Tri**.
+/// Properties related to drawing a **Quad**.
 #[derive(Clone, Debug)]
-pub struct Tri<S = geom::scalar::Default> {
-    tri: geom::Tri<Point3<S>>,
+pub struct Quad<S = geom::scalar::Default> {
+    quad: geom::Quad<Point3<S>>,
     spatial: spatial::Properties<S>,
     color: Option<LinSrgba>,
 }
+// Quad-specific methods.
 
-// Tri-specific methods.
-
-impl<S> Tri<S> {
-    /// Use the given three points as the vertices (corners) of the triangle.
-    pub fn points<P>(mut self, a: P, b: P, c: P) -> Self
+impl<S> Quad<S> {
+    /// Use the given four points as the vertices (corners) of the quad.
+    pub fn points<P>(mut self, a: P, b: P, c: P, d: P) -> Self
     where
         P: IntoPoint<S>,
     {
         let a = a.into_point();
         let b = b.into_point();
         let c = c.into_point();
-        self.tri = geom::Tri([a, b, c]);
+        let d = d.into_point();
+        self.quad = geom::Quad([a, b, c, d]);
         self
     }
 }
 
 // Trait implementations.
 
-impl<S> IntoDrawn<S> for Tri<S>
+impl<S> IntoDrawn<S> for Quad<S>
 where
     S: BaseFloat,
 {
-    type Vertices = draw::mesh::vertex::IterFromPoints<geom::tri::Vertices<Point3<S>>, S>;
-    type Indices = ops::Range<usize>;
+    type Vertices = draw::mesh::vertex::IterFromPoints<geom::quad::Vertices<Point3<S>>, S>;
+    type Indices = iter::Cloned<slice::Iter<'static, usize>>;
     fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
-        let Tri {
-            mut tri,
+        let Quad {
+            mut quad,
             spatial,
             color,
         } = self;
 
-        let (maybe_x, maybe_y, maybe_z) = spatial.dimensions.to_scalars(&draw);
-
         // If dimensions were specified, scale the points to those dimensions.
+        let (maybe_x, maybe_y, maybe_z) = spatial.dimensions.to_scalars(&draw);
         if maybe_x.is_some() || maybe_y.is_some() || maybe_z.is_some() {
-            let cuboid = tri.bounding_cuboid();
-            let centroid = tri.centroid();
+            let cuboid = quad.bounding_cuboid();
+            let centroid = quad.centroid();
             let x_scale = maybe_x.map(|x| x / cuboid.w()).unwrap_or_else(S::one);
             let y_scale = maybe_y.map(|y| y / cuboid.h()).unwrap_or_else(S::one);
             let z_scale = maybe_z.map(|z| z / cuboid.d()).unwrap_or_else(S::one);
@@ -62,12 +62,13 @@ where
                 y: y_scale,
                 z: z_scale,
             };
-            let (a, b, c) = tri.into();
+            let (a, b, c, d) = quad.into();
             let translate = |v: Point3<S>| centroid + ((v - centroid).mul_element_wise(scale));
             let new_a = translate(a);
             let new_b = translate(b);
             let new_c = translate(c);
-            tri = geom::Tri([new_a, new_b, new_c]);
+            let new_d = translate(d);
+            quad = geom::Quad([new_a, new_b, new_c, new_d]);
         }
 
         // The color.
@@ -77,82 +78,90 @@ where
                     theme
                         .color
                         .primitive
-                        .get(&draw::theme::Primitive::Tri)
+                        .get(&draw::theme::Primitive::Quad)
                         .map(|&c| c.into_linear())
                 })
             })
             .unwrap_or(draw.theme(|t| t.color.default.into_linear()));
 
-        let points = tri.vertices();
+        let points = quad.vertices();
         let vertices = draw::mesh::vertex::IterFromPoints::new(points, color);
-        let indices = 0..geom::tri::NUM_VERTICES as usize;
+        let indices = geom::quad::TRIANGLE_INDICES.iter().cloned();
 
         (spatial, vertices, indices)
     }
 }
 
-impl<S> From<geom::Tri<Point3<S>>> for Tri<S>
+impl<S> From<geom::Quad<Point3<S>>> for Quad<S>
 where
     S: BaseFloat,
 {
-    fn from(tri: geom::Tri<Point3<S>>) -> Self {
+    fn from(quad: geom::Quad<Point3<S>>) -> Self {
         let spatial = <_>::default();
         let color = <_>::default();
-        Tri {
-            tri,
+        Quad {
+            quad,
             spatial,
             color,
         }
     }
 }
 
-impl<S> Default for Tri<S>
+impl<S> Default for Quad<S>
 where
     S: BaseFloat,
 {
     fn default() -> Self {
-        // Create a triangle pointing towards 0.0 radians.
+        // Create a quad pointing towards 0.0 radians.
         let zero = S::zero();
         let fifty = S::from(50.0).unwrap();
-        let thirty_three = S::from(33.0).unwrap();
+        let left = -fifty;
+        let bottom = -fifty;
+        let right = fifty;
+        let top = fifty;
         let a = Point3 {
-            x: -fifty,
-            y: thirty_three,
+            x: left,
+            y: bottom,
             z: zero,
         };
         let b = Point3 {
-            x: fifty,
-            y: zero,
+            x: left,
+            y: top,
             z: zero,
         };
         let c = Point3 {
-            x: -fifty,
-            y: -thirty_three,
+            x: right,
+            y: top,
             z: zero,
         };
-        Tri::from(geom::Tri([a, b, c]))
+        let d = Point3 {
+            x: right,
+            y: bottom,
+            z: zero,
+        };
+        Quad::from(geom::Quad([a, b, c, d]))
     }
 }
 
-impl<S> SetOrientation<S> for Tri<S> {
+impl<S> SetOrientation<S> for Quad<S> {
     fn properties(&mut self) -> &mut orientation::Properties<S> {
         SetOrientation::properties(&mut self.spatial)
     }
 }
 
-impl<S> SetPosition<S> for Tri<S> {
+impl<S> SetPosition<S> for Quad<S> {
     fn properties(&mut self) -> &mut position::Properties<S> {
         SetPosition::properties(&mut self.spatial)
     }
 }
 
-impl<S> SetDimensions<S> for Tri<S> {
+impl<S> SetDimensions<S> for Quad<S> {
     fn properties(&mut self) -> &mut dimension::Properties<S> {
         SetDimensions::properties(&mut self.spatial)
     }
 }
 
-impl<S> SetColor<ColorScalar> for Tri<S> {
+impl<S> SetColor<ColorScalar> for Quad<S> {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.color)
     }
@@ -160,16 +169,16 @@ impl<S> SetColor<ColorScalar> for Tri<S> {
 
 // Primitive conversions.
 
-impl<S> From<Tri<S>> for Primitive<S> {
-    fn from(prim: Tri<S>) -> Self {
-        Primitive::Tri(prim)
+impl<S> From<Quad<S>> for Primitive<S> {
+    fn from(prim: Quad<S>) -> Self {
+        Primitive::Quad(prim)
     }
 }
 
-impl<S> Into<Option<Tri<S>>> for Primitive<S> {
-    fn into(self) -> Option<Tri<S>> {
+impl<S> Into<Option<Quad<S>>> for Primitive<S> {
+    fn into(self) -> Option<Quad<S>> {
         match self {
-            Primitive::Tri(prim) => Some(prim),
+            Primitive::Quad(prim) => Some(prim),
             _ => None,
         }
     }
@@ -177,15 +186,15 @@ impl<S> Into<Option<Tri<S>>> for Primitive<S> {
 
 // Drawing methods.
 
-impl<'a, S> Drawing<'a, Tri<S>, S>
+impl<'a, S> Drawing<'a, Quad<S>, S>
 where
     S: BaseFloat,
 {
-    /// Use the given points as the vertices (corners) of the triangle.
-    pub fn points<P>(self, a: P, b: P, c: P) -> Self
+    /// Use the given points as the vertices (corners) of the quad.
+    pub fn points<P>(self, a: P, b: P, c: P, d: P) -> Self
     where
         P: IntoPoint<S>,
     {
-        self.map_ty(|ty| ty.points(a, b, c))
+        self.map_ty(|ty| ty.points(a, b, c, d))
     }
 }

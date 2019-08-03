@@ -1,5 +1,3 @@
-use crate::geom;
-
 pub mod ellipse;
 pub mod line;
 pub mod mesh;
@@ -8,6 +6,8 @@ pub mod polyline;
 pub mod quad;
 pub mod rect;
 pub mod tri;
+
+use crate::geom;
 
 pub use self::ellipse::Ellipse;
 pub use self::line::Line;

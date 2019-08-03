@@ -6,6 +6,10 @@
 //! Each **Drawing** instance is associated with a specific **Node** in the geometry graph and has
 //! a unique **node::Index** to simplify this.
 
+pub mod color;
+pub mod spatial;
+
+use self::spatial::dimension;
 use crate::draw;
 use crate::geom;
 use crate::geom::graph::node;
@@ -13,14 +17,7 @@ use crate::math::BaseFloat;
 use std::cell::RefCell;
 use std::ops;
 
-pub mod color;
-pub mod primitive;
-pub mod spatial;
-
-use self::spatial::dimension;
-
 pub use self::color::SetColor;
-pub use self::primitive::{Ellipse, Line, Primitive, Quad, Rect, Tri};
 pub use self::spatial::dimension::SetDimensions;
 pub use self::spatial::orientation::SetOrientation;
 pub use self::spatial::position::SetPosition;

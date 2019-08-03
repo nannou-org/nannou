@@ -15,15 +15,17 @@ pub use self::mesh::intermediary::{
     IntermediaryMesh, IntermediaryMeshBuilder, IntermediaryVertexData, IntermediaryVertexDataRanges,
 };
 pub use self::mesh::Mesh;
+use self::primitive::Primitive;
 use self::properties::spatial::orientation::{self, Orientation};
 use self::properties::spatial::position::{self, Position};
-use self::properties::{IntoDrawn, Primitive};
+use self::properties::IntoDrawn;
 pub use self::theme::Theme;
 
 pub mod backend;
 pub mod background;
 mod drawing;
 pub mod mesh;
+pub mod primitive;
 pub mod properties;
 pub mod theme;
 
@@ -84,7 +86,7 @@ where
     /// The map from node indices to their vertex and index ranges within the mesh.
     ranges: HashMap<node::Index, Ranges>,
     /// Primitives that are in the process of being drawn.
-    drawing: HashMap<node::Index, properties::Primitive<S>>,
+    drawing: HashMap<node::Index, Primitive<S>>,
     /// The last node that was **Drawn**.
     last_node_drawn: Option<node::Index>,
     /// The theme containing default values.
@@ -552,42 +554,42 @@ where
     }
 
     /// Begin drawing an **Ellipse**.
-    pub fn ellipse(&self) -> Drawing<properties::Ellipse<S>, S> {
+    pub fn ellipse(&self) -> Drawing<primitive::Ellipse<S>, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Line**.
-    pub fn line(&self) -> Drawing<properties::Line<S>, S> {
+    pub fn line(&self) -> Drawing<primitive::Line<S>, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Quad**.
-    pub fn quad(&self) -> Drawing<properties::Quad<S>, S> {
+    pub fn quad(&self) -> Drawing<primitive::Quad<S>, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Rect**.
-    pub fn rect(&self) -> Drawing<properties::Rect<S>, S> {
+    pub fn rect(&self) -> Drawing<primitive::Rect<S>, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Triangle**.
-    pub fn tri(&self) -> Drawing<properties::Tri<S>, S> {
+    pub fn tri(&self) -> Drawing<primitive::Tri<S>, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polygon**.
-    pub fn polygon(&self) -> Drawing<properties::primitive::polygon::Pointless, S> {
+    pub fn polygon(&self) -> Drawing<primitive::polygon::Pointless, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Mesh**.
-    pub fn mesh(&self) -> Drawing<properties::primitive::mesh::Vertexless, S> {
+    pub fn mesh(&self) -> Drawing<primitive::mesh::Vertexless, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polyline**.
-    pub fn polyline(&self) -> Drawing<properties::primitive::PolylineVertexless, S> {
+    pub fn polyline(&self) -> Drawing<primitive::PolylineVertexless, S> {
         self.a(Default::default())
     }
 

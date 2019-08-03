@@ -1,6 +1,7 @@
+use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, orientation, position};
 use crate::draw::properties::{
-    ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, Primitive, SetColor, SetOrientation, SetPosition,
+    ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, SetColor, SetOrientation, SetPosition,
 };
 use crate::draw::{self, mesh, Drawing};
 use crate::geom;

@@ -1,7 +1,8 @@
 use crate::color::conv::IntoLinSrgba;
 use crate::draw::mesh::vertex::IntoVertex;
+use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, orientation, position};
-use crate::draw::properties::{Draw, Drawn, IntoDrawn, Primitive, SetOrientation, SetPosition};
+use crate::draw::properties::{Draw, Drawn, IntoDrawn, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
 use crate::geom::{self, pt2};
 use crate::math::BaseFloat;

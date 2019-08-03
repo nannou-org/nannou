@@ -1,7 +1,8 @@
 use crate::color::IntoLinSrgba;
+use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    ColorScalar, IntoDrawn, Primitive, SetColor, SetDimensions, SetOrientation, SetPosition,
+    ColorScalar, IntoDrawn, SetColor, SetDimensions, SetOrientation, SetPosition,
 };
 use crate::draw::{self, Draw};
 use crate::geom::graph::node;
@@ -110,7 +111,7 @@ where
     // The functionn is only applied if the node has not yet been **Drawn**.
     fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
     where
-        F: FnOnce(draw::properties::Primitive<S>) -> draw::properties::Primitive<S>,
+        F: FnOnce(Primitive<S>) -> Primitive<S>,
         T2: IntoDrawn<S> + Into<Primitive<S>>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
@@ -134,10 +135,7 @@ where
     // vertices.
     fn map_primitive_with_vertices<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
     where
-        F: FnOnce(
-            draw::properties::Primitive<S>,
-            &mut draw::IntermediaryMesh<S>,
-        ) -> draw::properties::Primitive<S>,
+        F: FnOnce(Primitive<S>, &mut draw::IntermediaryMesh<S>) -> Primitive<S>,
         T2: IntoDrawn<S> + Into<Primitive<S>>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
