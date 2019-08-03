@@ -3,6 +3,10 @@
 - Add an example that demonstrates using the Draw API with multiple windows.
 - Fix a bug where `Draw::to_frame` would `panic!` when used between multiple
   windows.
+- Add lyon for 2D tessellation.
+- Fix all known polyline bugs by switching to lyon polyline tessellation.
+- Add polyline methods for specifying line caps, line joins, miter limits,
+  approximation tolerance, and closing end and start points.
 
 # Version 0.10.0 (2019-07-21)
 
