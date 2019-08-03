@@ -587,7 +587,7 @@ where
     }
 
     /// Begin drawing a **Polyline**.
-    pub fn polyline(&self) -> Drawing<properties::primitive::polyline::Vertexless, S> {
+    pub fn polyline(&self) -> Drawing<properties::primitive::PolylineVertexless, S> {
         self.a(Default::default())
     }
 

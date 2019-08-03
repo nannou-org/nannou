@@ -13,7 +13,7 @@ use std::ops;
 
 /// A polyline prior to being initialised.
 #[derive(Clone, Debug, Default)]
-pub struct Vertexless {
+pub struct PolylineVertexless {
     opts: StrokeOptions,
     close: bool,
 }
@@ -27,12 +27,19 @@ pub struct Polyline<S = geom::scalar::Default> {
     index_range: ops::Range<usize>,
 }
 
+/// The drawing context for a polyline, prior to vertex submission.
+pub type DrawingPolylineVertexless<'a, S = geom::scalar::Default> =
+    Drawing<'a, PolylineVertexless, S>;
+
+/// The drawing context for a polyline whose vertices have been specified.
+pub type DrawingPolyline<'a, S = geom::scalar::Default> = Drawing<'a, Polyline, S>;
+
 struct PolylineGeometryBuilder<'a, 'mesh, S = geom::scalar::Default> {
     builder: &'a mut draw::IntermediaryMeshBuilder<'mesh, S>,
     color: &'a Cell<draw::mesh::vertex::Color>,
 }
 
-impl Vertexless {
+impl PolylineVertexless {
     /// The start line cap as specified by the SVG spec.
     pub fn start_cap(mut self, cap: LineCap) -> Self {
         self.opts.start_cap = cap;
@@ -238,7 +245,7 @@ where
     }
 }
 
-impl<'a, S> Drawing<'a, Vertexless, S>
+impl<'a, S> DrawingPolylineVertexless<'a, S>
 where
     S: BaseFloat,
 {
@@ -425,7 +432,7 @@ where
     }
 }
 
-impl<S> IntoDrawn<S> for Vertexless
+impl<S> IntoDrawn<S> for PolylineVertexless
 where
     S: BaseFloat,
 {
@@ -479,8 +486,8 @@ impl<S> SetPosition<S> for Polyline<S> {
     }
 }
 
-impl<S> From<Vertexless> for Primitive<S> {
-    fn from(prim: Vertexless) -> Self {
+impl<S> From<PolylineVertexless> for Primitive<S> {
+    fn from(prim: PolylineVertexless) -> Self {
         Primitive::PolylineVertexless(prim)
     }
 }
@@ -491,8 +498,8 @@ impl<S> From<Polyline<S>> for Primitive<S> {
     }
 }
 
-impl<S> Into<Option<Vertexless>> for Primitive<S> {
-    fn into(self) -> Option<Vertexless> {
+impl<S> Into<Option<PolylineVertexless>> for Primitive<S> {
+    fn into(self) -> Option<PolylineVertexless> {
         match self {
             Primitive::PolylineVertexless(prim) => Some(prim),
             _ => None,
