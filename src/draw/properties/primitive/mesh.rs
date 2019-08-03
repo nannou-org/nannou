@@ -31,7 +31,7 @@ impl Vertexless {
     /// Describe the mesh with a sequence of triangles.
     ///
     /// Each triangle may be composed of any vertex type that may be converted directly into the
-    /// `draw;;mesh::vertex` type.
+    /// `draw::mesh::vertex` type.
     pub fn tris<S, I, V>(self, mesh: &mut draw::IntermediaryMesh<S>, tris: I) -> Mesh<S>
     where
         S: BaseFloat,
@@ -75,7 +75,7 @@ impl Vertexless {
     ///
     /// Each trio of `indices` describes a single triangle of `vertices`.
     ///
-    /// Each vertex may be any type that may be converted directly into the `draw;;mesh::vertex`
+    /// Each vertex may be any type that may be converted directly into the `draw::mesh::vertex`
     /// type.
     pub fn indexed<S, V, I>(
         self,

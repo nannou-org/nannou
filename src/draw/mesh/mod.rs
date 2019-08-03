@@ -5,6 +5,7 @@ use crate::math::{BaseFloat, BaseNum};
 use crate::mesh::{self, MeshPoints, WithColors, WithIndices, WithTexCoords};
 use std::ops::{Deref, DerefMut};
 
+pub mod intermediary;
 pub mod vertex;
 
 pub use self::vertex::Vertex;

@@ -16,7 +16,7 @@ fn view(app: &App, frame: &Frame) {
 
     // Decide on a number of points and a thickness.
     let n_points = 10;
-    let half_thickness = 4.0;
+    let thickness = 8.0;
     let hz = ((app.mouse.x + win.right()) / win.w()).powi(4) * 1000.0;
     let vertices = (0..n_points)
         // A sine wave mapped to the range of the window.
@@ -39,7 +39,7 @@ fn view(app: &App, frame: &Frame) {
         });
 
     // Draw the polyline.
-    draw.polyline().vertices(half_thickness, vertices);
+    draw.polyline().thickness(thickness).vertices(vertices);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();

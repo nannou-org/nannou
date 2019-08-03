@@ -11,7 +11,8 @@ pub type Normal<S> = Vector3<S>;
 pub type ColoredPoint<S> = WithColor<Point<S>, Color>;
 
 /// The vertex type produced by the **draw::Mesh**'s inner **MeshType**.
-pub type Vertex<S> = WithTexCoords<WithColor<Point<S>, Color>, TexCoords<S>>;
+pub type Vertex<S = geom::scalar::Default> =
+    WithTexCoords<WithColor<Point<S>, Color>, TexCoords<S>>;
 
 /// Types that can be converted directly into a **draw::mesh::Vertex**.
 pub trait IntoVertex<S> {
