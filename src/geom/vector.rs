@@ -906,6 +906,155 @@ mod cgmath_impl {
     }
 }
 
+mod lyon_impl {
+    use crate::math::Zero;
+    use super::{Vector2, Vector3, Vector4};
+
+    impl<S> From<lyon::math::Point> for Vector2<S>
+    where
+        S: From<f32>,
+    {
+        fn from(p: lyon::math::Point) -> Self {
+            (S::from(p.x), S::from(p.y)).into()
+        }
+    }
+
+    impl<S> From<lyon::math::Point> for Vector3<S>
+    where
+        S: From<f32> + Zero,
+    {
+        fn from(p: lyon::math::Point) -> Self {
+            Vector2::from(p).into()
+        }
+    }
+
+    impl<S> From<lyon::math::Point> for Vector4<S>
+    where
+        S: From<f32> + Zero,
+    {
+        fn from(p: lyon::math::Point) -> Self {
+            Vector2::from(p).into()
+        }
+    }
+
+    impl<S> From<lyon::math::F64Point> for Vector2<S>
+    where
+        S: From<f64>,
+    {
+        fn from(p: lyon::math::F64Point) -> Self {
+            (S::from(p.x), S::from(p.y)).into()
+        }
+    }
+
+    impl<S> From<lyon::math::F64Point> for Vector3<S>
+    where
+        S: From<f64> + Zero,
+    {
+        fn from(p: lyon::math::F64Point) -> Self {
+            Vector2::from(p).into()
+        }
+    }
+
+    impl<S> From<lyon::math::F64Point> for Vector4<S>
+    where
+        S: From<f64> + Zero,
+    {
+        fn from(p: lyon::math::F64Point) -> Self {
+            Vector2::from(p).into()
+        }
+    }
+
+    impl<S> From<lyon::math::Size> for Vector2<S>
+    where
+        S: From<f32>,
+    {
+        fn from(p: lyon::math::Size) -> Self {
+            (S::from(p.width), S::from(p.height)).into()
+        }
+    }
+
+    impl<S> From<lyon::math::Size> for Vector3<S>
+    where
+        S: From<f32> + Zero,
+    {
+        fn from(p: lyon::math::Size) -> Self {
+            Vector2::from(p).into()
+        }
+    }
+
+    impl<S> From<lyon::math::Size> for Vector4<S>
+    where
+        S: From<f32> + Zero,
+    {
+        fn from(p: lyon::math::Size) -> Self {
+            Vector2::from(p).into()
+        }
+    }
+
+    impl Into<lyon::math::Point> for Vector2 {
+        fn into(self) -> lyon::math::Point {
+            (self.x, self.y).into()
+        }
+    }
+
+    impl Into<lyon::math::Point> for Vector3 {
+        fn into(self) -> lyon::math::Point {
+            (self.x, self.y).into()
+        }
+    }
+
+    impl Into<lyon::math::Point> for Vector4 {
+        fn into(self) -> lyon::math::Point {
+            (self.x, self.y).into()
+        }
+    }
+
+    impl<S> Into<lyon::math::F64Point> for Vector2<S>
+    where
+        S: Into<f64>,
+    {
+        fn into(self) -> lyon::math::F64Point {
+            (self.x.into(), self.y.into()).into()
+        }
+    }
+
+    impl<S> Into<lyon::math::F64Point> for Vector3<S>
+    where
+        S: Into<f64>,
+    {
+        fn into(self) -> lyon::math::F64Point {
+            (self.x.into(), self.y.into()).into()
+        }
+    }
+
+    impl<S> Into<lyon::math::F64Point> for Vector4<S>
+    where
+        S: Into<f64>,
+    {
+        fn into(self) -> lyon::math::F64Point {
+            (self.x.into(), self.y.into()).into()
+        }
+    }
+
+    impl Into<lyon::math::Size> for Vector2 {
+        fn into(self) -> lyon::math::Size {
+            (self.x, self.y).into()
+        }
+    }
+
+    impl Into<lyon::math::Size> for Vector3 {
+        fn into(self) -> lyon::math::Size {
+            (self.x, self.y).into()
+        }
+    }
+
+    impl Into<lyon::math::Size> for Vector4 {
+        fn into(self) -> lyon::math::Size {
+            (self.x, self.y).into()
+        }
+    }
+}
+
 impl_vector!(Vector2 { x, y }, 2, vec2);
 impl_vector!(Vector3 { x, y, z }, 3, vec3);
 impl_vector!(Vector4 { x, y, z, w }, 4, vec4);
