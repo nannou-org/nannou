@@ -17,6 +17,7 @@ pub mod cuboid;
 pub mod ellipse;
 pub mod graph;
 pub mod line;
+pub mod path;
 pub mod point;
 pub mod polygon;
 pub mod quad;

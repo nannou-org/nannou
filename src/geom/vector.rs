@@ -964,6 +964,33 @@ mod lyon_impl {
         }
     }
 
+    impl<S> From<lyon::math::Vector> for Vector2<S>
+    where
+        S: From<f32>,
+    {
+        fn from(v: lyon::math::Vector) -> Self {
+            (S::from(v.x), S::from(v.y)).into()
+        }
+    }
+
+    impl<S> From<lyon::math::Vector> for Vector3<S>
+    where
+        S: From<f32> + Zero,
+    {
+        fn from(v: lyon::math::Vector) -> Self {
+            Vector2::from(v).into()
+        }
+    }
+
+    impl<S> From<lyon::math::Vector> for Vector4<S>
+    where
+        S: From<f32> + Zero,
+    {
+        fn from(v: lyon::math::Vector) -> Self {
+            Vector2::from(v).into()
+        }
+    }
+
     impl<S> From<lyon::math::Size> for Vector2<S>
     where
         S: From<f32>,
@@ -1033,6 +1060,24 @@ mod lyon_impl {
     {
         fn into(self) -> lyon::math::F64Point {
             (self.x.into(), self.y.into()).into()
+        }
+    }
+
+    impl Into<lyon::math::Vector> for Vector2 {
+        fn into(self) -> lyon::math::Vector {
+            (self.x, self.y).into()
+        }
+    }
+
+    impl Into<lyon::math::Vector> for Vector3 {
+        fn into(self) -> lyon::math::Vector {
+            (self.x, self.y).into()
+        }
+    }
+
+    impl Into<lyon::math::Vector> for Vector4 {
+        fn into(self) -> lyon::math::Vector {
+            (self.x, self.y).into()
         }
     }
 
