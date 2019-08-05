@@ -4,13 +4,13 @@
 use crate::geom::graph::{edge, node};
 use crate::geom::{self, Vector3};
 use crate::math::BaseFloat;
+use lyon::tessellation::FillTessellator;
 use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
-use std::mem;
-use std::ops;
+use std::{fmt, mem, ops};
 
 pub use self::background::Background;
-pub use self::drawing::Drawing;
+pub use self::drawing::{Drawing, DrawingContext};
 pub use self::mesh::intermediary::{
     IntermediaryMesh, IntermediaryMeshBuilder, IntermediaryVertexData, IntermediaryVertexDataRanges,
 };
@@ -79,8 +79,10 @@ where
     geom_graph: geom::Graph<S>,
     /// For performing a depth-first search over the geometry graph.
     geom_graph_dfs: RefCell<geom::graph::node::Dfs<S>>,
-    /// Buffers of vertex data that may be re-used for polylines, polygons, etc between view calls.
+    /// Buffers of vertex data that may be re-used for paths, meshes, etc between view calls.
     intermediary_mesh: RefCell<IntermediaryMesh<S>>,
+    /// A fill tessellator that may be re-used for 2D paths, meshes, etc between view calls.
+    fill_tessellator: RefCell<FillTessellatorWrapper>,
     /// The mesh containing vertices for all drawn shapes, etc.
     mesh: Mesh<S>,
     /// The map from node indices to their vertex and index ranges within the mesh.
@@ -93,6 +95,22 @@ where
     theme: Theme,
     /// If `Some`, the **Draw** should first clear the frame's gl context with the given color.
     background_color: Option<properties::LinSrgba>,
+}
+
+// Simple wrapper providing Clone and Debug.
+#[derive(Default)]
+pub(crate) struct FillTessellatorWrapper(pub(crate) FillTessellator);
+
+impl Clone for FillTessellatorWrapper {
+    fn clone(&self) -> Self {
+        Default::default()
+    }
+}
+
+impl fmt::Debug for FillTessellatorWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "FillTessellator")
+    }
 }
 
 /// The vertex and index ranges into a mesh for a particular node.
@@ -359,6 +377,10 @@ where
         Primitive::Line(prim) => into_drawn(draw, node_index, prim),
         Primitive::MeshVertexless(prim) => into_drawn(draw, node_index, prim),
         Primitive::Mesh(prim) => into_drawn(draw, node_index, prim),
+        Primitive::PathInit(prim) => into_drawn(draw, node_index, prim),
+        Primitive::PathFill(prim) => into_drawn(draw, node_index, prim),
+        Primitive::PathStroke(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Path(prim) => into_drawn(draw, node_index, prim),
         Primitive::PolygonPointless(prim) => into_drawn(draw, node_index, prim),
         Primitive::PolygonFill(prim) => into_drawn(draw, node_index, prim),
         Primitive::PolygonColorPerVertex(prim) => into_drawn(draw, node_index, prim),
@@ -551,6 +573,11 @@ where
         let primitive: Primitive<S> = primitive.into();
         self.state.borrow_mut().drawing.insert(index, primitive);
         drawing::new(self, index)
+    }
+
+    /// Begin drawing a **Path**.
+    pub fn path(&self) -> Drawing<primitive::PathInit, S> {
+        self.a(Default::default())
     }
 
     /// Begin drawing an **Ellipse**.
@@ -759,6 +786,7 @@ where
         let geom_graph_dfs = RefCell::new(geom::graph::node::Dfs::new(&geom_graph));
         let drawing = Default::default();
         let intermediary_mesh = RefCell::new(Default::default());
+        let fill_tessellator = RefCell::new(Default::default());
         let mesh = Default::default();
         let ranges = Default::default();
         let theme = Default::default();
@@ -768,6 +796,7 @@ where
             geom_graph,
             geom_graph_dfs,
             intermediary_mesh,
+            fill_tessellator,
             mesh,
             drawing,
             ranges,

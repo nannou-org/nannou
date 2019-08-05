@@ -105,7 +105,7 @@ where
         P::Item: Into<mesh::vertex::Point<S>>,
         S: BaseFloat,
     {
-        self.map_ty_with_vertices(|ty, mesh| ty.points(&mut mesh.vertex_data, points))
+        self.map_ty_with_context(|ty, ctxt| ty.points(&mut ctxt.mesh.vertex_data, points))
     }
 
     /// Describe the polygon's edges with the given list of consecutive vertices that join them.
@@ -117,7 +117,7 @@ where
         P::Item: Into<mesh::vertex::ColoredPoint<S>>,
         S: BaseFloat,
     {
-        self.map_ty_with_vertices(|ty, mesh| ty.colored_points(&mut mesh.vertex_data, points))
+        self.map_ty_with_context(|ty, ctxt| ty.colored_points(&mut ctxt.mesh.vertex_data, points))
     }
 }
 

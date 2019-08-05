@@ -1,8 +1,13 @@
 use crate::draw::mesh;
-use crate::geom;
+use crate::geom::{self, Point2, Point3};
 use crate::mesh::vertex::{WithColor, WithTexCoords};
 use lyon::tessellation::geometry_builder::{self, GeometryBuilder, GeometryBuilderError, VertexId};
 use std::ops;
+
+/// Types supported by the **IntermediaryMesh** **GeometryBuilder** implementation.
+pub trait IntermediaryVertex<S> {
+    fn add_to_data(self, mesh: &mut IntermediaryVertexData<S>);
+}
 
 /// A set of intermediary buffers for collecting geometry point data for geometry types that may
 /// produce a dynamic number of vertices that may or not also contain colour or texture data.
@@ -70,6 +75,28 @@ impl<'a, S> IntermediaryMeshBuilder<'a, S> {
         self.index_range.end = self.mesh.indices.len();
     }
 
+    pub(crate) fn begin_geom(&mut self) {
+        self.update_ranges_start();
+        self.vertex_data_ranges.points.end = self.vertex_data_ranges.points.start;
+    }
+
+    pub(crate) fn end_geom(&mut self) -> geometry_builder::Count {
+        self.update_ranges_end();
+        let vertices = self.vertex_data_ranges.points.len() as u32;
+        let indices = self.index_range.len() as u32;
+        geometry_builder::Count { vertices, indices }
+    }
+
+    pub(crate) fn add_tri(&mut self, a: VertexId, b: VertexId, c: VertexId) {
+        self.mesh.indices.push(a.to_usize());
+        self.mesh.indices.push(b.to_usize());
+        self.mesh.indices.push(c.to_usize());
+    }
+
+    pub(crate) fn abort_geom(&mut self) {
+        self.update_ranges_end();
+    }
+
     pub fn vertex_data_ranges(&self) -> IntermediaryVertexDataRanges {
         self.vertex_data_ranges.clone()
     }
@@ -79,46 +106,73 @@ impl<'a, S> IntermediaryMeshBuilder<'a, S> {
     }
 }
 
-impl<'a, S> GeometryBuilder<mesh::Vertex<S>> for IntermediaryMeshBuilder<'a, S> {
+impl<'a, V, S> GeometryBuilder<V> for IntermediaryMeshBuilder<'a, S>
+where
+    V: IntermediaryVertex<S>,
+{
     fn begin_geometry(&mut self) {
-        self.update_ranges_start();
-        self.vertex_data_ranges.points.end = self.vertex_data_ranges.points.start;
+        self.begin_geom();
     }
 
     fn end_geometry(&mut self) -> geometry_builder::Count {
-        self.update_ranges_end();
-        let vertices = self.vertex_data_ranges.points.len() as u32;
-        let indices = self.index_range.len() as u32;
-        geometry_builder::Count { vertices, indices }
+        self.end_geom()
     }
 
-    fn add_vertex(&mut self, v: mesh::Vertex<S>) -> Result<VertexId, GeometryBuilderError> {
+    fn add_vertex(&mut self, v: V) -> Result<VertexId, GeometryBuilderError> {
         let id = self.vertex_data_ranges.points.end as u32;
         if id >= std::u32::MAX {
             return Err(GeometryBuilderError::TooManyVertices);
         }
-        let WithTexCoords {
-            tex_coords,
-            vertex: WithColor {
-                color,
-                vertex: point,
-            },
-        } = v;
-        self.mesh.vertex_data.points.push(point);
-        self.mesh.vertex_data.colors.push(color);
-        self.mesh.vertex_data.tex_coords.push(tex_coords);
+        v.add_to_data(&mut self.mesh.vertex_data);
+        debug_assert!(
+            self.mesh.vertex_data.points.len() > id as usize,
+            "intermediary vertices should always add at least one position attribute",
+        );
         self.vertex_data_ranges.points.end += 1;
         Ok(VertexId(id))
     }
 
     fn add_triangle(&mut self, a: VertexId, b: VertexId, c: VertexId) {
-        self.mesh.indices.push(a.to_usize());
-        self.mesh.indices.push(b.to_usize());
-        self.mesh.indices.push(c.to_usize());
+        self.add_tri(a, b, c);
     }
 
     fn abort_geometry(&mut self) {
-        self.update_ranges_end();
+        self.abort_geom();
+    }
+}
+
+impl<S> IntermediaryVertex<S> for Point2<S>
+where
+    S: crate::math::Zero,
+{
+    fn add_to_data(self, data: &mut IntermediaryVertexData<S>) {
+        data.points.push(self.into());
+    }
+}
+
+impl<S> IntermediaryVertex<S> for Point3<S> {
+    fn add_to_data(self, data: &mut IntermediaryVertexData<S>) {
+        data.points.push(self);
+    }
+}
+
+impl<V, S> IntermediaryVertex<S> for WithColor<V, mesh::vertex::Color>
+where
+    V: IntermediaryVertex<S>,
+{
+    fn add_to_data(self, data: &mut IntermediaryVertexData<S>) {
+        data.colors.push(self.color);
+        self.vertex.add_to_data(data);
+    }
+}
+
+impl<V, S> IntermediaryVertex<S> for WithTexCoords<V, Point2<S>>
+where
+    V: IntermediaryVertex<S>,
+{
+    fn add_to_data(self, data: &mut IntermediaryVertexData<S>) {
+        data.tex_coords.push(self.tex_coords);
+        self.vertex.add_to_data(data);
     }
 }
 

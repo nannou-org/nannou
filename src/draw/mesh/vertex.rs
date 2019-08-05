@@ -4,11 +4,12 @@ use crate::math::BaseFloat;
 use crate::mesh::vertex::{WithColor, WithTexCoords};
 use std::marker::PhantomData;
 
-pub type Point<S> = Point3<S>;
+pub type Point<S = geom::scalar::Default> = Point3<S>;
 pub type Color = color::LinSrgba;
-pub type TexCoords<S> = Point2<S>;
-pub type Normal<S> = Vector3<S>;
-pub type ColoredPoint<S> = WithColor<Point<S>, Color>;
+pub type TexCoords<S = geom::scalar::Default> = Point2<S>;
+pub type Normal<S = geom::scalar::Default> = Vector3<S>;
+pub type ColoredPoint<S = geom::scalar::Default> = WithColor<Point<S>, Color>;
+pub type ColoredPoint2<S = geom::scalar::Default> = WithColor<Point2<S>, Color>;
 
 /// The vertex type produced by the **draw::Mesh**'s inner **MeshType**.
 pub type Vertex<S = geom::scalar::Default> =

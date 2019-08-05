@@ -24,6 +24,7 @@ pub enum Primitive {
     Cuboid,
     Ellipse,
     Line,
+    Path,
     Polygon,
     Polyline,
     Quad,

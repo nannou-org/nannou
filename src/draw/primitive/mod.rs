@@ -1,6 +1,7 @@
 pub mod ellipse;
 pub mod line;
 pub mod mesh;
+pub mod path;
 pub mod polygon;
 pub mod polyline;
 pub mod quad;
@@ -12,6 +13,7 @@ use crate::geom;
 pub use self::ellipse::Ellipse;
 pub use self::line::Line;
 pub use self::mesh::Mesh;
+pub use self::path::{Path, PathInit, PathFill, PathStroke};
 pub use self::polygon::Polygon;
 pub use self::polyline::{Polyline, PolylineVertexless};
 pub use self::quad::Quad;
@@ -29,6 +31,10 @@ pub enum Primitive<S = geom::scalar::Default> {
     Line(Line<S>),
     MeshVertexless(mesh::Vertexless),
     Mesh(Mesh<S>),
+    PathInit(PathInit),
+    PathFill(PathFill),
+    PathStroke(PathStroke),
+    Path(Path<S>),
     PolygonPointless(polygon::Pointless),
     PolygonFill(Polygon<polygon::Fill, S>),
     PolygonColorPerVertex(Polygon<polygon::PerVertex, S>),

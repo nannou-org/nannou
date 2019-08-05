@@ -152,7 +152,7 @@ where
         I: IntoIterator<Item = geom::Tri<V>>,
         V: geom::Vertex + IntoVertex<S>,
     {
-        self.map_ty_with_vertices(|ty, mesh| ty.tris(mesh, tris))
+        self.map_ty_with_context(|ty, ctxt| ty.tris(ctxt.mesh, tris))
     }
 
     /// Describe the mesh with the given sequence of indexed vertices.
@@ -162,7 +162,7 @@ where
         V::Item: IntoVertex<S>,
         I: IntoIterator<Item = [usize; 3]>,
     {
-        self.map_ty_with_vertices(|ty, mesh| ty.indexed(mesh, vertices, indices))
+        self.map_ty_with_context(|ty, ctxt| ty.indexed(ctxt.mesh, vertices, indices))
     }
 }
 

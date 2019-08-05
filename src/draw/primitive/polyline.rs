@@ -399,7 +399,7 @@ where
         I: IntoIterator,
         I::Item: IntoVertex<S>,
     {
-        self.map_ty_with_vertices(|ty, mesh| ty.vertices(mesh, vertices))
+        self.map_ty_with_context(|ty, ctxt| ty.vertices(ctxt.mesh, vertices))
     }
 }
 
@@ -408,11 +408,11 @@ where
     S: BaseFloat,
 {
     fn begin_geometry(&mut self) {
-        self.builder.begin_geometry();
+        self.builder.begin_geom();
     }
 
     fn end_geometry(&mut self) -> geometry_builder::Count {
-        self.builder.end_geometry()
+        self.builder.end_geom()
     }
 
     fn add_vertex(&mut self, v: StrokeVertex) -> Result<VertexId, GeometryBuilderError> {
@@ -425,11 +425,11 @@ where
     }
 
     fn add_triangle(&mut self, a: VertexId, b: VertexId, c: VertexId) {
-        self.builder.add_triangle(a, b, c);
+        self.builder.add_tri(a, b, c);
     }
 
     fn abort_geometry(&mut self) {
-        self.builder.abort_geometry();
+        self.builder.abort_geom();
     }
 }
 

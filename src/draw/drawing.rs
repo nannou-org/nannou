@@ -8,6 +8,7 @@ use crate::draw::{self, Draw};
 use crate::geom::graph::node;
 use crate::geom::{self, Point2, Point3, Vector2, Vector3};
 use crate::math::{Angle, BaseFloat, Euler, Quaternion, Rad};
+use lyon::tessellation::FillTessellator;
 use std::marker::PhantomData;
 
 /// A **Drawing** in progress.
@@ -38,6 +39,16 @@ where
     finish_on_drop: bool,
     // The node type currently being drawn.
     _ty: PhantomData<T>,
+}
+
+/// Some context that may be optionally provided to primitives in the drawing implementation.
+///
+/// This is particularly useful for paths and meshes.
+pub struct DrawingContext<'a, S> {
+    /// The intermediary mesh for buffering yet-to-be-drawn paths and meshes.
+    pub mesh: &'a mut draw::IntermediaryMesh<S>,
+    /// A re-usable fill tessellator for 2D paths.
+    pub fill_tessellator: &'a mut FillTessellator
 }
 
 /// Construct a new **Drawing** instance.
@@ -133,16 +144,21 @@ where
     // The same as `map_primitive` but also passes a mutable reference to the vertex data to the
     // map function. This is useful for types that may have an unknown number of arbitrary
     // vertices.
-    fn map_primitive_with_vertices<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
+    fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
     where
-        F: FnOnce(Primitive<S>, &mut draw::IntermediaryMesh<S>) -> Primitive<S>,
+        F: FnOnce(Primitive<S>, DrawingContext<S>) -> Primitive<S>,
         T2: IntoDrawn<S> + Into<Primitive<S>>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
                 {
                     let mut intermediary_mesh = state.intermediary_mesh.borrow_mut();
-                    primitive = map(primitive, &mut *intermediary_mesh);
+                    let mut fill_tessellator = state.fill_tessellator.borrow_mut();
+                    let ctxt = DrawingContext {
+                        mesh: &mut *intermediary_mesh,
+                        fill_tessellator: &mut fill_tessellator.0,
+                    };
+                    primitive = map(primitive, ctxt);
                 }
                 state.drawing.insert(self.index, primitive);
             }
@@ -181,16 +197,16 @@ where
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub(crate) fn map_ty_with_vertices<F, T2>(self, map: F) -> Drawing<'a, T2, S>
+    pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2, S>
     where
-        F: FnOnce(T, &mut draw::IntermediaryMesh<S>) -> T2,
+        F: FnOnce(T, DrawingContext<S>) -> T2,
         T2: IntoDrawn<S> + Into<Primitive<S>>,
         Primitive<S>: Into<Option<T>>,
     {
-        self.map_primitive_with_vertices(|prim, v_data| {
+        self.map_primitive_with_context(|prim, ctxt| {
             let maybe_ty: Option<T> = prim.into();
             let ty = maybe_ty.expect("expected `T` but primitive contained different type");
-            let ty2 = map(ty, v_data);
+            let ty2 = map(ty, ctxt);
             ty2.into()
         })
     }
