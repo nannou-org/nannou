@@ -26,7 +26,6 @@ pub enum Primitive {
     Line,
     Path,
     Polygon,
-    Polyline,
     Quad,
     Rect,
     Tri,

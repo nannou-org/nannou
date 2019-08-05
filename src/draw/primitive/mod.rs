@@ -3,7 +3,6 @@ pub mod line;
 pub mod mesh;
 pub mod path;
 pub mod polygon;
-pub mod polyline;
 pub mod quad;
 pub mod rect;
 pub mod tri;
@@ -15,7 +14,6 @@ pub use self::line::Line;
 pub use self::mesh::Mesh;
 pub use self::path::{Path, PathInit, PathFill, PathStroke};
 pub use self::polygon::Polygon;
-pub use self::polyline::{Polyline, PolylineVertexless};
 pub use self::quad::Quad;
 pub use self::rect::Rect;
 pub use self::tri::Tri;
@@ -38,8 +36,6 @@ pub enum Primitive<S = geom::scalar::Default> {
     PolygonPointless(polygon::Pointless),
     PolygonFill(Polygon<polygon::Fill, S>),
     PolygonColorPerVertex(Polygon<polygon::PerVertex, S>),
-    PolylineVertexless(PolylineVertexless),
-    Polyline(Polyline<S>),
     Quad(Quad<S>),
     Rect(Rect<S>),
     Tri(Tri<S>),
