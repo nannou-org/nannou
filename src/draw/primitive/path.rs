@@ -297,11 +297,7 @@ impl PathStroke {
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn colored_points_closed<S, I>(
-        self,
-        ctxt: DrawingContext<S>,
-        points: I,
-    ) -> Path<S>
+    pub fn colored_points_closed<S, I>(self, ctxt: DrawingContext<S>, points: I) -> Path<S>
     where
         S: BaseFloat,
         I: IntoIterator,
@@ -322,10 +318,16 @@ where
         I: IntoIterator<Item = PathEvent>,
         for<'a> PathGeometryBuilder<'a, 'ctxt, S>: GeometryBuilder<T::VertexInput>,
     {
-        let DrawingContext { mesh, fill_tessellator } = ctxt;
+        let DrawingContext {
+            mesh,
+            fill_tessellator,
+        } = ctxt;
         let color = Cell::new(None);
         let stroke = &mut StrokeTessellator::default();
-        let tessellators = Tessellators { fill: fill_tessellator, stroke };
+        let tessellators = Tessellators {
+            fill: fill_tessellator,
+            stroke,
+        };
         let mut tessellator = T::tessellator(tessellators);
         let mut builder = mesh.builder();
         let res = self.opts.tessellate(
@@ -356,11 +358,7 @@ where
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
     ///
     /// Closes the start and end points.
-    pub fn points_closed<'ctxt, S, I>(
-        self,
-        ctxt: DrawingContext<'ctxt, S>,
-        points: I,
-    ) -> Path<S>
+    pub fn points_closed<'ctxt, S, I>(self, ctxt: DrawingContext<'ctxt, S>, points: I) -> Path<S>
     where
         S: BaseFloat,
         I: IntoIterator,
@@ -383,7 +381,10 @@ where
         I::Item: Into<Point2<S>>,
         for<'a> PathGeometryBuilder<'a, 'ctxt, S>: GeometryBuilder<T::VertexInput>,
     {
-        let DrawingContext { mesh, fill_tessellator } = ctxt;
+        let DrawingContext {
+            mesh,
+            fill_tessellator,
+        } = ctxt;
         let color = Cell::new(None);
         let iter = points.into_iter().map(Into::into).map(|p| {
             let p: geom::Point2 = p.cast().expect("failed to cast point");
@@ -391,7 +392,10 @@ where
         });
         let events = lyon::path::iterator::FromPolyline::new(close, iter).path_events();
         let stroke = &mut StrokeTessellator::default();
-        let tessellators = Tessellators { fill: fill_tessellator, stroke };
+        let tessellators = Tessellators {
+            fill: fill_tessellator,
+            stroke,
+        };
         let mut tessellator = T::tessellator(tessellators);
         let mut builder = mesh.builder();
         let res = self.opts.tessellate(
@@ -421,7 +425,10 @@ where
         I::Item: Into<ColoredPoint2<S>>,
         for<'a> PathGeometryBuilder<'a, 'ctxt, S>: GeometryBuilder<T::VertexInput>,
     {
-        let DrawingContext { mesh, fill_tessellator } = ctxt;
+        let DrawingContext {
+            mesh,
+            fill_tessellator,
+        } = ctxt;
         let color = Cell::new(None);
         let iter = points.into_iter().map(Into::into).map(|p| {
             color.set(Some(p.color));
@@ -430,7 +437,10 @@ where
         });
         let events = lyon::path::iterator::FromPolyline::new(close, iter).path_events();
         let stroke = &mut StrokeTessellator::default();
-        let tessellators = Tessellators { fill: fill_tessellator, stroke };
+        let tessellators = Tessellators {
+            fill: fill_tessellator,
+            stroke,
+        };
         let mut tessellator = T::tessellator(tessellators);
         let mut builder = mesh.builder();
         let res = self.opts.tessellate(

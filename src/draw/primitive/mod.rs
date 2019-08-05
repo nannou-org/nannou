@@ -12,7 +12,7 @@ use crate::geom;
 pub use self::ellipse::Ellipse;
 pub use self::line::Line;
 pub use self::mesh::Mesh;
-pub use self::path::{Path, PathInit, PathFill, PathStroke};
+pub use self::path::{Path, PathFill, PathInit, PathStroke};
 pub use self::polygon::Polygon;
 pub use self::quad::Quad;
 pub use self::rect::Rect;

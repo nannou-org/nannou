@@ -907,8 +907,8 @@ mod cgmath_impl {
 }
 
 mod lyon_impl {
-    use crate::math::Zero;
     use super::{Vector2, Vector3, Vector4};
+    use crate::math::Zero;
 
     impl<S> From<lyon::math::Point> for Vector2<S>
     where

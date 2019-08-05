@@ -48,7 +48,7 @@ pub struct DrawingContext<'a, S> {
     /// The intermediary mesh for buffering yet-to-be-drawn paths and meshes.
     pub mesh: &'a mut draw::IntermediaryMesh<S>,
     /// A re-usable fill tessellator for 2D paths.
-    pub fill_tessellator: &'a mut FillTessellator
+    pub fill_tessellator: &'a mut FillTessellator,
 }
 
 /// Construct a new **Drawing** instance.
