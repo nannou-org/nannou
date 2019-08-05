@@ -32,6 +32,7 @@ pub use self::cuboid::Cuboid;
 pub use self::ellipse::Ellipse;
 pub use self::graph::Graph;
 pub use self::line::Line;
+pub use self::path::{path, Path};
 pub use self::point::{pt2, pt3, pt4, Point2, Point3, Point4};
 pub use self::polygon::Polygon;
 pub use self::quad::Quad;
