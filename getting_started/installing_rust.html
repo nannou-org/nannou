@@ -4,6 +4,8 @@
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
         <title>Installing Rust - The Nannou Guide</title>
+        
+
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -56,7 +58,7 @@
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
             var theme;
-            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             document.body.className = theme;
             document.querySelector('html').className = theme + ' js';
@@ -75,7 +77,10 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <ol class="chapter"><li class="affix"><a href="../welcome.html">Welcome!</a></li><li><a href="../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li><a href="../getting_started/installing_rust.html" class="active"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li><a href="../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="../contributors.html">Contributors</a></li></ol>
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="affix"><a href="../welcome.html">Welcome!</a></li><li><a href="../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li><a href="../getting_started/installing_rust.html" class="active"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li><a href="../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="../contributors.html">Contributors</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
         <div id="page-wrapper" class="page-wrapper">
@@ -105,7 +110,7 @@
                             
                         </div>
 
-                        <h1 class="menu-title">The Nannou Guide</h1> 
+                        <h1 class="menu-title">The Nannou Guide</h1>
 
                         <div class="right-buttons">
                             <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -140,7 +145,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <a class="header" href="#installing-rust" id="installing-rust"><h1>Installing Rust</h1></a>
+                        <h1><a class="header" href="#installing-rust" id="installing-rust">Installing Rust</a></h1>
 <p>Nannou is a library written for the <a href="https://www.rust-lang.org/">Rust programming
 language</a>. Thus, the first step is to install Rust!</p>
 <p>To install Rust on <strong>Windows</strong>, download and run the installer from

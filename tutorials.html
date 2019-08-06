@@ -4,6 +4,8 @@
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
         <title>Tutorials - The Nannou Guide</title>
+        
+
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -56,7 +58,7 @@
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
             var theme;
-            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             document.body.className = theme;
             document.querySelector('html').className = theme + ' js';
@@ -75,7 +77,10 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <ol class="chapter"><li class="affix"><a href="welcome.html">Welcome!</a></li><li><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="tutorials.html" class="active"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="contributors.html">Contributors</a></li></ol>
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="affix"><a href="welcome.html">Welcome!</a></li><li><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="tutorials.html" class="active"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="contributors.html">Contributors</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
         <div id="page-wrapper" class="page-wrapper">
@@ -105,7 +110,7 @@
                             
                         </div>
 
-                        <h1 class="menu-title">The Nannou Guide</h1> 
+                        <h1 class="menu-title">The Nannou Guide</h1>
 
                         <div class="right-buttons">
                             <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -140,7 +145,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <a class="header" href="#tutorials" id="tutorials"><h1>Tutorials</h1></a>
+                        <h1><a class="header" href="#tutorials" id="tutorials">Tutorials</a></h1>
 <p>In the previous chapter we prepared everything needed to start our own Nannou
 project! In this chapter, we will take a more focused look at all of the
 different features we can add to our Nannou project.</p>
@@ -148,7 +153,7 @@ different features we can add to our Nannou project.</p>
 before going on. If you are feeling more confident, feel free to choose your own
 adventure through the following tutorials depending on what you want to add to
 your project!</p>
-<a class="header" href="#basics" id="basics"><h2>Basics</h2></a>
+<h2><a class="header" href="#basics" id="basics">Basics</a></h2>
 <p>A suite of tutorials for getting familiar with Rust and the Nannou environment.</p>
 <ul>
 <li><a href="/tutorials/basics/anatomy-of-a-nannou-app.html">Anatomy of a nannou app</a></li>
@@ -158,7 +163,7 @@ your project!</p>
 <li>Rust loops</li>
 <li>Rust functions</li>
 </ul>
-<a class="header" href="#drawing" id="drawing"><h2>Drawing</h2></a>
+<h2><a class="header" href="#drawing" id="drawing">Drawing</a></h2>
 <p>Working with Nannou's <code>Draw</code> API - a simple approach of coding graphics.</p>
 <ul>
 <li>Drawing 2D shapes</li>
@@ -166,7 +171,7 @@ your project!</p>
 <li>Drawing images</li>
 <li>Drawing meshes</li>
 </ul>
-<a class="header" href="#windowing" id="windowing"><h2>Windowing</h2></a>
+<h2><a class="header" href="#windowing" id="windowing">Windowing</a></h2>
 <p>Walk-throughs for creating and working with one or more windows.</p>
 <ul>
 <li>Building a custom window</li>
@@ -175,14 +180,14 @@ your project!</p>
 <li>Fullscreen on startup</li>
 <li>Automatically positioning windows</li>
 </ul>
-<a class="header" href="#gui" id="gui"><h2>GUI</h2></a>
+<h2><a class="header" href="#gui" id="gui">GUI</a></h2>
 <p>How to create a GUI (Graphical User Interface) for you Nannou project.</p>
 <ul>
 <li>Creating a UI</li>
 <li>Exploring available UI widgets</li>
 <li>Multi-window UI</li>
 </ul>
-<a class="header" href="#audio" id="audio"><h2>Audio</h2></a>
+<h2><a class="header" href="#audio" id="audio">Audio</a></h2>
 <p>A suite of guides for working with audio in Nannou.</p>
 <ul>
 <li>Setting up audio output</li>
@@ -194,14 +199,14 @@ your project!</p>
 <li>Feeding audio input to output</li>
 <li>Visualising audio</li>
 </ul>
-<a class="header" href="#video" id="video"><h2>Video</h2></a>
+<h2><a class="header" href="#video" id="video">Video</a></h2>
 <p>Loading, playing and recording video in Nannou.</p>
 <ul>
 <li>Drawing video</li>
 <li>Recording a window to video</li>
 <li>Manipulating video playback</li>
 </ul>
-<a class="header" href="#vulkan" id="vulkan"><h2>Vulkan</h2></a>
+<h2><a class="header" href="#vulkan" id="vulkan">Vulkan</a></h2>
 <p>Understanding the lower level that underlies all graphics in Nannou.</p>
 <ul>
 <li>What is Vulkan?</li>
@@ -210,29 +215,29 @@ your project!</p>
 <li>Fragment shaders</li>
 <li>Vertex shaders</li>
 </ul>
-<a class="header" href="#projection-mapping" id="projection-mapping"><h2>Projection Mapping</h2></a>
+<h2><a class="header" href="#projection-mapping" id="projection-mapping">Projection Mapping</a></h2>
 <p>Getting started with using Nannou for projection mapping.</p>
 <ul>
 <li>Basic quad-warping.</li>
 </ul>
-<a class="header" href="#lasers" id="lasers"><h2>LASERs</h2></a>
+<h2><a class="header" href="#lasers" id="lasers">LASERs</a></h2>
 <p>Detecting and outputting to LASER DACs on a network.</p>
 <ul>
 <li>Connecting to a LASER.</li>
 <li>Detecting LASER DACs.</li>
 <li>Tweaking LASER interpolation and optimisations.</li>
 </ul>
-<a class="header" href="#osc" id="osc"><h2>OSC</h2></a>
+<h2><a class="header" href="#osc" id="osc">OSC</a></h2>
 <ul>
 <li>Setting up an OSC sender.</li>
 <li>Setting up an OSC receiver.</li>
 </ul>
-<a class="header" href="#dmx" id="dmx"><h2>DMX</h2></a>
+<h2><a class="header" href="#dmx" id="dmx">DMX</a></h2>
 <p>Working with DMX over the network via sACN.</p>
 <ul>
 <li>Working with the sacn crate.</li>
 </ul>
-<a class="header" href="#serial-over-usb" id="serial-over-usb"><h2>Serial over USB</h2></a>
+<h2><a class="header" href="#serial-over-usb" id="serial-over-usb">Serial over USB</a></h2>
 <p>Working with Serial data in a cross-platform manner.</p>
 <ul>
 <li>Reading USB serial data.</li>

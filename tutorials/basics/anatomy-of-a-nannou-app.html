@@ -4,6 +4,8 @@
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
         <title>Basics - Anatomy of a Nannou App - The Nannou Guide</title>
+        
+
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -56,7 +58,7 @@
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
             var theme;
-            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             document.body.className = theme;
             document.querySelector('html').className = theme + ' js';
@@ -75,7 +77,10 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <ol class="chapter"><li class="affix"><a href="../../welcome.html">Welcome!</a></li><li><a href="../../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="../../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="../../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li><a href="../../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li><a href="../../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="../../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="../../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="../../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="../../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="../../tutorials/basics/anatomy-of-a-nannou-app.html" class="active"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="../../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="../../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="../../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="../../contributors.html">Contributors</a></li></ol>
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="affix"><a href="../../welcome.html">Welcome!</a></li><li><a href="../../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="../../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="../../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li><a href="../../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li><a href="../../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="../../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="../../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="../../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="../../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="../../tutorials/basics/anatomy-of-a-nannou-app.html" class="active"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="../../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="../../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="../../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="../../contributors.html">Contributors</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
         <div id="page-wrapper" class="page-wrapper">
@@ -105,7 +110,7 @@
                             
                         </div>
 
-                        <h1 class="menu-title">The Nannou Guide</h1> 
+                        <h1 class="menu-title">The Nannou Guide</h1>
 
                         <div class="right-buttons">
                             <a href="../../print.html" title="Print this book" aria-label="Print this book">
@@ -140,7 +145,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <a class="header" href="#anatomy-of-a-nannou-app" id="anatomy-of-a-nannou-app"><h1>Anatomy of a Nannou App</h1></a>
+                        <h1><a class="header" href="#anatomy-of-a-nannou-app" id="anatomy-of-a-nannou-app">Anatomy of a Nannou App</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: tpltnt, mitchmindtree</li>
@@ -184,7 +189,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
 }
 </code></pre></pre>
 <p>We will start from the top!</p>
-<a class="header" href="#import-common-items" id="import-common-items"><h2>Import Common Items</h2></a>
+<h2><a class="header" href="#import-common-items" id="import-common-items">Import Common Items</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># #![allow(unused_imports)] 
 # extern crate nannou;
 use nannou::prelude::*;
@@ -202,7 +207,7 @@ different crates. That said, it also means we need to manually import every
 item we <em>do</em> want to use into scope. By providing a prelude nannou makes it a
 little easier to access all of the commonly used items.</p>
 </blockquote>
-<a class="header" href="#model---our-app-state" id="model---our-app-state"><h2><strong>Model</strong> - Our app state</h2></a>
+<h2><a class="header" href="#model---our-app-state" id="model---our-app-state"><strong>Model</strong> - Our app state</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
 struct Model {}
 # fn main() {}
@@ -219,7 +224,7 @@ model can stay empty.</p>
 <p>Note: A <code>struct</code> describes a set of data. Our struct has no fields and thus is
 empty. There is no state information to be tracked in this example.</p>
 </blockquote>
-<a class="header" href="#main---where-rust-programs-begin-and-end" id="main---where-rust-programs-begin-and-end"><h2><strong>main</strong> - Where Rust programs begin and end</h2></a>
+<h2><a class="header" href="#main---where-rust-programs-begin-and-end" id="main---where-rust-programs-begin-and-end"><strong>main</strong> - Where Rust programs begin and end</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
@@ -279,7 +284,7 @@ state of the model using the controller. If a program does not require user
 input, the controller might use an algorithm based on time or some other
 application event to modify the model.</p>
 </blockquote>
-<a class="header" href="#model---initialise-our-model" id="model---initialise-our-model"><h2><strong>model</strong> - initialise our Model</h2></a>
+<h2><a class="header" href="#model---initialise-our-model" id="model---initialise-our-model"><strong>model</strong> - initialise our Model</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
 # extern crate nannou;
 # use nannou::prelude::*;
@@ -319,7 +324,7 @@ fn model(_app: &amp;App) -&gt; Model {
 <p>You can learn more about what the <strong>App</strong> is responsible for and capable of
 <a href="https://docs.rs/nannou/0.9.0/nannou/app/struct.App.html">here</a>.</p>
 </blockquote>
-<a class="header" href="#event---updating-the-model-on-app-events" id="event---updating-the-model-on-app-events"><h2><strong>event</strong> - updating the Model on app events</h2></a>
+<h2><a class="header" href="#event---updating-the-model-on-app-events" id="event---updating-the-model-on-app-events"><strong>event</strong> - updating the Model on app events</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
 # extern crate nannou;
 # use nannou::prelude::*;
@@ -380,7 +385,7 @@ example</a>
 for a demonstration of most of the different kinds of events that are
 available.</p>
 </blockquote>
-<a class="header" href="#view---presenting-the-model-to-a-window" id="view---presenting-the-model-to-a-window"><h2><strong>view</strong> - presenting the Model to a window</h2></a>
+<h2><a class="header" href="#view---presenting-the-model-to-a-window" id="view---presenting-the-model-to-a-window"><strong>view</strong> - presenting the Model to a window</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
 # extern crate nannou;
 # use nannou::prelude::*;
@@ -394,7 +399,7 @@ drawing to its <strong>Frame</strong> and returning the frame at the end. Here w
 the background colour, use the <strong>Draw</strong> API to draw a scene, draw a GUI to the
 window or even use the low-level Vulkan API to draw to the frame using our own
 graphics pipeline. All of this will be covered by future tutorials.</p>
-<a class="header" href="#concluding-remarks" id="concluding-remarks"><h2>Concluding Remarks</h2></a>
+<h2><a class="header" href="#concluding-remarks" id="concluding-remarks">Concluding Remarks</a></h2>
 <p>Hopefully this has given you a rough idea of how nannou apps work! Do not stress
 if some of the syntax looks confusing or some of the specifics still seem
 unclear - we will aim to cover these and more in future tutorials :)</p>

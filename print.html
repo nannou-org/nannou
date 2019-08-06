@@ -4,6 +4,10 @@
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
         <title>The Nannou Guide</title>
+        
+        <meta name="robots" content="noindex" />
+        
+
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -56,7 +60,7 @@
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
             var theme;
-            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             document.body.className = theme;
             document.querySelector('html').className = theme + ' js';
@@ -75,7 +79,10 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <ol class="chapter"><li class="affix"><a href="welcome.html">Welcome!</a></li><li><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="contributors.html">Contributors</a></li></ol>
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="affix"><a href="welcome.html">Welcome!</a></li><li><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li></ol></li><li><a href="developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="contributors.html">Contributors</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
         <div id="page-wrapper" class="page-wrapper">
@@ -105,7 +112,7 @@
                             
                         </div>
 
-                        <h1 class="menu-title">The Nannou Guide</h1> 
+                        <h1 class="menu-title">The Nannou Guide</h1>
 
                         <div class="right-buttons">
                             <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -140,33 +147,33 @@
 
                 <div id="content" class="content">
                     <main>
-                        <a class="header" href="#welcome" id="welcome"><h1>Welcome!</h1></a>
+                        <h1><a class="header" href="#welcome" id="welcome">Welcome!</a></h1>
 <p><strong>Nannou is an open-source, creative-coding toolkit for Rust.</strong></p>
 <p>The aim of this guide is to help you find the information you are looking for.
 Whether you are new to Nannou and are looking for a place to start, or you are
 an experienced Nannou user looking for more advanced tutorials, this book should
 have something for you!</p>
-<a class="header" href="#a-hrefwhy_nannouhtmlwhy-nannoua" id="a-hrefwhy_nannouhtmlwhy-nannoua"><h3><a href="/why_nannou.html">Why Nannou?</a></h3></a>
+<h3><a class="header" href="#a-hrefwhy_nannouhtmlwhy-nannoua" id="a-hrefwhy_nannouhtmlwhy-nannoua"><a href="/why_nannou.html">Why Nannou?</a></a></h3>
 <p>Here you can read about the motivations and philosophy behind Nannou. Why start
 Nannou? What drives forward progress?</p>
-<a class="header" href="#a-hrefgetting_startedhtmlgetting-starteda" id="a-hrefgetting_startedhtmlgetting-starteda"><h3><a href="/getting_started.html">Getting Started</a></h3></a>
+<h3><a class="header" href="#a-hrefgetting_startedhtmlgetting-starteda" id="a-hrefgetting_startedhtmlgetting-starteda"><a href="/getting_started.html">Getting Started</a></a></h3>
 <p>Is this your first time using Nannou or Rust? This is the chapter for you.
 This chapter covers everything from installing Rust right through to starting
 your own Nannou project.</p>
-<a class="header" href="#a-hreftutorialshtmltutorialsa" id="a-hreftutorialshtmltutorialsa"><h3><a href="/tutorials.html">Tutorials</a></h3></a>
+<h3><a class="header" href="#a-hreftutorialshtmltutorialsa" id="a-hreftutorialshtmltutorialsa"><a href="/tutorials.html">Tutorials</a></a></h3>
 <p>A suite of tutorials demonstrating how to do different things with Nannou. For
 example, &quot;How do I output sounds?&quot;, &quot;How do I draw shapes?&quot;, &quot;How can I connect
 to my laser?&quot;</p>
-<a class="header" href="#a-hrefdeveloper_referencehtmldeveloper-referencea" id="a-hrefdeveloper_referencehtmldeveloper-referencea"><h3><a href="/developer_reference.html">Developer Reference</a></h3></a>
+<h3><a class="header" href="#a-hrefdeveloper_referencehtmldeveloper-referencea" id="a-hrefdeveloper_referencehtmldeveloper-referencea"><a href="/developer_reference.html">Developer Reference</a></a></h3>
 <p>Learn more about the design philosophy behind Nannou, how the project is
 architected and how you can contribute.</p>
-<a class="header" href="#a-hrefhttpsdocsrsnannouapi-referencea" id="a-hrefhttpsdocsrsnannouapi-referencea"><h3><a href="https://docs.rs/nannou">API Reference</a></h3></a>
+<h3><a class="header" href="#a-hrefhttpsdocsrsnannouapi-referencea" id="a-hrefhttpsdocsrsnannouapi-referencea"><a href="https://docs.rs/nannou">API Reference</a></a></h3>
 <p>If you are looking for the source code reference, check out
 <a href="https://docs.rs/nannou">docs.rs/nannou</a>. Here you can find documentation about
 the API generated from the code itself.</p>
-<a class="header" href="#a-hrefshowcaseshtmlshowcasesa" id="a-hrefshowcaseshtmlshowcasesa"><h3><a href="/showcases.html">Showcases</a></h3></a>
+<h3><a class="header" href="#a-hrefshowcaseshtmlshowcasesa" id="a-hrefshowcaseshtmlshowcasesa"><a href="/showcases.html">Showcases</a></a></h3>
 <p>See what's possible with Nannou! A collection of projects made with Nannou.</p>
-<a class="header" href="#why-nannou" id="why-nannou"><h1>Why Nannou?</h1></a>
+<h1><a class="header" href="#why-nannou" id="why-nannou">Why Nannou?</a></h1>
 <p><strong>nannou</strong> is a collection of code aimed at making it easy for artists to
 express themselves with simple, fast, reliable, portable code.  Whether working
 on a 12-month installation or a 5 minute sketch, this framework aims to give
@@ -174,55 +181,77 @@ artists easy access to the tools they need.</p>
 <p>The project was started out of a desire for a creative coding framework inspired
 by Processing, OpenFrameworks and Cinder, but for Rust. <sup>Named after
 <a href="https://www.youtube.com/watch?v=A-Pkx37kYf4">this</a>.</sup></p>
-<a class="header" href="#goals" id="goals"><h2>Goals</h2></a>
+<h2><a class="header" href="#goals" id="goals">Goals</a></h2>
 <p>Nannou aims to provide easy, cross-platform access to the things that artists
 need:</p>
 <ul>
-<li>[x] <strong>Windowing &amp; Events</strong> via <a href="https://crates.io/crates/winit">winit</a>.</li>
-<li>[x] <strong>Audio</strong> via <a href="https://crates.io/crates/cpal">CPAL</a>. <em>Input and
+<li><input disabled="" type="checkbox" checked=""/>
+<strong>Windowing &amp; Events</strong> via <a href="https://crates.io/crates/winit">winit</a>.</li>
+<li><input disabled="" type="checkbox" checked=""/>
+<strong>Audio</strong> via <a href="https://crates.io/crates/cpal">CPAL</a>. <em>Input and
 output streams. Duplex are not yet supported.</em></li>
-<li>[ ] <strong>Video</strong> input, playback and processing (<em>would love suggestions and
+<li><input disabled="" type="checkbox"/>
+<strong>Video</strong> input, playback and processing (<em>would love suggestions and
 ideas</em>).</li>
-<li>[x] <strong>GUI</strong> via <a href="https://crates.io/crates/conrod">conrod</a>. <em>May switch to a
+<li><input disabled="" type="checkbox" checked=""/>
+<strong>GUI</strong> via <a href="https://crates.io/crates/conrod">conrod</a>. <em>May switch to a
 custom nannou solution in the future</em>.</li>
 <li><strong>Geometry</strong> with functions and iterators for producing vertices and indices:
 <ul>
-<li>[x] 1D - <code>Scalar</code>, <code>Range</code>.</li>
-<li>[x] 2D - <code>Rect</code>, <code>Line</code>, <code>Ellipse</code>, <code>Polygon</code>, <code>Polyline</code>, <code>Quad</code>,
+<li><input disabled="" type="checkbox" checked=""/>
+1D - <code>Scalar</code>, <code>Range</code>.</li>
+<li><input disabled="" type="checkbox" checked=""/>
+2D - <code>Rect</code>, <code>Line</code>, <code>Ellipse</code>, <code>Polygon</code>, <code>Polyline</code>, <code>Quad</code>,
 <code>Tri</code>.</li>
-<li>[x] 3D - <code>Cuboid</code>.</li>
-<li>[ ] 3D TODO - <code>Ellipsoid</code>, <code>Cube</code>, Prisms, Pyramids, *Hedrons, etc.</li>
-<li>[x] Vertex &amp; index iterators.</li>
-<li>[x] <a href="https://docs.rs/nannou/latest/nannou/geom/graph/index.html">Graph</a> for
+<li><input disabled="" type="checkbox" checked=""/>
+3D - <code>Cuboid</code>.</li>
+<li><input disabled="" type="checkbox"/>
+3D TODO - <code>Ellipsoid</code>, <code>Cube</code>, Prisms, Pyramids, *Hedrons, etc.</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Vertex &amp; index iterators.</li>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="https://docs.rs/nannou/latest/nannou/geom/graph/index.html">Graph</a> for
 composing geometry.</li>
 </ul>
 </li>
 <li><strong>Graphics</strong> via Vulkan (via <a href="https://github.com/vulkano-rs/vulkano">vulkano</a>):
 <ul>
-<li>[x] <a href="https://docs.rs/nannou/latest/nannou/draw/index.html">Draw</a> API. E.g.
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="https://docs.rs/nannou/latest/nannou/draw/index.html">Draw</a> API. E.g.
 <code>draw.ellipse().w_h(20.0, 20.0).color(RED)</code>.</li>
-<li>[x] <a href="https://docs.rs/nannou/latest/nannou/mesh/index.html">Mesh</a> API.</li>
-<li>[ ] Image API (currently only supported via GUI).</li>
-<li>[ ] Framebuffer object API.</li>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="https://docs.rs/nannou/latest/nannou/mesh/index.html">Mesh</a> API.</li>
+<li><input disabled="" type="checkbox"/>
+Image API (currently only supported via GUI).</li>
+<li><input disabled="" type="checkbox"/>
+Framebuffer object API.</li>
 </ul>
 </li>
 <li><strong>Protocols</strong>:
 <ul>
-<li>[x] <a href="https://docs.rs/nannou/latest/nannou/osc/index.html">OSC</a> - Open Sound
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="https://docs.rs/nannou/latest/nannou/osc/index.html">OSC</a> - Open Sound
 Control.</li>
-<li>[x] <a href="https://github.com/nannou-org/citp">CITP</a> - Controller Interface
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="https://github.com/nannou-org/citp">CITP</a> - Controller Interface
 Transport Protocol (network implementation is in progress).</li>
-<li>[x] <a href="https://github.com/nannou-org/ether-dream">Ether-Dream</a> Laser DAC
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="https://github.com/nannou-org/ether-dream">Ether-Dream</a> Laser DAC
 protocol and network implementation.</li>
-<li>[x] <a href="https://github.com/lschmierer/sacn">DMX via sACN</a> - commonly used for
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="https://github.com/lschmierer/sacn">DMX via sACN</a> - commonly used for
 lighting and effects.</li>
-<li>[x] <a href="https://crates.io/crates/serial">Serial</a> - commonly used for
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="https://crates.io/crates/serial">Serial</a> - commonly used for
 interfacing with LEDs and other hardware.</li>
-<li>[x] <a href="https://crates.io/crates/midir">MIDI</a> - Musical Instrument Digital
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="https://crates.io/crates/midir">MIDI</a> - Musical Instrument Digital
 Interface.</li>
-<li>[x] <a href="https://doc.rust-lang.org/std/net/struct.UdpSocket.html">UDP</a> via
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="https://doc.rust-lang.org/std/net/struct.UdpSocket.html">UDP</a> via
 std.</li>
-<li>[x] TCP
+<li><input disabled="" type="checkbox" checked=""/>
+TCP
 <a href="https://doc.rust-lang.org/std/net/struct.TcpStream.html">streams</a> and
 <a href="https://doc.rust-lang.org/std/net/struct.TcpListener.html">listeners</a>
 via std.</li>
@@ -230,15 +259,22 @@ via std.</li>
 </li>
 <li><strong>Device &amp; I/O stream APIs</strong>:
 <ul>
-<li>[x] <a href="https://docs.rs/nannou/latest/nannou/app/struct.Audio.html">Audio</a>.</li>
-<li>[ ] Video.</li>
-<li>[x] <a href="https://github.com/nannou-org/lasy">Lasers</a>.</li>
-<li>[ ] Lights.</li>
-<li>[ ] LEDs.</li>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="https://docs.rs/nannou/latest/nannou/app/struct.Audio.html">Audio</a>.</li>
+<li><input disabled="" type="checkbox"/>
+Video.</li>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="https://github.com/nannou-org/lasy">Lasers</a>.</li>
+<li><input disabled="" type="checkbox"/>
+Lights.</li>
+<li><input disabled="" type="checkbox"/>
+LEDs.</li>
 </ul>
 </li>
-<li>[ ] <strong>Graphical Node Graph</strong> via <a href="https://github.com/nannou-org/gantz">gantz</a>.</li>
-<li>[ ] <strong>GUI Editor</strong>.</li>
+<li><input disabled="" type="checkbox"/>
+<strong>Graphical Node Graph</strong> via <a href="https://github.com/nannou-org/gantz">gantz</a>.</li>
+<li><input disabled="" type="checkbox"/>
+<strong>GUI Editor</strong>.</li>
 </ul>
 <p>Nannou aims to <strong>use only pure-rust libraries</strong>. As a new user you should
 require nothing more than <code>cargo build</code> to get going. Falling back to C-bindings
@@ -252,7 +288,7 @@ operating systems or hardware APIs if necessary.</p>
 <p>Nannou wishes to <strong>remove the need to decide between lots of different backends
 that provide access to the same hardware</strong>. Instead, we want to focus on a
 specific set of backends and make sure that they work well.</p>
-<a class="header" href="#why-rust" id="why-rust"><h2>Why Rust?</h2></a>
+<h2><a class="header" href="#why-rust" id="why-rust">Why Rust?</a></h2>
 <p>Rust is a language that is both highly expressive and blazingly fast. Here are
 some of the reasons why we choose to use it:</p>
 <ul>
@@ -275,7 +311,7 @@ change and those that can't at a glance.</li>
 <li>One of the kindest internet communities we've come across (please visit
 mozilla's #rust or /r/rust if you're starting out and need any pointers)</li>
 </ul>
-<a class="header" href="#why-the-apachemit-dual-licensing" id="why-the-apachemit-dual-licensing"><h2>Why the Apache/MIT dual licensing?</h2></a>
+<h2><a class="header" href="#why-the-apachemit-dual-licensing" id="why-the-apachemit-dual-licensing">Why the Apache/MIT dual licensing?</a></h2>
 <p>For the most part, nannou is trying to maintain as much flexibility and compatibility
 with the licensing of Rust itself, which is also <a href="https://www.rust-lang.org/policies/licenses">dual licensed</a>.</p>
 <p>The Apache 2.0 and MIT license are very similar, but have a few key differences.
@@ -295,7 +331,7 @@ The MIT license provides compatibility with a lot of other FLOSS licenses.</p>
 <li><a href="https://opensource.stackexchange.com/questions/1881/against-what-does-the-apache-2-0-patent-clause-protect">Against what does the Apache 2.0 patent clause protect?</a></li>
 <li>[GPLv2 Combination Exception for the Apache 2 License]https://blog.gerv.net/2016/09/gplv2-combination-exception-for-the-apache-2-license/)</li>
 </ul>
-<a class="header" href="#getting-started" id="getting-started"><h1>Getting Started</h1></a>
+<h1><a class="header" href="#getting-started" id="getting-started">Getting Started</a></h1>
 <p>If you are new to Nannou or Rust, you are in the right place!</p>
 <p>In this section, we will:</p>
 <ol>
@@ -306,7 +342,7 @@ The MIT license provides compatibility with a lot of other FLOSS licenses.</p>
 <li>Make our own, new Nannou project!</li>
 </ol>
 <p>Let's get started.</p>
-<a class="header" href="#platform-specific-setup" id="platform-specific-setup"><h1>Platform-specific Setup</h1></a>
+<h1><a class="header" href="#platform-specific-setup" id="platform-specific-setup">Platform-specific Setup</a></h1>
 <p>Before we get started, let's make sure we have all the necessary ingredients for
 installing Rust and building nannou projects.</p>
 <p>Depending on what OS you are running, you might require an extra step or two.</p>
@@ -357,9 +393,10 @@ variable if it is not already included.</li>
 required by <code>rustup</code> the rust toolchain manager. <code>build-essentials</code> will be
 required by <code>rustc</code> the rust compiler for linking. <code>cmake</code> and <code>python</code> are
 necessary for nannou's <code>shaderc</code> dependency to build, as mentioned in the
-&quot;All Platforms&quot; section above.</p>
+&quot;All Platforms&quot; section above. <code>pkg-config</code>will be used to retrieve 
+information about <code>alsa</code> during the building process.</p>
 <p>For Debian/Ubuntu users:</p>
-<pre><code class="language-bash">sudo apt-get install curl build-essentials python cmake
+<pre><code class="language-bash">sudo apt-get install curl build-essentials python cmake pkg-config
 </code></pre>
 </li>
 <li>
@@ -435,7 +472,7 @@ sudo apt-get upgrade
 </li>
 </ul>
 <p>OK, we should now be ready to install Rust!</p>
-<a class="header" href="#installing-rust" id="installing-rust"><h1>Installing Rust</h1></a>
+<h1><a class="header" href="#installing-rust" id="installing-rust">Installing Rust</a></h1>
 <p>Nannou is a library written for the <a href="https://www.rust-lang.org/">Rust programming
 language</a>. Thus, the first step is to install Rust!</p>
 <p>To install Rust on <strong>Windows</strong>, download and run the installer from
@@ -451,11 +488,11 @@ auto-completion and go-to-definition.</p>
 </code></pre>
 <p>Please see <a href="https://www.rust-lang.org/tools/install">this link</a> if you would
 like more information on the Rust installation process.</p>
-<a class="header" href="#editor-setup" id="editor-setup"><h1>Editor Setup</h1></a>
+<h1><a class="header" href="#editor-setup" id="editor-setup">Editor Setup</a></h1>
 <p>While most popular development environments support Rust, support for certain
 features like auto-completion and go-to-definition is better in some than
 others.</p>
-<a class="header" href="#vs-code" id="vs-code"><h3>VS Code</h3></a>
+<h3><a class="header" href="#vs-code" id="vs-code">VS Code</a></h3>
 <p>For new Rust users we recommend using VS-Code as your editor and IDE for Nannou
 development. Currently it seems to have the best support for the Rust language
 including syntax highlighting, auto-complete, code formatting and more. It also
@@ -469,7 +506,7 @@ RLS</a> (the
 Rust Language Server) plugin for VS-Code.</li>
 <li>Click on the 'view' menu and select 'integrated terminal'.</li>
 </ol>
-<a class="header" href="#other-environments" id="other-environments"><h3>Other Environments</h3></a>
+<h3><a class="header" href="#other-environments" id="other-environments">Other Environments</a></h3>
 <p>Here are links to assist with setting up other popular development environments
 for supporting Rust.</p>
 <ol>
@@ -481,7 +518,7 @@ for supporting Rust.</p>
 <li><a href="https://github.com/PistonDevelopers/VisualRust">Visual Studio</a></li>
 <li><a href="https://github.com/eclipse/corrosion">Eclipse</a></li>
 </ol>
-<a class="header" href="#running-examples" id="running-examples"><h1>Running Examples</h1></a>
+<h1><a class="header" href="#running-examples" id="running-examples">Running Examples</a></h1>
 <p>The easiest way to get familiar with Nannou is to explore the examples. To get
 the examples we just need to clone the Nannou repository.</p>
 <pre><code class="language-bash">git clone https://github.com/nannou-org/nannou
@@ -501,7 +538,7 @@ at the top of this page and then press &quot;Download .zip&quot;.</p>
 <p><img src="https://i.imgur.com/HVVamUI.gif" alt="simple_draw_HD" /></p>
 <p>To run any of the other examples, replace <code>simple_draw</code> with the name of the
 desired example.</p>
-<a class="header" href="#create-a-project" id="create-a-project"><h1>Create A Project</h1></a>
+<h1><a class="header" href="#create-a-project" id="create-a-project">Create A Project</a></h1>
 <p>Whether we are creating an artwork, an app, a quick sketch or an installation,
 we want to begin by creating a new project. A new nannou project lets us build a
 nannou application the way that <em>we</em> want to use it.</p>
@@ -580,7 +617,7 @@ be more than just a purple window.</p>
 <p>To find out how to add more features to our project like graphics, audio,
 multiple windows, laser output, projection mapping and much more, let's take a
 look at the next chapter.</p>
-<a class="header" href="#upgrading-nannou" id="upgrading-nannou"><h1>Upgrading nannou</h1></a>
+<h1><a class="header" href="#upgrading-nannou" id="upgrading-nannou">Upgrading nannou</a></h1>
 <p>You can upgrade to a new version of nannou by editing your <code>Cargo.toml</code> file to use the new
 crate. For v0.9 use the line <code>nannou = &quot;0.9&quot;</code>. Run</p>
 <pre><code class="language-bash">cargo update
@@ -591,7 +628,7 @@ Nannou 0.9 for example requires rustc 1.35.0.
 You can upgrade your (local) rust toolchain by executing</p>
 <pre><code class="language-bash">rustup update
 </code></pre>
-<a class="header" href="#tutorials" id="tutorials"><h1>Tutorials</h1></a>
+<h1><a class="header" href="#tutorials" id="tutorials">Tutorials</a></h1>
 <p>In the previous chapter we prepared everything needed to start our own Nannou
 project! In this chapter, we will take a more focused look at all of the
 different features we can add to our Nannou project.</p>
@@ -599,7 +636,7 @@ different features we can add to our Nannou project.</p>
 before going on. If you are feeling more confident, feel free to choose your own
 adventure through the following tutorials depending on what you want to add to
 your project!</p>
-<a class="header" href="#basics" id="basics"><h2>Basics</h2></a>
+<h2><a class="header" href="#basics" id="basics">Basics</a></h2>
 <p>A suite of tutorials for getting familiar with Rust and the Nannou environment.</p>
 <ul>
 <li><a href="/tutorials/basics/anatomy-of-a-nannou-app.html">Anatomy of a nannou app</a></li>
@@ -609,7 +646,7 @@ your project!</p>
 <li>Rust loops</li>
 <li>Rust functions</li>
 </ul>
-<a class="header" href="#drawing" id="drawing"><h2>Drawing</h2></a>
+<h2><a class="header" href="#drawing" id="drawing">Drawing</a></h2>
 <p>Working with Nannou's <code>Draw</code> API - a simple approach of coding graphics.</p>
 <ul>
 <li>Drawing 2D shapes</li>
@@ -617,7 +654,7 @@ your project!</p>
 <li>Drawing images</li>
 <li>Drawing meshes</li>
 </ul>
-<a class="header" href="#windowing" id="windowing"><h2>Windowing</h2></a>
+<h2><a class="header" href="#windowing" id="windowing">Windowing</a></h2>
 <p>Walk-throughs for creating and working with one or more windows.</p>
 <ul>
 <li>Building a custom window</li>
@@ -626,14 +663,14 @@ your project!</p>
 <li>Fullscreen on startup</li>
 <li>Automatically positioning windows</li>
 </ul>
-<a class="header" href="#gui" id="gui"><h2>GUI</h2></a>
+<h2><a class="header" href="#gui" id="gui">GUI</a></h2>
 <p>How to create a GUI (Graphical User Interface) for you Nannou project.</p>
 <ul>
 <li>Creating a UI</li>
 <li>Exploring available UI widgets</li>
 <li>Multi-window UI</li>
 </ul>
-<a class="header" href="#audio" id="audio"><h2>Audio</h2></a>
+<h2><a class="header" href="#audio" id="audio">Audio</a></h2>
 <p>A suite of guides for working with audio in Nannou.</p>
 <ul>
 <li>Setting up audio output</li>
@@ -645,14 +682,14 @@ your project!</p>
 <li>Feeding audio input to output</li>
 <li>Visualising audio</li>
 </ul>
-<a class="header" href="#video" id="video"><h2>Video</h2></a>
+<h2><a class="header" href="#video" id="video">Video</a></h2>
 <p>Loading, playing and recording video in Nannou.</p>
 <ul>
 <li>Drawing video</li>
 <li>Recording a window to video</li>
 <li>Manipulating video playback</li>
 </ul>
-<a class="header" href="#vulkan" id="vulkan"><h2>Vulkan</h2></a>
+<h2><a class="header" href="#vulkan" id="vulkan">Vulkan</a></h2>
 <p>Understanding the lower level that underlies all graphics in Nannou.</p>
 <ul>
 <li>What is Vulkan?</li>
@@ -661,29 +698,29 @@ your project!</p>
 <li>Fragment shaders</li>
 <li>Vertex shaders</li>
 </ul>
-<a class="header" href="#projection-mapping" id="projection-mapping"><h2>Projection Mapping</h2></a>
+<h2><a class="header" href="#projection-mapping" id="projection-mapping">Projection Mapping</a></h2>
 <p>Getting started with using Nannou for projection mapping.</p>
 <ul>
 <li>Basic quad-warping.</li>
 </ul>
-<a class="header" href="#lasers" id="lasers"><h2>LASERs</h2></a>
+<h2><a class="header" href="#lasers" id="lasers">LASERs</a></h2>
 <p>Detecting and outputting to LASER DACs on a network.</p>
 <ul>
 <li>Connecting to a LASER.</li>
 <li>Detecting LASER DACs.</li>
 <li>Tweaking LASER interpolation and optimisations.</li>
 </ul>
-<a class="header" href="#osc" id="osc"><h2>OSC</h2></a>
+<h2><a class="header" href="#osc" id="osc">OSC</a></h2>
 <ul>
 <li>Setting up an OSC sender.</li>
 <li>Setting up an OSC receiver.</li>
 </ul>
-<a class="header" href="#dmx" id="dmx"><h2>DMX</h2></a>
+<h2><a class="header" href="#dmx" id="dmx">DMX</a></h2>
 <p>Working with DMX over the network via sACN.</p>
 <ul>
 <li>Working with the sacn crate.</li>
 </ul>
-<a class="header" href="#serial-over-usb" id="serial-over-usb"><h2>Serial over USB</h2></a>
+<h2><a class="header" href="#serial-over-usb" id="serial-over-usb">Serial over USB</a></h2>
 <p>Working with Serial data in a cross-platform manner.</p>
 <ul>
 <li>Reading USB serial data.</li>
@@ -692,7 +729,7 @@ your project!</p>
 <p>If you were unable to find what you were looking for above, or if you have an
 idea for a tutorial not yet present, please feel free to create an issue or a
 pull request!</p>
-<a class="header" href="#anatomy-of-a-nannou-app" id="anatomy-of-a-nannou-app"><h1>Anatomy of a Nannou App</h1></a>
+<h1><a class="header" href="#anatomy-of-a-nannou-app" id="anatomy-of-a-nannou-app">Anatomy of a Nannou App</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: tpltnt, mitchmindtree</li>
@@ -736,7 +773,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
 }
 </code></pre></pre>
 <p>We will start from the top!</p>
-<a class="header" href="#import-common-items" id="import-common-items"><h2>Import Common Items</h2></a>
+<h2><a class="header" href="#import-common-items" id="import-common-items">Import Common Items</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># #![allow(unused_imports)] 
 # extern crate nannou;
 use nannou::prelude::*;
@@ -754,7 +791,7 @@ different crates. That said, it also means we need to manually import every
 item we <em>do</em> want to use into scope. By providing a prelude nannou makes it a
 little easier to access all of the commonly used items.</p>
 </blockquote>
-<a class="header" href="#model---our-app-state" id="model---our-app-state"><h2><strong>Model</strong> - Our app state</h2></a>
+<h2><a class="header" href="#model---our-app-state" id="model---our-app-state"><strong>Model</strong> - Our app state</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
 struct Model {}
 # fn main() {}
@@ -771,7 +808,7 @@ model can stay empty.</p>
 <p>Note: A <code>struct</code> describes a set of data. Our struct has no fields and thus is
 empty. There is no state information to be tracked in this example.</p>
 </blockquote>
-<a class="header" href="#main---where-rust-programs-begin-and-end" id="main---where-rust-programs-begin-and-end"><h2><strong>main</strong> - Where Rust programs begin and end</h2></a>
+<h2><a class="header" href="#main---where-rust-programs-begin-and-end" id="main---where-rust-programs-begin-and-end"><strong>main</strong> - Where Rust programs begin and end</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
@@ -831,7 +868,7 @@ state of the model using the controller. If a program does not require user
 input, the controller might use an algorithm based on time or some other
 application event to modify the model.</p>
 </blockquote>
-<a class="header" href="#model---initialise-our-model" id="model---initialise-our-model"><h2><strong>model</strong> - initialise our Model</h2></a>
+<h2><a class="header" href="#model---initialise-our-model" id="model---initialise-our-model"><strong>model</strong> - initialise our Model</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
 # extern crate nannou;
 # use nannou::prelude::*;
@@ -871,7 +908,7 @@ fn model(_app: &amp;App) -&gt; Model {
 <p>You can learn more about what the <strong>App</strong> is responsible for and capable of
 <a href="https://docs.rs/nannou/0.9.0/nannou/app/struct.App.html">here</a>.</p>
 </blockquote>
-<a class="header" href="#event---updating-the-model-on-app-events" id="event---updating-the-model-on-app-events"><h2><strong>event</strong> - updating the Model on app events</h2></a>
+<h2><a class="header" href="#event---updating-the-model-on-app-events" id="event---updating-the-model-on-app-events"><strong>event</strong> - updating the Model on app events</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
 # extern crate nannou;
 # use nannou::prelude::*;
@@ -932,7 +969,7 @@ example</a>
 for a demonstration of most of the different kinds of events that are
 available.</p>
 </blockquote>
-<a class="header" href="#view---presenting-the-model-to-a-window" id="view---presenting-the-model-to-a-window"><h2><strong>view</strong> - presenting the Model to a window</h2></a>
+<h2><a class="header" href="#view---presenting-the-model-to-a-window" id="view---presenting-the-model-to-a-window"><strong>view</strong> - presenting the Model to a window</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
 # extern crate nannou;
 # use nannou::prelude::*;
@@ -946,32 +983,32 @@ drawing to its <strong>Frame</strong> and returning the frame at the end. Here w
 the background colour, use the <strong>Draw</strong> API to draw a scene, draw a GUI to the
 window or even use the low-level Vulkan API to draw to the frame using our own
 graphics pipeline. All of this will be covered by future tutorials.</p>
-<a class="header" href="#concluding-remarks" id="concluding-remarks"><h2>Concluding Remarks</h2></a>
+<h2><a class="header" href="#concluding-remarks" id="concluding-remarks">Concluding Remarks</a></h2>
 <p>Hopefully this has given you a rough idea of how nannou apps work! Do not stress
 if some of the syntax looks confusing or some of the specifics still seem
 unclear - we will aim to cover these and more in future tutorials :)</p>
-<a class="header" href="#developer-reference" id="developer-reference"><h1>Developer Reference</h1></a>
+<h1><a class="header" href="#developer-reference" id="developer-reference">Developer Reference</a></h1>
 <p><strong>TODO:</strong> A guide to the architecture of Nannou's internals to help onboard new
 developers. Describes the layout of modules, how to navigate the reference, the
 scope of the main nannou crate i.e. the kinds of work that should go inside the
 main repo and the kinds that might be better off in separate repos, etc.</p>
-<a class="header" href="#api-reference" id="api-reference"><h1>API Reference</h1></a>
+<h1><a class="header" href="#api-reference" id="api-reference">API Reference</a></h1>
 <p>Eventually, we would like to host the API documentation here. For now, you can
 find it at <a href="https://docs.rs/nannou">docs.rs/nannou</a>.</p>
-<a class="header" href="#showcases" id="showcases"><h1>Showcases</h1></a>
+<h1><a class="header" href="#showcases" id="showcases">Showcases</a></h1>
 <p><strong>TODO:</strong> A collection of work made with nannou, perhaps ordered from most
 recent to the past. Users could do a PR to have their own nannou projects
 published.</p>
 <ul>
 <li><a href="https://github.com/mitchmindtree/nannou-sketches">sketches by mitchmindtree</a></li>
 </ul>
-<a class="header" href="#contributors" id="contributors"><h1>Contributors</h1></a>
+<h1><a class="header" href="#contributors" id="contributors">Contributors</a></h1>
 <p>This project exists thanks to all the people who contribute.</p>
 <p><a href="https://github.com/nannou-org/nannou/graphs/contributors"><img src="https://opencollective.com/nannou/contributors.svg?width=890&button=false" /></a></p>
-<a class="header" href="#backers" id="backers"><h2>Backers</h2></a>
-<p>Thank you to all our backers! 🙏</p>
+<h2><a class="header" href="#backers" id="backers">Backers</a></h2>
+<p>Thank you to all our backers! 🙏 </p>
 <p><a href="https://opencollective.com/nannou#backers" target="_blank"><img src="https://opencollective.com/nannou/backers.svg?width=890"></a></p>
-<a class="header" href="#sponsors" id="sponsors"><h2>Sponsors</h2></a>
+<h2><a class="header" href="#sponsors" id="sponsors">Sponsors</a></h2>
 <p>Support this project by becoming a sponsor. Your logo will show up here with a link to your website.</p>
 <p><a href="https://opencollective.com/nannou/sponsor/0/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/0/avatar.svg"></a>
 <a href="https://opencollective.com/nannou/sponsor/1/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/1/avatar.svg"></a>
