@@ -6,7 +6,7 @@
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).run();;
+    nannou::app(model).run();
 }
 
 struct Model;

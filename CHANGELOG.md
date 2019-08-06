@@ -1,5 +1,9 @@
 # Unreleased
 
+- Add an example that demonstrates using the Draw API with multiple windows.
+- Fix a bug where `Draw::to_frame` would `panic!` when used between multiple
+  windows.
+
 # Version 0.10.0 (2019-07-21)
 
 - Change the `view` function signature to take `Frame` by reference rather than
