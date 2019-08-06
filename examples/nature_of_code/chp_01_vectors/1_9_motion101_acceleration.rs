@@ -54,7 +54,7 @@ impl Mover {
         if self.position.y > rect.top() {
             self.position.y = rect.bottom();
         } else if self.position.y < rect.bottom() {
-            self.position.y = rect.top();;
+            self.position.y = rect.top();
         }
     }
 
