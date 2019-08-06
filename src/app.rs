@@ -179,7 +179,7 @@ pub struct Draw<'a> {
 #[derive(Debug)]
 struct DrawState {
     draw: RefCell<draw::Draw<DrawScalar>>,
-    renderer: RefCell<Option<RefCell<draw::backend::vulkano::Renderer>>>,
+    renderers: RefCell<HashMap<window::Id, RefCell<draw::backend::vulkano::Renderer>>>,
     // The supported depth format for each device.
     //
     // Devices are mapped via their `index`, which is stated to "never change" according to the
@@ -786,11 +786,11 @@ impl App {
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());
         let config = RefCell::new(Default::default());
-        let renderer = RefCell::new(None);
+        let renderers = RefCell::new(Default::default());
         let supported_depth_formats = RefCell::new(HashMap::new());
         let draw_state = DrawState {
             draw,
-            renderer,
+            renderers,
             supported_depth_formats,
         };
         let focused_window = RefCell::new(None);
@@ -1008,19 +1008,21 @@ impl App {
             });
         let draw = self.draw_state.draw.borrow_mut();
         draw.reset();
-        if self.draw_state.renderer.borrow().is_none() {
-            let msaa_samples = window.msaa_samples();
-            let renderer = draw::backend::vulkano::Renderer::new(
-                device,
-                color_format,
-                depth_format,
-                msaa_samples,
-            )
-            .expect("failed to create `Draw` renderer for vulkano backend");
-            *self.draw_state.renderer.borrow_mut() = Some(RefCell::new(renderer));
-        }
-        let renderer = self.draw_state.renderer.borrow_mut();
-        let renderer = RefMut::map(renderer, |r| r.as_mut().unwrap());
+
+        let renderers = self.draw_state.renderers.borrow_mut();
+        let renderer = RefMut::map(renderers, |renderers| {
+            renderers.entry(window_id).or_insert_with(|| {
+                let msaa_samples = window.msaa_samples();
+                let renderer = draw::backend::vulkano::Renderer::new(
+                    device,
+                    color_format,
+                    depth_format,
+                    msaa_samples,
+                )
+                .expect("failed to create `Draw` renderer for vulkano backend");
+                RefCell::new(renderer)
+            })
+        });
         Some(Draw {
             window_id,
             draw,
@@ -1814,13 +1816,22 @@ where
             }
         }
 
-        // If a window was destroyed, remove it from the display map.
+        // When a window has been closed, this function is called to remove any state associated
+        // with that window so that the state doesn't leak.
+        //
+        // Returns the `Window` that was removed.
+        fn remove_related_window_state(app: &App, window_id: &window::Id) -> Option<Window> {
+            app.draw_state.renderers.borrow_mut().remove(window_id);
+            app.windows.borrow_mut().remove(window_id)
+        }
+
         if let winit::WindowEvent::Destroyed = *event {
-            removed_window = app.windows.borrow_mut().remove(&window_id);
+            removed_window = remove_related_window_state(app, &window_id);
         // TODO: We should allow the user to handle this case. E.g. allow for doing things like
-        // "would you like to save".
+        // "would you like to save". We currently do this with the app exit function, but maybe a
+        // window `close` function would be useful?
         } else if let winit::WindowEvent::CloseRequested = *event {
-            removed_window = app.windows.borrow_mut().remove(&window_id);
+            removed_window = remove_related_window_state(app, &window_id);
         } else {
             // Get the size of the window for translating coords and dimensions.
             let (win_w, win_h) = match app.window(window_id) {
