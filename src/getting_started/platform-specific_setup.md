@@ -51,11 +51,12 @@ Depending on what OS you are running, you might require an extra step or two.
     required by `rustup` the rust toolchain manager. `build-essential` will be
     required by `rustc` the rust compiler for linking. `cmake` and `python` are
     necessary for nannou's `shaderc` dependency to build, as mentioned in the
-    "All Platforms" section above.
+    "All Platforms" section above. `pkg-config`will be used to retrieve 
+    information about `alsa` during the building process.
 
     For Debian/Ubuntu users:
     ```bash
-    sudo apt-get install curl build-essential python cmake
+    sudo apt-get install curl build-essential python cmake pkg-config
     ```
 
   - **alsa dev package**
