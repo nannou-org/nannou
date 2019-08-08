@@ -5,7 +5,7 @@ use crate::draw::properties::{
     spatial, ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, SetColor, SetDimensions,
     SetOrientation, SetPosition,
 };
-use crate::draw::{self, Drawing};
+use crate::draw::{self, theme, Drawing};
 use crate::geom::{self, Point3, Vector3};
 use crate::math::{BaseFloat, ElementWise};
 use std::ops;
@@ -72,18 +72,7 @@ where
         }
 
         // The color.
-        let color = color
-            .or_else(|| {
-                draw.theme(|theme| {
-                    theme
-                        .color
-                        .primitive
-                        .get(&draw::theme::Primitive::Tri)
-                        .map(|&c| c.into_linear())
-                })
-            })
-            .unwrap_or(draw.theme(|t| t.color.default.into_linear()));
-
+        let color = color.unwrap_or_else(|| draw.theme().fill_lin_srgba(&theme::Primitive::Tri));
         let points = tri.vertices();
         let vertices = draw::mesh::vertex::IterFromPoints::new(points, color);
         let indices = 0..geom::tri::NUM_VERTICES as usize;

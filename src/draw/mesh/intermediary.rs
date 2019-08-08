@@ -1,7 +1,9 @@
 use crate::draw::mesh;
 use crate::geom::{self, Point2, Point3};
+use crate::math::BaseFloat;
 use crate::mesh::vertex::{WithColor, WithTexCoords};
 use lyon::tessellation::geometry_builder::{self, GeometryBuilder, GeometryBuilderError, VertexId};
+use lyon::tessellation::{FillVertex, StrokeVertex};
 use std::ops;
 
 /// Types supported by the **IntermediaryMesh** **GeometryBuilder** implementation.
@@ -56,6 +58,7 @@ impl<S> IntermediaryMesh<S> {
             index_range,
         };
         builder.update_ranges_start();
+        builder.update_ranges_end();
         builder
     }
 }
@@ -173,6 +176,28 @@ where
     fn add_to_data(self, data: &mut IntermediaryVertexData<S>) {
         data.tex_coords.push(self.tex_coords);
         self.vertex.add_to_data(data);
+    }
+}
+
+impl<S> IntermediaryVertex<S> for FillVertex
+where
+    S: BaseFloat,
+{
+    fn add_to_data(self, data: &mut IntermediaryVertexData<S>) {
+        let p: Point2<f32> = self.position.into();
+        let p: Point2<S> = p.cast().expect("failed to cast point for mesh");
+        p.add_to_data(data)
+    }
+}
+
+impl<S> IntermediaryVertex<S> for StrokeVertex
+where
+    S: BaseFloat,
+{
+    fn add_to_data(self, data: &mut IntermediaryVertexData<S>) {
+        let p: Point2<f32> = self.position.into();
+        let p: Point2<S> = p.cast().expect("failed to cast point for mesh");
+        p.add_to_data(data)
     }
 }
 

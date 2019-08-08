@@ -2,13 +2,14 @@ use crate::color::IntoLinSrgba;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    ColorScalar, IntoDrawn, SetColor, SetDimensions, SetOrientation, SetPosition,
+    ColorScalar, IntoDrawn, SetColor, SetDimensions, SetFill, SetOrientation, SetPosition,
+    SetStroke,
 };
 use crate::draw::{self, Draw};
 use crate::geom::graph::node;
 use crate::geom::{self, Point2, Point3, Vector2, Vector3};
 use crate::math::{Angle, BaseFloat, Euler, Quaternion, Rad};
-use lyon::tessellation::FillTessellator;
+use lyon::tessellation::{FillOptions, FillTessellator, LineCap, LineJoin, StrokeOptions};
 use std::marker::PhantomData;
 
 /// A **Drawing** in progress.
@@ -1490,5 +1491,186 @@ where
     /// This is equivalent to calling the `z_radians` or `roll` methods.
     pub fn rotate(self, radians: S) -> Self {
         self.map_ty(|ty| SetOrientation::rotate(ty, radians))
+    }
+}
+
+// SetFill methods
+
+impl<'a, T, S> Drawing<'a, T, S>
+where
+    T: IntoDrawn<S> + SetFill + Into<Primitive<S>>,
+    Primitive<S>: Into<Option<T>>,
+    S: BaseFloat,
+{
+    /// Specify the whole set of fill tessellation options.
+    pub fn fill_opts(self, opts: FillOptions) -> Self {
+        self.map_ty(|ty| ty.fill_opts(opts))
+    }
+
+    /// Maximum allowed distance to the path when building an approximation.
+    pub fn fill_tolerance(self, tolerance: f32) -> Self {
+        self.map_ty(|ty| ty.fill_tolerance(tolerance))
+    }
+
+    /// Specify the rule used to determine what is inside and what is outside of the shape.
+    ///
+    /// Currently, only the `EvenOdd` rule is implemented.
+    pub fn fill_rule(self, rule: lyon::tessellation::FillRule) -> Self {
+        self.map_ty(|ty| ty.fill_rule(rule))
+    }
+
+    /// A fast path to avoid some expensive operations if the path is known to not have any
+    /// self-intesections.
+    ///
+    /// Do not set this to `true` if the path may have intersecting edges else the tessellator may
+    /// panic or produce incorrect results. In doubt, do not change the default value.
+    ///
+    /// Default value: `false`.
+    pub fn assume_no_intersections(self, b: bool) -> Self {
+        self.map_ty(|ty| ty.assume_no_intersections(b))
+    }
+}
+
+// SetStroke methods
+
+impl<'a, T, S> Drawing<'a, T, S>
+where
+    T: IntoDrawn<S> + SetStroke + Into<Primitive<S>>,
+    Primitive<S>: Into<Option<T>>,
+    S: BaseFloat,
+{
+    /// The start line cap as specified by the SVG spec.
+    pub fn start_cap(self, cap: LineCap) -> Self {
+        self.map_ty(|ty| ty.start_cap(cap))
+    }
+
+    /// The end line cap as specified by the SVG spec.
+    pub fn end_cap(self, cap: LineCap) -> Self {
+        self.map_ty(|ty| ty.end_cap(cap))
+    }
+
+    /// The start and end line cap as specified by the SVG spec.
+    pub fn caps(self, cap: LineCap) -> Self {
+        self.map_ty(|ty| ty.caps(cap))
+    }
+
+    /// The stroke for each sub-path does not extend beyond its two endpoints. A zero length
+    /// sub-path will therefore not have any stroke.
+    pub fn start_cap_butt(self) -> Self {
+        self.map_ty(|ty| ty.start_cap_butt())
+    }
+
+    /// At the end of each sub-path, the shape representing the stroke will be extended by a
+    /// rectangle with the same width as the stroke width and whose length is half of the stroke
+    /// width. If a sub-path has zero length, then the resulting effect is that the stroke for that
+    /// sub-path consists solely of a square with side length equal to the stroke width, centered
+    /// at the sub-path's point.
+    pub fn start_cap_square(self) -> Self {
+        self.map_ty(|ty| ty.start_cap_square())
+    }
+
+    /// At each end of each sub-path, the shape representing the stroke will be extended by a half
+    /// circle with a radius equal to the stroke width. If a sub-path has zero length, then the
+    /// resulting effect is that the stroke for that sub-path consists solely of a full circle
+    /// centered at the sub-path's point.
+    pub fn start_cap_round(self) -> Self {
+        self.map_ty(|ty| ty.start_cap_round())
+    }
+
+    /// The stroke for each sub-path does not extend beyond its two endpoints. A zero length
+    /// sub-path will therefore not have any stroke.
+    pub fn end_cap_butt(self) -> Self {
+        self.map_ty(|ty| ty.end_cap_butt())
+    }
+
+    /// At the end of each sub-path, the shape representing the stroke will be extended by a
+    /// rectangle with the same width as the stroke width and whose length is half of the stroke
+    /// width. If a sub-path has zero length, then the resulting effect is that the stroke for that
+    /// sub-path consists solely of a square with side length equal to the stroke width, centered
+    /// at the sub-path's point.
+    pub fn end_cap_square(self) -> Self {
+        self.map_ty(|ty| ty.end_cap_square())
+    }
+
+    /// At each end of each sub-path, the shape representing the stroke will be extended by a half
+    /// circle with a radius equal to the stroke width. If a sub-path has zero length, then the
+    /// resulting effect is that the stroke for that sub-path consists solely of a full circle
+    /// centered at the sub-path's point.
+    pub fn end_cap_round(self) -> Self {
+        self.map_ty(|ty| ty.end_cap_round())
+    }
+
+    /// The stroke for each sub-path does not extend beyond its two endpoints. A zero length
+    /// sub-path will therefore not have any stroke.
+    pub fn caps_butt(self) -> Self {
+        self.map_ty(|ty| ty.caps_butt())
+    }
+
+    /// At the end of each sub-path, the shape representing the stroke will be extended by a
+    /// rectangle with the same width as the stroke width and whose length is half of the stroke
+    /// width. If a sub-path has zero length, then the resulting effect is that the stroke for that
+    /// sub-path consists solely of a square with side length equal to the stroke width, centered
+    /// at the sub-path's point.
+    pub fn caps_square(self) -> Self {
+        self.map_ty(|ty| ty.caps_square())
+    }
+
+    /// At each end of each sub-path, the shape representing the stroke will be extended by a half
+    /// circle with a radius equal to the stroke width. If a sub-path has zero length, then the
+    /// resulting effect is that the stroke for that sub-path consists solely of a full circle
+    /// centered at the sub-path's point.
+    pub fn caps_round(self) -> Self {
+        self.map_ty(|ty| ty.caps_round())
+    }
+
+    /// The way in which lines are joined at the vertices, matching the SVG spec.
+    ///
+    /// Default value is `MiterClip`.
+    pub fn join(self, join: LineJoin) -> Self {
+        self.map_ty(|ty| ty.join(join))
+    }
+
+    /// A sharp corner is to be used to join path segments.
+    pub fn join_miter(self) -> Self {
+        self.map_ty(|ty| ty.join_miter())
+    }
+
+    /// Same as a `join_miter`, but if the miter limit is exceeded, the miter is clipped at a miter
+    /// length equal to the miter limit value multiplied by the stroke width.
+    pub fn join_miter_clip(self) -> Self {
+        self.map_ty(|ty| ty.join_miter_clip())
+    }
+
+    /// A round corner is to be used to join path segments.
+    pub fn join_round(self) -> Self {
+        self.map_ty(|ty| ty.join_round())
+    }
+
+    /// A bevelled corner is to be used to join path segments. The bevel shape is a triangle that
+    /// fills the area between the two stroked segments.
+    pub fn join_bevel(self) -> Self {
+        self.map_ty(|ty| ty.join_bevel())
+    }
+
+    /// The total stroke_weight (aka width) of the line.
+    pub fn stroke_weight(self, stroke_weight: f32) -> Self {
+        self.map_ty(|ty| ty.stroke_weight(stroke_weight))
+    }
+
+    /// Describes the limit before miter lines will clip, as described in the SVG spec.
+    ///
+    /// Must be greater than or equal to `1.0`.
+    pub fn miter_limit(self, limit: f32) -> Self {
+        self.map_ty(|ty| ty.miter_limit(limit))
+    }
+
+    /// Maximum allowed distance to the path when building an approximation.
+    pub fn stroke_tolerance(self, tolerance: f32) -> Self {
+        self.map_ty(|ty| ty.stroke_tolerance(tolerance))
+    }
+
+    /// Specify the full set of stroke options for the path tessellation.
+    pub fn stroke_opts(self, opts: StrokeOptions) -> Self {
+        self.map_ty(|ty| ty.stroke_opts(opts))
     }
 }

@@ -3,7 +3,7 @@ use crate::draw::mesh::vertex::ColoredPoint2;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, orientation, position};
 use crate::draw::properties::{
-    ColorScalar, Draw, Drawn, IntoDrawn, SetColor, SetOrientation, SetPosition,
+    ColorScalar, Draw, Drawn, IntoDrawn, SetColor, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Drawing, DrawingContext};
 use crate::geom::{self, pt2, Point2};
@@ -12,8 +12,8 @@ use lyon::path::iterator::FlattenedIterator;
 use lyon::path::PathEvent;
 use lyon::tessellation::geometry_builder::{self, GeometryBuilder, GeometryBuilderError, VertexId};
 use lyon::tessellation::{
-    FillOptions, FillTessellator, FillVertex, LineCap, LineJoin, StrokeOptions, StrokeTessellator,
-    StrokeVertex, TessellationResult,
+    FillOptions, FillTessellator, FillVertex, StrokeOptions, StrokeTessellator, StrokeVertex,
+    TessellationResult,
 };
 use std::cell::Cell;
 use std::iter;
@@ -115,177 +115,33 @@ impl PathInit {
 
 impl PathFill {
     /// Maximum allowed distance to the path when building an approximation.
-    pub fn tolerance(mut self, tolerance: f32) -> Self {
-        self.opts.tolerance = tolerance;
-        self
+    ///
+    /// This method is shorthand for the `fill_tolerance` method.
+    pub fn tolerance(self, tolerance: f32) -> Self {
+        self.fill_tolerance(tolerance)
     }
 
     /// Specify the rule used to determine what is inside and what is outside of the shape.
     ///
     /// Currently, only the `EvenOdd` rule is implemented.
-    pub fn rule(mut self, rule: lyon::tessellation::FillRule) -> Self {
-        self.opts.fill_rule = rule;
-        self
-    }
-
-    /// A fast path to avoid some expensive operations if the path is known to not have any
-    /// self-intesections.
     ///
-    /// Do not set this to `true` if the path may have intersecting edges else the tessellator may
-    /// panic or produce incorrect results. In doubt, do not change the default value.
-    ///
-    /// Default value: `false`.
-    pub fn assume_no_intersections(mut self, b: bool) -> Self {
-        self.opts.assume_no_intersections = b;
-        self
+    /// This method is shorthand for the `fill_rule` method.
+    pub fn rule(self, rule: lyon::tessellation::FillRule) -> Self {
+        self.fill_rule(rule)
     }
 }
 
 impl PathStroke {
-    /// The start line cap as specified by the SVG spec.
-    pub fn start_cap(mut self, cap: LineCap) -> Self {
-        self.opts.start_cap = cap;
-        self
+    /// Short-hand for the `stroke_weight` method.
+    pub fn weight(self, weight: f32) -> Self {
+        self.stroke_weight(weight)
     }
 
-    /// The end line cap as specified by the SVG spec.
-    pub fn end_cap(mut self, cap: LineCap) -> Self {
-        self.opts.end_cap = cap;
-        self
+    /// Short-hand for the `stroke_tolerance` method.
+    pub fn tolerance(self, tolerance: f32) -> Self {
+        self.stroke_tolerance(tolerance)
     }
 
-    /// The start and end line cap as specified by the SVG spec.
-    pub fn caps(self, cap: LineCap) -> Self {
-        self.start_cap(cap).end_cap(cap)
-    }
-
-    /// The stroke for each sub-path does not extend beyond its two endpoints. A zero length
-    /// sub-path will therefore not have any stroke.
-    pub fn start_cap_butt(self) -> Self {
-        self.start_cap(LineCap::Butt)
-    }
-
-    /// At the end of each sub-path, the shape representing the stroke will be extended by a
-    /// rectangle with the same width as the stroke width and whose length is half of the stroke
-    /// width. If a sub-path has zero length, then the resulting effect is that the stroke for that
-    /// sub-path consists solely of a square with side length equal to the stroke width, centered
-    /// at the sub-path's point.
-    pub fn start_cap_square(self) -> Self {
-        self.start_cap(LineCap::Square)
-    }
-
-    /// At each end of each sub-path, the shape representing the stroke will be extended by a half
-    /// circle with a radius equal to the stroke width. If a sub-path has zero length, then the
-    /// resulting effect is that the stroke for that sub-path consists solely of a full circle
-    /// centered at the sub-path's point.
-    pub fn start_cap_round(self) -> Self {
-        self.start_cap(LineCap::Round)
-    }
-
-    /// The stroke for each sub-path does not extend beyond its two endpoints. A zero length
-    /// sub-path will therefore not have any stroke.
-    pub fn end_cap_butt(self) -> Self {
-        self.end_cap(LineCap::Butt)
-    }
-
-    /// At the end of each sub-path, the shape representing the stroke will be extended by a
-    /// rectangle with the same width as the stroke width and whose length is half of the stroke
-    /// width. If a sub-path has zero length, then the resulting effect is that the stroke for that
-    /// sub-path consists solely of a square with side length equal to the stroke width, centered
-    /// at the sub-path's point.
-    pub fn end_cap_square(self) -> Self {
-        self.end_cap(LineCap::Square)
-    }
-
-    /// At each end of each sub-path, the shape representing the stroke will be extended by a half
-    /// circle with a radius equal to the stroke width. If a sub-path has zero length, then the
-    /// resulting effect is that the stroke for that sub-path consists solely of a full circle
-    /// centered at the sub-path's point.
-    pub fn end_cap_round(self) -> Self {
-        self.end_cap(LineCap::Round)
-    }
-
-    /// The stroke for each sub-path does not extend beyond its two endpoints. A zero length
-    /// sub-path will therefore not have any stroke.
-    pub fn caps_butt(self) -> Self {
-        self.caps(LineCap::Butt)
-    }
-
-    /// At the end of each sub-path, the shape representing the stroke will be extended by a
-    /// rectangle with the same width as the stroke width and whose length is half of the stroke
-    /// width. If a sub-path has zero length, then the resulting effect is that the stroke for that
-    /// sub-path consists solely of a square with side length equal to the stroke width, centered
-    /// at the sub-path's point.
-    pub fn caps_square(self) -> Self {
-        self.caps(LineCap::Square)
-    }
-
-    /// At each end of each sub-path, the shape representing the stroke will be extended by a half
-    /// circle with a radius equal to the stroke width. If a sub-path has zero length, then the
-    /// resulting effect is that the stroke for that sub-path consists solely of a full circle
-    /// centered at the sub-path's point.
-    pub fn caps_round(self) -> Self {
-        self.caps(LineCap::Round)
-    }
-
-    /// The way in which lines are joined at the vertices, matching the SVG spec.
-    ///
-    /// Default value is `MiterClip`.
-    pub fn join(mut self, join: LineJoin) -> Self {
-        self.opts.line_join = join;
-        self
-    }
-
-    /// A sharp corner is to be used to join path segments.
-    pub fn join_miter(self) -> Self {
-        self.join(LineJoin::Miter)
-    }
-
-    /// Same as a `join_miter`, but if the miter limit is exceeded, the miter is clipped at a miter
-    /// length equal to the miter limit value multiplied by the stroke width.
-    pub fn join_miter_clip(self) -> Self {
-        self.join(LineJoin::MiterClip)
-    }
-
-    /// A round corner is to be used to join path segments.
-    pub fn join_round(self) -> Self {
-        self.join(LineJoin::Round)
-    }
-
-    /// A bevelled corner is to be used to join path segments. The bevel shape is a triangle that
-    /// fills the area between the two stroked segments.
-    pub fn join_bevel(self) -> Self {
-        self.join(LineJoin::Bevel)
-    }
-
-    /// The total thickness (aka width) of the line.
-    pub fn thickness(mut self, thickness: f32) -> Self {
-        self.opts.line_width = thickness;
-        self
-    }
-
-    /// Describes the limit before miter lines will clip, as described in the SVG spec.
-    ///
-    /// Must be greater than or equal to `1.0`.
-    pub fn miter_limit(mut self, limit: f32) -> Self {
-        self.opts.miter_limit = limit;
-        self
-    }
-
-    /// Maximum allowed distance to the path when building an approximation.
-    pub fn tolerance(mut self, tolerance: f32) -> Self {
-        self.opts.tolerance = tolerance;
-        self
-    }
-
-    /// Specify the full set of stroke options for the stroke path tessellation.
-    pub fn options(mut self, opts: StrokeOptions) -> Self {
-        self.opts = opts;
-        self
-    }
-}
-
-impl PathStroke {
     /// Submit path events as a polyline of colored points.
     pub fn colored_points<S, I>(self, ctxt: DrawingContext<S>, points: I) -> Path<S>
     where
@@ -339,7 +195,7 @@ where
             },
         );
         if let Err(err) = res {
-            eprintln!("failed to tessellate polyline: {:?}", err);
+            eprintln!("failed to tessellate path: {:?}", err);
         }
         Path::new(builder.vertex_data_ranges(), builder.index_range())
     }
@@ -514,156 +370,20 @@ where
     pub fn rule(self, rule: lyon::tessellation::FillRule) -> Self {
         self.map_ty(|ty| ty.rule(rule))
     }
-
-    /// A fast path to avoid some expensive operations if the path is known to not have any
-    /// self-intesections.
-    ///
-    /// Do not set this to `true` if the path may have intersecting edges else the tessellator may
-    /// panic or produce incorrect results. In doubt, do not change the default value.
-    ///
-    /// Default value: `false`.
-    pub fn assume_no_intersections(self, b: bool) -> Self {
-        self.map_ty(|ty| ty.assume_no_intersections(b))
-    }
 }
 
 impl<'a, S> DrawingPathStroke<'a, S>
 where
     S: BaseFloat,
 {
-    /// The start line cap as specified by the SVG spec.
-    pub fn start_cap(self, cap: LineCap) -> Self {
-        self.map_ty(|ty| ty.start_cap(cap))
+    /// Short-hand for the `stroke_weight` method.
+    pub fn weight(self, weight: f32) -> Self {
+        self.map_ty(|ty| ty.stroke_weight(weight))
     }
 
-    /// The end line cap as specified by the SVG spec.
-    pub fn end_cap(self, cap: LineCap) -> Self {
-        self.map_ty(|ty| ty.end_cap(cap))
-    }
-
-    /// The start and end line cap as specified by the SVG spec.
-    pub fn caps(self, cap: LineCap) -> Self {
-        self.map_ty(|ty| ty.caps(cap))
-    }
-
-    /// The stroke for each sub-path does not extend beyond its two endpoints. A zero length
-    /// sub-path will therefore not have any stroke.
-    pub fn start_cap_butt(self) -> Self {
-        self.map_ty(|ty| ty.start_cap_butt())
-    }
-
-    /// At the end of each sub-path, the shape representing the stroke will be extended by a
-    /// rectangle with the same width as the stroke width and whose length is half of the stroke
-    /// width. If a sub-path has zero length, then the resulting effect is that the stroke for that
-    /// sub-path consists solely of a square with side length equal to the stroke width, centered
-    /// at the sub-path's point.
-    pub fn start_cap_square(self) -> Self {
-        self.map_ty(|ty| ty.start_cap_square())
-    }
-
-    /// At each end of each sub-path, the shape representing the stroke will be extended by a half
-    /// circle with a radius equal to the stroke width. If a sub-path has zero length, then the
-    /// resulting effect is that the stroke for that sub-path consists solely of a full circle
-    /// centered at the sub-path's point.
-    pub fn start_cap_round(self) -> Self {
-        self.map_ty(|ty| ty.start_cap_round())
-    }
-
-    /// The stroke for each sub-path does not extend beyond its two endpoints. A zero length
-    /// sub-path will therefore not have any stroke.
-    pub fn end_cap_butt(self) -> Self {
-        self.map_ty(|ty| ty.end_cap_butt())
-    }
-
-    /// At the end of each sub-path, the shape representing the stroke will be extended by a
-    /// rectangle with the same width as the stroke width and whose length is half of the stroke
-    /// width. If a sub-path has zero length, then the resulting effect is that the stroke for that
-    /// sub-path consists solely of a square with side length equal to the stroke width, centered
-    /// at the sub-path's point.
-    pub fn end_cap_square(self) -> Self {
-        self.map_ty(|ty| ty.end_cap_square())
-    }
-
-    /// At each end of each sub-path, the shape representing the stroke will be extended by a half
-    /// circle with a radius equal to the stroke width. If a sub-path has zero length, then the
-    /// resulting effect is that the stroke for that sub-path consists solely of a full circle
-    /// centered at the sub-path's point.
-    pub fn end_cap_round(self) -> Self {
-        self.map_ty(|ty| ty.end_cap_round())
-    }
-
-    /// The stroke for each sub-path does not extend beyond its two endpoints. A zero length
-    /// sub-path will therefore not have any stroke.
-    pub fn caps_butt(self) -> Self {
-        self.map_ty(|ty| ty.caps_butt())
-    }
-
-    /// At the end of each sub-path, the shape representing the stroke will be extended by a
-    /// rectangle with the same width as the stroke width and whose length is half of the stroke
-    /// width. If a sub-path has zero length, then the resulting effect is that the stroke for that
-    /// sub-path consists solely of a square with side length equal to the stroke width, centered
-    /// at the sub-path's point.
-    pub fn caps_square(self) -> Self {
-        self.map_ty(|ty| ty.caps_square())
-    }
-
-    /// At each end of each sub-path, the shape representing the stroke will be extended by a half
-    /// circle with a radius equal to the stroke width. If a sub-path has zero length, then the
-    /// resulting effect is that the stroke for that sub-path consists solely of a full circle
-    /// centered at the sub-path's point.
-    pub fn caps_round(self) -> Self {
-        self.map_ty(|ty| ty.caps_round())
-    }
-
-    /// The way in which lines are joined at the vertices, matching the SVG spec.
-    ///
-    /// Default value is `MiterClip`.
-    pub fn join(self, join: LineJoin) -> Self {
-        self.map_ty(|ty| ty.join(join))
-    }
-
-    /// A sharp corner is to be used to join path segments.
-    pub fn join_miter(self) -> Self {
-        self.map_ty(|ty| ty.join_miter())
-    }
-
-    /// Same as a `join_miter`, but if the miter limit is exceeded, the miter is clipped at a miter
-    /// length equal to the miter limit value multiplied by the stroke width.
-    pub fn join_miter_clip(self) -> Self {
-        self.map_ty(|ty| ty.join_miter_clip())
-    }
-
-    /// A round corner is to be used to join path segments.
-    pub fn join_round(self) -> Self {
-        self.map_ty(|ty| ty.join_round())
-    }
-
-    /// A bevelled corner is to be used to join path segments. The bevel shape is a triangle that
-    /// fills the area between the two stroked segments.
-    pub fn join_bevel(self) -> Self {
-        self.map_ty(|ty| ty.join_bevel())
-    }
-
-    /// The total thickness (aka width) of the line.
-    pub fn thickness(self, thickness: f32) -> Self {
-        self.map_ty(|ty| ty.thickness(thickness))
-    }
-
-    /// Describes the limit before miter lines will clip, as described in the SVG spec.
-    ///
-    /// Must be greater than or equal to `1.0`.
-    pub fn miter_limit(self, limit: f32) -> Self {
-        self.map_ty(|ty| ty.miter_limit(limit))
-    }
-
-    /// Maximum allowed distance to the path when building an approximation.
+    /// Short-hand for the `stroke_tolerance` method.
     pub fn tolerance(self, tolerance: f32) -> Self {
-        self.map_ty(|ty| ty.tolerance(tolerance))
-    }
-
-    /// Specify the full set of stroke options for the path tessellation.
-    pub fn stroke_options(self, opts: StrokeOptions) -> Self {
-        self.map_ty(|ty| ty.options(opts))
+        self.map_ty(|ty| ty.stroke_tolerance(tolerance))
     }
 
     /// Submit path events as a polyline of colored points.
@@ -723,6 +443,18 @@ where
         I::Item: Into<Point2<S>>,
     {
         self.map_ty_with_context(|ty, ctxt| ty.points_closed(ctxt, points))
+    }
+}
+
+impl SetFill for PathFill {
+    fn fill_options_mut(&mut self) -> &mut FillOptions {
+        &mut self.opts
+    }
+}
+
+impl SetStroke for PathStroke {
+    fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
+        &mut self.opts
     }
 }
 
@@ -902,14 +634,7 @@ where
             if vertex_data_ranges.colors.len() >= vertex_data_ranges.points.len() {
                 return None;
             }
-            draw.theme(|theme| {
-                theme
-                    .color
-                    .primitive
-                    .get(&draw::theme::Primitive::Path)
-                    .map(|&c| c.into_linear())
-                    .or(Some(theme.color.default.into_linear()))
-            })
+            Some(draw.theme().fill_lin_srgba(&draw::theme::Primitive::Path))
         });
         let vertices = draw::properties::VerticesFromRanges {
             ranges: vertex_data_ranges,

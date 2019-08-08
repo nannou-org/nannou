@@ -3,7 +3,7 @@ use crate::draw::properties::spatial::{self, orientation, position};
 use crate::draw::properties::{
     ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, SetColor, SetOrientation, SetPosition,
 };
-use crate::draw::{self, mesh, Drawing};
+use crate::draw::{self, mesh, theme, Drawing};
 use crate::geom;
 use crate::math::BaseFloat;
 use std::iter;
@@ -151,20 +151,7 @@ where
 
         // If color is not specified within the ranges, determine the fill colour to use.
         let fill_color = match ranges.colors.len() {
-            0 => {
-                let color = color
-                    .or_else(|| {
-                        draw.theme(|theme| {
-                            theme
-                                .color
-                                .primitive
-                                .get(&draw::theme::Primitive::Polygon)
-                                .map(|&c| c.into_linear())
-                        })
-                    })
-                    .unwrap_or(draw.theme(|t| t.color.default.into_linear()));
-                Some(color)
-            }
+            0 => color.or_else(|| Some(draw.theme().fill_lin_srgba(&theme::Primitive::Polygon))),
             _ => None,
         };
 

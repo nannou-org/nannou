@@ -1,10 +1,10 @@
-use crate::draw;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
     spatial, ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, SetColor, SetDimensions,
     SetOrientation, SetPosition,
 };
+use crate::draw::{self, theme};
 use crate::geom::{self, Point2, Vector2};
 use crate::math::BaseFloat;
 use std::{iter, slice};
@@ -38,18 +38,7 @@ where
         let w = maybe_x.unwrap_or_else(default_w);
         let h = maybe_y.unwrap_or_else(default_h);
         let rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
-        // The color.
-        let color = color
-            .or_else(|| {
-                draw.theme(|theme| {
-                    theme
-                        .color
-                        .primitive
-                        .get(&draw::theme::Primitive::Rect)
-                        .map(|&c| c.into_linear())
-                })
-            })
-            .unwrap_or(draw.theme(|t| t.color.default.into_linear()));
+        let color = color.unwrap_or_else(|| draw.theme().fill_lin_srgba(&theme::Primitive::Rect));
         let points = rect.corners().vertices();
         let vertices = draw::mesh::vertex::IterFromPoint2s::new(points, color);
         let indices = geom::quad::TRIANGLE_INDICES.iter().cloned();

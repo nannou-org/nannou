@@ -113,18 +113,8 @@ where
         } = self;
 
         // The color.
-        let color = color
-            .or_else(|| {
-                draw.theme(|theme| {
-                    theme
-                        .color
-                        .primitive
-                        .get(&draw::theme::Primitive::Line)
-                        .map(|&c| c.into_linear())
-                })
-            })
-            .unwrap_or(draw.theme(|t| t.color.default.into_linear()));
-
+        let color =
+            color.unwrap_or_else(|| draw.theme().fill_lin_srgba(&draw::theme::Primitive::Line));
         let dimensions = Default::default();
         let spatial = spatial::Properties {
             dimensions,
