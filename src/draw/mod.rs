@@ -375,18 +375,19 @@ where
     match primitive {
         Primitive::Ellipse(prim) => into_drawn(draw, node_index, prim),
         Primitive::Line(prim) => into_drawn(draw, node_index, prim),
-        Primitive::MeshVertexless(prim) => into_drawn(draw, node_index, prim),
         Primitive::Mesh(prim) => into_drawn(draw, node_index, prim),
-        Primitive::PathInit(prim) => into_drawn(draw, node_index, prim),
-        Primitive::PathFill(prim) => into_drawn(draw, node_index, prim),
-        Primitive::PathStroke(prim) => into_drawn(draw, node_index, prim),
         Primitive::Path(prim) => into_drawn(draw, node_index, prim),
-        Primitive::PolygonPointless(prim) => into_drawn(draw, node_index, prim),
         Primitive::PolygonFill(prim) => into_drawn(draw, node_index, prim),
         Primitive::PolygonColorPerVertex(prim) => into_drawn(draw, node_index, prim),
         Primitive::Quad(prim) => into_drawn(draw, node_index, prim),
         Primitive::Rect(prim) => into_drawn(draw, node_index, prim),
         Primitive::Tri(prim) => into_drawn(draw, node_index, prim),
+
+        Primitive::MeshVertexless(_)
+        | Primitive::PathInit(_)
+        | Primitive::PathFill(_)
+        | Primitive::PathStroke(_)
+        | Primitive::PolygonPointless(_) => Ok(()),
     }
 }
 
@@ -560,7 +561,7 @@ where
     /// Add the given type to be drawn.
     pub fn a<T>(&self, primitive: T) -> Drawing<T, S>
     where
-        T: IntoDrawn<S> + Into<Primitive<S>>,
+        T: Into<Primitive<S>>,
         Primitive<S>: Into<Option<T>>,
     {
         let index = self

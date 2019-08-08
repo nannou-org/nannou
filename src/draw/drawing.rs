@@ -2,8 +2,7 @@ use crate::color::IntoLinSrgba;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    ColorScalar, IntoDrawn, SetColor, SetDimensions, SetFill, SetOrientation, SetPosition,
-    SetStroke,
+    ColorScalar, SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Draw};
 use crate::geom::graph::node;
@@ -25,7 +24,6 @@ use std::marker::PhantomData;
 #[derive(Debug)]
 pub struct Drawing<'a, T, S = geom::scalar::Default>
 where
-    T: IntoDrawn<S>,
     S: 'a + BaseFloat,
 {
     // The `Draw` instance used to create this drawing.
@@ -55,7 +53,6 @@ pub struct DrawingContext<'a, S> {
 /// Construct a new **Drawing** instance.
 pub fn new<'a, T, S>(draw: &'a Draw<S>, index: node::Index) -> Drawing<'a, T, S>
 where
-    T: IntoDrawn<S>,
     S: BaseFloat,
 {
     let _ty = PhantomData;
@@ -70,7 +67,6 @@ where
 
 impl<'a, T, S> Drop for Drawing<'a, T, S>
 where
-    T: IntoDrawn<S>,
     S: BaseFloat,
 {
     fn drop(&mut self) {
@@ -85,7 +81,6 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: IntoDrawn<S>,
     S: BaseFloat,
 {
     // Shared between the **finish** method and the **Drawing**'s **Drop** implementation.
@@ -124,7 +119,7 @@ where
     fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
     where
         F: FnOnce(Primitive<S>) -> Primitive<S>,
-        T2: IntoDrawn<S> + Into<Primitive<S>>,
+        T2: Into<Primitive<S>>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
@@ -148,7 +143,7 @@ where
     fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
     where
         F: FnOnce(Primitive<S>, DrawingContext<S>) -> Primitive<S>,
-        T2: IntoDrawn<S> + Into<Primitive<S>>,
+        T2: Into<Primitive<S>>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
@@ -182,7 +177,7 @@ where
     pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2, S>
     where
         F: FnOnce(T) -> T2,
-        T2: IntoDrawn<S> + Into<Primitive<S>>,
+        T2: Into<Primitive<S>>,
         Primitive<S>: Into<Option<T>>,
     {
         self.map_primitive(|prim| {
@@ -201,7 +196,7 @@ where
     pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2, S>
     where
         F: FnOnce(T, DrawingContext<S>) -> T2,
-        T2: IntoDrawn<S> + Into<Primitive<S>>,
+        T2: Into<Primitive<S>>,
         Primitive<S>: Into<Option<T>>,
     {
         self.map_primitive_with_context(|prim, ctxt| {
@@ -217,7 +212,7 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: IntoDrawn<S> + SetColor<ColorScalar> + Into<Primitive<S>>,
+    T: SetColor<ColorScalar> + Into<Primitive<S>>,
     Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
@@ -300,7 +295,7 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: IntoDrawn<S> + SetDimensions<S> + Into<Primitive<S>>,
+    T: SetDimensions<S> + Into<Primitive<S>>,
     Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
@@ -492,7 +487,7 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: IntoDrawn<S> + SetPosition<S> + Into<Primitive<S>>,
+    T: SetPosition<S> + Into<Primitive<S>>,
     Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
@@ -1079,7 +1074,7 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: IntoDrawn<S> + SetOrientation<S> + Into<Primitive<S>>,
+    T: SetOrientation<S> + Into<Primitive<S>>,
     Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
@@ -1498,7 +1493,7 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: IntoDrawn<S> + SetFill + Into<Primitive<S>>,
+    T: SetFill + Into<Primitive<S>>,
     Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
@@ -1535,7 +1530,7 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: IntoDrawn<S> + SetStroke + Into<Primitive<S>>,
+    T: SetStroke + Into<Primitive<S>>,
     Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {

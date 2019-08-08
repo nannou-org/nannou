@@ -6,7 +6,7 @@ use crate::draw::{self, Drawing};
 use crate::geom;
 use crate::math::BaseFloat;
 use crate::mesh::vertex::{WithColor, WithTexCoords};
-use std::{iter, ops};
+use std::ops;
 
 /// The mesh type prior to being initialised with vertices or indices.
 #[derive(Clone, Debug, Default)]
@@ -163,20 +163,6 @@ where
         I: IntoIterator<Item = [usize; 3]>,
     {
         self.map_ty_with_context(|ty, ctxt| ty.indexed(ctxt.mesh, vertices, indices))
-    }
-}
-
-impl<S> IntoDrawn<S> for Vertexless
-where
-    S: BaseFloat,
-{
-    type Vertices = iter::Empty<draw::mesh::Vertex<S>>;
-    type Indices = iter::Empty<usize>;
-    fn into_drawn(self, _draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
-        let properties = Default::default();
-        let vertices = iter::empty();
-        let indices = iter::empty();
-        (properties, vertices, indices)
     }
 }
 

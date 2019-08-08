@@ -6,7 +6,6 @@ use crate::draw::properties::{
 use crate::draw::{self, mesh, theme, Drawing};
 use crate::geom;
 use crate::math::BaseFloat;
-use std::iter;
 
 /// A polygon prior to being initialised.
 #[derive(Clone, Debug, Default)]
@@ -118,20 +117,6 @@ where
         S: BaseFloat,
     {
         self.map_ty_with_context(|ty, ctxt| ty.colored_points(&mut ctxt.mesh.vertex_data, points))
-    }
-}
-
-impl<S> IntoDrawn<S> for Pointless
-where
-    S: BaseFloat,
-{
-    type Vertices = iter::Empty<draw::mesh::Vertex<S>>;
-    type Indices = iter::Empty<usize>;
-    fn into_drawn(self, _draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
-        let properties = Default::default();
-        let vertices = iter::empty();
-        let indices = iter::empty();
-        (properties, vertices, indices)
     }
 }
 

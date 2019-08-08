@@ -16,7 +16,6 @@ use lyon::tessellation::{
     TessellationResult,
 };
 use std::cell::Cell;
-use std::iter;
 use std::ops;
 
 /// A set of path tessellation options (FillOptions or StrokeOptions).
@@ -565,48 +564,6 @@ where
 
     fn abort_geometry(&mut self) {
         self.builder.abort_geom();
-    }
-}
-
-impl<S> IntoDrawn<S> for PathInit
-where
-    S: BaseFloat,
-{
-    type Vertices = iter::Empty<draw::mesh::Vertex<S>>;
-    type Indices = iter::Empty<usize>;
-    fn into_drawn(self, _draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
-        let properties = Default::default();
-        let vertices = iter::empty();
-        let indices = iter::empty();
-        (properties, vertices, indices)
-    }
-}
-
-impl<S> IntoDrawn<S> for PathFill
-where
-    S: BaseFloat,
-{
-    type Vertices = iter::Empty<draw::mesh::Vertex<S>>;
-    type Indices = iter::Empty<usize>;
-    fn into_drawn(self, _draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
-        let properties = Default::default();
-        let vertices = iter::empty();
-        let indices = iter::empty();
-        (properties, vertices, indices)
-    }
-}
-
-impl<S> IntoDrawn<S> for PathStroke
-where
-    S: BaseFloat,
-{
-    type Vertices = iter::Empty<draw::mesh::Vertex<S>>;
-    type Indices = iter::Empty<usize>;
-    fn into_drawn(self, _draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
-        let properties = Default::default();
-        let vertices = iter::empty();
-        let indices = iter::empty();
-        (properties, vertices, indices)
     }
 }
 
