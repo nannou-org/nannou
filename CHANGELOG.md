@@ -4,9 +4,16 @@
 - Fix a bug where `Draw::to_frame` would `panic!` when used between multiple
   windows.
 - Add lyon for 2D tessellation.
+- Add `geom::path` module as a nannou-friendly abstraction around lyon's `Path`
+  type API. Adds the ability for bezier curves and paths with more options for
+  line joins and caps.
 - Fix all known polyline bugs by switching to lyon polyline tessellation.
-- Add polyline methods for specifying line caps, line joins, miter limits,
-  approximation tolerance, and closing end and start points.
+- Add `draw.path()` with methods for specifying line caps, line joins, miter
+  limits, approximation tolerance, and closing end and start points. Can receive
+  both raw path events as well as a polyline described by a sequence of points.
+- Re-implement `draw.line()` in terms of `draw.path()`.
+- Add `.stroke(color)` method to ellipse for drawing its outline.
+- Remove the `geom::line` module in favour of `geom::path`.
 
 # Version 0.10.0 (2019-07-21)
 
