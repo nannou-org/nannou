@@ -384,7 +384,7 @@ where
         Primitive::Rect(prim) => into_drawn(draw, node_index, prim),
         Primitive::Tri(prim) => into_drawn(draw, node_index, prim),
 
-        | Primitive::MeshVertexless(_)
+        Primitive::MeshVertexless(_)
         | Primitive::PathInit(_)
         | Primitive::PathFill(_)
         | Primitive::PathStroke(_)

@@ -29,10 +29,7 @@ fn view(app: &App, frame: &Frame) {
     // Multiply its length by 150
     mouse *= 150.0;
 
-    draw.line()
-        .weight(2.0)
-        .color(BLACK)
-        .points(center, mouse);
+    draw.line().weight(2.0).color(BLACK).points(center, mouse);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();

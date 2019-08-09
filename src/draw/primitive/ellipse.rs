@@ -113,10 +113,18 @@ where
                 if let Err(err) = res {
                     eprintln!("fill tessellation failed: {:?}", err);
                 }
-                (builder.vertex_data_ranges(), builder.index_range(), builder.min_index())
+                (
+                    builder.vertex_data_ranges(),
+                    builder.index_range(),
+                    builder.min_index(),
+                )
             } else {
                 let builder = mesh.builder();
-                (builder.vertex_data_ranges(), builder.index_range(), builder.min_index())
+                (
+                    builder.vertex_data_ranges(),
+                    builder.index_range(),
+                    builder.min_index(),
+                )
             };
 
             // Stroke tessellation.

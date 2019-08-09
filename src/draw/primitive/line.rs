@@ -1,10 +1,10 @@
 use crate::color::LinSrgba;
-use crate::draw::{self, Drawing};
 use crate::draw::primitive::{PathStroke, Primitive};
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{
     ColorScalar, Draw, Drawn, IntoDrawn, SetColor, SetOrientation, SetPosition, SetStroke,
 };
+use crate::draw::{self, Drawing};
 use crate::geom::{self, pt2, Point2};
 use crate::math::BaseFloat;
 use lyon::tessellation::StrokeOptions;

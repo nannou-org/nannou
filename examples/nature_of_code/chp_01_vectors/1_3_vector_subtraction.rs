@@ -20,10 +20,7 @@ fn view(app: &App, frame: &Frame) {
     let center = vec2(0.0, 0.0);
     mouse -= center;
 
-    draw.line()
-        .weight(2.0)
-        .color(BLACK)
-        .points(center, mouse);
+    draw.line().weight(2.0).color(BLACK).points(center, mouse);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();

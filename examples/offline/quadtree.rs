@@ -124,7 +124,13 @@ impl QuadTree {
         return true;
     }
 
-    pub fn get_elements<T: WithPos>(&self, elements: &[T], x: f32, y: f32, dist: f32) -> Vec<usize> {
+    pub fn get_elements<T: WithPos>(
+        &self,
+        elements: &[T],
+        x: f32,
+        y: f32,
+        dist: f32,
+    ) -> Vec<usize> {
         let mut result: Vec<usize> = Vec::new();
 
         //are we intersecting the rect
