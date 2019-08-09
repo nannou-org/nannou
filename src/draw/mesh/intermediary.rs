@@ -45,6 +45,7 @@ pub struct IntermediaryMeshBuilder<'a, S = geom::scalar::Default> {
     pub(crate) mesh: &'a mut IntermediaryMesh<S>,
     pub(crate) vertex_data_ranges: IntermediaryVertexDataRanges,
     pub(crate) index_range: ops::Range<usize>,
+    pub(crate) min_index: usize,
 }
 
 impl<S> IntermediaryMesh<S> {
@@ -52,10 +53,12 @@ impl<S> IntermediaryMesh<S> {
     pub fn builder(&mut self) -> IntermediaryMeshBuilder<S> {
         let vertex_data_ranges = Default::default();
         let index_range = 0..0;
+        let min_index = self.vertex_data.points.len();
         let mut builder = IntermediaryMeshBuilder {
             mesh: self,
             vertex_data_ranges,
             index_range,
+            min_index,
         };
         builder.update_ranges_start();
         builder.update_ranges_end();
@@ -106,6 +109,11 @@ impl<'a, S> IntermediaryMeshBuilder<'a, S> {
 
     pub fn index_range(&self) -> ops::Range<usize> {
         self.index_range.clone()
+    }
+
+    /// The minimum index that exists within the index range.
+    pub fn min_index(&self) -> usize {
+        self.min_index
     }
 }
 

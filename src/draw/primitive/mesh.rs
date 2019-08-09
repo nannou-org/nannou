@@ -19,6 +19,7 @@ pub struct Mesh<S = geom::scalar::Default> {
     orientation: orientation::Properties<S>,
     vertex_data_ranges: draw::IntermediaryVertexDataRanges,
     index_range: ops::Range<usize>,
+    min_index: usize,
 }
 
 // A simple iterator for flattening a fixed-size array of indices.
@@ -39,6 +40,7 @@ impl Vertexless {
         I: IntoIterator<Item = geom::Tri<V>>,
         V: geom::Vertex + IntoVertex<S>,
     {
+        let min_index = mesh.vertex_data.points.len();
         let mut vertex_data_ranges = draw::IntermediaryVertexDataRanges::default();
         let mut index_range = 0..0;
         vertex_data_ranges.points.start = mesh.vertex_data.points.len();
@@ -69,7 +71,7 @@ impl Vertexless {
         vertex_data_ranges.colors.end = mesh.vertex_data.colors.len();
         vertex_data_ranges.tex_coords.end = mesh.vertex_data.tex_coords.len();
         index_range.end = mesh.indices.len();
-        Mesh::new(vertex_data_ranges, index_range)
+        Mesh::new(vertex_data_ranges, index_range, min_index)
     }
 
     /// Describe the mesh with the given indexed vertices.
@@ -90,6 +92,7 @@ impl Vertexless {
         V::Item: IntoVertex<S>,
         I: IntoIterator<Item = [usize; 3]>,
     {
+        let min_index = mesh.vertex_data.points.len();
         let mut vertex_data_ranges = draw::IntermediaryVertexDataRanges::default();
         vertex_data_ranges.points.start = mesh.vertex_data.points.len();
         vertex_data_ranges.colors.start = mesh.vertex_data.colors.len();
@@ -118,7 +121,7 @@ impl Vertexless {
         };
         mesh.indices.extend(iter);
         index_range.end = mesh.indices.len();
-        Mesh::new(vertex_data_ranges, index_range)
+        Mesh::new(vertex_data_ranges, index_range, min_index)
     }
 }
 
@@ -130,6 +133,7 @@ where
     fn new(
         vertex_data_ranges: draw::IntermediaryVertexDataRanges,
         index_range: ops::Range<usize>,
+        min_index: usize,
     ) -> Self {
         let orientation = Default::default();
         let position = Default::default();
@@ -138,6 +142,7 @@ where
             position,
             vertex_data_ranges,
             index_range,
+            min_index,
         }
     }
 }
@@ -178,6 +183,7 @@ where
             position,
             vertex_data_ranges,
             index_range,
+            min_index,
         } = self;
 
         let dimensions = spatial::dimension::Properties::default();
@@ -186,11 +192,8 @@ where
             orientation,
             position,
         };
-        let vertices = draw::properties::VerticesFromRanges {
-            ranges: vertex_data_ranges,
-            fill_color: None,
-        };
-        let indices = draw::properties::IndicesFromRange { range: index_range };
+        let vertices = draw::properties::VerticesFromRanges::new(vertex_data_ranges, None);
+        let indices = draw::properties::IndicesFromRange::new(index_range, min_index);
         (spatial, vertices, indices)
     }
 }

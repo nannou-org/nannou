@@ -62,6 +62,7 @@ pub struct VerticesFromRanges {
 #[derive(Debug)]
 pub struct IndicesFromRange {
     pub range: ops::Range<usize>,
+    pub min_index: usize,
 }
 
 /// A pair of `Vertices` implementations chained together.
@@ -175,8 +176,8 @@ impl VerticesFromRanges {
 }
 
 impl IndicesFromRange {
-    pub fn new(range: ops::Range<usize>) -> Self {
-        IndicesFromRange { range }
+    pub fn new(range: ops::Range<usize>, min_index: usize) -> Self {
+        IndicesFromRange { range, min_index }
     }
 }
 
@@ -185,6 +186,7 @@ impl IndicesFromRange {
 pub trait Vertices<S>: Sized {
     /// Return the next **Vertex** within the sequence.
     fn next(&mut self, data: &draw::IntermediaryMesh<S>) -> Option<draw::mesh::Vertex<S>>;
+
     /// Converts `self` and the given `data` into an iterator yielding vertices.
     fn into_iter(self, data: &draw::IntermediaryMesh<S>) -> IterVertices<Self, S> {
         IterVertices {
@@ -199,6 +201,15 @@ pub trait Vertices<S>: Sized {
 pub trait Indices: Sized {
     /// Return the next index within the sequence.
     fn next(&mut self, intermediary_indices: &[usize]) -> Option<usize>;
+
+    /// The minimum index referred to in the sequence. This is necessary for mapping indices into
+    /// the intermediary mesh to indices into the draw's primary mesh.
+    ///
+    /// By default, this is assumed to be `0`.
+    fn min_index(&self) -> usize {
+        0
+    }
+
     /// Converts `self` and the given `intermediary_indices` into an iterator yielding indices.
     fn into_iter(self, intermediary_indices: &[usize]) -> IterIndices<Self> {
         IterIndices {
@@ -383,6 +394,10 @@ impl Indices for IndicesFromRange {
                 .expect("index into `intermediary_indices` is out of range")
         })
     }
+
+    fn min_index(&self) -> usize {
+        self.min_index
+    }
 }
 
 impl<S, A, B> Vertices<S> for VerticesChain<A, B>
@@ -404,5 +419,9 @@ where
         self.a
             .next(intermediary_indices)
             .or_else(|| self.b.next(intermediary_indices))
+    }
+
+    fn min_index(&self) -> usize {
+        std::cmp::min(self.a.min_index(), self.b.min_index())
     }
 }

@@ -303,9 +303,10 @@ where
             ..
         } = *draw;
         let intermediary_mesh = &*intermediary_mesh.borrow();
+        let min_intermediary_index = properties::Indices::min_index(&indices);
         let vertices = properties::Vertices::into_iter(vertices, intermediary_mesh);
         let indices = properties::Indices::into_iter(indices, &intermediary_mesh.indices)
-            .map(|i| vertices_start_index + i);
+            .map(|i| vertices_start_index + i - min_intermediary_index);
         mesh.extend(vertices, indices);
     }
 
@@ -383,7 +384,7 @@ where
         Primitive::Rect(prim) => into_drawn(draw, node_index, prim),
         Primitive::Tri(prim) => into_drawn(draw, node_index, prim),
 
-        Primitive::MeshVertexless(_)
+        | Primitive::MeshVertexless(_)
         | Primitive::PathInit(_)
         | Primitive::PathFill(_)
         | Primitive::PathStroke(_)
@@ -575,7 +576,7 @@ where
     }
 
     /// Begin drawing a **Path**.
-    pub fn path(&self) -> Drawing<primitive::PathInit, S> {
+    pub fn path(&self) -> Drawing<primitive::PathInit<S>, S> {
         self.a(Default::default())
     }
 

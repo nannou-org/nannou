@@ -93,14 +93,14 @@ where
         let ellipse = geom::Ellipse::new(rect, resolution);
         let close = true;
 
-        let (fill_vdr, fill_ir, stroke_vdr, stroke_ir) = draw.drawing_context(|ctxt| {
+        let (fill_vdr, fill_ir, stroke_vdr, stroke_ir, min_index) = draw.drawing_context(|ctxt| {
             let draw::DrawingContext {
                 mesh,
                 fill_tessellator,
             } = ctxt;
 
             // Fill tessellation.
-            let (fill_vdr, fill_ir) = if !no_fill {
+            let (fill_vdr, fill_ir, min_index) = if !no_fill {
                 let mut builder = mesh.builder();
                 let circumference = ellipse.circumference().map(|p| {
                     let p: geom::Point2<f32> = p.cast().expect("failed to cast point");
@@ -113,12 +113,10 @@ where
                 if let Err(err) = res {
                     eprintln!("fill tessellation failed: {:?}", err);
                 }
-                let fill_vdr = builder.vertex_data_ranges();
-                let fill_ir = builder.index_range();
-                (fill_vdr, fill_ir)
+                (builder.vertex_data_ranges(), builder.index_range(), builder.min_index())
             } else {
                 let builder = mesh.builder();
-                (builder.vertex_data_ranges(), builder.index_range())
+                (builder.vertex_data_ranges(), builder.index_range(), builder.min_index())
             };
 
             // Stroke tessellation.
@@ -144,7 +142,7 @@ where
                 _ => (Default::default(), 0..0),
             };
 
-            (fill_vdr, fill_ir, stroke_vdr, stroke_ir)
+            (fill_vdr, fill_ir, stroke_vdr, stroke_ir, min_index)
         });
 
         let fill_color = match fill_ir.len() == 0 {
@@ -160,9 +158,9 @@ where
         };
 
         let fill_vertices = VerticesFromRanges::new(fill_vdr, fill_color);
-        let fill_indices = IndicesFromRange::new(fill_ir);
+        let fill_indices = IndicesFromRange::new(fill_ir, min_index);
         let stroke_vertices = VerticesFromRanges::new(stroke_vdr, stroke_color);
-        let stroke_indices = IndicesFromRange::new(stroke_ir);
+        let stroke_indices = IndicesFromRange::new(stroke_ir, min_index);
         let vertices = (fill_vertices, stroke_vertices).into();
         let indices = (fill_indices, stroke_indices).into();
 

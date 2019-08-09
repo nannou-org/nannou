@@ -14,9 +14,9 @@ fn view(app: &App, frame: &Frame) {
     let win = app.window_rect();
     let t = app.time;
 
-    // Decide on a number of points and a thickness.
+    // Decide on a number of points and a weight.
     let n_points = 10;
-    let thickness = 8.0;
+    let weight = 8.0;
     let hz = ((app.mouse.x + win.right()) / win.w()).powi(4) * 1000.0;
     let vertices = (0..n_points)
         // A sine wave mapped to the range of the window.
@@ -41,7 +41,7 @@ fn view(app: &App, frame: &Frame) {
     // Draw the polyline as a stroked path.
     draw.path()
         .stroke()
-        .thickness(thickness)
+        .weight(weight)
         .join_round()
         .colored_points(vertices);
 

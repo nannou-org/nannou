@@ -26,11 +26,10 @@ fn view(app: &App, frame: &Frame) {
 
     // Draw a line!
     draw.line()
-        .start(win.top_left() * t.sin())
-        .end(win.bottom_right() * t.cos())
-        .thickness(win.h() / (50.0 * t.sin()))
+        .weight((win.h() / (50.0 * t.sin())).abs())
         .caps_round()
-        .color(PALEGOLDENROD);
+        .color(PALEGOLDENROD)
+        .points(win.top_left() * t.sin(), win.bottom_right() * t.cos());
 
     // Draw a quad that follows the inverse of the ellipse.
     draw.quad()

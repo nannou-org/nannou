@@ -41,13 +41,16 @@ pub trait TessellationOptions {
 
 /// The beginning of the path building process, prior to choosing the tessellation mode (fill or
 /// stroke).
-#[derive(Clone, Debug, Default)]
-pub struct PathInit;
+#[derive(Clone, Debug)]
+pub struct PathInit<S = geom::scalar::Default>(std::marker::PhantomData<S>);
 
 /// A path drawing context ready to specify tessellation options.
 #[derive(Clone, Debug)]
-pub struct PathOptions<T> {
+pub struct PathOptions<T, S = geom::scalar::Default> {
     opts: T,
+    color: Option<LinSrgba>,
+    position: position::Properties<S>,
+    orientation: orientation::Properties<S>,
 }
 
 /// Mutable access to stroke and fill tessellators.
@@ -57,10 +60,10 @@ pub struct Tessellators<'a> {
 }
 
 /// A filled path drawing context.
-pub type PathFill = PathOptions<FillOptions>;
+pub type PathFill<S = geom::scalar::Default> = PathOptions<FillOptions, S>;
 
 /// A stroked path drawing context.
-pub type PathStroke = PathOptions<StrokeOptions>;
+pub type PathStroke<S = geom::scalar::Default> = PathOptions<StrokeOptions, S>;
 
 /// Properties related to drawing a **Path**.
 #[derive(Clone, Debug)]
@@ -70,19 +73,20 @@ pub struct Path<S = geom::scalar::Default> {
     orientation: orientation::Properties<S>,
     vertex_data_ranges: draw::IntermediaryVertexDataRanges,
     index_range: ops::Range<usize>,
+    min_index: usize,
 }
 
 /// The initial drawing context for a path.
-pub type DrawingPathInit<'a, S = geom::scalar::Default> = Drawing<'a, PathInit, S>;
+pub type DrawingPathInit<'a, S = geom::scalar::Default> = Drawing<'a, PathInit<S>, S>;
 
 /// The drawing context for a path in the tessellation options state.
-pub type DrawingPathOptions<'a, T, S = geom::scalar::Default> = Drawing<'a, PathOptions<T>, S>;
+pub type DrawingPathOptions<'a, T, S = geom::scalar::Default> = Drawing<'a, PathOptions<T, S>, S>;
 
 /// The drawing context for a stroked path, prior to path event submission.
-pub type DrawingPathStroke<'a, S = geom::scalar::Default> = Drawing<'a, PathStroke, S>;
+pub type DrawingPathStroke<'a, S = geom::scalar::Default> = Drawing<'a, PathStroke<S>, S>;
 
 /// The drawing context for a filled path, prior to path event submission.
-pub type DrawingPathFill<'a, S = geom::scalar::Default> = Drawing<'a, PathFill, S>;
+pub type DrawingPathFill<'a, S = geom::scalar::Default> = Drawing<'a, PathFill<S>, S>;
 
 /// The drawing context for a polyline whose vertices have been specified.
 pub type DrawingPath<'a, S = geom::scalar::Default> = Drawing<'a, Path<S>, S>;
@@ -92,27 +96,42 @@ pub struct PathGeometryBuilder<'a, 'mesh, S = geom::scalar::Default> {
     color: &'a Cell<Option<draw::mesh::vertex::Color>>,
 }
 
-impl PathInit {
+impl<S> PathInit<S> {
     /// Specify that we want to use fill tessellation for the path.
     ///
     /// The returned building context allows for specifying the fill tessellation options.
-    pub fn fill(self) -> PathFill {
+    pub fn fill(self) -> PathFill<S> {
         let mut opts = FillOptions::default();
         opts.compute_normals = false;
         opts.on_error = lyon::tessellation::OnError::Recover;
-        PathFill { opts }
+        PathFill::new(opts)
     }
 
     /// Specify that we want to use stroke tessellation for the path.
     ///
     /// The returned building context allows for specifying the stroke tessellation options.
-    pub fn stroke(self) -> PathStroke {
+    pub fn stroke(self) -> PathStroke<S> {
         let opts = Default::default();
-        PathStroke { opts }
+        PathStroke::new(opts)
     }
 }
 
-impl PathFill {
+impl<T, S> PathOptions<T, S> {
+    /// Initialise the `PathOptions` builder.
+    pub fn new(opts: T) -> Self {
+        let orientation = Default::default();
+        let position = Default::default();
+        let color = Default::default();
+        PathOptions {
+            opts,
+            orientation,
+            position,
+            color,
+        }
+    }
+}
+
+impl<S> PathFill<S> {
     /// Maximum allowed distance to the path when building an approximation.
     ///
     /// This method is shorthand for the `fill_tolerance` method.
@@ -130,7 +149,7 @@ impl PathFill {
     }
 }
 
-impl PathStroke {
+impl<S> PathStroke<S> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.stroke_weight(weight)
@@ -142,7 +161,7 @@ impl PathStroke {
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn colored_points<S, I>(self, ctxt: DrawingContext<S>, points: I) -> Path<S>
+    pub fn colored_points<I>(self, ctxt: DrawingContext<S>, points: I) -> Path<S>
     where
         S: BaseFloat,
         I: IntoIterator,
@@ -152,7 +171,7 @@ impl PathStroke {
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn colored_points_closed<S, I>(self, ctxt: DrawingContext<S>, points: I) -> Path<S>
+    pub fn colored_points_closed<I>(self, ctxt: DrawingContext<S>, points: I) -> Path<S>
     where
         S: BaseFloat,
         I: IntoIterator,
@@ -162,12 +181,12 @@ impl PathStroke {
     }
 }
 
-impl<T> PathOptions<T>
+impl<T, S> PathOptions<T, S>
 where
     T: TessellationOptions,
 {
     /// Submit the path events to be tessellated.
-    pub(crate) fn events<'ctxt, S, I>(self, ctxt: DrawingContext<'ctxt, S>, events: I) -> Path<S>
+    pub(crate) fn events<'ctxt, I>(self, ctxt: DrawingContext<'ctxt, S>, events: I) -> Path<S>
     where
         S: BaseFloat,
         I: IntoIterator<Item = PathEvent>,
@@ -196,11 +215,18 @@ where
         if let Err(err) = res {
             eprintln!("failed to tessellate path: {:?}", err);
         }
-        Path::new(builder.vertex_data_ranges(), builder.index_range())
+        Path::new(
+            self.position,
+            self.orientation,
+            self.color,
+            builder.vertex_data_ranges(),
+            builder.index_range(),
+            builder.min_index(),
+        )
     }
 
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
-    pub fn points<'ctxt, S, I>(self, ctxt: DrawingContext<'ctxt, S>, points: I) -> Path<S>
+    pub fn points<'ctxt, I>(self, ctxt: DrawingContext<'ctxt, S>, points: I) -> Path<S>
     where
         S: BaseFloat,
         I: IntoIterator,
@@ -213,7 +239,7 @@ where
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
     ///
     /// Closes the start and end points.
-    pub fn points_closed<'ctxt, S, I>(self, ctxt: DrawingContext<'ctxt, S>, points: I) -> Path<S>
+    pub fn points_closed<'ctxt, I>(self, ctxt: DrawingContext<'ctxt, S>, points: I) -> Path<S>
     where
         S: BaseFloat,
         I: IntoIterator,
@@ -224,7 +250,7 @@ where
     }
 
     // Consumes an iterator of points and converts them to an iterator yielding events.
-    fn points_inner<'ctxt, S, I>(
+    fn points_inner<'ctxt, I>(
         self,
         ctxt: DrawingContext<'ctxt, S>,
         close: bool,
@@ -264,11 +290,18 @@ where
         if let Err(err) = res {
             eprintln!("failed to tessellate polyline: {:?}", err);
         }
-        Path::new(builder.vertex_data_ranges(), builder.index_range())
+        Path::new(
+            self.position,
+            self.orientation,
+            self.color,
+            builder.vertex_data_ranges(),
+            builder.index_range(),
+            builder.min_index(),
+        )
     }
 
     // Consumes an iterator of points and converts them to an iterator yielding events.
-    fn colored_points_inner<'ctxt, S, I>(
+    fn colored_points_inner<'ctxt, I>(
         self,
         ctxt: DrawingContext<'ctxt, S>,
         close: bool,
@@ -309,7 +342,14 @@ where
         if let Err(err) = res {
             eprintln!("failed to tessellate polyline: {:?}", err);
         }
-        Path::new(builder.vertex_data_ranges(), builder.index_range())
+        Path::new(
+            self.position,
+            self.orientation,
+            self.color,
+            builder.vertex_data_ranges(),
+            builder.index_range(),
+            builder.min_index(),
+        )
     }
 }
 
@@ -319,18 +359,20 @@ where
 {
     // Initialise a new `Path` with its ranges into the intermediary mesh, ready for drawing.
     fn new(
+        position: position::Properties<S>,
+        orientation: orientation::Properties<S>,
+        color: Option<LinSrgba>,
         vertex_data_ranges: draw::IntermediaryVertexDataRanges,
         index_range: ops::Range<usize>,
+        min_index: usize,
     ) -> Self {
-        let orientation = Default::default();
-        let position = Default::default();
-        let color = Default::default();
         Path {
             color,
             orientation,
             position,
             vertex_data_ranges,
             index_range,
+            min_index,
         }
     }
 }
@@ -412,8 +454,8 @@ impl<'a, T, S> DrawingPathOptions<'a, T, S>
 where
     S: BaseFloat,
     T: TessellationOptions,
-    PathOptions<T>: IntoDrawn<S> + Into<Primitive<S>>,
-    Primitive<S>: Into<Option<PathOptions<T>>>,
+    PathOptions<T, S>: Into<Primitive<S>>,
+    Primitive<S>: Into<Option<PathOptions<T, S>>>,
     for<'b, 'ctxt> PathGeometryBuilder<'b, 'ctxt, S>: GeometryBuilder<T::VertexInput>,
 {
     /// Submit the path events to be tessellated.
@@ -445,13 +487,13 @@ where
     }
 }
 
-impl SetFill for PathFill {
+impl<S> SetFill for PathFill<S> {
     fn fill_options_mut(&mut self) -> &mut FillOptions {
         &mut self.opts
     }
 }
 
-impl SetStroke for PathStroke {
+impl<S> SetStroke for PathStroke<S> {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         &mut self.opts
     }
@@ -580,6 +622,7 @@ where
             position,
             vertex_data_ranges,
             index_range,
+            min_index,
         } = self;
         let dimensions = spatial::dimension::Properties::default();
         let spatial = spatial::Properties {
@@ -593,12 +636,43 @@ where
             }
             Some(draw.theme().fill_lin_srgba(&draw::theme::Primitive::Path))
         });
-        let vertices = draw::properties::VerticesFromRanges {
-            ranges: vertex_data_ranges,
-            fill_color: color,
-        };
-        let indices = draw::properties::IndicesFromRange { range: index_range };
+        let vertices = draw::properties::VerticesFromRanges::new(vertex_data_ranges, color);
+        let indices = draw::properties::IndicesFromRange::new(index_range, min_index);
         (spatial, vertices, indices)
+    }
+}
+
+impl<S> Default for PathInit<S> {
+    fn default() -> Self {
+        PathInit(std::marker::PhantomData)
+    }
+}
+
+impl<T, S> Default for PathOptions<T, S>
+where
+    T: Default,
+{
+    fn default() -> Self {
+        let opts = Default::default();
+        PathOptions::new(opts)
+    }
+}
+
+impl<T, S> SetOrientation<S> for PathOptions<T, S> {
+    fn properties(&mut self) -> &mut orientation::Properties<S> {
+        SetOrientation::properties(&mut self.orientation)
+    }
+}
+
+impl<T, S> SetPosition<S> for PathOptions<T, S> {
+    fn properties(&mut self) -> &mut position::Properties<S> {
+        SetPosition::properties(&mut self.position)
+    }
+}
+
+impl<T, S> SetColor<ColorScalar> for PathOptions<T, S> {
+    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
+        SetColor::rgba_mut(&mut self.color)
     }
 }
 
@@ -620,20 +694,20 @@ impl<S> SetColor<ColorScalar> for Path<S> {
     }
 }
 
-impl<S> From<PathInit> for Primitive<S> {
-    fn from(prim: PathInit) -> Self {
+impl<S> From<PathInit<S>> for Primitive<S> {
+    fn from(prim: PathInit<S>) -> Self {
         Primitive::PathInit(prim)
     }
 }
 
-impl<S> From<PathStroke> for Primitive<S> {
-    fn from(prim: PathStroke) -> Self {
+impl<S> From<PathStroke<S>> for Primitive<S> {
+    fn from(prim: PathStroke<S>) -> Self {
         Primitive::PathStroke(prim)
     }
 }
 
-impl<S> From<PathFill> for Primitive<S> {
-    fn from(prim: PathFill) -> Self {
+impl<S> From<PathFill<S>> for Primitive<S> {
+    fn from(prim: PathFill<S>) -> Self {
         Primitive::PathFill(prim)
     }
 }
@@ -644,8 +718,8 @@ impl<S> From<Path<S>> for Primitive<S> {
     }
 }
 
-impl<S> Into<Option<PathInit>> for Primitive<S> {
-    fn into(self) -> Option<PathInit> {
+impl<S> Into<Option<PathInit<S>>> for Primitive<S> {
+    fn into(self) -> Option<PathInit<S>> {
         match self {
             Primitive::PathInit(prim) => Some(prim),
             _ => None,
@@ -653,8 +727,8 @@ impl<S> Into<Option<PathInit>> for Primitive<S> {
     }
 }
 
-impl<S> Into<Option<PathFill>> for Primitive<S> {
-    fn into(self) -> Option<PathFill> {
+impl<S> Into<Option<PathFill<S>>> for Primitive<S> {
+    fn into(self) -> Option<PathFill<S>> {
         match self {
             Primitive::PathFill(prim) => Some(prim),
             _ => None,
@@ -662,8 +736,8 @@ impl<S> Into<Option<PathFill>> for Primitive<S> {
     }
 }
 
-impl<S> Into<Option<PathStroke>> for Primitive<S> {
-    fn into(self) -> Option<PathStroke> {
+impl<S> Into<Option<PathStroke<S>>> for Primitive<S> {
+    fn into(self) -> Option<PathStroke<S>> {
         match self {
             Primitive::PathStroke(prim) => Some(prim),
             _ => None,
