@@ -3,22 +3,21 @@
 
 use nannou::prelude::*;
 
-pub struct QuadTree<T> {
+pub struct QuadTree {
     indices: [usize; 4],
     num: usize,
     pub x: f32,
     pub y: f32,
     pub width: f32,
     pub height: f32,
-    whatever: Option<T>,
-    pub children: Option<[Box<QuadTree<T>>; 4]>,
+    pub children: Option<[Box<QuadTree>; 4]>,
 }
 
 pub trait WithPos {
     fn get_pos(&self) -> Vector2;
 }
 
-impl<T: WithPos> QuadTree<T> {
+impl QuadTree {
     pub fn new() -> Self {
         QuadTree {
             indices: [0; 4],
@@ -27,12 +26,11 @@ impl<T: WithPos> QuadTree<T> {
             y: 0.0,
             width: 1024.0,
             height: 1024.0,
-            whatever: None,
             children: None,
         }
     }
 
-    pub fn contains(&self, point: &T) -> bool {
+    pub fn contains<T: WithPos>(&self, point: &T) -> bool {
         let pos = point.get_pos();
         pos.x >= self.x - self.width * 0.5
             && pos.x < self.x + self.width * 0.5
@@ -42,52 +40,48 @@ impl<T: WithPos> QuadTree<T> {
 
     //split in four
     //mutates self
-    pub fn split(&mut self, elements: &Vec<T>) {
+    pub fn split<T: WithPos>(&mut self, elements: &[T]) {
         //let new_children =
-        let mut southwest: Box<QuadTree<T>> = Box::new(QuadTree::<T> {
+        let mut southwest: Box<QuadTree> = Box::new(QuadTree {
             indices: [0; 4],
             num: 0,
             x: self.x - self.width * 0.25,
             y: self.y - self.height * 0.25,
             width: self.width * 0.5,
             height: self.height * 0.5,
-            whatever: None,
             children: None,
         });
-        let mut southeast: Box<QuadTree<T>> = Box::new(QuadTree::<T> {
+        let mut southeast: Box<QuadTree> = Box::new(QuadTree {
             indices: [0; 4],
             num: 0,
             x: self.x + self.width * 0.25,
             y: self.y - self.height * 0.25,
             width: self.width * 0.5,
             height: self.height * 0.5,
-            whatever: None,
             children: None,
         });
-        let mut northwest: Box<QuadTree<T>> = Box::new(QuadTree::<T> {
+        let mut northwest: Box<QuadTree> = Box::new(QuadTree {
             indices: [0; 4],
             num: 0,
             x: self.x - self.width * 0.25,
             y: self.y + self.height * 0.25,
             width: self.width * 0.5,
             height: self.height * 0.5,
-            whatever: None,
             children: None,
         });
-        let mut northeast: Box<QuadTree<T>> = Box::new(QuadTree::<T> {
+        let mut northeast: Box<QuadTree> = Box::new(QuadTree {
             indices: [0; 4],
             num: 0,
             x: self.x + self.width * 0.25,
             y: self.y + self.height * 0.25,
             width: self.width * 0.5,
             height: self.height * 0.5,
-            whatever: None,
             children: None,
         });
         //push the elements down the children
         for k in 0..self.num {
             let point = &elements[self.indices[k]];
-            if northwest.contains(&point) {
+            if northwest.contains(point) {
                 northwest.insert(elements, self.indices[k]);
             } else if northeast.contains(point) {
                 northeast.insert(elements, self.indices[k]);
@@ -100,7 +94,7 @@ impl<T: WithPos> QuadTree<T> {
         self.children = Some([northwest, northeast, southwest, southeast]);
     }
 
-    pub fn insert_children(&mut self, elements: &Vec<T>, index: usize) {
+    pub fn insert_children<T: WithPos>(&mut self, elements: &[T], index: usize) {
         match self.children.as_mut() {
             Some(children) => {
                 //TODO faster sort
@@ -130,7 +124,7 @@ impl<T: WithPos> QuadTree<T> {
         return true;
     }
 
-    pub fn get_elements(&self, elements: &Vec<T>, x: f32, y: f32, dist: f32) -> Vec<usize> {
+    pub fn get_elements<T: WithPos>(&self, elements: &[T], x: f32, y: f32, dist: f32) -> Vec<usize> {
         let mut result: Vec<usize> = Vec::new();
 
         //are we intersecting the rect
@@ -158,7 +152,7 @@ impl<T: WithPos> QuadTree<T> {
         result
     }
 
-    pub fn insert(&mut self, elements: &Vec<T>, index: usize) {
+    pub fn insert<T: WithPos>(&mut self, elements: &[T], index: usize) {
         //have we split?
         match &self.children {
             Some(_children) => {
