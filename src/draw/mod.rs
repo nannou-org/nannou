@@ -618,6 +618,13 @@ where
         self.a(Default::default())
     }
 
+    /// Begin drawing a **Polyline**.
+    ///
+    /// Note that this is simply short-hand for `draw.path().stroke()`
+    pub fn polyline(&self) -> Drawing<primitive::PathStroke<S>, S> {
+        self.path().stroke()
+    }
+
     /// Produce the transformed mesh vertices for the node at the given index.
     ///
     /// Returns **None** if there is no node for the given index.

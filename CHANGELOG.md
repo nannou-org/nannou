@@ -4,16 +4,42 @@
 - Fix a bug where `Draw::to_frame` would `panic!` when used between multiple
   windows.
 - Add lyon for 2D tessellation.
-- Add `geom::path` module as a nannou-friendly abstraction around lyon's `Path`
-  type API. Adds the ability for bezier curves and paths with more options for
-  line joins and caps.
-- Fix all known polyline bugs by switching to lyon polyline tessellation.
-- Add `draw.path()` with methods for specifying line caps, line joins, miter
-  limits, approximation tolerance, and closing end and start points. Can receive
-  both raw path events as well as a polyline described by a sequence of points.
-- Re-implement `draw.line()` in terms of `draw.path()`.
-- Add `.stroke(color)` method to ellipse for drawing its outline.
-- Remove the `geom::line` module in favour of `geom::path`.
+- A new `geom::path()` API has been added that allows for building 2D vector
+  graphics paths as an iterator yielding `lyon::path::PathEvent`s. This adds
+  support for curves, arcs, sub-paths and more.
+- A `draw.path()` API has been added to allow for taking advantage of paths via
+  the `Draw` API. `draw.path().stroke()` produces a path that will be rendered
+  via stroke tessellation, `draw.path().fill()` produces a path that will be
+  rendered via fill tessellation.
+- The `draw.polyline()` and `draw.line()` APIs are now implemented in terms of
+  `draw.path().stoke()`.
+- All known polyline bugs should be fixed.
+- `draw.polygon()` has been updated to use lyon's `FillTessellator` allowing for
+  concave shapes.
+- `draw.polygon()` now supports optional stroke tessellation of its outline and
+  includes a suite of stroke option builder methods including line join types,
+  stroke weight, stroke color, etc. See the `SetStroke` method docs to find all
+  new methods now available.
+- `.no_fill()` and `.stroke(color)` can be called on all polygon types to
+  indicate that no fill tessellation is required or to specify stroke color
+  respectively.
+- All other `draw` API polygons (`rect`, `quad`, `tri`, `ellipse`) have been
+  implemented in terms of `draw.polygon()`, allowing them to take advantage of
+  the same stroke tessellation options.
+- The line `thickness` methods have been replaced with `stroke_weight` and
+  `weight` methods.
+- Fixes a pretty severe bug where any draw primitives that use the intermediary
+  mesh would produce incorrect triangulation indices if they weren't the first
+  instance to be created.
+- `draw.polygon()` will temporarily lose support for individually colored
+  vertices. This is due to limitations with lyon's `FillTessellator`, however
+  these are in the process of being addressed.
+- `draw.tri()` and `draw.quad()` now expect `Point2`s instead of `Point3`s. This
+  was a trade-off in order to take advantage of the lyon tessellators which only
+  support 2D geometry. Currently, the draw API's 3D story is very limited
+  anyway, and this can likely be revisited as a part of a larger 3D tessellation
+  overhaul. For now, `draw.mesh()` can still be used for drawing arbitrary 3D
+  via the `draw` API.
 
 # Version 0.10.0 (2019-07-21)
 

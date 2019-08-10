@@ -132,11 +132,7 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
     // Draw a triangle rotated in the direction of velocity
     // This calculation is wrong
     let theta = (velocity.angle() + PI / 2.0) * -1.0;
-    let points = vec![
-        pt2(0.0, -r * 2.0),
-        pt2(-r, r * 2.0),
-        pt2(*r, r * 2.0),
-    ];
+    let points = vec![pt2(0.0, -r * 2.0), pt2(-r, r * 2.0), pt2(*r, r * 2.0)];
     draw.polygon()
         .points(points)
         .xy(*position)

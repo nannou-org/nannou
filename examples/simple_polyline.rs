@@ -39,8 +39,7 @@ fn view(app: &App, frame: &Frame) {
         });
 
     // Draw the polyline as a stroked path.
-    draw.path()
-        .stroke()
+    draw.polyline()
         .weight(weight)
         .join_round()
         .colored_points(vertices);
