@@ -82,10 +82,20 @@ pub type DrawingPolygonInit<'a, S = geom::scalar::Default> = Drawing<'a, Polygon
 /// Initialised drawing state for a polygon.
 pub type DrawingPolygon<'a, S = geom::scalar::Default> = Drawing<'a, Polygon<S>, S>;
 
-type Vertices = VerticesChain<VerticesFromRanges, VerticesFromRanges>;
-type Indices = IndicesChain<IndicesFromRange, IndicesFromRange>;
+pub(crate) type PolygonVertices = VerticesChain<VerticesFromRanges, VerticesFromRanges>;
+pub(crate) type PolygonIndices = IndicesChain<IndicesFromRange, IndicesFromRange>;
+
+pub type DrawnPolygon<S> = Drawn<S, PolygonVertices, PolygonIndices>;
 
 impl<S> PolygonInit<S> {
+    /// Stroke the outline with the given color.
+    pub fn stroke<C>(self, color: C) -> Self
+    where
+        C: IntoLinSrgba<ColorScalar>,
+    {
+        self.stroke_color(color)
+    }
+
     /// Submit the path events to be tessellated.
     pub(crate) fn events<I>(self, ctxt: DrawingContext<S>, events: I) -> Polygon<S>
     where
@@ -204,6 +214,14 @@ impl<'a, S> DrawingPolygonInit<'a, S>
 where
     S: BaseFloat,
 {
+    /// Stroke the outline with the given color.
+    pub fn stroke<C>(self, color: C) -> Self
+    where
+        C: IntoLinSrgba<ColorScalar>,
+    {
+        self.map_ty(|ty| ty.stroke(color))
+    }
+
     /// Describe the polygon with a sequence of path events.
     pub fn events<I>(self, events: I) -> DrawingPolygon<'a, S>
     where
@@ -227,11 +245,7 @@ where
 impl<S> Polygon<S> {
     /// The implementation of `into_drawn` that allows for the retrieval of different theming
     /// defaults.
-    pub(crate) fn into_drawn_themed(
-        self,
-        draw: Draw<S>,
-        theme_prim: &theme::Primitive,
-    ) -> Drawn<S, Vertices, Indices>
+    pub(crate) fn into_drawn_themed(self, draw: Draw<S>, p: &theme::Primitive) -> DrawnPolygon<S>
     where
         S: BaseFloat,
     {
@@ -247,11 +261,11 @@ impl<S> Polygon<S> {
 
         let fill_color = match fill_ir.len() == 0 {
             true => None,
-            false => color.or_else(|| Some(draw.theme().fill_lin_srgba(theme_prim))),
+            false => color.or_else(|| Some(draw.theme().fill_lin_srgba(p))),
         };
         let stroke_color = match stroke_ir.len() == 0 {
             true => None,
-            false => stroke_color.or_else(|| Some(draw.theme().stroke_lin_srgba(theme_prim))),
+            false => stroke_color.or_else(|| Some(draw.theme().stroke_lin_srgba(p))),
         };
 
         let fill_vertices = VerticesFromRanges::new(fill_vdr, fill_color);
@@ -275,9 +289,9 @@ impl<S> IntoDrawn<S> for Polygon<S>
 where
     S: BaseFloat,
 {
-    type Vertices = Vertices;
-    type Indices = Indices;
-    fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+    type Vertices = PolygonVertices;
+    type Indices = PolygonIndices;
+    fn into_drawn(self, draw: Draw<S>) -> DrawnPolygon<S> {
         self.into_drawn_themed(draw, &theme::Primitive::Polygon)
     }
 }

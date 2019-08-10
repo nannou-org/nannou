@@ -26,7 +26,7 @@ fn view(app: &App, frame: &Frame) {
 
     // Draw a line!
     draw.line()
-        .weight((win.h() / (50.0 * t.sin())).abs())
+        .weight(10.0 + (t.sin() * 0.5 + 0.5) * 90.0)
         .caps_round()
         .color(PALEGOLDENROD)
         .points(win.top_left() * t.sin(), win.bottom_right() * t.cos());

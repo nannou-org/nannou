@@ -1,13 +1,14 @@
 use crate::color::conv::IntoLinSrgba;
-use crate::draw::primitive::polygon::{PolygonInit, PolygonOptions, SetPolygon};
+use crate::draw::primitive::polygon::{
+    PolygonIndices, PolygonInit, PolygonOptions, PolygonVertices, SetPolygon,
+};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    spatial, ColorScalar, Draw, Drawn, IndicesChain, IndicesFromRange, IntoDrawn, LinSrgba,
-    SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke, VerticesChain,
-    VerticesFromRanges,
+    spatial, ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, SetColor, SetDimensions,
+    SetOrientation, SetPosition, SetStroke,
 };
-use crate::draw::{self, theme, Drawing};
+use crate::draw::{theme, Drawing};
 use crate::geom::{self, Vector2};
 use crate::math::BaseFloat;
 use lyon::tessellation::StrokeOptions;
@@ -32,7 +33,7 @@ where
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
-        C: IntoLinSrgba<draw::properties::ColorScalar>,
+        C: IntoLinSrgba<ColorScalar>,
     {
         self.stroke_color(color)
     }
@@ -56,8 +57,8 @@ impl<S> IntoDrawn<S> for Ellipse<S>
 where
     S: BaseFloat,
 {
-    type Vertices = VerticesChain<VerticesFromRanges, VerticesFromRanges>;
-    type Indices = IndicesChain<IndicesFromRange, IndicesFromRange>;
+    type Vertices = PolygonVertices;
+    type Indices = PolygonIndices;
     fn into_drawn(self, mut draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
         let Ellipse {
             dimensions,
