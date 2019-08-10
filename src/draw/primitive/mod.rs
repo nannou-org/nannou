@@ -13,7 +13,7 @@ pub use self::ellipse::Ellipse;
 pub use self::line::Line;
 pub use self::mesh::Mesh;
 pub use self::path::{Path, PathFill, PathInit, PathStroke};
-pub use self::polygon::Polygon;
+pub use self::polygon::{Polygon, PolygonInit};
 pub use self::quad::Quad;
 pub use self::rect::Rect;
 pub use self::tri::Tri;
@@ -33,9 +33,8 @@ pub enum Primitive<S = geom::scalar::Default> {
     PathFill(PathFill<S>),
     PathStroke(PathStroke<S>),
     Path(Path<S>),
-    PolygonPointless(polygon::Pointless),
-    PolygonFill(Polygon<polygon::Fill, S>),
-    PolygonColorPerVertex(Polygon<polygon::PerVertex, S>),
+    PolygonInit(PolygonInit<S>),
+    Polygon(Polygon<S>),
     Quad(Quad<S>),
     Rect(Rect<S>),
     Tri(Tri<S>),

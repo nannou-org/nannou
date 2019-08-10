@@ -162,9 +162,11 @@ where
         let state = self.state.borrow_mut();
         let mut mesh = state.intermediary_mesh.borrow_mut();
         let mut fill = state.fill_tessellator.borrow_mut();
+        let mut path_event_buffer = state.path_event_buffer.borrow_mut();
         f(DrawingContext {
             mesh: &mut *mesh,
             fill_tessellator: &mut fill.0,
+            path_event_buffer: &mut *path_event_buffer,
         })
     }
 }

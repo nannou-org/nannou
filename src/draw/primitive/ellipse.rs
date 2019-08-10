@@ -97,6 +97,7 @@ where
             let draw::DrawingContext {
                 mesh,
                 fill_tessellator,
+                ..
             } = ctxt;
 
             // Fill tessellation.

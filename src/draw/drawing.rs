@@ -8,6 +8,7 @@ use crate::draw::{self, Draw};
 use crate::geom::graph::node;
 use crate::geom::{self, Point2, Point3, Vector2, Vector3};
 use crate::math::{Angle, BaseFloat, Euler, Quaternion, Rad};
+use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, FillTessellator, LineCap, LineJoin, StrokeOptions};
 use std::marker::PhantomData;
 
@@ -48,6 +49,8 @@ pub struct DrawingContext<'a, S> {
     pub mesh: &'a mut draw::IntermediaryMesh<S>,
     /// A re-usable fill tessellator for 2D paths.
     pub fill_tessellator: &'a mut FillTessellator,
+    /// A re-usable buffer for collecting path events.
+    pub path_event_buffer: &'a mut Vec<PathEvent>,
 }
 
 /// Construct a new **Drawing** instance.
@@ -150,9 +153,11 @@ where
                 {
                     let mut intermediary_mesh = state.intermediary_mesh.borrow_mut();
                     let mut fill_tessellator = state.fill_tessellator.borrow_mut();
+                    let mut path_event_buffer = state.path_event_buffer.borrow_mut();
                     let ctxt = DrawingContext {
                         mesh: &mut *intermediary_mesh,
                         fill_tessellator: &mut fill_tessellator.0,
+                        path_event_buffer: &mut *path_event_buffer,
                     };
                     primitive = map(primitive, ctxt);
                 }

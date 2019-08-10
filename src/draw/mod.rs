@@ -4,6 +4,7 @@
 use crate::geom::graph::{edge, node};
 use crate::geom::{self, Vector3};
 use crate::math::BaseFloat;
+use lyon::path::PathEvent;
 use lyon::tessellation::FillTessellator;
 use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
@@ -83,6 +84,8 @@ where
     intermediary_mesh: RefCell<IntermediaryMesh<S>>,
     /// A fill tessellator that may be re-used for 2D paths, meshes, etc between view calls.
     fill_tessellator: RefCell<FillTessellatorWrapper>,
+    /// A re-usable buffer for collecting path events.
+    path_event_buffer: RefCell<Vec<PathEvent>>,
     /// The mesh containing vertices for all drawn shapes, etc.
     mesh: Mesh<S>,
     /// The map from node indices to their vertex and index ranges within the mesh.
@@ -378,8 +381,7 @@ where
         Primitive::Line(prim) => into_drawn(draw, node_index, prim),
         Primitive::Mesh(prim) => into_drawn(draw, node_index, prim),
         Primitive::Path(prim) => into_drawn(draw, node_index, prim),
-        Primitive::PolygonFill(prim) => into_drawn(draw, node_index, prim),
-        Primitive::PolygonColorPerVertex(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Polygon(prim) => into_drawn(draw, node_index, prim),
         Primitive::Quad(prim) => into_drawn(draw, node_index, prim),
         Primitive::Rect(prim) => into_drawn(draw, node_index, prim),
         Primitive::Tri(prim) => into_drawn(draw, node_index, prim),
@@ -388,7 +390,7 @@ where
         | Primitive::PathInit(_)
         | Primitive::PathFill(_)
         | Primitive::PathStroke(_)
-        | Primitive::PolygonPointless(_) => Ok(()),
+        | Primitive::PolygonInit(_) => Ok(()),
     }
 }
 
@@ -438,6 +440,7 @@ where
         self.drawing.clear();
         self.ranges.clear();
         self.intermediary_mesh.borrow_mut().reset();
+        self.path_event_buffer.borrow_mut().clear();
         self.mesh.clear();
         self.background_color = None;
         self.last_node_drawn = None;
@@ -606,7 +609,7 @@ where
     }
 
     /// Begin drawing a **Polygon**.
-    pub fn polygon(&self) -> Drawing<primitive::polygon::Pointless, S> {
+    pub fn polygon(&self) -> Drawing<primitive::PolygonInit<S>, S> {
         self.a(Default::default())
     }
 
@@ -782,6 +785,7 @@ where
         let drawing = Default::default();
         let intermediary_mesh = RefCell::new(Default::default());
         let fill_tessellator = RefCell::new(Default::default());
+        let path_event_buffer = RefCell::new(Default::default());
         let mesh = Default::default();
         let ranges = Default::default();
         let theme = Default::default();
@@ -792,6 +796,7 @@ where
             geom_graph_dfs,
             intermediary_mesh,
             fill_tessellator,
+            path_event_buffer,
             mesh,
             drawing,
             ranges,

@@ -195,6 +195,7 @@ where
         let DrawingContext {
             mesh,
             fill_tessellator,
+            ..
         } = ctxt;
         let color = Cell::new(None);
         let stroke = &mut StrokeTessellator::default();
@@ -265,6 +266,7 @@ where
         let DrawingContext {
             mesh,
             fill_tessellator,
+            ..
         } = ctxt;
         let color = Cell::new(None);
         let iter = points.into_iter().map(Into::into).map(|p| {
@@ -316,6 +318,7 @@ where
         let DrawingContext {
             mesh,
             fill_tessellator,
+            ..
         } = ctxt;
         let color = Cell::new(None);
         let iter = points.into_iter().map(Into::into).map(|p| {
