@@ -305,7 +305,7 @@ fn view(app: &App, model: &Model, frame: &Frame) {
                 .start(model.things[k].position * scale)
                 .end(model.things[model.things[k].children[l]].position * scale)
                 .color(c3)
-                .thickness((model.things[model.things[k].children[l]].size * 0.5).min(5.0));
+                .weight((model.things[model.things[k].children[l]].size * 0.5).min(5.0));
         }
     }
 

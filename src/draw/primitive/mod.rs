@@ -1,19 +1,19 @@
-use crate::geom;
-
 pub mod ellipse;
 pub mod line;
 pub mod mesh;
+pub mod path;
 pub mod polygon;
-pub mod polyline;
 pub mod quad;
 pub mod rect;
 pub mod tri;
 
+use crate::geom;
+
 pub use self::ellipse::Ellipse;
 pub use self::line::Line;
 pub use self::mesh::Mesh;
-pub use self::polygon::Polygon;
-pub use self::polyline::Polyline;
+pub use self::path::{Path, PathFill, PathInit, PathStroke};
+pub use self::polygon::{Polygon, PolygonInit};
 pub use self::quad::Quad;
 pub use self::rect::Rect;
 pub use self::tri::Tri;
@@ -29,11 +29,12 @@ pub enum Primitive<S = geom::scalar::Default> {
     Line(Line<S>),
     MeshVertexless(mesh::Vertexless),
     Mesh(Mesh<S>),
-    PolygonPointless(polygon::Pointless),
-    PolygonFill(Polygon<polygon::Fill, S>),
-    PolygonColorPerVertex(Polygon<polygon::PerVertex, S>),
-    PolylineVertexless(polyline::Vertexless),
-    Polyline(Polyline<S>),
+    PathInit(PathInit<S>),
+    PathFill(PathFill<S>),
+    PathStroke(PathStroke<S>),
+    Path(Path<S>),
+    PolygonInit(PolygonInit<S>),
+    Polygon(Polygon<S>),
     Quad(Quad<S>),
     Rect(Rect<S>),
     Tri(Tri<S>),

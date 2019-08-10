@@ -1,11 +1,12 @@
 use crate::draw::mesh::vertex::IntoVertex;
+use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, orientation, position};
-use crate::draw::properties::{Draw, Drawn, IntoDrawn, Primitive, SetOrientation, SetPosition};
+use crate::draw::properties::{Draw, Drawn, IntoDrawn, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
 use crate::geom;
 use crate::math::BaseFloat;
 use crate::mesh::vertex::{WithColor, WithTexCoords};
-use std::{iter, ops};
+use std::ops;
 
 /// The mesh type prior to being initialised with vertices or indices.
 #[derive(Clone, Debug, Default)]
@@ -18,6 +19,7 @@ pub struct Mesh<S = geom::scalar::Default> {
     orientation: orientation::Properties<S>,
     vertex_data_ranges: draw::IntermediaryVertexDataRanges,
     index_range: ops::Range<usize>,
+    min_index: usize,
 }
 
 // A simple iterator for flattening a fixed-size array of indices.
@@ -31,13 +33,14 @@ impl Vertexless {
     /// Describe the mesh with a sequence of triangles.
     ///
     /// Each triangle may be composed of any vertex type that may be converted directly into the
-    /// `draw;;mesh::vertex` type.
+    /// `draw::mesh::vertex` type.
     pub fn tris<S, I, V>(self, mesh: &mut draw::IntermediaryMesh<S>, tris: I) -> Mesh<S>
     where
         S: BaseFloat,
         I: IntoIterator<Item = geom::Tri<V>>,
         V: geom::Vertex + IntoVertex<S>,
     {
+        let min_index = mesh.vertex_data.points.len();
         let mut vertex_data_ranges = draw::IntermediaryVertexDataRanges::default();
         let mut index_range = 0..0;
         vertex_data_ranges.points.start = mesh.vertex_data.points.len();
@@ -68,14 +71,14 @@ impl Vertexless {
         vertex_data_ranges.colors.end = mesh.vertex_data.colors.len();
         vertex_data_ranges.tex_coords.end = mesh.vertex_data.tex_coords.len();
         index_range.end = mesh.indices.len();
-        Mesh::new(vertex_data_ranges, index_range)
+        Mesh::new(vertex_data_ranges, index_range, min_index)
     }
 
     /// Describe the mesh with the given indexed vertices.
     ///
     /// Each trio of `indices` describes a single triangle of `vertices`.
     ///
-    /// Each vertex may be any type that may be converted directly into the `draw;;mesh::vertex`
+    /// Each vertex may be any type that may be converted directly into the `draw::mesh::vertex`
     /// type.
     pub fn indexed<S, V, I>(
         self,
@@ -89,6 +92,7 @@ impl Vertexless {
         V::Item: IntoVertex<S>,
         I: IntoIterator<Item = [usize; 3]>,
     {
+        let min_index = mesh.vertex_data.points.len();
         let mut vertex_data_ranges = draw::IntermediaryVertexDataRanges::default();
         vertex_data_ranges.points.start = mesh.vertex_data.points.len();
         vertex_data_ranges.colors.start = mesh.vertex_data.colors.len();
@@ -117,7 +121,7 @@ impl Vertexless {
         };
         mesh.indices.extend(iter);
         index_range.end = mesh.indices.len();
-        Mesh::new(vertex_data_ranges, index_range)
+        Mesh::new(vertex_data_ranges, index_range, min_index)
     }
 }
 
@@ -129,6 +133,7 @@ where
     fn new(
         vertex_data_ranges: draw::IntermediaryVertexDataRanges,
         index_range: ops::Range<usize>,
+        min_index: usize,
     ) -> Self {
         let orientation = Default::default();
         let position = Default::default();
@@ -137,6 +142,7 @@ where
             position,
             vertex_data_ranges,
             index_range,
+            min_index,
         }
     }
 }
@@ -151,7 +157,7 @@ where
         I: IntoIterator<Item = geom::Tri<V>>,
         V: geom::Vertex + IntoVertex<S>,
     {
-        self.map_ty_with_vertices(|ty, mesh| ty.tris(mesh, tris))
+        self.map_ty_with_context(|ty, ctxt| ty.tris(ctxt.mesh, tris))
     }
 
     /// Describe the mesh with the given sequence of indexed vertices.
@@ -161,21 +167,7 @@ where
         V::Item: IntoVertex<S>,
         I: IntoIterator<Item = [usize; 3]>,
     {
-        self.map_ty_with_vertices(|ty, mesh| ty.indexed(mesh, vertices, indices))
-    }
-}
-
-impl<S> IntoDrawn<S> for Vertexless
-where
-    S: BaseFloat,
-{
-    type Vertices = iter::Empty<draw::mesh::Vertex<S>>;
-    type Indices = iter::Empty<usize>;
-    fn into_drawn(self, _draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
-        let properties = Default::default();
-        let vertices = iter::empty();
-        let indices = iter::empty();
-        (properties, vertices, indices)
+        self.map_ty_with_context(|ty, ctxt| ty.indexed(ctxt.mesh, vertices, indices))
     }
 }
 
@@ -191,6 +183,7 @@ where
             position,
             vertex_data_ranges,
             index_range,
+            min_index,
         } = self;
 
         let dimensions = spatial::dimension::Properties::default();
@@ -199,11 +192,8 @@ where
             orientation,
             position,
         };
-        let vertices = draw::properties::VerticesFromRanges {
-            ranges: vertex_data_ranges,
-            fill_color: None,
-        };
-        let indices = draw::properties::IndicesFromRange { range: index_range };
+        let vertices = draw::properties::VerticesFromRanges::new(vertex_data_ranges, None);
+        let indices = draw::properties::IndicesFromRange::new(index_range, min_index);
         (spatial, vertices, indices)
     }
 }

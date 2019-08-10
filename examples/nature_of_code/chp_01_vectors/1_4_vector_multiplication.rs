@@ -17,16 +17,12 @@ fn view(app: &App, frame: &Frame) {
     draw.background().color(WHITE);
 
     let mut mouse = vec2(app.mouse.x, app.mouse.y);
-    let _center = vec2(0.0, 0.0);
+    let center = vec2(0.0, 0.0);
 
     // Multiplying a vector! The vector is now half its original size (multilies by 0.5)
     mouse *= 0.5;
 
-    draw.line()
-        .start(pt2(0.0, 0.0))
-        .end(pt2(mouse.x, mouse.y))
-        .thickness(2.0)
-        .color(BLACK);
+    draw.line().weight(2.0).color(BLACK).points(center, mouse);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();

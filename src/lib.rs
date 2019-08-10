@@ -18,6 +18,7 @@ pub use conrod_vulkano;
 pub use conrod_winit;
 pub use daggy;
 pub use find_folder;
+pub use lyon;
 use serde_derive;
 pub use vulkano;
 pub use vulkano_shaders;

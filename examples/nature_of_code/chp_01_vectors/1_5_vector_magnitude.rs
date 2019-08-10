@@ -27,11 +27,7 @@ fn view(app: &App, frame: &Frame) {
         .w_h(m, 10.0)
         .color(BLACK);
 
-    draw.line()
-        .start(pt2(0.0, 0.0))
-        .end(pt2(mouse.x, mouse.y))
-        .thickness(2.0)
-        .color(BLACK);
+    draw.line().weight(2.0).color(BLACK).points(center, mouse);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();

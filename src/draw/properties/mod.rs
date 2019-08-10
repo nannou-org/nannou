@@ -6,24 +6,25 @@
 //! Each **Drawing** instance is associated with a specific **Node** in the geometry graph and has
 //! a unique **node::Index** to simplify this.
 
-use crate::draw;
+pub mod color;
+pub mod fill;
+pub mod spatial;
+pub mod stroke;
+
+use self::spatial::dimension;
+use crate::draw::{self, DrawingContext};
 use crate::geom;
 use crate::geom::graph::node;
 use crate::math::BaseFloat;
 use std::cell::RefCell;
 use std::ops;
 
-pub mod color;
-pub mod primitive;
-pub mod spatial;
-
-use self::spatial::dimension;
-
 pub use self::color::SetColor;
-pub use self::primitive::{Ellipse, Line, Primitive, Quad, Rect, Tri};
+pub use self::fill::SetFill;
 pub use self::spatial::dimension::SetDimensions;
 pub use self::spatial::orientation::SetOrientation;
 pub use self::spatial::position::SetPosition;
+pub use self::stroke::SetStroke;
 
 /// The scalar type used for the color channel values.
 pub type ColorScalar = crate::color::DefaultScalar;
@@ -61,6 +62,21 @@ pub struct VerticesFromRanges {
 #[derive(Debug)]
 pub struct IndicesFromRange {
     pub range: ops::Range<usize>,
+    pub min_index: usize,
+}
+
+/// A pair of `Vertices` implementations chained together.
+#[derive(Debug)]
+pub struct VerticesChain<A, B> {
+    pub a: A,
+    pub b: B,
+}
+
+/// A pair of `Indices` implementations chained together.
+#[derive(Debug)]
+pub struct IndicesChain<A, B> {
+    pub a: A,
+    pub b: B,
 }
 
 impl<'a, S> Draw<'a, S>
@@ -130,13 +146,40 @@ where
         self.state.borrow_mut().z_dimension_of(n)
     }
 
-    /// Retrieve the given element from the inner **Theme**.
-    pub fn theme<F, T>(&self, get: F) -> T
-    where
-        F: FnOnce(&draw::Theme) -> T,
-    {
+    /// Access to the inner theme.
+    pub fn theme(&self) -> std::cell::Ref<draw::Theme> {
         let state = self.state.borrow();
-        get(&state.theme)
+        std::cell::Ref::map(state, |s| &s.theme)
+    }
+
+    /// Provide access to the drawing context.
+    ///
+    /// Useful for tessellation.
+    pub fn drawing_context<F, T>(&mut self, f: F) -> T
+    where
+        F: FnOnce(DrawingContext<S>) -> T,
+    {
+        let state = self.state.borrow_mut();
+        let mut mesh = state.intermediary_mesh.borrow_mut();
+        let mut fill = state.fill_tessellator.borrow_mut();
+        let mut path_event_buffer = state.path_event_buffer.borrow_mut();
+        f(DrawingContext {
+            mesh: &mut *mesh,
+            fill_tessellator: &mut fill.0,
+            path_event_buffer: &mut *path_event_buffer,
+        })
+    }
+}
+
+impl VerticesFromRanges {
+    pub fn new(ranges: draw::IntermediaryVertexDataRanges, fill_color: Option<LinSrgba>) -> Self {
+        VerticesFromRanges { ranges, fill_color }
+    }
+}
+
+impl IndicesFromRange {
+    pub fn new(range: ops::Range<usize>, min_index: usize) -> Self {
+        IndicesFromRange { range, min_index }
     }
 }
 
@@ -145,6 +188,7 @@ where
 pub trait Vertices<S>: Sized {
     /// Return the next **Vertex** within the sequence.
     fn next(&mut self, data: &draw::IntermediaryMesh<S>) -> Option<draw::mesh::Vertex<S>>;
+
     /// Converts `self` and the given `data` into an iterator yielding vertices.
     fn into_iter(self, data: &draw::IntermediaryMesh<S>) -> IterVertices<Self, S> {
         IterVertices {
@@ -159,6 +203,15 @@ pub trait Vertices<S>: Sized {
 pub trait Indices: Sized {
     /// Return the next index within the sequence.
     fn next(&mut self, intermediary_indices: &[usize]) -> Option<usize>;
+
+    /// The minimum index referred to in the sequence. This is necessary for mapping indices into
+    /// the intermediary mesh to indices into the draw's primary mesh.
+    ///
+    /// By default, this is assumed to be `0`.
+    fn min_index(&self) -> usize {
+        0
+    }
+
     /// Converts `self` and the given `intermediary_indices` into an iterator yielding indices.
     fn into_iter(self, intermediary_indices: &[usize]) -> IterIndices<Self> {
         IterIndices {
@@ -226,6 +279,18 @@ where
             })
         });
         (x, y, z)
+    }
+}
+
+impl<A, B> From<(A, B)> for VerticesChain<A, B> {
+    fn from((a, b): (A, B)) -> Self {
+        VerticesChain { a, b }
+    }
+}
+
+impl<A, B> From<(A, B)> for IndicesChain<A, B> {
+    fn from((a, b): (A, B)) -> Self {
+        IndicesChain { a, b }
     }
 }
 
@@ -330,5 +395,35 @@ impl Indices for IndicesFromRange {
                 .get(ix)
                 .expect("index into `intermediary_indices` is out of range")
         })
+    }
+
+    fn min_index(&self) -> usize {
+        self.min_index
+    }
+}
+
+impl<S, A, B> Vertices<S> for VerticesChain<A, B>
+where
+    A: Vertices<S>,
+    B: Vertices<S>,
+{
+    fn next(&mut self, mesh: &draw::IntermediaryMesh<S>) -> Option<draw::mesh::Vertex<S>> {
+        self.a.next(mesh).or_else(|| self.b.next(mesh))
+    }
+}
+
+impl<A, B> Indices for IndicesChain<A, B>
+where
+    A: Indices,
+    B: Indices,
+{
+    fn next(&mut self, intermediary_indices: &[usize]) -> Option<usize> {
+        self.a
+            .next(intermediary_indices)
+            .or_else(|| self.b.next(intermediary_indices))
+    }
+
+    fn min_index(&self) -> usize {
+        std::cmp::min(self.a.min_index(), self.b.min_index())
     }
 }

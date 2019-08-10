@@ -4,23 +4,29 @@
 use crate::geom::graph::{edge, node};
 use crate::geom::{self, Vector3};
 use crate::math::BaseFloat;
+use lyon::path::PathEvent;
+use lyon::tessellation::FillTessellator;
 use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
-use std::mem;
-use std::ops;
+use std::{fmt, mem, ops};
 
 pub use self::background::Background;
-pub use self::drawing::Drawing;
+pub use self::drawing::{Drawing, DrawingContext};
+pub use self::mesh::intermediary::{
+    IntermediaryMesh, IntermediaryMeshBuilder, IntermediaryVertexData, IntermediaryVertexDataRanges,
+};
 pub use self::mesh::Mesh;
+use self::primitive::Primitive;
 use self::properties::spatial::orientation::{self, Orientation};
 use self::properties::spatial::position::{self, Position};
-use self::properties::{IntoDrawn, Primitive};
+use self::properties::IntoDrawn;
 pub use self::theme::Theme;
 
 pub mod backend;
 pub mod background;
 mod drawing;
 pub mod mesh;
+pub mod primitive;
 pub mod properties;
 pub mod theme;
 
@@ -74,14 +80,18 @@ where
     geom_graph: geom::Graph<S>,
     /// For performing a depth-first search over the geometry graph.
     geom_graph_dfs: RefCell<geom::graph::node::Dfs<S>>,
-    /// Buffers of vertex data that may be re-used for polylines, polygons, etc between view calls.
+    /// Buffers of vertex data that may be re-used for paths, meshes, etc between view calls.
     intermediary_mesh: RefCell<IntermediaryMesh<S>>,
+    /// A fill tessellator that may be re-used for 2D paths, meshes, etc between view calls.
+    fill_tessellator: RefCell<FillTessellatorWrapper>,
+    /// A re-usable buffer for collecting path events.
+    path_event_buffer: RefCell<Vec<PathEvent>>,
     /// The mesh containing vertices for all drawn shapes, etc.
     mesh: Mesh<S>,
     /// The map from node indices to their vertex and index ranges within the mesh.
     ranges: HashMap<node::Index, Ranges>,
     /// Primitives that are in the process of being drawn.
-    drawing: HashMap<node::Index, properties::Primitive<S>>,
+    drawing: HashMap<node::Index, Primitive<S>>,
     /// The last node that was **Drawn**.
     last_node_drawn: Option<node::Index>,
     /// The theme containing default values.
@@ -90,60 +100,19 @@ where
     background_color: Option<properties::LinSrgba>,
 }
 
-/// A set of intermediary buffers for collecting geometry point data for geometry types that may
-/// produce a dynamic number of vertices that may or not also contain colour or texture data.
-#[derive(Clone, Debug)]
-pub struct IntermediaryVertexData<S> {
-    pub(crate) points: Vec<mesh::vertex::Point<S>>,
-    pub(crate) colors: Vec<mesh::vertex::Color>,
-    pub(crate) tex_coords: Vec<mesh::vertex::TexCoords<S>>,
-}
+// Simple wrapper providing Clone and Debug.
+#[derive(Default)]
+pub(crate) struct FillTessellatorWrapper(pub(crate) FillTessellator);
 
-/// An intermediary mesh to which drawings-in-progress may store vertex data and indices until they
-/// are submitted to the **Draw**'s inner mesh.
-#[derive(Clone, Debug)]
-pub struct IntermediaryMesh<S> {
-    pub(crate) vertex_data: IntermediaryVertexData<S>,
-    pub(crate) indices: Vec<usize>,
-}
-
-/// A set of ranges into the **IntermediaryVertexData**.
-///
-/// This allows polygons, polylines, etc to track which slices of data are associated with their
-/// own instance.
-#[derive(Clone, Debug)]
-pub struct IntermediaryVertexDataRanges {
-    pub points: ops::Range<usize>,
-    pub colors: ops::Range<usize>,
-    pub tex_coords: ops::Range<usize>,
-}
-
-impl<S> Default for IntermediaryVertexData<S> {
-    fn default() -> Self {
-        IntermediaryVertexData {
-            points: Default::default(),
-            colors: Default::default(),
-            tex_coords: Default::default(),
-        }
+impl Clone for FillTessellatorWrapper {
+    fn clone(&self) -> Self {
+        Default::default()
     }
 }
 
-impl<S> Default for IntermediaryMesh<S> {
-    fn default() -> Self {
-        IntermediaryMesh {
-            vertex_data: Default::default(),
-            indices: Default::default(),
-        }
-    }
-}
-
-impl Default for IntermediaryVertexDataRanges {
-    fn default() -> Self {
-        IntermediaryVertexDataRanges {
-            points: 0..0,
-            colors: 0..0,
-            tex_coords: 0..0,
-        }
+impl fmt::Debug for FillTessellatorWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "FillTessellator")
     }
 }
 
@@ -337,9 +306,10 @@ where
             ..
         } = *draw;
         let intermediary_mesh = &*intermediary_mesh.borrow();
+        let min_intermediary_index = properties::Indices::min_index(&indices);
         let vertices = properties::Vertices::into_iter(vertices, intermediary_mesh);
         let indices = properties::Indices::into_iter(indices, &intermediary_mesh.indices)
-            .map(|i| vertices_start_index + i);
+            .map(|i| vertices_start_index + i - min_intermediary_index);
         mesh.extend(vertices, indices);
     }
 
@@ -409,16 +379,18 @@ where
     match primitive {
         Primitive::Ellipse(prim) => into_drawn(draw, node_index, prim),
         Primitive::Line(prim) => into_drawn(draw, node_index, prim),
-        Primitive::MeshVertexless(prim) => into_drawn(draw, node_index, prim),
         Primitive::Mesh(prim) => into_drawn(draw, node_index, prim),
-        Primitive::PolygonPointless(prim) => into_drawn(draw, node_index, prim),
-        Primitive::PolygonFill(prim) => into_drawn(draw, node_index, prim),
-        Primitive::PolygonColorPerVertex(prim) => into_drawn(draw, node_index, prim),
-        Primitive::PolylineVertexless(prim) => into_drawn(draw, node_index, prim),
-        Primitive::Polyline(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Path(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Polygon(prim) => into_drawn(draw, node_index, prim),
         Primitive::Quad(prim) => into_drawn(draw, node_index, prim),
         Primitive::Rect(prim) => into_drawn(draw, node_index, prim),
         Primitive::Tri(prim) => into_drawn(draw, node_index, prim),
+
+        Primitive::MeshVertexless(_)
+        | Primitive::PathInit(_)
+        | Primitive::PathFill(_)
+        | Primitive::PathStroke(_)
+        | Primitive::PolygonInit(_) => Ok(()),
     }
 }
 
@@ -468,6 +440,7 @@ where
         self.drawing.clear();
         self.ranges.clear();
         self.intermediary_mesh.borrow_mut().reset();
+        self.path_event_buffer.borrow_mut().clear();
         self.mesh.clear();
         self.background_color = None;
         self.last_node_drawn = None;
@@ -592,7 +565,7 @@ where
     /// Add the given type to be drawn.
     pub fn a<T>(&self, primitive: T) -> Drawing<T, S>
     where
-        T: IntoDrawn<S> + Into<Primitive<S>>,
+        T: Into<Primitive<S>>,
         Primitive<S>: Into<Option<T>>,
     {
         let index = self
@@ -605,44 +578,51 @@ where
         drawing::new(self, index)
     }
 
+    /// Begin drawing a **Path**.
+    pub fn path(&self) -> Drawing<primitive::PathInit<S>, S> {
+        self.a(Default::default())
+    }
+
     /// Begin drawing an **Ellipse**.
-    pub fn ellipse(&self) -> Drawing<properties::Ellipse<S>, S> {
+    pub fn ellipse(&self) -> Drawing<primitive::Ellipse<S>, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Line**.
-    pub fn line(&self) -> Drawing<properties::Line<S>, S> {
+    pub fn line(&self) -> Drawing<primitive::Line<S>, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Quad**.
-    pub fn quad(&self) -> Drawing<properties::Quad<S>, S> {
+    pub fn quad(&self) -> Drawing<primitive::Quad<S>, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Rect**.
-    pub fn rect(&self) -> Drawing<properties::Rect<S>, S> {
+    pub fn rect(&self) -> Drawing<primitive::Rect<S>, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Triangle**.
-    pub fn tri(&self) -> Drawing<properties::Tri<S>, S> {
+    pub fn tri(&self) -> Drawing<primitive::Tri<S>, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polygon**.
-    pub fn polygon(&self) -> Drawing<properties::primitive::polygon::Pointless, S> {
+    pub fn polygon(&self) -> Drawing<primitive::PolygonInit<S>, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Mesh**.
-    pub fn mesh(&self) -> Drawing<properties::primitive::mesh::Vertexless, S> {
+    pub fn mesh(&self) -> Drawing<primitive::mesh::Vertexless, S> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polyline**.
-    pub fn polyline(&self) -> Drawing<properties::primitive::polyline::Vertexless, S> {
-        self.a(Default::default())
+    ///
+    /// Note that this is simply short-hand for `draw.path().stroke()`
+    pub fn polyline(&self) -> Drawing<primitive::PathStroke<S>, S> {
+        self.path().stroke()
     }
 
     /// Produce the transformed mesh vertices for the node at the given index.
@@ -811,6 +791,8 @@ where
         let geom_graph_dfs = RefCell::new(geom::graph::node::Dfs::new(&geom_graph));
         let drawing = Default::default();
         let intermediary_mesh = RefCell::new(Default::default());
+        let fill_tessellator = RefCell::new(Default::default());
+        let path_event_buffer = RefCell::new(Default::default());
         let mesh = Default::default();
         let ranges = Default::default();
         let theme = Default::default();
@@ -820,6 +802,8 @@ where
             geom_graph,
             geom_graph_dfs,
             intermediary_mesh,
+            fill_tessellator,
+            path_event_buffer,
             mesh,
             drawing,
             ranges,
