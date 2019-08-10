@@ -14,14 +14,50 @@ use lyon::path::PathEvent;
 use lyon::tessellation::{StrokeOptions, StrokeTessellator};
 use std::ops;
 
+/// A trait implemented for all polygon draw primitives.
+pub trait SetPolygon<S>: Sized {
+    /// Access to the polygon builder parameters.
+    fn polygon_options_mut(&mut self) -> &mut PolygonOptions<S>;
+
+    /// Specify no fill color and in turn no fill tessellation for the polygon.
+    fn no_fill(mut self) -> Self {
+        self.polygon_options_mut().no_fill = true;
+        self
+    }
+
+    /// Specify a color to use for stroke tessellation.
+    ///
+    /// Stroke tessellation will only be performed if this method or one of the `SetStroke` methods
+    /// are called.
+    fn stroke_color<C>(mut self, color: C) -> Self
+    where
+        C: IntoLinSrgba<ColorScalar>,
+    {
+        self.polygon_options_mut().stroke_color = Some(color.into_lin_srgba());
+        self
+    }
+
+    /// Specify the whole set of polygon options.
+    fn polygon_options(mut self, opts: PolygonOptions<S>) -> Self {
+        *self.polygon_options_mut() = opts;
+        self
+    }
+}
+
 /// State related to drawing a **Polygon**.
 #[derive(Clone, Debug)]
 pub struct PolygonInit<S = geom::scalar::Default> {
+    opts: PolygonOptions<S>,
+}
+
+/// The set of options shared by all polygon types.
+#[derive(Clone, Debug)]
+pub struct PolygonOptions<S = geom::scalar::Default> {
     position: position::Properties<S>,
     orientation: orientation::Properties<S>,
     no_fill: bool,
-    color: Option<LinSrgba>,
     stroke_color: Option<LinSrgba>,
+    color: Option<LinSrgba>,
     stroke: Option<StrokeOptions>,
 }
 
@@ -46,22 +82,10 @@ pub type DrawingPolygonInit<'a, S = geom::scalar::Default> = Drawing<'a, Polygon
 /// Initialised drawing state for a polygon.
 pub type DrawingPolygon<'a, S = geom::scalar::Default> = Drawing<'a, Polygon<S>, S>;
 
+type Vertices = VerticesChain<VerticesFromRanges, VerticesFromRanges>;
+type Indices = IndicesChain<IndicesFromRange, IndicesFromRange>;
+
 impl<S> PolygonInit<S> {
-    /// Specify no fill color.
-    pub fn no_fill(mut self) -> Self {
-        self.no_fill = true;
-        self
-    }
-
-    /// Stroke the outline with the given color.
-    pub fn stroke<C>(mut self, color: C) -> Self
-    where
-        C: IntoLinSrgba<ColorScalar>,
-    {
-        self.stroke_color = Some(color.into_lin_srgba());
-        self
-    }
-
     /// Submit the path events to be tessellated.
     pub(crate) fn events<I>(self, ctxt: DrawingContext<S>, events: I) -> Polygon<S>
     where
@@ -78,7 +102,7 @@ impl<S> PolygonInit<S> {
         path_event_buffer.extend(events);
 
         // Fill tessellation.
-        let (fill_vdr, fill_ir, min_index) = if !self.no_fill {
+        let (fill_vdr, fill_ir, min_index) = if !self.opts.no_fill {
             let mut builder = mesh.builder();
             let opts = Default::default();
             let events = path_event_buffer.iter().cloned();
@@ -101,7 +125,7 @@ impl<S> PolygonInit<S> {
         };
 
         // Stroke tessellation.
-        let (stroke_vdr, stroke_ir) = match (self.stroke, self.stroke_color) {
+        let (stroke_vdr, stroke_ir) = match (self.opts.stroke, self.opts.stroke_color) {
             (options, color) if options.is_some() || color.is_some() => {
                 let opts = options.unwrap_or_else(Default::default);
                 let mut builder = mesh.builder();
@@ -121,10 +145,10 @@ impl<S> PolygonInit<S> {
         path_event_buffer.clear();
 
         Polygon {
-            position: self.position,
-            orientation: self.orientation,
-            color: self.color,
-            stroke_color: self.stroke_color,
+            position: self.opts.position,
+            orientation: self.opts.orientation,
+            color: self.opts.color,
+            stroke_color: self.opts.stroke_color,
             vertex_data_ranges: (fill_vdr, stroke_vdr),
             index_ranges: (fill_ir, stroke_ir),
             min_index,
@@ -148,23 +172,38 @@ impl<S> PolygonInit<S> {
     }
 }
 
-impl<'a, S> DrawingPolygonInit<'a, S>
+impl<'a, S, T> Drawing<'a, T, S>
 where
     S: BaseFloat,
+    T: SetPolygon<S> + Into<Primitive<S>>,
+    Primitive<S>: Into<Option<T>>,
 {
-    /// Specify no fill color.
+    /// Specify no fill color and in turn no fill tessellation for the polygon.
     pub fn no_fill(self) -> Self {
         self.map_ty(|ty| ty.no_fill())
     }
 
-    /// Stroke the outline with the given color.
-    pub fn stroke<C>(self, color: C) -> Self
+    /// Specify a color to use for stroke tessellation.
+    ///
+    /// Stroke tessellation will only be performed if this method or one of the `SetStroke` methods
+    /// are called.
+    pub fn stroke_color<C>(self, color: C) -> Self
     where
         C: IntoLinSrgba<ColorScalar>,
     {
-        self.map_ty(|ty| ty.stroke(color))
+        self.map_ty(|ty| ty.stroke_color(color))
     }
 
+    /// Specify the whole set of polygon options.
+    pub fn polygon_options(self, opts: PolygonOptions<S>) -> Self {
+        self.map_ty(|ty| ty.polygon_options(opts))
+    }
+}
+
+impl<'a, S> DrawingPolygonInit<'a, S>
+where
+    S: BaseFloat,
+{
     /// Describe the polygon with a sequence of path events.
     pub fn events<I>(self, events: I) -> DrawingPolygon<'a, S>
     where
@@ -185,13 +224,17 @@ where
     }
 }
 
-impl<S> IntoDrawn<S> for Polygon<S>
-where
-    S: BaseFloat,
-{
-    type Vertices = VerticesChain<VerticesFromRanges, VerticesFromRanges>;
-    type Indices = IndicesChain<IndicesFromRange, IndicesFromRange>;
-    fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+impl<S> Polygon<S> {
+    /// The implementation of `into_drawn` that allows for the retrieval of different theming
+    /// defaults.
+    pub(crate) fn into_drawn_themed(
+        self,
+        draw: Draw<S>,
+        theme_prim: &theme::Primitive,
+    ) -> Drawn<S, Vertices, Indices>
+    where
+        S: BaseFloat,
+    {
         let Polygon {
             position,
             orientation,
@@ -204,14 +247,11 @@ where
 
         let fill_color = match fill_ir.len() == 0 {
             true => None,
-            false => {
-                color.or_else(|| Some(draw.theme().fill_lin_srgba(&theme::Primitive::Polygon)))
-            }
+            false => color.or_else(|| Some(draw.theme().fill_lin_srgba(theme_prim))),
         };
         let stroke_color = match stroke_ir.len() == 0 {
             true => None,
-            false => stroke_color
-                .or_else(|| Some(draw.theme().stroke_lin_srgba(&theme::Primitive::Polygon))),
+            false => stroke_color.or_else(|| Some(draw.theme().stroke_lin_srgba(theme_prim))),
         };
 
         let fill_vertices = VerticesFromRanges::new(fill_vdr, fill_color);
@@ -231,15 +271,33 @@ where
     }
 }
 
+impl<S> IntoDrawn<S> for Polygon<S>
+where
+    S: BaseFloat,
+{
+    type Vertices = Vertices;
+    type Indices = Indices;
+    fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+        self.into_drawn_themed(draw, &theme::Primitive::Polygon)
+    }
+}
+
 impl<S> Default for PolygonInit<S> {
+    fn default() -> Self {
+        let opts = Default::default();
+        PolygonInit { opts }
+    }
+}
+
+impl<S> Default for PolygonOptions<S> {
     fn default() -> Self {
         let position = Default::default();
         let orientation = Default::default();
         let no_fill = false;
         let color = None;
         let stroke_color = None;
-        let stroke = Default::default();
-        PolygonInit {
+        let stroke = None;
+        PolygonOptions {
             position,
             orientation,
             no_fill,
@@ -250,27 +308,39 @@ impl<S> Default for PolygonInit<S> {
     }
 }
 
+impl<S> SetPolygon<S> for PolygonOptions<S> {
+    fn polygon_options_mut(&mut self) -> &mut PolygonOptions<S> {
+        self
+    }
+}
+
 impl<S> SetOrientation<S> for PolygonInit<S> {
     fn properties(&mut self) -> &mut orientation::Properties<S> {
-        SetOrientation::properties(&mut self.orientation)
+        SetOrientation::properties(&mut self.opts.orientation)
     }
 }
 
 impl<S> SetPosition<S> for PolygonInit<S> {
     fn properties(&mut self) -> &mut position::Properties<S> {
-        SetPosition::properties(&mut self.position)
+        SetPosition::properties(&mut self.opts.position)
     }
 }
 
 impl<S> SetColor<ColorScalar> for PolygonInit<S> {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
-        SetColor::rgba_mut(&mut self.color)
+        SetColor::rgba_mut(&mut self.opts.color)
+    }
+}
+
+impl<S> SetPolygon<S> for PolygonInit<S> {
+    fn polygon_options_mut(&mut self) -> &mut PolygonOptions<S> {
+        SetPolygon::polygon_options_mut(&mut self.opts)
     }
 }
 
 impl<S> SetStroke for PolygonInit<S> {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
-        SetStroke::stroke_options_mut(&mut self.stroke)
+        SetStroke::stroke_options_mut(&mut self.opts.stroke)
     }
 }
 

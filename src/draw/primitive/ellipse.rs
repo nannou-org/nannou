@@ -1,4 +1,5 @@
 use crate::color::conv::IntoLinSrgba;
+use crate::draw::primitive::polygon::{PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
@@ -9,19 +10,18 @@ use crate::draw::properties::{
 use crate::draw::{self, theme, Drawing};
 use crate::geom::{self, Vector2};
 use crate::math::BaseFloat;
-use lyon::path::iterator::FlattenedIterator;
-use lyon::tessellation::{StrokeOptions, StrokeTessellator};
+use lyon::tessellation::StrokeOptions;
 
 /// Properties related to drawing an **Ellipse**.
 #[derive(Clone, Debug)]
 pub struct Ellipse<S = geom::scalar::Default> {
-    spatial: spatial::Properties<S>,
-    no_fill: bool,
-    color: Option<LinSrgba>,
-    stroke: Option<StrokeOptions>,
-    stroke_color: Option<LinSrgba>,
+    dimensions: spatial::dimension::Properties<S>,
     resolution: Option<usize>,
+    polygon: PolygonInit<S>,
 }
+
+/// The drawing context for an ellipse.
+pub type DrawingEllipse<'a, S = geom::scalar::Default> = Drawing<'a, Ellipse<S>, S>;
 
 // Ellipse-specific methods.
 
@@ -29,19 +29,12 @@ impl<S> Ellipse<S>
 where
     S: BaseFloat,
 {
-    /// Specify no fill color.
-    pub fn no_fill(mut self) -> Self {
-        self.no_fill = true;
-        self
-    }
-
     /// Stroke the outline with the given color.
-    pub fn stroke<C>(mut self, color: C) -> Self
+    pub fn stroke<C>(self, color: C) -> Self
     where
         C: IntoLinSrgba<draw::properties::ColorScalar>,
     {
-        self.stroke_color = Some(color.into_lin_srgba());
-        self
+        self.stroke_color(color)
     }
 
     /// Specify the width and height of the **Ellipse** via a given **radius**.
@@ -67,16 +60,13 @@ where
     type Indices = IndicesChain<IndicesFromRange, IndicesFromRange>;
     fn into_drawn(self, mut draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
         let Ellipse {
-            spatial,
-            no_fill,
-            color,
-            stroke_color,
+            dimensions,
+            polygon,
             resolution,
-            stroke,
         } = self;
 
         // First get the dimensions of the ellipse.
-        let (maybe_x, maybe_y, maybe_z) = spatial.dimensions.to_scalars(&draw);
+        let (maybe_x, maybe_y, maybe_z) = dimensions.to_scalars(&draw);
         assert!(
             maybe_z.is_none(),
             "z dimension support for ellipse is unimplemented"
@@ -91,138 +81,58 @@ where
         let resolution = resolution.unwrap_or(DEFAULT_RESOLUTION);
         let rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
         let ellipse = geom::Ellipse::new(rect, resolution);
-        let close = true;
-
-        let (fill_vdr, fill_ir, stroke_vdr, stroke_ir, min_index) = draw.drawing_context(|ctxt| {
-            let draw::DrawingContext {
-                mesh,
-                fill_tessellator,
-                ..
-            } = ctxt;
-
-            // Fill tessellation.
-            let (fill_vdr, fill_ir, min_index) = if !no_fill {
-                let mut builder = mesh.builder();
-                let circumference = ellipse.circumference().map(|p| {
-                    let p: geom::Point2<f32> = p.cast().expect("failed to cast point");
-                    p.into()
-                });
-                let events =
-                    lyon::path::iterator::FromPolyline::new(close, circumference).path_events();
-                let opts = Default::default();
-                let res = fill_tessellator.tessellate_path(events, &opts, &mut builder);
-                if let Err(err) = res {
-                    eprintln!("fill tessellation failed: {:?}", err);
-                }
-                (
-                    builder.vertex_data_ranges(),
-                    builder.index_range(),
-                    builder.min_index(),
-                )
-            } else {
-                let builder = mesh.builder();
-                (
-                    builder.vertex_data_ranges(),
-                    builder.index_range(),
-                    builder.min_index(),
-                )
-            };
-
-            // Stroke tessellation.
-            let (stroke_vdr, stroke_ir) = match (stroke, stroke_color) {
-                (options, color) if options.is_some() || color.is_some() => {
-                    let opts = options.unwrap_or_else(Default::default);
-                    let mut builder = mesh.builder();
-                    let circumference = ellipse.circumference().map(|p| {
-                        let p: geom::Point2<f32> = p.cast().expect("failed to cast point");
-                        p.into()
-                    });
-                    let events =
-                        lyon::path::iterator::FromPolyline::new(close, circumference).path_events();
-                    let mut stroke_tessellator = StrokeTessellator::default();
-                    let res = stroke_tessellator.tessellate_path(events, &opts, &mut builder);
-                    if let Err(err) = res {
-                        eprintln!("stroke tessellation failed: {:?}", err);
-                    }
-                    let stroke_vdr = builder.vertex_data_ranges();
-                    let stroke_ir = builder.index_range();
-                    (stroke_vdr, stroke_ir)
-                }
-                _ => (Default::default(), 0..0),
-            };
-
-            (fill_vdr, fill_ir, stroke_vdr, stroke_ir, min_index)
-        });
-
-        let fill_color = match fill_ir.len() == 0 {
-            true => None,
-            false => {
-                color.or_else(|| Some(draw.theme().fill_lin_srgba(&theme::Primitive::Ellipse)))
-            }
-        };
-        let stroke_color = match stroke_ir.len() == 0 {
-            true => None,
-            false => stroke_color
-                .or_else(|| Some(draw.theme().stroke_lin_srgba(&theme::Primitive::Ellipse))),
-        };
-
-        let fill_vertices = VerticesFromRanges::new(fill_vdr, fill_color);
-        let fill_indices = IndicesFromRange::new(fill_ir, min_index);
-        let stroke_vertices = VerticesFromRanges::new(stroke_vdr, stroke_color);
-        let stroke_indices = IndicesFromRange::new(stroke_ir, min_index);
-        let vertices = (fill_vertices, stroke_vertices).into();
-        let indices = (fill_indices, stroke_indices).into();
-
-        (spatial, vertices, indices)
+        let points = ellipse.circumference();
+        let polygon = draw.drawing_context(|ctxt| polygon.points(ctxt, points));
+        polygon.into_drawn_themed(draw, &theme::Primitive::Ellipse)
     }
 }
 
 impl<S> Default for Ellipse<S> {
     fn default() -> Self {
-        let spatial = Default::default();
-        let color = Default::default();
+        let dimensions = Default::default();
+        let polygon = Default::default();
         let resolution = Default::default();
-        let stroke = None;
-        let stroke_color = None;
-        let no_fill = false;
         Ellipse {
-            no_fill,
-            spatial,
-            color,
-            stroke_color,
+            dimensions,
+            polygon,
             resolution,
-            stroke,
         }
     }
 }
 
 impl<S> SetOrientation<S> for Ellipse<S> {
     fn properties(&mut self) -> &mut orientation::Properties<S> {
-        SetOrientation::properties(&mut self.spatial)
+        SetOrientation::properties(&mut self.polygon)
     }
 }
 
 impl<S> SetPosition<S> for Ellipse<S> {
     fn properties(&mut self) -> &mut position::Properties<S> {
-        SetPosition::properties(&mut self.spatial)
+        SetPosition::properties(&mut self.polygon)
     }
 }
 
 impl<S> SetDimensions<S> for Ellipse<S> {
     fn properties(&mut self) -> &mut dimension::Properties<S> {
-        SetDimensions::properties(&mut self.spatial)
+        SetDimensions::properties(&mut self.dimensions)
     }
 }
 
 impl<S> SetColor<ColorScalar> for Ellipse<S> {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
-        SetColor::rgba_mut(&mut self.color)
+        SetColor::rgba_mut(&mut self.polygon)
     }
 }
 
 impl<S> SetStroke for Ellipse<S> {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
-        self.stroke.stroke_options_mut()
+        SetStroke::stroke_options_mut(&mut self.polygon)
+    }
+}
+
+impl<S> SetPolygon<S> for Ellipse<S> {
+    fn polygon_options_mut(&mut self) -> &mut PolygonOptions<S> {
+        SetPolygon::polygon_options_mut(&mut self.polygon)
     }
 }
 
@@ -245,19 +155,14 @@ impl<S> Into<Option<Ellipse<S>>> for Primitive<S> {
 
 // Drawing methods.
 
-impl<'a, S> Drawing<'a, Ellipse<S>, S>
+impl<'a, S> DrawingEllipse<'a, S>
 where
     S: BaseFloat,
 {
-    /// Specify no fill color.
-    pub fn no_fill(self) -> Self {
-        self.map_ty(|ty| ty.no_fill())
-    }
-
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
-        C: IntoLinSrgba<draw::properties::ColorScalar>,
+        C: IntoLinSrgba<ColorScalar>,
     {
         self.map_ty(|ty| ty.stroke(color))
     }
