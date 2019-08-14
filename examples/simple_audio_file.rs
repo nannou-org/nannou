@@ -37,7 +37,7 @@ fn model(app: &App) -> Model {
 }
 
 // A function that renders the given `Audio` to the given `Buffer`.
-// In this case we play a simple sine wave at the audio's current frequency in `hz`.
+// In this case we play the audio file.
 fn audio(audio: &mut Audio, buffer: &mut Buffer) {
     let mut have_ended = vec![];
     let len_frames = buffer.len_frames();
