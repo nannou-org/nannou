@@ -150,3 +150,13 @@ where
     let t = toml::from_str(&string)?;
     Ok(t)
 }
+
+/// Attempt to recursively walk the given directory and all its sub-directories.
+///
+/// This function is shorthand for the `walkdir` crate's `WalkDir::new` constructor.
+pub fn walk_dir<P>(path: P) -> walkdir::WalkDir
+where
+    P: AsRef<Path>,
+{
+    walkdir::WalkDir::new(path)
+}

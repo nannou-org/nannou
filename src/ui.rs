@@ -35,7 +35,7 @@ use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt;
 use std::ops::Deref;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Arc, Mutex};
 use winit;
 
@@ -107,6 +107,7 @@ pub enum BuildError {
     InvalidWindow,
     RendererCreation(RendererCreationError),
     RenderTargetCreation(RenderTargetCreationError),
+    FailedToLoadFont(text::font::Error),
 }
 
 /// Failed to create the custom render target for the `Ui`.
@@ -234,7 +235,9 @@ impl<'a> Builder<'a> {
 
     /// Specify the path to the default font.
     ///
-    /// By default this is "fonts/NotoSans/NotoSans-Regular.ttf".
+    /// By default this is `None` and the `notosans::REGULAR_TTF` font will be used. If the
+    /// `notosans` feature is disabled, then the default font will be the first font detected
+    /// within the `assets/fonts` directory.
     ///
     /// Fonts can also be specified manually after `Ui` creation using the `fonts_mut` method.
     pub fn default_font_path(mut self, path: PathBuf) -> Self {
@@ -366,20 +369,62 @@ impl<'a> Builder<'a> {
             render_mode,
         };
 
-        // If the default font is in the assets/fonts directory, load it into the UI font map.
-        let default_font_path = default_font_path.or_else(|| {
-            app.assets_path()
-                .ok()
-                .map(|p| p.join(Ui::DEFAULT_FONT_PATH))
-        });
-
-        // If there is some font path to use for the default font, attempt to load it.
-        if let Some(font_path) = default_font_path {
-            ui.fonts_mut().insert_from_file(font_path).ok();
+        // If no font was specified use one from the notosans crate, otherwise load the given font.
+        match default_font_path {
+            None => match app.assets_path() {
+                Err(_err) => return Err(text::font::Error::NoFont)?,
+                Ok(assets) => {
+                    ui.fonts_mut().insert(default_font(assets)?);
+                }
+            },
+            Some(path) => {
+                ui.fonts_mut().insert_from_file(path)?;
+            }
         }
 
         Ok(ui)
     }
+}
+
+/// Load the default font.
+///
+/// If the `notosans` feature is enabled, this will return the font loaded from
+/// `notosans::REGULAR_TTF`.
+///
+/// Otherwise this will attempt to locate the `assets/fonts` directory. If the directory exists,
+/// the first font that is found will be loaded. If no fonts are found, an error is returned.
+pub fn default_font<P>(assets: P) -> Result<text::Font, text::font::Error>
+where
+    P: AsRef<Path>,
+{
+    if cfg!(feature = "notosans") {
+        #[cfg(feature = "notosans")]
+        {
+            let collection = text::FontCollection::from_bytes(notosans::REGULAR_TTF)
+                .expect("failed to load the `notosans::REGULAR_TTF` font collection");
+            let font = collection
+                .into_font()
+                .expect("the `notosans::REGULAR_TTF` font collection contained no fonts");
+            return Ok(font);
+        }
+    }
+
+    // Find a font in `assets/fonts`.
+    let fonts_dir = assets.as_ref().join(Ui::DEFAULT_FONTS_DIRECTORY);
+    if fonts_dir.exists() && fonts_dir.is_dir() {
+        for res in crate::io::walk_dir(&fonts_dir) {
+            let entry = match res {
+                Ok(e) => e,
+                Err(_) => continue,
+            };
+            match text::font::from_file(entry.path()) {
+                Err(_) => continue,
+                Ok(font) => return Ok(font),
+            }
+        }
+    }
+
+    Err(text::font::Error::NoFont)
 }
 
 /// Create a minimal, single-pass render pass with which the `Ui` may be rendered.
@@ -463,8 +508,9 @@ impl Ui {
     /// The default maximum number of `Input`s that a `Ui` will store in its pending `Input` queue
     /// before `Input`s start being ignored.
     pub const DEFAULT_PENDING_INPUT_LIMIT: usize = 1024;
-    /// The path to the default font for the `Ui`.
-    pub const DEFAULT_FONT_PATH: &'static str = "fonts/NotoSans/NotoSans-Regular.ttf";
+    /// The path relative to the `assets` directory that will be searched for fonts assuming the
+    /// `notosans` feature is disabled.
+    pub const DEFAULT_FONTS_DIRECTORY: &'static str = "fonts";
 
     /// Generate a new, unique `widget::Id` into a Placeholder node within the widget graph. This
     /// should only be called once for each unique widget needed to avoid unnecessary bloat within
@@ -705,6 +751,12 @@ impl From<RendererCreationError> for BuildError {
     }
 }
 
+impl From<text::font::Error> for BuildError {
+    fn from(err: text::font::Error) -> Self {
+        BuildError::FailedToLoadFont(err)
+    }
+}
+
 impl From<vk::ImageCreationError> for RenderTargetCreationError {
     fn from(err: vk::ImageCreationError) -> Self {
         RenderTargetCreationError::ImageCreation(err)
@@ -765,6 +817,7 @@ impl StdError for BuildError {
             BuildError::InvalidWindow => "no open window associated with the given `window_id`",
             BuildError::RendererCreation(ref err) => err.description(),
             BuildError::RenderTargetCreation(ref err) => err.description(),
+            BuildError::FailedToLoadFont(ref err) => err.description(),
         }
     }
 
@@ -773,6 +826,7 @@ impl StdError for BuildError {
             BuildError::InvalidWindow => None,
             BuildError::RendererCreation(ref err) => Some(err),
             BuildError::RenderTargetCreation(ref err) => Some(err),
+            BuildError::FailedToLoadFont(ref err) => Some(err),
         }
     }
 }
