@@ -10,6 +10,9 @@ repository = "https://github.com/nannou-org/nannou.git"
 homepage = "https://github.com/nannou-org/nannou"
 edition = "2018"
 
+[features]
+default = ["notosans"]
+
 [dependencies]
 approx = "0.1"
 cgmath = { version = "0.16", features = ["serde"] }
@@ -21,6 +24,7 @@ find_folder = "0.3"
 image = "0.21"
 lyon = "0.14"
 noise = "0.5"
+notosans = { version = "0.1", optional = true }
 palette = "0.4"
 pennereq = "0.3"
 rand = "0.7"
@@ -31,6 +35,7 @@ toml = "0.4"
 vulkano = "0.13"
 vulkano-win = "0.13"
 vulkano-shaders = "0.13"
+walkdir = "2"
 winit = "0.19"
 
 [dev-dependencies]
