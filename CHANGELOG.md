@@ -1,5 +1,6 @@
 # Unreleased
 
+- Update vulkano and shaderc dependencies to fix linux build issues.
 - Add an example that demonstrates using the Draw API with multiple windows.
 - Fix a bug where `Draw::to_frame` would `panic!` when used between multiple
   windows.
