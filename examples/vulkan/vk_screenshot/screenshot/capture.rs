@@ -38,8 +38,10 @@ impl FrameCapture {
                     .add(frame.image().clone())
                     .expect("Failed to add frame image")
                     .add(self.inter_color.clone())
+                    .expect("Failed to add resolve image")
+                    .add(self.output_color.clone())
             })
-            .expect("Failed to add input image");
+            .expect("Failed to add output image");
         let clear_values = vec![vk::ClearValue::None, vk::ClearValue::None];
         frame
             .add_commands()
@@ -110,6 +112,7 @@ fn create_render_pass(
     device: Arc<vk::Device>,
     msaa_samples: u32,
 ) -> Arc<dyn vk::RenderPassAbstract + Send + Sync> {
+    /*
     let rp = vk::single_pass_renderpass!(
         device,
         attachments: {
@@ -123,9 +126,9 @@ fn create_render_pass(
                 load: DontCare,
                 store: Store,
                 //format: super::INPUT_IMAGE_FORMAT,
-                //format: nannou::frame::COLOR_FORMAT,
+                format: nannou::frame::COLOR_FORMAT,
 
-                format: vk::Format::R8G8B8A8Uint,
+                //format: vk::Format::R8G8B8A8Uint,
                 samples: 1,
             }
         },
@@ -134,6 +137,48 @@ fn create_render_pass(
             depth_stencil: {}
             resolve: [resolve_image],
         }
+    )
+    .expect("Failed to create resolve renderpass");
+    */
+    let rp = vulkano::ordered_passes_renderpass!(
+        device,
+        attachments: {
+            frame_image: {
+                load: Load,
+                store: Store,
+                format: nannou::frame::COLOR_FORMAT,
+                samples: msaa_samples,
+            },
+            resolve_image: {
+                load: DontCare,
+                store: Store,
+                //format: super::INPUT_IMAGE_FORMAT,
+                format: nannou::frame::COLOR_FORMAT,
+
+                //format: vk::Format::R8G8B8A8Uint,
+                samples: 1,
+            },
+            output_image: {
+                load: DontCare,
+                store: Store,
+                format: vk::Format::R8G8B8A8Uint,
+                samples: 1,
+            }
+        },
+        passes: [
+            {
+                color: [frame_image],
+                depth_stencil: {},
+                input: [],
+                resolve: [resolve_image]
+            },
+            {
+                color: [output_image],
+                depth_stencil: {},
+                input: [],
+                resolve: []
+            }
+        ]
     )
     .expect("Failed to create resolve renderpass");
     let rp = Arc::new(rp) as Arc<dyn vk::RenderPassAbstract + Send + Sync>;

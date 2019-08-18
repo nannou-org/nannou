@@ -203,8 +203,8 @@ fn new_input_image(device: Arc<vk::Device>, dims: [u32; 2]) -> Arc<vk::Attachmen
         dims,
         // TODO this needs to check if the swapchain is in BGRA or RGBA
         //INPUT_IMAGE_FORMAT,
-        //nannou::frame::COLOR_FORMAT,
-        vk::Format::R8G8B8A8Uint,
+        nannou::frame::COLOR_FORMAT,
+        //vk::Format::R8G8B8A8Uint,
         vk::ImageUsage {
             transfer_source: true,
             transfer_destination: true,
