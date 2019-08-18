@@ -201,10 +201,23 @@ fn new_input_image(device: Arc<vk::Device>, dims: [u32; 2]) -> Arc<vk::Attachmen
     vk::AttachmentImage::with_usage(
         device,
         dims,
-        // TODO this needs to check if the swapchain is in BGRA or RGBA
-        //INPUT_IMAGE_FORMAT,
         nannou::frame::COLOR_FORMAT,
-        //vk::Format::R8G8B8A8Uint,
+        vk::ImageUsage {
+            //transfer_source: true,
+            //transfer_destination: true,
+            color_attachment: true,
+            sampled: true,
+            ..vk::ImageUsage::none()
+        },
+    )
+    .expect("Failed to create input image")
+}
+/*
+fn new_inter_uint_image(device: Arc<vk::Device>, dims: [u32; 2]) -> Arc<vk::AttachmentImage> {
+    vk::AttachmentImage::with_usage(
+        device,
+        dims,
+        vk::Format::R8G8B8A8Srgb,
         vk::ImageUsage {
             transfer_source: true,
             transfer_destination: true,
@@ -214,7 +227,22 @@ fn new_input_image(device: Arc<vk::Device>, dims: [u32; 2]) -> Arc<vk::Attachmen
     )
     .expect("Failed to create input image")
 }
+*/
 
+fn new_output_image(device: Arc<vk::Device>, dims: [u32; 2]) -> Arc<vk::AttachmentImage> {
+    vk::AttachmentImage::with_usage(
+        device,
+        dims,
+        vk::Format::R8G8B8A8Uint,
+        vk::ImageUsage {
+            transfer_source: true,
+            color_attachment: true,
+            ..vk::ImageUsage::none()
+        },
+    )
+    .expect("Failed to create input image")
+}
+/*
 fn new_output_image(
     device: Arc<vk::Device>,
     dims: vk::image::Dimensions,
@@ -225,7 +253,7 @@ fn new_output_image(
         vk::Format::R8G8B8A8Uint,
         vk::ImageUsage {
             transfer_source: true,
-            transfer_destination: true,
+            color_attachment: true,
             storage: true,
             ..vk::ImageUsage::none()
         },
@@ -233,7 +261,7 @@ fn new_output_image(
     )
     .expect("Failed to create output image")
 }
-
+*/
 fn new_screenshot_buffer(
     device: Arc<vk::Device>,
     dims: (usize, usize),
