@@ -269,7 +269,6 @@ fn create_sample_pipeline(
             .triangle_strip()
             .viewports_dynamic_scissors_irrelevant(1)
             .fragment_shader(fragment_shader.main_entry_point(), ())
-            .blend_alpha_blending()
             .render_pass(vk::Subpass::from(render_pass, 0).unwrap())
             .build(device)
             .unwrap(),
