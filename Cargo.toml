@@ -12,7 +12,6 @@ edition = "2018"
 
 [features]
 default = ["notosans"]
-video = ["glib", "gstreamer", "gstreamer-app", "gstreamer-video", "gstreamer-pbutils"]
 
 [dependencies]
 approx = "0.1"
