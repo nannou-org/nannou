@@ -46,6 +46,7 @@ pub mod noise;
 pub mod prelude;
 pub mod rand;
 pub mod state;
+pub mod text;
 pub mod time;
 pub mod ui;
 pub mod vk;
