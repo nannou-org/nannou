@@ -384,6 +384,7 @@ where
         Primitive::Polygon(prim) => into_drawn(draw, node_index, prim),
         Primitive::Quad(prim) => into_drawn(draw, node_index, prim),
         Primitive::Rect(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Text(prim) => unimplemented!(),
         Primitive::Tri(prim) => into_drawn(draw, node_index, prim),
 
         Primitive::MeshVertexless(_)
