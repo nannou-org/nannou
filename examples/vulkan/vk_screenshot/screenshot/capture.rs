@@ -308,15 +308,16 @@ mod fs {
         src: "
 #version 450
 layout(location = 0) in vec2 tex_coords;
-layout(location = 0) out vec4 f_color;
+layout(location = 0) out uvec4 f_color;
 layout(set = 0, binding = 0) uniform sampler2D tex;
 void main() {
+    float max = 255;
     vec4 col = texture(tex, tex_coords);
-    f_color = vec4(
-    pow(col.r, 1.0 / 2.2),
-    pow(col.g, 1.0 / 2.2),
-    pow(col.b, 1.0 / 2.2),
-    col.a);
+    f_color = uvec4(
+    uint(max * pow(col.r, 1.0 / 2.2)),
+    uint(max * pow(col.g, 1.0 / 2.2)),
+    uint(max * pow(col.b, 1.0 / 2.2)),
+    uint(max * col.a));
 }"
     }
 }
