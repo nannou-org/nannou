@@ -51,6 +51,8 @@ pub struct DrawingContext<'a, S> {
     pub fill_tessellator: &'a mut FillTessellator,
     /// A re-usable buffer for collecting path events.
     pub path_event_buffer: &'a mut Vec<PathEvent>,
+    /// A re-usable buffer for collecting text.
+    pub text_buffer: &'a mut String,
 }
 
 /// Construct a new **Drawing** instance.
@@ -151,13 +153,18 @@ where
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
                 {
-                    let mut intermediary_mesh = state.intermediary_mesh.borrow_mut();
-                    let mut fill_tessellator = state.fill_tessellator.borrow_mut();
-                    let mut path_event_buffer = state.path_event_buffer.borrow_mut();
+                    let mut intermediary_state = state.intermediary_state.borrow_mut();
+                    let super::IntermediaryState {
+                        ref mut intermediary_mesh,
+                        ref mut fill_tessellator,
+                        ref mut path_event_buffer,
+                        ref mut text_buffer,
+                    } = *intermediary_state;
                     let ctxt = DrawingContext {
-                        mesh: &mut *intermediary_mesh,
+                        mesh: intermediary_mesh,
                         fill_tessellator: &mut fill_tessellator.0,
-                        path_event_buffer: &mut *path_event_buffer,
+                        path_event_buffer: path_event_buffer,
+                        text_buffer: text_buffer,
                     };
                     primitive = map(primitive, ctxt);
                 }

@@ -1,3 +1,4 @@
+use crate::draw::drawing::DrawingContext;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{
@@ -21,7 +22,7 @@ pub struct Text<S = geom::scalar::Default> {
 pub type DrawingText<'a, S = geom::scalar::Default> = Drawing<'a, Text<S>, S>;
 
 /// Styling properties for the **Text** primitive.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Style {
     pub color: Option<LinSrgba>,
     pub line_spacing: Option<text::Scalar>,
@@ -41,6 +42,21 @@ pub enum Wrap {
 }
 
 impl<S> Text<S> {
+    /// Begin drawing some text.
+    pub fn new(ctxt: DrawingContext<S>, text: &str) -> Self {
+        let start = ctxt.text_buffer.len();
+        ctxt.text_buffer.push_str(text);
+        let end = ctxt.text_buffer.len();
+        let text = start..end;
+        let spatial = Default::default();
+        let style = Default::default();
+        Text {
+            spatial,
+            style,
+            text,
+        }
+    }
+
     /// The font size to use for the text.
     pub fn font_size(mut self, size: text::FontSize) -> Self {
         self.style.font_size = Some(size);

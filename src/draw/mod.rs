@@ -80,12 +80,8 @@ where
     geom_graph: geom::Graph<S>,
     /// For performing a depth-first search over the geometry graph.
     geom_graph_dfs: RefCell<geom::graph::node::Dfs<S>>,
-    /// Buffers of vertex data that may be re-used for paths, meshes, etc between view calls.
-    intermediary_mesh: RefCell<IntermediaryMesh<S>>,
-    /// A fill tessellator that may be re-used for 2D paths, meshes, etc between view calls.
-    fill_tessellator: RefCell<FillTessellatorWrapper>,
-    /// A re-usable buffer for collecting path events.
-    path_event_buffer: RefCell<Vec<PathEvent>>,
+    /// State made accessible via the `DrawingContext`.
+    intermediary_state: RefCell<IntermediaryState<S>>,
     /// The mesh containing vertices for all drawn shapes, etc.
     mesh: Mesh<S>,
     /// The map from node indices to their vertex and index ranges within the mesh.
@@ -98,6 +94,19 @@ where
     theme: Theme,
     /// If `Some`, the **Draw** should first clear the frame's gl context with the given color.
     background_color: Option<properties::LinSrgba>,
+}
+
+/// State made accessible via the `DrawingContext`.
+#[derive(Clone, Debug)]
+pub struct IntermediaryState<S> {
+    /// Buffers of vertex data that may be re-used for paths, meshes, etc between view calls.
+    intermediary_mesh: IntermediaryMesh<S>,
+    /// A fill tessellator that may be re-used for 2D paths, meshes, etc between view calls.
+    fill_tessellator: FillTessellatorWrapper,
+    /// A re-usable buffer for collecting path events.
+    path_event_buffer: Vec<PathEvent>,
+    /// A buffer containing all text.
+    text_buffer: String,
 }
 
 // Simple wrapper providing Clone and Debug.
@@ -302,10 +311,11 @@ where
     {
         let State {
             ref mut mesh,
-            ref intermediary_mesh,
+            ref intermediary_state,
             ..
         } = *draw;
-        let intermediary_mesh = &*intermediary_mesh.borrow();
+        let intermediary_state = intermediary_state.borrow();
+        let intermediary_mesh = &intermediary_state.intermediary_mesh;
         let min_intermediary_index = properties::Indices::min_index(&indices);
         let vertices = properties::Vertices::into_iter(vertices, intermediary_mesh);
         let indices = properties::Indices::into_iter(indices, &intermediary_mesh.indices)
@@ -430,6 +440,14 @@ impl<S> IntermediaryMesh<S> {
     }
 }
 
+impl<S> IntermediaryState<S> {
+    pub fn reset(&mut self) {
+        self.intermediary_mesh.reset();
+        self.path_event_buffer.clear();
+        self.text_buffer.clear();
+    }
+}
+
 impl<S> State<S>
 where
     S: BaseFloat,
@@ -440,8 +458,7 @@ where
         self.geom_graph_dfs.borrow_mut().reset(&self.geom_graph);
         self.drawing.clear();
         self.ranges.clear();
-        self.intermediary_mesh.borrow_mut().reset();
-        self.path_event_buffer.borrow_mut().clear();
+        self.intermediary_state.borrow_mut().reset();
         self.mesh.clear();
         self.background_color = None;
         self.last_node_drawn = None;
@@ -783,6 +800,21 @@ where
     }
 }
 
+impl<S> Default for IntermediaryState<S> {
+    fn default() -> Self {
+        let intermediary_mesh = Default::default();
+        let fill_tessellator = Default::default();
+        let path_event_buffer = Default::default();
+        let text_buffer = Default::default();
+        IntermediaryState {
+            intermediary_mesh,
+            fill_tessellator,
+            path_event_buffer,
+            text_buffer,
+        }
+    }
+}
+
 impl<S> Default for State<S>
 where
     S: BaseFloat,
@@ -791,9 +823,7 @@ where
         let geom_graph = Default::default();
         let geom_graph_dfs = RefCell::new(geom::graph::node::Dfs::new(&geom_graph));
         let drawing = Default::default();
-        let intermediary_mesh = RefCell::new(Default::default());
-        let fill_tessellator = RefCell::new(Default::default());
-        let path_event_buffer = RefCell::new(Default::default());
+        let intermediary_state = RefCell::new(Default::default());
         let mesh = Default::default();
         let ranges = Default::default();
         let theme = Default::default();
@@ -802,9 +832,7 @@ where
         State {
             geom_graph,
             geom_graph_dfs,
-            intermediary_mesh,
-            fill_tessellator,
-            path_event_buffer,
+            intermediary_state,
             mesh,
             drawing,
             ranges,
