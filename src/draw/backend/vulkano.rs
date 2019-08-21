@@ -3,6 +3,7 @@
 use crate::draw;
 use crate::frame::{Frame, ViewFbo};
 use crate::math::{BaseFloat, NumCast};
+use crate::text;
 use crate::vk::{self, DeviceOwned, DynamicStateBuilder, GpuFuture, RenderPassDesc};
 use std::error::Error as StdError;
 use std::fmt;
@@ -14,7 +15,54 @@ pub struct Renderer {
     graphics_pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     vertices: Vec<Vertex>,
     render_pass_images: Option<RenderPassImages>,
+    glyph_cache: GlyphCache,
     view_fbo: ViewFbo,
+}
+
+/// Cache for all glyphs.
+pub struct GlyphCache {
+    cache: text::GlyphCache<'static>,
+    cpu_buffer_pool: Arc<vk::CpuBufferPool<u8>>,
+    image: Arc<vk::StorageImage<vk::format::R8Unorm>>,
+    pixel_buffer: Vec<u8>,
+}
+
+impl GlyphCache {
+    /// Construct a glyph cache with the given dimensions.
+    pub fn with_dimensions(
+        queue: Arc<vk::Queue>,
+        dims: [u32; 2],
+    ) -> Result<Self, vk::ImageCreationError> {
+        const SCALE_TOLERANCE: f32 = 0.1;
+        const POSITION_TOLERANCE: f32 = 0.1;
+        let [width, height] = dims;
+        let cache = text::GlyphCache::builder()
+            .dimensions(width, height)
+            .scale_tolerance(SCALE_TOLERANCE)
+            .position_tolerance(POSITION_TOLERANCE)
+            .build();
+        let device = queue.device().clone();
+        let image = vk::StorageImage::with_usage(
+            device.clone(),
+            vk::image::Dimensions::Dim2d { width, height },
+            vk::format::R8Unorm,
+            vk::ImageUsage {
+                transfer_destination: true,
+                sampled: true,
+                ..vk::ImageUsage::none()
+            },
+            Some(queue.family()),
+        )?;
+        let cpu_buffer_pool = Arc::new(vk::CpuBufferPool::upload(device));
+        let pixel_buffer = vec![0u8; width as usize * height as usize];
+        let glyph_cache = GlyphCache {
+            cache,
+            cpu_buffer_pool,
+            image,
+            pixel_buffer,
+        };
+        Ok(glyph_cache)
+    }
 }
 
 /// The `Vertex` type passed to the vertex shader.
@@ -63,6 +111,7 @@ struct RenderPassImages {
 pub enum RendererCreationError {
     RenderPass(vk::RenderPassCreationError),
     GraphicsPipeline(GraphicsPipelineError),
+    ImageCreation(vk::ImageCreationError),
 }
 
 /// Errors that might occur while building the **vk::GraphicsPipeline**.
@@ -206,12 +255,14 @@ impl Renderer {
     ///
     /// This creates the `RenderPass` and `vk::GraphicsPipeline` ready for drawing.
     pub fn new(
-        device: Arc<vk::Device>,
+        queue: Arc<vk::Queue>,
         color_format: vk::Format,
         depth_format: vk::Format,
         msaa_samples: u32,
+        glyph_cache_dims: [u32; 2],
     ) -> Result<Self, RendererCreationError> {
         let load_op = vk::LoadOp::Load;
+        let device = queue.device().clone();
         let render_pass = Arc::new(create_render_pass(
             device,
             color_format,
@@ -224,12 +275,14 @@ impl Renderer {
         let vertices = vec![];
         let render_pass_images = None;
         let view_fbo = ViewFbo::default();
+        let glyph_cache = GlyphCache::with_dimensions(queue, glyph_cache_dims)?;
         Ok(Renderer {
             render_pass,
             graphics_pipeline,
             vertices,
             render_pass_images,
             view_fbo,
+            glyph_cache,
         })
     }
 
@@ -252,6 +305,7 @@ impl Renderer {
             ref mut vertices,
             ref mut render_pass_images,
             ref mut view_fbo,
+            ref mut glyph_cache,
         } = *self;
 
         // Retrieve the color/depth image load op and clear values based on the bg color.
@@ -493,6 +547,12 @@ impl From<GraphicsPipelineError> for RendererCreationError {
     }
 }
 
+impl From<vk::ImageCreationError> for RendererCreationError {
+    fn from(err: vk::ImageCreationError) -> Self {
+        RendererCreationError::ImageCreation(err)
+    }
+}
+
 impl From<vk::GraphicsPipelineCreationError> for GraphicsPipelineError {
     fn from(err: vk::GraphicsPipelineCreationError) -> Self {
         GraphicsPipelineError::Creation(err)
@@ -546,6 +606,7 @@ impl StdError for RendererCreationError {
         match *self {
             RendererCreationError::RenderPass(ref err) => err.description(),
             RendererCreationError::GraphicsPipeline(ref err) => err.description(),
+            RendererCreationError::ImageCreation(ref err) => err.description(),
         }
     }
 }

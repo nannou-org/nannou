@@ -997,13 +997,14 @@ impl App {
             None => return None,
             Some(window) => window,
         };
-        let device = window.swapchain.swapchain.device().clone();
+        let queue = window.swapchain_queue().clone();
+        let device = queue.device().clone();
         let color_format = crate::frame::COLOR_FORMAT;
         let mut supported_depth_formats = self.draw_state.supported_depth_formats.borrow_mut();
         let depth_format = *supported_depth_formats
             .entry(device.physical_device().index())
             .or_insert_with(|| {
-                find_draw_depth_format(device.clone())
+                find_draw_depth_format(device)
                     .expect("no supported vulkan depth format for the App's `Draw` API")
             });
         let draw = self.draw_state.draw.borrow_mut();
@@ -1013,11 +1014,15 @@ impl App {
         let renderer = RefMut::map(renderers, |renderers| {
             renderers.entry(window_id).or_insert_with(|| {
                 let msaa_samples = window.msaa_samples();
+                let (px_w, px_h) = window.inner_size_pixels();
+                // TODO: This should be configurable.
+                let glyph_cache_dims = [px_w, px_h];
                 let renderer = draw::backend::vulkano::Renderer::new(
-                    device,
+                    queue,
                     color_format,
                     depth_format,
                     msaa_samples,
+                    glyph_cache_dims,
                 )
                 .expect("failed to create `Draw` renderer for vulkano backend");
                 RefCell::new(renderer)
