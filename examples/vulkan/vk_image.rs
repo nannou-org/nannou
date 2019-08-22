@@ -11,7 +11,7 @@ struct Model {
     pipeline: Arc<dyn vk::GraphicsPipelineAbstract + Send + Sync>,
     vertex_buffer: Arc<vk::CpuAccessibleBuffer<[Vertex]>>,
     view_fbo: RefCell<ViewFbo>,
-    desciptor_set: Arc<dyn vk::DescriptorSet + Send + Sync>,
+    descriptor_set: Arc<dyn vk::DescriptorSet + Send + Sync>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -104,7 +104,7 @@ fn model(app: &App) -> Model {
             .unwrap(),
     );
 
-    let desciptor_set = Arc::new(
+    let descriptor_set = Arc::new(
         vk::PersistentDescriptorSet::start(pipeline.clone(), 0)
             .add_sampled_image(texture.clone(), sampler.clone())
             .unwrap()
@@ -119,7 +119,7 @@ fn model(app: &App) -> Model {
         pipeline,
         vertex_buffer,
         view_fbo,
-        desciptor_set,
+        descriptor_set,
     }
 }
 
@@ -147,7 +147,7 @@ fn view(_app: &App, model: &Model, frame: &Frame) {
             model.pipeline.clone(),
             &dynamic_state,
             vec![model.vertex_buffer.clone()],
-            model.desciptor_set.clone(),
+            model.descriptor_set.clone(),
             (),
         )
         .unwrap()
