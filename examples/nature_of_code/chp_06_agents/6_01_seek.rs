@@ -89,10 +89,12 @@ fn view(app: &App, m: &Model, frame: &Frame) {
     let mouse = vec2(app.mouse.x, app.mouse.y);
 
     draw.ellipse()
-        // Missing Stroke
         .x_y(mouse.x, mouse.y)
         .radius(48.0)
-        .rgb(0.78, 0.78, 0.78);
+        .rgb(0.78, 0.78, 0.78)
+        .stroke(rgb(0.0, 0.0, 0.0))
+        .stroke_weight(2.0);
+
     display(&m.vehicle, &draw);
 
     // Write the result of our drawing to the window's frame.

@@ -37,7 +37,9 @@ fn draw_circle(draw: &app::Draw, x: f32, y: f32, mut r: f32) {
     draw.ellipse()
         .x_y(x, y)
         .radius(r)
-        .hsv(map_range(r, 2.0, 360.0, 0.0, 1.0), 0.75, 1.0);
+        .hsv(map_range(r, 2.0, 360.0, 0.0, 1.0), 0.75, 1.0)
+        .stroke(BLACK);
+
     // Exit condition, stop when radius is too small
     if r > 2.0 {
         r *= 0.75;

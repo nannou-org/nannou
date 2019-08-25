@@ -16,7 +16,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .with_dimensions(200, 200)
+        .with_dimensions(250, 200)
         .view(view)
         .build()
         .unwrap();
@@ -45,7 +45,9 @@ fn view(app: &App, model: &Model, frame: &Frame) {
         draw.ellipse()
             .x_y(x as f32, y)
             .w_h(48.0, 48.0)
-            .rgba(0.0, 0.0, 0.0, 0.5);
+            .rgba(0.0, 0.0, 0.0, 0.5)
+            .stroke(BLACK)
+            .stroke_weight(2.0);
 
         angle += model.angle_vel;
         x += 24.0;

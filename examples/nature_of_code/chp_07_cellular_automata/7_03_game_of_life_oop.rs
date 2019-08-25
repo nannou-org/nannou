@@ -50,7 +50,8 @@ impl Cell {
         draw.rect()
             .x_y(x, y)
             .w_h(self.w, self.w)
-            .rgb(fill.red, fill.green, fill.blue);
+            .rgb(fill.red, fill.green, fill.blue)
+            .stroke(BLACK);
     }
 }
 
@@ -140,7 +141,8 @@ impl Gol {
             for j in 0..self.rows {
                 let x = (i * self.w) as f32 - rect.right() as f32;
                 let y = (j * self.w) as f32 - rect.top() as f32;
-                self.board[i][j].display(&draw, x, y);
+                let offset = self.w as f32 / 2.0;
+                self.board[i][j].display(&draw, x + offset, y + offset);
             }
         }
     }
@@ -151,7 +153,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0 * 2.0, 360.0 * 2.0);
+    let rect = Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)

@@ -43,7 +43,18 @@ impl Oscillator {
         let x = self.angle.x.sin() * self.amplitude.x;
         let y = self.angle.y.sin() * self.amplitude.y;
 
-        draw.ellipse().x_y(x, y).w_h(32.0, 32.0).rgb(0.5, 0.5, 0.5);
+        draw.line()
+            .start(pt2(0.0, 0.0))
+            .end(pt2(x, y))
+            .rgb(0.0, 0.0, 0.0)
+            .stroke_weight(2.0);
+
+        draw.ellipse()
+            .x_y(x, y)
+            .w_h(32.0, 32.0)
+            .rgba(0.5, 0.5, 0.5, 0.5)
+            .stroke(BLACK)
+            .stroke_weight(2.0);
     }
 }
 
