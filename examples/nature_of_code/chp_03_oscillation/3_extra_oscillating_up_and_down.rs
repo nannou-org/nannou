@@ -41,7 +41,8 @@ fn view(app: &App, model: &Model, frame: &Frame) {
     draw.ellipse()
         .x_y(0.0, y)
         .w_h(16.0, 16.0)
-        .rgb(0.4, 0.4, 0.4);
+        .rgb(0.4, 0.4, 0.4)
+        .stroke(BLACK);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();

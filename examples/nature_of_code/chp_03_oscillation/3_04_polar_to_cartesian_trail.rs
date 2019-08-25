@@ -47,10 +47,16 @@ fn view(app: &App, model: &Model, frame: &Frame) {
     draw.line()
         .start(pt2(0.0, 0.0))
         .end(pt2(x, y))
-        .rgb(0.5, 0.5, 0.5);
+        .rgb(0.0, 0.0, 0.0)
+        .stroke_weight(2.0);
 
     // Draw an ellipse at cartesian coordinate
-    draw.ellipse().x_y(x, y).w_h(48.0, 48.0).rgb(0.5, 0.5, 0.5);
+    draw.ellipse()
+        .x_y(x, y)
+        .w_h(48.0, 48.0)
+        .rgb(0.5, 0.5, 0.5)
+        .stroke(BLACK)
+        .stroke_weight(2.0);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();

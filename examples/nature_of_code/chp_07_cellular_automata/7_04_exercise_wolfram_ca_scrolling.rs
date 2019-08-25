@@ -11,7 +11,7 @@
 use nannou::prelude::*;
 use std::ops::Range;
 
-const RULE: i32 = 2;
+const RULE: i32 = 5;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -87,7 +87,7 @@ impl Ca {
         for col in 0..self.columns {
             for row in 0..self.rows {
                 let mut y = row as i32 - offset;
-                if y >= rect.top() as i32 {
+                if y <= rect.top() as i32 {
                     y = self.rows as i32 + y;
                 }
                 // Only draw if cell state is 1
@@ -178,6 +178,8 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
 fn view(app: &App, m: &Model, frame: &Frame) {
     // Begin drawing
     let draw = app.draw();
+
+    draw.background().color(WHITE);
 
     m.ca.display(&draw, &app.window_rect());
 

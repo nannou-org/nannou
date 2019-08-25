@@ -38,7 +38,9 @@ impl Attractor {
         draw.ellipse()
             .x_y(self.location.x, self.location.y)
             .w_h(48.0, 48.0)
-            .rgb(0.5, 0.5, 0.5);
+            .rgb(0.5, 0.5, 0.5)
+            .stroke(BLACK)
+            .stroke_weight(2.0);
     }
 }
 
@@ -94,6 +96,7 @@ impl Mover {
             .x_y(self.location.x, self.location.y)
             .w_h(self.mass * 16.0, self.mass * 16.0)
             .rgba(0.6, 0.6, 0.6, 0.78)
+            .stroke(BLACK)
             .rotate(self.angle);
     }
 }

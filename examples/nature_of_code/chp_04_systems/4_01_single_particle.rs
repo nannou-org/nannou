@@ -44,12 +44,12 @@ impl Particle {
 
     // Method to display
     fn display(&self, draw: &app::Draw) {
-        draw.ellipse().xy(self.position).w_h(12.0, 12.0).rgba(
-            0.5,
-            0.5,
-            0.5,
-            self.life_span / 255.0,
-        );
+        draw.ellipse()
+            .xy(self.position)
+            .w_h(12.0, 12.0)
+            .rgba(0.5, 0.5, 0.5, self.life_span / 255.0)
+            .stroke(rgba(0.0, 0.0, 0.0, self.life_span / 255.0))
+            .stroke_weight(2.0);
     }
 
     // Is the poarticel still useful?

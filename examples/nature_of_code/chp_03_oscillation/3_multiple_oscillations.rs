@@ -56,10 +56,16 @@ fn view(app: &App, model: &Model, frame: &Frame) {
     x += model.amplitude1 * model.angle1.cos();
     x += model.amplitude2 * model.angle2.sin();
 
+    draw.line()
+        .start(pt2(0.0, 0.0))
+        .end(pt2(x, 0.0))
+        .rgb(0.0, 0.0, 0.0);
+
     draw.ellipse()
-        .x_y(x as f32, 0.0)
+        .x_y(x, 0.0)
         .w_h(20.0, 20.0)
-        .rgba(0.7, 0.7, 0.7, 1.0);
+        .rgba(0.7, 0.7, 0.7, 1.0)
+        .stroke(BLACK);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();

@@ -65,10 +65,12 @@ impl Attractor {
         } else {
             0.75
         };
-        draw.rect()
+        draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 2.0, self.mass * 2.0)
-            .rgba(gray, gray, gray, 0.8);
+            .rgba(gray, gray, gray, 0.8)
+            .stroke(BLACK)
+            .stroke_weight(4.0);
     }
 
     // The methods below are for mouse interaction
@@ -131,7 +133,9 @@ impl Mover {
         draw.ellipse()
             .xy(self.position)
             .w_h(16.0, 16.0)
-            .rgb(0.3, 0.3, 0.3);
+            .rgb(0.3, 0.3, 0.3)
+            .stroke(BLACK)
+            .stroke_weight(2.0);
     }
 
     fn _check_edges(&mut self, rect: Rect) {

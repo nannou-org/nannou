@@ -45,7 +45,7 @@ impl Mover {
         self.position += self.velocity;
     }
 
-    fn _check_edges(&mut self, rect: Rect) {
+    fn check_edges(&mut self, rect: Rect) {
         if self.position.x > rect.right() {
             self.position.x = rect.left();
         } else if self.position.x < rect.left() {
@@ -63,7 +63,9 @@ impl Mover {
         draw.ellipse()
             .xy(self.position)
             .w_h(48.0, 48.0)
-            .rgb(0.5, 0.5, 0.5);
+            .rgb(0.5, 0.5, 0.5)
+            .stroke(BLACK)
+            .stroke_weight(2.0);
     }
 }
 
@@ -77,8 +79,9 @@ fn model(app: &App) -> Model {
     Model { mover }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model, _update: Update) {
     m.mover.update();
+    m.mover.check_edges(app.window_rect());
 }
 
 fn view(app: &App, m: &Model, frame: &Frame) {

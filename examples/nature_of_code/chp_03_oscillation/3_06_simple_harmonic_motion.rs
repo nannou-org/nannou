@@ -36,12 +36,18 @@ fn view(app: &App, model: &Model, frame: &Frame) {
     draw.background().color(WHITE);
 
     let amplitude = 300.0;
-    let x = amplitude * model.angle.sin();
+    let x = amplitude * model.angle.sin() as f32;
+
+    draw.line()
+        .start(pt2(0.0, 0.0))
+        .end(pt2(x, 0.0))
+        .rgb(0.0, 0.0, 0.0);
 
     draw.ellipse()
-        .x_y(x as f32, 0.0)
-        .w_h(50.0, 50.0)
-        .rgba(0.5, 0.5, 0.5, 1.0);
+        .x_y(x, 0.0)
+        .w_h(20.0, 20.0)
+        .rgba(0.68, 0.68, 0.68, 1.0)
+        .stroke(BLACK);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();

@@ -41,11 +41,11 @@ impl Particle {
 
     fn display(&self, draw: &app::Draw) {
         let random_color = random();
-        draw.ellipse().xy(self.position).w_h(16.0, 16.0).rgb(
-            random_color,
-            random_color,
-            random_color,
-        );
+        draw.ellipse()
+            .xy(self.position)
+            .w_h(16.0, 16.0)
+            .rgb(random_color, random_color, random_color)
+            .stroke(BLACK);
     }
 }
 impl Wave {

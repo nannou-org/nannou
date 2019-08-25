@@ -50,8 +50,9 @@ impl Mover {
         // Display circle at x position
         draw.ellipse()
             .xy(self.position)
-            .w_h(16.0, 16.0)
-            .rgb(0.5, 0.5, 0.5);
+            .w_h(48.0, 48.0)
+            .rgb(0.5, 0.5, 0.5)
+            .stroke(rgb(0.0, 0.0, 0.0));
     }
 }
 

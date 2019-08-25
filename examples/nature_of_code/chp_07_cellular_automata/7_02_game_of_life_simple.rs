@@ -111,13 +111,15 @@ impl Gol {
                 if self.board[i][j] == 1 {
                     fill = 0.0;
                 }
+                let offset = self.w as f32 / 2.0;
                 draw.rect()
                     .x_y(
-                        (i * self.w) as f32 - rect.right() as f32,
-                        (j * self.w) as f32 - rect.top() as f32,
+                        offset + (i * self.w) as f32 - rect.right() as f32,
+                        offset + (j * self.w) as f32 - rect.top() as f32,
                     )
                     .w_h(self.w as f32, self.w as f32)
-                    .rgb(fill, fill, fill);
+                    .rgb(fill, fill, fill)
+                    .stroke(BLACK);
             }
         }
     }
@@ -128,7 +130,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0 * 2.0, 360.0 * 2.0);
+    let rect = Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .with_dimensions(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)
