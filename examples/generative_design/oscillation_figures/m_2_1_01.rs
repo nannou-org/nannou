@@ -26,6 +26,7 @@
  * arrow left/right  : phi -/+
  * s                 : save png
  */
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).simple_window(view).run();
@@ -98,19 +99,20 @@ fn view(app: &App, model: &Model, frame: &Frame) {
         .enumerate()
         // Colour each vertex uniquely based on its index.
         .map(|(i, p)| {
-            let rgba = nannou::color::Rgba::new(0.0, 0.0, 0.0, 1.0);
-            geom::vertex::Rgba(p, rgba)
+            let rgba = rgba(0.0, 0.0, 0.0, 1.0);
+            (p, rgba)
         });
 
     // Draw the polyline.
-    draw.polyline().vertices(2.0, vertices);
+    draw.polyline().colored_points(vertices);
 
     if model.do_draw_animation {
         // Circle
         draw.ellipse()
             .x_y(-125.0, 0.0)
             .radius(200.0)
-            .rgba(0.0, 0.0, 0.0, 0.5);
+            .stroke(rgb(0.0, 0.0, 0.0))
+            .no_fill();
 
         // Lines
     }
