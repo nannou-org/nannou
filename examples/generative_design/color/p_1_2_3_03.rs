@@ -1,4 +1,4 @@
-// P_1_2_3_02
+// P_1_2_3_03
 //
 // Generative Gestaltung – Creative Coding im Web
 // ISBN: 978-3-87439-902-9, First Edition, Hermann Schmidt, Mainz, 2018
@@ -38,6 +38,7 @@ struct Model {
     hue_values: Vec<f32>,
     saturation_values: Vec<f32>,
     brightness_values: Vec<f32>,
+    alpha_value: f32,
     clicked: bool,
     clicked_frame: u64,
 }
@@ -63,6 +64,7 @@ fn model(app: &App) -> Model {
         hue_values,
         saturation_values,
         brightness_values,
+        alpha_value: 0.75,
         clicked: true,
         clicked_frame: 0,
     }
@@ -72,12 +74,12 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     // Create palette
     for i in 0..model.color_count {
         if i % 2 == 0 {
-            model.hue_values[i] = random_f32() * 0.36 + 0.61;
+            model.hue_values[i] = random_f32();
             model.saturation_values[i] = 1.0;
-            model.brightness_values[i] = random_f32() * 0.85 + 0.15;
+            model.brightness_values[i] = random_f32();
         } else {
             model.hue_values[i] = 0.54;
-            model.saturation_values[i] = random_f32() * 0.8 + 0.2;
+            model.saturation_values[i] = random_f32();
             model.brightness_values[i] = 1.0;
         }
     }
@@ -88,6 +90,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 }
 
 fn view(app: &App, model: &Model, frame: &Frame) {
+    // Begin drawing
     let draw = app.draw();
 
     if model.clicked {
@@ -138,14 +141,21 @@ fn view(app: &App, model: &Model, frame: &Frame) {
                 );
                 let y = app.window_rect().top() - (row_height * i) as f32;
                 let w = -map_range(parts[ii], 0, sum_parts_total, 0.0, app.window_rect().w());
-                let h = row_height as f32;
+                let h = row_height as f32 * 1.5;
 
                 let index = counter % model.color_count;
-                draw.rect().x_y(x + (w / 2.0), y - (h / 2.0)).w_h(w, h).hsv(
+                let col1 = hsva(0.0, 0.0, 0.0, 0.0);
+                let col2 = hsva(
                     model.hue_values[index as usize],
                     model.saturation_values[index as usize],
                     model.brightness_values[index as usize],
+                    model.alpha_value,
                 );
+
+                draw.rect()
+                    .x_y(x + (w / 2.0), y - (h / 2.0))
+                    .w_h(w, h)
+                    .color(col2);
 
                 counter += 1;
             }
