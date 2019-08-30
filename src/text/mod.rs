@@ -44,12 +44,13 @@ pub struct Builder<'a> {
 }
 
 /// An instance of some multi-line text and its layout.
+#[derive(Clone)]
 pub struct Text<'a> {
     text: Cow<'a, str>,
     font: Font,
     layout: Layout,
     line_infos: Vec<line::Info>,
-    max_width: Scalar,
+    rect: geom::Rect,
 }
 
 /// An iterator yielding each line within the given `text` as a new `&str`, where the start and end
@@ -67,8 +68,15 @@ pub type TextLineInfos<'a> = line::Infos<'a, line::NextBreakFnPtr>;
 pub type TextLines<'a> =
     Lines<'a, std::iter::Map<std::slice::Iter<'a, line::Info>, fn(&line::Info) -> std::ops::Range<usize>>>;
 
+/// An alias for the line rect iterator used internally within the `Text::line_rects` iterator.
+type LineRects<'a> = line::Rects<std::iter::Cloned<std::slice::Iter<'a, line::Info>>>;
+
 /// An alias for the line rect iterator yielded by `Text::line_rects`.
-pub type TextLineRects<'a> = line::Rects<std::iter::Cloned<std::slice::Iter<'a, line::Info>>>;
+#[derive(Clone)]
+pub struct TextLineRects<'a> {
+    line_rects: LineRects<'a>,
+    offset: geom::Vector2,
+}
 
 /// An alias for the iterator yielded by `Text::lines_with_rects`.
 pub type TextLinesWithRects<'a> = std::iter::Zip<TextLines<'a>, TextLineRects<'a>>;
@@ -209,6 +217,28 @@ impl<'a> Builder<'a> {
         self.map_layout(|l| l.line_spacing(spacing))
     }
 
+    /// Specify how the whole text should be aligned along the y axis of its bounding rectangle
+    pub fn y_align(self, align: Align) -> Self {
+        self.map_layout(|l| l.y_align(align))
+    }
+
+    /// Align the top edge of the text with the top edge of its bounding rectangle.
+    pub fn align_top(self) -> Self {
+        self.map_layout(|l| l.align_top())
+    }
+
+    /// Align the middle of the text with the middle of the bounding rect along the y axis..
+    ///
+    /// This is the default behaviour.
+    pub fn align_middle_y(self) -> Self {
+        self.map_layout(|l| l.align_middle_y())
+    }
+
+    /// Align the bottom edge of the text with the bottom edge of its bounding rectangle.
+    pub fn align_bottom(self) -> Self {
+        self.map_layout(|l| l.align_bottom())
+    }
+
     /// Set all the parameters via an existing `Layout`
     pub fn layout(self, layout: &Layout) -> Self {
         self.map_layout(|l| l.layout(layout))
@@ -218,16 +248,22 @@ impl<'a> Builder<'a> {
     ///
     /// This iterates over the text in order to pre-calculates the text's multi-line information
     /// using the `line::infos` function.
-    pub fn build(self, max_width: Scalar, assets: &std::path::Path) -> Text<'a> {
+    ///
+    /// The given `rect` will be used for applying the layout including text alignment, positioning
+    /// of text, multi-line wrapping, etc,
+    pub fn build(self, rect: geom::Rect) -> Text<'a> {
         let text = self.text;
         let layout = self.layout_builder.build();
-        let font = layout.font.clone()
-            .unwrap_or_else(|| font::default(assets).expect("failed to find default font"));
-        // let font = layout.font_id
-        //     .or_else(|| fonts.ids().next())
-        //     .and_then(|id| fonts.get(id))
-        //     .map(|font| font.clone())
-        //     .expect("no fonts in font map");
+        let font = layout.font.clone().unwrap_or_else(|| {
+            if cfg!(feature = "notosans") {
+                font::default_notosans()
+            } else {
+                let assets = crate::app::find_assets_path()
+                    .expect("failed to detect the assets directory when searching for a default font");;
+                font::default(&assets).expect("failed to detect a default font")
+            }
+        });
+        let max_width = rect.w();
         let line_infos = line::infos_maybe_wrapped(
             &text,
             &font,
@@ -235,14 +271,12 @@ impl<'a> Builder<'a> {
             layout.line_wrap,
             max_width,
         ).collect();
-        Text { text, font, layout, line_infos, max_width }
+        Text { text, font, layout, line_infos, rect }
     }
 }
 
 impl<'a> Text<'a> {
     /// Produce an iterator yielding information about each line.
-    ///
-    /// `max_width` describes the maximum width a line may be before it requires wrapping.
     pub fn line_infos(&self) -> &[line::Info] {
         &self.line_infos
     }
@@ -263,8 +297,8 @@ impl<'a> Text<'a> {
     }
 
     /// The width around which the text was wrapped.
-    pub fn max_width(&self) -> Scalar {
-        self.max_width
+    pub fn rect(&self) -> geom::Rect {
+        self.rect
     }
 
     /// The width of the widest line of text.
@@ -287,13 +321,21 @@ impl<'a> Text<'a> {
 
     /// The bounding rectangle for each line.
     pub fn line_rects(&self) -> TextLineRects {
-        line::rects(
+        let offset = position_offset(
+            self.num_lines(),
+            self.layout.font_size,
+            self.layout.line_spacing,
+            self.rect,
+            self.layout.y_align,
+        );
+        let line_rects = line::rects(
             self.line_infos.iter().cloned(),
             self.layout.font_size,
-            self.max_width,
+            self.rect.w(),
             self.layout.justify,
             self.layout.line_spacing,
-        )
+        );
+        TextLineRects { line_rects, offset }
     }
 
     /// Produce an iterator yielding all lines of text alongside their bounding rects.
@@ -359,24 +401,12 @@ impl<'a> Text<'a> {
             })
     }
 
-    /// Produces the offset required in order to lay out text so that the left-most point is at the
-    /// given `left` value and that the text is vertically aligned within the given `y` range.
-    pub fn offset_into_rect(&self, left: Scalar, y: geom::Range, y_align: Align) -> geom::Vector2 {
-        let x = geom::Range::new(left, left + self.max_width);
-        let bounding_rect = geom::Rect { x, y };
-        position_offset(
-            self.num_lines(),
-            self.layout.font_size,
-            self.layout.line_spacing,
-            bounding_rect,
-            y_align,
-        )
-    }
-
     /// Produce an iterator yielding positioned rusttype glyphs ready for caching.
     ///
     /// The window dimensions and DPI are required to transform glyph positions into rusttype's
     /// pixel-space, ready for caching into the rusttype glyph cache pixel buffer.
+    ///
+    /// TODO: Method may still require applying text.rect.xy offset.
     pub fn rt_glyphs<'b: 'a>(
         &'b self,
         window_dims: geom::Vector2,
@@ -385,7 +415,7 @@ impl<'a> Text<'a> {
         y: geom::Range,
         y_align: Align,
     ) -> impl 'a + 'b + Iterator<Item = PositionedGlyph> {
-        let x = geom::Range::new(left, left + self.max_width);
+        let x = geom::Range::new(left, left + self.rect.w());
         let bounding_rect = geom::Rect { x, y };
         positioned_glyphs(
             &self.text,
@@ -403,9 +433,9 @@ impl<'a> Text<'a> {
 
     /// Converts this `Text` instance into an instance that owns the inner text string.
     pub fn into_owned(self) -> Text<'static> {
-        let Text { text, font, layout, line_infos, max_width } = self;
+        let Text { text, font, layout, line_infos, rect } = self;
         let text = Cow::Owned(text.into_owned());
-        Text { text, font, layout, line_infos, max_width }
+        Text { text, font, layout, line_infos, rect }
     }
 }
 
@@ -420,6 +450,13 @@ where
             ref mut ranges,
         } = *self;
         ranges.next().map(|range| &text[range])
+    }
+}
+
+impl<'a> Iterator for TextLineRects<'a> {
+    type Item = geom::Rect;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.line_rects.next().map(|r| r.shift(self.offset))
     }
 }
 

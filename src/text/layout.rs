@@ -1,6 +1,6 @@
 //! Items related to the styling of text.
 
-use crate::text::{font, Font, FontSize, Justify, Scalar, Wrap};
+use crate::text::{Align, Font, FontSize, Justify, Scalar, Wrap};
 
 /// A context for building a text layout.
 #[derive(Clone, Debug, Default)]
@@ -10,6 +10,7 @@ pub struct Builder {
     pub font_size: Option<FontSize>,
     pub justify: Option<Justify>,
     pub font: Option<Option<Font>>,
+    pub y_align: Option<Align>,
 }
 
 /// Properties related to the layout of multi-line text for a single font and font size.
@@ -20,12 +21,14 @@ pub struct Layout {
     pub justify: Justify,
     pub font_size: FontSize,
     pub font: Option<Font>,
+    pub y_align: Align,
 }
 
 pub const DEFAULT_LINE_WRAP: Option<Wrap> = Some(Wrap::Whitespace);
 pub const DEFAULT_FONT_SIZE: u32 = 12;
 pub const DEFAULT_LINE_SPACING: f32 = 0.0;
 pub const DEFAULT_JUSTIFY: Justify = Justify::Left;
+pub const DEFAULT_Y_ALIGN: Align = Align::Middle;
 
 impl Builder {
     /// The font size to use for the text.
@@ -96,6 +99,29 @@ impl Builder {
         self
     }
 
+    /// Specify how the whole text should be aligned along the y axis of its bounding rectangle
+    pub fn y_align(mut self, align: Align) -> Self {
+        self.y_align = Some(align);
+        self
+    }
+
+    /// Align the top edge of the text with the top edge of its bounding rectangle.
+    pub fn align_top(self) -> Self {
+        self.y_align(Align::End)
+    }
+
+    /// Align the middle of the text with the middle of the bounding rect along the y axis..
+    ///
+    /// This is the default behaviour.
+    pub fn align_middle_y(self) -> Self {
+        self.y_align(Align::Middle)
+    }
+
+    /// Align the bottom edge of the text with the bottom edge of its bounding rectangle.
+    pub fn align_bottom(self) -> Self {
+        self.y_align(Align::Start)
+    }
+
     /// Set all the parameters via an existing `Layout`
     pub fn layout(mut self, layout: &Layout) -> Self {
         self.font = Some(layout.font.clone());
@@ -103,6 +129,7 @@ impl Builder {
             .line_wrap(layout.line_wrap)
             .justify(layout.justify)
             .font_size(layout.font_size)
+            .y_align(layout.y_align)
     }
 
     /// Build the text layout.
@@ -113,6 +140,7 @@ impl Builder {
             justify: self.justify.unwrap_or(DEFAULT_JUSTIFY),
             font_size: self.font_size.unwrap_or(DEFAULT_FONT_SIZE),
             font: self.font.unwrap_or(None),
+            y_align: self.y_align.unwrap_or(DEFAULT_Y_ALIGN),
         }
     }
 }
@@ -125,6 +153,7 @@ impl Default for Layout {
             justify: DEFAULT_JUSTIFY,
             font_size: DEFAULT_FONT_SIZE,
             font: None,
+            y_align: DEFAULT_Y_ALIGN,
         }
     }
 }
