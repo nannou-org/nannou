@@ -35,7 +35,7 @@ use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt;
 use std::ops::Deref;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{mpsc, Arc, Mutex};
 use winit;
 
