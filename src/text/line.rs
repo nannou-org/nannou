@@ -3,7 +3,7 @@
 //! This module is the core of multi-line text handling.
 
 use crate::geom::{Range, Rect};
-use crate::text::{self, Align, FontSize, Scalar};
+use crate::text::{self, FontSize, Scalar, Wrap};
 
 /// The two types of **Break** indices returned by the **WrapIndicesBy** iterators.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -36,6 +36,17 @@ pub enum Break {
     },
 }
 
+/// The type yielded by functions dedicated to finding the next line break.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct NextBreak {
+    /// The reason for the break.
+    pub break_: Break,
+    /// The total width of the line.
+    pub width: Scalar,
+    /// The maximum heigh of the line.
+    pub height: Scalar
+}
+
 /// Information about a single line of text within a `&str`.
 ///
 /// `Info` is a minimal amount of information that can be stored for efficient reasoning about
@@ -53,6 +64,8 @@ pub struct Info {
     pub end_break: Break,
     /// The total width of all characters within the line.
     pub width: Scalar,
+    /// The greatest height of all characters yielded.
+    pub height: Scalar,
 }
 
 /// An iterator yielding an `Info` struct for each line in the given `text` wrapped by the
@@ -83,6 +96,8 @@ pub struct Rects<I> {
     infos: I,
     x_align: text::Justify,
     line_spacing: Scalar,
+    last_line_top: Scalar,
+    font_size: FontSize,
     next: Option<Rect>,
 }
 
@@ -97,7 +112,7 @@ pub struct SelectedRects<'a, I> {
 
 /// An alias for function pointers that are compatible with the `Block`'s required text
 /// wrapping function.
-pub type NextBreakFnPtr = fn(&str, &text::Font, FontSize, Scalar) -> (Break, Scalar);
+pub type NextBreakFnPtr = fn(&str, &text::Font, FontSize, Scalar) -> NextBreak;
 
 impl Break {
     /// Return the index at which the break occurs.
@@ -187,26 +202,31 @@ impl<'a> Infos<'a, NextBreakFnPtr> {
 /// This is primarily for use within the `next_break` functions below.
 ///
 /// The following code is adapted from the rusttype::LayoutIter::next src.
-fn advance_width(
+fn advance_width_and_height(
     ch: char,
     font: &text::Font,
     scale: text::Scale,
     last_glyph: &mut Option<text::GlyphId>,
-) -> Scalar {
+) -> (Scalar, Scalar) {
     let g = font.glyph(ch).scaled(scale);
     let kern = last_glyph
         .map(|last| font.pair_kerning(scale, last, g.id()))
         .unwrap_or(0.0);
     let advance_width = g.h_metrics().advance_width;
+    let height = g.exact_bounding_box()
+        .map(|bb| bb.min.y.abs() as Scalar)
+        .unwrap_or(0.0);
     *last_glyph = Some(g.id());
-    (kern + advance_width) as Scalar
+    let adv_w = (kern + advance_width) as Scalar;
+    (adv_w, height)
 }
 
 /// Returns the next index at which the text naturally breaks via a newline character,
 /// along with the width of the line.
-fn next_break(text: &str, font: &text::Font, font_size: FontSize) -> (Break, Scalar) {
+fn next_break(text: &str, font: &text::Font, font_size: FontSize) -> NextBreak {
     let scale = text::pt_to_scale(font_size);
     let mut width = 0.0;
+    let mut height = 0.0;
     let mut char_i = 0;
     let mut char_indices = text.char_indices().peekable();
     let mut last_glyph = None;
@@ -219,7 +239,7 @@ fn next_break(text: &str, font: &text::Font, font_size: FontSize) -> (Break, Sca
                     char: char_i,
                     len_bytes: 2,
                 };
-                return (break_, width);
+                return NextBreak { break_, width, height };
             }
         } else if ch == '\n' {
             let break_ = Break::Newline {
@@ -227,18 +247,20 @@ fn next_break(text: &str, font: &text::Font, font_size: FontSize) -> (Break, Sca
                 char: char_i,
                 len_bytes: 1,
             };
-            return (break_, width);
+            return NextBreak { break_, width, height };
         }
 
         // Update the width.
-        width += advance_width(ch, font, scale, &mut last_glyph);
+        let (adv_w, h) = advance_width_and_height(ch, font, scale, &mut last_glyph);
+        width += adv_w;
+        height = height.max(h);
         char_i += 1;
     }
     let break_ = Break::End {
         byte: text.len(),
         char: char_i,
     };
-    (break_, width)
+    NextBreak { break_, width, height }
 }
 
 /// Returns the next index at which the text will break by either:
@@ -251,9 +273,10 @@ fn next_break_by_character(
     font: &text::Font,
     font_size: FontSize,
     max_width: Scalar,
-) -> (Break, Scalar) {
+) -> NextBreak {
     let scale = text::pt_to_scale(font_size);
     let mut width = 0.0;
+    let mut height = 0.0;
     let mut char_i = 0;
     let mut char_indices = text.char_indices().peekable();
     let mut last_glyph = None;
@@ -266,7 +289,7 @@ fn next_break_by_character(
                     char: char_i,
                     len_bytes: 2,
                 };
-                return (break_, width);
+                return NextBreak { break_, width, height };
             }
         } else if ch == '\n' {
             let break_ = Break::Newline {
@@ -274,11 +297,12 @@ fn next_break_by_character(
                 char: char_i,
                 len_bytes: 1,
             };
-            return (break_, width);
+            return NextBreak { break_, width, height };
         }
 
         // Add the character's width to the width so far.
-        let new_width = width + advance_width(ch, font, scale, &mut last_glyph);
+        let (adv_w, h) = advance_width_and_height(ch, font, scale, &mut last_glyph);
+        let new_width = width + adv_w;
 
         // Check for a line wrap.
         if new_width > max_width {
@@ -287,9 +311,10 @@ fn next_break_by_character(
                 char: char_i,
                 len_bytes: 0,
             };
-            return (break_, width);
+            return NextBreak { break_, width, height };
         }
 
+        height = height.max(h);
         width = new_width;
         char_i += 1;
     }
@@ -298,7 +323,7 @@ fn next_break_by_character(
         byte: text.len(),
         char: char_i,
     };
-    (break_, width)
+    NextBreak { break_, width, height }
 }
 
 /// Returns the next index at which the text will break by either:
@@ -314,7 +339,7 @@ fn next_break_by_whitespace(
     font: &text::Font,
     font_size: FontSize,
     max_width: Scalar,
-) -> (Break, Scalar) {
+) -> NextBreak {
     struct Last {
         byte: usize,
         char: usize,
@@ -323,6 +348,7 @@ fn next_break_by_whitespace(
     let scale = text::pt_to_scale(font_size);
     let mut last_whitespace_start = None;
     let mut width = 0.0;
+    let mut height = 0.0;
     let mut char_i = 0;
     let mut char_indices = text.char_indices().peekable();
     let mut last_glyph = None;
@@ -335,7 +361,7 @@ fn next_break_by_whitespace(
                     char: char_i,
                     len_bytes: 2,
                 };
-                return (break_, width);
+                return NextBreak { break_, width, height };
             }
         } else if ch == '\n' {
             let break_ = Break::Newline {
@@ -343,11 +369,12 @@ fn next_break_by_whitespace(
                 char: char_i,
                 len_bytes: 1,
             };
-            return (break_, width);
+            return NextBreak { break_, width, height };
         }
 
         // Add the character's width to the width so far.
-        let new_width = width + advance_width(ch, font, scale, &mut last_glyph);
+        let (adv_w, h) = advance_width_and_height(ch, font, scale, &mut last_glyph);;
+        let new_width = width + adv_w;
 
         // Check for a line wrap.
         if width > max_width {
@@ -362,7 +389,8 @@ fn next_break_by_whitespace(
                         char: char,
                         len_bytes: 1,
                     };
-                    return (break_, width_before);
+                    let width = width_before;
+                    return NextBreak { break_, width, height };
                 }
                 None => {
                     let break_ = Break::Wrap {
@@ -370,7 +398,7 @@ fn next_break_by_whitespace(
                         char: char_i,
                         len_bytes: 0,
                     };
-                    return (break_, width);
+                    return NextBreak { break_, width, height };
                 }
             }
         }
@@ -385,6 +413,7 @@ fn next_break_by_whitespace(
         }
 
         width = new_width;
+        height = height.max(h);
         char_i += 1;
     }
 
@@ -392,7 +421,7 @@ fn next_break_by_whitespace(
         byte: text.len(),
         char: char_i,
     };
-    (break_, width)
+    NextBreak { break_, width, height }
 }
 
 /// Produce the width of the given line of text including spaces (i.e. ' ').
@@ -420,7 +449,7 @@ pub fn infos_wrapped_by<'a, F>(
     next_break_fn: F,
 ) -> Infos<'a, F>
 where
-    F: for<'b> FnMut(&'b str, &'b text::Font, FontSize, Scalar) -> (Break, Scalar),
+    F: for<'b> FnMut(&'b str, &'b text::Font, FontSize, Scalar) -> NextBreak,
 {
     Infos {
         text: text,
@@ -448,56 +477,65 @@ pub fn infos<'a>(
         font: &text::Font,
         font_size: FontSize,
         _max_width: Scalar,
-    ) -> (Break, Scalar) {
+    ) -> NextBreak {
         next_break(text, font, font_size)
     }
 
     infos_wrapped_by(text, font, font_size, std::f32::MAX, no_wrap)
 }
 
+/// Simplify the retrieval of line information for text that may or may not be wrapped.
+pub fn infos_maybe_wrapped<'a>(
+    text: &'a str,
+    font: &'a text::Font,
+    font_size: FontSize,
+    maybe_wrap: Option<Wrap>,
+    max_width: Scalar,
+) -> Infos<'a, NextBreakFnPtr> {
+    match maybe_wrap {
+        None => infos(text, font, font_size),
+        Some(Wrap::Character) => infos(text, font, font_size).wrap_by_character(max_width),
+        Some(Wrap::Whitespace) => infos(text, font, font_size).wrap_by_whitespace(max_width),
+    }
+}
+
 /// Produce an iterator yielding the bounding `Rect` for each line in the text.
 ///
-/// This function assumes that `font_size` is the same `FontSize` used to produce the `Info`s
-/// yielded by the `infos` Iterator.
+/// Yielded `Rect`s will begin with the top-left of the first line at a [0.0, 0.0].
+///
+/// This function assumes that `font_size` and `max_width` are the same as those used to produce
+/// the `Info`s yielded by the `infos` Iterator.
 pub fn rects<I>(
     mut infos: I,
     font_size: FontSize,
-    bounding_rect: Rect,
+    max_width: Scalar,
     x_align: text::Justify,
-    y_align: Align,
     line_spacing: Scalar,
 ) -> Rects<I>
 where
-    I: Iterator<Item = Info> + ExactSizeIterator,
+    I: Iterator<Item = Info>,
 {
-    let num_lines = infos.len();
     let first_rect = infos.next().map(|first_info| {
         // Calculate the `x` `Range` of the first line `Rect`.
+        let x_bounds = Range::new(0.0, max_width);
         let range = Range::new(0.0, first_info.width);
         let x = match x_align {
-            text::Justify::Left => range.align_start_of(bounding_rect.x),
-            text::Justify::Center => range.align_middle_of(bounding_rect.x),
-            text::Justify::Right => range.align_end_of(bounding_rect.x),
+            text::Justify::Left => range.align_start_of(x_bounds),
+            text::Justify::Center => range.align_middle_of(x_bounds),
+            text::Justify::Right => range.align_end_of(x_bounds),
         };
-
-        // Calculate the `y` `Range` of the first line `Rect`.
-        let total_text_height = text::height(num_lines, font_size, line_spacing);
-        let total_text_y_range = Range::new(0.0, total_text_height);
-        let total_text_y = match y_align {
-            Align::Start => total_text_y_range.align_start_of(bounding_rect.y),
-            Align::Middle => total_text_y_range.align_middle_of(bounding_rect.y),
-            Align::End => total_text_y_range.align_end_of(bounding_rect.y),
-        };
-        let range = Range::new(0.0, font_size as Scalar);
-        let y = range.align_end_of(total_text_y);
-
+        let y_start = -(font_size as Scalar);
+        //let y_end = y_start + first_info.height;
+        let y_end = y_start + font_size as Scalar;
+        let y = Range::new(y_start, y_end);
         Rect { x: x, y: y }
     });
-
     Rects {
         infos: infos,
         next: first_rect,
         x_align: x_align,
+        last_line_top: 0.0,
+        font_size: font_size,
         line_spacing: line_spacing,
     }
 }
@@ -531,7 +569,7 @@ where
 
 impl<'a, F> Iterator for Infos<'a, F>
 where
-    F: for<'b> FnMut(&'b str, &'b text::Font, FontSize, Scalar) -> (Break, Scalar),
+    F: for<'b> FnMut(&'b str, &'b text::Font, FontSize, Scalar) -> NextBreak,
 {
     type Item = Info;
     fn next(&mut self) -> Option<Self::Item> {
@@ -546,9 +584,10 @@ where
             ref mut last_break,
         } = *self;
 
-        match next_break_fn(&text[*start_byte..], font, font_size, max_width) {
-            (next @ Break::Newline { .. }, width) | (next @ Break::Wrap { .. }, width) => {
-                let next_break = match next {
+        let next = next_break_fn(&text[*start_byte..], font, font_size, max_width);
+        match next.break_ {
+            Break::Newline { .. } | Break::Wrap { .. } => {
+                let next_break = match next.break_ {
                     Break::Newline {
                         byte,
                         char,
@@ -574,10 +613,11 @@ where
                     start_byte: *start_byte,
                     start_char: *start_char,
                     end_break: next_break,
-                    width: width,
+                    width: next.width,
+                    height: next.height,
                 };
 
-                match next {
+                match next.break_ {
                     Break::Newline {
                         byte,
                         char,
@@ -597,8 +637,9 @@ where
                 Some(info)
             }
 
-            (Break::End { char, .. }, width) => {
-                // if the last line ends in a new line, or the entire text is empty, return an empty line Info
+            Break::End { char, .. } => {
+                // if the last line ends in a new line, or the entire text is empty, return an
+                // empty line Info.
                 let empty_line = {
                     match *last_break {
                         Some(last_break_) => match last_break_ {
@@ -619,7 +660,8 @@ where
                         start_byte: *start_byte,
                         start_char: *start_char,
                         end_break: end_break,
-                        width: width,
+                        width: next.width,
+                        height: next.height,
                     };
                     *start_byte = total_bytes;
                     *start_char = total_chars;
@@ -643,14 +685,19 @@ where
             ref mut next,
             ref mut infos,
             x_align,
+            ref mut last_line_top,
+            font_size,
             line_spacing,
         } = *self;
         next.map(|line_rect| {
             *next = infos.next().map(|info| {
                 let y = {
-                    let h = line_rect.h();
-                    let y = line_rect.y() - h - line_spacing;
-                    Range::from_pos_and_len(y, h)
+                    let line_top = *last_line_top - font_size as Scalar - line_spacing;
+                    *last_line_top = line_top;
+                    let y_start = line_top - font_size as Scalar;
+                    //let y_end = y_start + info.height;
+                    let y_end = y_start + font_size as Scalar;
+                    Range::new(y_start, y_end)
                 };
 
                 let x = {
@@ -677,8 +724,8 @@ where
     type Item = Rect;
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(mut rects) = self.selected_char_rects_per_line.next() {
-            if let Some(first_rect) = rects.next() {
-                let total_selected_rect = rects.fold(first_rect, |mut total, next| {
+            if let Some((_, first_rect)) = rects.next() {
+                let total_selected_rect = rects.fold(first_rect, |mut total, (_, next)| {
                     total.x.end = next.x.end;
                     total
                 });

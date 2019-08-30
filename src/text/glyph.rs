@@ -1,7 +1,7 @@
 //! Logic and types specific to individual glyph layout.
 
 use crate::geom::{Range, Rect};
-use crate::text::{self, FontSize, Scalar};
+use crate::text::{self, FontSize, Scalar, ScaledGlyph};
 
 /// Some position along the X axis (used within `CharXs`).
 pub type X = Scalar;
@@ -15,8 +15,6 @@ pub struct Rects<'a, 'b> {
     ///
     /// Every yielded `Rect` will use this as its `y` `Range`.
     y: Range,
-    /// The position of the next `Rect`'s left edge along the *x* axis.
-    next_left: Scalar,
     /// `PositionedGlyphs` yielded by the RustType `LayoutIter`.
     layout: text::LayoutIter<'a, 'b>,
 }
@@ -51,22 +49,27 @@ pub struct SelectedRectsPerLine<'a, I> {
 }
 
 impl<'a, 'b> Iterator for Rects<'a, 'b> {
-    type Item = Rect;
+    type Item = (ScaledGlyph<'a>, Rect);
     fn next(&mut self) -> Option<Self::Item> {
         let Rects {
-            ref mut next_left,
             ref mut layout,
             y,
         } = *self;
         layout.next().map(|g| {
-            let left = *next_left;
-            let right = g
-                .pixel_bounding_box()
-                .map(|bb| bb.max.x as Scalar)
-                .unwrap_or_else(|| left + g.unpositioned().h_metrics().advance_width as Scalar);
-            *next_left = right;
+            let left = g.position().x;
+            let (right, height) = g.pixel_bounding_box()
+                .map(|bb| (bb.max.x as Scalar, (bb.max.y - bb.min.y) as Scalar))
+                .unwrap_or_else(|| {
+                    let w = g.unpositioned().h_metrics().advance_width as Scalar;
+                    let r = left + w;
+                    let h = 0.0;
+                    (r, h)
+                });
             let x = Range::new(left, right);
-            Rect { x: x, y: y }
+            let y = Range::new(y.start, y.start + height);
+            let r = Rect { x: x, y: y };
+            let g = g.into_unpositioned();
+            (g, r)
         })
     }
 }
@@ -87,7 +90,6 @@ where
             let (x, y) = (line_rect.left() as f32, line_rect.top() as f32);
             let point = text::rt::Point { x: x, y: y };
             Rects {
-                next_left: line_rect.x.start,
                 layout: font.layout(line, scale, point),
                 y: line_rect.y,
             }
@@ -96,7 +98,7 @@ where
 }
 
 impl<'a, 'b> Iterator for SelectedRects<'a, 'b> {
-    type Item = Rect;
+    type Item = (ScaledGlyph<'a>, Rect);
     fn next(&mut self) -> Option<Self::Item> {
         let SelectedRects {
             ref mut enumerated_rects,
@@ -218,4 +220,81 @@ where
         start_cursor_idx: start,
         end_cursor_idx: end,
     }
+}
+
+fn rt_segment_start(s: &rusttype::Segment) -> rusttype::Point<f32> {
+    match *s {
+        rusttype::Segment::Line(ref line) => line.p[0],
+        rusttype::Segment::Curve(ref curve) => curve.p[0],
+    }
+}
+
+/// Convert the given sequence of contours to a `geom::Path`.
+///
+/// In the resulting path events [0.0, 0.0] is the bottom left of the rect.
+pub fn contours_to_path<'a, I>(
+    exact_bounding_box: rusttype::Rect<f32>,
+    contours: I,
+) -> impl Iterator<Item = lyon::path::PathEvent>
+where
+    I: IntoIterator<Item = rusttype::Contour>,
+{
+
+    // Translate the rusttype point to a nannou compatible one.
+    let tp = move |p: rusttype::Point<f32>| lyon::math::point(p.x, p.y);
+
+    // The event for moving to the start of a segment.
+    let segment_move_event = move |s: &rusttype::Segment| -> lyon::path::PathEvent {
+        let start = tp(rt_segment_start(s));
+        lyon::path::PathEvent::MoveTo(start)
+    };
+
+    // Convert the rusttype line to a lyon line segment.
+    let conv_line_segment = move |l: &rusttype::Line| {
+        let from = tp(l.p[0]);
+        let to = tp(l.p[1]);
+        lyon::geom::LineSegment { from, to }
+    };
+
+    // Convert the rusttype curve to a lyon quadratic bezier segment.
+    let conv_curve_segment = move |c: &rusttype::Curve| {
+        let from = tp(c.p[0]);
+        let ctrl = tp(c.p[1]);
+        let to = tp(c.p[2]);
+        lyon::geom::QuadraticBezierSegment { from, ctrl, to }
+    };
+
+    // Convert the given rusttype segment to a lyon path event.
+    let segment_to_event = move |s: rusttype::Segment| -> lyon::path::PathEvent {
+        match s {
+            rusttype::Segment::Line(ref l) => {
+                let line_seg = conv_line_segment(l);
+                lyon::path::PathEvent::Line(line_seg)
+            }
+            rusttype::Segment::Curve(ref c) => {
+                let curve_seg = conv_curve_segment(c);
+                lyon::path::PathEvent::Quadratic(curve_seg)
+            }
+        }
+    };
+
+    contours
+        .into_iter()
+        .flat_map(move |contour| {
+            let mut segs = contour.segments.into_iter().peekable();
+            let first_event = segs.peek().map(|s| segment_move_event(s));
+            let events = segs.map(segment_to_event);
+            first_event.into_iter().chain(events)
+        })
+}
+
+/// Produce the lyon path for the given scaled glyph.
+///
+/// Returns `None` if `glyph.shape()` or `glyph.exact_bounding_box()` returns `None`.
+///
+/// TODO: This could be optimised by caching path events glyph ID and using normalised glyphs.
+pub fn path_events(glyph: ScaledGlyph) -> Option<impl Iterator<Item = lyon::path::PathEvent>> {
+    glyph.exact_bounding_box()
+        .and_then(|bb| glyph.shape().map(|ctrs| (bb, ctrs)))
+        .map(|(bb, ctrs)| contours_to_path(bb, ctrs))
 }

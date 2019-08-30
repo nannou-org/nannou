@@ -374,7 +374,11 @@ impl<'a> Builder<'a> {
             None => match app.assets_path() {
                 Err(_err) => return Err(text::font::Error::NoFont)?,
                 Ok(assets) => {
-                    ui.fonts_mut().insert(default_font(assets)?);
+                    let font = crate::text::font::default(&assets).map_err(|err| match err {
+                        crate::text::font::Error::Io(err) => text::font::Error::IO(err),
+                        crate::text::font::Error::NoFont => text::font::Error::NoFont,
+                    })?;
+                    ui.fonts_mut().insert(font);
                 }
             },
             Some(path) => {
@@ -384,47 +388,6 @@ impl<'a> Builder<'a> {
 
         Ok(ui)
     }
-}
-
-/// Load the default font.
-///
-/// If the `notosans` feature is enabled, this will return the font loaded from
-/// `notosans::REGULAR_TTF`.
-///
-/// Otherwise this will attempt to locate the `assets/fonts` directory. If the directory exists,
-/// the first font that is found will be loaded. If no fonts are found, an error is returned.
-pub fn default_font<P>(assets: P) -> Result<text::Font, text::font::Error>
-where
-    P: AsRef<Path>,
-{
-    if cfg!(feature = "notosans") {
-        #[cfg(feature = "notosans")]
-        {
-            let collection = text::FontCollection::from_bytes(notosans::REGULAR_TTF)
-                .expect("failed to load the `notosans::REGULAR_TTF` font collection");
-            let font = collection
-                .into_font()
-                .expect("the `notosans::REGULAR_TTF` font collection contained no fonts");
-            return Ok(font);
-        }
-    }
-
-    // Find a font in `assets/fonts`.
-    let fonts_dir = assets.as_ref().join(Ui::DEFAULT_FONTS_DIRECTORY);
-    if fonts_dir.exists() && fonts_dir.is_dir() {
-        for res in crate::io::walk_dir(&fonts_dir) {
-            let entry = match res {
-                Ok(e) => e,
-                Err(_) => continue,
-            };
-            match text::font::from_file(entry.path()) {
-                Err(_) => continue,
-                Ok(font) => return Ok(font),
-            }
-        }
-    }
-
-    Err(text::font::Error::NoFont)
 }
 
 /// Create a minimal, single-pass render pass with which the `Ui` may be rendered.
@@ -508,9 +471,6 @@ impl Ui {
     /// The default maximum number of `Input`s that a `Ui` will store in its pending `Input` queue
     /// before `Input`s start being ignored.
     pub const DEFAULT_PENDING_INPUT_LIMIT: usize = 1024;
-    /// The path relative to the `assets` directory that will be searched for fonts assuming the
-    /// `notosans` feature is disabled.
-    pub const DEFAULT_FONTS_DIRECTORY: &'static str = "fonts";
 
     /// Generate a new, unique `widget::Id` into a Placeholder node within the widget graph. This
     /// should only be called once for each unique widget needed to avoid unnecessary bloat within

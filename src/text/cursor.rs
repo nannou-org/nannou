@@ -1,7 +1,7 @@
 //! Logic related to the positioning of the cursor within text.
 
 use crate::geom::{Range, Rect};
-use crate::text::{self, Align, FontSize, Point, Scalar};
+use crate::text::{self, FontSize, Point, Scalar};
 
 /// An index representing the position of a cursor within some text.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -280,18 +280,16 @@ pub fn xys_per_line_from_text<'a>(
     line_infos: &'a [text::line::Info],
     font: &'a text::Font,
     font_size: FontSize,
+    max_width: Scalar,
     x_align: text::Justify,
-    y_align: Align,
     line_spacing: Scalar,
-    rect: Rect,
 ) -> XysPerLineFromText<'a> {
     let line_infos = line_infos.iter().cloned();
     let line_rects = text::line::rects(
         line_infos.clone(),
         font_size,
-        rect,
+        max_width,
         x_align,
-        y_align,
         line_spacing,
     );
     let lines = line_infos.clone();
