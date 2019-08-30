@@ -4,6 +4,7 @@
 use crate::geom::graph::{edge, node};
 use crate::geom::{self, Vector3};
 use crate::math::BaseFloat;
+use crate::text;
 use lyon::path::PathEvent;
 use lyon::tessellation::FillTessellator;
 use std::cell::{Ref, RefCell};
@@ -95,6 +96,17 @@ where
     /// If `Some`, the **Draw** should first clear the frame's gl context with the given color.
     background_color: Option<properties::LinSrgba>,
 }
+
+// /// The CPU half of the glyph cache used for caching text.
+// #[derive(Clone, Debug)]
+// pub struct GlyphCache {
+//     /// Manages the caching process.
+//     cache: text::GlyphCache<'static>,
+//     /// The buffer used for storing pixel data to be written to the GPU.
+//     pixel_buffer: Vec<u8>,
+//     /// Whether or not the glyph cache has been updated and needs to be written to an image.
+//     has_updated: bool,
+// }
 
 /// State made accessible via the `DrawingContext`.
 #[derive(Clone, Debug)]

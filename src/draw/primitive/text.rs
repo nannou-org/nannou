@@ -18,9 +18,6 @@ pub struct Text<S = geom::scalar::Default> {
     text: std::ops::Range<usize>,
 }
 
-/// The drawing context for the **Text** primitive.
-pub type DrawingText<'a, S = geom::scalar::Default> = Drawing<'a, Text<S>, S>;
-
 /// Styling properties for the **Text** primitive.
 #[derive(Clone, Debug, Default)]
 pub struct Style {
@@ -40,6 +37,13 @@ pub enum Wrap {
     /// Wrap at the first word that exceeds the width.
     Whitespace,
 }
+
+/// The drawing context for the **Text** primitive.
+pub type DrawingText<'a, S = geom::scalar::Default> = Drawing<'a, Text<S>, S>;
+
+pub const DEFAULT_WRAP: Option<Wrap> = Some(Wrap::Whitespace);
+pub const DEFAULT_FONT_SIZE: u32 = 12;
+pub const DEFAULT_LINE_SPACING: f32 = 1.0;
 
 impl<S> Text<S> {
     /// Begin drawing some text.
@@ -180,6 +184,90 @@ where
         self.map_ty(|ty| ty.line_spacing(spacing))
     }
 }
+
+// impl<S> IntoDrawn<S> for Text<S>
+// where
+//     S: BaseFloat,
+// {
+//     type Vertices = draw::properties::VerticesFromRanges;
+//     type Indices = draw::properties::IndicesFromRange;
+//     fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+//         let Text {
+//             spatial,
+//             style,
+//             text,
+//         } = self;
+//
+//         let maybe_wrap = style.maybe_wrap.unwrap_or(DEFAULT_WRAP);
+//         let font_size = style.font_size(DEFAULT_FONT_SIZE);
+//
+//         let font = match style.font_id(&ui.theme)
+//             .or(ui.fonts.ids().next())
+//             .and_then(|id| ui.fonts.get(id))
+//         {
+//             Some(font) => font,
+//             None => return,
+//         };
+//
+//         // Produces an iterator yielding info for each line within the `text`.
+//         let line_infos = || match maybe_wrap {
+//             None =>
+//                 text::line::infos(text, font, font_size),
+//             Some(Wrap::Character) =>
+//                 text::line::infos(text, font, font_size).wrap_by_character(rect.w()),
+//             Some(Wrap::Whitespace) =>
+//                 text::line::infos(text, font, font_size).wrap_by_whitespace(rect.w()),
+//         };
+//
+//         // If the string is different, we must update both the string and the line breaks.
+//         if &state.string[..] != text {
+//             state.update(|state| {
+//                 state.string = text.to_owned();
+//                 state.line_infos = new_line_infos().collect();
+//             });
+//
+//         // Otherwise, we'll check to see if we have to update the line breaks.
+//         } else {
+//             use utils::write_if_different;
+//             use std::borrow::Cow;
+//
+//             // Compare the line_infos and only collect the new ones if they are different.
+//             let maybe_new_line_infos = {
+//                 let line_infos = &state.line_infos[..];
+//                 match write_if_different(line_infos, new_line_infos()) {
+//                     Cow::Owned(new) => Some(new),
+//                     _ => None,
+//                 }
+//             };
+//
+//             if let Some(new_line_infos) = maybe_new_line_infos {
+//                 state.update(|state| state.line_infos = new_line_infos);
+//             }
+//         }
+//
+//
+//
+//         // 1. Retrieve text slice from intermediary text buffer.
+//         // 2. Insert a rect for every glyph into the mesh while updating glyph cache pixel buffer.
+//         // 3.
+//
+//         let dimensions = spatial::dimension::Properties::default();
+//         let spatial = spatial::Properties {
+//             dimensions,
+//             orientation,
+//             position,
+//         };
+//         let color = color.or_else(|| {
+//             if vertex_data_ranges.colors.len() >= vertex_data_ranges.points.len() {
+//                 return None;
+//             }
+//             Some(draw.theme().fill_lin_srgba(&draw::theme::Primitive::Path))
+//         });
+//         let vertices = draw::properties::VerticesFromRanges::new(vertex_data_ranges, color);
+//         let indices = draw::properties::IndicesFromRange::new(index_range, min_index);
+//         (spatial, vertices, indices)
+//     }
+// }
 
 impl<S> SetOrientation<S> for Text<S> {
     fn properties(&mut self) -> &mut orientation::Properties<S> {

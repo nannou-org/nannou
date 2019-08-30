@@ -30,6 +30,7 @@ pub enum Primitive {
     Polygon,
     Quad,
     Rect,
+    Text,
     Tri,
 }
 
