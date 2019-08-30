@@ -849,13 +849,7 @@ impl App {
     /// 2. Recursively checks exe's parent directories (to a max depth of 5).
     /// 3. Recursively checks exe's children directories (to a max depth of 3).
     pub fn assets_path(&self) -> Result<PathBuf, find_folder::Error> {
-        let exe_path = std::env::current_exe()?;
-        find_folder::Search::ParentsThenKids(5, 3)
-            .of(exe_path
-                .parent()
-                .expect("executable has no parent directory to search")
-                .into())
-            .for_folder(Self::ASSETS_DIRECTORY_NAME)
+        find_assets_path()
     }
 
     /// Begin building a new window.
@@ -1119,6 +1113,17 @@ impl<'a> DerefMut for Draw<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.draw
     }
+}
+
+/// Attempt to find the assets directory path relative to the executable location.
+pub fn find_assets_path() -> Result<PathBuf, find_folder::Error> {
+    let exe_path = std::env::current_exe()?;
+    find_folder::Search::ParentsThenKids(5, 3)
+        .of(exe_path
+            .parent()
+            .expect("executable has no parent directory to search")
+            .into())
+        .for_folder(App::ASSETS_DIRECTORY_NAME)
 }
 
 /// Find a compatible depth format for the `App`'s `Draw` API.
