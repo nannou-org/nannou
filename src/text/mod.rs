@@ -405,27 +405,15 @@ impl<'a> Text<'a> {
     ///
     /// The window dimensions and DPI are required to transform glyph positions into rusttype's
     /// pixel-space, ready for caching into the rusttype glyph cache pixel buffer.
-    ///
-    /// TODO: Method may still require applying text.rect.xy offset.
     pub fn rt_glyphs<'b: 'a>(
         &'b self,
         window_dims: geom::Vector2,
         dpi_factor: Scalar,
-        left: Scalar,
-        y: geom::Range,
-        y_align: Align,
     ) -> impl 'a + 'b + Iterator<Item = PositionedGlyph> {
-        let x = geom::Range::new(left, left + self.rect.w());
-        let bounding_rect = geom::Rect { x, y };
-        positioned_glyphs(
-            &self.text,
-            &self.line_infos,
-            bounding_rect,
-            y_align,
-            self.layout.line_spacing,
-            self.layout.font_size,
-            self.layout.justify,
+        rt_positioned_glyphs(
+            self.lines_with_rects(),
             &self.font,
+            self.layout.font_size,
             window_dims,
             dpi_factor,
         )
@@ -508,38 +496,28 @@ pub fn position_offset(
     geom::vec2(x_offset, y_offset)
 }
 
-/// Produce the position of each glyph.
+/// Produce the position of each glyph ready for the rusttype glyph cache.
 ///
 /// The top-left of the top line's rectangle will be positioned at [0.0, 0.0].
-pub fn positioned_glyphs<'a>(
-    text: &'a str,
-    line_infos: &'a [line::Info],
-    bounding_rect: geom::Rect,
-    y_align: Align,
-    line_spacing: Scalar,
-    font_size: u32,
-    justify: Justify,
+pub fn rt_positioned_glyphs<'a, I>(
+    lines_with_rects: I,
     font: &'a Font,
+    font_size: FontSize,
     window_dim: geom::Vector2,
     dpi_factor: Scalar,
-) -> impl 'a + Iterator<Item = PositionedGlyph> {
-    // Produce the text layout iterators.
-    let n_lines = line_infos.len();
-    let line_infos = line_infos.iter().cloned();
-    let lines = line_infos.clone().map(move |info| &text[info.byte_range()]);
-    let bounding_w = bounding_rect.x.len();
-    let offset = position_offset(n_lines, font_size, line_spacing, bounding_rect, y_align);
-    let line_rects = line::rects(line_infos, font_size, bounding_w, justify, line_spacing)
-        .map(move |r| r.shift(offset));
-
+) -> impl 'a + Iterator<Item = PositionedGlyph>
+where
+    I: IntoIterator<Item = (&'a str, geom::Rect)>,
+    I::IntoIter: 'a,
+{
     // Functions for converting nannou coordinates to rusttype pixel coordinates.
     let trans_x = move |x: Scalar| (x + window_dim[0] / 2.0) * dpi_factor as Scalar;
     let trans_y = move |y: Scalar| ((-y) + window_dim[1] / 2.0) * dpi_factor as Scalar;
 
     // Clear the existing glyphs and fill the buffer with glyphs for this Text.
     let scale = f32_pt_to_scale(font_size as f32 * dpi_factor);
-    lines
-        .zip(line_rects)
+    lines_with_rects
+        .into_iter()
         .flat_map(move |(line, line_rect)| {
             let (x, y) = (trans_x(line_rect.left()) as f32, trans_y(line_rect.bottom()) as f32);
             let point = rt::Point { x: x, y: y };
