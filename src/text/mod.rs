@@ -296,9 +296,40 @@ impl<'a> Text<'a> {
         self.line_infos.len()
     }
 
-    /// The width around which the text was wrapped.
-    pub fn rect(&self) -> geom::Rect {
+    /// The rectangle used to layout and build the text instance.
+    ///
+    /// This is the same `Rect` that was passed to the `text::Builder::build` method.
+    pub fn layout_rect(&self) -> geom::Rect {
         self.rect
+    }
+
+    /// The rectangle that describes the min and max bounds along each axis reached by the text.
+    pub fn bounding_rect(&self) -> geom::Rect {
+        let mut r = self.bounding_rect_by_lines();
+        let info = match self.line_infos.first() {
+            None => return geom::Rect::from_w_h(0.0, 0.0),
+            Some(info) => info,
+        };
+        let line_h = self.layout.font_size as Scalar;
+        r.y.end -= line_h - info.height;
+        r
+    }
+
+    /// The rectangle that describes the min and max bounds along each axis reached by the text.
+    ///
+    /// This is similar to `bounding_rect` but assumes that all lines have a height equal to
+    /// `font_size`, rather than using the exact height.
+    pub fn bounding_rect_by_lines(&self) -> geom::Rect {
+        let mut lrs = self.line_rects();
+        let lr = match lrs.next() {
+            None => return geom::Rect::from_w_h(0.0, 0.0),
+            Some(lr) => lr,
+        };
+        lrs.fold(lr, |acc, lr| {
+            let x = geom::Range::new(acc.x.start.min(lr.x.start), acc.x.end.max(lr.x.end));
+            let y = geom::Range::new(acc.y.start.min(lr.y.start), acc.y.end.max(lr.y.end));
+            geom::Rect { x, y }
+        })
     }
 
     /// The width of the widest line of text.
@@ -306,9 +337,22 @@ impl<'a> Text<'a> {
         self.line_infos.iter().fold(0.0, |max, info| max.max(info.width))
     }
 
-    /// The total height of the text.
+    /// The exact height of the full text accounting for font size and line spacing..
     pub fn height(&self) -> Scalar {
-        height(self.num_lines(), self.layout.font_size, self.layout.line_spacing)
+        let info = match self.line_infos.first() {
+            None => return 0.0,
+            Some(info) => info,
+        };
+        exact_height(info.height, self.num_lines(), self.layout.font_size, self.layout.line_spacing)
+    }
+
+    /// Determine the total height of a block of text with the given number of lines, font size and
+    /// `line_spacing` (the space that separates each line of text).
+    ///
+    /// The height of all lines of text are assumed to match the `font_size`. If looking for the exact
+    /// height, see the `exact_height` function.
+    pub fn height_by_lines(&self) -> Scalar {
+        height_by_lines(self.num_lines(), self.layout.font_size, self.layout.line_spacing)
     }
 
     /// Produce an iterator yielding each wrapped line within the **Text**.
@@ -321,13 +365,7 @@ impl<'a> Text<'a> {
 
     /// The bounding rectangle for each line.
     pub fn line_rects(&self) -> TextLineRects {
-        let offset = position_offset(
-            self.num_lines(),
-            self.layout.font_size,
-            self.layout.line_spacing,
-            self.rect,
-            self.layout.y_align,
-        );
+        let offset = self.position_offset();
         let line_rects = line::rects(
             self.line_infos.iter().cloned(),
             self.layout.font_size,
@@ -425,6 +463,16 @@ impl<'a> Text<'a> {
         let text = Cow::Owned(text.into_owned());
         Text { text, font, layout, line_infos, rect }
     }
+
+    fn position_offset(&self) -> geom::Vector2 {
+        position_offset(
+            self.num_lines(),
+            self.layout.font_size,
+            self.layout.line_spacing,
+            self.rect,
+            self.layout.y_align,
+        )
+    }
 }
 
 impl<'a, I> Iterator for Lines<'a, I>
@@ -450,9 +498,32 @@ impl<'a> Iterator for TextLineRects<'a> {
 
 /// Determine the total height of a block of text with the given number of lines, font size and
 /// `line_spacing` (the space that separates each line of text).
-pub fn height(num_lines: usize, font_size: FontSize, line_spacing: Scalar) -> Scalar {
+///
+/// The height of all lines of text are assumed to match the `font_size`. If looking for the exact
+/// height, see the `exact_height` function.
+pub fn height_by_lines(num_lines: usize, font_size: FontSize, line_spacing: Scalar) -> Scalar {
     if num_lines > 0 {
         num_lines as Scalar * font_size as Scalar + (num_lines - 1) as Scalar * line_spacing
+    } else {
+        0.0
+    }
+}
+
+/// Determine the exact height of a block of text.
+///
+/// The `first_line_height` can be retrieved via its `line::Info` which can be retrieved via the
+/// first element of a `line_infos` iterator.
+pub fn exact_height(
+    first_line_height: Scalar,
+    num_lines: usize,
+    font_size: FontSize,
+    line_spacing: Scalar,
+) -> Scalar {
+    if num_lines > 0 {
+        let lt_num_lines = num_lines - 1;
+        let other_lines_height = lt_num_lines as Scalar * font_size as Scalar;
+        let space_height = lt_num_lines as Scalar * line_spacing;
+        first_line_height + other_lines_height + space_height
     } else {
         0.0
     }
@@ -484,7 +555,7 @@ pub fn position_offset(
     let x_offset = bounding_rect.x.start;
     let y_offset = {
         // Calculate the `y` `Range` of the first line `Rect`.
-        let total_text_height = height(num_lines, font_size, line_spacing);
+        let total_text_height = height_by_lines(num_lines, font_size, line_spacing);
         let total_text_y_range = geom::Range::new(0.0, total_text_height);
         let total_text_y = match y_align {
             Align::Start => total_text_y_range.align_start_of(bounding_rect.y),
