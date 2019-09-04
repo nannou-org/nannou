@@ -1873,9 +1873,13 @@ where
                     app.mouse.x = x;
                     app.mouse.y = y;
                     app.mouse.window = Some(window_id);
+                    app.mouse.is_position_valid = true;
                 }
 
                 winit::WindowEvent::MouseInput { state, button, .. } => {
+                    if app.mouse.window != Some(window_id) {
+                        app.mouse.is_position_valid = false;
+                    }
                     match state {
                         event::ElementState::Pressed => {
                             let p = app.mouse.position();

@@ -89,6 +89,9 @@ pub mod mouse {
         pub x: S,
         /// *y* position relative to the middle of `window`.
         pub y: S,
+        /// In special cases, the mouse position might be invalid
+        /// (for example: first press in unfocused window when using several windows)
+        pub is_position_valid: bool,
         /// A map describing the state of each mouse button.
         pub buttons: ButtonMap,
     }
@@ -125,6 +128,7 @@ pub mod mouse {
             Mouse {
                 window: None,
                 buttons: ButtonMap::new(),
+                is_position_valid: false,
                 x: S::zero(),
                 y: S::zero(),
             }
