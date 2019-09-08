@@ -216,6 +216,9 @@ path = "examples/generative_design/shape/p_2_1_2_04.rs"
 [[example]]
 name = "m_1_1_01"
 path = "examples/generative_design/random_and_noise/m_1_1_01.rs"
+[[example]]
+name = "m_1_2_01"
+path = "examples/generative_design/random_and_noise/m_1_2_01.rs"
 # --------------- Oscillation Figures
 [[example]]
 name = "m_2_1_01"
