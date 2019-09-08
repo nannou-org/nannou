@@ -191,10 +191,46 @@ path = "examples/generative_design/shape/p_2_0_02.rs"
 [[example]]
 name = "p_2_0_03"
 path = "examples/generative_design/shape/p_2_0_03.rs"
+[[example]]
+name = "p_2_1_1_01"
+path = "examples/generative_design/shape/p_2_1_1_01.rs"
+[[example]]
+name = "p_2_1_1_02"
+path = "examples/generative_design/shape/p_2_1_1_02.rs"
+[[example]]
+name = "p_2_1_1_03"
+path = "examples/generative_design/shape/p_2_1_1_03.rs"
+[[example]]
+name = "p_2_1_2_01"
+path = "examples/generative_design/shape/p_2_1_2_01.rs"
+[[example]]
+name = "p_2_1_2_02"
+path = "examples/generative_design/shape/p_2_1_2_02.rs"
+[[example]]
+name = "p_2_1_2_03"
+path = "examples/generative_design/shape/p_2_1_2_03.rs"
+[[example]]
+name = "p_2_1_2_04"
+path = "examples/generative_design/shape/p_2_1_2_04.rs"
 # --------------- Oscillation Figures
 [[example]]
 name = "m_2_1_01"
 path = "examples/generative_design/oscillation_figures/m_2_1_01.rs"
+[[example]]
+name = "m_2_2_01"
+path = "examples/generative_design/oscillation_figures/m_2_2_01.rs"
+[[example]]
+name = "m_2_3_01"
+path = "examples/generative_design/oscillation_figures/m_2_3_01.rs"
+[[example]]
+name = "m_2_3_02"
+path = "examples/generative_design/oscillation_figures/m_2_3_02.rs"
+[[example]]
+name = "m_2_5_01"
+path = "examples/generative_design/oscillation_figures/m_2_5_01.rs"
+[[example]]
+name = "m_2_5_02"
+path = "examples/generative_design/oscillation_figures/m_2_5_02.rs"
 # --------------- Laser
 [[example]]
 name = "laser_frame_stream"
