@@ -349,6 +349,12 @@ path = "examples/nature_of_code/chp_03_oscillation/3_06_simple_harmonic_motion.r
 name = "3_07_oscillating_objects"
 path = "examples/nature_of_code/chp_03_oscillation/3_07_oscillating_objects.rs"
 [[example]]
+name = "3_08_static_wave_lines"
+path = "examples/nature_of_code/chp_03_oscillation/3_08_static_wave_lines.rs"
+[[example]]
+name = "3_09_exercise_additive_wave"
+path = "examples/nature_of_code/chp_03_oscillation/3_09_exercise_additive_wave.rs"
+[[example]]
 name = "3_09_wave_a"
 path = "examples/nature_of_code/chp_03_oscillation/3_09_wave_a.rs"
 [[example]]
