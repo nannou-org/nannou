@@ -367,6 +367,9 @@ path = "examples/nature_of_code/chp_03_oscillation/3_09_wave_c.rs"
 name = "3_09_wave"
 path = "examples/nature_of_code/chp_03_oscillation/3_09_wave.rs"
 [[example]]
+name = "3_10_pendulum_example_simplified"
+path = "examples/nature_of_code/chp_03_oscillation/3_10_pendulum_example_simplified.rs"
+[[example]]
 name = "3_10_exercise_oop_wave"
 path = "examples/nature_of_code/chp_03_oscillation/3_10_exercise_oop_wave.rs"
 [[example]]
