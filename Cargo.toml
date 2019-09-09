@@ -364,6 +364,9 @@ path = "examples/nature_of_code/chp_03_oscillation/3_09_wave.rs"
 name = "3_10_exercise_oop_wave"
 path = "examples/nature_of_code/chp_03_oscillation/3_10_exercise_oop_wave.rs"
 [[example]]
+name = "3_11_exercise_additive_wave"
+path = "examples/nature_of_code/chp_03_oscillation/3_11_exercise_additive_wave.rs"
+[[example]]
 name = "3_extra_oscillating_up_and_down"
 path = "examples/nature_of_code/chp_03_oscillation/3_extra_oscillating_up_and_down.rs"
 [[example]]
@@ -405,7 +408,12 @@ path = "examples/nature_of_code/chp_07_cellular_automata/7_03_game_of_life_oop.r
 [[example]]
 name = "7_04_exercise_wolfram_ca_scrolling"
 path = "examples/nature_of_code/chp_07_cellular_automata/7_04_exercise_wolfram_ca_scrolling.rs"
-
+[[example]]
+name = "7_game_of_life_wrap_around"
+path = "examples/nature_of_code/chp_07_cellular_automata/7_game_of_life_wrap_around.rs"
+[[example]]
+name = "7_hexagon_cells"
+path = "examples/nature_of_code/chp_07_cellular_automata/7_hexagon_cells.rs"
 # --------------- Chapter 8 Fractals
 [[example]] 
 name = "8_1_recursion" 
