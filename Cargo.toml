@@ -373,11 +373,26 @@ path = "examples/nature_of_code/chp_03_oscillation/3_10_pendulum_example_simplif
 name = "3_10_pendulum_example"
 path = "examples/nature_of_code/chp_03_oscillation/3_10_pendulum_example.rs"
 [[example]]
+name = "3_11_spring"
+path = "examples/nature_of_code/chp_03_oscillation/3_11_spring.rs"
+[[example]]
 name = "3_10_exercise_oop_wave"
 path = "examples/nature_of_code/chp_03_oscillation/3_10_exercise_oop_wave.rs"
 [[example]]
 name = "3_11_exercise_additive_wave"
 path = "examples/nature_of_code/chp_03_oscillation/3_11_exercise_additive_wave.rs"
+[[example]]
+name = "3_16_exercise_springs"
+path = "examples/nature_of_code/chp_03_oscillation/3_16_exercise_springs.rs"
+[[example]]
+name = "3_16_exercise_springs_array"
+path = "examples/nature_of_code/chp_03_oscillation/3_16_exercise_springs_array.rs"
+[[example]]
+name = "3_exercise_spring_sine"
+path = "examples/nature_of_code/chp_03_oscillation/3_exercise_spring_sine.rs"
+[[example]]
+name = "3_extra_oscillating_body"
+path = "examples/nature_of_code/chp_03_oscillation/3_extra_oscillating_body.rs"
 [[example]]
 name = "3_extra_oscillating_up_and_down"
 path = "examples/nature_of_code/chp_03_oscillation/3_extra_oscillating_up_and_down.rs"
