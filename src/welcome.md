@@ -7,6 +7,12 @@ Whether you are new to Nannou and are looking for a place to start, or you are
 an experienced Nannou user looking for more advanced tutorials, this book should
 have something for you!
 
+As excited as we are about developing tools for creative coding, we are equally
+excited about fostering a warm, welcoming and inclusive community. Please make
+yourself familiar with our [Code of Conduct](/code_of_conduct.md) and feel free
+to join us on [the Nannou
+Slack](https://communityinviter.com/apps/nannou/nannou-slack)!
+
 ### [Why Nannou?](/why_nannou.md)
 
 Here you can read about the motivations and philosophy behind Nannou. Why start

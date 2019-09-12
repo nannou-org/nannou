@@ -17,3 +17,4 @@
 - [Showcases](./showcases.md)
 
 [Contributors](./contributors.md)
+[Code of Conduct](./code_of_conduct.md)
