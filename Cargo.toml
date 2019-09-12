@@ -454,6 +454,13 @@ path = "examples/nature_of_code/chp_08_fractals/8_3_recursion.rs"
 [[example]] 
 name = "8_4_cantor_set" 
 path = "examples/nature_of_code/chp_08_fractals/8_4_cantor_set.rs"
+# --------------- Chapter 10 Neural Networks
+[[example]] 
+name = "10_01_simple_perceptron" 
+path = "examples/nature_of_code/chp_10_neural_networks/10_01_simple_perceptron.rs"
+[[example]] 
+name = "10_02_seeking_neural" 
+path = "examples/nature_of_code/chp_10_neural_networks/10_02_seeking_neural.rs"
 
 # --------------- Offline examples
 [[example]]
