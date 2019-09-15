@@ -4,8 +4,8 @@ use crate::vk;
 use crate::vk::command_buffer::pool::standard::StandardCommandPoolBuilder;
 use crate::vk::command_buffer::{
     AutoCommandBufferBuilderContextError, BeginRenderPassError, BlitImageError,
-    ClearColorImageError, CopyBufferError, CopyBufferImageError, DrawError, DrawIndexedError,
-    DynamicState, FillBufferError, UpdateBufferError,
+    ClearColorImageError, CopyBufferError, CopyBufferImageError, DispatchError, DrawError,
+    DrawIndexedError, DynamicState, FillBufferError, UpdateBufferError,
 };
 use crate::vk::pipeline::input_assembly::Index;
 use crate::window;
@@ -243,6 +243,20 @@ impl<'a> AddCommands<'a> {
             *guard = Some(builder);
         }
         Ok(self)
+    }
+
+    pub fn dispatch<Cp, S, Pc>(
+        self,
+        dimensions: [u32; 3],
+        pipeline: Cp,
+        sets: S,
+        constants: Pc,
+    ) -> Result<Self, DispatchError>
+    where
+        Cp: vk::ComputePipelineAbstract + Send + Sync + 'static + Clone, // TODO: meh for Clone
+        S: vk::DescriptorSetsCollection,
+    {
+        self.map_cb(move |cb| cb.dispatch(dimensions, pipeline, sets, constants))
     }
 
     /// Adds a command that enters a render pass.
