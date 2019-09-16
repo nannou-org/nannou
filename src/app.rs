@@ -1536,7 +1536,7 @@ where
                 return Break { model, reason };
             }
 
-            // Only emit an `update` if there was some user input or if it's been less than
+            // Only emit an `update` if there was some user input or if it's been more than
             // `minimum_update_interval`.
             let now = Instant::now();
             let since_last = now.duration_since(loop_ctxt.last_update).into();
