@@ -166,12 +166,14 @@ where
             ref mut fill_tessellator,
             ref mut path_event_buffer,
             ref mut text_buffer,
+            ref mut glyph_cache,
         } = *intermediary_state;
         f(DrawingContext {
             mesh: intermediary_mesh,
             fill_tessellator: &mut fill_tessellator.0,
             path_event_buffer: path_event_buffer,
             text_buffer: text_buffer,
+            glyph_cache: glyph_cache,
         })
     }
 }

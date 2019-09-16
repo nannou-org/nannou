@@ -2,10 +2,10 @@ use crate::draw::drawing::DrawingContext;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{
-    ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition,
+    ColorScalar, Draw, Drawn, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition,
 };
-use crate::draw::{theme, Drawing};
-use crate::geom;
+use crate::draw::{self, theme, Drawing, IntoDrawn};
+use crate::geom::{self, Vector2};
 use crate::math::BaseFloat;
 use crate::text::{self, Align, Font, FontSize, Justify, Layout, Scalar, Wrap};
 
@@ -237,89 +237,59 @@ where
     }
 }
 
-// impl<S> IntoDrawn<S> for Text<S>
-// where
-//     S: BaseFloat,
-// {
-//     type Vertices = draw::properties::VerticesFromRanges;
-//     type Indices = draw::properties::IndicesFromRange;
-//     fn into_drawn(self, draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
-//         let Text {
-//             spatial,
-//             style,
-//             text,
-//         } = self;
-//
-//         let maybe_wrap = style.maybe_wrap.unwrap_or(DEFAULT_WRAP);
-//         let font_size = style.font_size(DEFAULT_FONT_SIZE);
-//
-//         let font = match style.font_id(&ui.theme)
-//             .or(ui.fonts.ids().next())
-//             .and_then(|id| ui.fonts.get(id))
-//         {
-//             Some(font) => font,
-//             None => return,
-//         };
-//
-//         // Produces an iterator yielding info for each line within the `text`.
-//         let line_infos = || match maybe_wrap {
-//             None =>
-//                 text::line::infos(text, font, font_size),
-//             Some(Wrap::Character) =>
-//                 text::line::infos(text, font, font_size).wrap_by_character(rect.w()),
-//             Some(Wrap::Whitespace) =>
-//                 text::line::infos(text, font, font_size).wrap_by_whitespace(rect.w()),
-//         };
-//
-//         // If the string is different, we must update both the string and the line breaks.
-//         if &state.string[..] != text {
-//             state.update(|state| {
-//                 state.string = text.to_owned();
-//                 state.line_infos = new_line_infos().collect();
-//             });
-//
-//         // Otherwise, we'll check to see if we have to update the line breaks.
-//         } else {
-//             use utils::write_if_different;
-//             use std::borrow::Cow;
-//
-//             // Compare the line_infos and only collect the new ones if they are different.
-//             let maybe_new_line_infos = {
-//                 let line_infos = &state.line_infos[..];
-//                 match write_if_different(line_infos, new_line_infos()) {
-//                     Cow::Owned(new) => Some(new),
-//                     _ => None,
-//                 }
-//             };
-//
-//             if let Some(new_line_infos) = maybe_new_line_infos {
-//                 state.update(|state| state.line_infos = new_line_infos);
-//             }
-//         }
-//
-//
-//
-//         // 1. Retrieve text slice from intermediary text buffer.
-//         // 2. Insert a rect for every glyph into the mesh while updating glyph cache pixel buffer.
-//         // 3.
-//
-//         let dimensions = spatial::dimension::Properties::default();
-//         let spatial = spatial::Properties {
-//             dimensions,
-//             orientation,
-//             position,
-//         };
-//         let color = color.or_else(|| {
-//             if vertex_data_ranges.colors.len() >= vertex_data_ranges.points.len() {
-//                 return None;
-//             }
-//             Some(draw.theme().fill_lin_srgba(&draw::theme::Primitive::Path))
-//         });
-//         let vertices = draw::properties::VerticesFromRanges::new(vertex_data_ranges, color);
-//         let indices = draw::properties::IndicesFromRange::new(index_range, min_index);
-//         (spatial, vertices, indices)
-//     }
-// }
+impl<S> IntoDrawn<S> for Text<S>
+where
+    S: BaseFloat,
+{
+    type Vertices = draw::properties::VerticesFromRanges;
+    type Indices = draw::properties::IndicesFromRange;
+    fn into_drawn(self, mut draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+        let Text { spatial, style, text } = self;
+        let Style { color, layout } = style;
+        let layout = layout.build();
+        let (maybe_x, maybe_y, maybe_z) = spatial.dimensions.to_scalars(&draw);
+        assert!(maybe_z.is_none(), "z dimension support for text is unimplemented");
+        let w = maybe_x.map(|s| <f32 as crate::math::NumCast>::from(s).unwrap()).unwrap_or(200.0);
+        let h = maybe_y.map(|s| <f32 as crate::math::NumCast>::from(s).unwrap()).unwrap_or(200.0);
+        let rect: geom::Rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
+        let color = color.unwrap_or_else(|| draw.theme().fill_lin_srgba(&theme::Primitive::Text));
+        let path = draw.drawing_context(|ctxt| {
+            let DrawingContext {
+                mesh,
+                fill_tessellator,
+                path_event_buffer,
+                text_buffer,
+                glyph_cache,
+            } = ctxt;
+            let text_str = &text_buffer[text.clone()];
+            let text = text::text(text_str).layout(&layout).build(rect);
+
+            // TODO:
+            // - Using `Path` is very slow - we should be caching glyphs.
+            // - Can't do the CPU raster of the text here due to not knowing the DPI.
+            // - We don't know the DPI until we finally draw to the frame.
+            // - We should switch `Draw` to yield "primitives" rather than directly yielding
+            //   vertices and indices. This way we can handle the text raster later on and can
+            //   continue to ignore information about the window and DPI until finally drawing to
+            //   the frame.
+            use draw::primitive::path::PathInit;
+            let path: PathInit<S> = Default::default();
+            let mut empty_text = String::new();
+            let ctxt = DrawingContext {
+                mesh,
+                fill_tessellator,
+                path_event_buffer,
+                glyph_cache,
+                text_buffer: &mut empty_text,
+            };
+            let path = path.fill()
+                .color(color)
+                .events(ctxt, text.path_events());
+            path
+        });
+        path.into_drawn(draw)
+    }
+}
 
 impl<S> SetOrientation<S> for Text<S> {
     fn properties(&mut self) -> &mut orientation::Properties<S> {

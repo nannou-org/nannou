@@ -233,7 +233,7 @@ fn rt_segment_start(s: &rusttype::Segment) -> rusttype::Point<f32> {
 ///
 /// In the resulting path events [0.0, 0.0] is the bottom left of the rect.
 pub fn contours_to_path<'a, I>(
-    exact_bounding_box: rusttype::Rect<f32>,
+    _exact_bounding_box: rusttype::Rect<f32>,
     contours: I,
 ) -> impl Iterator<Item = lyon::path::PathEvent>
 where

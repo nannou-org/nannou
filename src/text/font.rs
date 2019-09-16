@@ -2,6 +2,7 @@
 
 use crate::text::{Font, FontCollection};
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
 /// A type-safe wrapper around the `FontId`.
@@ -106,6 +107,15 @@ impl Map {
             keys: self.map.keys(),
         }
     }
+}
+
+/// Produce a unique ID for the given font.
+pub fn id(font: &Font) -> Id {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    for name in font.font_name_strings() {
+        name.hash(&mut hasher);
+    }
+    Id((hasher.finish() % std::usize::MAX as u64) as usize)
 }
 
 /// Load a `FontCollection` from a file at a given path.

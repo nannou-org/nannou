@@ -53,6 +53,8 @@ pub struct DrawingContext<'a, S> {
     pub path_event_buffer: &'a mut Vec<PathEvent>,
     /// A re-usable buffer for collecting text.
     pub text_buffer: &'a mut String,
+    /// Cache for text glyphs.
+    pub glyph_cache: &'a mut draw::GlyphCache,
 }
 
 /// Construct a new **Drawing** instance.
@@ -80,6 +82,26 @@ where
                 "the drawing contained a relative edge that would have \
                  caused a cycle within the geometry graph",
             );
+        }
+    }
+}
+
+impl<'a, S> DrawingContext<'a, S> {
+    // Initialise the DrawingContext from the draw's IntermediaryState.
+    pub(crate) fn from_intermediary_state(state: &'a mut super::IntermediaryState<S>) -> Self {
+        let super::IntermediaryState {
+            ref mut intermediary_mesh,
+            ref mut fill_tessellator,
+            ref mut path_event_buffer,
+            ref mut text_buffer,
+            ref mut glyph_cache,
+        } = *state;
+        DrawingContext {
+            mesh: intermediary_mesh,
+            fill_tessellator: &mut fill_tessellator.0,
+            path_event_buffer: path_event_buffer,
+            text_buffer: text_buffer,
+            glyph_cache: glyph_cache,
         }
     }
 }
@@ -154,18 +176,7 @@ where
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
                 {
                     let mut intermediary_state = state.intermediary_state.borrow_mut();
-                    let super::IntermediaryState {
-                        ref mut intermediary_mesh,
-                        ref mut fill_tessellator,
-                        ref mut path_event_buffer,
-                        ref mut text_buffer,
-                    } = *intermediary_state;
-                    let ctxt = DrawingContext {
-                        mesh: intermediary_mesh,
-                        fill_tessellator: &mut fill_tessellator.0,
-                        path_event_buffer: path_event_buffer,
-                        text_buffer: text_buffer,
-                    };
+                    let ctxt = DrawingContext::from_intermediary_state(&mut *intermediary_state);
                     primitive = map(primitive, ctxt);
                 }
                 state.drawing.insert(self.index, primitive);

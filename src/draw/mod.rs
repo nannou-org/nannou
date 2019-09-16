@@ -97,16 +97,16 @@ where
     background_color: Option<properties::LinSrgba>,
 }
 
-// /// The CPU half of the glyph cache used for caching text.
-// #[derive(Clone, Debug)]
-// pub struct GlyphCache {
-//     /// Manages the caching process.
-//     cache: text::GlyphCache<'static>,
-//     /// The buffer used for storing pixel data to be written to the GPU.
-//     pixel_buffer: Vec<u8>,
-//     /// Whether or not the glyph cache has been updated and needs to be written to an image.
-//     has_updated: bool,
-// }
+/// The CPU half of the glyph cache used for caching text.
+#[derive(Clone, Debug)]
+pub struct GlyphCache {
+    /// Manages the caching process.
+    cache: GlyphCacheWrapper,
+    /// The buffer used for storing pixel data to be written to the GPU.
+    pixel_buffer: Vec<u8>,
+    /// Whether or not the glyph cache has been updated and needs to be written to an image.
+    has_updated: bool,
+}
 
 /// State made accessible via the `DrawingContext`.
 #[derive(Clone, Debug)]
@@ -119,23 +119,16 @@ pub struct IntermediaryState<S> {
     path_event_buffer: Vec<PathEvent>,
     /// A buffer containing all text.
     text_buffer: String,
+    /// The CPU side of the glyph cache.
+    glyph_cache: GlyphCache,
 }
 
 // Simple wrapper providing Clone and Debug.
 #[derive(Default)]
 pub(crate) struct FillTessellatorWrapper(pub(crate) FillTessellator);
 
-impl Clone for FillTessellatorWrapper {
-    fn clone(&self) -> Self {
-        Default::default()
-    }
-}
-
-impl fmt::Debug for FillTessellatorWrapper {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "FillTessellator")
-    }
-}
+// A wrapper providing debug and clone implementations for the glyph cache.
+pub(crate) struct GlyphCacheWrapper(pub(crate) text::GlyphCache<'static>);
 
 /// The vertex and index ranges into a mesh for a particular node.
 #[derive(Clone, Debug)]
@@ -187,252 +180,10 @@ where
     node_vertices: Option<RawNodeVertices<'a, S>>,
 }
 
-// Given some `position` along the given axis return the resulting geom::Graph edge and the parent.
-fn position_to_edge<S, F>(
-    node_index: node::Index,
-    position: &Position<S>,
-    draw: &mut State<S>,
-    axis: edge::Axis,
-    point_axis: &F,
-) -> (geom::graph::Edge<S>, node::Index)
-where
-    S: BaseFloat,
-    F: Fn(&mesh::vertex::Point<S>) -> S,
-{
-    match *position {
-        // *s* relative to *origin*.
-        Position::Absolute(s) => {
-            let edge = geom::graph::Edge::position(axis, s);
-            let origin = draw.geom_graph.origin();
-            (edge, origin)
-        }
-
-        Position::Relative(relative, maybe_parent) => {
-            let parent = maybe_parent
-                .or(draw.last_node_drawn)
-                .unwrap_or(draw.geom_graph.origin());
-            let edge = match relative {
-                // Relative position.
-                position::Relative::Scalar(s) => geom::graph::Edge::position(axis, s),
-
-                // Align end with
-                position::Relative::Align(align) => match align {
-                    position::Align::Middle => {
-                        let zero = S::zero();
-                        geom::graph::Edge::position(axis, zero)
-                    }
-                    align => {
-                        let one = S::one();
-                        let (direction, margin) = match align {
-                            position::Align::Start(mgn) => (-one, mgn.unwrap_or(S::zero())),
-                            position::Align::End(mgn) => (one, mgn.unwrap_or(S::zero())),
-                            _ => unreachable!(),
-                        };
-                        let node_dimension = draw
-                            .untransformed_dimension_of(&node_index, point_axis)
-                            .unwrap();
-                        let parent_dimension = draw
-                            .dimension_of(&parent, point_axis)
-                            .expect("no node for relative position");
-                        let half = S::from(0.5).unwrap();
-                        let node_half_dim = node_dimension * half;
-                        let parent_half_dim = parent_dimension * half;
-                        let weight = direction * (parent_half_dim - node_half_dim - margin);
-                        geom::graph::Edge::position(axis, weight)
-                    }
-                },
-
-                position::Relative::Direction(direction, amt) => {
-                    let one = S::one();
-                    let direction = match direction {
-                        position::Direction::Backwards => -one,
-                        position::Direction::Forwards => one,
-                    };
-                    let node_dimension = draw
-                        .untransformed_dimension_of(&node_index, point_axis)
-                        .unwrap();
-                    let parent_dimension = draw
-                        .dimension_of(&parent, point_axis)
-                        .expect("no node for relative position");
-                    let half = S::from(0.5).unwrap();
-                    let node_half_dim = node_dimension * half;
-                    let parent_half_dim = parent_dimension * half;
-                    let weight = direction * (parent_half_dim + node_half_dim + amt);
-                    geom::graph::Edge::position(axis, weight)
-                }
-            };
-            (edge, parent)
-        }
-    }
-}
-
-// Given some `orientation` around the given axis return the resulting `geom::Graph` edge and the
-// parent.
-fn orientation_to_edge<S>(
-    orientation: &Orientation<S>,
-    draw: &mut State<S>,
-    axis: edge::Axis,
-) -> (geom::graph::Edge<S>, node::Index)
-where
-    S: BaseFloat,
-{
-    match *orientation {
-        Orientation::Absolute(s) => {
-            let edge = geom::graph::Edge::orientation(axis, s);
-            let origin = draw.geom_graph.origin();
-            (edge, origin)
-        }
-        Orientation::Relative(s, maybe_parent) => {
-            let parent = maybe_parent
-                .or(draw.last_node_drawn)
-                .unwrap_or(draw.geom_graph.origin());
-            let edge = geom::graph::Edge::orientation(axis, s);
-            (edge, parent)
-        }
-    }
-}
-
-fn point_x<S: Clone>(p: &mesh::vertex::Point<S>) -> S {
-    p.x.clone()
-}
-fn point_y<S: Clone>(p: &mesh::vertex::Point<S>) -> S {
-    p.y.clone()
-}
-fn point_z<S: Clone>(p: &mesh::vertex::Point<S>) -> S {
-    p.z.clone()
-}
-
-// Convert the given `drawing` into its **Drawn** state and insert it into the mesh and geometry
-// graph.
-fn into_drawn<T, S>(
-    draw: &mut State<S>,
-    node_index: node::Index,
-    drawing: T,
-) -> Result<(), geom::graph::WouldCycle<S>>
-where
-    T: IntoDrawn<S>,
-    S: BaseFloat,
-{
-    // Convert the target into its **Drawn** state.
-    let (spatial, vertices, indices) = drawing.into_drawn(properties::Draw::new(draw));
-
-    // Update the mesh with the non-transformed vertices.
-    let vertices_start_index = draw.mesh.raw_vertex_count();
-    let indices_start_index = draw.mesh.indices().len();
-
-    {
-        let State {
-            ref mut mesh,
-            ref intermediary_state,
-            ..
-        } = *draw;
-        let intermediary_state = intermediary_state.borrow();
-        let intermediary_mesh = &intermediary_state.intermediary_mesh;
-        let min_intermediary_index = properties::Indices::min_index(&indices);
-        let vertices = properties::Vertices::into_iter(vertices, intermediary_mesh);
-        let indices = properties::Indices::into_iter(indices, &intermediary_mesh.indices)
-            .map(|i| vertices_start_index + i - min_intermediary_index);
-        mesh.extend(vertices, indices);
-    }
-
-    // Update the **Draw**'s range map.
-    let vertices_end_index = draw.mesh.raw_vertex_count();
-    let indices_end_index = draw.mesh.indices().len();
-    let vertices = vertices_start_index..vertices_end_index;
-    let indices = indices_start_index..indices_end_index;
-    let ranges = Ranges { vertices, indices };
-    draw.ranges.insert(node_index, ranges);
-
-    // Update the position edges within the geometry graph.
-    let p = &spatial.position;
-    let x = p.x.map(|pos| {
-        (
-            pos,
-            edge::Axis::X,
-            point_x as fn(&mesh::vertex::Point<S>) -> S,
-        )
-    });
-    let y = p.y.map(|pos| (pos, edge::Axis::Y, point_y as _));
-    let z = p.z.map(|pos| (pos, edge::Axis::Z, point_z as _));
-    let positions = x.into_iter().chain(y).chain(z);
-    for (position, axis, point_axis) in positions {
-        let (edge, parent) = position_to_edge(node_index, &position, draw, axis, &point_axis);
-        draw.geom_graph.set_edge(parent, node_index, edge)?;
-    }
-
-    // Update the orientation edges within the geometry graph.
-    match spatial.orientation {
-        orientation::Properties::LookAt(look_at) => {
-            // The location of the target.
-            let _p = match look_at {
-                orientation::LookAt::Node(_node) => unimplemented!(),
-                orientation::LookAt::Point(point) => point,
-            };
-            unimplemented!();
-        }
-        orientation::Properties::Axes(axes) => {
-            let x = axes.x.map(|axis| (axis, edge::Axis::X));
-            let y = axes.y.map(|axis| (axis, edge::Axis::Y));
-            let z = axes.z.map(|axis| (axis, edge::Axis::Z));
-            let axes = x.into_iter().chain(y).chain(z);
-            for (orientation, axis) in axes {
-                let (edge, parent) = orientation_to_edge(&orientation, draw, axis);
-                draw.geom_graph.set_edge(parent, node_index, edge)?;
-            }
-        }
-    }
-
-    // Set this node as the last drawn node.
-    draw.last_node_drawn = Some(node_index);
-
-    Ok(())
-}
-
-// Convert the given `primitive` into its **Drawn** state and insert it into the mesh and geometry
-// graph.
-fn draw_primitive<S>(
-    draw: &mut State<S>,
-    node_index: node::Index,
-    primitive: Primitive<S>,
-) -> Result<(), geom::graph::WouldCycle<S>>
-where
-    S: BaseFloat,
-{
-    match primitive {
-        Primitive::Ellipse(prim) => into_drawn(draw, node_index, prim),
-        Primitive::Line(prim) => into_drawn(draw, node_index, prim),
-        Primitive::Mesh(prim) => into_drawn(draw, node_index, prim),
-        Primitive::Path(prim) => into_drawn(draw, node_index, prim),
-        Primitive::Polygon(prim) => into_drawn(draw, node_index, prim),
-        Primitive::Quad(prim) => into_drawn(draw, node_index, prim),
-        Primitive::Rect(prim) => into_drawn(draw, node_index, prim),
-        Primitive::Text(prim) => unimplemented!(),
-        Primitive::Tri(prim) => into_drawn(draw, node_index, prim),
-
-        Primitive::MeshVertexless(_)
-        | Primitive::PathInit(_)
-        | Primitive::PathFill(_)
-        | Primitive::PathStroke(_)
-        | Primitive::PolygonInit(_) => Ok(()),
-    }
-}
-
-// Produce the min and max over the axis yielded via `point_axis` for the given `points`.
-fn min_max_dimension<I, F, S>(points: I, point_axis: &F) -> Option<(S, S)>
-where
-    I: IntoIterator<Item = mesh::vertex::Point<S>>,
-    F: Fn(&mesh::vertex::Point<S>) -> S,
-    S: BaseFloat,
-{
-    let mut points = points.into_iter();
-    points.next().map(|first| {
-        let s = point_axis(&first);
-        let init = (s, s);
-        points.fold(init, |(min, max), p| {
-            let s = point_axis(&p);
-            (s.min(min), s.max(max))
-        })
-    })
+impl GlyphCache {
+    pub const DEFAULT_W: u32 = 256;
+    pub const DEFAULT_H: u32 = 256;
+    pub const DEFAULT_DIMENSIONS: (u32, u32) = (Self::DEFAULT_W, Self::DEFAULT_H);
 }
 
 impl<S> IntermediaryVertexData<S> {
@@ -655,6 +406,21 @@ where
         self.path().stroke()
     }
 
+    /// Begin drawing a **Text**.
+    ///
+    /// Note: This is currently short-hand for using the `draw.path()` to draw events yielded by
+    /// the text, however in the future this will be made more efficient by using a GPU glyph
+    /// cache.
+    pub fn text(&self, s: &str) -> Drawing<primitive::Text<S>, S> {
+        let text = {
+            let state = self.state.borrow();
+            let mut intermediary_state = state.intermediary_state.borrow_mut();
+            let ctxt = DrawingContext::from_intermediary_state(&mut *intermediary_state);
+            primitive::text::Text::new(ctxt, s)
+        };
+        self.a(text)
+    }
+
     /// Produce the transformed mesh vertices for the node at the given index.
     ///
     /// Returns **None** if there is no node for the given index.
@@ -818,11 +584,13 @@ impl<S> Default for IntermediaryState<S> {
         let fill_tessellator = Default::default();
         let path_event_buffer = Default::default();
         let text_buffer = Default::default();
+        let glyph_cache = Default::default();
         IntermediaryState {
             intermediary_mesh,
             fill_tessellator,
             path_event_buffer,
             text_buffer,
+            glyph_cache,
         }
     }
 }
@@ -934,4 +702,306 @@ where
             }
         }
     }
+}
+
+impl Clone for FillTessellatorWrapper {
+    fn clone(&self) -> Self {
+        Default::default()
+    }
+}
+
+impl Clone for GlyphCacheWrapper {
+    fn clone(&self) -> Self {
+        GlyphCacheWrapper(self.0.to_builder().build())
+    }
+}
+
+impl fmt::Debug for FillTessellatorWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "FillTessellator")
+    }
+}
+
+impl fmt::Debug for GlyphCacheWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "GlyphCache")
+    }
+}
+
+impl ops::Deref for GlyphCacheWrapper {
+    type Target = text::GlyphCache<'static>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Default for GlyphCache {
+    fn default() -> Self {
+        let (w, h) = GlyphCache::DEFAULT_DIMENSIONS;
+        let cache = text::GlyphCache::builder()
+            .dimensions(w, h)
+            .build()
+            .into();
+        let pixel_buffer = vec![0u8; w as usize * h as usize];
+        let has_updated = false;
+        GlyphCache {
+            cache,
+            pixel_buffer,
+            has_updated,
+        }
+    }
+}
+
+impl From<text::GlyphCache<'static>> for GlyphCacheWrapper {
+    fn from(g: text::GlyphCache<'static>) -> Self {
+        GlyphCacheWrapper(g)
+    }
+}
+
+// Given some `position` along the given axis return the resulting geom::Graph edge and the parent.
+fn position_to_edge<S, F>(
+    node_index: node::Index,
+    position: &Position<S>,
+    draw: &mut State<S>,
+    axis: edge::Axis,
+    point_axis: &F,
+) -> (geom::graph::Edge<S>, node::Index)
+where
+    S: BaseFloat,
+    F: Fn(&mesh::vertex::Point<S>) -> S,
+{
+    match *position {
+        // *s* relative to *origin*.
+        Position::Absolute(s) => {
+            let edge = geom::graph::Edge::position(axis, s);
+            let origin = draw.geom_graph.origin();
+            (edge, origin)
+        }
+
+        Position::Relative(relative, maybe_parent) => {
+            let parent = maybe_parent
+                .or(draw.last_node_drawn)
+                .unwrap_or(draw.geom_graph.origin());
+            let edge = match relative {
+                // Relative position.
+                position::Relative::Scalar(s) => geom::graph::Edge::position(axis, s),
+
+                // Align end with
+                position::Relative::Align(align) => match align {
+                    position::Align::Middle => {
+                        let zero = S::zero();
+                        geom::graph::Edge::position(axis, zero)
+                    }
+                    align => {
+                        let one = S::one();
+                        let (direction, margin) = match align {
+                            position::Align::Start(mgn) => (-one, mgn.unwrap_or(S::zero())),
+                            position::Align::End(mgn) => (one, mgn.unwrap_or(S::zero())),
+                            _ => unreachable!(),
+                        };
+                        let node_dimension = draw
+                            .untransformed_dimension_of(&node_index, point_axis)
+                            .unwrap();
+                        let parent_dimension = draw
+                            .dimension_of(&parent, point_axis)
+                            .expect("no node for relative position");
+                        let half = S::from(0.5).unwrap();
+                        let node_half_dim = node_dimension * half;
+                        let parent_half_dim = parent_dimension * half;
+                        let weight = direction * (parent_half_dim - node_half_dim - margin);
+                        geom::graph::Edge::position(axis, weight)
+                    }
+                },
+
+                position::Relative::Direction(direction, amt) => {
+                    let one = S::one();
+                    let direction = match direction {
+                        position::Direction::Backwards => -one,
+                        position::Direction::Forwards => one,
+                    };
+                    let node_dimension = draw
+                        .untransformed_dimension_of(&node_index, point_axis)
+                        .unwrap();
+                    let parent_dimension = draw
+                        .dimension_of(&parent, point_axis)
+                        .expect("no node for relative position");
+                    let half = S::from(0.5).unwrap();
+                    let node_half_dim = node_dimension * half;
+                    let parent_half_dim = parent_dimension * half;
+                    let weight = direction * (parent_half_dim + node_half_dim + amt);
+                    geom::graph::Edge::position(axis, weight)
+                }
+            };
+            (edge, parent)
+        }
+    }
+}
+
+// Given some `orientation` around the given axis return the resulting `geom::Graph` edge and the
+// parent.
+fn orientation_to_edge<S>(
+    orientation: &Orientation<S>,
+    draw: &mut State<S>,
+    axis: edge::Axis,
+) -> (geom::graph::Edge<S>, node::Index)
+where
+    S: BaseFloat,
+{
+    match *orientation {
+        Orientation::Absolute(s) => {
+            let edge = geom::graph::Edge::orientation(axis, s);
+            let origin = draw.geom_graph.origin();
+            (edge, origin)
+        }
+        Orientation::Relative(s, maybe_parent) => {
+            let parent = maybe_parent
+                .or(draw.last_node_drawn)
+                .unwrap_or(draw.geom_graph.origin());
+            let edge = geom::graph::Edge::orientation(axis, s);
+            (edge, parent)
+        }
+    }
+}
+
+fn point_x<S: Clone>(p: &mesh::vertex::Point<S>) -> S {
+    p.x.clone()
+}
+fn point_y<S: Clone>(p: &mesh::vertex::Point<S>) -> S {
+    p.y.clone()
+}
+fn point_z<S: Clone>(p: &mesh::vertex::Point<S>) -> S {
+    p.z.clone()
+}
+
+// Convert the given `drawing` into its **Drawn** state and insert it into the mesh and geometry
+// graph.
+fn into_drawn<T, S>(
+    draw: &mut State<S>,
+    node_index: node::Index,
+    drawing: T,
+) -> Result<(), geom::graph::WouldCycle<S>>
+where
+    T: IntoDrawn<S>,
+    S: BaseFloat,
+{
+    // Convert the target into its **Drawn** state.
+    let (spatial, vertices, indices) = drawing.into_drawn(properties::Draw::new(draw));
+
+    // Update the mesh with the non-transformed vertices.
+    let vertices_start_index = draw.mesh.raw_vertex_count();
+    let indices_start_index = draw.mesh.indices().len();
+
+    {
+        let State {
+            ref mut mesh,
+            ref intermediary_state,
+            ..
+        } = *draw;
+        let intermediary_state = intermediary_state.borrow();
+        let intermediary_mesh = &intermediary_state.intermediary_mesh;
+        let min_intermediary_index = properties::Indices::min_index(&indices);
+        let vertices = properties::Vertices::into_iter(vertices, intermediary_mesh);
+        let indices = properties::Indices::into_iter(indices, &intermediary_mesh.indices)
+            .map(|i| vertices_start_index + i - min_intermediary_index);
+        mesh.extend(vertices, indices);
+    }
+
+    // Update the **Draw**'s range map.
+    let vertices_end_index = draw.mesh.raw_vertex_count();
+    let indices_end_index = draw.mesh.indices().len();
+    let vertices = vertices_start_index..vertices_end_index;
+    let indices = indices_start_index..indices_end_index;
+    let ranges = Ranges { vertices, indices };
+    draw.ranges.insert(node_index, ranges);
+
+    // Update the position edges within the geometry graph.
+    let p = &spatial.position;
+    let x = p.x.map(|pos| {
+        (
+            pos,
+            edge::Axis::X,
+            point_x as fn(&mesh::vertex::Point<S>) -> S,
+        )
+    });
+    let y = p.y.map(|pos| (pos, edge::Axis::Y, point_y as _));
+    let z = p.z.map(|pos| (pos, edge::Axis::Z, point_z as _));
+    let positions = x.into_iter().chain(y).chain(z);
+    for (position, axis, point_axis) in positions {
+        let (edge, parent) = position_to_edge(node_index, &position, draw, axis, &point_axis);
+        draw.geom_graph.set_edge(parent, node_index, edge)?;
+    }
+
+    // Update the orientation edges within the geometry graph.
+    match spatial.orientation {
+        orientation::Properties::LookAt(look_at) => {
+            // The location of the target.
+            let _p = match look_at {
+                orientation::LookAt::Node(_node) => unimplemented!(),
+                orientation::LookAt::Point(point) => point,
+            };
+            unimplemented!();
+        }
+        orientation::Properties::Axes(axes) => {
+            let x = axes.x.map(|axis| (axis, edge::Axis::X));
+            let y = axes.y.map(|axis| (axis, edge::Axis::Y));
+            let z = axes.z.map(|axis| (axis, edge::Axis::Z));
+            let axes = x.into_iter().chain(y).chain(z);
+            for (orientation, axis) in axes {
+                let (edge, parent) = orientation_to_edge(&orientation, draw, axis);
+                draw.geom_graph.set_edge(parent, node_index, edge)?;
+            }
+        }
+    }
+
+    // Set this node as the last drawn node.
+    draw.last_node_drawn = Some(node_index);
+
+    Ok(())
+}
+
+// Convert the given `primitive` into its **Drawn** state and insert it into the mesh and geometry
+// graph.
+fn draw_primitive<S>(
+    draw: &mut State<S>,
+    node_index: node::Index,
+    primitive: Primitive<S>,
+) -> Result<(), geom::graph::WouldCycle<S>>
+where
+    S: BaseFloat,
+{
+    match primitive {
+        Primitive::Ellipse(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Line(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Mesh(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Path(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Polygon(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Quad(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Rect(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Text(prim) => into_drawn(draw, node_index, prim),
+        Primitive::Tri(prim) => into_drawn(draw, node_index, prim),
+
+        Primitive::MeshVertexless(_)
+        | Primitive::PathInit(_)
+        | Primitive::PathFill(_)
+        | Primitive::PathStroke(_)
+        | Primitive::PolygonInit(_) => Ok(()),
+    }
+}
+
+// Produce the min and max over the axis yielded via `point_axis` for the given `points`.
+fn min_max_dimension<I, F, S>(points: I, point_axis: &F) -> Option<(S, S)>
+where
+    I: IntoIterator<Item = mesh::vertex::Point<S>>,
+    F: Fn(&mesh::vertex::Point<S>) -> S,
+    S: BaseFloat,
+{
+    let mut points = points.into_iter();
+    points.next().map(|first| {
+        let s = point_axis(&first);
+        let init = (s, s);
+        points.fold(init, |(min, max), p| {
+            let s = point_axis(&p);
+            (s.min(min), s.max(max))
+        })
+    })
 }

@@ -291,6 +291,11 @@ impl<'a> Text<'a> {
         &self.layout
     }
 
+    /// The font used for this text instance.
+    pub fn font(&self) -> &Font {
+        &self.font
+    }
+
     /// The number of lines in the text.
     pub fn num_lines(&self) -> usize {
         self.line_infos.len()
@@ -568,8 +573,6 @@ pub fn position_offset(
 }
 
 /// Produce the position of each glyph ready for the rusttype glyph cache.
-///
-/// The top-left of the top line's rectangle will be positioned at [0.0, 0.0].
 pub fn rt_positioned_glyphs<'a, I>(
     lines_with_rects: I,
     font: &'a Font,
