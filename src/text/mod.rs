@@ -265,7 +265,7 @@ impl<'a> Builder<'a> {
             } else {
                 let assets = crate::app::find_assets_path().expect(
                     "failed to detect the assets directory when searching for a default font",
-                );;
+                );
                 font::default(&assets).expect("failed to detect a default font")
             }
         });

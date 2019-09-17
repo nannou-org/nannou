@@ -27,7 +27,7 @@ pub struct Layout {
 pub const DEFAULT_LINE_WRAP: Option<Wrap> = Some(Wrap::Whitespace);
 pub const DEFAULT_FONT_SIZE: u32 = 12;
 pub const DEFAULT_LINE_SPACING: f32 = 0.0;
-pub const DEFAULT_JUSTIFY: Justify = Justify::Left;
+pub const DEFAULT_JUSTIFY: Justify = Justify::Center;
 pub const DEFAULT_Y_ALIGN: Align = Align::Middle;
 
 impl Builder {

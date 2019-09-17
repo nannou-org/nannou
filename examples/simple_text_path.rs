@@ -21,10 +21,7 @@ fn view(app: &App, frame: &Frame) {
         .w_h(win_rect.w(), win_rect.top());
 
     // Draw the text.
-    let text = text("create\nwith\nnannou")
-        .font_size(128)
-        .center_justify()
-        .build(win_rect);
+    let text = text("create\nwith\nnannou").font_size(128).build(win_rect);
 
     // Draw rects behind the lines.
     for line_rect in text.line_rects() {

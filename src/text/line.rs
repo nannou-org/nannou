@@ -410,7 +410,7 @@ fn next_break_by_whitespace(
         }
 
         // Add the character's width to the width so far.
-        let (adv_w, h) = advance_width_and_height(ch, font, scale, &mut last_glyph);;
+        let (adv_w, h) = advance_width_and_height(ch, font, scale, &mut last_glyph);
         let new_width = width + adv_w;
 
         // Check for a line wrap.
