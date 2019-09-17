@@ -1,5 +1,9 @@
 # Unreleased
 
+
+
+# Version 0.11.0 (2019-09-17)
+
 - Update vulkano and shaderc dependencies to fix linux build issues.
 - Add an example that demonstrates using the Draw API with multiple windows.
 - Fix a bug where `Draw::to_frame` would `panic!` when used between multiple
@@ -41,6 +45,15 @@
   anyway, and this can likely be revisited as a part of a larger 3D tessellation
   overhaul. For now, `draw.mesh()` can still be used for drawing arbitrary 3D
   via the `draw` API.
+- Introduce notosans crate for guaranteed default fallback font. Can be disabled
+  by disabling default-features.
+- Refactor default font out of ui module into app module.
+- Add `text` module along with `text::Builder` and `Text` APIs. Allows for
+  laying out multi-line, justified, auto-wrapping text.
+- Add `draw.text("foo")` API. Currently quite slow as it uses the `draw.path()`
+  API internally, but this can be improved in the future by adopting a glyph
+  cache.
+- Add `simple_text.rs` and `simple_text_path.rs` examples.
 
 # Version 0.10.0 (2019-07-21)
 
