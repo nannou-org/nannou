@@ -31,8 +31,12 @@ create a new project with just a few small steps:
    edition = "2018"
    
    [dependencies]
-   nannou = "0.10"
+   nannou = "0.11"
    ```
+
+   Note that there is a chance the nannou version above might be out of date.
+   You can check the latest version by typing `cargo search nannou` in your
+   terminal.
 
 4. Replace the code in `src/main.rs` with the following to setup our nannou
    application.
