@@ -160,13 +160,20 @@ where
         F: FnOnce(DrawingContext<S>) -> T,
     {
         let state = self.state.borrow_mut();
-        let mut mesh = state.intermediary_mesh.borrow_mut();
-        let mut fill = state.fill_tessellator.borrow_mut();
-        let mut path_event_buffer = state.path_event_buffer.borrow_mut();
+        let mut intermediary_state = state.intermediary_state.borrow_mut();
+        let super::IntermediaryState {
+            ref mut intermediary_mesh,
+            ref mut fill_tessellator,
+            ref mut path_event_buffer,
+            ref mut text_buffer,
+            ref mut glyph_cache,
+        } = *intermediary_state;
         f(DrawingContext {
-            mesh: &mut *mesh,
-            fill_tessellator: &mut fill.0,
-            path_event_buffer: &mut *path_event_buffer,
+            mesh: intermediary_mesh,
+            fill_tessellator: &mut fill_tessellator.0,
+            path_event_buffer: path_event_buffer,
+            text_buffer: text_buffer,
+            glyph_cache: glyph_cache,
         })
     }
 }

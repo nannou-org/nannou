@@ -28,6 +28,7 @@ notosans = { version = "0.1", optional = true }
 palette = "0.4"
 pennereq = "0.3"
 rand = "0.7"
+rusttype = "0.7"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
@@ -85,6 +86,12 @@ path = "examples/simple_polygon.rs"
 [[example]]
 name = "simple_polyline"
 path = "examples/simple_polyline.rs"
+[[example]]
+name = "simple_text"
+path = "examples/simple_text.rs"
+[[example]]
+name = "simple_text_path"
+path = "examples/simple_text_path.rs"
 [[example]]
 name = "simple_ui"
 path = "examples/simple_ui.rs"

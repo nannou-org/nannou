@@ -849,13 +849,7 @@ impl App {
     /// 2. Recursively checks exe's parent directories (to a max depth of 5).
     /// 3. Recursively checks exe's children directories (to a max depth of 3).
     pub fn assets_path(&self) -> Result<PathBuf, find_folder::Error> {
-        let exe_path = std::env::current_exe()?;
-        find_folder::Search::ParentsThenKids(5, 3)
-            .of(exe_path
-                .parent()
-                .expect("executable has no parent directory to search")
-                .into())
-            .for_folder(Self::ASSETS_DIRECTORY_NAME)
+        find_assets_path()
     }
 
     /// Begin building a new window.
@@ -997,13 +991,14 @@ impl App {
             None => return None,
             Some(window) => window,
         };
-        let device = window.swapchain.swapchain.device().clone();
+        let queue = window.swapchain_queue().clone();
+        let device = queue.device().clone();
         let color_format = crate::frame::COLOR_FORMAT;
         let mut supported_depth_formats = self.draw_state.supported_depth_formats.borrow_mut();
         let depth_format = *supported_depth_formats
             .entry(device.physical_device().index())
             .or_insert_with(|| {
-                find_draw_depth_format(device.clone())
+                find_draw_depth_format(device)
                     .expect("no supported vulkan depth format for the App's `Draw` API")
             });
         let draw = self.draw_state.draw.borrow_mut();
@@ -1013,11 +1008,15 @@ impl App {
         let renderer = RefMut::map(renderers, |renderers| {
             renderers.entry(window_id).or_insert_with(|| {
                 let msaa_samples = window.msaa_samples();
+                let (px_w, px_h) = window.inner_size_pixels();
+                // TODO: This should be configurable.
+                let glyph_cache_dims = [px_w, px_h];
                 let renderer = draw::backend::vulkano::Renderer::new(
-                    device,
+                    queue,
                     color_format,
                     depth_format,
                     msaa_samples,
+                    glyph_cache_dims,
                 )
                 .expect("failed to create `Draw` renderer for vulkano backend");
                 RefCell::new(renderer)
@@ -1114,6 +1113,17 @@ impl<'a> DerefMut for Draw<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.draw
     }
+}
+
+/// Attempt to find the assets directory path relative to the executable location.
+pub fn find_assets_path() -> Result<PathBuf, find_folder::Error> {
+    let exe_path = std::env::current_exe()?;
+    find_folder::Search::ParentsThenKids(5, 3)
+        .of(exe_path
+            .parent()
+            .expect("executable has no parent directory to search")
+            .into())
+        .for_folder(App::ASSETS_DIRECTORY_NAME)
 }
 
 /// Find a compatible depth format for the `App`'s `Draw` API.

@@ -106,6 +106,7 @@ impl<S> PolygonInit<S> {
             mesh,
             fill_tessellator,
             path_event_buffer,
+            ..
         } = ctxt;
 
         path_event_buffer.clear();
