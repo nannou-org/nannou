@@ -244,13 +244,24 @@ where
     type Vertices = draw::properties::VerticesFromRanges;
     type Indices = draw::properties::IndicesFromRange;
     fn into_drawn(self, mut draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
-        let Text { spatial, style, text } = self;
+        let Text {
+            spatial,
+            style,
+            text,
+        } = self;
         let Style { color, layout } = style;
         let layout = layout.build();
         let (maybe_x, maybe_y, maybe_z) = spatial.dimensions.to_scalars(&draw);
-        assert!(maybe_z.is_none(), "z dimension support for text is unimplemented");
-        let w = maybe_x.map(|s| <f32 as crate::math::NumCast>::from(s).unwrap()).unwrap_or(200.0);
-        let h = maybe_y.map(|s| <f32 as crate::math::NumCast>::from(s).unwrap()).unwrap_or(200.0);
+        assert!(
+            maybe_z.is_none(),
+            "z dimension support for text is unimplemented"
+        );
+        let w = maybe_x
+            .map(|s| <f32 as crate::math::NumCast>::from(s).unwrap())
+            .unwrap_or(200.0);
+        let h = maybe_y
+            .map(|s| <f32 as crate::math::NumCast>::from(s).unwrap())
+            .unwrap_or(200.0);
         let rect: geom::Rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
         let color = color.unwrap_or_else(|| draw.theme().fill_lin_srgba(&theme::Primitive::Text));
         let path = draw.drawing_context(|ctxt| {
@@ -282,9 +293,7 @@ where
                 glyph_cache,
                 text_buffer: &mut empty_text,
             };
-            let path = path.fill()
-                .color(color)
-                .events(ctxt, text.path_events());
+            let path = path.fill().color(color).events(ctxt, text.path_events());
             path
         });
         path.into_drawn(draw)

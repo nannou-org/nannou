@@ -51,13 +51,11 @@ pub struct SelectedRectsPerLine<'a, I> {
 impl<'a, 'b> Iterator for Rects<'a, 'b> {
     type Item = (ScaledGlyph<'a>, Rect);
     fn next(&mut self) -> Option<Self::Item> {
-        let Rects {
-            ref mut layout,
-            y,
-        } = *self;
+        let Rects { ref mut layout, y } = *self;
         layout.next().map(|g| {
             let left = g.position().x;
-            let (right, height) = g.pixel_bounding_box()
+            let (right, height) = g
+                .pixel_bounding_box()
                 .map(|bb| (bb.max.x as Scalar, (bb.max.y - bb.min.y) as Scalar))
                 .unwrap_or_else(|| {
                     let w = g.unpositioned().h_metrics().advance_width as Scalar;
@@ -239,7 +237,6 @@ pub fn contours_to_path<'a, I>(
 where
     I: IntoIterator<Item = rusttype::Contour>,
 {
-
     // Translate the rusttype point to a nannou compatible one.
     let tp = move |p: rusttype::Point<f32>| lyon::math::point(p.x, p.y);
 
@@ -278,14 +275,12 @@ where
         }
     };
 
-    contours
-        .into_iter()
-        .flat_map(move |contour| {
-            let mut segs = contour.segments.into_iter().peekable();
-            let first_event = segs.peek().map(|s| segment_move_event(s));
-            let events = segs.map(segment_to_event);
-            first_event.into_iter().chain(events)
-        })
+    contours.into_iter().flat_map(move |contour| {
+        let mut segs = contour.segments.into_iter().peekable();
+        let first_event = segs.peek().map(|s| segment_move_event(s));
+        let events = segs.map(segment_to_event);
+        first_event.into_iter().chain(events)
+    })
 }
 
 /// Produce the lyon path for the given scaled glyph.
@@ -294,7 +289,8 @@ where
 ///
 /// TODO: This could be optimised by caching path events glyph ID and using normalised glyphs.
 pub fn path_events(glyph: ScaledGlyph) -> Option<impl Iterator<Item = lyon::path::PathEvent>> {
-    glyph.exact_bounding_box()
+    glyph
+        .exact_bounding_box()
         .and_then(|bb| glyph.shape().map(|ctrs| (bb, ctrs)))
         .map(|(bb, ctrs)| contours_to_path(bb, ctrs))
 }

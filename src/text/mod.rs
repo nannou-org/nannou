@@ -14,9 +14,9 @@ pub mod rt {
 }
 
 // Re-export all relevant rusttype types here.
+pub use self::layout::Layout;
 pub use rusttype::gpu_cache::Cache as GlyphCache;
 pub use rusttype::{Glyph, GlyphId, GlyphIter, LayoutIter, Scale, ScaledGlyph};
-pub use self::layout::Layout;
 
 use crate::geom;
 use std::borrow::Cow;
@@ -65,8 +65,10 @@ pub struct Lines<'a, I> {
 pub type TextLineInfos<'a> = line::Infos<'a, line::NextBreakFnPtr>;
 
 /// An alias for the line iterator yielded by `Text::lines`.
-pub type TextLines<'a> =
-    Lines<'a, std::iter::Map<std::slice::Iter<'a, line::Info>, fn(&line::Info) -> std::ops::Range<usize>>>;
+pub type TextLines<'a> = Lines<
+    'a,
+    std::iter::Map<std::slice::Iter<'a, line::Info>, fn(&line::Info) -> std::ops::Range<usize>>,
+>;
 
 /// An alias for the line rect iterator used internally within the `Text::line_rects` iterator.
 type LineRects<'a> = line::Rects<std::iter::Cloned<std::slice::Iter<'a, line::Info>>>;
@@ -88,7 +90,7 @@ pub type TextGlyphsPerLine<'a> = glyph::RectsPerLine<'a, TextLinesWithRects<'a>>
 pub type TextGlyphs<'a> = std::iter::FlatMap<
     TextGlyphsPerLine<'a>,
     glyph::Rects<'a, 'a>,
-    fn(glyph::Rects<'a, 'a>) -> glyph::Rects<'a, 'a>
+    fn(glyph::Rects<'a, 'a>) -> glyph::Rects<'a, 'a>,
 >;
 
 /// Alignment along an axis.
@@ -126,7 +128,10 @@ pub enum Wrap {
 impl<'a> From<Cow<'a, str>> for Builder<'a> {
     fn from(text: Cow<'a, str>) -> Self {
         let layout_builder = Default::default();
-        Builder { text, layout_builder }
+        Builder {
+            text,
+            layout_builder,
+        }
     }
 }
 
@@ -258,20 +263,23 @@ impl<'a> Builder<'a> {
             if cfg!(feature = "notosans") {
                 font::default_notosans()
             } else {
-                let assets = crate::app::find_assets_path()
-                    .expect("failed to detect the assets directory when searching for a default font");;
+                let assets = crate::app::find_assets_path().expect(
+                    "failed to detect the assets directory when searching for a default font",
+                );;
                 font::default(&assets).expect("failed to detect a default font")
             }
         });
         let max_width = rect.w();
-        let line_infos = line::infos_maybe_wrapped(
-            &text,
-            &font,
-            layout.font_size,
-            layout.line_wrap,
-            max_width,
-        ).collect();
-        Text { text, font, layout, line_infos, rect }
+        let line_infos =
+            line::infos_maybe_wrapped(&text, &font, layout.font_size, layout.line_wrap, max_width)
+                .collect();
+        Text {
+            text,
+            font,
+            layout,
+            line_infos,
+            rect,
+        }
     }
 }
 
@@ -339,7 +347,9 @@ impl<'a> Text<'a> {
 
     /// The width of the widest line of text.
     pub fn width(&self) -> Scalar {
-        self.line_infos.iter().fold(0.0, |max, info| max.max(info.width))
+        self.line_infos
+            .iter()
+            .fold(0.0, |max, info| max.max(info.width))
     }
 
     /// The exact height of the full text accounting for font size and line spacing..
@@ -348,7 +358,12 @@ impl<'a> Text<'a> {
             None => return 0.0,
             Some(info) => info,
         };
-        exact_height(info.height, self.num_lines(), self.layout.font_size, self.layout.line_spacing)
+        exact_height(
+            info.height,
+            self.num_lines(),
+            self.layout.font_size,
+            self.layout.line_spacing,
+        )
     }
 
     /// Determine the total height of a block of text with the given number of lines, font size and
@@ -357,7 +372,11 @@ impl<'a> Text<'a> {
     /// The height of all lines of text are assumed to match the `font_size`. If looking for the exact
     /// height, see the `exact_height` function.
     pub fn height_by_lines(&self) -> Scalar {
-        height_by_lines(self.num_lines(), self.layout.font_size, self.layout.line_spacing)
+        height_by_lines(
+            self.num_lines(),
+            self.layout.font_size,
+            self.layout.line_spacing,
+        )
     }
 
     /// Produce an iterator yielding each wrapped line within the **Text**.
@@ -435,13 +454,12 @@ impl<'a> Text<'a> {
             }
         }
 
-        self.glyphs()
-            .flat_map(|(g, r)| {
-                glyph::path_events(g)
-                    .into_iter()
-                    .flat_map(|es| es)
-                    .map(move |e| trans_path_event(&e, r.bottom_left()))
-            })
+        self.glyphs().flat_map(|(g, r)| {
+            glyph::path_events(g)
+                .into_iter()
+                .flat_map(|es| es)
+                .map(move |e| trans_path_event(&e, r.bottom_left()))
+        })
     }
 
     /// Produce an iterator yielding positioned rusttype glyphs ready for caching.
@@ -464,9 +482,21 @@ impl<'a> Text<'a> {
 
     /// Converts this `Text` instance into an instance that owns the inner text string.
     pub fn into_owned(self) -> Text<'static> {
-        let Text { text, font, layout, line_infos, rect } = self;
+        let Text {
+            text,
+            font,
+            layout,
+            line_infos,
+            rect,
+        } = self;
         let text = Cow::Owned(text.into_owned());
-        Text { text, font, layout, line_infos, rect }
+        Text {
+            text,
+            font,
+            layout,
+            line_infos,
+            rect,
+        }
     }
 
     fn position_offset(&self) -> geom::Vector2 {
@@ -593,7 +623,10 @@ where
     lines_with_rects
         .into_iter()
         .flat_map(move |(line, line_rect)| {
-            let (x, y) = (trans_x(line_rect.left()) as f32, trans_y(line_rect.bottom()) as f32);
+            let (x, y) = (
+                trans_x(line_rect.left()) as f32,
+                trans_y(line_rect.bottom()) as f32,
+            );
             let point = rt::Point { x: x, y: y };
             font.layout(line, scale, point).map(|g| g.standalone())
         })

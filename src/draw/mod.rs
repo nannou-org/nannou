@@ -738,10 +738,7 @@ impl ops::Deref for GlyphCacheWrapper {
 impl Default for GlyphCache {
     fn default() -> Self {
         let (w, h) = GlyphCache::DEFAULT_DIMENSIONS;
-        let cache = text::GlyphCache::builder()
-            .dimensions(w, h)
-            .build()
-            .into();
+        let cache = text::GlyphCache::builder().dimensions(w, h).build().into();
         let pixel_buffer = vec![0u8; w as usize * h as usize];
         let has_updated = false;
         GlyphCache {

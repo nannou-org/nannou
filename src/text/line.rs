@@ -44,7 +44,7 @@ pub struct NextBreak {
     /// The total width of the line.
     pub width: Scalar,
     /// The maximum heigh of the line.
-    pub height: Scalar
+    pub height: Scalar,
 }
 
 /// Information about a single line of text within a `&str`.
@@ -213,7 +213,8 @@ fn advance_width_and_height(
         .map(|last| font.pair_kerning(scale, last, g.id()))
         .unwrap_or(0.0);
     let advance_width = g.h_metrics().advance_width;
-    let height = g.exact_bounding_box()
+    let height = g
+        .exact_bounding_box()
         .map(|bb| bb.min.y.abs() as Scalar)
         .unwrap_or(0.0);
     *last_glyph = Some(g.id());
@@ -239,7 +240,11 @@ fn next_break(text: &str, font: &text::Font, font_size: FontSize) -> NextBreak {
                     char: char_i,
                     len_bytes: 2,
                 };
-                return NextBreak { break_, width, height };
+                return NextBreak {
+                    break_,
+                    width,
+                    height,
+                };
             }
         } else if ch == '\n' {
             let break_ = Break::Newline {
@@ -247,7 +252,11 @@ fn next_break(text: &str, font: &text::Font, font_size: FontSize) -> NextBreak {
                 char: char_i,
                 len_bytes: 1,
             };
-            return NextBreak { break_, width, height };
+            return NextBreak {
+                break_,
+                width,
+                height,
+            };
         }
 
         // Update the width.
@@ -260,7 +269,11 @@ fn next_break(text: &str, font: &text::Font, font_size: FontSize) -> NextBreak {
         byte: text.len(),
         char: char_i,
     };
-    NextBreak { break_, width, height }
+    NextBreak {
+        break_,
+        width,
+        height,
+    }
 }
 
 /// Returns the next index at which the text will break by either:
@@ -289,7 +302,11 @@ fn next_break_by_character(
                     char: char_i,
                     len_bytes: 2,
                 };
-                return NextBreak { break_, width, height };
+                return NextBreak {
+                    break_,
+                    width,
+                    height,
+                };
             }
         } else if ch == '\n' {
             let break_ = Break::Newline {
@@ -297,7 +314,11 @@ fn next_break_by_character(
                 char: char_i,
                 len_bytes: 1,
             };
-            return NextBreak { break_, width, height };
+            return NextBreak {
+                break_,
+                width,
+                height,
+            };
         }
 
         // Add the character's width to the width so far.
@@ -311,7 +332,11 @@ fn next_break_by_character(
                 char: char_i,
                 len_bytes: 0,
             };
-            return NextBreak { break_, width, height };
+            return NextBreak {
+                break_,
+                width,
+                height,
+            };
         }
 
         height = height.max(h);
@@ -323,7 +348,11 @@ fn next_break_by_character(
         byte: text.len(),
         char: char_i,
     };
-    NextBreak { break_, width, height }
+    NextBreak {
+        break_,
+        width,
+        height,
+    }
 }
 
 /// Returns the next index at which the text will break by either:
@@ -361,7 +390,11 @@ fn next_break_by_whitespace(
                     char: char_i,
                     len_bytes: 2,
                 };
-                return NextBreak { break_, width, height };
+                return NextBreak {
+                    break_,
+                    width,
+                    height,
+                };
             }
         } else if ch == '\n' {
             let break_ = Break::Newline {
@@ -369,7 +402,11 @@ fn next_break_by_whitespace(
                 char: char_i,
                 len_bytes: 1,
             };
-            return NextBreak { break_, width, height };
+            return NextBreak {
+                break_,
+                width,
+                height,
+            };
         }
 
         // Add the character's width to the width so far.
@@ -390,7 +427,11 @@ fn next_break_by_whitespace(
                         len_bytes: 1,
                     };
                     let width = width_before;
-                    return NextBreak { break_, width, height };
+                    return NextBreak {
+                        break_,
+                        width,
+                        height,
+                    };
                 }
                 None => {
                     let break_ = Break::Wrap {
@@ -398,7 +439,11 @@ fn next_break_by_whitespace(
                         char: char_i,
                         len_bytes: 0,
                     };
-                    return NextBreak { break_, width, height };
+                    return NextBreak {
+                        break_,
+                        width,
+                        height,
+                    };
                 }
             }
         }
@@ -421,7 +466,11 @@ fn next_break_by_whitespace(
         byte: text.len(),
         char: char_i,
     };
-    NextBreak { break_, width, height }
+    NextBreak {
+        break_,
+        width,
+        height,
+    }
 }
 
 /// Produce the width of the given line of text including spaces (i.e. ' ').
