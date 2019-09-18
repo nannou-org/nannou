@@ -464,10 +464,6 @@ path = "examples/nature_of_code/chp_10_neural_networks/10_02_seeking_neural.rs"
 [[example]] 
 name = "10_03_network_viz" 
 path = "examples/nature_of_code/chp_10_neural_networks/10_03_network_viz.rs"
-[[example]] 
-name = "10_04_network_animation" 
-path = "examples/nature_of_code/chp_10_neural_networks/10_04_network_animation.rs"
-
 
 # --------------- Offline examples
 [[example]]
