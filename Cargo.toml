@@ -415,6 +415,18 @@ path = "examples/nature_of_code/chp_04_systems/4_03_particle_system_type.rs"
 [[example]]
 name = "4_04_system_of_systems"
 path = "examples/nature_of_code/chp_04_systems/4_04_system_of_systems.rs"
+[[example]]
+name = "4_03_exercise_moving_particle_system"
+path = "examples/nature_of_code/chp_04_systems/4_03_exercise_moving_particle_system.rs"
+[[example]]
+name = "4_06_exercise_shatter"
+path = "examples/nature_of_code/chp_04_systems/4_06_exercise_shatter.rs"
+[[example]]
+name = "4_10_exercise_particle_intersection"
+path = "examples/nature_of_code/chp_04_systems/4_10_exercise_particle_intersection.rs"
+[[example]]
+name = "4_10_exercise_particle_repel"
+path = "examples/nature_of_code/chp_04_systems/4_10_exercise_particle_repel.rs"
 # --------------- Chapter 6 Agents
 [[example]]
 name = "6_01_seek"
