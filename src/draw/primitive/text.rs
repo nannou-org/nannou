@@ -293,7 +293,9 @@ where
                 glyph_cache,
                 text_buffer: &mut empty_text,
             };
-            let path = path.fill().color(color).events(ctxt, text.path_events());
+            let mut path = path.fill().color(color).events(ctxt, text.path_events());
+            *SetPosition::properties(&mut path) = spatial.position;
+            *SetOrientation::properties(&mut path) = spatial.orientation;
             path
         });
         path.into_drawn(draw)
