@@ -887,7 +887,7 @@ fn default_font(default_font_path: Option<&Path>) -> Result<Font, text::font::Er
             #[cfg(not(feature = "notosans"))]
             {
                 match crate::app::find_assets_path() {
-                    Err(_err) => return Err(font::Error::NoFont)?,
+                    Err(_err) => return Err(text::font::Error::NoFont)?,
                     Ok(assets) => font::default(&assets).map_err(conv_err)?,
                 }
             }
