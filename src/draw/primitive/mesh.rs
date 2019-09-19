@@ -19,13 +19,14 @@ pub struct Mesh<S = geom::scalar::Default> {
     orientation: orientation::Properties<S>,
     vertex_data_ranges: draw::IntermediaryVertexDataRanges,
     index_range: ops::Range<usize>,
-    min_index: usize,
+    min_intermediary_index: usize,
 }
 
 // A simple iterator for flattening a fixed-size array of indices.
 struct FlattenIndices<I> {
     iter: I,
     index: usize,
+    min_intermediary_index: usize,
     current: [usize; 3],
 }
 
@@ -40,7 +41,7 @@ impl Vertexless {
         I: IntoIterator<Item = geom::Tri<V>>,
         V: geom::Vertex + IntoVertex<S>,
     {
-        let min_index = mesh.vertex_data.points.len();
+        let min_intermediary_index = mesh.vertex_data.points.len();
         let mut vertex_data_ranges = draw::IntermediaryVertexDataRanges::default();
         let mut index_range = 0..0;
         vertex_data_ranges.points.start = mesh.vertex_data.points.len();
@@ -64,14 +65,14 @@ impl Vertexless {
             mesh.vertex_data.points.push(point);
             mesh.vertex_data.colors.push(color);
             mesh.vertex_data.tex_coords.push(tex_coords);
-            mesh.indices.push(i);
+            mesh.indices.push(min_intermediary_index + i);
         }
 
         vertex_data_ranges.points.end = mesh.vertex_data.points.len();
         vertex_data_ranges.colors.end = mesh.vertex_data.colors.len();
         vertex_data_ranges.tex_coords.end = mesh.vertex_data.tex_coords.len();
         index_range.end = mesh.indices.len();
-        Mesh::new(vertex_data_ranges, index_range, min_index)
+        Mesh::new(vertex_data_ranges, index_range, min_intermediary_index)
     }
 
     /// Describe the mesh with the given indexed vertices.
@@ -92,7 +93,7 @@ impl Vertexless {
         V::Item: IntoVertex<S>,
         I: IntoIterator<Item = [usize; 3]>,
     {
-        let min_index = mesh.vertex_data.points.len();
+        let min_intermediary_index = mesh.vertex_data.points.len();
         let mut vertex_data_ranges = draw::IntermediaryVertexDataRanges::default();
         vertex_data_ranges.points.start = mesh.vertex_data.points.len();
         vertex_data_ranges.colors.start = mesh.vertex_data.colors.len();
@@ -117,11 +118,12 @@ impl Vertexless {
         let iter = FlattenIndices {
             iter: indices.into_iter(),
             current: [0; 3],
+            min_intermediary_index,
             index: 3,
         };
         mesh.indices.extend(iter);
         index_range.end = mesh.indices.len();
-        Mesh::new(vertex_data_ranges, index_range, min_index)
+        Mesh::new(vertex_data_ranges, index_range, min_intermediary_index)
     }
 }
 
@@ -133,7 +135,7 @@ where
     fn new(
         vertex_data_ranges: draw::IntermediaryVertexDataRanges,
         index_range: ops::Range<usize>,
-        min_index: usize,
+        min_intermediary_index: usize,
     ) -> Self {
         let orientation = Default::default();
         let position = Default::default();
@@ -142,7 +144,7 @@ where
             position,
             vertex_data_ranges,
             index_range,
-            min_index,
+            min_intermediary_index,
         }
     }
 }
@@ -183,7 +185,7 @@ where
             position,
             vertex_data_ranges,
             index_range,
-            min_index,
+            min_intermediary_index,
         } = self;
 
         let dimensions = spatial::dimension::Properties::default();
@@ -193,7 +195,7 @@ where
             position,
         };
         let vertices = draw::properties::VerticesFromRanges::new(vertex_data_ranges, None);
-        let indices = draw::properties::IndicesFromRange::new(index_range, min_index);
+        let indices = draw::properties::IndicesFromRange::new(index_range, min_intermediary_index);
         (spatial, vertices, indices)
     }
 }
@@ -208,7 +210,7 @@ where
             if self.index < self.current.len() {
                 let ix = self.current[self.index];
                 self.index += 1;
-                return Some(ix);
+                return Some(self.min_intermediary_index + ix);
             }
             match self.iter.next() {
                 None => return None,
