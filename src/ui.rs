@@ -27,15 +27,15 @@ pub mod prelude {
 use self::conrod_core::text::rt::gpu_cache::CacheWriteErr;
 use self::conrod_vulkano::RendererCreationError;
 use crate::frame::{Frame, ViewFbo};
-use crate::vk;
+use crate::text::{font, Font};
 use crate::window::{self, Window};
-use crate::App;
+use crate::{vk, App};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt;
 use std::ops::Deref;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Arc, Mutex};
 use winit;
 
@@ -370,21 +370,8 @@ impl<'a> Builder<'a> {
         };
 
         // If no font was specified use one from the notosans crate, otherwise load the given font.
-        match default_font_path {
-            None => match app.assets_path() {
-                Err(_err) => return Err(text::font::Error::NoFont)?,
-                Ok(assets) => {
-                    let font = crate::text::font::default(&assets).map_err(|err| match err {
-                        crate::text::font::Error::Io(err) => text::font::Error::IO(err),
-                        crate::text::font::Error::NoFont => text::font::Error::NoFont,
-                    })?;
-                    ui.fonts_mut().insert(font);
-                }
-            },
-            Some(path) => {
-                ui.fonts_mut().insert_from_file(path)?;
-            }
-        }
+        let default_font = default_font(default_font_path.as_ref().map(|path| path.as_path()))?;
+        ui.fonts_mut().insert(default_font);
 
         Ok(ui)
     }
@@ -877,4 +864,38 @@ pub fn find_depth_format(device: Arc<vk::Device>) -> Option<vk::Format> {
         vk::Format::D32Sfloat_S8Uint,
     ];
     vk::find_supported_depth_image_format(device, &candidates)
+}
+
+// Retrieve the default font.
+//
+// Accepts an optional default font path if one was provided by the user.
+fn default_font(default_font_path: Option<&Path>) -> Result<Font, text::font::Error> {
+    // Convert the nannou text error to a conrod one.
+    fn conv_err(err: font::Error) -> text::font::Error {
+        match err {
+            font::Error::Io(err) => text::font::Error::IO(err),
+            font::Error::NoFont => text::font::Error::NoFont,
+        }
+    }
+
+    let font = match default_font_path {
+        None => {
+            #[cfg(feature = "notosans")]
+            {
+                font::default_notosans()
+            }
+            #[cfg(not(feature = "notosans"))]
+            {
+                match crate::app::find_assets_path() {
+                    Err(_err) => return Err(text::font::Error::NoFont)?,
+                    Ok(assets) => font::default(&assets).map_err(conv_err)?,
+                }
+            }
+        }
+        Some(path) => {
+            let font = font::from_file(path).map_err(conv_err)?;
+            font
+        }
+    };
+    Ok(font)
 }

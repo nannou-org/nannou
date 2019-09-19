@@ -164,8 +164,10 @@ pub fn default_directory(assets: &Path) -> PathBuf {
 ///
 /// Otherwise this will attempt to locate the `assets/fonts` directory. If the directory exists,
 /// the first font that is found will be loaded. If no fonts are found, an error is returned.
+#[allow(unreachable_code, unused_variables)]
 pub fn default(assets: &Path) -> Result<Font, Error> {
-    if cfg!(feature = "notosans") {
+    #[cfg(feature = "notosans")]
+    {
         return Ok(default_notosans());
     }
 

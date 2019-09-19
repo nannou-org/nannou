@@ -259,15 +259,16 @@ impl<'a> Builder<'a> {
     pub fn build(self, rect: geom::Rect) -> Text<'a> {
         let text = self.text;
         let layout = self.layout_builder.build();
+        #[allow(unreachable_code)]
         let font = layout.font.clone().unwrap_or_else(|| {
-            if cfg!(feature = "notosans") {
-                font::default_notosans()
-            } else {
-                let assets = crate::app::find_assets_path().expect(
-                    "failed to detect the assets directory when searching for a default font",
-                );
-                font::default(&assets).expect("failed to detect a default font")
+            #[cfg(feature = "notosans")]
+            {
+                return font::default_notosans();
             }
+            let assets = crate::app::find_assets_path().expect(
+                "failed to detect the assets directory when searching for a default font",
+            );
+            font::default(&assets).expect("failed to detect a default font")
         });
         let max_width = rect.w();
         let line_infos =
