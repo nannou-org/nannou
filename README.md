@@ -29,17 +29,20 @@ help out!
 - [**Why Nannou?**](https://www.guide.nannou.cc/why_nannou.html)
   - [**Goals**](https://www.guide.nannou.cc/why_nannou.html#goals)
   - [**Why Rust?**](https://www.guide.nannou.cc/why_nannou.html#why-rust)
+  - [**FOSS Licensing**](https://guide.nannou.cc/why_nannou.html#why-the-apachemit-dual-licensing)
 - [**Getting Started**](https://www.guide.nannou.cc/getting_started.html)
-  - [**Install Rust**](https://www.guide.nannou.cc/getting_started/installing_rust.html)
   - [**Platform-specific Setup**](https://www.guide.nannou.cc/getting_started/platform-specific_setup.html)
+  - [**Installing Rust**](https://www.guide.nannou.cc/getting_started/installing_rust.html)
   - [**Editor Setup**](https://www.guide.nannou.cc/getting_started/editor_setup.html)
   - [**Running Examples**](https://www.guide.nannou.cc/getting_started/running_examples.html)
   - [**Create A Project**](https://www.guide.nannou.cc/getting_started/create_a_project.html)
+  - [**Upgrading to a New Release**](https://guide.nannou.cc/getting_started/upgrading.html)
 - [**Tutorials**](https://www.guide.nannou.cc/tutorials.html)
 - [**Developer Reference**](https://www.guide.nannou.cc/developer_reference.html)
 - [**API Reference**](https://www.guide.nannou.cc/api_reference.html)
 - [**Showcases**](https://www.guide.nannou.cc/showcases.html)
 - [**Contributors**](https://www.guide.nannou.cc/contributors.html)
+- [**Code of Conduct**](https://guide.nannou.cc/code_of_conduct.html)
 
 ## Links
 
