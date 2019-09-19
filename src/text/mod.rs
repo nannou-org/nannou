@@ -265,9 +265,8 @@ impl<'a> Builder<'a> {
             {
                 return font::default_notosans();
             }
-            let assets = crate::app::find_assets_path().expect(
-                "failed to detect the assets directory when searching for a default font",
-            );
+            let assets = crate::app::find_assets_path()
+                .expect("failed to detect the assets directory when searching for a default font");
             font::default(&assets).expect("failed to detect a default font")
         });
         let max_width = rect.w();
