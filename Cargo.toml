@@ -99,6 +99,9 @@ path = "examples/simple_ui.rs"
 name = "simple_window"
 path = "examples/simple_window.rs"
 [[example]]
+name = "simple_loop"
+path = "examples/simple_loop.rs"
+[[example]]
 name = "template_app"
 path = "examples/template_app.rs"
 [[example]]
