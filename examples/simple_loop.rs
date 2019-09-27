@@ -8,7 +8,7 @@ use nannou::noise::*;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).update(update).run();
+    nannou::app(model).run();
 }
 
 struct Model {
@@ -20,37 +20,11 @@ fn model(app: &App) -> Model {
         .new_window()
         .with_dimensions(1024, 1024)
         .view(view)
-        .event(window_event)
         .build()
         .unwrap();
     let mut noise = Perlin::new();
     noise = noise.set_seed(1);
     Model { noise }
-}
-
-fn update(_app: &App, _model: &mut Model, _update: Update) {}
-
-fn window_event(_app: &App, _model: &mut Model, event: WindowEvent) {
-    match event {
-        KeyPressed(_key) => {}
-        KeyReleased(_key) => {}
-        MouseMoved(_pos) => {}
-        MousePressed(_button) => {}
-        MouseReleased(_button) => {}
-        MouseEntered => {}
-        MouseExited => {}
-        MouseWheel(_amount, _phase) => {}
-        Moved(_pos) => {}
-        Resized(_size) => {}
-        Touch(_touch) => {}
-        TouchPressure(_pressure) => {}
-        HoveredFile(_path) => {}
-        DroppedFile(_path) => {}
-        HoveredFileCancelled => {}
-        Focused => {}
-        Unfocused => {}
-        Closed => {}
-    }
 }
 
 fn view(app: &App, model: &Model, frame: &Frame) {
