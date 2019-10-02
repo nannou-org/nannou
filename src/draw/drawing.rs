@@ -256,6 +256,11 @@ where
         self.map_ty(|ty| SetColor::rgb(ty, r, g, b))
     }
 
+    /// Specify the color via `u8` red, green and blue channels.
+    pub fn rgb8(self, r: u8, g: u8, b: u8) -> Self {
+        self.map_ty(|ty| SetColor::rgb8(ty, r, g, b))
+    }
+
     /// Specify the color via red, green, blue and alpha channels.
     pub fn rgba(self, r: ColorScalar, g: ColorScalar, b: ColorScalar, a: ColorScalar) -> Self {
         self.map_ty(|ty| SetColor::rgba(ty, r, g, b, a))

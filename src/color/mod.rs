@@ -29,11 +29,19 @@ pub type Rgb<S = DefaultScalar> = Srgb<S>;
 /// the `palette` crate's generic `Rgb` type.
 pub type Rgba<S = DefaultScalar> = Srgba<S>;
 
+/// The same as `Rgb`, but with `u8`'s.
+pub type Rgb8 = Rgb<u8>;
+
 /// A short-hand constructor for `Rgb::new`.
 pub fn rgb<T>(r: T, g: T, b: T) -> Rgb<T>
 where
     T: Component,
 {
+    srgb(r, g, b)
+}
+
+/// A short-hand constructor for `Rgb::<u8>::new` .
+pub fn rgb8(r: u8, g: u8, b: u8) -> Rgb8 {
     srgb(r, g, b)
 }
 
