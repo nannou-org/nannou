@@ -141,7 +141,6 @@ fn view(_app: &App, model: &Model, frame: &RawFrame) {
         .add_commands()
         .begin_render_pass(
             model.framebuffers.borrow()[frame.swapchain_image_index()].clone(),
-            false,
             clear_values,
         )
         .unwrap()

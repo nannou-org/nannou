@@ -403,7 +403,7 @@ impl Renderer {
         // Submit the draw commands.
         frame
             .add_commands()
-            .begin_render_pass(view_fbo.expect_inner(), false, clear_values)?
+            .begin_render_pass(view_fbo.expect_inner(), clear_values)?
             .draw_indexed(
                 graphics_pipeline.clone(),
                 &dynamic_state,

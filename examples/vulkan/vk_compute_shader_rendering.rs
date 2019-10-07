@@ -169,7 +169,7 @@ fn view(app: &App, model: &Model, frame: &Frame) {
             push_constants,
         )
         .expect("failed to add `dispatch` command")
-        .begin_render_pass(model.view_fbo.borrow().expect_inner(), false, clear_values)
+        .begin_render_pass(model.view_fbo.borrow().expect_inner(), clear_values)
         .unwrap()
         .draw(
             model.pipeline.clone(),
