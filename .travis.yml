@@ -1,18 +1,36 @@
 language: rust
-before_script:
-- rustup component add rustfmt
 
 addons:
     apt:
         packages:
             - libasound2-dev
-rust:
-    - nightly
-    - beta
-    - stable
+matrix:
+    include:
+        - name: "Test nightly"
+          rust: nightly
+
+        - name: "Test beta"
+          rust: beta
+
+        - name: "Test stable"
+          rust: stable
+
+        - name: "Validate doc"
+          rust: stable
+          script:
+              - cargo doc --no-deps -v
+
+before_script:
+    - |
+      if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+        rustup component add rustfmt
+      fi
 
 script:
-    - cargo fmt --all -- --check
+    - |
+      if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+        cargo fmt --all -- --check
+      fi
     - cargo build -v
     - cargo test -v
-    - cargo doc -v
+
