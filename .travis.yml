@@ -23,7 +23,10 @@ matrix:
               - cargo doc --no-deps -v
 
 script:
-    - cargo fmt --all -- --check
+    - |
+      if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+        cargo fmt --all -- --check
+      fi
     - cargo build -v
     - cargo test -v
 
