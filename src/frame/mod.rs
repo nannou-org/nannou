@@ -183,11 +183,10 @@ impl Frame {
 
         // Resolve the MSAA if necessary.
         let clear_values = vec![vk::ClearValue::None, vk::ClearValue::None];
-        let is_secondary = false;
         if let Some(fbo) = data.intermediary.resolve_framebuffer.as_ref() {
             raw_frame
                 .add_commands()
-                .begin_render_pass(fbo.clone(), is_secondary, clear_values)?
+                .begin_render_pass(fbo.clone(), clear_values)?
                 .end_render_pass()
                 .expect("failed to add `end_render_pass` command");
         }

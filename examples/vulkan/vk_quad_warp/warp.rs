@@ -158,7 +158,7 @@ pub(crate) fn view(app: &App, model: &Model, inter_image: Arc<vk::AttachmentImag
 
     frame
         .add_commands()
-        .begin_render_pass(warp.view_fbo.borrow().expect_inner(), false, clear_values)
+        .begin_render_pass(warp.view_fbo.borrow().expect_inner(), clear_values)
         .expect("Failed to start render pass")
         .draw(
             warp.pipeline.clone(),

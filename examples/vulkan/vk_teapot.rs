@@ -210,7 +210,7 @@ fn view(app: &App, model: &Model, frame: &Frame) {
     // Submit the draw commands.
     frame
         .add_commands()
-        .begin_render_pass(graphics.view_fbo.expect_inner(), false, clear_values)
+        .begin_render_pass(graphics.view_fbo.expect_inner(), clear_values)
         .unwrap()
         .draw_indexed(
             graphics.graphics_pipeline.clone(),

@@ -277,7 +277,6 @@ fn view(app: &App, model: &Model, frame: &Frame) {
         .begin_render_pass(
             graphics.framebuffer.clone(),
             //graphics.framebuffers[frame.swapchain_image_index()].clone(),
-            false,
             clear_values,
         )
         .unwrap()

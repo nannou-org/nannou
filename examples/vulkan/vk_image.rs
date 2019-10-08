@@ -141,7 +141,7 @@ fn view(_app: &App, model: &Model, frame: &Frame) {
 
     frame
         .add_commands()
-        .begin_render_pass(model.view_fbo.borrow().expect_inner(), false, clear_values)
+        .begin_render_pass(model.view_fbo.borrow().expect_inner(), clear_values)
         .unwrap()
         .draw(
             model.pipeline.clone(),

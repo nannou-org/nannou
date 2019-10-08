@@ -261,19 +261,14 @@ impl<'a> AddCommands<'a> {
 
     /// Adds a command that enters a render pass.
     ///
-    /// If `secondary` is true, then you will only be able to add secondary command buffers while
-    /// you're inside the first subpass of the render pass. If `secondary` is false, you will only
-    /// be able to add inline draw commands and not secondary command buffers.
-    ///
     /// C must contain exactly one clear value for each attachment in the framebuffer.
     ///
     /// You must call this before you can add draw commands.
     ///
-    /// [*Documentation taken from the corresponding vulkano method.*](https://docs.rs/vulkano/latest/vulkano/command_buffer/struct.AutoCommandBufferBuilder.html)
+    /// [*Documentation adapted from the corresponding vulkano method.*](https://docs.rs/vulkano/latest/vulkano/command_buffer/struct.AutoCommandBufferBuilder.html)
     pub fn begin_render_pass<F, C>(
         self,
         framebuffer: F,
-        secondary: bool,
         clear_values: C,
     ) -> Result<Self, BeginRenderPassError>
     where
@@ -284,15 +279,12 @@ impl<'a> AddCommands<'a> {
             + Sync
             + 'static,
     {
-        self.map_cb(move |cb| cb.begin_render_pass(framebuffer, secondary, clear_values))
+        self.map_cb(move |cb| cb.begin_render_pass(framebuffer, false, clear_values))
     }
 
     /// Adds a command that jumps to the next subpass of the current render pass.
-    pub fn next_subpass(
-        self,
-        secondary: bool,
-    ) -> Result<Self, AutoCommandBufferBuilderContextError> {
-        self.map_cb(move |cb| cb.next_subpass(secondary))
+    pub fn next_subpass(self) -> Result<Self, AutoCommandBufferBuilderContextError> {
+        self.map_cb(move |cb| cb.next_subpass(false))
     }
 
     /// Adds a command that ends the current render pass.

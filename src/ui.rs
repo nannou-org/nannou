@@ -652,7 +652,7 @@ pub fn draw_primitives(
         let clear_values = vec![color, depth];
         frame
             .add_commands()
-            .begin_render_pass(view_fbo.expect_inner(), false, clear_values.clone())
+            .begin_render_pass(view_fbo.expect_inner(), clear_values.clone())
             .unwrap();
         for cmd in cmds {
             let conrod_vulkano::DrawCommand {
