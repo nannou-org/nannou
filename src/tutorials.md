@@ -25,7 +25,7 @@ A suite of tutorials for getting familiar with Rust and the Nannou environment.
 
 Working with Nannou's `Draw` API - a simple approach of coding graphics.
 
-- Drawing 2D shapes
+- [Drawing 2D shapes](/tutorials/basics/drawing-2d-shapes.md)
 - Drawing 3D shapes
 - Drawing images
 - Drawing meshes
