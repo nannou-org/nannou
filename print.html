@@ -914,7 +914,7 @@ fn model(_app: &amp;App) -&gt; Model {
 # fn main() {}
 </code></pre></pre>
 <p>You can learn more about what the <strong>App</strong> is responsible for and capable of
-<a href="https://docs.rs/nannou/0.9.0/nannou/app/struct.App.html">here</a>.</p>
+<a href="https://docs.rs/nannou/latest/nannou/app/struct.App.html">here</a>.</p>
 </blockquote>
 <h2><a class="header" href="#event---updating-the-model-on-app-events" id="event---updating-the-model-on-app-events"><strong>event</strong> - updating the Model on app events</a></h2>
 <pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
@@ -1040,7 +1040,7 @@ fn view(app: &amp;App, frame: &amp;Frame) {
 </code></pre>
 <p><img src="tutorials/basics/./images/2d-shape-ellipse.png" alt="An ellipse" /></p>
 <p>As you can see, we edit our ellipse by chaining together different methods which will change one or more properties of our shape.  This is called the <strong>Builder</strong> pattern.  The call to <code>draw.ellipse()</code> returns an object of type <code>Drawing&lt;Ellipse&gt;</code>.  In turn, each call to a builder method, such as <code>w(300.0)</code> or <code>x_y(200.0, -100.0)</code>, returns the same instance of our shape. By chaining these function calls, we are able to build an ellipse with the attributes we want.</p>
-<p>There are several more methods we can use to build our ellipse. You can view the documentation for many of these methods <a href="https://docs.rs/nannou/0.5.0/nannou/draw/struct.Drawing.html">here</a>.</p>
+<p>There are several more methods we can use to build our ellipse. You can view the documentation for many of these methods <a href="https://docs.rs/nannou/latest/nannou/draw/struct.Drawing.html">here</a>.</p>
 <h3><a class="header" href="#drawing-rectangles-and-quadrilaterals" id="drawing-rectangles-and-quadrilaterals">Drawing Rectangles and Quadrilaterals</a></h3>
 <p>Drawing a square or rectangle uses the same builder pattern that drawing an ellipse does.  In fact, it's similar enough that you can swap out <code>ellipse</code> with <code>rect</code> in the example above to get a working example:</p>
 <pre><code>draw.rect().color(STEELBLUE)
