@@ -204,7 +204,7 @@ will just return an instance of our empty **Model**.
 > ```
 >
 > You can learn more about what the **App** is responsible for and capable of
-> [here](https://docs.rs/nannou/0.9.0/nannou/app/struct.App.html).
+> [here](https://docs.rs/nannou/latest/nannou/app/struct.App.html).
 
 ## **event** - updating the Model on app events
 
