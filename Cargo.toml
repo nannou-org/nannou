@@ -443,6 +443,18 @@ path = "examples/nature_of_code/chp_04_systems/4_10_exercise_particle_repel.rs"
 [[example]]
 name = "6_01_seek"
 path = "examples/nature_of_code/chp_06_agents/6_01_seek.rs"
+[[example]] 
+name = "6_01_seek_trail" 
+path = "examples/nature_of_code/chp_06_agents/6_01_seek_trail.rs"
+[[example]] 
+name = "6_02_arrive" 
+path = "examples/nature_of_code/chp_06_agents/6_02_arrive.rs"
+[[example]] 
+name = "6_03_stay_within_walls" 
+path = "examples/nature_of_code/chp_06_agents/6_03_stay_within_walls.rs"
+[[example]] 
+name = "6_03_stay_within_walls_trail" 
+path = "examples/nature_of_code/chp_06_agents/6_03_stay_within_walls_trail.rs"
 # --------------- Chapter 7 Cellular Automata
 [[example]]
 name = "7_01_wolfram_ca_figures"

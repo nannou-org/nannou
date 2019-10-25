@@ -2,13 +2,15 @@
 // Daniel Shiffman
 // http://natureofcode.com
 
-// Seeking "vehicle" follows the mouse position
+// Stay Within Walls
+// "Made-up" Steering behavior to stay within walls
 
 // Implements Craig Reynold's autonomous steering behaviors
 // One vehicle "seeks"
 // See: http://www.red3d.com/cwr/
 use nannou::prelude::*;
 use nannou::Draw;
+use std::collections::VecDeque;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -16,9 +18,12 @@ fn main() {
 
 struct Model {
     vehicle: Vehicle,
+    debug: bool,
+    d: f32,
 }
 
 struct Vehicle {
+    history: VecDeque<Vector2>,
     position: Vector2,
     velocity: Vector2,
     acceleration: Vector2,
@@ -31,14 +36,16 @@ struct Vehicle {
 
 impl Vehicle {
     fn new(x: f32, y: f32) -> Self {
+        let history = VecDeque::<Vector2>::with_capacity(100);
         let position = vec2(x, y);
-        let velocity = vec2(0.0, -2.0);
+        let velocity = vec2(3.0, -2.0);
         let acceleration = vec2(0.0, 0.0);
         let r = 6.0;
-        let max_force = 0.1;
-        let max_speed = 4.0;
+        let max_force = 0.15;
+        let max_speed = 3.0;
 
         Vehicle {
+            history,
             position,
             velocity,
             acceleration,
@@ -57,11 +64,36 @@ impl Vehicle {
         self.position += self.velocity;
         // Reset accelerationelertion to 0 each cycle
         self.acceleration *= 0.0;
+        self.history.push_back(self.position);
+        if self.history.len() > 500 {
+            self.history.pop_front();
+        }
     }
 
     fn apply_force(&mut self, force: Vector2) {
         // We could add mass here if we want A = F / M
         self.acceleration += force;
+    }
+
+    fn boundaries(&mut self, d: f32, win: &Rect) {
+        let left = win.left() + d;
+        let right = win.right() - d;
+        let top = win.top() - d;
+        let bottom = win.bottom() + d;
+
+        let desired = match self.position {
+            Vector2 { x, .. } if x < left => Some(vec2(self.max_speed, self.velocity.y)),
+            Vector2 { x, .. } if x > right => Some(vec2(-self.max_speed, self.velocity.y)),
+            Vector2 { y, .. } if y < bottom => Some(vec2(self.velocity.x, self.max_speed)),
+            Vector2 { y, .. } if y > top => Some(vec2(self.velocity.x, -self.max_speed)),
+            _ => None,
+        };
+
+        if let Some(desired) = desired {
+            let desired = desired.normalize() * self.max_speed;
+            let steer = (desired - self.velocity).limit_magnitude(self.max_force);
+            self.apply_force(steer);
+        }
     }
 }
 
@@ -69,15 +101,18 @@ fn model(app: &App) -> Model {
     app.new_window()
         .with_dimensions(640, 360)
         .view(view)
+        .mouse_pressed(mouse_pressed)
         .build()
         .unwrap();
     let middle = app.window_rect().xy();
     let vehicle = Vehicle::new(middle.x, middle.y);
-    Model { vehicle }
+    let debug = false;
+    let d = 25.0;
+    Model { vehicle, debug, d }
 }
 
 fn update(app: &App, m: &mut Model, _update: Update) {
-    seek(&mut m.vehicle, app.mouse.position());
+    m.vehicle.boundaries(m.d, &app.window_rect());
     m.vehicle.update();
 }
 
@@ -86,14 +121,15 @@ fn view(app: &App, m: &Model, frame: &Frame) {
     let draw = app.draw();
     draw.background().color(WHITE);
 
-    let mouse = vec2(app.mouse.x, app.mouse.y);
-
-    draw.ellipse()
-        .x_y(mouse.x, mouse.y)
-        .radius(48.0)
-        .rgb(0.78, 0.78, 0.78)
-        .stroke(rgb(0.0, 0.0, 0.0))
-        .stroke_weight(2.0);
+    let win = app.window_rect();
+    if m.debug {
+        draw.rect()
+            .x_y(win.x(), win.y())
+            .w(win.w() - m.d * 2.0)
+            .h(win.h() - m.d * 2.0)
+            .no_fill()
+            .stroke(GREY);
+    }
 
     display(&m.vehicle, &draw);
 
@@ -101,36 +137,27 @@ fn view(app: &App, m: &Model, frame: &Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-// A method that calculates a steering force towards a target
-// STEER = DESIRED MINUS VELOCITY
-fn seek(vehicle: &mut Vehicle, target: Point2) {
-    let steer = {
-        let Vehicle {
-            ref position,
-            ref velocity,
-            ref max_speed,
-            ref max_force,
-            ..
-        } = vehicle;
-        // A vector pointing from the position to the target
-        // Scale to maximum speed
-        let desired = (target - *position).with_magnitude(*max_speed);
-
-        // Steering = Desired minus velocity
-        // Limit to maximum steering force
-        (desired - *velocity).limit_magnitude(*max_force)
-    };
-
-    vehicle.apply_force(steer);
-}
-
 fn display(vehicle: &Vehicle, draw: &Draw) {
     let Vehicle {
+        history,
         position,
         velocity,
         r,
         ..
     } = vehicle;
+
+    if history.len() > 1 {
+        let vertices = history
+            .iter()
+            .map(|v| pt2(v.x, v.y))
+            .enumerate()
+            .map(|(_, p)| {
+                let rgba = srgba(0.0, 0.0, 0.0, 1.0);
+                (p, rgba)
+            });
+        draw.polyline().weight(1.0).colored_points(vertices);
+    }
+
     // Draw a triangle rotated in the direction of velocity
     // This calculation is wrong
     let theta = (velocity.angle() + PI / 2.0) * -1.0;
@@ -142,4 +169,8 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
         .xy(*position)
         .rgb(0.5, 0.5, 0.5)
         .rotate(theta);
+}
+
+fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {
+    m.debug = !m.debug;
 }
