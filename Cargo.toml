@@ -1,6 +1,6 @@
 [package]
 name = "nannou"
-version = "0.11.1"
+version = "0.12.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A Creative Coding Framework for Rust."
 readme = "README.md"
@@ -16,9 +16,9 @@ default = ["notosans"]
 [dependencies]
 approx = "0.1"
 cgmath = { version = "0.16", features = ["serde"] }
-conrod_core = "0.67"
-conrod_winit = "0.67"
-conrod_vulkano = "0.67"
+conrod_core = "0.68"
+conrod_winit = "0.68"
+conrod_vulkano = "0.68"
 daggy = "0.6"
 find_folder = "0.3"
 image = "0.21"
@@ -33,9 +33,9 @@ serde = "1"
 serde_derive = "1"
 serde_json = "1"
 toml = "0.4"
-vulkano = "0.14"
-vulkano-win = "0.14"
-vulkano-shaders = "0.14"
+vulkano = "0.16"
+vulkano-win = "0.16"
+vulkano-shaders = "0.16"
 walkdir = "2"
 winit = "0.19"
 
@@ -44,7 +44,7 @@ audrey = "0.2"
 nannou_audio = "0.2"
 nannou_laser = "0.3"
 nannou_osc = "0.1"
-shade_runner = "0.2"
+shade_runner = { git = "https://github.com/mitchmindtree/shade_runner", branch = "update_vulkano" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 moltenvk_deps = "0.1"

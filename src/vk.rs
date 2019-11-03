@@ -120,7 +120,7 @@ pub use vulkano_win as win;
 
 use crate::vk;
 use crate::vk::instance::debug::{
-    DebugCallback, DebugCallbackCreationError, Message, MessageTypes,
+    DebugCallback, DebugCallbackCreationError, Message, MessageSeverity, MessageType,
 };
 use crate::vk::instance::loader::{FunctionPointers, Loader};
 use std::borrow::Cow;
@@ -177,7 +177,8 @@ pub struct InstanceBuilder {
 /// A builder struct that makes the process of building a debug callback more modular.
 #[derive(Default)]
 pub struct DebugCallbackBuilder {
-    pub message_types: Option<MessageTypes>,
+    pub message_type: Option<MessageType>,
+    pub message_severity: Option<MessageSeverity>,
     pub user_callback: Option<BoxedUserCallback>,
 }
 
@@ -330,7 +331,7 @@ impl InstanceBuilder {
                 e.khr_wayland_surface |= ext.khr_wayland_surface;
                 e.khr_android_surface |= ext.khr_android_surface;
                 e.khr_win32_surface |= ext.khr_win32_surface;
-                e.ext_debug_report |= ext.ext_debug_report;
+                e.ext_debug_utils |= ext.ext_debug_utils;
                 e.mvk_ios_surface |= ext.mvk_ios_surface;
                 e.mvk_macos_surface |= ext.mvk_macos_surface;
                 e.mvk_moltenvk |= ext.mvk_moltenvk;
@@ -394,11 +395,19 @@ impl DebugCallbackBuilder {
         Default::default()
     }
 
+    /// The severity of messages emitted via the debug callback.
+    ///
+    /// If unspecified, nannou will use `MessageType::errors_and_warnings`.
+    pub fn message_severity(mut self, msg_sev: MessageSeverity) -> Self {
+        self.message_severity = Some(msg_sev);
+        self
+    }
+
     /// The message types to be emitted to the debug callback.
     ///
-    /// If unspecified, nannou will use `MessageTypes::errors_and_warnings`.
-    pub fn message_types(mut self, msg_tys: MessageTypes) -> Self {
-        self.message_types = Some(msg_tys);
+    /// If unspecified, nannou will use `MessageType::errors_and_warnings`.
+    pub fn message_type(mut self, msg_ty: MessageType) -> Self {
+        self.message_type = Some(msg_ty);
         self
     }
 
@@ -419,39 +428,43 @@ impl DebugCallbackBuilder {
         instance: &Arc<Instance>,
     ) -> Result<DebugCallback, DebugCallbackCreationError> {
         let DebugCallbackBuilder {
-            message_types,
+            message_severity,
+            message_type,
             user_callback,
         } = self;
-        let message_types = message_types.unwrap_or_else(|| MessageTypes {
-            error: true,
-            warning: true,
-            performance_warning: true,
-            information: true,
-            debug: true,
-        });
+        let message_severity = message_severity.unwrap_or_else(MessageSeverity::errors_and_warnings);
+        let message_type = message_type.unwrap_or_else(MessageType::all);
         let user_callback = move |msg: &Message| {
             match user_callback {
                 Some(ref cb) => (**cb)(msg),
                 None => {
-                    let ty = if msg.ty.error {
+                    let sev = if msg.severity.error {
                         "error"
-                    } else if msg.ty.warning {
+                    } else if msg.severity.warning {
                         "warning"
-                    } else if msg.ty.performance_warning {
-                        "performance_warning"
-                    } else if msg.ty.information {
+                    } else if msg.severity.information {
                         "information"
-                    } else if msg.ty.debug {
-                        "debug"
+                    } else if msg.severity.verbose {
+                        "verbose"
                     } else {
-                        println!("[vulkan] <unknown message type>");
-                        return;
+                        "<unknown severity>"
                     };
-                    println!("[vulkan] {} {}: {}", msg.layer_prefix, ty, msg.description);
+
+                    let ty = if msg.ty.general {
+                        "general"
+                    } else if msg.ty.validation {
+                        "validation"
+                    } else if msg.ty.performance {
+                        "performance"
+                    } else {
+                        "unknown type"
+                    };
+
+                    println!("[vulkan] {} {} {}: {}", msg.layer_prefix, ty, sev, msg.description);
                 }
             };
         };
-        DebugCallback::new(instance, message_types, user_callback)
+        DebugCallback::new(instance, message_severity, message_type, user_callback)
     }
 }
 
