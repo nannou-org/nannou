@@ -432,7 +432,8 @@ impl DebugCallbackBuilder {
             message_type,
             user_callback,
         } = self;
-        let message_severity = message_severity.unwrap_or_else(MessageSeverity::errors_and_warnings);
+        let message_severity =
+            message_severity.unwrap_or_else(MessageSeverity::errors_and_warnings);
         let message_type = message_type.unwrap_or_else(MessageType::all);
         let user_callback = move |msg: &Message| {
             match user_callback {
@@ -460,7 +461,10 @@ impl DebugCallbackBuilder {
                         "unknown type"
                     };
 
-                    println!("[vulkan] {} {} {}: {}", msg.layer_prefix, ty, sev, msg.description);
+                    println!(
+                        "[vulkan] {} {} {}: {}",
+                        msg.layer_prefix, ty, sev, msg.description
+                    );
                 }
             };
         };

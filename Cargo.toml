@@ -44,7 +44,7 @@ audrey = "0.2"
 nannou_audio = "0.2"
 nannou_laser = "0.3"
 nannou_osc = "0.1"
-shade_runner = { git = "https://github.com/mitchmindtree/shade_runner", branch = "update_vulkano" }
+shade_runner = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 moltenvk_deps = "0.1"
