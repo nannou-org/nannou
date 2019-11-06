@@ -554,7 +554,7 @@ where
 
                 vk_builder
                     .add_extensions(vk::InstanceExtensions {
-                        ext_debug_report: true,
+                        ext_debug_utils: true,
                         ..vk::InstanceExtensions::none()
                     })
                     .layers(vec!["VK_LAYER_LUNARG_standard_validation"])

@@ -4,6 +4,7 @@ addons:
     apt:
         packages:
             - libasound2-dev
+            - libxcb-composite0-dev
 matrix:
     include:
         - name: "Test nightly"
