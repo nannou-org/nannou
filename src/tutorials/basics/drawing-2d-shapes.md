@@ -240,4 +240,3 @@ shapes or polygons with Nannou, but it should serve as a solid starting point in
 creating your own drawings.
 
 Happy coding!
-
