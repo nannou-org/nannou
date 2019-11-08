@@ -2,13 +2,14 @@
 // Daniel Shiffman
 // http://natureofcode.com
 
-// Seeking "vehicle" follows the mouse position
+// Seek_Arrive
 
 // Implements Craig Reynold's autonomous steering behaviors
 // One vehicle "seeks"
 // See: http://www.red3d.com/cwr/
 use nannou::prelude::*;
 use nannou::Draw;
+use std::collections::VecDeque;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -19,6 +20,7 @@ struct Model {
 }
 
 struct Vehicle {
+    history: VecDeque<Vector2>,
     position: Vector2,
     velocity: Vector2,
     acceleration: Vector2,
@@ -31,6 +33,7 @@ struct Vehicle {
 
 impl Vehicle {
     fn new(x: f32, y: f32) -> Self {
+        let history = VecDeque::<Vector2>::with_capacity(100);
         let position = vec2(x, y);
         let velocity = vec2(0.0, -2.0);
         let acceleration = vec2(0.0, 0.0);
@@ -39,6 +42,7 @@ impl Vehicle {
         let max_speed = 4.0;
 
         Vehicle {
+            history,
             position,
             velocity,
             acceleration,
@@ -51,12 +55,14 @@ impl Vehicle {
     // Method to update position
     fn update(&mut self) {
         // Update velocity
-        self.velocity += self.acceleration;
-        // Limit speed
-        self.velocity.limit_magnitude(self.max_speed);
+        self.velocity = (self.velocity + self.acceleration).limit_magnitude(self.max_speed);
         self.position += self.velocity;
         // Reset accelerationelertion to 0 each cycle
         self.acceleration *= 0.0;
+        self.history.push_back(self.position);
+        if self.history.len() > 100 {
+            self.history.pop_front();
+        }
     }
 
     fn apply_force(&mut self, force: Vector2) {
@@ -89,21 +95,19 @@ fn view(app: &App, m: &Model, frame: &Frame) {
     let mouse = vec2(app.mouse.x, app.mouse.y);
 
     draw.ellipse()
+        // Missing Stroke
         .x_y(mouse.x, mouse.y)
         .radius(48.0)
-        .rgb(0.78, 0.78, 0.78)
-        .stroke(rgb(0.0, 0.0, 0.0))
-        .stroke_weight(2.0);
-
+        .rgb(0.78, 0.78, 0.78);
     display(&m.vehicle, &draw);
 
-    // Write the result of our drawing to the window's frame.
+    // Write the result of our drawing to the window's OpenGL frame.
     draw.to_frame(app, &frame).unwrap();
 }
 
 // A method that calculates a steering force towards a target
 // STEER = DESIRED MINUS VELOCITY
-fn seek(vehicle: &mut Vehicle, target: Point2) {
+fn seek(vehicle: &mut Vehicle, target: Vector2) {
     let steer = {
         let Vehicle {
             ref position,
@@ -113,8 +117,8 @@ fn seek(vehicle: &mut Vehicle, target: Point2) {
             ..
         } = vehicle;
         // A vector pointing from the position to the target
-        // Scale to maximum speed
-        let desired = (target - *position).with_magnitude(*max_speed);
+        // Normalize desired and scale to maximum speed
+        let desired = (target - *position).normalize().map(|i| i * max_speed);
 
         // Steering = Desired minus velocity
         // Limit to maximum steering force
@@ -126,11 +130,25 @@ fn seek(vehicle: &mut Vehicle, target: Point2) {
 
 fn display(vehicle: &Vehicle, draw: &Draw) {
     let Vehicle {
+        history,
         position,
         velocity,
         r,
         ..
     } = vehicle;
+
+    if history.len() > 1 {
+        let vertices = history
+            .iter()
+            .map(|v| pt2(v.x, v.y))
+            .enumerate()
+            .map(|(_, p)| {
+                let rgba = srgba(0.0, 0.0, 0.0, 1.0);
+                (p, rgba)
+            });
+        draw.polyline().weight(1.0).colored_points(vertices);
+    }
+
     // Draw a triangle rotated in the direction of velocity
     // This calculation is wrong
     let theta = (velocity.angle() + PI / 2.0) * -1.0;

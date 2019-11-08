@@ -225,6 +225,16 @@ path = "examples/generative_design/shape/p_2_1_2_03.rs"
 [[example]]
 name = "p_2_1_2_04"
 path = "examples/generative_design/shape/p_2_1_2_04.rs"
+# --------------- Random and Noise
+[[example]]
+name = "m_1_1_01"
+path = "examples/generative_design/random_and_noise/m_1_1_01.rs"
+[[example]]
+name = "m_1_2_01"
+path = "examples/generative_design/random_and_noise/m_1_2_01.rs"
+[[example]]
+name = "m_1_3_01"
+path = "examples/generative_design/random_and_noise/m_1_3_01.rs"
 # --------------- Oscillation Figures
 [[example]]
 name = "m_2_1_01"
@@ -352,6 +362,12 @@ path = "examples/nature_of_code/chp_03_oscillation/3_06_simple_harmonic_motion.r
 name = "3_07_oscillating_objects"
 path = "examples/nature_of_code/chp_03_oscillation/3_07_oscillating_objects.rs"
 [[example]]
+name = "3_08_static_wave_lines"
+path = "examples/nature_of_code/chp_03_oscillation/3_08_static_wave_lines.rs"
+[[example]]
+name = "3_09_exercise_additive_wave"
+path = "examples/nature_of_code/chp_03_oscillation/3_09_exercise_additive_wave.rs"
+[[example]]
 name = "3_09_wave_a"
 path = "examples/nature_of_code/chp_03_oscillation/3_09_wave_a.rs"
 [[example]]
@@ -364,8 +380,32 @@ path = "examples/nature_of_code/chp_03_oscillation/3_09_wave_c.rs"
 name = "3_09_wave"
 path = "examples/nature_of_code/chp_03_oscillation/3_09_wave.rs"
 [[example]]
+name = "3_10_pendulum_example_simplified"
+path = "examples/nature_of_code/chp_03_oscillation/3_10_pendulum_example_simplified.rs"
+[[example]]
+name = "3_10_pendulum_example"
+path = "examples/nature_of_code/chp_03_oscillation/3_10_pendulum_example.rs"
+[[example]]
+name = "3_11_spring"
+path = "examples/nature_of_code/chp_03_oscillation/3_11_spring.rs"
+[[example]]
 name = "3_10_exercise_oop_wave"
 path = "examples/nature_of_code/chp_03_oscillation/3_10_exercise_oop_wave.rs"
+[[example]]
+name = "3_11_exercise_additive_wave"
+path = "examples/nature_of_code/chp_03_oscillation/3_11_exercise_additive_wave.rs"
+[[example]]
+name = "3_16_exercise_springs"
+path = "examples/nature_of_code/chp_03_oscillation/3_16_exercise_springs.rs"
+[[example]]
+name = "3_16_exercise_springs_array"
+path = "examples/nature_of_code/chp_03_oscillation/3_16_exercise_springs_array.rs"
+[[example]]
+name = "3_exercise_spring_sine"
+path = "examples/nature_of_code/chp_03_oscillation/3_exercise_spring_sine.rs"
+[[example]]
+name = "3_extra_oscillating_body"
+path = "examples/nature_of_code/chp_03_oscillation/3_extra_oscillating_body.rs"
 [[example]]
 name = "3_extra_oscillating_up_and_down"
 path = "examples/nature_of_code/chp_03_oscillation/3_extra_oscillating_up_and_down.rs"
@@ -380,6 +420,9 @@ path = "examples/nature_of_code/chp_03_oscillation/3_oop_wave_particles.rs"
 name = "4_01_single_particle"
 path = "examples/nature_of_code/chp_04_systems/4_01_single_particle.rs"
 [[example]]
+name = "4_01_single_particle_trail"
+path = "examples/nature_of_code/chp_04_systems/4_01_single_particle_trail.rs"
+[[example]]
 name = "4_02_vector_particle"
 path = "examples/nature_of_code/chp_04_systems/4_02_vector_particle.rs"
 [[example]]
@@ -388,10 +431,43 @@ path = "examples/nature_of_code/chp_04_systems/4_03_particle_system_type.rs"
 [[example]]
 name = "4_04_system_of_systems"
 path = "examples/nature_of_code/chp_04_systems/4_04_system_of_systems.rs"
+[[example]]
+name = "4_05_particle_system_inheritance_polymorphism"
+path = "examples/nature_of_code/chp_04_systems/4_05_particle_system_inheritance_polymorphism.rs"
+[[example]]
+name = "4_06_particle_system_forces"
+path = "examples/nature_of_code/chp_04_systems/4_06_particle_system_forces.rs"
+[[example]]
+name = "4_07_particle_system_forces_repeller"
+path = "examples/nature_of_code/chp_04_systems/4_07_particle_system_forces_repeller.rs"
+[[example]]
+name = "4_03_exercise_moving_particle_system"
+path = "examples/nature_of_code/chp_04_systems/4_03_exercise_moving_particle_system.rs"
+[[example]]
+name = "4_06_exercise_shatter"
+path = "examples/nature_of_code/chp_04_systems/4_06_exercise_shatter.rs"
+[[example]]
+name = "4_10_exercise_particle_intersection"
+path = "examples/nature_of_code/chp_04_systems/4_10_exercise_particle_intersection.rs"
+[[example]]
+name = "4_10_exercise_particle_repel"
+path = "examples/nature_of_code/chp_04_systems/4_10_exercise_particle_repel.rs"
 # --------------- Chapter 6 Agents
 [[example]]
 name = "6_01_seek"
 path = "examples/nature_of_code/chp_06_agents/6_01_seek.rs"
+[[example]] 
+name = "6_01_seek_trail" 
+path = "examples/nature_of_code/chp_06_agents/6_01_seek_trail.rs"
+[[example]] 
+name = "6_02_arrive" 
+path = "examples/nature_of_code/chp_06_agents/6_02_arrive.rs"
+[[example]] 
+name = "6_03_stay_within_walls" 
+path = "examples/nature_of_code/chp_06_agents/6_03_stay_within_walls.rs"
+[[example]] 
+name = "6_03_stay_within_walls_trail" 
+path = "examples/nature_of_code/chp_06_agents/6_03_stay_within_walls_trail.rs"
 # --------------- Chapter 7 Cellular Automata
 [[example]]
 name = "7_01_wolfram_ca_figures"
@@ -408,7 +484,12 @@ path = "examples/nature_of_code/chp_07_cellular_automata/7_03_game_of_life_oop.r
 [[example]]
 name = "7_04_exercise_wolfram_ca_scrolling"
 path = "examples/nature_of_code/chp_07_cellular_automata/7_04_exercise_wolfram_ca_scrolling.rs"
-
+[[example]]
+name = "7_game_of_life_wrap_around"
+path = "examples/nature_of_code/chp_07_cellular_automata/7_game_of_life_wrap_around.rs"
+[[example]]
+name = "7_hexagon_cells"
+path = "examples/nature_of_code/chp_07_cellular_automata/7_hexagon_cells.rs"
 # --------------- Chapter 8 Fractals
 [[example]] 
 name = "8_1_recursion" 
@@ -422,6 +503,16 @@ path = "examples/nature_of_code/chp_08_fractals/8_3_recursion.rs"
 [[example]] 
 name = "8_4_cantor_set" 
 path = "examples/nature_of_code/chp_08_fractals/8_4_cantor_set.rs"
+# --------------- Chapter 10 Neural Networks
+[[example]] 
+name = "10_01_simple_perceptron" 
+path = "examples/nature_of_code/chp_10_neural_networks/10_01_simple_perceptron.rs"
+[[example]] 
+name = "10_02_seeking_neural" 
+path = "examples/nature_of_code/chp_10_neural_networks/10_02_seeking_neural.rs"
+[[example]] 
+name = "10_03_network_viz" 
+path = "examples/nature_of_code/chp_10_neural_networks/10_03_network_viz.rs"
 
 # --------------- Offline examples
 [[example]]

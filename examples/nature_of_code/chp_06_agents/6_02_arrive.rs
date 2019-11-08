@@ -2,10 +2,7 @@
 // Daniel Shiffman
 // http://natureofcode.com
 
-// Seeking "vehicle" follows the mouse position
-
-// Implements Craig Reynold's autonomous steering behaviors
-// One vehicle "seeks"
+// One vehicle "arrives"
 // See: http://www.red3d.com/cwr/
 use nannou::prelude::*;
 use nannou::Draw;
@@ -32,7 +29,7 @@ struct Vehicle {
 impl Vehicle {
     fn new(x: f32, y: f32) -> Self {
         let position = vec2(x, y);
-        let velocity = vec2(0.0, -2.0);
+        let velocity = vec2(0.0, 0.0);
         let acceleration = vec2(0.0, 0.0);
         let r = 6.0;
         let max_force = 0.1;
@@ -77,7 +74,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, m: &mut Model, _update: Update) {
-    seek(&mut m.vehicle, app.mouse.position());
+    arrive(&mut m.vehicle, app.mouse.position());
     m.vehicle.update();
 }
 
@@ -90,7 +87,7 @@ fn view(app: &App, m: &Model, frame: &Frame) {
 
     draw.ellipse()
         .x_y(mouse.x, mouse.y)
-        .radius(48.0)
+        .radius(24.0)
         .rgb(0.78, 0.78, 0.78)
         .stroke(rgb(0.0, 0.0, 0.0))
         .stroke_weight(2.0);
@@ -103,7 +100,7 @@ fn view(app: &App, m: &Model, frame: &Frame) {
 
 // A method that calculates a steering force towards a target
 // STEER = DESIRED MINUS VELOCITY
-fn seek(vehicle: &mut Vehicle, target: Point2) {
+fn arrive(vehicle: &mut Vehicle, target: Vector2) {
     let steer = {
         let Vehicle {
             ref position,
@@ -113,8 +110,15 @@ fn seek(vehicle: &mut Vehicle, target: Point2) {
             ..
         } = vehicle;
         // A vector pointing from the position to the target
-        // Scale to maximum speed
-        let desired = (target - *position).with_magnitude(*max_speed);
+        // Normalize desired and scale to maximum speed
+        let desired = target - *position;
+        let magnitude = desired.magnitude();
+        let damped_mag = if magnitude < 100.0 {
+            map_range(magnitude, 0.0, 100.0, 0.0, *max_speed)
+        } else {
+            *max_speed
+        };
+        let desired = desired.with_magnitude(damped_mag);
 
         // Steering = Desired minus velocity
         // Limit to maximum steering force
