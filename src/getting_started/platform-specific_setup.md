@@ -42,6 +42,8 @@ Depending on what OS you are running, you might require an extra step or two.
   2. Place the `ninja.exe` file somewhere you are happy for it to stay.
   3. Add the directory containing `ninja.exe` to your `Path` environment
      variable if it is not already included.
+  4. Donwload [cmake](https://cmake.org/download/)
+  5. Download and install [Python](https://www.python.org/downloads/windows/)
 
 - **Linux**: ensure you have the following system packages installed:
 
