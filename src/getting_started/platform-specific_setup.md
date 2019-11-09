@@ -142,9 +142,14 @@ Depending on what OS you are running, you might require an extra step or two.
     sudo apt-get install nvidia-graphics-drivers-396 nvidia-settings vulkan vulkan-utils
     ```
 
-    For Arch with AMD or Intel graphic cards:
+    For Arch with AMD graphic cards:
     ```bash
     sudo pacman -S vulkan-radeon lib32-vulkan-radeon
+    ```
+    
+    For Arch with Intel graphics card:
+    ```bash
+    sudo pacman -S vulkan-intel
     ```
 
     For Arch with NVIDIA graphic cards:
