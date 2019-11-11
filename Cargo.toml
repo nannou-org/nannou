@@ -171,6 +171,9 @@ path = "examples/vulkan/vk_debug.rs"
 [[example]]
 name = "vk_hotload"
 path = "examples/vulkan/vk_hotload.rs"
+[[example]]
+name = "vk_fluidsim"
+path = "examples/vulkan/vk_cpu_sim_fluid.rs"
 
 # --------------- Generative Design
 [[example]]
