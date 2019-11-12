@@ -1,18 +1,18 @@
 //! A crude port of Daniel Shiffman's Fluid Simulation [Coding Challenge](https://www.youtube.com/watch?v=alhpH6ECFvQ)
 //!
 //! Actual simulation code is ported from [Mike Ash's thesis](https://mikeash.com/pyblog/fluid-simulation-for-dummies.html) by D.Shiffman
-//! 
+//!
 //! The example actually makes use of Vulkan for drawing the density data. In order to do that we introduce a texture, dynamically
 //! created by the CPU and fed into as a uniform.
-//! 
+//!
 //! This also uses Perlin noise to create velocity vectors.
-//! 
-//! 
-//! 
+//!
+//!
+//!
 
-use nannou::prelude::*;
-use nannou::noise::{NoiseFn, Perlin};
 use nannou::math::Rad;
+use nannou::noise::{NoiseFn, Perlin};
+use nannou::prelude::*;
 use std::cell::RefCell;
 use std::sync::Arc;
 
@@ -81,15 +81,11 @@ fn model(app: &App) -> Model {
 
     let vertex_buffer = {
         // Cover the whole viewport space with two triangles.
-        let positions = [
-            [-1.0, -1.0],
-            [-1.0,  1.0],
-            [ 1.0, -1.0],
-            [ 1.0,  1.0],
-        ];
-        let vertices = positions.iter().map(|&position| Vertex {position});
+        let positions = [[-1.0, -1.0], [-1.0, 1.0], [1.0, -1.0], [1.0, 1.0]];
+        let vertices = positions.iter().map(|&position| Vertex { position });
 
-        vk::CpuAccessibleBuffer::from_iter(device.clone(), vk::BufferUsage::all(), vertices).unwrap()
+        vk::CpuAccessibleBuffer::from_iter(device.clone(), vk::BufferUsage::all(), vertices)
+            .unwrap()
     };
 
     let vertex_shader = vs::Shader::load(device.clone()).unwrap();
@@ -118,7 +114,7 @@ fn model(app: &App) -> Model {
         vk::GraphicsPipeline::start()
             .vertex_input_single_buffer::<Vertex>()
             .vertex_shader(vertex_shader.main_entry_point(), ())
-            .triangle_strip()  // This makes 2 triagles with 4 vertices.
+            .triangle_strip() // This makes 2 triagles with 4 vertices.
             .viewports_dynamic_scissors_irrelevant(1)
             .fragment_shader(fragment_shader.main_entry_point(), ())
             .render_pass(vk::Subpass::from(render_pass.clone(), 0).unwrap())
@@ -133,7 +129,7 @@ fn model(app: &App) -> Model {
     let perlin = Perlin::new();
 
     Model {
-        timestep: 0.01,  // Used for driving Perlin noise
+        timestep: 0.01, // Used for driving Perlin noise
         diffusion: 0.0,
         viscosity: 0.0000001,
         density0: vec![0.0; gsize * gsize],
@@ -153,7 +149,7 @@ fn model(app: &App) -> Model {
 }
 
 fn get_point(mouse_x: f32, mouse_y: f32) -> (usize, usize) {
-    let shift = (SCALE * GRID_SIZE)  as f32 / 2.0;
+    let shift = (SCALE * GRID_SIZE) as f32 / 2.0;
     let mx = (mouse_x + shift) / SCALE as f32;
     let my = (mouse_y + shift) / SCALE as f32;
 
@@ -165,9 +161,12 @@ fn view(app: &App, m: &Model, frame: &Frame) {
     let viewport = vk::ViewportBuilder::new().build([w as _, h as _]);
     let dynamic_state = vk::DynamicState::default().viewports(vec![viewport]);
 
-    m.view_fbo.borrow_mut().update(frame, m.render_pass.clone(), |builder, image| {
-        builder.add(image)
-    }).unwrap();
+    m.view_fbo
+        .borrow_mut()
+        .update(frame, m.render_pass.clone(), |builder, image| {
+            builder.add(image)
+        })
+        .unwrap();
 
     let clear_values = vec![[0.0, 0.0, 0.0, 1.0].into()];
 
@@ -181,19 +180,20 @@ fn view(app: &App, m: &Model, frame: &Frame) {
             }),
             vk::image::Dimensions::Dim2d {
                 width: GRID_SIZE,
-                height: GRID_SIZE
+                height: GRID_SIZE,
             },
             vk::format::Format::R8G8B8A8Srgb,
             app.main_window().swapchain_queue().clone(),
-        ).unwrap()
+        )
+        .unwrap()
     };
 
     let density_data_set = Arc::new(
         vk::PersistentDescriptorSet::start(m.pipeline.clone(), 0)
-        .add_sampled_image(density_texture.clone(), m.sampler.clone())
-        .unwrap()
-        .build()
-        .unwrap()
+            .add_sampled_image(density_texture.clone(), m.sampler.clone())
+            .unwrap()
+            .build()
+            .unwrap(),
     );
 
     frame
@@ -273,8 +273,8 @@ void main() {
 ///////////////////////////////////////////////////////////////////////////////////////////////
 fn ix(i: usize, j: usize) -> usize {
     let gs = GRID_SIZE as usize;
-    let x = if i >= gs {gs - 1} else {i};
-    let y = if j >= gs {gs - 1} else {j};
+    let x = if i >= gs { gs - 1 } else { i };
+    let y = if j >= gs { gs - 1 } else { j };
     let k = x + y * gs;
     k
 }
@@ -283,20 +283,28 @@ fn set_bnd(b: usize, x: &mut Vec<f32>) {
     // This is basically reflective boundary condition.
     let n = GRID_SIZE as usize;
 
-    for i in 1..n-1 {
-        x[ix(i, 0  )] = if b == 2 {-x[ix(i, 1  )]} else {x[ix(i, 1  )]};
-        x[ix(i, n-1)] = if b == 2 {-x[ix(i, n-2)]} else {x[ix(i, n-2)]};
+    for i in 1..n - 1 {
+        x[ix(i, 0)] = if b == 2 { -x[ix(i, 1)] } else { x[ix(i, 1)] };
+        x[ix(i, n - 1)] = if b == 2 {
+            -x[ix(i, n - 2)]
+        } else {
+            x[ix(i, n - 2)]
+        };
     }
 
-    for j in 1..n-1 {
-        x[ix(0  , j)] = if b == 1 {-x[ix(1  , j)]} else {x[ix(1  , j)]};
-        x[ix(n-1, j)] = if b == 1 {-x[ix(n-2, j)]} else {x[ix(n-2, j)]};
+    for j in 1..n - 1 {
+        x[ix(0, j)] = if b == 1 { -x[ix(1, j)] } else { x[ix(1, j)] };
+        x[ix(n - 1, j)] = if b == 1 {
+            -x[ix(n - 2, j)]
+        } else {
+            x[ix(n - 2, j)]
+        };
     }
 
     x[ix(0, 0)] = 0.5 * (x[ix(1, 0)] + x[ix(0, 1)]);
-    x[ix(0, n-1)] = 0.5 * (x[ix(1, n-1)] + x[ix(0, n-2)]);
-    x[ix(n-1, 0)] = 0.5 * (x[ix(n-2, 0)] + x[ix(n-1, 1)]);
-    x[ix(n-1, n-1)] = 0.5 * (x[ix(n-2, n-1)] + x[ix(n-1, n-2)]);
+    x[ix(0, n - 1)] = 0.5 * (x[ix(1, n - 1)] + x[ix(0, n - 2)]);
+    x[ix(n - 1, 0)] = 0.5 * (x[ix(n - 2, 0)] + x[ix(n - 1, 1)]);
+    x[ix(n - 1, n - 1)] = 0.5 * (x[ix(n - 2, n - 1)] + x[ix(n - 1, n - 2)]);
 }
 
 fn lin_solve(b: usize, x: &mut Vec<f32>, x0: &Vec<f32>, alpha: f32, beta: f32) {
@@ -304,23 +312,24 @@ fn lin_solve(b: usize, x: &mut Vec<f32>, x0: &Vec<f32>, alpha: f32, beta: f32) {
     let n = GRID_SIZE as usize;
     let beta_recip = 1.0 / beta;
     for _k in 0..ITER_NUM {
-        for j in 1..n-1 {
-            for i in 1..n-1 {
-                x[ix(i, j)] =(x0[ix(i, j)]
-                    + alpha*(x[ix(i+1, j  )]
-                            +x[ix(i-1, j  )]
-                            +x[ix(i  , j+1)]
-                            +x[ix(i  , j-1)]
-                            +x[ix(i  , j  )]
-                            +x[ix(i  , j  )]
-                    )) * beta_recip;
+        for j in 1..n - 1 {
+            for i in 1..n - 1 {
+                x[ix(i, j)] = (x0[ix(i, j)]
+                    + alpha
+                        * (x[ix(i + 1, j)]
+                            + x[ix(i - 1, j)]
+                            + x[ix(i, j + 1)]
+                            + x[ix(i, j - 1)]
+                            + x[ix(i, j)]
+                            + x[ix(i, j)]))
+                    * beta_recip;
             }
         }
         set_bnd(b, x);
     }
 }
 
-fn advect(b: usize, d: &mut Vec<f32>, d0: &Vec<f32>,  vx: &Vec<f32>, vy: &Vec<f32>, dt:f32) {
+fn advect(b: usize, d: &mut Vec<f32>, d0: &Vec<f32>, vx: &Vec<f32>, vy: &Vec<f32>, dt: f32) {
     let n = GRID_SIZE as usize;
     let nfloat = n as f32;
 
@@ -342,8 +351,8 @@ fn advect(b: usize, d: &mut Vec<f32>, d0: &Vec<f32>,  vx: &Vec<f32>, vy: &Vec<f3
     let mut x: f32;
     let mut y: f32;
 
-    for j in 1..n-1 {
-        for i in 1..n-1 {
+    for j in 1..n - 1 {
+        for i in 1..n - 1 {
             tmp1 = dtx * vx[ix(i, j)];
             tmp2 = dty * vy[ix(i, j)];
 
@@ -355,13 +364,21 @@ fn advect(b: usize, d: &mut Vec<f32>, d0: &Vec<f32>,  vx: &Vec<f32>, vy: &Vec<f3
             y = j as f32 - tmp2;
 
             // All the faff below is for interpolation.
-            if x < 0.5 {x = 0.5;}
-            if x > nfloat + 0.5 {x = nfloat + 0.5;}
+            if x < 0.5 {
+                x = 0.5;
+            }
+            if x > nfloat + 0.5 {
+                x = nfloat + 0.5;
+            }
             i0 = x.floor();
             i1 = i0 + 1.0;
 
-            if y < 0.5 {y = 0.5;}
-            if y > nfloat + 0.5 {y = nfloat + 0.5;}
+            if y < 0.5 {
+                y = 0.5;
+            }
+            if y > nfloat + 0.5 {
+                y = nfloat + 0.5;
+            }
             j0 = y.floor();
             j1 = j0 + 1.0;
 
@@ -375,9 +392,8 @@ fn advect(b: usize, d: &mut Vec<f32>, d0: &Vec<f32>,  vx: &Vec<f32>, vy: &Vec<f3
             let j0i = j0 as usize;
             let j1i = j1 as usize;
 
-            d[ix(i, j)] =
-                s0 * ( t0 * d0[ix(i0i, j0i)] + t1 * d0[ix(i0i, j1i)])
-               +s1 * ( t0 * d0[ix(i1i, j0i)] + t1 * d0[ix(i1i, j1i)]);
+            d[ix(i, j)] = s0 * (t0 * d0[ix(i0i, j0i)] + t1 * d0[ix(i0i, j1i)])
+                + s1 * (t0 * d0[ix(i1i, j0i)] + t1 * d0[ix(i1i, j1i)]);
         }
     }
     set_bnd(b, d);
@@ -385,24 +401,20 @@ fn advect(b: usize, d: &mut Vec<f32>, d0: &Vec<f32>,  vx: &Vec<f32>, vy: &Vec<f3
 
 fn diffuse(b: usize, x: &mut Vec<f32>, x0: &Vec<f32>, diff: f32, dt: f32) {
     let n = GRID_SIZE as f32;
-    let alpha = dt * diff * (n-2.0) * (n-2.0);
+    let alpha = dt * diff * (n - 2.0) * (n - 2.0);
     let beta = 1.0 + 6.0 * alpha;
     lin_solve(b, x, x0, alpha, beta);
 }
-
 
 fn project(vx: &mut Vec<f32>, vy: &mut Vec<f32>, p: &mut Vec<f32>, div: &mut Vec<f32>) {
     let n = GRID_SIZE as usize;
     let nfloat = n as f32;
 
-    for j in 1..n-1 {
-        for i in 1..n-1 {
-            div[ix(i, j)] = -0.5*(
-                     vx[ix(i+1, j  )]
-                    -vx[ix(i-1, j  )]
-                    +vy[ix(i  , j+1)]
-                    -vy[ix(i  , j-1)]
-                ) / nfloat;
+    for j in 1..n - 1 {
+        for i in 1..n - 1 {
+            div[ix(i, j)] = -0.5
+                * (vx[ix(i + 1, j)] - vx[ix(i - 1, j)] + vy[ix(i, j + 1)] - vy[ix(i, j - 1)])
+                / nfloat;
             p[ix(i, j)] = 0.0;
         }
     }
@@ -411,12 +423,10 @@ fn project(vx: &mut Vec<f32>, vy: &mut Vec<f32>, p: &mut Vec<f32>, div: &mut Vec
     set_bnd(0, p);
     lin_solve(0, p, div, 1.0, 6.0);
 
-    for j in 1..n-1 {
-        for i in 1..n-1 {
-            vx[ix(i, j)] -= 0.5 * (p[ix(i+1, j)]
-                                  -p[ix(i-1, j)]) * nfloat;
-            vy[ix(i, j)] -= 0.5 * (p[ix(i, j+1)]
-                                  -p[ix(i, j-1)]) * nfloat;
+    for j in 1..n - 1 {
+        for i in 1..n - 1 {
+            vx[ix(i, j)] -= 0.5 * (p[ix(i + 1, j)] - p[ix(i - 1, j)]) * nfloat;
+            vy[ix(i, j)] -= 0.5 * (p[ix(i, j + 1)] - p[ix(i, j - 1)]) * nfloat;
         }
     }
 
@@ -426,15 +436,15 @@ fn project(vx: &mut Vec<f32>, vy: &mut Vec<f32>, p: &mut Vec<f32>, div: &mut Vec
 
 fn step(cube: &mut Model) {
     // int N          = cube->size;
-    let visc        = cube.viscosity;
-    let diff        = cube.diffusion;
-    let dt          = cube.timestep;
-    let mut vx      = &mut cube.vx;
-    let mut vy      = &mut cube.vy;
-    let mut vx0     = &mut cube.vx0;
-    let mut vy0     = &mut cube.vy0;
+    let visc = cube.viscosity;
+    let diff = cube.diffusion;
+    let dt = cube.timestep;
+    let mut vx = &mut cube.vx;
+    let mut vy = &mut cube.vy;
+    let mut vx0 = &mut cube.vx0;
+    let mut vy0 = &mut cube.vy0;
     let mut density = &mut cube.density;
-    let mut s       = &mut cube.density0;
+    let mut s = &mut cube.density0;
 
     diffuse(1, &mut vx0, &vx, visc, dt);
     diffuse(2, &mut vy0, &vy, visc, dt);
