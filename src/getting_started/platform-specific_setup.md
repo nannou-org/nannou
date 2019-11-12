@@ -21,7 +21,7 @@ Depending on what OS you are running, you might require an extra step or two.
   xcode-select --install
   ```
 
-  Ensure you also have `cmake` by typing:
+  In case it throws an error `couldn't find required command: "cmake"`, you can install `cmake` by brew:
   ```bash
     brew install cmake
   ```
