@@ -21,6 +21,11 @@ Depending on what OS you are running, you might require an extra step or two.
   xcode-select --install
   ```
 
+  Ensure you also have `cmake` by typing:
+  ```bash
+    brew install cmake
+  ```
+
   In order to add support for [Vulkan](https://www.khronos.org/vulkan/) (the
   graphics backend used by nannou) to macOS, nannou will prompt you and attempt
   to automatically download and install the [MoltenVK
