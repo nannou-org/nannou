@@ -21,6 +21,11 @@ Depending on what OS you are running, you might require an extra step or two.
   xcode-select --install
   ```
 
+  In case it throws an error `couldn't find required command: "cmake"`, you can install `cmake` by brew:
+  ```bash
+    brew install cmake
+  ```
+
   In order to add support for [Vulkan](https://www.khronos.org/vulkan/) (the
   graphics backend used by nannou) to macOS, nannou will prompt you and attempt
   to automatically download and install the [MoltenVK
