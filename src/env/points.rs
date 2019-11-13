@@ -1,7 +1,7 @@
 use super::{Bang, Point, Toggle};
 
 /// A dynamically dispatched iterator yielding references to `T`.
-pub type Points<'a, T> = Box<Iterator<Item = &'a Point<T>>>;
+pub type Points<'a, T> = Box<dyn Iterator<Item = &'a Point<T>>>;
 
 /// A type representing a series of points of some kind supported by Jen's automation.
 pub enum Dynamic<'a> {

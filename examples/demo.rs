@@ -189,9 +189,8 @@ fn update(_app: &App, model: &mut Model, update: Update) {
     timeline_data.playhead_secs = (timeline_data.playhead_secs + delta_secs) % total_duration_secs;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) -> Frame {
-    model.ui.draw_to_frame(app, &frame).unwrap();
-    frame
+fn view(app: &App, model: &Model, frame: &Frame) {
+    model.ui.draw_to_frame(app, frame).unwrap();
 }
 
 // Update / draw the Ui.

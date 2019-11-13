@@ -348,7 +348,7 @@ where
             let value = value_from_y(mouse_abs_xy[1]);
 
             let left_idx = envelope.point_on_or_before_with_idx(ticks).map(|(i, _)| i);
-            let right_idx = envelope.point_after_with_idx(ticks).map(|(i, _)| i);;
+            let right_idx = envelope.point_after_with_idx(ticks).map(|(i, _)| i);
 
             let point_x = x_from_ticks(ticks);
             let point_y = y_from_value(value);
