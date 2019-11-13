@@ -164,6 +164,9 @@ dependencies.</p>
 <p><strong>macOS</strong>: Ensure that you have xcode-tools installed:</p>
 <pre><code class="language-bash">xcode-select --install
 </code></pre>
+<p>In case it throws an error <code>couldn't find required command: &quot;cmake&quot;</code>, you can install <code>cmake</code> by brew:</p>
+<pre><code class="language-bash">  brew install cmake
+</code></pre>
 <p>In order to add support for <a href="https://www.khronos.org/vulkan/">Vulkan</a> (the
 graphics backend used by nannou) to macOS, nannou will prompt you and attempt
 to automatically download and install the <a href="https://github.com/KhronosGroup/MoltenVK">MoltenVK
