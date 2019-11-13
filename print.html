@@ -468,8 +468,11 @@ sudo apt-get upgrade
 <p>and run</p>
 <pre><code class="language-bash">sudo apt-get install nvidia-graphics-drivers-396 nvidia-settings vulkan vulkan-utils
 </code></pre>
-<p>For Arch with AMD or Intel graphic cards:</p>
+<p>For Arch with AMD graphic cards:</p>
 <pre><code class="language-bash">sudo pacman -S vulkan-radeon lib32-vulkan-radeon
+</code></pre>
+<p>For Arch with Intel graphics card:</p>
+<pre><code class="language-bash">sudo pacman -S vulkan-intel
 </code></pre>
 <p>For Arch with NVIDIA graphic cards:</p>
 <pre><code class="language-bash">sudo pacman -S nvidia lib32-nvidia-utils
