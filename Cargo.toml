@@ -1,6 +1,6 @@
 [package]
 name = "nannou_timeline"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A timeline widget, compatible with all conrod GUI projects."
 readme = "README.md"
@@ -10,8 +10,8 @@ repository = "https://github.com/nannou-org/nannou_timeline.git"
 homepage = "https://nannou.cc"
 
 [dependencies]
-conrod_derive = "0.65"
-conrod_core = "0.65"
+conrod_derive = "0.68"
+conrod_core = "0.68"
 envelope = "0.8"
 itertools = "0.4.16"
 num = "0.1.27"
@@ -19,5 +19,5 @@ pitch_calc = "0.11"
 time_calc = "0.13"
 
 [dev-dependencies]
-nannou = "0.9"
+nannou = "0.12"
 rand = "0.3.12"
