@@ -66,7 +66,7 @@ impl Attractor {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.radius * 2.0, self.radius * 2.0)
-            .rgb(gray, gray, gray);
+            .gray(gray);
     }
 
     // The methods below are for mouse interaction

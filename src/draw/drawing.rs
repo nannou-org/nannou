@@ -312,6 +312,13 @@ where
     pub fn hsva(self, h: ColorScalar, s: ColorScalar, v: ColorScalar, a: ColorScalar) -> Self {
         self.map_ty(|ty| SetColor::hsva(ty, h, s, v, a))
     }
+
+    /// Specify the color as gray scale
+    ///
+    /// The given g expects a value between `0.0` and `1.0` where `0.0` is black and `1.0` is white
+    pub fn gray(self, g: ColorScalar) -> Self {
+        self.map_ty(|ty| SetColor::gray(ty, g))
+    }
 }
 
 // SetDimensions implementations.

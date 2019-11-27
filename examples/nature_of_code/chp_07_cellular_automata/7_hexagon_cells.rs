@@ -27,9 +27,9 @@ impl Cell {
 
     fn display(&self, draw: &app::Draw, rect: &Rect) {
         let fill = if self.state == 1 {
-            rgb(0.0, 0.0, 0.0)
+            gray(0.0)
         } else {
-            rgb(1.0, 1.0, 1.0)
+            gray(1.0)
         };
 
         let n_points = 6;

@@ -41,11 +41,11 @@ impl Cell {
         let fill = if self.previous == 0 && self.state == 1 {
             rgb(0.0, 0.0, 1.0)
         } else if self.state == 1 {
-            rgb(0.0, 0.0, 0.0)
+            gray(0.0)
         } else if self.previous == 1 && self.state == 0 {
             rgb(1.0, 0.0, 0.0)
         } else {
-            rgb(1.0, 1.0, 1.0)
+            gray(1.0)
         };
         draw.rect()
             .x_y(x, y)

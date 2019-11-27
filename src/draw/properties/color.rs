@@ -113,6 +113,17 @@ where
         let hue = color::RgbHue::from_degrees(h * S::from(360.0).unwrap());
         self.color(color::Hsva::new(hue, s, v, a))
     }
+
+    /// Specify the color as gray scale
+    ///
+    /// The given g expects a value between `0.0` and `1.0` where `0.0` is black and `1.0` is white
+    fn gray<T>(self, g: T) -> Self
+    where
+        T: Component,
+        S: Float,
+    {
+        self.color(color::Srgb::new(g, g, g))
+    }
 }
 
 impl<S> SetColor<S> for Option<LinSrgba<S>>

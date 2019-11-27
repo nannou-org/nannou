@@ -103,7 +103,7 @@ impl Gol {
                         offset + (j * self.w) as f32 - rect.top() as f32,
                     )
                     .w_h(self.w as f32, self.w as f32)
-                    .rgb(fill, fill, fill)
+                    .gray(fill)
                     .stroke(BLACK);
             }
         }

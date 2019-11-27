@@ -29,6 +29,14 @@ pub type Rgb<S = DefaultScalar> = Srgb<S>;
 /// the `palette` crate's generic `Rgb` type.
 pub type Rgba<S = DefaultScalar> = Srgba<S>;
 
+/// A color represented as gray intensity.
+///
+/// This type is an alias for the `Srgb` type, a type that represents the sRGB color space.
+///
+/// If you are looking for more advanced control over the RGB space and component type, please see
+/// the `palette` crate's generic `Rgb` type.
+pub type Gray<S = DefaultScalar> = Srgb<S>;
+
 /// A short-hand constructor for `Rgb::new`.
 pub fn rgb<T>(r: T, g: T, b: T) -> Rgb<T>
 where
@@ -107,4 +115,12 @@ pub fn hsv(h: f32, s: f32, v: f32) -> Hsv {
 /// 360 degrees (or 2 PI radians).
 pub fn hsva(h: f32, s: f32, v: f32, a: f32) -> Hsva {
     Hsva::new(RgbHue::from_degrees(h * 360.0), s, v, a)
+}
+
+/// A short-hand constructor for `Gray::new`.
+pub fn gray<T>(g: T) -> Gray<T>
+where
+    T: Component,
+{
+    srgb(g, g, g)
 }

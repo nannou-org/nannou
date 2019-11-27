@@ -101,7 +101,7 @@ impl Ca {
                 draw.rect()
                     .x_y(x, y)
                     .w_h(self.w as f32, self.w as f32)
-                    .rgb(fill, fill, fill);
+                    .gray(fill);
             }
         }
     }

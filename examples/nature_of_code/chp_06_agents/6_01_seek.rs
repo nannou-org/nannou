@@ -92,7 +92,7 @@ fn view(app: &App, m: &Model, frame: &Frame) {
         .x_y(mouse.x, mouse.y)
         .radius(48.0)
         .rgb(0.78, 0.78, 0.78)
-        .stroke(rgb(0.0, 0.0, 0.0))
+        .stroke(gray(0.0))
         .stroke_weight(2.0);
 
     display(&m.vehicle, &draw);

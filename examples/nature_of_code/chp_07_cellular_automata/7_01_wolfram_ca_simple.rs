@@ -71,7 +71,7 @@ impl Ca {
                     rect.top() as f32 - (self.generation * self.w - (self.w / 2)) as f32,
                 )
                 .w_h(self.w as f32, self.w as f32)
-                .rgb(fill, fill, fill);
+                .gray(fill);
         }
     }
 

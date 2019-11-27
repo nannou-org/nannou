@@ -109,7 +109,7 @@ fn view(app: &App, model: &Model, frame: &Frame) {
         draw.ellipse()
             .x_y(win.left() + 125.0, 0.0)
             .radius(100.0)
-            .stroke(rgb(0.0, 0.0, 0.0))
+            .stroke(gray(0.0))
             .no_fill();
 
         // Lines
@@ -166,13 +166,13 @@ fn view(app: &App, model: &Model, frame: &Frame) {
             .x_y(x_start, phi_y)
             .radius(4.0)
             .color(c)
-            .stroke(rgb(1.0, 1.0, 1.0))
+            .stroke(gray(1.0))
             .stroke_weight(2.0);
         draw.ellipse()
             .x_y(x_start + phi_x, phi_y)
             .radius(4.0)
             .color(c)
-            .stroke(rgb(1.0, 1.0, 1.0))
+            .stroke(gray(1.0))
             .stroke_weight(2.0);
 
         // dot on curve
@@ -180,7 +180,7 @@ fn view(app: &App, model: &Model, frame: &Frame) {
             .x_y(x_start + t * model.point_count as f32, model.y)
             .radius(5.0)
             .color(c)
-            .stroke(rgb(1.0, 1.0, 1.0))
+            .stroke(gray(1.0))
             .stroke_weight(2.0);
 
         // dot on circle
@@ -188,7 +188,7 @@ fn view(app: &App, model: &Model, frame: &Frame) {
             .x_y(x_start + model.x, model.y)
             .radius(5.0)
             .color(c)
-            .stroke(rgb(1.0, 1.0, 1.0))
+            .stroke(gray(1.0))
             .stroke_weight(2.0);
     }
 

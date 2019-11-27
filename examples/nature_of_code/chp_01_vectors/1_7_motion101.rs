@@ -51,8 +51,8 @@ impl Mover {
         draw.ellipse()
             .xy(self.position)
             .w_h(48.0, 48.0)
-            .rgb(0.5, 0.5, 0.5)
-            .stroke(rgb(0.0, 0.0, 0.0));
+            .gray(0.5)
+            .stroke(gray(0.0));
     }
 }
 

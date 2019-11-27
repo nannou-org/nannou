@@ -38,7 +38,7 @@ impl Attractor {
         draw.ellipse()
             .x_y(self.location.x, self.location.y)
             .w_h(48.0, 48.0)
-            .rgb(0.5, 0.5, 0.5)
+            .gray(0.5)
             .stroke(BLACK)
             .stroke_weight(2.0);
     }
