@@ -12,7 +12,6 @@
 // Cells wrap around
 
 use nannou::prelude::*;
-use std::ops::Range;
 
 fn main() {
     nannou::app(model).update(update).run();

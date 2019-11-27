@@ -44,7 +44,6 @@ impl Particle {
 
     // Method to display
     fn display(&self, draw: &app::Draw) {
-        let size = 5.0 + (255.0 - self.life_span) * 0.13;
         draw.ellipse()
             .xy(self.position)
             .w_h(12.0, 12.0)
