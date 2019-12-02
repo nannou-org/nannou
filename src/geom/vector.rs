@@ -656,7 +656,7 @@ mod cgmath_impl {
 
                 #[inline]
                 fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-                    panic!("")
+                    unimplemented!()
                 }
             }
 
@@ -703,24 +703,24 @@ mod cgmath_impl {
                 S: BaseNum,
             {
                 #[inline]
-                fn add_element_wise(self, rhs: S) -> $VectorN<S> {
-                    $VectorN::new($(self.$field + rhs),+)
+                fn add_element_wise(self, rhs: S) -> Self {
+                    Self::new($(self.$field + rhs),+)
                 }
                 #[inline]
-                fn sub_element_wise(self, rhs: S) -> $VectorN<S> {
-                    $VectorN::new($(self.$field - rhs),+)
+                fn sub_element_wise(self, rhs: S) -> Self {
+                    Self::new($(self.$field - rhs),+)
                 }
                 #[inline]
-                fn mul_element_wise(self, rhs: S) -> $VectorN<S> {
-                    $VectorN::new($(self.$field * rhs),+)
+                fn mul_element_wise(self, rhs: S) -> Self {
+                    Self::new($(self.$field * rhs),+)
                 }
                 #[inline]
-                fn div_element_wise(self, rhs: S) -> $VectorN<S> {
-                    $VectorN::new($(self.$field / rhs),+)
+                fn div_element_wise(self, rhs: S) -> Self {
+                    Self::new($(self.$field / rhs),+)
                 }
                 #[inline]
-                fn rem_element_wise(self, rhs: S) -> $VectorN<S> {
-                    $VectorN::new($(self.$field % rhs),+)
+                fn rem_element_wise(self, rhs: S) -> Self {
+                    Self::new($(self.$field % rhs),+)
                 }
 
                 #[inline]
@@ -751,23 +751,23 @@ mod cgmath_impl {
             {
                 #[inline]
                 fn add_element_wise(self, rhs: $VectorN<S>) -> $VectorN<S> {
-                    $VectorN::new($(self.$field + rhs.$field),+)
+                    Self::new($(self.$field + rhs.$field),+)
                 }
                 #[inline]
                 fn sub_element_wise(self, rhs: $VectorN<S>) -> $VectorN<S> {
-                    $VectorN::new($(self.$field - rhs.$field),+)
+                    Self::new($(self.$field - rhs.$field),+)
                 }
                 #[inline]
                 fn mul_element_wise(self, rhs: $VectorN<S>) -> $VectorN<S> {
-                    $VectorN::new($(self.$field * rhs.$field),+)
+                    Self::new($(self.$field * rhs.$field),+)
                 }
                 #[inline]
                 fn div_element_wise(self, rhs: $VectorN<S>) -> $VectorN<S> {
-                    $VectorN::new($(self.$field / rhs.$field),+)
+                    Self::new($(self.$field / rhs.$field),+)
                 }
                 #[inline]
                 fn rem_element_wise(self, rhs: $VectorN<S>) -> $VectorN<S> {
-                    $VectorN::new($(self.$field % rhs.$field),+)
+                    Self::new($(self.$field % rhs.$field),+)
                 }
 
                 #[inline]
@@ -839,22 +839,22 @@ mod cgmath_impl {
 
                 #[inline]
                 fn origin() -> Self {
-                    $VectorN { $($field: S::zero()),+ }
+                    Self { $($field: S::zero()),+ }
                 }
 
                 #[inline]
                 fn from_vec(v: $VectorN<S>) -> Self {
-                    $VectorN::new($(v.$field),+)
+                    Self::new($(v.$field),+)
                 }
 
                 #[inline]
-                fn to_vec(self) -> $VectorN<S> {
-                    $VectorN::new($(self.$field),+)
+                fn to_vec(self) -> Self {
+                    Self::new($(self.$field),+)
                 }
 
                 #[inline]
-                fn dot(self, other: $VectorN<S>) -> S {
-                    $VectorN::new($(self.$field * other.$field),+).sum()
+                fn dot(self, other: Self) -> S {
+                    Self::new($(self.$field * other.$field),+).sum()
                 }
             }
         }
