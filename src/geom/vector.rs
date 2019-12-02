@@ -79,7 +79,7 @@ macro_rules! impl_vector {
             where
                 S: Clone,
             {
-                $VectorN { $($field: scalar.clone()),+ }
+                Self { $($field: scalar.clone()),+ }
             }
 
             /// The number of dimensions in the vector.
@@ -134,7 +134,7 @@ macro_rules! impl_vector {
 
             /// A zeroed vector.
             #[inline]
-            pub fn zero() -> $VectorN<S>
+            pub fn zero() -> Self
             where
                 S: Zero,
             {
@@ -156,7 +156,7 @@ macro_rules! impl_vector {
             where
                 S: One,
             {
-                $VectorN { $($field: S::one()),+ }
+                Self { $($field: S::one()),+ }
             }
 
             /// Whether or not each element in the vector is equal to `1`.
@@ -237,16 +237,16 @@ macro_rules! impl_vector {
             }
         }
 
-        impl<S> iter::Sum<$VectorN<S>> for $VectorN<S>
+        impl<S> iter::Sum<Self> for $VectorN<S>
         where
             S: Zero + ops::Add<Output = S>,
         {
             #[inline]
-            fn sum<I>(iter: I) -> $VectorN<S>
+            fn sum<I>(iter: I) -> Self
             where
-                I: Iterator<Item = $VectorN<S>>,
+                I: Iterator<Item = Self>,
             {
-                iter.fold($VectorN::zero(), ops::Add::add)
+                iter.fold(Self::zero(), ops::Add::add)
             }
         }
 
@@ -255,11 +255,11 @@ macro_rules! impl_vector {
             S: 'a + Clone + Zero + ops::Add<Output = S>,
         {
             #[inline]
-            fn sum<I>(iter: I) -> $VectorN<S>
+            fn sum<I>(iter: I) -> Self
             where
                 I: Iterator<Item=&'a $VectorN<S>>,
             {
-                iter.fold($VectorN::zero(), |acc, s| acc + s.clone())// ops::Add::add)
+                iter.fold(Self::zero(), |acc, s| acc + s.clone())// ops::Add::add)
             }
         }
 
@@ -320,7 +320,7 @@ macro_rules! impl_vector {
             type Output = Self;
 
             #[inline]
-            fn div(self, other: Self) -> Self {
+            fn div(self, other: Self) -> Self::Output {
                 self.zip_map(other, |a, b| a / b)
             }
         }
@@ -332,7 +332,7 @@ macro_rules! impl_vector {
             type Output = Self;
 
             #[inline]
-            fn rem(self, other: Self) -> Self {
+            fn rem(self, other: Self) -> Self::Output {
                 self.zip_map(other, |a, b| a % b)
             }
         }
@@ -394,7 +394,7 @@ macro_rules! impl_vector {
             type Output = Self;
 
             #[inline]
-            fn rem(self, scalar: S) -> Self {
+            fn rem(self, scalar: S) -> Self::Output {
                 self.map(|s| s % scalar)
             }
         }
@@ -470,14 +470,14 @@ macro_rules! impl_vector {
             #[inline]
             fn from(v: [S; $n]) -> Self {
                 let [$($field),+] = v;
-                $VectorN { $($field),+ }
+                Self { $($field),+ }
             }
         }
 
         impl<S> Into<[S; $n]> for $VectorN<S> {
             #[inline]
             fn into(self) -> [S; $n] {
-                let $VectorN { $($field),+ } = self;
+                let Self { $($field),+ } = self;
                 [$($field),+]
             }
         }
@@ -524,13 +524,13 @@ macro_rules! impl_vector {
             S: Bounded,
         {
             #[inline]
-            fn min_value() -> $VectorN<S> {
-                $VectorN { $($field: S::min_value()),+ }
+            fn min_value() -> Self {
+                Self { $($field: S::min_value()),+ }
             }
 
             #[inline]
-            fn max_value() -> $VectorN<S> {
-                $VectorN { $($field: S::max_value()),+ }
+            fn max_value() -> Self {
+                Self { $($field: S::max_value()),+ }
             }
         }
 
@@ -539,13 +539,13 @@ macro_rules! impl_vector {
             S: PartialEq + Zero,
         {
             #[inline]
-            fn zero() -> $VectorN<S> {
-                $VectorN { $($field: S::zero()),* }
+            fn zero() -> Self {
+                Self { $($field: S::zero()),* }
             }
 
             #[inline]
             fn is_zero(&self) -> bool {
-                *self == $VectorN::zero()
+                *self == Self::zero()
             }
         }
 
