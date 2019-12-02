@@ -836,7 +836,7 @@ mod cgmath_impl {
                 S: BaseNum,
             {
                 type Scalar = S;
-                type Diff = $VectorN<S>;
+                type Diff = Self;
 
                 #[inline]
                 fn origin() -> Self {
@@ -844,7 +844,7 @@ mod cgmath_impl {
                 }
 
                 #[inline]
-                fn from_vec(v: $VectorN<S>) -> Self {
+                fn from_vec(v: Self) -> Self {
                     Self::new($(v.$field),+)
                 }
 
