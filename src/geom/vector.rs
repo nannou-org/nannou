@@ -138,7 +138,7 @@ macro_rules! impl_vector {
             where
                 S: Zero,
             {
-                $VectorN { $($field: S::zero()),+ }
+                Self { $($field: S::zero()),+ }
             }
 
             /// Whether or not the vector is zeroed.
@@ -165,7 +165,7 @@ macro_rules! impl_vector {
             where
                 S: PartialEq + One,
             {
-                *self == $VectorN::one()
+                *self == Self::one()
             }
 
             /// Tests whether or not any of the vector's elements is `NaN`.
@@ -229,7 +229,7 @@ macro_rules! impl_vector {
 
             /// The dot product of self and the given vector.
             #[inline]
-            pub fn dot(self, other: $VectorN<S>) -> S
+            pub fn dot(self, other: Self) -> S
             where
                 S: BaseFloat,
             {
@@ -269,10 +269,10 @@ macro_rules! impl_vector {
         where
             S: ops::Neg<Output = S>,
         {
-            type Output = $VectorN<S>;
+            type Output = Self;
 
             #[inline]
-            fn neg(self) -> $VectorN<S> {
+            fn neg(self) -> Self::Output {
                 self.map(|s| -s)
             }
         }
@@ -281,10 +281,10 @@ macro_rules! impl_vector {
         where
             S: ops::Add<Output = S>,
         {
-            type Output = $VectorN<S>;
+            type Output = Self;
 
             #[inline]
-            fn add(self, other: Self) -> Self {
+            fn add(self, other: Self) -> Self::Output {
                 self.zip_map(other, |a, b| a + b)
             }
         }
@@ -293,10 +293,10 @@ macro_rules! impl_vector {
         where
             S: ops::Sub<Output = S>,
         {
-            type Output = $VectorN<S>;
+            type Output = Self;
 
             #[inline]
-            fn sub(self, other: Self) -> Self {
+            fn sub(self, other: Self) -> Self::Output {
                 self.zip_map(other, |a, b| a - b)
             }
         }
@@ -305,10 +305,10 @@ macro_rules! impl_vector {
         where
             S: ops::Mul<Output = S>,
         {
-            type Output = $VectorN<S>;
+            type Output = Self;
 
             #[inline]
-            fn mul(self, other: Self) -> Self {
+            fn mul(self, other: Self) -> Self::Output {
                 self.zip_map(other, |a, b| a * b)
             }
         }
@@ -317,7 +317,7 @@ macro_rules! impl_vector {
         where
             S: ops::Div<Output = S>,
         {
-            type Output = $VectorN<S>;
+            type Output = Self;
 
             #[inline]
             fn div(self, other: Self) -> Self {
@@ -329,7 +329,7 @@ macro_rules! impl_vector {
         where
             S: ops::Rem<Output = S>,
         {
-            type Output = $VectorN<S>;
+            type Output = Self;
 
             #[inline]
             fn rem(self, other: Self) -> Self {
@@ -391,7 +391,7 @@ macro_rules! impl_vector {
         where
             S: Copy + ops::Rem<Output = S>,
         {
-            type Output = $VectorN<S>;
+            type Output = Self;
 
             #[inline]
             fn rem(self, scalar: S) -> Self {
@@ -403,7 +403,7 @@ macro_rules! impl_vector {
         where
             S: Copy + ops::Div<Output = S>,
         {
-            type Output = $VectorN<S>;
+            type Output = Self;
 
             #[inline]
             fn div(self, scalar: S) -> Self {
@@ -415,7 +415,7 @@ macro_rules! impl_vector {
         where
             S: Copy + ops::Mul<Output = S>,
         {
-            type Output = $VectorN<S>;
+            type Output = Self;
 
             #[inline]
             fn mul(self, scalar: S) -> Self {
