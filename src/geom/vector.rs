@@ -6,8 +6,7 @@
 
 use crate::geom::scalar;
 use crate::math::{self, BaseFloat, Bounded, InnerSpace, NumCast, One, Zero};
-use crate::rand::distributions::{Distribution, Standard};
-use crate::rand::Rng;
+use crate::rand::{Rng, distributions::{Distribution, Standard}};
 use crate::serde_derive::{Deserialize, Serialize};
 use std::{iter, ops};
 
@@ -804,9 +803,11 @@ mod cgmath_impl {
                 }
 
                 #[inline]
-                fn is_finite(&self) -> bool {
-                    // $(self.$field.is_finite())&&+
-                    unimplemented!()
+                fn is_finite(&self) -> bool
+                where
+                    Self::Element: BaseFloat
+                {
+                    $(self.$field.is_finite())&&+
                 }
 
                 #[inline]
