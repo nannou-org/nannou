@@ -69,13 +69,13 @@ macro_rules! impl_vector {
         impl<S> $VectorN<S> {
             /// Construct a new vector, using the provided values.
             #[inline]
-            pub fn new($($field: S),+) -> $VectorN<S> {
-                $VectorN { $($field: $field),+ }
+            pub fn new($($field: S),+) -> Self {
+                Self { $($field: $field),+ }
             }
 
             /// Construct a vector using the given value for each field.
             #[inline]
-            pub fn from_value(scalar: S) -> $VectorN<S>
+            pub fn from_value(scalar: S) -> Self
             where
                 S: Clone,
             {
@@ -147,12 +147,12 @@ macro_rules! impl_vector {
             where
                 S: PartialEq + Zero,
             {
-                *self == $VectorN::zero()
+                *self == Self::zero()
             }
 
             /// A vector with `1` for each element.
             #[inline]
-            pub fn one() -> $VectorN<S>
+            pub fn one() -> Self
             where
                 S: One,
             {
@@ -794,7 +794,7 @@ mod cgmath_impl {
 
             impl<S> Array for $VectorN<S>
             where
-                S: Copy,
+                S: Copy
             {
                 type Element = S;
 
@@ -805,12 +805,13 @@ mod cgmath_impl {
 
                 #[inline]
                 fn is_finite(&self) -> bool {
+                    // $(self.$field.is_finite())&&+
                     unimplemented!()
                 }
 
                 #[inline]
-                fn from_value(scalar: S) -> $VectorN<S> {
-                    $VectorN { $($field: scalar),+ }
+                fn from_value(scalar: S) -> Self {
+                    Self { $($field: scalar),+ }
                 }
 
                 #[inline]
@@ -867,14 +868,14 @@ mod cgmath_impl {
                 #[inline]
                 fn from(v: cgmath::$PointN<S>) -> Self {
                     let cgmath::$PointN { $($field),+ } = v;
-                    $VectorN { $($field),+ }
+                    Self { $($field),+ }
                 }
             }
 
             impl<S> Into<cgmath::$PointN<S>> for $VectorN<S> {
                 #[inline]
                 fn into(self) -> cgmath::$PointN<S> {
-                    let $VectorN { $($field),+ } = self;
+                    let Self { $($field),+ } = self;
                     cgmath::$PointN { $($field),+ }
                 }
             }
