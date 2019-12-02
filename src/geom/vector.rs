@@ -598,7 +598,7 @@ mod cgmath_impl {
     }
 
     use super::{Vector2, Vector3, Vector4};
-    use crate::math::approx::ApproxEq;
+    use crate::math::approx::{UlpsEq, AbsDiffEq, RelativeEq};
     use crate::math::cgmath::{
         self, Angle, Array, BaseFloat, BaseNum, ElementWise, EuclideanSpace, InnerSpace,
         MetricSpace, Rad, VectorSpace,
@@ -642,26 +642,32 @@ mod cgmath_impl {
                 }
             }
 
-            impl<S> ApproxEq for $VectorN<S>
+            impl<S> AbsDiffEq for $VectorN<S>
             where
-                S: ApproxEq,
+                S: AbsDiffEq,
                 S::Epsilon: Copy,
             {
                 type Epsilon = S::Epsilon;
 
                 #[inline]
-                fn default_epsilon() -> S::Epsilon {
+                fn default_epsilon() -> Self::Epsilon {
                     S::default_epsilon()
                 }
 
                 #[inline]
+                fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+                    panic!("")
+                }
+            }
+
+            impl<S> RelativeEq for $VectorN<S>
+            where
+                S: RelativeEq,
+                S::Epsilon: Copy,
+            {
+                #[inline]
                 fn default_max_relative() -> S::Epsilon {
                     S::default_max_relative()
-                }
-
-                #[inline]
-                fn default_max_ulps() -> u32 {
-                    S::default_max_ulps()
                 }
 
                 #[inline]
@@ -673,6 +679,18 @@ mod cgmath_impl {
                 ) -> bool {
                     $(self.$field.relative_eq(&other.$field, epsilon, max_relative))&&+
                 }
+            }
+            impl<S> UlpsEq for $VectorN<S>
+            where
+                S: UlpsEq,
+                S::Epsilon: Copy,
+            {
+
+                #[inline]
+                fn default_max_ulps() -> u32 {
+                    S::default_max_ulps()
+                }
+
 
                 #[inline]
                 fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
@@ -783,6 +801,11 @@ mod cgmath_impl {
                 #[inline]
                 fn len() -> usize {
                     $n
+                }
+
+                #[inline]
+                fn is_finite(&self) -> bool {
+                    unimplemented!()
                 }
 
                 #[inline]

@@ -14,8 +14,8 @@ edition = "2018"
 default = ["notosans"]
 
 [dependencies]
-approx = "0.1"
-cgmath = { version = "0.16", features = ["serde"] }
+approx = "0.3.2"
+cgmath = { version = "0.17", features = ["serde"] }
 conrod_core = "0.68"
 conrod_winit = "0.68"
 conrod_vulkano = "0.68"

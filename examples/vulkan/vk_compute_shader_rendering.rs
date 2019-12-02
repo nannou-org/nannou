@@ -217,7 +217,7 @@ void main() {
         }
     }
 
-    i = float(i>0.05) * i; 
+    i = float(i>0.05) * i;
     vec4 color = vec4(vec3(i), 1.0);
     imageStore(img, ivec2(gl_GlobalInvocationID.xy), color);
 }"
