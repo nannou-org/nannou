@@ -656,7 +656,7 @@ mod cgmath_impl {
 
                 #[inline]
                 fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-                    unimplemented!()
+                    $(self.$field.abs_diff_eq(&other.$field, epsilon))&&+
                 }
             }
 
