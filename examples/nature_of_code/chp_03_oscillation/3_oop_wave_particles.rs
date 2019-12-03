@@ -44,7 +44,7 @@ impl Particle {
         draw.ellipse()
             .xy(self.position)
             .w_h(16.0, 16.0)
-            .rgb(random_color, random_color, random_color)
+            .gray(random_color)
             .stroke(BLACK);
     }
 }

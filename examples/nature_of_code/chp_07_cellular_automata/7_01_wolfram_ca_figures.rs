@@ -94,7 +94,7 @@ impl Ca {
                     rect.top() as f32 - (self.generation * self.scl - (self.scl / 2)) as f32,
                 )
                 .w_h(self.scl as f32, self.scl as f32)
-                .rgb(fill, fill, fill)
+                .gray(fill)
                 .stroke(BLACK);
         }
     }

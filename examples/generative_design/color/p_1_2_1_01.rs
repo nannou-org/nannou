@@ -126,7 +126,7 @@ fn shake_colors(model: &mut Model) {
     }
 }
 
-fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
+fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
     shake_colors(model);
 }
 

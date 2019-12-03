@@ -62,10 +62,7 @@ impl Liquid {
     }
 
     fn display(&self, draw: &app::Draw) {
-        draw.rect()
-            .xy(self.rect.xy())
-            .wh(self.rect.wh())
-            .rgb(0.1, 0.1, 0.1);
+        draw.rect().xy(self.rect.xy()).wh(self.rect.wh()).gray(0.1);
     }
 }
 

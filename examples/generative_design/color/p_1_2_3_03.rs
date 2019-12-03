@@ -144,8 +144,7 @@ fn view(app: &App, model: &Model, frame: &Frame) {
                 let h = row_height as f32 * 1.5;
 
                 let index = counter % model.color_count;
-                let col1 = hsva(0.0, 0.0, 0.0, 0.0);
-                let col2 = hsva(
+                let col = hsva(
                     model.hue_values[index as usize],
                     model.saturation_values[index as usize],
                     model.brightness_values[index as usize],
@@ -155,7 +154,7 @@ fn view(app: &App, model: &Model, frame: &Frame) {
                 draw.rect()
                     .x_y(x + (w / 2.0), y - (h / 2.0))
                     .w_h(w, h)
-                    .color(col2);
+                    .color(col);
 
                 counter += 1;
             }

@@ -133,7 +133,7 @@ impl Mover {
         draw.ellipse()
             .xy(self.position)
             .w_h(16.0, 16.0)
-            .rgb(0.3, 0.3, 0.3)
+            .gray(0.3)
             .stroke(BLACK)
             .stroke_weight(2.0);
     }
