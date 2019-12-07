@@ -77,10 +77,7 @@ fn view(app: &App, model: &Model, frame: &Frame) {
         let x = nannou::geom::Range::new(random_x, circle_x).lerp(fader_x);
         let y = nannou::geom::Range::new(random_y, circle_y).lerp(fader_x);
 
-        draw.ellipse()
-            .x_y(x, y)
-            .w_h(11.0, 11.0)
-            .rgb(0.0, 0.51, 0.64);
+        draw.ellipse().x_y(x, y).w_h(11.0, 11.0).rgb8(0, 130, 163);
     }
 
     // Write to the window frame.

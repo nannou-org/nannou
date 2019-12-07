@@ -37,6 +37,14 @@ where
         self.color(color::Srgb::new(r, g, b))
     }
 
+    /// Specify the color via red, green and blue channels as bytes
+    fn rgb8(self, r: u8, g: u8, b: u8) -> Self
+    where
+        S: Float,
+    {
+        self.color(color::Srgb::<u8>::new(r, g, b))
+    }
+
     /// Specify the color via red, green, blue and alpha channels.
     fn rgba<T>(self, r: T, g: T, b: T, a: T) -> Self
     where
@@ -44,6 +52,14 @@ where
         S: Float,
     {
         self.color(color::Srgba::new(r, g, b, a))
+    }
+
+    /// Specify the color via red, green, blue and alpha channels as bytes
+    fn rgba8(self, r: u8, g: u8, b: u8, a: u8) -> Self
+    where
+        S: Float,
+    {
+        self.color(color::Srgba::<u8>::new(r, g, b, a))
     }
 
     /// Specify the color via hue, saturation and luminance.

@@ -45,12 +45,22 @@ where
     srgb(r, g, b)
 }
 
+/// A short-hand constructor for `Rgb<u8>::new`.
+pub fn rgb8(r: u8, g: u8, b: u8) -> Rgb<u8> {
+    srgb8(r, g, b)
+}
+
 /// A short-hand constructor for `Rgba::new`.
 pub fn rgba<T>(r: T, g: T, b: T, a: T) -> Rgba<T>
 where
     T: Component,
 {
     srgba(r, g, b, a)
+}
+
+/// A short-hand constructor for `Rgba<u8>::new`.
+pub fn rgba8(r: u8, g: u8, b: u8, a: u8) -> Rgba<u8> {
+    srgba8(r, g, b, a)
 }
 
 /// A short-hand constructor for `Srgb::new`.
@@ -61,11 +71,21 @@ where
     Srgb::new(r, g, b)
 }
 
+/// A short-hand constructor for `Srgb<u8>::new`.
+pub fn srgb8(r: u8, g: u8, b: u8) -> Srgb<u8> {
+    Srgb::new(r, g, b)
+}
+
 /// A short-hand constructor for `Srgba::new`.
 pub fn srgba<T>(r: T, g: T, b: T, a: T) -> Srgba<T>
 where
     T: Component,
 {
+    Srgba::new(r, g, b, a)
+}
+
+/// A short-hand constructor for `Srgba<u8>::new`.
+pub fn srgba8(r: u8, g: u8, b: u8, a: u8) -> Srgba<u8> {
     Srgba::new(r, g, b, a)
 }
 
