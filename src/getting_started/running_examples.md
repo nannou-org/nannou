@@ -24,10 +24,20 @@ cargo run --release --example simple_draw
 
 The `--release` flag means we want to build with optimisations enabled.
 
-If you are compiling nannou for the first time you will see cargo download and build all the necessary dependencies.
+The `--example` flag is a reference to the `[[examples]]` dictionary in the root
+`Cargo.toml` file. Each key references a file in the `examples/` directory, so
+to run the code at
+`examples/nature_of_code/chp_01_vectors/1_1_bouncingball_novectors.rs` you would
+run
+
+```bash
+cargo run --release --example 1_1_bouncingball_novectors
+```
+
+If you are compiling nannou for the first time you will see cargo download and
+build all the necessary dependencies.
 
 ![cargo](https://i.imgur.com/5OBNqMB.gif)
-
 
 Once the example compiles you should see the following window appear.
 
