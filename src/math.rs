@@ -1,7 +1,6 @@
 //! A mathematical foundation for nannou including point and vector types and a range of
 //! helper/utility functions.
 
-pub use approx;
 pub use cgmath;
 
 pub use self::cgmath::num_traits::{self, Bounded, Float, NumCast, One, Zero};

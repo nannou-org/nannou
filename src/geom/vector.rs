@@ -598,7 +598,7 @@ mod cgmath_impl {
     }
 
     use super::{Vector2, Vector3, Vector4};
-    use crate::math::approx::ApproxEq;
+    use crate::math::cgmath::{AbsDiffEq, RelativeEq, UlpsEq};
     use crate::math::cgmath::{
         self, Angle, Array, BaseFloat, BaseNum, ElementWise, EuclideanSpace, InnerSpace,
         MetricSpace, Rad, VectorSpace,
@@ -642,9 +642,9 @@ mod cgmath_impl {
                 }
             }
 
-            impl<S> ApproxEq for $VectorN<S>
+            impl<S> AbsDiffEq for $VectorN<S>
             where
-                S: ApproxEq,
+                S: AbsDiffEq,
                 S::Epsilon: Copy,
             {
                 type Epsilon = S::Epsilon;
@@ -655,13 +655,23 @@ mod cgmath_impl {
                 }
 
                 #[inline]
+                fn abs_diff_eq(
+                    &self,
+                    other: &Self,
+                    epsilon: Self::Epsilon,
+                ) -> bool {
+                    $(self.$field.abs_diff_eq(&other.$field, epsilon))&&+
+                }
+            }
+
+            impl<S> RelativeEq for $VectorN<S>
+            where
+                S: RelativeEq,
+                S::Epsilon: Copy,
+            {
+                #[inline]
                 fn default_max_relative() -> S::Epsilon {
                     S::default_max_relative()
-                }
-
-                #[inline]
-                fn default_max_ulps() -> u32 {
-                    S::default_max_ulps()
                 }
 
                 #[inline]
@@ -672,6 +682,17 @@ mod cgmath_impl {
                     max_relative: Self::Epsilon,
                 ) -> bool {
                     $(self.$field.relative_eq(&other.$field, epsilon, max_relative))&&+
+                }
+            }
+
+            impl<S> UlpsEq for $VectorN<S>
+            where
+                S: UlpsEq,
+                S::Epsilon: Copy,
+            {
+                #[inline]
+                fn default_max_ulps() -> u32 {
+                    S::default_max_ulps()
                 }
 
                 #[inline]
@@ -804,6 +825,14 @@ mod cgmath_impl {
                     S: ops::Mul<Output = S>,
                 {
                     fold_array!(mul, { $(self.$field),+ })
+                }
+
+                #[inline]
+                fn is_finite(&self) -> bool
+                where
+                    S: BaseFloat,
+                {
+                    $(self.$field.is_finite())&&+
                 }
             }
 
