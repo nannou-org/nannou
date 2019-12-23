@@ -164,4 +164,9 @@ Depending on what OS you are running, you might require an extra step or two.
     sudo pacman -S nvidia lib32-nvidia-utils
     ```
 
+    For Gentoo run:
+    ```bash
+    sudo emerge --ask --verbose dev-util/vulkan-tools dev-util/vulkan-headers
+    ```
+
 OK, we should now be ready to install Rust!
