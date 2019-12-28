@@ -598,11 +598,11 @@ mod cgmath_impl {
     }
 
     use super::{Vector2, Vector3, Vector4};
-    use crate::math::cgmath::{AbsDiffEq, RelativeEq, UlpsEq};
     use crate::math::cgmath::{
         self, Angle, Array, BaseFloat, BaseNum, ElementWise, EuclideanSpace, InnerSpace,
         MetricSpace, Rad, VectorSpace,
     };
+    use crate::math::cgmath::{AbsDiffEq, RelativeEq, UlpsEq};
     use std::ops;
 
     macro_rules! impl_vector_cgmath {
