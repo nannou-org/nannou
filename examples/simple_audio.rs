@@ -68,7 +68,13 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
             model
                 .stream
                 .send(|audio| {
-                    audio.hz += 10.0;
+                    // * avoid wrap-around / overflow
+                    // * 28kHz upper boundary for hearing according to https://asa.scitation.org/doi/full/10.1121/1.2761883
+                    if audio.hz > 28000.0 {
+                        audio.hz = 28000.0;
+                    } else {
+                        audio.hz += 10.0;
+                    }
                 })
                 .unwrap();
         }
