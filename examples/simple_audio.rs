@@ -77,7 +77,12 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
             model
                 .stream
                 .send(|audio| {
-                    audio.hz -= 10.0;
+                    // avoid wrap-around / underflow
+                    if audio.hz != 0.0 {
+                        audio.hz -= 10.0;
+                    } else {
+                        audio.hz = 0.0;
+                    }
                 })
                 .unwrap();
         }
