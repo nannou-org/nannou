@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="sidebar-visible no-js">
+<html lang="en" class="sidebar-visible no-js light">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -32,11 +32,11 @@
 
         
     </head>
-    <body class="light">
+    <body>
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../../";
-            var default_theme = "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -60,8 +60,11 @@
             var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
-            document.body.className = theme;
-            document.querySelector('html').className = theme + ' js';
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
@@ -77,8 +80,8 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="affix"><a href="../../welcome.html">Welcome!</a></li><li><a href="../../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="../../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="../../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li><a href="../../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li><a href="../../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="../../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="../../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="../../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="../../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="../../tutorials/basics/anatomy-of-a-nannou-app.html" class="active"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li><a href="../../tutorials/basics/drawing-2d-shapes.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li><a href="../../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="../../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="../../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="../../contributors.html">Contributors</a></li><li class="affix"><a href="../../code_of_conduct.html">Code of Conduct</a></li></ol>
+            <div id="sidebar-scrollbox" class="sidebar-scrollbox">
+                <ol class="chapter"><li class="expanded affix "><a href="../../welcome.html">Welcome!</a></li><li class="expanded "><a href="../../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="expanded "><a href="../../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="expanded "><a href="../../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="expanded "><a href="../../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="expanded "><a href="../../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="expanded "><a href="../../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="expanded "><a href="../../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="expanded "><a href="../../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li class="expanded "><a href="../../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="expanded "><a href="../../tutorials/basics/anatomy-of-a-nannou-app.html" class="active"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="expanded "><a href="../../tutorials/basics/drawing-2d-shapes.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li class="expanded "><a href="../../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="expanded "><a href="../../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="expanded "><a href="../../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="expanded affix "><a href="../../contributors.html">Contributors</a></li><li class="expanded affix "><a href="../../code_of_conduct.html">Code of Conduct</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -165,9 +168,9 @@ romance story aren't very helpful.</p>
 but you might find it hard to build an office suite. So let's take a look at the
 building blocks for creative coding together.</p>
 <p>Here's an example of a bare-bones nannou app that opens an empty window:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"># extern crate nannou;
-#
-use nannou::prelude::*;
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">extern crate nannou;
+</span><span class="boring">
+</span>use nannou::prelude::*;
 
 struct Model {}
 
@@ -190,11 +193,11 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
 </code></pre></pre>
 <p>We will start from the top!</p>
 <h2><a class="header" href="#import-common-items" id="import-common-items">Import Common Items</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(unused_imports)] 
-# extern crate nannou;
-use nannou::prelude::*;
-# fn main() {}
-</code></pre></pre>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)] 
+</span><span class="boring">extern crate nannou;
+</span>use nannou::prelude::*;
+<span class="boring">fn main() {}
+</span></code></pre></pre>
 <p>This line imports all of the commonly used items from nannou into scope. These
 include items such as <code>App</code>, <code>Frame</code>, and many more that we will learn about
 over time. To see the full list of items re-exported by the prelude, see
@@ -208,10 +211,10 @@ item we <em>do</em> want to use into scope. By providing a prelude nannou makes 
 little easier to access all of the commonly used items.</p>
 </blockquote>
 <h2><a class="header" href="#model---our-app-state" id="model---our-app-state"><strong>Model</strong> - Our app state</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
-struct Model {}
-# fn main() {}
-</code></pre></pre>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+</span>struct Model {}
+<span class="boring">fn main() {}
+</span></code></pre></pre>
 <p>The <strong>Model</strong> is where we define the state of our application. We can think of
 the model as the representation of our program at any point in time. Throughout
 the life of our program, we can update the model as certain events occur such as
@@ -225,43 +228,43 @@ model can stay empty.</p>
 empty. There is no state information to be tracked in this example.</p>
 </blockquote>
 <h2><a class="header" href="#main---where-rust-programs-begin-and-end" id="main---where-rust-programs-begin-and-end"><strong>main</strong> - Where Rust programs begin and end</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"># extern crate nannou;
-# use nannou::prelude::*;
-# struct Model {}
-fn main() {
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">extern crate nannou;
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">struct Model {}
+</span>fn main() {
     nannou::app(model)
         .event(event)
         .simple_window(view)
         .run();
 }
-# fn model(_app: &amp;App) -&gt; Model {
-#     Model {}
-# }
-# fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
-# }
-# fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
-# }
-</code></pre></pre>
+<span class="boring">fn model(_app: &amp;App) -&gt; Model {
+</span><span class="boring">    Model {}
+</span><span class="boring">}
+</span><span class="boring">fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
+</span><span class="boring">}
+</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+</span><span class="boring">}
+</span></code></pre></pre>
 <p>All Rust programs begin executing at the start of the <code>main</code> function and end
 when the <code>main</code> function ends. In most nannou programs, the main function is
 quite small. In short, we build a description of our app and then run it!</p>
-<pre><pre class="playpen"><code class="language-rust no_run"># extern crate nannou;
-# use nannou::prelude::*;
-# struct Model {}
-# fn main() {
-    nannou::app(model)       // Start building the app and specify our `model`
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">extern crate nannou;
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">struct Model {}
+</span><span class="boring">fn main() {
+</span>    nannou::app(model)       // Start building the app and specify our `model`
         .event(event)        // Specify that we want to handle app events with `event`
         .simple_window(view) // Request a simple window to which we'll draw with `view`
         .run();              // Run it!
-# }
-# fn model(_app: &amp;App) -&gt; Model {
-#     Model {}
-# }
-# fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
-# }
-# fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
-# }
-</code></pre></pre>
+<span class="boring">}
+</span><span class="boring">fn model(_app: &amp;App) -&gt; Model {
+</span><span class="boring">    Model {}
+</span><span class="boring">}
+</span><span class="boring">fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
+</span><span class="boring">}
+</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+</span><span class="boring">}
+</span></code></pre></pre>
 <p>We will describe what these <strong>model</strong>, <strong>event</strong> and <strong>view</strong> functions do
 below!</p>
 <blockquote>
@@ -285,15 +288,15 @@ input, the controller might use an algorithm based on time or some other
 application event to modify the model.</p>
 </blockquote>
 <h2><a class="header" href="#model---initialise-our-model" id="model---initialise-our-model"><strong>model</strong> - initialise our Model</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
-# extern crate nannou;
-# use nannou::prelude::*;
-# struct Model {}
-fn model(_app: &amp;App) -&gt; Model {
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+</span><span class="boring">extern crate nannou;
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">struct Model {}
+</span>fn model(_app: &amp;App) -&gt; Model {
     Model {}
 }
-# fn main() {}
-</code></pre></pre>
+<span class="boring">fn main() {}
+</span></code></pre></pre>
 <p>The <code>model</code> function is run once at the beginning of the nannou app and produces
 a fresh, new instance of the <strong>Model</strong> that we declared previously, AKA the app
 state. This can be thought of as the &quot;setup&quot; stage of our application. Here, we
@@ -309,30 +312,30 @@ details of the application (such as establishing event loops, spawning I/O
 streams, etc) and provides an easy to use, high-level API on top. Providing
 access to the <strong>App</strong> via a function's first argument is a common practice
 throughout nannou's API.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
-# extern crate nannou;
-# use nannou::prelude::*;
-# struct Model {}
-//                ----- Access to the `App` passed as an input to the function.
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+</span><span class="boring">extern crate nannou;
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">struct Model {}
+</span>//                ----- Access to the `App` passed as an input to the function.
 //               /
 //              v
 fn model(_app: &amp;App) -&gt; Model {
     Model {}
 }
-# fn main() {}
-</code></pre></pre>
+<span class="boring">fn main() {}
+</span></code></pre></pre>
 <p>You can learn more about what the <strong>App</strong> is responsible for and capable of
 <a href="https://docs.rs/nannou/latest/nannou/app/struct.App.html">here</a>.</p>
 </blockquote>
 <h2><a class="header" href="#event---updating-the-model-on-app-events" id="event---updating-the-model-on-app-events"><strong>event</strong> - updating the Model on app events</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
-# extern crate nannou;
-# use nannou::prelude::*;
-# struct Model {}
-fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+</span><span class="boring">extern crate nannou;
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">struct Model {}
+</span>fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 }
-# fn main() {}
-</code></pre></pre>
+<span class="boring">fn main() {}
+</span></code></pre></pre>
 <p>The <strong>event</strong> function is some code that will run every time some kind of app
 event occurs. There are many different kinds of app events including mouse and
 keyboard presses, window resizes, timed updates and many more. Each of these are
@@ -349,33 +352,33 @@ about.</p>
 <p>For example, if instead of handling <em>all</em> events we only want to handle timed
 updates (an event that by default occurs 60 times per second) we could change
 our app building code to this:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
-# extern crate nannou;
-# use nannou::prelude::*;
-# struct Model {}
-fn main() {
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+</span><span class="boring">extern crate nannou;
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">struct Model {}
+</span>fn main() {
     nannou::app(model)
         .update(update) // rather than `.event(event)`, now we only subscribe to updates
         .simple_window(view)
         .run();
 }
-# fn model(_app: &amp;App) -&gt; Model {
-#     Model {}
-# }
-# fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
-# }
-# fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
-# }
-</code></pre></pre>
+<span class="boring">fn model(_app: &amp;App) -&gt; Model {
+</span><span class="boring">    Model {}
+</span><span class="boring">}
+</span><span class="boring">fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
+</span><span class="boring">}
+</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+</span><span class="boring">}
+</span></code></pre></pre>
 <p>And remove our <code>event</code> function in favour of an <code>update</code> function:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
-# extern crate nannou;
-# use nannou::prelude::*;
-# struct Model {}
-fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+</span><span class="boring">extern crate nannou;
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">struct Model {}
+</span>fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
 }
-# fn main() {}
-</code></pre></pre>
+<span class="boring">fn main() {}
+</span></code></pre></pre>
 <p>Now, our new <strong>update</strong> function will only run each time a timed update
 occurs.</p>
 <blockquote>
@@ -386,14 +389,14 @@ for a demonstration of most of the different kinds of events that are
 available.</p>
 </blockquote>
 <h2><a class="header" href="#view---presenting-the-model-to-a-window" id="view---presenting-the-model-to-a-window"><strong>view</strong> - presenting the Model to a window</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"># #![allow(dead_code)] 
-# extern crate nannou;
-# use nannou::prelude::*;
-# struct Model {}
-fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+</span><span class="boring">extern crate nannou;
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">struct Model {}
+</span>fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
 }
-# fn main() {}
-</code></pre></pre>
+<span class="boring">fn main() {}
+</span></code></pre></pre>
 <p>Finally, the <strong>view</strong> allows us to present the state of the model to a window by
 drawing to its <strong>Frame</strong> and returning the frame at the end. Here we can change
 the background colour, use the <strong>Draw</strong> API to draw a scene, draw a GUI to the
@@ -443,6 +446,14 @@ unclear - we will aim to cover these and more in future tutorials :)</p>
 
         
 
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
         
 
         

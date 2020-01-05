@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="sidebar-visible no-js">
+<html lang="en" class="sidebar-visible no-js light">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -32,11 +32,11 @@
 
         
     </head>
-    <body class="light">
+    <body>
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../";
-            var default_theme = "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -60,8 +60,11 @@
             var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
-            document.body.className = theme;
-            document.querySelector('html').className = theme + ' js';
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
@@ -77,8 +80,8 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="affix"><a href="../welcome.html">Welcome!</a></li><li><a href="../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li><a href="../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li><a href="../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li><a href="../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li><a href="../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li><a href="../getting_started/running_examples.html" class="active"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li><a href="../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li><a href="../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li><a href="../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li><a href="../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li><a href="../tutorials/basics/drawing-2d-shapes.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li><a href="../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li><a href="../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li><a href="../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="affix"><a href="../contributors.html">Contributors</a></li><li class="affix"><a href="../code_of_conduct.html">Code of Conduct</a></li></ol>
+            <div id="sidebar-scrollbox" class="sidebar-scrollbox">
+                <ol class="chapter"><li class="expanded affix "><a href="../welcome.html">Welcome!</a></li><li class="expanded "><a href="../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="expanded "><a href="../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="expanded "><a href="../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="expanded "><a href="../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="expanded "><a href="../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="expanded "><a href="../getting_started/running_examples.html" class="active"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="expanded "><a href="../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="expanded "><a href="../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li class="expanded "><a href="../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="expanded "><a href="../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="expanded "><a href="../tutorials/basics/drawing-2d-shapes.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li class="expanded "><a href="../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="expanded "><a href="../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="expanded "><a href="../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="expanded affix "><a href="../contributors.html">Contributors</a></li><li class="expanded affix "><a href="../code_of_conduct.html">Code of Conduct</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -159,7 +162,29 @@ at the top of this page and then press &quot;Download .zip&quot;.</p>
 <pre><code class="language-bash">cargo run --release --example simple_draw
 </code></pre>
 <p>The <code>--release</code> flag means we want to build with optimisations enabled.</p>
-<p>If you are compiling nannou for the first time you will see cargo download and build all the necessary dependencies.</p>
+<p>The value passed via the <code>--example</code> flag matches the <code>name</code> property of an
+object in the <code>[[examples]]</code> table in the root <code>Cargo.toml</code> file. The matched
+object's <code>path</code> property points to the source file to compile:</p>
+<pre><code class="language-toml"># --------------- Nannou Examples
+[[example]]
+name = &quot;simple_draw&quot;
+path = &quot;examples/simple_draw.rs&quot;
+
+# ...
+
+# --------------- Nature of Code
+# --------------- Chapter 1 Vectors
+[[example]]
+name = &quot;1_1_bouncingball_novectors&quot;
+path = &quot;examples/nature_of_code/chp_01_vectors/1_1_bouncingball_novectors.rs&quot;
+</code></pre>
+<p>This means that to run the code at
+<code>examples/nature_of_code/chp_01_vectors/1_1_bouncingball_novectors.rs</code> you would
+run</p>
+<pre><code class="language-bash">cargo run --release --example 1_1_bouncingball_novectors
+</code></pre>
+<p>If you are compiling nannou for the first time you will see cargo download and
+build all the necessary dependencies.</p>
 <p><img src="https://i.imgur.com/5OBNqMB.gif" alt="cargo" /></p>
 <p>Once the example compiles you should see the following window appear.</p>
 <p><img src="https://i.imgur.com/HVVamUI.gif" alt="simple_draw_HD" /></p>
@@ -205,6 +230,14 @@ desired example.</p>
 
         
 
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
         
 
         
