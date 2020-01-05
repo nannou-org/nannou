@@ -14,25 +14,24 @@ edition = "2018"
 default = ["notosans"]
 
 [dependencies]
-approx = "0.1"
-cgmath = { version = "0.16", features = ["serde"] }
+cgmath = { version = "0.17", features = ["serde"] }
 conrod_core = "0.68"
 conrod_winit = "0.68"
 conrod_vulkano = "0.68"
 daggy = "0.6"
 find_folder = "0.3"
-image = "0.21"
+image = "0.22"
 lyon = "0.14"
-noise = "0.5"
+noise = "0.6"
 notosans = { version = "0.1", optional = true }
-palette = "0.4"
+palette = "0.5"
 pennereq = "0.3"
 rand = "0.7"
-rusttype = "0.7"
+rusttype = "0.8"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
-toml = "0.4"
+toml = "0.5"
 vulkano = "0.16"
 vulkano-win = "0.16"
 vulkano-shaders = "0.16"
