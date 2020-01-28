@@ -226,6 +226,10 @@ where
                     n.ix
                 };
 
+                if na == nb {
+                    continue;
+                }
+
                 if g.find_edge(na, nb).is_none() {
                     g.add_edge(na, nb, ());
                 }
