@@ -90,6 +90,15 @@ Depending on what OS you are running, you might require an extra step or two.
     [others](https://en.wikipedia.org/wiki/LibreSSL#Adoption) if manually
     installed).
 
+  - **xcb**
+  
+    The XCB library provides inter-operability with Xlib. 
+    
+    For Debian/Ubuntu users:
+    ```bash
+    sudo apt install libxcb-shape0-dev libxcb-xfixes0-dev
+    ```
+    
   - **vulkan**
 
     Installing Vulkan support on Linux is generally quite easy using your
