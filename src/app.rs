@@ -12,12 +12,11 @@
 
 use crate::draw;
 use crate::event::{self, Event, Key, LoopEvent, Update};
-use crate::frame::{Frame, RawFrame, RenderData};
+use crate::frame::{Frame, RawFrame};
 use crate::geom;
 use crate::state;
 use crate::time::DurationF64;
-use crate::ui;
-use crate::vk::{self, DeviceOwned, GpuFuture};
+//use crate::ui;
 use crate::window::{self, Window};
 use find_folder;
 use std;
@@ -29,9 +28,7 @@ use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use winit;
-
-#[cfg(all(target_os = "macos", not(test)))]
-use moltenvk_deps as mvkd;
+use winit::event_loop::ControlFlow;
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -66,11 +63,7 @@ pub struct Builder<M = (), E = Event> {
     update: Option<UpdateFn<M>>,
     default_view: Option<View<M>>,
     exit: Option<ExitFn<M>>,
-    vk_instance: Option<Arc<vk::Instance>>,
-    vk_debug_callback: Option<vk::DebugCallbackBuilder>,
     create_default_window: bool,
-    #[cfg(all(target_os = "macos", not(test)))]
-    moltenvk_settings: Option<mvkd::Install>,
 }
 
 /// The default `model` function used when none is specified by the user.
@@ -91,21 +84,13 @@ fn default_model(_: &App) -> () {
 /// - **All windows** for graphics and user input. Windows can be referenced via their IDs.
 pub struct App {
     config: RefCell<Config>,
-    pub(crate) vk_instance: Arc<vk::Instance>,
-    pub(crate) events_loop: winit::EventsLoop,
+    pub(crate) event_loop_window_target: Option<EventLoopWindowTarget>,
+    pub(crate) event_loop_proxy: Proxy,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
     draw_state: DrawState,
-    pub(crate) ui: ui::Arrangement,
+    //pub(crate) ui: ui::Arrangement,
     /// The window that is currently in focus.
     pub(crate) focused_window: RefCell<Option<window::Id>>,
-
-    /// Indicates whether or not the events loop is currently asleep.
-    ///
-    /// This is set to `true` each time the events loop is ready to return and the `LoopMode` is
-    /// set to `Wait` for events.
-    ///
-    /// This value is set back to `false` each time the events loop receives any kind of event.
-    pub(crate) events_loop_is_asleep: Arc<AtomicBool>,
 
     /// The current state of the `Mouse`.
     pub mouse: state::Mouse,
@@ -146,14 +131,6 @@ pub struct App {
     pub time: DrawScalar,
 }
 
-// /// Graphics related items within the `App`.
-// pub struct Graphics {
-// }
-//
-// /// Items related to the presence of one or more windows within the App.
-// pub struct Windowing {
-// }
-
 /// Miscellaneous app configuration parameters.
 #[derive(Debug)]
 struct Config {
@@ -171,20 +148,14 @@ struct Config {
 pub struct Draw<'a> {
     window_id: window::Id,
     draw: RefMut<'a, draw::Draw<DrawScalar>>,
-    renderer: RefMut<'a, RefCell<draw::backend::vulkano::Renderer>>,
-    depth_format: vk::Format,
+    renderer: RefMut<'a, RefCell<draw::backend::wgpu::Renderer>>,
 }
 
 // Draw state managed by the **App**.
 #[derive(Debug)]
 struct DrawState {
     draw: RefCell<draw::Draw<DrawScalar>>,
-    renderers: RefCell<HashMap<window::Id, RefCell<draw::backend::vulkano::Renderer>>>,
-    // The supported depth format for each device.
-    //
-    // Devices are mapped via their `index`, which is stated to "never change" according to the
-    // vulkano docs.
-    supported_depth_formats: RefCell<HashMap<usize, vk::Format>>,
+    renderers: RefCell<HashMap<window::Id, RefCell<draw::backend::wgpu::Renderer>>>,
 }
 
 /// The app uses a set scalar type in order to provide a simplistic API to users.
@@ -195,44 +166,24 @@ pub type DrawScalar = geom::scalar::Default;
 
 /// A handle to the **App** that can be shared across threads. This may be used to "wake up" the
 /// **App**'s inner event loop.
+#[derive(Clone)]
 pub struct Proxy {
-    events_loop_proxy: winit::EventsLoopProxy,
-    events_loop_is_asleep: Arc<AtomicBool>,
-}
-
-// The type returned by a mode-specific run loop within the `run_loop` function.
-struct Break<M> {
-    model: M,
-    reason: BreakReason,
-}
-
-// The reason why the mode-specific run loop broke out of looping.
-enum BreakReason {
-    // The application has exited.
-    Exit,
-    // The LoopMode has been changed to the given mode.
-    NewLoopMode(LoopMode),
+    event_loop_proxy: winit::event_loop::EventLoopProxy<()>,
+    // Indicates whether or not the events loop is currently asleep.
+    //
+    // This is set to `true` each time the events loop is ready to return and the `LoopMode` is
+    // set to `Wait` for events.
+    //
+    // This value is set back to `false` each time the events loop receives any kind of event.
+    event_loop_is_asleep: Arc<AtomicBool>,
 }
 
 // State related specifically to the application loop, shared between loop modes.
-struct LoopContext<M, E> {
-    // The user's application event function.
-    event_fn: Option<EventFn<M, E>>,
-    // The user's update function.
-    update_fn: Option<UpdateFn<M>>,
-    // The user's default function for drawing to a window's swapchain's image, used in the case
-    // that the user has not provided a window-specific view function.
-    default_view: Option<View<M>>,
-    // The moment at which `run_loop` began.
+struct LoopState {
+    updates_since_event: usize,
     loop_start: Instant,
-    // A buffer for collecting polled events.
-    winit_events: Vec<winit::Event>,
-    // The last instant that `update` was called. Initialised to `loop_start`.
     last_update: Instant,
-    // The instant that the loop last ended. Initialised to `loop_start`.
-    last_loop_end: Instant,
-    // The number of updates yet to be called (for `LoopMode::Wait`).
-    updates_remaining: usize,
+    total_updates: u64,
 }
 
 /// The mode in which the **App** is currently running the event loop and emitting `Update` events.
@@ -249,7 +200,7 @@ pub enum LoopMode {
     ///
     /// 3. Check the time and sleep for the remainder of the `update_interval` then go to 1.
     ///
-    /// `view` is called at an arbitraty rate by the vulkan swapchain for each window. It uses
+    /// `view` is called at an arbitraty rate by the vulkan swap chain for each window. It uses
     /// whatever the state of the user's model happens to be at that moment in time.
     Rate {
         /// The minimum interval between emitted updates.
@@ -284,7 +235,7 @@ pub enum LoopMode {
         update_interval: Duration,
     },
 
-    /// Synchronises `Update` events with requests for a new image by the swapchain for each
+    /// Synchronises `Update` events with requests for a new image by the swap chain for each
     /// window in order to achieve minimal latency between the state of the model and what is
     /// displayed on screen. This mode should be particularly useful for interactive applications
     /// and games where minimal latency between user input and the display image is essential.
@@ -301,16 +252,16 @@ pub enum LoopMode {
     /// last `Update` occurred, so as long as all time-based state (like animations or physics
     /// simulations) are driven by this, the `update` interval consistency should not cause issues.
     ///
-    /// ### The Swapchain
+    /// ### The Swap Chain
     ///
-    /// The purpose of the swapchain for each window is to synchronise the presentation of images
+    /// The purpose of the swap chain for each window is to synchronise the presentation of images
     /// (calls to `view` in nannou) with the refresh rate of the screen. *You can learn more about
     /// the swap chain
     /// [here](https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain).*
     RefreshSync {
         /// The minimum duration that must occur between calls to `update`. Under the `RefreshSync`
         /// mode, the application loop will attempt to emit an `Update` event once every time a new
-        /// image is acquired from a window's swapchain. Thus, this value is very useful when
+        /// image is acquired from a window's swap chain. Thus, this value is very useful when
         /// working with multiple windows in order to avoid updating at an unnecessarily high rate.
         ///
         /// We recommend using a `Duration` that is roughly half the duration between refreshes of
@@ -354,11 +305,7 @@ where
             update: None,
             default_view: None,
             exit: None,
-            vk_instance: None,
-            vk_debug_callback: None,
             create_default_window: false,
-            #[cfg(all(target_os = "macos", not(test)))]
-            moltenvk_settings: None,
         }
     }
 
@@ -380,10 +327,6 @@ where
             default_view,
             exit,
             create_default_window,
-            vk_instance,
-            vk_debug_callback,
-            #[cfg(all(target_os = "macos", not(test)))]
-            moltenvk_settings,
             ..
         } = self;
         Builder {
@@ -393,10 +336,6 @@ where
             default_view,
             exit,
             create_default_window,
-            vk_instance,
-            vk_debug_callback,
-            #[cfg(all(target_os = "macos", not(test)))]
-            moltenvk_settings,
         }
     }
 }
@@ -460,69 +399,6 @@ where
         self
     }
 
-    /// The vulkan instance to use for interfacing with the system vulkan API.
-    ///
-    /// If unspecified, nannou will create one via the following:
-    ///
-    /// ```norun
-    /// # use nannou::prelude::*;
-    /// # fn main() {
-    /// vk::InstanceBuilder::new()
-    ///     .build()
-    ///     .expect("failed to creat vulkan instance")
-    /// # ;
-    /// # }
-    /// ```
-    ///
-    /// If a `vk_debug_callback` was specified but the `vk_instance` is unspecified, nannou
-    /// will do the following:
-    ///
-    /// ```norun
-    /// # use nannou::prelude::*;
-    /// # fn main() {
-    /// vk::InstanceBuilder::new()
-    ///     .extensions(vk::InstanceExtensions {
-    ///         ext_debug_report: true,
-    ///         ..vk::required_windowing_extensions()
-    ///     })
-    ///     .layers(vec!["VK_LAYER_LUNARG_standard_validation"])
-    ///     .build()
-    ///     .expect("failed to creat vulkan instance")
-    /// # ;
-    /// # }
-    /// ```
-    pub fn vk_instance(mut self, vk_instance: Arc<vk::Instance>) -> Self {
-        self.vk_instance = Some(vk_instance);
-        self
-    }
-
-    /// Specify a debug callback to be used with the vulkan instance.
-    ///
-    /// If you just want to print messages from the standard validation layers to stdout, you can
-    /// call this method with `Default::default()` as the argument.
-    ///
-    /// Note that if you have specified a custom `vk_instance`, that instance must have the
-    /// `ext_debug_report` extension enabled and must have been constructed with a debug layer.
-    pub fn vk_debug_callback(mut self, debug_cb: vk::DebugCallbackBuilder) -> Self {
-        self.vk_debug_callback = Some(debug_cb);
-        self
-    }
-
-    #[cfg(all(target_os = "macos", not(test)))]
-    /// Set custom settings for the moltenvk dependacy
-    /// installer.
-    ///
-    /// Install silently
-    /// `Install::Silent`
-    /// Install with callbacks
-    /// `Install::Message(message)`
-    ///
-    /// See moltenvk_deps::Message docs for more information.
-    pub fn macos_installer(mut self, settings: mvkd::Install) -> Self {
-        self.moltenvk_settings = Some(settings);
-        self
-    }
-
     /// Build and run an `App` with the specified parameters.
     ///
     /// This function will not return until the application has exited.
@@ -532,58 +408,19 @@ where
     /// initialised on the main thread.
     pub fn run(mut self) {
         // Start the winit window event loop.
-        let events_loop = winit::EventsLoop::new();
+        let event_loop = winit::event_loop::EventLoop::new();
 
-        // Keep track of whether or not a debug cb was specified so we know what default extensions
-        // and layers are necessary.
-        let debug_callback_specified = self.vk_debug_callback.is_some();
-
-        #[cfg(all(target_os = "macos", not(test)))]
-        let moltenvk_settings = self.moltenvk_settings;
-
-        // The vulkan instance necessary for graphics.
-        let vk_instance = self.vk_instance.take().unwrap_or_else(|| {
-            if debug_callback_specified {
-                let vk_builder = vk::InstanceBuilder::new();
-
-                #[cfg(all(target_os = "macos", not(test)))]
-                let vk_builder = vk::check_moltenvk(vk_builder, moltenvk_settings);
-
-                #[cfg(any(not(target_os = "macos"), test))]
-                let vk_builder = vk_builder.extensions(vk::required_windowing_extensions());
-
-                vk_builder
-                    .add_extensions(vk::InstanceExtensions {
-                        ext_debug_utils: true,
-                        ..vk::InstanceExtensions::none()
-                    })
-                    .layers(vec!["VK_LAYER_LUNARG_standard_validation"])
-                    .build()
-                    .expect("failed to create vulkan instance")
-            } else {
-                let vk_builder = vk::InstanceBuilder::new();
-
-                #[cfg(all(target_os = "macos", not(test)))]
-                let vk_builder = vk::check_moltenvk(vk_builder, moltenvk_settings);
-
-                #[cfg(any(not(target_os = "macos"), test))]
-                let vk_builder = vk_builder.extensions(vk::required_windowing_extensions());
-
-                vk_builder
-                    .build()
-                    .expect("failed to create vulkan instance")
-            }
-        });
-
-        // If a callback was specified, build it with the created instance.
-        let _vk_debug_callback = self.vk_debug_callback.take().map(|builder| {
-            builder
-                .build(&vk_instance)
-                .expect("failed to build vulkan debug callback")
-        });
+        // Create the proxy used to awaken the event loop.
+        let event_loop_proxy = event_loop.create_proxy();
+        let event_loop_is_asleep = Arc::new(AtomicBool::new(false));
+        let event_loop_proxy = Proxy {
+            event_loop_proxy,
+            event_loop_is_asleep,
+        };
 
         // Initialise the app.
-        let app = App::new(events_loop, vk_instance).expect("failed to construct `App`");
+        let event_loop_window_target = Some(EventLoopWindowTarget::Owned(event_loop));
+        let app = App::new(event_loop_proxy, event_loop_window_target);
 
         // Create the default window if necessary
         if self.create_default_window {
@@ -604,31 +441,14 @@ where
             }
         }
 
-        // If the loop mode was set in the user's model function, ensure all window swapchains are
+        // If the loop mode was set in the user's model function, ensure all window swap chains are
         // re-created appropriately.
         let loop_mode = app.loop_mode();
         if loop_mode != LoopMode::default() {
+            let present_mode = window::preferred_present_mode(&loop_mode);
             let mut windows = app.windows.borrow_mut();
             for window in windows.values_mut() {
-                let capabilities = window
-                    .surface
-                    .capabilities(window.swapchain.device().physical_device())
-                    .expect("failed to get surface capabilities");
-                let min_image_count = capabilities.min_image_count;
-                let user_specified_present_mode = window.user_specified_present_mode;
-                let user_specified_image_count = window.user_specified_image_count;
-                let (present_mode, image_count) = window::preferred_present_mode_and_image_count(
-                    &loop_mode,
-                    min_image_count,
-                    user_specified_present_mode,
-                    user_specified_image_count,
-                    &capabilities.present_modes,
-                );
-                if window.swapchain.present_mode() != present_mode
-                    || window.swapchain.num_images() != image_count
-                {
-                    change_loop_mode_for_window(window, &loop_mode);
-                }
+                // TODO: Update window for loop/present mode.
             }
         }
 
@@ -657,10 +477,6 @@ impl Builder<(), Event> {
             default_view: Some(View::Sketch(view)),
             exit: None,
             create_default_window: true,
-            vk_instance: None,
-            vk_debug_callback: None,
-            #[cfg(all(target_os = "macos", not(test)))]
-            moltenvk_settings: None,
         };
         builder.run()
     }
@@ -756,7 +572,7 @@ impl LoopMode {
 
 impl Default for LoopMode {
     fn default() -> Self {
-        LoopMode::refresh_sync()
+        LoopMode::rate_fps(60.0)
     }
 }
 
@@ -780,65 +596,34 @@ impl App {
 
     // Create a new `App`.
     pub(super) fn new(
-        events_loop: winit::EventsLoop,
-        vk_instance: Arc<vk::Instance>,
-    ) -> Result<Self, vk::InstanceCreationError> {
+        event_loop_proxy: Proxy,
+        event_loop_window_target: Option<EventLoopWindowTarget>,
+    ) -> Self {
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());
         let config = RefCell::new(Default::default());
         let renderers = RefCell::new(Default::default());
-        let supported_depth_formats = RefCell::new(HashMap::new());
-        let draw_state = DrawState {
-            draw,
-            renderers,
-            supported_depth_formats,
-        };
+        let draw_state = DrawState { draw, renderers };
         let focused_window = RefCell::new(None);
-        let ui = ui::Arrangement::new();
+        //let ui = ui::Arrangement::new();
         let mouse = state::Mouse::new();
         let keys = state::Keys::default();
         let duration = state::Time::default();
         let time = duration.since_start.secs() as _;
-        let events_loop_is_asleep = Arc::new(AtomicBool::new(false));
         let app = App {
-            vk_instance,
-            events_loop,
-            events_loop_is_asleep,
+            event_loop_proxy,
+            event_loop_window_target,
             focused_window,
             windows,
             config,
             draw_state,
-            ui,
+            //ui,
             mouse,
             keys,
             duration,
             time,
         };
-        Ok(app)
-    }
-
-    /// A reference to the vulkan instance associated with the `App`.
-    ///
-    /// If you would like to construct the app with a custom vulkan instance, see the
-    /// `app::Builder::vk_instance` method.
-    pub fn vk_instance(&self) -> &Arc<vk::instance::Instance> {
-        &self.vk_instance
-    }
-
-    /// Returns an iterator yielding each of the physical devices on the system that are vulkan
-    /// compatible.
-    ///
-    /// If a physical device is not specified for a window surface's swapchain, the first device
-    /// yielded by this iterator is used as the default.
-    pub fn vk_physical_devices(&self) -> vk::instance::PhysicalDevicesIter {
-        vk::instance::PhysicalDevice::enumerate(&self.vk_instance)
-    }
-
-    /// Retrieve the default vulkan physical device.
-    ///
-    /// This is simply the first device yielded by the `vk_physical_devices` method.
-    pub fn default_vk_physical_device(&self) -> Option<vk::instance::PhysicalDevice> {
-        self.vk_physical_devices().next()
+        app
     }
 
     /// Find and return the absolute path to the project's `assets` directory.
@@ -963,21 +748,16 @@ impl App {
     ///
     /// This can be used to "wake up" the **App**'s inner event loop.
     pub fn create_proxy(&self) -> Proxy {
-        let events_loop_proxy = self.events_loop.create_proxy();
-        let events_loop_is_asleep = self.events_loop_is_asleep.clone();
-        Proxy {
-            events_loop_proxy,
-            events_loop_is_asleep,
-        }
+        self.event_loop_proxy.clone()
     }
 
-    /// A builder for creating a new **Ui**.
-    ///
-    /// Each **Ui** is associated with one specific window. By default, this is the window returned
-    /// by `App::window_id` (the currently focused window).
-    pub fn new_ui(&self) -> ui::Builder {
-        ui::Builder::new(self)
-    }
+    // /// A builder for creating a new **Ui**.
+    // ///
+    // /// Each **Ui** is associated with one specific window. By default, this is the window returned
+    // /// by `App::window_id` (the currently focused window).
+    // pub fn new_ui(&self) -> ui::Builder {
+    //     ui::Builder::new(self)
+    // }
 
     /// Produce the **App**'s **Draw** API for drawing geometry and text with colors and textures.
     ///
@@ -991,16 +771,8 @@ impl App {
             None => return None,
             Some(window) => window,
         };
-        let queue = window.swapchain_queue().clone();
-        let device = queue.device().clone();
-        let color_format = crate::frame::COLOR_FORMAT;
-        let mut supported_depth_formats = self.draw_state.supported_depth_formats.borrow_mut();
-        let depth_format = *supported_depth_formats
-            .entry(device.physical_device().index())
-            .or_insert_with(|| {
-                find_draw_depth_format(device)
-                    .expect("no supported vulkan depth format for the App's `Draw` API")
-            });
+
+        let texture_format = crate::frame::Frame::TEXTURE_FORMAT;
         let draw = self.draw_state.draw.borrow_mut();
         draw.reset();
 
@@ -1011,14 +783,7 @@ impl App {
                 let (px_w, px_h) = window.inner_size_pixels();
                 // TODO: This should be configurable.
                 let glyph_cache_dims = [px_w, px_h];
-                let renderer = draw::backend::vulkano::Renderer::new(
-                    queue,
-                    color_format,
-                    depth_format,
-                    msaa_samples,
-                    glyph_cache_dims,
-                )
-                .expect("failed to create `Draw` renderer for vulkano backend");
+                let renderer = draw::backend::wgpu::Renderer;
                 RefCell::new(renderer)
             })
         });
@@ -1026,7 +791,6 @@ impl App {
             window_id,
             draw,
             renderer,
-            depth_format,
         })
     }
 
@@ -1060,18 +824,19 @@ impl App {
 impl Proxy {
     /// Wake up the application!
     ///
-    /// This wakes up the **App**'s inner event loop and inserts an **Awakened** event.
+    /// This wakes up the **App**'s inner event loop and causes a user event to be emitted by the
+    /// event loop.
     ///
-    /// The `app::Proxy` stores a flag in order to track whether or not the `EventsLoop` is
+    /// The `app::Proxy` stores a flag in order to track whether or not the `EventLoop` is
     /// currently blocking and waiting for events. This method will only call the underlying
-    /// `winit::EventsLoopProxy::wakeup` method if this flag is set to true and will immediately
-    /// set the flag to false afterwards. This makes it safe to call the `wakeup` method as
-    /// frequently as necessary across methods without causing any underlying OS methods to be
-    /// called more than necessary.
-    pub fn wakeup(&self) -> Result<(), winit::EventsLoopClosed> {
-        if self.events_loop_is_asleep.load(atomic::Ordering::Relaxed) {
-            self.events_loop_proxy.wakeup()?;
-            self.events_loop_is_asleep
+    /// `winit::event_loop::EventLoopProxy::send_event` method if this flag is set to true and will
+    /// immediately set the flag to false afterwards. This makes it safe to call the `wakeup`
+    /// method as frequently as necessary across methods without causing any underlying OS methods
+    /// to be called more than necessary.
+    pub fn wakeup(&self) -> Result<(), winit::event_loop::EventLoopClosed<()>> {
+        if self.event_loop_is_asleep.load(atomic::Ordering::Relaxed) {
+            self.event_loop_proxy.send_event(())?;
+            self.event_loop_is_asleep
                 .store(false, atomic::Ordering::Relaxed);
         }
         Ok(())
@@ -1080,11 +845,7 @@ impl Proxy {
 
 impl<'a> Draw<'a> {
     /// Draw the current state of the inner mesh to the given frame.
-    pub fn to_frame(
-        &self,
-        app: &App,
-        frame: &Frame,
-    ) -> Result<(), draw::backend::vulkano::DrawError> {
+    pub fn to_frame(&self, app: &App, frame: &Frame) -> Result<(), draw::backend::wgpu::DrawError> {
         let window = app
             .window(self.window_id)
             .expect("no window to draw to for `app::Draw`'s window_id");
@@ -1096,9 +857,10 @@ impl<'a> Draw<'a> {
             self.window_id,
             frame.window_id(),
         );
-        let dpi_factor = window.hidpi_factor();
+        let scale_factor = window.scale_factor();
         let mut renderer = self.renderer.borrow_mut();
-        renderer.draw_to_frame(&self.draw, dpi_factor, frame, self.depth_format)
+        // TODO: renderer.draw_to_frame.
+        unimplemented!();
     }
 }
 
@@ -1126,16 +888,40 @@ pub fn find_assets_path() -> Result<PathBuf, find_folder::Error> {
         .for_folder(App::ASSETS_DIRECTORY_NAME)
 }
 
-/// Find a compatible depth format for the `App`'s `Draw` API.
-pub fn find_draw_depth_format(device: Arc<vk::Device>) -> Option<vk::Format> {
-    let candidates = [
-        vk::Format::D32Sfloat,
-        vk::Format::D32Sfloat_S8Uint,
-        vk::Format::D24Unorm_S8Uint,
-        vk::Format::D16Unorm,
-        vk::Format::D16Unorm_S8Uint,
-    ];
-    vk::find_supported_depth_image_format(device, &candidates)
+// This type allows the `App` to provide an API for creating new windows.
+//
+// During the `setup` before the
+pub(crate) enum EventLoopWindowTarget {
+    // Ownership over the event loop.
+    //
+    // This is the state before the `EventLoop::run` begins.
+    Owned(winit::event_loop::EventLoop<()>),
+    // A pointer to the target for building windows.
+    //
+    // This is the state during `EventLoop::run`. This pointer becomes invalid following
+    // `EventLoop::run`, so it is essential to take care that we are in the correct state when
+    // using this pointer.
+    Pointer(*const winit::event_loop::EventLoopWindowTarget<()>),
+}
+
+impl EventLoopWindowTarget {
+    // Take a reference to the inner event loop window target.
+    //
+    // This method is solely used during `window::Builder::build` to allow for
+    pub(crate) fn as_ref(&self) -> &winit::event_loop::EventLoopWindowTarget<()> {
+        match *self {
+            EventLoopWindowTarget::Owned(ref event_loop) => (&**event_loop),
+            EventLoopWindowTarget::Pointer(ptr) => {
+                // This cast is safe, assuming that the `App`'s `EventLoopWindowTarget` will only
+                // ever be in the `Pointer` state while the pointer is valid - that is, during the
+                // call to `EventLoop::run`. Great care is taken to ensure that the
+                // `EventLoopWindowTarget` is dropped immediately after `EventLoop::run` completes.
+                // This allows us to take care of abiding by the `EventLoopWindowTarget` lifetime
+                // manually while avoiding having the lifetime propagate up through the `App` type.
+                unsafe { &*ptr as &winit::event_loop::EventLoopWindowTarget<()> }
+            }
+        }
+    }
 }
 
 // Application Loop.
@@ -1151,7 +937,7 @@ pub fn find_draw_depth_format(device: Arc<vk::Device>) -> Option<vk::Format> {
 // issue and ask!
 fn run_loop<M, E>(
     mut app: App,
-    mut model: M,
+    model: M,
     event_fn: Option<EventFn<M, E>>,
     update_fn: Option<UpdateFn<M>>,
     default_view: Option<View<M>>,
@@ -1160,589 +946,369 @@ fn run_loop<M, E>(
     M: 'static,
     E: LoopEvent,
 {
+    // Track the moment the loop starts.
     let loop_start = Instant::now();
 
-    // Initialise the loop context.
-    let mut loop_ctxt = LoopContext {
-        event_fn,
-        update_fn,
-        default_view,
-        loop_start,
-        winit_events: vec![],
-        last_update: loop_start,
-        last_loop_end: loop_start,
-        updates_remaining: LoopMode::DEFAULT_UPDATES_FOLLOWING_EVENT,
+    // Wrap the `model` in an `Option`, allowing us to take full ownership within the `event_loop`
+    // on `exit`.
+    let mut model = Some(model);
+
+    // Take ownership of the `EventLoop` from the `App`.
+    let event_loop = match app.event_loop_window_target.take() {
+        Some(EventLoopWindowTarget::Owned(event_loop)) => event_loop,
+        _ => unreachable!("the app should always own the event loop at this point"),
     };
 
-    let mut loop_mode = app.loop_mode();
+    // Keep track of state related to the loop mode itself.
+    let mut loop_state = LoopState {
+        updates_since_event: 0,
+        loop_start,
+        last_update: loop_start,
+        total_updates: 0,
+    };
 
-    // Begin running the application loop based on the current `LoopMode`.
-    'mode: loop {
-        let Break {
-            model: new_model,
-            reason,
-        } = match loop_mode {
-            LoopMode::Rate { update_interval } => {
-                run_loop_mode_rate(&mut app, model, &mut loop_ctxt, update_interval)
+    // Run the event loop.
+    event_loop.run(move |event, event_loop_window_target, control_flow| {
+        // Set the event loop window target pointer to allow for building windows.
+        app.event_loop_window_target = Some(EventLoopWindowTarget::Pointer(
+            event_loop_window_target as *const _,
+        ));
+
+        let mut exit = false;
+
+        match event {
+            // Check to see if we need to emit an update and request a redraw.
+            winit::event::Event::MainEventsCleared => {
+                if let Some(model) = model.as_mut() {
+                    let loop_mode = app.loop_mode();
+                    let now = Instant::now();
+                    let mut do_update = |loop_state: &mut LoopState| {
+                        apply_update(&mut app, model, event_fn, update_fn, loop_state, now);
+                    };
+                    match loop_mode {
+                        LoopMode::Wait {
+                            updates_following_event,
+                            update_interval,
+                        } => {
+                            if loop_state.updates_since_event < updates_following_event {
+                                let next_update = loop_state.last_update + update_interval;
+                                if now >= next_update {
+                                    do_update(&mut loop_state);
+                                }
+                            }
+                        }
+
+                        LoopMode::Rate { update_interval } => {
+                            let next_update = loop_state.last_update + update_interval;
+                            if now >= next_update {
+                                do_update(&mut loop_state);
+                            }
+                        }
+
+                        LoopMode::RefreshSync {
+                            minimum_update_interval,
+                            ..
+                        } => {
+                            let next_update = loop_state.last_update + minimum_update_interval;
+                            if now >= next_update {
+                                do_update(&mut loop_state);
+                            }
+                        }
+
+                        LoopMode::NTimes {
+                            number_of_updates,
+                            update_interval,
+                        } => {
+                            if loop_state.total_updates < number_of_updates as u64 {
+                                let next_update = loop_state.last_update + update_interval;
+                                if now >= next_update {
+                                    do_update(&mut loop_state);
+                                }
+                            }
+                        }
+                    }
+                }
             }
+
+            // Request a frame from the user for the specified window.
+            //
+            // TODO: Only request a frame from the user if this redraw was requested following an
+            // update. Otherwise, just use the existing intermediary frame.
+            winit::event::Event::RedrawRequested(window_id) => {
+                // Take the render data and swapchain.
+                // We'll replace them before the end of this block.
+                let (mut render_data, mut swap_chain, nth_frame) = {
+                    let mut windows = app.windows.borrow_mut();
+                    let window = windows
+                        .get_mut(&window_id)
+                        .expect("no window for redraw request ID");
+                    let render_data = window.frame_render_data.take();
+                    let swap_chain = window
+                        .swap_chain
+                        .swap_chain
+                        .take()
+                        .expect("missing swap chain");
+                    let nth_frame = window.frame_count;
+                    window.frame_count += 1;
+                    (render_data, swap_chain, nth_frame)
+                };
+
+                // The command buffer to be created.
+                let mut command_buffer = None;
+
+                if let Some(model) = model.as_ref() {
+                    let swap_chain_output = swap_chain.get_next_texture();
+                    let swap_chain_texture = &swap_chain_output.view;
+
+                    // Borrow the window now that we don't need it mutably until setting the render
+                    // data back.
+                    let windows = app.windows.borrow();
+                    let window = windows
+                        .get(&window_id)
+                        .expect("failed to find window for redraw request");
+
+                    // Construct and emit a frame via `view` for receiving the user's graphics commands.
+                    let raw_frame = RawFrame::new_empty(
+                        &window.device,
+                        &window.queue,
+                        window_id,
+                        nth_frame,
+                        swap_chain_texture,
+                        window.swap_chain.descriptor.format,
+                        window.rect(),
+                    );
+
+                    // If the user specified a view function specifically for this window, use it.
+                    // Otherwise, use the fallback, default view passed to the app if there was one.
+                    let window_view = window.user_functions.view.clone();
+
+                    if let Some(ref default_view) = default_view {
+                        command_buffer = match window_view {
+                            Some(window::View::Sketch(view)) => {
+                                let r_data = render_data.take().expect("missing `render_data`");
+                                let frame = Frame::new_empty(raw_frame, r_data);
+                                view(&app, &frame);
+                                let (r_data, raw_frame) = frame.finish();
+                                render_data = Some(r_data);
+                                Some(raw_frame.finish().finish())
+                            }
+                            Some(window::View::WithModel(view)) => {
+                                let r_data = render_data.take().expect("missing `render_data`");
+                                let frame = Frame::new_empty(raw_frame, r_data);
+                                let view = view.to_fn_ptr::<M>().expect(
+                                    "unexpected model argument given to window view function",
+                                );
+                                (*view)(&app, &model, &frame);
+                                let (r_data, raw_frame) = frame.finish();
+                                render_data = Some(r_data);
+                                Some(raw_frame.finish().finish())
+                            }
+                            Some(window::View::WithModelRaw(raw_view)) => {
+                                let raw_view = raw_view.to_fn_ptr::<M>().expect(
+                                    "unexpected model argument given to window raw_view function",
+                                );
+                                (*raw_view)(&app, &model, &raw_frame);
+                                Some(raw_frame.finish().finish())
+                            }
+                            None => match default_view {
+                                View::Sketch(view) => {
+                                    let r_data = render_data.take().expect("missing `render_data`");
+                                    let frame = Frame::new_empty(raw_frame, r_data);
+                                    view(&app, &frame);
+                                    let (r_data, raw_frame) = frame.finish();
+                                    render_data = Some(r_data);
+                                    Some(raw_frame.finish().finish())
+                                }
+                                View::WithModel(view) => {
+                                    let r_data = render_data.take().expect("missing `render_data`");
+                                    let frame = Frame::new_empty(raw_frame, r_data);
+                                    view(&app, &model, &frame);
+                                    let (r_data, raw_frame) = frame.finish();
+                                    render_data = Some(r_data);
+                                    Some(raw_frame.finish().finish())
+                                }
+                            },
+                        };
+                    }
+                }
+
+                // TODO: Replace the render data and swap chain.
+                let mut windows = app.windows.borrow_mut();
+                let window = windows
+                    .get_mut(&window_id)
+                    .expect("no window for redraw request ID");
+
+                // Submit the command buffer to the queue.
+                if let Some(command_buffer) = command_buffer {
+                    window.queue.submit(&[command_buffer]);
+                }
+
+                window.frame_render_data = render_data;
+                window.swap_chain.swap_chain = Some(swap_chain);
+            }
+
+            // Ignore the remaining two non-I/O events.
+            winit::event::Event::RedrawEventsCleared | winit::event::Event::NewEvents(_) => {}
+
+            // Track the number of updates since the last I/O event.
+            // This is necessary for the `Wait` loop mode to behave correctly.
+            ref _other_event => {
+                loop_state.updates_since_event = 0;
+            }
+        }
+
+        // Process the event with the users functions and see if we need to exit.
+        if let Some(model) = model.as_mut() {
+            exit |= process_and_emit_winit_event::<M, E>(&mut app, model, event_fn, &event);
+        }
+
+        // Set the control flow based on the loop mode.
+        let loop_mode = app.loop_mode();
+        let now = Instant::now();
+        *control_flow = match loop_mode {
             LoopMode::Wait {
                 updates_following_event,
                 update_interval,
             } => {
-                loop_ctxt.updates_remaining = updates_following_event;
-                run_loop_mode_wait(
-                    &mut app,
-                    model,
-                    &mut loop_ctxt,
-                    updates_following_event,
-                    update_interval,
-                )
+                if loop_state.updates_since_event < updates_following_event {
+                    let next_update = loop_state.last_update + update_interval;
+                    if now < next_update {
+                        ControlFlow::WaitUntil(next_update)
+                    } else {
+                        ControlFlow::Poll
+                    }
+                } else {
+                    ControlFlow::Wait
+                }
             }
+
+            LoopMode::Rate { update_interval } => {
+                let next_update = loop_state.last_update + update_interval;
+                if now < next_update {
+                    ControlFlow::WaitUntil(next_update)
+                } else {
+                    ControlFlow::Poll
+                }
+            }
+
+            LoopMode::RefreshSync {
+                minimum_update_interval,
+                ..
+            } => {
+                let next_update = loop_state.last_update + minimum_update_interval;
+                if now < next_update {
+                    ControlFlow::WaitUntil(next_update)
+                } else {
+                    ControlFlow::Poll
+                }
+            }
+
             LoopMode::NTimes {
                 number_of_updates,
                 update_interval,
             } => {
-                loop_ctxt.updates_remaining = number_of_updates;
-                run_loop_mode_ntimes(&mut app, model, &mut loop_ctxt, update_interval)
+                if loop_state.total_updates >= number_of_updates as u64 {
+                    exit = true;
+                    ControlFlow::Exit
+                } else {
+                    let next_update = loop_state.last_update + update_interval;
+                    if now < next_update {
+                        ControlFlow::WaitUntil(next_update)
+                    } else {
+                        ControlFlow::Poll
+                    }
+                }
             }
-            LoopMode::RefreshSync {
-                minimum_update_interval,
-                windows,
-            } => run_loop_mode_refresh_sync(
-                &mut app,
-                model,
-                &mut loop_ctxt,
-                minimum_update_interval,
-                windows,
-            ),
         };
 
-        model = new_model;
-        match reason {
-            // If the break reason was due to the `LoopMode` changing, switch to the new loop mode
-            // and continue.
-            BreakReason::NewLoopMode(new_loop_mode) => {
-                loop_mode = new_loop_mode;
-                change_loop_mode(&app, &loop_mode);
-            }
-            // If the loop broke due to the application exiting, we're done!
-            BreakReason::Exit => {
+        // If we need to exit, call the user's function and update control flow.
+        if exit {
+            if let Some(model) = model.take() {
                 if let Some(exit_fn) = exit_fn {
                     exit_fn(&app, model);
                 }
-                return;
             }
+            *control_flow = ControlFlow::Exit;
+            return;
         }
+    });
+
+    // Ensure the app no longer points to the window target now that `run` has completed.
+    // TODO: Right now `event_loop.run` can't return. This is just a reminder in case one day the
+    // API is changed so that it does return.
+    #[allow(unreachable_code)]
+    {
+        app.event_loop_window_target.take();
     }
 }
 
-// Run the application loop under the `Rate` mode.
-fn run_loop_mode_rate<M, E>(
+// Apply an update to the model via the user's function and update the app and loop state
+// accordingly.
+fn apply_update<M, E>(
     app: &mut App,
-    mut model: M,
-    loop_ctxt: &mut LoopContext<M, E>,
-    mut update_interval: Duration,
-) -> Break<M>
-where
+    model: &mut M,
+    event_fn: Option<EventFn<M, E>>,
+    update_fn: Option<UpdateFn<M>>,
+    loop_state: &mut LoopState,
+    now: Instant,
+) where
     M: 'static,
     E: LoopEvent,
 {
-    loop {
-        // Handle any pending window events.
-        app.events_loop
-            .poll_events(|event| loop_ctxt.winit_events.push(event));
-        for winit_event in loop_ctxt.winit_events.drain(..) {
-            let (new_model, exit) =
-                process_and_emit_winit_event(app, model, loop_ctxt.event_fn, winit_event);
-            model = new_model;
-            if exit {
-                let reason = BreakReason::Exit;
-                return Break { model, reason };
-            }
-        }
-
-        // Update the app's durations.
-        let now = Instant::now();
-        let since_last = now.duration_since(loop_ctxt.last_update).into();
-        let since_start = now.duration_since(loop_ctxt.loop_start).into();
-        app.duration.since_start = since_start;
-        app.duration.since_prev_update = since_last;
-        app.time = app.duration.since_start.secs() as _;
-
-        // Emit an update event.
-        let update = update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update);
-        if let Some(event_fn) = loop_ctxt.event_fn {
-            let event = E::from(update.clone());
-            event_fn(&app, &mut model, event);
-        }
-        if let Some(update_fn) = loop_ctxt.update_fn {
-            update_fn(&app, &mut model, update);
-        }
-
-        // Draw to each window.
-        for window_id in app.window_ids() {
-            acquire_image_and_view_frame(app, window_id, &model, loop_ctxt.default_view.as_ref());
-        }
-
-        // Sleep if there's still some time left within the interval.
-        let now = Instant::now();
-        let since_last_loop_end = now.duration_since(loop_ctxt.last_loop_end);
-        if since_last_loop_end < update_interval {
-            std::thread::sleep(update_interval - since_last_loop_end);
-        }
-        loop_ctxt.last_loop_end = Instant::now();
-
-        // See if the loop mode has changed. If so, break.
-        update_interval = match app.loop_mode() {
-            LoopMode::Rate { update_interval } => update_interval,
-            loop_mode => {
-                let reason = BreakReason::NewLoopMode(loop_mode);
-                return Break { model, reason };
-            }
-        };
+    // Update the app's durations.
+    let now = Instant::now();
+    let since_last = now.duration_since(loop_state.last_update);
+    let since_start = now.duration_since(loop_state.loop_start);
+    app.duration.since_prev_update = since_last;
+    app.duration.since_start = since_start;
+    app.time = since_start.secs() as _;
+    let update = crate::event::Update {
+        since_start,
+        since_last,
+    };
+    // User event function.
+    if let Some(event_fn) = event_fn {
+        let event = E::from(update.clone());
+        event_fn(app, model, event);
     }
-}
-
-// Run the application loop under the `Wait` mode.
-fn run_loop_mode_wait<M, E>(
-    app: &mut App,
-    mut model: M,
-    loop_ctxt: &mut LoopContext<M, E>,
-    mut updates_following_event: usize,
-    mut update_interval: Duration,
-) -> Break<M>
-where
-    M: 'static,
-    E: LoopEvent,
-{
-    loop {
-        // First collect any pending window events.
-        app.events_loop
-            .poll_events(|event| loop_ctxt.winit_events.push(event));
-
-        // If there are no events and the `Ui` does not need updating,
-        // wait for the next event.
-        if loop_ctxt.winit_events.is_empty() && loop_ctxt.updates_remaining == 0 {
-            let events_loop_is_asleep = app.events_loop_is_asleep.clone();
-            events_loop_is_asleep.store(true, atomic::Ordering::Relaxed);
-            app.events_loop.run_forever(|event| {
-                events_loop_is_asleep.store(false, atomic::Ordering::Relaxed);
-                loop_ctxt.winit_events.push(event);
-                winit::ControlFlow::Break
-            });
-        }
-
-        // If there are some winit events to process, reset the updates-remaining count.
-        if !loop_ctxt.winit_events.is_empty() {
-            loop_ctxt.updates_remaining = updates_following_event;
-        }
-
-        for winit_event in loop_ctxt.winit_events.drain(..) {
-            let (new_model, exit) =
-                process_and_emit_winit_event(app, model, loop_ctxt.event_fn, winit_event);
-            model = new_model;
-            if exit {
-                let reason = BreakReason::Exit;
-                return Break { model, reason };
-            }
-        }
-
-        // Update the app's durations.
-        let now = Instant::now();
-        let since_last = now.duration_since(loop_ctxt.last_update).into();
-        let since_start = now.duration_since(loop_ctxt.loop_start).into();
-        app.duration.since_start = since_start;
-        app.duration.since_prev_update = since_last;
-        app.time = app.duration.since_start.secs() as _;
-
-        // Emit an update event.
-        let update = update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update);
-        if let Some(event_fn) = loop_ctxt.event_fn {
-            let event = E::from(update.clone());
-            event_fn(&app, &mut model, event);
-        }
-        if let Some(update_fn) = loop_ctxt.update_fn {
-            update_fn(&app, &mut model, update);
-        }
-        loop_ctxt.updates_remaining -= 1;
-
-        // Draw to each window.
-        for window_id in app.window_ids() {
-            acquire_image_and_view_frame(app, window_id, &model, loop_ctxt.default_view.as_ref());
-        }
-
-        // Sleep if there's still some time left within the interval.
-        let now = Instant::now();
-        let since_last_loop_end = now.duration_since(loop_ctxt.last_loop_end);
-        if since_last_loop_end < update_interval {
-            std::thread::sleep(update_interval - since_last_loop_end);
-        }
-        loop_ctxt.last_loop_end = Instant::now();
-
-        // See if the loop mode has changed. If so, break.
-        match app.loop_mode() {
-            LoopMode::Wait {
-                update_interval: ui,
-                updates_following_event: ufe,
-            } => {
-                update_interval = ui;
-                updates_following_event = ufe;
-            }
-            loop_mode => {
-                let reason = BreakReason::NewLoopMode(loop_mode);
-                return Break { model, reason };
-            }
-        };
+    // User update function.
+    if let Some(update_fn) = update_fn {
+        update_fn(app, model, update);
     }
-}
-
-// Run the application loop under the `NTimes` mode.
-fn run_loop_mode_ntimes<M, E>(
-    app: &mut App,
-    mut model: M,
-    loop_ctxt: &mut LoopContext<M, E>,
-    mut update_interval: Duration,
-) -> Break<M>
-where
-    M: 'static,
-    E: LoopEvent,
-{
-    loop {
-        // First collect any pending window events.
-        app.events_loop
-            .poll_events(|event| loop_ctxt.winit_events.push(event));
-
-        // If there are no events and the `Ui` does not need updating,
-        // wait for the next event.
-        if loop_ctxt.winit_events.is_empty() && loop_ctxt.updates_remaining == 0 {
-            let events_loop_is_asleep = app.events_loop_is_asleep.clone();
-            events_loop_is_asleep.store(true, atomic::Ordering::Relaxed);
-            app.events_loop.run_forever(|event| {
-                events_loop_is_asleep.store(false, atomic::Ordering::Relaxed);
-                loop_ctxt.winit_events.push(event);
-                winit::ControlFlow::Break
-            });
-        }
-
-        // Update the app's durations.
-        let now = Instant::now();
-        let since_last = now.duration_since(loop_ctxt.last_update).into();
-        let since_start = now.duration_since(loop_ctxt.loop_start).into();
-        app.duration.since_start = since_start;
-        app.duration.since_prev_update = since_last;
-        app.time = app.duration.since_start.secs() as _;
-
-        for winit_event in loop_ctxt.winit_events.drain(..) {
-            let (new_model, exit) =
-                process_and_emit_winit_event(app, model, loop_ctxt.event_fn, winit_event);
-            model = new_model;
-            if exit {
-                let reason = BreakReason::Exit;
-                return Break { model, reason };
-            }
-        }
-
-        // Only `update` and `view` if there are updates remaining.
-        if loop_ctxt.updates_remaining > 0 {
-            let update = update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update);
-            if let Some(event_fn) = loop_ctxt.event_fn {
-                let event = E::from(update.clone());
-                event_fn(&app, &mut model, event);
-            }
-            if let Some(update_fn) = loop_ctxt.update_fn {
-                update_fn(&app, &mut model, update);
-            }
-            loop_ctxt.updates_remaining -= 1;
-
-            // Draw to each window.
-            for window_id in app.window_ids() {
-                acquire_image_and_view_frame(
-                    app,
-                    window_id,
-                    &model,
-                    loop_ctxt.default_view.as_ref(),
-                );
-            }
-        }
-
-        // Sleep if there's still some time left within the interval.
-        let now = Instant::now();
-        let since_last_loop_end = now.duration_since(loop_ctxt.last_loop_end);
-        if since_last_loop_end < update_interval {
-            std::thread::sleep(update_interval - since_last_loop_end);
-        }
-        loop_ctxt.last_loop_end = Instant::now();
-
-        // See if the loop mode has changed. If so, break.
-        match app.loop_mode() {
-            LoopMode::NTimes {
-                update_interval: ui,
-                ..
-            } => {
-                update_interval = ui;
-            }
-            loop_mode => {
-                let reason = BreakReason::NewLoopMode(loop_mode);
-                return Break { model, reason };
-            }
-        };
-    }
-}
-// Run the application loop under the `RefreshSync` mode.
-fn run_loop_mode_refresh_sync<M, E>(
-    app: &mut App,
-    mut model: M,
-    loop_ctxt: &mut LoopContext<M, E>,
-    mut minimum_update_interval: Duration,
-    mut windows: Option<HashSet<window::Id>>,
-) -> Break<M>
-where
-    M: 'static,
-    E: LoopEvent,
-{
-    loop {
-        // TODO: Properly consider the impact of an individual window blocking.
-        for window_id in app.window_ids() {
-            // Skip closed windows.
-            if app.window(window_id).is_none() {
-                continue;
-            }
-
-            cleanup_unused_gpu_resources_for_window(app, window_id);
-
-            // Ensure swapchain dimensions are up to date.
-            loop {
-                if window_swapchain_needs_recreation(app, window_id) {
-                    match recreate_window_swapchain(app, window_id) {
-                        Ok(()) => break,
-                        Err(vk::SwapchainCreationError::UnsupportedDimensions) => {
-                            set_window_swapchain_needs_recreation(app, window_id, true);
-                            continue;
-                        }
-                        Err(err) => panic!("{:?}", err),
-                    }
-                }
-                break;
-            }
-
-            // Acquire the next image from the swapchain.
-            let timeout = None;
-            let swapchain = app.windows.borrow()[&window_id].swapchain.clone();
-            let next_img = vk::swapchain::acquire_next_image(swapchain.swapchain.clone(), timeout);
-            let (swapchain_image_index, swapchain_image_acquire_future) = match next_img {
-                Ok(r) => r,
-                Err(vk::swapchain::AcquireError::OutOfDate) => {
-                    set_window_swapchain_needs_recreation(app, window_id, true);
-                    continue;
-                }
-                Err(err) => panic!("{:?}", err),
-            };
-
-            // Process pending app events.
-            let (new_model, exit, event_count) = poll_and_process_events(app, model, loop_ctxt);
-            model = new_model;
-            if exit {
-                let reason = BreakReason::Exit;
-                return Break { model, reason };
-            }
-
-            // Only emit an `update` if there was some user input or if it's been more than
-            // `minimum_update_interval`.
-            let now = Instant::now();
-            let since_last = now.duration_since(loop_ctxt.last_update).into();
-            let should_emit_update = windows
-                .as_ref()
-                .map(|ws| ws.contains(&window_id))
-                .unwrap_or(true)
-                && (event_count > 0 || since_last > minimum_update_interval);
-            if should_emit_update {
-                let since_start = now.duration_since(loop_ctxt.loop_start).into();
-                app.duration.since_start = since_start;
-                app.duration.since_prev_update = since_last;
-                app.time = app.duration.since_start.secs() as _;
-
-                // Emit an update event.
-                let update = update_event(loop_ctxt.loop_start, &mut loop_ctxt.last_update);
-                if let Some(event_fn) = loop_ctxt.event_fn {
-                    let event = E::from(update.clone());
-                    event_fn(&app, &mut model, event);
-                }
-                if let Some(update_fn) = loop_ctxt.update_fn {
-                    update_fn(&app, &mut model, update);
-                }
-            }
-
-            // If the window has been removed, continue.
-            if app.window(window_id).is_none() {
-                continue;
-            }
-
-            view_frame(
-                app,
-                &model,
-                window_id,
-                swapchain_image_index,
-                swapchain_image_acquire_future,
-                loop_ctxt.default_view.as_ref(),
-            );
-        }
-
-        loop_ctxt.last_loop_end = Instant::now();
-
-        // See if the loop mode has changed. If so, break.
-        match app.loop_mode() {
-            LoopMode::RefreshSync {
-                minimum_update_interval: mli,
-                windows: w,
-            } => {
-                minimum_update_interval = mli;
-                windows = w;
-            }
-            loop_mode => {
-                let reason = BreakReason::NewLoopMode(loop_mode);
-                return Break { model, reason };
-            }
-        }
-    }
-}
-
-// Recreate window swapchains as necessary due to `loop_mode` switch.
-fn change_loop_mode(app: &App, loop_mode: &LoopMode) {
-    // Re-build the window swapchains so that they are optimal for the new loop mode.
-    let mut windows = app.windows.borrow_mut();
-    for window in windows.values_mut() {
-        change_loop_mode_for_window(window, loop_mode);
-    }
-}
-
-// Recreate the window swapchain to match the loop mode.
-fn change_loop_mode_for_window(window: &mut Window, loop_mode: &LoopMode) {
-    let device = window.swapchain.swapchain.device().clone();
-    let surface = window.surface.clone();
-    let queue = window.queue.clone();
-
-    // Initialise a swapchain builder from the current swapchain's params.
-    let mut swapchain_builder =
-        window::SwapchainBuilder::from_swapchain(&window.swapchain.swapchain);
-
-    // Let the new present mode and image count be chosen by nannou or the user if
-    // they have a preference.
-    swapchain_builder.present_mode = window.user_specified_present_mode;
-    swapchain_builder.image_count = window.user_specified_image_count;
-
-    // Create the new swapchain.
-    let (new_swapchain, new_swapchain_images) = swapchain_builder
-        .build(
-            device,
-            surface,
-            &queue,
-            &loop_mode,
-            None,
-            Some(&window.swapchain.swapchain),
-        )
-        .expect("failed to recreate swapchain for new `LoopMode`");
-
-    // Replace the window's swapchain with the newly created one.
-    window.replace_swapchain(new_swapchain, new_swapchain_images);
-}
-
-// Each window has its own associated GPU future associated with displaying the last frame.
-// This method cleans up any unused resources associated with this GPU future.
-fn cleanup_unused_gpu_resources_for_window(app: &App, window_id: window::Id) {
+    loop_state.last_update = now;
+    loop_state.total_updates += 1;
+    loop_state.updates_since_event += 1;
+    // Request redraw from windows.
     let windows = app.windows.borrow();
-    let mut guard = windows[&window_id]
-        .swapchain
-        .previous_frame_end
-        .lock()
-        .expect("failed to lock `previous_frame_end`");
-    if let Some(future) = guard.as_mut() {
-        future.cleanup_finished();
+    for window in windows.values() {
+        window.window.request_redraw();
     }
 }
 
-// Returns `true` if the window's swapchain needs to be recreated.
-fn window_swapchain_needs_recreation(app: &App, window_id: window::Id) -> bool {
+// Returns `true` if the window's swap chain needs to be recreated.
+fn window_swap_chain_needs_recreation(app: &App, window_id: window::Id) -> bool {
     let windows = app.windows.borrow();
     let window = &windows[&window_id];
     window
-        .swapchain
+        .swap_chain
         .needs_recreation
         .load(atomic::Ordering::Relaxed)
 }
 
-// Attempt to recreate a window's swapchain with the window's current dimensions.
-fn recreate_window_swapchain(
-    app: &App,
-    window_id: window::Id,
-) -> Result<(), vk::SwapchainCreationError> {
-    let mut windows = app.windows.borrow_mut();
-    let window = windows.get_mut(&window_id).expect("no window for id");
-
-    // Get the new dimensions for the viewport/framebuffers.
-    let dimensions = window
-        .surface
-        .capabilities(window.swapchain.device().physical_device())
-        .expect("failed to get surface capabilities")
-        .current_extent
-        .expect("current_extent was `None`");
-
-    // Recreate the swapchain with the current dimensions.
-    let (new_swapchain, new_images) = window
-        .swapchain
-        .swapchain
-        .recreate_with_dimension(dimensions)?;
-
-    // Update the window's swapchain and images.
-    window.replace_swapchain(new_swapchain, new_images);
-
-    Ok(())
-}
-
-// Shorthand for setting a window's swapchain.needs_recreation atomic bool.
-fn set_window_swapchain_needs_recreation(app: &App, window_id: window::Id, b: bool) {
+// Shorthand for setting a window's swap chain.needs_recreation atomic bool.
+fn set_window_swap_chain_needs_recreation(app: &App, window_id: window::Id, b: bool) {
     let windows = app.windows.borrow_mut();
     let window = windows.get(&window_id).expect("no window for id");
     window
-        .swapchain
+        .swap_chain
         .needs_recreation
         .store(b, atomic::Ordering::Relaxed);
 }
 
-// Poll and process any pending application events.
-//
-// Returns:
-//
-// - the resulting state of the model.
-// - whether or not an event should cause exiting the application loop.
-// - the number of winit events processed processed.
-fn poll_and_process_events<M, E>(
-    app: &mut App,
-    mut model: M,
-    loop_ctxt: &mut LoopContext<M, E>,
-) -> (M, bool, usize)
-where
-    M: 'static,
-    E: LoopEvent,
-{
-    let mut event_count = 0;
-    app.events_loop
-        .poll_events(|event| loop_ctxt.winit_events.push(event));
-    for winit_event in loop_ctxt.winit_events.drain(..) {
-        event_count += 1;
-        let (new_model, exit) =
-            process_and_emit_winit_event(app, model, loop_ctxt.event_fn, winit_event);
-        model = new_model;
-        if exit {
-            return (model, exit, event_count);
-        }
-    }
-    (model, false, event_count)
-}
-
 // Whether or not the given event should toggle fullscreen.
-fn should_toggle_fullscreen(winit_event: &winit::WindowEvent) -> bool {
+fn should_toggle_fullscreen(winit_event: &winit::event::WindowEvent) -> bool {
     let input = match *winit_event {
-        winit::WindowEvent::KeyboardInput { ref input, .. } => match input.state {
+        winit::event::WindowEvent::KeyboardInput { ref input, .. } => match input.state {
             event::ElementState::Pressed => input,
             _ => return false,
         },
@@ -1759,7 +1325,7 @@ fn should_toggle_fullscreen(winit_event: &winit::WindowEvent) -> bool {
     //
     // TODO: Somehow add special case for KDE?
     if cfg!(target_os = "linux") {
-        if !mods.logo && !mods.shift && !mods.alt && !mods.ctrl {
+        if *mods == winit::event::ModifiersState::empty() {
             if let Key::F11 = key {
                 return true;
             }
@@ -1767,7 +1333,7 @@ fn should_toggle_fullscreen(winit_event: &winit::WindowEvent) -> bool {
 
     // On macos and windows check for the logo key plus `f` with no other modifiers.
     } else if cfg!(target_os = "macos") || cfg!(target_os = "windows") {
-        if mods.logo && !mods.shift && !mods.alt && !mods.ctrl {
+        if *mods == winit::event::ModifiersState::LOGO {
             if let Key::F = key {
                 return true;
             }
@@ -1777,34 +1343,18 @@ fn should_toggle_fullscreen(winit_event: &winit::WindowEvent) -> bool {
     false
 }
 
-// A function to simplify the creation of an `Update` event.
-//
-// Also updates the given `last_update` instant to `Instant::now()`.
-fn update_event(loop_start: Instant, last_update: &mut Instant) -> event::Update {
-    // Emit an update event.
-    let now = Instant::now();
-    let since_last = now.duration_since(*last_update).into();
-    let since_start = now.duration_since(loop_start).into();
-    let update = event::Update {
-        since_last,
-        since_start,
-    };
-    *last_update = now;
-    update
-}
-
 // Event handling boilerplate shared between the `Rate` and `Wait` loop modes.
 //
 // 1. Checks for exit on escape.
 // 2. Removes closed windows from app.
 // 3. Emits event via `event_fn`.
 // 4. Returns whether or not we should break from the loop.
-fn process_and_emit_winit_event<M, E>(
+fn process_and_emit_winit_event<'a, M, E>(
     app: &mut App,
-    mut model: M,
+    model: &mut M,
     event_fn: Option<EventFn<M, E>>,
-    winit_event: winit::Event,
-) -> (M, bool)
+    winit_event: &winit::event::Event<'a, ()>,
+) -> bool
 where
     M: 'static,
     E: LoopEvent,
@@ -1812,14 +1362,14 @@ where
     // Inspect the event to see if it would require closing the App.
     let mut exit_on_escape = false;
     let mut removed_window = None;
-    if let winit::Event::WindowEvent {
+    if let winit::event::Event::WindowEvent {
         window_id,
         ref event,
-    } = winit_event
+    } = *winit_event
     {
         // If we should exit the app on escape, check for the escape key.
         if app.exit_on_escape() {
-            if let winit::WindowEvent::KeyboardInput { input, .. } = *event {
+            if let winit::event::WindowEvent::KeyboardInput { input, .. } = *event {
                 if let Some(Key::Escape) = input.virtual_keycode {
                     exit_on_escape = true;
                 }
@@ -1835,12 +1385,12 @@ where
             app.windows.borrow_mut().remove(window_id)
         }
 
-        if let winit::WindowEvent::Destroyed = *event {
+        if let winit::event::WindowEvent::Destroyed = *event {
             removed_window = remove_related_window_state(app, &window_id);
         // TODO: We should allow the user to handle this case. E.g. allow for doing things like
         // "would you like to save". We currently do this with the app exit function, but maybe a
         // window `close` function would be useful?
-        } else if let winit::WindowEvent::CloseRequested = *event {
+        } else if let winit::event::WindowEvent::CloseRequested = *event {
             removed_window = remove_related_window_state(app, &window_id);
         } else {
             // Get the size of the window for translating coords and dimensions.
@@ -1853,7 +1403,8 @@ where
                                 win.set_fullscreen(None);
                             } else {
                                 let monitor = win.current_monitor();
-                                win.set_fullscreen(Some(monitor));
+                                let fullscreen = winit::window::Fullscreen::Borderless(monitor);
+                                win.set_fullscreen(Some(fullscreen));
                             }
                         }
                     }
@@ -1876,7 +1427,7 @@ where
 
             // Check for events that would update either mouse, keyboard or window state.
             match *event {
-                winit::WindowEvent::CursorMoved { position, .. } => {
+                winit::event::WindowEvent::CursorMoved { position, .. } => {
                     let (x, y): (f64, f64) = position.into();
                     let x = tx(x as _);
                     let y = ty(y as _);
@@ -1885,7 +1436,7 @@ where
                     app.mouse.window = Some(window_id);
                 }
 
-                winit::WindowEvent::MouseInput { state, button, .. } => {
+                winit::event::WindowEvent::MouseInput { state, button, .. } => {
                     match state {
                         event::ElementState::Pressed => {
                             let p = app.mouse.position();
@@ -1898,7 +1449,7 @@ where
                     app.mouse.window = Some(window_id);
                 }
 
-                winit::WindowEvent::KeyboardInput { input, .. } => {
+                winit::event::WindowEvent::KeyboardInput { input, .. } => {
                     app.keys.mods = input.modifiers;
                     if let Some(key) = input.virtual_keycode {
                         match input.state {
@@ -1918,30 +1469,36 @@ where
             // See if the event could be interpreted as a `ui::Input`. If so, submit it to the
             // `Ui`s associated with this window.
             if let Some(window) = app.windows.borrow().get(&window_id) {
-                if let Some(input) = ui::winit_window_event_to_input(event.clone(), window) {
-                    if let Some(handles) = app.ui.windows.borrow().get(&window_id) {
-                        for handle in handles {
-                            if let Some(ref tx) = handle.input_tx {
-                                tx.try_send(input.clone()).ok();
-                            }
-                        }
-                    }
-                }
+                // unimplemented!("re-add input handling for UI");
+
+                // if let Some(input) = ui::winit_window_event_to_input(event.clone(), window) {
+                //     if let Some(handles) = app.ui.windows.borrow().get(&window_id) {
+                //         for handle in handles {
+                //             if let Some(ref tx) = handle.input_tx {
+                //                 tx.try_send(input.clone()).ok();
+                //             }
+                //         }
+                //     }
+                // }
             }
         }
     }
 
-    // If the user provided an event function and winit::Event could be interpreted as some event
+    // If the user provided an event function and winit::event::Event could be interpreted as some event
     // `E`, use it to update the model.
     if let Some(event_fn) = event_fn {
-        if let Some(event) = E::from_winit_event(winit_event.clone(), app) {
-            event_fn(&app, &mut model, event);
+        if let Some(event) = E::from_winit_event(winit_event, app) {
+            event_fn(&app, model, event);
         }
     }
 
     // If the event was a window event, and the user specified an event function for this window,
     // call it.
-    if let winit::Event::WindowEvent { window_id, event } = winit_event {
+    if let winit::event::Event::WindowEvent {
+        window_id,
+        ref event,
+    } = *winit_event
+    {
         // Raw window events.
         if let Some(raw_window_event_fn) = {
             let windows = app.windows.borrow();
@@ -1957,20 +1514,23 @@ where
             let raw_window_event_fn = raw_window_event_fn
                 .to_fn_ptr::<M>()
                 .expect("unexpected model argument given to window event function");
-            (*raw_window_event_fn)(&app, &mut model, event.clone());
+            (*raw_window_event_fn)(&app, model, event);
         }
 
-        let (win_w, win_h) = {
+        let (win_w, win_h, scale_factor) = {
             let windows = app.windows.borrow();
             windows
                 .get(&window_id)
-                .and_then(|w| w.surface.window().get_inner_size().map(|size| size.into()))
-                .unwrap_or((0f64, 0f64))
+                .map(|w| (w.inner_size_points(), w.scale_factor()))
+                .map(|((w, h), sf)| (w as f64, h as f64, sf as f64))
+                .unwrap_or((0f64, 0f64, 1f64))
         };
 
         // If the event can be represented by a simplified nannou event, check for relevant user
         // functions to be called.
-        if let Some(simple) = event::WindowEvent::from_winit_window_event(event, win_w, win_h) {
+        if let Some(simple) =
+            event::WindowEvent::from_winit_window_event(event, win_w, win_h, scale_factor)
+        {
             // Nannou window events.
             if let Some(window_event_fn) = {
                 let windows = app.windows.borrow();
@@ -1986,7 +1546,7 @@ where
                 let window_event_fn = window_event_fn
                     .to_fn_ptr::<M>()
                     .expect("unexpected model argument given to window event function");
-                (*window_event_fn)(&app, &mut model, simple.clone());
+                (*window_event_fn)(&app, model, simple.clone());
             }
 
             // A macro to simplify calling event-specific user functions.
@@ -2011,7 +1571,7 @@ where
                                     stringify!($fn_name),
                                 );
                             });
-                        (*event_fn)(&app, &mut model, $($arg),*);
+                        (*event_fn)(&app, model, $($arg),*);
                     }
                 }};
             }
@@ -2050,271 +1610,18 @@ where
         }
     }
 
-    // If exit on escape was triggered, we're done.
-    let exit = if exit_on_escape || app.windows.borrow().is_empty() {
+    // If the loop was destroyed, we'll need to exit.
+    let loop_destroyed = match winit_event {
+        winit::event::Event::LoopDestroyed => true,
+        _ => false,
+    };
+
+    // If any exist conditions were triggered, indicate so.
+    let exit = if loop_destroyed || exit_on_escape || app.windows.borrow().is_empty() {
         true
     } else {
         false
     };
 
-    (model, exit)
-}
-
-// Draw the state of the model to the swapchain image associated with the given index..
-//
-// This calls the `view` function specified by the user.
-fn view_frame<M>(
-    app: &mut App,
-    model: &M,
-    window_id: window::Id,
-    swapchain_image_index: usize,
-    swapchain_image_acquire_future: window::SwapchainAcquireFuture,
-    default_view: Option<&View<M>>,
-) where
-    M: 'static,
-{
-    // Retrieve the queue and swapchain associated with this window.
-    let (queue, swapchain) = {
-        let windows = app.windows.borrow();
-        let window = &windows[&window_id];
-        (window.queue.clone(), window.swapchain.clone())
-    };
-
-    // Draw the state of the model to the screen.
-    let (swapchain_image, nth_frame, swapchain_frame_created) = {
-        let mut windows = app.windows.borrow_mut();
-        let window = windows.get_mut(&window_id).expect("no window for id");
-        let swapchain_image = window.swapchain.images[swapchain_image_index].clone();
-        let frame_count = window.frame_count;
-        let swapchain_frame_created = window.swapchain.frame_created;
-        window.frame_count += 1;
-        (swapchain_image, frame_count, swapchain_frame_created)
-    };
-
-    // Construct and emit a frame via `view` for receiving the user's graphics commands.
-    let raw_frame = RawFrame::new_empty(
-        queue.clone(),
-        window_id,
-        nth_frame,
-        swapchain_image_index,
-        swapchain_image,
-        swapchain_frame_created,
-    )
-    .expect("failed to create `Frame`");
-    // If the user specified a view function specifically for this window, use it.
-    // Otherwise, use the fallback, default view passed to the app if there was one.
-    let window_view = {
-        let windows = app.windows.borrow();
-        windows
-            .get(&window_id)
-            .and_then(|w| w.user_functions.view.clone())
-    };
-
-    // A function to simplify taking a window's render data.
-    fn take_window_frame_render_data(app: &App, window_id: window::Id) -> Option<RenderData> {
-        let mut windows = app.windows.borrow_mut();
-        windows
-            .get_mut(&window_id)
-            .and_then(|w| w.frame_render_data.take())
-    }
-
-    // A function to simplify giving the frame render data back to the window.
-    fn set_window_frame_render_data(app: &App, window_id: window::Id, render_data: RenderData) {
-        let mut windows = app.windows.borrow_mut();
-        if let Some(window) = windows.get_mut(&window_id) {
-            window.frame_render_data = Some(render_data);
-        }
-    }
-
-    let command_buffer = match window_view {
-        Some(window::View::Sketch(view)) => {
-            let render_data = take_window_frame_render_data(app, window_id)
-                .expect("failed to take window's `frame_render_data`");
-            let frame = Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
-            view(app, &frame);
-            let (render_data, raw_frame) = frame
-                .finish()
-                .expect("failed to resolve frame's intermediary_image to the swapchain_image");
-            set_window_frame_render_data(app, window_id, render_data);
-            raw_frame
-                .finish()
-                .build()
-                .expect("failed to build command buffer")
-        }
-        Some(window::View::WithModel(view)) => {
-            let render_data = take_window_frame_render_data(app, window_id)
-                .expect("failed to take window's `frame_render_data`");
-            let frame = Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
-            let view = view
-                .to_fn_ptr::<M>()
-                .expect("unexpected model argument given to window view function");
-            (*view)(app, model, &frame);
-            let (render_data, raw_frame) = frame
-                .finish()
-                .expect("failed to resolve frame's intermediary_image to the swapchain_image");
-            set_window_frame_render_data(app, window_id, render_data);
-            raw_frame
-                .finish()
-                .build()
-                .expect("failed to build command buffer")
-        }
-        Some(window::View::WithModelRaw(raw_view)) => {
-            let raw_view = raw_view
-                .to_fn_ptr::<M>()
-                .expect("unexpected model argument given to window raw_view function");
-            (*raw_view)(app, model, &raw_frame);
-            raw_frame
-                .finish()
-                .build()
-                .expect("failed to build command buffer")
-        }
-        None => match default_view {
-            Some(View::Sketch(view)) => {
-                let render_data = take_window_frame_render_data(app, window_id)
-                    .expect("failed to take window's `frame_render_data`");
-                let frame =
-                    Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
-                view(app, &frame);
-                let (render_data, raw_frame) = frame
-                    .finish()
-                    .expect("failed to resolve frame's intermediary_image to the swapchain_image");
-                set_window_frame_render_data(app, window_id, render_data);
-                raw_frame
-                    .finish()
-                    .build()
-                    .expect("failed to build command buffer")
-            }
-            Some(View::WithModel(view)) => {
-                let render_data = take_window_frame_render_data(app, window_id)
-                    .expect("failed to take window's `frame_render_data`");
-                let frame =
-                    Frame::new_empty(raw_frame, render_data).expect("failed to create `Frame`");
-                view(app, &model, &frame);
-                let (render_data, raw_frame) = frame
-                    .finish()
-                    .expect("failed to resolve frame's intermediary_image to the swapchain_image");
-                set_window_frame_render_data(app, window_id, render_data);
-                raw_frame
-                    .finish()
-                    .build()
-                    .expect("failed to build command buffer")
-            }
-            None => raw_frame
-                .finish()
-                .build()
-                .expect("failed to build command buffer"),
-        },
-    };
-
-    let mut windows = app.windows.borrow_mut();
-    let window = windows.get_mut(&window_id).expect("no window for id");
-
-    // Wait for the previous frame presentation to be finished to avoid out-pacing the GPU on macos.
-    if let Some(mut previous_frame_fence_signal_future) = window
-        .swapchain
-        .previous_frame_end
-        .lock()
-        .expect("failed to lock `previous_frame_end`")
-        .take()
-    {
-        previous_frame_fence_signal_future.cleanup_finished();
-        previous_frame_fence_signal_future
-            .wait(None)
-            .expect("failed to wait for `previous_frame_end` future to signal fence");
-    }
-
-    // The future associated with the end of the current frame.
-    let future_result = {
-        let present_future = swapchain_image_acquire_future
-            .then_execute(queue.clone(), command_buffer)
-            .expect("failed to execute future")
-            .then_swapchain_present(
-                queue.clone(),
-                swapchain.swapchain.clone(),
-                swapchain_image_index,
-            );
-        (Box::new(present_future) as Box<dyn GpuFuture>).then_signal_fence_and_flush()
-    };
-
-    // Handle the result of the future.
-    let current_frame_end = match future_result {
-        Ok(future) => Some(future),
-        Err(vk::sync::FlushError::OutOfDate) => {
-            window
-                .swapchain
-                .needs_recreation
-                .store(true, atomic::Ordering::Relaxed);
-            None
-        }
-        Err(e) => {
-            println!("{:?}", e);
-            None
-        }
-    };
-
-    *window
-        .swapchain
-        .previous_frame_end
-        .lock()
-        .expect("failed to acquire `previous_frame_end` lock") = current_frame_end;
-}
-
-// Acquire the next swapchain image for the given window and draw to it using the user's
-// view function.
-//
-// Returns whether or not `view_frame` was called. This will be `false` if the given window
-// no longer exists or if the swapchain is `OutOfDate` and needs recreation by the time
-// `acquire_next_image` is called.
-fn acquire_image_and_view_frame<M>(
-    app: &mut App,
-    window_id: window::Id,
-    model: &M,
-    view: Option<&View<M>>,
-) -> bool
-where
-    M: 'static,
-{
-    // Skip closed windows.
-    if app.window(window_id).is_none() {
-        return false;
-    }
-    cleanup_unused_gpu_resources_for_window(app, window_id);
-
-    // Ensure swapchain dimensions are up to date.
-    loop {
-        if window_swapchain_needs_recreation(app, window_id) {
-            match recreate_window_swapchain(app, window_id) {
-                Ok(()) => break,
-                Err(vk::SwapchainCreationError::UnsupportedDimensions) => {
-                    set_window_swapchain_needs_recreation(app, window_id, true);
-                    continue;
-                }
-                Err(err) => panic!("{:?}", err),
-            }
-        }
-        break;
-    }
-
-    // Acquire the next image from the swapchain.
-    let timeout = None;
-    let swapchain = app.windows.borrow()[&window_id].swapchain.clone();
-    let next_img = vk::swapchain::acquire_next_image(swapchain.swapchain.clone(), timeout);
-    let (swapchain_image_index, swapchain_image_acquire_future) = match next_img {
-        Ok(r) => r,
-        Err(vk::swapchain::AcquireError::OutOfDate) => {
-            set_window_swapchain_needs_recreation(app, window_id, true);
-            return false;
-        }
-        Err(err) => panic!("{:?}", err),
-    };
-
-    view_frame(
-        app,
-        model,
-        window_id,
-        swapchain_image_index,
-        swapchain_image_acquire_future,
-        view,
-    );
-    true
+    exit
 }

@@ -13,7 +13,7 @@ fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
     let _window = app
         .new_window()
-        .dimensions(512, 512)
+        .size(512, 512)
         .title("nannou")
         .view(view) // The function that will be called for presenting graphics to a frame.
         .event(event) // The function that will be called when the window receives events.

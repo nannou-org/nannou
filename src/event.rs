@@ -1,7 +1,7 @@
 //! Application, event loop and window event definitions and implementations.
 //!
 //! - [**Event**](./enum.Event.html) - the defualt application event type.
-//! - [**winit::WindowEvent**](./struct.WindowEvent.html) - events related to a single window.
+//! - [**winit::event::WindowEvent**](./struct.WindowEvent.html) - events related to a single window.
 //! - [**WindowEvent**](./struct.WindowEvent.html) - a stripped-back, simplified,
 //!   newcomer-friendly version of the **raw**, low-level winit event.
 
@@ -11,15 +11,15 @@ use crate::App;
 use std::path::PathBuf;
 use winit;
 
-pub use winit::{
+pub use winit::event::{
     ElementState, KeyboardInput, ModifiersState, MouseButton, MouseScrollDelta, TouchPhase,
     VirtualKeyCode as Key,
 };
 
 /// Event types that are compatible with the nannou app loop.
-pub trait LoopEvent: From<Update> {
+pub trait LoopEvent: 'static + From<Update> {
     /// Produce a loop event from the given winit event.
-    fn from_winit_event(_: winit::Event, _: &App) -> Option<Self>;
+    fn from_winit_event<'a, T>(_: &winit::event::Event<'a, T>, _: &App) -> Option<Self>;
 }
 
 /// Update event, emitted on each pass of an application loop.
@@ -36,33 +36,31 @@ pub struct Update {
 }
 
 /// The default application **Event** type.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum Event {
     /// A window-specific event has occurred for the window with the given Id.
     ///
-    /// This event is portrayed both in its "raw" form (the **winit::WindowEvent**) and its
+    /// This event is portrayed both in its "raw" form (the **winit::event::WindowEvent**) and its
     /// simplified, new-user-friendly form **SimpleWindowEvent**.
     WindowEvent {
         id: window::Id,
-        raw: winit::WindowEvent,
         simple: Option<WindowEvent>,
+        // TODO: Re-add this when winit#1387 is resolved.
+        // raw: winit::event::WindowEvent,
     },
 
     /// A device-specific event has occurred for the device with the given Id.
-    DeviceEvent(winit::DeviceId, winit::DeviceEvent),
+    DeviceEvent(winit::event::DeviceId, winit::event::DeviceEvent),
 
     /// A timed update alongside the duration since the last update was emitted.
     ///
     /// The first update's delta will be the time since the `model` function returned.
     Update(Update),
 
-    /// The application has been awakened.
-    Awakened,
-
     /// The application has been suspended or resumed.
-    ///
-    /// The parameter is true if app was suspended, and false if it has been resumed.
-    Suspended(bool),
+    Suspended,
+    /// The application has been awakened.
+    Resumed,
 }
 
 /// The event associated with a touch at a single point.
@@ -80,7 +78,7 @@ pub struct TouchEvent {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct TouchpadPressure {
     /// The unique ID associated with the device that emitted this event.
-    pub device_id: winit::DeviceId,
+    pub device_id: winit::event::DeviceId,
     /// The amount of pressure applied.
     pub pressure: f32,
     /// Integer representing the click level.
@@ -91,9 +89,9 @@ pub struct TouchpadPressure {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct AxisMotion {
     /// The unique ID of the device that emitted this event.
-    pub device_id: winit::DeviceId,
+    pub device_id: winit::event::DeviceId,
     /// The axis on which motion occurred.
-    pub axis: winit::AxisId,
+    pub axis: winit::event::AxisId,
     /// The motion value.
     pub value: geom::scalar::Default,
 }
@@ -170,7 +168,7 @@ pub enum WindowEvent {
 }
 
 impl WindowEvent {
-    /// Produce a simplified, new-user-friendly version of the given `winit::WindowEvent`.
+    /// Produce a simplified, new-user-friendly version of the given `winit::event::WindowEvent`.
     ///
     /// This strips rarely needed technical information from the event type such as information
     /// about the source device, scancodes for keyboard events, etc to make the experience of
@@ -183,9 +181,10 @@ impl WindowEvent {
     /// If the user requires this extra information, they should use the `raw` field of the
     /// `WindowEvent` type rather than the `simple` one.
     pub fn from_winit_window_event(
-        event: winit::WindowEvent,
+        event: &winit::event::WindowEvent,
         win_w: f64,
         win_h: f64,
+        scale_factor: f64,
     ) -> Option<Self> {
         use self::WindowEvent::*;
 
@@ -199,84 +198,88 @@ impl WindowEvent {
         let ty = |y: f64| (-(y - win_h / 2.0)) as geom::scalar::Default;
 
         let event = match event {
-            winit::WindowEvent::Resized(new_size) => {
-                let (new_w, new_h) = new_size.into();
+            winit::event::WindowEvent::Resized(new_size) => {
+                let (new_w, new_h) = new_size.to_logical::<f64>(scale_factor).into();
                 let x = tw(new_w);
                 let y = th(new_h);
                 Resized(Vector2 { x, y })
             }
 
-            winit::WindowEvent::Moved(new_pos) => {
-                let (new_x, new_y) = new_pos.into();
+            winit::event::WindowEvent::Moved(new_pos) => {
+                let (new_x, new_y) = new_pos.to_logical::<f64>(scale_factor).into();
                 let x = tx(new_x);
                 let y = ty(new_y);
                 Moved(Point2 { x, y })
             }
 
             // TODO: Should separate the behaviour of close requested and destroyed.
-            winit::WindowEvent::CloseRequested | winit::WindowEvent::Destroyed => Closed,
+            winit::event::WindowEvent::CloseRequested | winit::event::WindowEvent::Destroyed => {
+                Closed
+            }
 
-            winit::WindowEvent::DroppedFile(path) => DroppedFile(path),
+            winit::event::WindowEvent::DroppedFile(path) => DroppedFile(path.clone()),
 
-            winit::WindowEvent::HoveredFile(path) => HoveredFile(path),
+            winit::event::WindowEvent::HoveredFile(path) => HoveredFile(path.clone()),
 
-            winit::WindowEvent::HoveredFileCancelled => HoveredFileCancelled,
+            winit::event::WindowEvent::HoveredFileCancelled => HoveredFileCancelled,
 
-            winit::WindowEvent::Focused(b) => {
-                if b {
+            winit::event::WindowEvent::Focused(b) => {
+                if b.clone() {
                     Focused
                 } else {
                     Unfocused
                 }
             }
 
-            winit::WindowEvent::CursorMoved { position, .. } => {
-                let (x, y) = position.into();
+            winit::event::WindowEvent::CursorMoved { position, .. } => {
+                let (x, y) = position.to_logical::<f64>(scale_factor).into();
                 let x = tx(x);
                 let y = ty(y);
                 MouseMoved(Point2 { x, y })
             }
 
-            winit::WindowEvent::CursorEntered { .. } => MouseEntered,
+            winit::event::WindowEvent::CursorEntered { .. } => MouseEntered,
 
-            winit::WindowEvent::CursorLeft { .. } => MouseExited,
+            winit::event::WindowEvent::CursorLeft { .. } => MouseExited,
 
-            winit::WindowEvent::MouseWheel { delta, phase, .. } => MouseWheel(delta, phase),
+            winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
+                MouseWheel(delta.clone(), phase.clone())
+            }
 
-            winit::WindowEvent::MouseInput { state, button, .. } => match state {
-                ElementState::Pressed => MousePressed(button),
-                ElementState::Released => MouseReleased(button),
+            winit::event::WindowEvent::MouseInput { state, button, .. } => match state {
+                ElementState::Pressed => MousePressed(button.clone()),
+                ElementState::Released => MouseReleased(button.clone()),
             },
 
-            winit::WindowEvent::Touch(winit::Touch {
+            winit::event::WindowEvent::Touch(winit::event::Touch {
                 phase,
                 location,
                 id,
                 ..
             }) => {
-                let (x, y) = location.into();
+                let (x, y) = location.to_logical::<f64>(scale_factor).into();
                 let x = tx(x);
                 let y = ty(y);
                 let position = Point2 { x, y };
                 let touch = TouchEvent {
-                    phase,
+                    phase: phase.clone(),
                     position,
-                    id,
+                    id: id.clone(),
                 };
                 WindowEvent::Touch(touch)
             }
 
-            winit::WindowEvent::TouchpadPressure {
+            winit::event::WindowEvent::TouchpadPressure {
                 device_id,
                 pressure,
                 stage,
             } => TouchPressure(TouchpadPressure {
-                device_id,
-                pressure,
-                stage,
+                device_id: device_id.clone(),
+                pressure: pressure.clone(),
+                stage: stage.clone(),
             }),
 
-            winit::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
+            winit::event::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
                 Some(key) => match input.state {
                     ElementState::Pressed => KeyPressed(key),
                     ElementState::Released => KeyReleased(key),
@@ -284,10 +287,10 @@ impl WindowEvent {
                 None => return None,
             },
 
-            winit::WindowEvent::AxisMotion { .. }
-            | winit::WindowEvent::Refresh
-            | winit::WindowEvent::ReceivedCharacter(_)
-            | winit::WindowEvent::HiDpiFactorChanged(_) => {
+            winit::event::WindowEvent::AxisMotion { .. }
+            | winit::event::WindowEvent::ReceivedCharacter(_)
+            | winit::event::WindowEvent::ThemeChanged(_)
+            | winit::event::WindowEvent::ScaleFactorChanged { .. } => {
                 return None;
             }
         };
@@ -297,29 +300,43 @@ impl WindowEvent {
 }
 
 impl LoopEvent for Event {
-    /// Convert the given `winit::Event` to a nannou `Event`.
-    fn from_winit_event(event: winit::Event, app: &App) -> Option<Self> {
+    /// Convert the given `winit::event::Event` to a nannou `Event`.
+    fn from_winit_event<'a, T>(event: &winit::event::Event<'a, T>, app: &App) -> Option<Self> {
         let event = match event {
-            winit::Event::WindowEvent { window_id, event } => {
+            winit::event::Event::WindowEvent { window_id, event } => {
                 let windows = app.windows.borrow();
-                let (win_w, win_h) = match windows.get(&window_id) {
-                    None => (0.0, 0.0), // The window was likely closed, these will be ignored.
-                    Some(window) => match window.surface.window().get_inner_size() {
-                        None => (0.0, 0.0),
-                        Some(size) => size.into(),
-                    },
+                let (win_w, win_h, scale_factor) = match windows.get(&window_id) {
+                    None => (0.0, 0.0, 1.0), // The window was likely closed, these will be ignored.
+                    Some(window) => {
+                        let (w, h) = window.inner_size_points();
+                        let sf = window.scale_factor();
+                        (w, h, sf)
+                    }
                 };
-                let raw = event.clone();
-                let simple = WindowEvent::from_winit_window_event(event, win_w, win_h);
+                let simple = WindowEvent::from_winit_window_event(
+                    event,
+                    win_w as f64,
+                    win_h as f64,
+                    scale_factor as f64,
+                );
                 Event::WindowEvent {
-                    id: window_id,
-                    raw,
+                    id: window_id.clone(),
                     simple,
+                    // TODO: Re-add this when winit#1387 is resolved.
+                    // raw,
                 }
             }
-            winit::Event::DeviceEvent { device_id, event } => Event::DeviceEvent(device_id, event),
-            winit::Event::Awakened => Event::Awakened,
-            winit::Event::Suspended(b) => Event::Suspended(b),
+            winit::event::Event::DeviceEvent { device_id, event } => {
+                Event::DeviceEvent(device_id.clone(), event.clone())
+            }
+            winit::event::Event::Suspended => Event::Suspended,
+            winit::event::Event::Resumed => Event::Resumed,
+            winit::event::Event::NewEvents(_)
+            | winit::event::Event::UserEvent(_)
+            | winit::event::Event::MainEventsCleared
+            | winit::event::Event::RedrawRequested(_)
+            | winit::event::Event::RedrawEventsCleared
+            | winit::event::Event::LoopDestroyed => return None,
         };
         Some(event)
     }

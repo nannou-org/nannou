@@ -9,7 +9,7 @@ pub use self::conrod_core::{
     Range, Rect, Scalar, Sizeable, Theme, UiCell, Widget,
 };
 pub use crate::conrod_core;
-pub use crate::conrod_vulkano;
+pub use crate::conrod_wgpu;
 pub use crate::conrod_winit;
 
 /// Simplify inclusion of common traits with a `nannou::ui::prelude` module.
@@ -25,7 +25,6 @@ pub mod prelude {
 }
 
 use self::conrod_core::text::rt::gpu_cache::CacheWriteErr;
-use self::conrod_vulkano::RendererCreationError;
 use crate::frame::{Frame, ViewFbo};
 use crate::text::{font, Font};
 use crate::window::{self, Window};
@@ -676,13 +675,13 @@ pub fn draw_primitives(
 }
 
 mod conrod_winit_conv {
-    conrod_winit::conversion_fns!();
+    conrod_winit::v021::conversion_fns!();
 }
 
 /// Convert the given window event to a UI Input.
 ///
 /// Returns `None` if there's no associated UI Input for the given event.
-pub fn winit_window_event_to_input(event: winit::WindowEvent, window: &Window) -> Option<Input> {
+pub fn winit_window_event_to_input(event: winit::window::WindowEvent, window: &Window) -> Option<Input> {
     conrod_winit_conv::convert_window_event(event, window)
 }
 
@@ -692,69 +691,15 @@ impl From<RenderTargetCreationError> for BuildError {
     }
 }
 
-impl From<RendererCreationError> for BuildError {
-    fn from(err: RendererCreationError) -> Self {
-        BuildError::RendererCreation(err)
-    }
-}
-
 impl From<text::font::Error> for BuildError {
     fn from(err: text::font::Error) -> Self {
         BuildError::FailedToLoadFont(err)
     }
 }
 
-impl From<vk::ImageCreationError> for RenderTargetCreationError {
-    fn from(err: vk::ImageCreationError) -> Self {
-        RenderTargetCreationError::ImageCreation(err)
-    }
-}
-
-impl From<vk::RenderPassCreationError> for RenderTargetCreationError {
-    fn from(err: vk::RenderPassCreationError) -> Self {
-        RenderTargetCreationError::RenderPassCreation(err)
-    }
-}
-
-impl From<vk::ImageCreationError> for DrawToFrameError {
-    fn from(err: vk::ImageCreationError) -> Self {
-        DrawToFrameError::ImageCreation(err)
-    }
-}
-
-impl From<vk::FramebufferCreationError> for DrawToFrameError {
-    fn from(err: vk::FramebufferCreationError) -> Self {
-        DrawToFrameError::FramebufferCreation(err)
-    }
-}
-
 impl From<CacheWriteErr> for DrawToFrameError {
     fn from(err: CacheWriteErr) -> Self {
         DrawToFrameError::RendererFill(err)
-    }
-}
-
-impl From<vk::memory::DeviceMemoryAllocError> for DrawToFrameError {
-    fn from(err: vk::memory::DeviceMemoryAllocError) -> Self {
-        DrawToFrameError::GlyphPixelDataUpload(err)
-    }
-}
-
-impl From<vk::command_buffer::CopyBufferImageError> for DrawToFrameError {
-    fn from(err: vk::command_buffer::CopyBufferImageError) -> Self {
-        DrawToFrameError::CopyBufferImageCommand(err)
-    }
-}
-
-impl From<conrod_vulkano::DrawError> for DrawToFrameError {
-    fn from(err: conrod_vulkano::DrawError) -> Self {
-        DrawToFrameError::RendererDraw(err)
-    }
-}
-
-impl From<vk::command_buffer::DrawError> for DrawToFrameError {
-    fn from(err: vk::command_buffer::DrawError) -> Self {
-        DrawToFrameError::DrawCommand(err)
     }
 }
 

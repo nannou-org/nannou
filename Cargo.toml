@@ -15,9 +15,9 @@ default = ["notosans"]
 
 [dependencies]
 cgmath = { version = "0.17", features = ["serde"] }
-conrod_core = "0.68"
-conrod_winit = "0.68"
-conrod_vulkano = "0.68"
+conrod_core = { git = "https://github.com/mitchmindtree/conrod", branch = "conrod_wgpu" }
+conrod_wgpu = { git = "https://github.com/mitchmindtree/conrod", branch = "conrod_wgpu" }
+conrod_winit = { git = "https://github.com/mitchmindtree/conrod", branch = "conrod_wgpu" }
 daggy = "0.6"
 find_folder = "0.3"
 image = "0.22"
@@ -32,21 +32,15 @@ serde = "1"
 serde_derive = "1"
 serde_json = "1"
 toml = "0.5"
-vulkano = "0.16"
-vulkano-win = "0.16"
-vulkano-shaders = "0.16"
 walkdir = "2"
-winit = "0.19"
+wgpu = "0.4"
+winit = "0.21"
 
 [dev-dependencies]
 audrey = "0.2"
 nannou_audio = "0.2"
 nannou_laser = "0.3"
 nannou_osc = "0.1"
-shade_runner = "0.3"
-
-[target.'cfg(target_os = "macos")'.dependencies]
-moltenvk_deps = "0.1"
 
 # --------------- Nannou Examples
 [[example]]

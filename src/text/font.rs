@@ -210,10 +210,10 @@ impl From<std::io::Error> for Error {
 }
 
 impl std::error::Error for Error {
-    fn description(&self) -> &str {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
         match *self {
-            Error::Io(ref e) => std::error::Error::description(e),
-            Error::NoFont => "No `Font` found in the loaded `FontCollection`.",
+            Error::Io(ref e) => Some(e),
+            Error::NoFont => None,
         }
     }
 }
@@ -222,7 +222,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match *self {
             Error::Io(ref e) => std::fmt::Display::fmt(e, f),
-            _ => write!(f, "{}", std::error::Error::description(self)),
+            Error::NoFont => write!(f, "No `Font` found in the loaded `FontCollection`."),
         }
     }
 }
