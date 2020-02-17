@@ -1167,7 +1167,7 @@ impl<'app> Builder<'app> {
     ///
     /// None means a normal window, Some(MonitorId) means a fullscreen window on that specific
     /// monitor.
-    pub fn with_fullscreen(self, monitor: Option<MonitorId>) -> Self {
+    pub fn fullscreen(self, monitor: Option<MonitorId>) -> Self {
         self.map_window(|w| w.with_fullscreen(monitor))
     }
 
