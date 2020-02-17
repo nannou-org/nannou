@@ -968,7 +968,7 @@ fn run_loop<M, E>(
     };
 
     // Run the event loop.
-    event_loop.run(move |event, event_loop_window_target, control_flow| {
+    event_loop.run(move |mut event, event_loop_window_target, control_flow| {
         // Set the event loop window target pointer to allow for building windows.
         app.event_loop_window_target = Some(EventLoopWindowTarget::Pointer(
             event_loop_window_target as *const _,
@@ -1132,7 +1132,7 @@ fn run_loop<M, E>(
                     }
                 }
 
-                // TODO: Replace the render data and swap chain.
+                // Replace the render data and swap chain.
                 let mut windows = app.windows.borrow_mut();
                 let window = windows
                     .get_mut(&window_id)
@@ -1154,6 +1154,23 @@ fn run_loop<M, E>(
             // This is necessary for the `Wait` loop mode to behave correctly.
             ref _other_event => {
                 loop_state.updates_since_event = 0;
+            }
+        }
+
+        // We must re-build the swap chain if the window was resized.
+        if let winit::event::Event::WindowEvent { ref mut event, window_id } = event {
+            match event {
+                winit::event::WindowEvent::Resized(new_size) => {
+                    let mut windows = app.windows.borrow_mut();
+                    if let Some(window) = windows.get_mut(&window_id) {
+                        window.rebuild_swap_chain(new_size.clone().into());
+                    }
+                }
+
+                winit::event::WindowEvent::ScaleFactorChanged { scale_factor, new_inner_size } => {
+                }
+
+                _ => (),
             }
         }
 
@@ -1282,26 +1299,6 @@ fn apply_update<M, E>(
     for window in windows.values() {
         window.window.request_redraw();
     }
-}
-
-// Returns `true` if the window's swap chain needs to be recreated.
-fn window_swap_chain_needs_recreation(app: &App, window_id: window::Id) -> bool {
-    let windows = app.windows.borrow();
-    let window = &windows[&window_id];
-    window
-        .swap_chain
-        .needs_recreation
-        .load(atomic::Ordering::Relaxed)
-}
-
-// Shorthand for setting a window's swap chain.needs_recreation atomic bool.
-fn set_window_swap_chain_needs_recreation(app: &App, window_id: window::Id, b: bool) {
-    let windows = app.windows.borrow_mut();
-    let window = windows.get(&window_id).expect("no window for id");
-    window
-        .swap_chain
-        .needs_recreation
-        .store(b, atomic::Ordering::Relaxed);
 }
 
 // Whether or not the given event should toggle fullscreen.

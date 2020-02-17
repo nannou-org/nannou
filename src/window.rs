@@ -232,8 +232,6 @@ pub struct Window {
 
 /// A swap_chain and its images associated with a single window.
 pub(crate) struct WindowSwapChain {
-    // Tracks whether or not the swap chain needs recreation due to resizing, etc.
-    pub(crate) needs_recreation: AtomicBool,
     // The descriptor used to create the original swap chain. Useful for recreation.
     pub(crate) descriptor: wgpu::SwapChainDescriptor,
     // This is an `Option` in order to allow for separating ownership of the swapchain from the
@@ -758,10 +756,8 @@ impl<'app> Builder<'app> {
         };
 
         let window_id = window.id();
-        let needs_recreation = AtomicBool::new(false);
         let frame_count = 0;
         let swap_chain = WindowSwapChain {
-            needs_recreation,
             descriptor: swap_chain_desc,
             swap_chain: Some(swap_chain),
         };
@@ -1094,7 +1090,7 @@ impl Window {
         self.window.id()
     }
 
-    // Access to vulkano API.
+    // Access to wgpu API.
 
     /// Returns a reference to the window's Vulkan swap chain surface.
     pub fn surface(&self) -> &wgpu::Surface {
@@ -1130,25 +1126,19 @@ impl Window {
     // Custom methods.
 
     // A utility function to simplify the recreation of a swap_chain.
-    pub(crate) fn replace_swap_chain(
-        &mut self,
-        new_descriptor: wgpu::SwapChainDescriptor,
-        new_swap_chain: wgpu::SwapChain,
-    ) {
-        self.swap_chain = WindowSwapChain {
-            needs_recreation: AtomicBool::new(false),
-            descriptor: new_descriptor,
-            swap_chain: Some(new_swap_chain),
-        };
-        // TODO: Update frame_render_data? Should recreate `msaa_texture`s with new sc descriptor.
-        unimplemented!();
-
-        // let swap_chain_dims = [new_descriptor.width, new_descriptor.height];
-        // self.frame_render_data = frame::RenderData::new(
-        //     &self.device,
-        //     swap_chain_dims,
-        //     self.msaa_samples
-        // );
+    pub(crate) fn rebuild_swap_chain(&mut self, size_px: [u32; 2]) {
+        std::mem::drop(self.swap_chain.swap_chain.take());
+        let [width, height] = size_px;
+        self.swap_chain.descriptor.width = width;
+        self.swap_chain.descriptor.height = height;
+        self.swap_chain.swap_chain =
+            Some(self.device.create_swap_chain(&self.surface, &self.swap_chain.descriptor));
+        self.frame_render_data = Some(frame::RenderData::new(
+            &self.device,
+            size_px,
+            self.swap_chain.descriptor.format,
+            self.msaa_samples,
+        ));
     }
 
     /// Attempts to determine whether or not the window is currently fullscreen.
