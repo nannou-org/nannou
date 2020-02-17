@@ -1187,7 +1187,7 @@ impl<'app> Builder<'app> {
     }
 
     /// Sets whether the window should have a border, a title bar, etc.
-    pub fn with_decorations(self, decorations: bool) -> Self {
+    pub fn decorations(self, decorations: bool) -> Self {
         self.map_window(|w| w.with_decorations(decorations))
     }
 
