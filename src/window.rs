@@ -1145,7 +1145,7 @@ impl<'app> Builder<'app> {
     }
 
     /// Set the minimum dimensions in pixels for the window.
-    pub fn with_min_dimensions(self, width: u32, height: u32) -> Self {
+    pub fn min_dimensions(self, width: u32, height: u32) -> Self {
         self.map_window(|w| w.with_min_dimensions((width, height).into()))
     }
 
