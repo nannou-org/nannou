@@ -1182,7 +1182,7 @@ impl<'app> Builder<'app> {
     }
 
     /// Sets whether the background of the window should be transparent.
-    pub fn with_transparency(self, transparent: bool) -> Self {
+    pub fn transparency(self, transparent: bool) -> Self {
         self.map_window(|w| w.with_transparency(transparent))
     }
 
