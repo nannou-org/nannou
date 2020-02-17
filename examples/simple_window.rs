@@ -14,7 +14,7 @@ fn model(app: &App) -> Model {
     let _window = app
         .new_window()
         .with_dimensions(512, 512)
-        .with_title("nannou")
+        .title("nannou")
         .view(view) // The function that will be called for presenting graphics to a frame.
         .event(event) // The function that will be called when the window receives events.
         .build()

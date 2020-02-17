@@ -16,7 +16,7 @@ struct Model {
 fn model(app: &App) -> Model {
     app.new_window()
         .with_dimensions(1440, 512)
-        .with_title("nannou")
+        .title("nannou")
         .view(view)
         .build()
         .unwrap();

@@ -1155,7 +1155,7 @@ impl<'app> Builder<'app> {
     }
 
     /// Requests a specific title for the window.
-    pub fn with_title<T>(mut self, title: T) -> Self
+    pub fn title<T>(mut self, title: T) -> Self
     where
         T: Into<String>,
     {
