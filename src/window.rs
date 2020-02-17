@@ -1150,7 +1150,7 @@ impl<'app> Builder<'app> {
     }
 
     /// Set the maximum dimensions in pixels for the window.
-    pub fn with_max_dimensions(self, width: u32, height: u32) -> Self {
+    pub fn max_dimensions(self, width: u32, height: u32) -> Self {
         self.map_window(|w| w.with_max_dimensions((width, height).into()))
     }
 
