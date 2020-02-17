@@ -1177,7 +1177,7 @@ impl<'app> Builder<'app> {
     }
 
     /// Sets whether the window will be initially hidden or visible.
-    pub fn with_visibility(self, visible: bool) -> Self {
+    pub fn visibility(self, visible: bool) -> Self {
         self.map_window(|w| w.with_visibility(visible))
     }
 
