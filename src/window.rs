@@ -1192,7 +1192,7 @@ impl<'app> Builder<'app> {
     }
 
     /// Enables multitouch.
-    pub fn with_multitouch(self) -> Self {
+    pub fn multitouch(self) -> Self {
         self.map_window(|w| w.with_multitouch())
     }
 }
