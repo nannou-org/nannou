@@ -298,7 +298,7 @@ impl SwapChainBuilder {
         self,
         device: &wgpu::Device,
         surface: &wgpu::Surface,
-        [width, height]: [u32; 2],
+        [width_px, height_px]: [u32; 2],
         loop_mode: &LoopMode,
     ) -> (wgpu::SwapChain, wgpu::SwapChainDescriptor) {
         let usage = self.usage.unwrap_or(Self::DEFAULT_USAGE);
@@ -309,8 +309,8 @@ impl SwapChainBuilder {
         let desc = wgpu::SwapChainDescriptor {
             usage,
             format,
-            width,
-            height,
+            width: width_px,
+            height: height_px,
             present_mode,
         };
         let swap_chain = device.create_swap_chain(surface, &desc);
@@ -655,6 +655,62 @@ impl<'app> Builder<'app> {
             }
         }
 
+        // Set default dimensions in the case that none were given.
+        let initial_window_size = window
+            .window
+            .inner_size
+            .or_else(|| {
+                window
+                    .window
+                    .fullscreen
+                    .as_ref()
+                    .map(|fullscreen| match fullscreen {
+                        winit::window::Fullscreen::Exclusive(video_mode) => {
+                            let monitor = video_mode.monitor();
+                            video_mode.size().to_logical::<f32>(monitor.scale_factor()).into()
+                        }
+                        winit::window::Fullscreen::Borderless(monitor) => {
+                            monitor.size().to_logical::<f32>(monitor.scale_factor()).into()
+                        }
+                    })
+            })
+            .unwrap_or_else(|| {
+                let mut dim = DEFAULT_DIMENSIONS;
+                if let Some(min) = window.window.min_inner_size {
+                    match min {
+                        winit::dpi::Size::Logical(min) => {
+                            dim.width = dim.width.max(min.width as _);
+                            dim.height = dim.height.max(min.height as _);
+                        }
+                        winit::dpi::Size::Physical(min) => {
+                            dim.width = dim.width.max(min.width as _);
+                            dim.height = dim.height.max(min.height as _);
+                            unimplemented!("consider scale factor");
+                        }
+                    }
+                }
+                if let Some(max) = window.window.max_inner_size {
+                    match max {
+                        winit::dpi::Size::Logical(max) => {
+                            dim.width = dim.width.min(max.width as _);
+                            dim.height = dim.height.min(max.height as _);
+                        }
+                        winit::dpi::Size::Physical(max) => {
+                            dim.width = dim.width.min(max.width as _);
+                            dim.height = dim.height.min(max.height as _);
+                            unimplemented!("consider scale factor");
+                        }
+                    }
+                }
+                dim.into()
+            });
+
+        // Use the `initial_swapchain_dimensions` as the default dimensions for the window if none
+        // were specified.
+        if window.window.inner_size.is_none() && window.window.fullscreen.is_none() {
+            window.window.inner_size = Some(initial_window_size);
+        }
+
         // Build the window.
         let window = {
             let window_target = app
@@ -679,20 +735,16 @@ impl<'app> Builder<'app> {
         let (device, queue) = adapter.request_device(&device_desc);
 
         // Build the swapchain.
-        // TODO: Check, do we really want logical here?
-        let win_dims: [u32; 2] = window
-            .inner_size()
-            .to_logical::<f64>(window.scale_factor())
-            .into();
+        let win_dims_px: [u32; 2] = window.inner_size().into();
         let (swap_chain, swap_chain_desc) =
-            swap_chain_builder.build(&device, &surface, win_dims, &app.loop_mode());
+            swap_chain_builder.build(&device, &surface, win_dims_px, &app.loop_mode());
 
         // If we're using an intermediary image for rendering frames to swap_chain images, create
         // the necessary render data.
         let (frame_render_data, msaa_samples) = match user_functions.view {
             Some(View::WithModel(_)) | Some(View::Sketch(_)) | None => {
                 let msaa_samples = msaa_samples.unwrap_or(Frame::DEFAULT_MSAA_SAMPLES);
-                // TODO: Verity that requested sample count is valid??
+                // TODO: Verity that requested sample count is valid for surface?
                 let swap_chain_dims = [swap_chain_desc.width, swap_chain_desc.height];
                 let render_data = frame::RenderData::new(
                     &device,

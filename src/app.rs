@@ -16,7 +16,7 @@ use crate::frame::{Frame, RawFrame};
 use crate::geom;
 use crate::state;
 use crate::time::DurationF64;
-//use crate::ui;
+use crate::ui;
 use crate::window::{self, Window};
 use find_folder;
 use std;
@@ -88,7 +88,7 @@ pub struct App {
     pub(crate) event_loop_proxy: Proxy,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
     draw_state: DrawState,
-    //pub(crate) ui: ui::Arrangement,
+    pub(crate) ui: ui::Arrangement,
     /// The window that is currently in focus.
     pub(crate) focused_window: RefCell<Option<window::Id>>,
 
@@ -605,7 +605,7 @@ impl App {
         let renderers = RefCell::new(Default::default());
         let draw_state = DrawState { draw, renderers };
         let focused_window = RefCell::new(None);
-        //let ui = ui::Arrangement::new();
+        let ui = ui::Arrangement::new();
         let mouse = state::Mouse::new();
         let keys = state::Keys::default();
         let duration = state::Time::default();
@@ -617,7 +617,7 @@ impl App {
             windows,
             config,
             draw_state,
-            //ui,
+            ui,
             mouse,
             keys,
             duration,
@@ -751,13 +751,13 @@ impl App {
         self.event_loop_proxy.clone()
     }
 
-    // /// A builder for creating a new **Ui**.
-    // ///
-    // /// Each **Ui** is associated with one specific window. By default, this is the window returned
-    // /// by `App::window_id` (the currently focused window).
-    // pub fn new_ui(&self) -> ui::Builder {
-    //     ui::Builder::new(self)
-    // }
+    /// A builder for creating a new **Ui**.
+    ///
+    /// Each **Ui** is associated with one specific window. By default, this is the window returned
+    /// by `App::window_id` (the currently focused window).
+    pub fn new_ui(&self) -> ui::Builder {
+        ui::Builder::new(self)
+    }
 
     /// Produce the **App**'s **Draw** API for drawing geometry and text with colors and textures.
     ///
@@ -1256,7 +1256,6 @@ fn apply_update<M, E>(
     E: LoopEvent,
 {
     // Update the app's durations.
-    let now = Instant::now();
     let since_last = now.duration_since(loop_state.last_update);
     let since_start = now.duration_since(loop_state.loop_start);
     app.duration.since_prev_update = since_last;
@@ -1469,17 +1468,15 @@ where
             // See if the event could be interpreted as a `ui::Input`. If so, submit it to the
             // `Ui`s associated with this window.
             if let Some(window) = app.windows.borrow().get(&window_id) {
-                // unimplemented!("re-add input handling for UI");
-
-                // if let Some(input) = ui::winit_window_event_to_input(event.clone(), window) {
-                //     if let Some(handles) = app.ui.windows.borrow().get(&window_id) {
-                //         for handle in handles {
-                //             if let Some(ref tx) = handle.input_tx {
-                //                 tx.try_send(input.clone()).ok();
-                //             }
-                //         }
-                //     }
-                // }
+                if let Some(input) = ui::winit_window_event_to_input(event, window) {
+                    if let Some(handles) = app.ui.windows.borrow().get(&window_id) {
+                        for handle in handles {
+                            if let Some(ref tx) = handle.input_tx {
+                                tx.try_send(input.clone()).ok();
+                            }
+                        }
+                    }
+                }
             }
         }
     }

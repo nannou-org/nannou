@@ -48,7 +48,7 @@ impl<'swap_chain> ops::Deref for Frame<'swap_chain> {
 impl<'swap_chain> Frame<'swap_chain> {
     /// The default number of multisample anti-aliasing samples used if the window with which the
     /// `Frame` is associated supports it.
-    pub const DEFAULT_MSAA_SAMPLES: u32 = 8;
+    pub const DEFAULT_MSAA_SAMPLES: u32 = 4;
     /// The texture format used by the intermediary linear sRGBA image.
     ///
     /// We use a high bit depth format in order to retain as much information as possible when

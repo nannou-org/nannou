@@ -14,6 +14,7 @@
 //! nannou applications are structured and how the API works.
 
 pub use conrod_core;
+pub use conrod_wgpu;
 pub use conrod_winit;
 pub use daggy;
 pub use find_folder;
@@ -23,7 +24,7 @@ pub use winit;
 
 pub use self::event::Event;
 pub use self::frame::Frame;
-//pub use self::ui::Ui;
+pub use self::ui::Ui;
 pub use crate::app::{App, LoopMode};
 pub use crate::draw::Draw;
 
@@ -44,7 +45,7 @@ pub mod rand;
 pub mod state;
 pub mod text;
 pub mod time;
-//pub mod ui;
+pub mod ui;
 pub mod wgpu;
 pub mod window;
 
