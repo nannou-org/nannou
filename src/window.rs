@@ -1172,7 +1172,7 @@ impl<'app> Builder<'app> {
     }
 
     /// Requests maximized mode.
-    pub fn with_maximized(self, maximized: bool) -> Self {
+    pub fn maximized(self, maximized: bool) -> Self {
         self.map_window(|w| w.with_maximized(maximized))
     }
 
