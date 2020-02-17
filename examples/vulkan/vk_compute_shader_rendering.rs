@@ -29,7 +29,7 @@ fn model(app: &App) -> Model {
     };
 
     app.new_window()
-        .with_dimensions(window_size.width(), window_size.height())
+        .dimensions(window_size.width(), window_size.height())
         .view(view)
         .build()
         .unwrap();

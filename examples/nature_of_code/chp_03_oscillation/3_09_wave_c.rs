@@ -16,7 +16,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .with_dimensions(200, 200)
+        .dimensions(200, 200)
         .view(view)
         .build()
         .unwrap();

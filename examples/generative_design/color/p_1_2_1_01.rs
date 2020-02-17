@@ -49,7 +49,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .with_dimensions(800, 800)
+        .dimensions(800, 800)
         .key_pressed(key_pressed)
         .mouse_released(mouse_released)
         .view(view)

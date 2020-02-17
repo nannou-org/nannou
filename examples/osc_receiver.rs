@@ -19,7 +19,7 @@ const PORT: u16 = 34254;
 fn model(app: &App) -> Model {
     app.new_window()
         .title("OSC Receiver")
-        .with_dimensions(1400, 480)
+        .dimensions(1400, 480)
         .view(view)
         .build()
         .unwrap();

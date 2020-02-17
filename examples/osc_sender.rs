@@ -23,7 +23,7 @@ fn target_address_string() -> String {
 fn model(app: &App) -> Model {
     app.new_window()
         .title("OSC Sender")
-        .with_dimensions(680, 480)
+        .dimensions(680, 480)
         .event(event)
         .view(view)
         .build()

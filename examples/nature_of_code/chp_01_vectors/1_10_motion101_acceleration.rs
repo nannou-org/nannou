@@ -61,7 +61,7 @@ impl Mover {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .with_dimensions(640, 360)
+        .dimensions(640, 360)
         .view(view)
         .build()
         .unwrap();

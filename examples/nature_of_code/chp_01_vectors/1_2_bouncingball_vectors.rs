@@ -20,7 +20,7 @@ fn model(app: &App) -> Model {
 
     let _window = app
         .new_window()
-        .with_dimensions(200, 200)
+        .dimensions(200, 200)
         .view(view)
         .build()
         .unwrap();

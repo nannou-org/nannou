@@ -96,7 +96,7 @@ impl Wave {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .with_dimensions(750, 200)
+        .dimensions(750, 200)
         .view(view)
         .build()
         .unwrap();

@@ -12,7 +12,7 @@ struct Model {}
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .with_dimensions(720, 720)
+        .dimensions(720, 720)
         .event(window_event)
         .raw_event(raw_window_event)
         .key_pressed(key_pressed)

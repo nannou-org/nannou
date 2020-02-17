@@ -23,7 +23,7 @@ vk::impl_vertex!(Vertex, position);
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .with_dimensions(220, 220)
+        .dimensions(220, 220)
         .view(view)
         .build()
         .unwrap();

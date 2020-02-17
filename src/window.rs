@@ -1140,7 +1140,7 @@ impl<'app> Builder<'app> {
     // Window builder methods.
 
     /// Requests the window to be specific dimensions pixels.
-    pub fn with_dimensions(self, width: u32, height: u32) -> Self {
+    pub fn dimensions(self, width: u32, height: u32) -> Self {
         self.map_window(|w| w.with_dimensions((width, height).into()))
     }
 

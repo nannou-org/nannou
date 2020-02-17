@@ -168,7 +168,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let rect = Rect::from_w_h(640.0, 360.0);
     app.new_window()
-        .with_dimensions(rect.w() as u32, rect.h() as u32)
+        .dimensions(rect.w() as u32, rect.h() as u32)
         .event(event)
         .view(view)
         .build()
