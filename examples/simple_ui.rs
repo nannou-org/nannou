@@ -130,20 +130,20 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model, frame: &Frame) {
-    // // Begin drawing
-    // let draw = app.draw();
+    // Begin drawing
+    let draw = app.draw();
 
-    // draw.background().rgb(0.02, 0.02, 0.02);
+    draw.background().rgb(0.02, 0.02, 0.02);
 
-    // draw.ellipse()
-    //     .xy(model.position)
-    //     .radius(model.scale)
-    //     .resolution(model.resolution)
-    //     .rotate(model.rotation)
-    //     .color(model.color);
+    draw.ellipse()
+        .xy(model.position)
+        .radius(model.scale)
+        .resolution(model.resolution)
+        .rotate(model.rotation)
+        .color(model.color);
 
-    // // Write the result of our drawing to the window's frame.
-    // draw.to_frame(app, &frame).unwrap();
+    // Write the result of our drawing to the window's frame.
+    draw.to_frame(app, &frame).unwrap();
 
     // Draw the state of the `Ui` to the frame.
     model.ui.draw_to_frame(app, &frame).unwrap();

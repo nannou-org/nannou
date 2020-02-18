@@ -84,22 +84,20 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 fn view(app: &App, model: &Model, frame: &Frame) {
     let draw = app.draw();
 
-    frame.clear(ALL_NAMED_COLORS[model.selected_color_index]);
+    // Draw the background with the color.
+    draw.background()
+        .color(ALL_NAMED_COLORS[model.selected_color_index]);
 
-    // // Draw the background with the color.
-    // draw.background()
-    //     .color(ALL_NAMED_COLORS[model.selected_color_index]);
+    // Also draw a rectangle with the same color to ensure our vertex data is accurate too!
+    // If we can see this rectangle on the bottom half of the window, something has gone wrong.
+    let win = app.main_window().rect();
+    draw.rect()
+        .w_h(win.w(), win.h() * 0.5)
+        .x_y(0.0, -win.h() * 0.25)
+        .color(ALL_NAMED_COLORS[model.selected_color_index]);
 
-    // // Also draw a rectangle with the same color to ensure our vertex data is accurate too!
-    // // If we can see this rectangle on the bottom half of the window, something has gone wrong.
-    // let win = app.main_window().rect();
-    // draw.rect()
-    //     .w_h(win.w(), win.h() * 0.5)
-    //     .x_y(0.0, -win.h() * 0.25)
-    //     .color(ALL_NAMED_COLORS[model.selected_color_index]);
-
-    // // Clear the background and draw the rect.
-    // draw.to_frame(app, &frame).unwrap();
+    // Clear the background and draw the rect.
+    draw.to_frame(app, &frame).unwrap();
 
     // Draw the color list to the frame.
     model.ui.draw_to_frame(app, &frame).unwrap();

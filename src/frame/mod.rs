@@ -116,6 +116,15 @@ impl<'swap_chain> Frame<'swap_chain> {
             .unwrap_or(&self.data.intermediary_lin_srgba.texture)
     }
 
+    /// Returns the resolve target texture in the case that MSAA is enabled.
+    pub fn resolve_target(&self) -> Option<&wgpu::TextureView> {
+        if self.data.msaa_samples <= 1 {
+            None
+        } else {
+            Some(&self.data.intermediary_lin_srgba.texture)
+        }
+    }
+
     /// The color format of the `Frame`'s intermediary linear sRGBA texture (equal to
     /// `Frame::TEXTURE_FORMAT`).
     pub fn texture_format(&self) -> wgpu::TextureFormat {

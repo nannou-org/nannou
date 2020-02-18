@@ -779,11 +779,14 @@ impl App {
         let renderers = self.draw_state.renderers.borrow_mut();
         let renderer = RefMut::map(renderers, |renderers| {
             renderers.entry(window_id).or_insert_with(|| {
+                let device = &window.device;
                 let msaa_samples = window.msaa_samples();
-                let (px_w, px_h) = window.inner_size_pixels();
-                // TODO: This should be configurable.
-                let glyph_cache_dims = [px_w, px_h];
-                let renderer = draw::backend::wgpu::Renderer;
+                let target_format = crate::frame::Frame::TEXTURE_FORMAT;
+                let renderer = draw::backend::wgpu::Renderer::new(
+                    device,
+                    msaa_samples,
+                    texture_format,
+                );
                 RefCell::new(renderer)
             })
         });
@@ -859,8 +862,18 @@ impl<'a> Draw<'a> {
         );
         let scale_factor = window.scale_factor();
         let mut renderer = self.renderer.borrow_mut();
-        // TODO: renderer.draw_to_frame.
-        unimplemented!();
+        let depth_format = wgpu::TextureFormat::Depth32Float;
+        let (w, h) = window.inner_size_pixels();
+        let frame_dims = [w, h];
+        renderer.render_to_frame(
+            &window.device,
+            &self.draw,
+            scale_factor,
+            frame_dims,
+            depth_format,
+            frame,
+        );
+        Ok(())
     }
 }
 
