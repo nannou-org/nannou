@@ -220,10 +220,10 @@ impl Renderer {
         render_pass.set_bind_group(0, bind_group, &[]);
         render_pass.set_index_buffer(&index_buffer, 0);
         render_pass.set_vertex_buffers(0, &[(&vertex_buffer, 0)]);
-        let vertex_range = 0..vertices.len() as u32;
         let index_range = 0..indices.len() as u32;
+        let start_vertex = 0;
         let instance_range = 0..1;
-        render_pass.draw_indexed(index_range, 0, instance_range);
+        render_pass.draw_indexed(index_range, start_vertex, instance_range);
     }
 }
 

@@ -12,7 +12,6 @@ use crate::wgpu;
 use crate::App;
 use std::any::Any;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::{env, fmt};
 use winit::dpi::LogicalSize;

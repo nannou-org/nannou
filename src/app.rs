@@ -406,7 +406,7 @@ where
     /// If you wish to remain cross-platform frienly, we recommend that you call this on the main
     /// thread as some platforms require that their application event loop and windows are
     /// initialised on the main thread.
-    pub fn run(mut self) {
+    pub fn run(self) {
         // Start the winit window event loop.
         let event_loop = winit::event_loop::EventLoop::new();
 
@@ -447,7 +447,7 @@ where
         if loop_mode != LoopMode::default() {
             let present_mode = window::preferred_present_mode(&loop_mode);
             let mut windows = app.windows.borrow_mut();
-            for window in windows.values_mut() {
+            for _window in windows.values_mut() {
                 // TODO: Update window for loop/present mode.
             }
         }
@@ -772,7 +772,6 @@ impl App {
             Some(window) => window,
         };
 
-        let texture_format = crate::frame::Frame::TEXTURE_FORMAT;
         let draw = self.draw_state.draw.borrow_mut();
         draw.reset();
 
@@ -785,7 +784,7 @@ impl App {
                 let renderer = draw::backend::wgpu::Renderer::new(
                     device,
                     msaa_samples,
-                    texture_format,
+                    target_format,
                 );
                 RefCell::new(renderer)
             })
