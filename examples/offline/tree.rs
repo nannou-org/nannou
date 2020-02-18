@@ -74,7 +74,7 @@ impl Thing {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .with_dimensions(1024, 1024)
+        .dimensions(1024, 1024)
         .view(view)
         .event(window_event)
         .build()

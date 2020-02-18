@@ -58,7 +58,7 @@ pub struct Normal {
 fn model(app: &App) -> Model {
     let window_id = app
         .new_window()
-        .with_dimensions(500, 700)
+        .dimensions(500, 700)
         .view(view)
         .build()
         .unwrap();
@@ -158,7 +158,7 @@ fn model(app: &App) -> Model {
 
     let gui_window_id = app
         .new_window()
-        .with_dimensions(500, 400)
+        .dimensions(500, 400)
         .view(ui_view)
         .event(controls::event)
         .build()

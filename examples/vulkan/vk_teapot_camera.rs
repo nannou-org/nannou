@@ -74,7 +74,7 @@ fn main() {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .with_dimensions(1024, 576)
+        .dimensions(1024, 576)
         .key_pressed(key_pressed)
         .view(view)
         .build()

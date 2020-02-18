@@ -46,7 +46,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .with_dimensions(1280, 720)
+        .dimensions(1280, 720)
         .view(view)
         .mouse_released(mouse_released)
         .build()

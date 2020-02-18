@@ -59,7 +59,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .with_dimensions(600, 600)
+        .dimensions(600, 600)
         .view(view)
         .mouse_pressed(mouse_pressed)
         .key_released(key_released)

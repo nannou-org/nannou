@@ -127,7 +127,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .with_dimensions(640, 360)
+        .dimensions(640, 360)
         .view(view)
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)

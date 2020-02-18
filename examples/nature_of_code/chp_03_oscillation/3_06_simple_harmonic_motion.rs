@@ -19,7 +19,7 @@ fn model(app: &App) -> Model {
     let a_velocity = 0.03;
 
     app.new_window()
-        .with_dimensions(640, 360)
+        .dimensions(640, 360)
         .view(view)
         .build()
         .unwrap();

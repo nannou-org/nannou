@@ -13,19 +13,19 @@ struct Model {
 fn model(app: &App) -> Model {
     let a = app
         .new_window()
-        .with_title("window a")
+        .title("window a")
         .event(event_a)
         .build()
         .unwrap();
     let b = app
         .new_window()
-        .with_title("window b")
+        .title("window b")
         .event(event_b)
         .build()
         .unwrap();
     let c = app
         .new_window()
-        .with_title("window c")
+        .title("window c")
         .event(event_c)
         .build()
         .unwrap();

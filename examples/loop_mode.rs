@@ -20,7 +20,7 @@ fn model(app: &App) -> Model {
     app.set_loop_mode(LoopMode::wait(3));
     let _window = app
         .new_window()
-        .with_title(format!(
+        .title(format!(
             "`LoopMode` Demonstration - `{:?}`",
             app.loop_mode()
         ))

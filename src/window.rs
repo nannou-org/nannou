@@ -1140,22 +1140,22 @@ impl<'app> Builder<'app> {
     // Window builder methods.
 
     /// Requests the window to be specific dimensions pixels.
-    pub fn with_dimensions(self, width: u32, height: u32) -> Self {
+    pub fn dimensions(self, width: u32, height: u32) -> Self {
         self.map_window(|w| w.with_dimensions((width, height).into()))
     }
 
     /// Set the minimum dimensions in pixels for the window.
-    pub fn with_min_dimensions(self, width: u32, height: u32) -> Self {
+    pub fn min_dimensions(self, width: u32, height: u32) -> Self {
         self.map_window(|w| w.with_min_dimensions((width, height).into()))
     }
 
     /// Set the maximum dimensions in pixels for the window.
-    pub fn with_max_dimensions(self, width: u32, height: u32) -> Self {
+    pub fn max_dimensions(self, width: u32, height: u32) -> Self {
         self.map_window(|w| w.with_max_dimensions((width, height).into()))
     }
 
     /// Requests a specific title for the window.
-    pub fn with_title<T>(mut self, title: T) -> Self
+    pub fn title<T>(mut self, title: T) -> Self
     where
         T: Into<String>,
     {
@@ -1167,32 +1167,32 @@ impl<'app> Builder<'app> {
     ///
     /// None means a normal window, Some(MonitorId) means a fullscreen window on that specific
     /// monitor.
-    pub fn with_fullscreen(self, monitor: Option<MonitorId>) -> Self {
+    pub fn fullscreen(self, monitor: Option<MonitorId>) -> Self {
         self.map_window(|w| w.with_fullscreen(monitor))
     }
 
     /// Requests maximized mode.
-    pub fn with_maximized(self, maximized: bool) -> Self {
+    pub fn maximized(self, maximized: bool) -> Self {
         self.map_window(|w| w.with_maximized(maximized))
     }
 
     /// Sets whether the window will be initially hidden or visible.
-    pub fn with_visibility(self, visible: bool) -> Self {
+    pub fn visibility(self, visible: bool) -> Self {
         self.map_window(|w| w.with_visibility(visible))
     }
 
     /// Sets whether the background of the window should be transparent.
-    pub fn with_transparency(self, transparent: bool) -> Self {
+    pub fn transparency(self, transparent: bool) -> Self {
         self.map_window(|w| w.with_transparency(transparent))
     }
 
     /// Sets whether the window should have a border, a title bar, etc.
-    pub fn with_decorations(self, decorations: bool) -> Self {
+    pub fn decorations(self, decorations: bool) -> Self {
         self.map_window(|w| w.with_decorations(decorations))
     }
 
     /// Enables multitouch.
-    pub fn with_multitouch(self) -> Self {
+    pub fn multitouch(self) -> Self {
         self.map_window(|w| w.with_multitouch())
     }
 }

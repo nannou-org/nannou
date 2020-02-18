@@ -40,7 +40,7 @@ vk::impl_vertex!(Normal, normal);
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .with_dimensions(1024, 576)
+        .dimensions(1024, 576)
         .view(view)
         .build()
         .unwrap();
