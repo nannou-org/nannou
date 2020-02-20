@@ -1094,9 +1094,35 @@ fn run_loop<M, E>(
                     // Otherwise, use the fallback, default view passed to the app if there was one.
                     let window_view = window.user_functions.view.clone();
 
-                    if let Some(ref default_view) = default_view {
-                        command_buffer = match window_view {
-                            Some(window::View::Sketch(view)) => {
+                    command_buffer = match window_view {
+                        Some(window::View::Sketch(view)) => {
+                            let r_data = render_data.take().expect("missing `render_data`");
+                            let frame = Frame::new_empty(raw_frame, r_data);
+                            view(&app, &frame);
+                            let (r_data, raw_frame) = frame.finish();
+                            render_data = Some(r_data);
+                            Some(raw_frame.finish().finish())
+                        }
+                        Some(window::View::WithModel(view)) => {
+                            let r_data = render_data.take().expect("missing `render_data`");
+                            let frame = Frame::new_empty(raw_frame, r_data);
+                            let view = view.to_fn_ptr::<M>().expect(
+                                "unexpected model argument given to window view function",
+                            );
+                            (*view)(&app, &model, &frame);
+                            let (r_data, raw_frame) = frame.finish();
+                            render_data = Some(r_data);
+                            Some(raw_frame.finish().finish())
+                        }
+                        Some(window::View::WithModelRaw(raw_view)) => {
+                            let raw_view = raw_view.to_fn_ptr::<M>().expect(
+                                "unexpected model argument given to window raw_view function",
+                            );
+                            (*raw_view)(&app, &model, &raw_frame);
+                            Some(raw_frame.finish().finish())
+                        }
+                        None => match default_view {
+                            Some(View::Sketch(view)) => {
                                 let r_data = render_data.take().expect("missing `render_data`");
                                 let frame = Frame::new_empty(raw_frame, r_data);
                                 view(&app, &frame);
@@ -1104,44 +1130,17 @@ fn run_loop<M, E>(
                                 render_data = Some(r_data);
                                 Some(raw_frame.finish().finish())
                             }
-                            Some(window::View::WithModel(view)) => {
+                            Some(View::WithModel(view)) => {
                                 let r_data = render_data.take().expect("missing `render_data`");
                                 let frame = Frame::new_empty(raw_frame, r_data);
-                                let view = view.to_fn_ptr::<M>().expect(
-                                    "unexpected model argument given to window view function",
-                                );
-                                (*view)(&app, &model, &frame);
+                                view(&app, &model, &frame);
                                 let (r_data, raw_frame) = frame.finish();
                                 render_data = Some(r_data);
                                 Some(raw_frame.finish().finish())
                             }
-                            Some(window::View::WithModelRaw(raw_view)) => {
-                                let raw_view = raw_view.to_fn_ptr::<M>().expect(
-                                    "unexpected model argument given to window raw_view function",
-                                );
-                                (*raw_view)(&app, &model, &raw_frame);
-                                Some(raw_frame.finish().finish())
-                            }
-                            None => match default_view {
-                                View::Sketch(view) => {
-                                    let r_data = render_data.take().expect("missing `render_data`");
-                                    let frame = Frame::new_empty(raw_frame, r_data);
-                                    view(&app, &frame);
-                                    let (r_data, raw_frame) = frame.finish();
-                                    render_data = Some(r_data);
-                                    Some(raw_frame.finish().finish())
-                                }
-                                View::WithModel(view) => {
-                                    let r_data = render_data.take().expect("missing `render_data`");
-                                    let frame = Frame::new_empty(raw_frame, r_data);
-                                    view(&app, &model, &frame);
-                                    let (r_data, raw_frame) = frame.finish();
-                                    render_data = Some(r_data);
-                                    Some(raw_frame.finish().finish())
-                                }
-                            },
-                        };
-                    }
+                            None => None,
+                        }
+                    };
                 }
 
                 // Replace the render data and swap chain.
