@@ -3,12 +3,14 @@
 //! This module re-exports the entire `wgpu` crate along with all of its documentation while also
 //! adding some additional helper items.
 
+mod sampler_builder;
 mod texture_format_converter;
 
 // Re-export all of `wgpu` along with its documentation.
 #[doc(inline)]
 pub use wgpu::*;
 
+pub use self::sampler_builder::SamplerBuilder;
 pub use self::texture_format_converter::TextureFormatConverter;
 
 /// The default set of options used to request a `wgpu::Adapter` when creating windows.
