@@ -4,13 +4,108 @@
 //! adding some additional helper items.
 
 mod sampler_builder;
+mod texture;
 mod texture_format_converter;
 
 // Re-export all of `wgpu` along with its documentation.
+//
+// We do this manually rather than a glob-re-export in order to rename `Texture` to `TextureHandle`
+// and have it show up in the documentation properly.
 #[doc(inline)]
-pub use wgpu::*;
-
+pub use wgpu::{
+    Adapter,
+    AdapterInfo,
+    BackendBit,
+    BindGroup,
+    BindGroupDescriptor,
+    BindGroupLayout,
+    BindGroupLayoutBinding,
+    BindGroupLayoutDescriptor,
+    Binding,
+    BlendDescriptor,
+    Buffer,
+    BufferAsyncMapping,
+    BufferCopyView,
+    BufferDescriptor,
+    BufferUsage,
+    Color,
+    ColorStateDescriptor,
+    ColorWrite,
+    CommandBuffer,
+    CommandBufferDescriptor,
+    CommandEncoder,
+    CommandEncoderDescriptor,
+    ComputePass,
+    ComputePipeline,
+    ComputePipelineDescriptor,
+    CreateBufferMapped,
+    DepthStencilStateDescriptor,
+    Device,
+    DeviceDescriptor,
+    Extensions,
+    Extent3d,
+    Limits,
+    Origin3d,
+    PipelineLayout,
+    PipelineLayoutDescriptor,
+    ProgrammableStageDescriptor,
+    Queue,
+    RasterizationStateDescriptor,
+    RenderPass,
+    RenderPassColorAttachmentDescriptor,
+    RenderPassDepthStencilAttachmentDescriptor,
+    RenderPassDescriptor,
+    RenderPipeline,
+    RenderPipelineDescriptor,
+    RequestAdapterOptions,
+    Sampler,
+    SamplerDescriptor,
+    ShaderModule,
+    ShaderModuleDescriptor,
+    ShaderStage,
+    StencilStateFaceDescriptor,
+    Surface,
+    SwapChain,
+    SwapChainDescriptor,
+    SwapChainOutput,
+    Texture as TextureHandle,
+    TextureCopyView,
+    TextureDescriptor,
+    TextureUsage,
+    TextureView,
+    TextureViewDescriptor,
+    VertexAttributeDescriptor,
+    VertexBufferDescriptor,
+    AddressMode,
+    BindingResource,
+    BindingType,
+    BlendFactor,
+    BlendOperation,
+    BufferMapAsyncStatus,
+    CompareFunction,
+    CullMode,
+    FilterMode,
+    FrontFace,
+    IndexFormat,
+    InputStepMode,
+    LoadOp,
+    PowerPreference,
+    PresentMode,
+    PrimitiveTopology,
+    StencilOperation,
+    StoreOp,
+    TextureAspect,
+    TextureDimension,
+    TextureFormat,
+    TextureViewDimension,
+    VertexFormat,
+    read_spirv,
+    BufferAddress,
+    BufferMapAsyncResult,
+    ShaderLocation,
+};
 pub use self::sampler_builder::SamplerBuilder;
+pub use self::texture::{Texture, Builder as TextureBuilder};
 pub use self::texture_format_converter::TextureFormatConverter;
 
 /// The default set of options used to request a `wgpu::Adapter` when creating windows.
@@ -23,6 +118,29 @@ pub const DEFAULT_ADAPTER_REQUEST_OPTIONS: RequestAdapterOptions = RequestAdapte
 pub const DEFAULT_EXTENSIONS: Extensions = Extensions {
     anisotropic_filtering: true,
 };
+
+/// Adds a simple render pass command to the given encoder that simply clears the given texture
+/// with the given colour.
+///
+/// The given `texture` must have `TextureUsage::OUTPUT_ATTACHMENT` enabled.
+pub fn clear_texture(
+    texture: &wgpu::TextureView,
+    clear_color: wgpu::Color,
+    encoder: &mut wgpu::CommandEncoder,
+) {
+    let color_attachment = wgpu::RenderPassColorAttachmentDescriptor {
+        attachment: texture,
+        resolve_target: None,
+        load_op: wgpu::LoadOp::Clear,
+        store_op: wgpu::StoreOp::Store,
+        clear_color,
+    };
+    let render_pass_desc = wgpu::RenderPassDescriptor {
+        color_attachments: &[color_attachment],
+        depth_stencil_attachment: None,
+    };
+    let _render_pass = encoder.begin_render_pass(&render_pass_desc);
+}
 
 /// The default device descriptor used to instantiate a logical device when creating windows.
 pub fn default_device_descriptor() -> DeviceDescriptor {
@@ -50,29 +168,6 @@ pub fn resolve_texture(
         load_op: wgpu::LoadOp::Load,
         store_op: wgpu::StoreOp::Store,
         clear_color: wgpu::Color::TRANSPARENT,
-    };
-    let render_pass_desc = wgpu::RenderPassDescriptor {
-        color_attachments: &[color_attachment],
-        depth_stencil_attachment: None,
-    };
-    let _render_pass = encoder.begin_render_pass(&render_pass_desc);
-}
-
-/// Adds a simple render pass command to the given encoder that simply clears the given texture
-/// with the given colour.
-///
-/// The given `texture` must have `TextureUsage::OUTPUT_ATTACHMENT` enabled.
-pub fn clear_texture(
-    texture: &wgpu::TextureView,
-    clear_color: wgpu::Color,
-    encoder: &mut wgpu::CommandEncoder,
-) {
-    let color_attachment = wgpu::RenderPassColorAttachmentDescriptor {
-        attachment: texture,
-        resolve_target: None,
-        load_op: wgpu::LoadOp::Clear,
-        store_op: wgpu::StoreOp::Store,
-        clear_color,
     };
     let render_pass_desc = wgpu::RenderPassDescriptor {
         color_attachments: &[color_attachment],

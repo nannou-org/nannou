@@ -93,6 +93,11 @@ impl SamplerBuilder {
     pub fn build(&self, device: &wgpu::Device) -> wgpu::Sampler {
         device.create_sampler(&self.descriptor)
     }
+
+    /// Consume the builder and produce the inner `SamplerDescriptor`.
+    pub fn into_descriptor(self) -> wgpu::SamplerDescriptor {
+        self.into()
+    }
 }
 
 impl Default for SamplerBuilder {

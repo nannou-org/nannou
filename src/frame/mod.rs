@@ -207,44 +207,21 @@ fn create_lin_srgba_msaa_texture(
     swap_chain_dims: [u32; 2],
     msaa_samples: u32,
 ) -> wgpu::TextureView {
-    let [width, height] = swap_chain_dims;
-    let msaa_texture_extent = wgpu::Extent3d {
-        width,
-        height,
-        depth: 1,
-    };
-    let msaa_texture_descriptor = wgpu::TextureDescriptor {
-        size: msaa_texture_extent,
-        array_layer_count: 1,
-        mip_level_count: 1,
-        sample_count: msaa_samples,
-        dimension: wgpu::TextureDimension::D2,
-        format: Frame::TEXTURE_FORMAT,
-        usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-    };
-    device
-        .create_texture(&msaa_texture_descriptor)
+    wgpu::TextureBuilder::new()
+        .size(swap_chain_dims)
+        .sample_count(msaa_samples)
+        .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT)
+        .format(Frame::TEXTURE_FORMAT)
+        .build(device)
         .create_default_view()
 }
 
 fn create_lin_srgba_texture(device: &wgpu::Device, swap_chain_dims: [u32; 2]) -> wgpu::TextureView {
-    let [width, height] = swap_chain_dims;
-    let texture_extent = wgpu::Extent3d {
-        width,
-        height,
-        depth: 1,
-    };
-    let texture_descriptor = wgpu::TextureDescriptor {
-        size: texture_extent,
-        array_layer_count: 1,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: Frame::TEXTURE_FORMAT,
-        usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::SAMPLED,
-    };
-    device
-        .create_texture(&texture_descriptor)
+    wgpu::TextureBuilder::new()
+        .size(swap_chain_dims)
+        .format(Frame::TEXTURE_FORMAT)
+        .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::SAMPLED)
+        .build(device)
         .create_default_view()
 }
 
