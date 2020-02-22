@@ -815,6 +815,9 @@ impl<'app> Builder<'app> {
     }
 
     // Window builder methods.
+    //
+    // NOTE: On new versions of winit, we should check whether or not new `WindowBuilder` methods
+    // have been added that we should expose.
 
     /// Requests the window to be a specific size in points.
     ///
@@ -840,6 +843,11 @@ impl<'app> Builder<'app> {
     /// title bar.
     pub fn size_pixels(self, width: u32, height: u32) -> Self {
         self.map_window(|w| w.with_inner_size(winit::dpi::PhysicalSize { width, height }))
+    }
+
+    /// Whether or not the window should be resizable after creation.
+    pub fn resizble(self, resizable: bool) -> Self {
+        self.map_window(|w| w.with_resizable(resizable))
     }
 
     /// Requests a specific title for the window.
@@ -878,47 +886,51 @@ impl<'app> Builder<'app> {
     pub fn decorations(self, decorations: bool) -> Self {
         self.map_window(|w| w.with_decorations(decorations))
     }
+
+    /// Sets whether or not the window will always be on top of other windows.
+    pub fn always_on_top(self, always_on_top: bool) -> Self {
+        self.map_window(|w| w.with_always_on_top(always_on_top))
+    }
+
+    /// Sets the window icon.
+    pub fn window_icon(self, window_icon: Option<winit::window::Icon>) -> Self {
+        self.map_window(|w| w.with_window_icon(window_icon))
+    }
 }
 
 impl Window {
     // `winit::window::Window` methods.
+    //
+    // NOTE: On new versions of winit, we should check whether or not new `Window` methods have
+    // been added that we should expose. Most of the following method docs are copied from the
+    // winit documentation. It would be nice if we could automate this inlining somehow.
 
-    /// Modifies the title of the window.
-    ///
-    /// This is a no-op if the window has already been closed.
-    pub fn set_title(&self, title: &str) {
-        self.window.set_title(title);
+    /// A unique identifier associated with this window.
+    pub fn id(&self) -> Id {
+        self.window.id()
     }
 
-    /// Shows the window if it was hidden.
+    /// Returns the scale factor that can be used to map logical pixels to physical pixels and vice
+    /// versa.
+    ///
+    /// Throughout nannou, you will see "logical pixels" referred to as "points", and "physical
+    /// pixels" referred to as "pixels".
+    ///
+    /// This is typically `1.0` for a normal display, `2.0` for a retina display and higher on more
+    /// modern displays.
+    ///
+    /// You can read more about what this scale factor means within winit's [dpi module
+    /// documentation](https://docs.rs/winit/latest/winit/dpi/index.html).
     ///
     /// ## Platform-specific
     ///
-    /// Has no effect on Android.
-    #[deprecated(note = "please use `set_visible(true)` instead")]
-    pub fn show(&self) {
-        self.set_visible(true)
-    }
-
-    /// Hides the window if it was visible.
-    ///
-    /// ## Platform-specific
-    ///
-    /// Has no effect on Android.
-    #[deprecated(note = "please use `set_visible(false)` instead")]
-    pub fn hide(&self) {
-        self.set_visible(false)
-    }
-
-    /// Set the visibility of the window.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - Android: Has no effect.
-    /// - iOS: Can only be called on the main thread.
-    /// - Web: Has no effect.
-    pub fn set_visible(&self, visible: bool) {
-        self.window.set_visible(visible)
+    /// - **X11:** This respects Xft.dpi, and can be overridden using the `WINIT_X11_SCALE_FACTOR`
+    ///   environment variable.
+    /// - **Android:** Always returns 1.0.
+    /// - **iOS:** Can only be called on the main thread. Returns the underlying `UiView`'s
+    ///   `contentScaleFactor`.
+    pub fn scale_factor(&self) -> geom::scalar::Default {
+        self.window.scale_factor() as _
     }
 
     /// The position of the top-left hand corner of the window relative to the top-left hand corner
@@ -930,13 +942,26 @@ impl Window {
     ///
     /// The coordinates can be negative if the top-left hand corner of the window is outside of the
     /// visible screen region.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Can only be called on the main thread. Returns the top left coordinates of the
+    /// window in the screen space coordinate system.
+    /// - **Web:** Returns the top-left coordinates relative to the viewport.
     pub fn outer_position_pixels(&self) -> Result<(i32, i32), winit::error::NotSupportedError> {
         self.window.outer_position().map(Into::into)
     }
 
     /// Modifies the position of the window.
     ///
-    /// See `position` for more information about the returned coordinates.
+    /// See `outer_position_pixels` for more information about the returned coordinates. This
+    /// automatically un-maximizes the window if it is maximized.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Can only be called on the main thread. Sets the top left coordinates of the
+    ///   window in the screen space coordinate system.
+    /// - **Web:** Sets the top-left coordinates relative to the viewport.
     pub fn set_outer_position_pixels(&self, x: i32, y: i32) {
         self.window
             .set_outer_position(winit::dpi::PhysicalPosition { x, y })
@@ -944,17 +969,14 @@ impl Window {
 
     /// The size in pixels of the client area of the window.
     ///
-    /// The client area is the content of the window, excluding the title bar and borders. These
-    /// are the dimensions of the frame buffer, and the dimensions that you should use when you
-    /// call glViewport.
+    /// The client area is the content of the window, excluding the title bar and borders.
     pub fn inner_size_pixels(&self) -> (u32, u32) {
         self.window.inner_size().into()
     }
 
     /// The size in points of the client area of the window.
     ///
-    /// The client area is the content of the window, excluding the title bar and borders. To get
-    /// the dimensions of the frame buffer when calling `glViewport`, multiply with hidpi factor.
+    /// The client area is the content of the window, excluding the title bar and borders.
     ///
     /// This is the same as dividing the result  of `inner_size_pixels()` by `scale_factor()`.
     pub fn inner_size_points(&self) -> (geom::scalar::Default, geom::scalar::Default) {
@@ -962,6 +984,22 @@ impl Window {
             .inner_size()
             .to_logical::<f32>(self.window.scale_factor())
             .into()
+    }
+
+    /// Modifies the inner size of the window.
+    ///
+    /// See the `inner_size` methods for more informations about the values.
+    pub fn set_inner_size_pixels(&self, width: u32, height: u32) {
+        self.window
+            .set_inner_size(winit::dpi::PhysicalSize { width, height })
+    }
+
+    /// Modifies the inner size of the window using point values.
+    ///
+    /// See the `inner_size` methods for more informations about the values.
+    pub fn set_inner_size_points(&self, width: f32, height: f32) {
+        self.window
+            .set_inner_size(winit::dpi::LogicalSize { width, height })
     }
 
     /// The size of the window in pixels.
@@ -985,74 +1023,47 @@ impl Window {
             .into()
     }
 
-    /// Modifies the inner size of the window.
+    /// Sets a minimum size for the window.
+    pub fn set_min_inner_size_points(&self, size: Option<(f32, f32)>) {
+        let size = size.map(|(width, height)| winit::dpi::LogicalSize { width, height });
+        self.window.set_min_inner_size(size)
+    }
+
+    /// Sets a maximum size for the window.
+    pub fn set_max_inner_size_points(&self, size: Option<(f32, f32)>) {
+        let size = size.map(|(width, height)| winit::dpi::LogicalSize { width, height });
+        self.window.set_max_inner_size(size)
+    }
+
+    /// Modifies the title of the window.
     ///
-    /// See the `inner_size` methods for more informations about the values.
-    pub fn set_inner_size_pixels(&self, width: u32, height: u32) {
-        self.window
-            .set_inner_size(winit::dpi::PhysicalSize { width, height })
+    /// This is a no-op if the window has already been closed.
+    pub fn set_title(&self, title: &str) {
+        self.window.set_title(title);
     }
 
-    /// Modifies the inner size of the window using point values.
-    ///
-    /// Internally, the given width and height are multiplied by the `scale_factor` to get the
-    /// values in pixels before calling `set_inner_size_pixels` internally.
-    pub fn set_inner_size_points(&self, width: f32, height: f32) {
-        self.window
-            .set_inner_size(winit::dpi::LogicalSize { width, height })
-    }
-
-    /// The ratio between the backing framebuffer resolution and the window size in screen pixels.
-    ///
-    /// This is typically `1.0` for a normal display, `2.0` for a retina display and higher on more
-    /// modern displays.
-    pub fn scale_factor(&self) -> geom::scalar::Default {
-        self.window.scale_factor() as _
-    }
-
-    /// Changes the position of the cursor in logical window coordinates.
-    pub fn set_cursor_position_points(
-        &self,
-        x: f32,
-        y: f32,
-    ) -> Result<(), winit::error::ExternalError> {
-        self.window
-            .set_cursor_position(winit::dpi::LogicalPosition { x, y })
-    }
-
-    /// Modifies the mouse cursor of the window.
+    /// Set the visibility of the window.
     ///
     /// ## Platform-specific
     ///
-    /// Has no effect on Android.
-    pub fn set_cursor_icon(&self, state: winit::window::CursorIcon) {
-        self.window.set_cursor_icon(state);
+    /// - Android: Has no effect.
+    /// - iOS: Can only be called on the main thread.
+    /// - Web: Has no effect.
+    pub fn set_visible(&self, visible: bool) {
+        self.window.set_visible(visible)
     }
 
-    /// Grabs the cursor, preventing it from leaving the window.
+    /// Sets whether the window is resizable or not.
     ///
-    /// ## Platform-specific
-    ///
-    /// On macOS, this presently merely locks the cursor in a fixed location, which looks visually
-    /// awkward.
-    ///
-    /// This has no effect on Android or iOS.
-    pub fn set_cursor_grab(&self, grab: bool) -> Result<(), winit::error::ExternalError> {
-        self.window.set_cursor_grab(grab)
+    /// Note that making the window unresizable doesn't exempt you from handling **Resized**, as
+    /// that event can still be triggered by DPI scaling, entering fullscreen mode, etc.
+    pub fn set_resizable(&self, resizable: bool) {
+        self.window.set_resizable(resizable)
     }
 
-    /// Hides the cursor with `false`, making it invisible but still usable.
-    ///
-    /// ## Platform-specific
-    ///
-    /// On Windows and X11, the cursor is only hidden within the confines of the window.
-    ///
-    /// On macOS, the cursor is hidden as long as the window has input focus, even if the cursor is
-    /// outside of the window.
-    ///
-    /// This has no effect on Android or iOS.
-    pub fn set_cursor_visible(&self, hide: bool) {
-        self.window.set_cursor_visible(hide)
+    /// Sets the window to minimized or back.
+    pub fn set_minimized(&self, minimized: bool) {
+        self.window.set_minimized(minimized)
     }
 
     /// Sets the window to maximized or back.
@@ -1084,14 +1095,114 @@ impl Window {
         self.window.set_fullscreen(monitor)
     }
 
+    /// Gets the window's current fullscreen state.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Can only be called on the main thread.
+    pub fn fullscreen(&self) -> Option<winit::window::Fullscreen> {
+        self.window.fullscreen()
+    }
+
+    /// Turn window decorations on or off.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Can only be called on the main thread. Controls whether the status bar is hidden
+    ///   via `setPrefersStatusBarHidden`.
+    /// - **Web:** Has no effect.
+    pub fn set_decorations(&self, decorations: bool) {
+        self.window.set_decorations(decorations)
+    }
+
+    /// Change whether or not the window will always be on top of other windows.
+    pub fn set_always_on_top(&self, always_on_top: bool) {
+        self.window.set_always_on_top(always_on_top)
+    }
+
+    /// Sets the window icon. On Windows and X11, this is typically the small icon in the top-left
+    /// corner of the titlebar.
+    ///
+    /// ## Platform-specific
+    ///
+    /// This only has effect on Windows and X11.
+    ///
+    /// On Windows, this sets ICON_SMALL. The base size for a window icon is 16x16, but it's
+    /// recommended to account for screen scaling and pick a multiple of that, i.e. 32x32.
+    ///
+    /// X11 has no universal guidelines for icon sizes, so you're at the whims of the WM. That
+    /// said, it's usually in the same ballpark as on Windows.
+    pub fn set_window_icon(&self, window_icon: Option<winit::window::Icon>) {
+        self.window.set_window_icon(window_icon)
+    }
+
+    /// Sets the location of IME candidate box in client area coordinates relative to the top left.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Has no effect.
+    /// - **Web:** Has no effect.
+    pub fn set_ime_position_points(&self, x: f32, y: f32) {
+        self.window.set_ime_position(winit::dpi::LogicalPosition { x, y })
+    }
+
+    /// Modifies the mouse cursor of the window.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Has no effect.
+    /// - **Android:** Has no effect.
+    pub fn set_cursor_icon(&self, state: winit::window::CursorIcon) {
+        self.window.set_cursor_icon(state);
+    }
+
+    /// Changes the position of the cursor in logical window coordinates.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Always returns an `Err`.
+    /// - **Web:** Has no effect.
+    pub fn set_cursor_position_points(
+        &self,
+        x: f32,
+        y: f32,
+    ) -> Result<(), winit::error::ExternalError> {
+        self.window.set_cursor_position(winit::dpi::LogicalPosition { x, y })
+    }
+
+    /// Grabs the cursor, preventing it from leaving the window.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **macOS:** Locks the cursor in a fixed location.
+    /// - **Wayland:** Locks the cursor in a fixed location.
+    /// - **Android:** Has no effect.
+    /// - **iOS:** Always returns an Err.
+    /// - **Web:** Has no effect.
+    pub fn set_cursor_grab(&self, grab: bool) -> Result<(), winit::error::ExternalError> {
+        self.window.set_cursor_grab(grab)
+    }
+
+    /// Set the cursor's visibility.
+    ///
+    /// If `false`, hides the cursor. If `true`, shows the cursor.
+    ///
+    /// ## Platform-specific
+    ///
+    /// On **Windows**, **X11** and **Wayland**, the cursor is only hidden within the confines of
+    /// the window.
+    ///
+    /// On **macOS**, the cursor is hidden as long as the window has input focus, even if the
+    /// cursor is outside of the window.
+    ///
+    /// This has no effect on **Android** or **iOS**.
+    pub fn set_cursor_visible(&self, visible: bool) {
+        self.window.set_cursor_visible(visible)
+    }
+
     /// The current monitor that the window is on or the primary monitor if nothing matches.
     pub fn current_monitor(&self) -> winit::monitor::MonitorHandle {
         self.window.current_monitor()
-    }
-
-    /// A unique identifier associated with this window.
-    pub fn id(&self) -> Id {
-        self.window.id()
     }
 
     // Access to wgpu API.
@@ -1158,17 +1269,8 @@ impl Window {
     }
 
     /// Attempts to determine whether or not the window is currently fullscreen.
-    ///
-    /// TODO: This currently relies on comparing `outer_size_pixels` to the dimensions of the
-    /// `current_monitor`, which may not be exactly accurate on some platforms or even conceptually
-    /// correct in the case that a title bar is included or something. This should probably be a
-    /// method upstream within the `winit` crate itself. Alternatively we could attempt to manually
-    /// track whether or not the window is fullscreen ourselves, however this could get quite
-    /// complicated quite quickly.
     pub fn is_fullscreen(&self) -> bool {
-        let (w, h) = self.outer_size_pixels();
-        let (mw, mh): (u32, u32) = self.current_monitor().size().into();
-        w == mw && h == mh
+        self.fullscreen().is_some()
     }
 
     /// The number of times `view` has been called with a `Frame` for this window.
