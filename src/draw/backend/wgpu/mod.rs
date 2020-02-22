@@ -199,7 +199,6 @@ impl Renderer {
             depth_stencil_attachment: None,
         };
 
-
         // Create the vertex and index buffers.
         let [img_w, img_h] = attachment_dims;
         let map_vertex = |v| Vertex::from_mesh_vertex(v, img_w as _, img_h as _, scale_factor);
@@ -213,7 +212,6 @@ impl Renderer {
         let index_buffer = device
             .create_buffer_mapped(indices.len(), wgpu::BufferUsage::INDEX)
             .fill_from_slice(&indices[..]);
-
 
         let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
         render_pass.set_pipeline(render_pipeline);

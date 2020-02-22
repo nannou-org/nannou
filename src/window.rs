@@ -663,11 +663,15 @@ impl<'app> Builder<'app> {
                     .map(|fullscreen| match fullscreen {
                         winit::window::Fullscreen::Exclusive(video_mode) => {
                             let monitor = video_mode.monitor();
-                            video_mode.size().to_logical::<f32>(monitor.scale_factor()).into()
+                            video_mode
+                                .size()
+                                .to_logical::<f32>(monitor.scale_factor())
+                                .into()
                         }
-                        winit::window::Fullscreen::Borderless(monitor) => {
-                            monitor.size().to_logical::<f32>(monitor.scale_factor()).into()
-                        }
+                        winit::window::Fullscreen::Borderless(monitor) => monitor
+                            .size()
+                            .to_logical::<f32>(monitor.scale_factor())
+                            .into(),
                     })
             })
             .unwrap_or_else(|| {
@@ -1141,8 +1145,10 @@ impl Window {
         let [width, height] = size_px;
         self.swap_chain.descriptor.width = width;
         self.swap_chain.descriptor.height = height;
-        self.swap_chain.swap_chain =
-            Some(self.swap_chain_device().create_swap_chain(&self.surface, &self.swap_chain.descriptor));
+        self.swap_chain.swap_chain = Some(
+            self.swap_chain_device()
+                .create_swap_chain(&self.surface, &self.swap_chain.descriptor),
+        );
         self.frame_render_data = Some(frame::RenderData::new(
             self.swap_chain_device(),
             size_px,

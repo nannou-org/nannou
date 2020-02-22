@@ -259,7 +259,12 @@ impl<'a> Builder<'a> {
         let renderer = match glyph_cache_dimensions {
             Some((w, h)) => {
                 let dims = [w as _, h as _];
-                conrod_wgpu::Renderer::with_glyph_cache_dimensions(device, msaa_samples, texture_format, dims)
+                conrod_wgpu::Renderer::with_glyph_cache_dimensions(
+                    device,
+                    msaa_samples,
+                    texture_format,
+                    dims,
+                )
             }
             None => conrod_wgpu::Renderer::new(device, msaa_samples, texture_format),
         };
@@ -393,7 +398,9 @@ impl Ui {
         let primitives = self.ui.draw();
         let color_attachment_desc = frame.color_attachment_descriptor();
         let mut command_encoder = frame.command_encoder();
-        let window = app.window(self.window_id).ok_or(DrawToFrameError::InvalidWindow)?;
+        let window = app
+            .window(self.window_id)
+            .ok_or(DrawToFrameError::InvalidWindow)?;
         encode_render_pass(
             self,
             &*window,
@@ -422,7 +429,9 @@ impl Ui {
         match self.ui.draw_if_changed() {
             None => Ok(false),
             Some(primitives) => {
-                let window = app.window(self.window_id).ok_or(DrawToFrameError::InvalidWindow)?;
+                let window = app
+                    .window(self.window_id)
+                    .ok_or(DrawToFrameError::InvalidWindow)?;
                 let color_attachment_desc = frame.color_attachment_descriptor();
                 let mut command_encoder = frame.command_encoder();
                 encode_render_pass(
@@ -447,7 +456,11 @@ pub fn encode_render_pass(
     encoder: &mut wgpu::CommandEncoder,
 ) -> Result<(), DrawToFrameError> {
     // Feed the renderer primitives and update glyph cache texture if necessary.
-    let mut renderer = ui.renderer.lock().ok().ok_or(DrawToFrameError::RendererPoisoned)?;
+    let mut renderer = ui
+        .renderer
+        .lock()
+        .ok()
+        .ok_or(DrawToFrameError::RendererPoisoned)?;
     let device = window.swap_chain_device();
     let scale_factor = window.scale_factor();
     let (win_w, win_h) = window.inner_size_pixels();
@@ -498,7 +511,10 @@ mod conrod_winit_conv {
 /// Convert the given window event to a UI Input.
 ///
 /// Returns `None` if there's no associated UI Input for the given event.
-pub fn winit_window_event_to_input(event: &winit::event::WindowEvent, window: &Window) -> Option<Input> {
+pub fn winit_window_event_to_input(
+    event: &winit::event::WindowEvent,
+    window: &Window,
+) -> Option<Input> {
     conrod_winit_conv::convert_window_event(event, &window.window)
 }
 
@@ -538,7 +554,9 @@ impl StdError for DrawToFrameError {
 impl fmt::Display for BuildError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            BuildError::InvalidWindow => write!(f, "no open window associated with the given `window_id`"),
+            BuildError::InvalidWindow => {
+                write!(f, "no open window associated with the given `window_id`")
+            }
             BuildError::FailedToLoadFont(ref err) => fmt::Display::fmt(err, f),
         }
     }

@@ -66,16 +66,25 @@ impl AdapterMap {
     /// handle to this adapter. Otherwise, requests a new adapter via `Adapter::request`.
     ///
     /// Returns `None` if there are no available adapters that meet the specified options.
-    pub fn get_or_request(&self, options: wgpu::RequestAdapterOptions) -> Option<Arc<ActiveAdapter>> {
+    pub fn get_or_request(
+        &self,
+        options: wgpu::RequestAdapterOptions,
+    ) -> Option<Arc<ActiveAdapter>> {
         let key = AdapterMapKey { options };
-        let mut map = self.map.lock().expect("failed to acquire `AdapterMap` lock");
+        let mut map = self
+            .map
+            .lock()
+            .expect("failed to acquire `AdapterMap` lock");
         if let Some(adapter) = map.get(&key) {
             return Some(adapter.clone());
         }
         if let Some(adapter) = wgpu::Adapter::request(&key.options) {
             let device_map = Default::default();
-            let adapter = Arc::new(ActiveAdapter { adapter, device_map });
-            return Some(map.entry(key).or_insert(adapter).clone())
+            let adapter = Arc::new(ActiveAdapter {
+                adapter,
+                device_map,
+            });
+            return Some(map.entry(key).or_insert(adapter).clone());
         }
         None
     }
@@ -90,9 +99,15 @@ impl AdapterMap {
     pub fn request(&self, options: wgpu::RequestAdapterOptions) -> Option<Arc<ActiveAdapter>> {
         let adapter = wgpu::Adapter::request(&options)?;
         let device_map = Default::default();
-        let adapter = Arc::new(ActiveAdapter { adapter, device_map });
+        let adapter = Arc::new(ActiveAdapter {
+            adapter,
+            device_map,
+        });
         let key = AdapterMapKey { options };
-        let mut map = self.map.lock().expect("failed to acquire `AdapterMap` lock");
+        let mut map = self
+            .map
+            .lock()
+            .expect("failed to acquire `AdapterMap` lock");
         map.insert(key, adapter.clone());
         Some(adapter)
     }
@@ -101,7 +116,10 @@ impl AdapterMap {
     ///
     /// First clears all devices that no longer have any external references.
     pub(crate) fn clear_inactive_adapters_and_devices(&self) {
-        let mut map = self.map.lock().expect("failed to acquire `AdapterMap` lock");
+        let mut map = self
+            .map
+            .lock()
+            .expect("failed to acquire `AdapterMap` lock");
         map.retain(|_, adapter| {
             adapter.clear_inactive_devices();
             adapter.device_count() > 0
@@ -114,9 +132,16 @@ impl ActiveAdapter {
     ///
     /// First checks for a connected device that matches the given descriptor. If one exists, it is
     /// returned. Otherwise, a new device connection is requested via `Adapter::request_device`.
-    pub fn get_or_request_device(&self, descriptor: wgpu::DeviceDescriptor) -> Arc<DeviceQueuePair> {
+    pub fn get_or_request_device(
+        &self,
+        descriptor: wgpu::DeviceDescriptor,
+    ) -> Arc<DeviceQueuePair> {
         let key = DeviceMapKey { descriptor };
-        let mut map = self.device_map.map.lock().expect("failed to acquire `AdapterMap` lock");
+        let mut map = self
+            .device_map
+            .map
+            .lock()
+            .expect("failed to acquire `AdapterMap` lock");
         if let Some(device_ref) = map.get(&key) {
             if let Some(device) = device_ref.upgrade() {
                 return device;
@@ -139,20 +164,32 @@ impl ActiveAdapter {
         let queue = Mutex::new(queue);
         let device = Arc::new(DeviceQueuePair { device, queue });
         let key = DeviceMapKey { descriptor };
-        let mut map = self.device_map.map.lock().expect("failed to acquire `DeviceMap` lock");
+        let mut map = self
+            .device_map
+            .map
+            .lock()
+            .expect("failed to acquire `DeviceMap` lock");
         map.insert(key, Arc::downgrade(&device));
         device
     }
 
     /// A count of devices that are currently active.
     fn device_count(&self) -> usize {
-        let map = self.device_map.map.lock().expect("failed to acquire `DeviceMap` lock");
+        let map = self
+            .device_map
+            .map
+            .lock()
+            .expect("failed to acquire `DeviceMap` lock");
         map.len()
     }
 
     /// Clear all device queue pairs that have been dropped.
     fn clear_inactive_devices(&self) {
-        let mut map = self.device_map.map.lock().expect("failed to acquire `DeviceMap` lock");
+        let mut map = self
+            .device_map
+            .map
+            .lock()
+            .expect("failed to acquire `DeviceMap` lock");
         map.retain(|_, pair| pair.strong_count() > 0);
     }
 }
@@ -205,8 +242,7 @@ fn eq_request_adapter_options(
     a: &wgpu::RequestAdapterOptions,
     b: &wgpu::RequestAdapterOptions,
 ) -> bool {
-    a.power_preference == b.power_preference
-        && a.backends == b.backends
+    a.power_preference == b.power_preference && a.backends == b.backends
 }
 
 // NOTE: This should be updated as fields are added to the `wgpu::DeviceDescriptor` type.

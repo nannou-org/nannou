@@ -800,11 +800,8 @@ impl App {
                 let device = window.swap_chain_device();
                 let msaa_samples = window.msaa_samples();
                 let target_format = crate::frame::Frame::TEXTURE_FORMAT;
-                let renderer = draw::backend::wgpu::Renderer::new(
-                    device,
-                    msaa_samples,
-                    target_format,
-                );
+                let renderer =
+                    draw::backend::wgpu::Renderer::new(device, msaa_samples, target_format);
                 RefCell::new(renderer)
             })
         });
@@ -1124,9 +1121,9 @@ fn run_loop<M, E>(
                         Some(window::View::WithModel(view)) => {
                             let r_data = render_data.take().expect("missing `render_data`");
                             let frame = Frame::new_empty(raw_frame, r_data);
-                            let view = view.to_fn_ptr::<M>().expect(
-                                "unexpected model argument given to window view function",
-                            );
+                            let view = view
+                                .to_fn_ptr::<M>()
+                                .expect("unexpected model argument given to window view function");
                             (*view)(&app, &model, &frame);
                             let (r_data, raw_frame) = frame.finish();
                             render_data = Some(r_data);
@@ -1157,7 +1154,7 @@ fn run_loop<M, E>(
                                 Some(raw_frame.finish().finish())
                             }
                             None => None,
-                        }
+                        },
                     };
                 }
 
@@ -1196,7 +1193,11 @@ fn run_loop<M, E>(
         }
 
         // We must re-build the swap chain if the window was resized.
-        if let winit::event::Event::WindowEvent { ref mut event, window_id } = event {
+        if let winit::event::Event::WindowEvent {
+            ref mut event,
+            window_id,
+        } = event
+        {
             match event {
                 winit::event::WindowEvent::Resized(new_inner_size) => {
                     let mut windows = app.windows.borrow_mut();
@@ -1205,8 +1206,10 @@ fn run_loop<M, E>(
                     }
                 }
 
-                winit::event::WindowEvent::ScaleFactorChanged { scale_factor, new_inner_size } => {
-                }
+                winit::event::WindowEvent::ScaleFactorChanged {
+                    scale_factor,
+                    new_inner_size,
+                } => {}
 
                 _ => (),
             }

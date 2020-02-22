@@ -184,7 +184,10 @@ impl Builder {
     pub fn build(self, device: &wgpu::Device) -> Texture {
         let texture = device.create_texture(&self.descriptor);
         let descriptor = self.into();
-        Texture { texture, descriptor }
+        Texture {
+            texture,
+            descriptor,
+        }
     }
 
     /// Consumes the builder and returns the resulting `wgpu::TextureDescriptor`.
