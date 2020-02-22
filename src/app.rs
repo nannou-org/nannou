@@ -596,6 +596,7 @@ impl App {
     pub const ASSETS_DIRECTORY_NAME: &'static str = "assets";
     pub const DEFAULT_EXIT_ON_ESCAPE: bool = true;
     pub const DEFAULT_FULLSCREEN_ON_SHORTCUT: bool = true;
+    pub const DEFAULT_DRAW_DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
     // Create a new `App`.
     pub(super) fn new(
@@ -798,10 +799,18 @@ impl App {
         let renderer = RefMut::map(renderers, |renderers| {
             renderers.entry(window_id).or_insert_with(|| {
                 let device = window.swap_chain_device();
+                let (w, h) = window.inner_size_pixels();
+                let frame_dims = [w, h];
                 let msaa_samples = window.msaa_samples();
                 let target_format = crate::frame::Frame::TEXTURE_FORMAT;
-                let renderer =
-                    draw::backend::wgpu::Renderer::new(device, msaa_samples, target_format);
+                let depth_format = Self::DEFAULT_DRAW_DEPTH_FORMAT;
+                let renderer = draw::backend::wgpu::Renderer::new(
+                    device,
+                    frame_dims,
+                    msaa_samples,
+                    target_format,
+                    depth_format,
+                );
                 RefCell::new(renderer)
             })
         });
@@ -877,7 +886,6 @@ impl<'a> Draw<'a> {
         );
         let scale_factor = window.scale_factor();
         let mut renderer = self.renderer.borrow_mut();
-        let depth_format = wgpu::TextureFormat::Depth32Float;
         let (w, h) = window.inner_size_pixels();
         let frame_dims = [w, h];
         renderer.render_to_frame(
@@ -885,7 +893,6 @@ impl<'a> Draw<'a> {
             &self.draw,
             scale_factor,
             frame_dims,
-            depth_format,
             frame,
         );
         Ok(())

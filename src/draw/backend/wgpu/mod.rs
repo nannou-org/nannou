@@ -1,6 +1,7 @@
 use crate::draw;
 use crate::frame::Frame;
 use crate::math::{BaseFloat, NumCast};
+use crate::wgpu;
 
 /// A helper type aimed at simplifying the rendering of conrod primitives via wgpu.
 #[derive(Debug)]
@@ -8,6 +9,8 @@ pub struct Renderer {
     _vs_mod: wgpu::ShaderModule,
     _fs_mod: wgpu::ShaderModule,
     render_pipeline: wgpu::RenderPipeline,
+    depth_texture: wgpu::Texture,
+    depth_texture_view: wgpu::TextureView,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
     vertices: Vec<Vertex>,
@@ -85,8 +88,10 @@ impl Renderer {
     /// Construct a new `Renderer`.
     pub fn new(
         device: &wgpu::Device,
+        output_attachment_size: [u32; 2],
         msaa_samples: u32,
-        swap_chain_format: wgpu::TextureFormat,
+        output_attachment_color_format: wgpu::TextureFormat,
+        depth_format: wgpu::TextureFormat,
     ) -> Self {
         // Load shader modules.
         let vs = include_bytes!("shaders/vert.spv");
@@ -98,6 +103,10 @@ impl Renderer {
             .expect("failed to read hard-coded SPIRV");
         let fs_mod = device.create_shader_module(&fs_spirv);
 
+        // Create the depth texture.
+        let depth_texture = create_depth_texture(device, output_attachment_size, depth_format);
+        let depth_texture_view = depth_texture.create_default_view();
+
         // Create the render pipeline.
         let bind_group_layout = bind_group_layout(device);
         let bind_group = bind_group(device, &bind_group_layout);
@@ -107,7 +116,8 @@ impl Renderer {
             &pipeline_layout,
             &vs_mod,
             &fs_mod,
-            swap_chain_format,
+            output_attachment_color_format,
+            depth_format,
             msaa_samples,
         );
         let vertices = vec![];
@@ -117,6 +127,8 @@ impl Renderer {
             _vs_mod: vs_mod,
             _fs_mod: fs_mod,
             render_pipeline,
+            depth_texture,
+            depth_texture_view,
             bind_group_layout,
             bind_group,
             vertices,
@@ -124,39 +136,12 @@ impl Renderer {
         }
     }
 
-    pub fn render_to_frame<S>(
-        &mut self,
-        device: &wgpu::Device,
-        draw: &draw::Draw<S>,
-        scale_factor: f32,
-        frame_dims: [u32; 2],
-        depth_format: wgpu::TextureFormat,
-        frame: &Frame,
-    ) where
-        S: BaseFloat,
-    {
-        let attachment = frame.texture();
-        let resolve_target = frame.resolve_target();
-        let mut command_encoder = frame.command_encoder();
-        self.encode_render_pass(
-            device,
-            draw,
-            scale_factor,
-            frame_dims,
-            depth_format,
-            attachment,
-            resolve_target,
-            &mut *command_encoder,
-        );
-    }
-
     pub fn encode_render_pass<S>(
         &mut self,
         device: &wgpu::Device,
         draw: &draw::Draw<S>,
         scale_factor: f32,
-        attachment_dims: [u32; 2],
-        depth_format: wgpu::TextureFormat,
+        output_attachment_size: [u32; 2],
         output_attachment: &wgpu::TextureView,
         resolve_target: Option<&wgpu::TextureView>,
         encoder: &mut wgpu::CommandEncoder,
@@ -167,9 +152,19 @@ impl Renderer {
             ref render_pipeline,
             ref mut vertices,
             ref mut indices,
+            ref mut depth_texture,
+            ref mut depth_texture_view,
             ref bind_group,
             ..
         } = *self;
+
+        // Resize the depth texture if the output attachment size has changed.
+        let depth_size = depth_texture.size();
+        if output_attachment_size != [depth_size.width, depth_size.height] {
+            let depth_format = depth_texture.format();
+            *depth_texture = create_depth_texture(device, output_attachment_size, depth_format);
+            *depth_texture_view = depth_texture.create_default_view();
+        }
 
         // Retrieve the clear values based on the bg color.
         let bg_color = draw.state.borrow().background_color;
@@ -191,16 +186,23 @@ impl Renderer {
             clear_color,
         };
 
-        // let depth_stencil_attachment_desc = wgpu::RenderPassDepthStencilAttachmentDescriptor {
-        // };
+        let depth_stencil_attachment_desc = wgpu::RenderPassDepthStencilAttachmentDescriptor {
+            attachment: &*depth_texture_view,
+            depth_load_op: wgpu::LoadOp::Clear,
+            depth_store_op: wgpu::StoreOp::Store,
+            clear_depth: 1.0,
+            stencil_load_op: wgpu::LoadOp::Clear,
+            stencil_store_op: wgpu::StoreOp::Store,
+            clear_stencil: 0,
+        };
 
         let render_pass_desc = wgpu::RenderPassDescriptor {
             color_attachments: &[color_attachment_desc],
-            depth_stencil_attachment: None,
+            depth_stencil_attachment: Some(depth_stencil_attachment_desc),
         };
 
         // Create the vertex and index buffers.
-        let [img_w, img_h] = attachment_dims;
+        let [img_w, img_h] = output_attachment_size;
         let map_vertex = |v| Vertex::from_mesh_vertex(v, img_w as _, img_h as _, scale_factor);
         vertices.clear();
         vertices.extend(draw.raw_vertices().map(map_vertex));
@@ -223,6 +225,42 @@ impl Renderer {
         let instance_range = 0..1;
         render_pass.draw_indexed(index_range, start_vertex, instance_range);
     }
+
+    pub fn render_to_frame<S>(
+        &mut self,
+        device: &wgpu::Device,
+        draw: &draw::Draw<S>,
+        scale_factor: f32,
+        frame_dims: [u32; 2],
+        frame: &Frame,
+    ) where
+        S: BaseFloat,
+    {
+        let attachment = frame.texture();
+        let resolve_target = frame.resolve_target();
+        let mut command_encoder = frame.command_encoder();
+        self.encode_render_pass(
+            device,
+            draw,
+            scale_factor,
+            frame_dims,
+            attachment,
+            resolve_target,
+            &mut *command_encoder,
+        );
+    }
+}
+
+fn create_depth_texture(
+    device: &wgpu::Device,
+    size: [u32; 2],
+    depth_format: wgpu::TextureFormat,
+) -> wgpu::Texture {
+    wgpu::TextureBuilder::new()
+        .size(size)
+        .format(depth_format)
+        .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT)
+        .build(device)
 }
 
 fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
@@ -275,12 +313,27 @@ fn vertex_attrs() -> [wgpu::VertexAttributeDescriptor; 3] {
     ]
 }
 
+fn depth_stencil_state_descriptor(
+    format: wgpu::TextureFormat,
+) -> wgpu::DepthStencilStateDescriptor {
+    wgpu::DepthStencilStateDescriptor {
+        format: format,
+        depth_write_enabled: true,
+        depth_compare: wgpu::CompareFunction::LessEqual,
+        stencil_front: wgpu::StencilStateFaceDescriptor::IGNORE,
+        stencil_back: wgpu::StencilStateFaceDescriptor::IGNORE,
+        stencil_read_mask: 0,
+        stencil_write_mask: 0,
+    }
+}
+
 fn render_pipeline(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,
     vs_mod: &wgpu::ShaderModule,
     fs_mod: &wgpu::ShaderModule,
     dst_format: wgpu::TextureFormat,
+    depth_format: wgpu::TextureFormat,
     msaa_samples: u32,
 ) -> wgpu::RenderPipeline {
     let vs_desc = wgpu::ProgrammableStageDescriptor {
@@ -318,6 +371,7 @@ fn render_pipeline(
         step_mode: wgpu::InputStepMode::Vertex,
         attributes: &vertex_attrs[..],
     };
+    let depth_stencil_state_desc = depth_stencil_state_descriptor(depth_format);
     let desc = wgpu::RenderPipelineDescriptor {
         layout,
         vertex_stage: vs_desc,
@@ -325,7 +379,7 @@ fn render_pipeline(
         rasterization_state: Some(raster_desc),
         primitive_topology: wgpu::PrimitiveTopology::TriangleList,
         color_states: &[color_state_desc],
-        depth_stencil_state: None,
+        depth_stencil_state: Some(depth_stencil_state_desc),
         index_format: wgpu::IndexFormat::Uint32,
         vertex_buffers: &[vertex_buffer_desc],
         sample_count: msaa_samples,
