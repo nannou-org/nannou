@@ -11,7 +11,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .dimensions(720, 720)
+        .size(720, 720)
         .view(view)
         .event(window_event)
         .build()

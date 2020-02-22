@@ -109,7 +109,7 @@ impl ParticleSystem {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .dimensions(640, 360)
+        .size(640, 360)
         .mouse_pressed(mouse_pressed)
         .view(view)
         .build()

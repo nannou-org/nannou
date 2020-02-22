@@ -140,7 +140,7 @@ impl Default for RgbProfile {
 fn model(app: &App) -> Model {
     // Create a window to receive keyboard events.
     app.new_window()
-        .dimensions(240, 620)
+        .size(240, 620)
         .key_pressed(key_pressed)
         .view(view)
         .build()

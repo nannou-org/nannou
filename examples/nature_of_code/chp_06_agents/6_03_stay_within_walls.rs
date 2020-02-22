@@ -91,7 +91,7 @@ impl Vehicle {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .dimensions(640, 360)
+        .size(640, 360)
         .view(view)
         .mouse_pressed(mouse_pressed)
         .build()

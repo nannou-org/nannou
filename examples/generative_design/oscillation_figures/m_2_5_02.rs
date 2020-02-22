@@ -57,12 +57,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app
-        .new_window()
-        .dimensions(800, 800)
-        .view(view)
-        .build()
-        .unwrap();
+    let _window = app.new_window().size(800, 800).view(view).build().unwrap();
 
     let lissajous_points = Vec::new();
 

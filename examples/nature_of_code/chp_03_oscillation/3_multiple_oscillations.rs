@@ -27,11 +27,7 @@ fn model(app: &App) -> Model {
     let a_velocity2 = 0.3;
     let amplitude2 = 10.0;
 
-    app.new_window()
-        .dimensions(640, 360)
-        .view(view)
-        .build()
-        .unwrap();
+    app.new_window().size(640, 360).view(view).build().unwrap();
     Model {
         angle1,
         a_velocity1,

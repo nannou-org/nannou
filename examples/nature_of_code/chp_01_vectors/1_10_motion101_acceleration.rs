@@ -59,12 +59,7 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app
-        .new_window()
-        .dimensions(640, 360)
-        .view(view)
-        .build()
-        .unwrap();
+    let _window = app.new_window().size(640, 360).view(view).build().unwrap();
     let mover = Mover::new(app.window_rect());
     Model { mover }
 }

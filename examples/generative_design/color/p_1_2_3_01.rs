@@ -51,7 +51,7 @@ fn model(app: &App) -> Model {
     let brightness_values = (0..tile_count_x).map(|_| random()).collect();
 
     app.new_window()
-        .dimensions(720, 720)
+        .size(720, 720)
         .key_pressed(key_pressed)
         .view(view)
         .build()

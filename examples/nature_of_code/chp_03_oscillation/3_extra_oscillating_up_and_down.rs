@@ -14,11 +14,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window()
-        .dimensions(400, 400)
-        .view(view)
-        .build()
-        .unwrap();
+    app.new_window().size(400, 400).view(view).build().unwrap();
     let angle = 0.0;
     Model { angle }
 }

@@ -21,8 +21,8 @@ fn model(app: &App) -> Model {
     println!("c = {}", c);
     println!("message = {}", message);
 
-    // Construct and define the size of our window using `.dimensions(width, height)`.
-    app.new_window().dimensions(640, 480).build().unwrap();
+    // Construct and define the size of our window using `.size(width, height)`.
+    app.new_window().size(640, 480).build().unwrap();
 
     Model
 }

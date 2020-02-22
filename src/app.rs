@@ -635,7 +635,9 @@ impl App {
     /// Returns the list of all the monitors available on the system.
     pub fn available_monitors(&self) -> Vec<winit::monitor::MonitorHandle> {
         match self.event_loop_window_target {
-            Some(EventLoopWindowTarget::Owned(ref event_loop)) => event_loop.available_monitors().collect(),
+            Some(EventLoopWindowTarget::Owned(ref event_loop)) => {
+                event_loop.available_monitors().collect()
+            }
             _ => {
                 let windows = self.windows.borrow();
                 match windows.values().next() {
@@ -653,12 +655,10 @@ impl App {
             _ => {
                 let windows = self.windows.borrow();
                 match windows.values().next() {
-                    None => {
-                        unimplemented!(
-                            "yet to implement a way to get `primary_monitor` if neither \
+                    None => unimplemented!(
+                        "yet to implement a way to get `primary_monitor` if neither \
                             event loop or window can be safely accessed"
-                        )
-                    },
+                    ),
                     Some(window) => window.window.primary_monitor(),
                 }
             }

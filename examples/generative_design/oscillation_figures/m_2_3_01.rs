@@ -46,7 +46,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .dimensions(1000, 400)
+        .size(1000, 400)
         .view(view)
         .key_pressed(key_pressed)
         .build()

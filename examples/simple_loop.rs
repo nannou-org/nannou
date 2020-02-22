@@ -18,7 +18,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .dimensions(1024, 1024)
+        .size(1024, 1024)
         .view(view)
         .build()
         .unwrap();

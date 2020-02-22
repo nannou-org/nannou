@@ -21,11 +21,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window()
-        .dimensions(750, 200)
-        .view(view)
-        .build()
-        .unwrap();
+    app.new_window().size(750, 200).view(view).build().unwrap();
 
     let x_spacing = 8.0;
     let w = app.window_rect().w() + 16.0; // Width of entire wave

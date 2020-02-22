@@ -116,7 +116,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let rect = Rect::from_w_h(400.0, 400.0);
     app.new_window()
-        .dimensions(rect.w() as u32, rect.h() as u32)
+        .size(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)
         .view(view)
         .build()

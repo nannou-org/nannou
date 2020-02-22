@@ -1143,7 +1143,8 @@ impl Window {
     /// - **iOS:** Has no effect.
     /// - **Web:** Has no effect.
     pub fn set_ime_position_points(&self, x: f32, y: f32) {
-        self.window.set_ime_position(winit::dpi::LogicalPosition { x, y })
+        self.window
+            .set_ime_position(winit::dpi::LogicalPosition { x, y })
     }
 
     /// Modifies the mouse cursor of the window.
@@ -1167,7 +1168,8 @@ impl Window {
         x: f32,
         y: f32,
     ) -> Result<(), winit::error::ExternalError> {
-        self.window.set_cursor_position(winit::dpi::LogicalPosition { x, y })
+        self.window
+            .set_cursor_position(winit::dpi::LogicalPosition { x, y })
     }
 
     /// Grabs the cursor, preventing it from leaving the window.

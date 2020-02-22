@@ -22,12 +22,7 @@ fn model(app: &App) -> Model {
     let x_speed = 2.5;
     let y_speed = 2.0;
 
-    let _window = app
-        .new_window()
-        .dimensions(800, 200)
-        .view(view)
-        .build()
-        .unwrap();
+    let _window = app.new_window().size(800, 200).view(view).build().unwrap();
     Model {
         x,
         y,

@@ -106,11 +106,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window()
-        .dimensions(640, 360)
-        .view(view)
-        .build()
-        .unwrap();
+    app.new_window().size(640, 360).view(view).build().unwrap();
 
     // Create an empty network
     let mut network = Network::new();

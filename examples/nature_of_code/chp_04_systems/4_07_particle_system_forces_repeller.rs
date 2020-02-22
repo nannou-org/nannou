@@ -156,11 +156,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window()
-        .dimensions(640, 360)
-        .view(view)
-        .build()
-        .unwrap();
+    app.new_window().size(640, 360).view(view).build().unwrap();
     let ps = ParticleSystem::new(pt2(0.0, app.window_rect().top() - 50.0));
     let repeller = Repeller::new(-20.0, 0.0);
     Model { ps, repeller }
