@@ -12,7 +12,7 @@ use crate::wgpu;
 use crate::App;
 use std::any::Any;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::{env, fmt};
 use winit::dpi::LogicalSize;
 
@@ -219,8 +219,7 @@ fn_any!(ClosedFn<M>, ClosedFnAny);
 pub struct Window {
     pub(crate) window: winit::window::Window,
     pub(crate) surface: wgpu::Surface,
-    pub(crate) device: wgpu::Device,
-    pub(crate) queue: wgpu::Queue,
+    pub(crate) device_queue_pair: Arc<wgpu::DeviceQueuePair>,
     msaa_samples: u32,
     pub(crate) swap_chain: WindowSwapChain,
     // Data for rendering a `Frame`'s intermediary image to a swap chain image.
@@ -724,15 +723,18 @@ impl<'app> Builder<'app> {
         // Request the adapter.
         let request_adapter_opts =
             request_adapter_opts.unwrap_or(wgpu::DEFAULT_ADAPTER_REQUEST_OPTIONS);
-        let adapter =
-            wgpu::Adapter::request(&request_adapter_opts).ok_or(BuildError::NoAvailableAdapter)?;
+        let adapter = app
+            .wgpu_adapters()
+            .get_or_request(request_adapter_opts)
+            .ok_or(BuildError::NoAvailableAdapter)?;
 
         // Instantiate the logical device.
         let device_desc = device_desc.unwrap_or_else(wgpu::default_device_descriptor);
-        let (device, queue) = adapter.request_device(&device_desc);
+        let device_queue_pair = adapter.get_or_request_device(device_desc);
 
         // Build the swapchain.
         let win_dims_px: [u32; 2] = window.inner_size().into();
+        let device = device_queue_pair.device();
         let (swap_chain, swap_chain_desc) =
             swap_chain_builder.build(&device, &surface, win_dims_px, &app.loop_mode());
 
@@ -764,8 +766,7 @@ impl<'app> Builder<'app> {
         let window = Window {
             window,
             surface,
-            device,
-            queue,
+            device_queue_pair,
             msaa_samples,
             swap_chain,
             frame_render_data,
@@ -1105,12 +1106,22 @@ impl Window {
     ///
     /// This is shorthand for `DeviceOwned::device(window.swap_chain())`.
     pub fn swap_chain_device(&self) -> &wgpu::Device {
-        &self.device
+        self.device_queue_pair.device()
     }
 
     /// The vulkan graphics queue on which the window swap chain work is run.
-    pub fn swap_chain_queue(&self) -> &wgpu::Queue {
-        &self.queue
+    ///
+    /// The queue is guarded by a `Mutex` in order to synchronise submissions of command buffers in
+    /// cases that the queue is shared between more than one window.
+    pub fn swap_chain_queue(&self) -> &Mutex<wgpu::Queue> {
+        self.device_queue_pair.queue()
+    }
+
+    /// Provides access to the device queue pair and the `Arc` behind which it is stored. This can
+    /// be useful in cases where using references provided by the `swap_chain_device` or
+    /// `swap_chain_queue` methods cause awkward ownership problems.
+    pub fn swap_chain_device_queue_pair(&self) -> &Arc<wgpu::DeviceQueuePair> {
+        &self.device_queue_pair
     }
 
     /// The number of samples used in the MSAA for the image associated with the `view` function's
@@ -1131,9 +1142,9 @@ impl Window {
         self.swap_chain.descriptor.width = width;
         self.swap_chain.descriptor.height = height;
         self.swap_chain.swap_chain =
-            Some(self.device.create_swap_chain(&self.surface, &self.swap_chain.descriptor));
+            Some(self.swap_chain_device().create_swap_chain(&self.surface, &self.swap_chain.descriptor));
         self.frame_render_data = Some(frame::RenderData::new(
-            &self.device,
+            self.swap_chain_device(),
             size_px,
             self.swap_chain.descriptor.format,
             self.msaa_samples,

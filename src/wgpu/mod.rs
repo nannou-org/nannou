@@ -3,6 +3,7 @@
 //! This module re-exports the entire `wgpu` crate along with all of its documentation while also
 //! adding some additional helper items.
 
+mod device_map;
 mod sampler_builder;
 mod texture;
 mod texture_format_converter;
@@ -104,6 +105,7 @@ pub use wgpu::{
     BufferMapAsyncResult,
     ShaderLocation,
 };
+pub use self::device_map::{AdapterMap, AdapterMapKey, ActiveAdapter, DeviceMap, DeviceMapKey, DeviceQueuePair};
 pub use self::sampler_builder::SamplerBuilder;
 pub use self::texture::{Texture, Builder as TextureBuilder};
 pub use self::texture_format_converter::TextureFormatConverter;

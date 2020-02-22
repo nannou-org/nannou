@@ -17,6 +17,7 @@ use crate::geom;
 use crate::state;
 use crate::time::DurationF64;
 use crate::ui;
+use crate::wgpu;
 use crate::window::{self, Window};
 use find_folder;
 use std;
@@ -87,6 +88,8 @@ pub struct App {
     pub(crate) event_loop_window_target: Option<EventLoopWindowTarget>,
     pub(crate) event_loop_proxy: Proxy,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
+    /// A map of active wgpu physial device adapters.
+    adapters: wgpu::AdapterMap,
     draw_state: DrawState,
     pub(crate) ui: ui::Arrangement,
     /// The window that is currently in focus.
@@ -599,6 +602,7 @@ impl App {
         event_loop_proxy: Proxy,
         event_loop_window_target: Option<EventLoopWindowTarget>,
     ) -> Self {
+        let adapters = Default::default();
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());
         let config = RefCell::new(Default::default());
@@ -614,6 +618,7 @@ impl App {
             event_loop_proxy,
             event_loop_window_target,
             focused_window,
+            adapters,
             windows,
             config,
             draw_state,
@@ -694,6 +699,20 @@ impl App {
     pub fn main_window(&self) -> std::cell::Ref<Window> {
         self.window(self.window_id())
             .expect("no window for focused id")
+    }
+
+    /// Access to the **App**'s inner map of wgpu adapters representing access to physical GPU
+    /// devices.
+    ///
+    /// By maintaining a map of active adapters and their established devices, nannou allows for
+    /// devices to be shared based on the desired `RequestAdapterOptions` and `DeviceDescriptor`s.
+    ///
+    /// For example, when creating new windows with the same set of `RequestAdapterOptions` and
+    /// `DeviceDescriptor`s, nannou will automatically share devices between windows where
+    /// possible. This allows for sharing GPU resources like **Texture**s and **Buffer**s between
+    /// windows.
+    pub fn wgpu_adapters(&self) -> &wgpu::AdapterMap {
+        &self.adapters
     }
 
     /// Return whether or not the `App` is currently set to exit when the `Escape` key is pressed.
@@ -778,7 +797,7 @@ impl App {
         let renderers = self.draw_state.renderers.borrow_mut();
         let renderer = RefMut::map(renderers, |renderers| {
             renderers.entry(window_id).or_insert_with(|| {
-                let device = &window.device;
+                let device = window.swap_chain_device();
                 let msaa_samples = window.msaa_samples();
                 let target_format = crate::frame::Frame::TEXTURE_FORMAT;
                 let renderer = draw::backend::wgpu::Renderer::new(
@@ -865,7 +884,7 @@ impl<'a> Draw<'a> {
         let (w, h) = window.inner_size_pixels();
         let frame_dims = [w, h];
         renderer.render_to_frame(
-            &window.device,
+            window.swap_chain_device(),
             &self.draw,
             scale_factor,
             frame_dims,
@@ -1081,8 +1100,7 @@ fn run_loop<M, E>(
 
                     // Construct and emit a frame via `view` for receiving the user's graphics commands.
                     let raw_frame = RawFrame::new_empty(
-                        &window.device,
-                        &window.queue,
+                        window.swap_chain_device_queue_pair().clone(),
                         window_id,
                         nth_frame,
                         swap_chain_texture,
@@ -1151,15 +1169,24 @@ fn run_loop<M, E>(
 
                 // Submit the command buffer to the queue.
                 if let Some(command_buffer) = command_buffer {
-                    window.queue.submit(&[command_buffer]);
+                    window
+                        .swap_chain_queue()
+                        .lock()
+                        .expect("failed to acquire window's swap chain queue")
+                        .submit(&[command_buffer]);
                 }
 
                 window.frame_render_data = render_data;
                 window.swap_chain.swap_chain = Some(swap_chain);
             }
 
-            // Ignore the remaining two non-I/O events.
-            winit::event::Event::RedrawEventsCleared | winit::event::Event::NewEvents(_) => {}
+            // Once drawing is complete, clear any inactive adapters and devices.
+            winit::event::Event::RedrawEventsCleared => {
+                app.wgpu_adapters().clear_inactive_adapters_and_devices();
+            }
+
+            // Ignore wake-up events for now. Currently, these can only be triggered via the app proxy.
+            winit::event::Event::NewEvents(_) => {}
 
             // Track the number of updates since the last I/O event.
             // This is necessary for the `Wait` loop mode to behave correctly.
@@ -1171,10 +1198,10 @@ fn run_loop<M, E>(
         // We must re-build the swap chain if the window was resized.
         if let winit::event::Event::WindowEvent { ref mut event, window_id } = event {
             match event {
-                winit::event::WindowEvent::Resized(new_size) => {
+                winit::event::WindowEvent::Resized(new_inner_size) => {
                     let mut windows = app.windows.borrow_mut();
                     if let Some(window) = windows.get_mut(&window_id) {
-                        window.rebuild_swap_chain(new_size.clone().into());
+                        window.rebuild_swap_chain(new_inner_size.clone().into());
                     }
                 }
 

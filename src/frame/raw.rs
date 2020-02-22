@@ -3,7 +3,7 @@
 use crate::geom;
 use crate::wgpu;
 use crate::window;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 /// Allows the user to draw a single **RawFrame** to the surface of a window.
 ///
@@ -30,7 +30,7 @@ pub struct RawFrame<'swap_chain> {
     window_id: window::Id,
     nth: u64,
     swap_chain_texture: &'swap_chain wgpu::TextureView,
-    queue: &'swap_chain wgpu::Queue,
+    device_queue_pair: Arc<wgpu::DeviceQueuePair>,
     texture_format: wgpu::TextureFormat,
     window_rect: geom::Rect,
 }
@@ -38,8 +38,7 @@ pub struct RawFrame<'swap_chain> {
 impl<'swap_chain> RawFrame<'swap_chain> {
     // Initialise a new empty frame ready for "drawing".
     pub(crate) fn new_empty(
-        device: &'swap_chain wgpu::Device,
-        queue: &'swap_chain wgpu::Queue,
+        device_queue_pair: Arc<wgpu::DeviceQueuePair>,
         window_id: window::Id,
         nth: u64,
         swap_chain_texture: &'swap_chain wgpu::TextureView,
@@ -47,14 +46,14 @@ impl<'swap_chain> RawFrame<'swap_chain> {
         window_rect: geom::Rect,
     ) -> Self {
         let ce_desc = wgpu::CommandEncoderDescriptor::default();
-        let command_encoder = device.create_command_encoder(&ce_desc);
+        let command_encoder = device_queue_pair.device().create_command_encoder(&ce_desc);
         let command_encoder = Mutex::new(command_encoder);
         let frame = RawFrame {
             command_encoder,
             window_id,
             nth,
             swap_chain_texture,
-            queue,
+            device_queue_pair,
             texture_format,
             window_rect,
         };
@@ -110,9 +109,12 @@ impl<'swap_chain> RawFrame<'swap_chain> {
         self.texture_format
     }
 
-    /// The queue on which the swap chain was created and which will be used to submit the
-    /// **RawFrame**'s encoded commands.
-    pub fn queue(&self) -> &wgpu::Queue {
-        self.queue
+    /// The device and queue on which the swap chain was created and which will be used to submit
+    /// the **RawFrame**'s encoded commands.
+    ///
+    /// This refers to the same **DeviceQueuePair** as held by the window associated with this
+    /// frame.
+    pub fn device_queue_pair(&self) -> &Arc<wgpu::DeviceQueuePair> {
+        &self.device_queue_pair
     }
 }
