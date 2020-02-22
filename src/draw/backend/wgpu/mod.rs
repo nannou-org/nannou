@@ -104,7 +104,8 @@ impl Renderer {
         let fs_mod = device.create_shader_module(&fs_spirv);
 
         // Create the depth texture.
-        let depth_texture = create_depth_texture(device, output_attachment_size, depth_format);
+        let depth_texture =
+            create_depth_texture(device, output_attachment_size, depth_format, msaa_samples);
         let depth_texture_view = depth_texture.create_default_view();
 
         // Create the render pipeline.
@@ -162,7 +163,9 @@ impl Renderer {
         let depth_size = depth_texture.size();
         if output_attachment_size != [depth_size.width, depth_size.height] {
             let depth_format = depth_texture.format();
-            *depth_texture = create_depth_texture(device, output_attachment_size, depth_format);
+            let sample_count = depth_texture.sample_count();
+            *depth_texture =
+                create_depth_texture(device, output_attachment_size, depth_format, sample_count);
             *depth_texture_view = depth_texture.create_default_view();
         }
 
@@ -255,11 +258,13 @@ fn create_depth_texture(
     device: &wgpu::Device,
     size: [u32; 2],
     depth_format: wgpu::TextureFormat,
+    sample_count: u32,
 ) -> wgpu::Texture {
     wgpu::TextureBuilder::new()
         .size(size)
         .format(depth_format)
         .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT)
+        .sample_count(sample_count)
         .build(device)
 }
 

@@ -41,6 +41,10 @@ impl Texture {
         self.descriptor.mip_level_count
     }
 
+    pub fn sample_count(&self) -> u32 {
+        self.descriptor.sample_count
+    }
+
     /// Describes whether the texture is of 1, 2 or 3 dimensions.
     pub fn dimension(&self) -> wgpu::TextureDimension {
         self.descriptor.dimension

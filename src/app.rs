@@ -886,8 +886,7 @@ impl<'a> Draw<'a> {
         );
         let scale_factor = window.scale_factor();
         let mut renderer = self.renderer.borrow_mut();
-        let (w, h) = window.inner_size_pixels();
-        let frame_dims = [w, h];
+        let frame_dims = frame.texture_size();
         renderer.render_to_frame(
             window.swap_chain_device(),
             &self.draw,

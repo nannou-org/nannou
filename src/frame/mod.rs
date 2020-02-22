@@ -26,6 +26,7 @@ pub struct Frame<'swap_chain> {
 pub struct RenderData {
     intermediary_lin_srgba: IntermediaryLinSrgba,
     msaa_samples: u32,
+    size: [u32; 2],
     // For writing the intermediary linear sRGBA texture to the swap chain texture.
     texture_format_converter: wgpu::TextureFormatConverter,
 }
@@ -136,6 +137,11 @@ impl<'swap_chain> Frame<'swap_chain> {
         self.data.msaa_samples
     }
 
+    /// The size of the frame's texture in pixels.
+    pub fn texture_size(&self) -> [u32; 2] {
+        self.data.size
+    }
+
     /// Short-hand for constructing a `wgpu::RenderPassColorAttachmentDescriptor` for use within a
     /// render pass that targets this frame's texture. The returned descriptor's `attachment` will
     /// the same `wgpu::TextureView` returned by the `Frame::texture` method.
@@ -197,6 +203,7 @@ impl RenderData {
         RenderData {
             intermediary_lin_srgba,
             texture_format_converter,
+            size: swap_chain_dims,
             msaa_samples,
         }
     }
