@@ -190,7 +190,7 @@ impl ActiveAdapter {
             .map
             .lock()
             .expect("failed to acquire `DeviceMap` lock");
-        map.retain(|_, pair| pair.strong_count() > 0);
+        map.retain(|_, pair| pair.upgrade().is_some());
     }
 }
 
