@@ -1470,7 +1470,7 @@ where
             removed_window = remove_related_window_state(app, &window_id);
         } else {
             // Get the size of the window for translating coords and dimensions.
-            let (win_w, win_h) = match app.window(window_id) {
+            let (win_w, win_h, scale_factor) = match app.window(window_id) {
                 Some(win) => {
                     // If we should toggle fullscreen for this window, do so.
                     if app.fullscreen_on_shortcut() {
@@ -1485,9 +1485,11 @@ where
                         }
                     }
 
-                    win.inner_size_points()
+                    let (w, h) = win.inner_size_points();
+                    let scale_factor = win.scale_factor() as f64;
+                    (w, h, scale_factor)
                 }
-                None => (0.0, 0.0),
+                None => (0.0, 0.0, 1.0),
             };
 
             // Translate the coordinates from top-left-origin-with-y-down to centre-origin-with-y-up.
@@ -1504,9 +1506,9 @@ where
             // Check for events that would update either mouse, keyboard or window state.
             match *event {
                 winit::event::WindowEvent::CursorMoved { position, .. } => {
-                    let (x, y): (f64, f64) = position.into();
-                    let x = tx(x as _);
-                    let y = ty(y as _);
+                    let (x, y) = position.to_logical::<f32>(scale_factor).into();
+                    let x = tx(x);
+                    let y = ty(y);
                     app.mouse.x = x;
                     app.mouse.y = y;
                     app.mouse.window = Some(window_id);
