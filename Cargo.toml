@@ -124,6 +124,15 @@ path = "examples/basics/6_functions.rs"
 name = "7_modules"
 path = "examples/basics/7_modules/7_modules.rs"
 
+# --------------- WGPU Examples
+
+[[example]]
+name = "wgpu_triangle"
+path = "examples/wgpu/wgpu_triangle/wgpu_triangle.rs"
+[[example]]
+name = "wgpu_triangle_raw_frame"
+path = "examples/wgpu/wgpu_triangle_raw_frame/wgpu_triangle_raw_frame.rs"
+
 # # --------------- Vulkan Examples
 # [[example]]
 # name = "vk_triangle"
