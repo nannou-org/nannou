@@ -42,7 +42,7 @@ pub use wgpu::{
 
 /// The default set of options used to request a `wgpu::Adapter` when creating windows.
 pub const DEFAULT_ADAPTER_REQUEST_OPTIONS: RequestAdapterOptions = RequestAdapterOptions {
-    power_preference: PowerPreference::Default,
+    power_preference: PowerPreference::HighPerformance,
     backends: BackendBit::PRIMARY,
 };
 

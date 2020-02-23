@@ -20,7 +20,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     check_color_list_lengths();
-    app.set_loop_mode(LoopMode::wait(3));
+    app.set_loop_mode(LoopMode::Wait);
     let mut ui = app.new_ui().build().unwrap();
     let color_list = ui.generate_widget_id();
     let selected_color_index = 0;

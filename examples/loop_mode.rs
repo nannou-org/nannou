@@ -17,7 +17,7 @@ struct Model;
 
 fn model(app: &App) -> Model {
     // Start in `Wait` mode. In other words, don't keep looping, just wait for events.
-    app.set_loop_mode(LoopMode::wait(3));
+    app.set_loop_mode(LoopMode::Wait);
     let _window = app
         .new_window()
         .title(format!(
@@ -38,10 +38,10 @@ fn update(_app: &App, _model: &mut Model, update: Update) {
 fn key_pressed(app: &App, _model: &mut Model, _key: Key) {
     // Switch to the next loop mode on key pressed.
     match app.loop_mode() {
-        LoopMode::Wait { .. } => app.set_loop_mode(LoopMode::refresh_sync()),
+        LoopMode::Wait { .. } => app.set_loop_mode(LoopMode::RefreshSync),
         LoopMode::RefreshSync { .. } => app.set_loop_mode(LoopMode::rate_fps(60.0)),
         LoopMode::Rate { .. } => app.set_loop_mode(LoopMode::loop_once()),
-        LoopMode::NTimes { .. } => app.set_loop_mode(LoopMode::wait(3)),
+        LoopMode::NTimes { .. } => app.set_loop_mode(LoopMode::Wait),
     }
     println!("Loop mode switched to: {:?}", app.loop_mode());
     let title = format!("`LoopMode` Demonstration - `{:?}`", app.loop_mode());

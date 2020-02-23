@@ -22,7 +22,7 @@ use crate::window::{self, Window};
 use find_folder;
 use std;
 use std::cell::{RefCell, RefMut};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::sync::atomic::{self, AtomicBool};
@@ -192,19 +192,17 @@ struct LoopState {
 /// The mode in which the **App** is currently running the event loop and emitting `Update` events.
 #[derive(Clone, Debug, PartialEq)]
 pub enum LoopMode {
+    /// Synchronises `Update` events with requests for a new image by the swap chain.
+    ///
+    /// The result of using this loop mode is similar to using vsync in traditional applications.
+    /// E.g. if you have one window running on a monitor with a 60hz refresh rate, your update will
+    /// get called at a fairly consistent interval that is close to 60 times per second.
+    RefreshSync,
+
     /// Specifies that the application is continuously looping at a consistent rate.
     ///
-    /// An application running in the **Rate** loop mode will behave as follows:
-    ///
-    /// 1. Poll for and collect all pending user input. `event` is then called with all application
-    ///    events that have occurred.
-    ///
-    /// 2. `event` is called with an `Update` event.
-    ///
-    /// 3. Check the time and sleep for the remainder of the `update_interval` then go to 1.
-    ///
-    /// `view` is called at an arbitraty rate by the vulkan swap chain for each window. It uses
-    /// whatever the state of the user's model happens to be at that moment in time.
+    /// **NOTE:** This currently behaves the same as `RefreshSync`. Need to upate this to handled a
+    /// fix step properly in the future. See #456.
     Rate {
         /// The minimum interval between emitted updates.
         update_interval: Duration,
@@ -215,13 +213,7 @@ pub enum LoopMode {
     /// This is particularly useful for low-energy GUIs that only need to update when some sort of
     /// input has occurred. The benefit of using this mode is that you don't waste CPU cycles
     /// looping or updating when you know nothing is changing in your model or view.
-    Wait {
-        /// The number of `update`s (and in turn `view` calls per window) that should occur since
-        /// the application last received a non-`Update` event.
-        updates_following_event: usize,
-        /// The minimum interval between emitted updates.
-        update_interval: Duration,
-    },
+    Wait,
 
     /// Loops for the given number of updates and then finishes.
     ///
@@ -234,55 +226,6 @@ pub enum LoopMode {
     NTimes {
         /// The number of updates that must be emited regardless of non-update events
         number_of_updates: usize,
-        /// The minimum interval between emitted updates.
-        update_interval: Duration,
-    },
-
-    /// Synchronises `Update` events with requests for a new image by the swap chain for each
-    /// window in order to achieve minimal latency between the state of the model and what is
-    /// displayed on screen. This mode should be particularly useful for interactive applications
-    /// and games where minimal latency between user input and the display image is essential.
-    ///
-    /// The result of using this loop mode is similar to using vsync in traditional applications.
-    /// E.g. if you have one window running on a monitor with a 60hz refresh rate, your update will
-    /// get called at a fairly consistent interval that is close to 60 times per second.
-    ///
-    /// It is worth noting that, in the case that you have more than one window and they are
-    /// situated on different displays with different refresh rates, `update` will almost certainly
-    /// not be called at a consistent interval. Instead, it will be called as often as necessary -
-    /// if it has been longer than `minimum_update_interval` or if some user input was received
-    /// since the last `Update`. That said, each `Update` event contains the duration since the
-    /// last `Update` occurred, so as long as all time-based state (like animations or physics
-    /// simulations) are driven by this, the `update` interval consistency should not cause issues.
-    ///
-    /// ### The Swap Chain
-    ///
-    /// The purpose of the swap chain for each window is to synchronise the presentation of images
-    /// (calls to `view` in nannou) with the refresh rate of the screen. *You can learn more about
-    /// the swap chain
-    /// [here](https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain).*
-    RefreshSync {
-        /// The minimum duration that must occur between calls to `update`. Under the `RefreshSync`
-        /// mode, the application loop will attempt to emit an `Update` event once every time a new
-        /// image is acquired from a window's swap chain. Thus, this value is very useful when
-        /// working with multiple windows in order to avoid updating at an unnecessarily high rate.
-        ///
-        /// We recommend using a `Duration` that is roughly half the duration between refreshes of
-        /// the window on the display with the highest refresh rate. For example, if the highest
-        /// display refresh rate is 60hz (with an interval of ~16ms) a suitable
-        /// `minimum_update_interval` might be 8ms. This should result in `update` being called
-        /// once every 16ms regardless of the number of windows.
-        minimum_update_interval: Duration,
-        /// The windows to which `Update` events should be synchronised.
-        ///
-        /// If this is `Some`, an `Update` will only occur for those windows that are contained
-        /// within this set. This is particularly useful if you only want to synchronise your
-        /// updates with one or more "main" windows and you don't mind so much about the latency
-        /// for the rest.
-        ///
-        /// If this is `None` (the default case), `Update` events will be synchronised with *all*
-        /// windows.
-        windows: Option<HashSet<window::Id>>,
     },
 }
 
@@ -444,17 +387,6 @@ where
             }
         }
 
-        // If the loop mode was set in the user's model function, ensure all window swap chains are
-        // re-created appropriately.
-        let loop_mode = app.loop_mode();
-        if loop_mode != LoopMode::default() {
-            let present_mode = window::preferred_present_mode(&loop_mode);
-            let mut windows = app.windows.borrow_mut();
-            for _window in windows.values_mut() {
-                // TODO: Update window for loop/present mode.
-            }
-        }
-
         run_loop(
             app,
             model,
@@ -497,7 +429,14 @@ fn update_interval(fps: f64) -> Duration {
 
 impl LoopMode {
     pub const DEFAULT_RATE_FPS: f64 = 60.0;
-    pub const DEFAULT_UPDATES_FOLLOWING_EVENT: usize = 3;
+
+    /// A simplified constructor for the default `RefreshSync` loop mode.
+    ///
+    /// Assumes a display refresh rate of ~60hz and in turn specifies a `minimum_update_latency` of
+    /// ~8.33ms. The `windows` field is set to `None`.
+    pub fn refresh_sync() -> Self {
+        LoopMode::RefreshSync
+    }
 
     /// Specify the **Rate** mode with the given frames-per-second.
     pub fn rate_fps(fps: f64) -> Self {
@@ -505,77 +444,27 @@ impl LoopMode {
         LoopMode::Rate { update_interval }
     }
 
-    /// Specify the **Wait** mode with the given number of updates following each non-`Update`
-    /// event.
-    ///
-    /// Uses the default update interval.
-    pub fn wait(updates_following_event: usize) -> Self {
-        let update_interval = update_interval(Self::DEFAULT_RATE_FPS);
-        LoopMode::Wait {
-            updates_following_event,
-            update_interval,
-        }
-    }
-
-    /// Specify the **Wait** mode with the given number of updates following each non-`Update`
-    /// event.
-    ///
-    /// Waits long enough to ensure loop iteration never occurs faster than the given `max_fps`.
-    pub fn wait_with_max_fps(updates_following_event: usize, max_fps: f64) -> Self {
-        let update_interval = update_interval(max_fps);
-        LoopMode::Wait {
-            updates_following_event,
-            update_interval,
-        }
-    }
-
-    /// Specify the **Wait** mode with the given number of updates following each non-`Update`
-    /// event.
-    ///
-    /// Waits long enough to ensure loop iteration never occurs faster than the given `max_fps`.
-    pub fn wait_with_interval(updates_following_event: usize, update_interval: Duration) -> Self {
-        LoopMode::Wait {
-            updates_following_event,
-            update_interval,
-        }
+    /// Specify the **Wait** mode.
+    pub fn wait() -> Self {
+        LoopMode::Wait
     }
 
     /// Specify the **Ntimes** mode with one update
     ///
     /// Waits long enough to ensure loop iteration never occurs faster than the given `max_fps`.
     pub fn loop_ntimes(number_of_updates: usize) -> Self {
-        let update_interval = update_interval(Self::DEFAULT_RATE_FPS);
-        LoopMode::NTimes {
-            number_of_updates,
-            update_interval,
-        }
+        LoopMode::NTimes { number_of_updates }
     }
 
     /// Specify the **Ntimes** mode with one update
     pub fn loop_once() -> Self {
-        let update_interval = update_interval(Self::DEFAULT_RATE_FPS);
-        let number_of_updates = 1;
-        LoopMode::NTimes {
-            number_of_updates,
-            update_interval,
-        }
-    }
-
-    /// A simplified constructor for the default `RefreshSync` loop mode.
-    ///
-    /// Assumes a display refresh rate of ~60hz and in turn specifies a `minimum_update_latency` of
-    /// ~8.33ms. The `windows` field is set to `None`.
-    pub fn refresh_sync() -> Self {
-        LoopMode::RefreshSync {
-            minimum_update_interval: update_interval(Self::DEFAULT_RATE_FPS * 2.0),
-            windows: None,
-        }
+        Self::loop_ntimes(1)
     }
 }
 
 impl Default for LoopMode {
     fn default() -> Self {
-        LoopMode::rate_fps(60.0)
+        LoopMode::refresh_sync()
     }
 }
 
@@ -782,7 +671,7 @@ impl App {
 
     /// Returns the **App**'s current **LoopMode**.
     ///
-    /// The default loop mode is `Rate` at 60 frames per second (an `update_interval` of ~16ms).
+    /// The default loop mode is `LoopMode::RefreshSync`.
     pub fn loop_mode(&self) -> LoopMode {
         self.config.borrow().loop_mode.clone()
     }
@@ -1051,46 +940,9 @@ fn run_loop<M, E>(
                         apply_update(&mut app, model, event_fn, update_fn, loop_state, now);
                     };
                     match loop_mode {
-                        LoopMode::Wait {
-                            updates_following_event,
-                            update_interval,
-                        } => {
-                            if loop_state.updates_since_event < updates_following_event {
-                                let next_update = loop_state.last_update + update_interval;
-                                if now >= next_update {
-                                    do_update(&mut loop_state);
-                                }
-                            }
-                        }
-
-                        LoopMode::Rate { update_interval } => {
-                            let next_update = loop_state.last_update + update_interval;
-                            if now >= next_update {
-                                do_update(&mut loop_state);
-                            }
-                        }
-
-                        LoopMode::RefreshSync {
-                            minimum_update_interval,
-                            ..
-                        } => {
-                            let next_update = loop_state.last_update + minimum_update_interval;
-                            if now >= next_update {
-                                do_update(&mut loop_state);
-                            }
-                        }
-
-                        LoopMode::NTimes {
-                            number_of_updates,
-                            update_interval,
-                        } => {
-                            if loop_state.total_updates < number_of_updates as u64 {
-                                let next_update = loop_state.last_update + update_interval;
-                                if now >= next_update {
-                                    do_update(&mut loop_state);
-                                }
-                            }
-                        }
+                        LoopMode::NTimes { number_of_updates }
+                            if loop_state.total_updates >= number_of_updates as u64 => {}
+                        _ => do_update(&mut loop_state),
                     }
                 }
             }
@@ -1273,61 +1125,14 @@ fn run_loop<M, E>(
 
         // Set the control flow based on the loop mode.
         let loop_mode = app.loop_mode();
-        let now = Instant::now();
         *control_flow = match loop_mode {
-            LoopMode::Wait {
-                updates_following_event,
-                update_interval,
-            } => {
-                if loop_state.updates_since_event < updates_following_event {
-                    let next_update = loop_state.last_update + update_interval;
-                    if now < next_update {
-                        ControlFlow::WaitUntil(next_update)
-                    } else {
-                        ControlFlow::Poll
-                    }
-                } else {
-                    ControlFlow::Wait
-                }
+            LoopMode::Wait => ControlFlow::Wait,
+            LoopMode::NTimes { number_of_updates }
+                if loop_state.total_updates >= number_of_updates as u64 =>
+            {
+                ControlFlow::Wait
             }
-
-            LoopMode::Rate { update_interval } => {
-                let next_update = loop_state.last_update + update_interval;
-                if now < next_update {
-                    ControlFlow::WaitUntil(next_update)
-                } else {
-                    ControlFlow::Poll
-                }
-            }
-
-            LoopMode::RefreshSync {
-                minimum_update_interval,
-                ..
-            } => {
-                let next_update = loop_state.last_update + minimum_update_interval;
-                if now < next_update {
-                    ControlFlow::WaitUntil(next_update)
-                } else {
-                    ControlFlow::Poll
-                }
-            }
-
-            LoopMode::NTimes {
-                number_of_updates,
-                update_interval,
-            } => {
-                if loop_state.total_updates >= number_of_updates as u64 {
-                    exit = true;
-                    ControlFlow::Exit
-                } else {
-                    let next_update = loop_state.last_update + update_interval;
-                    if now < next_update {
-                        ControlFlow::WaitUntil(next_update)
-                    } else {
-                        ControlFlow::Poll
-                    }
-                }
-            }
+            _ => ControlFlow::Poll,
         };
 
         // If we need to exit, call the user's function and update control flow.

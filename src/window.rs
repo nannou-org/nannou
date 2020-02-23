@@ -1,7 +1,6 @@
 //! The nannou [**Window**](./struct.Window.html) API. Create a new window via `.app.new_window()`.
 //! This produces a [**Builder**](./struct.Builder.html) which can be used to build a window.
 
-use crate::app::LoopMode;
 use crate::event::{
     Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase, TouchpadPressure, WindowEvent,
 };
@@ -307,13 +306,10 @@ impl SwapChainBuilder {
         device: &wgpu::Device,
         surface: &wgpu::Surface,
         [width_px, height_px]: [u32; 2],
-        loop_mode: &LoopMode,
     ) -> (wgpu::SwapChain, wgpu::SwapChainDescriptor) {
         let usage = self.usage.unwrap_or(Self::DEFAULT_USAGE);
         let format = self.format.unwrap_or(Self::DEFAULT_FORMAT);
-        let present_mode = self
-            .present_mode
-            .unwrap_or_else(|| preferred_present_mode(loop_mode));
+        let present_mode = self.present_mode.unwrap_or(Self::DEFAULT_PRESENT_MODE);
         let desc = wgpu::SwapChainDescriptor {
             usage,
             format,
@@ -324,14 +320,6 @@ impl SwapChainBuilder {
         let swap_chain = device.create_swap_chain(surface, &desc);
         (swap_chain, desc)
     }
-}
-
-/// Determine the optimal present mode for the given loop mode.
-///
-/// TODO: Currently this always assumes `Vsync`. Do we want to provide `NoVsync` option for *any*
-/// loop modes?
-pub fn preferred_present_mode(_loop_mode: &LoopMode) -> wgpu::PresentMode {
-    wgpu::PresentMode::Vsync
 }
 
 impl<'app> Builder<'app> {
@@ -753,7 +741,7 @@ impl<'app> Builder<'app> {
         let win_dims_px: [u32; 2] = win_physical_size.into();
         let device = device_queue_pair.device();
         let (swap_chain, swap_chain_desc) =
-            swap_chain_builder.build(&device, &surface, win_dims_px, &app.loop_mode());
+            swap_chain_builder.build(&device, &surface, win_dims_px);
 
         // If we're using an intermediary image for rendering frames to swap_chain images, create
         // the necessary render data.
