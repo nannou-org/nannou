@@ -1211,7 +1211,10 @@ fn apply_update<M, E>(
 }
 
 // Whether or not the given event should toggle fullscreen.
-fn should_toggle_fullscreen(winit_event: &winit::event::WindowEvent) -> bool {
+fn should_toggle_fullscreen(
+    winit_event: &winit::event::WindowEvent,
+    mods: &winit::event::ModifiersState,
+) -> bool {
     let input = match *winit_event {
         winit::event::WindowEvent::KeyboardInput { ref input, .. } => match input.state {
             event::ElementState::Pressed => input,
@@ -1224,7 +1227,6 @@ fn should_toggle_fullscreen(winit_event: &winit::event::WindowEvent) -> bool {
         None => return false,
         Some(k) => k,
     };
-    let mods = &input.modifiers;
 
     // On linux, check for the F11 key (with no modifiers down).
     //
@@ -1238,7 +1240,7 @@ fn should_toggle_fullscreen(winit_event: &winit::event::WindowEvent) -> bool {
 
     // On macos and windows check for the logo key plus `f` with no other modifiers.
     } else if cfg!(target_os = "macos") || cfg!(target_os = "windows") {
-        if *mods == winit::event::ModifiersState::LOGO {
+        if mods.logo() {
             if let Key::F = key {
                 return true;
             }
@@ -1303,7 +1305,7 @@ where
                 Some(win) => {
                     // If we should toggle fullscreen for this window, do so.
                     if app.fullscreen_on_shortcut() {
-                        if should_toggle_fullscreen(event) {
+                        if should_toggle_fullscreen(event, &app.keys.mods) {
                             if win.is_fullscreen() {
                                 win.set_fullscreen(None);
                             } else {
@@ -1357,7 +1359,6 @@ where
                 }
 
                 winit::event::WindowEvent::KeyboardInput { input, .. } => {
-                    app.keys.mods = input.modifiers;
                     if let Some(key) = input.virtual_keycode {
                         match input.state {
                             event::ElementState::Pressed => {
@@ -1386,6 +1387,13 @@ where
                     }
                 }
             }
+        }
+    }
+
+    // Update the modifier keys within the app if necessary.
+    if let winit::event::Event::DeviceEvent { event, .. } = winit_event {
+        if let winit::event::DeviceEvent::ModifiersChanged(new_mods) = event {
+            app.keys.mods = new_mods.clone();
         }
     }
 
