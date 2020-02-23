@@ -226,6 +226,18 @@ pub struct Window {
     pub(crate) frame_render_data: Option<frame::RenderData>,
     pub(crate) frame_count: u64,
     pub(crate) user_functions: UserFunctions,
+    pub(crate) tracked_state: TrackedState,
+}
+
+// Track and store some information about the window in order to avoid making repeated internal
+// queries to the platform-specific API. This is beneficial in some cases where queries to the
+// platform-specific API can be very slow (e.g. macOS cocoa).
+#[derive(Debug)]
+pub(crate) struct TrackedState {
+    // Updated on `ScaleFactorChanged`.
+    pub(crate) scale_factor: f64,
+    // Updated on `Resized`.
+    pub(crate) physical_size: winit::dpi::PhysicalSize<u32>,
 }
 
 /// A swap_chain and its images associated with a single window.
@@ -737,7 +749,8 @@ impl<'app> Builder<'app> {
         let device_queue_pair = adapter.get_or_request_device(device_desc);
 
         // Build the swapchain.
-        let win_dims_px: [u32; 2] = window.inner_size().into();
+        let win_physical_size = window.inner_size();
+        let win_dims_px: [u32; 2] = win_physical_size.into();
         let device = device_queue_pair.device();
         let (swap_chain, swap_chain_desc) =
             swap_chain_builder.build(&device, &surface, win_dims_px, &app.loop_mode());
@@ -767,6 +780,11 @@ impl<'app> Builder<'app> {
             swap_chain: Some(swap_chain),
         };
 
+        let tracked_state = TrackedState {
+            scale_factor: window.scale_factor(),
+            physical_size: win_physical_size,
+        };
+
         let window = Window {
             window,
             surface,
@@ -776,6 +794,7 @@ impl<'app> Builder<'app> {
             frame_render_data,
             frame_count,
             user_functions,
+            tracked_state,
         };
         app.windows.borrow_mut().insert(window_id, window);
 
@@ -982,7 +1001,7 @@ impl Window {
     pub fn inner_size_points(&self) -> (geom::scalar::Default, geom::scalar::Default) {
         self.window
             .inner_size()
-            .to_logical::<f32>(self.window.scale_factor())
+            .to_logical::<f32>(self.tracked_state.scale_factor)
             .into()
     }
 
@@ -1019,7 +1038,7 @@ impl Window {
     pub fn outer_size_points(&self) -> (f32, f32) {
         self.window
             .outer_size()
-            .to_logical::<f32>(self.window.scale_factor())
+            .to_logical::<f32>(self.tracked_state.scale_factor)
             .into()
     }
 

@@ -718,8 +718,7 @@ impl App {
     ///
     /// **Panics** if there are no windows or if no window is in focus.
     pub fn window_rect(&self) -> geom::Rect<DrawScalar> {
-        let (w, h) = self.main_window().inner_size_points();
-        geom::Rect::from_w_h(w as _, h as _)
+        self.main_window().rect()
     }
 
     /// A reference to the window currently in focus.
@@ -832,8 +831,7 @@ impl App {
         let renderer = RefMut::map(renderers, |renderers| {
             renderers.entry(window_id).or_insert_with(|| {
                 let device = window.swap_chain_device();
-                let (w, h) = window.inner_size_pixels();
-                let frame_dims = [w, h];
+                let frame_dims: [u32; 2] = window.tracked_state.physical_size.into();
                 let msaa_samples = window.msaa_samples();
                 let target_format = crate::frame::Frame::TEXTURE_FORMAT;
                 let depth_format = Self::DEFAULT_DRAW_DEPTH_FORMAT;
@@ -917,7 +915,7 @@ impl<'a> Draw<'a> {
             self.window_id,
             frame.window_id(),
         );
-        let scale_factor = window.scale_factor();
+        let scale_factor = window.tracked_state.scale_factor as _;
         let mut renderer = self.renderer.borrow_mut();
         let frame_dims = frame.texture_size();
         renderer.render_to_frame(
@@ -1135,13 +1133,16 @@ fn run_loop<M, E>(
                         .expect("failed to find window for redraw request");
 
                     // Construct and emit a frame via `view` for receiving the user's graphics commands.
+                    let sf = window.tracked_state.scale_factor;
+                    let (w, h) = window.tracked_state.physical_size.to_logical::<f32>(sf).into();
+                    let window_rect = geom::Rect::from_w_h(w, h);
                     let raw_frame = RawFrame::new_empty(
                         window.swap_chain_device_queue_pair().clone(),
                         window_id,
                         nth_frame,
                         swap_chain_texture,
                         window.swap_chain.descriptor.format,
-                        window.rect(),
+                        window_rect,
                     );
 
                     // If the user specified a view function specifically for this window, use it.
@@ -1241,6 +1242,7 @@ fn run_loop<M, E>(
                 winit::event::WindowEvent::Resized(new_inner_size) => {
                     let mut windows = app.windows.borrow_mut();
                     if let Some(window) = windows.get_mut(&window_id) {
+                        window.tracked_state.physical_size = new_inner_size.clone();
                         window.rebuild_swap_chain(new_inner_size.clone().into());
                     }
                 }
@@ -1248,7 +1250,13 @@ fn run_loop<M, E>(
                 winit::event::WindowEvent::ScaleFactorChanged {
                     scale_factor,
                     new_inner_size,
-                } => {}
+                } => {
+                    let mut windows = app.windows.borrow_mut();
+                    if let Some(window) = windows.get_mut(&window_id) {
+                        window.tracked_state.scale_factor = *scale_factor;
+                        window.rebuild_swap_chain(new_inner_size.clone().into());
+                    }
+                }
 
                 _ => (),
             }
@@ -1419,7 +1427,7 @@ fn should_toggle_fullscreen(winit_event: &winit::event::WindowEvent) -> bool {
     false
 }
 
-// Event handling boilerplate shared between the `Rate` and `Wait` loop modes.
+// Event handling boilerplate shared between the loop modes.
 //
 // 1. Checks for exit on escape.
 // 2. Removes closed windows from app.
@@ -1485,9 +1493,9 @@ where
                         }
                     }
 
-                    let (w, h) = win.inner_size_points();
-                    let scale_factor = win.scale_factor() as f64;
-                    (w, h, scale_factor)
+                    let sf = win.tracked_state.scale_factor;
+                    let (w, h) = win.tracked_state.physical_size.to_logical::<f32>(sf).into();
+                    (w, h, sf)
                 }
                 None => (0.0, 0.0, 1.0),
             };
@@ -1597,9 +1605,12 @@ where
             let windows = app.windows.borrow();
             windows
                 .get(&window_id)
-                .map(|w| (w.inner_size_points(), w.scale_factor()))
-                .map(|((w, h), sf)| (w as f64, h as f64, sf as f64))
-                .unwrap_or((0f64, 0f64, 1f64))
+                .map(|w| {
+                    let sf = w.tracked_state.scale_factor;
+                    let (w, h) = w.tracked_state.physical_size.to_logical::<f64>(sf).into();
+                    (w, h, sf)
+                })
+                .unwrap_or((0.0, 0.0, 1.0))
         };
 
         // If the event can be represented by a simplified nannou event, check for relevant user

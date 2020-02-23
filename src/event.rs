@@ -308,16 +308,17 @@ impl LoopEvent for Event {
                 let (win_w, win_h, scale_factor) = match windows.get(&window_id) {
                     None => (0.0, 0.0, 1.0), // The window was likely closed, these will be ignored.
                     Some(window) => {
-                        let (w, h) = window.inner_size_points();
-                        let sf = window.scale_factor();
+                        let sf = window.tracked_state.scale_factor;
+                        let size = window.tracked_state.physical_size;
+                        let (w, h) = size.to_logical::<f64>(sf).into();
                         (w, h, sf)
                     }
                 };
                 let simple = WindowEvent::from_winit_window_event(
                     event,
-                    win_w as f64,
-                    win_h as f64,
-                    scale_factor as f64,
+                    win_w,
+                    win_h,
+                    scale_factor,
                 );
                 Event::WindowEvent {
                     id: window_id.clone(),
