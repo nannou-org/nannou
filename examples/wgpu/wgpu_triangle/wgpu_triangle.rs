@@ -14,9 +14,15 @@ struct Vertex {
 
 // The vertices that make up our triangle.
 const VERTICES: [Vertex; 3] = [
-    Vertex { position: [-0.5, -0.25] },
-    Vertex { position: [0.0, 0.5] },
-    Vertex { position: [0.25, -0.1] },
+    Vertex {
+        position: [-0.5, -0.25],
+    },
+    Vertex {
+        position: [0.0, 0.5],
+    },
+    Vertex {
+        position: [0.25, -0.1],
+    },
 ];
 
 fn main() {
@@ -24,11 +30,7 @@ fn main() {
 }
 
 fn model(app: &App) -> Model {
-    let w_id = app.new_window()
-        .size(512, 512)
-        .view(view)
-        .build()
-        .unwrap();
+    let w_id = app.new_window().size(512, 512).view(view).build().unwrap();
 
     // The gpu device associated with the window's swapchain
     let window = app.window(w_id).unwrap();
@@ -38,12 +40,12 @@ fn model(app: &App) -> Model {
 
     // Load shader modules.
     let vs = include_bytes!("shaders/vert.spv");
-    let vs_spirv = wgpu::read_spirv(std::io::Cursor::new(&vs[..]))
-        .expect("failed to read hard-coded SPIRV");
+    let vs_spirv =
+        wgpu::read_spirv(std::io::Cursor::new(&vs[..])).expect("failed to read hard-coded SPIRV");
     let vs_mod = device.create_shader_module(&vs_spirv);
     let fs = include_bytes!("shaders/frag.spv");
-    let fs_spirv = wgpu::read_spirv(std::io::Cursor::new(&fs[..]))
-        .expect("failed to read hard-coded SPIRV");
+    let fs_spirv =
+        wgpu::read_spirv(std::io::Cursor::new(&fs[..])).expect("failed to read hard-coded SPIRV");
     let fs_mod = device.create_shader_module(&fs_spirv);
 
     // Create the vertex buffer.
@@ -55,8 +57,14 @@ fn model(app: &App) -> Model {
     let bind_group_layout = create_bind_group_layout(device);
     let bind_group = create_bind_group(device, &bind_group_layout);
     let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
-    let render_pipeline =
-        create_render_pipeline(device, &pipeline_layout, &vs_mod, &fs_mod, format, msaa_samples);
+    let render_pipeline = create_render_pipeline(
+        device,
+        &pipeline_layout,
+        &vs_mod,
+        &fs_mod,
+        format,
+        msaa_samples,
+    );
 
     Model {
         bind_group,

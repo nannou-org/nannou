@@ -1134,7 +1134,11 @@ fn run_loop<M, E>(
 
                     // Construct and emit a frame via `view` for receiving the user's graphics commands.
                     let sf = window.tracked_state.scale_factor;
-                    let (w, h) = window.tracked_state.physical_size.to_logical::<f32>(sf).into();
+                    let (w, h) = window
+                        .tracked_state
+                        .physical_size
+                        .to_logical::<f32>(sf)
+                        .into();
                     let window_rect = geom::Rect::from_w_h(w, h);
                     let raw_frame = RawFrame::new_empty(
                         window.swap_chain_device_queue_pair().clone(),

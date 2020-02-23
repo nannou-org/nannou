@@ -314,12 +314,8 @@ impl LoopEvent for Event {
                         (w, h, sf)
                     }
                 };
-                let simple = WindowEvent::from_winit_window_event(
-                    event,
-                    win_w,
-                    win_h,
-                    scale_factor,
-                );
+                let simple =
+                    WindowEvent::from_winit_window_event(event, win_w, win_h, scale_factor);
                 Event::WindowEvent {
                     id: window_id.clone(),
                     simple,

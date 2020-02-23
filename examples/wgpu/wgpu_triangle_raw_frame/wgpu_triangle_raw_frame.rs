@@ -15,9 +15,15 @@ struct Vertex {
 }
 
 const VERTICES: [Vertex; 3] = [
-    Vertex { position: [-0.5, -0.25] },
-    Vertex { position: [0.0, 0.5] },
-    Vertex { position: [0.25, -0.1] },
+    Vertex {
+        position: [-0.5, -0.25],
+    },
+    Vertex {
+        position: [0.0, 0.5],
+    },
+    Vertex {
+        position: [0.25, -0.1],
+    },
 ];
 
 fn main() {
@@ -25,7 +31,8 @@ fn main() {
 }
 
 fn model(app: &App) -> Model {
-    let w_id = app.new_window()
+    let w_id = app
+        .new_window()
         .size(512, 512)
         .raw_view(view)
         .build()
@@ -37,12 +44,12 @@ fn model(app: &App) -> Model {
     let format = window.swap_chain_descriptor().format;
 
     let vs = include_bytes!("shaders/vert.spv");
-    let vs_spirv = wgpu::read_spirv(std::io::Cursor::new(&vs[..]))
-        .expect("failed to read hard-coded SPIRV");
+    let vs_spirv =
+        wgpu::read_spirv(std::io::Cursor::new(&vs[..])).expect("failed to read hard-coded SPIRV");
     let vs_mod = device.create_shader_module(&vs_spirv);
     let fs = include_bytes!("shaders/frag.spv");
-    let fs_spirv = wgpu::read_spirv(std::io::Cursor::new(&fs[..]))
-        .expect("failed to read hard-coded SPIRV");
+    let fs_spirv =
+        wgpu::read_spirv(std::io::Cursor::new(&fs[..])).expect("failed to read hard-coded SPIRV");
     let fs_mod = device.create_shader_module(&fs_spirv);
 
     let vertex_buffer = device
@@ -52,7 +59,8 @@ fn model(app: &App) -> Model {
     let bind_group_layout = create_bind_group_layout(device);
     let bind_group = create_bind_group(device, &bind_group_layout);
     let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
-    let render_pipeline = create_render_pipeline(device, &pipeline_layout, &vs_mod, &fs_mod, format);
+    let render_pipeline =
+        create_render_pipeline(device, &pipeline_layout, &vs_mod, &fs_mod, format);
 
     Model {
         bind_group,
