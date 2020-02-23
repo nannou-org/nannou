@@ -429,6 +429,9 @@ fn update_interval(fps: f64) -> Duration {
 
 impl LoopMode {
     pub const DEFAULT_RATE_FPS: f64 = 60.0;
+    /// The minimum number of updates that will be emitted after an event is triggered in Wait
+    /// mode.
+    pub const UPDATES_PER_WAIT_EVENT: u32 = 3;
 
     /// A simplified constructor for the default `RefreshSync` loop mode.
     ///
@@ -1126,7 +1129,16 @@ fn run_loop<M, E>(
         // Set the control flow based on the loop mode.
         let loop_mode = app.loop_mode();
         *control_flow = match loop_mode {
-            LoopMode::Wait => ControlFlow::Wait,
+            LoopMode::Wait => {
+                // Trigger some extra updates for conrod GUIs to finish "animating". The number of
+                // updates used to be configurable, but I don't think there's any use besides GUI.
+                if loop_state.updates_since_event < LoopMode::UPDATES_PER_WAIT_EVENT as usize {
+                    let ten_ms = std::time::Instant::now() + std::time::Duration::from_millis(10);
+                    ControlFlow::WaitUntil(ten_ms)
+                } else {
+                    ControlFlow::Wait
+                }
+            }
             LoopMode::NTimes { number_of_updates }
                 if loop_state.total_updates >= number_of_updates as u64 =>
             {
