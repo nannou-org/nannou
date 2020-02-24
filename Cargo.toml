@@ -132,6 +132,9 @@ path = "examples/wgpu/wgpu_triangle/wgpu_triangle.rs"
 [[example]]
 name = "wgpu_triangle_raw_frame"
 path = "examples/wgpu/wgpu_triangle_raw_frame/wgpu_triangle_raw_frame.rs"
+[[example]]
+name = "wgpu_teapot"
+path = "examples/wgpu/wgpu_teapot/wgpu_teapot.rs"
 
 # # --------------- Vulkan Examples
 # [[example]]
