@@ -26,7 +26,8 @@ pub use crate::math::{
 pub use crate::rand::{random, random_f32, random_f64, random_range};
 pub use crate::text::{self, text};
 pub use crate::time::DurationF64;
-//pub use crate::ui;
+pub use crate::ui;
+pub use crate::wgpu;
 pub use crate::window::{self, Id as WindowId};
 
 // The following constants have "regular" names for the `DefaultScalar` type and type suffixes for
