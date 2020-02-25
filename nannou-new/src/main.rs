@@ -78,23 +78,26 @@ fn crates_io_package_latest_version(name: &str) -> CargoResult<cargo::core::Pack
     let src_id = cargo::core::SourceId::crates_io(&cargo_config)?;
 
     // The crates.io registry source.
+    let yanked = std::collections::HashSet::new();
     let mut registry_source =
-        cargo::sources::registry::RegistrySource::remote(&src_id, &cargo_config);
+        cargo::sources::registry::RegistrySource::remote(src_id, &yanked, &cargo_config);
 
     // The nannou dependency (don't really understand why we need "Dependency").
     let vers = None;
-    let dep = cargo::core::dependency::Dependency::parse_no_deprecated(name, vers, &src_id)?;
+    let dep = cargo::core::dependency::Dependency::parse_no_deprecated(name, vers, src_id)?;
 
-    // Retrieve the `Summary` by querying the source.
-    let mut maybe_summary = None;
-    registry_source.query(&dep, &mut |summary| maybe_summary = Some(summary))?;
-    let summary = match maybe_summary {
-        Some(s) => s,
-        None => panic!("could not find {} summary in crates.io registry", name),
+    // Hold the package lock until the end of the function, query and download requires it.
+    let _lock = cargo_config.acquire_package_cache_lock()?;
+
+    // Retrieve the PackageId by querying the source and finding the most recent one.
+    let versions = registry_source.query_vec(&dep)?;
+    let most_recent_pkg_id = match versions.iter().map(|v| v.package_id()).max() {
+        Some(pkg_id) => pkg_id,
+        None => panic!("could not find `{}` package in crates.io registry", name),
     };
 
-    // Retrieve the `Package` by querying the source with the id we got from the `Summary`.
-    registry_source.download(&summary.package_id())
+    // Finally download the Package
+    Source::download_now(Box::new(registry_source), most_recent_pkg_id, &cargo_config)
 }
 
 fn main() {
