@@ -38,6 +38,7 @@ winit = "0.21"
 
 [dev-dependencies]
 audrey = "0.2"
+futures = "0.3"
 nannou_audio = "0.2"
 nannou_laser = "0.3"
 nannou_osc = "0.1"
@@ -138,6 +139,9 @@ path = "examples/wgpu/wgpu_teapot/wgpu_teapot.rs"
 [[example]]
 name = "wgpu_teapot_camera"
 path = "examples/wgpu/wgpu_teapot_camera/wgpu_teapot_camera.rs"
+[[example]]
+name = "wgpu_compute_shader"
+path = "examples/wgpu/wgpu_compute_shader/wgpu_compute_shader.rs"
 
 # # --------------- Vulkan Examples
 # [[example]]
