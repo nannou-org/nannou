@@ -128,11 +128,11 @@ path = "examples/basics/7_modules/7_modules.rs"
 # --------------- WGPU Examples
 
 [[example]]
-name = "wgpu_triangle"
-path = "examples/wgpu/wgpu_triangle/wgpu_triangle.rs"
+name = "wgpu_compute_shader"
+path = "examples/wgpu/wgpu_compute_shader/wgpu_compute_shader.rs"
 [[example]]
-name = "wgpu_triangle_raw_frame"
-path = "examples/wgpu/wgpu_triangle_raw_frame/wgpu_triangle_raw_frame.rs"
+name = "wgpu_image"
+path = "examples/wgpu/wgpu_image/wgpu_image.rs"
 [[example]]
 name = "wgpu_teapot"
 path = "examples/wgpu/wgpu_teapot/wgpu_teapot.rs"
@@ -140,8 +140,11 @@ path = "examples/wgpu/wgpu_teapot/wgpu_teapot.rs"
 name = "wgpu_teapot_camera"
 path = "examples/wgpu/wgpu_teapot_camera/wgpu_teapot_camera.rs"
 [[example]]
-name = "wgpu_compute_shader"
-path = "examples/wgpu/wgpu_compute_shader/wgpu_compute_shader.rs"
+name = "wgpu_triangle"
+path = "examples/wgpu/wgpu_triangle/wgpu_triangle.rs"
+[[example]]
+name = "wgpu_triangle_raw_frame"
+path = "examples/wgpu/wgpu_triangle_raw_frame/wgpu_triangle_raw_frame.rs"
 
 # # --------------- Vulkan Examples
 # [[example]]
