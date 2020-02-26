@@ -226,6 +226,10 @@ where
                     n.ix
                 };
 
+                if na == nb {
+                    continue;
+                }
+
                 if g.find_edge(na, nb).is_none() {
                     g.add_edge(na, nb, ());
                 }
@@ -680,7 +684,7 @@ pub fn interpolate_euler_circuit(
     }
 
     // If the circuit is empty, so is our path.
-    if ec.is_empty() {
+    if ec.is_empty() || target_points == 0 {
         return vec![];
     }
 
@@ -689,6 +693,10 @@ pub fn interpolate_euler_circuit(
         .map(|ix| EdgeProfile::from_index(ix, ec, eg))
         .collect::<Vec<_>>();
 
+    // TODO: If the circuit doesn't contain any lit edges, what should we do?.
+    if !edge_profiles.iter().any(|ep| ep.is_lit()) {
+        return vec![];
+    }
     // The minimum number of points required to display the image.
     let min_points = edge_profiles.iter()
         .map(|ep| ep.min_points(conf))
@@ -708,7 +716,7 @@ pub fn interpolate_euler_circuit(
         // The total lit distance covered by the traversal.
         let total_lit_dist = edge_lit_dists.iter().fold(0.0, |acc, &(_, d)| acc + d);
         // Determine the weights for each edge based on distance.
-        let edge_weights: Vec<(bool, f32)> = match total_lit_dist == 0.0 {
+        let edge_weights: Vec<(bool, f32)> = match total_lit_dist <= std::f32::EPSILON {
             true => {
                 // If there was no total distance, distribute evenly.
                 let n_lit_edges = edge_lit_dists.iter().filter(|&&(b, _)| b).count();
@@ -966,5 +974,24 @@ mod test {
             let (e_id, _) = walk.next().unwrap();
             assert!(visited.insert(e_id));
         }
+    }
+
+    #[test]
+    fn test_euler_circuit_duplicate_points() {
+        let pts = [white_pt([0., 0.]), white_pt([0., 1.]), white_pt([0., 1.])];
+        let segs = points_to_segments(pts.iter().cloned());
+        let pg = segments_to_point_graph(segs);
+        let eg = point_graph_to_euler_graph(&dbg!(pg));
+        let _ = euler_graph_to_euler_circuit(&dbg!(eg));
+    }
+
+    #[test]
+    fn test_single_point() {
+        let pts = [white_pt([0., 0.]), white_pt([0., 0.])];
+        let segs = points_to_segments(pts.iter().cloned());
+        let pg = segments_to_point_graph(segs);
+        let eg = point_graph_to_euler_graph(&dbg!(pg));
+        let ec = euler_graph_to_euler_circuit(&dbg!(eg));
+        assert_eq!(ec.len(), 0);
     }
 }
