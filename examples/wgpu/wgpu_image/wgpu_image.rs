@@ -1,5 +1,5 @@
-use nannou::prelude::*;
 use nannou::image::GenericImageView;
+use nannou::prelude::*;
 
 struct Model {
     bind_group: wgpu::BindGroup,
@@ -39,7 +39,12 @@ fn model(app: &App) -> Model {
     let image = image::open(logo_path).unwrap();
     let (img_w, img_h) = image.dimensions();
 
-    let w_id = app.new_window().size(img_w, img_h).view(view).build().unwrap();
+    let w_id = app
+        .new_window()
+        .size(img_w, img_h)
+        .view(view)
+        .build()
+        .unwrap();
     let window = app.window(w_id).unwrap();
     let device = window.swap_chain_device();
     let format = Frame::TEXTURE_FORMAT;

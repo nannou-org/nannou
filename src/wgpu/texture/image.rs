@@ -293,7 +293,8 @@ where
 {
     let cmd_encoder_desc = wgpu::CommandEncoderDescriptor::default();
     let mut encoder = device.create_command_encoder(&cmd_encoder_desc);
-    let texture = encode_load_texture_array_from_image_buffers(device, &mut encoder, usage, buffers);
+    let texture =
+        encode_load_texture_array_from_image_buffers(device, &mut encoder, usage, buffers);
     queue.submit(&[encoder.finish()]);
     texture
 }
