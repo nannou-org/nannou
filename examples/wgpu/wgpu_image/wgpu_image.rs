@@ -35,13 +35,11 @@ fn main() {
 fn model(app: &App) -> Model {
     let w_id = app.new_window().size(512, 512).view(view).build().unwrap();
 
-    // The gpu device associated with the window's swapchain
     let window = app.window(w_id).unwrap();
     let device = window.swap_chain_device();
     let format = Frame::TEXTURE_FORMAT;
     let msaa_samples = window.msaa_samples();
 
-    // Load shader modules.
     let vs = include_bytes!("shaders/vert.spv");
     let vs_spirv =
         wgpu::read_spirv(std::io::Cursor::new(&vs[..])).expect("failed to read hard-coded SPIRV");
@@ -51,19 +49,20 @@ fn model(app: &App) -> Model {
         wgpu::read_spirv(std::io::Cursor::new(&fs[..])).expect("failed to read hard-coded SPIRV");
     let fs_mod = device.create_shader_module(&fs_spirv);
 
-    // Load an image from disk, then load it to the GPU as a `Texture`.
     let logo_path = app.assets_path().unwrap().join("images").join("Nannou.png");
     let image = image::open(logo_path).unwrap().to_rgba();
     let texture = {
+        // The wgpu device queue used to load the image data.
         let mut queue = window.swap_chain_queue().lock().unwrap();
-        create_texture_from_rgba_image(device, &mut *queue, image)
+        // Describe how we will use the texture so that the GPU may handle it efficiently.
+        let usage = wgpu::TextureUsage::SAMPLED;
+        wgpu::Texture::load_from_image_buffer(device, &mut *queue, &image, usage)
     };
     let texture_view = texture.create_default_view();
 
     // Create the sampler for sampling from the source texture.
     let sampler = wgpu::SamplerBuilder::new().build(device);
 
-    // Create the render pipeline.
     let bind_group_layout = create_bind_group_layout(device);
     let bind_group = create_bind_group(device, &bind_group_layout, &texture_view, &sampler);
     let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
@@ -88,12 +87,9 @@ fn model(app: &App) -> Model {
     }
 }
 
-// Draw the state of your `Model` into the given `Frame` here.
 fn view(_app: &App, model: &Model, frame: &Frame) {
-    // Using this we will encode commands that will be submitted to the GPU.
     let mut encoder = frame.command_encoder();
 
-    // A render pass describes how to draw to an output "attachment".
     let render_pass_desc = wgpu::RenderPassDescriptor {
         color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
             attachment: frame.texture(),
@@ -105,69 +101,14 @@ fn view(_app: &App, model: &Model, frame: &Frame) {
         depth_stencil_attachment: None,
     };
 
-    // The render pass can be thought of a single large command consisting of sub commands.
-    // Here we begin the render pass and add sub-commands for setting the bind group, render
-    // pipeline, vertex buffers and then finally drawing.
     let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
     render_pass.set_bind_group(0, &model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
     render_pass.set_vertex_buffers(0, &[(&model.vertex_buffer, 0)]);
 
-    // We want to draw the whole range of vertices, and we're only drawing one instance of them.
     let vertex_range = 0..VERTICES.len() as u32;
     let instance_range = 0..1;
     render_pass.draw(vertex_range, instance_range);
-
-    // Now we're done! The commands we added will be submitted after `view` completes.
-}
-
-// TODO: Generalise this into a nice API exposed by nannou (e.g. `Texture::from_image`).
-fn create_texture_from_rgba_image(
-    device: &wgpu::Device,
-    queue: &mut wgpu::Queue,
-    image: image::RgbaImage,
-) -> wgpu::Texture {
-    const LOGO_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
-
-    // Initialise the texture.
-    let (width, height) = image.dimensions();
-    let logo_tex = wgpu::TextureBuilder::new()
-        .size([width, height])
-        .format(LOGO_TEXTURE_FORMAT)
-        .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
-        .build(device);
-
-    // Upload the pixel data.
-    let data = &image.into_raw()[..];
-    let buffer = device
-        .create_buffer_mapped(data.len(), wgpu::BufferUsage::COPY_SRC)
-        .fill_from_slice(data);
-
-    // Submit command for copying pixel data to the texture.
-    let pixel_size_bytes = 4; // Rgba8, as above.
-    let buffer_copy_view = wgpu::BufferCopyView {
-        buffer: &buffer,
-        offset: 0,
-        row_pitch: width * pixel_size_bytes,
-        image_height: height,
-    };
-    let texture_copy_view = wgpu::TextureCopyView {
-        texture: &logo_tex,
-        mip_level: 0,
-        array_layer: 0,
-        origin: wgpu::Origin3d::ZERO,
-    };
-    let extent = wgpu::Extent3d {
-        width: width,
-        height: height,
-        depth: 1,
-    };
-    let cmd_encoder_desc = wgpu::CommandEncoderDescriptor { todo: 0 };
-    let mut encoder = device.create_command_encoder(&cmd_encoder_desc);
-    encoder.copy_buffer_to_texture(buffer_copy_view, texture_copy_view, extent);
-    queue.submit(&[encoder.finish()]);
-
-    logo_tex
 }
 
 fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
