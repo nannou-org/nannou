@@ -134,6 +134,9 @@ path = "examples/wgpu/wgpu_compute_shader/wgpu_compute_shader.rs"
 name = "wgpu_image"
 path = "examples/wgpu/wgpu_image/wgpu_image.rs"
 [[example]]
+name = "wgpu_image_sequence"
+path = "examples/wgpu/wgpu_image_sequence/wgpu_image_sequence.rs"
+[[example]]
 name = "wgpu_teapot"
 path = "examples/wgpu/wgpu_teapot/wgpu_teapot.rs"
 [[example]]
