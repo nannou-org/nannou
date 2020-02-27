@@ -36,11 +36,7 @@ fn main() {
 }
 
 fn model(app: &App) -> Model {
-    let w_id = app.new_window()
-        .size(1440, 512)
-        .view(view)
-        .build()
-        .unwrap();
+    let w_id = app.new_window().size(1440, 512).view(view).build().unwrap();
     let window = app.window(w_id).unwrap();
     let device = window.swap_chain_device();
 
@@ -50,7 +46,8 @@ fn model(app: &App) -> Model {
     let cs_mod = device.create_shader_module(&cs_spirv);
 
     // Create the buffer that will store the result of our compute operation.
-    let oscillator_buffer_size = (OSCILLATOR_COUNT as usize * std::mem::size_of::<f32>()) as wgpu::BufferAddress;
+    let oscillator_buffer_size =
+        (OSCILLATOR_COUNT as usize * std::mem::size_of::<f32>()) as wgpu::BufferAddress;
     let oscillator_buffer = device.create_buffer(&wgpu::BufferDescriptor {
         size: oscillator_buffer_size,
         usage: wgpu::BufferUsage::STORAGE
@@ -66,7 +63,13 @@ fn model(app: &App) -> Model {
 
     // Create the bind group and pipeline.
     let bind_group_layout = create_bind_group_layout(device);
-    let bind_group = create_bind_group(device, &bind_group_layout, &oscillator_buffer, oscillator_buffer_size, &uniform_buffer);
+    let bind_group = create_bind_group(
+        device,
+        &bind_group_layout,
+        &oscillator_buffer,
+        oscillator_buffer_size,
+        &uniform_buffer,
+    );
     let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
     let pipeline = create_compute_pipeline(device, &pipeline_layout, &cs_mod);
 
@@ -81,7 +84,10 @@ fn model(app: &App) -> Model {
     // The vector that we will write oscillator values to.
     let oscillators = Arc::new(Mutex::new(vec![0.0; OSCILLATOR_COUNT as usize]));
 
-    Model { compute, oscillators }
+    Model {
+        compute,
+        oscillators,
+    }
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
@@ -107,27 +113,47 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 
     // The encoder we'll use to encode the compute pass.
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-    encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, &compute.uniform_buffer, 0, uniforms_size);
+    encoder.copy_buffer_to_buffer(
+        &new_uniform_buffer,
+        0,
+        &compute.uniform_buffer,
+        0,
+        uniforms_size,
+    );
     {
         let mut cpass = encoder.begin_compute_pass();
         cpass.set_pipeline(&compute.pipeline);
         cpass.set_bind_group(0, &compute.bind_group, &[]);
         cpass.dispatch(OSCILLATOR_COUNT as u32, 1, 1);
     }
-    encoder.copy_buffer_to_buffer(&compute.oscillator_buffer, 0, &read_buffer, 0, compute.oscillator_buffer_size);
+    encoder.copy_buffer_to_buffer(
+        &compute.oscillator_buffer,
+        0,
+        &read_buffer,
+        0,
+        compute.oscillator_buffer_size,
+    );
 
     // Submit the compute pass to the device's queue.
-    window.swap_chain_queue().lock().unwrap().submit(&[encoder.finish()]);
+    window
+        .swap_chain_queue()
+        .lock()
+        .unwrap()
+        .submit(&[encoder.finish()]);
 
     // Register a callback for reading the result of the compute pass.
     let oscillators = model.oscillators.clone();
-    read_buffer.map_read_async(0, compute.oscillator_buffer_size, move |result: wgpu::BufferMapAsyncResult<&[f32]>| {
-        if let Ok(mapping) = result {
-            if let Ok(mut oscillators) = oscillators.lock() {
-                oscillators.copy_from_slice(&mapping.data);
+    read_buffer.map_read_async(
+        0,
+        compute.oscillator_buffer_size,
+        move |result: wgpu::BufferMapAsyncResult<&[f32]>| {
+            if let Ok(mapping) = result {
+                if let Ok(mut oscillators) = oscillators.lock() {
+                    oscillators.copy_from_slice(&mapping.data);
+                }
             }
-        }
-    });
+        },
+    );
 
     // Check for resource cleanups and mapping callbacks.
     device.poll(false);
@@ -153,16 +179,29 @@ fn view(app: &App, model: &Model, frame: &Frame) {
 }
 
 fn create_uniforms(time: f32, mouse_x: f32, win_rect: geom::Rect) -> Uniforms {
-    let freq = map_range(mouse_x, win_rect.left(), win_rect.right(), 0.0, win_rect.w());
+    let freq = map_range(
+        mouse_x,
+        win_rect.left(),
+        win_rect.right(),
+        0.0,
+        win_rect.w(),
+    );
     let oscillator_count = OSCILLATOR_COUNT;
-    Uniforms { time, freq, oscillator_count }
+    Uniforms {
+        time,
+        freq,
+        oscillator_count,
+    }
 }
 
 fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     let oscillator_buffer_binding = wgpu::BindGroupLayoutBinding {
         binding: 0,
         visibility: wgpu::ShaderStage::COMPUTE,
-        ty: wgpu::BindingType::StorageBuffer { dynamic: false, readonly: false },
+        ty: wgpu::BindingType::StorageBuffer {
+            dynamic: false,
+            readonly: false,
+        },
     };
     let uniforms_binding = wgpu::BindGroupLayoutBinding {
         binding: 1,
@@ -217,6 +256,9 @@ fn create_compute_pipeline(
         module: &cs_mod,
         entry_point: "main",
     };
-    let desc = wgpu::ComputePipelineDescriptor { layout, compute_stage };
+    let desc = wgpu::ComputePipelineDescriptor {
+        layout,
+        compute_stage,
+    };
     device.create_compute_pipeline(&desc)
 }
