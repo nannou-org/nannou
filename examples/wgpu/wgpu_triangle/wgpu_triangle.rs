@@ -7,6 +7,7 @@ struct Model {
 }
 
 // The vertex type that we will use to represent a point on our triangle.
+#[repr(C)]
 #[derive(Clone, Copy)]
 struct Vertex {
     position: [f32; 2],

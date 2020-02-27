@@ -9,6 +9,7 @@ struct Model {
     vertex_buffer: wgpu::Buffer,
 }
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 struct Vertex {
     position: [f32; 2],
@@ -86,8 +87,8 @@ fn view(_app: &App, model: &Model, frame: &RawFrame) {
     };
     let mut encoder = frame.command_encoder();
     let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
-    render_pass.set_bind_group(0, &model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
+    render_pass.set_bind_group(0, &model.bind_group, &[]);
     render_pass.set_vertex_buffers(0, &[(&model.vertex_buffer, 0)]);
     render_pass.draw(vertex_range, instance_range);
 }
