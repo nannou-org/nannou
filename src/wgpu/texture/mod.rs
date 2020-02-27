@@ -87,6 +87,29 @@ impl Texture {
 
     // Custom common use methods.
 
+    /// The view descriptor describing a full view of the texture.
+    pub fn create_default_view_descriptor(&self) -> wgpu::TextureViewDescriptor {
+        let dimension = match self.dimension() {
+            wgpu::TextureDimension::D1 => wgpu::TextureViewDimension::D1,
+            wgpu::TextureDimension::D2 => match self.array_layer_count() {
+                1 => wgpu::TextureViewDimension::D2,
+                _ => wgpu::TextureViewDimension::D2Array,
+            },
+            wgpu::TextureDimension::D3 => wgpu::TextureViewDimension::D3,
+        };
+        // TODO: Is this correct? Should we check the format?
+        let aspect = wgpu::TextureAspect::All;
+        wgpu::TextureViewDescriptor {
+            format: self.format(),
+            dimension,
+            aspect,
+            base_mip_level: 0,
+            level_count: self.mip_level_count(),
+            base_array_layer: 0,
+            array_layer_count: self.array_layer_count(),
+        }
+    }
+
     /// Creates a `TextureCopyView` ready for copying to or from the entire texture.
     pub fn create_default_copy_view(&self) -> wgpu::TextureCopyView {
         wgpu::TextureCopyView {

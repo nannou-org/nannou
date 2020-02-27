@@ -38,14 +38,37 @@ impl wgpu::Texture {
     pub fn load_from_image_buffer<P, Container>(
         device: &wgpu::Device,
         queue: &mut wgpu::Queue,
-        buffer: &image::ImageBuffer<P, Container>,
         usage: wgpu::TextureUsage,
+        buffer: &image::ImageBuffer<P, Container>,
     ) -> wgpu::Texture
     where
         P: 'static + Pixel,
         Container: std::ops::Deref<Target = [P::Subpixel]>,
     {
-        load_texture_from_image_buffer(device, queue, buffer, usage)
+        load_texture_from_image_buffer(device, queue, usage, buffer)
+    }
+
+    /// Load a texture array directly from a sequence of image buffers.
+    ///
+    /// No format or size conversions are performed - the given buffer is loaded directly into GPU
+    /// memory.
+    ///
+    /// Pixel type compatibility is ensured via the `Pixel` trait.
+    ///
+    /// Returns `None` if there are no images in the given sequence.
+    pub fn load_array_from_image_buffers<'a, I, P, Container>(
+        device: &wgpu::Device,
+        queue: &mut wgpu::Queue,
+        usage: wgpu::TextureUsage,
+        buffers: I,
+    ) -> Option<Self>
+    where
+        I: IntoIterator<Item = &'a image::ImageBuffer<P, Container>>,
+        I::IntoIter: ExactSizeIterator,
+        P: 'static + Pixel,
+        Container: 'a + std::ops::Deref<Target = [P::Subpixel]>,
+    {
+        load_texture_array_from_image_buffers(device, queue, usage, buffers)
     }
 
     /// Encode the necessary commands to load a texture from the given image buffer.
@@ -60,14 +83,41 @@ impl wgpu::Texture {
     pub fn encode_load_from_image_buffer<P, Container>(
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        buffer: &image::ImageBuffer<P, Container>,
         usage: wgpu::TextureUsage,
+        buffer: &image::ImageBuffer<P, Container>,
     ) -> Self
     where
         P: 'static + Pixel,
         Container: std::ops::Deref<Target = [P::Subpixel]>,
     {
-        encode_load_texture_from_image_buffer(device, encoder, buffer, usage)
+        encode_load_texture_from_image_buffer(device, encoder, usage, buffer)
+    }
+
+    /// Encode the necessary commands to load a texture array directly from a sequence of image
+    /// buffers.
+    ///
+    /// NOTE: The returned texture will remain empty until the given `encoder` has its command buffer
+    /// submitted to the given `device`'s queue.
+    ///
+    /// No format or size conversions are performed - the given buffer is loaded directly into GPU
+    /// memory.
+    ///
+    /// Pixel type compatibility is ensured via the `Pixel` trait.
+    ///
+    /// Returns `None` if there are no images in the given sequence.
+    pub fn encode_load_array_from_image_buffers<'a, I, P, Container>(
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        usage: wgpu::TextureUsage,
+        buffers: I,
+    ) -> Option<Self>
+    where
+        I: IntoIterator<Item = &'a image::ImageBuffer<P, Container>>,
+        I::IntoIter: ExactSizeIterator,
+        P: 'static + Pixel,
+        Container: 'a + std::ops::Deref<Target = [P::Subpixel]>,
+    {
+        encode_load_texture_array_from_image_buffers(device, encoder, usage, buffers)
     }
 }
 
@@ -168,8 +218,8 @@ where
 pub fn load_texture_from_image_buffer<P, Container>(
     device: &wgpu::Device,
     queue: &mut wgpu::Queue,
-    buffer: &image::ImageBuffer<P, Container>,
     usage: wgpu::TextureUsage,
+    buffer: &image::ImageBuffer<P, Container>,
 ) -> wgpu::Texture
 where
     P: 'static + Pixel,
@@ -177,7 +227,7 @@ where
 {
     let cmd_encoder_desc = wgpu::CommandEncoderDescriptor::default();
     let mut encoder = device.create_command_encoder(&cmd_encoder_desc);
-    let texture = encode_load_texture_from_image_buffer(device, &mut encoder, buffer, usage);
+    let texture = encode_load_texture_from_image_buffer(device, &mut encoder, usage, buffer);
     queue.submit(&[encoder.finish()]);
     texture
 }
@@ -194,8 +244,8 @@ where
 pub fn encode_load_texture_from_image_buffer<P, Container>(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
-    buffer: &image::ImageBuffer<P, Container>,
     usage: wgpu::TextureUsage,
+    buffer: &image::ImageBuffer<P, Container>,
 ) -> wgpu::Texture
 where
     P: 'static + Pixel,
@@ -219,4 +269,84 @@ where
     encoder.copy_buffer_to_texture(buffer_copy_view, texture_copy_view, extent);
 
     texture
+}
+
+/// Load a texture array directly from a sequence of image buffers.
+///
+/// No format or size conversions are performed - the given buffer is loaded directly into GPU
+/// memory.
+///
+/// Pixel type compatibility is ensured via the `Pixel` trait.
+///
+/// Returns `None` if there are no images in the given sequence.
+pub fn load_texture_array_from_image_buffers<'a, I, P, Container>(
+    device: &wgpu::Device,
+    queue: &mut wgpu::Queue,
+    usage: wgpu::TextureUsage,
+    buffers: I,
+) -> Option<wgpu::Texture>
+where
+    I: IntoIterator<Item = &'a image::ImageBuffer<P, Container>>,
+    I::IntoIter: ExactSizeIterator,
+    P: 'static + Pixel,
+    Container: 'a + std::ops::Deref<Target = [P::Subpixel]>,
+{
+    let cmd_encoder_desc = wgpu::CommandEncoderDescriptor::default();
+    let mut encoder = device.create_command_encoder(&cmd_encoder_desc);
+    let texture = encode_load_texture_array_from_image_buffers(device, &mut encoder, usage, buffers);
+    queue.submit(&[encoder.finish()]);
+    texture
+}
+
+/// Encode the necessary commands to load a texture array directly from a sequence of image
+/// buffers.
+///
+/// NOTE: The returned texture will remain empty until the given `encoder` has its command buffer
+/// submitted to the given `device`'s queue.
+///
+/// No format or size conversions are performed - the given buffer is loaded directly into GPU
+/// memory.
+///
+/// Pixel type compatibility is ensured via the `Pixel` trait.
+///
+/// Returns `None` if there are no images in the given sequence.
+pub fn encode_load_texture_array_from_image_buffers<'a, I, P, Container>(
+    device: &wgpu::Device,
+    encoder: &mut wgpu::CommandEncoder,
+    usage: wgpu::TextureUsage,
+    buffers: I,
+) -> Option<wgpu::Texture>
+where
+    I: IntoIterator<Item = &'a image::ImageBuffer<P, Container>>,
+    I::IntoIter: ExactSizeIterator,
+    P: 'static + Pixel,
+    Container: 'a + std::ops::Deref<Target = [P::Subpixel]>,
+{
+    let mut buffers = buffers.into_iter();
+    let array_layers = buffers.len() as u32;
+    let first_buffer = buffers.next()?;
+
+    // Build the texture ready to receive the data.
+    let texture = wgpu::TextureBuilder::from_image_view(first_buffer)
+        .array_layer_count(array_layers)
+        .usage(wgpu::TextureUsage::COPY_DST | usage)
+        .build(device);
+
+    // Copy each buffer to the texture, one layer at a time.
+    for (layer, buffer) in Some(first_buffer).into_iter().chain(buffers).enumerate() {
+        // Upload the pixel data.
+        let subpixel_data: &[P::Subpixel] = std::ops::Deref::deref(buffer);
+        let buffer = device
+            .create_buffer_mapped(subpixel_data.len(), wgpu::BufferUsage::COPY_SRC)
+            .fill_from_slice(subpixel_data);
+
+        // Submit command for copying pixel data to the texture.
+        let buffer_copy_view = texture.create_default_buffer_copy_view(&buffer);
+        let mut texture_copy_view = texture.create_default_copy_view();
+        texture_copy_view.array_layer = layer as u32;
+        let extent = texture.size();
+        encoder.copy_buffer_to_texture(buffer_copy_view, texture_copy_view, extent);
+    }
+
+    Some(texture)
 }

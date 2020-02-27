@@ -1,4 +1,5 @@
 use nannou::prelude::*;
+use nannou::image::GenericImageView;
 
 struct Model {
     bind_group: wgpu::BindGroup,
@@ -33,8 +34,12 @@ fn main() {
 }
 
 fn model(app: &App) -> Model {
-    let w_id = app.new_window().size(512, 512).view(view).build().unwrap();
+    // Load the image.
+    let logo_path = app.assets_path().unwrap().join("images").join("nannou.png");
+    let image = image::open(logo_path).unwrap();
+    let (img_w, img_h) = image.dimensions();
 
+    let w_id = app.new_window().size(img_w, img_h).view(view).build().unwrap();
     let window = app.window(w_id).unwrap();
     let device = window.swap_chain_device();
     let format = Frame::TEXTURE_FORMAT;
@@ -49,14 +54,14 @@ fn model(app: &App) -> Model {
         wgpu::read_spirv(std::io::Cursor::new(&fs[..])).expect("failed to read hard-coded SPIRV");
     let fs_mod = device.create_shader_module(&fs_spirv);
 
-    let logo_path = app.assets_path().unwrap().join("images").join("Nannou.png");
-    let image = image::open(logo_path).unwrap().to_rgba();
+    // Ensure the image.
+    let image_rgba = image.into_rgba();
     let texture = {
         // The wgpu device queue used to load the image data.
         let mut queue = window.swap_chain_queue().lock().unwrap();
         // Describe how we will use the texture so that the GPU may handle it efficiently.
         let usage = wgpu::TextureUsage::SAMPLED;
-        wgpu::Texture::load_from_image_buffer(device, &mut *queue, &image, usage)
+        wgpu::Texture::load_from_image_buffer(device, &mut *queue, usage, &image_rgba)
     };
     let texture_view = texture.create_default_view();
 
