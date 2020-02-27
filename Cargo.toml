@@ -20,7 +20,7 @@ conrod_wgpu = { git = "https://github.com/mitchmindtree/conrod", branch = "conro
 conrod_winit = { git = "https://github.com/mitchmindtree/conrod", branch = "conrod_wgpu" }
 daggy = "0.6"
 find_folder = "0.3"
-image = "0.22"
+image = "0.23"
 lyon = "0.14"
 noise = "0.6"
 notosans = { version = "0.1", optional = true }

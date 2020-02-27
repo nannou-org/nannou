@@ -1,5 +1,8 @@
 use crate::wgpu::TextureHandle;
 
+pub mod format_converter;
+pub mod image;
+
 /// A convenient wrapper around a handle to a texture on the GPU along with its descriptor.
 ///
 /// A texture can be thought of as an image that resides in GPU memory (as opposed to CPU memory).
@@ -23,6 +26,8 @@ pub struct Builder {
 }
 
 impl Texture {
+    // `wgpu::TextureDescriptor` accessor methods.
+
     /// The inner descriptor from which this **Texture** was constructed.
     pub fn descriptor(&self) -> &wgpu::TextureDescriptor {
         &self.descriptor
@@ -60,6 +65,8 @@ impl Texture {
         self.descriptor.usage
     }
 
+    // Custom constructors.
+
     /// Create a **Texture** from the inner wgpu texture handle and the descriptor used to create
     /// it.
     ///
@@ -68,13 +75,41 @@ impl Texture {
     /// [**TextureBuilder**](./struct.Builder.html).
     ///
     /// The `descriptor` must be the same used to create the texture.
-    pub fn from_texture_and_descriptor(
-        texture: TextureHandle,
+    pub fn from_handle_and_descriptor(
+        handle: TextureHandle,
         descriptor: wgpu::TextureDescriptor,
     ) -> Self {
         Texture {
-            texture,
+            texture: handle,
             descriptor,
+        }
+    }
+
+    // Custom common use methods.
+
+    /// Creates a `TextureCopyView` ready for copying to or from the entire texture.
+    pub fn create_default_copy_view(&self) -> wgpu::TextureCopyView {
+        wgpu::TextureCopyView {
+            texture: &self.texture,
+            mip_level: 0,
+            array_layer: 0,
+            origin: wgpu::Origin3d::ZERO,
+        }
+    }
+
+    /// Creates a `BufferCopyView` ready for copying to or from the given buffer where the given
+    /// buffer is assumed to have the same size as the entirety of this texture.
+    pub fn create_default_buffer_copy_view<'a>(
+        &self,
+        buffer: &'a wgpu::Buffer,
+    ) -> wgpu::BufferCopyView<'a> {
+        let format_size_bytes = format_size_bytes(self.format());
+        let size = self.size();
+        wgpu::BufferCopyView {
+            buffer,
+            offset: 0,
+            row_pitch: size.width * format_size_bytes,
+            image_height: size.height,
         }
     }
 }
@@ -224,5 +259,21 @@ impl From<wgpu::TextureDescriptor> for Builder {
 impl Into<wgpu::TextureDescriptor> for Builder {
     fn into(self) -> wgpu::TextureDescriptor {
         self.descriptor
+    }
+}
+
+/// Return the size of the given texture format in bytes.
+pub fn format_size_bytes(format: wgpu::TextureFormat) -> u32 {
+    use wgpu::TextureFormat::*;
+    match format {
+        R8Unorm | R8Snorm | R8Uint | R8Sint => 1,
+        R16Unorm | R16Snorm | R16Uint | R16Sint | R16Float | Rg8Unorm | Rg8Snorm | Rg8Uint
+        | Rg8Sint => 2,
+        R32Uint | R32Sint | R32Float | Rg16Unorm | Rg16Snorm | Rg16Uint | Rg16Sint | Rg16Float
+        | Rgba8Unorm | Rgba8UnormSrgb | Rgba8Snorm | Rgba8Uint | Rgba8Sint | Bgra8Unorm
+        | Bgra8UnormSrgb | Rgb10a2Unorm | Rg11b10Float => 4,
+        Rg32Uint | Rg32Sint | Rg32Float | Rgba16Unorm | Rgba16Snorm | Rgba16Uint | Rgba16Sint
+        | Rgba16Float | Rgba32Uint | Rgba32Sint | Rgba32Float => 8,
+        Depth32Float | Depth24Plus | Depth24PlusStencil8 => 4,
     }
 }

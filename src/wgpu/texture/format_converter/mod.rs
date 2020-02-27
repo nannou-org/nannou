@@ -9,7 +9,7 @@
 /// Both textures should **not** be multisampled. *Note: Please open an issue if you would like
 /// support for multisampled source textures as it should be quite trivial to add.*
 #[derive(Debug)]
-pub struct TextureFormatConverter {
+pub struct FormatConverter {
     _vs_mod: wgpu::ShaderModule,
     _fs_mod: wgpu::ShaderModule,
     bind_group_layout: wgpu::BindGroupLayout,
@@ -19,8 +19,8 @@ pub struct TextureFormatConverter {
     vertex_buffer: wgpu::Buffer,
 }
 
-impl TextureFormatConverter {
-    /// Construct a new `TextureFormatConverter`.
+impl FormatConverter {
+    /// Construct a new `FormatConverter`.
     pub fn new(
         device: &wgpu::Device,
         src_texture: &wgpu::TextureView,
@@ -54,7 +54,7 @@ impl TextureFormatConverter {
             .create_buffer_mapped(VERTICES.len(), wgpu::BufferUsage::VERTEX)
             .fill_from_slice(&VERTICES[..]);
 
-        TextureFormatConverter {
+        FormatConverter {
             _vs_mod: vs_mod,
             _fs_mod: fs_mod,
             bind_group_layout,

@@ -6,7 +6,6 @@
 mod device_map;
 mod sampler_builder;
 mod texture;
-mod texture_format_converter;
 
 // Re-export all of `wgpu` along with its documentation.
 //
@@ -16,8 +15,11 @@ pub use self::device_map::{
     ActiveAdapter, AdapterMap, AdapterMapKey, DeviceMap, DeviceMapKey, DeviceQueuePair,
 };
 pub use self::sampler_builder::SamplerBuilder;
-pub use self::texture::{Builder as TextureBuilder, Texture};
-pub use self::texture_format_converter::TextureFormatConverter;
+pub use self::texture::format_converter::FormatConverter as TextureFormatConverter;
+pub use self::texture::image::format_from_image_color_type as texture_format_from_image_color_type;
+pub use self::texture::{
+    format_size_bytes as texture_format_size_bytes, Builder as TextureBuilder, Texture,
+};
 #[doc(inline)]
 pub use wgpu::{
     read_spirv, Adapter, AdapterInfo, AddressMode, BackendBit, BindGroup, BindGroupDescriptor,
