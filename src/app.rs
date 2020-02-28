@@ -959,6 +959,7 @@ fn run_loop<M, E>(
                 // We'll replace them before the end of this block.
                 let (mut render_data, mut swap_chain, nth_frame) = {
                     let mut windows = app.windows.borrow_mut();
+
                     let window = windows
                         .get_mut(&window_id)
                         .expect("no window for redraw request ID");
@@ -972,9 +973,6 @@ fn run_loop<M, E>(
                     window.frame_count += 1;
                     (render_data, swap_chain, nth_frame)
                 };
-
-                // The command buffer to be created.
-                let mut command_buffer = None;
 
                 if let Some(model) = model.as_ref() {
                     let swap_chain_output = swap_chain.get_next_texture();
@@ -1008,14 +1006,14 @@ fn run_loop<M, E>(
                     // Otherwise, use the fallback, default view passed to the app if there was one.
                     let window_view = window.user_functions.view.clone();
 
-                    command_buffer = match window_view {
+                    let command_buffer = match window_view {
                         Some(window::View::Sketch(view)) => {
                             let r_data = render_data.take().expect("missing `render_data`");
                             let frame = Frame::new_empty(raw_frame, r_data);
                             view(&app, &frame);
                             let (r_data, raw_frame) = frame.finish();
                             render_data = Some(r_data);
-                            Some(raw_frame.finish().finish())
+                            raw_frame.finish().finish()
                         }
                         Some(window::View::WithModel(view)) => {
                             let r_data = render_data.take().expect("missing `render_data`");
@@ -1026,14 +1024,14 @@ fn run_loop<M, E>(
                             (*view)(&app, &model, &frame);
                             let (r_data, raw_frame) = frame.finish();
                             render_data = Some(r_data);
-                            Some(raw_frame.finish().finish())
+                            raw_frame.finish().finish()
                         }
                         Some(window::View::WithModelRaw(raw_view)) => {
                             let raw_view = raw_view.to_fn_ptr::<M>().expect(
                                 "unexpected model argument given to window raw_view function",
                             );
                             (*raw_view)(&app, &model, &raw_frame);
-                            Some(raw_frame.finish().finish())
+                            raw_frame.finish().finish()
                         }
                         None => match default_view {
                             Some(View::Sketch(view)) => {
@@ -1042,7 +1040,7 @@ fn run_loop<M, E>(
                                 view(&app, &frame);
                                 let (r_data, raw_frame) = frame.finish();
                                 render_data = Some(r_data);
-                                Some(raw_frame.finish().finish())
+                                raw_frame.finish().finish()
                             }
                             Some(View::WithModel(view)) => {
                                 let r_data = render_data.take().expect("missing `render_data`");
@@ -1050,11 +1048,18 @@ fn run_loop<M, E>(
                                 view(&app, &model, &frame);
                                 let (r_data, raw_frame) = frame.finish();
                                 render_data = Some(r_data);
-                                Some(raw_frame.finish().finish())
+                                raw_frame.finish().finish()
                             }
-                            None => None,
+                            None => raw_frame.finish().finish(),
                         },
                     };
+
+                    // Submit the command buffer to the queue.
+                    window
+                        .swap_chain_queue()
+                        .lock()
+                        .expect("failed to acquire window's swap chain queue")
+                        .submit(&[command_buffer]);
                 }
 
                 // Replace the render data and swap chain.
@@ -1062,15 +1067,6 @@ fn run_loop<M, E>(
                 let window = windows
                     .get_mut(&window_id)
                     .expect("no window for redraw request ID");
-
-                // Submit the command buffer to the queue.
-                if let Some(command_buffer) = command_buffer {
-                    window
-                        .swap_chain_queue()
-                        .lock()
-                        .expect("failed to acquire window's swap chain queue")
-                        .submit(&[command_buffer]);
-                }
 
                 window.frame_render_data = render_data;
                 window.swap_chain.swap_chain = Some(swap_chain);
