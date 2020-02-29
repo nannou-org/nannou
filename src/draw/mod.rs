@@ -11,6 +11,7 @@ use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
 use std::{fmt, mem, ops};
 
+pub use self::backend::wgpu::Renderer;
 pub use self::background::Background;
 pub use self::drawing::{Drawing, DrawingContext};
 pub use self::mesh::intermediary::{

@@ -85,8 +85,40 @@ impl Vertex {
 }
 
 impl Renderer {
+    /// The default depth format
+    pub const DEFAULT_DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
+
+    /// Create a **Renderer** targeting an output attachment texture of the given description.
+    pub fn from_texture_descriptor(
+        device: &wgpu::Device,
+        descriptor: &wgpu::TextureDescriptor,
+    ) -> Self {
+        Self::new(
+            device,
+            [descriptor.size.width, descriptor.size.height],
+            descriptor.sample_count,
+            descriptor.format,
+        )
+    }
+
     /// Construct a new `Renderer`.
     pub fn new(
+        device: &wgpu::Device,
+        output_attachment_size: [u32; 2],
+        msaa_samples: u32,
+        output_attachment_color_format: wgpu::TextureFormat,
+    ) -> Self {
+        Self::with_depth_format(
+            device,
+            output_attachment_size,
+            msaa_samples,
+            output_attachment_color_format,
+            Self::DEFAULT_DEPTH_FORMAT,
+        )
+    }
+
+    /// The same as **new**, but allows for manually specifying the depth format.
+    pub fn with_depth_format(
         device: &wgpu::Device,
         output_attachment_size: [u32; 2],
         msaa_samples: u32,
@@ -137,15 +169,22 @@ impl Renderer {
         }
     }
 
+    /// Encode a render pass with the given **Draw**ing to the given `output_attachment`.
+    ///
+    /// If the **Draw**ing has been scaled for handling DPI, specify the necessary `scale_factor`
+    /// for scaling back to the `output_attachment_size` (physical dimensions).
+    ///
+    /// If the `output_attachment` is multisampled and should be resolved to another texture,
+    /// include the `resolve_target`.
     pub fn encode_render_pass<S>(
         &mut self,
         device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
         draw: &draw::Draw<S>,
         scale_factor: f32,
         output_attachment_size: [u32; 2],
         output_attachment: &wgpu::TextureView,
         resolve_target: Option<&wgpu::TextureView>,
-        encoder: &mut wgpu::CommandEncoder,
     ) where
         S: BaseFloat,
     {
@@ -161,7 +200,7 @@ impl Renderer {
 
         // Resize the depth texture if the output attachment size has changed.
         let depth_size = depth_texture.size();
-        if output_attachment_size != [depth_size.width, depth_size.height] {
+        if output_attachment_size != depth_size {
             let depth_format = depth_texture.format();
             let sample_count = depth_texture.sample_count();
             *depth_texture =
@@ -229,27 +268,56 @@ impl Renderer {
         render_pass.draw_indexed(index_range, start_vertex, instance_range);
     }
 
+    /// Encode the necessary commands to render the contents of the given **Draw**ing to the given
+    /// **Texture**.
+    pub fn render_to_texture<S>(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        draw: &draw::Draw<S>,
+        texture: &wgpu::Texture,
+    ) where
+        S: BaseFloat,
+    {
+        let size = texture.size();
+        let view = texture.create_default_view();
+        // TODO: Should we expose this for rendering to textures?
+        let scale_factor = 1.0;
+        let resolve_target = None;
+        self.encode_render_pass(
+            device,
+            encoder,
+            draw,
+            scale_factor,
+            size,
+            &view,
+            resolve_target,
+        );
+    }
+
+    /// Encode the necessary commands to render the contents of the given **Draw**ing to the given
+    /// **Frame**.
     pub fn render_to_frame<S>(
         &mut self,
         device: &wgpu::Device,
         draw: &draw::Draw<S>,
         scale_factor: f32,
-        frame_dims: [u32; 2],
         frame: &Frame,
     ) where
         S: BaseFloat,
     {
+        let size = frame.texture().size();
         let attachment = frame.texture_view();
-        let resolve_target = frame.resolve_target();
+        let resolve_target = None;
         let mut command_encoder = frame.command_encoder();
         self.encode_render_pass(
             device,
+            &mut *command_encoder,
             draw,
             scale_factor,
-            frame_dims,
+            size,
             attachment,
             resolve_target,
-            &mut *command_encoder,
         );
     }
 }

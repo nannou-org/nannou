@@ -31,6 +31,7 @@ rusttype = "0.8"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
+threadpool = "1"
 toml = "0.5"
 walkdir = "2"
 wgpu = "0.4"
@@ -47,6 +48,9 @@ nannou_osc = "0.1"
 [[example]]
 name = "all_functions"
 path = "examples/all_functions.rs"
+[[example]]
+name = "capture_hi_res"
+path = "examples/capture_hi_res.rs"
 [[example]]
 name = "loop_mode"
 path = "examples/loop_mode.rs"
@@ -68,6 +72,9 @@ path = "examples/simple_audio.rs"
 [[example]]
 name = "simple_audio_file"
 path = "examples/simple_audio_file.rs"
+[[example]]
+name = "simple_capture"
+path = "examples/simple_capture.rs"
 [[example]]
 name = "simple_draw"
 path = "examples/simple_draw.rs"

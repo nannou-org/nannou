@@ -10,7 +10,7 @@ use crate::geom::{Point2, Vector2};
 use crate::wgpu;
 use crate::App;
 use std::any::Any;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::{env, fmt};
 use winit::dpi::LogicalSize;
@@ -221,11 +221,19 @@ pub struct Window {
     pub(crate) device_queue_pair: Arc<wgpu::DeviceQueuePair>,
     msaa_samples: u32,
     pub(crate) swap_chain: WindowSwapChain,
-    // Data for rendering a `Frame`'s intermediary image to a swap chain image.
-    pub(crate) frame_render_data: Option<frame::RenderData>,
+    pub(crate) frame_data: Option<FrameData>,
     pub(crate) frame_count: u64,
     pub(crate) user_functions: UserFunctions,
     pub(crate) tracked_state: TrackedState,
+}
+
+// Data related to `Frame`s produced for this window's swapchain textures.
+#[derive(Debug)]
+pub(crate) struct FrameData {
+    // Data for rendering a `Frame`'s intermediary image to a swap chain image.
+    pub(crate) render: frame::RenderData,
+    // Data for capturing a `Frame`'s intermediary image before submission.
+    pub(crate) capture: frame::CaptureData,
 }
 
 // Track and store some information about the window in order to avoid making repeated internal
@@ -745,18 +753,20 @@ impl<'app> Builder<'app> {
 
         // If we're using an intermediary image for rendering frames to swap_chain images, create
         // the necessary render data.
-        let (frame_render_data, msaa_samples) = match user_functions.view {
+        let (frame_data, msaa_samples) = match user_functions.view {
             Some(View::WithModel(_)) | Some(View::Sketch(_)) | None => {
                 let msaa_samples = msaa_samples.unwrap_or(Frame::DEFAULT_MSAA_SAMPLES);
                 // TODO: Verity that requested sample count is valid for surface?
                 let swap_chain_dims = [swap_chain_desc.width, swap_chain_desc.height];
-                let render_data = frame::RenderData::new(
+                let render = frame::RenderData::new(
                     &device,
                     swap_chain_dims,
                     swap_chain_desc.format,
                     msaa_samples,
                 );
-                (Some(render_data), msaa_samples)
+                let capture = frame::CaptureData::default();
+                let frame_data = FrameData { render, capture };
+                (Some(frame_data), msaa_samples)
             }
             Some(View::WithModelRaw(_)) => (None, 1),
         };
@@ -779,7 +789,7 @@ impl<'app> Builder<'app> {
             device_queue_pair,
             msaa_samples,
             swap_chain,
-            frame_render_data,
+            frame_data,
             frame_count,
             user_functions,
             tracked_state,
@@ -1269,12 +1279,15 @@ impl Window {
             self.swap_chain_device()
                 .create_swap_chain(&self.surface, &self.swap_chain.descriptor),
         );
-        self.frame_render_data = Some(frame::RenderData::new(
-            self.swap_chain_device(),
-            size_px,
-            self.swap_chain.descriptor.format,
-            self.msaa_samples,
-        ));
+        if self.frame_data.is_some() {
+            let render_data = frame::RenderData::new(
+                self.swap_chain_device(),
+                size_px,
+                self.swap_chain.descriptor.format,
+                self.msaa_samples,
+            );
+            self.frame_data.as_mut().unwrap().render = render_data;
+        }
     }
 
     /// Attempts to determine whether or not the window is currently fullscreen.
@@ -1298,6 +1311,41 @@ impl Window {
     pub fn rect(&self) -> geom::Rect {
         let (w, h) = self.inner_size_points();
         geom::Rect::from_w_h(w, h)
+    }
+
+    /// Capture the next frame right before it is drawn to this window and write it to an image
+    /// file at the given path. If a frame already exists, it will be captured before its `submit`
+    /// method is called or before it is `drop`ped.
+    ///
+    /// The destination image file type will be inferred from the extension given in the path.
+    ///
+    /// The **App** will use a separate thread for writing the image file in order to avoid
+    /// interfering with the main application thread. Note that if you are capturing every frame
+    /// and your window size is very large or the file type you are writing to is expensive to
+    /// encode, this capturing thread may fall behind the main thread, resulting in a large delay
+    /// before the exiting the program. This is because the capturing thread needs more time to
+    /// write the captured images.
+    pub fn capture_frame<P>(&self, path: P)
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+
+        // If the parent directory does not exist, create it.
+        let dir = path.parent().expect("capture_frame path has no directory");
+        if !dir.exists() {
+            std::fs::create_dir_all(&dir).expect("failed to create `capture_frame` directory");
+        }
+
+        let mut capture_next_frame_path = self
+            .frame_data
+            .as_ref()
+            .expect("window capture requires that `view` draws to a `Frame` (not a `RawFrame`)")
+            .capture
+            .next_frame_path
+            .lock()
+            .expect("failed to lock `capture_next_frame_path`");
+        *capture_next_frame_path = Some(path.to_path_buf());
     }
 }
 

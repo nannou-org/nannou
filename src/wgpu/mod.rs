@@ -15,10 +15,18 @@ pub use self::device_map::{
     ActiveAdapter, AdapterMap, AdapterMapKey, DeviceMap, DeviceMapKey, DeviceQueuePair,
 };
 pub use self::sampler_builder::SamplerBuilder;
-pub use self::texture::format_converter::FormatConverter as TextureFormatConverter;
-pub use self::texture::image::format_from_image_color_type as texture_format_from_image_color_type;
+pub use self::texture::capturer::{
+    Capturer as TextureCapturer, Rgba8AsyncMapping, Snapshot as TextureSnapshot,
+};
+pub use self::texture::image::{
+    format_from_image_color_type as texture_format_from_image_color_type, BufferImage,
+    ImageAsyncMapping,
+};
+pub use self::texture::reshaper::Reshaper as TextureReshaper;
 pub use self::texture::{
-    format_size_bytes as texture_format_size_bytes, Builder as TextureBuilder, Texture,
+    descriptor_eq as texture_descriptor_eq, extent_3d_eq,
+    format_size_bytes as texture_format_size_bytes, BufferBytes, Builder as TextureBuilder,
+    Texture,
 };
 #[doc(inline)]
 pub use wgpu::{

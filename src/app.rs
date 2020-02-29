@@ -488,7 +488,6 @@ impl App {
     pub const ASSETS_DIRECTORY_NAME: &'static str = "assets";
     pub const DEFAULT_EXIT_ON_ESCAPE: bool = true;
     pub const DEFAULT_FULLSCREEN_ON_SHORTCUT: bool = true;
-    pub const DEFAULT_DRAW_DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
     // Create a new `App`.
     pub(super) fn new(
@@ -726,13 +725,11 @@ impl App {
                 let frame_dims: [u32; 2] = window.tracked_state.physical_size.into();
                 let msaa_samples = window.msaa_samples();
                 let target_format = crate::frame::Frame::TEXTURE_FORMAT;
-                let depth_format = Self::DEFAULT_DRAW_DEPTH_FORMAT;
                 let renderer = draw::backend::wgpu::Renderer::new(
                     device,
                     frame_dims,
                     msaa_samples,
                     target_format,
-                    depth_format,
                 );
                 RefCell::new(renderer)
             })
@@ -768,6 +765,27 @@ impl App {
     /// The number of frames that can currently be displayed a second
     pub fn fps(&self) -> f32 {
         self.duration.updates_per_second()
+    }
+
+    /// The name of the nannou executable that is currently running.
+    pub fn exe_name(&self) -> std::io::Result<String> {
+        let string = std::env::current_exe()?
+            .file_stem()
+            .expect("exe path contained no file stem")
+            .to_string_lossy()
+            .to_string();
+        Ok(string)
+    }
+
+    /// The path to the current project directory.
+    ///
+    /// The current project directory is considered to be the directory containing the cargo
+    /// manifest (aka the `Cargo.toml` file).
+    ///
+    /// **Note:** Be careful not to rely on this directory for apps or sketches that you wish to
+    /// distribute! This directory is mostly useful for local sketches, experiments and testing.
+    pub fn project_dir(&self) -> &std::path::Path {
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
     }
 }
 
@@ -809,14 +827,7 @@ impl<'a> Draw<'a> {
         );
         let scale_factor = window.tracked_state.scale_factor as _;
         let mut renderer = self.renderer.borrow_mut();
-        let frame_dims = frame.texture_size();
-        renderer.render_to_frame(
-            window.swap_chain_device(),
-            &self.draw,
-            scale_factor,
-            frame_dims,
-            frame,
-        );
+        renderer.render_to_frame(window.swap_chain_device(), &self.draw, scale_factor, frame);
         Ok(())
     }
 }
@@ -983,7 +994,7 @@ fn run_loop<M, E>(
                     let window = windows
                         .get(&window_id)
                         .expect("failed to find window for redraw request");
-                    let render_data = &window.frame_render_data;
+                    let frame_data = &window.frame_data;
 
                     // Construct and emit a frame via `view` for receiving the user's graphics commands.
                     let sf = window.tracked_state.scale_factor;
@@ -1008,13 +1019,13 @@ fn run_loop<M, E>(
 
                     match window_view {
                         Some(window::View::Sketch(view)) => {
-                            let r_data = render_data.as_ref().expect("missing `render_data`");
-                            let frame = Frame::new_empty(raw_frame, r_data);
+                            let data = frame_data.as_ref().expect("missing `frame_data`");
+                            let frame = Frame::new_empty(raw_frame, &data.render, &data.capture);
                             view(&app, frame);
                         }
                         Some(window::View::WithModel(view)) => {
-                            let r_data = render_data.as_ref().expect("missing `render_data`");
-                            let frame = Frame::new_empty(raw_frame, r_data);
+                            let data = frame_data.as_ref().expect("missing `frame_data`");
+                            let frame = Frame::new_empty(raw_frame, &data.render, &data.capture);
                             let view = view
                                 .to_fn_ptr::<M>()
                                 .expect("unexpected model argument given to window view function");
@@ -1028,13 +1039,15 @@ fn run_loop<M, E>(
                         }
                         None => match default_view {
                             Some(View::Sketch(view)) => {
-                                let r_data = render_data.as_ref().expect("missing `render_data`");
-                                let frame = Frame::new_empty(raw_frame, r_data);
+                                let data = frame_data.as_ref().expect("missing `frame_data`");
+                                let frame =
+                                    Frame::new_empty(raw_frame, &data.render, &data.capture);
                                 view(&app, frame);
                             }
                             Some(View::WithModel(view)) => {
-                                let r_data = render_data.as_ref().expect("missing `render_data`");
-                                let frame = Frame::new_empty(raw_frame, r_data);
+                                let data = frame_data.as_ref().expect("missing `frame_data`");
+                                let frame =
+                                    Frame::new_empty(raw_frame, &data.render, &data.capture);
                                 view(&app, &model, frame);
                             }
                             None => raw_frame.submit(),

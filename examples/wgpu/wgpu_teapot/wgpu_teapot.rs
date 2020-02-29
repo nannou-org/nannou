@@ -122,7 +122,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let depth_size = g.depth_texture.size();
     let frame_size = frame.texture_size();
     let device = frame.device_queue_pair().device();
-    if frame_size != [depth_size.width, depth_size.height] {
+    if frame_size != depth_size {
         let depth_format = g.depth_texture.format();
         let sample_count = frame.texture_msaa_samples();
         g.depth_texture = create_depth_texture(device, frame_size, depth_format, sample_count);

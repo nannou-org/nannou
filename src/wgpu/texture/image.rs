@@ -2,6 +2,8 @@
 //! textures from the wgpu crate (images in GPU memory).
 
 use crate::wgpu;
+use std::path::Path;
+use std::slice;
 
 /// The set of pixel types from the image crate that can be loaded directly into a texture.
 ///
@@ -12,6 +14,24 @@ use crate::wgpu;
 pub trait Pixel: image::Pixel {
     /// The wgpu texture format of the pixel type.
     const TEXTURE_FORMAT: wgpu::TextureFormat;
+}
+
+/// A wrapper around a wgpu buffer that contains an image of a known size and `image::ColorType`.
+#[derive(Debug)]
+pub struct BufferImage {
+    color_type: image::ColorType,
+    size: [u32; 2],
+    buffer: wgpu::BufferBytes,
+}
+
+/// A wrapper around a slice of bytes representing an image.
+///
+/// An `ImageAsyncMapping` may only be created by reading from a `BufferImage` returned by a
+/// `Texture::to_image` call.
+pub struct ImageAsyncMapping<'a> {
+    color_type: image::ColorType,
+    size: [u32; 2],
+    mapping: wgpu::BufferAsyncMapping<&'a [u8]>,
 }
 
 impl wgpu::TextureBuilder {
@@ -119,6 +139,127 @@ impl wgpu::Texture {
     {
         encode_load_texture_array_from_image_buffers(device, encoder, usage, buffers)
     }
+
+    /// Write the contents of the texture into a new image buffer.
+    ///
+    /// Commands will be added to the given encoder to copy the entire contents of the texture into
+    /// the buffer.
+    ///
+    /// Returns a buffer from which the image can be read asynchronously via `read`.
+    ///
+    /// Returns `None` if there is no directly compatible `image::ColorType` for the texture's format.
+    ///
+    /// NOTE: `read` should not be called on the returned buffer until the encoded commands have
+    /// been submitted to the device queue.
+    pub fn to_image(
+        &self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+    ) -> Option<BufferImage> {
+        let color_type = image_color_type_from_format(self.format())?;
+        let size = self.size();
+        let buffer = self.to_buffer_bytes(device, encoder);
+        Some(BufferImage {
+            color_type,
+            size,
+            buffer,
+        })
+    }
+}
+
+impl BufferImage {
+    /// The dimensions of the image stored within the buffer.
+    pub fn size(&self) -> [u32; 2] {
+        self.size
+    }
+
+    /// The color type of the image stored within the buffer.
+    pub fn color_type(&self) -> image::ColorType {
+        self.color_type
+    }
+
+    /// Asynchronously maps the buffer of bytes from GPU to host memory and, once mapped, calls the
+    /// given user callback with the data represented as an `ImageAsyncMapping`.
+    ///
+    /// Note: The given callback will not be called until the memory is mapped and the device is
+    /// polled. You should not rely on the callback being called immediately.
+    pub fn read<F>(&self, callback: F)
+    where
+        F: 'static + FnOnce(Result<ImageAsyncMapping, ()>),
+    {
+        let size = self.size;
+        let color_type = self.color_type;
+        self.buffer.read(move |result| {
+            let result = result.map(|mapping| ImageAsyncMapping {
+                color_type,
+                size,
+                mapping,
+            });
+            callback(result);
+        })
+    }
+}
+
+impl<'a> ImageAsyncMapping<'a> {
+    /// Produce the color type of an image, compatible with the `image` crate.
+    pub fn color_type(&self) -> image::ColorType {
+        self.color_type
+    }
+
+    /// The dimensions of the image.
+    pub fn size(&self) -> [u32; 2] {
+        self.size
+    }
+
+    /// The raw image data as a slice of bytes.
+    pub fn mapping(&self) -> &wgpu::BufferAsyncMapping<&[u8]> {
+        &self.mapping
+    }
+
+    /// Saves the buffer to a file at the specified path.
+    ///
+    /// The image format is derived from the file extension.
+    pub fn save(&self, path: &Path) -> image::ImageResult<()> {
+        let [width, height] = self.size();
+        image::save_buffer(path, &self.mapping.data, width, height, self.color_type)
+    }
+
+    /// Saves the buffer to a file at the specified path.
+    pub fn save_with_format(
+        &self,
+        path: &Path,
+        format: image::ImageFormat,
+    ) -> image::ImageResult<()> {
+        let [width, height] = self.size();
+        image::save_buffer_with_format(
+            path,
+            &self.mapping.data,
+            width,
+            height,
+            self.color_type,
+            format,
+        )
+    }
+
+    /// Attempt to cast this image ref to an `ImageBuffer` of the specified pixel type.
+    ///
+    /// Returns `None` if the specified pixel type does not match the inner `color_type`.
+    pub fn as_image_buffer<P>(&self) -> Option<image::ImageBuffer<P, &[P::Subpixel]>>
+    where
+        P: 'static + Pixel,
+    {
+        if P::COLOR_TYPE != self.color_type {
+            return None;
+        }
+        let [width, height] = self.size();
+        let len_pixels = (width * height) as usize;
+        let subpixel_data_ptr = self.mapping.data.as_ptr() as *const _;
+        let subpixel_data: &[P::Subpixel] =
+            unsafe { slice::from_raw_parts(subpixel_data_ptr, len_pixels) };
+        let img_buffer = image::ImageBuffer::from_raw(width, height, subpixel_data)
+            .expect("failed to construct image buffer from raw data");
+        Some(img_buffer)
+    }
 }
 
 impl Pixel for image::Bgra<u8> {
@@ -193,6 +334,26 @@ pub fn format_from_image_color_type(color_type: image::ColorType) -> Option<wgpu
     Some(format)
 }
 
+/// Convert the given texture format to the corresponding color type from the `image` crate.
+///
+/// Returns `None` if there is no directly compatible color type.
+///
+/// The `Rgba8` and `Bgra8` color types are assumed to be non-linear sRGB.
+pub fn image_color_type_from_format(format: wgpu::TextureFormat) -> Option<image::ColorType> {
+    let color_type = match format {
+        // TODO: Should we add branches for other same-size formats? e.g. R8Snorm, R8Uint, etc?
+        wgpu::TextureFormat::R8Unorm => image::ColorType::L8,
+        wgpu::TextureFormat::Rg8Unorm => image::ColorType::La8,
+        wgpu::TextureFormat::Rgba8UnormSrgb => image::ColorType::Rgba8,
+        wgpu::TextureFormat::R16Unorm => image::ColorType::L16,
+        wgpu::TextureFormat::Rg16Unorm => image::ColorType::La16,
+        wgpu::TextureFormat::Rgba16Unorm => image::ColorType::Rgba16,
+        wgpu::TextureFormat::Bgra8UnormSrgb => image::ColorType::Bgra8,
+        _ => return None,
+    };
+    Some(color_type)
+}
+
 /// Produce a texture descriptor from any type implementing `image::GenericImageView` whose `Pixel`
 /// type implements `Pixel`.
 ///
@@ -265,7 +426,7 @@ where
     // Submit command for copying pixel data to the texture.
     let buffer_copy_view = texture.create_default_buffer_copy_view(&buffer);
     let texture_copy_view = texture.create_default_copy_view();
-    let extent = texture.size();
+    let extent = texture.extent();
     encoder.copy_buffer_to_texture(buffer_copy_view, texture_copy_view, extent);
 
     texture
@@ -345,7 +506,7 @@ where
         let buffer_copy_view = texture.create_default_buffer_copy_view(&buffer);
         let mut texture_copy_view = texture.create_default_copy_view();
         texture_copy_view.array_layer = layer as u32;
-        let extent = texture.size();
+        let extent = texture.extent();
         encoder.copy_buffer_to_texture(buffer_copy_view, texture_copy_view, extent);
     }
 

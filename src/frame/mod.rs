@@ -3,6 +3,8 @@
 use crate::color::IntoLinSrgba;
 use crate::wgpu;
 use std::ops;
+use std::path::PathBuf;
+use std::sync::Mutex;
 
 pub mod raw;
 
@@ -18,7 +20,8 @@ pub use self::raw::RawFrame;
 /// intermediary image.
 pub struct Frame<'swap_chain> {
     raw_frame: RawFrame<'swap_chain>,
-    data: &'swap_chain RenderData,
+    render_data: &'swap_chain RenderData,
+    capture_data: &'swap_chain CaptureData,
 }
 
 /// Data specific to the intermediary textures.
@@ -28,7 +31,14 @@ pub struct RenderData {
     msaa_samples: u32,
     size: [u32; 2],
     // For writing the intermediary linear sRGBA texture to the swap chain texture.
-    texture_format_converter: wgpu::TextureFormatConverter,
+    texture_reshaper: wgpu::TextureReshaper,
+}
+
+/// Data related to the capturing of a frame.
+#[derive(Debug, Default)]
+pub(crate) struct CaptureData {
+    pub(crate) next_frame_path: Mutex<Option<PathBuf>>,
+    texture_capturer: wgpu::TextureCapturer,
 }
 
 /// Intermediary textures used as a target before resolving multisampling and writing to the
@@ -61,27 +71,48 @@ impl<'swap_chain> Frame<'swap_chain> {
     // Initialise a new empty frame ready for "drawing".
     pub(crate) fn new_empty(
         raw_frame: RawFrame<'swap_chain>,
-        data: &'swap_chain RenderData,
+        render_data: &'swap_chain RenderData,
+        capture_data: &'swap_chain CaptureData,
     ) -> Self {
-        Frame { raw_frame, data }
+        Frame {
+            raw_frame,
+            render_data,
+            capture_data,
+        }
     }
 
     // The private implementation of `submit`, allowing it to be called during `drop` if submission
     // has not yet occurred.
     fn submit_inner(&mut self) {
         let Frame {
-            ref data,
+            ref capture_data,
+            ref render_data,
             ref mut raw_frame,
         } = *self;
 
         // Resolve the MSAA if necessary.
-        if let Some((_, ref msaa_texture_view)) = data.intermediary_lin_srgba.msaa_texture {
+        if let Some((_, ref msaa_texture_view)) = render_data.intermediary_lin_srgba.msaa_texture {
             let mut encoder = raw_frame.command_encoder();
             wgpu::resolve_texture(
                 msaa_texture_view,
-                &data.intermediary_lin_srgba.texture_view,
+                &render_data.intermediary_lin_srgba.texture_view,
                 &mut *encoder,
             );
+        }
+
+        // Check to see if the user specified capturing the frame.
+        let mut snapshot_capture = None;
+        if let Ok(mut guard) = capture_data.next_frame_path.lock() {
+            if let Some(path) = guard.take() {
+                let device = raw_frame.device_queue_pair().device();
+                let mut encoder = raw_frame.command_encoder();
+                let snapshot = capture_data.texture_capturer.capture(
+                    device,
+                    &mut *encoder,
+                    &render_data.intermediary_lin_srgba.texture,
+                );
+                snapshot_capture = Some((path, snapshot));
+            }
         }
 
         // Convert the linear sRGBA image to the swapchain image.
@@ -90,11 +121,29 @@ impl<'swap_chain> Frame<'swap_chain> {
         // two triangles and a fragment shader.
         {
             let mut encoder = raw_frame.command_encoder();
-            data.texture_format_converter
+            render_data
+                .texture_reshaper
                 .encode_render_pass(raw_frame.swap_chain_texture(), &mut *encoder);
         }
 
+        // Submit all commands on the device queue.
         raw_frame.submit_inner();
+
+        // If the user did specify capturing the frame, submit the asynchronous read.
+        if let Some((path, snapshot)) = snapshot_capture {
+            snapshot.read_threaded(move |result| match result {
+                Err(e) => eprintln!("failed to asynchronously read captured frame: {:?}", e),
+                Ok(image) => {
+                    if let Err(e) = image.save(&path) {
+                        eprintln!(
+                            "failed to save captured frame to \"{}\": {}",
+                            path.display(),
+                            e
+                        );
+                    }
+                }
+            });
+        }
     }
 
     /// The texture to which all use graphics should be drawn this frame.
@@ -115,32 +164,32 @@ impl<'swap_chain> Frame<'swap_chain> {
     /// After the texture has been resolved if necessary, it will then be used as a shader input
     /// within a graphics pipeline used to draw the swapchain texture.
     pub fn texture(&self) -> &wgpu::Texture {
-        self.data
+        self.render_data
             .intermediary_lin_srgba
             .msaa_texture
             .as_ref()
             .map(|(tex, _)| tex)
-            .unwrap_or(&self.data.intermediary_lin_srgba.texture)
+            .unwrap_or(&self.render_data.intermediary_lin_srgba.texture)
     }
 
     /// A full view into the frame's texture.
     ///
     /// See `texture` for details.
     pub fn texture_view(&self) -> &wgpu::TextureView {
-        self.data
+        self.render_data
             .intermediary_lin_srgba
             .msaa_texture
             .as_ref()
             .map(|(_, view)| view)
-            .unwrap_or(&self.data.intermediary_lin_srgba.texture_view)
+            .unwrap_or(&self.render_data.intermediary_lin_srgba.texture_view)
     }
 
     /// Returns the resolve target texture in the case that MSAA is enabled.
     pub fn resolve_target(&self) -> Option<&wgpu::TextureView> {
-        if self.data.msaa_samples <= 1 {
+        if self.render_data.msaa_samples <= 1 {
             None
         } else {
-            Some(&self.data.intermediary_lin_srgba.texture_view)
+            Some(&self.render_data.intermediary_lin_srgba.texture_view)
         }
     }
 
@@ -152,12 +201,12 @@ impl<'swap_chain> Frame<'swap_chain> {
 
     /// The number of MSAA samples of the `Frame`'s intermediary linear sRGBA texture.
     pub fn texture_msaa_samples(&self) -> u32 {
-        self.data.msaa_samples
+        self.render_data.msaa_samples
     }
 
     /// The size of the frame's texture in pixels.
     pub fn texture_size(&self) -> [u32; 2] {
-        self.data.size
+        self.render_data.size
     }
 
     /// Short-hand for constructing a `wgpu::RenderPassColorAttachmentDescriptor` for use within a
@@ -170,8 +219,8 @@ impl<'swap_chain> Frame<'swap_chain> {
     pub fn color_attachment_descriptor(&self) -> wgpu::RenderPassColorAttachmentDescriptor {
         let load_op = wgpu::LoadOp::Load;
         let store_op = wgpu::StoreOp::Store;
-        let attachment = match self.data.intermediary_lin_srgba.msaa_texture {
-            None => &self.data.intermediary_lin_srgba.texture_view,
+        let attachment = match self.render_data.intermediary_lin_srgba.msaa_texture {
+            None => &self.render_data.intermediary_lin_srgba.texture_view,
             Some((_, ref msaa_texture_view)) => msaa_texture_view,
         };
         let resolve_target = None;
@@ -229,14 +278,18 @@ impl RenderData {
     ) -> Self {
         let intermediary_lin_srgba =
             create_intermediary_lin_srgba(device, swap_chain_dims, msaa_samples);
-        let texture_format_converter = wgpu::TextureFormatConverter::new(
+        let swap_chain_sample_count = 1;
+        let src_multisampled = false;
+        let texture_reshaper = wgpu::TextureReshaper::new(
             device,
             &intermediary_lin_srgba.texture_view,
+            src_multisampled,
+            swap_chain_sample_count,
             swap_chain_format,
         );
         RenderData {
             intermediary_lin_srgba,
-            texture_format_converter,
+            texture_reshaper,
             size: swap_chain_dims,
             msaa_samples,
         }

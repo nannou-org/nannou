@@ -1,4 +1,6 @@
-/// Writes a texture to another texture of the same dimensions but with a different format.
+use crate::wgpu;
+
+/// Reshapes a texture from its original size and format to the destination size and format.
 ///
 /// The `src_texture` must have the `TextureUsage::SAMPLED` enabled.
 ///
@@ -9,7 +11,7 @@
 /// Both textures should **not** be multisampled. *Note: Please open an issue if you would like
 /// support for multisampled source textures as it should be quite trivial to add.*
 #[derive(Debug)]
-pub struct FormatConverter {
+pub struct Reshaper {
     _vs_mod: wgpu::ShaderModule,
     _fs_mod: wgpu::ShaderModule,
     bind_group_layout: wgpu::BindGroupLayout,
@@ -19,11 +21,13 @@ pub struct FormatConverter {
     vertex_buffer: wgpu::Buffer,
 }
 
-impl FormatConverter {
-    /// Construct a new `FormatConverter`.
+impl Reshaper {
+    /// Construct a new `Reshaper`.
     pub fn new(
         device: &wgpu::Device,
         src_texture: &wgpu::TextureView,
+        src_multisampled: bool,
+        dst_sample_count: u32,
         dst_format: wgpu::TextureFormat,
     ) -> Self {
         // Load shader modules.
@@ -37,14 +41,19 @@ impl FormatConverter {
         let fs_mod = device.create_shader_module(&fs_spirv);
 
         // Create the sampler for sampling from the source texture.
-        let sampler_desc = sampler_desc();
-        let sampler = device.create_sampler(&sampler_desc);
+        let sampler = wgpu::SamplerBuilder::new().build(device);
 
         // Create the render pipeline.
-        let bind_group_layout = bind_group_layout(device);
+        let bind_group_layout = bind_group_layout(device, src_multisampled);
         let pipeline_layout = pipeline_layout(device, &bind_group_layout);
-        let render_pipeline =
-            render_pipeline(device, &pipeline_layout, &vs_mod, &fs_mod, dst_format);
+        let render_pipeline = render_pipeline(
+            device,
+            &pipeline_layout,
+            &vs_mod,
+            &fs_mod,
+            dst_sample_count,
+            dst_format,
+        );
 
         // Create the bind group.
         let bind_group = bind_group(device, &bind_group_layout, src_texture, &sampler);
@@ -54,7 +63,7 @@ impl FormatConverter {
             .create_buffer_mapped(VERTICES.len(), wgpu::BufferUsage::VERTEX)
             .fill_from_slice(&VERTICES[..]);
 
-        FormatConverter {
+        Reshaper {
             _vs_mod: vs_mod,
             _fs_mod: fs_mod,
             bind_group_layout,
@@ -121,26 +130,12 @@ fn vertex_attrs() -> [wgpu::VertexAttributeDescriptor; 1] {
     }]
 }
 
-fn sampler_desc() -> wgpu::SamplerDescriptor {
-    wgpu::SamplerDescriptor {
-        address_mode_u: wgpu::AddressMode::ClampToEdge,
-        address_mode_v: wgpu::AddressMode::ClampToEdge,
-        address_mode_w: wgpu::AddressMode::ClampToEdge,
-        mag_filter: wgpu::FilterMode::Linear,
-        min_filter: wgpu::FilterMode::Linear,
-        mipmap_filter: wgpu::FilterMode::Linear,
-        lod_min_clamp: -100.0,
-        lod_max_clamp: 100.0,
-        compare_function: wgpu::CompareFunction::Always,
-    }
-}
-
-fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+fn bind_group_layout(device: &wgpu::Device, src_multisampled: bool) -> wgpu::BindGroupLayout {
     let texture_binding = wgpu::BindGroupLayoutBinding {
         binding: 0,
         visibility: wgpu::ShaderStage::FRAGMENT,
         ty: wgpu::BindingType::SampledTexture {
-            multisampled: false,
+            multisampled: src_multisampled,
             dimension: wgpu::TextureViewDimension::D2,
         },
     };
@@ -188,6 +183,7 @@ fn render_pipeline(
     layout: &wgpu::PipelineLayout,
     vs_mod: &wgpu::ShaderModule,
     fs_mod: &wgpu::ShaderModule,
+    dst_sample_count: u32,
     dst_format: wgpu::TextureFormat,
 ) -> wgpu::RenderPipeline {
     let vs_desc = wgpu::ProgrammableStageDescriptor {
@@ -227,7 +223,7 @@ fn render_pipeline(
         depth_stencil_state: None,
         index_format: wgpu::IndexFormat::Uint16,
         vertex_buffers: &[vertex_buffer_desc],
-        sample_count: 1,
+        sample_count: dst_sample_count,
         sample_mask: !0,
         alpha_to_coverage_enabled: false,
     };
