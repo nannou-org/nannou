@@ -29,7 +29,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     model.r += 0.05;
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     //draw.background().color(WHITE);

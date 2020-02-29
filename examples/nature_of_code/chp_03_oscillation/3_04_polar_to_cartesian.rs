@@ -33,7 +33,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     model.theta += 0.02;
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

@@ -85,6 +85,6 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         .set(model.text, &mut ui);
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     model.ui.draw_to_frame(app, &frame).unwrap();
 }

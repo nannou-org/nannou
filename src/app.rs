@@ -41,10 +41,10 @@ pub type EventFn<Model, Event> = fn(&App, &mut Model, Event);
 pub type UpdateFn<Model> = fn(&App, &mut Model, Update);
 
 /// The user function type for drawing their model to the surface of a single window.
-pub type ViewFn<Model> = fn(&App, &Model, &Frame);
+pub type ViewFn<Model> = fn(&App, &Model, Frame);
 
 /// A shorthand version of `ViewFn` for sketches where the user does not need a model.
-pub type SketchViewFn = fn(&App, &Frame);
+pub type SketchViewFn = fn(&App, Frame);
 
 /// The user function type allowing them to consume the `model` when the application exits.
 pub type ExitFn<Model> = fn(&App, Model);
@@ -957,13 +957,12 @@ fn run_loop<M, E>(
             winit::event::Event::RedrawRequested(window_id) => {
                 // Take the render data and swapchain.
                 // We'll replace them before the end of this block.
-                let (mut render_data, mut swap_chain, nth_frame) = {
+                let (mut swap_chain, nth_frame) = {
                     let mut windows = app.windows.borrow_mut();
 
                     let window = windows
                         .get_mut(&window_id)
                         .expect("no window for redraw request ID");
-                    let render_data = window.frame_render_data.take();
                     let swap_chain = window
                         .swap_chain
                         .swap_chain
@@ -971,7 +970,7 @@ fn run_loop<M, E>(
                         .expect("missing swap chain");
                     let nth_frame = window.frame_count;
                     window.frame_count += 1;
-                    (render_data, swap_chain, nth_frame)
+                    (swap_chain, nth_frame)
                 };
 
                 if let Some(model) = model.as_ref() {
@@ -984,6 +983,7 @@ fn run_loop<M, E>(
                     let window = windows
                         .get(&window_id)
                         .expect("failed to find window for redraw request");
+                    let render_data = &window.frame_render_data;
 
                     // Construct and emit a frame via `view` for receiving the user's graphics commands.
                     let sf = window.tracked_state.scale_factor;
@@ -1006,60 +1006,40 @@ fn run_loop<M, E>(
                     // Otherwise, use the fallback, default view passed to the app if there was one.
                     let window_view = window.user_functions.view.clone();
 
-                    let command_buffer = match window_view {
+                    match window_view {
                         Some(window::View::Sketch(view)) => {
-                            let r_data = render_data.take().expect("missing `render_data`");
+                            let r_data = render_data.as_ref().expect("missing `render_data`");
                             let frame = Frame::new_empty(raw_frame, r_data);
-                            view(&app, &frame);
-                            let (r_data, raw_frame) = frame.finish();
-                            render_data = Some(r_data);
-                            raw_frame.finish().finish()
+                            view(&app, frame);
                         }
                         Some(window::View::WithModel(view)) => {
-                            let r_data = render_data.take().expect("missing `render_data`");
+                            let r_data = render_data.as_ref().expect("missing `render_data`");
                             let frame = Frame::new_empty(raw_frame, r_data);
                             let view = view
                                 .to_fn_ptr::<M>()
                                 .expect("unexpected model argument given to window view function");
-                            (*view)(&app, &model, &frame);
-                            let (r_data, raw_frame) = frame.finish();
-                            render_data = Some(r_data);
-                            raw_frame.finish().finish()
+                            (*view)(&app, &model, frame);
                         }
                         Some(window::View::WithModelRaw(raw_view)) => {
                             let raw_view = raw_view.to_fn_ptr::<M>().expect(
                                 "unexpected model argument given to window raw_view function",
                             );
-                            (*raw_view)(&app, &model, &raw_frame);
-                            raw_frame.finish().finish()
+                            (*raw_view)(&app, &model, raw_frame);
                         }
                         None => match default_view {
                             Some(View::Sketch(view)) => {
-                                let r_data = render_data.take().expect("missing `render_data`");
+                                let r_data = render_data.as_ref().expect("missing `render_data`");
                                 let frame = Frame::new_empty(raw_frame, r_data);
-                                view(&app, &frame);
-                                let (r_data, raw_frame) = frame.finish();
-                                render_data = Some(r_data);
-                                raw_frame.finish().finish()
+                                view(&app, frame);
                             }
                             Some(View::WithModel(view)) => {
-                                let r_data = render_data.take().expect("missing `render_data`");
+                                let r_data = render_data.as_ref().expect("missing `render_data`");
                                 let frame = Frame::new_empty(raw_frame, r_data);
-                                view(&app, &model, &frame);
-                                let (r_data, raw_frame) = frame.finish();
-                                render_data = Some(r_data);
-                                raw_frame.finish().finish()
+                                view(&app, &model, frame);
                             }
-                            None => raw_frame.finish().finish(),
+                            None => raw_frame.submit(),
                         },
-                    };
-
-                    // Submit the command buffer to the queue.
-                    window
-                        .swap_chain_queue()
-                        .lock()
-                        .expect("failed to acquire window's swap chain queue")
-                        .submit(&[command_buffer]);
+                    }
                 }
 
                 // Replace the render data and swap chain.
@@ -1068,7 +1048,6 @@ fn run_loop<M, E>(
                     .get_mut(&window_id)
                     .expect("no window for redraw request ID");
 
-                window.frame_render_data = render_data;
                 window.swap_chain.swap_chain = Some(swap_chain);
             }
 

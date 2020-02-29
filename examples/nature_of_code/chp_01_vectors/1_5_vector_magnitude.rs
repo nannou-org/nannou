@@ -9,7 +9,7 @@ fn main() {
     nannou::sketch(view);
 }
 
-fn view(app: &App, frame: &Frame) {
+fn view(app: &App, frame: Frame) {
     app.main_window().set_inner_size_points(640.0, 360.0);
 
     // Begin drawing

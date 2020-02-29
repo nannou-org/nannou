@@ -52,6 +52,6 @@ fn event(_app: &App, _model: &mut Model, event: WindowEvent) {
     }
 }
 
-fn view(_app: &App, _model: &Model, frame: &Frame) {
+fn view(_app: &App, _model: &Model, frame: Frame) {
     frame.clear(DIMGRAY);
 }

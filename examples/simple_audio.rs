@@ -85,6 +85,6 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     }
 }
 
-fn view(_app: &App, _model: &Model, frame: &Frame) {
+fn view(_app: &App, _model: &Model, frame: Frame) {
     frame.clear(DIMGRAY);
 }

@@ -98,12 +98,12 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(_app: &App, model: &Model, frame: &Frame) {
+fn view(_app: &App, model: &Model, frame: Frame) {
     let mut encoder = frame.command_encoder();
 
     let render_pass_desc = wgpu::RenderPassDescriptor {
         color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-            attachment: frame.texture(),
+            attachment: frame.texture_view(),
             resolve_target: None,
             load_op: wgpu::LoadOp::Clear,
             store_op: wgpu::StoreOp::Store,

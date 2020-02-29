@@ -163,7 +163,7 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     m.b1.drag(app.mouse.x, app.mouse.y);
 }
 
-fn view(app: &App, m: &Model, frame: &Frame) {
+fn view(app: &App, m: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

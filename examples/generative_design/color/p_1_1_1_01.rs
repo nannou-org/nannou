@@ -29,7 +29,7 @@ fn main() {
     nannou::sketch(view);
 }
 
-fn view(app: &App, frame: &Frame) {
+fn view(app: &App, frame: Frame) {
     app.main_window().set_inner_size_pixels(800, 400);
 
     // Begin drawing

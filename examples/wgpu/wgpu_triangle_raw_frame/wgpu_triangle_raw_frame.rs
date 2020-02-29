@@ -70,7 +70,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(_app: &App, model: &Model, frame: &RawFrame) {
+fn view(_app: &App, model: &Model, frame: RawFrame) {
     let vertex_range = 0..VERTICES.len() as u32;
     let instance_range = 0..1;
     let render_pass_desc = wgpu::RenderPassDescriptor {

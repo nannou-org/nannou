@@ -66,7 +66,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model.point_count = app.window_rect().w() as usize;
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     let win = app.window_rect();

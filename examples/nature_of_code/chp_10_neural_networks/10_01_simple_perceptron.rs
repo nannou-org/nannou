@@ -129,7 +129,7 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     m.count = (m.count + 1) % m.training.len();
 }
 
-fn view(app: &App, m: &Model, frame: &Frame) {
+fn view(app: &App, m: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

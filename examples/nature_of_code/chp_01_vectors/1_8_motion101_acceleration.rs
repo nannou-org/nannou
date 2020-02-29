@@ -78,7 +78,7 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     m.mover.check_edges(app.window_rect());
 }
 
-fn view(app: &App, m: &Model, frame: &Frame) {
+fn view(app: &App, m: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.rect()

@@ -17,7 +17,7 @@ fn model(app: &App) -> Model {
     Model
 }
 
-fn view(app: &App, _model: &Model, frame: &Frame) {
+fn view(app: &App, _model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

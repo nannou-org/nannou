@@ -165,7 +165,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     device.poll(false);
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     frame.clear(BLACK);
     let draw = app.draw();
     let window = app.window(frame.window_id()).unwrap();
@@ -181,7 +181,7 @@ fn view(app: &App, model: &Model, frame: &Frame) {
         }
     }
 
-    draw.to_frame(app, frame).unwrap();
+    draw.to_frame(app, &frame).unwrap();
 }
 
 fn create_uniforms(time: f32, mouse_x: f32, win_rect: geom::Rect) -> Uniforms {

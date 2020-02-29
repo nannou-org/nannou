@@ -62,18 +62,18 @@ pub(crate) struct UserFunctions {
 }
 
 /// The user function type for drawing their model to the surface of a single window.
-pub type ViewFn<Model> = fn(&App, &Model, &Frame);
+pub type ViewFn<Model> = fn(&App, &Model, Frame);
 
 /// The user function type for drawing their model to the surface of a single window.
 ///
 /// Unlike the `ViewFn`, the `RawViewFn` is designed for drawing directly to a window's swap chain
 /// images rather than to a convenient intermediary image.
-pub type RawViewFn<Model> = fn(&App, &Model, &RawFrame);
+pub type RawViewFn<Model> = fn(&App, &Model, RawFrame);
 
 /// The same as `ViewFn`, but provides no user model to draw from.
 ///
 /// Useful for simple, stateless sketching.
-pub type SketchFn = fn(&App, &Frame);
+pub type SketchFn = fn(&App, Frame);
 
 /// The user's view function, whether with a model or without one.
 #[derive(Clone)]

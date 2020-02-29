@@ -27,6 +27,6 @@ fn model(app: &App) -> Model {
     Model
 }
 
-fn view(_app: &App, _model: &Model, frame: &Frame) {
+fn view(_app: &App, _model: &Model, frame: Frame) {
     frame.clear(DIMGRAY);
 }

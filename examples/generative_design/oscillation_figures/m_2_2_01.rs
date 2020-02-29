@@ -76,7 +76,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model.y *= app.window_rect().h() / 4.0 - model.margin;
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     let win = app.window_rect();

@@ -115,7 +115,7 @@ fn model(app: &App) -> Model {
     Model { graphics }
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     let mut g = model.graphics.borrow_mut();
 
     // If the window has changed size, recreate our depth texture to match.
@@ -131,7 +131,7 @@ fn view(app: &App, model: &Model, frame: &Frame) {
 
     let render_pass_desc = wgpu::RenderPassDescriptor {
         color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-            attachment: frame.texture(),
+            attachment: frame.texture_view(),
             resolve_target: None,
             load_op: wgpu::LoadOp::Clear,
             store_op: wgpu::StoreOp::Store,

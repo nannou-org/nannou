@@ -175,7 +175,7 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     m.ca.generate();
 }
 
-fn view(app: &App, m: &Model, frame: &Frame) {
+fn view(app: &App, m: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
 

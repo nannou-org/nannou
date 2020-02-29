@@ -46,7 +46,7 @@ fn event_c(_app: &App, _model: &mut Model, event: WindowEvent) {
     println!("window c: {:?}", event);
 }
 
-fn view(_app: &App, model: &Model, frame: &Frame) {
+fn view(_app: &App, model: &Model, frame: Frame) {
     match frame.window_id() {
         id if id == model.a => frame.clear(INDIANRED),
         id if id == model.b => frame.clear(LIGHTGREEN),

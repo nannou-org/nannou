@@ -3,7 +3,8 @@
 use crate::geom;
 use crate::wgpu;
 use crate::window;
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell, RefMut};
+use std::sync::Arc;
 
 /// Allows the user to draw a single **RawFrame** to the surface of a window.
 ///
@@ -26,7 +27,7 @@ use std::sync::{Arc, Mutex};
 /// provides access to a `wgpu::CommandEncoder` whose commands are guaranteed to be submitted to
 /// the correct `wgpu::Queue` at the end of the **view** function.
 pub struct RawFrame<'swap_chain> {
-    command_encoder: Mutex<wgpu::CommandEncoder>,
+    command_encoder: Option<RefCell<wgpu::CommandEncoder>>,
     window_id: window::Id,
     nth: u64,
     swap_chain_texture: &'swap_chain wgpu::TextureView,
@@ -47,7 +48,7 @@ impl<'swap_chain> RawFrame<'swap_chain> {
     ) -> Self {
         let ce_desc = wgpu::CommandEncoderDescriptor::default();
         let command_encoder = device_queue_pair.device().create_command_encoder(&ce_desc);
-        let command_encoder = Mutex::new(command_encoder);
+        let command_encoder = Some(RefCell::new(command_encoder));
         let frame = RawFrame {
             command_encoder,
             window_id,
@@ -60,23 +61,35 @@ impl<'swap_chain> RawFrame<'swap_chain> {
         frame
     }
 
-    // Called after the user's `view` function, this consumes the `RawFrame` and returns the inner
-    // command buffer builder so that it can be completed.
-    pub(crate) fn finish(self) -> wgpu::CommandEncoder {
-        let RawFrame {
-            command_encoder, ..
-        } = self;
-        command_encoder
-            .into_inner()
-            .expect("failed to lock `command_encoder`")
+    // Submit the encoded commands to the queue of the device that was used to create the swap
+    // chain texture.
+    pub(crate) fn submit_inner(&mut self) {
+        let command_encoder = self
+            .command_encoder
+            .take()
+            .expect("the command encoder should always be `Some` at the time of submission")
+            .into_inner();
+        let command_buffer = command_encoder.finish();
+        let mut queue = self
+            .device_queue_pair
+            .queue()
+            .lock()
+            .expect("failed to lock the queue");
+        queue.submit(&[command_buffer]);
+    }
+
+    // Allow the `Frame` to check if the raw frame has already been submitted on drop.
+    pub(crate) fn is_submitted(&self) -> bool {
+        self.command_encoder.is_none()
     }
 
     /// Access the command encoder in order to encode commands that will be submitted to the swap
     /// chain queue at the end of the call to **view**.
-    pub fn command_encoder(&self) -> std::sync::MutexGuard<wgpu::CommandEncoder> {
-        self.command_encoder
-            .lock()
-            .expect("failed to acquire lock to command encoder")
+    pub fn command_encoder(&self) -> RefMut<wgpu::CommandEncoder> {
+        match self.command_encoder {
+            Some(ref ce) => ce.borrow_mut(),
+            None => unreachable!("`RawFrame`'s command_encoder was `None`"),
+        }
     }
 
     /// The `Id` of the window whose vulkan surface is associated with this frame.
@@ -116,5 +129,29 @@ impl<'swap_chain> RawFrame<'swap_chain> {
     /// frame.
     pub fn device_queue_pair(&self) -> &Arc<wgpu::DeviceQueuePair> {
         &self.device_queue_pair
+    }
+
+    /// Submit the frame to the GPU!
+    ///
+    /// Specifically, this submits the encoded commands to the queue of the device that was used to
+    /// create the swap chain texture.
+    ///
+    /// Note: You do not need to call this manually as submission will occur automatically when
+    /// the **Frame** is dropped.
+    ///
+    /// Note: Be careful that you do not currently possess a lock to either the frame's command
+    /// encoder *or* the queue of the window associated with this frame or this method will lock
+    /// and block forever.
+    pub fn submit(mut self) {
+        self.submit_inner();
+    }
+}
+
+impl<'swap_chain> Drop for RawFrame<'swap_chain> {
+    fn drop(&mut self) {
+        // Submit the commands if the user hasn't done so already.
+        if !self.is_submitted() {
+            self.submit_inner();
+        }
     }
 }

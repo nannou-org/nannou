@@ -27,7 +27,7 @@ fn model(app: &App) -> Model {
     Model { noise }
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     // Prepare to draw.
     let draw = app.draw();
     draw.background().color(BLACK);

@@ -18,7 +18,7 @@ pub use self::raw::RawFrame;
 /// intermediary image.
 pub struct Frame<'swap_chain> {
     raw_frame: RawFrame<'swap_chain>,
-    data: RenderData,
+    data: &'swap_chain RenderData,
 }
 
 /// Data specific to the intermediary textures.
@@ -59,16 +59,20 @@ impl<'swap_chain> Frame<'swap_chain> {
     pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Unorm;
 
     // Initialise a new empty frame ready for "drawing".
-    pub(crate) fn new_empty(raw_frame: RawFrame<'swap_chain>, data: RenderData) -> Self {
+    pub(crate) fn new_empty(
+        raw_frame: RawFrame<'swap_chain>,
+        data: &'swap_chain RenderData,
+    ) -> Self {
         Frame { raw_frame, data }
     }
 
-    // Called after the user's `view` function returns, this consumes the `Frame`, adds commands
-    // for drawing the `lin_srgba_msaa` to the `swapchain_image` and returns the inner
-    // `RenderData` and `RawFrame` so that the `RenderData` may be stored back within the `Window`
-    // and the `RawFrame` may be `finish`ed.
-    pub(crate) fn finish(self) -> (RenderData, RawFrame<'swap_chain>) {
-        let Frame { data, raw_frame } = self;
+    // The private implementation of `submit`, allowing it to be called during `drop` if submission
+    // has not yet occurred.
+    fn submit_inner(&mut self) {
+        let Frame {
+            ref data,
+            ref mut raw_frame,
+        } = *self;
 
         // Resolve the MSAA if necessary.
         if let Some((_, ref msaa_texture_view)) = data.intermediary_lin_srgba.msaa_texture {
@@ -90,7 +94,7 @@ impl<'swap_chain> Frame<'swap_chain> {
                 .encode_render_pass(raw_frame.swap_chain_texture(), &mut *encoder);
         }
 
-        (data, raw_frame)
+        raw_frame.submit_inner();
     }
 
     /// The texture to which all use graphics should be drawn this frame.
@@ -192,6 +196,22 @@ impl<'swap_chain> Frame<'swap_chain> {
         let color = wgpu::Color { r, g, b, a };
         wgpu::clear_texture(self.texture_view(), color, &mut *self.command_encoder())
     }
+
+    /// Submit the frame to the GPU!
+    ///
+    /// Note that you do not need to call this manually as submission will occur automatically when
+    /// the **Frame** is dropped.
+    ///
+    /// Before submission, the frame does the following:
+    ///
+    /// - If the frame's intermediary linear sRGBA texture is multisampled, resolve it.
+    /// - Write the intermediary linear sRGBA image to the swap chain texture.
+    ///
+    /// It can sometimes be useful to submit the **Frame** before `view` completes in order to read
+    /// the frame's texture back to the CPU (e.g. for screen shots, recordings, etc).
+    pub fn submit(mut self) {
+        self.submit_inner();
+    }
 }
 
 impl RenderData {
@@ -219,6 +239,14 @@ impl RenderData {
             texture_format_converter,
             size: swap_chain_dims,
             msaa_samples,
+        }
+    }
+}
+
+impl<'swap_chain> Drop for Frame<'swap_chain> {
+    fn drop(&mut self) {
+        if !self.raw_frame.is_submitted() {
+            self.submit_inner();
         }
     }
 }
@@ -255,7 +283,7 @@ fn create_intermediary_lin_srgba(
             let texture = create_lin_srgba_msaa_texture(device, swap_chain_dims, msaa_samples);
             let texture_view = texture.create_default_view();
             Some((texture, texture_view))
-        },
+        }
     };
     let texture = create_lin_srgba_texture(device, swap_chain_dims);
     let texture_view = texture.create_default_view();
