@@ -30,6 +30,7 @@ use crate::frame::{Frame, ViewFbo};
 use crate::text::{font, Font};
 use crate::window::{self, Window};
 use crate::{vk, App};
+use crate::image::{RgbaImage, DynamicImage, GenericImageView};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::error::Error as StdError;
@@ -132,6 +133,13 @@ pub enum DrawToFrameError {
     CopyBufferImageCommand(vk::command_buffer::CopyBufferImageError),
     RendererDraw(conrod_vulkano::DrawError),
     DrawCommand(vk::command_buffer::DrawError),
+}
+
+/// An error that occured trying to upload an image to the `Ui`.
+#[derive(Debug)]
+pub enum UploadImageError {
+    InvalidWindow,
+    ImageCreation(vk::ImageCreationError)
 }
 
 /// The subpass type to which the `Ui` may be rendered.
@@ -520,6 +528,73 @@ impl Ui {
         self.ui.set_widgets()
     }
 
+    /// Uploads an image for use in widgets.
+    /// 
+    /// This provides an `image::Id` which can be used to construct an image primitive.
+    pub fn upload_image(&mut self, app: &App, image: &DynamicImage) -> Result<image::Id, UploadImageError> {
+        let (width, height) = image.dimensions();
+        let mut _rgba_image: Option<RgbaImage> = None;
+        // Match on the image format,
+        let (vk_format, image_data) = match image {
+            //There is no equivalent Vulkan format for luma images, so
+            //we convert straight to rgba.
+            DynamicImage::ImageLuma8(_) | DynamicImage::ImageLumaA8(_) => {
+                //Assign to _rgba_image here so that the temporary created by
+                //image.to_rgba isn't dropped at the end of the match.
+                _rgba_image = Some(image.to_rgba());
+                (vk::Format::R8G8B8A8Srgb, _rgba_image.as_ref().unwrap().as_flat_samples())
+            },
+            //However for the others, select the appropriate format,
+            //to avoid copying if possible.
+            DynamicImage::ImageRgb8(image) => (vk::Format::R8G8B8Srgb, image.as_flat_samples()),
+            DynamicImage::ImageRgba8(image) => (vk::Format::R8G8B8A8Srgb, image.as_flat_samples()),
+            DynamicImage::ImageBgr8(image) => (vk::Format::B8G8R8Srgb, image.as_flat_samples()),
+            DynamicImage::ImageBgra8(image) => (vk::Format::B8G8R8A8Srgb, image.as_flat_samples())
+        };
+
+        //Get the window where we want to upload this image.
+        let window = app.window(self.window_id).ok_or(UploadImageError::InvalidWindow)?;
+
+        //Attempt to create an image with the given format and data,
+        let vk_result = vk::ImmutableImage::from_iter(
+            image_data.as_slice().iter().cloned(),
+            vk::image::Dimensions::Dim2d { width, height },
+            vk_format,
+            window.swapchain_queue().clone()
+        );
+
+        let vulkan_image = match vk_result {
+            //if that works, then great.
+            Ok((vulkan_image, _)) => vulkan_image,
+            //Otherwise if the format isnt supported, convert to
+            //RGBA and try again, as RGBA is garuanteed to be supported
+            //by the Vulkan spec.
+            Err(vk::ImageCreationError::FormatNotSupported) => {
+                let image = image.to_rgba();
+                let image_data = image.into_raw();
+
+                let (vulkan_image, _) = vk::ImmutableImage::from_iter(
+                    image_data.iter().cloned(),
+                    vk::image::Dimensions::Dim2d { width, height },
+                    vk::Format::R8G8B8A8Srgb,
+                    window.swapchain_queue().clone()
+                ).map_err(UploadImageError::ImageCreation)?;
+
+                vulkan_image
+            },
+            Err(e) => return Err(UploadImageError::ImageCreation(e))
+        };  
+    
+        //Then create a conrod image from the vulkan one, and put
+        //it into the image map.
+        let conrod_image = conrod_vulkano::Image {
+            image_access: vulkan_image,
+            width, height
+        };
+        
+        Ok(self.image_map.insert(conrod_image))
+    }
+
     /// Mutable access to the `Ui`'s font map.
     ///
     /// This allows for adding and removing fonts to the UI.
@@ -836,6 +911,24 @@ impl StdError for DrawToFrameError {
     }
 }
 
+impl StdError for UploadImageError {
+    fn description(&self) -> &str {
+        match self {
+            UploadImageError::InvalidWindow => {
+                "no open window associated with the given `window_id`"
+            },
+            UploadImageError::ImageCreation(err) => err.description()
+        }
+    }
+
+    fn cause(&self) -> Option<&dyn StdError> {
+        match self {
+            UploadImageError::InvalidWindow => None,
+            UploadImageError::ImageCreation(err) => Some(err)
+        }
+    }
+}
+
 impl fmt::Display for BuildError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.description())
@@ -849,6 +942,12 @@ impl fmt::Display for RenderTargetCreationError {
 }
 
 impl fmt::Display for DrawToFrameError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
+}
+
+impl fmt::Display for UploadImageError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.description())
     }
