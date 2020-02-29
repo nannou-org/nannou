@@ -35,8 +35,9 @@ pub struct RenderData {
 /// swapchain texture.
 #[derive(Debug)]
 pub(crate) struct IntermediaryLinSrgba {
-    msaa_texture: Option<wgpu::TextureView>,
-    texture: wgpu::TextureView,
+    msaa_texture: Option<(wgpu::Texture, wgpu::TextureView)>,
+    texture: wgpu::Texture,
+    texture_view: wgpu::TextureView,
 }
 
 impl<'swap_chain> ops::Deref for Frame<'swap_chain> {
@@ -70,11 +71,11 @@ impl<'swap_chain> Frame<'swap_chain> {
         let Frame { data, raw_frame } = self;
 
         // Resolve the MSAA if necessary.
-        if let Some(ref msaa_texture) = data.intermediary_lin_srgba.msaa_texture {
+        if let Some((_, ref msaa_texture_view)) = data.intermediary_lin_srgba.msaa_texture {
             let mut encoder = raw_frame.command_encoder();
             wgpu::resolve_texture(
-                msaa_texture,
-                &data.intermediary_lin_srgba.texture,
+                msaa_texture_view,
+                &data.intermediary_lin_srgba.texture_view,
                 &mut *encoder,
             );
         }
@@ -109,12 +110,25 @@ impl<'swap_chain> Frame<'swap_chain> {
     /// function returns, this texture will be resolved to a non-multisampled linear sRGBA texture.
     /// After the texture has been resolved if necessary, it will then be used as a shader input
     /// within a graphics pipeline used to draw the swapchain texture.
-    pub fn texture(&self) -> &wgpu::TextureView {
+    pub fn texture(&self) -> &wgpu::Texture {
         self.data
             .intermediary_lin_srgba
             .msaa_texture
             .as_ref()
+            .map(|(tex, _)| tex)
             .unwrap_or(&self.data.intermediary_lin_srgba.texture)
+    }
+
+    /// A full view into the frame's texture.
+    ///
+    /// See `texture` for details.
+    pub fn texture_view(&self) -> &wgpu::TextureView {
+        self.data
+            .intermediary_lin_srgba
+            .msaa_texture
+            .as_ref()
+            .map(|(_, view)| view)
+            .unwrap_or(&self.data.intermediary_lin_srgba.texture_view)
     }
 
     /// Returns the resolve target texture in the case that MSAA is enabled.
@@ -122,7 +136,7 @@ impl<'swap_chain> Frame<'swap_chain> {
         if self.data.msaa_samples <= 1 {
             None
         } else {
-            Some(&self.data.intermediary_lin_srgba.texture)
+            Some(&self.data.intermediary_lin_srgba.texture_view)
         }
     }
 
@@ -153,8 +167,8 @@ impl<'swap_chain> Frame<'swap_chain> {
         let load_op = wgpu::LoadOp::Load;
         let store_op = wgpu::StoreOp::Store;
         let attachment = match self.data.intermediary_lin_srgba.msaa_texture {
-            None => &self.data.intermediary_lin_srgba.texture,
-            Some(ref msaa_texture) => msaa_texture,
+            None => &self.data.intermediary_lin_srgba.texture_view,
+            Some((_, ref msaa_texture_view)) => msaa_texture_view,
         };
         let resolve_target = None;
         let clear_color = wgpu::Color::TRANSPARENT;
@@ -176,7 +190,7 @@ impl<'swap_chain> Frame<'swap_chain> {
         let (r, g, b, a) = lin_srgba.into_components();
         let (r, g, b, a) = (r as f64, g as f64, b as f64, a as f64);
         let color = wgpu::Color { r, g, b, a };
-        wgpu::clear_texture(self.texture(), color, &mut *self.command_encoder())
+        wgpu::clear_texture(self.texture_view(), color, &mut *self.command_encoder())
     }
 }
 
@@ -197,7 +211,7 @@ impl RenderData {
             create_intermediary_lin_srgba(device, swap_chain_dims, msaa_samples);
         let texture_format_converter = wgpu::TextureFormatConverter::new(
             device,
-            &intermediary_lin_srgba.texture,
+            &intermediary_lin_srgba.texture_view,
             swap_chain_format,
         );
         RenderData {
@@ -213,23 +227,21 @@ fn create_lin_srgba_msaa_texture(
     device: &wgpu::Device,
     swap_chain_dims: [u32; 2],
     msaa_samples: u32,
-) -> wgpu::TextureView {
+) -> wgpu::Texture {
     wgpu::TextureBuilder::new()
         .size(swap_chain_dims)
         .sample_count(msaa_samples)
         .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT)
         .format(Frame::TEXTURE_FORMAT)
         .build(device)
-        .create_default_view()
 }
 
-fn create_lin_srgba_texture(device: &wgpu::Device, swap_chain_dims: [u32; 2]) -> wgpu::TextureView {
+fn create_lin_srgba_texture(device: &wgpu::Device, swap_chain_dims: [u32; 2]) -> wgpu::Texture {
     wgpu::TextureBuilder::new()
         .size(swap_chain_dims)
         .format(Frame::TEXTURE_FORMAT)
         .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::SAMPLED)
         .build(device)
-        .create_default_view()
 }
 
 fn create_intermediary_lin_srgba(
@@ -239,15 +251,17 @@ fn create_intermediary_lin_srgba(
 ) -> IntermediaryLinSrgba {
     let msaa_texture = match msaa_samples {
         0 | 1 => None,
-        _ => Some(create_lin_srgba_msaa_texture(
-            device,
-            swap_chain_dims,
-            msaa_samples,
-        )),
+        _ => {
+            let texture = create_lin_srgba_msaa_texture(device, swap_chain_dims, msaa_samples);
+            let texture_view = texture.create_default_view();
+            Some((texture, texture_view))
+        },
     };
     let texture = create_lin_srgba_texture(device, swap_chain_dims);
+    let texture_view = texture.create_default_view();
     IntermediaryLinSrgba {
         msaa_texture,
         texture,
+        texture_view,
     }
 }

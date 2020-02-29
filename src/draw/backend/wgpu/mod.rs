@@ -239,7 +239,7 @@ impl Renderer {
     ) where
         S: BaseFloat,
     {
-        let attachment = frame.texture();
+        let attachment = frame.texture_view();
         let resolve_target = frame.resolve_target();
         let mut command_encoder = frame.command_encoder();
         self.encode_render_pass(
