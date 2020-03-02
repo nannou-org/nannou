@@ -1068,7 +1068,12 @@ fn run_loop<M, E>(
             // Clear any inactive adapters and devices and poll those remaining.
             winit::event::Event::RedrawEventsCleared => {
                 app.wgpu_adapters().clear_inactive_adapters_and_devices();
-                app.wgpu_adapters().poll_all_devices(false);
+                // TODO: This seems to cause some glitching and slows down macOS drastically.
+                // While not necessary, this would be nice to have to automatically process async
+                // read/write callbacks submitted by users who aren't aware that they need to poll
+                // their devices in order to make them do work. Perhaps as a workaround we could
+                // only poll devices that aren't already associated with a window?
+                //app.wgpu_adapters().poll_all_devices(false);
             }
 
             // Ignore wake-up events for now. Currently, these can only be triggered via the app proxy.

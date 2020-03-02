@@ -127,13 +127,13 @@ impl AdapterMap {
     }
 
     /// Poll all devices within all active adapters.
-    pub(crate) fn poll_all_devices(&self, block: bool) {
+    pub(crate) fn _poll_all_devices(&self, block: bool) {
         let map = self
             .map
             .lock()
             .expect("failed to acquire `AdapterMap` lock");
         for adapter in map.values() {
-            adapter.poll_all_devices(block);
+            adapter._poll_all_devices(block);
         }
     }
 }
@@ -205,7 +205,7 @@ impl ActiveAdapter {
     }
 
     /// Poll all of the active devices within the map.
-    fn poll_all_devices(&self, block: bool) {
+    fn _poll_all_devices(&self, block: bool) {
         let map = self
             .device_map
             .map
