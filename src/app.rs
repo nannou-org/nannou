@@ -75,14 +75,17 @@ fn default_model(_: &App) -> () {
 /// Each nannou application has a single **App** instance. This **App** represents the entire
 /// context of the application.
 ///
-/// The **App** provides access to most application and windowing related "IO" related APIs. In
-/// other words, if you need access to windowing, the Vulkan instance, etc, the **App** will
-/// provide access to this.
+/// The **App** provides access to most application, windowing and "IO" related APIs. In other
+/// words, if you need access to windowing, the active wgpu devices, etc, the **App** will provide
+/// access to this.
 ///
 /// The **App** owns and manages:
 ///
 /// - The **window and input event loop** used to drive the application forward.
 /// - **All windows** for graphics and user input. Windows can be referenced via their IDs.
+/// - The sharing of wgpu devices between windows.
+/// - A default **Draw** instance for ease of use.
+/// - A map of channels for submitting user input updates to active **Ui**s.
 pub struct App {
     config: RefCell<Config>,
     pub(crate) event_loop_window_target: Option<EventLoopWindowTarget>,
@@ -94,7 +97,6 @@ pub struct App {
     pub(crate) ui: ui::Arrangement,
     /// The window that is currently in focus.
     pub(crate) focused_window: RefCell<Option<window::Id>>,
-
     /// The current state of the `Mouse`.
     pub mouse: state::Mouse,
     /// State of the keyboard keys.
@@ -114,7 +116,6 @@ pub struct App {
     ///
     /// `duration.since_prev_update` specifies the duration since the previous update event.
     pub duration: state::Time,
-
     /// The time in seconds since the `App` started running.
     ///
     /// Primarily, this field is a convenience that removes the need to call
@@ -899,7 +900,7 @@ impl EventLoopWindowTarget {
 // This is undoubtedly the hairiest part of nannou's code base. This is largely due to the fact
 // that it is the part of nannou where we marry application and user input events, loop timing,
 // updating the model, platform-specific quirks and warts, the various possible `LoopMode`s and
-// Vulkan interop.
+// wgpu interop.
 //
 // If you would like to contribute but are unsure about any of the following, feel free to open an
 // issue and ask!

@@ -212,8 +212,8 @@ fn_any!(ClosedFn<M>, ClosedFnAny);
 
 /// A nannou window.
 ///
-/// The `Window` acts as a wrapper around the `winit::window::Window` and `vulkano::Surface` types and
-/// manages the associated swap chain, providing a more nannou-friendly API.
+/// The **Window** acts as a wrapper around the `winit::window::Window` and the `wgpu::Surface`
+/// types. It also manages the associated swap chain, providing a more nannou-friendly API.
 #[derive(Debug)]
 pub struct Window {
     pub(crate) window: winit::window::Window,
@@ -1226,24 +1226,24 @@ impl Window {
 
     // Access to wgpu API.
 
-    /// Returns a reference to the window's Vulkan swap chain surface.
+    /// Returns a reference to the window's wgpu swap chain surface.
     pub fn surface(&self) -> &wgpu::Surface {
         &self.surface
     }
 
-    /// The descriptor for the swap chain associated with this window's vulkan surface.
+    /// The descriptor for the swap chain associated with this window's wgpu surface.
     pub fn swap_chain_descriptor(&self) -> &wgpu::SwapChainDescriptor {
         &self.swap_chain.descriptor
     }
 
-    /// The vulkan logical device on which the window's swap chain is running.
+    /// The wgpu logical device on which the window's swap chain is running.
     ///
     /// This is shorthand for `DeviceOwned::device(window.swap_chain())`.
     pub fn swap_chain_device(&self) -> &wgpu::Device {
         self.device_queue_pair.device()
     }
 
-    /// The vulkan graphics queue on which the window swap chain work is run.
+    /// The wgpu graphics queue on which the window swap chain work is run.
     ///
     /// The queue is guarded by a `Mutex` in order to synchronise submissions of command buffers in
     /// cases that the queue is shared between more than one window.

@@ -92,7 +92,7 @@ impl<'swap_chain> RawFrame<'swap_chain> {
         }
     }
 
-    /// The `Id` of the window whose vulkan surface is associated with this frame.
+    /// The `Id` of the window whose wgpu surface is associated with this frame.
     pub fn window_id(&self) -> window::Id {
         self.window_id
     }

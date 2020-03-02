@@ -66,7 +66,7 @@ impl Vertex {
         let y_f: f32 = NumCast::from(point.y).unwrap();
         let z_f: f32 = NumCast::from(point.z).unwrap();
         // Map coords from (-fb_dim, +fb_dim) to (-1.0, 1.0)
-        // In vulkan, *y* increases in the downwards direction, so we negate it.
+        // In wgpu, *y* increases in the downwards direction, so we negate it.
         let x = 2.0 * x_f * dpi_factor / framebuffer_width;
         let y = -(2.0 * y_f * dpi_factor / framebuffer_height);
         let z = 2.0 * z_f * dpi_factor / framebuffer_height;
