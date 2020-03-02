@@ -29,10 +29,11 @@ struct Model {
     ui: Ui,
     ids: Ids,
     timeline_data: TimelineData,
+    playing: bool,
 }
 
 struct TimelineData {
-    playhead_secs: f64,
+    playhead_ticks: time::Ticks,
     bars: Vec<time::TimeSig>,
     notes: Vec<piano_roll::Note>,
     tempo_envelope: track::automation::numeric::Envelope<f32>,
@@ -53,6 +54,7 @@ conrod_core::widget_ids! {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
+        .key_pressed(key_pressed)
         .with_dimensions(WIDTH, HEIGHT)
         .with_title("Timeline Demo")
         .view(view)
@@ -64,7 +66,7 @@ fn model(app: &App) -> Model {
     let ids = Ids::new(ui.widget_id_generator());
 
     // Start the playhead at the beginning.
-    let playhead_secs = 0.0;
+    let playhead_ticks = time::Ticks::from(0);
 
     // A sequence of bars with varying time signatures.
     let bars = vec![
@@ -152,7 +154,7 @@ fn model(app: &App) -> Model {
     };
 
     let timeline_data = TimelineData {
-        playhead_secs,
+        playhead_ticks,
         bars,
         notes,
         tempo_envelope,
@@ -166,27 +168,57 @@ fn model(app: &App) -> Model {
         ui,
         ids,
         timeline_data,
+        playing: false,
     }
 }
 
 fn update(_app: &App, model: &mut Model, update: Update) {
     let Model {
-        ref ids,
-        ref mut ui,
-        ref mut timeline_data,
+        ids,
+        ui,
+        timeline_data,
+        playing,
         ..
-    } = *model;
+    } = model;
 
     // Update the user interface.
     set_widgets(&mut ui.set_widgets(), ids, timeline_data);
 
+    // Get the current bpm from the tempo_envelope automation track.
+    use timeline::track::automation::EnvelopeTrait; // needed to use the .y(Ticks) method on the envelope
+    let tempo_value = timeline_data.tempo_envelope.y(timeline_data.playhead_ticks);
+    let current_bpm = tempo_value.unwrap_or(BPM as f32) as f64;
+
     // Update the playhead.
+    let delta_secs = if *playing {
+        update.since_last.secs()
+    } else {
+        0.0
+    };
+    let delta_ticks = time::Ms(delta_secs * ONE_SECOND_MS).to_ticks(current_bpm, PPQN);
     let total_duration_ticks =
         timeline::bars_duration_ticks(timeline_data.bars.iter().cloned(), PPQN);
-    let total_duration_ms = total_duration_ticks.ms(BPM, PPQN);
-    let total_duration_secs = total_duration_ms / ONE_SECOND_MS;
-    let delta_secs = update.since_last.secs();
-    timeline_data.playhead_secs = (timeline_data.playhead_secs + delta_secs) % total_duration_secs;
+    let previous_playhead_ticks = timeline_data.playhead_ticks.clone();
+    timeline_data.playhead_ticks =
+        (timeline_data.playhead_ticks + delta_ticks) % total_duration_ticks;
+
+    // Check if a bang in the bang_envelope has banged.
+    for bang_point in timeline_data.bang_envelope.points() {
+        if bang_point.ticks > previous_playhead_ticks
+            && bang_point.ticks <= timeline_data.playhead_ticks
+        {
+            println!("BANG!");
+        }
+    }
+
+    // Check if a note is playing
+    for note in &timeline_data.notes {
+        if timeline_data.playhead_ticks >= note.period.start
+            && timeline_data.playhead_ticks < note.period.end
+        {
+            println!("Note playing: {:?}", note.pitch);
+        }
+    }
 }
 
 fn view(app: &App, model: &Model, frame: &Frame) {
@@ -204,16 +236,16 @@ fn set_widgets(ui: &mut UiCell, ids: &Ids, data: &mut TimelineData) {
         .set(ids.window, ui);
 
     let TimelineData {
-        ref mut playhead_secs,
-        ref bars,
-        ref notes,
-        ref mut tempo_envelope,
-        ref mut octave_envelope,
-        ref mut toggle_envelope,
-        ref mut bang_envelope,
-    } = *data;
+        playhead_ticks,
+        bars,
+        notes,
+        tempo_envelope,
+        octave_envelope,
+        toggle_envelope,
+        bang_envelope,
+    } = data;
 
-    let ticks = time::Ms(*playhead_secs * ONE_SECOND_MS).to_ticks(BPM, PPQN);
+    let ticks = playhead_ticks.clone();
     let color = ui::color::LIGHT_BLUE;
 
     ////////////////////
@@ -250,7 +282,7 @@ fn set_widgets(ui: &mut UiCell, ids: &Ids, data: &mut TimelineData) {
         let ruler = track::Ruler::new(context.ruler, &context.bars, PPQN).color(color);
         let track = context.set_next_pinned_track(ruler, ui);
         for triggered in track.event {
-            *playhead_secs = triggered.ticks.ms(BPM, PPQN) / ONE_SECOND_MS;
+            *playhead_ticks = triggered.ticks;
         }
     }
 
@@ -286,7 +318,7 @@ fn set_widgets(ui: &mut UiCell, ids: &Ids, data: &mut TimelineData) {
                 for event in track.event {
                     use timeline::track::automation::numeric::Event;
                     match event {
-                        Event::Interpolate(_number) => (),
+                        Event::Interpolate(number) => println!("{}", number),
                         Event::Mutate(mutate) => mutate.apply($envelope),
                     }
                 }
@@ -322,8 +354,8 @@ fn set_widgets(ui: &mut UiCell, ids: &Ids, data: &mut TimelineData) {
         for event in track.event {
             use timeline::track::automation::bang::Event;
             match event {
-                Event::Bang => println!("BANG!"),
                 Event::Mutate(mutate) => mutate.apply(bang_envelope),
+                _ => (),
             }
         }
     }
@@ -340,11 +372,34 @@ fn set_widgets(ui: &mut UiCell, ids: &Ids, data: &mut TimelineData) {
         use timeline::playhead::Event;
         match event {
             Event::Pressed => println!("Playhead pressed!"),
-            Event::DraggedTo(ticks) => *playhead_secs = ticks.ms(BPM, PPQN) / ONE_SECOND_MS,
+            Event::DraggedTo(ticks) => *playhead_ticks = ticks,
             Event::Released => println!("Playhead released!"),
         }
     }
 
     // Set the scrollbar if it is visible.
     context.set_scrollbar(ui);
+}
+
+fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+    match key {
+        // Toggle play when space is pressed.
+        Key::Space => {
+            model.playing = !model.playing;
+        }
+        Key::R => {
+            let bars = model.timeline_data.bars.clone();
+            model.timeline_data.notes = bars::WithStarts::new(bars.iter().cloned(), PPQN)
+                .enumerate()
+                .map(|(i, (time_sig, start))| {
+                    let end = start + time_sig.ticks_per_bar(PPQN);
+                    let period = timeline::Period { start, end };
+                    let pitch = pitch::Step((24 + (i * (random::<usize>() % 11)) % 12) as f32)
+                        .to_letter_octave();
+                    piano_roll::Note { period, pitch }
+                })
+                .collect();
+        }
+        _ => {}
+    }
 }
