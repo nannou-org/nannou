@@ -14,7 +14,20 @@ pub struct Reshaper {
     bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
     sampler: wgpu::Sampler,
+    uniform_buffer: Option<wgpu::Buffer>,
     vertex_buffer: wgpu::Buffer,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
+struct Vertex {
+    pub position: [f32; 2],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct Uniforms {
+    sample_count: u32,
 }
 
 impl Reshaper {
@@ -22,7 +35,7 @@ impl Reshaper {
     pub fn new(
         device: &wgpu::Device,
         src_texture: &wgpu::TextureView,
-        src_multisampled: bool,
+        src_sample_count: u32,
         dst_sample_count: u32,
         dst_format: wgpu::TextureFormat,
     ) -> Self {
@@ -31,16 +44,23 @@ impl Reshaper {
         let vs_spirv = wgpu::read_spirv(std::io::Cursor::new(&vs[..]))
             .expect("failed to read hard-coded SPIRV");
         let vs_mod = device.create_shader_module(&vs_spirv);
-        let fs = include_bytes!("shaders/frag.spv");
-        let fs_spirv = wgpu::read_spirv(std::io::Cursor::new(&fs[..]))
-            .expect("failed to read hard-coded SPIRV");
+        let fs = match src_sample_count {
+            1 => &include_bytes!("shaders/frag.spv")[..],
+            2 => &include_bytes!("shaders/frag_msaa2.spv")[..],
+            4 => &include_bytes!("shaders/frag_msaa4.spv")[..],
+            8 => &include_bytes!("shaders/frag_msaa8.spv")[..],
+            16 => &include_bytes!("shaders/frag_msaa16.spv")[..],
+            _ => &include_bytes!("shaders/frag_msaa.spv")[..],
+        };
+        let fs_spirv =
+            wgpu::read_spirv(std::io::Cursor::new(fs)).expect("failed to read hard-coded SPIRV");
         let fs_mod = device.create_shader_module(&fs_spirv);
 
         // Create the sampler for sampling from the source texture.
         let sampler = wgpu::SamplerBuilder::new().build(device);
 
         // Create the render pipeline.
-        let bind_group_layout = bind_group_layout(device, src_multisampled);
+        let bind_group_layout = bind_group_layout(device, src_sample_count);
         let pipeline_layout = pipeline_layout(device, &bind_group_layout);
         let render_pipeline = render_pipeline(
             device,
@@ -51,8 +71,29 @@ impl Reshaper {
             dst_format,
         );
 
+        // Create the uniform buffer to pass the sample count if we don't have an unrolled resolve
+        // fragment shader for it.
+        let uniform_buffer = match unrolled_sample_count(src_sample_count) {
+            true => None,
+            false => {
+                let uniforms = Uniforms {
+                    sample_count: src_sample_count,
+                };
+                let buffer = device
+                    .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM)
+                    .fill_from_slice(&[uniforms]);
+                Some(buffer)
+            }
+        };
+
         // Create the bind group.
-        let bind_group = bind_group(device, &bind_group_layout, src_texture, &sampler);
+        let bind_group = bind_group(
+            device,
+            &bind_group_layout,
+            src_texture,
+            &sampler,
+            uniform_buffer.as_ref(),
+        );
 
         // Create the vertex buffer.
         let vertex_buffer = device
@@ -66,6 +107,7 @@ impl Reshaper {
             bind_group,
             render_pipeline,
             sampler,
+            uniform_buffer,
             vertex_buffer,
         }
     }
@@ -79,6 +121,7 @@ impl Reshaper {
     ) {
         let vertex_range = 0..VERTICES.len() as u32;
         let instance_range = 0..1;
+
         let render_pass_desc = wgpu::RenderPassDescriptor {
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
                 attachment: dst_texture,
@@ -97,12 +140,6 @@ impl Reshaper {
     }
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
-struct Vertex {
-    pub position: [f32; 2],
-}
-
 const VERTICES: [Vertex; 4] = [
     Vertex {
         position: [-1.0, -1.0],
@@ -118,6 +155,14 @@ const VERTICES: [Vertex; 4] = [
     },
 ];
 
+// We provide pre-prepared fragment shaders with unrolled resolves for common sample counts.
+fn unrolled_sample_count(sample_count: u32) -> bool {
+    match sample_count {
+        1 | 2 | 4 | 8 | 16 => true,
+        _ => false,
+    }
+}
+
 fn vertex_attrs() -> [wgpu::VertexAttributeDescriptor; 1] {
     [wgpu::VertexAttributeDescriptor {
         format: wgpu::VertexFormat::Float2,
@@ -126,12 +171,12 @@ fn vertex_attrs() -> [wgpu::VertexAttributeDescriptor; 1] {
     }]
 }
 
-fn bind_group_layout(device: &wgpu::Device, src_multisampled: bool) -> wgpu::BindGroupLayout {
+fn bind_group_layout(device: &wgpu::Device, src_sample_count: u32) -> wgpu::BindGroupLayout {
     let texture_binding = wgpu::BindGroupLayoutBinding {
         binding: 0,
         visibility: wgpu::ShaderStage::FRAGMENT,
         ty: wgpu::BindingType::SampledTexture {
-            multisampled: src_multisampled,
+            multisampled: src_sample_count > 1,
             dimension: wgpu::TextureViewDimension::D2,
         },
     };
@@ -140,8 +185,21 @@ fn bind_group_layout(device: &wgpu::Device, src_multisampled: bool) -> wgpu::Bin
         visibility: wgpu::ShaderStage::FRAGMENT,
         ty: wgpu::BindingType::Sampler,
     };
-    let bindings = &[texture_binding, sampler_binding];
-    let desc = wgpu::BindGroupLayoutDescriptor { bindings };
+    let uniforms_binding = match unrolled_sample_count(src_sample_count) {
+        true => None,
+        false => Some(wgpu::BindGroupLayoutBinding {
+            binding: 2,
+            visibility: wgpu::ShaderStage::FRAGMENT,
+            ty: wgpu::BindingType::UniformBuffer { dynamic: false },
+        }),
+    };
+    let bindings = match uniforms_binding {
+        None => vec![texture_binding, sampler_binding],
+        Some(uniforms_binding) => vec![texture_binding, sampler_binding, uniforms_binding],
+    };
+    let desc = wgpu::BindGroupLayoutDescriptor {
+        bindings: &bindings,
+    };
     device.create_bind_group_layout(&desc)
 }
 
@@ -150,6 +208,7 @@ fn bind_group(
     layout: &wgpu::BindGroupLayout,
     texture: &wgpu::TextureView,
     sampler: &wgpu::Sampler,
+    uniform_buffer: Option<&wgpu::Buffer>,
 ) -> wgpu::BindGroup {
     let texture_binding = wgpu::Binding {
         binding: 0,
@@ -159,8 +218,21 @@ fn bind_group(
         binding: 1,
         resource: wgpu::BindingResource::Sampler(&sampler),
     };
-    let bindings = &[texture_binding, sampler_binding];
-    let desc = wgpu::BindGroupDescriptor { layout, bindings };
+    let uniforms_binding = uniform_buffer.map(|buffer| wgpu::Binding {
+        binding: 2,
+        resource: wgpu::BindingResource::Buffer {
+            buffer,
+            range: 0..std::mem::size_of::<Uniforms>() as wgpu::BufferAddress,
+        },
+    });
+    let bindings = match uniforms_binding {
+        None => vec![texture_binding, sampler_binding],
+        Some(uniforms_binding) => vec![texture_binding, sampler_binding, uniforms_binding],
+    };
+    let desc = wgpu::BindGroupDescriptor {
+        layout,
+        bindings: &bindings,
+    };
     device.create_bind_group(&desc)
 }
 

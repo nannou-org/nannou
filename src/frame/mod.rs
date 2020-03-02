@@ -278,12 +278,12 @@ impl RenderData {
     ) -> Self {
         let intermediary_lin_srgba =
             create_intermediary_lin_srgba(device, swap_chain_dims, msaa_samples);
+        let src_sample_count = 1;
         let swap_chain_sample_count = 1;
-        let src_multisampled = false;
         let texture_reshaper = wgpu::TextureReshaper::new(
             device,
             &intermediary_lin_srgba.texture_view,
-            src_multisampled,
+            src_sample_count,
             swap_chain_sample_count,
             swap_chain_format,
         );
