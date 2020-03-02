@@ -1319,18 +1319,30 @@ impl Window {
     ///
     /// The destination image file type will be inferred from the extension given in the path.
     ///
-    /// The **App** will use a separate thread for writing the image file in order to avoid
-    /// interfering with the main application thread. Note that if you are capturing every frame
-    /// and your window size is very large or the file type you are writing to is expensive to
-    /// encode, this capturing thread may fall behind the main thread, resulting in a large delay
-    /// before the exiting the program. This is because the capturing thread needs more time to
-    /// write the captured images.
+
     pub fn capture_frame<P>(&self, path: P)
     where
         P: AsRef<Path>,
     {
-        let path = path.as_ref();
+        self.capture_frame_with_threaded(path.as_ref(), false);
+    }
 
+    /// The same as **capture_frame**, but uses a separate pool of threads for writing image files
+    /// in order to free up the main application thread.
+    ///
+    /// Note that if you are capturing every frame and your window size is very large or the file
+    /// type you are writing to is expensive to encode, this capturing thread may fall behind the
+    /// main thread, resulting in a large delay before the exiting the program. This is because the
+    /// capturing thread needs more time to write the captured images.
+    pub fn capture_frame_threaded<P>(&self, path: P)
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+        self.capture_frame_with_threaded(path.as_ref(), false);
+    }
+
+    fn capture_frame_with_threaded(&self, path: &Path, threaded: bool) {
         // If the parent directory does not exist, create it.
         let dir = path.parent().expect("capture_frame path has no directory");
         if !dir.exists() {
@@ -1345,7 +1357,7 @@ impl Window {
             .next_frame_path
             .lock()
             .expect("failed to lock `capture_next_frame_path`");
-        *capture_next_frame_path = Some(path.to_path_buf());
+        *capture_next_frame_path = Some((path.to_path_buf(), threaded));
     }
 }
 

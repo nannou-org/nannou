@@ -163,13 +163,12 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     // NOTE: It is essential that the commands for capturing the snapshot are `submit`ted before we
     // attempt to read the snapshot - otherwise we will read a blank texture!
     //
-    // NOTE: You can also use `read` instead of `read_threaded` if you want to read the texture on
-    // the current thread. This will slow down the main thread, but will allow the PNG writing to
-    // keep up with the main thread.
+    // NOTE: You can speed this up with `read_threaded`, however be aware that if the image writing
+    // threads can't keep up you may quickly begin to run out of RAM!
     let path = capture_directory(app)
         .join(elapsed_frames.to_string())
         .with_extension("png");
-    snapshot.read_threaded(move |result| {
+    snapshot.read(move |result| {
         let image = result.expect("failed to map texture memory");
         image
             .save(&path)

@@ -12,11 +12,11 @@ use threadpool::ThreadPool;
 ///
 /// If the **Capturer** is dropped while threaded callbacks are still being processed, the drop
 /// implementation will block the current thread.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Capturer {
     converter_data_pair: Mutex<Option<ConverterDataPair>>,
     thread_pool: Arc<Mutex<Option<Arc<ThreadPool>>>>,
-    num_threads: usize,
+    num_threads: Option<usize>,
 }
 
 /// A snapshot captured by a **Capturer**.
@@ -26,7 +26,7 @@ pub struct Capturer {
 pub struct Snapshot {
     buffer: wgpu::BufferImage,
     thread_pool: Arc<Mutex<Option<Arc<ThreadPool>>>>,
-    num_threads: usize,
+    num_threads: Option<usize>,
 }
 
 /// A wrapper around a slice of bytes representing a non-linear sRGBA image.
@@ -58,7 +58,7 @@ impl Capturer {
     /// Note that a **TextureCapturer** must only be used with a single texture. If you require
     /// capturing multiple textures, you may create multiple **TextureCapturers**.
     pub fn new() -> Self {
-        Self::with_num_threads(1)
+        Self::default()
     }
 
     /// The same as **new** but allows for specifying the number of threads to use when processing
@@ -73,7 +73,7 @@ impl Capturer {
         Self {
             converter_data_pair: Default::default(),
             thread_pool: Default::default(),
-            num_threads,
+            num_threads: Some(num_threads),
         }
     }
 
@@ -188,7 +188,13 @@ impl Snapshot {
             .thread_pool
             .lock()
             .expect("failed to acquire thread handle");
-        let thread_pool = guard.get_or_insert_with(|| Arc::new(ThreadPool::new(self.num_threads)));
+        let thread_pool = guard.get_or_insert_with(|| {
+            let thread_pool = self
+                .num_threads
+                .map(|n| ThreadPool::new(n))
+                .unwrap_or_default();
+            Arc::new(thread_pool)
+        });
         let thread_pool = thread_pool.clone();
         self.read(move |result| {
             let result = result.map(|img| img.to_owned());
@@ -204,12 +210,6 @@ impl<'a> Rgba8AsyncMappedImageBuffer<'a> {
         let (width, height) = self.dimensions();
         image::ImageBuffer::from_raw(width, height, vec)
             .expect("image buffer dimensions do not match vec len")
-    }
-}
-
-impl Default for Capturer {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

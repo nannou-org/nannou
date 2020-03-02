@@ -37,7 +37,7 @@ pub struct RenderData {
 /// Data related to the capturing of a frame.
 #[derive(Debug, Default)]
 pub(crate) struct CaptureData {
-    pub(crate) next_frame_path: Mutex<Option<PathBuf>>,
+    pub(crate) next_frame_path: Mutex<Option<(PathBuf, bool)>>,
     texture_capturer: wgpu::TextureCapturer,
 }
 
@@ -103,7 +103,7 @@ impl<'swap_chain> Frame<'swap_chain> {
         // Check to see if the user specified capturing the frame.
         let mut snapshot_capture = None;
         if let Ok(mut guard) = capture_data.next_frame_path.lock() {
-            if let Some(path) = guard.take() {
+            if let Some((path, threaded)) = guard.take() {
                 let device = raw_frame.device_queue_pair().device();
                 let mut encoder = raw_frame.command_encoder();
                 let snapshot = capture_data.texture_capturer.capture(
@@ -111,7 +111,7 @@ impl<'swap_chain> Frame<'swap_chain> {
                     &mut *encoder,
                     &render_data.intermediary_lin_srgba.texture,
                 );
-                snapshot_capture = Some((path, snapshot));
+                snapshot_capture = Some((path, threaded, snapshot));
             }
         }
 
@@ -130,19 +130,37 @@ impl<'swap_chain> Frame<'swap_chain> {
         raw_frame.submit_inner();
 
         // If the user did specify capturing the frame, submit the asynchronous read.
-        if let Some((path, snapshot)) = snapshot_capture {
-            snapshot.read_threaded(move |result| match result {
-                Err(e) => eprintln!("failed to asynchronously read captured frame: {:?}", e),
-                Ok(image) => {
-                    if let Err(e) = image.save(&path) {
-                        eprintln!(
-                            "failed to save captured frame to \"{}\": {}",
-                            path.display(),
-                            e
-                        );
-                    }
+        if let Some((path, threaded, snapshot)) = snapshot_capture {
+            match threaded {
+                false => {
+                    snapshot.read(move |result| match result {
+                        Err(e) => eprintln!("failed to async read captured frame: {:?}", e),
+                        Ok(image) => {
+                            if let Err(e) = image.save(&path) {
+                                eprintln!(
+                                    "failed to save captured frame to \"{}\": {}",
+                                    path.display(),
+                                    e
+                                );
+                            }
+                        }
+                    });
                 }
-            });
+                true => {
+                    snapshot.read_threaded(move |result| match result {
+                        Err(e) => eprintln!("failed to async read captured frame: {:?}", e),
+                        Ok(image) => {
+                            if let Err(e) = image.save(&path) {
+                                eprintln!(
+                                    "failed to save captured frame to \"{}\": {}",
+                                    path.display(),
+                                    e
+                                );
+                            }
+                        }
+                    });
+                }
+            }
         }
     }
 

@@ -17,7 +17,7 @@ fn view(app: &App, frame: Frame) {
         .points(win.bottom_left(), win.top_left(), win.top_right())
         .color(VIOLET);
 
-    let t = app.time;
+    let t = frame.nth() as f32 / 60.0;
     draw.ellipse()
         .x_y(app.mouse.x * t.cos(), app.mouse.y)
         .radius(win.w() * 0.125 * t.sin())
@@ -52,5 +52,8 @@ fn view(app: &App, frame: Frame) {
         .with_extension("png");
 
     // Capture the frame!
+    //
+    // NOTE: You can speed this up with `capture_frame_threaded`, however be aware that if the
+    // image writing threads can't keep up you may quickly begin to run out of RAM!
     app.main_window().capture_frame(file_path);
 }
