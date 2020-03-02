@@ -1065,9 +1065,10 @@ fn run_loop<M, E>(
                 window.swap_chain.swap_chain = Some(swap_chain);
             }
 
-            // Once drawing is complete, clear any inactive adapters and devices.
+            // Clear any inactive adapters and devices and poll those remaining.
             winit::event::Event::RedrawEventsCleared => {
                 app.wgpu_adapters().clear_inactive_adapters_and_devices();
+                app.wgpu_adapters().poll_all_devices(false);
             }
 
             // Ignore wake-up events for now. Currently, these can only be triggered via the app proxy.
