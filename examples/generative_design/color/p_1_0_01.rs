@@ -31,12 +31,10 @@
 use nannou::prelude::*;
 
 fn main() {
-    nannou::sketch(view);
+    nannou::sketch(view).size(720, 720).run();
 }
 
 fn view(app: &App, frame: Frame) {
-    app.main_window().set_inner_size_points(720.0, 720.0);
-
     // Prepare to draw.
     let draw = app.draw();
 

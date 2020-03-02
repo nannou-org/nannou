@@ -6,7 +6,11 @@
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).update(update).simple_window(view).run();
+    nannou::app(model)
+        .update(update)
+        .simple_window(view)
+        .size(300, 300)
+        .run();
 }
 
 struct Model {
@@ -47,8 +51,7 @@ impl Ball {
     }
 }
 
-fn model(app: &App) -> Model {
-    app.main_window().set_inner_size_points(300.0, 300.0);
+fn model(_app: &App) -> Model {
     let ball = Ball::new();
     Model { ball }
 }

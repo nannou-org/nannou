@@ -65,6 +65,12 @@ pub struct Builder<M = (), E = Event> {
     default_view: Option<View<M>>,
     exit: Option<ExitFn<M>>,
     create_default_window: bool,
+    default_window_size: Option<winit::dpi::LogicalSize<u32>>,
+}
+
+/// A nannou `Sketch` builder.
+pub struct SketchBuilder<E = Event> {
+    builder: Builder<(), E>,
 }
 
 /// The default `model` function used when none is specified by the user.
@@ -88,6 +94,7 @@ fn default_model(_: &App) -> () {
 /// - A map of channels for submitting user input updates to active **Ui**s.
 pub struct App {
     config: RefCell<Config>,
+    default_window_size: Option<winit::dpi::LogicalSize<u32>>,
     pub(crate) event_loop_window_target: Option<EventLoopWindowTarget>,
     pub(crate) event_loop_proxy: Proxy,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
@@ -253,6 +260,7 @@ where
             default_view: None,
             exit: None,
             create_default_window: false,
+            default_window_size: None,
         }
     }
 
@@ -274,6 +282,7 @@ where
             default_view,
             exit,
             create_default_window,
+            default_window_size,
             ..
         } = self;
         Builder {
@@ -283,6 +292,7 @@ where
             default_view,
             exit,
             create_default_window,
+            default_window_size,
         }
     }
 }
@@ -337,6 +347,14 @@ where
         self
     }
 
+    /// Specify the default window size in points.
+    ///
+    /// If a window is created and its size is not specified, this size will be used.
+    pub fn size(mut self, width: u32, height: u32) -> Self {
+        self.default_window_size = Some(winit::dpi::LogicalSize { width, height });
+        self
+    }
+
     /// Specify an `exit` function to be called when the application exits.
     ///
     /// The exit function gives ownership of the model back to you for any cleanup that might be
@@ -367,7 +385,11 @@ where
 
         // Initialise the app.
         let event_loop_window_target = Some(EventLoopWindowTarget::Owned(event_loop));
-        let app = App::new(event_loop_proxy, event_loop_window_target);
+        let app = App::new(
+            event_loop_proxy,
+            event_loop_window_target,
+            self.default_window_size,
+        );
 
         // Create the default window if necessary
         if self.create_default_window {
@@ -399,13 +421,31 @@ where
     }
 }
 
+impl<E> SketchBuilder<E>
+where
+    E: LoopEvent,
+{
+    /// The size of the sketch window.
+    pub fn size(mut self, width: u32, height: u32) -> Self {
+        self.builder = self.builder.size(width, height);
+        self
+    }
+
+    /// Build and run a `Sketch` with the specified parameters.
+    ///
+    /// This calls `App::run` internally. See that method for details!
+    pub fn run(self) {
+        self.builder.run()
+    }
+}
+
 impl Builder<(), Event> {
     /// Shorthand for building a simple app that has no model, handles no events and simply draws
     /// to a single window.
     ///
     /// This is useful for late night hack sessions where you just don't care about all that other
     /// stuff, you just want to play around with some ideas or make something pretty.
-    pub fn sketch(view: SketchViewFn) {
+    pub fn sketch(view: SketchViewFn) -> SketchBuilder<Event> {
         let builder: Self = Builder {
             model: default_model,
             event: None,
@@ -413,8 +453,9 @@ impl Builder<(), Event> {
             default_view: Some(View::Sketch(view)),
             exit: None,
             create_default_window: true,
+            default_window_size: None,
         };
-        builder.run()
+        SketchBuilder { builder }
     }
 }
 
@@ -494,6 +535,7 @@ impl App {
     pub(super) fn new(
         event_loop_proxy: Proxy,
         event_loop_window_target: Option<EventLoopWindowTarget>,
+        default_window_size: Option<winit::dpi::LogicalSize<u32>>,
     ) -> Self {
         let adapters = Default::default();
         let windows = RefCell::new(HashMap::new());
@@ -510,6 +552,7 @@ impl App {
         let app = App {
             event_loop_proxy,
             event_loop_window_target,
+            default_window_size,
             focused_window,
             adapters,
             windows,
@@ -570,7 +613,11 @@ impl App {
 
     /// Begin building a new window.
     pub fn new_window(&self) -> window::Builder {
-        window::Builder::new(self)
+        let builder = window::Builder::new(self);
+        match self.default_window_size {
+            Some(size) => builder.size(size.width, size.height),
+            None => builder,
+        }
     }
 
     /// The number of windows currently in the application.

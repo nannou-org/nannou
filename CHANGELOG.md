@@ -29,6 +29,11 @@
   image file at the given file path.
 - Add a `simple_capture.rs` example.
 - Add a `capture_hi_res.rs` example.
+- `sketch`'s now need a call to `.run()` to do anything.
+- `sktech`'s now support a `.size(width, height)` builder method for setting
+  window size.
+- The `app::Builder` now also supports a `.size(width, height)` method for
+  specifying the default window width and height.
 
 # Version 0.12.0 (2019-11-03)
 

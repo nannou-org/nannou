@@ -32,12 +32,10 @@ extern crate nannou;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::sketch(view);
+    nannou::sketch(view).size(550, 550).run();
 }
 
 fn view(app: &App, frame: Frame) {
-    app.main_window().set_inner_size_points(550.0, 550.0);
-
     // Prepare to draw.
     let draw = app.draw();
     let win = app.window_rect();
