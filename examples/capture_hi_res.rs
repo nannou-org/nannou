@@ -62,12 +62,11 @@ fn model(app: &App) -> Model {
 
     // Create the texture reshaper.
     let texture_view = texture.create_default_view();
-    let src_multisampled = texture.sample_count() > 1;
     let dst_format = Frame::TEXTURE_FORMAT;
     let texture_reshaper = wgpu::TextureReshaper::new(
         device,
         &texture_view,
-        src_multisampled,
+        sample_count,
         sample_count,
         dst_format,
     );

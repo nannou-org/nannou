@@ -41,7 +41,6 @@ pub struct Rgba8AsyncMapping<'a> {
 struct ConverterDataPair {
     src_descriptor: wgpu::TextureDescriptor,
     reshaper: wgpu::TextureReshaper,
-    resolved_src_texture: Option<wgpu::Texture>,
     dst_texture: wgpu::Texture,
 }
 
@@ -101,13 +100,6 @@ impl Capturer {
                 &converter_data_pair.src_descriptor,
             ) {
                 *converter_data_pair = create_converter_data_pair(device, src_texture);
-            }
-
-            // If the src is multisampled, add the resolve command.
-            if let Some(ref resolved_src_texture) = converter_data_pair.resolved_src_texture {
-                let src_view = src_texture.create_default_view();
-                let resolved_view = resolved_src_texture.create_default_view();
-                wgpu::resolve_texture(&src_view, &resolved_view, encoder);
             }
 
             // Encode the texture format conversion.
@@ -252,17 +244,6 @@ fn create_converter_data_pair(
     device: &wgpu::Device,
     src_texture: &wgpu::Texture,
 ) -> ConverterDataPair {
-    // If the src is multisampled, it must be resolved first.
-    let resolved_src_texture = if src_texture.sample_count() > 1 {
-        let texture = wgpu::TextureBuilder::from(src_texture.descriptor_cloned())
-            .sample_count(1)
-            .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::SAMPLED)
-            .build(device);
-        Some(texture)
-    } else {
-        None
-    };
-
     // Create the destination format texture.
     let dst_texture = wgpu::TextureBuilder::from(src_texture.descriptor_cloned())
         .sample_count(1)
@@ -270,20 +251,15 @@ fn create_converter_data_pair(
         .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::COPY_SRC)
         .build(device);
 
-    // If we have a resolved texture, use it as the conversion src. Otherwise use `src_texture`.
-    let src_view = resolved_src_texture
-        .as_ref()
-        .map(|tex| tex.create_default_view())
-        .unwrap_or_else(|| src_texture.create_default_view());
-
     // Create the converter.
-    let dst_format = dst_texture.format();
-    let src_multisampled = src_texture.sample_count() > 1;
+    let src_sample_count = src_texture.sample_count();
+    let src_view = src_texture.create_default_view();
     let dst_sample_count = 1;
+    let dst_format = dst_texture.format();
     let reshaper = wgpu::TextureReshaper::new(
         device,
         &src_view,
-        src_multisampled,
+        src_sample_count,
         dst_sample_count,
         dst_format,
     );
@@ -294,7 +270,6 @@ fn create_converter_data_pair(
     ConverterDataPair {
         src_descriptor,
         reshaper,
-        resolved_src_texture,
         dst_texture,
     }
 }
