@@ -1,7 +1,19 @@
-//! Items related to WGPU and the Rust API used by nannou to access the GPU.
+//! Items related to wgpu and its integration in nannou!
+//!
+//! **WebGPU** is the portable graphics specification that nannou targets allowing us to write code
+//! that is both fast and allows us to target a wide range of platforms. **wgpu** is the name of
+//! the crate we use that implements this specification.
 //!
 //! This module re-exports the entire `wgpu` crate along with all of its documentation while also
-//! adding some additional helper items.
+//! adding some additional items that makes `wgpu` easier to use alongside nannou.
+//!
+//! Useful links:
+//!
+//! - An awesome [guide for wgpu-rs](https://sotrh.github.io/learn-wgpu/#what-is-wgpu). Highly
+//!   recommended reading if you would like to work more closely with the GPU in nannou!
+//! - The [wgpu-rs repository](https://github.com/gfx-rs/wgpu-rs).
+//! - The [WebGPU specification](https://gpuweb.github.io/gpuweb/).
+//! - WebGPU [on wikipedia](https://en.wikipedia.org/wiki/WebGPU).
 
 mod device_map;
 mod sampler_builder;

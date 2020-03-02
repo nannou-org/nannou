@@ -1,15 +1,11 @@
 use crate::wgpu;
 
-/// Reshapes a texture from its original size and format to the destination size and format.
+/// Reshapes a texture from its original size, sample_count and format to the destination size,
+/// sample_count and format.
 ///
 /// The `src_texture` must have the `TextureUsage::SAMPLED` enabled.
 ///
 /// The `dst_texture` must have the `TextureUsage::OUTPUT_ATTACHMENT` enabled.
-///
-/// Both `src_texture` and `dst_texture` must have the same dimensions.
-///
-/// Both textures should **not** be multisampled. *Note: Please open an issue if you would like
-/// support for multisampled source textures as it should be quite trivial to add.*
 #[derive(Debug)]
 pub struct Reshaper {
     _vs_mod: wgpu::ShaderModule,
