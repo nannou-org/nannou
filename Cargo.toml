@@ -15,9 +15,9 @@ default = ["notosans"]
 
 [dependencies]
 cgmath = { version = "0.17", features = ["serde"] }
-conrod_core = { git = "https://github.com/mitchmindtree/conrod", branch = "conrod_wgpu" }
-conrod_wgpu = { git = "https://github.com/mitchmindtree/conrod", branch = "conrod_wgpu" }
-conrod_winit = { git = "https://github.com/mitchmindtree/conrod", branch = "conrod_wgpu" }
+conrod_core = "0.69"
+conrod_wgpu = "0.69"
+conrod_winit = "0.69"
 daggy = "0.6"
 find_folder = "0.3"
 image = "0.23"
