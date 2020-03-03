@@ -133,7 +133,6 @@ name = "7_modules"
 path = "examples/basics/7_modules/7_modules.rs"
 
 # --------------- WGPU Examples
-
 [[example]]
 name = "wgpu_compute_shader"
 path = "examples/wgpu/wgpu_compute_shader/wgpu_compute_shader.rs"
@@ -155,47 +154,6 @@ path = "examples/wgpu/wgpu_triangle/wgpu_triangle.rs"
 [[example]]
 name = "wgpu_triangle_raw_frame"
 path = "examples/wgpu/wgpu_triangle_raw_frame/wgpu_triangle_raw_frame.rs"
-
-# # --------------- Vulkan Examples
-# [[example]]
-# name = "vk_triangle"
-# path = "examples/vulkan/vk_triangle.rs"
-# [[example]]
-# name = "vk_triangle_raw_frame"
-# path = "examples/vulkan/vk_triangle_raw_frame.rs"
-# [[example]]
-# name = "vk_teapot"
-# path = "examples/vulkan/vk_teapot.rs"
-# [[example]]
-# name = "vk_quad_warp"
-# path = "examples/vulkan/vk_quad_warp/vk_quad_warp.rs"
-# [[example]]
-# name = "vk_teapot_camera"
-# path = "examples/vulkan/vk_teapot_camera.rs"
-# [[example]]
-# name = "vk_image"
-# path = "examples/vulkan/vk_image.rs"
-# [[example]]
-# name = "vk_images"
-# path = "examples/vulkan/vk_images.rs"
-# [[example]]
-# name = "vk_image_sequence"
-# path = "examples/vulkan/vk_image_sequence.rs"
-# [[example]]
-# name = "vk_compute_shader_rendering"
-# path = "examples/vulkan/vk_compute_shader_rendering.rs"
-# [[example]]
-# name = "vk_compute_shader"
-# path = "examples/vulkan/vk_compute_shader.rs"
-# [[example]]
-# name = "vk_shader_include"
-# path = "examples/vulkan/vk_shader_include/mod.rs"
-# [[example]]
-# name = "vk_debug"
-# path = "examples/vulkan/vk_debug.rs"
-# [[example]]
-# name = "vk_hotload"
-# path = "examples/vulkan/vk_hotload.rs"
 
 # --------------- Generative Design
 [[example]]

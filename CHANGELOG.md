@@ -25,6 +25,11 @@
   This was necessary to enable ergonomic texture capturing.
 - `frame.submit()` can now be used to submit the frame to the GPU before the end
   of the `view` function.
+- `nannou::sketch` now returns a `SketchBuilder`. This allows for specifying the
+  sketch `.size(w, h)`, but now requires that `.run()` is called (or the sketch
+  won't do anything!).
+- A `.size(w, h)` builder has been added to the `app::Builder` type that allows
+  for specifying a default window size.
 - Add `window.capture_frame(path)` method for capturing the next frame to an
   image file at the given file path.
 - Add a `simple_capture.rs` example.
@@ -34,6 +39,10 @@
   window size.
 - The `app::Builder` now also supports a `.size(width, height)` method for
   specifying the default window width and height.
+- `LoopMode`s have been simplified:
+    - `Wait` no longer requires `update_following_event` or `update_interval`
+    - `NTimes` no longer requires `update_interval`
+    - `Refresh` no longer requires `minimum_update_interval` or `windows`
 
 # Version 0.12.0 (2019-11-03)
 

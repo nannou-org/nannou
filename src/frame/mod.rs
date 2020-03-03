@@ -164,7 +164,7 @@ impl<'swap_chain> Frame<'swap_chain> {
         }
     }
 
-    /// The texture to which all use graphics should be drawn this frame.
+    /// The texture to which all graphics should be drawn this frame.
     ///
     /// This is **not** the swapchain texture, but rather an intermediary linear sRGBA image. This
     /// intermediary image is used in order to:
