@@ -41,7 +41,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .dimensions(720, 720)
+        .size(720, 720)
         .key_pressed(key_pressed)
         .view(view)
         .build()
@@ -74,7 +74,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
 

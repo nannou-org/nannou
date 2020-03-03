@@ -49,7 +49,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .dimensions(800, 800)
+        .size(800, 800)
         .key_pressed(key_pressed)
         .mouse_released(mouse_released)
         .view(view)
@@ -76,7 +76,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model.tile_count_y = map_range(app.mouse.y, win.top(), win.bottom(), 2, 10) as usize;
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(BLACK);

@@ -20,7 +20,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     check_color_list_lengths();
-    app.set_loop_mode(LoopMode::wait(3));
+    app.set_loop_mode(LoopMode::Wait);
     let mut ui = app.new_ui().build().unwrap();
     let color_list = ui.generate_widget_id();
     let selected_color_index = 0;
@@ -81,7 +81,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
     // Draw the background with the color.

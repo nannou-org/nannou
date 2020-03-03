@@ -76,7 +76,7 @@ fn mouse_moved(app: &App, model: &mut Model, pos: Point2) {
         .unwrap();
 }
 
-fn view(app: &App, _model: &Model, frame: &Frame) {
+fn view(app: &App, _model: &Model, frame: Frame) {
     // Visualise the point in the window.
     let draw = app.draw();
     draw.background().color(DIMGRAY);

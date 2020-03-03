@@ -23,7 +23,7 @@ fn target_address_string() -> String {
 fn model(app: &App) -> Model {
     app.new_window()
         .title("OSC Sender")
-        .dimensions(680, 480)
+        .size(680, 480)
         .event(event)
         .view(view)
         .build()
@@ -85,6 +85,6 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         .set(model.text, &mut ui);
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     model.ui.draw_to_frame(app, &frame).unwrap();
 }

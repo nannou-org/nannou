@@ -57,12 +57,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app
-        .new_window()
-        .dimensions(800, 800)
-        .view(view)
-        .build()
-        .unwrap();
+    let _window = app.new_window().size(800, 800).view(view).build().unwrap();
 
     let lissajous_points = Vec::new();
 
@@ -103,7 +98,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
     if app.elapsed_frames() == 1 {

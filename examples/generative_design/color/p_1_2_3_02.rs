@@ -45,7 +45,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .dimensions(1280, 720)
+        .size(1280, 720)
         .view(view)
         .mouse_released(mouse_released)
         .build()
@@ -87,7 +87,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
     if model.clicked {

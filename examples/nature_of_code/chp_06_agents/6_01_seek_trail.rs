@@ -72,11 +72,7 @@ impl Vehicle {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window()
-        .dimensions(640, 360)
-        .view(view)
-        .build()
-        .unwrap();
+    app.new_window().size(640, 360).view(view).build().unwrap();
     let middle = app.window_rect().xy();
     let vehicle = Vehicle::new(middle.x, middle.y);
     Model { vehicle }
@@ -87,7 +83,7 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     m.vehicle.update();
 }
 
-fn view(app: &App, m: &Model, frame: &Frame) {
+fn view(app: &App, m: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

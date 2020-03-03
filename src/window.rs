@@ -1,28 +1,24 @@
 //! The nannou [**Window**](./struct.Window.html) API. Create a new window via `.app.new_window()`.
 //! This produces a [**Builder**](./struct.Builder.html) which can be used to build a window.
 
-use crate::app::LoopMode;
 use crate::event::{
     Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase, TouchpadPressure, WindowEvent,
 };
 use crate::frame::{self, Frame, RawFrame};
 use crate::geom;
 use crate::geom::{Point2, Vector2};
-use crate::vk::{self, win::VkSurfaceBuild, VulkanObject};
+use crate::wgpu;
 use crate::App;
 use std::any::Any;
-use std::error::Error as StdError;
-use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use std::{cmp, env, fmt, ops};
+use std::{env, fmt};
 use winit::dpi::LogicalSize;
-use winit::{self, MonitorId, MouseCursor};
 
-pub use winit::WindowId as Id;
+pub use winit::window::WindowId as Id;
 
 /// The default dimensions used for a window in the case that none are specified.
-pub const DEFAULT_DIMENSIONS: LogicalSize = LogicalSize {
+pub const DEFAULT_DIMENSIONS: LogicalSize<geom::scalar::Default> = LogicalSize {
     width: 1024.0,
     height: 768.0,
 };
@@ -30,12 +26,11 @@ pub const DEFAULT_DIMENSIONS: LogicalSize = LogicalSize {
 /// A context for building a window.
 pub struct Builder<'app> {
     app: &'app App,
-    vk_physical_device: Option<vk::PhysicalDevice<'app>>,
-    vk_device_extensions: Option<vk::DeviceExtensions>,
-    vk_device_queue: Option<Arc<vk::Queue>>,
-    window: winit::WindowBuilder,
+    window: winit::window::WindowBuilder,
     title_was_set: bool,
-    swapchain_builder: SwapchainBuilder,
+    swap_chain_builder: SwapChainBuilder,
+    request_adapter_opts: Option<wgpu::RequestAdapterOptions>,
+    device_desc: Option<wgpu::DeviceDescriptor>,
     user_functions: UserFunctions,
     msaa_samples: Option<u32>,
 }
@@ -67,18 +62,18 @@ pub(crate) struct UserFunctions {
 }
 
 /// The user function type for drawing their model to the surface of a single window.
-pub type ViewFn<Model> = fn(&App, &Model, &Frame);
+pub type ViewFn<Model> = fn(&App, &Model, Frame);
 
 /// The user function type for drawing their model to the surface of a single window.
 ///
-/// Unlike the `ViewFn`, the `RawViewFn` is designed for drawing directly to a window's swapchain
+/// Unlike the `ViewFn`, the `RawViewFn` is designed for drawing directly to a window's swap chain
 /// images rather than to a convenient intermediary image.
-pub type RawViewFn<Model> = fn(&App, &Model, &RawFrame);
+pub type RawViewFn<Model> = fn(&App, &Model, RawFrame);
 
 /// The same as `ViewFn`, but provides no user model to draw from.
 ///
 /// Useful for simple, stateless sketching.
-pub type SketchFn = fn(&App, &Frame);
+pub type SketchFn = fn(&App, Frame);
 
 /// The user's view function, whether with a model or without one.
 #[derive(Clone)]
@@ -89,7 +84,7 @@ pub(crate) enum View {
 }
 
 /// A function for processing raw winit window events.
-pub type RawEventFn<Model> = fn(&App, &mut Model, winit::WindowEvent);
+pub type RawEventFn<Model> = fn(&App, &mut Model, &winit::event::WindowEvent);
 
 /// A function for processing window events.
 pub type EventFn<Model> = fn(&App, &mut Model, WindowEvent);
@@ -147,6 +142,13 @@ pub type UnfocusedFn<Model> = fn(&App, &mut Model);
 
 /// A function for processing window closed events.
 pub type ClosedFn<Model> = fn(&App, &mut Model);
+
+/// Errors that might occur while building the window.
+#[derive(Debug)]
+pub enum BuildError {
+    NoAvailableAdapter,
+    WinitOsError(winit::error::OsError),
+}
 
 // A macro for generating a handle to a function that can be stored within the Window without
 // requiring a type param. $TFn is the function pointer type that will be wrapped by $TFnAny.
@@ -210,402 +212,121 @@ fn_any!(ClosedFn<M>, ClosedFnAny);
 
 /// A nannou window.
 ///
-/// The `Window` acts as a wrapper around the `winit::Window` and `vulkano::Surface` types and
-/// manages the associated swapchain, providing a more nannou-friendly API.
+/// The **Window** acts as a wrapper around the `winit::window::Window` and the `wgpu::Surface`
+/// types. It also manages the associated swap chain, providing a more nannou-friendly API.
 #[derive(Debug)]
 pub struct Window {
-    pub(crate) queue: Arc<vk::Queue>,
-    pub(crate) surface: Arc<Surface>,
+    pub(crate) window: winit::window::Window,
+    pub(crate) surface: wgpu::Surface,
+    pub(crate) device_queue_pair: Arc<wgpu::DeviceQueuePair>,
     msaa_samples: u32,
-    pub(crate) swapchain: Arc<WindowSwapchain>,
-    // Data for rendering a `Frame`'s intermediary image to a swapchain image.
-    pub(crate) frame_render_data: Option<frame::RenderData>,
+    pub(crate) swap_chain: WindowSwapChain,
+    pub(crate) frame_data: Option<FrameData>,
     pub(crate) frame_count: u64,
     pub(crate) user_functions: UserFunctions,
-    // If the user specified one of the following parameters, use these when recreating the
-    // swapchain rather than our heuristics.
-    pub(crate) user_specified_present_mode: Option<vk::swapchain::PresentMode>,
-    pub(crate) user_specified_image_count: Option<u32>,
+    pub(crate) tracked_state: TrackedState,
 }
 
-/// The surface type associated with a winit window.
-pub type Surface = vk::swapchain::Surface<winit::Window>;
-
-/// The swapchain type associated with a winit window surface.
-pub type Swapchain = vk::swapchain::Swapchain<winit::Window>;
-
-/// The vulkan image type associated with a winit window surface.
-pub type SwapchainImage = vk::image::swapchain::SwapchainImage<winit::Window>;
-
-/// The future representing the moment that the GPU will have access to the swapchain image.
-pub type SwapchainAcquireFuture = vk::swapchain::SwapchainAcquireFuture<winit::Window>;
-
-/// A swapchain and its images associated with a single window.
-pub(crate) struct WindowSwapchain {
-    // Tracks whether or not the swapchain needs recreation due to resizing, etc.
-    pub(crate) needs_recreation: AtomicBool,
-    // The index of the frame at which this swapchain was first presented.
-    //
-    // This is necessary for allowing the user to determine whether or not they need to recreate
-    // framebuffers in the case that the swapchain has recently been recreated.
-    pub(crate) frame_created: u64,
-    pub(crate) swapchain: Arc<Swapchain>,
-    pub(crate) images: Vec<Arc<SwapchainImage>>,
-    // In the application loop we are going to submit commands to the GPU. Submitting a command
-    // produces an object that implements the `GpuFuture` trait, which holds the resources for as
-    // long as they are in use by the GPU.
-    //
-    // Destroying the `GpuFuture` blocks until the GPU is finished executing it. In order to avoid
-    // that, we store the submission of the previous frame here.
-    pub(crate) previous_frame_end: Mutex<Option<vk::FenceSignalFuture<Box<dyn vk::GpuFuture>>>>,
+// Data related to `Frame`s produced for this window's swapchain textures.
+#[derive(Debug)]
+pub(crate) struct FrameData {
+    // Data for rendering a `Frame`'s intermediary image to a swap chain image.
+    pub(crate) render: frame::RenderData,
+    // Data for capturing a `Frame`'s intermediary image before submission.
+    pub(crate) capture: frame::CaptureData,
 }
 
-/// Swapchain building parameters for which Nannou will provide a default if unspecified.
+// Track and store some information about the window in order to avoid making repeated internal
+// queries to the platform-specific API. This is beneficial in some cases where queries to the
+// platform-specific API can be very slow (e.g. macOS cocoa).
+#[derive(Debug)]
+pub(crate) struct TrackedState {
+    // Updated on `ScaleFactorChanged`.
+    pub(crate) scale_factor: f64,
+    // Updated on `Resized`.
+    pub(crate) physical_size: winit::dpi::PhysicalSize<u32>,
+}
+
+/// A swap_chain and its images associated with a single window.
+pub(crate) struct WindowSwapChain {
+    // The descriptor used to create the original swap chain. Useful for recreation.
+    pub(crate) descriptor: wgpu::SwapChainDescriptor,
+    // This is an `Option` in order to allow for separating ownership of the swapchain from the
+    // window during a `RedrawRequest`. Other than during `RedrawRequest`, this should always be
+    // `Some`.
+    pub(crate) swap_chain: Option<wgpu::SwapChain>,
+}
+
+/// SwapChain building parameters for which Nannou will provide a default if unspecified.
 ///
 /// See the builder methods for more details on each parameter.
-///
-/// Valid parameters can be determined prior to building by checking the result of
-/// [vk::swapchain::Surface::capabilities](https://docs.rs/vulkano/latest/vulkano/swapchain/struct.Surface.html#method.capabilities).
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SwapchainBuilder {
-    pub format: Option<vk::Format>,
-    pub color_space: Option<vk::swapchain::ColorSpace>,
-    pub layers: Option<u32>,
-    pub present_mode: Option<vk::swapchain::PresentMode>,
-    pub composite_alpha: Option<vk::swapchain::CompositeAlpha>,
-    pub clipped: Option<bool>,
-    pub image_count: Option<u32>,
-    pub surface_transform: Option<vk::swapchain::SurfaceTransform>,
+#[derive(Clone, Debug, Default)]
+pub struct SwapChainBuilder {
+    pub usage: Option<wgpu::TextureUsage>,
+    pub format: Option<wgpu::TextureFormat>,
+    pub present_mode: Option<wgpu::PresentMode>,
 }
 
-/// A helper type for managing framebuffers associated with a window's swapchain images.
-///
-/// Creating the swapchain image framebuffers manually and maintaining them throughout the duration
-/// of a program can be a tedious task that requires a lot of boilerplate code. This type
-/// simplifies the process with a single `update` method that creates or recreates the framebuffers
-/// if any of the following conditions are met:
-/// - The given render pass is different to that which was used to create the existing
-///   framebuffers.
-/// - There are less framebuffers than the given frame's swapchain image index indicates are
-///   required.
-/// - The `frame.swapchain_image_is_new()` method indicates that the swapchain or its images have
-///   recently been recreated and the framebuffers should be recreated accordingly.
-#[derive(Default)]
-pub struct SwapchainFramebuffers {
-    framebuffers: Vec<Arc<dyn vk::FramebufferAbstract + Send + Sync>>,
-}
+impl SwapChainBuilder {
+    pub const DEFAULT_USAGE: wgpu::TextureUsage = wgpu::TextureUsage::OUTPUT_ATTACHMENT;
+    pub const DEFAULT_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
+    pub const DEFAULT_PRESENT_MODE: wgpu::PresentMode = wgpu::PresentMode::Vsync;
 
-pub type SwapchainFramebufferBuilder<A> =
-    vk::FramebufferBuilder<Arc<dyn vk::RenderPassAbstract + Send + Sync>, A>;
-pub type FramebufferBuildResult<A> =
-    Result<SwapchainFramebufferBuilder<A>, vk::FramebufferCreationError>;
-
-impl SwapchainFramebuffers {
-    /// Ensure the framebuffers are up to date with the render pass and frame's swapchain image.
-    pub fn update<F, A>(
-        &mut self,
-        frame: &RawFrame,
-        render_pass: Arc<dyn vk::RenderPassAbstract + Send + Sync>,
-        builder: F,
-    ) -> Result<(), vk::FramebufferCreationError>
-    where
-        F: Fn(SwapchainFramebufferBuilder<()>, Arc<SwapchainImage>) -> FramebufferBuildResult<A>,
-        A: 'static + vk::AttachmentsList + Send + Sync,
-    {
-        let mut just_created = false;
-        while frame.swapchain_image_index() >= self.framebuffers.len() {
-            let builder = builder(
-                vk::Framebuffer::start(render_pass.clone()),
-                frame.swapchain_image().clone(),
-            )?;
-            let fb = builder.build()?;
-            self.framebuffers.push(Arc::new(fb));
-            just_created = true;
-        }
-
-        // If the dimensions for the current framebuffer do not match, recreate it.
-        let old_rp =
-            vk::RenderPassAbstract::inner(&self.framebuffers[frame.swapchain_image_index()])
-                .internal_object();
-        let new_rp = render_pass.inner().internal_object();
-        if !just_created && (frame.swapchain_image_is_new() || old_rp != new_rp) {
-            let fb = &mut self.framebuffers[frame.swapchain_image_index()];
-            let builder = builder(
-                vk::Framebuffer::start(render_pass.clone()),
-                frame.swapchain_image().clone(),
-            )?;
-            let new_fb = builder.build()?;
-            *fb = Arc::new(new_fb);
-        }
-        Ok(())
-    }
-}
-
-impl ops::Deref for SwapchainFramebuffers {
-    type Target = [Arc<dyn vk::FramebufferAbstract + Send + Sync>];
-    fn deref(&self) -> &Self::Target {
-        &self.framebuffers
-    }
-}
-
-/// The errors that might occur while constructing a `Window`.
-#[derive(Debug)]
-pub enum BuildError {
-    SurfaceCreation(vk::win::CreationError),
-    DeviceCreation(vk::DeviceCreationError),
-    SwapchainCreation(vk::SwapchainCreationError),
-    SwapchainCapabilities(vk::swapchain::CapabilitiesError),
-    RenderDataCreation(frame::RenderDataCreationError),
-    SurfaceDoesNotSupportCompositeAlphaOpaque,
-}
-
-impl SwapchainBuilder {
-    pub const DEFAULT_CLIPPED: bool = true;
-    pub const DEFAULT_COLOR_SPACE: vk::swapchain::ColorSpace =
-        vk::swapchain::ColorSpace::SrgbNonLinear;
-    pub const DEFAULT_COMPOSITE_ALPHA: vk::swapchain::CompositeAlpha =
-        vk::swapchain::CompositeAlpha::Opaque;
-    pub const DEFAULT_LAYERS: u32 = 1;
-    pub const DEFAULT_SURFACE_TRANSFORM: vk::swapchain::SurfaceTransform =
-        vk::swapchain::SurfaceTransform::Identity;
-
-    /// A new empty **SwapchainBuilder** with all parameters set to `None`.
+    /// A new empty **SwapChainBuilder** with all parameters set to `None`.
     pub fn new() -> Self {
         Default::default()
     }
 
-    /// Create a **SwapchainBuilder** from an existing swapchain.
+    /// Create a **SwapChainBuilder** from an existing descriptor.
     ///
-    /// The resulting swapchain parameters will match that of the given `Swapchain`.
-    ///
-    /// Note that `sharing_mode` will be `None` regardless of how the given `Swapchain` was built,
-    /// as there is no way to determine this via the vulkano swapchain API.
-    pub fn from_swapchain(swapchain: &Swapchain) -> Self {
-        SwapchainBuilder::new()
-            .format(swapchain.format())
-            .image_count(swapchain.num_images())
-            .layers(swapchain.layers())
-            .surface_transform(swapchain.transform())
-            .composite_alpha(swapchain.composite_alpha())
-            .present_mode(swapchain.present_mode())
-            .clipped(swapchain.clipped())
+    /// The resulting swap chain parameters will match that of the given `SwapChainDescriptor`.
+    pub fn from_descriptor(desc: &wgpu::SwapChainDescriptor) -> Self {
+        SwapChainBuilder::new()
+            .usage(desc.usage)
+            .format(desc.format)
+            .present_mode(desc.present_mode)
     }
 
-    /// Specify the pixel format for the swapchain.
-    ///
-    /// By default, nannou attempts to use the first format valid for the `SrgbNonLinear` color
-    /// space.
-    ///
-    /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/format/enum.Format.html).
-    pub fn format(mut self, format: vk::Format) -> Self {
+    /// Specify the texture usage for the swap chain.
+    pub fn usage(mut self, usage: wgpu::TextureUsage) -> Self {
+        self.usage = Some(usage);
+        self
+    }
+
+    /// Specify the texture format for the swap chain.
+    pub fn format(mut self, format: wgpu::TextureFormat) -> Self {
         self.format = Some(format);
         self
     }
 
-    /// If `format` is `None`, will attempt to find the first available `Format` that supports this
-    /// `ColorSpace`.
-    ///
-    /// If `format` is `Some`, this parameter is ignored.
-    ///
-    /// By default, nannou attempts to use the first format valid for the `SrgbNonLinear` color
-    /// space.
-    ///
-    /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/swapchain/enum.ColorSpace.html).
-    pub fn color_space(mut self, color_space: vk::swapchain::ColorSpace) -> Self {
-        self.color_space = Some(color_space);
-        self
-    }
-
-    /// How the alpha values of the pixels of the window are treated.
-    ///
-    /// By default, nannou uses `CompositeAlpha::Opaque`.
-    ///
-    /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/swapchain/enum.CompositeAlpha.html).
-    pub fn composite_alpha(mut self, composite_alpha: vk::swapchain::CompositeAlpha) -> Self {
-        self.composite_alpha = Some(composite_alpha);
-        self
-    }
-
-    /// The way in which swapchain images are presented to the display.
+    /// The way in which swap chain images are presented to the display.
     ///
     /// By default, nannou will attempt to select the ideal present mode depending on the current
-    /// app `LoopMode`. If the current loop mode is `Wait` or `Rate`, nannou will attempt to use
-    /// the `Mailbox` present mode with an `image_count` of `3`. If the current loop mode is
-    /// `RefreshSync`, nannou will use the `Fifo` present m ode with an `image_count` of `2`.
-    ///
-    /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/swapchain/enum.PresentMode.html).
-    pub fn present_mode(mut self, present_mode: vk::swapchain::PresentMode) -> Self {
+    /// app `LoopMode`.
+    pub fn present_mode(mut self, present_mode: wgpu::PresentMode) -> Self {
         self.present_mode = Some(present_mode);
         self
     }
 
-    /// The number of images used by the swapchain.
-    ///
-    /// By default, nannou will attempt to select the ideal image count depending on the current
-    /// app `LoopMode`. If the current loop mode is `Wait` or `Rate`, nannou will attempt to use
-    /// the `Mailbox` present mode with an `image_count` of `3`. If the current loop mode is
-    /// `RefreshSync`, nannou will use the `Fifo` present m ode with an `image_count` of `2`.
-    pub fn image_count(mut self, image_count: u32) -> Self {
-        self.image_count = Some(image_count);
-        self
-    }
-
-    /// Whether the implementation is allowed to discard rendering operations that affect regions
-    /// of the surface which aren't visible.
-    ///
-    /// This is important to take into account if your fragment shader has side-effects or if you
-    /// want to read back the content of the image afterwards.
-    pub fn clipped(mut self, clipped: bool) -> Self {
-        self.clipped = Some(clipped);
-        self
-    }
-
-    /// A transformation to apply to the image before showing it on the screen.
-    ///
-    /// See the [vulkano docs](https://docs.rs/vulkano/latest/vulkano/swapchain/enum.SurfaceTransform.html).
-    pub fn surface_transform(mut self, surface_transform: vk::swapchain::SurfaceTransform) -> Self {
-        self.surface_transform = Some(surface_transform);
-        self
-    }
-
-    pub fn layers(mut self, layers: u32) -> Self {
-        self.layers = Some(layers);
-        self
-    }
-
-    /// Build the swapchain.
-    ///
-    /// `fallback_dimensions` are dimensions to use in the case that the surface capabilities
-    /// `current_extent` field is `None`, which may happen if a surface's size is determined by the
-    /// swapchain's size.
-    pub(crate) fn build<S>(
+    /// Build the swap chain.
+    pub(crate) fn build(
         self,
-        device: Arc<vk::Device>,
-        surface: Arc<Surface>,
-        sharing_mode: S,
-        loop_mode: &LoopMode,
-        fallback_dimensions: Option<[u32; 2]>,
-        old_swapchain: Option<&Arc<Swapchain>>,
-    ) -> Result<(Arc<Swapchain>, Vec<Arc<SwapchainImage>>), vk::SwapchainCreationError>
-    where
-        S: Into<vk::sync::SharingMode>,
-    {
-        let capabilities = surface
-            .capabilities(device.physical_device())
-            .expect("failed to retrieve surface capabilities");
-
-        let dimensions = capabilities
-            .current_extent
-            .or(fallback_dimensions)
-            .unwrap_or([
-                DEFAULT_DIMENSIONS.width as _,
-                DEFAULT_DIMENSIONS.height as _,
-            ]);
-
-        // Retrieve the format.
-        let format = match self.format {
-            Some(fmt) => fmt,
-            None => {
-                let color_space = self.color_space.unwrap_or(Self::DEFAULT_COLOR_SPACE);
-
-                // First, try to pick an Srgb format.
-                capabilities
-                    .supported_formats
-                    .iter()
-                    .filter(|&&(fmt, cs)| vk::format_is_srgb(fmt) && cs == color_space)
-                    .next()
-                    .or_else(|| {
-                        // Otherwise just try and math the color space.
-                        capabilities
-                            .supported_formats
-                            .iter()
-                            .filter(|&&(_, cs)| cs == color_space)
-                            .next()
-                    })
-                    .map(|&(fmt, _cs)| fmt)
-                    .ok_or(vk::SwapchainCreationError::UnsupportedFormat)?
-            }
-        };
-
-        // Determine the optimal present mode and image count based on the specified parameters and
-        // the current loop mode.
-        let (present_mode, image_count) = preferred_present_mode_and_image_count(
-            &loop_mode,
-            capabilities.min_image_count,
-            self.present_mode,
-            self.image_count,
-            &capabilities.present_modes,
-        );
-
-        // Attempt to retrieve the desired composite alpha.
-        let composite_alpha = match self.composite_alpha {
-            Some(alpha) => alpha,
-            None => match capabilities.supported_composite_alpha.opaque {
-                true => Self::DEFAULT_COMPOSITE_ALPHA,
-                false => return Err(vk::SwapchainCreationError::UnsupportedCompositeAlpha),
-            },
-        };
-
-        let layers = self.layers.unwrap_or(Self::DEFAULT_LAYERS);
-        let clipped = self.clipped.unwrap_or(Self::DEFAULT_CLIPPED);
-        let surface_transform = self
-            .surface_transform
-            .unwrap_or(Self::DEFAULT_SURFACE_TRANSFORM);
-
-        Swapchain::new(
-            device,
-            surface,
-            image_count,
+        device: &wgpu::Device,
+        surface: &wgpu::Surface,
+        [width_px, height_px]: [u32; 2],
+    ) -> (wgpu::SwapChain, wgpu::SwapChainDescriptor) {
+        let usage = self.usage.unwrap_or(Self::DEFAULT_USAGE);
+        let format = self.format.unwrap_or(Self::DEFAULT_FORMAT);
+        let present_mode = self.present_mode.unwrap_or(Self::DEFAULT_PRESENT_MODE);
+        let desc = wgpu::SwapChainDescriptor {
+            usage,
             format,
-            dimensions,
-            layers,
-            capabilities.supported_usage_flags,
-            sharing_mode,
-            surface_transform,
-            composite_alpha,
+            width: width_px,
+            height: height_px,
             present_mode,
-            clipped,
-            old_swapchain,
-        )
-    }
-}
-
-/// Determine the optimal present mode and image count for the given loop mode.
-///
-/// If a specific present mode or image count is desired, they may be optionally specified.
-pub fn preferred_present_mode_and_image_count(
-    loop_mode: &LoopMode,
-    min_image_count: u32,
-    present_mode: Option<vk::swapchain::PresentMode>,
-    image_count: Option<u32>,
-    supported_present_modes: &vk::swapchain::SupportedPresentModes,
-) -> (vk::swapchain::PresentMode, u32) {
-    match (present_mode, image_count) {
-        (Some(pm), Some(ic)) => (pm, ic),
-        (None, _) => match *loop_mode {
-            LoopMode::RefreshSync { .. } => {
-                let image_count = image_count.unwrap_or_else(|| cmp::max(min_image_count, 2));
-                (vk::swapchain::PresentMode::Fifo, image_count)
-            }
-            LoopMode::Wait { .. } | LoopMode::Rate { .. } | LoopMode::NTimes { .. } => {
-                if supported_present_modes.mailbox {
-                    let image_count = image_count.unwrap_or_else(|| cmp::max(min_image_count, 3));
-                    (vk::swapchain::PresentMode::Mailbox, image_count)
-                } else {
-                    let image_count = image_count.unwrap_or_else(|| cmp::max(min_image_count, 2));
-                    (vk::swapchain::PresentMode::Fifo, image_count)
-                }
-            }
-        },
-        (Some(present_mode), None) => {
-            let image_count = match present_mode {
-                vk::swapchain::PresentMode::Immediate => min_image_count,
-                vk::swapchain::PresentMode::Mailbox => cmp::max(min_image_count, 3),
-                vk::swapchain::PresentMode::Fifo => cmp::max(min_image_count, 2),
-                vk::swapchain::PresentMode::Relaxed => cmp::max(min_image_count, 2),
-            };
-            (present_mode, image_count)
-        }
+        };
+        let swap_chain = device.create_swap_chain(surface, &desc);
+        (swap_chain, desc)
     }
 }
 
@@ -614,76 +335,55 @@ impl<'app> Builder<'app> {
     pub fn new(app: &'app App) -> Self {
         Builder {
             app,
-            vk_physical_device: None,
-            vk_device_extensions: None,
-            vk_device_queue: None,
-            window: winit::WindowBuilder::new(),
+            window: winit::window::WindowBuilder::new(),
             title_was_set: false,
-            swapchain_builder: Default::default(),
+            swap_chain_builder: Default::default(),
+            request_adapter_opts: None,
+            device_desc: None,
             user_functions: Default::default(),
             msaa_samples: None,
         }
     }
 
     /// Build the window with some custom window parameters.
-    pub fn window(mut self, window: winit::WindowBuilder) -> Self {
+    pub fn window(mut self, window: winit::window::WindowBuilder) -> Self {
         self.window = window;
         self
     }
 
-    /// The physical device to associate with the window surface's swapchain.
-    pub fn vk_physical_device(mut self, device: vk::PhysicalDevice<'app>) -> Self {
-        self.vk_physical_device = Some(device);
+    /// Specify a set of parameters for building the window surface swap chain.
+    pub fn swap_chain_builder(mut self, swap_chain_builder: SwapChainBuilder) -> Self {
+        self.swap_chain_builder = swap_chain_builder;
         self
     }
 
-    /// Specify a set of required extensions.
-    ///
-    /// The device associated with the window's swapchain *must* always have the `khr_swapchain`
-    /// feature enabled, so it will be implicitly enabled whether or not it is specified in this
-    /// given set of extensions.
-    pub fn vk_device_extensions(mut self, extensions: vk::DeviceExtensions) -> Self {
-        self.vk_device_extensions = Some(extensions);
+    /// Specify a custom set of options to request an adapter with. This is useful for describing a
+    /// set of desired properties for the requested physical device.
+    pub fn request_adapter_options(mut self, opts: wgpu::RequestAdapterOptions) -> Self {
+        self.request_adapter_opts = Some(opts);
         self
     }
 
-    /// Specify the vulkan device queue for this window.
-    ///
-    /// This queue is used as the `SharingMode` for the swapchain, and is also used for
-    /// constructing the `Frame`'s intermediary image.
-    ///
-    /// Once the window is built, this queue can be accessed via the `window.swapchain_queue()`
-    /// method.
-    ///
-    /// Note: If this builder method is called, previous calls to `vk_physical_device` and
-    /// `vk_device_extensions` will be ignored as specifying the queue for the sharing mode
-    /// implies which logical device is desired.
-    pub fn vk_device_queue(mut self, queue: Arc<vk::Queue>) -> Self {
-        self.vk_device_queue = Some(queue);
-        self
-    }
-
-    /// Specify a set of parameters for building the window surface swapchain.
-    pub fn swapchain_builder(mut self, swapchain_builder: SwapchainBuilder) -> Self {
-        self.swapchain_builder = swapchain_builder;
+    /// Specify a device descriptor to use when requesting the logical device from the adapter.
+    /// This allows for specifying custom wgpu device extensions.
+    pub fn device_descriptor(mut self, device_desc: wgpu::DeviceDescriptor) -> Self {
+        self.device_desc = Some(device_desc);
         self
     }
 
     /// Specify the number of samples per pixel for the multisample anti-aliasing render pass.
     ///
     /// If `msaa_samples` is unspecified, the first default value that nannou will attempt to use
-    /// can be found via the `Frame::DEFAULT_MSAA_SAMPLES` constant. If however this value is not
-    /// supported by the window's swapchain, nannou will fallback to the next smaller power of 2
-    /// that is supported. If MSAA is not supported at all, then the default will be 1.
+    /// can be found via the `Frame::DEFAULT_MSAA_SAMPLES` constant.
     ///
     /// **Note:** This parameter has no meaning if the window uses a **raw_view** function for
     /// rendering graphics to the window rather than a **view** function. This is because the
-    /// **raw_view** function provides a **RawFrame** with direct access to the swapchain image
+    /// **raw_view** function provides a **RawFrame** with direct access to the swap chain image
     /// itself and thus must manage their own MSAA pass.
     ///
     /// On the other hand, the `view` function provides the `Frame` type which allows the user to
     /// render to a multisampled intermediary image allowing Nannou to take care of resolving the
-    /// multisampled image to the swapchain image. In order to avoid confusion, The `Window::build`
+    /// multisampled image to the swap chain image. In order to avoid confusion, The `Window::build`
     /// method will `panic!` if the user tries to specify `msaa_samples` as well as a `raw_view`
     /// method.
     ///
@@ -719,7 +419,7 @@ impl<'app> Builder<'app> {
     /// surface of the window on your display.
     ///
     /// Unlike the **ViewFn**, the **RawViewFn** provides a **RawFrame** that is designed for
-    /// drawing directly to a window's swapchain images, rather than to a convenient intermediary
+    /// drawing directly to a window's swap chain images, rather than to a convenient intermediary
     /// image.
     pub fn raw_view<M>(mut self, raw_view_fn: RawViewFn<M>) -> Self
     where
@@ -756,7 +456,7 @@ impl<'app> Builder<'app> {
         self
     }
 
-    /// The same as the `event` method, but allows for processing raw `winit::WindowEvent`s rather
+    /// The same as the `event` method, but allows for processing raw `winit::event::WindowEvent`s rather
     /// than Nannou's simplified `event::WindowEvent`s.
     ///
     /// ## Event Function Call Order
@@ -938,12 +638,11 @@ impl<'app> Builder<'app> {
     pub fn build(self) -> Result<Id, BuildError> {
         let Builder {
             app,
-            vk_physical_device,
-            vk_device_extensions,
-            vk_device_queue,
             mut window,
             title_was_set,
-            swapchain_builder,
+            swap_chain_builder,
+            request_adapter_opts,
+            device_desc,
             user_functions,
             msaa_samples,
         } = self;
@@ -960,143 +659,140 @@ impl<'app> Builder<'app> {
             }
         }
 
-        // Retrieve dimensions to use as a fallback in case vulkano swapchain capabilities
-        // `current_extent` is `None`. This happens when the window size is determined by the size
-        // of the swapchain.
-        let initial_swapchain_dimensions = window
+        // Set default dimensions in the case that none were given.
+        let initial_window_size = window
             .window
-            .dimensions
+            .inner_size
             .or_else(|| {
                 window
                     .window
                     .fullscreen
                     .as_ref()
-                    .map(|monitor| monitor.get_dimensions().to_logical(1.0))
+                    .map(|fullscreen| match fullscreen {
+                        winit::window::Fullscreen::Exclusive(video_mode) => {
+                            let monitor = video_mode.monitor();
+                            video_mode
+                                .size()
+                                .to_logical::<f32>(monitor.scale_factor())
+                                .into()
+                        }
+                        winit::window::Fullscreen::Borderless(monitor) => monitor
+                            .size()
+                            .to_logical::<f32>(monitor.scale_factor())
+                            .into(),
+                    })
             })
             .unwrap_or_else(|| {
                 let mut dim = DEFAULT_DIMENSIONS;
-                if let Some(min) = window.window.min_dimensions {
-                    dim.width = dim.width.max(min.width);
-                    dim.height = dim.height.max(min.height);
+                if let Some(min) = window.window.min_inner_size {
+                    match min {
+                        winit::dpi::Size::Logical(min) => {
+                            dim.width = dim.width.max(min.width as _);
+                            dim.height = dim.height.max(min.height as _);
+                        }
+                        winit::dpi::Size::Physical(min) => {
+                            dim.width = dim.width.max(min.width as _);
+                            dim.height = dim.height.max(min.height as _);
+                            unimplemented!("consider scale factor");
+                        }
+                    }
                 }
-                if let Some(max) = window.window.max_dimensions {
-                    dim.width = dim.width.min(max.width);
-                    dim.height = dim.height.min(max.height);
+                if let Some(max) = window.window.max_inner_size {
+                    match max {
+                        winit::dpi::Size::Logical(max) => {
+                            dim.width = dim.width.min(max.width as _);
+                            dim.height = dim.height.min(max.height as _);
+                        }
+                        winit::dpi::Size::Physical(max) => {
+                            dim.width = dim.width.min(max.width as _);
+                            dim.height = dim.height.min(max.height as _);
+                            unimplemented!("consider scale factor");
+                        }
+                    }
                 }
-                dim
+                dim.into()
             });
 
         // Use the `initial_swapchain_dimensions` as the default dimensions for the window if none
         // were specified.
-        if window.window.dimensions.is_none() && window.window.fullscreen.is_none() {
-            window.window.dimensions = Some(initial_swapchain_dimensions);
+        if window.window.inner_size.is_none() && window.window.fullscreen.is_none() {
+            window.window.inner_size = Some(initial_window_size);
         }
 
-        // Build the vulkan surface.
-        let surface = window.build_vk_surface(&app.events_loop, app.vk_instance.clone())?;
-
-        // The logical device queue to use as the swapchain sharing mode.
-        // This queue will also be used for constructing the `Frame`'s intermediary image.
-        let queue = match vk_device_queue {
-            Some(queue) => queue,
-            None => {
-                // Retrieve the physical, vulkan-supported device to use.
-                let physical_device = vk_physical_device
-                    .or_else(|| app.default_vk_physical_device())
-                    .unwrap_or_else(|| unimplemented!());
-
-                // Select the queue family to use. Default to the first graphics-supporting queue.
-                let queue_family = physical_device
-                    .queue_families()
-                    .find(|&q| q.supports_graphics() && surface.is_supported(q).unwrap_or(false))
-                    .unwrap_or_else(|| unimplemented!("couldn't find a graphical queue family"));
-
-                // We only have one queue, so give an arbitrary priority.
-                let queue_priority = 0.5;
-
-                // The required device extensions.
-                let mut device_ext =
-                    vk_device_extensions.unwrap_or_else(vk::DeviceExtensions::none);
-                device_ext.khr_swapchain = true;
-
-                // Enable all supported device features.
-                let features = physical_device.supported_features();
-
-                // Construct the logical device and queues.
-                let (_device, mut queues) = vk::Device::new(
-                    physical_device,
-                    features,
-                    &device_ext,
-                    [(queue_family, queue_priority)].iter().cloned(),
-                )?;
-
-                // Since it is possible to request multiple queues, the queues variable returned by
-                // the function is in fact an iterator. In this case this iterator contains just
-                // one element, so let's extract it.
-                let queue = queues.next().expect("expected a single device queue");
-                queue
-            }
+        // Build the window.
+        let window = {
+            let window_target = app
+                .event_loop_window_target
+                .as_ref()
+                .expect("unexpected invalid App.event_loop_window_target state - please report")
+                .as_ref();
+            window.build(window_target)?
         };
 
-        let user_specified_present_mode = swapchain_builder.present_mode;
-        let user_specified_image_count = swapchain_builder.image_count;
+        // Build the wgpu surface.
+        let surface = wgpu::Surface::create(&window);
 
-        // Build the swapchain used for displaying the window contents.
-        let (swapchain, images) = {
-            // Set the dimensions of the swapchain to that of the surface.
-            let fallback_dimensions = [
-                initial_swapchain_dimensions.width as _,
-                initial_swapchain_dimensions.height as _,
-            ];
+        // Request the adapter.
+        let request_adapter_opts =
+            request_adapter_opts.unwrap_or(wgpu::DEFAULT_ADAPTER_REQUEST_OPTIONS);
+        let adapter = app
+            .wgpu_adapters()
+            .get_or_request(request_adapter_opts)
+            .ok_or(BuildError::NoAvailableAdapter)?;
 
-            swapchain_builder.build(
-                queue.device().clone(),
-                surface.clone(),
-                &queue,
-                &app.loop_mode(),
-                Some(fallback_dimensions),
-                None,
-            )?
-        };
+        // Instantiate the logical device.
+        let device_desc = device_desc.unwrap_or_else(wgpu::default_device_descriptor);
+        let device_queue_pair = adapter.get_or_request_device(device_desc);
 
-        // If we're using an intermediary image for rendering frames to swapchain images, create
+        // Build the swapchain.
+        let win_physical_size = window.inner_size();
+        let win_dims_px: [u32; 2] = win_physical_size.into();
+        let device = device_queue_pair.device();
+        let (swap_chain, swap_chain_desc) =
+            swap_chain_builder.build(&device, &surface, win_dims_px);
+
+        // If we're using an intermediary image for rendering frames to swap_chain images, create
         // the necessary render data.
-        let (frame_render_data, msaa_samples) = match user_functions.view {
+        let (frame_data, msaa_samples) = match user_functions.view {
             Some(View::WithModel(_)) | Some(View::Sketch(_)) | None => {
-                let target_msaa_samples = msaa_samples.unwrap_or(Frame::DEFAULT_MSAA_SAMPLES);
-                let physical_device = queue.device().physical_device();
-                let msaa_samples = vk::msaa_samples_limited(&physical_device, target_msaa_samples);
-                let render_data = frame::RenderData::new(
-                    queue.device().clone(),
-                    swapchain.dimensions(),
+                let msaa_samples = msaa_samples.unwrap_or(Frame::DEFAULT_MSAA_SAMPLES);
+                // TODO: Verity that requested sample count is valid for surface?
+                let swap_chain_dims = [swap_chain_desc.width, swap_chain_desc.height];
+                let render = frame::RenderData::new(
+                    &device,
+                    swap_chain_dims,
+                    swap_chain_desc.format,
                     msaa_samples,
-                )?;
-                (Some(render_data), msaa_samples)
+                );
+                let capture = frame::CaptureData::default();
+                let frame_data = FrameData { render, capture };
+                (Some(frame_data), msaa_samples)
             }
             Some(View::WithModelRaw(_)) => (None, 1),
         };
 
-        let window_id = surface.window().id();
-        let needs_recreation = AtomicBool::new(false);
-        let previous_frame_end = Mutex::new(None);
+        let window_id = window.id();
         let frame_count = 0;
-        let swapchain = Arc::new(WindowSwapchain {
-            needs_recreation,
-            frame_created: frame_count,
-            swapchain,
-            images,
-            previous_frame_end,
-        });
+        let swap_chain = WindowSwapChain {
+            descriptor: swap_chain_desc,
+            swap_chain: Some(swap_chain),
+        };
+
+        let tracked_state = TrackedState {
+            scale_factor: window.scale_factor(),
+            physical_size: win_physical_size,
+        };
+
         let window = Window {
-            queue,
+            window,
             surface,
+            device_queue_pair,
             msaa_samples,
-            swapchain,
-            frame_render_data,
+            swap_chain,
+            frame_data,
             frame_count,
             user_functions,
-            user_specified_present_mode,
-            user_specified_image_count,
+            tracked_state,
         };
         app.windows.borrow_mut().insert(window_id, window);
 
@@ -1110,48 +806,65 @@ impl<'app> Builder<'app> {
 
     fn map_window<F>(self, map: F) -> Self
     where
-        F: FnOnce(winit::WindowBuilder) -> winit::WindowBuilder,
+        F: FnOnce(winit::window::WindowBuilder) -> winit::window::WindowBuilder,
     {
         let Builder {
             app,
-            vk_physical_device,
-            vk_device_extensions,
-            vk_device_queue,
             window,
             title_was_set,
-            swapchain_builder,
+            device_desc,
+            request_adapter_opts,
+            swap_chain_builder,
             user_functions,
             msaa_samples,
         } = self;
         let window = map(window);
         Builder {
             app,
-            vk_physical_device,
-            vk_device_extensions,
-            vk_device_queue,
             window,
             title_was_set,
-            swapchain_builder,
+            device_desc,
+            request_adapter_opts,
+            swap_chain_builder,
             user_functions,
             msaa_samples,
         }
     }
 
     // Window builder methods.
+    //
+    // NOTE: On new versions of winit, we should check whether or not new `WindowBuilder` methods
+    // have been added that we should expose.
 
-    /// Requests the window to be specific dimensions pixels.
-    pub fn dimensions(self, width: u32, height: u32) -> Self {
-        self.map_window(|w| w.with_dimensions((width, height).into()))
+    /// Requests the window to be a specific size in points.
+    ///
+    /// This describes to the "inner" part of the window, not including desktop decorations like the
+    /// title bar.
+    pub fn size(self, width: u32, height: u32) -> Self {
+        self.map_window(|w| w.with_inner_size(winit::dpi::LogicalSize { width, height }))
     }
 
-    /// Set the minimum dimensions in pixels for the window.
-    pub fn min_dimensions(self, width: u32, height: u32) -> Self {
-        self.map_window(|w| w.with_min_dimensions((width, height).into()))
+    /// Set the minimum size in points for the window.
+    pub fn min_size(self, width: u32, height: u32) -> Self {
+        self.map_window(|w| w.with_min_inner_size(winit::dpi::LogicalSize { width, height }))
     }
 
-    /// Set the maximum dimensions in pixels for the window.
-    pub fn max_dimensions(self, width: u32, height: u32) -> Self {
-        self.map_window(|w| w.with_max_dimensions((width, height).into()))
+    /// Set the maximum size in points for the window.
+    pub fn max_size(self, width: u32, height: u32) -> Self {
+        self.map_window(|w| w.with_max_inner_size(winit::dpi::LogicalSize { width, height }))
+    }
+
+    /// Requests the window to be a specific size in points.
+    ///
+    /// This describes to the "inner" part of the window, not including desktop decorations like the
+    /// title bar.
+    pub fn size_pixels(self, width: u32, height: u32) -> Self {
+        self.map_window(|w| w.with_inner_size(winit::dpi::PhysicalSize { width, height }))
+    }
+
+    /// Whether or not the window should be resizable after creation.
+    pub fn resizble(self, resizable: bool) -> Self {
+        self.map_window(|w| w.with_resizable(resizable))
     }
 
     /// Requests a specific title for the window.
@@ -1167,8 +880,8 @@ impl<'app> Builder<'app> {
     ///
     /// None means a normal window, Some(MonitorId) means a fullscreen window on that specific
     /// monitor.
-    pub fn fullscreen(self, monitor: Option<MonitorId>) -> Self {
-        self.map_window(|w| w.with_fullscreen(monitor))
+    pub fn fullscreen(self, fullscreen: Option<winit::window::Fullscreen>) -> Self {
+        self.map_window(|w| w.with_fullscreen(fullscreen))
     }
 
     /// Requests maximized mode.
@@ -1177,13 +890,13 @@ impl<'app> Builder<'app> {
     }
 
     /// Sets whether the window will be initially hidden or visible.
-    pub fn visibility(self, visible: bool) -> Self {
-        self.map_window(|w| w.with_visibility(visible))
+    pub fn visible(self, visible: bool) -> Self {
+        self.map_window(|w| w.with_visible(visible))
     }
 
     /// Sets whether the background of the window should be transparent.
-    pub fn transparency(self, transparent: bool) -> Self {
-        self.map_window(|w| w.with_transparency(transparent))
+    pub fn transparent(self, transparent: bool) -> Self {
+        self.map_window(|w| w.with_transparent(transparent))
     }
 
     /// Sets whether the window should have a border, a title bar, etc.
@@ -1191,40 +904,50 @@ impl<'app> Builder<'app> {
         self.map_window(|w| w.with_decorations(decorations))
     }
 
-    /// Enables multitouch.
-    pub fn multitouch(self) -> Self {
-        self.map_window(|w| w.with_multitouch())
+    /// Sets whether or not the window will always be on top of other windows.
+    pub fn always_on_top(self, always_on_top: bool) -> Self {
+        self.map_window(|w| w.with_always_on_top(always_on_top))
+    }
+
+    /// Sets the window icon.
+    pub fn window_icon(self, window_icon: Option<winit::window::Icon>) -> Self {
+        self.map_window(|w| w.with_window_icon(window_icon))
     }
 }
 
 impl Window {
-    const NO_LONGER_EXISTS: &'static str = "the window no longer exists";
+    // `winit::window::Window` methods.
+    //
+    // NOTE: On new versions of winit, we should check whether or not new `Window` methods have
+    // been added that we should expose. Most of the following method docs are copied from the
+    // winit documentation. It would be nice if we could automate this inlining somehow.
 
-    // `winit::Window` methods.
-
-    /// Modifies the title of the window.
-    ///
-    /// This is a no-op if the window has already been closed.
-    pub fn set_title(&self, title: &str) {
-        self.surface.window().set_title(title);
+    /// A unique identifier associated with this window.
+    pub fn id(&self) -> Id {
+        self.window.id()
     }
 
-    /// Shows the window if it was hidden.
+    /// Returns the scale factor that can be used to map logical pixels to physical pixels and vice
+    /// versa.
+    ///
+    /// Throughout nannou, you will see "logical pixels" referred to as "points", and "physical
+    /// pixels" referred to as "pixels".
+    ///
+    /// This is typically `1.0` for a normal display, `2.0` for a retina display and higher on more
+    /// modern displays.
+    ///
+    /// You can read more about what this scale factor means within winit's [dpi module
+    /// documentation](https://docs.rs/winit/latest/winit/dpi/index.html).
     ///
     /// ## Platform-specific
     ///
-    /// Has no effect on Android.
-    pub fn show(&self) {
-        self.surface.window().show()
-    }
-
-    /// Hides the window if it was visible.
-    ///
-    /// ## Platform-specific
-    ///
-    /// Has no effect on Android.
-    pub fn hide(&self) {
-        self.surface.window().hide()
+    /// - **X11:** This respects Xft.dpi, and can be overridden using the `WINIT_X11_SCALE_FACTOR`
+    ///   environment variable.
+    /// - **Android:** Always returns 1.0.
+    /// - **iOS:** Can only be called on the main thread. Returns the underlying `UiView`'s
+    ///   `contentScaleFactor`.
+    pub fn scale_factor(&self) -> geom::scalar::Default {
+        self.window.scale_factor() as _
     }
 
     /// The position of the top-left hand corner of the window relative to the top-left hand corner
@@ -1236,52 +959,64 @@ impl Window {
     ///
     /// The coordinates can be negative if the top-left hand corner of the window is outside of the
     /// visible screen region.
-    pub fn position(&self) -> (i32, i32) {
-        self.surface
-            .window()
-            .get_position()
-            .expect(Self::NO_LONGER_EXISTS)
-            .into()
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Can only be called on the main thread. Returns the top left coordinates of the
+    /// window in the screen space coordinate system.
+    /// - **Web:** Returns the top-left coordinates relative to the viewport.
+    pub fn outer_position_pixels(&self) -> Result<(i32, i32), winit::error::NotSupportedError> {
+        self.window.outer_position().map(Into::into)
     }
 
     /// Modifies the position of the window.
     ///
-    /// See `get_position` for more information about the returned coordinates.
-    pub fn set_position(&self, x: i32, y: i32) {
-        self.surface.window().set_position((x, y).into())
+    /// See `outer_position_pixels` for more information about the returned coordinates. This
+    /// automatically un-maximizes the window if it is maximized.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Can only be called on the main thread. Sets the top left coordinates of the
+    ///   window in the screen space coordinate system.
+    /// - **Web:** Sets the top-left coordinates relative to the viewport.
+    pub fn set_outer_position_pixels(&self, x: i32, y: i32) {
+        self.window
+            .set_outer_position(winit::dpi::PhysicalPosition { x, y })
     }
 
     /// The size in pixels of the client area of the window.
     ///
-    /// The client area is the content of the window, excluding the title bar and borders. These
-    /// are the dimensions of the frame buffer, and the dimensions that you should use when you
-    /// call glViewport.
+    /// The client area is the content of the window, excluding the title bar and borders.
     pub fn inner_size_pixels(&self) -> (u32, u32) {
-        self.surface
-            .window()
-            .get_inner_size()
-            .map(|logical_px| {
-                let hidpi_factor = self.surface.window().get_hidpi_factor();
-                logical_px.to_physical(hidpi_factor)
-            })
-            .expect(Self::NO_LONGER_EXISTS)
-            .into()
+        self.window.inner_size().into()
     }
 
     /// The size in points of the client area of the window.
     ///
-    /// The client area is the content of the window, excluding the title bar and borders. To get
-    /// the dimensions of the frame buffer when calling `glViewport`, multiply with hidpi factor.
+    /// The client area is the content of the window, excluding the title bar and borders.
     ///
-    /// This is the same as dividing the result  of `inner_size_pixels()` by `hidpi_factor()`.
+    /// This is the same as dividing the result  of `inner_size_pixels()` by `scale_factor()`.
     pub fn inner_size_points(&self) -> (geom::scalar::Default, geom::scalar::Default) {
-        let size = self
-            .surface
-            .window()
-            .get_inner_size()
-            .expect(Self::NO_LONGER_EXISTS);
-        let (w, h): (f64, f64) = size.into();
-        (w as _, h as _)
+        self.window
+            .inner_size()
+            .to_logical::<f32>(self.tracked_state.scale_factor)
+            .into()
+    }
+
+    /// Modifies the inner size of the window.
+    ///
+    /// See the `inner_size` methods for more informations about the values.
+    pub fn set_inner_size_pixels(&self, width: u32, height: u32) {
+        self.window
+            .set_inner_size(winit::dpi::PhysicalSize { width, height })
+    }
+
+    /// Modifies the inner size of the window using point values.
+    ///
+    /// See the `inner_size` methods for more informations about the values.
+    pub fn set_inner_size_points(&self, width: f32, height: f32) {
+        self.window
+            .set_inner_size(winit::dpi::LogicalSize { width, height })
     }
 
     /// The size of the window in pixels.
@@ -1289,15 +1024,7 @@ impl Window {
     /// These dimensions include title bar and borders. If you don't want these, you should use
     /// `inner_size_pixels` instead.
     pub fn outer_size_pixels(&self) -> (u32, u32) {
-        self.surface
-            .window()
-            .get_outer_size()
-            .map(|logical_px| {
-                let hidpi_factor = self.surface.window().get_hidpi_factor();
-                logical_px.to_physical(hidpi_factor)
-            })
-            .expect(Self::NO_LONGER_EXISTS)
-            .into()
+        self.window.outer_size().into()
     }
 
     /// The size of the window in points.
@@ -1305,140 +1032,230 @@ impl Window {
     /// These dimensions include title bar and borders. If you don't want these, you should use
     /// `inner_size_points` instead.
     ///
-    /// This is the same as dividing the result  of `outer_size_pixels()` by `hidpi_factor()`.
+    /// This is the same as dividing the result  of `outer_size_pixels()` by `scale_factor()`.
     pub fn outer_size_points(&self) -> (f32, f32) {
-        let size = self
-            .surface
-            .window()
-            .get_outer_size()
-            .expect(Self::NO_LONGER_EXISTS);
-        let (w, h): (f64, f64) = size.into();
-        (w as _, h as _)
+        self.window
+            .outer_size()
+            .to_logical::<f32>(self.tracked_state.scale_factor)
+            .into()
     }
 
-    /// Modifies the inner size of the window.
+    /// Sets a minimum size for the window.
+    pub fn set_min_inner_size_points(&self, size: Option<(f32, f32)>) {
+        let size = size.map(|(width, height)| winit::dpi::LogicalSize { width, height });
+        self.window.set_min_inner_size(size)
+    }
+
+    /// Sets a maximum size for the window.
+    pub fn set_max_inner_size_points(&self, size: Option<(f32, f32)>) {
+        let size = size.map(|(width, height)| winit::dpi::LogicalSize { width, height });
+        self.window.set_max_inner_size(size)
+    }
+
+    /// Modifies the title of the window.
     ///
-    /// See the `inner_size` methods for more informations about the values.
-    pub fn set_inner_size_pixels(&self, width: u32, height: u32) {
-        self.surface.window().set_inner_size((width, height).into())
+    /// This is a no-op if the window has already been closed.
+    pub fn set_title(&self, title: &str) {
+        self.window.set_title(title);
     }
 
-    /// Modifies the inner size of the window using point values.
+    /// Set the visibility of the window.
     ///
-    /// Internally, the given width and height are multiplied by the `hidpi_factor` to get the
-    /// values in pixels before calling `set_inner_size_pixels` internally.
-    pub fn set_inner_size_points(&self, width: f32, height: f32) {
-        let hidpi_factor = self.hidpi_factor();
-        let w_px = (width * hidpi_factor) as _;
-        let h_px = (height * hidpi_factor) as _;
-        self.set_inner_size_pixels(w_px, h_px);
-    }
-
-    /// The ratio between the backing framebuffer resolution and the window size in screen pixels.
+    /// ## Platform-specific
     ///
-    /// This is typically `1.0` for a normal display, `2.0` for a retina display and higher on more
-    /// modern displays.
-    pub fn hidpi_factor(&self) -> geom::scalar::Default {
-        self.surface.window().get_hidpi_factor() as _
+    /// - Android: Has no effect.
+    /// - iOS: Can only be called on the main thread.
+    /// - Web: Has no effect.
+    pub fn set_visible(&self, visible: bool) {
+        self.window.set_visible(visible)
     }
 
-    /// Changes the position of the cursor in window coordinates.
-    pub fn set_cursor_position(&self, x: i32, y: i32) -> Result<(), String> {
-        self.surface.window().set_cursor_position((x, y).into())
+    /// Sets whether the window is resizable or not.
+    ///
+    /// Note that making the window unresizable doesn't exempt you from handling **Resized**, as
+    /// that event can still be triggered by DPI scaling, entering fullscreen mode, etc.
+    pub fn set_resizable(&self, resizable: bool) {
+        self.window.set_resizable(resizable)
+    }
+
+    /// Sets the window to minimized or back.
+    pub fn set_minimized(&self, minimized: bool) {
+        self.window.set_minimized(minimized)
+    }
+
+    /// Sets the window to maximized or back.
+    pub fn set_maximized(&self, maximized: bool) {
+        self.window.set_maximized(maximized)
+    }
+
+    /// Set the window to fullscreen.
+    ///
+    /// Call this method again with `None` to revert back from fullscreen.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - macOS: `Fullscreen::Exclusive` provides true exclusive mode with a video mode change.
+    ///   Caveat! macOS doesn't provide task switching (or spaces!) while in exclusive fullscreen
+    ///   mode. This mode should be used when a video mode change is desired, but for a better user
+    ///   experience, borderless fullscreen might be preferred.
+    ///
+    ///   `Fullscreen::Borderless` provides a borderless fullscreen window on a separate space.
+    ///   This is the idiomatic way for fullscreen games to work on macOS. See
+    ///   WindowExtMacOs::set_simple_fullscreen if separate spaces are not preferred.
+    ///
+    ///   The dock and the menu bar are always disabled in fullscreen mode.
+    ///
+    /// - iOS: Can only be called on the main thread.
+    /// - Wayland: Does not support exclusive fullscreen mode.
+    /// - Windows: Screen saver is disabled in fullscreen mode.
+    pub fn set_fullscreen(&self, monitor: Option<winit::window::Fullscreen>) {
+        self.window.set_fullscreen(monitor)
+    }
+
+    /// Gets the window's current fullscreen state.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Can only be called on the main thread.
+    pub fn fullscreen(&self) -> Option<winit::window::Fullscreen> {
+        self.window.fullscreen()
+    }
+
+    /// Turn window decorations on or off.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Can only be called on the main thread. Controls whether the status bar is hidden
+    ///   via `setPrefersStatusBarHidden`.
+    /// - **Web:** Has no effect.
+    pub fn set_decorations(&self, decorations: bool) {
+        self.window.set_decorations(decorations)
+    }
+
+    /// Change whether or not the window will always be on top of other windows.
+    pub fn set_always_on_top(&self, always_on_top: bool) {
+        self.window.set_always_on_top(always_on_top)
+    }
+
+    /// Sets the window icon. On Windows and X11, this is typically the small icon in the top-left
+    /// corner of the titlebar.
+    ///
+    /// ## Platform-specific
+    ///
+    /// This only has effect on Windows and X11.
+    ///
+    /// On Windows, this sets ICON_SMALL. The base size for a window icon is 16x16, but it's
+    /// recommended to account for screen scaling and pick a multiple of that, i.e. 32x32.
+    ///
+    /// X11 has no universal guidelines for icon sizes, so you're at the whims of the WM. That
+    /// said, it's usually in the same ballpark as on Windows.
+    pub fn set_window_icon(&self, window_icon: Option<winit::window::Icon>) {
+        self.window.set_window_icon(window_icon)
+    }
+
+    /// Sets the location of IME candidate box in client area coordinates relative to the top left.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Has no effect.
+    /// - **Web:** Has no effect.
+    pub fn set_ime_position_points(&self, x: f32, y: f32) {
+        self.window
+            .set_ime_position(winit::dpi::LogicalPosition { x, y })
     }
 
     /// Modifies the mouse cursor of the window.
     ///
     /// ## Platform-specific
     ///
-    /// Has no effect on Android.
-    pub fn set_cursor(&self, state: MouseCursor) {
-        self.surface.window().set_cursor(state);
+    /// - **iOS:** Has no effect.
+    /// - **Android:** Has no effect.
+    pub fn set_cursor_icon(&self, state: winit::window::CursorIcon) {
+        self.window.set_cursor_icon(state);
+    }
+
+    /// Changes the position of the cursor in logical window coordinates.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Always returns an `Err`.
+    /// - **Web:** Has no effect.
+    pub fn set_cursor_position_points(
+        &self,
+        x: f32,
+        y: f32,
+    ) -> Result<(), winit::error::ExternalError> {
+        self.window
+            .set_cursor_position(winit::dpi::LogicalPosition { x, y })
     }
 
     /// Grabs the cursor, preventing it from leaving the window.
     ///
     /// ## Platform-specific
     ///
-    /// On macOS, this presently merely locks the cursor in a fixed location, which looks visually
-    /// awkward.
-    ///
-    /// This has no effect on Android or iOS.
-    pub fn grab_cursor(&self, grab: bool) -> Result<(), String> {
-        self.surface.window().grab_cursor(grab)
+    /// - **macOS:** Locks the cursor in a fixed location.
+    /// - **Wayland:** Locks the cursor in a fixed location.
+    /// - **Android:** Has no effect.
+    /// - **iOS:** Always returns an Err.
+    /// - **Web:** Has no effect.
+    pub fn set_cursor_grab(&self, grab: bool) -> Result<(), winit::error::ExternalError> {
+        self.window.set_cursor_grab(grab)
     }
 
-    /// Hides the cursor, making it invisible but still usable.
+    /// Set the cursor's visibility.
+    ///
+    /// If `false`, hides the cursor. If `true`, shows the cursor.
     ///
     /// ## Platform-specific
     ///
-    /// On Windows and X11, the cursor is only hidden within the confines of the window.
+    /// On **Windows**, **X11** and **Wayland**, the cursor is only hidden within the confines of
+    /// the window.
     ///
-    /// On macOS, the cursor is hidden as long as the window has input focus, even if the cursor is
-    /// outside of the window.
+    /// On **macOS**, the cursor is hidden as long as the window has input focus, even if the
+    /// cursor is outside of the window.
     ///
-    /// This has no effect on Android or iOS.
-    pub fn hide_cursor(&self, hide: bool) {
-        self.surface.window().hide_cursor(hide)
-    }
-
-    /// Sets the window to maximized or back.
-    pub fn set_maximized(&self, maximized: bool) {
-        self.surface.window().set_maximized(maximized)
-    }
-
-    /// Set the window to fullscreen on the monitor associated with the given `Id`.
-    ///
-    /// Call this method again with `None` to revert back from fullscreen.
-    ///
-    /// ## Platform-specific
-    ///
-    /// Has no effect on Android.
-    pub fn set_fullscreen(&self, monitor: Option<MonitorId>) {
-        self.surface.window().set_fullscreen(monitor)
+    /// This has no effect on **Android** or **iOS**.
+    pub fn set_cursor_visible(&self, visible: bool) {
+        self.window.set_cursor_visible(visible)
     }
 
     /// The current monitor that the window is on or the primary monitor if nothing matches.
-    pub fn current_monitor(&self) -> MonitorId {
-        self.surface.window().get_current_monitor()
+    pub fn current_monitor(&self) -> winit::monitor::MonitorHandle {
+        self.window.current_monitor()
     }
 
-    /// A unique identifier associated with this window.
-    pub fn id(&self) -> Id {
-        self.surface.window().id()
-    }
+    // Access to wgpu API.
 
-    // Access to vulkano API.
-
-    /// Returns a reference to the window's Vulkan swapchain surface.
-    pub fn surface(&self) -> &Surface {
+    /// Returns a reference to the window's wgpu swap chain surface.
+    pub fn surface(&self) -> &wgpu::Surface {
         &self.surface
     }
 
-    /// The swapchain associated with this window's vulkan surface.
-    pub fn swapchain(&self) -> &Swapchain {
-        &self.swapchain.swapchain
+    /// The descriptor for the swap chain associated with this window's wgpu surface.
+    pub fn swap_chain_descriptor(&self) -> &wgpu::SwapChainDescriptor {
+        &self.swap_chain.descriptor
     }
 
-    /// The vulkan logical device on which the window's swapchain is running.
+    /// The wgpu logical device on which the window's swap chain is running.
     ///
-    /// This is shorthand for `DeviceOwned::device(window.swapchain())`.
-    pub fn swapchain_device(&self) -> &Arc<vk::Device> {
-        vk::DeviceOwned::device(self.swapchain())
+    /// This is shorthand for `DeviceOwned::device(window.swap_chain())`.
+    pub fn swap_chain_device(&self) -> &wgpu::Device {
+        self.device_queue_pair.device()
     }
 
-    /// The vulkan graphics queue on which the window swapchain work is run.
-    pub fn swapchain_queue(&self) -> &Arc<vk::Queue> {
-        &self.queue
-    }
-
-    /// The vulkan images associated with the window's swapchain.
+    /// The wgpu graphics queue on which the window swap chain work is run.
     ///
-    /// This method is exposed in order to allow for interop with low-level vulkano code (e.g.
-    /// framebuffer creation). We recommend that you avoid storing these images as the swapchain
-    /// and its images may be recreated at any moment in time.
-    pub fn swapchain_images(&self) -> &[Arc<SwapchainImage>] {
-        &self.swapchain.images
+    /// The queue is guarded by a `Mutex` in order to synchronise submissions of command buffers in
+    /// cases that the queue is shared between more than one window.
+    pub fn swap_chain_queue(&self) -> &Mutex<wgpu::Queue> {
+        self.device_queue_pair.queue()
+    }
+
+    /// Provides access to the device queue pair and the `Arc` behind which it is stored. This can
+    /// be useful in cases where using references provided by the `swap_chain_device` or
+    /// `swap_chain_queue` methods cause awkward ownership problems.
+    pub fn swap_chain_device_queue_pair(&self) -> &Arc<wgpu::DeviceQueuePair> {
+        &self.device_queue_pair
     }
 
     /// The number of samples used in the MSAA for the image associated with the `view` function's
@@ -1452,40 +1269,30 @@ impl Window {
 
     // Custom methods.
 
-    // A utility function to simplify the recreation of a swapchain.
-    pub(crate) fn replace_swapchain(
-        &mut self,
-        new_swapchain: Arc<Swapchain>,
-        new_images: Vec<Arc<SwapchainImage>>,
-    ) {
-        let previous_frame_end = self
-            .swapchain
-            .previous_frame_end
-            .lock()
-            .expect("failed to lock `previous_frame_end`")
-            .take();
-        self.swapchain = Arc::new(WindowSwapchain {
-            needs_recreation: AtomicBool::new(false),
-            frame_created: self.frame_count,
-            swapchain: new_swapchain,
-            images: new_images,
-            previous_frame_end: Mutex::new(previous_frame_end),
-        });
-        // TODO: Update frame_render_data?
+    // A utility function to simplify the recreation of a swap_chain.
+    pub(crate) fn rebuild_swap_chain(&mut self, size_px: [u32; 2]) {
+        std::mem::drop(self.swap_chain.swap_chain.take());
+        let [width, height] = size_px;
+        self.swap_chain.descriptor.width = width;
+        self.swap_chain.descriptor.height = height;
+        self.swap_chain.swap_chain = Some(
+            self.swap_chain_device()
+                .create_swap_chain(&self.surface, &self.swap_chain.descriptor),
+        );
+        if self.frame_data.is_some() {
+            let render_data = frame::RenderData::new(
+                self.swap_chain_device(),
+                size_px,
+                self.swap_chain.descriptor.format,
+                self.msaa_samples,
+            );
+            self.frame_data.as_mut().unwrap().render = render_data;
+        }
     }
 
     /// Attempts to determine whether or not the window is currently fullscreen.
-    ///
-    /// TODO: This currently relies on comparing `outer_size_pixels` to the dimensions of the
-    /// `current_monitor`, which may not be exactly accurate on some platforms or even conceptually
-    /// correct in the case that a title bar is included or something. This should probably be a
-    /// method upstream within the `winit` crate itself. Alternatively we could attempt to manually
-    /// track whether or not the window is fullscreen ourselves, however this could get quite
-    /// complicated quite quickly.
     pub fn is_fullscreen(&self) -> bool {
-        let (w, h) = self.outer_size_pixels();
-        let (mw, mh): (u32, u32) = self.current_monitor().get_dimensions().into();
-        w == mw && h == mh
+        self.fullscreen().is_some()
     }
 
     /// The number of times `view` has been called with a `Frame` for this window.
@@ -1505,6 +1312,53 @@ impl Window {
         let (w, h) = self.inner_size_points();
         geom::Rect::from_w_h(w, h)
     }
+
+    /// Capture the next frame right before it is drawn to this window and write it to an image
+    /// file at the given path. If a frame already exists, it will be captured before its `submit`
+    /// method is called or before it is `drop`ped.
+    ///
+    /// The destination image file type will be inferred from the extension given in the path.
+    ///
+
+    pub fn capture_frame<P>(&self, path: P)
+    where
+        P: AsRef<Path>,
+    {
+        self.capture_frame_with_threaded(path.as_ref(), false);
+    }
+
+    /// The same as **capture_frame**, but uses a separate pool of threads for writing image files
+    /// in order to free up the main application thread.
+    ///
+    /// Note that if you are capturing every frame and your window size is very large or the file
+    /// type you are writing to is expensive to encode, this capturing thread may fall behind the
+    /// main thread, resulting in a large delay before the exiting the program. This is because the
+    /// capturing thread needs more time to write the captured images.
+    pub fn capture_frame_threaded<P>(&self, path: P)
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+        self.capture_frame_with_threaded(path.as_ref(), false);
+    }
+
+    fn capture_frame_with_threaded(&self, path: &Path, threaded: bool) {
+        // If the parent directory does not exist, create it.
+        let dir = path.parent().expect("capture_frame path has no directory");
+        if !dir.exists() {
+            std::fs::create_dir_all(&dir).expect("failed to create `capture_frame` directory");
+        }
+
+        let mut capture_next_frame_path = self
+            .frame_data
+            .as_ref()
+            .expect("window capture requires that `view` draws to a `Frame` (not a `RawFrame`)")
+            .capture
+            .next_frame_path
+            .lock()
+            .expect("failed to lock `capture_next_frame_path`");
+        *capture_next_frame_path = Some((path.to_path_buf(), threaded));
+    }
 }
 
 // Debug implementations for function wrappers.
@@ -1522,73 +1376,29 @@ impl fmt::Debug for View {
 
 // Deref implementations.
 
-impl ops::Deref for WindowSwapchain {
-    type Target = Arc<Swapchain>;
-    fn deref(&self) -> &Self::Target {
-        &self.swapchain
-    }
-}
-
-impl fmt::Debug for WindowSwapchain {
+impl fmt::Debug for WindowSwapChain {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "WindowSwapchain ( swapchain: {:?}, swapchain_images: {:?} )",
-            self.swapchain,
-            self.images.len(),
+            "WindowSwapChain ( descriptor: {:?}, swap_chain: {:?} )",
+            self.descriptor, self.swap_chain,
         )
     }
 }
 
 // Error implementations.
 
-impl StdError for BuildError {
-    fn description(&self) -> &str {
+impl fmt::Display for BuildError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            BuildError::SurfaceCreation(ref err) => err.description(),
-            BuildError::DeviceCreation(ref err) => err.description(),
-            BuildError::SwapchainCreation(ref err) => err.description(),
-            BuildError::SwapchainCapabilities(ref err) => err.description(),
-            BuildError::RenderDataCreation(ref err) => err.description(),
-            BuildError::SurfaceDoesNotSupportCompositeAlphaOpaque => {
-                "`CompositeAlpha::Opaque` not supported by window surface"
-            }
+            BuildError::NoAvailableAdapter => write!(f, "no available wgpu adapter detected"),
+            BuildError::WinitOsError(ref e) => e.fmt(f),
         }
     }
 }
 
-impl fmt::Display for BuildError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.description())
-    }
-}
-
-impl From<vk::win::CreationError> for BuildError {
-    fn from(e: vk::win::CreationError) -> Self {
-        BuildError::SurfaceCreation(e)
-    }
-}
-
-impl From<vk::DeviceCreationError> for BuildError {
-    fn from(e: vk::DeviceCreationError) -> Self {
-        BuildError::DeviceCreation(e)
-    }
-}
-
-impl From<vk::swapchain::SwapchainCreationError> for BuildError {
-    fn from(e: vk::swapchain::SwapchainCreationError) -> Self {
-        BuildError::SwapchainCreation(e)
-    }
-}
-
-impl From<vk::swapchain::CapabilitiesError> for BuildError {
-    fn from(e: vk::swapchain::CapabilitiesError) -> Self {
-        BuildError::SwapchainCapabilities(e)
-    }
-}
-
-impl From<frame::RenderDataCreationError> for BuildError {
-    fn from(e: frame::RenderDataCreationError) -> Self {
-        BuildError::RenderDataCreation(e)
+impl From<winit::error::OsError> for BuildError {
+    fn from(e: winit::error::OsError) -> Self {
+        BuildError::WinitOsError(e)
     }
 }

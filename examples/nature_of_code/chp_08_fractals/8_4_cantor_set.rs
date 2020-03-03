@@ -14,16 +14,11 @@ struct Model;
 
 fn model(app: &App) -> Model {
     app.set_loop_mode(LoopMode::loop_once());
-    let _window = app
-        .new_window()
-        .dimensions(800, 200)
-        .view(view)
-        .build()
-        .unwrap();
+    let _window = app.new_window().size(800, 200).view(view).build().unwrap();
     Model
 }
 
-fn view(app: &App, _model: &Model, frame: &Frame) {
+fn view(app: &App, _model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

@@ -111,11 +111,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window()
-        .dimensions(640, 360)
-        .view(view)
-        .build()
-        .unwrap();
+    app.new_window().size(640, 360).view(view).build().unwrap();
     let ps = ParticleSystem::new(pt2(0.0, app.window_rect().top() - 50.0));
     Model { ps }
 }
@@ -128,7 +124,7 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     m.ps.update();
 }
 
-fn view(app: &App, m: &Model, frame: &Frame) {
+fn view(app: &App, m: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

@@ -140,7 +140,7 @@ impl Default for RgbProfile {
 fn model(app: &App) -> Model {
     // Create a window to receive keyboard events.
     app.new_window()
-        .dimensions(240, 620)
+        .size(240, 620)
         .key_pressed(key_pressed)
         .view(view)
         .build()
@@ -568,6 +568,6 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     model.ui.draw_to_frame_if_changed(app, &frame).unwrap();
 }

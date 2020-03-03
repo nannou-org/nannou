@@ -6,11 +6,10 @@
 use nannou::prelude::*;
 
 fn main() {
-    nannou::sketch(view);
+    nannou::sketch(view).size(640, 360).run();
 }
 
-fn view(app: &App, frame: &Frame) {
-    app.main_window().set_inner_size_points(640.0, 360.0);
+fn view(app: &App, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

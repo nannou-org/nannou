@@ -15,12 +15,12 @@ default = ["notosans"]
 
 [dependencies]
 cgmath = { version = "0.17", features = ["serde"] }
-conrod_core = "0.68"
-conrod_winit = "0.68"
-conrod_vulkano = "0.68"
+conrod_core = "0.69"
+conrod_wgpu = "0.69"
+conrod_winit = "0.69"
 daggy = "0.6"
 find_folder = "0.3"
-image = "0.22"
+image = "0.23"
 lyon = "0.14"
 noise = "0.6"
 notosans = { version = "0.1", optional = true }
@@ -31,27 +31,26 @@ rusttype = "0.8"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
+threadpool = "1"
 toml = "0.5"
-vulkano = "0.16"
-vulkano-win = "0.16"
-vulkano-shaders = "0.16"
 walkdir = "2"
-winit = "0.19"
+wgpu = "0.4"
+winit = "0.21"
 
 [dev-dependencies]
 audrey = "0.2"
+futures = "0.3"
 nannou_audio = "0.2"
 nannou_laser = "0.3"
 nannou_osc = "0.1"
-shade_runner = "0.3"
-
-[target.'cfg(target_os = "macos")'.dependencies]
-moltenvk_deps = "0.1"
 
 # --------------- Nannou Examples
 [[example]]
 name = "all_functions"
 path = "examples/all_functions.rs"
+[[example]]
+name = "capture_hi_res"
+path = "examples/capture_hi_res.rs"
 [[example]]
 name = "loop_mode"
 path = "examples/loop_mode.rs"
@@ -73,6 +72,9 @@ path = "examples/simple_audio.rs"
 [[example]]
 name = "simple_audio_file"
 path = "examples/simple_audio_file.rs"
+[[example]]
+name = "simple_capture"
+path = "examples/simple_capture.rs"
 [[example]]
 name = "simple_draw"
 path = "examples/simple_draw.rs"
@@ -130,46 +132,28 @@ path = "examples/basics/6_functions.rs"
 name = "7_modules"
 path = "examples/basics/7_modules/7_modules.rs"
 
-# --------------- Vulkan Examples
+# --------------- WGPU Examples
 [[example]]
-name = "vk_triangle"
-path = "examples/vulkan/vk_triangle.rs"
+name = "wgpu_compute_shader"
+path = "examples/wgpu/wgpu_compute_shader/wgpu_compute_shader.rs"
 [[example]]
-name = "vk_triangle_raw_frame"
-path = "examples/vulkan/vk_triangle_raw_frame.rs"
+name = "wgpu_image"
+path = "examples/wgpu/wgpu_image/wgpu_image.rs"
 [[example]]
-name = "vk_teapot"
-path = "examples/vulkan/vk_teapot.rs"
+name = "wgpu_image_sequence"
+path = "examples/wgpu/wgpu_image_sequence/wgpu_image_sequence.rs"
 [[example]]
-name = "vk_quad_warp"
-path = "examples/vulkan/vk_quad_warp/vk_quad_warp.rs"
+name = "wgpu_teapot"
+path = "examples/wgpu/wgpu_teapot/wgpu_teapot.rs"
 [[example]]
-name = "vk_teapot_camera"
-path = "examples/vulkan/vk_teapot_camera.rs"
+name = "wgpu_teapot_camera"
+path = "examples/wgpu/wgpu_teapot_camera/wgpu_teapot_camera.rs"
 [[example]]
-name = "vk_image"
-path = "examples/vulkan/vk_image.rs"
+name = "wgpu_triangle"
+path = "examples/wgpu/wgpu_triangle/wgpu_triangle.rs"
 [[example]]
-name = "vk_images"
-path = "examples/vulkan/vk_images.rs"
-[[example]]
-name = "vk_image_sequence"
-path = "examples/vulkan/vk_image_sequence.rs"
-[[example]]
-name = "vk_compute_shader_rendering"
-path = "examples/vulkan/vk_compute_shader_rendering.rs"
-[[example]]
-name = "vk_compute_shader"
-path = "examples/vulkan/vk_compute_shader.rs"
-[[example]]
-name = "vk_shader_include"
-path = "examples/vulkan/vk_shader_include/mod.rs"
-[[example]]
-name = "vk_debug"
-path = "examples/vulkan/vk_debug.rs"
-[[example]]
-name = "vk_hotload"
-path = "examples/vulkan/vk_hotload.rs"
+name = "wgpu_triangle_raw_frame"
+path = "examples/wgpu/wgpu_triangle_raw_frame/wgpu_triangle_raw_frame.rs"
 
 # --------------- Generative Design
 [[example]]

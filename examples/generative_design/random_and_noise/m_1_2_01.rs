@@ -44,7 +44,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .dimensions(800, 800)
+        .size(800, 800)
         .view(view)
         .mouse_pressed(mouse_pressed)
         .build()
@@ -56,7 +56,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     let win = app.window_rect();
 

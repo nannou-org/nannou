@@ -12,7 +12,7 @@ struct Model {}
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .dimensions(720, 720)
+        .size(720, 720)
         .event(window_event)
         .raw_event(raw_window_event)
         .key_pressed(key_pressed)
@@ -42,19 +42,19 @@ fn event(_app: &App, _model: &mut Model, event: Event) {
     match event {
         Event::WindowEvent {
             id: _,
-            raw: _,
+            //raw: _,
             simple: _,
         } => {}
         Event::DeviceEvent(_device_id, _event) => {}
         Event::Update(_dt) => {}
-        Event::Awakened => {}
-        Event::Suspended(_b) => {}
+        Event::Suspended => {}
+        Event::Resumed => {}
     }
 }
 
 fn update(_app: &App, _model: &mut Model, _update: Update) {}
 
-fn view(_app: &App, _model: &Model, frame: &Frame) {
+fn view(_app: &App, _model: &Model, frame: Frame) {
     frame.clear(SKYBLUE);
 }
 
@@ -81,7 +81,7 @@ fn window_event(_app: &App, _model: &mut Model, event: WindowEvent) {
     }
 }
 
-fn raw_window_event(_app: &App, _model: &mut Model, _event: nannou::winit::WindowEvent) {}
+fn raw_window_event(_app: &App, _model: &mut Model, _event: &nannou::winit::event::WindowEvent) {}
 
 fn key_pressed(_app: &App, _model: &mut Model, _key: Key) {}
 

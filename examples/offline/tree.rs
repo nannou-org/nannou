@@ -74,7 +74,7 @@ impl Thing {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .dimensions(1024, 1024)
+        .size(1024, 1024)
         .view(view)
         .event(window_event)
         .build()
@@ -250,7 +250,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     // Prepare to draw.
     let draw = app.draw();
 

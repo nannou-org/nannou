@@ -48,10 +48,10 @@ impl<E> Error for FileError<E>
 where
     E: Error,
 {
-    fn description(&self) -> &str {
+    fn cause(&self) -> Option<&dyn Error> {
         match *self {
-            FileError::Io(ref err) => err.description(),
-            FileError::Format(ref err) => err.description(),
+            FileError::Io(ref err) => Some(err),
+            FileError::Format(ref err) => Some(err),
         }
     }
 }
@@ -61,7 +61,10 @@ where
     E: Error,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.description())
+        match *self {
+            FileError::Io(ref err) => fmt::Display::fmt(err, f),
+            FileError::Format(ref err) => fmt::Display::fmt(err, f),
+        }
     }
 }
 

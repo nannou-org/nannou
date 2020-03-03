@@ -11,7 +11,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .dimensions(720, 720)
+        .size(720, 720)
         .view(view)
         .event(window_event)
         .build()
@@ -44,7 +44,7 @@ fn window_event(_app: &App, _model: &mut Model, event: WindowEvent) {
     }
 }
 
-fn view(app: &App, _model: &Model, frame: &Frame) {
+fn view(app: &App, _model: &Model, frame: Frame) {
     // Prepare to draw.
     let draw = app.draw();
     // Clear the background to pink.

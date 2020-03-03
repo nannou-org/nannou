@@ -115,7 +115,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let rect = Rect::from_w_h(600.0, 600.0);
     app.new_window()
-        .dimensions(rect.w() as u32, rect.h() as u32)
+        .size(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)
         .view(view)
         .build()
@@ -132,7 +132,7 @@ fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {
 
 fn update(_app: &App, _m: &mut Model, _update: Update) {}
 
-fn view(app: &App, m: &Model, frame: &Frame) {
+fn view(app: &App, m: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

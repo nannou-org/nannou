@@ -53,7 +53,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .dimensions(800, 800)
+        .size(800, 800)
         .view(view)
         .key_pressed(key_pressed)
         .build()
@@ -104,7 +104,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
     if model.should_draw {

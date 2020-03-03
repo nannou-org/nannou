@@ -18,12 +18,7 @@ fn model(app: &App) -> Model {
     let position = pt2(100.0, 100.0);
     let velocity = vec2(2.5, 5.0);
 
-    let _window = app
-        .new_window()
-        .dimensions(200, 200)
-        .view(view)
-        .build()
-        .unwrap();
+    let _window = app.new_window().size(200, 200).view(view).build().unwrap();
     Model { position, velocity }
 }
 
@@ -40,7 +35,7 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
 

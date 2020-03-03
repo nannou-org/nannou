@@ -109,7 +109,7 @@ impl ParticleSystem {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .dimensions(640, 360)
+        .size(640, 360)
         .mouse_pressed(mouse_pressed)
         .view(view)
         .build()
@@ -130,7 +130,7 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, m: &Model, frame: &Frame) {
+fn view(app: &App, m: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

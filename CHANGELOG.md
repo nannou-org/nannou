@@ -1,5 +1,49 @@
 # Unreleased
 
+- Transition from `vulkano` to `wgpu` for all graphics handling!
+    - Fixes llooooooooooottss of macOS bugs.
+    - The `draw` and `ui` APIs now render via wgpu.
+    - Replace `vk` module with `wgpu` module.
+    - Replace `examples/vulkan` with `examples/wgpu`.
+    - Big step towards enabling web target.
+    - Add `wgpu::TextureBuilder` to simplify texture building process.
+    - Add `wgpu::TextureReshaper` for writing a texture to another of differing
+      size, format and sample_count.
+    - Add `wgpu::TextureCapturer` for reading textures onto CPU as images.
+- Update to `winit` 0.21. Another big step towards enabling web target. Also
+  includes an overhaul of the application loop which should be significantly
+  simpler.
+- Update `view` function API to take `Frame` by value rather than by reference.
+  For example, rather than:
+  ```rust
+  fn view(app: &App, model: &Model, frame: &Frame) {}
+  ```
+  the `view` function signature now must look like:
+  ```rust
+  fn view(app: &App, model: &Model, frame: Frame) {}
+  ```
+  This was necessary to enable ergonomic texture capturing.
+- `frame.submit()` can now be used to submit the frame to the GPU before the end
+  of the `view` function.
+- `nannou::sketch` now returns a `SketchBuilder`. This allows for specifying the
+  sketch `.size(w, h)`, but now requires that `.run()` is called (or the sketch
+  won't do anything!).
+- A `.size(w, h)` builder has been added to the `app::Builder` type that allows
+  for specifying a default window size.
+- Add `window.capture_frame(path)` method for capturing the next frame to an
+  image file at the given file path.
+- Add a `simple_capture.rs` example.
+- Add a `capture_hi_res.rs` example.
+- `sketch`'s now need a call to `.run()` to do anything.
+- `sktech`'s now support a `.size(width, height)` builder method for setting
+  window size.
+- The `app::Builder` now also supports a `.size(width, height)` method for
+  specifying the default window width and height.
+- `LoopMode`s have been simplified:
+    - `Wait` no longer requires `update_following_event` or `update_interval`
+    - `NTimes` no longer requires `update_interval`
+    - `Refresh` no longer requires `minimum_update_interval` or `windows`
+
 # Version 0.12.0 (2019-11-03)
 
 - Update vulkano dependencies to 0.16 in order to address `metal` related bug on

@@ -60,10 +60,13 @@ impl Gol {
             for y in 0..self.rows {
                 // Add up all the states in a 3x3 surrounding grid
                 let mut neighbors = 0;
-                for i in 0..3 {
-                    for j in 0..3 {
-                        neighbors += self.board[(x + (i - 1) + self.columns) % self.columns]
-                            [(y + (j - 1) + self.rows) % self.rows];
+                for i in 0..3i32 {
+                    for j in 0..3i32 {
+                        let cols = self.columns as i32;
+                        let rows = self.rows as i32;
+                        let board_x = (x as i32 + (i - 1) + cols) % cols;
+                        let board_y = (y as i32 + (j - 1) + rows) % rows;
+                        neighbors += self.board[board_x as usize][board_y as usize];
                     }
                 }
 
@@ -116,7 +119,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let rect = Rect::from_w_h(400.0, 400.0);
     app.new_window()
-        .dimensions(rect.w() as u32, rect.h() as u32)
+        .size(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)
         .view(view)
         .build()
@@ -135,7 +138,7 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     m.gol.generate();
 }
 
-fn view(app: &App, m: &Model, frame: &Frame) {
+fn view(app: &App, m: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

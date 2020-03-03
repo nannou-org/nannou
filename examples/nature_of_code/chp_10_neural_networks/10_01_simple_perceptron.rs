@@ -92,11 +92,7 @@ fn f(x: f32) -> f32 {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window()
-        .dimensions(640, 360)
-        .view(view)
-        .build()
-        .unwrap();
+    app.new_window().size(640, 360).view(view).build().unwrap();
 
     let x_min = -400.0;
     let y_min = -100.0;
@@ -133,7 +129,7 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     m.count = (m.count + 1) % m.training.len();
 }
 
-fn view(app: &App, m: &Model, frame: &Frame) {
+fn view(app: &App, m: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

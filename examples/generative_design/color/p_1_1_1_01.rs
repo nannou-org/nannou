@@ -26,12 +26,10 @@
 use nannou::prelude::*;
 
 fn main() {
-    nannou::sketch(view);
+    nannou::sketch(view).size(800, 400).run();
 }
 
-fn view(app: &App, frame: &Frame) {
-    app.main_window().set_inner_size_pixels(800, 400);
-
+fn view(app: &App, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
 

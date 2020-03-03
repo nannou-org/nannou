@@ -127,7 +127,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .dimensions(640, 360)
+        .size(640, 360)
         .view(view)
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
@@ -165,7 +165,7 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, m: &Model, frame: &Frame) {
+fn view(app: &App, m: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

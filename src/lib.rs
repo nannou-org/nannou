@@ -14,15 +14,12 @@
 //! nannou applications are structured and how the API works.
 
 pub use conrod_core;
-pub use conrod_vulkano;
+pub use conrod_wgpu;
 pub use conrod_winit;
 pub use daggy;
 pub use find_folder;
 pub use lyon;
 use serde_derive;
-pub use vulkano;
-pub use vulkano_shaders;
-pub use vulkano_win;
 pub use winit;
 
 pub use self::event::Event;
@@ -49,7 +46,7 @@ pub mod state;
 pub mod text;
 pub mod time;
 pub mod ui;
-pub mod vk;
+pub mod wgpu;
 pub mod window;
 
 /// Begin building the `App`.
@@ -72,6 +69,6 @@ pub fn app<M: 'static>(model: app::ModelFn<M>) -> app::Builder<M, Event> {
 ///
 /// This is useful for late night hack sessions where you just don't care about all that other
 /// stuff, you just want to play around with some ideas or make something pretty.
-pub fn sketch(view: app::SketchViewFn) {
+pub fn sketch(view: app::SketchViewFn) -> app::SketchBuilder<Event> {
     app::Builder::sketch(view)
 }

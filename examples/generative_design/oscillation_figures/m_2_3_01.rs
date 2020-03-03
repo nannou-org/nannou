@@ -46,7 +46,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .dimensions(1000, 400)
+        .size(1000, 400)
         .view(view)
         .key_pressed(key_pressed)
         .build()
@@ -66,7 +66,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model.point_count = app.window_rect().w() as usize;
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     let win = app.window_rect();

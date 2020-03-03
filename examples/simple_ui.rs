@@ -25,7 +25,7 @@ struct Ids {
 
 fn model(app: &App) -> Model {
     // Set the loop mode to wait for events, an energy-efficient option for pure-GUI apps.
-    app.set_loop_mode(LoopMode::wait(3));
+    app.set_loop_mode(LoopMode::Wait);
 
     // Create the UI.
     let mut ui = app.new_ui().build().unwrap();
@@ -129,7 +129,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
 

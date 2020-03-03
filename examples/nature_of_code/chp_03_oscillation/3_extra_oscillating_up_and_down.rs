@@ -14,11 +14,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window()
-        .dimensions(400, 400)
-        .view(view)
-        .build()
-        .unwrap();
+    app.new_window().size(400, 400).view(view).build().unwrap();
     let angle = 0.0;
     Model { angle }
 }
@@ -27,7 +23,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     model.angle += 0.02;
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
