@@ -157,12 +157,13 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 
     // Check for resource cleanups and mapping callbacks.
     //
-    // Note that this is not strictly necessary in our case, as the device we are using already
-    // gets polled when nannou submits the command buffer for drawing and presentation after `view`
+    // Note that this line is not necessary in our case, as the device we are using already gets
+    // polled when nannou submits the command buffer for drawing and presentation after `view`
     // completes. If we were to use a standalone device to create our buffer and perform our
     // compute (rather than the device requested during window creation), calling `poll` regularly
     // would be a must.
-    device.poll(false);
+    //
+    // device.poll(false);
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
