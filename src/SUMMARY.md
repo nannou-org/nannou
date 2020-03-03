@@ -9,7 +9,7 @@
     - [Editor Setup](./getting_started/editor_setup.md)
     - [Running Examples](./getting_started/running_examples.md)
     - [Create A Project](./getting_started/create_a_project.md)
-    - [Upgrading to a New Release](./getting_started/upgrading.md)
+    - [Updating Nannou and Rust](./getting_started/updating.md)
 - [Tutorials](./tutorials.md)
     - [Basics - Anatomy of a Nannou App](./tutorials/basics/anatomy-of-a-nannou-app.md)
     - [Basics - Drawing 2D Shapes](./tutorials/basics/drawing-2d-shapes.md)

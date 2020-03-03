@@ -61,7 +61,7 @@ create a new project with just a few small steps:
    fn update(_app: &App, _model: &mut Model, _update: Update) {
    }
 
-   fn view(_app: &App, _model: &Model, frame: &Frame){
+   fn view(_app: &App, _model: &Model, frame: Frame){
        frame.clear(PURPLE);
    }
    ```
