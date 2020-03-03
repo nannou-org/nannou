@@ -46,7 +46,7 @@ fn model(_app: &App) -> Model {
 fn event(_app: &App, _model: &mut Model, _event: Event) {
 }
 
-fn view(_app: &App, _model: &Model, _frame: &Frame) {
+fn view(_app: &App, _model: &Model, _frame: Frame) {
 }
 ```
 
@@ -110,7 +110,7 @@ fn main() {
 # }
 # fn event(_app: &App, _model: &mut Model, _event: Event) {
 # }
-# fn view(_app: &App, _model: &Model, _frame: &Frame) {
+# fn view(_app: &App, _model: &Model, _frame: Frame) {
 # }
 ```
 
@@ -133,7 +133,7 @@ quite small. In short, we build a description of our app and then run it!
 # }
 # fn event(_app: &App, _model: &mut Model, _event: Event) {
 # }
-# fn view(_app: &App, _model: &Model, _frame: &Frame) {
+# fn view(_app: &App, _model: &Model, _frame: Frame) {
 # }
 ```
 
@@ -253,7 +253,7 @@ fn main() {
 # }
 # fn update(_app: &App, _model: &mut Model, _update: Update) {
 # }
-# fn view(_app: &App, _model: &Model, _frame: &Frame) {
+# fn view(_app: &App, _model: &Model, _frame: Frame) {
 # }
 ```
 
@@ -285,7 +285,7 @@ occurs.
 # extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
-fn view(_app: &App, _model: &Model, _frame: &Frame) {
+fn view(_app: &App, _model: &Model, _frame: Frame) {
 }
 # fn main() {}
 ```
@@ -293,8 +293,8 @@ fn view(_app: &App, _model: &Model, _frame: &Frame) {
 Finally, the **view** allows us to present the state of the model to a window by
 drawing to its **Frame** and returning the frame at the end. Here we can change
 the background colour, use the **Draw** API to draw a scene, draw a GUI to the
-window or even use the low-level Vulkan API to draw to the frame using our own
-graphics pipeline. All of this will be covered by future tutorials.
+window or even use the wgpu API to draw to the frame using our own textures and
+render passes. All of this will be covered by future tutorials.
 
 ## Concluding Remarks
 

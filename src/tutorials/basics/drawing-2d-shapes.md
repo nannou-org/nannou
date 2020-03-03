@@ -8,10 +8,10 @@ To begin with, we will need a Nannou project file to work with.  Copy the follow
 use nannou::prelude::*;
 
 fn main() {
-    nannou::sketch(view);
+    nannou::sketch(view).run();
 }
 
-fn view(app: &App, frame: &Frame) {
+fn view(app: &App, frame: Frame) {
     // Prepare to draw.
     let draw = app.draw();
 
@@ -39,15 +39,17 @@ You should a new window with something that looks like this:
 Already we are rendering a circle to our canvas.  As you may have guessed, the line of code responsible for creating a circle is the call to the `ellipse` function:
 
 ```
-draw.ellipse().color(STEELBLUE);
+draw.ellipse()
+    .color(STEELBLUE);
 ```
 
 There are many ways we can alter our circle here.  Let's start with changing the size:
 
 ```
-draw.ellipse().color(STEELBLUE)
-              .w(300.0)
-              .h(200.0);
+draw.ellipse()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0);
 ```
 
 The `w` function here changes the width of the ellipse to 300 pixels, and the `h` function changes the height to 200.0 pixels. You should see what we would more colloquially refer to as an ellipse.  
@@ -55,10 +57,11 @@ The `w` function here changes the width of the ellipse to 300 pixels, and the `h
 We can also change the position of our ellipse with the `x_y` method:
 
 ```
-draw.ellipse().color(STEELBLUE)
-              .w(300.0)
-              .h(200.0)
-              .x_y(200.0, -100.0);
+draw.ellipse()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0)
+    .x_y(200.0, -100.0);
 ```
 
 ![An ellipse](./images/2d-shape-ellipse.png)
@@ -71,9 +74,10 @@ There are several more methods we can use to build our ellipse. You can view the
 Drawing a square or rectangle uses the same builder pattern that drawing an ellipse does.  In fact, it's similar enough that you can swap out `ellipse` with `rect` in the example above to get a working example:
 
 ```
-draw.rect().color(STEELBLUE)
-           .w(300.0)
-           .h(200.0);
+draw.rect()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0);
 ```
 
 You will see an image like this:
@@ -134,10 +138,10 @@ To draw our sine wave, we will use the `polyline` function.  To use this functio
 
 ```
 let points = (0..50).map(|i| {
-      let x = (i as f32 - 25.0);          //subtract 25 to center the sine wave
-      let point = pt2(x, x.sin()) * 20.0; //scale sine wave by 20.0
-      (point, STEELBLUE)
-    });
+  let x = (i as f32 - 25.0);          //subtract 25 to center the sine wave
+  let point = pt2(x, x.sin()) * 20.0; //scale sine wave by 20.0
+  (point, STEELBLUE)
+});
 draw.polyline()
     .weight(3.0)
     .colored_points(points);
