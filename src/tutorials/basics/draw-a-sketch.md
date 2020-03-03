@@ -13,7 +13,7 @@
 thought of as a collection of building blocks to help accomplish a goal.
 
 A sketch is the smallest/fastest way to get results with nannou.
-Here is one example:
+Here is one example which just yields a blue window:
 
 ```rust,no_run
 # extern crate nannou;
@@ -36,5 +36,7 @@ fn view(app: &App, frame: &Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 ```
+
+You can exit the sketch by pressing `ESC`.
 
 ## 
