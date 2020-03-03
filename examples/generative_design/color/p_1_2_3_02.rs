@@ -48,6 +48,7 @@ fn model(app: &App) -> Model {
         .size(1280, 720)
         .view(view)
         .mouse_released(mouse_released)
+        .key_pressed(key_pressed)
         .build()
         .unwrap();
 
@@ -159,4 +160,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
 fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
     model.clicked = true;
     model.clicked_frame = app.elapsed_frames();
+}
+
+fn key_pressed(app: &App, _model: &mut Model, key: Key) {
+    if key == Key::S {
+        app.main_window().capture_frame(app.exe_name().unwrap() + ".png");
+    }
 }

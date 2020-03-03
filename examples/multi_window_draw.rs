@@ -63,5 +63,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
         _ => (),
     }
+
     draw.to_frame(app, &frame).unwrap();
 }

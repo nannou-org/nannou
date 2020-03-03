@@ -47,6 +47,7 @@ fn model(app: &App) -> Model {
         .size(800, 800)
         .view(view)
         .mouse_pressed(mouse_pressed)
+        .key_pressed(key_pressed)
         .build()
         .unwrap();
 
@@ -86,4 +87,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.act_random_seed = (random_f32() * 100000.0) as u64;
+}
+
+fn key_pressed(app: &App, _model: &mut Model, key: Key) {
+    if key == Key::S {
+        app.main_window().capture_frame(app.exe_name().unwrap() + ".png");
+    }
 }

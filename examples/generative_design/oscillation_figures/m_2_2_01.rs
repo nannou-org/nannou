@@ -194,7 +194,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(app: &App, model: &mut Model, key: Key) {
     match key {
         Key::Key1 => {
             model.freq_x -= 1.0;
@@ -216,6 +216,9 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
         }
         Key::Right => {
             model.phi += 15.0;
+        }
+        Key::S => {
+            app.main_window().capture_frame(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

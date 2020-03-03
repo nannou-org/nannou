@@ -54,6 +54,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .key_released(key_released)
+        .key_pressed(key_pressed)
         .build()
         .unwrap();
 
@@ -123,5 +124,10 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
     }
     if key == Key::Key3 {
         model.act_stroke_cap = LineCap::Butt;
+    }
+}
+fn key_pressed(app: &App, _model: &mut Model, key: Key) {
+    if key == Key::S {
+        app.main_window().capture_frame(app.exe_name().unwrap() + ".png");
     }
 }

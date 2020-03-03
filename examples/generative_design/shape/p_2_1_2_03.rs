@@ -39,7 +39,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().size(600, 600).view(view).build().unwrap();
+    let _window = app.new_window().size(600, 600).key_pressed(key_pressed).view(view).build().unwrap();
 
     let module_alpha = 0.7;
 
@@ -77,4 +77,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     // Write to the window frame.
     draw.to_frame(app, &frame).unwrap();
+}
+
+fn key_pressed(app: &App, _model: &mut Model, key: Key) {
+    if key == Key::S {
+        app.main_window().capture_frame(app.exe_name().unwrap() + ".png");
+    }
 }
