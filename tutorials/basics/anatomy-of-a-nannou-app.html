@@ -81,7 +81,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div id="sidebar-scrollbox" class="sidebar-scrollbox">
-                <ol class="chapter"><li class="expanded affix "><a href="../../welcome.html">Welcome!</a></li><li class="expanded "><a href="../../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="expanded "><a href="../../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="expanded "><a href="../../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="expanded "><a href="../../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="expanded "><a href="../../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="expanded "><a href="../../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="expanded "><a href="../../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="expanded "><a href="../../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li class="expanded "><a href="../../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="expanded "><a href="../../tutorials/basics/anatomy-of-a-nannou-app.html" class="active"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="expanded "><a href="../../tutorials/basics/drawing-2d-shapes.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li class="expanded "><a href="../../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="expanded "><a href="../../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="expanded "><a href="../../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="expanded affix "><a href="../../contributors.html">Contributors</a></li><li class="expanded affix "><a href="../../code_of_conduct.html">Code of Conduct</a></li></ol>
+                <ol class="chapter"><li class="expanded affix "><a href="../../welcome.html">Welcome!</a></li><li class="expanded "><a href="../../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="expanded "><a href="../../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="expanded "><a href="../../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="expanded "><a href="../../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="expanded "><a href="../../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="expanded "><a href="../../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="expanded "><a href="../../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="expanded "><a href="../../getting_started/updating.html"><strong aria-hidden="true">2.6.</strong> Updating Nannou and Rust</a></li></ol></li><li class="expanded "><a href="../../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="expanded "><a href="../../tutorials/basics/anatomy-of-a-nannou-app.html" class="active"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="expanded "><a href="../../tutorials/basics/drawing-2d-shapes.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li class="expanded "><a href="../../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="expanded "><a href="../../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="expanded "><a href="../../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="expanded affix "><a href="../../contributors.html">Contributors</a></li><li class="expanded affix "><a href="../../code_of_conduct.html">Code of Conduct</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -188,7 +188,7 @@ fn model(_app: &amp;App) -&gt; Model {
 fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 }
 
-fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 }
 </code></pre></pre>
 <p>We will start from the top!</p>
@@ -242,7 +242,7 @@ empty. There is no state information to be tracked in this example.</p>
 </span><span class="boring">}
 </span><span class="boring">fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 </span><span class="boring">}
-</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>All Rust programs begin executing at the start of the <code>main</code> function and end
@@ -262,7 +262,7 @@ quite small. In short, we build a description of our app and then run it!</p>
 </span><span class="boring">}
 </span><span class="boring">fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 </span><span class="boring">}
-</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>We will describe what these <strong>model</strong>, <strong>event</strong> and <strong>view</strong> functions do
@@ -367,7 +367,7 @@ our app building code to this:</p>
 </span><span class="boring">}
 </span><span class="boring">fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
 </span><span class="boring">}
-</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>And remove our <code>event</code> function in favour of an <code>update</code> function:</p>
@@ -393,15 +393,15 @@ available.</p>
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
-</span>fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+</span>fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 }
 <span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Finally, the <strong>view</strong> allows us to present the state of the model to a window by
 drawing to its <strong>Frame</strong> and returning the frame at the end. Here we can change
 the background colour, use the <strong>Draw</strong> API to draw a scene, draw a GUI to the
-window or even use the low-level Vulkan API to draw to the frame using our own
-graphics pipeline. All of this will be covered by future tutorials.</p>
+window or even use the wgpu API to draw to the frame using our own textures and
+render passes. All of this will be covered by future tutorials.</p>
 <h2><a class="header" href="#concluding-remarks" id="concluding-remarks">Concluding Remarks</a></h2>
 <p>Hopefully this has given you a rough idea of how nannou apps work! Do not stress
 if some of the syntax looks confusing or some of the specifics still seem

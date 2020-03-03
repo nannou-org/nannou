@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div id="sidebar-scrollbox" class="sidebar-scrollbox">
-                <ol class="chapter"><li class="expanded affix "><a href="welcome.html">Welcome!</a></li><li class="expanded "><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="expanded "><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="expanded "><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="expanded "><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="expanded "><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="expanded "><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="expanded "><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="expanded "><a href="getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li class="expanded "><a href="tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="expanded "><a href="tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="expanded "><a href="tutorials/basics/drawing-2d-shapes.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li class="expanded "><a href="developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="expanded "><a href="api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="expanded "><a href="showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="expanded affix "><a href="contributors.html">Contributors</a></li><li class="expanded affix "><a href="code_of_conduct.html">Code of Conduct</a></li></ol>
+                <ol class="chapter"><li class="expanded affix "><a href="welcome.html">Welcome!</a></li><li class="expanded "><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="expanded "><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="expanded "><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="expanded "><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="expanded "><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="expanded "><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="expanded "><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="expanded "><a href="getting_started/updating.html"><strong aria-hidden="true">2.6.</strong> Updating Nannou and Rust</a></li></ol></li><li class="expanded "><a href="tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="expanded "><a href="tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="expanded "><a href="tutorials/basics/drawing-2d-shapes.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li class="expanded "><a href="developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="expanded "><a href="api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="expanded "><a href="showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="expanded affix "><a href="contributors.html">Contributors</a></li><li class="expanded affix "><a href="code_of_conduct.html">Code of Conduct</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -354,60 +354,40 @@ The MIT license provides compatibility with a lot of other FLOSS licenses.</p>
 <p>Before we get started, let's make sure we have all the necessary ingredients for
 installing Rust and building nannou projects.</p>
 <p>Depending on what OS you are running, you might require an extra step or two.</p>
-<ul>
-<li>
-<p><strong>All Platforms</strong></p>
-<p>For now, nannou requires that you have both <code>python</code> and <code>cmake</code> installed.
-These are required by a tool called <code>shaderc</code>, a part of nannou's graphics
-stack. The role of this tool is to compile GLSL shaders to SPIR-V so that we
-may run them using the system's Vulkan implementation. There are a few
-attempts at pure-rust alternatives to this tool in the works and we hope to
-switch to one of these in the near future to avoid the need for these extra
-dependencies.</p>
-</li>
-<li>
-<p><strong>macOS</strong>: Ensure that you have xcode-tools installed:</p>
+<p>By the way, if you notice some steps are missing from this section of the guide,
+feel free to open an issue or PR at <a href="https://github.com/nannou-org/guide">the nannou guide
+repo</a>!</p>
+<h2><a class="header" href="#macos" id="macos">macOS</a></h2>
+<p>Ensure that you have xcode-tools installed:</p>
 <pre><code class="language-bash">xcode-select --install
 </code></pre>
-<p>In case it throws an error <code>couldn't find required command: &quot;cmake&quot;</code>, you can install <code>cmake</code> by brew:</p>
-<pre><code class="language-bash">  brew install cmake
-</code></pre>
-<p>In order to add support for <a href="https://www.khronos.org/vulkan/">Vulkan</a> (the
-graphics backend used by nannou) to macOS, nannou will prompt you and attempt
-to automatically download and install the <a href="https://github.com/KhronosGroup/MoltenVK">MoltenVK
-SDK</a>. MoltenVK is a driver-level
-implementation of the Vulkan graphics and compute API, that runs on Apple's
-Metal graphics and compute framework on both iOS and macOS. If you wish to
-update your MoltenVK SDK version, simply remove the currently installed SDK
-(this should be at <code>~/.vulkan_sdk</code>) and nannou will prompt you about
-downloading and installing the next version the next time you attempt to build
-a nannou project.</p>
-</li>
-<li>
-<p><strong>Windows</strong>: Install the <code>ninja</code> tool.</p>
-<p>This tool is another required by the <code>shaderc</code> tool as mentioned under the
-&quot;All Platforms&quot; section above.</p>
-<ol>
-<li>Download the latest release of ninja from the <a href="https://github.com/ninja-build/ninja/releases">ninja releases
-page</a>.</li>
-<li>Place the <code>ninja.exe</code> file somewhere you are happy for it to stay.</li>
-<li>Add the directory containing <code>ninja.exe</code> to your <code>Path</code> environment
-variable if it is not already included.</li>
-<li>Donwload <a href="https://cmake.org/download/">cmake</a></li>
-<li>Download and install <a href="https://www.python.org/downloads/windows/">Python</a></li>
-</ol>
-</li>
-<li>
-<p><strong>Linux</strong>: ensure you have the following system packages installed:</p>
+<p>This should provide all the developer tools needed for building nannou.</p>
+<h2><a class="header" href="#windows" id="windows">Windows</a></h2>
+<p>Rust requires the C++ build tools for Visual Studio. The Rust book has this to
+say:</p>
+<blockquote>
+<p>On Windows, go to
+<a href="https://www.rust-lang.org/tools/install">https://www.rust-lang.org/tools/install</a>
+and follow the instructions for installing Rust. At some point in the
+installation, you’ll receive a message explaining that you’ll also need the
+C++ build tools for Visual Studio 2013 or later. The easiest way to acquire
+the build tools is to install <a href="https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2019">Build Tools for Visual Studio
+2019</a>.
+The tools are in the Other Tools and Frameworks section.</p>
+</blockquote>
+<h2><a class="header" href="#linux" id="linux">Linux</a></h2>
+<p>Ensure you have the following system packages installed:</p>
 <ul>
 <li>
 <p><strong>Basic dev packages</strong></p>
-<p>First make sure our basic dev packages are installed. <code>curl</code> will be
-required by <code>rustup</code> the rust toolchain manager. <code>build-essential</code> will be
-required by <code>rustc</code> the rust compiler for linking. <code>cmake</code> and <code>python</code> are
-necessary for nannou's <code>shaderc</code> dependency to build, as mentioned in the
-&quot;All Platforms&quot; section above. <code>pkg-config</code>will be used to retrieve 
-information about <code>alsa</code> during the building process.</p>
+<p>First make sure the basic dev packages are installed.</p>
+<ul>
+<li><code>curl</code> will be required by <code>rustup</code> the rust toolchain manager.</li>
+<li><code>build-essential</code> will be required by <code>rustc</code> the rust compiler for linking.</li>
+<li><code>pkg-config</code> is used by some build scripts to source information about
+certain libraries.</li>
+<li><code>alsa</code> dev packages are required for <code>nannou_audio</code>.</li>
+</ul>
 <p>For Debian/Ubuntu users:</p>
 <pre><code class="language-bash">sudo apt-get install curl build-essential python cmake pkg-config
 </code></pre>
@@ -433,10 +413,11 @@ installed).</p>
 </li>
 <li>
 <p><strong>xcb</strong></p>
-<p>The XCB library provides inter-operability with Xlib. </p>
+<p>The XCB library provides inter-operability with Xlib.</p>
 <p>For Debian/Ubuntu users:</p>
 <pre><code class="language-bash">sudo apt install libxcb-shape0-dev libxcb-xfixes0-dev
 </code></pre>
+<p>You might also need <code>python3</code> for the <code>xcb</code> crate's build script.</p>
 </li>
 <li>
 <p><strong>vulkan</strong></p>
@@ -493,8 +474,6 @@ sudo apt-get upgrade
 <p>For Gentoo run:</p>
 <pre><code class="language-bash">sudo emerge --ask --verbose dev-util/vulkan-tools dev-util/vulkan-headers
 </code></pre>
-</li>
-</ul>
 </li>
 </ul>
 <p>OK, we should now be ready to install Rust!</p>
@@ -642,7 +621,7 @@ fn model(_app: &amp;App) -&gt; Model {
 fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
 }
 
-fn view(_app: &amp;App, _model: &amp;Model, frame: &amp;Frame){
+fn view(_app: &amp;App, _model: &amp;Model, frame: Frame){
     frame.clear(PURPLE);
 }
 </code></pre></pre>
@@ -668,15 +647,19 @@ be more than just a purple window.</p>
 <p>To find out how to add more features to our project like graphics, audio,
 multiple windows, laser output, projection mapping and much more, let's take a
 look at the next chapter.</p>
-<h1><a class="header" href="#upgrading-nannou" id="upgrading-nannou">Upgrading nannou</a></h1>
-<p>You can upgrade to a new version of nannou by editing your <code>Cargo.toml</code> file to use the new
-crate. For v0.12 use the line <code>nannou = &quot;0.12&quot;</code>. Run</p>
+<h1><a class="header" href="#updating-nannou" id="updating-nannou">Updating nannou</a></h1>
+<p>You can update to a new version of nannou by editing your <code>Cargo.toml</code> file to
+use the new crate. For version 0.12 add the line</p>
+<pre><code class="language-toml">nannou = &quot;0.12&quot;
+</code></pre>
+<p>Then within the nannou directory run the following to update all dependencies:</p>
 <pre><code class="language-bash">cargo update
 </code></pre>
-<p>inside the nannou directory to upgrade all dependencies.</p>
-<p>Building Nannou examples might still fail. This is most likely due to new language features.
-Nannou 0.12 for example requires rustc 1.35.0.
-You can upgrade your (local) rust toolchain by executing</p>
+<h2><a class="header" href="#updating-rust" id="updating-rust">Updating Rust.</a></h2>
+<p>From time to time, a nannou update might require features from a newer version
+of rustc. For example, nannou 0.12 is known to require at least rustc 1.35.0. In
+these cases, you can update your rust toolchain to the latest version by running
+the following:</p>
 <pre><code class="language-bash">rustup update
 </code></pre>
 <h1><a class="header" href="#tutorials" id="tutorials">Tutorials</a></h1>
@@ -820,7 +803,7 @@ fn model(_app: &amp;App) -&gt; Model {
 fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 }
 
-fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 }
 </code></pre></pre>
 <p>We will start from the top!</p>
@@ -874,7 +857,7 @@ empty. There is no state information to be tracked in this example.</p>
 </span><span class="boring">}
 </span><span class="boring">fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 </span><span class="boring">}
-</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>All Rust programs begin executing at the start of the <code>main</code> function and end
@@ -894,7 +877,7 @@ quite small. In short, we build a description of our app and then run it!</p>
 </span><span class="boring">}
 </span><span class="boring">fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 </span><span class="boring">}
-</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>We will describe what these <strong>model</strong>, <strong>event</strong> and <strong>view</strong> functions do
@@ -999,7 +982,7 @@ our app building code to this:</p>
 </span><span class="boring">}
 </span><span class="boring">fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
 </span><span class="boring">}
-</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+</span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>And remove our <code>event</code> function in favour of an <code>update</code> function:</p>
@@ -1025,15 +1008,15 @@ available.</p>
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
-</span>fn view(_app: &amp;App, _model: &amp;Model, _frame: &amp;Frame) {
+</span>fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 }
 <span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Finally, the <strong>view</strong> allows us to present the state of the model to a window by
 drawing to its <strong>Frame</strong> and returning the frame at the end. Here we can change
 the background colour, use the <strong>Draw</strong> API to draw a scene, draw a GUI to the
-window or even use the low-level Vulkan API to draw to the frame using our own
-graphics pipeline. All of this will be covered by future tutorials.</p>
+window or even use the wgpu API to draw to the frame using our own textures and
+render passes. All of this will be covered by future tutorials.</p>
 <h2><a class="header" href="#concluding-remarks" id="concluding-remarks">Concluding Remarks</a></h2>
 <p>Hopefully this has given you a rough idea of how nannou apps work! Do not stress
 if some of the syntax looks confusing or some of the specifics still seem
@@ -1044,10 +1027,10 @@ unclear - we will aim to cover these and more in future tutorials :)</p>
 <pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
 
 fn main() {
-    nannou::sketch(view);
+    nannou::sketch(view).run();
 }
 
-fn view(app: &amp;App, frame: &amp;Frame) {
+fn view(app: &amp;App, frame: Frame) {
     // Prepare to draw.
     let draw = app.draw();
 
@@ -1067,28 +1050,32 @@ fn view(app: &amp;App, frame: &amp;Frame) {
 <p>You should a new window with something that looks like this:</p>
 <p><img src="tutorials/basics/./images/2d-shape-circle.png" alt="A simple circle" /></p>
 <p>Already we are rendering a circle to our canvas.  As you may have guessed, the line of code responsible for creating a circle is the call to the <code>ellipse</code> function:</p>
-<pre><code>draw.ellipse().color(STEELBLUE);
+<pre><code>draw.ellipse()
+    .color(STEELBLUE);
 </code></pre>
 <p>There are many ways we can alter our circle here.  Let's start with changing the size:</p>
-<pre><code>draw.ellipse().color(STEELBLUE)
-              .w(300.0)
-              .h(200.0);
+<pre><code>draw.ellipse()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0);
 </code></pre>
 <p>The <code>w</code> function here changes the width of the ellipse to 300 pixels, and the <code>h</code> function changes the height to 200.0 pixels. You should see what we would more colloquially refer to as an ellipse.</p>
 <p>We can also change the position of our ellipse with the <code>x_y</code> method:</p>
-<pre><code>draw.ellipse().color(STEELBLUE)
-              .w(300.0)
-              .h(200.0)
-              .x_y(200.0, -100.0);
+<pre><code>draw.ellipse()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0)
+    .x_y(200.0, -100.0);
 </code></pre>
 <p><img src="tutorials/basics/./images/2d-shape-ellipse.png" alt="An ellipse" /></p>
 <p>As you can see, we edit our ellipse by chaining together different methods which will change one or more properties of our shape.  This is called the <strong>Builder</strong> pattern.  The call to <code>draw.ellipse()</code> returns an object of type <code>Drawing&lt;Ellipse&gt;</code>.  In turn, each call to a builder method, such as <code>w(300.0)</code> or <code>x_y(200.0, -100.0)</code>, returns the same instance of our shape. By chaining these function calls, we are able to build an ellipse with the attributes we want.</p>
 <p>There are several more methods we can use to build our ellipse. You can view the documentation for many of these methods <a href="https://docs.rs/nannou/latest/nannou/draw/struct.Drawing.html">here</a>.</p>
 <h3><a class="header" href="#drawing-rectangles-and-quadrilaterals" id="drawing-rectangles-and-quadrilaterals">Drawing Rectangles and Quadrilaterals</a></h3>
 <p>Drawing a square or rectangle uses the same builder pattern that drawing an ellipse does.  In fact, it's similar enough that you can swap out <code>ellipse</code> with <code>rect</code> in the example above to get a working example:</p>
-<pre><code>draw.rect().color(STEELBLUE)
-           .w(300.0)
-           .h(200.0);
+<pre><code>draw.rect()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0);
 </code></pre>
 <p>You will see an image like this:</p>
 <p><img src="tutorials/basics/./images/2d-shape-rect.png" alt="A rectangle" /></p>
@@ -1127,10 +1114,10 @@ draw.line()
 <p>This is great for simpler drawings, but what if you want to draw something more complicated? A sine wave, for instance.</p>
 <p>To draw our sine wave, we will use the <code>polyline</code> function.  To use this function, we will supply a collection (or array) of points that represent points on a sine wave.  We can generate this array of points using—what else—the <code>sin</code> function!</p>
 <pre><code>let points = (0..50).map(|i| {
-      let x = (i as f32 - 25.0);          //subtract 25 to center the sine wave
-      let point = pt2(x, x.sin()) * 20.0; //scale sine wave by 20.0
-      (point, STEELBLUE)
-    });
+  let x = (i as f32 - 25.0);          //subtract 25 to center the sine wave
+  let point = pt2(x, x.sin()) * 20.0; //scale sine wave by 20.0
+  (point, STEELBLUE)
+});
 draw.polyline()
     .weight(3.0)
     .colored_points(points);

@@ -81,7 +81,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div id="sidebar-scrollbox" class="sidebar-scrollbox">
-                <ol class="chapter"><li class="expanded affix "><a href="../welcome.html">Welcome!</a></li><li class="expanded "><a href="../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="expanded "><a href="../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="expanded "><a href="../getting_started/platform-specific_setup.html" class="active"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="expanded "><a href="../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="expanded "><a href="../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="expanded "><a href="../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="expanded "><a href="../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="expanded "><a href="../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li class="expanded "><a href="../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="expanded "><a href="../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="expanded "><a href="../tutorials/basics/drawing-2d-shapes.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li class="expanded "><a href="../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="expanded "><a href="../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="expanded "><a href="../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="expanded affix "><a href="../contributors.html">Contributors</a></li><li class="expanded affix "><a href="../code_of_conduct.html">Code of Conduct</a></li></ol>
+                <ol class="chapter"><li class="expanded affix "><a href="../welcome.html">Welcome!</a></li><li class="expanded "><a href="../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="expanded "><a href="../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="expanded "><a href="../getting_started/platform-specific_setup.html" class="active"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="expanded "><a href="../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="expanded "><a href="../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="expanded "><a href="../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="expanded "><a href="../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="expanded "><a href="../getting_started/updating.html"><strong aria-hidden="true">2.6.</strong> Updating Nannou and Rust</a></li></ol></li><li class="expanded "><a href="../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="expanded "><a href="../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="expanded "><a href="../tutorials/basics/drawing-2d-shapes.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li class="expanded "><a href="../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="expanded "><a href="../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="expanded "><a href="../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="expanded affix "><a href="../contributors.html">Contributors</a></li><li class="expanded affix "><a href="../code_of_conduct.html">Code of Conduct</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -152,60 +152,40 @@
 <p>Before we get started, let's make sure we have all the necessary ingredients for
 installing Rust and building nannou projects.</p>
 <p>Depending on what OS you are running, you might require an extra step or two.</p>
-<ul>
-<li>
-<p><strong>All Platforms</strong></p>
-<p>For now, nannou requires that you have both <code>python</code> and <code>cmake</code> installed.
-These are required by a tool called <code>shaderc</code>, a part of nannou's graphics
-stack. The role of this tool is to compile GLSL shaders to SPIR-V so that we
-may run them using the system's Vulkan implementation. There are a few
-attempts at pure-rust alternatives to this tool in the works and we hope to
-switch to one of these in the near future to avoid the need for these extra
-dependencies.</p>
-</li>
-<li>
-<p><strong>macOS</strong>: Ensure that you have xcode-tools installed:</p>
+<p>By the way, if you notice some steps are missing from this section of the guide,
+feel free to open an issue or PR at <a href="https://github.com/nannou-org/guide">the nannou guide
+repo</a>!</p>
+<h2><a class="header" href="#macos" id="macos">macOS</a></h2>
+<p>Ensure that you have xcode-tools installed:</p>
 <pre><code class="language-bash">xcode-select --install
 </code></pre>
-<p>In case it throws an error <code>couldn't find required command: &quot;cmake&quot;</code>, you can install <code>cmake</code> by brew:</p>
-<pre><code class="language-bash">  brew install cmake
-</code></pre>
-<p>In order to add support for <a href="https://www.khronos.org/vulkan/">Vulkan</a> (the
-graphics backend used by nannou) to macOS, nannou will prompt you and attempt
-to automatically download and install the <a href="https://github.com/KhronosGroup/MoltenVK">MoltenVK
-SDK</a>. MoltenVK is a driver-level
-implementation of the Vulkan graphics and compute API, that runs on Apple's
-Metal graphics and compute framework on both iOS and macOS. If you wish to
-update your MoltenVK SDK version, simply remove the currently installed SDK
-(this should be at <code>~/.vulkan_sdk</code>) and nannou will prompt you about
-downloading and installing the next version the next time you attempt to build
-a nannou project.</p>
-</li>
-<li>
-<p><strong>Windows</strong>: Install the <code>ninja</code> tool.</p>
-<p>This tool is another required by the <code>shaderc</code> tool as mentioned under the
-&quot;All Platforms&quot; section above.</p>
-<ol>
-<li>Download the latest release of ninja from the <a href="https://github.com/ninja-build/ninja/releases">ninja releases
-page</a>.</li>
-<li>Place the <code>ninja.exe</code> file somewhere you are happy for it to stay.</li>
-<li>Add the directory containing <code>ninja.exe</code> to your <code>Path</code> environment
-variable if it is not already included.</li>
-<li>Donwload <a href="https://cmake.org/download/">cmake</a></li>
-<li>Download and install <a href="https://www.python.org/downloads/windows/">Python</a></li>
-</ol>
-</li>
-<li>
-<p><strong>Linux</strong>: ensure you have the following system packages installed:</p>
+<p>This should provide all the developer tools needed for building nannou.</p>
+<h2><a class="header" href="#windows" id="windows">Windows</a></h2>
+<p>Rust requires the C++ build tools for Visual Studio. The Rust book has this to
+say:</p>
+<blockquote>
+<p>On Windows, go to
+<a href="https://www.rust-lang.org/tools/install">https://www.rust-lang.org/tools/install</a>
+and follow the instructions for installing Rust. At some point in the
+installation, you’ll receive a message explaining that you’ll also need the
+C++ build tools for Visual Studio 2013 or later. The easiest way to acquire
+the build tools is to install <a href="https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2019">Build Tools for Visual Studio
+2019</a>.
+The tools are in the Other Tools and Frameworks section.</p>
+</blockquote>
+<h2><a class="header" href="#linux" id="linux">Linux</a></h2>
+<p>Ensure you have the following system packages installed:</p>
 <ul>
 <li>
 <p><strong>Basic dev packages</strong></p>
-<p>First make sure our basic dev packages are installed. <code>curl</code> will be
-required by <code>rustup</code> the rust toolchain manager. <code>build-essential</code> will be
-required by <code>rustc</code> the rust compiler for linking. <code>cmake</code> and <code>python</code> are
-necessary for nannou's <code>shaderc</code> dependency to build, as mentioned in the
-&quot;All Platforms&quot; section above. <code>pkg-config</code>will be used to retrieve 
-information about <code>alsa</code> during the building process.</p>
+<p>First make sure the basic dev packages are installed.</p>
+<ul>
+<li><code>curl</code> will be required by <code>rustup</code> the rust toolchain manager.</li>
+<li><code>build-essential</code> will be required by <code>rustc</code> the rust compiler for linking.</li>
+<li><code>pkg-config</code> is used by some build scripts to source information about
+certain libraries.</li>
+<li><code>alsa</code> dev packages are required for <code>nannou_audio</code>.</li>
+</ul>
 <p>For Debian/Ubuntu users:</p>
 <pre><code class="language-bash">sudo apt-get install curl build-essential python cmake pkg-config
 </code></pre>
@@ -231,10 +211,11 @@ installed).</p>
 </li>
 <li>
 <p><strong>xcb</strong></p>
-<p>The XCB library provides inter-operability with Xlib. </p>
+<p>The XCB library provides inter-operability with Xlib.</p>
 <p>For Debian/Ubuntu users:</p>
 <pre><code class="language-bash">sudo apt install libxcb-shape0-dev libxcb-xfixes0-dev
 </code></pre>
+<p>You might also need <code>python3</code> for the <code>xcb</code> crate's build script.</p>
 </li>
 <li>
 <p><strong>vulkan</strong></p>
@@ -291,8 +272,6 @@ sudo apt-get upgrade
 <p>For Gentoo run:</p>
 <pre><code class="language-bash">sudo emerge --ask --verbose dev-util/vulkan-tools dev-util/vulkan-headers
 </code></pre>
-</li>
-</ul>
 </li>
 </ul>
 <p>OK, we should now be ready to install Rust!</p>

@@ -81,7 +81,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div id="sidebar-scrollbox" class="sidebar-scrollbox">
-                <ol class="chapter"><li class="expanded affix "><a href="../../welcome.html">Welcome!</a></li><li class="expanded "><a href="../../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="expanded "><a href="../../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="expanded "><a href="../../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="expanded "><a href="../../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="expanded "><a href="../../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="expanded "><a href="../../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="expanded "><a href="../../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="expanded "><a href="../../getting_started/upgrading.html"><strong aria-hidden="true">2.6.</strong> Upgrading to a New Release</a></li></ol></li><li class="expanded "><a href="../../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="expanded "><a href="../../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="expanded "><a href="../../tutorials/basics/drawing-2d-shapes.html" class="active"><strong aria-hidden="true">3.2.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li class="expanded "><a href="../../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="expanded "><a href="../../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="expanded "><a href="../../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="expanded affix "><a href="../../contributors.html">Contributors</a></li><li class="expanded affix "><a href="../../code_of_conduct.html">Code of Conduct</a></li></ol>
+                <ol class="chapter"><li class="expanded affix "><a href="../../welcome.html">Welcome!</a></li><li class="expanded "><a href="../../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="expanded "><a href="../../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="expanded "><a href="../../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="expanded "><a href="../../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="expanded "><a href="../../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="expanded "><a href="../../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="expanded "><a href="../../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="expanded "><a href="../../getting_started/updating.html"><strong aria-hidden="true">2.6.</strong> Updating Nannou and Rust</a></li></ol></li><li class="expanded "><a href="../../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="expanded "><a href="../../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="expanded "><a href="../../tutorials/basics/drawing-2d-shapes.html" class="active"><strong aria-hidden="true">3.2.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li class="expanded "><a href="../../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="expanded "><a href="../../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="expanded "><a href="../../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="expanded affix "><a href="../../contributors.html">Contributors</a></li><li class="expanded affix "><a href="../../code_of_conduct.html">Code of Conduct</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -154,10 +154,10 @@
 <pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
 
 fn main() {
-    nannou::sketch(view);
+    nannou::sketch(view).run();
 }
 
-fn view(app: &amp;App, frame: &amp;Frame) {
+fn view(app: &amp;App, frame: Frame) {
     // Prepare to draw.
     let draw = app.draw();
 
@@ -177,28 +177,32 @@ fn view(app: &amp;App, frame: &amp;Frame) {
 <p>You should a new window with something that looks like this:</p>
 <p><img src="./images/2d-shape-circle.png" alt="A simple circle" /></p>
 <p>Already we are rendering a circle to our canvas.  As you may have guessed, the line of code responsible for creating a circle is the call to the <code>ellipse</code> function:</p>
-<pre><code>draw.ellipse().color(STEELBLUE);
+<pre><code>draw.ellipse()
+    .color(STEELBLUE);
 </code></pre>
 <p>There are many ways we can alter our circle here.  Let's start with changing the size:</p>
-<pre><code>draw.ellipse().color(STEELBLUE)
-              .w(300.0)
-              .h(200.0);
+<pre><code>draw.ellipse()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0);
 </code></pre>
 <p>The <code>w</code> function here changes the width of the ellipse to 300 pixels, and the <code>h</code> function changes the height to 200.0 pixels. You should see what we would more colloquially refer to as an ellipse.</p>
 <p>We can also change the position of our ellipse with the <code>x_y</code> method:</p>
-<pre><code>draw.ellipse().color(STEELBLUE)
-              .w(300.0)
-              .h(200.0)
-              .x_y(200.0, -100.0);
+<pre><code>draw.ellipse()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0)
+    .x_y(200.0, -100.0);
 </code></pre>
 <p><img src="./images/2d-shape-ellipse.png" alt="An ellipse" /></p>
 <p>As you can see, we edit our ellipse by chaining together different methods which will change one or more properties of our shape.  This is called the <strong>Builder</strong> pattern.  The call to <code>draw.ellipse()</code> returns an object of type <code>Drawing&lt;Ellipse&gt;</code>.  In turn, each call to a builder method, such as <code>w(300.0)</code> or <code>x_y(200.0, -100.0)</code>, returns the same instance of our shape. By chaining these function calls, we are able to build an ellipse with the attributes we want.</p>
 <p>There are several more methods we can use to build our ellipse. You can view the documentation for many of these methods <a href="https://docs.rs/nannou/latest/nannou/draw/struct.Drawing.html">here</a>.</p>
 <h3><a class="header" href="#drawing-rectangles-and-quadrilaterals" id="drawing-rectangles-and-quadrilaterals">Drawing Rectangles and Quadrilaterals</a></h3>
 <p>Drawing a square or rectangle uses the same builder pattern that drawing an ellipse does.  In fact, it's similar enough that you can swap out <code>ellipse</code> with <code>rect</code> in the example above to get a working example:</p>
-<pre><code>draw.rect().color(STEELBLUE)
-           .w(300.0)
-           .h(200.0);
+<pre><code>draw.rect()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0);
 </code></pre>
 <p>You will see an image like this:</p>
 <p><img src="./images/2d-shape-rect.png" alt="A rectangle" /></p>
@@ -237,10 +241,10 @@ draw.line()
 <p>This is great for simpler drawings, but what if you want to draw something more complicated? A sine wave, for instance.</p>
 <p>To draw our sine wave, we will use the <code>polyline</code> function.  To use this function, we will supply a collection (or array) of points that represent points on a sine wave.  We can generate this array of points using—what else—the <code>sin</code> function!</p>
 <pre><code>let points = (0..50).map(|i| {
-      let x = (i as f32 - 25.0);          //subtract 25 to center the sine wave
-      let point = pt2(x, x.sin()) * 20.0; //scale sine wave by 20.0
-      (point, STEELBLUE)
-    });
+  let x = (i as f32 - 25.0);          //subtract 25 to center the sine wave
+  let point = pt2(x, x.sin()) * 20.0; //scale sine wave by 20.0
+  (point, STEELBLUE)
+});
 draw.polyline()
     .weight(3.0)
     .colored_points(points);
