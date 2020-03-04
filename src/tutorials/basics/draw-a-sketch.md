@@ -11,6 +11,8 @@
 
 **Nannou is a framework for creative coding in Rust.** A framework can be
 thought of as a collection of building blocks to help accomplish a goal.
+If you are not familiar with the programming language Rust, please work
+through some of [this material first](https://www.rust-lang.org/learn).
 
 A sketch is the smallest/fastest way to get results with nannou.
 Here is one example which just yields a blue window:
