@@ -48,8 +48,11 @@ of complexity, similar to pen and paper. Sketches are more like
 squiggles on napkins while apps can be really elaborate drawings.
 Sketches offer a contrained space to work with, but a lot is taken
 care of behind the scenes. Apps allow for more fine grained control,
-but also require more (explicit) work on your part. A good overview
-of how apps work can be found in the chapter [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md).
+but also require more (explicit) work on your part. The main difference
+is that a sketch puts things directly on the screen and an app has an
+(internal) model (state) of the world (to be manipulated). A good
+overview of how apps work can be found in the chapter
+[Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md).
 
 
 ## Explaining the Code
