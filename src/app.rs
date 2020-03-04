@@ -611,6 +611,17 @@ impl App {
         find_assets_path()
     }
 
+    /// The path to the current project directory.
+    ///
+    /// The current project directory is considered to be the directory containing the cargo
+    /// manifest (aka the `Cargo.toml` file).
+    ///
+    /// **Note:** Be careful not to rely on this directory for apps or sketches that you wish to
+    /// distribute! This directory is mostly useful for local sketches, experiments and testing.
+    pub fn project_path(&self) -> Result<PathBuf, find_folder::Error> {
+        find_project_path()
+    }
+
     /// Begin building a new window.
     pub fn new_window(&self) -> window::Builder {
         let builder = window::Builder::new(self);
@@ -824,17 +835,6 @@ impl App {
             .to_string();
         Ok(string)
     }
-
-    /// The path to the current project directory.
-    ///
-    /// The current project directory is considered to be the directory containing the cargo
-    /// manifest (aka the `Cargo.toml` file).
-    ///
-    /// **Note:** Be careful not to rely on this directory for apps or sketches that you wish to
-    /// distribute! This directory is mostly useful for local sketches, experiments and testing.
-    pub fn project_dir(&self) -> &std::path::Path {
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-    }
 }
 
 impl Proxy {
@@ -902,6 +902,19 @@ pub fn find_assets_path() -> Result<PathBuf, find_folder::Error> {
             .expect("executable has no parent directory to search")
             .into())
         .for_folder(App::ASSETS_DIRECTORY_NAME)
+}
+
+/// Attempt to find the assets directory path relative to the executable location.
+pub fn find_project_path() -> Result<PathBuf, find_folder::Error> {
+    let exe_path = std::env::current_exe()?;
+    let mut path = exe_path.parent().expect("exe has no parent directory");
+    while let Some(parent) = path.parent() {
+        path = parent;
+        if path.join("Cargo").with_extension("toml").exists() {
+            return Ok(path.to_path_buf());
+        }
+    }
+    Err(find_folder::Error::NotFound)
 }
 
 // This type allows the `App` to provide an API for creating new windows.

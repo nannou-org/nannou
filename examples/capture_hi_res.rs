@@ -194,5 +194,7 @@ fn exit(_app: &App, model: Model) {
 
 // The directory where we'll save the frames.
 fn capture_directory(app: &App) -> std::path::PathBuf {
-    app.project_dir().join(app.exe_name().unwrap())
+    app.project_path()
+        .expect("could not locate project_path")
+        .join(app.exe_name().unwrap())
 }
