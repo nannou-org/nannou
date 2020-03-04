@@ -39,7 +39,7 @@ fn view(app: &App, frame: &Frame) {
 
 You can exit the sketch by pressing `ESC`.
 
-## Sketches vs. Apps
+## Sidenote: Sketches vs. Apps
 
 Nannou can be used to create many things with very different levels
 of complexity, similar to pen and paper. Sketches are more like
