@@ -1,5 +1,15 @@
 # Unreleased
 
+
+# Version 0.13.1 (2020-03-05)
+
+- Add `Texture::inner` producing a reference to the inner texture handle.
+- Add `Texture::into_inner` producing the inner texture handle.
+- Add `Into<TextureHandle>` impl for `Texture`
+- Add `Texture::into_ui_image`.
+
+# Version 0.13.0 (2020-03-05)
+
 - Transition from `vulkano` to `wgpu` for all graphics handling!
     - Fixes llooooooooooottss of macOS bugs.
     - The `draw` and `ui` APIs now render via wgpu.
