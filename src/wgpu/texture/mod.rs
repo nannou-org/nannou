@@ -55,6 +55,16 @@ impl Texture {
         }
     }
 
+    /// Consume the **Texture** and produce the inner **TextureHandle**.
+    pub fn into_inner(self) -> TextureHandle {
+        self.into()
+    }
+
+    /// A reference to the inner **TextureHandle**.
+    pub fn inner(&self) -> &TextureHandle {
+        &self.texture
+    }
+
     /// The width and height of the texture.
     ///
     /// See the `extent` method for producing the full width, height and *depth* of the texture.
@@ -402,6 +412,12 @@ impl Deref for Texture {
     type Target = TextureHandle;
     fn deref(&self) -> &Self::Target {
         &self.texture
+    }
+}
+
+impl Into<TextureHandle> for Texture {
+    fn into(self) -> TextureHandle {
+        self.texture
     }
 }
 
