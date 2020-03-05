@@ -24,10 +24,10 @@ Here is one example which just yields a blue window:
 use nannou::prelude::*;
 
 fn main() {
-    nannou::sketch(view);
+    nannou::sketch(view).run();
 }
 
-fn view(app: &App, frame: &Frame) {
+fn view(app: &App, frame: Frame) {
     // get canvas to draw on
     let draw = app.draw();
 
@@ -65,10 +65,10 @@ use nannou::prelude::*;
 
 After this import the actual sketching code starts. The `main()` functions is where all your logic starts. The code
 ```rust,no_run
-nannou::sketch(view);
+nannou::sketch(view).run();
 ```
 call a function to draw on the single window (`view()` in this case). This
-function has the signature `fn(_: &App, _: &Frame);`. Don't worry if you
+function has the signature `fn(_: &App, _: Frame);`. Don't worry if you
 don't know what a function signature is. Just copy the `main()` function
 and you will be fine.
 
@@ -81,10 +81,10 @@ Within the view() function, what we draw to the Frame will be presented in our w
 #use nannou::prelude::*;
 #
 #fn main() {
-#    nannou::sketch(view);
+#    nannou::sketch(view).run();
 #}
 #
-fn view(app: &App, frame: &Frame) {
+fn view(app: &App, frame: Frame) {
     let draw = app.draw();
 
     draw.background().color(BLUE);
