@@ -46,25 +46,24 @@ You can exit the sketch by pressing `ESC`.
 Nannou can be used to create many things with very different levels
 of complexity, similar to pen and paper. Sketches are more like
 squiggles on napkins while apps can be really elaborate drawings.
-Sketches offer a contrained space to work with, but a lot is taken
+Sketches offer a constrained space to work with, but a lot is taken
 care of behind the scenes. Apps allow for more fine grained control,
 but also require more (explicit) work on your part. The main difference
-is that a sketch puts things directly on the screen and an app has an
-(internal) model (state) of the world (to be manipulated). A good
+is that an app provides a model for working with state, while a
+sketch provides a simpler API to get drawing quickly. A good
 overview of how apps work can be found in the chapter
 [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md).
 
 
 ## Explaining the Code
 
-A sketch basically consists of (at least) two functions: `main()` and `view()`.
-First we import some building blocks of nannou for convenience using the line
+A sketch consists of at least two functions: `main()` and `view()`.
+First we import some building blocks:
 ```rust,no_run
 use nannou::prelude::*;
 ```
 
-After this import the actual sketching code starts. The `main()` functions is
-called first by the computer. This is where all your logic starts. The code
+After this import the actual sketching code starts. The `main()` functions is where all your logic starts. The code
 ```rust,no_run
 nannou::sketch(view);
 ```
@@ -73,7 +72,7 @@ function has the signature `fn(_: &App, _: &Frame);`. Don't worry if you
 don't know what a function signature is. Just copy the `main()` function
 and you will be fine.
 
-The `view()` function actually creates things on the screen.
+Within the view() function, what we draw to the Frame will be presented in our window.
 ```rust,no_run
 # #![allow(unused_imports)]
 # extern crate nannou;
@@ -104,7 +103,7 @@ We can now paint on the this canvas by setting the background to blue.
 draw.background().color(BLUE);
 ```
 Now we have a canvas with only a blue background. We take this canvas and
-create a (computer graphics) frame from it to display in the main window.
+create a computer graphics frame from it to display in the main window.
 ```rust,no_run
 draw.to_frame(app, &frame).unwrap();
 ```
