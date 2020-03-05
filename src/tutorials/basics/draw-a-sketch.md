@@ -60,12 +60,20 @@ overview of how apps work can be found in the chapter
 A sketch consists of at least two functions: `main()` and `view()`.
 First we import some building blocks:
 ```rust,no_run
+# #![allow(unused_imports)]
 use nannou::prelude::*;
+# fn main() {}
 ```
 
 After this import the actual sketching code starts. The `main()` functions is where all your logic starts. The code
 ```rust,no_run
-nannou::sketch(view).run();
+# extern crate nannou;
+# use nannou::prelude::*;
+#
+# fn main() {
+    nannou::sketch(view).run();
+# }
+# fn view(_app: &App, _frame: Frame) {}
 ```
 call a function to draw on the single window (`view()` in this case). This
 function has the signature `fn(_: &App, _: Frame);`. Don't worry if you
@@ -77,12 +85,12 @@ Within the view() function, what we draw to the Frame will be presented in our w
 # #![allow(unused_imports)]
 # extern crate nannou;
 #
-#// minimal example of a nannou sketch
-#use nannou::prelude::*;
+# // minimal example of a nannou sketch
+# use nannou::prelude::*;
 #
-#fn main() {
+# fn main() {
 #    nannou::sketch(view).run();
-#}
+# }
 #
 fn view(app: &App, frame: Frame) {
     let draw = app.draw();
@@ -95,17 +103,56 @@ fn view(app: &App, frame: Frame) {
 
 This function follows the same scheme. First some setup is done. The line
 ```rust,no_run
+# #![allow(unused_imports)]
+# #![allow(unused_variables)]
+# extern crate nannou;
+#
+# // minimal example of a nannou sketch
+# use nannou::prelude::*;
+#
+# fn main() {
+#    nannou::sketch(view).run();
+# }
+#
+# fn view(app: &App, _frame: Frame) {
 let draw = app.draw();
+# }
 ```
 lets us assign a canvas-like datatype to the variable `draw`.
 We can now paint on the this canvas by setting the background to blue.
 ```rust,no_run
+# #![allow(unused_imports)]
+# extern crate nannou;
+#
+# // minimal example of a nannou sketch
+# use nannou::prelude::*;
+#
+# fn main() {
+#    nannou::sketch(view).run();
+# }
+#
+# fn view(app: &App, _frame: Frame) {
+# let draw = app.draw();
 draw.background().color(BLUE);
+# }
 ```
 Now we have a canvas with only a blue background. We take this canvas and
 create a computer graphics frame from it to display in the main window.
 ```rust,no_run
+# #![allow(unused_imports)]
+# extern crate nannou;
+#
+# // minimal example of a nannou sketch
+# use nannou::prelude::*;
+#
+# fn main() {
+#    nannou::sketch(view).run();
+# }
+#
+# fn view(app: &App, frame: Frame) {
+# let draw = app.draw();
 draw.to_frame(app, &frame).unwrap();
+# }
 ```
 
 Note that the `view()` function is called repeatedly, but not at a constant
