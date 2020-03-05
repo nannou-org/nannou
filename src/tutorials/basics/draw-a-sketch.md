@@ -107,3 +107,6 @@ create a computer graphics frame from it to display in the main window.
 ```rust,no_run
 draw.to_frame(app, &frame).unwrap();
 ```
+
+Note that the `view()` function is called repeatedly, but not at a constant
+rate. This might be problematic if you use randomness to draw things.
