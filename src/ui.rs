@@ -290,13 +290,6 @@ impl<'a> Builder<'a> {
     }
 }
 
-impl Deref for Ui {
-    type Target = conrod_core::Ui;
-    fn deref(&self) -> &Self::Target {
-        &self.ui
-    }
-}
-
 impl Ui {
     /// The default maximum number of `Input`s that a `Ui` will store in its pending `Input` queue
     /// before `Input`s start being ignored.
@@ -447,6 +440,21 @@ impl Ui {
     }
 }
 
+impl wgpu::Texture {
+    /// Convert the texture into an image compatible with the UI's image map.
+    pub fn into_ui_image(self) -> conrod_wgpu::Image {
+        let texture_format = self.format();
+        let [width, height] = self.size();
+        let texture = self.into_inner();
+        conrod_wgpu::Image {
+            texture,
+            texture_format,
+            width,
+            height,
+        }
+    }
+}
+
 /// Encode commands for drawing the given primitives.
 pub fn encode_render_pass(
     ui: &Ui,
@@ -516,6 +524,13 @@ pub fn winit_window_event_to_input(
     window: &Window,
 ) -> Option<Input> {
     conrod_winit_conv::convert_window_event(event, &window.window)
+}
+
+impl Deref for Ui {
+    type Target = conrod_core::Ui;
+    fn deref(&self) -> &Self::Target {
+        &self.ui
+    }
 }
 
 impl From<text::font::Error> for BuildError {
