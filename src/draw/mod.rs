@@ -58,12 +58,17 @@ pub struct Draw<S = geom::scalar::Default>
 where
     S: BaseFloat,
 {
-    // The state of the **Draw** behind a RefCell. We do this in order to avoid requiring a `mut`
-    // handle to a `draw`. The primary purpose of a **Draw** is to be an easy-as-possible,
-    // high-level API for drawing stuff. In order to be friendlier to new users, we want to avoid
-    // them having to think about mutability and focus on creativity. Rust-lang nuances can come
-    // later.
-    state: RefCell<State<S>>,
+    // The state of the **Draw**.
+    //
+    // We use a `RefCell` in order to avoid requiring a `mut` handle to a `draw`. The primary
+    // purpose of a **Draw** is to be an easy-as-possible, high-level API for drawing stuff. In
+    // order to be friendlier to new users, we want to avoid them having to think about mutability
+    // and focus on creativity. Rust-lang nuances can come later.
+    state: Rc<RefCell<State<S>>>,
+    /// The current transform of this draw instance.
+    transform: Matrix4<S>,
+    /// The blend mode in use by this draw instance.
+    blend_mode: BlendMode,
 }
 
 /// The inner state of the **Draw** type.
