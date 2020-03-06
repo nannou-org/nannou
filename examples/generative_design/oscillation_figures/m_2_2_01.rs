@@ -106,7 +106,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let mut y = (angle * model.freq_y).sin();
             x *= factor_x;
             y *= factor_y;
-            pt2(xs + x, ys + y)
+            pt2(xs + x, ys - y)
         })
         .enumerate()
         .map(|(_i, p)| {
