@@ -16,6 +16,7 @@
 //! - WebGPU [on wikipedia](https://en.wikipedia.org/wiki/WebGPU).
 
 mod device_map;
+mod render_pipeline_builder;
 mod sampler_builder;
 mod texture;
 
@@ -26,6 +27,7 @@ mod texture;
 pub use self::device_map::{
     ActiveAdapter, AdapterMap, AdapterMapKey, DeviceMap, DeviceMapKey, DeviceQueuePair,
 };
+pub use self::render_pipeline_builder::{RenderPipelineBuilder, VertexDescriptor};
 pub use self::sampler_builder::SamplerBuilder;
 pub use self::texture::capturer::{
     Capturer as TextureCapturer, Rgba8AsyncMapping, Snapshot as TextureSnapshot,

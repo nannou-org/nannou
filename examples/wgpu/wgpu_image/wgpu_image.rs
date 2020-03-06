@@ -30,6 +30,16 @@ const VERTICES: [Vertex; 4] = [
     },
 ];
 
+impl wgpu::VertexDescriptor for Vertex {
+    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
+    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
+        &[wgpu::VertexAttributeDescriptor {
+            format: wgpu::VertexFormat::Float2,
+            offset: 0,
+            shader_location: 0,
+        }];
+}
+
 fn main() {
     nannou::app(model).run();
 }
@@ -170,14 +180,6 @@ fn create_pipeline_layout(
     device.create_pipeline_layout(&desc)
 }
 
-fn vertex_attrs() -> [wgpu::VertexAttributeDescriptor; 1] {
-    [wgpu::VertexAttributeDescriptor {
-        format: wgpu::VertexFormat::Float2,
-        offset: 0,
-        shader_location: 0,
-    }]
-}
-
 fn create_render_pipeline(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,
@@ -186,46 +188,11 @@ fn create_render_pipeline(
     dst_format: wgpu::TextureFormat,
     sample_count: u32,
 ) -> wgpu::RenderPipeline {
-    let vs_desc = wgpu::ProgrammableStageDescriptor {
-        module: &vs_mod,
-        entry_point: "main",
-    };
-    let fs_desc = wgpu::ProgrammableStageDescriptor {
-        module: &fs_mod,
-        entry_point: "main",
-    };
-    let raster_desc = wgpu::RasterizationStateDescriptor {
-        front_face: wgpu::FrontFace::Ccw,
-        cull_mode: wgpu::CullMode::None,
-        depth_bias: 0,
-        depth_bias_slope_scale: 0.0,
-        depth_bias_clamp: 0.0,
-    };
-    let color_state_desc = wgpu::ColorStateDescriptor {
-        format: dst_format,
-        color_blend: wgpu::BlendDescriptor::REPLACE,
-        alpha_blend: wgpu::BlendDescriptor::REPLACE,
-        write_mask: wgpu::ColorWrite::ALL,
-    };
-    let vertex_attrs = vertex_attrs();
-    let vertex_buffer_desc = wgpu::VertexBufferDescriptor {
-        stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-        step_mode: wgpu::InputStepMode::Vertex,
-        attributes: &vertex_attrs[..],
-    };
-    let desc = wgpu::RenderPipelineDescriptor {
-        layout,
-        vertex_stage: vs_desc,
-        fragment_stage: Some(fs_desc),
-        rasterization_state: Some(raster_desc),
-        primitive_topology: wgpu::PrimitiveTopology::TriangleStrip,
-        color_states: &[color_state_desc],
-        depth_stencil_state: None,
-        index_format: wgpu::IndexFormat::Uint16,
-        vertex_buffers: &[vertex_buffer_desc],
-        sample_count,
-        sample_mask: !0,
-        alpha_to_coverage_enabled: false,
-    };
-    device.create_render_pipeline(&desc)
+    wgpu::RenderPipelineBuilder::from_layout(layout, vs_mod)
+        .fragment_shader(fs_mod)
+        .color_format(dst_format)
+        .add_vertex_buffer::<Vertex>()
+        .sample_count(sample_count)
+        .primitive_topology(wgpu::PrimitiveTopology::TriangleStrip)
+        .build(device)
 }

@@ -68,6 +68,26 @@ impl Camera {
     }
 }
 
+impl wgpu::VertexDescriptor for Vertex {
+    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
+    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
+        &[wgpu::VertexAttributeDescriptor {
+            format: wgpu::VertexFormat::Float3,
+            offset: 0,
+            shader_location: 0,
+        }];
+}
+
+impl wgpu::VertexDescriptor for Normal {
+    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Normal>() as _;
+    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
+        &[wgpu::VertexAttributeDescriptor {
+            format: wgpu::VertexFormat::Float3,
+            offset: 0,
+            shader_location: 1,
+        }];
+}
+
 fn pitch_yaw_to_direction(pitch: f32, yaw: f32) -> Vector3<f32> {
     let xz_unit_len = pitch.cos();
     let x = xz_unit_len * yaw.cos();
@@ -368,36 +388,6 @@ fn create_pipeline_layout(
     device.create_pipeline_layout(&desc)
 }
 
-fn vertex_attrs() -> [wgpu::VertexAttributeDescriptor; 1] {
-    [wgpu::VertexAttributeDescriptor {
-        format: wgpu::VertexFormat::Float3,
-        offset: 0,
-        shader_location: 0,
-    }]
-}
-
-fn normal_attrs() -> [wgpu::VertexAttributeDescriptor; 1] {
-    [wgpu::VertexAttributeDescriptor {
-        format: wgpu::VertexFormat::Float3,
-        offset: 0,
-        shader_location: 1,
-    }]
-}
-
-fn depth_stencil_state_descriptor(
-    format: wgpu::TextureFormat,
-) -> wgpu::DepthStencilStateDescriptor {
-    wgpu::DepthStencilStateDescriptor {
-        format: format,
-        depth_write_enabled: true,
-        depth_compare: wgpu::CompareFunction::LessEqual,
-        stencil_front: wgpu::StencilStateFaceDescriptor::IGNORE,
-        stencil_back: wgpu::StencilStateFaceDescriptor::IGNORE,
-        stencil_read_mask: 0,
-        stencil_write_mask: 0,
-    }
-}
-
 fn create_render_pipeline(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,
@@ -407,53 +397,15 @@ fn create_render_pipeline(
     depth_format: wgpu::TextureFormat,
     sample_count: u32,
 ) -> wgpu::RenderPipeline {
-    let vs_desc = wgpu::ProgrammableStageDescriptor {
-        module: &vs_mod,
-        entry_point: "main",
-    };
-    let fs_desc = wgpu::ProgrammableStageDescriptor {
-        module: &fs_mod,
-        entry_point: "main",
-    };
-    let raster_desc = wgpu::RasterizationStateDescriptor {
-        front_face: wgpu::FrontFace::Ccw,
-        cull_mode: wgpu::CullMode::None,
-        depth_bias: 0,
-        depth_bias_slope_scale: 0.0,
-        depth_bias_clamp: 0.0,
-    };
-    let color_state_desc = wgpu::ColorStateDescriptor {
-        format: dst_format,
-        color_blend: wgpu::BlendDescriptor::REPLACE,
-        alpha_blend: wgpu::BlendDescriptor::REPLACE,
-        write_mask: wgpu::ColorWrite::ALL,
-    };
-    let vertex_attrs = vertex_attrs();
-    let vertex_buffer_desc = wgpu::VertexBufferDescriptor {
-        stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-        step_mode: wgpu::InputStepMode::Vertex,
-        attributes: &vertex_attrs[..],
-    };
-    let normal_attrs = normal_attrs();
-    let normal_buffer_desc = wgpu::VertexBufferDescriptor {
-        stride: std::mem::size_of::<Normal>() as wgpu::BufferAddress,
-        step_mode: wgpu::InputStepMode::Vertex,
-        attributes: &normal_attrs[..],
-    };
-    let depth_stencil_state_desc = depth_stencil_state_descriptor(depth_format);
-    let desc = wgpu::RenderPipelineDescriptor {
-        layout,
-        vertex_stage: vs_desc,
-        fragment_stage: Some(fs_desc),
-        rasterization_state: Some(raster_desc),
-        primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-        color_states: &[color_state_desc],
-        depth_stencil_state: Some(depth_stencil_state_desc),
-        index_format: wgpu::IndexFormat::Uint16,
-        vertex_buffers: &[vertex_buffer_desc, normal_buffer_desc],
-        sample_count,
-        sample_mask: !0,
-        alpha_to_coverage_enabled: false,
-    };
-    device.create_render_pipeline(&desc)
+    wgpu::RenderPipelineBuilder::from_layout(layout, vs_mod)
+        .fragment_shader(&fs_mod)
+        .color_format(dst_format)
+        .color_blend(wgpu::BlendDescriptor::REPLACE)
+        .alpha_blend(wgpu::BlendDescriptor::REPLACE)
+        .add_vertex_buffer::<Vertex>()
+        .add_vertex_buffer::<Normal>()
+        .depth_format(depth_format)
+        .index_format(wgpu::IndexFormat::Uint16)
+        .sample_count(sample_count)
+        .build(device)
 }
