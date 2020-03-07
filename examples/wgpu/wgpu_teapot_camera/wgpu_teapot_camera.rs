@@ -361,16 +361,9 @@ fn create_bind_group(
     layout: &wgpu::BindGroupLayout,
     uniform_buffer: &wgpu::Buffer,
 ) -> wgpu::BindGroup {
-    let uniforms_binding = wgpu::Binding {
-        binding: 0,
-        resource: wgpu::BindingResource::Buffer {
-            buffer: uniform_buffer,
-            range: 0..std::mem::size_of::<Uniforms>() as wgpu::BufferAddress,
-        },
-    };
-    let bindings = &[uniforms_binding];
-    let desc = wgpu::BindGroupDescriptor { layout, bindings };
-    device.create_bind_group(&desc)
+    wgpu::BindGroupBuilder::new()
+        .buffer::<Uniforms>(uniform_buffer, 0..1)
+        .build(device, layout)
 }
 
 fn create_pipeline_layout(

@@ -186,7 +186,6 @@ fn bind_group_layout(device: &wgpu::Device, src_sample_count: u32) -> wgpu::Bind
     }
     builder.build(device)
 }
-
 fn bind_group(
     device: &wgpu::Device,
     layout: &wgpu::BindGroupLayout,
@@ -194,30 +193,13 @@ fn bind_group(
     sampler: &wgpu::Sampler,
     uniform_buffer: Option<&wgpu::Buffer>,
 ) -> wgpu::BindGroup {
-    let texture_binding = wgpu::Binding {
-        binding: 0,
-        resource: wgpu::BindingResource::TextureView(&texture),
-    };
-    let sampler_binding = wgpu::Binding {
-        binding: 1,
-        resource: wgpu::BindingResource::Sampler(&sampler),
-    };
-    let uniforms_binding = uniform_buffer.map(|buffer| wgpu::Binding {
-        binding: 2,
-        resource: wgpu::BindingResource::Buffer {
-            buffer,
-            range: 0..std::mem::size_of::<Uniforms>() as wgpu::BufferAddress,
-        },
-    });
-    let bindings = match uniforms_binding {
-        None => vec![texture_binding, sampler_binding],
-        Some(uniforms_binding) => vec![texture_binding, sampler_binding, uniforms_binding],
-    };
-    let desc = wgpu::BindGroupDescriptor {
-        layout,
-        bindings: &bindings,
-    };
-    device.create_bind_group(&desc)
+    let mut builder = wgpu::BindGroupBuilder::new()
+        .texture_view(texture)
+        .sampler(sampler);
+    if let Some(buffer) = uniform_buffer {
+        builder = builder.buffer::<Uniforms>(buffer, 0..1);
+    }
+    builder.build(device, layout)
 }
 
 fn pipeline_layout(

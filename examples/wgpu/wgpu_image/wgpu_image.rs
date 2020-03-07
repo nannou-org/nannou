@@ -149,17 +149,10 @@ fn create_bind_group(
     texture: &wgpu::TextureView,
     sampler: &wgpu::Sampler,
 ) -> wgpu::BindGroup {
-    let texture_binding = wgpu::Binding {
-        binding: 0,
-        resource: wgpu::BindingResource::TextureView(&texture),
-    };
-    let sampler_binding = wgpu::Binding {
-        binding: 1,
-        resource: wgpu::BindingResource::Sampler(&sampler),
-    };
-    let bindings = &[texture_binding, sampler_binding];
-    let desc = wgpu::BindGroupDescriptor { layout, bindings };
-    device.create_bind_group(&desc)
+    wgpu::BindGroupBuilder::new()
+        .texture_view(texture)
+        .sampler(sampler)
+        .build(device, layout)
 }
 
 fn create_pipeline_layout(

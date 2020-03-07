@@ -222,22 +222,10 @@ fn create_bind_group(
     oscillator_buffer_size: wgpu::BufferAddress,
     uniform_buffer: &wgpu::Buffer,
 ) -> wgpu::BindGroup {
-    let oscillator_buffer_binding = wgpu::Binding {
-        binding: 0,
-        resource: wgpu::BindingResource::Buffer {
-            buffer: &oscillator_buffer,
-            range: 0..oscillator_buffer_size,
-        },
-    };
-    let uniforms_binding = wgpu::Binding {
-        binding: 1,
-        resource: wgpu::BindingResource::Buffer {
-            buffer: &uniform_buffer,
-            range: 0..std::mem::size_of::<Uniforms>() as wgpu::BufferAddress,
-        },
-    };
-    let bindings = &[oscillator_buffer_binding, uniforms_binding];
-    device.create_bind_group(&wgpu::BindGroupDescriptor { layout, bindings })
+    wgpu::BindGroupBuilder::new()
+        .buffer_bytes(oscillator_buffer, 0..oscillator_buffer_size)
+        .buffer::<Uniforms>(uniform_buffer, 0..1)
+        .build(device, layout)
 }
 
 fn create_pipeline_layout(

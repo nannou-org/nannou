@@ -6,8 +6,14 @@ pub struct LayoutBuilder {
     bindings: Vec<(wgpu::ShaderStage, wgpu::BindingType)>,
 }
 
+/// Simplified creation of a bind group.
+#[derive(Debug, Default)]
+pub struct Builder<'a> {
+    resources: Vec<wgpu::BindingResource<'a>>,
+}
+
 impl LayoutBuilder {
-    /// Create a new empty builder.
+    /// Begin building the bind group layout.
     pub fn new() -> Self {
         Self::default()
     }
@@ -16,8 +22,8 @@ impl LayoutBuilder {
     ///
     /// The `binding` position of each binding will be inferred as the index within the order that
     /// they are added to this builder type. If you require manually specifying the binding
-    /// location, you may be better off not using the `BindGroupBuilder` and instead constructing
-    /// the `BindGroupLayout` and `BindGroup` manually.
+    /// location, you may be better off not using the `BindGroupLayoutBuilder` and instead
+    /// constructing the `BindGroupLayout` and `BindGroup` manually.
     pub fn binding(mut self, visibility: wgpu::ShaderStage, ty: wgpu::BindingType) -> Self {
         self.bindings.push((visibility, ty));
         self
@@ -105,5 +111,81 @@ impl LayoutBuilder {
             bindings: &bindings,
         };
         device.create_bind_group_layout(&descriptor)
+    }
+}
+
+impl<'a> Builder<'a> {
+    /// Begin building the bind group.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Specify a new binding.
+    ///
+    /// The `binding` position of each binding will be inferred as the index within the order that
+    /// they are added to this builder type. If you require manually specifying the binding
+    /// location, you may be better off not using the `BindGroupBuilder` and instead constructing
+    /// the `BindGroupLayout` and `BindGroup` manually.
+    pub fn binding(mut self, resource: wgpu::BindingResource<'a>) -> Self {
+        self.resources.push(resource);
+        self
+    }
+
+    /// Specify a slice of a buffer to be bound.
+    ///
+    /// The given `range` represents the start and end point of the buffer to be bound in bytes.
+    pub fn buffer_bytes(
+        self,
+        buffer: &'a wgpu::Buffer,
+        range: std::ops::Range<wgpu::BufferAddress>,
+    ) -> Self {
+        let resource = wgpu::BindingResource::Buffer { buffer, range };
+        self.binding(resource)
+    }
+
+    /// Specify a slice of a buffer of elements of type `T` to be bound.
+    ///
+    /// This method is similar to `buffer_bytes`, but expects a range of **elements** rather than a
+    /// range of **bytes**.
+    ///
+    /// Type `T` *must* be either `#[repr(C)]` or `#[repr(transparent)]`.
+    pub fn buffer<T>(self, buffer: &'a wgpu::Buffer, range: std::ops::Range<usize>) -> Self
+    where
+        T: Copy,
+    {
+        let size_bytes = std::mem::size_of::<T>() as wgpu::BufferAddress;
+        let start = range.start as wgpu::BufferAddress * size_bytes;
+        let end = range.end as wgpu::BufferAddress * size_bytes;
+        let byte_range = start..end;
+        self.buffer_bytes(buffer, byte_range)
+    }
+
+    /// Specify a sampler to be bound.
+    pub fn sampler(self, sampler: &'a wgpu::Sampler) -> Self {
+        let resource = wgpu::BindingResource::Sampler(sampler);
+        self.binding(resource)
+    }
+
+    /// Specify a texture view to be bound.
+    pub fn texture_view(self, view: &'a wgpu::TextureView) -> Self {
+        let resource = wgpu::BindingResource::TextureView(view);
+        self.binding(resource)
+    }
+
+    /// Build the bind group with the specified resources.
+    pub fn build(self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
+        let mut bindings = Vec::with_capacity(self.resources.len());
+        for (i, resource) in self.resources.into_iter().enumerate() {
+            let binding = wgpu::Binding {
+                binding: i as u32,
+                resource,
+            };
+            bindings.push(binding);
+        }
+        let descriptor = wgpu::BindGroupDescriptor {
+            layout,
+            bindings: &bindings,
+        };
+        device.create_bind_group(&descriptor)
     }
 }

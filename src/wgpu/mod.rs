@@ -25,7 +25,9 @@ mod texture;
 //
 // We do this manually rather than a glob-re-export in order to rename `Texture` to `TextureHandle`
 // and have it show up in the documentation properly.
-pub use self::bind_group_builder::LayoutBuilder as BindGroupLayoutBuilder;
+pub use self::bind_group_builder::{
+    Builder as BindGroupBuilder, LayoutBuilder as BindGroupLayoutBuilder,
+};
 pub use self::device_map::{
     ActiveAdapter, AdapterMap, AdapterMapKey, DeviceMap, DeviceMapKey, DeviceQueuePair,
 };
