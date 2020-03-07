@@ -202,22 +202,17 @@ fn create_uniforms(time: f32, mouse_x: f32, win_rect: geom::Rect) -> Uniforms {
 }
 
 fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    let oscillator_buffer_binding = wgpu::BindGroupLayoutBinding {
-        binding: 0,
-        visibility: wgpu::ShaderStage::COMPUTE,
-        ty: wgpu::BindingType::StorageBuffer {
-            dynamic: false,
-            readonly: false,
-        },
-    };
-    let uniforms_binding = wgpu::BindGroupLayoutBinding {
-        binding: 1,
-        visibility: wgpu::ShaderStage::COMPUTE,
-        ty: wgpu::BindingType::UniformBuffer { dynamic: false },
-    };
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        bindings: &[oscillator_buffer_binding, uniforms_binding],
-    })
+    let storage_dynamic = false;
+    let storage_readonly = false;
+    let uniform_dynamic = false;
+    wgpu::BindGroupLayoutBuilder::new()
+        .storage_buffer(
+            wgpu::ShaderStage::COMPUTE,
+            storage_dynamic,
+            storage_readonly,
+        )
+        .uniform_buffer(wgpu::ShaderStage::COMPUTE, uniform_dynamic)
+        .build(device)
 }
 
 fn create_bind_group(

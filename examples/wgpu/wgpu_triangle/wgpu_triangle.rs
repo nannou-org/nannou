@@ -118,9 +118,7 @@ fn view(_app: &App, model: &Model, frame: Frame) {
 }
 
 fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    let bindings = &[];
-    let desc = wgpu::BindGroupLayoutDescriptor { bindings };
-    device.create_bind_group_layout(&desc)
+    wgpu::BindGroupLayoutBuilder::new().build(device)
 }
 
 fn create_bind_group(device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {

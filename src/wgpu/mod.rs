@@ -15,6 +15,7 @@
 //! - The [WebGPU specification](https://gpuweb.github.io/gpuweb/).
 //! - WebGPU [on wikipedia](https://en.wikipedia.org/wiki/WebGPU).
 
+mod bind_group_builder;
 mod device_map;
 mod render_pipeline_builder;
 mod sampler_builder;
@@ -24,6 +25,7 @@ mod texture;
 //
 // We do this manually rather than a glob-re-export in order to rename `Texture` to `TextureHandle`
 // and have it show up in the documentation properly.
+pub use self::bind_group_builder::LayoutBuilder as BindGroupLayoutBuilder;
 pub use self::device_map::{
     ActiveAdapter, AdapterMap, AdapterMapKey, DeviceMap, DeviceMapKey, DeviceQueuePair,
 };

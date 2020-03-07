@@ -133,22 +133,14 @@ fn view(_app: &App, model: &Model, frame: Frame) {
 }
 
 fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    let texture_binding = wgpu::BindGroupLayoutBinding {
-        binding: 0,
-        visibility: wgpu::ShaderStage::FRAGMENT,
-        ty: wgpu::BindingType::SampledTexture {
-            multisampled: false,
-            dimension: wgpu::TextureViewDimension::D2,
-        },
-    };
-    let sampler_binding = wgpu::BindGroupLayoutBinding {
-        binding: 1,
-        visibility: wgpu::ShaderStage::FRAGMENT,
-        ty: wgpu::BindingType::Sampler,
-    };
-    let bindings = &[texture_binding, sampler_binding];
-    let desc = wgpu::BindGroupLayoutDescriptor { bindings };
-    device.create_bind_group_layout(&desc)
+    wgpu::BindGroupLayoutBuilder::new()
+        .sampled_texture(
+            wgpu::ShaderStage::FRAGMENT,
+            false,
+            wgpu::TextureViewDimension::D2,
+        )
+        .sampler(wgpu::ShaderStage::FRAGMENT)
+        .build(device)
 }
 
 fn create_bind_group(

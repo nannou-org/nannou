@@ -94,6 +94,21 @@ impl Texture {
         self.descriptor.dimension
     }
 
+    /// A `TextureViewDimension` for a full view of the entire texture.
+    ///
+    /// NOTE: This will never produce the `Cube` or `CubeArray` variants. You may have to construct
+    /// your own `wgpu::TextureViewDimension` if these are desired.
+    pub fn view_dimension(&self) -> wgpu::TextureViewDimension {
+        match self.dimension() {
+            wgpu::TextureDimension::D1 => wgpu::TextureViewDimension::D1,
+            wgpu::TextureDimension::D2 => match self.array_layer_count() {
+                1 => wgpu::TextureViewDimension::D2,
+                _ => wgpu::TextureViewDimension::D2Array,
+            },
+            wgpu::TextureDimension::D3 => wgpu::TextureViewDimension::D3,
+        }
+    }
+
     /// The format of the underlying texture data.
     pub fn format(&self) -> wgpu::TextureFormat {
         self.descriptor.format
@@ -210,14 +225,7 @@ impl Texture {
 
     /// The view descriptor describing a full view of the texture.
     pub fn create_default_view_descriptor(&self) -> wgpu::TextureViewDescriptor {
-        let dimension = match self.dimension() {
-            wgpu::TextureDimension::D1 => wgpu::TextureViewDimension::D1,
-            wgpu::TextureDimension::D2 => match self.array_layer_count() {
-                1 => wgpu::TextureViewDimension::D2,
-                _ => wgpu::TextureViewDimension::D2Array,
-            },
-            wgpu::TextureDimension::D3 => wgpu::TextureViewDimension::D3,
-        };
+        let dimension = self.view_dimension();
         // TODO: Is this correct? Should we check the format?
         let aspect = wgpu::TextureAspect::All;
         wgpu::TextureViewDescriptor {
@@ -229,6 +237,15 @@ impl Texture {
             base_array_layer: 0,
             array_layer_count: self.array_layer_count(),
         }
+    }
+
+    /// The view descriptor for a single layer of the texture.
+    pub fn create_layer_view_descriptor(&self, layer: u32) -> wgpu::TextureViewDescriptor {
+        let mut desc = self.create_default_view_descriptor();
+        desc.dimension = wgpu::TextureViewDimension::D2;
+        desc.base_array_layer = layer;
+        desc.array_layer_count = 1;
+        desc
     }
 
     /// Creates a `TextureCopyView` ready for copying to or from the entire texture.

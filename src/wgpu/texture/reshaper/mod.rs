@@ -174,35 +174,17 @@ fn unrolled_sample_count(sample_count: u32) -> bool {
 }
 
 fn bind_group_layout(device: &wgpu::Device, src_sample_count: u32) -> wgpu::BindGroupLayout {
-    let texture_binding = wgpu::BindGroupLayoutBinding {
-        binding: 0,
-        visibility: wgpu::ShaderStage::FRAGMENT,
-        ty: wgpu::BindingType::SampledTexture {
-            multisampled: src_sample_count > 1,
-            dimension: wgpu::TextureViewDimension::D2,
-        },
-    };
-    let sampler_binding = wgpu::BindGroupLayoutBinding {
-        binding: 1,
-        visibility: wgpu::ShaderStage::FRAGMENT,
-        ty: wgpu::BindingType::Sampler,
-    };
-    let uniforms_binding = match unrolled_sample_count(src_sample_count) {
-        true => None,
-        false => Some(wgpu::BindGroupLayoutBinding {
-            binding: 2,
-            visibility: wgpu::ShaderStage::FRAGMENT,
-            ty: wgpu::BindingType::UniformBuffer { dynamic: false },
-        }),
-    };
-    let bindings = match uniforms_binding {
-        None => vec![texture_binding, sampler_binding],
-        Some(uniforms_binding) => vec![texture_binding, sampler_binding, uniforms_binding],
-    };
-    let desc = wgpu::BindGroupLayoutDescriptor {
-        bindings: &bindings,
-    };
-    device.create_bind_group_layout(&desc)
+    let mut builder = wgpu::BindGroupLayoutBuilder::new()
+        .sampled_texture(
+            wgpu::ShaderStage::FRAGMENT,
+            src_sample_count > 1,
+            wgpu::TextureViewDimension::D2,
+        )
+        .sampler(wgpu::ShaderStage::FRAGMENT);
+    if !unrolled_sample_count(src_sample_count) {
+        builder = builder.uniform_buffer(wgpu::ShaderStage::FRAGMENT, false);
+    }
+    builder.build(device)
 }
 
 fn bind_group(

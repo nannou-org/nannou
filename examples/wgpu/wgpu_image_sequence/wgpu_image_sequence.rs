@@ -103,7 +103,9 @@ fn model(app: &App) -> Model {
         wgpu::Texture::load_array_from_image_buffers(device, &mut *queue, usage, iter)
             .expect("tied to load texture array with an empty image buffer sequence")
     };
-    let texture_view = create_layer_texture_view(&texture_array, 0);
+    let layer = 0;
+    let layer_view_desc = texture_array.create_layer_view_descriptor(layer);
+    let texture_view = texture_array.create_view(&layer_view_desc);
 
     // Create the sampler for sampling from the source texture.
     let sampler = wgpu::SamplerBuilder::new().build(device);
@@ -160,8 +162,9 @@ fn update(app: &App, model: &mut Model, update: Update) {
     );
 
     // Update the view and the bind group ready for drawing.
-    model.texture_view =
-        create_layer_texture_view(&model.texture_array, model.current_layer as u32);
+    let layer = model.current_layer as u32;
+    let layer_view_desc = model.texture_array.create_layer_view_descriptor(layer);
+    model.texture_view = model.texture_array.create_view(&layer_view_desc);
     model.bind_group = create_bind_group(
         device,
         &model.bind_group_layout,
@@ -217,32 +220,15 @@ fn load_images(dir: &Path) -> (Vec<(PathBuf, RgbaImage)>, (u32, u32)) {
     (images, dims)
 }
 
-// Create a view of a single layer of a texture array.
-fn create_layer_texture_view(texture: &wgpu::Texture, layer: u32) -> wgpu::TextureView {
-    let mut desc = texture.create_default_view_descriptor();
-    desc.dimension = wgpu::TextureViewDimension::D2;
-    desc.base_array_layer = layer;
-    desc.array_layer_count = 1;
-    texture.create_view(&desc)
-}
-
 fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    let texture_binding = wgpu::BindGroupLayoutBinding {
-        binding: 0,
-        visibility: wgpu::ShaderStage::FRAGMENT,
-        ty: wgpu::BindingType::SampledTexture {
-            multisampled: false,
-            dimension: wgpu::TextureViewDimension::D2,
-        },
-    };
-    let sampler_binding = wgpu::BindGroupLayoutBinding {
-        binding: 1,
-        visibility: wgpu::ShaderStage::FRAGMENT,
-        ty: wgpu::BindingType::Sampler,
-    };
-    let bindings = &[texture_binding, sampler_binding];
-    let desc = wgpu::BindGroupLayoutDescriptor { bindings };
-    device.create_bind_group_layout(&desc)
+    wgpu::BindGroupLayoutBuilder::new()
+        .sampled_texture(
+            wgpu::ShaderStage::FRAGMENT,
+            false,
+            wgpu::TextureViewDimension::D2,
+        )
+        .sampler(wgpu::ShaderStage::FRAGMENT)
+        .build(device)
 }
 
 fn create_bind_group(

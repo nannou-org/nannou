@@ -224,14 +224,9 @@ fn create_depth_texture(
 }
 
 fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    let uniforms_binding = wgpu::BindGroupLayoutBinding {
-        binding: 0,
-        visibility: wgpu::ShaderStage::VERTEX,
-        ty: wgpu::BindingType::UniformBuffer { dynamic: false },
-    };
-    let bindings = &[uniforms_binding];
-    let desc = wgpu::BindGroupLayoutDescriptor { bindings };
-    device.create_bind_group_layout(&desc)
+    wgpu::BindGroupLayoutBuilder::new()
+        .uniform_buffer(wgpu::ShaderStage::VERTEX, false)
+        .build(device)
 }
 
 fn create_bind_group(
