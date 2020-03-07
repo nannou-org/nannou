@@ -282,26 +282,6 @@ fn view(_app: &App, model: &Model, frame: Frame) {
         g.depth_texture_view = g.depth_texture.create_default_view();
     }
 
-    let render_pass_desc = wgpu::RenderPassDescriptor {
-        color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-            attachment: frame.texture_view(),
-            resolve_target: None,
-            load_op: wgpu::LoadOp::Clear,
-            store_op: wgpu::StoreOp::Store,
-            clear_color: wgpu::Color::TRANSPARENT,
-        }],
-        // We'll use a depth texture to assist with the order of rendering fragments based on depth.
-        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
-            attachment: &g.depth_texture_view,
-            depth_load_op: wgpu::LoadOp::Clear,
-            depth_store_op: wgpu::StoreOp::Store,
-            clear_depth: 1.0,
-            stencil_load_op: wgpu::LoadOp::Clear,
-            stencil_store_op: wgpu::StoreOp::Store,
-            clear_stencil: 0,
-        }),
-    };
-
     // Update the uniforms (rotate around the teapot).
     let uniforms = create_uniforms(frame_size, model.camera.view());
     let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
@@ -311,7 +291,11 @@ fn view(_app: &App, model: &Model, frame: Frame) {
 
     let mut encoder = frame.command_encoder();
     encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, &g.uniform_buffer, 0, uniforms_size);
-    let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
+    let mut render_pass = wgpu::RenderPassBuilder::new()
+        .color_attachment(frame.texture_view(), |color| color)
+        // We'll use a depth texture to assist with the order of rendering fragments based on depth.
+        .depth_stencil_attachment(&g.depth_texture_view, |depth| depth)
+        .begin(&mut encoder);
     render_pass.set_bind_group(0, &g.bind_group, &[]);
     render_pass.set_pipeline(&g.render_pipeline);
     render_pass.set_vertex_buffers(0, &[(&g.vertex_buffer, 0), (&g.normal_buffer, 0)]);

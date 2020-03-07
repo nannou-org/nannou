@@ -119,23 +119,14 @@ impl Reshaper {
         dst_texture: &wgpu::TextureView,
         encoder: &mut wgpu::CommandEncoder,
     ) {
-        let vertex_range = 0..VERTICES.len() as u32;
-        let instance_range = 0..1;
-
-        let render_pass_desc = wgpu::RenderPassDescriptor {
-            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: dst_texture,
-                resolve_target: None,
-                load_op: wgpu::LoadOp::Clear,
-                store_op: wgpu::StoreOp::Store,
-                clear_color: wgpu::Color::TRANSPARENT,
-            }],
-            depth_stencil_attachment: None,
-        };
-        let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
+        let mut render_pass = wgpu::RenderPassBuilder::new()
+            .color_attachment(dst_texture, |color| color)
+            .begin(encoder);
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_vertex_buffers(0, &[(&self.vertex_buffer, 0)]);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
+        let vertex_range = 0..VERTICES.len() as u32;
+        let instance_range = 0..1;
         render_pass.draw(vertex_range, instance_range);
     }
 }

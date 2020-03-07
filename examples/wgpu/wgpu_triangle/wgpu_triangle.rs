@@ -1,3 +1,11 @@
+//! A simple demonstration on how to create and draw with a custom wgpu render pipeline in nannou!
+//!
+//! The aim of this example is not to show the simplest way of drawing a triangle in nannou, but
+//! rather provide a reference on how to get started creating your own rendering pipeline from
+//! scratch. While nannou's provided graphics-y APIs can do a lot of things quite efficiently,
+//! writing a custom pipeline that does only exactly what you need it to can sometimes result in
+//! better performance.
+
 use nannou::prelude::*;
 
 struct Model {
@@ -87,22 +95,12 @@ fn view(_app: &App, model: &Model, frame: Frame) {
     // Using this we will encode commands that will be submitted to the GPU.
     let mut encoder = frame.command_encoder();
 
-    // A render pass describes how to draw to an output "attachment".
-    let render_pass_desc = wgpu::RenderPassDescriptor {
-        color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-            attachment: frame.texture_view(),
-            resolve_target: None,
-            load_op: wgpu::LoadOp::Clear,
-            store_op: wgpu::StoreOp::Store,
-            clear_color: wgpu::Color::TRANSPARENT,
-        }],
-        depth_stencil_attachment: None,
-    };
-
-    // The render pass can be thought of a single large command consisting of sub commands.
-    // Here we begin the render pass and add sub-commands for setting the bind group, render
-    // pipeline, vertex buffers and then finally drawing.
-    let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
+    // The render pass can be thought of a single large command consisting of sub commands. Here we
+    // begin a render pass that outputs to the frame's texture. Then we add sub-commands for
+    // setting the bind group, render pipeline, vertex buffers and then finally drawing.
+    let mut render_pass = wgpu::RenderPassBuilder::new()
+        .color_attachment(frame.texture_view(), |color| color)
+        .begin(&mut encoder);
     render_pass.set_bind_group(0, &model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
     render_pass.set_vertex_buffers(0, &[(&model.vertex_buffer, 0)]);

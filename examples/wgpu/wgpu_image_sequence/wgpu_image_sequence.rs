@@ -175,23 +175,12 @@ fn update(app: &App, model: &mut Model, update: Update) {
 
 fn view(_app: &App, model: &Model, frame: Frame) {
     let mut encoder = frame.command_encoder();
-
-    let render_pass_desc = wgpu::RenderPassDescriptor {
-        color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-            attachment: frame.texture_view(),
-            resolve_target: None,
-            load_op: wgpu::LoadOp::Clear,
-            store_op: wgpu::StoreOp::Store,
-            clear_color: wgpu::Color::TRANSPARENT,
-        }],
-        depth_stencil_attachment: None,
-    };
-
-    let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
+    let mut render_pass = wgpu::RenderPassBuilder::new()
+        .color_attachment(frame.texture_view(), |color| color)
+        .begin(&mut encoder);
     render_pass.set_bind_group(0, &model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
     render_pass.set_vertex_buffers(0, &[(&model.vertex_buffer, 0)]);
-
     let vertex_range = 0..VERTICES.len() as u32;
     let instance_range = 0..1;
     render_pass.draw(vertex_range, instance_range);

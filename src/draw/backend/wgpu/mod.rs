@@ -250,29 +250,6 @@ impl Renderer {
             }
         };
 
-        let color_attachment_desc = wgpu::RenderPassColorAttachmentDescriptor {
-            attachment: output_attachment,
-            resolve_target,
-            load_op,
-            store_op: wgpu::StoreOp::Store,
-            clear_color,
-        };
-
-        let depth_stencil_attachment_desc = wgpu::RenderPassDepthStencilAttachmentDescriptor {
-            attachment: &*depth_texture_view,
-            depth_load_op: wgpu::LoadOp::Clear,
-            depth_store_op: wgpu::StoreOp::Store,
-            clear_depth: 1.0,
-            stencil_load_op: wgpu::LoadOp::Clear,
-            stencil_store_op: wgpu::StoreOp::Store,
-            clear_stencil: 0,
-        };
-
-        let render_pass_desc = wgpu::RenderPassDescriptor {
-            color_attachments: &[color_attachment_desc],
-            depth_stencil_attachment: Some(depth_stencil_attachment_desc),
-        };
-
         // Create the vertex and index buffers.
         let [img_w, img_h] = output_attachment_size;
         let map_vertex = |v| Vertex::from_mesh_vertex(v, img_w as _, img_h as _, scale_factor);
@@ -287,7 +264,16 @@ impl Renderer {
             .create_buffer_mapped(indices.len(), wgpu::BufferUsage::INDEX)
             .fill_from_slice(&indices[..]);
 
-        let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
+        // Encode the render pass.
+        let mut render_pass = wgpu::RenderPassBuilder::new()
+            .color_attachment(output_attachment, |color| {
+                color
+                    .resolve_target(resolve_target)
+                    .load_op(load_op)
+                    .clear_color(clear_color)
+            })
+            .depth_stencil_attachment(&*depth_texture_view, |depth| depth)
+            .begin(encoder);
         render_pass.set_pipeline(render_pipeline);
         render_pass.set_bind_group(0, bind_group, &[]);
         render_pass.set_index_buffer(&index_buffer, 0);
