@@ -47,7 +47,7 @@ fn model(app: &App) -> Model {
     let window = app.window(w_id).unwrap();
     let device = window.swap_chain_device();
     let format = Frame::TEXTURE_FORMAT;
-    let msaa_samples = window.msaa_samples();
+    let sample_count = window.msaa_samples();
 
     // Load shader modules.
     let vs = include_bytes!("shaders/vert.spv");
@@ -65,17 +65,15 @@ fn model(app: &App) -> Model {
         .fill_from_slice(&VERTICES[..]);
 
     // Create the render pipeline.
-    let bind_group_layout = create_bind_group_layout(device);
-    let bind_group = create_bind_group(device, &bind_group_layout);
-    let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
-    let render_pipeline = create_render_pipeline(
-        device,
-        &pipeline_layout,
-        &vs_mod,
-        &fs_mod,
-        format,
-        msaa_samples,
-    );
+    let bind_group_layout = wgpu::BindGroupLayoutBuilder::new().build(device);
+    let bind_group = wgpu::BindGroupBuilder::new().build(device, &bind_group_layout);
+    let pipeline_layout = wgpu::create_pipeline_layout(device, &[&bind_group_layout]);
+    let render_pipeline = wgpu::RenderPipelineBuilder::from_layout(&pipeline_layout, &vs_mod)
+        .fragment_shader(&fs_mod)
+        .color_format(format)
+        .add_vertex_buffer::<Vertex>()
+        .sample_count(sample_count)
+        .build(device);
 
     Model {
         bind_group,
@@ -115,38 +113,4 @@ fn view(_app: &App, model: &Model, frame: Frame) {
     render_pass.draw(vertex_range, instance_range);
 
     // Now we're done! The commands we added will be submitted after `view` completes.
-}
-
-fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    wgpu::BindGroupLayoutBuilder::new().build(device)
-}
-
-fn create_bind_group(device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
-    wgpu::BindGroupBuilder::new().build(device, layout)
-}
-
-fn create_pipeline_layout(
-    device: &wgpu::Device,
-    bind_group_layout: &wgpu::BindGroupLayout,
-) -> wgpu::PipelineLayout {
-    let desc = wgpu::PipelineLayoutDescriptor {
-        bind_group_layouts: &[&bind_group_layout],
-    };
-    device.create_pipeline_layout(&desc)
-}
-
-fn create_render_pipeline(
-    device: &wgpu::Device,
-    layout: &wgpu::PipelineLayout,
-    vs_mod: &wgpu::ShaderModule,
-    fs_mod: &wgpu::ShaderModule,
-    dst_format: wgpu::TextureFormat,
-    sample_count: u32,
-) -> wgpu::RenderPipeline {
-    wgpu::RenderPipelineBuilder::from_layout(layout, vs_mod)
-        .fragment_shader(fs_mod)
-        .color_format(dst_format)
-        .add_vertex_buffer::<Vertex>()
-        .sample_count(sample_count)
-        .build(device)
 }

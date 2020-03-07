@@ -135,3 +135,12 @@ pub fn resolve_texture(
     };
     let _render_pass = encoder.begin_render_pass(&render_pass_desc);
 }
+
+/// Shorthand for creating the pipeline layout from a slice of bind group layouts.
+pub fn create_pipeline_layout(
+    device: &wgpu::Device,
+    bind_group_layouts: &[&wgpu::BindGroupLayout],
+) -> wgpu::PipelineLayout {
+    let descriptor = wgpu::PipelineLayoutDescriptor { bind_group_layouts };
+    device.create_pipeline_layout(&descriptor)
+}

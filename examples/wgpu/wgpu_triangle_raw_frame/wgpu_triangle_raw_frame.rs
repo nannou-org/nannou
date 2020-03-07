@@ -67,9 +67,9 @@ fn model(app: &App) -> Model {
         .create_buffer_mapped(VERTICES.len(), wgpu::BufferUsage::VERTEX)
         .fill_from_slice(&VERTICES[..]);
 
-    let bind_group_layout = create_bind_group_layout(device);
-    let bind_group = create_bind_group(device, &bind_group_layout);
-    let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
+    let bind_group_layout = wgpu::BindGroupLayoutBuilder::new().build(device);
+    let bind_group = wgpu::BindGroupBuilder::new().build(device, &bind_group_layout);
+    let pipeline_layout = wgpu::create_pipeline_layout(device, &[&bind_group_layout]);
     let render_pipeline = wgpu::RenderPipelineBuilder::from_layout(&pipeline_layout, &vs_mod)
         .fragment_shader(&fs_mod)
         .color_format(format)
@@ -104,22 +104,4 @@ fn view(_app: &App, model: &Model, frame: RawFrame) {
     render_pass.set_bind_group(0, &model.bind_group, &[]);
     render_pass.set_vertex_buffers(0, &[(&model.vertex_buffer, 0)]);
     render_pass.draw(vertex_range, instance_range);
-}
-
-fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    wgpu::BindGroupLayoutBuilder::new().build(device)
-}
-
-fn create_bind_group(device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
-    wgpu::BindGroupBuilder::new().build(device, layout)
-}
-
-fn create_pipeline_layout(
-    device: &wgpu::Device,
-    bind_group_layout: &wgpu::BindGroupLayout,
-) -> wgpu::PipelineLayout {
-    let desc = wgpu::PipelineLayoutDescriptor {
-        bind_group_layouts: &[&bind_group_layout],
-    };
-    device.create_pipeline_layout(&desc)
 }
