@@ -47,6 +47,16 @@ const VERTICES: [Vertex; 4] = [
     },
 ];
 
+impl wgpu::VertexDescriptor for Vertex {
+    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
+    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
+        &[wgpu::VertexAttributeDescriptor {
+            format: wgpu::VertexFormat::Float2,
+            offset: 0,
+            shader_location: 0,
+        }];
+}
+
 fn main() {
     nannou::app(model).update(update).run();
 }
@@ -93,7 +103,9 @@ fn model(app: &App) -> Model {
         wgpu::Texture::load_array_from_image_buffers(device, &mut *queue, usage, iter)
             .expect("tied to load texture array with an empty image buffer sequence")
     };
-    let texture_view = create_layer_texture_view(&texture_array, 0);
+    let layer = 0;
+    let layer_view_desc = texture_array.create_layer_view_descriptor(layer);
+    let texture_view = texture_array.create_view(&layer_view_desc);
 
     // Create the sampler for sampling from the source texture.
     let sampler = wgpu::SamplerBuilder::new().build(device);
@@ -150,8 +162,9 @@ fn update(app: &App, model: &mut Model, update: Update) {
     );
 
     // Update the view and the bind group ready for drawing.
-    model.texture_view =
-        create_layer_texture_view(&model.texture_array, model.current_layer as u32);
+    let layer = model.current_layer as u32;
+    let layer_view_desc = model.texture_array.create_layer_view_descriptor(layer);
+    model.texture_view = model.texture_array.create_view(&layer_view_desc);
     model.bind_group = create_bind_group(
         device,
         &model.bind_group_layout,
@@ -162,23 +175,12 @@ fn update(app: &App, model: &mut Model, update: Update) {
 
 fn view(_app: &App, model: &Model, frame: Frame) {
     let mut encoder = frame.command_encoder();
-
-    let render_pass_desc = wgpu::RenderPassDescriptor {
-        color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-            attachment: frame.texture_view(),
-            resolve_target: None,
-            load_op: wgpu::LoadOp::Clear,
-            store_op: wgpu::StoreOp::Store,
-            clear_color: wgpu::Color::TRANSPARENT,
-        }],
-        depth_stencil_attachment: None,
-    };
-
-    let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
+    let mut render_pass = wgpu::RenderPassBuilder::new()
+        .color_attachment(frame.texture_view(), |color| color)
+        .begin(&mut encoder);
     render_pass.set_bind_group(0, &model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
     render_pass.set_vertex_buffers(0, &[(&model.vertex_buffer, 0)]);
-
     let vertex_range = 0..VERTICES.len() as u32;
     let instance_range = 0..1;
     render_pass.draw(vertex_range, instance_range);
@@ -207,32 +209,15 @@ fn load_images(dir: &Path) -> (Vec<(PathBuf, RgbaImage)>, (u32, u32)) {
     (images, dims)
 }
 
-// Create a view of a single layer of a texture array.
-fn create_layer_texture_view(texture: &wgpu::Texture, layer: u32) -> wgpu::TextureView {
-    let mut desc = texture.create_default_view_descriptor();
-    desc.dimension = wgpu::TextureViewDimension::D2;
-    desc.base_array_layer = layer;
-    desc.array_layer_count = 1;
-    texture.create_view(&desc)
-}
-
 fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    let texture_binding = wgpu::BindGroupLayoutBinding {
-        binding: 0,
-        visibility: wgpu::ShaderStage::FRAGMENT,
-        ty: wgpu::BindingType::SampledTexture {
-            multisampled: false,
-            dimension: wgpu::TextureViewDimension::D2,
-        },
-    };
-    let sampler_binding = wgpu::BindGroupLayoutBinding {
-        binding: 1,
-        visibility: wgpu::ShaderStage::FRAGMENT,
-        ty: wgpu::BindingType::Sampler,
-    };
-    let bindings = &[texture_binding, sampler_binding];
-    let desc = wgpu::BindGroupLayoutDescriptor { bindings };
-    device.create_bind_group_layout(&desc)
+    wgpu::BindGroupLayoutBuilder::new()
+        .sampled_texture(
+            wgpu::ShaderStage::FRAGMENT,
+            false,
+            wgpu::TextureViewDimension::D2,
+        )
+        .sampler(wgpu::ShaderStage::FRAGMENT)
+        .build(device)
 }
 
 fn create_bind_group(
@@ -241,17 +226,10 @@ fn create_bind_group(
     texture: &wgpu::TextureView,
     sampler: &wgpu::Sampler,
 ) -> wgpu::BindGroup {
-    let texture_binding = wgpu::Binding {
-        binding: 0,
-        resource: wgpu::BindingResource::TextureView(&texture),
-    };
-    let sampler_binding = wgpu::Binding {
-        binding: 1,
-        resource: wgpu::BindingResource::Sampler(&sampler),
-    };
-    let bindings = &[texture_binding, sampler_binding];
-    let desc = wgpu::BindGroupDescriptor { layout, bindings };
-    device.create_bind_group(&desc)
+    wgpu::BindGroupBuilder::new()
+        .texture_view(texture)
+        .sampler(sampler)
+        .build(device, layout)
 }
 
 fn create_pipeline_layout(
@@ -264,14 +242,6 @@ fn create_pipeline_layout(
     device.create_pipeline_layout(&desc)
 }
 
-fn vertex_attrs() -> [wgpu::VertexAttributeDescriptor; 1] {
-    [wgpu::VertexAttributeDescriptor {
-        format: wgpu::VertexFormat::Float2,
-        offset: 0,
-        shader_location: 0,
-    }]
-}
-
 fn create_render_pipeline(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,
@@ -280,46 +250,11 @@ fn create_render_pipeline(
     dst_format: wgpu::TextureFormat,
     sample_count: u32,
 ) -> wgpu::RenderPipeline {
-    let vs_desc = wgpu::ProgrammableStageDescriptor {
-        module: &vs_mod,
-        entry_point: "main",
-    };
-    let fs_desc = wgpu::ProgrammableStageDescriptor {
-        module: &fs_mod,
-        entry_point: "main",
-    };
-    let raster_desc = wgpu::RasterizationStateDescriptor {
-        front_face: wgpu::FrontFace::Ccw,
-        cull_mode: wgpu::CullMode::None,
-        depth_bias: 0,
-        depth_bias_slope_scale: 0.0,
-        depth_bias_clamp: 0.0,
-    };
-    let color_state_desc = wgpu::ColorStateDescriptor {
-        format: dst_format,
-        color_blend: wgpu::BlendDescriptor::REPLACE,
-        alpha_blend: wgpu::BlendDescriptor::REPLACE,
-        write_mask: wgpu::ColorWrite::ALL,
-    };
-    let vertex_attrs = vertex_attrs();
-    let vertex_buffer_desc = wgpu::VertexBufferDescriptor {
-        stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-        step_mode: wgpu::InputStepMode::Vertex,
-        attributes: &vertex_attrs[..],
-    };
-    let desc = wgpu::RenderPipelineDescriptor {
-        layout,
-        vertex_stage: vs_desc,
-        fragment_stage: Some(fs_desc),
-        rasterization_state: Some(raster_desc),
-        primitive_topology: wgpu::PrimitiveTopology::TriangleStrip,
-        color_states: &[color_state_desc],
-        depth_stencil_state: None,
-        index_format: wgpu::IndexFormat::Uint16,
-        vertex_buffers: &[vertex_buffer_desc],
-        sample_count,
-        sample_mask: !0,
-        alpha_to_coverage_enabled: false,
-    };
-    device.create_render_pipeline(&desc)
+    wgpu::RenderPipelineBuilder::from_layout(layout, vs_mod)
+        .fragment_shader(fs_mod)
+        .color_format(dst_format)
+        .add_vertex_buffer::<Vertex>()
+        .sample_count(sample_count)
+        .primitive_topology(wgpu::PrimitiveTopology::TriangleStrip)
+        .build(device)
 }

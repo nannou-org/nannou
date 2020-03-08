@@ -50,6 +50,37 @@ pub struct Vertex {
     // pub mode: u32,
 }
 
+impl wgpu::VertexDescriptor for Vertex {
+    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Self>() as _;
+    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] = {
+        let position_offset = 0;
+        let position_size = std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress;
+        let rgba_offset = position_offset + position_size;
+        let rgba_size = std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress;
+        let tex_coords_offset = rgba_offset + rgba_size;
+        &[
+            // position
+            wgpu::VertexAttributeDescriptor {
+                format: wgpu::VertexFormat::Float3,
+                offset: position_offset,
+                shader_location: 0,
+            },
+            // rgba
+            wgpu::VertexAttributeDescriptor {
+                format: wgpu::VertexFormat::Float4,
+                offset: rgba_offset,
+                shader_location: 1,
+            },
+            // tex_coords
+            wgpu::VertexAttributeDescriptor {
+                format: wgpu::VertexFormat::Float2,
+                offset: tex_coords_offset,
+                shader_location: 2,
+            },
+        ]
+    };
+}
+
 impl Vertex {
     /// Create a vertex from the given mesh vertex.
     pub fn from_mesh_vertex<S>(
@@ -143,10 +174,9 @@ impl Renderer {
         // Create the render pipeline.
         let bind_group_layout = bind_group_layout(device);
         let bind_group = bind_group(device, &bind_group_layout);
-        let pipeline_layout = pipeline_layout(device, &bind_group_layout);
         let render_pipeline = render_pipeline(
             device,
-            &pipeline_layout,
+            &bind_group_layout,
             &vs_mod,
             &fs_mod,
             output_attachment_color_format,
@@ -220,29 +250,6 @@ impl Renderer {
             }
         };
 
-        let color_attachment_desc = wgpu::RenderPassColorAttachmentDescriptor {
-            attachment: output_attachment,
-            resolve_target,
-            load_op,
-            store_op: wgpu::StoreOp::Store,
-            clear_color,
-        };
-
-        let depth_stencil_attachment_desc = wgpu::RenderPassDepthStencilAttachmentDescriptor {
-            attachment: &*depth_texture_view,
-            depth_load_op: wgpu::LoadOp::Clear,
-            depth_store_op: wgpu::StoreOp::Store,
-            clear_depth: 1.0,
-            stencil_load_op: wgpu::LoadOp::Clear,
-            stencil_store_op: wgpu::StoreOp::Store,
-            clear_stencil: 0,
-        };
-
-        let render_pass_desc = wgpu::RenderPassDescriptor {
-            color_attachments: &[color_attachment_desc],
-            depth_stencil_attachment: Some(depth_stencil_attachment_desc),
-        };
-
         // Create the vertex and index buffers.
         let [img_w, img_h] = output_attachment_size;
         let map_vertex = |v| Vertex::from_mesh_vertex(v, img_w as _, img_h as _, scale_factor);
@@ -257,7 +264,16 @@ impl Renderer {
             .create_buffer_mapped(indices.len(), wgpu::BufferUsage::INDEX)
             .fill_from_slice(&indices[..]);
 
-        let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
+        // Encode the render pass.
+        let mut render_pass = wgpu::RenderPassBuilder::new()
+            .color_attachment(output_attachment, |color| {
+                color
+                    .resolve_target(resolve_target)
+                    .load_op(load_op)
+                    .clear_color(clear_color)
+            })
+            .depth_stencil_attachment(&*depth_texture_view, |depth| depth)
+            .begin(encoder);
         render_pass.set_pipeline(render_pipeline);
         render_pass.set_bind_group(0, bind_group, &[]);
         render_pass.set_index_buffer(&index_buffer, 0);
@@ -337,127 +353,27 @@ fn create_depth_texture(
 }
 
 fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    let bindings = &[];
-    let desc = wgpu::BindGroupLayoutDescriptor { bindings };
-    device.create_bind_group_layout(&desc)
+    wgpu::BindGroupLayoutBuilder::new().build(device)
 }
 
 fn bind_group(device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
-    let bindings = &[];
-    let desc = wgpu::BindGroupDescriptor { layout, bindings };
-    device.create_bind_group(&desc)
-}
-
-fn pipeline_layout(
-    device: &wgpu::Device,
-    bind_group_layout: &wgpu::BindGroupLayout,
-) -> wgpu::PipelineLayout {
-    let desc = wgpu::PipelineLayoutDescriptor {
-        bind_group_layouts: &[&bind_group_layout],
-    };
-    device.create_pipeline_layout(&desc)
-}
-
-fn vertex_attrs() -> [wgpu::VertexAttributeDescriptor; 3] {
-    let position_offset = 0;
-    let position_size = std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress;
-    let rgba_offset = position_offset + position_size;
-    let rgba_size = std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress;
-    let tex_coords_offset = rgba_offset + rgba_size;
-    [
-        // position
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float3,
-            offset: position_offset,
-            shader_location: 0,
-        },
-        // rgba
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float4,
-            offset: rgba_offset,
-            shader_location: 1,
-        },
-        // tex_coords
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float2,
-            offset: tex_coords_offset,
-            shader_location: 2,
-        },
-    ]
-}
-
-fn depth_stencil_state_descriptor(
-    format: wgpu::TextureFormat,
-) -> wgpu::DepthStencilStateDescriptor {
-    wgpu::DepthStencilStateDescriptor {
-        format: format,
-        depth_write_enabled: true,
-        depth_compare: wgpu::CompareFunction::LessEqual,
-        stencil_front: wgpu::StencilStateFaceDescriptor::IGNORE,
-        stencil_back: wgpu::StencilStateFaceDescriptor::IGNORE,
-        stencil_read_mask: 0,
-        stencil_write_mask: 0,
-    }
+    wgpu::BindGroupBuilder::new().build(device, layout)
 }
 
 fn render_pipeline(
     device: &wgpu::Device,
-    layout: &wgpu::PipelineLayout,
+    layout: &wgpu::BindGroupLayout,
     vs_mod: &wgpu::ShaderModule,
     fs_mod: &wgpu::ShaderModule,
     dst_format: wgpu::TextureFormat,
     depth_format: wgpu::TextureFormat,
     msaa_samples: u32,
 ) -> wgpu::RenderPipeline {
-    let vs_desc = wgpu::ProgrammableStageDescriptor {
-        module: &vs_mod,
-        entry_point: "main",
-    };
-    let fs_desc = wgpu::ProgrammableStageDescriptor {
-        module: &fs_mod,
-        entry_point: "main",
-    };
-    let raster_desc = wgpu::RasterizationStateDescriptor {
-        front_face: wgpu::FrontFace::Ccw,
-        cull_mode: wgpu::CullMode::None,
-        depth_bias: 0,
-        depth_bias_slope_scale: 0.0,
-        depth_bias_clamp: 0.0,
-    };
-    let color_state_desc = wgpu::ColorStateDescriptor {
-        format: dst_format,
-        color_blend: wgpu::BlendDescriptor {
-            src_factor: wgpu::BlendFactor::SrcAlpha,
-            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-            operation: wgpu::BlendOperation::Add,
-        },
-        alpha_blend: wgpu::BlendDescriptor {
-            src_factor: wgpu::BlendFactor::One,
-            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-            operation: wgpu::BlendOperation::Add,
-        },
-        write_mask: wgpu::ColorWrite::ALL,
-    };
-    let vertex_attrs = vertex_attrs();
-    let vertex_buffer_desc = wgpu::VertexBufferDescriptor {
-        stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-        step_mode: wgpu::InputStepMode::Vertex,
-        attributes: &vertex_attrs[..],
-    };
-    let depth_stencil_state_desc = depth_stencil_state_descriptor(depth_format);
-    let desc = wgpu::RenderPipelineDescriptor {
-        layout,
-        vertex_stage: vs_desc,
-        fragment_stage: Some(fs_desc),
-        rasterization_state: Some(raster_desc),
-        primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-        color_states: &[color_state_desc],
-        depth_stencil_state: Some(depth_stencil_state_desc),
-        index_format: wgpu::IndexFormat::Uint32,
-        vertex_buffers: &[vertex_buffer_desc],
-        sample_count: msaa_samples,
-        sample_mask: !0,
-        alpha_to_coverage_enabled: false,
-    };
-    device.create_render_pipeline(&desc)
+    wgpu::RenderPipelineBuilder::from_layout_descriptor(&[layout][..], vs_mod)
+        .fragment_shader(fs_mod)
+        .color_format(dst_format)
+        .add_vertex_buffer::<Vertex>()
+        .depth_format(depth_format)
+        .sample_count(msaa_samples)
+        .build(device)
 }

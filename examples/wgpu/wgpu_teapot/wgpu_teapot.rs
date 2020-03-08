@@ -42,6 +42,26 @@ pub struct Uniforms {
 
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
+impl wgpu::VertexDescriptor for Vertex {
+    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
+    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
+        &[wgpu::VertexAttributeDescriptor {
+            format: wgpu::VertexFormat::Float3,
+            offset: 0,
+            shader_location: 0,
+        }];
+}
+
+impl wgpu::VertexDescriptor for Normal {
+    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Normal>() as _;
+    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
+        &[wgpu::VertexAttributeDescriptor {
+            format: wgpu::VertexFormat::Float3,
+            offset: 0,
+            shader_location: 1,
+        }];
+}
+
 fn main() {
     nannou::app(model).run();
 }
@@ -129,26 +149,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
         g.depth_texture_view = g.depth_texture.create_default_view();
     }
 
-    let render_pass_desc = wgpu::RenderPassDescriptor {
-        color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-            attachment: frame.texture_view(),
-            resolve_target: None,
-            load_op: wgpu::LoadOp::Clear,
-            store_op: wgpu::StoreOp::Store,
-            clear_color: wgpu::Color::TRANSPARENT,
-        }],
-        // We'll use a depth texture to assist with the order of rendering fragments based on depth.
-        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
-            attachment: &g.depth_texture_view,
-            depth_load_op: wgpu::LoadOp::Clear,
-            depth_store_op: wgpu::StoreOp::Store,
-            clear_depth: 1.0,
-            stencil_load_op: wgpu::LoadOp::Clear,
-            stencil_store_op: wgpu::StoreOp::Store,
-            clear_stencil: 0,
-        }),
-    };
-
     // Update the uniforms (rotate around the teapot).
     let rotation = app.time;
     let uniforms = create_uniforms(rotation, frame_size);
@@ -159,7 +159,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     let mut encoder = frame.command_encoder();
     encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, &g.uniform_buffer, 0, uniforms_size);
-    let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
+    let mut render_pass = wgpu::RenderPassBuilder::new()
+        .color_attachment(frame.texture_view(), |color| color)
+        // We'll use a depth texture to assist with the order of rendering fragments based on depth.
+        .depth_stencil_attachment(&g.depth_texture_view, |depth| depth)
+        .begin(&mut encoder);
     render_pass.set_bind_group(0, &g.bind_group, &[]);
     render_pass.set_pipeline(&g.render_pipeline);
     render_pass.set_vertex_buffers(0, &[(&g.vertex_buffer, 0), (&g.normal_buffer, 0)]);
@@ -204,14 +208,9 @@ fn create_depth_texture(
 }
 
 fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    let uniforms_binding = wgpu::BindGroupLayoutBinding {
-        binding: 0,
-        visibility: wgpu::ShaderStage::VERTEX,
-        ty: wgpu::BindingType::UniformBuffer { dynamic: false },
-    };
-    let bindings = &[uniforms_binding];
-    let desc = wgpu::BindGroupLayoutDescriptor { bindings };
-    device.create_bind_group_layout(&desc)
+    wgpu::BindGroupLayoutBuilder::new()
+        .uniform_buffer(wgpu::ShaderStage::VERTEX, false)
+        .build(device)
 }
 
 fn create_bind_group(
@@ -219,16 +218,9 @@ fn create_bind_group(
     layout: &wgpu::BindGroupLayout,
     uniform_buffer: &wgpu::Buffer,
 ) -> wgpu::BindGroup {
-    let uniforms_binding = wgpu::Binding {
-        binding: 0,
-        resource: wgpu::BindingResource::Buffer {
-            buffer: uniform_buffer,
-            range: 0..std::mem::size_of::<Uniforms>() as wgpu::BufferAddress,
-        },
-    };
-    let bindings = &[uniforms_binding];
-    let desc = wgpu::BindGroupDescriptor { layout, bindings };
-    device.create_bind_group(&desc)
+    wgpu::BindGroupBuilder::new()
+        .buffer::<Uniforms>(uniform_buffer, 0..1)
+        .build(device, layout)
 }
 
 fn create_pipeline_layout(
@@ -241,36 +233,6 @@ fn create_pipeline_layout(
     device.create_pipeline_layout(&desc)
 }
 
-fn vertex_attrs() -> [wgpu::VertexAttributeDescriptor; 1] {
-    [wgpu::VertexAttributeDescriptor {
-        format: wgpu::VertexFormat::Float3,
-        offset: 0,
-        shader_location: 0,
-    }]
-}
-
-fn normal_attrs() -> [wgpu::VertexAttributeDescriptor; 1] {
-    [wgpu::VertexAttributeDescriptor {
-        format: wgpu::VertexFormat::Float3,
-        offset: 0,
-        shader_location: 1,
-    }]
-}
-
-fn depth_stencil_state_descriptor(
-    format: wgpu::TextureFormat,
-) -> wgpu::DepthStencilStateDescriptor {
-    wgpu::DepthStencilStateDescriptor {
-        format: format,
-        depth_write_enabled: true,
-        depth_compare: wgpu::CompareFunction::LessEqual,
-        stencil_front: wgpu::StencilStateFaceDescriptor::IGNORE,
-        stencil_back: wgpu::StencilStateFaceDescriptor::IGNORE,
-        stencil_read_mask: 0,
-        stencil_write_mask: 0,
-    }
-}
-
 fn create_render_pipeline(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,
@@ -280,53 +242,15 @@ fn create_render_pipeline(
     depth_format: wgpu::TextureFormat,
     sample_count: u32,
 ) -> wgpu::RenderPipeline {
-    let vs_desc = wgpu::ProgrammableStageDescriptor {
-        module: &vs_mod,
-        entry_point: "main",
-    };
-    let fs_desc = wgpu::ProgrammableStageDescriptor {
-        module: &fs_mod,
-        entry_point: "main",
-    };
-    let raster_desc = wgpu::RasterizationStateDescriptor {
-        front_face: wgpu::FrontFace::Ccw,
-        cull_mode: wgpu::CullMode::None,
-        depth_bias: 0,
-        depth_bias_slope_scale: 0.0,
-        depth_bias_clamp: 0.0,
-    };
-    let color_state_desc = wgpu::ColorStateDescriptor {
-        format: dst_format,
-        color_blend: wgpu::BlendDescriptor::REPLACE,
-        alpha_blend: wgpu::BlendDescriptor::REPLACE,
-        write_mask: wgpu::ColorWrite::ALL,
-    };
-    let vertex_attrs = vertex_attrs();
-    let vertex_buffer_desc = wgpu::VertexBufferDescriptor {
-        stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-        step_mode: wgpu::InputStepMode::Vertex,
-        attributes: &vertex_attrs[..],
-    };
-    let normal_attrs = normal_attrs();
-    let normal_buffer_desc = wgpu::VertexBufferDescriptor {
-        stride: std::mem::size_of::<Normal>() as wgpu::BufferAddress,
-        step_mode: wgpu::InputStepMode::Vertex,
-        attributes: &normal_attrs[..],
-    };
-    let depth_stencil_state_desc = depth_stencil_state_descriptor(depth_format);
-    let desc = wgpu::RenderPipelineDescriptor {
-        layout,
-        vertex_stage: vs_desc,
-        fragment_stage: Some(fs_desc),
-        rasterization_state: Some(raster_desc),
-        primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-        color_states: &[color_state_desc],
-        depth_stencil_state: Some(depth_stencil_state_desc),
-        index_format: wgpu::IndexFormat::Uint16,
-        vertex_buffers: &[vertex_buffer_desc, normal_buffer_desc],
-        sample_count,
-        sample_mask: !0,
-        alpha_to_coverage_enabled: false,
-    };
-    device.create_render_pipeline(&desc)
+    wgpu::RenderPipelineBuilder::from_layout(layout, vs_mod)
+        .fragment_shader(&fs_mod)
+        .color_format(dst_format)
+        .color_blend(wgpu::BlendDescriptor::REPLACE)
+        .alpha_blend(wgpu::BlendDescriptor::REPLACE)
+        .add_vertex_buffer::<Vertex>()
+        .add_vertex_buffer::<Normal>()
+        .depth_format(depth_format)
+        .index_format(wgpu::IndexFormat::Uint16)
+        .sample_count(sample_count)
+        .build(device)
 }

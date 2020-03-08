@@ -1,3 +1,11 @@
+//! A simple demonstration on how to create and draw with a custom wgpu render pipeline in nannou!
+//!
+//! The aim of this example is not to show the simplest way of drawing a triangle in nannou, but
+//! rather provide a reference on how to get started creating your own rendering pipeline from
+//! scratch. While nannou's provided graphics-y APIs can do a lot of things quite efficiently,
+//! writing a custom pipeline that does only exactly what you need it to can sometimes result in
+//! better performance.
+
 use nannou::prelude::*;
 
 struct Model {
@@ -26,6 +34,16 @@ const VERTICES: [Vertex; 3] = [
     },
 ];
 
+impl wgpu::VertexDescriptor for Vertex {
+    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
+    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
+        &[wgpu::VertexAttributeDescriptor {
+            format: wgpu::VertexFormat::Float2,
+            offset: 0,
+            shader_location: 0,
+        }];
+}
+
 fn main() {
     nannou::app(model).run();
 }
@@ -37,7 +55,7 @@ fn model(app: &App) -> Model {
     let window = app.window(w_id).unwrap();
     let device = window.swap_chain_device();
     let format = Frame::TEXTURE_FORMAT;
-    let msaa_samples = window.msaa_samples();
+    let sample_count = window.msaa_samples();
 
     // Load shader modules.
     let vs = include_bytes!("shaders/vert.spv");
@@ -55,17 +73,15 @@ fn model(app: &App) -> Model {
         .fill_from_slice(&VERTICES[..]);
 
     // Create the render pipeline.
-    let bind_group_layout = create_bind_group_layout(device);
-    let bind_group = create_bind_group(device, &bind_group_layout);
-    let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
-    let render_pipeline = create_render_pipeline(
-        device,
-        &pipeline_layout,
-        &vs_mod,
-        &fs_mod,
-        format,
-        msaa_samples,
-    );
+    let bind_group_layout = wgpu::BindGroupLayoutBuilder::new().build(device);
+    let bind_group = wgpu::BindGroupBuilder::new().build(device, &bind_group_layout);
+    let pipeline_layout = wgpu::create_pipeline_layout(device, &[&bind_group_layout]);
+    let render_pipeline = wgpu::RenderPipelineBuilder::from_layout(&pipeline_layout, &vs_mod)
+        .fragment_shader(&fs_mod)
+        .color_format(format)
+        .add_vertex_buffer::<Vertex>()
+        .sample_count(sample_count)
+        .build(device);
 
     Model {
         bind_group,
@@ -79,22 +95,12 @@ fn view(_app: &App, model: &Model, frame: Frame) {
     // Using this we will encode commands that will be submitted to the GPU.
     let mut encoder = frame.command_encoder();
 
-    // A render pass describes how to draw to an output "attachment".
-    let render_pass_desc = wgpu::RenderPassDescriptor {
-        color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-            attachment: frame.texture_view(),
-            resolve_target: None,
-            load_op: wgpu::LoadOp::Clear,
-            store_op: wgpu::StoreOp::Store,
-            clear_color: wgpu::Color::TRANSPARENT,
-        }],
-        depth_stencil_attachment: None,
-    };
-
-    // The render pass can be thought of a single large command consisting of sub commands.
-    // Here we begin the render pass and add sub-commands for setting the bind group, render
-    // pipeline, vertex buffers and then finally drawing.
-    let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
+    // The render pass can be thought of a single large command consisting of sub commands. Here we
+    // begin a render pass that outputs to the frame's texture. Then we add sub-commands for
+    // setting the bind group, render pipeline, vertex buffers and then finally drawing.
+    let mut render_pass = wgpu::RenderPassBuilder::new()
+        .color_attachment(frame.texture_view(), |color| color)
+        .begin(&mut encoder);
     render_pass.set_bind_group(0, &model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
     render_pass.set_vertex_buffers(0, &[(&model.vertex_buffer, 0)]);
@@ -105,86 +111,4 @@ fn view(_app: &App, model: &Model, frame: Frame) {
     render_pass.draw(vertex_range, instance_range);
 
     // Now we're done! The commands we added will be submitted after `view` completes.
-}
-
-fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    let bindings = &[];
-    let desc = wgpu::BindGroupLayoutDescriptor { bindings };
-    device.create_bind_group_layout(&desc)
-}
-
-fn create_bind_group(device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
-    let bindings = &[];
-    let desc = wgpu::BindGroupDescriptor { layout, bindings };
-    device.create_bind_group(&desc)
-}
-
-fn create_pipeline_layout(
-    device: &wgpu::Device,
-    bind_group_layout: &wgpu::BindGroupLayout,
-) -> wgpu::PipelineLayout {
-    let desc = wgpu::PipelineLayoutDescriptor {
-        bind_group_layouts: &[&bind_group_layout],
-    };
-    device.create_pipeline_layout(&desc)
-}
-
-fn vertex_attrs() -> [wgpu::VertexAttributeDescriptor; 1] {
-    [wgpu::VertexAttributeDescriptor {
-        format: wgpu::VertexFormat::Float2,
-        offset: 0,
-        shader_location: 0,
-    }]
-}
-
-fn create_render_pipeline(
-    device: &wgpu::Device,
-    layout: &wgpu::PipelineLayout,
-    vs_mod: &wgpu::ShaderModule,
-    fs_mod: &wgpu::ShaderModule,
-    dst_format: wgpu::TextureFormat,
-    sample_count: u32,
-) -> wgpu::RenderPipeline {
-    let vs_desc = wgpu::ProgrammableStageDescriptor {
-        module: &vs_mod,
-        entry_point: "main",
-    };
-    let fs_desc = wgpu::ProgrammableStageDescriptor {
-        module: &fs_mod,
-        entry_point: "main",
-    };
-    let raster_desc = wgpu::RasterizationStateDescriptor {
-        front_face: wgpu::FrontFace::Ccw,
-        cull_mode: wgpu::CullMode::None,
-        depth_bias: 0,
-        depth_bias_slope_scale: 0.0,
-        depth_bias_clamp: 0.0,
-    };
-    let color_state_desc = wgpu::ColorStateDescriptor {
-        format: dst_format,
-        color_blend: wgpu::BlendDescriptor::REPLACE,
-        alpha_blend: wgpu::BlendDescriptor::REPLACE,
-        write_mask: wgpu::ColorWrite::ALL,
-    };
-    let vertex_attrs = vertex_attrs();
-    let vertex_buffer_desc = wgpu::VertexBufferDescriptor {
-        stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-        step_mode: wgpu::InputStepMode::Vertex,
-        attributes: &vertex_attrs[..],
-    };
-    let desc = wgpu::RenderPipelineDescriptor {
-        layout,
-        vertex_stage: vs_desc,
-        fragment_stage: Some(fs_desc),
-        rasterization_state: Some(raster_desc),
-        primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-        color_states: &[color_state_desc],
-        depth_stencil_state: None,
-        index_format: wgpu::IndexFormat::Uint16,
-        vertex_buffers: &[vertex_buffer_desc],
-        sample_count,
-        sample_mask: !0,
-        alpha_to_coverage_enabled: false,
-    };
-    device.create_render_pipeline(&desc)
 }
