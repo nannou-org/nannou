@@ -1,8 +1,10 @@
 use std::ops::Sub;
 use time_calc::Ticks;
+use serde::{Serialize, Deserialize};
 
 /// A period of time in ticks.
 #[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Period<T = Ticks> {
     pub start: T,
     pub end: T,

@@ -1,5 +1,6 @@
 use std;
 use time_calc as time;
+use serde::{Serialize, Deserialize};
 
 pub use self::bang::Bang;
 pub use self::point::Point;
@@ -16,6 +17,7 @@ pub mod toggle;
 
 /// A generic envelope type.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Envelope<T> {
     pub points: Vec<Point<T>>,
 }

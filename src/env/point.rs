@@ -1,11 +1,13 @@
 use super::bang::Bang;
 use super::toggle::Toggle;
 use time;
+use serde::{Serialize, Deserialize};
 
 pub use envelope::Point as Trait;
 
 /// An automation point.
 #[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Point<T> {
     pub ticks: time::Ticks,
     pub value: T,

@@ -1,6 +1,7 @@
 use conrod_core::{self as conrod, Scalar};
 use num::NumCast;
 use time_calc::Ticks;
+use serde::{Serialize, Deserialize};
 
 pub use env::bounded::Dynamic as DynamicEnvelope;
 pub use env::bounded::Envelope;
@@ -19,6 +20,7 @@ pub mod toggle;
 
 /// The different interactive elements of the automation widget.
 #[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Elem {
     /// Some place on a widget with an empty envelope
     EmptyRect,
@@ -30,6 +32,7 @@ pub enum Elem {
 
 /// An event used to drag the point at the given index to the target ticks and value.
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct DragPoint<T> {
     /// The index into the envelope for the point which is to be dragged.
     pub idx: usize,
@@ -65,6 +68,7 @@ impl<T> DragPoint<T> {
 
 /// An event used to add a new point to an Automation's envelope.
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AddPoint<T> {
     /// The point which is to be added.
     pub point: Point<T>,
@@ -87,6 +91,7 @@ impl<T> AddPoint<T> {
 
 /// An event used to remove a point from an Automation's envelope.
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct RemovePoint {
     /// The index of the point which is to be removed.
     idx: usize,
@@ -104,6 +109,7 @@ impl RemovePoint {
 
 /// Events that when applied to the envelope cause some form of mutation.
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Mutate<T> {
     /// Some envelope point was dragged.
     DragPoint(DragPoint<T>),

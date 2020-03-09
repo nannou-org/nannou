@@ -4,6 +4,7 @@ use period::Period;
 use pitch_calc::{self as pitch, Letter, LetterOctave};
 use time_calc::{self as time, Ticks};
 use track;
+use serde::{Serialize, Deserialize};
 
 /// A PianoRoll widget builder type.
 #[derive(WidgetCommon)]
@@ -20,6 +21,7 @@ pub struct PianoRoll<'a> {
 
 /// Used to represent a musical note within the piano roll.
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Note {
     /// The period over which the note is played.
     pub period: Period,
@@ -33,7 +35,9 @@ pub type NoteIdx = usize;
 pub const MIN_NOTE_TRACK_HEIGHT: conrod::Scalar = 10.0;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, WidgetStyle)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Style {
+    #[serde(skip)]
     #[conrod(default = "theme.shape_color")]
     pub color: Option<conrod::Color>,
 }

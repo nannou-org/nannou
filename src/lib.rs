@@ -12,6 +12,7 @@ extern crate itertools;
 extern crate num;
 extern crate pitch_calc;
 extern crate time_calc;
+extern crate serde;
 
 pub use period::Period;
 pub use playhead::Playhead;
