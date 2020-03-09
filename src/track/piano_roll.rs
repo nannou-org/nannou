@@ -4,7 +4,6 @@ use period::Period;
 use pitch_calc::{self as pitch, Letter, LetterOctave};
 use time_calc::{self as time, Ticks};
 use track;
-use serde::{Serialize, Deserialize};
 
 /// A PianoRoll widget builder type.
 #[derive(WidgetCommon)]

@@ -1,5 +1,4 @@
 use envelope;
-use serde::{Serialize, Deserialize};
 
 /// A wrapper around a boolean value for a Point implementation.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]

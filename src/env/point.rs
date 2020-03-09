@@ -1,7 +1,6 @@
 use super::bang::Bang;
 use super::toggle::Toggle;
 use time;
-use serde::{Serialize, Deserialize};
 
 pub use envelope::Point as Trait;
 

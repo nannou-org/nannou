@@ -1,5 +1,4 @@
 use envelope;
-use serde::{Serialize, Deserialize};
 
 /// A type to use for `Point`s that have no value.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]

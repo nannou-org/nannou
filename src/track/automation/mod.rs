@@ -1,7 +1,6 @@
 use conrod_core::{self as conrod, Scalar};
 use num::NumCast;
 use time_calc::Ticks;
-use serde::{Serialize, Deserialize};
 
 pub use env::bounded::Dynamic as DynamicEnvelope;
 pub use env::bounded::Envelope;

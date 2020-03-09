@@ -4,7 +4,6 @@ use super::{Number, ValueKind};
 use super::{Point, Trait};
 use std;
 use time_calc as time;
-use serde::{Serialize, Deserialize};
 
 /// An envelope with some min and max for the value range.
 #[derive(Clone, Debug, PartialEq)]
