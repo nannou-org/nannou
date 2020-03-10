@@ -409,21 +409,11 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
         }
         Key::S => {
             // Save model.timeline_data to a JSON file.
-            let json = serde_json::to_string(&model.timeline_data).expect("Serialization of timeline_data failed!");
-            let mut file = File::create("saved_timeline_data.json").expect("Error opening file!");
-            write!(file, "{}", json).expect("Error saving file!");
+            nannou::io::save_to_json("saved_timeline_data.json", &model.timeline_data).expect("Error saving file");
         }
         Key::L => {
             // Load the model.timeline_data from a JSON file.
-            let mut file = File::open("saved_timeline_data.json").expect("Error opening file!");
-            let mut contents = String::new();
-            file.read_to_string(&mut contents).expect("Error reading file to string!");
-            match serde_json::from_str(&contents) {
-                Ok(data) => model.timeline_data = data,
-                Err(error) => {
-                    println!("Problem parsing the loaded json file: {:?}", error)
-                }
-            }
+            model.timeline_data = nannou::io::load_from_json("saved_timeline_data.json").expect("Error loading timeline data");
         }
         _ => {}
     }
