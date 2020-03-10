@@ -409,11 +409,11 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
         }
         Key::S => {
             // Save model.timeline_data to a JSON file.
-            nannou::io::save_to_json("saved_timeline_data.json", &model.timeline_data).expect("Error saving file");
+            nannou::io::save_to_json("./saved_timeline_data.json", &model.timeline_data).expect("Error saving file");
         }
         Key::L => {
             // Load the model.timeline_data from a JSON file.
-            model.timeline_data = nannou::io::load_from_json("saved_timeline_data.json").expect("Error loading timeline data");
+            model.timeline_data = nannou::io::load_from_json("./saved_timeline_data.json").expect("Error loading timeline data");
         }
         _ => {}
     }
