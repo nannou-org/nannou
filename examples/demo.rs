@@ -4,12 +4,13 @@ extern crate nannou;
 extern crate nannou_timeline as timeline;
 extern crate pitch_calc;
 extern crate time_calc;
+// Conditionally compile with or with out serde i.e. serialization and thereby saving and loading.
+// To use, run with `cargo run --release --example demo --features "serde"
+#[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde;
+#[cfg(feature = "serde")]
 extern crate serde_json;
-
-use std::fs::File;
-use std::io::prelude::*;
 
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
@@ -38,7 +39,8 @@ struct Model {
     playing: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+// Implement the Serialize and Deserialize traits only if the serde feature is enabled.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 struct TimelineData {
     playhead_ticks: time::Ticks,
     bars: Vec<time::TimeSig>,
@@ -409,11 +411,17 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
         }
         Key::S => {
             // Save model.timeline_data to a JSON file.
-            nannou::io::save_to_json("./saved_timeline_data.json", &model.timeline_data).expect("Error saving file");
+            // This part is only included if you compile with the serde feature enabled.
+            #[cfg(feature = "serde")] {
+                nannou::io::save_to_json("./saved_timeline_data.json", &model.timeline_data).expect("Error saving file");
+            }   
         }
         Key::L => {
             // Load the model.timeline_data from a JSON file.
-            model.timeline_data = nannou::io::load_from_json("./saved_timeline_data.json").expect("Error loading timeline data");
+            // This part is only included if you compile with the serde feature enabled.
+            #[cfg(feature = "serde")] {
+                model.timeline_data = nannou::io::load_from_json("./saved_timeline_data.json").expect("Error loading timeline data");
+            }
         }
         _ => {}
     }

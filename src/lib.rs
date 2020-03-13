@@ -12,6 +12,7 @@ extern crate itertools;
 extern crate num;
 extern crate pitch_calc;
 extern crate time_calc;
+#[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde;
 
