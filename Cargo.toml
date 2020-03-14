@@ -231,6 +231,13 @@ path = "examples/generative_design/shape/p_2_1_2_03.rs"
 [[example]]
 name = "p_2_1_2_04"
 path = "examples/generative_design/shape/p_2_1_2_04.rs"
+# --------------- Type
+[[example]]
+name = "p_3_0_01"
+path = "examples/generative_design/type/p_3_0_01.rs"
+[[example]]
+name = "p_3_2_1_01"
+path = "examples/generative_design/type/p_3_2_1_01.rs"
 # --------------- Random and Noise
 [[example]]
 name = "m_1_1_01"
