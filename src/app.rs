@@ -592,7 +592,7 @@ impl App {
                 match windows.values().next() {
                     None => unimplemented!(
                         "yet to implement a way to get `primary_monitor` if neither \
-                            event loop or window can be safely accessed"
+                         event loop or window can be safely accessed"
                     ),
                     Some(window) => window.window.primary_monitor(),
                 }

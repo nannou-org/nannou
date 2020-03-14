@@ -218,7 +218,8 @@ fn key_pressed(app: &App, model: &mut Model, key: Key) {
             model.phi += 15.0;
         }
         Key::S => {
-            app.main_window().capture_frame(app.exe_name().unwrap() + ".png");
+            app.main_window()
+                .capture_frame(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

@@ -57,7 +57,13 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().size(800, 800).key_pressed(key_pressed).view(view).build().unwrap();
+    let _window = app
+        .new_window()
+        .size(800, 800)
+        .key_pressed(key_pressed)
+        .view(view)
+        .build()
+        .unwrap();
 
     let lissajous_points = Vec::new();
 
@@ -189,6 +195,7 @@ fn calculate_lissajous_points(app: &App, model: &mut Model) {
 
 fn key_pressed(app: &App, _model: &mut Model, key: Key) {
     if key == Key::S {
-        app.main_window().capture_frame(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .capture_frame(app.exe_name().unwrap() + ".png");
     }
 }

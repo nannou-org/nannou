@@ -49,6 +49,7 @@ fn view(app: &App, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 
     if app.keys.down.contains(&Key::S) {
-        app.main_window().capture_frame(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .capture_frame(app.exe_name().unwrap() + ".png");
     }
 }
