@@ -66,7 +66,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(app: &App, model: &mut Model, key: Key) {
     match key {
         Key::Key1 => {
             for i in 0..model.tile_count_x {
@@ -149,6 +149,10 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
                     model.brightness_values[i] = random_f32() * 0.5 + 0.5;
                 }
             }
+        }
+        Key::S => {
+            app.main_window()
+                .capture_frame(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

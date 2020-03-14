@@ -93,9 +93,16 @@ fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
 fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
     model.clicked = false;
 }
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
-    if key == Key::Space {
-        model.clear_background = true;
+fn key_pressed(app: &App, model: &mut Model, key: Key) {
+    match key {
+        Key::Space => {
+            model.clear_background = true;
+        }
+        Key::S => {
+            app.main_window()
+                .capture_frame(app.exe_name().unwrap() + ".png");
+        }
+        _other_key => {}
     }
 }
 fn key_released(_app: &App, model: &mut Model, key: Key) {
