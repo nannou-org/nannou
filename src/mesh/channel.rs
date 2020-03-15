@@ -14,12 +14,6 @@ pub trait ChannelMut: Channel {
     fn channel_mut(&mut self) -> &mut [Self::Element];
 }
 
-// /// Types that may be used as a constant-length buffer underlying a `Bounded` ring buffer.
-// pub trait FixedSizeArray {
-//     /// The constant length.
-//     const LEN: usize;
-// }
-
 impl<'a, T> Channel for &'a [T] {
     type Element = T;
     #[inline]

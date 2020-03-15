@@ -1,14 +1,11 @@
 use crate::color::conv::IntoLinSrgba;
-use crate::draw::primitive::polygon::{
-    PolygonIndices, PolygonInit, PolygonOptions, PolygonVertices, SetPolygon,
-};
+use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, SetColor, SetDimensions, SetOrientation,
-    SetPosition, SetStroke,
+    ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
-use crate::draw::{theme, Drawing};
+use crate::draw::{self, Drawing};
 use crate::geom::{self, Vector2};
 use crate::math::BaseFloat;
 use lyon::tessellation::StrokeOptions;
@@ -48,32 +45,36 @@ where
     }
 }
 
-impl<S> IntoDrawn<S> for Rect<S>
-where
-    S: BaseFloat,
-{
-    type Vertices = PolygonVertices;
-    type Indices = PolygonIndices;
-    fn into_drawn(self, mut draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+impl draw::renderer::RenderPrimitive for Rect<f32> {
+    fn render_primitive(
+        self,
+        ctxt: draw::renderer::RenderContext,
+        mesh: &mut draw::Mesh,
+    ) -> draw::renderer::VertexMode {
         let Rect {
             polygon,
             dimensions,
         } = self;
 
         // If dimensions were specified, scale the points to those dimensions.
-        let (maybe_x, maybe_y, maybe_z) = dimensions.to_scalars(&draw);
+        let (maybe_x, maybe_y, maybe_z) = (dimensions.x, dimensions.y, dimensions.z);
         assert!(
             maybe_z.is_none(),
             "z dimension support for rect is unimplemented"
         );
-        let default_w = || S::from(100.0).unwrap();
-        let default_h = || S::from(100.0).unwrap();
-        let w = maybe_x.unwrap_or_else(default_w);
-        let h = maybe_y.unwrap_or_else(default_h);
+        let w = maybe_x.unwrap_or(100.0);
+        let h = maybe_y.unwrap_or(100.0);
         let rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
         let points = rect.corners().vertices();
-        let polygon = draw.drawing_context(|ctxt| polygon.points(ctxt, points));
-        polygon.into_drawn_themed(draw, &theme::Primitive::Ellipse)
+        polygon::render_points_themed(
+            polygon.opts,
+            points,
+            ctxt,
+            &draw::theme::Primitive::Rect,
+            mesh,
+        );
+
+        draw::renderer::VertexMode::Color
     }
 }
 

@@ -55,7 +55,8 @@ fn model(app: &App) -> Model {
     // Create our `Draw` instance and a renderer for it.
     let draw = nannou::Draw::new();
     let descriptor = texture.descriptor();
-    let renderer = nannou::draw::Renderer::from_texture_descriptor(device, descriptor);
+    let renderer =
+        nannou::draw::RendererBuilder::new().build_from_texture_descriptor(device, descriptor);
 
     // Create the texture capturer.
     let texture_capturer = wgpu::TextureCapturer::with_num_threads(4);

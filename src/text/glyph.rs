@@ -48,6 +48,14 @@ pub struct SelectedRectsPerLine<'a, I> {
     end_cursor_idx: text::cursor::Index,
 }
 
+struct ContourPathEvents {
+    segments: std::vec::IntoIter<rusttype::Segment>,
+    first: lyon::math::Point,
+    begin_event: Option<lyon::path::PathEvent>,
+    first_segment_event: Option<lyon::path::PathEvent>,
+    last: Option<lyon::math::Point>,
+}
+
 impl<'a, 'b> Iterator for Rects<'a, 'b> {
     type Item = (ScaledGlyph<'a>, Rect);
     fn next(&mut self) -> Option<Self::Item> {
@@ -156,6 +164,29 @@ where
     }
 }
 
+impl Iterator for ContourPathEvents {
+    type Item = lyon::path::PathEvent;
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(event) = self.begin_event.take() {
+            return Some(event);
+        }
+        if let Some(event) = self.first_segment_event.take() {
+            return Some(event);
+        }
+        match self.segments.next() {
+            None => self.last.take().map(|last| lyon::path::PathEvent::End {
+                first: self.first,
+                last,
+                close: true,
+            }),
+            Some(seg) => {
+                self.last = Some(tp(rt_segment_end(&seg)));
+                Some(segment_to_event(seg))
+            }
+        }
+    }
+}
+
 /// Produce an iterator that, for every `(line, line_rect)` pair yielded by the given iterator,
 /// produces an iterator that yields a `Rect` for every character in that line.
 ///
@@ -227,6 +258,47 @@ fn rt_segment_start(s: &rusttype::Segment) -> rusttype::Point<f32> {
     }
 }
 
+fn rt_segment_end(s: &rusttype::Segment) -> rusttype::Point<f32> {
+    match *s {
+        rusttype::Segment::Line(ref line) => line.p[1],
+        rusttype::Segment::Curve(ref curve) => curve.p[2],
+    }
+}
+
+// Translate the rusttype point to a nannou compatible one.
+fn tp(p: rusttype::Point<f32>) -> lyon::math::Point {
+    lyon::math::point(p.x, p.y)
+}
+
+// The event for moving to the start of a segment.
+fn segment_begin_event(s: &rusttype::Segment) -> lyon::path::PathEvent {
+    let at = tp(rt_segment_start(s));
+    lyon::path::PathEvent::Begin { at }
+}
+
+// Convert the rusttype line to a lyon line segment.
+fn conv_line_segment(l: &rusttype::Line) -> lyon::path::PathEvent {
+    let from = tp(l.p[0]);
+    let to = tp(l.p[1]);
+    lyon::path::PathEvent::Line { from, to }
+}
+
+// Convert the rusttype curve to a lyon quadratic bezier segment.
+fn conv_curve_segment(c: &rusttype::Curve) -> lyon::path::PathEvent {
+    let from = tp(c.p[0]);
+    let ctrl = tp(c.p[1]);
+    let to = tp(c.p[2]);
+    lyon::path::PathEvent::Quadratic { from, ctrl, to }
+}
+
+// Convert the given rusttype segment to a lyon path event.
+fn segment_to_event(s: rusttype::Segment) -> lyon::path::PathEvent {
+    match s {
+        rusttype::Segment::Line(ref l) => conv_line_segment(l),
+        rusttype::Segment::Curve(ref c) => conv_curve_segment(c),
+    }
+}
+
 /// Convert the given sequence of contours to a `geom::Path`.
 ///
 /// In the resulting path events [0.0, 0.0] is the bottom left of the rect.
@@ -237,49 +309,25 @@ pub fn contours_to_path<'a, I>(
 where
     I: IntoIterator<Item = rusttype::Contour>,
 {
-    // Translate the rusttype point to a nannou compatible one.
-    let tp = move |p: rusttype::Point<f32>| lyon::math::point(p.x, p.y);
-
-    // The event for moving to the start of a segment.
-    let segment_move_event = move |s: &rusttype::Segment| -> lyon::path::PathEvent {
-        let start = tp(rt_segment_start(s));
-        lyon::path::PathEvent::MoveTo(start)
-    };
-
-    // Convert the rusttype line to a lyon line segment.
-    let conv_line_segment = move |l: &rusttype::Line| {
-        let from = tp(l.p[0]);
-        let to = tp(l.p[1]);
-        lyon::geom::LineSegment { from, to }
-    };
-
-    // Convert the rusttype curve to a lyon quadratic bezier segment.
-    let conv_curve_segment = move |c: &rusttype::Curve| {
-        let from = tp(c.p[0]);
-        let ctrl = tp(c.p[1]);
-        let to = tp(c.p[2]);
-        lyon::geom::QuadraticBezierSegment { from, ctrl, to }
-    };
-
-    // Convert the given rusttype segment to a lyon path event.
-    let segment_to_event = move |s: rusttype::Segment| -> lyon::path::PathEvent {
-        match s {
-            rusttype::Segment::Line(ref l) => {
-                let line_seg = conv_line_segment(l);
-                lyon::path::PathEvent::Line(line_seg)
-            }
-            rusttype::Segment::Curve(ref c) => {
-                let curve_seg = conv_curve_segment(c);
-                lyon::path::PathEvent::Quadratic(curve_seg)
-            }
-        }
-    };
-
     contours.into_iter().flat_map(move |contour| {
-        let mut segs = contour.segments.into_iter().peekable();
-        let first_event = segs.peek().map(|s| segment_move_event(s));
-        let events = segs.map(segment_to_event);
-        first_event.into_iter().chain(events)
+        let mut segs = contour.segments.into_iter();
+        let maybe_first = segs.next();
+        maybe_first
+            .map(move |first_seg| {
+                let first = tp(rt_segment_start(&first_seg));
+                let last = Some(tp(rt_segment_end(&first_seg)));
+                let begin_event = Some(segment_begin_event(&first_seg));
+                let first_segment_event = Some(segment_to_event(first_seg));
+                ContourPathEvents {
+                    segments: segs,
+                    first,
+                    last,
+                    begin_event,
+                    first_segment_event,
+                }
+            })
+            .into_iter()
+            .flat_map(move |it| it)
     })
 }
 

@@ -1,12 +1,11 @@
 use crate::color::LinSrgba;
+use crate::draw::primitive::path;
 use crate::draw::primitive::{PathStroke, Primitive};
 use crate::draw::properties::spatial::{orientation, position};
-use crate::draw::properties::{
-    ColorScalar, Draw, Drawn, IntoDrawn, SetColor, SetOrientation, SetPosition, SetStroke,
-};
+use crate::draw::properties::{ColorScalar, SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
 use crate::geom::{self, pt2, Point2};
-use crate::math::BaseFloat;
+use crate::math::{BaseFloat, Zero};
 use lyon::tessellation::StrokeOptions;
 
 /// A path containing only two points - a start and end.
@@ -131,24 +130,45 @@ impl<S> Into<Option<Line<S>>> for Primitive<S> {
     }
 }
 
-impl<S> IntoDrawn<S> for Line<S>
-where
-    S: BaseFloat,
-{
-    type Vertices = draw::properties::VerticesFromRanges;
-    type Indices = draw::properties::IndicesFromRange;
-
-    fn into_drawn(self, mut draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+impl draw::renderer::RenderPrimitive for Line<f32> {
+    fn render_primitive(
+        self,
+        mut ctxt: draw::renderer::RenderContext,
+        mesh: &mut draw::Mesh,
+    ) -> draw::renderer::VertexMode {
         let Line { path, start, end } = self;
-        let start = start.unwrap_or_else(|| pt2(S::zero(), S::zero()));
-        let end = end.unwrap_or_else(|| pt2(S::zero(), S::zero()));
+        let start = start.unwrap_or(pt2(0.0, 0.0));
+        let end = end.unwrap_or(pt2(0.0, 0.0));
+        let close = false;
         let points = [start, end];
-        let path = draw.drawing_context(|ctxt| path.points(ctxt, points.iter().cloned()));
-        path.into_drawn(draw)
+        let points = points.iter().cloned().map(Into::into);
+        let events = lyon::path::iterator::FromPolyline::new(close, points);
+
+        // Determine the transform to apply to all points.
+        let global_transform = ctxt.transform;
+        let local_transform = path.position.transform() * path.orientation.transform();
+        let transform = global_transform * local_transform;
+
+        path::render_path_events(
+            events,
+            path.color,
+            transform,
+            path::Options::Stroke(path.opts),
+            &ctxt.theme,
+            &draw::theme::Primitive::Line,
+            &mut ctxt.fill_tessellator,
+            &mut ctxt.stroke_tessellator,
+            mesh,
+        );
+
+        draw::renderer::VertexMode::Color
     }
 }
 
-impl<S> Default for Line<S> {
+impl<S> Default for Line<S>
+where
+    S: Zero,
+{
     fn default() -> Self {
         Line {
             path: Default::default(),

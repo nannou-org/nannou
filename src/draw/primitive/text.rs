@@ -2,11 +2,11 @@ use crate::draw::drawing::DrawingContext;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{
-    ColorScalar, Draw, Drawn, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition,
+    ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition,
 };
-use crate::draw::{self, theme, Drawing, IntoDrawn};
+use crate::draw::{self, theme, Drawing};
 use crate::geom::{self, Vector2};
-use crate::math::BaseFloat;
+use crate::math::{BaseFloat, Zero};
 use crate::text::{self, Align, Font, FontSize, Justify, Layout, Scalar, Wrap};
 
 /// Properties related to drawing the **Text** primitive.
@@ -30,7 +30,10 @@ pub type DrawingText<'a, S = geom::scalar::Default> = Drawing<'a, Text<S>, S>;
 
 impl<S> Text<S> {
     /// Begin drawing some text.
-    pub fn new(ctxt: DrawingContext<S>, text: &str) -> Self {
+    pub fn new(ctxt: DrawingContext<S>, text: &str) -> Self
+    where
+        S: Zero,
+    {
         let start = ctxt.text_buffer.len();
         ctxt.text_buffer.push_str(text);
         let end = ctxt.text_buffer.len();
@@ -237,13 +240,12 @@ where
     }
 }
 
-impl<S> IntoDrawn<S> for Text<S>
-where
-    S: BaseFloat,
-{
-    type Vertices = draw::properties::VerticesFromRanges;
-    type Indices = draw::properties::IndicesFromRange;
-    fn into_drawn(self, mut draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+impl draw::renderer::RenderPrimitive for Text<f32> {
+    fn render_primitive(
+        self,
+        ctxt: draw::renderer::RenderContext,
+        mesh: &mut draw::Mesh,
+    ) -> draw::renderer::VertexMode {
         let Text {
             spatial,
             style,
@@ -251,7 +253,11 @@ where
         } = self;
         let Style { color, layout } = style;
         let layout = layout.build();
-        let (maybe_x, maybe_y, maybe_z) = spatial.dimensions.to_scalars(&draw);
+        let (maybe_x, maybe_y, maybe_z) = (
+            spatial.dimensions.x,
+            spatial.dimensions.y,
+            spatial.dimensions.z,
+        );
         assert!(
             maybe_z.is_none(),
             "z dimension support for text is unimplemented"
@@ -263,42 +269,121 @@ where
             .map(|s| <f32 as crate::math::NumCast>::from(s).unwrap())
             .unwrap_or(200.0);
         let rect: geom::Rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
-        let color = color.unwrap_or_else(|| draw.theme().fill_lin_srgba(&theme::Primitive::Text));
-        let path = draw.drawing_context(|ctxt| {
-            let DrawingContext {
-                mesh,
-                fill_tessellator,
-                path_event_buffer,
-                text_buffer,
-                glyph_cache,
-            } = ctxt;
-            let text_str = &text_buffer[text.clone()];
-            let text = text::text(text_str).layout(&layout).build(rect);
+        let color = color.unwrap_or_else(|| ctxt.theme.fill_lin_srgba(&theme::Primitive::Text));
 
-            // TODO:
-            // - Using `Path` is very slow - we should be caching glyphs.
-            // - Can't do the CPU raster of the text here due to not knowing the DPI.
-            // - We don't know the DPI until we finally draw to the frame.
-            // - We should switch `Draw` to yield "primitives" rather than directly yielding
-            //   vertices and indices. This way we can handle the text raster later on and can
-            //   continue to ignore information about the window and DPI until finally drawing to
-            //   the frame.
-            use draw::primitive::path::PathInit;
-            let path: PathInit<S> = Default::default();
-            let mut empty_text = String::new();
-            let ctxt = DrawingContext {
-                mesh,
-                fill_tessellator,
-                path_event_buffer,
-                glyph_cache,
-                text_buffer: &mut empty_text,
-            };
-            let mut path = path.fill().color(color).events(ctxt, text.path_events());
-            *SetPosition::properties(&mut path) = spatial.position;
-            *SetOrientation::properties(&mut path) = spatial.orientation;
-            path
-        });
-        path.into_drawn(draw)
+        let text_str = &ctxt.text_buffer[text.clone()];
+        let text = text::text(text_str).layout(&layout).build(rect);
+
+        // Queue the glyphs to be cached
+        let font_id = text::font::id(text.font());
+        let positioned_glyphs: Vec<_> = text
+            .rt_glyphs(
+                ctxt.output_attachment_size,
+                ctxt.output_attachment_scale_factor,
+            )
+            .collect();
+        for glyph in positioned_glyphs.iter() {
+            ctxt.glyph_cache.queue_glyph(font_id.index(), glyph.clone());
+        }
+
+        // Cache the enqueued glyphs within the pixel buffer.
+        let (glyph_cache_w, _) = ctxt.glyph_cache.dimensions();
+        {
+            let draw::renderer::RenderContext {
+                glyph_cache:
+                    &mut draw::renderer::GlyphCache {
+                        ref mut cache,
+                        ref mut pixel_buffer,
+                        ref mut requires_upload,
+                        ..
+                    },
+                ..
+            } = ctxt;
+            let glyph_cache_w = glyph_cache_w as usize;
+            let res = cache.cache_queued(|rect, data| {
+                let width = (rect.max.x - rect.min.x) as usize;
+                let height = (rect.max.y - rect.min.y) as usize;
+                let mut dst_ix = rect.min.y as usize * glyph_cache_w + rect.min.x as usize;
+                let mut src_ix = 0;
+                for _ in 0..height {
+                    let dst_range = dst_ix..dst_ix + width;
+                    let src_range = src_ix..src_ix + width;
+                    let dst_slice = &mut pixel_buffer[dst_range];
+                    let src_slice = &data[src_range];
+                    dst_slice.copy_from_slice(src_slice);
+                    dst_ix += glyph_cache_w;
+                    src_ix += width;
+                }
+                *requires_upload = true;
+            });
+            if let Err(err) = res {
+                eprintln!("failed to cache queued glyphs: {}", err);
+            }
+        }
+
+        // Determine the transform to apply to all points.
+        let global_transform = ctxt.transform;
+        let local_transform = spatial.position.transform() * spatial.orientation.transform();
+        let transform = global_transform * local_transform;
+
+        // A function for converting RustType rects to nannou rects.
+        let scale_factor = ctxt.output_attachment_scale_factor;
+        let (out_w, out_h) = ctxt.output_attachment_size.into();
+        let [half_out_w, half_out_h] = [out_w as f32 / 2.0, out_h as f32 / 2.0];
+        let to_nannou_rect = |screen_rect: text::rt::Rect<i32>| {
+            let l = screen_rect.min.x as f32 / scale_factor - half_out_w;
+            let r = screen_rect.max.x as f32 / scale_factor - half_out_w;
+            let t = -(screen_rect.min.y as f32 / scale_factor - half_out_h);
+            let b = -(screen_rect.max.y as f32 / scale_factor - half_out_h);
+            geom::Rect::from_corners(geom::pt2(l, b), geom::pt2(r, t))
+        };
+
+        // Extend the mesh with a rect for each displayed glyph.
+        for g in positioned_glyphs {
+            if let Ok(Some((uv_rect, screen_rect))) = ctxt.glyph_cache.rect_for(font_id.index(), &g)
+            {
+                let rect = to_nannou_rect(screen_rect);
+
+                // Create a mesh-compatible vertex from the position and tex_coords.
+                let v = |position, tex_coords: [f32; 2]| -> draw::mesh::Vertex {
+                    let p = geom::Point3::from(position);
+                    let p = cgmath::Transform::transform_point(&transform, p.into());
+                    let point = draw::mesh::vertex::Point::from(p);
+                    draw::mesh::vertex::new(point, color, tex_coords.into())
+                };
+
+                // The sides of the UV rect.
+                let uv_l = uv_rect.min.x;
+                let uv_t = uv_rect.min.y;
+                let uv_r = uv_rect.max.x;
+                let uv_b = uv_rect.max.y;
+
+                // Insert the vertices.
+                let bottom_left = v(rect.bottom_left(), [uv_l, uv_b]);
+                let bottom_right = v(rect.bottom_right(), [uv_r, uv_b]);
+                let top_left = v(rect.top_left(), [uv_l, uv_t]);
+                let top_right = v(rect.top_right(), [uv_r, uv_t]);
+                let start_ix = mesh.points().len() as u32;
+                mesh.push_vertex(top_left);
+                mesh.push_vertex(bottom_left);
+                mesh.push_vertex(bottom_right);
+                mesh.push_vertex(top_right);
+
+                // Now the indices.
+                let tl_ix = start_ix;
+                let bl_ix = start_ix + 1;
+                let br_ix = start_ix + 2;
+                let tr_ix = start_ix + 3;
+                mesh.push_index(tl_ix);
+                mesh.push_index(bl_ix);
+                mesh.push_index(br_ix);
+                mesh.push_index(tl_ix);
+                mesh.push_index(br_ix);
+                mesh.push_index(tr_ix);
+            }
+        }
+
+        draw::renderer::VertexMode::Text
     }
 }
 

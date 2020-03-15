@@ -1,7 +1,7 @@
 use crate::draw::mesh::vertex::IntoVertex;
 use crate::draw::primitive::Primitive;
-use crate::draw::properties::spatial::{self, orientation, position};
-use crate::draw::properties::{Draw, Drawn, IntoDrawn, SetOrientation, SetPosition};
+use crate::draw::properties::spatial::{orientation, position};
+use crate::draw::properties::{SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
 use crate::geom;
 use crate::math::BaseFloat;
@@ -173,13 +173,12 @@ where
     }
 }
 
-impl<S> IntoDrawn<S> for Mesh<S>
-where
-    S: BaseFloat,
-{
-    type Vertices = draw::properties::VerticesFromRanges;
-    type Indices = draw::properties::IndicesFromRange;
-    fn into_drawn(self, _draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+impl draw::renderer::RenderPrimitive for Mesh<f32> {
+    fn render_primitive(
+        self,
+        ctxt: draw::renderer::RenderContext,
+        mesh: &mut draw::Mesh,
+    ) -> draw::renderer::VertexMode {
         let Mesh {
             orientation,
             position,
@@ -188,15 +187,34 @@ where
             min_intermediary_index,
         } = self;
 
-        let dimensions = spatial::dimension::Properties::default();
-        let spatial = spatial::Properties {
-            dimensions,
-            orientation,
-            position,
-        };
-        let vertices = draw::properties::VerticesFromRanges::new(vertex_data_ranges, None);
-        let indices = draw::properties::IndicesFromRange::new(index_range, min_intermediary_index);
-        (spatial, vertices, indices)
+        // Determine the transform to apply to vertices.
+        let global_transform = ctxt.transform;
+        let local_transform = position.transform() * orientation.transform();
+        let transform = global_transform * local_transform;
+
+        // TODO: Could probably do this without `*FromRange`?
+        let vertices_start_index = mesh.raw_vertex_count();
+        let mut vertices = draw::properties::VerticesFromRanges::new(vertex_data_ranges, None);
+        let mut indices =
+            draw::properties::IndicesFromRange::new(index_range, min_intermediary_index);
+        let vertices = std::iter::from_fn(|| {
+            vertices.next(ctxt.intermediary_mesh).map(|mut v| {
+                let p = *v.point();
+                let p = cgmath::Point3::new(p.x, p.y, p.z);
+                let p = cgmath::Transform::transform_point(&transform, p);
+                v.vertex.vertex = geom::vec3(p.x, p.y, p.z);
+                v
+            })
+        });
+        let indices = std::iter::from_fn(|| {
+            indices
+                .next(&ctxt.intermediary_mesh.indices)
+                .map(|i| (vertices_start_index + i - min_intermediary_index) as u32)
+        });
+        mesh.extend(vertices, indices);
+
+        // TODO: Allow more options here.
+        draw::renderer::VertexMode::Color
     }
 }
 

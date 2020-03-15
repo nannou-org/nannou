@@ -23,7 +23,6 @@ use find_folder;
 use std;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
@@ -150,23 +149,11 @@ struct Config {
     fullscreen_on_shortcut: bool,
 }
 
-/// A **nannou::Draw** instance owned by the **App**. A simple API for sketching with 2D and 3D
-/// graphics.
-///
-/// This is a conveniently accessible **Draw** instance which can be easily re-used between calls
-/// to an app's **view** function.
-#[derive(Debug)]
-pub struct Draw<'a> {
-    window_id: window::Id,
-    draw: RefMut<'a, draw::Draw<DrawScalar>>,
-    renderer: RefMut<'a, RefCell<draw::backend::wgpu::Renderer>>,
-}
-
 // Draw state managed by the **App**.
 #[derive(Debug)]
 struct DrawState {
     draw: RefCell<draw::Draw<DrawScalar>>,
-    renderers: RefCell<HashMap<window::Id, RefCell<draw::backend::wgpu::Renderer>>>,
+    renderers: RefCell<HashMap<window::Id, RefCell<draw::Renderer>>>,
 }
 
 /// The app uses a set scalar type in order to provide a simplistic API to users.
@@ -763,56 +750,13 @@ impl App {
 
     /// Produce the **App**'s **Draw** API for drawing geometry and text with colors and textures.
     ///
-    /// **Note:** There may only be a single **app::Draw** instance at any point in time. If this
-    /// method is called while there is a pre-existing instance of **app::Draw** this method will
-    /// **panic**.
-    ///
-    /// Returns **None** if there is no window for the given **window::Id**.
-    pub fn draw_for_window(&self, window_id: window::Id) -> Option<Draw> {
-        let window = match self.window(window_id) {
-            None => return None,
-            Some(window) => window,
-        };
-
+    /// **Note:** You can also create your own **Draw** instances via `Draw::new()`! This method
+    /// makes it a tiny bit easier as the **App** stores the **Draw** instance for you and
+    /// automatically resets the state on each call to `app.draw()`.
+    pub fn draw(&self) -> draw::Draw {
         let draw = self.draw_state.draw.borrow_mut();
         draw.reset();
-
-        let renderers = self.draw_state.renderers.borrow_mut();
-        let renderer = RefMut::map(renderers, |renderers| {
-            renderers.entry(window_id).or_insert_with(|| {
-                let device = window.swap_chain_device();
-                let frame_dims: [u32; 2] = window.tracked_state.physical_size.into();
-                let msaa_samples = window.msaa_samples();
-                let target_format = crate::frame::Frame::TEXTURE_FORMAT;
-                let renderer = draw::backend::wgpu::Renderer::new(
-                    device,
-                    frame_dims,
-                    msaa_samples,
-                    target_format,
-                );
-                RefCell::new(renderer)
-            })
-        });
-        Some(Draw {
-            window_id,
-            draw,
-            renderer,
-        })
-    }
-
-    /// Produce the **App**'s **Draw** API for drawing geometry and text with colors and textures.
-    ///
-    /// This is a simplified wrapper around the **App::draw_for_window** method that draws to the
-    /// window currently in focus.
-    ///
-    /// **Panics** if there are no windows open.
-    ///
-    /// **Note:** There may only be a single **app::Draw** instance at any point in time. If this
-    /// method is called while there is a pre-existing instance of **app::Draw** this method will
-    /// **panic**.
-    pub fn draw(&self) -> Draw {
-        self.draw_for_window(self.window_id())
-            .expect("no window open for `app.window_id`")
+        draw.clone()
     }
 
     /// The number of times the focused window's **view** function has been called since the start
@@ -859,37 +803,38 @@ impl Proxy {
     }
 }
 
-impl<'a> Draw<'a> {
-    /// Draw the current state of the inner mesh to the given frame.
-    pub fn to_frame(&self, app: &App, frame: &Frame) -> Result<(), draw::backend::wgpu::DrawError> {
+impl draw::Draw {
+    /// Render the **Draw**'s inner list of commands to the texture associated with the **Frame**.
+    ///
+    /// The **App** stores a unique render.
+    pub fn to_frame(&self, app: &App, frame: &Frame) -> Result<(), draw::renderer::DrawError> {
+        let window_id = frame.window_id();
         let window = app
-            .window(self.window_id)
+            .window(window_id)
             .expect("no window to draw to for `app::Draw`'s window_id");
-        assert_eq!(
-            self.window_id,
-            frame.window_id(),
-            "attempted to draw content intended for window {:?} in a frame \
-             associated with window {:?}",
-            self.window_id,
-            frame.window_id(),
-        );
+
+        // Retrieve a renderer for this window.
+        let renderers = app.draw_state.renderers.borrow_mut();
+        let renderer = RefMut::map(renderers, |renderers| {
+            renderers.entry(window_id).or_insert_with(|| {
+                let device = window.swap_chain_device();
+                let frame_dims: [u32; 2] = window.tracked_state.physical_size.into();
+                let msaa_samples = window.msaa_samples();
+                let target_format = crate::frame::Frame::TEXTURE_FORMAT;
+                let renderer = draw::RendererBuilder::new().build(
+                    device,
+                    frame_dims,
+                    msaa_samples,
+                    target_format,
+                );
+                RefCell::new(renderer)
+            })
+        });
+
         let scale_factor = window.tracked_state.scale_factor as _;
-        let mut renderer = self.renderer.borrow_mut();
-        renderer.render_to_frame(window.swap_chain_device(), &self.draw, scale_factor, frame);
+        let mut renderer = renderer.borrow_mut();
+        renderer.render_to_frame(window.swap_chain_device(), self, scale_factor, frame);
         Ok(())
-    }
-}
-
-impl<'a> Deref for Draw<'a> {
-    type Target = RefMut<'a, draw::Draw<DrawScalar>>;
-    fn deref(&self) -> &Self::Target {
-        &self.draw
-    }
-}
-
-impl<'a> DerefMut for Draw<'a> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.draw
     }
 }
 

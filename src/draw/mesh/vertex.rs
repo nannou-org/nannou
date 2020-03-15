@@ -27,6 +27,9 @@ pub trait IntoPoint<S> {
     fn into_point(self) -> Point<S>;
 }
 
+/// The number of channels in the color type.
+pub const COLOR_CHANNEL_COUNT: usize = 4;
+
 // IntoVertex Implementations.
 
 const DEFAULT_VERTEX_COLOR: Color = color::Alpha {

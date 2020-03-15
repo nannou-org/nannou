@@ -1,4 +1,5 @@
 use crate::geom;
+use crate::math::Zero;
 
 pub mod dimension;
 pub mod orientation;
@@ -20,7 +21,10 @@ pub struct Properties<S = geom::scalar::Default> {
     pub orientation: orientation::Properties<S>,
 }
 
-impl<S> Default for Properties<S> {
+impl<S> Default for Properties<S>
+where
+    S: Zero,
+{
     fn default() -> Self {
         let position = Default::default();
         let dimensions = Default::default();

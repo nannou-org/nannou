@@ -5,13 +5,15 @@ use crate::math::{BaseFloat, BaseNum};
 use crate::mesh::{self, MeshPoints, WithColors, WithIndices, WithTexCoords};
 use std::ops::{Deref, DerefMut};
 
+pub mod builder;
 pub mod intermediary;
 pub mod vertex;
 
+pub use self::builder::MeshBuilder;
 pub use self::vertex::Vertex;
 
 pub type Points<S> = Vec<vertex::Point<S>>;
-pub type Indices = Vec<usize>;
+pub type Indices = Vec<u32>;
 pub type Colors = Vec<vertex::Color>;
 pub type TexCoords<S> = Vec<vertex::TexCoords<S>>;
 
@@ -50,7 +52,7 @@ where
     }
 
     /// The **Mesh**'s vertex indices channel.
-    pub fn indices(&self) -> &[usize] {
+    pub fn indices(&self) -> &[u32] {
         mesh::Indices::indices(self)
     }
 
@@ -73,7 +75,7 @@ where
     }
 
     /// Push the given index onto the inner **Indices** channel.
-    pub fn push_index(&mut self, i: usize) {
+    pub fn push_index(&mut self, i: u32) {
         mesh::push_index(self, i);
     }
 
@@ -88,7 +90,7 @@ where
     /// Extend the **Mesh** indices channel with the given indices.
     pub fn extend_indices<I>(&mut self, is: I)
     where
-        I: IntoIterator<Item = usize>,
+        I: IntoIterator<Item = u32>,
     {
         mesh::extend_indices(self, is);
     }
@@ -97,10 +99,43 @@ where
     pub fn extend<V, I>(&mut self, vs: V, is: I)
     where
         V: IntoIterator<Item = Vertex<S>>,
-        I: IntoIterator<Item = usize>,
+        I: IntoIterator<Item = u32>,
     {
         self.extend_vertices(vs);
         self.extend_indices(is);
+    }
+
+    /// Extend the mesh from the given slices.
+    ///
+    /// This is faster than `extend` which uses iteration internally.
+    ///
+    /// **Panic!**s if the length of the given points, colors and tex_coords slices do not match.
+    pub fn extend_from_slices(
+        &mut self,
+        points: &[vertex::Point<S>],
+        indices: &[u32],
+        colors: &[vertex::Color],
+        tex_coords: &[vertex::TexCoords<S>],
+    ) {
+        assert_eq!(points.len(), colors.len());
+        assert_eq!(points.len(), tex_coords.len());
+        let slices = (tex_coords, (colors, (indices, points)));
+        mesh::ExtendFromSlice::extend_from_slice(&mut self.mesh, slices);
+    }
+
+    /// Extend the mesh with the given slices of vertices.
+    pub fn extend_vertices_from_slices(
+        &mut self,
+        points: &[vertex::Point<S>],
+        colors: &[vertex::Color],
+        tex_coords: &[vertex::TexCoords<S>],
+    ) {
+        self.extend_from_slices(points, &[], colors, tex_coords);
+    }
+
+    /// Extend the mesh with the given slices of vertices.
+    pub fn extend_indices_from_slice(&mut self, indices: &[u32]) {
+        self.extend_from_slices(&[], indices, &[], &[]);
     }
 
     /// Clear all vertices from the mesh.
@@ -169,12 +204,12 @@ impl<S> DerefMut for Mesh<S> {
     }
 }
 
-impl<S> mesh::GetVertex for Mesh<S>
+impl<S> mesh::GetVertex<u32> for Mesh<S>
 where
-    MeshType<S>: mesh::GetVertex<Vertex = Vertex<S>>,
+    MeshType<S>: mesh::GetVertex<u32, Vertex = Vertex<S>>,
 {
     type Vertex = Vertex<S>;
-    fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
+    fn get_vertex(&self, index: u32) -> Option<Self::Vertex> {
         self.mesh.get_vertex(index)
     }
 }
@@ -192,6 +227,7 @@ where
 }
 
 impl<S> mesh::Indices for Mesh<S> {
+    type Index = u32;
     type Indices = Indices;
     fn indices(&self) -> &Self::Indices {
         self.mesh.indices()
@@ -224,13 +260,15 @@ impl<S> mesh::PushVertex<Vertex<S>> for Mesh<S> {
 }
 
 impl<S> mesh::PushIndex for Mesh<S> {
-    fn push_index(&mut self, index: usize) {
+    type Index = u32;
+
+    fn push_index(&mut self, index: Self::Index) {
         self.mesh.push_index(index);
     }
 
     fn extend_indices<I>(&mut self, indices: I)
     where
-        I: IntoIterator<Item = usize>,
+        I: IntoIterator<Item = Self::Index>,
     {
         self.mesh.extend_indices(indices);
     }

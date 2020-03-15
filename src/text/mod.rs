@@ -420,7 +420,6 @@ impl<'a> Text<'a> {
 
     /// Produce an iterator yielding the path events for every glyph in every line.
     pub fn path_events<'b>(&'b self) -> impl 'b + Iterator<Item = lyon::path::PathEvent> {
-        use lyon::geom::{CubicBezierSegment, LineSegment, QuadraticBezierSegment};
         use lyon::path::PathEvent;
 
         // Translate the given lyon point by the given vector.
@@ -431,26 +430,42 @@ impl<'a> Text<'a> {
         // Translate the given path event in 2D space.
         fn trans_path_event(e: &PathEvent, v: geom::Vector2) -> PathEvent {
             match *e {
-                PathEvent::MoveTo(ref p) => PathEvent::MoveTo(trans_lyon_point(p, v)),
-                PathEvent::Line(ref e) => PathEvent::Line(LineSegment {
-                    from: trans_lyon_point(&e.from, v),
-                    to: trans_lyon_point(&e.to, v),
-                }),
-                PathEvent::Quadratic(ref e) => PathEvent::Quadratic(QuadraticBezierSegment {
-                    from: trans_lyon_point(&e.from, v),
-                    ctrl: trans_lyon_point(&e.ctrl, v),
-                    to: trans_lyon_point(&e.to, v),
-                }),
-                PathEvent::Cubic(ref e) => PathEvent::Cubic(CubicBezierSegment {
-                    from: trans_lyon_point(&e.from, v),
-                    ctrl1: trans_lyon_point(&e.ctrl1, v),
-                    ctrl2: trans_lyon_point(&e.ctrl2, v),
-                    to: trans_lyon_point(&e.to, v),
-                }),
-                PathEvent::Close(ref e) => PathEvent::Close(LineSegment {
-                    from: trans_lyon_point(&e.from, v),
-                    to: trans_lyon_point(&e.to, v),
-                }),
+                PathEvent::Begin { ref at } => PathEvent::Begin {
+                    at: trans_lyon_point(at, v),
+                },
+                PathEvent::Line { ref from, ref to } => PathEvent::Line {
+                    from: trans_lyon_point(from, v),
+                    to: trans_lyon_point(to, v),
+                },
+                PathEvent::Quadratic {
+                    ref from,
+                    ref ctrl,
+                    ref to,
+                } => PathEvent::Quadratic {
+                    from: trans_lyon_point(from, v),
+                    ctrl: trans_lyon_point(ctrl, v),
+                    to: trans_lyon_point(to, v),
+                },
+                PathEvent::Cubic {
+                    ref from,
+                    ref ctrl1,
+                    ref ctrl2,
+                    ref to,
+                } => PathEvent::Cubic {
+                    from: trans_lyon_point(from, v),
+                    ctrl1: trans_lyon_point(ctrl1, v),
+                    ctrl2: trans_lyon_point(ctrl2, v),
+                    to: trans_lyon_point(to, v),
+                },
+                PathEvent::End {
+                    ref last,
+                    ref first,
+                    ref close,
+                } => PathEvent::End {
+                    last: trans_lyon_point(last, v),
+                    first: trans_lyon_point(first, v),
+                    close: *close,
+                },
             }
         }
 
@@ -464,19 +479,20 @@ impl<'a> Text<'a> {
 
     /// Produce an iterator yielding positioned rusttype glyphs ready for caching.
     ///
-    /// The window dimensions and DPI are required to transform glyph positions into rusttype's
-    /// pixel-space, ready for caching into the rusttype glyph cache pixel buffer.
+    /// The window dimensions (in logical space) and scale_factor are required to transform glyph
+    /// positions into rusttype's pixel-space, ready for caching into the rusttype glyph cache
+    /// pixel buffer.
     pub fn rt_glyphs<'b: 'a>(
         &'b self,
-        window_dims: geom::Vector2,
-        dpi_factor: Scalar,
+        window_size: geom::Vector2,
+        scale_factor: Scalar,
     ) -> impl 'a + 'b + Iterator<Item = PositionedGlyph> {
         rt_positioned_glyphs(
             self.lines_with_rects(),
             &self.font,
             self.layout.font_size,
-            window_dims,
-            dpi_factor,
+            window_size,
+            scale_factor,
         )
     }
 
@@ -603,23 +619,25 @@ pub fn position_offset(
 }
 
 /// Produce the position of each glyph ready for the rusttype glyph cache.
+///
+/// Window dimensions are expected in logical coordinates.
 pub fn rt_positioned_glyphs<'a, I>(
     lines_with_rects: I,
     font: &'a Font,
     font_size: FontSize,
-    window_dim: geom::Vector2,
-    dpi_factor: Scalar,
+    window_size: geom::Vector2,
+    scale_factor: Scalar,
 ) -> impl 'a + Iterator<Item = PositionedGlyph>
 where
     I: IntoIterator<Item = (&'a str, geom::Rect)>,
     I::IntoIter: 'a,
 {
     // Functions for converting nannou coordinates to rusttype pixel coordinates.
-    let trans_x = move |x: Scalar| (x + window_dim[0] / 2.0) * dpi_factor as Scalar;
-    let trans_y = move |y: Scalar| ((-y) + window_dim[1] / 2.0) * dpi_factor as Scalar;
+    let trans_x = move |x: Scalar| (x + window_size.x / 2.0) * scale_factor as Scalar;
+    let trans_y = move |y: Scalar| ((-y) + window_size.y / 2.0) * scale_factor as Scalar;
 
     // Clear the existing glyphs and fill the buffer with glyphs for this Text.
-    let scale = f32_pt_to_scale(font_size as f32 * dpi_factor);
+    let scale = f32_pt_to_scale(font_size as f32 * scale_factor);
     lines_with_rects
         .into_iter()
         .flat_map(move |(line, line_rect)| {

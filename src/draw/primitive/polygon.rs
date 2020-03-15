@@ -1,18 +1,16 @@
 use crate::color::conv::IntoLinSrgba;
 use crate::draw::drawing::DrawingContext;
+use crate::draw::primitive::path::{self, PathEventSource};
 use crate::draw::primitive::Primitive;
-use crate::draw::properties::spatial::{self, orientation, position};
+use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{
-    ColorScalar, Draw, Drawn, IndicesChain, IndicesFromRange, IntoDrawn, LinSrgba, SetColor,
-    SetOrientation, SetPosition, SetStroke, VerticesChain, VerticesFromRanges,
+    ColorScalar, LinSrgba, SetColor, SetOrientation, SetPosition, SetStroke,
 };
-use crate::draw::{self, theme, Drawing};
+use crate::draw::{self, Drawing};
 use crate::geom::{self, Point2};
-use crate::math::BaseFloat;
-use lyon::path::iterator::FlattenedIterator;
+use crate::math::{BaseFloat, Zero};
 use lyon::path::PathEvent;
-use lyon::tessellation::{StrokeOptions, StrokeTessellator};
-use std::ops;
+use lyon::tessellation::StrokeOptions;
 
 /// A trait implemented for all polygon draw primitives.
 pub trait SetPolygon<S>: Sized {
@@ -47,7 +45,7 @@ pub trait SetPolygon<S>: Sized {
 /// State related to drawing a **Polygon**.
 #[derive(Clone, Debug)]
 pub struct PolygonInit<S = geom::scalar::Default> {
-    opts: PolygonOptions<S>,
+    pub(crate) opts: PolygonOptions<S>,
 }
 
 /// The set of options shared by all polygon types.
@@ -64,16 +62,8 @@ pub struct PolygonOptions<S = geom::scalar::Default> {
 /// A polygon with vertices already submitted.
 #[derive(Clone, Debug)]
 pub struct Polygon<S = geom::scalar::Default> {
-    position: position::Properties<S>,
-    orientation: orientation::Properties<S>,
-    color: Option<LinSrgba>,
-    stroke_color: Option<LinSrgba>,
-    vertex_data_ranges: (
-        draw::IntermediaryVertexDataRanges,
-        draw::IntermediaryVertexDataRanges,
-    ),
-    index_ranges: (ops::Range<usize>, ops::Range<usize>),
-    min_index: usize,
+    opts: PolygonOptions<S>,
+    path_event_src: PathEventSource,
 }
 
 /// Initialised drawing state for a polygon.
@@ -81,11 +71,6 @@ pub type DrawingPolygonInit<'a, S = geom::scalar::Default> = Drawing<'a, Polygon
 
 /// Initialised drawing state for a polygon.
 pub type DrawingPolygon<'a, S = geom::scalar::Default> = Drawing<'a, Polygon<S>, S>;
-
-pub(crate) type PolygonVertices = VerticesChain<VerticesFromRanges, VerticesFromRanges>;
-pub(crate) type PolygonIndices = IndicesChain<IndicesFromRange, IndicesFromRange>;
-
-pub type DrawnPolygon<S> = Drawn<S, PolygonVertices, PolygonIndices>;
 
 impl<S> PolygonInit<S> {
     /// Stroke the outline with the given color.
@@ -103,66 +88,14 @@ impl<S> PolygonInit<S> {
         I: IntoIterator<Item = PathEvent>,
     {
         let DrawingContext {
-            mesh,
-            fill_tessellator,
-            path_event_buffer,
-            ..
+            path_event_buffer, ..
         } = ctxt;
-
-        path_event_buffer.clear();
+        let start = path_event_buffer.len();
         path_event_buffer.extend(events);
-
-        // Fill tessellation.
-        let (fill_vdr, fill_ir, min_index) = if !self.opts.no_fill {
-            let mut builder = mesh.builder();
-            let opts = Default::default();
-            let events = path_event_buffer.iter().cloned();
-            let res = fill_tessellator.tessellate_path(events, &opts, &mut builder);
-            if let Err(err) = res {
-                eprintln!("fill tessellation failed: {:?}", err);
-            }
-            (
-                builder.vertex_data_ranges(),
-                builder.index_range(),
-                builder.min_index(),
-            )
-        } else {
-            let builder = mesh.builder();
-            (
-                builder.vertex_data_ranges(),
-                builder.index_range(),
-                builder.min_index(),
-            )
-        };
-
-        // Stroke tessellation.
-        let (stroke_vdr, stroke_ir) = match (self.opts.stroke, self.opts.stroke_color) {
-            (options, color) if options.is_some() || color.is_some() => {
-                let opts = options.unwrap_or_else(Default::default);
-                let mut builder = mesh.builder();
-                let mut stroke_tessellator = StrokeTessellator::default();
-                let events = path_event_buffer.drain(..);
-                let res = stroke_tessellator.tessellate_path(events, &opts, &mut builder);
-                if let Err(err) = res {
-                    eprintln!("stroke tessellation failed: {:?}", err);
-                }
-                let stroke_vdr = builder.vertex_data_ranges();
-                let stroke_ir = builder.index_range();
-                (stroke_vdr, stroke_ir)
-            }
-            _ => (Default::default(), 0..0),
-        };
-
-        path_event_buffer.clear();
-
+        let end = path_event_buffer.len();
         Polygon {
-            position: self.opts.position,
-            orientation: self.opts.orientation,
-            color: self.opts.color,
-            stroke_color: self.opts.stroke_color,
-            vertex_data_ranges: (fill_vdr, stroke_vdr),
-            index_ranges: (fill_ir, stroke_ir),
-            min_index,
+            opts: self.opts,
+            path_event_src: PathEventSource::Buffered(start..end),
         }
     }
 
@@ -178,8 +111,248 @@ impl<S> PolygonInit<S> {
             p.into()
         });
         let close = true;
-        let events = lyon::path::iterator::FromPolyline::new(close, points).path_events();
+        let events = lyon::path::iterator::FromPolyline::new(close, points);
         self.events(ctxt, events)
+    }
+
+    /// Consumes an iterator of points and converts them to an iterator yielding path events.
+    pub fn colored_points<I>(self, ctxt: DrawingContext<S>, points: I) -> Polygon<S>
+    where
+        S: BaseFloat,
+        I: IntoIterator,
+        I::Item: Into<draw::mesh::vertex::ColoredPoint2<S>>,
+    {
+        let DrawingContext {
+            path_colored_points_buffer,
+            ..
+        } = ctxt;
+        let start = path_colored_points_buffer.len();
+        path_colored_points_buffer.extend(points.into_iter().map(Into::into));
+        let end = path_colored_points_buffer.len();
+        Polygon {
+            opts: self.opts,
+            path_event_src: PathEventSource::ColoredPoints {
+                range: start..end,
+                close: true,
+            },
+        }
+    }
+}
+
+pub fn render_points_themed<I>(
+    opts: PolygonOptions,
+    points: I,
+    mut ctxt: draw::renderer::RenderContext,
+    theme_primitive: &draw::theme::Primitive,
+    mesh: &mut draw::Mesh,
+) where
+    I: Clone + Iterator<Item = Point2>,
+{
+    let PolygonOptions {
+        position,
+        orientation,
+        no_fill,
+        stroke_color,
+        color,
+        stroke,
+    } = opts;
+
+    // Determine the transform to apply to all points.
+    let global_transform = ctxt.transform;
+    let local_transform = position.transform() * orientation.transform();
+    let transform = global_transform * local_transform;
+
+    // A function for rendering the path.
+    let mut render =
+        |opts: path::Options,
+         color: Option<LinSrgba>,
+         theme: &draw::Theme,
+         fill_tessellator: &mut lyon::tessellation::FillTessellator,
+         stroke_tessellator: &mut lyon::tessellation::StrokeTessellator| {
+            path::render_path_events(
+                lyon::path::iterator::FromPolyline::closed(points.clone().map(|p| p.into())),
+                color,
+                transform,
+                opts,
+                theme,
+                theme_primitive,
+                fill_tessellator,
+                stroke_tessellator,
+                mesh,
+            )
+        };
+
+    // Do the fill tessellation first.
+    if !no_fill {
+        let opts = path::Options::Fill(lyon::tessellation::FillOptions::default());
+        render(
+            opts,
+            color,
+            &ctxt.theme,
+            &mut ctxt.fill_tessellator,
+            &mut ctxt.stroke_tessellator,
+        );
+    }
+
+    // Do the stroke tessellation on top.
+    if let Some(stroke_opts) = stroke {
+        let opts = path::Options::Stroke(stroke_opts);
+        let color = stroke_color;
+        render(
+            opts,
+            color,
+            &ctxt.theme,
+            &mut ctxt.fill_tessellator,
+            &mut ctxt.stroke_tessellator,
+        );
+    }
+}
+
+impl Polygon<f32> {
+    pub(crate) fn render_themed(
+        self,
+        ctxt: draw::renderer::RenderContext,
+        mesh: &mut draw::Mesh,
+        theme_primitive: &draw::theme::Primitive,
+    ) {
+        let Polygon {
+            path_event_src,
+            opts:
+                PolygonOptions {
+                    position,
+                    orientation,
+                    no_fill,
+                    stroke_color,
+                    color,
+                    stroke,
+                },
+        } = self;
+        let draw::renderer::RenderContext {
+            fill_tessellator,
+            stroke_tessellator,
+            path_event_buffer,
+            path_colored_points_buffer,
+            transform,
+            theme,
+            ..
+        } = ctxt;
+
+        // Determine the transform to apply to all points.
+        let global_transform = transform;
+        let local_transform = position.transform() * orientation.transform();
+        let transform = global_transform * local_transform;
+
+        // A function for rendering the path.
+        let mut render =
+            |src: path::PathEventSourceIter,
+             opts: path::Options,
+             color: Option<LinSrgba>,
+             theme: &draw::Theme,
+             fill_tessellator: &mut lyon::tessellation::FillTessellator,
+             stroke_tessellator: &mut lyon::tessellation::StrokeTessellator| {
+                path::render_path_source(
+                    src,
+                    color,
+                    transform,
+                    opts,
+                    theme,
+                    theme_primitive,
+                    fill_tessellator,
+                    stroke_tessellator,
+                    mesh,
+                )
+            };
+
+        // Do the fill tessellation first.
+        if !no_fill {
+            let opts = path::Options::Fill(lyon::tessellation::FillOptions::default());
+            match path_event_src {
+                PathEventSource::Buffered(ref range) => {
+                    let mut events = path_event_buffer[range.clone()].iter().cloned();
+                    let src = path::PathEventSourceIter::Events(&mut events);
+                    render(
+                        src,
+                        opts,
+                        color,
+                        theme,
+                        fill_tessellator,
+                        stroke_tessellator,
+                    );
+                }
+                PathEventSource::ColoredPoints { ref range, close } => {
+                    let mut colored_points =
+                        path_colored_points_buffer[range.clone()].iter().cloned();
+                    let src = path::PathEventSourceIter::ColoredPoints {
+                        points: &mut colored_points,
+                        close,
+                    };
+                    render(
+                        src,
+                        opts,
+                        color,
+                        theme,
+                        fill_tessellator,
+                        stroke_tessellator,
+                    );
+                }
+            }
+        }
+
+        // Then the the stroked outline.
+        if let Some(stroke_opts) = stroke {
+            let opts = path::Options::Stroke(stroke_opts);
+            match path_event_src {
+                PathEventSource::Buffered(range) => {
+                    let mut events = path_event_buffer[range].iter().cloned();
+                    let src = path::PathEventSourceIter::Events(&mut events);
+                    render(
+                        src,
+                        opts,
+                        stroke_color,
+                        theme,
+                        fill_tessellator,
+                        stroke_tessellator,
+                    );
+                }
+                PathEventSource::ColoredPoints { range, close } => {
+                    // Move all this into another function that takes theme as an argument.
+                    let color =
+                        stroke_color.unwrap_or_else(|| theme.stroke_lin_srgba(theme_primitive));
+                    let mut colored_points =
+                        path_colored_points_buffer[range]
+                            .iter()
+                            .cloned()
+                            .map(|mut v| {
+                                v.color = color;
+                                v
+                            });
+                    let src = path::PathEventSourceIter::ColoredPoints {
+                        points: &mut colored_points,
+                        close,
+                    };
+                    render(
+                        src,
+                        opts,
+                        stroke_color,
+                        theme,
+                        fill_tessellator,
+                        stroke_tessellator,
+                    );
+                }
+            }
+        }
+    }
+}
+
+impl draw::renderer::RenderPrimitive for Polygon<f32> {
+    fn render_primitive(
+        self,
+        ctxt: draw::renderer::RenderContext,
+        mesh: &mut draw::Mesh,
+    ) -> draw::renderer::VertexMode {
+        self.render_themed(ctxt, mesh, &draw::theme::Primitive::Polygon);
+        // TODO: Allow for textured paths
+        draw::renderer::VertexMode::Color
     }
 }
 
@@ -241,70 +414,32 @@ where
     {
         self.map_ty_with_context(|ty, ctxt| ty.points(ctxt, points))
     }
-}
 
-impl<S> Polygon<S> {
-    /// The implementation of `into_drawn` that allows for the retrieval of different theming
-    /// defaults.
-    pub(crate) fn into_drawn_themed(self, draw: Draw<S>, p: &theme::Primitive) -> DrawnPolygon<S>
+    /// Consumes an iterator of points and converts them to an iterator yielding path events.
+    pub fn colored_points<I>(self, points: I) -> DrawingPolygon<'a, S>
     where
         S: BaseFloat,
+        I: IntoIterator,
+        I::Item: Into<draw::mesh::vertex::ColoredPoint2<S>>,
     {
-        let Polygon {
-            position,
-            orientation,
-            color,
-            stroke_color,
-            vertex_data_ranges: (fill_vdr, stroke_vdr),
-            index_ranges: (fill_ir, stroke_ir),
-            min_index,
-        } = self;
-
-        let fill_color = match fill_ir.len() == 0 {
-            true => None,
-            false => color.or_else(|| Some(draw.theme().fill_lin_srgba(p))),
-        };
-        let stroke_color = match stroke_ir.len() == 0 {
-            true => None,
-            false => stroke_color.or_else(|| Some(draw.theme().stroke_lin_srgba(p))),
-        };
-
-        let fill_vertices = VerticesFromRanges::new(fill_vdr, fill_color);
-        let fill_indices = IndicesFromRange::new(fill_ir, min_index);
-        let stroke_vertices = VerticesFromRanges::new(stroke_vdr, stroke_color);
-        let stroke_indices = IndicesFromRange::new(stroke_ir, min_index);
-        let vertices = (fill_vertices, stroke_vertices).into();
-        let indices = (fill_indices, stroke_indices).into();
-        let dimensions = spatial::dimension::Properties::default();
-        let spatial = spatial::Properties {
-            dimensions,
-            orientation,
-            position,
-        };
-
-        (spatial, vertices, indices)
+        self.map_ty_with_context(|ty, ctxt| ty.colored_points(ctxt, points))
     }
 }
 
-impl<S> IntoDrawn<S> for Polygon<S>
+impl<S> Default for PolygonInit<S>
 where
-    S: BaseFloat,
+    S: Zero,
 {
-    type Vertices = PolygonVertices;
-    type Indices = PolygonIndices;
-    fn into_drawn(self, draw: Draw<S>) -> DrawnPolygon<S> {
-        self.into_drawn_themed(draw, &theme::Primitive::Polygon)
-    }
-}
-
-impl<S> Default for PolygonInit<S> {
     fn default() -> Self {
         let opts = Default::default();
         PolygonInit { opts }
     }
 }
 
-impl<S> Default for PolygonOptions<S> {
+impl<S> Default for PolygonOptions<S>
+where
+    S: Zero,
+{
     fn default() -> Self {
         let position = Default::default();
         let orientation = Default::default();
@@ -361,19 +496,19 @@ impl<S> SetStroke for PolygonInit<S> {
 
 impl<S> SetOrientation<S> for Polygon<S> {
     fn properties(&mut self) -> &mut orientation::Properties<S> {
-        SetOrientation::properties(&mut self.orientation)
+        SetOrientation::properties(&mut self.opts.orientation)
     }
 }
 
 impl<S> SetPosition<S> for Polygon<S> {
     fn properties(&mut self) -> &mut position::Properties<S> {
-        SetPosition::properties(&mut self.position)
+        SetPosition::properties(&mut self.opts.position)
     }
 }
 
 impl<S> SetColor<ColorScalar> for Polygon<S> {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
-        SetColor::rgba_mut(&mut self.color)
+        SetColor::rgba_mut(&mut self.opts.color)
     }
 }
 

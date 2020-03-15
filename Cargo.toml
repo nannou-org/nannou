@@ -21,7 +21,7 @@ conrod_winit = "0.69"
 daggy = "0.6"
 find_folder = "0.3"
 image = "0.23"
-lyon = "0.14"
+lyon = "0.15"
 noise = "0.6"
 notosans = { version = "0.1", optional = true }
 palette = "0.5"
