@@ -63,7 +63,7 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         let c = if self.highlight {
             rgba(0.5, 0.0, 0.0, 1.0)
         } else {
@@ -120,7 +120,7 @@ impl ParticleSystem {
         }
     }
 
-    fn draw(&self, draw: &app::Draw) {
+    fn draw(&self, draw: &Draw) {
         for p in self.particles.iter() {
             p.display(&draw);
         }

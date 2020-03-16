@@ -41,7 +41,7 @@ impl Mover {
         self.acceleration *= 0.0;
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 16.0, self.mass * 16.0)

@@ -7,6 +7,7 @@ pub use crate::color::{
     srgba8,
 };
 pub use crate::color::{Gray, Hsl, Hsla, Hsv, Hsva, LinSrgb, LinSrgba, Rgb, Rgba, Srgb, Srgba};
+pub use crate::draw::Draw;
 pub use crate::event::WindowEvent::*;
 pub use crate::event::{
     AxisMotion, Event, Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase,

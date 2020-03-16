@@ -46,7 +46,7 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &app::Draw, win: Rect) {
+    fn display(&self, draw: &Draw, win: Rect) {
         match &self.particle_type {
             ParticleType::Ellipse => {
                 draw.ellipse()
@@ -110,7 +110,7 @@ impl ParticleSystem {
         }
     }
 
-    fn draw(&self, draw: &app::Draw, win: Rect) {
+    fn draw(&self, draw: &Draw, win: Rect) {
         for i in (0..self.particles.len()).rev() {
             self.particles[i].display(&draw, win);
         }

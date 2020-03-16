@@ -39,7 +39,7 @@ impl Attractor {
     }
 
     // Method to display
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         let c = if self.dragging {
             rgba(0.2, 0.2, 0.2, 1.0)
         } else if self.rollover {
@@ -113,7 +113,7 @@ impl Mover {
         self.acceleration *= 0.0;
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         let heading = (self.velocity.angle() + PI / 2.0) * -1.0;
         draw.ellipse()
             .xy(self.position)

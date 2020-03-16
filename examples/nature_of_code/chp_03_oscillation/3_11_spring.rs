@@ -66,7 +66,7 @@ impl Spring {
         }
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         draw.rect()
             .xy(self.anchor)
             .w_h(10.0, 10.0)
@@ -75,7 +75,7 @@ impl Spring {
             .stroke_weight(2.0);
     }
 
-    fn display_line(&self, draw: &app::Draw, bob: &Bob) {
+    fn display_line(&self, draw: &Draw, bob: &Bob) {
         draw.line()
             .start(bob.position)
             .end(self.anchor)
@@ -121,7 +121,7 @@ impl Bob {
         self.acceleration += f;
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         let c = if self.dragging { GREY } else { DARKGREY };
         draw.ellipse()
             .xy(self.position)

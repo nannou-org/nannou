@@ -61,7 +61,7 @@ impl Liquid {
         drag_force
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         draw.rect().xy(self.rect.xy()).wh(self.rect.wh()).gray(0.1);
     }
 }
@@ -108,7 +108,7 @@ impl Mover {
     }
 
     // Draw Mover
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 16.0, self.mass * 16.0)

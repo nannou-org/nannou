@@ -139,7 +139,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-fn draw_line(draw: &app::Draw, model: &Model, p1: Point2, p2: Point2) {
+fn draw_line(draw: &Draw, model: &Model, p1: Point2, p2: Point2) {
     let dist = p1.distance(p2);
     let angle = (1.0 / (dist / model.connection_radius + 1.0)).powf(6.0);
 

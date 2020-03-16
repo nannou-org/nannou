@@ -55,7 +55,7 @@ impl Attractor {
     }
 
     // Method to display
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         let gray = if self.dragging {
             0.2
         } else if self.roll_over {
@@ -125,7 +125,7 @@ impl Mover {
         self.acceleration *= 0.0;
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 2.0, self.mass * 2.0)

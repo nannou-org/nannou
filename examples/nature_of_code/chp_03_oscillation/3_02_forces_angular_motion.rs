@@ -34,7 +34,7 @@ impl Attractor {
     }
 
     // Method to display
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         draw.ellipse()
             .x_y(self.location.x, self.location.y)
             .w_h(48.0, 48.0)
@@ -91,7 +91,7 @@ impl Mover {
         self.acceleration *= 0.0;
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         draw.rect()
             .x_y(self.location.x, self.location.y)
             .w_h(self.mass * 16.0, self.mass * 16.0)

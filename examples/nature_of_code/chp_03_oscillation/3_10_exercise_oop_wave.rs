@@ -59,7 +59,7 @@ impl Wave {
         }
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         // A simple way to draw the wave with an ellipse at each position
         for x in 0..self.y_values.len() {
             draw.ellipse()

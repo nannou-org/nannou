@@ -72,7 +72,7 @@ impl Pendulum {
         );
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         // Draw the arm
         draw.line()
             .start(self.origin)

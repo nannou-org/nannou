@@ -29,7 +29,7 @@ fn view(app: &App, _model: &Model, frame: Frame) {
 }
 
 // Recursive function
-fn draw_circle(draw: &app::Draw, x: f32, y: f32, r: f32) {
+fn draw_circle(draw: &Draw, x: f32, y: f32, r: f32) {
     let norm_radius = map_range(r, 2.0, 360.0, 0.0, 1.0);
     draw.ellipse()
         .x_y(x, y)

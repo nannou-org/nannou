@@ -40,7 +40,7 @@ impl Spring {
         b.apply_force(force);
     }
 
-    fn display(&self, draw: &app::Draw, a: &Bob, b: &Bob) {
+    fn display(&self, draw: &Draw, a: &Bob, b: &Bob) {
         draw.line()
             .start(a.position)
             .end(b.position)
@@ -86,7 +86,7 @@ impl Bob {
         self.acceleration += f;
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         let c = if self.dragging { GREY } else { DARKGREY };
         draw.ellipse()
             .xy(self.position)
