@@ -3,19 +3,15 @@
 
 use crate::geom;
 use crate::math::{BaseFloat, Matrix4, SquareMatrix};
-use crate::text;
 use crate::wgpu;
 use lyon::path::PathEvent;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::{fmt, mem, ops};
+use std::mem;
 
 pub use self::background::Background;
 pub use self::drawing::{Drawing, DrawingContext};
-pub use self::mesh::intermediary::{
-    IntermediaryMesh, IntermediaryVertexData, IntermediaryVertexDataRanges,
-};
 pub use self::mesh::Mesh;
 use self::primitive::Primitive;
 pub use self::renderer::{Builder as RendererBuilder, Renderer};
@@ -130,61 +126,22 @@ where
     theme: Theme,
 }
 
-/// The CPU half of the glyph cache used for caching text.
-#[derive(Clone, Debug)]
-pub struct GlyphCache {
-    /// Manages the caching process.
-    cache: GlyphCacheWrapper,
-    /// The buffer used for storing pixel data to be written to the GPU.
-    pixel_buffer: Vec<u8>,
-    /// Whether or not the glyph cache has been updated and needs to be written to an image.
-    has_updated: bool,
-}
-
 /// State made accessible via the `DrawingContext`.
 #[derive(Clone, Debug)]
 pub struct IntermediaryState<S> {
     /// Buffers of vertex data that may be re-used for paths, meshes, etc between view calls.
-    intermediary_mesh: IntermediaryMesh<S>,
+    intermediary_mesh: Mesh<S>,
     /// A re-usable buffer for collecting path events.
     path_event_buffer: Vec<PathEvent>,
     /// A re-usable buffer for collecting colored polyline points.
     path_colored_points_buffer: Vec<mesh::vertex::ColoredPoint2<S>>,
     /// A buffer containing all text.
     text_buffer: String,
-    /// The CPU side of the glyph cache.
-    glyph_cache: GlyphCache,
-}
-
-// A wrapper providing debug and clone implementations for the glyph cache.
-pub(crate) struct GlyphCacheWrapper(pub(crate) text::GlyphCache<'static>);
-
-impl GlyphCache {
-    pub const DEFAULT_W: u32 = 256;
-    pub const DEFAULT_H: u32 = 256;
-    pub const DEFAULT_DIMENSIONS: (u32, u32) = (Self::DEFAULT_W, Self::DEFAULT_H);
-}
-
-impl<S> IntermediaryVertexData<S> {
-    /// Clears all buffers.
-    pub fn reset(&mut self) {
-        self.points.clear();
-        self.colors.clear();
-        self.tex_coords.clear();
-    }
-}
-
-impl<S> IntermediaryMesh<S> {
-    /// Clears all buffers.
-    pub fn reset(&mut self) {
-        self.vertex_data.reset();
-        self.indices.clear();
-    }
 }
 
 impl<S> IntermediaryState<S> {
     pub fn reset(&mut self) {
-        self.intermediary_mesh.reset();
+        self.intermediary_mesh.clear();
         self.path_event_buffer.clear();
         self.path_colored_points_buffer.clear();
         self.text_buffer.clear();
@@ -447,13 +404,11 @@ impl<S> Default for IntermediaryState<S> {
         let path_event_buffer = Default::default();
         let path_colored_points_buffer = Default::default();
         let text_buffer = Default::default();
-        let glyph_cache = Default::default();
         IntermediaryState {
             intermediary_mesh,
             path_event_buffer,
             path_colored_points_buffer,
             text_buffer,
-            glyph_cache,
         }
     }
 }
@@ -491,25 +446,6 @@ where
     }
 }
 
-impl Clone for GlyphCacheWrapper {
-    fn clone(&self) -> Self {
-        GlyphCacheWrapper(self.0.to_builder().build())
-    }
-}
-
-impl fmt::Debug for GlyphCacheWrapper {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "GlyphCache")
-    }
-}
-
-impl ops::Deref for GlyphCacheWrapper {
-    type Target = text::GlyphCache<'static>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 impl<S> Default for Context<S>
 where
     S: BaseFloat,
@@ -520,25 +456,5 @@ where
             alpha_blend: wgpu::RenderPipelineBuilder::DEFAULT_ALPHA_BLEND,
             scissor: Scissor::Full,
         }
-    }
-}
-
-impl Default for GlyphCache {
-    fn default() -> Self {
-        let (w, h) = GlyphCache::DEFAULT_DIMENSIONS;
-        let cache = text::GlyphCache::builder().dimensions(w, h).build().into();
-        let pixel_buffer = vec![0u8; w as usize * h as usize];
-        let has_updated = false;
-        GlyphCache {
-            cache,
-            pixel_buffer,
-            has_updated,
-        }
-    }
-}
-
-impl From<text::GlyphCache<'static>> for GlyphCacheWrapper {
-    fn from(g: text::GlyphCache<'static>) -> Self {
-        GlyphCacheWrapper(g)
     }
 }

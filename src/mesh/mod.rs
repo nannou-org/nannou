@@ -2,23 +2,16 @@
 //! including position, color, texture-coordinate and normals. Note that this is quite a low-level
 //! representation. For a higher-level, graphics-related mesh API, see the `draw` module.
 
-use crate::geom::{self, Point2};
-use crate::math::{BaseFloat, BaseNum, EuclideanSpace};
+use crate::geom;
 use std::cell::{Ref, RefMut};
 use std::cmp;
 use std::convert::{TryFrom, TryInto};
-use std::marker::PhantomData;
 use std::ops::{self, Deref, DerefMut};
 
 pub mod channel;
 pub mod vertex;
 
 pub use self::channel::{Channel, ChannelMut};
-
-// Type aliases.
-
-/// The fallback scalar type used for texture coordinates if none is specified.
-pub type TexCoordScalarDefault = f64;
 
 // Traits describing meshes with access to certain channels.
 
@@ -32,10 +25,8 @@ pub trait GetVertex<I> {
 
 /// All meshes must contain at least one vertex channel.
 pub trait Points {
-    /// The scalar value used for the vertex coordinates.
-    type Scalar: BaseNum;
     /// The vertex type used to represent the location of a vertex.
-    type Point: geom::Vertex<Scalar = Self::Scalar>;
+    type Point;
     /// The channel type containing points.
     type Points: Channel<Element = Self::Point>;
     /// Borrow the vertex channel from the mesh.
@@ -64,21 +55,20 @@ pub trait Colors {
 
 /// Meshes that contain a channel of texture coordinates.
 pub trait TexCoords {
-    /// The scalar value used for the texture coordinates.
-    type TexCoordScalar: BaseFloat;
+    /// The point type used to represent texture coordinates.
+    type TexCoord;
     /// The channel type containing texture coordinates.
-    type TexCoords: Channel<Element = Point2<Self::TexCoordScalar>>;
+    type TexCoords: Channel<Element = Self::TexCoord>;
     /// Borrow the texture coordinate channel from the mesh.
     fn tex_coords(&self) -> &Self::TexCoords;
 }
 
 /// Meshes that contain a channel of vertex normals.
-pub trait Normals: Points
-where
-    Self::Point: EuclideanSpace,
-{
+pub trait Normals {
+    /// The vector type used to represent the normal.
+    type Normal;
     /// The channel type containing vertex normals.
-    type Normals: Channel<Element = <Self::Point as EuclideanSpace>::Diff>;
+    type Normals: Channel<Element = Self::Normal>;
     /// Borrow the normal channel from the mesh.
     fn normals(&self) -> &Self::Normals;
 }
@@ -167,10 +157,9 @@ pub struct WithColors<M, C> {
 
 /// A `Mesh` type with an added channel containing texture coordinates.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct WithTexCoords<M, T, S = TexCoordScalarDefault> {
+pub struct WithTexCoords<M, T> {
     mesh: M,
     tex_coords: T,
-    _tex_coord_scalar: PhantomData<S>, // Required due to lack of HKT.
 }
 
 /// A `Mesh` type with an added channel containing vertex normals.
@@ -225,7 +214,7 @@ where
 impl<P, I> GetVertex<I> for MeshPoints<P>
 where
     P: Channel,
-    P::Element: geom::Vertex,
+    P::Element: Clone,
     I: TryInto<usize>,
 {
     type Vertex = P::Element;
@@ -233,7 +222,7 @@ where
         let index = index
             .try_into()
             .unwrap_or_else(|_err| panic!("index out of range of valid `usize` values"));
-        self.points.channel().get(index).map(|&p| p)
+        self.points.channel().get(index).map(|p| p.clone())
     }
 }
 
@@ -268,7 +257,7 @@ where
     }
 }
 
-impl<M, T, S, I> GetVertex<I> for WithTexCoords<M, T, S>
+impl<M, T, I> GetVertex<I> for WithTexCoords<M, T>
 where
     M: GetVertex<I>,
     T: Channel,
@@ -315,9 +304,7 @@ where
 impl<P> Points for MeshPoints<P>
 where
     P: Channel,
-    P::Element: geom::Vertex,
 {
-    type Scalar = <P::Element as geom::Vertex>::Scalar;
     type Point = P::Element;
     type Points = P;
     fn points(&self) -> &Self::Points {
@@ -329,7 +316,6 @@ impl<'a, M> Points for &'a M
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -341,7 +327,6 @@ impl<'a, M> Points for &'a mut M
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -353,7 +338,6 @@ impl<'a, M> Points for Ref<'a, M>
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -365,7 +349,6 @@ impl<'a, M> Points for RefMut<'a, M>
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -377,7 +360,6 @@ impl<M, I> Points for WithIndices<M, I>
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -389,7 +371,6 @@ impl<M, C> Points for WithColors<M, C>
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -397,11 +378,10 @@ where
     }
 }
 
-impl<M, T, S> Points for WithTexCoords<M, T, S>
+impl<M, T> Points for WithTexCoords<M, T>
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -413,7 +393,6 @@ impl<M, N> Points for WithNormals<M, N>
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -489,7 +468,7 @@ where
     }
 }
 
-impl<M, T, S> Indices for WithTexCoords<M, T, S>
+impl<M, T> Indices for WithTexCoords<M, T>
 where
     M: Indices,
 {
@@ -579,7 +558,7 @@ where
     }
 }
 
-impl<M, T, S> Colors for WithTexCoords<M, T, S>
+impl<M, T> Colors for WithTexCoords<M, T>
 where
     M: Colors,
 {
@@ -603,12 +582,11 @@ where
 
 // **TexCoords** implementations.
 
-impl<M, T, S> TexCoords for WithTexCoords<M, T, S>
+impl<M, T> TexCoords for WithTexCoords<M, T>
 where
-    T: Channel<Element = Point2<S>>,
-    S: BaseFloat,
+    T: Channel,
 {
-    type TexCoordScalar = S;
+    type TexCoord = T::Element;
     type TexCoords = T;
     fn tex_coords(&self) -> &Self::TexCoords {
         &self.tex_coords
@@ -619,7 +597,7 @@ impl<'a, M> TexCoords for &'a M
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         (**self).tex_coords()
@@ -630,7 +608,7 @@ impl<'a, M> TexCoords for &'a mut M
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         (**self).tex_coords()
@@ -641,7 +619,7 @@ impl<'a, M> TexCoords for Ref<'a, M>
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         (**self).tex_coords()
@@ -652,7 +630,7 @@ impl<'a, M> TexCoords for RefMut<'a, M>
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         (**self).tex_coords()
@@ -663,7 +641,7 @@ impl<M, I> TexCoords for WithIndices<M, I>
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         self.mesh.tex_coords()
@@ -674,7 +652,7 @@ impl<M, C> TexCoords for WithColors<M, C>
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         self.mesh.tex_coords()
@@ -685,7 +663,7 @@ impl<M, N> TexCoords for WithNormals<M, N>
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         self.mesh.tex_coords()
@@ -697,9 +675,9 @@ where
 impl<M, N> Normals for WithNormals<M, N>
 where
     M: Points,
-    M::Point: EuclideanSpace,
-    N: Channel<Element = <M::Point as EuclideanSpace>::Diff>,
+    N: Channel,
 {
+    type Normal = N::Element;
     type Normals = N;
     fn normals(&self) -> &Self::Normals {
         &self.normals
@@ -709,8 +687,8 @@ where
 impl<'a, M> Normals for &'a M
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         (**self).normals()
@@ -720,8 +698,8 @@ where
 impl<'a, M> Normals for &'a mut M
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         (**self).normals()
@@ -731,8 +709,8 @@ where
 impl<'a, M> Normals for Ref<'a, M>
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         (**self).normals()
@@ -742,8 +720,8 @@ where
 impl<'a, M> Normals for RefMut<'a, M>
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         (**self).normals()
@@ -753,8 +731,8 @@ where
 impl<M, I> Normals for WithIndices<M, I>
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         self.mesh.normals()
@@ -764,19 +742,19 @@ where
 impl<M, C> Normals for WithColors<M, C>
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         self.mesh.normals()
     }
 }
 
-impl<M, T, S> Normals for WithTexCoords<M, T, S>
+impl<M, T> Normals for WithTexCoords<M, T>
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         self.mesh.normals()
@@ -829,7 +807,7 @@ where
     }
 }
 
-impl<M, V, T, S> PushVertex<vertex::WithTexCoords<V, T>> for WithTexCoords<M, Vec<T>, S>
+impl<M, V, T> PushVertex<vertex::WithTexCoords<V, T>> for WithTexCoords<M, Vec<T>>
 where
     M: PushVertex<V>,
 {
@@ -918,7 +896,7 @@ where
     }
 }
 
-impl<M, T, S> PushIndex for WithTexCoords<M, T, S>
+impl<M, T> PushIndex for WithTexCoords<M, T>
 where
     M: PushIndex,
 {
@@ -989,7 +967,7 @@ where
     }
 }
 
-impl<M, T, S> ClearIndices for WithTexCoords<M, T, S>
+impl<M, T> ClearIndices for WithTexCoords<M, T>
 where
     M: ClearIndices,
 {
@@ -1053,7 +1031,7 @@ where
     }
 }
 
-impl<M, T, S> ClearVertices for WithTexCoords<M, Vec<T>, S>
+impl<M, T> ClearVertices for WithTexCoords<M, Vec<T>>
 where
     M: ClearVertices,
 {
@@ -1111,7 +1089,7 @@ where
     }
 }
 
-impl<'a, M, T, S> ExtendFromSlice<'a> for WithTexCoords<M, Vec<T>, S>
+impl<'a, M, T> ExtendFromSlice<'a> for WithTexCoords<M, Vec<T>>
 where
     M: ExtendFromSlice<'a>,
     T: 'a + Clone,
@@ -1177,7 +1155,7 @@ where
     }
 }
 
-impl<M, T, S> Default for WithTexCoords<M, T, S>
+impl<M, T> Default for WithTexCoords<M, T>
 where
     M: Default,
     T: Default,
@@ -1185,11 +1163,9 @@ where
     fn default() -> Self {
         let mesh = Default::default();
         let tex_coords = Default::default();
-        let _tex_coord_scalar = PhantomData;
         WithTexCoords {
             mesh,
             tex_coords,
-            _tex_coord_scalar,
         }
     }
 }
@@ -1234,14 +1210,14 @@ impl<M, C> DerefMut for WithColors<M, C> {
     }
 }
 
-impl<M, T, S> Deref for WithTexCoords<M, T, S> {
+impl<M, T> Deref for WithTexCoords<M, T> {
     type Target = M;
     fn deref(&self) -> &Self::Target {
         &self.mesh
     }
 }
 
-impl<M, T, S> DerefMut for WithTexCoords<M, T, S> {
+impl<M, T> DerefMut for WithTexCoords<M, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.mesh
     }
@@ -1292,7 +1268,6 @@ where
 pub fn from_points<P>(points: P) -> MeshPoints<P>
 where
     P: Channel,
-    P::Element: geom::Vertex,
 {
     MeshPoints { points }
 }
@@ -1321,18 +1296,15 @@ where
 /// Combine the given mesh with the given channel of vertex texture coordinates.
 ///
 /// **Panics** if the length of the **tex_coords** channel differs from **points**.
-pub fn with_tex_coords<M, T, S>(mesh: M, tex_coords: T) -> WithTexCoords<M, T, S>
+pub fn with_tex_coords<M, T>(mesh: M, tex_coords: T) -> WithTexCoords<M, T>
 where
     M: Points,
-    T: Channel<Element = Point2<S>>,
-    S: BaseFloat,
+    T: Channel,
 {
     assert_eq!(raw_vertex_count(&mesh), tex_coords.channel().len());
-    let _tex_coord_scalar = PhantomData;
     WithTexCoords {
         mesh,
         tex_coords,
-        _tex_coord_scalar,
     }
 }
 
@@ -1342,8 +1314,7 @@ where
 pub fn with_normals<M, N>(mesh: M, normals: N) -> WithNormals<M, N>
 where
     M: Points,
-    M::Point: EuclideanSpace,
-    N: Channel<Element = <M::Point as EuclideanSpace>::Diff>,
+    N: Channel,
 {
     assert_eq!(raw_vertex_count(&mesh), normals.channel().len());
     WithNormals { mesh, normals }
@@ -1425,10 +1396,7 @@ where
 ///
 /// Returns `None` when the inner mesh first returns `None` for a call to **GetVertex::get_vertex**.
 #[derive(Clone, Debug)]
-pub struct RawVertices<M>
-where
-    M: ,
-{
+pub struct RawVertices<M> {
     range: ops::Range<usize>,
     mesh: M,
 }

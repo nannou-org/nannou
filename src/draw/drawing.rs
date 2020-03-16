@@ -41,15 +41,13 @@ where
 /// This is particularly useful for paths and meshes.
 pub struct DrawingContext<'a, S> {
     /// The intermediary mesh for buffering yet-to-be-drawn paths and meshes.
-    pub mesh: &'a mut draw::IntermediaryMesh<S>,
+    pub mesh: &'a mut draw::Mesh<S>,
     /// A re-usable buffer for collecting path events.
     pub path_event_buffer: &'a mut Vec<PathEvent>,
     /// A re-usable buffer for collecting colored polyline points.
     pub path_colored_points_buffer: &'a mut Vec<mesh::vertex::ColoredPoint2<S>>,
     /// A re-usable buffer for collecting text.
     pub text_buffer: &'a mut String,
-    /// Cache for text glyphs.
-    pub glyph_cache: &'a mut draw::GlyphCache,
 }
 
 /// Construct a new **Drawing** instance.
@@ -86,14 +84,12 @@ impl<'a, S> DrawingContext<'a, S> {
             ref mut path_event_buffer,
             ref mut path_colored_points_buffer,
             ref mut text_buffer,
-            ref mut glyph_cache,
         } = *state;
         DrawingContext {
             mesh: intermediary_mesh,
             path_event_buffer: path_event_buffer,
             path_colored_points_buffer: path_colored_points_buffer,
             text_buffer: text_buffer,
-            glyph_cache: glyph_cache,
         }
     }
 }

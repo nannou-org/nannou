@@ -41,6 +41,7 @@ fn view(app: &App, frame: Frame) {
             tri.map_vertices(|v| {
                 let y_fract = map_range(v.y.abs(), 0.0, win.top(), 0.0, 1.0);
                 let color = srgba(y_fract, 1.0 - y_fract, 1.0 - y_fract, 1.0);
+
                 geom::vertex::Srgba(v, color)
             })
         });

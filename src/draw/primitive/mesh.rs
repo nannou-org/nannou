@@ -5,7 +5,6 @@ use crate::draw::properties::{SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
 use crate::geom;
 use crate::math::BaseFloat;
-use crate::mesh::vertex::{WithColor, WithTexCoords};
 use std::ops;
 
 /// The mesh type prior to being initialised with vertices or indices.
@@ -17,62 +16,57 @@ pub struct Vertexless;
 pub struct Mesh<S = geom::scalar::Default> {
     position: position::Properties<S>,
     orientation: orientation::Properties<S>,
-    vertex_data_ranges: draw::IntermediaryVertexDataRanges,
+    vertex_range: ops::Range<usize>,
     index_range: ops::Range<usize>,
-    min_intermediary_index: usize,
 }
 
 // A simple iterator for flattening a fixed-size array of indices.
 struct FlattenIndices<I> {
     iter: I,
     index: usize,
-    min_intermediary_index: usize,
+    vertex_start_index: usize,
     current: [usize; 3],
 }
 
 impl Vertexless {
+    // /// Describe the mesh with a sequence of colored triangles.
+    // pub fn tris_colored<S, I, V>(self, mesh: &mut draw::IntermediaryMesh<S>, tris: I) -> Mesh<S>
+    // where
+    //     S: BaseFloat,
+    //     I: IntoIterator<Item = geom::Tri<V>>,
+    //     V: Into<draw::mesh::vertex::ColoredPoint<S>>,
+    // {
+    //     unimplemented!()
+    // }
+
+    // ///
+    // pub fn tris_textured<S, I, V>(
+    //     self,
+    //     mesh: &mut draw::IntermediaryMesh<S>,
+
     /// Describe the mesh with a sequence of triangles.
     ///
     /// Each triangle may be composed of any vertex type that may be converted directly into the
     /// `draw::mesh::vertex` type.
-    pub fn tris<S, I, V>(self, mesh: &mut draw::IntermediaryMesh<S>, tris: I) -> Mesh<S>
+    pub fn tris<S, I, V>(self, inner_mesh: &mut draw::Mesh<S>, tris: I) -> Mesh<S>
     where
         S: BaseFloat,
         I: IntoIterator<Item = geom::Tri<V>>,
-        V: geom::Vertex + IntoVertex<S>,
+        V: Clone + IntoVertex<S>,
     {
-        let min_intermediary_index = mesh.vertex_data.points.len();
-        let mut vertex_data_ranges = draw::IntermediaryVertexDataRanges::default();
-        let mut index_range = 0..0;
-        vertex_data_ranges.points.start = mesh.vertex_data.points.len();
-        vertex_data_ranges.colors.start = mesh.vertex_data.colors.len();
-        vertex_data_ranges.tex_coords.start = mesh.vertex_data.tex_coords.len();
-        index_range.start = mesh.indices.len();
-
+        let v_start = inner_mesh.points().len();
+        let i_start = inner_mesh.indices().len();
         let vertices = tris
             .into_iter()
             .flat_map(geom::Tri::vertices)
             .map(IntoVertex::into_vertex);
         for (i, vertex) in vertices.enumerate() {
-            let WithTexCoords {
-                tex_coords,
-                vertex:
-                    WithColor {
-                        color,
-                        vertex: point,
-                    },
-            } = vertex;
-            mesh.vertex_data.points.push(point);
-            mesh.vertex_data.colors.push(color);
-            mesh.vertex_data.tex_coords.push(tex_coords);
-            mesh.indices.push(min_intermediary_index + i);
+            inner_mesh.push_vertex(vertex);
+            inner_mesh.push_index((v_start + i) as u32);
         }
-
-        vertex_data_ranges.points.end = mesh.vertex_data.points.len();
-        vertex_data_ranges.colors.end = mesh.vertex_data.colors.len();
-        vertex_data_ranges.tex_coords.end = mesh.vertex_data.tex_coords.len();
-        index_range.end = mesh.indices.len();
-        Mesh::new(vertex_data_ranges, index_range, min_intermediary_index)
+        let v_end = inner_mesh.points().len();
+        let i_end = inner_mesh.indices().len();
+        Mesh::new(v_start..v_end, i_start..i_end)
     }
 
     /// Describe the mesh with the given indexed vertices.
@@ -83,7 +77,7 @@ impl Vertexless {
     /// type.
     pub fn indexed<S, V, I>(
         self,
-        mesh: &mut draw::IntermediaryMesh<S>,
+        inner_mesh: &mut draw::Mesh<S>,
         vertices: V,
         indices: I,
     ) -> Mesh<S>
@@ -93,37 +87,24 @@ impl Vertexless {
         V::Item: IntoVertex<S>,
         I: IntoIterator<Item = [usize; 3]>,
     {
-        let min_intermediary_index = mesh.vertex_data.points.len();
-        let mut vertex_data_ranges = draw::IntermediaryVertexDataRanges::default();
-        vertex_data_ranges.points.start = mesh.vertex_data.points.len();
-        vertex_data_ranges.colors.start = mesh.vertex_data.colors.len();
-        vertex_data_ranges.tex_coords.start = mesh.vertex_data.tex_coords.len();
-        for vertex in vertices {
-            let WithTexCoords {
-                tex_coords,
-                vertex:
-                    WithColor {
-                        color,
-                        vertex: point,
-                    },
-            } = vertex.into_vertex();
-            mesh.vertex_data.points.push(point);
-            mesh.vertex_data.colors.push(color);
-            mesh.vertex_data.tex_coords.push(tex_coords);
-        }
-        vertex_data_ranges.points.end = mesh.vertex_data.points.len();
-        vertex_data_ranges.colors.end = mesh.vertex_data.colors.len();
-        vertex_data_ranges.tex_coords.end = mesh.vertex_data.tex_coords.len();
-        let mut index_range = mesh.indices.len()..mesh.indices.len();
+        let v_start = inner_mesh.points().len();
+        let i_start = inner_mesh.indices().len();
+
+        // Insert the vertices.
+        inner_mesh.extend_vertices(vertices.into_iter().map(IntoVertex::into_vertex));
+
+        // Insert the indices.
         let iter = FlattenIndices {
             iter: indices.into_iter(),
             current: [0; 3],
-            min_intermediary_index,
+            vertex_start_index: v_start,
             index: 3,
         };
-        mesh.indices.extend(iter);
-        index_range.end = mesh.indices.len();
-        Mesh::new(vertex_data_ranges, index_range, min_intermediary_index)
+        inner_mesh.extend_indices(iter.map(|ix| ix as u32));
+
+        let v_end = inner_mesh.points().len();
+        let i_end = inner_mesh.indices().len();
+        Mesh::new(v_start..v_end, i_start..i_end)
     }
 }
 
@@ -132,19 +113,14 @@ where
     S: BaseFloat,
 {
     // Initialise a new `Mesh` with its ranges into the intermediary mesh, ready for drawing.
-    fn new(
-        vertex_data_ranges: draw::IntermediaryVertexDataRanges,
-        index_range: ops::Range<usize>,
-        min_intermediary_index: usize,
-    ) -> Self {
+    fn new(vertex_range: ops::Range<usize>, index_range: ops::Range<usize>) -> Self {
         let orientation = Default::default();
         let position = Default::default();
         Mesh {
             orientation,
             position,
-            vertex_data_ranges,
+            vertex_range,
             index_range,
-            min_intermediary_index,
         }
     }
 }
@@ -182,9 +158,8 @@ impl draw::renderer::RenderPrimitive for Mesh<f32> {
         let Mesh {
             orientation,
             position,
-            vertex_data_ranges,
+            vertex_range,
             index_range,
-            min_intermediary_index,
         } = self;
 
         // Determine the transform to apply to vertices.
@@ -192,25 +167,26 @@ impl draw::renderer::RenderPrimitive for Mesh<f32> {
         let local_transform = position.transform() * orientation.transform();
         let transform = global_transform * local_transform;
 
-        // TODO: Could probably do this without `*FromRange`?
-        let vertices_start_index = mesh.raw_vertex_count();
-        let mut vertices = draw::properties::VerticesFromRanges::new(vertex_data_ranges, None);
-        let mut indices =
-            draw::properties::IndicesFromRange::new(index_range, min_intermediary_index);
-        let vertices = std::iter::from_fn(|| {
-            vertices.next(ctxt.intermediary_mesh).map(|mut v| {
-                let p = *v.point();
+        // We need to update the indices to point to where vertices will be in the new mesh.
+        let old_mesh_vertex_start = vertex_range.start as u32;
+        let new_mesh_vertex_start = mesh.raw_vertex_count() as u32;
+        let indices = index_range
+            .map(|i| ctxt.intermediary_mesh.indices()[i])
+            .map(|i| new_mesh_vertex_start + i - old_mesh_vertex_start);
+
+        // Retrieve the vertices and transform them.
+        let vertices = vertex_range
+            .map(|i| {
+                let p = ctxt.intermediary_mesh.points()[i];
                 let p = cgmath::Point3::new(p.x, p.y, p.z);
                 let p = cgmath::Transform::transform_point(&transform, p);
-                v.vertex.vertex = geom::vec3(p.x, p.y, p.z);
-                v
-            })
-        });
-        let indices = std::iter::from_fn(|| {
-            indices
-                .next(&ctxt.intermediary_mesh.indices)
-                .map(|i| (vertices_start_index + i - min_intermediary_index) as u32)
-        });
+                let point = p.into();
+                let color = ctxt.intermediary_mesh.colors()[i];
+                let tex_coords = ctxt.intermediary_mesh.tex_coords()[i];
+                draw::mesh::vertex::new(point, color, tex_coords)
+            });
+
+        // Extend the mesh!
         mesh.extend(vertices, indices);
 
         // TODO: Allow more options here.
@@ -228,7 +204,7 @@ where
             if self.index < self.current.len() {
                 let ix = self.current[self.index];
                 self.index += 1;
-                return Some(self.min_intermediary_index + ix);
+                return Some(self.vertex_start_index + ix);
             }
             match self.iter.next() {
                 None => return None,

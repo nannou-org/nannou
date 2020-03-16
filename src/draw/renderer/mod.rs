@@ -19,7 +19,7 @@ pub trait RenderPrimitive {
 /// The context provided to primitives to assist with the rendering process.
 pub struct RenderContext<'a> {
     pub transform: &'a crate::math::Matrix4<f32>,
-    pub intermediary_mesh: &'a draw::IntermediaryMesh,
+    pub intermediary_mesh: &'a draw::Mesh,
     pub path_event_buffer: &'a [PathEvent],
     pub path_colored_points_buffer: &'a [mesh::vertex::ColoredPoint2],
     pub text_buffer: &'a str,

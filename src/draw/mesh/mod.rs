@@ -1,12 +1,10 @@
 //! Items related to the custom mesh type used by the `Draw` API.
 
 use crate::geom;
-use crate::math::{BaseFloat, BaseNum};
 use crate::mesh::{self, MeshPoints, WithColors, WithIndices, WithTexCoords};
 use std::ops::{Deref, DerefMut};
 
 pub mod builder;
-pub mod intermediary;
 pub mod vertex;
 
 pub use self::builder::MeshBuilder;
@@ -19,7 +17,7 @@ pub type TexCoords<S> = Vec<vertex::TexCoords<S>>;
 
 /// The inner mesh type used by the **draw::Mesh**.
 pub type MeshType<S> =
-    WithTexCoords<WithColors<WithIndices<MeshPoints<Points<S>>, Indices>, Colors>, TexCoords<S>, S>;
+    WithTexCoords<WithColors<WithIndices<MeshPoints<Points<S>>, Indices>, Colors>, TexCoords<S>>;
 
 /// The custom mesh type used internally by the **Draw** API.
 #[derive(Clone, Debug)]
@@ -27,10 +25,7 @@ pub struct Mesh<S = geom::scalar::Default> {
     mesh: MeshType<S>,
 }
 
-impl<S> Mesh<S>
-where
-    S: BaseNum,
-{
+impl<S> Mesh<S> {
     /// The number of raw vertices contained within the mesh.
     pub fn raw_vertex_count(&self) -> usize {
         mesh::raw_vertex_count(self)
@@ -62,10 +57,7 @@ where
     }
 
     /// The **Mesh**'s vertex texture coordinates channel.
-    pub fn tex_coords(&self) -> &[vertex::TexCoords<S>]
-    where
-        S: BaseFloat,
-    {
+    pub fn tex_coords(&self) -> &[vertex::TexCoords<S>] {
         mesh::TexCoords::tex_coords(self)
     }
 
@@ -105,6 +97,36 @@ where
         self.extend_indices(is);
     }
 
+    /// Clear all vertices from the mesh.
+    pub fn clear_vertices(&mut self) {
+        mesh::clear_vertices(self);
+    }
+
+    /// Clear all indices from the mesh.
+    pub fn clear_indices(&mut self) {
+        mesh::clear_indices(self);
+    }
+
+    /// Clear all vertices and indices from the mesh.
+    pub fn clear(&mut self) {
+        mesh::clear(self);
+    }
+
+    /// Produce an iterator yielding all raw (non-index-order) vertices.
+    pub fn raw_vertices(&self) -> mesh::RawVertices<&Self> {
+        mesh::raw_vertices(self)
+    }
+
+    /// Consume self and produce an iterator yielding all raw (non-index_order) vertices.
+    pub fn into_raw_vertices(self) -> mesh::RawVertices<Self> {
+        mesh::raw_vertices(self)
+    }
+}
+
+impl<S> Mesh<S>
+where
+    S: Clone,
+{
     /// Extend the mesh from the given slices.
     ///
     /// This is faster than `extend` which uses iteration internally.
@@ -138,26 +160,6 @@ where
         self.extend_from_slices(&[], indices, &[], &[]);
     }
 
-    /// Clear all vertices from the mesh.
-    pub fn clear_vertices(&mut self) {
-        mesh::clear_vertices(self);
-    }
-
-    /// Clear all indices from the mesh.
-    pub fn clear_indices(&mut self) {
-        mesh::clear_indices(self);
-    }
-
-    /// Clear all vertices and indices from the mesh.
-    pub fn clear(&mut self) {
-        mesh::clear(self);
-    }
-
-    /// Produce an iterator yielding all raw (non-index-order) vertices.
-    pub fn raw_vertices(&self) -> mesh::RawVertices<&Self> {
-        mesh::raw_vertices(self)
-    }
-
     /// Produce an iterator yielding all vertices in the order specified via the vertex indices.
     pub fn vertices(&self) -> mesh::Vertices<&Self> {
         mesh::vertices(self)
@@ -166,11 +168,6 @@ where
     /// Produce an iterator yielding all triangles.
     pub fn triangles(&self) -> mesh::Triangles<&Self> {
         mesh::triangles(self)
-    }
-
-    /// Consume self and produce an iterator yielding all raw (non-index_order) vertices.
-    pub fn into_raw_vertices(self) -> mesh::RawVertices<Self> {
-        mesh::raw_vertices(self)
     }
 
     /// Consume self and produce an iterator yielding all vertices in index-order.
@@ -206,19 +203,15 @@ impl<S> DerefMut for Mesh<S> {
 
 impl<S> mesh::GetVertex<u32> for Mesh<S>
 where
-    MeshType<S>: mesh::GetVertex<u32, Vertex = Vertex<S>>,
+    S: Clone,
 {
     type Vertex = Vertex<S>;
     fn get_vertex(&self, index: u32) -> Option<Self::Vertex> {
-        self.mesh.get_vertex(index)
+        mesh::WithTexCoords::get_vertex(&self.mesh, index)
     }
 }
 
-impl<S> mesh::Points for Mesh<S>
-where
-    S: BaseNum,
-{
-    type Scalar = S;
+impl<S> mesh::Points for Mesh<S> {
     type Point = vertex::Point<S>;
     type Points = Points<S>;
     fn points(&self) -> &Self::Points {
@@ -242,11 +235,8 @@ impl<S> mesh::Colors for Mesh<S> {
     }
 }
 
-impl<S> mesh::TexCoords for Mesh<S>
-where
-    S: BaseFloat,
-{
-    type TexCoordScalar = S;
+impl<S> mesh::TexCoords for Mesh<S> {
+    type TexCoord = geom::Point2<S>;
     type TexCoords = TexCoords<S>;
     fn tex_coords(&self) -> &Self::TexCoords {
         self.mesh.tex_coords()
