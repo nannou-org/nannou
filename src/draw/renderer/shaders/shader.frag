@@ -21,11 +21,10 @@ void main() {
     // Color
     if (v_mode == uint(0)) {
         f_color = v_color;
-        f_color = vec4(0.0, 1.0, 0.0, 1.0);
 
-    // Texture
-    } else if (v_mode == uint(1)) {
-        f_color = texture(sampler2D(tex, tex_sampler), v_tex_coords);
+    // // Texture
+    // } else if (v_mode == uint(1)) {
+    //     f_color = texture(sampler2D(tex, tex_sampler), v_tex_coords);
 
     // Text
     } else if (v_mode == uint(2)) {
