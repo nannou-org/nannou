@@ -32,10 +32,10 @@ use nannou::prelude::*;
 
 use lyon::path::builder::PathBuilder;
 
-use lyon::path::iterator::*;
-use lyon::algorithms::walk::{RepeatedPattern, walk_along_path};
-use lyon::algorithms::path::PathSlice;
 use lyon::algorithms::path::math::Point;
+use lyon::algorithms::path::PathSlice;
+use lyon::algorithms::walk::{walk_along_path, RepeatedPattern};
+use lyon::path::iterator::*;
 
 fn main() {
     nannou::app(model).run();
@@ -64,7 +64,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.background().color(BLACK);
     let win_rect = app.main_window().rect().pad_left(20.0);
-    let text = text(&model.text_typed).font_size(128).left_justify().build(win_rect);
+    let text = text(&model.text_typed)
+        .font_size(128)
+        .left_justify()
+        .build(win_rect);
 
     let mut builder = lyon::path::Path::builder();
     for e in text.path_events() {
@@ -74,28 +77,36 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let path = builder.build();
 
     let mut path_points: Vec<lyon::path::math::Point> = Vec::new();
-    dots_along_path(path.as_slice(), &mut path_points, 12.5, app.elapsed_frames() as f32);
+    dots_along_path(
+        path.as_slice(),
+        &mut path_points,
+        12.5,
+        app.elapsed_frames() as f32,
+    );
 
-    path_points.iter()
-        .enumerate()
-        .for_each(|(i, p)| {
-            //Lines
-            let l = 5.0;
-            draw.line()
-                .start(pt2(p.x + l, p.y - l))
-                .end(pt2(p.x - l, p.y + l))
-                .rgb(0.7,0.61,0.0);
-            // Dots    
-            let q = map_range(i,0,path_points.len(), 0.0, 1.0);
-            if i % 2 == 0 {
-                draw.ellipse()
-                    .x_y(p.x, p.y)
-                    .radius(map_range((i as f32 * 0.05 + app.time * 4.3).sin(),-1.0,1.0, 3.0, 9.0))
-                    .hsv(q, 1.0, 0.5);
-            }
-        });
+    path_points.iter().enumerate().for_each(|(i, p)| {
+        //Lines
+        let l = 5.0;
+        draw.line()
+            .start(pt2(p.x + l, p.y - l))
+            .end(pt2(p.x - l, p.y + l))
+            .rgb(0.7, 0.61, 0.0);
+        // Dots
+        let q = map_range(i, 0, path_points.len(), 0.0, 1.0);
+        if i % 2 == 0 {
+            draw.ellipse()
+                .x_y(p.x, p.y)
+                .radius(map_range(
+                    (i as f32 * 0.05 + app.time * 4.3).sin(),
+                    -1.0,
+                    1.0,
+                    3.0,
+                    9.0,
+                ))
+                .hsv(q, 1.0, 0.5);
+        }
+    });
 
-    
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
 }
@@ -105,30 +116,25 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
 }
 fn key_released(app: &App, _model: &mut Model, key: Key) {
     if key == Key::LControl || key == Key::RControl {
-        app.main_window().capture_frame(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .capture_frame(app.exe_name().unwrap() + ".png");
     }
 }
 
-
-
 fn dots_along_path(path: PathSlice, dots: &mut Vec<Point>, interval: f32, offset: f32) {
     use std::ops::Rem;
-    let dot_spacing = map_range(interval,0.0,1.0,0.025,1.0);
+    let dot_spacing = map_range(interval, 0.0, 1.0, 0.025, 1.0);
     let mut pattern = RepeatedPattern {
         callback: &mut |position, _tangent, _distance| {
             dots.push(position);
             true // Return true to continue walking the path.
         },
         // Invoke the callback above at a regular interval of 3 units.
-        intervals: &[dot_spacing],// 0.05],// 0.05],
+        intervals: &[dot_spacing], // 0.05],// 0.05],
         index: 0,
     };
 
     let tolerance = 0.01; // The path flattening tolerance.
     let start_offset = offset.rem(12.0 + dot_spacing); // Start walking at the beginning of the path.
-    walk_along_path(
-        path.iter().flattened(tolerance),
-        start_offset,
-        &mut pattern
-    );
+    walk_along_path(path.iter().flattened(tolerance), start_offset, &mut pattern);
 }

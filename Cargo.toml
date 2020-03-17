@@ -43,6 +43,7 @@ futures = "0.3"
 nannou_audio = "0.2"
 nannou_laser = "0.3"
 nannou_osc = "0.1"
+wikipedia = "0.3"
 
 # --------------- Nannou Examples
 [[example]]
@@ -231,10 +232,19 @@ path = "examples/generative_design/shape/p_2_1_2_03.rs"
 [[example]]
 name = "p_2_1_2_04"
 path = "examples/generative_design/shape/p_2_1_2_04.rs"
+[[example]]
+name = "p_2_1_3_05"
+path = "examples/generative_design/shape/p_2_1_3_05.rs"
 # --------------- Type
 [[example]]
 name = "p_3_0_01"
 path = "examples/generative_design/type/p_3_0_01.rs"
+[[example]]
+name = "p_3_1_3_01"
+path = "examples/generative_design/type/p_3_1_3_01.rs"
+[[example]]
+name = "p_3_1_3_02"
+path = "examples/generative_design/type/p_3_1_3_02.rs"
 [[example]]
 name = "p_3_2_1_01"
 path = "examples/generative_design/type/p_3_2_1_01.rs"
@@ -248,6 +258,12 @@ path = "examples/generative_design/random_and_noise/m_1_2_01.rs"
 [[example]]
 name = "m_1_3_01"
 path = "examples/generative_design/random_and_noise/m_1_3_01.rs"
+[[example]]
+name = "m_1_5_02"
+path = "examples/generative_design/random_and_noise/m_1_5_02.rs"
+[[example]]
+name = "m_1_5_03"
+path = "examples/generative_design/random_and_noise/m_1_5_03.rs"
 # --------------- Oscillation Figures
 [[example]]
 name = "m_2_1_01"
@@ -267,6 +283,23 @@ path = "examples/generative_design/oscillation_figures/m_2_5_01.rs"
 [[example]]
 name = "m_2_5_02"
 path = "examples/generative_design/oscillation_figures/m_2_5_02.rs"
+# --------------- Data Trees
+[[example]]
+name = "m_5_1_01"
+path = "examples/generative_design/data_trees/m_5_1_01.rs"
+# --------------- Dynamic Data Structure
+[[example]]
+name = "m_6_1_01"
+path = "examples/generative_design/dynamic_data_structure/m_6_1_01.rs"
+[[example]]
+name = "m_6_1_02"
+path = "examples/generative_design/dynamic_data_structure/m_6_1_02.rs"
+[[example]]
+name = "m_6_1_03"
+path = "examples/generative_design/dynamic_data_structure/m_6_1_03.rs"
+[[example]]
+name = "m_6_2_01"
+path = "examples/generative_design/dynamic_data_structure/m_6_2_01.rs"
 # --------------- Laser
 [[example]]
 name = "laser_frame_stream"

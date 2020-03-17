@@ -54,7 +54,7 @@ fn model(app: &App) -> Model {
 
     Model {
         letter: '8',
-        mouse_drag: false
+        mouse_drag: false,
     }
 }
 
@@ -66,7 +66,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     let size = app.mouse.x.max(4.0) as u32 * 5 + 1;
-    draw.text(&model.letter.to_string()).color(BLACK).font_size(size).x_y(0.0, app.mouse.y);
+    draw.text(&model.letter.to_string())
+        .color(BLACK)
+        .font_size(size)
+        .x_y(0.0, app.mouse.y);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
@@ -83,6 +86,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
 }
 fn key_released(app: &App, _model: &mut Model, key: Key) {
     if key == Key::LControl || key == Key::RControl {
-        app.main_window().capture_frame(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .capture_frame(app.exe_name().unwrap() + ".png");
     }
 }
