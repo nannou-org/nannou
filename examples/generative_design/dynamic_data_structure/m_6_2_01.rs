@@ -1,4 +1,4 @@
-// M_6_1_01
+// M_6_2_01
 //
 // Generative Gestaltung – Creative Coding im Web
 // ISBN: 978-3-87439-902-9, First Edition, Hermann Schmidt, Mainz, 2018
@@ -18,11 +18,8 @@
 // limitations under the License.
 
 /**
- * distribute nodes on the display by letting them repel each other
- *
- * KEYS
- * r             : reset positions
- * s             : save png
+ * loads the names of the links on the wikipedia-site "Superegg"
+ * and prints them to the console
  */
 use nannou::prelude::*;
 use wikipedia;
@@ -34,30 +31,25 @@ fn main() {
 struct Model;
 
 fn model(app: &App) -> Model {
-    app.new_window()
-        .size(400, 400)
-        .view(view)
-        .build()
-        .unwrap();
+    app.new_window().size(400, 400).view(view).build().unwrap();
 
     let wiki = wikipedia::Wikipedia {
         client: wikipedia::http::default::Client::default(),
         links_results: "500".to_string(),
-        .. Default::default()
-    };    
+        ..Default::default()
+    };
 
     let page = wiki.page_from_title("Superegg".to_owned());
     let links = page.get_links().unwrap();
 
-    links.enumerate().for_each(|(i,link)| {
+    links.enumerate().for_each(|(i, link)| {
         println!("Link {}: {} ", i, link.title);
     });
 
     Model
 }
 
-fn update(_app: &App, _model: &mut Model, _update: Update) {
-}
+fn update(_app: &App, _model: &mut Model, _update: Update) {}
 
 fn view(app: &App, _model: &Model, frame: Frame) {
     // Begin drawing
