@@ -56,7 +56,7 @@ impl draw::renderer::RenderPrimitive for Ellipse<f32> {
         self,
         ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-    ) -> draw::renderer::VertexMode {
+    ) -> draw::renderer::PrimitiveRender {
         let Ellipse {
             dimensions,
             polygon,
@@ -86,7 +86,7 @@ impl draw::renderer::RenderPrimitive for Ellipse<f32> {
             mesh,
         );
 
-        draw::renderer::VertexMode::Color
+        draw::renderer::PrimitiveRender::default()
     }
 }
 

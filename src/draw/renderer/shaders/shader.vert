@@ -7,7 +7,7 @@
 #version 450
 
 layout(set = 0, binding = 0) uniform Data {
-    vec3 window_to_shader;
+    mat4 proj;
 } uniforms;
 
 layout(location = 0) in vec3 position;
@@ -20,7 +20,7 @@ layout(location = 1) out vec2 v_tex_coords;
 layout(location = 2) flat out uint v_mode;
 
 void main() {
-    gl_Position = vec4(position * uniforms.window_to_shader, 1.0);
+    gl_Position = uniforms.proj * vec4(position, 1.0);
     v_color = color;
     v_tex_coords = tex_coords;
     v_mode = mode;

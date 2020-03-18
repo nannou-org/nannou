@@ -115,7 +115,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         });
 
     // Draw the sine wave.
-    draw.polyline().weight(2.0).colored_points(vertices);
+    draw.polyline().weight(2.0).points_colored(vertices);
 
     if model.do_draw_animation {
         // draw x oscillator
@@ -134,7 +134,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 (p, rgba)
             });
 
-        draw.polyline().weight(2.0).colored_points(vertices);
+        draw.polyline().weight(2.0).points_colored(vertices);
 
         // draw y oscillator
         let vertices = (0..model.point_count)
@@ -151,7 +151,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 let rgba = rgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
-        draw.polyline().weight(2.0).colored_points(vertices);
+        draw.polyline().weight(2.0).points_colored(vertices);
 
         let osc_yx = -win.w() * 2.0 / 3.0 - model.margin
             + fmod(model.angle / TAU, 1.0) * (win.w() / 2.0 - 2.0 * model.margin);

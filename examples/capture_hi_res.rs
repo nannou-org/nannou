@@ -122,7 +122,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     draw.polyline()
         .weight(weight)
         .join_round()
-        .colored_points(vertices);
+        .points_colored(vertices);
 
     // Draw frame number and size in bottom left.
     let string = format!("Frame {} - {:?}", elapsed_frames, [w, h]);

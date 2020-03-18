@@ -135,7 +135,7 @@ impl draw::renderer::RenderPrimitive for Line<f32> {
         self,
         mut ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-    ) -> draw::renderer::VertexMode {
+    ) -> draw::renderer::PrimitiveRender {
         let Line { path, start, end } = self;
         let start = start.unwrap_or(pt2(0.0, 0.0));
         let end = end.unwrap_or(pt2(0.0, 0.0));
@@ -161,7 +161,7 @@ impl draw::renderer::RenderPrimitive for Line<f32> {
             mesh,
         );
 
-        draw::renderer::VertexMode::Color
+        draw::renderer::PrimitiveRender::default()
     }
 }
 

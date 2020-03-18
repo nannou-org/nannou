@@ -8,8 +8,8 @@
 
 layout(set = 1, binding = 0) uniform sampler text_sampler;
 layout(set = 1, binding = 1) uniform texture2D text;
-//layout(set = 2, binding = 0) uniform sampler tex_sampler;
-//layout(set = 2, binding = 1) uniform texture2D tex;
+layout(set = 2, binding = 0) uniform sampler tex_sampler;
+layout(set = 2, binding = 1) uniform texture2D tex;
 
 layout(location = 0) in vec4 v_color;
 layout(location = 1) in vec2 v_tex_coords;
@@ -22,9 +22,9 @@ void main() {
     if (v_mode == uint(0)) {
         f_color = v_color;
 
-    // // Texture
-    // } else if (v_mode == uint(1)) {
-    //     f_color = texture(sampler2D(tex, tex_sampler), v_tex_coords);
+    // Texture
+    } else if (v_mode == uint(1)) {
+        f_color = texture(sampler2D(tex, tex_sampler), v_tex_coords);
 
     // Text
     } else if (v_mode == uint(2)) {

@@ -1,5 +1,6 @@
-use crate::wgpu::{self, TextureHandle};
+use crate::wgpu::{self, TextureHandle, TextureViewHandle};
 use std::ops::Deref;
+use std::sync::Arc;
 
 pub mod capturer;
 pub mod image;
@@ -13,9 +14,37 @@ pub mod reshaper;
 /// useful information like size, format, usage, etc.
 #[derive(Debug)]
 pub struct Texture {
-    texture: TextureHandle,
+    handle: Arc<TextureHandle>,
     descriptor: wgpu::TextureDescriptor,
 }
+
+/// A convenient wrapper around a handle to a texture view along with its descriptor.
+///
+/// A **TextureView** is, perhaps unsurprisingly, a view of some existing texture. The view might
+/// be of the whole texture, but it might also be of some sub-section of the texture. When an API
+/// provides
+#[derive(Debug)]
+pub struct TextureView {
+    handle: Arc<TextureViewHandle>,
+    descriptor: wgpu::TextureViewDescriptor,
+    texture_id: TextureId,
+}
+
+/// A unique identifier associated with a **Texture**.
+///
+/// If a texture is cloned, the result of a call to `id` will return the same result for
+/// both the original and the clone.
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+pub struct TextureId(usize);
+
+/// A unique identifier associated with a **TextureView**.
+///
+/// A **TextureViewId** is derived from the hash of both the **TextureView**'s parent texture ID
+/// and the contents of its **TextureViewDescriptor**. This allows the same **TextureViewId** to
+/// represent two separate yet texture views of the same texture that share the exact same
+/// descriptor.
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+pub struct TextureViewId(u64);
 
 /// A type aimed at simplifying the construction of a **Texture**.
 ///
@@ -27,6 +56,15 @@ pub struct Builder {
     descriptor: wgpu::TextureDescriptor,
 }
 
+/// A type aimed at simplifying the construction of a **TextureView**.
+///
+/// The builder assumes a set of defaults that match view produced via `create_default_view`.
+#[derive(Debug)]
+pub struct ViewBuilder<'a> {
+    texture: &'a wgpu::Texture,
+    descriptor: wgpu::TextureViewDescriptor,
+}
+
 /// A wrapper around a `wgpu::Buffer` containing bytes of a known length.
 #[derive(Debug)]
 pub struct BufferBytes {
@@ -35,14 +73,15 @@ pub struct BufferBytes {
 }
 
 impl Texture {
-    // `wgpu::TextureDescriptor` accessor methods.
-
     /// The inner descriptor from which this **Texture** was constructed.
     pub fn descriptor(&self) -> &wgpu::TextureDescriptor {
         &self.descriptor
     }
 
     /// The inner descriptor from which this **Texture** was constructed.
+    ///
+    /// TODO: This method should be removed upon updating to wgpu 0.5 as the new version will
+    /// include an implementation of `Clone` for `TextureDescriptor`.
     pub fn descriptor_cloned(&self) -> wgpu::TextureDescriptor {
         wgpu::TextureDescriptor {
             size: self.extent(),
@@ -55,14 +94,14 @@ impl Texture {
         }
     }
 
-    /// Consume the **Texture** and produce the inner **TextureHandle**.
-    pub fn into_inner(self) -> TextureHandle {
+    /// Consume the **Texture** and produce the inner **Arc<TextureHandle>**.
+    pub fn into_inner(self) -> Arc<TextureHandle> {
         self.into()
     }
 
     /// A reference to the inner **TextureHandle**.
-    pub fn inner(&self) -> &TextureHandle {
-        &self.texture
+    pub fn inner(&self) -> &Arc<TextureHandle> {
+        &self.handle
     }
 
     /// The width and height of the texture.
@@ -94,21 +133,6 @@ impl Texture {
         self.descriptor.dimension
     }
 
-    /// A `TextureViewDimension` for a full view of the entire texture.
-    ///
-    /// NOTE: This will never produce the `Cube` or `CubeArray` variants. You may have to construct
-    /// your own `wgpu::TextureViewDimension` if these are desired.
-    pub fn view_dimension(&self) -> wgpu::TextureViewDimension {
-        match self.dimension() {
-            wgpu::TextureDimension::D1 => wgpu::TextureViewDimension::D1,
-            wgpu::TextureDimension::D2 => match self.array_layer_count() {
-                1 => wgpu::TextureViewDimension::D2,
-                _ => wgpu::TextureViewDimension::D2Array,
-            },
-            wgpu::TextureDimension::D3 => wgpu::TextureViewDimension::D3,
-        }
-    }
-
     /// The format of the underlying texture data.
     pub fn format(&self) -> wgpu::TextureFormat {
         self.descriptor.format
@@ -117,6 +141,11 @@ impl Texture {
     /// The set of usage bits describing the ways in which the **Texture** may be used.
     pub fn usage(&self) -> wgpu::TextureUsage {
         self.descriptor.usage
+    }
+
+    /// The size of the texture data in bytes.
+    pub fn size_bytes(&self) -> usize {
+        data_size_bytes(&self.descriptor)
     }
 
     // Custom constructors.
@@ -130,16 +159,112 @@ impl Texture {
     ///
     /// The `descriptor` must be the same used to create the texture.
     pub fn from_handle_and_descriptor(
-        handle: TextureHandle,
+        handle: Arc<TextureHandle>,
         descriptor: wgpu::TextureDescriptor,
     ) -> Self {
-        Texture {
-            texture: handle,
-            descriptor,
-        }
+        Texture { handle, descriptor }
     }
 
     // Custom common use methods.
+
+    /// A unique identifier associated with this texture.
+    ///
+    /// This is useful for distinguishing between two **Texture**s or for producing a hashable
+    /// representation.
+    pub fn id(&self) -> TextureId {
+        TextureId(Arc::into_raw(self.handle.clone()) as usize)
+    }
+
+    /// Begin building a **TextureView** for this **Texture**.
+    ///
+    /// By default, the produced **TextureViewBuilder** will build a texture view for the
+    /// descriptor returned via `default_view_descriptor`.
+    pub fn view(&self) -> ViewBuilder {
+        ViewBuilder {
+            texture: self,
+            descriptor: self.default_view_descriptor(),
+        }
+    }
+
+    /// A `TextureViewDimension` for a full view of the entire texture.
+    ///
+    /// NOTE: This will never produce the `Cube` or `CubeArray` variants. You may have to construct
+    /// your own `wgpu::TextureViewDimension` via the `view` method if these are desired.
+    pub fn view_dimension(&self) -> wgpu::TextureViewDimension {
+        match self.dimension() {
+            wgpu::TextureDimension::D1 => wgpu::TextureViewDimension::D1,
+            wgpu::TextureDimension::D2 => match self.array_layer_count() {
+                1 => wgpu::TextureViewDimension::D2,
+                _ => wgpu::TextureViewDimension::D2Array,
+            },
+            wgpu::TextureDimension::D3 => wgpu::TextureViewDimension::D3,
+        }
+    }
+
+    /// The view descriptor describing a full view of the texture.
+    pub fn default_view_descriptor(&self) -> wgpu::TextureViewDescriptor {
+        let dimension = self.view_dimension();
+        // TODO: Is this correct? Should we check the format?
+        let aspect = wgpu::TextureAspect::All;
+        wgpu::TextureViewDescriptor {
+            format: self.format(),
+            dimension,
+            aspect,
+            base_mip_level: 0,
+            level_count: self.mip_level_count(),
+            base_array_layer: 0,
+            array_layer_count: self.array_layer_count(),
+        }
+    }
+
+    /// Creates a `TextureCopyView` ready for copying to or from the entire texture.
+    pub fn default_copy_view(&self) -> wgpu::TextureCopyView {
+        wgpu::TextureCopyView {
+            texture: &self.handle,
+            mip_level: 0,
+            array_layer: 0,
+            origin: wgpu::Origin3d::ZERO,
+        }
+    }
+
+    /// Creates a `BufferCopyView` ready for copying to or from the given buffer where the given
+    /// buffer is assumed to have the same size as the entirety of this texture.
+    pub fn default_buffer_copy_view<'a>(
+        &self,
+        buffer: &'a wgpu::Buffer,
+    ) -> wgpu::BufferCopyView<'a> {
+        let format_size_bytes = format_size_bytes(self.format());
+        let [width, height] = self.size();
+        wgpu::BufferCopyView {
+            buffer,
+            offset: 0,
+            row_pitch: width * format_size_bytes,
+            image_height: height,
+        }
+    }
+
+    /// Encode a command for uploading the given data to the texture.
+    ///
+    /// The length of the data must be equal to the length returned by `texture.size_bytes()`.
+    pub fn upload_data(
+        &self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        data: &[u8],
+    ) {
+        // Ensure data has valid length.
+        let texture_size_bytes = self.size_bytes();
+        assert_eq!(data.len(), texture_size_bytes);
+
+        // Upload and copy the data.
+        let buffer = device
+            .create_buffer_mapped(texture_size_bytes, wgpu::BufferUsage::COPY_SRC)
+            .fill_from_slice(data);
+        let buffer_copy_view = self.default_buffer_copy_view(&buffer);
+        let texture_copy_view = self.default_copy_view();
+        let extent = self.extent();
+        encoder.copy_buffer_to_texture(buffer_copy_view, texture_copy_view, extent);
+    }
 
     /// Write the contents of the texture into a new buffer.
     ///
@@ -179,8 +304,8 @@ impl Texture {
             let buffer = device.create_buffer(&buffer_descriptor);
 
             // Copy the full contents of the texture to the buffer.
-            let texture_copy_view = texture.create_default_copy_view();
-            let buffer_copy_view = texture.create_default_buffer_copy_view(&buffer);
+            let texture_copy_view = texture.default_copy_view();
+            let buffer_copy_view = texture.default_buffer_copy_view(&buffer);
             encoder.copy_texture_to_buffer(texture_copy_view, buffer_copy_view, size);
 
             (buffer, data_size_bytes)
@@ -222,55 +347,79 @@ impl Texture {
         let (buffer, len_bytes) = self.to_buffer(device, encoder);
         BufferBytes { buffer, len_bytes }
     }
+}
 
-    /// The view descriptor describing a full view of the texture.
-    pub fn create_default_view_descriptor(&self) -> wgpu::TextureViewDescriptor {
-        let dimension = self.view_dimension();
-        // TODO: Is this correct? Should we check the format?
-        let aspect = wgpu::TextureAspect::All;
+impl TextureView {
+    pub fn descriptor(&self) -> &wgpu::TextureViewDescriptor {
+        &self.descriptor
+    }
+
+    pub fn descriptor_cloned(&self) -> wgpu::TextureViewDescriptor {
         wgpu::TextureViewDescriptor {
             format: self.format(),
-            dimension,
-            aspect,
-            base_mip_level: 0,
-            level_count: self.mip_level_count(),
-            base_array_layer: 0,
+            dimension: self.dimension(),
+            aspect: self.aspect(),
+            base_mip_level: self.base_mip_level(),
+            level_count: self.level_count(),
+            base_array_layer: self.base_array_layer(),
             array_layer_count: self.array_layer_count(),
         }
     }
 
-    /// The view descriptor for a single layer of the texture.
-    pub fn create_layer_view_descriptor(&self, layer: u32) -> wgpu::TextureViewDescriptor {
-        let mut desc = self.create_default_view_descriptor();
-        desc.dimension = wgpu::TextureViewDimension::D2;
-        desc.base_array_layer = layer;
-        desc.array_layer_count = 1;
-        desc
+    pub fn format(&self) -> wgpu::TextureFormat {
+        self.descriptor.format
     }
 
-    /// Creates a `TextureCopyView` ready for copying to or from the entire texture.
-    pub fn create_default_copy_view(&self) -> wgpu::TextureCopyView {
-        wgpu::TextureCopyView {
-            texture: &self.texture,
-            mip_level: 0,
-            array_layer: 0,
-            origin: wgpu::Origin3d::ZERO,
-        }
+    pub fn dimension(&self) -> wgpu::TextureViewDimension {
+        self.descriptor.dimension
     }
 
-    /// Creates a `BufferCopyView` ready for copying to or from the given buffer where the given
-    /// buffer is assumed to have the same size as the entirety of this texture.
-    pub fn create_default_buffer_copy_view<'a>(
-        &self,
-        buffer: &'a wgpu::Buffer,
-    ) -> wgpu::BufferCopyView<'a> {
-        let format_size_bytes = format_size_bytes(self.format());
-        let [width, height] = self.size();
-        wgpu::BufferCopyView {
-            buffer,
-            offset: 0,
-            row_pitch: width * format_size_bytes,
-            image_height: height,
+    pub fn aspect(&self) -> wgpu::TextureAspect {
+        self.descriptor.aspect
+    }
+
+    pub fn base_mip_level(&self) -> u32 {
+        self.descriptor.base_mip_level
+    }
+
+    pub fn level_count(&self) -> u32 {
+        self.descriptor.level_count
+    }
+
+    pub fn base_array_layer(&self) -> u32 {
+        self.descriptor.base_array_layer
+    }
+
+    pub fn array_layer_count(&self) -> u32 {
+        self.descriptor.array_layer_count
+    }
+
+    pub fn id(&self) -> TextureViewId {
+        texture_view_id(&self.texture_id, &self.descriptor)
+    }
+
+    /// The unique identifier associated with the texture that this view is derived from.
+    pub fn texture_id(&self) -> TextureId {
+        self.texture_id
+    }
+
+    /// Access to the inner texture view handle.
+    pub fn inner(&self) -> &Arc<wgpu::TextureViewHandle> {
+        &self.handle
+    }
+
+    /// Consume the **TextureView** and produce the inner **Arc<TextureViewHandle>**.
+    pub fn into_inner(self) -> Arc<wgpu::TextureViewHandle> {
+        self.handle
+    }
+}
+
+impl Clone for TextureView {
+    fn clone(&self) -> Self {
+        TextureView {
+            handle: self.handle.clone(),
+            descriptor: self.descriptor_cloned(),
+            texture_id: self.texture_id(),
         }
     }
 }
@@ -382,16 +531,71 @@ impl Builder {
 
     /// Build the texture resulting from the specified parameters with the given device.
     pub fn build(self, device: &wgpu::Device) -> Texture {
-        let texture = device.create_texture(&self.descriptor);
+        let handle = Arc::new(device.create_texture(&self.descriptor));
         let descriptor = self.into();
-        Texture {
-            texture,
-            descriptor,
-        }
+        Texture { handle, descriptor }
     }
 
     /// Consumes the builder and returns the resulting `wgpu::TextureDescriptor`.
     pub fn into_descriptor(self) -> wgpu::TextureDescriptor {
+        self.into()
+    }
+}
+
+impl<'a> ViewBuilder<'a> {
+    pub fn format(mut self, format: wgpu::TextureFormat) -> Self {
+        self.descriptor.format = format;
+        self
+    }
+
+    pub fn dimension(mut self, dimension: wgpu::TextureViewDimension) -> Self {
+        self.descriptor.dimension = dimension;
+        self
+    }
+
+    pub fn aspect(mut self, aspect: wgpu::TextureAspect) -> Self {
+        self.descriptor.aspect = aspect;
+        self
+    }
+
+    pub fn level_count(mut self, level_count: u32) -> Self {
+        self.descriptor.level_count = level_count;
+        self
+    }
+
+    pub fn base_array_layer(mut self, base_array_layer: u32) -> Self {
+        self.descriptor.base_array_layer = base_array_layer;
+        self
+    }
+
+    pub fn array_layer_count(mut self, array_layer_count: u32) -> Self {
+        self.descriptor.array_layer_count = array_layer_count;
+        self
+    }
+
+    /// Short-hand for specifying a **TextureView** for a single given base array layer.
+    ///
+    /// In other words, this is short-hand for the following:
+    ///
+    /// ```ignore
+    /// builder
+    ///     .base_array_layer(layer)
+    ///     .array_layer_count(1)
+    /// ```
+    pub fn layer(self, layer: u32) -> Self {
+        self.base_array_layer(layer).array_layer_count(1)
+    }
+
+    pub fn build(self) -> TextureView {
+        TextureView {
+            handle: Arc::new(self.texture.inner().create_view(&self.descriptor)),
+            descriptor: self.descriptor,
+            texture_id: self.texture.id(),
+        }
+    }
+
+    /// Consumes the texture view builder and returns the resulting `wgpu::TextureViewDescriptor`.
+    pub fn into_descriptor(self) -> wgpu::TextureViewDescriptor {
         self.into()
     }
 }
@@ -425,16 +629,31 @@ impl BufferBytes {
     }
 }
 
-impl Deref for Texture {
-    type Target = TextureHandle;
-    fn deref(&self) -> &Self::Target {
-        &self.texture
+impl Clone for Texture {
+    fn clone(&self) -> Self {
+        let handle = self.handle.clone();
+        let descriptor = self.descriptor_cloned();
+        Self { handle, descriptor }
     }
 }
 
-impl Into<TextureHandle> for Texture {
-    fn into(self) -> TextureHandle {
-        self.texture
+impl Deref for Texture {
+    type Target = TextureHandle;
+    fn deref(&self) -> &Self::Target {
+        &*self.handle
+    }
+}
+
+impl Deref for TextureView {
+    type Target = TextureViewHandle;
+    fn deref(&self) -> &Self::Target {
+        &self.handle
+    }
+}
+
+impl Into<Arc<TextureHandle>> for Texture {
+    fn into(self) -> Arc<TextureHandle> {
+        self.handle
     }
 }
 
@@ -456,6 +675,41 @@ impl Into<wgpu::TextureDescriptor> for Builder {
     fn into(self) -> wgpu::TextureDescriptor {
         self.descriptor
     }
+}
+
+impl<'a> Into<wgpu::TextureViewDescriptor> for ViewBuilder<'a> {
+    fn into(self) -> wgpu::TextureViewDescriptor {
+        self.descriptor
+    }
+}
+
+/// Create a texture ID by hashing the source texture ID along with the contents of the descriptor.
+fn texture_view_id(texture_id: &TextureId, desc: &wgpu::TextureViewDescriptor) -> TextureViewId {
+    use std::hash::{Hash, Hasher};
+    let mut s = std::collections::hash_map::DefaultHasher::new();
+
+    // Hash source texture ID.
+    texture_id.hash(&mut s);
+
+    // Hash descriptor contents.
+    desc.format.hash(&mut s);
+    desc.dimension.hash(&mut s);
+    desc.aspect.hash(&mut s);
+    desc.base_mip_level.hash(&mut s);
+    desc.level_count.hash(&mut s);
+    desc.base_array_layer.hash(&mut s);
+    desc.array_layer_count.hash(&mut s);
+
+    TextureViewId(s.finish())
+}
+
+/// The size of the texture data in bytes as described by the given descriptor.
+pub fn data_size_bytes(desc: &wgpu::TextureDescriptor) -> usize {
+    desc.size.width as usize
+        * desc.size.height as usize
+        * desc.size.depth as usize
+        * desc.array_layer_count as usize
+        * format_size_bytes(desc.format) as usize
 }
 
 /// Return the size of the given texture format in bytes.

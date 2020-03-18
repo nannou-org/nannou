@@ -50,7 +50,7 @@ impl draw::renderer::RenderPrimitive for Rect<f32> {
         self,
         ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-    ) -> draw::renderer::VertexMode {
+    ) -> draw::renderer::PrimitiveRender {
         let Rect {
             polygon,
             dimensions,
@@ -74,7 +74,7 @@ impl draw::renderer::RenderPrimitive for Rect<f32> {
             mesh,
         );
 
-        draw::renderer::VertexMode::Color
+        draw::renderer::PrimitiveRender::default()
     }
 }
 

@@ -1,17 +1,18 @@
 //! A simple API for drawing 2D and 3D graphics. See the [**Draw** type](./struct.Draw.html) for
 //! more details.
 
-use crate::geom;
+use crate::geom::{self, Point2};
 use crate::math::{BaseFloat, Matrix4, SquareMatrix};
 use crate::wgpu;
 use lyon::path::PathEvent;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::mem;
+use std::rc::Rc;
 
 pub use self::background::Background;
 pub use self::drawing::{Drawing, DrawingContext};
+use self::mesh::vertex::Color;
 pub use self::mesh::Mesh;
 use self::primitive::Primitive;
 pub use self::renderer::{Builder as RendererBuilder, Renderer};
@@ -134,7 +135,9 @@ pub struct IntermediaryState<S> {
     /// A re-usable buffer for collecting path events.
     path_event_buffer: Vec<PathEvent>,
     /// A re-usable buffer for collecting colored polyline points.
-    path_colored_points_buffer: Vec<mesh::vertex::ColoredPoint2<S>>,
+    path_points_colored_buffer: Vec<(Point2<S>, Color)>,
+    /// A re-usable buffer for collecting textured polyline points.
+    path_points_textured_buffer: Vec<(Point2<S>, Point2<S>)>,
     /// A buffer containing all text.
     text_buffer: String,
 }
@@ -143,7 +146,8 @@ impl<S> IntermediaryState<S> {
     pub fn reset(&mut self) {
         self.intermediary_mesh.clear();
         self.path_event_buffer.clear();
-        self.path_colored_points_buffer.clear();
+        self.path_points_colored_buffer.clear();
+        self.path_points_textured_buffer.clear();
         self.text_buffer.clear();
     }
 }
@@ -402,12 +406,14 @@ impl<S> Default for IntermediaryState<S> {
     fn default() -> Self {
         let intermediary_mesh = Default::default();
         let path_event_buffer = Default::default();
-        let path_colored_points_buffer = Default::default();
+        let path_points_colored_buffer = Default::default();
+        let path_points_textured_buffer = Default::default();
         let text_buffer = Default::default();
         IntermediaryState {
             intermediary_mesh,
             path_event_buffer,
-            path_colored_points_buffer,
+            path_points_colored_buffer,
+            path_points_textured_buffer,
             text_buffer,
         }
     }

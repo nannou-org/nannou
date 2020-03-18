@@ -1163,10 +1163,7 @@ where
     fn default() -> Self {
         let mesh = Default::default();
         let tex_coords = Default::default();
-        WithTexCoords {
-            mesh,
-            tex_coords,
-        }
+        WithTexCoords { mesh, tex_coords }
     }
 }
 
@@ -1302,10 +1299,7 @@ where
     T: Channel,
 {
     assert_eq!(raw_vertex_count(&mesh), tex_coords.channel().len());
-    WithTexCoords {
-        mesh,
-        tex_coords,
-    }
+    WithTexCoords { mesh, tex_coords }
 }
 
 /// Combine the given mesh with the given **Normals** channel.

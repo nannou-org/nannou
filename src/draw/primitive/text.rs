@@ -245,7 +245,7 @@ impl draw::renderer::RenderPrimitive for Text<f32> {
         self,
         ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-    ) -> draw::renderer::VertexMode {
+    ) -> draw::renderer::PrimitiveRender {
         let Text {
             spatial,
             style,
@@ -383,7 +383,7 @@ impl draw::renderer::RenderPrimitive for Text<f32> {
             }
         }
 
-        draw::renderer::VertexMode::Text
+        draw::renderer::PrimitiveRender::text()
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::color::IntoLinSrgba;
-use crate::draw::mesh;
+use crate::draw::mesh::vertex::Color;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::{
     ColorScalar, SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
@@ -45,7 +45,9 @@ pub struct DrawingContext<'a, S> {
     /// A re-usable buffer for collecting path events.
     pub path_event_buffer: &'a mut Vec<PathEvent>,
     /// A re-usable buffer for collecting colored polyline points.
-    pub path_colored_points_buffer: &'a mut Vec<mesh::vertex::ColoredPoint2<S>>,
+    pub path_points_colored_buffer: &'a mut Vec<(Point2<S>, Color)>,
+    /// A re-usable buffer for collecting textured polyline points.
+    pub path_points_textured_buffer: &'a mut Vec<(Point2<S>, Point2<S>)>,
     /// A re-usable buffer for collecting text.
     pub text_buffer: &'a mut String,
 }
@@ -82,13 +84,15 @@ impl<'a, S> DrawingContext<'a, S> {
         let super::IntermediaryState {
             ref mut intermediary_mesh,
             ref mut path_event_buffer,
-            ref mut path_colored_points_buffer,
+            ref mut path_points_colored_buffer,
+            ref mut path_points_textured_buffer,
             ref mut text_buffer,
         } = *state;
         DrawingContext {
             mesh: intermediary_mesh,
             path_event_buffer: path_event_buffer,
-            path_colored_points_buffer: path_colored_points_buffer,
+            path_points_colored_buffer: path_points_colored_buffer,
+            path_points_textured_buffer: path_points_textured_buffer,
             text_buffer: text_buffer,
         }
     }

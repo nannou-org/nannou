@@ -75,7 +75,7 @@ impl draw::renderer::RenderPrimitive for Tri<f32> {
         self,
         ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-    ) -> draw::renderer::VertexMode {
+    ) -> draw::renderer::PrimitiveRender {
         let Tri {
             mut tri,
             dimensions,
@@ -108,7 +108,7 @@ impl draw::renderer::RenderPrimitive for Tri<f32> {
             mesh,
         );
 
-        draw::renderer::VertexMode::Color
+        draw::renderer::PrimitiveRender::default()
     }
 }
 

@@ -79,7 +79,7 @@ fn model(app: &App) -> Model {
         let usage = wgpu::TextureUsage::SAMPLED;
         wgpu::Texture::load_from_image_buffer(device, &mut *queue, usage, &image_rgba)
     };
-    let texture_view = texture.create_default_view();
+    let texture_view = texture.view().build();
 
     // Create the sampler for sampling from the source texture.
     let sampler = wgpu::SamplerBuilder::new().build(device);

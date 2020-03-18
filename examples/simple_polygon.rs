@@ -34,7 +34,7 @@ fn view(app: &App, frame: Frame) {
 
     // Do the same, but give each point a unique colour.
     let n_points = 7;
-    let colored_points = (0..n_points).map(|i| {
+    let points_colored = (0..n_points).map(|i| {
         let fract = i as f32 / n_points as f32;
         let phase = fract;
         let x = radius * (TAU * phase).cos();
@@ -42,14 +42,12 @@ fn view(app: &App, frame: Frame) {
         let r = fract;
         let g = 1.0 - fract;
         let b = (0.5 + fract) % 1.0;
-        let a = 1.0;
-        let color = Rgba::new(r, g, b, a);
-        (pt2(x, y), color)
+        (pt2(x, y), rgb(r, g, b))
     });
     draw.polygon()
         .x(win.w() * 0.25)
         .rotate(t * 0.2)
-        .colored_points(colored_points);
+        .points_colored(points_colored);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();

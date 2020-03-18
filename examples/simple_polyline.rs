@@ -42,7 +42,7 @@ fn view(app: &App, frame: Frame) {
     draw.polyline()
         .weight(weight)
         .join_round()
-        .colored_points(vertices);
+        .points_colored(vertices);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();

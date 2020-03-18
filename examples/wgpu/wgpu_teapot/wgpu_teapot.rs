@@ -99,7 +99,7 @@ fn model(app: &App) -> Model {
 
     // Create the depth texture.
     let depth_texture = create_depth_texture(device, [win_w, win_h], DEPTH_FORMAT, msaa_samples);
-    let depth_texture_view = depth_texture.create_default_view();
+    let depth_texture_view = depth_texture.view().build();
 
     // Create the uniform buffer.
     let uniforms = create_uniforms(0.0, [win_w, win_h]);
@@ -146,7 +146,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         let depth_format = g.depth_texture.format();
         let sample_count = frame.texture_msaa_samples();
         g.depth_texture = create_depth_texture(device, frame_size, depth_format, sample_count);
-        g.depth_texture_view = g.depth_texture.create_default_view();
+        g.depth_texture_view = g.depth_texture.view().build();
     }
 
     // Update the uniforms (rotate around the teapot).

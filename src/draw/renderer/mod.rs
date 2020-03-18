@@ -1,19 +1,33 @@
 use crate::draw;
-use crate::draw::mesh;
+use crate::draw::mesh::vertex::Color;
 use crate::frame::Frame;
-use crate::geom::{self, Rect, Vector2};
+use crate::geom::{self, Point2, Rect, Vector2};
 use crate::math::map_range;
+use crate::math::Matrix4;
 use crate::text;
 use crate::wgpu;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillTessellator, StrokeTessellator};
+use std::collections::HashMap;
 use std::fmt;
 use std::ops::{Deref, DerefMut};
 
 /// Draw API primitives that may be rendered via the **Renderer** type.
 pub trait RenderPrimitive {
     /// Render self into the given mesh.
-    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> VertexMode;
+    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender;
+}
+
+/// Information about the way in which a primitive was rendered.
+pub struct PrimitiveRender {
+    /// Whether or not a specific texture must be available when this primitive is drawn.
+    ///
+    /// If `Some` and the given texture is different than the currently set texture, a render
+    /// command will be encoded that switches from the previous texture's bind group to the new
+    /// one.
+    pub texture_view: Option<wgpu::TextureView>,
+    /// The way in which vertices should be coloured in the fragment shader.
+    pub vertex_mode: VertexMode,
 }
 
 /// The context provided to primitives to assist with the rendering process.
@@ -21,7 +35,8 @@ pub struct RenderContext<'a> {
     pub transform: &'a crate::math::Matrix4<f32>,
     pub intermediary_mesh: &'a draw::Mesh,
     pub path_event_buffer: &'a [PathEvent],
-    pub path_colored_points_buffer: &'a [mesh::vertex::ColoredPoint2],
+    pub path_points_colored_buffer: &'a [(Point2, Color)],
+    pub path_points_textured_buffer: &'a [(Point2, Point2)],
     pub text_buffer: &'a str,
     pub theme: &'a draw::Theme,
     pub glyph_cache: &'a mut GlyphCache,
@@ -64,10 +79,16 @@ pub struct Renderer {
     glyph_cache_texture: wgpu::Texture,
     depth_texture: wgpu::Texture,
     depth_texture_view: wgpu::TextureView,
+    default_texture: wgpu::Texture,
+    default_texture_view: wgpu::TextureView,
     uniform_bind_group_layout: wgpu::BindGroupLayout,
     uniform_bind_group: wgpu::BindGroup,
     text_bind_group_layout: wgpu::BindGroupLayout,
     text_bind_group: wgpu::BindGroup,
+    texture_sampler: wgpu::Sampler,
+    texture_bind_group_layout: wgpu::BindGroupLayout,
+    texture_bind_groups: HashMap<wgpu::TextureViewId, wgpu::BindGroup>,
+    texture_default_bind_group: wgpu::BindGroup,
     output_color_format: wgpu::TextureFormat,
     sample_count: u32,
     scale_factor: f32,
@@ -95,7 +116,7 @@ enum RenderCommand {
         index: usize,
     },
     /// Change bind group for a new image.
-    SetBindGroup,
+    SetBindGroup(wgpu::TextureViewId),
     /// Set the rectangular scissor.
     SetScissor(Scissor),
     /// Draw the given vertex range.
@@ -120,13 +141,28 @@ pub struct DrawError;
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 struct Uniforms {
-    /// The vector to multiply onto vertices in the vertex shader to map them from window space to
-    /// shader space.
-    window_to_shader: [f32; 3],
+    // /// The vector to multiply onto vertices in the vertex shader to map them from window space to
+    // /// shader space.
+    // window_to_shader: [f32; 3],
+    //view: Matrix4<f32>,
+    /// Translates from "logical pixel coordinate space" (our "world space") to screen space.
+    ///
+    /// Specifically:
+    ///
+    /// - x is transformed from (-half_logical_win_w, half_logical_win_w) to (-1, 1).
+    /// - y is transformed from (-half_logical_win_h, half_logical_win_h) to (1, -1).
+    /// - z is transformed from (-max_logical_win_side, max_logical_win_side) to (0, 1).
+    proj: Matrix4<f32>,
+}
+
+impl Default for PrimitiveRender {
+    fn default() -> Self {
+        Self::color()
+    }
 }
 
 impl RenderPrimitive for draw::Primitive {
-    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> VertexMode {
+    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender {
         match self {
             draw::Primitive::Mesh(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Path(prim) => prim.render_primitive(ctxt, mesh),
@@ -137,7 +173,7 @@ impl RenderPrimitive for draw::Primitive {
             draw::Primitive::Rect(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Line(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Text(prim) => prim.render_primitive(ctxt, mesh),
-            _ => VertexMode::Color,
+            _ => PrimitiveRender::default(),
         }
     }
 }
@@ -189,6 +225,31 @@ impl fmt::Debug for GlyphCache {
             .field("pixel_buffer", &self.pixel_buffer.len())
             .field("requires_upload", &self.requires_upload)
             .finish()
+    }
+}
+
+impl PrimitiveRender {
+    /// Specify a vertex mode for the primitive render.
+    pub fn vertex_mode(vertex_mode: VertexMode) -> Self {
+        PrimitiveRender {
+            texture_view: None,
+            vertex_mode,
+        }
+    }
+
+    pub fn color() -> Self {
+        Self::vertex_mode(VertexMode::Color)
+    }
+
+    pub fn texture(texture_view: wgpu::TextureView) -> Self {
+        PrimitiveRender {
+            vertex_mode: VertexMode::Texture,
+            texture_view: Some(texture_view),
+        }
+    }
+
+    pub fn text() -> Self {
+        Self::vertex_mode(VertexMode::Text)
     }
 }
 
@@ -355,10 +416,7 @@ impl Renderer {
         let fs_mod = device.create_shader_module(&fs_spirv);
 
         // Create the glyph cache texture.
-        let text_sampler = wgpu::SamplerBuilder::new()
-            .mag_filter(wgpu::FilterMode::Nearest)
-            .min_filter(wgpu::FilterMode::Nearest)
-            .build(device);
+        let text_sampler = wgpu::SamplerBuilder::new().build(device);
         let glyph_cache_texture = wgpu::TextureBuilder::new()
             .size(glyph_cache_size)
             .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
@@ -369,7 +427,14 @@ impl Renderer {
         // Create the depth texture.
         let depth_texture =
             create_depth_texture(device, output_attachment_size, depth_format, sample_count);
-        let depth_texture_view = depth_texture.create_default_view();
+        let depth_texture_view = depth_texture.view().build();
+
+        // The default texture for the case where the user has not specified one.
+        let default_texture = wgpu::TextureBuilder::new()
+            .size([64; 2])
+            .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
+            .build(device);
+        let default_texture_view = default_texture.view().build();
 
         // Initial uniform buffer values. These will be overridden on draw.
         let temp_scale_factor = 1.0;
@@ -378,10 +443,12 @@ impl Renderer {
             .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
             .fill_from_slice(&[uniforms]);
 
-        // Create the render pipeline.
+        // Bind group for uniforms.
         let uniform_bind_group_layout = create_uniform_bind_group_layout(device);
         let uniform_bind_group =
             create_uniform_bind_group(device, &uniform_bind_group_layout, &uniform_buffer);
+
+        // Bind group for text.
         let text_bind_group_layout = create_text_bind_group_layout(device);
         let text_bind_group = create_text_bind_group(
             device,
@@ -389,6 +456,18 @@ impl Renderer {
             &text_sampler,
             &glyph_cache_texture_view,
         );
+
+        // Bind group per user-uploaded texture.
+        let texture_sampler = wgpu::SamplerBuilder::new().build(device);
+        let texture_bind_group_layout = create_texture_bind_group_layout(device);
+        let texture_bind_groups = Default::default();
+        let texture_default_bind_group = create_texture_bind_group(
+            device,
+            &texture_bind_group_layout,
+            &texture_sampler,
+            &default_texture_view,
+        );
+
         let render_pipelines = vec![];
         let render_commands = vec![];
         let mesh = Default::default();
@@ -401,10 +480,16 @@ impl Renderer {
             glyph_cache_texture,
             depth_texture,
             depth_texture_view,
+            default_texture,
+            default_texture_view,
             uniform_bind_group_layout,
             uniform_bind_group,
             text_bind_group_layout,
             text_bind_group,
+            texture_sampler,
+            texture_bind_group_layout,
+            texture_bind_groups,
+            texture_default_bind_group,
             render_pipelines,
             output_color_format,
             sample_count,
@@ -455,6 +540,8 @@ impl Renderer {
         let mut curr_ctxt = draw::Context::default();
         let mut is_first_ctxt = true;
         let mut curr_start_index = 0;
+        let mut curr_tex_view_id = self.default_texture_view.id();
+        let mut new_tex_views = HashMap::new();
         let draw_cmds: Vec<_> = draw.drain_commands().collect();
         let draw_state = draw.state.borrow_mut();
         let intermediary_state = draw_state.intermediary_state.borrow();
@@ -465,7 +552,9 @@ impl Renderer {
                     let ctxt = RenderContext {
                         intermediary_mesh: &intermediary_state.intermediary_mesh,
                         path_event_buffer: &intermediary_state.path_event_buffer,
-                        path_colored_points_buffer: &intermediary_state.path_colored_points_buffer,
+                        path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
+                        path_points_textured_buffer: &intermediary_state
+                            .path_points_textured_buffer,
                         text_buffer: &intermediary_state.text_buffer,
                         theme: &draw_state.theme,
                         transform: &curr_ctxt.transform,
@@ -476,8 +565,30 @@ impl Renderer {
                         output_attachment_scale_factor: scale_factor,
                     };
 
-                    // Render the primitive. Update the vertex mode channel accordingly.
-                    let mode = prim.render_primitive(ctxt, &mut self.mesh);
+                    // Render the primitive.
+                    let render = prim.render_primitive(ctxt, &mut self.mesh);
+
+                    // TODO: Check to see if we need to switch bind groups.
+                    if let Some(texture_view) = render.texture_view {
+                        assert_eq!(
+                            texture_view.dimension(),
+                            wgpu::TextureViewDimension::D2,
+                            "nannou's `draw` API only supports 2D texture views",
+                        );
+
+                        // Insert the command.
+                        let id = texture_view.id();
+                        if id != curr_tex_view_id {
+                            self.render_commands.push(RenderCommand::SetBindGroup(id));
+                            curr_tex_view_id = id;
+                        }
+
+                        // Ensure the new texture exists within our map of new views.
+                        new_tex_views.insert(id, texture_view);
+                    }
+
+                    // Extend the vertex mode channel.
+                    let mode = render.vertex_mode;
                     let new_vs = self.mesh.points().len() - self.vertex_mode_buffer.len();
                     self.vertex_mode_buffer.extend((0..new_vs).map(|_| mode));
                 }
@@ -519,6 +630,7 @@ impl Renderer {
                                     device,
                                     &self.uniform_bind_group_layout,
                                     &self.text_bind_group_layout,
+                                    &self.texture_bind_group_layout,
                                     &self.vs_mod,
                                     &self.fs_mod,
                                     self.output_color_format,
@@ -573,6 +685,22 @@ impl Renderer {
             };
             self.render_commands.push(cmd);
         }
+
+        // Clear out unnecessary bind groups.
+        self.texture_bind_groups
+            .retain(|id, _| new_tex_views.contains_key(id));
+        // Clear new texture views that we already have.
+        new_tex_views.retain(|id, _| !self.texture_bind_groups.contains_key(id));
+        // Ensure we have a bind group for each of the texture views, but no more.
+        for (new_id, new_tex_view) in new_tex_views {
+            let bind_group = create_texture_bind_group(
+                device,
+                &self.texture_bind_group_layout,
+                &self.texture_sampler,
+                &new_tex_view,
+            );
+            self.texture_bind_groups.insert(new_id, bind_group);
+        }
     }
 
     /// Encode a render pass with the given **Draw**ing to the given `output_attachment`.
@@ -597,30 +725,25 @@ impl Renderer {
 
         let Renderer {
             ref render_pipelines,
+            ref glyph_cache,
+            ref glyph_cache_texture,
             ref mut depth_texture,
             ref mut depth_texture_view,
             ref uniform_bind_group,
             ref text_bind_group,
+            ref texture_bind_groups,
+            ref texture_default_bind_group,
             ref mesh,
             ref vertex_mode_buffer,
             ref mut render_commands,
             ref uniform_buffer,
-            ref glyph_cache,
-            ref glyph_cache_texture,
             scale_factor: ref mut old_scale_factor,
             ..
         } = *self;
 
         // Update glyph cache texture if necessary.
         if glyph_cache.requires_upload {
-            let len = glyph_cache.pixel_buffer.len();
-            let buffer = device
-                .create_buffer_mapped(len, wgpu::BufferUsage::COPY_SRC)
-                .fill_from_slice(&glyph_cache.pixel_buffer);
-            let buffer_copy_view = glyph_cache_texture.create_default_buffer_copy_view(&buffer);
-            let texture_copy_view = glyph_cache_texture.create_default_copy_view();
-            let extent = glyph_cache_texture.extent();
-            encoder.copy_buffer_to_texture(buffer_copy_view, texture_copy_view, extent);
+            glyph_cache_texture.upload_data(device, encoder, &glyph_cache.pixel_buffer);
         }
 
         // Resize the depth texture if the output attachment size has changed.
@@ -630,7 +753,7 @@ impl Renderer {
             let sample_count = depth_texture.sample_count();
             *depth_texture =
                 create_depth_texture(device, output_attachment_size, depth_format, sample_count);
-            *depth_texture_view = depth_texture.create_default_view();
+            *depth_texture_view = depth_texture.view().build();
         }
 
         // Retrieve the clear values based on the bg color.
@@ -704,6 +827,7 @@ impl Renderer {
         // Set the uniform and text bind groups here.
         render_pass.set_bind_group(0, uniform_bind_group, &[]);
         render_pass.set_bind_group(1, text_bind_group, &[]);
+        render_pass.set_bind_group(2, texture_default_bind_group, &[]);
 
         // Follow the render commands.
         for cmd in render_commands.drain(..) {
@@ -713,8 +837,8 @@ impl Renderer {
                     render_pass.set_pipeline(pipeline);
                 }
 
-                RenderCommand::SetBindGroup => {
-                    let bind_group = unimplemented!();
+                RenderCommand::SetBindGroup(tex_view_id) => {
+                    let bind_group = &texture_bind_groups[&tex_view_id];
                     render_pass.set_bind_group(2, bind_group, &[]);
                 }
 
@@ -748,7 +872,7 @@ impl Renderer {
         texture: &wgpu::Texture,
     ) {
         let size = texture.size();
-        let view = texture.create_default_view();
+        let view = texture.view().build();
         // TODO: Should we expose this for rendering to textures?
         let scale_factor = 1.0;
         let resolve_target = None;
@@ -822,16 +946,21 @@ fn create_depth_texture(
 }
 
 fn create_uniforms([img_w, img_h]: [u32; 2], scale_factor: f32) -> Uniforms {
-    // Map coords from (-half_img_dim, +half_img_dim) to (-1.0, 1.0)
-    // In wgpu, *y* increases in the downwards direction, so we negate it.
-    let window_to_shader = [
-        2.0 * scale_factor / img_w as f32,
-        -(2.0 * scale_factor / img_h as f32),
-        // TODO: Should this be `img_h`? Or should it be the min of both sides? Or purely
-        // based on scale factor?
-        2.0 * scale_factor / img_h as f32,
-    ];
-    Uniforms { window_to_shader }
+    let right = img_w as f32 * 0.5 / scale_factor;
+    let left = -right;
+    let top = img_h as f32 * 0.5 / scale_factor;
+    let bottom = -top;
+    let far = std::cmp::max(img_w, img_h) as f32 / scale_factor;
+    let near = -far;
+    let proj = cgmath::ortho(left, right, bottom, top, near, far);
+    // By default, ortho scales z values to the range -1.0 to 1.0 and produces a matrix where y is
+    // assumed to increase upwards. We want to scale and translate the z axis so that it is in the
+    // range of 0.0 to 1.0, and we want to flip the y axis for wgpu coordinate space where y
+    // increases downwards.
+    let trans = cgmath::Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 1.0));
+    let scale = cgmath::Matrix4::from_nonuniform_scale(1.0, -1.0, 0.5);
+    let proj = scale * trans * proj;
+    Uniforms { proj }
 }
 
 fn create_uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
@@ -841,6 +970,17 @@ fn create_uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLay
 }
 
 fn create_text_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    wgpu::BindGroupLayoutBuilder::new()
+        .sampler(wgpu::ShaderStage::FRAGMENT)
+        .sampled_texture(
+            wgpu::ShaderStage::FRAGMENT,
+            false,
+            wgpu::TextureViewDimension::D2,
+        )
+        .build(device)
+}
+
+fn create_texture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
         .sampler(wgpu::ShaderStage::FRAGMENT)
         .sampled_texture(
@@ -865,7 +1005,7 @@ fn create_text_bind_group(
     device: &wgpu::Device,
     layout: &wgpu::BindGroupLayout,
     sampler: &wgpu::Sampler,
-    glyph_cache_texture_view: &wgpu::TextureView,
+    glyph_cache_texture_view: &wgpu::TextureViewHandle,
 ) -> wgpu::BindGroup {
     wgpu::BindGroupBuilder::new()
         .sampler(sampler)
@@ -873,10 +1013,23 @@ fn create_text_bind_group(
         .build(device, layout)
 }
 
+fn create_texture_bind_group(
+    device: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+    sampler: &wgpu::Sampler,
+    texture_view: &wgpu::TextureViewHandle,
+) -> wgpu::BindGroup {
+    wgpu::BindGroupBuilder::new()
+        .sampler(sampler)
+        .texture_view(texture_view)
+        .build(device, layout)
+}
+
 fn create_render_pipeline(
     device: &wgpu::Device,
     uniform_layout: &wgpu::BindGroupLayout,
     text_layout: &wgpu::BindGroupLayout,
+    texture_layout: &wgpu::BindGroupLayout,
     vs_mod: &wgpu::ShaderModule,
     fs_mod: &wgpu::ShaderModule,
     dst_format: wgpu::TextureFormat,
@@ -884,7 +1037,7 @@ fn create_render_pipeline(
     sample_count: u32,
     alpha_blend: wgpu::BlendDescriptor,
 ) -> wgpu::RenderPipeline {
-    let bind_group_layouts = &[uniform_layout, text_layout];
+    let bind_group_layouts = &[uniform_layout, text_layout, texture_layout];
     wgpu::RenderPipelineBuilder::from_layout_descriptor(&bind_group_layouts[..], vs_mod)
         .fragment_shader(fs_mod)
         .color_format(dst_format)
@@ -892,6 +1045,7 @@ fn create_render_pipeline(
         .add_vertex_buffer::<draw::mesh::vertex::Color>()
         .add_vertex_buffer::<draw::mesh::vertex::TexCoords>()
         .add_vertex_buffer::<VertexMode>()
+        //.primitive_topology(wgpu::PrimitiveTopology::LineList)
         .depth_format(depth_format)
         .sample_count(sample_count)
         .alpha_blend(alpha_blend)

@@ -197,7 +197,7 @@ where
     }
 }
 
-// For converting from a tuples to vertices.
+// For converting from tuples to vertices.
 
 impl<A, V, B, C> From<(A, B)> for WithColor<V, C>
 where

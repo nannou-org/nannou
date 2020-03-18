@@ -352,12 +352,12 @@ fn create_intermediary_lin_srgba(
         0 | 1 => None,
         _ => {
             let texture = create_lin_srgba_msaa_texture(device, swap_chain_dims, msaa_samples);
-            let texture_view = texture.create_default_view();
+            let texture_view = texture.view().build();
             Some((texture, texture_view))
         }
     };
     let texture = create_lin_srgba_texture(device, swap_chain_dims);
-    let texture_view = texture.create_default_view();
+    let texture_view = texture.view().build();
     IntermediaryLinSrgba {
         msaa_texture,
         texture,
