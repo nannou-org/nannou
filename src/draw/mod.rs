@@ -417,10 +417,6 @@ where
     }
 
     /// Begin drawing a **Text**.
-    ///
-    /// Note: This is currently short-hand for using the `draw.path()` to draw events yielded by
-    /// the text, however in the future this will be made more efficient by using a GPU glyph
-    /// cache.
     pub fn text(&self, s: &str) -> Drawing<primitive::Text<S>, S> {
         let text = {
             let state = self.state.borrow();
@@ -429,6 +425,11 @@ where
             primitive::text::Text::new(ctxt, s)
         };
         self.a(text)
+    }
+
+    /// Begin drawing a **Texture**.
+    pub fn texture(&self, view: &dyn wgpu::ToTextureView) -> Drawing<primitive::Texture<S>, S> {
+        self.a(primitive::Texture::new(view))
     }
 
     /// Finish any drawings-in-progress and produce an iterator draining the inner draw commands

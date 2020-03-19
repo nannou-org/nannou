@@ -38,6 +38,7 @@ pub struct Texture {
 pub struct TextureView {
     handle: Arc<TextureViewHandle>,
     descriptor: wgpu::TextureViewDescriptor,
+    texture_extent: wgpu::Extent3d,
     texture_id: TextureId,
 }
 
@@ -409,6 +410,19 @@ impl TextureView {
         texture_view_id(&self.texture_id, &self.descriptor)
     }
 
+    /// The width and height of the source texture.
+    ///
+    /// See the `extent` method for producing the full width, height and *depth* of the source
+    /// texture.
+    pub fn size(&self) -> [u32; 2] {
+        [self.texture_extent.width, self.texture_extent.height]
+    }
+
+    /// The width, height and depth of the source texture.
+    pub fn extent(&self) -> wgpu::Extent3d {
+        self.texture_extent.clone()
+    }
+
     /// The unique identifier associated with the texture that this view is derived from.
     pub fn texture_id(&self) -> TextureId {
         self.texture_id
@@ -592,6 +606,7 @@ impl<'a> ViewBuilder<'a> {
             handle: Arc::new(self.texture.inner().create_view(&self.descriptor)),
             descriptor: self.descriptor,
             texture_id: self.texture.id(),
+            texture_extent: self.texture.extent(),
         }
     }
 
@@ -666,6 +681,7 @@ impl Clone for TextureView {
             handle: self.handle.clone(),
             descriptor: self.descriptor_cloned(),
             texture_id: self.texture_id(),
+            texture_extent: self.extent(),
         }
     }
 }

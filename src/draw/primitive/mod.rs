@@ -6,6 +6,7 @@ pub mod polygon;
 pub mod quad;
 pub mod rect;
 pub mod text;
+pub mod texture;
 pub mod tri;
 
 use crate::geom;
@@ -18,6 +19,7 @@ pub use self::polygon::{Polygon, PolygonInit};
 pub use self::quad::Quad;
 pub use self::rect::Rect;
 pub use self::text::Text;
+pub use self::texture::Texture;
 pub use self::tri::Tri;
 
 /// A wrapper around all primitive sets of properties so that they may be stored within the
@@ -40,5 +42,6 @@ pub enum Primitive<S = geom::scalar::Default> {
     Quad(Quad<S>),
     Rect(Rect<S>),
     Text(Text<S>),
+    Texture(Texture<S>),
     Tri(Tri<S>),
 }

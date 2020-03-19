@@ -177,6 +177,7 @@ impl RenderPrimitive for draw::Primitive {
             draw::Primitive::Rect(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Line(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Text(prim) => prim.render_primitive(ctxt, mesh),
+            draw::Primitive::Texture(prim) => prim.render_primitive(ctxt, mesh),
             _ => PrimitiveRender::default(),
         }
     }

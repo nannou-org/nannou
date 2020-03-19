@@ -120,16 +120,16 @@ macro_rules! subdivision_from_index {
 // Given some `Rect` and an index, produce the corner for that index.
 macro_rules! corner_from_index {
     ($rect:expr,0) => {
-        $rect.top_left()
+        crate::geom::pt2($rect.x.start, $rect.y.end)
     };
     ($rect:expr,1) => {
-        $rect.top_right()
+        crate::geom::pt2($rect.x.end, $rect.y.end)
     };
     ($rect:expr,2) => {
-        $rect.bottom_right()
+        crate::geom::pt2($rect.x.end, $rect.y.start)
     };
     ($rect:expr,3) => {
-        $rect.bottom_left()
+        crate::geom::pt2($rect.x.start, $rect.y.start)
     };
 }
 
@@ -686,6 +686,22 @@ where
     /// Returns a `Rect` with a position relative to the given position.
     pub fn relative_to(self, p: Point2<S>) -> Self {
         self.relative_to_x(p.x).relative_to_y(p.y)
+    }
+
+    /// Invert the x axis (aka flip *around* the y axis).
+    pub fn invert_x(self) -> Self {
+        Rect {
+            x: self.x.invert(),
+            ..self
+        }
+    }
+
+    /// Invert the y axis (aka flip *around* the x axis).
+    pub fn invert_y(self) -> Self {
+        Rect {
+            y: self.y.invert(),
+            ..self
+        }
     }
 }
 
