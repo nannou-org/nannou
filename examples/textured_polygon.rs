@@ -11,21 +11,11 @@ struct Model {
 
 fn model(app: &App) -> Model {
     let window_id = app.new_window().size(512, 512).view(view).build().unwrap();
-    let window = app.window(window_id).unwrap();
 
     // Load the image from disk and upload it to a GPU texture.
-    let img_path = app
-        .assets_path()
-        .unwrap()
-        .join("images")
-        .join("nature")
-        .join("nature_1.jpg");
-    let image = image::open(img_path).unwrap();
-    let image_rgba = image.into_rgba();
-    let usage = wgpu::TextureUsage::SAMPLED;
-    let device = window.swap_chain_device();
-    let mut queue = window.swap_chain_queue().lock().unwrap();
-    let texture = wgpu::Texture::load_from_image_buffer(device, &mut *queue, usage, &image_rgba);
+    let assets = app.assets_path().unwrap();
+    let img_path = assets.join("images").join("nature").join("nature_1.jpg");
+    let texture = wgpu::Texture::from_path(app, img_path).unwrap();
     let texture_view = texture.view().build();
 
     Model {
