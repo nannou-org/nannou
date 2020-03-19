@@ -2,7 +2,7 @@
 //! more details.
 
 use crate::geom::{self, Point2};
-use crate::math::{BaseFloat, Matrix4, SquareMatrix};
+use crate::math::{deg_to_rad, turns_to_rad, BaseFloat, Matrix4, SquareMatrix};
 use crate::wgpu;
 use lyon::path::PathEvent;
 use std::cell::RefCell;
@@ -29,20 +29,14 @@ pub mod theme;
 /// A simple API for drawing 2D and 3D graphics.
 ///
 /// **Draw** provides a simple way to compose together geometry and text with custom colours and
-/// textures and draw them to the screen.
+/// textures and draw them to the screen. A suite of methods have been provided for drawing
+/// polygons, paths, meshes, text and textures in an accessible-yet-efficient manner.
 ///
-/// You can also ask **Draw** for the sequence of vertices or triangles (with or without
-/// colours/textures) that make up the entire scene that you have created.
-///
-/// Internally **Draw** uses a **geom::Graph** for placing geometry and text in 3D space.
-///
-/// **Draw** has 2 groups of methods:
-///
-/// 1. **Creation**: These methods compose new geometry and text with colours and textures.
-///
-/// 2. **Rendering**: These methods provide ways of rendering the graphics either directly to the
-///    frame for the current display or to a list of vertices or triangles for lower-level, more
-///    flexible access.
+/// **Draw** can also be used to create new **Draw** instances that refer to the same inner draw
+/// state but are slightly different from one another. E.g. `draw.rotate(radians)` produces a new
+/// **Draw** instance where all drawings will be rotated by the given amount. `draw.x(x)` produces
+/// a new **Draw** instance where all drawings are translated along the *x* axis by the given
+/// amount.
 ///
 /// See the
 /// [simple_draw.rs](https://github.com/nannou-org/nannou/blob/master/examples/simple_draw.rs)
@@ -224,10 +218,41 @@ where
         self.transform(Matrix4::from_translation(v.into()))
     }
 
-    /// Produce a new **Draw** instance where the contents are scaled by the given amount across
-    /// each axis.
-    pub fn scale_axes(&self, v: geom::Vector3<S>) -> Self {
-        self.transform(Matrix4::from_nonuniform_scale(v.x, v.y, v.z))
+    /// Translate the position of the origin by the given translation vector.
+    ///
+    /// This method is short for `translate`.
+    pub fn xyz(&self, v: geom::Vector3<S>) -> Self {
+        self.translate(v)
+    }
+
+    /// Translate the position of the origin by the given translation vector.
+    pub fn xy(&self, v: geom::Vector2<S>) -> Self {
+        self.xyz(v.into())
+    }
+
+    /// Translate the position of the origin by the given amount across each axis.
+    pub fn x_y_z(&self, x: S, y: S, z: S) -> Self {
+        self.xyz([x, y, z].into())
+    }
+
+    /// Translate the position of the origin by the given amount across each axis.
+    pub fn x_y(&self, x: S, y: S) -> Self {
+        self.xy([x, y].into())
+    }
+
+    /// Translate the position of the origin along the x axis.
+    pub fn x(&self, x: S) -> Self {
+        self.x_y(x, S::zero())
+    }
+
+    /// Translate the position of the origin along the y axis.
+    pub fn y(&self, y: S) -> Self {
+        self.x_y(S::zero(), y)
+    }
+
+    /// Translate the position of the origin along the z axis.
+    pub fn z(&self, z: S) -> Self {
+        self.x_y_z(S::zero(), S::zero(), z)
     }
 
     /// Produce a new **Draw** instance where the contents are scaled uniformly by the given value.
@@ -235,22 +260,144 @@ where
         self.scale_axes(geom::vec3(s, s, s))
     }
 
+    /// Produce a new **Draw** instance where the contents are scaled by the given amount across
+    /// each axis.
+    pub fn scale_axes(&self, v: geom::Vector3<S>) -> Self {
+        self.transform(Matrix4::from_nonuniform_scale(v.x, v.y, v.z))
+    }
+
+    /// Produce a new **Draw** instance where the contents are scaled by the given amount along the
+    /// x axis
+    pub fn scale_x(&self, s: S) -> Self {
+        self.scale_axes(geom::vec3(s, S::zero(), S::zero()))
+    }
+
+    /// Produce a new **Draw** instance where the contents are scaled by the given amount along the
+    /// y axis
+    pub fn scale_y(&self, s: S) -> Self {
+        self.scale_axes(geom::vec3(S::zero(), s, S::zero()))
+    }
+
+    /// Produce a new **Draw** instance where the contents are scaled by the given amount along the
+    /// z axis
+    pub fn scale_z(&self, s: S) -> Self {
+        self.scale_axes(geom::vec3(S::zero(), S::zero(), s))
+    }
+
     /// The given vector is interpreted as a Euler angle in radians and a transform is applied
     /// accordingly.
-    pub fn rotate_by_euler(&self, v: geom::Vector3<S>) -> Self {
+    pub fn euler(&self, euler: cgmath::Euler<cgmath::Rad<S>>) -> Self {
+        self.transform(euler.into())
+    }
+
+    /// Specify the orientation with the given **Quaternion**.
+    pub fn quaternion(&self, q: cgmath::Quaternion<S>) -> Self {
+        self.transform(q.into())
+    }
+
+    /// Specify the orientation along each axis with the given **Vector** of radians.
+    ///
+    /// This currently has the same affect as calling `euler`.
+    pub fn radians(&self, v: geom::Vector3<S>) -> Self {
         let euler = cgmath::Euler {
             x: cgmath::Rad(v.x),
             y: cgmath::Rad(v.y),
             z: cgmath::Rad(v.z),
         };
-        self.transform(euler.into())
+        self.euler(euler)
     }
 
-    // TODO
-    // - translate
-    // - scale
-    // - rotate
-    // - shear
+    /// Specify the orientation around the *x* axis in radians.
+    pub fn x_radians(&self, x: S) -> Self {
+        self.radians(geom::vec3(x, S::zero(), S::zero()))
+    }
+
+    /// Specify the orientation around the *y* axis in radians.
+    pub fn y_radians(&self, y: S) -> Self {
+        self.radians(geom::vec3(S::zero(), y, S::zero()))
+    }
+
+    /// Specify the orientation around the *z* axis in radians.
+    pub fn z_radians(&self, z: S) -> Self {
+        self.radians(geom::vec3(S::zero(), S::zero(), z))
+    }
+
+    /// Specify the orientation along each axis with the given **Vector** of degrees.
+    pub fn degrees(&self, v: geom::Vector3<S>) -> Self {
+        self.radians(geom::vec3(
+            deg_to_rad(v.x),
+            deg_to_rad(v.y),
+            deg_to_rad(v.z),
+        ))
+    }
+
+    /// Specify the orientation around the *x* axis in degrees.
+    pub fn x_degrees(&self, x: S) -> Self {
+        self.x_radians(deg_to_rad(x))
+    }
+
+    /// Specify the orientation around the *y* axis in degrees.
+    pub fn y_degrees(&self, y: S) -> Self {
+        self.y_radians(deg_to_rad(y))
+    }
+
+    /// Specify the orientation around the *z* axis in degrees.
+    pub fn z_degrees(&self, z: S) -> Self {
+        self.z_radians(deg_to_rad(z))
+    }
+
+    /// Specify the orientation along each axis with the given **Vector** of degrees.
+    pub fn turns(&self, v: geom::Vector3<S>) -> Self {
+        self.radians(geom::vec3(
+            turns_to_rad(v.x),
+            turns_to_rad(v.y),
+            turns_to_rad(v.z),
+        ))
+    }
+
+    /// Specify the orientation around the *x* axis as a number of turns around the axis.
+    pub fn x_turns(&self, x: S) -> Self {
+        self.x_radians(turns_to_rad(x))
+    }
+
+    /// Specify the orientation around the *y* axis as a number of turns around the axis.
+    pub fn y_turns(&self, y: S) -> Self {
+        self.y_radians(turns_to_rad(y))
+    }
+
+    /// Specify the orientation around the *z* axis as a number of turns around the axis.
+    pub fn z_turns(&self, z: S) -> Self {
+        self.z_radians(turns_to_rad(z))
+    }
+
+    /// Specify the "pitch" of the orientation in radians.
+    ///
+    /// This has the same effect as calling `x_radians`.
+    pub fn pitch(&self, pitch: S) -> Self {
+        self.x_radians(pitch)
+    }
+
+    /// Specify the "yaw" of the orientation in radians.
+    ///
+    /// This has the same effect as calling `y_radians`.
+    pub fn yaw(&self, yaw: S) -> Self {
+        self.y_radians(yaw)
+    }
+
+    /// Specify the "roll" of the orientation in radians.
+    ///
+    /// This has the same effect as calling `z_radians`.
+    pub fn roll(&self, roll: S) -> Self {
+        self.z_radians(roll)
+    }
+
+    /// Assuming we're looking at a 2D plane, positive values cause a clockwise rotation where the
+    /// given value is specified in radians.
+    ///
+    /// This is equivalent to calling the `z_radians` or `roll` methods.
+    pub fn rotate(&self, radians: S) -> Self {
+        self.z_radians(radians)
+    }
 
     /// Produce a new **Draw** instance that will draw with the given blend mode.
     pub fn alpha_blend(&self, blend_descriptor: wgpu::BlendDescriptor) -> Self {
@@ -285,8 +432,6 @@ where
         };
         self.context(context)
     }
-
-    // Render pipeline primitive topology.
 
     /// Produce a new **Draw** instance.
     ///
@@ -324,14 +469,6 @@ where
         self.primitive_topology(wgpu::PrimitiveTopology::TriangleList)
     }
 
-    fn primitive_topology(&self, topology: wgpu::PrimitiveTopology) -> Self {
-        let mut context = self.context.clone();
-        context.topology = topology;
-        self.context(context)
-    }
-
-    // Sampler.
-
     /// Produce a new **Draw** instance where all textures and textured vertices drawn will be
     /// sampled via a sampler of the given descriptor.
     pub fn sampler(&self, desc: wgpu::SamplerDescriptor) -> Self {
@@ -340,7 +477,14 @@ where
         self.context(context)
     }
 
-    // Context.
+    /// Specify the primitive topology to use within the render pipeline.
+    ///
+    /// This method is shared between the `line_mode`, `point_mode` and `triangle_mode` methods.
+    fn primitive_topology(&self, topology: wgpu::PrimitiveTopology) -> Self {
+        let mut context = self.context.clone();
+        context.topology = topology;
+        self.context(context)
+    }
 
     /// Produce a new **Draw** instance with the given context.
     fn context(&self, context: Context<S>) -> Self {

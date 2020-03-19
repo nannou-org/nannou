@@ -94,7 +94,7 @@ pub trait SetOrientation<S>: Sized {
         self
     }
 
-    /// Specify the orientation around the *x* axis as an absolute value in radians.
+    /// Specify the orientation around the *x* axis as an absolute value in degrees.
     fn x_degrees(self, x: S) -> Self
     where
         S: BaseFloat,
@@ -102,7 +102,7 @@ pub trait SetOrientation<S>: Sized {
         self.x_radians(deg_to_rad(x))
     }
 
-    /// Specify the orientation around the *y* axis as an absolute value in radians.
+    /// Specify the orientation around the *y* axis as an absolute value in degrees.
     fn y_degrees(self, y: S) -> Self
     where
         S: BaseFloat,
@@ -110,7 +110,7 @@ pub trait SetOrientation<S>: Sized {
         self.y_radians(deg_to_rad(y))
     }
 
-    /// Specify the orientation around the *z* axis as an absolute value in radians.
+    /// Specify the orientation around the *z* axis as an absolute value in degrees.
     fn z_degrees(self, z: S) -> Self
     where
         S: BaseFloat,
