@@ -256,7 +256,7 @@ where
     pub fn points_textured<I, P, TC>(
         self,
         ctxt: DrawingContext<S>,
-        texture_view: &wgpu::TextureView,
+        texture_view: &dyn wgpu::ToTextureView,
         points: I,
     ) -> Path<S>
     where
@@ -265,14 +265,14 @@ where
         P: Into<Point2<S>>,
         TC: Into<TexCoords<S>>,
     {
-        self.points_textured_inner(ctxt, texture_view.clone(), false, points)
+        self.points_textured_inner(ctxt, texture_view.to_texture_view(), false, points)
     }
 
     /// Submit path events as a polyline of textured points.
     pub fn points_textured_closed<I, P, TC>(
         self,
         ctxt: DrawingContext<S>,
-        texture_view: &wgpu::TextureView,
+        texture_view: &dyn wgpu::ToTextureView,
         points: I,
     ) -> Path<S>
     where
@@ -281,7 +281,7 @@ where
         P: Into<Point2<S>>,
         TC: Into<TexCoords<S>>,
     {
-        self.points_textured_inner(ctxt, texture_view.clone(), true, points)
+        self.points_textured_inner(ctxt, texture_view.to_texture_view(), true, points)
     }
 
     // Consumes an iterator of points and converts them to an iterator yielding events.
@@ -817,7 +817,7 @@ where
     /// Submit path events as a polyline of textured points.
     pub fn points_textured<I, P, TC>(
         self,
-        view: &wgpu::TextureView,
+        view: &dyn wgpu::ToTextureView,
         points: I,
     ) -> DrawingPath<'a, S>
     where
@@ -834,7 +834,7 @@ where
     /// The path with automatically close from the end point to the start point.
     pub fn points_textured_closed<I, P, TC>(
         self,
-        view: &wgpu::TextureView,
+        view: &dyn wgpu::ToTextureView,
         points: I,
     ) -> DrawingPath<'a, S>
     where

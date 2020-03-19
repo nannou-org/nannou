@@ -6,7 +6,7 @@ fn main() {
 
 struct Model {
     window_id: window::Id,
-    texture_view: wgpu::TextureView,
+    texture: wgpu::Texture,
 }
 
 fn model(app: &App) -> Model {
@@ -16,12 +16,8 @@ fn model(app: &App) -> Model {
     let assets = app.assets_path().unwrap();
     let img_path = assets.join("images").join("nature").join("nature_1.jpg");
     let texture = wgpu::Texture::from_path(app, img_path).unwrap();
-    let texture_view = texture.view().build();
 
-    Model {
-        window_id,
-        texture_view,
-    }
+    Model { window_id, texture }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
@@ -49,7 +45,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let cube_side = win_rect.w().min(win_rect.h()) * 0.5;
     draw.scale(cube_side)
         .mesh()
-        .points_textured(&model.texture_view, points)
+        .points_textured(&model.texture, points)
         .z_radians(app.time * 0.33)
         .x_radians(app.time * 0.166 + -app.mouse.y / 100.0)
         .y_radians(app.time * 0.25 + app.mouse.x / 100.0);

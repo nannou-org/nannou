@@ -48,7 +48,7 @@ impl Vertexless {
     pub fn points_textured<S, I, P, T>(
         self,
         inner_mesh: &mut draw::Mesh<S>,
-        texture_view: &wgpu::TextureView,
+        texture_view: &dyn wgpu::ToTextureView,
         points: I,
     ) -> Mesh<S>
     where
@@ -64,7 +64,12 @@ impl Vertexless {
             ((point, color), tex_coords).into()
         });
         let vertex_mode = draw::renderer::VertexMode::Texture;
-        self.points_inner(inner_mesh, points, vertex_mode, Some(texture_view.clone()))
+        self.points_inner(
+            inner_mesh,
+            points,
+            vertex_mode,
+            Some(texture_view.to_texture_view()),
+        )
     }
 
     /// Describe the mesh with a sequence of colored points.
@@ -145,7 +150,7 @@ impl Vertexless {
     pub fn tris_textured<S, I, P, T>(
         self,
         inner_mesh: &mut draw::Mesh<S>,
-        texture_view: &wgpu::TextureView,
+        texture_view: &dyn wgpu::ToTextureView,
         tris: I,
     ) -> Mesh<S>
     where
@@ -212,7 +217,7 @@ impl Vertexless {
     pub fn indexed_textured<S, V, I, P, T>(
         self,
         inner_mesh: &mut draw::Mesh<S>,
-        texture_view: &wgpu::TextureView,
+        texture_view: &dyn wgpu::ToTextureView,
         points: V,
         indices: I,
     ) -> Mesh<S>
@@ -235,7 +240,7 @@ impl Vertexless {
             vertices,
             indices,
             vertex_mode,
-            Some(texture_view.clone()),
+            Some(texture_view.to_texture_view()),
         )
     }
 
@@ -381,7 +386,11 @@ where
     /// coordinates in that order, e.g. `(point, tex_coords)`. `point` may be of any type that
     /// implements `Into<Point3>` and `tex_coords` may be of any type that implements
     /// `Into<Point2>`.
-    pub fn points_textured<I, P, T>(self, view: &wgpu::TextureView, points: I) -> DrawingMesh<'a, S>
+    pub fn points_textured<I, P, T>(
+        self,
+        view: &dyn wgpu::ToTextureView,
+        points: I,
+    ) -> DrawingMesh<'a, S>
     where
         I: IntoIterator<Item = (P, T)>,
         P: Into<Point<S>>,
@@ -426,7 +435,11 @@ where
     /// coordinates in that order, e.g. `(point, tex_coords)`. `point` may be of any type that
     /// implements `Into<Point3>` and `tex_coords` may be of any type that implements
     /// `Into<Point2>`.
-    pub fn tris_textured<I, P, T>(self, view: &wgpu::TextureView, tris: I) -> DrawingMesh<'a, S>
+    pub fn tris_textured<I, P, T>(
+        self,
+        view: &dyn wgpu::ToTextureView,
+        tris: I,
+    ) -> DrawingMesh<'a, S>
     where
         I: IntoIterator<Item = geom::Tri<(P, T)>>,
         P: Into<Point<S>>,
@@ -476,7 +489,7 @@ where
     /// `Into<Point2>`.
     pub fn indexed_textured<V, I, P, T>(
         self,
-        view: &wgpu::TextureView,
+        view: &dyn wgpu::ToTextureView,
         points: V,
         indices: I,
     ) -> DrawingMesh<'a, S>

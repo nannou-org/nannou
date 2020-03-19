@@ -6,6 +6,17 @@ pub mod capturer;
 pub mod image;
 pub mod reshaper;
 
+/// Types that can produce a texture view.
+///
+/// The primary purpose of this trait is to allow for APIs to be generic over both `Texture` and
+/// `TextureView`. This is particularly useful for the `draw` API as we can avoid needing users to
+/// understand the difference between the two. That said, it *is* slightly more efficient to create
+/// your texture view once and re-use it, rather than have these APIs create a new one from your
+/// texture each time they are invoked.
+pub trait ToTextureView {
+    fn to_texture_view(&self) -> TextureView;
+}
+
 /// A convenient wrapper around a handle to a texture on the GPU along with its descriptor.
 ///
 /// A texture can be thought of as an image that resides in GPU memory (as opposed to CPU memory).
@@ -414,16 +425,6 @@ impl TextureView {
     }
 }
 
-impl Clone for TextureView {
-    fn clone(&self) -> Self {
-        TextureView {
-            handle: self.handle.clone(),
-            descriptor: self.descriptor_cloned(),
-            texture_id: self.texture_id(),
-        }
-    }
-}
-
 impl Builder {
     pub const DEFAULT_SIDE: u32 = 128;
     pub const DEFAULT_DEPTH: u32 = 1;
@@ -626,6 +627,46 @@ impl BufferBytes {
     /// Consumes `self` and returns the inner `wgpu::Buffer`.
     pub fn into_inner(self) -> wgpu::Buffer {
         self.buffer
+    }
+}
+
+impl<'a, T> ToTextureView for &'a T
+where
+    T: ToTextureView,
+{
+    fn to_texture_view(&self) -> TextureView {
+        (**self).to_texture_view()
+    }
+}
+
+impl<'a, T> ToTextureView for &'a mut T
+where
+    T: ToTextureView,
+{
+    fn to_texture_view(&self) -> TextureView {
+        (**self).to_texture_view()
+    }
+}
+
+impl ToTextureView for TextureView {
+    fn to_texture_view(&self) -> TextureView {
+        self.clone()
+    }
+}
+
+impl ToTextureView for Texture {
+    fn to_texture_view(&self) -> TextureView {
+        self.view().build()
+    }
+}
+
+impl Clone for TextureView {
+    fn clone(&self) -> Self {
+        TextureView {
+            handle: self.handle.clone(),
+            descriptor: self.descriptor_cloned(),
+            texture_id: self.texture_id(),
+        }
     }
 }
 

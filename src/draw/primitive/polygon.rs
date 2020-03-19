@@ -151,7 +151,7 @@ impl<S> PolygonInit<S> {
     pub fn points_textured<I, P, T>(
         self,
         ctxt: DrawingContext<S>,
-        view: &wgpu::TextureView,
+        view: &dyn wgpu::ToTextureView,
         points: I,
     ) -> Polygon<S>
     where
@@ -174,7 +174,7 @@ impl<S> PolygonInit<S> {
                 range: start..end,
                 close: true,
             },
-            texture_view: Some(view.clone()),
+            texture_view: Some(view.to_texture_view()),
         }
     }
 }
@@ -503,7 +503,7 @@ where
     /// Describe the polygon with an iterator yielding textured poings.
     pub fn points_textured<I, P, T>(
         self,
-        view: &wgpu::TextureView,
+        view: &dyn wgpu::ToTextureView,
         points: I,
     ) -> DrawingPolygon<'a, S>
     where
