@@ -52,6 +52,16 @@ impl SamplerBuilder {
         self
     }
 
+    /// How the implementation should behave when sampling outside of the texture coordinates range
+    /// [0.0, 1.0].
+    ///
+    /// Applies the same address mode to all axes.
+    pub fn address_mode(self, mode: wgpu::AddressMode) -> Self {
+        self.address_mode_u(mode)
+            .address_mode_v(mode)
+            .address_mode_w(mode)
+    }
+
     /// How the implementation should sample from the image when it is respectively larger than the
     /// original.
     pub fn mag_filter(mut self, filter: wgpu::FilterMode) -> Self {

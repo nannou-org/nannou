@@ -136,3 +136,34 @@ pub fn create_pipeline_layout(
     let descriptor = wgpu::PipelineLayoutDescriptor { bind_group_layouts };
     device.create_pipeline_layout(&descriptor)
 }
+
+/// TODO: Remove this once `derive(Clone)` is added to wgpu SamplerDescriptor.
+pub fn sampler_descriptor_clone(sampler: &wgpu::SamplerDescriptor) -> wgpu::SamplerDescriptor {
+    wgpu::SamplerDescriptor {
+        address_mode_u: sampler.address_mode_u,
+        address_mode_v: sampler.address_mode_v,
+        address_mode_w: sampler.address_mode_w,
+        mag_filter: sampler.mag_filter,
+        min_filter: sampler.min_filter,
+        mipmap_filter: sampler.mipmap_filter,
+        lod_min_clamp: sampler.lod_min_clamp,
+        lod_max_clamp: sampler.lod_max_clamp,
+        compare_function: sampler.compare_function,
+    }
+}
+
+/// TODO: Remove this once `derive(PartialEq)` is added to wgpu SamplerDescriptor.
+pub fn sampler_descriptor_partial_eq(
+    a: &wgpu::SamplerDescriptor,
+    b: &wgpu::SamplerDescriptor,
+) -> bool {
+    a.address_mode_u == b.address_mode_u
+        && a.address_mode_v == b.address_mode_v
+        && a.address_mode_w == b.address_mode_w
+        && a.mag_filter == b.mag_filter
+        && a.min_filter == b.min_filter
+        && a.mipmap_filter == b.mipmap_filter
+        && a.lod_min_clamp == b.lod_min_clamp
+        && a.lod_max_clamp == b.lod_max_clamp
+        && a.compare_function == b.compare_function
+}

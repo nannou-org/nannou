@@ -8,7 +8,7 @@ use crate::text;
 use crate::wgpu;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillTessellator, StrokeTessellator};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::ops::{Deref, DerefMut};
 
@@ -89,9 +89,9 @@ pub struct Renderer {
     uniform_bind_group: wgpu::BindGroup,
     text_bind_group_layout: wgpu::BindGroupLayout,
     text_bind_group: wgpu::BindGroup,
-    texture_sampler: wgpu::Sampler,
+    texture_samplers: HashMap<SamplerId, wgpu::Sampler>,
     texture_bind_group_layout: wgpu::BindGroupLayout,
-    texture_bind_groups: HashMap<wgpu::TextureViewId, wgpu::BindGroup>,
+    texture_bind_groups: HashMap<(SamplerId, wgpu::TextureViewId), wgpu::BindGroup>,
     texture_default_bind_group: wgpu::BindGroup,
     output_color_format: wgpu::TextureFormat,
     sample_count: u32,
@@ -120,7 +120,7 @@ enum RenderCommand {
         index: usize,
     },
     /// Change bind group for a new image.
-    SetBindGroup(wgpu::TextureViewId),
+    SetBindGroup((SamplerId, wgpu::TextureViewId)),
     /// Set the rectangular scissor.
     SetScissor(Scissor),
     /// Draw the given vertex range.
@@ -158,6 +158,8 @@ struct Uniforms {
     /// - z is transformed from (-max_logical_win_side, max_logical_win_side) to (0, 1).
     proj: Matrix4<f32>,
 }
+
+type SamplerId = u64;
 
 impl Default for PrimitiveRender {
     fn default() -> Self {
@@ -462,8 +464,12 @@ impl Renderer {
             &glyph_cache_texture_view,
         );
 
+        // Initialise the sampler set with the default sampler.
+        let sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
+        let sampler_id = sampler_descriptor_hash(&sampler_desc);
+        let texture_sampler = device.create_sampler(&sampler_desc);
+
         // Bind group per user-uploaded texture.
-        let texture_sampler = wgpu::SamplerBuilder::new().build(device);
         let texture_bind_group_layout = create_texture_bind_group_layout(device);
         let texture_bind_groups = Default::default();
         let texture_default_bind_group = create_texture_bind_group(
@@ -473,6 +479,7 @@ impl Renderer {
             &default_texture_view,
         );
 
+        let texture_samplers = Some((sampler_id, texture_sampler)).into_iter().collect();
         let render_pipelines = vec![];
         let render_commands = vec![];
         let mesh = Default::default();
@@ -491,7 +498,7 @@ impl Renderer {
             uniform_bind_group,
             text_bind_group_layout,
             text_bind_group,
-            texture_sampler,
+            texture_samplers,
             texture_bind_group_layout,
             texture_bind_groups,
             texture_default_bind_group,
@@ -545,8 +552,11 @@ impl Renderer {
         let mut curr_ctxt = draw::Context::default();
         let mut is_first_ctxt = true;
         let mut curr_start_index = 0;
-        let mut curr_tex_view_id = self.default_texture_view.id();
+        let init_sampler_id = sampler_descriptor_hash(&curr_ctxt.sampler);
+        let init_tex_view_id = self.default_texture_view.id();
+        let mut curr_combined_id = (init_sampler_id, init_tex_view_id);
         let mut new_tex_views = HashMap::new();
+        let mut new_tex_sampler_combos = HashSet::new();
         let draw_cmds: Vec<_> = draw.drain_commands().collect();
         let draw_state = draw.state.borrow_mut();
         let intermediary_state = draw_state.intermediary_state.borrow();
@@ -582,14 +592,18 @@ impl Renderer {
                         );
 
                         // Insert the command.
-                        let id = texture_view.id();
-                        if id != curr_tex_view_id {
-                            self.render_commands.push(RenderCommand::SetBindGroup(id));
-                            curr_tex_view_id = id;
+                        let tex_view_id = texture_view.id();
+                        let sampler_id = sampler_descriptor_hash(&curr_ctxt.sampler);
+                        let combined_id = (sampler_id, tex_view_id);
+                        if combined_id != curr_combined_id {
+                            self.render_commands
+                                .push(RenderCommand::SetBindGroup(combined_id));
+                            new_tex_sampler_combos.insert(combined_id);
+                            curr_combined_id = combined_id;
                         }
 
                         // Ensure the new texture exists within our map of new views.
-                        new_tex_views.insert(id, texture_view);
+                        new_tex_views.insert(tex_view_id, texture_view);
                     }
 
                     // Extend the vertex mode channel.
@@ -700,16 +714,29 @@ impl Renderer {
 
         // Clear out unnecessary bind groups.
         self.texture_bind_groups
-            .retain(|id, _| new_tex_views.contains_key(id));
-        // Clear new texture views that we already have.
-        new_tex_views.retain(|id, _| !self.texture_bind_groups.contains_key(id));
+            .retain(|id, _| new_tex_sampler_combos.contains(id));
+        // Clear new combos that we already have.
+        new_tex_sampler_combos.retain(|id| !self.texture_bind_groups.contains_key(id));
+        // Only keep the samplers around that we need.
+        self.texture_samplers
+            .retain(|id, _| new_tex_sampler_combos.iter().any(|(s_id, _)| id == s_id));
+
         // Ensure we have a bind group for each of the texture views, but no more.
-        for (new_id, new_tex_view) in new_tex_views {
+        for new_id in new_tex_sampler_combos {
+            let (new_sampler_id, new_tex_view_id) = new_id;
+            // Retrieve the sampler or create it if necessary.
+            let sampler = self
+                .texture_samplers
+                .entry(new_sampler_id)
+                .or_insert_with(|| device.create_sampler(&curr_ctxt.sampler));
+            // Retrieve the texture view.
+            let texture_view = &new_tex_views[&new_tex_view_id];
+            // Create the bind group.
             let bind_group = create_texture_bind_group(
                 device,
                 &self.texture_bind_group_layout,
-                &self.texture_sampler,
-                &new_tex_view,
+                sampler,
+                texture_view,
             );
             self.texture_bind_groups.insert(new_id, bind_group);
         }
@@ -1064,4 +1091,19 @@ fn create_render_pipeline(
         .alpha_blend(alpha_blend)
         .primitive_topology(topology)
         .build(device)
+}
+
+fn sampler_descriptor_hash(desc: &wgpu::SamplerDescriptor) -> SamplerId {
+    use std::hash::{Hash, Hasher};
+    let mut s = std::collections::hash_map::DefaultHasher::new();
+    desc.address_mode_u.hash(&mut s);
+    desc.address_mode_v.hash(&mut s);
+    desc.address_mode_w.hash(&mut s);
+    desc.mag_filter.hash(&mut s);
+    desc.min_filter.hash(&mut s);
+    desc.mipmap_filter.hash(&mut s);
+    desc.lod_min_clamp.to_bits().hash(&mut s);
+    desc.lod_max_clamp.to_bits().hash(&mut s);
+    desc.compare_function.hash(&mut s);
+    s.finish()
 }
