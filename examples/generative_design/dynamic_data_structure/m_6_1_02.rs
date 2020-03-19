@@ -128,7 +128,7 @@ fn spring(to_node: &mut Node, from_node: &mut Node) {
     let stiffness = 0.6;
     let damping = 0.3;
 
-    let mut diff = vec2(to_node.x,to_node.y) - vec2(from_node.x,from_node.y);
+    let mut diff = vec2(to_node.x, to_node.y) - vec2(from_node.x, from_node.y);
     diff = diff.normalize();
     diff *= length;
     let target = vec2(from_node.x, from_node.y) + diff;
@@ -161,7 +161,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
-    
+
     // draw spring
     draw.line()
         .start(pt2(model.node_a.x, model.node_a.y))

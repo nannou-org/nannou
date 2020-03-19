@@ -236,17 +236,29 @@ path = "examples/generative_design/shape/p_2_1_2_04.rs"
 name = "p_2_1_3_05"
 path = "examples/generative_design/shape/p_2_1_3_05.rs"
 [[example]]
+name = "p_2_1_5_02"
+path = "examples/generative_design/shape/p_2_1_5_02.rs"
+[[example]]
 name = "p_2_2_1_01"
 path = "examples/generative_design/shape/p_2_2_1_01.rs"
 [[example]]
 name = "p_2_2_1_02"
 path = "examples/generative_design/shape/p_2_2_1_02.rs"
 [[example]]
+name = "p_2_2_3_01"
+path = "examples/generative_design/shape/p_2_2_3_01.rs"
+[[example]]
 name = "p_2_2_4_01"
 path = "examples/generative_design/shape/p_2_2_4_01.rs"
 [[example]]
 name = "p_2_2_4_02"
 path = "examples/generative_design/shape/p_2_2_4_02.rs"
+[[example]]
+name = "p_2_2_5_01"
+path = "examples/generative_design/shape/p_2_2_5_01.rs"
+[[example]]
+name = "p_2_2_6_01"
+path = "examples/generative_design/shape/p_2_2_6_01.rs"
 # --------------- Type
 [[example]]
 name = "p_3_0_01"

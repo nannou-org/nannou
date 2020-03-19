@@ -115,13 +115,19 @@ fn model(app: &App) -> Model {
     let spring_connections = create_connections(node_count);
     let selected_node = None;
 
-    Model { nodes, spring_connections, node_radius, node_count, selected_node }
+    Model {
+        nodes,
+        spring_connections,
+        node_radius,
+        node_count,
+        selected_node,
+    }
 }
 
 fn create_connections(node_count: usize) -> Vec<(usize, usize)> {
-    (0..node_count-1)
+    (0..node_count - 1)
         .map(|j| {
-            let r = random_range(j+1, node_count);
+            let r = random_range(j + 1, node_count);
             (j, r)
         })
         .collect()
@@ -176,7 +182,8 @@ fn spring(nodes: &mut Vec<Node>, spring_connection: (usize, usize)) {
     let damping = 0.9;
 
     let (from_node, to_node) = spring_connection;
-    let mut diff = vec2(nodes[to_node].x,nodes[to_node].y) - vec2(nodes[from_node].x,nodes[from_node].y);
+    let mut diff =
+        vec2(nodes[to_node].x, nodes[to_node].y) - vec2(nodes[from_node].x, nodes[from_node].y);
     diff = diff.normalize();
     diff *= length;
     let target = vec2(nodes[from_node].x, nodes[from_node].y) + diff;
@@ -205,7 +212,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     for i in 0..model.nodes.len() {
         // Apply velocity vector and update position
         model.nodes[i].update();
-    };
+    }
 
     if app.mouse.buttons.pressed().next().is_some() {
         // Ignore anything greater than this distance
@@ -229,10 +236,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
-    
+
     model.spring_connections.iter().for_each(|connection| {
         // draw spring
-        let (to,from) = *connection;
+        let (to, from) = *connection;
         draw.line()
             .start(pt2(model.nodes[from].x, model.nodes[from].y))
             .end(pt2(model.nodes[to].x, model.nodes[to].y))
