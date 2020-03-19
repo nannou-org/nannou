@@ -75,7 +75,11 @@ pub struct Renderer {
     glyph_cache: GlyphCache,
     vs_mod: wgpu::ShaderModule,
     fs_mod: wgpu::ShaderModule,
-    render_pipelines: Vec<(wgpu::BlendDescriptor, wgpu::RenderPipeline)>,
+    render_pipelines: Vec<(
+        wgpu::BlendDescriptor,
+        wgpu::PrimitiveTopology,
+        wgpu::RenderPipeline,
+    )>,
     glyph_cache_texture: wgpu::Texture,
     depth_texture: wgpu::Texture,
     depth_texture_view: wgpu::TextureView,
@@ -601,9 +605,10 @@ impl Renderer {
 
                     let alpha_blend_changed = curr_ctxt.alpha_blend != ctxt.alpha_blend;
                     let scissor_changed = curr_ctxt.scissor != ctxt.scissor;
+                    let topology_changed = curr_ctxt.topology != ctxt.topology;
 
                     // If blend or scissor change, add a draw command for vertices collected so far.
-                    if alpha_blend_changed || scissor_changed {
+                    if alpha_blend_changed || scissor_changed || topology_changed {
                         let index_range = curr_start_index..self.mesh.indices().len() as u32;
                         if index_range.len() != 0 {
                             let start_vertex = 0;
@@ -617,32 +622,38 @@ impl Renderer {
                     }
 
                     // Check for a new alpha blend.
-                    if alpha_blend_changed || is_first_ctxt {
-                        let index = match self
-                            .render_pipelines
-                            .iter()
-                            .position(|(desc, _)| desc == &ctxt.alpha_blend)
-                        {
-                            Some(index) => index,
-                            None => {
-                                let index = self.render_pipelines.len();
-                                let render_pipeline = create_render_pipeline(
-                                    device,
-                                    &self.uniform_bind_group_layout,
-                                    &self.text_bind_group_layout,
-                                    &self.texture_bind_group_layout,
-                                    &self.vs_mod,
-                                    &self.fs_mod,
-                                    self.output_color_format,
-                                    self.depth_texture.format(),
-                                    self.sample_count,
-                                    ctxt.alpha_blend.clone(),
-                                );
-                                self.render_pipelines
-                                    .push((ctxt.alpha_blend.clone(), render_pipeline));
-                                index
-                            }
-                        };
+                    if alpha_blend_changed || topology_changed || is_first_ctxt {
+                        let index =
+                            match self
+                                .render_pipelines
+                                .iter()
+                                .position(|(blend, topology, _)| {
+                                    blend == &ctxt.alpha_blend && topology == &ctxt.topology
+                                }) {
+                                Some(index) => index,
+                                None => {
+                                    let index = self.render_pipelines.len();
+                                    let render_pipeline = create_render_pipeline(
+                                        device,
+                                        &self.uniform_bind_group_layout,
+                                        &self.text_bind_group_layout,
+                                        &self.texture_bind_group_layout,
+                                        &self.vs_mod,
+                                        &self.fs_mod,
+                                        self.output_color_format,
+                                        self.depth_texture.format(),
+                                        self.sample_count,
+                                        ctxt.alpha_blend.clone(),
+                                        ctxt.topology.clone(),
+                                    );
+                                    self.render_pipelines.push((
+                                        ctxt.alpha_blend.clone(),
+                                        ctxt.topology.clone(),
+                                        render_pipeline,
+                                    ));
+                                    index
+                                }
+                            };
                         let cmd = RenderCommand::SetPipeline { index };
                         self.render_commands.push(cmd);
                     }
@@ -833,7 +844,7 @@ impl Renderer {
         for cmd in render_commands.drain(..) {
             match cmd {
                 RenderCommand::SetPipeline { index } => {
-                    let pipeline = &render_pipelines[index].1;
+                    let pipeline = &render_pipelines[index].2;
                     render_pass.set_pipeline(pipeline);
                 }
 
@@ -1036,6 +1047,7 @@ fn create_render_pipeline(
     depth_format: wgpu::TextureFormat,
     sample_count: u32,
     alpha_blend: wgpu::BlendDescriptor,
+    topology: wgpu::PrimitiveTopology,
 ) -> wgpu::RenderPipeline {
     let bind_group_layouts = &[uniform_layout, text_layout, texture_layout];
     wgpu::RenderPipelineBuilder::from_layout_descriptor(&bind_group_layouts[..], vs_mod)
@@ -1049,5 +1061,6 @@ fn create_render_pipeline(
         .depth_format(depth_format)
         .sample_count(sample_count)
         .alpha_blend(alpha_blend)
+        .primitive_topology(topology)
         .build(device)
 }
