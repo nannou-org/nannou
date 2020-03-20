@@ -15,8 +15,8 @@ by Processing, OpenFrameworks and Cinder, but for Rust. <sup>Named after
 
 |     |     |     |
 | --- |:---:| ---:|
-| [![1](https://i.imgur.com/4TtL8kP.gif)](https://github.com/nannou-org/nannou/blob/master/examples/generative_design/color/p_1_0_01.rs) | [![2](https://i.imgur.com/ly3Uk3g.gif)](https://github.com/nannou-org/nannou/blob/master/examples/simple_mesh.rs) | [![3](https://i.imgur.com/GP6zlSR.gif)](https://github.com/nannou-org/nannou/blob/master/examples/simple_draw.rs) |
-| [![4](https://i.imgur.com/kPn91tW.gif)](https://github.com/nannou-org/nannou/blob/master/examples/simple_polygon.rs) | [![5](https://i.imgur.com/gaiWHZX.gif)](https://github.com/nannou-org/nannou/blob/master/examples/simple_ui.rs) | [![6](https://i.imgur.com/lm4RI4N.gif)](https://github.com/nannou-org/nannou/blob/master/examples/simple_polyline.rs) |
+| [![1](https://i.imgur.com/4TtL8kP.gif)](https://github.com/nannou-org/nannou/blob/master/examples/generative_design/color/p_1_0_01.rs) | [![2](https://i.imgur.com/ly3Uk3g.gif)](https://github.com/nannou-org/nannou/blob/master/examples/draw/draw_mesh.rs) | [![3](https://i.imgur.com/GP6zlSR.gif)](https://github.com/nannou-org/nannou/blob/master/examples/draw/draw.rs) |
+| [![4](https://i.imgur.com/kPn91tW.gif)](https://github.com/nannou-org/nannou/blob/master/examples/draw/draw_polygon.rs) | [![5](https://i.imgur.com/gaiWHZX.gif)](https://github.com/nannou-org/nannou/blob/master/examples/simple_ui.rs) | [![6](https://i.imgur.com/lm4RI4N.gif)](https://github.com/nannou-org/nannou/blob/master/examples/draw/draw_polyline.rs) |
 
 ### A Quick Note
 

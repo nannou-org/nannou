@@ -76,24 +76,6 @@ path = "examples/simple_audio_file.rs"
 name = "simple_capture"
 path = "examples/simple_capture.rs"
 [[example]]
-name = "simple_draw"
-path = "examples/simple_draw.rs"
-[[example]]
-name = "simple_mesh"
-path = "examples/simple_mesh.rs"
-[[example]]
-name = "simple_polygon"
-path = "examples/simple_polygon.rs"
-[[example]]
-name = "simple_polyline"
-path = "examples/simple_polyline.rs"
-[[example]]
-name = "simple_text"
-path = "examples/simple_text.rs"
-[[example]]
-name = "simple_text_path"
-path = "examples/simple_text_path.rs"
-[[example]]
 name = "simple_ui"
 path = "examples/simple_ui.rs"
 [[example]]
@@ -131,6 +113,47 @@ path = "examples/basics/6_functions.rs"
 [[example]]
 name = "7_modules"
 path = "examples/basics/7_modules/7_modules.rs"
+
+# --------------- Draw Examples
+[[example]]
+name = "draw"
+path = "examples/draw/draw.rs"
+[[example]]
+name = "draw_blend"
+path = "examples/draw/draw_blend.rs"
+[[example]]
+name = "draw_mesh"
+path = "examples/draw/draw_mesh.rs"
+[[example]]
+name = "draw_polygon"
+path = "examples/draw/draw_polygon.rs"
+[[example]]
+name = "draw_polyline"
+path = "examples/draw/draw_polyline.rs"
+[[example]]
+name = "draw_text"
+path = "examples/draw/draw_text.rs"
+[[example]]
+name = "draw_text_path"
+path = "examples/draw/draw_text_path.rs"
+[[example]]
+name = "draw_texture"
+path = "examples/draw/draw_texture.rs"
+[[example]]
+name = "draw_texture_sampler"
+path = "examples/draw/draw_texture_sampler.rs"
+[[example]]
+name = "draw_textured_mesh"
+path = "examples/draw/draw_textured_mesh.rs"
+[[example]]
+name = "draw_textured_path"
+path = "examples/draw/draw_textured_path.rs"
+[[example]]
+name = "draw_textured_polygon"
+path = "examples/draw/draw_textured_polygon.rs"
+[[example]]
+name = "draw_transform"
+path = "examples/draw/draw_transform.rs"
 
 # --------------- WGPU Examples
 [[example]]

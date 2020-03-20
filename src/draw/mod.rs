@@ -38,9 +38,8 @@ pub mod theme;
 /// a new **Draw** instance where all drawings are translated along the *x* axis by the given
 /// amount.
 ///
-/// See the
-/// [simple_draw.rs](https://github.com/nannou-org/nannou/blob/master/examples/simple_draw.rs)
-/// example for a demonstration of how to use the **App**'s custom **Draw** type.
+/// See the [draw](https://github.com/nannou-org/nannou/blob/master/examples) examples for a
+/// variety of demonstrations of how the **Draw** type can be used!
 #[derive(Clone, Debug)]
 pub struct Draw<S = geom::scalar::Default>
 where
