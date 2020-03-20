@@ -47,7 +47,7 @@ impl Mover {
         self.position += self.velocity;
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         // Display circle at x position
         draw.ellipse()
             .xy(self.position)

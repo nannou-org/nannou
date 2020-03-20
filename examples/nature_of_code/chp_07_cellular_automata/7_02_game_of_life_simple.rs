@@ -104,7 +104,7 @@ impl Gol {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &app::Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &Rect) {
         for i in 0..self.columns {
             for j in 0..self.rows {
                 let mut fill = 1.0;

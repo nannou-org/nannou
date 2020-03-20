@@ -4,6 +4,29 @@
 - Add `BindGroupLayoutBuilder`.
 - Add `BindGroupBuilder`.
 - Add `RenderPassBuilder`.
+- **Draw** API overhaul:
+    - Update to lyon 0.15.
+    - Re-add support for colored vertices on polygons.
+    - Added blend modes, e.g. `draw.blend(blend_desc)`.
+    - Added scissor, e.g. `draw.scissor(rect)`
+    - Added transforms, e.g. `draw.scale(s)`, `draw.rotate(r)`.
+    - Removed many relative positioning methods in favour of draw transforms.
+    - Simplified texture loading, e.g.
+      `Texture::from_path`/`Texture::from_image`.
+    - Add `draw.texture` API.
+    - Rename all APIs taking `points`, `points_colored` and `points_textured` to
+      take iterators yielding tuples, e.g. `point`, `(point, color)`, `(point,
+      tex_coords)`.
+    - Add support for `.points_textured(tex, pts)` to `draw.mesh()`,
+      `draw.path()` and `draw.polygon()`.
+    - Add support for `draw.sampler(sampler_desc)`, for specifying a draw
+      context with a custom texture sampler.
+    - Add `draw.triangle_mode()`, `draw.line_mode()` and `draw.point_mode()` for
+      switching between render pipeline primitive topology.
+    - Add GPU caching of glyphs for text drawn via `draw.text()`. Allows for
+      much higher-performance text rendering.
+- Relax trait bounds on many mesh types.
+
 
 # Version 0.13.1 (2020-03-05)
 

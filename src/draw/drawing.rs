@@ -1,15 +1,14 @@
 use crate::color::IntoLinSrgba;
+use crate::draw::mesh::vertex::Color;
 use crate::draw::primitive::Primitive;
-use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
     ColorScalar, SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Draw};
-use crate::geom::graph::node;
 use crate::geom::{self, Point2, Point3, Vector2, Vector3};
 use crate::math::{Angle, BaseFloat, Euler, Quaternion, Rad};
 use lyon::path::PathEvent;
-use lyon::tessellation::{FillOptions, FillTessellator, LineCap, LineJoin, StrokeOptions};
+use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
 use std::marker::PhantomData;
 
 /// A **Drawing** in progress.
@@ -29,12 +28,8 @@ where
 {
     // The `Draw` instance used to create this drawing.
     draw: &'a Draw<S>,
-    // The `Index` of the node that was created.
-    //
-    // This may not be accessed by the user until drawing is complete. This is because the
-    // **Drawing** may yet describe further positioning, orientation or scaling and in turn using
-    // the index to refer to a node before these properties are set may yield unexpected behaviour.
-    index: node::Index,
+    // The draw command index of the primitive being drawn.
+    index: usize,
     // Whether or not the **Drawing** should attempt to finish the drawing on drop.
     finish_on_drop: bool,
     // The node type currently being drawn.
@@ -46,19 +41,19 @@ where
 /// This is particularly useful for paths and meshes.
 pub struct DrawingContext<'a, S> {
     /// The intermediary mesh for buffering yet-to-be-drawn paths and meshes.
-    pub mesh: &'a mut draw::IntermediaryMesh<S>,
-    /// A re-usable fill tessellator for 2D paths.
-    pub fill_tessellator: &'a mut FillTessellator,
+    pub mesh: &'a mut draw::Mesh<S>,
     /// A re-usable buffer for collecting path events.
     pub path_event_buffer: &'a mut Vec<PathEvent>,
+    /// A re-usable buffer for collecting colored polyline points.
+    pub path_points_colored_buffer: &'a mut Vec<(Point2<S>, Color)>,
+    /// A re-usable buffer for collecting textured polyline points.
+    pub path_points_textured_buffer: &'a mut Vec<(Point2<S>, Point2<S>)>,
     /// A re-usable buffer for collecting text.
     pub text_buffer: &'a mut String,
-    /// Cache for text glyphs.
-    pub glyph_cache: &'a mut draw::GlyphCache,
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<'a, T, S>(draw: &'a Draw<S>, index: node::Index) -> Drawing<'a, T, S>
+pub fn new<'a, T, S>(draw: &'a Draw<S>, index: usize) -> Drawing<'a, T, S>
 where
     S: BaseFloat,
 {
@@ -78,10 +73,7 @@ where
 {
     fn drop(&mut self) {
         if self.finish_on_drop {
-            self.finish_inner().expect(
-                "the drawing contained a relative edge that would have \
-                 caused a cycle within the geometry graph",
-            );
+            self.finish_inner();
         }
     }
 }
@@ -91,17 +83,17 @@ impl<'a, S> DrawingContext<'a, S> {
     pub(crate) fn from_intermediary_state(state: &'a mut super::IntermediaryState<S>) -> Self {
         let super::IntermediaryState {
             ref mut intermediary_mesh,
-            ref mut fill_tessellator,
             ref mut path_event_buffer,
+            ref mut path_points_colored_buffer,
+            ref mut path_points_textured_buffer,
             ref mut text_buffer,
-            ref mut glyph_cache,
         } = *state;
         DrawingContext {
             mesh: intermediary_mesh,
-            fill_tessellator: &mut fill_tessellator.0,
             path_event_buffer: path_event_buffer,
+            path_points_colored_buffer: path_points_colored_buffer,
+            path_points_textured_buffer: path_points_textured_buffer,
             text_buffer: text_buffer,
-            glyph_cache: glyph_cache,
         }
     }
 }
@@ -114,30 +106,18 @@ where
     //
     // 1. Create vertices based on node-specific position, points, etc.
     // 2. Insert edges into geom graph based on
-    fn finish_inner(&mut self) -> Result<(), geom::graph::WouldCycle<S>> {
-        if let Ok(mut state) = self.draw.state.try_borrow_mut() {
-            if let Some(prim) = state.drawing.remove(&self.index) {
-                let index = self.index;
-                draw::draw_primitive(&mut state, index, prim)?;
-            }
+    fn finish_inner(&mut self) {
+        match self.draw.state.try_borrow_mut() {
+            Err(err) => eprintln!("drawing failed to borrow state and finish: {}", err),
+            Ok(mut state) => state.finish_drawing(self.index),
         }
-        Ok(())
     }
 
     /// Complete the drawing and insert it into the parent **Draw** instance.
     ///
     /// This will be called when the **Drawing** is **Drop**ped if it has not yet been called.
-    pub fn finish(mut self) -> Result<(), geom::graph::WouldCycle<S>> {
+    pub fn finish(mut self) {
         self.finish_inner()
-    }
-
-    /// Complete the drawing and return its unique identifier.
-    ///
-    /// **Panics** if adding the edge would cause a cycle in the graph.
-    pub fn id(self) -> node::Index {
-        let id = self.index;
-        self.finish().expect(draw::WOULD_CYCLE);
-        id
     }
 
     // Map the given function onto the primitive stored within **Draw** at `index`.
@@ -339,25 +319,6 @@ where
     Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
-    // Setters for each axis.
-
-    /// Set the length along the x axis.
-    pub fn x_dimension(self, x: dimension::Dimension<S>) -> Self {
-        self.map_ty(|ty| SetDimensions::x_dimension(ty, x))
-    }
-
-    /// Set the length along the y axis.
-    pub fn y_dimension(self, y: dimension::Dimension<S>) -> Self {
-        self.map_ty(|ty| SetDimensions::y_dimension(ty, y))
-    }
-
-    /// Set the length along the z axis.
-    pub fn z_dimension(self, z: dimension::Dimension<S>) -> Self {
-        self.map_ty(|ty| SetDimensions::z_dimension(ty, z))
-    }
-
-    // Absolute dimensions.
-
     /// Set the absolute width for the node.
     pub fn width(self, w: S) -> Self {
         self.map_ty(|ty| SetDimensions::width(ty, w))
@@ -407,120 +368,6 @@ where
     pub fn w_h_d(self, x: S, y: S, z: S) -> Self {
         self.map_ty(|ty| SetDimensions::w_h_d(ty, x, y, z))
     }
-
-    // Relative dimensions.
-
-    /// Some relative dimension along the **x** axis.
-    pub fn x_dimension_relative(self, other: node::Index, x: dimension::Relative<S>) -> Self {
-        self.map_ty(|ty| SetDimensions::x_dimension_relative(ty, other, x))
-    }
-
-    /// Some relative dimension along the **y** axis.
-    pub fn y_dimension_relative(self, other: node::Index, y: dimension::Relative<S>) -> Self {
-        self.map_ty(|ty| SetDimensions::y_dimension_relative(ty, other, y))
-    }
-
-    /// Some relative dimension along the **z** axis.
-    pub fn z_dimension_relative(self, other: node::Index, z: dimension::Relative<S>) -> Self {
-        self.map_ty(|ty| SetDimensions::z_dimension_relative(ty, other, z))
-    }
-
-    /// Set the x-axis dimension as the width of the node at the given index.
-    pub fn w_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetDimensions::w_of(ty, other))
-    }
-
-    /// Set the y-axis dimension as the height of the node at the given index.
-    pub fn h_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetDimensions::h_of(ty, other))
-    }
-
-    /// Set the z-axis dimension as the depth of the node at the given index.
-    pub fn d_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetDimensions::d_of(ty, other))
-    }
-
-    /// Set the dimensions as the dimensions of the node at the given index.
-    pub fn wh_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetDimensions::wh_of(ty, other))
-    }
-
-    /// Set the dimensions as the dimensions of the node at the given index.
-    pub fn whd_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetDimensions::whd_of(ty, other))
-    }
-
-    /// Set the width as the width of the node at the given index padded at both ends by the
-    /// given Scalar.
-    pub fn padded_w_of(self, other: node::Index, pad: S) -> Self {
-        self.map_ty(|ty| SetDimensions::padded_w_of(ty, other, pad))
-    }
-
-    /// Set the height as the height of the node at the given index padded at both ends by the
-    /// given Scalar.
-    pub fn padded_h_of(self, other: node::Index, pad: S) -> Self {
-        self.map_ty(|ty| SetDimensions::padded_h_of(ty, other, pad))
-    }
-
-    /// Set the depth as the depth of the node at the given index padded at both ends by the
-    /// given Scalar.
-    pub fn padded_d_of(self, other: node::Index, pad: S) -> Self {
-        self.map_ty(|ty| SetDimensions::padded_d_of(ty, other, pad))
-    }
-
-    /// Set the dimensions as the dimensions of the node at the given index with each dimension
-    /// padded by the given scalar.
-    pub fn padded_wh_of(self, other: node::Index, pad: S) -> Self
-    where
-        S: Clone,
-    {
-        self.map_ty(|ty| SetDimensions::padded_wh_of(ty, other, pad))
-    }
-
-    /// Set the dimensions as the dimensions of the node at the given index with each dimension
-    /// padded by the given scalar.
-    pub fn padded_whd_of(self, other: node::Index, pad: S) -> Self
-    where
-        S: Clone,
-    {
-        self.map_ty(|ty| SetDimensions::padded_whd_of(ty, other, pad))
-    }
-
-    /// Set the width as the width of the node at the given index multiplied by the given **scale**
-    /// Scalar value.
-    pub fn scaled_w_of(self, other: node::Index, scale: S) -> Self {
-        self.map_ty(|ty| SetDimensions::scaled_w_of(ty, other, scale))
-    }
-
-    /// Set the height as the height of the node at the given index multiplied by the given **scale**
-    /// Scalar value.
-    pub fn scaled_h_of(self, other: node::Index, scale: S) -> Self {
-        self.map_ty(|ty| SetDimensions::scaled_h_of(ty, other, scale))
-    }
-
-    /// Set the depth as the depth of the node at the given index multiplied by the given **scale**
-    /// Scalar value.
-    pub fn scaled_d_of(self, other: node::Index, scale: S) -> Self {
-        self.map_ty(|ty| SetDimensions::scaled_d_of(ty, other, scale))
-    }
-
-    /// Set the dimensions as the dimensions of the node at the given index multiplied by the given
-    /// **scale** Scalar value.
-    pub fn scaled_wh_of(self, other: node::Index, scale: S) -> Self
-    where
-        S: Clone,
-    {
-        self.map_ty(|ty| SetDimensions::scaled_wh_of(ty, other, scale))
-    }
-
-    /// Set the dimensions as the dimensions of the node at the given index multiplied by the given
-    /// **scale** Scalar value.
-    pub fn scaled_whd_of(self, other: node::Index, scale: S) -> Self
-    where
-        S: Clone,
-    {
-        self.map_ty(|ty| SetDimensions::scaled_whd_of(ty, other, scale))
-    }
 }
 
 // SetPosition methods.
@@ -531,23 +378,6 @@ where
     Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
-    /// Build with the given **Position** along the *x* axis.
-    pub fn x_position(self, position: position::Position<S>) -> Self {
-        self.map_ty(|ty| SetPosition::x_position(ty, position))
-    }
-
-    /// Build with the given **Position** along the *y* axis.
-    pub fn y_position(self, position: position::Position<S>) -> Self {
-        self.map_ty(|ty| SetPosition::y_position(ty, position))
-    }
-
-    /// Build with the given **Position** along the *z* axis.
-    pub fn z_position(self, position: position::Position<S>) -> Self {
-        self.map_ty(|ty| SetPosition::z_position(ty, position))
-    }
-
-    // Absolute positioning.
-
     /// Build with the given **Absolute** **Position** along the *x* axis.
     pub fn x(self, x: S) -> Self {
         self.map_ty(|ty| SetPosition::x(ty, x))
@@ -582,532 +412,6 @@ where
     pub fn x_y_z(self, x: S, y: S, z: S) -> Self {
         self.map_ty(|ty| SetPosition::x_y_z(ty, x, y, z))
     }
-
-    // Relative positioning.
-
-    /// Set the *x* **Position** **Relative** to the previous node.
-    pub fn x_position_relative(self, x: position::Relative<S>) -> Self {
-        self.map_ty(|ty| SetPosition::x_position_relative(ty, x))
-    }
-
-    /// Set the *y* **Position** **Relative** to the previous node.
-    pub fn y_position_relative(self, y: position::Relative<S>) -> Self {
-        self.map_ty(|ty| SetPosition::y_position_relative(ty, y))
-    }
-
-    /// Set the *z* **Position** **Relative** to the previous node.
-    pub fn z_position_relative(self, z: position::Relative<S>) -> Self {
-        self.map_ty(|ty| SetPosition::z_position_relative(ty, z))
-    }
-
-    /// Set the *x* and *y* **Position**s **Relative** to the previous node.
-    pub fn x_y_position_relative(self, x: position::Relative<S>, y: position::Relative<S>) -> Self {
-        self.map_ty(|ty| SetPosition::x_y_position_relative(ty, x, y))
-    }
-
-    /// Set the *x*, *y* and *z* **Position**s **Relative** to the previous node.
-    pub fn x_y_z_position_relative(
-        self,
-        x: position::Relative<S>,
-        y: position::Relative<S>,
-        z: position::Relative<S>,
-    ) -> Self {
-        self.map_ty(|ty| SetPosition::x_y_z_position_relative(ty, x, y, z))
-    }
-
-    /// Set the *x* **Position** **Relative** to the given node.
-    pub fn x_position_relative_to(self, other: node::Index, x: position::Relative<S>) -> Self {
-        self.map_ty(|ty| SetPosition::x_position_relative_to(ty, other, x))
-    }
-
-    /// Set the *y* **Position** **Relative** to the given node.
-    pub fn y_position_relative_to(self, other: node::Index, y: position::Relative<S>) -> Self {
-        self.map_ty(|ty| SetPosition::y_position_relative_to(ty, other, y))
-    }
-
-    /// Set the *y* **Position** **Relative** to the given node.
-    pub fn z_position_relative_to(self, other: node::Index, z: position::Relative<S>) -> Self {
-        self.map_ty(|ty| SetPosition::z_position_relative_to(ty, other, z))
-    }
-
-    /// Set the *x* and *y* **Position**s **Relative** to the given node.
-    pub fn x_y_position_relative_to(
-        self,
-        other: node::Index,
-        x: position::Relative<S>,
-        y: position::Relative<S>,
-    ) -> Self {
-        self.map_ty(|ty| SetPosition::x_y_position_relative_to(ty, other, x, y))
-    }
-
-    /// Set the *x*, *y* and *z* **Position**s **Relative** to the given node.
-    pub fn x_y_z_position_relative_to(
-        self,
-        other: node::Index,
-        x: position::Relative<S>,
-        y: position::Relative<S>,
-        z: position::Relative<S>,
-    ) -> Self {
-        self.map_ty(|ty| SetPosition::x_y_z_position_relative_to(ty, other, x, y, z))
-    }
-
-    // Relative `Scalar` positioning.
-
-    /// Set the **Position** as a **Scalar** along the *x* axis **Relative** to the middle of
-    /// previous node.
-    pub fn x_relative(self, x: S) -> Self {
-        self.map_ty(|ty| SetPosition::x_relative(ty, x))
-    }
-
-    /// Set the **Position** as a **Scalar** along the *y* axis **Relative** to the middle of
-    /// previous node.
-    pub fn y_relative(self, y: S) -> Self {
-        self.map_ty(|ty| SetPosition::y_relative(ty, y))
-    }
-
-    /// Set the **Position** as a **Scalar** along the *z* axis **Relative** to the middle of
-    /// previous node.
-    pub fn z_relative(self, z: S) -> Self {
-        self.map_ty(|ty| SetPosition::z_relative(ty, z))
-    }
-
-    /// Set the **Position** as a **Point** **Relative** to the middle of the previous node.
-    pub fn xy_relative(self, p: Point2<S>) -> Self {
-        self.map_ty(|ty| SetPosition::xy_relative(ty, p))
-    }
-
-    /// Set the **Position** as a **Point** **Relative** to the middle of the previous node.
-    pub fn xyz_relative(self, p: Point3<S>) -> Self {
-        self.map_ty(|ty| SetPosition::xyz_relative(ty, p))
-    }
-
-    /// Set the **Position** as **Scalar**s along the *x* and *y* axes **Relative** to the middle
-    /// of the previous node.
-    pub fn x_y_relative(self, x: S, y: S) -> Self {
-        self.map_ty(|ty| SetPosition::x_y_relative(ty, x, y))
-    }
-
-    /// Set the **Position** as **Scalar**s along the *x*, *y* and *z* axes **Relative** to the
-    /// middle of the previous node.
-    pub fn x_y_z_relative(self, x: S, y: S, z: S) -> Self {
-        self.map_ty(|ty| SetPosition::x_y_z_relative(ty, x, y, z))
-    }
-
-    /// Set the position relative to the node with the given node::Index.
-    pub fn x_relative_to(self, other: node::Index, x: S) -> Self {
-        self.map_ty(|ty| SetPosition::x_relative_to(ty, other, x))
-    }
-
-    /// Set the position relative to the node with the given node::Index.
-    pub fn y_relative_to(self, other: node::Index, y: S) -> Self {
-        self.map_ty(|ty| SetPosition::y_relative_to(ty, other, y))
-    }
-
-    /// Set the position relative to the node with the given node::Index.
-    pub fn z_relative_to(self, other: node::Index, z: S) -> Self {
-        self.map_ty(|ty| SetPosition::z_relative_to(ty, other, z))
-    }
-
-    /// Set the position relative to the node with the given node::Index.
-    pub fn xy_relative_to(self, other: node::Index, p: Point2<S>) -> Self {
-        self.map_ty(|ty| SetPosition::xy_relative_to(ty, other, p))
-    }
-
-    /// Set the position relative to the node with the given node::Index.
-    pub fn xyz_relative_to(self, other: node::Index, p: Point3<S>) -> Self {
-        self.map_ty(|ty| SetPosition::xyz_relative_to(ty, other, p))
-    }
-
-    /// Set the position relative to the node with the given node::Index.
-    pub fn x_y_relative_to(self, other: node::Index, x: S, y: S) -> Self {
-        self.map_ty(|ty| SetPosition::x_y_relative_to(ty, other, x, y))
-    }
-
-    /// Set the position relative to the node with the given node::Index.
-    pub fn x_y_z_relative_to(self, other: node::Index, x: S, y: S, z: S) -> Self {
-        self.map_ty(|ty| SetPosition::x_y_z_relative_to(ty, other, x, y, z))
-    }
-
-    // Directional positioning.
-
-    /// Build with the **Position** along the *x* axis as some distance from another node.
-    pub fn x_direction(self, direction: position::Direction, x: S) -> Self {
-        self.map_ty(|ty| SetPosition::x_direction(ty, direction, x))
-    }
-
-    /// Build with the **Position** along the *y* axis as some distance from another node.
-    pub fn y_direction(self, direction: position::Direction, y: S) -> Self {
-        self.map_ty(|ty| SetPosition::y_direction(ty, direction, y))
-    }
-
-    /// Build with the **Position** along the *z* axis as some distance from another node.
-    pub fn z_direction(self, direction: position::Direction, z: S) -> Self {
-        self.map_ty(|ty| SetPosition::z_direction(ty, direction, z))
-    }
-
-    /// Build with the **Position** as some distance to the left of another node.
-    pub fn left(self, x: S) -> Self {
-        self.map_ty(|ty| SetPosition::left(ty, x))
-    }
-
-    /// Build with the **Position** as some distance to the right of another node.
-    pub fn right(self, x: S) -> Self {
-        self.map_ty(|ty| SetPosition::right(ty, x))
-    }
-
-    /// Build with the **Position** as some distance below another node.
-    pub fn down(self, y: S) -> Self {
-        self.map_ty(|ty| SetPosition::down(ty, y))
-    }
-
-    /// Build with the **Position** as some distance above another node.
-    pub fn up(self, y: S) -> Self {
-        self.map_ty(|ty| SetPosition::up(ty, y))
-    }
-
-    /// Build with the **Position** as some distance in front of another node.
-    pub fn backwards(self, z: S) -> Self {
-        self.map_ty(|ty| SetPosition::backwards(ty, z))
-    }
-
-    /// Build with the **Position** as some distance behind another node.
-    pub fn forwards(self, z: S) -> Self {
-        self.map_ty(|ty| SetPosition::forwards(ty, z))
-    }
-
-    /// Build with the **Position** along the *x* axis as some distance from the given node.
-    pub fn x_direction_from(
-        self,
-        other: node::Index,
-        direction: position::Direction,
-        x: S,
-    ) -> Self {
-        self.map_ty(|ty| SetPosition::x_direction_from(ty, other, direction, x))
-    }
-
-    /// Build with the **Position** along the *y* axis as some distance from the given node.
-    pub fn y_direction_from(
-        self,
-        other: node::Index,
-        direction: position::Direction,
-        y: S,
-    ) -> Self {
-        self.map_ty(|ty| SetPosition::y_direction_from(ty, other, direction, y))
-    }
-
-    /// Build with the **Position** along the *z* axis as some distance from the given node.
-    pub fn z_direction_from(
-        self,
-        other: node::Index,
-        direction: position::Direction,
-        z: S,
-    ) -> Self {
-        self.map_ty(|ty| SetPosition::z_direction_from(ty, other, direction, z))
-    }
-
-    /// Build with the **Position** as some distance to the left of the given node.
-    pub fn left_from(self, other: node::Index, x: S) -> Self {
-        self.map_ty(|ty| SetPosition::left_from(ty, other, x))
-    }
-
-    /// Build with the **Position** as some distance to the right of the given node.
-    pub fn right_from(self, other: node::Index, x: S) -> Self {
-        self.map_ty(|ty| SetPosition::right_from(ty, other, x))
-    }
-
-    /// Build with the **Position** as some distance below the given node.
-    pub fn down_from(self, other: node::Index, y: S) -> Self {
-        self.map_ty(|ty| SetPosition::down_from(ty, other, y))
-    }
-
-    /// Build with the **Position** as some distance above the given node.
-    pub fn up_from(self, other: node::Index, y: S) -> Self {
-        self.map_ty(|ty| SetPosition::up_from(ty, other, y))
-    }
-
-    /// Build with the **Position** as some distance in front of the given node.
-    pub fn backwards_from(self, other: node::Index, z: S) -> Self {
-        self.map_ty(|ty| SetPosition::backwards_from(ty, other, z))
-    }
-
-    /// Build with the **Position** as some distance above the given node.
-    pub fn forwards_from(self, other: node::Index, z: S) -> Self {
-        self.map_ty(|ty| SetPosition::forwards_from(ty, other, z))
-    }
-
-    // Alignment positioning.
-
-    /// Align the **Position** of the node along the *x* axis.
-    pub fn x_align(self, align: position::Align<S>) -> Self {
-        self.map_ty(|ty| SetPosition::x_align(ty, align))
-    }
-
-    /// Align the **Position** of the node along the *y* axis.
-    pub fn y_align(self, align: position::Align<S>) -> Self {
-        self.map_ty(|ty| SetPosition::y_align(ty, align))
-    }
-
-    /// Align the **Position** of the node along the *z* axis.
-    pub fn z_align(self, align: position::Align<S>) -> Self {
-        self.map_ty(|ty| SetPosition::z_align(ty, align))
-    }
-
-    /// Align the position to the left.
-    pub fn align_left(self) -> Self {
-        self.map_ty(|ty| SetPosition::align_left(ty))
-    }
-
-    /// Align the position to the left.
-    pub fn align_left_with_margin(self, margin: S) -> Self {
-        self.map_ty(|ty| SetPosition::align_left_with_margin(ty, margin))
-    }
-
-    /// Align the position to the middle.
-    pub fn align_middle_x(self) -> Self {
-        self.map_ty(|ty| SetPosition::align_middle_x(ty))
-    }
-
-    /// Align the position to the right.
-    pub fn align_right(self) -> Self {
-        self.map_ty(|ty| SetPosition::align_right(ty))
-    }
-
-    /// Align the position to the right.
-    pub fn align_right_with_margin(self, margin: S) -> Self {
-        self.map_ty(|ty| SetPosition::align_right_with_margin(ty, margin))
-    }
-
-    /// Align the position to the bottom.
-    pub fn align_bottom(self) -> Self {
-        self.map_ty(|ty| SetPosition::align_bottom(ty))
-    }
-
-    /// Align the position to the bottom.
-    pub fn align_bottom_with_margin(self, margin: S) -> Self {
-        self.map_ty(|ty| SetPosition::align_bottom_with_margin(ty, margin))
-    }
-
-    /// Align the position to the middle.
-    pub fn align_middle_y(self) -> Self {
-        self.map_ty(|ty| SetPosition::align_middle_y(ty))
-    }
-
-    /// Align the position to the top.
-    pub fn align_top(self) -> Self {
-        self.map_ty(|ty| SetPosition::align_top(ty))
-    }
-
-    /// Align the position to the top.
-    pub fn align_top_with_margin(self, margin: S) -> Self {
-        self.map_ty(|ty| SetPosition::align_top_with_margin(ty, margin))
-    }
-
-    /// Align the position to the front.
-    pub fn align_front(self) -> Self {
-        self.map_ty(|ty| SetPosition::align_front(ty))
-    }
-
-    /// Align the position to the front.
-    pub fn align_front_with_margin(self, margin: S) -> Self {
-        self.map_ty(|ty| SetPosition::align_front_with_margin(ty, margin))
-    }
-
-    /// Align the position to the middle.
-    pub fn align_middle_z(self) -> Self {
-        self.map_ty(|ty| SetPosition::align_middle_z(ty))
-    }
-
-    /// Align the position to the back.
-    pub fn align_back(self) -> Self {
-        self.map_ty(|ty| SetPosition::align_back(ty))
-    }
-
-    /// Align the position to the back.
-    pub fn align_back_with_margin(self, margin: S) -> Self {
-        self.map_ty(|ty| SetPosition::align_back_with_margin(ty, margin))
-    }
-
-    /// Align the **Position** of the node with the given node along the *x* axis.
-    pub fn x_align_to(self, other: node::Index, align: position::Align<S>) -> Self {
-        self.map_ty(|ty| SetPosition::x_align_to(ty, other, align))
-    }
-
-    /// Align the **Position** of the node with the given node along the *y* axis.
-    pub fn y_align_to(self, other: node::Index, align: position::Align<S>) -> Self {
-        self.map_ty(|ty| SetPosition::y_align_to(ty, other, align))
-    }
-
-    /// Align the **Position** of the node with the given node along the *z* axis.
-    pub fn z_align_to(self, other: node::Index, align: position::Align<S>) -> Self {
-        self.map_ty(|ty| SetPosition::z_align_to(ty, other, align))
-    }
-
-    /// Align the position to the left.
-    pub fn align_left_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::align_left_of(ty, other))
-    }
-
-    /// Align the position to the left.
-    pub fn align_left_of_with_margin(self, other: node::Index, margin: S) -> Self {
-        self.map_ty(|ty| SetPosition::align_left_of_with_margin(ty, other, margin))
-    }
-
-    /// Align the position to the middle.
-    pub fn align_middle_x_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::align_middle_x_of(ty, other))
-    }
-
-    /// Align the position to the right.
-    pub fn align_right_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::align_right_of(ty, other))
-    }
-
-    /// Align the position to the right.
-    pub fn align_right_of_with_margin(self, other: node::Index, margin: S) -> Self {
-        self.map_ty(|ty| SetPosition::align_right_of_with_margin(ty, other, margin))
-    }
-
-    /// Align the position to the bottom.
-    pub fn align_bottom_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::align_bottom_of(ty, other))
-    }
-
-    /// Align the position to the bottom.
-    pub fn align_bottom_of_with_margin(self, other: node::Index, margin: S) -> Self {
-        self.map_ty(|ty| SetPosition::align_bottom_of_with_margin(ty, other, margin))
-    }
-
-    /// Align the position to the middle.
-    pub fn align_middle_y_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::align_middle_y_of(ty, other))
-    }
-
-    /// Align the position to the top.
-    pub fn align_top_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::align_top_of(ty, other))
-    }
-
-    /// Align the position to the top.
-    pub fn align_top_of_with_margin(self, other: node::Index, margin: S) -> Self {
-        self.map_ty(|ty| SetPosition::align_top_of_with_margin(ty, other, margin))
-    }
-
-    /// Align the position to the front.
-    pub fn align_front_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::align_front_of(ty, other))
-    }
-
-    /// Align the position to the front.
-    pub fn align_front_of_with_margin(self, other: node::Index, margin: S) -> Self {
-        self.map_ty(|ty| SetPosition::align_front_of_with_margin(ty, other, margin))
-    }
-
-    /// Align the position to the middle.
-    pub fn align_middle_z_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::align_middle_z_of(ty, other))
-    }
-
-    /// Align the position to the back.
-    pub fn align_back_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::align_back_of(ty, other))
-    }
-
-    /// Align the position to the back.
-    pub fn align_back_of_with_margin(self, other: node::Index, margin: S) -> Self {
-        self.map_ty(|ty| SetPosition::align_back_of_with_margin(ty, other, margin))
-    }
-
-    // Alignment combinations.
-
-    /// Align the node to the middle of the last node.
-    pub fn middle(self) -> Self {
-        self.map_ty(|ty| SetPosition::middle(ty))
-    }
-
-    /// Align the node to the bottom left of the last node.
-    pub fn bottom_left(self) -> Self {
-        self.map_ty(|ty| SetPosition::bottom_left(ty))
-    }
-
-    /// Align the node to the middle left of the last node.
-    pub fn mid_left(self) -> Self {
-        self.map_ty(|ty| SetPosition::mid_left(ty))
-    }
-
-    /// Align the node to the top left of the last node.
-    pub fn top_left(self) -> Self {
-        self.map_ty(|ty| SetPosition::top_left(ty))
-    }
-
-    /// Align the node to the middle top of the last node.
-    pub fn mid_top(self) -> Self {
-        self.map_ty(|ty| SetPosition::mid_top(ty))
-    }
-
-    /// Align the node to the top right of the last node.
-    pub fn top_right(self) -> Self {
-        self.map_ty(|ty| SetPosition::top_right(ty))
-    }
-
-    /// Align the node to the middle right of the last node.
-    pub fn mid_right(self) -> Self {
-        self.map_ty(|ty| SetPosition::mid_right(ty))
-    }
-
-    /// Align the node to the bottom right of the last node.
-    pub fn bottom_right(self) -> Self {
-        self.map_ty(|ty| SetPosition::bottom_right(ty))
-    }
-
-    /// Align the node to the middle bottom of the last node.
-    pub fn mid_bottom(self) -> Self {
-        self.map_ty(|ty| SetPosition::mid_bottom(ty))
-    }
-
-    /// Align the node in the middle of the given Node.
-    pub fn middle_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::middle_of(ty, other))
-    }
-
-    /// Align the node to the bottom left of the given Node.
-    pub fn bottom_left_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::bottom_left_of(ty, other))
-    }
-
-    /// Align the node to the middle left of the given Node.
-    pub fn mid_left_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::mid_left_of(ty, other))
-    }
-
-    /// Align the node to the top left of the given Node.
-    pub fn top_left_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::top_left_of(ty, other))
-    }
-
-    /// Align the node to the middle top of the given Node.
-    pub fn mid_top_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::mid_top_of(ty, other))
-    }
-
-    /// Align the node to the top right of the given Node.
-    pub fn top_right_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::top_right_of(ty, other))
-    }
-
-    /// Align the node to the middle right of the given Node.
-    pub fn mid_right_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::mid_right_of(ty, other))
-    }
-
-    /// Align the node to the bottom right of the given Node.
-    pub fn bottom_right_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::bottom_right_of(ty, other))
-    }
-
-    /// Align the node to the middle bottom of the given Node.
-    pub fn mid_bottom_of(self, other: node::Index) -> Self {
-        self.map_ty(|ty| SetPosition::mid_bottom_of(ty, other))
-    }
 }
 
 // SetOrientation methods.
@@ -1119,33 +423,8 @@ where
     S: BaseFloat,
 {
     /// Describe orientation via the vector that points to the given target.
-    pub fn look_at(self, target: orientation::LookAt<S>) -> Self {
+    pub fn look_at(self, target: Point3<S>) -> Self {
         self.map_ty(|ty| SetOrientation::look_at(ty, target))
-    }
-
-    /// Describe orientation via the vector that points to the given node.
-    pub fn look_at_node(self, node: node::Index) -> Self {
-        self.map_ty(|ty| SetOrientation::look_at_node(ty, node))
-    }
-
-    /// Describe orientation via the vector that points to the given point.
-    pub fn look_at_point(self, point: Point3<S>) -> Self {
-        self.map_ty(|ty| SetOrientation::look_at_point(ty, point))
-    }
-
-    /// Build with the given **Orientation** along the *x* axis.
-    pub fn x_orientation(self, orientation: orientation::Orientation<S>) -> Self {
-        self.map_ty(|ty| SetOrientation::x_orientation(ty, orientation))
-    }
-
-    /// Build with the given **Orientation** along the *y* axis.
-    pub fn y_orientation(self, orientation: orientation::Orientation<S>) -> Self {
-        self.map_ty(|ty| SetOrientation::y_orientation(ty, orientation))
-    }
-
-    /// Build with the given **Orientation** along the *z* axis.
-    pub fn z_orientation(self, orientation: orientation::Orientation<S>) -> Self {
-        self.map_ty(|ty| SetOrientation::z_orientation(ty, orientation))
     }
 
     /// Specify the orientation around the *x* axis as an absolute value in radians.
@@ -1257,246 +536,6 @@ where
         self.map_ty(|ty| SetOrientation::quaternion(ty, q))
     }
 
-    // Relative orientation.
-
-    /// Specify the orientation around the *x* axis as a relative value in radians.
-    pub fn x_radians_relative(self, x: S) -> Self {
-        self.map_ty(|ty| SetOrientation::x_radians_relative(ty, x))
-    }
-
-    /// Specify the orientation around the *y* axis as a relative value in radians.
-    pub fn y_radians_relative(self, y: S) -> Self {
-        self.map_ty(|ty| SetOrientation::y_radians_relative(ty, y))
-    }
-
-    /// Specify the orientation around the *z* axis as a relative value in radians.
-    pub fn z_radians_relative(self, z: S) -> Self {
-        self.map_ty(|ty| SetOrientation::z_radians_relative(ty, z))
-    }
-
-    /// Specify the orientation around the *x* axis as a relative value in radians.
-    pub fn x_radians_relative_to(self, other: node::Index, x: S) -> Self {
-        self.map_ty(|ty| SetOrientation::x_radians_relative_to(ty, other, x))
-    }
-
-    /// Specify the orientation around the *y* axis as a relative value in radians.
-    pub fn y_radians_relative_to(self, other: node::Index, y: S) -> Self {
-        self.map_ty(|ty| SetOrientation::y_radians_relative_to(ty, other, y))
-    }
-
-    /// Specify the orientation around the *z* axis as a relative value in radians.
-    pub fn z_radians_relative_to(self, other: node::Index, z: S) -> Self {
-        self.map_ty(|ty| SetOrientation::z_radians_relative_to(ty, other, z))
-    }
-
-    /// Specify the orientation around the *x* axis as a relative value in degrees.
-    pub fn x_degrees_relative(self, x: S) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::x_degrees_relative(ty, x))
-    }
-
-    /// Specify the orientation around the *y* axis as a relative value in degrees.
-    pub fn y_degrees_relative(self, y: S) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::y_degrees_relative(ty, y))
-    }
-
-    /// Specify the orientation around the *z* axis as a relative value in degrees.
-    pub fn z_degrees_relative(self, z: S) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::z_degrees_relative(ty, z))
-    }
-
-    /// Specify the orientation around the *x* axis as a relative value in degrees.
-    pub fn x_degrees_relative_to(self, other: node::Index, x: S) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::x_degrees_relative_to(ty, other, x))
-    }
-
-    /// Specify the orientation around the *y* axis as a relative value in degrees.
-    pub fn y_degrees_relative_to(self, other: node::Index, y: S) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::y_degrees_relative_to(ty, other, y))
-    }
-
-    /// Specify the orientation around the *z* axis as a relative value in degrees.
-    pub fn z_degrees_relative_to(self, other: node::Index, z: S) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::z_degrees_relative_to(ty, other, z))
-    }
-
-    /// Specify the relative orientation around the *x* axis as a number of turns around the axis.
-    pub fn x_turns_relative(self, x: S) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::x_turns_relative(ty, x))
-    }
-
-    /// Specify the relative orientation around the *y* axis as a number of turns around the axis.
-    pub fn y_turns_relative(self, y: S) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::y_turns_relative(ty, y))
-    }
-
-    /// Specify the relative orientation around the *z* axis as a number of turns around the axis.
-    pub fn z_turns_relative(self, z: S) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::z_turns_relative(ty, z))
-    }
-
-    /// Specify the relative orientation around the *x* axis as a number of turns around the axis.
-    pub fn x_turns_relative_to(self, other: node::Index, x: S) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::x_turns_relative_to(ty, other, x))
-    }
-
-    /// Specify the relative orientation around the *y* axis as a number of turns around the axis.
-    pub fn y_turns_relative_to(self, other: node::Index, y: S) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::y_turns_relative_to(ty, other, y))
-    }
-
-    /// Specify the relative orientation around the *z* axis as a number of turns around the axis.
-    pub fn z_turns_relative_to(self, other: node::Index, z: S) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::z_turns_relative_to(ty, other, z))
-    }
-
-    /// Specify a relative orientation along each axis with the given **Vector** of radians.
-    ///
-    /// This has the same affect as the following:
-    ///
-    /// ```ignore
-    /// self.x_radians_relative(v.x)
-    ///     .y_radians_relative(v.y)
-    ///     .z_radians_relative(v.z)
-    /// ```
-    pub fn radians_relative(self, v: Vector3<S>) -> Self {
-        self.map_ty(|ty| SetOrientation::radians_relative(ty, v))
-    }
-
-    /// Specify a relative orientation along each axis with the given **Vector** of radians.
-    ///
-    /// This has the same affect as the following:
-    ///
-    /// ```ignore
-    /// self.x_radians_relative_to(other, v.x)
-    ///     .y_radians_relative_to(other, v.y)
-    ///     .z_radians_relative_to(other, v.z)
-    /// ```
-    pub fn radians_relative_to(self, other: node::Index, v: Vector3<S>) -> Self {
-        self.map_ty(|ty| SetOrientation::radians_relative_to(ty, other, v))
-    }
-
-    /// Specify a relative orientation along each axis with the given **Vector** of degrees.
-    ///
-    /// This has the same affect as the following:
-    ///
-    /// ```ignore
-    /// self.x_degrees_relative(v.x)
-    ///     .y_degrees_relative(v.y)
-    ///     .z_degrees_relative(v.z)
-    /// ```
-    pub fn degrees_relative(self, v: Vector3<S>) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::degrees_relative(ty, v))
-    }
-
-    /// Specify a relative orientation along each axis with the given **Vector** of degrees.
-    ///
-    /// This has the same affect as the following:
-    ///
-    /// ```ignore
-    /// self.x_degrees_relative_to(other, v.x)
-    ///     .y_degrees_relative_to(other, v.y)
-    ///     .z_degrees_relative_to(other, v.z)
-    /// ```
-    pub fn degrees_relative_to(self, other: node::Index, v: Vector3<S>) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::degrees_relative_to(ty, other, v))
-    }
-
-    /// Specify a relative orientation along each axis with the given **Vector** of "turns".
-    ///
-    /// This has the same affect as the following:
-    ///
-    /// ```ignore
-    /// self.x_turns_relative(v.x)
-    ///     .y_turns_relative(v.y)
-    ///     .z_turns_relative(v.z)
-    /// ```
-    pub fn turns_relative(self, v: Vector3<S>) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::turns_relative(ty, v))
-    }
-
-    /// Specify a relative orientation along each axis with the given **Vector** of "turns".
-    ///
-    /// This has the same affect as the following:
-    ///
-    /// ```ignore
-    /// self.x_turns_relative_to(other, v.x)
-    ///     .y_turns_relative_to(other, v.y)
-    ///     .z_turns_relative_to(other, v.z)
-    /// ```
-    pub fn turns_relative_to(self, other: node::Index, v: Vector3<S>) -> Self
-    where
-        S: BaseFloat,
-    {
-        self.map_ty(|ty| SetOrientation::turns_relative_to(ty, other, v))
-    }
-
-    /// Specify a relative orientation with the given **Euler**.
-    ///
-    /// The euler can be specified in either radians (via **Rad**) or degrees (via **Deg**).
-    pub fn euler_relative<A>(self, e: Euler<A>) -> Self
-    where
-        S: BaseFloat,
-        A: Angle + Into<Rad<S>>,
-    {
-        self.map_ty(|ty| SetOrientation::euler_relative(ty, e))
-    }
-
-    /// Specify a relative orientation with the given **Euler**.
-    ///
-    /// The euler can be specified in either radians (via **Rad**) or degrees (via **Deg**).
-    pub fn euler_relative_to<A>(self, other: node::Index, e: Euler<A>) -> Self
-    where
-        S: BaseFloat,
-        A: Angle + Into<Rad<S>>,
-    {
-        self.map_ty(|ty| SetOrientation::euler_relative_to(ty, other, e))
-    }
-
     // Higher level methods.
 
     /// Specify the "pitch" of the orientation in radians.
@@ -1554,15 +593,22 @@ where
         self.map_ty(|ty| ty.fill_rule(rule))
     }
 
-    /// A fast path to avoid some expensive operations if the path is known to not have any
-    /// self-intesections.
+    /// Whether to perform a vertical or horizontal traversal of the geometry.
     ///
-    /// Do not set this to `true` if the path may have intersecting edges else the tessellator may
+    /// Default value: `Vertical`.
+    pub fn fill_sweep_orientation(self, orientation: lyon::tessellation::Orientation) -> Self {
+        self.map_ty(|ty| ty.fill_sweep_orientation(orientation))
+    }
+
+    /// A fast path to avoid some expensive operations if the path is known to not have any
+    /// self-intersections.
+    ///
+    /// Do not set this to `false` if the path may have intersecting edges else the tessellator may
     /// panic or produce incorrect results. In doubt, do not change the default value.
     ///
-    /// Default value: `false`.
-    pub fn assume_no_intersections(self, b: bool) -> Self {
-        self.map_ty(|ty| ty.assume_no_intersections(b))
+    /// Default value: `true`.
+    pub fn handle_intersections(self, b: bool) -> Self {
+        self.map_ty(|ty| ty.handle_intersections(b))
     }
 }
 

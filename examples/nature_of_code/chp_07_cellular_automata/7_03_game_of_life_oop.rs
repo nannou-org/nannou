@@ -37,7 +37,7 @@ impl Cell {
         self.state = s;
     }
 
-    fn display(&self, draw: &app::Draw, x: f32, y: f32) {
+    fn display(&self, draw: &Draw, x: f32, y: f32) {
         let fill = if self.previous == 0 && self.state == 1 {
             rgb(0.0, 0.0, 1.0)
         } else if self.state == 1 {
@@ -136,7 +136,7 @@ impl Gol {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &app::Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &Rect) {
         for i in 0..self.columns {
             for j in 0..self.rows {
                 let x = (i * self.w) as f32 - rect.right() as f32;

@@ -138,7 +138,7 @@ fn model(app: &App) -> Model {
         .fill_from_slice(&data::INDICES[..]);
 
     let depth_texture = create_depth_texture(device, [win_w, win_h], DEPTH_FORMAT, msaa_samples);
-    let depth_texture_view = depth_texture.create_default_view();
+    let depth_texture_view = depth_texture.view().build();
 
     let eye = Point3::new(0.0, 0.0, 1.0);
     let pitch = 0.0;
@@ -279,7 +279,7 @@ fn view(_app: &App, model: &Model, frame: Frame) {
         let depth_format = g.depth_texture.format();
         let sample_count = frame.texture_msaa_samples();
         g.depth_texture = create_depth_texture(device, frame_size, depth_format, sample_count);
-        g.depth_texture_view = g.depth_texture.create_default_view();
+        g.depth_texture_view = g.depth_texture.view().build();
     }
 
     // Update the uniforms (rotate around the teapot).

@@ -1,0 +1,1128 @@
+use crate::draw;
+use crate::draw::mesh::vertex::Color;
+use crate::frame::Frame;
+use crate::geom::{self, Point2, Rect, Vector2};
+use crate::math::map_range;
+use crate::math::Matrix4;
+use crate::text;
+use crate::wgpu;
+use lyon::path::PathEvent;
+use lyon::tessellation::{FillTessellator, StrokeTessellator};
+use std::collections::{HashMap, HashSet};
+use std::fmt;
+use std::hash::{Hash, Hasher};
+use std::ops::{Deref, DerefMut};
+
+/// Draw API primitives that may be rendered via the **Renderer** type.
+pub trait RenderPrimitive {
+    /// Render self into the given mesh.
+    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender;
+}
+
+/// Information about the way in which a primitive was rendered.
+pub struct PrimitiveRender {
+    /// Whether or not a specific texture must be available when this primitive is drawn.
+    ///
+    /// If `Some` and the given texture is different than the currently set texture, a render
+    /// command will be encoded that switches from the previous texture's bind group to the new
+    /// one.
+    pub texture_view: Option<wgpu::TextureView>,
+    /// The way in which vertices should be coloured in the fragment shader.
+    pub vertex_mode: VertexMode,
+}
+
+/// The context provided to primitives to assist with the rendering process.
+pub struct RenderContext<'a> {
+    pub transform: &'a crate::math::Matrix4<f32>,
+    pub intermediary_mesh: &'a draw::Mesh,
+    pub path_event_buffer: &'a [PathEvent],
+    pub path_points_colored_buffer: &'a [(Point2, Color)],
+    pub path_points_textured_buffer: &'a [(Point2, Point2)],
+    pub text_buffer: &'a str,
+    pub theme: &'a draw::Theme,
+    pub glyph_cache: &'a mut GlyphCache,
+    pub fill_tessellator: &'a mut FillTessellator,
+    pub stroke_tessellator: &'a mut StrokeTessellator,
+    pub output_attachment_size: Vector2, // logical coords
+    pub output_attachment_scale_factor: f32,
+}
+
+pub struct GlyphCache {
+    /// Tracks glyphs and their location within the cache.
+    pub cache: text::GlyphCache<'static>,
+    /// The buffer used to store the pixels of the glyphs.
+    pub pixel_buffer: Vec<u8>,
+    /// Will be set to `true` after the cache has been updated if the texture requires re-uploading.
+    pub requires_upload: bool,
+}
+
+/// A top-level indicator of whether or not
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[repr(u32)]
+pub enum VertexMode {
+    /// Use the color values and ignore the texture coordinates.
+    Color = 0,
+    /// Use the texture color and ignore the color values.
+    Texture = 1,
+    /// A special mode used by the text primitive.
+    ///
+    /// Uses the color values, but multiplies the alpha by the glyph cache texture's red value.
+    Text = 2,
+}
+
+/// A helper type aimed at simplifying the rendering of conrod primitives via wgpu.
+#[derive(Debug)]
+pub struct Renderer {
+    glyph_cache: GlyphCache,
+    vs_mod: wgpu::ShaderModule,
+    fs_mod: wgpu::ShaderModule,
+    render_pipelines: HashMap<PipelineId, wgpu::RenderPipeline>,
+    glyph_cache_texture: wgpu::Texture,
+    depth_texture: wgpu::Texture,
+    depth_texture_view: wgpu::TextureView,
+    default_texture: wgpu::Texture,
+    default_texture_view: wgpu::TextureView,
+    uniform_bind_group_layout: wgpu::BindGroupLayout,
+    uniform_bind_group: wgpu::BindGroup,
+    text_bind_group_layout: wgpu::BindGroupLayout,
+    text_bind_group: wgpu::BindGroup,
+    texture_samplers: HashMap<SamplerId, wgpu::Sampler>,
+    texture_bind_group_layout: wgpu::BindGroupLayout,
+    texture_bind_groups: HashMap<BindGroupId, wgpu::BindGroup>,
+    texture_default_bind_group: wgpu::BindGroup,
+    output_color_format: wgpu::TextureFormat,
+    sample_count: u32,
+    scale_factor: f32,
+    render_commands: Vec<RenderCommand>,
+    mesh: draw::Mesh,
+    vertex_mode_buffer: Vec<VertexMode>,
+    uniform_buffer: wgpu::Buffer,
+}
+
+/// A type aimed at simplifying construction of a `draw::Renderer`.
+#[derive(Clone, Debug)]
+pub struct Builder {
+    pub depth_format: wgpu::TextureFormat,
+    pub glyph_cache_size: [u32; 2],
+    pub glyph_cache_scale_tolerance: f32,
+    pub glyph_cache_position_tolerance: f32,
+}
+
+/// Commands that map to wgpu encodable commands.
+#[derive(Debug)]
+enum RenderCommand {
+    /// Change pipeline for the new blend mode and topology.
+    SetPipeline(PipelineId),
+    /// Change bind group for a new image.
+    SetBindGroup(BindGroupId),
+    /// Set the rectangular scissor.
+    SetScissor(Scissor),
+    /// Draw the given vertex range.
+    DrawIndexed {
+        start_vertex: i32,
+        index_range: std::ops::Range<u32>,
+    },
+}
+
+/// The position and dimensions of the scissor.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Scissor {
+    left: u32,
+    bottom: u32,
+    width: u32,
+    height: u32,
+}
+
+#[derive(Debug)]
+pub struct DrawError;
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+struct Uniforms {
+    // /// The vector to multiply onto vertices in the vertex shader to map them from window space to
+    // /// shader space.
+    // window_to_shader: [f32; 3],
+    //view: Matrix4<f32>,
+    /// Translates from "logical pixel coordinate space" (our "world space") to screen space.
+    ///
+    /// Specifically:
+    ///
+    /// - x is transformed from (-half_logical_win_w, half_logical_win_w) to (-1, 1).
+    /// - y is transformed from (-half_logical_win_h, half_logical_win_h) to (1, -1).
+    /// - z is transformed from (-max_logical_win_side, max_logical_win_side) to (0, 1).
+    proj: Matrix4<f32>,
+}
+
+type SamplerId = u64;
+type BindGroupId = (SamplerId, wgpu::TextureViewId);
+type BlendId = u64;
+type ColorId = BlendId;
+type AlphaId = BlendId;
+type PipelineId = (ColorId, AlphaId, wgpu::PrimitiveTopology);
+
+impl Default for PrimitiveRender {
+    fn default() -> Self {
+        Self::color()
+    }
+}
+
+impl RenderPrimitive for draw::Primitive {
+    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender {
+        match self {
+            draw::Primitive::Mesh(prim) => prim.render_primitive(ctxt, mesh),
+            draw::Primitive::Path(prim) => prim.render_primitive(ctxt, mesh),
+            draw::Primitive::Polygon(prim) => prim.render_primitive(ctxt, mesh),
+            draw::Primitive::Tri(prim) => prim.render_primitive(ctxt, mesh),
+            draw::Primitive::Ellipse(prim) => prim.render_primitive(ctxt, mesh),
+            draw::Primitive::Quad(prim) => prim.render_primitive(ctxt, mesh),
+            draw::Primitive::Rect(prim) => prim.render_primitive(ctxt, mesh),
+            draw::Primitive::Line(prim) => prim.render_primitive(ctxt, mesh),
+            draw::Primitive::Text(prim) => prim.render_primitive(ctxt, mesh),
+            draw::Primitive::Texture(prim) => prim.render_primitive(ctxt, mesh),
+            _ => PrimitiveRender::default(),
+        }
+    }
+}
+
+impl wgpu::VertexDescriptor for draw::mesh::vertex::Point {
+    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Self>() as _;
+    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
+        &[wgpu::VertexAttributeDescriptor {
+            format: wgpu::VertexFormat::Float3,
+            offset: 0,
+            shader_location: 0,
+        }];
+}
+
+impl wgpu::VertexDescriptor for draw::mesh::vertex::Color {
+    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Self>() as _;
+    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
+        &[wgpu::VertexAttributeDescriptor {
+            format: wgpu::VertexFormat::Float4,
+            offset: 0,
+            shader_location: 1,
+        }];
+}
+
+impl wgpu::VertexDescriptor for draw::mesh::vertex::TexCoords {
+    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Self>() as _;
+    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
+        &[wgpu::VertexAttributeDescriptor {
+            format: wgpu::VertexFormat::Float2,
+            offset: 0,
+            shader_location: 2,
+        }];
+}
+
+impl wgpu::VertexDescriptor for VertexMode {
+    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Self>() as _;
+    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
+        &[wgpu::VertexAttributeDescriptor {
+            format: wgpu::VertexFormat::Uint,
+            offset: 0,
+            shader_location: 3,
+        }];
+}
+
+impl fmt::Debug for GlyphCache {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("GlyphCache")
+            .field("cache", &self.cache.dimensions())
+            .field("pixel_buffer", &self.pixel_buffer.len())
+            .field("requires_upload", &self.requires_upload)
+            .finish()
+    }
+}
+
+impl PrimitiveRender {
+    /// Specify a vertex mode for the primitive render.
+    pub fn vertex_mode(vertex_mode: VertexMode) -> Self {
+        PrimitiveRender {
+            texture_view: None,
+            vertex_mode,
+        }
+    }
+
+    pub fn color() -> Self {
+        Self::vertex_mode(VertexMode::Color)
+    }
+
+    pub fn texture(texture_view: wgpu::TextureView) -> Self {
+        PrimitiveRender {
+            vertex_mode: VertexMode::Texture,
+            texture_view: Some(texture_view),
+        }
+    }
+
+    pub fn text() -> Self {
+        Self::vertex_mode(VertexMode::Text)
+    }
+}
+
+impl Builder {
+    /// The default depth format
+    pub const DEFAULT_DEPTH_FORMAT: wgpu::TextureFormat = Renderer::DEFAULT_DEPTH_FORMAT;
+    /// The default size for the inner glyph cache.
+    pub const DEFAULT_GLYPH_CACHE_SIZE: [u32; 2] = Renderer::DEFAULT_GLYPH_CACHE_SIZE;
+    /// The default scale tolerance for the glyph cache.
+    pub const DEFAULT_GLYPH_CACHE_SCALE_TOLERANCE: f32 =
+        Renderer::DEFAULT_GLYPH_CACHE_SCALE_TOLERANCE;
+    /// The default position tolerance for the glyph cache.
+    pub const DEFAULT_GLYPH_CACHE_POSITION_TOLERANCE: f32 =
+        Renderer::DEFAULT_GLYPH_CACHE_POSITION_TOLERANCE;
+
+    /// Begin building a new **draw::Renderer**.
+    pub fn new() -> Self {
+        Self {
+            depth_format: Self::DEFAULT_DEPTH_FORMAT,
+            glyph_cache_size: Self::DEFAULT_GLYPH_CACHE_SIZE,
+            glyph_cache_scale_tolerance: Self::DEFAULT_GLYPH_CACHE_SCALE_TOLERANCE,
+            glyph_cache_position_tolerance: Self::DEFAULT_GLYPH_CACHE_POSITION_TOLERANCE,
+        }
+    }
+
+    /// Specify the texture format that should be used to represent depth data in the renderer's
+    /// inner `depth_texture`.
+    pub fn depth_format(mut self, format: wgpu::TextureFormat) -> Self {
+        self.depth_format = format;
+        self
+    }
+
+    /// The dimensions of the texture used to cache glyphs.
+    ///
+    /// Some text-heavy apps may require a text cache larger than the default size in order to run
+    /// efficiently without text glitching. If the texture is insufficiently large for all text
+    /// currently appearing within the output attachment, artifacts will appear in the text.
+    pub fn glyph_cache_size(mut self, size: [u32; 2]) -> Self {
+        self.glyph_cache_size = size;
+        self
+    }
+
+    /// Specifies the tolerances (maximum allowed difference) for judging whether an existing glyph
+    /// in the cache is close enough to the requested glyph in scale to be used in its place.
+    ///
+    /// Due to floating point inaccuracies a min value of 0.001 is enforced.
+    pub fn glyph_cache_scale_tolerance(mut self, tolerance: f32) -> Self {
+        self.glyph_cache_scale_tolerance = tolerance;
+        self
+    }
+
+    /// Specifies the tolerances (maximum allowed difference) for judging whether an existing glyph
+    /// in the cache is close enough to the requested glyph in subpixel offset to be used in its
+    /// place.
+    ///
+    /// Due to floating point inaccuracies a min value of 0.001 is enforced.
+    pub fn glyph_cache_position_tolerance(mut self, tolerance: f32) -> Self {
+        self.glyph_cache_position_tolerance = tolerance;
+        self
+    }
+
+    /// Build the **draw::Renderer** ready to target an output attachment of the given descriptor.
+    pub fn build_from_texture_descriptor(
+        self,
+        device: &wgpu::Device,
+        descriptor: &wgpu::TextureDescriptor,
+    ) -> Renderer {
+        self.build(
+            device,
+            [descriptor.size.width, descriptor.size.height],
+            descriptor.sample_count,
+            descriptor.format,
+        )
+    }
+
+    /// Build the **draw::Renderer** ready to target an output attachment with the given size,
+    /// sample count and format.
+    pub fn build(
+        self,
+        device: &wgpu::Device,
+        output_attachment_size: [u32; 2],
+        sample_count: u32,
+        output_color_format: wgpu::TextureFormat,
+    ) -> Renderer {
+        Renderer::new(
+            device,
+            output_attachment_size,
+            sample_count,
+            output_color_format,
+            self.depth_format,
+            self.glyph_cache_size,
+            self.glyph_cache_scale_tolerance,
+            self.glyph_cache_position_tolerance,
+        )
+    }
+}
+
+impl GlyphCache {
+    fn new(size: [u32; 2], scale_tolerance: f32, position_tolerance: f32) -> Self {
+        let [w, h] = size;
+        let cache = text::GlyphCache::builder()
+            .dimensions(w, h)
+            .scale_tolerance(scale_tolerance)
+            .position_tolerance(position_tolerance)
+            .build()
+            .into();
+        let pixel_buffer = vec![0u8; w as usize * h as usize];
+        let requires_upload = false;
+        GlyphCache {
+            cache,
+            pixel_buffer,
+            requires_upload,
+        }
+    }
+}
+
+impl Renderer {
+    /// The default depth format
+    pub const DEFAULT_DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
+    /// The default size for the inner glyph cache.
+    pub const DEFAULT_GLYPH_CACHE_SIZE: [u32; 2] = [1024; 2];
+    /// The default scale tolerance for the glyph cache.
+    pub const DEFAULT_GLYPH_CACHE_SCALE_TOLERANCE: f32 = 0.1;
+    /// The default position tolerance for the glyph cache.
+    pub const DEFAULT_GLYPH_CACHE_POSITION_TOLERANCE: f32 = 0.1;
+    /// The texture format of the inner glyph cache.
+    pub const GLYPH_CACHE_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::R8Unorm;
+
+    /// Create a new **Renderer**, ready to target an output attachment with the given size, sample
+    /// count and color format.
+    ///
+    /// See the **RendererBuilder** type for a simplified approach to building a renderer that will
+    /// fall back to a set of reasonable defaults.
+    ///
+    /// The `depth_format` will be used to construct a depth texture for depth testing.
+    ///
+    /// The `glyph_cache_size` will be used to create a texture on which glyphs will be stored for
+    /// efficient look-up.
+    pub fn new(
+        device: &wgpu::Device,
+        output_attachment_size: [u32; 2],
+        sample_count: u32,
+        output_color_format: wgpu::TextureFormat,
+        depth_format: wgpu::TextureFormat,
+        glyph_cache_size: [u32; 2],
+        glyph_cache_scale_tolerance: f32,
+        glyph_cache_position_tolerance: f32,
+    ) -> Self {
+        // Construct the glyph cache.
+        let glyph_cache = GlyphCache::new(
+            glyph_cache_size,
+            glyph_cache_scale_tolerance,
+            glyph_cache_position_tolerance,
+        );
+
+        // Load shader modules.
+        let vs = include_bytes!("shaders/vert.spv");
+        let vs_spirv = wgpu::read_spirv(std::io::Cursor::new(&vs[..]))
+            .expect("failed to read hard-coded SPIRV");
+        let vs_mod = device.create_shader_module(&vs_spirv);
+        let fs = include_bytes!("shaders/frag.spv");
+        let fs_spirv = wgpu::read_spirv(std::io::Cursor::new(&fs[..]))
+            .expect("failed to read hard-coded SPIRV");
+        let fs_mod = device.create_shader_module(&fs_spirv);
+
+        // Create the glyph cache texture.
+        let text_sampler = wgpu::SamplerBuilder::new().build(device);
+        let glyph_cache_texture = wgpu::TextureBuilder::new()
+            .size(glyph_cache_size)
+            .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
+            .format(Self::GLYPH_CACHE_TEXTURE_FORMAT)
+            .build(device);
+        let glyph_cache_texture_view = glyph_cache_texture.create_default_view();
+
+        // Create the depth texture.
+        let depth_texture =
+            create_depth_texture(device, output_attachment_size, depth_format, sample_count);
+        let depth_texture_view = depth_texture.view().build();
+
+        // The default texture for the case where the user has not specified one.
+        let default_texture = wgpu::TextureBuilder::new()
+            .size([64; 2])
+            .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
+            .build(device);
+        let default_texture_view = default_texture.view().build();
+
+        // Initial uniform buffer values. These will be overridden on draw.
+        let temp_scale_factor = 1.0;
+        let uniforms = create_uniforms(output_attachment_size, temp_scale_factor);
+        let uniform_buffer = device
+            .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
+            .fill_from_slice(&[uniforms]);
+
+        // Bind group for uniforms.
+        let uniform_bind_group_layout = create_uniform_bind_group_layout(device);
+        let uniform_bind_group =
+            create_uniform_bind_group(device, &uniform_bind_group_layout, &uniform_buffer);
+
+        // Bind group for text.
+        let text_bind_group_layout = create_text_bind_group_layout(device);
+        let text_bind_group = create_text_bind_group(
+            device,
+            &text_bind_group_layout,
+            &text_sampler,
+            &glyph_cache_texture_view,
+        );
+
+        // Initialise the sampler set with the default sampler.
+        let sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
+        let sampler_id = sampler_descriptor_hash(&sampler_desc);
+        let texture_sampler = device.create_sampler(&sampler_desc);
+
+        // Bind group per user-uploaded texture.
+        let texture_bind_group_layout = create_texture_bind_group_layout(device);
+        let texture_bind_groups = Default::default();
+        let texture_default_bind_group = create_texture_bind_group(
+            device,
+            &texture_bind_group_layout,
+            &texture_sampler,
+            &default_texture_view,
+        );
+
+        let texture_samplers = Some((sampler_id, texture_sampler)).into_iter().collect();
+        let render_pipelines = Default::default();
+        let render_commands = vec![];
+        let mesh = Default::default();
+        let vertex_mode_buffer = vec![];
+
+        Self {
+            vs_mod,
+            fs_mod,
+            glyph_cache,
+            glyph_cache_texture,
+            depth_texture,
+            depth_texture_view,
+            default_texture,
+            default_texture_view,
+            uniform_bind_group_layout,
+            uniform_bind_group,
+            text_bind_group_layout,
+            text_bind_group,
+            texture_samplers,
+            texture_bind_group_layout,
+            texture_bind_groups,
+            texture_default_bind_group,
+            render_pipelines,
+            output_color_format,
+            sample_count,
+            scale_factor: temp_scale_factor,
+            render_commands,
+            mesh,
+            vertex_mode_buffer,
+            uniform_buffer,
+        }
+    }
+
+    /// Clear all pending render commands vertex data.
+    pub fn clear(&mut self) {
+        self.render_commands.clear();
+        self.mesh.clear();
+        self.vertex_mode_buffer.clear();
+    }
+
+    /// Generate a list of `RenderCommand`s from the given **Draw** instance and prepare any
+    /// necessary vertex data.
+    ///
+    /// Note that the given **Draw** instance will be *drained* of its commands.
+    pub fn fill(
+        &mut self,
+        device: &wgpu::Device,
+        draw: &draw::Draw,
+        scale_factor: f32,
+        output_attachment_size: [u32; 2],
+    ) {
+        let [w_px, h_px] = output_attachment_size;
+
+        // Converting between pixels and points.
+        let px_to_pt = |s: u32| s as f32 / scale_factor;
+        let pt_to_px = |s: f32| (s * scale_factor).round() as u32;
+        let full_rect = Rect::from_w_h(px_to_pt(w_px), px_to_pt(h_px));
+
+        let window_to_scissor = |v: Vector2| -> [u32; 2] {
+            let x = map_range(v.x, full_rect.left(), full_rect.right(), 0u32, w_px);
+            let y = map_range(v.y, full_rect.bottom(), full_rect.top(), 0u32, h_px);
+            [x, y]
+        };
+
+        // TODO: Store these in `Renderer`.
+        let mut fill_tessellator = FillTessellator::new();
+        let mut stroke_tessellator = StrokeTessellator::new();
+
+        // Keep track of context changes.
+        let mut curr_ctxt = draw::Context::default();
+        let mut is_first_ctxt = true;
+        let mut curr_start_index = 0;
+
+        // For tracking texture/sampler combinations.
+        let init_sampler_id = sampler_descriptor_hash(&curr_ctxt.sampler);
+        let init_tex_view_id = self.default_texture_view.id();
+        let mut curr_tex_sampler_id = (init_sampler_id, init_tex_view_id);
+        let mut new_tex_views = HashMap::new();
+        let mut new_tex_sampler_combos = HashSet::new();
+
+        // For tracking new blend/topology combinations.
+        let mut new_blend_topo_combos = HashMap::new();
+
+        // Collect all draw commands to avoid borrow errors.
+        let draw_cmds: Vec<_> = draw.drain_commands().collect();
+        let draw_state = draw.state.borrow_mut();
+        let intermediary_state = draw_state.intermediary_state.borrow();
+        for cmd in draw_cmds {
+            match cmd {
+                draw::DrawCommand::Primitive(prim) => {
+                    // Info required during rendering.
+                    let ctxt = RenderContext {
+                        intermediary_mesh: &intermediary_state.intermediary_mesh,
+                        path_event_buffer: &intermediary_state.path_event_buffer,
+                        path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
+                        path_points_textured_buffer: &intermediary_state
+                            .path_points_textured_buffer,
+                        text_buffer: &intermediary_state.text_buffer,
+                        theme: &draw_state.theme,
+                        transform: &curr_ctxt.transform,
+                        fill_tessellator: &mut fill_tessellator,
+                        stroke_tessellator: &mut stroke_tessellator,
+                        glyph_cache: &mut self.glyph_cache,
+                        output_attachment_size: Vector2::new(px_to_pt(w_px), px_to_pt(h_px)),
+                        output_attachment_scale_factor: scale_factor,
+                    };
+
+                    // Render the primitive.
+                    let render = prim.render_primitive(ctxt, &mut self.mesh);
+
+                    // Check to see if we need to switch bind groups.
+                    if let Some(texture_view) = render.texture_view {
+                        assert_eq!(
+                            texture_view.dimension(),
+                            wgpu::TextureViewDimension::D2,
+                            "nannou's `draw` API only supports 2D texture views",
+                        );
+
+                        // Insert the command.
+                        let tex_view_id = texture_view.id();
+                        let sampler_id = sampler_descriptor_hash(&curr_ctxt.sampler);
+                        let combined_id = (sampler_id, tex_view_id);
+                        if combined_id != curr_tex_sampler_id {
+                            // TODO: Insert draw here??
+
+                            self.render_commands
+                                .push(RenderCommand::SetBindGroup(combined_id));
+                            new_tex_sampler_combos.insert(combined_id);
+                            curr_tex_sampler_id = combined_id;
+                        }
+
+                        // Ensure the new texture exists within our map of new views.
+                        new_tex_views.insert(tex_view_id, texture_view);
+                    }
+
+                    // Extend the vertex mode channel.
+                    let mode = render.vertex_mode;
+                    let new_vs = self.mesh.points().len() - self.vertex_mode_buffer.len();
+                    self.vertex_mode_buffer.extend((0..new_vs).map(|_| mode));
+                }
+
+                // Check for commands to update context.
+                draw::DrawCommand::Context(ctxt) => {
+                    if curr_ctxt == ctxt && !is_first_ctxt {
+                        continue;
+                    }
+
+                    let color_blend_changed = curr_ctxt.color_blend != ctxt.color_blend;
+                    let alpha_blend_changed = curr_ctxt.alpha_blend != ctxt.alpha_blend;
+                    let blend_changed = color_blend_changed || alpha_blend_changed;
+                    let scissor_changed = curr_ctxt.scissor != ctxt.scissor;
+                    let topology_changed = curr_ctxt.topology != ctxt.topology;
+
+                    // If blend or scissor change, add a draw command for vertices collected so far.
+                    if blend_changed || scissor_changed || topology_changed {
+                        let index_range = curr_start_index..self.mesh.indices().len() as u32;
+                        if index_range.len() != 0 {
+                            let start_vertex = 0;
+                            curr_start_index = index_range.end;
+                            let cmd = RenderCommand::DrawIndexed {
+                                start_vertex,
+                                index_range,
+                            };
+                            self.render_commands.push(cmd);
+                        }
+                    }
+
+                    // Check to see if we should set the pipeline.
+                    if blend_changed || topology_changed || is_first_ctxt {
+                        let color_blend_id = blend_descriptor_hash(&ctxt.color_blend);
+                        let alpha_blend_id = blend_descriptor_hash(&ctxt.alpha_blend);
+                        let topo = ctxt.topology;
+                        let combined_id = (color_blend_id, alpha_blend_id, topo);
+                        new_blend_topo_combos.insert(
+                            combined_id,
+                            (ctxt.color_blend.clone(), ctxt.alpha_blend.clone()),
+                        );
+                        let cmd = RenderCommand::SetPipeline(combined_id);
+                        self.render_commands.push(cmd);
+                    }
+
+                    // Check for new a new scissor.
+                    if scissor_changed {
+                        let rect = match ctxt.scissor {
+                            draw::Scissor::Full => full_rect,
+                            draw::Scissor::Rect(rect) => full_rect
+                                .overlap(rect)
+                                .unwrap_or(geom::Rect::from_w_h(0.0, 0.0)),
+                            draw::Scissor::NoOverlap => geom::Rect::from_w_h(0.0, 0.0),
+                        };
+                        let [left, bottom] = window_to_scissor(rect.bottom_left());
+                        let (width, height) = rect.w_h();
+                        let (width, height) = (pt_to_px(width), pt_to_px(height));
+                        let scissor = Scissor {
+                            left,
+                            bottom,
+                            width,
+                            height,
+                        };
+                        let cmd = RenderCommand::SetScissor(scissor);
+                        self.render_commands.push(cmd);
+                    }
+
+                    curr_ctxt = ctxt;
+                    is_first_ctxt = false;
+                }
+            }
+        }
+
+        // Insert the final draw command if there is still some drawing to be done.
+        if curr_start_index != self.mesh.indices().len() as u32 {
+            let index_range = curr_start_index..self.mesh.indices().len() as u32;
+            let start_vertex = 0;
+            let cmd = RenderCommand::DrawIndexed {
+                start_vertex,
+                index_range,
+            };
+            self.render_commands.push(cmd);
+        }
+
+        // Clear out unnecessary bind groups.
+        self.texture_bind_groups
+            .retain(|id, _| new_tex_sampler_combos.contains(id));
+        // Clear new combos that we already have.
+        new_tex_sampler_combos.retain(|id| !self.texture_bind_groups.contains_key(id));
+        // Only keep the samplers around that we need.
+        self.texture_samplers
+            .retain(|id, _| new_tex_sampler_combos.iter().any(|(s_id, _)| id == s_id));
+        // Ensure we have a bind group for each of the texture views, but no more.
+        for new_id in new_tex_sampler_combos {
+            let (new_sampler_id, new_tex_view_id) = new_id;
+            // Retrieve the sampler or create it if necessary.
+            let sampler = self
+                .texture_samplers
+                .entry(new_sampler_id)
+                .or_insert_with(|| device.create_sampler(&curr_ctxt.sampler));
+            // Retrieve the texture view.
+            let texture_view = &new_tex_views[&new_tex_view_id];
+            // Create the bind group.
+            let bind_group = create_texture_bind_group(
+                device,
+                &self.texture_bind_group_layout,
+                sampler,
+                texture_view,
+            );
+            self.texture_bind_groups.insert(new_id, bind_group);
+        }
+
+        // Clear out unnecessary pipelines.
+        self.render_pipelines
+            .retain(|id, _| new_blend_topo_combos.contains_key(id));
+        // Clear new combos that we already have.
+        new_blend_topo_combos.retain(|id, _| !self.render_pipelines.contains_key(id));
+        // Create new render pipelines as necessary.
+        for (new_id, (color_blend, alpha_blend)) in new_blend_topo_combos {
+            let (_, _, topology) = new_id;
+            let new_pipeline = create_render_pipeline(
+                device,
+                &self.uniform_bind_group_layout,
+                &self.text_bind_group_layout,
+                &self.texture_bind_group_layout,
+                &self.vs_mod,
+                &self.fs_mod,
+                self.output_color_format,
+                self.depth_texture.format(),
+                self.sample_count,
+                color_blend,
+                alpha_blend,
+                topology,
+            );
+            self.render_pipelines.insert(new_id, new_pipeline);
+        }
+    }
+
+    /// Encode a render pass with the given **Draw**ing to the given `output_attachment`.
+    ///
+    /// If the **Draw**ing has been scaled for handling DPI, specify the necessary `scale_factor`
+    /// for scaling back to the `output_attachment_size` (physical dimensions).
+    ///
+    /// If the `output_attachment` is multisampled and should be resolved to another texture,
+    /// include the `resolve_target`.
+    pub fn encode_render_pass(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        draw: &draw::Draw,
+        scale_factor: f32,
+        output_attachment_size: [u32; 2],
+        output_attachment: &wgpu::TextureView,
+        resolve_target: Option<&wgpu::TextureView>,
+    ) {
+        self.clear();
+        self.fill(device, draw, scale_factor, output_attachment_size);
+
+        let Renderer {
+            ref render_pipelines,
+            ref glyph_cache,
+            ref glyph_cache_texture,
+            ref mut depth_texture,
+            ref mut depth_texture_view,
+            ref uniform_bind_group,
+            ref text_bind_group,
+            ref texture_bind_groups,
+            ref texture_default_bind_group,
+            ref mesh,
+            ref vertex_mode_buffer,
+            ref mut render_commands,
+            ref uniform_buffer,
+            scale_factor: ref mut old_scale_factor,
+            ..
+        } = *self;
+
+        // Update glyph cache texture if necessary.
+        if glyph_cache.requires_upload {
+            glyph_cache_texture.upload_data(device, encoder, &glyph_cache.pixel_buffer);
+        }
+
+        // Resize the depth texture if the output attachment size has changed.
+        let depth_size = depth_texture.size();
+        if output_attachment_size != depth_size {
+            let depth_format = depth_texture.format();
+            let sample_count = depth_texture.sample_count();
+            *depth_texture =
+                create_depth_texture(device, output_attachment_size, depth_format, sample_count);
+            *depth_texture_view = depth_texture.view().build();
+        }
+
+        // Retrieve the clear values based on the bg color.
+        let bg_color = draw.state.borrow().background_color;
+        let (load_op, clear_color) = match bg_color {
+            None => (wgpu::LoadOp::Load, wgpu::Color::TRANSPARENT),
+            Some(color) => {
+                let (r, g, b, a) = color.into();
+                let (r, g, b, a) = (r as f64, g as f64, b as f64, a as f64);
+                let clear_color = wgpu::Color { r, g, b, a };
+                (wgpu::LoadOp::Clear, clear_color)
+            }
+        };
+
+        // Create the vertex and index buffers.
+        let vertex_count = mesh.raw_vertex_count();
+        let point_buffer = device
+            .create_buffer_mapped(vertex_count, wgpu::BufferUsage::VERTEX)
+            .fill_from_slice(mesh.points());
+        let color_buffer = device
+            .create_buffer_mapped(vertex_count, wgpu::BufferUsage::VERTEX)
+            .fill_from_slice(mesh.colors());
+        let tex_coords_buffer = device
+            .create_buffer_mapped(vertex_count, wgpu::BufferUsage::VERTEX)
+            .fill_from_slice(mesh.tex_coords());
+        let mode_buffer = device
+            .create_buffer_mapped(vertex_count, wgpu::BufferUsage::VERTEX)
+            .fill_from_slice(vertex_mode_buffer);
+        let index_buffer = device
+            .create_buffer_mapped(mesh.indices().len(), wgpu::BufferUsage::INDEX)
+            .fill_from_slice(mesh.indices());
+
+        // If the scale factor or window size has changed, update the uniforms for vertex scaling.
+        if *old_scale_factor != scale_factor || output_attachment_size != depth_size {
+            *old_scale_factor = scale_factor;
+            // Upload uniform data for vertex scaling.
+            //
+            // TODO: Only do this on resize or changed scale factor.
+            let uniforms = create_uniforms(output_attachment_size, scale_factor);
+            let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
+            let new_uniform_buffer = device
+                .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
+                .fill_from_slice(&[uniforms]);
+            // Copy new uniform buffer state.
+            encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, uniform_buffer, 0, uniforms_size);
+        }
+
+        // Encode the render pass.
+        let mut render_pass = wgpu::RenderPassBuilder::new()
+            .color_attachment(output_attachment, |color| {
+                color
+                    .resolve_target(resolve_target)
+                    .load_op(load_op)
+                    .clear_color(clear_color)
+            })
+            .depth_stencil_attachment(&*depth_texture_view, |depth| depth)
+            .begin(encoder);
+
+        // Set the buffers.
+        render_pass.set_index_buffer(&index_buffer, 0);
+        render_pass.set_vertex_buffers(
+            0,
+            &[
+                (&point_buffer, 0),
+                (&color_buffer, 0),
+                (&tex_coords_buffer, 0),
+                (&mode_buffer, 0),
+            ],
+        );
+
+        // Set the uniform and text bind groups here.
+        render_pass.set_bind_group(0, uniform_bind_group, &[]);
+        render_pass.set_bind_group(1, text_bind_group, &[]);
+        render_pass.set_bind_group(2, texture_default_bind_group, &[]);
+
+        // Follow the render commands.
+        for cmd in render_commands.drain(..) {
+            match cmd {
+                RenderCommand::SetPipeline(id) => {
+                    let pipeline = &render_pipelines[&id];
+                    render_pass.set_pipeline(pipeline);
+                }
+
+                RenderCommand::SetBindGroup(tex_view_id) => {
+                    let bind_group = &texture_bind_groups[&tex_view_id];
+                    render_pass.set_bind_group(2, bind_group, &[]);
+                }
+
+                RenderCommand::SetScissor(Scissor {
+                    left,
+                    bottom,
+                    width,
+                    height,
+                }) => {
+                    render_pass.set_scissor_rect(left, bottom, width, height);
+                }
+
+                RenderCommand::DrawIndexed {
+                    start_vertex,
+                    index_range,
+                } => {
+                    let instance_range = 0..1u32;
+                    render_pass.draw_indexed(index_range, start_vertex, instance_range);
+                }
+            }
+        }
+    }
+
+    /// Encode the necessary commands to render the contents of the given **Draw**ing to the given
+    /// **Texture**.
+    pub fn render_to_texture(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        draw: &draw::Draw,
+        texture: &wgpu::Texture,
+    ) {
+        let size = texture.size();
+        let view = texture.view().build();
+        // TODO: Should we expose this for rendering to textures?
+        let scale_factor = 1.0;
+        let resolve_target = None;
+        self.encode_render_pass(
+            device,
+            encoder,
+            draw,
+            scale_factor,
+            size,
+            &view,
+            resolve_target,
+        );
+    }
+
+    /// Encode the necessary commands to render the contents of the given **Draw**ing to the given
+    /// **Frame**.
+    pub fn render_to_frame(
+        &mut self,
+        device: &wgpu::Device,
+        draw: &draw::Draw,
+        scale_factor: f32,
+        frame: &Frame,
+    ) {
+        let size = frame.texture().size();
+        let attachment = frame.texture_view();
+        let resolve_target = None;
+        let mut command_encoder = frame.command_encoder();
+        self.encode_render_pass(
+            device,
+            &mut *command_encoder,
+            draw,
+            scale_factor,
+            size,
+            attachment,
+            resolve_target,
+        );
+    }
+}
+
+impl Default for Builder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Deref for GlyphCache {
+    type Target = text::GlyphCache<'static>;
+    fn deref(&self) -> &Self::Target {
+        &self.cache
+    }
+}
+
+impl DerefMut for GlyphCache {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.cache
+    }
+}
+
+fn create_depth_texture(
+    device: &wgpu::Device,
+    size: [u32; 2],
+    depth_format: wgpu::TextureFormat,
+    sample_count: u32,
+) -> wgpu::Texture {
+    wgpu::TextureBuilder::new()
+        .size(size)
+        .format(depth_format)
+        .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT)
+        .sample_count(sample_count)
+        .build(device)
+}
+
+fn create_uniforms([img_w, img_h]: [u32; 2], scale_factor: f32) -> Uniforms {
+    let right = img_w as f32 * 0.5 / scale_factor;
+    let left = -right;
+    let top = img_h as f32 * 0.5 / scale_factor;
+    let bottom = -top;
+    let far = std::cmp::max(img_w, img_h) as f32 / scale_factor;
+    let near = -far;
+    let proj = cgmath::ortho(left, right, bottom, top, near, far);
+    // By default, ortho scales z values to the range -1.0 to 1.0 and produces a matrix where y is
+    // assumed to increase upwards. We want to scale and translate the z axis so that it is in the
+    // range of 0.0 to 1.0, and we want to flip the y axis for wgpu coordinate space where y
+    // increases downwards.
+    let trans = cgmath::Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 1.0));
+    let scale = cgmath::Matrix4::from_nonuniform_scale(1.0, -1.0, 0.5);
+    let proj = scale * trans * proj;
+    Uniforms { proj }
+}
+
+fn create_uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    wgpu::BindGroupLayoutBuilder::new()
+        .uniform_buffer(wgpu::ShaderStage::VERTEX, false)
+        .build(device)
+}
+
+fn create_text_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    wgpu::BindGroupLayoutBuilder::new()
+        .sampler(wgpu::ShaderStage::FRAGMENT)
+        .sampled_texture(
+            wgpu::ShaderStage::FRAGMENT,
+            false,
+            wgpu::TextureViewDimension::D2,
+        )
+        .build(device)
+}
+
+fn create_texture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    wgpu::BindGroupLayoutBuilder::new()
+        .sampler(wgpu::ShaderStage::FRAGMENT)
+        .sampled_texture(
+            wgpu::ShaderStage::FRAGMENT,
+            false,
+            wgpu::TextureViewDimension::D2,
+        )
+        .build(device)
+}
+
+fn create_uniform_bind_group(
+    device: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+    uniform_buffer: &wgpu::Buffer,
+) -> wgpu::BindGroup {
+    wgpu::BindGroupBuilder::new()
+        .buffer::<Uniforms>(uniform_buffer, 0..1)
+        .build(device, layout)
+}
+
+fn create_text_bind_group(
+    device: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+    sampler: &wgpu::Sampler,
+    glyph_cache_texture_view: &wgpu::TextureViewHandle,
+) -> wgpu::BindGroup {
+    wgpu::BindGroupBuilder::new()
+        .sampler(sampler)
+        .texture_view(glyph_cache_texture_view)
+        .build(device, layout)
+}
+
+fn create_texture_bind_group(
+    device: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+    sampler: &wgpu::Sampler,
+    texture_view: &wgpu::TextureViewHandle,
+) -> wgpu::BindGroup {
+    wgpu::BindGroupBuilder::new()
+        .sampler(sampler)
+        .texture_view(texture_view)
+        .build(device, layout)
+}
+
+fn create_render_pipeline(
+    device: &wgpu::Device,
+    uniform_layout: &wgpu::BindGroupLayout,
+    text_layout: &wgpu::BindGroupLayout,
+    texture_layout: &wgpu::BindGroupLayout,
+    vs_mod: &wgpu::ShaderModule,
+    fs_mod: &wgpu::ShaderModule,
+    dst_format: wgpu::TextureFormat,
+    depth_format: wgpu::TextureFormat,
+    sample_count: u32,
+    color_blend: wgpu::BlendDescriptor,
+    alpha_blend: wgpu::BlendDescriptor,
+    topology: wgpu::PrimitiveTopology,
+) -> wgpu::RenderPipeline {
+    let bind_group_layouts = &[uniform_layout, text_layout, texture_layout];
+    wgpu::RenderPipelineBuilder::from_layout_descriptor(&bind_group_layouts[..], vs_mod)
+        .fragment_shader(fs_mod)
+        .color_format(dst_format)
+        .add_vertex_buffer::<draw::mesh::vertex::Point>()
+        .add_vertex_buffer::<draw::mesh::vertex::Color>()
+        .add_vertex_buffer::<draw::mesh::vertex::TexCoords>()
+        .add_vertex_buffer::<VertexMode>()
+        .depth_format(depth_format)
+        .sample_count(sample_count)
+        .color_blend(color_blend)
+        .alpha_blend(alpha_blend)
+        .primitive_topology(topology)
+        .build(device)
+}
+
+fn sampler_descriptor_hash(desc: &wgpu::SamplerDescriptor) -> SamplerId {
+    let mut s = std::collections::hash_map::DefaultHasher::new();
+    desc.address_mode_u.hash(&mut s);
+    desc.address_mode_v.hash(&mut s);
+    desc.address_mode_w.hash(&mut s);
+    desc.mag_filter.hash(&mut s);
+    desc.min_filter.hash(&mut s);
+    desc.mipmap_filter.hash(&mut s);
+    desc.lod_min_clamp.to_bits().hash(&mut s);
+    desc.lod_max_clamp.to_bits().hash(&mut s);
+    desc.compare_function.hash(&mut s);
+    s.finish()
+}
+
+fn blend_descriptor_hash(desc: &wgpu::BlendDescriptor) -> BlendId {
+    let mut s = std::collections::hash_map::DefaultHasher::new();
+    desc.src_factor.hash(&mut s);
+    desc.dst_factor.hash(&mut s);
+    desc.operation.hash(&mut s);
+    s.finish()
+}

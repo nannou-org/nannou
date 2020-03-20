@@ -70,16 +70,9 @@ fn model(app: &App) -> Model {
         wgpu::read_spirv(std::io::Cursor::new(&fs[..])).expect("failed to read hard-coded SPIRV");
     let fs_mod = device.create_shader_module(&fs_spirv);
 
-    // Ensure the image.
-    let image_rgba = image.into_rgba();
-    let texture = {
-        // The wgpu device queue used to load the image data.
-        let mut queue = window.swap_chain_queue().lock().unwrap();
-        // Describe how we will use the texture so that the GPU may handle it efficiently.
-        let usage = wgpu::TextureUsage::SAMPLED;
-        wgpu::Texture::load_from_image_buffer(device, &mut *queue, usage, &image_rgba)
-    };
-    let texture_view = texture.create_default_view();
+    // Load the image as a texture.
+    let texture = wgpu::Texture::from_image(&window, &image);
+    let texture_view = texture.view().build();
 
     // Create the sampler for sampling from the source texture.
     let sampler = wgpu::SamplerBuilder::new().build(device);

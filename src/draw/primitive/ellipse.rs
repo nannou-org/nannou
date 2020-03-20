@@ -1,16 +1,14 @@
 use crate::color::conv::IntoLinSrgba;
-use crate::draw::primitive::polygon::{
-    PolygonIndices, PolygonInit, PolygonOptions, PolygonVertices, SetPolygon,
-};
+use crate::draw;
+use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    spatial, ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, SetColor, SetDimensions,
-    SetOrientation, SetPosition, SetStroke,
+    spatial, ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
-use crate::draw::{theme, Drawing};
+use crate::draw::Drawing;
 use crate::geom::{self, Vector2};
-use crate::math::BaseFloat;
+use crate::math::{BaseFloat, Zero};
 use lyon::tessellation::StrokeOptions;
 
 /// Properties related to drawing an **Ellipse**.
@@ -53,13 +51,12 @@ where
 
 // Trait implementations.
 
-impl<S> IntoDrawn<S> for Ellipse<S>
-where
-    S: BaseFloat,
-{
-    type Vertices = PolygonVertices;
-    type Indices = PolygonIndices;
-    fn into_drawn(self, mut draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+impl draw::renderer::RenderPrimitive for Ellipse<f32> {
+    fn render_primitive(
+        self,
+        ctxt: draw::renderer::RenderContext,
+        mesh: &mut draw::Mesh,
+    ) -> draw::renderer::PrimitiveRender {
         let Ellipse {
             dimensions,
             polygon,
@@ -67,7 +64,7 @@ where
         } = self;
 
         // First get the dimensions of the ellipse.
-        let (maybe_x, maybe_y, maybe_z) = dimensions.to_scalars(&draw);
+        let (maybe_x, maybe_y, maybe_z) = (dimensions.x, dimensions.y, dimensions.z);
         assert!(
             maybe_z.is_none(),
             "z dimension support for ellipse is unimplemented"
@@ -75,20 +72,28 @@ where
 
         // TODO: These should probably be adjustable via Theme.
         const DEFAULT_RESOLUTION: usize = 50;
-        let default_w = || S::from(100.0).unwrap();
-        let default_h = || S::from(100.0).unwrap();
-        let w = maybe_x.unwrap_or_else(default_w);
-        let h = maybe_y.unwrap_or_else(default_h);
+        let w = maybe_x.unwrap_or(100.0);
+        let h = maybe_y.unwrap_or(100.0);
         let resolution = resolution.unwrap_or(DEFAULT_RESOLUTION);
         let rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
         let ellipse = geom::Ellipse::new(rect, resolution);
         let points = ellipse.circumference();
-        let polygon = draw.drawing_context(|ctxt| polygon.points(ctxt, points));
-        polygon.into_drawn_themed(draw, &theme::Primitive::Ellipse)
+        polygon::render_points_themed(
+            polygon.opts,
+            points,
+            ctxt,
+            &draw::theme::Primitive::Ellipse,
+            mesh,
+        );
+
+        draw::renderer::PrimitiveRender::default()
     }
 }
 
-impl<S> Default for Ellipse<S> {
+impl<S> Default for Ellipse<S>
+where
+    S: Zero,
+{
     fn default() -> Self {
         let dimensions = Default::default();
         let polygon = Default::default();

@@ -35,7 +35,7 @@ use std::error::Error as StdError;
 use std::fmt;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::sync::{mpsc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 use winit;
 
 /// Owned by the `App`, the `Arrangement` handles the mapping between `Ui`s and their associated
@@ -442,10 +442,14 @@ impl Ui {
 
 impl wgpu::Texture {
     /// Convert the texture into an image compatible with the UI's image map.
+    ///
+    /// **Panic**s if the texture's `Arc<TextureHandle>` has been cloned and more than one unique
+    /// reference to the inner data still exists.
     pub fn into_ui_image(self) -> conrod_wgpu::Image {
         let texture_format = self.format();
         let [width, height] = self.size();
-        let texture = self.into_inner();
+        let texture = Arc::try_unwrap(self.into_inner())
+            .expect("converting to UI image requires unique access to texture");
         conrod_wgpu::Image {
             texture,
             texture_format,

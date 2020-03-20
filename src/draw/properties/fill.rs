@@ -28,15 +28,23 @@ pub trait SetFill: Sized {
         self
     }
 
-    /// A fast path to avoid some expensive operations if the path is known to not have any
-    /// self-intesections.
+    /// Whether to perform a vertical or horizontal traversal of the geometry.
     ///
-    /// Do not set this to `true` if the path may have intersecting edges else the tessellator may
+    /// Default value: `Vertical`.
+    fn fill_sweep_orientation(mut self, orientation: lyon::tessellation::Orientation) -> Self {
+        self.fill_options_mut().sweep_orientation = orientation;
+        self
+    }
+
+    /// A fast path to avoid some expensive operations if the path is known to not have any
+    /// self-intersections.
+    ///
+    /// Do not set this to `false` if the path may have intersecting edges else the tessellator may
     /// panic or produce incorrect results. In doubt, do not change the default value.
     ///
-    /// Default value: `false`.
-    fn assume_no_intersections(mut self, b: bool) -> Self {
-        self.fill_options_mut().assume_no_intersections = b;
+    /// Default value: `true`.
+    fn handle_intersections(mut self, handle: bool) -> Self {
+        self.fill_options_mut().handle_intersections = handle;
         self
     }
 }

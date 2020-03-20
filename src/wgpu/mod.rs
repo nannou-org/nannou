@@ -16,6 +16,7 @@
 //! - WebGPU [on wikipedia](https://en.wikipedia.org/wiki/WebGPU).
 
 mod bind_group_builder;
+pub mod blend;
 mod device_map;
 mod render_pass;
 mod render_pipeline_builder;
@@ -49,7 +50,7 @@ pub use self::texture::reshaper::Reshaper as TextureReshaper;
 pub use self::texture::{
     descriptor_eq as texture_descriptor_eq, extent_3d_eq,
     format_size_bytes as texture_format_size_bytes, BufferBytes, Builder as TextureBuilder,
-    Texture,
+    Texture, TextureId, TextureView, TextureViewId, ToTextureView,
 };
 #[doc(inline)]
 pub use wgpu::{
@@ -69,8 +70,9 @@ pub use wgpu::{
     SamplerDescriptor, ShaderLocation, ShaderModule, ShaderModuleDescriptor, ShaderStage,
     StencilOperation, StencilStateFaceDescriptor, StoreOp, Surface, SwapChain, SwapChainDescriptor,
     SwapChainOutput, Texture as TextureHandle, TextureAspect, TextureCopyView, TextureDescriptor,
-    TextureDimension, TextureFormat, TextureUsage, TextureView, TextureViewDescriptor,
-    TextureViewDimension, VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat,
+    TextureDimension, TextureFormat, TextureUsage, TextureView as TextureViewHandle,
+    TextureViewDescriptor, TextureViewDimension, VertexAttributeDescriptor, VertexBufferDescriptor,
+    VertexFormat,
 };
 
 /// The default set of options used to request a `wgpu::Adapter` when creating windows.
@@ -89,9 +91,9 @@ pub const DEFAULT_EXTENSIONS: Extensions = Extensions {
 ///
 /// The given `texture` must have `TextureUsage::OUTPUT_ATTACHMENT` enabled.
 pub fn clear_texture(
-    texture: &wgpu::TextureView,
-    clear_color: wgpu::Color,
-    encoder: &mut wgpu::CommandEncoder,
+    texture: &TextureViewHandle,
+    clear_color: Color,
+    encoder: &mut CommandEncoder,
 ) {
     RenderPassBuilder::new()
         .color_attachment(texture, |builder| builder.clear_color(clear_color))
@@ -114,15 +116,15 @@ pub fn default_device_descriptor() -> DeviceDescriptor {
 /// - The same dimensions.
 /// - The same `TextureFormat`.
 pub fn resolve_texture(
-    src_texture: &wgpu::TextureView,
-    dst_texture: &wgpu::TextureView,
-    encoder: &mut wgpu::CommandEncoder,
+    src_texture: &TextureViewHandle,
+    dst_texture: &TextureViewHandle,
+    encoder: &mut CommandEncoder,
 ) {
     RenderPassBuilder::new()
         .color_attachment(src_texture, |color| {
             color
-                .load_op(wgpu::LoadOp::Load)
-                .resolve_target(Some(dst_texture))
+                .load_op(LoadOp::Load)
+                .resolve_target_handle(Some(dst_texture))
         })
         .begin(encoder);
 }
@@ -134,4 +136,35 @@ pub fn create_pipeline_layout(
 ) -> wgpu::PipelineLayout {
     let descriptor = wgpu::PipelineLayoutDescriptor { bind_group_layouts };
     device.create_pipeline_layout(&descriptor)
+}
+
+/// TODO: Remove this once `derive(Clone)` is added to wgpu SamplerDescriptor.
+pub fn sampler_descriptor_clone(sampler: &wgpu::SamplerDescriptor) -> wgpu::SamplerDescriptor {
+    wgpu::SamplerDescriptor {
+        address_mode_u: sampler.address_mode_u,
+        address_mode_v: sampler.address_mode_v,
+        address_mode_w: sampler.address_mode_w,
+        mag_filter: sampler.mag_filter,
+        min_filter: sampler.min_filter,
+        mipmap_filter: sampler.mipmap_filter,
+        lod_min_clamp: sampler.lod_min_clamp,
+        lod_max_clamp: sampler.lod_max_clamp,
+        compare_function: sampler.compare_function,
+    }
+}
+
+/// TODO: Remove this once `derive(PartialEq)` is added to wgpu SamplerDescriptor.
+pub fn sampler_descriptor_partial_eq(
+    a: &wgpu::SamplerDescriptor,
+    b: &wgpu::SamplerDescriptor,
+) -> bool {
+    a.address_mode_u == b.address_mode_u
+        && a.address_mode_v == b.address_mode_v
+        && a.address_mode_w == b.address_mode_w
+        && a.mag_filter == b.mag_filter
+        && a.min_filter == b.min_filter
+        && a.mipmap_filter == b.mipmap_filter
+        && a.lod_min_clamp == b.lod_min_clamp
+        && a.lod_max_clamp == b.lod_max_clamp
+        && a.compare_function == b.compare_function
 }

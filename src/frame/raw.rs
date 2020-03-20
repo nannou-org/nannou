@@ -14,8 +14,8 @@ use std::sync::Arc;
 ///
 /// ## Under the hood - WGPU
 ///
-/// **RawFrame** provides access to the **wgpu::TextureView** associated with the swap chain's
-/// current target texture for a single window.
+/// **RawFrame** provides access to the **wgpu::TextureViewHandle** associated with the swap
+/// chain's current target texture for a single window.
 ///
 /// In the case that your **view** function is shared between multiple windows, can determine which
 /// window the **RawFrame** is associated with via the **RawFrame::window_id** method.
@@ -30,7 +30,7 @@ pub struct RawFrame<'swap_chain> {
     command_encoder: Option<RefCell<wgpu::CommandEncoder>>,
     window_id: window::Id,
     nth: u64,
-    swap_chain_texture: &'swap_chain wgpu::TextureView,
+    swap_chain_texture: &'swap_chain wgpu::TextureViewHandle,
     device_queue_pair: Arc<wgpu::DeviceQueuePair>,
     texture_format: wgpu::TextureFormat,
     window_rect: geom::Rect,
@@ -42,7 +42,7 @@ impl<'swap_chain> RawFrame<'swap_chain> {
         device_queue_pair: Arc<wgpu::DeviceQueuePair>,
         window_id: window::Id,
         nth: u64,
-        swap_chain_texture: &'swap_chain wgpu::TextureView,
+        swap_chain_texture: &'swap_chain wgpu::TextureViewHandle,
         texture_format: wgpu::TextureFormat,
         window_rect: geom::Rect,
     ) -> Self {
@@ -113,7 +113,7 @@ impl<'swap_chain> RawFrame<'swap_chain> {
     }
 
     /// The swap chain texture that will be the target for drawing this frame.
-    pub fn swap_chain_texture(&self) -> &wgpu::TextureView {
+    pub fn swap_chain_texture(&self) -> &wgpu::TextureViewHandle {
         &self.swap_chain_texture
     }
 

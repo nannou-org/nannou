@@ -2,11 +2,10 @@
 //! including position, color, texture-coordinate and normals. Note that this is quite a low-level
 //! representation. For a higher-level, graphics-related mesh API, see the `draw` module.
 
-use crate::geom::{self, Point2};
-use crate::math::{BaseFloat, BaseNum, EuclideanSpace};
+use crate::geom;
 use std::cell::{Ref, RefMut};
 use std::cmp;
-use std::marker::PhantomData;
+use std::convert::{TryFrom, TryInto};
 use std::ops::{self, Deref, DerefMut};
 
 pub mod channel;
@@ -14,27 +13,20 @@ pub mod vertex;
 
 pub use self::channel::{Channel, ChannelMut};
 
-// Type aliases.
-
-/// The fallback scalar type used for texture coordinates if none is specified.
-pub type TexCoordScalarDefault = f64;
-
 // Traits describing meshes with access to certain channels.
 
 /// Mesh types that can be indexed to produce a vertex.
-pub trait GetVertex {
+pub trait GetVertex<I> {
     /// The vertex type representing all channels of data within the mesh at a single index.
     type Vertex;
     /// Create a vertex containing all channel properties for the given index.
-    fn get_vertex(&self, index: usize) -> Option<Self::Vertex>;
+    fn get_vertex(&self, index: I) -> Option<Self::Vertex>;
 }
 
 /// All meshes must contain at least one vertex channel.
 pub trait Points {
-    /// The scalar value used for the vertex coordinates.
-    type Scalar: BaseNum;
     /// The vertex type used to represent the location of a vertex.
-    type Point: geom::Vertex<Scalar = Self::Scalar>;
+    type Point;
     /// The channel type containing points.
     type Points: Channel<Element = Self::Point>;
     /// Borrow the vertex channel from the mesh.
@@ -43,8 +35,10 @@ pub trait Points {
 
 /// Meshes that contain a channel of indices that describe the edges between points.
 pub trait Indices {
+    /// The type used to index into the vertex buffer.
+    type Index;
     /// The channel type containing indices.
-    type Indices: Channel<Element = usize>;
+    type Indices: Channel<Element = Self::Index>;
     /// Borrow the index channel from the mesh.
     fn indices(&self) -> &Self::Indices;
 }
@@ -61,21 +55,20 @@ pub trait Colors {
 
 /// Meshes that contain a channel of texture coordinates.
 pub trait TexCoords {
-    /// The scalar value used for the texture coordinates.
-    type TexCoordScalar: BaseFloat;
+    /// The point type used to represent texture coordinates.
+    type TexCoord;
     /// The channel type containing texture coordinates.
-    type TexCoords: Channel<Element = Point2<Self::TexCoordScalar>>;
+    type TexCoords: Channel<Element = Self::TexCoord>;
     /// Borrow the texture coordinate channel from the mesh.
     fn tex_coords(&self) -> &Self::TexCoords;
 }
 
 /// Meshes that contain a channel of vertex normals.
-pub trait Normals: Points
-where
-    Self::Point: EuclideanSpace,
-{
+pub trait Normals {
+    /// The vector type used to represent the normal.
+    type Normal;
     /// The channel type containing vertex normals.
-    type Normals: Channel<Element = <Self::Point as EuclideanSpace>::Diff>;
+    type Normals: Channel<Element = Self::Normal>;
     /// Borrow the normal channel from the mesh.
     fn normals(&self) -> &Self::Normals;
 }
@@ -92,12 +85,14 @@ pub trait PushVertex<V> {
 
 /// Meshes that contain an **Indices** channel and can push new indices to it.
 pub trait PushIndex {
+    /// The inner index type.
+    type Index;
     /// Push a new index onto the indices channel.
-    fn push_index(&mut self, index: usize);
+    fn push_index(&mut self, index: Self::Index);
     /// Extend the **Mesh**'s **Indices** channel with the given indices.
     fn extend_indices<I>(&mut self, indices: I)
     where
-        I: IntoIterator<Item = usize>,
+        I: IntoIterator<Item = Self::Index>,
     {
         for i in indices {
             self.push_index(i);
@@ -123,6 +118,16 @@ pub trait Clear: ClearIndices + ClearVertices {
         self.clear_indices();
         self.clear_vertices();
     }
+}
+
+/// Meshes that may be extended from a slice of data.
+pub trait ExtendFromSlice<'a> {
+    /// The slice type expected via the mesh.
+    ///
+    /// Note: This may be multiple combined slices if the mesh contains multiple channels of data.
+    type Slice: 'a;
+    /// Extend the mesh.
+    fn extend_from_slice(&mut self, slice: Self::Slice);
 }
 
 // Mesh types.
@@ -152,10 +157,9 @@ pub struct WithColors<M, C> {
 
 /// A `Mesh` type with an added channel containing texture coordinates.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct WithTexCoords<M, T, S = TexCoordScalarDefault> {
+pub struct WithTexCoords<M, T> {
     mesh: M,
     tex_coords: T,
-    _tex_coord_scalar: PhantomData<S>, // Required due to lack of HKT.
 }
 
 /// A `Mesh` type with an added channel containing vertex normals.
@@ -167,77 +171,85 @@ pub struct WithNormals<M, N> {
 
 // **GetVertex** implementations.
 
-impl<'a, M> GetVertex for &'a M
+impl<'a, M, I> GetVertex<I> for &'a M
 where
-    M: GetVertex,
+    M: GetVertex<I>,
 {
     type Vertex = M::Vertex;
-    fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
+    fn get_vertex(&self, index: I) -> Option<Self::Vertex> {
         (**self).get_vertex(index)
     }
 }
 
-impl<'a, M> GetVertex for &'a mut M
+impl<'a, M, I> GetVertex<I> for &'a mut M
 where
-    M: GetVertex,
+    M: GetVertex<I>,
 {
     type Vertex = M::Vertex;
-    fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
+    fn get_vertex(&self, index: I) -> Option<Self::Vertex> {
         (**self).get_vertex(index)
     }
 }
 
-impl<'a, M> GetVertex for Ref<'a, M>
+impl<'a, M, I> GetVertex<I> for Ref<'a, M>
 where
-    M: GetVertex,
+    M: GetVertex<I>,
 {
     type Vertex = M::Vertex;
-    fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
+    fn get_vertex(&self, index: I) -> Option<Self::Vertex> {
         (**self).get_vertex(index)
     }
 }
 
-impl<'a, M> GetVertex for RefMut<'a, M>
+impl<'a, M, I> GetVertex<I> for RefMut<'a, M>
 where
-    M: GetVertex,
+    M: GetVertex<I>,
 {
     type Vertex = M::Vertex;
-    fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
+    fn get_vertex(&self, index: I) -> Option<Self::Vertex> {
         (**self).get_vertex(index)
     }
 }
 
-impl<P> GetVertex for MeshPoints<P>
+impl<P, I> GetVertex<I> for MeshPoints<P>
 where
     P: Channel,
-    P::Element: geom::Vertex,
+    P::Element: Clone,
+    I: TryInto<usize>,
 {
     type Vertex = P::Element;
-    fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
-        self.points.channel().get(index).map(|&p| p)
+    fn get_vertex(&self, index: I) -> Option<Self::Vertex> {
+        let index = index
+            .try_into()
+            .unwrap_or_else(|_err| panic!("index out of range of valid `usize` values"));
+        self.points.channel().get(index).map(|p| p.clone())
     }
 }
 
-impl<M, I> GetVertex for WithIndices<M, I>
+impl<M, I, Ix> GetVertex<Ix> for WithIndices<M, I>
 where
-    M: GetVertex,
+    M: GetVertex<Ix>,
 {
     type Vertex = M::Vertex;
-    fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
+    fn get_vertex(&self, index: Ix) -> Option<Self::Vertex> {
         self.mesh.get_vertex(index)
     }
 }
 
-impl<M, C> GetVertex for WithColors<M, C>
+impl<M, C, I> GetVertex<I> for WithColors<M, C>
 where
-    M: GetVertex,
+    M: GetVertex<I>,
     C: Channel,
     C::Element: Clone,
+    I: Copy + TryInto<usize>,
 {
     type Vertex = vertex::WithColor<M::Vertex, C::Element>;
-    fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
+    fn get_vertex(&self, index: I) -> Option<Self::Vertex> {
         self.mesh.get_vertex(index).and_then(|vertex| {
-            self.colors.channel().get(index).map(|color| {
+            let index: usize = index
+                .try_into()
+                .unwrap_or_else(|_err| panic!("index out of range of valid usize values"));
+            self.colors.channel().get(index).map(|color: &C::Element| {
                 let color = color.clone();
                 vertex::WithColor { vertex, color }
             })
@@ -245,15 +257,19 @@ where
     }
 }
 
-impl<M, T, S> GetVertex for WithTexCoords<M, T, S>
+impl<M, T, I> GetVertex<I> for WithTexCoords<M, T>
 where
-    M: GetVertex,
+    M: GetVertex<I>,
     T: Channel,
     T::Element: Clone,
+    I: Copy + TryInto<usize>,
 {
     type Vertex = vertex::WithTexCoords<M::Vertex, T::Element>;
-    fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
+    fn get_vertex(&self, index: I) -> Option<Self::Vertex> {
         self.mesh.get_vertex(index).and_then(|vertex| {
+            let index: usize = index
+                .try_into()
+                .unwrap_or_else(|_err| panic!("index out of range of valid usize values"));
             self.tex_coords.channel().get(index).map(|tex_coords| {
                 let tex_coords = tex_coords.clone();
                 vertex::WithTexCoords { vertex, tex_coords }
@@ -262,15 +278,19 @@ where
     }
 }
 
-impl<M, N> GetVertex for WithNormals<M, N>
+impl<M, N, I> GetVertex<I> for WithNormals<M, N>
 where
-    M: GetVertex,
+    M: GetVertex<I>,
     N: Channel,
     N::Element: Clone,
+    I: Copy + TryInto<usize>,
 {
     type Vertex = vertex::WithNormal<M::Vertex, N::Element>;
-    fn get_vertex(&self, index: usize) -> Option<Self::Vertex> {
+    fn get_vertex(&self, index: I) -> Option<Self::Vertex> {
         self.mesh.get_vertex(index).and_then(|vertex| {
+            let index: usize = index
+                .try_into()
+                .unwrap_or_else(|_err| panic!("index out of range of valid usize values"));
             self.normals.channel().get(index).map(|normal| {
                 let normal = normal.clone();
                 vertex::WithNormal { vertex, normal }
@@ -284,9 +304,7 @@ where
 impl<P> Points for MeshPoints<P>
 where
     P: Channel,
-    P::Element: geom::Vertex,
 {
-    type Scalar = <P::Element as geom::Vertex>::Scalar;
     type Point = P::Element;
     type Points = P;
     fn points(&self) -> &Self::Points {
@@ -298,7 +316,6 @@ impl<'a, M> Points for &'a M
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -310,7 +327,6 @@ impl<'a, M> Points for &'a mut M
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -322,7 +338,6 @@ impl<'a, M> Points for Ref<'a, M>
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -334,7 +349,6 @@ impl<'a, M> Points for RefMut<'a, M>
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -346,7 +360,6 @@ impl<M, I> Points for WithIndices<M, I>
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -358,7 +371,6 @@ impl<M, C> Points for WithColors<M, C>
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -366,11 +378,10 @@ where
     }
 }
 
-impl<M, T, S> Points for WithTexCoords<M, T, S>
+impl<M, T> Points for WithTexCoords<M, T>
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -382,7 +393,6 @@ impl<M, N> Points for WithNormals<M, N>
 where
     M: Points,
 {
-    type Scalar = M::Scalar;
     type Point = M::Point;
     type Points = M::Points;
     fn points(&self) -> &Self::Points {
@@ -394,8 +404,9 @@ where
 
 impl<M, I> Indices for WithIndices<M, I>
 where
-    I: Channel<Element = usize>,
+    I: Channel,
 {
+    type Index = I::Element;
     type Indices = I;
     fn indices(&self) -> &Self::Indices {
         &self.indices
@@ -406,6 +417,7 @@ impl<'a, M> Indices for &'a M
 where
     M: Indices,
 {
+    type Index = M::Index;
     type Indices = M::Indices;
     fn indices(&self) -> &Self::Indices {
         (**self).indices()
@@ -416,6 +428,7 @@ impl<'a, M> Indices for &'a mut M
 where
     M: Indices,
 {
+    type Index = M::Index;
     type Indices = M::Indices;
     fn indices(&self) -> &Self::Indices {
         (**self).indices()
@@ -426,6 +439,7 @@ impl<'a, M> Indices for Ref<'a, M>
 where
     M: Indices,
 {
+    type Index = M::Index;
     type Indices = M::Indices;
     fn indices(&self) -> &Self::Indices {
         (**self).indices()
@@ -436,6 +450,7 @@ impl<'a, M> Indices for RefMut<'a, M>
 where
     M: Indices,
 {
+    type Index = M::Index;
     type Indices = M::Indices;
     fn indices(&self) -> &Self::Indices {
         (**self).indices()
@@ -446,16 +461,18 @@ impl<M, C> Indices for WithColors<M, C>
 where
     M: Indices,
 {
+    type Index = M::Index;
     type Indices = M::Indices;
     fn indices(&self) -> &Self::Indices {
         self.mesh.indices()
     }
 }
 
-impl<M, T, S> Indices for WithTexCoords<M, T, S>
+impl<M, T> Indices for WithTexCoords<M, T>
 where
     M: Indices,
 {
+    type Index = M::Index;
     type Indices = M::Indices;
     fn indices(&self) -> &Self::Indices {
         self.mesh.indices()
@@ -466,6 +483,7 @@ impl<M, N> Indices for WithNormals<M, N>
 where
     M: Indices,
 {
+    type Index = M::Index;
     type Indices = M::Indices;
     fn indices(&self) -> &Self::Indices {
         self.mesh.indices()
@@ -540,7 +558,7 @@ where
     }
 }
 
-impl<M, T, S> Colors for WithTexCoords<M, T, S>
+impl<M, T> Colors for WithTexCoords<M, T>
 where
     M: Colors,
 {
@@ -564,12 +582,11 @@ where
 
 // **TexCoords** implementations.
 
-impl<M, T, S> TexCoords for WithTexCoords<M, T, S>
+impl<M, T> TexCoords for WithTexCoords<M, T>
 where
-    T: Channel<Element = Point2<S>>,
-    S: BaseFloat,
+    T: Channel,
 {
-    type TexCoordScalar = S;
+    type TexCoord = T::Element;
     type TexCoords = T;
     fn tex_coords(&self) -> &Self::TexCoords {
         &self.tex_coords
@@ -580,7 +597,7 @@ impl<'a, M> TexCoords for &'a M
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         (**self).tex_coords()
@@ -591,7 +608,7 @@ impl<'a, M> TexCoords for &'a mut M
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         (**self).tex_coords()
@@ -602,7 +619,7 @@ impl<'a, M> TexCoords for Ref<'a, M>
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         (**self).tex_coords()
@@ -613,7 +630,7 @@ impl<'a, M> TexCoords for RefMut<'a, M>
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         (**self).tex_coords()
@@ -624,7 +641,7 @@ impl<M, I> TexCoords for WithIndices<M, I>
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         self.mesh.tex_coords()
@@ -635,7 +652,7 @@ impl<M, C> TexCoords for WithColors<M, C>
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         self.mesh.tex_coords()
@@ -646,7 +663,7 @@ impl<M, N> TexCoords for WithNormals<M, N>
 where
     M: TexCoords,
 {
-    type TexCoordScalar = M::TexCoordScalar;
+    type TexCoord = M::TexCoord;
     type TexCoords = M::TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         self.mesh.tex_coords()
@@ -658,9 +675,9 @@ where
 impl<M, N> Normals for WithNormals<M, N>
 where
     M: Points,
-    M::Point: EuclideanSpace,
-    N: Channel<Element = <M::Point as EuclideanSpace>::Diff>,
+    N: Channel,
 {
+    type Normal = N::Element;
     type Normals = N;
     fn normals(&self) -> &Self::Normals {
         &self.normals
@@ -670,8 +687,8 @@ where
 impl<'a, M> Normals for &'a M
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         (**self).normals()
@@ -681,8 +698,8 @@ where
 impl<'a, M> Normals for &'a mut M
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         (**self).normals()
@@ -692,8 +709,8 @@ where
 impl<'a, M> Normals for Ref<'a, M>
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         (**self).normals()
@@ -703,8 +720,8 @@ where
 impl<'a, M> Normals for RefMut<'a, M>
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         (**self).normals()
@@ -714,8 +731,8 @@ where
 impl<M, I> Normals for WithIndices<M, I>
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         self.mesh.normals()
@@ -725,19 +742,19 @@ where
 impl<M, C> Normals for WithColors<M, C>
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         self.mesh.normals()
     }
 }
 
-impl<M, T, S> Normals for WithTexCoords<M, T, S>
+impl<M, T> Normals for WithTexCoords<M, T>
 where
     M: Normals,
-    M::Point: EuclideanSpace,
 {
+    type Normal = M::Normal;
     type Normals = M::Normals;
     fn normals(&self) -> &Self::Normals {
         self.mesh.normals()
@@ -770,7 +787,7 @@ impl<V> PushVertex<V> for MeshPoints<Vec<V>> {
     }
 }
 
-impl<M, V> PushVertex<V> for WithIndices<M, Vec<usize>>
+impl<M, I, V> PushVertex<V> for WithIndices<M, Vec<I>>
 where
     M: PushVertex<V>,
 {
@@ -790,7 +807,7 @@ where
     }
 }
 
-impl<M, V, T, S> PushVertex<vertex::WithTexCoords<V, T>> for WithTexCoords<M, Vec<T>, S>
+impl<M, V, T> PushVertex<vertex::WithTexCoords<V, T>> for WithTexCoords<M, Vec<T>>
 where
     M: PushVertex<V>,
 {
@@ -818,12 +835,13 @@ impl<'a, M> PushIndex for &'a mut M
 where
     M: PushIndex,
 {
-    fn push_index(&mut self, index: usize) {
+    type Index = M::Index;
+    fn push_index(&mut self, index: Self::Index) {
         (**self).push_index(index);
     }
     fn extend_indices<I>(&mut self, indices: I)
     where
-        I: IntoIterator<Item = usize>,
+        I: IntoIterator<Item = Self::Index>,
     {
         (**self).extend_indices(indices);
     }
@@ -833,25 +851,28 @@ impl<'a, M> PushIndex for RefMut<'a, M>
 where
     M: PushIndex,
 {
-    fn push_index(&mut self, index: usize) {
+    type Index = M::Index;
+    fn push_index(&mut self, index: Self::Index) {
         (**self).push_index(index);
     }
     fn extend_indices<I>(&mut self, indices: I)
     where
-        I: IntoIterator<Item = usize>,
+        I: IntoIterator<Item = Self::Index>,
     {
         (**self).extend_indices(indices);
     }
 }
 
-impl<M> PushIndex for WithIndices<M, Vec<usize>> {
-    fn push_index(&mut self, index: usize) {
+impl<M, I> PushIndex for WithIndices<M, Vec<I>> {
+    type Index = I;
+
+    fn push_index(&mut self, index: Self::Index) {
         self.indices.push(index);
     }
 
-    fn extend_indices<I>(&mut self, indices: I)
+    fn extend_indices<It>(&mut self, indices: It)
     where
-        I: IntoIterator<Item = usize>,
+        It: IntoIterator<Item = Self::Index>,
     {
         self.indices.extend(indices);
     }
@@ -861,29 +882,33 @@ impl<M, C> PushIndex for WithColors<M, C>
 where
     M: PushIndex,
 {
-    fn push_index(&mut self, index: usize) {
+    type Index = M::Index;
+
+    fn push_index(&mut self, index: Self::Index) {
         self.mesh.push_index(index);
     }
 
     fn extend_indices<I>(&mut self, indices: I)
     where
-        I: IntoIterator<Item = usize>,
+        I: IntoIterator<Item = Self::Index>,
     {
         self.mesh.extend_indices(indices);
     }
 }
 
-impl<M, T, S> PushIndex for WithTexCoords<M, T, S>
+impl<M, T> PushIndex for WithTexCoords<M, T>
 where
     M: PushIndex,
 {
-    fn push_index(&mut self, index: usize) {
+    type Index = M::Index;
+
+    fn push_index(&mut self, index: Self::Index) {
         self.mesh.push_index(index);
     }
 
     fn extend_indices<I>(&mut self, indices: I)
     where
-        I: IntoIterator<Item = usize>,
+        I: IntoIterator<Item = Self::Index>,
     {
         self.mesh.extend_indices(indices);
     }
@@ -893,13 +918,15 @@ impl<M, N> PushIndex for WithNormals<M, N>
 where
     M: PushIndex,
 {
-    fn push_index(&mut self, index: usize) {
+    type Index = M::Index;
+
+    fn push_index(&mut self, index: M::Index) {
         self.mesh.push_index(index);
     }
 
     fn extend_indices<I>(&mut self, indices: I)
     where
-        I: IntoIterator<Item = usize>,
+        I: IntoIterator<Item = M::Index>,
     {
         self.mesh.extend_indices(indices);
     }
@@ -925,7 +952,7 @@ where
     }
 }
 
-impl<M> ClearIndices for WithIndices<M, Vec<usize>> {
+impl<M, I> ClearIndices for WithIndices<M, Vec<I>> {
     fn clear_indices(&mut self) {
         self.indices.clear();
     }
@@ -940,7 +967,7 @@ where
     }
 }
 
-impl<M, T, S> ClearIndices for WithTexCoords<M, T, S>
+impl<M, T> ClearIndices for WithTexCoords<M, T>
 where
     M: ClearIndices,
 {
@@ -984,7 +1011,7 @@ impl<V> ClearVertices for MeshPoints<Vec<V>> {
     }
 }
 
-impl<M> ClearVertices for WithIndices<M, Vec<usize>>
+impl<M, I> ClearVertices for WithIndices<M, Vec<I>>
 where
     M: ClearVertices,
 {
@@ -1004,7 +1031,7 @@ where
     }
 }
 
-impl<M, T, S> ClearVertices for WithTexCoords<M, Vec<T>, S>
+impl<M, T> ClearVertices for WithTexCoords<M, Vec<T>>
 where
     M: ClearVertices,
 {
@@ -1021,6 +1048,70 @@ where
     fn clear_vertices(&mut self) {
         self.mesh.clear_vertices();
         self.normals.clear();
+    }
+}
+
+// **ExtendFromSlice** implementations
+
+impl<'a, P> ExtendFromSlice<'a> for MeshPoints<Vec<P>>
+where
+    P: 'a + Clone,
+{
+    type Slice = &'a [P];
+    fn extend_from_slice(&mut self, slice: Self::Slice) {
+        self.points.extend_from_slice(slice);
+    }
+}
+
+impl<'a, M, I> ExtendFromSlice<'a> for WithIndices<M, Vec<I>>
+where
+    M: ExtendFromSlice<'a>,
+    I: 'a + Clone,
+{
+    type Slice = (&'a [I], M::Slice);
+    fn extend_from_slice(&mut self, slice: Self::Slice) {
+        let (slice, inner) = slice;
+        self.mesh.extend_from_slice(inner);
+        self.indices.extend_from_slice(slice);
+    }
+}
+
+impl<'a, M, C> ExtendFromSlice<'a> for WithColors<M, Vec<C>>
+where
+    M: ExtendFromSlice<'a>,
+    C: 'a + Clone,
+{
+    type Slice = (&'a [C], M::Slice);
+    fn extend_from_slice(&mut self, slice: Self::Slice) {
+        let (slice, inner) = slice;
+        self.mesh.extend_from_slice(inner);
+        self.colors.extend_from_slice(slice);
+    }
+}
+
+impl<'a, M, T> ExtendFromSlice<'a> for WithTexCoords<M, Vec<T>>
+where
+    M: ExtendFromSlice<'a>,
+    T: 'a + Clone,
+{
+    type Slice = (&'a [T], M::Slice);
+    fn extend_from_slice(&mut self, slice: Self::Slice) {
+        let (slice, inner) = slice;
+        self.mesh.extend_from_slice(inner);
+        self.tex_coords.extend_from_slice(slice);
+    }
+}
+
+impl<'a, M, N> ExtendFromSlice<'a> for WithNormals<M, Vec<N>>
+where
+    M: ExtendFromSlice<'a>,
+    N: 'a + Clone,
+{
+    type Slice = (&'a [N], M::Slice);
+    fn extend_from_slice(&mut self, slice: Self::Slice) {
+        let (slice, inner) = slice;
+        self.mesh.extend_from_slice(inner);
+        self.normals.extend_from_slice(slice);
     }
 }
 
@@ -1064,7 +1155,7 @@ where
     }
 }
 
-impl<M, T, S> Default for WithTexCoords<M, T, S>
+impl<M, T> Default for WithTexCoords<M, T>
 where
     M: Default,
     T: Default,
@@ -1072,12 +1163,7 @@ where
     fn default() -> Self {
         let mesh = Default::default();
         let tex_coords = Default::default();
-        let _tex_coord_scalar = PhantomData;
-        WithTexCoords {
-            mesh,
-            tex_coords,
-            _tex_coord_scalar,
-        }
+        WithTexCoords { mesh, tex_coords }
     }
 }
 
@@ -1121,14 +1207,14 @@ impl<M, C> DerefMut for WithColors<M, C> {
     }
 }
 
-impl<M, T, S> Deref for WithTexCoords<M, T, S> {
+impl<M, T> Deref for WithTexCoords<M, T> {
     type Target = M;
     fn deref(&self) -> &Self::Target {
         &self.mesh
     }
 }
 
-impl<M, T, S> DerefMut for WithTexCoords<M, T, S> {
+impl<M, T> DerefMut for WithTexCoords<M, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.mesh
     }
@@ -1179,16 +1265,15 @@ where
 pub fn from_points<P>(points: P) -> MeshPoints<P>
 where
     P: Channel,
-    P::Element: geom::Vertex,
 {
     MeshPoints { points }
 }
 
 /// Combine the given mesh with the given channel of vertex indices.
-pub fn with_indices<M, I>(mesh: M, indices: I) -> WithIndices<M, I>
+pub fn with_indices<M, I, Ix>(mesh: M, indices: I) -> WithIndices<M, I>
 where
-    M: GetVertex,
-    I: Channel<Element = usize>,
+    M: GetVertex<Ix>,
+    I: Channel<Element = Ix>,
 {
     WithIndices { mesh, indices }
 }
@@ -1208,19 +1293,13 @@ where
 /// Combine the given mesh with the given channel of vertex texture coordinates.
 ///
 /// **Panics** if the length of the **tex_coords** channel differs from **points**.
-pub fn with_tex_coords<M, T, S>(mesh: M, tex_coords: T) -> WithTexCoords<M, T, S>
+pub fn with_tex_coords<M, T>(mesh: M, tex_coords: T) -> WithTexCoords<M, T>
 where
     M: Points,
-    T: Channel<Element = Point2<S>>,
-    S: BaseFloat,
+    T: Channel,
 {
     assert_eq!(raw_vertex_count(&mesh), tex_coords.channel().len());
-    let _tex_coord_scalar = PhantomData;
-    WithTexCoords {
-        mesh,
-        tex_coords,
-        _tex_coord_scalar,
-    }
+    WithTexCoords { mesh, tex_coords }
 }
 
 /// Combine the given mesh with the given **Normals** channel.
@@ -1229,8 +1308,7 @@ where
 pub fn with_normals<M, N>(mesh: M, normals: N) -> WithNormals<M, N>
 where
     M: Points,
-    M::Point: EuclideanSpace,
-    N: Channel<Element = <M::Point as EuclideanSpace>::Diff>,
+    N: Channel,
 {
     assert_eq!(raw_vertex_count(&mesh), normals.channel().len());
     WithNormals { mesh, normals }
@@ -1264,7 +1342,7 @@ where
 }
 
 /// Push the given index to the given `mesh`.
-pub fn push_index<M>(mut mesh: M, index: usize)
+pub fn push_index<M>(mut mesh: M, index: M::Index)
 where
     M: PushIndex,
 {
@@ -1275,7 +1353,7 @@ where
 pub fn extend_indices<M, I>(mut mesh: M, indices: I)
 where
     M: PushIndex,
-    I: IntoIterator<Item = usize>,
+    I: IntoIterator<Item = M::Index>,
 {
     mesh.extend_indices(indices);
 }
@@ -1345,9 +1423,10 @@ pub type Triangles<M> = geom::tri::IterFromVertices<Vertices<M>>;
 /// Returns `None` when the inner mesh first returns `None` for a call to **GetVertex::get_vertex**.
 pub fn raw_vertices<M>(mesh: M) -> RawVertices<M>
 where
-    M: Points + GetVertex,
+    M: Points,
 {
-    let range = 0..raw_vertex_count(&mesh);
+    let len = raw_vertex_count(&mesh);
+    let range = 0..len;
     RawVertices { range, mesh }
 }
 
@@ -1360,11 +1439,13 @@ where
 ///
 /// **Panics** if the **Indices** channel produces an index that is out of bounds of the mesh's
 /// vertices.
-pub fn vertices<M>(mesh: M) -> Vertices<M>
+pub fn vertices<M, I>(mesh: M) -> Vertices<M>
 where
-    M: Indices + GetVertex,
+    M: Indices<Index = I> + GetVertex<I>,
+    I: TryFrom<usize>,
 {
-    let index_range = 0..mesh.indices().channel().len();
+    let len = mesh.indices().channel().len();
+    let index_range = 0..len;
     Vertices { index_range, mesh }
 }
 
@@ -1377,9 +1458,10 @@ where
 ///
 /// **Panics** if the **Indices** channel produces an index that is out of bounds of the mesh's
 /// vertices.
-pub fn triangles<M>(mesh: M) -> Triangles<M>
+pub fn triangles<M, I>(mesh: M) -> Triangles<M>
 where
-    M: Indices + GetVertex,
+    M: Indices<Index = I> + GetVertex<I>,
+    I: Copy + TryFrom<usize>,
 {
     geom::tri::iter_from_vertices(vertices(mesh))
 }
@@ -1396,7 +1478,10 @@ impl<M> RawVertices<M> {
     }
 }
 
-impl<M> Vertices<M> {
+impl<M> Vertices<M>
+where
+    M: Indices,
+{
     /// Specify the range of vertex indices to yield vertices from.
     pub fn index_range(mut self, range: ops::Range<usize>) -> Self {
         self.index_range = range;
@@ -1405,9 +1490,10 @@ impl<M> Vertices<M> {
 
     /// Convert this iterator yielding vertices into an iterator yielding triangles for every three
     /// vertices yielded.
-    pub fn triangles(self) -> Triangles<M>
+    pub fn triangles<I>(self) -> Triangles<M>
     where
-        M: GetVertex + Indices,
+        M: Indices<Index = I> + GetVertex<I>,
+        I: Copy,
     {
         geom::tri::iter_from_vertices(self)
     }
@@ -1415,7 +1501,7 @@ impl<M> Vertices<M> {
 
 impl<M> Iterator for RawVertices<M>
 where
-    M: GetVertex,
+    M: GetVertex<usize>,
 {
     type Item = M::Vertex;
     fn next(&mut self) -> Option<Self::Item> {
@@ -1426,9 +1512,10 @@ where
     }
 }
 
-impl<M> Iterator for Vertices<M>
+impl<M, I> Iterator for Vertices<M>
 where
-    M: Indices + GetVertex,
+    M: Indices<Index = I> + GetVertex<I>,
+    I: Copy,
 {
     type Item = M::Vertex;
     fn next(&mut self) -> Option<Self::Item> {
@@ -1449,16 +1536,17 @@ where
 
 impl<M> ExactSizeIterator for RawVertices<M>
 where
-    M: GetVertex,
+    M: GetVertex<usize>,
 {
     fn len(&self) -> usize {
         self.range.len()
     }
 }
 
-impl<M> DoubleEndedIterator for Vertices<M>
+impl<M, I> DoubleEndedIterator for Vertices<M>
 where
-    M: Indices + GetVertex,
+    M: Indices<Index = I> + GetVertex<I>,
+    I: Copy,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         if let Some(i) = self.index_range.next_back() {
@@ -1471,9 +1559,10 @@ where
     }
 }
 
-impl<M> ExactSizeIterator for Vertices<M>
+impl<M, I> ExactSizeIterator for Vertices<M>
 where
-    M: Indices + GetVertex,
+    M: Indices<Index = I> + GetVertex<I>,
+    I: Copy,
 {
     fn len(&self) -> usize {
         let indices_len = self.mesh.indices().channel().len();

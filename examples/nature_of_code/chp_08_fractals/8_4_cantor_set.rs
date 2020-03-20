@@ -31,7 +31,7 @@ fn view(app: &App, _model: &Model, frame: Frame) {
 }
 
 // Recursive function
-fn cantor(draw: &app::Draw, x: f32, mut y: f32, len: f32) {
+fn cantor(draw: &Draw, x: f32, mut y: f32, len: f32) {
     let h = 30.0;
 
     // recursive exit condition

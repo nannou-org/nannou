@@ -167,7 +167,7 @@ impl<'a> Builder<'a> {
     }
 
     /// Specify a texture view to be bound.
-    pub fn texture_view(self, view: &'a wgpu::TextureView) -> Self {
+    pub fn texture_view(self, view: &'a wgpu::TextureViewHandle) -> Self {
         let resource = wgpu::BindingResource::TextureView(view);
         self.binding(resource)
     }

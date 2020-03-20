@@ -25,27 +25,29 @@ fn view(app: &App, frame: Frame) {
     });
     draw.polygon()
         .x(-win.w() * 0.25)
-        .color(LIGHTGREEN)
+        .color(WHITE)
         .rotate(-t * 0.1)
+        .stroke(PINK)
+        .stroke_weight(20.0)
+        .join_round()
         .points(points);
 
     // Do the same, but give each point a unique colour.
     let n_points = 7;
-    let points = (0..n_points).map(|i| {
+    let points_colored = (0..n_points).map(|i| {
         let fract = i as f32 / n_points as f32;
         let phase = fract;
         let x = radius * (TAU * phase).cos();
         let y = radius * (TAU * phase).sin();
-        pt2(x, y)
+        let r = fract;
+        let g = 1.0 - fract;
+        let b = (0.5 + fract) % 1.0;
+        (pt2(x, y), rgb(r, g, b))
     });
     draw.polygon()
-        .stroke(CORNFLOWERBLUE)
-        .stroke_weight(20.0)
-        .join_round()
-        .color(CORAL)
         .x(win.w() * 0.25)
         .rotate(t * 0.2)
-        .points(points);
+        .points_colored(points_colored);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();

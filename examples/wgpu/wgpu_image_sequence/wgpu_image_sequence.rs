@@ -104,8 +104,7 @@ fn model(app: &App) -> Model {
             .expect("tied to load texture array with an empty image buffer sequence")
     };
     let layer = 0;
-    let layer_view_desc = texture_array.create_layer_view_descriptor(layer);
-    let texture_view = texture_array.create_view(&layer_view_desc);
+    let texture_view = texture_array.view().layer(layer).build();
 
     // Create the sampler for sampling from the source texture.
     let sampler = wgpu::SamplerBuilder::new().build(device);
@@ -163,8 +162,7 @@ fn update(app: &App, model: &mut Model, update: Update) {
 
     // Update the view and the bind group ready for drawing.
     let layer = model.current_layer as u32;
-    let layer_view_desc = model.texture_array.create_layer_view_descriptor(layer);
-    model.texture_view = model.texture_array.create_view(&layer_view_desc);
+    model.texture_view = model.texture_array.view().layer(layer).build();
     model.bind_group = create_bind_group(
         device,
         &model.bind_group_layout,

@@ -87,7 +87,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 let rgba = rgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
-        draw.polyline().weight(1.0).colored_points(vertices);
+        draw.polyline().weight(1.0).points_colored(vertices);
     }
 
     // draw oscillator with mod_freq
@@ -104,7 +104,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 let rgba = rgba(0.0, 0.5, 0.64, 0.5);
                 (p, rgba)
             });
-        draw.polyline().weight(1.0).colored_points(vertices);
+        draw.polyline().weight(1.0).points_colored(vertices);
     }
 
     // draw both combined
@@ -123,7 +123,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 let rgba = rgba(0.30, 1.0, 0.64, 0.75);
                 (p, rgba)
             });
-        draw.polyline().weight(3.0).colored_points(vertices);
+        draw.polyline().weight(3.0).points_colored(vertices);
     }
 
     // Write the result of our drawing to the window's frame.

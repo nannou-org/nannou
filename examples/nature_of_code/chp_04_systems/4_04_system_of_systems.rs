@@ -43,7 +43,7 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         let size = 12.0;
         draw.ellipse()
             .xy(self.position)
@@ -91,7 +91,7 @@ impl ParticleSystem {
         }
     }
 
-    fn draw(&self, draw: &app::Draw) {
+    fn draw(&self, draw: &Draw) {
         for p in self.particles.iter() {
             p.display(&draw);
         }

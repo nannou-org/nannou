@@ -39,7 +39,7 @@ impl Oscillator {
         self.angle += self.velocity;
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         let x = self.angle.x.sin() * self.amplitude.x;
         let y = self.angle.y.sin() * self.amplitude.y;
 

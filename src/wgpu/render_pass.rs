@@ -1,9 +1,11 @@
+use crate::wgpu;
+
 /// A builder type to simplify the process of creating a render pass descriptor.
 #[derive(Debug, Default)]
 pub struct Builder<'a> {
     color_attachments: Vec<wgpu::RenderPassColorAttachmentDescriptor<'a>>,
     depth_stencil_attachment:
-        Option<wgpu::RenderPassDepthStencilAttachmentDescriptor<&'a wgpu::TextureView>>,
+        Option<wgpu::RenderPassDepthStencilAttachmentDescriptor<&'a wgpu::TextureViewHandle>>,
 }
 
 /// A builder type to simplify the process of creating a render pass descriptor.
@@ -15,7 +17,7 @@ pub struct ColorAttachmentDescriptorBuilder<'a> {
 /// A builder type to simplify the process of creating a render pass descriptor.
 #[derive(Debug)]
 pub struct DepthStencilAttachmentDescriptorBuilder<'a> {
-    descriptor: wgpu::RenderPassDepthStencilAttachmentDescriptor<&'a wgpu::TextureView>,
+    descriptor: wgpu::RenderPassDepthStencilAttachmentDescriptor<&'a wgpu::TextureViewHandle>,
 }
 
 impl<'a> ColorAttachmentDescriptorBuilder<'a> {
@@ -24,7 +26,7 @@ impl<'a> ColorAttachmentDescriptorBuilder<'a> {
     pub const DEFAULT_CLEAR_COLOR: wgpu::Color = wgpu::Color::TRANSPARENT;
 
     /// Begin building a new render pass color attachment descriptor.
-    fn new(attachment: &'a wgpu::TextureView) -> Self {
+    fn new(attachment: &'a wgpu::TextureViewHandle) -> Self {
         ColorAttachmentDescriptorBuilder {
             descriptor: wgpu::RenderPassColorAttachmentDescriptor {
                 attachment,
@@ -38,6 +40,12 @@ impl<'a> ColorAttachmentDescriptorBuilder<'a> {
 
     /// Specify the resolve target for this render pass color attachment.
     pub fn resolve_target(mut self, target: Option<&'a wgpu::TextureView>) -> Self {
+        self.descriptor.resolve_target = target.map(|t| &**t);
+        self
+    }
+
+    /// Specify the resolve target for this render pass color attachment.
+    pub fn resolve_target_handle(mut self, target: Option<&'a wgpu::TextureViewHandle>) -> Self {
         self.descriptor.resolve_target = target;
         self
     }
@@ -69,7 +77,7 @@ impl<'a> DepthStencilAttachmentDescriptorBuilder<'a> {
     pub const DEFAULT_STENCIL_STORE_OP: wgpu::StoreOp = wgpu::StoreOp::Store;
     pub const DEFAULT_CLEAR_STENCIL: u32 = 0;
 
-    fn new(attachment: &'a wgpu::TextureView) -> Self {
+    fn new(attachment: &'a wgpu::TextureViewHandle) -> Self {
         DepthStencilAttachmentDescriptorBuilder {
             descriptor: wgpu::RenderPassDepthStencilAttachmentDescriptor {
                 attachment,
@@ -150,7 +158,7 @@ impl<'a> Builder<'a> {
     /// Call this multiple times in succession to add multiple color attachments.
     pub fn color_attachment<F>(
         mut self,
-        attachment: &'a wgpu::TextureView,
+        attachment: &'a wgpu::TextureViewHandle,
         color_builder: F,
     ) -> Self
     where
@@ -168,7 +176,7 @@ impl<'a> Builder<'a> {
     /// the attachment submitted last will be used.
     pub fn depth_stencil_attachment<F>(
         mut self,
-        attachment: &'a wgpu::TextureView,
+        attachment: &'a wgpu::TextureViewHandle,
         depth_stencil_builder: F,
     ) -> Self
     where
@@ -187,7 +195,7 @@ impl<'a> Builder<'a> {
         self,
     ) -> (
         Vec<wgpu::RenderPassColorAttachmentDescriptor<'a>>,
-        Option<wgpu::RenderPassDepthStencilAttachmentDescriptor<&'a wgpu::TextureView>>,
+        Option<wgpu::RenderPassDepthStencilAttachmentDescriptor<&'a wgpu::TextureViewHandle>>,
     ) {
         let Builder {
             color_attachments,

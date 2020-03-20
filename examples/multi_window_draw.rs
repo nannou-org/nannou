@@ -47,7 +47,7 @@ fn event_c(_app: &App, _model: &mut Model, event: WindowEvent) {
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
-    let draw = app.draw_for_window(frame.window_id()).unwrap();
+    let draw = app.draw();
     match frame.window_id() {
         id if id == model.a => {
             draw.background().color(INDIANRED);

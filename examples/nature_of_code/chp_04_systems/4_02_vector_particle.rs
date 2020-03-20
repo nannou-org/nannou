@@ -43,7 +43,7 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         draw.ellipse()
             .xy(self.position)
             .w_h(12.0, 12.0)

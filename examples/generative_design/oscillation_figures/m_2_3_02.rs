@@ -106,7 +106,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 let rgba = rgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
-        draw.polyline().weight(1.0).colored_points(vertices);
+        draw.polyline().weight(1.0).points_colored(vertices);
     } else if model.draw_mode == 2 {
         for i in 0..=model.point_count {
             let angle = map_range(i, 0, model.point_count, 0.0, TAU);

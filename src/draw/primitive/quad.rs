@@ -1,14 +1,11 @@
 use crate::color::conv::IntoLinSrgba;
-use crate::draw::primitive::polygon::{
-    PolygonIndices, PolygonInit, PolygonOptions, PolygonVertices, SetPolygon,
-};
+use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    spatial, ColorScalar, Draw, Drawn, IntoDrawn, LinSrgba, SetColor, SetDimensions,
-    SetOrientation, SetPosition, SetStroke,
+    spatial, ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
-use crate::draw::{theme, Drawing};
+use crate::draw::{self, Drawing};
 use crate::geom::{self, Point2, Vector2};
 use crate::math::{BaseFloat, ElementWise};
 use lyon::tessellation::StrokeOptions;
@@ -51,13 +48,12 @@ impl<S> Quad<S> {
 
 // Trait implementations.
 
-impl<S> IntoDrawn<S> for Quad<S>
-where
-    S: BaseFloat,
-{
-    type Vertices = PolygonVertices;
-    type Indices = PolygonIndices;
-    fn into_drawn(self, mut draw: Draw<S>) -> Drawn<S, Self::Vertices, Self::Indices> {
+impl draw::renderer::RenderPrimitive for Quad<f32> {
+    fn render_primitive(
+        self,
+        ctxt: draw::renderer::RenderContext,
+        mesh: &mut draw::Mesh,
+    ) -> draw::renderer::PrimitiveRender {
         let Quad {
             mut quad,
             polygon,
@@ -65,18 +61,18 @@ where
         } = self;
 
         // If dimensions were specified, scale the points to those dimensions.
-        let (maybe_x, maybe_y, _maybe_z) = dimensions.to_scalars(&draw);
+        let (maybe_x, maybe_y, _maybe_z) = (dimensions.x, dimensions.y, dimensions.z);
         if maybe_x.is_some() || maybe_y.is_some() {
             let cuboid = quad.bounding_rect();
             let centroid = quad.centroid();
-            let x_scale = maybe_x.map(|x| x / cuboid.w()).unwrap_or_else(S::one);
-            let y_scale = maybe_y.map(|y| y / cuboid.h()).unwrap_or_else(S::one);
+            let x_scale = maybe_x.map(|x| x / cuboid.w()).unwrap_or(1.0);
+            let y_scale = maybe_y.map(|y| y / cuboid.h()).unwrap_or(1.0);
             let scale = Vector2 {
                 x: x_scale,
                 y: y_scale,
             };
             let (a, b, c, d) = quad.into();
-            let translate = |v: Point2<S>| centroid + ((v - centroid).mul_element_wise(scale));
+            let translate = |v: Point2| centroid + ((v - centroid).mul_element_wise(scale));
             let new_a = translate(a);
             let new_b = translate(b);
             let new_c = translate(c);
@@ -84,10 +80,16 @@ where
             quad = geom::Quad([new_a, new_b, new_c, new_d]);
         }
 
-        // The color.
         let points = quad.vertices();
-        let polygon = draw.drawing_context(|ctxt| polygon.points(ctxt, points));
-        polygon.into_drawn_themed(draw, &theme::Primitive::Quad)
+        polygon::render_points_themed(
+            polygon.opts,
+            points,
+            ctxt,
+            &draw::theme::Primitive::Quad,
+            mesh,
+        );
+
+        draw::renderer::PrimitiveRender::default()
     }
 }
 

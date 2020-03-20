@@ -7,6 +7,7 @@ pub use crate::color::{
     srgba8,
 };
 pub use crate::color::{Gray, Hsl, Hsla, Hsv, Hsva, LinSrgb, LinSrgba, Rgb, Rgba, Srgb, Srgba};
+pub use crate::draw::Draw;
 pub use crate::event::WindowEvent::*;
 pub use crate::event::{
     AxisMotion, Event, Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase,
@@ -28,6 +29,10 @@ pub use crate::text::{self, text};
 pub use crate::time::DurationF64;
 pub use crate::ui;
 pub use crate::wgpu;
+pub use crate::wgpu::blend::{
+    ADD as BLEND_ADD, DARKEST as BLEND_DARKEST, LIGHTEST as BLEND_LIGHTEST, NORMAL as BLEND_NORMAL,
+    REVERSE_SUBTRACT as BLEND_REVERSE_SUBTRACT, SUBTRACT as BLEND_SUBTRACT,
+};
 pub use crate::window::{self, Id as WindowId};
 
 // The following constants have "regular" names for the `DefaultScalar` type and type suffixes for

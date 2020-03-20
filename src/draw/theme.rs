@@ -26,11 +26,13 @@ pub enum Primitive {
     Cuboid,
     Ellipse,
     Line,
+    Mesh,
     Path,
     Polygon,
     Quad,
     Rect,
     Text,
+    Texture,
     Tri,
 }
 

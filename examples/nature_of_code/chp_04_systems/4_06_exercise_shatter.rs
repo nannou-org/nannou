@@ -41,7 +41,7 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         draw.rect().xy(self.position).w_h(self.r, self.r).rgba(
             0.0,
             0.0,
@@ -99,7 +99,7 @@ impl ParticleSystem {
         }
     }
 
-    fn draw(&self, draw: &app::Draw) {
+    fn draw(&self, draw: &Draw) {
         for p in self.particles.iter() {
             p.display(&draw);
         }

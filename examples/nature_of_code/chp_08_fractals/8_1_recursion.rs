@@ -28,7 +28,7 @@ fn view(app: &App, _model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-fn draw_circle(draw: &app::Draw, x: f32, y: f32, mut r: f32) {
+fn draw_circle(draw: &Draw, x: f32, y: f32, mut r: f32) {
     draw.ellipse()
         .x_y(x, y)
         .radius(r)

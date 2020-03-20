@@ -32,27 +32,43 @@ impl Path {
         self.path.as_slice()
     }
 
+    /// Returns a slice over an endpoint's custom attributes.
+    pub fn attributes(&self, endpoint: lyon::path::EndpointId) -> &[f32] {
+        self.path.attributes(endpoint)
+    }
+
     /// Iterates over the entire **Path** yielding **PathEvent**s.
     pub fn iter(&self) -> lyon::path::Iter {
         self.path.iter()
     }
 
-    pub fn points(&self) -> &[Point2] {
-        point_slice_lyon_to_nannou(self.path.points())
+    /// Iterates over the endpoint and control point ids of the **Path**.
+    pub fn id_iter(&self) -> lyon::path::IdIter {
+        self.path.id_iter()
     }
 
-    pub fn points_mut(&mut self) -> &mut [Point2] {
-        point_slice_mut_lyon_to_nannou(self.path.mut_points())
+    /// Iterate over points alongside their attributes.
+    pub fn iter_with_attributes(&self) -> lyon::path::IterWithAttributes {
+        self.path.iter_with_attributes()
+    }
+
+    /// Applies a transform to all endpoints and control points of this path and returns the
+    /// result.
+    pub fn transformed<T>(&self, transform: &T) -> Self
+    where
+        T: lyon::geom::traits::Transformation<f32>,
+    {
+        self.path.transformed(transform).into()
+    }
+
+    /// Reversed version of this path with edge loops specified in the opposite order.
+    pub fn reversed(&self) -> Self {
+        self.path.reversed().into()
     }
 
     /// Concatenate two paths.
     pub fn merge(&self, other: &Self) -> Self {
         self.path.merge(&other.path).into()
-    }
-
-    /// Returns a `Cursor` pointing to the start of this `Path`.
-    pub fn cursor(&self) -> lyon::path::Cursor {
-        self.path.cursor()
     }
 }
 
@@ -63,8 +79,8 @@ impl Builder {
     }
 
     /// Build a path with the given capacity for the inner path event storage.
-    pub fn with_capacity(cap: usize) -> Self {
-        lyon::path::Builder::with_capacity(cap).into()
+    pub fn with_capacity(points: usize, edges: usize) -> Self {
+        lyon::path::Builder::with_capacity(points, edges).into()
     }
 
     /// Returns a lyon builder that supports SVG commands.
@@ -139,11 +155,6 @@ impl Builder {
         self.builder.current_position().into()
     }
 
-    /// Returns a cursor to the next path event.
-    pub fn cursor(&self) -> lyon::path::Cursor {
-        self.builder.cursor()
-    }
-
     /// Build the path and return it.
     pub fn build(self) -> Path {
         self.builder.build().into()
@@ -190,15 +201,11 @@ impl lyon::path::builder::FlatPathBuilder for Builder {
     fn current_position(&self) -> lyon::math::Point {
         self.builder.current_position()
     }
-
-    fn flat_event(&mut self, event: lyon::path::FlattenedEvent) {
-        self.builder.flat_event(event);
-    }
 }
 
 impl lyon::path::builder::PathBuilder for Builder {
     fn quadratic_bezier_to(&mut self, ctrl: lyon::math::Point, to: lyon::math::Point) {
-        self.builder.quadratic_bezier_to(ctrl, to)
+        self.builder.quadratic_bezier_to(ctrl, to);
     }
 
     fn cubic_bezier_to(
@@ -207,7 +214,7 @@ impl lyon::path::builder::PathBuilder for Builder {
         ctrl2: lyon::math::Point,
         to: lyon::math::Point,
     ) {
-        self.builder.cubic_bezier_to(ctrl1, ctrl2, to)
+        self.builder.cubic_bezier_to(ctrl1, ctrl2, to);
     }
 
     fn arc(
@@ -233,16 +240,17 @@ impl lyon::path::builder::PolygonBuilder for Builder {
 
 // Indexing
 
-impl std::ops::Index<lyon::path::VertexId> for Path {
+impl std::ops::Index<lyon::path::ControlPointId> for Path {
     type Output = Point2;
-    fn index(&self, id: lyon::path::VertexId) -> &Self::Output {
+    fn index(&self, id: lyon::path::ControlPointId) -> &Self::Output {
         point_lyon_to_nannou(self.path.index(id))
     }
 }
 
-impl std::ops::IndexMut<lyon::path::VertexId> for Path {
-    fn index_mut(&mut self, id: lyon::path::VertexId) -> &mut Self::Output {
-        point_mut_lyon_to_nannou(self.path.index_mut(id))
+impl std::ops::Index<lyon::path::EndpointId> for Path {
+    type Output = Point2;
+    fn index(&self, id: lyon::path::EndpointId) -> &Self::Output {
+        point_lyon_to_nannou(self.path.index(id))
     }
 }
 
@@ -297,8 +305,8 @@ pub fn path() -> Builder {
 }
 
 /// Build a path with the given capacity for the inner path event storage.
-pub fn path_with_capacity(cap: usize) -> Builder {
-    Builder::with_capacity(cap)
+pub fn path_with_capacity(points: usize, edges: usize) -> Builder {
+    Builder::with_capacity(points, edges)
 }
 
 // Conversions between slice types.
@@ -310,18 +318,6 @@ fn point_slice_nannou_to_lyon(ps: &[Point2]) -> &[lyon::math::Point] {
     unsafe { std::mem::transmute(ps) }
 }
 
-fn point_slice_lyon_to_nannou(ps: &[lyon::math::Point]) -> &[Point2] {
-    unsafe { std::mem::transmute(ps) }
-}
-
-fn point_slice_mut_lyon_to_nannou(ps: &mut [lyon::math::Point]) -> &mut [Point2] {
-    unsafe { std::mem::transmute(ps) }
-}
-
 fn point_lyon_to_nannou(p: &lyon::math::Point) -> &Point2 {
-    unsafe { std::mem::transmute(p) }
-}
-
-fn point_mut_lyon_to_nannou(p: &mut lyon::math::Point) -> &mut Point2 {
     unsafe { std::mem::transmute(p) }
 }

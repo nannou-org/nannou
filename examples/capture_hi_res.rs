@@ -55,7 +55,8 @@ fn model(app: &App) -> Model {
     // Create our `Draw` instance and a renderer for it.
     let draw = nannou::Draw::new();
     let descriptor = texture.descriptor();
-    let renderer = nannou::draw::Renderer::from_texture_descriptor(device, descriptor);
+    let renderer =
+        nannou::draw::RendererBuilder::new().build_from_texture_descriptor(device, descriptor);
 
     // Create the texture capturer.
     let texture_capturer = wgpu::TextureCapturer::with_num_threads(4);
@@ -121,7 +122,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     draw.polyline()
         .weight(weight)
         .join_round()
-        .colored_points(vertices);
+        .points_colored(vertices);
 
     // Draw frame number and size in bottom left.
     let string = format!("Frame {} - {:?}", elapsed_frames, [w, h]);

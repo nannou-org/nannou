@@ -34,7 +34,7 @@ impl Reshaper {
     /// Construct a new `Reshaper`.
     pub fn new(
         device: &wgpu::Device,
-        src_texture: &wgpu::TextureView,
+        src_texture: &wgpu::TextureViewHandle,
         src_sample_count: u32,
         dst_sample_count: u32,
         dst_format: wgpu::TextureFormat,
@@ -116,7 +116,7 @@ impl Reshaper {
     /// destination texture.
     pub fn encode_render_pass(
         &self,
-        dst_texture: &wgpu::TextureView,
+        dst_texture: &wgpu::TextureViewHandle,
         encoder: &mut wgpu::CommandEncoder,
     ) {
         let mut render_pass = wgpu::RenderPassBuilder::new()
@@ -180,7 +180,7 @@ fn bind_group_layout(device: &wgpu::Device, src_sample_count: u32) -> wgpu::Bind
 fn bind_group(
     device: &wgpu::Device,
     layout: &wgpu::BindGroupLayout,
-    texture: &wgpu::TextureView,
+    texture: &wgpu::TextureViewHandle,
     sampler: &wgpu::Sampler,
     uniform_buffer: Option<&wgpu::Buffer>,
 ) -> wgpu::BindGroup {

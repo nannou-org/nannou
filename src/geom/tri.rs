@@ -38,16 +38,13 @@ pub struct FlattenIndices<I> {
     c: Option<usize>,
 }
 
-impl<V> Tri<V>
-where
-    V: Vertex,
-{
+impl<V> Tri<V> {
     /// Create a **Tri** by indexing into the given buffer.
     ///
     /// **Panics** if any of the given indices are out of range of the given `vertices` slice.
     pub fn from_index_tri(vertices: &[V], indices: &[usize; 3]) -> Self
     where
-        V: Vertex,
+        V: Clone,
     {
         from_index_tri(vertices, indices)
     }
@@ -82,15 +79,10 @@ where
     where
         F: FnMut(V) -> V2,
     {
-        let (a, b, c) = self.into();
+        let Tri([a, b, c]) = self;
         Tri([map(a), map(b), map(c)])
     }
-}
 
-impl<V> Tri<V>
-where
-    V: Vertex2d,
-{
     /// Returns `true` if the given 2D vertex is contained within the 2D `Tri`.
     ///
     /// # Example
@@ -231,65 +223,45 @@ where
     }
 }
 
-impl<V> Deref for Tri<V>
-where
-    V: Vertex,
-{
+impl<V> Deref for Tri<V> {
     type Target = [V; 3];
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<V> From<[V; 3]> for Tri<V>
-where
-    V: Vertex,
-{
+impl<V> From<[V; 3]> for Tri<V> {
     fn from(points: [V; 3]) -> Self {
         Tri(points)
     }
 }
 
-impl<V> From<(V, V, V)> for Tri<V>
-where
-    V: Vertex,
-{
+impl<V> From<(V, V, V)> for Tri<V> {
     fn from((a, b, c): (V, V, V)) -> Self {
         Tri([a, b, c])
     }
 }
 
-impl<V> Into<[V; 3]> for Tri<V>
-where
-    V: Vertex,
-{
+impl<V> Into<[V; 3]> for Tri<V> {
     fn into(self) -> [V; 3] {
         self.0
     }
 }
 
-impl<V> Into<(V, V, V)> for Tri<V>
-where
-    V: Vertex,
-{
+impl<V> Into<(V, V, V)> for Tri<V> {
     fn into(self) -> (V, V, V) {
-        (self[0], self[1], self[2])
+        let Tri([a, b, c]) = self;
+        (a, b, c)
     }
 }
 
-impl<V> AsRef<Tri<V>> for Tri<V>
-where
-    V: Vertex,
-{
+impl<V> AsRef<Tri<V>> for Tri<V> {
     fn as_ref(&self) -> &Tri<V> {
         self
     }
 }
 
-impl<V> AsRef<[V; 3]> for Tri<V>
-where
-    V: Vertex,
-{
+impl<V> AsRef<[V; 3]> for Tri<V> {
     fn as_ref(&self) -> &[V; 3] {
         &self.0
     }
