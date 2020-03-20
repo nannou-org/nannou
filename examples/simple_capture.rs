@@ -56,7 +56,7 @@ fn captured_frame_path(app: &App, frame: &Frame) -> std::path::PathBuf {
         // Capture all frames to a directory called `/<path_to_nannou>/nannou/simple_capture`.
         .join(app.exe_name().unwrap())
         // Name each file after the number of the frame.
-        .join(frame.nth().to_string())
+        .join(format!("{:03}", frame.nth()))
         // The extension will be PNG. We also support tiff, bmp, gif, jpeg, webp and some others.
         .with_extension("png")
 }
