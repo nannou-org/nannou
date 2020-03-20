@@ -414,15 +414,10 @@ where
         self.context(context)
     }
 
-    // TODO
-    // - lerp
-    // add
-    // sub
-    // dark
-    // light
-    // diff
-    // excl
-    // mul
+    /// Short-hand for `color_blend`, the common use-case.
+    pub fn blend(&self, blend_descriptor: wgpu::BlendDescriptor) -> Self {
+        self.color_blend(blend_descriptor)
+    }
 
     /// Produce a new **Draw** instance that will be cropped to the given rectangle.
     ///
