@@ -34,8 +34,9 @@ fn view(app: &App, frame: Frame) {
         let draw = draw.rotate(rotate);
 
         let hue = app.time + f * 2.0 * PI;
-        let color = hsl(hue, 0.5, 0.5);
-        let rect_scale = f.powi(2) * max_side * 2.0;
+        let dive = (f + app.time * 0.1) % 1.0;
+        let color = hsla(hue, 0.5, 0.5, 1.0 - dive.powi(3));
+        let rect_scale = dive.powi(2) * max_side * 2.0;
         draw.scale(rect_scale)
             .rect()
             .w_h(1.0, 1.0)
