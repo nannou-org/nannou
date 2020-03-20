@@ -65,6 +65,7 @@ where
 pub struct Context<S = geom::scalar::Default> {
     pub transform: Matrix4<S>,
     pub alpha_blend: wgpu::BlendDescriptor,
+    pub color_blend: wgpu::BlendDescriptor,
     pub scissor: Scissor<S>,
     pub topology: wgpu::PrimitiveTopology,
     pub sampler: wgpu::SamplerDescriptor,
@@ -399,10 +400,17 @@ where
         self.z_radians(radians)
     }
 
-    /// Produce a new **Draw** instance that will draw with the given blend mode.
+    /// Produce a new **Draw** instance that will draw with the given alpha blend descriptor.
     pub fn alpha_blend(&self, blend_descriptor: wgpu::BlendDescriptor) -> Self {
         let mut context = self.context.clone();
         context.alpha_blend = blend_descriptor;
+        self.context(context)
+    }
+
+    /// Produce a new **Draw** instance that will draw with the given color blend descriptor.
+    pub fn color_blend(&self, blend_descriptor: wgpu::BlendDescriptor) -> Self {
+        let mut context = self.context.clone();
+        context.color_blend = blend_descriptor;
         self.context(context)
     }
 
@@ -613,6 +621,7 @@ where
         Self {
             transform: self.transform.clone(),
             alpha_blend: self.alpha_blend.clone(),
+            color_blend: self.color_blend.clone(),
             scissor: self.scissor.clone(),
             topology: self.topology.clone(),
             sampler: wgpu::sampler_descriptor_clone(&self.sampler),
@@ -688,9 +697,10 @@ where
     S: BaseFloat,
 {
     fn default() -> Self {
-        Context {
+        Self {
             transform: Matrix4::identity(),
             alpha_blend: wgpu::RenderPipelineBuilder::DEFAULT_ALPHA_BLEND,
+            color_blend: wgpu::RenderPipelineBuilder::DEFAULT_COLOR_BLEND,
             scissor: Scissor::Full,
             topology: wgpu::RenderPipelineBuilder::DEFAULT_PRIMITIVE_TOPOLOGY,
             sampler: wgpu::SamplerBuilder::new().into_descriptor(),

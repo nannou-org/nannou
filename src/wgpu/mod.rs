@@ -16,6 +16,7 @@
 //! - WebGPU [on wikipedia](https://en.wikipedia.org/wiki/WebGPU).
 
 mod bind_group_builder;
+pub mod blend;
 mod device_map;
 mod render_pass;
 mod render_pipeline_builder;

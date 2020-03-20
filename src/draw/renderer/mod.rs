@@ -10,6 +10,7 @@ use lyon::path::PathEvent;
 use lyon::tessellation::{FillTessellator, StrokeTessellator};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
 
 /// Draw API primitives that may be rendered via the **Renderer** type.
@@ -75,11 +76,7 @@ pub struct Renderer {
     glyph_cache: GlyphCache,
     vs_mod: wgpu::ShaderModule,
     fs_mod: wgpu::ShaderModule,
-    render_pipelines: Vec<(
-        wgpu::BlendDescriptor,
-        wgpu::PrimitiveTopology,
-        wgpu::RenderPipeline,
-    )>,
+    render_pipelines: HashMap<PipelineId, wgpu::RenderPipeline>,
     glyph_cache_texture: wgpu::Texture,
     depth_texture: wgpu::Texture,
     depth_texture_view: wgpu::TextureView,
@@ -91,7 +88,7 @@ pub struct Renderer {
     text_bind_group: wgpu::BindGroup,
     texture_samplers: HashMap<SamplerId, wgpu::Sampler>,
     texture_bind_group_layout: wgpu::BindGroupLayout,
-    texture_bind_groups: HashMap<(SamplerId, wgpu::TextureViewId), wgpu::BindGroup>,
+    texture_bind_groups: HashMap<BindGroupId, wgpu::BindGroup>,
     texture_default_bind_group: wgpu::BindGroup,
     output_color_format: wgpu::TextureFormat,
     sample_count: u32,
@@ -114,13 +111,10 @@ pub struct Builder {
 /// Commands that map to wgpu encodable commands.
 #[derive(Debug)]
 enum RenderCommand {
-    /// Change pipeline for the new blend mode.
-    SetPipeline {
-        /// The index into the inner
-        index: usize,
-    },
+    /// Change pipeline for the new blend mode and topology.
+    SetPipeline(PipelineId),
     /// Change bind group for a new image.
-    SetBindGroup((SamplerId, wgpu::TextureViewId)),
+    SetBindGroup(BindGroupId),
     /// Set the rectangular scissor.
     SetScissor(Scissor),
     /// Draw the given vertex range.
@@ -160,6 +154,11 @@ struct Uniforms {
 }
 
 type SamplerId = u64;
+type BindGroupId = (SamplerId, wgpu::TextureViewId);
+type BlendId = u64;
+type ColorId = BlendId;
+type AlphaId = BlendId;
+type PipelineId = (ColorId, AlphaId, wgpu::PrimitiveTopology);
 
 impl Default for PrimitiveRender {
     fn default() -> Self {
@@ -480,7 +479,7 @@ impl Renderer {
         );
 
         let texture_samplers = Some((sampler_id, texture_sampler)).into_iter().collect();
-        let render_pipelines = vec![];
+        let render_pipelines = Default::default();
         let render_commands = vec![];
         let mesh = Default::default();
         let vertex_mode_buffer = vec![];
@@ -552,11 +551,18 @@ impl Renderer {
         let mut curr_ctxt = draw::Context::default();
         let mut is_first_ctxt = true;
         let mut curr_start_index = 0;
+
+        // For tracking texture/sampler combinations.
         let init_sampler_id = sampler_descriptor_hash(&curr_ctxt.sampler);
         let init_tex_view_id = self.default_texture_view.id();
-        let mut curr_combined_id = (init_sampler_id, init_tex_view_id);
+        let mut curr_tex_sampler_id = (init_sampler_id, init_tex_view_id);
         let mut new_tex_views = HashMap::new();
         let mut new_tex_sampler_combos = HashSet::new();
+
+        // For tracking new blend/topology combinations.
+        let mut new_blend_topo_combos = HashMap::new();
+
+        // Collect all draw commands to avoid borrow errors.
         let draw_cmds: Vec<_> = draw.drain_commands().collect();
         let draw_state = draw.state.borrow_mut();
         let intermediary_state = draw_state.intermediary_state.borrow();
@@ -583,7 +589,7 @@ impl Renderer {
                     // Render the primitive.
                     let render = prim.render_primitive(ctxt, &mut self.mesh);
 
-                    // TODO: Check to see if we need to switch bind groups.
+                    // Check to see if we need to switch bind groups.
                     if let Some(texture_view) = render.texture_view {
                         assert_eq!(
                             texture_view.dimension(),
@@ -595,11 +601,13 @@ impl Renderer {
                         let tex_view_id = texture_view.id();
                         let sampler_id = sampler_descriptor_hash(&curr_ctxt.sampler);
                         let combined_id = (sampler_id, tex_view_id);
-                        if combined_id != curr_combined_id {
+                        if combined_id != curr_tex_sampler_id {
+                            // TODO: Insert draw here??
+
                             self.render_commands
                                 .push(RenderCommand::SetBindGroup(combined_id));
                             new_tex_sampler_combos.insert(combined_id);
-                            curr_combined_id = combined_id;
+                            curr_tex_sampler_id = combined_id;
                         }
 
                         // Ensure the new texture exists within our map of new views.
@@ -612,18 +620,20 @@ impl Renderer {
                     self.vertex_mode_buffer.extend((0..new_vs).map(|_| mode));
                 }
 
-                // Check for commands to update
+                // Check for commands to update context.
                 draw::DrawCommand::Context(ctxt) => {
                     if curr_ctxt == ctxt && !is_first_ctxt {
                         continue;
                     }
 
+                    let color_blend_changed = curr_ctxt.color_blend != ctxt.color_blend;
                     let alpha_blend_changed = curr_ctxt.alpha_blend != ctxt.alpha_blend;
+                    let blend_changed = color_blend_changed || alpha_blend_changed;
                     let scissor_changed = curr_ctxt.scissor != ctxt.scissor;
                     let topology_changed = curr_ctxt.topology != ctxt.topology;
 
                     // If blend or scissor change, add a draw command for vertices collected so far.
-                    if alpha_blend_changed || scissor_changed || topology_changed {
+                    if blend_changed || scissor_changed || topology_changed {
                         let index_range = curr_start_index..self.mesh.indices().len() as u32;
                         if index_range.len() != 0 {
                             let start_vertex = 0;
@@ -636,40 +646,17 @@ impl Renderer {
                         }
                     }
 
-                    // Check for a new alpha blend.
-                    if alpha_blend_changed || topology_changed || is_first_ctxt {
-                        let index =
-                            match self
-                                .render_pipelines
-                                .iter()
-                                .position(|(blend, topology, _)| {
-                                    blend == &ctxt.alpha_blend && topology == &ctxt.topology
-                                }) {
-                                Some(index) => index,
-                                None => {
-                                    let index = self.render_pipelines.len();
-                                    let render_pipeline = create_render_pipeline(
-                                        device,
-                                        &self.uniform_bind_group_layout,
-                                        &self.text_bind_group_layout,
-                                        &self.texture_bind_group_layout,
-                                        &self.vs_mod,
-                                        &self.fs_mod,
-                                        self.output_color_format,
-                                        self.depth_texture.format(),
-                                        self.sample_count,
-                                        ctxt.alpha_blend.clone(),
-                                        ctxt.topology.clone(),
-                                    );
-                                    self.render_pipelines.push((
-                                        ctxt.alpha_blend.clone(),
-                                        ctxt.topology.clone(),
-                                        render_pipeline,
-                                    ));
-                                    index
-                                }
-                            };
-                        let cmd = RenderCommand::SetPipeline { index };
+                    // Check to see if we should set the pipeline.
+                    if blend_changed || topology_changed || is_first_ctxt {
+                        let color_blend_id = blend_descriptor_hash(&ctxt.color_blend);
+                        let alpha_blend_id = blend_descriptor_hash(&ctxt.alpha_blend);
+                        let topo = ctxt.topology;
+                        let combined_id = (color_blend_id, alpha_blend_id, topo);
+                        new_blend_topo_combos.insert(
+                            combined_id,
+                            (ctxt.color_blend.clone(), ctxt.alpha_blend.clone()),
+                        );
+                        let cmd = RenderCommand::SetPipeline(combined_id);
                         self.render_commands.push(cmd);
                     }
 
@@ -720,7 +707,6 @@ impl Renderer {
         // Only keep the samplers around that we need.
         self.texture_samplers
             .retain(|id, _| new_tex_sampler_combos.iter().any(|(s_id, _)| id == s_id));
-
         // Ensure we have a bind group for each of the texture views, but no more.
         for new_id in new_tex_sampler_combos {
             let (new_sampler_id, new_tex_view_id) = new_id;
@@ -739,6 +725,31 @@ impl Renderer {
                 texture_view,
             );
             self.texture_bind_groups.insert(new_id, bind_group);
+        }
+
+        // Clear out unnecessary pipelines.
+        self.render_pipelines
+            .retain(|id, _| new_blend_topo_combos.contains_key(id));
+        // Clear new combos that we already have.
+        new_blend_topo_combos.retain(|id, _| !self.render_pipelines.contains_key(id));
+        // Create new render pipelines as necessary.
+        for (new_id, (color_blend, alpha_blend)) in new_blend_topo_combos {
+            let (_, _, topology) = new_id;
+            let new_pipeline = create_render_pipeline(
+                device,
+                &self.uniform_bind_group_layout,
+                &self.text_bind_group_layout,
+                &self.texture_bind_group_layout,
+                &self.vs_mod,
+                &self.fs_mod,
+                self.output_color_format,
+                self.depth_texture.format(),
+                self.sample_count,
+                color_blend,
+                alpha_blend,
+                topology,
+            );
+            self.render_pipelines.insert(new_id, new_pipeline);
         }
     }
 
@@ -871,8 +882,8 @@ impl Renderer {
         // Follow the render commands.
         for cmd in render_commands.drain(..) {
             match cmd {
-                RenderCommand::SetPipeline { index } => {
-                    let pipeline = &render_pipelines[index].2;
+                RenderCommand::SetPipeline(id) => {
+                    let pipeline = &render_pipelines[&id];
                     render_pass.set_pipeline(pipeline);
                 }
 
@@ -1074,6 +1085,7 @@ fn create_render_pipeline(
     dst_format: wgpu::TextureFormat,
     depth_format: wgpu::TextureFormat,
     sample_count: u32,
+    color_blend: wgpu::BlendDescriptor,
     alpha_blend: wgpu::BlendDescriptor,
     topology: wgpu::PrimitiveTopology,
 ) -> wgpu::RenderPipeline {
@@ -1085,16 +1097,15 @@ fn create_render_pipeline(
         .add_vertex_buffer::<draw::mesh::vertex::Color>()
         .add_vertex_buffer::<draw::mesh::vertex::TexCoords>()
         .add_vertex_buffer::<VertexMode>()
-        //.primitive_topology(wgpu::PrimitiveTopology::LineList)
         .depth_format(depth_format)
         .sample_count(sample_count)
+        .color_blend(color_blend)
         .alpha_blend(alpha_blend)
         .primitive_topology(topology)
         .build(device)
 }
 
 fn sampler_descriptor_hash(desc: &wgpu::SamplerDescriptor) -> SamplerId {
-    use std::hash::{Hash, Hasher};
     let mut s = std::collections::hash_map::DefaultHasher::new();
     desc.address_mode_u.hash(&mut s);
     desc.address_mode_v.hash(&mut s);
@@ -1105,5 +1116,13 @@ fn sampler_descriptor_hash(desc: &wgpu::SamplerDescriptor) -> SamplerId {
     desc.lod_min_clamp.to_bits().hash(&mut s);
     desc.lod_max_clamp.to_bits().hash(&mut s);
     desc.compare_function.hash(&mut s);
+    s.finish()
+}
+
+fn blend_descriptor_hash(desc: &wgpu::BlendDescriptor) -> BlendId {
+    let mut s = std::collections::hash_map::DefaultHasher::new();
+    desc.src_factor.hash(&mut s);
+    desc.dst_factor.hash(&mut s);
+    desc.operation.hash(&mut s);
     s.finish()
 }
