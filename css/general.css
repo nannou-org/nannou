@@ -60,6 +60,7 @@ h4 a.header:target {
 .page {
     outline: 0;
     padding: 0 var(--page-padding);
+    margin-top: calc(0px - var(--menu-bar-height)); /* Compensate for the #menu-bar-hover-placeholder */
 }
 .page-wrapper {
     box-sizing: border-box;
@@ -78,6 +79,9 @@ h4 a.header:target {
     margin-right: auto;
     max-width: var(--content-max-width);
 }
+.content p { line-height: 1.45em; }
+.content ol { line-height: 1.45em; }
+.content ul { line-height: 1.45em; }
 .content a { text-decoration: none; }
 .content a:hover { text-decoration: underline; }
 .content img { max-width: 100%; }
