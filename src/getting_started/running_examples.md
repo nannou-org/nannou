@@ -19,7 +19,7 @@ cd nannou
 Run the example using cargo.
 
 ```bash
-cargo run --release --example simple_draw
+cargo run --release --example draw
 ```
 
 The `--release` flag means we want to build with optimisations enabled.
@@ -31,8 +31,8 @@ object's `path` property points to the source file to compile:
 ```toml
 # --------------- Nannou Examples
 [[example]]
-name = "simple_draw"
-path = "examples/simple_draw.rs"
+name = "draw"
+path = "examples/draw/draw.rs"
 
 # ...
 
@@ -58,7 +58,7 @@ build all the necessary dependencies.
 
 Once the example compiles you should see the following window appear.
 
-![simple_draw_HD](https://i.imgur.com/HVVamUI.gif)
+![draw_HD](https://i.imgur.com/HVVamUI.gif)
 
-To run any of the other examples, replace `simple_draw` with the name of the
+To run any of the other examples, replace `draw` with the name of the
 desired example.
