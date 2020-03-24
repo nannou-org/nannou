@@ -984,14 +984,14 @@ impl Window {
             .set_outer_position(winit::dpi::PhysicalPosition { x, y })
     }
 
-    /// The size in pixels of the client area of the window.
+    /// The width and height in pixels of the client area of the window.
     ///
     /// The client area is the content of the window, excluding the title bar and borders.
     pub fn inner_size_pixels(&self) -> (u32, u32) {
         self.window.inner_size().into()
     }
 
-    /// The size in points of the client area of the window.
+    /// The width and height in points of the client area of the window.
     ///
     /// The client area is the content of the window, excluding the title bar and borders.
     ///
@@ -1019,7 +1019,7 @@ impl Window {
             .set_inner_size(winit::dpi::LogicalSize { width, height })
     }
 
-    /// The size of the window in pixels.
+    /// The width and height of the window in pixels.
     ///
     /// These dimensions include title bar and borders. If you don't want these, you should use
     /// `inner_size_pixels` instead.
@@ -1027,7 +1027,7 @@ impl Window {
         self.window.outer_size().into()
     }
 
-    /// The size of the window in points.
+    /// The width and height of the window in points.
     ///
     /// These dimensions include title bar and borders. If you don't want these, you should use
     /// `inner_size_points` instead.
