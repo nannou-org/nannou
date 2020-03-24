@@ -991,7 +991,7 @@ impl Window {
         self.window.inner_size().into()
     }
 
-    /// The size in points of the client area of the window.
+    /// The width and height in points of the client area of the window.
     ///
     /// The client area is the content of the window, excluding the title bar and borders.
     ///
@@ -1027,7 +1027,7 @@ impl Window {
         self.window.outer_size().into()
     }
 
-    /// The size of the window in points.
+    /// The width and height of the window in points.
     ///
     /// These dimensions include title bar and borders. If you don't want these, you should use
     /// `inner_size_points` instead.
