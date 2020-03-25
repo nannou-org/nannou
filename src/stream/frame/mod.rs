@@ -27,7 +27,7 @@ struct State {
 }
 
 // Updates for the interpolation config sent from the stream handle to the laser thread.
-type StateUpdate = Box<FnMut(&mut State) + 'static + Send>;
+type StateUpdate = Box<dyn FnMut(&mut State) + 'static + Send>;
 
 /// A wrapper around the `Vec` of points being collected for the frame.
 ///

@@ -57,10 +57,10 @@ pub struct Builder<M, F> {
 }
 
 // The type used for sending state updates from the stream handle thread to the laser thread.
-type StateUpdate = Box<FnMut(&mut State) + 'static + Send>;
+type StateUpdate = Box<dyn FnMut(&mut State) + 'static + Send>;
 
 /// The type used for sending model updates from the stream handle thread to the laser thread.
-pub type ModelUpdate<M> = Box<FnMut(&mut M) + 'static + Send>;
+pub type ModelUpdate<M> = Box<dyn FnMut(&mut M) + 'static + Send>;
 
 /// Errors that may occur while running a laser stream.
 #[derive(Debug, Fail, From)]
