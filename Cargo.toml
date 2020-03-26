@@ -26,7 +26,7 @@ noise = "0.6"
 notosans = { version = "0.1", optional = true }
 palette = "0.5"
 pennereq = "0.3"
-rand = "0.7"
+rand = { version = "0.7", features = ["small_rng"] }
 rusttype = "0.8"
 serde = "1"
 serde_derive = "1"
@@ -44,6 +44,7 @@ nannou_audio = "0.2"
 nannou_laser = "0.3"
 nannou_osc = "0.1"
 wikipedia = "0.3"
+usvg = "0.4"
 
 # --------------- Nannou Examples
 [[example]]
@@ -233,11 +234,29 @@ path = "examples/generative_design/shape/p_2_1_2_03.rs"
 name = "p_2_1_2_04"
 path = "examples/generative_design/shape/p_2_1_2_04.rs"
 [[example]]
+name = "p_2_1_3_01"
+path = "examples/generative_design/shape/p_2_1_3_01.rs"
+[[example]]
+name = "p_2_1_3_02"
+path = "examples/generative_design/shape/p_2_1_3_02.rs"
+[[example]]
+name = "p_2_1_3_03"
+path = "examples/generative_design/shape/p_2_1_3_03.rs"
+[[example]]
+name = "p_2_1_3_04"
+path = "examples/generative_design/shape/p_2_1_3_04.rs"
+[[example]]
 name = "p_2_1_3_05"
 path = "examples/generative_design/shape/p_2_1_3_05.rs"
 [[example]]
+name = "p_2_1_5_01"
+path = "examples/generative_design/shape/p_2_1_5_01.rs"
+[[example]]
 name = "p_2_1_5_02"
 path = "examples/generative_design/shape/p_2_1_5_02.rs"
+[[example]]
+name = "p_2_1_5_03"
+path = "examples/generative_design/shape/p_2_1_5_03.rs"
 [[example]]
 name = "p_2_2_1_01"
 path = "examples/generative_design/shape/p_2_2_1_01.rs"
@@ -259,6 +278,12 @@ path = "examples/generative_design/shape/p_2_2_5_01.rs"
 [[example]]
 name = "p_2_2_6_01"
 path = "examples/generative_design/shape/p_2_2_6_01.rs"
+[[example]]
+name = "p_2_3_1_01"
+path = "examples/generative_design/shape/p_2_3_1_01.rs"
+[[example]]
+name = "p_2_3_2_01"
+path = "examples/generative_design/shape/p_2_3_2_01.rs"
 # --------------- Type
 [[example]]
 name = "p_3_0_01"
@@ -272,6 +297,25 @@ path = "examples/generative_design/type/p_3_1_3_02.rs"
 [[example]]
 name = "p_3_2_1_01"
 path = "examples/generative_design/type/p_3_2_1_01.rs"
+# --------------- Image
+[[example]]
+name = "p_4_0_01"
+path = "examples/generative_design/image/p_4_0_01.rs"
+[[example]]
+name = "p_4_1_1_01"
+path = "examples/generative_design/image/p_4_1_1_01.rs"
+[[example]]
+name = "p_4_1_2_01"
+path = "examples/generative_design/image/p_4_1_2_01.rs"
+[[example]]
+name = "p_4_1_2_02"
+path = "examples/generative_design/image/p_4_1_2_02.rs"
+[[example]]
+name = "p_4_3_1_01"
+path = "examples/generative_design/image/p_4_3_1_01.rs"
+[[example]]
+name = "p_4_3_1_02"
+path = "examples/generative_design/image/p_4_3_1_02.rs"
 # --------------- Random and Noise
 [[example]]
 name = "m_1_1_01"
@@ -283,11 +327,20 @@ path = "examples/generative_design/random_and_noise/m_1_2_01.rs"
 name = "m_1_3_01"
 path = "examples/generative_design/random_and_noise/m_1_3_01.rs"
 [[example]]
+name = "m_1_3_02"
+path = "examples/generative_design/random_and_noise/m_1_3_02.rs"
+[[example]]
+name = "m_1_3_03"
+path = "examples/generative_design/random_and_noise/m_1_3_03.rs"
+[[example]]
 name = "m_1_5_02"
 path = "examples/generative_design/random_and_noise/m_1_5_02.rs"
 [[example]]
 name = "m_1_5_03"
 path = "examples/generative_design/random_and_noise/m_1_5_03.rs"
+[[example]]
+name = "m_1_5_04"
+path = "examples/generative_design/random_and_noise/m_1_5_04.rs"
 # --------------- Oscillation Figures
 [[example]]
 name = "m_2_1_01"

@@ -16,8 +16,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-use nannou::noise::{NoiseFn, Perlin, Seedable};
 /**
  * noise values (noise 2d) are used to animate a bunch of agents.
  *
@@ -28,6 +26,8 @@ use nannou::noise::{NoiseFn, Perlin, Seedable};
  * s                   : save png
  */
 use nannou::prelude::*;
+
+use nannou::noise::{NoiseFn, Perlin, Seedable};
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -94,7 +94,7 @@ impl Agent {
         self.angle = (self.angle - self.angle.floor()) * noise_strength as f32;
     }
 
-    fn display(&self, draw: &app::Draw, stroke_weight: f32, agent_alpha: f32) {
+    fn display(&self, draw: &Draw, stroke_weight: f32, agent_alpha: f32) {
         draw.line()
             .start(self.vector_old)
             .end(self.vector)

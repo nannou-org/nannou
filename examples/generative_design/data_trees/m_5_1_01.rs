@@ -60,7 +60,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 }
 
 // Recursive function
-fn draw_branch(draw: &app::Draw, x: f32, y: f32, radius: f32, level: u8) {
+fn draw_branch(draw: &Draw, x: f32, y: f32, radius: f32, level: u8) {
     use nannou::geom::path::Builder;
     let mut builder = Builder::new();
     builder = builder.arc(pt2(x, y), vec2(radius / 2.0, radius / 2.0), -PI, 0.0);

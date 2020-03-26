@@ -185,7 +185,7 @@ fn update(app: &App, m: &mut Model, _update: Update) {
 
     // Connect the bob to the spring (this calculates the force)
     m.spring.connect(&mut m.bob);
-    // Constrain spring diestnace between min and max
+    // Constrain spring distance between min and max
     m.spring.constrain_length(&mut m.bob, 30.0, 200.0);
 
     // Update bob

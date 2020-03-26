@@ -48,7 +48,7 @@ impl Circle {
         Circle { x, y, r }
     }
 
-    fn display(&self, draw: &app::Draw) {
+    fn display(&self, draw: &Draw) {
         draw.ellipse()
             .x_y(self.x, self.y)
             .radius(self.r)

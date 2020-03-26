@@ -101,23 +101,41 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     // TODO implement the Catmull–Rom spline algo in lyon, see curveVertex() in Processing
     // first control point
-    builder = builder.move_to(pt2(model.x[model.form_resolution - 1] + model.center_x, model.y[model.form_resolution - 1] + model.center_y));
+    builder = builder.move_to(pt2(
+        model.x[model.form_resolution - 1] + model.center_x,
+        model.y[model.form_resolution - 1] + model.center_y,
+    ));
     // only these points are drawn
     for i in 0..model.form_resolution {
-        builder = builder.quadratic_bezier_to(pt2(model.x[i] + model.center_x, model.y[i] + model.center_y), pt2(model.x[i] + model.center_x, model.y[i] + model.center_y));
+        builder = builder.quadratic_bezier_to(
+            pt2(model.x[i] + model.center_x, model.y[i] + model.center_y),
+            pt2(model.x[i] + model.center_x, model.y[i] + model.center_y),
+        );
     }
     let path = builder
-        .quadratic_bezier_to(pt2(model.x[0] + model.center_x, model.y[0]+model.center_y), pt2(model.x[0] + model.center_x, model.y[0]+model.center_y))
+        .quadratic_bezier_to(
+            pt2(model.x[0] + model.center_x, model.y[0] + model.center_y),
+            pt2(model.x[0] + model.center_x, model.y[0] + model.center_y),
+        )
         // end control point
-        .move_to(pt2(model.x[1] + model.center_x, model.y[1]+model.center_y))
+        .move_to(pt2(
+            model.x[1] + model.center_x,
+            model.y[1] + model.center_y,
+        ))
         .close()
         .build();
 
     if model.filled {
         let gray = random_f32();
-        draw.path().fill().rgba(gray,gray,gray,0.4).events(path.iter());
+        draw.path()
+            .fill()
+            .rgba(gray, gray, gray, 0.4)
+            .events(path.iter());
     } else {
-        draw.path().stroke().rgba(0.0,0.0,0.0,0.4).events(path.iter());
+        draw.path()
+            .stroke()
+            .rgba(0.0, 0.0, 0.0, 0.4)
+            .events(path.iter());
     }
 
     // Write to the window frame.
@@ -153,10 +171,9 @@ fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.center_x = app.mouse.x;
     model.center_y = app.mouse.y;
     let angle = (360.0 / model.form_resolution as f32).to_radians();
-    let radius = model.init_radius * random_range(0.5,1.0);
+    let radius = model.init_radius * random_range(0.5, 1.0);
     for i in 0..model.form_resolution {
         model.x[i] = (angle * i as f32).cos() * model.init_radius;
         model.y[i] = (angle * i as f32).sin() * model.init_radius;
-
     }
 }

@@ -45,12 +45,10 @@ struct Shape {
 
 impl Shape {
     fn new(x: f32, y: f32, r: f32) -> Self {
-        Shape {
-            x, y, r
-        }
+        Shape { x, y, r }
     }
 
-    fn display(&self, draw: &app::Draw, model: &Model) {
+    fn display(&self, draw: &Draw, model: &Model) {
         for i in (0..self.r as usize).step_by(model.density) {
             draw.ellipse()
                 .x_y(self.x, self.y)
@@ -60,7 +58,6 @@ impl Shape {
                 .stroke_weight(1.25)
                 .stroke(BLACK);
         }
-        
     }
 }
 
@@ -81,7 +78,6 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    
     let shapes = vec![Shape::new(0.0, 0.0, app.window_rect().w()); 1];
     Model {
         shapes,
@@ -105,7 +101,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
 }
 
 fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
-    model.shapes.push(Shape::new(app.mouse.x, app.mouse.y, random_range(model.min_radius, model.max_radius)));
+    model.shapes.push(Shape::new(
+        app.mouse.x,
+        app.mouse.y,
+        random_range(model.min_radius, model.max_radius),
+    ));
 }
 
 fn key_released(app: &App, model: &mut Model, key: Key) {

@@ -811,7 +811,7 @@ impl draw::Draw {
         let window_id = frame.window_id();
         let window = app
             .window(window_id)
-            .expect("no window to draw to for `app::Draw`'s window_id");
+            .expect("no window to draw to for `Draw`'s window_id");
 
         // Retrieve a renderer for this window.
         let renderers = app.draw_state.renderers.borrow_mut();

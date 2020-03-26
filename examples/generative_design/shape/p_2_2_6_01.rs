@@ -71,7 +71,7 @@ fn model(app: &App) -> Model {
         speed_relation: 2.0,
         center: vec2(0.0, 0.0),
         pendulum_paths: vec![Vec::new(); joints],
-        start_positions: vec![pt2(0.0,0.0); joints],
+        start_positions: vec![pt2(0.0, 0.0); joints],
         angle: 0.0,
         max_angle: 360.0,
         speed: 1.0,
@@ -81,7 +81,7 @@ fn model(app: &App) -> Model {
 }
 
 fn start_drawing(model: &mut Model) {
-    model.start_positions = vec![pt2(0.0,0.0); model.joints];
+    model.start_positions = vec![pt2(0.0, 0.0); model.joints];
     model.pendulum_paths = vec![Vec::new(); model.joints];
     // new empty array for each joint
     for i in 0..model.pendulum_paths.len() {
@@ -132,11 +132,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 draw.ellipse()
                     .x_y(pos.x, pos.y)
                     .radius(3.0)
-                    .rgba(0.0,0.0,0.0,0.5);
+                    .rgba(0.0, 0.0, 0.0, 0.5);
                 draw.line()
                     .start(pt2(pos.x, pos.y))
                     .end(pt2(next_pos.x, next_pos.y))
-                    .rgba(0.0,0.0,0.0,0.5);
+                    .rgba(0.0, 0.0, 0.0, 0.5);
             }
         }
     }
