@@ -1,6 +1,6 @@
 You can run any example by executing
 ```
-cargo run --example NAME_OF_THE_EXAMPLE
+cargo run --release --example NAME_OF_THE_EXAMPLE
 ```
 A detailed explanation can be found in [the nannou guide](https://www.guide.nannou.cc/getting_started/running_examples.html).
 
