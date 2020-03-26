@@ -9,6 +9,10 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/nannou-org/nannou_laser.git"
 homepage = "https://github.com/nannou-org/nannou_laser"
 
+[lib]
+name = "nannou_laser"
+crate-type = ["rlib", "staticlib", "cdylib"]
+
 [dependencies]
 derive_more = "0.14"
 failure = "0.1"

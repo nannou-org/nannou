@@ -43,6 +43,7 @@ pub struct Segments<I> {
 }
 
 /// Configuration options for eulerian circuit interpolation.
+#[repr(C)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct InterpolationConfig {
     /// The minimum distance the interpolator can travel along an edge before a new point is

@@ -15,6 +15,7 @@ pub type Rgb = [f32; 3];
 ///
 /// If two consecutive points have two different colours, the `color` values will be linearly
 /// interpolated.
+#[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Point {
     /// The position of the point. `-1` represents the minimum value along the axis and `1`
@@ -37,6 +38,7 @@ pub struct Point {
 ///
 /// If two consecutive points have two different colours, the `color` values will be linearly
 /// interpolated.
+#[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct RawPoint {
     /// The position of the point. `-1` represents the minimum value along the axis and `1`
