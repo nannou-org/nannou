@@ -33,8 +33,8 @@
  */
 use nannou::prelude::*;
 
-use nannou::noise::{Seedable, MultiFractal};
 use nannou::image;
+use nannou::noise::{MultiFractal, Seedable};
 
 fn main() {
     nannou::app(model).run();
@@ -78,7 +78,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
     frame.clear(BLACK);
 
     let win = app.window_rect();
-    let noise = nannou::noise::Fbm::new().set_seed(model.noise_random_seed).set_octaves(model.octaves);
+    let noise = nannou::noise::Fbm::new()
+        .set_seed(model.noise_random_seed)
+        .set_octaves(model.octaves);
 
     let noise_x_range = map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w() / 10.0);
     let noise_y_range = map_range(app.mouse.y, win.top(), win.bottom(), 0.0, win.h() / 10.0);
@@ -94,7 +96,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let n = noise.get([noise_x, noise_y]) * (std::u16::MAX as f64 / 10.0);
             noise_value = (n - n.floor()) as u16 * std::u16::MAX;
         }
-        nannou::image::Rgba([noise_value,noise_value,noise_value,std::u16::MAX])
+        nannou::image::Rgba([noise_value, noise_value, noise_value, std::u16::MAX])
     });
 
     let flat_samples = image.as_flat_samples();
@@ -123,13 +125,13 @@ fn key_released(app: &App, model: &mut Model, key: Key) {
         Key::S => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
-        },
+        }
         Key::Space => {
             model.noise_random_seed = (random_f32() * 100000.0) as u32;
-        },
+        }
         Key::Key1 => {
             model.noise_mode = 1;
-        },
+        }
         Key::Key2 => {
             model.noise_mode = 2;
         }
@@ -141,16 +143,16 @@ fn key_pressed(app: &App, model: &mut Model, key: Key) {
     match key {
         Key::Up => {
             model.falloff += 0.05;
-        },
+        }
         Key::Down => {
             model.falloff -= 0.05;
-        },
+        }
         Key::Left => {
             model.octaves -= 1;
-        },
+        }
         Key::Right => {
             model.octaves += 1;
-        },
+        }
         _otherkey => (),
     }
 

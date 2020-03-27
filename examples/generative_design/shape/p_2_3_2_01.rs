@@ -84,7 +84,6 @@ fn update(app: &App, model: &mut Model, _update: Update) {
                 model.y = app.mouse.y;
             }
         }
-        
     }
 }
 
@@ -92,18 +91,21 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let mut draw = app.draw();
     if frame.nth() == 0 || app.keys.down.contains(&Key::Delete) {
         frame.clear(WHITE);
-    } 
+    }
 
     if model.dist > model.step_size {
         draw = draw.x_y(model.x, model.y).rotate(model.angle);
         let c = if app.elapsed_frames() % 2 == 0 {
-            rgba(0.6,0.6,0.6,1.0)
+            rgba(0.6, 0.6, 0.6, 1.0)
         } else {
             model.col
         };
         draw.line()
-            .start(pt2(0.0,0.0))
-            .end(pt2(0.0, model.line_length * random_range(0.95,1.0) * model.dist / 10.0))
+            .start(pt2(0.0, 0.0))
+            .end(pt2(
+                0.0,
+                model.line_length * random_range(0.95, 1.0) * model.dist / 10.0,
+            ))
             .color(c);
     }
 
@@ -121,10 +123,10 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     match key {
         Key::Up => {
             model.line_length += 5.0;
-        },
+        }
         Key::Down => {
             model.line_length -= 5.0;
-        },
+        }
         _otherkey => (),
     }
 }
@@ -134,14 +136,14 @@ fn key_released(app: &App, model: &mut Model, key: Key) {
         Key::S => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
-        },
+        }
         // default colors from 1 to 4
         Key::Key1 => {
             model.draw_mode = 1;
-        },
+        }
         Key::Key2 => {
             model.draw_mode = 2;
-        },
+        }
         _otherkey => (),
-    } 
+    }
 }

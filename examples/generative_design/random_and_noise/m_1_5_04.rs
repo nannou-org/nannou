@@ -52,16 +52,25 @@ struct Agent {
 }
 
 impl Agent {
-    fn new(win_rect: Rect, noise_sticking_range: f32, agent_alpha: f32, noise_scale: f64, noise_strength: f64, agent_width_min: f32, agent_width_max: f32, noise_z_velocity: f64) -> Self {
+    fn new(
+        win_rect: Rect,
+        noise_sticking_range: f32,
+        agent_alpha: f32,
+        noise_scale: f64,
+        noise_strength: f64,
+        agent_width_min: f32,
+        agent_width_max: f32,
+        noise_z_velocity: f64,
+    ) -> Self {
         let vector = vec2(
             random_range(win_rect.left(), win_rect.right()),
             random_range(win_rect.top(), win_rect.bottom()),
         );
         let randomizer = random_f32();
         let color = if randomizer < 0.5 {
-            hsla(random_range(0.47,0.52), 0.7, random_f32(), agent_alpha)
+            hsla(random_range(0.47, 0.52), 0.7, random_f32(), agent_alpha)
         } else {
-            hsla(random_range(0.11,0.16), 0.7, random_f32(), agent_alpha)
+            hsla(random_range(0.11, 0.16), 0.7, random_f32(), agent_alpha)
         };
         Agent {
             vector,
@@ -112,12 +121,13 @@ impl Agent {
             self.vector_old.y = self.vector.y;
         }
 
-        self.agent_width = nannou::geom::range::Range::new(self.agent_width_min, self.agent_width_max).lerp(self.randomizer);
+        self.agent_width =
+            nannou::geom::range::Range::new(self.agent_width_min, self.agent_width_max)
+                .lerp(self.randomizer);
 
         if draw_mode == 2 {
             self.agent_width *= 2.0;
         }
-
     }
 
     fn display(&self, draw: &Draw, draw_mode: u8, stroke_weight: f32) {
@@ -128,7 +138,9 @@ impl Agent {
                 .color(self.color)
                 .stroke_weight(stroke_weight * self.step_size);
 
-            let draw = draw.x_y(self.vector_old.x, self.vector_old.y).rotate((self.vector.y - self.vector_old.y).atan2(self.vector.x - self.vector_old.x));
+            let draw = draw.x_y(self.vector_old.x, self.vector_old.y).rotate(
+                (self.vector.y - self.vector_old.y).atan2(self.vector.x - self.vector_old.x),
+            );
 
             draw.line()
                 .start(pt2(0.0, -self.agent_width))
@@ -171,7 +183,18 @@ fn model(app: &App) -> Model {
     let agent_width_min = 1.5;
     let agent_width_max = 15.0;
     let agents = (0..agent_count)
-        .map(|_| Agent::new(app.window_rect(), noise_sticking_range, agent_alpha, noise_scale, noise_strength, agent_width_min, agent_width_max, noise_z_velocity))
+        .map(|_| {
+            Agent::new(
+                app.window_rect(),
+                noise_sticking_range,
+                agent_alpha,
+                noise_scale,
+                noise_strength,
+                agent_width_min,
+                agent_width_max,
+                noise_z_velocity,
+            )
+        })
         .collect();
 
     Model {

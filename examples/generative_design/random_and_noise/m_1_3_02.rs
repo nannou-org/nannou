@@ -28,9 +28,9 @@
  */
 use nannou::prelude::*;
 
+use nannou::image;
 use nannou::rand::{Rng, SeedableRng};
 use rand::rngs::SmallRng;
-use nannou::image;
 
 fn main() {
     nannou::app(model).run();
@@ -71,8 +71,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let mut rng = SmallRng::seed_from_u64(model.act_random_seed);
 
     let image = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |_x, _y| {
-        let r: u16 = rng.gen_range(0,std::u16::MAX);
-        nannou::image::Rgba([r,r,r,std::u16::MAX])
+        let r: u16 = rng.gen_range(0, std::u16::MAX);
+        nannou::image::Rgba([r, r, r, std::u16::MAX])
     });
 
     let flat_samples = image.as_flat_samples();

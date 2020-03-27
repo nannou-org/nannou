@@ -84,7 +84,7 @@ fn model(app: &App) -> Model {
         crop_y: 100.0,
         select_mode: true,
         random_mode: false,
-        selected_mouse_pos: pt2(0.0,0.0),
+        selected_mouse_pos: pt2(0.0, 0.0),
     }
 }
 
@@ -180,7 +180,7 @@ fn mouse_moved(app: &App, model: &mut Model, pos: Point2) {
     }
 
     let htw = model.tile_width / 2.0;
-    let hth = model.tile_height / 2.0; 
+    let hth = model.tile_height / 2.0;
     model.crop_x = clamp(app.mouse.x, win.left() + htw, win.right() - htw);
     model.crop_y = clamp(app.mouse.y, win.top() - hth, win.bottom() + hth);
 }

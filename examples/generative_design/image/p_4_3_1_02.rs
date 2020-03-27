@@ -25,10 +25,10 @@
  */
 use nannou::prelude::*;
 
-use nannou::lyon::math::Point;
-use nannou::lyon::path::PathEvent;
 use nannou::image;
 use nannou::image::GenericImageView;
+use nannou::lyon::math::Point;
+use nannou::lyon::path::PathEvent;
 
 fn main() {
     nannou::app(model).run();
@@ -69,7 +69,11 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    let svg_assets_path = app.assets_path().unwrap().join("svg").join("generative_examples");
+    let svg_assets_path = app
+        .assets_path()
+        .unwrap()
+        .join("svg")
+        .join("generative_examples");
 
     let mut assets = Vec::new();
     assets.push(svg_assets_path.join("056.svg"));
@@ -92,7 +96,7 @@ fn model(app: &App) -> Model {
         let opt = usvg::Options::default();
         let rtree = usvg::Tree::from_file(&asset, &opt).unwrap();
         let view_box = rtree.svg_node().view_box;
-    
+
         for node in rtree.root().descendants() {
             if let usvg::NodeKind::Path(ref p) = *node.borrow() {
                 if let Some(ref stroke) = p.stroke {
@@ -105,7 +109,7 @@ fn model(app: &App) -> Model {
                         ),
                         _ => rgba(0.0, 0.0, 0.0, 1.0),
                     };
-    
+
                     let path_events = convert_path(p);
                     let mut v = Vec::new();
                     for e in path_events {
@@ -119,18 +123,17 @@ fn model(app: &App) -> Model {
             }
         }
     }
-    
-    let img_path = app.assets_path().unwrap()
+
+    let img_path = app
+        .assets_path()
+        .unwrap()
         .join("images")
         .join("generative_examples")
         .join("p_4_3_1_01.png");
 
     let image = image::open(img_path).unwrap();
 
-    Model { 
-        image,
-        shapes 
-    }
+    Model { image, shapes }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
@@ -140,7 +143,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     let win = app.window_rect();
 
-    let (w,h) = model.image.dimensions();
+    let (w, h) = model.image.dimensions();
     for grid_x in 0..w {
         for grid_y in 0..h {
             // get current color
@@ -150,12 +153,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let green = c[1] as f32 / 255.0;
             let blue = c[2] as f32 / 255.0;
             let greyscale = red * 0.222 + green * 0.707 + blue * 0.071;
-            let gradient_to_index = map_range(greyscale, 0.0, 1.0, 0, model.shapes.len()-1);
+            let gradient_to_index = map_range(greyscale, 0.0, 1.0, 0, model.shapes.len() - 1);
 
             // Grid position + tile size
             let tile_width = 603.0 / w as f32;
             let tile_height = 873.0 / h as f32;
-            let pos_x = win.left() +  tile_width * grid_x as f32 + (tile_width / 2.0);
+            let pos_x = win.left() + tile_width * grid_x as f32 + (tile_width / 2.0);
             let pos_y = win.top() - tile_height * grid_y as f32 - (tile_height / 2.0);
 
             let shape = &model.shapes[gradient_to_index];
@@ -166,7 +169,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             draw.path()
                 .stroke()
                 .stroke_weight(weight)
-                .rgb(red,green,blue)
+                .rgb(red, green, blue)
                 .events(e)
                 .x_y(pos_x, pos_y);
         }
