@@ -1,4 +1,4 @@
-// P_3_1_3_02
+// P_3_1_3_03
 //
 // Generative Gestaltung – Creative Coding im Web
 // ISBN: 978-3-87439-902-9, First Edition, Hermann Schmidt, Mainz, 2018
@@ -19,20 +19,23 @@
 
 /**
  * analysing and sorting the letters of a text
- * connecting subsequent letters with lines
+ * drawing the letters frequency with lines and ellipses
  *
  * MOUSE
- * position x          : interpolate between normal text and sorted position
+ * position x          : random angle
+ * position y          : line length, size of ellipses, tracking
  *
  * KEYS
- * 1                   : toggle lines on/off
- * 2                   : toggle text on/off
- * 3                   : switch all letters off
- * 4                   : switch all letters on
- * a-z                 : switch letter on/off
- * CONTROL             : save png
+ * 1                   : toggle alpha mode
+ * 2                   : toggle drawing of lines
+ * 3                   : toggle drawing of ellipses
+ * 4                   : toggle drawing of text
+ * s                   : save png
  */
 use nannou::prelude::*;
+use nannou::rand::{Rng, SeedableRng};
+
+use rand::rngs::StdRng;
 
 fn main() {
     nannou::app(model).run();
@@ -42,9 +45,11 @@ struct Model {
     joined_text: String,
     alphabet: String,
     counters: Vec<u32>,
-    draw_letters: Vec<bool>,
+    draw_alpha: bool,
     draw_lines: bool,
+    draw_ellipses: bool,
     draw_text: bool,
+    act_random_seed: u64,
 }
 
 fn model(app: &App) -> Model {
@@ -52,6 +57,7 @@ fn model(app: &App) -> Model {
         .new_window()
         .size(1200, 800)
         .view(view)
+        .mouse_pressed(mouse_pressed)
         .key_released(key_released)
         .build()
         .unwrap();
@@ -64,15 +70,16 @@ fn model(app: &App) -> Model {
     let joined_text = std::fs::read_to_string(text_path).unwrap().parse().unwrap();
     let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜß,.;:!? ".to_string();
     let counters = vec![0; alphabet.len()];
-    let draw_letters = vec![true; alphabet.len()];
 
     let mut model = Model {
         joined_text,
         alphabet,
         counters,
-        draw_letters,
-        draw_lines: false,
-        draw_text: true,
+        draw_alpha: true,
+        draw_lines: true,
+        draw_ellipses: true,
+        draw_text: false,
+        act_random_seed: 47,
     };
 
     count_characters(&mut model);
@@ -84,10 +91,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let win = app.window_rect();
     draw.background().color(WHITE);
 
-    let mut pos_x = win.left() + 20.0;
-    let mut pos_y = win.top() - 200.0;
-    let mut old_x = 0.0;
-    let mut old_y = 0.0;
+    let mut pos_x = win.left() + 80.0;
+    let mut pos_y = win.top() - 300.0;
+
+    let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 
     // go through all characters in the text to draw them
     for c in model.joined_text.chars() {
@@ -98,44 +105,58 @@ fn view(app: &App, model: &Model, frame: Frame) {
             continue;
         }
 
-        let sort_y = win.top() - (index.unwrap() * 20 + 40) as f32;
-        let m = clamp(
+        // calculate parameters
+        let mut char_alpha = 1.0;
+        if model.draw_alpha {
+            char_alpha = model.counters[index.unwrap()] as f32 / 100.0;
+        }
+
+        let my = clamp(
+            map_range(app.mouse.y, win.top() - 50.0, win.bottom() + 50.0, 0.0, 1.0),
+            0.0,
+            1.0,
+        );
+        let char_size = model.counters[index.unwrap()] as f32 * my * 3.0;
+
+        let mx = clamp(
             map_range(app.mouse.x, win.left() + 50.0, win.right() - 50.0, 0.0, 1.0),
             0.0,
             1.0,
         );
-        let inter_y = nannou::geom::range::Range::new(pos_y, sort_y).lerp(m);
+        let line_length = char_size;
+        let line_angle = rng.gen_range(-PI, PI) * mx * (PI / 2.0);
+        let new_pos_x = line_length * line_angle.cos();
+        let new_pos_y = line_length * line_angle.sin();
 
-        if model.draw_letters[index.unwrap()] {
-            if model.draw_lines {
-                if old_x != 0.0 && old_y != 0.0 {
-                    draw.line()
-                        .start(pt2(old_x, old_y))
-                        .end(pt2(pos_x, inter_y))
-                        .weight(1.5)
-                        .rgba(0.7, 0.6, 0.0, 0.6);
-                }
-                old_x = pos_x;
-                old_y = inter_y;
-            }
-            if model.draw_text {
-                let character = &c.to_string();
-                let text = text(character).font_size(18).build(win);
-                draw.path()
-                    .fill()
-                    .x_y(pos_x, inter_y)
-                    .rgb(0.34, 0.13, 0.5)
-                    .events(text.path_events());
-            }
-        } else {
-            old_x = 0.0;
-            old_y = 0.0;
+        // draw elements
+        let draw = draw.x_y(pos_x, pos_y);
+        if model.draw_lines {
+            draw.line()
+                .start(pt2(0.0, 0.0))
+                .end(pt2(new_pos_x, new_pos_y))
+                .hsva(0.75, 0.73, 0.51, char_alpha);
+        }
+        if model.draw_ellipses {
+            draw.ellipse()
+                .x_y(0.0, 0.0)
+                .radius(char_size / 20.0)
+                .hsva(0.14, 1.0, 0.71, char_alpha);
+        }
+        if model.draw_text {
+            let character = &c.to_string();
+            let text = text(character).font_size(18).build(win);
+            draw.path()
+                .fill()
+                .x_y(new_pos_x, new_pos_y)
+                .rgba(0.0, 0.0, 0.0, char_alpha)
+                .events(text.path_events());
         }
 
         pos_x += 9.0;
         if pos_x >= win.right() - 200.0 && upper_case_char == ' ' {
-            pos_y -= 40.0;
-            pos_x = win.left() + 20.0;
+            let tracking = 27.0;
+            pos_y -= tracking * my + 30.0;
+            pos_x = win.left() + 80.0;
         }
     }
 
@@ -155,6 +176,10 @@ fn count_characters(model: &mut Model) {
     }
 }
 
+fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
+    model.act_random_seed = (random_f32() * 100000.0) as u64;
+}
+
 fn key_released(app: &App, model: &mut Model, key: Key) {
     match key {
         Key::LControl | Key::RControl => {
@@ -162,20 +187,16 @@ fn key_released(app: &App, model: &mut Model, key: Key) {
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
         Key::Key1 => {
-            model.draw_lines = !model.draw_lines;
+            model.draw_alpha = !model.draw_alpha;
         }
         Key::Key2 => {
-            model.draw_text = !model.draw_text;
+            model.draw_lines = !model.draw_lines;
         }
         Key::Key3 => {
-            for i in 0..model.alphabet.len() {
-                model.draw_letters[i] = false;
-            }
+            model.draw_ellipses = !model.draw_ellipses;
         }
         Key::Key4 => {
-            for i in 0..model.alphabet.len() {
-                model.draw_letters[i] = true;
-            }
+            model.draw_text = !model.draw_text;
         }
         _other_key => {}
     }
