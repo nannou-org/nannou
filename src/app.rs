@@ -1391,8 +1391,8 @@ where
     }
 
     // Update the modifier keys within the app if necessary.
-    if let winit::event::Event::DeviceEvent { event, .. } = winit_event {
-        if let winit::event::DeviceEvent::ModifiersChanged(new_mods) = event {
+    if let winit::event::Event::WindowEvent { event, .. } = winit_event {
+        if let winit::event::WindowEvent::ModifiersChanged(new_mods) = event {
             app.keys.mods = new_mods.clone();
         }
     }

@@ -287,6 +287,10 @@ impl WindowEvent {
                 None => return None,
             },
 
+            winit::event::WindowEvent::ModifiersChanged(_) => {
+                return None;
+            },
+
             winit::event::WindowEvent::AxisMotion { .. }
             | winit::event::WindowEvent::ReceivedCharacter(_)
             | winit::event::WindowEvent::ThemeChanged(_)

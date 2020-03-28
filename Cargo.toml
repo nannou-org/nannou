@@ -35,7 +35,7 @@ threadpool = "1"
 toml = "0.5"
 walkdir = "2"
 wgpu = "0.4"
-winit = "0.21"
+winit = "0.22"
 
 [dev-dependencies]
 audrey = "0.2"
