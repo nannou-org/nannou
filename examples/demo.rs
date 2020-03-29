@@ -4,6 +4,13 @@ extern crate nannou;
 extern crate nannou_timeline as timeline;
 extern crate pitch_calc;
 extern crate time_calc;
+// Conditionally compile with or with out serde i.e. serialization and thereby saving and loading.
+// To use, run with `cargo run --release --example demo --features "serde"
+#[cfg(feature = "serde1")]
+#[macro_use]
+extern crate serde;
+#[cfg(feature = "serde1")]
+extern crate serde_json;
 
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
@@ -32,6 +39,8 @@ struct Model {
     playing: bool,
 }
 
+// Implement the Serialize and Deserialize traits only if the serde feature is enabled.
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 struct TimelineData {
     playhead_ticks: time::Ticks,
     bars: Vec<time::TimeSig>,
@@ -55,8 +64,8 @@ fn model(app: &App) -> Model {
     let _window = app
         .new_window()
         .key_pressed(key_pressed)
-        .with_dimensions(WIDTH, HEIGHT)
-        .with_title("Timeline Demo")
+        .size(WIDTH, HEIGHT)
+        .title("Timeline Demo")
         .view(view)
         .build()
         .unwrap();
@@ -221,8 +230,8 @@ fn update(_app: &App, model: &mut Model, update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: &Frame) {
-    model.ui.draw_to_frame(app, frame).unwrap();
+fn view(app: &App, model: &Model, frame: Frame) {
+    model.ui.draw_to_frame(app, &frame).unwrap();
 }
 
 // Update / draw the Ui.
@@ -399,6 +408,22 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
                     piano_roll::Note { period, pitch }
                 })
                 .collect();
+        }
+        Key::S => {
+            // Save model.timeline_data to a JSON file.
+            // This part is only included if you compile with the serde feature enabled.
+            #[cfg(feature = "serde1")] {
+                nannou::io::save_to_json("./saved_timeline_data.json", &model.timeline_data).expect("Error saving file");
+            }
+        }
+        Key::L => {
+            // Load the model.timeline_data from a JSON file.
+            // This part is only included if you compile with the serde feature enabled.
+            #[cfg(feature = "serde1")] {
+                if let Ok(new_data) = nannou::io::load_from_json("./saved_timeline_data.json") {
+                    model.timeline_data = new_data;
+                }
+            }
         }
         _ => {}
     }

@@ -2,6 +2,7 @@ use envelope;
 
 /// A wrapper around a boolean value for a Point implementation.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Toggle(pub bool);
 
 impl ::std::ops::Deref for Toggle {

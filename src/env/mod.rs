@@ -16,6 +16,7 @@ pub mod toggle;
 
 /// A generic envelope type.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Envelope<T> {
     pub points: Vec<Point<T>>,
 }

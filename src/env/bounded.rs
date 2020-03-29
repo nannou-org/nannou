@@ -7,6 +7,7 @@ use time_calc as time;
 
 /// An envelope with some min and max for the value range.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Envelope<T> {
     pub min: T,
     pub max: T,

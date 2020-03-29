@@ -12,6 +12,9 @@ extern crate itertools;
 extern crate num;
 extern crate pitch_calc;
 extern crate time_calc;
+#[cfg(feature = "serde1")]
+#[macro_use]
+extern crate serde;
 
 pub use period::Period;
 pub use playhead::Playhead;
