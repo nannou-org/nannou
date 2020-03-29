@@ -1,4 +1,4 @@
-// P_1_2_3_03
+// P_1_2_3_04
 //
 // Generative Gestaltung – Creative Coding im Web
 // ISBN: 978-3-87439-902-9, First Edition, Hermann Schmidt, Mainz, 2018
@@ -70,7 +70,7 @@ fn model(app: &App) -> Model {
         saturation_values,
         brightness_values,
         alpha_value: 0.75,
-        act_random_seed: 52126,
+        act_random_seed: 0,
         clicked: true,
         clicked_frame: 0,
     }
@@ -87,7 +87,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
             model.brightness_values[i] = rng.gen::<f32>();
         } else {
             model.hue_values[i] = 0.54;
-            model.saturation_values[i] = rng.gen::<f32>();
+            model.saturation_values[i] = rng.gen::<f32>() * 0.2;
             model.brightness_values[i] = 1.0;
         }
     }
@@ -142,35 +142,36 @@ fn view(app: &App, model: &Model, frame: Frame) {
             for ii in 0..parts.len() {
                 sum_parts_now += parts[ii as usize];
 
-                let x = map_range(
-                    sum_parts_now,
-                    0,
-                    sum_parts_total,
-                    app.window_rect().left(),
-                    app.window_rect().right(),
-                );
-                let y = app.window_rect().top() - (row_height * i) as f32;
-                let w = -map_range(parts[ii], 0, sum_parts_total, 0.0, app.window_rect().w());
-                let h = row_height as f32 * 1.5;
-
-                let index = counter % model.color_count;
-                let rect = nannou::geom::rect::Rect::from_x_y_w_h(0.0, 0.0, w, h);
-                let points_colored = rect.corners_iter().map(|c| {
-                    let lum = map_range(c.y, h / 2.0, -h / 2.0, 0.0, 1.0);
-
-                    let col = hsva(
-                        model.hue_values[index as usize],
-                        model.saturation_values[index as usize],
-                        model.brightness_values[index as usize],
-                        model.alpha_value * lum,
+                if rng.gen::<f32>() < 0.45 {
+                    let x = map_range(
+                        sum_parts_now,
+                        0,
+                        sum_parts_total,
+                        app.window_rect().left(),
+                        app.window_rect().right(),
                     );
-                    (pt2(c.x, c.y), col)
-                });
+                    let y = app.window_rect().top() - (row_height * i) as f32;
+                    let w = -map_range(parts[ii], 0, sum_parts_total, 0.0, app.window_rect().w());
+                    let h = row_height as f32 * 1.5;
 
-                draw.polygon()
-                    .x_y(x + (w / 2.0), y - (h / 2.0))
-                    .points_colored(points_colored);
+                    let index = counter % model.color_count;
+                    let rect = nannou::geom::rect::Rect::from_x_y_w_h(0.0, 0.0, w, h);
+                    let points_colored = rect.corners_iter().map(|c| {
+                        let lum = map_range(c.y, h / 2.0, -h / 2.0, 0.0, 1.0);
 
+                        let col = hsva(
+                            model.hue_values[index as usize],
+                            model.saturation_values[index as usize],
+                            model.brightness_values[index as usize],
+                            model.alpha_value * lum,
+                        );
+                        (pt2(c.x, c.y), col)
+                    });
+
+                    draw.polygon()
+                        .x_y(x + (w / 2.0), y - (h / 2.0))
+                        .points_colored(points_colored);
+                }
                 counter += 1;
             }
         }

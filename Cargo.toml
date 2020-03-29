@@ -194,6 +194,9 @@ path = "examples/generative_design/color/p_1_1_2_01.rs"
 name = "p_1_2_1_01"
 path = "examples/generative_design/color/p_1_2_1_01.rs"
 [[example]]
+name = "p_1_2_2_01"
+path = "examples/generative_design/color/p_1_2_2_01.rs"
+[[example]]
 name = "p_1_2_3_01"
 path = "examples/generative_design/color/p_1_2_3_01.rs"
 [[example]]
@@ -202,6 +205,9 @@ path = "examples/generative_design/color/p_1_2_3_02.rs"
 [[example]]
 name = "p_1_2_3_03"
 path = "examples/generative_design/color/p_1_2_3_03.rs"
+[[example]]
+name = "p_1_2_3_04"
+path = "examples/generative_design/color/p_1_2_3_04.rs"
 # --------------- Shape
 [[example]]
 name = "p_2_0_01"
@@ -322,6 +328,9 @@ path = "examples/generative_design/image/p_4_3_1_01.rs"
 [[example]]
 name = "p_4_3_1_02"
 path = "examples/generative_design/image/p_4_3_1_02.rs"
+[[example]]
+name = "p_4_3_2_01"
+path = "examples/generative_design/image/p_4_3_2_01.rs"
 # --------------- Random and Noise
 [[example]]
 name = "m_1_1_01"
