@@ -12,9 +12,6 @@ matrix:
         - name: "Test nightly"
           rust: nightly
 
-        - name: "Test beta"
-          rust: beta
-
         - name: "Test stable"
           rust: stable
 
@@ -27,5 +24,6 @@ matrix:
               - cargo doc --no-deps -v
 
 script:
-    - cargo build -v
+    - cargo check -v
     - cargo test -v
+    - cargo test --all-features -v
