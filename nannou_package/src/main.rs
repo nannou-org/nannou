@@ -157,7 +157,7 @@ fn main() {
     // Create a build name.
     //
     // TODO: The following `arch` and `os` assumes that the pre-built target exe was built on the
-    // same architecture with which this `nannou-package` exe was built. This should be fixed to
+    // same architecture with which this `nannou_package` exe was built. This should be fixed to
     // use the *actual* target that we're packaging properly somehow. This would be especially
     // useful if someone was cross-compiling for multiple platforms on one machine.
     let arch =

@@ -1,9 +1,9 @@
-# nannou-package
+# nannou_package
 
 A simple tool for packaging nannou project builds.
 
 This tool is useful for packaging nannou projects into a named and dated
-architecture-specific archive for distribution. The **nannou-package** tool does
+architecture-specific archive for distribution. The **nannou_package** tool does
 the following:
 
 1. Finds the parent Cargo.toml directory.
@@ -15,15 +15,15 @@ the following:
 7. Zips the entire new directory.
 8. Removes the new directory.
 
-Install the **nannou-package** tool with the following:
+Install the **nannou_package** tool with the following:
 
 ```
-cargo install nannou-package
+cargo install nannou_package
 ```
 
-Use the tool by changing to the project directory, running nannou-package and
+Use the tool by changing to the project directory, running nannou_package and
 following the prompts. **NOTE** that the project must be built before running
-**nannou-package**, otherwise there will be no executable to package. In other
+**nannou_package**, otherwise there will be no executable to package. In other
 words one of the following two commands must be run before packaging:
 
 - `cargo build --release`
