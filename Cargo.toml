@@ -11,3 +11,5 @@ hotglsl = { path = "../hotglsl" }
 isf = { git = "https://github.com/nannou-org/isf", branch = "master" }
 nannou = { git = "https://github.com/nannou-org/nannou", branch = "master" }
 thiserror = "1"
+threadpool = "1"
+walkdir = "2"

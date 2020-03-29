@@ -1,5 +1,5 @@
 use nannou::prelude::*;
-use nannou_isf::IsfPipeline;
+use nannou_isf::{IsfPipeline, IsfTime};
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -8,6 +8,7 @@ fn main() {
 struct Model {
     watch: hotglsl::Watch,
     isf_pipeline: IsfPipeline,
+    isf_time: IsfTime,
 }
 
 fn model(app: &App) -> Model {
@@ -15,52 +16,78 @@ fn model(app: &App) -> Model {
 
     // Watch the shader directory.
     let assets = app.assets_path().unwrap();
-    let shader_dir = assets.join("glsl");
+    let images_dir = assets.join("images");
+    let shader_dir = assets.join("isf");
     let watch = hotglsl::watch(&shader_dir).unwrap();
 
     // Create the hotloaded render pipeline.
     let window = app.main_window();
     let device = window.swap_chain_device();
-    let vs_path = shader_dir.join("shader.vert");
-    let fs_path = shader_dir.join("shader.frag");
+    let vs_path = None;
+    let fs_path = shader_dir.join("Test-Float.fs");
     let dst_format = Frame::TEXTURE_FORMAT;
     let sample_count = window.msaa_samples();
+    let desc = wgpu::CommandEncoderDescriptor::default();
+    let mut encoder = device.create_command_encoder(&desc);
+    let (dst_w, dst_h) = window.inner_size_pixels();
     let isf_pipeline = IsfPipeline::new(
         device,
+        &mut encoder,
         vs_path,
         fs_path,
         dst_format,
+        [dst_w, dst_h],
         sample_count,
+        &images_dir,
     );
+    window
+        .swap_chain_queue()
+        .lock()
+        .unwrap()
+        .submit(&[encoder.finish()]);
+
+    let isf_time = Default::default();
 
     Model {
         watch,
         isf_pipeline,
+        isf_time,
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model, update: Update) {
     let window = app.main_window();
     let device = window.swap_chain_device();
     // Feed new compilation result to the render pipeline for hotloading.
-    let compilation_results = model.watch.compile_touched().unwrap();
-    model.isf_pipeline.update_shaders(device, compilation_results);
+    let touched_shaders = model.watch.paths_touched().unwrap();
+    let assets = app.assets_path().unwrap();
+    let images_dir = assets.join("images");
+    let desc = wgpu::CommandEncoderDescriptor::default();
+    let mut encoder = device.create_command_encoder(&desc);
+    model.isf_pipeline.encode_update(device, &mut encoder, &images_dir, touched_shaders);
+    window
+        .swap_chain_queue()
+        .lock()
+        .unwrap()
+        .submit(&[encoder.finish()]);
+    model.isf_time.time = update.since_start.secs() as _;
+    model.isf_time.time_delta = update.since_last.secs() as _;
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
     frame.clear(BLACK);
 
     // Encode a command to draw the render pipeline to the frame's texture.
-    model.isf_pipeline.encode_to_frame(&frame);
+    model.isf_pipeline.encode_to_frame(&frame, model.isf_time);
 
     // Draw some feedback.
     let win = app.window_rect();
     let draw = app.draw();
-    let (vs_string, vs_color) = match model.isf_pipeline.vs_compile_err() {
+    let (vs_string, vs_color) = match model.isf_pipeline.vs_err() {
         None => (format!("Vertex Shader: Compiled Successfully!"), GREEN),
         Some(e) => (format!("Vertex Shader:\n{}", e), RED),
     };
-    let (fs_string, fs_color) = match model.isf_pipeline.fs_compile_err() {
+    let (fs_string, fs_color) = match model.isf_pipeline.fs_err() {
         None => (format!("Fragment Shader: Compiled Successfully!"), GREEN),
         Some(e) => (format!("Fragment Shader:\n{}", e), RED),
     };

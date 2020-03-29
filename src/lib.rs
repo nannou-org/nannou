@@ -1,7 +1,7 @@
 //! A crate aimed at making it easy to set up an ISF hot-loading environment with nannou.
 
 use std::path::Path;
-pub use crate::pipeline::IsfPipeline;
+pub use crate::pipeline::{IsfPipeline, IsfTime};
 
 mod pipeline;
 
