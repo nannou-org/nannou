@@ -2,6 +2,7 @@
 
 pub extern crate ether_dream;
 
+pub mod ffi;
 pub mod lerp;
 pub mod point;
 pub mod stream;
