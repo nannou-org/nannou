@@ -1,0 +1,21 @@
+[package]
+name = "nannou_laser"
+version = "0.3.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+description = "A cross-platform laser DAC detection and streaming API."
+edition = "2018"
+keywords = ["laser", "dac", "stream", "frame", "ether-dream"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/nannou-org/nannou_laser.git"
+homepage = "https://github.com/nannou-org/nannou_laser"
+
+[lib]
+name = "nannou_laser"
+crate-type = ["rlib", "staticlib", "cdylib"]
+
+[dependencies]
+derive_more = "0.14"
+failure = "0.1"
+hashbrown = "0.2"
+ether-dream = "0.2"
+petgraph = "0.4"
