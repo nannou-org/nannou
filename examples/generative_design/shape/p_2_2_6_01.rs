@@ -157,7 +157,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             draw.polyline()
                 .weight(weight)
                 .join_round()
-                .colored_points(vertices);
+                .points_colored(vertices);
         }
     }
 

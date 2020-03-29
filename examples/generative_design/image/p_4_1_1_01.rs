@@ -93,8 +93,8 @@ fn crop_tiles(app: &App, model: &mut Model, win: Rect) {
     model.tile_height = win.h() / model.tile_count_x as f32;
     model.tile_count = model.tile_count_x * model.tile_count_y;
     model.img_tiles = Vec::new();
-    for grid_y in 0..model.tile_count_y {
-        for grid_x in 0..model.tile_count_x {
+    for _ in 0..model.tile_count_y {
+        for _ in 0..model.tile_count_x {
             if model.random_mode {
                 model.crop_x = random_range(
                     app.mouse.x - model.tile_width / 2.0,

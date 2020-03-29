@@ -163,7 +163,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
             let shape = &model.shapes[gradient_to_index];
             let weight = shape.weight;
-            let c = shape.color;
+            let _c = shape.color;
             let e = shape.events.iter().cloned();
 
             draw.path()
@@ -177,7 +177,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, _model: &mut Model, key: Key) {
     if key == Key::S {
         app.main_window()
             .capture_frame(app.exe_name().unwrap() + ".png");

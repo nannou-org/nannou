@@ -108,7 +108,7 @@ fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
     ));
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, _model: &mut Model, key: Key) {
     if key == Key::S {
         app.main_window()
             .capture_frame(app.exe_name().unwrap() + ".png");

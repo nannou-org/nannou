@@ -47,7 +47,6 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
-        .key_pressed(key_pressed)
         .key_released(key_released)
         .build()
         .unwrap();
@@ -80,9 +79,6 @@ fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
 }
 fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
     model.mouse_drag = false;
-}
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
-    //model.letter = key.into();
 }
 fn key_released(app: &App, _model: &mut Model, key: Key) {
     if key == Key::LControl || key == Key::RControl {

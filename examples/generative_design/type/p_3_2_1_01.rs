@@ -111,7 +111,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, _model: &mut Model, _key: Key) {
     //model.letter = key.into();
 }
 fn key_released(app: &App, _model: &mut Model, key: Key) {

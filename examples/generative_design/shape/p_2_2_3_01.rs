@@ -171,7 +171,7 @@ fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.center_x = app.mouse.x;
     model.center_y = app.mouse.y;
     let angle = (360.0 / model.form_resolution as f32).to_radians();
-    let radius = model.init_radius * random_range(0.5, 1.0);
+    let _radius = model.init_radius * random_range(0.5, 1.0);
     for i in 0..model.form_resolution {
         model.x[i] = (angle * i as f32).cos() * model.init_radius;
         model.y[i] = (angle * i as f32).sin() * model.init_radius;

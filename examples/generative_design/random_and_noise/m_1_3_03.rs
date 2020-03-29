@@ -34,7 +34,7 @@
 use nannou::prelude::*;
 
 use nannou::image;
-use nannou::noise::{MultiFractal, Seedable};
+use nannou::noise::{MultiFractal, NoiseFn, Seedable};
 
 fn main() {
     nannou::app(model).run();
@@ -80,7 +80,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let win = app.window_rect();
     let noise = nannou::noise::Fbm::new()
         .set_seed(model.noise_random_seed)
-        .set_octaves(model.octaves);
+        .set_octaves(model.octaves)
+        .set_persistence(model.falloff as f64);
 
     let noise_x_range = map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w() / 10.0);
     let noise_y_range = map_range(app.mouse.y, win.top(), win.bottom(), 0.0, win.h() / 10.0);
@@ -88,15 +89,28 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let image = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |x, y| {
         let noise_x = map_range(x, 0, win.w() as u32, 0.0, noise_x_range) as f64;
         let noise_y = map_range(y, 0, win.h() as u32, 0.0, noise_y_range) as f64;
-        let mut noise_value = 0;
+        let mut noise_value = 0.0;
 
         if model.noise_mode == 1 {
-            noise_value = noise.get([noise_x, noise_y]) as u16 * std::u16::MAX;
+            noise_value = map_range(
+                noise.get([noise_x, noise_y]),
+                1.0,
+                -1.0,
+                0.0,
+                std::u16::MAX as f64,
+            );
         } else if model.noise_mode == 2 {
-            let n = noise.get([noise_x, noise_y]) * (std::u16::MAX as f64 / 10.0);
-            noise_value = (n - n.floor()) as u16 * std::u16::MAX;
+            let n = map_range(
+                noise.get([noise_x, noise_y]),
+                -1.0,
+                1.0,
+                0.0,
+                std::u16::MAX as f64 / 10.0,
+            );
+            noise_value = (n - n.floor()) * std::u16::MAX as f64;
         }
-        nannou::image::Rgba([noise_value, noise_value, noise_value, std::u16::MAX])
+        let n = noise_value as u16;
+        nannou::image::Rgba([n, n, n, std::u16::MAX])
     });
 
     let flat_samples = image.as_flat_samples();
@@ -139,7 +153,7 @@ fn key_released(app: &App, model: &mut Model, key: Key) {
     }
 }
 
-fn key_pressed(app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     match key {
         Key::Up => {
             model.falloff += 0.05;
@@ -159,10 +173,10 @@ fn key_pressed(app: &App, model: &mut Model, key: Key) {
     if model.falloff > 1.0 {
         model.falloff = 1.0;
     }
-    if model.falloff < 0.0 {
+    if model.falloff <= 0.0 {
         model.falloff = 0.0;
     }
-    if model.octaves < 0 {
-        model.octaves = 0;
+    if model.octaves <= 1 {
+        model.octaves = 1;
     }
 }

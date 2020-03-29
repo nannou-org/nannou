@@ -77,7 +77,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             match model.draw_mode {
                 1 => {
                     let scale = 1.0 - 3.0 / count as f32;
-                    for i in 0..count {
+                    for _ in 0..count {
                         draw.rect()
                             .x_y(0.0, 0.0)
                             .w_h(tile_width, tile_height)
