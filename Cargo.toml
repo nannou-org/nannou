@@ -10,17 +10,24 @@ repository = "https://github.com/nannou-org/nannou_timeline.git"
 homepage = "https://nannou.cc"
 
 [dependencies]
-conrod_derive = "0.68"
-conrod_core = "0.68"
+conrod_derive = "0.69"
+conrod_core = "0.69"
 envelope = "0.8"
 itertools = "0.4.16"
 num = "0.1.27"
-pitch_calc = { version = "0.*", features = ["serde_serialization"] }
-time_calc = { version= "0.*", features = ["serde"] }
-serde = { version = "1.0.*", features = ["derive"], optional = true }
+pitch_calc = { version = "0.12", features = ["serde"] }
+time_calc = { version= "0.13", features = ["serde"] }
+serde = { version = "1", features = ["derive"], optional = true }
+
+[features]
+serde1 = [
+    "serde",
+    "pitch_calc/serde",
+    "time_calc/serde",
+]
 
 
 [dev-dependencies]
-nannou = "0.12"
+nannou = "0.13"
 rand = "0.3.12"
 serde_json = "1.0"

@@ -20,7 +20,7 @@ pub struct PianoRoll<'a> {
 
 /// Used to represent a musical note within the piano roll.
 #[derive(Debug, Copy, Clone, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Note {
     /// The period over which the note is played.
     pub period: Period,

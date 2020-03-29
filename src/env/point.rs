@@ -6,7 +6,7 @@ pub use envelope::Point as Trait;
 
 /// An automation point.
 #[derive(Copy, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Point<T> {
     pub ticks: time::Ticks,
     pub value: T,

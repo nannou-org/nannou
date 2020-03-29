@@ -3,7 +3,7 @@ use time_calc::Ticks;
 
 /// A period of time in ticks.
 #[derive(Copy, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Period<T = Ticks> {
     pub start: T,
     pub end: T,
