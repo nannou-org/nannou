@@ -39,10 +39,12 @@ fn main() {
         println!("{:#?}", ether_dream);
 
         // Create a frame stream.
-        let mut frame_stream_conf = std::mem::MaybeUninit::<nannou_laser::ffi::FrameStreamConfig>::uninit();
+        let mut frame_stream_conf =
+            std::mem::MaybeUninit::<nannou_laser::ffi::FrameStreamConfig>::uninit();
         nannou_laser::ffi::frame_stream_config_default(frame_stream_conf.as_mut_ptr());
         let frame_stream_conf = frame_stream_conf.assume_init();
-        let callback_data: *mut CallbackData = Box::into_raw(Box::new(CallbackData { pattern: RECTANGLE }));
+        let callback_data: *mut CallbackData =
+            Box::into_raw(Box::new(CallbackData { pattern: RECTANGLE }));
         let mut frame_stream = std::ptr::null_mut();
         println!("Spawning new frame stream...");
         nannou_laser::ffi::new_frame_stream(
@@ -70,7 +72,8 @@ fn main() {
         let mut stream_conf = std::mem::MaybeUninit::<nannou_laser::ffi::StreamConfig>::uninit();
         nannou_laser::ffi::stream_config_default(stream_conf.as_mut_ptr());
         let stream_conf = stream_conf.assume_init();
-        let callback_data: *mut CallbackData = Box::into_raw(Box::new(CallbackData { pattern: RECTANGLE }));
+        let callback_data: *mut CallbackData =
+            Box::into_raw(Box::new(CallbackData { pattern: RECTANGLE }));
         let mut raw_stream = std::ptr::null_mut();
         println!("Spawning a raw stream...");
         nannou_laser::ffi::new_raw_stream(
@@ -97,7 +100,7 @@ fn main() {
 }
 
 // Called when the stream is ready for a new frame of data.
-extern fn frame_render_callback(
+extern "C" fn frame_render_callback(
     data: *mut std::os::raw::c_void,
     frame: *mut nannou_laser::ffi::Frame,
 ) {
@@ -169,9 +172,7 @@ fn write_laser_frame_points(data: &mut CallbackData, frame: &mut nannou_laser::f
         }
 
         SPIRAL => {
-            let n_points = unsafe {
-                nannou_laser::ffi::points_per_frame(frame) as usize / 2
-            };
+            let n_points = unsafe { nannou_laser::ffi::points_per_frame(frame) as usize / 2 };
             let radius = 1.0;
             let rings = 5.0;
             let points = (0..n_points)
@@ -197,14 +198,14 @@ fn write_laser_frame_points(data: &mut CallbackData, frame: &mut nannou_laser::f
 // Called when the stream is ready for data. This is called after the `frame_render_callback` and
 // after all path optimisations have been applied. This is useful as a kind of post-processing
 // function, for applying safety zones, etc.
-extern fn process_raw_callback(
+extern "C" fn process_raw_callback(
     _data: *mut std::os::raw::c_void,
     _buffer: *mut nannou_laser::ffi::Buffer,
 ) {
 }
 
 // Called when then
-extern fn raw_render_callback(
+extern "C" fn raw_render_callback(
     _data: *mut std::os::raw::c_void,
     _buffer: *mut nannou_laser::ffi::Buffer,
 ) {

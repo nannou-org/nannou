@@ -289,7 +289,7 @@ impl WindowEvent {
 
             winit::event::WindowEvent::ModifiersChanged(_) => {
                 return None;
-            },
+            }
 
             winit::event::WindowEvent::AxisMotion { .. }
             | winit::event::WindowEvent::ReceivedCharacter(_)

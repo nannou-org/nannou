@@ -412,14 +412,17 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
         Key::S => {
             // Save model.timeline_data to a JSON file.
             // This part is only included if you compile with the serde feature enabled.
-            #[cfg(feature = "serde1")] {
-                nannou::io::save_to_json("./saved_timeline_data.json", &model.timeline_data).expect("Error saving file");
+            #[cfg(feature = "serde1")]
+            {
+                nannou::io::save_to_json("./saved_timeline_data.json", &model.timeline_data)
+                    .expect("Error saving file");
             }
         }
         Key::L => {
             // Load the model.timeline_data from a JSON file.
             // This part is only included if you compile with the serde feature enabled.
-            #[cfg(feature = "serde1")] {
+            #[cfg(feature = "serde1")]
+            {
                 if let Ok(new_data) = nannou::io::load_from_json("./saved_timeline_data.json") {
                     model.timeline_data = new_data;
                 }

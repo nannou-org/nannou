@@ -59,7 +59,11 @@ impl Point {
 
     /// The same as `Point::new` but allows for specifying the weight of the point.
     pub fn with_weight(position: Position, color: Rgb, weight: u32) -> Self {
-        Point { position, color, weight }
+        Point {
+            position,
+            color,
+            weight,
+        }
     }
 
     /// Create a blank point at `[0, 0]`.
@@ -88,7 +92,11 @@ impl Point {
 
     /// Converts to `weight` number of raw points with the same position and color.
     pub fn to_raw_weighted(&self) -> impl Iterator<Item = RawPoint> {
-        let Point { position, color, weight } = *self;
+        let Point {
+            position,
+            color,
+            weight,
+        } = *self;
         (0..weight).map(move |_| RawPoint::new(position, color))
     }
 }
@@ -127,7 +135,10 @@ impl RawPoint {
 impl Lerp for RawPoint {
     type Scalar = f32;
     fn lerp(&self, other: &Self, amt: f32) -> Self {
-        RawPoint::new(self.position.lerp(&other.position, amt), self.color.lerp(&other.color, amt))
+        RawPoint::new(
+            self.position.lerp(&other.position, amt),
+            self.color.lerp(&other.color, amt),
+        )
     }
 }
 

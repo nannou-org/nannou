@@ -1,5 +1,5 @@
-use crate::{DetectedDac, RawPoint};
 use crate::util::{clamp, map_range};
+use crate::{DetectedDac, RawPoint};
 use derive_more::From;
 use failure::Fail;
 use std::io;
@@ -69,7 +69,7 @@ pub enum RawStreamError {
     EtherDreamStream {
         #[fail(cause)]
         err: EtherDreamStreamError,
-    }
+    },
 }
 
 /// Errors that may occur while creating a node crate.
@@ -100,7 +100,10 @@ pub enum EtherDreamStreamError {
         #[fail(cause)]
         err: ether_dream::dac::stream::CommunicationError,
     },
-    #[fail(display = "failed to submit point rate change over the DAC stream: {}", err)]
+    #[fail(
+        display = "failed to submit point rate change over the DAC stream: {}",
+        err
+    )]
     FailedToSubmitPointRate {
         #[fail(cause)]
         err: ether_dream::dac::stream::CommunicationError,
@@ -254,7 +257,12 @@ impl<M, F> Builder<M, F> {
         M: 'static + Send,
         F: 'static + RenderFn<M> + Send,
     {
-        let Builder { api_inner, builder, model, render } = self;
+        let Builder {
+            api_inner,
+            builder,
+            model,
+            render,
+        } = self;
 
         // Prepare the model for sharing between the laser thread and stream handle.
         let model = Arc::new(Mutex::new(Some(model)));
@@ -267,11 +275,15 @@ impl<M, F> Builder<M, F> {
         // Retrieve the specified point rate or use a default.
         let point_hz = builder.point_hz.unwrap_or(super::DEFAULT_POINT_HZ);
         // Retrieve the latency as a number of points.
-        let latency_points = builder.latency_points
+        let latency_points = builder
+            .latency_points
             .unwrap_or_else(|| default_latency_points(point_hz));
 
         // The raw laser stream state to live on the laser thread.
-        let state = Arc::new(Mutex::new(State { point_hz, latency_points }));
+        let state = Arc::new(Mutex::new(State {
+            point_hz,
+            latency_points,
+        }));
 
         // Retrieve whether or not the user specified a detected DAC.
         let mut maybe_dac = builder.dac;
@@ -306,7 +318,8 @@ impl<M, F> Builder<M, F> {
                     // Retrieve the DAC or find one.
                     let dac = match maybe_dac {
                         Some(ref dac) => dac.clone(),
-                        None => api_inner.detect_dacs()
+                        None => api_inner
+                            .detect_dacs()
                             .map_err(|err| EtherDreamStreamError::FailedToDetectDacs { err })?
                             .next()
                             .expect("ether dream DAC detection iterator should never return `None`")
@@ -314,7 +327,15 @@ impl<M, F> Builder<M, F> {
                     };
 
                     // Connect and run the laser stream.
-                    match run_laser_stream(&dac, &state, &model_2, &render, &s_rx, &m_rx, &is_closed2) {
+                    match run_laser_stream(
+                        &dac,
+                        &state,
+                        &model_2,
+                        &render,
+                        &s_rx,
+                        &m_rx,
+                        &is_closed2,
+                    ) {
                         Ok(()) => return Ok(()),
                         Err(RawStreamError::EtherDreamStream { err }) => match err {
                             // If we failed to connect to the DAC, keep track of attempts.
@@ -339,7 +360,7 @@ impl<M, F> Builder<M, F> {
 
                             // Return all other errors.
                             err => return Err(RawStreamError::EtherDreamStream { err }),
-                        }
+                        },
                     }
                 }
 
@@ -347,8 +368,16 @@ impl<M, F> Builder<M, F> {
             })?;
 
         let is_paused = AtomicBool::new(false);
-        let shared = Arc::new(Shared { model, is_paused, is_closed });
-        let stream = Stream { shared, state_update_tx, model_update_tx };
+        let shared = Arc::new(Shared {
+            model,
+            is_paused,
+            is_closed,
+        });
+        let stream = Stream {
+            shared,
+            state_update_tx,
+            model_update_tx,
+        };
         Ok(stream)
     }
 }
@@ -392,9 +421,10 @@ where
 {
     // Currently only ether dream is supported, so retrieve the broadcast and addr.
     let (broadcast, src_addr) = match dac {
-        DetectedDac::EtherDream { broadcast, source_addr } => {
-            (broadcast, source_addr)
-        }
+        DetectedDac::EtherDream {
+            broadcast,
+            source_addr,
+        } => (broadcast, source_addr),
     };
 
     // A buffer for collecting model updates.
@@ -417,7 +447,10 @@ where
 
     // Get the initial point hz by clamping via the DAC's maximum point rate.
     let init_point_hz = {
-        let hz = state.lock().expect("failed to acquire raw state lock").point_hz;
+        let hz = state
+            .lock()
+            .expect("failed to acquire raw state lock")
+            .point_hz;
         std::cmp::min(hz, dac_max_point_hz)
     };
 
@@ -573,5 +606,15 @@ fn point_to_ether_dream_point(p: RawPoint) -> ether_dream::protocol::DacPoint {
     let [x, y] = position_to_ether_dream_position(p.position);
     let [r, g, b] = color_to_ether_dream_color(p.color);
     let (control, i, u1, u2) = (0, 0, 0, 0);
-    ether_dream::protocol::DacPoint { control, x, y, r, g, b, i, u1, u2 }
+    ether_dream::protocol::DacPoint {
+        control,
+        x,
+        y,
+        r,
+        g,
+        b,
+        i,
+        u1,
+        u2,
+    }
 }

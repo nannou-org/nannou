@@ -83,14 +83,14 @@ type RawStreamInner = crate::RawStream<RawStreamModel>;
 
 /// Cast to `extern fn(*mut raw::c_void, *mut Frame)` internally.
 //pub type FrameRenderCallback = *const raw::c_void;
-pub type FrameRenderCallback = extern fn(*mut raw::c_void, *mut Frame);
+pub type FrameRenderCallback = extern "C" fn(*mut raw::c_void, *mut Frame);
 /// Cast to `extern fn(*mut raw::c_void, *mut Buffer)` internally.
 //pub type RawRenderCallback = *const raw::c_void;
-pub type RawRenderCallback = extern fn(*mut raw::c_void, *mut Buffer);
+pub type RawRenderCallback = extern "C" fn(*mut raw::c_void, *mut Buffer);
 
 /// Given some uninitialized pointer to an `Api` struct, fill it with a new Api instance.
 #[no_mangle]
-pub unsafe extern fn api_new(api_ptr: *mut *mut Api) {
+pub unsafe extern "C" fn api_new(api_ptr: *mut *mut Api) {
     let inner = crate::Api::new();
     let last_error = None;
     let api = Api { inner, last_error };
@@ -101,33 +101,33 @@ pub unsafe extern fn api_new(api_ptr: *mut *mut Api) {
 
 /// Block the current thread until a new DAC is detected and return it.
 #[no_mangle]
-pub unsafe extern fn detect_dac(api: *const Api, detected_dac: *mut DetectedDac) -> Result {
+pub unsafe extern "C" fn detect_dac(api: *const Api, detected_dac: *mut DetectedDac) -> Result {
     let api: &Api = &*api;
     let mut iter = match api.inner.detect_dacs() {
-        Err(err) => {
-            unimplemented!()
-        },
+        Err(err) => unimplemented!(),
         Ok(iter) => iter,
     };
     match iter.next() {
         None => return Result::FailedToDetectDac,
-        Some(res) => {
-            match res {
-                Ok(crate::DetectedDac::EtherDream { broadcast, source_addr }) => {
-                    let string = format!("{}", source_addr);
-                    let bytes = string.into_bytes();
-                    let source_addr = bytes.as_ptr() as *const raw::c_char;
-                    std::mem::forget(bytes);
-                    let ether_dream = DacEtherDream { broadcast, source_addr };
-                    let kind = DetectedDacKind { ether_dream };
-                    *detected_dac = DetectedDac { kind };
-                    return Result::Success;
-                }
-                Err(err) => {
-                    unimplemented!()
-                }
+        Some(res) => match res {
+            Ok(crate::DetectedDac::EtherDream {
+                broadcast,
+                source_addr,
+            }) => {
+                let string = format!("{}", source_addr);
+                let bytes = string.into_bytes();
+                let source_addr = bytes.as_ptr() as *const raw::c_char;
+                std::mem::forget(bytes);
+                let ether_dream = DacEtherDream {
+                    broadcast,
+                    source_addr,
+                };
+                let kind = DetectedDacKind { ether_dream };
+                *detected_dac = DetectedDac { kind };
+                return Result::Success;
             }
-        }
+            Err(err) => unimplemented!(),
+        },
     }
 }
 
@@ -144,7 +144,7 @@ fn default_stream_config() -> StreamConfig {
 
 /// Initialise the given frame stream configuration with default values.
 #[no_mangle]
-pub unsafe extern fn frame_stream_config_default(conf: *mut FrameStreamConfig) {
+pub unsafe extern "C" fn frame_stream_config_default(conf: *mut FrameStreamConfig) {
     let stream_conf = default_stream_config();
     let frame_hz = crate::stream::DEFAULT_FRAME_HZ;
     let interpolation_conf = crate::stream::frame::opt::InterpolationConfig::start().build();
@@ -157,13 +157,13 @@ pub unsafe extern fn frame_stream_config_default(conf: *mut FrameStreamConfig) {
 
 /// Initialise the given raw stream configuration with default values.
 #[no_mangle]
-pub unsafe extern fn stream_config_default(conf: *mut StreamConfig) {
+pub unsafe extern "C" fn stream_config_default(conf: *mut StreamConfig) {
     *conf = default_stream_config();
 }
 
 /// Spawn a new frame rendering stream.
 #[no_mangle]
-pub unsafe extern fn new_frame_stream(
+pub unsafe extern "C" fn new_frame_stream(
     api: *const Api,
     stream: *mut *mut FrameStream,
     config: *const FrameStreamConfig,
@@ -180,7 +180,9 @@ pub unsafe extern fn new_frame_stream(
         frame_render_callback(callback_data_ptr, &mut frame);
     }
 
-    let mut builder = api.inner.new_frame_stream(model, render_fn)
+    let mut builder = api
+        .inner
+        .new_frame_stream(model, render_fn)
         .point_hz((*config).stream_conf.point_hz as _)
         .latency_points((*config).stream_conf.latency_points as _)
         .frame_hz((*config).frame_hz as _);
@@ -201,7 +203,10 @@ pub unsafe extern fn new_frame_stream(
             .to_string_lossy()
             .parse()
             .expect("failed to parse `source_addr`");
-        let detected_dac = crate::DetectedDac::EtherDream { broadcast, source_addr };
+        let detected_dac = crate::DetectedDac::EtherDream {
+            broadcast,
+            source_addr,
+        };
         builder = builder.detected_dac(detected_dac);
     }
 
@@ -209,7 +214,7 @@ pub unsafe extern fn new_frame_stream(
         Err(err) => {
             unimplemented!();
             return Result::FailedToBuildStream;
-        },
+        }
         Ok(stream) => Box::new(FrameStream { stream }),
     };
     *stream = Box::into_raw(frame_stream);
@@ -218,7 +223,7 @@ pub unsafe extern fn new_frame_stream(
 
 /// Spawn a new frame rendering stream.
 #[no_mangle]
-pub unsafe extern fn new_raw_stream(
+pub unsafe extern "C" fn new_raw_stream(
     api: *const Api,
     stream: *mut *mut RawStream,
     config: *const StreamConfig,
@@ -234,7 +239,9 @@ pub unsafe extern fn new_raw_stream(
         raw_render_callback(callback_data_ptr, &mut buffer);
     }
 
-    let mut builder = api.inner.new_raw_stream(model, render_fn)
+    let mut builder = api
+        .inner
+        .new_raw_stream(model, render_fn)
         .point_hz((*config).point_hz as _)
         .latency_points((*config).latency_points as _);
 
@@ -246,7 +253,10 @@ pub unsafe extern fn new_raw_stream(
             .to_string_lossy()
             .parse()
             .expect("failed to parse `source_addr`");
-        let detected_dac = crate::DetectedDac::EtherDream { broadcast, source_addr };
+        let detected_dac = crate::DetectedDac::EtherDream {
+            broadcast,
+            source_addr,
+        };
         builder = builder.detected_dac(detected_dac);
     }
 
@@ -254,7 +264,7 @@ pub unsafe extern fn new_raw_stream(
         Err(err) => {
             unimplemented!();
             return Result::FailedToBuildStream;
-        },
+        }
         Ok(stream) => Box::new(RawStream { stream }),
     };
     *stream = Box::into_raw(raw_stream);
@@ -267,7 +277,11 @@ pub unsafe extern fn new_raw_stream(
 /// If some points already exist in the frame, this method will create a blank segment between the
 /// previous point and the first point before appending this sequence.
 #[no_mangle]
-pub unsafe extern fn frame_add_points(frame: *mut Frame, points: *const crate::Point, len: usize) {
+pub unsafe extern "C" fn frame_add_points(
+    frame: *mut Frame,
+    points: *const crate::Point,
+    len: usize,
+) {
     let frame = &mut *frame;
     let points = std::slice::from_raw_parts(points, len);
     frame.frame.add_points(points.iter().cloned());
@@ -278,31 +292,35 @@ pub unsafe extern fn frame_add_points(frame: *mut Frame, points: *const crate::P
 /// If some points already exist in the frame, this method will create a blank segment between the
 /// previous point and the first point before appending this sequence.
 #[no_mangle]
-pub unsafe extern fn frame_add_lines(frame: *mut Frame, points: *const crate::Point, len: usize) {
+pub unsafe extern "C" fn frame_add_lines(
+    frame: *mut Frame,
+    points: *const crate::Point,
+    len: usize,
+) {
     let frame = &mut *frame;
     let points = std::slice::from_raw_parts(points, len);
     frame.frame.add_lines(points.iter().cloned());
 }
 
-pub unsafe extern fn frame_hz(frame: *const Frame) -> u32 {
+pub unsafe extern "C" fn frame_hz(frame: *const Frame) -> u32 {
     (*frame).frame.frame_hz()
 }
 
-pub unsafe extern fn frame_point_hz(frame: *const Frame) -> u32 {
+pub unsafe extern "C" fn frame_point_hz(frame: *const Frame) -> u32 {
     (*frame).frame.point_hz()
 }
 
-pub unsafe extern fn frame_latency_points(frame: *const Frame) -> u32 {
+pub unsafe extern "C" fn frame_latency_points(frame: *const Frame) -> u32 {
     (*frame).frame.latency_points()
 }
 
-pub unsafe extern fn points_per_frame(frame: *const Frame) -> u32 {
+pub unsafe extern "C" fn points_per_frame(frame: *const Frame) -> u32 {
     (*frame).frame.latency_points()
 }
 
 /// Must be called in order to correctly clean up the frame stream.
 #[no_mangle]
-pub unsafe extern fn frame_stream_drop(stream_ptr: *mut FrameStream) {
+pub unsafe extern "C" fn frame_stream_drop(stream_ptr: *mut FrameStream) {
     if stream_ptr != std::ptr::null_mut() {
         Box::from_raw(stream_ptr);
     }
@@ -310,7 +328,7 @@ pub unsafe extern fn frame_stream_drop(stream_ptr: *mut FrameStream) {
 
 /// Must be called in order to correctly clean up the raw stream.
 #[no_mangle]
-pub unsafe extern fn raw_stream_drop(stream_ptr: *mut RawStream) {
+pub unsafe extern "C" fn raw_stream_drop(stream_ptr: *mut RawStream) {
     if stream_ptr != std::ptr::null_mut() {
         Box::from_raw(stream_ptr);
     }
@@ -318,7 +336,7 @@ pub unsafe extern fn raw_stream_drop(stream_ptr: *mut RawStream) {
 
 /// Must be called in order to correctly clean up the API resources.
 #[no_mangle]
-pub unsafe extern fn api_drop(api_ptr: *mut Api) {
+pub unsafe extern "C" fn api_drop(api_ptr: *mut Api) {
     if api_ptr != std::ptr::null_mut() {
         Box::from_raw(api_ptr);
     }

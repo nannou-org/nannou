@@ -64,7 +64,9 @@ fn update(app: &App, model: &mut Model, update: Update) {
     let images_dir = assets.join("images");
     let desc = wgpu::CommandEncoderDescriptor::default();
     let mut encoder = device.create_command_encoder(&desc);
-    model.isf_pipeline.encode_update(device, &mut encoder, &images_dir, touched_shaders);
+    model
+        .isf_pipeline
+        .encode_update(device, &mut encoder, &images_dir, touched_shaders);
     window
         .swap_chain_queue()
         .lock()

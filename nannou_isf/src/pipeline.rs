@@ -366,23 +366,17 @@ impl IsfInputData {
         match (self, &input.ty) {
             (IsfInputData::Event { .. }, isf::InputType::Event) => (),
             (IsfInputData::Bool(_), isf::InputType::Bool(_)) => (),
-            (IsfInputData::Long(_), isf::InputType::Long(_)) => {
-            }
-            (IsfInputData::Float(_), isf::InputType::Float(_)) => {
-            }
-            (IsfInputData::Point2d(_), isf::InputType::Point2d(_)) => {
-            }
-            (IsfInputData::Color(_), isf::InputType::Color(_)) => {
-            }
+            (IsfInputData::Long(_), isf::InputType::Long(_)) => {}
+            (IsfInputData::Float(_), isf::InputType::Float(_)) => {}
+            (IsfInputData::Point2d(_), isf::InputType::Point2d(_)) => {}
+            (IsfInputData::Color(_), isf::InputType::Color(_)) => {}
             (IsfInputData::Image(ref mut state), isf::InputType::Image) => {
                 if let Some(img_path) = image_paths(images_path).next() {
                     state.update(device, encoder, image_loader, img_path);
                 }
             }
-            (IsfInputData::Audio { .. }, isf::InputType::Audio(_)) => {
-            }
-            (IsfInputData::AudioFft { .. }, isf::InputType::AudioFft(_)) => {
-            },
+            (IsfInputData::Audio { .. }, isf::InputType::Audio(_)) => {}
+            (IsfInputData::AudioFft { .. }, isf::InputType::AudioFft(_)) => {}
             (data, _) => *data = Self::new(device, encoder, image_loader, images_path, input),
         }
     }
@@ -404,18 +398,18 @@ pub fn compile_isf_shader(
     device: &wgpu::Device,
     path: &Path,
 ) -> (Option<wgpu::ShaderModule>, Option<ShaderError>) {
-        let res = std::fs::read_to_string(&path)
-            .map_err(ShaderError::from)
-            .and_then(|s| isf::parse(&s).map(|isf| (s, isf)).map_err(From::from))
-            .and_then(|(old_str, isf)| {
-                let isf_str = crate::glsl_string_from_isf(&isf);
-                let new_str = crate::prefix_isf_glsl_str(&isf_str, old_str);
-                let ty = hotglsl::ShaderType::Fragment;
-                hotglsl::compile_str(&new_str, ty).map_err(From::from)
-            });
-        let (bytes, error) = split_result(res);
-        let module = bytes.map(|b| spirv_bytes_to_mod(device, &b));
-        (module, error)
+    let res = std::fs::read_to_string(&path)
+        .map_err(ShaderError::from)
+        .and_then(|s| isf::parse(&s).map(|isf| (s, isf)).map_err(From::from))
+        .and_then(|(old_str, isf)| {
+            let isf_str = crate::glsl_string_from_isf(&isf);
+            let new_str = crate::prefix_isf_glsl_str(&isf_str, old_str);
+            let ty = hotglsl::ShaderType::Fragment;
+            hotglsl::compile_str(&new_str, ty).map_err(From::from)
+        });
+    let (bytes, error) = split_result(res);
+    let module = bytes.map(|b| spirv_bytes_to_mod(device, &b));
+    (module, error)
 }
 
 /// Compile a regular, non-ISF shader.
@@ -717,7 +711,8 @@ impl IsfPipeline {
         // ----------------------
 
         if shader_recompiled || texture_count_changed {
-            if let (Some(vs_mod), Some(fs_mod)) = (self.vs.module.as_ref(), self.fs.module.as_ref()) {
+            if let (Some(vs_mod), Some(fs_mod)) = (self.vs.module.as_ref(), self.fs.module.as_ref())
+            {
                 self.render_pipeline = Some(create_render_pipeline(
                     device,
                     &self.layout,

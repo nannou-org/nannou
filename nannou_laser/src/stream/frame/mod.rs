@@ -1,6 +1,6 @@
-use crate::{Point, RawPoint};
 use crate::stream;
 use crate::stream::raw::{self, Buffer};
+use crate::{Point, RawPoint};
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::sync::{mpsc, Arc, Mutex};
@@ -192,8 +192,24 @@ impl<M, F, R> Builder<M, F, R> {
     /// The given function will get called right before submission of the optimised, interpolated
     /// buffer.
     pub fn process_raw<R2>(self, process_raw: R2) -> Builder<M, F, R2> {
-        let Builder { api_inner, builder, model, render, frame_hz, interpolation_conf, .. } = self;
-        Builder { api_inner, builder, model, render, process_raw, frame_hz, interpolation_conf }
+        let Builder {
+            api_inner,
+            builder,
+            model,
+            render,
+            frame_hz,
+            interpolation_conf,
+            ..
+        } = self;
+        Builder {
+            api_inner,
+            builder,
+            model,
+            render,
+            process_raw,
+            frame_hz,
+            interpolation_conf,
+        }
     }
 
     /// Build the stream with the specified parameters.
@@ -222,7 +238,10 @@ impl<M, F, R> Builder<M, F, R> {
         let frame_hz = frame_hz.unwrap_or(stream::DEFAULT_FRAME_HZ);
 
         // The type used for buffering frames and using them to serve points to the raw stream.
-        let requester = Requester { last_frame_point: None, raw_points: vec![] };
+        let requester = Requester {
+            last_frame_point: None,
+            raw_points: vec![],
+        };
         let requester = Arc::new(Mutex::new(requester));
 
         // A channel for updating the interpolation config.
@@ -230,7 +249,10 @@ impl<M, F, R> Builder<M, F, R> {
         let state_update_tx: mpsc::Sender<StateUpdate> = state_update_tx;
 
         // State to live on the stream thread.
-        let state = Arc::new(Mutex::new(State { frame_hz, interpolation_conf }));
+        let state = Arc::new(Mutex::new(State {
+            frame_hz,
+            interpolation_conf,
+        }));
 
         // A render function for the inner raw stream.
         let raw_render = move |model: &mut M, buffer: &mut Buffer| {
@@ -249,9 +271,17 @@ impl<M, F, R> Builder<M, F, R> {
         };
 
         // Create the raw builder and build the raw stream.
-        let raw_builder = raw::Builder { api_inner, builder, model, render: raw_render };
+        let raw_builder = raw::Builder {
+            api_inner,
+            builder,
+            model,
+            render: raw_render,
+        };
         let raw_stream = raw_builder.build()?;
-        let stream = Stream { raw: raw_stream, state_update_tx };
+        let stream = Stream {
+            raw: raw_stream,
+            state_update_tx,
+        };
         Ok(stream)
     }
 }
@@ -317,13 +347,7 @@ impl Frame {
 impl Requester {
     // Fill the given buffer by requesting frames from the given user `render` function as
     // required.
-    fn fill_buffer<M, F>(
-        &mut self,
-        model: &mut M,
-        render: F,
-        buffer: &mut Buffer,
-        state: &State,
-    )
+    fn fill_buffer<M, F>(&mut self, model: &mut M, render: F, buffer: &mut Buffer, state: &State)
     where
         F: RenderFn<M>,
     {
@@ -390,9 +414,12 @@ impl Requester {
 
             // If we were given no points, the user must be expecting an empty frame.
             if frame.points.is_empty() {
-                let blank_point = self.last_frame_point.map(|p| p.blanked())
+                let blank_point = self
+                    .last_frame_point
+                    .map(|p| p.blanked())
                     .unwrap_or_else(RawPoint::centered_blank);
-                self.raw_points.extend((0..points_per_frame).map(|_| blank_point));
+                self.raw_points
+                    .extend((0..points_per_frame).map(|_| blank_point));
 
             // Otherwise, we'll optimise and interpolate the given points.
             } else {
@@ -405,23 +432,21 @@ impl Requester {
                 // Blank from last point of the previous frame to first point of this one.
                 let last_frame_point = self.last_frame_point.take();
                 let inter_frame_blank_points = match last_frame_point {
-                    Some(last) => {
-                        match eg.node_indices().next() {
-                            None => vec![],
-                            Some(next_id) => {
-                                let next = eg[next_id];
-                                if last.position != next.position {
-                                    let a = last.blanked().with_weight(0);
-                                    let b = next.to_raw().blanked();
-                                    let blank_delay_points =
-                                        state.interpolation_conf.blank_delay_points;
-                                    opt::blank_segment_points(a, b, blank_delay_points).collect()
-                                } else {
-                                    vec![]
-                                }
+                    Some(last) => match eg.node_indices().next() {
+                        None => vec![],
+                        Some(next_id) => {
+                            let next = eg[next_id];
+                            if last.position != next.position {
+                                let a = last.blanked().with_weight(0);
+                                let b = next.to_raw().blanked();
+                                let blank_delay_points =
+                                    state.interpolation_conf.blank_delay_points;
+                                opt::blank_segment_points(a, b, blank_delay_points).collect()
+                            } else {
+                                vec![]
                             }
                         }
-                    }
+                    },
                     None => vec![],
                 };
 
@@ -441,7 +466,8 @@ impl Requester {
                 // If the interpolated frame is empty there were no lit points or lines.
                 // In this case, we'll produce an empty frame.
                 if interpolated.is_empty() {
-                    let blank_point = inter_frame_blank_points.last()
+                    let blank_point = inter_frame_blank_points
+                        .last()
                         .map(|&p| p)
                         .or_else(|| last_frame_point.map(|p| p.blanked()))
                         .unwrap_or_else(RawPoint::centered_blank);
@@ -493,5 +519,4 @@ impl<M> Deref for Stream<M> {
 }
 
 // The default function used for the `process_raw` function if none is specified.
-pub(crate) fn default_process_raw_fn<M>(_model: &mut M, _buffer: &mut Buffer) {
-}
+pub(crate) fn default_process_raw_fn<M>(_model: &mut M, _buffer: &mut Buffer) {}

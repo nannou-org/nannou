@@ -10,10 +10,10 @@ pub mod util;
 
 pub use lerp::Lerp;
 pub use point::{Point, RawPoint};
-pub use stream::raw::Buffer;
-pub use stream::raw::Stream as RawStream;
 pub use stream::frame::Frame;
 pub use stream::frame::Stream as FrameStream;
+pub use stream::raw::Buffer;
+pub use stream::raw::Stream as RawStream;
 
 use std::io;
 use std::sync::Arc;
@@ -50,15 +50,15 @@ pub enum DetectedDac {
 /// It should be possible to use this to uniquely identify the same DAC on different occasions.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum DacId {
-    EtherDream {
-        mac_address: [u8; 6],
-    }
+    EtherDream { mac_address: [u8; 6] },
 }
 
 impl Api {
     /// Instantiate the laser API.
     pub fn new() -> Self {
-        Api { inner: Arc::new(Inner) }
+        Api {
+            inner: Arc::new(Inner),
+        }
     }
 
     /// An iterator yielding laser DACs available on the system as they are discovered.
@@ -112,7 +112,12 @@ impl Api {
     {
         let api_inner = self.inner.clone();
         let builder = Default::default();
-        stream::raw::Builder { api_inner, builder, model, render }
+        stream::raw::Builder {
+            api_inner,
+            builder,
+            model,
+            render,
+        }
     }
 }
 
@@ -155,11 +160,9 @@ impl DetectedDac {
     /// It should be possible to use this to uniquely identify the same DAC on different occasions.
     pub fn id(&self) -> DacId {
         match self {
-            DetectedDac::EtherDream { ref broadcast, .. } => {
-                DacId::EtherDream {
-                    mac_address: broadcast.mac_address,
-                }
-            }
+            DetectedDac::EtherDream { ref broadcast, .. } => DacId::EtherDream {
+                mac_address: broadcast.mac_address,
+            },
         }
     }
 }
@@ -176,9 +179,10 @@ impl Iterator for DetectDacs {
         let res = self.dac_broadcasts.next()?;
         match res {
             Err(err) => Some(Err(err)),
-            Ok((broadcast, source_addr)) => {
-                Some(Ok(DetectedDac::EtherDream { broadcast, source_addr }))
-            }
+            Ok((broadcast, source_addr)) => Some(Ok(DetectedDac::EtherDream {
+                broadcast,
+                source_addr,
+            })),
         }
     }
 }

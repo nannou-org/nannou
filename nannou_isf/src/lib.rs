@@ -1,7 +1,7 @@
 //! A crate aimed at making it easy to set up an ISF hot-loading environment with nannou.
 
-use std::path::Path;
 pub use crate::pipeline::{IsfPipeline, IsfTime};
+use std::path::Path;
 
 mod pipeline;
 
@@ -42,7 +42,8 @@ pub fn glsl_string_from_isf(isf: &isf::Isf) -> String {
         true => {
             let mut isf_data_input_string = "
                 layout(set = 1, binding = 0) uniform IsfDataInputs {\n
-            ".to_string();
+            "
+            .to_string();
             for input in &isf.inputs {
                 let ty_str = match input.ty {
                     isf::InputType::Event | isf::InputType::Bool(_) => "bool",
@@ -50,7 +51,9 @@ pub fn glsl_string_from_isf(isf: &isf::Isf) -> String {
                     isf::InputType::Float(_) => "float",
                     isf::InputType::Point2d(_) => "vec2",
                     isf::InputType::Color(_) => "vec4",
-                    isf::InputType::Image | isf::InputType::Audio(_) | isf::InputType::AudioFft(_) => continue,
+                    isf::InputType::Image
+                    | isf::InputType::Audio(_)
+                    | isf::InputType::AudioFft(_) => continue,
                 };
                 isf_data_input_string.push_str(&format!("{} {};\n", ty_str, input.name));
             }
@@ -68,7 +71,10 @@ pub fn glsl_string_from_isf(isf: &isf::Isf) -> String {
     let mut binding = 1;
     let mut imported_textures = vec![];
     for (name, _) in &isf.imported {
-        let s = format!("layout(set = 2, binding = {}) uniform texture2D {};\n", binding, name);
+        let s = format!(
+            "layout(set = 2, binding = {}) uniform texture2D {};\n",
+            binding, name
+        );
         imported_textures.push(s);
         binding += 1;
     }
@@ -77,10 +83,13 @@ pub fn glsl_string_from_isf(isf: &isf::Isf) -> String {
     let mut input_textures = vec![];
     for input in &isf.inputs {
         match input.ty {
-            isf::InputType::Image | isf::InputType::Audio(_) | isf::InputType::AudioFft(_) => {},
+            isf::InputType::Image | isf::InputType::Audio(_) | isf::InputType::AudioFft(_) => {}
             _ => continue,
         }
-        let s = format!("layout(set = 2, binding = {}) uniform texture2D {};\n", binding, input.name);
+        let s = format!(
+            "layout(set = 2, binding = {}) uniform texture2D {};\n",
+            binding, input.name
+        );
         input_textures.push(s);
         binding += 1;
     }
@@ -92,7 +101,10 @@ pub fn glsl_string_from_isf(isf: &isf::Isf) -> String {
             None => continue,
             Some(ref t) => t,
         };
-        let s = format!("layout(set = 2, binding = {}) uniform texture2D {};\n", binding, target);
+        let s = format!(
+            "layout(set = 2, binding = {}) uniform texture2D {};\n",
+            binding, target
+        );
         pass_textures.push(s);
         binding += 1;
     }
@@ -167,7 +179,6 @@ pub fn prefix_isf_glsl_str(isf_glsl_str: &str, mut shader_string: String) -> Str
         }
     };
 
-
     // See if the version exists or if it needs to be added.
     enum Version {
         // Where the version currently exists.
@@ -179,7 +190,10 @@ pub fn prefix_isf_glsl_str(isf_glsl_str: &str, mut shader_string: String) -> Str
     // version. This caveat is possibly worth the massive speedup we gain by not parsing with
     // `glsl` crate.
     let version = if let Some(start) = shader_string.find("#version ") {
-        let version_line = shader_string[start..].lines().next().expect("failed to retrieve verison line");
+        let version_line = shader_string[start..]
+            .lines()
+            .next()
+            .expect("failed to retrieve verison line");
         let end = start + version_line.len();
         Version::Exists(start..end)
     } else {
@@ -194,7 +208,7 @@ pub fn prefix_isf_glsl_str(isf_glsl_str: &str, mut shader_string: String) -> Str
         Version::NeedsToBeAdded(s) => {
             output.push_str(s);
             &shader_string
-        },
+        }
         Version::Exists(range) => {
             output.push_str(&format!("{}\n", &shader_string[range.clone()]));
             &shader_string[range.end..]

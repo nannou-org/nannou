@@ -4,7 +4,7 @@ use crate::lerp::Lerp;
 use crate::point::{Point, Position, RawPoint};
 use hashbrown::{HashMap, HashSet};
 use petgraph::visit::EdgeRef;
-use petgraph::{Undirected};
+use petgraph::Undirected;
 
 /// Represents a line segment over which the laser scanner will travel.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -109,11 +109,14 @@ impl InterpolationConfigBuilder {
     /// Build the `InterpolationConfig`, falling back to defaults where necessary.
     pub fn build(self) -> InterpolationConfig {
         InterpolationConfig {
-            distance_per_point: self.distance_per_point
+            distance_per_point: self
+                .distance_per_point
                 .unwrap_or(InterpolationConfig::DEFAULT_DISTANCE_PER_POINT),
-            blank_delay_points: self.blank_delay_points
+            blank_delay_points: self
+                .blank_delay_points
                 .unwrap_or(InterpolationConfig::DEFAULT_BLANK_DELAY_POINTS),
-            radians_per_point: self.radians_per_point
+            radians_per_point: self
+                .radians_per_point
                 .unwrap_or(InterpolationConfig::DEFAULT_RADIANS_PER_POINT),
         }
     }
@@ -593,10 +596,7 @@ pub fn interpolate_euler_circuit(
     #[derive(Debug)]
     enum EdgeProfileKind {
         Blank,
-        Lit {
-            distance: f32,
-            end_corner: f32,
-        }
+        Lit { distance: f32, end_corner: f32 },
     }
 
     impl EdgeProfile {
@@ -616,7 +616,10 @@ pub fn interpolate_euler_circuit(
                     let e_ref = &eg.raw_edges()[ec[next_ix].index()];
                     let c_pos = eg[e_ref.target()].position;
                     let end_corner = straight_angle_variance(a_pos, b_pos, c_pos);
-                    EdgeProfileKind::Lit { distance, end_corner }
+                    EdgeProfileKind::Lit {
+                        distance,
+                        end_corner,
+                    }
                 }
             };
             EdgeProfile { a_weight, kind }
@@ -643,15 +646,16 @@ pub fn interpolate_euler_circuit(
                 EdgeProfileKind::Blank => {
                     blank_segment_point_count(self.a_weight, conf.blank_delay_points)
                 }
-                EdgeProfileKind::Lit { distance, end_corner } => {
-                    lit_segment_min_point_count(
-                        distance,
-                        end_corner,
-                        conf.distance_per_point,
-                        conf.radians_per_point,
-                        self.a_weight,
-                    )
-                }
+                EdgeProfileKind::Lit {
+                    distance,
+                    end_corner,
+                } => lit_segment_min_point_count(
+                    distance,
+                    end_corner,
+                    conf.distance_per_point,
+                    conf.radians_per_point,
+                    self.a_weight,
+                ),
             }
         }
 
@@ -668,14 +672,15 @@ pub fn interpolate_euler_circuit(
             let b = eg[e_ref.target()];
             match self.kind {
                 EdgeProfileKind::Blank => {
-                    blank_segment_points(a, b.to_raw(), conf.blank_delay_points)
-                        .collect()
+                    blank_segment_points(a, b.to_raw(), conf.blank_delay_points).collect()
                 }
-                EdgeProfileKind::Lit { end_corner, distance } => {
+                EdgeProfileKind::Lit {
+                    end_corner,
+                    distance,
+                } => {
                     let dist_point_count =
                         distance_min_point_count(distance, conf.distance_per_point);
-                    let corner_point_count =
-                        corner_point_count(end_corner, conf.radians_per_point);
+                    let corner_point_count = corner_point_count(end_corner, conf.radians_per_point);
                     let br = b.to_raw();
                     lit_segment_points(a, br, corner_point_count, dist_point_count, excess_points)
                         .collect()
@@ -699,7 +704,8 @@ pub fn interpolate_euler_circuit(
         return vec![];
     }
     // The minimum number of points required to display the image.
-    let min_points = edge_profiles.iter()
+    let min_points = edge_profiles
+        .iter()
         .map(|ep| ep.min_points(conf))
         .fold(0, |acc, n| acc + n);
 
@@ -711,7 +717,8 @@ pub fn interpolate_euler_circuit(
         // A multiplier for determining excess points. This should be distributed across distance.
         let excess_points = target_points_minus_last - min_points;
         // The lit distance covered by each edge.
-        let edge_lit_dists = edge_profiles.iter()
+        let edge_lit_dists = edge_profiles
+            .iter()
             .map(|ep| (ep.is_lit(), ep.lit_distance()))
             .collect::<Vec<_>>();
         // The total lit distance covered by the traversal.
@@ -721,13 +728,15 @@ pub fn interpolate_euler_circuit(
             true => {
                 // If there was no total distance, distribute evenly.
                 let n_lit_edges = edge_lit_dists.iter().filter(|&&(b, _)| b).count();
-                edge_lit_dists.iter()
+                edge_lit_dists
+                    .iter()
                     .map(|&(is_lit, _)| (is_lit, 1.0 / n_lit_edges as f32))
                     .collect()
-            },
+            }
             false => {
                 // Otherwise weight by distance.
-                edge_lit_dists.iter()
+                edge_lit_dists
+                    .iter()
                     .map(|&(is_lit, dist)| (is_lit, dist / total_lit_dist))
                     .collect()
             }
@@ -752,7 +761,8 @@ pub fn interpolate_euler_circuit(
         // Check for rounding error.
         if count == (excess_points - 1) {
             // Find first lit edge index.
-            let (i, _) = edge_profiles.iter()
+            let (i, _) = edge_profiles
+                .iter()
                 .enumerate()
                 .find(|&(_, ep)| ep.is_lit())
                 .expect("expected at least one lit edge");
@@ -788,11 +798,13 @@ pub fn interpolate_euler_circuit(
 
 #[cfg(test)]
 mod test {
+    use super::{
+        euler_graph_to_euler_circuit, point_graph_to_euler_graph, points_to_segments,
+        segments_to_point_graph,
+    };
+    use super::{EulerGraph, PointGraph, SegmentKind};
     use crate::point::{Point, Position};
     use hashbrown::HashSet;
-    use super::{euler_graph_to_euler_circuit, point_graph_to_euler_graph, points_to_segments,
-                segments_to_point_graph};
-    use super::{EulerGraph, PointGraph, SegmentKind};
 
     fn graph_eq<N, E, Ty, Ix>(
         a: &petgraph::Graph<N, E, Ty, Ix>,
@@ -806,8 +818,14 @@ mod test {
     {
         let a_ns = a.raw_nodes().iter().map(|n| &n.weight);
         let b_ns = b.raw_nodes().iter().map(|n| &n.weight);
-        let a_es = a.raw_edges().iter().map(|e| (e.source(), e.target(), &e.weight));
-        let b_es = b.raw_edges().iter().map(|e| (e.source(), e.target(), &e.weight));
+        let a_es = a
+            .raw_edges()
+            .iter()
+            .map(|e| (e.source(), e.target(), &e.weight));
+        let b_es = b
+            .raw_edges()
+            .iter()
+            .map(|e| (e.source(), e.target(), &e.weight));
         a_ns.eq(b_ns) && a_es.eq(b_es)
     }
 
@@ -931,8 +949,20 @@ mod test {
         let eg_ns: Vec<_> = eg.raw_nodes().iter().map(|n| n.weight).collect();
         assert_eq!(pg_ns, eg_ns);
 
-        assert_eq!(eg.raw_edges().iter().filter(|e| e.weight == SegmentKind::Blank).count(), 2);
-        assert_eq!(eg.raw_edges().iter().filter(|e| e.weight == SegmentKind::Lit).count(), 2);
+        assert_eq!(
+            eg.raw_edges()
+                .iter()
+                .filter(|e| e.weight == SegmentKind::Blank)
+                .count(),
+            2
+        );
+        assert_eq!(
+            eg.raw_edges()
+                .iter()
+                .filter(|e| e.weight == SegmentKind::Lit)
+                .count(),
+            2
+        );
     }
 
     #[test]
