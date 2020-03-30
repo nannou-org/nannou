@@ -6,7 +6,7 @@ jobs:
   rustfmt-check:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Install stable
       uses: actions-rs/toolchain@v1
       with:
@@ -23,7 +23,7 @@ jobs:
   ubuntu-test-default-features:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Install alsa dev tools
       run: sudo apt-get install libasound2-dev
     - name: Install libxcb dev tools
@@ -43,7 +43,7 @@ jobs:
   ubuntu-test-all-features:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Install alsa dev tools
       run: sudo apt-get install libasound2-dev
     - name: Install libxcb dev tools
