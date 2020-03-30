@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "generative_design",
     "nannou",
     "nannou_audio",
     "nannou_isf",

@@ -1,4 +1,4 @@
-// M_1_5_04
+// M_1_5_03
 //
 // Generative Gestaltung – Creative Coding im Web
 // ISBN: 978-3-87439-902-9, First Edition, Hermann Schmidt, Mainz, 2018
@@ -16,19 +16,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 /**
  * noise values (noise 3d) are used to animate a bunch of agents.
  *
  * KEYS
- * 1                   : draw style line
- * 2                   : draw style ellipse
+ * 1-2                 : switch noise mode
+ * space               : new noise seed
  * backspace           : clear screen
  * s                   : save png
  */
-use nannou::prelude::*;
-
 use nannou::noise::{NoiseFn, Perlin, Seedable};
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -37,69 +35,31 @@ fn main() {
 struct Agent {
     vector: Vector2,
     vector_old: Vector2,
-    randomizer: f32,
     step_size: f32,
-    z_noise: f32,
     angle: f32,
-    color: Hsla,
-    noise_scale: f64,
-    noise_strength: f64,
-    agent_width: f32,
-    agent_width_min: f32,
-    agent_width_max: f32,
-    noise_z_velocity: f64,
+    noise_z: f64,
     win_rect: Rect,
 }
 
 impl Agent {
-    fn new(
-        win_rect: Rect,
-        noise_sticking_range: f32,
-        agent_alpha: f32,
-        noise_scale: f64,
-        noise_strength: f64,
-        agent_width_min: f32,
-        agent_width_max: f32,
-        noise_z_velocity: f64,
-    ) -> Self {
+    fn new(win_rect: Rect, noise_z: f64) -> Self {
         let vector = vec2(
             random_range(win_rect.left(), win_rect.right()),
             random_range(win_rect.top(), win_rect.bottom()),
         );
-        let randomizer = random_f32();
-        let color = if randomizer < 0.5 {
-            hsla(random_range(0.47, 0.52), 0.7, random_f32(), agent_alpha)
-        } else {
-            hsla(random_range(0.11, 0.16), 0.7, random_f32(), agent_alpha)
-        };
         Agent {
             vector,
             vector_old: vector,
-            randomizer,
-            step_size: 1.0 + randomizer * 4.0,
-            z_noise: random_f32() * noise_sticking_range,
+            step_size: random_range(1.0, 5.0),
             angle: 0.0,
-            color,
-            noise_scale,
-            noise_strength,
-            agent_width: agent_width_min,
-            agent_width_min,
-            agent_width_max,
-            noise_z_velocity,
+            noise_z: random_range(0.0, noise_z),
             win_rect,
         }
     }
 
-    fn update(&mut self, noise: Perlin, draw_mode: u8) {
+    fn update(&mut self, noise_z_velocity: f64) {
+        self.noise_z += noise_z_velocity;
         self.vector_old = self.vector;
-        self.z_noise += self.noise_z_velocity as f32;
-
-        let n = noise.get([
-            self.vector.x as f64 / self.noise_scale,
-            self.vector.y as f64 / self.noise_scale,
-            self.z_noise as f64,
-        ]) * self.noise_strength;
-        self.angle = n as f32;
 
         self.vector.x += self.angle.cos() * self.step_size;
         self.vector.y += self.angle.sin() * self.step_size;
@@ -120,47 +80,43 @@ impl Agent {
             self.vector.y = self.win_rect.bottom() - 10.0;
             self.vector_old.y = self.vector.y;
         }
-
-        self.agent_width =
-            nannou::geom::range::Range::new(self.agent_width_min, self.agent_width_max)
-                .lerp(self.randomizer);
-
-        if draw_mode == 2 {
-            self.agent_width *= 2.0;
-        }
     }
 
-    fn display(&self, draw: &Draw, draw_mode: u8, stroke_weight: f32) {
-        if draw_mode == 1 {
-            draw.line()
-                .start(self.vector_old)
-                .end(self.vector)
-                .color(self.color)
-                .stroke_weight(stroke_weight * self.step_size);
+    fn update1(&mut self, noise: Perlin, noise_scale: f64, noise_strength: f64) {
+        let n = noise.get([
+            self.vector.x as f64 / noise_scale,
+            self.vector.y as f64 / noise_scale,
+            self.noise_z,
+        ]) * noise_strength;
+        self.angle = n as f32;
+    }
 
-            let draw = draw.x_y(self.vector_old.x, self.vector_old.y).rotate(
-                (self.vector.y - self.vector_old.y).atan2(self.vector.x - self.vector_old.x),
-            );
+    fn update2(&mut self, noise: Perlin, noise_scale: f64, noise_strength: f64) {
+        let n = noise.get([
+            self.vector.x as f64 / noise_scale,
+            self.vector.y as f64 / noise_scale,
+            self.noise_z,
+        ]) * 24.0;
+        self.angle = n as f32;
+        self.angle = (self.angle - self.angle.floor()) * noise_strength as f32;
+    }
 
-            draw.line()
-                .start(pt2(0.0, -self.agent_width))
-                .end(pt2(0.0, self.agent_width))
-                .color(self.color)
-                .stroke_weight(stroke_weight * self.step_size);
-        } else if draw_mode == 2 {
-            draw.ellipse()
-                .x_y(self.vector_old.x, self.vector_old.y)
-                .radius(self.agent_width / 2.0)
-                .stroke_weight(stroke_weight)
-                .stroke(self.color)
-                .no_fill();
-        }
+    fn display(&self, draw: &Draw, stroke_weight: f32, agent_alpha: f32) {
+        draw.line()
+            .start(self.vector_old)
+            .end(self.vector)
+            .rgba(0.0, 0.0, 0.0, agent_alpha)
+            .stroke_weight(stroke_weight * self.step_size);
     }
 }
 
 struct Model {
     agents: Vec<Agent>,
+    noise_scale: f64,
+    noise_strength: f64,
+    noise_z_velocity: f64,
     overlay_alpha: f32,
+    agent_alpha: f32,
     stroke_width: f32,
     draw_mode: u8,
     noise_seed: u32,
@@ -168,39 +124,26 @@ struct Model {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .size(1280, 720)
+        .size(720, 720)
         .view(view)
         .key_released(key_released)
         .build()
         .unwrap();
 
-    let agent_count = 2000;
-    let noise_scale = 100.0;
-    let noise_strength = 10.0;
-    let noise_sticking_range = 0.4;
-    let noise_z_velocity = 0.01;
-    let agent_alpha = 0.9;
-    let agent_width_min = 1.5;
-    let agent_width_max = 15.0;
+    let noise_z_range = 0.4;
+    let agent_count = 4000;
     let agents = (0..agent_count)
-        .map(|_| {
-            Agent::new(
-                app.window_rect(),
-                noise_sticking_range,
-                agent_alpha,
-                noise_scale,
-                noise_strength,
-                agent_width_min,
-                agent_width_max,
-                noise_z_velocity,
-            )
-        })
+        .map(|_| Agent::new(app.window_rect(), noise_z_range))
         .collect();
 
     Model {
         agents,
-        overlay_alpha: 0.08,
-        stroke_width: 2.0,
+        noise_scale: 300.0,
+        noise_strength: 10.0,
+        noise_z_velocity: 0.01,
+        overlay_alpha: 0.03,
+        agent_alpha: 0.35,
+        stroke_width: 0.3,
         draw_mode: 1,
         noise_seed: 12,
     }
@@ -210,7 +153,12 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     let noise = Perlin::new().set_seed(model.noise_seed);
 
     for agent in &mut model.agents {
-        agent.update(noise, model.draw_mode);
+        match model.draw_mode {
+            1 => agent.update1(noise, model.noise_scale, model.noise_strength),
+            2 => agent.update2(noise, model.noise_scale, model.noise_strength),
+            _ => (),
+        }
+        agent.update(model.noise_z_velocity);
     }
 }
 
@@ -223,11 +171,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
     } else {
         draw.rect()
             .wh(app.window_rect().wh())
-            .hsla(0.0, 0.0, 1.0, model.overlay_alpha);
+            .rgba(1.0, 1.0, 1.0, model.overlay_alpha);
     }
 
     model.agents.iter().for_each(|agent| {
-        agent.display(&draw, model.draw_mode, model.stroke_width);
+        agent.display(&draw, model.stroke_width, model.agent_alpha);
     });
 
     // Write the result of our drawing to the window's frame.

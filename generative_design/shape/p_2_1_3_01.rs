@@ -29,8 +29,8 @@
  * s                   : save png
  */
 use nannou::prelude::*;
+use nannou::rand::rngs::StdRng;
 use nannou::rand::{Rng, SeedableRng};
-use rand::rngs::StdRng;
 
 fn main() {
     nannou::app(model).run();

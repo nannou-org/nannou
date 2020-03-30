@@ -28,9 +28,8 @@
  * c                   : save color palette
  */
 use nannou::prelude::*;
+use nannou::rand::rngs::StdRng;
 use nannou::rand::{Rng, SeedableRng};
-
-use rand::rngs::StdRng;
 
 fn main() {
     nannou::app(model).update(update).run();

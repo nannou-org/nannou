@@ -28,14 +28,13 @@
  * backspace            : delete last typed letter
  * ctrl                 : save png
  */
+use nannou::lyon;
+use nannou::lyon::algorithms::path::math::Point;
+use nannou::lyon::algorithms::path::PathSlice;
+use nannou::lyon::algorithms::walk::{walk_along_path, RepeatedPattern};
+use nannou::lyon::path::builder::PathBuilder;
+use nannou::lyon::path::iterator::*;
 use nannou::prelude::*;
-
-use lyon::path::builder::PathBuilder;
-
-use lyon::algorithms::path::math::Point;
-use lyon::algorithms::path::PathSlice;
-use lyon::algorithms::walk::{walk_along_path, RepeatedPattern};
-use lyon::path::iterator::*;
 
 fn main() {
     nannou::app(model).run();

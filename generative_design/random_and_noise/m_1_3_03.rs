@@ -31,10 +31,9 @@
  * arrow right         : noise octaves +
  * s                   : save png
  */
-use nannou::prelude::*;
-
 use nannou::image;
 use nannou::noise::{MultiFractal, NoiseFn, Seedable};
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).run();

@@ -1,4 +1,4 @@
-// M_1_5_03
+// M_1_5_02
 //
 // Generative Gestaltung – Creative Coding im Web
 // ISBN: 978-3-87439-902-9, First Edition, Hermann Schmidt, Mainz, 2018
@@ -17,7 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 /**
- * noise values (noise 3d) are used to animate a bunch of agents.
+ * noise values (noise 2d) are used to animate a bunch of agents.
  *
  * KEYS
  * 1-2                 : switch noise mode
@@ -25,9 +25,8 @@
  * backspace           : clear screen
  * s                   : save png
  */
-use nannou::prelude::*;
-
 use nannou::noise::{NoiseFn, Perlin, Seedable};
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -38,12 +37,12 @@ struct Agent {
     vector_old: Vector2,
     step_size: f32,
     angle: f32,
-    noise_z: f64,
+    is_outside: bool,
     win_rect: Rect,
 }
 
 impl Agent {
-    fn new(win_rect: Rect, noise_z: f64) -> Self {
+    fn new(win_rect: Rect) -> Self {
         let vector = vec2(
             random_range(win_rect.left(), win_rect.right()),
             random_range(win_rect.top(), win_rect.bottom()),
@@ -53,33 +52,27 @@ impl Agent {
             vector_old: vector,
             step_size: random_range(1.0, 5.0),
             angle: 0.0,
-            noise_z: random_range(0.0, noise_z),
+            is_outside: false,
             win_rect,
         }
     }
 
-    fn update(&mut self, noise_z_velocity: f64) {
-        self.noise_z += noise_z_velocity;
+    fn update(&mut self) {
+        self.is_outside = false;
         self.vector_old = self.vector;
 
         self.vector.x += self.angle.cos() * self.step_size;
         self.vector.y += self.angle.sin() * self.step_size;
-
-        if self.vector.x < self.win_rect.left() - 10.0 {
-            self.vector.x = self.win_rect.right() + 10.0;
-            self.vector_old.x = self.vector.x;
-        }
-        if self.vector.x > self.win_rect.right() + 10.0 {
-            self.vector.x = self.win_rect.left() - 10.0;
-            self.vector_old.x = self.vector.x;
-        }
-        if self.vector.y < self.win_rect.bottom() - 10.0 {
-            self.vector.y = self.win_rect.top() + 10.0;
-            self.vector_old.y = self.vector.y;
-        }
-        if self.vector.y > self.win_rect.top() + 10.0 {
-            self.vector.y = self.win_rect.bottom() - 10.0;
-            self.vector_old.y = self.vector.y;
+        self.is_outside = self.vector.x < self.win_rect.left()
+            || self.vector.x > self.win_rect.right()
+            || self.vector.y < self.win_rect.bottom()
+            || self.vector.y > self.win_rect.top();
+        if self.is_outside {
+            self.vector = vec2(
+                random_range(self.win_rect.left(), self.win_rect.right()),
+                random_range(self.win_rect.top(), self.win_rect.bottom()),
+            );
+            self.vector_old = self.vector;
         }
     }
 
@@ -87,7 +80,6 @@ impl Agent {
         let n = noise.get([
             self.vector.x as f64 / noise_scale,
             self.vector.y as f64 / noise_scale,
-            self.noise_z,
         ]) * noise_strength;
         self.angle = n as f32;
     }
@@ -96,7 +88,6 @@ impl Agent {
         let n = noise.get([
             self.vector.x as f64 / noise_scale,
             self.vector.y as f64 / noise_scale,
-            self.noise_z,
         ]) * 24.0;
         self.angle = n as f32;
         self.angle = (self.angle - self.angle.floor()) * noise_strength as f32;
@@ -115,7 +106,6 @@ struct Model {
     agents: Vec<Agent>,
     noise_scale: f64,
     noise_strength: f64,
-    noise_z_velocity: f64,
     overlay_alpha: f32,
     agent_alpha: f32,
     stroke_width: f32,
@@ -131,17 +121,15 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    let noise_z_range = 0.4;
     let agent_count = 4000;
     let agents = (0..agent_count)
-        .map(|_| Agent::new(app.window_rect(), noise_z_range))
+        .map(|_| Agent::new(app.window_rect()))
         .collect();
 
     Model {
         agents,
         noise_scale: 300.0,
         noise_strength: 10.0,
-        noise_z_velocity: 0.01,
         overlay_alpha: 0.03,
         agent_alpha: 0.35,
         stroke_width: 0.3,
@@ -159,7 +147,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
             2 => agent.update2(noise, model.noise_scale, model.noise_strength),
             _ => (),
         }
-        agent.update(model.noise_z_velocity);
+        agent.update();
     }
 }
 

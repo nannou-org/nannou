@@ -1,4 +1,4 @@
-// M_1_2_01
+// P_2_1_2_04
 //
 // Generative Gestaltung – Creative Coding im Web
 // ISBN: 978-3-87439-902-9, First Edition, Hermann Schmidt, Mainz, 2018
@@ -18,42 +18,44 @@
 // limitations under the License.
 
 /**
- * order vs random!
- * how to interpolate beetween a free composition (random) and a circle shape (order)
+ * moving corners of rectangles in a grid
  *
  * MOUSE
- * position x          : fade between random and circle shape
+ * position x          : corner position offset x
+ * position y          : corner position offset y
+ * left click          : random position
  *
  * KEYS
  * s                   : save png
  */
 use nannou::prelude::*;
+use nannou::rand::rngs::StdRng;
 use nannou::rand::{Rng, SeedableRng};
-
-use rand::rngs::StdRng;
 
 fn main() {
     nannou::app(model).run();
 }
 
 struct Model {
+    tile_count: u32,
     act_random_seed: u64,
-    count: usize,
+    rect_size: f32,
 }
 
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .size(800, 800)
+        .size(600, 600)
         .view(view)
-        .mouse_pressed(mouse_pressed)
         .key_pressed(key_pressed)
+        .mouse_pressed(mouse_pressed)
         .build()
         .unwrap();
 
     Model {
+        tile_count: 20,
         act_random_seed: 0,
-        count: 150,
+        rect_size: 30.0,
     }
 }
 
@@ -62,23 +64,38 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let win = app.window_rect();
 
     draw.background().color(WHITE);
-    let fader_x = map_range(app.mouse.x, win.left(), win.right(), 0.0, 1.0);
 
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 
-    let angle = deg_to_rad(360.0 / model.count as f32);
+    for grid_y in 0..model.tile_count {
+        for grid_x in 0..model.tile_count {
+            let tile_w = win.w() / model.tile_count as f32;
+            let tile_h = win.h() / model.tile_count as f32;
+            let pos_x = win.left() + tile_w * grid_x as f32;
+            let pos_y = (win.top() - tile_h) - tile_h * grid_y as f32;
 
-    for i in 0..model.count {
-        // positions
-        let random_x = rng.gen_range(win.left(), win.right() + 1.0);
-        let random_y = rng.gen_range(win.bottom(), win.top() + 1.0);
-        let circle_x = (angle * i as f32).cos() * 300.0;
-        let circle_y = (angle * i as f32).sin() * 300.0;
+            let mx = clamp(win.right() + app.mouse.x, 0.0, win.w());
+            let my = clamp(win.top() - app.mouse.y, 0.0, win.h());
 
-        let x = nannou::geom::Range::new(random_x, circle_x).lerp(fader_x);
-        let y = nannou::geom::Range::new(random_y, circle_y).lerp(fader_x);
+            let shift_x1 = mx / 20.0 * rng.gen_range(-1.0, 1.0);
+            let shift_y1 = my / 20.0 * rng.gen_range(-1.0, 1.0);
+            let shift_x2 = mx / 20.0 * rng.gen_range(-1.0, 1.0);
+            let shift_y2 = my / 20.0 * rng.gen_range(-1.0, 1.0);
+            let shift_x3 = mx / 20.0 * rng.gen_range(-1.0, 1.0);
+            let shift_y3 = my / 20.0 * rng.gen_range(-1.0, 1.0);
+            let shift_x4 = mx / 20.0 * rng.gen_range(-1.0, 1.0);
+            let shift_y4 = my / 20.0 * rng.gen_range(-1.0, 1.0);
+            let mut points = Vec::new();
+            points.push(pt2(pos_x + shift_x1, pos_y + shift_y1));
+            points.push(pt2(pos_x + model.rect_size + shift_x2, pos_y + shift_y2));
+            points.push(pt2(
+                pos_x + model.rect_size + shift_x3,
+                pos_y + model.rect_size + shift_y3,
+            ));
+            points.push(pt2(pos_x + shift_x4, pos_y + model.rect_size + shift_y4));
 
-        draw.ellipse().x_y(x, y).w_h(11.0, 11.0).rgb8(0, 130, 163);
+            draw.polygon().hsva(0.53, 1.0, 0.64, 0.7).points(points);
+        }
     }
 
     // Write to the window frame.

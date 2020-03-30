@@ -1,4 +1,4 @@
-// M_1_3_02
+// M_1_2_01
 //
 // Generative Gestaltung – Creative Coding im Web
 // ISBN: 978-3-87439-902-9, First Edition, Hermann Schmidt, Mainz, 2018
@@ -18,19 +18,18 @@
 // limitations under the License.
 
 /**
- * creates a texture based on random values
+ * order vs random!
+ * how to interpolate beetween a free composition (random) and a circle shape (order)
  *
  * MOUSE
- * click               : new noise line
+ * position x          : fade between random and circle shape
  *
  * KEYS
  * s                   : save png
  */
 use nannou::prelude::*;
-
-use nannou::image;
+use nannou::rand::rngs::StdRng;
 use nannou::rand::{Rng, SeedableRng};
-use rand::rngs::SmallRng;
 
 fn main() {
     nannou::app(model).run();
@@ -38,62 +37,51 @@ fn main() {
 
 struct Model {
     act_random_seed: u64,
-    texture: wgpu::Texture,
+    count: usize,
 }
 
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .size(512, 512)
+        .size(800, 800)
         .view(view)
         .mouse_pressed(mouse_pressed)
         .key_pressed(key_pressed)
         .build()
         .unwrap();
 
-    let window = app.main_window();
-    let win = window.rect();
-    let texture = wgpu::TextureBuilder::new()
-        .size([win.w() as u32, win.h() as u32])
-        .format(Frame::TEXTURE_FORMAT)
-        .usage(wgpu::TextureUsage::COPY_DST | wgpu::TextureUsage::SAMPLED)
-        .build(window.swap_chain_device());
     Model {
-        act_random_seed: 42,
-        texture,
+        act_random_seed: 0,
+        count: 150,
     }
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
-
-    let win = app.window_rect();
-    let mut rng = SmallRng::seed_from_u64(model.act_random_seed);
-
-    let image = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |_x, _y| {
-        let r: u16 = rng.gen_range(0, std::u16::MAX);
-        nannou::image::Rgba([r, r, r, std::u16::MAX])
-    });
-
-    let flat_samples = image.as_flat_samples();
-    let img_bytes = slice_as_bytes(flat_samples.as_slice());
-    model.texture.upload_data(
-        app.main_window().swap_chain_device(),
-        &mut *frame.command_encoder(),
-        img_bytes,
-    );
-
     let draw = app.draw();
-    draw.texture(&model.texture);
+    let win = app.window_rect();
+
+    draw.background().color(WHITE);
+    let fader_x = map_range(app.mouse.x, win.left(), win.right(), 0.0, 1.0);
+
+    let mut rng = StdRng::seed_from_u64(model.act_random_seed);
+
+    let angle = deg_to_rad(360.0 / model.count as f32);
+
+    for i in 0..model.count {
+        // positions
+        let random_x = rng.gen_range(win.left(), win.right() + 1.0);
+        let random_y = rng.gen_range(win.bottom(), win.top() + 1.0);
+        let circle_x = (angle * i as f32).cos() * 300.0;
+        let circle_y = (angle * i as f32).sin() * 300.0;
+
+        let x = nannou::geom::Range::new(random_x, circle_x).lerp(fader_x);
+        let y = nannou::geom::Range::new(random_y, circle_y).lerp(fader_x);
+
+        draw.ellipse().x_y(x, y).w_h(11.0, 11.0).rgb8(0, 130, 163);
+    }
 
     // Write to the window frame.
     draw.to_frame(app, &frame).unwrap();
-}
-
-fn slice_as_bytes(s: &[u16]) -> &[u8] {
-    let len = s.len() * std::mem::size_of::<u16>();
-    let ptr = s.as_ptr() as *const u8;
-    unsafe { std::slice::from_raw_parts(ptr, len) }
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {

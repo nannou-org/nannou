@@ -1,4 +1,4 @@
-// M_1_3_01
+// M_1_3_02
 //
 // Generative Gestaltung – Creative Coding im Web
 // ISBN: 978-3-87439-902-9, First Edition, Hermann Schmidt, Mainz, 2018
@@ -18,78 +18,85 @@
 // limitations under the License.
 
 /**
- * draws a chart based on noise values.
+ * creates a texture based on random values
  *
  * MOUSE
- * position x          : specify noise input range
  * click               : new noise line
  *
  * KEYS
  * s                   : save png
  */
+use nannou::image;
 use nannou::prelude::*;
-
-use nannou::noise::NoiseFn;
-use nannou::noise::Seedable;
+use nannou::rand::rngs::SmallRng;
+use nannou::rand::{Rng, SeedableRng};
 
 fn main() {
     nannou::app(model).run();
 }
 
 struct Model {
-    act_random_seed: u32,
+    act_random_seed: u64,
+    texture: wgpu::Texture,
 }
 
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .size(1024, 256)
+        .size(512, 512)
         .view(view)
         .mouse_pressed(mouse_pressed)
         .key_pressed(key_pressed)
         .build()
         .unwrap();
 
+    let window = app.main_window();
+    let win = window.rect();
+    let texture = wgpu::TextureBuilder::new()
+        .size([win.w() as u32, win.h() as u32])
+        .format(Frame::TEXTURE_FORMAT)
+        .usage(wgpu::TextureUsage::COPY_DST | wgpu::TextureUsage::SAMPLED)
+        .build(window.swap_chain_device());
     Model {
         act_random_seed: 42,
+        texture,
     }
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
-    let draw = app.draw();
+    frame.clear(BLACK);
+
     let win = app.window_rect();
+    let mut rng = SmallRng::seed_from_u64(model.act_random_seed);
 
-    draw.background().color(WHITE);
-
-    let noise = nannou::noise::Perlin::new().set_seed(model.act_random_seed);
-
-    let noise_x_range = map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w()) / 10.0;
-
-    let range = win.w() as usize / 10;
-    let vertices = (0..=range).map(|x| {
-        let noise_x = map_range(x as f32, 0.0, win.w(), 0.0, noise_x_range) as f64;
-        let y = noise.get([noise_x, noise_x]) * win.h() as f64 / 2.0;
-        pt2(win.left() + (x as f32 * 10.0), y as f32)
+    let image = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |_x, _y| {
+        let r: u16 = rng.gen_range(0, std::u16::MAX);
+        nannou::image::Rgba([r, r, r, std::u16::MAX])
     });
-    draw.polyline()
-        .weight(1.0)
-        .points(vertices)
-        .rgb(0.0, 0.5, 0.64);
 
-    for x in (0..win.w() as usize).step_by(10) {
-        let noise_x = map_range(x as f32 / 10.0, 0.0, win.w(), 0.0, noise_x_range) as f64;
-        let y = noise.get([noise_x, noise_x]) * win.h() as f64 / 2.0;
-        draw.ellipse()
-            .x_y(win.left() + x as f32, y as f32)
-            .w_h(3.0, 3.0)
-            .color(BLACK);
-    }
+    let flat_samples = image.as_flat_samples();
+    let img_bytes = slice_as_bytes(flat_samples.as_slice());
+    model.texture.upload_data(
+        app.main_window().swap_chain_device(),
+        &mut *frame.command_encoder(),
+        img_bytes,
+    );
+
+    let draw = app.draw();
+    draw.texture(&model.texture);
+
     // Write to the window frame.
     draw.to_frame(app, &frame).unwrap();
 }
 
+fn slice_as_bytes(s: &[u16]) -> &[u8] {
+    let len = s.len() * std::mem::size_of::<u16>();
+    let ptr = s.as_ptr() as *const u8;
+    unsafe { std::slice::from_raw_parts(ptr, len) }
+}
+
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
-    model.act_random_seed = (random_f32() * 100000.0) as u32;
+    model.act_random_seed = (random_f32() * 100000.0) as u64;
 }
 
 fn key_pressed(app: &App, _model: &mut Model, key: Key) {

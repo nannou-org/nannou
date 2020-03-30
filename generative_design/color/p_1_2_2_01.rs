@@ -17,8 +17,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use nannou::image;
-use nannou::image::GenericImageView;
 /**
  * extract and sort the color palette of an image
  *
@@ -39,6 +37,8 @@ use nannou::image::GenericImageView;
  * s                   : save png
  * c                   : save color palette
  */
+use nannou::image;
+use nannou::image::GenericImageView;
 use nannou::prelude::*;
 use nannou::ui::color::rgb_to_hsl;
 

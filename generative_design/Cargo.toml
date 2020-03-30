@@ -1,0 +1,239 @@
+[package]
+name = "generative_design"
+version = "0.1.0"
+authors = [
+    "JoshuaBatty <joshpbatty@gmail.com>",
+    "mitchmindtree <mitchell.nordine@gmail.com>",
+]
+description = "An implementation of the Generative Gestaltung examples."
+readme = "README.md"
+keywords = ["creative", "sketch", "generative", "design", "gestaltung"]
+license = "MIT"
+repository = "https://github.com/nannou-org/nannou.git"
+homepage = "https://github.com/nannou-org/nannou"
+edition = "2018"
+
+[dependencies]
+nannou = { version = "0.13.1", path = "../nannou" }
+wikipedia = "0.3"
+usvg = "0.4"
+
+# Color
+[[example]]
+name = "p_1_0_01"
+path = "color/p_1_0_01.rs"
+[[example]]
+name = "p_1_1_1_01"
+path = "color/p_1_1_1_01.rs"
+[[example]]
+name = "p_1_1_2_01"
+path = "color/p_1_1_2_01.rs"
+[[example]]
+name = "p_1_2_1_01"
+path = "color/p_1_2_1_01.rs"
+[[example]]
+name = "p_1_2_2_01"
+path = "color/p_1_2_2_01.rs"
+[[example]]
+name = "p_1_2_3_01"
+path = "color/p_1_2_3_01.rs"
+[[example]]
+name = "p_1_2_3_02"
+path = "color/p_1_2_3_02.rs"
+[[example]]
+name = "p_1_2_3_03"
+path = "color/p_1_2_3_03.rs"
+[[example]]
+name = "p_1_2_3_04"
+path = "color/p_1_2_3_04.rs"
+
+# Shape
+[[example]]
+name = "p_2_0_01"
+path = "shape/p_2_0_01.rs"
+[[example]]
+name = "p_2_0_02"
+path = "shape/p_2_0_02.rs"
+[[example]]
+name = "p_2_0_03"
+path = "shape/p_2_0_03.rs"
+[[example]]
+name = "p_2_1_1_01"
+path = "shape/p_2_1_1_01.rs"
+[[example]]
+name = "p_2_1_1_02"
+path = "shape/p_2_1_1_02.rs"
+[[example]]
+name = "p_2_1_1_03"
+path = "shape/p_2_1_1_03.rs"
+[[example]]
+name = "p_2_1_2_01"
+path = "shape/p_2_1_2_01.rs"
+[[example]]
+name = "p_2_1_2_02"
+path = "shape/p_2_1_2_02.rs"
+[[example]]
+name = "p_2_1_2_03"
+path = "shape/p_2_1_2_03.rs"
+[[example]]
+name = "p_2_1_2_04"
+path = "shape/p_2_1_2_04.rs"
+[[example]]
+name = "p_2_1_3_01"
+path = "shape/p_2_1_3_01.rs"
+[[example]]
+name = "p_2_1_3_02"
+path = "shape/p_2_1_3_02.rs"
+[[example]]
+name = "p_2_1_3_03"
+path = "shape/p_2_1_3_03.rs"
+[[example]]
+name = "p_2_1_3_04"
+path = "shape/p_2_1_3_04.rs"
+[[example]]
+name = "p_2_1_3_05"
+path = "shape/p_2_1_3_05.rs"
+[[example]]
+name = "p_2_1_5_01"
+path = "shape/p_2_1_5_01.rs"
+[[example]]
+name = "p_2_1_5_02"
+path = "shape/p_2_1_5_02.rs"
+[[example]]
+name = "p_2_1_5_03"
+path = "shape/p_2_1_5_03.rs"
+[[example]]
+name = "p_2_2_1_01"
+path = "shape/p_2_2_1_01.rs"
+[[example]]
+name = "p_2_2_1_02"
+path = "shape/p_2_2_1_02.rs"
+[[example]]
+name = "p_2_2_3_01"
+path = "shape/p_2_2_3_01.rs"
+[[example]]
+name = "p_2_2_4_01"
+path = "shape/p_2_2_4_01.rs"
+[[example]]
+name = "p_2_2_4_02"
+path = "shape/p_2_2_4_02.rs"
+[[example]]
+name = "p_2_2_5_01"
+path = "shape/p_2_2_5_01.rs"
+[[example]]
+name = "p_2_2_6_01"
+path = "shape/p_2_2_6_01.rs"
+[[example]]
+name = "p_2_3_1_01"
+path = "shape/p_2_3_1_01.rs"
+[[example]]
+name = "p_2_3_2_01"
+path = "shape/p_2_3_2_01.rs"
+
+# Type
+[[example]]
+name = "p_3_0_01"
+path = "type/p_3_0_01.rs"
+[[example]]
+name = "p_3_1_3_01"
+path = "type/p_3_1_3_01.rs"
+[[example]]
+name = "p_3_1_3_02"
+path = "type/p_3_1_3_02.rs"
+[[example]]
+name = "p_3_1_3_03"
+path = "type/p_3_1_3_03.rs"
+[[example]]
+name = "p_3_1_3_04"
+path = "type/p_3_1_3_04.rs"
+[[example]]
+name = "p_3_2_1_01"
+path = "type/p_3_2_1_01.rs"
+
+# Image
+[[example]]
+name = "p_4_0_01"
+path = "image/p_4_0_01.rs"
+[[example]]
+name = "p_4_1_1_01"
+path = "image/p_4_1_1_01.rs"
+[[example]]
+name = "p_4_1_2_01"
+path = "image/p_4_1_2_01.rs"
+[[example]]
+name = "p_4_1_2_02"
+path = "image/p_4_1_2_02.rs"
+[[example]]
+name = "p_4_3_1_01"
+path = "image/p_4_3_1_01.rs"
+[[example]]
+name = "p_4_3_1_02"
+path = "image/p_4_3_1_02.rs"
+[[example]]
+name = "p_4_3_2_01"
+path = "image/p_4_3_2_01.rs"
+
+# Random and Noise
+[[example]]
+name = "m_1_1_01"
+path = "random_and_noise/m_1_1_01.rs"
+[[example]]
+name = "m_1_2_01"
+path = "random_and_noise/m_1_2_01.rs"
+[[example]]
+name = "m_1_3_01"
+path = "random_and_noise/m_1_3_01.rs"
+[[example]]
+name = "m_1_3_02"
+path = "random_and_noise/m_1_3_02.rs"
+[[example]]
+name = "m_1_3_03"
+path = "random_and_noise/m_1_3_03.rs"
+[[example]]
+name = "m_1_5_02"
+path = "random_and_noise/m_1_5_02.rs"
+[[example]]
+name = "m_1_5_03"
+path = "random_and_noise/m_1_5_03.rs"
+[[example]]
+name = "m_1_5_04"
+path = "random_and_noise/m_1_5_04.rs"
+
+# Oscillation Figures
+[[example]]
+name = "m_2_1_01"
+path = "oscillation_figures/m_2_1_01.rs"
+[[example]]
+name = "m_2_2_01"
+path = "oscillation_figures/m_2_2_01.rs"
+[[example]]
+name = "m_2_3_01"
+path = "oscillation_figures/m_2_3_01.rs"
+[[example]]
+name = "m_2_3_02"
+path = "oscillation_figures/m_2_3_02.rs"
+[[example]]
+name = "m_2_5_01"
+path = "oscillation_figures/m_2_5_01.rs"
+[[example]]
+name = "m_2_5_02"
+path = "oscillation_figures/m_2_5_02.rs"
+
+# Data Trees
+[[example]]
+name = "m_5_1_01"
+path = "data_trees/m_5_1_01.rs"
+
+# Dynamic Data Structure
+[[example]]
+name = "m_6_1_01"
+path = "dynamic_data_structure/m_6_1_01.rs"
+[[example]]
+name = "m_6_1_02"
+path = "dynamic_data_structure/m_6_1_02.rs"
+[[example]]
+name = "m_6_1_03"
+path = "dynamic_data_structure/m_6_1_03.rs"
+[[example]]
+name = "m_6_2_01"
+path = "dynamic_data_structure/m_6_2_01.rs"
