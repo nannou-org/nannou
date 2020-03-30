@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "nannou",
+    "nannou_audio",
+    "nannou_isf",
+    "nannou_laser",
+    "nannou_new",
+    "nannou_osc",
+    "nannou_package",
+    "nannou_timeline",
+]
