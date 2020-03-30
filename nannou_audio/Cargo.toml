@@ -1,11 +1,3 @@
-<<<<<<< HEAD
-[workspace]
-members = [
-    "nannou",
-    "nannou-new",
-    "nannou-package",
-]
-=======
 [package]
 name = "nannou_audio"
 version = "0.2.0"
@@ -25,4 +17,3 @@ sample = "0.10"
 
 [features]
 asio = ["cpal/asio"]
->>>>>>> nannou_audio/master
