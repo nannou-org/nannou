@@ -20,7 +20,7 @@ jobs:
         command: fmt
         args: --all -- --check
 
-  ubuntu-test-default-features:
+  cargo-test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -42,7 +42,7 @@ jobs:
         command: test
         args: --lib --bins --verbose
 
-  ubuntu-test-all-features:
+  cargo-test-all-features:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -64,7 +64,7 @@ jobs:
         command: test
         args: --lib --bins --all-features --verbose
 
-  ubuntu-check-examples:
+  cargo-check-examples:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -80,7 +80,7 @@ jobs:
         profile: minimal
         toolchain: stable
         override: true
-    - name: Run default features
+    - name: Run check
       uses: actions-rs/cargo@v1
       with:
         command: check
