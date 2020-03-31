@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "examples",
     "generative_design",
     "nannou",
     "nannou_audio",
@@ -10,4 +11,5 @@ members = [
     "nannou_package",
     "nannou_timeline",
     "nature_of_code",
+    "scripts/run_all_examples",
 ]

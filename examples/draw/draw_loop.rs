@@ -2,6 +2,8 @@
  * Simple Loop example with 4D noise
  * Daily Sketch 2019/09/23 by Alexis Andre (@mactuitui)
  *
+ * Demonstration of looping an animation using periodic functions.
+ *
  */
 
 use nannou::noise::*;

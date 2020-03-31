@@ -1,0 +1,183 @@
+[package]
+name = "examples"
+version = "0.1.0"
+authors = [
+    "mitchmindtree <mitchell.nordine@gmail.com>",
+    "JoshuaBatty <joshpbatty@gmail.com>",
+]
+description = "A suite examples for nannou, the creative coding framework."
+readme = "README.md"
+keywords = ["creative", "sketch", "graphics", "audio", "example"]
+license = "MIT"
+repository = "https://github.com/nannou-org/nannou.git"
+homepage = "https://github.com/nannou-org/nannou"
+edition = "2018"
+
+[dev-dependencies]
+audrey = "0.2"
+futures = "0.3"
+nannou = { version = "0.13", path = "../nannou" }
+nannou_audio = { version = "0.2", path = "../nannou_audio" }
+nannou_laser = { version = "0.3", path = "../nannou_laser" }
+nannou_osc = { version = "0.1", path = "../nannou_osc" }
+
+# Audio
+[[example]]
+name = "simple_audio"
+path = "audio/simple_audio.rs"
+[[example]]
+name = "simple_audio_file"
+path = "audio/simple_audio_file.rs"
+
+# Communication
+[[example]]
+name = "osc_receiver"
+path = "communication/osc_receiver.rs"
+[[example]]
+name = "osc_sender"
+path = "communication/osc_sender.rs"
+
+# Draw
+[[example]]
+name = "draw"
+path = "draw/draw.rs"
+[[example]]
+name = "draw_blend"
+path = "draw/draw_blend.rs"
+[[example]]
+name = "draw_capture"
+path = "draw/draw_capture.rs"
+[[example]]
+name = "draw_capture_hi_res"
+path = "draw/draw_capture_hi_res.rs"
+[[example]]
+name = "draw_loop"
+path = "draw/draw_loop.rs"
+[[example]]
+name = "draw_mesh"
+path = "draw/draw_mesh.rs"
+[[example]]
+name = "draw_polygon"
+path = "draw/draw_polygon.rs"
+[[example]]
+name = "draw_polyline"
+path = "draw/draw_polyline.rs"
+[[example]]
+name = "draw_text"
+path = "draw/draw_text.rs"
+[[example]]
+name = "draw_text_path"
+path = "draw/draw_text_path.rs"
+[[example]]
+name = "draw_texture"
+path = "draw/draw_texture.rs"
+[[example]]
+name = "draw_texture_sampler"
+path = "draw/draw_texture_sampler.rs"
+[[example]]
+name = "draw_textured_mesh"
+path = "draw/draw_textured_mesh.rs"
+[[example]]
+name = "draw_textured_path"
+path = "draw/draw_textured_path.rs"
+[[example]]
+name = "draw_textured_polygon"
+path = "draw/draw_textured_polygon.rs"
+[[example]]
+name = "draw_transform"
+path = "draw/draw_transform.rs"
+
+# Laser
+[[example]]
+name = "laser_frame_stream"
+path = "laser/laser_frame_stream.rs"
+[[example]]
+name = "laser_frame_stream_gui"
+path = "laser/laser_frame_stream_gui.rs"
+[[example]]
+name = "laser_raw_stream"
+path = "laser/laser_raw_stream.rs"
+
+# Nannou Basics
+[[example]]
+name = "all_functions"
+path = "nannou_basics/all_functions.rs"
+[[example]]
+name = "loop_mode"
+path = "nannou_basics/loop_mode.rs"
+[[example]]
+name = "multi_window"
+path = "nannou_basics/multi_window.rs"
+[[example]]
+name = "multi_window_draw"
+path = "nannou_basics/multi_window_draw.rs"
+[[example]]
+name = "simple_window"
+path = "nannou_basics/simple_window.rs"
+
+# Offline
+[[example]]
+name = "offline_01"
+path = "offline/tree.rs"
+
+# Rust Basics
+[[example]]
+name = "1_nannou_events"
+path = "rust_basics/1_nannou_events.rs"
+[[example]]
+name = "2_variables_window_console"
+path = "rust_basics/2_variables_window_console.rs"
+[[example]]
+name = "3_variable_scope"
+path = "rust_basics/3_variable_scope.rs"
+[[example]]
+name = "4_conditionals"
+path = "rust_basics/4_conditionals.rs"
+[[example]]
+name = "5_loops"
+path = "rust_basics/5_loops.rs"
+[[example]]
+name = "6_functions"
+path = "rust_basics/6_functions.rs"
+[[example]]
+name = "7_modules"
+path = "rust_basics/7_modules/7_modules.rs"
+
+# Template
+[[example]]
+name = "template_app"
+path = "templates/template_app.rs"
+[[example]]
+name = "template_sketch"
+path = "templates/template_sketch.rs"
+
+# User Interface
+[[example]]
+name = "named_color_reference"
+path = "ui/named_color_reference.rs"
+[[example]]
+name = "simple_ui"
+path = "ui/simple_ui.rs"
+
+# WebGPU
+[[example]]
+name = "wgpu_compute_shader"
+path = "wgpu/wgpu_compute_shader/wgpu_compute_shader.rs"
+[[example]]
+name = "wgpu_image"
+path = "wgpu/wgpu_image/wgpu_image.rs"
+[[example]]
+name = "wgpu_image_sequence"
+path = "wgpu/wgpu_image_sequence/wgpu_image_sequence.rs"
+[[example]]
+name = "wgpu_teapot"
+path = "wgpu/wgpu_teapot/wgpu_teapot.rs"
+[[example]]
+name = "wgpu_teapot_camera"
+path = "wgpu/wgpu_teapot_camera/wgpu_teapot_camera.rs"
+[[example]]
+name = "wgpu_triangle"
+path = "wgpu/wgpu_triangle/wgpu_triangle.rs"
+[[example]]
+name = "wgpu_triangle_raw_frame"
+path = "wgpu/wgpu_triangle_raw_frame/wgpu_triangle_raw_frame.rs"

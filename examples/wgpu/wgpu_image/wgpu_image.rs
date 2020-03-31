@@ -1,24 +1,8 @@
-//! A demonstration of playing back a sequence of images.
-//!
-//! This approach loads a directory of images into a single texture array. We only ever present a
-//! single layer of the texture at a time by creating a texture view. We select which layer to view
-//! by using a `current_layer` variable and updating it based on a frame rate that we determine by
-//! the mouse x position.
-//!
-//! An interesting exercise might be to make a copy of this example and attempt to smooth the slow
-//! frame rates by interpolating between two of the layers at a time. Hint: this would likely
-//! require adding a second texture view binding to the bind group and its layout.
-
-use nannou::image::RgbaImage;
+use nannou::image;
+use nannou::image::GenericImageView;
 use nannou::prelude::*;
-use std::path::{Path, PathBuf};
 
 struct Model {
-    current_layer: f32,
-    texture_array: wgpu::Texture,
-    texture_view: wgpu::TextureView,
-    sampler: wgpu::Sampler,
-    bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
@@ -58,20 +42,14 @@ impl wgpu::VertexDescriptor for Vertex {
 }
 
 fn main() {
-    nannou::app(model).update(update).run();
+    nannou::app(model).run();
 }
 
 fn model(app: &App) -> Model {
-    // Load the images.
-    let sequence_path = app
-        .assets_path()
-        .unwrap()
-        .join("images")
-        .join("spinning_dancer");
-
-    println!("Loading images...");
-    let (images, (img_w, img_h)) = load_images(&sequence_path);
-    println!("Done!");
+    // Load the image.
+    let logo_path = app.assets_path().unwrap().join("images").join("nannou.png");
+    let image = image::open(logo_path).unwrap();
+    let (img_w, img_h) = image.dimensions();
 
     let w_id = app
         .new_window()
@@ -79,7 +57,6 @@ fn model(app: &App) -> Model {
         .view(view)
         .build()
         .unwrap();
-
     let window = app.window(w_id).unwrap();
     let device = window.swap_chain_device();
     let format = Frame::TEXTURE_FORMAT;
@@ -94,17 +71,9 @@ fn model(app: &App) -> Model {
         wgpu::read_spirv(std::io::Cursor::new(&fs[..])).expect("failed to read hard-coded SPIRV");
     let fs_mod = device.create_shader_module(&fs_spirv);
 
-    let texture_array = {
-        // The wgpu device queue used to load the image data.
-        let mut queue = window.swap_chain_queue().lock().unwrap();
-        // Describe how we will use the texture so that the GPU may handle it efficiently.
-        let usage = wgpu::TextureUsage::SAMPLED;
-        let iter = images.iter().map(|&(_, ref img)| img);
-        wgpu::Texture::load_array_from_image_buffers(device, &mut *queue, usage, iter)
-            .expect("tied to load texture array with an empty image buffer sequence")
-    };
-    let layer = 0;
-    let texture_view = texture_array.view().layer(layer).build();
+    // Load the image as a texture.
+    let texture = wgpu::Texture::from_image(&window, &image);
+    let texture_view = texture.view().build();
 
     // Create the sampler for sampling from the source texture.
     let sampler = wgpu::SamplerBuilder::new().build(device);
@@ -127,48 +96,10 @@ fn model(app: &App) -> Model {
         .fill_from_slice(&VERTICES[..]);
 
     Model {
-        current_layer: 0.0,
-        texture_array,
-        texture_view,
-        sampler,
-        bind_group_layout,
         bind_group,
         vertex_buffer,
         render_pipeline,
     }
-}
-
-fn update(app: &App, model: &mut Model, update: Update) {
-    // Update which layer in the texture array that are viewing.
-    let window = app.main_window();
-    let device = window.swap_chain_device();
-
-    // Determine how fast to play back the frames based on the mouse x.
-    let win_rect = window.rect();
-    let fps = map_range(
-        app.mouse.x,
-        win_rect.left(),
-        win_rect.right(),
-        -100.0,
-        100.0,
-    );
-
-    // Update which layer we are viewing based on the playback speed and layer count.
-    let layer_count = model.texture_array.array_layer_count();
-    model.current_layer = fmod(
-        model.current_layer + update.since_last.secs() as f32 * fps,
-        layer_count as f32,
-    );
-
-    // Update the view and the bind group ready for drawing.
-    let layer = model.current_layer as u32;
-    model.texture_view = model.texture_array.view().layer(layer).build();
-    model.bind_group = create_bind_group(
-        device,
-        &model.bind_group_layout,
-        &model.texture_view,
-        &model.sampler,
-    );
 }
 
 fn view(_app: &App, model: &Model, frame: Frame) {
@@ -182,29 +113,6 @@ fn view(_app: &App, model: &Model, frame: Frame) {
     let vertex_range = 0..VERTICES.len() as u32;
     let instance_range = 0..1;
     render_pass.draw(vertex_range, instance_range);
-}
-
-// Load a directory of images and returns them sorted by filename alongside their dimensions.
-// This function assumes all the images have the same dimensions.
-fn load_images(dir: &Path) -> (Vec<(PathBuf, RgbaImage)>, (u32, u32)) {
-    let mut images = vec![];
-    let mut dims = (0, 0);
-    for entry in std::fs::read_dir(dir).unwrap() {
-        let entry = entry.unwrap();
-        let path = entry.path();
-        let image = match image::open(&path) {
-            Ok(img) => img.into_rgba(),
-            Err(err) => {
-                eprintln!("failed to open {} as an image: {}", path.display(), err);
-                continue;
-            }
-        };
-        let (w, h) = image.dimensions();
-        dims = (w, h);
-        images.push((path, image));
-    }
-    images.sort_by_key(|(path, _)| path.clone());
-    (images, dims)
 }
 
 fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {

@@ -1,5 +1,6 @@
 use nannou::math::cgmath::{self, Matrix3, Matrix4, Point3, Rad, Vector3};
 use nannou::prelude::*;
+use nannou::winit;
 use std::cell::RefCell;
 
 mod data;
