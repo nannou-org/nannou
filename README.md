@@ -66,7 +66,7 @@ runs should be much quicker.
 
 The following nannou **libraries** are included within this repository.
 
-| **Library** | **Badges** | **Description** |
+| **Library** | **Links** | **Description** |
 | --- | --- | --- |
 | [**`nannou`**](./nannou) | [![Crates.io](https://img.shields.io/crates/v/nannou.svg)](https://crates.io/crates/nannou) [![docs.rs](https://docs.rs/nannou/badge.svg)](https://docs.rs/nannou/) | App, sketching, graphics, windowing and UI. |
 | [**`nannou_audio`**](./nannou_audio) | [![Crates.io](https://img.shields.io/crates/v/nannou_audio.svg)](https://crates.io/crates/nannou_audio) [![docs.rs](https://docs.rs/nannou_audio/badge.svg)](https://docs.rs/nannou_audio/) | Audio hosts, devices and streams. |
@@ -80,7 +80,7 @@ The following nannou **libraries** are included within this repository.
 A couple of tools are also included, though there some issues we would like to
 address before we can recommend using them just yet!
 
-| **Tool** | **Badges** | **Description** |
+| **Tool** | **Links** | **Description** |
 | --- | --- | --- |
 | [**`nannou_new`**](./nannou_new) | [![Crates.io](https://img.shields.io/crates/v/nannou_new.svg)](https://crates.io/crates/nannou_new) | A nannou project generator. |
 | [**`nannou_package`**](./nannou_new) | [![Crates.io](https://img.shields.io/crates/v/nannou_package.svg)](https://crates.io/crates/nannou_package) | For packaging nannou apps for distribution. |
