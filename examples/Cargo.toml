@@ -15,11 +15,17 @@ edition = "2018"
 
 [dev-dependencies]
 audrey = "0.2"
+conrod_core = "0.69"
 futures = "0.3"
+hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
 nannou = { version = "0.13", path = "../nannou" }
 nannou_audio = { version = "0.2", path = "../nannou_audio" }
+nannou_isf = { version = "0.1", path = "../nannou_isf" }
 nannou_laser = { version = "0.3", path = "../nannou_laser" }
 nannou_osc = { version = "0.1", path = "../nannou_osc" }
+nannou_timeline = { version = "0.2", features = ["serde1"], path =  "../nannou_timeline" }
+pitch_calc = { version = "0.12", features = ["serde"] }
+time_calc = { version= "0.13", features = ["serde"] }
 
 # Audio
 [[example]]
@@ -87,7 +93,15 @@ path = "draw/draw_textured_polygon.rs"
 name = "draw_transform"
 path = "draw/draw_transform.rs"
 
+# Interactive Shader Format
+[[example]]
+name = "isf_demo"
+path = "isf/isf_demo.rs"
+
 # Laser
+[[example]]
+name = "laser_ffi"
+path = "laser/laser_ffi.rs"
 [[example]]
 name = "laser_frame_stream"
 path = "laser/laser_frame_stream.rs"
@@ -158,6 +172,9 @@ path = "ui/named_color_reference.rs"
 [[example]]
 name = "simple_ui"
 path = "ui/simple_ui.rs"
+[[example]]
+name = "timeline_demo"
+path = "ui/timeline_demo.rs"
 
 # WebGPU
 [[example]]

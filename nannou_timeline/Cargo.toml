@@ -26,7 +26,6 @@ serde1 = [
     "time_calc/serde",
 ]
 
-
 [dev-dependencies]
 nannou = "0.13"
 rand = "0.3.12"

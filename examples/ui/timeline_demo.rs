@@ -1,19 +1,9 @@
 #[macro_use]
 extern crate conrod_core;
-extern crate nannou;
-extern crate nannou_timeline as timeline;
-extern crate pitch_calc;
-extern crate time_calc;
-// Conditionally compile with or with out serde i.e. serialization and thereby saving and loading.
-// To use, run with `cargo run --release --example demo --features "serde"
-#[cfg(feature = "serde1")]
-#[macro_use]
-extern crate serde;
-#[cfg(feature = "serde1")]
-extern crate serde_json;
 
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
+use nannou_timeline as timeline;
 use pitch_calc as pitch;
 use std::iter::once;
 use time_calc as time;
