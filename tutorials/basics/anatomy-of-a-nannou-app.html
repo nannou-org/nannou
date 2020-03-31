@@ -192,7 +192,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </code></pre></pre>
 <p>We will start from the top!</p>
 <h2><a class="header" href="#import-common-items" id="import-common-items">Import Common Items</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
 </span><span class="boring">extern crate nannou;
 </span>use nannou::prelude::*;
 <span class="boring">fn main() {}
@@ -210,7 +210,7 @@ item we <em>do</em> want to use into scope. By providing a prelude nannou makes 
 little easier to access all of the commonly used items.</p>
 </blockquote>
 <h2><a class="header" href="#model---our-app-state" id="model---our-app-state"><strong>Model</strong> - Our app state</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span>struct Model {}
 <span class="boring">fn main() {}
 </span></code></pre></pre>
@@ -287,7 +287,7 @@ input, the controller might use an algorithm based on time or some other
 application event to modify the model.</p>
 </blockquote>
 <h2><a class="header" href="#model---initialise-our-model" id="model---initialise-our-model"><strong>model</strong> - initialise our Model</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -311,7 +311,7 @@ details of the application (such as establishing event loops, spawning I/O
 streams, etc) and provides an easy to use, high-level API on top. Providing
 access to the <strong>App</strong> via a function's first argument is a common practice
 throughout nannou's API.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -327,7 +327,7 @@ fn model(_app: &amp;App) -&gt; Model {
 <a href="https://docs.rs/nannou/latest/nannou/app/struct.App.html">here</a>.</p>
 </blockquote>
 <h2><a class="header" href="#event---updating-the-model-on-app-events" id="event---updating-the-model-on-app-events"><strong>event</strong> - updating the Model on app events</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -351,7 +351,7 @@ about.</p>
 <p>For example, if instead of handling <em>all</em> events we only want to handle timed
 updates (an event that by default occurs 60 times per second) we could change
 our app building code to this:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -370,7 +370,7 @@ our app building code to this:</p>
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>And remove our <code>event</code> function in favour of an <code>update</code> function:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -382,13 +382,13 @@ our app building code to this:</p>
 occurs.</p>
 <blockquote>
 <p>Note: Nannou provides a whole suite of different events that may be registered
-while building an app or window in this way. See the <a href="https://github.com/nannou-org/nannou/blob/master/examples/all_functions.rs">all_functions.rs
+while building an app or window in this way. See the <a href="https://github.com/nannou-org/nannou/blob/master/examples/nannou_basics/all_functions.rs">all_functions.rs
 example</a>
 for a demonstration of most of the different kinds of events that are
 available.</p>
 </blockquote>
 <h2><a class="header" href="#view---presenting-the-model-to-a-window" id="view---presenting-the-model-to-a-window"><strong>view</strong> - presenting the Model to a window</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}

@@ -339,14 +339,14 @@ The MIT license provides compatibility with a lot of other FLOSS licenses.</p>
 <li>[GPLv2 Combination Exception for the Apache 2 License]https://blog.gerv.net/2016/09/gplv2-combination-exception-for-the-apache-2-license/)</li>
 </ul>
 <h1><a class="header" href="#getting-started" id="getting-started">Getting Started</a></h1>
-<p>If you are new to Nannou or Rust, you are in the right place!</p>
+<p>If you are new to nannou or Rust, you are in the right place!</p>
 <p>In this section, we will:</p>
 <ol>
 <li>Install the Rust programming language.</li>
 <li>Check for platform-specific requirements.</li>
 <li>Setup our code editor for working with Rust.</li>
-<li>Run some Nannou examples.</li>
-<li>Make our own, new Nannou project!</li>
+<li>Run some nannou examples.</li>
+<li>Make our own, new nannou project!</li>
 </ol>
 <p>Let's get started.</p>
 <h1><a class="header" href="#platform-specific-setup" id="platform-specific-setup">Platform-specific Setup</a></h1>
@@ -523,8 +523,14 @@ for supporting Rust.</p>
 <li><a href="https://github.com/eclipse/corrosion">Eclipse</a></li>
 </ol>
 <h1><a class="header" href="#running-examples" id="running-examples">Running Examples</a></h1>
-<p>The easiest way to get familiar with Nannou is to explore the examples. To get
-the examples we just need to clone the Nannou repository.</p>
+<p>The easiest way to get familiar with nannou is to explore the examples.</p>
+<p>Nannou provides three collections of examples:</p>
+<table><thead><tr><th><strong>Path</strong></th><th><strong>Description</strong></th></tr></thead><tbody>
+<tr><td><a href="https://github.com/nannou-org/nannou/tree/master/examples"><strong><code>examples/</code></strong></a></td><td>A collection of examples with categorised demonstrations of nannou.</td></tr>
+<tr><td><a href="https://github.com/nannou-org/nannou/tree/master/generative_design"><strong><code>generative_design/</code></strong></a></td><td>Examples from <a href="http://www.generative-gestaltung.de/">Generative Gestaltung</a>, ported from p5.js to nannou.</td></tr>
+<tr><td><a href="https://github.com/nannou-org/nannou/tree/master/nature_of_code"><strong><code>nature_of_code/</code></strong></a></td><td>Examples from <a href="https://natureofcode.com/">Nature of Code</a>, ported from Processing to nannou.</td></tr>
+</tbody></table>
+<p>To get the examples we can clone the nannou repository.</p>
 <pre><code class="language-bash">git clone https://github.com/nannou-org/nannou
 </code></pre>
 <p>If you do not have <code>git</code> installed you can press the &quot;Clone or download&quot; button
@@ -532,33 +538,33 @@ at the top of this page and then press &quot;Download .zip&quot;.</p>
 <p>Now, change the current directory to <code>nannou</code>.</p>
 <pre><code class="language-bash">cd nannou
 </code></pre>
-<p>Run the example using cargo.</p>
+<p>Run the example using cargo!</p>
 <pre><code class="language-bash">cargo run --release --example draw
 </code></pre>
 <p>The <code>--release</code> flag means we want to build with optimisations enabled.</p>
 <p>The value passed via the <code>--example</code> flag matches the <code>name</code> property of an
-object in the <code>[[examples]]</code> table in the root <code>Cargo.toml</code> file. The matched
-object's <code>path</code> property points to the source file to compile:</p>
-<pre><code class="language-toml"># --------------- Nannou Examples
+entry within the <code>[[examples]]</code> table of the package's <code>Cargo.toml</code> file. The
+matched entry's <code>path</code> property points to the source file to build:</p>
+<pre><code class="language-toml"># Draw
 [[example]]
 name = &quot;draw&quot;
-path = &quot;examples/draw/draw.rs&quot;
-
-# ...
-
-# --------------- Nature of Code
-# --------------- Chapter 1 Vectors
+path = &quot;draw/draw.rs&quot;
+</code></pre>
+<p>If we were to look through the nature of code directory and decide we want to
+run the following example:</p>
+<pre><code class="language-toml"># Chapter 1 Vectors
 [[example]]
 name = &quot;1_1_bouncingball_novectors&quot;
-path = &quot;examples/nature_of_code/chp_01_vectors/1_1_bouncingball_novectors.rs&quot;
+path = &quot;chp_01_vectors/1_1_bouncingball_novectors.rs&quot;
 </code></pre>
-<p>This means that to run the code at
-<code>examples/nature_of_code/chp_01_vectors/1_1_bouncingball_novectors.rs</code> you would
-run</p>
+<p>We could do so with the following:</p>
 <pre><code class="language-bash">cargo run --release --example 1_1_bouncingball_novectors
 </code></pre>
+<p>In general, the name of the example will almost always be the file name without
+the <code>.rs</code> extension.</p>
 <p>If you are compiling nannou for the first time you will see cargo download and
-build all the necessary dependencies.</p>
+build all the necessary dependencies. This might take a while! Luckily, we only
+have to wait for this the first time.</p>
 <p><img src="https://i.imgur.com/5OBNqMB.gif" alt="cargo" /></p>
 <p>Once the example compiles you should see the following window appear.</p>
 <p><img src="https://i.imgur.com/HVVamUI.gif" alt="draw_HD" /></p>
@@ -945,7 +951,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </code></pre></pre>
 <p>We will start from the top!</p>
 <h2><a class="header" href="#import-common-items" id="import-common-items">Import Common Items</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
 </span><span class="boring">extern crate nannou;
 </span>use nannou::prelude::*;
 <span class="boring">fn main() {}
@@ -963,7 +969,7 @@ item we <em>do</em> want to use into scope. By providing a prelude nannou makes 
 little easier to access all of the commonly used items.</p>
 </blockquote>
 <h2><a class="header" href="#model---our-app-state" id="model---our-app-state"><strong>Model</strong> - Our app state</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span>struct Model {}
 <span class="boring">fn main() {}
 </span></code></pre></pre>
@@ -1040,7 +1046,7 @@ input, the controller might use an algorithm based on time or some other
 application event to modify the model.</p>
 </blockquote>
 <h2><a class="header" href="#model---initialise-our-model" id="model---initialise-our-model"><strong>model</strong> - initialise our Model</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -1064,7 +1070,7 @@ details of the application (such as establishing event loops, spawning I/O
 streams, etc) and provides an easy to use, high-level API on top. Providing
 access to the <strong>App</strong> via a function's first argument is a common practice
 throughout nannou's API.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -1080,7 +1086,7 @@ fn model(_app: &amp;App) -&gt; Model {
 <a href="https://docs.rs/nannou/latest/nannou/app/struct.App.html">here</a>.</p>
 </blockquote>
 <h2><a class="header" href="#event---updating-the-model-on-app-events" id="event---updating-the-model-on-app-events"><strong>event</strong> - updating the Model on app events</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -1104,7 +1110,7 @@ about.</p>
 <p>For example, if instead of handling <em>all</em> events we only want to handle timed
 updates (an event that by default occurs 60 times per second) we could change
 our app building code to this:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -1123,7 +1129,7 @@ our app building code to this:</p>
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>And remove our <code>event</code> function in favour of an <code>update</code> function:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -1135,13 +1141,13 @@ our app building code to this:</p>
 occurs.</p>
 <blockquote>
 <p>Note: Nannou provides a whole suite of different events that may be registered
-while building an app or window in this way. See the <a href="https://github.com/nannou-org/nannou/blob/master/examples/all_functions.rs">all_functions.rs
+while building an app or window in this way. See the <a href="https://github.com/nannou-org/nannou/blob/master/examples/nannou_basics/all_functions.rs">all_functions.rs
 example</a>
 for a demonstration of most of the different kinds of events that are
 available.</p>
 </blockquote>
 <h2><a class="header" href="#view---presenting-the-model-to-a-window" id="view---presenting-the-model-to-a-window"><strong>view</strong> - presenting the Model to a window</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)] 
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">extern crate nannou;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -1159,8 +1165,8 @@ render passes. All of this will be covered by future tutorials.</p>
 if some of the syntax looks confusing or some of the specifics still seem
 unclear - we will aim to cover these and more in future tutorials :)</p>
 <h1><a class="header" href="#drawing-2d-shapes" id="drawing-2d-shapes">Drawing 2D Shapes</a></h1>
-<p>In this tutorial we explore drawing 2D shapes with Nannou.  We will cover drawing basic lines, simple polygons (e.g. ellipses, rectangles, etc.), and more complex polygons (where you can create whatever shape you'd like)!</p>
-<p>To begin with, we will need a Nannou project file to work with.  Copy the following into new file: </p>
+<p>In this tutorial we explore drawing 2D shapes with nannou.  We will cover drawing basic lines, simple polygons (e.g. ellipses, rectangles, etc.), and more complex polygons (where you can create whatever shape you'd like)!</p>
+<p>To begin with, we will need a nannou project file to work with.  Copy the following into new file:</p>
 <pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
 
 fn main() {
@@ -1181,7 +1187,7 @@ fn view(app: &amp;App, frame: Frame) {
     draw.to_frame(app, &amp;frame).unwrap();
 }
 </code></pre></pre>
-<p>You can also find this file, and other useful examples, in the <a href="https://github.com/nannou-org/nannou/tree/master/examples">examples</a> directory of the Nannou source repository.</p>
+<p>You can also find this file, and other useful examples, in the <a href="https://github.com/nannou-org/nannou/tree/master/examples">examples</a> directory of the nannou source repository.</p>
 <h2><a class="header" href="#drawing-simple-shapes" id="drawing-simple-shapes">Drawing Simple Shapes</a></h2>
 <p>Let's try running the file!  (if you haven't already, you will need to add this file to your Cargo.toml file)</p>
 <p>You should a new window with something that looks like this:</p>
@@ -1230,7 +1236,7 @@ draw.quad()
 </code></pre>
 <p>You should see the following:</p>
 <p><img src="tutorials/basics/./images/2d-shape-quad.png" alt="A quadrilateral with custom defined points" /></p>
-<p>The <code>pt2</code> method above will create a point object that represents a point in XY coordinate space, like a graph or a Cartesian plane. Nannou's coordinate system places (0,0) at the center of the window. This is <strong>not</strong> like many other graphical creative coding frameworks, which place (0,0) at the upper-leftmost position of the window. </p>
+<p>The <code>pt2</code> method above will create a point object that represents a point in XY coordinate space, like a graph or a Cartesian plane. nannou's coordinate system places (0,0) at the center of the window. This is <strong>not</strong> like many other graphical creative coding frameworks, which place (0,0) at the upper-leftmost position of the window.</p>
 <p>Note that while the <code>Drawing</code> builder objects for different shapes share many of the same builder methods, they do not share all of them.  Trying to use the method <code>points</code> on an instance of an <code>Drawing&lt;Ellipse&gt;</code>, for example, will raise an error.</p>
 <h3><a class="header" href="#drawing-a-triangle" id="drawing-a-triangle">Drawing a Triangle</a></h3>
 <p>Additionally, there is one more simple shape method: <code>tri</code>, for drawing triangles.  It behaves similarly to <code>quad</code>, where you can supply your own coordinates to decide how the shape looks.  Try it out!</p>
@@ -1316,7 +1322,7 @@ draw.polygon()
 polygon, similar to the basic polygon functions covered in the beginning of this
 tutorial.</p>
 <h2><a class="header" href="#concluding-remarks-1" id="concluding-remarks-1">Concluding Remarks</a></h2>
-<p>In this tutorial, we learned about most basic 2D drawing functions with Nannou.</p>
+<p>In this tutorial, we learned about most basic 2D drawing functions with nannou.</p>
 <p>You can view the documentation for the different <code>Drawing</code> objects these return here:</p>
 <ul>
 <li><a href="https://docs.rs/nannou/latest/nannou/draw/primitive/ellipse/struct.Ellipse.html">Ellipse</a></li>
@@ -1328,8 +1334,8 @@ tutorial.</p>
 </ul>
 <p>These links provide more information about other functions you can use to change your drawings in a variety of ways.</p>
 <p>You have now learned about some of the most commonly used functions for 2D drawing with
-Nannou. Of course, this is just scratching the surface of ways in which you can generate
-shapes or polygons with Nannou, but it should serve as a solid starting point in
+nannou. Of course, this is just scratching the surface of ways in which you can generate
+shapes or polygons with nannou, but it should serve as a solid starting point in
 creating your own drawings.</p>
 <p>Happy coding!</p>
 <h1><a class="header" href="#developer-reference" id="developer-reference">Developer Reference</a></h1>

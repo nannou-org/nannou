@@ -148,8 +148,8 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#drawing-2d-shapes" id="drawing-2d-shapes">Drawing 2D Shapes</a></h1>
-<p>In this tutorial we explore drawing 2D shapes with Nannou.  We will cover drawing basic lines, simple polygons (e.g. ellipses, rectangles, etc.), and more complex polygons (where you can create whatever shape you'd like)!</p>
-<p>To begin with, we will need a Nannou project file to work with.  Copy the following into new file: </p>
+<p>In this tutorial we explore drawing 2D shapes with nannou.  We will cover drawing basic lines, simple polygons (e.g. ellipses, rectangles, etc.), and more complex polygons (where you can create whatever shape you'd like)!</p>
+<p>To begin with, we will need a nannou project file to work with.  Copy the following into new file:</p>
 <pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
 
 fn main() {
@@ -170,7 +170,7 @@ fn view(app: &amp;App, frame: Frame) {
     draw.to_frame(app, &amp;frame).unwrap();
 }
 </code></pre></pre>
-<p>You can also find this file, and other useful examples, in the <a href="https://github.com/nannou-org/nannou/tree/master/examples">examples</a> directory of the Nannou source repository.</p>
+<p>You can also find this file, and other useful examples, in the <a href="https://github.com/nannou-org/nannou/tree/master/examples">examples</a> directory of the nannou source repository.</p>
 <h2><a class="header" href="#drawing-simple-shapes" id="drawing-simple-shapes">Drawing Simple Shapes</a></h2>
 <p>Let's try running the file!  (if you haven't already, you will need to add this file to your Cargo.toml file)</p>
 <p>You should a new window with something that looks like this:</p>
@@ -219,7 +219,7 @@ draw.quad()
 </code></pre>
 <p>You should see the following:</p>
 <p><img src="./images/2d-shape-quad.png" alt="A quadrilateral with custom defined points" /></p>
-<p>The <code>pt2</code> method above will create a point object that represents a point in XY coordinate space, like a graph or a Cartesian plane. Nannou's coordinate system places (0,0) at the center of the window. This is <strong>not</strong> like many other graphical creative coding frameworks, which place (0,0) at the upper-leftmost position of the window. </p>
+<p>The <code>pt2</code> method above will create a point object that represents a point in XY coordinate space, like a graph or a Cartesian plane. nannou's coordinate system places (0,0) at the center of the window. This is <strong>not</strong> like many other graphical creative coding frameworks, which place (0,0) at the upper-leftmost position of the window.</p>
 <p>Note that while the <code>Drawing</code> builder objects for different shapes share many of the same builder methods, they do not share all of them.  Trying to use the method <code>points</code> on an instance of an <code>Drawing&lt;Ellipse&gt;</code>, for example, will raise an error.</p>
 <h3><a class="header" href="#drawing-a-triangle" id="drawing-a-triangle">Drawing a Triangle</a></h3>
 <p>Additionally, there is one more simple shape method: <code>tri</code>, for drawing triangles.  It behaves similarly to <code>quad</code>, where you can supply your own coordinates to decide how the shape looks.  Try it out!</p>
@@ -305,7 +305,7 @@ draw.polygon()
 polygon, similar to the basic polygon functions covered in the beginning of this
 tutorial.</p>
 <h2><a class="header" href="#concluding-remarks" id="concluding-remarks">Concluding Remarks</a></h2>
-<p>In this tutorial, we learned about most basic 2D drawing functions with Nannou.</p>
+<p>In this tutorial, we learned about most basic 2D drawing functions with nannou.</p>
 <p>You can view the documentation for the different <code>Drawing</code> objects these return here:</p>
 <ul>
 <li><a href="https://docs.rs/nannou/latest/nannou/draw/primitive/ellipse/struct.Ellipse.html">Ellipse</a></li>
@@ -317,8 +317,8 @@ tutorial.</p>
 </ul>
 <p>These links provide more information about other functions you can use to change your drawings in a variety of ways.</p>
 <p>You have now learned about some of the most commonly used functions for 2D drawing with
-Nannou. Of course, this is just scratching the surface of ways in which you can generate
-shapes or polygons with Nannou, but it should serve as a solid starting point in
+nannou. Of course, this is just scratching the surface of ways in which you can generate
+shapes or polygons with nannou, but it should serve as a solid starting point in
 creating your own drawings.</p>
 <p>Happy coding!</p>
 

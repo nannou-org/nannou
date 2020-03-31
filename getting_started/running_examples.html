@@ -148,8 +148,14 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#running-examples" id="running-examples">Running Examples</a></h1>
-<p>The easiest way to get familiar with Nannou is to explore the examples. To get
-the examples we just need to clone the Nannou repository.</p>
+<p>The easiest way to get familiar with nannou is to explore the examples.</p>
+<p>Nannou provides three collections of examples:</p>
+<table><thead><tr><th><strong>Path</strong></th><th><strong>Description</strong></th></tr></thead><tbody>
+<tr><td><a href="https://github.com/nannou-org/nannou/tree/master/examples"><strong><code>examples/</code></strong></a></td><td>A collection of examples with categorised demonstrations of nannou.</td></tr>
+<tr><td><a href="https://github.com/nannou-org/nannou/tree/master/generative_design"><strong><code>generative_design/</code></strong></a></td><td>Examples from <a href="http://www.generative-gestaltung.de/">Generative Gestaltung</a>, ported from p5.js to nannou.</td></tr>
+<tr><td><a href="https://github.com/nannou-org/nannou/tree/master/nature_of_code"><strong><code>nature_of_code/</code></strong></a></td><td>Examples from <a href="https://natureofcode.com/">Nature of Code</a>, ported from Processing to nannou.</td></tr>
+</tbody></table>
+<p>To get the examples we can clone the nannou repository.</p>
 <pre><code class="language-bash">git clone https://github.com/nannou-org/nannou
 </code></pre>
 <p>If you do not have <code>git</code> installed you can press the &quot;Clone or download&quot; button
@@ -157,33 +163,33 @@ at the top of this page and then press &quot;Download .zip&quot;.</p>
 <p>Now, change the current directory to <code>nannou</code>.</p>
 <pre><code class="language-bash">cd nannou
 </code></pre>
-<p>Run the example using cargo.</p>
+<p>Run the example using cargo!</p>
 <pre><code class="language-bash">cargo run --release --example draw
 </code></pre>
 <p>The <code>--release</code> flag means we want to build with optimisations enabled.</p>
 <p>The value passed via the <code>--example</code> flag matches the <code>name</code> property of an
-object in the <code>[[examples]]</code> table in the root <code>Cargo.toml</code> file. The matched
-object's <code>path</code> property points to the source file to compile:</p>
-<pre><code class="language-toml"># --------------- Nannou Examples
+entry within the <code>[[examples]]</code> table of the package's <code>Cargo.toml</code> file. The
+matched entry's <code>path</code> property points to the source file to build:</p>
+<pre><code class="language-toml"># Draw
 [[example]]
 name = &quot;draw&quot;
-path = &quot;examples/draw/draw.rs&quot;
-
-# ...
-
-# --------------- Nature of Code
-# --------------- Chapter 1 Vectors
+path = &quot;draw/draw.rs&quot;
+</code></pre>
+<p>If we were to look through the nature of code directory and decide we want to
+run the following example:</p>
+<pre><code class="language-toml"># Chapter 1 Vectors
 [[example]]
 name = &quot;1_1_bouncingball_novectors&quot;
-path = &quot;examples/nature_of_code/chp_01_vectors/1_1_bouncingball_novectors.rs&quot;
+path = &quot;chp_01_vectors/1_1_bouncingball_novectors.rs&quot;
 </code></pre>
-<p>This means that to run the code at
-<code>examples/nature_of_code/chp_01_vectors/1_1_bouncingball_novectors.rs</code> you would
-run</p>
+<p>We could do so with the following:</p>
 <pre><code class="language-bash">cargo run --release --example 1_1_bouncingball_novectors
 </code></pre>
+<p>In general, the name of the example will almost always be the file name without
+the <code>.rs</code> extension.</p>
 <p>If you are compiling nannou for the first time you will see cargo download and
-build all the necessary dependencies.</p>
+build all the necessary dependencies. This might take a while! Luckily, we only
+have to wait for this the first time.</p>
 <p><img src="https://i.imgur.com/5OBNqMB.gif" alt="cargo" /></p>
 <p>Once the example compiles you should see the following window appear.</p>
 <p><img src="https://i.imgur.com/HVVamUI.gif" alt="draw_HD" /></p>
