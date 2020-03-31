@@ -167,16 +167,7 @@ impl<T> From<std::sync::PoisonError<T>> for CommunicationError {
 }
 
 impl std::error::Error for CommunicationError {
-    fn description(&self) -> &str {
-        match *self {
-            CommunicationError::Io(ref err) => std::error::Error::description(err),
-            // TODO: Error isn't implemented for OscError - should fix this upstream.
-            CommunicationError::Osc(ref _err) => "Failed to decode the OSC packet",
-            // CommunicationError::Osc(ref err) => std::error::Error::description(err),
-            CommunicationError::Poisoned => "The inner buffer's mutex was poisoned",
-        }
-    }
-    fn cause(&self) -> Option<&std::error::Error> {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
         match *self {
             CommunicationError::Io(ref err) => Some(err),
             // TODO: Error isn't implemented for OscError - should fix this upstream.
@@ -189,6 +180,11 @@ impl std::error::Error for CommunicationError {
 
 impl std::fmt::Display for CommunicationError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", std::error::Error::description(self))
+        match *self {
+            CommunicationError::Io(ref err) => std::fmt::Display::fmt(err, f),
+            // TODO: Error isn't implemented for OscError - should fix this upstream.
+            CommunicationError::Osc(ref _err) => write!(f, "Failed to decode the OSC packet"),
+            CommunicationError::Poisoned => write!(f, "The inner buffer's mutex was poisoned"),
+        }
     }
 }
