@@ -1,3 +1,4 @@
+use nannou::image;
 use nannou::image::GenericImageView;
 use nannou::prelude::*;
 

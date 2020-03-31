@@ -1,0 +1,273 @@
+[package]
+name = "nature_of_code"
+version = "0.1.0"
+authors = [
+    "JoshuaBatty <joshpbatty@gmail.com>",
+    "mitchmindtree <mitchell.nordine@gmail.com>",
+]
+description = "An implementation of Dan Shiffman's The Nature of Code."
+readme = "README.md"
+keywords = ["creative", "sketch", "nature", "code", "processing"]
+license = "MIT"
+repository = "https://github.com/nannou-org/nannou.git"
+homepage = "https://github.com/nannou-org/nannou"
+edition = "2018"
+
+[dev-dependencies]
+nannou = { version = "0.13.1", path = "../nannou" }
+
+# Chapter 1 Vectors
+[[example]]
+name = "1_1_bouncingball_novectors"
+path = "chp_01_vectors/1_1_bouncingball_novectors.rs"
+[[example]]
+name = "1_2_bouncingball_vectors_object"
+path = "chp_01_vectors/1_2_bouncingball_vectors_object.rs"
+[[example]]
+name = "1_2_bouncingball_vectors"
+path = "chp_01_vectors/1_2_bouncingball_vectors.rs"
+[[example]]
+name = "1_3_vector_subtraction"
+path = "chp_01_vectors/1_3_vector_subtraction.rs"
+[[example]]
+name = "1_4_vector_multiplication"
+path = "chp_01_vectors/1_4_vector_multiplication.rs"
+[[example]]
+name = "1_5_vector_magnitude"
+path = "chp_01_vectors/1_5_vector_magnitude.rs"
+[[example]]
+name = "1_6_vector_normalize"
+path = "chp_01_vectors/1_6_vector_normalize.rs"
+[[example]]
+name = "1_7_motion101"
+path = "chp_01_vectors/1_7_motion101.rs"
+[[example]]
+name = "1_8_motion101_acceleration"
+path = "chp_01_vectors/1_8_motion101_acceleration.rs"
+[[example]]
+name = "1_9_motion101_acceleration"
+path = "chp_01_vectors/1_9_motion101_acceleration.rs"
+[[example]]
+name = "1_10_motion101_acceleration"
+path = "chp_01_vectors/1_10_motion101_acceleration.rs"
+[[example]]
+name = "1_11_motion101_acceleration_array"
+path = "chp_01_vectors/1_11_motion101_acceleration_array.rs"
+
+# Chapter 2 Forces
+[[example]]
+name = "2_1_forces"
+path = "chp_02_forces/2_1_forces.rs"
+[[example]]
+name = "2_2_forces_many"
+path = "chp_02_forces/2_2_forces_many.rs"
+[[example]]
+name = "2_3_forces_many_real_gravity"
+path = "chp_02_forces/2_3_forces_many_real_gravity.rs"
+[[example]]
+name = "2_4_forces_friction"
+path = "chp_02_forces/2_4_forces_friction.rs"
+[[example]]
+name = "2_4_forces_no_friction"
+path = "chp_02_forces/2_4_forces_no_friction.rs"
+[[example]]
+name = "2_5_fluid_resistance"
+path = "chp_02_forces/2_5_fluid_resistance.rs"
+[[example]]
+name = "2_6_attraction"
+path = "chp_02_forces/2_6_attraction.rs"
+[[example]]
+name = "2_7_attraction_many"
+path = "chp_02_forces/2_7_attraction_many.rs"
+[[example]]
+name = "2_8_mutual_attraction"
+path = "chp_02_forces/2_8_mutual_attraction.rs"
+[[example]]
+name = "2_10_exercise_attract_repel"
+path = "chp_02_forces/2_10_exercise_attract_repel.rs"
+[[example]]
+name = "2_forces_many_mutual_boundaries"
+path = "chp_02_forces/2_forces_many_mutual_boundaries.rs"
+
+# Chapter 3 Oscillation
+[[example]]
+name = "3_01_angular_motion"
+path = "chp_03_oscillation/3_01_angular_motion.rs"
+[[example]]
+name = "3_02_forces_angular_motion"
+path = "chp_03_oscillation/3_02_forces_angular_motion.rs"
+[[example]]
+name = "3_04_polar_to_cartesian"
+path = "chp_03_oscillation/3_04_polar_to_cartesian.rs"
+[[example]]
+name = "3_04_polar_to_cartesian_trail"
+path = "chp_03_oscillation/3_04_polar_to_cartesian_trail.rs"
+[[example]]
+name = "3_04_exercise_spiral"
+path = "chp_03_oscillation/3_04_exercise_spiral.rs"
+[[example]]
+name = "3_05_simple_harmonic_motion"
+path = "chp_03_oscillation/3_05_simple_harmonic_motion.rs"
+[[example]]
+name = "3_06_simple_harmonic_motion"
+path = "chp_03_oscillation/3_06_simple_harmonic_motion.rs"
+[[example]]
+name = "3_07_oscillating_objects"
+path = "chp_03_oscillation/3_07_oscillating_objects.rs"
+[[example]]
+name = "3_08_static_wave_lines"
+path = "chp_03_oscillation/3_08_static_wave_lines.rs"
+[[example]]
+name = "3_09_exercise_additive_wave"
+path = "chp_03_oscillation/3_09_exercise_additive_wave.rs"
+[[example]]
+name = "3_09_wave_a"
+path = "chp_03_oscillation/3_09_wave_a.rs"
+[[example]]
+name = "3_09_wave_b"
+path = "chp_03_oscillation/3_09_wave_b.rs"
+[[example]]
+name = "3_09_wave_c"
+path = "chp_03_oscillation/3_09_wave_c.rs"
+[[example]]
+name = "3_09_wave"
+path = "chp_03_oscillation/3_09_wave.rs"
+[[example]]
+name = "3_10_pendulum_example_simplified"
+path = "chp_03_oscillation/3_10_pendulum_example_simplified.rs"
+[[example]]
+name = "3_10_pendulum_example"
+path = "chp_03_oscillation/3_10_pendulum_example.rs"
+[[example]]
+name = "3_11_spring"
+path = "chp_03_oscillation/3_11_spring.rs"
+[[example]]
+name = "3_10_exercise_oop_wave"
+path = "chp_03_oscillation/3_10_exercise_oop_wave.rs"
+[[example]]
+name = "3_11_exercise_additive_wave"
+path = "chp_03_oscillation/3_11_exercise_additive_wave.rs"
+[[example]]
+name = "3_16_exercise_springs"
+path = "chp_03_oscillation/3_16_exercise_springs.rs"
+[[example]]
+name = "3_16_exercise_springs_array"
+path = "chp_03_oscillation/3_16_exercise_springs_array.rs"
+[[example]]
+name = "3_exercise_spring_sine"
+path = "chp_03_oscillation/3_exercise_spring_sine.rs"
+[[example]]
+name = "3_extra_oscillating_body"
+path = "chp_03_oscillation/3_extra_oscillating_body.rs"
+[[example]]
+name = "3_extra_oscillating_up_and_down"
+path = "chp_03_oscillation/3_extra_oscillating_up_and_down.rs"
+[[example]]
+name = "3_multiple_oscillations"
+path = "chp_03_oscillation/3_multiple_oscillations.rs"
+[[example]]
+name = "3_oop_wave_particles"
+path = "chp_03_oscillation/3_oop_wave_particles.rs"
+
+# Chapter 4 Systems
+[[example]]
+name = "4_01_single_particle"
+path = "chp_04_systems/4_01_single_particle.rs"
+[[example]]
+name = "4_01_single_particle_trail"
+path = "chp_04_systems/4_01_single_particle_trail.rs"
+[[example]]
+name = "4_02_vector_particle"
+path = "chp_04_systems/4_02_vector_particle.rs"
+[[example]]
+name = "4_03_particle_system_type"
+path = "chp_04_systems/4_03_particle_system_type.rs"
+[[example]]
+name = "4_04_system_of_systems"
+path = "chp_04_systems/4_04_system_of_systems.rs"
+[[example]]
+name = "4_05_particle_system_inheritance_polymorphism"
+path = "chp_04_systems/4_05_particle_system_inheritance_polymorphism.rs"
+[[example]]
+name = "4_06_particle_system_forces"
+path = "chp_04_systems/4_06_particle_system_forces.rs"
+[[example]]
+name = "4_07_particle_system_forces_repeller"
+path = "chp_04_systems/4_07_particle_system_forces_repeller.rs"
+[[example]]
+name = "4_03_exercise_moving_particle_system"
+path = "chp_04_systems/4_03_exercise_moving_particle_system.rs"
+[[example]]
+name = "4_06_exercise_shatter"
+path = "chp_04_systems/4_06_exercise_shatter.rs"
+[[example]]
+name = "4_10_exercise_particle_intersection"
+path = "chp_04_systems/4_10_exercise_particle_intersection.rs"
+[[example]]
+name = "4_10_exercise_particle_repel"
+path = "chp_04_systems/4_10_exercise_particle_repel.rs"
+
+# Chapter 6 Agents
+[[example]]
+name = "6_01_seek"
+path = "chp_06_agents/6_01_seek.rs"
+[[example]] 
+name = "6_01_seek_trail" 
+path = "chp_06_agents/6_01_seek_trail.rs"
+[[example]] 
+name = "6_02_arrive" 
+path = "chp_06_agents/6_02_arrive.rs"
+[[example]] 
+name = "6_03_stay_within_walls" 
+path = "chp_06_agents/6_03_stay_within_walls.rs"
+[[example]] 
+name = "6_03_stay_within_walls_trail" 
+path = "chp_06_agents/6_03_stay_within_walls_trail.rs"
+
+# Chapter 7 Cellular Automata
+[[example]]
+name = "7_01_wolfram_ca_figures"
+path = "chp_07_cellular_automata/7_01_wolfram_ca_figures.rs"
+[[example]]
+name = "7_01_wolfram_ca_simple"
+path = "chp_07_cellular_automata/7_01_wolfram_ca_simple.rs"
+[[example]]
+name = "7_02_game_of_life_simple"
+path = "chp_07_cellular_automata/7_02_game_of_life_simple.rs"
+[[example]]
+name = "7_03_game_of_life_oop"
+path = "chp_07_cellular_automata/7_03_game_of_life_oop.rs"
+[[example]]
+name = "7_04_exercise_wolfram_ca_scrolling"
+path = "chp_07_cellular_automata/7_04_exercise_wolfram_ca_scrolling.rs"
+[[example]]
+name = "7_game_of_life_wrap_around"
+path = "chp_07_cellular_automata/7_game_of_life_wrap_around.rs"
+[[example]]
+name = "7_hexagon_cells"
+path = "chp_07_cellular_automata/7_hexagon_cells.rs"
+
+# Chapter 8 Fractals
+[[example]] 
+name = "8_1_recursion" 
+path = "chp_08_fractals/8_1_recursion.rs"
+[[example]] 
+name = "8_2_recursion" 
+path = "chp_08_fractals/8_2_recursion.rs"
+[[example]] 
+name = "8_3_recursion" 
+path = "chp_08_fractals/8_3_recursion.rs"
+[[example]] 
+name = "8_4_cantor_set" 
+path = "chp_08_fractals/8_4_cantor_set.rs"
+
+# Chapter 10 Neural Networks
+[[example]] 
+name = "10_01_simple_perceptron" 
+path = "chp_10_neural_networks/10_01_simple_perceptron.rs"
+[[example]] 
+name = "10_02_seeking_neural" 
+path = "chp_10_neural_networks/10_02_seeking_neural.rs"
+[[example]] 
+name = "10_03_network_viz" 
+path = "chp_10_neural_networks/10_03_network_viz.rs"

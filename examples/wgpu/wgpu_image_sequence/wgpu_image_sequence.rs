@@ -9,6 +9,7 @@
 //! frame rates by interpolating between two of the layers at a time. Hint: this would likely
 //! require adding a second texture view binding to the bind group and its layout.
 
+use nannou::image;
 use nannou::image::RgbaImage;
 use nannou::prelude::*;
 use std::path::{Path, PathBuf};

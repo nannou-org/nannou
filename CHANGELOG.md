@@ -26,7 +26,18 @@
     - Add GPU caching of glyphs for text drawn via `draw.text()`. Allows for
       much higher-performance text rendering.
 - Relax trait bounds on many mesh types.
-
+- The Great Repository Refactor:
+    - Move nannou src and tests into a `nannou` subdirectory.
+    - Move `nannou_audio` into this repo.
+    - Move `nannou_isf` into this repo.
+    - Move `nannou_laser` into this repo.
+    - Move `nannou_osc` into this repo.
+    - Move `nannou_timeline` into this repo.
+    - Add all crates under a single workspace.
+    - Update README.md with a repository overview.
+    - Move `run_all_examples.rs` test into a new `scripts/` directory. Add
+      ability to run examples of specific packages in the workspace.
+    - Move `nature_of_code` examples
 
 # Version 0.13.1 (2020-03-05)
 
