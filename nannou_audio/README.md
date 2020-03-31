@@ -1,4 +1,4 @@
-# nannou_audio [![Build Status](https://travis-ci.org/nannou-org/nannou_audio.svg?branch=master)](https://travis-ci.org/nannou-org/nannou_audio) [![Crates.io](https://img.shields.io/crates/v/nannou_audio.svg)](https://crates.io/crates/nannou_audio) [![Crates.io](https://img.shields.io/crates/l/nannou_audio.svg)](https://github.com/nannou-org/nannou_audio/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/nannou_audio/badge.svg)](https://docs.rs/nannou_audio/)
+# nannou_audio [![Crates.io](https://img.shields.io/crates/v/nannou_audio.svg)](https://crates.io/crates/nannou_audio) [![Crates.io](https://img.shields.io/crates/l/nannou_audio.svg)](https://github.com/nannou-org/nannou_audio/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/nannou_audio/badge.svg)](https://docs.rs/nannou_audio/)
 
 **The audio API for** [**nannou**](https://nannou.cc)**, the creative coding
 framework.**

@@ -1,4 +1,4 @@
-# nannou_osc [![Build Status](https://travis-ci.org/nannou-org/nannou_osc.svg?branch=master)](https://travis-ci.org/nannou-org/nannou_osc) [![Crates.io](https://img.shields.io/crates/v/nannou_osc.svg)](https://crates.io/crates/nannou_osc) [![Crates.io](https://img.shields.io/crates/l/nannou_osc.svg)](https://github.com/nannou-org/nannou_osc/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/nannou_osc/badge.svg)](https://docs.rs/nannou_osc/)
+# nannou_osc [![Crates.io](https://img.shields.io/crates/v/nannou_osc.svg)](https://crates.io/crates/nannou_osc) [![Crates.io](https://img.shields.io/crates/l/nannou_osc.svg)](https://github.com/nannou-org/nannou_osc/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/nannou_osc/badge.svg)](https://docs.rs/nannou_osc/)
 
 **The OSC API for** [**nannou**](https://nannou.cc)**, the creative coding
 framework.**

@@ -4,6 +4,9 @@ cargo run --release --example <example_name>
 ```
 A detailed explanation can be found in [the nannou guide](https://www.guide.nannou.cc/getting_started/running_examples.html).
 
+*TODO: Update the following table to show all examples. Possibly write a script
+to capture each example, generate the gif and generate the table*.
+
 |     |     |     |
 | --- |:---:|:---:|
 | [<img src="https://i.imgur.com/GP6zlSR.gif" width="220" Height="165">](https://github.com/nannou-org/nannou/blob/master/examples/draw/draw.rs) draw| [<img src="https://i.imgur.com/ly3Uk3g.gif" width="220" Height="165">](https://github.com/nannou-org/nannou/blob/master/examples/draw/draw_mesh.rs) draw_mesh | [<img src="https://i.imgur.com/lm4RI4N.gif" width="220" Height="165">](https://github.com/nannou-org/nannou/blob/master/examples/draw/draw_polyline.rs) draw_polyline | [<img src="https://i.imgur.com/kPn91tW.gif" width="220" Height="165">](https://github.com/nannou-org/nannou/blob/master/examples/draw/draw_polygon.rs) draw_polygon

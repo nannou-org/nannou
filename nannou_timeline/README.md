@@ -1,4 +1,4 @@
-# nannou_timeline [![Build Status](https://travis-ci.org/nannou-org/nannou_timeline.svg?branch=master)](https://travis-ci.org/nannou-org/nannou_timeline) [![Crates.io](https://img.shields.io/crates/v/nannou_timeline.svg)](https://crates.io/crates/nannou_timeline) [![Crates.io](https://img.shields.io/crates/l/nannou_timeline.svg)](https://github.com/nannou-org/nannou_timeline/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/nannou_timeline/badge.svg)](https://docs.rs/nannou_timeline/)
+# nannou_timeline [![Crates.io](https://img.shields.io/crates/v/nannou_timeline.svg)](https://crates.io/crates/nannou_timeline) [![Crates.io](https://img.shields.io/crates/l/nannou_timeline.svg)](https://github.com/nannou-org/nannou_timeline/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/nannou_timeline/badge.svg)](https://docs.rs/nannou_timeline/)
 
 A widget designed for controlling and viewing data over time. This crate was
 developed for a generative music workstation but has abstracted for general use.
