@@ -41,6 +41,11 @@ jobs:
       with:
         command: test
         args: --lib --bins --verbose
+    - name: Test docs
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --doc --verbose
 
   cargo-test-all-features:
     runs-on: ubuntu-latest
@@ -63,6 +68,11 @@ jobs:
       with:
         command: test
         args: --lib --bins --all-features --verbose
+    - name: Test docs all features
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --doc --all-features --verbose
 
   cargo-check-examples:
     runs-on: ubuntu-latest
