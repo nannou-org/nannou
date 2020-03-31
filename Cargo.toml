@@ -2,6 +2,7 @@
 members = [
     "examples",
     "generative_design",
+    "guide/book_tests",
     "nannou",
     "nannou_audio",
     "nannou_isf",

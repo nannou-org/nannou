@@ -1,13 +1,13 @@
 [package]
-name = 'book-tests'
+name = 'book_tests'
 version = '0.1.0'
 authors = ['mitchmindtree <mitchell.nordine@gmail.com>']
 edition = '2018'
 description = 'For testing the nannou-guide, while including the nannou dependencies.'
 
 [build-dependencies]
-skeptic = '0.13'
+skeptic = "0.13"
 
 [dev-dependencies]
-skeptic = '0.13'
-nannou = { git = 'https://github.com/nannou-org/nannou', branch = 'master' }
+skeptic = "0.13"
+nannou = { version = "0.13", path = "../../nannou" }
