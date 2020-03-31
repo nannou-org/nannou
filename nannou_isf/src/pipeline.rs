@@ -267,6 +267,23 @@ impl ImageState {
     }
 }
 
+impl IsfData {
+    /// The map of imported images.
+    pub fn imported(&self) -> &HashMap<ImportName, ImageState> {
+        &self.imported
+    }
+
+    /// The map of all declared inputs.
+    pub fn inputs(&self) -> &HashMap<InputName, IsfInputData> {
+        &self.inputs
+    }
+
+    /// The texture stored for each pass.
+    pub fn passes(&self) -> &[wgpu::Texture] {
+        &self.passes
+    }
+}
+
 impl IsfInputData {
     /// Initialise a new `IsfInputData` instance.
     fn new(
@@ -326,11 +343,11 @@ impl IsfInputData {
                 let n_columns = a
                     .num_columns
                     .unwrap_or(IsfPipeline::DEFAULT_AUDIO_FFT_COLUMNS);
-                let samples = vec![0.0; n_columns as usize];
+                let columns = vec![0.0; n_columns as usize];
                 let size = [n_columns, 1];
                 let format = IsfPipeline::DEFAULT_AUDIO_TEXTURE_FORMAT;
                 let texture = create_black_texture(device, encoder, size, format);
-                IsfInputData::Audio { samples, texture }
+                IsfInputData::AudioFft { columns, texture }
             }
         }
     }
@@ -355,7 +372,7 @@ impl IsfInputData {
     }
 
     /// Update an existing instance ISF input data instance with the given input.
-    pub fn update(
+    fn update(
         &mut self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
@@ -754,6 +771,11 @@ impl IsfPipeline {
                 .fill_from_slice(&[isf_uniforms]);
             encoder.copy_buffer_to_buffer(&new_buffer, 0, &self.isf_uniform_buffer, 0, size);
 
+            // TODO: Update the inputs.
+            let _ = &self.isf_inputs_uniform_buffer;
+            //let size = std::mem::size_of::<IsfInputUniforms>() as wgpu::BufferAddress;
+            //encoder.copy_buffer_to_buffer(&new_buffer, 0, &self.isf_inputs_uniform_buffer, 0, size);
+
             // Encode the render pass.
             let mut render_pass = wgpu::RenderPassBuilder::new()
                 .color_attachment(dst_texture, |color| color)
@@ -866,21 +888,6 @@ fn create_render_pipeline(
         .build(device)
 }
 
-// The name of each texture specified within the ISF source file.
-fn isf_texture_names(isf: &isf::Isf) -> impl Iterator<Item = &str> {
-    let imported = isf.imported.keys().map(|s| &s[..]);
-    let inputs = isf
-        .inputs
-        .iter()
-        .filter(|input| isf_input_ty_requires_texture(&input.ty))
-        .map(|input| &input.name[..]);
-    let passes = isf
-        .passes
-        .iter()
-        .filter_map(|pass| pass.target.as_ref().map(|s| &s[..]));
-    imported.chain(inputs).chain(passes)
-}
-
 // All textures stored within the `IsfData` instance in the order that they should be declared in
 // the order expected by the isf textures bind group.
 fn isf_data_textures(isf_data: &IsfData) -> impl Iterator<Item = &wgpu::Texture> {
@@ -954,19 +961,6 @@ fn sync_isf_data(
         texture.upload_data(device, encoder, &data);
         texture
     });
-}
-
-// Passes that have a valid target name. Textures will not be created for those without.
-fn isf_valid_passes(isf: &isf::Isf) -> impl Iterator<Item = &isf::Pass> {
-    isf.passes.iter().filter(|pass| pass.target.is_some())
-}
-
-// Whether or not the ISF input requires a texture.
-fn isf_input_ty_requires_texture(ty: &isf::InputType) -> bool {
-    match *ty {
-        isf::InputType::Image | isf::InputType::Audio(_) | isf::InputType::AudioFft(_) => true,
-        _ => false,
-    }
 }
 
 fn create_black_texture(
