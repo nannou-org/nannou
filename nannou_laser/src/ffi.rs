@@ -104,7 +104,10 @@ pub unsafe extern "C" fn api_new(api_ptr: *mut *mut Api) {
 pub unsafe extern "C" fn detect_dac(api: *const Api, detected_dac: *mut DetectedDac) -> Result {
     let api: &Api = &*api;
     let mut iter = match api.inner.detect_dacs() {
-        Err(err) => unimplemented!(),
+        Err(_err) => {
+            // TODO: Store error
+            return Result::FailedToDetectDac;
+        }
         Ok(iter) => iter,
     };
     match iter.next() {
@@ -126,7 +129,10 @@ pub unsafe extern "C" fn detect_dac(api: *const Api, detected_dac: *mut Detected
                 *detected_dac = DetectedDac { kind };
                 return Result::Success;
             }
-            Err(err) => unimplemented!(),
+            Err(_err) => {
+                // TODO: Store error
+                return Result::FailedToDetectDac;
+            }
         },
     }
 }
@@ -211,8 +217,8 @@ pub unsafe extern "C" fn new_frame_stream(
     }
 
     let frame_stream = match builder.build() {
-        Err(err) => {
-            unimplemented!();
+        Err(_err) => {
+            // TODO: Store error
             return Result::FailedToBuildStream;
         }
         Ok(stream) => Box::new(FrameStream { stream }),
@@ -261,8 +267,8 @@ pub unsafe extern "C" fn new_raw_stream(
     }
 
     let raw_stream = match builder.build() {
-        Err(err) => {
-            unimplemented!();
+        Err(_err) => {
+            // TODO: Store error
             return Result::FailedToBuildStream;
         }
         Ok(stream) => Box::new(RawStream { stream }),
