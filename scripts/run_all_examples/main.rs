@@ -31,7 +31,7 @@ fn main() {
     let nannou_manifest_dir = env!("CARGO_MANIFEST_DIR");
     let workspace_manifest_dir = std::path::Path::new(nannou_manifest_dir)
         .parent()
-        .unwrap()  // nannou/scripts
+        .unwrap() // nannou/scripts
         .parent()
         .unwrap(); // nannou
 
@@ -53,7 +53,10 @@ fn main() {
         if !output.stderr.is_empty() {
             let stderr = String::from_utf8(output.stderr).unwrap();
             if stderr.contains("error[E") {
-                panic!("failed to build examples for package \"{}\":\n{}", package, stderr);
+                panic!(
+                    "failed to build examples for package \"{}\":\n{}",
+                    package, stderr
+                );
             }
         }
 
