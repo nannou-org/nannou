@@ -83,7 +83,7 @@ address before we can recommend using them just yet!
 | **Tool** | **Links** | **Description** |
 | --- | --- | --- |
 | [**`nannou_new`**](./nannou_new) | [![Crates.io](https://img.shields.io/crates/v/nannou_new.svg)](https://crates.io/crates/nannou_new) | A nannou project generator. |
-| [**`nannou_package`**](./nannou_new) | [![Crates.io](https://img.shields.io/crates/v/nannou_package.svg)](https://crates.io/crates/nannou_package) | For packaging nannou apps for distribution. |
+| [**`nannou_package`**](./nannou_package) | [![Crates.io](https://img.shields.io/crates/v/nannou_package.svg)](https://crates.io/crates/nannou_package) | For packaging nannou apps for distribution. |
 
 ## Links
 
