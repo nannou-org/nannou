@@ -1,8 +1,8 @@
 # Drawing 2D Shapes
 
-In this tutorial we explore drawing 2D shapes with Nannou.  We will cover drawing basic lines, simple polygons (e.g. ellipses, rectangles, etc.), and more complex polygons (where you can create whatever shape you'd like)!
+In this tutorial we explore drawing 2D shapes with nannou.  We will cover drawing basic lines, simple polygons (e.g. ellipses, rectangles, etc.), and more complex polygons (where you can create whatever shape you'd like)!
 
-To begin with, we will need a Nannou project file to work with.  Copy the following into new file: 
+To begin with, we will need a nannou project file to work with.  Copy the following into new file:
 
 ```rust,no_run
 use nannou::prelude::*;
@@ -26,7 +26,7 @@ fn view(app: &App, frame: Frame) {
 }
 ```
 
-You can also find this file, and other useful examples, in the [examples](https://github.com/nannou-org/nannou/tree/master/examples) directory of the Nannou source repository.
+You can also find this file, and other useful examples, in the [examples](https://github.com/nannou-org/nannou/tree/master/examples) directory of the nannou source repository.
 
 ## Drawing Simple Shapes
 
@@ -52,7 +52,7 @@ draw.ellipse()
     .h(200.0);
 ```
 
-The `w` function here changes the width of the ellipse to 300 pixels, and the `h` function changes the height to 200.0 pixels. You should see what we would more colloquially refer to as an ellipse.  
+The `w` function here changes the width of the ellipse to 300 pixels, and the `h` function changes the height to 200.0 pixels. You should see what we would more colloquially refer to as an ellipse.
 
 We can also change the position of our ellipse with the `x_y` method:
 
@@ -103,9 +103,9 @@ You should see the following:
 
 ![A quadrilateral with custom defined points](./images/2d-shape-quad.png)
 
-The `pt2` method above will create a point object that represents a point in XY coordinate space, like a graph or a Cartesian plane. Nannou's coordinate system places (0,0) at the center of the window. This is **not** like many other graphical creative coding frameworks, which place (0,0) at the upper-leftmost position of the window. 
+The `pt2` method above will create a point object that represents a point in XY coordinate space, like a graph or a Cartesian plane. nannou's coordinate system places (0,0) at the center of the window. This is **not** like many other graphical creative coding frameworks, which place (0,0) at the upper-leftmost position of the window.
 
-Note that while the `Drawing` builder objects for different shapes share many of the same builder methods, they do not share all of them.  Trying to use the method `points` on an instance of an `Drawing<Ellipse>`, for example, will raise an error.  
+Note that while the `Drawing` builder objects for different shapes share many of the same builder methods, they do not share all of them.  Trying to use the method `points` on an instance of an `Drawing<Ellipse>`, for example, will raise an error.
 
 ### Drawing a Triangle
 
@@ -225,7 +225,7 @@ tutorial.
 
 ## Concluding Remarks
 
-In this tutorial, we learned about most basic 2D drawing functions with Nannou.
+In this tutorial, we learned about most basic 2D drawing functions with nannou.
 
 You can view the documentation for the different `Drawing` objects these return here:
 
@@ -239,8 +239,8 @@ You can view the documentation for the different `Drawing` objects these return 
 These links provide more information about other functions you can use to change your drawings in a variety of ways.
 
 You have now learned about some of the most commonly used functions for 2D drawing with
-Nannou. Of course, this is just scratching the surface of ways in which you can generate
-shapes or polygons with Nannou, but it should serve as a solid starting point in
+nannou. Of course, this is just scratching the surface of ways in which you can generate
+shapes or polygons with nannou, but it should serve as a solid starting point in
 creating your own drawings.
 
 Happy coding!

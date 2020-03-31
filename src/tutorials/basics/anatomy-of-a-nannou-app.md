@@ -55,7 +55,7 @@ We will start from the top!
 ## Import Common Items
 
 ```rust,no_run
-# #![allow(unused_imports)] 
+# #![allow(unused_imports)]
 # extern crate nannou;
 use nannou::prelude::*;
 # fn main() {}
@@ -76,7 +76,7 @@ over time. To see the full list of items re-exported by the prelude, see
 ## **Model** - Our app state
 
 ```rust,no_run
-# #![allow(dead_code)] 
+# #![allow(dead_code)]
 struct Model {}
 # fn main() {}
 ```
@@ -146,13 +146,13 @@ below!
 > pattern](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller),
 > though equally inspired by [Functional Reactive Programming
 > (FRP)](https://en.wikipedia.org/wiki/Functional_reactive_programming).
-> 
+>
 > In general, these paradigms split a program into:
-> 
+>
 > - a **model** describing the internal state
 > - a **view** describing how to present the model and
 > - a **controller** describing how to update the model on certain events.
-> 
+>
 > If you zoom out a bit you can think of the computer as a model, the screen as
 > a view (the audio output could also be thought of as a view), and the keyboard
 > (or mouse) as the controller. A user looks at the view and can change the
@@ -163,7 +163,7 @@ below!
 ## **model** - initialise our Model
 
 ```rust,no_run
-# #![allow(dead_code)] 
+# #![allow(dead_code)]
 # extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
@@ -190,7 +190,7 @@ will just return an instance of our empty **Model**.
 > throughout nannou's API.
 >
 > ```rust,no_run
-> # #![allow(dead_code)] 
+> # #![allow(dead_code)]
 > # extern crate nannou;
 > # use nannou::prelude::*;
 > # struct Model {}
@@ -209,7 +209,7 @@ will just return an instance of our empty **Model**.
 ## **event** - updating the Model on app events
 
 ```rust,no_run
-# #![allow(dead_code)] 
+# #![allow(dead_code)]
 # extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
@@ -238,7 +238,7 @@ updates (an event that by default occurs 60 times per second) we could change
 our app building code to this:
 
 ```rust,no_run
-# #![allow(dead_code)] 
+# #![allow(dead_code)]
 # extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
@@ -260,7 +260,7 @@ fn main() {
 And remove our `event` function in favour of an `update` function:
 
 ```rust,no_run
-# #![allow(dead_code)] 
+# #![allow(dead_code)]
 # extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
@@ -274,14 +274,14 @@ occurs.
 
 > Note: Nannou provides a whole suite of different events that may be registered
 > while building an app or window in this way. See the [all_functions.rs
-> example](https://github.com/nannou-org/nannou/blob/master/examples/all_functions.rs)
+> example](https://github.com/nannou-org/nannou/blob/master/examples/nannou_basics/all_functions.rs)
 > for a demonstration of most of the different kinds of events that are
 > available.
 
 ## **view** - presenting the Model to a window
 
 ```rust,no_run
-# #![allow(dead_code)] 
+# #![allow(dead_code)]
 # extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
