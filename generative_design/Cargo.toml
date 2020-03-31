@@ -13,10 +13,10 @@ repository = "https://github.com/nannou-org/nannou.git"
 homepage = "https://github.com/nannou-org/nannou"
 edition = "2018"
 
-[dependencies]
+[dev-dependencies]
 nannou = { version = "0.13.1", path = "../nannou" }
-wikipedia = "0.3"
 usvg = "0.4"
+wikipedia = "0.3"
 
 # Color
 [[example]]

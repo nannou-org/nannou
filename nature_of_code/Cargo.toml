@@ -13,7 +13,7 @@ repository = "https://github.com/nannou-org/nannou.git"
 homepage = "https://github.com/nannou-org/nannou"
 edition = "2018"
 
-[dependencies]
+[dev-dependencies]
 nannou = { version = "0.13.1", path = "../nannou" }
 
 # Chapter 1 Vectors
