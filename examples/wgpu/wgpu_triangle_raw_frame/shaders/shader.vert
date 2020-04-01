@@ -2,7 +2,7 @@
 // avoid having downstream users require building shaderc and compiling the
 // shader themselves. If you update this shader, be sure to also re-compile it
 // and update `vert.spv`. You can do so using `glslangValidator` with the
-// following command: `glslangValidator -V -o vert.spv shader.vert`
+// following command: `glslangValidator -V shader.vert`
 
 #version 450
 
