@@ -68,9 +68,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let tile_width = win.w() / model.tile_count_x as f32;
     let tile_height = win.h() / model.tile_count_y as f32;
     let step_size =
-        map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w()).min(win.w()) / 10.0;
+        clamp(map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w()),0.0,win.w()) / 10.0;
     let end_size =
-        map_range(app.mouse.y, win.top(), win.bottom(), 0.0, win.h()).min(win.h()) / 10.0;
+        clamp(map_range(app.mouse.y, win.top(), win.bottom(), 0.0, win.h()),0.0,win.h()) / 10.0;
     let color_step = 6;
 
     for grid_y in 0..model.tile_count_y {
