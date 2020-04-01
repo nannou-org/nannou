@@ -53,24 +53,34 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.background().color(WHITE);
 
-    draw_branch(&draw, 0.0, 0.0, model.start_radius, model.recursion_level);
+    draw_branch(
+        &draw,
+        0.0,
+        0.0,
+        model.start_radius,
+        model.recursion_level,
+        app.mouse.x,
+        app.mouse.y,
+    );
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
 }
 
 // Recursive function
-fn draw_branch(draw: &Draw, x: f32, y: f32, radius: f32, level: u8) {
+fn draw_branch(draw: &Draw, x: f32, y: f32, radius: f32, level: u8, mx: f32, my: f32) {
     use nannou::geom::path::Builder;
     let mut builder = Builder::new();
-    builder = builder.arc(pt2(x, y), vec2(radius / 2.0, radius / 2.0), -PI, 0.0);
+    builder = builder.move_to(pt2(x - radius, y));
+    builder = builder.arc(pt2(x, y), vec2(radius, radius), -PI, 0.0);
     let arc_path = builder.build();
 
     // draw arc
     draw.path()
         .stroke()
         .stroke_weight(level as f32 * 2.0)
-        .rgba(0.0, 0.5, 0.64, 0.4)
+        .rgba(0.0, 0.5, 0.69, 0.6)
+        .caps_round()
         .events(arc_path.iter());
 
     // draw center dot
@@ -82,9 +92,25 @@ fn draw_branch(draw: &Draw, x: f32, y: f32, radius: f32, level: u8) {
     // as long as level is greater than zero, draw sub-branches
     if level > 0 {
         // left branch
-        draw_branch(&draw, x - radius, y - radius / 2.0, radius / 2.0, level - 1);
+        draw_branch(
+            &draw,
+            x - radius,
+            y - radius / 2.0,
+            radius / 2.0,
+            level - 1,
+            mx,
+            my,
+        );
         // right branch
-        draw_branch(&draw, x + radius, y - radius / 2.0, radius / 2.0, level - 1);
+        draw_branch(
+            &draw,
+            x + radius,
+            y - radius / 2.0,
+            radius / 2.0,
+            level - 1,
+            mx,
+            my,
+        );
     }
 }
 
