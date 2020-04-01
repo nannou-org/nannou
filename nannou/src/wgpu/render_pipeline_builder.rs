@@ -486,15 +486,6 @@ fn build(
         },
     };
 
-    let vertex_buffers: Vec<_> = vertex_buffers
-        .into_iter()
-        .map(|desc| wgpu::VertexBufferDescriptor {
-            stride: desc.stride,
-            step_mode: desc.step_mode,
-            attributes: desc.attributes,
-        })
-        .collect();
-
     let pipeline_desc = wgpu::RenderPipelineDescriptor {
         layout,
         vertex_stage,
