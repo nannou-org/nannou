@@ -86,7 +86,11 @@ fn model(app: &App) -> Model {
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     let win = app.window_rect();
-    let tile_count = clamp(map_range(app.mouse.x, win.left(), win.right(), 120, 1),120,1);
+    let tile_count = clamp(
+        map_range(app.mouse.x, win.left(), win.right(), 120, 1),
+        120,
+        1,
+    );
     let rect_size = win.w() / tile_count as f32;
 
     let mut colors = Vec::new();

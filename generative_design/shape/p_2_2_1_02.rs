@@ -81,7 +81,11 @@ fn model(app: &App) -> Model {
 
 fn update(app: &App, model: &mut Model, _update: Update) {
     let win = app.window_rect();
-    let mx = clamp(map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w()),0.0,win.w()) as usize;
+    let mx = clamp(
+        map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w()),
+        0.0,
+        win.w(),
+    ) as usize;
     model.positions.resize(mx + 1, pt2(0.0, 0.0));
     model.counter_triggers.resize(mx + 1, false);
     for i in 0..=mx {

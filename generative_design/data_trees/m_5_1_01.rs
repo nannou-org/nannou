@@ -53,7 +53,15 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.background().color(WHITE);
 
-    draw_branch(&draw, 0.0, 0.0, model.start_radius, model.recursion_level, app.mouse.x, app.mouse.y);
+    draw_branch(
+        &draw,
+        0.0,
+        0.0,
+        model.start_radius,
+        model.recursion_level,
+        app.mouse.x,
+        app.mouse.y,
+    );
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
@@ -84,9 +92,25 @@ fn draw_branch(draw: &Draw, x: f32, y: f32, radius: f32, level: u8, mx: f32, my:
     // as long as level is greater than zero, draw sub-branches
     if level > 0 {
         // left branch
-        draw_branch(&draw, x - radius, y - radius / 2.0, radius / 2.0, level - 1,mx, my);
+        draw_branch(
+            &draw,
+            x - radius,
+            y - radius / 2.0,
+            radius / 2.0,
+            level - 1,
+            mx,
+            my,
+        );
         // right branch
-        draw_branch(&draw, x + radius, y - radius / 2.0, radius / 2.0, level - 1, mx, my);
+        draw_branch(
+            &draw,
+            x + radius,
+            y - radius / 2.0,
+            radius / 2.0,
+            level - 1,
+            mx,
+            my,
+        );
     }
 }
 

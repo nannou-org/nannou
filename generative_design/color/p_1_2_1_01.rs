@@ -72,8 +72,16 @@ fn model(app: &App) -> Model {
 
 fn update(app: &App, model: &mut Model, _update: Update) {
     let win = app.window_rect();
-    model.tile_count_x = clamp(map_range(app.mouse.x, win.left(), win.right(), 2, 100),2,100) as usize;
-    model.tile_count_y = clamp(map_range(app.mouse.y, win.top(), win.bottom(), 2, 10),2,10) as usize;
+    model.tile_count_x = clamp(
+        map_range(app.mouse.x, win.left(), win.right(), 2, 100),
+        2,
+        100,
+    ) as usize;
+    model.tile_count_y = clamp(
+        map_range(app.mouse.y, win.top(), win.bottom(), 2, 10),
+        2,
+        10,
+    ) as usize;
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
