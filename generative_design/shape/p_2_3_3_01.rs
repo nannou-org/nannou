@@ -74,14 +74,22 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
-
     if app.mouse.buttons.left().is_down() {
         model.distance = pt2(model.x, model.y).distance(pt2(app.mouse.x, app.mouse.y));
         model.font_size = model.font_size_min + model.distance as u32 / 2;
 
         let win_rect = app.main_window().rect();
-        let letter = &model.letters.chars().nth(model.counter).unwrap().to_string();
-        model.step_size = text(letter).font_size(model.font_size).build(win_rect).bounding_rect().w();
+        let letter = &model
+            .letters
+            .chars()
+            .nth(model.counter)
+            .unwrap()
+            .to_string();
+        model.step_size = text(letter)
+            .font_size(model.font_size)
+            .build(win_rect)
+            .bounding_rect()
+            .w();
 
         if model.distance > model.step_size {
             model.angle = (app.mouse.y - model.y).atan2(app.mouse.x - model.x);
@@ -100,13 +108,21 @@ fn view(app: &App, model: &Model, frame: Frame) {
     if frame.nth() == 0 {
         frame.clear(WHITE);
     }
-    
+
     let draw = app.draw();
 
     if model.distance > model.step_size {
-        let draw = app.draw().x_y(model.x, model.y).rotate(model.angle + (random_f32() * model.angle_distortion));
+        let draw = app
+            .draw()
+            .x_y(model.x, model.y)
+            .rotate(model.angle + (random_f32() * model.angle_distortion));
 
-        let letter = &model.letters.chars().nth(model.counter).unwrap().to_string();
+        let letter = &model
+            .letters
+            .chars()
+            .nth(model.counter)
+            .unwrap()
+            .to_string();
         draw.text(letter)
             .font_size(model.font_size)
             .x_y(0.0, 0.0)
