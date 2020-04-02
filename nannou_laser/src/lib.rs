@@ -3,6 +3,7 @@
 pub extern crate ether_dream;
 
 pub mod dac;
+#[cfg(feature = "ffi")]
 pub mod ffi;
 pub mod lerp;
 pub mod point;
