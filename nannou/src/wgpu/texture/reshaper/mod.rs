@@ -40,21 +40,15 @@ impl Reshaper {
         dst_format: wgpu::TextureFormat,
     ) -> Self {
         // Load shader modules.
-        let vs = include_bytes!("shaders/vert.spv");
-        let vs_spirv = wgpu::read_spirv(std::io::Cursor::new(&vs[..]))
-            .expect("failed to read hard-coded SPIRV");
-        let vs_mod = device.create_shader_module(&vs_spirv);
-        let fs = match src_sample_count {
-            1 => &include_bytes!("shaders/frag.spv")[..],
-            2 => &include_bytes!("shaders/frag_msaa2.spv")[..],
-            4 => &include_bytes!("shaders/frag_msaa4.spv")[..],
-            8 => &include_bytes!("shaders/frag_msaa8.spv")[..],
-            16 => &include_bytes!("shaders/frag_msaa16.spv")[..],
-            _ => &include_bytes!("shaders/frag_msaa.spv")[..],
+        let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
+        let fs_mod = match src_sample_count {
+            1 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv")),
+            2 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa2.spv")),
+            4 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa4.spv")),
+            8 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa8.spv")),
+            16 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa16.spv")),
+            _ => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa.spv")),
         };
-        let fs_spirv =
-            wgpu::read_spirv(std::io::Cursor::new(fs)).expect("failed to read hard-coded SPIRV");
-        let fs_mod = device.create_shader_module(&fs_spirv);
 
         // Create the sampler for sampling from the source texture.
         let sampler = wgpu::SamplerBuilder::new().build(device);
