@@ -129,6 +129,9 @@ path = "shape/p_2_3_1_01.rs"
 [[example]]
 name = "p_2_3_2_01"
 path = "shape/p_2_3_2_01.rs"
+[[example]]
+name = "p_2_3_3_01"
+path = "shape/p_2_3_3_01.rs"
 
 # Type
 [[example]]
