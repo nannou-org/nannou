@@ -22,12 +22,55 @@ fn main() {
         let mut api = std::ptr::null_mut();
         nannou_laser::ffi::api_new(&mut api);
 
-        // Detect DAC.
+        // Asynchronously detect DACs.
+        println!("Initialising asynchronous DAC detector...");
+        let mut detect_dacs_async = std::ptr::null_mut();
+        let timeout_secs = 1.0;
+        let res = nannou_laser::ffi::detect_dacs_async(api, timeout_secs, &mut detect_dacs_async);
+        if res as u32 != 0 {
+            let err_cstr = std::ffi::CStr::from_ptr(nannou_laser::ffi::api_last_error(api));
+            eprintln!(
+                "failed to initialise asynchronous DAC detection: {:?}",
+                err_cstr
+            );
+            nannou_laser::ffi::api_drop(api);
+            return;
+        }
+
+        println!("Waiting for some DACs to be discovered...");
+        std::thread::sleep(std::time::Duration::from_secs(2));
+
+        // Check for discovered, available DACs.
+        let mut dacs = std::ptr::null_mut();
+        let mut len = 0;
+        nannou_laser::ffi::available_dacs(detect_dacs_async, &mut dacs, &mut len);
+        if len > 0 {
+            println!("The following DACs are available:");
+            let slice = std::slice::from_raw_parts(dacs, len as usize);
+            for (i, dac) in slice.iter().enumerate() {
+                // Only ether dream supported presently.
+                let ether_dream = dac.kind.ether_dream;
+                println!("{}: {:#?}", i, ether_dream);
+            }
+        }
+
+        // Check to see if an error occurred during detection.
+        let last_error = nannou_laser::ffi::detect_dacs_async_last_error(detect_dacs_async);
+        if last_error != std::ptr::null() {
+            let err_cstr = std::ffi::CStr::from_ptr(last_error);
+            eprintln!("an error occurred during detection: {:?}", err_cstr);
+        }
+
+        // Close the detection thread and clean up.
+        nannou_laser::ffi::detect_dacs_async_drop(detect_dacs_async);
+
+        // Synchronous DAC detection.
         println!("Detecting DAC...");
         let mut dac = std::mem::MaybeUninit::<nannou_laser::ffi::DetectedDac>::uninit();
         let res = nannou_laser::ffi::detect_dac(api, dac.as_mut_ptr());
         if res as u32 != 0 {
-            eprintln!("failed to detect DAC");
+            let err_cstr = std::ffi::CStr::from_ptr(nannou_laser::ffi::api_last_error(api));
+            eprintln!("failed to detect DAC: {:?}", err_cstr);
             nannou_laser::ffi::api_drop(api);
             return;
         }

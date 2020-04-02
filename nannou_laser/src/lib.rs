@@ -2,12 +2,14 @@
 
 pub extern crate ether_dream;
 
+pub mod dac;
 pub mod ffi;
 pub mod lerp;
 pub mod point;
 pub mod stream;
 pub mod util;
 
+pub use dac::{DetectDacs, DetectDacsAsync, DetectedDac, DetectedDacCallback, Id as DacId};
 pub use lerp::Lerp;
 pub use point::{Point, RawPoint};
 pub use stream::frame::Frame;
@@ -17,6 +19,7 @@ pub use stream::raw::Stream as RawStream;
 
 use std::io;
 use std::sync::Arc;
+use std::time::Duration;
 
 /// A general API that allows for detecting and enumerating laser DACs on a network and
 /// establishing new streams of communication with them.
@@ -29,29 +32,6 @@ pub struct Api {
 // This is useful for allowing streams to re-scan and find their associated DAC in the case it
 // drops out for some reason.
 pub(crate) struct Inner;
-
-/// An iterator yielding laser DACs available on the system as they are discovered.
-pub struct DetectDacs {
-    dac_broadcasts: ether_dream::RecvDacBroadcasts,
-}
-
-/// An available DAC detected on the system.
-#[derive(Clone, Debug)]
-pub enum DetectedDac {
-    /// An ether dream laser DAC discovered via the ether dream protocol broadcast message.
-    EtherDream {
-        broadcast: ether_dream::protocol::DacBroadcast,
-        source_addr: std::net::SocketAddr,
-    },
-}
-
-/// A persistent, unique identifier associated with a DAC (like a MAC address).
-///
-/// It should be possible to use this to uniquely identify the same DAC on different occasions.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum DacId {
-    EtherDream { mac_address: [u8; 6] },
-}
 
 impl Api {
     /// Instantiate the laser API.
@@ -66,8 +46,8 @@ impl Api {
     /// Currently, the only laser protocol supported is the ether dream protocol. Thus, this
     /// enumerates ether dream DACs that are discovered on the LAN.
     ///
-    /// **Note** that the produced iterator will iterate forever and never terminate, so you may
-    /// only want to check a certain number of entries or run this iterator on some other thread.
+    /// **Note** that the produced iterator will iterate forever and never terminate unless
+    /// `set_timeout` is called on the returned `DetectDacs` instance.
     pub fn detect_dacs(&self) -> io::Result<DetectDacs> {
         self.inner.detect_dacs()
     }
@@ -75,6 +55,22 @@ impl Api {
     /// Block and wait until the DAC with the given `Id` is detected.
     pub fn detect_dac(&self, id: DacId) -> io::Result<DetectedDac> {
         self.inner.detect_dac(id)
+    }
+
+    /// Spawn a thread for DAC detection.
+    ///
+    /// Calls the given `callback` with broadcasts as they are received.
+    ///
+    /// The thread is closed when the returned `DetectDacsAsync` instance is dropped.
+    pub fn detect_dacs_async<F>(
+        &self,
+        timeout: Option<Duration>,
+        callback: F,
+    ) -> io::Result<DetectDacsAsync>
+    where
+        F: 'static + DetectedDacCallback + Send,
+    {
+        self.inner.detect_dacs_async(timeout, callback)
     }
 
     /// Begin building a new laser frame stream.
@@ -122,13 +118,12 @@ impl Api {
 }
 
 impl Inner {
-    // See the `Api::detect_dacs` docs.
+    /// See the `Api::detect_dacs` docs.
     pub(crate) fn detect_dacs(&self) -> io::Result<DetectDacs> {
-        let dac_broadcasts = ether_dream::recv_dac_broadcasts()?;
-        Ok(DetectDacs { dac_broadcasts })
+        dac::detect_dacs()
     }
 
-    // Block and wait until the DAC with the given `Id` is detected.
+    /// Block and wait until the DAC with the given `Id` is detected.
     pub(crate) fn detect_dac(&self, id: DacId) -> io::Result<DetectedDac> {
         for res in self.detect_dacs()? {
             let dac = res?;
@@ -138,51 +133,22 @@ impl Inner {
         }
         unreachable!("DAC detection iterator should never return `None`")
     }
-}
 
-impl DetectedDac {
-    /// The maximum point rate allowed by the DAC.
-    pub fn max_point_hz(&self) -> u32 {
-        match self {
-            DetectedDac::EtherDream { ref broadcast, .. } => broadcast.max_point_rate as _,
-        }
-    }
-
-    /// The number of points that can be stored within the buffer.
-    pub fn buffer_capacity(&self) -> u32 {
-        match self {
-            DetectedDac::EtherDream { ref broadcast, .. } => broadcast.buffer_capacity as _,
-        }
-    }
-
-    /// A persistent, unique identifier associated with the DAC (like a MAC address).
-    ///
-    /// It should be possible to use this to uniquely identify the same DAC on different occasions.
-    pub fn id(&self) -> DacId {
-        match self {
-            DetectedDac::EtherDream { ref broadcast, .. } => DacId::EtherDream {
-                mac_address: broadcast.mac_address,
-            },
-        }
+    /// See the `Api::detect_dacs_async` docs.
+    fn detect_dacs_async<F>(
+        &self,
+        timeout: Option<Duration>,
+        callback: F,
+    ) -> io::Result<DetectDacsAsync>
+    where
+        F: 'static + DetectedDacCallback + Send,
+    {
+        dac::detect_dacs_async(timeout, callback)
     }
 }
 
 impl AsRef<Point> for Point {
     fn as_ref(&self) -> &Point {
         self
-    }
-}
-
-impl Iterator for DetectDacs {
-    type Item = io::Result<DetectedDac>;
-    fn next(&mut self) -> Option<Self::Item> {
-        let res = self.dac_broadcasts.next()?;
-        match res {
-            Err(err) => Some(Err(err)),
-            Ok((broadcast, source_addr)) => Some(Ok(DetectedDac::EtherDream {
-                broadcast,
-                source_addr,
-            })),
-        }
     }
 }
