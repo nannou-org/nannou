@@ -75,6 +75,12 @@ pub use wgpu::{
     VertexFormat,
 };
 
+pub fn shader_from_spirv_bytes(device: &wgpu::Device, bytes: &[u8]) -> wgpu::ShaderModule {
+    let cursor = std::io::Cursor::new(bytes);
+    let vs_spirv = wgpu::read_spirv(cursor).expect("failed to read hard-coded SPIRV");
+    device.create_shader_module(&vs_spirv)
+}
+
 /// The default set of options used to request a `wgpu::Adapter` when creating windows.
 pub const DEFAULT_ADAPTER_REQUEST_OPTIONS: RequestAdapterOptions = RequestAdapterOptions {
     power_preference: PowerPreference::HighPerformance,

@@ -425,7 +425,7 @@ pub fn compile_isf_shader(
             hotglsl::compile_str(&new_str, ty).map_err(From::from)
         });
     let (bytes, error) = split_result(res);
-    let module = bytes.map(|b| spirv_bytes_to_mod(device, &b));
+    let module = bytes.map(|b| wgpu::shader_from_spirv_bytes(device, &b));
     (module, error)
 }
 
@@ -438,7 +438,7 @@ pub fn compile_shader(
 ) -> (Option<wgpu::ShaderModule>, Option<ShaderError>) {
     let res = hotglsl::compile(&path).map_err(ShaderError::from);
     let (bytes, compile_err) = split_result(res);
-    let module = bytes.map(|b| spirv_bytes_to_mod(device, &b));
+    let module = bytes.map(|b| wgpu::shader_from_spirv_bytes(device, &b));
     (module, compile_err)
 }
 
@@ -466,7 +466,7 @@ impl Shader {
     /// Create the default vertex shader for ISF fragment shaders.
     pub fn vertex_default(device: &wgpu::Device) -> Self {
         let vs = include_bytes!("shaders/vert.spv");
-        let module = Some(spirv_bytes_to_mod(device, &vs[..]));
+        let module = Some(wgpu::shader_from_spirv_bytes(device, vs));
         let error = None;
         let source = ShaderSource::HardCoded;
         Shader {
@@ -822,12 +822,6 @@ fn split_result<T, E>(res: Result<T, E>) -> (Option<T>, Option<E>) {
         Ok(t) => (Some(t), None),
         Err(e) => (None, Some(e)),
     }
-}
-
-fn spirv_bytes_to_mod(device: &wgpu::Device, bytes: &[u8]) -> wgpu::ShaderModule {
-    let cursor = std::io::Cursor::new(&bytes[..]);
-    let vs_spirv = wgpu::read_spirv(cursor).expect("failed to read hard-coded SPIRV");
-    device.create_shader_module(&vs_spirv)
 }
 
 // Includes the sampler and then all textures for all images and passes.

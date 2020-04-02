@@ -86,14 +86,8 @@ fn model(app: &App) -> Model {
     let format = Frame::TEXTURE_FORMAT;
     let msaa_samples = window.msaa_samples();
 
-    let vs = include_bytes!("shaders/vert.spv");
-    let vs_spirv =
-        wgpu::read_spirv(std::io::Cursor::new(&vs[..])).expect("failed to read hard-coded SPIRV");
-    let vs_mod = device.create_shader_module(&vs_spirv);
-    let fs = include_bytes!("shaders/frag.spv");
-    let fs_spirv =
-        wgpu::read_spirv(std::io::Cursor::new(&fs[..])).expect("failed to read hard-coded SPIRV");
-    let fs_mod = device.create_shader_module(&fs_spirv);
+    let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
+    let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
 
     let texture_array = {
         // The wgpu device queue used to load the image data.

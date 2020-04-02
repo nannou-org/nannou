@@ -41,9 +41,7 @@ fn model(app: &App) -> Model {
     let device = window.swap_chain_device();
 
     // Create the compute shader module.
-    let cs = include_bytes!("shaders/comp.spv");
-    let cs_spirv = wgpu::read_spirv(std::io::Cursor::new(&cs[..])).unwrap();
-    let cs_mod = device.create_shader_module(&cs_spirv);
+    let cs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/comp.spv"));
 
     // Create the buffer that will store the result of our compute operation.
     let oscillator_buffer_size =
