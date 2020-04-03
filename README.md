@@ -89,5 +89,5 @@ address before we can recommend using them just yet!
 
 - [Website](https://www.nannou.cc/)
 - [Guide](https://www.guide.nannou.cc/)
-- [Slack](https://nannou.slack.com)
+- [Slack](https://communityinviter.com/apps/nannou/nannou-slack)
 - [Support nannou!](https://opencollective.com/nannou)
