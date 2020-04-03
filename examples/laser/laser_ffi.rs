@@ -19,15 +19,65 @@ fn main() {
     unsafe {
         // Create the API.
         println!("Initialising API...");
-        let mut api = std::ptr::null_mut();
-        nannou_laser::ffi::api_new(&mut api);
+        let mut api = std::mem::MaybeUninit::<nannou_laser::ffi::Api>::uninit();
+        nannou_laser::ffi::api_new(api.as_mut_ptr());
+        let mut api = api.assume_init();
 
-        // Detect DAC.
+        // Asynchronously detect DACs.
+        println!("Initialising asynchronous DAC detector...");
+        let mut detect_dacs_async =
+            std::mem::MaybeUninit::<nannou_laser::ffi::DetectDacsAsync>::uninit();
+        let timeout_secs = 1.0;
+        let res = nannou_laser::ffi::detect_dacs_async(
+            &mut api,
+            timeout_secs,
+            detect_dacs_async.as_mut_ptr(),
+        );
+        if res as u32 != 0 {
+            let err_cstr = std::ffi::CStr::from_ptr(nannou_laser::ffi::api_last_error(&api));
+            eprintln!(
+                "failed to initialise asynchronous DAC detection: {:?}",
+                err_cstr
+            );
+            nannou_laser::ffi::api_drop(api);
+            return;
+        }
+        let mut detect_dacs_async = detect_dacs_async.assume_init();
+
+        println!("Waiting for some DACs to be discovered...");
+        std::thread::sleep(std::time::Duration::from_secs(2));
+
+        // Check for discovered, available DACs.
+        let mut dacs = std::ptr::null_mut();
+        let mut len = 0;
+        nannou_laser::ffi::available_dacs(&mut detect_dacs_async, &mut dacs, &mut len);
+        if len > 0 {
+            println!("The following DACs are available:");
+            let slice = std::slice::from_raw_parts(dacs, len as usize);
+            for (i, dac) in slice.iter().enumerate() {
+                // Only ether dream supported presently.
+                let ether_dream = dac.kind.ether_dream;
+                println!("{}: {:#?}", i, ether_dream);
+            }
+        }
+
+        // Check to see if an error occurred during detection.
+        let last_error = nannou_laser::ffi::detect_dacs_async_last_error(&detect_dacs_async);
+        if last_error != std::ptr::null() {
+            let err_cstr = std::ffi::CStr::from_ptr(last_error);
+            eprintln!("an error occurred during detection: {:?}", err_cstr);
+        }
+
+        // Close the detection thread and clean up.
+        nannou_laser::ffi::detect_dacs_async_drop(detect_dacs_async);
+
+        // Synchronous DAC detection.
         println!("Detecting DAC...");
         let mut dac = std::mem::MaybeUninit::<nannou_laser::ffi::DetectedDac>::uninit();
-        let res = nannou_laser::ffi::detect_dac(api, dac.as_mut_ptr());
+        let res = nannou_laser::ffi::detect_dac(&mut api, dac.as_mut_ptr());
         if res as u32 != 0 {
-            eprintln!("failed to detect DAC");
+            let err_cstr = std::ffi::CStr::from_ptr(nannou_laser::ffi::api_last_error(&api));
+            eprintln!("failed to detect DAC: {:?}", err_cstr);
             nannou_laser::ffi::api_drop(api);
             return;
         }
@@ -45,16 +95,17 @@ fn main() {
         let frame_stream_conf = frame_stream_conf.assume_init();
         let callback_data: *mut CallbackData =
             Box::into_raw(Box::new(CallbackData { pattern: RECTANGLE }));
-        let mut frame_stream = std::ptr::null_mut();
+        let mut frame_stream = std::mem::MaybeUninit::<nannou_laser::ffi::FrameStream>::uninit();
         println!("Spawning new frame stream...");
         nannou_laser::ffi::new_frame_stream(
-            api,
-            &mut frame_stream,
+            &mut api,
+            frame_stream.as_mut_ptr(),
             &frame_stream_conf,
             callback_data as *mut std::os::raw::c_void,
             frame_render_callback,
             process_raw_callback,
         );
+        let frame_stream = frame_stream.assume_init();
 
         // Run through each pattern for 1 second.
         for pattern in 0..TOTAL_PATTERNS {
@@ -74,15 +125,16 @@ fn main() {
         let stream_conf = stream_conf.assume_init();
         let callback_data: *mut CallbackData =
             Box::into_raw(Box::new(CallbackData { pattern: RECTANGLE }));
-        let mut raw_stream = std::ptr::null_mut();
+        let mut raw_stream = std::mem::MaybeUninit::<nannou_laser::ffi::RawStream>::uninit();
         println!("Spawning a raw stream...");
         nannou_laser::ffi::new_raw_stream(
-            api,
-            &mut raw_stream,
+            &mut api,
+            raw_stream.as_mut_ptr(),
             &stream_conf,
             callback_data as *mut std::os::raw::c_void,
             raw_render_callback,
         );
+        let raw_stream = raw_stream.assume_init();
 
         std::thread::sleep(std::time::Duration::from_secs(1));
 

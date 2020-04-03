@@ -38,6 +38,8 @@
     - Move `run_all_examples.rs` test into a new `scripts/` directory. Add
       ability to run examples of specific packages in the workspace.
     - Move `nature_of_code` examples
+- Add non-blocking LASER DAC detection via `Api::detect_dacs_async`.
+- Add nicer socket address and error handling to `nannou_laser::ffi`.
 
 # Version 0.13.1 (2020-03-05)
 

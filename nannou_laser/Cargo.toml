@@ -19,3 +19,6 @@ failure = "0.1"
 hashbrown = "0.2"
 ether-dream = "0.2"
 petgraph = "0.4"
+
+[features]
+ffi = []
