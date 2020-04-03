@@ -30,11 +30,6 @@
 // Example 9-1: GA Shakespeare
 
 use nannou::prelude::*;
-use nannou::rand::{thread_rng, Rng};
-
-const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
-                            abcdefghijklmnopqrstuvwxyz\
-                            0123456789)(*&^%$#@!~. ";
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -57,10 +52,8 @@ struct Dna {
 impl Dna {
     fn new(num: usize) -> Self {
         let mut genes = Vec::new();
-        let mut rng = thread_rng();
         for _ in 0..num {
-            let idx = rng.gen_range(0, CHARSET.len());
-            genes.push(CHARSET[idx] as char);
+            genes.push(random_ascii());
         }
         Dna {
             genes,
@@ -102,11 +95,9 @@ impl Dna {
 
     // Based on a mutation probability, picks a new random character
     fn mutate(&mut self, mutation_rate: f32) {
-        let mut rng = thread_rng();
         for i in 0..self.genes.len() {
             if random_f32() < mutation_rate {
-                let idx = rng.gen_range(0, CHARSET.len());
-                self.genes[i] = CHARSET[idx] as char;
+                self.genes[i] = random_ascii();
             }
         }
     }
