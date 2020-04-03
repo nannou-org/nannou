@@ -7,15 +7,15 @@
 // Demonstration of using a genetic algorithm to perform a search
 
 // setup()
-//  # Step 1: The Population 
+//  # Step 1: The Population
 //    # Create an empty population (an array or ArrayList)
 //    # Fill it with DNA encoded objects (pick random values to start)
 
 // draw()
-//  # Step 1: Selection 
+//  # Step 1: Selection
 //    # Create an empty mating pool (an empty ArrayList)
-//    # For every member of the population, evaluate its fitness based on some criteria / function, 
-//      and add it to the mating pool in a manner consistant with its fitness, i.e. the more fit it 
+//    # For every member of the population, evaluate its fitness based on some criteria / function,
+//      and add it to the mating pool in a manner consistant with its fitness, i.e. the more fit it
 //      is the more times it appears in the mating pool, in order to be more likely picked for reproduction.
 
 //  # Step 2: Reproduction Create a new empty population
@@ -25,12 +25,12 @@
 //       3. Mutation -- mutate the child's DNA based on a given probability.
 //       4. Add the child object to the new population.
 //    # Replace the old population with the new population
-//  
+//
 //   # Rinse and repeat
 // Example 9-1: GA Shakespeare
 
 use nannou::prelude::*;
-use nannou::rand::{Rng, thread_rng};
+use nannou::rand::{thread_rng, Rng};
 
 const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
                             abcdefghijklmnopqrstuvwxyz\
@@ -115,12 +115,12 @@ impl Dna {
 // A type to describe a population of virtual organisms
 // In this case, each organism is just an instance of a DNA object
 struct Population {
-    mutation_rate: f32,     // Mutation rate
-    population: Vec<Dna>,   // Vector to hold the current population
-    mating_pool: Vec<Dna>,  // Vector which we will use for our "mating pool"
-    target: String,         // Target phrase
-    generations: u32,       // Number of generations
-    finished: bool,         // Are we finished evolving?
+    mutation_rate: f32,    // Mutation rate
+    population: Vec<Dna>,  // Vector to hold the current population
+    mating_pool: Vec<Dna>, // Vector which we will use for our "mating pool"
+    target: String,        // Target phrase
+    generations: u32,      // Number of generations
+    finished: bool,        // Are we finished evolving?
     perfect_score: f32,
 }
 
@@ -142,7 +142,7 @@ impl Population {
         for i in 0..self.population.len() {
             self.population[i].calculate_fitness(&self.target);
         }
-    } 
+    }
 
     // Generate a mating pool
     fn natural_selection(&mut self) {
@@ -187,7 +187,7 @@ impl Population {
         let mut world_record = 0.0;
         let mut index = 0;
         for i in 0..self.population.len() {
-            if self.population[i].fitness >  world_record {
+            if self.population[i].fitness > world_record {
                 index = i;
                 world_record = self.population[i].fitness;
             }
@@ -258,21 +258,73 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let win = app.window_rect();
     let draw = app.draw();
 
-    draw.text(&"Best Phrase:".to_string()).color(BLACK).left_justify().align_text_top().font_size(24).x(20.0).y(-30.0).wh(win.wh());
-    draw.text(&model.answer).color(BLACK).left_justify().align_text_top().font_size(40).x(20.0).y(-100.0).wh(win.wh());
+    draw.text(&"Best Phrase:".to_string())
+        .color(BLACK)
+        .left_justify()
+        .align_text_top()
+        .font_size(24)
+        .x(20.0)
+        .y(-30.0)
+        .wh(win.wh());
+    draw.text(&model.answer)
+        .color(BLACK)
+        .left_justify()
+        .align_text_top()
+        .font_size(40)
+        .x(20.0)
+        .y(-100.0)
+        .wh(win.wh());
 
     let gen = format!("total generations:     {}", model.population.generations);
-    draw.text(&gen).color(BLACK).left_justify().align_text_top().font_size(18).x(20.0).y(-160.0).wh(win.wh());
-    let fitness = format!("average fitness:         {:.2}", model.population.get_average_fitness());
-    draw.text(&fitness).color(BLACK).left_justify().align_text_top().font_size(18).x(20.0).y(-180.0).wh(win.wh());
+    draw.text(&gen)
+        .color(BLACK)
+        .left_justify()
+        .align_text_top()
+        .font_size(18)
+        .x(20.0)
+        .y(-160.0)
+        .wh(win.wh());
+    let fitness = format!(
+        "average fitness:         {:.2}",
+        model.population.get_average_fitness()
+    );
+    draw.text(&fitness)
+        .color(BLACK)
+        .left_justify()
+        .align_text_top()
+        .font_size(18)
+        .x(20.0)
+        .y(-180.0)
+        .wh(win.wh());
     let pop = format!("total population:       {}", model.pop_max);
-    draw.text(&pop).color(BLACK).left_justify().align_text_top().font_size(18).x(20.0).y(-200.0).wh(win.wh());
+    draw.text(&pop)
+        .color(BLACK)
+        .left_justify()
+        .align_text_top()
+        .font_size(18)
+        .x(20.0)
+        .y(-200.0)
+        .wh(win.wh());
     let rate = format!("mutation rate:            {:.2} %", model.mutation_rate);
-    draw.text(&rate).color(BLACK).left_justify().align_text_top().font_size(18).x(20.0).y(-220.0).wh(win.wh());
+    draw.text(&rate)
+        .color(BLACK)
+        .left_justify()
+        .align_text_top()
+        .font_size(18)
+        .x(20.0)
+        .y(-220.0)
+        .wh(win.wh());
 
     let all = format!("All phrases: \n {}", model.population.all_phrases());
-    draw.text(&all).color(BLACK).left_justify().align_text_top().font_size(10).x(500.0).y(-10.0).wh(win.wh());
-    
+    draw.text(&all)
+        .color(BLACK)
+        .left_justify()
+        .align_text_top()
+        .font_size(10)
+        .x(500.0)
+        .y(-10.0)
+        .wh(win.wh());
+
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
 
@@ -280,5 +332,3 @@ fn view(app: &App, model: &Model, frame: Frame) {
         app.set_loop_mode(LoopMode::loop_once());
     }
 }
-
-
