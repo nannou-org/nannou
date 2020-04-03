@@ -37,3 +37,19 @@ where
     let (min, max) = if min <= max { (min, max) } else { (max, min) };
     rand::thread_rng().gen_range(min, max)
 }
+
+/// Generates and returns a random ascii character. 
+/// 
+/// The ascii characters that can be generated are:
+///  
+///  ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+/// abcdefghijklmnopqrstuvwxyz\
+/// 0123456789)(*&^%$#@!~. 
+pub fn random_ascii() -> char {
+    const ASCIISET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+                            abcdefghijklmnopqrstuvwxyz\
+                            0123456789)(*&^%$#@!~. ";
+
+    let idx = rand::thread_rng().gen_range(0,ASCIISET.len());
+    ASCIISET[idx] as char
+}
