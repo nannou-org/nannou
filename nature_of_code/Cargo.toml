@@ -260,6 +260,14 @@ path = "chp_08_fractals/8_3_recursion.rs"
 [[example]] 
 name = "8_4_cantor_set" 
 path = "chp_08_fractals/8_4_cantor_set.rs"
+[[example]] 
+name = "8_4_tree" 
+path = "chp_08_fractals/8_4_tree.rs"
+
+# Chapter 9 Genetic Algorithms
+[[example]] 
+name = "9_1_ga_shakespeare" 
+path = "chp_09_genetic_algorithms/9_1_ga_shakespeare.rs"
 
 # Chapter 10 Neural Networks
 [[example]] 
