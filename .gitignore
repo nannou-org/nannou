@@ -1,4 +1,7 @@
+guide/
 book/
 book-tests/
 .DS_Store
 travis_deploy.sh
+target/
+Cargo.lock
