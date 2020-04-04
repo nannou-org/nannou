@@ -1,0 +1,19 @@
+language: rust
+cache: cargo
+before_script:
+- cargo install mdbook || true
+addons:
+  apt:
+    packages:
+    - libasound2-dev
+rust:
+- stable
+script:
+- mdbook build
+- cd book-tests && cargo test -v
+- cd ..
+deploy:
+  provider: script
+  script: bash ./travis_deploy.sh
+  on:
+    branch: master
