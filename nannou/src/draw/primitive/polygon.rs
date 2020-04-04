@@ -179,14 +179,15 @@ impl<S> PolygonInit<S> {
     }
 }
 
-pub fn render_points_themed<I>(
+pub fn render_events_themed<F, I>(
     opts: PolygonOptions,
-    points: I,
+    events: F,
     mut ctxt: draw::renderer::RenderContext,
     theme_primitive: &draw::theme::Primitive,
     mesh: &mut draw::Mesh,
 ) where
-    I: Clone + Iterator<Item = Point2>,
+    F: Fn() -> I,
+    I: Iterator<Item = lyon::path::PathEvent>,
 {
     let PolygonOptions {
         position,
@@ -210,7 +211,7 @@ pub fn render_points_themed<I>(
          fill_tessellator: &mut lyon::tessellation::FillTessellator,
          stroke_tessellator: &mut lyon::tessellation::StrokeTessellator| {
             path::render_path_events(
-                lyon::path::iterator::FromPolyline::closed(points.clone().map(|p| p.into())),
+                events(),
                 color,
                 transform,
                 opts,
@@ -246,6 +247,24 @@ pub fn render_points_themed<I>(
             &mut ctxt.stroke_tessellator,
         );
     }
+}
+
+pub fn render_points_themed<I>(
+    opts: PolygonOptions,
+    points: I,
+    ctxt: draw::renderer::RenderContext,
+    theme_primitive: &draw::theme::Primitive,
+    mesh: &mut draw::Mesh,
+) where
+    I: Clone + Iterator<Item = Point2>,
+{
+    render_events_themed(
+        opts,
+        || lyon::path::iterator::FromPolyline::closed(points.clone().map(|p| p.into())),
+        ctxt,
+        theme_primitive,
+        mesh,
+    );
 }
 
 impl Polygon<f32> {

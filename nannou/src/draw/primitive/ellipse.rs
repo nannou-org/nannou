@@ -43,6 +43,9 @@ where
     }
 
     /// The number of sides used to draw the ellipse.
+    ///
+    /// By default, ellipse does not use a resolution, but rather uses a stroke tolerance to
+    /// determine how many vertices to use during tessellation.
     pub fn resolution(mut self, resolution: usize) -> Self {
         self.resolution = Some(resolution);
         self
@@ -70,21 +73,43 @@ impl draw::renderer::RenderPrimitive for Ellipse<f32> {
             "z dimension support for ellipse is unimplemented"
         );
 
-        // TODO: These should probably be adjustable via Theme.
-        const DEFAULT_RESOLUTION: usize = 50;
-        let w = maybe_x.unwrap_or(100.0);
-        let h = maybe_y.unwrap_or(100.0);
-        let resolution = resolution.unwrap_or(DEFAULT_RESOLUTION);
-        let rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
-        let ellipse = geom::Ellipse::new(rect, resolution);
-        let points = ellipse.circumference();
-        polygon::render_points_themed(
-            polygon.opts,
-            points,
-            ctxt,
-            &draw::theme::Primitive::Ellipse,
-            mesh,
-        );
+        let w = maybe_x.map(f32::abs).unwrap_or(100.0);
+        let h = maybe_y.map(f32::abs).unwrap_or(100.0);
+        match resolution {
+            None => {
+                // Determine the transform to apply to all points.
+                let radii = lyon::math::vector(w * 0.5, h * 0.5);
+                if radii.square_length() > 0.0 {
+                    let centre = lyon::math::point(0.0, 0.0);
+                    let mut builder = lyon::path::Path::builder();
+                    let sweep_angle = lyon::math::Angle::radians(std::f32::consts::PI * 2.0);
+                    let x_rotation = lyon::math::Angle::radians(0.0);
+                    let start = lyon::math::point(w * 0.5, 0.0);
+                    builder.move_to(start);
+                    builder.arc(centre, radii, sweep_angle, x_rotation);
+                    let path = builder.build();
+                    polygon::render_events_themed(
+                        polygon.opts,
+                        || (&path).into_iter(),
+                        ctxt,
+                        &draw::theme::Primitive::Ellipse,
+                        mesh,
+                    );
+                }
+            }
+            Some(resolution) => {
+                let rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
+                let ellipse = geom::Ellipse::new(rect, resolution);
+                let points = ellipse.circumference();
+                polygon::render_points_themed(
+                    polygon.opts,
+                    points,
+                    ctxt,
+                    &draw::theme::Primitive::Ellipse,
+                    mesh,
+                );
+            }
+        }
 
         draw::renderer::PrimitiveRender::default()
     }
