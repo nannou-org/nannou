@@ -157,9 +157,3 @@ jobs:
     - name: Push changes to deploy branch
       run: |
         git push --force --quiet nannou-org deploy &>/dev/null
-
-      #uses: ad-m/github-push-action@master
-      #with:
-      #  branch: "deploy"
-      #  force: true
-      #  github_token: ${{ secrets.GITHUB_TOKEN }}
