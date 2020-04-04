@@ -39,6 +39,7 @@ It is still early days and there is a lot of work to be done. Feel free to help 
 - [**Developer Reference**](https://www.guide.nannou.cc/developer_reference.html)
 - [**API Reference**](https://www.guide.nannou.cc/api_reference.html)
 - [**Showcases**](https://www.guide.nannou.cc/showcases.html)
+- [**Changelog**](https://www.guide.nannou.cc/changelog.html)
 - [**Contributors**](https://www.guide.nannou.cc/contributors.html)
 - [**Code of Conduct**](https://guide.nannou.cc/code_of_conduct.html)
 

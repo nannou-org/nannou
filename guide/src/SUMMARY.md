@@ -18,5 +18,6 @@
 - [API Reference](./api_reference.md)
 - [Showcases](./showcases.md)
 
+[Changelog](./changelog.md)
 [Contributors](./contributors.md)
 [Code of Conduct](./code_of_conduct.md)
