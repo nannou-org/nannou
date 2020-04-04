@@ -1,7 +1,5 @@
 name: nannou
-
 on: [push, pull_request]
-
 jobs:
   rustfmt-check:
     runs-on: ubuntu-latest
@@ -125,3 +123,43 @@ jobs:
       with:
         command: test
         args: -p book_tests --verbose
+
+  guide-push-to-deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install rust stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Install mdbook
+      uses: actions-rs/cargo@v1
+      with:
+        command: install
+        args: mdbook
+    - name: Build book
+      run: mdbook build guide/
+    - name: Commit book to deploy branch
+      run: |
+        git config user.email "action@github.com"
+        git config user.name "GitHub Action"
+        git remote add nannou-org https://${{ secrets.DEPLOY_GUIDE_TOKEN }}@github.com/${{ github.repository }}.git
+        git fetch nannou-org &&
+        git config credential.helper "store --file=.git/credentials" &&
+        echo "https://${{ secrets.DEPLOY_GUIDE_TOKEN }}:@github.com" > .git/credentials &&
+        git checkout deploy &&
+        cp -r guide/book/* . &&
+        git add -A . &&
+        git commit -m "Automated commit in preparation for deployment: $GITHUB_RUN_NUMBER"
+    - name: Push changes to deploy branch
+      run: |
+        git push --force --quiet nannou-org deploy &>/dev/null
+
+      #uses: ad-m/github-push-action@master
+      #with:
+      #  branch: "deploy"
+      #  force: true
+      #  github_token: ${{ secrets.GITHUB_TOKEN }}
