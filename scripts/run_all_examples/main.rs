@@ -28,8 +28,8 @@ fn main() {
     };
 
     // Read the nannou cargo manifest to a `toml::Value`.
-    let nannou_manifest_dir = env!("CARGO_MANIFEST_DIR");
-    let workspace_manifest_dir = std::path::Path::new(nannou_manifest_dir)
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let workspace_manifest_dir = std::path::Path::new(manifest_dir)
         .parent()
         .unwrap() // nannou/scripts
         .parent()
