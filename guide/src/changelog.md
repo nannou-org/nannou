@@ -77,11 +77,11 @@ back to the origins.
   simpler.
 - Update `view` function API to take `Frame` by value rather than by reference.
   For example, rather than:
-  ```rust
+  ```rust,ignore
   fn view(app: &App, model: &Model, frame: &Frame) {}
   ```
   the `view` function signature now must look like:
-  ```rust
+  ```rust,ignore
   fn view(app: &App, model: &Model, frame: Frame) {}
   ```
   This was necessary to enable ergonomic texture capturing.
