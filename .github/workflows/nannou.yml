@@ -165,7 +165,7 @@ jobs:
         git checkout deploy &&
         cp -r guide/book/* . &&
         git add -A . &&
-        git commit -m "Automated commit in preparation for deployment: $GITHUB_RUN_NUMBER"
+        git commit -m "Automated commit in preparation for deployment: $GITHUB_RUN_NUMBER" || true
     - name: Push changes to deploy branch
       run: |
         git push --force --quiet nannou-org deploy &>/dev/null
