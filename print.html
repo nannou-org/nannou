@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="welcome.html">Welcome!</a></li><li class="chapter-item expanded "><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="chapter-item expanded "><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="chapter-item expanded "><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="chapter-item expanded "><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="chapter-item expanded "><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="chapter-item expanded "><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="chapter-item expanded "><a href="getting_started/updating.html"><strong aria-hidden="true">2.6.</strong> Updating Nannou and Rust</a></li></ol></li><li class="chapter-item expanded "><a href="tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="tutorials/basics/draw-a-sketch.html"><strong aria-hidden="true">3.1.</strong> Basics - Drawing a Sketch</a></li><li class="chapter-item expanded "><a href="tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.2.</strong> Basics - Anatomy of a Nannou App</a></li><li class="chapter-item expanded "><a href="tutorials/basics/drawing-2d-shapes.html"><strong aria-hidden="true">3.3.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li class="chapter-item expanded "><a href="developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="chapter-item expanded "><a href="api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="chapter-item expanded "><a href="showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="chapter-item expanded affix "><a href="contributors.html">Contributors</a></li><li class="chapter-item expanded affix "><a href="code_of_conduct.html">Code of Conduct</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="welcome.html">Welcome!</a></li><li class="chapter-item expanded "><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="chapter-item expanded "><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="chapter-item expanded "><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="chapter-item expanded "><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="chapter-item expanded "><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="chapter-item expanded "><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="chapter-item expanded "><a href="getting_started/updating.html"><strong aria-hidden="true">2.6.</strong> Updating Nannou and Rust</a></li></ol></li><li class="chapter-item expanded "><a href="tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="tutorials/basics/draw-a-sketch.html"><strong aria-hidden="true">3.1.</strong> Basics - Drawing a Sketch</a></li><li class="chapter-item expanded "><a href="tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.2.</strong> Basics - Anatomy of a Nannou App</a></li><li class="chapter-item expanded "><a href="tutorials/basics/drawing-2d-shapes.html"><strong aria-hidden="true">3.3.</strong> Basics - Drawing 2D Shapes</a></li></ol></li><li class="chapter-item expanded "><a href="developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="chapter-item expanded "><a href="api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="chapter-item expanded "><a href="showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="chapter-item expanded affix "><a href="changelog.html">Changelog</a></li><li class="chapter-item expanded affix "><a href="contributors.html">Contributors</a></li><li class="chapter-item expanded affix "><a href="code_of_conduct.html">Code of Conduct</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -1353,6 +1353,386 @@ published.</p>
 <ul>
 <li><a href="https://github.com/mitchmindtree/nannou-sketches">sketches by mitchmindtree</a></li>
 </ul>
+<h1><a class="header" href="#changelog" id="changelog">Changelog</a></h1>
+<p>All notable changes to nannou should be documented below! From the most recent,
+back to the origins.</p>
+<hr />
+<h1><a class="header" href="#unreleased" id="unreleased">Unreleased</a></h1>
+<ul>
+<li>Add <code>RenderPipelineBuilder</code>.</li>
+<li>Add <code>BindGroupLayoutBuilder</code>.</li>
+<li>Add <code>BindGroupBuilder</code>.</li>
+<li>Add <code>RenderPassBuilder</code>.</li>
+<li><strong>Draw</strong> API overhaul:
+<ul>
+<li>Update to lyon 0.15.</li>
+<li>Re-add support for colored vertices on polygons.</li>
+<li>Added blend modes, e.g. <code>draw.blend(blend_desc)</code>.</li>
+<li>Added scissor, e.g. <code>draw.scissor(rect)</code></li>
+<li>Added transforms, e.g. <code>draw.scale(s)</code>, <code>draw.rotate(r)</code>.</li>
+<li>Removed many relative positioning methods in favour of draw transforms.</li>
+<li>Simplified texture loading, e.g.
+<code>Texture::from_path</code>/<code>Texture::from_image</code>.</li>
+<li>Add <code>draw.texture</code> API.</li>
+<li>Rename all APIs taking <code>points</code>, <code>points_colored</code> and <code>points_textured</code> to
+take iterators yielding tuples, e.g. <code>point</code>, <code>(point, color)</code>, <code>(point, tex_coords)</code>.</li>
+<li>Add support for <code>.points_textured(tex, pts)</code> to <code>draw.mesh()</code>,
+<code>draw.path()</code> and <code>draw.polygon()</code>.</li>
+<li>Add support for <code>draw.sampler(sampler_desc)</code>, for specifying a draw
+context with a custom texture sampler.</li>
+<li>Add <code>draw.triangle_mode()</code>, <code>draw.line_mode()</code> and <code>draw.point_mode()</code> for
+switching between render pipeline primitive topology.</li>
+<li>Add GPU caching of glyphs for text drawn via <code>draw.text()</code>. Allows for
+much higher-performance text rendering.</li>
+</ul>
+</li>
+<li>Relax trait bounds on many mesh types.</li>
+<li>The Great Repository Refactor:
+<ul>
+<li>Move nannou src and tests into a <code>nannou</code> subdirectory.</li>
+<li>Move <code>nannou_audio</code> into the nannou repo.</li>
+<li>Move <code>nannou_isf</code> into the nannou repo.</li>
+<li>Move <code>nannou_laser</code> into the nannou repo.</li>
+<li>Move <code>nannou_osc</code> into the nannou repo.</li>
+<li>Move <code>nannou_timeline</code> into the nannou repo.</li>
+<li>Move guide into the nannou repo.</li>
+<li>Add all crates under a single workspace.</li>
+<li>Update README.md with a repository overview.</li>
+<li>Move <code>run_all_examples.rs</code> test into a new <code>scripts/</code> directory. Add
+ability to run examples of specific packages in the workspace.</li>
+<li>Move <code>nature_of_code</code> examples</li>
+<li>Move CHANGELOG into the guide.</li>
+<li>Switch from travis CI to a github workflow.</li>
+</ul>
+</li>
+<li>Add non-blocking LASER DAC detection via <code>Api::detect_dacs_async</code>.</li>
+<li>Add nicer socket address and error handling to <code>nannou_laser::ffi</code>.</li>
+</ul>
+<hr />
+<h1><a class="header" href="#version-0131-2020-03-05" id="version-0131-2020-03-05">Version 0.13.1 (2020-03-05)</a></h1>
+<ul>
+<li>Add <code>Texture::inner</code> producing a reference to the inner texture handle.</li>
+<li>Add <code>Texture::into_inner</code> producing the inner texture handle.</li>
+<li>Add <code>Into&lt;TextureHandle&gt;</code> impl for <code>Texture</code></li>
+<li>Add <code>Texture::into_ui_image</code>.</li>
+</ul>
+<h1><a class="header" href="#version-0130-2020-03-05" id="version-0130-2020-03-05">Version 0.13.0 (2020-03-05)</a></h1>
+<ul>
+<li>Transition from <code>vulkano</code> to <code>wgpu</code> for all graphics handling!
+<ul>
+<li>Fixes llooooooooooottss of macOS bugs.</li>
+<li>The <code>draw</code> and <code>ui</code> APIs now render via wgpu.</li>
+<li>Replace <code>vk</code> module with <code>wgpu</code> module.</li>
+<li>Replace <code>examples/vulkan</code> with <code>examples/wgpu</code>.</li>
+<li>Big step towards enabling web target.</li>
+<li>Add <code>wgpu::TextureBuilder</code> to simplify texture building process.</li>
+<li>Add <code>wgpu::TextureReshaper</code> for writing a texture to another of differing
+size, format and sample_count.</li>
+<li>Add <code>wgpu::TextureCapturer</code> for reading textures onto CPU as images.</li>
+</ul>
+</li>
+<li>Update to <code>winit</code> 0.21. Another big step towards enabling web target. Also
+includes an overhaul of the application loop which should be significantly
+simpler.</li>
+<li>Update <code>view</code> function API to take <code>Frame</code> by value rather than by reference.
+For example, rather than:
+<pre><code class="language-rust ignore">fn view(app: &amp;App, model: &amp;Model, frame: &amp;Frame) {}
+</code></pre>
+the <code>view</code> function signature now must look like:
+<pre><code class="language-rust ignore">fn view(app: &amp;App, model: &amp;Model, frame: Frame) {}
+</code></pre>
+This was necessary to enable ergonomic texture capturing.</li>
+<li><code>frame.submit()</code> can now be used to submit the frame to the GPU before the end
+of the <code>view</code> function.</li>
+<li><code>nannou::sketch</code> now returns a <code>SketchBuilder</code>. This allows for specifying the
+sketch <code>.size(w, h)</code>, but now requires that <code>.run()</code> is called (or the sketch
+won't do anything!).</li>
+<li>A <code>.size(w, h)</code> builder has been added to the <code>app::Builder</code> type that allows
+for specifying a default window size.</li>
+<li>Add <code>window.capture_frame(path)</code> method for capturing the next frame to an
+image file at the given file path.</li>
+<li>Add a <code>simple_capture.rs</code> example.</li>
+<li>Add a <code>capture_hi_res.rs</code> example.</li>
+<li><code>sketch</code>'s now need a call to <code>.run()</code> to do anything.</li>
+<li><code>sktech</code>'s now support a <code>.size(width, height)</code> builder method for setting
+window size.</li>
+<li>The <code>app::Builder</code> now also supports a <code>.size(width, height)</code> method for
+specifying the default window width and height.</li>
+<li><code>LoopMode</code>s have been simplified:
+<ul>
+<li><code>Wait</code> no longer requires <code>update_following_event</code> or <code>update_interval</code></li>
+<li><code>NTimes</code> no longer requires <code>update_interval</code></li>
+<li><code>Refresh</code> no longer requires <code>minimum_update_interval</code> or <code>windows</code></li>
+</ul>
+</li>
+</ul>
+<hr />
+<h1><a class="header" href="#version-0120-2019-11-03" id="version-0120-2019-11-03">Version 0.12.0 (2019-11-03)</a></h1>
+<ul>
+<li>Update vulkano dependencies to 0.16 in order to address <code>metal</code> related bug on
+macOS.</li>
+<li>Update conrod dependencies to 0.68 for vulkano patch. New version includes
+copy/paste, double-click select and shift-click select support for the
+<code>TextEdit</code> widget.</li>
+<li>[Breaking] Small change to Vulkan debug items.</li>
+<li>[Breaking] New fields have been added to <code>DynamicState</code>.</li>
+<li>Update shade_runner to 0.3 for vulkano patch.</li>
+<li>Frame command buffer builder no longer provides access to unrelated
+<code>secondary</code> buffer methods.</li>
+</ul>
+<hr />
+<h1><a class="header" href="#version-0110-2019-09-17" id="version-0110-2019-09-17">Version 0.11.0 (2019-09-17)</a></h1>
+<ul>
+<li>Update vulkano and shaderc dependencies to fix linux build issues.</li>
+<li>Add an example that demonstrates using the Draw API with multiple windows.</li>
+<li>Fix a bug where <code>Draw::to_frame</code> would <code>panic!</code> when used between multiple
+windows.</li>
+<li>Add lyon for 2D tessellation.</li>
+<li>A new <code>geom::path()</code> API has been added that allows for building 2D vector
+graphics paths as an iterator yielding <code>lyon::path::PathEvent</code>s. This adds
+support for curves, arcs, sub-paths and more.</li>
+<li>A <code>draw.path()</code> API has been added to allow for taking advantage of paths via
+the <code>Draw</code> API. <code>draw.path().stroke()</code> produces a path that will be rendered
+via stroke tessellation, <code>draw.path().fill()</code> produces a path that will be
+rendered via fill tessellation.</li>
+<li>The <code>draw.polyline()</code> and <code>draw.line()</code> APIs are now implemented in terms of
+<code>draw.path().stoke()</code>.</li>
+<li>All known polyline bugs should be fixed.</li>
+<li><code>draw.polygon()</code> has been updated to use lyon's <code>FillTessellator</code> allowing for
+concave shapes.</li>
+<li><code>draw.polygon()</code> now supports optional stroke tessellation of its outline and
+includes a suite of stroke option builder methods including line join types,
+stroke weight, stroke color, etc. See the <code>SetStroke</code> method docs to find all
+new methods now available.</li>
+<li><code>.no_fill()</code> and <code>.stroke(color)</code> can be called on all polygon types to
+indicate that no fill tessellation is required or to specify stroke color
+respectively.</li>
+<li>All other <code>draw</code> API polygons (<code>rect</code>, <code>quad</code>, <code>tri</code>, <code>ellipse</code>) have been
+implemented in terms of <code>draw.polygon()</code>, allowing them to take advantage of
+the same stroke tessellation options.</li>
+<li>The line <code>thickness</code> methods have been replaced with <code>stroke_weight</code> and
+<code>weight</code> methods.</li>
+<li>Fixes a pretty severe bug where any draw primitives that use the intermediary
+mesh would produce incorrect triangulation indices if they weren't the first
+instance to be created.</li>
+<li><code>draw.polygon()</code> will temporarily lose support for individually colored
+vertices. This is due to limitations with lyon's <code>FillTessellator</code>, however
+these are in the process of being addressed.</li>
+<li><code>draw.tri()</code> and <code>draw.quad()</code> now expect <code>Point2</code>s instead of <code>Point3</code>s. This
+was a trade-off in order to take advantage of the lyon tessellators which only
+support 2D geometry. Currently, the draw API's 3D story is very limited
+anyway, and this can likely be revisited as a part of a larger 3D tessellation
+overhaul. For now, <code>draw.mesh()</code> can still be used for drawing arbitrary 3D
+via the <code>draw</code> API.</li>
+<li>Introduce notosans crate for guaranteed default fallback font. Can be disabled
+by disabling default-features.</li>
+<li>Refactor default font out of ui module into app module.</li>
+<li>Add <code>text</code> module along with <code>text::Builder</code> and <code>Text</code> APIs. Allows for
+laying out multi-line, justified, auto-wrapping text.</li>
+<li>Add <code>draw.text(&quot;foo&quot;)</code> API. Currently quite slow as it uses the <code>draw.path()</code>
+API internally, but this can be improved in the future by adopting a glyph
+cache.</li>
+<li>Add <code>simple_text.rs</code> and <code>simple_text_path.rs</code> examples.</li>
+</ul>
+<hr />
+<h1><a class="header" href="#version-0100-2019-07-21" id="version-0100-2019-07-21">Version 0.10.0 (2019-07-21)</a></h1>
+<ul>
+<li>Change the <code>view</code> function signature to take <code>Frame</code> by reference rather than
+by value.</li>
+<li>Remove depth format constants in favour of querying supported formats.</li>
+<li>Update from palette 0.2 to 0.4.</li>
+<li>Add shorthand color constructors to the <code>color</code> module.</li>
+<li>Remove nannou named colors in favour of using palette's.</li>
+<li>Added a <code>named_color_reference.rs</code> example for finding suitable colors and to
+act as a test of color accuracy.</li>
+<li>Change the <code>Frame</code> image type from the swapchain color format (non-linear
+sRGB) to a linear sRGB format for better consistency across platforms.</li>
+<li>Add Window::rect method.</li>
+<li>Add <code>simple_audio_file.rs</code> playback example.</li>
+<li>Add a new <code>NTimes</code> loop mode.</li>
+<li>Separate the OSC API out into a <code>nannou_osc</code> crate.</li>
+<li>Separate the audio API out into a <code>nannou_audio</code> crate.</li>
+<li>Update laser examples for switch from <code>lasy</code> to <code>nannou_laser</code>.</li>
+<li>Update deps:
+<ul>
+<li>rand 0.7</li>
+<li>conrod 0.66</li>
+<li>vulkano 0.13</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h1><a class="header" href="#version-090-2019-05-28" id="version-090-2019-05-28">Version 0.9.0 (2019-05-28)</a></h1>
+<ul>
+<li>Change graphics rendering backend from glium to vulkano! This affects a wide
+range of nannou's API including:
+<ul>
+<li>Window creation and methods. Each window now has it's own associated Vulkan
+swapchain and related methods.</li>
+<li>The <code>Frame</code> API now wraps a single swapchain image and a vulkan command
+buffer builder.</li>
+<li>The <code>draw</code> API's renderer now renders via a vulkan pipeline.</li>
+<li>The <code>Ui</code> API's renderer now renders via a vulkan pipeline.</li>
+<li>The <code>App</code> includes methods for accessing the vulkan instance.</li>
+<li>The <code>App</code> can be built with a custom vulkan instance and custom debug
+callback function.</li>
+<li>A suite of examples demonstrating low-level vulkano access have been added.</li>
+</ul>
+</li>
+<li>Improve the clarity of the <code>App</code> creation process by introducing an
+<code>app::Builder</code> type. Examples have been updated accordingly.</li>
+<li>The <code>view</code> function is now called separately for each frame for each window,
+rather than a single frame for all windows at once. The window a frame is
+associated with can be determined via <code>Frame::window_id</code>.</li>
+<li>A suite of new event handling functions have been added as an alternative to
+matching on the raw <code>Event</code> type. This has simplified a lot of the examples.
+See the <code>app::Builder</code> and <code>window::Builder</code> docs for the newly available
+methods and more documentation.</li>
+<li>Add <code>Window::grab_cursor</code> and <code>Window::hide_cursor</code> methods.</li>
+<li>Add <code>window::SwapchainFramebuffers</code> helper type.</li>
+<li>Add <code>vk::Framebuffer</code> to simplify framebuffer management.</li>
+<li>Remove the <code>state::time::Duration</code> type in favour of a <code>DurationF64</code> trait.</li>
+<li>Prefer sRGB colour formats when building swapchain.</li>
+<li>Update deps:
+<ul>
+<li>conrod crates 0.65</li>
+<li>image 0.21</li>
+<li>noise 0.5</li>
+<li>pennereq 0.3</li>
+<li>rand 0.6</li>
+<li>sample 0.10</li>
+<li>winit 0.19</li>
+</ul>
+</li>
+<li>Fix mouse positioning on HiDPI macOS displays.</li>
+<li>Draw to an intermediary frame before resolving to the swapchain to simplify
+MSAA and keeping the image consistent between frames.</li>
+<li>Add some laser streaming examples using the <code>nannou-org/lasy</code> crate.</li>
+</ul>
+<hr />
+<h1><a class="header" href="#version-080-2018-07-19" id="version-080-2018-07-19">Version 0.8.0 (2018-07-19)</a></h1>
+<ul>
+<li>Update deps: glium 0.22, image 0.19.</li>
+<li>Change <code>random_range</code> to check that <code>min</code> is smaller than <code>max</code>, swapping the
+two if not. This avoids some common <code>panic!</code>s.</li>
+<li>Add expanding conversion implementations that vector types.</li>
+<li>Add custom <code>Vector</code> types - replaces the use of <code>cgmath::{VectorN, PointN}</code>
+types.</li>
+<li>Update <code>rand</code> to version <code>0.5</code>.</li>
+<li>Add <code>geom::scalar</code> module. Move <code>DefaultScalar</code> to <code>scalar::Default</code>.</li>
+<li>Fix the order of <code>geom::line</code> vertices.</li>
+<li>Add a <code>draw.polygon()</code> API.</li>
+<li>Remove <code>geom::polyline</code> module.</li>
+<li>Add <code>geom::line::join</code> module with <code>miter</code> submodule implementation.</li>
+</ul>
+<hr />
+<h1><a class="header" href="#version-070-2018-06-13" id="version-070-2018-06-13">Version 0.7.0 (2018-06-13)</a></h1>
+<ul>
+<li>Add better <code>panic!</code> message to <code>map_range</code> if cast fails.</li>
+<li>Add many items to prelude (audio, io, math, osc, ui, window).</li>
+<li>Change event positioning types to use DefaultScalar.</li>
+<li>Implement <code>draw.polygon()</code></li>
+<li>Implement <code>draw.mesh()</code></li>
+<li>Update internal <code>IntoDrawn</code> API to support a dynamic number of arbitrary
+vertices.</li>
+<li>Update <code>Drawing</code> API to allow builders to produce new <code>Drawing</code> types.</li>
+</ul>
+<hr />
+<h1><a class="header" href="#version-060-2018-06-07" id="version-060-2018-06-07">Version 0.6.0 (2018-06-07)</a></h1>
+<ul>
+<li>Add beginnings of Nature of Code and Generative Gestaltung examples.</li>
+<li>Add <code>App::elapsed_frames</code> method.</li>
+<li>Remove <code>app.window.id</code> field in favour of more reliable <code>app.window_id</code>
+method.</li>
+<li>Change <code>ui::Builder</code> so that it no longer requires <code>window::Id</code>. Now defaults
+to focused window.</li>
+<li>Fix several HiDPI related bugs introduced in the last winit update.</li>
+<li>Add support for rotation and orientation to <code>draw</code> API.</li>
+</ul>
+<hr />
+<h1><a class="header" href="#version-052-2018-04-28" id="version-052-2018-04-28">Version 0.5.2 (2018-04-28)</a></h1>
+<ul>
+<li>Improve efficiency of the <code>App</code> proxy by only making OS calls when needed.</li>
+</ul>
+<h1><a class="header" href="#version-051-2018-04-26" id="version-051-2018-04-26">Version 0.5.1 (2018-04-26)</a></h1>
+<ul>
+<li>Add <code>Ui::draw_to_frame_if_changed</code> method which only draws if necessary.</li>
+<li>Add README to nannou-package.</li>
+<li>Add missing <code>Cargo.toml</code> details to nannou-package.</li>
+<li>Add an <code>io</code> module with some helper functions simplifying <code>std::io</code>.</li>
+<li>Add <code>fmod</code> function to <code>math</code> module.</li>
+</ul>
+<h1><a class="header" href="#version-050-2018-04-17" id="version-050-2018-04-17">Version 0.5.0 (2018-04-17)</a></h1>
+<ul>
+<li>Add simple accessor field for getting the time since app start in secs.</li>
+<li>Add ability to adjust glyph cache size for text (ui).</li>
+<li>Update to glium 0.21 and conrod 0.59.</li>
+<li>Remove <code>app.window.*</code> fields in favour of <code>app.window_rect()</code> method.</li>
+<li>Enable vsync and 4x multisampling by default.</li>
+<li>Add fullscreen toggle keyboard shortcuts.</li>
+<li>Add <code>nannou-new</code> and <code>nannou-package</code> tools.</li>
+<li>Add <code>Draw::line</code> along with custom line builders to <code>Drawing</code>.</li>
+<li>Change <code>draw::Background</code> coloring API to match the <code>SetColor</code> API.</li>
+<li>Change OSC default binding address from <code>127.0.0.1</code> to <code>0.0.0.0</code>.</li>
+<li>Add many new items to prelude.</li>
+<li>Add more <code>Rect</code> constructors.</li>
+<li>Add <code>Range::lerp</code> method.</li>
+<li>Window name defaults to &quot;nannou - exe_name&quot; if no name is given.</li>
+<li>Correct existing and add missing geometry scalar default types.</li>
+</ul>
+<hr />
+<h1><a class="header" href="#version-040-2018-03-25" id="version-040-2018-03-25">Version 0.4.0 (2018-03-25)</a></h1>
+<ul>
+<li>Add hsv (aka hsb) color builder methods to Draw API.</li>
+<li>Add nicer panic message for when <code>max_supported_input/output_channels</code> methods
+fail.</li>
+<li>Add <code>Ellipse::triangle_indices</code> method.</li>
+<li>Improve efficiency of <code>geom::graph::node::Transform</code>.</li>
+<li>Add a <code>Duration</code> wrapper with simpler access methods (<code>secs</code>, <code>ms</code>, etc).</li>
+<li>Add <code>quad</code>, <code>rect</code> and <code>tri</code> methods to <code>Draw</code> API.</li>
+<li>Add <code>draw::mesh::vertex::IntoPoint</code> trait with many impls.</li>
+<li>Add <code>geom::centroid</code> function.</li>
+<li>Add <code>Quad::bounding_rect</code> and <code>bounding_cuboid</code> methods.</li>
+<li>Add more <code>geom::Vertex</code> impls.</li>
+<li>Add <code>Drawing&lt;Ellipse&gt;::radius</code> method.</li>
+<li>Fix bug in audio input stream.</li>
+<li>Add simpler <code>Frame</code> clear methods.</li>
+<li>Add simpler <code>App</code> constructors.</li>
+<li>Fix bug where mesh types would not clear properly.</li>
+<li>Remove <code>color</code> module from prelude to avoid <code>ui</code> module conflicts.</li>
+<li>Add named colors.</li>
+<li>Add <code>draw</code> module. A high-level, simple, expressive graphics API.</li>
+<li>Add <code>mesh</code> module. Supports meshes with custom channels and layouts.</li>
+<li>Add <code>geom::Graph</code> for composing together geometric primitives.</li>
+<li>Add new triangles iterators to <code>geom::quad</code> and <code>geom::rect</code> modules.</li>
+<li>Add <code>geom::cuboid</code> module.</li>
+<li>Add <code>geom::polyline</code> module.</li>
+<li>Add <code>geom::line</code> module.</li>
+</ul>
+<hr />
+<h1><a class="header" href="#version-030-2018-02-18" id="version-030-2018-02-18">Version 0.3.0 (2018-02-18)</a></h1>
+<ul>
+<li>Add <code>audio::Stream::id</code> method.</li>
+<li>Add <code>ExactSize</code> and <code>DoubleEnded</code> iterator implementations for
+<code>audio::Buffer</code>.</li>
+<li>Update for input stream support.</li>
+<li>Add support for audio input devices and streams</li>
+<li>Expose helper Vector and Point constructors in prelude.</li>
+<li>Add <code>state</code> module for tracking mouse, keyboard and window state.</li>
+<li>Add <code>geom</code> module. Includes basic 2D primitives (lines/text).</li>
+<li>Add <code>ease</code> module which re-exports the <code>pennereq</code> crate.</li>
+<li>Add <code>map_range</code>, <code>partial_max</code>, <code>min</code>, <code>clamp</code> math functions</li>
+<li>Begin implementation of  tutorial <code>basics</code> examples.</li>
+</ul>
+<hr />
+<h1><a class="header" href="#version-020-2017-12-12" id="version-020-2017-12-12">Version 0.2.0 (2017-12-12)</a></h1>
+<ul>
+<li>Add support for audio output device and streams.</li>
+<li>Add OSC support.</li>
+</ul>
+<hr />
+<br>
+<center>BEGINNING OF CHANGELOG</center>
 <h1><a class="header" href="#contributors" id="contributors">Contributors</a></h1>
 <p>This project exists thanks to all the people who contribute.</p>
 <p><a href="https://github.com/nannou-org/nannou/graphs/contributors"><img src="https://opencollective.com/nannou/contributors.svg?width=890&button=false" /></a></p>
