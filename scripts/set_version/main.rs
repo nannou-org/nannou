@@ -46,7 +46,6 @@ fn main() {
         // Read the manifest for each crate into a toml document.
         let dir_path = workspace_manifest_dir.join(&relative_path);
         let manifest_path = dir_path.join("Cargo.toml");
-        dbg!(&manifest_path);
         let manifest_string =
             std::fs::read_to_string(&manifest_path).expect("failed to read the manifest");
         let mut manifest_toml = manifest_string
