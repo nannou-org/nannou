@@ -94,7 +94,27 @@ jobs:
         command: check
         args: --examples --verbose
 
-  guide-tests:
+  guide-build-book:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Install mdbook
+      uses: actions-rs/cargo@v1
+      with:
+        command: install
+        args: mdbook
+    - name: Build book
+      run: mdbook build guide/
+
+  guide-test-code:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -110,14 +130,6 @@ jobs:
         profile: minimal
         toolchain: stable
         override: true
-    - name: Install mdbook
-      continue-on-error: true
-      uses: actions-rs/cargo@v1
-      with:
-        command: install
-        args: mdbook
-    - name: Build book
-      run: mdbook build guide/
     - name: Run guide tests
       uses: actions-rs/cargo@v1
       with:
