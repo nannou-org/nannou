@@ -13,4 +13,5 @@ members = [
     "nannou_timeline",
     "nature_of_code",
     "scripts/run_all_examples",
+    "scripts/set_version",
 ]
