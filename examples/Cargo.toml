@@ -187,6 +187,9 @@ path = "wgpu/wgpu_image/wgpu_image.rs"
 name = "wgpu_image_sequence"
 path = "wgpu/wgpu_image_sequence/wgpu_image_sequence.rs"
 [[example]]
+name = "wgpu_instancing"
+path = "wgpu/wgpu_instancing/wgpu_instancing.rs"
+[[example]]
 name = "wgpu_teapot"
 path = "wgpu/wgpu_teapot/wgpu_teapot.rs"
 [[example]]
