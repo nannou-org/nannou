@@ -2,9 +2,9 @@
 
 use crate::lerp::Lerp;
 use crate::point::{Point, Position, RawPoint};
-use hashbrown::{HashMap, HashSet};
 use petgraph::visit::EdgeRef;
 use petgraph::Undirected;
+use std::collections::{HashMap, HashSet};
 
 /// Represents a line segment over which the laser scanner will travel.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -255,7 +255,7 @@ pub fn point_graph_to_euler_graph(pg: &PointGraph) -> EulerGraph {
     let ccs = petgraph::algo::kosaraju_scc(pg);
 
     // The indices of the connected components whose nodes all have an even degree.
-    let euler_components: hashbrown::HashSet<_> = ccs
+    let euler_components: HashSet<_> = ccs
         .iter()
         .enumerate()
         .filter(|(_, cc)| cc.iter().all(|&n| pg.edges(n).count() % 2 == 0))
@@ -804,7 +804,7 @@ mod test {
     };
     use super::{EulerGraph, PointGraph, SegmentKind};
     use crate::point::{Point, Position};
-    use hashbrown::HashSet;
+    use std::collections::HashSet;
 
     fn graph_eq<N, E, Ty, Ix>(
         a: &petgraph::Graph<N, E, Ty, Ix>,
