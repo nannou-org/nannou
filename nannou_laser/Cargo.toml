@@ -14,11 +14,9 @@ name = "nannou_laser"
 crate-type = ["rlib", "staticlib", "cdylib"]
 
 [dependencies]
-derive_more = "0.14"
-failure = "0.1"
-hashbrown = "0.2"
 ether-dream = "0.2"
 petgraph = "0.4"
+thiserror = "1"
 
 [features]
 ffi = []

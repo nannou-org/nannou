@@ -1,11 +1,10 @@
 use crate::util::{clamp, map_range};
 use crate::{DetectedDac, RawPoint};
-use derive_more::From;
-use failure::Fail;
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::{mpsc, Arc, Mutex};
+use thiserror::Error;
 
 /// The function that will be called when a `Buffer` of points is requested.
 pub trait RenderFn<M>: Fn(&mut M, &mut Buffer) {}
@@ -63,54 +62,51 @@ type StateUpdate = Box<dyn FnMut(&mut State) + 'static + Send>;
 pub type ModelUpdate<M> = Box<dyn FnMut(&mut M) + 'static + Send>;
 
 /// Errors that may occur while running a laser stream.
-#[derive(Debug, Fail, From)]
+#[derive(Debug, Error)]
 pub enum RawStreamError {
-    #[fail(display = "an Ether Dream DAC stream error occurred: {}", err)]
+    #[error("an Ether Dream DAC stream error occurred: {err}")]
     EtherDreamStream {
-        #[fail(cause)]
+        #[from]
         err: EtherDreamStreamError,
     },
 }
 
 /// Errors that may occur while creating a node crate.
-#[derive(Debug, Fail, From)]
+#[derive(Debug, Error)]
 pub enum EtherDreamStreamError {
-    #[fail(display = "laser DAC detection failed: {}", err)]
+    #[error("laser DAC detection failed: {err}")]
     FailedToDetectDacs {
-        #[fail(cause)]
+        #[from]
         err: io::Error,
     },
-    #[fail(display = "failed to connect the DAC stream: {}", err)]
+    #[error("failed to connect the DAC stream: {err}")]
     FailedToConnectStream {
-        #[fail(cause)]
+        #[source]
         err: ether_dream::dac::stream::CommunicationError,
     },
-    #[fail(display = "failed to prepare the DAC stream: {}", err)]
+    #[error("failed to prepare the DAC stream: {err}")]
     FailedToPrepareStream {
-        #[fail(cause)]
+        #[source]
         err: ether_dream::dac::stream::CommunicationError,
     },
-    #[fail(display = "failed to begin the DAC stream: {}", err)]
+    #[error("failed to begin the DAC stream: {err}")]
     FailedToBeginStream {
-        #[fail(cause)]
+        #[source]
         err: ether_dream::dac::stream::CommunicationError,
     },
-    #[fail(display = "failed to submit data over the DAC stream: {}", err)]
+    #[error("failed to submit data over the DAC stream: {err}")]
     FailedToSubmitData {
-        #[fail(cause)]
+        #[source]
         err: ether_dream::dac::stream::CommunicationError,
     },
-    #[fail(
-        display = "failed to submit point rate change over the DAC stream: {}",
-        err
-    )]
+    #[error("failed to submit point rate change over the DAC stream: {err}")]
     FailedToSubmitPointRate {
-        #[fail(cause)]
+        #[source]
         err: ether_dream::dac::stream::CommunicationError,
     },
-    #[fail(display = "failed to submit stop command to the DAC stream: {}", err)]
+    #[error("failed to submit stop command to the DAC stream: {err}")]
     FailedToStopStream {
-        #[fail(cause)]
+        #[source]
         err: ether_dream::dac::stream::CommunicationError,
     },
 }
