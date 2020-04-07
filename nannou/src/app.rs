@@ -64,12 +64,19 @@ pub struct Builder<M = (), E = Event> {
     default_view: Option<View<M>>,
     exit: Option<ExitFn<M>>,
     create_default_window: bool,
-    default_window_size: Option<winit::dpi::LogicalSize<u32>>,
+    default_window_size: Option<DefaultWindowSize>,
 }
 
 /// A nannou `Sketch` builder.
 pub struct SketchBuilder<E = Event> {
     builder: Builder<(), E>,
+}
+
+enum DefaultWindowSize {
+    /// Default window size in logical coordinates.
+    Logical(winit::dpi::LogicalSize<u32>),
+    /// Fullscreen on whatever the primary monitor is at the time of window creation.
+    Fullscreen,
 }
 
 /// The default `model` function used when none is specified by the user.
@@ -93,7 +100,7 @@ fn default_model(_: &App) -> () {
 /// - A map of channels for submitting user input updates to active **Ui**s.
 pub struct App {
     config: RefCell<Config>,
-    default_window_size: Option<winit::dpi::LogicalSize<u32>>,
+    default_window_size: Option<DefaultWindowSize>,
     pub(crate) event_loop_window_target: Option<EventLoopWindowTarget>,
     pub(crate) event_loop_proxy: Proxy,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
@@ -338,7 +345,14 @@ where
     ///
     /// If a window is created and its size is not specified, this size will be used.
     pub fn size(mut self, width: u32, height: u32) -> Self {
-        self.default_window_size = Some(winit::dpi::LogicalSize { width, height });
+        let size = winit::dpi::LogicalSize { width, height };
+        self.default_window_size = Some(DefaultWindowSize::Logical(size));
+        self
+    }
+
+    /// Specify that windows should be created on the primary monitor by default.
+    pub fn fullscreen(mut self) -> Self {
+        self.default_window_size = Some(DefaultWindowSize::Fullscreen);
         self
     }
 
@@ -519,10 +533,10 @@ impl App {
     pub const DEFAULT_FULLSCREEN_ON_SHORTCUT: bool = true;
 
     // Create a new `App`.
-    pub(super) fn new(
+    fn new(
         event_loop_proxy: Proxy,
         event_loop_window_target: Option<EventLoopWindowTarget>,
-        default_window_size: Option<winit::dpi::LogicalSize<u32>>,
+        default_window_size: Option<DefaultWindowSize>,
     ) -> Self {
         let adapters = Default::default();
         let windows = RefCell::new(HashMap::new());
@@ -613,7 +627,8 @@ impl App {
     pub fn new_window(&self) -> window::Builder {
         let builder = window::Builder::new(self);
         match self.default_window_size {
-            Some(size) => builder.size(size.width, size.height),
+            Some(DefaultWindowSize::Fullscreen) => builder.fullscreen(),
+            Some(DefaultWindowSize::Logical(size)) => builder.size(size.width, size.height),
             None => builder,
         }
     }
@@ -1307,11 +1322,9 @@ where
                     if app.fullscreen_on_shortcut() {
                         if should_toggle_fullscreen(event, &app.keys.mods) {
                             if win.is_fullscreen() {
-                                win.set_fullscreen(None);
+                                win.set_fullscreen(false);
                             } else {
-                                let monitor = win.current_monitor();
-                                let fullscreen = winit::window::Fullscreen::Borderless(monitor);
-                                win.set_fullscreen(Some(fullscreen));
+                                win.set_fullscreen(true);
                             }
                         }
                     }

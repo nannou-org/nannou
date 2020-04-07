@@ -15,6 +15,7 @@ use std::sync::{Arc, Mutex};
 use std::{env, fmt};
 use winit::dpi::LogicalSize;
 
+pub use winit::window::Fullscreen;
 pub use winit::window::WindowId as Id;
 
 /// The default dimensions used for a window in the case that none are specified.
@@ -669,14 +670,14 @@ impl<'app> Builder<'app> {
                     .fullscreen
                     .as_ref()
                     .map(|fullscreen| match fullscreen {
-                        winit::window::Fullscreen::Exclusive(video_mode) => {
+                        Fullscreen::Exclusive(video_mode) => {
                             let monitor = video_mode.monitor();
                             video_mode
                                 .size()
                                 .to_logical::<f32>(monitor.scale_factor())
                                 .into()
                         }
-                        winit::window::Fullscreen::Borderless(monitor) => monitor
+                        Fullscreen::Borderless(monitor) => monitor
                             .size()
                             .to_logical::<f32>(monitor.scale_factor())
                             .into(),
@@ -876,11 +877,17 @@ impl<'app> Builder<'app> {
         self.map_window(|w| w.with_title(title))
     }
 
-    /// Sets the window fullscreen state.
+    /// Create the window fullscreened on the current monitor.
+    pub fn fullscreen(self) -> Self {
+        let fullscreen = Fullscreen::Borderless(self.app.primary_monitor());
+        self.fullscreen_with(Some(fullscreen))
+    }
+
+    /// Set the window fullscreen state with the given settings.
     ///
-    /// None means a normal window, Some(MonitorId) means a fullscreen window on that specific
-    /// monitor.
-    pub fn fullscreen(self, fullscreen: Option<winit::window::Fullscreen>) -> Self {
+    /// - `None` indicates a normal window. This is the default case.
+    /// - `Some(Fullscreen)` means fullscreen with the desired settings.
+    pub fn fullscreen_with(self, fullscreen: Option<Fullscreen>) -> Self {
         self.map_window(|w| w.with_fullscreen(fullscreen))
     }
 
@@ -1088,6 +1095,22 @@ impl Window {
         self.window.set_maximized(maximized)
     }
 
+    /// Set the window to fullscreen on the primary monitor.
+    ///
+    /// `true` enables fullscreen, `false` disables fullscreen.
+    ///
+    /// See the `set_fullscreen_with` method for more options and details about behaviour related
+    /// to fullscreen.
+    pub fn set_fullscreen(&self, fullscreen: bool) {
+        if fullscreen {
+            let monitor = self.current_monitor();
+            let fullscreen = Fullscreen::Borderless(monitor);
+            self.set_fullscreen_with(Some(fullscreen));
+        } else {
+            self.set_fullscreen_with(None);
+        }
+    }
+
     /// Set the window to fullscreen.
     ///
     /// Call this method again with `None` to revert back from fullscreen.
@@ -1108,8 +1131,8 @@ impl Window {
     /// - iOS: Can only be called on the main thread.
     /// - Wayland: Does not support exclusive fullscreen mode.
     /// - Windows: Screen saver is disabled in fullscreen mode.
-    pub fn set_fullscreen(&self, monitor: Option<winit::window::Fullscreen>) {
-        self.window.set_fullscreen(monitor)
+    pub fn set_fullscreen_with(&self, fullscreen: Option<Fullscreen>) {
+        self.window.set_fullscreen(fullscreen)
     }
 
     /// Gets the window's current fullscreen state.
@@ -1117,7 +1140,7 @@ impl Window {
     /// ## Platform-specific
     ///
     /// - **iOS:** Can only be called on the main thread.
-    pub fn fullscreen(&self) -> Option<winit::window::Fullscreen> {
+    pub fn fullscreen(&self) -> Option<Fullscreen> {
         self.window.fullscreen()
     }
 
