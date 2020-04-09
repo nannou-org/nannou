@@ -183,7 +183,7 @@ impl<M, F, R> Builder<M, F, R> {
 
     /// Specify a function that allows for processing the raw points before submission to the DAC.
     ///
-    /// This mgiht be useful for:
+    /// This might be useful for:
     ///
     /// - applying post-processing effects onto the optimised, interpolated points.
     /// - monitoring the raw points resulting from the optimisation and interpolation processes.
