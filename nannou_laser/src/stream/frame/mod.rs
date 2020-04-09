@@ -1,5 +1,5 @@
 use crate::stream;
-use crate::stream::raw::{self, Buffer};
+use crate::stream::raw::{self, Buffer, StreamError};
 use crate::{Point, RawPoint};
 use std::io;
 use std::ops::{Deref, DerefMut};
@@ -51,13 +51,14 @@ struct Requester {
 type DefaultProcessRawFn<M> = fn(&mut M, &mut Buffer);
 
 /// A type allowing to build a raw laser stream.
-pub struct Builder<M, F, R = DefaultProcessRawFn<M>> {
+pub struct Builder<M, F, R = DefaultProcessRawFn<M>, E = raw::DefaultStreamErrorFn<M>> {
     /// The laser API inner state, used to find a DAC during `build` if one isn't specified.
     pub(crate) api_inner: Arc<crate::Inner>,
     pub builder: stream::Builder,
     pub model: M,
     pub render: F,
     pub process_raw: R,
+    pub stream_error: E,
     pub frame_hz: Option<u32>,
     pub interpolation_conf: opt::InterpolationConfigBuilder,
 }
@@ -103,6 +104,19 @@ impl<M> Stream<M> {
             .map_err(|_| mpsc::SendError(()))
     }
 
+    /// Close the TCP communication thread and wait for the thread to join.
+    ///
+    /// This consumes and drops the `Stream`, returning the result produced by joining the thread.
+    ///
+    /// This method will block until the associated thread has been joined.
+    ///
+    /// If the thread has already been closed by another handle to the stream, this will return
+    /// `None`.
+    pub fn close(self) -> Option<std::thread::Result<Result<(), StreamError>>> {
+        let Stream { raw, .. } = self;
+        raw.close()
+    }
+
     // Simplify sending a `StateUpdate` to the laser thread.
     fn send_frame_state_update<F>(&self, update: F) -> Result<(), mpsc::SendError<StateUpdate>>
     where
@@ -118,7 +132,7 @@ impl<M> Stream<M> {
     }
 }
 
-impl<M, F, R> Builder<M, F, R> {
+impl<M, F, R, E> Builder<M, F, R, E> {
     /// The DAC with which the stream should be established.
     pub fn detected_dac(mut self, dac: crate::DetectedDac) -> Self {
         self.builder.dac = Some(dac);
@@ -191,12 +205,13 @@ impl<M, F, R> Builder<M, F, R> {
     ///
     /// The given function will get called right before submission of the optimised, interpolated
     /// buffer.
-    pub fn process_raw<R2>(self, process_raw: R2) -> Builder<M, F, R2> {
+    pub fn process_raw<R2>(self, process_raw: R2) -> Builder<M, F, R2, E> {
         let Builder {
             api_inner,
             builder,
             model,
             render,
+            stream_error,
             frame_hz,
             interpolation_conf,
             ..
@@ -207,6 +222,33 @@ impl<M, F, R> Builder<M, F, R> {
             model,
             render,
             process_raw,
+            stream_error,
+            frame_hz,
+            interpolation_conf,
+        }
+    }
+
+    /// Specify a function that allows for handling errors that occur on the TCP stream thread.
+    ///
+    /// If this method is not called, the `stream::raw::default_stream_error_fn` is used by default.
+    pub fn stream_error<E2>(self, stream_error: E2) -> Builder<M, F, R, E2> {
+        let Builder {
+            api_inner,
+            builder,
+            model,
+            render,
+            process_raw,
+            frame_hz,
+            interpolation_conf,
+            ..
+        } = self;
+        Builder {
+            api_inner,
+            builder,
+            model,
+            render,
+            process_raw,
+            stream_error,
             frame_hz,
             interpolation_conf,
         }
@@ -221,6 +263,7 @@ impl<M, F, R> Builder<M, F, R> {
         M: 'static + Send,
         F: 'static + RenderFn<M> + Send,
         R: 'static + raw::RenderFn<M> + Send,
+        E: 'static + raw::StreamErrorFn<M> + Send,
     {
         let Builder {
             api_inner,
@@ -228,6 +271,7 @@ impl<M, F, R> Builder<M, F, R> {
             model,
             render,
             process_raw,
+            stream_error,
             frame_hz,
             interpolation_conf,
         } = self;
@@ -276,6 +320,7 @@ impl<M, F, R> Builder<M, F, R> {
             builder,
             model,
             render: raw_render,
+            stream_error,
         };
         let raw_stream = raw_builder.build()?;
         let stream = Stream {

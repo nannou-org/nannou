@@ -1,14 +1,23 @@
 use crate::util::{clamp, map_range};
+use crate::Inner as ApiInner;
 use crate::{DetectedDac, RawPoint};
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::{mpsc, Arc, Mutex};
+use std::time::Duration;
 use thiserror::Error;
 
 /// The function that will be called when a `Buffer` of points is requested.
 pub trait RenderFn<M>: Fn(&mut M, &mut Buffer) {}
 impl<M, F> RenderFn<M> for F where F: Fn(&mut M, &mut Buffer) {}
+
+/// The function called when an error occurs on the TCP communication stream.
+///
+/// The default `StreamErrorAction` is always `CloseThread`, in which case the thread will be
+/// closed and the error returned.
+pub trait StreamErrorFn<M>: Fn(&mut M, &StreamError, &mut StreamErrorAction) {}
+impl<M, F> StreamErrorFn<M> for F where F: Fn(&mut M, &StreamError, &mut StreamErrorAction) {}
 
 /// A clone-able handle around a raw laser stream.
 #[derive(Clone)]
@@ -33,9 +42,16 @@ struct Shared<M> {
     // The user's laser model
     model: Arc<Mutex<Option<M>>>,
     // Whether or not the stream is currently paused.
+    // TODO: Plug this in.
     is_paused: AtomicBool,
+    // The DAC with which the stream was built.
+    //
+    // `None` if no DAC was specified.
+    dac: Option<DetectedDac>,
     // Whether or not the stream has been closed.
     is_closed: Arc<AtomicBool>,
+    // A handle to the stream's thread.
+    thread: Mutex<Option<std::thread::JoinHandle<Result<(), StreamError>>>>,
 }
 
 /// A buffer of laser points yielded by either a raw or frame stream source function.
@@ -47,13 +63,19 @@ pub struct Buffer {
 }
 
 /// A type allowing to build a raw laser stream.
-pub struct Builder<M, F> {
+pub struct Builder<M, F, E = DefaultStreamErrorFn<M>> {
     /// The laser API inner state, used to find a DAC during `build` if one isn't specified.
     pub(crate) api_inner: Arc<super::super::Inner>,
     pub builder: super::Builder,
     pub model: M,
     pub render: F,
+    pub stream_error: E,
 }
+
+/// The default stream error function type expected if none are specified.
+///
+/// By default, a stream will attempt to reconnect three times before closing the thread.
+pub type DefaultStreamErrorFn<M> = fn(&mut M, &StreamError, &mut StreamErrorAction);
 
 // The type used for sending state updates from the stream handle thread to the laser thread.
 type StateUpdate = Box<dyn FnMut(&mut State) + 'static + Send>;
@@ -63,7 +85,7 @@ pub type ModelUpdate<M> = Box<dyn FnMut(&mut M) + 'static + Send>;
 
 /// Errors that may occur while running a laser stream.
 #[derive(Debug, Error)]
-pub enum RawStreamError {
+pub enum StreamError {
     #[error("an Ether Dream DAC stream error occurred: {err}")]
     EtherDreamStream {
         #[from]
@@ -76,13 +98,17 @@ pub enum RawStreamError {
 pub enum EtherDreamStreamError {
     #[error("laser DAC detection failed: {err}")]
     FailedToDetectDacs {
-        #[from]
+        #[source]
         err: io::Error,
+        /// The number of DAC detection attempts so far.
+        attempts: u32,
     },
-    #[error("failed to connect the DAC stream: {err}")]
+    #[error("failed to connect the DAC stream (attempt {attempts}): {err}")]
     FailedToConnectStream {
         #[source]
         err: ether_dream::dac::stream::CommunicationError,
+        /// The number of connection attempts so far.
+        attempts: u32,
     },
     #[error("failed to prepare the DAC stream: {err}")]
     FailedToPrepareStream {
@@ -111,6 +137,25 @@ pub enum EtherDreamStreamError {
     },
 }
 
+/// An action to perform in response to a `StreamError` occurring.
+#[derive(Clone, Debug)]
+pub enum StreamErrorAction {
+    /// Attempts to reconnect to the specified DAC in the case that one was provided, or any DAC in
+    /// the case that `None` was provided.
+    ReattemptConnect,
+    /// Attempt to re-detect the same DAC in the case that one was specified, or any DAC in the
+    /// case that `None` was provided.
+    ///
+    /// This can be useful in the case where the DAC has dropped from the network and may have
+    /// re-appeared broadcasting from a different IP address.
+    RedetectDac {
+        /// How long to wait for a broadcast from the DAC before timing out.
+        timeout: Option<Duration>,
+    },
+    /// Close the TCP communication thread and return the error responsible.
+    CloseThread,
+}
+
 impl<M> Stream<M> {
     /// Update the rate at which the DAC should process points per second.
     ///
@@ -131,6 +176,14 @@ impl<M> Stream<M> {
     pub fn set_latency_points(&self, points: u32) -> Result<(), mpsc::SendError<()>> {
         self.send_raw_state_update(move |state| state.latency_points = points)
             .map_err(|_| mpsc::SendError(()))
+    }
+
+    /// The `DetectedDac` with which the **Stream** was initialised.
+    ///
+    /// Returns `None` if no DAC was specified, meaning that the stream is associated with the
+    /// first DAC it could find.
+    pub fn dac(&self) -> Option<DetectedDac> {
+        self.shared.dac.clone()
     }
 
     /// Send the given model update to the laser thread to be applied ASAP.
@@ -181,6 +234,30 @@ impl<M> Stream<M> {
         Ok(())
     }
 
+    /// Returns whether or not the communication thread has closed.
+    ///
+    /// A stream may be closed if an error has occurred and the stream error callback indicated to
+    /// close the thread. A stream might also be closed if another `close` was called on another
+    /// handle to the stream.
+    ///
+    /// In this case, the `Stream` should be closed or dropped and a new one should be created to
+    /// replace it.
+    pub fn is_closed(&self) -> bool {
+        self.shared.is_closed.load(atomic::Ordering::Relaxed)
+    }
+
+    /// Close the TCP communication thread and wait for the thread to join.
+    ///
+    /// This consumes and drops the `Stream`, returning the result produced by joining the thread.
+    ///
+    /// This method will block until the associated thread has been joined.
+    ///
+    /// If the thread has already been closed by another handle to the stream, this will return
+    /// `None`.
+    pub fn close(self) -> Option<std::thread::Result<Result<(), StreamError>>> {
+        self.close_inner()
+    }
+
     // Simplify sending a `StateUpdate` to the laser thread.
     fn send_raw_state_update<F>(&self, update: F) -> Result<(), mpsc::SendError<StateUpdate>>
     where
@@ -193,6 +270,27 @@ impl<M> Stream<M> {
             }
         };
         self.state_update_tx.send(Box::new(update_fn))
+    }
+
+    // Shared between the `close` and `Drop` implementations.
+    fn close_inner(&self) -> Option<std::thread::Result<Result<(), StreamError>>> {
+        self.shared.close_inner()
+    }
+}
+
+impl<M> Shared<M> {
+    // Shared between the `close` and `Drop` implementations.
+    fn close_inner(&self) -> Option<std::thread::Result<Result<(), StreamError>>> {
+        let mut guard = match self.thread.lock() {
+            Ok(guard) => guard,
+            Err(_) => return None,
+        };
+        guard.take().map(|thread| {
+            self.is_closed.store(true, atomic::Ordering::Relaxed);
+            let res = thread.join();
+            self.is_paused.store(true, atomic::Ordering::Relaxed);
+            res
+        })
     }
 }
 
@@ -208,7 +306,7 @@ impl Buffer {
     }
 }
 
-impl<M, F> Builder<M, F> {
+impl<M, F, E> Builder<M, F, E> {
     /// The DAC with which the stream should be established.
     ///
     /// If none is specified, the stream will associate itself with the first DAC detecged on the
@@ -244,6 +342,26 @@ impl<M, F> Builder<M, F> {
         self
     }
 
+    /// Specify a function that allows for handling errors that occur on the TCP stream thread.
+    ///
+    /// If this method is not called, the `default_stream_error_fn` is used by default.
+    pub fn stream_error<E2>(self, stream_error: E2) -> Builder<M, F, E2> {
+        let Builder {
+            api_inner,
+            builder,
+            model,
+            render,
+            ..
+        } = self;
+        Builder {
+            api_inner,
+            builder,
+            model,
+            render,
+            stream_error,
+        }
+    }
+
     /// Build the stream with the specified parameters.
     ///
     /// **Note:** If no `dac` was specified, this will method will block until a DAC is detected.
@@ -252,12 +370,14 @@ impl<M, F> Builder<M, F> {
     where
         M: 'static + Send,
         F: 'static + RenderFn<M> + Send,
+        E: 'static + StreamErrorFn<M> + Send,
     {
         let Builder {
             api_inner,
             builder,
             model,
             render,
+            stream_error,
         } = self;
 
         // Prepare the model for sharing between the laser thread and stream handle.
@@ -282,92 +402,40 @@ impl<M, F> Builder<M, F> {
         }));
 
         // Retrieve whether or not the user specified a detected DAC.
-        let mut maybe_dac = builder.dac;
+        let maybe_dac = builder.dac;
+        let maybe_dac2 = maybe_dac.clone();
 
         // A flag for tracking whether or not the stream has been closed.
         let is_closed = Arc::new(AtomicBool::new(false));
         let is_closed2 = is_closed.clone();
 
         // Spawn the thread for communicating with the DAC.
-        std::thread::Builder::new()
+        let thread = std::thread::Builder::new()
             .name("raw_laser_stream_thread".into())
             .spawn(move || {
-                let mut connect_attempts = 3;
-                while !is_closed2.load(atomic::Ordering::Relaxed) {
-                    // If there are no more remaining connection attempts, try to redetect the DAC
-                    // if a specific DAC was specified by the user.
-                    if connect_attempts == 0 {
-                        connect_attempts = 3;
-                        if let Some(ref mut dac) = maybe_dac {
-                            let dac_id = dac.id();
-                            eprintln!("re-attempting to detect DAC with id: {:?}", dac_id);
-                            *dac = match api_inner.detect_dac(dac_id) {
-                                Ok(dac) => dac,
-                                Err(err) => {
-                                    let err = EtherDreamStreamError::FailedToDetectDacs { err };
-                                    return Err(RawStreamError::EtherDreamStream { err });
-                                }
-                            };
-                        }
-                    }
-
-                    // Retrieve the DAC or find one.
-                    let dac = match maybe_dac {
-                        Some(ref dac) => dac.clone(),
-                        None => api_inner
-                            .detect_dacs()
-                            .map_err(|err| EtherDreamStreamError::FailedToDetectDacs { err })?
-                            .next()
-                            .expect("ether dream DAC detection iterator should never return `None`")
-                            .map_err(|err| EtherDreamStreamError::FailedToDetectDacs { err })?,
-                    };
-
-                    // Connect and run the laser stream.
-                    match run_laser_stream(
-                        &dac,
-                        &state,
-                        &model_2,
-                        &render,
-                        &s_rx,
-                        &m_rx,
-                        &is_closed2,
-                    ) {
-                        Ok(()) => return Ok(()),
-                        Err(RawStreamError::EtherDreamStream { err }) => match err {
-                            // If we failed to connect to the DAC, keep track of attempts.
-                            EtherDreamStreamError::FailedToConnectStream { err } => {
-                                eprintln!("failed to connect to stream: {}", err);
-                                connect_attempts -= 1;
-                                eprintln!(
-                                    "connection attempts remaining before re-detecting DAC: {}",
-                                    connect_attempts,
-                                );
-                                // Sleep for a moment to avoid spamming the socket.
-                                std::thread::sleep(std::time::Duration::from_millis(16));
-                            }
-
-                            // If we failed to prepare the stream or submit data, retry.
-                            EtherDreamStreamError::FailedToPrepareStream { .. }
-                            | EtherDreamStreamError::FailedToBeginStream { .. }
-                            | EtherDreamStreamError::FailedToSubmitData { .. }
-                            | EtherDreamStreamError::FailedToSubmitPointRate { .. } => {
-                                eprintln!("{} - will now attempt to reconnect", err);
-                            }
-
-                            // Return all other errors.
-                            err => return Err(RawStreamError::EtherDreamStream { err }),
-                        },
-                    }
-                }
-
-                Ok(())
+                let res = run_laser_stream(
+                    &api_inner,
+                    maybe_dac2,
+                    &state,
+                    &model_2,
+                    render,
+                    stream_error,
+                    &s_rx,
+                    &m_rx,
+                    &is_closed2,
+                );
+                is_closed2.store(true, atomic::Ordering::Relaxed);
+                res
             })?;
 
         let is_paused = AtomicBool::new(false);
+        let thread = Mutex::new(Some(thread));
         let shared = Arc::new(Shared {
             model,
             is_paused,
             is_closed,
+            thread,
+            dac: maybe_dac,
         });
         let stream = Stream {
             shared,
@@ -375,6 +443,12 @@ impl<M, F> Builder<M, F> {
             model_update_tx,
         };
         Ok(stream)
+    }
+}
+
+impl Default for StreamErrorAction {
+    fn default() -> Self {
+        StreamErrorAction::CloseThread
     }
 }
 
@@ -391,9 +465,9 @@ impl DerefMut for Buffer {
     }
 }
 
-impl<M> Drop for Stream<M> {
+impl<M> Drop for Shared<M> {
     fn drop(&mut self) {
-        self.shared.is_closed.store(true, atomic::Ordering::Relaxed)
+        self.close_inner();
     }
 }
 
@@ -403,7 +477,152 @@ pub fn default_latency_points(point_hz: u32) -> u32 {
 }
 
 // The function to run on the laser stream thread.
-fn run_laser_stream<M, F>(
+fn run_laser_stream<M, F, E>(
+    api_inner: &ApiInner,
+    mut maybe_dac: Option<DetectedDac>,
+    state: &Arc<Mutex<State>>,
+    model: &Arc<Mutex<Option<M>>>,
+    render: F,
+    stream_error: E,
+    state_update_rx: &mpsc::Receiver<StateUpdate>,
+    model_update_rx: &mpsc::Receiver<ModelUpdate<M>>,
+    is_closed: &AtomicBool,
+) -> Result<(), StreamError>
+where
+    F: RenderFn<M>,
+    E: StreamErrorFn<M>,
+{
+    // A small macro that locks a mutex and evaluates to its guard.
+    // Returns from the function with the given error if the lock cannot be acquired.
+    macro_rules! lock_or_return_err {
+        ($mutex:expr, $err:expr) => {
+            match $mutex.lock() {
+                Ok(guard) => guard,
+                Err(_) => return Err($err),
+            }
+        };
+    }
+
+    let mut connect_attempts = 0;
+    let mut detect_attempts = 0;
+    let mut detect_timeout = None;
+    let mut redetect_dac = false;
+    while !is_closed.load(atomic::Ordering::Relaxed) {
+        // If the stream action signalled to redetect the DAC, try to redetect the DAC if a
+        // specific DAC was specified by the user.
+        if redetect_dac {
+            redetect_dac = false;
+            if let Some(ref mut dac) = maybe_dac {
+                let dac_id = dac.id();
+                detect_attempts += 1;
+                *dac = match api_inner.detect_dac(dac_id) {
+                    Ok(dac) => {
+                        detect_attempts = 0;
+                        dac
+                    }
+                    Err(err) => {
+                        let attempts = detect_attempts;
+                        let err = EtherDreamStreamError::FailedToDetectDacs { err, attempts };
+                        let err = StreamError::from(err);
+                        let mut guard = lock_or_return_err!(model, err);
+                        let mut model = guard.take().unwrap();
+                        let mut action = StreamErrorAction::default();
+                        stream_error(&mut model, &err, &mut action);
+                        *guard = Some(model);
+                        match action {
+                            StreamErrorAction::CloseThread => return Err(err),
+                            StreamErrorAction::ReattemptConnect => continue,
+                            StreamErrorAction::RedetectDac { timeout } => {
+                                redetect_dac = true;
+                                detect_timeout = timeout;
+                                continue;
+                            }
+                        }
+                    }
+                };
+            }
+        }
+
+        // Retrieve the specified DAC or find one if unspecified.
+        let dac = match maybe_dac {
+            Some(ref dac) => dac.clone(),
+            None => {
+                detect_attempts += 1;
+                let attempts = detect_attempts;
+                let detect_err = &|err| EtherDreamStreamError::FailedToDetectDacs { err, attempts };
+                match api_inner
+                    .detect_dacs()
+                    .map_err(detect_err)
+                    .and_then(|detect_dacs| {
+                        detect_dacs
+                            .set_timeout(detect_timeout)
+                            .map_err(detect_err)?;
+                        Ok(detect_dacs)
+                    })
+                    .and_then(|mut dacs| {
+                        dacs.next()
+                            .expect("ether dream DAC detection iterator should never return `None`")
+                            .map_err(detect_err)
+                    }) {
+                    Ok(dac) => {
+                        detect_attempts = 0;
+                        dac
+                    }
+                    Err(err) => {
+                        let err = StreamError::from(err);
+                        let mut guard = lock_or_return_err!(model, err);
+                        let mut model = guard.take().unwrap();
+                        let mut action = StreamErrorAction::default();
+                        stream_error(&mut model, &err, &mut action);
+                        *guard = Some(model);
+                        match action {
+                            StreamErrorAction::CloseThread => return Err(err),
+                            StreamErrorAction::ReattemptConnect => continue,
+                            StreamErrorAction::RedetectDac { timeout } => {
+                                detect_timeout = timeout;
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // Connect and run the laser stream.
+        match run_laser_stream_tcp_loop(
+            &dac,
+            &state,
+            &model,
+            &render,
+            &state_update_rx,
+            &model_update_rx,
+            &is_closed,
+            &mut connect_attempts,
+        ) {
+            Ok(()) => break,
+            Err(err) => {
+                let mut guard = lock_or_return_err!(model, err);
+                let mut model = guard.take().unwrap();
+                let mut action = StreamErrorAction::default();
+                stream_error(&mut model, &err, &mut action);
+                *guard = Some(model);
+                match action {
+                    StreamErrorAction::CloseThread => return Err(err),
+                    StreamErrorAction::ReattemptConnect => continue,
+                    StreamErrorAction::RedetectDac { timeout } => {
+                        detect_timeout = timeout;
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+// Attempts to connect to the DAC via TCP and enters the stream loop.
+fn run_laser_stream_tcp_loop<M, F>(
     dac: &DetectedDac,
     state: &Arc<Mutex<State>>,
     model: &Arc<Mutex<Option<M>>>,
@@ -411,7 +630,8 @@ fn run_laser_stream<M, F>(
     state_update_rx: &mpsc::Receiver<StateUpdate>,
     model_update_rx: &mpsc::Receiver<ModelUpdate<M>>,
     is_closed: &AtomicBool,
-) -> Result<(), RawStreamError>
+    connection_attempts: &mut u32,
+) -> Result<(), StreamError>
 where
     F: RenderFn<M>,
 {
@@ -428,9 +648,12 @@ where
 
     // Establish the TCP connection.
     let ip = src_addr.ip().clone();
-
-    let mut stream = ether_dream::dac::stream::connect(&broadcast, ip)
-        .map_err(|err| EtherDreamStreamError::FailedToConnectStream { err })?;
+    let mut stream = ether_dream::dac::stream::connect(&broadcast, ip).map_err(|err| {
+        *connection_attempts += 1;
+        let attempts = *connection_attempts;
+        EtherDreamStreamError::FailedToConnectStream { err, attempts }
+    })?;
+    *connection_attempts = 0;
 
     // Prepare the DAC's playback engine and await the repsonse.
     stream
@@ -613,4 +836,47 @@ fn point_to_ether_dream_point(p: RawPoint) -> ether_dream::protocol::DacPoint {
         u1,
         u2,
     }
+}
+
+/// The default function used for the `stream_error` function if none is specified.
+///
+/// If an error occurs while the TCP stream is running, an attempt will be made to re-establish a
+/// TCP connection.
+///
+/// In the case that a TCP connection attempt fails, 2 more attempts will be made. Following this,
+/// an attempt will be made to re-detect the DAC with a 2 second timeout.
+///
+/// In the case that a DAC could not be detected, 2 more attempts will be made each with a 2 second
+/// timeout. On the following attempt, the thread will be closed.
+pub fn default_stream_error_fn<M>(
+    _model: &mut M,
+    err: &StreamError,
+    action: &mut StreamErrorAction,
+) {
+    fn redetect_dac_action() -> StreamErrorAction {
+        let timeout = Some(Duration::from_secs(2));
+        StreamErrorAction::RedetectDac { timeout }
+    }
+    let ether_dream_err = match *err {
+        StreamError::EtherDreamStream { ref err } => err,
+    };
+    *action = match *ether_dream_err {
+        EtherDreamStreamError::FailedToDetectDacs { attempts, .. } if attempts < 3 => {
+            redetect_dac_action()
+        }
+        EtherDreamStreamError::FailedToConnectStream { attempts, .. } if attempts < 3 => {
+            std::thread::sleep(std::time::Duration::from_millis(16));
+            StreamErrorAction::ReattemptConnect
+        }
+        EtherDreamStreamError::FailedToConnectStream { attempts, .. } if attempts == 3 => {
+            redetect_dac_action()
+        }
+        EtherDreamStreamError::FailedToPrepareStream { .. }
+        | EtherDreamStreamError::FailedToBeginStream { .. }
+        | EtherDreamStreamError::FailedToSubmitData { .. }
+        | EtherDreamStreamError::FailedToSubmitPointRate { .. } => {
+            StreamErrorAction::ReattemptConnect
+        }
+        _ => StreamErrorAction::CloseThread,
+    };
 }

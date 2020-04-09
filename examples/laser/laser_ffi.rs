@@ -104,6 +104,7 @@ fn main() {
             callback_data as *mut std::os::raw::c_void,
             frame_render_callback,
             process_raw_callback,
+            stream_error_fn,
         );
         let frame_stream = frame_stream.assume_init();
 
@@ -133,6 +134,7 @@ fn main() {
             &stream_conf,
             callback_data as *mut std::os::raw::c_void,
             raw_render_callback,
+            stream_error_fn,
         );
         let raw_stream = raw_stream.assume_init();
 
@@ -261,4 +263,50 @@ extern "C" fn raw_render_callback(
     _data: *mut std::os::raw::c_void,
     _buffer: *mut nannou_laser::ffi::Buffer,
 ) {
+}
+
+// If an error occurs while the TCP stream is running, an attempt will be made to re-establish a
+// TCP connection.
+//
+// In the case that a TCP connection attempt fails, 2 more attempts will be made. Following this,
+// an attempt will be made to re-detect the DAC with a 2 second timeout.
+//
+// In the case that a DAC could not be detected, 2 more attempts will be made each with a 2 second
+// timeout. On the following attempt, the thread will be closed.
+extern "C" fn stream_error_fn(
+    _data: *mut std::os::raw::c_void,
+    err: *const nannou_laser::ffi::StreamError,
+    action: *mut nannou_laser::ffi::StreamErrorAction,
+) {
+    unsafe {
+        use nannou_laser::ffi::StreamErrorKind::*;
+        match nannou_laser::ffi::stream_error_kind(err) {
+            EtherDreamFailedToDetectDacs if nannou_laser::ffi::stream_error_attempts(err) < 3 => {
+                let timeout = 2.0;
+                nannou_laser::ffi::stream_error_action_set_redetect_dacs(action, timeout);
+            }
+            EtherDreamFailedToConnectStream
+                if nannou_laser::ffi::stream_error_attempts(err) < 3 =>
+            {
+                std::thread::sleep(std::time::Duration::from_millis(16));
+                nannou_laser::ffi::stream_error_action_set_reattempt_connect(action);
+            }
+            EtherDreamFailedToConnectStream
+                if nannou_laser::ffi::stream_error_attempts(err) == 3 =>
+            {
+                let timeout = 2.0;
+                nannou_laser::ffi::stream_error_action_set_redetect_dacs(action, timeout);
+            }
+            EtherDreamFailedToPrepareStream { .. }
+            | EtherDreamFailedToBeginStream { .. }
+            | EtherDreamFailedToSubmitData { .. }
+            | EtherDreamFailedToSubmitPointRate { .. } => {
+                std::thread::sleep(std::time::Duration::from_millis(16));
+                nannou_laser::ffi::stream_error_action_set_reattempt_connect(action);
+            }
+            _ => {
+                nannou_laser::ffi::stream_error_action_set_close_thread(action);
+            }
+        };
+    }
 }

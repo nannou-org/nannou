@@ -15,8 +15,8 @@ pub use lerp::Lerp;
 pub use point::{Point, RawPoint};
 pub use stream::frame::Frame;
 pub use stream::frame::Stream as FrameStream;
-pub use stream::raw::Buffer;
 pub use stream::raw::Stream as RawStream;
+pub use stream::raw::{Buffer, StreamError, StreamErrorAction};
 
 use std::io;
 use std::sync::Arc;
@@ -88,12 +88,14 @@ impl Api {
         let frame_hz = None;
         let interpolation_conf = Default::default();
         let process_raw = stream::frame::default_process_raw_fn;
+        let stream_error = stream::raw::default_stream_error_fn;
         stream::frame::Builder {
             api_inner,
             builder,
             model,
             render,
             process_raw,
+            stream_error,
             frame_hz,
             interpolation_conf,
         }
@@ -109,11 +111,13 @@ impl Api {
     {
         let api_inner = self.inner.clone();
         let builder = Default::default();
+        let stream_error = stream::raw::default_stream_error_fn;
         stream::raw::Builder {
             api_inner,
             builder,
             model,
             render,
+            stream_error,
         }
     }
 }
