@@ -21,18 +21,24 @@ pub struct DetectDacsAsync {
     inner: *mut DetectDacsAsyncInner,
 }
 
+/// Represents a DAC that has been detected on the network along with any information collected
+/// about the DAC in the detection process.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct DetectedDac {
     pub kind: DetectedDacKind,
 }
 
+/// A union for distinguishing between the kind of LASER DAC that was detected. Currently, only
+/// EtherDream is supported, however this will gain more variants as more protocols are added (e.g.
+/// AVB).
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub union DetectedDacKind {
     pub ether_dream: DacEtherDream,
 }
 
+/// An Ether Dream DAC that was detected on the network.
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct DacEtherDream {
@@ -40,11 +46,23 @@ pub struct DacEtherDream {
     pub source_addr: SocketAddr,
 }
 
+/// A set of stream configuration parameters applied to the initialisation of both `Raw` and
+/// `Frame` streams.
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct StreamConfig {
+    /// A valid pointer to a `DetectedDac` that should be targeted.
     pub detected_dac: *const DetectedDac,
+    /// The rate at which the DAC should process points per second.
+    ///
+    /// This value should be no greater than the detected DAC's `max_point_hz`.
     pub point_hz: raw::c_uint,
+    /// The maximum latency specified as a number of points.
+    ///
+    /// Each time the laser indicates its "fullness", the raw stream will request enough points
+    /// from the render function to fill the DAC buffer up to `latency_points`.
+    ///
+    /// This value should be no greaterthan the DAC's `buffer_capacity`.
     pub latency_points: raw::c_uint,
 }
 
@@ -70,11 +88,17 @@ pub struct SocketAddr {
     pub port: raw::c_ushort,
 }
 
+/// A handle to a stream that requests frames of LASER data from the user.
+///
+/// Each "frame" has an optimisation pass applied that optimises the path for inertia, minimal
+/// blanking, point de-duplication and segment order.
 #[repr(C)]
 pub struct FrameStream {
     inner: *mut FrameStreamInner,
 }
 
+/// A handle to a raw LASER stream that requests the exact number of points that the DAC is
+/// awaiting in each call to the user's callback.
 #[repr(C)]
 pub struct RawStream {
     inner: *mut RawStreamInner,
@@ -89,11 +113,26 @@ pub enum Result {
     DetectDacsAsyncFailed,
 }
 
+/// A set of stream configuration parameters unique to `Frame` streams.
 #[repr(C)]
 #[derive(Clone, Debug)]
 pub struct FrameStreamConfig {
     pub stream_conf: StreamConfig,
+    /// The rate at which the stream will attempt to present images via the DAC. This value is used
+    /// in combination with the DAC's `point_hz` in order to determine how many points should be
+    /// used to draw each frame. E.g.
+    ///
+    /// ```ignore
+    /// let points_per_frame = point_hz / frame_hz;
+    /// ```
+    ///
+    /// This is simply used as a minimum value. E.g. if some very simple geometry is submitted, this
+    /// allows the DAC to spend more time creating the path for the image. However, if complex geometry
+    /// is submitted that would require more than the ideal `points_per_frame`, the DAC may not be able
+    /// to achieve the desired `frame_hz` when drawing the path while also taking the
+    /// `distance_per_point` and `radians_per_point` into consideration.
     pub frame_hz: u32,
+    /// Configuration options for eulerian circuit interpolation.
     pub interpolation_conf: crate::stream::frame::opt::InterpolationConfig,
 }
 
@@ -177,6 +216,9 @@ pub unsafe extern "C" fn detect_dacs_async(
 }
 
 /// Retrieve a list of the currently available DACs.
+///
+/// Calling this function should never block, and simply provide the list of DACs that have
+/// broadcast their availability within the last specified DAC timeout duration.
 #[no_mangle]
 pub unsafe extern "C" fn available_dacs(
     detect_dacs_async: *mut DetectDacsAsync,
@@ -245,6 +287,20 @@ pub unsafe extern "C" fn stream_config_default(conf: *mut StreamConfig) {
 }
 
 /// Spawn a new frame rendering stream.
+///
+/// The `frame_render_callback` is called each time the stream is ready for a new `Frame` of laser
+/// points. Each "frame" has an optimisation pass applied that optimises the path for inertia,
+/// minimal blanking, point de-duplication and segment order.
+///
+/// The `process_raw_callback` allows for optionally processing the raw points before submission to
+/// the DAC. This might be useful for:
+///
+/// - applying post-processing effects onto the optimised, interpolated points.
+/// - monitoring the raw points resulting from the optimisation and interpolation processes.
+/// - tuning brightness of colours based on safety zones.
+///
+/// The given function will get called right before submission of the optimised, interpolated
+/// buffer.
 #[no_mangle]
 pub unsafe extern "C" fn new_frame_stream(
     api: *mut Api,
@@ -298,6 +354,10 @@ pub unsafe extern "C" fn new_frame_stream(
 }
 
 /// Spawn a new frame rendering stream.
+///
+/// A raw LASER stream requests the exact number of points that the DAC is awaiting in each call to
+/// the user's `process_raw_callback`. Keep in mind that no optimisation passes are applied. When
+/// using a raw stream, this is the responsibility of the user.
 #[no_mangle]
 pub unsafe extern "C" fn new_raw_stream(
     api: *mut Api,
@@ -340,6 +400,139 @@ pub unsafe extern "C" fn new_raw_stream(
     Result::Success
 }
 
+/// Update the rate at which the DAC should process points per second.
+///
+/// This value should be no greater than the detected DAC's `max_point_hz`.
+///
+/// By default this value is `stream::DEFAULT_POINT_HZ`.
+///
+/// Returns `true` on success or `false` if the communication channel was closed.
+pub unsafe extern "C" fn frame_stream_set_point_hz(
+    stream: *const FrameStream,
+    point_hz: u32,
+) -> bool {
+    let stream: &FrameStream = &*stream;
+    (*stream.inner).0.set_point_hz(point_hz).is_ok()
+}
+
+/// The maximum latency specified as a number of points.
+///
+/// Each time the laser indicates its "fullness", the raw stream will request enough points
+/// from the render function to fill the DAC buffer up to `latency_points`.
+///
+/// This value should be no greaterthan the DAC's `buffer_capacity`.
+///
+/// Returns `true` on success or `false` if the communication channel was closed.
+pub unsafe extern "C" fn frame_stream_set_latency_points(
+    stream: *const FrameStream,
+    points: u32,
+) -> bool {
+    let stream: &FrameStream = &*stream;
+    (*stream.inner).0.set_latency_points(points).is_ok()
+}
+
+/// Update the `distance_per_point` field of the interpolation configuration used within the
+/// optimisation pass for frames. This represents the minimum distance the interpolator can travel
+/// along an edge before a new point is required.
+///
+/// The value will be updated on the laser thread prior to requesting the next frame.
+///
+/// Returns `true` on success or `false` if the communication channel was closed.
+pub unsafe extern "C" fn frame_stream_set_distance_per_point(
+    stream: *const FrameStream,
+    distance_per_point: f32,
+) -> bool {
+    let stream: &FrameStream = &*stream;
+    (*stream.inner)
+        .0
+        .set_distance_per_point(distance_per_point)
+        .is_ok()
+}
+
+/// Update the `blank_delay_points` field of the interpolation configuration. This represents the
+/// number of points to insert at the end of a blank to account for light modulator delay.
+///
+/// The value will be updated on the laser thread prior to requesting the next frame.
+///
+/// Returns `true` on success or `false` if the communication channel was closed.
+pub unsafe extern "C" fn frame_stream_set_blank_delay_points(
+    stream: *const FrameStream,
+    points: u32,
+) -> bool {
+    let stream: &FrameStream = &*stream;
+    (*stream.inner).0.set_blank_delay_points(points).is_ok()
+}
+
+/// Update the `radians_per_point` field of the interpolation configuration. This represents the
+/// amount of delay to add based on the angle of the corner in radians.
+///
+/// The value will be updated on the laser thread prior to requesting the next frame.
+///
+/// Returns `true` on success or `false` if the communication channel was closed.
+pub unsafe extern "C" fn frame_stream_set_radians_per_point(
+    stream: *const FrameStream,
+    radians_per_point: f32,
+) -> bool {
+    let stream: &FrameStream = &*stream;
+    (*stream.inner)
+        .0
+        .set_radians_per_point(radians_per_point)
+        .is_ok()
+}
+
+/// Update the rate at which the stream will attempt to present images via the DAC. This value is
+/// used in combination with the DAC's `point_hz` in order to determine how many points should be
+/// used to draw each frame. E.g.
+///
+/// ```ignore
+/// let points_per_frame = point_hz / frame_hz;
+/// ```
+///
+/// This is simply used as a minimum value. E.g. if some very simple geometry is submitted, this
+/// allows the DAC to spend more time creating the path for the image. However, if complex geometry
+/// is submitted that would require more than the ideal `points_per_frame`, the DAC may not be able
+/// to achieve the desired `frame_hz` when drawing the path while also taking the
+/// `distance_per_point` and `radians_per_point` into consideration.
+///
+/// The value will be updated on the laser thread prior to requesting the next frame.
+///
+/// Returns `true` on success or `false` if the communication channel was closed.
+pub unsafe extern "C" fn frame_stream_set_frame_hz(
+    stream: *const FrameStream,
+    frame_hz: u32,
+) -> bool {
+    let stream: &FrameStream = &*stream;
+    (*stream.inner).0.set_frame_hz(frame_hz).is_ok()
+}
+
+/// Update the rate at which the DAC should process points per second.
+///
+/// This value should be no greater than the detected DAC's `max_point_hz`.
+///
+/// By default this value is `stream::DEFAULT_POINT_HZ`.
+///
+/// Returns `true` on success or `false` if the communication channel was closed.
+pub unsafe extern "C" fn raw_stream_set_point_hz(stream: *const RawStream, point_hz: u32) -> bool {
+    let stream: &RawStream = &*stream;
+    (*stream.inner).0.set_point_hz(point_hz).is_ok()
+}
+
+/// The maximum latency specified as a number of points.
+///
+/// Each time the laser indicates its "fullness", the raw stream will request enough points
+/// from the render function to fill the DAC buffer up to `latency_points`.
+///
+/// This value should be no greaterthan the DAC's `buffer_capacity`.
+///
+/// Returns `true` on success or `false` if the communication channel was closed.
+pub unsafe extern "C" fn raw_stream_set_latency_points(
+    stream: *const RawStream,
+    points: u32,
+) -> bool {
+    let stream: &RawStream = &*stream;
+    (*stream.inner).0.set_latency_points(points).is_ok()
+}
+
 /// Add a sequence of consecutive points separated by blank space.
 ///
 /// If some points already exist in the frame, this method will create a blank segment between the
@@ -370,21 +563,25 @@ pub unsafe extern "C" fn frame_add_lines(
     (*(*frame.inner).0).add_lines(points.iter().cloned());
 }
 
+/// Retrieve the current `frame_hz` at the time of rendering this `Frame`.
 #[no_mangle]
 pub unsafe extern "C" fn frame_hz(frame: *const Frame) -> u32 {
     (*(*(*frame).inner).0).frame_hz()
 }
 
+/// Retrieve the current `point_hz` at the time of rendering this `Frame`.
 #[no_mangle]
 pub unsafe extern "C" fn frame_point_hz(frame: *const Frame) -> u32 {
     (*(*(*frame).inner).0).point_hz()
 }
 
+/// Retrieve the current `latency_points` at the time of rendering this `Frame`.
 #[no_mangle]
 pub unsafe extern "C" fn frame_latency_points(frame: *const Frame) -> u32 {
     (*(*(*frame).inner).0).latency_points()
 }
 
+/// Retrieve the current ideal `points_per_frame` at the time of rendering this `Frame`.
 #[no_mangle]
 pub unsafe extern "C" fn points_per_frame(frame: *const Frame) -> u32 {
     (*(*(*frame).inner).0).latency_points()
