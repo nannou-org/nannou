@@ -140,11 +140,12 @@ To draw our sine wave, we will use the `polyline` function.  To use this functio
 let points = (0..50).map(|i| {
   let x = (i as f32 - 25.0);          //subtract 25 to center the sine wave
   let point = pt2(x, x.sin()) * 20.0; //scale sine wave by 20.0
-  (point, STEELBLUE)
+  point
 });
 draw.polyline()
     .weight(3.0)
-    .colored_points(points);
+    .points(points)
+    .color(STEELBLUE);
 ```
 
 ![A sine wave polyline drawing](./images/2d-simple-polyline.png)
@@ -164,11 +165,12 @@ let points = (0..=360).map(|i| {      // map over an array of integers from 0 to
    let x = radian.sin() * radius;     // get the sine of the radian to find the x-co-ordinate of
                                       // this point of the circle, and multiply it by the radius
    let y = radian.cos() * radius;     // do the same with cosine to find the y co-ordinate
-   (pt2(x,y), STEELBLUE)              // construct and return a point object with a color
+   pt2(x,y)                           // construct and return a point object with a color
 });
 draw.polyline()                       // create a PathStroke Builder object
     .weight(3.0)
-    .colored_points(points);          // tell our PathStroke Builder to draw lines connecting our array of points
+    .points(points)                   // tell our PathStroke Builder to draw lines connecting our array of points
+    .color(STEELBLUE);
 ```
 ![A custom circle](./images/2d-custom-circle-outline.png)
 
