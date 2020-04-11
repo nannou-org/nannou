@@ -439,7 +439,7 @@ where
 
     /// Specify the orientation around the *z* axis as an absolute value in radians.
     pub fn z_radians(self, z: S) -> Self {
-        self.map_ty(|ty| SetOrientation::y_radians(ty, z))
+        self.map_ty(|ty| SetOrientation::z_radians(ty, z))
     }
 
     /// Specify the orientation around the *x* axis as an absolute value in radians.
