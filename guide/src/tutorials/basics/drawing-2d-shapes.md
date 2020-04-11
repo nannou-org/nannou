@@ -144,7 +144,7 @@ let points = (0..50).map(|i| {
 });
 draw.polyline()
     .weight(3.0)
-    .colored_points(points);
+    .points_colored(points);
 ```
 
 ![A sine wave polyline drawing](./images/2d-simple-polyline.png)
@@ -168,7 +168,7 @@ let points = (0..=360).map(|i| {      // map over an array of integers from 0 to
 });
 draw.polyline()                       // create a PathStroke Builder object
     .weight(3.0)
-    .colored_points(points);          // tell our PathStroke Builder to draw lines connecting our array of points
+    .points_colored(points);          // tell our PathStroke Builder to draw lines connecting our array of points
 ```
 ![A custom circle](./images/2d-custom-circle-outline.png)
 
