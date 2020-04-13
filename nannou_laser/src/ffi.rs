@@ -407,6 +407,7 @@ pub unsafe extern "C" fn new_raw_stream(
 /// By default this value is `stream::DEFAULT_POINT_HZ`.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
+#[no_mangle]
 pub unsafe extern "C" fn frame_stream_set_point_hz(
     stream: *const FrameStream,
     point_hz: u32,
@@ -423,6 +424,7 @@ pub unsafe extern "C" fn frame_stream_set_point_hz(
 /// This value should be no greaterthan the DAC's `buffer_capacity`.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
+#[no_mangle]
 pub unsafe extern "C" fn frame_stream_set_latency_points(
     stream: *const FrameStream,
     points: u32,
@@ -438,6 +440,7 @@ pub unsafe extern "C" fn frame_stream_set_latency_points(
 /// The value will be updated on the laser thread prior to requesting the next frame.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
+#[no_mangle]
 pub unsafe extern "C" fn frame_stream_set_distance_per_point(
     stream: *const FrameStream,
     distance_per_point: f32,
@@ -455,6 +458,7 @@ pub unsafe extern "C" fn frame_stream_set_distance_per_point(
 /// The value will be updated on the laser thread prior to requesting the next frame.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
+#[no_mangle]
 pub unsafe extern "C" fn frame_stream_set_blank_delay_points(
     stream: *const FrameStream,
     points: u32,
@@ -469,6 +473,7 @@ pub unsafe extern "C" fn frame_stream_set_blank_delay_points(
 /// The value will be updated on the laser thread prior to requesting the next frame.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
+#[no_mangle]
 pub unsafe extern "C" fn frame_stream_set_radians_per_point(
     stream: *const FrameStream,
     radians_per_point: f32,
@@ -497,6 +502,7 @@ pub unsafe extern "C" fn frame_stream_set_radians_per_point(
 /// The value will be updated on the laser thread prior to requesting the next frame.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
+#[no_mangle]
 pub unsafe extern "C" fn frame_stream_set_frame_hz(
     stream: *const FrameStream,
     frame_hz: u32,
@@ -512,6 +518,7 @@ pub unsafe extern "C" fn frame_stream_set_frame_hz(
 /// By default this value is `stream::DEFAULT_POINT_HZ`.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
+#[no_mangle]
 pub unsafe extern "C" fn raw_stream_set_point_hz(stream: *const RawStream, point_hz: u32) -> bool {
     let stream: &RawStream = &*stream;
     (*stream.inner).0.set_point_hz(point_hz).is_ok()
@@ -525,6 +532,7 @@ pub unsafe extern "C" fn raw_stream_set_point_hz(stream: *const RawStream, point
 /// This value should be no greaterthan the DAC's `buffer_capacity`.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
+#[no_mangle]
 pub unsafe extern "C" fn raw_stream_set_latency_points(
     stream: *const RawStream,
     points: u32,
