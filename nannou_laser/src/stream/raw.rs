@@ -666,13 +666,11 @@ where
     let ip = src_addr.ip().clone();
     let result = match tcp_timeout {
         None => ether_dream::dac::stream::connect(&broadcast, ip),
-        Some(timeout) => {
-            ether_dream::dac::stream::connect_timeout(&broadcast, ip, timeout)
-                .and_then(|stream| {
-                    stream.set_timeout(Some(timeout))?;
-                    Ok(stream)
-                })
-        }
+        Some(timeout) => ether_dream::dac::stream::connect_timeout(&broadcast, ip, timeout)
+            .and_then(|stream| {
+                stream.set_timeout(Some(timeout))?;
+                Ok(stream)
+            }),
     };
     let mut stream = match result {
         Ok(stream) => stream,
