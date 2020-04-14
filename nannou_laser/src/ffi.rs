@@ -139,6 +139,12 @@ pub struct StreamErrorAction {
     inner: *mut StreamErrorActionInner,
 }
 
+/// An owned instance of a raw C string.
+#[repr(C)]
+pub struct RawString {
+    inner: *mut raw::c_char,
+}
+
 /// A set of stream configuration parameters unique to `Frame` streams.
 #[repr(C)]
 #[derive(Clone, Debug)]
@@ -748,6 +754,27 @@ pub unsafe extern "C" fn points_per_frame(frame: *const Frame) -> u32 {
     (*(*(*frame).inner).0).latency_points()
 }
 
+/// Allocate a new C string containing the error message.
+#[no_mangle]
+pub unsafe extern "C" fn stream_error_message(err: *const StreamError) -> RawString {
+    let string = format!("{}", *(*(*err).inner).0);
+    raw_string_from_str(&string[..])
+}
+
+/// Returns the pointer to the beginning of the C string for reading.
+#[no_mangle]
+pub unsafe extern "C" fn raw_string_ref(msg: *const RawString) -> *const raw::c_char {
+    (*msg).inner as *const raw::c_char
+}
+
+/// Must be called in order to correctly clean up a raw string.
+#[no_mangle]
+pub unsafe extern "C" fn raw_string_drop(msg: RawString) {
+    if msg.inner != std::ptr::null_mut() {
+        CString::from_raw(msg.inner);
+    }
+}
+
 /// Must be called in order to correctly clean up the frame stream.
 #[no_mangle]
 pub unsafe extern "C" fn frame_stream_drop(stream: FrameStream) {
@@ -909,6 +936,12 @@ unsafe fn stream_error_action_set(
 ) {
     let action: &mut crate::StreamErrorAction = &mut *(*(*action).inner).0;
     *action = target;
+}
+
+fn raw_string_from_str(s: &str) -> RawString {
+    let cstring = CString::new(&s[..]).unwrap();
+    let inner = cstring.into_raw();
+    RawString { inner }
 }
 
 fn duration_from_secs_f32(secs: f32) -> Duration {
