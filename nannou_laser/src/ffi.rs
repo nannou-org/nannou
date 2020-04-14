@@ -64,6 +64,10 @@ pub struct StreamConfig {
     ///
     /// This value should be no greaterthan the DAC's `buffer_capacity`.
     pub latency_points: raw::c_uint,
+    /// The timeout duration of the stream in seconds.
+    ///
+    /// A negative value indicates that the stream should never timeout. This is the default case.
+    pub tcp_timeout_secs: raw::c_float,
 }
 
 #[repr(C)]
@@ -387,11 +391,14 @@ pub unsafe extern "C" fn new_frame_stream(
         stream_error_callback(callback_data_ptr, &err, &mut action);
     }
 
+    let tcp_timeout = tcp_timeout_from_float((*config).stream_conf.tcp_timeout_secs);
+
     let mut builder = api
         .inner
         .new_frame_stream(model, render_fn)
         .point_hz((*config).stream_conf.point_hz as _)
         .latency_points((*config).stream_conf.latency_points as _)
+        .tcp_timeout(tcp_timeout)
         .frame_hz((*config).frame_hz as _)
         .process_raw(process_raw_fn)
         .stream_error(stream_error_fn);
@@ -454,11 +461,14 @@ pub unsafe extern "C" fn new_raw_stream(
         stream_error_callback(callback_data_ptr, &err, &mut action);
     }
 
+    let tcp_timeout = tcp_timeout_from_float((*config).tcp_timeout_secs);
+
     let mut builder = api
         .inner
         .new_raw_stream(model, render_fn)
         .point_hz((*config).point_hz as _)
         .latency_points((*config).latency_points as _)
+        .tcp_timeout(tcp_timeout)
         .stream_error(stream_error_fn);
 
     if (*config).detected_dac != std::ptr::null() {
@@ -930,6 +940,16 @@ fn detect_dacs_async_inner(
     })
 }
 
+fn tcp_timeout_from_float(tcp_timeout_secs: raw::c_float) -> Option<Duration> {
+    // A negative value is considered to mean no timeout.
+    if tcp_timeout_secs < 0.0 {
+        None
+    } else {
+        let duration = duration_from_secs_f32(tcp_timeout_secs);
+        Some(duration)
+    }
+}
+
 unsafe fn stream_error_action_set(
     action: *mut StreamErrorAction,
     target: crate::StreamErrorAction,
@@ -962,10 +982,12 @@ fn default_stream_config() -> StreamConfig {
     let detected_dac = std::ptr::null();
     let point_hz = crate::stream::DEFAULT_POINT_HZ;
     let latency_points = crate::stream::raw::default_latency_points(point_hz);
+    let tcp_timeout_secs = -1.0;
     StreamConfig {
         detected_dac,
         point_hz,
         latency_points,
+        tcp_timeout_secs,
     }
 }
 

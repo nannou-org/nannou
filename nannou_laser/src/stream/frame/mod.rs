@@ -4,6 +4,7 @@ use crate::{Point, RawPoint};
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::sync::{mpsc, Arc, Mutex};
+use std::time::Duration;
 
 pub mod opt;
 
@@ -136,6 +137,15 @@ impl<M, F, R, E> Builder<M, F, R, E> {
     /// The DAC with which the stream should be established.
     pub fn detected_dac(mut self, dac: crate::DetectedDac) -> Self {
         self.builder.dac = Some(dac);
+        self
+    }
+
+    /// The duration before TCP connection or communication attempts will time out.
+    ///
+    /// If this value is `None` (the default case), no timeout will be applied and the stream will
+    /// wait forever.
+    pub fn tcp_timeout(mut self, tcp_timeout: Option<Duration>) -> Self {
+        self.builder.tcp_timeout = tcp_timeout;
         self
     }
 

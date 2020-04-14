@@ -21,6 +21,10 @@ pub struct Builder {
     /// Each time the laser indicates its "fullness", the raw stream will request enough points
     /// from the render function to fill the DAC buffer up to `latency_points`.
     pub latency_points: Option<u32>,
+    /// The duration before TCP connection or communication attempts will time out.
+    ///
+    /// If this value is `None`, no timeout will be applied and the stream will wait forever.
+    pub tcp_timeout: Option<std::time::Duration>,
 }
 
 /// Given a DAC point rate and a desired frame rate, determine how many points to generate per

@@ -342,6 +342,15 @@ impl<M, F, E> Builder<M, F, E> {
         self
     }
 
+    /// The duration before TCP connection or communication attempts will time out.
+    ///
+    /// If this value is `None` (the default case), no timeout will be applied and the stream will
+    /// wait forever.
+    pub fn tcp_timeout(mut self, tcp_timeout: Option<Duration>) -> Self {
+        self.builder.tcp_timeout = tcp_timeout;
+        self
+    }
+
     /// Specify a function that allows for handling errors that occur on the TCP stream thread.
     ///
     /// If this method is not called, the `default_stream_error_fn` is used by default.
@@ -405,6 +414,9 @@ impl<M, F, E> Builder<M, F, E> {
         let maybe_dac = builder.dac;
         let maybe_dac2 = maybe_dac.clone();
 
+        // The TCP timeout duration.
+        let tcp_timeout = builder.tcp_timeout;
+
         // A flag for tracking whether or not the stream has been closed.
         let is_closed = Arc::new(AtomicBool::new(false));
         let is_closed2 = is_closed.clone();
@@ -416,6 +428,7 @@ impl<M, F, E> Builder<M, F, E> {
                 let res = run_laser_stream(
                     &api_inner,
                     maybe_dac2,
+                    tcp_timeout,
                     &state,
                     &model_2,
                     render,
@@ -480,6 +493,7 @@ pub fn default_latency_points(point_hz: u32) -> u32 {
 fn run_laser_stream<M, F, E>(
     api_inner: &ApiInner,
     mut maybe_dac: Option<DetectedDac>,
+    tcp_timeout: Option<Duration>,
     state: &Arc<Mutex<State>>,
     model: &Arc<Mutex<Option<M>>>,
     render: F,
@@ -591,6 +605,7 @@ where
         // Connect and run the laser stream.
         match run_laser_stream_tcp_loop(
             &dac,
+            tcp_timeout,
             &state,
             &model,
             &render,
@@ -624,6 +639,7 @@ where
 // Attempts to connect to the DAC via TCP and enters the stream loop.
 fn run_laser_stream_tcp_loop<M, F>(
     dac: &DetectedDac,
+    tcp_timeout: Option<Duration>,
     state: &Arc<Mutex<State>>,
     model: &Arc<Mutex<Option<M>>>,
     render: F,
@@ -648,11 +664,24 @@ where
 
     // Establish the TCP connection.
     let ip = src_addr.ip().clone();
-    let mut stream = ether_dream::dac::stream::connect(&broadcast, ip).map_err(|err| {
-        *connection_attempts += 1;
-        let attempts = *connection_attempts;
-        EtherDreamStreamError::FailedToConnectStream { err, attempts }
-    })?;
+    let result = match tcp_timeout {
+        None => ether_dream::dac::stream::connect(&broadcast, ip),
+        Some(timeout) => {
+            ether_dream::dac::stream::connect_timeout(&broadcast, ip, timeout)
+                .and_then(|stream| {
+                    stream.set_timeout(Some(timeout))?;
+                    Ok(stream)
+                })
+        }
+    };
+    let mut stream = match result {
+        Ok(stream) => stream,
+        Err(err) => {
+            *connection_attempts += 1;
+            let attempts = *connection_attempts;
+            return Err(EtherDreamStreamError::FailedToConnectStream { err, attempts }.into());
+        }
+    };
     *connection_attempts = 0;
 
     // Prepare the DAC's playback engine and await the repsonse.
