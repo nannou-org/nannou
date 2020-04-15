@@ -332,6 +332,38 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         model.laser_streams.push(stream);
     }
 
+    // Check if any streams have dropped out (e.g network issues, DAC turned off) and attempt to
+    // start them again.
+    let mut dropped = vec![];
+    for (i, stream) in model.laser_streams.iter().enumerate() {
+        if stream.is_closed() {
+            dropped.push(i);
+        }
+    }
+    for i in dropped.into_iter().rev() {
+        let stream = model.laser_streams.remove(i);
+        let dac = stream
+            .dac()
+            .expect("`dac` returned `None` even though one was specified during stream creation");
+        let res = stream
+            .close()
+            .expect("stream was unexpectedly already closed from another stream handle")
+            .expect("failed to join stream thread");
+        if let Err(err) = res {
+            eprintln!("Stream closed due to an error: {}", err);
+        }
+        println!("attempting to restart stream with DAC {:?}", dac.id());
+        match model
+            .laser_api
+            .new_frame_stream(model.laser_model.clone(), laser)
+            .detected_dac(dac)
+            .build()
+        {
+            Err(err) => eprintln!("failed to restart stream: {}", err),
+            Ok(stream) => model.laser_streams.push(stream),
+        }
+    }
+
     // Calling `set_widgets` allows us to instantiate some widgets.
     let ui = &mut model.ui.set_widgets();
 

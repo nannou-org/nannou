@@ -64,6 +64,10 @@ pub struct StreamConfig {
     ///
     /// This value should be no greaterthan the DAC's `buffer_capacity`.
     pub latency_points: raw::c_uint,
+    /// The timeout duration of the stream in seconds.
+    ///
+    /// A negative value indicates that the stream should never timeout. This is the default case.
+    pub tcp_timeout_secs: raw::c_float,
 }
 
 #[repr(C)]
@@ -111,6 +115,38 @@ pub enum Result {
     DetectDacFailed,
     BuildStreamFailed,
     DetectDacsAsyncFailed,
+    CloseStreamFailed,
+    NullPointer,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct StreamError {
+    inner: *const StreamErrorInner,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub enum StreamErrorKind {
+    EtherDreamFailedToDetectDacs,
+    EtherDreamFailedToConnectStream,
+    EtherDreamFailedToPrepareStream,
+    EtherDreamFailedToBeginStream,
+    EtherDreamFailedToSubmitData,
+    EtherDreamFailedToSubmitPointRate,
+    EtherDreamFailedToStopStream,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct StreamErrorAction {
+    inner: *mut StreamErrorActionInner,
+}
+
+/// An owned instance of a raw C string.
+#[repr(C)]
+pub struct RawString {
+    inner: *mut raw::c_char,
 }
 
 /// A set of stream configuration parameters unique to `Frame` streams.
@@ -161,8 +197,17 @@ struct DetectDacsAsyncInner {
     last_error: Arc<Mutex<Option<CString>>>,
 }
 
-struct FrameStreamModel(*mut raw::c_void, FrameRenderCallback, RawRenderCallback);
-struct RawStreamModel(*mut raw::c_void, RawRenderCallback);
+struct StreamErrorInner(*const crate::StreamError);
+
+struct StreamErrorActionInner(*mut crate::StreamErrorAction);
+
+struct FrameStreamModel(
+    *mut raw::c_void,
+    FrameRenderCallback,
+    RawRenderCallback,
+    StreamErrorCallback,
+);
+struct RawStreamModel(*mut raw::c_void, RawRenderCallback, StreamErrorCallback);
 
 unsafe impl Send for FrameStreamModel {}
 unsafe impl Send for RawStreamModel {}
@@ -170,12 +215,10 @@ unsafe impl Send for RawStreamModel {}
 struct FrameStreamInner(crate::FrameStream<FrameStreamModel>);
 struct RawStreamInner(crate::RawStream<RawStreamModel>);
 
-/// Cast to `extern fn(*mut raw::c_void, *mut Frame)` internally.
-//pub type FrameRenderCallback = *const raw::c_void;
 pub type FrameRenderCallback = extern "C" fn(*mut raw::c_void, *mut Frame);
-/// Cast to `extern fn(*mut raw::c_void, *mut Buffer)` internally.
-//pub type RawRenderCallback = *const raw::c_void;
 pub type RawRenderCallback = extern "C" fn(*mut raw::c_void, *mut Buffer);
+pub type StreamErrorCallback =
+    extern "C" fn(*mut raw::c_void, *const StreamError, *mut StreamErrorAction);
 
 /// Given some uninitialized pointer to an `Api` struct, fill it with a new Api instance.
 #[no_mangle]
@@ -200,9 +243,7 @@ pub unsafe extern "C" fn detect_dacs_async(
     let duration = if timeout_secs == 0.0 {
         None
     } else {
-        let secs = timeout_secs as u64;
-        let nanos = ((timeout_secs - secs as raw::c_float) * 1_000_000_000.0) as u32;
-        Some(std::time::Duration::new(secs, nanos))
+        Some(duration_from_secs_f32(timeout_secs))
     };
     let boxed_detect_dacs_inner = match detect_dacs_async_inner(&api.inner, duration) {
         Ok(detector) => Box::new(detector),
@@ -309,32 +350,58 @@ pub unsafe extern "C" fn new_frame_stream(
     callback_data: *mut raw::c_void,
     frame_render_callback: FrameRenderCallback,
     process_raw_callback: RawRenderCallback,
+    stream_error_callback: StreamErrorCallback,
 ) -> Result {
     let api: &mut ApiInner = &mut (*(*api).inner);
-    let model = FrameStreamModel(callback_data, frame_render_callback, process_raw_callback);
+    let model = FrameStreamModel(
+        callback_data,
+        frame_render_callback,
+        process_raw_callback,
+        stream_error_callback,
+    );
 
     fn render_fn(model: &mut FrameStreamModel, frame: &mut crate::stream::frame::Frame) {
-        let FrameStreamModel(callback_data_ptr, frame_render_callback, _) = *model;
+        let FrameStreamModel(callback_data_ptr, frame_render_callback, _, _) = *model;
         let mut inner = FrameInner(frame);
         let mut frame = Frame { inner: &mut inner };
         frame_render_callback(callback_data_ptr, &mut frame);
     }
+
+    fn process_raw_fn(model: &mut FrameStreamModel, buffer: &mut crate::stream::raw::Buffer) {
+        let FrameStreamModel(callback_data_ptr, _, process_raw_callback, _) = *model;
+        let mut inner = BufferInner(buffer);
+        let mut buffer = Buffer { inner: &mut inner };
+        process_raw_callback(callback_data_ptr, &mut buffer);
+    }
+
+    fn stream_error_fn(
+        model: &mut FrameStreamModel,
+        err: &crate::stream::raw::StreamError,
+        action: &mut crate::stream::raw::StreamErrorAction,
+    ) {
+        let FrameStreamModel(callback_data_ptr, _, _, stream_error_callback) = *model;
+        let mut inner = StreamErrorActionInner(action);
+        let mut action = StreamErrorAction {
+            inner: &mut inner as *mut _,
+        };
+        let inner = StreamErrorInner(err);
+        let err = StreamError {
+            inner: &inner as *const _,
+        };
+        stream_error_callback(callback_data_ptr, &err, &mut action);
+    }
+
+    let tcp_timeout = tcp_timeout_from_float((*config).stream_conf.tcp_timeout_secs);
 
     let mut builder = api
         .inner
         .new_frame_stream(model, render_fn)
         .point_hz((*config).stream_conf.point_hz as _)
         .latency_points((*config).stream_conf.latency_points as _)
-        .frame_hz((*config).frame_hz as _);
-
-    fn process_raw_fn(model: &mut FrameStreamModel, buffer: &mut crate::stream::raw::Buffer) {
-        let FrameStreamModel(callback_data_ptr, _, process_raw_callback) = *model;
-        let mut inner = BufferInner(buffer);
-        let mut buffer = Buffer { inner: &mut inner };
-        process_raw_callback(callback_data_ptr, &mut buffer);
-    }
-
-    builder = builder.process_raw(process_raw_fn);
+        .tcp_timeout(tcp_timeout)
+        .frame_hz((*config).frame_hz as _)
+        .process_raw(process_raw_fn)
+        .stream_error(stream_error_fn);
 
     if (*config).stream_conf.detected_dac != std::ptr::null() {
         let ffi_dac = (*(*config).stream_conf.detected_dac).clone();
@@ -365,22 +432,44 @@ pub unsafe extern "C" fn new_raw_stream(
     config: *const StreamConfig,
     callback_data: *mut raw::c_void,
     process_raw_callback: RawRenderCallback,
+    stream_error_callback: StreamErrorCallback,
 ) -> Result {
     let api: &mut ApiInner = &mut (*(*api).inner);
-    let model = RawStreamModel(callback_data, process_raw_callback);
+    let model = RawStreamModel(callback_data, process_raw_callback, stream_error_callback);
 
     fn render_fn(model: &mut RawStreamModel, buffer: &mut crate::stream::raw::Buffer) {
-        let RawStreamModel(callback_data_ptr, raw_render_callback) = *model;
+        let RawStreamModel(callback_data_ptr, raw_render_callback, _) = *model;
         let mut inner = BufferInner(buffer);
         let mut buffer = Buffer { inner: &mut inner };
         raw_render_callback(callback_data_ptr, &mut buffer);
     }
 
+    fn stream_error_fn(
+        model: &mut RawStreamModel,
+        err: &crate::stream::raw::StreamError,
+        action: &mut crate::stream::raw::StreamErrorAction,
+    ) {
+        let RawStreamModel(callback_data_ptr, _, stream_error_callback) = *model;
+        let mut inner = StreamErrorActionInner(action);
+        let mut action = StreamErrorAction {
+            inner: &mut inner as *mut _,
+        };
+        let inner = StreamErrorInner(err);
+        let err = StreamError {
+            inner: &inner as *const _,
+        };
+        stream_error_callback(callback_data_ptr, &err, &mut action);
+    }
+
+    let tcp_timeout = tcp_timeout_from_float((*config).tcp_timeout_secs);
+
     let mut builder = api
         .inner
         .new_raw_stream(model, render_fn)
         .point_hz((*config).point_hz as _)
-        .latency_points((*config).latency_points as _);
+        .latency_points((*config).latency_points as _)
+        .tcp_timeout(tcp_timeout)
+        .stream_error(stream_error_fn);
 
     if (*config).detected_dac != std::ptr::null() {
         let ffi_dac = (*(*config).detected_dac).clone();
@@ -511,6 +600,46 @@ pub unsafe extern "C" fn frame_stream_set_frame_hz(
     (*stream.inner).0.set_frame_hz(frame_hz).is_ok()
 }
 
+/// Returns whether or not the communication thread has closed.
+///
+/// A stream may be closed if an error has occurred and the stream error callback indicated to
+/// close the thread. A stream might also be closed if another `close` was called on another handle
+/// to the stream.
+///
+/// In this case, the `Stream` should be closed or dropped and a new one should be created to
+/// replace it.
+#[no_mangle]
+pub unsafe extern "C" fn frame_stream_is_closed(stream: *const FrameStream) -> bool {
+    let stream: &FrameStream = &*stream;
+    (*stream.inner).0.is_closed()
+}
+
+/// Close the TCP communication thread and wait for the thread to join.
+///
+/// This consumes and drops the `Stream`, returning the result produced by joining the thread.
+///
+/// This method will block until the associated thread has been joined.
+#[no_mangle]
+pub unsafe extern "C" fn frame_stream_close(api: *mut Api, stream: FrameStream) -> Result {
+    if stream.inner != std::ptr::null_mut() {
+        match Box::from_raw(stream.inner).0.close() {
+            Some(Ok(Ok(()))) => Result::Success,
+            Some(Ok(Err(err))) => {
+                (*(*api).inner).last_error = Some(err_to_cstring(&err));
+                return Result::CloseStreamFailed;
+            }
+            Some(Err(_err)) => {
+                let string = format!("failed to join stream thread");
+                (*(*api).inner).last_error = Some(string_to_cstring(string));
+                return Result::CloseStreamFailed;
+            }
+            None => Result::Success,
+        }
+    } else {
+        Result::NullPointer
+    }
+}
+
 /// Update the rate at which the DAC should process points per second.
 ///
 /// This value should be no greater than the detected DAC's `max_point_hz`.
@@ -539,6 +668,46 @@ pub unsafe extern "C" fn raw_stream_set_latency_points(
 ) -> bool {
     let stream: &RawStream = &*stream;
     (*stream.inner).0.set_latency_points(points).is_ok()
+}
+
+/// Returns whether or not the communication thread has closed.
+///
+/// A stream may be closed if an error has occurred and the stream error callback indicated to
+/// close the thread. A stream might also be closed if another `close` was called on another handle
+/// to the stream.
+///
+/// In this case, the `Stream` should be closed or dropped and a new one should be created to
+/// replace it.
+#[no_mangle]
+pub unsafe extern "C" fn raw_stream_is_closed(stream: *const RawStream) -> bool {
+    let stream: &RawStream = &*stream;
+    (*stream.inner).0.is_closed()
+}
+
+/// Close the TCP communication thread and wait for the thread to join.
+///
+/// This consumes and drops the `Stream`, returning the result produced by joining the thread.
+///
+/// This method will block until the associated thread has been joined.
+#[no_mangle]
+pub unsafe extern "C" fn raw_stream_close(api: *mut Api, stream: RawStream) -> Result {
+    if stream.inner != std::ptr::null_mut() {
+        match Box::from_raw(stream.inner).0.close() {
+            Some(Ok(Ok(()))) => Result::Success,
+            Some(Ok(Err(err))) => {
+                (*(*api).inner).last_error = Some(err_to_cstring(&err));
+                return Result::CloseStreamFailed;
+            }
+            Some(Err(_err)) => {
+                let string = format!("failed to join stream thread");
+                (*(*api).inner).last_error = Some(string_to_cstring(string));
+                return Result::CloseStreamFailed;
+            }
+            None => Result::Success,
+        }
+    } else {
+        Result::NullPointer
+    }
 }
 
 /// Add a sequence of consecutive points separated by blank space.
@@ -593,6 +762,27 @@ pub unsafe extern "C" fn frame_latency_points(frame: *const Frame) -> u32 {
 #[no_mangle]
 pub unsafe extern "C" fn points_per_frame(frame: *const Frame) -> u32 {
     (*(*(*frame).inner).0).latency_points()
+}
+
+/// Allocate a new C string containing the error message.
+#[no_mangle]
+pub unsafe extern "C" fn stream_error_message(err: *const StreamError) -> RawString {
+    let string = format!("{}", *(*(*err).inner).0);
+    raw_string_from_str(&string[..])
+}
+
+/// Returns the pointer to the beginning of the C string for reading.
+#[no_mangle]
+pub unsafe extern "C" fn raw_string_ref(msg: *const RawString) -> *const raw::c_char {
+    (*msg).inner as *const raw::c_char
+}
+
+/// Must be called in order to correctly clean up a raw string.
+#[no_mangle]
+pub unsafe extern "C" fn raw_string_drop(msg: RawString) {
+    if msg.inner != std::ptr::null_mut() {
+        CString::from_raw(msg.inner);
+    }
 }
 
 /// Must be called in order to correctly clean up the frame stream.
@@ -652,6 +842,64 @@ pub unsafe extern "C" fn detect_dacs_async_last_error(
     s
 }
 
+/// Retrieve the kind of the stream error.
+#[no_mangle]
+pub unsafe extern "C" fn stream_error_kind(err: *const StreamError) -> StreamErrorKind {
+    let err: &crate::StreamError = &*(*(*err).inner).0;
+    stream_error_to_kind(err)
+}
+
+/// Retrieve the number of attempts from the stream error.
+///
+/// If the error is `EtherDreamFailedToConnectStream`, this refers to the consecutive number of
+/// failed attempts to establish a TCP connection with the DAC.
+///
+/// If the error is `EtherDreamFailedToDetectDac`, this refers to the consecutive number of failed
+/// attempts to detect the requested DAC.
+#[no_mangle]
+pub unsafe extern "C" fn stream_error_attempts(err: *const StreamError) -> u32 {
+    let err: &crate::StreamError = &*(*(*err).inner).0;
+    stream_error_to_attempts(err)
+}
+
+/// Set the error action to reattempt the TCP stream connection.
+///
+/// This action attempts to reconnect to the specified DAC in the case that one was provided, or
+/// any DAC in the case that `None` was provided.
+#[no_mangle]
+pub unsafe extern "C" fn stream_error_action_set_reattempt_connect(action: *mut StreamErrorAction) {
+    let target = crate::StreamErrorAction::ReattemptConnect;
+    stream_error_action_set(action, target);
+}
+
+/// Set the error action to redetect the DAC.
+///
+/// This action attempts to re-detect the same DAC in the case that one was specified, or any DAC in the
+/// case that `None` was provided.
+///
+/// This can be useful in the case where the DAC has dropped from the network and may have
+/// re-appeared broadcasting from a different IP address.
+#[no_mangle]
+pub unsafe extern "C" fn stream_error_action_set_redetect_dacs(
+    action: *mut StreamErrorAction,
+    timeout_secs: f32,
+) {
+    let timeout = if timeout_secs < 0.0 {
+        None
+    } else {
+        Some(duration_from_secs_f32(timeout_secs))
+    };
+    let target = crate::StreamErrorAction::RedetectDac { timeout };
+    stream_error_action_set(action, target);
+}
+
+/// Set the error action to close the TCP communication thread.
+#[no_mangle]
+pub unsafe extern "C" fn stream_error_action_set_close_thread(action: *mut StreamErrorAction) {
+    let target = crate::StreamErrorAction::CloseThread;
+    stream_error_action_set(action, target);
+}
+
 /// Begin asynchronous DAC detection.
 ///
 /// The given timeout corresponds to the duration of time since the last DAC broadcast was received
@@ -692,6 +940,36 @@ fn detect_dacs_async_inner(
     })
 }
 
+fn tcp_timeout_from_float(tcp_timeout_secs: raw::c_float) -> Option<Duration> {
+    // A negative value is considered to mean no timeout.
+    if tcp_timeout_secs < 0.0 {
+        None
+    } else {
+        let duration = duration_from_secs_f32(tcp_timeout_secs);
+        Some(duration)
+    }
+}
+
+unsafe fn stream_error_action_set(
+    action: *mut StreamErrorAction,
+    target: crate::StreamErrorAction,
+) {
+    let action: &mut crate::StreamErrorAction = &mut *(*(*action).inner).0;
+    *action = target;
+}
+
+fn raw_string_from_str(s: &str) -> RawString {
+    let cstring = CString::new(&s[..]).unwrap();
+    let inner = cstring.into_raw();
+    RawString { inner }
+}
+
+fn duration_from_secs_f32(secs: f32) -> Duration {
+    let whole_secs = secs as u64;
+    let nanos = ((secs - whole_secs as raw::c_float) * 1_000_000_000.0) as u32;
+    std::time::Duration::new(whole_secs, nanos)
+}
+
 fn err_to_cstring(err: &dyn fmt::Display) -> CString {
     string_to_cstring(format!("{}", err))
 }
@@ -704,10 +982,12 @@ fn default_stream_config() -> StreamConfig {
     let detected_dac = std::ptr::null();
     let point_hz = crate::stream::DEFAULT_POINT_HZ;
     let latency_points = crate::stream::raw::default_latency_points(point_hz);
+    let tcp_timeout_secs = -1.0;
     StreamConfig {
         detected_dac,
         point_hz,
         latency_points,
+        tcp_timeout_secs,
     }
 }
 
@@ -769,5 +1049,45 @@ fn detected_dac_from_ffi(ffi_dac: DetectedDac) -> crate::DetectedDac {
             broadcast,
             source_addr,
         }
+    }
+}
+
+fn stream_error_to_kind(err: &crate::StreamError) -> StreamErrorKind {
+    use crate::stream::raw::EtherDreamStreamError;
+    match *err {
+        crate::StreamError::EtherDreamStream { ref err } => match *err {
+            EtherDreamStreamError::FailedToDetectDacs { .. } => {
+                StreamErrorKind::EtherDreamFailedToDetectDacs
+            }
+            EtherDreamStreamError::FailedToConnectStream { .. } => {
+                StreamErrorKind::EtherDreamFailedToConnectStream
+            }
+            EtherDreamStreamError::FailedToPrepareStream { .. } => {
+                StreamErrorKind::EtherDreamFailedToPrepareStream
+            }
+            EtherDreamStreamError::FailedToBeginStream { .. } => {
+                StreamErrorKind::EtherDreamFailedToBeginStream
+            }
+            EtherDreamStreamError::FailedToSubmitData { .. } => {
+                StreamErrorKind::EtherDreamFailedToSubmitData
+            }
+            EtherDreamStreamError::FailedToSubmitPointRate { .. } => {
+                StreamErrorKind::EtherDreamFailedToSubmitPointRate
+            }
+            EtherDreamStreamError::FailedToStopStream { .. } => {
+                StreamErrorKind::EtherDreamFailedToStopStream
+            }
+        },
+    }
+}
+
+fn stream_error_to_attempts(err: &crate::StreamError) -> u32 {
+    use crate::stream::raw::EtherDreamStreamError;
+    match *err {
+        crate::StreamError::EtherDreamStream { ref err } => match *err {
+            EtherDreamStreamError::FailedToDetectDacs { attempts, .. }
+            | EtherDreamStreamError::FailedToConnectStream { attempts, .. } => attempts,
+            _ => 0,
+        },
     }
 }
