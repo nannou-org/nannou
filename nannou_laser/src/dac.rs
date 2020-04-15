@@ -169,15 +169,15 @@ fn detect_dacs_async_inner(
             });
 
             // Loop until we receive a close.
-            for msg in msg_rx {
+            'msgs: for msg in msg_rx {
                 if let DetectorThreadMsg::Close = msg {
                     is_closed.store(true, atomic::Ordering::Relaxed);
                     break;
                 }
-                if let Some(res) = detect_dacs.next() {
+                while let Some(res) = detect_dacs.next() {
                     if let Err(ref e) = res {
                         match e.kind() {
-                            io::ErrorKind::TimedOut | io::ErrorKind::WouldBlock => continue,
+                            io::ErrorKind::TimedOut | io::ErrorKind::WouldBlock => continue 'msgs,
                             _ => (),
                         }
                     }

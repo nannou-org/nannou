@@ -92,7 +92,8 @@ fn main() {
         let mut frame_stream_conf =
             std::mem::MaybeUninit::<nannou_laser::ffi::FrameStreamConfig>::uninit();
         nannou_laser::ffi::frame_stream_config_default(frame_stream_conf.as_mut_ptr());
-        let frame_stream_conf = frame_stream_conf.assume_init();
+        let mut frame_stream_conf = frame_stream_conf.assume_init();
+        frame_stream_conf.stream_conf.detected_dac = &dac as *const _;
         let callback_data: *mut CallbackData =
             Box::into_raw(Box::new(CallbackData { pattern: RECTANGLE }));
         let mut frame_stream = std::mem::MaybeUninit::<nannou_laser::ffi::FrameStream>::uninit();
