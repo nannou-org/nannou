@@ -8,6 +8,7 @@ pub use self::conv::IntoLinSrgba;
 pub use self::named::*;
 #[doc(inline)]
 pub use palette::*;
+use crate::ui::color;
 
 /// The default scalar value for working with color components, hues, etc.
 pub type DefaultScalar = f32;
@@ -105,6 +106,15 @@ where
     LinSrgba::new(r, g, b, a)
 }
 
+/// Create a new color from a hexadecimal int literal
+#[inline]
+pub fn rgb_u32(c: u32) -> color::Color {
+    let blue: u8 = (c & 0xFF) as u8;
+    let green: u8 = (( c >> 8 ) & 0xFF) as u8;
+    let red: u8 = (( c >> 16 ) & 0xFF) as u8;
+    color::rgb_bytes(red, green, blue)
+}
+
 /// A short-hand constructor for `Hsl::new(RgbHue::from_degrees(h * 360.0), s, l)`.
 ///
 /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
@@ -143,4 +153,9 @@ where
     T: Component,
 {
     srgb(g, g, g)
+}
+
+#[test]
+fn test_rgb_u32() {
+    assert_eq!(rgb_u32(0xFF8000), color::rgb_bytes(255, 128, 0));
 }
