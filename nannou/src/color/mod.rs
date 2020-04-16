@@ -6,9 +6,9 @@ pub mod conv;
 
 pub use self::conv::IntoLinSrgba;
 pub use self::named::*;
+use crate::ui::color;
 #[doc(inline)]
 pub use palette::*;
-use crate::ui::color;
 
 /// The default scalar value for working with color components, hues, etc.
 pub type DefaultScalar = f32;
@@ -110,8 +110,8 @@ where
 #[inline]
 pub fn rgb_u32(c: u32) -> color::Color {
     let blue: u8 = (c & 0xFF) as u8;
-    let green: u8 = (( c >> 8 ) & 0xFF) as u8;
-    let red: u8 = (( c >> 16 ) & 0xFF) as u8;
+    let green: u8 = ((c >> 8) & 0xFF) as u8;
+    let red: u8 = ((c >> 16) & 0xFF) as u8;
     color::rgb_bytes(red, green, blue)
 }
 
