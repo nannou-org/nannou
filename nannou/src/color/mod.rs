@@ -6,7 +6,6 @@ pub mod conv;
 
 pub use self::conv::IntoLinSrgba;
 pub use self::named::*;
-use crate::ui::color;
 #[doc(inline)]
 pub use palette::*;
 
@@ -108,11 +107,11 @@ where
 
 /// Create a new color from a hexadecimal int literal
 #[inline]
-pub fn rgb_u32(c: u32) -> color::Color {
+pub fn rgb_u32(c: u32) -> Rgb<u8> {
     let blue: u8 = (c & 0xFF) as u8;
     let green: u8 = ((c >> 8) & 0xFF) as u8;
     let red: u8 = ((c >> 16) & 0xFF) as u8;
-    color::rgb_bytes(red, green, blue)
+    rgb8(red, green, blue)
 }
 
 /// A short-hand constructor for `Hsl::new(RgbHue::from_degrees(h * 360.0), s, l)`.
@@ -157,5 +156,5 @@ where
 
 #[test]
 fn test_rgb_u32() {
-    assert_eq!(rgb_u32(0xFF8000), color::rgb_bytes(255, 128, 0));
+    assert_eq!(rgb_u32(0xFF8000), rgb8(255, 128, 0));
 }
