@@ -1,7 +1,7 @@
 **Tutorial Info**
 
 - Author: [madskjeldgaard](https://madskjeldgaard.dk)
-- Required Knowledge: [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md), [Drawing 2D Shapes](/tutorials/basics/drawing-2d-shapes.md), [OSC introduction](/tutorials/osc/osc-introduction.md)
+- Required Knowledge: [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md), [Drawing 2D Shapes](/tutorials/basics/drawing-2d-shapes.md), [OSC introduction](/tutorials/osc/osc-introduction.md), [Moving a circle about on the screen](/tutorials/tutorial/moving-a-circle-about.md), 
 - Reading Time: 20 minutes
 ---
 # Sending OSC
@@ -96,7 +96,7 @@ use nannou::prelude::*;
 use nannou_osc as osc;
 
 fn main() {
-    nannou::app(model).update(update).simple_window(view).run();
+    nannou::app(model).simple_window(view).run();
 }
 
 struct Model {
@@ -119,8 +119,6 @@ fn model(_app: &App) -> Model {
 
     Model { sender }
 }
-
-fn update(_app: &App, _model: &mut Model, _update: Update) {}
 
 fn view(app: &App, model: &Model, frame: Frame) {
     // Use app time to progress through a sine wave
@@ -153,3 +151,5 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 ```
+
+In the next tutorial we will take a look at how to receive our OSC values and do something interesting with them.

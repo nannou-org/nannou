@@ -32,7 +32,7 @@ fn view(app: &App, _model: &Model, frame: Frame) {
 ```
 ## Adding movement
 
-Let's now add some movement to our circle to give it life and make the data we want to transmit via OSC a bit more interesting.
+Let's now add some movement to our circle to give it a bit of life. 
 
 To do this, we will make use of the ever wonderful [sinewave](https://en.wikipedia.org/wiki/Sine_wave). 
 
@@ -44,11 +44,11 @@ Let's make another one but at half the speed by dividing the time value by two
 ```rust
 let slowersine = (app.time / 2.0).sin();
 ```
-Now we have two functions generating nice, smooth wave movements and we want to control our little circle using these.
+Now that we have two functions generating nice, smooth wave movements, let's use them to control our little circle.
 
-But we if we put these values in the (x,y)-coordinates of the `.x_y()`-method we used before we would not see much movement. That's because the sine waves generate values between -1.0 and 1.0 and the coordinates expect a pixel position.
+If we put these values directly in the ellipse's `.x_y()`-method we would not see much movement. That's because the sine waves generate values between -1.0 and 1.0 and the coordinates expect a pixel position.
 
-But how wide is the window the circle has been drawn in ? To get a precise idea of this, we can use a handy method called [window_rect](https://docs.rs/nannou/latest/nannou/app/struct.App.html#method.window_rect) which is available in the `app` variable.
+But how wide is our window ? To get a precise idea of this, we can use a handy method called [window_rect](https://docs.rs/nannou/latest/nannou/app/struct.App.html#method.window_rect) which is available in the `app` variable.
 
 ```rust
 let boundary = app.window_rect();
