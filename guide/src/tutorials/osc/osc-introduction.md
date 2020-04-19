@@ -23,4 +23,9 @@ The value in the quotes is the version of the OSC package. At the time of writin
 To get the latest version of the osc library, execute `cargo search nannou_osc` on the command line and read the resulting version from there.
 
 To use the crate in your nannou-projects you can add a use-statement at the top of your `main.rs` file to import the OSC-functionality.
-```use nannou_osc as osc;```
+```rust,no_run
+# #![allow(unused_imports)]
+# extern crate nannou;
+use nannou_osc as osc;
+# fn main() {}
+```
