@@ -36,7 +36,7 @@ Let's now add some movement to our circle to give it a bit of life.
 
 To do this, we will make use of the ever wonderful [sinewave](https://en.wikipedia.org/wiki/Sine_wave). 
 
-These can be generated like this in nannou by taking the progressed time of the application and feeding it to a sine function.
+These can be generated in nannou by taking the progressed time of the application and feeding it to a sine function.
 ```rust
 let sine = app.time.sin();
 ```
