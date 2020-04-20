@@ -26,6 +26,7 @@ To use the crate in your nannou-projects you can add a use-statement at the top 
 ```rust,no_run
 # #![allow(unused_imports)]
 # extern crate nannou;
+# extern crate nannou_osc;
 use nannou_osc as osc;
 # fn main() {}
 ```

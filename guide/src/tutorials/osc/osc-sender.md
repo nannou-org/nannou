@@ -15,13 +15,18 @@ We are going to write a simple program which has a circle moving about on the sc
 At the top of your `main.rs`-file, import the `nannou_osc` crate and make it available in your program via the shorthand `osc`
 
 ```rust, norun
+# #![allow(unused_imports)]
+# extern crate nannou_osc;
+# extern crate nannou;
 use nannou_osc as osc;
+# fn main(){}
 ```
 
 The first thing we then need to do is set up our OSC-sender in the `Model`-struct you may have seen in other nannou-tutorials. 
 Add a field to the struct called `sender` with a [Sender](https://docs.rs/nannou_osc/latest/nannou_osc/send/struct.Sender.html)-struct as the type input. 
 ```rust,no_run
 # #![allow(unused_imports)]
+# extern crate nannou_osc;
 # extern crate nannou;
 # use nannou_osc as osc;
 struct Model {
@@ -33,9 +38,13 @@ Next, we need to setup our `Model` struct using the `model` function. Don't worr
 
 ```rust,no_run
 # #![allow(unused_imports)]
+# extern crate nannou_osc;
 # extern crate nannou;
 # use nannou_osc as osc;
-
+# use nannou::prelude::*;
+# struct Model {
+#   sender: osc::Sender<osc::Connected>,
+# }
 fn model(_app: &App) -> Model {
     let port = 1234;
     let target_addr = format!("{}:{}", "127.0.0.1", port);
@@ -54,8 +63,7 @@ First, let's choose the network port that our data will be sent to.
 ```rust,no_run
 # fn main() {
 let port = 1234;
-#}
-
+# }
 ```
 The osc-sender expects a string in the format "address:port", for example `"127.0.0.1:1234"`.
 
@@ -63,22 +71,29 @@ The address can either be an internal address or the address of another computer
 
 ```rust,no_run
 # #![allow(unused_imports)]
+# extern crate nannou_osc;
 # extern crate nannou;
-# use nannou_osc as osc;
+# use nannou::prelude::*;
+# struct Model{}
 
+# use nannou_osc as osc;
 # fn main() {
-#let port = 1234;
+# let port = 1234;
 let target_addr = format!("{}:{}", "127.0.0.1", port);
-#}
+# }
 ```
 
-Lastly, we need to bind our OSC sender to the network socket. This isn't always successful, so we are attaching the `expect()`-method (read more about [expect here](https://doc.rust-lang.org/std/option/enum.Option.html#method.expect)) to post an error message if it is not successful. If it is successful, the `.connect(target_addr)`-method is used to connect the sender to the target address. Again, this may be unsuccesful so we use the `expect()`-method on the result of that operation as well.
+Lastly, we need to bind our OSC sender to the network socket. This isn't always successful, so we are attaching the `expect()`-method (read more about [expect here](https://doc.rust-lang.org/std/option/enum.Option.html# method.expect)) to post an error message if it is not successful. If it is successful, the `.connect(target_addr)`-method is used to connect the sender to the target address. Again, this may be unsuccesful so we use the `expect()`-method on the result of that operation as well.
 ```rust,no_run
 # #![allow(unused_imports)]
+# extern crate nannou_osc;
 # extern crate nannou;
+# use nannou::prelude::*;
 # use nannou_osc as osc;
-
-#fn model(_app: &App) -> Model {
+# struct Model {
+#   sender: osc::Sender<osc::Connected>,
+# }
+# fn model(_app: &App) -> Model {
 #    let port = 1234;
 #    let target_addr = format!("{}:{}", "127.0.0.1", port);
 #
@@ -88,7 +103,7 @@ Lastly, we need to bind our OSC sender to the network socket. This isn't always 
         .expect("Could not connect to socket at address");
 #
 #    Model { sender }
-#}
+# }
 # fn main() {}
 ```
 ### Sending OSC messages
@@ -97,9 +112,11 @@ An OSC packet consists of at least two components: An OSC address and 0 or more 
 
 To create an OSC packet, we first need to make an address.
 ```rust,no_run
+# #![allow(unused_imports)]
+# extern crate nannou;
 # fn main() {
 let osc_addr = "/circle/position".to_string();
-#}
+# }
 ```
 
 Then create a vector of arguments. These need to be formatted using the types found in [osc::Type](https://docs.rs/nannou_osc/latest/nannou_osc/enum.Type.html) in the nannou_osc crate. Below we create an argument list of two floating point values: the `x` and `y` coordinates of our circle.
@@ -107,43 +124,50 @@ Then create a vector of arguments. These need to be formatted using the types fo
 ```rust,no_run
 # #![allow(unused_imports)]
 # extern crate nannou;
+# extern crate nannou_osc;
 # use nannou_osc as osc;
-#
+# use nannou::prelude::*;
 # fn main() {
 # let x = 0.0;
 # let y = 0.0;
 let args = vec![osc::Type::Float(x), osc::Type::Float(y)];
 #
-#}
+# }
 
 ```
 Now, bringing these two things together we get an OSC packet. The sender expect these to be delivered in a tuple.
 
 ```rust,no_run
-#use nannou::prelude::*;
-#use nannou_osc as osc;
+# #![allow(unused_imports)]
+# extern crate nannou;
+# extern crate nannou_osc;
+# use nannou::prelude::*;
+# use nannou_osc as osc;
 #
 # fn main() {
-#let osc_addr = "/circle/position".to_string();
-#let args = vec![osc::Type::Float(x), osc::Type::Float(y)];
+# let x = 0.0;
+# let y = 0.0;
+# let osc_addr = "/circle/position".to_string();
+# let args = vec![osc::Type::Float(x), osc::Type::Float(y)];
 let packet = (osc_addr, args);
-#}
+# }
 ```
 
-[Reading the documentation](https://docs.rs/nannou_osc/latest/nannou_osc/send/struct.Sender.html#method.send-1) for the `send`-method, we can see that it returns a Result type which will either contain the number of bytes written (if it was successful) and, more importantly, some useful errors of type CommunicationError if it was not succesful. To discard the error part of this, we use the `ok()` method at the end. 
+[Reading the documentation](https://docs.rs/nannou_osc/latest/nannou_osc/send/struct.Sender.html# method.send-1) for the `send`-method, we can see that it returns a Result type which will either contain the number of bytes written (if it was successful) and, more importantly, some useful errors of type CommunicationError if it was not succesful. To discard the error part of this, we use the `ok()` method at the end. 
 ```rust,no_run
-#use nannou::prelude::*;
-#use nannou_osc as osc;
-#
-#fn main() {
+# #![allow(unused_imports)]
+# extern crate nannou;
+# use nannou::prelude::*;
+# use nannou_osc as osc;
+# fn main() {
 #    nannou::app(model).simple_window(view).run();
-#}
+# }
 #
-#struct Model {
+# struct Model {
 #    sender: osc::Sender<osc::Connected>,
-#}
+# }
 #
-#fn model(_app: &App) -> Model {
+# fn model(_app: &App) -> Model {
 #    let port = 1234;
 #    let target_addr = format!("{}:{}", "127.0.0.1", port);
 #    let sender = osc::sender()
@@ -152,9 +176,9 @@ let packet = (osc_addr, args);
 #        .expect("Could not connect to socket at address");
 #
 #    Model { sender }
-#}
+# }
 #
-#fn view(app: &App, model: &Model, frame: Frame) {
+# fn view(app: &App, model: &Model, frame: Frame) {
 #    let sine = app.time.sin();
 #    let slowersine = (app.time / 2.0).sin();
 #    let boundary = app.window_rect();
@@ -169,14 +193,16 @@ let packet = (osc_addr, args);
 #    draw.background().color(PLUM);
 #    draw.ellipse().color(STEELBLUE).x_y(x, y);
 #    draw.to_frame(app, &frame).unwrap();
-#}
+# }
 ```
 ## The finished app
 
 ```rust,no_run
+# #![allow(unused_imports)]
+# extern crate nannou;
+# extern crate nannou_osc;
 use nannou::prelude::*;
 use nannou_osc as osc;
-
 fn main() {
     nannou::app(model).simple_window(view).run();
 }
