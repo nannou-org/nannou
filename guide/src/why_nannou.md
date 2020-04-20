@@ -124,4 +124,4 @@ Further reading:
 * [Please read: Rust license changing (very slightly)](https://mail.mozilla.org/pipermail/rust-dev/2012-November/002664.html)
 * [Rationale of Apache dual licensing](https://internals.rust-lang.org/t/rationale-of-apache-dual-licensing/8952)
 * [Against what does the Apache 2.0 patent clause protect?](https://opensource.stackexchange.com/questions/1881/against-what-does-the-apache-2-0-patent-clause-protect)
-* [GPLv2 Combination Exception for the Apache 2 License]https://blog.gerv.net/2016/09/gplv2-combination-exception-for-the-apache-2-license/)
+* [GPLv2 Combination Exception for the Apache 2 License](https://blog.gerv.net/2016/09/gplv2-combination-exception-for-the-apache-2-license/)

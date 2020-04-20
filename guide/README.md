@@ -1,4 +1,4 @@
-# the nannou guide [![Build Status](https://travis-ci.org/nannou-org/guide.svg?branch=master)](https://travis-ci.org/nannou-org/guide)
+# the nannou guide
 
 The one-stop-shop for everything someone might want to know about nannou!
 
@@ -8,8 +8,8 @@ The easiest way to build, render and read the book is as follows:
 
 - Clone the repo.
   ```bash
-  git clone https://github.com/nannou-org/guide
-  cd guide
+  git clone https://github.com/nannou-org/nannou
+  cd nannou/guide
   ```
 - Install the [Rust markdown book](https://github.com/rust-lang-nursery/mdBook) tool.
   ```
