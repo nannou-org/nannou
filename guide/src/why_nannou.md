@@ -85,7 +85,7 @@ Rust is a language that is both highly expressive and blazingly fast. Here are
 some of the reasons why we choose to use it:
 
 - **Super fast**, as in [C and
-  C++ fast](https://benchmarksgame.alioth.debian.org/u64q/compare.php?lang=rust&lang2=gpp).
+  C++ fast](https://benchmarksgame-team.pages.debian.net/benchmarksgame/fastest/rust-gpp.html).
 - [**A standard package manager**](https://crates.io/) that makes it very
   easy to handle dependencies and share your own projects in seconds.
 - **Highly portable.** Easily build for MacOS, Linux, Windows, Android, iOS and

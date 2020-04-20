@@ -75,7 +75,7 @@ After this import the actual sketching code starts. The `main()` functions is wh
 # }
 # fn view(_app: &App, _frame: Frame) {}
 ```
-call a function to draw on the single window (`view()` in this case). This
+calls a function to draw on the single window (`view()` in this case). This
 function has the signature `fn(_: &App, _: Frame);`. Don't worry if you
 don't know what a function signature is. Just copy the `main()` function
 and you will be fine.
