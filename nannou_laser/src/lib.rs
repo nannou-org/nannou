@@ -5,6 +5,8 @@ pub extern crate ether_dream;
 pub mod dac;
 #[cfg(feature = "ffi")]
 pub mod ffi;
+#[cfg(feature = "ilda-idtf")]
+pub mod ilda_idtf;
 pub mod lerp;
 pub mod point;
 pub mod stream;
