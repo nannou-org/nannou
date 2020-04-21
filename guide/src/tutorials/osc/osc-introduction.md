@@ -1,11 +1,14 @@
+# An Intro to OSC
+
 **Tutorial Info**
 
 - Author: [madskjeldgaard](https://madskjeldgaard.dk)
-- Required Knowledge: [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md)
+- Required Knowledge:
+    - [Anatomy of a nannou App](/tutorials/basics/anatomy-of-a-nannou-app.md)
 - Reading Time: 5 minutes
 ---
 
-# OSC communication
+## What is OSC?
 
 Open Sound Control or [OSC](http://http://opensoundcontrol.org/) is a protocol for communicating between different pieces of software and/or computers. It is based on network technology and offers a flexible way to share control data between processes with a high level of precision, either internally on your local machine or through a network connection.
 

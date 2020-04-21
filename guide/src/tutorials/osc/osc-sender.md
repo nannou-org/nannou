@@ -1,8 +1,10 @@
+# Sending OSC
+
 **Tutorial Info**
 
 - Author: [madskjeldgaard](https://madskjeldgaard.dk)
 - Required Knowledge:
-    - [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md)
+    - [Anatomy of a nannou App](/tutorials/basics/anatomy-of-a-nannou-app.md)
     - [Drawing 2D Shapes](/tutorials/basics/drawing-2d-shapes.md)
     - [Moving a circle about on the screen](/tutorials/tutorial/moving-a-circle-about.md)
     - [OSC introduction](/tutorials/osc/osc-introduction.md)
@@ -10,15 +12,13 @@
 
 ---
 
-# Sending OSC
-
 In this tutorial we will cover how to send OSC data from a nannou app to another application using the `nannou_osc` crate.
 
 We are going to write a simple program which has a circle moving about on the screen while the circle's position is sent via OSC to another application. We will continue working on the app from [Moving a circle about on the screen](/tutorials/basics/moving-a-circle-about.md).
 
 ## Setting up an OSC sender
 
-At the top of your `main.rs`-file, import the `nannou_osc` crate and make it available in your program via the shorthand `osc`
+At the top of your `main.rs`-file, import the `nannou_osc` crate and make it available in your program via the shorthand `osc`.
 
 ```rust, norun
 # #![allow(unused_imports)]

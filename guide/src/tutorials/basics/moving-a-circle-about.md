@@ -1,7 +1,12 @@
+# Animating a Circle
+
 **Tutorial Info**
 
 - Author: [madskjeldgaard](https://madskjeldgaard.dk)
-- Required Knowledge: [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md), [Drawing 2D Shapes](/tutorials/basics/drawing-2d-shapes.md)
+- Required Knowledge:
+    - [Getting Started](/getting_started.md)
+    - [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md)
+    - [Drawing 2D Shapes](/tutorials/basics/drawing-2d-shapes.md)
 - Reading Time: 10 minutes
 ---
 
