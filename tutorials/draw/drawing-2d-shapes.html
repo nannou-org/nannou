@@ -1,0 +1,463 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Draw - 2D Shapes - The Nannou Guide</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A one-stop shop for Nannou Knowledge!">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../welcome.html">Welcome!</a></li><li class="chapter-item expanded "><a href="../../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="chapter-item expanded "><a href="../../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="chapter-item expanded "><a href="../../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="chapter-item expanded "><a href="../../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="chapter-item expanded "><a href="../../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="chapter-item expanded "><a href="../../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="chapter-item expanded "><a href="../../getting_started/updating.html"><strong aria-hidden="true">2.6.</strong> Updating Nannou and Rust</a></li></ol></li><li class="chapter-item expanded "><a href="../../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="chapter-item expanded "><a href="../../tutorials/basics/draw-a-sketch.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing a Sketch</a></li><li class="chapter-item expanded "><a href="../../tutorials/basics/sketch-vs-app.html"><strong aria-hidden="true">3.3.</strong> Basics - Sketch vs App</a></li><li class="chapter-item expanded "><a href="../../tutorials/draw/drawing-2d-shapes.html" class="active"><strong aria-hidden="true">3.4.</strong> Draw - 2D Shapes</a></li><li class="chapter-item expanded "><a href="../../tutorials/draw/animating-a-circle.html"><strong aria-hidden="true">3.5.</strong> Draw - Animating a Circle</a></li><li class="chapter-item expanded "><a href="../../tutorials/osc/osc-introduction.html"><strong aria-hidden="true">3.6.</strong> OSC - Introduction</a></li><li class="chapter-item expanded "><a href="../../tutorials/osc/osc-sender.html"><strong aria-hidden="true">3.7.</strong> OSC - Sending OSC</a></li></ol></li><li class="chapter-item expanded "><a href="../../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="chapter-item expanded "><a href="../../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="chapter-item expanded "><a href="../../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="chapter-item expanded affix "><a href="../../changelog.html">Changelog</a></li><li class="chapter-item expanded affix "><a href="../../contributors.html">Contributors</a></li><li class="chapter-item expanded affix "><a href="../../code_of_conduct.html">Code of Conduct</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">The Nannou Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#drawing-2d-shapes" id="drawing-2d-shapes">Drawing 2D Shapes</a></h1>
+<p><strong>Tutorial Info</strong></p>
+<ul>
+<li>Author: Seth Boyles</li>
+<li>Required Knowledge:
+<ul>
+<li><a href="/getting_started.html">Getting Started</a></li>
+<li><a href="./draw-a-sketch.html">Draw a Sketch</a></li>
+</ul>
+</li>
+<li>Reading Time: 20 minutes</li>
+</ul>
+<hr />
+<p>In this tutorial we explore drawing 2D shapes with nannou. We will cover drawing
+basic lines, simple polygons (e.g. ellipses, rectangles, etc.), and more complex
+polygons where you can create whatever shape you'd like!</p>
+<p>To begin with, we will need a nannou project file to work with. Copy the
+following into new file:</p>
+<pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
+
+fn main() {
+    nannou::sketch(view).run();
+}
+
+fn view(app: &amp;App, frame: Frame) {
+    // Prepare to draw.
+    let draw = app.draw();
+
+    // Clear the background to purple.
+    draw.background().color(PLUM);
+
+    // Draw a blue ellipse with default size and position.
+    draw.ellipse().color(STEELBLUE);
+
+    // Write to the window frame.
+    draw.to_frame(app, &amp;frame).unwrap();
+}
+</code></pre></pre>
+<p>You can also find this file, and other useful examples, in the <a href="https://github.com/nannou-org/nannou/tree/master/examples">examples</a> directory of the nannou source repository.</p>
+<h2><a class="header" href="#drawing-simple-shapes" id="drawing-simple-shapes">Drawing Simple Shapes</a></h2>
+<p>Let's try running the file!  (if you haven't already, you will need to add this file to your Cargo.toml file)</p>
+<p>You should a new window with something that looks like this:</p>
+<p><img src="./images/2d-shape-circle.png" alt="A simple circle" /></p>
+<p>Already we are rendering a circle to our canvas.  As you may have guessed, the line of code responsible for creating a circle is the call to the <code>ellipse</code> function:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>draw.ellipse()
+    .color(STEELBLUE);
+<span class="boring">}
+</span></code></pre></pre>
+<p>There are many ways we can alter our circle here.  Let's start with changing the size:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>draw.ellipse()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0);
+<span class="boring">}
+</span></code></pre></pre>
+<p>The <code>w</code> function here changes the width of the ellipse to 300 pixels, and the <code>h</code> function changes the height to 200.0 pixels. You should see what we would more colloquially refer to as an ellipse.</p>
+<p>We can also change the position of our ellipse with the <code>x_y</code> method:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>draw.ellipse()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0)
+    .x_y(200.0, -100.0);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/2d-shape-ellipse.png" alt="An ellipse" /></p>
+<p>As you can see, we edit our ellipse by chaining together different methods which will change one or more properties of our shape.  This is called the <strong>Builder</strong> pattern.  The call to <code>draw.ellipse()</code> returns an object of type <code>Drawing&lt;Ellipse&gt;</code>.  In turn, each call to a builder method, such as <code>w(300.0)</code> or <code>x_y(200.0, -100.0)</code>, returns the same instance of our shape. By chaining these function calls, we are able to build an ellipse with the attributes we want.</p>
+<p>There are several more methods we can use to build our ellipse. You can view the documentation for many of these methods <a href="https://docs.rs/nannou/latest/nannou/draw/struct.Drawing.html">here</a>.</p>
+<h3><a class="header" href="#drawing-rectangles-and-quadrilaterals" id="drawing-rectangles-and-quadrilaterals">Drawing Rectangles and Quadrilaterals</a></h3>
+<p>Drawing a square or rectangle uses the same builder pattern that drawing an ellipse does.  In fact, it's similar enough that you can swap out <code>ellipse</code> with <code>rect</code> in the example above to get a working example:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>draw.rect()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0);
+<span class="boring">}
+</span></code></pre></pre>
+<p>You will see an image like this:</p>
+<p><img src="./images/2d-shape-rect.png" alt="A rectangle" /></p>
+<p>In addition to <code>rect</code>, you can also use the <code>quad</code> method, which is for drawing quadrilaterals. This function is similar to <code>rect</code>, but you can also choose to supply your own coordinates for your shape.  Try the following:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>let point1 = pt2(-10.0, -20.0);
+let point2 = pt2(10.0, -30.0);
+let point3 = pt2(15.0, 40.0);
+let point4 = pt2(-20.0, 35.0);
+
+draw.quad()
+    .color(STEELBLUE)
+    .w(300.0)
+    .h(200.0)
+    .points(point1, point2, point3, point4);
+<span class="boring">}
+</span></code></pre></pre>
+<p>You should see the following:</p>
+<p><img src="./images/2d-shape-quad.png" alt="A quadrilateral with custom defined points" /></p>
+<p>The <code>pt2</code> method above will create a point object that represents a point in XY coordinate space, like a graph or a Cartesian plane. nannou's coordinate system places (0,0) at the center of the window. This is <strong>not</strong> like many other graphical creative coding frameworks, which place (0,0) at the upper-leftmost position of the window.</p>
+<p>Note that while the <code>Drawing</code> builder objects for different shapes share many of the same builder methods, they do not share all of them.  Trying to use the method <code>points</code> on an instance of an <code>Drawing&lt;Ellipse&gt;</code>, for example, will raise an error.</p>
+<h3><a class="header" href="#drawing-a-triangle" id="drawing-a-triangle">Drawing a Triangle</a></h3>
+<p>Additionally, there is one more simple shape method: <code>tri</code>, for drawing triangles.  It behaves similarly to <code>quad</code>, where you can supply your own coordinates to decide how the shape looks.  Try it out!</p>
+<p><img src="./images/2d-shape-tri.png" alt="A triangle" /></p>
+<h2><a class="header" href="#drawing-lines" id="drawing-lines">Drawing Lines</a></h2>
+<p>The <code>line</code> function provides a simple way to draw a line:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>let start_point = pt2(-30.0, -20.0);
+let end_point   = pt2(40.0, 40.0);
+
+draw.line()
+    .start(start_point)
+    .end(end_point)
+    .weight(4.0)
+    .color(STEELBLUE);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/2d-simple-line.png" alt="A simple line" /></p>
+<p>Simply provide a starting point and an ending point, and you have your line.</p>
+<p>This is great for simpler drawings, but what if you want to draw something more complicated? A sine wave, for instance.</p>
+<p>To draw our sine wave, we will use the <code>polyline</code> function.  To use this function, we will supply a collection (or array) of points that represent points on a sine wave.  We can generate this array of points using—what else—the <code>sin</code> function!</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>let points = (0..50).map(|i| {
+  let x = i as f32 - 25.0;          //subtract 25 to center the sine wave
+  let point = pt2(x, x.sin()) * 20.0; //scale sine wave by 20.0
+  (point, STEELBLUE)
+});
+draw.polyline()
+    .weight(3.0)
+    .points_colored(points);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/2d-simple-polyline.png" alt="A sine wave polyline drawing" /></p>
+<p>As you can see, the power of <code>polyline</code> is the ability to draw a series of lines
+connecting and ordered array of points.  With this, you can easily draw a
+variety of shapes or lines, so long as you can provide or generate the points
+you need to represent that shape.</p>
+<p>For example, a circle:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>// Store the radius of the circle we want to make.
+let radius = 150.0;
+// Map over an array of integers from 0 to 360 to represent the degrees in a circle.
+let points = (0..=360).map(|i| {
+    // Convert each degree to radians.
+    let radian = deg_to_rad(i as f32);
+    // Get the sine of the radian to find the x co-ordinate of this point of the circle
+    // and multiply it by the radius.
+    let x = radian.sin() * radius;
+    // Do the same with cosine to find the y co-ordinate.
+    let y = radian.cos() * radius;
+    // Construct and return a point object with a color.
+    (pt2(x,y), STEELBLUE)
+});
+// Create a polyline builder. Hot-tip: polyline is short-hand for a path that is
+// drawn via &quot;stroke&quot; tessellation rather than &quot;fill&quot; tessellation.
+draw.polyline()
+    .weight(3.0)
+    .points_colored(points); // Submit our points.
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/2d-custom-circle-outline.png" alt="A custom circle" /></p>
+<p>A custom drawn circle! ...okay, perhaps this isn't too exciting, given that we
+already have an easy way of drawing circles with <code>ellipse</code>. But with a simple
+change to the above code we can generate an outline of a different shape. Let's
+try using the <code>step_by</code> function, which allows us to choose the interval at
+which we would like to step through a range or other iterator. So instead of
+calling <code>(0..=360).map</code>, we will call <code>(0..=360).step_by(45).map</code>:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
+</span><span class="boring">fn main() {
+</span>let points = (0..=360).step_by(45).map(|i| {
+<span class="boring">    0.0
+</span><span class="boring">});
+</span><span class="boring">}
+</span></code></pre></pre>
+<p>The rest of our code will remain unchanged.</p>
+<p>Because 45 divides into 360 eight times, our code generated 8 points to represent a regular octagon.</p>
+<p><img src="./images/2d-complete-octogon-outline.png" alt="An octagon outline" /></p>
+<p>An octagon!</p>
+<p>Try experimenting with different values to pass into <code>step_by</code> and see the
+different shapes you can create!</p>
+<p>As a side note, you may have noticed that we did not use a <code>color</code> function to
+set the drawing's color this time. Instead, <code>polyline</code> allows for each point to
+be colored uniquely. This means that you can change the color of the polyline
+point-by-point. Try experimenting with it!</p>
+<h2><a class="header" href="#drawing-custom-polygons" id="drawing-custom-polygons">Drawing Custom Polygons</a></h2>
+<p>To draw a custom filled-in polygon (and not just an outline), will we use code
+very similar to our custom circle or octagon code. The main difference is that
+instead of calling <code>polyline</code> to create a Builder, we call <code>polygon</code>:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>let radius = 150.0;
+let points = (0..=360).step_by(45).map(|i| {
+    let radian = deg_to_rad(i as f32);
+    let x = radian.sin() * radius;
+    let y = radian.cos() * radius;
+    (pt2(x,y), STEELBLUE)
+});
+draw.polygon()
+    .points_colored(points);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/2d-custom-octogon-polygon.png" alt="An octagon" /></p>
+<h2><a class="header" href="#concluding-remarks" id="concluding-remarks">Concluding Remarks</a></h2>
+<p>In this tutorial, we learned about most basic 2D drawing functions with nannou.</p>
+<p>You can view the documentation for the different <code>Drawing</code> objects these return
+here:</p>
+<ul>
+<li><a href="https://docs.rs/nannou/latest/nannou/draw/primitive/ellipse/struct.Ellipse.html">Ellipse</a></li>
+<li><a href="https://docs.rs/nannou/latest/nannou/draw/primitive/rect/struct.Rect.html">Rect</a></li>
+<li><a href="https://docs.rs/nannou/latest/nannou/draw/primitive/quad/struct.Quad.html">Quad</a></li>
+<li><a href="https://docs.rs/nannou/latest/nannou/draw/primitive/tri/struct.Tri.html">Tri</a></li>
+<li><a href="https://docs.rs/nannou/latest/nannou/draw/primitive/path/type.PathStroke.html">Polyline (or PathStroke)</a></li>
+<li><a href="https://docs.rs/nannou/latest/nannou/draw/primitive/polygon/struct.Polygon.html">Polygon</a></li>
+</ul>
+<p>These links provide more information about other functions you can use to change
+your drawings in a variety of ways.</p>
+<p>You have now learned about some of the most commonly used functions for 2D
+drawing with nannou. Of course, this is just scratching the surface of ways in
+which you can generate shapes or polygons with nannou, but it should serve as a
+solid starting point in creating your own drawings.</p>
+<p>Happy coding!</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../tutorials/basics/sketch-vs-app.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../tutorials/draw/animating-a-circle.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../tutorials/basics/sketch-vs-app.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../tutorials/draw/animating-a-circle.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

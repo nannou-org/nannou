@@ -1,0 +1,382 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Basics - Sketch vs App - The Nannou Guide</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A one-stop shop for Nannou Knowledge!">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../welcome.html">Welcome!</a></li><li class="chapter-item expanded "><a href="../../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="chapter-item expanded "><a href="../../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="chapter-item expanded "><a href="../../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="chapter-item expanded "><a href="../../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="chapter-item expanded "><a href="../../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="chapter-item expanded "><a href="../../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="chapter-item expanded "><a href="../../getting_started/updating.html"><strong aria-hidden="true">2.6.</strong> Updating Nannou and Rust</a></li></ol></li><li class="chapter-item expanded "><a href="../../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="chapter-item expanded "><a href="../../tutorials/basics/draw-a-sketch.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing a Sketch</a></li><li class="chapter-item expanded "><a href="../../tutorials/basics/sketch-vs-app.html" class="active"><strong aria-hidden="true">3.3.</strong> Basics - Sketch vs App</a></li><li class="chapter-item expanded "><a href="../../tutorials/draw/drawing-2d-shapes.html"><strong aria-hidden="true">3.4.</strong> Draw - 2D Shapes</a></li><li class="chapter-item expanded "><a href="../../tutorials/draw/animating-a-circle.html"><strong aria-hidden="true">3.5.</strong> Draw - Animating a Circle</a></li><li class="chapter-item expanded "><a href="../../tutorials/osc/osc-introduction.html"><strong aria-hidden="true">3.6.</strong> OSC - Introduction</a></li><li class="chapter-item expanded "><a href="../../tutorials/osc/osc-sender.html"><strong aria-hidden="true">3.7.</strong> OSC - Sending OSC</a></li></ol></li><li class="chapter-item expanded "><a href="../../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="chapter-item expanded "><a href="../../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="chapter-item expanded "><a href="../../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="chapter-item expanded affix "><a href="../../changelog.html">Changelog</a></li><li class="chapter-item expanded affix "><a href="../../contributors.html">Contributors</a></li><li class="chapter-item expanded affix "><a href="../../code_of_conduct.html">Code of Conduct</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">The Nannou Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#basics---sketch-vs-app" id="basics---sketch-vs-app">Basics - <code>sketch</code> vs <code>app</code></a></h1>
+<p><strong>Tutorial Info</strong></p>
+<ul>
+<li>Author: mitchmindtree</li>
+<li>Required Knowledge:
+<ul>
+<li><a href="/getting_started.html">Getting Started</a></li>
+</ul>
+</li>
+<li>Reading Time: 7 minutes</li>
+</ul>
+<hr />
+<p>When creating a new nannou project we have two options for kicking off our
+program:</p>
+<ol>
+<li><code>nannou::sketch</code> and</li>
+<li><code>nannou::app</code>.</li>
+</ol>
+<p>Let's find out exactly what the differences are!</p>
+<blockquote>
+<p><strong>Note:</strong> When referring to <em>app</em> throughout this tutorial, we are referring to
+a nannou project that is run via <code>nannou::app</code>. We are <em>not</em> referring to the
+<code>App</code> type that often appears as the first argument in nannou functions.
+Hopefully we can point to an <code>App</code> oriented tutorial some day soon!</p>
+</blockquote>
+<h2><a class="header" href="#sketches" id="sketches">Sketches</a></h2>
+<p><strong>Sketches</strong> are perfect for quick doodles and casual creations. They only
+require a simple <code>view</code> function designed to make it easy to start drawing
+quickly and easily.</p>
+<p>Here is what the <a href="https://github.com/nannou-org/nannou/blob/master/examples/templates/template_sketch.rs">sketch
+template</a>
+looks like:</p>
+<pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
+
+fn main() {
+    nannou::sketch(view).run()
+}
+
+fn view(app: &amp;App, frame: Frame) {
+    let draw = app.draw();
+    draw.background().color(PLUM);
+    draw.ellipse().color(STEELBLUE);
+    draw.to_frame(app, &amp;frame).unwrap();
+}
+</code></pre></pre>
+<p>While you cannot update or track any custom state, we still have access to
+plenty of fun inputs including time, the state of the keyboard, mouse and more.</p>
+<h2><a class="header" href="#apps" id="apps">Apps</a></h2>
+<p><strong>Apps</strong> are better suited to more sophisticated artworks or even fully fledged
+applications. They allow for greater flexibility and finer grained control than
+sketches, but also require a little more setup.</p>
+<p>Here is what the <a href="https://github.com/nannou-org/nannou/blob/master/examples/templates/template_app.rs">app
+template</a>
+looks like:</p>
+<pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
+
+fn main() {
+    nannou::app(model).update(update).run();
+}
+
+struct Model {
+    _window: window::Id,
+}
+
+fn model(app: &amp;App) -&gt; Model {
+    let _window = app.new_window().view(view).build().unwrap();
+    Model { _window }
+}
+
+fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {}
+
+fn view(app: &amp;App, _model: &amp;Model, frame: Frame) {
+    let draw = app.draw();
+    draw.background().color(PLUM);
+    draw.ellipse().color(STEELBLUE);
+    draw.to_frame(app, &amp;frame).unwrap();
+}
+</code></pre></pre>
+<p>More specifically, the primary difference is that an app allows for working with
+custom <em><strong>state</strong></em> (i.e. the <code>Model</code>), whereas a sketch does not.</p>
+<blockquote>
+<p><em><strong>Hot tip!</strong></em></p>
+<p>The line:</p>
+<pre><code class="language-rust ignore">nannou::sketch(view).run()
+</code></pre>
+<p>is simply short-hand for</p>
+<pre><code class="language-rust ignore">nannou::app(model).simple_window(view).run()
+</code></pre>
+<p>except without the need for <code>model</code> and with a slightly simpler <code>view</code> function.</p>
+</blockquote>
+<h2><a class="header" href="#switching-from-sketch-to-app" id="switching-from-sketch-to-app">Switching from <code>sketch</code> to <code>app</code></a></h2>
+<p>In the end it does not make a great deal of difference what you choose, you can
+always switch from one to the other in the middle of a project!</p>
+<p>If your sketch is getting particularly fancy and you would like to add some more
+flexibility, you can turn it into an app by following these steps:</p>
+<ol>
+<li>
+<p>Change your <code>main</code> function from</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span>nannou::sketch(view).run()
+<span class="boring">}
+</span><span class="boring">fn view(_: &amp;App, _: Frame) {}
+</span></code></pre></pre>
+<p>to</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span>nannou::app(model).simple_window(view).run()
+<span class="boring">}
+</span><span class="boring">struct Model {}
+</span><span class="boring">fn model(_: &amp;App) -&gt; Model { Model {} }
+</span><span class="boring">fn view(_: &amp;App, _: &amp;Model, _: Frame) {}
+</span></code></pre></pre>
+</li>
+<li>
+<p>Add a <code>Model</code> for tracking state:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+</span><span class="boring">fn main() {}
+</span>struct Model {}
+</code></pre></pre>
+</li>
+<li>
+<p>Add a <code>model</code> function for creating the <code>Model</code>:</p>
+<pre><pre class="playpen"><code class="language-rust no_Run"><span class="boring">#![allow(dead_code)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {}
+</span><span class="boring">struct Model {}
+</span>fn model(_app: &amp;App) -&gt; Model {
+    Model {}
+}
+</code></pre></pre>
+</li>
+<li>
+<p>Change the <code>view</code> function signature from:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {}
+</span>fn view(app: &amp;App, frame: Frame) {
+<span class="boring">}
+</span></code></pre></pre>
+<p>to</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {}
+</span><span class="boring">struct Model {}
+</span>fn view(app: &amp;App, _model: &amp;Model, frame: Frame) {
+<span class="boring">}
+</span></code></pre></pre>
+</li>
+</ol>
+<p>And that's it! You are now ready to take your sketch to the next level.</p>
+<h2><a class="header" href="#overview" id="overview">Overview</a></h2>
+<table><thead><tr><th></th><th><strong>Sketch</strong></th><th><strong>App</strong></th></tr></thead><tbody>
+<tr><td>Easier to start drawing quickly?</td><td>Yes</td><td>No</td></tr>
+<tr><td>Allows for a <code>Model</code>?</td><td>No</td><td>Yes</td></tr>
+<tr><td>Allows for  audio/LASER/MIDI/etc?</td><td>No</td><td>Yes</td></tr>
+<tr><td>The <code>main</code> function looks like:</td><td><code>nannou::sketch(view)</code></td><td><code>nannou::app(model)</code></td></tr>
+<tr><td>Templates</td><td><a href="https://github.com/nannou-org/nannou/blob/master/examples/templates/template_sketch.rs">template_sketch.rs</a></td><td><a href="https://github.com/nannou-org/nannou/blob/master/examples/templates/template_app.rs">template_app.rs</a></td></tr>
+<tr><td>Can make awesome stuff?</td><td>Yes</td><td>Yes</td></tr>
+</tbody></table>
+<p>To learn more about nannou <strong>sketches</strong> visit the <a href="/tutorials/basics/draw-a-sketch.html">Draw a sketch</a> tutorial.</p>
+<p>To learn more about nannou <strong>apps</strong> visit the <a href="/tutorials/basics/anatomy-of-a-nannou-app.html">Anatomy of a nannou app</a> tutorial.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../tutorials/basics/draw-a-sketch.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../tutorials/draw/drawing-2d-shapes.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../tutorials/basics/draw-a-sketch.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../tutorials/draw/drawing-2d-shapes.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
