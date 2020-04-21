@@ -7,12 +7,11 @@ fn main() {
 }
 
 struct Model {
-    // Store the window ID so we can refer to this specific window later if needed.
     texture: wgpu::Texture,
 }
 
 fn model(app: &App) -> Model {
-    // Create a new window! Store the ID so we can refer to it later.
+    // Create a new window!
     app.new_window().size(512, 512).view(view).build().unwrap();
     // Load the image from disk and upload it to a GPU texture.
     let assets = app.assets_path().unwrap();
