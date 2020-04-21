@@ -36,18 +36,6 @@ fn view(app: &App, frame: Frame) {
 
 You can exit the sketch by pressing `ESC`.
 
-## Sidenote: Sketches vs. Apps
-
-Nannou can be used to create many things with very different levels of
-complexity, similar to pen and paper. Sketches are more like squiggles on
-napkins while apps can be really elaborate artworks or fully fledged
-applications. Sketches offer a constrained space to work with, but a lot is
-taken care of behind the scenes. Apps allow for more fine grained control, but
-also require a little more setup on your part. The main difference is that an
-app provides a model for working with state, while a sketch provides a simpler
-API to get drawing quickly. A good overview of how apps work can be found in the
-chapter [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md).
-
 ## Explaining the Code
 
 A sketch consists of at least two functions: `main()` and `view()`.
@@ -135,5 +123,8 @@ draw.to_frame(app, &frame).unwrap();
 # }
 ```
 
-Note that the `view()` function is called repeatedly, but not at a constant
-rate. This might be problematic if you use randomness to draw things.
+If you find the desire to respond to other kinds of events, interact with other
+kinds of input/output, track some state, or need more flexibility in general,
+you might be interested in creating a [nannou app](./anatomy-of-a-nannou-app.md)
+instead! You can also learn more about the difference between sketches and apps
+[here](http://localhost:3000/tutorials/basics/sketch-vs-app.html).

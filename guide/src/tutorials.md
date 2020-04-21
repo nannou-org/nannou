@@ -4,10 +4,10 @@ In the previous chapter we prepared everything needed to start our own Nannou
 project! In this chapter, we will take a more focused look at all of the
 different features we can add to our Nannou project.
 
-If you are new to Nannou or Rust we recommend starting with the first tutorial
-before going on. If you are feeling more confident, feel free to choose your own
-adventure through the following tutorials depending on what you want to add to
-your project!
+If you are new to Nannou or Rust we recommend starting with the "Basics"
+tutorials before going on. If you are feeling more confident, feel free to
+choose your own adventure through the following tutorials depending on what you
+want to add to your project!
 
 
 ## Rust Basics
@@ -21,11 +21,11 @@ Tutorials for learning the basics of Rust with nannou.
 
 ## Nannou Basics
 
-A suite of tutorials for getting familiar with Rust and the Nannou environment.
+A suite of tutorials for getting familiar with the Nannou environment.
 
-- App vs. Sketch
 - [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md)
 - [Drawing a sketch](/tutorials/basics/draw-a-sketch.md)
+- [App vs. Sketch](/tutorials/basics/app-vs-sketch.md)
 - Nannou events
 
 ## Drawing
@@ -124,6 +124,9 @@ Working with Serial data in a cross-platform manner.
 - Reading USB serial data.
 - Writing USB serial data.
 
+<br>
+
+---
 
 If you were unable to find what you were looking for above, or if you have an
 idea for a tutorial not yet present, please feel free to create an issue or a

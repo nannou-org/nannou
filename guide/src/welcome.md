@@ -10,8 +10,9 @@ have something for you!
 As excited as we are about developing tools for creative coding, we are equally
 excited about fostering a warm, welcoming and inclusive community. Please make
 yourself familiar with our [Code of Conduct](/code_of_conduct.md) and feel free
-to join us on [the Nannou
-Slack](https://communityinviter.com/apps/nannou/nannou-slack)!
+to join us on the Nannou
+[Slack](https://communityinviter.com/apps/nannou/nannou-slack) or
+[Matrix](https://matrix.to/#/+nannou:matrix.org) community.
 
 ### [Why Nannou?](/why_nannou.md)
 
