@@ -16,12 +16,14 @@ A suite of tutorials for getting familiar with Rust and the Nannou environment.
 
 - [Drawing a sketch](/tutorials/basics/draw-a-sketch.md)
 - [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md)
+- [Moving a circle about on the screen](./tutorials/basics/moving-a-circle-about.md)
+
 - Nannou events
 - Rust variables
 - Rust conditions
 - Rust loops
 - Rust functions
-
+	
 ## Drawing
 
 Working with Nannou's `Draw` API - a simple approach of coding graphics.
@@ -96,7 +98,8 @@ Detecting and outputting to LASER DACs on a network.
 
 ## OSC
 
-- Setting up an OSC sender.
+- [OSC - introduction](/tutorials/osc/osc-introduction.md)
+- [OSC - sending OSC](/tutorials/osc/osc-sender.md)
 - Setting up an OSC receiver.
 
 ## DMX
