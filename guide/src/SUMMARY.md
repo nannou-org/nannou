@@ -13,6 +13,7 @@
 - [Tutorials](./tutorials.md)
     - [Basics - Anatomy of a Nannou App](./tutorials/basics/anatomy-of-a-nannou-app.md)
     - [Basics - Drawing a Sketch](./tutorials/basics/draw-a-sketch.md)
+    - [Basics - Sketch vs App](./tutorials/basics/sketch-vs-app.md)
     - [Draw - 2D Shapes](./tutorials/draw/drawing-2d-shapes.md)
     - [Draw - Animating a Circle](./tutorials/draw/animating-a-circle.md)
     - [OSC - Introduction](./tutorials/osc/osc-introduction.md)
