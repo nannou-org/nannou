@@ -160,7 +160,7 @@ And the maximum x value is
 # fn event(_app: &App, _model: &mut Model, _event: Event) {}
 # fn view(app: &App, _model: &Model, _frame: Frame) {
 # let boundary = app.window_rect();
-boundary.left(); 
+boundary.right(); 
 # }
 ```
 
