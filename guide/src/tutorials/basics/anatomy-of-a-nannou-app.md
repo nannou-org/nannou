@@ -3,31 +3,20 @@
 **Tutorial Info**
 
 - Author: tpltnt, mitchmindtree
-- Required Knowledge: [Getting Started](/getting_started.md)
+- Required Knowledge:
+    - [Getting Started](/getting_started.md)
 - Reading Time: 10 minutes
 
 ---
 
 
 **Nannou is a framework for creative coding in Rust.** A framework can be
-thought of as a collection of building blocks to help accomplish a goal.
-
-If romance stories were frameworks, then you might have the protagonist, their
-love interest, some struggles, and a happy ending as the building blocks. All of
-these need to be fleshed out by the author, but using clichés help to tell a
-story without having to introduce everyone and everything in excruciating
-detail. If the author wants to tell a horror story, then the clichés of a
-romance story aren't very helpful.
-
-In the same way you can use nannou to create programs for artistic expression,
-but you might find it hard to build an office suite. So let's take a look at the
-building blocks for creative coding together.
+thought of as a collection of building blocks that help accomplish a goal.
+Let's take a look at the building blocks for creative coding together.
 
 Here's an example of a bare-bones nannou app that opens an empty window:
 
 ```rust,no_run
-# extern crate nannou;
-#
 use nannou::prelude::*;
 
 struct Model {}
@@ -56,7 +45,6 @@ We will start from the top!
 
 ```rust,no_run
 # #![allow(unused_imports)]
-# extern crate nannou;
 use nannou::prelude::*;
 # fn main() {}
 ```
@@ -96,7 +84,6 @@ model can stay empty.
 ## **main** - Where Rust programs begin and end
 
 ```rust,no_run
-# extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
 fn main() {
@@ -119,7 +106,6 @@ when the `main` function ends. In most nannou programs, the main function is
 quite small. In short, we build a description of our app and then run it!
 
 ```rust,no_run
-# extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
 # fn main() {
@@ -154,17 +140,15 @@ below!
 > - a **controller** describing how to update the model on certain events.
 >
 > If you zoom out a bit you can think of the computer as a model, the screen as
-> a view (the audio output could also be thought of as a view), and the keyboard
-> (or mouse) as the controller. A user looks at the view and can change the
-> state of the model using the controller. If a program does not require user
-> input, the controller might use an algorithm based on time or some other
+> a view, and the keyboard or mouse as the controller. A user looks at the view
+> and can change the state of the model using the controller. If a program does
+> not require *user* input, the controller might use time or some other
 > application event to modify the model.
 
 ## **model** - initialise our Model
 
 ```rust,no_run
 # #![allow(dead_code)]
-# extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
 fn model(_app: &App) -> Model {
@@ -191,7 +175,6 @@ will just return an instance of our empty **Model**.
 >
 > ```rust,no_run
 > # #![allow(dead_code)]
-> # extern crate nannou;
 > # use nannou::prelude::*;
 > # struct Model {}
 > //                ----- Access to the `App` passed as an input to the function.
@@ -210,7 +193,6 @@ will just return an instance of our empty **Model**.
 
 ```rust,no_run
 # #![allow(dead_code)]
-# extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
 fn event(_app: &App, _model: &mut Model, _event: Event) {
@@ -239,7 +221,6 @@ our app building code to this:
 
 ```rust,no_run
 # #![allow(dead_code)]
-# extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
 fn main() {
@@ -261,7 +242,6 @@ And remove our `event` function in favour of an `update` function:
 
 ```rust,no_run
 # #![allow(dead_code)]
-# extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
 fn update(_app: &App, _model: &mut Model, _update: Update) {
@@ -282,7 +262,6 @@ occurs.
 
 ```rust,no_run
 # #![allow(dead_code)]
-# extern crate nannou;
 # use nannou::prelude::*;
 # struct Model {}
 fn view(_app: &App, _model: &Model, _frame: Frame) {
