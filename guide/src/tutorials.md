@@ -10,27 +10,32 @@ adventure through the following tutorials depending on what you want to add to
 your project!
 
 
-## Basics
+## Rust Basics
 
-A suite of tutorials for getting familiar with Rust and the Nannou environment.
+Tutorials for learning the basics of Rust with nannou.
 
-- [Drawing a sketch](/tutorials/basics/draw-a-sketch.md)
-- [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md)
-- [Moving a circle about on the screen](./tutorials/basics/moving-a-circle-about.md)
-
-- Nannou events
 - Rust variables
 - Rust conditions
 - Rust loops
 - Rust functions
-	
+
+## Nannou Basics
+
+A suite of tutorials for getting familiar with Rust and the Nannou environment.
+
+- App vs. Sketch
+- [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md)
+- [Drawing a sketch](/tutorials/basics/draw-a-sketch.md)
+- Nannou events
+
 ## Drawing
 
 Working with Nannou's `Draw` API - a simple approach of coding graphics.
 
-- [Drawing 2D shapes](/tutorials/basics/drawing-2d-shapes.md)
-- Drawing 3D shapes
+- [Drawing 2D shapes](/tutorials/draw/2d-shapes.md)
+- [Animating a circle](./tutorials/draw/animating-a-circle.md)
 - Drawing images
+- Drawing 3D shapes
 - Drawing meshes
 
 ## Windowing
@@ -46,6 +51,10 @@ Walk-throughs for creating and working with one or more windows.
 ## GUI
 
 How to create a GUI (Graphical User Interface) for you Nannou project.
+
+*NOTE: It might be best to wait for
+[#383](https://github.com/nannou-org/nannou/issues/383) before addressing
+these.*
 
 - Creating a UI
 - Exploring available UI widgets
@@ -72,11 +81,11 @@ Loading, playing and recording video in Nannou.
 - Recording a window to video
 - Manipulating video playback
 
-## Vulkan
+## WGPU
 
 Understanding the lower level that underlies all graphics in Nannou.
 
-- What is Vulkan?
+- What is WGPU?
 - The graphics pipeline
 - Compute shaders
 - Fragment shaders
@@ -98,9 +107,9 @@ Detecting and outputting to LASER DACs on a network.
 
 ## OSC
 
-- [OSC - introduction](/tutorials/osc/osc-introduction.md)
-- [OSC - sending OSC](/tutorials/osc/osc-sender.md)
-- Setting up an OSC receiver.
+- [An intro to OSC](/tutorials/osc/osc-introduction.md).
+- [Sending OSC](/tutorials/osc/osc-sender.md).
+- Receiving OSC.
 
 ## DMX
 
