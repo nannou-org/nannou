@@ -1,6 +1,6 @@
 //! Application, event loop and window event definitions and implementations.
 //!
-//! - [**Event**](./enum.Event.html) - the defualt application event type.
+//! - [**Event**](./enum.Event.html) - the default application event type.
 //! - [**winit::event::WindowEvent**](./struct.WindowEvent.html) - events related to a single window.
 //! - [**WindowEvent**](./struct.WindowEvent.html) - a stripped-back, simplified,
 //!   newcomer-friendly version of the **raw**, low-level winit event.
@@ -40,8 +40,10 @@ pub struct Update {
 pub enum Event {
     /// A window-specific event has occurred for the window with the given Id.
     ///
-    /// This event is portrayed both in its "raw" form (the **winit::event::WindowEvent**) and its
-    /// simplified, new-user-friendly form **SimpleWindowEvent**.
+    /// The event is available as a **WindowEvent**, a more user-friendly form of
+    /// **winit::event::WindowEvent**. Once
+    /// [winit#1387](https://github.com/rust-windowing/winit/issues/1387) is fixed, its "raw" form
+    /// will also be available.
     WindowEvent {
         id: window::Id,
         simple: Option<WindowEvent>,
@@ -135,7 +137,7 @@ pub enum WindowEvent {
     /// A mouse wheel movement or touchpad scroll occurred.
     MouseWheel(MouseScrollDelta, TouchPhase),
 
-    /// The window was resized to the given dimensions.
+    /// The window was resized to the given dimensions (in DPI-agnostic points, not pixels).
     Resized(Vector2<geom::scalar::Default>),
 
     /// A file at the given path was hovered over the window.

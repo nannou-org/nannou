@@ -18,7 +18,27 @@ pub use self::cgmath::{
 };
 use std::ops::Add;
 
-/// Map a value from a given range to a new given range.
+/// Maps a value from an input range to an output range.
+///
+/// Note that `map_range` doesn't clamp the output: if `val` is outside the input range, the mapped
+/// value will be outside the output range. (Use `clamp` to restrict the output, if desired.)
+///
+/// # Examples
+/// ```
+/// # use nannou::prelude::*;
+/// assert_eq!(map_range(128, 0, 255, 0.0, 1.0), 0.5019607843137255);
+/// ```
+/// ```
+/// # use nannou::prelude::*;
+/// assert_eq!(map_range(3, 0, 10, 0.0, 1.0), 0.3);
+/// ```
+/// ```
+/// # use nannou::prelude::*;
+/// // When the value is outside the input range, the result will be outside the output range.
+/// let result = map_range(15, 0, 10, 0.0, 1.0);
+/// assert_eq!(result, 1.5);
+/// assert_eq!(clamp(result, 0.0, 1.0), 1.0);
+/// ```
 pub fn map_range<X, Y>(val: X, in_min: X, in_max: X, out_min: Y, out_max: Y) -> Y
 where
     X: NumCast,
