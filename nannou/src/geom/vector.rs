@@ -1347,6 +1347,28 @@ impl<S> Vector2<S> {
         Vector3::new(self.x, self.y, z)
     }
 
+    /// Construct a normalised (aka "unit") vector from the given angle in radians.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use nannou::prelude::*;
+    /// # fn main() {
+    /// assert_eq!(Vector2::from_angle(0.0), vec2(1.0, 0.0));
+    /// // Keep an eye out for accumulating floating point error.
+    /// assert_eq!(Vector2::from_angle(PI * 0.5), vec2(-0.00000004371139, 1.0));
+    /// assert_eq!(Vector2::from_angle(PI), vec2(-1.0, -0.00000008742278));
+    /// assert_eq!(Vector2::from_angle(PI * 1.5), vec2(0.000000011924881, -1.0));
+    /// assert_eq!(Vector2::from_angle(TAU), vec2(1.0, 0.00000017484555));
+    /// # }
+    /// ```
+    pub fn from_angle(radians: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        vec2(radians.cos(), radians.sin())
+    }
+
     /// Returns the angle of the vector in radians.
     ///
     /// # Examples
