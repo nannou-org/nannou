@@ -169,6 +169,7 @@ impl Default for PrimitiveRender {
 impl RenderPrimitive for draw::Primitive {
     fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender {
         match self {
+            draw::Primitive::Arrow(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Mesh(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Path(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Polygon(prim) => prim.render_primitive(ctxt, mesh),

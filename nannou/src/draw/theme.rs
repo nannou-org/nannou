@@ -23,6 +23,7 @@ pub struct Color {
 /// These are used as keys into the **Theme**'s geometry primitive default values.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Primitive {
+    Arrow,
     Cuboid,
     Ellipse,
     Line,
@@ -68,14 +69,22 @@ impl Theme {
 
 impl Default for Theme {
     fn default() -> Self {
+        // TODO: This should be pub const.
+        let default_fill = Srgba::new(1.0, 1.0, 1.0, 1.0);
+        let default_stroke = Srgba::new(0.0, 0.0, 0.0, 1.0);
+
         let fill_color = Color {
-            default: Srgba::new(1.0, 1.0, 1.0, 1.0),
+            default: default_fill,
             primitive: Default::default(),
         };
-        let stroke_color = Color {
-            default: Srgba::new(0.0, 0.0, 0.0, 1.0),
+        let mut stroke_color = Color {
+            default: default_stroke,
             primitive: Default::default(),
         };
+        stroke_color
+            .primitive
+            .insert(Primitive::Arrow, default_fill);
+
         Theme {
             fill_color,
             stroke_color,

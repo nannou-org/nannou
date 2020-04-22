@@ -1,3 +1,4 @@
+pub mod arrow;
 pub mod ellipse;
 pub mod line;
 pub mod mesh;
@@ -11,6 +12,7 @@ pub mod tri;
 
 use crate::geom;
 
+pub use self::arrow::Arrow;
 pub use self::ellipse::Ellipse;
 pub use self::line::Line;
 pub use self::mesh::Mesh;
@@ -29,6 +31,7 @@ pub use self::tri::Tri;
 /// before their respective **Drawing** types are dropped.
 #[derive(Clone, Debug)]
 pub enum Primitive<S = geom::scalar::Default> {
+    Arrow(Arrow<S>),
     Ellipse(Ellipse<S>),
     Line(Line<S>),
     MeshVertexless(mesh::Vertexless),
