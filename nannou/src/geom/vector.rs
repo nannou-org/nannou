@@ -1313,16 +1313,17 @@ impl<S> Vector2<S> {
     /// Returns the angle of the vector in radians.
     ///
     /// # Examples
+    ///
     /// ```
     /// # use nannou::prelude::*;
     /// # use nannou::Draw;
     /// # fn main() {
-    /// let vector = Vector2::new(-0.5, 0.5);
-    /// let theta = vector.angle() * -1.0;
+    /// let v = vec2(-0.5, 0.5);
+    /// let radians = v.angle();
     /// # let draw = Draw::new();
     /// draw.quad()
-    /// .rotate(theta);
-    /// assert_eq!(theta, -2.356194490192345);
+    ///     .rotate(radians);
+    /// assert_eq!(radians, 2.356194490192345);
     /// # }
     /// ```
     ///
@@ -1331,6 +1332,53 @@ impl<S> Vector2<S> {
         S: BaseFloat,
     {
         self.y.atan2(self.x)
+    }
+
+    /// Returns the angle of the vector between `self` and `other` in radians.
+    ///
+    /// Note: This is equivalent to `(other - self).angle()`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use nannou::prelude::*;
+    /// # fn main() {
+    /// let a = vec2(-1.0, 1.0);
+    /// let b = vec2(1.0, 1.0);
+    /// assert_eq!(a.angle_between(b), 0.0);
+    /// assert_eq!(b.angle_between(a), PI);
+    /// assert_eq!(a.angle_between(b), (b - a).angle());
+    /// assert_eq!(b.angle_between(a), (a - b).angle());
+    /// # }
+    /// ```
+    pub fn angle_between(self, other: Self) -> S
+    where
+        S: BaseFloat,
+    {
+        (other - self).angle()
+    }
+
+    /// Rotate the vector around the origin (0.0, 0.0) by the given radians.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use nannou::prelude::*;
+    /// # fn main() {
+    /// let v = vec2(100.0, 0.0);
+    /// assert_eq!(v.rotate(PI).x, -v.x);
+    /// assert_eq!(v.rotate(TAU).x, v.x);
+    /// # }
+    /// ```
+    pub fn rotate(self, radians: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        let rad_cos = radians.cos();
+        let rad_sin = radians.sin();
+        let x = self.x * rad_cos - self.y * rad_sin;
+        let y = self.x * rad_sin + self.y * rad_cos;
+        vec2(x, y)
     }
 
     //impl_swizzle_functions!(Vector1, Vector2, Vector3, Vector4, S, xy);
