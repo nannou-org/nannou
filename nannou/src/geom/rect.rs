@@ -266,6 +266,26 @@ where
         [self.right(), self.bottom()].into()
     }
 
+    /// The middle of the left edge.
+    pub fn mid_left(&self) -> Point2<S> {
+        [self.left(), self.y()].into()
+    }
+
+    /// The middle of the top edge.
+    pub fn mid_top(&self) -> Point2<S> {
+        [self.x(), self.top()].into()
+    }
+
+    /// The middle of the right edge.
+    pub fn mid_right(&self) -> Point2<S> {
+        [self.right(), self.y()].into()
+    }
+
+    /// The middle of the bottom edge.
+    pub fn mid_bottom(&self) -> Point2<S> {
+        [self.x(), self.bottom()].into()
+    }
+
     /// The edges of the **Rect** in a tuple (top, bottom, left, right).
     pub fn l_r_b_t(&self) -> (S, S, S, S) {
         (self.left(), self.right(), self.bottom(), self.top())
