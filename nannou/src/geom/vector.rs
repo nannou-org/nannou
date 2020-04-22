@@ -227,6 +227,43 @@ macro_rules! impl_vector {
                 }
             }
 
+            /// The magnitude of the vector.
+            ///
+            /// The magnitude represents the distance from the origin to the point described by the
+            /// vector.
+            ///
+            /// Note: This is equivalent to `.magnitude2().sqrt()`. As a result, it can be quite a
+            /// bit more computationally efficient to use `.magnitude2()` directly when feasible.
+            ///
+            /// ## Example
+            ///
+            /// ```
+            /// # use nannou::prelude::*;
+            /// # fn main() {
+            /// let a = vec2(5.0, 0.0);
+            /// let b = vec2(0.0, 5.0);
+            /// assert_eq!(a.magnitude(), 5.0);
+            /// assert_eq!(b.magnitude(), 5.0);
+            /// # }
+            ///
+            /// ```
+            pub fn magnitude(self) -> S
+            where
+                S: BaseFloat,
+            {
+                InnerSpace::magnitude(self)
+            }
+
+            /// The square of the magnitude.
+            ///
+            /// See the `magnitude` docs for details.
+            pub fn magnitude2(self) -> S
+            where
+                S: BaseFloat,
+            {
+                InnerSpace::magnitude2(self)
+            }
+
             /// The dot product of self and the given vector.
             #[inline]
             pub fn dot(self, other: $VectorN<S>) -> S
@@ -1310,19 +1347,42 @@ impl<S> Vector2<S> {
         Vector3::new(self.x, self.y, z)
     }
 
+    /// Construct a normalised (aka "unit") vector from the given angle in radians.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use nannou::prelude::*;
+    /// # fn main() {
+    /// assert_eq!(Vector2::from_angle(0.0), vec2(1.0, 0.0));
+    /// // Keep an eye out for accumulating floating point error.
+    /// assert_eq!(Vector2::from_angle(PI * 0.5), vec2(-0.00000004371139, 1.0));
+    /// assert_eq!(Vector2::from_angle(PI), vec2(-1.0, -0.00000008742278));
+    /// assert_eq!(Vector2::from_angle(PI * 1.5), vec2(0.000000011924881, -1.0));
+    /// assert_eq!(Vector2::from_angle(TAU), vec2(1.0, 0.00000017484555));
+    /// # }
+    /// ```
+    pub fn from_angle(radians: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        vec2(radians.cos(), radians.sin())
+    }
+
     /// Returns the angle of the vector in radians.
     ///
     /// # Examples
+    ///
     /// ```
     /// # use nannou::prelude::*;
     /// # use nannou::Draw;
     /// # fn main() {
-    /// let vector = Vector2::new(-0.5, 0.5);
-    /// let theta = vector.angle() * -1.0;
+    /// let v = vec2(-0.5, 0.5);
+    /// let radians = v.angle();
     /// # let draw = Draw::new();
     /// draw.quad()
-    /// .rotate(theta);
-    /// assert_eq!(theta, -2.356194490192345);
+    ///     .rotate(radians);
+    /// assert_eq!(radians, 2.356194490192345);
     /// # }
     /// ```
     ///
@@ -1331,6 +1391,53 @@ impl<S> Vector2<S> {
         S: BaseFloat,
     {
         self.y.atan2(self.x)
+    }
+
+    /// Returns the angle of the vector between `self` and `other` in radians.
+    ///
+    /// Note: This is equivalent to `(other - self).angle()`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use nannou::prelude::*;
+    /// # fn main() {
+    /// let a = vec2(-1.0, 1.0);
+    /// let b = vec2(1.0, 1.0);
+    /// assert_eq!(a.angle_between(b), 0.0);
+    /// assert_eq!(b.angle_between(a), PI);
+    /// assert_eq!(a.angle_between(b), (b - a).angle());
+    /// assert_eq!(b.angle_between(a), (a - b).angle());
+    /// # }
+    /// ```
+    pub fn angle_between(self, other: Self) -> S
+    where
+        S: BaseFloat,
+    {
+        (other - self).angle()
+    }
+
+    /// Rotate the vector around the origin (0.0, 0.0) by the given radians.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use nannou::prelude::*;
+    /// # fn main() {
+    /// let v = vec2(100.0, 0.0);
+    /// assert_eq!(v.rotate(PI).x, -v.x);
+    /// assert_eq!(v.rotate(TAU).x, v.x);
+    /// # }
+    /// ```
+    pub fn rotate(self, radians: S) -> Self
+    where
+        S: BaseFloat,
+    {
+        let rad_cos = radians.cos();
+        let rad_sin = radians.sin();
+        let x = self.x * rad_cos - self.y * rad_sin;
+        let y = self.x * rad_sin + self.y * rad_cos;
+        vec2(x, y)
     }
 
     //impl_swizzle_functions!(Vector1, Vector2, Vector3, Vector4, S, xy);
