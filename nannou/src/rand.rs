@@ -1,6 +1,6 @@
 //! Items related to randomness and random number generators. Also provides some high-level helper
 //! functions including [**random_f32()**](./fn.random_f32.html), [**random_f64()**](./fn.random_f64.html)
-//! and [**random_range(min, max)**](./fn.random_f32.html).
+//! and [**random_range(min, max)**](./fn.random_range.html).
 
 pub use rand;
 

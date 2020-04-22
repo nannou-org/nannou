@@ -1,9 +1,10 @@
 //! Application, event loop and window event definitions and implementations.
 //!
 //! - [**Event**](./enum.Event.html) - the default application event type.
-//! - [**winit::event::WindowEvent**](./struct.WindowEvent.html) - events related to a single window.
-//! - [**WindowEvent**](./struct.WindowEvent.html) - a stripped-back, simplified,
-//!   newcomer-friendly version of the **raw**, low-level winit event.
+//! - [**winit::event::WindowEvent**](https://docs.rs/winit/0.22.1/winit/event/enum.WindowEvent.html) -
+//!   events related to a single window.
+//! - [**WindowEvent**](./enum.WindowEvent.html) - a stripped-back, simplified, newcomer-friendly
+//!   version of the **raw**, low-level winit event.
 
 use crate::geom::{self, Point2, Vector2};
 use crate::window;
