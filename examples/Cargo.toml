@@ -48,6 +48,9 @@ path = "communication/osc_sender.rs"
 name = "draw"
 path = "draw/draw.rs"
 [[example]]
+name = "draw_arrow"
+path = "draw/draw_arrow.rs"
+[[example]]
 name = "draw_blend"
 path = "draw/draw_blend.rs"
 [[example]]

@@ -541,6 +541,11 @@ where
         self.a(Default::default())
     }
 
+    /// Begin drawing an **Arrow**.
+    pub fn arrow(&self) -> Drawing<primitive::Arrow<S>, S> {
+        self.a(Default::default())
+    }
+
     /// Begin drawing a **Quad**.
     pub fn quad(&self) -> Drawing<primitive::Quad<S>, S> {
         self.a(Default::default())

@@ -53,12 +53,12 @@ pub struct PolygonInit<S = geom::scalar::Default> {
 /// The set of options shared by all polygon types.
 #[derive(Clone, Debug)]
 pub struct PolygonOptions<S = geom::scalar::Default> {
-    position: position::Properties<S>,
-    orientation: orientation::Properties<S>,
-    no_fill: bool,
-    stroke_color: Option<LinSrgba>,
-    color: Option<LinSrgba>,
-    stroke: Option<StrokeOptions>,
+    pub position: position::Properties<S>,
+    pub orientation: orientation::Properties<S>,
+    pub no_fill: bool,
+    pub stroke_color: Option<LinSrgba>,
+    pub color: Option<LinSrgba>,
+    pub stroke: Option<StrokeOptions>,
 }
 
 /// A polygon with vertices already submitted.

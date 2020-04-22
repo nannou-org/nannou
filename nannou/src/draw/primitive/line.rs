@@ -14,9 +14,9 @@ use lyon::tessellation::StrokeOptions;
 /// `points(a, b)` methods.
 #[derive(Clone, Debug)]
 pub struct Line<S = geom::scalar::Default> {
-    path: PathStroke<S>,
-    start: Option<Point2<S>>,
-    end: Option<Point2<S>>,
+    pub path: PathStroke<S>,
+    pub start: Option<Point2<S>>,
+    pub end: Option<Point2<S>>,
 }
 
 /// The drawing context for a line.
@@ -139,6 +139,9 @@ impl draw::renderer::RenderPrimitive for Line<f32> {
         let Line { path, start, end } = self;
         let start = start.unwrap_or(pt2(0.0, 0.0));
         let end = end.unwrap_or(pt2(0.0, 0.0));
+        if start == end {
+            return draw::renderer::PrimitiveRender::default();
+        }
         let close = false;
         let points = [start, end];
         let points = points.iter().cloned().map(Into::into);
