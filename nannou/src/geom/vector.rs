@@ -227,6 +227,43 @@ macro_rules! impl_vector {
                 }
             }
 
+            /// The magnitude of the vector.
+            ///
+            /// The magnitude represents the distance from the origin to the point described by the
+            /// vector.
+            ///
+            /// Note: This is equivalent to `.magnitude2().sqrt()`. As a result, it can be quite a
+            /// bit more computationally efficient to use `.magnitude2()` directly when feasible.
+            ///
+            /// ## Example
+            ///
+            /// ```
+            /// # use nannou::prelude::*;
+            /// # fn main() {
+            /// let a = vec2(5.0, 0.0);
+            /// let b = vec2(0.0, 5.0);
+            /// assert_eq!(a.magnitude(), 5.0);
+            /// assert_eq!(b.magnitude(), 5.0);
+            /// # }
+            ///
+            /// ```
+            pub fn magnitude(self) -> S
+            where
+                S: BaseFloat,
+            {
+                InnerSpace::magnitude(self)
+            }
+
+            /// The square of the magnitude.
+            ///
+            /// See the `magnitude` docs for details.
+            pub fn magnitude2(self) -> S
+            where
+                S: BaseFloat,
+            {
+                InnerSpace::magnitude2(self)
+            }
+
             /// The dot product of self and the given vector.
             #[inline]
             pub fn dot(self, other: $VectorN<S>) -> S
