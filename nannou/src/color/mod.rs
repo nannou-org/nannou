@@ -21,6 +21,9 @@ pub type DefaultScalar = f32;
 /// the `palette` crate's generic `Rgb` type.
 pub type Rgb<S = DefaultScalar> = Srgb<S>;
 
+/// The same as `Rgb`, but with `u8`'s.
+pub type Rgb8 = Rgb<u8>;
+
 /// The same as `Rgb`, but with an alpha value representing opacity.
 ///
 /// This type is an alias for the `Srgba` type, a type that represents the sRGB color space
@@ -29,6 +32,9 @@ pub type Rgb<S = DefaultScalar> = Srgb<S>;
 /// If you are looking for more advanced control over the RGB space and component type, please see
 /// the `palette` crate's generic `Rgb` type.
 pub type Rgba<S = DefaultScalar> = Srgba<S>;
+
+/// The same as `Rgba`, but with `u8`'s.
+pub type Rgba8 = Rgba<u8>;
 
 /// A color represented as gray intensity.
 ///
@@ -46,9 +52,9 @@ where
     srgb(r, g, b)
 }
 
-/// A short-hand constructor for `Rgb<u8>::new`.
-pub fn rgb8(r: u8, g: u8, b: u8) -> Rgb<u8> {
-    srgb8(r, g, b)
+/// A short-hand constructor for `Rgb::<u8>::new` .
+pub fn rgb8(r: u8, g: u8, b: u8) -> Rgb8 {
+    srgb(r, g, b)
 }
 
 /// A short-hand constructor for `Rgba::new`.
@@ -60,7 +66,7 @@ where
 }
 
 /// A short-hand constructor for `Rgba<u8>::new`.
-pub fn rgba8(r: u8, g: u8, b: u8, a: u8) -> Rgba<u8> {
+pub fn rgba8(r: u8, g: u8, b: u8, a: u8) -> Rgba8 {
     srgba8(r, g, b, a)
 }
 
