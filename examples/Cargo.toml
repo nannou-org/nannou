@@ -120,6 +120,9 @@ path = "laser/laser_raw_stream.rs"
 name = "all_functions"
 path = "nannou_basics/all_functions.rs"
 [[example]]
+name = "window_coordinates"
+path = "nannou_basics/window_coordinates.rs"
+[[example]]
 name = "loop_mode"
 path = "nannou_basics/loop_mode.rs"
 [[example]]
