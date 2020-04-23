@@ -167,7 +167,7 @@ impl Texture {
     ///
     /// This constructor should only be used in the case that you already have a texture handle and
     /// a descriptor but need a **Texture**. The preferred construction approach is to use the
-    /// [**TextureBuilder**](./struct.Builder.html).
+    /// [**TextureBuilder**](./struct.TextureBuilder.html).
     ///
     /// The `descriptor` must be the same used to create the texture.
     pub fn from_handle_and_descriptor(

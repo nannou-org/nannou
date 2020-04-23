@@ -6,8 +6,6 @@
 //! - [**App**](./struct.App.html) - provides a context and API for windowing, devices, etc.
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
-//! - [**Draw**](./struct.Draw.html) - a simple API for drawing graphics, accessible via
-//!   `app.draw()`.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
 
 use crate::draw;

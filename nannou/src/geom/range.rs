@@ -343,7 +343,7 @@ where
 
     /// The Range that encompasses both self and the given Range.
     ///
-    /// The same as [**Range::max**](./struct.Range#method.max) but retains `self`'s original
+    /// The same as [**Range::max**](./struct.Range.html#method.max) but retains `self`'s original
     /// direction.
     ///
     /// # Examples

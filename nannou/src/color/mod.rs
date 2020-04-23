@@ -1,6 +1,7 @@
 //! Color items, including everything from rgb, hsb/l/v, lap, alpha, luma and more, provided by the
-//! palette crate. See [the palette docs](https://docs.rs/palette) for more details or see the
-//! [**named**](./named/index.html) module for a set of provided color constants.
+//! [palette crate](https://docs.rs/palette).
+//!
+//! See the [**named**](./named/index.html) module for a set of provided color constants.
 
 pub mod conv;
 

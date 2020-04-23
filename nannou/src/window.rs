@@ -1,5 +1,7 @@
-//! The nannou [**Window**](./struct.Window.html) API. Create a new window via `.app.new_window()`.
-//! This produces a [**Builder**](./struct.Builder.html) which can be used to build a window.
+//! The nannou Window API.
+//!
+//! Create a new window via `app.new_window()`. This produces a [**Builder**](./struct.Builder.html)
+//! which can be used to build a [**Window**](./struct.Window.html).
 
 use crate::event::{
     Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase, TouchpadPressure, WindowEvent,

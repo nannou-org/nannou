@@ -6,7 +6,7 @@ description = "A small tool for setting a new version across all nannou crates."
 edition = "2018"
 
 [[bin]]
-name = "run_all_examples"
+name = "set_version"
 path = "main.rs"
 
 [dependencies]

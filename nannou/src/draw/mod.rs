@@ -1,5 +1,6 @@
-//! A simple API for drawing 2D and 3D graphics. See the [**Draw** type](./struct.Draw.html) for
-//! more details.
+//! A simple API for drawing 2D and 3D graphics.
+//!
+//! See the [**Draw** type](./struct.Draw.html) for more details.
 
 use crate::geom::{self, Point2};
 use crate::math::{deg_to_rad, turns_to_rad, BaseFloat, Matrix4, SquareMatrix};

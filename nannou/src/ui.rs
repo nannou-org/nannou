@@ -1,4 +1,6 @@
-//! The User Interface API. Instantiate a [**Ui**](struct.Ui.html) via `app.new_ui()`.
+//! The User Interface API.
+//!
+//! Instantiate a [**Ui**](struct.Ui.html) via `app.new_ui()`.
 
 pub use self::conrod_core::event::Input;
 pub use self::conrod_core::{
