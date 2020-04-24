@@ -37,8 +37,8 @@ need:
   - [x] [Mesh](https://docs.rs/nannou/latest/nannou/mesh/index.html) API.
   - [x] [Image](https://docs.rs/nannou/latest/nannou/image/index.html) API.
   - [x] [Texture](https://docs.rs/nannou/latest/nannou/wgpu/struct.Texture.html) API.
-  - [x] [WGPU](https://docs.rs/nannou/0.13.1/nannou/wgpu/index.html) API.
-  - [x] [Text](https://docs.rs/nannou/0.13.1/nannou/text/index.html) API.
+  - [x] [WGPU](https://docs.rs/nannou/latest/nannou/wgpu/index.html) API.
+  - [x] [Text](https://docs.rs/nannou/latest/nannou/text/index.html) API.
   - [ ] Shader hot-loading. *See
     [hotglsl](https://github.com/nannou-org/hotglsl) and [nannou_isf
     WIP](https://github.com/nannou-org/nannou/tree/master/nannou_isf)*.

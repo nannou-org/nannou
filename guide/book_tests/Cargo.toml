@@ -10,6 +10,6 @@ skeptic = "0.13"
 
 [dev-dependencies]
 skeptic = "0.13"
-nannou = { version = "0.13", path = "../../nannou" }
-nannou_osc = { version = "0.1.0", path = "../../nannou_osc" }
+nannou = { version ="0.14.0", path = "../../nannou" }
+nannou_osc = { version ="0.14.0", path = "../../nannou_osc" }
 
