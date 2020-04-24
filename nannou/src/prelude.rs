@@ -35,8 +35,8 @@ pub use crate::wgpu::blend::{
     ADD as BLEND_ADD, DARKEST as BLEND_DARKEST, LIGHTEST as BLEND_LIGHTEST, NORMAL as BLEND_NORMAL,
     REVERSE_SUBTRACT as BLEND_REVERSE_SUBTRACT, SUBTRACT as BLEND_SUBTRACT,
 };
-pub use crate::window::Fullscreen;
 pub use crate::window::{self, Id as WindowId};
+pub use crate::window::{Fullscreen, Window};
 
 // The following constants have "regular" names for the `DefaultScalar` type and type suffixes for
 // other types. If the `DefaultScalar` changes, these should probably change too.

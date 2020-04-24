@@ -346,7 +346,7 @@ where
     pub fn below(self, other: Self) -> Self {
         Rect {
             x: self.x,
-            y: self.y.align_before(other.x),
+            y: self.y.align_before(other.y),
         }
     }
 
@@ -354,7 +354,7 @@ where
     pub fn above(self, other: Self) -> Self {
         Rect {
             x: self.x,
-            y: self.y.align_after(other.x),
+            y: self.y.align_after(other.y),
         }
     }
 
