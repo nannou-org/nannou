@@ -1,0 +1,535 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Basics - Window Coordinates - The Nannou Guide</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A one-stop shop for Nannou Knowledge!">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../welcome.html">Welcome!</a></li><li class="chapter-item expanded "><a href="../../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="chapter-item expanded "><a href="../../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="chapter-item expanded "><a href="../../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="chapter-item expanded "><a href="../../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="chapter-item expanded "><a href="../../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="chapter-item expanded "><a href="../../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="chapter-item expanded "><a href="../../getting_started/updating.html"><strong aria-hidden="true">2.6.</strong> Updating Nannou and Rust</a></li></ol></li><li class="chapter-item expanded "><a href="../../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="chapter-item expanded "><a href="../../tutorials/basics/draw-a-sketch.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing a Sketch</a></li><li class="chapter-item expanded "><a href="../../tutorials/basics/sketch-vs-app.html"><strong aria-hidden="true">3.3.</strong> Basics - Sketch vs App</a></li><li class="chapter-item expanded "><a href="../../tutorials/basics/window-coordinates.html" class="active"><strong aria-hidden="true">3.4.</strong> Basics - Window Coordinates</a></li><li class="chapter-item expanded "><a href="../../tutorials/draw/drawing-2d-shapes.html"><strong aria-hidden="true">3.5.</strong> Draw - 2D Shapes</a></li><li class="chapter-item expanded "><a href="../../tutorials/draw/animating-a-circle.html"><strong aria-hidden="true">3.6.</strong> Draw - Animating a Circle</a></li><li class="chapter-item expanded "><a href="../../tutorials/osc/osc-introduction.html"><strong aria-hidden="true">3.7.</strong> OSC - Introduction</a></li><li class="chapter-item expanded "><a href="../../tutorials/osc/osc-sender.html"><strong aria-hidden="true">3.8.</strong> OSC - Sending OSC</a></li></ol></li><li class="chapter-item expanded "><a href="../../developer_reference.html"><strong aria-hidden="true">4.</strong> Developer Reference</a></li><li class="chapter-item expanded "><a href="../../api_reference.html"><strong aria-hidden="true">5.</strong> API Reference</a></li><li class="chapter-item expanded "><a href="../../showcases.html"><strong aria-hidden="true">6.</strong> Showcases</a></li><li class="chapter-item expanded affix "><a href="../../changelog.html">Changelog</a></li><li class="chapter-item expanded affix "><a href="../../contributors.html">Contributors</a></li><li class="chapter-item expanded affix "><a href="../../code_of_conduct.html">Code of Conduct</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">The Nannou Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#basics---window-coordinates" id="basics---window-coordinates">Basics - Window Coordinates</a></h1>
+<p><strong>Tutorial Info</strong></p>
+<ul>
+<li>Author: mitchmindtree</li>
+<li>Required Knowledge:
+<ul>
+<li><a href="/getting_started.html">Getting Started</a></li>
+</ul>
+</li>
+<li>Reading Time: 15 minutes</li>
+</ul>
+<hr />
+<p><strong>Coordinates</strong> can be used to describe a position in space. Before we start
+drawing things in certain locations within our window, or animating them to move
+in certain directions, it can be very useful to understand the <strong>coordinate
+system</strong> that we are working with.</p>
+<p>Different kinds of coordinate systems are useful for different purposes. Let's
+take a look at nannou's <strong>window coordinates</strong>.</p>
+<p><img src="./images/window_coordinates_example.png" alt="window_coordinates.rs" /></p>
+<p>This is a screenshot of the <a href="https://github.com/nannou-org/nannou/tree/master/examples/nannou_basics/window_coordinates.rs"><code>window_coordinates.rs</code> example</a>. The example
+aims to help develop an intuition for how nannou's window coordinates work. In
+this case, we are presented with a window whose size is 600x400. We can see
+that:</p>
+<ul>
+<li>The <strong>x</strong> and <strong>y</strong> values are <strong><code>[0.0, 0.0]</code></strong> in the <strong>centre</strong> of the
+window. This is called the <em>origin</em>.</li>
+<li>The <strong>x</strong> value <strong>increases towards the right</strong> and <strong>decreases towards the
+left</strong>.</li>
+<li>The <strong>y</strong> value <strong>increases upwards</strong> and <strong>decreases downwards</strong>.</li>
+<li>The distance from the left edge to the right edge is 600, equal to the window
+width.</li>
+<li>The distance from the bottom edge to the top edge is 400, equal to the window
+height.</li>
+<li>The distance from the centre to the left or right edge is 300, or half the
+window width.</li>
+<li>The distance from the centre to the top or bottom edge is 200, or half the
+window height.</li>
+</ul>
+<p>In other words, nannou uses a <a href="https://en.wikipedia.org/wiki/Cartesian_coordinate_system">Cartesian coordinate system</a> to describe
+window space, where the origin is in the centre, <em>y</em> increases upwards and the
+distance between the edges of the window are equal to the size of the window.</p>
+<h2><a class="header" href="#drawing-in-window-coordinates" id="drawing-in-window-coordinates">Drawing in Window Coordinates</a></h2>
+<p>Having the origin in the centre is a theme that carries through to the way that
+we draw shapes with nannou's <a href="https://guide.nannou.cc/tutorials.html#drawing"><code>draw</code> API</a>. Let's see what happens if we
+change the example to draw a plum colored square at <code>[0.0, 0.0]</code> and with a size
+of <code>100.0</code>.</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>draw.rect()
+    .x_y(0.0, 0.0)
+    .w_h(100.0, 100.0)
+    .color(PLUM);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/window_coordinates_example2.png" alt="window_coordinates.rs" /></p>
+<p>Notice that when we say <code>.x_y(0.0, 0.0)</code>, this refers to where the <strong>centre</strong> of
+the square will be placed. You might notice the same applies to other drawing
+primitives like ellipse and text.</p>
+<h3><a class="header" href="#rotating-the-square" id="rotating-the-square">Rotating the square</a></h3>
+<p>This property of describing positions via the centre allows for performing all
+kinds of symmetrical operations with ease. Rotations are a nice example of this.
+Let's try rotating our plum square by 45 degrees.</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>draw.rect()
+    .x_y(0.0, 0.0)
+    .w_h(100.0, 100.0)
+    .z_degrees(45.0)
+    .color(PLUM);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/window_coordinates_example3.png" alt="window_coordinates.rs" /></p>
+<p>Voila!</p>
+<h3><a class="header" href="#moving-the-square" id="moving-the-square">Moving the square</a></h3>
+<p>OK, now let's remove our rotation and try positioning the square so that the
+bottom left corner touches the origin while the top right corner touches the
+<code>[100.0, 100.0]</code> marker.</p>
+<p>In order to do this, we want to move the square so that it is halfway between
+the origin and the marker, so <code>[50.0, 50.0]</code>.</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>draw.rect()
+    .x_y(50.0, 50.0)
+    .w_h(100.0, 100.0)
+    .color(PLUM);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/window_coordinates_example4.png" alt="window_coordinates.rs" /></p>
+<p>So satisfying!</p>
+<p><em>OK, but what if we want to position our square in the top-left corner of the
+window?</em></p>
+<p>One approach would be to calculate the position by hand. For example, we know
+the top-left corner is equal to [-300, 200]. From there, we need to move the
+square to the right by half the width and down by half the height:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>let side = 100.0;
+let top_left = pt2(-300.0, 200.0);
+let offset = vec2(side / 2.0, -side / 2.0);
+let xy = top_left + offset;
+draw.rect()
+    .xy(xy)
+    .w_h(side, side)
+    .color(PLUM);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/window_coordinates_example5.png" alt="window_coordinates.rs" /></p>
+<p>OK that worked! But it was a <strong>lot</strong> of effort. And what if the size of the
+window changes?</p>
+<p>Enter, <strong><code>Rect</code></strong>.</p>
+<h2><a class="header" href="#positioning-with-rect" id="positioning-with-rect">Positioning with <code>Rect</code></a></h2>
+<p>One of the most useful tools for working in window coordinates is <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html">the <code>Rect</code>
+type</a>. As the name suggests, <code>Rect</code> allows us to work with rectangles in a
+variety of useful ways. We can <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html#method.align_left_of">align</a> them, <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html#method.pad">pad</a> them, <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html#method.shift">shift</a>
+them, <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html#method.stretch_to_point">stretch</a> them, <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html#method.subdivisions_iter">subdivide</a> them, check if they <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html#method.contains">contain a
+point</a> and more.</p>
+<p>One of the most useful applications of <code>Rect</code> is for describing the bounds of
+the window. Let's retrieve the window <code>Rect</code> with the name <code>win</code>.</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let app: App = unimplemented!();
+</span>let win = app.window_rect();
+<span class="boring">}
+</span></code></pre></pre>
+<p>Let's use <code>win</code> to simplify aligning our plum square to the top left of the
+window.</p>
+<h3><a class="header" href="#alignment" id="alignment">Alignment</a></h3>
+<p>First, let's make a <code>Rect</code> that represents the position and size of our plum
+square and call it <code>r</code>.</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span>let r = Rect::from_w_h(100.0, 100.0);
+<span class="boring">}
+</span></code></pre></pre>
+<p><code>r</code> now represents our square, positioned at [0.0, 0.0] with a width and height
+of 100.0. We can confirm this by changing our square drawing code to use <code>r</code>
+like so:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span>let r = Rect::from_w_h(100.0, 100.0);
+draw.rect()
+    .xy(r.xy())
+    .wh(r.wh())
+    .color(PLUM);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/window_coordinates_example2.png" alt="window_coordinates.rs" /></p>
+<p>We can align our plum square to the <code>top_left_of</code> the window like so:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span><span class="boring">    let win: Rect = unimplemented!();
+</span>let r = Rect::from_w_h(100.0, 100.0).top_left_of(win);
+draw.rect()
+    .xy(r.xy())
+    .wh(r.wh())
+    .color(PLUM);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/window_coordinates_example5.png" alt="window_coordinates.rs" /></p>
+<p>Much nicer!</p>
+<p><em>But what if we want some padding between the edges of the window and the
+square?</em></p>
+<p>Let's take a look!</p>
+<h3><a class="header" href="#padding" id="padding">Padding</a></h3>
+<p>We can use padding to add some space between the edges of an area and the
+content within it. In nannou, we can use the <code>pad</code> method to produce a padded
+instance of a <code>Rect</code>.</p>
+<p>Let's try padding the window rect by <code>25.0</code> and drawing it with a
+semi-transparent blue color:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span><span class="boring">    let win: Rect = unimplemented!();
+</span>let win_p = win.pad(25.0);
+draw.rect()
+    .xy(win_p.xy())
+    .wh(win_p.wh())
+    .color(rgba(0.3, 0.4, 0.7, 0.5));
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/window_coordinates_example6.png" alt="window_coordinates.rs" /></p>
+<p>As you may have guessed, we can use this new padded <code>Rect</code> to align our plum
+square and achieve the desired look:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span><span class="boring">    let win: Rect = unimplemented!();
+</span>let win_p = win.pad(25.0);
+let r = Rect::from_w_h(100.0, 100.0).top_left_of(win_p);
+draw.rect()
+    .xy(r.xy())
+    .wh(r.wh())
+    .color(PLUM);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/window_coordinates_example7.png" alt="window_coordinates.rs" /></p>
+<h3><a class="header" href="#relative-positions" id="relative-positions">Relative Positions</a></h3>
+<p>Now that we have our plum square situated with some nice padding in the top left
+corner, let's try drawing a salmon colored circle with the same size right below
+it.</p>
+<p>Our handy <code>Rect</code> type provides methods for positioning <code>below</code>, <code>above</code>,
+<code>left_of</code> and <code>right_of</code> another <code>Rect</code>. Let's use the <code>below</code> method on a copy
+of the square's <code>Rect</code> so that we can use the resulting <code>Rect</code> to draw our
+circle:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span><span class="boring">    let win: Rect = unimplemented!();
+</span>let win_p = win.pad(25.0);
+let square = Rect::from_w_h(100.0, 100.0).top_left_of(win_p);
+draw.rect()
+    .xy(square.xy())
+    .wh(square.wh())
+    .color(PLUM);
+
+let circle = square.below(square);
+draw.ellipse()
+    .xy(circle.xy())
+    .wh(circle.wh())
+    .color(SALMON);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/window_coordinates_example8.png" alt="window_coordinates.rs" /></p>
+<p>For consistency, let's try and add the same padding between the circle and the
+square as we have between the square and the edges of the window.</p>
+<p>We can do so by using the <code>shift</code> method to &quot;shift&quot; the circle down from the
+square:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let draw: Draw = unimplemented!();
+</span><span class="boring">    let win: Rect = unimplemented!();
+</span>let pad = 25.0;
+let win_p = win.pad(pad);
+let square = Rect::from_w_h(100.0, 100.0).top_left_of(win_p);
+draw.rect()
+    .xy(square.xy())
+    .wh(square.wh())
+    .color(PLUM);
+
+let circle = square.below(square).shift_y(-pad);
+draw.ellipse()
+    .xy(circle.xy())
+    .wh(circle.wh())
+    .color(SALMON);
+<span class="boring">}
+</span></code></pre></pre>
+<p><img src="./images/window_coordinates_example9.png" alt="window_coordinates.rs" /></p>
+<p><em>Gee wizz, I love salmon!</em></p>
+<p>There are many more fancy tricks we can do with <code>Rect</code> to assist as a guide for
+laying out our sketches. I'm already getting carried away, so I'll leave it as
+an exercise to the reader to check out <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html">the <code>Rect</code> docs</a> and explore!</p>
+<p>Before we bring this tutorial to a close, let's take a quick look at what we
+really mean by all these numbers.</p>
+<h2><a class="header" href="#points-and-pixels" id="points-and-pixels">Points and Pixels</a></h2>
+<p><em>What exactly does 600x400 measure? Millimetres? Pixels? Something
+else?</em></p>
+<p>In nannou, we generally describe positions within window space in <strong>points</strong>.
+Points are very similar to <strong>pixels</strong>, except that points allow us to work
+without having to worry about the &quot;scale factor&quot; of our display.</p>
+<blockquote>
+<p><em><strong>Wait, what is &quot;scale factor&quot;?</strong></em></p>
+<p>The scale factor helps us to reason about the density of pixels on the
+display. Modern displays don't have a consistent relationship between
+resolution and size. For example, modern mobile phones can boast resolutions
+of up to 1440p, which is greater than the average 1080p desktop monitor,
+despite the screen being a fraction of the size!</p>
+<p>For this reason, most devices expose a <strong>scale factor</strong>. This value describes
+the recommended UI scaling that should be applied in order to allow for a
+consistent user experience across devices. In nannou, we refer to this scaled
+space as <em>points</em> (aka <em>logical pixels</em>) and the <em>physical</em> pixel space as
+<em>pixels</em>. By working in <em>points</em> we can let nannou take care of scaling for
+us.</p>
+<p>You can learn more about how window scaling works in nannou's windowing
+library <a href="https://docs.rs/winit/latest/winit/dpi/index.html">here</a>.</p>
+<p>To convert from points to pixels we can multiply by the scale factor:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let points = 100.0;
+</span><span class="boring">    let window: Window = unimplemented!();
+</span>let pixels = points * window.scale_factor();
+<span class="boring">}
+</span></code></pre></pre>
+<p>Similarly, we can convert pixels to points by dividing by the scale factor:</p>
+<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+</span><span class="boring">use nannou::prelude::*;
+</span><span class="boring">fn main() {
+</span><span class="boring">    let pixels = 100.0;
+</span><span class="boring">    let window: Window = unimplemented!();
+</span>let points = pixels / window.scale_factor();
+<span class="boring">}
+</span></code></pre></pre>
+</blockquote>
+<h2><a class="header" href="#conclusion" id="conclusion">Conclusion</a></h2>
+<p>Thanks for reading! Hopefully this has helped to demystify window coordinates in
+nannou at least a little.</p>
+<p>Remember, the more you experiment and play, the more these things become second
+nature. Next thing you know you will start seeing everything in window
+coordinates!</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../tutorials/basics/sketch-vs-app.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../tutorials/draw/drawing-2d-shapes.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../tutorials/basics/sketch-vs-app.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../tutorials/draw/drawing-2d-shapes.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
