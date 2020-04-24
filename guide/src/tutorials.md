@@ -26,6 +26,7 @@ A suite of tutorials for getting familiar with the Nannou environment.
 - [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md)
 - [Drawing a sketch](/tutorials/basics/draw-a-sketch.md)
 - [App vs. Sketch](/tutorials/basics/app-vs-sketch.md)
+- [Window Coordinates](/tutorials/basics/window-coordinates.md)
 - Nannou events
 
 ## Drawing
