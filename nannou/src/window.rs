@@ -1364,7 +1364,7 @@ impl Window {
         P: AsRef<Path>,
     {
         let path = path.as_ref();
-        self.capture_frame_with_threaded(path.as_ref(), false);
+        self.capture_frame_with_threaded(path.as_ref(), true);
     }
 
     fn capture_frame_with_threaded(&self, path: &Path, threaded: bool) {

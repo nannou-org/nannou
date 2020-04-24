@@ -23,6 +23,7 @@ back to the origins.
   crates.
 - Add a `random_ascii()` function.
 - Add many more "Generative Design" and "Nature of Code" examples.
+- Fix bug where `capture_frame_threaded` was not actually threaded.
 
 **The Great Repository Refactor**
 
