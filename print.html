@@ -235,9 +235,9 @@ composing geometry.</li>
 <li><input disabled="" type="checkbox" checked=""/>
 <a href="https://docs.rs/nannou/latest/nannou/wgpu/struct.Texture.html">Texture</a> API.</li>
 <li><input disabled="" type="checkbox" checked=""/>
-<a href="https://docs.rs/nannou/0.13.1/nannou/wgpu/index.html">WGPU</a> API.</li>
+<a href="https://docs.rs/nannou/latest/nannou/wgpu/index.html">WGPU</a> API.</li>
 <li><input disabled="" type="checkbox" checked=""/>
-<a href="https://docs.rs/nannou/0.13.1/nannou/text/index.html">Text</a> API.</li>
+<a href="https://docs.rs/nannou/latest/nannou/text/index.html">Text</a> API.</li>
 <li><input disabled="" type="checkbox"/>
 Shader hot-loading. <em>See
 <a href="https://github.com/nannou-org/hotglsl">hotglsl</a> and <a href="https://github.com/nannou-org/nannou/tree/master/nannou_isf">nannou_isf
@@ -2276,36 +2276,24 @@ published.</p>
 back to the origins.</p>
 <hr />
 <h1><a class="header" href="#unreleased" id="unreleased">Unreleased</a></h1>
+<hr />
+<h1><a class="header" href="#version-0140-2020-04-24" id="version-0140-2020-04-24">Version 0.14.0 (2020-04-24)</a></h1>
 <ul>
-<li>Add <code>RenderPipelineBuilder</code>.</li>
-<li>Add <code>BindGroupLayoutBuilder</code>.</li>
-<li>Add <code>BindGroupBuilder</code>.</li>
-<li>Add <code>RenderPassBuilder</code>.</li>
-<li><strong>Draw</strong> API overhaul:
-<ul>
-<li>Update to lyon 0.15.</li>
-<li>Re-add support for colored vertices on polygons.</li>
-<li>Added blend modes, e.g. <code>draw.blend(blend_desc)</code>.</li>
-<li>Added scissor, e.g. <code>draw.scissor(rect)</code></li>
-<li>Added transforms, e.g. <code>draw.scale(s)</code>, <code>draw.rotate(r)</code>.</li>
-<li>Removed many relative positioning methods in favour of draw transforms.</li>
-<li>Simplified texture loading, e.g.
-<code>Texture::from_path</code>/<code>Texture::from_image</code>.</li>
-<li>Add <code>draw.texture</code> API.</li>
-<li>Rename all APIs taking <code>points</code>, <code>points_colored</code> and <code>points_textured</code> to
-take iterators yielding tuples, e.g. <code>point</code>, <code>(point, color)</code>, <code>(point, tex_coords)</code>.</li>
-<li>Add support for <code>.points_textured(tex, pts)</code> to <code>draw.mesh()</code>,
-<code>draw.path()</code> and <code>draw.polygon()</code>.</li>
-<li>Add support for <code>draw.sampler(sampler_desc)</code>, for specifying a draw
-context with a custom texture sampler.</li>
-<li>Add <code>draw.triangle_mode()</code>, <code>draw.line_mode()</code> and <code>draw.point_mode()</code> for
-switching between render pipeline primitive topology.</li>
-<li>Add GPU caching of glyphs for text drawn via <code>draw.text()</code>. Allows for
-much higher-performance text rendering.</li>
-</ul>
-</li>
 <li>Relax trait bounds on many mesh types.</li>
-<li>The Great Repository Refactor:
+<li>Add Rgb8 and Rgba8 type aliases.</li>
+<li>Add <code>vec2.rotate(radians)</code>, <code>Vector2::from_angle</code>, <code>a.angle_between(b)</code>,
+<code>vec.magnitude()</code> and <code>vec.magnitude2()</code> inherent methods.</li>
+<li>Add <code>rgb_u32</code> for creating color from hex literals.</li>
+<li>Fix <code>.z_radians()</code> behaviour.</li>
+<li>Simplify the fullscreen API.
+<a href="https://github.com/nannou-org/nannou/pull/521">#521</a>.</li>
+<li>Adds a <code>set_version</code> script for synchronising version updates across nannou
+crates.</li>
+<li>Add a <code>random_ascii()</code> function.</li>
+<li>Add many more &quot;Generative Design&quot; and &quot;Nature of Code&quot; examples.</li>
+<li>Fix bug where <code>capture_frame_threaded</code> was not actually threaded.</li>
+</ul>
+<p><strong>The Great Repository Refactor</strong></p>
 <ul>
 <li>Move nannou src and tests into a <code>nannou</code> subdirectory.</li>
 <li>Move <code>nannou_audio</code> into the nannou repo.</li>
@@ -2322,8 +2310,52 @@ ability to run examples of specific packages in the workspace.</li>
 <li>Move CHANGELOG into the guide.</li>
 <li>Switch from travis CI to a github workflow.</li>
 </ul>
-</li>
+<p><strong>Guide</strong></p>
+<ul>
+<li>Add a &quot;Sketch vs App&quot; tutorial.</li>
+<li>Add a &quot;Window Coordinates&quot; tutorial.</li>
+<li>Add &quot;OSC Introduction&quot; and &quot;OSC Sender&quot; tutorials.</li>
+<li>Ensure the &quot;Drawing 2D Shapes&quot; tutorial code is tested.</li>
+<li>Add automated testing of all guide code on each PR to nannou repo.</li>
+</ul>
+<p><strong>Draw API</strong></p>
+<ul>
+<li>Update to lyon 0.15.</li>
+<li>Re-add support for colored vertices on polygons.</li>
+<li>Added blend modes, e.g. <code>draw.blend(blend_desc)</code>.</li>
+<li>Added scissor, e.g. <code>draw.scissor(rect)</code></li>
+<li>Added transforms, e.g. <code>draw.scale(s)</code>, <code>draw.rotate(r)</code>.</li>
+<li>Removed many relative positioning methods in favour of draw transforms.</li>
+<li>Add <code>draw.texture</code> API.</li>
+<li>Rename all APIs taking <code>points</code>, <code>points_colored</code> and <code>points_textured</code> to
+take iterators yielding tuples, e.g. <code>point</code>, <code>(point, color)</code>, <code>(point, tex_coords)</code>.</li>
+<li>Add support for <code>.points_textured(tex, pts)</code> to <code>draw.mesh()</code>,
+<code>draw.path()</code> and <code>draw.polygon()</code>.</li>
+<li>Add support for <code>draw.sampler(sampler_desc)</code>, for specifying a draw
+context with a custom texture sampler.</li>
+<li>Add <code>draw.triangle_mode()</code>, <code>draw.line_mode()</code> and <code>draw.point_mode()</code> for
+switching between render pipeline primitive topology.</li>
+<li>Add GPU caching of glyphs for text drawn via <code>draw.text()</code>. Allows for
+much higher-performance text rendering.</li>
+<li>Add <code>draw.arrow()</code> API.</li>
+<li>New examples of the new APIs in the <code>nannou/examples/draw/</code> directory.</li>
+</ul>
+<p><strong>WGPU API</strong></p>
+<ul>
+<li>Simplified texture loading, e.g. <code>Texture::from_path</code> and
+<code>Texture::from_image</code>.</li>
+<li>Simplified <code>TextureView</code> creation via <code>Texture::view</code> builder.</li>
+<li>Add <code>RenderPipelineBuilder</code>.</li>
+<li>Add <code>BindGroupLayoutBuilder</code>.</li>
+<li>Add <code>BindGroupBuilder</code>.</li>
+<li>Add <code>RenderPassBuilder</code>.</li>
+<li>Add <code>wgpu::shader_from_spirv_bytes</code> helper function.</li>
+</ul>
+<p><strong>LASER API</strong></p>
+<ul>
 <li>Add non-blocking LASER DAC detection via <code>Api::detect_dacs_async</code>.</li>
+<li>Add error callback to LASER stream API.</li>
+<li>Expose some missing setters on the LASER stream handles.</li>
 <li>Add nicer socket address and error handling to <code>nannou_laser::ffi</code>.</li>
 </ul>
 <hr />
