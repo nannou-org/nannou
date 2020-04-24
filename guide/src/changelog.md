@@ -7,48 +7,87 @@ back to the origins.
 
 # Unreleased
 
+---
+
+# Version 0.14.0 (2020-04-24)
+
+- Relax trait bounds on many mesh types.
+- Add Rgb8 and Rgba8 type aliases.
+- Add `vec2.rotate(radians)`, `Vector2::from_angle`, `a.angle_between(b)`,
+  `vec.magnitude()` and `vec.magnitude2()` inherent methods.
+- Add `rgb_u32` for creating color from hex literals.
+- Fix `.z_radians()` behaviour.
+- Simplify the fullscreen API.
+  [#521](https://github.com/nannou-org/nannou/pull/521).
+- Adds a `set_version` script for synchronising version updates across nannou
+  crates.
+- Add a `random_ascii()` function.
+- Add many more "Generative Design" and "Nature of Code" examples.
+
+**The Great Repository Refactor**
+
+- Move nannou src and tests into a `nannou` subdirectory.
+- Move `nannou_audio` into the nannou repo.
+- Move `nannou_isf` into the nannou repo.
+- Move `nannou_laser` into the nannou repo.
+- Move `nannou_osc` into the nannou repo.
+- Move `nannou_timeline` into the nannou repo.
+- Move guide into the nannou repo.
+- Add all crates under a single workspace.
+- Update README.md with a repository overview.
+- Move `run_all_examples.rs` test into a new `scripts/` directory. Add
+  ability to run examples of specific packages in the workspace.
+- Move `nature_of_code` examples
+- Move CHANGELOG into the guide.
+- Switch from travis CI to a github workflow.
+
+**Guide**
+
+- Add a "Sketch vs App" tutorial.
+- Add a "Window Coordinates" tutorial.
+- Add "OSC Introduction" and "OSC Sender" tutorials.
+- Ensure the "Drawing 2D Shapes" tutorial code is tested.
+- Add automated testing of all guide code on each PR to nannou repo.
+
+**Draw API**
+
+- Update to lyon 0.15.
+- Re-add support for colored vertices on polygons.
+- Added blend modes, e.g. `draw.blend(blend_desc)`.
+- Added scissor, e.g. `draw.scissor(rect)`
+- Added transforms, e.g. `draw.scale(s)`, `draw.rotate(r)`.
+- Removed many relative positioning methods in favour of draw transforms.
+- Add `draw.texture` API.
+- Rename all APIs taking `points`, `points_colored` and `points_textured` to
+  take iterators yielding tuples, e.g. `point`, `(point, color)`, `(point,
+  tex_coords)`.
+- Add support for `.points_textured(tex, pts)` to `draw.mesh()`,
+  `draw.path()` and `draw.polygon()`.
+- Add support for `draw.sampler(sampler_desc)`, for specifying a draw
+  context with a custom texture sampler.
+- Add `draw.triangle_mode()`, `draw.line_mode()` and `draw.point_mode()` for
+  switching between render pipeline primitive topology.
+- Add GPU caching of glyphs for text drawn via `draw.text()`. Allows for
+  much higher-performance text rendering.
+- Add `draw.arrow()` API.
+- New examples of the new APIs in the `nannou/examples/draw/` directory.
+
+**WGPU API**
+
+- Simplified texture loading, e.g. `Texture::from_path` and
+  `Texture::from_image`.
+- Simplified `TextureView` creation via `Texture::view` builder.
 - Add `RenderPipelineBuilder`.
 - Add `BindGroupLayoutBuilder`.
 - Add `BindGroupBuilder`.
 - Add `RenderPassBuilder`.
-- **Draw** API overhaul:
-    - Update to lyon 0.15.
-    - Re-add support for colored vertices on polygons.
-    - Added blend modes, e.g. `draw.blend(blend_desc)`.
-    - Added scissor, e.g. `draw.scissor(rect)`
-    - Added transforms, e.g. `draw.scale(s)`, `draw.rotate(r)`.
-    - Removed many relative positioning methods in favour of draw transforms.
-    - Simplified texture loading, e.g.
-      `Texture::from_path`/`Texture::from_image`.
-    - Add `draw.texture` API.
-    - Rename all APIs taking `points`, `points_colored` and `points_textured` to
-      take iterators yielding tuples, e.g. `point`, `(point, color)`, `(point,
-      tex_coords)`.
-    - Add support for `.points_textured(tex, pts)` to `draw.mesh()`,
-      `draw.path()` and `draw.polygon()`.
-    - Add support for `draw.sampler(sampler_desc)`, for specifying a draw
-      context with a custom texture sampler.
-    - Add `draw.triangle_mode()`, `draw.line_mode()` and `draw.point_mode()` for
-      switching between render pipeline primitive topology.
-    - Add GPU caching of glyphs for text drawn via `draw.text()`. Allows for
-      much higher-performance text rendering.
-- Relax trait bounds on many mesh types.
-- The Great Repository Refactor:
-    - Move nannou src and tests into a `nannou` subdirectory.
-    - Move `nannou_audio` into the nannou repo.
-    - Move `nannou_isf` into the nannou repo.
-    - Move `nannou_laser` into the nannou repo.
-    - Move `nannou_osc` into the nannou repo.
-    - Move `nannou_timeline` into the nannou repo.
-    - Move guide into the nannou repo.
-    - Add all crates under a single workspace.
-    - Update README.md with a repository overview.
-    - Move `run_all_examples.rs` test into a new `scripts/` directory. Add
-      ability to run examples of specific packages in the workspace.
-    - Move `nature_of_code` examples
-    - Move CHANGELOG into the guide.
-    - Switch from travis CI to a github workflow.
+- Add `wgpu::shader_from_spirv_bytes` helper function.
+
+**LASER API**
+
 - Add non-blocking LASER DAC detection via `Api::detect_dacs_async`.
+- Add error callback to LASER stream API.
+- Expose some missing setters on the LASER stream handles.
 - Add nicer socket address and error handling to `nannou_laser::ffi`.
 
 ---
