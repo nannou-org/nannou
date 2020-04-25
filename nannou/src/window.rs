@@ -866,7 +866,7 @@ impl<'app> Builder<'app> {
     }
 
     /// Whether or not the window should be resizable after creation.
-    pub fn resizble(self, resizable: bool) -> Self {
+    pub fn resizable(self, resizable: bool) -> Self {
         self.map_window(|w| w.with_resizable(resizable))
     }
 
