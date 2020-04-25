@@ -23,18 +23,18 @@ Tutorials for learning the basics of Rust with nannou.
 
 A suite of tutorials for getting familiar with the Nannou environment.
 
-- [Anatomy of a nannou app](./tutorials/basics/anatomy-of-a-nannou-app.md)
-- [Drawing a sketch](./tutorials/basics/draw-a-sketch.md)
-- [Sketch vs App](./tutorials/basics/sketch-vs-app.md)
-- [Window Coordinates](./tutorials/basics/window-coordinates.md)
+- [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md)
+- [Drawing a sketch](/tutorials/basics/draw-a-sketch.md)
+- [Sketch vs App](/tutorials/basics/sketch-vs-app.md)
+- [Window Coordinates](/tutorials/basics/window-coordinates.md)
 - Nannou events
 
 ## Drawing
 
 Working with Nannou's `Draw` API - a simple approach of coding graphics.
 
-- [Drawing 2D shapes](./tutorials/draw/drawing-2d-shapes.md)
-- [Animating a circle](./tutorials/draw/animating-a-circle.md)
+- [Drawing 2D shapes](/tutorials/draw/drawing-2d-shapes.md)
+- [Animating a circle](/tutorials/draw/animating-a-circle.md)
 - Drawing images
 - Drawing 3D shapes
 - Drawing meshes

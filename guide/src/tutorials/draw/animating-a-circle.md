@@ -17,7 +17,7 @@ In this tutorial we will cover the basics of moving a shape around in the window
 
 Let's start by making a simple program which draws a circle in the center of the screen.
 
-We will be using the barebones app from [Anatomy of a nannou app](./tutorials/basics/anatomy-of-a-nannou-app.md) as a starting point for this.
+We will be using the barebones app from [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md) as a starting point for this.
 
 Update the view function of your nannou-app to look like this:
 
