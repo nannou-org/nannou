@@ -1395,28 +1395,29 @@ impl<S> Vector2<S> {
 
     /// Returns the angle of the vector between `self` and `other` in radians.
     ///
-    /// Note: This is equivalent to `(other - self).angle()`.
+    /// The result is between 0 and PI. Note: Nannou's implementation is commutative
+    /// (`v1.angle_between(v2)` == `v2.angle_between(v1)`).
     ///
     /// # Example
     ///
     /// ```
     /// # use nannou::prelude::*;
     /// # fn main() {
-    /// let right = vec2(1.0, 0.0);
-    /// let upright = vec2(1.0, 1.0);
-    /// let up = vec2(0.0, 1.0);
-    /// let bot = vec2(0.0, -1.0);
+    /// let right = vec2(2.0, 0.0);
+    /// let up = vec2(0.0, 3.0);
+    /// let down = vec2(0.0, -100.0);
     /// assert_eq!(right.angle_between(up), PI/2.0);
-    /// assert_eq!(up.angle_between(right), -PI/2.0);
-    /// assert_eq!(right.angle_between(upright), PI/4.0);
-    /// assert_eq!(right.angle_between(bot), -PI/2.0);
+    /// assert_eq!(right.angle_between(down), PI/2.0);
     /// # }
     /// ```
     pub fn angle_between(self, other: Self) -> S
     where
         S: BaseFloat,
     {
-        other.angle() - self.angle()
+        let cos_theta = self.dot(other) / (self.magnitude() * other.magnitude());
+        // Handle float rounding issues by clamping to [-1, 1].
+        let cos_theta = cos_theta.min(S::one()).max(-S::one());
+        cos_theta.acos()
     }
 
     /// Rotate the vector around the origin (0.0, 0.0) by the given radians.
@@ -1579,5 +1580,35 @@ where
         v
     } else {
         v.normalize() * limit
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::prelude::*;
+    use cgmath::assert_ulps_eq;
+
+    #[test]
+    fn test_angle_between() {
+        let right = vec2(1.0, 0.0);
+        let upright = vec2(1.0, 1.0);
+        assert_eq!(right.angle_between(upright), PI / 4.0);
+        // angle_between is symmetric.
+        assert_eq!(upright.angle_between(right), PI / 4.0);
+
+        let left = vec2(-1.0, 0.0);
+        let left2 = vec2(-1.0123456789, 0.0);
+        assert_ulps_eq!(right.angle_between(left), PI);
+        assert_ulps_eq!(right.angle_between(left2), PI);
+
+        // angle between same vector is 0.
+        assert_eq!(upright.angle_between(upright), 0.0);
+        assert_eq!(left.angle_between(left), 0.0);
+        assert_eq!(left2.angle_between(left2), 0.0);
+
+        // handles zero vector.
+        assert_eq!(right.angle_between(vec2(0.0, 0.0)), 0.0);
+        assert_eq!(left2.angle_between(vec2(0.0, 0.0)), 0.0);
     }
 }
