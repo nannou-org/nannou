@@ -1402,19 +1402,21 @@ impl<S> Vector2<S> {
     /// ```
     /// # use nannou::prelude::*;
     /// # fn main() {
-    /// let a = vec2(-1.0, 1.0);
-    /// let b = vec2(1.0, 1.0);
-    /// assert_eq!(a.angle_between(b), 0.0);
-    /// assert_eq!(b.angle_between(a), PI);
-    /// assert_eq!(a.angle_between(b), (b - a).angle());
-    /// assert_eq!(b.angle_between(a), (a - b).angle());
+    /// let right = vec2(1.0, 0.0);
+    /// let upright = vec2(1.0, 1.0);
+    /// let up = vec2(0.0, 1.0);
+    /// let bot = vec2(0.0, -1.0);
+    /// assert_eq!(right.angle_between(up), PI/2.0);
+    /// assert_eq!(up.angle_between(right), -PI/2.0);
+    /// assert_eq!(right.angle_between(upright), PI/4.0);
+    /// assert_eq!(right.angle_between(bot), -PI/2.0);
     /// # }
     /// ```
     pub fn angle_between(self, other: Self) -> S
     where
         S: BaseFloat,
     {
-        (other - self).angle()
+        other.angle() - self.angle()
     }
 
     /// Rotate the vector around the origin (0.0, 0.0) by the given radians.
