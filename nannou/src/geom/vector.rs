@@ -1404,10 +1404,10 @@ impl<S> Vector2<S> {
     /// # fn main() {
     /// let a = vec2(-1.0, 1.0);
     /// let b = vec2(1.0, 1.0);
-    /// assert_eq!(a.angle_between(b), 0.0);
-    /// assert_eq!(b.angle_between(a), PI);
-    /// assert_eq!(a.angle_between(b), (b - a).angle());
-    /// assert_eq!(b.angle_between(a), (a - b).angle());
+    /// assert_eq!(a.angle_between(b), PI/2.0);
+    /// assert_eq!(b.angle_between(a), PI/2.0);
+    /// assert_eq!(a.angle_between(a), 0.0);
+    /// assert_eq!(b.angle_between(b), 0.0);
     /// # }
     /// ```
     pub fn angle_between(self, other: Self) -> S
