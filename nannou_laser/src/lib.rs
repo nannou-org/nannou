@@ -87,7 +87,7 @@ impl Api {
         let builder = Default::default();
         let frame_hz = None;
         let interpolation_conf = Default::default();
-        let enable_optimisations = true;
+        let enable_optimisations = stream::DEFAULT_ENABLE_OPTIMISATIONS;
         let process_raw = stream::frame::default_process_raw_fn;
         let stream_error = stream::raw::default_stream_error_fn;
         stream::frame::Builder {

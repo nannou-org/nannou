@@ -7,6 +7,9 @@ pub const DEFAULT_POINT_HZ: u32 = 10_000;
 /// The default rate at which the DAC will yield frames of points.
 pub const DEFAULT_FRAME_HZ: u32 = 60;
 
+/// Enable optimisations by default.
+pub const DEFAULT_ENABLE_OPTIMISATIONS: bool = true;
+
 /// Builder parameters shared between the `raw` and `frame` signals.
 #[derive(Clone, Debug, Default)]
 pub struct Builder {
