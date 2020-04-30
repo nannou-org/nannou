@@ -169,7 +169,7 @@ pub struct FrameStreamConfig {
     /// `distance_per_point` and `radians_per_point` into consideration.
     pub frame_hz: u32,
     /// Configuration options for eulerian circuit interpolation.
-    pub interpolation_conf: crate::stream::frame::opt::InterpolationConfig,
+    pub interpolation_conf: lasy::InterpolationConfig,
 }
 
 #[repr(C)]
@@ -313,7 +313,7 @@ pub unsafe extern "C" fn detect_dac(api: *mut Api, detected_dac: *mut DetectedDa
 pub unsafe extern "C" fn frame_stream_config_default(conf: *mut FrameStreamConfig) {
     let stream_conf = default_stream_config();
     let frame_hz = crate::stream::DEFAULT_FRAME_HZ;
-    let interpolation_conf = crate::stream::frame::opt::InterpolationConfig::start().build();
+    let interpolation_conf = lasy::InterpolationConfig::default();
     *conf = FrameStreamConfig {
         stream_conf,
         frame_hz,

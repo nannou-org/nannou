@@ -16,7 +16,7 @@ crate-type = ["rlib", "staticlib", "cdylib"]
 [dependencies]
 ether-dream = "0.2"
 ilda-idtf = { version = "0.1", optional = true }
-petgraph = "0.4"
+lasy = "0.3"
 thiserror = "1"
 
 [features]
