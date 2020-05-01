@@ -10,7 +10,7 @@
 
 ## What is OSC?
 
-Open Sound Control or [OSC](http://http://opensoundcontrol.org/) is a protocol for communicating between different pieces of software and/or computers. It is based on network technology and offers a flexible way to share control data between processes with a high level of precision, either internally on your local machine or through a network connection.
+Open Sound Control or [OSC](http://opensoundcontrol.org/) is a protocol for communicating between different pieces of software and/or computers. It is based on network technology and offers a flexible way to share control data between processes with a high level of precision, either internally on your local machine or through a network connection.
 
 In nannou it's possible to both send and receive OSC data, allowing you to control other software or let nannou be controlled by other software.
 
