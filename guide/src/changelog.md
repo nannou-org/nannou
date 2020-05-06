@@ -5,7 +5,11 @@ back to the origins.
 
 ---
 
-# Unreleased
+# Version 0.14.1 (2020-05-06)
+
+- Fix bug where `draw::Renderer` was initialised with an incorrect scale factor.
+- Fix `Vector::angle_between` implementation.
+- Add `ilda-idtf` feature to `nannou_laser`.
 
 ---
 
