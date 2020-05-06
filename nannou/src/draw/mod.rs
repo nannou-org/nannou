@@ -168,7 +168,7 @@ where
         for (index, primitive) in drawing.drain() {
             self.insert_draw_command(index, primitive);
         }
-        mem::replace(&mut self.drawing, drawing);
+        mem::swap(&mut self.drawing, &mut drawing);
     }
 
     // Finish the drawing at the given node index if it is not yet complete.

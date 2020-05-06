@@ -324,9 +324,11 @@ impl Builder {
         device: &wgpu::Device,
         descriptor: &wgpu::TextureDescriptor,
     ) -> Renderer {
+        let scale_factor = 1.0;
         self.build(
             device,
             [descriptor.size.width, descriptor.size.height],
+            scale_factor,
             descriptor.sample_count,
             descriptor.format,
         )
@@ -338,12 +340,14 @@ impl Builder {
         self,
         device: &wgpu::Device,
         output_attachment_size: [u32; 2],
+        output_scale_factor: f32,
         sample_count: u32,
         output_color_format: wgpu::TextureFormat,
     ) -> Renderer {
         Renderer::new(
             device,
             output_attachment_size,
+            output_scale_factor,
             sample_count,
             output_color_format,
             self.depth_format,
@@ -398,6 +402,7 @@ impl Renderer {
     pub fn new(
         device: &wgpu::Device,
         output_attachment_size: [u32; 2],
+        output_scale_factor: f32,
         sample_count: u32,
         output_color_format: wgpu::TextureFormat,
         depth_format: wgpu::TextureFormat,
@@ -438,8 +443,7 @@ impl Renderer {
         let default_texture_view = default_texture.view().build();
 
         // Initial uniform buffer values. These will be overridden on draw.
-        let temp_scale_factor = 1.0;
-        let uniforms = create_uniforms(output_attachment_size, temp_scale_factor);
+        let uniforms = create_uniforms(output_attachment_size, output_scale_factor);
         let uniform_buffer = device
             .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
             .fill_from_slice(&[uniforms]);
@@ -499,7 +503,7 @@ impl Renderer {
             render_pipelines,
             output_color_format,
             sample_count,
-            scale_factor: temp_scale_factor,
+            scale_factor: output_scale_factor,
             render_commands,
             mesh,
             vertex_mode_buffer,

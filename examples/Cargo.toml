@@ -18,10 +18,10 @@ audrey = "0.2"
 conrod_core = "0.69"
 futures = "0.3"
 hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
-nannou = { version ="0.14.0", path = "../nannou" }
+nannou = { version ="0.14.1", path = "../nannou" }
 nannou_audio = { version ="0.14.0", path = "../nannou_audio" }
 nannou_isf = { version ="0.1.0", path = "../nannou_isf" }
-nannou_laser = { version ="0.14.0", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
+nannou_laser = { version ="0.14.1", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
 nannou_osc = { version ="0.14.0", path = "../nannou_osc" }
 nannou_timeline = { version ="0.14.0", features = ["serde1"], path =  "../nannou_timeline" }
 pitch_calc = { version = "0.12", features = ["serde"] }
