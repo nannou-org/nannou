@@ -1,7 +1,8 @@
 use crate::wgpu;
+use futures::executor::{ThreadPool, ThreadPoolBuilder};
+use futures::future::FutureExt;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
-use threadpool::ThreadPool;
 
 /// A type dedicated to capturing a texture as a non-linear sRGBA image that can be read on the
 /// CPU.
@@ -31,22 +32,22 @@ pub struct Snapshot {
 
 /// A wrapper around a slice of bytes representing a non-linear sRGBA image.
 ///
-/// An **ImageAsyncMapping** may only be created by reading from a **Snapshot** returned by a
+/// An **ImageReadMapping** may only be created by reading from a **Snapshot** returned by a
 /// `Texture::to_image` call.
-pub struct Rgba8AsyncMapping<'a> {
-    mapping: wgpu::ImageAsyncMapping<'a>,
+pub struct Rgba8ReadMapping {
+    mapping: wgpu::ImageReadMapping,
 }
 
 #[derive(Debug)]
 struct ConverterDataPair {
-    src_descriptor: wgpu::TextureDescriptor,
+    src_descriptor: wgpu::TextureDescriptor<'static>,
     reshaper: wgpu::TextureReshaper,
     dst_texture: wgpu::Texture,
 }
 
 /// An alias for the image buffer that can be read from a captured **Snapshot**.
-pub struct Rgba8AsyncMappedImageBuffer<'a>(
-    image::ImageBuffer<image::Rgba<u8>, Rgba8AsyncMapping<'a>>,
+pub struct Rgba8AsyncMappedImageBuffer(
+    image::ImageBuffer<image::Rgba<u8>, Rgba8ReadMapping>,
 );
 
 impl Capturer {
@@ -131,13 +132,7 @@ impl Capturer {
     }
 
     fn finish_inner(&self) {
-        let mut guard = self
-            .thread_pool
-            .lock()
-            .expect("failed to acquire thread handle");
-        if let Some(thread_pool) = guard.take() {
-            thread_pool.join();
-        }
+        unimplemented!("wait for all active snapshots to complete");
     }
 }
 
@@ -146,44 +141,66 @@ impl Snapshot {
     ///
     /// Specifically, this asynchronously maps the buffer of bytes from GPU to host memory and,
     /// once mapped, calls the given user callback with the data represented as an
-    /// `Rgba8AsyncMapping`.
+    /// `Rgba8ReadMapping`.
     ///
     /// Note: The given callback will not be called until the memory is mapped and the device is
     /// polled. You should not rely on the callback being called immediately.
     ///
     /// The given callback will be called on the current thread. If you would like the callback to
     /// be processed on a thread pool, see the `read_threaded` method.
-    pub fn read<F>(&self, callback: F)
-    where
-        F: 'static + FnOnce(Result<Rgba8AsyncMappedImageBuffer, ()>),
-    {
+    pub async fn read_async(self) -> Result<Rgba8AsyncMappedImageBuffer, wgpu::BufferAsyncErr> {
         let [width, height] = self.buffer.size();
-        self.buffer.read(move |result| {
-            let result = result.map(move |mapping| {
-                let mapping = Rgba8AsyncMapping { mapping };
-                Rgba8AsyncMappedImageBuffer(
-                    image::ImageBuffer::from_raw(width, height, mapping)
-                        .expect("image buffer dimensions did not match mapping"),
-                )
-            });
-            callback(result);
-        })
+        let mapping = self.buffer.read().await?;
+        let mapping = Rgba8ReadMapping { mapping };
+        Ok(Rgba8AsyncMappedImageBuffer(
+            image::ImageBuffer::from_raw(width, height, mapping)
+                .expect("image buffer dimensions did not match mapping"),
+        ))
     }
 
-    /// Similar to `read`, but rather than delivering the mapped memory directly to the callback,
-    /// this method will first clone the mapped data, send it to another thread and then call the
-    /// callback from the other thread.
-    ///
-    /// This is useful when the callback performs an operation that could take a long or unknown
-    /// amount of time (e.g. writing the image to disk).
-    ///
-    /// Note however that if this method is called repeatedly (e.g. every frame) and the given
-    /// callback takes longer than the interval between calls, then the underlying thread will fall
-    /// behind and may take a while to complete by the time the application has exited.
-    pub fn read_threaded<F>(&self, callback: F)
+    /// TODO:
+    /// - Remove `read_threaded` in favour of specifying num threads.
+    /// - Count the number of active snapshots.
+    /// - Block after `view` when `num_threads` number of snapshots are active.
+    pub fn read<F>(self, callback: F)
     where
-        F: 'static + Send + FnOnce(Result<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, ()>),
+        F: 'static + Send + FnOnce(Result<Rgba8AsyncMappedImageBuffer, wgpu::BufferAsyncErr>),
     {
+        let thread_pool = self.thread_pool();
+        let read_future = self.read_async().map(|res| {
+            // TODO:
+            unimplemented!();
+            callback(res);
+        });
+        thread_pool.spawn_ok(read_future);
+    }
+
+    // /// Similar to `read`, but rather than delivering the mapped memory directly to the callback,
+    // /// this method will first clone the mapped data, send it to another thread and then call the
+    // /// callback from the other thread.
+    // ///
+    // /// This is useful when the callback performs an operation that could take a long or unknown
+    // /// amount of time (e.g. writing the image to disk).
+    // ///
+    // /// Note however that if this method is called repeatedly (e.g. every frame) and the given
+    // /// callback takes longer than the interval between calls, then the underlying thread will fall
+    // /// behind and may take a while to complete by the time the application has exited.
+    // pub async fn read_threaded(&self) -> Result<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, ()> {
+
+    //     let thread_pool = thread_pool.clone();
+    //     thread_pool.spawn_ok(
+    //     let
+    //     self.read()
+    //         .map(|result| result.map(|img| img.to_owned()))
+    //         .map(|result|
+
+    //     self.read(move |result| {
+    //         let result = result.map(|img| img.to_owned());
+    //         thread_pool.execute(|| callback(result));
+    //     });
+    // }
+
+    fn thread_pool(&self) -> Arc<ThreadPool> {
         let mut guard = self
             .thread_pool
             .lock()
@@ -191,19 +208,20 @@ impl Snapshot {
         let thread_pool = guard.get_or_insert_with(|| {
             let thread_pool = self
                 .num_threads
-                .map(|n| ThreadPool::new(n))
-                .unwrap_or_default();
+                .map(|n| {
+                    ThreadPoolBuilder::new()
+                        .pool_size(n)
+                        .create()
+                })
+                .unwrap_or_else(ThreadPool::new)
+                .expect("failed to create thread pool");
             Arc::new(thread_pool)
         });
-        let thread_pool = thread_pool.clone();
-        self.read(move |result| {
-            let result = result.map(|img| img.to_owned());
-            thread_pool.execute(|| callback(result));
-        });
+        thread_pool.clone()
     }
 }
 
-impl<'a> Rgba8AsyncMappedImageBuffer<'a> {
+impl Rgba8AsyncMappedImageBuffer {
     /// Convert the mapped image buffer to an owned buffer.
     pub fn to_owned(&self) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
         let vec = self.as_flat_samples().as_slice().to_vec();
@@ -219,23 +237,23 @@ impl Drop for Capturer {
     }
 }
 
-impl<'a> Deref for Rgba8AsyncMapping<'a> {
+impl Deref for Rgba8ReadMapping {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
         self.as_ref()
     }
 }
 
-impl<'a> Deref for Rgba8AsyncMappedImageBuffer<'a> {
-    type Target = image::ImageBuffer<image::Rgba<u8>, Rgba8AsyncMapping<'a>>;
+impl Deref for Rgba8AsyncMappedImageBuffer {
+    type Target = image::ImageBuffer<image::Rgba<u8>, Rgba8ReadMapping>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<'a> AsRef<[u8]> for Rgba8AsyncMapping<'a> {
+impl AsRef<[u8]> for Rgba8ReadMapping {
     fn as_ref(&self) -> &[u8] {
-        &self.mapping.mapping().data
+        self.mapping.mapping().as_slice()
     }
 }
 
@@ -253,6 +271,7 @@ fn create_converter_data_pair(
 
     // Create the converter.
     let src_sample_count = src_texture.sample_count();
+    let src_component_type = src_texture.component_type();
     let src_view = src_texture.create_default_view();
     let dst_sample_count = 1;
     let dst_format = dst_texture.format();
@@ -260,6 +279,7 @@ fn create_converter_data_pair(
         device,
         &src_view,
         src_sample_count,
+        src_component_type,
         dst_sample_count,
         dst_format,
     );

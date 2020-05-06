@@ -84,7 +84,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         wgpu::PrimitiveTopology::TriangleList;
 
     // Color state defaults.
-    pub const DEFAULT_COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Unorm;
+    pub const DEFAULT_COLOR_FORMAT: wgpu::TextureFormat = crate::frame::Frame::TEXTURE_FORMAT;
     pub const DEFAULT_COLOR_BLEND: wgpu::BlendDescriptor = wgpu::BlendDescriptor {
         src_factor: wgpu::BlendFactor::SrcAlpha,
         dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
@@ -486,6 +486,11 @@ fn build(
         },
     };
 
+    let vertex_state = wgpu::VertexStateDescriptor {
+        index_format,
+        vertex_buffers: &vertex_buffers[..],
+    };
+
     let pipeline_desc = wgpu::RenderPipelineDescriptor {
         layout,
         vertex_stage,
@@ -494,8 +499,7 @@ fn build(
         primitive_topology,
         color_states,
         depth_stencil_state,
-        index_format,
-        vertex_buffers: &vertex_buffers[..],
+        vertex_state,
         sample_count,
         sample_mask,
         alpha_to_coverage_enabled,

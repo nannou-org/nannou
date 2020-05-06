@@ -61,7 +61,7 @@ where
 }
 
 /// The current **Transform**, alpha **BlendDescriptor** and **Scissor** of a **Draw** instance.
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Context<S = geom::scalar::Default> {
     pub transform: Matrix4<S>,
     pub alpha_blend: wgpu::BlendDescriptor,
@@ -610,35 +610,6 @@ where
     /// Drain any remaining `drawing`s and convert them to draw commands.
     pub fn finish_remaining_drawings(&self) {
         self.state.borrow_mut().finish_remaining_drawings()
-    }
-}
-
-impl<S> Clone for Context<S>
-where
-    S: Clone,
-{
-    fn clone(&self) -> Self {
-        Self {
-            transform: self.transform.clone(),
-            alpha_blend: self.alpha_blend.clone(),
-            color_blend: self.color_blend.clone(),
-            scissor: self.scissor.clone(),
-            topology: self.topology.clone(),
-            sampler: wgpu::sampler_descriptor_clone(&self.sampler),
-        }
-    }
-}
-
-impl<S> PartialEq for Context<S>
-where
-    S: PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.transform == other.transform
-            && self.alpha_blend == other.alpha_blend
-            && self.scissor == other.scissor
-            && self.topology == other.topology
-            && wgpu::sampler_descriptor_partial_eq(&self.sampler, &other.sampler)
     }
 }
 

@@ -2,13 +2,12 @@ use crate::draw;
 use crate::draw::mesh::vertex::Color;
 use crate::frame::Frame;
 use crate::geom::{self, Point2, Rect, Vector2};
-use crate::math::map_range;
-use crate::math::Matrix4;
+use crate::math::{map_range, Matrix4};
 use crate::text;
 use crate::wgpu;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillTessellator, StrokeTessellator};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
@@ -76,7 +75,8 @@ pub struct Renderer {
     glyph_cache: GlyphCache,
     vs_mod: wgpu::ShaderModule,
     fs_mod: wgpu::ShaderModule,
-    render_pipelines: HashMap<PipelineId, wgpu::RenderPipeline>,
+    // One pipeline per unique Pipeline ID (combination of blend, topology and component type).
+    pipelines: HashMap<PipelineId, Pipeline>,
     glyph_cache_texture: wgpu::Texture,
     depth_texture: wgpu::Texture,
     depth_texture_view: wgpu::TextureView,
@@ -87,9 +87,7 @@ pub struct Renderer {
     text_bind_group_layout: wgpu::BindGroupLayout,
     text_bind_group: wgpu::BindGroup,
     texture_samplers: HashMap<SamplerId, wgpu::Sampler>,
-    texture_bind_group_layout: wgpu::BindGroupLayout,
     texture_bind_groups: HashMap<BindGroupId, wgpu::BindGroup>,
-    texture_default_bind_group: wgpu::BindGroup,
     output_color_format: wgpu::TextureFormat,
     sample_count: u32,
     scale_factor: f32,
@@ -97,6 +95,12 @@ pub struct Renderer {
     mesh: draw::Mesh,
     vertex_mode_buffer: Vec<VertexMode>,
     uniform_buffer: wgpu::Buffer,
+}
+
+#[derive(Debug)]
+struct Pipeline {
+    bind_group_layout: wgpu::BindGroupLayout,
+    pipeline: wgpu::RenderPipeline,
 }
 
 /// A type aimed at simplifying construction of a `draw::Renderer`.
@@ -158,7 +162,15 @@ type BindGroupId = (SamplerId, wgpu::TextureViewId);
 type BlendId = u64;
 type ColorId = BlendId;
 type AlphaId = BlendId;
-type PipelineId = (ColorId, AlphaId, wgpu::PrimitiveTopology);
+
+/// Each of the properties that indicate a unique pipeline.
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+struct PipelineId {
+    color_id: ColorId,
+    alpha_id: AlphaId,
+    topology: wgpu::PrimitiveTopology,
+    texture_component_type: wgpu::TextureComponentType,
+}
 
 impl Default for PrimitiveRender {
     fn default() -> Self {
@@ -444,9 +456,9 @@ impl Renderer {
 
         // Initial uniform buffer values. These will be overridden on draw.
         let uniforms = create_uniforms(output_attachment_size, output_scale_factor);
-        let uniform_buffer = device
-            .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
-            .fill_from_slice(&[uniforms]);
+        let uniforms_bytes = uniforms_as_bytes(&uniforms);
+        let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
+        let uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
 
         // Bind group for uniforms.
         let uniform_bind_group_layout = create_uniform_bind_group_layout(device);
@@ -468,17 +480,12 @@ impl Renderer {
         let texture_sampler = device.create_sampler(&sampler_desc);
 
         // Bind group per user-uploaded texture.
-        let texture_bind_group_layout = create_texture_bind_group_layout(device);
         let texture_bind_groups = Default::default();
-        let texture_default_bind_group = create_texture_bind_group(
-            device,
-            &texture_bind_group_layout,
-            &texture_sampler,
-            &default_texture_view,
-        );
+
+        // Pipeline per unique pipelin ID.
+        let pipelines = HashMap::default();
 
         let texture_samplers = Some((sampler_id, texture_sampler)).into_iter().collect();
-        let render_pipelines = Default::default();
         let render_commands = vec![];
         let mesh = Default::default();
         let vertex_mode_buffer = vec![];
@@ -497,10 +504,8 @@ impl Renderer {
             text_bind_group_layout,
             text_bind_group,
             texture_samplers,
-            texture_bind_group_layout,
             texture_bind_groups,
-            texture_default_bind_group,
-            render_pipelines,
+            pipelines,
             output_color_format,
             sample_count,
             scale_factor: output_scale_factor,
@@ -529,6 +534,30 @@ impl Renderer {
         scale_factor: f32,
         output_attachment_size: [u32; 2],
     ) {
+        // Pushes a draw command and updates the `curr_start_index`.
+        //
+        // Returns `true` if the command was added, `false` if there was nothing to
+        // draw.
+        fn push_draw_cmd(
+            curr_start_index: &mut u32,
+            end_index: u32,
+            render_commands: &mut Vec<RenderCommand>,
+        ) -> bool {
+            let index_range = *curr_start_index..end_index;
+            if index_range.len() != 0 {
+                let start_vertex = 0;
+                *curr_start_index = index_range.end;
+                let cmd = RenderCommand::DrawIndexed {
+                    start_vertex,
+                    index_range,
+                };
+                render_commands.push(cmd);
+                true
+            } else {
+                false
+            }
+        }
+
         let [w_px, h_px] = output_attachment_size;
 
         // Converting between pixels and points.
@@ -548,18 +577,14 @@ impl Renderer {
 
         // Keep track of context changes.
         let mut curr_ctxt = draw::Context::default();
-        let mut is_first_ctxt = true;
+        let mut new_pipeline_ids = HashMap::new();
         let mut curr_start_index = 0;
-
-        // For tracking texture/sampler combinations.
-        let init_sampler_id = sampler_descriptor_hash(&curr_ctxt.sampler);
-        let init_tex_view_id = self.default_texture_view.id();
-        let mut curr_tex_sampler_id = (init_sampler_id, init_tex_view_id);
         let mut new_tex_views = HashMap::new();
-        let mut new_tex_sampler_combos = HashSet::new();
-
-        // For tracking new blend/topology combinations.
-        let mut new_blend_topo_combos = HashMap::new();
+        let mut new_tex_sampler_combos = HashMap::new();
+        // Track whether new commands are required.
+        let mut curr_pipeline_id = None;
+        let mut curr_scissor = None;
+        let mut curr_tex_sampler_id = None;
 
         // Collect all draw commands to avoid borrow errors.
         let draw_cmds: Vec<_> = draw.drain_commands().collect();
@@ -567,7 +592,12 @@ impl Renderer {
         let intermediary_state = draw_state.intermediary_state.borrow();
         for cmd in draw_cmds {
             match cmd {
+                draw::DrawCommand::Context(ctxt) => curr_ctxt = ctxt,
                 draw::DrawCommand::Primitive(prim) => {
+                    // Track the prev index and vertex counts.
+                    let prev_index_count = self.mesh.indices().len() as u32;
+                    let prev_vert_count = self.mesh.vertex_count();
+
                     // Info required during rendering.
                     let ctxt = RenderContext {
                         intermediary_mesh: &intermediary_state.intermediary_mesh,
@@ -588,80 +618,85 @@ impl Renderer {
                     // Render the primitive.
                     let render = prim.render_primitive(ctxt, &mut self.mesh);
 
-                    // Check to see if we need to switch bind groups.
-                    if let Some(texture_view) = render.texture_view {
+                    // If the mesh indices are unchanged, there's nothing to be drawn.
+                    if prev_index_count == self.mesh.indices().len() as u32 {
                         assert_eq!(
-                            texture_view.dimension(),
-                            wgpu::TextureViewDimension::D2,
-                            "nannou's `draw` API only supports 2D texture views",
+                            prev_vert_count,
+                            self.mesh.vertex_count(),
+                            "vertices were submitted during `render` without submitting indices",
                         );
-
-                        // Insert the command.
-                        let tex_view_id = texture_view.id();
-                        let sampler_id = sampler_descriptor_hash(&curr_ctxt.sampler);
-                        let combined_id = (sampler_id, tex_view_id);
-                        if combined_id != curr_tex_sampler_id {
-                            // TODO: Insert draw here??
-
-                            self.render_commands
-                                .push(RenderCommand::SetBindGroup(combined_id));
-                            new_tex_sampler_combos.insert(combined_id);
-                            curr_tex_sampler_id = combined_id;
-                        }
-
-                        // Ensure the new texture exists within our map of new views.
-                        new_tex_views.insert(tex_view_id, texture_view);
-                    }
-
-                    // Extend the vertex mode channel.
-                    let mode = render.vertex_mode;
-                    let new_vs = self.mesh.points().len() - self.vertex_mode_buffer.len();
-                    self.vertex_mode_buffer.extend((0..new_vs).map(|_| mode));
-                }
-
-                // Check for commands to update context.
-                draw::DrawCommand::Context(ctxt) => {
-                    if curr_ctxt == ctxt && !is_first_ctxt {
                         continue;
                     }
 
-                    let color_blend_changed = curr_ctxt.color_blend != ctxt.color_blend;
-                    let alpha_blend_changed = curr_ctxt.alpha_blend != ctxt.alpha_blend;
-                    let blend_changed = color_blend_changed || alpha_blend_changed;
-                    let scissor_changed = curr_ctxt.scissor != ctxt.scissor;
-                    let topology_changed = curr_ctxt.topology != ctxt.topology;
+                    // Retrieve the current texture view and texture view ID. These are necessary
+                    // for producing the curren tpipeline and bind group IDs. Also ensure we have
+                    // an entry for them in our map.
+                    let tex_view = match render.texture_view {
+                        Some(tex_view) => tex_view,
+                        None => self.default_texture_view.clone(),
+                    };
+                    let tex_view_id = tex_view.id();
+                    let texture_component_type = tex_view.component_type();
+                    new_tex_views.insert(tex_view_id, tex_view);
 
-                    // If blend or scissor change, add a draw command for vertices collected so far.
-                    if blend_changed || scissor_changed || topology_changed {
-                        let index_range = curr_start_index..self.mesh.indices().len() as u32;
-                        if index_range.len() != 0 {
-                            let start_vertex = 0;
-                            curr_start_index = index_range.end;
-                            let cmd = RenderCommand::DrawIndexed {
-                                start_vertex,
-                                index_range,
-                            };
-                            self.render_commands.push(cmd);
+                    // Determine the new current scissor, pipeline ID and bind group ID required
+                    // for drawing this primitive.
+                    let new_pipeline_id = {
+                        let color_id = blend_descriptor_hash(&curr_ctxt.color_blend);
+                        let alpha_id = blend_descriptor_hash(&curr_ctxt.alpha_blend);
+                        let topology = curr_ctxt.topology;
+                        PipelineId {
+                            color_id,
+                            alpha_id,
+                            topology,
+                            texture_component_type,
                         }
+                    };
+                    let new_bind_group_id = {
+                        let sampler_id = sampler_descriptor_hash(&curr_ctxt.sampler);
+                        (sampler_id, tex_view_id)
+                    };
+                    let new_scissor = curr_ctxt.scissor;
+
+                    // Determine which have changed and in turn which require submitting new
+                    // commands.
+                    let pipeline_changed = Some(new_pipeline_id) != curr_pipeline_id;
+                    let bind_group_changed = Some(new_bind_group_id) != curr_tex_sampler_id;
+                    let scissor_changed = Some(new_scissor) != curr_scissor;
+
+                    // If we require submitting a scissor, pipeline or bind group command, first
+                    // draw whatever pending vertices we have collected so far. If there have been
+                    // no graphics yet, this will do nothing.
+                    if scissor_changed || pipeline_changed || bind_group_changed {
+                        push_draw_cmd(
+                            &mut curr_start_index,
+                            prev_index_count,
+                            &mut self.render_commands,
+                        );
                     }
 
-                    // Check to see if we should set the pipeline.
-                    if blend_changed || topology_changed || is_first_ctxt {
-                        let color_blend_id = blend_descriptor_hash(&ctxt.color_blend);
-                        let alpha_blend_id = blend_descriptor_hash(&ctxt.alpha_blend);
-                        let topo = ctxt.topology;
-                        let combined_id = (color_blend_id, alpha_blend_id, topo);
-                        new_blend_topo_combos.insert(
-                            combined_id,
-                            (ctxt.color_blend.clone(), ctxt.alpha_blend.clone()),
-                        );
-                        let cmd = RenderCommand::SetPipeline(combined_id);
+                    // If necessary, push a new pipeline command.
+                    if pipeline_changed {
+                        curr_pipeline_id = Some(new_pipeline_id);
+                        let color_blend = curr_ctxt.color_blend.clone();
+                        let alpha_blend = curr_ctxt.alpha_blend.clone();
+                        new_pipeline_ids.insert(new_pipeline_id, (color_blend, alpha_blend));
+                        let cmd = RenderCommand::SetPipeline(new_pipeline_id);
                         self.render_commands.push(cmd);
                     }
 
-                    // Check for new a new scissor.
+                    // If necessary, push a new bind group command.
+                    if bind_group_changed {
+                        curr_tex_sampler_id = Some(new_bind_group_id);
+                        new_tex_sampler_combos.insert(new_bind_group_id, new_pipeline_id);
+                        let cmd = RenderCommand::SetBindGroup(new_bind_group_id);
+                        self.render_commands.push(cmd);
+                    }
+
+                    // If necessary, push a new scissor command.
                     if scissor_changed {
-                        let rect = match ctxt.scissor {
+                        curr_scissor = Some(new_scissor);
+                        let rect = match curr_ctxt.scissor {
                             draw::Scissor::Full => full_rect,
                             draw::Scissor::Rect(rect) => full_rect
                                 .overlap(rect)
@@ -681,33 +716,57 @@ impl Renderer {
                         self.render_commands.push(cmd);
                     }
 
-                    curr_ctxt = ctxt;
-                    is_first_ctxt = false;
+                    // Extend the vertex mode channel.
+                    let mode = render.vertex_mode;
+                    let new_vs = self.mesh.points().len() - self.vertex_mode_buffer.len();
+                    self.vertex_mode_buffer.extend((0..new_vs).map(|_| mode));
                 }
             }
         }
 
         // Insert the final draw command if there is still some drawing to be done.
-        if curr_start_index != self.mesh.indices().len() as u32 {
-            let index_range = curr_start_index..self.mesh.indices().len() as u32;
-            let start_vertex = 0;
-            let cmd = RenderCommand::DrawIndexed {
-                start_vertex,
-                index_range,
-            };
-            self.render_commands.push(cmd);
+        push_draw_cmd(
+            &mut curr_start_index,
+            self.mesh.indices().len() as u32,
+            &mut self.render_commands,
+        );
+
+        // Clear out unnecessary pipelines.
+        self.pipelines.retain(|id, _| new_pipeline_ids.contains_key(id));
+        // Clear new combos that we already have.
+        new_pipeline_ids.retain(|id, _| !self.pipelines.contains_key(id));
+        // Create new render pipelines as necessary.
+        for (new_id, (color_blend, alpha_blend)) in new_pipeline_ids {
+            let bind_group_layout =
+                create_texture_bind_group_layout(device, new_id.texture_component_type);
+            let pipeline = create_render_pipeline(
+                device,
+                &self.uniform_bind_group_layout,
+                &self.text_bind_group_layout,
+                &bind_group_layout,
+                &self.vs_mod,
+                &self.fs_mod,
+                self.output_color_format,
+                self.depth_texture.format(),
+                self.sample_count,
+                color_blend,
+                alpha_blend,
+                new_id.topology,
+            );
+            let new_pipeline = Pipeline { bind_group_layout, pipeline };
+            self.pipelines.insert(new_id, new_pipeline);
         }
 
         // Clear out unnecessary bind groups.
         self.texture_bind_groups
-            .retain(|id, _| new_tex_sampler_combos.contains(id));
+            .retain(|id, _| new_tex_sampler_combos.contains_key(id));
         // Clear new combos that we already have.
-        new_tex_sampler_combos.retain(|id| !self.texture_bind_groups.contains_key(id));
+        new_tex_sampler_combos.retain(|id, _| !self.texture_bind_groups.contains_key(id));
         // Only keep the samplers around that we need.
         self.texture_samplers
-            .retain(|id, _| new_tex_sampler_combos.iter().any(|(s_id, _)| id == s_id));
+            .retain(|id, _| new_tex_sampler_combos.keys().any(|(s_id, _)| id == s_id));
         // Ensure we have a bind group for each of the texture views, but no more.
-        for new_id in new_tex_sampler_combos {
+        for (new_id, pipeline_id) in new_tex_sampler_combos {
             let (new_sampler_id, new_tex_view_id) = new_id;
             // Retrieve the sampler or create it if necessary.
             let sampler = self
@@ -716,39 +775,16 @@ impl Renderer {
                 .or_insert_with(|| device.create_sampler(&curr_ctxt.sampler));
             // Retrieve the texture view.
             let texture_view = &new_tex_views[&new_tex_view_id];
+            // Retrieve the associated bind group layout.
+            let bind_group_layout = &self.pipelines[&pipeline_id].bind_group_layout;
             // Create the bind group.
             let bind_group = create_texture_bind_group(
                 device,
-                &self.texture_bind_group_layout,
+                bind_group_layout,
                 sampler,
                 texture_view,
             );
             self.texture_bind_groups.insert(new_id, bind_group);
-        }
-
-        // Clear out unnecessary pipelines.
-        self.render_pipelines
-            .retain(|id, _| new_blend_topo_combos.contains_key(id));
-        // Clear new combos that we already have.
-        new_blend_topo_combos.retain(|id, _| !self.render_pipelines.contains_key(id));
-        // Create new render pipelines as necessary.
-        for (new_id, (color_blend, alpha_blend)) in new_blend_topo_combos {
-            let (_, _, topology) = new_id;
-            let new_pipeline = create_render_pipeline(
-                device,
-                &self.uniform_bind_group_layout,
-                &self.text_bind_group_layout,
-                &self.texture_bind_group_layout,
-                &self.vs_mod,
-                &self.fs_mod,
-                self.output_color_format,
-                self.depth_texture.format(),
-                self.sample_count,
-                color_blend,
-                alpha_blend,
-                topology,
-            );
-            self.render_pipelines.insert(new_id, new_pipeline);
         }
     }
 
@@ -773,7 +809,7 @@ impl Renderer {
         self.fill(device, draw, scale_factor, output_attachment_size);
 
         let Renderer {
-            ref render_pipelines,
+            ref pipelines,
             ref glyph_cache,
             ref glyph_cache_texture,
             ref mut depth_texture,
@@ -781,7 +817,6 @@ impl Renderer {
             ref uniform_bind_group,
             ref text_bind_group,
             ref texture_bind_groups,
-            ref texture_default_bind_group,
             ref mesh,
             ref vertex_mode_buffer,
             ref mut render_commands,
@@ -818,34 +853,27 @@ impl Renderer {
         };
 
         // Create the vertex and index buffers.
-        let vertex_count = mesh.raw_vertex_count();
-        let point_buffer = device
-            .create_buffer_mapped(vertex_count, wgpu::BufferUsage::VERTEX)
-            .fill_from_slice(mesh.points());
-        let color_buffer = device
-            .create_buffer_mapped(vertex_count, wgpu::BufferUsage::VERTEX)
-            .fill_from_slice(mesh.colors());
-        let tex_coords_buffer = device
-            .create_buffer_mapped(vertex_count, wgpu::BufferUsage::VERTEX)
-            .fill_from_slice(mesh.tex_coords());
-        let mode_buffer = device
-            .create_buffer_mapped(vertex_count, wgpu::BufferUsage::VERTEX)
-            .fill_from_slice(vertex_mode_buffer);
-        let index_buffer = device
-            .create_buffer_mapped(mesh.indices().len(), wgpu::BufferUsage::INDEX)
-            .fill_from_slice(mesh.indices());
+        let vertex_usage = wgpu::BufferUsage::VERTEX;
+        let points_bytes = points_as_bytes(mesh.points());
+        let colors_bytes = colors_as_bytes(mesh.colors());
+        let tex_coords_bytes = tex_coords_as_bytes(mesh.tex_coords());
+        let modes_bytes = vertex_modes_as_bytes(vertex_mode_buffer);
+        let indices_bytes = indices_as_bytes(mesh.indices());
+        let point_buffer = device.create_buffer_with_data(points_bytes, vertex_usage);
+        let color_buffer = device.create_buffer_with_data(colors_bytes, vertex_usage);
+        let tex_coords_buffer = device.create_buffer_with_data(tex_coords_bytes, vertex_usage);
+        let mode_buffer = device.create_buffer_with_data(modes_bytes, vertex_usage);
+        let index_buffer = device.create_buffer_with_data(indices_bytes, wgpu::BufferUsage::INDEX);
 
         // If the scale factor or window size has changed, update the uniforms for vertex scaling.
         if *old_scale_factor != scale_factor || output_attachment_size != depth_size {
             *old_scale_factor = scale_factor;
             // Upload uniform data for vertex scaling.
-            //
-            // TODO: Only do this on resize or changed scale factor.
             let uniforms = create_uniforms(output_attachment_size, scale_factor);
             let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
-            let new_uniform_buffer = device
-                .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
-                .fill_from_slice(&[uniforms]);
+            let uniforms_bytes = uniforms_as_bytes(&uniforms);
+            let usage = wgpu::BufferUsage::COPY_SRC;
+            let new_uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
             // Copy new uniform buffer state.
             encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, uniform_buffer, 0, uniforms_size);
         }
@@ -862,27 +890,21 @@ impl Renderer {
             .begin(encoder);
 
         // Set the buffers.
-        render_pass.set_index_buffer(&index_buffer, 0);
-        render_pass.set_vertex_buffers(
-            0,
-            &[
-                (&point_buffer, 0),
-                (&color_buffer, 0),
-                (&tex_coords_buffer, 0),
-                (&mode_buffer, 0),
-            ],
-        );
+        render_pass.set_index_buffer(&index_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, &point_buffer, 0, 0);
+        render_pass.set_vertex_buffer(1, &color_buffer, 0, 0);
+        render_pass.set_vertex_buffer(2, &tex_coords_buffer, 0, 0);
+        render_pass.set_vertex_buffer(3, &mode_buffer, 0, 0);
 
         // Set the uniform and text bind groups here.
         render_pass.set_bind_group(0, uniform_bind_group, &[]);
         render_pass.set_bind_group(1, text_bind_group, &[]);
-        render_pass.set_bind_group(2, texture_default_bind_group, &[]);
 
         // Follow the render commands.
         for cmd in render_commands.drain(..) {
             match cmd {
                 RenderCommand::SetPipeline(id) => {
-                    let pipeline = &render_pipelines[&id];
+                    let pipeline = &pipelines[&id].pipeline;
                     render_pass.set_pipeline(pipeline);
                 }
 
@@ -1009,6 +1031,7 @@ fn create_uniforms([img_w, img_h]: [u32; 2], scale_factor: f32) -> Uniforms {
     let trans = cgmath::Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 1.0));
     let scale = cgmath::Matrix4::from_nonuniform_scale(1.0, -1.0, 0.5);
     let proj = scale * trans * proj;
+    let proj = proj.into();
     Uniforms { proj }
 }
 
@@ -1018,24 +1041,31 @@ fn create_uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLay
         .build(device)
 }
 
-fn create_text_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+fn create_text_bind_group_layout(
+    device: &wgpu::Device,
+) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
         .sampler(wgpu::ShaderStage::FRAGMENT)
         .sampled_texture(
             wgpu::ShaderStage::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
+            wgpu::texture_format_to_component_type(Renderer::GLYPH_CACHE_TEXTURE_FORMAT),
         )
         .build(device)
 }
 
-fn create_texture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+fn create_texture_bind_group_layout(
+    device: &wgpu::Device,
+    texture_component_type: wgpu::TextureComponentType,
+) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
         .sampler(wgpu::ShaderStage::FRAGMENT)
         .sampled_texture(
             wgpu::ShaderStage::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
+            texture_component_type,
         )
         .build(device)
 }
@@ -1114,7 +1144,7 @@ fn sampler_descriptor_hash(desc: &wgpu::SamplerDescriptor) -> SamplerId {
     desc.mipmap_filter.hash(&mut s);
     desc.lod_min_clamp.to_bits().hash(&mut s);
     desc.lod_max_clamp.to_bits().hash(&mut s);
-    desc.compare_function.hash(&mut s);
+    desc.compare.hash(&mut s);
     s.finish()
 }
 
@@ -1124,4 +1154,42 @@ fn blend_descriptor_hash(desc: &wgpu::BlendDescriptor) -> BlendId {
     desc.dst_factor.hash(&mut s);
     desc.operation.hash(&mut s);
     s.finish()
+}
+
+// See `nannou::wgpu::as_bytes` and `nannou::wgpu::slice_as_bytes`.
+
+fn uniforms_as_bytes(uniforms: &Uniforms) -> &[u8] {
+    unsafe {
+        wgpu::as_bytes(uniforms)
+    }
+}
+
+fn points_as_bytes(data: &[draw::mesh::vertex::Point]) -> &[u8] {
+    unsafe {
+        wgpu::slice_as_bytes(data)
+    }
+}
+
+fn colors_as_bytes(data: &[draw::mesh::vertex::Color]) -> &[u8] {
+    unsafe {
+        wgpu::slice_as_bytes(data)
+    }
+}
+
+fn tex_coords_as_bytes(data: &[draw::mesh::vertex::TexCoords]) -> &[u8] {
+    unsafe {
+        wgpu::slice_as_bytes(data)
+    }
+}
+
+fn vertex_modes_as_bytes(data: &[VertexMode]) -> &[u8] {
+    unsafe {
+        wgpu::slice_as_bytes(data)
+    }
+}
+
+fn indices_as_bytes(data: &[u32]) -> &[u8] {
+    unsafe {
+        wgpu::slice_as_bytes(data)
+    }
 }

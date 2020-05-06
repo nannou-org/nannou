@@ -26,7 +26,7 @@ pub trait ToTextureView {
 #[derive(Debug)]
 pub struct Texture {
     handle: Arc<TextureHandle>,
-    descriptor: wgpu::TextureDescriptor,
+    descriptor: wgpu::TextureDescriptor<'static>,
 }
 
 /// A convenient wrapper around a handle to a texture view along with its descriptor.
@@ -65,7 +65,7 @@ pub struct TextureViewId(u64);
 /// properties desired.
 #[derive(Debug)]
 pub struct Builder {
-    descriptor: wgpu::TextureDescriptor,
+    descriptor: wgpu::TextureDescriptor<'static>,
 }
 
 /// A type aimed at simplifying the construction of a **TextureView**.
@@ -86,7 +86,7 @@ pub struct BufferBytes {
 
 impl Texture {
     /// The inner descriptor from which this **Texture** was constructed.
-    pub fn descriptor(&self) -> &wgpu::TextureDescriptor {
+    pub fn descriptor(&self) -> &wgpu::TextureDescriptor<'static> {
         &self.descriptor
     }
 
@@ -94,8 +94,9 @@ impl Texture {
     ///
     /// TODO: This method should be removed upon updating to wgpu 0.5 as the new version will
     /// include an implementation of `Clone` for `TextureDescriptor`.
-    pub fn descriptor_cloned(&self) -> wgpu::TextureDescriptor {
+    pub fn descriptor_cloned(&self) -> wgpu::TextureDescriptor<'static> {
         wgpu::TextureDescriptor {
+            label: Some("nannou"),
             size: self.extent(),
             array_layer_count: self.array_layer_count(),
             mip_level_count: self.mip_level_count(),
@@ -160,6 +161,11 @@ impl Texture {
         data_size_bytes(&self.descriptor)
     }
 
+    /// The component type associated with the texture's format.
+    pub fn component_type(&self) -> wgpu::TextureComponentType {
+        format_to_component_type(self.format())
+    }
+
     // Custom constructors.
 
     /// Create a **Texture** from the inner wgpu texture handle and the descriptor used to create
@@ -172,7 +178,7 @@ impl Texture {
     /// The `descriptor` must be the same used to create the texture.
     pub fn from_handle_and_descriptor(
         handle: Arc<TextureHandle>,
-        descriptor: wgpu::TextureDescriptor,
+        descriptor: wgpu::TextureDescriptor<'static>,
     ) -> Self {
         Texture { handle, descriptor }
     }
@@ -250,8 +256,8 @@ impl Texture {
         wgpu::BufferCopyView {
             buffer,
             offset: 0,
-            row_pitch: width * format_size_bytes,
-            image_height: height,
+            bytes_per_row: width * format_size_bytes,
+            rows_per_image: height,
         }
     }
 
@@ -269,9 +275,7 @@ impl Texture {
         assert_eq!(data.len(), texture_size_bytes);
 
         // Upload and copy the data.
-        let buffer = device
-            .create_buffer_mapped(texture_size_bytes, wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(data);
+        let buffer = device.create_buffer_with_data(data, wgpu::BufferUsage::COPY_SRC);
         let buffer_copy_view = self.default_buffer_copy_view(&buffer);
         let texture_copy_view = self.default_copy_view();
         let extent = self.extent();
@@ -310,6 +314,7 @@ impl Texture {
             let layer_size_bytes = layer_len_pixels * format_size_bytes;
             let data_size_bytes = layer_size_bytes * texture.array_layer_count() as u64;
             let buffer_descriptor = wgpu::BufferDescriptor {
+                label: Some("nannou_texture_to_buffer"),
                 size: data_size_bytes,
                 usage: wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ,
             };
@@ -406,6 +411,10 @@ impl TextureView {
         self.descriptor.array_layer_count
     }
 
+    pub fn component_type(&self) -> wgpu::TextureComponentType {
+        format_to_component_type(self.format())
+    }
+
     pub fn id(&self) -> TextureViewId {
         texture_view_id(&self.texture_id, &self.descriptor)
     }
@@ -453,7 +462,8 @@ impl Builder {
     pub const DEFAULT_DIMENSION: wgpu::TextureDimension = wgpu::TextureDimension::D2;
     pub const DEFAULT_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
     pub const DEFAULT_USAGE: wgpu::TextureUsage = wgpu::TextureUsage::ORDERED;
-    pub const DEFAULT_DESCRIPTOR: wgpu::TextureDescriptor = wgpu::TextureDescriptor {
+    pub const DEFAULT_DESCRIPTOR: wgpu::TextureDescriptor<'static> = wgpu::TextureDescriptor {
+        label: Some("nannou_texture_descriptor"),
         size: Self::DEFAULT_SIZE,
         array_layer_count: Self::DEFAULT_ARRAY_LAYER_COUNT,
         mip_level_count: Self::DEFAULT_MIP_LEVEL_COUNT,
@@ -552,7 +562,7 @@ impl Builder {
     }
 
     /// Consumes the builder and returns the resulting `wgpu::TextureDescriptor`.
-    pub fn into_descriptor(self) -> wgpu::TextureDescriptor {
+    pub fn into_descriptor(self) -> wgpu::TextureDescriptor<'static> {
         self.into()
     }
 }
@@ -622,11 +632,8 @@ impl BufferBytes {
     ///
     /// Note: The given callback will not be called until the memory is mapped and the device is
     /// polled. You should not rely on the callback being called immediately.
-    pub fn read<F>(&self, callback: F)
-    where
-        F: 'static + FnOnce(wgpu::BufferMapAsyncResult<&[u8]>),
-    {
-        self.buffer.map_read_async(0, self.len_bytes, callback)
+    pub async fn read(&self) -> Result<wgpu::BufferReadMapping, wgpu::BufferAsyncErr> {
+        self.buffer.map_read(0, self.len_bytes).await
     }
 
     /// The length of the `wgpu::Buffer` in bytes.
@@ -722,14 +729,14 @@ impl Default for Builder {
     }
 }
 
-impl From<wgpu::TextureDescriptor> for Builder {
-    fn from(descriptor: wgpu::TextureDescriptor) -> Self {
+impl From<wgpu::TextureDescriptor<'static>> for Builder {
+    fn from(descriptor: wgpu::TextureDescriptor<'static>) -> Self {
         Self { descriptor }
     }
 }
 
-impl Into<wgpu::TextureDescriptor> for Builder {
-    fn into(self) -> wgpu::TextureDescriptor {
+impl Into<wgpu::TextureDescriptor<'static>> for Builder {
+    fn into(self) -> wgpu::TextureDescriptor<'static> {
         self.descriptor
     }
 }
@@ -773,15 +780,48 @@ pub fn data_size_bytes(desc: &wgpu::TextureDescriptor) -> usize {
 pub fn format_size_bytes(format: wgpu::TextureFormat) -> u32 {
     use crate::wgpu::TextureFormat::*;
     match format {
-        R8Unorm | R8Snorm | R8Uint | R8Sint => 1,
-        R16Unorm | R16Snorm | R16Uint | R16Sint | R16Float | Rg8Unorm | Rg8Snorm | Rg8Uint
+        R8Unorm
+        | R8Snorm
+        | R8Uint
+        | R8Sint => 1,
+
+        R16Uint
+        | R16Sint
+        | R16Float
+        | Rg8Unorm
+        | Rg8Snorm
+        | Rg8Uint
         | Rg8Sint => 2,
-        R32Uint | R32Sint | R32Float | Rg16Unorm | Rg16Snorm | Rg16Uint | Rg16Sint | Rg16Float
-        | Rgba8Unorm | Rgba8UnormSrgb | Rgba8Snorm | Rgba8Uint | Rgba8Sint | Bgra8Unorm
-        | Bgra8UnormSrgb | Rgb10a2Unorm | Rg11b10Float => 4,
-        Rg32Uint | Rg32Sint | Rg32Float | Rgba16Unorm | Rgba16Snorm | Rgba16Uint | Rgba16Sint
-        | Rgba16Float | Rgba32Uint | Rgba32Sint | Rgba32Float => 8,
-        Depth32Float | Depth24Plus | Depth24PlusStencil8 => 4,
+
+        R32Uint
+        | R32Sint
+        | R32Float
+        | Rg16Uint
+        | Rg16Sint
+        | Rg16Float
+        | Rgba8Unorm
+        | Rgba8UnormSrgb
+        | Rgba8Snorm
+        | Rgba8Uint
+        | Rgba8Sint
+        | Bgra8Unorm
+        | Bgra8UnormSrgb
+        | Rgb10a2Unorm
+        | Rg11b10Float => 4,
+
+        Rg32Uint
+        | Rg32Sint
+        | Rg32Float
+        | Rgba16Uint
+        | Rgba16Sint
+        | Rgba16Float
+        | Rgba32Uint
+        | Rgba32Sint
+        | Rgba32Float => 8,
+
+        Depth32Float
+        | Depth24Plus
+        | Depth24PlusStencil8 => 4,
     }
 }
 
@@ -799,4 +839,51 @@ pub fn descriptor_eq(a: &wgpu::TextureDescriptor, b: &wgpu::TextureDescriptor) -
         && a.dimension == b.dimension
         && a.format == b.format
         && a.usage == b.usage
+}
+
+/// The component type associated with the given texture format.
+// TODO: Remove this when this lands https://github.com/gfx-rs/wgpu/pull/628
+pub fn format_to_component_type(format: wgpu::TextureFormat) -> wgpu::TextureComponentType {
+    match format {
+        wgpu::TextureFormat::R8Uint
+        | wgpu::TextureFormat::R16Uint
+        | wgpu::TextureFormat::Rg8Uint
+        | wgpu::TextureFormat::R32Uint
+        | wgpu::TextureFormat::Rg16Uint
+        | wgpu::TextureFormat::Rgba8Uint
+        | wgpu::TextureFormat::Rg32Uint
+        | wgpu::TextureFormat::Rgba16Uint
+        | wgpu::TextureFormat::Rgba32Uint => wgpu::TextureComponentType::Uint,
+
+        wgpu::TextureFormat::R8Sint
+        | wgpu::TextureFormat::R16Sint
+        | wgpu::TextureFormat::Rg8Sint
+        | wgpu::TextureFormat::R32Sint
+        | wgpu::TextureFormat::Rg16Sint
+        | wgpu::TextureFormat::Rgba8Sint
+        | wgpu::TextureFormat::Rg32Sint
+        | wgpu::TextureFormat::Rgba16Sint
+        | wgpu::TextureFormat::Rgba32Sint => wgpu::TextureComponentType::Sint,
+
+        wgpu::TextureFormat::R8Unorm
+        | wgpu::TextureFormat::R8Snorm
+        | wgpu::TextureFormat::R16Float
+        | wgpu::TextureFormat::R32Float
+        | wgpu::TextureFormat::Rg8Unorm
+        | wgpu::TextureFormat::Rg8Snorm
+        | wgpu::TextureFormat::Rg16Float
+        | wgpu::TextureFormat::Rg11b10Float
+        | wgpu::TextureFormat::Rg32Float
+        | wgpu::TextureFormat::Rgba8Snorm
+        | wgpu::TextureFormat::Rgba16Float
+        | wgpu::TextureFormat::Rgba32Float
+        | wgpu::TextureFormat::Rgba8Unorm
+        | wgpu::TextureFormat::Rgba8UnormSrgb
+        | wgpu::TextureFormat::Bgra8Unorm
+        | wgpu::TextureFormat::Bgra8UnormSrgb
+        | wgpu::TextureFormat::Rgb10a2Unorm
+        | wgpu::TextureFormat::Depth32Float
+        | wgpu::TextureFormat::Depth24Plus
+        | wgpu::TextureFormat::Depth24PlusStencil8 => wgpu::TextureComponentType::Float,
+    }
 }

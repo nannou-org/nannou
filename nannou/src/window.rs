@@ -32,7 +32,7 @@ pub struct Builder<'app> {
     window: winit::window::WindowBuilder,
     title_was_set: bool,
     swap_chain_builder: SwapChainBuilder,
-    request_adapter_opts: Option<wgpu::RequestAdapterOptions>,
+    power_preference: wgpu::PowerPreference,
     device_desc: Option<wgpu::DeviceDescriptor>,
     user_functions: UserFunctions,
     msaa_samples: Option<u32>,
@@ -273,7 +273,7 @@ pub struct SwapChainBuilder {
 impl SwapChainBuilder {
     pub const DEFAULT_USAGE: wgpu::TextureUsage = wgpu::TextureUsage::OUTPUT_ATTACHMENT;
     pub const DEFAULT_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
-    pub const DEFAULT_PRESENT_MODE: wgpu::PresentMode = wgpu::PresentMode::Vsync;
+    pub const DEFAULT_PRESENT_MODE: wgpu::PresentMode = wgpu::PresentMode::Fifo;
 
     /// A new empty **SwapChainBuilder** with all parameters set to `None`.
     pub fn new() -> Self {
@@ -334,6 +334,9 @@ impl SwapChainBuilder {
 }
 
 impl<'app> Builder<'app> {
+    /// The default power preference used to request the WGPU adapter.
+    pub const DEFAULT_POWER_PREFERENCE: wgpu::PowerPreference = wgpu::DEFAULT_POWER_PREFERENCE;
+
     /// Begin building a new window.
     pub fn new(app: &'app App) -> Self {
         Builder {
@@ -341,7 +344,7 @@ impl<'app> Builder<'app> {
             window: winit::window::WindowBuilder::new(),
             title_was_set: false,
             swap_chain_builder: Default::default(),
-            request_adapter_opts: None,
+            power_preference: Self::DEFAULT_POWER_PREFERENCE,
             device_desc: None,
             user_functions: Default::default(),
             msaa_samples: None,
@@ -360,10 +363,11 @@ impl<'app> Builder<'app> {
         self
     }
 
-    /// Specify a custom set of options to request an adapter with. This is useful for describing a
-    /// set of desired properties for the requested physical device.
-    pub fn request_adapter_options(mut self, opts: wgpu::RequestAdapterOptions) -> Self {
-        self.request_adapter_opts = Some(opts);
+    /// Specify the power preference desired for the WGPU adapter.
+    ///
+    /// By default, this is `wgpu::PowerPreference::Default`.
+    pub fn power_preference(mut self, pref: wgpu::PowerPreference) -> Self {
+        self.power_preference = pref;
         self
     }
 
@@ -644,7 +648,7 @@ impl<'app> Builder<'app> {
             mut window,
             title_was_set,
             swap_chain_builder,
-            request_adapter_opts,
+            power_preference,
             device_desc,
             user_functions,
             msaa_samples,
@@ -735,12 +739,17 @@ impl<'app> Builder<'app> {
         // Build the wgpu surface.
         let surface = wgpu::Surface::create(&window);
 
+        // TODO: Make it possible to specify this via app builder.
+        let backends = wgpu::DEFAULT_BACKENDS;
+
         // Request the adapter.
-        let request_adapter_opts =
-            request_adapter_opts.unwrap_or(wgpu::DEFAULT_ADAPTER_REQUEST_OPTIONS);
+        let request_adapter_opts = wgpu::RequestAdapterOptions {
+            power_preference,
+            compatible_surface: Some(&surface),
+        };
         let adapter = app
             .wgpu_adapters()
-            .get_or_request(request_adapter_opts)
+            .get_or_request(request_adapter_opts, backends)
             .ok_or(BuildError::NoAvailableAdapter)?;
 
         // Instantiate the logical device.
@@ -816,7 +825,7 @@ impl<'app> Builder<'app> {
             window,
             title_was_set,
             device_desc,
-            request_adapter_opts,
+            power_preference,
             swap_chain_builder,
             user_functions,
             msaa_samples,
@@ -827,7 +836,7 @@ impl<'app> Builder<'app> {
             window,
             title_was_set,
             device_desc,
-            request_adapter_opts,
+            power_preference,
             swap_chain_builder,
             user_functions,
             msaa_samples,

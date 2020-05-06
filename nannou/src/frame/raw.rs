@@ -46,7 +46,9 @@ impl<'swap_chain> RawFrame<'swap_chain> {
         texture_format: wgpu::TextureFormat,
         window_rect: geom::Rect,
     ) -> Self {
-        let ce_desc = wgpu::CommandEncoderDescriptor::default();
+        let ce_desc = wgpu::CommandEncoderDescriptor {
+            label: Some("nannou_raw_frame"),
+        };
         let command_encoder = device_queue_pair.device().create_command_encoder(&ce_desc);
         let command_encoder = Some(RefCell::new(command_encoder));
         let frame = RawFrame {

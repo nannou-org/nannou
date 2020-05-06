@@ -15,11 +15,15 @@ default = ["notosans"]
 
 [dependencies]
 cgmath = { version = "0.17", features = ["serde"] }
-conrod_core = "0.69"
-conrod_wgpu = "0.69"
-conrod_winit = "0.69"
+conrod_core = { path = "../../conrod/conrod_core" }
+conrod_wgpu = { path = "../../conrod/backends/conrod_wgpu" }
+conrod_winit = { path = "../../conrod/backends/conrod_winit" }
+# conrod_core = "0.69"
+# conrod_wgpu = "0.69"
+# conrod_winit = "0.69"
 daggy = "0.6"
 find_folder = "0.3"
+futures = { version = "0.3", features = ["executor", "thread-pool"] }
 image = "0.23"
 lyon = "0.15"
 noise = "0.6"
@@ -31,8 +35,8 @@ rusttype = "0.8"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
-threadpool = "1"
 toml = "0.5"
 walkdir = "2"
-wgpu = "0.4"
+wgpu = "0.5"
 winit = "0.22"
+zerocopy = "0.3"

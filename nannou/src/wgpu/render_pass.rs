@@ -4,8 +4,7 @@ use crate::wgpu;
 #[derive(Debug, Default)]
 pub struct Builder<'a> {
     color_attachments: Vec<wgpu::RenderPassColorAttachmentDescriptor<'a>>,
-    depth_stencil_attachment:
-        Option<wgpu::RenderPassDepthStencilAttachmentDescriptor<&'a wgpu::TextureViewHandle>>,
+    depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachmentDescriptor<'a>>,
 }
 
 /// A builder type to simplify the process of creating a render pass descriptor.
@@ -17,7 +16,7 @@ pub struct ColorAttachmentDescriptorBuilder<'a> {
 /// A builder type to simplify the process of creating a render pass descriptor.
 #[derive(Debug)]
 pub struct DepthStencilAttachmentDescriptorBuilder<'a> {
-    descriptor: wgpu::RenderPassDepthStencilAttachmentDescriptor<&'a wgpu::TextureViewHandle>,
+    descriptor: wgpu::RenderPassDepthStencilAttachmentDescriptor<'a>,
 }
 
 impl<'a> ColorAttachmentDescriptorBuilder<'a> {
@@ -195,7 +194,7 @@ impl<'a> Builder<'a> {
         self,
     ) -> (
         Vec<wgpu::RenderPassColorAttachmentDescriptor<'a>>,
-        Option<wgpu::RenderPassDepthStencilAttachmentDescriptor<&'a wgpu::TextureViewHandle>>,
+        Option<wgpu::RenderPassDepthStencilAttachmentDescriptor<'a>>,
     ) {
         let Builder {
             color_attachments,
@@ -205,7 +204,7 @@ impl<'a> Builder<'a> {
     }
 
     /// Begin a render pass with the specified parameters on the given encoder.
-    pub fn begin(self, encoder: &mut wgpu::CommandEncoder) -> wgpu::RenderPass {
+    pub fn begin(self, encoder: &'a mut wgpu::CommandEncoder) -> wgpu::RenderPass<'a> {
         let (color_attachments, depth_stencil_attachment) = self.into_inner();
         let descriptor = wgpu::RenderPassDescriptor {
             color_attachments: &color_attachments,

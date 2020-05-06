@@ -66,7 +66,8 @@ impl<'swap_chain> Frame<'swap_chain> {
     /// We use a high bit depth format in order to retain as much information as possible when
     /// converting from the linear representation to the swapchain format (normally a non-linear
     /// representation).
-    pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Unorm;
+    // TODO: Kvark recommends trying `Rgb10A2Unorm`.
+    pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 
     // Initialise a new empty frame ready for "drawing".
     pub(crate) fn new_empty(
@@ -147,18 +148,19 @@ impl<'swap_chain> Frame<'swap_chain> {
                     });
                 }
                 true => {
-                    snapshot.read_threaded(move |result| match result {
-                        Err(e) => eprintln!("failed to async read captured frame: {:?}", e),
-                        Ok(image) => {
-                            if let Err(e) = image.save(&path) {
-                                eprintln!(
-                                    "failed to save captured frame to \"{}\": {}",
-                                    path.display(),
-                                    e
-                                );
-                            }
-                        }
-                    });
+                    unimplemented!()
+                    // snapshot.read_threaded(move |result| match result {
+                    //     Err(e) => eprintln!("failed to async read captured frame: {:?}", e),
+                    //     Ok(image) => {
+                    //         if let Err(e) = image.save(&path) {
+                    //             eprintln!(
+                    //                 "failed to save captured frame to \"{}\": {}",
+                    //                 path.display(),
+                    //                 e
+                    //             );
+                    //         }
+                    //     }
+                    // });
                 }
             }
         }
@@ -302,6 +304,7 @@ impl RenderData {
             device,
             &intermediary_lin_srgba.texture_view,
             src_sample_count,
+            intermediary_lin_srgba.texture_view.component_type(),
             swap_chain_sample_count,
             swap_chain_format,
         );
