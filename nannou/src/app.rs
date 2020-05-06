@@ -832,11 +832,13 @@ impl draw::Draw {
             renderers.entry(window_id).or_insert_with(|| {
                 let device = window.swap_chain_device();
                 let frame_dims: [u32; 2] = window.tracked_state.physical_size.into();
+                let scale_factor = window.tracked_state.scale_factor as f32;
                 let msaa_samples = window.msaa_samples();
                 let target_format = crate::frame::Frame::TEXTURE_FORMAT;
                 let renderer = draw::RendererBuilder::new().build(
                     device,
                     frame_dims,
+                    scale_factor,
                     msaa_samples,
                     target_format,
                 );
