@@ -81,15 +81,14 @@ fn model(app: &App) -> Model {
     let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
 
     // Create the vertex, normal and index buffers.
-    let vertex_buffer = device
-        .create_buffer_mapped(data::VERTICES.len(), wgpu::BufferUsage::VERTEX)
-        .fill_from_slice(&data::VERTICES[..]);
-    let normal_buffer = device
-        .create_buffer_mapped(data::NORMALS.len(), wgpu::BufferUsage::VERTEX)
-        .fill_from_slice(&data::NORMALS[..]);
-    let index_buffer = device
-        .create_buffer_mapped(data::INDICES.len(), wgpu::BufferUsage::INDEX)
-        .fill_from_slice(&data::INDICES[..]);
+    let vertices_bytes = vertices_as_bytes(&data::VERTICES);
+    let normals_bytes = normals_as_bytes(&data::NORMALS);
+    let indices_bytes = indices_as_bytes(&data::INDICES);
+    let vertex_usage = wgpu::BufferUsage::VERTEX;
+    let index_usage = wgpu::BufferUsage::INDEX;
+    let vertex_buffer = device.create_buffer_with_data(vertices_bytes, vertex_usage);
+    let normal_buffer = device.create_buffer_with_data(normals_bytes, vertex_usage);
+    let index_buffer = device.create_buffer_with_data(indices_bytes, index_usage);
 
     // Create the depth texture.
     let depth_texture = create_depth_texture(device, [win_w, win_h], DEPTH_FORMAT, msaa_samples);
@@ -97,9 +96,9 @@ fn model(app: &App) -> Model {
 
     // Create the uniform buffer.
     let uniforms = create_uniforms(0.0, [win_w, win_h]);
-    let uniform_buffer = device
-        .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
-        .fill_from_slice(&[uniforms]);
+    let uniforms_bytes = uniforms_as_bytes(&uniforms);
+    let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
+    let uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
 
     // Create the render pipeline.
     let bind_group_layout = create_bind_group_layout(device);
@@ -147,9 +146,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let rotation = app.time;
     let uniforms = create_uniforms(rotation, frame_size);
     let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
-    let new_uniform_buffer = device
-        .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
-        .fill_from_slice(&[uniforms]);
+    let uniforms_bytes = uniforms_as_bytes(&uniforms);
+    let usage = wgpu::BufferUsage::COPY_SRC;
+    let new_uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
 
     let mut encoder = frame.command_encoder();
     encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, &g.uniform_buffer, 0, uniforms_size);
@@ -160,8 +159,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .begin(&mut encoder);
     render_pass.set_bind_group(0, &g.bind_group, &[]);
     render_pass.set_pipeline(&g.render_pipeline);
-    render_pass.set_vertex_buffers(0, &[(&g.vertex_buffer, 0), (&g.normal_buffer, 0)]);
-    render_pass.set_index_buffer(&g.index_buffer, 0);
+    render_pass.set_vertex_buffer(0, &g.vertex_buffer, 0, 0);
+    render_pass.set_vertex_buffer(1, &g.normal_buffer, 0, 0);
+    render_pass.set_index_buffer(&g.index_buffer, 0, 0);
     let index_range = 0..data::INDICES.len() as u32;
     let start_vertex = 0;
     let instance_range = 0..1;
@@ -247,4 +247,30 @@ fn create_render_pipeline(
         .index_format(wgpu::IndexFormat::Uint16)
         .sample_count(sample_count)
         .build(device)
+}
+
+// See the `nannou::wgpu::bytes` documentation for why the following are necessary.
+
+fn vertices_as_bytes(data: &[Vertex]) -> &[u8] {
+    unsafe {
+        wgpu::bytes::from_slice(data)
+    }
+}
+
+fn normals_as_bytes(data: &[Normal]) -> &[u8] {
+    unsafe {
+        wgpu::bytes::from_slice(data)
+    }
+}
+
+fn indices_as_bytes(data: &[u16]) -> &[u8] {
+    unsafe {
+        wgpu::bytes::from_slice(data)
+    }
+}
+
+fn uniforms_as_bytes(uniforms: &Uniforms) -> &[u8] {
+    unsafe {
+        wgpu::bytes::from(uniforms)
+    }
 }

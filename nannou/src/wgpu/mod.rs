@@ -158,42 +158,42 @@ pub fn sampler_descriptor_clone(sampler: &wgpu::SamplerDescriptor) -> wgpu::Samp
     }
 }
 
-// NOTE:
-//
-// The following functions use unsafe in order to retrieve their input as a slice of bytes.  This
-// is necessary in order to upload data to the GPU via the wgpu `create_buffer_with_data` buffer
-// constructor. This method is unsafe as the type `T` may contain padding which is considered to be
-// uninitialised memory in Rust and may potentially lead to undefined behaviour.
-//
-// These should be replaced in the future with something similar to `zerocopy`. Unfortunately, we
-// don't gain much benefit from using `zerocopy` in our case as `zerocopy` provides no way to
-// implement the `AsBytes` trait for generic types (e.g. `Vector*`), even with their type
-// parameters filled (e.g. `Vector2<f32>`). This means we can't derive `AsBytes` for the majority
-// of the types where we need to as `derive(AsBytes)` requires that all fields implement
-// `AsBytes`, and neither our `Vector` types or the palette color types can implement it.
-//
-// There is a relatively new crate `bytemuck` which provides traits for this, however these traits
-// are `unsafe` and so we don't gain much benefit in terms of safety, especially for our simple
-// use-case. There is a `zeroable` crate that attempts to derive the `Zeroable` trait from
-// `bytemuck`, however:
-// 1. there not yet any other publicly dependent crates or public discussion around the safety of
-//    the provided derives and
-// 2. we would still require implementing `Pod` unsafely.
+/// The functions within this module use unsafe in order to retrieve their input as a slice of
+/// bytes. This is necessary in order to upload data to the GPU via the wgpu
+/// `create_buffer_with_data` buffer constructor. This method is unsafe as the type `T` may contain
+/// padding which is considered to be uninitialised memory in Rust and may potentially lead to
+/// undefined behaviour.
+///
+/// These should be replaced in the future with something similar to `zerocopy`. Unfortunately, we
+/// don't gain much benefit from using `zerocopy` in our case as `zerocopy` provides no way to
+/// implement the `AsBytes` trait for generic types (e.g. `Vector*`), even with their type
+/// parameters filled (e.g. `Vector2<f32>`). This means we can't derive `AsBytes` for the majority
+/// of the types where we need to as `derive(AsBytes)` requires that all fields implement
+/// `AsBytes`, and neither our `Vector` types or the palette color types can implement it.
+///
+/// There is a relatively new crate `bytemuck` which provides traits for this, however these traits
+/// are `unsafe` and so we don't gain much benefit in terms of safety, especially for our simple
+/// use-case. There is a `zeroable` crate that attempts to derive the `Zeroable` trait from
+/// `bytemuck`, however:
+/// 1. there not yet any other publicly dependent crates or public discussion around the safety of
+///    the provided derives and
+/// 2. we would still require implementing `Pod` unsafely.
+pub mod bytes {
+    pub unsafe fn from_slice<T>(slice: &[T]) -> &[u8]
+    where
+        T: Copy + Sized,
+    {
+        let len = slice.len() * std::mem::size_of::<T>();
+        let ptr = slice.as_ptr() as *const u8;
+        std::slice::from_raw_parts(ptr, len)
+    }
 
-pub(crate) unsafe fn slice_as_bytes<T>(slice: &[T]) -> &[u8]
-where
-    T: Copy + Sized,
-{
-    let len = slice.len() * std::mem::size_of::<T>();
-    let ptr = slice.as_ptr() as *const u8;
-    std::slice::from_raw_parts(ptr, len)
-}
-
-pub(crate) unsafe fn as_bytes<T>(t: &T) -> &[u8]
-where
-    T: Copy + Sized,
-{
-    let len = std::mem::size_of::<T>();
-    let ptr = t as *const T as *const u8;
-    std::slice::from_raw_parts(ptr, len)
+    pub unsafe fn from<T>(t: &T) -> &[u8]
+    where
+        T: Copy + Sized,
+    {
+        let len = std::mem::size_of::<T>();
+        let ptr = t as *const T as *const u8;
+        std::slice::from_raw_parts(ptr, len)
+    }
 }

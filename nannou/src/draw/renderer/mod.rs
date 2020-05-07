@@ -1156,40 +1156,40 @@ fn blend_descriptor_hash(desc: &wgpu::BlendDescriptor) -> BlendId {
     s.finish()
 }
 
-// See `nannou::wgpu::as_bytes` and `nannou::wgpu::slice_as_bytes`.
+// See `nannou::wgpu::bytes` docs for why these are necessary.
 
 fn uniforms_as_bytes(uniforms: &Uniforms) -> &[u8] {
     unsafe {
-        wgpu::as_bytes(uniforms)
+        wgpu::bytes::from(uniforms)
     }
 }
 
 fn points_as_bytes(data: &[draw::mesh::vertex::Point]) -> &[u8] {
     unsafe {
-        wgpu::slice_as_bytes(data)
+        wgpu::bytes::from_slice(data)
     }
 }
 
 fn colors_as_bytes(data: &[draw::mesh::vertex::Color]) -> &[u8] {
     unsafe {
-        wgpu::slice_as_bytes(data)
+        wgpu::bytes::from_slice(data)
     }
 }
 
 fn tex_coords_as_bytes(data: &[draw::mesh::vertex::TexCoords]) -> &[u8] {
     unsafe {
-        wgpu::slice_as_bytes(data)
+        wgpu::bytes::from_slice(data)
     }
 }
 
 fn vertex_modes_as_bytes(data: &[VertexMode]) -> &[u8] {
     unsafe {
-        wgpu::slice_as_bytes(data)
+        wgpu::bytes::from_slice(data)
     }
 }
 
 fn indices_as_bytes(data: &[u32]) -> &[u8] {
     unsafe {
-        wgpu::slice_as_bytes(data)
+        wgpu::bytes::from_slice(data)
     }
 }

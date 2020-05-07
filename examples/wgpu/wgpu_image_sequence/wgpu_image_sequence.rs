@@ -91,11 +91,11 @@ fn model(app: &App) -> Model {
 
     let texture_array = {
         // The wgpu device queue used to load the image data.
-        let mut queue = window.swap_chain_queue().lock().unwrap();
+        let queue = window.swap_chain_queue();
         // Describe how we will use the texture so that the GPU may handle it efficiently.
         let usage = wgpu::TextureUsage::SAMPLED;
         let iter = images.iter().map(|&(_, ref img)| img);
-        wgpu::Texture::load_array_from_image_buffers(device, &mut *queue, usage, iter)
+        wgpu::Texture::load_array_from_image_buffers(device, queue, usage, iter)
             .expect("tied to load texture array with an empty image buffer sequence")
     };
     let layer = 0;
@@ -104,7 +104,7 @@ fn model(app: &App) -> Model {
     // Create the sampler for sampling from the source texture.
     let sampler = wgpu::SamplerBuilder::new().build(device);
 
-    let bind_group_layout = create_bind_group_layout(device);
+    let bind_group_layout = create_bind_group_layout(device, texture_view.component_type());
     let bind_group = create_bind_group(device, &bind_group_layout, &texture_view, &sampler);
     let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
     let render_pipeline = create_render_pipeline(
@@ -117,9 +117,9 @@ fn model(app: &App) -> Model {
     );
 
     // Create the vertex buffer.
-    let vertex_buffer = device
-        .create_buffer_mapped(VERTICES.len(), wgpu::BufferUsage::VERTEX)
-        .fill_from_slice(&VERTICES[..]);
+    let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
+    let usage = wgpu::BufferUsage::VERTEX;
+    let vertex_buffer = device.create_buffer_with_data(vertices_bytes, usage);
 
     Model {
         current_layer: 0.0,
@@ -173,7 +173,7 @@ fn view(_app: &App, model: &Model, frame: Frame) {
         .begin(&mut encoder);
     render_pass.set_bind_group(0, &model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
-    render_pass.set_vertex_buffers(0, &[(&model.vertex_buffer, 0)]);
+    render_pass.set_vertex_buffer(0, &model.vertex_buffer, 0, 0);
     let vertex_range = 0..VERTICES.len() as u32;
     let instance_range = 0..1;
     render_pass.draw(vertex_range, instance_range);
@@ -202,12 +202,16 @@ fn load_images(dir: &Path) -> (Vec<(PathBuf, RgbaImage)>, (u32, u32)) {
     (images, dims)
 }
 
-fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+fn create_bind_group_layout(
+    device: &wgpu::Device,
+    texture_component_type: wgpu::TextureComponentType,
+) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
         .sampled_texture(
             wgpu::ShaderStage::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
+            texture_component_type,
         )
         .sampler(wgpu::ShaderStage::FRAGMENT)
         .build(device)
@@ -250,4 +254,11 @@ fn create_render_pipeline(
         .sample_count(sample_count)
         .primitive_topology(wgpu::PrimitiveTopology::TriangleStrip)
         .build(device)
+}
+
+// See the `nannou::wgpu::bytes` documentation for why this is necessary.
+fn vertices_as_bytes(data: &[Vertex]) -> &[u8] {
+    unsafe {
+        wgpu::bytes::from_slice(data)
+    }
 }

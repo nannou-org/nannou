@@ -69,11 +69,11 @@ impl wgpu::TextureBuilder {
 /// a texture from an image.
 ///
 /// Notably, implementations exist for `&App`, `&Window`, `&wgpu::DeviceQueuePair` and `(&Device,
-/// &mut Queue)`.
+/// &Queue)`.
 pub trait WithDeviceQueuePair {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
-        F: FnOnce(&wgpu::Device, &mut wgpu::Queue) -> O;
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O;
 }
 
 impl wgpu::Texture {
@@ -121,7 +121,7 @@ impl wgpu::Texture {
     /// used as the source of the device and queue.
     ///
     /// The `DeviceQueuePairSource` can be either the `App`, a `Window`, a `DeviceQueuePair` or a
-    /// tuple `(&Device, &mut Queue)`.
+    /// tuple `(&Device, &Queue)`.
     pub fn from_image<'a, T>(src: T, image: &image::DynamicImage) -> Self
     where
         T: WithDeviceQueuePair,
@@ -137,7 +137,7 @@ impl wgpu::Texture {
     /// This is short-hand for calling `image::open` and then `Texture::load_from_image`.
     pub fn load_from_path<P>(
         device: &wgpu::Device,
-        queue: &mut wgpu::Queue,
+        queue: &wgpu::Queue,
         usage: wgpu::TextureUsage,
         path: P,
     ) -> image::ImageResult<Self>
@@ -159,7 +159,7 @@ impl wgpu::Texture {
     /// before being uploaded.
     pub fn load_from_image(
         device: &wgpu::Device,
-        queue: &mut wgpu::Queue,
+        queue: &wgpu::Queue,
         usage: wgpu::TextureUsage,
         image: &image::DynamicImage,
     ) -> Self {
@@ -174,7 +174,7 @@ impl wgpu::Texture {
     /// Pixel type compatibility is ensured via the `Pixel` trait.
     pub fn load_from_image_buffer<P, Container>(
         device: &wgpu::Device,
-        queue: &mut wgpu::Queue,
+        queue: &wgpu::Queue,
         usage: wgpu::TextureUsage,
         buffer: &image::ImageBuffer<P, Container>,
     ) -> Self
@@ -195,7 +195,7 @@ impl wgpu::Texture {
     /// Returns `None` if there are no images in the given sequence.
     pub fn load_array_from_image_buffers<'a, I, P, Container>(
         device: &wgpu::Device,
-        queue: &mut wgpu::Queue,
+        queue: &wgpu::Queue,
         usage: wgpu::TextureUsage,
         buffers: I,
     ) -> Option<Self>
@@ -447,10 +447,10 @@ impl Pixel for image::Rgba<i16> {
     const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Sint;
 }
 
-impl<'a> WithDeviceQueuePair for (&'a wgpu::Device, &'a mut wgpu::Queue) {
+impl<'a> WithDeviceQueuePair for (&'a wgpu::Device, &'a wgpu::Queue) {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
-        F: FnOnce(&wgpu::Device, &mut wgpu::Queue) -> O,
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
     {
         let (device, queue) = self;
         f(device, queue)
@@ -460,19 +460,18 @@ impl<'a> WithDeviceQueuePair for (&'a wgpu::Device, &'a mut wgpu::Queue) {
 impl<'a> WithDeviceQueuePair for &'a wgpu::DeviceQueuePair {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
-        F: FnOnce(&wgpu::Device, &mut wgpu::Queue) -> O,
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
     {
         let device = self.device();
         let queue = self.queue();
-        let mut queue = queue.lock().unwrap();
-        f(&*device, &mut *queue)
+        f(&*device, &*queue)
     }
 }
 
 impl<'a> WithDeviceQueuePair for &'a crate::window::Window {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
-        F: FnOnce(&wgpu::Device, &mut wgpu::Queue) -> O,
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
     {
         self.swap_chain_device_queue_pair()
             .with_device_queue_pair(f)
@@ -482,7 +481,7 @@ impl<'a> WithDeviceQueuePair for &'a crate::window::Window {
 impl<'a> WithDeviceQueuePair for &'a crate::app::App {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
-        F: FnOnce(&wgpu::Device, &mut wgpu::Queue) -> O,
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
     {
         self.main_window().with_device_queue_pair(f)
     }
@@ -491,7 +490,7 @@ impl<'a> WithDeviceQueuePair for &'a crate::app::App {
 impl<'a, 'b> WithDeviceQueuePair for &'a std::cell::Ref<'b, crate::window::Window> {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
-        F: FnOnce(&wgpu::Device, &mut wgpu::Queue) -> O,
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
     {
         (**self).with_device_queue_pair(f)
     }
@@ -568,7 +567,7 @@ where
 /// before being uploaded.
 pub fn load_texture_from_image(
     device: &wgpu::Device,
-    queue: &mut wgpu::Queue,
+    queue: &wgpu::Queue,
     usage: wgpu::TextureUsage,
     image: &image::DynamicImage,
 ) -> wgpu::Texture {
@@ -589,7 +588,7 @@ pub fn load_texture_from_image(
 /// Pixel type compatibility is ensured via the `Pixel` trait.
 pub fn load_texture_from_image_buffer<P, Container>(
     device: &wgpu::Device,
-    queue: &mut wgpu::Queue,
+    queue: &wgpu::Queue,
     usage: wgpu::TextureUsage,
     buffer: &image::ImageBuffer<P, Container>,
 ) -> wgpu::Texture
@@ -616,7 +615,7 @@ where
 /// Returns `None` if there are no images in the given sequence.
 pub fn load_texture_array_from_image_buffers<'a, I, P, Container>(
     device: &wgpu::Device,
-    queue: &mut wgpu::Queue,
+    queue: &wgpu::Queue,
     usage: wgpu::TextureUsage,
     buffers: I,
 ) -> Option<wgpu::Texture>
@@ -709,7 +708,7 @@ where
     // has padding. Instead, should make some `Subpixel` trait that we can control and is only
     // guaranteed to be implemented for safe types.
     let subpixel_bytes = unsafe {
-        wgpu::slice_as_bytes(subpixel_data)
+        wgpu::bytes::from_slice(subpixel_data)
     };
     let buffer = device.create_buffer_with_data(subpixel_bytes, wgpu::BufferUsage::COPY_SRC);
 
@@ -765,7 +764,7 @@ where
         // that has padding. Instead, should make some `Subpixel` trait that we can control and is
         // only guaranteed to be implemented for safe types.
         let subpixel_bytes = unsafe {
-            wgpu::slice_as_bytes(subpixel_data)
+            wgpu::bytes::from_slice(subpixel_data)
         };
         let buffer = device.create_buffer_with_data(subpixel_bytes, wgpu::BufferUsage::COPY_SRC);
 

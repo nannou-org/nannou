@@ -48,7 +48,7 @@ fn model(app: &App) -> Model {
         // Use nannou's default multisampling sample count.
         .sample_count(sample_count)
         // Use a spacious 16-bit linear sRGBA format suitable for high quality drawing.
-        .format(wgpu::TextureFormat::Rgba16Unorm)
+        .format(wgpu::TextureFormat::Rgba16Float)
         // Build it!
         .build(device);
 
@@ -63,11 +63,13 @@ fn model(app: &App) -> Model {
 
     // Create the texture reshaper.
     let texture_view = texture.create_default_view();
+    let texture_component_type = texture.component_type();
     let dst_format = Frame::TEXTURE_FORMAT;
     let texture_reshaper = wgpu::TextureReshaper::new(
         device,
         &texture_view,
         sample_count,
+        texture_component_type,
         sample_count,
         dst_format,
     );
@@ -136,7 +138,9 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     // Render our drawing to the texture.
     let window = app.main_window();
     let device = window.swap_chain_device();
-    let ce_desc = wgpu::CommandEncoderDescriptor::default();
+    let ce_desc = wgpu::CommandEncoderDescriptor {
+        label: Some("texture renderer"),
+    };
     let mut encoder = device.create_command_encoder(&ce_desc);
     model
         .renderer
@@ -152,11 +156,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         .capture(device, &mut encoder, &model.texture);
 
     // Submit the commands for our drawing and texture capture to the GPU.
-    window
-        .swap_chain_queue()
-        .lock()
-        .unwrap()
-        .submit(&[encoder.finish()]);
+    window.swap_chain_queue().submit(&[encoder.finish()]);
 
     // Submit a function for writing our snapshot to a PNG.
     //

@@ -72,11 +72,7 @@ impl<'swap_chain> RawFrame<'swap_chain> {
             .expect("the command encoder should always be `Some` at the time of submission")
             .into_inner();
         let command_buffer = command_encoder.finish();
-        let mut queue = self
-            .device_queue_pair
-            .queue()
-            .lock()
-            .expect("failed to lock the queue");
+        let queue = self.device_queue_pair.queue();
         queue.submit(&[command_buffer]);
     }
 

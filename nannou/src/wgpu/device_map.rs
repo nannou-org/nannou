@@ -57,7 +57,7 @@ pub struct DeviceMapKey {
 #[derive(Debug)]
 pub struct DeviceQueuePair {
     device: wgpu::Device,
-    queue: Mutex<wgpu::Queue>,
+    queue: wgpu::Queue,
 }
 
 impl AdapterMap {
@@ -205,7 +205,6 @@ impl ActiveAdapter {
             }
         }
         let (device, queue) = self.adapter.request_device(&key.descriptor).await;
-        let queue = Mutex::new(queue);
         let device = Arc::new(DeviceQueuePair { device, queue });
         map.insert(key, Arc::downgrade(&device));
         device
@@ -221,7 +220,6 @@ impl ActiveAdapter {
         descriptor: wgpu::DeviceDescriptor,
     ) -> Arc<DeviceQueuePair> {
         let (device, queue) = self.adapter.request_device(&descriptor).await;
-        let queue = Mutex::new(queue);
         let device = Arc::new(DeviceQueuePair { device, queue });
         let key = DeviceMapKey { descriptor };
         let mut map = self
@@ -278,7 +276,7 @@ impl DeviceQueuePair {
     ///
     /// The queue is guarded by a `Mutex` in order to synchronise submissions of command buffers in
     /// cases that the queue is shared between more than one window.
-    pub fn queue(&self) -> &Mutex<wgpu::Queue> {
+    pub fn queue(&self) -> &wgpu::Queue {
         &self.queue
     }
 }

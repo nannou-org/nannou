@@ -13,7 +13,7 @@ use crate::wgpu;
 use crate::App;
 use std::any::Any;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::{env, fmt};
 use winit::dpi::LogicalSize;
 
@@ -1281,7 +1281,7 @@ impl Window {
     ///
     /// The queue is guarded by a `Mutex` in order to synchronise submissions of command buffers in
     /// cases that the queue is shared between more than one window.
-    pub fn swap_chain_queue(&self) -> &Mutex<wgpu::Queue> {
+    pub fn swap_chain_queue(&self) -> &wgpu::Queue {
         self.device_queue_pair.queue()
     }
 

@@ -15,12 +15,12 @@ edition = "2018"
 
 [dev-dependencies]
 audrey = "0.2"
-conrod_core = "0.69"
+conrod_core = { path = "../../conrod/conrod_core" }
 futures = "0.3"
 hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
 nannou = { version ="0.14.1", path = "../nannou" }
 nannou_audio = { version ="0.14.0", path = "../nannou_audio" }
-nannou_isf = { version ="0.1.0", path = "../nannou_isf" }
+# nannou_isf = { version ="0.1.0", path = "../nannou_isf" }
 nannou_laser = { version ="0.14.1", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
 nannou_osc = { version ="0.14.0", path = "../nannou_osc" }
 nannou_timeline = { version ="0.14.0", features = ["serde1"], path =  "../nannou_timeline" }
@@ -97,10 +97,10 @@ path = "draw/draw_textured_polygon.rs"
 name = "draw_transform"
 path = "draw/draw_transform.rs"
 
-# Interactive Shader Format
-[[example]]
-name = "isf_demo"
-path = "isf/isf_demo.rs"
+# # Interactive Shader Format
+# [[example]]
+# name = "isf_demo"
+# path = "isf/isf_demo.rs"
 
 # Laser
 [[example]]
