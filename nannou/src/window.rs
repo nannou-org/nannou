@@ -15,6 +15,7 @@ use std::any::Any;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{env, fmt};
+use std::time::Duration;
 use winit::dpi::LogicalSize;
 
 pub use winit::window::Fullscreen;
@@ -36,6 +37,8 @@ pub struct Builder<'app> {
     device_desc: Option<wgpu::DeviceDescriptor>,
     user_functions: UserFunctions,
     msaa_samples: Option<u32>,
+    max_capture_frame_jobs: u32,
+    capture_frame_timeout: Option<Duration>,
 }
 
 /// For storing all user functions within the window.
@@ -348,6 +351,8 @@ impl<'app> Builder<'app> {
             device_desc: None,
             user_functions: Default::default(),
             msaa_samples: None,
+            max_capture_frame_jobs: Default::default(),
+            capture_frame_timeout: Default::default(),
         }
     }
 
@@ -641,6 +646,38 @@ impl<'app> Builder<'app> {
         self
     }
 
+    /// The maximum number of simultaneous capture frame jobs that can be run for this window
+    /// before we block and wait for the existing jobs to complete.
+    ///
+    /// A "capture frame job" refers to the combind process of waiting to read a frame from the GPU
+    /// and then writing that frame to an image file on the disk. Each call to
+    /// `window.capture_frame(path)` spawns a new "capture frame job" on an internal thread pool.
+    ///
+    /// By default, this value is equal to the number of physical cpu threads available on the
+    /// system. However, keep in mind that this means there must be room in both RAM and VRAM for
+    /// this number of textures to exist at any moment in time. If you run into an "out of memory"
+    /// error, try reducing the number of max jobs to a lower value, though never lower than `1`.
+    ///
+    /// **Panics** if the specified value is less than `1`.
+    pub fn max_capture_frame_jobs(mut self, max_jobs: u32) -> Self {
+        assert!(max_jobs >= 1, "must allow for at least one capture frame job at a time");
+        self.max_capture_frame_jobs = max_jobs;
+        self
+    }
+
+    /// In the case that `max_capture_frame_jobs` is reached and the main thread must block, this
+    /// specifies how long to wait for a running capture job to complete. See the
+    /// `max_capture_frame_jobs` docs for more details.
+    ///
+    /// By default, the timeout used is equal to `app::Builder::DEFAULT_CAPTURE_FRAME_TIMEOUT`.
+    ///
+    /// If `None` is specified, the capture process will never time out. This may be necessary on
+    /// extremely low-powered machines that take a long time to write each frame to disk.
+    pub fn capture_frame_timeout(mut self, timeout: Option<std::time::Duration>) -> Self {
+        self.capture_frame_timeout = timeout;
+        self
+    }
+
     /// Builds the window, inserts it into the `App`'s display map and returns the unique ID.
     pub fn build(self) -> Result<Id, BuildError> {
         let Builder {
@@ -652,6 +689,8 @@ impl<'app> Builder<'app> {
             device_desc,
             user_functions,
             msaa_samples,
+            max_capture_frame_jobs,
+            capture_frame_timeout,
         } = self;
 
         // If the title was not set, default to the "nannou - <exe_name>".
@@ -776,7 +815,8 @@ impl<'app> Builder<'app> {
                     swap_chain_desc.format,
                     msaa_samples,
                 );
-                let capture = frame::CaptureData::default();
+                let capture =
+                    frame::CaptureData::new(max_capture_frame_jobs, capture_frame_timeout);
                 let frame_data = FrameData { render, capture };
                 (Some(frame_data), msaa_samples)
             }
@@ -829,6 +869,8 @@ impl<'app> Builder<'app> {
             swap_chain_builder,
             user_functions,
             msaa_samples,
+            max_capture_frame_jobs,
+            capture_frame_timeout,
         } = self;
         let window = map(window);
         Builder {
@@ -840,6 +882,8 @@ impl<'app> Builder<'app> {
             swap_chain_builder,
             user_functions,
             msaa_samples,
+            max_capture_frame_jobs,
+            capture_frame_timeout,
         }
     }
 
@@ -1352,31 +1396,14 @@ impl Window {
     /// method is called or before it is `drop`ped.
     ///
     /// The destination image file type will be inferred from the extension given in the path.
-    ///
-
     pub fn capture_frame<P>(&self, path: P)
     where
         P: AsRef<Path>,
     {
-        self.capture_frame_with_threaded(path.as_ref(), false);
+        self.capture_frame_inner(path.as_ref());
     }
 
-    /// The same as **capture_frame**, but uses a separate pool of threads for writing image files
-    /// in order to free up the main application thread.
-    ///
-    /// Note that if you are capturing every frame and your window size is very large or the file
-    /// type you are writing to is expensive to encode, this capturing thread may fall behind the
-    /// main thread, resulting in a large delay before the exiting the program. This is because the
-    /// capturing thread needs more time to write the captured images.
-    pub fn capture_frame_threaded<P>(&self, path: P)
-    where
-        P: AsRef<Path>,
-    {
-        let path = path.as_ref();
-        self.capture_frame_with_threaded(path.as_ref(), true);
-    }
-
-    fn capture_frame_with_threaded(&self, path: &Path, threaded: bool) {
+    fn capture_frame_inner(&self, path: &Path) {
         // If the parent directory does not exist, create it.
         let dir = path.parent().expect("capture_frame path has no directory");
         if !dir.exists() {
@@ -1391,7 +1418,31 @@ impl Window {
             .next_frame_path
             .lock()
             .expect("failed to lock `capture_next_frame_path`");
-        *capture_next_frame_path = Some((path.to_path_buf(), threaded));
+        *capture_next_frame_path = Some(path.to_path_buf());
+    }
+
+    /// Block and wait for all active capture frame jobs to complete.
+    ///
+    /// This is called implicitly when the window is dropped to ensure any pending captures
+    /// complete.
+    pub fn await_capture_frame_jobs(&self) -> Result<(), wgpu::TextureCapturerAwaitWorkerTimeout<()>> {
+        if let Some(frame_data) = self.frame_data.as_ref() {
+            let capture_data = &frame_data.capture;
+            let device = self.swap_chain_device();
+            return capture_data.texture_capturer.await_active_snapshots(device);
+        }
+        Ok(())
+    }
+}
+
+// Drop implementations.
+
+impl Drop for Window {
+    fn drop(&mut self) {
+        if self.await_capture_frame_jobs().is_err() {
+            // TODO: Replace eprintlns with proper logging.
+            eprintln!("timed out while waiting for capture jobs to complete");
+        }
     }
 }
 

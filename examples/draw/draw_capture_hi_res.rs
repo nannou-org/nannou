@@ -59,7 +59,7 @@ fn model(app: &App) -> Model {
         nannou::draw::RendererBuilder::new().build_from_texture_descriptor(device, descriptor);
 
     // Create the texture capturer.
-    let texture_capturer = wgpu::TextureCapturer::with_num_threads(4);
+    let texture_capturer = wgpu::TextureCapturer::default();
 
     // Create the texture reshaper.
     let texture_view = texture.create_default_view();
@@ -160,12 +160,8 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 
     // Submit a function for writing our snapshot to a PNG.
     //
-    //
     // NOTE: It is essential that the commands for capturing the snapshot are `submit`ted before we
     // attempt to read the snapshot - otherwise we will read a blank texture!
-    //
-    // NOTE: You can speed this up with `read_threaded`, however be aware that if the image writing
-    // threads can't keep up you may quickly begin to run out of RAM!
     let path = capture_directory(app)
         .join(elapsed_frames.to_string())
         .with_extension("png");
@@ -174,7 +170,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         image
             .save(&path)
             .expect("failed to save texture to png image");
-    });
+    }).unwrap();
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
@@ -187,9 +183,11 @@ fn view(_app: &App, model: &Model, frame: Frame) {
 }
 
 // Wait for capture to finish.
-fn exit(_app: &App, model: Model) {
+fn exit(app: &App, model: Model) {
     println!("Waiting for PNG writing to complete...");
-    model.texture_capturer.finish();
+    let window = app.main_window();
+    let device = window.swap_chain_device();
+    model.texture_capturer.await_active_snapshots(&device).unwrap();
     println!("Done!");
 }
 

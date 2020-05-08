@@ -3,7 +3,6 @@
 
 use crate::wgpu;
 use std::path::Path;
-use std::slice;
 
 /// The set of pixel types from the image crate that can be loaded directly into a texture.
 ///
@@ -372,26 +371,6 @@ impl ImageReadMapping {
             self.color_type,
             format,
         )
-    }
-
-    /// Attempt to cast this image ref to an `ImageBuffer` of the specified pixel type.
-    ///
-    /// Returns `None` if the specified pixel type does not match the inner `color_type`.
-    pub fn as_image_buffer<P>(&self) -> Option<image::ImageBuffer<P, &[P::Subpixel]>>
-    where
-        P: 'static + Pixel,
-    {
-        if P::COLOR_TYPE != self.color_type {
-            return None;
-        }
-        let [width, height] = self.size();
-        let len_pixels = (width * height) as usize;
-        let subpixel_data_ptr = self.mapping.as_slice().as_ptr() as *const _;
-        let subpixel_data: &[P::Subpixel] =
-            unsafe { slice::from_raw_parts(subpixel_data_ptr, len_pixels) };
-        let img_buffer = image::ImageBuffer::from_raw(width, height, subpixel_data)
-            .expect("failed to construct image buffer from raw data");
-        Some(img_buffer)
     }
 }
 

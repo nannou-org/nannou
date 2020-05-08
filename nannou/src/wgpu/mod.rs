@@ -40,7 +40,7 @@ pub use self::render_pass::{
 pub use self::render_pipeline_builder::{RenderPipelineBuilder, VertexDescriptor};
 pub use self::sampler_builder::SamplerBuilder;
 pub use self::texture::capturer::{
-    Capturer as TextureCapturer, Rgba8ReadMapping, Snapshot as TextureSnapshot,
+    Capturer as TextureCapturer, AwaitWorkerTimeout as TextureCapturerAwaitWorkerTimeout, Rgba8ReadMapping, Snapshot as TextureSnapshot,
 };
 pub use self::texture::image::{
     format_from_image_color_type as texture_format_from_image_color_type, BufferImage,

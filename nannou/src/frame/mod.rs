@@ -5,6 +5,7 @@ use crate::wgpu;
 use std::ops;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::time::Duration;
 
 pub mod raw;
 
@@ -35,10 +36,12 @@ pub struct RenderData {
 }
 
 /// Data related to the capturing of a frame.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(crate) struct CaptureData {
-    pub(crate) next_frame_path: Mutex<Option<(PathBuf, bool)>>,
-    texture_capturer: wgpu::TextureCapturer,
+    // If `Some`, indicates a path to which the current frame should be written.
+    pub(crate) next_frame_path: Mutex<Option<PathBuf>>,
+    // The `TextureCapturer` used to capture the frame.
+    pub(crate) texture_capturer: wgpu::TextureCapturer,
 }
 
 /// Intermediary textures used as a target before resolving multisampling and writing to the
@@ -104,7 +107,7 @@ impl<'swap_chain> Frame<'swap_chain> {
         // Check to see if the user specified capturing the frame.
         let mut snapshot_capture = None;
         if let Ok(mut guard) = capture_data.next_frame_path.lock() {
-            if let Some((path, threaded)) = guard.take() {
+            if let Some(path) = guard.take() {
                 let device = raw_frame.device_queue_pair().device();
                 let mut encoder = raw_frame.command_encoder();
                 let snapshot = capture_data.texture_capturer.capture(
@@ -112,7 +115,7 @@ impl<'swap_chain> Frame<'swap_chain> {
                     &mut *encoder,
                     &render_data.intermediary_lin_srgba.texture,
                 );
-                snapshot_capture = Some((path, threaded, snapshot));
+                snapshot_capture = Some((path, snapshot));
             }
         }
 
@@ -131,37 +134,25 @@ impl<'swap_chain> Frame<'swap_chain> {
         raw_frame.submit_inner();
 
         // If the user did specify capturing the frame, submit the asynchronous read.
-        if let Some((path, threaded, snapshot)) = snapshot_capture {
-            match threaded {
-                false => {
-                    snapshot.read(move |result| match result {
-                        Err(e) => eprintln!("failed to async read captured frame: {:?}", e),
-                        Ok(image) => {
-                            if let Err(e) = image.save(&path) {
-                                eprintln!(
-                                    "failed to save captured frame to \"{}\": {}",
-                                    path.display(),
-                                    e
-                                );
-                            }
-                        }
-                    });
+        if let Some((path, snapshot)) = snapshot_capture {
+            let result = snapshot.read(move |result| match result {
+                // TODO: Log errors, don't print to stderr.
+                Err(e) => eprintln!("failed to async read captured frame: {:?}", e),
+                Ok(image) => {
+                    let image = image.to_owned();
+                    if let Err(e) = image.save(&path) {
+                        // TODO: Log errors, don't print to stderr.
+                        eprintln!(
+                            "failed to save captured frame to \"{}\": {}",
+                            path.display(),
+                            e
+                        );
+                    }
                 }
-                true => {
-                    unimplemented!()
-                    // snapshot.read_threaded(move |result| match result {
-                    //     Err(e) => eprintln!("failed to async read captured frame: {:?}", e),
-                    //     Ok(image) => {
-                    //         if let Err(e) = image.save(&path) {
-                    //             eprintln!(
-                    //                 "failed to save captured frame to \"{}\": {}",
-                    //                 path.display(),
-                    //                 e
-                    //             );
-                    //         }
-                    //     }
-                    // });
-                }
+            });
+            if let Err(wgpu::TextureCapturerAwaitWorkerTimeout(_)) = result {
+                // TODO: Log errors, don't print to stderr.
+                eprintln!("timed out while waiting for a worker thread to capture the frame");
             }
         }
     }
@@ -280,6 +271,15 @@ impl<'swap_chain> Frame<'swap_chain> {
     /// the frame's texture back to the CPU (e.g. for screen shots, recordings, etc).
     pub fn submit(mut self) {
         self.submit_inner();
+    }
+}
+
+impl CaptureData {
+    pub(crate) fn new(max_jobs: u32, timeout: Option<Duration>) -> Self {
+        CaptureData {
+            next_frame_path: Default::default(),
+            texture_capturer: wgpu::TextureCapturer::new(Some(max_jobs), timeout),
+        }
     }
 }
 
