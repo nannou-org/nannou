@@ -381,25 +381,17 @@ fn create_render_pipeline(
 // See the `nannou::wgpu::bytes` documentation for why the following are necessary.
 
 fn vertices_as_bytes(data: &[Vertex]) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from_slice(data)
-    }
+    unsafe { wgpu::bytes::from_slice(data) }
 }
 
 fn normals_as_bytes(data: &[Normal]) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from_slice(data)
-    }
+    unsafe { wgpu::bytes::from_slice(data) }
 }
 
 fn indices_as_bytes(data: &[u16]) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from_slice(data)
-    }
+    unsafe { wgpu::bytes::from_slice(data) }
 }
 
 fn uniforms_as_bytes(uniforms: &Uniforms) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from(uniforms)
-    }
+    unsafe { wgpu::bytes::from(uniforms) }
 }

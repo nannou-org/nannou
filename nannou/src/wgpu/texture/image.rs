@@ -686,9 +686,7 @@ where
     // This can theoretically be exploited by implementing `image::Primitive` for some type that
     // has padding. Instead, should make some `Subpixel` trait that we can control and is only
     // guaranteed to be implemented for safe types.
-    let subpixel_bytes = unsafe {
-        wgpu::bytes::from_slice(subpixel_data)
-    };
+    let subpixel_bytes = unsafe { wgpu::bytes::from_slice(subpixel_data) };
     let buffer = device.create_buffer_with_data(subpixel_bytes, wgpu::BufferUsage::COPY_SRC);
 
     // Submit command for copying pixel data to the texture.
@@ -742,9 +740,7 @@ where
         // This can theoretically be exploited by implementing `image::Primitive` for some type
         // that has padding. Instead, should make some `Subpixel` trait that we can control and is
         // only guaranteed to be implemented for safe types.
-        let subpixel_bytes = unsafe {
-            wgpu::bytes::from_slice(subpixel_data)
-        };
+        let subpixel_bytes = unsafe { wgpu::bytes::from_slice(subpixel_data) };
         let buffer = device.create_buffer_with_data(subpixel_bytes, wgpu::BufferUsage::COPY_SRC);
 
         // Submit command for copying pixel data to the texture.

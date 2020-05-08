@@ -393,7 +393,10 @@ where
     ///
     /// **Panics** if the specified value is less than `1`.
     pub fn max_capture_frame_jobs(mut self, max_jobs: u32) -> Self {
-        assert!(max_jobs >= 1, "must allow for at least one capture frame job at a time");
+        assert!(
+            max_jobs >= 1,
+            "must allow for at least one capture frame job at a time"
+        );
         self.max_capture_frame_jobs = Some(max_jobs);
         self
     }
@@ -431,8 +434,12 @@ where
         };
 
         // Initialise the app.
-        let max_capture_frame_jobs = self.max_capture_frame_jobs.unwrap_or(num_cpus::get() as u32);
-        let capture_frame_timeout = self.capture_frame_timeout.unwrap_or(Some(Self::DEFAULT_CAPTURE_FRAME_TIMEOUT));
+        let max_capture_frame_jobs = self
+            .max_capture_frame_jobs
+            .unwrap_or(num_cpus::get() as u32);
+        let capture_frame_timeout = self
+            .capture_frame_timeout
+            .unwrap_or(Some(Self::DEFAULT_CAPTURE_FRAME_TIMEOUT));
         let event_loop_window_target = Some(EventLoopWindowTarget::Owned(event_loop));
         let app = App::new(
             event_loop_proxy,

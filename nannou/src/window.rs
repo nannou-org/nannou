@@ -14,8 +14,8 @@ use crate::App;
 use std::any::Any;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::{env, fmt};
 use std::time::Duration;
+use std::{env, fmt};
 use winit::dpi::LogicalSize;
 
 pub use winit::window::Fullscreen;
@@ -660,7 +660,10 @@ impl<'app> Builder<'app> {
     ///
     /// **Panics** if the specified value is less than `1`.
     pub fn max_capture_frame_jobs(mut self, max_jobs: u32) -> Self {
-        assert!(max_jobs >= 1, "must allow for at least one capture frame job at a time");
+        assert!(
+            max_jobs >= 1,
+            "must allow for at least one capture frame job at a time"
+        );
         self.max_capture_frame_jobs = max_jobs;
         self
     }
@@ -1425,7 +1428,9 @@ impl Window {
     ///
     /// This is called implicitly when the window is dropped to ensure any pending captures
     /// complete.
-    pub fn await_capture_frame_jobs(&self) -> Result<(), wgpu::TextureCapturerAwaitWorkerTimeout<()>> {
+    pub fn await_capture_frame_jobs(
+        &self,
+    ) -> Result<(), wgpu::TextureCapturerAwaitWorkerTimeout<()>> {
         if let Some(frame_data) = self.frame_data.as_ref() {
             let capture_data = &frame_data.capture;
             let device = self.swap_chain_device();

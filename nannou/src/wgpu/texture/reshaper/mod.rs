@@ -237,13 +237,9 @@ fn render_pipeline(
 }
 
 fn uniforms_as_bytes(uniforms: &Uniforms) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from(uniforms)
-    }
+    unsafe { wgpu::bytes::from(uniforms) }
 }
 
 fn vertices_as_bytes(data: &[Vertex]) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from_slice(data)
-    }
+    unsafe { wgpu::bytes::from_slice(data) }
 }

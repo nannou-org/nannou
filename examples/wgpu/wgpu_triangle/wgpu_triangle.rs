@@ -109,7 +109,5 @@ fn view(_app: &App, model: &Model, frame: Frame) {
 
 // See the `nannou::wgpu::bytes` documentation for why this is necessary.
 fn vertices_as_bytes(data: &[Vertex]) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from_slice(data)
-    }
+    unsafe { wgpu::bytes::from_slice(data) }
 }

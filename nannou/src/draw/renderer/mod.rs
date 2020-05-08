@@ -732,7 +732,8 @@ impl Renderer {
         );
 
         // Clear out unnecessary pipelines.
-        self.pipelines.retain(|id, _| new_pipeline_ids.contains_key(id));
+        self.pipelines
+            .retain(|id, _| new_pipeline_ids.contains_key(id));
         // Clear new combos that we already have.
         new_pipeline_ids.retain(|id, _| !self.pipelines.contains_key(id));
         // Create new render pipelines as necessary.
@@ -753,7 +754,10 @@ impl Renderer {
                 alpha_blend,
                 new_id.topology,
             );
-            let new_pipeline = Pipeline { bind_group_layout, pipeline };
+            let new_pipeline = Pipeline {
+                bind_group_layout,
+                pipeline,
+            };
             self.pipelines.insert(new_id, new_pipeline);
         }
 
@@ -778,12 +782,8 @@ impl Renderer {
             // Retrieve the associated bind group layout.
             let bind_group_layout = &self.pipelines[&pipeline_id].bind_group_layout;
             // Create the bind group.
-            let bind_group = create_texture_bind_group(
-                device,
-                bind_group_layout,
-                sampler,
-                texture_view,
-            );
+            let bind_group =
+                create_texture_bind_group(device, bind_group_layout, sampler, texture_view);
             self.texture_bind_groups.insert(new_id, bind_group);
         }
     }
@@ -1041,9 +1041,7 @@ fn create_uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLay
         .build(device)
 }
 
-fn create_text_bind_group_layout(
-    device: &wgpu::Device,
-) -> wgpu::BindGroupLayout {
+fn create_text_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
         .sampler(wgpu::ShaderStage::FRAGMENT)
         .sampled_texture(
@@ -1159,37 +1157,25 @@ fn blend_descriptor_hash(desc: &wgpu::BlendDescriptor) -> BlendId {
 // See `nannou::wgpu::bytes` docs for why these are necessary.
 
 fn uniforms_as_bytes(uniforms: &Uniforms) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from(uniforms)
-    }
+    unsafe { wgpu::bytes::from(uniforms) }
 }
 
 fn points_as_bytes(data: &[draw::mesh::vertex::Point]) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from_slice(data)
-    }
+    unsafe { wgpu::bytes::from_slice(data) }
 }
 
 fn colors_as_bytes(data: &[draw::mesh::vertex::Color]) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from_slice(data)
-    }
+    unsafe { wgpu::bytes::from_slice(data) }
 }
 
 fn tex_coords_as_bytes(data: &[draw::mesh::vertex::TexCoords]) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from_slice(data)
-    }
+    unsafe { wgpu::bytes::from_slice(data) }
 }
 
 fn vertex_modes_as_bytes(data: &[VertexMode]) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from_slice(data)
-    }
+    unsafe { wgpu::bytes::from_slice(data) }
 }
 
 fn indices_as_bytes(data: &[u32]) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from_slice(data)
-    }
+    unsafe { wgpu::bytes::from_slice(data) }
 }

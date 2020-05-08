@@ -97,7 +97,10 @@ impl AdapterMap {
         backends: wgpu::BackendBit,
     ) -> Option<Arc<ActiveAdapter>> {
         let power_preference = options.power_preference;
-        let key = AdapterMapKey { power_preference, backends };
+        let key = AdapterMapKey {
+            power_preference,
+            backends,
+        };
         let mut map = self
             .map
             .lock()
@@ -129,7 +132,10 @@ impl AdapterMap {
             device_map,
         });
         let power_preference = options.power_preference;
-        let key = AdapterMapKey { power_preference, backends };
+        let key = AdapterMapKey {
+            power_preference,
+            backends,
+        };
         let mut map = self
             .map
             .lock()

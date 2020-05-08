@@ -165,12 +165,14 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     let path = capture_directory(app)
         .join(elapsed_frames.to_string())
         .with_extension("png");
-    snapshot.read(move |result| {
-        let image = result.expect("failed to map texture memory");
-        image
-            .save(&path)
-            .expect("failed to save texture to png image");
-    }).unwrap();
+    snapshot
+        .read(move |result| {
+            let image = result.expect("failed to map texture memory");
+            image
+                .save(&path)
+                .expect("failed to save texture to png image");
+        })
+        .unwrap();
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
@@ -187,7 +189,10 @@ fn exit(app: &App, model: Model) {
     println!("Waiting for PNG writing to complete...");
     let window = app.main_window();
     let device = window.swap_chain_device();
-    model.texture_capturer.await_active_snapshots(&device).unwrap();
+    model
+        .texture_capturer
+        .await_active_snapshots(&device)
+        .unwrap();
     println!("Done!");
 }
 

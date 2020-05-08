@@ -40,7 +40,8 @@ pub use self::render_pass::{
 pub use self::render_pipeline_builder::{RenderPipelineBuilder, VertexDescriptor};
 pub use self::sampler_builder::SamplerBuilder;
 pub use self::texture::capturer::{
-    Capturer as TextureCapturer, AwaitWorkerTimeout as TextureCapturerAwaitWorkerTimeout, Rgba8ReadMapping, Snapshot as TextureSnapshot,
+    AwaitWorkerTimeout as TextureCapturerAwaitWorkerTimeout, Capturer as TextureCapturer,
+    Rgba8ReadMapping, Snapshot as TextureSnapshot,
 };
 pub use self::texture::image::{
     format_from_image_color_type as texture_format_from_image_color_type, BufferImage,
@@ -48,29 +49,31 @@ pub use self::texture::image::{
 };
 pub use self::texture::reshaper::Reshaper as TextureReshaper;
 pub use self::texture::{
-    descriptor_eq as texture_descriptor_eq, extent_3d_eq, format_to_component_type as texture_format_to_component_type,
-    format_size_bytes as texture_format_size_bytes, BufferBytes, Builder as TextureBuilder,
-    Texture, TextureId, TextureView, TextureViewId, ToTextureView,
+    descriptor_eq as texture_descriptor_eq, extent_3d_eq,
+    format_size_bytes as texture_format_size_bytes,
+    format_to_component_type as texture_format_to_component_type, BufferBytes,
+    Builder as TextureBuilder, Texture, TextureId, TextureView, TextureViewId, ToTextureView,
 };
 #[doc(inline)]
 pub use wgpu::{
     read_spirv, Adapter, AdapterInfo, AddressMode, BackendBit, BindGroup, BindGroupDescriptor,
-    BindGroupLayout, BindGroupLayoutEntry, BindGroupLayoutDescriptor, Binding, BindingResource,
+    BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, Binding, BindingResource,
     BindingType, BlendDescriptor, BlendFactor, BlendOperation, Buffer, BufferAddress,
-    BufferReadMapping, BufferWriteMapping, BufferAsyncErr, BufferCopyView, BufferDescriptor,
-    BufferUsage, Color, ColorStateDescriptor, ColorWrite, CommandBuffer, CommandBufferDescriptor,
-    CommandEncoder, CommandEncoderDescriptor, CompareFunction, ComputePass, ComputePipeline,
-    ComputePipelineDescriptor, CreateBufferMapped, CullMode, DepthStencilStateDescriptor, Device,
-    DeviceDescriptor, Extensions, Extent3d, FilterMode, FrontFace, IndexFormat, InputStepMode,
-    Limits, LoadOp, Maintain, Origin3d, PipelineLayout, PipelineLayoutDescriptor, PowerPreference,
-    PresentMode, PrimitiveTopology, ProgrammableStageDescriptor, Queue,
-    RasterizationStateDescriptor, RenderPass, RenderPassColorAttachmentDescriptor,
-    RenderPassDepthStencilAttachmentDescriptor, RenderPassDescriptor, RenderPipeline,
-    RenderPipelineDescriptor, RequestAdapterOptions, Sampler, SamplerDescriptor, ShaderLocation,
-    ShaderModule, ShaderStage, StencilOperation, StencilStateFaceDescriptor, StoreOp, Surface,
-    SwapChain, SwapChainDescriptor, SwapChainOutput, Texture as TextureHandle, TextureAspect,
-    TextureComponentType, TextureCopyView, TextureDescriptor, TextureDimension, TextureFormat,
-    TextureUsage, TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension,
+    BufferAsyncErr, BufferCopyView, BufferDescriptor, BufferReadMapping, BufferUsage,
+    BufferWriteMapping, Color, ColorStateDescriptor, ColorWrite, CommandBuffer,
+    CommandBufferDescriptor, CommandEncoder, CommandEncoderDescriptor, CompareFunction,
+    ComputePass, ComputePipeline, ComputePipelineDescriptor, CreateBufferMapped, CullMode,
+    DepthStencilStateDescriptor, Device, DeviceDescriptor, Extensions, Extent3d, FilterMode,
+    FrontFace, IndexFormat, InputStepMode, Limits, LoadOp, Maintain, Origin3d, PipelineLayout,
+    PipelineLayoutDescriptor, PowerPreference, PresentMode, PrimitiveTopology,
+    ProgrammableStageDescriptor, Queue, RasterizationStateDescriptor, RenderPass,
+    RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor,
+    RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, Sampler,
+    SamplerDescriptor, ShaderLocation, ShaderModule, ShaderStage, StencilOperation,
+    StencilStateFaceDescriptor, StoreOp, Surface, SwapChain, SwapChainDescriptor, SwapChainOutput,
+    Texture as TextureHandle, TextureAspect, TextureComponentType, TextureCopyView,
+    TextureDescriptor, TextureDimension, TextureFormat, TextureUsage,
+    TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension,
     VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat, VertexStateDescriptor,
 };
 

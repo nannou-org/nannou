@@ -42,9 +42,6 @@ fn view(app: &App, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 
     // Capture the frame!
-    //
-    // NOTE: You can speed this up with `capture_frame_threaded`, however be aware that if the
-    // image writing threads can't keep up you may quickly begin to run out of RAM!
     let file_path = captured_frame_path(app, &frame);
     app.main_window().capture_frame(file_path);
 }

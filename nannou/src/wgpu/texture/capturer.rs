@@ -67,9 +67,7 @@ struct ConverterDataPair {
 }
 
 /// An alias for the image buffer that can be read from a captured **Snapshot**.
-pub struct Rgba8AsyncMappedImageBuffer(
-    image::ImageBuffer<image::Rgba<u8>, Rgba8ReadMapping>,
-);
+pub struct Rgba8AsyncMappedImageBuffer(image::ImageBuffer<image::Rgba<u8>, Rgba8ReadMapping>);
 
 impl ThreadPool {
     /// Spawns the given future if a worker is available. Otherwise, blocks and waits for a worker
@@ -244,7 +242,10 @@ impl Capturer {
 
     /// Await for the completion of all `Snapshot::read` active futures, polling the device as
     /// necessary until all futures have reached completion or until a timeout is reached.
-    pub fn await_active_snapshots(&self, device: &wgpu::Device) -> Result<(), AwaitWorkerTimeout<()>> {
+    pub fn await_active_snapshots(
+        &self,
+        device: &wgpu::Device,
+    ) -> Result<(), AwaitWorkerTimeout<()>> {
         if let Ok(guard) = self.thread_pool.lock() {
             if let Some(tp) = guard.as_ref() {
                 return tp.await_active_futures(device);

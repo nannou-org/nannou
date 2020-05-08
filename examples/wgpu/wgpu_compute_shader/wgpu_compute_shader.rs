@@ -266,7 +266,5 @@ fn create_compute_pipeline(
 // See `nannou::wgpu::bytes` docs for why these are necessary.
 
 fn uniforms_as_bytes(uniforms: &Uniforms) -> &[u8] {
-    unsafe {
-        wgpu::bytes::from(uniforms)
-    }
+    unsafe { wgpu::bytes::from(uniforms) }
 }

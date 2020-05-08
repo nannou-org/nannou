@@ -780,48 +780,18 @@ pub fn data_size_bytes(desc: &wgpu::TextureDescriptor) -> usize {
 pub fn format_size_bytes(format: wgpu::TextureFormat) -> u32 {
     use crate::wgpu::TextureFormat::*;
     match format {
-        R8Unorm
-        | R8Snorm
-        | R8Uint
-        | R8Sint => 1,
+        R8Unorm | R8Snorm | R8Uint | R8Sint => 1,
 
-        R16Uint
-        | R16Sint
-        | R16Float
-        | Rg8Unorm
-        | Rg8Snorm
-        | Rg8Uint
-        | Rg8Sint => 2,
+        R16Uint | R16Sint | R16Float | Rg8Unorm | Rg8Snorm | Rg8Uint | Rg8Sint => 2,
 
-        R32Uint
-        | R32Sint
-        | R32Float
-        | Rg16Uint
-        | Rg16Sint
-        | Rg16Float
-        | Rgba8Unorm
-        | Rgba8UnormSrgb
-        | Rgba8Snorm
-        | Rgba8Uint
-        | Rgba8Sint
-        | Bgra8Unorm
-        | Bgra8UnormSrgb
-        | Rgb10a2Unorm
-        | Rg11b10Float => 4,
+        R32Uint | R32Sint | R32Float | Rg16Uint | Rg16Sint | Rg16Float | Rgba8Unorm
+        | Rgba8UnormSrgb | Rgba8Snorm | Rgba8Uint | Rgba8Sint | Bgra8Unorm | Bgra8UnormSrgb
+        | Rgb10a2Unorm | Rg11b10Float => 4,
 
-        Rg32Uint
-        | Rg32Sint
-        | Rg32Float
-        | Rgba16Uint
-        | Rgba16Sint
-        | Rgba16Float
-        | Rgba32Uint
-        | Rgba32Sint
-        | Rgba32Float => 8,
+        Rg32Uint | Rg32Sint | Rg32Float | Rgba16Uint | Rgba16Sint | Rgba16Float | Rgba32Uint
+        | Rgba32Sint | Rgba32Float => 8,
 
-        Depth32Float
-        | Depth24Plus
-        | Depth24PlusStencil8 => 4,
+        Depth32Float | Depth24Plus | Depth24PlusStencil8 => 4,
     }
 }
 
