@@ -64,7 +64,7 @@ impl Camera {
     // The camera's "view" matrix.
     fn view(&self) -> Matrix4<f32> {
         let direction = self.direction();
-        let up = Vector3::new(0.0, -1.0, 0.0);
+        let up = Vector3::new(0.0, 1.0, 0.0);
         Matrix4::look_at_dir(self.eye, direction, up)
     }
 }
@@ -176,14 +176,14 @@ fn update(app: &App, model: &mut Model, update: Update) {
         // Strafe left on A.
         if app.keys.down.contains(&Key::A) {
             let pitch = 0.0;
-            let yaw = model.camera.yaw - std::f32::consts::PI * 0.5;
+            let yaw = model.camera.yaw + std::f32::consts::PI * 0.5;
             let direction = pitch_yaw_to_direction(pitch, yaw);
             model.camera.eye += direction * velocity;
         }
         // Strafe right on D.
         if app.keys.down.contains(&Key::D) {
             let pitch = 0.0;
-            let yaw = model.camera.yaw + std::f32::consts::PI * 0.5;
+            let yaw = model.camera.yaw - std::f32::consts::PI * 0.5;
             let direction = pitch_yaw_to_direction(pitch, yaw);
             model.camera.eye += direction * velocity;
         }
@@ -211,7 +211,7 @@ fn event(_app: &App, model: &mut Model, event: Event) {
                 let sensitivity = 0.004;
                 match axis {
                     // Yaw left and right on mouse x axis movement.
-                    0 => model.camera.yaw += (value * sensitivity) as f32,
+                    0 => model.camera.yaw -= (value * sensitivity) as f32,
                     // Pitch up and down on mouse y axis movement.
                     _ => {
                         let max_pitch = std::f32::consts::PI * 0.5 - 0.0001;
@@ -284,8 +284,6 @@ fn view(_app: &App, model: &Model, frame: Frame) {
 
 fn create_uniforms([w, h]: [u32; 2], view: Matrix4<f32>) -> Uniforms {
     let rotation = Matrix3::from_angle_y(Rad(0f32));
-    // note: this teapot was meant for OpenGL where the origin is at the lower left instead the
-    // origin is at the upper left in Vulkan, so we reverse the Y axis
     let aspect_ratio = w as f32 / h as f32;
     let proj = cgmath::perspective(Rad(std::f32::consts::FRAC_PI_2), aspect_ratio, 0.01, 100.0);
     let scale = Matrix4::from_scale(0.01);

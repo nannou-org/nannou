@@ -150,14 +150,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
 fn create_uniforms(rotation: f32, [w, h]: [u32; 2]) -> Uniforms {
     let rotation = Matrix3::from_angle_y(Rad(rotation as f32));
-    // note: this teapot was meant for OpenGL where the origin is at the lower left instead the
-    // origin is at the upper left in Vulkan, so we reverse the Y axis
     let aspect_ratio = w as f32 / h as f32;
     let proj = cgmath::perspective(Rad(std::f32::consts::FRAC_PI_2), aspect_ratio, 0.01, 100.0);
     let view = Matrix4::look_at(
         Point3::new(0.3, 0.3, 1.0),
         Point3::new(0.0, 0.0, 0.0),
-        Vector3::new(0.0, -1.0, 0.0),
+        Vector3::new(0.0, 1.0, 0.0),
     );
     let scale = Matrix4::from_scale(0.01);
     Uniforms {

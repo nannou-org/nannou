@@ -984,12 +984,10 @@ fn create_uniforms([img_w, img_h]: [u32; 2], scale_factor: f32) -> Uniforms {
     let far = std::cmp::max(img_w, img_h) as f32 / scale_factor;
     let near = -far;
     let proj = cgmath::ortho(left, right, bottom, top, near, far);
-    // By default, ortho scales z values to the range -1.0 to 1.0 and produces a matrix where y is
-    // assumed to increase upwards. We want to scale and translate the z axis so that it is in the
-    // range of 0.0 to 1.0, and we want to flip the y axis for wgpu coordinate space where y
-    // increases downwards.
+    // By default, ortho scales z values to the range -1.0 to 1.0. We want to scale and translate
+    // the z axis so that it is in the range of 0.0 to 1.0.
     let trans = cgmath::Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 1.0));
-    let scale = cgmath::Matrix4::from_nonuniform_scale(1.0, -1.0, 0.5);
+    let scale = cgmath::Matrix4::from_nonuniform_scale(1.0, 1.0, 0.5);
     let proj = scale * trans * proj;
     let proj = proj.into();
     Uniforms { proj }
