@@ -56,30 +56,31 @@ pub use self::texture::{
 };
 #[doc(inline)]
 pub use wgpu::{
-    read_spirv, vertex_attr_array, Adapter, AdapterInfo, AddressMode, BackendBit, BindGroup,
-    BindGroupDescriptor, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, Binding,
-    BindingResource, BindingType, BlendDescriptor, BlendFactor, BlendOperation, Buffer,
-    BufferAddress, BufferAsyncErr, BufferCopyView, BufferDescriptor, BufferReadMapping,
-    BufferUsage, BufferWriteMapping, Color, ColorStateDescriptor, ColorWrite, CommandBuffer,
-    CommandBufferDescriptor, CommandEncoder, CommandEncoderDescriptor, CompareFunction,
-    ComputePass, ComputePipeline, ComputePipelineDescriptor, CreateBufferMapped, CullMode,
-    DepthStencilStateDescriptor, Device, DeviceDescriptor, Extensions, Extent3d, FilterMode,
-    FrontFace, IndexFormat, InputStepMode, Limits, LoadOp, Maintain, Origin3d, PipelineLayout,
-    PipelineLayoutDescriptor, PowerPreference, PresentMode, PrimitiveTopology,
-    ProgrammableStageDescriptor, Queue, RasterizationStateDescriptor, RenderPass,
-    RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor,
+    read_spirv, vertex_attr_array, vertex_format_size, Adapter, AdapterInfo, AddressMode, Backend,
+    BackendBit, BindGroup, BindGroupDescriptor, BindGroupLayout, BindGroupLayoutDescriptor,
+    BindGroupLayoutEntry, Binding, BindingResource, BindingType, BlendDescriptor, BlendFactor,
+    BlendOperation, Buffer, BufferAddress, BufferAsyncErr, BufferCopyView, BufferDescriptor,
+    BufferReadMapping, BufferUsage, BufferWriteMapping, Color, ColorStateDescriptor, ColorWrite,
+    CommandBuffer, CommandBufferDescriptor, CommandEncoder, CommandEncoderDescriptor,
+    CompareFunction, ComputePass, ComputePipeline, ComputePipelineDescriptor, CreateBufferMapped,
+    CullMode, DepthStencilStateDescriptor, Device, DeviceDescriptor, DeviceType, DynamicOffset,
+    Extensions, Extent3d, FilterMode, FrontFace, IndexFormat, InputStepMode, Limits, LoadOp,
+    Maintain, Origin3d, PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PresentMode,
+    PrimitiveTopology, ProgrammableStageDescriptor, Queue, RasterizationStateDescriptor,
+    RenderPass, RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor,
     RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, Sampler,
     SamplerDescriptor, ShaderLocation, ShaderModule, ShaderStage, StencilOperation,
     StencilStateFaceDescriptor, StoreOp, Surface, SwapChain, SwapChainDescriptor, SwapChainOutput,
     Texture as TextureHandle, TextureAspect, TextureComponentType, TextureCopyView,
     TextureDescriptor, TextureDimension, TextureFormat, TextureUsage,
-    TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension,
+    TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension, TimeOut,
     VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat, VertexStateDescriptor,
+    BIND_BUFFER_ALIGNMENT, MAX_BIND_GROUPS,
 };
 
 pub fn shader_from_spirv_bytes(device: &wgpu::Device, bytes: &[u8]) -> wgpu::ShaderModule {
     let cursor = std::io::Cursor::new(bytes);
-    let vs_spirv = wgpu::read_spirv(cursor).expect("failed to read hard-coded SPIRV");
+    let vs_spirv = read_spirv(cursor).expect("failed to read hard-coded SPIRV");
     device.create_shader_module(&vs_spirv)
 }
 
