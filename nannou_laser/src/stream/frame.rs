@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 
-pub mod opt;
+pub use lasy::InterpolationConfig;
 
 /// The function that will be called each time a new `Frame` is requested.
 pub trait RenderFn<M>: Fn(&mut M, &mut Frame) {}
@@ -24,7 +24,8 @@ pub struct Stream<M> {
 #[derive(Clone)]
 struct State {
     frame_hz: u32,
-    interpolation_conf: opt::InterpolationConfig,
+    interpolation_conf: lasy::InterpolationConfig,
+    enable_optimisations: bool,
 }
 
 // Updates for the interpolation config sent from the stream handle to the laser thread.
@@ -46,6 +47,7 @@ pub struct Frame {
 struct Requester {
     last_frame_point: Option<RawPoint>,
     raw_points: Vec<RawPoint>,
+    blank_points: Vec<RawPoint>,
 }
 
 // The type of the default function used for the `process_raw` function if none is specified.
@@ -61,7 +63,8 @@ pub struct Builder<M, F, R = DefaultProcessRawFn<M>, E = raw::DefaultStreamError
     pub process_raw: R,
     pub stream_error: E,
     pub frame_hz: Option<u32>,
-    pub interpolation_conf: opt::InterpolationConfigBuilder,
+    pub interpolation_conf: lasy::InterpolationConfig,
+    pub enable_optimisations: bool,
 }
 
 impl<M> Stream<M> {
@@ -102,6 +105,12 @@ impl<M> Stream<M> {
     /// Returns an `Err` if communication with the laser thread has been closed.
     pub fn set_frame_hz(&self, fps: u32) -> Result<(), mpsc::SendError<()>> {
         self.send_frame_state_update(move |state| state.frame_hz = fps)
+            .map_err(|_| mpsc::SendError(()))
+    }
+
+    /// Update whether or not frame optimisations and interpolation should be enabled.
+    pub fn enable_optimisations(&self, enabled: bool) -> Result<(), mpsc::SendError<()>> {
+        self.send_frame_state_update(move |state| state.enable_optimisations = enabled)
             .map_err(|_| mpsc::SendError(()))
     }
 
@@ -166,6 +175,11 @@ impl<M, F, R, E> Builder<M, F, R, E> {
     /// number of points per frame.
     ///
     /// By default, this value is `stream::DEFAULT_FRAME_HZ`.
+    ///
+    /// This parameter is only meaningful while optimisations are enabled (the default). This is
+    /// because we may only target the frame rate by re-interpolating the desired path, and we may
+    /// only re-interpolate the desired path if we have the euler circuit describing the path which
+    /// is produced during the optimisation pass.
     pub fn frame_hz(mut self, frame_hz: u32) -> Self {
         self.frame_hz = Some(frame_hz);
         self
@@ -184,24 +198,38 @@ impl<M, F, R, E> Builder<M, F, R, E> {
     /// required.
     ///
     /// By default, this value is `InterpolationConfig::DEFAULT_DISTANCE_PER_POINT`.
+    ///
+    /// This parameter is only meaningful while optimisations are enabled (the default).
     pub fn distance_per_point(mut self, dpp: f32) -> Self {
-        self.interpolation_conf.distance_per_point = Some(dpp);
+        self.interpolation_conf.distance_per_point = dpp;
         self
     }
 
     /// The number of points to insert at the end of a blank to account for light modulator delay.
     ///
     /// By default, this value is `InterpolationConfig::DEFAULT_BLANK_DELAY_POINTS`.
+    ///
+    /// This parameter is only meaningful while optimisations are enabled (the default).
     pub fn blank_delay_points(mut self, points: u32) -> Self {
-        self.interpolation_conf.blank_delay_points = Some(points);
+        self.interpolation_conf.blank_delay_points = points;
         self
     }
 
     /// The amount of delay to add based on the angle of the corner in radians.
     ///
     /// By default, this value is `InterpolationConfig::DEFAULT_RADIANS_PER_POINT`.
+    ///
+    /// This parameter is only meaningful while optimisations are enabled (the default).
     pub fn radians_per_point(mut self, radians: f32) -> Self {
-        self.interpolation_conf.radians_per_point = Some(radians);
+        self.interpolation_conf.radians_per_point = radians;
+        self
+    }
+
+    /// Whether or not to enable the optimisations.
+    ///
+    /// By default, this value is `true`.
+    pub fn enable_optimisations(mut self, enable: bool) -> Self {
+        self.enable_optimisations = enable;
         self
     }
 
@@ -224,6 +252,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
             stream_error,
             frame_hz,
             interpolation_conf,
+            enable_optimisations,
             ..
         } = self;
         Builder {
@@ -235,6 +264,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
             stream_error,
             frame_hz,
             interpolation_conf,
+            enable_optimisations,
         }
     }
 
@@ -250,6 +280,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
             process_raw,
             frame_hz,
             interpolation_conf,
+            enable_optimisations,
             ..
         } = self;
         Builder {
@@ -261,6 +292,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
             stream_error,
             frame_hz,
             interpolation_conf,
+            enable_optimisations,
         }
     }
 
@@ -284,10 +316,9 @@ impl<M, F, R, E> Builder<M, F, R, E> {
             stream_error,
             frame_hz,
             interpolation_conf,
+            enable_optimisations,
         } = self;
 
-        // Retrieve the interpolation configuration.
-        let interpolation_conf = interpolation_conf.build();
         // Retrieve the frame rate to initialise the stream with.
         let frame_hz = frame_hz.unwrap_or(stream::DEFAULT_FRAME_HZ);
 
@@ -295,6 +326,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
         let requester = Requester {
             last_frame_point: None,
             raw_points: vec![],
+            blank_points: vec![],
         };
         let requester = Arc::new(Mutex::new(requester));
 
@@ -306,6 +338,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
         let state = Arc::new(Mutex::new(State {
             frame_hz,
             interpolation_conf,
+            enable_optimisations,
         }));
 
         // A render function for the inner raw stream.
@@ -467,77 +500,99 @@ impl Requester {
             };
             render(model, &mut frame);
 
-            // If we were given no points, the user must be expecting an empty frame.
-            if frame.points.is_empty() {
-                let blank_point = self
-                    .last_frame_point
-                    .map(|p| p.blanked())
-                    .unwrap_or_else(RawPoint::centered_blank);
-                self.raw_points
-                    .extend((0..points_per_frame).map(|_| blank_point));
-
-            // Otherwise, we'll optimise and interpolate the given points.
-            } else {
-                // Optimisation passes.
-                let segs = opt::points_to_segments(frame.iter().cloned());
-                let pg = opt::segments_to_point_graph(segs);
-                let eg = opt::point_graph_to_euler_graph(&pg);
-                let ec = opt::euler_graph_to_euler_circuit(&eg);
-
-                // Blank from last point of the previous frame to first point of this one.
-                let last_frame_point = self.last_frame_point.take();
-                let inter_frame_blank_points = match last_frame_point {
-                    Some(last) => match eg.node_indices().next() {
-                        None => vec![],
-                        Some(next_id) => {
-                            let next = eg[next_id];
-                            if last.position != next.position {
-                                let a = last.blanked().with_weight(0);
-                                let b = next.to_raw().blanked();
-                                let blank_delay_points =
-                                    state.interpolation_conf.blank_delay_points;
-                                opt::blank_segment_points(a, b, blank_delay_points).collect()
-                            } else {
-                                vec![]
-                            }
-                        }
-                    },
-                    None => vec![],
-                };
-
-                // Subtract the inter-frame blank points from points per frame to maintain frame_hz.
-                let inter_frame_point_count = inter_frame_blank_points.len() as u32;
-                let target_points = if points_per_frame > inter_frame_point_count {
-                    points_per_frame - inter_frame_point_count
-                } else {
-                    0
-                };
-
-                // Join the inter-frame points with the interpolated frame.
-                let interp_conf = &state.interpolation_conf;
-                let mut interpolated =
-                    opt::interpolate_euler_circuit(&ec, &eg, target_points, interp_conf);
-
-                // If the interpolated frame is empty there were no lit points or lines.
-                // In this case, we'll produce an empty frame.
-                if interpolated.is_empty() {
-                    let blank_point = inter_frame_blank_points
-                        .last()
-                        .map(|&p| p)
-                        .or_else(|| last_frame_point.map(|p| p.blanked()))
+            if state.enable_optimisations {
+                // If we were given no points, the user must be expecting an empty frame.
+                if frame.points.is_empty() {
+                    let blank_point = self
+                        .last_frame_point
+                        .map(|p| p.blanked())
                         .unwrap_or_else(RawPoint::centered_blank);
-                    interpolated.extend((0..target_points).map(|_| blank_point));
+                    self.raw_points
+                        .extend((0..points_per_frame).map(|_| blank_point));
+
+                // Otherwise, we'll optimise and interpolate the given points.
+                } else {
+                    // Optimisation passes.
+                    let segs = lasy::points_to_segments(frame.iter().cloned());
+                    let pg = lasy::segments_to_point_graph(&frame, segs);
+                    let eg = lasy::point_graph_to_euler_graph(&pg);
+                    let ec = lasy::euler_graph_to_euler_circuit(&frame, &eg);
+
+                    // Blank from last point of the previous frame to first point of this one.
+                    let last_frame_point = self.last_frame_point.take();
+                    let next_frame_first =
+                        eg.node_indices().next().map(|ix| frame[eg[ix] as usize]);
+
+                    // Retrieve the points necessary for blanking from the prev frame to the next.
+                    inter_frame_blank_points(
+                        last_frame_point,
+                        next_frame_first,
+                        state.interpolation_conf.blank_delay_points,
+                        &mut self.blank_points,
+                    );
+
+                    // Subtract the inter-frame blank points from points per frame to maintain frame_hz.
+                    let inter_frame_point_count = self.blank_points.len() as u32;
+                    let target_points = if points_per_frame > inter_frame_point_count {
+                        points_per_frame - inter_frame_point_count
+                    } else {
+                        0
+                    };
+
+                    // Join the inter-frame points with the interpolated frame.
+                    let interp_conf = &state.interpolation_conf;
+                    let mut interpolated = lasy::interpolate_euler_circuit(
+                        &frame,
+                        &ec,
+                        &eg,
+                        target_points,
+                        interp_conf,
+                    );
+
+                    // If the interpolated frame is empty there were no lit points or lines.
+                    // In this case, we'll produce an empty frame.
+                    if interpolated.is_empty() {
+                        let blank_point = self
+                            .blank_points
+                            .last()
+                            .map(|&p| p)
+                            .or_else(|| last_frame_point.map(|p| p.blanked()))
+                            .unwrap_or_else(RawPoint::centered_blank);
+                        interpolated.extend((0..target_points).map(|_| blank_point));
+                    }
+
+                    self.raw_points.extend(self.blank_points.drain(..));
+                    self.raw_points.extend(interpolated);
                 }
 
-                self.raw_points.extend(inter_frame_blank_points);
-                self.raw_points.extend(interpolated);
+            // Otherwise if optimisations are disabled, blank and then insert the points directly.
+            } else {
+                // Blank from last point of the previous frame to first point of this one.
+                let last_frame_point = self.last_frame_point.take();
+                let next_frame_first = frame.iter().cloned().next();
+
+                // Retrieve the points necessary for blanking from the prev frame to the next.
+                inter_frame_blank_points(
+                    last_frame_point,
+                    next_frame_first,
+                    state.interpolation_conf.blank_delay_points,
+                    &mut self.blank_points,
+                );
+
+                // Flatten the weighted frame points into raw points.
+                let frame_points = frame
+                    .iter()
+                    .flat_map(|pt| Some(pt.to_raw()).into_iter().chain(pt.to_raw_weighted()));
+
+                self.raw_points.extend(self.blank_points.drain(..));
+                self.raw_points.extend(frame_points);
             }
 
             // Update the last frame point.
             self.last_frame_point = self.raw_points.last().map(|&p| p);
 
             // Write the points to buffer.
-            let end = start + num_points_to_fill;
+            let end = start + std::cmp::min(num_points_to_fill, self.raw_points.len());
             let range = start..end;
             buffer[range.clone()].copy_from_slice(&self.raw_points[..range.len()]);
             self.raw_points.drain(..range.len());
@@ -571,6 +626,29 @@ impl<M> Deref for Stream<M> {
     fn deref(&self) -> &Self::Target {
         &self.raw
     }
+}
+
+// Given the last point of the previous frame and the first of the next, produce
+// the points necessary to blank from one to the other.
+//
+// Clears the given `points` before appending the blank points if any.
+fn inter_frame_blank_points(
+    last: Option<RawPoint>,
+    next: Option<Point>,
+    blank_delay_points: u32,
+    points: &mut Vec<RawPoint>,
+) {
+    points.clear();
+    let (last, next) = match (last, next) {
+        (Some(l), Some(n)) => (l, n),
+        _ => return,
+    };
+    if last.position == next.position {
+        return;
+    }
+    let a = last.blanked().with_weight(0);
+    let b = next.to_raw().blanked();
+    points.extend(lasy::blank_segment_points(a, b, blank_delay_points));
 }
 
 // The default function used for the `process_raw` function if none is specified.

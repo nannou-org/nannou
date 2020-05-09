@@ -1,6 +1,6 @@
 //! Implementation of the general laser point type used throughout the crate.
 
-use crate::lerp::Lerp;
+use std::hash::{Hash, Hasher};
 
 /// A position in 2D space represented by x and y coordinates.
 pub type Position = [f32; 2];
@@ -132,13 +132,72 @@ impl RawPoint {
     }
 }
 
-impl Lerp for RawPoint {
+impl lasy::Lerp for RawPoint {
     type Scalar = f32;
     fn lerp(&self, other: &Self, amt: f32) -> Self {
         RawPoint::new(
             self.position.lerp(&other.position, amt),
             self.color.lerp(&other.color, amt),
         )
+    }
+}
+
+impl lasy::IsBlank for Point {
+    fn is_blank(&self) -> bool {
+        color_is_blank(self.color)
+    }
+}
+
+impl lasy::Position for Point {
+    fn position(&self) -> [f32; 2] {
+        self.position
+    }
+}
+
+impl lasy::Weight for Point {
+    fn weight(&self) -> u32 {
+        self.weight
+    }
+}
+
+impl Hash for Point {
+    fn hash<H: Hasher>(&self, hasher: &mut H) {
+        // A hashable version of a `Point`, used for removing point duplicates during euler graph
+        // generation.
+        #[derive(Eq, Hash, PartialEq)]
+        struct HashPoint {
+            pos: [i32; 2],
+            rgb: [u32; 3],
+        }
+
+        impl From<Point> for HashPoint {
+            fn from(p: Point) -> Self {
+                let [px, py] = p.position;
+                let [pr, pg, pb] = p.color;
+                let x = (px * std::i16::MAX as f32) as i32;
+                let y = (py * std::i16::MAX as f32) as i32;
+                let r = (pr * std::u16::MAX as f32) as u32;
+                let g = (pg * std::u16::MAX as f32) as u32;
+                let b = (pb * std::u16::MAX as f32) as u32;
+                let pos = [x, y];
+                let rgb = [r, g, b];
+                HashPoint { pos, rgb }
+            }
+        }
+
+        HashPoint::from(*self).hash(hasher);
+    }
+}
+
+impl lasy::Blanked for RawPoint {
+    fn blanked(&self) -> Self {
+        RawPoint::blanked(self)
+    }
+}
+
+impl From<Point> for RawPoint {
+    fn from(p: Point) -> Self {
+        p.to_raw()
     }
 }
 

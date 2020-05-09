@@ -63,6 +63,8 @@ fn model(app: &App) -> Model {
     let laser_stream = _laser_api
         .new_frame_stream(laser_model, laser)
         .tcp_timeout(Some(Duration::from_secs(1)))
+        // ILDA IDTF spec says files should be optimised already.
+        .enable_optimisations(false)
         .build()
         .unwrap();
     laser_stream.set_point_hz(10_000).unwrap();

@@ -519,7 +519,7 @@ where
 
     let mut connect_attempts = 0;
     let mut detect_attempts = 0;
-    let mut detect_timeout = None;
+    let mut detect_timeout = tcp_timeout;
     let mut redetect_dac = false;
     while !is_closed.load(atomic::Ordering::Relaxed) {
         // If the stream action signalled to redetect the DAC, try to redetect the DAC if a

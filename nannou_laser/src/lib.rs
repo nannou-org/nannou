@@ -7,13 +7,11 @@ pub mod dac;
 pub mod ffi;
 #[cfg(feature = "ilda-idtf")]
 pub mod ilda_idtf;
-pub mod lerp;
 pub mod point;
 pub mod stream;
 pub mod util;
 
 pub use dac::{DetectDacs, DetectDacsAsync, DetectedDac, DetectedDacCallback, Id as DacId};
-pub use lerp::Lerp;
 pub use point::{Point, RawPoint};
 pub use stream::frame::Frame;
 pub use stream::frame::Stream as FrameStream;
@@ -89,6 +87,7 @@ impl Api {
         let builder = Default::default();
         let frame_hz = None;
         let interpolation_conf = Default::default();
+        let enable_optimisations = stream::DEFAULT_ENABLE_OPTIMISATIONS;
         let process_raw = stream::frame::default_process_raw_fn;
         let stream_error = stream::raw::default_stream_error_fn;
         stream::frame::Builder {
@@ -100,6 +99,7 @@ impl Api {
             stream_error,
             frame_hz,
             interpolation_conf,
+            enable_optimisations,
         }
     }
 

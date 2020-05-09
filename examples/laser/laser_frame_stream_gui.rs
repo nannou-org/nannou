@@ -41,6 +41,7 @@ struct LaserSettings {
     point_hz: u32,
     latency_points: u32,
     frame_hz: u32,
+    enable_optimisations: bool,
     distance_per_point: f32,
     blank_delay_points: u32,
     radians_per_point: f32,
@@ -88,6 +89,7 @@ struct Ids {
     latency_points_slider: widget::Id,
     frame_hz_slider: widget::Id,
     laser_path_interpolation_text: widget::Id,
+    enable_optimisations_toggle: widget::Id,
     distance_per_point_slider: widget::Id,
     blank_delay_points_slider: widget::Id,
     radians_per_point_slider: widget::Id,
@@ -112,7 +114,7 @@ impl Default for Laser {
 impl Default for LaserSettings {
     fn default() -> Self {
         use laser::stream;
-        use laser::stream::frame::opt::InterpolationConfig;
+        use laser::stream::frame::InterpolationConfig;
         LaserSettings {
             point_hz: stream::DEFAULT_POINT_HZ,
             latency_points: stream::points_per_frame(
@@ -120,6 +122,7 @@ impl Default for LaserSettings {
                 stream::DEFAULT_FRAME_HZ,
             ),
             frame_hz: stream::DEFAULT_FRAME_HZ,
+            enable_optimisations: true,
             distance_per_point: InterpolationConfig::DEFAULT_DISTANCE_PER_POINT,
             blank_delay_points: InterpolationConfig::DEFAULT_BLANK_DELAY_POINTS,
             radians_per_point: InterpolationConfig::DEFAULT_RADIANS_PER_POINT,
@@ -140,7 +143,7 @@ impl Default for RgbProfile {
 fn model(app: &App) -> Model {
     // Create a window to receive keyboard events.
     app.new_window()
-        .size(240, 620)
+        .size(240, 690)
         .key_pressed(key_pressed)
         .view(view)
         .build()
@@ -191,6 +194,7 @@ fn model(app: &App) -> Model {
         latency_points_slider: ui.generate_widget_id(),
         frame_hz_slider: ui.generate_widget_id(),
         laser_path_interpolation_text: ui.generate_widget_id(),
+        enable_optimisations_toggle: ui.generate_widget_id(),
         distance_per_point_slider: ui.generate_widget_id(),
         blank_delay_points_slider: ui.generate_widget_id(),
         radians_per_point_slider: ui.generate_widget_id(),
@@ -496,12 +500,31 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         .font_size(16)
         .set(model.ids.laser_path_interpolation_text, ui);
 
+    let (label, color) = if model.laser_settings.enable_optimisations {
+        ("Optimisations: Enabled", color::DARK_GREEN)
+    } else {
+        ("Optimisations: Disabled", color::DARK_RED)
+    };
+    for _click in button()
+        .w(200.0)
+        .label(label)
+        .down(20.0)
+        .color(color)
+        .set(model.ids.enable_optimisations_toggle, ui)
+    {
+        model.laser_settings.enable_optimisations = !model.laser_settings.enable_optimisations;
+        for stream in &model.laser_streams {
+            stream
+                .enable_optimisations(model.laser_settings.enable_optimisations)
+                .ok();
+        }
+    }
+
     let label = format!(
         "Distance per point: {:.2}",
         model.laser_settings.distance_per_point
     );
     for value in slider(model.laser_settings.distance_per_point, 0.01, 1.0)
-        .down(20.0)
         .label(&label)
         .set(model.ids.distance_per_point_slider, ui)
     {
