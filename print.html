@@ -2275,6 +2275,71 @@ published.</p>
 <p>All notable changes to nannou should be documented below! From the most recent,
 back to the origins.</p>
 <hr />
+<h1><a class="header" href="#unreleased" id="unreleased">Unreleased</a></h1>
+<p><strong>Update to WGPU 0.5</strong></p>
+<p>For the most part, these changes will affect users of the <code>nannou::wgpu</code> module,
+but not so much the users of the <code>draw</code> or <code>ui</code> APIs. <em>Find the relevant wgpu
+changelog entry
+<a href="https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#v05-06-04-2020">here</a>.</em></p>
+<ul>
+<li>The <em>y</em> axis has been inverted for wgpu pipelines, meaning the y axis now
+increases upwards in NDC (normalised device coordinates). This does not affect
+the <code>Draw</code> or <code>Ui</code> APIs, but does affect users creating custom render
+pipelines. The updated wgpu examples should demonstrate how to deal with this
+change.</li>
+<li><code>wgpu::Device</code> no longer offers a generic buffer creation method, instead
+requiring that users upload all data as slices of bytes. This required adding
+some small <code>unsafe</code> functions for converting data (most often vertices,
+indices and uniforms) to bytes ready for upload to the GPU. See the new
+<code>wgpu::bytes</code> module docs for details.</li>
+<li><code>wgpu::VertexDescriptor</code> trait has been removed in favour of a new
+<code>wgpu::vertex_attr_array!</code> macro. See updated wgpu examples for a usage
+demonstration.</li>
+<li><code>wgpu::BindGroupLayout</code> now requires the texture component type for sampled
+texture binding types. This means wgpu users may now need to switch between
+render pipelines if dynamically switching between textures at runtime.</li>
+<li><code>wgpu::Texture</code> and <code>wgpu::TextureView</code> now expose a <code>component_type</code> method,
+allowing for easy retrieval of the <code>wgpu::TextureComponentType</code> associated
+with their <code>wgpu::TextureFormat</code>.</li>
+<li>Fixes a bug where sometimes <code>Draw</code> items could be drawn with an incorrect
+blend mode, primitive topology or bind group.</li>
+<li><code>wgpu::Queue</code>s no longer requires mutable access when submitting command
+buffers. This allowed for the removal of the awkward <code>Mutex</code> that was exposed
+when providing access to the window's swapchain queue.</li>
+<li>The <code>Frame::TEXTURE_FORMAT</code> has changed from <code>Rgba16Unorm</code> to <code>Rgba16Float</code>,
+as the <code>Rgba16Unorm</code> format was removed from the WGPU spec due to lack of
+consistent cross-platform support. Similarly, <code>image::ColorType</code>'s that were
+previously mapped to <code>Unorm</code> formats are now mapped their respective <code>Uint</code>
+formats instead.</li>
+<li>Update to conrod 0.70 to match wgpu dependency version.</li>
+<li>Remove <code>threadpool</code> crate in favour of <code>futures</code> crate thread pool feature.
+This is necessary in order to run <code>TextureCapturer</code> futures now that they take
+advantage of rust's async futures API.</li>
+<li>Adds the <code>num_cpus</code> dependency for selecting a default number of worker
+threads for the <code>TextureCapturer</code>'s inner thread pool.</li>
+</ul>
+<p><strong>Texture Capturing Fixes and Improvements</strong></p>
+<ul>
+<li>Fixes the issue where <code>TextureCapturer</code> could spawn more user callbacks than
+there where worker threads to process them.</li>
+<li>Fixes the issue where an application might exit before all
+<code>window.capture_frames(path)</code> snapshots have completed.</li>
+<li>Provides a <code>TextureCapturer::await_active_snapshots(device)</code> method that
+allows to properly await the completion of all snapshot read futures by
+polling the device as necessary.</li>
+<li><code>TextureCapturer::new</code> now takes the number of workers and optional timeout
+duration as an argument.</li>
+<li><code>Snapshot::read_threaded</code> has been removed in favour of a single
+<code>Snapshot::read</code> method that is threaded by default. The old synchronous
+behaviour can be emulated by creating the <code>TextureCapturer</code> with a single
+worker. Likewise, <code>window.capture_frame_threaded</code> has been removed in favour
+of <code>window.capture_frame</code> for the same reason.</li>
+<li>New <code>app::Builder</code> and <code>window::Builder</code> <code>max_capture_frame_jobs</code> and
+<code>capture_frame_timeout</code> methods have been added to allow for specifying the
+number of worker threads and optional timeout duration for the windows' inner
+<code>TextureCapturer</code>s.</li>
+</ul>
+<hr />
 <h1><a class="header" href="#version-0141-2020-05-06" id="version-0141-2020-05-06">Version 0.14.1 (2020-05-06)</a></h1>
 <ul>
 <li>Fix bug where <code>draw::Renderer</code> was initialised with an incorrect scale factor.</li>
