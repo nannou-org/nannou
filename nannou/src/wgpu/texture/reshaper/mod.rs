@@ -107,19 +107,6 @@ impl Reshaper {
         }
     }
 
-    /// Construct a new `Reshaper` for reshaping `src` to `dst`.
-    pub fn from_textures(device: &wgpu::Device, src: &wgpu::Texture, dst: &wgpu::Texture) -> Self {
-        let src_view = src.view().build();
-        Self::new(
-            device,
-            &src_view,
-            src.sample_count(),
-            src.component_type(),
-            dst.sample_count(),
-            dst.format(),
-        )
-    }
-
     /// Given an encoder, submits a render pass command for writing the source texture to the
     /// destination texture.
     pub fn encode_render_pass(
