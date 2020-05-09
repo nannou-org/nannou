@@ -4,14 +4,6 @@
 //! have to consider when writing graphics code. Here we define a set of helpers that allow us to
 //! simplify the process and fall back to a set of reasonable defaults.
 
-/// A trait required to be implemented by vertices to provide a simpler render pipeline API.
-pub trait VertexDescriptor {
-    /// The stride, in bytes, between elements of this buffer.
-    const STRIDE: wgpu::BufferAddress;
-    /// A description of each of the vertex's attributes.
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor];
-}
-
 #[derive(Debug)]
 enum Layout<'a> {
     Descriptor(wgpu::PipelineLayoutDescriptor<'a>),
@@ -44,20 +36,6 @@ pub struct RenderPipelineBuilder<'a> {
     sample_count: u32,
     sample_mask: u32,
     alpha_to_coverage_enabled: bool,
-}
-
-/// Construct a vertex buffer descriptor from the given vertex type and step mode.
-pub fn vertex_buffer_descriptor_from_type<T>(
-    step_mode: wgpu::InputStepMode,
-) -> wgpu::VertexBufferDescriptor<'static>
-where
-    T: VertexDescriptor,
-{
-    wgpu::VertexBufferDescriptor {
-        stride: T::STRIDE,
-        step_mode,
-        attributes: T::ATTRIBUTES,
-    }
 }
 
 impl<'a> RenderPipelineBuilder<'a> {
@@ -364,23 +342,30 @@ impl<'a> RenderPipelineBuilder<'a> {
 
     /// Short-hand for adding a descriptor to the render pipeline describing a buffer of vertices
     /// of the given vertex type.
-    pub fn add_vertex_buffer<V>(self) -> Self
-    where
-        V: VertexDescriptor,
-    {
+    ///
+    /// The vertex stride is assumed to be equal to `size_of::<V>()`. If this is not the case,
+    /// consider using `add_vertex_buffer_descriptor` instead.
+    pub fn add_vertex_buffer<V>(self, attrs: &'static [wgpu::VertexAttributeDescriptor]) -> Self {
+        let stride = std::mem::size_of::<V>() as wgpu::BufferAddress;
         let step_mode = wgpu::InputStepMode::Vertex;
-        let descriptor = vertex_buffer_descriptor_from_type::<V>(step_mode);
+        let descriptor = wgpu::VertexBufferDescriptor {
+            stride,
+            step_mode,
+            attributes: attrs,
+        };
         self.add_vertex_buffer_descriptor(descriptor)
     }
 
     /// Short-hand for adding a descriptor to the render pipeline describing a buffer of instances
     /// of the given vertex type.
-    pub fn add_instance_buffer<I>(self) -> Self
-    where
-        I: VertexDescriptor,
-    {
+    pub fn add_instance_buffer<I>(self, attrs: &'static [wgpu::VertexAttributeDescriptor]) -> Self {
+        let stride = std::mem::size_of::<I>() as wgpu::BufferAddress;
         let step_mode = wgpu::InputStepMode::Instance;
-        let descriptor = vertex_buffer_descriptor_from_type::<I>(step_mode);
+        let descriptor = wgpu::VertexBufferDescriptor {
+            stride,
+            step_mode,
+            attributes: attrs,
+        };
         self.add_vertex_buffer_descriptor(descriptor)
     }
 

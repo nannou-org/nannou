@@ -197,46 +197,6 @@ impl RenderPrimitive for draw::Primitive {
     }
 }
 
-impl wgpu::VertexDescriptor for draw::mesh::vertex::Point {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Self>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float3,
-            offset: 0,
-            shader_location: 0,
-        }];
-}
-
-impl wgpu::VertexDescriptor for draw::mesh::vertex::Color {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Self>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float4,
-            offset: 0,
-            shader_location: 1,
-        }];
-}
-
-impl wgpu::VertexDescriptor for draw::mesh::vertex::TexCoords {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Self>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float2,
-            offset: 0,
-            shader_location: 2,
-        }];
-}
-
-impl wgpu::VertexDescriptor for VertexMode {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Self>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Uint,
-            offset: 0,
-            shader_location: 3,
-        }];
-}
-
 impl fmt::Debug for GlyphCache {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("GlyphCache")
@@ -1120,10 +1080,10 @@ fn create_render_pipeline(
     wgpu::RenderPipelineBuilder::from_layout_descriptor(&bind_group_layouts[..], vs_mod)
         .fragment_shader(fs_mod)
         .color_format(dst_format)
-        .add_vertex_buffer::<draw::mesh::vertex::Point>()
-        .add_vertex_buffer::<draw::mesh::vertex::Color>()
-        .add_vertex_buffer::<draw::mesh::vertex::TexCoords>()
-        .add_vertex_buffer::<VertexMode>()
+        .add_vertex_buffer::<draw::mesh::vertex::Point>(&wgpu::vertex_attr_array![0 => Float3])
+        .add_vertex_buffer::<draw::mesh::vertex::Color>(&wgpu::vertex_attr_array![1 => Float4])
+        .add_vertex_buffer::<draw::mesh::vertex::TexCoords>(&wgpu::vertex_attr_array![2 => Float2])
+        .add_vertex_buffer::<VertexMode>(&wgpu::vertex_attr_array![3 => Uint])
         .depth_format(depth_format)
         .sample_count(sample_count)
         .color_blend(color_blend)

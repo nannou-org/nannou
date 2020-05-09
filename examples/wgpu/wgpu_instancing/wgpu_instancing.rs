@@ -147,61 +147,6 @@ pub struct Instance {
 
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
-impl wgpu::VertexDescriptor for Vertex {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float3,
-            offset: 0,
-            shader_location: 0,
-        }];
-}
-
-impl wgpu::VertexDescriptor for Normal {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Normal>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float3,
-            offset: 0,
-            shader_location: 1,
-        }];
-}
-
-impl wgpu::VertexDescriptor for Instance {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Instance>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] = &[
-        //the shader locations 2,3,4,5 are used for storing the transformation.
-        //Indeed we can't define attributes of size bigger than float4
-        //so we declare that we are going to use 4 attributes of size float4,
-        //which is equivalent to the size of mat4.
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float4,
-            offset: 0,
-            shader_location: 2,
-        },
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float4,
-            offset: 4 * 4,
-            shader_location: 3,
-        },
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float4,
-            offset: 2 * 4 * 4,
-            shader_location: 4,
-        },
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float4,
-            offset: 3 * 4 * 4,
-            shader_location: 5,
-        },
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float3,
-            offset: 4 * 4 * 4,
-            shader_location: 6,
-        },
-    ];
-}
-
 fn main() {
     nannou::app(model).run();
 }
@@ -461,9 +406,15 @@ fn create_render_pipeline(
         .color_format(dst_format)
         .color_blend(wgpu::BlendDescriptor::REPLACE)
         .alpha_blend(wgpu::BlendDescriptor::REPLACE)
-        .add_vertex_buffer::<Vertex>()
-        .add_vertex_buffer::<Normal>()
-        .add_instance_buffer::<Instance>()
+        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float3])
+        .add_vertex_buffer::<Normal>(&wgpu::vertex_attr_array![1 => Float3])
+        .add_instance_buffer::<Instance>(&wgpu::vertex_attr_array![
+            2 => Float4,
+            3 => Float4,
+            4 => Float4,
+            5 => Float4,
+            6 => Float3
+        ])
         .depth_format(depth_format)
         .index_format(wgpu::IndexFormat::Uint16)
         .sample_count(sample_count)

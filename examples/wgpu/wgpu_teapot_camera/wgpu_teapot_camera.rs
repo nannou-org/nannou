@@ -69,26 +69,6 @@ impl Camera {
     }
 }
 
-impl wgpu::VertexDescriptor for Vertex {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float3,
-            offset: 0,
-            shader_location: 0,
-        }];
-}
-
-impl wgpu::VertexDescriptor for Normal {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Normal>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float3,
-            offset: 0,
-            shader_location: 1,
-        }];
-}
-
 fn pitch_yaw_to_direction(pitch: f32, yaw: f32) -> Vector3<f32> {
     let xz_unit_len = pitch.cos();
     let x = xz_unit_len * yaw.cos();
@@ -370,8 +350,8 @@ fn create_render_pipeline(
         .color_format(dst_format)
         .color_blend(wgpu::BlendDescriptor::REPLACE)
         .alpha_blend(wgpu::BlendDescriptor::REPLACE)
-        .add_vertex_buffer::<Vertex>()
-        .add_vertex_buffer::<Normal>()
+        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float3])
+        .add_vertex_buffer::<Normal>(&wgpu::vertex_attr_array![1 => Float3])
         .depth_format(depth_format)
         .index_format(wgpu::IndexFormat::Uint16)
         .sample_count(sample_count)

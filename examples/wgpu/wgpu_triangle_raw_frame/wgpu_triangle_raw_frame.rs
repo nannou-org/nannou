@@ -27,16 +27,6 @@ const VERTICES: [Vertex; 3] = [
     },
 ];
 
-impl wgpu::VertexDescriptor for Vertex {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float2,
-            offset: 0,
-            shader_location: 0,
-        }];
-}
-
 fn main() {
     nannou::app(model).run();
 }
@@ -67,7 +57,7 @@ fn model(app: &App) -> Model {
     let render_pipeline = wgpu::RenderPipelineBuilder::from_layout(&pipeline_layout, &vs_mod)
         .fragment_shader(&fs_mod)
         .color_format(format)
-        .add_vertex_buffer::<Vertex>()
+        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float2])
         .build(device);
 
     Model {

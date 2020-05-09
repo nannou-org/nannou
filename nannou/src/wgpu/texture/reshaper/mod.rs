@@ -139,16 +139,6 @@ impl Reshaper {
     }
 }
 
-impl wgpu::VertexDescriptor for Vertex {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float2,
-            offset: 0,
-            shader_location: 0,
-        }];
-}
-
 const VERTICES: [Vertex; 4] = [
     Vertex {
         position: [-1.0, -1.0],
@@ -229,7 +219,7 @@ fn render_pipeline(
         .color_format(dst_format)
         .color_blend(wgpu::BlendDescriptor::REPLACE)
         .alpha_blend(wgpu::BlendDescriptor::REPLACE)
-        .add_vertex_buffer::<Vertex>()
+        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float2])
         .primitive_topology(wgpu::PrimitiveTopology::TriangleStrip)
         .index_format(wgpu::IndexFormat::Uint16)
         .sample_count(dst_sample_count)

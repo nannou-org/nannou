@@ -37,7 +37,7 @@ pub use self::render_pass::{
     Builder as RenderPassBuilder,
     ColorAttachmentDescriptorBuilder as RenderPassColorAttachmentDescriptorBuilder,
 };
-pub use self::render_pipeline_builder::{RenderPipelineBuilder, VertexDescriptor};
+pub use self::render_pipeline_builder::RenderPipelineBuilder;
 pub use self::sampler_builder::SamplerBuilder;
 pub use self::texture::capturer::{
     AwaitWorkerTimeout as TextureCapturerAwaitWorkerTimeout, Capturer as TextureCapturer,
@@ -56,11 +56,11 @@ pub use self::texture::{
 };
 #[doc(inline)]
 pub use wgpu::{
-    read_spirv, Adapter, AdapterInfo, AddressMode, BackendBit, BindGroup, BindGroupDescriptor,
-    BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, Binding, BindingResource,
-    BindingType, BlendDescriptor, BlendFactor, BlendOperation, Buffer, BufferAddress,
-    BufferAsyncErr, BufferCopyView, BufferDescriptor, BufferReadMapping, BufferUsage,
-    BufferWriteMapping, Color, ColorStateDescriptor, ColorWrite, CommandBuffer,
+    read_spirv, vertex_attr_array, Adapter, AdapterInfo, AddressMode, BackendBit, BindGroup,
+    BindGroupDescriptor, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, Binding,
+    BindingResource, BindingType, BlendDescriptor, BlendFactor, BlendOperation, Buffer,
+    BufferAddress, BufferAsyncErr, BufferCopyView, BufferDescriptor, BufferReadMapping,
+    BufferUsage, BufferWriteMapping, Color, ColorStateDescriptor, ColorWrite, CommandBuffer,
     CommandBufferDescriptor, CommandEncoder, CommandEncoderDescriptor, CompareFunction,
     ComputePass, ComputePipeline, ComputePipelineDescriptor, CreateBufferMapped, CullMode,
     DepthStencilStateDescriptor, Device, DeviceDescriptor, Extensions, Extent3d, FilterMode,
