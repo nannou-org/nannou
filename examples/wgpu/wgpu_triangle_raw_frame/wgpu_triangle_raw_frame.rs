@@ -27,16 +27,6 @@ const VERTICES: [Vertex; 3] = [
     },
 ];
 
-impl wgpu::VertexDescriptor for Vertex {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float2,
-            offset: 0,
-            shader_location: 0,
-        }];
-}
-
 fn main() {
     nannou::app(model).run();
 }
@@ -57,9 +47,9 @@ fn model(app: &App) -> Model {
     let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
     let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
 
-    let vertex_buffer = device
-        .create_buffer_mapped(VERTICES.len(), wgpu::BufferUsage::VERTEX)
-        .fill_from_slice(&VERTICES[..]);
+    let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
+    let usage = wgpu::BufferUsage::VERTEX;
+    let vertex_buffer = device.create_buffer_with_data(vertices_bytes, usage);
 
     let bind_group_layout = wgpu::BindGroupLayoutBuilder::new().build(device);
     let bind_group = wgpu::BindGroupBuilder::new().build(device, &bind_group_layout);
@@ -67,7 +57,7 @@ fn model(app: &App) -> Model {
     let render_pipeline = wgpu::RenderPipelineBuilder::from_layout(&pipeline_layout, &vs_mod)
         .fragment_shader(&fs_mod)
         .color_format(format)
-        .add_vertex_buffer::<Vertex>()
+        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float2])
         .build(device);
 
     Model {
@@ -86,8 +76,13 @@ fn view(_app: &App, model: &Model, frame: RawFrame) {
         .begin(&mut encoder);
     render_pass.set_pipeline(&model.render_pipeline);
     render_pass.set_bind_group(0, &model.bind_group, &[]);
-    render_pass.set_vertex_buffers(0, &[(&model.vertex_buffer, 0)]);
+    render_pass.set_vertex_buffer(0, &model.vertex_buffer, 0, 0);
     let vertex_range = 0..VERTICES.len() as u32;
     let instance_range = 0..1;
     render_pass.draw(vertex_range, instance_range);
+}
+
+// See the `nannou::wgpu::bytes` documentation for why this is necessary.
+fn vertices_as_bytes(data: &[Vertex]) -> &[u8] {
+    unsafe { wgpu::bytes::from_slice(data) }
 }

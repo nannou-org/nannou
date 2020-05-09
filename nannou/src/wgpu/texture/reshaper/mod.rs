@@ -36,6 +36,7 @@ impl Reshaper {
         device: &wgpu::Device,
         src_texture: &wgpu::TextureViewHandle,
         src_sample_count: u32,
+        src_component_type: wgpu::TextureComponentType,
         dst_sample_count: u32,
         dst_format: wgpu::TextureFormat,
     ) -> Self {
@@ -54,7 +55,7 @@ impl Reshaper {
         let sampler = wgpu::SamplerBuilder::new().build(device);
 
         // Create the render pipeline.
-        let bind_group_layout = bind_group_layout(device, src_sample_count);
+        let bind_group_layout = bind_group_layout(device, src_sample_count, src_component_type);
         let pipeline_layout = pipeline_layout(device, &bind_group_layout);
         let render_pipeline = render_pipeline(
             device,
@@ -73,9 +74,9 @@ impl Reshaper {
                 let uniforms = Uniforms {
                     sample_count: src_sample_count,
                 };
-                let buffer = device
-                    .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM)
-                    .fill_from_slice(&[uniforms]);
+                let uniforms_bytes = uniforms_as_bytes(&uniforms);
+                let usage = wgpu::BufferUsage::UNIFORM;
+                let buffer = device.create_buffer_with_data(&uniforms_bytes, usage);
                 Some(buffer)
             }
         };
@@ -90,9 +91,9 @@ impl Reshaper {
         );
 
         // Create the vertex buffer.
-        let vertex_buffer = device
-            .create_buffer_mapped(VERTICES.len(), wgpu::BufferUsage::VERTEX)
-            .fill_from_slice(&VERTICES[..]);
+        let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
+        let vertex_usage = wgpu::BufferUsage::VERTEX;
+        let vertex_buffer = device.create_buffer_with_data(vertices_bytes, vertex_usage);
 
         Reshaper {
             _vs_mod: vs_mod,
@@ -117,7 +118,7 @@ impl Reshaper {
             .color_attachment(dst_texture, |color| color)
             .begin(encoder);
         render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.set_vertex_buffers(0, &[(&self.vertex_buffer, 0)]);
+        render_pass.set_vertex_buffer(0, &self.vertex_buffer, 0, 0);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         let vertex_range = 0..VERTICES.len() as u32;
         let instance_range = 0..1;
@@ -125,28 +126,18 @@ impl Reshaper {
     }
 }
 
-impl wgpu::VertexDescriptor for Vertex {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float2,
-            offset: 0,
-            shader_location: 0,
-        }];
-}
-
 const VERTICES: [Vertex; 4] = [
-    Vertex {
-        position: [-1.0, -1.0],
-    },
     Vertex {
         position: [-1.0, 1.0],
     },
     Vertex {
-        position: [1.0, -1.0],
+        position: [-1.0, -1.0],
     },
     Vertex {
         position: [1.0, 1.0],
+    },
+    Vertex {
+        position: [1.0, -1.0],
     },
 ];
 
@@ -158,12 +149,17 @@ fn unrolled_sample_count(sample_count: u32) -> bool {
     }
 }
 
-fn bind_group_layout(device: &wgpu::Device, src_sample_count: u32) -> wgpu::BindGroupLayout {
+fn bind_group_layout(
+    device: &wgpu::Device,
+    src_sample_count: u32,
+    src_component_type: wgpu::TextureComponentType,
+) -> wgpu::BindGroupLayout {
     let mut builder = wgpu::BindGroupLayoutBuilder::new()
         .sampled_texture(
             wgpu::ShaderStage::FRAGMENT,
             src_sample_count > 1,
             wgpu::TextureViewDimension::D2,
+            src_component_type,
         )
         .sampler(wgpu::ShaderStage::FRAGMENT);
     if !unrolled_sample_count(src_sample_count) {
@@ -210,9 +206,17 @@ fn render_pipeline(
         .color_format(dst_format)
         .color_blend(wgpu::BlendDescriptor::REPLACE)
         .alpha_blend(wgpu::BlendDescriptor::REPLACE)
-        .add_vertex_buffer::<Vertex>()
+        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float2])
         .primitive_topology(wgpu::PrimitiveTopology::TriangleStrip)
         .index_format(wgpu::IndexFormat::Uint16)
         .sample_count(dst_sample_count)
         .build(device)
+}
+
+fn uniforms_as_bytes(uniforms: &Uniforms) -> &[u8] {
+    unsafe { wgpu::bytes::from(uniforms) }
+}
+
+fn vertices_as_bytes(data: &[Vertex]) -> &[u8] {
+    unsafe { wgpu::bytes::from_slice(data) }
 }

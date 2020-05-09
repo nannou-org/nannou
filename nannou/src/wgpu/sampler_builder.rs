@@ -13,7 +13,7 @@ impl SamplerBuilder {
     pub const DEFAULT_MIPMAP_FILTER: wgpu::FilterMode = wgpu::FilterMode::Nearest;
     pub const DEFAULT_LOD_MIN_CLAMP: f32 = -100.0;
     pub const DEFAULT_LOD_MAX_CLAMP: f32 = 100.0;
-    pub const DEFAULT_COMPARE_FUNCTION: wgpu::CompareFunction = wgpu::CompareFunction::Always;
+    pub const DEFAULT_COMPARE: wgpu::CompareFunction = wgpu::CompareFunction::Always;
     pub const DEFAULT_DESCRIPTOR: wgpu::SamplerDescriptor = wgpu::SamplerDescriptor {
         address_mode_u: Self::DEFAULT_ADDRESS_MODE_U,
         address_mode_v: Self::DEFAULT_ADDRESS_MODE_V,
@@ -23,7 +23,7 @@ impl SamplerBuilder {
         mipmap_filter: Self::DEFAULT_MIPMAP_FILTER,
         lod_min_clamp: Self::DEFAULT_LOD_MIN_CLAMP,
         lod_max_clamp: Self::DEFAULT_LOD_MAX_CLAMP,
-        compare_function: Self::DEFAULT_COMPARE_FUNCTION,
+        compare: Self::DEFAULT_COMPARE,
     };
 
     /// Begin building a `Sampler`, starting with the `Default` parameters.
@@ -94,8 +94,8 @@ impl SamplerBuilder {
         self
     }
 
-    pub fn compare_function(mut self, f: wgpu::CompareFunction) -> Self {
-        self.descriptor.compare_function = f;
+    pub fn compare(mut self, f: wgpu::CompareFunction) -> Self {
+        self.descriptor.compare = f;
         self
     }
 

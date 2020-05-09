@@ -63,6 +63,8 @@ pub struct Builder<M = (), E = Event> {
     exit: Option<ExitFn<M>>,
     create_default_window: bool,
     default_window_size: Option<DefaultWindowSize>,
+    capture_frame_timeout: Option<Option<Duration>>,
+    max_capture_frame_jobs: Option<u32>,
 }
 
 /// A nannou `Sketch` builder.
@@ -99,6 +101,8 @@ fn default_model(_: &App) -> () {
 pub struct App {
     config: RefCell<Config>,
     default_window_size: Option<DefaultWindowSize>,
+    max_capture_frame_jobs: u32,
+    capture_frame_timeout: Option<Duration>,
     pub(crate) event_loop_window_target: Option<EventLoopWindowTarget>,
     pub(crate) event_loop_proxy: Proxy,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
@@ -253,6 +257,8 @@ where
             exit: None,
             create_default_window: false,
             default_window_size: None,
+            max_capture_frame_jobs: None,
+            capture_frame_timeout: None,
         }
     }
 
@@ -275,6 +281,8 @@ where
             exit,
             create_default_window,
             default_window_size,
+            max_capture_frame_jobs,
+            capture_frame_timeout,
             ..
         } = self;
         Builder {
@@ -285,6 +293,8 @@ where
             exit,
             create_default_window,
             default_window_size,
+            max_capture_frame_jobs,
+            capture_frame_timeout,
         }
     }
 }
@@ -294,6 +304,11 @@ where
     M: 'static,
     E: LoopEvent,
 {
+    /// By default, we timeout if waiting for a frame capture job takes longer than 5 seconds. This
+    /// is to avoid hanging forever in the case the frame writing process encounters an
+    /// unrecoverable error.
+    pub const DEFAULT_CAPTURE_FRAME_TIMEOUT: Duration = Duration::from_secs(10);
+
     /// The default `view` function that the app will call to allow you to present your Model to
     /// the surface of a window on your display.
     ///
@@ -339,6 +354,15 @@ where
         self
     }
 
+    /// Specify an `exit` function to be called when the application exits.
+    ///
+    /// The exit function gives ownership of the model back to you for any cleanup that might be
+    /// necessary.
+    pub fn exit(mut self, exit: ExitFn<M>) -> Self {
+        self.exit = Some(exit);
+        self
+    }
+
     /// Specify the default window size in points.
     ///
     /// If a window is created and its size is not specified, this size will be used.
@@ -354,12 +378,39 @@ where
         self
     }
 
-    /// Specify an `exit` function to be called when the application exits.
+    /// The maximum number of simultaneous capture frame jobs that can be run per window before we
+    /// block and wait for the existing jobs to complete.
     ///
-    /// The exit function gives ownership of the model back to you for any cleanup that might be
-    /// necessary.
-    pub fn exit(mut self, exit: ExitFn<M>) -> Self {
-        self.exit = Some(exit);
+    /// A "capture frame job" refers to the combind process of waiting to read a frame from the GPU
+    /// and then writing that frame to an image file on the disk. Each call to
+    /// `window.capture_frame(path)` spawns a new "capture frame job" on an internal thread pool.
+    ///
+    /// By default, this value is equal to the number of physical cpu threads available on the
+    /// system. However, keep in mind that this means there must be room in both RAM and VRAM for
+    /// this number of textures to exist per window at any moment in time. If you run into an "out
+    /// of memory" error, try reducing the number of max jobs to a lower value, though never lower
+    /// than `1`.
+    ///
+    /// **Panics** if the specified value is less than `1`.
+    pub fn max_capture_frame_jobs(mut self, max_jobs: u32) -> Self {
+        assert!(
+            max_jobs >= 1,
+            "must allow for at least one capture frame job at a time"
+        );
+        self.max_capture_frame_jobs = Some(max_jobs);
+        self
+    }
+
+    /// In the case that `max_capture_frame_jobs` is reached and the main thread must block, this
+    /// specifies how long to wait for a running capture job to complete. See the
+    /// `max_capture_frame_jobs` docs for more details.
+    ///
+    /// By default, the timeout used is equal to `app::Builder::DEFAULT_CAPTURE_FRAME_TIMEOUT`.
+    ///
+    /// If `None` is specified, the capture process will never time out. This may be necessary on
+    /// extremely low-powered machines that take a long time to write each frame to disk.
+    pub fn capture_frame_timeout(mut self, timeout: Option<std::time::Duration>) -> Self {
+        self.capture_frame_timeout = Some(timeout);
         self
     }
 
@@ -383,11 +434,19 @@ where
         };
 
         // Initialise the app.
+        let max_capture_frame_jobs = self
+            .max_capture_frame_jobs
+            .unwrap_or(num_cpus::get() as u32);
+        let capture_frame_timeout = self
+            .capture_frame_timeout
+            .unwrap_or(Some(Self::DEFAULT_CAPTURE_FRAME_TIMEOUT));
         let event_loop_window_target = Some(EventLoopWindowTarget::Owned(event_loop));
         let app = App::new(
             event_loop_proxy,
             event_loop_window_target,
             self.default_window_size,
+            max_capture_frame_jobs,
+            capture_frame_timeout,
         );
 
         // Create the default window if necessary
@@ -445,15 +504,9 @@ impl Builder<(), Event> {
     /// This is useful for late night hack sessions where you just don't care about all that other
     /// stuff, you just want to play around with some ideas or make something pretty.
     pub fn sketch(view: SketchViewFn) -> SketchBuilder<Event> {
-        let builder: Self = Builder {
-            model: default_model,
-            event: None,
-            update: None,
-            default_view: Some(View::Sketch(view)),
-            exit: None,
-            create_default_window: true,
-            default_window_size: None,
-        };
+        let mut builder = Builder::new(default_model);
+        builder.default_view = Some(View::Sketch(view));
+        builder.create_default_window = true;
         SketchBuilder { builder }
     }
 }
@@ -535,6 +588,8 @@ impl App {
         event_loop_proxy: Proxy,
         event_loop_window_target: Option<EventLoopWindowTarget>,
         default_window_size: Option<DefaultWindowSize>,
+        max_capture_frame_jobs: u32,
+        capture_frame_timeout: Option<Duration>,
     ) -> Self {
         let adapters = Default::default();
         let windows = RefCell::new(HashMap::new());
@@ -552,6 +607,8 @@ impl App {
             event_loop_proxy,
             event_loop_window_target,
             default_window_size,
+            max_capture_frame_jobs,
+            capture_frame_timeout,
             focused_window,
             adapters,
             windows,
@@ -624,11 +681,14 @@ impl App {
     /// Begin building a new window.
     pub fn new_window(&self) -> window::Builder {
         let builder = window::Builder::new(self);
-        match self.default_window_size {
+        let builder = match self.default_window_size {
             Some(DefaultWindowSize::Fullscreen) => builder.fullscreen(),
             Some(DefaultWindowSize::Logical(size)) => builder.size(size.width, size.height),
             None => builder,
-        }
+        };
+        builder
+            .max_capture_frame_jobs(self.max_capture_frame_jobs)
+            .capture_frame_timeout(self.capture_frame_timeout)
     }
 
     /// The number of windows currently in the application.
@@ -1006,7 +1066,9 @@ fn run_loop<M, E>(
                 };
 
                 if let Some(model) = model.as_ref() {
-                    let swap_chain_output = swap_chain.get_next_texture();
+                    let swap_chain_output = swap_chain
+                        .get_next_texture()
+                        .expect("failed to acquire next swapchain texture");
                     let swap_chain_texture = &swap_chain_output.view;
 
                     // Borrow the window now that we don't need it mutably until setting the render
@@ -1169,6 +1231,7 @@ fn run_loop<M, E>(
                     exit_fn(&app, model);
                 }
             }
+
             *control_flow = ControlFlow::Exit;
             return;
         }

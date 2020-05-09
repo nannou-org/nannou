@@ -3,7 +3,6 @@
 
 use crate::wgpu;
 use std::path::Path;
-use std::slice;
 
 /// The set of pixel types from the image crate that can be loaded directly into a texture.
 ///
@@ -26,12 +25,12 @@ pub struct BufferImage {
 
 /// A wrapper around a slice of bytes representing an image.
 ///
-/// An `ImageAsyncMapping` may only be created by reading from a `BufferImage` returned by a
+/// An `ImageReadMapping` may only be created by reading from a `BufferImage` returned by a
 /// `Texture::to_image` call.
-pub struct ImageAsyncMapping<'a> {
+pub struct ImageReadMapping {
     color_type: image::ColorType,
     size: [u32; 2],
-    mapping: wgpu::BufferAsyncMapping<&'a [u8]>,
+    mapping: wgpu::BufferReadMapping,
 }
 
 impl wgpu::TextureBuilder {
@@ -69,11 +68,11 @@ impl wgpu::TextureBuilder {
 /// a texture from an image.
 ///
 /// Notably, implementations exist for `&App`, `&Window`, `&wgpu::DeviceQueuePair` and `(&Device,
-/// &mut Queue)`.
+/// &Queue)`.
 pub trait WithDeviceQueuePair {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
-        F: FnOnce(&wgpu::Device, &mut wgpu::Queue) -> O;
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O;
 }
 
 impl wgpu::Texture {
@@ -121,7 +120,7 @@ impl wgpu::Texture {
     /// used as the source of the device and queue.
     ///
     /// The `DeviceQueuePairSource` can be either the `App`, a `Window`, a `DeviceQueuePair` or a
-    /// tuple `(&Device, &mut Queue)`.
+    /// tuple `(&Device, &Queue)`.
     pub fn from_image<'a, T>(src: T, image: &image::DynamicImage) -> Self
     where
         T: WithDeviceQueuePair,
@@ -137,7 +136,7 @@ impl wgpu::Texture {
     /// This is short-hand for calling `image::open` and then `Texture::load_from_image`.
     pub fn load_from_path<P>(
         device: &wgpu::Device,
-        queue: &mut wgpu::Queue,
+        queue: &wgpu::Queue,
         usage: wgpu::TextureUsage,
         path: P,
     ) -> image::ImageResult<Self>
@@ -159,7 +158,7 @@ impl wgpu::Texture {
     /// before being uploaded.
     pub fn load_from_image(
         device: &wgpu::Device,
-        queue: &mut wgpu::Queue,
+        queue: &wgpu::Queue,
         usage: wgpu::TextureUsage,
         image: &image::DynamicImage,
     ) -> Self {
@@ -174,7 +173,7 @@ impl wgpu::Texture {
     /// Pixel type compatibility is ensured via the `Pixel` trait.
     pub fn load_from_image_buffer<P, Container>(
         device: &wgpu::Device,
-        queue: &mut wgpu::Queue,
+        queue: &wgpu::Queue,
         usage: wgpu::TextureUsage,
         buffer: &image::ImageBuffer<P, Container>,
     ) -> Self
@@ -195,7 +194,7 @@ impl wgpu::Texture {
     /// Returns `None` if there are no images in the given sequence.
     pub fn load_array_from_image_buffers<'a, I, P, Container>(
         device: &wgpu::Device,
-        queue: &mut wgpu::Queue,
+        queue: &wgpu::Queue,
         usage: wgpu::TextureUsage,
         buffers: I,
     ) -> Option<Self>
@@ -316,28 +315,23 @@ impl BufferImage {
     }
 
     /// Asynchronously maps the buffer of bytes from GPU to host memory and, once mapped, calls the
-    /// given user callback with the data represented as an `ImageAsyncMapping`.
+    /// given user callback with the data represented as an `ImageReadMapping`.
     ///
     /// Note: The given callback will not be called until the memory is mapped and the device is
     /// polled. You should not rely on the callback being called immediately.
-    pub fn read<F>(&self, callback: F)
-    where
-        F: 'static + FnOnce(Result<ImageAsyncMapping, ()>),
-    {
+    pub async fn read(&self) -> Result<ImageReadMapping, wgpu::BufferAsyncErr> {
         let size = self.size;
         let color_type = self.color_type;
-        self.buffer.read(move |result| {
-            let result = result.map(|mapping| ImageAsyncMapping {
-                color_type,
-                size,
-                mapping,
-            });
-            callback(result);
+        let mapping = self.buffer.read().await?;
+        Ok(ImageReadMapping {
+            color_type,
+            size,
+            mapping,
         })
     }
 }
 
-impl<'a> ImageAsyncMapping<'a> {
+impl ImageReadMapping {
     /// Produce the color type of an image, compatible with the `image` crate.
     pub fn color_type(&self) -> image::ColorType {
         self.color_type
@@ -349,7 +343,7 @@ impl<'a> ImageAsyncMapping<'a> {
     }
 
     /// The raw image data as a slice of bytes.
-    pub fn mapping(&self) -> &wgpu::BufferAsyncMapping<&[u8]> {
+    pub fn mapping(&self) -> &wgpu::BufferReadMapping {
         &self.mapping
     }
 
@@ -358,7 +352,8 @@ impl<'a> ImageAsyncMapping<'a> {
     /// The image format is derived from the file extension.
     pub fn save(&self, path: &Path) -> image::ImageResult<()> {
         let [width, height] = self.size();
-        image::save_buffer(path, &self.mapping.data, width, height, self.color_type)
+        let data = self.mapping.as_slice();
+        image::save_buffer(path, data, width, height, self.color_type)
     }
 
     /// Saves the buffer to a file at the specified path.
@@ -370,32 +365,12 @@ impl<'a> ImageAsyncMapping<'a> {
         let [width, height] = self.size();
         image::save_buffer_with_format(
             path,
-            &self.mapping.data,
+            self.mapping.as_slice(),
             width,
             height,
             self.color_type,
             format,
         )
-    }
-
-    /// Attempt to cast this image ref to an `ImageBuffer` of the specified pixel type.
-    ///
-    /// Returns `None` if the specified pixel type does not match the inner `color_type`.
-    pub fn as_image_buffer<P>(&self) -> Option<image::ImageBuffer<P, &[P::Subpixel]>>
-    where
-        P: 'static + Pixel,
-    {
-        if P::COLOR_TYPE != self.color_type {
-            return None;
-        }
-        let [width, height] = self.size();
-        let len_pixels = (width * height) as usize;
-        let subpixel_data_ptr = self.mapping.data.as_ptr() as *const _;
-        let subpixel_data: &[P::Subpixel] =
-            unsafe { slice::from_raw_parts(subpixel_data_ptr, len_pixels) };
-        let img_buffer = image::ImageBuffer::from_raw(width, height, subpixel_data)
-            .expect("failed to construct image buffer from raw data");
-        Some(img_buffer)
     }
 }
 
@@ -412,11 +387,11 @@ impl Pixel for image::Luma<i8> {
 }
 
 impl Pixel for image::Luma<u16> {
-    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::R16Unorm;
+    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::R16Uint;
 }
 
 impl Pixel for image::Luma<i16> {
-    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::R16Snorm;
+    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::R16Sint;
 }
 
 impl Pixel for image::LumaA<u8> {
@@ -428,11 +403,11 @@ impl Pixel for image::LumaA<i8> {
 }
 
 impl Pixel for image::LumaA<u16> {
-    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rg16Unorm;
+    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rg16Uint;
 }
 
 impl Pixel for image::LumaA<i16> {
-    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rg16Snorm;
+    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rg16Sint;
 }
 
 impl Pixel for image::Rgba<u8> {
@@ -444,17 +419,17 @@ impl Pixel for image::Rgba<i8> {
 }
 
 impl Pixel for image::Rgba<u16> {
-    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Unorm;
+    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Uint;
 }
 
 impl Pixel for image::Rgba<i16> {
-    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Snorm;
+    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Sint;
 }
 
-impl<'a> WithDeviceQueuePair for (&'a wgpu::Device, &'a mut wgpu::Queue) {
+impl<'a> WithDeviceQueuePair for (&'a wgpu::Device, &'a wgpu::Queue) {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
-        F: FnOnce(&wgpu::Device, &mut wgpu::Queue) -> O,
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
     {
         let (device, queue) = self;
         f(device, queue)
@@ -464,19 +439,18 @@ impl<'a> WithDeviceQueuePair for (&'a wgpu::Device, &'a mut wgpu::Queue) {
 impl<'a> WithDeviceQueuePair for &'a wgpu::DeviceQueuePair {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
-        F: FnOnce(&wgpu::Device, &mut wgpu::Queue) -> O,
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
     {
         let device = self.device();
         let queue = self.queue();
-        let mut queue = queue.lock().unwrap();
-        f(&*device, &mut *queue)
+        f(&*device, &*queue)
     }
 }
 
 impl<'a> WithDeviceQueuePair for &'a crate::window::Window {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
-        F: FnOnce(&wgpu::Device, &mut wgpu::Queue) -> O,
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
     {
         self.swap_chain_device_queue_pair()
             .with_device_queue_pair(f)
@@ -486,7 +460,7 @@ impl<'a> WithDeviceQueuePair for &'a crate::window::Window {
 impl<'a> WithDeviceQueuePair for &'a crate::app::App {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
-        F: FnOnce(&wgpu::Device, &mut wgpu::Queue) -> O,
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
     {
         self.main_window().with_device_queue_pair(f)
     }
@@ -495,7 +469,7 @@ impl<'a> WithDeviceQueuePair for &'a crate::app::App {
 impl<'a, 'b> WithDeviceQueuePair for &'a std::cell::Ref<'b, crate::window::Window> {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
-        F: FnOnce(&wgpu::Device, &mut wgpu::Queue) -> O,
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
     {
         (**self).with_device_queue_pair(f)
     }
@@ -512,9 +486,9 @@ pub fn format_from_image_color_type(color_type: image::ColorType) -> Option<wgpu
         image::ColorType::L8 => wgpu::TextureFormat::R8Unorm,
         image::ColorType::La8 => wgpu::TextureFormat::Rg8Unorm,
         image::ColorType::Rgba8 => wgpu::TextureFormat::Rgba8UnormSrgb,
-        image::ColorType::L16 => wgpu::TextureFormat::R16Unorm,
-        image::ColorType::La16 => wgpu::TextureFormat::Rg16Unorm,
-        image::ColorType::Rgba16 => wgpu::TextureFormat::Rgba16Unorm,
+        image::ColorType::L16 => wgpu::TextureFormat::R16Uint,
+        image::ColorType::La16 => wgpu::TextureFormat::Rg16Uint,
+        image::ColorType::Rgba16 => wgpu::TextureFormat::Rgba16Uint,
         image::ColorType::Bgra8 => wgpu::TextureFormat::Bgra8UnormSrgb,
         _ => return None,
     };
@@ -532,9 +506,9 @@ pub fn image_color_type_from_format(format: wgpu::TextureFormat) -> Option<image
         wgpu::TextureFormat::R8Unorm => image::ColorType::L8,
         wgpu::TextureFormat::Rg8Unorm => image::ColorType::La8,
         wgpu::TextureFormat::Rgba8UnormSrgb => image::ColorType::Rgba8,
-        wgpu::TextureFormat::R16Unorm => image::ColorType::L16,
-        wgpu::TextureFormat::Rg16Unorm => image::ColorType::La16,
-        wgpu::TextureFormat::Rgba16Unorm => image::ColorType::Rgba16,
+        wgpu::TextureFormat::R16Uint => image::ColorType::L16,
+        wgpu::TextureFormat::Rg16Uint => image::ColorType::La16,
+        wgpu::TextureFormat::Rgba16Uint => image::ColorType::Rgba16,
         wgpu::TextureFormat::Bgra8UnormSrgb => image::ColorType::Bgra8,
         _ => return None,
     };
@@ -572,11 +546,13 @@ where
 /// before being uploaded.
 pub fn load_texture_from_image(
     device: &wgpu::Device,
-    queue: &mut wgpu::Queue,
+    queue: &wgpu::Queue,
     usage: wgpu::TextureUsage,
     image: &image::DynamicImage,
 ) -> wgpu::Texture {
-    let cmd_encoder_desc = wgpu::CommandEncoderDescriptor::default();
+    let cmd_encoder_desc = wgpu::CommandEncoderDescriptor {
+        label: Some("nannou_texture_from_image"),
+    };
     let mut encoder = device.create_command_encoder(&cmd_encoder_desc);
     let texture = encode_load_texture_from_image(device, &mut encoder, usage, image);
     queue.submit(&[encoder.finish()]);
@@ -591,7 +567,7 @@ pub fn load_texture_from_image(
 /// Pixel type compatibility is ensured via the `Pixel` trait.
 pub fn load_texture_from_image_buffer<P, Container>(
     device: &wgpu::Device,
-    queue: &mut wgpu::Queue,
+    queue: &wgpu::Queue,
     usage: wgpu::TextureUsage,
     buffer: &image::ImageBuffer<P, Container>,
 ) -> wgpu::Texture
@@ -599,7 +575,9 @@ where
     P: 'static + Pixel,
     Container: std::ops::Deref<Target = [P::Subpixel]>,
 {
-    let cmd_encoder_desc = wgpu::CommandEncoderDescriptor::default();
+    let cmd_encoder_desc = wgpu::CommandEncoderDescriptor {
+        label: Some("nannou_texture_from_image_buffer"),
+    };
     let mut encoder = device.create_command_encoder(&cmd_encoder_desc);
     let texture = encode_load_texture_from_image_buffer(device, &mut encoder, usage, buffer);
     queue.submit(&[encoder.finish()]);
@@ -616,7 +594,7 @@ where
 /// Returns `None` if there are no images in the given sequence.
 pub fn load_texture_array_from_image_buffers<'a, I, P, Container>(
     device: &wgpu::Device,
-    queue: &mut wgpu::Queue,
+    queue: &wgpu::Queue,
     usage: wgpu::TextureUsage,
     buffers: I,
 ) -> Option<wgpu::Texture>
@@ -626,7 +604,9 @@ where
     P: 'static + Pixel,
     Container: 'a + std::ops::Deref<Target = [P::Subpixel]>,
 {
-    let cmd_encoder_desc = wgpu::CommandEncoderDescriptor::default();
+    let cmd_encoder_desc = wgpu::CommandEncoderDescriptor {
+        label: Some("nannou_load_texture_array_from_image_buffers"),
+    };
     let mut encoder = device.create_command_encoder(&cmd_encoder_desc);
     let texture =
         encode_load_texture_array_from_image_buffers(device, &mut encoder, usage, buffers);
@@ -702,9 +682,12 @@ where
 
     // Upload the pixel data.
     let subpixel_data: &[P::Subpixel] = std::ops::Deref::deref(buffer);
-    let buffer = device
-        .create_buffer_mapped(subpixel_data.len(), wgpu::BufferUsage::COPY_SRC)
-        .fill_from_slice(subpixel_data);
+    // TODO:
+    // This can theoretically be exploited by implementing `image::Primitive` for some type that
+    // has padding. Instead, should make some `Subpixel` trait that we can control and is only
+    // guaranteed to be implemented for safe types.
+    let subpixel_bytes = unsafe { wgpu::bytes::from_slice(subpixel_data) };
+    let buffer = device.create_buffer_with_data(subpixel_bytes, wgpu::BufferUsage::COPY_SRC);
 
     // Submit command for copying pixel data to the texture.
     let buffer_copy_view = texture.default_buffer_copy_view(&buffer);
@@ -753,9 +736,12 @@ where
     for (layer, buffer) in Some(first_buffer).into_iter().chain(buffers).enumerate() {
         // Upload the pixel data.
         let subpixel_data: &[P::Subpixel] = std::ops::Deref::deref(buffer);
-        let buffer = device
-            .create_buffer_mapped(subpixel_data.len(), wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(subpixel_data);
+        // TODO:
+        // This can theoretically be exploited by implementing `image::Primitive` for some type
+        // that has padding. Instead, should make some `Subpixel` trait that we can control and is
+        // only guaranteed to be implemented for safe types.
+        let subpixel_bytes = unsafe { wgpu::bytes::from_slice(subpixel_data) };
+        let buffer = device.create_buffer_with_data(subpixel_bytes, wgpu::BufferUsage::COPY_SRC);
 
         // Submit command for copying pixel data to the texture.
         let buffer_copy_view = texture.default_buffer_copy_view(&buffer);

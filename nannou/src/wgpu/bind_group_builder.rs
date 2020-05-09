@@ -48,7 +48,15 @@ impl LayoutBuilder {
 
     /// Add a sampler binding to the layout.
     pub fn sampler(self, visibility: wgpu::ShaderStage) -> Self {
-        let ty = wgpu::BindingType::Sampler;
+        let comparison = false;
+        let ty = wgpu::BindingType::Sampler { comparison };
+        self.binding(visibility, ty)
+    }
+
+    /// Add a sampler binding to the layout.
+    pub fn comparison_sampler(self, visibility: wgpu::ShaderStage) -> Self {
+        let comparison = true;
+        let ty = wgpu::BindingType::Sampler { comparison };
         self.binding(visibility, ty)
     }
 
@@ -58,10 +66,12 @@ impl LayoutBuilder {
         visibility: wgpu::ShaderStage,
         multisampled: bool,
         dimension: wgpu::TextureViewDimension,
+        component_type: wgpu::TextureComponentType,
     ) -> Self {
         let ty = wgpu::BindingType::SampledTexture {
             multisampled,
             dimension,
+            component_type,
         };
         self.binding(visibility, ty)
     }
@@ -83,6 +93,7 @@ impl LayoutBuilder {
             visibility,
             texture.sample_count() > 1,
             texture.view_dimension(),
+            texture.component_type(),
         )
     }
 
@@ -90,17 +101,44 @@ impl LayoutBuilder {
     pub fn storage_texture(
         self,
         visibility: wgpu::ShaderStage,
+        format: wgpu::TextureFormat,
         dimension: wgpu::TextureViewDimension,
+        component_type: wgpu::TextureComponentType,
+        readonly: bool,
     ) -> Self {
-        let ty = wgpu::BindingType::StorageTexture { dimension };
+        let ty = wgpu::BindingType::StorageTexture {
+            dimension,
+            component_type,
+            format,
+            readonly,
+        };
         self.binding(visibility, ty)
+    }
+
+    /// Short-hand for adding a storage texture binding for a full view of the given texture to the
+    /// layout.
+    ///
+    /// The `format`, `dimension` and `component_type` are inferred from the given `texture`.
+    pub fn storage_texture_from(
+        self,
+        visibility: wgpu::ShaderStage,
+        texture: &wgpu::Texture,
+        readonly: bool,
+    ) -> Self {
+        self.storage_texture(
+            visibility,
+            texture.format(),
+            texture.view_dimension(),
+            texture.component_type(),
+            readonly,
+        )
     }
 
     /// Build the bind group layout from the specified parameters.
     pub fn build(self, device: &wgpu::Device) -> wgpu::BindGroupLayout {
         let mut bindings = Vec::with_capacity(self.bindings.len());
         for (i, (visibility, ty)) in self.bindings.into_iter().enumerate() {
-            let layout_binding = wgpu::BindGroupLayoutBinding {
+            let layout_binding = wgpu::BindGroupLayoutEntry {
                 binding: i as u32,
                 visibility,
                 ty,
@@ -108,6 +146,7 @@ impl LayoutBuilder {
             bindings.push(layout_binding);
         }
         let descriptor = wgpu::BindGroupLayoutDescriptor {
+            label: Some("nannou"),
             bindings: &bindings,
         };
         device.create_bind_group_layout(&descriptor)
@@ -183,6 +222,7 @@ impl<'a> Builder<'a> {
             bindings.push(binding);
         }
         let descriptor = wgpu::BindGroupDescriptor {
+            label: Some("nannou"),
             layout,
             bindings: &bindings,
         };

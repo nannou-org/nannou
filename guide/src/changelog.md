@@ -5,6 +5,74 @@ back to the origins.
 
 ---
 
+# Unreleased
+
+**Update to WGPU 0.5**
+
+For the most part, these changes will affect users of the `nannou::wgpu` module,
+but not so much the users of the `draw` or `ui` APIs. *Find the relevant wgpu
+changelog entry
+[here](https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#v05-06-04-2020).*
+
+- The *y* axis has been inverted for wgpu pipelines, meaning the y axis now
+  increases upwards in NDC (normalised device coordinates). This does not affect
+  the `Draw` or `Ui` APIs, but does affect users creating custom render
+  pipelines. The updated wgpu examples should demonstrate how to deal with this
+  change.
+- `wgpu::Device` no longer offers a generic buffer creation method, instead
+  requiring that users upload all data as slices of bytes. This required adding
+  some small `unsafe` functions for converting data (most often vertices,
+  indices and uniforms) to bytes ready for upload to the GPU. See the new
+  `wgpu::bytes` module docs for details.
+- `wgpu::VertexDescriptor` trait has been removed in favour of a new
+  `wgpu::vertex_attr_array!` macro. See updated wgpu examples for a usage
+  demonstration.
+- `wgpu::BindGroupLayout` now requires the texture component type for sampled
+  texture binding types. This means wgpu users may now need to switch between
+  render pipelines if dynamically switching between textures at runtime.
+- `wgpu::Texture` and `wgpu::TextureView` now expose a `component_type` method,
+  allowing for easy retrieval of the `wgpu::TextureComponentType` associated
+  with their `wgpu::TextureFormat`.
+- Fixes a bug where sometimes `Draw` items could be drawn with an incorrect
+  blend mode, primitive topology or bind group.
+- `wgpu::Queue`s no longer requires mutable access when submitting command
+  buffers. This allowed for the removal of the awkward `Mutex` that was exposed
+  when providing access to the window's swapchain queue.
+- The `Frame::TEXTURE_FORMAT` has changed from `Rgba16Unorm` to `Rgba16Float`,
+  as the `Rgba16Unorm` format was removed from the WGPU spec due to lack of
+  consistent cross-platform support. Similarly, `image::ColorType`'s that were
+  previously mapped to `Unorm` formats are now mapped their respective `Uint`
+  formats instead.
+- Update to conrod 0.70 to match wgpu dependency version.
+- Remove `threadpool` crate in favour of `futures` crate thread pool feature.
+  This is necessary in order to run `TextureCapturer` futures now that they take
+  advantage of rust's async futures API.
+- Adds the `num_cpus` dependency for selecting a default number of worker
+  threads for the `TextureCapturer`'s inner thread pool.
+
+**Texture Capturing Fixes and Improvements**
+
+- Fixes the issue where `TextureCapturer` could spawn more user callbacks than
+  there where worker threads to process them.
+- Fixes the issue where an application might exit before all
+  `window.capture_frames(path)` snapshots have completed.
+- Provides a `TextureCapturer::await_active_snapshots(device)` method that
+  allows to properly await the completion of all snapshot read futures by
+  polling the device as necessary.
+- `TextureCapturer::new` now takes the number of workers and optional timeout
+  duration as an argument.
+- `Snapshot::read_threaded` has been removed in favour of a single
+  `Snapshot::read` method that is threaded by default. The old synchronous
+  behaviour can be emulated by creating the `TextureCapturer` with a single
+  worker. Likewise, `window.capture_frame_threaded` has been removed in favour
+  of `window.capture_frame` for the same reason.
+- New `app::Builder` and `window::Builder` `max_capture_frame_jobs` and
+  `capture_frame_timeout` methods have been added to allow for specifying the
+  number of worker threads and optional timeout duration for the windows' inner
+  `TextureCapturer`s.
+
+---
+
 # Version 0.14.1 (2020-05-06)
 
 - Fix bug where `draw::Renderer` was initialised with an incorrect scale factor.

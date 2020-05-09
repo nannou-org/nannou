@@ -491,26 +491,30 @@ pub fn encode_render_pass(
         color_attachments: &[color_attachment_desc],
         depth_stencil_attachment: None,
     };
-    let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
     let render = renderer.render(&device, &ui.image_map);
-    render_pass.set_pipeline(render.pipeline);
-    render_pass.set_vertex_buffers(0, &[(&render.vertex_buffer, 0)]);
-    let instance_range = 0..1;
-    for cmd in render.commands {
-        match cmd {
-            conrod_wgpu::RenderPassCommand::SetBindGroup { bind_group } => {
-                render_pass.set_bind_group(0, bind_group, &[]);
-            }
-            conrod_wgpu::RenderPassCommand::SetScissor {
-                top_left,
-                dimensions,
-            } => {
-                let [x, y] = top_left;
-                let [w, h] = dimensions;
-                render_pass.set_scissor_rect(x, y, w, h);
-            }
-            conrod_wgpu::RenderPassCommand::Draw { vertex_range } => {
-                render_pass.draw(vertex_range, instance_range.clone());
+    {
+        let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
+        render_pass.set_vertex_buffer(0, &render.vertex_buffer, 0, 0);
+        let instance_range = 0..1;
+        for cmd in render.commands {
+            match cmd {
+                conrod_wgpu::RenderPassCommand::SetPipeline { pipeline } => {
+                    render_pass.set_pipeline(pipeline);
+                }
+                conrod_wgpu::RenderPassCommand::SetBindGroup { bind_group } => {
+                    render_pass.set_bind_group(0, bind_group, &[]);
+                }
+                conrod_wgpu::RenderPassCommand::SetScissor {
+                    top_left,
+                    dimensions,
+                } => {
+                    let [x, y] = top_left;
+                    let [w, h] = dimensions;
+                    render_pass.set_scissor_rect(x, y, w, h);
+                }
+                conrod_wgpu::RenderPassCommand::Draw { vertex_range } => {
+                    render_pass.draw(vertex_range, instance_range.clone());
+                }
             }
         }
     }

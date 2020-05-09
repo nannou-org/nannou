@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex};
 struct Model {
     compute: Compute,
     oscillators: Arc<Mutex<Vec<f32>>>,
+    threadpool: futures::executor::ThreadPool,
 }
 
 struct Compute {
@@ -47,6 +48,7 @@ fn model(app: &App) -> Model {
     let oscillator_buffer_size =
         (OSCILLATOR_COUNT as usize * std::mem::size_of::<f32>()) as wgpu::BufferAddress;
     let oscillator_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("oscillators"),
         size: oscillator_buffer_size,
         usage: wgpu::BufferUsage::STORAGE
             | wgpu::BufferUsage::COPY_DST
@@ -55,9 +57,9 @@ fn model(app: &App) -> Model {
 
     // Create the buffer that will store time.
     let uniforms = create_uniforms(app.time, app.mouse.x, window.rect());
-    let uniform_buffer = device
-        .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
-        .fill_from_slice(&[uniforms]);
+    let uniforms_bytes = uniforms_as_bytes(&uniforms);
+    let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
+    let uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
 
     // Create the bind group and pipeline.
     let bind_group_layout = create_bind_group_layout(device);
@@ -82,9 +84,13 @@ fn model(app: &App) -> Model {
     // The vector that we will write oscillator values to.
     let oscillators = Arc::new(Mutex::new(vec![0.0; OSCILLATOR_COUNT as usize]));
 
+    // Create a thread pool capable of running our GPU buffer read futures.
+    let threadpool = futures::executor::ThreadPool::new().unwrap();
+
     Model {
         compute,
         oscillators,
+        threadpool,
     }
 }
 
@@ -96,6 +102,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 
     // The buffer into which we'll read some data.
     let read_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("read_oscillators"),
         size: compute.oscillator_buffer_size,
         usage: wgpu::BufferUsage::MAP_READ
             | wgpu::BufferUsage::COPY_DST
@@ -105,12 +112,15 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     // An update for the uniform buffer with the current time.
     let uniforms = create_uniforms(app.time, app.mouse.x, win_rect);
     let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
-    let new_uniform_buffer = device
-        .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
-        .fill_from_slice(&[uniforms]);
+    let uniforms_bytes = uniforms_as_bytes(&uniforms);
+    let usage = wgpu::BufferUsage::COPY_SRC;
+    let new_uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
 
     // The encoder we'll use to encode the compute pass.
-    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+    let desc = wgpu::CommandEncoderDescriptor {
+        label: Some("oscillator_compute"),
+    };
+    let mut encoder = device.create_command_encoder(&desc);
     encoder.copy_buffer_to_buffer(
         &new_uniform_buffer,
         0,
@@ -133,25 +143,27 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     );
 
     // Submit the compute pass to the device's queue.
-    window
-        .swap_chain_queue()
-        .lock()
-        .unwrap()
-        .submit(&[encoder.finish()]);
+    window.swap_chain_queue().submit(&[encoder.finish()]);
 
-    // Register a callback for reading the result of the compute pass.
+    // Spawn a future that reads the result of the compute pass.
     let oscillators = model.oscillators.clone();
-    read_buffer.map_read_async(
-        0,
-        compute.oscillator_buffer_size,
-        move |result: wgpu::BufferMapAsyncResult<&[f32]>| {
-            if let Ok(mapping) = result {
-                if let Ok(mut oscillators) = oscillators.lock() {
-                    oscillators.copy_from_slice(&mapping.data);
-                }
+    let oscillator_buffer_size = compute.oscillator_buffer_size;
+    let future = async move {
+        let result = read_buffer.map_read(0, oscillator_buffer_size).await;
+        if let Ok(mapping) = result {
+            if let Ok(mut oscillators) = oscillators.lock() {
+                let bytes = mapping.as_slice();
+                // "Cast" the slice of bytes to a slice of floats as required.
+                let floats = {
+                    let len = bytes.len() / std::mem::size_of::<f32>();
+                    let ptr = bytes.as_ptr() as *const f32;
+                    unsafe { std::slice::from_raw_parts(ptr, len) }
+                };
+                oscillators.copy_from_slice(floats);
             }
-        },
-    );
+        }
+    };
+    model.threadpool.spawn_ok(future);
 
     // Check for resource cleanups and mapping callbacks.
     //
@@ -249,4 +261,10 @@ fn create_compute_pipeline(
         compute_stage,
     };
     device.create_compute_pipeline(&desc)
+}
+
+// See `nannou::wgpu::bytes` docs for why these are necessary.
+
+fn uniforms_as_bytes(uniforms: &Uniforms) -> &[u8] {
+    unsafe { wgpu::bytes::from(uniforms) }
 }

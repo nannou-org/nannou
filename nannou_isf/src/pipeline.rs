@@ -105,11 +105,13 @@ pub enum IsfInputData {
     },
 }
 
-#[derive(Clone, Debug)]
-struct IsfInputUniforms {
-    // Each supported uniform field type is 32-bit long, so store them as such.
-    fields: Vec<u32>,
-}
+type IsfInputUniforms = [u32; 128];
+
+// #[derive(Clone, Debug)]
+// struct IsfInputUniforms {
+//     // Each supported uniform field type is 32-bit long, so store them as such.
+//     fields: Vec<u32>,
+// }
 
 /// A shader with some extra information relating to recent compilation success/failure.
 #[derive(Debug)]
@@ -200,16 +202,6 @@ const VERTICES: [Vertex; 4] = [
         position: [1.0, 1.0],
     },
 ];
-
-impl wgpu::VertexDescriptor for Vertex {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float2,
-            offset: 0,
-            shader_location: 0,
-        }];
-}
 
 impl ImageState {
     /// Whether or not the texture is currently loading.
@@ -537,14 +529,14 @@ impl IsfPipeline {
             date: [0.0; 4],
             frame_index: 0,
         };
-        let isf_uniform_buffer = device
-            .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
-            .fill_from_slice(&[isf_uniforms]);
-        type IsfInputUniforms = [u32; 128];
-        let isf_input_uniforms = [0u32; 128];
-        let isf_inputs_uniform_buffer = device
-            .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
-            .fill_from_slice(&[isf_input_uniforms]);
+        let isf_uniforms_bytes = isf_uniforms_as_bytes(&isf_uniforms);
+        let isf_input_uniforms: IsfInputUniforms = [0u32; 128];
+        let isf_input_uniforms_bytes = isf_input_uniforms_as_bytes(&isf_input_uniforms);
+        let uniforms_usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
+        let isf_uniform_buffer =
+            device.create_buffer_with_data(&isf_uniforms_bytes, uniforms_usage);
+        let isf_inputs_uniform_buffer =
+            device.create_buffer_with_data(&isf_input_uniforms_bytes, uniforms_usage);
 
         // Prepare the bind group layouts.
         let isf_bind_group_layout = wgpu::BindGroupLayoutBuilder::new()
@@ -595,9 +587,9 @@ impl IsfPipeline {
         };
 
         // The quad vertex buffer.
-        let vertex_buffer = device
-            .create_buffer_mapped(VERTICES.len(), wgpu::BufferUsage::VERTEX)
-            .fill_from_slice(&VERTICES[..]);
+        let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
+        let vertex_usage = wgpu::BufferUsage::VERTEX;
+        let vertex_buffer = device.create_buffer_with_data(vertices_bytes, vertex_usage);
 
         Self {
             isf,
@@ -765,10 +757,10 @@ impl IsfPipeline {
                 date: isf_time.date,
                 frame_index: isf_time.frame_index,
             };
-            let size = std::mem::size_of::<IsfUniforms>() as wgpu::BufferAddress;
-            let new_buffer = device
-                .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
-                .fill_from_slice(&[isf_uniforms]);
+            let isf_uniforms_bytes = isf_uniforms_as_bytes(&isf_uniforms);
+            let usage = wgpu::BufferUsage::COPY_SRC;
+            let new_buffer = device.create_buffer_with_data(&isf_uniforms_bytes, usage);
+            let size = isf_uniforms_bytes.len() as wgpu::BufferAddress;
             encoder.copy_buffer_to_buffer(&new_buffer, 0, &self.isf_uniform_buffer, 0, size);
 
             // TODO: Update the inputs.
@@ -781,7 +773,7 @@ impl IsfPipeline {
                 .color_attachment(dst_texture, |color| color)
                 .begin(encoder);
             render_pass.set_pipeline(pipeline);
-            render_pass.set_vertex_buffers(0, &[(&self.vertex_buffer, 0)]);
+            render_pass.set_vertex_buffer(0, &self.vertex_buffer, 0, 0);
             render_pass.set_bind_group(0, &self.isf_bind_group, &[]);
             render_pass.set_bind_group(1, &self.isf_inputs_bind_group, &[]);
             render_pass.set_bind_group(2, &self.isf_textures_bind_group, &[]);
@@ -831,11 +823,12 @@ fn create_isf_textures_bind_group_layout(
 ) -> wgpu::BindGroupLayout {
     // Begin with the sampler.
     let mut builder = wgpu::BindGroupLayoutBuilder::new().sampler(wgpu::ShaderStage::FRAGMENT);
-    for _ in isf_data_textures(isf_data) {
+    for texture in isf_data_textures(isf_data) {
         builder = builder.sampled_texture(
             wgpu::ShaderStage::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
+            texture.component_type(),
         );
     }
     builder.build(device)
@@ -876,7 +869,7 @@ fn create_render_pipeline(
     wgpu::RenderPipelineBuilder::from_layout(layout, &vs_mod)
         .fragment_shader(fs_mod)
         .color_format(dst_format)
-        .add_vertex_buffer::<Vertex>()
+        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float2])
         .sample_count(sample_count)
         .primitive_topology(wgpu::PrimitiveTopology::TriangleStrip)
         .build(device)
@@ -990,4 +983,18 @@ fn image_paths(dir: &Path) -> impl Iterator<Item = PathBuf> {
         .filter_map(|res| res.ok())
         .map(|entry| entry.path().to_path_buf())
         .filter(|path| image::image_dimensions(path).ok().is_some())
+}
+
+// Conversions to bytes for GPU buffer uploads.
+
+fn isf_uniforms_as_bytes(data: &IsfUniforms) -> &[u8] {
+    unsafe { wgpu::bytes::from(data) }
+}
+
+fn isf_input_uniforms_as_bytes(data: &[u32]) -> &[u8] {
+    unsafe { wgpu::bytes::from_slice(data) }
+}
+
+fn vertices_as_bytes(data: &[Vertex]) -> &[u8] {
+    unsafe { wgpu::bytes::from_slice(data) }
 }

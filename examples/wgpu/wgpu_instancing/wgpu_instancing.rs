@@ -147,61 +147,6 @@ pub struct Instance {
 
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
-impl wgpu::VertexDescriptor for Vertex {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Vertex>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float3,
-            offset: 0,
-            shader_location: 0,
-        }];
-}
-
-impl wgpu::VertexDescriptor for Normal {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Normal>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] =
-        &[wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float3,
-            offset: 0,
-            shader_location: 1,
-        }];
-}
-
-impl wgpu::VertexDescriptor for Instance {
-    const STRIDE: wgpu::BufferAddress = std::mem::size_of::<Instance>() as _;
-    const ATTRIBUTES: &'static [wgpu::VertexAttributeDescriptor] = &[
-        //the shader locations 2,3,4,5 are used for storing the transformation.
-        //Indeed we can't define attributes of size bigger than float4
-        //so we declare that we are going to use 4 attributes of size float4,
-        //which is equivalent to the size of mat4.
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float4,
-            offset: 0,
-            shader_location: 2,
-        },
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float4,
-            offset: 4 * 4,
-            shader_location: 3,
-        },
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float4,
-            offset: 2 * 4 * 4,
-            shader_location: 4,
-        },
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float4,
-            offset: 3 * 4 * 4,
-            shader_location: 5,
-        },
-        wgpu::VertexAttributeDescriptor {
-            format: wgpu::VertexFormat::Float3,
-            offset: 4 * 4 * 4,
-            shader_location: 6,
-        },
-    ];
-}
-
 fn main() {
     nannou::app(model).run();
 }
@@ -221,15 +166,14 @@ fn model(app: &App) -> Model {
     let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
 
     // Create the vertex, normal and index buffers.
-    let vertex_buffer = device
-        .create_buffer_mapped(data::VERTICES.len(), wgpu::BufferUsage::VERTEX)
-        .fill_from_slice(&data::VERTICES[..]);
-    let normal_buffer = device
-        .create_buffer_mapped(data::NORMALS.len(), wgpu::BufferUsage::VERTEX)
-        .fill_from_slice(&data::NORMALS[..]);
-    let index_buffer = device
-        .create_buffer_mapped(data::INDICES.len(), wgpu::BufferUsage::INDEX)
-        .fill_from_slice(&data::INDICES[..]);
+    let vertices_bytes = vertices_as_bytes(&data::VERTICES);
+    let normals_bytes = normals_as_bytes(&data::NORMALS);
+    let indices_bytes = indices_as_bytes(&data::INDICES);
+    let vertex_usage = wgpu::BufferUsage::VERTEX;
+    let index_usage = wgpu::BufferUsage::INDEX;
+    let vertex_buffer = device.create_buffer_with_data(vertices_bytes, vertex_usage);
+    let normal_buffer = device.create_buffer_with_data(normals_bytes, vertex_usage);
+    let index_buffer = device.create_buffer_with_data(indices_bytes, index_usage);
 
     let sphere = make_geodesic_isocahedron(10);
     println!("Number of points on the sphere: {}", sphere.len());
@@ -240,9 +184,9 @@ fn model(app: &App) -> Model {
 
     // Create the uniform buffer.
     let uniforms = create_uniforms(0.0, [win_w, win_h]);
-    let uniform_buffer = device
-        .create_buffer_mapped(1, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
-        .fill_from_slice(&[uniforms]);
+    let uniforms_bytes = uniforms_as_bytes(&uniforms);
+    let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
+    let uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
 
     // Create the render pipeline.
     let bind_group_layout = create_bind_group_layout(device);
@@ -356,17 +300,17 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }))
         .collect();
 
-    let instance_buffer = device
-        .create_buffer_mapped(instances.len(), wgpu::BufferUsage::VERTEX)
-        .fill_from_slice(&instances[..]);
+    let instances_bytes = instances_as_bytes(&instances);
+    let usage = wgpu::BufferUsage::VERTEX;
+    let instance_buffer = device.create_buffer_with_data(instances_bytes, usage);
 
     // Update the uniforms (rotate around the teapot).
     let world_rotation = 0.05f32 * app.time;
     let uniforms = create_uniforms(world_rotation, frame_size);
     let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
-    let new_uniform_buffer = device
-        .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
-        .fill_from_slice(&[uniforms]);
+    let uniforms_bytes = uniforms_as_bytes(&uniforms);
+    let usage = wgpu::BufferUsage::COPY_SRC;
+    let new_uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
 
     let mut encoder = frame.command_encoder();
     encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, &g.uniform_buffer, 0, uniforms_size);
@@ -377,15 +321,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .begin(&mut encoder);
     render_pass.set_bind_group(0, &g.bind_group, &[]);
     render_pass.set_pipeline(&g.render_pipeline);
-    render_pass.set_vertex_buffers(
-        0,
-        &[
-            (&g.vertex_buffer, 0),
-            (&g.normal_buffer, 0),
-            (&instance_buffer, 0),
-        ],
-    );
-    render_pass.set_index_buffer(&g.index_buffer, 0);
+    render_pass.set_vertex_buffer(0, &g.vertex_buffer, 0, 0);
+    render_pass.set_vertex_buffer(1, &g.normal_buffer, 0, 0);
+    render_pass.set_vertex_buffer(2, &instance_buffer, 0, 0);
+    render_pass.set_index_buffer(&g.index_buffer, 0, 0);
     let index_range = 0..data::INDICES.len() as u32;
     let start_vertex = 0;
     let instance_range = 0..instances.len() as u32;
@@ -467,11 +406,39 @@ fn create_render_pipeline(
         .color_format(dst_format)
         .color_blend(wgpu::BlendDescriptor::REPLACE)
         .alpha_blend(wgpu::BlendDescriptor::REPLACE)
-        .add_vertex_buffer::<Vertex>()
-        .add_vertex_buffer::<Normal>()
-        .add_instance_buffer::<Instance>()
+        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float3])
+        .add_vertex_buffer::<Normal>(&wgpu::vertex_attr_array![1 => Float3])
+        .add_instance_buffer::<Instance>(&wgpu::vertex_attr_array![
+            2 => Float4,
+            3 => Float4,
+            4 => Float4,
+            5 => Float4,
+            6 => Float3
+        ])
         .depth_format(depth_format)
         .index_format(wgpu::IndexFormat::Uint16)
         .sample_count(sample_count)
         .build(device)
+}
+
+// See the `nannou::wgpu::bytes` documentation for why the following are necessary.
+
+fn vertices_as_bytes(data: &[Vertex]) -> &[u8] {
+    unsafe { wgpu::bytes::from_slice(data) }
+}
+
+fn normals_as_bytes(data: &[Normal]) -> &[u8] {
+    unsafe { wgpu::bytes::from_slice(data) }
+}
+
+fn indices_as_bytes(data: &[u16]) -> &[u8] {
+    unsafe { wgpu::bytes::from_slice(data) }
+}
+
+fn uniforms_as_bytes(uniforms: &Uniforms) -> &[u8] {
+    unsafe { wgpu::bytes::from(uniforms) }
+}
+
+fn instances_as_bytes(data: &[Instance]) -> &[u8] {
+    unsafe { wgpu::bytes::from_slice(data) }
 }

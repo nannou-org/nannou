@@ -29,7 +29,9 @@ fn model(app: &App) -> Model {
     let fs_path = shader_dir.join("Test-Float.fs");
     let dst_format = Frame::TEXTURE_FORMAT;
     let sample_count = window.msaa_samples();
-    let desc = wgpu::CommandEncoderDescriptor::default();
+    let desc = wgpu::CommandEncoderDescriptor {
+        label: Some("nannou_isf_pipeline_new"),
+    };
     let mut encoder = device.create_command_encoder(&desc);
     let (dst_w, dst_h) = window.inner_size_pixels();
     let isf_pipeline = IsfPipeline::new(
@@ -42,11 +44,7 @@ fn model(app: &App) -> Model {
         sample_count,
         &images_dir,
     );
-    window
-        .swap_chain_queue()
-        .lock()
-        .unwrap()
-        .submit(&[encoder.finish()]);
+    window.swap_chain_queue().submit(&[encoder.finish()]);
 
     let isf_time = Default::default();
 
@@ -64,16 +62,14 @@ fn update(app: &App, model: &mut Model, update: Update) {
     let touched_shaders = model.watch.paths_touched().unwrap();
     let assets = app.assets_path().unwrap();
     let images_dir = assets.join("images");
-    let desc = wgpu::CommandEncoderDescriptor::default();
+    let desc = wgpu::CommandEncoderDescriptor {
+        label: Some("nannou_isf_pipeline_update"),
+    };
     let mut encoder = device.create_command_encoder(&desc);
     model
         .isf_pipeline
         .encode_update(device, &mut encoder, &images_dir, touched_shaders);
-    window
-        .swap_chain_queue()
-        .lock()
-        .unwrap()
-        .submit(&[encoder.finish()]);
+    window.swap_chain_queue().submit(&[encoder.finish()]);
     model.isf_time.time = update.since_start.secs() as _;
     model.isf_time.time_delta = update.since_last.secs() as _;
 }

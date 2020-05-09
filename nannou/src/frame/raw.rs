@@ -46,7 +46,9 @@ impl<'swap_chain> RawFrame<'swap_chain> {
         texture_format: wgpu::TextureFormat,
         window_rect: geom::Rect,
     ) -> Self {
-        let ce_desc = wgpu::CommandEncoderDescriptor::default();
+        let ce_desc = wgpu::CommandEncoderDescriptor {
+            label: Some("nannou_raw_frame"),
+        };
         let command_encoder = device_queue_pair.device().create_command_encoder(&ce_desc);
         let command_encoder = Some(RefCell::new(command_encoder));
         let frame = RawFrame {
@@ -70,11 +72,7 @@ impl<'swap_chain> RawFrame<'swap_chain> {
             .expect("the command encoder should always be `Some` at the time of submission")
             .into_inner();
         let command_buffer = command_encoder.finish();
-        let mut queue = self
-            .device_queue_pair
-            .queue()
-            .lock()
-            .expect("failed to lock the queue");
+        let queue = self.device_queue_pair.queue();
         queue.submit(&[command_buffer]);
     }
 
