@@ -1,7 +1,7 @@
 use nannou::image;
 use nannou::prelude::*;
 use nannou::wgpu::BufferInitDescriptor;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use thiserror::Error;
@@ -10,7 +10,7 @@ use threadpool::ThreadPool;
 /// A render pipeline designed for hotloading!
 pub struct IsfPipeline {
     isf: Option<isf::Isf>,
-    pub isf_data: IsfData,
+    isf_data: IsfData,
     isf_err: Option<IsfError>,
     image_loader: ImageLoader,
     vs: Shader,
@@ -63,8 +63,8 @@ pub struct IsfTime {
 /// `imported` textures can be accessed by the user.
 #[derive(Debug, Default)]
 pub struct IsfData {
-    imported: HashMap<ImportName, ImageState>,
-    inputs: HashMap<InputName, IsfInputData>,
+    imported: BTreeMap<ImportName, ImageState>,
+    inputs: BTreeMap<InputName, IsfInputData>,
     passes: Vec<wgpu::Texture>,
 }
 
@@ -106,14 +106,6 @@ pub enum IsfInputData {
         texture: wgpu::Texture,
     },
 }
-
-type IsfInputUniforms = [u32; 128];
-
-// #[derive(Clone, Debug)]
-// struct IsfInputUniforms {
-//     // Each supported uniform field type is 32-bit long, so store them as such.
-//     fields: Vec<u32>,
-// }
 
 /// A shader with some extra information relating to recent compilation success/failure.
 #[derive(Debug)]
@@ -192,16 +184,16 @@ pub enum ShaderError {
 
 const VERTICES: [Vertex; 4] = [
     Vertex {
-        position: [-1.0, -1.0],
-    },
-    Vertex {
         position: [-1.0, 1.0],
     },
     Vertex {
-        position: [1.0, -1.0],
+        position: [-1.0, -1.0],
     },
     Vertex {
         position: [1.0, 1.0],
+    },
+    Vertex {
+        position: [1.0, -1.0],
     },
 ];
 
@@ -263,12 +255,12 @@ impl ImageState {
 
 impl IsfData {
     /// The map of imported images.
-    pub fn imported(&self) -> &HashMap<ImportName, ImageState> {
+    pub fn imported(&self) -> &BTreeMap<ImportName, ImageState> {
         &self.imported
     }
 
     /// The map of all declared inputs.
-    pub fn inputs(&self) -> &HashMap<InputName, IsfInputData> {
+    pub fn inputs(&self) -> &BTreeMap<InputName, IsfInputData> {
         &self.inputs
     }
 
@@ -318,7 +310,7 @@ impl IsfInputData {
             // `assets/images/`?  For now we'll black images.
             isf::InputType::Image => {
                 let mut image_state = ImageState::None;
-                if let Some(img_path) = image_paths(images_path).next() {
+                if let Some(img_path) = image_paths_ordered(images_path).into_iter().next() {
                     image_state.update(device, encoder, image_loader, img_path);
                 }
                 IsfInputData::Image(image_state)
@@ -382,7 +374,7 @@ impl IsfInputData {
             (IsfInputData::Point2d(_), isf::InputType::Point2d(_)) => {}
             (IsfInputData::Color(_), isf::InputType::Color(_)) => {}
             (IsfInputData::Image(ref mut state), isf::InputType::Image) => {
-                if let Some(img_path) = image_paths(images_path).next() {
+                if let Some(img_path) = image_paths_ordered(images_path).into_iter().next() {
                     state.update(device, encoder, image_loader, img_path);
                 }
             }
@@ -500,9 +492,6 @@ impl IsfPipeline {
         };
         let fs = Shader::fragment_from_path(device, fs_path);
 
-        dbg!(&vs);
-        dbg!(&fs);
-
         // Create a threadpool for loading images.
         let threadpool = ThreadPool::default();
         let image_loader = ImageLoader { threadpool };
@@ -521,7 +510,7 @@ impl IsfPipeline {
             );
         }
 
-        // Prepare the uniform buffers.
+        // Prepare the uniform data.
         let [dst_tex_w, dst_tex_h] = dst_texture_size;
         let isf_uniforms = IsfUniforms {
             pass_index: 0,
@@ -531,9 +520,13 @@ impl IsfPipeline {
             date: [0.0; 4],
             frame_index: 0,
         };
+        let isf_input_uniforms = isf_inputs_to_uniform_data(&isf_data.inputs);
+
+        // Convert uniform data to bytes for upload.
         let isf_uniforms_bytes = isf_uniforms_as_bytes(&isf_uniforms);
-        let isf_input_uniforms: IsfInputUniforms = [0u32; 128];
         let isf_input_uniforms_bytes = isf_input_uniforms_as_bytes(&isf_input_uniforms);
+
+        // Create the uniform buffers.
         let uniforms_usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
         let isf_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: None,
@@ -566,7 +559,7 @@ impl IsfPipeline {
             .buffer::<IsfUniforms>(&isf_uniform_buffer, 0..1)
             .build(device, &isf_bind_group_layout);
         let isf_inputs_bind_group = wgpu::BindGroupBuilder::new()
-            .buffer::<IsfInputUniforms>(&isf_inputs_uniform_buffer, 0..1)
+            .buffer::<u32>(&isf_inputs_uniform_buffer, 0..isf_input_uniforms.len())
             .build(device, &isf_inputs_bind_group_layout);
         let isf_textures_bind_group = create_isf_textures_bind_group(
             device,
@@ -629,6 +622,13 @@ impl IsfPipeline {
             dst_texture_size,
             dst_sample_count,
         }
+    }
+
+    /// Data loaded after successfully parsing the ISF descriptor.
+    ///
+    /// Provides access to the resources loaded for textures, inputs and passes.
+    pub fn isf_data(&self) -> &IsfData {
+        &self.isf_data
     }
 
     /// Update the ISF pipeline.
@@ -785,10 +785,22 @@ impl IsfPipeline {
             let size = isf_uniforms_bytes.len() as wgpu::BufferAddress;
             encoder.copy_buffer_to_buffer(&new_buffer, 0, &self.isf_uniform_buffer, 0, size);
 
-            // TODO: Update the inputs.
-            let _ = &self.isf_inputs_uniform_buffer;
-            //let size = std::mem::size_of::<IsfInputUniforms>() as wgpu::BufferAddress;
-            //encoder.copy_buffer_to_buffer(&new_buffer, 0, &self.isf_inputs_uniform_buffer, 0, size);
+            // TODO: Update the inputs, but only if changed.
+            let isf_inputs_changed = false;
+            if isf_inputs_changed {
+                let isf_input_uniforms = isf_inputs_to_uniform_data(&self.isf_data.inputs);
+                let isf_input_uniforms_bytes = isf_input_uniforms_as_bytes(&isf_input_uniforms);
+                let usage = wgpu::BufferUsage::COPY_SRC;
+                let new_buffer = device.create_buffer_with_data(&isf_input_uniforms_bytes, usage);
+                let size = isf_input_uniforms_bytes.len() as wgpu::BufferAddress;
+                encoder.copy_buffer_to_buffer(
+                    &new_buffer,
+                    0,
+                    &self.isf_inputs_uniform_buffer,
+                    0,
+                    size,
+                );
+            }
 
             // Encode the render pass.
             let mut render_pass = wgpu::RenderPassBuilder::new()
@@ -812,6 +824,14 @@ impl IsfPipeline {
         let device = frame.device_queue_pair().device();
         let mut encoder = frame.command_encoder();
         self.encode_render_pass(device, &mut *encoder, frame.texture_view(), isf_time);
+    }
+
+    /// Returns the current ISF read error for the fragment shader if there is one.
+    ///
+    /// Returns `Some` if an error occurred when parsing the ISF from the fragment shader the last
+    /// time the fragment shader file was touched.
+    pub fn isf_err(&self) -> Option<&IsfError> {
+        self.isf_err.as_ref()
     }
 
     /// Returns the current compilation error for the vertex shader if there is one.
@@ -940,9 +960,7 @@ fn sync_isf_data(
     isf_data: &mut IsfData,
 ) {
     // Update imported images. first.
-    isf_data
-        .imported
-        .retain(|name, _| isf.imported.contains_key(name));
+    btreemap_retain(&mut isf_data.imported, |k, _| isf.imported.contains_key(k));
     for (key, img) in &isf.imported {
         let state = isf_data
             .imported
@@ -952,9 +970,9 @@ fn sync_isf_data(
     }
 
     // First, check all imported textures are loading.
-    isf_data
-        .inputs
-        .retain(|key, _| isf.inputs.iter().map(|i| &i.name).any(|n| n == key));
+    btreemap_retain(&mut isf_data.inputs, |k, _| {
+        isf.inputs.iter().map(|i| &i.name).any(|n| n == k)
+    });
     for input in &isf.inputs {
         let input_data = isf_data
             .inputs
@@ -976,6 +994,41 @@ fn sync_isf_data(
         texture.upload_data(device, encoder, &data);
         texture
     });
+}
+
+// Encodes the ISF inputs to a slice of `u32` values, ready for uploading to the GPU.
+fn isf_inputs_to_uniform_data(inputs: &BTreeMap<InputName, IsfInputData>) -> Vec<u32> {
+    let mut u32s: Vec<u32> = vec![];
+    for v in inputs.values() {
+        match *v {
+            IsfInputData::Event { happening } => {
+                u32s.push(if happening { 1 } else { 0 });
+            }
+            IsfInputData::Bool(b) => {
+                u32s.push(if b { 1 } else { 0 });
+            }
+            IsfInputData::Long(l) => {
+                u32s.push(unsafe { std::mem::transmute(l) });
+            }
+            IsfInputData::Float(f) => {
+                u32s.push(f.to_bits());
+            }
+            IsfInputData::Point2d(Point2 { x, y }) => {
+                u32s.push(x.to_bits());
+                u32s.push(y.to_bits());
+            }
+            IsfInputData::Color(ref color) => {
+                u32s.push(color.red.to_bits());
+                u32s.push(color.green.to_bits());
+                u32s.push(color.blue.to_bits());
+                u32s.push(color.alpha.to_bits());
+            }
+            IsfInputData::Image(_) | IsfInputData::Audio { .. } | IsfInputData::AudioFft { .. } => {
+                ()
+            }
+        }
+    }
+    u32s
 }
 
 fn create_black_texture(
@@ -1011,6 +1064,25 @@ fn image_paths(dir: &Path) -> impl Iterator<Item = PathBuf> {
         .filter_map(|res| res.ok())
         .map(|entry| entry.path().to_path_buf())
         .filter(|path| image::image_dimensions(path).ok().is_some())
+}
+
+fn image_paths_ordered(dir: &Path) -> Vec<PathBuf> {
+    let mut paths: Vec<_> = image_paths(dir).collect();
+    paths.sort();
+    paths
+}
+
+fn btreemap_retain<K, V, F>(map: &mut BTreeMap<K, V>, mut pred: F)
+where
+    K: Ord,
+    F: FnMut(&mut K, &mut V) -> bool,
+{
+    let temp = std::mem::replace(map, Default::default());
+    for (mut k, mut v) in temp {
+        if pred(&mut k, &mut v) {
+            map.insert(k, v);
+        }
+    }
 }
 
 // Conversions to bytes for GPU buffer uploads.
