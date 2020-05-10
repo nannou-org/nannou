@@ -15,12 +15,14 @@ struct Model {
     position: Point2,
 }
 
-struct Ids {
-    resolution: widget::Id,
-    scale: widget::Id,
-    rotation: widget::Id,
-    random_color: widget::Id,
-    position: widget::Id,
+widget_ids! {
+    struct Ids {
+        resolution,
+        scale,
+        rotation,
+        random_color,
+        position,
+    }
 }
 
 fn model(app: &App) -> Model {
@@ -31,13 +33,7 @@ fn model(app: &App) -> Model {
     let mut ui = app.new_ui().build().unwrap();
 
     // Generate some ids for our widgets.
-    let ids = Ids {
-        resolution: ui.generate_widget_id(),
-        scale: ui.generate_widget_id(),
-        rotation: ui.generate_widget_id(),
-        random_color: ui.generate_widget_id(),
-        position: ui.generate_widget_id(),
-    };
+    let ids = Ids::new(ui.widget_id_generator());
 
     // Init our variables
     let resolution = 6;

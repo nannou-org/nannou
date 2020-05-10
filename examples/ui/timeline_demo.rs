@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate conrod_core;
-
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
 use nannou_timeline as timeline;
@@ -42,7 +39,7 @@ struct TimelineData {
 }
 
 // Create all of our unique `WidgetId`s with the `widget_ids!` macro.
-conrod_core::widget_ids! {
+widget_ids! {
     struct Ids {
         window,
         ruler,
