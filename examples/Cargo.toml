@@ -15,7 +15,6 @@ edition = "2018"
 
 [dev-dependencies]
 audrey = "0.2"
-conrod_core = "0.70"
 futures = "0.3"
 hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
 nannou = { version ="0.14.1", path = "../nannou" }

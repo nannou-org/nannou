@@ -5,6 +5,7 @@
 pub use self::conrod_core::event::Input;
 pub use self::conrod_core::{
     color, cursor, event, graph, image, input, position, scroll, text, theme, utils, widget,
+    widget_ids,
 };
 pub use self::conrod_core::{
     Borderable, Bordering, Color, Colorable, Dimensions, FontSize, Labelable, Point, Positionable,
@@ -23,7 +24,7 @@ pub mod prelude {
         Bordering, Dimensions, FontSize, Input, Point, Range, Rect, Scalar, Theme, Ui, UiCell,
     };
     // Modules.
-    pub use super::{color, image, position, text, widget};
+    pub use super::{color, image, position, text, widget, widget_ids};
 }
 
 use self::conrod_core::text::rt::gpu_cache::CacheWriteErr;
