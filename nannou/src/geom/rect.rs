@@ -286,7 +286,7 @@ where
         [self.x(), self.bottom()].into()
     }
 
-    /// The edges of the **Rect** in a tuple (top, bottom, left, right).
+    /// The edges of the **Rect** in a tuple (left, right, bottom, top).
     pub fn l_r_b_t(&self) -> (S, S, S, S) {
         (self.left(), self.right(), self.bottom(), self.top())
     }
