@@ -127,4 +127,4 @@ If you find the desire to respond to other kinds of events, interact with other
 kinds of input/output, track some state, or need more flexibility in general,
 you might be interested in creating a [nannou app](./anatomy-of-a-nannou-app.md)
 instead! You can also learn more about the difference between sketches and apps
-[here](http://localhost:3000/tutorials/basics/sketch-vs-app.html).
+[here](./sketch-vs-app.md).
