@@ -73,11 +73,23 @@ changelog entry
 
 ---
 
-# Version 0.14.1 (2020-05-06)
+### `nannou_laser` 0.14.2 (2020-05-15)
+
+- Update `lasy` to 0.4. Adds better support for points and improved euler
+  circuit interpolation.
+
+---
+
+### `nannou_laser` 0.14.1 (2020-05-06)
+
+- Add `ilda-idtf` feature to `nannou_laser`.
+
+---
+
+### `nannou` 0.14.1 (2020-05-06)
 
 - Fix bug where `draw::Renderer` was initialised with an incorrect scale factor.
 - Fix `Vector::angle_between` implementation.
-- Add `ilda-idtf` feature to `nannou_laser`.
 
 ---
 
