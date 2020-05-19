@@ -73,6 +73,12 @@ changelog entry
 
 ---
 
+### `nannou_laser` 0.14.3 (2020-05-19)
+
+- Add support for enabling/disabling draw path reordering.
+
+---
+
 ### `nannou_laser` 0.14.2 (2020-05-15)
 
 - Update `lasy` to 0.4. Adds better support for points and improved euler

@@ -10,6 +10,9 @@ pub const DEFAULT_FRAME_HZ: u32 = 60;
 /// Enable optimisations by default.
 pub const DEFAULT_ENABLE_OPTIMISATIONS: bool = true;
 
+/// Enable draw path reordering by default.
+pub const DEFAULT_ENABLE_DRAW_REORDER: bool = true;
+
 /// Builder parameters shared between the `raw` and `frame` signals.
 #[derive(Clone, Debug, Default)]
 pub struct Builder {

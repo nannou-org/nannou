@@ -179,6 +179,18 @@ pub struct FrameStreamConfig {
     ///
     /// Returns `true` on success or `false` if the communication channel was closed.
     pub enable_optimisations: bool,
+    /// Enable or disable draw path reordering.
+    ///
+    /// When `true`, the optimisation pass will attempt to find a more optimal path for the drawing
+    /// of each line segment before performing interpolation. This is achieved by constructing a
+    /// euler graph with the minimum number of blanks required to complete the path, and then
+    /// finding a euler circuit through the path that minimises the number of sharp angles.
+    ///
+    /// When `false`, the draw order will follow the order in which segments were submitted via the
+    /// `Frame`.
+    ///
+    /// By default, this value is `true`.
+    pub enable_draw_reorder: bool,
     /// Configuration options for eulerian circuit interpolation.
     pub interpolation_conf: lasy::InterpolationConfig,
 }
@@ -326,11 +338,13 @@ pub unsafe extern "C" fn frame_stream_config_default(conf: *mut FrameStreamConfi
     let frame_hz = crate::stream::DEFAULT_FRAME_HZ;
     let interpolation_conf = lasy::InterpolationConfig::default();
     let enable_optimisations = crate::stream::DEFAULT_ENABLE_OPTIMISATIONS;
+    let enable_draw_reorder = crate::stream::DEFAULT_ENABLE_DRAW_REORDER;
     *conf = FrameStreamConfig {
         stream_conf,
         frame_hz,
         interpolation_conf,
         enable_optimisations,
+        enable_draw_reorder,
     };
 }
 
@@ -414,6 +428,7 @@ pub unsafe extern "C" fn new_frame_stream(
         .tcp_timeout(tcp_timeout)
         .frame_hz((*config).frame_hz as _)
         .enable_optimisations((*config).enable_optimisations as _)
+        .enable_draw_reorder((*config).enable_draw_reorder as _)
         .process_raw(process_raw_fn)
         .stream_error(stream_error_fn);
 
@@ -519,6 +534,26 @@ pub unsafe extern "C" fn frame_stream_enable_optimisations(
 ) -> bool {
     let stream: &FrameStream = &*stream;
     (*stream.inner).0.enable_optimisations(enable).is_ok()
+}
+
+/// Enable or disable draw path reordering.
+///
+/// When `true`, the optimisation pass will attempt to find a more optimal path for the drawing
+/// of each line segment before performing interpolation. This is achieved by constructing a
+/// euler graph with the minimum number of blanks required to complete the path, and then
+/// finding a euler circuit through the path that minimises the number of sharp angles.
+///
+/// When `false`, the draw order will follow the order in which segments were submitted via the
+/// `Frame`.
+///
+/// By default, this value is `true`.
+#[no_mangle]
+pub unsafe extern "C" fn frame_stream_enable_draw_reorder(
+    stream: *const FrameStream,
+    enable: bool,
+) -> bool {
+    let stream: &FrameStream = &*stream;
+    (*stream.inner).0.enable_draw_reorder(enable).is_ok()
 }
 
 /// Update the rate at which the DAC should process points per second.

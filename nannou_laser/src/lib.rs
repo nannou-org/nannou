@@ -88,6 +88,7 @@ impl Api {
         let frame_hz = None;
         let interpolation_conf = Default::default();
         let enable_optimisations = stream::DEFAULT_ENABLE_OPTIMISATIONS;
+        let enable_draw_reorder = stream::DEFAULT_ENABLE_DRAW_REORDER;
         let process_raw = stream::frame::default_process_raw_fn;
         let stream_error = stream::raw::default_stream_error_fn;
         stream::frame::Builder {
@@ -100,6 +101,7 @@ impl Api {
             frame_hz,
             interpolation_conf,
             enable_optimisations,
+            enable_draw_reorder,
         }
     }
 

@@ -26,6 +26,7 @@ struct State {
     frame_hz: u32,
     interpolation_conf: lasy::InterpolationConfig,
     enable_optimisations: bool,
+    enable_draw_reorder: bool,
 }
 
 // Updates for the interpolation config sent from the stream handle to the laser thread.
@@ -65,6 +66,7 @@ pub struct Builder<M, F, R = DefaultProcessRawFn<M>, E = raw::DefaultStreamError
     pub frame_hz: Option<u32>,
     pub interpolation_conf: lasy::InterpolationConfig,
     pub enable_optimisations: bool,
+    pub enable_draw_reorder: bool,
 }
 
 impl<M> Stream<M> {
@@ -111,6 +113,20 @@ impl<M> Stream<M> {
     /// Update whether or not frame optimisations and interpolation should be enabled.
     pub fn enable_optimisations(&self, enabled: bool) -> Result<(), mpsc::SendError<()>> {
         self.send_frame_state_update(move |state| state.enable_optimisations = enabled)
+            .map_err(|_| mpsc::SendError(()))
+    }
+
+    /// Update whether or not draw path reordering is enabled.
+    ///
+    /// When `true`, the optimisation pass will attempt to find a more optimal path for the drawing
+    /// of each line segment before performing interpolation.
+    ///
+    /// When `false`, the draw order will follow the order in which segments were submitted via the
+    /// `Frame`.
+    ///
+    /// By default, this value is `true`.
+    pub fn enable_draw_reorder(&self, enabled: bool) -> Result<(), mpsc::SendError<()>> {
+        self.send_frame_state_update(move |state| state.enable_draw_reorder = enabled)
             .map_err(|_| mpsc::SendError(()))
     }
 
@@ -233,6 +249,21 @@ impl<M, F, R, E> Builder<M, F, R, E> {
         self
     }
 
+    /// Whether or not draw path reordering is enabled.
+    ///
+    /// When `true`, the optimisation pass will attempt to find a more optimal path for the drawing
+    /// of each line segment before performing interpolation. This is only applied if
+    /// `enable_optimisations` is also `true`.
+    ///
+    /// When `false`, the draw order will follow the order in which segments were submitted via the
+    /// `Frame`.
+    ///
+    /// By default, this value is `true`.
+    pub fn enable_draw_reorder(mut self, enable: bool) -> Self {
+        self.enable_draw_reorder = enable;
+        self
+    }
+
     /// Specify a function that allows for processing the raw points before submission to the DAC.
     ///
     /// This might be useful for:
@@ -253,6 +284,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
             frame_hz,
             interpolation_conf,
             enable_optimisations,
+            enable_draw_reorder,
             ..
         } = self;
         Builder {
@@ -265,6 +297,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
             frame_hz,
             interpolation_conf,
             enable_optimisations,
+            enable_draw_reorder,
         }
     }
 
@@ -281,6 +314,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
             frame_hz,
             interpolation_conf,
             enable_optimisations,
+            enable_draw_reorder,
             ..
         } = self;
         Builder {
@@ -293,6 +327,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
             frame_hz,
             interpolation_conf,
             enable_optimisations,
+            enable_draw_reorder,
         }
     }
 
@@ -317,6 +352,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
             frame_hz,
             interpolation_conf,
             enable_optimisations,
+            enable_draw_reorder,
         } = self;
 
         // Retrieve the frame rate to initialise the stream with.
@@ -339,6 +375,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
             frame_hz,
             interpolation_conf,
             enable_optimisations,
+            enable_draw_reorder,
         }));
 
         // A render function for the inner raw stream.
@@ -512,16 +549,20 @@ impl Requester {
 
                 // Otherwise, we'll optimise and interpolate the given points.
                 } else {
-                    // Optimisation passes.
-                    let segs = lasy::points_to_segments(frame.iter().cloned());
-                    let pg = lasy::segments_to_point_graph(&frame, segs);
-                    let eg = lasy::point_graph_to_euler_graph(&pg);
-                    let ec = lasy::euler_graph_to_euler_circuit(&frame, &eg);
+                    // Apply draw path reordering if enabled.
+                    let segs: Vec<lasy::Segment> = if state.enable_draw_reorder {
+                        let segs = lasy::points_to_segments(frame.iter().cloned());
+                        let pg = lasy::segments_to_point_graph(&frame, segs);
+                        let eg = lasy::point_graph_to_euler_graph(&pg);
+                        let ec = lasy::euler_graph_to_euler_circuit(&frame, &eg);
+                        lasy::euler_circuit_to_segments(&ec, &eg).collect()
+                    } else {
+                        lasy::points_to_segments(frame.iter().cloned()).collect()
+                    };
 
                     // Blank from last point of the previous frame to first point of this one.
                     let last_frame_point = self.last_frame_point.take();
-                    let next_frame_first =
-                        eg.node_indices().next().map(|ix| frame[eg[ix] as usize]);
+                    let next_frame_first = segs.first().map(|seg| frame[seg.start as usize]);
 
                     // Retrieve the points necessary for blanking from the prev frame to the next.
                     inter_frame_blank_points(
@@ -541,12 +582,13 @@ impl Requester {
 
                     // Join the inter-frame points with the interpolated frame.
                     let interp_conf = &state.interpolation_conf;
-                    let mut interpolated = lasy::interpolate_euler_circuit(
+                    let mut interpolated = vec![];
+                    lasy::interpolate_path(
                         &frame,
-                        &ec,
-                        &eg,
+                        segs,
                         target_points,
                         interp_conf,
+                        &mut interpolated,
                     );
 
                     // If the interpolated frame is empty there were no lit points or lines.
