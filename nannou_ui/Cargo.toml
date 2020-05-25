@@ -1,0 +1,10 @@
+[package]
+name = "nannou_ui"
+version = "0.1.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+nannou = { version = "0.15.0", path = "../nannou" }
+daggy = { version = "0.7", features = ["stable_dag"] }
+typetag = "0.1"
