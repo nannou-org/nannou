@@ -76,7 +76,7 @@ pub struct Renderer {
     vs_mod: wgpu::ShaderModule,
     fs_mod: wgpu::ShaderModule,
     // One pipeline per unique Pipeline ID (combination of blend, topology and component type).
-    pipelines: HashMap<PipelineId, Pipeline>,
+    pipelines: HashMap<PipelineId, wgpu::RenderPipeline>,
     glyph_cache_texture: wgpu::Texture,
     depth_texture: wgpu::Texture,
     depth_texture_view: wgpu::TextureView,
@@ -87,6 +87,7 @@ pub struct Renderer {
     text_bind_group_layout: wgpu::BindGroupLayout,
     text_bind_group: wgpu::BindGroup,
     texture_samplers: HashMap<SamplerId, wgpu::Sampler>,
+    texture_bind_group_layouts: HashMap<wgpu::TextureComponentType, wgpu::BindGroupLayout>,
     texture_bind_groups: HashMap<BindGroupId, wgpu::BindGroup>,
     output_color_format: wgpu::TextureFormat,
     sample_count: u32,
@@ -95,12 +96,6 @@ pub struct Renderer {
     mesh: draw::Mesh,
     vertex_mode_buffer: Vec<VertexMode>,
     uniform_buffer: wgpu::Buffer,
-}
-
-#[derive(Debug)]
-struct Pipeline {
-    bind_group_layout: wgpu::BindGroupLayout,
-    pipeline: wgpu::RenderPipeline,
 }
 
 /// A type aimed at simplifying construction of a `draw::Renderer`.
@@ -440,6 +435,7 @@ impl Renderer {
         let texture_sampler = device.create_sampler(&sampler_desc);
 
         // Bind group per user-uploaded texture.
+        let texture_bind_group_layouts = Default::default();
         let texture_bind_groups = Default::default();
 
         // Pipeline per unique pipelin ID.
@@ -464,6 +460,7 @@ impl Renderer {
             text_bind_group_layout,
             text_bind_group,
             texture_samplers,
+            texture_bind_group_layouts,
             texture_bind_groups,
             pipelines,
             output_color_format,
@@ -599,8 +596,8 @@ impl Renderer {
                     let texture_component_type = tex_view.component_type();
                     new_tex_views.insert(tex_view_id, tex_view);
 
-                    // Determine the new current scissor, pipeline ID and bind group ID required
-                    // for drawing this primitive.
+                    // Determine the new current bind group layout ID, pipeline ID, bind group ID
+                    // and scissor required for drawing this primitive.
                     let new_pipeline_id = {
                         let color_id = blend_descriptor_hash(&curr_ctxt.color_blend);
                         let alpha_id = blend_descriptor_hash(&curr_ctxt.alpha_blend);
@@ -698,9 +695,13 @@ impl Renderer {
         new_pipeline_ids.retain(|id, _| !self.pipelines.contains_key(id));
         // Create new render pipelines as necessary.
         for (new_id, (color_blend, alpha_blend)) in new_pipeline_ids {
-            let bind_group_layout =
-                create_texture_bind_group_layout(device, new_id.texture_component_type);
-            let pipeline = create_render_pipeline(
+            let bind_group_layout = self
+                .texture_bind_group_layouts
+                .entry(new_id.texture_component_type)
+                .or_insert_with(|| {
+                    create_texture_bind_group_layout(device, new_id.texture_component_type)
+                });
+            let new_pipeline = create_render_pipeline(
                 device,
                 &self.uniform_bind_group_layout,
                 &self.text_bind_group_layout,
@@ -714,10 +715,6 @@ impl Renderer {
                 alpha_blend,
                 new_id.topology,
             );
-            let new_pipeline = Pipeline {
-                bind_group_layout,
-                pipeline,
-            };
             self.pipelines.insert(new_id, new_pipeline);
         }
 
@@ -740,7 +737,8 @@ impl Renderer {
             // Retrieve the texture view.
             let texture_view = &new_tex_views[&new_tex_view_id];
             // Retrieve the associated bind group layout.
-            let bind_group_layout = &self.pipelines[&pipeline_id].bind_group_layout;
+            let bind_group_layout =
+                &self.texture_bind_group_layouts[&pipeline_id.texture_component_type];
             // Create the bind group.
             let bind_group =
                 create_texture_bind_group(device, bind_group_layout, sampler, texture_view);
@@ -864,7 +862,7 @@ impl Renderer {
         for cmd in render_commands.drain(..) {
             match cmd {
                 RenderCommand::SetPipeline(id) => {
-                    let pipeline = &pipelines[&id].pipeline;
+                    let pipeline = &pipelines[&id];
                     render_pass.set_pipeline(pipeline);
                 }
 
