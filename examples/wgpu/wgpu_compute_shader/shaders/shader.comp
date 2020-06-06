@@ -1,0 +1,24 @@
+// NOTE: This shader requires being manually compiled to SPIR-V in order to
+// avoid having downstream users require building shaderc and compiling the
+// shader themselves. If you update this shader, be sure to also re-compile it
+// and update `comp.spv`. You can do so using `glslangValidator` with the
+// following command: `glslangValidator -V shader.comp`
+
+#version 450
+
+layout(local_size_x = 1) in;
+
+layout(set = 0, binding = 0) buffer Buffer {
+    float[] data;
+};
+layout(set = 0, binding = 1) uniform Uniforms {
+    float time;
+    float freq;
+    uint oscillator_count;
+};
+
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+    float phase = time + float(index) * freq / float(oscillator_count);
+    data[index] = sin(phase) * 0.5 + 0.5;
+}

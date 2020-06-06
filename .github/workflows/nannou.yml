@@ -1,0 +1,210 @@
+name: nannou
+on: [push, pull_request]
+jobs:
+  rustfmt-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+        components: rustfmt
+    - name: Run rustfmt
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all -- --check
+
+  cargo-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install alsa dev tools
+      run: sudo apt-get install libasound2-dev
+    - name: Install libxcb dev tools
+      run: sudo apt-get install libxcb-composite0-dev
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Run default features
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --lib --bins --verbose
+    - name: Test docs
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --doc --verbose
+
+  cargo-test-all-features:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install alsa dev tools
+      run: sudo apt-get install libasound2-dev
+    - name: Install libxcb dev tools
+      run: sudo apt-get install libxcb-composite0-dev
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Run all features
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --lib --bins --all-features --verbose
+    - name: Test docs all features
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --doc --all-features --verbose
+
+  cargo-check-examples:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install alsa dev tools
+      run: sudo apt-get install libasound2-dev
+    - name: Install libxcb dev tools
+      run: sudo apt-get install libxcb-composite0-dev
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Run check
+      uses: actions-rs/cargo@v1
+      with:
+        command: check
+        args: --examples --verbose
+
+  cargo-publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    env:
+      CRATESIO_TOKEN: ${{ secrets.CRATESIO_TOKEN }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install alsa dev tools
+      run: sudo apt-get install libasound2-dev
+    - name: Install libxcb dev tools
+      run: sudo apt-get install libxcb-composite0-dev
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Cargo publish nannou
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou/Cargo.toml
+    - name: Cargo publish nannou_audio
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_audio/Cargo.toml
+    # TODO: Add this once `nannou_isf` is ready.
+    # - name: Cargo publish nannou_isf
+    #   continue-on-error: true
+    #   run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_isf/Cargo.toml
+    - name: Cargo publish nannou_laser
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_laser/Cargo.toml
+    - name: Cargo publish nannou_osc
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_osc/Cargo.toml
+    - name: Cargo publish nannou_timeline
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_timeline/Cargo.toml
+
+  guide-build-book:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Install mdbook
+      uses: actions-rs/cargo@v1
+      with:
+        command: install
+        args: mdbook
+    - name: Build book
+      run: mdbook build guide/
+
+  guide-test-code:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install alsa dev tools
+      run: sudo apt-get install libasound2-dev
+    - name: Install libxcb dev tools
+      run: sudo apt-get install libxcb-composite0-dev
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Run guide tests
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: -p book_tests --verbose
+
+  guide-push-to-deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install rust stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Install mdbook
+      uses: actions-rs/cargo@v1
+      with:
+        command: install
+        args: mdbook
+    - name: Build book
+      run: mdbook build guide/
+    - name: Commit book to deploy branch
+      run: |
+        git config user.email "action@github.com"
+        git config user.name "GitHub Action"
+        git remote add nannou-org https://${{ secrets.DEPLOY_GUIDE_TOKEN }}@github.com/${{ github.repository }}.git
+        git fetch nannou-org &&
+        git config credential.helper "store --file=.git/credentials" &&
+        echo "https://${{ secrets.DEPLOY_GUIDE_TOKEN }}:@github.com" > .git/credentials &&
+        git checkout deploy &&
+        cp -r guide/book/* . &&
+        git add -A . &&
+        git commit -m "Automated commit in preparation for deployment: $GITHUB_RUN_NUMBER" || true
+    - name: Push changes to deploy branch
+      run: |
+        git push --force --quiet nannou-org deploy &>/dev/null

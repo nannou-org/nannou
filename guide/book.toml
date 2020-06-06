@@ -1,0 +1,6 @@
+[book]
+title = "The Nannou Guide"
+authors = ["mitchmindtree", "JoshuaBatty", "freesig"]
+src = "src"
+description = "A one-stop shop for Nannou Knowledge!"
+multilingual = false
