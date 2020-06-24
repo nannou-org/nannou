@@ -5,12 +5,19 @@
         <meta charset="UTF-8">
         <title>OSC - Sending OSC - The Nannou Guide</title>
         
+        
+
+
+        <!-- Custom HTML head -->
+        
+
 
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
+        <link rel="icon" href="../../favicon.svg">
         <link rel="shortcut icon" href="../../favicon.png">
         <link rel="stylesheet" href="../../css/variables.css">
         <link rel="stylesheet" href="../../css/general.css">
@@ -19,8 +26,9 @@
 
         <!-- Fonts -->
         <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
-        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
-        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
 
         <!-- Highlight.js Stylesheets -->
         <link rel="stylesheet" href="../../highlight.css">
@@ -36,7 +44,7 @@
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -166,13 +174,13 @@
 <p>We are going to write a simple program which has a circle moving about on the screen while the circle's position is sent via OSC to another application. We will continue working on the app from <a href="/tutorials/basics/moving-a-circle-about.html">Moving a circle about on the screen</a>.</p>
 <h2><a class="header" href="#setting-up-an-osc-sender" id="setting-up-an-osc-sender">Setting up an OSC sender</a></h2>
 <p>At the top of your <code>main.rs</code>-file, import the <code>nannou_osc</code> crate and make it available in your program via the shorthand <code>osc</code>.</p>
-<pre><pre class="playpen"><code class="language-rust norun"><span class="boring">#![allow(unused_imports)]
+<pre><pre class="playground"><code class="language-rust norun"><span class="boring">#![allow(unused_imports)]
 </span>use nannou_osc as osc;
 <span class="boring">fn main(){}
 </span></code></pre></pre>
 <p>The first thing we then need to do is set up our OSC-sender in the <code>Model</code>-struct you may have seen in other nannou-tutorials.
 Add a field to the struct called <code>sender</code> with a <a href="https://docs.rs/nannou_osc/latest/nannou_osc/send/struct.Sender.html">Sender</a>-struct as the type input.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_imports)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_imports)]
 </span><span class="boring">use nannou_osc as osc;
 </span>struct Model {
     sender: osc::Sender&lt;osc::Connected&gt;,
@@ -180,7 +188,7 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 <span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Next, we need to setup our <code>Model</code> struct using the <code>model</code> function. Don't worry if it looks a bit daunting at first, we will go through it step by step.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_imports)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_imports)]
 </span><span class="boring">use nannou_osc as osc;
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {
@@ -200,21 +208,21 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 <span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>First, let's choose the network port that our data will be sent to.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
 </span>let port = 1234;
 <span class="boring">}
 </span></code></pre></pre>
 <p>The osc-sender expects a string in the format &quot;address:port&quot;, for example <code>&quot;127.0.0.1:1234&quot;</code>.</p>
 <p>The address can either be an internal address or the address of another computer on your network. In this tutorial we will be targetting our own computer's internal address which is represented by <code>&quot;127.0.0.1&quot;</code>.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let port = 1234;
 </span>let target_addr = format!(&quot;{}:{}&quot;, &quot;127.0.0.1&quot;, port);
 <span class="boring">}
 </span></code></pre></pre>
 <p>Lastly, we need to bind our OSC sender to the network socket. This isn't always successful, so we are attaching the <code>expect()</code>-method (read more about [expect here](https://doc.rust-lang.org/std/option/enum.Option.html# method.expect)) to post an error message if it is not successful. If it is successful, the <code>.connect(target_addr)</code>-method is used to connect the sender to the target address. Again, this may be unsuccesful so we use the <code>expect()</code>-method on the result of that operation as well.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">use nannou_osc as osc;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let port = 1234;
@@ -228,13 +236,13 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 <h3><a class="header" href="#sending-osc-messages" id="sending-osc-messages">Sending OSC messages</a></h3>
 <p>An OSC packet consists of at least two components: An OSC address and 0 or more arguments containing data. The OSC address is not to be confused with the network address we connected to before. Instead, an OSC address is a path sort of like a URL, for example <code>/circle/position</code>.</p>
 <p>To create an OSC packet, we first need to make an address.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
 </span>let osc_addr = &quot;/circle/position&quot;.to_string();
 <span class="boring">}
 </span></code></pre></pre>
 <p>Then create a vector of arguments. These need to be formatted using the types found in <a href="https://docs.rs/nannou_osc/latest/nannou_osc/enum.Type.html">osc::Type</a> in the nannou_osc crate. Below we create an argument list of two floating point values: the <code>x</code> and <code>y</code> coordinates of our circle.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">use nannou_osc as osc;
 </span><span class="boring">fn main() {
 </span><span class="boring">let x = 0.0;
@@ -245,7 +253,7 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 </span>
 </code></pre></pre>
 <p>Now, bringing these two things together we get an OSC packet. The sender expect these to be delivered in a tuple.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let osc_addr = unimplemented!();
 </span><span class="boring">let args = unimplemented!();
@@ -253,7 +261,7 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 <span class="boring">}
 </span></code></pre></pre>
 <p>[Reading the documentation](https://docs.rs/nannou_osc/latest/nannou_osc/send/struct.Sender.html# method.send-1) for the <code>send</code>-method, we can see that it returns a Result type which will either contain the number of bytes written (if it was successful) and, more importantly, some useful errors of type CommunicationError if it was not succesful. To discard the error part of this, we use the <code>ok()</code> method at the end.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou_osc as osc;
 </span><span class="boring">struct Model {
 </span><span class="boring">   sender: osc::Sender&lt;osc::Connected&gt;,
@@ -267,7 +275,7 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#the-finished-app" id="the-finished-app">The finished app</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
+<pre><pre class="playground"><code class="language-rust no_run">use nannou::prelude::*;
 use nannou_osc as osc;
 
 fn main() {
@@ -370,10 +378,10 @@ fn view(app: &amp;App, model: &amp;Model, frame: Frame) {
         
 
         
-        
+
         
         <script type="text/javascript">
-            window.playpen_copyable = true;
+            window.playground_copyable = true;
         </script>
         
 

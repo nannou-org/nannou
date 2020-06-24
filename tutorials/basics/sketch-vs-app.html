@@ -5,12 +5,19 @@
         <meta charset="UTF-8">
         <title>Basics - Sketch vs App - The Nannou Guide</title>
         
+        
+
+
+        <!-- Custom HTML head -->
+        
+
 
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
+        <link rel="icon" href="../../favicon.svg">
         <link rel="shortcut icon" href="../../favicon.png">
         <link rel="stylesheet" href="../../css/variables.css">
         <link rel="stylesheet" href="../../css/general.css">
@@ -19,8 +26,9 @@
 
         <!-- Fonts -->
         <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
-        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
-        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
 
         <!-- Highlight.js Stylesheets -->
         <link rel="stylesheet" href="../../highlight.css">
@@ -36,7 +44,7 @@
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -179,7 +187,7 @@ quickly and easily.</p>
 <p>Here is what the <a href="https://github.com/nannou-org/nannou/blob/master/examples/templates/template_sketch.rs">sketch
 template</a>
 looks like:</p>
-<pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
+<pre><pre class="playground"><code class="language-rust no_run">use nannou::prelude::*;
 
 fn main() {
     nannou::sketch(view).run()
@@ -201,7 +209,7 @@ sketches, but also require a little more setup.</p>
 <p>Here is what the <a href="https://github.com/nannou-org/nannou/blob/master/examples/templates/template_app.rs">app
 template</a>
 looks like:</p>
-<pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
+<pre><pre class="playground"><code class="language-rust no_run">use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -245,7 +253,7 @@ flexibility, you can turn it into an app by following these steps:</p>
 <ol>
 <li>
 <p>Change your <code>main</code> function from</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span>nannou::sketch(view).run()
@@ -253,7 +261,7 @@ flexibility, you can turn it into an app by following these steps:</p>
 </span><span class="boring">fn view(_: &amp;App, _: Frame) {}
 </span></code></pre></pre>
 <p>to</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span>nannou::app(model).simple_window(view).run()
@@ -265,14 +273,14 @@ flexibility, you can turn it into an app by following these steps:</p>
 </li>
 <li>
 <p>Add a <code>Model</code> for tracking state:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">fn main() {}
 </span>struct Model {}
 </code></pre></pre>
 </li>
 <li>
 <p>Add a <code>model</code> function for creating the <code>Model</code>:</p>
-<pre><pre class="playpen"><code class="language-rust no_Run"><span class="boring">#![allow(dead_code)]
+<pre><pre class="playground"><code class="language-rust no_Run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {}
 </span><span class="boring">struct Model {}
@@ -283,14 +291,14 @@ flexibility, you can turn it into an app by following these steps:</p>
 </li>
 <li>
 <p>Change the <code>view</code> function signature from:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {}
 </span>fn view(app: &amp;App, frame: Frame) {
 <span class="boring">}
 </span></code></pre></pre>
 <p>to</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {}
 </span><span class="boring">struct Model {}
@@ -354,10 +362,10 @@ flexibility, you can turn it into an app by following these steps:</p>
         
 
         
-        
+
         
         <script type="text/javascript">
-            window.playpen_copyable = true;
+            window.playground_copyable = true;
         </script>
         
 

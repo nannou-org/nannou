@@ -5,12 +5,19 @@
         <meta charset="UTF-8">
         <title>Basics - Drawing a Sketch - The Nannou Guide</title>
         
+        
+
+
+        <!-- Custom HTML head -->
+        
+
 
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
+        <link rel="icon" href="../../favicon.svg">
         <link rel="shortcut icon" href="../../favicon.png">
         <link rel="stylesheet" href="../../css/variables.css">
         <link rel="stylesheet" href="../../css/general.css">
@@ -19,8 +26,9 @@
 
         <!-- Fonts -->
         <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
-        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
-        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
 
         <!-- Highlight.js Stylesheets -->
         <link rel="stylesheet" href="../../highlight.css">
@@ -36,7 +44,7 @@
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -163,7 +171,7 @@
 thought of as a collection of building blocks to help accomplish a goal.
 A sketch is the smallest/fastest way to get results with nannou.
 Here is one example which just yields a blue window:</p>
-<pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
+<pre><pre class="playground"><code class="language-rust no_run">use nannou::prelude::*;
 
 fn main() {
     nannou::sketch(view).run();
@@ -184,12 +192,12 @@ fn view(app: &amp;App, frame: Frame) {
 <h2><a class="header" href="#explaining-the-code" id="explaining-the-code">Explaining the Code</a></h2>
 <p>A sketch consists of at least two functions: <code>main()</code> and <code>view()</code>.
 First we import some building blocks:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
 </span>use nannou::prelude::*;
 <span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>After this import the actual sketching code starts. The <code>main()</code> functions is where all your logic starts. The code</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">use nannou::prelude::*;
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">use nannou::prelude::*;
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span>    nannou::sketch(view).run();
@@ -201,7 +209,7 @@ function has the signature <code>fn(_: &amp;App, _: Frame);</code>. Don't worry 
 don't know what a function signature is. Just copy the <code>main()</code> function
 and you will be fine.</p>
 <p>Within the view() function, what we draw to the Frame will be presented in our window.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">   nannou::sketch(view).run();
@@ -215,7 +223,7 @@ and you will be fine.</p>
 }
 </code></pre></pre>
 <p>This function follows the same scheme. First some setup is done. The line</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">   nannou::sketch(view).run();
@@ -226,7 +234,7 @@ and you will be fine.</p>
 </span></code></pre></pre>
 <p>lets us assign a canvas-like datatype to the variable <code>draw</code>.
 We can now paint on the this canvas by setting the background to blue.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">   nannou::sketch(view).run();
@@ -238,7 +246,7 @@ We can now paint on the this canvas by setting the background to blue.</p>
 </span></code></pre></pre>
 <p>Now we have a canvas with only a blue background. We take this canvas and
 create a computer graphics frame from it to display in the main window.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">   nannou::sketch(view).run();
@@ -296,10 +304,10 @@ instead! You can also learn more about the difference between sketches and apps
         
 
         
-        
+
         
         <script type="text/javascript">
-            window.playpen_copyable = true;
+            window.playground_copyable = true;
         </script>
         
 

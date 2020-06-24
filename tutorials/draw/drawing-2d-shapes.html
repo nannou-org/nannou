@@ -5,12 +5,19 @@
         <meta charset="UTF-8">
         <title>Draw - 2D Shapes - The Nannou Guide</title>
         
+        
+
+
+        <!-- Custom HTML head -->
+        
+
 
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
+        <link rel="icon" href="../../favicon.svg">
         <link rel="shortcut icon" href="../../favicon.png">
         <link rel="stylesheet" href="../../css/variables.css">
         <link rel="stylesheet" href="../../css/general.css">
@@ -19,8 +26,9 @@
 
         <!-- Fonts -->
         <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
-        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
-        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
 
         <!-- Highlight.js Stylesheets -->
         <link rel="stylesheet" href="../../highlight.css">
@@ -36,7 +44,7 @@
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -165,7 +173,7 @@ basic lines, simple polygons (e.g. ellipses, rectangles, etc.), and more complex
 polygons where you can create whatever shape you'd like!</p>
 <p>To begin with, we will need a nannou project file to work with. Copy the
 following into new file:</p>
-<pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
+<pre><pre class="playground"><code class="language-rust no_run">use nannou::prelude::*;
 
 fn main() {
     nannou::sketch(view).run();
@@ -191,7 +199,7 @@ fn view(app: &amp;App, frame: Frame) {
 <p>You should a new window with something that looks like this:</p>
 <p><img src="./images/2d-shape-circle.png" alt="A simple circle" /></p>
 <p>Already we are rendering a circle to our canvas.  As you may have guessed, the line of code responsible for creating a circle is the call to the <code>ellipse</code> function:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -200,7 +208,7 @@ fn view(app: &amp;App, frame: Frame) {
 <span class="boring">}
 </span></code></pre></pre>
 <p>There are many ways we can alter our circle here.  Let's start with changing the size:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -212,7 +220,7 @@ fn view(app: &amp;App, frame: Frame) {
 </span></code></pre></pre>
 <p>The <code>w</code> function here changes the width of the ellipse to 300 pixels, and the <code>h</code> function changes the height to 200.0 pixels. You should see what we would more colloquially refer to as an ellipse.</p>
 <p>We can also change the position of our ellipse with the <code>x_y</code> method:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -228,7 +236,7 @@ fn view(app: &amp;App, frame: Frame) {
 <p>There are several more methods we can use to build our ellipse. You can view the documentation for many of these methods <a href="https://docs.rs/nannou/latest/nannou/draw/struct.Drawing.html">here</a>.</p>
 <h3><a class="header" href="#drawing-rectangles-and-quadrilaterals" id="drawing-rectangles-and-quadrilaterals">Drawing Rectangles and Quadrilaterals</a></h3>
 <p>Drawing a square or rectangle uses the same builder pattern that drawing an ellipse does.  In fact, it's similar enough that you can swap out <code>ellipse</code> with <code>rect</code> in the example above to get a working example:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -241,7 +249,7 @@ fn view(app: &amp;App, frame: Frame) {
 <p>You will see an image like this:</p>
 <p><img src="./images/2d-shape-rect.png" alt="A rectangle" /></p>
 <p>In addition to <code>rect</code>, you can also use the <code>quad</code> method, which is for drawing quadrilaterals. This function is similar to <code>rect</code>, but you can also choose to supply your own coordinates for your shape.  Try the following:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -266,7 +274,7 @@ draw.quad()
 <p><img src="./images/2d-shape-tri.png" alt="A triangle" /></p>
 <h2><a class="header" href="#drawing-lines" id="drawing-lines">Drawing Lines</a></h2>
 <p>The <code>line</code> function provides a simple way to draw a line:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -284,7 +292,7 @@ draw.line()
 <p>Simply provide a starting point and an ending point, and you have your line.</p>
 <p>This is great for simpler drawings, but what if you want to draw something more complicated? A sine wave, for instance.</p>
 <p>To draw our sine wave, we will use the <code>polyline</code> function.  To use this function, we will supply a collection (or array) of points that represent points on a sine wave.  We can generate this array of points using—what else—the <code>sin</code> function!</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -304,7 +312,7 @@ connecting and ordered array of points.  With this, you can easily draw a
 variety of shapes or lines, so long as you can provide or generate the points
 you need to represent that shape.</p>
 <p>For example, a circle:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -336,7 +344,7 @@ change to the above code we can generate an outline of a different shape. Let's
 try using the <code>step_by</code> function, which allows us to choose the interval at
 which we would like to step through a range or other iterator. So instead of
 calling <code>(0..=360).map</code>, we will call <code>(0..=360).step_by(45).map</code>:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
 </span>let points = (0..=360).step_by(45).map(|i| {
 <span class="boring">    0.0
@@ -357,7 +365,7 @@ point-by-point. Try experimenting with it!</p>
 <p>To draw a custom filled-in polygon (and not just an outline), will we use code
 very similar to our custom circle or octagon code. The main difference is that
 instead of calling <code>polyline</code> to create a Builder, we call <code>polygon</code>:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -435,10 +443,10 @@ solid starting point in creating your own drawings.</p>
         
 
         
-        
+
         
         <script type="text/javascript">
-            window.playpen_copyable = true;
+            window.playground_copyable = true;
         </script>
         
 

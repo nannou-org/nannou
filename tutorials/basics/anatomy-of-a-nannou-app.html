@@ -5,12 +5,19 @@
         <meta charset="UTF-8">
         <title>Basics - Anatomy of a Nannou App - The Nannou Guide</title>
         
+        
+
+
+        <!-- Custom HTML head -->
+        
+
 
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
+        <link rel="icon" href="../../favicon.svg">
         <link rel="shortcut icon" href="../../favicon.png">
         <link rel="stylesheet" href="../../css/variables.css">
         <link rel="stylesheet" href="../../css/general.css">
@@ -19,8 +26,9 @@
 
         <!-- Fonts -->
         <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
-        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
-        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
 
         <!-- Highlight.js Stylesheets -->
         <link rel="stylesheet" href="../../highlight.css">
@@ -36,7 +44,7 @@
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -163,7 +171,7 @@
 thought of as a collection of building blocks that help accomplish a goal.
 Let's take a look at the building blocks for creative coding together.</p>
 <p>Here's an example of a bare-bones nannou app that opens an empty window:</p>
-<pre><pre class="playpen"><code class="language-rust no_run">use nannou::prelude::*;
+<pre><pre class="playground"><code class="language-rust no_run">use nannou::prelude::*;
 
 struct Model {}
 
@@ -186,7 +194,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </code></pre></pre>
 <p>We will start from the top!</p>
 <h2><a class="header" href="#import-common-items" id="import-common-items">Import Common Items</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
 </span>use nannou::prelude::*;
 <span class="boring">fn main() {}
 </span></code></pre></pre>
@@ -203,7 +211,7 @@ item we <em>do</em> want to use into scope. By providing a prelude nannou makes 
 little easier to access all of the commonly used items.</p>
 </blockquote>
 <h2><a class="header" href="#model---our-app-state" id="model---our-app-state"><strong>Model</strong> - Our app state</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span>struct Model {}
 <span class="boring">fn main() {}
 </span></code></pre></pre>
@@ -220,7 +228,7 @@ model can stay empty.</p>
 empty. There is no state information to be tracked in this example.</p>
 </blockquote>
 <h2><a class="header" href="#main---where-rust-programs-begin-and-end" id="main---where-rust-programs-begin-and-end"><strong>main</strong> - Where Rust programs begin and end</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">use nannou::prelude::*;
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
 </span>fn main() {
     nannou::app(model)
@@ -239,7 +247,7 @@ empty. There is no state information to be tracked in this example.</p>
 <p>All Rust programs begin executing at the start of the <code>main</code> function and end
 when the <code>main</code> function ends. In most nannou programs, the main function is
 quite small. In short, we build a description of our app and then run it!</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">use nannou::prelude::*;
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
 </span><span class="boring">fn main() {
 </span>    nannou::app(model)       // Start building the app and specify our `model`
@@ -277,7 +285,7 @@ not require <em>user</em> input, the controller might use time or some other
 application event to modify the model.</p>
 </blockquote>
 <h2><a class="header" href="#model---initialise-our-model" id="model---initialise-our-model"><strong>model</strong> - initialise our Model</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
 </span>fn model(_app: &amp;App) -&gt; Model {
@@ -300,7 +308,7 @@ details of the application (such as establishing event loops, spawning I/O
 streams, etc) and provides an easy to use, high-level API on top. Providing
 access to the <strong>App</strong> via a function's first argument is a common practice
 throughout nannou's API.</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
 </span>//                ----- Access to the `App` passed as an input to the function.
@@ -315,7 +323,7 @@ fn model(_app: &amp;App) -&gt; Model {
 <a href="https://docs.rs/nannou/latest/nannou/app/struct.App.html">here</a>.</p>
 </blockquote>
 <h2><a class="header" href="#event---updating-the-model-on-app-events" id="event---updating-the-model-on-app-events"><strong>event</strong> - updating the Model on app events</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
 </span>fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
@@ -338,7 +346,7 @@ about.</p>
 <p>For example, if instead of handling <em>all</em> events we only want to handle timed
 updates (an event that by default occurs 60 times per second) we could change
 our app building code to this:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
 </span>fn main() {
@@ -356,7 +364,7 @@ our app building code to this:</p>
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>And remove our <code>event</code> function in favour of an <code>update</code> function:</p>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
 </span>fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
@@ -373,7 +381,7 @@ for a demonstration of most of the different kinds of events that are
 available.</p>
 </blockquote>
 <h2><a class="header" href="#view---presenting-the-model-to-a-window" id="view---presenting-the-model-to-a-window"><strong>view</strong> - presenting the Model to a window</a></h2>
-<pre><pre class="playpen"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
 </span>fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
@@ -432,10 +440,10 @@ unclear - we will aim to cover these and more in future tutorials :)</p>
         
 
         
-        
+
         
         <script type="text/javascript">
-            window.playpen_copyable = true;
+            window.playground_copyable = true;
         </script>
         
 
