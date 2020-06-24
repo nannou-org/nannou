@@ -31,7 +31,7 @@ create a new project with just a few small steps:
    edition = "2018"
    
    [dependencies]
-   nannou = "0.12"
+   nannou = "0.14"
    ```
 
    Note that there is a chance the nannou version above might be out of date.
