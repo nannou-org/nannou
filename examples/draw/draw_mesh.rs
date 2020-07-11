@@ -10,7 +10,7 @@ fn view(app: &App, frame: Frame) {
     let t = app.time;
     let draw = app.draw();
 
-    // Clear the background to blue.
+    // Clear the background to black.
     draw.background().color(BLACK);
 
     // Use the mouse position to affect the frequency and amplitude.
