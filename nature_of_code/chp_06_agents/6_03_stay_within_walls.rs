@@ -98,7 +98,7 @@ fn model(app: &App) -> Model {
         .unwrap();
     let middle = app.window_rect().xy();
     let vehicle = Vehicle::new(middle.x, middle.y);
-    let debug = false;
+    let debug = true;
     let d = 25.0;
     Model { vehicle, debug, d }
 }
@@ -146,7 +146,7 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
         .points(points)
         .xy(*position)
         .rgb(0.5, 0.5, 0.5)
-        .rotate(theta);
+        .rotate(-theta);
 }
 
 fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {
