@@ -81,7 +81,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         &flat_samples.as_slice(),
     );
 
-    let draw = app.draw();        
+    let draw = app.draw();
     draw.texture(&model.texture);
 
     // Write to the window frame.
