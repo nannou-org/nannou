@@ -155,5 +155,5 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
         .points(points)
         .xy(*position)
         .rgb(0.5, 0.5, 0.5)
-        .rotate(theta);
+        .rotate(-theta);
 }
