@@ -54,7 +54,7 @@ fn model(app: &App) -> Model {
     let win = window.rect();
     let texture = wgpu::TextureBuilder::new()
         .size([win.w() as u32, win.h() as u32])
-        .format(Frame::TEXTURE_FORMAT)
+        .format(wgpu::TextureFormat::Rgba8Unorm)
         .usage(wgpu::TextureUsage::COPY_DST | wgpu::TextureUsage::SAMPLED)
         .build(window.swap_chain_device());
     Model {
@@ -70,29 +70,22 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let mut rng = SmallRng::seed_from_u64(model.act_random_seed);
 
     let image = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |_x, _y| {
-        let r: u16 = rng.gen_range(0, std::u16::MAX);
-        nannou::image::Rgba([r, r, r, std::u16::MAX])
+        let r: u8 = rng.gen_range(0, std::u8::MAX);
+        nannou::image::Rgba([r, r, r, std::u8::MAX])
     });
 
     let flat_samples = image.as_flat_samples();
-    let img_bytes = slice_as_bytes(flat_samples.as_slice());
     model.texture.upload_data(
         app.main_window().swap_chain_device(),
         &mut *frame.command_encoder(),
-        img_bytes,
+        &flat_samples.as_slice(),
     );
 
-    let draw = app.draw();
+    let draw = app.draw();        
     draw.texture(&model.texture);
 
     // Write to the window frame.
     draw.to_frame(app, &frame).unwrap();
-}
-
-fn slice_as_bytes(s: &[u16]) -> &[u8] {
-    let len = s.len() * std::mem::size_of::<u16>();
-    let ptr = s.as_ptr() as *const u8;
-    unsafe { std::slice::from_raw_parts(ptr, len) }
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
