@@ -84,7 +84,7 @@ Now that we have two functions generating nice, smooth wave movements, let's use
 
 If we put these values directly in the ellipse's `.x_y()`-method we would not see much movement. That's because the sine waves generate values between -1.0 and 1.0 and the coordinates expect a pixel position.
 
-But how wide is our window ? To get a precise idea of this, we can use a handy method called [window_rect](https://docs.rs/nannou/latest/nannou/app/struct.App.html# method.window_rect) which is available in the `app` variable.
+But how wide is our window ? To get a precise idea of this, we can use a handy method called [window_rect](https://docs.rs/nannou/latest/nannou/app/struct.App.html#method.window_rect) which is available in the `app` variable.
 
 ```rust,no_run
 # #![allow(unreachable_code, unused_variables)]

@@ -131,7 +131,7 @@ let packet = (osc_addr, args);
 # }
 ```
 
-[Reading the documentation](https://docs.rs/nannou_osc/latest/nannou_osc/send/struct.Sender.html# method.send-1) for the `send`-method, we can see that it returns a Result type which will either contain the number of bytes written (if it was successful) and, more importantly, some useful errors of type CommunicationError if it was not succesful. To discard the error part of this, we use the `ok()` method at the end.
+[Reading the documentation](https://docs.rs/nannou_osc/latest/nannou_osc/send/struct.Sender.html#method.send-1) for the `send`-method, we can see that it returns a Result type which will either contain the number of bytes written (if it was successful) and, more importantly, some useful errors of type CommunicationError if it was not succesful. To discard the error part of this, we use the `ok()` method at the end.
 ```rust,no_run
 # #![allow(unreachable_code, unused_variables)]
 # use nannou_osc as osc;
