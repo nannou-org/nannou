@@ -225,7 +225,7 @@
 </span></code></pre></pre>
 <p>Now that we have two functions generating nice, smooth wave movements, let's use them to control our little circle.</p>
 <p>If we put these values directly in the ellipse's <code>.x_y()</code>-method we would not see much movement. That's because the sine waves generate values between -1.0 and 1.0 and the coordinates expect a pixel position.</p>
-<p>But how wide is our window ? To get a precise idea of this, we can use a handy method called [window_rect](https://docs.rs/nannou/latest/nannou/app/struct.App.html# method.window_rect) which is available in the <code>app</code> variable.</p>
+<p>But how wide is our window ? To get a precise idea of this, we can use a handy method called <a href="https://docs.rs/nannou/latest/nannou/app/struct.App.html#method.window_rect">window_rect</a> which is available in the <code>app</code> variable.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
