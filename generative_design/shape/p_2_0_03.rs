@@ -18,7 +18,7 @@
 // limitations under the License.
 
 /**
- * drawing with a changing shape by draging the mouse.
+ * drawing with a changing shape by dragging the mouse.
  *
  * MOUSE
  * position x          : length

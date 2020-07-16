@@ -21,8 +21,8 @@
  * pixel mapping. each pixel is translated into a new element (letter)
  *
  * KEYS
- * 1                 : toogle font size mode (dynamic/static)
- * 2                 : toogle font color mode (color/b&w)
+ * 1                 : toggle font size mode (dynamic/static)
+ * 2                 : toggle font color mode (color/b&w)
  * arrow up/down     : maximal fontsize +/-
  * arrow right/left  : minimal fontsize +/-
  * s                 : save png

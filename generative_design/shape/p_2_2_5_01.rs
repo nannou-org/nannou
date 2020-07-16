@@ -18,7 +18,7 @@
 // limitations under the License.
 
 /**
- * pack as many cirlces as possible together
+ * pack as many circles as possible together
  *
  * MOUSE
  * press + position x/y : move area of interest

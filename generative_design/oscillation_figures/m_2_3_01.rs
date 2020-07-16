@@ -21,7 +21,7 @@
  * draws an amplitude modulated oscillator
  *
  * KEYS
- * i                 : toggle draw info signal
+ * a                 : toggle draw info signal
  * c                 : toggle draw carrier signal
  * 1/2               : info signal frequency -/+
  * arrow left/right  : info signal phi -/+
