@@ -810,6 +810,23 @@ impl Renderer {
             }
         };
 
+        // Create render pass builder.
+        let render_pass_builder = wgpu::RenderPassBuilder::new()
+            .color_attachment(output_attachment, |color| {
+                color
+                    .resolve_target(resolve_target)
+                    .load_op(load_op)
+                    .clear_color(clear_color)
+            })
+            .depth_stencil_attachment(&*depth_texture_view, |depth| depth);
+
+        // Guard for empty mesh.
+        if mesh.points().is_empty() {
+            // Encode the render pass. Only clears the frame.
+            render_pass_builder.begin(encoder);
+            return;
+        }
+
         // Create the vertex and index buffers.
         let vertex_usage = wgpu::BufferUsage::VERTEX;
         let points_bytes = points_as_bytes(mesh.points());
@@ -837,15 +854,7 @@ impl Renderer {
         }
 
         // Encode the render pass.
-        let mut render_pass = wgpu::RenderPassBuilder::new()
-            .color_attachment(output_attachment, |color| {
-                color
-                    .resolve_target(resolve_target)
-                    .load_op(load_op)
-                    .clear_color(clear_color)
-            })
-            .depth_stencil_attachment(&*depth_texture_view, |depth| depth)
-            .begin(encoder);
+        let mut render_pass = render_pass_builder.begin(encoder);
 
         // Set the buffers.
         render_pass.set_index_buffer(&index_buffer, 0, 0);
