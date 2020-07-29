@@ -26,10 +26,10 @@
  * KEYS
  * 1-4                 : switch default colors
  * delete/backspace    : clear screen
- * d                   : reverse direction and mirrow angle
+ * d                   : reverse direction and mirror angle
  * space               : new random color
- * arrow left          : rotaion speed -
- * arrow right         : rotaion speed +
+ * arrow left          : rotation speed -
+ * arrow right         : rotation speed +
  * arrow up            : line length +
  * arrow down          : line length -
  * s                   : save png

@@ -18,7 +18,7 @@
 // limitations under the License.
 
 /**
- * form mophing process by connected random agents
+ * form morphing process by connected random agents
  *
  * MOUSE
  * click               : start a new circe

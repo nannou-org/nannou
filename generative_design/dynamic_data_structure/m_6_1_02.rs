@@ -22,7 +22,7 @@
  * two nodes and a spring
  *
  * MOUSE
- * click, drag   : postion of one of the nodes
+ * click, drag   : position of one of the nodes
  *
  * KEYS
  * s             : save png

@@ -23,7 +23,6 @@
  * KEYS
  * r             : reset positions
  * s             : save png
- * p             : save pdf
  */
 use nannou::prelude::*;
 

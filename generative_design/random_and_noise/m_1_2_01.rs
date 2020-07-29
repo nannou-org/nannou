@@ -19,7 +19,7 @@
 
 /**
  * order vs random!
- * how to interpolate beetween a free composition (random) and a circle shape (order)
+ * how to interpolate between a free composition (random) and a circle shape (order)
  *
  * MOUSE
  * position x          : fade between random and circle shape

@@ -24,7 +24,7 @@
  * position x          : drawing speed
  *
  * KEYS
- * DEL/BACKSPACE       : clear display
+ * r                   : clear display
  * s                   : save png
  */
 use nannou::prelude::*;

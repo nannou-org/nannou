@@ -21,7 +21,7 @@
  * simple example of a recursive function
  *
  * KEYS
- * 1-9                 : recursion level
+ * 0-9                 : recursion level
  * s                   : save png
  */
 use nannou::prelude::*;
