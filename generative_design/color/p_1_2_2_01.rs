@@ -205,7 +205,17 @@ fn sort_colors(colors: &mut Vec<Rgba>, mode: &SortMode) {
             colors.sort_by(|a, b| {
                 let (_, a_sat, _) = rgb_to_hsl(a.red, a.green, a.blue);
                 let (_, b_sat, _) = rgb_to_hsl(b.red, b.green, b.blue);
-                a_sat.partial_cmp(&b_sat).unwrap()
+
+                // temporary fix until conrod bug with saturation is resolved
+                if a_sat.is_nan() && b_sat.is_nan() {
+                    0.0.partial_cmp(&0.0).unwrap()
+                } else if a_sat.is_nan() {
+                    0.0.partial_cmp(&b_sat).unwrap()
+                } else if b_sat.is_nan() {
+                    a_sat.partial_cmp(&0.0).unwrap()
+                } else {
+                    a_sat.partial_cmp(&b_sat).unwrap()
+                }
             });
         }
         SortMode::Brightness => {
