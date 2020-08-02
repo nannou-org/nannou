@@ -67,7 +67,7 @@ fn model(app: &App) -> Model {
 fn view(app: &App, model: &Model, frame: Frame) {
     // Prepare to draw.
     let draw = app.draw();
-    draw.background().color(BLACK);
+    draw.background().color(WHITE);
     let win = app.window_rect();
 
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
