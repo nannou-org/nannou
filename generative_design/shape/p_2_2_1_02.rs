@@ -54,7 +54,8 @@ struct Model {
     radius: f32,
     direction: Direction,
     draw_mode: u8,
-    counter: u8,
+    // p5js counter max ~9 quadrillion... our max ~18 quintillion
+    counter: u64,
 }
 
 fn model(app: &App) -> Model {

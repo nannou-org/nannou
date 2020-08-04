@@ -44,10 +44,8 @@ fn main() {
 struct Model {
     tile_count: u32,
     act_random_seed: u64,
-    color_left: Hsva,
-    color_right: Hsva,
-    alpha_left: f32,
-    alpha_right: f32,
+    color_left: Hsv,
+    color_right: Hsv,
     transparent_left: bool,
     transparent_right: bool,
 }
@@ -63,16 +61,11 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    let alpha_left = 0.0;
-    let alpha_right = 1.0;
-
     Model {
         tile_count: 1,
         act_random_seed: 0,
-        color_left: hsva(0.88, 1.0, 0.77, alpha_left),
-        color_right: hsva(0.0, 0.0, 0.0, alpha_right),
-        alpha_left,
-        alpha_right,
+        color_left: hsv(0.88, 1.0, 0.77),
+        color_right: hsv(0.0, 0.0, 0.0),
         transparent_left: false,
         transparent_right: false,
     }
@@ -80,26 +73,6 @@ fn model(app: &App) -> Model {
 
 fn update(app: &App, model: &mut Model, _update: Update) {
     model.tile_count = (app.mouse.y + app.window_rect().top()) as u32 / 15;
-
-    for grid_y in 0..model.tile_count {
-        for _ in 0..model.tile_count {
-            model.alpha_left = if model.transparent_left == true {
-                1.0 / (grid_y * 10) as f32
-            } else {
-                1.0
-            };
-
-            model.color_left.alpha = model.alpha_left;
-
-            model.alpha_right = if model.transparent_right == true {
-                1.0 / (100 - grid_y * 10) as f32
-            } else {
-                1.0
-            };
-
-            model.color_right.alpha = model.alpha_right;
-        }
-    }
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
@@ -121,8 +94,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let toggle = rng.gen::<bool>();
 
             if toggle == false {
+                let (h, s, v) = model.color_left.into_components();
+                let a = calculate_alpha_left(grid_y, model.transparent_left);
+
                 draw.line()
-                    .color(model.color_left)
+                    .hsva(h.into(), s, v, a)
+                    .caps_round()
                     .weight(mx / 15.0)
                     .points(
                         pt2(pos_x, pos_y),
@@ -132,7 +109,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
                         ),
                     );
                 draw.line()
-                    .color(model.color_left)
+                    .hsva(h.into(), s, v, a)
+                    .caps_round()
                     .weight(mx / 15.0)
                     .points(
                         pt2(pos_x + (win.w() / model.tile_count as f32) / 2.0, pos_y),
@@ -143,8 +121,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
                     );
             }
             if toggle == true {
+                let (h, s, v) = model.color_right.into_components();
+                let a = calculate_alpha_right(grid_y, model.transparent_right);
+
                 draw.line()
-                    .color(model.color_right)
+                    .hsva(h.into(), s, v, a)
                     .caps_round()
                     .weight(mx / 15.0)
                     .points(
@@ -152,7 +133,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                         pt2(pos_x + (win.h() / model.tile_count as f32) / 2.0, pos_y),
                     );
                 draw.line()
-                    .color(model.color_right)
+                    .hsva(h.into(), s, v, a)
                     .caps_round()
                     .weight(mx / 15.0)
                     .points(
@@ -170,6 +151,38 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
+fn calculate_alpha_left(grid_y: u32, transparent_left: bool) -> f32 {
+    let max_alpha = 100.0;
+    let alpha_left = if transparent_left {
+        let a = grid_y as f32 * 10.0;
+        match a {
+            _ if a > max_alpha => 1.0,
+            _ if a < 0.0 => 0.0,
+            _ => a / max_alpha,
+        }
+    } else {
+        1.0
+    };
+
+    alpha_left
+}
+
+fn calculate_alpha_right(grid_y: u32, transparent_right: bool) -> f32 {
+    let max_alpha = 100.0;
+    let alpha_right = if transparent_right {
+        let a = max_alpha - (grid_y as f32 * 10.0);
+        match a {
+            _ if a > max_alpha => 1.0,
+            _ if a < 0.0 => 0.0,
+            _ => a / max_alpha,
+        }
+    } else {
+        1.0
+    };
+
+    alpha_right
+}
+
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.act_random_seed = (random_f32() * 100000.0) as u64;
 }
@@ -184,23 +197,17 @@ fn key_pressed(app: &App, _model: &mut Model, key: Key) {
 fn key_released(_app: &App, model: &mut Model, key: Key) {
     match key {
         Key::Key1 => {
-            if model
-                .color_left
-                .eq(&hsva(0.75, 0.73, 0.51, model.alpha_left))
-            {
-                model.color_left = hsva(0.89, 1.0, 0.77, model.alpha_left);
+            if model.color_left.eq(&hsv(0.75, 0.73, 0.51)) {
+                model.color_left = hsv(0.89, 1.0, 0.77);
             } else {
-                model.color_left = hsva(0.75, 0.73, 0.51, model.alpha_left);
+                model.color_left = hsv(0.75, 0.73, 0.51);
             }
         }
         Key::Key2 => {
-            if model
-                .color_right
-                .eq(&hsva(0.0, 0.0, 0.0, model.alpha_right))
-            {
-                model.color_right = hsva(0.53, 1.0, 0.64, model.alpha_right);
+            if model.color_right.eq(&hsv(0.0, 0.0, 0.0)) {
+                model.color_right = hsv(0.53, 1.0, 0.64);
             } else {
-                model.color_right = hsva(0.0, 0.0, 0.0, model.alpha_right);
+                model.color_right = hsv(0.0, 0.0, 0.0);
             }
         }
         Key::Key3 => {
@@ -212,8 +219,8 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
         Key::Key0 => {
             model.transparent_left = false;
             model.transparent_right = false;
-            model.color_left = hsva(0.89, 1.0, 0.77, model.alpha_left);
-            model.color_right = hsva(0.0, 0.0, 0.0, model.alpha_right);
+            model.color_left = hsv(0.89, 1.0, 0.77);
+            model.color_right = hsv(0.0, 0.0, 0.0);
         }
         _other_key => {}
     }
