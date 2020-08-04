@@ -197,20 +197,14 @@ fn key_pressed(app: &App, _model: &mut Model, key: Key) {
 fn key_released(_app: &App, model: &mut Model, key: Key) {
     match key {
         Key::Key1 => {
-            if model
-                .color_left
-                .eq(&hsv(0.75, 0.73, 0.51))
-            {
+            if model.color_left.eq(&hsv(0.75, 0.73, 0.51)) {
                 model.color_left = hsv(0.89, 1.0, 0.77);
             } else {
                 model.color_left = hsv(0.75, 0.73, 0.51);
             }
         }
         Key::Key2 => {
-            if model
-                .color_right
-                .eq(&hsv(0.0, 0.0, 0.0))
-            {
+            if model.color_right.eq(&hsv(0.0, 0.0, 0.0)) {
                 model.color_right = hsv(0.53, 1.0, 0.64);
             } else {
                 model.color_right = hsv(0.0, 0.0, 0.0);
