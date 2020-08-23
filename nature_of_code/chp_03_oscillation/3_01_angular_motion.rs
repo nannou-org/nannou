@@ -1,8 +1,9 @@
-// The Nature of Code
+// The Nature Of Code
 // Daniel Shiffman
 // http://natureofcode.com
 //
-// Exercise 3-01: Angular Motion
+// Example 3-01: Angular Motion(using rotate())
+
 use nannou::prelude::*;
 
 fn main() {
@@ -11,49 +12,54 @@ fn main() {
 
 struct Model {
     angle: f32,
-    a_velocity: f32,
-    a_acceleration: f32,
+    angle_velocity: f32,
+    angle_acceleration: f32,
 }
 
 fn model(app: &App) -> Model {
     let angle = 0.0;
-    let a_velocity = 0.0;
-    let a_acceleration = 0.0001;
+    let angle_velocity = 0.0;
+    let angle_acceleration = -0.0001;
     app.new_window().size(800, 200).view(view).build().unwrap();
     Model {
         angle,
-        a_velocity,
-        a_acceleration,
+        angle_velocity,
+        angle_acceleration,
     }
 }
 
 fn update(_app: &App, model: &mut Model, _update: Update) {
-    model.angle += model.a_velocity;
-    model.a_velocity += model.a_acceleration;
+    model.angle += model.angle_velocity;
+    model.angle_velocity += model.angle_acceleration;
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
-    draw.background().color(WHITE);
+    draw.rect()
+        .wh(app.window_rect().wh())
+        .color(rgba(1.0, 1.0, 1.0, 0.05));
 
     draw.line()
         .start(pt2(-60.0, 0.0))
         .end(pt2(60.0, 0.0))
-        .color(BLACK)
+        .color(rgb8(0, 0, 0))
+        .stroke_weight(2.0)
         .rotate(model.angle);
 
     draw.ellipse()
-        .x_y(60.0, 0.0)
+        .xy(pt2(60.0, 0.0).rotate(model.angle))
         .w_h(16.0, 16.0)
-        .color(BLACK)
-        .rotate(model.angle);
+        .gray(0.5)
+        .stroke_weight(2.0)
+        .stroke_color(rgb8(0, 0, 0));
 
     draw.ellipse()
-        .x_y(-60.0, 0.0)
+        .xy(pt2(-60.0, 0.0).rotate(model.angle))
         .w_h(16.0, 16.0)
-        .color(BLACK)
-        .rotate(model.angle);
+        .gray(0.5)
+        .stroke_weight(2.0)
+        .stroke_color(rgb8(0, 0, 0));
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
