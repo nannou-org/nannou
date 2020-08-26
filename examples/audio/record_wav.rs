@@ -6,7 +6,6 @@ use nannou_audio as audio;
 use nannou_audio::Buffer;
 use std::fs::File;
 use std::io::BufWriter;
-use std::sync::{Arc, Mutex};
 extern crate hound;
 
 type WavWriter = hound::WavWriter<BufWriter<File>>;
@@ -24,21 +23,24 @@ struct CaptureModel {
 }
 
 fn model(app: &App) -> Model {
+    // Create a window to receive key pressed events.
     app.new_window()
         .key_pressed(key_pressed)
         .view(view)
         .build()
         .unwrap();
 
+    // Initialise the audio host so we can spawn an audio stream.
     let audio_host = audio::Host::new();
 
+    // Get specs from device config.
     let spec = hound::WavSpec {
         channels: 1,
         sample_rate: 44100,
         bits_per_sample: 32,
         sample_format: hound::SampleFormat::Float,
     };
-    let mut writer = hound::WavWriter::create("recorded.wav", spec).unwrap();
+    let writer = hound::WavWriter::create("recorded.wav", spec).unwrap();
     let capture_model = CaptureModel { writer };
 
     let stream = audio_host
@@ -50,7 +52,11 @@ fn model(app: &App) -> Model {
     Model { stream }
 }
 
+// A function that captures the audio from the buffer and
+// writes it into the the WavWriter.
 fn capture_fn(audio: &mut CaptureModel, buffer: &Buffer) {
+    // when the program ends, writer is dropped and
+    // when writer is dropped, it writes data to disk.
     for frame in buffer.frames() {
         audio
             .writer
