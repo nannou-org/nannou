@@ -17,6 +17,7 @@ You can also find this file, and other useful examples, in the [examples](https:
 To begin with, we will need a nannou project file to work with. Copy the following into new file:
 
 ```rust,no_run
+# #![allow(unreachable_code, unused_variables, dead_code)]
 use nannou::prelude::*;
 
 struct Model {}
@@ -29,7 +30,7 @@ fn model(_app: &App) -> Model {
   Model {}
 }
 
-fn view(_app: &App, _frame: Frame) {
+fn view(_app: &App, _model: &Model, _frame: Frame) {
 }
 ```
 
@@ -48,7 +49,7 @@ Once you have a fleshed-out `assets` directory at the root of your project, you'
 We need somewhere to display the image, so first, let's create a window:
 
 ```rust,no_run
-# #![allow(unreachable_code, unused_variables)]
+# #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 # struct Model {}
 # fn main() {
@@ -59,7 +60,7 @@ fn model(app: &App) -> Model {
   app.new_window().size(512, 512).view(view).build().unwrap();
   Model {}
 }
-# fn view(_app: &App, _frame: Frame) {
+# fn view(_app: &App, _model: &Model, _frame: Frame) {
 # }
 ```
 
@@ -70,7 +71,7 @@ If you `cargo run` your app, you'll see an empty green window.
 Now, at the top of your `main.rs` file, add a [WGPU Texture](https://docs.rs/nannou/latest/nannou/wgpu/struct.Texture.html)-type field named `texture` to the `Model` struct.
 
 ```rust,no_run
-# #![allow(unreachable_code, unused_variables)]
+# #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 struct Model {
   texture: wgpu::Texture,
@@ -78,19 +79,20 @@ struct Model {
 # fn main() {
 #   nannou::app(model).run()
 # }
-# fn model(_app: &App) -> Model {
+# fn model(app: &App) -> Model {
 #   // Create a new window!
 #   app.new_window().size(512, 512).view(view).build().unwrap();
-#   Model {}
+#   let texture: wgpu::Texture = unimplemented!();
+#   Model { texture }
 # }
-# fn view(_app: &App, _frame: Frame) {
+# fn view(_app: &App, _model: &Model, _frame: Frame) {
 # }
 ```
 
 Next, we'll need to create a GPU texture to initialize the struct with. We can accomplish this by loading a texture from an image file after we create the window in our `model` function.
 
 ```rust,no_run
-# #![allow(unreachable_code, unused_variables)]
+# #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 # struct Model {
 #   texture: wgpu::Texture,
@@ -107,7 +109,7 @@ fn model(app: &App) -> Model {
   let texture = wgpu::Texture::from_path(app, img_path).unwrap();
   Model { texture }
 }
-# fn view(_app: &App, _frame: Frame) {
+# fn view(_app: &App, _model: &Model, _frame: Frame) {
 # }
 ```
 
@@ -116,7 +118,7 @@ fn model(app: &App) -> Model {
 Finally, in our `view` function, we can draw the texture stored in our model with the `texture` method of the [App's Draw API](https://docs.rs/nannou/latest/nannou/draw/struct.Draw.html).
 
 ```rust,no_run
-# #![allow(unreachable_code, unused_variables)]
+# #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 # struct Model {
 #   texture: wgpu::Texture,
@@ -150,7 +152,7 @@ A texture can be drawn at any location and any size desired within the frame. Le
 
 
 ```rust,no_run
-# #![allow(unreachable_code, unused_variables)]
+# #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 # struct Model {
 #   texture: wgpu::Texture,
