@@ -38,7 +38,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.rect()
         .wh(app.window_rect().wh())
-        .color(rgba(1.0, 1.0, 1.0, 0.05));
+        .color(WHITE);
 
     draw.line()
         .start(pt2(-60.0, 0.0))
@@ -48,14 +48,16 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .rotate(model.angle);
 
     draw.ellipse()
-        .xy(pt2(60.0, 0.0).rotate(model.angle))
+        .xy(pt2(60.0, 0.0)
+        .rotate(model.angle))
         .w_h(16.0, 16.0)
         .gray(0.5)
         .stroke_weight(2.0)
         .stroke_color(rgb8(0, 0, 0));
 
     draw.ellipse()
-        .xy(pt2(-60.0, 0.0).rotate(model.angle))
+        .xy(pt2(-60.0, 0.0)
+        .rotate(model.angle))
         .w_h(16.0, 16.0)
         .gray(0.5)
         .stroke_weight(2.0)
