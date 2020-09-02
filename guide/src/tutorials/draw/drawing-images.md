@@ -10,7 +10,7 @@
 
 ---
 
-In this tutorial, we explore drawing images with nannou. We will cover loading textures from images the app's assets directory and drawing them, and applying basic transformations.
+In this tutorial, we explore drawing images with nannou. We will cover loading textures from images in the app's assets directory and drawing them, and applying basic transformations.
 
 You can also find this file, and other useful examples, in the [examples](https://github.com/nannou-org/nannou/tree/master/examples) directory of the nannou source repository.
 
