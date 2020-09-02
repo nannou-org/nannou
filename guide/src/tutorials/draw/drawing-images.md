@@ -10,9 +10,17 @@
 
 ---
 
-In this tutorial, we explore drawing images with nannou. We will cover loading textures from images in the app's assets directory, drawing them, and applying basic transformations.
+In this tutorial, we explore drawing images with nannou. We will cover loading textures from images in the app's assets directory, drawing them, and applying basic transformations. You can also find this file, and other useful examples, in the [examples](https://github.com/nannou-org/nannou/tree/master/examples) directory of the nannou source repository.
 
-You can also find this file, and other useful examples, in the [examples](https://github.com/nannou-org/nannou/tree/master/examples) directory of the nannou source repository.
+## What is a Texture?
+
+Given the introductory nature of the tutorial, I'd like to briefly answer this question. To quote the [Learn Wgpu](https://sotrh.github.io/learn-wgpu) website:
+
+> Textures are images overlayed over a triangle mesh to make the mesh seem more detailed.
+
+In short, this is how the GPU on your machine understands how to draw images. The [Textures and bind groups](https://sotrh.github.io/learn-wgpu/beginner/tutorial5-textures/#loading-an-image-from-a-file) is definitely worth a read for those who want to learn more.
+
+## Getting Started
 
 To begin, we will need to bootstrap an `assets` directory with some images at the root of our project. I recommend copying the assets directory from the `nannou` repo itself to get started. This can be accomplished from the command line like so:
 
