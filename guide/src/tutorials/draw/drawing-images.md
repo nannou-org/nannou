@@ -64,7 +64,7 @@ fn model(app: &App) -> Model {
 # }
 ```
 
-If you `cargo run` your app, you'll see an empty green window.
+If you `cargo run` your app, you'll see an empty window.
 
 ## Setting up a Texture
 
