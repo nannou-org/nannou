@@ -97,6 +97,8 @@ fn model(app: &App) -> Model {
 # }
 ```
 
+After all that, we've still got an empty window...but not for much longer!
+
 ## Drawing a Texture
 
 Finally, in our `view` function, we can draw the texture stored in our model with the `texture` method of the [App's Draw API](https://docs.rs/nannou/latest/nannou/draw/struct.Draw.html).
