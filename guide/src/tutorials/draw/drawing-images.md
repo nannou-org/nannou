@@ -68,7 +68,7 @@ If you `cargo run` your app, you'll see an empty window.
 
 ## Setting up a Texture
 
-Now, at the top of your `main.rs` file, add a [WGPU Texture](https://docs.rs/nannou/latest/nannou/wgpu/struct.Texture.html)-type field named `texture` to the `Model` struct.
+Now, at the top of your `main.rs` file, add a [WGPU Texture](https://docs.rs/nannou/latest/nannou/wgpu/struct.Texture.html) type field named `texture` to the `Model` struct.
 
 ```rust,no_run
 # #![allow(unreachable_code, unused_variables, dead_code)]
