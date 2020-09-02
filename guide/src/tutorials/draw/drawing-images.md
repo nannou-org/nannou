@@ -14,27 +14,7 @@ In this tutorial, we explore drawing images with nannou. We will cover loading t
 
 You can also find this file, and other useful examples, in the [examples](https://github.com/nannou-org/nannou/tree/master/examples) directory of the nannou source repository.
 
-To begin with, we will need a nannou project file to work with. Copy the following into new file:
-
-```rust,no_run
-# #![allow(unreachable_code, unused_variables, dead_code)]
-use nannou::prelude::*;
-
-struct Model {}
-
-fn main() {
-  nannou::app(model).run()
-}
-
-fn model(_app: &App) -> Model {
-  Model {}
-}
-
-fn view(_app: &App, _model: &Model, _frame: Frame) {
-}
-```
-
-Next, we will also need to bootstrap an `assets` directory with some images at the root of our project. I recommend copying the assets directory from the `nannou` repo itself to get started.
+To begin, we will need to bootstrap an `assets` directory with some images at the root of our project. I recommend copying the assets directory from the `nannou` repo itself to get started. This can be accomplished from the command line like so:
 
 ```bash
 git clone https://github.com/nannou-org/nannou.git
@@ -50,18 +30,22 @@ We need somewhere to display the image, so first, let's create a window:
 
 ```rust,no_run
 # #![allow(unreachable_code, unused_variables, dead_code)]
-# use nannou::prelude::*;
-# struct Model {}
-# fn main() {
-#   nannou::app(model).run()
-# }
+use nannou::prelude::*;
+
+struct Model {}
+
+fn main() {
+  nannou::app(model).run();
+}
+
 fn model(app: &App) -> Model {
   // Create a new window!
   app.new_window().size(512, 512).view(view).build().unwrap();
   Model {}
 }
-# fn view(_app: &App, _model: &Model, _frame: Frame) {
-# }
+
+fn view(_app: &App, _model: &Model, _frame: Frame) {
+}
 ```
 
 If you `cargo run` your app, you'll see an empty window.
@@ -77,7 +61,7 @@ struct Model {
   texture: wgpu::Texture,
 }
 # fn main() {
-#   nannou::app(model).run()
+#   nannou::app(model).run();
 # }
 # fn model(app: &App) -> Model {
 #   // Create a new window!
@@ -98,7 +82,7 @@ Next, we'll need to create a GPU texture to initialize the struct with. We can a
 #   texture: wgpu::Texture,
 # }
 # fn main() {
-#   nannou::app(model).run()
+#   nannou::app(model).run();
 # }
 fn model(app: &App) -> Model {
   // Create a new window!
@@ -124,7 +108,7 @@ Finally, in our `view` function, we can draw the texture stored in our model wit
 #   texture: wgpu::Texture,
 # }
 # fn main() {
-#   nannou::app(model).run()
+#   nannou::app(model).run();
 # }
 # fn model(app: &App) -> Model {
 #   // Create a new window!
@@ -158,7 +142,7 @@ A texture can be drawn at any location and any size desired within the frame. Le
 #   texture: wgpu::Texture,
 # }
 # fn main() {
-#   nannou::app(model).run()
+#   nannou::app(model).run();
 # }
 # fn model(app: &App) -> Model {
 #   // Create a new window!
