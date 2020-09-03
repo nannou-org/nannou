@@ -31,7 +31,11 @@ impl LayoutBuilder {
 
     /// Add a uniform buffer binding to the layout.
     pub fn uniform_buffer(self, visibility: wgpu::ShaderStage, dynamic: bool) -> Self {
-        let ty = wgpu::BindingType::UniformBuffer { dynamic };
+        let ty = wgpu::BindingType::UniformBuffer {
+            dynamic,
+            // wgpu 0.5-0.6 TODO: potential perf hit
+            min_binding_size: None,
+        };
         self.binding(visibility, ty)
     }
 
@@ -42,7 +46,12 @@ impl LayoutBuilder {
         dynamic: bool,
         readonly: bool,
     ) -> Self {
-        let ty = wgpu::BindingType::StorageBuffer { dynamic, readonly };
+        let ty = wgpu::BindingType::StorageBuffer {
+            dynamic,
+            readonly,
+            // wgpu 0.5-0.6 TODO: potential perf hit
+            min_binding_size: None,
+        };
         self.binding(visibility, ty)
     }
 
@@ -103,12 +112,10 @@ impl LayoutBuilder {
         visibility: wgpu::ShaderStage,
         format: wgpu::TextureFormat,
         dimension: wgpu::TextureViewDimension,
-        component_type: wgpu::TextureComponentType,
         readonly: bool,
     ) -> Self {
         let ty = wgpu::BindingType::StorageTexture {
             dimension,
-            component_type,
             format,
             readonly,
         };
@@ -129,25 +136,27 @@ impl LayoutBuilder {
             visibility,
             texture.format(),
             texture.view_dimension(),
-            texture.component_type(),
             readonly,
         )
     }
 
     /// Build the bind group layout from the specified parameters.
     pub fn build(self, device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        let mut bindings = Vec::with_capacity(self.bindings.len());
+        let mut entries = Vec::with_capacity(self.bindings.len());
         for (i, (visibility, ty)) in self.bindings.into_iter().enumerate() {
             let layout_binding = wgpu::BindGroupLayoutEntry {
                 binding: i as u32,
                 visibility,
                 ty,
+                // wgpu 0.5-0.6 TODO: reconsider in the future
+                // refer to [`BIndGroupLayoutEntry`]
+                count: 1,
             };
-            bindings.push(layout_binding);
+            entries.push(layout_binding);
         }
         let descriptor = wgpu::BindGroupLayoutDescriptor {
             label: Some("nannou"),
-            bindings: &bindings,
+            entries: &entries,
         };
         device.create_bind_group_layout(&descriptor)
     }
@@ -178,7 +187,11 @@ impl<'a> Builder<'a> {
         buffer: &'a wgpu::Buffer,
         range: std::ops::Range<wgpu::BufferAddress>,
     ) -> Self {
-        let resource = wgpu::BindingResource::Buffer { buffer, range };
+        let resource = wgpu::BindingResource::Buffer(wgpu::BufferSlice {
+            buffer,
+            offset: range.start,
+            size: range.end - range.start,
+        });
         self.binding(resource)
     }
 
@@ -213,18 +226,18 @@ impl<'a> Builder<'a> {
 
     /// Build the bind group with the specified resources.
     pub fn build(self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
-        let mut bindings = Vec::with_capacity(self.resources.len());
+        let mut entries = Vec::with_capacity(self.resources.len());
         for (i, resource) in self.resources.into_iter().enumerate() {
-            let binding = wgpu::Binding {
+            let binding = wgpu::BindGroupEntry {
                 binding: i as u32,
                 resource,
             };
-            bindings.push(binding);
+            entries.push(binding);
         }
         let descriptor = wgpu::BindGroupDescriptor {
             label: Some("nannou"),
             layout,
-            bindings: &bindings,
+            entries: &entries,
         };
         device.create_bind_group(&descriptor)
     }

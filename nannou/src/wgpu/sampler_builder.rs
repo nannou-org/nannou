@@ -1,10 +1,10 @@
 /// Simplifies the construction of a `Sampler` with a set of reasonable defaults.
 #[derive(Debug)]
-pub struct SamplerBuilder {
-    pub descriptor: wgpu::SamplerDescriptor,
+pub struct SamplerBuilder<'b> {
+    pub descriptor: wgpu::SamplerDescriptor<'b>,
 }
 
-impl SamplerBuilder {
+impl<'b> SamplerBuilder<'b> {
     pub const DEFAULT_ADDRESS_MODE_U: wgpu::AddressMode = wgpu::AddressMode::ClampToEdge;
     pub const DEFAULT_ADDRESS_MODE_V: wgpu::AddressMode = wgpu::AddressMode::ClampToEdge;
     pub const DEFAULT_ADDRESS_MODE_W: wgpu::AddressMode = wgpu::AddressMode::ClampToEdge;
@@ -14,7 +14,7 @@ impl SamplerBuilder {
     pub const DEFAULT_LOD_MIN_CLAMP: f32 = -100.0;
     pub const DEFAULT_LOD_MAX_CLAMP: f32 = 100.0;
     pub const DEFAULT_COMPARE: wgpu::CompareFunction = wgpu::CompareFunction::Always;
-    pub const DEFAULT_DESCRIPTOR: wgpu::SamplerDescriptor = wgpu::SamplerDescriptor {
+    pub const DEFAULT_DESCRIPTOR: wgpu::SamplerDescriptor<'b> = wgpu::SamplerDescriptor {
         address_mode_u: Self::DEFAULT_ADDRESS_MODE_U,
         address_mode_v: Self::DEFAULT_ADDRESS_MODE_V,
         address_mode_w: Self::DEFAULT_ADDRESS_MODE_W,
@@ -94,7 +94,7 @@ impl SamplerBuilder {
         self
     }
 
-    pub fn compare(mut self, f: wgpu::CompareFunction) -> Self {
+    pub fn compare(mut self, f: Option<wgpu::CompareFunction>) -> Self {
         self.descriptor.compare = f;
         self
     }
@@ -105,12 +105,12 @@ impl SamplerBuilder {
     }
 
     /// Consume the builder and produce the inner `SamplerDescriptor`.
-    pub fn into_descriptor(self) -> wgpu::SamplerDescriptor {
+    pub fn into_descriptor(self) -> wgpu::SamplerDescriptor<'b> {
         self.into()
     }
 }
 
-impl Default for SamplerBuilder {
+impl<'b> Default for SamplerBuilder<'b> {
     fn default() -> Self {
         SamplerBuilder {
             descriptor: Self::DEFAULT_DESCRIPTOR,
@@ -118,14 +118,14 @@ impl Default for SamplerBuilder {
     }
 }
 
-impl Into<wgpu::SamplerDescriptor> for SamplerBuilder {
-    fn into(self) -> wgpu::SamplerDescriptor {
+impl<'b> Into<wgpu::SamplerDescriptor<'b>> for SamplerBuilder<'b> {
+    fn into(self) -> wgpu::SamplerDescriptor<'b> {
         self.descriptor
     }
 }
 
-impl From<wgpu::SamplerDescriptor> for SamplerBuilder {
-    fn from(descriptor: wgpu::SamplerDescriptor) -> Self {
+impl<'b> From<wgpu::SamplerDescriptor<'b>> for SamplerBuilder<'b> {
+    fn from(descriptor: wgpu::SamplerDescriptor<'b>) -> Self {
         SamplerBuilder { descriptor }
     }
 }

@@ -30,7 +30,7 @@ pub struct BufferImage {
 pub struct ImageReadMapping {
     color_type: image::ColorType,
     size: [u32; 2],
-    mapping: wgpu::BufferReadMapping,
+    mapping: wgpu::ImageReadMapping,
 }
 
 impl wgpu::TextureBuilder {
@@ -319,7 +319,7 @@ impl BufferImage {
     ///
     /// Note: The given callback will not be called until the memory is mapped and the device is
     /// polled. You should not rely on the callback being called immediately.
-    pub async fn read(&self) -> Result<ImageReadMapping, wgpu::BufferAsyncErr> {
+    pub async fn read(&self) -> Result<ImageReadMapping, wgpu::BufferAsyncError> {
         let size = self.size;
         let color_type = self.color_type;
         let mapping = self.buffer.read().await?;
@@ -343,7 +343,7 @@ impl ImageReadMapping {
     }
 
     /// The raw image data as a slice of bytes.
-    pub fn mapping(&self) -> &wgpu::BufferReadMapping {
+    pub fn mapping(&self) -> &wgpu::ImageReadMapping {
         &self.mapping
     }
 

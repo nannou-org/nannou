@@ -56,31 +56,29 @@ pub use self::texture::{
 };
 #[doc(inline)]
 pub use wgpu::{
-    read_spirv, vertex_attr_array, vertex_format_size, Adapter, AdapterInfo, AddressMode, Backend,
-    BackendBit, BindGroup, BindGroupDescriptor, BindGroupLayout, BindGroupLayoutDescriptor,
-    BindGroupLayoutEntry, Binding, BindingResource, BindingType, BlendDescriptor, BlendFactor,
-    BlendOperation, Buffer, BufferAddress, BufferAsyncErr, BufferCopyView, BufferDescriptor,
-    BufferReadMapping, BufferUsage, BufferWriteMapping, Color, ColorStateDescriptor, ColorWrite,
-    CommandBuffer, CommandBufferDescriptor, CommandEncoder, CommandEncoderDescriptor,
-    CompareFunction, ComputePass, ComputePipeline, ComputePipelineDescriptor, CreateBufferMapped,
-    CullMode, DepthStencilStateDescriptor, Device, DeviceDescriptor, DeviceType, DynamicOffset,
-    Extensions, Extent3d, FilterMode, FrontFace, IndexFormat, InputStepMode, Limits, LoadOp,
-    Maintain, Origin3d, PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PresentMode,
+    vertex_attr_array, Adapter, AdapterInfo, AddressMode, Backend, BackendBit, BindGroup, BindGroupEntry,
+    BindGroupDescriptor, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
+    BindingResource, BindingType, BlendDescriptor, BlendFactor, BlendOperation, Buffer,
+    BufferAddress, BufferCopyView, BufferDescriptor, BufferUsage, Color, ColorStateDescriptor,
+    ColorWrite, CommandBuffer, CommandBufferDescriptor, CommandEncoder, CommandEncoderDescriptor,
+    CompareFunction, ComputePass, ComputePipeline, ComputePipelineDescriptor, CullMode,
+    DepthStencilStateDescriptor, Device, DeviceDescriptor, DeviceType, DynamicOffset, Extent3d,
+    Features, FilterMode, FrontFace, IndexFormat, InputStepMode, Limits, LoadOp, Maintain,
+    Origin3d, PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PresentMode,
     PrimitiveTopology, ProgrammableStageDescriptor, Queue, RasterizationStateDescriptor,
     RenderPass, RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor,
     RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, Sampler,
     SamplerDescriptor, ShaderLocation, ShaderModule, ShaderStage, StencilOperation,
-    StencilStateFaceDescriptor, StoreOp, Surface, SwapChain, SwapChainDescriptor, SwapChainOutput,
-    Texture as TextureHandle, TextureAspect, TextureComponentType, TextureCopyView,
-    TextureDescriptor, TextureDimension, TextureFormat, TextureUsage,
-    TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension, TimeOut,
-    VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat, VertexStateDescriptor,
-    BIND_BUFFER_ALIGNMENT, MAX_BIND_GROUPS,
+    StencilStateFaceDescriptor, Surface, SwapChain, SwapChainDescriptor, Texture as TextureHandle,
+    TextureAspect, TextureComponentType, TextureCopyView, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureUsage, TextureView as TextureViewHandle, TextureViewDescriptor,
+    TextureViewDimension, VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat, 
+    VertexStateDescriptor, BIND_BUFFER_ALIGNMENT, Operations, BufferAsyncError, TextureDataLayout, BufferSlice
 };
 
 pub fn shader_from_spirv_bytes(device: &wgpu::Device, bytes: &[u8]) -> wgpu::ShaderModule {
     let cursor = std::io::Cursor::new(bytes);
-    let vs_spirv = read_spirv(cursor).expect("failed to read hard-coded SPIRV");
+    let vs_spirv = device.create_shader_module(cursor);
     device.create_shader_module(&vs_spirv)
 }
 
@@ -89,11 +87,6 @@ pub const DEFAULT_POWER_PREFERENCE: PowerPreference = PowerPreference::HighPerfo
 
 /// Nannou's default WGPU backend preferences.
 pub const DEFAULT_BACKENDS: BackendBit = BackendBit::PRIMARY;
-
-/// The default set of `Extensions` used within the `default_device_descriptor()` function.
-pub const DEFAULT_EXTENSIONS: Extensions = Extensions {
-    anisotropic_filtering: true,
-};
 
 /// Adds a simple render pass command to the given encoder that simply clears the given texture
 /// with the given colour.
@@ -111,9 +104,14 @@ pub fn clear_texture(
 
 /// The default device descriptor used to instantiate a logical device when creating windows.
 pub fn default_device_descriptor() -> DeviceDescriptor {
-    let extensions = DEFAULT_EXTENSIONS;
+    let features = Features::default();
     let limits = Limits::default();
-    DeviceDescriptor { extensions, limits }
+    let shader_validation = true;
+    DeviceDescriptor {
+        features,
+        limits,
+        shader_validation,
+    }
 }
 
 /// Adds a simple render pass command to the given encoder that resolves the given multisampled
@@ -139,17 +137,26 @@ pub fn resolve_texture(
 }
 
 /// Shorthand for creating the pipeline layout from a slice of bind group layouts.
-pub fn create_pipeline_layout(
+pub fn create_pipeline_layout<'p>(
     device: &wgpu::Device,
+    label: &'p str,
     bind_group_layouts: &[&wgpu::BindGroupLayout],
+    push_constant_ranges: &'p [wgpu::PushConstantRange],
 ) -> wgpu::PipelineLayout {
-    let descriptor = wgpu::PipelineLayoutDescriptor { bind_group_layouts };
+    let descriptor = wgpu::PipelineLayoutDescriptor {
+        label,
+        bind_group_layouts,
+        push_constant_ranges,
+    };
     device.create_pipeline_layout(&descriptor)
 }
 
 /// TODO: Remove this once `derive(Clone)` is added to wgpu SamplerDescriptor.
-pub fn sampler_descriptor_clone(sampler: &wgpu::SamplerDescriptor) -> wgpu::SamplerDescriptor {
+pub fn sampler_descriptor_clone<'a>(
+    sampler: &'a wgpu::SamplerDescriptor,
+) -> wgpu::SamplerDescriptor<'a> {
     wgpu::SamplerDescriptor {
+        label: sampler.label,
         address_mode_u: sampler.address_mode_u,
         address_mode_v: sampler.address_mode_v,
         address_mode_w: sampler.address_mode_w,
@@ -159,6 +166,7 @@ pub fn sampler_descriptor_clone(sampler: &wgpu::SamplerDescriptor) -> wgpu::Samp
         lod_min_clamp: sampler.lod_min_clamp,
         lod_max_clamp: sampler.lod_max_clamp,
         compare: sampler.compare,
+        anisotropy_clamp: sampler.anisotropy_clamp,
     }
 }
 
