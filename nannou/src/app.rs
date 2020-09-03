@@ -98,7 +98,7 @@ fn default_model(_: &App) -> () {
 /// - The sharing of wgpu devices between windows.
 /// - A default **Draw** instance for ease of use.
 /// - A map of channels for submitting user input updates to active **Ui**s.
-pub struct App {
+pub struct App<'s> {
     config: RefCell<Config>,
     default_window_size: Option<DefaultWindowSize>,
     max_capture_frame_jobs: u32,
@@ -108,7 +108,7 @@ pub struct App {
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
     /// A map of active wgpu physial device adapters.
     adapters: wgpu::AdapterMap,
-    draw_state: DrawState,
+    draw_state: DrawState<'s>,
     pub(crate) ui: ui::Arrangement,
     /// The window that is currently in focus.
     pub(crate) focused_window: RefCell<Option<window::Id>>,
@@ -160,8 +160,8 @@ struct Config {
 
 // Draw state managed by the **App**.
 #[derive(Debug)]
-struct DrawState {
-    draw: RefCell<draw::Draw<DrawScalar>>,
+struct DrawState<'s> {
+    draw: RefCell<draw::Draw<'s, DrawScalar>>,
     renderers: RefCell<HashMap<window::Id, RefCell<draw::Renderer>>>,
 }
 
@@ -578,7 +578,7 @@ impl Default for Config {
     }
 }
 
-impl App {
+impl<'s> App<'s> {
     pub const ASSETS_DIRECTORY_NAME: &'static str = "assets";
     pub const DEFAULT_EXIT_ON_ESCAPE: bool = true;
     pub const DEFAULT_FULLSCREEN_ON_SHORTCUT: bool = true;
@@ -826,7 +826,7 @@ impl App {
     /// **Note:** You can also create your own **Draw** instances via `Draw::new()`! This method
     /// makes it a tiny bit easier as the **App** stores the **Draw** instance for you and
     /// automatically resets the state on each call to `app.draw()`.
-    pub fn draw(&self) -> draw::Draw {
+    pub fn draw(&self) -> draw::Draw<'s> {
         let draw = self.draw_state.draw.borrow_mut();
         draw.reset();
         draw.clone()
@@ -876,7 +876,7 @@ impl Proxy {
     }
 }
 
-impl draw::Draw {
+impl<'s> draw::Draw<'s> {
     /// Render the **Draw**'s inner list of commands to the texture associated with the **Frame**.
     ///
     /// The **App** stores a unique render.

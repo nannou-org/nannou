@@ -21,14 +21,14 @@ pub use self::raw::RawFrame;
 /// intermediary image.
 pub struct Frame<'swap_chain> {
     raw_frame: RawFrame<'swap_chain>,
-    render_data: &'swap_chain RenderData,
+    render_data: &'swap_chain RenderData<'swap_chain>,
     capture_data: &'swap_chain CaptureData,
 }
 
 /// Data specific to the intermediary textures.
 #[derive(Debug)]
-pub struct RenderData {
-    intermediary_lin_srgba: IntermediaryLinSrgba,
+pub struct RenderData<'render_data> {
+    intermediary_lin_srgba: IntermediaryLinSrgba<'render_data>,
     msaa_samples: u32,
     size: [u32; 2],
     // For writing the intermediary linear sRGBA texture to the swap chain texture.
@@ -47,10 +47,10 @@ pub(crate) struct CaptureData {
 /// Intermediary textures used as a target before resolving multisampling and writing to the
 /// swapchain texture.
 #[derive(Debug)]
-pub(crate) struct IntermediaryLinSrgba {
-    msaa_texture: Option<(wgpu::Texture, wgpu::TextureView)>,
+pub(crate) struct IntermediaryLinSrgba<'i> {
+    msaa_texture: Option<(wgpu::Texture, wgpu::TextureView<'i>)>,
     texture: wgpu::Texture,
-    texture_view: wgpu::TextureView,
+    texture_view: wgpu::TextureView<'i>,
 }
 
 impl<'swap_chain> ops::Deref for Frame<'swap_chain> {
@@ -228,8 +228,8 @@ impl<'swap_chain> Frame<'swap_chain> {
     /// greater than `1`, a render pass will be automatically added after the `view` completes and
     /// before the texture is drawn to the swapchain.
     pub fn color_attachment_descriptor(&self) -> wgpu::RenderPassColorAttachmentDescriptor {
-        let load_op = wgpu::LoadOp::Load;
-        let store_op = wgpu::StoreOp::Store;
+        let load = wgpu::LoadOp::Load;
+        let store = true;
         let attachment = match self.render_data.intermediary_lin_srgba.msaa_texture {
             None => &self.render_data.intermediary_lin_srgba.texture_view,
             Some((_, ref msaa_texture_view)) => msaa_texture_view,
@@ -239,9 +239,7 @@ impl<'swap_chain> Frame<'swap_chain> {
         wgpu::RenderPassColorAttachmentDescriptor {
             attachment,
             resolve_target,
-            load_op,
-            store_op,
-            clear_color,
+            ops: wgpu::Operations { load, store },
         }
     }
 
@@ -283,7 +281,7 @@ impl CaptureData {
     }
 }
 
-impl RenderData {
+impl<'swap_chain> RenderData<'swap_chain> {
     /// Initialise the render data.
     ///
     /// Creates an `wgpu::TextureView` with the given parameters.
@@ -291,7 +289,7 @@ impl RenderData {
     /// If `msaa_samples` is greater than 1 a `multisampled` texture will also be created. Otherwise the
     /// a regular non-multisampled image will be created.
     pub(crate) fn new(
-        device: &wgpu::Device,
+        device: &'swap_chain wgpu::Device,
         swap_chain_dims: [u32; 2],
         swap_chain_format: wgpu::TextureFormat,
         msaa_samples: u32,

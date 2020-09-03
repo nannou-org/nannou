@@ -29,7 +29,7 @@ pub const DEFAULT_DIMENSIONS: LogicalSize<geom::scalar::Default> = LogicalSize {
 
 /// A context for building a window.
 pub struct Builder<'app> {
-    app: &'app App,
+    app: &'app App<'app>,
     window: winit::window::WindowBuilder,
     title_was_set: bool,
     swap_chain_builder: SwapChainBuilder,
