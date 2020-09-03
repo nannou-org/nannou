@@ -13,19 +13,23 @@ use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
 
 /// Draw API primitives that may be rendered via the **Renderer** type.
-pub trait RenderPrimitive {
+pub trait RenderPrimitive<'render> {
     /// Render self into the given mesh.
-    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender;
+    fn render_primitive(
+        self,
+        ctxt: RenderContext,
+        mesh: &mut draw::Mesh,
+    ) -> PrimitiveRender<'render>;
 }
 
 /// Information about the way in which a primitive was rendered.
-pub struct PrimitiveRender {
+pub struct PrimitiveRender<'render> {
     /// Whether or not a specific texture must be available when this primitive is drawn.
     ///
     /// If `Some` and the given texture is different than the currently set texture, a render
     /// command will be encoded that switches from the previous texture's bind group to the new
     /// one.
-    pub texture_view: Option<wgpu::TextureView>,
+    pub texture_view: Option<wgpu::TextureView<'render>>,
     /// The way in which vertices should be coloured in the fragment shader.
     pub vertex_mode: VertexMode,
 }
@@ -71,7 +75,7 @@ pub enum VertexMode {
 
 /// A helper type aimed at simplifying the rendering of conrod primitives via wgpu.
 #[derive(Debug)]
-pub struct Renderer {
+pub struct Renderer<'render> {
     glyph_cache: GlyphCache,
     vs_mod: wgpu::ShaderModule,
     fs_mod: wgpu::ShaderModule,
@@ -79,9 +83,9 @@ pub struct Renderer {
     pipelines: HashMap<PipelineId, wgpu::RenderPipeline>,
     glyph_cache_texture: wgpu::Texture,
     depth_texture: wgpu::Texture,
-    depth_texture_view: wgpu::TextureView,
+    depth_texture_view: wgpu::TextureView<'render>,
     default_texture: wgpu::Texture,
-    default_texture_view: wgpu::TextureView,
+    default_texture_view: wgpu::TextureView<'render>,
     uniform_bind_group_layout: wgpu::BindGroupLayout,
     uniform_bind_group: wgpu::BindGroup,
     text_bind_group_layout: wgpu::BindGroupLayout,
@@ -100,8 +104,8 @@ pub struct Renderer {
 
 /// A type aimed at simplifying construction of a `draw::Renderer`.
 #[derive(Clone, Debug)]
-pub struct Builder {
-    pub depth_format: wgpu::TextureFormat,
+pub struct Builder<'b> {
+    pub depth_format: &'b wgpu::TextureFormat,
     pub glyph_cache_size: [u32; 2],
     pub glyph_cache_scale_tolerance: f32,
     pub glyph_cache_position_tolerance: f32,
@@ -167,14 +171,14 @@ struct PipelineId {
     texture_component_type: wgpu::TextureComponentType,
 }
 
-impl Default for PrimitiveRender {
+impl<'r> Default for PrimitiveRender<'r> {
     fn default() -> Self {
         Self::color()
     }
 }
 
-impl RenderPrimitive for draw::Primitive {
-    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender {
+impl<'r> RenderPrimitive<'r> for draw::Primitive {
+    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender<'r> {
         match self {
             draw::Primitive::Arrow(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Mesh(prim) => prim.render_primitive(ctxt, mesh),
@@ -202,7 +206,7 @@ impl fmt::Debug for GlyphCache {
     }
 }
 
-impl PrimitiveRender {
+impl<'r> PrimitiveRender<'r> {
     /// Specify a vertex mode for the primitive render.
     pub fn vertex_mode(vertex_mode: VertexMode) -> Self {
         PrimitiveRender {
@@ -227,7 +231,7 @@ impl PrimitiveRender {
     }
 }
 
-impl Builder {
+impl<'b> Builder<'b> {
     /// The default depth format
     pub const DEFAULT_DEPTH_FORMAT: wgpu::TextureFormat = Renderer::DEFAULT_DEPTH_FORMAT;
     /// The default size for the inner glyph cache.
@@ -289,8 +293,8 @@ impl Builder {
     pub fn build_from_texture_descriptor(
         self,
         device: &wgpu::Device,
-        descriptor: &wgpu::TextureDescriptor,
-    ) -> Renderer {
+        descriptor: &'b wgpu::TextureDescriptor,
+    ) -> Renderer<'b> {
         let scale_factor = 1.0;
         self.build(
             device,
@@ -305,12 +309,12 @@ impl Builder {
     /// sample count and format.
     pub fn build(
         self,
-        device: &wgpu::Device,
+        device: &'b wgpu::Device,
         output_attachment_size: [u32; 2],
         output_scale_factor: f32,
         sample_count: u32,
         output_color_format: wgpu::TextureFormat,
-    ) -> Renderer {
+    ) -> Renderer<'b> {
         Renderer::new(
             device,
             output_attachment_size,
@@ -344,7 +348,7 @@ impl GlyphCache {
     }
 }
 
-impl Renderer {
+impl<'r> Renderer<'r> {
     /// The default depth format
     pub const DEFAULT_DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
     /// The default size for the inner glyph cache.
@@ -395,7 +399,7 @@ impl Renderer {
             .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
             .format(Self::GLYPH_CACHE_TEXTURE_FORMAT)
             .build(device);
-        let glyph_cache_texture_view = glyph_cache_texture.create_default_view();
+        let glyph_cache_texture_view = glyph_cache_texture.view().build();
 
         // Create the depth texture.
         let depth_texture =
@@ -413,7 +417,7 @@ impl Renderer {
         let uniforms = create_uniforms(output_attachment_size, output_scale_factor);
         let uniforms_bytes = uniforms_as_bytes(&uniforms);
         let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
-        let uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
+        let uniform_buffer = device.create_buffer(uniforms_bytes, usage);
 
         // Bind group for uniforms.
         let uniform_bind_group_layout = create_uniform_bind_group_layout(device);
@@ -950,7 +954,7 @@ impl Renderer {
     }
 }
 
-impl Default for Builder {
+impl<'b> Default for Builder<'b> {
     fn default() -> Self {
         Self::new()
     }

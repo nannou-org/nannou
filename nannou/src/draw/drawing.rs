@@ -27,7 +27,7 @@ where
     S: 'a + BaseFloat,
 {
     // The `Draw` instance used to create this drawing.
-    draw: &'a Draw<S>,
+    draw: &'a Draw<'a, S>,
     // The draw command index of the primitive being drawn.
     index: usize,
     // Whether or not the **Drawing** should attempt to finish the drawing on drop.
@@ -53,7 +53,7 @@ pub struct DrawingContext<'a, S> {
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<'a, T, S>(draw: &'a Draw<S>, index: usize) -> Drawing<'a, T, S>
+pub fn new<'a, T, S>(draw: &'a Draw<'a, S>, index: usize) -> Drawing<'a, T, S>
 where
     S: BaseFloat,
 {
