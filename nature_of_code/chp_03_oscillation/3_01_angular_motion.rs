@@ -41,7 +41,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.line()
         .start(pt2(-60.0, 0.0))
         .end(pt2(60.0, 0.0))
-        .color(rgb8(0, 0, 0))
+        .color(BLACK)
         .stroke_weight(2.0)
         .rotate(model.angle);
 
@@ -50,14 +50,14 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .w_h(16.0, 16.0)
         .gray(0.5)
         .stroke_weight(2.0)
-        .stroke_color(rgb8(0, 0, 0));
+        .stroke_color(BLACK);
 
     draw.ellipse()
         .xy(pt2(-60.0, 0.0).rotate(model.angle))
         .w_h(16.0, 16.0)
         .gray(0.5)
         .stroke_weight(2.0)
-        .stroke_color(rgb8(0, 0, 0));
+        .stroke_color(BLACK);
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
