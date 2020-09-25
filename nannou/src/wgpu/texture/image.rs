@@ -17,10 +17,10 @@ pub trait Pixel: image::Pixel {
 
 /// A wrapper around a wgpu buffer that contains an image of a known size and `image::ColorType`.
 #[derive(Debug)]
-pub struct BufferImage {
+pub struct BufferImage<'image> {
     color_type: image::ColorType,
     size: [u32; 2],
-    buffer: wgpu::BufferBytes,
+    buffer: wgpu::BufferBytes<'image>,
 }
 
 /// A wrapper around a slice of bytes representing an image.
@@ -303,7 +303,7 @@ impl wgpu::Texture {
     }
 }
 
-impl BufferImage {
+impl<'i> BufferImage<'i> {
     /// The dimensions of the image stored within the buffer.
     pub fn size(&self) -> [u32; 2] {
         self.size
@@ -447,7 +447,7 @@ impl<'a> WithDeviceQueuePair for &'a wgpu::DeviceQueuePair {
     }
 }
 
-impl<'a> WithDeviceQueuePair for &'a crate::window::Window {
+impl<'a> WithDeviceQueuePair for &'a crate::window::Window<'a> {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
         F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
@@ -457,7 +457,7 @@ impl<'a> WithDeviceQueuePair for &'a crate::window::Window {
     }
 }
 
-impl<'a> WithDeviceQueuePair for &'a crate::app::App {
+impl<'a> WithDeviceQueuePair for &'a crate::app::App<'a> {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
         F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
@@ -466,7 +466,7 @@ impl<'a> WithDeviceQueuePair for &'a crate::app::App {
     }
 }
 
-impl<'a, 'b> WithDeviceQueuePair for &'a std::cell::Ref<'b, crate::window::Window> {
+impl<'a, 'b> WithDeviceQueuePair for &'a std::cell::Ref<'b, crate::window::Window<'b>> {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
         F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,

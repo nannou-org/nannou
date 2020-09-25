@@ -15,14 +15,14 @@ pub struct Vertexless;
 
 /// Properties related to drawing an arbitrary mesh of colours, geometry and texture.
 #[derive(Clone, Debug)]
-pub struct Mesh<S = geom::scalar::Default> {
+pub struct Mesh<'mesh, S = geom::scalar::Default> {
     position: position::Properties<S>,
     orientation: orientation::Properties<S>,
     vertex_range: ops::Range<usize>,
     index_range: ops::Range<usize>,
     vertex_mode: draw::renderer::VertexMode,
     fill_color: Option<FillColor>,
-    texture_view: Option<wgpu::TextureView>,
+    texture_view: Option<wgpu::TextureView<'mesh>>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -36,7 +36,7 @@ struct FlattenIndices<I> {
     current: [usize; 3],
 }
 
-pub type DrawingMesh<'a, S> = Drawing<'a, Mesh<S>, S>;
+pub type DrawingMesh<'a, 'mesh, S> = Drawing<'a, Mesh<'mesh, S>, S>;
 
 impl Vertexless {
     /// Describe the mesh with a sequence of textured points.
@@ -45,12 +45,12 @@ impl Vertexless {
     /// coordinates in that order, e.g. `(point, tex_coords)`. `point` may be of any type that
     /// implements `Into<Point3>` and `tex_coords` may be of any type that implements
     /// `Into<Point2>`.
-    pub fn points_textured<S, I, P, T>(
+    pub fn points_textured<'mesh, S, I, P, T>(
         self,
         inner_mesh: &mut draw::Mesh<S>,
         texture_view: &dyn wgpu::ToTextureView,
         points: I,
-    ) -> Mesh<S>
+    ) -> Mesh<'mesh, S>
     where
         S: BaseFloat,
         I: IntoIterator<Item = (P, T)>,
@@ -101,7 +101,7 @@ impl Vertexless {
     /// This method assumes that the entire mesh should be coloured with a single colour. If a
     /// colour is not specified via one of the builder methods, a default colour will be retrieved
     /// from the inner `Theme`.
-    pub fn points<S, I>(self, inner_mesh: &mut draw::Mesh<S>, points: I) -> Mesh<S>
+    pub fn points<'mesh, S, I>(self, inner_mesh: &mut draw::Mesh<S>, points: I) -> Mesh<'mesh, S>
     where
         S: BaseFloat,
         I: IntoIterator,
@@ -119,13 +119,13 @@ impl Vertexless {
         mesh
     }
 
-    fn points_inner<S, I>(
+    fn points_inner<'mesh, S, I>(
         self,
         inner_mesh: &mut draw::Mesh<S>,
         vertices: I,
         vertex_mode: draw::renderer::VertexMode,
         texture_view: Option<wgpu::TextureView>,
-    ) -> Mesh<S>
+    ) -> Mesh<'mesh, S>
     where
         S: BaseFloat,
         I: Iterator<Item = Vertex<S>>,
@@ -147,12 +147,12 @@ impl Vertexless {
     /// coordinates in that order, e.g. `(point, tex_coords)`. `point` may be of any type that
     /// implements `Into<Point3>` and `tex_coords` may be of any type that implements
     /// `Into<Point2>`.
-    pub fn tris_textured<S, I, P, T>(
+    pub fn tris_textured<'mesh, S, I, P, T>(
         self,
         inner_mesh: &mut draw::Mesh<S>,
         texture_view: &dyn wgpu::ToTextureView,
         tris: I,
-    ) -> Mesh<S>
+    ) -> Mesh<'mesh, S>
     where
         S: BaseFloat,
         I: IntoIterator<Item = geom::Tri<(P, T)>>,
@@ -171,7 +171,11 @@ impl Vertexless {
     /// Each of the vertices must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements `Into<Point3>`
     /// and `color` may be of any type that implements `IntoLinSrgba`.
-    pub fn tris_colored<S, I, P, C>(self, inner_mesh: &mut draw::Mesh<S>, tris: I) -> Mesh<S>
+    pub fn tris_colored<'mesh, S, I, P, C>(
+        self,
+        inner_mesh: &mut draw::Mesh<S>,
+        tris: I,
+    ) -> Mesh<'mesh, S>
     where
         S: BaseFloat,
         I: IntoIterator<Item = geom::Tri<(P, C)>>,
@@ -193,7 +197,7 @@ impl Vertexless {
     /// This method assumes that the entire mesh should be coloured with a single colour. If a
     /// colour is not specified via one of the builder methods, a default colour will be retrieved
     /// from the inner `Theme`.
-    pub fn tris<S, I, V>(self, inner_mesh: &mut draw::Mesh<S>, tris: I) -> Mesh<S>
+    pub fn tris<'mesh, S, I, V>(self, inner_mesh: &mut draw::Mesh<S>, tris: I) -> Mesh<'mesh, S>
     where
         S: BaseFloat,
         I: IntoIterator<Item = geom::Tri<V>>,
@@ -214,13 +218,13 @@ impl Vertexless {
     /// coordinates in that order, e.g. `(point, tex_coords)`. `point` may be of any type that
     /// implements `Into<Point3>` and `tex_coords` may be of any type that implements
     /// `Into<Point2>`.
-    pub fn indexed_textured<S, V, I, P, T>(
+    pub fn indexed_textured<'mesh, S, V, I, P, T>(
         self,
         inner_mesh: &mut draw::Mesh<S>,
         texture_view: &dyn wgpu::ToTextureView,
         points: V,
         indices: I,
-    ) -> Mesh<S>
+    ) -> Mesh<'mesh, S>
     where
         S: BaseFloat,
         V: IntoIterator<Item = (P, T)>,
@@ -251,12 +255,12 @@ impl Vertexless {
     /// Each of the `points` must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements
     /// `Into<Point3>` and `color` may be of any type that implements `IntoLinSrgba`.
-    pub fn indexed_colored<S, V, I, P, C>(
+    pub fn indexed_colored<'mesh, S, V, I, P, C>(
         self,
         inner_mesh: &mut draw::Mesh<S>,
         points: V,
         indices: I,
-    ) -> Mesh<S>
+    ) -> Mesh<'mesh, S>
     where
         S: BaseFloat,
         V: IntoIterator<Item = (P, C)>,
@@ -279,7 +283,12 @@ impl Vertexless {
     /// Each trio of `indices` describes a single triangle made up of `points`.
     ///
     /// Each point may be any type that may be converted directly into the `Point3` type.
-    pub fn indexed<S, V, I>(self, inner_mesh: &mut draw::Mesh<S>, points: V, indices: I) -> Mesh<S>
+    pub fn indexed<'mesh, S, V, I>(
+        self,
+        inner_mesh: &mut draw::Mesh<S>,
+        points: V,
+        indices: I,
+    ) -> Mesh<'mesh, S>
     where
         S: BaseFloat,
         V: IntoIterator,
@@ -298,14 +307,14 @@ impl Vertexless {
         mesh
     }
 
-    fn indexed_inner<S, V, I>(
+    fn indexed_inner<'mesh, S, V, I>(
         self,
         inner_mesh: &mut draw::Mesh<S>,
         vertices: V,
         indices: I,
         vertex_mode: draw::renderer::VertexMode,
         texture_view: Option<wgpu::TextureView>,
-    ) -> Mesh<S>
+    ) -> Mesh<'mesh, S>
     where
         S: BaseFloat,
         V: IntoIterator<Item = Vertex<S>>,
@@ -321,7 +330,7 @@ impl Vertexless {
     }
 }
 
-impl<S> Mesh<S>
+impl<'mesh, S> Mesh<'mesh, S>
 where
     S: BaseFloat,
 {
@@ -347,7 +356,7 @@ where
     }
 }
 
-impl<'a, S> Drawing<'a, Vertexless, S>
+impl<'a, 'mesh, S> Drawing<'a, Vertexless, S>
 where
     S: BaseFloat,
 {
@@ -358,7 +367,7 @@ where
     /// This method assumes that the entire mesh should be coloured with a single colour. If a
     /// colour is not specified via one of the builder methods, a default colour will be retrieved
     /// from the inner `Theme`.
-    pub fn points<I>(self, points: I) -> DrawingMesh<'a, S>
+    pub fn points<I>(self, points: I) -> DrawingMesh<'a, 'mesh, S>
     where
         I: IntoIterator,
         I::Item: Into<Point<S>>,
@@ -371,7 +380,7 @@ where
     /// Each of the points must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements
     /// `Into<Point3>` and `color` may be of any type that implements `IntoLinSrgba`.
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingMesh<'a, S>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingMesh<'a, 'mesh, S>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Point<S>>,
@@ -390,7 +399,7 @@ where
         self,
         view: &dyn wgpu::ToTextureView,
         points: I,
-    ) -> DrawingMesh<'a, S>
+    ) -> DrawingMesh<'a, 'mesh, S>
     where
         I: IntoIterator<Item = (P, T)>,
         P: Into<Point<S>>,
@@ -407,7 +416,7 @@ where
     /// This method assumes that the entire mesh should be coloured with a single colour. If a
     /// colour is not specified via one of the builder methods, a default colour will be retrieved
     /// from the inner `Theme`.
-    pub fn tris<I, V>(self, tris: I) -> DrawingMesh<'a, S>
+    pub fn tris<I, V>(self, tris: I) -> DrawingMesh<'a, 'mesh, S>
     where
         I: IntoIterator<Item = geom::Tri<V>>,
         V: Into<Point<S>>,
@@ -420,7 +429,7 @@ where
     /// Each of the vertices must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements `Into<Point3>`
     /// and `color` may be of any type that implements `IntoLinSrgba`.
-    pub fn tris_colored<I, P, C>(self, tris: I) -> DrawingMesh<'a, S>
+    pub fn tris_colored<I, P, C>(self, tris: I) -> DrawingMesh<'a, 'mesh, S>
     where
         I: IntoIterator<Item = geom::Tri<(P, C)>>,
         P: Into<Point<S>>,
@@ -439,7 +448,7 @@ where
         self,
         view: &dyn wgpu::ToTextureView,
         tris: I,
-    ) -> DrawingMesh<'a, S>
+    ) -> DrawingMesh<'a, 'mesh, S>
     where
         I: IntoIterator<Item = geom::Tri<(P, T)>>,
         P: Into<Point<S>>,
@@ -453,7 +462,7 @@ where
     /// Each trio of `indices` describes a single triangle made up of `points`.
     ///
     /// Each point may be any type that may be converted directly into the `Point3` type.
-    pub fn indexed<V, I>(self, points: V, indices: I) -> DrawingMesh<'a, S>
+    pub fn indexed<V, I>(self, points: V, indices: I) -> DrawingMesh<'a, 'mesh, S>
     where
         V: IntoIterator,
         V::Item: Into<Point<S>>,
@@ -469,7 +478,7 @@ where
     /// Each of the `points` must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements
     /// `Into<Point3>` and `color` may be of any type that implements `IntoLinSrgba`.
-    pub fn indexed_colored<V, I, P, C>(self, points: V, indices: I) -> DrawingMesh<'a, S>
+    pub fn indexed_colored<V, I, P, C>(self, points: V, indices: I) -> DrawingMesh<'a, 'mesh, S>
     where
         V: IntoIterator<Item = (P, C)>,
         I: IntoIterator<Item = usize>,
@@ -492,7 +501,7 @@ where
         view: &dyn wgpu::ToTextureView,
         points: V,
         indices: I,
-    ) -> DrawingMesh<'a, S>
+    ) -> DrawingMesh<'a, 'mesh, S>
     where
         V: IntoIterator<Item = (P, T)>,
         I: IntoIterator<Item = usize>,
@@ -503,12 +512,12 @@ where
     }
 }
 
-impl draw::renderer::RenderPrimitive for Mesh<f32> {
+impl<'render> draw::renderer::RenderPrimitive<'render> for Mesh<'render, f32> {
     fn render_primitive(
         self,
         ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender {
+    ) -> draw::renderer::PrimitiveRender<'render> {
         let Mesh {
             orientation,
             position,
@@ -593,37 +602,37 @@ where
     }
 }
 
-impl<S> SetOrientation<S> for Mesh<S> {
+impl<'mesh, S> SetOrientation<S> for Mesh<'mesh, S> {
     fn properties(&mut self) -> &mut orientation::Properties<S> {
         SetOrientation::properties(&mut self.orientation)
     }
 }
 
-impl<S> SetPosition<S> for Mesh<S> {
+impl<'mesh, S> SetPosition<S> for Mesh<'mesh, S> {
     fn properties(&mut self) -> &mut position::Properties<S> {
         SetPosition::properties(&mut self.position)
     }
 }
 
-impl<S> SetColor<ColorScalar> for Mesh<S> {
+impl<'mesh, S> SetColor<ColorScalar> for Mesh<'mesh, S> {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         &mut self.fill_color.get_or_insert_with(Default::default).0
     }
 }
 
-impl<S> From<Vertexless> for Primitive<S> {
+impl<'mesh, S> From<Vertexless> for Primitive<'mesh, S> {
     fn from(prim: Vertexless) -> Self {
         Primitive::MeshVertexless(prim)
     }
 }
 
-impl<S> From<Mesh<S>> for Primitive<S> {
-    fn from(prim: Mesh<S>) -> Self {
+impl<'mesh, S> From<Mesh<'mesh, S>> for Primitive<'mesh, S> {
+    fn from(prim: Mesh<'mesh, S>) -> Self {
         Primitive::Mesh(prim)
     }
 }
 
-impl<S> Into<Option<Vertexless>> for Primitive<S> {
+impl<'mesh, S> Into<Option<Vertexless>> for Primitive<'mesh, S> {
     fn into(self) -> Option<Vertexless> {
         match self {
             Primitive::MeshVertexless(prim) => Some(prim),
@@ -632,8 +641,8 @@ impl<S> Into<Option<Vertexless>> for Primitive<S> {
     }
 }
 
-impl<S> Into<Option<Mesh<S>>> for Primitive<S> {
-    fn into(self) -> Option<Mesh<S>> {
+impl<'mesh, S> Into<Option<Mesh<'mesh, S>>> for Primitive<'mesh, S> {
+    fn into(self) -> Option<Mesh<'mesh, S>> {
         match self {
             Primitive::Mesh(prim) => Some(prim),
             _ => None,

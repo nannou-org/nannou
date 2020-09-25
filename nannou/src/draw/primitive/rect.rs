@@ -45,12 +45,12 @@ where
     }
 }
 
-impl draw::renderer::RenderPrimitive for Rect<f32> {
+impl<'r> draw::renderer::RenderPrimitive<'r> for Rect<f32> {
     fn render_primitive(
         self,
         ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender {
+    ) -> draw::renderer::PrimitiveRender<'r> {
         let Rect {
             polygon,
             dimensions,
@@ -140,13 +140,13 @@ impl<S> SetPolygon<S> for Rect<S> {
 
 // Primitive conversions.
 
-impl<S> From<Rect<S>> for Primitive<S> {
+impl<'r, S> From<Rect<S>> for Primitive<'r, S> {
     fn from(prim: Rect<S>) -> Self {
         Primitive::Rect(prim)
     }
 }
 
-impl<S> Into<Option<Rect<S>>> for Primitive<S> {
+impl<'r, S> Into<Option<Rect<S>>> for Primitive<'r, S> {
     fn into(self) -> Option<Rect<S>> {
         match self {
             Primitive::Rect(prim) => Some(prim),

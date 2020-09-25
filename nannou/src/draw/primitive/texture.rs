@@ -9,18 +9,18 @@ use crate::wgpu;
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]
-pub struct Texture<S = geom::scalar::Default> {
-    texture_view: wgpu::TextureView,
+pub struct Texture<'t, S = geom::scalar::Default> {
+    texture_view: wgpu::TextureView<'t>,
     spatial: spatial::Properties<S>,
     area: geom::Rect,
 }
 
 /// The drawing context for a Rect.
-pub type DrawingTexture<'a, S = geom::scalar::Default> = Drawing<'a, Texture<S>, S>;
+pub type DrawingTexture<'a, S = geom::scalar::Default> = Drawing<'a, Texture<'a, S>, S>;
 
 // Trait implementations.
 
-impl<S> Texture<S>
+impl<'t, S> Texture<'t, S>
 where
     S: BaseFloat,
 {
@@ -47,7 +47,7 @@ where
     }
 }
 
-impl<S> Texture<S> {
+impl<'t, S> Texture<'t, S> {
     /// Specify the area of the texture to draw.
     ///
     /// The bounds of the rectangle should represent the desired area as texture coordinates of the
@@ -81,12 +81,12 @@ where
     }
 }
 
-impl draw::renderer::RenderPrimitive for Texture<f32> {
+impl<'r> draw::renderer::RenderPrimitive<'r> for Texture<'r, f32> {
     fn render_primitive(
         self,
         mut ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender {
+    ) -> draw::renderer::PrimitiveRender<'r> {
         let Texture {
             texture_view,
             spatial,
@@ -133,19 +133,19 @@ impl draw::renderer::RenderPrimitive for Texture<f32> {
     }
 }
 
-impl<S> SetOrientation<S> for Texture<S> {
+impl<'t, S> SetOrientation<S> for Texture<'t, S> {
     fn properties(&mut self) -> &mut orientation::Properties<S> {
         SetOrientation::properties(&mut self.spatial)
     }
 }
 
-impl<S> SetPosition<S> for Texture<S> {
+impl<'t, S> SetPosition<S> for Texture<'t, S> {
     fn properties(&mut self) -> &mut position::Properties<S> {
         SetPosition::properties(&mut self.spatial)
     }
 }
 
-impl<S> SetDimensions<S> for Texture<S> {
+impl<'t, S> SetDimensions<S> for Texture<'t, S> {
     fn properties(&mut self) -> &mut dimension::Properties<S> {
         SetDimensions::properties(&mut self.spatial)
     }
@@ -153,14 +153,14 @@ impl<S> SetDimensions<S> for Texture<S> {
 
 // Primitive conversions.
 
-impl<S> From<Texture<S>> for Primitive<S> {
+impl<'t, S> From<Texture<'t, S>> for Primitive<'t, S> {
     fn from(prim: Texture<S>) -> Self {
         Primitive::Texture(prim)
     }
 }
 
-impl<S> Into<Option<Texture<S>>> for Primitive<S> {
-    fn into(self) -> Option<Texture<S>> {
+impl<'t, S> Into<Option<Texture<'t, S>>> for Primitive<'t, S> {
+    fn into(self) -> Option<Texture<'t, S>> {
         match self {
             Primitive::Texture(prim) => Some(prim),
             _ => None,

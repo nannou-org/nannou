@@ -177,7 +177,7 @@ impl<'r> Default for PrimitiveRender<'r> {
     }
 }
 
-impl<'r> RenderPrimitive<'r> for draw::Primitive {
+impl<'r> RenderPrimitive<'r> for draw::Primitive<'r> {
     fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender<'r> {
         match self {
             draw::Primitive::Arrow(prim) => prim.render_primitive(ctxt, mesh),
