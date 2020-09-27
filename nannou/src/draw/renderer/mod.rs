@@ -1017,7 +1017,7 @@ fn create_text_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout
             wgpu::ShaderStage::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
-            wgpu::texture_format_to_component_type(Renderer::GLYPH_CACHE_TEXTURE_FORMAT),
+            Renderer::GLYPH_CACHE_TEXTURE_FORMAT,
         )
         .build(device)
 }

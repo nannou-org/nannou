@@ -162,7 +162,7 @@ impl Texture {
 
     /// The component type associated with the texture's format.
     pub fn component_type(&self) -> wgpu::TextureComponentType {
-        format_to_component_type(self.format())
+        self.format().into()
     }
 
     // Custom constructors.
@@ -413,7 +413,7 @@ impl<'t> TextureView<'t> {
     }
 
     pub fn component_type(&self) -> wgpu::TextureComponentType {
-        format_to_component_type(self.format())
+        self.format().into()
     }
 
     pub fn id(&self) -> TextureViewId {
@@ -809,65 +809,4 @@ pub fn descriptor_eq(a: &wgpu::TextureDescriptor, b: &wgpu::TextureDescriptor) -
         && a.dimension == b.dimension
         && a.format == b.format
         && a.usage == b.usage
-}
-
-/// The component type associated with the given texture format.
-// TODO: Remove this when this lands https://github.com/gfx-rs/wgpu/pull/628
-pub fn format_to_component_type(format: wgpu::TextureFormat) -> wgpu::TextureComponentType {
-    match format {
-        wgpu::TextureFormat::R8Uint
-        | wgpu::TextureFormat::R16Uint
-        | wgpu::TextureFormat::Rg8Uint
-        | wgpu::TextureFormat::R32Uint
-        | wgpu::TextureFormat::Rg16Uint
-        | wgpu::TextureFormat::Rgba8Uint
-        | wgpu::TextureFormat::Rg32Uint
-        | wgpu::TextureFormat::Rgba16Uint
-        | wgpu::TextureFormat::Rgba32Uint => wgpu::TextureComponentType::Uint,
-
-        wgpu::TextureFormat::R8Sint
-        | wgpu::TextureFormat::R16Sint
-        | wgpu::TextureFormat::Rg8Sint
-        | wgpu::TextureFormat::R32Sint
-        | wgpu::TextureFormat::Rg16Sint
-        | wgpu::TextureFormat::Rgba8Sint
-        | wgpu::TextureFormat::Rg32Sint
-        | wgpu::TextureFormat::Rgba16Sint
-        | wgpu::TextureFormat::Rgba32Sint => wgpu::TextureComponentType::Sint,
-
-        wgpu::TextureFormat::R8Unorm
-        | wgpu::TextureFormat::R8Snorm
-        | wgpu::TextureFormat::R16Float
-        | wgpu::TextureFormat::R32Float
-        | wgpu::TextureFormat::Rg8Unorm
-        | wgpu::TextureFormat::Rg8Snorm
-        | wgpu::TextureFormat::Rg16Float
-        | wgpu::TextureFormat::Rg11b10Float
-        | wgpu::TextureFormat::Rg32Float
-        | wgpu::TextureFormat::Rgba8Snorm
-        | wgpu::TextureFormat::Rgba16Float
-        | wgpu::TextureFormat::Rgba32Float
-        | wgpu::TextureFormat::Rgba8Unorm
-        | wgpu::TextureFormat::Rgba8UnormSrgb
-        | wgpu::TextureFormat::Bgra8Unorm
-        | wgpu::TextureFormat::Bgra8UnormSrgb
-        | wgpu::TextureFormat::Rgb10a2Unorm
-        | wgpu::TextureFormat::Depth32Float
-        | wgpu::TextureFormat::Depth24Plus
-        | wgpu::TextureFormat::Depth24PlusStencil8
-        | wgpu::TextureFormat::Bc1RgbaUnorm
-        | wgpu::TextureFormat::Bc1RgbaUnormSrgb
-        | wgpu::TextureFormat::Bc2RgbaUnorm
-        | wgpu::TextureFormat::Bc2RgbaUnormSrgb
-        | wgpu::TextureFormat::Bc3RgbaUnorm
-        | wgpu::TextureFormat::Bc3RgbaUnormSrgb
-        | wgpu::TextureFormat::Bc4RUnorm
-        | wgpu::TextureFormat::Bc4RSnorm
-        | wgpu::TextureFormat::Bc5RgUnorm
-        | wgpu::TextureFormat::Bc5RgSnorm
-        | wgpu::TextureFormat::Bc6hRgbSfloat
-        | wgpu::TextureFormat::Bc6hRgbUfloat
-        | wgpu::TextureFormat::Bc7RgbaUnorm
-        | wgpu::TextureFormat::Bc7RgbaUnormSrgb => wgpu::TextureComponentType::Float,
-    }
 }

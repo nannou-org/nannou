@@ -50,8 +50,7 @@ pub use self::texture::image::{
 pub use self::texture::reshaper::Reshaper as TextureReshaper;
 pub use self::texture::{
     descriptor_eq as texture_descriptor_eq, extent_3d_eq,
-    format_size_bytes as texture_format_size_bytes,
-    format_to_component_type as texture_format_to_component_type, BufferBytes,
+    format_size_bytes as texture_format_size_bytes, BufferBytes,
     Builder as TextureBuilder, Texture, TextureId, TextureView, TextureViewId, ToTextureView,
 };
 #[doc(inline)]
