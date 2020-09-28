@@ -53,13 +53,14 @@ fn model(app: &App) -> Model {
         usage: wgpu::BufferUsage::STORAGE
             | wgpu::BufferUsage::COPY_DST
             | wgpu::BufferUsage::COPY_SRC,
+        mapped_at_creation: true,
     });
 
     // Create the buffer that will store time.
     let uniforms = create_uniforms(app.time, app.mouse.x, window.rect());
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
     let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
-    let uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
+    let uniform_buffer = device.create_buffer_init(uniforms_bytes, usage);
 
     // Create the bind group and pipeline.
     let bind_group_layout = create_bind_group_layout(device);
@@ -101,12 +102,13 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     let compute = &mut model.compute;
 
     // The buffer into which we'll read some data.
-    let read_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+    let read_buffer = device.create_buffer_init(&wgpu::BufferDescriptor {
         label: Some("read_oscillators"),
         size: compute.oscillator_buffer_size,
         usage: wgpu::BufferUsage::MAP_READ
             | wgpu::BufferUsage::COPY_DST
             | wgpu::BufferUsage::COPY_SRC,
+        mapped_at_creation: true,
     });
 
     // An update for the uniform buffer with the current time.
@@ -114,7 +116,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
     let usage = wgpu::BufferUsage::COPY_SRC;
-    let new_uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
+    let new_uniform_buffer = device.create_buffer_init(uniforms_bytes, usage);
 
     // The encoder we'll use to encode the compute pass.
     let desc = wgpu::CommandEncoderDescriptor {
@@ -243,7 +245,9 @@ fn create_pipeline_layout(
     bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::PipelineLayout {
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: "nannou",
         bind_group_layouts: &[&bind_group_layout],
+        push_constant_ranges: &[],
     })
 }
 
@@ -257,6 +261,7 @@ fn create_compute_pipeline(
         entry_point: "main",
     };
     let desc = wgpu::ComputePipelineDescriptor {
+        label: "nannou",
         layout,
         compute_stage,
     };
