@@ -70,7 +70,7 @@ pub struct Builder {
 
 /// A type aimed at simplifying the construction of a **TextureView**.
 ///
-/// The builder assumes a set of defaults that match view produced via `create_default_view`.
+/// The builder assumes a set of defaults that match view produced via `create_view`.
 #[derive(Debug)]
 pub struct ViewBuilder<'a> {
     texture: &'a wgpu::Texture,
@@ -330,13 +330,13 @@ impl Texture {
 
         // If this texture is multi-sampled, resolve it first.
         if self.sample_count() > 1 {
-            let view = self.create_default_view();
+            let view = self.create_view(&wgpu::TextureViewDescriptor::default());
             let descriptor = self.descriptor_cloned();
             let resolved_texture = wgpu::TextureBuilder::from(descriptor)
                 .sample_count(1)
                 .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::COPY_SRC)
                 .build(device);
-            let resolved_view = resolved_texture.create_default_view();
+            let resolved_view = resolved_texture.create_view(&wgpu::TextureViewDescriptor::default());
             wgpu::resolve_texture(&view, &resolved_view, encoder);
             texture_to_buffer(&resolved_texture, device, encoder)
         } else {

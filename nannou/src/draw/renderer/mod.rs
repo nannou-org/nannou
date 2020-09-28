@@ -399,19 +399,21 @@ impl<'r> Renderer<'r> {
             .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
             .format(Self::GLYPH_CACHE_TEXTURE_FORMAT)
             .build(device);
-        let glyph_cache_texture_view = glyph_cache_texture.view().build();
+        let glyph_cache_texture_view =
+            glyph_cache_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         // Create the depth texture.
         let depth_texture =
             create_depth_texture(device, output_attachment_size, depth_format, sample_count);
-        let depth_texture_view = depth_texture.view().build();
+        let depth_texture_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         // The default texture for the case where the user has not specified one.
         let default_texture = wgpu::TextureBuilder::new()
             .size([64; 2])
             .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
             .build(device);
-        let default_texture_view = default_texture.view().build();
+        let default_texture_view =
+            default_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         // Initial uniform buffer values. These will be overridden on draw.
         let uniforms = create_uniforms(output_attachment_size, output_scale_factor);
@@ -799,7 +801,8 @@ impl<'r> Renderer<'r> {
             let sample_count = depth_texture.sample_count();
             *depth_texture =
                 create_depth_texture(device, output_attachment_size, depth_format, sample_count);
-            *depth_texture_view = depth_texture.view().build();
+            *depth_texture_view =
+                depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
         }
 
         // Retrieve the clear values based on the bg color.
@@ -914,7 +917,7 @@ impl<'r> Renderer<'r> {
         texture: &wgpu::Texture,
     ) {
         let size = texture.size();
-        let view = texture.view().build();
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         // TODO: Should we expose this for rendering to textures?
         let scale_factor = 1.0;
         let resolve_target = None;
