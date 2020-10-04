@@ -3,10 +3,10 @@
 Considering contributing to nannou? Awesome! Hopefully this section can guide
 you in the right direction.
 
-- [**About the Codebase**](./about-the-codebase.md)
-- [**PR Checklist**](./pr-checklist.md)
-- [**PR Reviews**](./pr-reviews.md)
-- [**Publish New Versions**](./publish-new-versions.md)
+- [**About the Codebase**](./contributing/about-the-codebase.md)
+- [**PR Checklist**](./contributing/pr-checklist.md)
+- [**PR Reviews**](./contributing/pr-reviews.md)
+- [**Publishing New Versions**](./contributing/publishing-new-versions.md)
 
 ## Still have questions?
 

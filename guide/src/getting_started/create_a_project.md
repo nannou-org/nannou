@@ -29,9 +29,9 @@ create a new project with just a few small steps:
    version = "0.1.0"
    authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
    edition = "2018"
-   
+
    [dependencies]
-   nannou = "0.14"
+   nannou = "0.15"
    ```
 
    Note that there is a chance the nannou version above might be out of date.

@@ -7,6 +7,12 @@ back to the origins.
 
 # Unreleased
 
+*There are no unreleased changes yet.*
+
+---
+
+# Version 0.15.0 (2020-10-04)
+
 **Update to WGPU 0.5**
 
 For the most part, these changes will affect users of the `nannou::wgpu` module,
