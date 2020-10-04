@@ -17,6 +17,7 @@
     - [Basics - Window Coordinates](./tutorials/basics/window-coordinates.md)
     - [Draw - 2D Shapes](./tutorials/draw/drawing-2d-shapes.md)
     - [Draw - Animating a Circle](./tutorials/draw/animating-a-circle.md)
+    - [Draw - Drawing Images](./tutorials/draw/drawing-images.md)
     - [OSC - Introduction](./tutorials/osc/osc-introduction.md)
     - [OSC - Sending OSC](./tutorials/osc/osc-sender.md)
 - [Developer Reference](./developer_reference.md)

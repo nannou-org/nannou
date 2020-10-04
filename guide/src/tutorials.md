@@ -35,7 +35,7 @@ Working with Nannou's `Draw` API - a simple approach of coding graphics.
 
 - [Drawing 2D shapes](/tutorials/draw/drawing-2d-shapes.md)
 - [Animating a circle](/tutorials/draw/animating-a-circle.md)
-- Drawing images
+- [Drawing images](/tutorials/draw/drawing-images.md)
 - Drawing 3D shapes
 - Drawing meshes
 
