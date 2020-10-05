@@ -47,12 +47,12 @@ impl<S> Quad<S> {
 }
 
 // Trait implementations.
-impl<'r> draw::renderer::RenderPrimitive<'r> for Quad<f32> {
+impl draw::renderer::RenderPrimitive for Quad<f32> {
     fn render_primitive(
         self,
         ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender<'r> {
+    ) -> draw::renderer::PrimitiveRender {
         let Quad {
             mut quad,
             polygon,
@@ -167,13 +167,13 @@ impl<S> SetPolygon<S> for Quad<S> {
 
 // Primitive conversions.
 
-impl<'q, S> From<Quad<S>> for Primitive<'q, S> {
+impl<S> From<Quad<S>> for Primitive<S> {
     fn from(prim: Quad<S>) -> Self {
         Primitive::Quad(prim)
     }
 }
 
-impl<'q, S> Into<Option<Quad<S>>> for Primitive<'q, S> {
+impl<S> Into<Option<Quad<S>>> for Primitive<S> {
     fn into(self) -> Option<Quad<S>> {
         match self {
             Primitive::Quad(prim) => Some(prim),

@@ -54,12 +54,12 @@ where
 
 // Trait implementations.
 
-impl<'e> draw::renderer::RenderPrimitive<'e> for Ellipse<f32> {
+impl draw::renderer::RenderPrimitive for Ellipse<f32> {
     fn render_primitive(
         self,
         ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender<'e> {
+    ) -> draw::renderer::PrimitiveRender {
         let Ellipse {
             dimensions,
             polygon,
@@ -169,13 +169,13 @@ impl<S> SetPolygon<S> for Ellipse<S> {
 
 // Primitive conversion.
 
-impl<'e, S> From<Ellipse<S>> for Primitive<'e, S> {
+impl<S> From<Ellipse<S>> for Primitive<S> {
     fn from(prim: Ellipse<S>) -> Self {
         Primitive::Ellipse(prim)
     }
 }
 
-impl<'e, S> Into<Option<Ellipse<S>>> for Primitive<'e, S> {
+impl<S> Into<Option<Ellipse<S>>> for Primitive<S> {
     fn into(self) -> Option<Ellipse<S>> {
         match self {
             Primitive::Ellipse(prim) => Some(prim),

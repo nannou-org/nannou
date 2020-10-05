@@ -447,7 +447,7 @@ impl<'a> WithDeviceQueuePair for &'a wgpu::DeviceQueuePair {
     }
 }
 
-impl<'a> WithDeviceQueuePair for &'a crate::window::Window<'a> {
+impl<'a> WithDeviceQueuePair for &'a crate::window::Window {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
         F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
@@ -466,7 +466,7 @@ impl<'a> WithDeviceQueuePair for &'a crate::app::App<'a> {
     }
 }
 
-impl<'a, 'b> WithDeviceQueuePair for &'a std::cell::Ref<'b, crate::window::Window<'b>> {
+impl<'a, 'b> WithDeviceQueuePair for &'a std::cell::Ref<'b, crate::window::Window> {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
         F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,

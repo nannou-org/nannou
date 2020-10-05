@@ -78,7 +78,7 @@ pub struct Context<'c, S = geom::scalar::Default> {
 #[derive(Clone, Debug)]
 pub enum DrawCommand<'d, S = geom::scalar::Default> {
     /// Draw a primitive.
-    Primitive(Primitive<'d, S>),
+    Primitive(Primitive<S>),
     /// A change in the rendering context occurred.
     Context(Context<'d, S>),
 }
@@ -113,7 +113,7 @@ where
     /// Primitives that are in the process of being drawn.
     ///
     /// Keys are indices into the `draw_commands` Vec.
-    drawing: HashMap<usize, Primitive<'s, S>>,
+    drawing: HashMap<usize, Primitive<S>>,
     /// The list of recorded draw commands.
     ///
     /// An element may be `None` if it is a primitive in the process of being drawn.
@@ -505,8 +505,8 @@ where
     /// Add the given type to be drawn.
     pub fn a<T>(&self, primitive: T) -> Drawing<T, S>
     where
-        T: Into<Primitive<'d, S>>,
-        Primitive<'d, S>: Into<Option<T>>,
+        T: Into<Primitive<S>>,
+        Primitive<S>: Into<Option<T>>,
     {
         let index = {
             let mut state = self.state.borrow_mut();

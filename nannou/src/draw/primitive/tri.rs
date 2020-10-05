@@ -70,12 +70,12 @@ where
 
 // Trait implementations.
 
-impl<'r> draw::renderer::RenderPrimitive<'r> for Tri<f32> {
+impl draw::renderer::RenderPrimitive for Tri<f32> {
     fn render_primitive(
         self,
         ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender<'r> {
+    ) -> draw::renderer::PrimitiveRender {
         let Tri {
             mut tri,
             dimensions,
@@ -187,13 +187,13 @@ impl<S> SetPolygon<S> for Tri<S> {
 
 // Primitive conversions.
 
-impl<'t, S> From<Tri<S>> for Primitive<'t, S> {
+impl<S> From<Tri<S>> for Primitive<S> {
     fn from(prim: Tri<S>) -> Self {
         Primitive::Tri(prim)
     }
 }
 
-impl<'t, S> Into<Option<Tri<S>>> for Primitive<'t, S> {
+impl<S> Into<Option<Tri<S>>> for Primitive<S> {
     fn into(self) -> Option<Tri<S>> {
         match self {
             Primitive::Tri(prim) => Some(prim),

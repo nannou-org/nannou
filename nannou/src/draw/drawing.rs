@@ -126,7 +126,7 @@ where
     fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
     where
         F: FnOnce(Primitive<S>) -> Primitive<S>,
-        T2: Into<Primitive<'a, S>>,
+        T2: Into<Primitive<S>>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
@@ -149,8 +149,8 @@ where
     // vertices.
     fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
     where
-        F: FnOnce(Primitive<S>, DrawingContext<S>) -> Primitive<'a, S>,
-        T2: Into<Primitive<'a, S>>,
+        F: FnOnce(Primitive<S>, DrawingContext<S>) -> Primitive<S>,
+        T2: Into<Primitive<S>>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
@@ -180,8 +180,8 @@ where
     pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2, S>
     where
         F: FnOnce(T) -> T2,
-        T2: Into<Primitive<'a, S>>,
-        Primitive<'a, S>: Into<Option<T>>,
+        T2: Into<Primitive<S>>,
+        Primitive<S>: Into<Option<T>>,
     {
         self.map_primitive(|prim| {
             let maybe_ty: Option<T> = prim.into();
@@ -199,8 +199,8 @@ where
     pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2, S>
     where
         F: FnOnce(T, DrawingContext<S>) -> T2,
-        T2: Into<Primitive<'a, S>>,
-        Primitive<'a, S>: Into<Option<T>>,
+        T2: Into<Primitive<S>>,
+        Primitive<S>: Into<Option<T>>,
     {
         self.map_primitive_with_context(|prim, ctxt| {
             let maybe_ty: Option<T> = prim.into();
@@ -215,8 +215,8 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: SetColor<ColorScalar> + Into<Primitive<'a, S>>,
-    Primitive<'a, S>: Into<Option<T>>,
+    T: SetColor<ColorScalar> + Into<Primitive<S>>,
+    Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
     /// Specify a color.
@@ -315,8 +315,8 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: SetDimensions<S> + Into<Primitive<'a, S>>,
-    Primitive<'a, S>: Into<Option<T>>,
+    T: SetDimensions<S> + Into<Primitive<S>>,
+    Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
     /// Set the absolute width for the node.
@@ -374,8 +374,8 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: SetPosition<S> + Into<Primitive<'a, S>>,
-    Primitive<'a, S>: Into<Option<T>>,
+    T: SetPosition<S> + Into<Primitive<S>>,
+    Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
     /// Build with the given **Absolute** **Position** along the *x* axis.
@@ -418,8 +418,8 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: SetOrientation<S> + Into<Primitive<'a, S>>,
-    Primitive<'a, S>: Into<Option<T>>,
+    T: SetOrientation<S> + Into<Primitive<S>>,
+    Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
     /// Describe orientation via the vector that points to the given target.
@@ -572,8 +572,8 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: SetFill + Into<Primitive<'a, S>>,
-    Primitive<'a, S>: Into<Option<T>>,
+    T: SetFill + Into<Primitive<S>>,
+    Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
     /// Specify the whole set of fill tessellation options.
@@ -616,8 +616,8 @@ where
 
 impl<'a, T, S> Drawing<'a, T, S>
 where
-    T: SetStroke + Into<Primitive<'a, S>>,
-    Primitive<'a, S>: Into<Option<T>>,
+    T: SetStroke + Into<Primitive<S>>,
+    Primitive<S>: Into<Option<T>>,
     S: BaseFloat,
 {
     /// The start line cap as specified by the SVG spec.

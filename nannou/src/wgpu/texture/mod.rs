@@ -35,9 +35,9 @@ pub struct Texture {
 /// be of the whole texture, but it might also be of some sub-section of the texture. When an API
 /// provides
 #[derive(Debug)]
-pub struct TextureView<'t> {
+pub struct TextureView {
     handle: Arc<TextureViewHandle>,
-    descriptor: wgpu::TextureViewDescriptor<'t>,
+    descriptor: wgpu::TextureViewDescriptor<'static>,
     texture_extent: wgpu::Extent3d,
     texture_id: TextureId,
 }
@@ -72,9 +72,9 @@ pub struct Builder {
 ///
 /// The builder assumes a set of defaults that match view produced via `create_view`.
 #[derive(Debug)]
-pub struct ViewBuilder<'a> {
-    texture: &'a wgpu::Texture,
-    descriptor: wgpu::TextureViewDescriptor<'a>,
+pub struct ViewBuilder {
+    texture: &'static wgpu::Texture,
+    descriptor: wgpu::TextureViewDescriptor<'static>,
 }
 
 /// A wrapper around a `wgpu::Buffer` containing bytes of a known length.
@@ -246,10 +246,10 @@ impl Texture {
 
     /// Creates a `BufferCopyView` ready for copying to or from the given buffer where the given
     /// buffer is assumed to have the same size as the entirety of this texture.
-    pub fn default_buffer_copy_view<'a>(
+    pub fn default_buffer_copy_view(
         &self,
-        buffer: &'a wgpu::Buffer,
-    ) -> wgpu::BufferCopyView<'a> {
+        buffer: &'static wgpu::Buffer,
+    ) -> wgpu::BufferCopyView {
         let format_size_bytes = format_size_bytes(self.format());
         let [width, height] = self.size();
         let layout = wgpu::TextureDataLayout {
@@ -366,7 +366,7 @@ impl Texture {
     }
 }
 
-impl<'t> TextureView<'t> {
+impl TextureView {
     pub fn descriptor(&self) -> &wgpu::TextureViewDescriptor {
         &self.descriptor
     }
@@ -568,7 +568,7 @@ impl Builder {
     }
 }
 
-impl<'a> ViewBuilder<'a> {
+impl ViewBuilder {
     pub fn format(mut self, format: Option<wgpu::TextureFormat>) -> Self {
         self.descriptor.format = format;
         self
@@ -612,7 +612,7 @@ impl<'a> ViewBuilder<'a> {
         self.base_array_layer(layer).array_layer_count(1)
     }
 
-    pub fn build(self) -> TextureView<'a> {
+    pub fn build(self) -> TextureView {
         TextureView {
             handle: Arc::new(self.texture.inner().create_view(&self.descriptor)),
             descriptor: self.descriptor,
@@ -622,7 +622,7 @@ impl<'a> ViewBuilder<'a> {
     }
 
     /// Consumes the texture view builder and returns the resulting `wgpu::TextureViewDescriptor`.
-    pub fn into_descriptor(self) -> wgpu::TextureViewDescriptor<'a> {
+    pub fn into_descriptor(self) -> wgpu::TextureViewDescriptor<'static> {
         self.into()
     }
 }
@@ -671,7 +671,7 @@ where
     }
 }
 
-impl<'t> ToTextureView for TextureView<'t> {
+impl ToTextureView for TextureView {
     fn to_texture_view(&self) -> TextureView {
         self.clone()
     }
@@ -683,7 +683,7 @@ impl ToTextureView for Texture {
     }
 }
 
-impl<'t> Clone for TextureView<'t> {
+impl Clone for TextureView {
     fn clone(&self) -> Self {
         TextureView {
             handle: self.handle.clone(),
@@ -709,7 +709,7 @@ impl Deref for Texture {
     }
 }
 
-impl<'t> Deref for TextureView<'t> {
+impl Deref for TextureView {
     type Target = TextureViewHandle;
     fn deref(&self) -> &Self::Target {
         &self.handle
@@ -742,8 +742,8 @@ impl Into<wgpu::TextureDescriptor<'static>> for Builder {
     }
 }
 
-impl<'a> Into<wgpu::TextureViewDescriptor<'a>> for ViewBuilder<'a> {
-    fn into(self) -> wgpu::TextureViewDescriptor<'a> {
+impl Into<wgpu::TextureViewDescriptor<'static>> for ViewBuilder {
+    fn into(self) -> wgpu::TextureViewDescriptor<'static> {
         self.descriptor
     }
 }

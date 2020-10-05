@@ -115,13 +115,13 @@ impl<S> SetColor<ColorScalar> for Line<S> {
     }
 }
 
-impl<'l, S> From<Line<S>> for Primitive<'l, S> {
+impl<S> From<Line<S>> for Primitive<S> {
     fn from(prim: Line<S>) -> Self {
         Primitive::Line(prim)
     }
 }
 
-impl<'l, S> Into<Option<Line<S>>> for Primitive<'l, S> {
+impl<S> Into<Option<Line<S>>> for Primitive<S> {
     fn into(self) -> Option<Line<S>> {
         match self {
             Primitive::Line(prim) => Some(prim),
@@ -130,12 +130,12 @@ impl<'l, S> Into<Option<Line<S>>> for Primitive<'l, S> {
     }
 }
 
-impl<'l> draw::renderer::RenderPrimitive<'l> for Line<f32> {
+impl draw::renderer::RenderPrimitive for Line<f32> {
     fn render_primitive(
         self,
         mut ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender<'l> {
+    ) -> draw::renderer::PrimitiveRender {
         let Line { path, start, end } = self;
         let start = start.unwrap_or(pt2(0.0, 0.0));
         let end = end.unwrap_or(pt2(0.0, 0.0));
