@@ -14,7 +14,9 @@ impl SamplerBuilder {
     pub const DEFAULT_LOD_MIN_CLAMP: f32 = -100.0;
     pub const DEFAULT_LOD_MAX_CLAMP: f32 = 100.0;
     pub const DEFAULT_COMPARE: wgpu::CompareFunction = wgpu::CompareFunction::Always;
+    pub const DEFAULT_LABEL: &'static str = "nannou_sampler_descriptor";
     pub const DEFAULT_DESCRIPTOR: wgpu::SamplerDescriptor = wgpu::SamplerDescriptor {
+        label: Some(Self::DEFAULT_LABEL),
         address_mode_u: Self::DEFAULT_ADDRESS_MODE_U,
         address_mode_v: Self::DEFAULT_ADDRESS_MODE_V,
         address_mode_w: Self::DEFAULT_ADDRESS_MODE_W,
@@ -95,7 +97,12 @@ impl SamplerBuilder {
     }
 
     pub fn compare(mut self, f: wgpu::CompareFunction) -> Self {
-        self.descriptor.compare = f;
+        self.descriptor.compare = Some(f);
+        self
+    }
+
+    pub fn label(mut self, label: &'static str) -> Self {
+        self.descriptor.label = Some(label);
         self
     }
 
@@ -105,7 +112,7 @@ impl SamplerBuilder {
     }
 
     /// Consume the builder and produce the inner `SamplerDescriptor`.
-    pub fn into_descriptor(self) -> wgpu::SamplerDescriptor {
+    pub fn into_descriptor(self) -> wgpu::SamplerDescriptor<'static> {
         self.into()
     }
 }
@@ -118,14 +125,14 @@ impl Default for SamplerBuilder {
     }
 }
 
-impl Into<wgpu::SamplerDescriptor> for SamplerBuilder {
-    fn into(self) -> wgpu::SamplerDescriptor {
+impl Into<wgpu::SamplerDescriptor<'static>> for SamplerBuilder {
+    fn into(self) -> wgpu::SamplerDescriptor<'static> {
         self.descriptor
     }
 }
 
-impl From<wgpu::SamplerDescriptor> for SamplerBuilder {
-    fn from(descriptor: wgpu::SamplerDescriptor) -> Self {
+impl From<wgpu::SamplerDescriptor<'static>> for SamplerBuilder {
+    fn from(descriptor: wgpu::SamplerDescriptor<'static>) -> Self {
         SamplerBuilder { descriptor }
     }
 }

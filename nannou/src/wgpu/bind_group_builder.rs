@@ -31,7 +31,20 @@ impl LayoutBuilder {
 
     /// Add a uniform buffer binding to the layout.
     pub fn uniform_buffer(self, visibility: wgpu::ShaderStage, dynamic: bool) -> Self {
-        let ty = wgpu::BindingType::UniformBuffer { dynamic };
+        let min_binding_size = None;
+        let ty = wgpu::BindingType::UniformBuffer { dynamic, min_binding_size };
+        self.binding(visibility, ty)
+    }
+
+    /// Add a uniform buffer binding to the layout.
+    pub fn uniform_buffer_with_min_binding_size(
+        self,
+        visibility: wgpu::ShaderStage,
+        dynamic: bool,
+        min_binding_size: std::num::NonZeroU64,
+    ) -> Self {
+        let min_binding_size = Some(min_binding_size);
+        let ty = wgpu::BindingType::UniformBuffer { dynamic, min_binding_size };
         self.binding(visibility, ty)
     }
 
@@ -42,7 +55,21 @@ impl LayoutBuilder {
         dynamic: bool,
         readonly: bool,
     ) -> Self {
-        let ty = wgpu::BindingType::StorageBuffer { dynamic, readonly };
+        let min_binding_size = None;
+        let ty = wgpu::BindingType::StorageBuffer { dynamic, readonly, min_binding_size };
+        self.binding(visibility, ty)
+    }
+
+    /// Add a storage buffer binding to the layout.
+    pub fn storage_buffer_with_min_binding_size(
+        self,
+        visibility: wgpu::ShaderStage,
+        dynamic: bool,
+        readonly: bool,
+        min_binding_size: std::num::NonZeroU64,
+    ) -> Self {
+        let min_binding_size = Some(min_binding_size);
+        let ty = wgpu::BindingType::StorageBuffer { dynamic, readonly, min_binding_size };
         self.binding(visibility, ty)
     }
 
@@ -136,18 +163,21 @@ impl LayoutBuilder {
 
     /// Build the bind group layout from the specified parameters.
     pub fn build(self, device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        let mut bindings = Vec::with_capacity(self.bindings.len());
+        let mut entries = Vec::with_capacity(self.bindings.len());
         for (i, (visibility, ty)) in self.bindings.into_iter().enumerate() {
             let layout_binding = wgpu::BindGroupLayoutEntry {
                 binding: i as u32,
                 visibility,
                 ty,
+                // TODO: Investigate how to use this properly:
+                // https://docs.rs/wgpu/0.6.0/wgpu/struct.BindGroupLayoutEntry.html#structfield.count
+                count: None,
             };
-            bindings.push(layout_binding);
+            entries.push(layout_binding);
         }
         let descriptor = wgpu::BindGroupLayoutDescriptor {
             label: Some("nannou"),
-            bindings: &bindings,
+            entries: &entries,
         };
         device.create_bind_group_layout(&descriptor)
     }
@@ -178,7 +208,9 @@ impl<'a> Builder<'a> {
         buffer: &'a wgpu::Buffer,
         range: std::ops::Range<wgpu::BufferAddress>,
     ) -> Self {
-        let resource = wgpu::BindingResource::Buffer { buffer, range };
+        let size = range.end - range.start;
+        let buffer_slice = wgpu::BindingResource::Buffer { buffer, range, size };
+        let resource = wgpu::BindingResource::Buffer(buffer_slice);
         self.binding(resource)
     }
 
@@ -213,18 +245,18 @@ impl<'a> Builder<'a> {
 
     /// Build the bind group with the specified resources.
     pub fn build(self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
-        let mut bindings = Vec::with_capacity(self.resources.len());
+        let mut entries = Vec::with_capacity(self.resources.len());
         for (i, resource) in self.resources.into_iter().enumerate() {
-            let binding = wgpu::Binding {
+            let binding = wgpu::BindGroupEntry {
                 binding: i as u32,
                 resource,
             };
-            bindings.push(binding);
+            entries.push(binding);
         }
         let descriptor = wgpu::BindGroupDescriptor {
             label: Some("nannou"),
             layout,
-            bindings: &bindings,
+            entries: &entries,
         };
         device.create_bind_group(&descriptor)
     }

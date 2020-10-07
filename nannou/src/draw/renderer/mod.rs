@@ -395,7 +395,7 @@ impl Renderer {
             .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
             .format(Self::GLYPH_CACHE_TEXTURE_FORMAT)
             .build(device);
-        let glyph_cache_texture_view = glyph_cache_texture.create_default_view();
+        let glyph_cache_texture_view = glyph_cache_texture.view().build();
 
         // Create the depth texture.
         let depth_texture =
@@ -413,7 +413,11 @@ impl Renderer {
         let uniforms = create_uniforms(output_attachment_size, output_scale_factor);
         let uniforms_bytes = uniforms_as_bytes(&uniforms);
         let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
-        let uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
+        let uniform_buffer = device.create_buffer_init(wgpu::util::BufferInitDescriptor {
+            label: Some("nannou_draw_uniform_buffer"),
+            contents: uniforms_bytes,
+            usage,
+        });
 
         // Bind group for uniforms.
         let uniform_bind_group_layout = create_uniform_bind_group_layout(device);
@@ -1013,7 +1017,7 @@ fn create_text_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout
             wgpu::ShaderStage::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
-            wgpu::texture_format_to_component_type(Renderer::GLYPH_CACHE_TEXTURE_FORMAT),
+            Renderer::GLYPH_CACHE_TEXTURE_FORMAT,
         )
         .build(device)
 }

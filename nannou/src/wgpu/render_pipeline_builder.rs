@@ -91,15 +91,18 @@ impl<'a> RenderPipelineBuilder<'a> {
         wgpu::StencilStateFaceDescriptor::IGNORE;
     pub const DEFAULT_STENCIL_READ_MASK: u32 = 0;
     pub const DEFAULT_STENCIL_WRITE_MASK: u32 = 0;
+    pub const DEFAULT_STENCIL: wgpu::StencilStateDescriptor = wgpu::StencilStateDescriptor {
+        front: Self::DEFAULT_STENCIL_FRONT,
+        back: Self::DEFAULT_STENCIL_BACK,
+        read_mask: Self::DEFAULT_STENCIL_READ_MASK,
+        write_mask: Self::DEFAULT_STENCIL_WRITE_MASK,
+    };
     pub const DEFAULT_DEPTH_STENCIL_STATE: wgpu::DepthStencilStateDescriptor =
         wgpu::DepthStencilStateDescriptor {
             format: Self::DEFAULT_DEPTH_FORMAT,
             depth_write_enabled: Self::DEFAULT_DEPTH_WRITE_ENABLED,
             depth_compare: Self::DEFAULT_DEPTH_COMPARE,
-            stencil_front: Self::DEFAULT_STENCIL_FRONT,
-            stencil_back: Self::DEFAULT_STENCIL_BACK,
-            stencil_read_mask: Self::DEFAULT_STENCIL_READ_MASK,
-            stencil_write_mask: Self::DEFAULT_STENCIL_WRITE_MASK,
+            stencil: Self::DEFAULT_STENCIL,
         };
 
     // Vertex buffer defaults.
@@ -295,7 +298,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         let state = self
             .depth_stencil_state
             .get_or_insert(Self::DEFAULT_DEPTH_STENCIL_STATE);
-        state.stencil_front = stencil;
+        state.stencil.front = stencil;
         self
     }
 
@@ -303,7 +306,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         let state = self
             .depth_stencil_state
             .get_or_insert(Self::DEFAULT_DEPTH_STENCIL_STATE);
-        state.stencil_back = stencil;
+        state.stencil.back = stencil;
         self
     }
 
@@ -311,7 +314,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         let state = self
             .depth_stencil_state
             .get_or_insert(Self::DEFAULT_DEPTH_STENCIL_STATE);
-        state.stencil_read_mask = mask;
+        state.stencil.read_mask = mask;
         self
     }
 
@@ -319,7 +322,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         let state = self
             .depth_stencil_state
             .get_or_insert(Self::DEFAULT_DEPTH_STENCIL_STATE);
-        state.stencil_write_mask = mask;
+        state.stencil.write_mask = mask;
         self
     }
 
@@ -404,7 +407,10 @@ impl<'a> IntoPipelineLayoutDescriptor<'a> for wgpu::PipelineLayoutDescriptor<'a>
 impl<'a> IntoPipelineLayoutDescriptor<'a> for &'a [&'a wgpu::BindGroupLayout] {
     fn into_pipeline_layout_descriptor(self) -> wgpu::PipelineLayoutDescriptor<'a> {
         wgpu::PipelineLayoutDescriptor {
+            label: Some("nannou_pipeline_layout_descriptor"),
             bind_group_layouts: self,
+            // TODO: This should be exposed.
+            push_constant_ranges: &[],
         }
     }
 }
@@ -477,7 +483,9 @@ fn build(
     };
 
     let pipeline_desc = wgpu::RenderPipelineDescriptor {
-        layout,
+        // TODO: Expose a &'static str builder method.
+        lable: Some("nannou_render_pipeline_descriptor"),
+        layout: Some(layout),
         vertex_stage,
         fragment_stage,
         rasterization_state,
