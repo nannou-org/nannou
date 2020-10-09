@@ -15,9 +15,9 @@ default = ["notosans"]
 
 [dependencies]
 cgmath = { version = "0.17", features = ["serde"] }
-conrod_core = "0.70"
-conrod_wgpu = "0.70"
-conrod_winit = "0.70"
+conrod_core = "0.71"
+conrod_wgpu = "0.71"
+conrod_winit = "0.71"
 daggy = "0.6"
 find_folder = "0.3"
 futures = { version = "0.3", features = ["executor", "thread-pool"] }
