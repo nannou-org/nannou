@@ -1,10 +1,14 @@
+use std::num::NonZeroU8;
+
+use crate::wgpu;
+
 /// Simplifies the construction of a `Sampler` with a set of reasonable defaults.
 #[derive(Debug)]
-pub struct SamplerBuilder<'b> {
-    pub descriptor: wgpu::SamplerDescriptor<'b>,
+pub struct SamplerBuilder {
+    pub descriptor: wgpu::SamplerDescriptor<'static>,
 }
 
-impl<'b> SamplerBuilder<'b> {
+impl<'b> SamplerBuilder {
     pub const DEFAULT_ADDRESS_MODE_U: wgpu::AddressMode = wgpu::AddressMode::ClampToEdge;
     pub const DEFAULT_ADDRESS_MODE_V: wgpu::AddressMode = wgpu::AddressMode::ClampToEdge;
     pub const DEFAULT_ADDRESS_MODE_W: wgpu::AddressMode = wgpu::AddressMode::ClampToEdge;
@@ -13,8 +17,10 @@ impl<'b> SamplerBuilder<'b> {
     pub const DEFAULT_MIPMAP_FILTER: wgpu::FilterMode = wgpu::FilterMode::Nearest;
     pub const DEFAULT_LOD_MIN_CLAMP: f32 = -100.0;
     pub const DEFAULT_LOD_MAX_CLAMP: f32 = 100.0;
-    pub const DEFAULT_COMPARE: wgpu::CompareFunction = wgpu::CompareFunction::Always;
-    pub const DEFAULT_DESCRIPTOR: wgpu::SamplerDescriptor<'b> = wgpu::SamplerDescriptor {
+    pub const DEFAULT_COMPARE: Option<wgpu::CompareFunction> = None;
+    pub const DEFAULT_ANISOTROPY_CLAMP: Option<NonZeroU8> = None;
+    pub const DEFAULT_LABEL: Option<&'static str> = None;
+    pub const DEFAULT_DESCRIPTOR: wgpu::SamplerDescriptor<'static> = wgpu::SamplerDescriptor {
         address_mode_u: Self::DEFAULT_ADDRESS_MODE_U,
         address_mode_v: Self::DEFAULT_ADDRESS_MODE_V,
         address_mode_w: Self::DEFAULT_ADDRESS_MODE_W,
@@ -24,6 +30,8 @@ impl<'b> SamplerBuilder<'b> {
         lod_min_clamp: Self::DEFAULT_LOD_MIN_CLAMP,
         lod_max_clamp: Self::DEFAULT_LOD_MAX_CLAMP,
         compare: Self::DEFAULT_COMPARE,
+        anisotropy_clamp: Self::DEFAULT_ANISOTROPY_CLAMP,
+        label: Self::DEFAULT_LABEL,
     };
 
     /// Begin building a `Sampler`, starting with the `Default` parameters.
@@ -94,8 +102,21 @@ impl<'b> SamplerBuilder<'b> {
         self
     }
 
+    /// The comparison function to use, if any.
     pub fn compare(mut self, f: Option<wgpu::CompareFunction>) -> Self {
         self.descriptor.compare = f;
+        self
+    }
+
+    /// The anisotropy level to clamp to, if any.
+    pub fn anisotropy_clamp(mut self, clamp: Option<NonZeroU8>) -> Self {
+        self.descriptor.anisotropy_clamp = clamp;
+        self
+    }
+
+    /// The label to use, if any.
+    pub fn label(mut self, label: Option<&'static str>) -> Self {
+        self.descriptor.label = label;
         self
     }
 
@@ -105,12 +126,12 @@ impl<'b> SamplerBuilder<'b> {
     }
 
     /// Consume the builder and produce the inner `SamplerDescriptor`.
-    pub fn into_descriptor(self) -> wgpu::SamplerDescriptor<'b> {
+    pub fn into_descriptor(self) -> wgpu::SamplerDescriptor<'static> {
         self.into()
     }
 }
 
-impl<'b> Default for SamplerBuilder<'b> {
+impl Default for SamplerBuilder {
     fn default() -> Self {
         SamplerBuilder {
             descriptor: Self::DEFAULT_DESCRIPTOR,
@@ -118,14 +139,14 @@ impl<'b> Default for SamplerBuilder<'b> {
     }
 }
 
-impl<'b> Into<wgpu::SamplerDescriptor<'b>> for SamplerBuilder<'b> {
-    fn into(self) -> wgpu::SamplerDescriptor<'b> {
+impl Into<wgpu::SamplerDescriptor<'static>> for SamplerBuilder {
+    fn into(self) -> wgpu::SamplerDescriptor<'static> {
         self.descriptor
     }
 }
 
-impl<'b> From<wgpu::SamplerDescriptor<'b>> for SamplerBuilder<'b> {
-    fn from(descriptor: wgpu::SamplerDescriptor<'b>) -> Self {
+impl From<wgpu::SamplerDescriptor<'static>> for SamplerBuilder {
+    fn from(descriptor: wgpu::SamplerDescriptor<'static>) -> Self {
         SamplerBuilder { descriptor }
     }
 }

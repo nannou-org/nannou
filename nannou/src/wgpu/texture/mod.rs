@@ -72,15 +72,15 @@ pub struct Builder {
 ///
 /// The builder assumes a set of defaults that match view produced via `create_view`.
 #[derive(Debug)]
-pub struct ViewBuilder {
-    texture: &'static wgpu::Texture,
+pub struct ViewBuilder<'a> {
+    texture: &'a wgpu::Texture,
     descriptor: wgpu::TextureViewDescriptor<'static>,
 }
 
 /// A wrapper around a `wgpu::Buffer` containing bytes of a known length.
 #[derive(Debug)]
-pub struct BufferBytes<'b> {
-    buffer: &'b wgpu::Buffer,
+pub struct BufferBytes {
+    buffer: wgpu::Buffer,
     len_bytes: wgpu::BufferAddress,
 }
 
@@ -240,16 +240,17 @@ impl Texture {
         wgpu::TextureCopyView {
             texture: &self.handle,
             mip_level: 0,
+            array_layer: 0,
             origin: wgpu::Origin3d::ZERO,
         }
     }
 
     /// Creates a `BufferCopyView` ready for copying to or from the given buffer where the given
     /// buffer is assumed to have the same size as the entirety of this texture.
-    pub fn default_buffer_copy_view(
+    pub fn default_buffer_copy_view<'a>(
         &self,
         buffer: &'static wgpu::Buffer,
-    ) -> wgpu::BufferCopyView {
+    ) -> wgpu::BufferCopyView<'a> {
         let format_size_bytes = format_size_bytes(self.format());
         let [width, height] = self.size();
         let layout = wgpu::TextureDataLayout {
@@ -568,13 +569,13 @@ impl Builder {
     }
 }
 
-impl ViewBuilder {
-    pub fn format(mut self, format: Option<wgpu::TextureFormat>) -> Self {
+impl<'a> ViewBuilder<'a> {
+    pub fn format(mut self, format: wgpu::TextureFormat) -> Self {
         self.descriptor.format = format;
         self
     }
 
-    pub fn dimension(mut self, dimension: Option<wgpu::TextureViewDimension>) -> Self {
+    pub fn dimension(mut self, dimension: wgpu::TextureViewDimension) -> Self {
         self.descriptor.dimension = dimension;
         self
     }
@@ -627,14 +628,16 @@ impl ViewBuilder {
     }
 }
 
-impl<'b> BufferBytes<'b> {
+impl BufferBytes {
     /// Asynchronously maps the buffer of bytes to host memory and, once mapped, calls the given
     /// user callback with the data as a slice of bytes.
     ///
     /// Note: The given callback will not be called until the memory is mapped and the device is
     /// polled. You should not rely on the callback being called immediately.
-    pub async fn read(&self) -> Result<wgpu::BufferSlice<'b>, wgpu::BufferAsyncError> {
-        Ok(self.buffer.slice(0..self.len_bytes))
+    pub async fn read(&self) -> Result<(), wgpu::BufferAsyncError> {
+        // TODO(jhg): fix
+        panic!()
+        //self.buffer.map_read(0, self.len_bytes).await
     }
 
     /// The length of the `wgpu::Buffer` in bytes.
@@ -742,14 +745,14 @@ impl Into<wgpu::TextureDescriptor<'static>> for Builder {
     }
 }
 
-impl Into<wgpu::TextureViewDescriptor<'static>> for ViewBuilder {
+impl<'a> Into<wgpu::TextureViewDescriptor<'static>> for ViewBuilder<'a> {
     fn into(self) -> wgpu::TextureViewDescriptor<'static> {
         self.descriptor
     }
 }
 
 /// Create a texture ID by hashing the source texture ID along with the contents of the descriptor.
-fn texture_view_id(texture_id: &TextureId, desc: &wgpu::TextureViewDescriptor) -> TextureViewId {
+fn texture_view_id(texture_id: &TextureId, desc: &wgpu::TextureViewDescriptor<'static>) -> TextureViewId {
     use std::hash::{Hash, Hasher};
     let mut s = std::collections::hash_map::DefaultHasher::new();
 

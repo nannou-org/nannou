@@ -9,11 +9,11 @@ pub struct Background<'a, S = geom::scalar::Default>
 where
     S: 'a + BaseFloat,
 {
-    draw: &'a Draw<'a, S>,
+    draw: &'a Draw<S>,
 }
 
 /// Begin coloring the background.
-pub fn new<'a, S>(draw: &'a Draw<'a, S>) -> Background<'a, S>
+pub fn new<'a, S>(draw: &'a Draw<S>) -> Background<'a, S>
 where
     S: BaseFloat,
 {

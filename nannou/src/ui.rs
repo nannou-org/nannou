@@ -65,7 +65,7 @@ pub struct Ui {
 
 /// A type used for building a new `Ui`.
 pub struct Builder<'a> {
-    app: &'a App<'a>,
+    app: &'a App,
     window_id: Option<window::Id>,
     dimensions: Option<[Scalar; 2]>,
     theme: Option<Theme>,
@@ -107,7 +107,7 @@ impl Arrangement {
 
 impl<'a> Builder<'a> {
     /// Begin building a new `Ui`.
-    pub(super) fn new(app: &'a App<'a>) -> Self {
+    pub(super) fn new(app: &'a App) -> Self {
         Builder {
             app,
             window_id: None,

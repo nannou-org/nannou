@@ -1,5 +1,7 @@
 //! A set of useful descriptors for blending colours!
 
+use crate::wgpu;
+
 pub const NORMAL: wgpu::BlendDescriptor = wgpu::BlendDescriptor {
     src_factor: wgpu::BlendFactor::SrcAlpha,
     dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,

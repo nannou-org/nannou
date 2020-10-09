@@ -15,11 +15,7 @@ use std::ops::{Deref, DerefMut};
 /// Draw API primitives that may be rendered via the **Renderer** type.
 pub trait RenderPrimitive {
     /// Render self into the given mesh.
-    fn render_primitive(
-        self,
-        ctxt: RenderContext,
-        mesh: &mut draw::Mesh,
-    ) -> PrimitiveRender;
+    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender;
 }
 
 /// Information about the way in which a primitive was rendered.
@@ -105,7 +101,7 @@ pub struct Renderer {
 /// A type aimed at simplifying construction of a `draw::Renderer`.
 #[derive(Clone, Debug)]
 pub struct Builder {
-    pub depth_format: &'static wgpu::TextureFormat,
+    pub depth_format: wgpu::TextureFormat,
     pub glyph_cache_size: [u32; 2],
     pub glyph_cache_scale_tolerance: f32,
     pub glyph_cache_position_tolerance: f32,
@@ -293,7 +289,7 @@ impl Builder {
     pub fn build_from_texture_descriptor(
         self,
         device: &wgpu::Device,
-        descriptor: &'static wgpu::TextureDescriptor,
+        descriptor: &wgpu::TextureDescriptor,
     ) -> Renderer {
         let scale_factor = 1.0;
         self.build(
@@ -309,7 +305,7 @@ impl Builder {
     /// sample count and format.
     pub fn build(
         self,
-        device: &'static wgpu::Device,
+        device: &wgpu::Device,
         output_attachment_size: [u32; 2],
         output_scale_factor: f32,
         sample_count: u32,
