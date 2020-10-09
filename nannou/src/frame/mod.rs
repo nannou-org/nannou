@@ -289,7 +289,7 @@ impl RenderData {
     /// If `msaa_samples` is greater than 1 a `multisampled` texture will also be created. Otherwise the
     /// a regular non-multisampled image will be created.
     pub(crate) fn new(
-        device: &'static wgpu::Device,
+        device: &wgpu::Device,
         swap_chain_dims: [u32; 2],
         swap_chain_format: wgpu::TextureFormat,
         msaa_samples: u32,

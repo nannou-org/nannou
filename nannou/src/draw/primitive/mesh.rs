@@ -171,11 +171,7 @@ impl Vertexless {
     /// Each of the vertices must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements `Into<Point3>`
     /// and `color` may be of any type that implements `IntoLinSrgba`.
-    pub fn tris_colored<S, I, P, C>(
-        self,
-        inner_mesh: &mut draw::Mesh<S>,
-        tris: I,
-    ) -> Mesh<S>
+    pub fn tris_colored<S, I, P, C>(self, inner_mesh: &mut draw::Mesh<S>, tris: I) -> Mesh<S>
     where
         S: BaseFloat,
         I: IntoIterator<Item = geom::Tri<(P, C)>>,
@@ -283,12 +279,7 @@ impl Vertexless {
     /// Each trio of `indices` describes a single triangle made up of `points`.
     ///
     /// Each point may be any type that may be converted directly into the `Point3` type.
-    pub fn indexed<S, V, I>(
-        self,
-        inner_mesh: &mut draw::Mesh<S>,
-        points: V,
-        indices: I,
-    ) -> Mesh<S>
+    pub fn indexed<S, V, I>(self, inner_mesh: &mut draw::Mesh<S>, points: V, indices: I) -> Mesh<S>
     where
         S: BaseFloat,
         V: IntoIterator,

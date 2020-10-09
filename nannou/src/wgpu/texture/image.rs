@@ -17,10 +17,10 @@ pub trait Pixel: image::Pixel {
 
 /// A wrapper around a wgpu buffer that contains an image of a known size and `image::ColorType`.
 #[derive(Debug)]
-pub struct BufferImage<'image> {
+pub struct BufferImage {
     color_type: image::ColorType,
     size: [u32; 2],
-    buffer: wgpu::BufferBytes<'image>,
+    buffer: wgpu::BufferBytes,
 }
 
 /// A wrapper around a slice of bytes representing an image.
@@ -30,7 +30,7 @@ pub struct BufferImage<'image> {
 pub struct ImageReadMapping {
     color_type: image::ColorType,
     size: [u32; 2],
-    mapping: wgpu::ImageReadMapping,
+    // TODO(jhg): fix
 }
 
 impl wgpu::TextureBuilder {
@@ -303,7 +303,7 @@ impl wgpu::Texture {
     }
 }
 
-impl<'i> BufferImage<'i> {
+impl BufferImage {
     /// The dimensions of the image stored within the buffer.
     pub fn size(&self) -> [u32; 2] {
         self.size
@@ -326,7 +326,6 @@ impl<'i> BufferImage<'i> {
         Ok(ImageReadMapping {
             color_type,
             size,
-            mapping,
         })
     }
 }
@@ -457,7 +456,7 @@ impl<'a> WithDeviceQueuePair for &'a crate::window::Window {
     }
 }
 
-impl<'a> WithDeviceQueuePair for &'a crate::app::App<'a> {
+impl<'a> WithDeviceQueuePair for &'a crate::app::App {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
         F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,

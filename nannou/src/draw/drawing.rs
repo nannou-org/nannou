@@ -27,7 +27,7 @@ where
     S: 'a + BaseFloat,
 {
     // The `Draw` instance used to create this drawing.
-    draw: &'a Draw<'a, S>,
+    draw: &'a Draw<S>,
     // The draw command index of the primitive being drawn.
     index: usize,
     // Whether or not the **Drawing** should attempt to finish the drawing on drop.
@@ -53,7 +53,7 @@ pub struct DrawingContext<'a, S> {
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<'a, T, S>(draw: &'a Draw<'a, S>, index: usize) -> Drawing<'a, T, S>
+pub fn new<'a, T, S>(draw: &'a Draw<S>, index: usize) -> Drawing<'a, T, S>
 where
     S: BaseFloat,
 {
@@ -442,7 +442,7 @@ where
         self.map_ty(|ty| SetOrientation::z_radians(ty, z))
     }
 
-    /// Specify the orientation around the *x* axis as an absolute value in radians.
+    /// Specify the orientation around the *x* axis as an absolute value in degrees.
     pub fn x_degrees(self, x: S) -> Self
     where
         S: BaseFloat,
@@ -450,7 +450,7 @@ where
         self.map_ty(|ty| SetOrientation::x_degrees(ty, x))
     }
 
-    /// Specify the orientation around the *y* axis as an absolute value in radians.
+    /// Specify the orientation around the *y* axis as an absolute value in degrees.
     pub fn y_degrees(self, y: S) -> Self
     where
         S: BaseFloat,
@@ -458,7 +458,7 @@ where
         self.map_ty(|ty| SetOrientation::y_degrees(ty, y))
     }
 
-    /// Specify the orientation around the *z* axis as an absolute value in radians.
+    /// Specify the orientation around the *z* axis as an absolute value in degrees.
     pub fn z_degrees(self, z: S) -> Self
     where
         S: BaseFloat,

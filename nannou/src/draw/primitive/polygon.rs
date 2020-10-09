@@ -267,7 +267,7 @@ pub fn render_points_themed<I>(
     );
 }
 
-impl<'p>  Polygon<f32> {
+impl Polygon<f32> {
     pub(crate) fn render_themed(
         self,
         ctxt: draw::renderer::RenderContext,

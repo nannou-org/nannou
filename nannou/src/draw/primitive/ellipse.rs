@@ -186,7 +186,7 @@ impl<S> Into<Option<Ellipse<S>>> for Primitive<S> {
 
 // Drawing methods.
 
-impl<'e, S> DrawingEllipse<'e, S>
+impl<'a, S> DrawingEllipse<'a, S>
 where
     S: BaseFloat,
 {
