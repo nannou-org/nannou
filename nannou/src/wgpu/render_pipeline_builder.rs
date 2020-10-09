@@ -4,6 +4,8 @@
 //! have to consider when writing graphics code. Here we define a set of helpers that allow us to
 //! simplify the process and fall back to a set of reasonable defaults.
 
+use crate::wgpu;
+
 #[derive(Debug)]
 enum Layout<'a> {
     Descriptor(wgpu::PipelineLayoutDescriptor<'a>),

@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex, Weak};
 
+use crate::wgpu;
+
 /// A map from `RequestAdapterOptions` to active adapters.
 ///
 /// Each time an adapter is requested via the `App`, it keeps track of which adapters are active.

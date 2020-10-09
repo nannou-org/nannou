@@ -54,7 +54,7 @@ pub use self::texture::{
     Builder as TextureBuilder, Texture, TextureId, TextureView, TextureViewId, ToTextureView,
 };
 #[doc(inline)]
-pub use wgpu::{
+pub use wgpu_upstream::{
     vertex_attr_array, Adapter, AdapterInfo, AddressMode, Backend, BackendBit, BindGroup, BindGroupEntry,
     BindGroupDescriptor, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
     BindingResource, BindingType, BlendDescriptor, BlendFactor, BlendOperation, Buffer,
@@ -72,10 +72,11 @@ pub use wgpu::{
     TextureAspect, TextureComponentType, TextureCopyView, TextureDescriptor, TextureDimension,
     TextureFormat, TextureUsage, TextureView as TextureViewHandle, TextureViewDescriptor,
     TextureViewDimension, VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat, 
-    VertexStateDescriptor, BIND_BUFFER_ALIGNMENT, Operations, BufferAsyncError, TextureDataLayout, BufferSlice
+    VertexStateDescriptor, BIND_BUFFER_ALIGNMENT, Operations, BufferAsyncError, TextureDataLayout, BufferSlice,
+    Instance, StencilStateDescriptor
 };
 
-pub fn shader_from_spirv_bytes(device: &wgpu::Device, bytes: &[u8]) -> wgpu::ShaderModule {
+pub fn shader_from_spirv_bytes(device: &wgpu_upstream::Device, bytes: &[u8]) -> wgpu_upstream::ShaderModule {
     let cursor = std::io::Cursor::new(bytes);
     let vs_spirv = device.create_shader_module(cursor);
     device.create_shader_module(&vs_spirv)
@@ -137,12 +138,12 @@ pub fn resolve_texture(
 
 /// Shorthand for creating the pipeline layout from a slice of bind group layouts.
 pub fn create_pipeline_layout<'p>(
-    device: &wgpu::Device,
+    device: &wgpu_upstream::Device,
     label: &'p str,
-    bind_group_layouts: &[&wgpu::BindGroupLayout],
-    push_constant_ranges: &'p [wgpu::PushConstantRange],
-) -> wgpu::PipelineLayout {
-    let descriptor = wgpu::PipelineLayoutDescriptor {
+    bind_group_layouts: &[&wgpu_upstream::BindGroupLayout],
+    push_constant_ranges: &'p [wgpu_upstream::PushConstantRange],
+) -> wgpu_upstream::PipelineLayout {
+    let descriptor = wgpu_upstream::PipelineLayoutDescriptor {
         label,
         bind_group_layouts,
         push_constant_ranges,
@@ -152,9 +153,9 @@ pub fn create_pipeline_layout<'p>(
 
 /// TODO: Remove this once `derive(Clone)` is added to wgpu SamplerDescriptor.
 pub fn sampler_descriptor_clone<'a>(
-    sampler: &'a wgpu::SamplerDescriptor,
-) -> wgpu::SamplerDescriptor<'a> {
-    wgpu::SamplerDescriptor {
+    sampler: &'a wgpu_upstream::SamplerDescriptor,
+) -> wgpu_upstream::SamplerDescriptor<'a> {
+    wgpu_upstream::SamplerDescriptor {
         label: sampler.label,
         address_mode_u: sampler.address_mode_u,
         address_mode_v: sampler.address_mode_v,
