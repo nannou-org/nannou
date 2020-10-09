@@ -474,7 +474,7 @@ where
 
     /// Produce a new **Draw** instance where all textures and textured vertices drawn will be
     /// sampled via a sampler of the given descriptor.
-    pub fn sampler(&self, desc: wgpu::SamplerDescriptor) -> Self {
+    pub fn sampler(&self, desc: wgpu::SamplerDescriptor<'static>) -> Self {
         let mut context = self.context.clone();
         context.sampler = desc;
         self.context(context)
