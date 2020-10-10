@@ -1,7 +1,7 @@
 use crate::Device;
-use cpal::traits::EventLoopTrait;
+use cpal::traits::StreamTrait;
+use dasp_sample::Sample;
 use failure::Fail;
-use sample::Sample;
 use std;
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
@@ -44,8 +44,8 @@ pub struct Stream<M> {
     process_fn_tx: mpsc::Sender<ProcessFnMsg>,
     /// Data shared between each `Stream` handle to a single stream.
     shared: Arc<Shared<M>>,
-    /// The format with which the stream was created.
-    cpal_format: cpal::Format,
+    /// The stream config with which the stream was created.
+    cpal_stream_config: cpal::SupportedStreamConfig,
 }
 
 // Data shared between each `Stream` handle to a single stream.
@@ -78,8 +78,10 @@ pub struct Builder<M, S = f32> {
 pub enum BuildError {
     #[fail(display = "failed to get default device")]
     DefaultDevice,
-    #[fail(display = "failed to enumerate available formats: {}", err)]
-    SupportedFormats { err: cpal::SupportedFormatsError },
+    #[fail(display = "failed to enumerate available configs: {}", err)]
+    SupportedStreamConfigs {
+        err: cpal::SupportedStreamConfigsError,
+    },
     #[fail(display = "failed to build stream: {}", err)]
     BuildStream { err: cpal::BuildStreamError },
 }
@@ -110,7 +112,7 @@ impl LoopContext {
             if let Ok(cpal::StreamData::Output { mut buffer }) = data {
                 fn silence<S: Sample>(slice: &mut [S]) {
                     for sample in slice {
-                        *sample = S::equilibrium();
+                        *sample = S::EQUILIBRIUM;
                     }
                 }
                 match buffer {
@@ -212,14 +214,14 @@ impl<M> Stream<M> {
         Ok(())
     }
 
-    /// The format with which the inner CPAL stream was created.
+    /// The config with which the inner CPAL stream was created.
     ///
-    /// This **should** match the actual stream format that is running. If not, there may be a bug
+    /// This **should** match the actual stream config that is running. If not, there may be a bug
     /// in CPAL. However, note that if the `sample_format` does not match, this just means that
     /// `nannou` is doing a conversion behind the scenes as the hardware itself does not support
     /// the target format.
-    pub fn cpal_format(&self) -> &cpal::Format {
-        &self.cpal_format
+    pub fn cpal_stream_config(&self) -> &cpal::SupportedStreamConfig {
+        &self.cpal_stream_config
     }
 
     /// A reference to the unique ID associated with this stream.
@@ -255,12 +257,12 @@ impl<M> Clone for Stream<M> {
         let update_tx = self.update_tx.clone();
         let process_fn_tx = self.process_fn_tx.clone();
         let shared = self.shared.clone();
-        let cpal_format = self.cpal_format.clone();
+        let cpal_stream_config = self.cpal_stream_config.clone();
         Stream {
             update_tx,
             process_fn_tx,
             shared,
-            cpal_format,
+            cpal_stream_config,
         }
     }
 }
@@ -280,9 +282,9 @@ impl From<cpal::BuildStreamError> for BuildError {
     }
 }
 
-impl From<cpal::SupportedFormatsError> for BuildError {
-    fn from(err: cpal::SupportedFormatsError) -> Self {
-        BuildError::SupportedFormats { err }
+impl From<cpal::SupportedStreamConfigsError> for BuildError {
+    fn from(err: cpal::SupportedStreamConfigsError) -> Self {
+        BuildError::SupportedStreamConfigs { err }
     }
 }
 
@@ -311,14 +313,15 @@ fn cpal_sample_format<S: Any>() -> Option<cpal::SampleFormat> {
 // the requested format parameters specified by the user. If the supported format matches, a
 // compatible `Format` is returned.
 fn matching_supported_formats(
-    mut supported_format: cpal::SupportedFormat,
+    mut supported_stream_config_range: cpal::SupportedStreamConfigRange,
     sample_format: Option<cpal::SampleFormat>,
     channels: Option<usize>,
     sample_rate: Option<cpal::SampleRate>,
-) -> Option<cpal::Format> {
+    buffer_size: Option<cpal::SupportedBufferSize>,
+) -> Option<cpal::SupportedStreamConfig> {
     // Check for a matching sample format.
     if let Some(sample_format) = sample_format {
-        if supported_format.data_type != sample_format {
+        if supported_stream_config_range.sample_format() != sample_format {
             return None;
         }
     }
@@ -326,25 +329,32 @@ fn matching_supported_formats(
     //
     // If there are more than enough channels, truncate the `SupportedFormat` to match.
     if let Some(channels) = channels {
-        let supported_channels = supported_format.channels as usize;
+        let supported_channels = supported_stream_config_range.channels() as usize;
         if supported_channels < channels {
             return None;
         } else if supported_channels > channels {
-            supported_format.channels = channels as u16;
+            supported_stream_config_range.channels = channels as u16;
         }
     }
     // Check the sample rate.
     if let Some(sample_rate) = sample_rate {
-        if supported_format.min_sample_rate > sample_rate
-            || supported_format.max_sample_rate < sample_rate
+        if supported_stream_config_range.min_sample_rate() > sample_rate
+            || supported_stream_config_range.max_sample_rate() < sample_rate
         {
             return None;
         }
-        let mut format = supported_format.with_max_sample_rate();
-        format.sample_rate = sample_rate;
-        return Some(format);
+        let config = supported_stream_config_range.with_sample_rate(sample_rate);
+        return Some(config);
     }
-    Some(supported_format.with_max_sample_rate())
+
+    // cpal::SupportedStreamConfig {
+    //     channels: channels,
+    //     sample_rate: sample_rate,
+    //     buffer_size: buffer_size,
+    //     sample_format: sample_format,
+    // }
+
+    Some(supported_stream_config_range.with_max_sample_rate())
 }
 
 // Given some audio device find the supported stream format that best matches the given optional

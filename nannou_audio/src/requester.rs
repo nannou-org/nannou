@@ -1,5 +1,5 @@
 use crate::{stream, Buffer};
-use sample::Sample;
+use dasp_sample::Sample;
 use std;
 
 /// A `sound::Requester` for converting backend audio requests into requests for buffers of a fixed
@@ -26,7 +26,7 @@ where
         assert!(num_frames > 0);
         let num_samples = num_frames + num_channels;
         Requester {
-            samples: vec![S::equilibrium(); num_samples],
+            samples: vec![S::EQUILIBRIUM; num_samples],
             num_frames: num_frames,
             pending_range: None,
         }
@@ -68,7 +68,7 @@ where
         // Fill the given buffer with silence.
         fn silence<S: Sample>(buffer: &mut [S]) {
             for sample in buffer {
-                *sample = S::equilibrium();
+                *sample = S::EQUILIBRIUM;
             }
         }
 
@@ -109,7 +109,7 @@ where
         }
 
         // Ensure that our buffer has `num_frames` `frames`.
-        samples.resize(num_samples, S::equilibrium());
+        samples.resize(num_samples, S::EQUILIBRIUM);
 
         // Loop until the given `output` is filled.
         loop {

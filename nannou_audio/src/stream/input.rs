@@ -1,6 +1,6 @@
 use crate::{stream, Buffer, Device, Receiver, Stream, StreamError};
-use cpal::traits::{DeviceTrait, EventLoopTrait, HostTrait};
-use sample::{FromSample, Sample, ToSample};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use dasp_sample::{FromSample, Sample, ToSample};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -168,8 +168,8 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
             sample_format,
             channels,
             sample_rate,
-            device.default_input_format().ok(),
-            |device| device.supported_input_formats().map(|fs| fs.collect()),
+            device.default_input_config().ok(),
+            |device| device.supported_input_configs().map(|fs| fs.collect()),
         )?
         .expect("no matching supported audio input formats for the target device");
         let stream_id = event_loop.build_input_stream(&device, &format)?;
@@ -191,7 +191,7 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
 
         // An intermediary buffer for converting cpal samples to the target sample
         // format.
-        let mut samples = vec![S::equilibrium(); frames_per_buffer * num_channels];
+        let mut samples = vec![S::EQUILIBRIUM; frames_per_buffer * num_channels];
 
         // The function used to process a buffer of samples.
         let proc_input = move |data: cpal::StreamDataResult| {
@@ -230,7 +230,7 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
             };
 
             samples.clear();
-            samples.resize(input.len(), S::equilibrium());
+            samples.resize(input.len(), S::EQUILIBRIUM);
 
             // A function to simplify reading from the unknown buffer type.
             fn fill_input<I, S>(input: &mut [I], buffer: &[S])
@@ -280,7 +280,7 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
             shared,
             process_fn_tx,
             update_tx,
-            cpal_format: format,
+            cpal_stream_config: format,
         };
         Ok(stream)
     }
