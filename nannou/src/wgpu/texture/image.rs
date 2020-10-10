@@ -3,6 +3,7 @@
 
 use crate::wgpu;
 use std::path::Path;
+use std::array::FixedSizeArray;
 
 /// The set of pixel types from the image crate that can be loaded directly into a texture.
 ///
@@ -343,7 +344,7 @@ impl ImageReadMapping {
 
     /// The raw image data as a slice of bytes.
     pub fn mapping(&self) -> &wgpu::ImageReadMapping {
-        &self.mapping
+        &self.mapping()
     }
 
     /// Saves the buffer to a file at the specified path.
@@ -351,7 +352,7 @@ impl ImageReadMapping {
     /// The image format is derived from the file extension.
     pub fn save(&self, path: &Path) -> image::ImageResult<()> {
         let [width, height] = self.size();
-        let data = self.mapping.as_slice();
+        let data = self.mapping().as_slice();
         image::save_buffer(path, data, width, height, self.color_type)
     }
 
@@ -364,7 +365,7 @@ impl ImageReadMapping {
         let [width, height] = self.size();
         image::save_buffer_with_format(
             path,
-            self.mapping.as_slice(),
+            self.mapping().as_slice(),
             width,
             height,
             self.color_type,

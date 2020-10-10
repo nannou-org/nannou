@@ -128,10 +128,6 @@ impl Texture {
         self.descriptor.size
     }
 
-    pub fn array_layer_count(&self) -> u32 {
-        self.descriptor.array_layer_count
-    }
-
     pub fn mip_level_count(&self) -> u32 {
         self.descriptor.mip_level_count
     }
@@ -219,7 +215,7 @@ impl Texture {
     }
 
     /// The view descriptor describing a full view of the texture.
-    pub fn default_view_descriptor(&self) -> wgpu::TextureViewDescriptor {
+    pub fn default_view_descriptor(&self) -> wgpu::TextureViewDescriptor<'static> {
         let dimension = self.view_dimension();
         // TODO: Is this correct? Should we check the format?
         let aspect = wgpu::TextureAspect::All;
@@ -240,7 +236,6 @@ impl Texture {
         wgpu::TextureCopyView {
             texture: &self.handle,
             mip_level: 0,
-            array_layer: 0,
             origin: wgpu::Origin3d::ZERO,
         }
     }

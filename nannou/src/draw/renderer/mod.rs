@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
+use wgpu_upstream::util::DeviceExt;
 
 /// Draw API primitives that may be rendered via the **Renderer** type.
 pub trait RenderPrimitive {
@@ -413,9 +414,13 @@ impl Renderer {
 
         // Initial uniform buffer values. These will be overridden on draw.
         let uniforms = create_uniforms(output_attachment_size, output_scale_factor);
-        let uniforms_bytes = uniforms_as_bytes(&uniforms);
+        let contents = uniforms_as_bytes(&uniforms);
         let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
-        let uniform_buffer = device.create_buffer(uniforms_bytes, usage);
+        let uniform_buffer = device.create_buffer_init(&wgpu::BufferInitDescriptor {
+            label: None,
+            contents,
+            usage,
+        });
 
         // Bind group for uniforms.
         let uniform_bind_group_layout = create_uniform_bind_group_layout(device);
