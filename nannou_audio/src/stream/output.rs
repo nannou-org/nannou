@@ -1,6 +1,6 @@
 use crate::{stream, Buffer, Device, Requester, Stream, StreamError};
-use cpal::traits::{DeviceTrait, EventLoopTrait, HostTrait};
-use sample::{Sample, ToSample};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use dasp_sample::{Sample, ToSample};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -167,8 +167,8 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
             sample_format,
             channels,
             sample_rate,
-            device.default_output_format().ok(),
-            |device| device.supported_output_formats().map(|fs| fs.collect()),
+            device.default_output_config().ok(),
+            |device| device.supported_output_configs().map(|fs| fs.collect()),
         )?
         .expect("no matching supported audio output formats for the target device");
         let stream_id = event_loop.build_output_stream(&device, &format)?;
@@ -190,7 +190,7 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
 
         // An intermediary buffer for converting cpal samples to the target sample
         // format.
-        let mut samples = vec![S::equilibrium(); frames_per_buffer * num_channels];
+        let mut samples = vec![S::EQUILIBRIUM; frames_per_buffer * num_channels];
 
         // The function used to process a buffer of samples.
         let proc_output = move |data: cpal::StreamDataResult| {
@@ -229,7 +229,7 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
             };
 
             samples.clear();
-            samples.resize(output.len(), S::equilibrium());
+            samples.resize(output.len(), S::EQUILIBRIUM);
 
             if let Ok(mut guard) = model_2.lock() {
                 let mut m = guard.take().unwrap();

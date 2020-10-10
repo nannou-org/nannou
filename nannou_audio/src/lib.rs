@@ -12,7 +12,7 @@
 //!   [**Requester**](./requester/struct.Requester.html) for buffering input and output streams that
 //!   may deliver buffers of inconsistent sizes into a stream of consistently sized buffers.
 
-use cpal::traits::{EventLoopTrait, HostTrait};
+use cpal::traits::{HostTrait, StreamTrait};
 use std::marker::PhantomData;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
@@ -25,12 +25,14 @@ pub use self::stream::Stream;
 pub use cpal;
 #[doc(inline)]
 pub use cpal::{
-    BackendSpecificError, BuildStreamError, DefaultFormatError, DeviceNameError, DevicesError,
-    PauseStreamError, PlayStreamError, StreamError, SupportedFormatsError,
+    BackendSpecificError, BuildStreamError, DefaultStreamConfigError, DeviceNameError,
+    DevicesError, PauseStreamError, PlayStreamError, StreamError, SupportedStreamConfigsError,
 };
 #[doc(inline)]
-pub use cpal::{Format, HostId, HostUnavailable, SupportedInputFormats, SupportedOutputFormats};
-pub use sample;
+pub use cpal::{
+    HostId, HostUnavailable, SupportedInputConfigs, SupportedOutputConfigs, SupportedStreamConfig,
+};
+pub use dasp_sample;
 
 pub mod buffer;
 pub mod device;
