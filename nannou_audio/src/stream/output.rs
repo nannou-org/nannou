@@ -115,6 +115,8 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
         self
     }
 
+    // TO DO add a buffer_size function
+
     pub fn device(mut self, device: Device) -> Self {
         self.builder.device = Some(device);
         self
@@ -248,9 +250,7 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
             }
 
             match config.sample_format() {
-                cpal::SampleFormat::F32 => {
-
-                }
+                cpal::SampleFormat::F32 => {}
             }
 
             // Process the given buffer.
@@ -284,7 +284,7 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
             shared,
             process_fn_tx,
             update_tx,
-            cpal_format: format,
+            cpal_stream_config: config,
         };
         Ok(stream)
     }

@@ -138,7 +138,6 @@ impl Host {
     fn new_stream<M, S>(&self, model: M) -> stream::Builder<M, S> {
         let process_fn_tx = if self.process_fn_tx.lock().unwrap().is_none() {
             let (tx, rx) = mpsc::channel();
-            let mut loop_context = stream::LoopContext::new(rx);
             thread::Builder::new()
                 .name("cpal::EventLoop::run thread".into())
                 .spawn(move || event_loop.run(move |id, data| loop_context.process(id, data)))
