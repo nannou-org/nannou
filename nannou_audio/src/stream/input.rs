@@ -121,6 +121,8 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
         self
     }
 
+    // TO DO add a buffer_size function
+
     pub fn frames_per_buffer(mut self, frames_per_buffer: usize) -> Self {
         assert!(frames_per_buffer > 0);
         self.builder.frames_per_buffer = Some(frames_per_buffer);
@@ -270,7 +272,6 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
 
         let shared = Arc::new(super::Shared {
             model,
-            stream_id,
             is_paused: AtomicBool::new(false),
         });
 
@@ -278,7 +279,7 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
             shared,
             process_fn_tx,
             update_tx,
-            cpal_stream_config: format,
+            cpal_stream_config: config,
         };
         Ok(stream)
     }

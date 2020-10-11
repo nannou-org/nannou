@@ -28,14 +28,6 @@ pub type UpdateFn<M> = dyn FnOnce(&mut M) + Send + 'static;
 pub(crate) type ProcessFn = dyn FnMut(cpal::StreamDataResult) + 'static + Send;
 pub(crate) type ProcessFnMsg = (cpal::StreamId, Box<ProcessFn>);
 
-// State that is updated and run on the `cpal::EventLoop::run` thread.
-pub(crate) struct LoopContext {
-    // A channel for receiving callback functions for newly spawned streams.
-    process_fn_rx: mpsc::Receiver<ProcessFnMsg>,
-    // A map from StreamIds to their associated buffer processing functions.
-    process_fns: Vec<(cpal::StreamId, Box<ProcessFn>)>,
-}
-
 /// A clone-able handle around an audio stream.
 pub struct Stream<M> {
     /// A channel for sending model updates to the audio thread.
@@ -52,8 +44,6 @@ pub struct Stream<M> {
 struct Shared<M> {
     // The user's audio model
     model: Arc<Mutex<Option<M>>>,
-    // A unique ID associated with this stream on the cpal EventLoop.
-    stream_id: cpal::StreamId,
     // Whether or not the stream is currently paused.
     is_paused: AtomicBool,
 }
@@ -81,53 +71,6 @@ pub enum BuildError {
     },
     #[fail(display = "failed to build stream: {}", err)]
     BuildStream { err: cpal::BuildStreamError },
-}
-
-impl LoopContext {
-    /// Create a new loop context.
-    pub fn new(process_fn_rx: mpsc::Receiver<ProcessFnMsg>) -> Self {
-        let process_fns = vec![];
-        LoopContext {
-            process_fn_rx,
-            process_fns,
-        }
-    }
-
-    /// Process the given buffer with the stream at the given ID.
-    pub fn process(&mut self, stream_id: cpal::StreamId, data: cpal::StreamDataResult) {
-        // Collect any pending stream process fns.
-        for (stream_id, proc_fn) in self.process_fn_rx.try_iter() {
-            self.process_fns.retain(|&(ref id, _)| *id != stream_id);
-            self.process_fns.push((stream_id, proc_fn));
-        }
-
-        // Process the data using the stream at the given ID.
-        if let Some(proc_fn) = self.process_fn_mut(&stream_id) {
-            proc_fn(data);
-        // If there is not yet a buffer processing function, just silence the output buffer.
-        } else {
-            if let Ok(cpal::StreamData::Output { mut buffer }) = data {
-                fn silence<S: Sample>(slice: &mut [S]) {
-                    for sample in slice {
-                        *sample = S::EQUILIBRIUM;
-                    }
-                }
-                match buffer {
-                    cpal::UnknownTypeOutputBuffer::U16(ref mut buffer) => silence(buffer),
-                    cpal::UnknownTypeOutputBuffer::I16(ref mut buffer) => silence(buffer),
-                    cpal::UnknownTypeOutputBuffer::F32(ref mut buffer) => silence(buffer),
-                }
-            }
-        }
-    }
-
-    // Retrieve a mutable reference to the process fn associated with the given stream ID.
-    fn process_fn_mut(&mut self, stream_id: &cpal::StreamId) -> Option<&mut Box<ProcessFn>> {
-        self.process_fns
-            .iter_mut()
-            .find(|&&mut (ref id, _)| id == stream_id)
-            .map(|&mut (_, ref mut f)| f)
-    }
 }
 
 impl<M> Stream<M> {
@@ -219,11 +162,6 @@ impl<M> Stream<M> {
     /// the target format.
     pub fn cpal_stream_config(&self) -> &cpal::SupportedStreamConfig {
         &self.cpal_stream_config
-    }
-
-    /// A reference to the unique ID associated with this stream.
-    pub fn id(&self) -> &cpal::StreamId {
-        &self.shared.stream_id
     }
 }
 
@@ -366,7 +304,9 @@ fn find_best_matching_config<F>(
     supported_configs: F,
 ) -> Result<Option<cpal::SupportedStreamConfig>, cpal::SupportedStreamConfigsError>
 where
-    F: Fn(&cpal::Device) -> Result<Vec<cpal::SupportedStreamConfigRange>, cpal::SupportedStreamConfigsError>,
+    F: Fn(
+        &cpal::Device,
+    ) -> Result<Vec<cpal::SupportedStreamConfigRange>, cpal::SupportedStreamConfigsError>,
 {
     loop {
         {
@@ -385,7 +325,13 @@ where
 
             // Otherwise search through all supported configs for compatible configs.
             let stream_configs = supported_configs(device)?.into_iter().filter_map(|config| {
-                matching_supported_configs(config, sample_format, channels, sample_rate, buffer_size)
+                matching_supported_configs(
+                    config,
+                    sample_format,
+                    channels,
+                    sample_rate,
+                    buffer_size,
+                )
             });
 
             // Find the supported config with the most channels (this will always be the target
@@ -405,7 +351,8 @@ where
         // specify a sample rate, try and fall back to a supported sample rate in case this was
         // the reason we could not find a supported format.
         } else if sample_rate == Some(cpal::SampleRate(DEFAULT_SAMPLE_RATE)) {
-            let cpal_default_sample_rate = default_config.as_ref().map(|config| config.sample_rate());
+            let cpal_default_sample_rate =
+                default_config.as_ref().map(|config| config.sample_rate());
             let nannou_default_sample_rate = Some(cpal::SampleRate(DEFAULT_SAMPLE_RATE));
             sample_rate = if cpal_default_sample_rate != nannou_default_sample_rate {
                 cpal_default_sample_rate
