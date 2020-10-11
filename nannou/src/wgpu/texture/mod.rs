@@ -2,6 +2,9 @@ use crate::wgpu::{self, TextureHandle, TextureViewHandle};
 use std::ops::Deref;
 use std::sync::Arc;
 
+use wgpu::util::{DeviceExt, BufferInitDescriptor};
+use wgpu::TextureFormat;
+
 pub mod capturer;
 pub mod image;
 pub mod reshaper;
@@ -270,7 +273,7 @@ impl Texture {
         assert_eq!(data.len(), texture_size_bytes);
 
         // Upload and copy the data.
-        let buffer = device.create_buffer_with_data(data, wgpu::BufferUsage::COPY_SRC);
+        let buffer = device.create_buffer_init(&BufferInitDescriptor{ label: None, contents: data, usage: wgpu::BufferUsage::COPY_SRC});
         let buffer_copy_view = self.default_buffer_copy_view(&buffer);
         let texture_copy_view = self.default_copy_view();
         let extent = self.extent();
@@ -565,7 +568,7 @@ impl Builder {
 }
 
 impl<'a> ViewBuilder<'a> {
-    pub fn format(mut self, format: wgpu::TextureFormat) -> Self {
+    pub fn format(mut self, format: Option<wgpu::TextureFormat>) -> Self {
         self.descriptor.format = format;
         self
     }
@@ -791,6 +794,8 @@ pub fn format_size_bytes(format: wgpu::TextureFormat) -> u32 {
         | Rgba32Sint | Rgba32Float => 8,
 
         Depth32Float | Depth24Plus | Depth24PlusStencil8 => 4,
+
+        _ => unimplemented!()
     }
 }
 

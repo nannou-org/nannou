@@ -495,7 +495,7 @@ pub fn encode_render_pass(
     let render = renderer.render(&device, &ui.image_map);
     {
         let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
-        render_pass.set_vertex_buffer(0, &render.vertex_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, render.vertex_buffer.slice(..));
         let instance_range = 0..1;
         for cmd in render.commands {
             match cmd {

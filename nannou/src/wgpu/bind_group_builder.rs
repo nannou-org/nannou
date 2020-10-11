@@ -1,4 +1,5 @@
 use crate::wgpu;
+use std::num::NonZeroU32;
 
 /// A type aimed at simplifying the creation of a bind group layout.
 #[derive(Debug, Default)]
@@ -150,7 +151,7 @@ impl LayoutBuilder {
                 ty,
                 // wgpu 0.5-0.6 TODO: reconsider in the future
                 // refer to [`BIndGroupLayoutEntry`]
-                count: 1,
+                count: NonZeroU32::new(1)
             };
             entries.push(layout_binding);
         }
@@ -187,11 +188,7 @@ impl<'a> Builder<'a> {
         buffer: &'a wgpu::Buffer,
         range: std::ops::Range<wgpu::BufferAddress>,
     ) -> Self {
-        let resource = wgpu::BindingResource::Buffer(wgpu::BufferSlice {
-            buffer,
-            offset: range.start,
-            size: range.end - range.start,
-        });
+        let resource = wgpu::BindingResource::Buffer(buffer.slice(range));
         self.binding(resource)
     }
 

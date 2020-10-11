@@ -3,7 +3,8 @@
 
 use crate::wgpu;
 use std::path::Path;
-use std::array::FixedSizeArray;
+
+use wgpu::util::{DeviceExt, BufferInitDescriptor};
 
 /// The set of pixel types from the image crate that can be loaded directly into a texture.
 ///
@@ -555,7 +556,7 @@ pub fn load_texture_from_image(
     };
     let mut encoder = device.create_command_encoder(&cmd_encoder_desc);
     let texture = encode_load_texture_from_image(device, &mut encoder, usage, image);
-    queue.submit(&[encoder.finish()]);
+    queue.submit(std::iter::once(encoder.finish()));
     texture
 }
 
@@ -580,7 +581,7 @@ where
     };
     let mut encoder = device.create_command_encoder(&cmd_encoder_desc);
     let texture = encode_load_texture_from_image_buffer(device, &mut encoder, usage, buffer);
-    queue.submit(&[encoder.finish()]);
+    queue.submit(std::iter::once(encoder.finish()));
     texture
 }
 
@@ -610,7 +611,7 @@ where
     let mut encoder = device.create_command_encoder(&cmd_encoder_desc);
     let texture =
         encode_load_texture_array_from_image_buffers(device, &mut encoder, usage, buffers);
-    queue.submit(&[encoder.finish()]);
+    queue.submit(std::iter::once(encoder.finish()));
     texture
 }
 
@@ -687,7 +688,7 @@ where
     // has padding. Instead, should make some `Subpixel` trait that we can control and is only
     // guaranteed to be implemented for safe types.
     let subpixel_bytes = unsafe { wgpu::bytes::from_slice(subpixel_data) };
-    let buffer = device.create_buffer_with_data(subpixel_bytes, wgpu::BufferUsage::COPY_SRC);
+    let buffer = device.create_buffer_init(&BufferInitDescriptor{ label: None, contents: subpixel_bytes, usage: wgpu::BufferUsage::COPY_SRC });
 
     // Submit command for copying pixel data to the texture.
     let buffer_copy_view = texture.default_buffer_copy_view(&buffer);
@@ -741,7 +742,7 @@ where
         // that has padding. Instead, should make some `Subpixel` trait that we can control and is
         // only guaranteed to be implemented for safe types.
         let subpixel_bytes = unsafe { wgpu::bytes::from_slice(subpixel_data) };
-        let buffer = device.create_buffer_with_data(subpixel_bytes, wgpu::BufferUsage::COPY_SRC);
+        let buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: subpixel_bytes, usage: wgpu::BufferUsage::COPY_SRC });
 
         // Submit command for copying pixel data to the texture.
         let buffer_copy_view = texture.default_buffer_copy_view(&buffer);
