@@ -54,8 +54,6 @@ struct Shared<M> {
     model: Arc<Mutex<Option<M>>>,
     // A unique ID associated with this stream on the cpal EventLoop.
     stream_id: cpal::StreamId,
-    // A handle to the CPAL audio event loop.
-    event_loop: Arc<cpal::EventLoop>,
     // Whether or not the stream is currently paused.
     is_paused: AtomicBool,
 }
@@ -63,7 +61,6 @@ struct Shared<M> {
 /// Stream building parameters that are common between input and output streams.
 pub struct Builder<M, S = f32> {
     pub(crate) host: Arc<cpal::Host>,
-    pub(crate) event_loop: Arc<cpal::EventLoop>,
     pub(crate) process_fn_tx: mpsc::Sender<ProcessFnMsg>,
     pub model: M,
     pub sample_rate: Option<u32>,
@@ -307,12 +304,12 @@ fn cpal_sample_format<S: Any>() -> Option<cpal::SampleFormat> {
     }
 }
 
-// Nannou allows the user to optionally specify each part of the stream format.
+// Nannou allows the user to optionally specify each part of the stream config.
 //
-// This function is used to determine whether or not a supported format yielded by CPAL matches
-// the requested format parameters specified by the user. If the supported format matches, a
-// compatible `Format` is returned.
-fn matching_supported_formats(
+// This function is used to determine whether or not a supported config yielded by CPAL matches
+// the requested config parameters specified by the user. If the supported config matches, a
+// compatible `SupportedStreamConfig` is returned.
+fn matching_supported_configs(
     mut supported_stream_config_range: cpal::SupportedStreamConfigRange,
     sample_format: Option<cpal::SampleFormat>,
     channels: Option<usize>,
@@ -357,56 +354,58 @@ fn matching_supported_formats(
     Some(supported_stream_config_range.with_max_sample_rate())
 }
 
-// Given some audio device find the supported stream format that best matches the given optional
-// format parameters (specified by the user).
-fn find_best_matching_format<F>(
+// Given some audio device find the supported stream config that best matches the given optional
+// config parameters (specified by the user).
+fn find_best_matching_config<F>(
     device: &cpal::Device,
     mut sample_format: Option<cpal::SampleFormat>,
     channels: Option<usize>,
     mut sample_rate: Option<cpal::SampleRate>,
-    default_format: Option<cpal::Format>,
-    supported_formats: F,
-) -> Result<Option<cpal::Format>, cpal::SupportedFormatsError>
+    default_config: Option<cpal::SupportedStreamConfig>,
+    buffer_size: Option<cpal::SupportedBufferSize>,
+    supported_configs: F,
+) -> Result<Option<cpal::SupportedStreamConfig>, cpal::SupportedStreamConfigsError>
 where
-    F: Fn(&cpal::Device) -> Result<Vec<cpal::SupportedFormat>, cpal::SupportedFormatsError>,
+    F: Fn(&cpal::Device) -> Result<Vec<cpal::SupportedStreamConfigRange>, cpal::SupportedStreamConfigsError>,
 {
     loop {
         {
-            // First, see if the default format satisfies the request.
-            if let Some(ref format) = default_format {
-                if sample_format == Some(format.data_type)
+            // First, see if the default config satisfies the request.
+            if let Some(ref config) = default_config {
+                if sample_format == Some(config.sample_format())
                     && channels
-                        .map(|ch| ch <= format.channels as usize)
+                        .map(|ch| ch <= config.channels() as usize)
                         .unwrap_or(true)
-                    && sample_rate == Some(format.sample_rate)
+                    && sample_rate == Some(config.sample_rate())
+                    && buffer_size == Some(*config.buffer_size())
                 {
-                    return Ok(Some(format.clone()));
+                    return Ok(Some(config.clone()));
                 }
             }
 
-            // Otherwise search through all supported formats for compatible formats.
-            let stream_formats = supported_formats(device)?.into_iter().filter_map(|fmt| {
-                matching_supported_formats(fmt, sample_format, channels, sample_rate)
+            // Otherwise search through all supported configs for compatible configs.
+            let stream_configs = supported_configs(device)?.into_iter().filter_map(|config| {
+                matching_supported_configs(config, sample_format, channels, sample_rate, buffer_size)
             });
 
-            // Find the supported format with the most channels (this will always be the target
+            // Find the supported config with the most channels (this will always be the target
             // number of channels if some specific target number was specified as all other numbers
             // will have been filtered out already).
-            if let Some(format) = stream_formats.max_by_key(|fmt| fmt.channels) {
-                return Ok(Some(format));
+            if let Some(config) = stream_configs.max_by_key(|config| config.channels()) {
+                return Ok(Some(config));
             }
         }
 
-        // If there are no matching formats with the target sample_format, drop the requirement
-        // and we'll do a conversion from the default format instead.
-        let default_sample_format = default_format.as_ref().map(|f| f.data_type);
+        // If there are no matching configs with the target sample_format, drop the requirement
+        // and we'll do a conversion from the default config instead.
+        let default_sample_format = default_config.as_ref().map(|f| f.sample_format());
         if sample_format.is_some() && sample_format != default_sample_format {
             sample_format = default_sample_format;
         // Otherwise if nannou's default target sample rate is set because the user didn't
         // specify a sample rate, try and fall back to a supported sample rate in case this was
         // the reason we could not find a supported format.
         } else if sample_rate == Some(cpal::SampleRate(DEFAULT_SAMPLE_RATE)) {
-            let cpal_default_sample_rate = default_format.as_ref().map(|fmt| fmt.sample_rate);
+            let cpal_default_sample_rate = default_config.as_ref().map(|config| config.sample_rate());
             let nannou_default_sample_rate = Some(cpal::SampleRate(DEFAULT_SAMPLE_RATE));
             sample_rate = if cpal_default_sample_rate != nannou_default_sample_rate {
                 cpal_default_sample_rate
@@ -416,5 +415,7 @@ where
         } else {
             return Ok(None);
         }
+
+        // TO DO probably need to also check against buffer size
     }
 }

@@ -43,7 +43,6 @@ pub mod stream;
 /// The top-level audio API, for enumerating devices and spawning input/output streams.
 pub struct Host {
     host: Arc<cpal::Host>,
-    event_loop: Arc<cpal::EventLoop>,
     process_fn_tx: Mutex<Option<mpsc::Sender<stream::ProcessFnMsg>>>,
 }
 
@@ -56,8 +55,6 @@ impl Host {
 
     /// Initialise the API.
     ///
-    /// Internally, this creates a new, inactive CPAL event loop ready for stream creation.
-    ///
     /// The `Default` implementation for `Host` calls this constructor internally.
     pub fn new() -> Self {
         let host = cpal::default_host();
@@ -67,11 +64,9 @@ impl Host {
     /// Initialise the `Host` from an existing CPAL host.
     fn from_cpal_host(host: cpal::Host) -> Self {
         let host = Arc::new(host);
-        let event_loop = Arc::new(host.event_loop());
         let process_fn_tx = Mutex::new(None);
         Host {
             host,
-            event_loop,
             process_fn_tx,
         }
     }
@@ -142,7 +137,6 @@ impl Host {
     // `cpal::EventLoop::run` method on its own thread, ready to run built streams.
     fn new_stream<M, S>(&self, model: M) -> stream::Builder<M, S> {
         let process_fn_tx = if self.process_fn_tx.lock().unwrap().is_none() {
-            let event_loop = self.event_loop.clone();
             let (tx, rx) = mpsc::channel();
             let mut loop_context = stream::LoopContext::new(rx);
             thread::Builder::new()
@@ -157,7 +151,6 @@ impl Host {
 
         stream::Builder {
             host: self.host.clone(),
-            event_loop: self.event_loop.clone(),
             process_fn_tx: process_fn_tx,
             model,
             sample_rate: None,

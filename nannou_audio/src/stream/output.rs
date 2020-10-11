@@ -138,7 +138,6 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
             builder:
                 stream::Builder {
                     host,
-                    event_loop,
                     process_fn_tx,
                     model,
                     sample_rate,
@@ -161,8 +160,8 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
             Some(Device { device }) => device,
         };
 
-        // Find the best matching format.
-        let format = super::find_best_matching_format(
+        // Find the best matching config.
+        let config = super::find_best_matching_config(
             &device,
             sample_format,
             channels,
@@ -175,8 +174,8 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
         let (update_tx, update_rx) = mpsc::channel();
         let model = Arc::new(Mutex::new(Some(model)));
         let model_2 = model.clone();
-        let num_channels = format.channels as usize;
-        let sample_rate = format.sample_rate.0;
+        let num_channels = config.channels() as usize;
+        let sample_rate = config.sample_rate().0;
 
         // A buffer for collecting model updates.
         let mut pending_updates: Vec<Box<dyn FnMut(&mut M) + 'static + Send>> = Vec::new();
@@ -248,6 +247,12 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
                 }
             }
 
+            match config.sample_format() {
+                cpal::SampleFormat::F32 => {
+
+                }
+            }
+
             // Process the given buffer.
             match output {
                 cpal::UnknownTypeOutputBuffer::U16(mut buffer) => {
@@ -272,7 +277,6 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
         let shared = Arc::new(super::Shared {
             model,
             stream_id,
-            event_loop,
             is_paused: AtomicBool::new(false),
         });
 
