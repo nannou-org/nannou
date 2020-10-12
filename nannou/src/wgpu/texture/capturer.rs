@@ -220,7 +220,7 @@ impl Capturer {
             let dst_view = converter_data_pair.dst_texture.view();
             converter_data_pair
                 .reshaper
-                .encode_render_pass(&dst_view, encoder);
+                .encode_render_pass(&dst_view.build(), encoder);
 
             converter_data_pair
                 .dst_texture
@@ -324,7 +324,7 @@ impl Snapshot {
 impl Rgba8AsyncMappedImageBuffer {
     /// Convert the mapped image buffer to an owned buffer.
     pub fn to_owned(&self) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
-        let vec = self.as_flat_samples().as_slice().to_vec();
+        let vec = unimplemented!("TODO(jhg)"); //self.as_flat_samples().as_slice().to_vec();
         let (width, height) = self.dimensions();
         image::ImageBuffer::from_raw(width, height, vec)
             .expect("image buffer dimensions do not match vec len")
@@ -347,7 +347,7 @@ impl<'b> Deref for Rgba8AsyncMappedImageBuffer {
 
 impl<'m> AsRef<[u8]> for Rgba8ReadMapping {
     fn as_ref(&self) -> &[u8] {
-        self.mapping.mapping().as_slice()
+        unimplemented!("TODO(jhg)") //self.mapping.mapping().as_slice()
     }
 }
 
@@ -371,7 +371,7 @@ fn create_converter_data_pair(
     src_texture: &wgpu::Texture,
 ) -> ConverterDataPair {
     // Create the destination format texture.
-    let dst_texture = wgpu::TextureBuilder::from(src_texture.descriptor_cloned())
+    let dst_texture = wgpu::TextureBuilder::from(src_texture.descriptor.clone())
         .sample_count(1)
         .format(Capturer::DST_FORMAT)
         .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::COPY_SRC)
@@ -393,7 +393,7 @@ fn create_converter_data_pair(
     );
 
     // Keep track of the `src_descriptor` to check if we need to recreate the converter.
-    let src_descriptor = src_texture.descriptor_cloned();
+    let src_descriptor = src_texture.descriptor.clone();
 
     ConverterDataPair {
         src_descriptor,

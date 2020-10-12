@@ -302,7 +302,7 @@ impl RenderData {
             device,
             &intermediary_lin_srgba.texture_view,
             src_sample_count,
-            intermediary_lin_srgba.texture_view.component_type(),
+            intermediary_lin_srgba.texture_view.component_type().expect("Texture view has no component type?"),
             swap_chain_sample_count,
             swap_chain_format,
         );

@@ -189,7 +189,9 @@ fn pipeline_layout(
     bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::PipelineLayout {
     let desc = wgpu::PipelineLayoutDescriptor {
+        label: Some("nannou_reshaper"),
         bind_group_layouts: &[&bind_group_layout],
+        push_constant_ranges: &[]
     };
     device.create_pipeline_layout(&desc)
 }

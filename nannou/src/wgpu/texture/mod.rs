@@ -3,7 +3,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use wgpu::util::{DeviceExt, BufferInitDescriptor};
-use wgpu::TextureFormat;
+use std::num::NonZeroU32;
 
 pub mod capturer;
 pub mod image;
@@ -93,22 +93,6 @@ impl Texture {
         &self.descriptor
     }
 
-    /// The inner descriptor from which this **Texture** was constructed.
-    ///
-    /// TODO: This method should be removed upon updating to wgpu 0.5 as the new version will
-    /// include an implementation of `Clone` for `TextureDescriptor`.
-    pub fn descriptor_cloned(&self) -> wgpu::TextureDescriptor<'static> {
-        wgpu::TextureDescriptor {
-            label: Some("nannou"),
-            size: self.extent(),
-            mip_level_count: self.mip_level_count(),
-            sample_count: self.sample_count(),
-            dimension: self.dimension(),
-            format: self.format(),
-            usage: self.usage(),
-        }
-    }
-
     /// Consume the **Texture** and produce the inner **Arc<TextureHandle>**.
     pub fn into_inner(self) -> Arc<TextureHandle> {
         self.into()
@@ -131,10 +115,12 @@ impl Texture {
         self.descriptor.size
     }
 
+    /// Mip count of texture. For a texture with no extra mips, this must be 1.
     pub fn mip_level_count(&self) -> u32 {
         self.descriptor.mip_level_count
     }
 
+    /// Sample count of texture. If this is not 1, texture must have BindingType::SampledTexture::multisampled set to true.
     pub fn sample_count(&self) -> u32 {
         self.descriptor.sample_count
     }
@@ -204,33 +190,28 @@ impl Texture {
 
     /// A `TextureViewDimension` for a full view of the entire texture.
     ///
-    /// NOTE: This will never produce the `Cube` or `CubeArray` variants. You may have to construct
-    /// your own `wgpu::TextureViewDimension` via the `view` method if these are desired.
+    /// NOTE: This will never produce the `D2Array`, `Cube` or `CubeArray` variants. You may have to
+    /// construct your own `wgpu::TextureViewDimension` via the `view` method if these are desired.
     pub fn view_dimension(&self) -> wgpu::TextureViewDimension {
         match self.dimension() {
             wgpu::TextureDimension::D1 => wgpu::TextureViewDimension::D1,
-            wgpu::TextureDimension::D2 => match self.array_layer_count() {
-                1 => wgpu::TextureViewDimension::D2,
-                _ => wgpu::TextureViewDimension::D2Array,
-            },
+            wgpu::TextureDimension::D2 => wgpu::TextureViewDimension::D2,
             wgpu::TextureDimension::D3 => wgpu::TextureViewDimension::D3,
         }
     }
 
     /// The view descriptor describing a full view of the texture.
     pub fn default_view_descriptor(&self) -> wgpu::TextureViewDescriptor<'static> {
-        let dimension = self.view_dimension();
-        // TODO: Is this correct? Should we check the format?
-        let aspect = wgpu::TextureAspect::All;
         wgpu::TextureViewDescriptor {
             label: Some("nannou"),
-            format: self.format(),
-            dimension,
-            aspect,
+            format: Some(self.format()),
+            dimension: Some(self.view_dimension()),
+            // TODO: Is this correct? Should we check the format?
+            aspect: wgpu::TextureAspect::All,
             base_mip_level: 0,
-            level_count: self.mip_level_count(),
+            level_count: NonZeroU32::new(self.mip_level_count()),
             base_array_layer: 0,
-            array_layer_count: self.array_layer_count(),
+            array_layer_count: NonZeroU32::new(1)
         }
     }
 
@@ -310,12 +291,12 @@ impl Texture {
             let format_size_bytes = format_size_bytes(format) as u64;
             let layer_len_pixels = size.width as u64 * size.height as u64 * size.depth as u64;
             let layer_size_bytes = layer_len_pixels * format_size_bytes;
-            let data_size_bytes = layer_size_bytes * texture.array_layer_count() as u64;
+            let data_size_bytes = layer_size_bytes;
             let buffer_descriptor = wgpu::BufferDescriptor {
                 label: Some("nannou_texture_to_buffer"),
                 size: data_size_bytes,
-                usage: wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ,
-                mapped_at_creation: wgpu::BufferUsage::MAP_WRITE,
+                usage: wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ | wgpu::BufferUsage::MAP_WRITE,
+                mapped_at_creation: true, // TODO does this need to be true?
             };
             let buffer = device.create_buffer(&buffer_descriptor);
 
@@ -330,7 +311,7 @@ impl Texture {
         // If this texture is multi-sampled, resolve it first.
         if self.sample_count() > 1 {
             let view = self.create_view(&wgpu::TextureViewDescriptor::default());
-            let descriptor = self.descriptor_cloned();
+            let descriptor = self.descriptor.clone();
             let resolved_texture = wgpu::TextureBuilder::from(descriptor)
                 .sample_count(1)
                 .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::COPY_SRC)
@@ -370,19 +351,6 @@ impl TextureView {
         &self.descriptor
     }
 
-    pub fn descriptor_cloned(&self) -> wgpu::TextureViewDescriptor {
-        wgpu::TextureViewDescriptor {
-            label: None,
-            format: self.format(),
-            dimension: self.dimension(),
-            aspect: self.aspect(),
-            base_mip_level: self.base_mip_level(),
-            level_count: self.level_count(),
-            base_array_layer: self.base_array_layer(),
-            array_layer_count: self.array_layer_count(),
-        }
-    }
-
     pub fn format(&self) -> Option<wgpu::TextureFormat> {
         self.descriptor.format
     }
@@ -399,7 +367,7 @@ impl TextureView {
         self.descriptor.base_mip_level
     }
 
-    pub fn level_count(&self) -> Option<u32> {
+    pub fn level_count(&self) -> Option<NonZeroU32> {
         self.descriptor.level_count
     }
 
@@ -407,12 +375,12 @@ impl TextureView {
         self.descriptor.base_array_layer
     }
 
-    pub fn array_layer_count(&self) -> Option<u32> {
+    pub fn array_layer_count(&self) -> Option<NonZeroU32> {
         self.descriptor.array_layer_count
     }
 
-    pub fn component_type(&self) -> wgpu::TextureComponentType {
-        self.format().into()
+    pub fn component_type(&self) -> Option<wgpu::TextureComponentType> {
+        self.format().map(|f| f.into())
     }
 
     pub fn id(&self) -> TextureViewId {
@@ -461,11 +429,10 @@ impl Builder {
     pub const DEFAULT_SAMPLE_COUNT: u32 = 1;
     pub const DEFAULT_DIMENSION: wgpu::TextureDimension = wgpu::TextureDimension::D2;
     pub const DEFAULT_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
-    pub const DEFAULT_USAGE: wgpu::TextureUsage = wgpu::TextureUsage::ORDERED;
+    pub const DEFAULT_USAGE: wgpu::TextureUsage = wgpu::TextureUsage::all(); // TODO: is this the right choice?
     pub const DEFAULT_DESCRIPTOR: wgpu::TextureDescriptor<'static> = wgpu::TextureDescriptor {
         label: Some("nannou_texture_descriptor"),
         size: Self::DEFAULT_SIZE,
-        array_layer_count: Self::DEFAULT_ARRAY_LAYER_COUNT,
         mip_level_count: Self::DEFAULT_MIP_LEVEL_COUNT,
         sample_count: Self::DEFAULT_SAMPLE_COUNT,
         dimension: Self::DEFAULT_DIMENSION,
@@ -509,11 +476,6 @@ impl Builder {
     pub fn extent(mut self, extent: wgpu::Extent3d) -> Self {
         self.descriptor.size = extent;
         self.infer_dimension_from_size();
-        self
-    }
-
-    pub fn array_layer_count(mut self, count: u32) -> Self {
-        self.descriptor.array_layer_count = count;
         self
     }
 
@@ -573,7 +535,7 @@ impl<'a> ViewBuilder<'a> {
         self
     }
 
-    pub fn dimension(mut self, dimension: wgpu::TextureViewDimension) -> Self {
+    pub fn dimension(mut self, dimension: Option<wgpu::TextureViewDimension>) -> Self {
         self.descriptor.dimension = dimension;
         self
     }
@@ -583,7 +545,7 @@ impl<'a> ViewBuilder<'a> {
         self
     }
 
-    pub fn level_count(mut self, level_count: Option<u32>) -> Self {
+    pub fn level_count(mut self, level_count: Option<NonZeroU32>) -> Self {
         self.descriptor.level_count = level_count;
         self
     }
@@ -593,9 +555,18 @@ impl<'a> ViewBuilder<'a> {
         self
     }
 
-    pub fn array_layer_count(mut self, array_layer_count: Option<u32>) -> Self {
+    pub fn array_layer_count(mut self, array_layer_count: Option<NonZeroU32>) -> Self {
         self.descriptor.array_layer_count = array_layer_count;
         self
+    }
+
+    /// Short-hand for converting a 3d texture into a 2d texture array.
+    ///
+    /// Panics if texture view is not 3d.
+    pub fn as_texture_array(self) -> Self {
+        assert_eq!(self.descriptor.dimension, Some(wgpu::TextureViewDimension::D3),
+                   "Cannot convert a non-3d texture view to a texture array view");
+        self.dimension(Some(wgpu::TextureViewDimension::D2Array))
     }
 
     /// Short-hand for specifying a **TextureView** for a single given base array layer.
@@ -608,7 +579,10 @@ impl<'a> ViewBuilder<'a> {
     ///     .array_layer_count(1)
     /// ```
     pub fn layer(self, layer: u32) -> Self {
-        self.base_array_layer(layer).array_layer_count(1)
+        // TODO(jhg): check this works.
+        self.as_texture_array()
+            .base_array_layer(layer)
+            .array_layer_count(NonZeroU32::new(1))
     }
 
     pub fn build(self) -> TextureView {
@@ -688,7 +662,7 @@ impl Clone for TextureView {
     fn clone(&self) -> Self {
         TextureView {
             handle: self.handle.clone(),
-            descriptor: self.descriptor_cloned(),
+            descriptor: self.descriptor.clone(),
             texture_id: self.texture_id(),
             texture_extent: self.extent(),
         }
@@ -698,7 +672,7 @@ impl Clone for TextureView {
 impl Clone for Texture {
     fn clone(&self) -> Self {
         let handle = self.handle.clone();
-        let descriptor = self.descriptor_cloned();
+        let descriptor = self.descriptor.clone();
         Self { handle, descriptor }
     }
 }
@@ -774,7 +748,6 @@ pub fn data_size_bytes(desc: &wgpu::TextureDescriptor) -> usize {
     desc.size.width as usize
         * desc.size.height as usize
         * desc.size.depth as usize
-        * desc.array_layer_count as usize
         * format_size_bytes(desc.format) as usize
 }
 

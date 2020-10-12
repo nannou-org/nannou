@@ -318,8 +318,7 @@ impl Eq for DeviceMapKey {}
 
 // NOTE: This should be updated as fields are added to the `wgpu::DeviceDescriptor` type.
 fn eq_device_descriptor(a: &wgpu::DeviceDescriptor, b: &wgpu::DeviceDescriptor) -> bool {
-    a.extensions.anisotropic_filtering == b.extensions.anisotropic_filtering
-        && a.limits.max_bind_groups == b.limits.max_bind_groups
+    a.features == b.features && a.limits == b.limits && a.shader_validation == b.shader_validation
 }
 
 // NOTE: This should be updated as fields are added to the `wgpu::DeviceDescriptor` type.
@@ -327,6 +326,7 @@ fn hash_device_descriptor<H>(desc: &wgpu::DeviceDescriptor, state: &mut H)
 where
     H: Hasher,
 {
-    desc.extensions.anisotropic_filtering.hash(state);
-    desc.limits.max_bind_groups.hash(state);
+    desc.features.hash(state);
+    desc.limits.hash(state);
+    desc.shader_validation.hash(state);
 }
