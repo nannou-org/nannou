@@ -65,6 +65,7 @@ pub struct Builder<M = (), E = Event> {
     default_window_size: Option<DefaultWindowSize>,
     capture_frame_timeout: Option<Option<Duration>>,
     max_capture_frame_jobs: Option<u32>,
+    backends: wgpu::BackendBit,
 }
 
 /// A nannou `Sketch` builder.
@@ -106,7 +107,11 @@ pub struct App {
     pub(crate) event_loop_window_target: Option<EventLoopWindowTarget>,
     pub(crate) event_loop_proxy: Proxy,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
-    /// A map of active wgpu physial device adapters.
+    /// The wgpu backends to choose between.
+    backends: wgpu::BackendBit,
+    /// The main wgpu instance.
+    instance: wgpu::Instance,
+    /// A map of active wgpu physical device adapters.
     adapters: wgpu::AdapterMap,
     draw_state: DrawState,
     pub(crate) ui: ui::Arrangement,
@@ -237,6 +242,9 @@ impl<M> Builder<M, Event>
 where
     M: 'static,
 {
+    /// The default set of backends requested.
+    pub const DEFAULT_BACKENDS: wgpu::BackendBit = wgpu::DEFAULT_BACKENDS;
+
     /// Begin building the `App`.
     ///
     /// The `model` argument is the function that the App will call to initialise your Model.
@@ -259,6 +267,7 @@ where
             default_window_size: None,
             max_capture_frame_jobs: None,
             capture_frame_timeout: None,
+            backends: Self::DEFAULT_BACKENDS
         }
     }
 
@@ -283,6 +292,7 @@ where
             default_window_size,
             max_capture_frame_jobs,
             capture_frame_timeout,
+            backends,
             ..
         } = self;
         Builder {
@@ -295,6 +305,7 @@ where
             default_window_size,
             max_capture_frame_jobs,
             capture_frame_timeout,
+            backends
         }
     }
 }
@@ -414,6 +425,14 @@ where
         self
     }
 
+    /// Specify the set of preferred WGPU backends.
+    ///
+    /// By default, this is `wgpu::BackendBit::PRIMARY`.
+    pub fn backends(mut self, backends: wgpu::BackendBit) -> Self {
+        self.backends = backends;
+        self
+    }
+
     /// Build and run an `App` with the specified parameters.
     ///
     /// This function will not return until the application has exited.
@@ -447,6 +466,7 @@ where
             self.default_window_size,
             max_capture_frame_jobs,
             capture_frame_timeout,
+            self.backends,
         );
 
         // Create the default window if necessary
@@ -590,7 +610,9 @@ impl App {
         default_window_size: Option<DefaultWindowSize>,
         max_capture_frame_jobs: u32,
         capture_frame_timeout: Option<Duration>,
+        backends: wgpu::BackendBit,
     ) -> Self {
+        let instance = wgpu::Instance::new(backends);
         let adapters = Default::default();
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());
@@ -610,6 +632,8 @@ impl App {
             max_capture_frame_jobs,
             capture_frame_timeout,
             focused_window,
+            backends,
+            instance,
             adapters,
             windows,
             config,
@@ -744,6 +768,13 @@ impl App {
             .expect("no window for focused id")
     }
 
+    /// Return the main wgpu `Instance` in use.
+    ///
+    /// This must be passed into the various methods on `AdapterMap`.
+    pub fn instance(&self) -> &wgpu::Instance {
+        &self.instance
+    }
+
     /// Access to the **App**'s inner map of wgpu adapters representing access to physical GPU
     /// devices.
     ///
@@ -754,6 +785,9 @@ impl App {
     /// `DeviceDescriptor`s, nannou will automatically share devices between windows where
     /// possible. This allows for sharing GPU resources like **Texture**s and **Buffer**s between
     /// windows.
+    ///
+    /// All methods on `AdapterMap` that take a `wgpu::Instance` must be passed the main instance
+    /// in use by the app, accessed via `App::instance()`.
     pub fn wgpu_adapters(&self) -> &wgpu::AdapterMap {
         &self.adapters
     }

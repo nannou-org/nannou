@@ -34,7 +34,6 @@ pub struct Builder<'app> {
     title_was_set: bool,
     swap_chain_builder: SwapChainBuilder,
     power_preference: wgpu::PowerPreference,
-    backends: wgpu::BackendBit,
     device_desc: Option<wgpu::DeviceDescriptor>,
     user_functions: UserFunctions,
     msaa_samples: Option<u32>,
@@ -340,8 +339,6 @@ impl SwapChainBuilder {
 impl<'app> Builder<'app> {
     /// The default power preference used to request the WGPU adapter.
     pub const DEFAULT_POWER_PREFERENCE: wgpu::PowerPreference = wgpu::DEFAULT_POWER_PREFERENCE;
-    /// The default set of backends requested.
-    pub const DEFAULT_BACKENDS: wgpu::BackendBit = wgpu::DEFAULT_BACKENDS;
 
     /// Begin building a new window.
     pub fn new(app: &'app App) -> Self {
@@ -351,7 +348,6 @@ impl<'app> Builder<'app> {
             title_was_set: false,
             swap_chain_builder: Default::default(),
             power_preference: Self::DEFAULT_POWER_PREFERENCE,
-            backends: Self::DEFAULT_BACKENDS,
             device_desc: None,
             user_functions: Default::default(),
             msaa_samples: None,
@@ -380,13 +376,6 @@ impl<'app> Builder<'app> {
         self
     }
 
-    /// Specify the set of preferred WGPU backends.
-    ///
-    /// By default, this is `wgpu::BackendBit::PRIMARY`.
-    pub fn backends(mut self, backends: wgpu::BackendBit) -> Self {
-        self.backends = backends;
-        self
-    }
 
     /// Specify a device descriptor to use when requesting the logical device from the adapter.
     /// This allows for specifying custom wgpu device extensions.
@@ -701,7 +690,6 @@ impl<'app> Builder<'app> {
             title_was_set,
             swap_chain_builder,
             power_preference,
-            backends,
             device_desc,
             user_functions,
             msaa_samples,
@@ -792,7 +780,9 @@ impl<'app> Builder<'app> {
         };
 
         // Build the wgpu surface.
-        let surface = wgpu::Surface::create(&window);
+        let surface = unsafe {
+             app.instance().create_surface(&window)
+        };
 
         // Request the adapter.
         let request_adapter_opts = wgpu::RequestAdapterOptions {
@@ -801,7 +791,7 @@ impl<'app> Builder<'app> {
         };
         let adapter = app
             .wgpu_adapters()
-            .get_or_request(request_adapter_opts, backends)
+            .get_or_request(request_adapter_opts, app.instance())
             .ok_or(BuildError::NoAvailableAdapter)?;
 
         // Instantiate the logical device.
@@ -879,7 +869,6 @@ impl<'app> Builder<'app> {
             title_was_set,
             device_desc,
             power_preference,
-            backends,
             swap_chain_builder,
             user_functions,
             msaa_samples,
@@ -893,7 +882,6 @@ impl<'app> Builder<'app> {
             title_was_set,
             device_desc,
             power_preference,
-            backends,
             swap_chain_builder,
             user_functions,
             msaa_samples,
