@@ -276,7 +276,6 @@ impl<M, FA, FB, S> Builder<M, FA, FB, S> {
 
         let shared = Arc::new(super::Shared {
             model,
-            stream_id,
             is_paused: AtomicBool::new(false),
         });
 
