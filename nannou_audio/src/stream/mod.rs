@@ -26,7 +26,7 @@ pub const DEFAULT_SAMPLE_RATE: u32 = 44_100;
 pub type UpdateFn<M> = dyn FnOnce(&mut M) + Send + 'static;
 
 pub(crate) type ProcessFn = dyn FnMut(cpal::StreamDataResult) + 'static + Send;
-pub(crate) type ProcessFnMsg = (cpal::StreamId, Box<ProcessFn>);
+pub(crate) type ProcessFnMsg = Box<ProcessFn>;
 
 /// A clone-able handle around an audio stream.
 pub struct Stream<M> {
@@ -267,8 +267,6 @@ fn matching_supported_configs(
         let supported_channels = supported_stream_config_range.channels() as usize;
         if supported_channels < channels {
             return None;
-        } else if supported_channels > channels {
-            supported_stream_config_range.channels = channels as u16;
         }
     }
     // Check the sample rate.
@@ -282,12 +280,12 @@ fn matching_supported_configs(
         return Some(config);
     }
 
-    // cpal::SupportedStreamConfig {
+    // let config = cpal::SupportedStreamConfig {
     //     channels: channels,
     //     sample_rate: sample_rate,
     //     buffer_size: buffer_size,
     //     sample_format: sample_format,
-    // }
+    // };
 
     Some(supported_stream_config_range.with_max_sample_rate())
 }
