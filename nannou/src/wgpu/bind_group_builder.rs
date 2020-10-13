@@ -153,7 +153,7 @@ impl LayoutBuilder {
             entries.push(layout_binding);
         }
         let descriptor = wgpu::BindGroupLayoutDescriptor {
-            label: Some("nannou"),
+            label: Some("nannou bind group layout"),
             entries: &entries,
         };
         device.create_bind_group_layout(&descriptor)
@@ -229,7 +229,7 @@ impl<'a> Builder<'a> {
             entries.push(binding);
         }
         let descriptor = wgpu::BindGroupDescriptor {
-            label: Some("nannou"),
+            label: Some("nannou bind group"),
             layout,
             entries: &entries,
         };

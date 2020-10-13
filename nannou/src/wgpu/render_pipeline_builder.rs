@@ -410,7 +410,7 @@ impl<'a> IntoPipelineLayoutDescriptor<'a> for wgpu::PipelineLayoutDescriptor<'a>
 impl<'a> IntoPipelineLayoutDescriptor<'a> for &'a [&'a wgpu::BindGroupLayout] {
     fn into_pipeline_layout_descriptor(self) -> wgpu::PipelineLayoutDescriptor<'a> {
         wgpu::PipelineLayoutDescriptor {
-            label: Some("nannou"),
+            label: Some("nannou render pipeline layout"),
             bind_group_layouts: self,
             // wgpu 0.5-06 TODO: maybe constants are needed to be specified here
             push_constant_ranges: &[],
@@ -486,7 +486,7 @@ fn build(
     };
 
     let pipeline_desc = wgpu::RenderPipelineDescriptor {
-        label: Some("nannou"),
+        label: Some("nannou render pipeline"),
         layout: Some(layout),
         vertex_stage,
         fragment_stage,

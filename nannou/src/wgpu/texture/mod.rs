@@ -203,7 +203,7 @@ impl Texture {
     /// The view descriptor describing a full view of the texture.
     pub fn default_view_descriptor(&self) -> wgpu::TextureViewDescriptor<'static> {
         wgpu::TextureViewDescriptor {
-            label: Some("nannou"),
+            label: Some("nannou Texture::default_view_descriptor"),
             format: Some(self.format()),
             dimension: Some(self.view_dimension()),
             // TODO: Is this correct? Should we check the format?
@@ -233,8 +233,6 @@ impl Texture {
         assert_eq!(self.extent().depth, 1, "TODO(jhg): this method won't work for 3d textures");
         let format_size_bytes = format_size_bytes(self.format());
         let [width, height] = self.size();
-        println!("{:?}", self.descriptor.size);
-        println!("{:?} * {:?} = {:?}", width, format_size_bytes, width * format_size_bytes);
         let layout = wgpu::TextureDataLayout {
             offset: 0,
             bytes_per_row: width * format_size_bytes,
@@ -257,7 +255,7 @@ impl Texture {
         assert_eq!(data.len(), texture_size_bytes);
 
         // Upload and copy the data.
-        let buffer = device.create_buffer_init(&BufferInitDescriptor{ label: None, contents: data, usage: wgpu::BufferUsage::COPY_SRC});
+        let buffer = device.create_buffer_init(&BufferInitDescriptor{ label: Some("nannou Texture::upload_data buffer"), contents: data, usage: wgpu::BufferUsage::COPY_SRC});
         let buffer_copy_view = self.default_buffer_copy_view(&buffer);
         let texture_copy_view = self.default_copy_view();
         let extent = self.extent();
@@ -296,7 +294,7 @@ impl Texture {
             let layer_size_bytes = layer_len_pixels * format_size_bytes;
             let data_size_bytes = layer_size_bytes;
             let buffer_descriptor = wgpu::BufferDescriptor {
-                label: Some("nannou_texture_to_buffer"),
+                label: Some("nannou Texture::to_buffer buffer"),
                 size: data_size_bytes,
                 usage: wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ,
                 mapped_at_creation: false, // TODO does this need to be true?
@@ -413,7 +411,7 @@ impl Builder {
     pub const DEFAULT_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
     pub const DEFAULT_USAGE: wgpu::TextureUsage = wgpu::TextureUsage::all(); // TODO: is this the right choice?
     pub const DEFAULT_DESCRIPTOR: wgpu::TextureDescriptor<'static> = wgpu::TextureDescriptor {
-        label: Some("nannou_texture_descriptor"),
+        label: Some("nannou Texture"),
         size: Self::DEFAULT_SIZE,
         mip_level_count: Self::DEFAULT_MIP_LEVEL_COUNT,
         sample_count: Self::DEFAULT_SAMPLE_COUNT,

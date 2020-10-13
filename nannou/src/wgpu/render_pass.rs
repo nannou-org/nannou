@@ -64,10 +64,10 @@ impl<'a> ColorAttachmentDescriptorBuilder<'a> {
 }
 
 impl<'a> DepthStencilAttachmentDescriptorBuilder<'a> {
-    pub const DEFAULT_DEPTH_LOAD_OP: LoadOp<f32> = LoadOp::Clear(0.);
+    pub const DEFAULT_DEPTH_LOAD_OP: LoadOp<f32> = LoadOp::Clear(Self::DEFAULT_CLEAR_DEPTH);
     pub const DEFAULT_DEPTH_STORE_OP: bool = true;
     pub const DEFAULT_CLEAR_DEPTH: f32 = 1.0;
-    pub const DEFAULT_STENCIL_LOAD_OP: LoadOp<u32> = LoadOp::Clear(0);
+    pub const DEFAULT_STENCIL_LOAD_OP: LoadOp<u32> = LoadOp::Clear(Self::DEFAULT_CLEAR_STENCIL);
     pub const DEFAULT_STENCIL_STORE_OP: bool = true;
     pub const DEFAULT_CLEAR_STENCIL: u32 = 0;
 
@@ -76,12 +76,12 @@ impl<'a> DepthStencilAttachmentDescriptorBuilder<'a> {
             descriptor: wgpu::RenderPassDepthStencilAttachmentDescriptor {
                 attachment,
                 depth_ops: Some(wgpu::Operations {
-                    load: LoadOp::Clear(0.),
-                    store: true,
+                    load: Self::DEFAULT_DEPTH_LOAD_OP,
+                    store: Self::DEFAULT_DEPTH_STORE_OP,
                 }),
                 stencil_ops: Some(wgpu::Operations {
-                    load: LoadOp::Clear(0),
-                    store: true,
+                    load: Self::DEFAULT_STENCIL_LOAD_OP,
+                    store: Self::DEFAULT_STENCIL_STORE_OP,
                 }),
             },
         }
