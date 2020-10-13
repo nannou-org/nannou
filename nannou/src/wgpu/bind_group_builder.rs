@@ -1,5 +1,4 @@
 use crate::wgpu;
-use std::num::NonZeroU32;
 
 /// A type aimed at simplifying the creation of a bind group layout.
 #[derive(Debug, Default)]
@@ -149,9 +148,7 @@ impl LayoutBuilder {
                 binding: i as u32,
                 visibility,
                 ty,
-                // wgpu 0.5-0.6 TODO: reconsider in the future
-                // refer to [`BIndGroupLayoutEntry`]
-                count: NonZeroU32::new(1)
+                count: None,
             };
             entries.push(layout_binding);
         }

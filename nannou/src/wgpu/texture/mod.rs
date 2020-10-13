@@ -230,9 +230,11 @@ impl Texture {
         &self,
         buffer: &'a wgpu::Buffer,
     ) -> wgpu::BufferCopyView<'a> {
-        assert_eq!(self.extent().depth, 0, "TODO(jhg): this method won't work for 3d textures");
+        assert_eq!(self.extent().depth, 1, "TODO(jhg): this method won't work for 3d textures");
         let format_size_bytes = format_size_bytes(self.format());
         let [width, height] = self.size();
+        println!("{:?}", self.descriptor.size);
+        println!("{:?} * {:?} = {:?}", width, format_size_bytes, width * format_size_bytes);
         let layout = wgpu::TextureDataLayout {
             offset: 0,
             bytes_per_row: width * format_size_bytes,
@@ -296,7 +298,7 @@ impl Texture {
             let buffer_descriptor = wgpu::BufferDescriptor {
                 label: Some("nannou_texture_to_buffer"),
                 size: data_size_bytes,
-                usage: wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ | wgpu::BufferUsage::MAP_WRITE,
+                usage: wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ,
                 mapped_at_creation: false, // TODO does this need to be true?
             };
             let buffer = device.create_buffer(&buffer_descriptor);

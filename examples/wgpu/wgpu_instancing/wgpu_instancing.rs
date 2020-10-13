@@ -171,9 +171,9 @@ fn model(app: &App) -> Model {
     let indices_bytes = indices_as_bytes(&data::INDICES);
     let vertex_usage = wgpu::BufferUsage::VERTEX;
     let index_usage = wgpu::BufferUsage::INDEX;
-    let vertex_buffer = device.create_buffer_with_data(vertices_bytes, vertex_usage);
-    let normal_buffer = device.create_buffer_with_data(normals_bytes, vertex_usage);
-    let index_buffer = device.create_buffer_with_data(indices_bytes, index_usage);
+    let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: vertices_bytes, usage: vertex_usage });
+    let normal_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: normals_bytes, usage: vertex_usage });
+    let index_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: indices_bytes, usage: index_usage });
 
     let sphere = make_geodesic_isocahedron(10);
     println!("Number of points on the sphere: {}", sphere.len());
@@ -186,7 +186,7 @@ fn model(app: &App) -> Model {
     let uniforms = create_uniforms(0.0, [win_w, win_h]);
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
     let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
-    let uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
+    let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: uniforms_bytes, usage });
 
     // Create the render pipeline.
     let bind_group_layout = create_bind_group_layout(device);
@@ -302,7 +302,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     let instances_bytes = instances_as_bytes(&instances);
     let usage = wgpu::BufferUsage::VERTEX;
-    let instance_buffer = device.create_buffer_with_data(instances_bytes, usage);
+    let instance_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: instances_bytes, usage });
 
     // Update the uniforms (rotate around the teapot).
     let world_rotation = 0.05f32 * app.time;
@@ -310,7 +310,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
     let usage = wgpu::BufferUsage::COPY_SRC;
-    let new_uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
+    let new_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: uniforms_bytes, usage });
 
     let mut encoder = frame.command_encoder();
     encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, &g.uniform_buffer, 0, uniforms_size);
@@ -321,10 +321,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .begin(&mut encoder);
     render_pass.set_bind_group(0, &g.bind_group, &[]);
     render_pass.set_pipeline(&g.render_pipeline);
-    render_pass.set_vertex_buffer(0, &g.vertex_buffer, 0, 0);
-    render_pass.set_vertex_buffer(1, &g.normal_buffer, 0, 0);
-    render_pass.set_vertex_buffer(2, &instance_buffer, 0, 0);
-    render_pass.set_index_buffer(&g.index_buffer, 0, 0);
+    render_pass.set_vertex_buffer(0, g.vertex_buffer.slice(..));
+    render_pass.set_vertex_buffer(1, g.normal_buffer.slice(..));
+    render_pass.set_vertex_buffer(2, instance_buffer.slice(..));
+    render_pass.set_index_buffer(g.index_buffer.slice(..));
     let index_range = 0..data::INDICES.len() as u32;
     let start_vertex = 0;
     let instance_range = 0..instances.len() as u32;
@@ -387,7 +387,9 @@ fn create_pipeline_layout(
     bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::PipelineLayout {
     let desc = wgpu::PipelineLayoutDescriptor {
+        label: None,
         bind_group_layouts: &[&bind_group_layout],
+        push_constant_ranges: &[],
     };
     device.create_pipeline_layout(&desc)
 }
@@ -408,13 +410,34 @@ fn create_render_pipeline(
         .alpha_blend(wgpu::BlendDescriptor::REPLACE)
         .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float3])
         .add_vertex_buffer::<Normal>(&wgpu::vertex_attr_array![1 => Float3])
-        .add_instance_buffer::<Instance>(&wgpu::vertex_attr_array![
-            2 => Float4,
-            3 => Float4,
-            4 => Float4,
-            5 => Float4,
-            6 => Float3
-        ])
+        // TODO: this can use the macro again when https://github.com/gfx-rs/wgpu/issues/836 is fixed
+        .add_instance_buffer::<Instance>(&[
+                wgpu::VertexAttributeDescriptor {
+                    shader_location: 2,
+                    format: wgpu::VertexFormat::Float4,
+                    offset: std::mem::size_of::<[f32; 4]>() as u64 * 0,
+                },
+                wgpu::VertexAttributeDescriptor {
+                    shader_location: 3,
+                    format: wgpu::VertexFormat::Float4,
+                    offset: std::mem::size_of::<[f32; 4]>() as u64 * 1,
+                },
+                wgpu::VertexAttributeDescriptor {
+                    shader_location: 4,
+                    format: wgpu::VertexFormat::Float4,
+                    offset: std::mem::size_of::<[f32; 4]>() as u64 * 2,
+                },
+                wgpu::VertexAttributeDescriptor {
+                    shader_location: 5,
+                    format: wgpu::VertexFormat::Float4,
+                    offset: std::mem::size_of::<[f32; 4]>() as u64 * 3,
+                },
+                wgpu::VertexAttributeDescriptor {
+                    shader_location: 6,
+                    format: wgpu::VertexFormat::Float4,
+                    offset: std::mem::size_of::<[f32; 4]>() as u64 * 4,
+                },
+            ])
         .depth_format(depth_format)
         .index_format(wgpu::IndexFormat::Uint16)
         .sample_count(sample_count)

@@ -62,7 +62,7 @@ fn model(app: &App) -> Model {
     let texture_capturer = wgpu::TextureCapturer::default();
 
     // Create the texture reshaper.
-    let texture_view = texture.create_default_view();
+    let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
     let texture_component_type = texture.component_type();
     let dst_format = Frame::TEXTURE_FORMAT;
     let texture_reshaper = wgpu::TextureReshaper::new(
@@ -156,7 +156,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         .capture(device, &mut encoder, &model.texture);
 
     // Submit the commands for our drawing and texture capture to the GPU.
-    window.swap_chain_queue().submit(&[encoder.finish()]);
+    window.swap_chain_queue().submit(std::iter::once(encoder.finish()));
 
     // Submit a function for writing our snapshot to a PNG.
     //

@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 
 struct Model {
     current_layer: f32,
-    texture_array: wgpu::Texture,
+    texture_3d: wgpu::Texture,
     texture_view: wgpu::TextureView,
     sampler: wgpu::Sampler,
     bind_group_layout: wgpu::BindGroupLayout,
@@ -79,22 +79,23 @@ fn model(app: &App) -> Model {
     let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
     let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
 
-    let texture_array = {
+    let texture_3d = {
         // The wgpu device queue used to load the image data.
         let queue = window.swap_chain_queue();
         // Describe how we will use the texture so that the GPU may handle it efficiently.
         let usage = wgpu::TextureUsage::SAMPLED;
         let iter = images.iter().map(|&(_, ref img)| img);
-        wgpu::Texture::load_array_from_image_buffers(device, queue, usage, iter)
+        wgpu::Texture::load_3d_from_image_buffers(device, queue, usage, iter)
             .expect("tied to load texture array with an empty image buffer sequence")
     };
     let layer = 0;
-    let texture_view = texture_array.view().layer(layer).build();
+    // We need to call `.view().as_array()` to convert the 3d texture to a 2d texture array view.
+    let texture_view = texture_3d.view().as_texture_array().layer(layer).build();
 
     // Create the sampler for sampling from the source texture.
     let sampler = wgpu::SamplerBuilder::new().build(device);
 
-    let bind_group_layout = create_bind_group_layout(device, texture_view.component_type());
+    let bind_group_layout = create_bind_group_layout(device, texture_view.component_type().unwrap());
     let bind_group = create_bind_group(device, &bind_group_layout, &texture_view, &sampler);
     let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
     let render_pipeline = create_render_pipeline(
@@ -109,11 +110,11 @@ fn model(app: &App) -> Model {
     // Create the vertex buffer.
     let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
     let usage = wgpu::BufferUsage::VERTEX;
-    let vertex_buffer = device.create_buffer_with_data(vertices_bytes, usage);
+    let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: vertices_bytes, usage });
 
     Model {
         current_layer: 0.0,
-        texture_array,
+        texture_3d,
         texture_view,
         sampler,
         bind_group_layout,
@@ -139,7 +140,7 @@ fn update(app: &App, model: &mut Model, update: Update) {
     );
 
     // Update which layer we are viewing based on the playback speed and layer count.
-    let layer_count = model.texture_array.array_layer_count();
+    let layer_count = model.texture_3d.extent().depth;
     model.current_layer = fmod(
         model.current_layer + update.since_last.secs() as f32 * fps,
         layer_count as f32,
@@ -147,7 +148,7 @@ fn update(app: &App, model: &mut Model, update: Update) {
 
     // Update the view and the bind group ready for drawing.
     let layer = model.current_layer as u32;
-    model.texture_view = model.texture_array.view().layer(layer).build();
+    model.texture_view = model.texture_3d.view().layer(layer).build();
     model.bind_group = create_bind_group(
         device,
         &model.bind_group_layout,
@@ -163,7 +164,7 @@ fn view(_app: &App, model: &Model, frame: Frame) {
         .begin(&mut encoder);
     render_pass.set_bind_group(0, &model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
-    render_pass.set_vertex_buffer(0, &model.vertex_buffer, 0, 0);
+    render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
     let vertex_range = 0..VERTICES.len() as u32;
     let instance_range = 0..1;
     render_pass.draw(vertex_range, instance_range);
@@ -224,7 +225,9 @@ fn create_pipeline_layout(
     bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::PipelineLayout {
     let desc = wgpu::PipelineLayoutDescriptor {
+        label: None,
         bind_group_layouts: &[&bind_group_layout],
+        push_constant_ranges: &[]
     };
     device.create_pipeline_layout(&desc)
 }
