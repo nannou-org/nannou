@@ -235,7 +235,6 @@ impl<'swap_chain> Frame<'swap_chain> {
             Some((_, ref msaa_texture_view)) => msaa_texture_view,
         };
         let resolve_target = None;
-        let clear_color = wgpu::Color::TRANSPARENT;
         wgpu::RenderPassColorAttachmentDescriptor {
             attachment,
             resolve_target,

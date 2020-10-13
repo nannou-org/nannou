@@ -768,6 +768,11 @@ impl App {
             .expect("no window for focused id")
     }
 
+    /// Return the wgpu `Backends` in use.
+    pub fn backends(&self) -> wgpu::BackendBit {
+        self.backends
+    }
+
     /// Return the main wgpu `Instance` in use.
     ///
     /// This must be passed into the various methods on `AdapterMap`.
