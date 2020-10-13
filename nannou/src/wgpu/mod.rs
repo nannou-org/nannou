@@ -73,7 +73,8 @@ pub use wgpu_upstream::{
     TextureFormat, TextureUsage, TextureView as TextureViewHandle, TextureViewDescriptor,
     TextureViewDimension, VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat, 
     VertexStateDescriptor, BIND_BUFFER_ALIGNMENT, Operations, BufferAsyncError, TextureDataLayout, BufferSlice,
-    Instance, StencilStateDescriptor, util::{self, BufferInitDescriptor}, ShaderModuleSource
+    Instance, StencilStateDescriptor, util::{self, BufferInitDescriptor}, ShaderModuleSource,
+    MapMode, BufferView,
 };
 
 pub fn shader_from_spirv_bytes(device: &wgpu_upstream::Device, bytes: &[u8]) -> wgpu_upstream::ShaderModule {

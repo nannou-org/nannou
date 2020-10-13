@@ -228,8 +228,9 @@ impl Texture {
     /// buffer is assumed to have the same size as the entirety of this texture.
     pub fn default_buffer_copy_view<'a>(
         &self,
-        buffer: &'static wgpu::Buffer,
+        buffer: &'a wgpu::Buffer,
     ) -> wgpu::BufferCopyView<'a> {
+        assert_eq!(self.extent().depth, 0, "TODO(jhg): this method won't work for 3d textures");
         let format_size_bytes = format_size_bytes(self.format());
         let [width, height] = self.size();
         let layout = wgpu::TextureDataLayout {
@@ -278,13 +279,13 @@ impl Texture {
         &self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-    ) -> (wgpu::Buffer, wgpu::BufferAddress) {
+    ) -> wgpu::Buffer {
         // Create the buffer and encode the copy.
         fn texture_to_buffer(
             texture: &wgpu::Texture,
             device: &wgpu::Device,
             encoder: &mut wgpu::CommandEncoder,
-        ) -> (wgpu::Buffer, wgpu::BufferAddress) {
+        ) -> wgpu::Buffer {
             // Create buffer that will be mapped for reading.
             let size = texture.extent();
             let format = texture.format();
@@ -296,7 +297,7 @@ impl Texture {
                 label: Some("nannou_texture_to_buffer"),
                 size: data_size_bytes,
                 usage: wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ | wgpu::BufferUsage::MAP_WRITE,
-                mapped_at_creation: true, // TODO does this need to be true?
+                mapped_at_creation: false, // TODO does this need to be true?
             };
             let buffer = device.create_buffer(&buffer_descriptor);
 
@@ -305,7 +306,7 @@ impl Texture {
             let buffer_copy_view = texture.default_buffer_copy_view(&buffer);
             encoder.copy_texture_to_buffer(texture_copy_view, buffer_copy_view, size);
 
-            (buffer, data_size_bytes)
+            buffer
         }
 
         // If this texture is multi-sampled, resolve it first.
@@ -322,27 +323,6 @@ impl Texture {
         } else {
             texture_to_buffer(self, device, encoder)
         }
-    }
-
-    /// Encode the necessary commands to read the contents of the texture into memory.
-    ///
-    /// The entire contents of the texture will be made available as a single slice of bytes.
-    ///
-    /// This method uses `to_buffer` internally, exposing a simplified API for reading the produced
-    /// buffer as a slice of bytes.
-    ///
-    /// If the texture has a sample count greater than one, it will first be resolved to a
-    /// non-multisampled texture before being copied to the buffer.
-    ///
-    /// NOTE: `read` should not be called on the returned buffer until the encoded commands have
-    /// been submitted to the device queue.
-    pub fn to_buffer_bytes(
-        &self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-    ) -> BufferBytes {
-        let (buffer, len_bytes) = self.to_buffer(device, encoder);
-        BufferBytes { buffer, len_bytes }
     }
 }
 
@@ -597,34 +577,6 @@ impl<'a> ViewBuilder<'a> {
     /// Consumes the texture view builder and returns the resulting `wgpu::TextureViewDescriptor`.
     pub fn into_descriptor(self) -> wgpu::TextureViewDescriptor<'static> {
         self.into()
-    }
-}
-
-impl BufferBytes {
-    /// Asynchronously maps the buffer of bytes to host memory and, once mapped, calls the given
-    /// user callback with the data as a slice of bytes.
-    ///
-    /// Note: The given callback will not be called until the memory is mapped and the device is
-    /// polled. You should not rely on the callback being called immediately.
-    pub async fn read(&self) -> Result<(), wgpu::BufferAsyncError> {
-        // TODO(jhg): fix
-        panic!()
-        //self.buffer.map_read(0, self.len_bytes).await
-    }
-
-    /// The length of the `wgpu::Buffer` in bytes.
-    pub fn len_bytes(&self) -> wgpu::BufferAddress {
-        self.len_bytes
-    }
-
-    /// A reference to the inner `wgpu::Buffer`.
-    pub fn inner(&self) -> &wgpu::Buffer {
-        &self.buffer
-    }
-
-    /// Consumes `self` and returns the inner `wgpu::Buffer`.
-    pub fn into_inner(self) -> wgpu::Buffer {
-        self.buffer
     }
 }
 

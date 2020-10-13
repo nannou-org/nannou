@@ -23,17 +23,17 @@ pub trait Pixel: image::Pixel {
 pub struct BufferImage {
     color_type: image::ColorType,
     size: [u32; 2],
-    buffer: wgpu::BufferBytes,
+    buffer: wgpu::Buffer,
 }
 
 /// A wrapper around a slice of bytes representing an image.
 ///
 /// An `ImageReadMapping` may only be created by reading from a `BufferImage` returned by a
 /// `Texture::to_image` call.
-pub struct ImageReadMapping {
+pub struct ImageReadMapping<'buffer> {
     color_type: image::ColorType,
     size: [u32; 2],
-    // TODO(jhg): fix
+    view: wgpu::BufferView<'buffer>
 }
 
 impl wgpu::TextureBuilder {
@@ -299,7 +299,7 @@ impl wgpu::Texture {
     ) -> Option<BufferImage> {
         let color_type = image_color_type_from_format(self.format())?;
         let size = self.size();
-        let buffer = self.to_buffer_bytes(device, encoder);
+        let buffer = self.to_buffer(device, encoder);
         Some(BufferImage {
             color_type,
             size,
@@ -324,18 +324,20 @@ impl BufferImage {
     ///
     /// Note: The given callback will not be called until the memory is mapped and the device is
     /// polled. You should not rely on the callback being called immediately.
-    pub async fn read(&self) -> Result<ImageReadMapping, wgpu::BufferAsyncError> {
+    pub async fn read<'b>(&'b self) -> Result<ImageReadMapping<'b>, wgpu::BufferAsyncError> {
         let size = self.size;
         let color_type = self.color_type;
-        let mapping = self.buffer.read().await?;
+        let slice = self.buffer.slice(..);
+        slice.map_async(wgpu::MapMode::Read).await?;
         Ok(ImageReadMapping {
             color_type,
             size,
+            view: slice.get_mapped_range()
         })
     }
 }
 
-impl ImageReadMapping {
+impl <'b> ImageReadMapping<'b> {
     /// Produce the color type of an image, compatible with the `image` crate.
     pub fn color_type(&self) -> image::ColorType {
         self.color_type
@@ -347,8 +349,8 @@ impl ImageReadMapping {
     }
 
     /// The raw image data as a slice of bytes.
-    pub fn mapping(&self) -> &wgpu::ImageReadMapping {
-        &self.mapping()
+    pub fn data(&self) -> &[u8] {
+        &self.view[..]
     }
 
     /// Saves the buffer to a file at the specified path.
@@ -356,7 +358,7 @@ impl ImageReadMapping {
     /// The image format is derived from the file extension.
     pub fn save(&self, path: &Path) -> image::ImageResult<()> {
         let [width, height] = self.size();
-        let data = unimplemented!("TODO(jhg): fix"); // self.mapping().as_slice(),
+        let data = &self.view[..];
         image::save_buffer(path, data, width, height, self.color_type)
     }
 
@@ -369,7 +371,7 @@ impl ImageReadMapping {
         let [width, height] = self.size();
         image::save_buffer_with_format(
             path,
-            unimplemented!("TODO(jhg): fix"), // self.mapping().as_slice(),
+            &self.view[..],
             width,
             height,
             self.color_type,
@@ -758,7 +760,7 @@ where
 
         // TODO(jhg): verify this works correctly
         texture_copy_view.origin = wgpu::Origin3d { x: 0, y: 0, z: layer as u32 };
-        let extent = texture.extent();
+        let mut extent = texture.extent();
         extent.depth = 1;
         encoder.copy_buffer_to_texture(buffer_copy_view, texture_copy_view, extent);
     }

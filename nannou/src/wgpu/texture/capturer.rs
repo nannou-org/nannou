@@ -47,12 +47,8 @@ pub struct Snapshot {
 ///
 /// An **ImageReadMapping** may only be created by reading from a **Snapshot** returned by a
 /// `Texture::to_image` call.
-pub struct Rgba8ReadMapping {
-    // Hold on to the snapshot to ensure buffer lives as long as mapping. Without this, we get
-    // panics (or sigsegv). This seems to be because if snapshot and inner `wgpu::Buffer` drops,
-    // the memory is unmapped. TODO: This should be fixed in wgpu.
-    _snapshot: Snapshot,
-    mapping: wgpu::ImageReadMapping,
+pub struct Rgba8ReadMapping<'b> {
+    mapping: wgpu::ImageReadMapping<'b>,
 }
 
 /// An error indicating that the threadpool timed out while waiting for a worker to become
@@ -67,7 +63,7 @@ struct ConverterDataPair {
 }
 
 /// An alias for the image buffer that can be read from a captured **Snapshot**.
-pub struct Rgba8AsyncMappedImageBuffer(image::ImageBuffer<image::Rgba<u8>, Rgba8ReadMapping>);
+pub struct Rgba8AsyncMappedImageBuffer<'b>(image::ImageBuffer<image::Rgba<u8>, Rgba8ReadMapping<'b>>);
 
 impl ThreadPool {
     /// Spawns the given future if a worker is available. Otherwise, blocks and waits for a worker
@@ -260,11 +256,10 @@ impl Snapshot {
     ///
     /// Specifically, this asynchronously maps the buffer of bytes from GPU to host memory and
     /// returns the result as an `ImageBuffer` with non-linear, RGBA 8 pixels.
-    pub async fn read_async(self) -> Result<Rgba8AsyncMappedImageBuffer, wgpu::BufferAsyncError> {
+    pub async fn read_async<'b>(&'b self) -> Result<Rgba8AsyncMappedImageBuffer<'b>, wgpu::BufferAsyncError> {
         let [width, height] = self.buffer.size();
         let mapping = self.buffer.read().await?;
-        let _snapshot = self;
-        let mapping = Rgba8ReadMapping { _snapshot, mapping };
+        let mapping = Rgba8ReadMapping { mapping };
         let img_buffer = image::ImageBuffer::from_raw(width, height, mapping)
             .expect("image buffer dimensions did not match mapping");
         let img_buffer = Rgba8AsyncMappedImageBuffer(img_buffer);
@@ -291,7 +286,7 @@ impl Snapshot {
         F: 'static + Send + FnOnce(Result<Rgba8AsyncMappedImageBuffer, wgpu::BufferAsyncError>),
     {
         let thread_pool = self.thread_pool();
-        let read_future = async {
+        let read_future = async move {
             let res = self.read_async().await;
             callback(res);
         };
@@ -321,33 +316,33 @@ impl Snapshot {
     }
 }
 
-impl Rgba8AsyncMappedImageBuffer {
+impl<'b> Rgba8AsyncMappedImageBuffer<'b> {
     /// Convert the mapped image buffer to an owned buffer.
     pub fn to_owned(&self) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
-        let vec = unimplemented!("TODO(jhg)"); //self.as_flat_samples().as_slice().to_vec();
+        let vec = self.as_flat_samples().as_slice().to_vec();
         let (width, height) = self.dimensions();
         image::ImageBuffer::from_raw(width, height, vec)
             .expect("image buffer dimensions do not match vec len")
     }
 }
 
-impl<'m> Deref for Rgba8ReadMapping {
+impl<'b, 'm> Deref for Rgba8ReadMapping<'b> {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
         self.as_ref()
     }
 }
 
-impl<'b> Deref for Rgba8AsyncMappedImageBuffer {
-    type Target = image::ImageBuffer<image::Rgba<u8>, Rgba8ReadMapping>;
+impl<'b> Deref for Rgba8AsyncMappedImageBuffer<'b> {
+    type Target = image::ImageBuffer<image::Rgba<u8>, Rgba8ReadMapping<'b>>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<'m> AsRef<[u8]> for Rgba8ReadMapping {
+impl<'m> AsRef<[u8]> for Rgba8ReadMapping<'_> {
     fn as_ref(&self) -> &[u8] {
-        unimplemented!("TODO(jhg)") //self.mapping.mapping().as_slice()
+        self.mapping.data()
     }
 }
 
