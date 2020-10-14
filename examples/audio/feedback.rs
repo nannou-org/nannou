@@ -16,11 +16,11 @@ struct Model {
 }
 
 struct InputModel {
-    pub producer: Producer<[f32; 2]>,
+    pub producer: Producer<f32>,
 }
 
 struct OutputModel {
-    pub consumer: Consumer<[f32; 2]>,
+    pub consumer: Consumer<f32>,
 }
 
 fn model(app: &App) -> Model {
@@ -35,7 +35,7 @@ fn model(app: &App) -> Model {
     let audio_host = audio::Host::new();
 
     // Create a ring buffer and split it into producer and consumer
-    let ring_buffer = RingBuffer::<[f32; 2]>::new(1024 * 2); // Add some latency
+    let ring_buffer = RingBuffer::<f32>::new(1024 * 2); // Add some latency
     let (prod, cons) = ring_buffer.split();
 
     // Create input model and input stream using that model
@@ -62,18 +62,20 @@ fn model(app: &App) -> Model {
 
 fn pass_in(model: &mut InputModel, buffer: &Buffer) {
     for frame in buffer.frames() {
-        model.producer.push([frame[0], frame[1]]).unwrap();
+        for sample in frame {
+            model.producer.push(*sample).unwrap();
+        }
     }
 }
 
 fn pass_out(model: &mut OutputModel, buffer: &mut Buffer) {
     for frame in buffer.frames_mut() {
-        let recording_frame = match model.consumer.pop() {
-            Some(f) => f,
-            None => [0.0, 0.0],
-        };
-        for (sample, recording_sample) in frame.iter_mut().zip(&recording_frame) {
-            *sample = *recording_sample * 0.5;
+        for sample in frame {
+            let recorded_sample = match model.consumer.pop() {
+                Some(f) => f,
+                None => 0.0,
+            };
+            *sample = recorded_sample;
         }
     }
 }
