@@ -19,11 +19,125 @@ pub trait Pixel: image::Pixel {
 }
 
 /// A wrapper around a wgpu buffer that contains an image of a known size and `image::ColorType`.
+/// Not to be confused with an `image::BufferImage`, which represents an image stored on CPU.
+///
+/// Note: as of `wgpu` 0.6, texture-to-buffer and buffer-to-texture copies require that image rows
+/// are padded to a multiple `wgpu::COPY_BYTES::PER_ROW_ALIGNMENT` bytes. Note that this is a
+/// requirement on the *buffers*, not on the textures! You can have textures of whatever size you
+/// like, but when you copy them to/from a buffer, the *buffer rows* need padding. This is referred
+/// to as "pitch alignment".
+///
+/// This wrapper handles these details transparently.
+///
+/// The image is stored at (0,0) in the buffer, and the remainder of the buffer is left uninitialized.
 #[derive(Debug)]
 pub struct BufferImage {
+    /// The width of the image in pixels, without padding.
+    width: u32,
+    /// The height of the image in pixels, without padding.
+    height: u32,
+    /// The color type of the image.
     color_type: image::ColorType,
-    size: [u32; 2],
+    /// The number of extra *pixels* (not bytes!) per row of the buffer
+    row_padding_pixels: u32,
+    /// The buffer storing the image data.
     buffer: wgpu::Buffer,
+    /// The descriptor used to create the buffer.
+    buffer_descriptor: wgpu::BufferDescriptor<'static>
+}
+impl BufferImage {
+    /// Initialize from an image buffer (i.e. an image on CPU).
+    /// Resulting BufferImage will be ready to read immediately.
+    pub fn from_image_buffer<P, Container>(
+        device: &wgpu::Device,
+        image_buffer: &image::ImageBuffer<P, Container>
+    ) -> BufferImage
+        where
+            P: 'static + Pixel,
+            Container: std::ops::Deref<Target=[P::Subpixel]>,
+    {
+        BufferImage::from_image_buffer_internal(device, image_buffer.width(), image_buffer.height(), P::COLOR_TYPE, unsafe { wgpu::bytes::from_slice(&*image_buffer) })
+    }
+    /// Initialize from an image buffer.
+    #[inline(never)]
+    fn from_image_buffer_internal(device: &wgpu::Device, width: u32, height: u32, color_type: image::ColorType, raw_data: &[u8]) -> BufferImage {
+        let row_padding_pixels = BufferImage::compute_row_padding_pixels(width, color_type);
+        let bytes_per_pixel = color_type.bytes_per_pixel() as u32;
+        let buffer_size = (padded_width_bytes) * height;
+        let buffer_descriptor = wgpu::BufferDescriptor {
+            label: Some("nannou::BufferImage"),
+            size: buffer_size as u64,
+            usage: wgpu::BufferUsage::COPY_SRC,
+            mapped_at_creation: true,
+        };
+        let buffer = device.create_buffer(&buffer_descriptor);
+
+        let mapped = buffer.slice(..).get_mapped_range_mut();
+        let mapped = &mut mapped[..];
+
+        let width_bytes = (width * bytes_per_pixel) as usize;
+        let padded_width_bytes = width_bytes + (row_padding_pixels * bytes_per_pixel) as usize;
+        for row in 0..height as usize {
+            let in_start = row * width_bytes;
+            let out_start = row * padded_width_bytes;
+
+            // note: leaves mapped[out_start + width_bytes..out_start + padded_width_bytes] uninitialized!
+            mapped[out_start..out_start + width_bytes].copy_from_slice(&raw_data[in_start..in_start + width_bytes]);
+        }
+        BufferImage {
+            width,
+            height,
+            color_type,
+            row_padding_pixels,
+            buffer,
+            buffer_descriptor
+        }
+    }
+
+    // Returns row_padding
+    fn compute_row_padding_pixels(width: u32, color_type: image::ColorType) -> u32 {
+        let row_bytes = width * color_type.bytes_per_pixel();
+        let padding_bytes = if row_bytes % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT == 0 {
+            row_bytes
+        } else {
+            row_bytes + row_bytes % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT
+        };
+        padding_bytes / color_type.bytes_per_pixel()
+    }
+
+    /// The width of the image stored in the buffer.
+    ///
+    /// (Does not include padding pixels, you don't need to worry about them.)
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    /// The height of the image stored in the buffer.
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    /// The color type of the image stored within the buffer.
+    pub fn color_type(&self) -> image::ColorType {
+        self.color_type
+    }
+
+    /// Asynchronously maps the buffer of bytes from GPU to host memory and, once mapped, calls the
+    /// given user callback with the data represented as an `ImageReadMapping`.
+    ///
+    /// Note: The given callback will not be called until the memory is mapped and the device is
+    /// polled. You should not rely on the callback being called immediately.
+    pub async fn read<'b>(&'b self) -> Result<ImageReadMapping<'b>, wgpu::BufferAsyncError> {
+        let slice = self.buffer.slice(..);
+        slice.map_async(wgpu::MapMode::Read).await?;
+        Ok(ImageReadMapping {
+            buffer_image: self,
+            // fun exercise:
+            // read the signature of wgpu::BufferSlice::get_mapped_range()
+            // and try to figure out why we don't need another lifetime in ImageReadMapping :)
+            view: slice.get_mapped_range()
+        })
+    }
 }
 
 /// A wrapper around a slice of bytes representing an image.
@@ -31,10 +145,20 @@ pub struct BufferImage {
 /// An `ImageReadMapping` may only be created by reading from a `BufferImage` returned by a
 /// `Texture::to_image` call.
 pub struct ImageReadMapping<'buffer> {
-    color_type: image::ColorType,
-    size: [u32; 2],
+    buffer_image: &'buffer BufferImage,
     view: wgpu::BufferView<'buffer>
 }
+
+/*
+impl <'buffer> ImageReadMapping<'buffer> {
+    pub fn as_image<'s, P>(&'s self)
+        where
+            P: Pixel + 'static
+    -> image::SubImage<image::ImageBuffer<P, &'s [P::Subpixel]>> {
+
+    }
+}
+ */
 
 impl wgpu::TextureBuilder {
     /// The minimum required texture usage when loading from an image.
@@ -308,77 +432,6 @@ impl wgpu::Texture {
     }
 }
 
-impl BufferImage {
-    /// The dimensions of the image stored within the buffer.
-    pub fn size(&self) -> [u32; 2] {
-        self.size
-    }
-
-    /// The color type of the image stored within the buffer.
-    pub fn color_type(&self) -> image::ColorType {
-        self.color_type
-    }
-
-    /// Asynchronously maps the buffer of bytes from GPU to host memory and, once mapped, calls the
-    /// given user callback with the data represented as an `ImageReadMapping`.
-    ///
-    /// Note: The given callback will not be called until the memory is mapped and the device is
-    /// polled. You should not rely on the callback being called immediately.
-    pub async fn read<'b>(&'b self) -> Result<ImageReadMapping<'b>, wgpu::BufferAsyncError> {
-        let size = self.size;
-        let color_type = self.color_type;
-        let slice = self.buffer.slice(..);
-        slice.map_async(wgpu::MapMode::Read).await?;
-        Ok(ImageReadMapping {
-            color_type,
-            size,
-            view: slice.get_mapped_range()
-        })
-    }
-}
-
-impl <'b> ImageReadMapping<'b> {
-    /// Produce the color type of an image, compatible with the `image` crate.
-    pub fn color_type(&self) -> image::ColorType {
-        self.color_type
-    }
-
-    /// The dimensions of the image.
-    pub fn size(&self) -> [u32; 2] {
-        self.size
-    }
-
-    /// The raw image data as a slice of bytes.
-    pub fn data(&self) -> &[u8] {
-        &self.view[..]
-    }
-
-    /// Saves the buffer to a file at the specified path.
-    ///
-    /// The image format is derived from the file extension.
-    pub fn save(&self, path: &Path) -> image::ImageResult<()> {
-        let [width, height] = self.size();
-        let data = &self.view[..];
-        image::save_buffer(path, data, width, height, self.color_type)
-    }
-
-    /// Saves the buffer to a file at the specified path.
-    pub fn save_with_format(
-        &self,
-        path: &Path,
-        format: image::ImageFormat,
-    ) -> image::ImageResult<()> {
-        let [width, height] = self.size();
-        image::save_buffer_with_format(
-            path,
-            &self.view[..],
-            width,
-            height,
-            self.color_type,
-            format,
-        )
-    }
-}
 
 impl Pixel for image::Bgra<u8> {
     const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
@@ -766,4 +819,13 @@ where
     }
 
     Some(texture)
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    fn row_alignment_subsumes_buffer_alignment() {
+        assert_eq!(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT % wgpu::COPY_BUFFER_ALIGNMENT, 0, "BufferImage allocation logic is broken!");
+    }
 }

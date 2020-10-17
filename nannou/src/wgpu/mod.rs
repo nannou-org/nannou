@@ -74,7 +74,7 @@ pub use wgpu_upstream::{
     TextureViewDimension, VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat, 
     VertexStateDescriptor, BIND_BUFFER_ALIGNMENT, Operations, BufferAsyncError, TextureDataLayout, BufferSlice,
     Instance, StencilStateDescriptor, util::{self, BufferInitDescriptor}, ShaderModuleSource,
-    MapMode, BufferView,
+    MapMode, BufferView, COPY_BUFFER_ALIGNMENT, COPY_BYTES_PER_ROW_ALIGNMENT
 };
 
 pub fn shader_from_spirv_bytes(device: &wgpu_upstream::Device, bytes: &[u8]) -> wgpu_upstream::ShaderModule {
