@@ -44,13 +44,13 @@ pub use self::texture::capturer::{
     Rgba8ReadMapping, Snapshot as TextureSnapshot,
 };
 pub use self::texture::image::{
-    format_from_image_color_type as texture_format_from_image_color_type, BufferImage,
-    ImageReadMapping,
+    format_from_image_color_type as texture_format_from_image_color_type,
 };
+pub use self::texture::row_padded_buffer::{RowPaddedBuffer, ImageReadMapping};
 pub use self::texture::reshaper::Reshaper as TextureReshaper;
 pub use self::texture::{
     descriptor_eq as texture_descriptor_eq, extent_3d_eq,
-    format_size_bytes as texture_format_size_bytes, BufferBytes,
+    format_size_bytes as texture_format_size_bytes,
     Builder as TextureBuilder, Texture, TextureId, TextureView, TextureViewId, ToTextureView,
 };
 #[doc(inline)]
@@ -206,6 +206,21 @@ pub mod bytes {
     {
         let len = std::mem::size_of::<T>();
         let ptr = t as *const T as *const u8;
+        std::slice::from_raw_parts(ptr, len)
+    }
+
+    /// This is really an astonishingly unsafe function.
+    /// Please don't use it.
+    pub unsafe fn to_slice<T>(slice: &[u8]) -> &[T]
+        where
+            T: Copy + Sized,
+    {
+        let size = std::mem::size_of::<T>();
+        let align = std::mem::align_of::<T>();
+        assert_eq!(slice.len() % size, 0, "incorrect buffer size");
+        assert_eq!(slice.as_ptr() as usize % align, 0, "incorrect buffer alignment");
+        let len = slice.len() / size;
+        let ptr = slice.as_ptr() as *const T;
         std::slice::from_raw_parts(ptr, len)
     }
 }

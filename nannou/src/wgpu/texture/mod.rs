@@ -1,13 +1,13 @@
-use crate::wgpu::{self, TextureHandle, TextureViewHandle};
+use crate::wgpu::{self, TextureHandle, TextureViewHandle, RowPaddedBuffer};
 use std::ops::Deref;
 use std::sync::Arc;
 
-use wgpu::util::{DeviceExt, BufferInitDescriptor};
 use std::num::NonZeroU32;
 
 pub mod capturer;
 pub mod image;
 pub mod reshaper;
+pub mod row_padded_buffer;
 
 /// Types that can produce a texture view.
 ///
@@ -78,13 +78,6 @@ pub struct Builder {
 pub struct ViewBuilder<'a> {
     texture: &'a wgpu::Texture,
     descriptor: wgpu::TextureViewDescriptor<'static>,
-}
-
-/// A wrapper around a `wgpu::Buffer` containing bytes of a known length.
-#[derive(Debug)]
-pub struct BufferBytes {
-    buffer: wgpu::Buffer,
-    len_bytes: wgpu::BufferAddress,
 }
 
 impl Texture {
@@ -215,32 +208,6 @@ impl Texture {
         }
     }
 
-    /// Creates a `TextureCopyView` ready for copying to or from the entire texture.
-    pub fn default_copy_view(&self) -> wgpu::TextureCopyView {
-        wgpu::TextureCopyView {
-            texture: &self.handle,
-            mip_level: 0,
-            origin: wgpu::Origin3d::ZERO,
-        }
-    }
-
-    /// Creates a `BufferCopyView` ready for copying to or from the given buffer where the given
-    /// buffer is assumed to have the same size as the entirety of this texture.
-    pub fn default_buffer_copy_view<'a>(
-        &self,
-        buffer: &'a wgpu::Buffer,
-    ) -> wgpu::BufferCopyView<'a> {
-        assert_eq!(self.extent().depth, 1, "TODO(jhg): this method won't work for 3d textures");
-        let format_size_bytes = format_size_bytes(self.format());
-        let [width, height] = self.size();
-        let layout = wgpu::TextureDataLayout {
-            offset: 0,
-            bytes_per_row: width * format_size_bytes,
-            rows_per_image: height,
-        };
-        wgpu::BufferCopyView { buffer, layout }
-    }
-
     /// Encode a command for uploading the given data to the texture.
     ///
     /// The length of the data must be equal to the length returned by `texture.size_bytes()`.
@@ -254,12 +221,13 @@ impl Texture {
         let texture_size_bytes = self.size_bytes();
         assert_eq!(data.len(), texture_size_bytes);
 
-        // Upload and copy the data.
-        let buffer = device.create_buffer_init(&BufferInitDescriptor{ label: Some("nannou Texture::upload_data buffer"), contents: data, usage: wgpu::BufferUsage::COPY_SRC});
-        let buffer_copy_view = self.default_buffer_copy_view(&buffer);
-        let texture_copy_view = self.default_copy_view();
-        let extent = self.extent();
-        encoder.copy_buffer_to_texture(buffer_copy_view, texture_copy_view, extent);
+        let buffer = wgpu::RowPaddedBuffer::for_texture(
+            device,
+            self,
+            wgpu::BufferUsage::COPY_SRC | wgpu::BufferUsage::MAP_WRITE
+        );
+        buffer.write(data);
+        buffer.encode_copy_into(encoder, self);
     }
 
     /// Write the contents of the texture into a new buffer.
@@ -267,47 +235,18 @@ impl Texture {
     /// Commands will be added to the given encoder to copy the entire contents of the texture into
     /// the buffer.
     ///
-    /// The buffer is returned alongside its size in bytes.
-    ///
     /// If the texture has a sample count greater than one, it will first be resolved to a
     /// non-multisampled texture before being copied to the buffer.
     /// `copy_texture_to_buffer` command has been performed by the GPU.
     ///
-    /// NOTE: `map_read_async` should not be called on the returned buffer until the encoded commands have
+    /// NOTE: `read` should not be called on the returned buffer until the encoded commands have
     /// been submitted to the device queue.
     pub fn to_buffer(
         &self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-    ) -> wgpu::Buffer {
-        // Create the buffer and encode the copy.
-        fn texture_to_buffer(
-            texture: &wgpu::Texture,
-            device: &wgpu::Device,
-            encoder: &mut wgpu::CommandEncoder,
-        ) -> wgpu::Buffer {
-            // Create buffer that will be mapped for reading.
-            let size = texture.extent();
-            let format = texture.format();
-            let format_size_bytes = format_size_bytes(format) as u64;
-            let layer_len_pixels = size.width as u64 * size.height as u64 * size.depth as u64;
-            let layer_size_bytes = layer_len_pixels * format_size_bytes;
-            let data_size_bytes = layer_size_bytes;
-            let buffer_descriptor = wgpu::BufferDescriptor {
-                label: Some("nannou Texture::to_buffer buffer"),
-                size: data_size_bytes,
-                usage: wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ,
-                mapped_at_creation: false, // TODO does this need to be true?
-            };
-            let buffer = device.create_buffer(&buffer_descriptor);
-
-            // Copy the full contents of the texture to the buffer.
-            let texture_copy_view = texture.default_copy_view();
-            let buffer_copy_view = texture.default_buffer_copy_view(&buffer);
-            encoder.copy_texture_to_buffer(texture_copy_view, buffer_copy_view, size);
-
-            buffer
-        }
+    ) -> wgpu::RowPaddedBuffer {
+        assert_eq!(self.extent().depth, 1, "cannot convert a 3d texture to a RowPaddedBuffer");
 
         // If this texture is multi-sampled, resolve it first.
         if self.sample_count() > 1 {
@@ -319,9 +258,13 @@ impl Texture {
                 .build(device);
             let resolved_view = resolved_texture.create_view(&wgpu::TextureViewDescriptor::default());
             wgpu::resolve_texture(&view, &resolved_view, encoder);
-            texture_to_buffer(&resolved_texture, device, encoder)
+            let buffer = RowPaddedBuffer::for_texture(device, &resolved_texture, wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_WRITE);
+            buffer.encode_copy_from(encoder, &resolved_texture);
+            buffer
         } else {
-            texture_to_buffer(self, device, encoder)
+            let buffer = RowPaddedBuffer::for_texture(device, self, wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_WRITE);
+            buffer.encode_copy_from(encoder, self);
+            buffer
         }
     }
 }
