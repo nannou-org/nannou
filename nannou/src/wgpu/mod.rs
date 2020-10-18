@@ -41,7 +41,7 @@ pub use self::render_pipeline_builder::RenderPipelineBuilder;
 pub use self::sampler_builder::SamplerBuilder;
 pub use self::texture::capturer::{
     AwaitWorkerTimeout as TextureCapturerAwaitWorkerTimeout, Capturer as TextureCapturer,
-    Rgba8ReadMapping, Snapshot as TextureSnapshot,
+    Snapshot as TextureSnapshot,
 };
 pub use self::texture::image::{
     format_from_image_color_type as texture_format_from_image_color_type,

@@ -1,5 +1,6 @@
 use crate::wgpu;
-use crate::wgpu::texture::image::Pixel;
+use std::ops::Deref;
+use super::image::Pixel;
 
 /// A wrapper around a wgpu buffer suitable for copying to and from Textures. Automatically handles
 /// the padding necessary for buffer-to-texture and texture-to-buffer copies.
@@ -292,11 +293,11 @@ pub struct ImageReadMapping<'buffer> {
 }
 
 impl<'buffer> ImageReadMapping<'buffer> {
-    /// View as an image. (Actually an `image::SubImage` so that row padding bytes are not visible.)
-    pub fn as_image<'s, P>(&'s self)
-                           -> Option<image::SubImage<image::ImageBuffer<P, &'s [P::Subpixel]>>>
+    /// View the contained buffer as an image with pixels of type P and apply the operation to it.
+    pub fn apply<P, F, T>(&self, f: F) -> T
         where
-            P: Pixel + 'static
+            P: Pixel + 'static,
+            F: FnOnce(image::SubImage<&image::ImageBuffer<P, &[P::Subpixel]>>) -> T
     {
         let subpixel_size = std::mem::size_of::<P::Subpixel>() as u32;
         assert_eq!(self.buffer.padded_width() % subpixel_size, 0,
@@ -316,8 +317,10 @@ impl<'buffer> ImageReadMapping<'buffer> {
             self.buffer.padded_width() / subpixel_size,
             self.buffer.height(),
             container,
-        );
-        full_image.map(|im| image::SubImage::new(im, 0, 0, self.buffer.width() / subpixel_size, self.buffer.height()))
+        ).expect("nannou internal error: incorrect buffer size");
+        let view = image::SubImage::new(&full_image, 0, 0, self.buffer.width() / subpixel_size, self.buffer.height());
+
+        f(view)
     }
 }
 

@@ -627,7 +627,7 @@ where
         // Upload the pixel data.
         let subpixel_data: &[P::Subpixel] = std::ops::Deref::deref(buffer);
         let buffer = wgpu::RowPaddedBuffer::from_image_buffer(device, &buffer);
-        buffer.encode_copy_into_at(encoder, &texture, depth);
+        buffer.encode_copy_into_at(encoder, &texture, layer as u32);
     }
 
     Some(texture)
