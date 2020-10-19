@@ -353,6 +353,7 @@ impl<'b, P: Pixel> Deref for ImageHolder<'b, P> {
 pub mod tests {
     use super::*;
 
+    #[test]
     fn row_alignment_subsumes_buffer_alignment() {
         assert_eq!(
             wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as u64 % wgpu::COPY_BUFFER_ALIGNMENT,

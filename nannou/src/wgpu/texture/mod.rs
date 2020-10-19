@@ -487,7 +487,9 @@ impl<'a> ViewBuilder<'a> {
     ///
     /// Panics if texture view is not 3d.
     pub fn as_texture_array(self) -> Self {
-        assert_eq!(self.descriptor.dimension, Some(wgpu::TextureViewDimension::D3),
+        assert!(self.descriptor.dimension == Some(wgpu::TextureViewDimension::D3) ||
+                self.descriptor.dimension == Some(wgpu::TextureViewDimension::D2Array) ||
+                self.descriptor.dimension == Some(wgpu::TextureViewDimension::D2),
                    "Cannot convert a non-3d texture view to a texture array view");
         self.dimension(Some(wgpu::TextureViewDimension::D2Array))
     }
