@@ -1,11 +1,11 @@
 use nannou::image;
 use nannou::prelude::*;
+use nannou::wgpu::BufferInitDescriptor;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use thiserror::Error;
 use threadpool::ThreadPool;
-use nannou::wgpu::BufferInitDescriptor;
 
 /// A render pipeline designed for hotloading!
 pub struct IsfPipeline {
@@ -534,18 +534,16 @@ impl IsfPipeline {
         let isf_input_uniforms: IsfInputUniforms = [0u32; 128];
         let isf_input_uniforms_bytes = isf_input_uniforms_as_bytes(&isf_input_uniforms);
         let uniforms_usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
-        let isf_uniform_buffer =
-            device.create_buffer_init(&BufferInitDescriptor{
-                label: None,
-                contents: &isf_uniforms_bytes,
-                usage: uniforms_usage
-            });
-        let isf_inputs_uniform_buffer =
-            device.create_buffer_init(&BufferInitDescriptor {
-                label: None,
-                contents: &isf_input_uniforms_bytes,
-                usage: uniforms_usage
-            });
+        let isf_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            contents: &isf_uniforms_bytes,
+            usage: uniforms_usage,
+        });
+        let isf_inputs_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            contents: &isf_input_uniforms_bytes,
+            usage: uniforms_usage,
+        });
 
         // Prepare the bind group layouts.
         let isf_bind_group_layout = wgpu::BindGroupLayoutBuilder::new()
@@ -601,7 +599,7 @@ impl IsfPipeline {
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: None,
             contents: vertices_bytes,
-            usage: vertex_usage
+            usage: vertex_usage,
         });
 
         Self {
@@ -775,7 +773,7 @@ impl IsfPipeline {
             let new_buffer = device.create_buffer_init(&BufferInitDescriptor {
                 label: None,
                 contents: &isf_uniforms_bytes,
-                usage
+                usage,
             });
             let size = isf_uniforms_bytes.len() as wgpu::BufferAddress;
             encoder.copy_buffer_to_buffer(&new_buffer, 0, &self.isf_uniform_buffer, 0, size);
@@ -871,7 +869,11 @@ fn create_pipeline_layout(
     device: &wgpu::Device,
     bind_group_layouts: &[&wgpu::BindGroupLayout],
 ) -> wgpu::PipelineLayout {
-    let desc = wgpu::PipelineLayoutDescriptor { label: None, bind_group_layouts, push_constant_ranges: &[] };
+    let desc = wgpu::PipelineLayoutDescriptor {
+        label: None,
+        bind_group_layouts,
+        push_constant_ranges: &[],
+    };
     device.create_pipeline_layout(&desc)
 }
 

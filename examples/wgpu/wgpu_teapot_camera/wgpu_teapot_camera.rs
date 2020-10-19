@@ -108,9 +108,21 @@ fn model(app: &App) -> Model {
     let indices_bytes = indices_as_bytes(&data::INDICES);
     let vertex_usage = wgpu::BufferUsage::VERTEX;
     let index_usage = wgpu::BufferUsage::INDEX;
-    let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: vertices_bytes, usage: vertex_usage });
-    let normal_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: normals_bytes, usage: vertex_usage });
-    let index_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: indices_bytes, usage: index_usage });
+    let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+        label: None,
+        contents: vertices_bytes,
+        usage: vertex_usage,
+    });
+    let normal_buffer = device.create_buffer_init(&BufferInitDescriptor {
+        label: None,
+        contents: normals_bytes,
+        usage: vertex_usage,
+    });
+    let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
+        label: None,
+        contents: indices_bytes,
+        usage: index_usage,
+    });
 
     let depth_texture = create_depth_texture(device, [win_w, win_h], DEPTH_FORMAT, msaa_samples);
     let depth_texture_view = depth_texture.view().build();
@@ -123,7 +135,11 @@ fn model(app: &App) -> Model {
     let uniforms = create_uniforms([win_w, win_h], camera.view());
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
     let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
-    let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: uniforms_bytes, usage });
+    let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
+        label: None,
+        contents: uniforms_bytes,
+        usage,
+    });
 
     let bind_group_layout = create_bind_group_layout(device);
     let bind_group = create_bind_group(device, &bind_group_layout, &uniform_buffer);
@@ -262,7 +278,11 @@ fn view(_app: &App, model: &Model, frame: Frame) {
     let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
     let usage = wgpu::BufferUsage::COPY_SRC;
-    let new_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: uniforms_bytes, usage });
+    let new_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
+        label: None,
+        contents: uniforms_bytes,
+        usage,
+    });
 
     let mut encoder = frame.command_encoder();
     encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, &g.uniform_buffer, 0, uniforms_size);
@@ -331,7 +351,7 @@ fn create_pipeline_layout(
     let desc = wgpu::PipelineLayoutDescriptor {
         label: None,
         bind_group_layouts: &[&bind_group_layout],
-        push_constant_ranges: &[]
+        push_constant_ranges: &[],
     };
     device.create_pipeline_layout(&desc)
 }

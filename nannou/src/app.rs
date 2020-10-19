@@ -267,7 +267,7 @@ where
             default_window_size: None,
             max_capture_frame_jobs: None,
             capture_frame_timeout: None,
-            backends: Self::DEFAULT_BACKENDS
+            backends: Self::DEFAULT_BACKENDS,
         }
     }
 

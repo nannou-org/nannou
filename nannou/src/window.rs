@@ -376,7 +376,6 @@ impl<'app> Builder<'app> {
         self
     }
 
-
     /// Specify a device descriptor to use when requesting the logical device from the adapter.
     /// This allows for specifying custom wgpu device extensions.
     pub fn device_descriptor(mut self, device_desc: wgpu::DeviceDescriptor) -> Self {
@@ -780,9 +779,7 @@ impl<'app> Builder<'app> {
         };
 
         // Build the wgpu surface.
-        let surface = unsafe {
-             app.instance().create_surface(&window)
-        };
+        let surface = unsafe { app.instance().create_surface(&window) };
 
         // Request the adapter.
         let request_adapter_opts = wgpu::RequestAdapterOptions {

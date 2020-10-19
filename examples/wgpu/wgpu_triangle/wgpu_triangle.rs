@@ -54,7 +54,11 @@ fn model(app: &App) -> Model {
     // Create the vertex buffer.
     let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
     let usage = wgpu::BufferUsage::VERTEX;
-    let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: vertices_bytes, usage });
+    let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+        label: None,
+        contents: vertices_bytes,
+        usage,
+    });
 
     // Create the render pipeline.
     let bind_group_layout = wgpu::BindGroupLayoutBuilder::new().build(device);

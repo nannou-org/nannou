@@ -213,12 +213,9 @@ impl Capturer {
                 .reshaper
                 .encode_render_pass(&dst_view.build(), encoder);
 
-            converter_data_pair
-                .dst_texture
-                .to_buffer(device, encoder)
+            converter_data_pair.dst_texture.to_buffer(device, encoder)
         } else {
-            src_texture
-                .to_buffer(device, encoder)
+            src_texture.to_buffer(device, encoder)
         };
 
         Snapshot {
@@ -246,7 +243,9 @@ impl Capturer {
 
 impl Snapshot {
     /// Reads the non-linear sRGBA image from mapped memory and convert it to an owned buffer.
-    pub async fn read_async<'buffer>(&'buffer self) -> Result<Rgba8AsyncMappedImageBuffer<'buffer>, wgpu::BufferAsyncError> {
+    pub async fn read_async<'buffer>(
+        &'buffer self,
+    ) -> Result<Rgba8AsyncMappedImageBuffer<'buffer>, wgpu::BufferAsyncError> {
         let mapping = self.buffer.read().await?;
         Ok(Rgba8AsyncMappedImageBuffer(mapping))
     }
@@ -310,7 +309,9 @@ impl<'b> Rgba8AsyncMappedImageBuffer<'b> {
     pub fn to_owned(&self) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
         let view = self.as_image();
         let mut result = image::ImageBuffer::new(view.width(), view.height());
-        result.copy_from(&view, 0, 0).expect("nannou internal error: image copy failed");
+        result
+            .copy_from(&view, 0, 0)
+            .expect("nannou internal error: image copy failed");
         result
     }
 }

@@ -15,8 +15,6 @@ pub trait Pixel: image::Pixel {
     const TEXTURE_FORMAT: wgpu::TextureFormat;
 }
 
-
-
 impl wgpu::TextureBuilder {
     /// The minimum required texture usage when loading from an image.
     pub const REQUIRED_IMAGE_TEXTURE_USAGE: wgpu::TextureUsage = wgpu::TextureUsage::COPY_DST;
@@ -263,7 +261,6 @@ impl wgpu::Texture {
     }
 }
 
-
 impl Pixel for image::Bgra<u8> {
     const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 }
@@ -478,8 +475,7 @@ where
         label: Some("nannou_load_3d_texture_from_image_buffers"),
     };
     let mut encoder = device.create_command_encoder(&cmd_encoder_desc);
-    let texture =
-        encode_load_3d_texture_from_image_buffers(device, &mut encoder, usage, buffers);
+    let texture = encode_load_3d_texture_from_image_buffers(device, &mut encoder, usage, buffers);
     queue.submit(std::iter::once(encoder.finish()));
     texture
 }
@@ -592,7 +588,11 @@ where
 
     // Build the texture ready to receive the data.
     let texture = wgpu::TextureBuilder::from_image_view(first_buffer)
-        .extent(wgpu::Extent3d { width, height, depth: array_layers })
+        .extent(wgpu::Extent3d {
+            width,
+            height,
+            depth: array_layers,
+        })
         .usage(wgpu::TextureBuilder::REQUIRED_IMAGE_TEXTURE_USAGE | usage)
         .build(device);
 
@@ -605,5 +605,3 @@ where
 
     Some(texture)
 }
-
-

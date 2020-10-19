@@ -43,41 +43,43 @@ pub use self::texture::capturer::{
     AwaitWorkerTimeout as TextureCapturerAwaitWorkerTimeout, Capturer as TextureCapturer,
     Snapshot as Textue5cfe74reSnapshot,
 };
-pub use self::texture::image::{
-    format_from_image_color_type as texture_format_from_image_color_type,
-};
-pub use self::texture::row_padded_buffer::{RowPaddedBuffer, ImageReadMapping, ImageHolder};
+pub use self::texture::image::format_from_image_color_type as texture_format_from_image_color_type;
 pub use self::texture::reshaper::Reshaper as TextureReshaper;
+pub use self::texture::row_padded_buffer::{ImageHolder, ImageReadMapping, RowPaddedBuffer};
 pub use self::texture::{
     descriptor_eq as texture_descriptor_eq, extent_3d_eq,
-    format_size_bytes as texture_format_size_bytes,
-    Builder as TextureBuilder, Texture, TextureId, TextureView, TextureViewId, ToTextureView,
+    format_size_bytes as texture_format_size_bytes, Builder as TextureBuilder, Texture, TextureId,
+    TextureView, TextureViewId, ToTextureView,
 };
 #[doc(inline)]
 pub use wgpu_upstream::{
-    vertex_attr_array, Adapter, AdapterInfo, AddressMode, Backend, BackendBit, BindGroup, BindGroupEntry,
-    BindGroupDescriptor, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-    BindingResource, BindingType, BlendDescriptor, BlendFactor, BlendOperation, Buffer,
-    BufferAddress, BufferCopyView, BufferDescriptor, BufferUsage, Color, ColorStateDescriptor,
-    ColorWrite, CommandBuffer, CommandBufferDescriptor, CommandEncoder, CommandEncoderDescriptor,
-    CompareFunction, ComputePass, ComputePipeline, ComputePipelineDescriptor, CullMode,
-    DepthStencilStateDescriptor, Device, DeviceDescriptor, DeviceType, DynamicOffset, Extent3d,
-    Features, FilterMode, FrontFace, IndexFormat, InputStepMode, Limits, LoadOp, Maintain,
-    Origin3d, PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PresentMode,
-    PrimitiveTopology, ProgrammableStageDescriptor, Queue, RasterizationStateDescriptor,
-    RenderPass, RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor,
+    util::{self, BufferInitDescriptor},
+    vertex_attr_array, Adapter, AdapterInfo, AddressMode, Backend, BackendBit, BindGroup,
+    BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+    BindGroupLayoutEntry, BindingResource, BindingType, BlendDescriptor, BlendFactor,
+    BlendOperation, Buffer, BufferAddress, BufferAsyncError, BufferCopyView, BufferDescriptor,
+    BufferSlice, BufferUsage, BufferView, Color, ColorStateDescriptor, ColorWrite, CommandBuffer,
+    CommandBufferDescriptor, CommandEncoder, CommandEncoderDescriptor, CompareFunction,
+    ComputePass, ComputePipeline, ComputePipelineDescriptor, CullMode, DepthStencilStateDescriptor,
+    Device, DeviceDescriptor, DeviceType, DynamicOffset, Extent3d, Features, FilterMode, FrontFace,
+    IndexFormat, InputStepMode, Instance, Limits, LoadOp, Maintain, MapMode, Operations, Origin3d,
+    PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PresentMode, PrimitiveTopology,
+    ProgrammableStageDescriptor, Queue, RasterizationStateDescriptor, RenderPass,
+    RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor,
     RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, Sampler,
-    SamplerDescriptor, ShaderLocation, ShaderModule, ShaderStage, StencilOperation,
-    StencilStateFaceDescriptor, Surface, SwapChain, SwapChainDescriptor, Texture as TextureHandle,
-    TextureAspect, TextureComponentType, TextureCopyView, TextureDescriptor, TextureDimension,
-    TextureFormat, TextureUsage, TextureView as TextureViewHandle, TextureViewDescriptor,
-    TextureViewDimension, VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat, 
-    VertexStateDescriptor, BIND_BUFFER_ALIGNMENT, Operations, BufferAsyncError, TextureDataLayout, BufferSlice,
-    Instance, StencilStateDescriptor, util::{self, BufferInitDescriptor}, ShaderModuleSource,
-    MapMode, BufferView, COPY_BUFFER_ALIGNMENT, COPY_BYTES_PER_ROW_ALIGNMENT
+    SamplerDescriptor, ShaderLocation, ShaderModule, ShaderModuleSource, ShaderStage,
+    StencilOperation, StencilStateDescriptor, StencilStateFaceDescriptor, Surface, SwapChain,
+    SwapChainDescriptor, Texture as TextureHandle, TextureAspect, TextureComponentType,
+    TextureCopyView, TextureDataLayout, TextureDescriptor, TextureDimension, TextureFormat,
+    TextureUsage, TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension,
+    VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat, VertexStateDescriptor,
+    BIND_BUFFER_ALIGNMENT, COPY_BUFFER_ALIGNMENT, COPY_BYTES_PER_ROW_ALIGNMENT,
 };
 
-pub fn shader_from_spirv_bytes(device: &wgpu_upstream::Device, bytes: &[u8]) -> wgpu_upstream::ShaderModule {
+pub fn shader_from_spirv_bytes(
+    device: &wgpu_upstream::Device,
+    bytes: &[u8],
+) -> wgpu_upstream::ShaderModule {
     let shader_module = util::make_spirv(bytes);
     device.create_shader_module(shader_module)
 }
@@ -98,7 +100,9 @@ pub fn clear_texture(
     encoder: &mut CommandEncoder,
 ) {
     RenderPassBuilder::new()
-        .color_attachment(texture, |builder| builder.load_op(LoadOp::Clear(clear_color)))
+        .color_attachment(texture, |builder| {
+            builder.load_op(LoadOp::Clear(clear_color))
+        })
         .begin(encoder);
 }
 
@@ -212,13 +216,17 @@ pub mod bytes {
     /// This is really an astonishingly unsafe function.
     /// Please don't use it.
     pub unsafe fn to_slice<T>(slice: &[u8]) -> &[T]
-        where
-            T: Copy + Sized,
+    where
+        T: Copy + Sized,
     {
         let size = std::mem::size_of::<T>();
         let align = std::mem::align_of::<T>();
         assert_eq!(slice.len() % size, 0, "incorrect buffer size");
-        assert_eq!(slice.as_ptr() as usize % align, 0, "incorrect buffer alignment");
+        assert_eq!(
+            slice.as_ptr() as usize % align,
+            0,
+            "incorrect buffer alignment"
+        );
         let len = slice.len() / size;
         let ptr = slice.as_ptr() as *const T;
         std::slice::from_raw_parts(ptr, len)

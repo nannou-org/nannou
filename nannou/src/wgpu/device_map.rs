@@ -71,7 +71,7 @@ impl AdapterMap {
     pub fn get_or_request<'a, 'b>(
         &'a self,
         options: wgpu::RequestAdapterOptions<'b>,
-        instance: &'a wgpu::Instance
+        instance: &'a wgpu::Instance,
     ) -> Option<Arc<ActiveAdapter>> {
         futures::executor::block_on(self.get_or_request_async(options, instance))
     }
@@ -86,7 +86,7 @@ impl AdapterMap {
     pub fn request<'a, 'b>(
         &'a self,
         options: wgpu::RequestAdapterOptions<'b>,
-        instance: &'a wgpu::Instance
+        instance: &'a wgpu::Instance,
     ) -> Option<Arc<ActiveAdapter>> {
         futures::executor::block_on(self.request_async(options, instance))
     }
@@ -95,12 +95,10 @@ impl AdapterMap {
     pub async fn get_or_request_async<'a, 'b>(
         &'a self,
         options: wgpu::RequestAdapterOptions<'b>,
-        instance: &'a wgpu::Instance
+        instance: &'a wgpu::Instance,
     ) -> Option<Arc<ActiveAdapter>> {
         let power_preference = options.power_preference;
-        let key = AdapterMapKey {
-            power_preference,
-        };
+        let key = AdapterMapKey { power_preference };
         let mut map = self
             .map
             .lock()
@@ -108,10 +106,7 @@ impl AdapterMap {
         if let Some(adapter) = map.get(&key) {
             return Some(adapter.clone());
         }
-        if let Some(adapter) = instance
-            .request_adapter(&options)
-            .await
-        {
+        if let Some(adapter) = instance.request_adapter(&options).await {
             let device_map = Default::default();
             let adapter = Arc::new(ActiveAdapter {
                 adapter,
@@ -126,20 +121,16 @@ impl AdapterMap {
     pub async fn request_async<'a, 'b>(
         &'a self,
         options: wgpu::RequestAdapterOptions<'b>,
-        instance: &'b wgpu::Instance
+        instance: &'b wgpu::Instance,
     ) -> Option<Arc<ActiveAdapter>> {
-        let adapter = instance
-            .request_adapter(&options)
-            .await?;
+        let adapter = instance.request_adapter(&options).await?;
         let device_map = Default::default();
         let adapter = Arc::new(ActiveAdapter {
             adapter,
             device_map,
         });
         let power_preference = options.power_preference;
-        let key = AdapterMapKey {
-            power_preference,
-        };
+        let key = AdapterMapKey { power_preference };
         let mut map = self
             .map
             .lock()

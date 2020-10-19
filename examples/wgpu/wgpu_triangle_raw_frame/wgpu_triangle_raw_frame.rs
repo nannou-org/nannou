@@ -49,7 +49,11 @@ fn model(app: &App) -> Model {
 
     let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
     let usage = wgpu::BufferUsage::VERTEX;
-    let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: vertices_bytes, usage });
+    let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+        label: None,
+        contents: vertices_bytes,
+        usage,
+    });
 
     let bind_group_layout = wgpu::BindGroupLayoutBuilder::new().build(device);
     let bind_group = wgpu::BindGroupBuilder::new().build(device, &bind_group_layout);

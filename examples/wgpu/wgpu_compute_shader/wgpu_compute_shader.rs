@@ -6,8 +6,8 @@
 //! access to time, frequency (mouse `x`) and the number of oscillators via uniform data.
 
 use nannou::prelude::*;
-use std::sync::{Arc, Mutex};
 use nannou::wgpu::BufferInitDescriptor;
+use std::sync::{Arc, Mutex};
 
 struct Model {
     compute: Compute,
@@ -61,7 +61,7 @@ fn model(app: &App) -> Model {
     let uniforms = create_uniforms(app.time, app.mouse.x, window.rect());
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
     let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
-    let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor{
+    let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
         label: None,
         contents: uniforms_bytes,
         usage,
@@ -121,7 +121,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
     let usage = wgpu::BufferUsage::COPY_SRC;
-    let new_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor{
+    let new_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
         label: None,
         contents: uniforms_bytes,
         usage,
@@ -154,7 +154,9 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     );
 
     // Submit the compute pass to the device's queue.
-    window.swap_chain_queue().submit(std::iter::once(encoder.finish()));
+    window
+        .swap_chain_queue()
+        .submit(std::iter::once(encoder.finish()));
 
     // Spawn a future that reads the result of the compute pass.
     let oscillators = model.oscillators.clone();

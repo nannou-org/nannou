@@ -1,5 +1,5 @@
 use crate::wgpu;
-use wgpu::util::{DeviceExt, BufferInitDescriptor};
+use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 /// Reshapes a texture from its original size, sample_count and format to the destination size,
 /// sample_count and format.
@@ -77,7 +77,11 @@ impl Reshaper {
                 };
                 let uniforms_bytes = uniforms_as_bytes(&uniforms);
                 let usage = wgpu::BufferUsage::UNIFORM;
-                let buffer = device.create_buffer_init(&BufferInitDescriptor{ label: None, contents: &uniforms_bytes, usage });
+                let buffer = device.create_buffer_init(&BufferInitDescriptor {
+                    label: None,
+                    contents: &uniforms_bytes,
+                    usage,
+                });
                 Some(buffer)
             }
         };
@@ -94,7 +98,11 @@ impl Reshaper {
         // Create the vertex buffer.
         let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
         let vertex_usage = wgpu::BufferUsage::VERTEX;
-        let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor{ label: None, contents: vertices_bytes, usage: vertex_usage });
+        let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            contents: vertices_bytes,
+            usage: vertex_usage,
+        });
 
         Reshaper {
             _vs_mod: vs_mod,
@@ -191,7 +199,7 @@ fn pipeline_layout(
     let desc = wgpu::PipelineLayoutDescriptor {
         label: Some("nannou_reshaper"),
         bind_group_layouts: &[&bind_group_layout],
-        push_constant_ranges: &[]
+        push_constant_ranges: &[],
     };
     device.create_pipeline_layout(&desc)
 }

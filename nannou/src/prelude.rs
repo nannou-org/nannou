@@ -35,7 +35,7 @@ pub use crate::wgpu::blend::{
     ADD as BLEND_ADD, DARKEST as BLEND_DARKEST, LIGHTEST as BLEND_LIGHTEST, NORMAL as BLEND_NORMAL,
     REVERSE_SUBTRACT as BLEND_REVERSE_SUBTRACT, SUBTRACT as BLEND_SUBTRACT,
 };
-pub use crate::wgpu::util::{DeviceExt, BufferInitDescriptor};
+pub use crate::wgpu::util::{BufferInitDescriptor, DeviceExt};
 pub use crate::window::{self, Id as WindowId};
 pub use crate::window::{Fullscreen, Window};
 

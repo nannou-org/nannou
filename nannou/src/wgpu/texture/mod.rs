@@ -1,4 +1,4 @@
-use crate::wgpu::{self, TextureHandle, TextureViewHandle, RowPaddedBuffer};
+use crate::wgpu::{self, RowPaddedBuffer, TextureHandle, TextureViewHandle};
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -204,7 +204,7 @@ impl Texture {
             base_mip_level: 0,
             level_count: NonZeroU32::new(self.mip_level_count()),
             base_array_layer: 0,
-            array_layer_count: NonZeroU32::new(1)
+            array_layer_count: NonZeroU32::new(1),
         }
     }
 
@@ -224,7 +224,7 @@ impl Texture {
         let buffer = wgpu::RowPaddedBuffer::for_texture(
             device,
             self,
-            wgpu::BufferUsage::COPY_SRC | wgpu::BufferUsage::MAP_WRITE
+            wgpu::BufferUsage::COPY_SRC | wgpu::BufferUsage::MAP_WRITE,
         );
         buffer.write(data);
         buffer.encode_copy_into(encoder, self);
@@ -246,7 +246,11 @@ impl Texture {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
     ) -> wgpu::RowPaddedBuffer {
-        assert_eq!(self.extent().depth, 1, "cannot convert a 3d texture to a RowPaddedBuffer");
+        assert_eq!(
+            self.extent().depth,
+            1,
+            "cannot convert a 3d texture to a RowPaddedBuffer"
+        );
 
         // If this texture is multi-sampled, resolve it first.
         if self.sample_count() > 1 {
@@ -256,13 +260,22 @@ impl Texture {
                 .sample_count(1)
                 .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::COPY_SRC)
                 .build(device);
-            let resolved_view = resolved_texture.create_view(&wgpu::TextureViewDescriptor::default());
+            let resolved_view =
+                resolved_texture.create_view(&wgpu::TextureViewDescriptor::default());
             wgpu::resolve_texture(&view, &resolved_view, encoder);
-            let buffer = RowPaddedBuffer::for_texture(device, &resolved_texture, wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ);
+            let buffer = RowPaddedBuffer::for_texture(
+                device,
+                &resolved_texture,
+                wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ,
+            );
             buffer.encode_copy_from(encoder, &resolved_texture);
             buffer
         } else {
-            let buffer = RowPaddedBuffer::for_texture(device, self, wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ);
+            let buffer = RowPaddedBuffer::for_texture(
+                device,
+                self,
+                wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ,
+            );
             buffer.encode_copy_from(encoder, self);
             buffer
         }
@@ -487,10 +500,12 @@ impl<'a> ViewBuilder<'a> {
     ///
     /// Panics if texture view is not 3d.
     pub fn as_texture_array(self) -> Self {
-        assert!(self.descriptor.dimension == Some(wgpu::TextureViewDimension::D3) ||
-                self.descriptor.dimension == Some(wgpu::TextureViewDimension::D2Array) ||
-                self.descriptor.dimension == Some(wgpu::TextureViewDimension::D2),
-                   "Cannot convert a non-3d texture view to a texture array view");
+        assert!(
+            self.descriptor.dimension == Some(wgpu::TextureViewDimension::D3)
+                || self.descriptor.dimension == Some(wgpu::TextureViewDimension::D2Array)
+                || self.descriptor.dimension == Some(wgpu::TextureViewDimension::D2),
+            "Cannot convert a non-3d texture view to a texture array view"
+        );
         self.dimension(Some(wgpu::TextureViewDimension::D2Array))
     }
 
@@ -621,7 +636,10 @@ impl<'a> Into<wgpu::TextureViewDescriptor<'static>> for ViewBuilder<'a> {
 }
 
 /// Create a texture ID by hashing the source texture ID along with the contents of the descriptor.
-fn texture_view_id(texture_id: &TextureId, desc: &wgpu::TextureViewDescriptor<'static>) -> TextureViewId {
+fn texture_view_id(
+    texture_id: &TextureId,
+    desc: &wgpu::TextureViewDescriptor<'static>,
+) -> TextureViewId {
     use std::hash::{Hash, Hasher};
     let mut s = std::collections::hash_map::DefaultHasher::new();
 
@@ -665,7 +683,7 @@ pub fn format_size_bytes(format: wgpu::TextureFormat) -> u32 {
 
         Depth32Float | Depth24Plus | Depth24PlusStencil8 => 4,
 
-        _ => unimplemented!()
+        _ => unimplemented!(),
     }
 }
 

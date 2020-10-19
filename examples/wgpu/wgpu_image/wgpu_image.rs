@@ -62,7 +62,8 @@ fn model(app: &App) -> Model {
     // Create the sampler for sampling from the source texture.
     let sampler = wgpu::SamplerBuilder::new().build(device);
 
-    let bind_group_layout = create_bind_group_layout(device, texture_view.component_type().unwrap());
+    let bind_group_layout =
+        create_bind_group_layout(device, texture_view.component_type().unwrap());
     let bind_group = create_bind_group(device, &bind_group_layout, &texture_view, &sampler);
     let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
     let render_pipeline = create_render_pipeline(
@@ -76,7 +77,11 @@ fn model(app: &App) -> Model {
 
     let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
     let usage = wgpu::BufferUsage::VERTEX;
-    let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor { label: None, contents: vertices_bytes, usage });
+    let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+        label: None,
+        contents: vertices_bytes,
+        usage,
+    });
 
     Model {
         bind_group,
@@ -132,7 +137,7 @@ fn create_pipeline_layout(
     let desc = wgpu::PipelineLayoutDescriptor {
         label: None,
         bind_group_layouts: &[&bind_group_layout],
-        push_constant_ranges: &[]
+        push_constant_ranges: &[],
     };
     device.create_pipeline_layout(&desc)
 }
