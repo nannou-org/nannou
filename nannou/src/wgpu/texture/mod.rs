@@ -258,11 +258,11 @@ impl Texture {
                 .build(device);
             let resolved_view = resolved_texture.create_view(&wgpu::TextureViewDescriptor::default());
             wgpu::resolve_texture(&view, &resolved_view, encoder);
-            let buffer = RowPaddedBuffer::for_texture(device, &resolved_texture, wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_WRITE);
+            let buffer = RowPaddedBuffer::for_texture(device, &resolved_texture, wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ);
             buffer.encode_copy_from(encoder, &resolved_texture);
             buffer
         } else {
-            let buffer = RowPaddedBuffer::for_texture(device, self, wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_WRITE);
+            let buffer = RowPaddedBuffer::for_texture(device, self, wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ);
             buffer.encode_copy_from(encoder, self);
             buffer
         }

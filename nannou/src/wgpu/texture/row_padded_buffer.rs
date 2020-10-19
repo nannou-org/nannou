@@ -1,6 +1,6 @@
+use super::image::Pixel;
 use crate::wgpu;
 use std::ops::Deref;
-use super::image::Pixel;
 
 /// A wrapper around a wgpu buffer suitable for copying to and from Textures. Automatically handles
 /// the padding necessary for buffer-to-texture and texture-to-buffer copies.
@@ -72,7 +72,7 @@ impl RowPaddedBuffer {
             device,
             image_buffer.width() * P::COLOR_TYPE.bytes_per_pixel() as u32,
             image_buffer.height(),
-            wgpu::BufferUsage::MAP_WRITE,
+            wgpu::BufferUsage::MAP_WRITE | wgpu::BufferUsage::COPY_SRC,
         );
         // TODO:
         // This can theoretically be exploited by implementing `image::Primitive` for some type
@@ -98,7 +98,7 @@ impl RowPaddedBuffer {
 
     /// Compute the necessary padding for each row.
     fn compute_row_padding(width: u32) -> u32 {
-        width + (width % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
+        wgpu::COPY_BYTES_PER_ROW_ALIGNMENT - (width % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
     }
 
     /// The width of the buffer, in bytes, NOT including padding bytes.
@@ -129,7 +129,7 @@ impl RowPaddedBuffer {
     /// The buffer usage must include `BufferUsage::map_read()`.
     pub fn write(&self, buf: &[u8]) {
         assert_eq!(
-            ((self.width + self.row_padding) * self.height) as usize,
+            (self.width * self.height) as usize,
             buf.len(),
             "Incorrect input slice size"
         );
@@ -140,7 +140,7 @@ impl RowPaddedBuffer {
             "Wrapped buffer cannot be mapped for writing"
         );
 
-        let mapped = self.buffer.slice(..).get_mapped_range_mut();
+        let mut mapped = self.buffer.slice(..).get_mapped_range_mut();
         let mapped = &mut mapped[..];
 
         let width = self.width as usize;
@@ -267,7 +267,7 @@ impl RowPaddedBuffer {
             // note: this is the layout of *this buffer*.
             layout: wgpu::TextureDataLayout {
                 offset: 0,
-                bytes_per_row: self.width + self.row_padding, // these are in bytes already.
+                bytes_per_row: self.padded_width(),
                 rows_per_image: self.height,
             },
         };
@@ -289,38 +289,63 @@ impl RowPaddedBuffer {
 /// An `ImageReadMapping` may only be created via `RowPaddedBuffer::read()`.
 pub struct ImageReadMapping<'buffer> {
     buffer: &'buffer wgpu::RowPaddedBuffer,
-    view: wgpu::BufferView<'buffer>
+    view: wgpu::BufferView<'buffer>,
 }
 
 impl<'buffer> ImageReadMapping<'buffer> {
-    /// View the contained buffer as an image with pixels of type P and apply the operation to it.
-    pub fn apply<P, F, T>(&self, f: F) -> T
-        where
-            P: Pixel + 'static,
-            F: FnOnce(image::SubImage<&image::ImageBuffer<P, &[P::Subpixel]>>) -> T
+    /// View as an image::SubImage.
+    ///
+    /// Unsafe: `P::TEXTURE_FORMAT` MUST match the texture format / image type used to create the
+    /// wrapped RowPaddedBuffer! If this is not the case, may result in undefined behavior!
+    pub unsafe fn as_image<P>(&self) -> image::SubImage<ImageHolder<P>>
+    where
+        P: Pixel + 'static,
     {
         let subpixel_size = std::mem::size_of::<P::Subpixel>() as u32;
-        assert_eq!(self.buffer.padded_width() % subpixel_size, 0,
-                   "buffer padded width not an even multiple of primitive size");
-        assert_eq!(self.buffer.width() % subpixel_size, 0,
-                   "buffer row width not an even multiple of primitive size");
-        let container = unsafe {
-            // ways this cast could go wrong:
-            // - buffer is the wrong size: checked in to_slice, panics
-            // - buffer is the wrong alignment: checked in to_slice, panics
-            // - buffer rows are the wrong size: checked above, panics
-            // - buffer has not been initialized / has invalid data for primitive type:
-            //   very possible. TODO(jhg): should we seal the Pixel trait?
-            wgpu::bytes::to_slice::<P::Subpixel>(&self.view[..])
-        };
-        let full_image = image::ImageBuffer::from_raw(
-            self.buffer.padded_width() / subpixel_size,
-            self.buffer.height(),
-            container,
-        ).expect("nannou internal error: incorrect buffer size");
-        let view = image::SubImage::new(&full_image, 0, 0, self.buffer.width() / subpixel_size, self.buffer.height());
+        let pixel_size = subpixel_size * P::CHANNEL_COUNT as u32;
+        assert_eq!(pixel_size, P::COLOR_TYPE.bytes_per_pixel() as u32);
 
-        f(view)
+        assert_eq!(
+            self.buffer.padded_width() % pixel_size,
+            0,
+            "buffer padded width not an even multiple of primitive size"
+        );
+        assert_eq!(
+            self.buffer.width() % pixel_size,
+            0,
+            "buffer row width not an even multiple of primitive size"
+        );
+
+        let width_pixels = self.buffer.width() / pixel_size;
+        let padded_width_pixels = self.buffer.padded_width() / pixel_size;
+
+        // ways this cast could go wrong:
+        // - buffer is the wrong size: checked in to_slice, panics
+        // - buffer is the wrong alignment: checked in to_slice, panics
+        // - buffer rows are the wrong size: checked above, panics
+        // - buffer has not been initialized / has invalid data for primitive type:
+        //   very possible. That's why this function is `unsafe`.
+        let container = wgpu::bytes::to_slice::<P::Subpixel>(&self.view[..]);
+
+        let full_image =
+            image::ImageBuffer::from_raw(padded_width_pixels, self.buffer.height(), container)
+                .expect("nannou internal error: incorrect buffer size");
+        image::SubImage::new(
+            ImageHolder(full_image),
+            0,
+            0,
+            width_pixels,
+            self.buffer.height(),
+        )
+    }
+}
+
+/// Workaround for the fact that `image::SubImage` requires a `Deref` impl on the wrapped image.
+pub struct ImageHolder<'b, P: Pixel>(image::ImageBuffer<P, &'b [P::Subpixel]>);
+impl<'b, P: Pixel> Deref for ImageHolder<'b, P> {
+    type Target = image::ImageBuffer<P, &'b [P::Subpixel]>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -330,7 +355,7 @@ pub mod tests {
 
     fn row_alignment_subsumes_buffer_alignment() {
         assert_eq!(
-            wgpu::COPY_BYTES_PER_ROW_ALIGNMENT % wgpu::COPY_BUFFER_ALIGNMENT,
+            wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as u64 % wgpu::COPY_BUFFER_ALIGNMENT,
             0,
             "BufferImage allocation logic is broken!"
         );

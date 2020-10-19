@@ -1,7 +1,6 @@
 use crate::wgpu;
 use std::fmt;
 use std::future::Future;
-use std::ops::Deref;
 use std::sync::atomic::{self, AtomicU32};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -247,9 +246,9 @@ impl Capturer {
 
 impl Snapshot {
     /// Reads the non-linear sRGBA image from mapped memory and convert it to an owned buffer.
-    pub async fn to_owned_async<'buffer>(&'buffer self) -> Result<Rgba8AsyncMappedImageBuffer<'buffer>, wgpu::BufferAsyncError> {
+    pub async fn read_async<'buffer>(&'buffer self) -> Result<Rgba8AsyncMappedImageBuffer<'buffer>, wgpu::BufferAsyncError> {
         let mapping = self.buffer.read().await?;
-        mapping.apply(|sub_image| Ok(sub_image.to_image()))
+        Ok(Rgba8AsyncMappedImageBuffer(mapping))
     }
 
     /// The same as `read_async`, but runs the resulting future on an inner threadpool and calls
@@ -303,14 +302,15 @@ impl Snapshot {
 }
 
 impl<'b> Rgba8AsyncMappedImageBuffer<'b> {
-    pub fn as_image(&self) -> image::SubImage<wgpu::ImageHolder<'b, image::Rgba<u8>>> {
-        self.0.as_image::<image::Rgba<u8>>()
+    pub fn as_image(&self) -> image::SubImage<wgpu::ImageHolder<image::Rgba<u8>>> {
+        // safe: we know it's Rgba<u8>
+        unsafe { self.0.as_image::<image::Rgba<u8>>() }
     }
     /// Convert the mapped image buffer to an owned buffer.
     pub fn to_owned(&self) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
         let view = self.as_image();
         let mut result = image::ImageBuffer::new(view.width(), view.height());
-        result.copy_from(&view);
+        result.copy_from(&view, 0, 0).expect("nannou internal error: image copy failed");
         result
     }
 }

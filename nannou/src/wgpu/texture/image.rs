@@ -385,26 +385,6 @@ pub fn format_from_image_color_type(color_type: image::ColorType) -> Option<wgpu
     Some(format)
 }
 
-/// Convert the given texture format to the corresponding color type from the `image` crate.
-///
-/// Returns `None` if there is no directly compatible color type.
-///
-/// The `Rgba8` and `Bgra8` color types are assumed to be non-linear sRGB.
-pub fn image_color_type_from_format(format: wgpu::TextureFormat) -> Option<image::ColorType> {
-    let color_type = match format {
-        // TODO: Should we add branches for other same-size formats? e.g. R8Snorm, R8Uint, etc?
-        wgpu::TextureFormat::R8Unorm => image::ColorType::L8,
-        wgpu::TextureFormat::Rg8Unorm => image::ColorType::La8,
-        wgpu::TextureFormat::Rgba8UnormSrgb => image::ColorType::Rgba8,
-        wgpu::TextureFormat::R16Uint => image::ColorType::L16,
-        wgpu::TextureFormat::Rg16Uint => image::ColorType::La16,
-        wgpu::TextureFormat::Rgba16Uint => image::ColorType::Rgba16,
-        wgpu::TextureFormat::Bgra8UnormSrgb => image::ColorType::Bgra8,
-        _ => return None,
-    };
-    Some(color_type)
-}
-
 /// Produce a texture descriptor from any type implementing `image::GenericImageView` whose `Pixel`
 /// type implements `Pixel`.
 ///
@@ -522,6 +502,7 @@ pub fn encode_load_texture_from_image(
     image: &image::DynamicImage,
 ) -> wgpu::Texture {
     use image::DynamicImage::*;
+    println!("enc {:?}", image.color());
     match image {
         ImageLuma8(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
         ImageLumaA8(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
@@ -570,14 +551,7 @@ where
         .usage(wgpu::TextureBuilder::REQUIRED_IMAGE_TEXTURE_USAGE | usage)
         .build(device);
 
-    // Upload the pixel data.
-    let subpixel_data: &[P::Subpixel] = std::ops::Deref::deref(buffer);
-    // TODO:
-    // This can theoretically be exploited by implementing `image::Primitive` for some type that
-    // has padding. Instead, should make some `Subpixel` trait that we can control and is only
-    // guaranteed to be implemented for safe types.
     let buffer_image = wgpu::RowPaddedBuffer::from_image_buffer(device, buffer);
-
     buffer_image.encode_copy_into(encoder, &texture);
 
     texture
@@ -625,7 +599,6 @@ where
     // Copy each buffer to the texture, one layer at a time.
     for (layer, buffer) in Some(first_buffer).into_iter().chain(buffers).enumerate() {
         // Upload the pixel data.
-        let subpixel_data: &[P::Subpixel] = std::ops::Deref::deref(buffer);
         let buffer = wgpu::RowPaddedBuffer::from_image_buffer(device, &buffer);
         buffer.encode_copy_into_at(encoder, &texture, layer as u32);
     }

@@ -167,7 +167,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         .with_extension("png");
     snapshot
         .read(move |result| {
-            let image = result.expect("failed to map texture memory");
+            let image = result.expect("failed to map texture memory").to_owned();
             image
                 .save(&path)
                 .expect("failed to save texture to png image");

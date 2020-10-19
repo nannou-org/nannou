@@ -41,12 +41,12 @@ pub use self::render_pipeline_builder::RenderPipelineBuilder;
 pub use self::sampler_builder::SamplerBuilder;
 pub use self::texture::capturer::{
     AwaitWorkerTimeout as TextureCapturerAwaitWorkerTimeout, Capturer as TextureCapturer,
-    Snapshot as TextureSnapshot,
+    Snapshot as Textue5cfe74reSnapshot,
 };
 pub use self::texture::image::{
     format_from_image_color_type as texture_format_from_image_color_type,
 };
-pub use self::texture::row_padded_buffer::{RowPaddedBuffer, ImageReadMapping};
+pub use self::texture::row_padded_buffer::{RowPaddedBuffer, ImageReadMapping, ImageHolder};
 pub use self::texture::reshaper::Reshaper as TextureReshaper;
 pub use self::texture::{
     descriptor_eq as texture_descriptor_eq, extent_3d_eq,
