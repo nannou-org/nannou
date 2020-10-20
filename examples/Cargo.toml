@@ -27,6 +27,7 @@ pitch_calc = { version = "0.12", features = ["serde"] }
 time_calc = { version= "0.13", features = ["serde"] }
 walkdir = "2"
 hound = "3.4.0"
+ringbuf = "0.2.2"
 
 # Audio
 [[example]]
@@ -38,6 +39,9 @@ path = "audio/simple_audio_file.rs"
 [[example]]
 name = "record_wav"
 path = "audio/record_wav.rs"
+[[example]]
+name = "feedback"
+path = "audio/feedback.rs"
 
 # Communication
 [[example]]
