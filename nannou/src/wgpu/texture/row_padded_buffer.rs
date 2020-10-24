@@ -258,7 +258,6 @@ impl RowPaddedBuffer {
         );
         assert!(depth <= texture.extent().depth, "texture not deep enough");
 
-        // TODO(jhg): this is in pixels (or really, texture blocks), right?
         let mut copy_size = texture.extent();
         copy_size.depth = 1;
 

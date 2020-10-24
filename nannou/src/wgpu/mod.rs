@@ -155,25 +155,6 @@ pub fn create_pipeline_layout<'p>(
     device.create_pipeline_layout(&descriptor)
 }
 
-/// TODO: Remove this once `derive(Clone)` is added to wgpu SamplerDescriptor.
-pub fn sampler_descriptor_clone<'a>(
-    sampler: &'a wgpu_upstream::SamplerDescriptor,
-) -> wgpu_upstream::SamplerDescriptor<'a> {
-    wgpu_upstream::SamplerDescriptor {
-        label: sampler.label,
-        address_mode_u: sampler.address_mode_u,
-        address_mode_v: sampler.address_mode_v,
-        address_mode_w: sampler.address_mode_w,
-        mag_filter: sampler.mag_filter,
-        min_filter: sampler.min_filter,
-        mipmap_filter: sampler.mipmap_filter,
-        lod_min_clamp: sampler.lod_min_clamp,
-        lod_max_clamp: sampler.lod_max_clamp,
-        compare: sampler.compare,
-        anisotropy_clamp: sampler.anisotropy_clamp,
-    }
-}
-
 /// The functions within this module use unsafe in order to retrieve their input as a slice of
 /// bytes. This is necessary in order to upload data to the GPU via the wgpu
 /// `DeviceExt::create_buffer_init` buffer constructor. This method is unsafe as the type `T` may contain

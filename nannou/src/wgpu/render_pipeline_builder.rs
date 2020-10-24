@@ -412,7 +412,6 @@ impl<'a> IntoPipelineLayoutDescriptor<'a> for &'a [&'a wgpu::BindGroupLayout] {
         wgpu::PipelineLayoutDescriptor {
             label: Some("nannou render pipeline layout"),
             bind_group_layouts: self,
-            // wgpu 0.5-06 TODO: maybe constants are needed to be specified here
             push_constant_ranges: &[],
         }
     }

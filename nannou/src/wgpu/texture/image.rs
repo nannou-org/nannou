@@ -499,7 +499,6 @@ pub fn encode_load_texture_from_image(
     image: &image::DynamicImage,
 ) -> wgpu::Texture {
     use image::DynamicImage::*;
-    println!("enc {:?}", image.color());
     match image {
         ImageLuma8(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
         ImageLumaA8(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
