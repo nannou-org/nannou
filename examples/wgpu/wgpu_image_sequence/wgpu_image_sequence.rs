@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 
 struct Model {
     current_layer: f32,
-    texture_3d: wgpu::Texture,
+    texture_array: wgpu::Texture,
     texture_view: wgpu::TextureView,
     sampler: wgpu::Sampler,
     bind_group_layout: wgpu::BindGroupLayout,
@@ -79,18 +79,18 @@ fn model(app: &App) -> Model {
     let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
     let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
 
-    let texture_3d = {
+    let texture_array = {
         // The wgpu device queue used to load the image data.
         let queue = window.swap_chain_queue();
         // Describe how we will use the texture so that the GPU may handle it efficiently.
         let usage = wgpu::TextureUsage::SAMPLED;
         let iter = images.iter().map(|&(_, ref img)| img);
-        wgpu::Texture::load_3d_from_image_buffers(device, queue, usage, iter)
+        wgpu::Texture::load_array_from_image_buffers(device, queue, usage, iter)
             .expect("tied to load texture array with an empty image buffer sequence")
     };
     let layer = 0;
     // We need to call `.view().as_texture_array()` to convert the 3d texture to a 2d texture array view.
-    let texture_view = texture_3d.view().as_texture_array().layer(layer).build();
+    let texture_view = texture_array.view().layer(layer).build();
 
     // Create the sampler for sampling from the source texture.
     let sampler = wgpu::SamplerBuilder::new().build(device);
@@ -119,7 +119,7 @@ fn model(app: &App) -> Model {
 
     Model {
         current_layer: 0.0,
-        texture_3d,
+        texture_array,
         texture_view,
         sampler,
         bind_group_layout,
@@ -145,7 +145,7 @@ fn update(app: &App, model: &mut Model, update: Update) {
     );
 
     // Update which layer we are viewing based on the playback speed and layer count.
-    let layer_count = model.texture_3d.extent().depth;
+    let layer_count = model.texture_array.extent().depth;
     model.current_layer = fmod(
         model.current_layer + update.since_last.secs() as f32 * fps,
         layer_count as f32,
@@ -153,7 +153,7 @@ fn update(app: &App, model: &mut Model, update: Update) {
 
     // Update the view and the bind group ready for drawing.
     let layer = model.current_layer as u32;
-    model.texture_view = model.texture_3d.view().layer(layer).build();
+    model.texture_view = model.texture_array.view().layer(layer).build();
     model.bind_group = create_bind_group(
         device,
         &model.bind_group_layout,

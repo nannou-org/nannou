@@ -174,7 +174,7 @@ impl wgpu::Texture {
     /// Pixel type compatibility is ensured via the `Pixel` trait.
     ///
     /// Returns `None` if there are no images in the given sequence.
-    pub fn load_3d_from_image_buffers<'a, I, P, Container>(
+    pub fn load_array_from_image_buffers<'a, I, P, Container>(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         usage: wgpu::TextureUsage,
@@ -186,7 +186,7 @@ impl wgpu::Texture {
         P: 'static + Pixel,
         Container: 'a + std::ops::Deref<Target = [P::Subpixel]>,
     {
-        load_3d_texture_from_image_buffers(device, queue, usage, buffers)
+        load_texture_array_from_image_buffers(device, queue, usage, buffers)
     }
 
     /// Encode the necessary commands to load a texture directly from a dynamic image.
@@ -257,7 +257,7 @@ impl wgpu::Texture {
         P: 'static + Pixel,
         Container: 'a + std::ops::Deref<Target = [P::Subpixel]>,
     {
-        encode_load_3d_texture_from_image_buffers(device, encoder, usage, buffers)
+        encode_load_texture_array_from_image_buffers(device, encoder, usage, buffers)
     }
 }
 
@@ -459,7 +459,7 @@ where
 /// Pixel type compatibility is ensured via the `Pixel` trait.
 ///
 /// Returns `None` if there are no images in the given sequence.
-pub fn load_3d_texture_from_image_buffers<'a, I, P, Container>(
+pub fn load_texture_array_from_image_buffers<'a, I, P, Container>(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     usage: wgpu::TextureUsage,
@@ -475,7 +475,8 @@ where
         label: Some("nannou_load_3d_texture_from_image_buffers"),
     };
     let mut encoder = device.create_command_encoder(&cmd_encoder_desc);
-    let texture = encode_load_3d_texture_from_image_buffers(device, &mut encoder, usage, buffers);
+    let texture =
+        encode_load_texture_array_from_image_buffers(device, &mut encoder, usage, buffers);
     queue.submit(std::iter::once(encoder.finish()));
     texture
 }
@@ -559,16 +560,13 @@ where
 /// NOTE: The returned texture will remain empty u29ntil the given `encoder` has its command buffer
 /// submitted to the given `device`'s queue.
 ///
-/// NOTE: The returned texture will not be an array! It will be a 3d texture with a depth equal
-/// to the number of textures in the iterator. To get an array
-///
 /// No format or size conversions are performed - the given buffer is loaded directly into GPU
 /// memory.
 ///
 /// Pixel type compatibility is ensured via the `Pixel` trait.
 ///
 /// Returns `None` if there are no images in the given sequence.
-pub fn encode_load_3d_texture_from_image_buffers<'a, I, P, Container>(
+pub fn encode_load_texture_array_from_image_buffers<'a, I, P, Container>(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
     usage: wgpu::TextureUsage,
@@ -593,6 +591,7 @@ where
             height,
             depth: array_layers,
         })
+        .dimension(wgpu::TextureDimension::D2) // force an array
         .usage(wgpu::TextureBuilder::REQUIRED_IMAGE_TEXTURE_USAGE | usage)
         .build(device);
 

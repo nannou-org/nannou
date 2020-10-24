@@ -188,7 +188,10 @@ impl Texture {
     pub fn view_dimension(&self) -> wgpu::TextureViewDimension {
         match self.dimension() {
             wgpu::TextureDimension::D1 => wgpu::TextureViewDimension::D1,
-            wgpu::TextureDimension::D2 => wgpu::TextureViewDimension::D2,
+            wgpu::TextureDimension::D2 => match self.descriptor.size.depth {
+                1 => wgpu::TextureViewDimension::D2,
+                _ => wgpu::TextureViewDimension::D2Array,
+            },
             wgpu::TextureDimension::D3 => wgpu::TextureViewDimension::D3,
         }
     }
@@ -385,7 +388,7 @@ impl Builder {
     ///
     /// Note: On calls to `size`, `depth` and `extent` the `Builder` will attempt to infer the
     /// `wgpu::TextureDimension` of its inner `wgpu::TextureDescriptor` by examining its `size`
-    /// field.
+    /// field. Use `TextureBuilder::dimension()` to override this behavior.
     pub fn size(mut self, [width, height]: [u32; 2]) -> Self {
         self.descriptor.size.width = width;
         self.descriptor.size.height = height;
@@ -397,7 +400,7 @@ impl Builder {
     ///
     /// Note: On calls to `size`, `depth` and `extent` the `Builder` will attempt to infer the
     /// `wgpu::TextureDimension` of its inner `wgpu::TextureDescriptor` by examining its `size`
-    /// field.
+    /// field. Use `TextureBuilder::dimension()` to override this behavior.
     pub fn depth(mut self, depth: u32) -> Self {
         self.descriptor.size.depth = depth;
         self.infer_dimension_from_size();
@@ -408,13 +411,24 @@ impl Builder {
     ///
     /// Note: On calls to `size`, `depth` and `extent` the `Builder` will attempt to infer the
     /// `wgpu::TextureDimension` of its inner `wgpu::TextureDescriptor` by examining its `size`
-    /// field.
+    /// field. Use `TextureBuilder::dimension()` to override this behavior.
     pub fn extent(mut self, extent: wgpu::Extent3d) -> Self {
         self.descriptor.size = extent;
         self.infer_dimension_from_size();
         self
     }
 
+    /// Specify the dimension of the texture, overriding inferred dimension.
+    ///
+    /// Mainly useful for creating 2d texture arrays -- override dimension with
+    /// `wgpu::TextureDimension::D2` on a texture with `extent.depth > 1` in order to create a
+    /// texture array (/ cubemap / cubemap array) instead of a 3d texture.
+    pub fn dimension(mut self, dimension: wgpu::TextureDimension) -> Self {
+        self.descriptor.dimension = dimension;
+        self
+    }
+
+    /// Specify the number of mip levels of the texture.
     pub fn mip_level_count(mut self, count: u32) -> Self {
         self.descriptor.mip_level_count = count;
         self
@@ -496,19 +510,6 @@ impl<'a> ViewBuilder<'a> {
         self
     }
 
-    /// Short-hand for converting a 3d texture into a 2d texture array.
-    ///
-    /// Panics if texture view is not 3d.
-    pub fn as_texture_array(self) -> Self {
-        assert!(
-            self.descriptor.dimension == Some(wgpu::TextureViewDimension::D3)
-                || self.descriptor.dimension == Some(wgpu::TextureViewDimension::D2Array)
-                || self.descriptor.dimension == Some(wgpu::TextureViewDimension::D2),
-            "Cannot convert a non-3d texture view to a texture array view"
-        );
-        self.dimension(Some(wgpu::TextureViewDimension::D2Array))
-    }
-
     /// Short-hand for specifying a **TextureView** for a single given base array layer.
     ///
     /// In other words, this is short-hand for the following:
@@ -519,9 +520,7 @@ impl<'a> ViewBuilder<'a> {
     ///     .array_layer_count(1)
     /// ```
     pub fn layer(self, layer: u32) -> Self {
-        // TODO(jhg): check this works.
-        self.as_texture_array()
-            .base_array_layer(layer)
+        self.base_array_layer(layer)
             .array_layer_count(NonZeroU32::new(1))
     }
 
