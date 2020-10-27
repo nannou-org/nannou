@@ -599,9 +599,7 @@ impl Renderer {
                         None => self.default_texture_view.clone(),
                     };
                     let tex_view_id = tex_view.id();
-                    let texture_component_type = tex_view
-                        .component_type()
-                        .expect("Texture view has no format?");
+                    let texture_component_type = tex_view.component_type();
                     new_tex_views.insert(tex_view_id, tex_view);
 
                     // Determine the new current bind group layout ID, pipeline ID, bind group ID

@@ -62,7 +62,7 @@ fn model(app: &App) -> Model {
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
     let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
     let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
-        label: None,
+        label: Some("uniform-buffer"),
         contents: uniforms_bytes,
         usage,
     });
@@ -108,7 +108,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 
     // The buffer into which we'll read some data.
     let read_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("read_oscillators"),
+        label: Some("read-oscillators"),
         size: compute.oscillator_buffer_size,
         usage: wgpu::BufferUsage::MAP_READ
             | wgpu::BufferUsage::COPY_DST
@@ -122,14 +122,14 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
     let usage = wgpu::BufferUsage::COPY_SRC;
     let new_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
-        label: None,
+        label: Some("uniform-data-transfer"),
         contents: uniforms_bytes,
         usage,
     });
 
     // The encoder we'll use to encode the compute pass.
     let desc = wgpu::CommandEncoderDescriptor {
-        label: Some("oscillator_compute"),
+        label: Some("oscillator-compute"),
     };
     let mut encoder = device.create_command_encoder(&desc);
     encoder.copy_buffer_to_buffer(
@@ -154,9 +154,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     );
 
     // Submit the compute pass to the device's queue.
-    window
-        .swap_chain_queue()
-        .submit(std::iter::once(encoder.finish()));
+    window.swap_chain_queue().submit(Some(encoder.finish()));
 
     // Spawn a future that reads the result of the compute pass.
     let oscillators = model.oscillators.clone();

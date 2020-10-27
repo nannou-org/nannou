@@ -62,8 +62,7 @@ fn model(app: &App) -> Model {
     // Create the sampler for sampling from the source texture.
     let sampler = wgpu::SamplerBuilder::new().build(device);
 
-    let bind_group_layout =
-        create_bind_group_layout(device, texture_view.component_type().unwrap());
+    let bind_group_layout = create_bind_group_layout(device, texture_view.component_type());
     let bind_group = create_bind_group(device, &bind_group_layout, &texture_view, &sampler);
     let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
     let render_pipeline = create_render_pipeline(
