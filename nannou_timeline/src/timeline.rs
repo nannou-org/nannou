@@ -429,7 +429,7 @@ impl Tracks {
     /// Returns a context which can be used to set the `Playhead` and `Scrollbar`.
     pub fn end_tracks(self) -> Final {
         let Tracks { context, .. } = self;
-        Final { context: context }
+        Final { context }
     }
 }
 
@@ -741,7 +741,7 @@ where
             maybe_playhead: maybe_playhead,
         };
 
-        PinnedTracks { context: context }
+        PinnedTracks { context }
     }
 }
 

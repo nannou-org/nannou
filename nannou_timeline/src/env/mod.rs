@@ -75,7 +75,7 @@ impl<T> std::iter::FromIterator<Point<T>> for Envelope<T> {
 
 impl<T> From<Vec<Point<T>>> for Envelope<T> {
     fn from(points: Vec<Point<T>>) -> Self {
-        Envelope { points: points }
+        Envelope { points }
     }
 }
 
