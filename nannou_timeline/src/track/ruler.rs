@@ -117,7 +117,7 @@ impl<'a> conrod::Widget for Ruler<'a> {
                     ((x / w) * total_ticks.ticks() as conrod::Scalar) as time::calc::Ticks,
                 );
                 let ticks = std::cmp::max(std::cmp::min(ticks, total_ticks), time::Ticks(0));
-                ticks_triggered = Some(TicksTriggered { ticks: ticks });
+                ticks_triggered = Some(TicksTriggered { ticks });
             }
         }
 

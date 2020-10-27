@@ -317,7 +317,7 @@ impl<'a> conrod::Widget for Bang<'a> {
                 ticks: clamped_ticks_from_x(click_x),
                 value: BangValue,
             };
-            let add_point = super::AddPoint { point: point };
+            let add_point = super::AddPoint { point };
             events.push(Event::Mutate(add_point.into()));
         }
 

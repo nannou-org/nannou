@@ -328,7 +328,7 @@ where
                 ticks: clamped_ticks_from_x(click_abs_xy[0]),
                 value: clamped_value_from_y(click_abs_xy[1]),
             };
-            let add_point = super::AddPoint { point: point };
+            let add_point = super::AddPoint { point };
             events.push(Event::Mutate(add_point.into()));
         }
 

@@ -171,7 +171,7 @@ impl<'a> conrod::Widget for Dynamic<'a> {
                                 ticks: ticks,
                                 value: value.into(),
                             };
-                            let add_point = super::AddPoint { point: point };
+                            let add_point = super::AddPoint { point };
                             let event = super::numeric::Event::Mutate(add_point.into());
                             Event::Numeric(event)
                         }
