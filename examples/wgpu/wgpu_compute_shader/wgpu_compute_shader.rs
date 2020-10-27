@@ -54,7 +54,7 @@ fn model(app: &App) -> Model {
         usage: wgpu::BufferUsage::STORAGE
             | wgpu::BufferUsage::COPY_DST
             | wgpu::BufferUsage::COPY_SRC,
-        mapped_at_creation: true,
+        mapped_at_creation: false,
     });
 
     // Create the buffer that will store time.
@@ -110,10 +110,8 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     let read_buffer = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("read_oscillators"),
         size: compute.oscillator_buffer_size,
-        usage: wgpu::BufferUsage::MAP_READ
-            | wgpu::BufferUsage::COPY_DST
-            | wgpu::BufferUsage::COPY_SRC,
-        mapped_at_creation: true,
+        usage: wgpu::BufferUsage::MAP_READ | wgpu::BufferUsage::COPY_DST,
+        mapped_at_creation: false,
     });
 
     // An update for the uniform buffer with the current time.
