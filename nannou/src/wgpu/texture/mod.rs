@@ -40,9 +40,44 @@ pub struct Texture {
 #[derive(Debug)]
 pub struct TextureView {
     handle: Arc<TextureViewHandle>,
-    descriptor: wgpu::TextureViewDescriptor<'static>,
+    info: TextureViewInfo,
     texture_extent: wgpu::Extent3d,
     texture_id: TextureId,
+}
+
+/// Similar to `TextureViewDescriptor`, but contains the built fields rather than `Option`s.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct TextureViewInfo {
+    /// Debug label of the texture view.
+    ///
+    /// This will show up in graphics debuggers for easy identification.
+    pub label: &'static str,
+    /// Format of the texture view.
+    ///
+    /// At this time, it must be the same as the underlying format of the texture.
+    pub format: wgpu::TextureFormat,
+    /// The dimension of the texture view.
+    ///
+    /// - For 1D textures, this must be 1D.
+    /// - For 2D textures it must be one of D2, D2Array, Cube, and CubeArray.
+    /// - For 3D textures it must be 3D.
+    pub dimension: wgpu::TextureViewDimension,
+    /// Aspect of the texture. Color textures must be TextureAspect::All.
+    pub aspect: wgpu::TextureAspect,
+    pub base_mip_level: u32,
+    /// Mip level count.
+    ///
+    /// If `Some`, base_mip_level + count must be less or equal to underlying texture mip count.
+    ///
+    /// If `None`, considered to include the rest of the mipmap levels, but at least 1 in total.
+    pub level_count: Option<NonZeroU32>,
+    pub base_array_layer: u32,
+    /// Layer count.
+    ///
+    /// If `Some`, base_array_layer + count must be less or equal to the underlying array count.
+    ///
+    /// If `None`, considered to include the rest of the array layers, but at least 1 in total.
+    pub array_layer_count: Option<NonZeroU32>,
 }
 
 /// A unique identifier associated with a **Texture**.
@@ -77,7 +112,7 @@ pub struct Builder {
 #[derive(Debug)]
 pub struct ViewBuilder<'a> {
     texture: &'a wgpu::Texture,
-    descriptor: wgpu::TextureViewDescriptor<'static>,
+    info: TextureViewInfo,
 }
 
 impl Texture {
@@ -177,7 +212,7 @@ impl Texture {
     pub fn view(&self) -> ViewBuilder {
         ViewBuilder {
             texture: self,
-            descriptor: self.default_view_descriptor(),
+            info: self.default_view_info(),
         }
     }
 
@@ -196,19 +231,24 @@ impl Texture {
         }
     }
 
-    /// The view descriptor describing a full view of the texture.
-    pub fn default_view_descriptor(&self) -> wgpu::TextureViewDescriptor<'static> {
-        wgpu::TextureViewDescriptor {
-            label: Some("nannou Texture::default_view_descriptor"),
-            format: Some(self.format()),
-            dimension: Some(self.view_dimension()),
-            // TODO: Is this correct? Should we check the format?
-            aspect: wgpu::TextureAspect::All,
+    /// The view info, describing a full view of the texture.
+    pub fn default_view_info(&self) -> TextureViewInfo {
+        let format = self.format();
+        TextureViewInfo {
+            label: TextureView::DEFAULT_LABEL,
+            format: format,
+            dimension: self.view_dimension(),
+            aspect: infer_aspect_from_format(format),
             base_mip_level: 0,
             level_count: NonZeroU32::new(self.mip_level_count()),
             base_array_layer: 0,
             array_layer_count: NonZeroU32::new(1),
         }
+    }
+
+    /// The view descriptor, describing a full view of the texture.
+    pub fn default_view_descriptor(&self) -> wgpu::TextureViewDescriptor<'static> {
+        view_info_to_view_descriptor(&self.default_view_info())
     }
 
     /// Encode a command for uploading the given data to the texture.
@@ -285,45 +325,58 @@ impl Texture {
     }
 }
 
+impl TextureViewInfo {
+    /// Produces a `TextureViewDescriptor` that matches this info instance.
+    pub fn descriptor(&self) -> wgpu::TextureViewDescriptor<'static> {
+        view_info_to_view_descriptor(self)
+    }
+}
+
 impl TextureView {
-    pub fn descriptor(&self) -> &wgpu::TextureViewDescriptor {
-        &self.descriptor
+    pub const DEFAULT_LABEL: &'static str = "nannou-texture-view";
+
+    pub fn info(&self) -> &TextureViewInfo {
+        &self.info
     }
 
-    pub fn format(&self) -> Option<wgpu::TextureFormat> {
-        self.descriptor.format
+    pub fn descriptor(&self) -> wgpu::TextureViewDescriptor<'static> {
+        self.info.descriptor()
     }
 
-    pub fn dimension(&self) -> Option<wgpu::TextureViewDimension> {
-        self.descriptor.dimension
+    pub fn format(&self) -> wgpu::TextureFormat {
+        self.info.format
+    }
+
+    pub fn dimension(&self) -> wgpu::TextureViewDimension {
+        self.info.dimension
     }
 
     pub fn aspect(&self) -> wgpu::TextureAspect {
-        self.descriptor.aspect
+        self.info.aspect
     }
 
     pub fn base_mip_level(&self) -> u32 {
-        self.descriptor.base_mip_level
+        self.info.base_mip_level
     }
 
     pub fn level_count(&self) -> Option<NonZeroU32> {
-        self.descriptor.level_count
+        self.info.level_count
     }
 
     pub fn base_array_layer(&self) -> u32 {
-        self.descriptor.base_array_layer
+        self.info.base_array_layer
     }
 
     pub fn array_layer_count(&self) -> Option<NonZeroU32> {
-        self.descriptor.array_layer_count
+        self.info.array_layer_count
     }
 
-    pub fn component_type(&self) -> Option<wgpu::TextureComponentType> {
-        self.format().map(|f| f.into())
+    pub fn component_type(&self) -> wgpu::TextureComponentType {
+        self.format().into()
     }
 
     pub fn id(&self) -> TextureViewId {
-        texture_view_id(&self.texture_id, &self.descriptor)
+        texture_view_id(&self.texture_id, &self.info)
     }
 
     /// The width and height of the source texture.
@@ -480,33 +533,71 @@ impl Builder {
 }
 
 impl<'a> ViewBuilder<'a> {
-    pub fn format(mut self, format: Option<wgpu::TextureFormat>) -> Self {
-        self.descriptor.format = format;
+    /// Debug label of the texture view.
+    ///
+    /// This will show up in graphics debuggers for easy identification.
+    ///
+    /// By default, this is `"nannou-texture-view"`.
+    pub fn label(mut self, label: &'static str) -> Self {
+        self.info.label = label;
         self
     }
 
-    pub fn dimension(mut self, dimension: Option<wgpu::TextureViewDimension>) -> Self {
-        self.descriptor.dimension = dimension;
+    /// Format of the texture view.
+    ///
+    /// At this time, it must be the same as the underlying format of the texture.
+    ///
+    /// By default, this is derived from the parent texture.
+    pub fn format(mut self, format: wgpu::TextureFormat) -> Self {
+        self.info.format = format;
         self
     }
 
+    /// The dimension of the texture view.
+    ///
+    /// - For 1D textures, this must be 1D.
+    /// - For 2D textures it must be one of D2, D2Array, Cube, and CubeArray.
+    /// - For 3D textures it must be 3D.
+    ///
+    /// By default, this is derived from the parent texture.
+    pub fn dimension(mut self, dimension: wgpu::TextureViewDimension) -> Self {
+        self.info.dimension = dimension;
+        self
+    }
+
+    /// Aspect of the texture.
+    ///
+    /// Color textures **must** be `TextureAspect::All`.
+    ///
+    /// By default, this is the result of `infer_aspect_from_format` called for the parent
+    /// texture's texture format. See the `infer_aspect_from_format` function docs for details.
     pub fn aspect(mut self, aspect: wgpu::TextureAspect) -> Self {
-        self.descriptor.aspect = aspect;
+        self.info.aspect = aspect;
         self
     }
 
+    /// Mip level count.
+    ///
+    /// If `Some`, base_mip_level + count must be less or equal to underlying texture mip count.
+    ///
+    /// If `None`, considered to include the rest of the mipmap levels, but at least 1 in total.
     pub fn level_count(mut self, level_count: Option<NonZeroU32>) -> Self {
-        self.descriptor.level_count = level_count;
+        self.info.level_count = level_count;
         self
     }
 
     pub fn base_array_layer(mut self, base_array_layer: u32) -> Self {
-        self.descriptor.base_array_layer = base_array_layer;
+        self.info.base_array_layer = base_array_layer;
         self
     }
 
+    /// Layer count.
+    ///
+    /// If `Some`, base_array_layer + count must be less or equal to the underlying array count.
+    ///
+    /// If `None`, considered to include the rest of the array layers, but at least 1 in total.
     pub fn array_layer_count(mut self, array_layer_count: Option<NonZeroU32>) -> Self {
-        self.descriptor.array_layer_count = array_layer_count;
+        self.info.array_layer_count = array_layer_count;
         self
     }
 
@@ -525,9 +616,10 @@ impl<'a> ViewBuilder<'a> {
     }
 
     pub fn build(self) -> TextureView {
+        let descriptor = self.info.descriptor();
         TextureView {
-            handle: Arc::new(self.texture.inner().create_view(&self.descriptor)),
-            descriptor: self.descriptor,
+            handle: Arc::new(self.texture.inner().create_view(&descriptor)),
+            info: self.info,
             texture_id: self.texture.id(),
             texture_extent: self.texture.extent(),
         }
@@ -535,7 +627,7 @@ impl<'a> ViewBuilder<'a> {
 
     /// Consumes the texture view builder and returns the resulting `wgpu::TextureViewDescriptor`.
     pub fn into_descriptor(self) -> wgpu::TextureViewDescriptor<'static> {
-        self.into()
+        self.info.descriptor()
     }
 }
 
@@ -573,7 +665,7 @@ impl Clone for TextureView {
     fn clone(&self) -> Self {
         TextureView {
             handle: self.handle.clone(),
-            descriptor: self.descriptor.clone(),
+            info: self.info.clone(),
             texture_id: self.texture_id(),
             texture_extent: self.extent(),
         }
@@ -602,17 +694,23 @@ impl Deref for TextureView {
     }
 }
 
-impl Into<Arc<TextureHandle>> for Texture {
-    fn into(self) -> Arc<TextureHandle> {
-        self.handle
-    }
-}
-
 impl Default for Builder {
     fn default() -> Self {
         Self {
             descriptor: Self::DEFAULT_DESCRIPTOR,
         }
+    }
+}
+
+impl From<Texture> for Arc<TextureHandle> {
+    fn from(t: Texture) -> Self {
+        t.handle
+    }
+}
+
+impl From<TextureViewInfo> for wgpu::TextureViewDescriptor<'static> {
+    fn from(info: TextureViewInfo) -> Self {
+        view_info_to_view_descriptor(&info)
     }
 }
 
@@ -628,32 +726,18 @@ impl Into<wgpu::TextureDescriptor<'static>> for Builder {
     }
 }
 
-impl<'a> Into<wgpu::TextureViewDescriptor<'static>> for ViewBuilder<'a> {
-    fn into(self) -> wgpu::TextureViewDescriptor<'static> {
-        self.descriptor
+impl<'a> From<ViewBuilder<'a>> for TextureViewInfo {
+    fn from(builder: ViewBuilder<'a>) -> Self {
+        builder.info
     }
 }
 
 /// Create a texture ID by hashing the source texture ID along with the contents of the descriptor.
-fn texture_view_id(
-    texture_id: &TextureId,
-    desc: &wgpu::TextureViewDescriptor<'static>,
-) -> TextureViewId {
+fn texture_view_id(texture_id: &TextureId, view_info: &TextureViewInfo) -> TextureViewId {
     use std::hash::{Hash, Hasher};
     let mut s = std::collections::hash_map::DefaultHasher::new();
-
-    // Hash source texture ID.
     texture_id.hash(&mut s);
-
-    // Hash descriptor contents.
-    desc.format.hash(&mut s);
-    desc.dimension.hash(&mut s);
-    desc.aspect.hash(&mut s);
-    desc.base_mip_level.hash(&mut s);
-    desc.level_count.hash(&mut s);
-    desc.base_array_layer.hash(&mut s);
-    desc.array_layer_count.hash(&mut s);
-
+    view_info.hash(&mut s);
     TextureViewId(s.finish())
 }
 
@@ -699,4 +783,35 @@ pub fn descriptor_eq(a: &wgpu::TextureDescriptor, b: &wgpu::TextureDescriptor) -
         && a.dimension == b.dimension
         && a.format == b.format
         && a.usage == b.usage
+}
+
+/// Used to infer the `TextureAspect` for a `TextureView` from a specific `TextureFormat`.
+///
+/// Does the following:
+///
+/// - If the format is `Depth32Float` or `Depth24Plus`, `TextureAspect::DepthOnly` is assumed.
+/// - Otherwise, `TextureAspect::All` is assumed.
+///
+/// Please note that `wgpu::TextureAspect::StencilOnly` can never be inferred with this function.
+/// If you require using a `TextureView` as a stencil, consider explicitly specify the
+/// `TextureAspect` you require.
+pub fn infer_aspect_from_format(format: wgpu::TextureFormat) -> wgpu::TextureAspect {
+    use wgpu::TextureFormat::*;
+    match format {
+        Depth32Float | Depth24Plus => wgpu::TextureAspect::DepthOnly,
+        _ => wgpu::TextureAspect::All,
+    }
+}
+
+fn view_info_to_view_descriptor(info: &TextureViewInfo) -> wgpu::TextureViewDescriptor<'static> {
+    wgpu::TextureViewDescriptor {
+        label: Some(info.label),
+        format: Some(info.format),
+        dimension: Some(info.dimension),
+        aspect: info.aspect,
+        base_mip_level: info.base_mip_level,
+        level_count: info.level_count,
+        base_array_layer: info.base_array_layer,
+        array_layer_count: info.array_layer_count,
+    }
 }
