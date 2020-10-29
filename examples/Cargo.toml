@@ -17,6 +17,7 @@ edition = "2018"
 audrey = "0.2"
 futures = "0.3"
 hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
+hrtf = "0.2"
 nannou = { version ="0.15.0", path = "../nannou" }
 nannou_audio = { version ="0.15.0", path = "../nannou_audio" }
 nannou_isf = { version ="0.1.0", path = "../nannou_isf" }
@@ -30,6 +31,9 @@ hound = "3.4.0"
 ringbuf = "0.2.2"
 
 # Audio
+[[example]]
+name = "hrtf-noise"
+path = "audio/hrtf-noise.rs"
 [[example]]
 name = "simple_audio"
 path = "audio/simple_audio.rs"
