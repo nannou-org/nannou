@@ -12,8 +12,8 @@ edition = "2018"
 
 [dependencies]
 cpal = "0.12"
-failure = "0.1"
 dasp_sample = "0.11.0"
+thiserror = "1"
 
 [features]
 asio = ["cpal/asio"]

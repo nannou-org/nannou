@@ -1,47 +1,43 @@
 use crate::Device;
 use cpal::traits::StreamTrait;
-use dasp_sample::Sample;
-use failure::Fail;
 use std;
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::{mpsc, Arc, Mutex};
-
-/// Items related to output audio streams.
-pub mod output;
+use thiserror::Error;
 
 /// Items related to input audio streams.
 pub mod input;
-
+/// Items related to output audio streams.
+pub mod output;
 /// Items related to duplex (synchronised input/output) audio streams.
 ///
-/// *Progress is currently pending implementation of input audio streams in CPAL.*
+/// *Progress is currently pending implementation of duplex audio streams in CPAL.*
 pub mod duplex {}
 
-/// The default sample rate used for output, input and duplex streams if possible.
-pub const DEFAULT_SAMPLE_RATE: u32 = 44_100;
+/// Called by the audio host in the case that an error occurs on an audio stream thread.
+pub trait ErrorFn<M>: Fn(&mut M, cpal::StreamError) {}
 
 /// The type of function accepted for model updates.
 pub type UpdateFn<M> = dyn FnOnce(&mut M) + Send + 'static;
-
-pub(crate) type ProcessFn = dyn FnMut(cpal::StreamDataResult) + 'static + Send;
-pub(crate) type ProcessFnMsg = Box<ProcessFn>;
+/// The default stream error function type used when unspecified.
+pub type DefaultErrorFn<M> = fn(&mut M, err: cpal::StreamError);
 
 /// A clone-able handle around an audio stream.
 pub struct Stream<M> {
     /// A channel for sending model updates to the audio thread.
     update_tx: mpsc::Sender<Box<dyn FnMut(&mut M) + 'static + Send>>,
-    /// A channel used for sending through a new buffer processing callback to the event loop.
-    process_fn_tx: mpsc::Sender<ProcessFnMsg>,
     /// Data shared between each `Stream` handle to a single stream.
     shared: Arc<Shared<M>>,
     /// The stream config with which the stream was created.
-    cpal_stream_config: cpal::SupportedStreamConfig,
+    cpal_config: cpal::StreamConfig,
 }
 
 // Data shared between each `Stream` handle to a single stream.
 struct Shared<M> {
+    // The CPAL stream handle.
+    stream: cpal::Stream,
     // The user's audio model
     model: Arc<Mutex<Option<M>>>,
     // Whether or not the stream is currently paused.
@@ -51,27 +47,41 @@ struct Shared<M> {
 /// Stream building parameters that are common between input and output streams.
 pub struct Builder<M, S = f32> {
     pub(crate) host: Arc<cpal::Host>,
-    pub(crate) process_fn_tx: mpsc::Sender<ProcessFnMsg>,
     pub model: M,
     pub sample_rate: Option<u32>,
     pub channels: Option<usize>,
     pub frames_per_buffer: Option<usize>,
+    pub device_buffer_size: Option<cpal::BufferSize>,
     pub device: Option<Device>,
     pub(crate) sample_format: PhantomData<S>,
 }
 
 /// Errors that might occur when attempting to build a stream.
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 pub enum BuildError {
-    #[fail(display = "failed to get default device")]
+    #[error("failed to get default device")]
     DefaultDevice,
-    #[fail(display = "failed to enumerate available configs: {}", err)]
+    #[error("failed to enumerate available configs: {err}")]
     SupportedStreamConfigs {
         err: cpal::SupportedStreamConfigsError,
     },
-    #[fail(display = "failed to build stream: {}", err)]
+    #[error("failed to build stream: {err}")]
     BuildStream { err: cpal::BuildStreamError },
 }
+
+struct DesiredStreamConfig {
+    /// Sample format specified by the user via the `S` sample type.
+    sample_format: Option<cpal::SampleFormat>,
+    /// Channel count specified by the user.
+    channels: Option<usize>,
+    /// The user's if specified, otherwise is `DEFAULT_SAMPLE_RATE`.
+    sample_rate: Option<cpal::SampleRate>,
+    /// Desired device buffer size specified by the user.
+    device_buffer_size: Option<cpal::BufferSize>,
+}
+
+/// The default sample rate used for output, input and duplex streams if possible.
+pub const DEFAULT_SAMPLE_RATE: u32 = 44_100;
 
 impl<M> Stream<M> {
     /// Command the audio device to start processing this stream.
@@ -160,21 +170,21 @@ impl<M> Stream<M> {
     /// in CPAL. However, note that if the `sample_format` does not match, this just means that
     /// `nannou` is doing a conversion behind the scenes as the hardware itself does not support
     /// the target format.
-    pub fn cpal_stream_config(&self) -> &cpal::SupportedStreamConfig {
-        &self.cpal_stream_config
+    pub fn cpal_config(&self) -> &cpal::StreamConfig {
+        &self.cpal_config
     }
 }
 
 impl<M> Shared<M> {
     fn play(&self) -> Result<(), cpal::PlayStreamError> {
-        self.event_loop.play_stream(self.stream_id.clone())?;
+        self.stream.play()?;
         self.is_paused.store(false, atomic::Ordering::Relaxed);
         Ok(())
     }
 
     fn pause(&self) -> Result<(), cpal::PauseStreamError> {
+        self.stream.pause()?;
         self.is_paused.store(true, atomic::Ordering::Relaxed);
-        self.event_loop.pause_stream(self.stream_id.clone())?;
         Ok(())
     }
 
@@ -187,17 +197,17 @@ impl<M> Shared<M> {
     }
 }
 
+impl<M, F> ErrorFn<M> for F where F: Fn(&mut M, cpal::StreamError) {}
+
 impl<M> Clone for Stream<M> {
     fn clone(&self) -> Self {
         let update_tx = self.update_tx.clone();
-        let process_fn_tx = self.process_fn_tx.clone();
         let shared = self.shared.clone();
-        let cpal_stream_config = self.cpal_stream_config.clone();
+        let cpal_config = self.cpal_config.clone();
         Stream {
             update_tx,
-            process_fn_tx,
             shared,
-            cpal_stream_config,
+            cpal_config,
         }
     }
 }
@@ -207,7 +217,6 @@ impl<M> Drop for Shared<M> {
         if self.is_playing() {
             self.pause().ok();
         }
-        self.event_loop.destroy_stream(self.stream_id.clone());
     }
 }
 
@@ -247,120 +256,192 @@ fn cpal_sample_format<S: Any>() -> Option<cpal::SampleFormat> {
 // This function is used to determine whether or not a supported config yielded by CPAL matches
 // the requested config parameters specified by the user. If the supported config matches, a
 // compatible `SupportedStreamConfig` is returned.
-fn matching_supported_configs(
-    mut supported_stream_config_range: cpal::SupportedStreamConfigRange,
-    sample_format: Option<cpal::SampleFormat>,
-    channels: Option<usize>,
-    sample_rate: Option<cpal::SampleRate>,
-    buffer_size: Option<cpal::SupportedBufferSize>,
-) -> Option<cpal::SupportedStreamConfig> {
+fn matching_supported_config(
+    desired: &DesiredStreamConfig,
+    supported_stream_config_range: &cpal::SupportedStreamConfigRange,
+) -> Option<MatchingConfig> {
+    // Check for a matching buffer size.
+    if let Some(cpal::BufferSize::Fixed(size)) = desired.device_buffer_size {
+        let supported_size = supported_stream_config_range.buffer_size();
+        if let cpal::SupportedBufferSize::Range { min, max } = *supported_size {
+            if size > max || size < min {
+                return None;
+            }
+        }
+    }
+
     // Check for a matching sample format.
-    if let Some(sample_format) = sample_format {
-        if supported_stream_config_range.sample_format() != sample_format {
+    let supported_sample_format = supported_stream_config_range.sample_format();
+    if let Some(sample_format) = desired.sample_format {
+        if supported_sample_format != sample_format {
             return None;
         }
     }
+    let sample_format = desired.sample_format.unwrap_or(supported_sample_format);
+
     // Check for a matching number of channels.
-    //
-    // If there are more than enough channels, truncate the `SupportedFormat` to match.
-    if let Some(channels) = channels {
+    if let Some(channels) = desired.channels {
         let supported_channels = supported_stream_config_range.channels() as usize;
         if supported_channels < channels {
             return None;
         }
     }
+
     // Check the sample rate.
-    if let Some(sample_rate) = sample_rate {
+    if let Some(sample_rate) = desired.sample_rate {
         if supported_stream_config_range.min_sample_rate() > sample_rate
             || supported_stream_config_range.max_sample_rate() < sample_rate
         {
             return None;
         }
-        let config = supported_stream_config_range.with_sample_rate(sample_rate);
-        return Some(config);
+        let mut config = supported_stream_config_range
+            .clone()
+            .with_sample_rate(sample_rate)
+            .config();
+        config.buffer_size = desired
+            .device_buffer_size
+            .clone()
+            .unwrap_or(cpal::BufferSize::Default);
+        let matching = MatchingConfig {
+            config,
+            sample_format,
+        };
+        return Some(matching);
     }
 
-    // let config = cpal::SupportedStreamConfig {
-    //     channels: channels,
-    //     sample_rate: sample_rate,
-    //     buffer_size: buffer_size,
-    //     sample_format: sample_format,
-    // };
+    // If we got this far, the user didn't specify a sample rate.
+    let mut config = supported_stream_config_range
+        .clone()
+        .with_max_sample_rate()
+        .config();
+    config.buffer_size = desired
+        .device_buffer_size
+        .clone()
+        .unwrap_or(cpal::BufferSize::Default);
+    let matching = MatchingConfig {
+        config,
+        sample_format,
+    };
+    Some(matching)
+}
 
-    Some(supported_stream_config_range.with_max_sample_rate())
+fn desired_device_buffer_size_matches_default(
+    desired: Option<&cpal::BufferSize>,
+    supported: &cpal::SupportedBufferSize,
+) -> bool {
+    match desired {
+        None | Some(&cpal::BufferSize::Default) => true,
+        Some(&cpal::BufferSize::Fixed(size)) => match *supported {
+            cpal::SupportedBufferSize::Range { min, max } if size >= min && size <= max => true,
+            _ => false,
+        },
+    }
+}
+
+struct MatchingConfig {
+    sample_format: cpal::SampleFormat,
+    config: cpal::StreamConfig,
+}
+
+// Whether or not the desired stream config matches the default one.
+fn desired_config_matches_default(
+    desired: &DesiredStreamConfig,
+    default: &cpal::SupportedStreamConfig,
+) -> Option<MatchingConfig> {
+    if desired.sample_format == Some(default.sample_format())
+        && desired
+            .channels
+            .map(|ch| ch <= default.channels() as usize)
+            .unwrap_or(true)
+        && desired.sample_rate == Some(default.sample_rate())
+        && desired_device_buffer_size_matches_default(
+            desired.device_buffer_size.as_ref(),
+            default.buffer_size(),
+        )
+    {
+        let mut config = default.config();
+        config.buffer_size = desired
+            .device_buffer_size
+            .clone()
+            .unwrap_or(cpal::BufferSize::Default);
+        let sample_format = desired.sample_format.unwrap_or(default.sample_format());
+        let matching = MatchingConfig {
+            config,
+            sample_format,
+        };
+        Some(matching)
+    } else {
+        None
+    }
 }
 
 // Given some audio device find the supported stream config that best matches the given optional
 // config parameters (specified by the user).
 fn find_best_matching_config<F>(
     device: &cpal::Device,
-    mut sample_format: Option<cpal::SampleFormat>,
-    channels: Option<usize>,
-    mut sample_rate: Option<cpal::SampleRate>,
-    default_config: Option<cpal::SupportedStreamConfig>,
-    buffer_size: Option<cpal::SupportedBufferSize>,
+    mut desired: DesiredStreamConfig,
+    default: Option<cpal::SupportedStreamConfig>,
     supported_configs: F,
-) -> Result<Option<cpal::SupportedStreamConfig>, cpal::SupportedStreamConfigsError>
+) -> Result<Option<MatchingConfig>, cpal::SupportedStreamConfigsError>
 where
     F: Fn(
         &cpal::Device,
     ) -> Result<Vec<cpal::SupportedStreamConfigRange>, cpal::SupportedStreamConfigsError>,
 {
+    // In the case that the user has not specified a sample rate, we want to try specifying a
+    // reasonable default ourselves, otherwise CPAL can give back some extremely high frequency
+    // ones by default that are generally less practical.
+    let mut trying_default_sample_rate = false;
+    if desired.sample_rate.is_none() {
+        desired.sample_rate = Some(cpal::SampleRate(DEFAULT_SAMPLE_RATE));
+        trying_default_sample_rate = true;
+    }
+
     loop {
         {
             // First, see if the default config satisfies the request.
-            if let Some(ref config) = default_config {
-                if sample_format == Some(config.sample_format())
-                    && channels
-                        .map(|ch| ch <= config.channels() as usize)
-                        .unwrap_or(true)
-                    && sample_rate == Some(config.sample_rate())
-                    && buffer_size == Some(*config.buffer_size())
-                {
-                    return Ok(Some(config.clone()));
+            if let Some(ref default) = default {
+                if let Some(conf) = desired_config_matches_default(&desired, default) {
+                    return Ok(Some(conf));
                 }
             }
 
             // Otherwise search through all supported configs for compatible configs.
-            let stream_configs = supported_configs(device)?.into_iter().filter_map(|config| {
-                matching_supported_configs(
-                    config,
-                    sample_format,
-                    channels,
-                    sample_rate,
-                    buffer_size,
-                )
-            });
+            let stream_configs = supported_configs(device)?
+                .into_iter()
+                .filter_map(|config| matching_supported_config(&desired, &config));
 
             // Find the supported config with the most channels (this will always be the target
             // number of channels if some specific target number was specified as all other numbers
             // will have been filtered out already).
-            if let Some(config) = stream_configs.max_by_key(|config| config.channels()) {
-                return Ok(Some(config));
+            if let Some(matching) = stream_configs.max_by_key(|matching| matching.config.channels) {
+                return Ok(Some(matching));
             }
         }
 
         // If there are no matching configs with the target sample_format, drop the requirement
-        // and we'll do a conversion from the default config instead.
-        let default_sample_format = default_config.as_ref().map(|f| f.sample_format());
-        if sample_format.is_some() && sample_format != default_sample_format {
-            sample_format = default_sample_format;
-        // Otherwise if nannou's default target sample rate is set because the user didn't
-        // specify a sample rate, try and fall back to a supported sample rate in case this was
-        // the reason we could not find a supported format.
-        } else if sample_rate == Some(cpal::SampleRate(DEFAULT_SAMPLE_RATE)) {
-            let cpal_default_sample_rate =
-                default_config.as_ref().map(|config| config.sample_rate());
-            let nannou_default_sample_rate = Some(cpal::SampleRate(DEFAULT_SAMPLE_RATE));
-            sample_rate = if cpal_default_sample_rate != nannou_default_sample_rate {
-                cpal_default_sample_rate
-            } else {
-                None
-            };
-        } else {
-            return Ok(None);
+        // and we'll do a conversion to the desired sample rate from the default config in the
+        // stream callback ourselves.
+        let default_sample_format = default.as_ref().map(|f| f.sample_format());
+        if desired.sample_format.is_some() && desired.sample_format != default_sample_format {
+            desired.sample_format = default_sample_format;
+            continue;
         }
 
-        // TO DO probably need to also check against buffer size
+        // If we tried specifying our own default sample rate in the case that the user didn't
+        // specify one, remove it and try again.
+        if trying_default_sample_rate {
+            trying_default_sample_rate = false;
+            desired.sample_rate = None;
+            continue;
+        }
+
+        // Otherwise, there are no matches for the request.
+        return Ok(None);
     }
+}
+
+// The default error function used when unspecified.
+pub(crate) fn default_error_fn<M>(_: &mut M, err: cpal::StreamError) {
+    eprintln!("A `StreamError` occurred: {}", err);
 }

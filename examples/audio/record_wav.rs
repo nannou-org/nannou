@@ -87,21 +87,21 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
 // Get specification from default device format.
 fn get_spec(audio_host: &nannou_audio::Host) -> hound::WavSpec {
-    let default_input_format = audio_host
+    let default_input_config = audio_host
         .default_input_device()
         .unwrap()
-        .default_input_format()
+        .default_input_config()
         .unwrap();
 
-    let (bits_per_sample, sample_format) = match default_input_format.data_type {
+    let (bits_per_sample, sample_format) = match default_input_config.sample_format() {
         audio::cpal::SampleFormat::I16 => (16, hound::SampleFormat::Int),
         audio::cpal::SampleFormat::U16 => (16, hound::SampleFormat::Int),
         audio::cpal::SampleFormat::F32 => (32, hound::SampleFormat::Float),
     };
 
     hound::WavSpec {
-        channels: default_input_format.channels,
-        sample_rate: default_input_format.sample_rate.0,
+        channels: default_input_config.channels(),
+        sample_rate: default_input_config.sample_rate().0,
         bits_per_sample,
         sample_format,
     }

@@ -12,10 +12,9 @@
 //!   [**Requester**](./requester/struct.Requester.html) for buffering input and output streams that
 //!   may deliver buffers of inconsistent sizes into a stream of consistently sized buffers.
 
-use cpal::traits::{HostTrait, StreamTrait};
+use cpal::traits::HostTrait;
 use std::marker::PhantomData;
-use std::sync::{mpsc, Arc, Mutex};
-use std::thread;
+use std::sync::Arc;
 
 pub use self::buffer::Buffer;
 pub use self::device::{Device, Devices};
@@ -25,12 +24,11 @@ pub use self::stream::Stream;
 pub use cpal;
 #[doc(inline)]
 pub use cpal::{
-    BackendSpecificError, BuildStreamError, DefaultStreamConfigError, DeviceNameError,
-    DevicesError, PauseStreamError, PlayStreamError, StreamError, SupportedStreamConfigsError,
-};
-#[doc(inline)]
-pub use cpal::{
-    HostId, HostUnavailable, SupportedInputConfigs, SupportedOutputConfigs, SupportedStreamConfig,
+    BackendSpecificError, BufferSize, BuildStreamError, DefaultStreamConfigError, DeviceNameError,
+    DevicesError, HostId, HostUnavailable, InputCallbackInfo, InputStreamTimestamp,
+    OutputCallbackInfo, OutputStreamTimestamp, PauseStreamError, PlayStreamError, StreamError,
+    SupportedBufferSize, SupportedInputConfigs, SupportedOutputConfigs, SupportedStreamConfig,
+    SupportedStreamConfigsError,
 };
 pub use dasp_sample;
 
@@ -43,7 +41,6 @@ pub mod stream;
 /// The top-level audio API, for enumerating devices and spawning input/output streams.
 pub struct Host {
     host: Arc<cpal::Host>,
-    process_fn_tx: Mutex<Option<mpsc::Sender<stream::ProcessFnMsg>>>,
 }
 
 impl Host {
@@ -64,11 +61,7 @@ impl Host {
     /// Initialise the `Host` from an existing CPAL host.
     fn from_cpal_host(host: cpal::Host) -> Self {
         let host = Arc::new(host);
-        let process_fn_tx = Mutex::new(None);
-        Host {
-            host,
-            process_fn_tx,
-        }
+        Host { host }
     }
 
     /// Enumerate the available audio devices on the system.
@@ -115,7 +108,8 @@ impl Host {
     /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
     pub fn new_input_stream<M, S>(&self, model: M) -> stream::input::BuilderInit<M, S> {
         stream::input::Builder {
-            capture: Default::default(),
+            capture: stream::input::default_capture_fn,
+            error: stream::default_error_fn,
             builder: self.new_stream(model),
         }
     }
@@ -126,7 +120,8 @@ impl Host {
     /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
     pub fn new_output_stream<M, S>(&self, model: M) -> stream::output::BuilderInit<M, S> {
         stream::output::Builder {
-            render: Default::default(),
+            render: stream::output::default_render_fn,
+            error: stream::default_error_fn,
             builder: self.new_stream(model),
         }
     }
@@ -136,25 +131,13 @@ impl Host {
     // If this is the first time a stream has been created, this method will spawn the
     // `cpal::EventLoop::run` method on its own thread, ready to run built streams.
     fn new_stream<M, S>(&self, model: M) -> stream::Builder<M, S> {
-        let process_fn_tx = if self.process_fn_tx.lock().unwrap().is_none() {
-            let (tx, rx) = mpsc::channel();
-            thread::Builder::new()
-                .name("cpal::EventLoop::run thread".into())
-                .spawn(move || event_loop.run(move |id, data| loop_context.process(id, data)))
-                .expect("failed to spawn cpal::EventLoop::run thread");
-            *self.process_fn_tx.lock().unwrap() = Some(tx.clone());
-            tx
-        } else {
-            self.process_fn_tx.lock().unwrap().as_ref().unwrap().clone()
-        };
-
         stream::Builder {
             host: self.host.clone(),
-            process_fn_tx: process_fn_tx,
             model,
             sample_rate: None,
             channels: None,
             frames_per_buffer: None,
+            device_buffer_size: None,
             device: None,
             sample_format: PhantomData,
         }

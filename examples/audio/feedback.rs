@@ -35,8 +35,14 @@ fn model(app: &App) -> Model {
     let audio_host = audio::Host::new();
 
     // Create a ring buffer and split it into producer and consumer
-    let ring_buffer = RingBuffer::<f32>::new(1024 * 2); // Add some latency
-    let (prod, cons) = ring_buffer.split();
+    let latency_samples = 1024;
+    let ring_buffer = RingBuffer::<f32>::new(latency_samples * 2); // Add some latency
+    let (mut prod, cons) = ring_buffer.split();
+    for _ in 0..latency_samples {
+        // The ring buffer has twice as much space as necessary to add latency here,
+        // so this should never fail
+        prod.push(0.0).unwrap();
+    }
 
     // Create input model and input stream using that model
     let in_model = InputModel { producer: prod };
@@ -63,7 +69,7 @@ fn model(app: &App) -> Model {
 fn pass_in(model: &mut InputModel, buffer: &Buffer) {
     for frame in buffer.frames() {
         for sample in frame {
-            model.producer.push(*sample).unwrap();
+            model.producer.push(*sample).ok();
         }
     }
 }
