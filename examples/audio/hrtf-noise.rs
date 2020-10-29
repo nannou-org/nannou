@@ -26,18 +26,16 @@ struct Model {
 
 // HRTF requires a fixed sample rate and "block length" (i.e. buffer length in frames).
 const SAMPLE_RATE: u32 = 44_100;
-const BUFFER_LEN_FRAMES: usize = HRTF_BLOCK_LEN * HRTF_INTERPOLATION_STEPS;
+const BUFFER_LEN_FRAMES: usize = 64;
 
 // Taken from rg3d-sound.
 const HRTF_BLOCK_LEN: usize = 513;
-const HRTF_INTERPOLATION_STEPS: usize = 2;
+const HRTF_INTERPOLATION_STEPS: usize = 8;
+const HRTF_BUFFER_LEN: usize = HRTF_BLOCK_LEN * HRTF_INTERPOLATION_STEPS;
 
 // The radius in which we can hear the sound in points.
 const LISTENING_RADIUS: f32 = 300.0;
 const WINDOW_SIDE: u32 = (LISTENING_RADIUS * 2.0) as u32;
-
-type MonoBuffer = [f32; BUFFER_LEN_FRAMES];
-type StereoBuffer = [(f32, f32); BUFFER_LEN_FRAMES];
 
 struct Audio {
     rng: SmallRng,
@@ -49,8 +47,8 @@ struct Audio {
 
 // A set of buffers to re-use for HRTF processing.
 struct HrtfData {
-    source: Box<MonoBuffer>,
-    output: Box<StereoBuffer>,
+    source: Vec<f32>,
+    output: Box<[(f32, f32); HRTF_BUFFER_LEN]>,
     prev_left_samples: Vec<f32>,
     prev_right_samples: Vec<f32>,
 }
@@ -58,10 +56,10 @@ struct HrtfData {
 impl HrtfData {
     fn new() -> Self {
         HrtfData {
-            source: Box::new([0.0; BUFFER_LEN_FRAMES]),
-            output: Box::new([(0.0, 0.0); BUFFER_LEN_FRAMES]),
-            prev_left_samples: vec![0.0; HRTF_BLOCK_LEN],
-            prev_right_samples: vec![0.0; HRTF_BLOCK_LEN],
+            source: vec![0.0; HRTF_BUFFER_LEN],
+            output: Box::new([(0.0, 0.0); HRTF_BUFFER_LEN]),
+            prev_left_samples: vec![0.0; HRTF_BUFFER_LEN],
+            prev_right_samples: vec![0.0; HRTF_BUFFER_LEN],
         }
     }
 }
@@ -121,8 +119,10 @@ fn audio(audio: &mut Audio, output: &mut Buffer) {
     }
 
     // Fill the source buffer with new noise.
-    for sample in audio.hrtf_data.source.iter_mut() {
-        *sample = audio.rng.gen::<f32>() * 2.0 - 1.0;
+    audio.hrtf_data.source.drain(..BUFFER_LEN_FRAMES);
+    for _ in 0..BUFFER_LEN_FRAMES {
+        let sample = audio.rng.gen::<f32>() * 2.0 - 1.0;
+        audio.hrtf_data.source.push(sample);
     }
 
     // Calculate the distance based gain.
@@ -146,7 +146,8 @@ fn audio(audio: &mut Audio, output: &mut Buffer) {
     audio.prev_source_position = audio.source_position;
 
     // Write the result to the output buffer.
-    for (out_f, &(l, r)) in output.frames_mut().zip(audio.hrtf_data.output.iter()) {
+    let hrtf_out = &audio.hrtf_data.output[HRTF_BUFFER_LEN - BUFFER_LEN_FRAMES..];
+    for (out_f, &(l, r)) in output.frames_mut().zip(hrtf_out) {
         // Try not to scare the bajeezus out of anyone running the example.
         let volume = 0.1;
         out_f[0] = l * volume;
