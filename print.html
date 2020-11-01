@@ -2588,7 +2588,16 @@ published.</p>
 back to the origins.</p>
 <hr />
 <h1><a class="header" href="#unreleased" id="unreleased">Unreleased</a></h1>
-<p><em>There are no unreleased changes yet.</em></p>
+<h3><a class="header" href="#nannou_audio" id="nannou_audio">nannou_audio</a></h3>
+<ul>
+<li>Update to CPAL 0.12 and from <code>sample</code> to <code>dasp_sample</code>.</li>
+<li>Add the ability to specify a device buffer size.</li>
+<li>Allow fallback to device default sample rate.</li>
+<li>Add builder method for specifying a stream error callback. This replaces the
+<code>render_result/capture_result</code> functions.</li>
+<li>Switch from <code>failure</code> to <code>thiserror</code> for error handling.</li>
+<li>Rename <code>format</code> to <code>config</code> throughout to match cpal 0.12.</li>
+</ul>
 <hr />
 <h1><a class="header" href="#version-0150-2020-10-04" id="version-0150-2020-10-04">Version 0.15.0 (2020-10-04)</a></h1>
 <p><strong>Update to WGPU 0.5</strong></p>
