@@ -1,5 +1,5 @@
 use crate::{stream, Buffer};
-use sample::Sample;
+use dasp_sample::Sample;
 use std;
 
 /// A `sound::Requester` for converting backend audio requests into requests for buffers of a fixed
@@ -26,7 +26,7 @@ where
         assert!(num_frames > 0);
         let num_samples = num_frames + num_channels;
         Requester {
-            samples: vec![S::equilibrium(); num_samples],
+            samples: vec![S::EQUILIBRIUM; num_samples],
             num_frames: num_frames,
             pending_range: None,
         }
@@ -36,17 +36,16 @@ where
     ///
     /// `Panic!`s if `sample_rate` is not greater than `0` or if the output buffer's length is not
     /// a multiple of the given number of channels.
-    pub fn fill_buffer<M, FA, FB>(
+    pub fn fill_buffer<M, FR>(
         &mut self,
         mut model: M,
-        render: &stream::output::Render<FA, FB>,
+        render: &FR,
         output: &mut [S],
         channels: usize,
         sample_rate: u32,
     ) -> M
     where
-        FA: stream::output::RenderFn<M, S>,
-        FB: stream::output::RenderResultFn<M, S>,
+        FR: stream::output::RenderFn<M, S>,
     {
         let Requester {
             ref mut samples,
@@ -55,7 +54,7 @@ where
         } = *self;
 
         // Ensure that the buffer length makes sense given the number of channels.
-        assert!(output.len() % channels == 0);
+        assert_eq!(output.len() % channels, 0);
 
         // Determine the number of samples in the buffer.
         let num_samples = num_frames * channels;
@@ -68,7 +67,7 @@ where
         // Fill the given buffer with silence.
         fn silence<S: Sample>(buffer: &mut [S]) {
             for sample in buffer {
-                *sample = S::equilibrium();
+                *sample = S::EQUILIBRIUM;
             }
         }
 
@@ -109,7 +108,7 @@ where
         }
 
         // Ensure that our buffer has `num_frames` `frames`.
-        samples.resize(num_samples, S::equilibrium());
+        samples.resize(num_samples, S::EQUILIBRIUM);
 
         // Loop until the given `output` is filled.
         loop {
@@ -129,7 +128,7 @@ where
                 channels,
                 sample_rate,
             };
-            render.render(&mut model, Ok(&mut buffer));
+            render(&mut model, &mut buffer);
             let mut new_samples = buffer.interleaved_samples.into_vec();
             std::mem::swap(samples, &mut new_samples);
 
