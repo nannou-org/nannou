@@ -69,6 +69,7 @@ pub enum BuildError {
     BuildStream { err: cpal::BuildStreamError },
 }
 
+#[derive(Debug)]
 struct DesiredStreamConfig {
     /// Sample format specified by the user via the `S` sample type.
     sample_format: Option<cpal::SampleFormat>,
@@ -302,6 +303,7 @@ fn matching_supported_config(
             .device_buffer_size
             .clone()
             .unwrap_or(cpal::BufferSize::Default);
+        config.channels = desired.channels.unwrap_or(config.channels as usize) as u16;
         let matching = MatchingConfig {
             config,
             sample_format,
@@ -338,6 +340,7 @@ fn desired_device_buffer_size_matches_default(
     }
 }
 
+#[derive(Debug)]
 struct MatchingConfig {
     sample_format: cpal::SampleFormat,
     config: cpal::StreamConfig,
@@ -411,9 +414,8 @@ where
                 .into_iter()
                 .filter_map(|config| matching_supported_config(&desired, &config));
 
-            // Find the supported config with the most channels (this will always be the target
-            // number of channels if some specific target number was specified as all other numbers
-            // will have been filtered out already).
+            // Find the best supported config. In the case that no desired channel count was
+            // specified, this will be the maximum number of channels available.
             if let Some(matching) = stream_configs.max_by_key(|matching| matching.config.channels) {
                 return Ok(Some(matching));
             }
