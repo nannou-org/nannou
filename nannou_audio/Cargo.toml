@@ -11,7 +11,7 @@ homepage = "https://nannou.cc"
 edition = "2018"
 
 [dependencies]
-cpal = "0.12"
+cpal = "0.13.1"
 dasp_sample = "0.11.0"
 thiserror = "1"
 
