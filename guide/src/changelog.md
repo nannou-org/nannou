@@ -9,13 +9,14 @@ back to the origins.
 
 ### nannou_audio
 
-- Update to CPAL 0.12 and from `sample` to `dasp_sample`.
+- Update to CPAL 0.13.1 and from `sample` to `dasp_sample`.
 - Add the ability to specify a device buffer size.
 - Allow fallback to device default sample rate.
 - Add builder method for specifying a stream error callback. This replaces the
   `render_result/capture_result` functions.
 - Switch from `failure` to `thiserror` for error handling.
 - Rename `format` to `config` throughout to match cpal 0.12.
+- Fix bug where stream channel count could be greater than specified.
 
 ---
 
