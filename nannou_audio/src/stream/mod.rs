@@ -320,6 +320,7 @@ fn matching_supported_config(
         .device_buffer_size
         .clone()
         .unwrap_or(cpal::BufferSize::Default);
+    config.channels = desired.channels.unwrap_or(config.channels as usize) as u16;
     let matching = MatchingConfig {
         config,
         sample_format,
