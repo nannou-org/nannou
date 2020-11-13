@@ -108,7 +108,6 @@ fn model(app: &App) -> Model {
 }
 
 // A function that renders the given `Audio` to the given `Buffer`.
-// In this case we play a simple sine wave at the audio's current frequency in `hz`.
 fn audio(audio: &mut Audio, output: &mut Buffer) {
     // Silence the output buffers.
     for sample in output.iter_mut() {
