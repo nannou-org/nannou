@@ -15,6 +15,7 @@ edition = "2018"
 
 [dev-dependencies]
 audrey = "0.2"
+dasp = { version = "0.11", features = ["signal"] }
 futures = "0.3"
 hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
 hrtf = "0.2"
@@ -29,23 +30,27 @@ time_calc = { version= "0.13", features = ["serde"] }
 walkdir = "2"
 hound = "3.4.0"
 ringbuf = "0.2.2"
+musical_keyboard = "0.6.0"
 
 # Audio
 [[example]]
+name = "feedback"
+path = "audio/feedback.rs"
+[[example]]
+name = "fm_synth"
+path = "audio/fm_synth/fm_synth.rs"
+[[example]]
 name = "hrtf-noise"
 path = "audio/hrtf-noise.rs"
+[[example]]
+name = "record_wav"
+path = "audio/record_wav.rs"
 [[example]]
 name = "simple_audio"
 path = "audio/simple_audio.rs"
 [[example]]
 name = "simple_audio_file"
 path = "audio/simple_audio_file.rs"
-[[example]]
-name = "record_wav"
-path = "audio/record_wav.rs"
-[[example]]
-name = "feedback"
-path = "audio/feedback.rs"
 
 # Communication
 [[example]]
