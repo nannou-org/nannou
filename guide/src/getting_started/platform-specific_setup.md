@@ -118,6 +118,11 @@ Ensure you have the following system packages installed:
 
   For Debian with NVIDIA graphic cards:
   ```bash
+  sudo apt-get install vulkan-tools
+  ```
+
+  Or, on older versions (pre-Buster i.e., < 10):
+  ```bash
   sudo apt-get install vulkan-utils
   ```
 
