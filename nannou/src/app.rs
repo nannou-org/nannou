@@ -24,6 +24,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
+use std::time;
 use std::time::{Duration, Instant};
 use winit;
 use winit::event_loop::ControlFlow;
@@ -1062,6 +1063,7 @@ fn run_loop<M, E>(
                         .expect("missing swap chain");
                     let nth_frame = window.frame_count;
                     window.frame_count += 1;
+                    window.tracked_state.last_redraw_requested = Instant::now();
                     (swap_chain, nth_frame)
                 };
 
@@ -1284,7 +1286,13 @@ fn apply_update<M, E>(
     // Request redraw from windows.
     let windows = app.windows.borrow();
     for window in windows.values() {
-        window.window.request_redraw();
+        let now = Instant::now();
+        let since_last_render_request =
+            now.duration_since(window.tracked_state.last_redraw_requested);
+        let lower_bound = time::Duration::from_millis(4);
+        if since_last_render_request > lower_bound {
+            window.window.request_redraw();
+        }
     }
 }
 

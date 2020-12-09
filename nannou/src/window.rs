@@ -15,6 +15,7 @@ use std::any::Any;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
+use std::time::Instant;
 use std::{env, fmt};
 use winit::dpi::LogicalSize;
 
@@ -252,6 +253,8 @@ pub(crate) struct TrackedState {
     pub(crate) scale_factor: f64,
     // Updated on `Resized`.
     pub(crate) physical_size: winit::dpi::PhysicalSize<u32>,
+    // Updated on `RedrawRequested`.
+    pub(crate) last_redraw_requested: Instant,
 }
 
 /// A swap_chain and its images associated with a single window.
@@ -846,6 +849,7 @@ impl<'app> Builder<'app> {
         let tracked_state = TrackedState {
             scale_factor: window.scale_factor(),
             physical_size: win_physical_size,
+            last_redraw_requested: Instant::now(),
         };
 
         let window = Window {
