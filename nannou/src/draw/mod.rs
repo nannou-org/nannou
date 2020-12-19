@@ -270,19 +270,19 @@ where
     /// Produce a new **Draw** instance where the contents are scaled by the given amount along the
     /// x axis
     pub fn scale_x(&self, s: S) -> Self {
-        self.scale_axes(geom::vec3(s, S::zero(), S::zero()))
+        self.scale_axes(geom::vec3(s, S::one(), S::one()))
     }
 
     /// Produce a new **Draw** instance where the contents are scaled by the given amount along the
     /// y axis
     pub fn scale_y(&self, s: S) -> Self {
-        self.scale_axes(geom::vec3(S::zero(), s, S::zero()))
+        self.scale_axes(geom::vec3(S::one(), s, S::one()))
     }
 
     /// Produce a new **Draw** instance where the contents are scaled by the given amount along the
     /// z axis
     pub fn scale_z(&self, s: S) -> Self {
-        self.scale_axes(geom::vec3(S::zero(), S::zero(), s))
+        self.scale_axes(geom::vec3(S::one(), S::one(), s))
     }
 
     /// The given vector is interpreted as a Euler angle in radians and a transform is applied
