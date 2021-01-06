@@ -21,10 +21,10 @@ To use OSC in nannou, it is necessary to add the `nannou_osc` crate as a depende
 Open up your `Cargo.toml` file at the root of your nannou project and add the following line under the `[dependencies]` tag:
 
 ```toml
-nannou_osc = "0.1.0"
+nannou_osc = "0.15.0"
 ```
 
-The value in the quotes is the version of the OSC package. At the time of writing this, `"0.1.0"` is the latest version.
+The value in the quotes is the version of the OSC package. At the time of writing this, `"0.15.0"` is the latest version.
 
 To get the latest version of the osc library, execute `cargo search nannou_osc` on the command line and read the resulting version from there.
 
