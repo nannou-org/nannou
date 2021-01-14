@@ -89,7 +89,6 @@ fn model(app: &App) -> Model {
             .expect("tied to load texture array with an empty image buffer sequence")
     };
     let layer = 0;
-    // We need to call `.view().as_texture_array()` to convert the 3d texture to a 2d texture array view.
     let texture_view = texture_array.view().layer(layer).build();
 
     // Create the sampler for sampling from the source texture.
