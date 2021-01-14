@@ -18,13 +18,14 @@ use crate::ui;
 use crate::wgpu;
 use crate::window::{self, Window};
 use find_folder;
+use instant::Instant;
 use std;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use winit;
 use winit::event_loop::ControlFlow;
 
@@ -1210,7 +1211,7 @@ fn run_loop<M, E>(
                 // Trigger some extra updates for conrod GUIs to finish "animating". The number of
                 // updates used to be configurable, but I don't think there's any use besides GUI.
                 if loop_state.updates_since_event < LoopMode::UPDATES_PER_WAIT_EVENT as usize {
-                    let ten_ms = std::time::Instant::now() + std::time::Duration::from_millis(10);
+                    let ten_ms = Instant::now() + Duration::from_millis(10);
                     ControlFlow::WaitUntil(ten_ms)
                 } else {
                     ControlFlow::Wait

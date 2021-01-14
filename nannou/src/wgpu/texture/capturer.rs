@@ -83,7 +83,7 @@ impl ThreadPool {
         let mut interval_us = 128;
         while self.active_futures() >= self.workers() {
             if let Some(timeout) = self.timeout {
-                let start = start.get_or_insert_with(std::time::Instant::now);
+                let start = start.get_or_insert_with(instant::Instant::now);
                 if start.elapsed() > timeout {
                     return Err(AwaitWorkerTimeout(future));
                 }
@@ -120,7 +120,7 @@ impl ThreadPool {
         let mut interval_us = 128;
         while self.active_futures() > 0 {
             if let Some(timeout) = self.timeout {
-                let start = start.get_or_insert_with(std::time::Instant::now);
+                let start = start.get_or_insert_with(instant::Instant::now);
                 if start.elapsed() > timeout {
                     return Err(AwaitWorkerTimeout(()));
                 }
