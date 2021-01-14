@@ -1,6 +1,6 @@
 [package]
 name = "nannou_laser"
-version ="0.14.3"
+version ="0.15.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A cross-platform laser DAC detection and streaming API."
 edition = "2018"

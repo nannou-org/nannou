@@ -12,12 +12,11 @@ want to add to your project!
 
 ## Rust Basics
 
-Tutorials for learning the basics of Rust with nannou.
+Tutorials for learning the basics of Rust with nannou. 
 
-- Rust variables
-- Rust conditions
-- Rust loops
-- Rust functions
+- [Rust variables](https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html)
+- [Rust control flows](https://doc.rust-lang.org/book/ch03-05-control-flow.html)
+- [Rust functions](https://doc.rust-lang.org/book/ch03-03-how-functions-work.html)
 
 ## Nannou Basics
 
@@ -35,7 +34,7 @@ Working with Nannou's `Draw` API - a simple approach of coding graphics.
 
 - [Drawing 2D shapes](/tutorials/draw/drawing-2d-shapes.md)
 - [Animating a circle](/tutorials/draw/animating-a-circle.md)
-- Drawing images
+- [Drawing images](/tutorials/draw/drawing-images.md)
 - Drawing 3D shapes
 - Drawing meshes
 

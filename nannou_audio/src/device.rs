@@ -1,4 +1,6 @@
-use crate::{DefaultFormatError, DeviceNameError, Format, SupportedFormatsError};
+use crate::{
+    DefaultStreamConfigError, DeviceNameError, SupportedStreamConfig, SupportedStreamConfigsError,
+};
 use cpal::traits::DeviceTrait;
 use std::ops::Deref;
 
@@ -12,11 +14,11 @@ pub struct Devices {
     pub(crate) devices: cpal::Devices,
 }
 
-/// An iterator yielding formats that are supported by the backend.
-pub type SupportedInputFormats = cpal::SupportedInputFormats;
+/// An iterator yielding configs that are supported by the backend.
+pub type SupportedInputConfigs = cpal::SupportedInputConfigs;
 
-/// An iterator yielding formats that are supported by the backend.
-pub type SupportedOutputFormats = cpal::SupportedOutputFormats;
+/// An iterator yielding configs that are supported by the backend.
+pub type SupportedOutputConfigs = cpal::SupportedOutputConfigs;
 
 impl Device {
     /// The unique name associated with this device.
@@ -27,43 +29,45 @@ impl Device {
     /// An iterator yielding formats that are supported by the backend.
     ///
     /// Can return an error if the device is no longer valid (e.g. it has been disconnected).
-    pub fn supported_input_formats(&self) -> Result<SupportedInputFormats, SupportedFormatsError> {
-        self.device.supported_input_formats()
+    pub fn supported_input_configs(
+        &self,
+    ) -> Result<SupportedInputConfigs, SupportedStreamConfigsError> {
+        self.device.supported_input_configs()
     }
 
-    /// An iterator yielding formats that are supported by the backend.
+    /// An iterator yielding configs that are supported by the backend.
     ///
     /// Can return an error if the device is no longer valid (e.g. it has been disconnected).
-    pub fn supported_output_formats(
+    pub fn supported_output_configs(
         &self,
-    ) -> Result<SupportedOutputFormats, SupportedFormatsError> {
-        self.device.supported_output_formats()
+    ) -> Result<SupportedOutputConfigs, SupportedStreamConfigsError> {
+        self.device.supported_output_configs()
     }
 
-    /// The default format used for input streams.
-    pub fn default_input_format(&self) -> Result<Format, DefaultFormatError> {
-        self.device.default_input_format()
+    /// The default config used for input streams.
+    pub fn default_input_config(&self) -> Result<SupportedStreamConfig, DefaultStreamConfigError> {
+        self.device.default_input_config()
     }
 
-    /// The default format used for output streams.
-    pub fn default_output_format(&self) -> Result<Format, DefaultFormatError> {
-        self.device.default_output_format()
+    /// The default config used for output streams.
+    pub fn default_output_config(&self) -> Result<SupportedStreamConfig, DefaultStreamConfigError> {
+        self.device.default_output_config()
     }
 
     /// The maximum number of output channels of any format supported by this device.
     pub fn max_supported_output_channels(&self) -> usize {
-        self.supported_output_formats()
+        self.supported_output_configs()
             .expect("failed to get supported output audio stream formats")
-            .map(|fmt| fmt.channels as usize)
+            .map(|fmt| fmt.channels() as usize)
             .max()
             .unwrap_or(0)
     }
 
     /// The maximum number of input channels of any format supported by this device.
     pub fn max_supported_input_channels(&self) -> usize {
-        self.supported_input_formats()
+        self.supported_input_configs()
             .expect("failed to get supported input audio stream formats")
-            .map(|fmt| fmt.channels as usize)
+            .map(|fmt| fmt.channels() as usize)
             .max()
             .unwrap_or(0)
     }

@@ -54,8 +54,7 @@ need:
     lighting and effects.
   - [x] [Serial](https://crates.io/crates/serial) - commonly used for
     interfacing with LEDs and other hardware.
-  - [x] [MIDI](https://crates.io/crates/midir) - Musical Instrument Digital
-    Interface.
+  - [ ] MIDI - No friendly nannou API is provided yet, but cross-platform MIDI I/O is possible via [midir](https://crates.io/crates/midir).
   - [x] [UDP](https://doc.rust-lang.org/std/net/struct.UdpSocket.html) via
     std.
   - [x] TCP

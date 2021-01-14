@@ -17,23 +17,35 @@ edition = "2018"
 audrey = "0.2"
 futures = "0.3"
 hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
-nannou = { version ="0.14.1", path = "../nannou" }
-nannou_audio = { version ="0.14.0", path = "../nannou_audio" }
+hrtf = "0.2"
+nannou = { version ="0.15.0", path = "../nannou" }
+nannou_audio = { version ="0.15.0", path = "../nannou_audio" }
 nannou_isf = { version ="0.1.0", path = "../nannou_isf" }
-nannou_laser = { version ="0.14.1", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
-nannou_osc = { version ="0.14.0", path = "../nannou_osc" }
-nannou_timeline = { version ="0.14.0", features = ["serde1"], path =  "../nannou_timeline" }
+nannou_laser = { version ="0.15.0", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
+nannou_osc = { version ="0.15.0", path = "../nannou_osc" }
+nannou_timeline = { version ="0.15.0", features = ["serde1"], path =  "../nannou_timeline" }
 pitch_calc = { version = "0.12", features = ["serde"] }
 time_calc = { version= "0.13", features = ["serde"] }
 walkdir = "2"
+hound = "3.4.0"
+ringbuf = "0.2.2"
 
 # Audio
+[[example]]
+name = "hrtf-noise"
+path = "audio/hrtf-noise.rs"
 [[example]]
 name = "simple_audio"
 path = "audio/simple_audio.rs"
 [[example]]
 name = "simple_audio_file"
 path = "audio/simple_audio_file.rs"
+[[example]]
+name = "record_wav"
+path = "audio/record_wav.rs"
+[[example]]
+name = "feedback"
+path = "audio/feedback.rs"
 
 # Communication
 [[example]]

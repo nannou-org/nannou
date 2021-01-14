@@ -1,5 +1,5 @@
 use crate::{stream, Buffer};
-use sample::Sample;
+use dasp_sample::Sample;
 use std;
 
 /// A `Receiver` for converting audio delivered by the backend at varying buffer sizes into buffers
@@ -40,17 +40,16 @@ where
     /// - `sample_rate` is not greater than `0`.
     /// - The number of `channels` is different to that with which the receiver was initialised.
     /// - The final input buffer frame does not contain a sample for every channel.
-    pub fn read_buffer<M, FA, FB>(
+    pub fn read_buffer<M, FC>(
         &mut self,
         mut model: M,
-        capture: &stream::input::Capture<FA, FB>,
+        capture: &FC,
         input: &[S],
         channels: usize,
         sample_rate: u32,
     ) -> M
     where
-        FA: stream::input::CaptureFn<M, S>,
-        FB: stream::input::CaptureResultFn<M, S>,
+        FC: stream::input::CaptureFn<M, S>,
     {
         let Receiver {
             ref mut samples,
@@ -93,7 +92,7 @@ where
                 channels,
                 sample_rate,
             };
-            capture.capture(&mut model, Ok(&buffer));
+            capture(&mut model, &buffer);
             std::mem::swap(samples, &mut buffer.interleaved_samples.into_vec());
             samples.clear();
         }
