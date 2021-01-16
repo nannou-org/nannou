@@ -524,7 +524,7 @@ pub fn encode_render_pass(
 }
 
 mod conrod_winit_conv {
-    conrod_winit::v021_conversion_fns!();
+    conrod_winit::v023_conversion_fns!();
 }
 
 /// Convert the given window event to a UI Input.

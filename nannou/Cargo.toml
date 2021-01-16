@@ -36,4 +36,4 @@ serde_json = "1"
 toml = "0.5"
 walkdir = "2"
 wgpu_upstream = { version = "0.6.2", package = "wgpu" }
-winit = "0.22"
+winit = "0.24"

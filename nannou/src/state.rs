@@ -261,11 +261,11 @@ pub mod mouse {
 
     fn idx_to_button(i: usize) -> Button {
         match i {
-            n @ 0..=5 => Button::Other(n as u8),
+            n @ 0..=5 => Button::Other(n as u16),
             6 => Button::Left,
             7 => Button::Right,
             8 => Button::Middle,
-            _ => Button::Other(std::u8::MAX),
+            _ => Button::Other(std::u16::MAX),
         }
     }
 

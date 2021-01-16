@@ -717,18 +717,22 @@ impl<'app> Builder<'app> {
                     .window
                     .fullscreen
                     .as_ref()
-                    .map(|fullscreen| match fullscreen {
+                    .and_then(|fullscreen| match fullscreen {
                         Fullscreen::Exclusive(video_mode) => {
                             let monitor = video_mode.monitor();
-                            video_mode
+                            Some(
+                                video_mode
+                                    .size()
+                                    .to_logical::<f32>(monitor.scale_factor())
+                                    .into(),
+                            )
+                        }
+                        Fullscreen::Borderless(monitor) => monitor.as_ref().map(|monitor| {
+                            monitor
                                 .size()
                                 .to_logical::<f32>(monitor.scale_factor())
                                 .into()
-                        }
-                        Fullscreen::Borderless(monitor) => monitor
-                            .size()
-                            .to_logical::<f32>(monitor.scale_factor())
-                            .into(),
+                        }),
                     })
             })
             .unwrap_or_else(|| {
@@ -1297,8 +1301,9 @@ impl Window {
         self.window.set_cursor_visible(visible)
     }
 
-    /// The current monitor that the window is on or the primary monitor if nothing matches.
-    pub fn current_monitor(&self) -> winit::monitor::MonitorHandle {
+    /// The current monitor that the window is, on or the primary monitor if nothing matches.
+    /// If there's neither a current nor a primary monitor, returns none.
+    pub fn current_monitor(&self) -> Option<winit::monitor::MonitorHandle> {
         self.window.current_monitor()
     }
 

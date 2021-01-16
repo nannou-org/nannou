@@ -664,7 +664,9 @@ impl App {
     }
 
     /// Returns the primary monitor of the system.
-    pub fn primary_monitor(&self) -> winit::monitor::MonitorHandle {
+    /// May return None if none can be detected. For example, this can happen when running on Linux
+    /// with Wayland.
+    pub fn primary_monitor(&self) -> Option<winit::monitor::MonitorHandle> {
         match self.event_loop_window_target {
             Some(EventLoopWindowTarget::Owned(ref event_loop)) => event_loop.primary_monitor(),
             _ => {
