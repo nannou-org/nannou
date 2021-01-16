@@ -69,11 +69,12 @@ pub use wgpu_upstream::{
     RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, Sampler,
     SamplerDescriptor, ShaderLocation, ShaderModule, ShaderModuleSource, ShaderStage,
     StencilOperation, StencilStateDescriptor, StencilStateFaceDescriptor, Surface, SwapChain,
-    SwapChainDescriptor, Texture as TextureHandle, TextureAspect, TextureComponentType,
-    TextureCopyView, TextureDataLayout, TextureDescriptor, TextureDimension, TextureFormat,
-    TextureUsage, TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension,
-    VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat, VertexStateDescriptor,
-    BIND_BUFFER_ALIGNMENT, COPY_BUFFER_ALIGNMENT, COPY_BYTES_PER_ROW_ALIGNMENT,
+    SwapChainDescriptor, SwapChainError, Texture as TextureHandle, TextureAspect,
+    TextureComponentType, TextureCopyView, TextureDataLayout, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureUsage, TextureView as TextureViewHandle, TextureViewDescriptor,
+    TextureViewDimension, VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat,
+    VertexStateDescriptor, BIND_BUFFER_ALIGNMENT, COPY_BUFFER_ALIGNMENT,
+    COPY_BYTES_PER_ROW_ALIGNMENT,
 };
 
 pub fn shader_from_spirv_bytes(

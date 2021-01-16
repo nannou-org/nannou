@@ -1107,85 +1107,110 @@ fn run_loop<M, E>(
                 };
 
                 if let Some(model) = model.as_ref() {
-                    let swap_chain_output = swap_chain
-                        .get_current_frame()
-                        .expect("failed to acquire next swapchain texture");
-                    let swap_chain_texture = &swap_chain_output.output.view;
+                    let swap_chain_output = swap_chain.get_current_frame();
+                    if let Err(e) = swap_chain_output {
+                        if let wgpu::SwapChainError::Outdated = e {
+                            // Sometimes redraws get delivered before resizes on x11 for unclear reasons.
+                            // It goes all the way down to the API: if you ask x11 about the window size
+                            // at this time, it'll tell you that it hasn't changed. So... just don't draw
+                            // this frame. The resize'll show up in a bit and then we can get on with our
+                            // lives.
 
-                    // Borrow the window now that we don't need it mutably until setting the render
-                    // data back.
-                    let windows = app.windows.borrow();
-                    let window = windows
-                        .get(&window_id)
-                        .expect("failed to find window for redraw request");
-                    let frame_data = &window.frame_data;
+                            // If you turn on debug logging this does occasionally cause some vulkan
+                            // validation errors... that's not great.
+                            // TODO find a better long-term fix.
 
-                    // Construct and emit a frame via `view` for receiving the user's graphics commands.
-                    let sf = window.tracked_state.scale_factor;
-                    let (w, h) = window
-                        .tracked_state
-                        .physical_size
-                        .to_logical::<f32>(sf)
-                        .into();
-                    let window_rect = geom::Rect::from_w_h(w, h);
-                    let raw_frame = RawFrame::new_empty(
-                        window.swap_chain_device_queue_pair().clone(),
-                        window_id,
-                        nth_frame,
-                        swap_chain_texture,
-                        window.swap_chain.descriptor.format,
-                        window_rect,
-                    );
-
-                    // If the user specified a view function specifically for this window, use it.
-                    // Otherwise, use the fallback, default view passed to the app if there was one.
-                    let window_view = window.user_functions.view.clone();
-
-                    match window_view {
-                        Some(window::View::Sketch(view)) => {
-                            let data = frame_data.as_ref().expect("missing `frame_data`");
-                            let frame = Frame::new_empty(raw_frame, &data.render, &data.capture);
-                            view(&app, frame);
-                        }
-                        Some(window::View::WithModel(view)) => {
-                            let data = frame_data.as_ref().expect("missing `frame_data`");
-                            let frame = Frame::new_empty(raw_frame, &data.render, &data.capture);
-                            let view = view
-                                .to_fn_ptr::<M>()
-                                .expect("unexpected model argument given to window view function");
-                            (*view)(&app, &model, frame);
-                        }
-                        Some(window::View::WithModelRaw(raw_view)) => {
-                            let raw_view = raw_view.to_fn_ptr::<M>().expect(
-                                "unexpected model argument given to window raw_view function",
+                            eprintln!(
+                                "swap chain outdated, skipping frame (did you resize on x11?)"
                             );
-                            (*raw_view)(&app, &model, raw_frame);
+                        } else {
+                            // If it's not an Outdated, it's probably a real problem.
+                            // Crash.
+                            panic!("swap chain error: {}", e);
                         }
-                        None => match default_view {
-                            Some(View::Sketch(view)) => {
+                    } else if let Ok(swap_chain_output) = swap_chain_output {
+                        let swap_chain_texture = &swap_chain_output.output.view;
+
+                        // Borrow the window now that we don't need it mutably until setting the render
+                        // data back.
+                        let windows = app.windows.borrow();
+                        let window = windows
+                            .get(&window_id)
+                            .expect("failed to find window for redraw request");
+                        let frame_data = &window.frame_data;
+
+                        // Construct and emit a frame via `view` for receiving the user's graphics commands.
+                        let sf = window.tracked_state.scale_factor;
+                        let (w, h) = window
+                            .tracked_state
+                            .physical_size
+                            .to_logical::<f32>(sf)
+                            .into();
+                        let window_rect = geom::Rect::from_w_h(w, h);
+                        let raw_frame = RawFrame::new_empty(
+                            window.swap_chain_device_queue_pair().clone(),
+                            window_id,
+                            nth_frame,
+                            swap_chain_texture,
+                            window.swap_chain.descriptor.format,
+                            window_rect,
+                        );
+
+                        // If the user specified a view function specifically for this window, use it.
+                        // Otherwise, use the fallback, default view passed to the app if there was one.
+                        let window_view = window.user_functions.view.clone();
+
+                        match window_view {
+                            Some(window::View::Sketch(view)) => {
                                 let data = frame_data.as_ref().expect("missing `frame_data`");
                                 let frame =
                                     Frame::new_empty(raw_frame, &data.render, &data.capture);
                                 view(&app, frame);
                             }
-                            Some(View::WithModel(view)) => {
+                            Some(window::View::WithModel(view)) => {
                                 let data = frame_data.as_ref().expect("missing `frame_data`");
                                 let frame =
                                     Frame::new_empty(raw_frame, &data.render, &data.capture);
-                                view(&app, &model, frame);
+                                let view = view.to_fn_ptr::<M>().expect(
+                                    "unexpected model argument given to window view function",
+                                );
+                                (*view)(&app, &model, frame);
                             }
-                            None => raw_frame.submit(),
-                        },
+                            Some(window::View::WithModelRaw(raw_view)) => {
+                                let raw_view = raw_view.to_fn_ptr::<M>().expect(
+                                    "unexpected model argument given to window raw_view function",
+                                );
+                                (*raw_view)(&app, &model, raw_frame);
+                            }
+                            None => match default_view {
+                                Some(View::Sketch(view)) => {
+                                    let data = frame_data.as_ref().expect("missing `frame_data`");
+                                    let frame =
+                                        Frame::new_empty(raw_frame, &data.render, &data.capture);
+                                    view(&app, frame);
+                                }
+                                Some(View::WithModel(view)) => {
+                                    let data = frame_data.as_ref().expect("missing `frame_data`");
+                                    let frame =
+                                        Frame::new_empty(raw_frame, &data.render, &data.capture);
+                                    view(&app, &model, frame);
+                                }
+                                None => raw_frame.submit(),
+                            },
+                        }
+
+                        // Release immutable lock
+                        drop(windows);
+
+                        // Replace the render data and swap chain.
+                        let mut windows = app.windows.borrow_mut();
+                        let window = windows
+                            .get_mut(&window_id)
+                            .expect("no window for redraw request ID");
+
+                        window.swap_chain.swap_chain = Some(swap_chain);
                     }
                 }
-
-                // Replace the render data and swap chain.
-                let mut windows = app.windows.borrow_mut();
-                let window = windows
-                    .get_mut(&window_id)
-                    .expect("no window for redraw request ID");
-
-                window.swap_chain.swap_chain = Some(swap_chain);
             }
 
             // Clear any inactive adapters and devices and poll those remaining.
