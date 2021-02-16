@@ -641,16 +641,16 @@ pub fn encode_load_texture_from_image(
         ImageLumaA16(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
         ImageRgba16(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
         ImageRgb8(_img) => {
-            let img = image.to_rgba();
+            let img = image.to_rgba8();
             encode_load_texture_from_image_buffer(device, encoder, usage, &img)
         }
         ImageBgr8(_img) => {
-            let img = image.to_bgra();
+            let img = image.to_bgra8();
             encode_load_texture_from_image_buffer(device, encoder, usage, &img)
         }
         ImageRgb16(_img) => {
             // TODO: I think we lose some quality here - e.g. 16-bit channels down to 8-bit??.
-            let img = image.to_rgba();
+            let img = image.to_rgba8();
             encode_load_texture_from_image_buffer(device, encoder, usage, &img)
         }
     }

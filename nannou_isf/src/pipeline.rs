@@ -235,7 +235,7 @@ impl ImageState {
                 let (tx, rx) = mpsc::channel();
                 image_loader.threadpool.execute(move || {
                     let img_res = image::open(img_path)
-                        .map(|img| img.to_rgba())
+                        .map(|img| img.to_rgba8())
                         .map_err(|err| err.into());
                     tx.send(img_res).ok();
                 });
