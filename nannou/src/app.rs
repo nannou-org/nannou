@@ -853,7 +853,7 @@ impl App {
         Ok(string)
     }
 
-    // Quits the currently running application.
+    /// Quits the currently running application.
     pub fn quit(&self) {
         self.windows.borrow_mut().clear();
     }
