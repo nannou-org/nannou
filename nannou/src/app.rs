@@ -893,6 +893,11 @@ impl App {
             .to_string();
         Ok(string)
     }
+
+    /// Quits the currently running application.
+    pub fn quit(&self) {
+        self.windows.borrow_mut().clear();
+    }
 }
 
 impl Proxy {
