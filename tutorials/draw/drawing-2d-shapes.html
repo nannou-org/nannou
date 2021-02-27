@@ -163,7 +163,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#drawing-2d-shapes" id="drawing-2d-shapes">Drawing 2D Shapes</a></h1>
+                        <h1 id="drawing-2d-shapes"><a class="header" href="#drawing-2d-shapes">Drawing 2D Shapes</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: Seth Boyles</li>
@@ -202,7 +202,7 @@ fn view(app: &amp;App, frame: Frame) {
 }
 </code></pre></pre>
 <p>You can also find this file, and other useful examples, in the <a href="https://github.com/nannou-org/nannou/tree/master/examples">examples</a> directory of the nannou source repository.</p>
-<h2><a class="header" href="#drawing-simple-shapes" id="drawing-simple-shapes">Drawing Simple Shapes</a></h2>
+<h2 id="drawing-simple-shapes"><a class="header" href="#drawing-simple-shapes">Drawing Simple Shapes</a></h2>
 <p>Let's try running the file!  (if you haven't already, you will need to add this file to your Cargo.toml file)</p>
 <p>You should a new window with something that looks like this:</p>
 <p><img src="./images/2d-shape-circle.png" alt="A simple circle" /></p>
@@ -242,7 +242,7 @@ fn view(app: &amp;App, frame: Frame) {
 <p><img src="./images/2d-shape-ellipse.png" alt="An ellipse" /></p>
 <p>As you can see, we edit our ellipse by chaining together different methods which will change one or more properties of our shape.  This is called the <strong>Builder</strong> pattern.  The call to <code>draw.ellipse()</code> returns an object of type <code>Drawing&lt;Ellipse&gt;</code>.  In turn, each call to a builder method, such as <code>w(300.0)</code> or <code>x_y(200.0, -100.0)</code>, returns the same instance of our shape. By chaining these function calls, we are able to build an ellipse with the attributes we want.</p>
 <p>There are several more methods we can use to build our ellipse. You can view the documentation for many of these methods <a href="https://docs.rs/nannou/latest/nannou/draw/struct.Drawing.html">here</a>.</p>
-<h3><a class="header" href="#drawing-rectangles-and-quadrilaterals" id="drawing-rectangles-and-quadrilaterals">Drawing Rectangles and Quadrilaterals</a></h3>
+<h3 id="drawing-rectangles-and-quadrilaterals"><a class="header" href="#drawing-rectangles-and-quadrilaterals">Drawing Rectangles and Quadrilaterals</a></h3>
 <p>Drawing a square or rectangle uses the same builder pattern that drawing an ellipse does.  In fact, it's similar enough that you can swap out <code>ellipse</code> with <code>rect</code> in the example above to get a working example:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
@@ -277,10 +277,10 @@ draw.quad()
 <p><img src="./images/2d-shape-quad.png" alt="A quadrilateral with custom defined points" /></p>
 <p>The <code>pt2</code> method above will create a point object that represents a point in XY coordinate space, like a graph or a Cartesian plane. nannou's coordinate system places (0,0) at the center of the window. This is <strong>not</strong> like many other graphical creative coding frameworks, which place (0,0) at the upper-leftmost position of the window.</p>
 <p>Note that while the <code>Drawing</code> builder objects for different shapes share many of the same builder methods, they do not share all of them.  Trying to use the method <code>points</code> on an instance of an <code>Drawing&lt;Ellipse&gt;</code>, for example, will raise an error.</p>
-<h3><a class="header" href="#drawing-a-triangle" id="drawing-a-triangle">Drawing a Triangle</a></h3>
+<h3 id="drawing-a-triangle"><a class="header" href="#drawing-a-triangle">Drawing a Triangle</a></h3>
 <p>Additionally, there is one more simple shape method: <code>tri</code>, for drawing triangles.  It behaves similarly to <code>quad</code>, where you can supply your own coordinates to decide how the shape looks.  Try it out!</p>
 <p><img src="./images/2d-shape-tri.png" alt="A triangle" /></p>
-<h2><a class="header" href="#drawing-lines" id="drawing-lines">Drawing Lines</a></h2>
+<h2 id="drawing-lines"><a class="header" href="#drawing-lines">Drawing Lines</a></h2>
 <p>The <code>line</code> function provides a simple way to draw a line:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
@@ -369,7 +369,7 @@ different shapes you can create!</p>
 set the drawing's color this time. Instead, <code>polyline</code> allows for each point to
 be colored uniquely. This means that you can change the color of the polyline
 point-by-point. Try experimenting with it!</p>
-<h2><a class="header" href="#drawing-custom-polygons" id="drawing-custom-polygons">Drawing Custom Polygons</a></h2>
+<h2 id="drawing-custom-polygons"><a class="header" href="#drawing-custom-polygons">Drawing Custom Polygons</a></h2>
 <p>To draw a custom filled-in polygon (and not just an outline), will we use code
 very similar to our custom circle or octagon code. The main difference is that
 instead of calling <code>polyline</code> to create a Builder, we call <code>polygon</code>:</p>
@@ -389,7 +389,7 @@ draw.polygon()
 <span class="boring">}
 </span></code></pre></pre>
 <p><img src="./images/2d-custom-octogon-polygon.png" alt="An octagon" /></p>
-<h2><a class="header" href="#concluding-remarks" id="concluding-remarks">Concluding Remarks</a></h2>
+<h2 id="concluding-remarks"><a class="header" href="#concluding-remarks">Concluding Remarks</a></h2>
 <p>In this tutorial, we learned about most basic 2D drawing functions with nannou.</p>
 <p>You can view the documentation for the different <code>Drawing</code> objects these return
 here:</p>

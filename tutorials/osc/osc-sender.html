@@ -163,7 +163,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#sending-osc" id="sending-osc">Sending OSC</a></h1>
+                        <h1 id="sending-osc"><a class="header" href="#sending-osc">Sending OSC</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: <a href="https://madskjeldgaard.dk">madskjeldgaard</a></li>
@@ -180,7 +180,7 @@
 <hr />
 <p>In this tutorial we will cover how to send OSC data from a nannou app to another application using the <code>nannou_osc</code> crate.</p>
 <p>We are going to write a simple program which has a circle moving about on the screen while the circle's position is sent via OSC to another application. We will continue working on the app from <a href="/tutorials/basics/moving-a-circle-about.html">Moving a circle about on the screen</a>.</p>
-<h2><a class="header" href="#setting-up-an-osc-sender" id="setting-up-an-osc-sender">Setting up an OSC sender</a></h2>
+<h2 id="setting-up-an-osc-sender"><a class="header" href="#setting-up-an-osc-sender">Setting up an OSC sender</a></h2>
 <p>At the top of your <code>main.rs</code>-file, import the <code>nannou_osc</code> crate and make it available in your program via the shorthand <code>osc</code>.</p>
 <pre><pre class="playground"><code class="language-rust norun"><span class="boring">#![allow(unused_imports)]
 </span>use nannou_osc as osc;
@@ -241,7 +241,7 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
     .expect(&quot;Could not connect to socket at address&quot;);
 <span class="boring">}
 </span></code></pre></pre>
-<h3><a class="header" href="#sending-osc-messages" id="sending-osc-messages">Sending OSC messages</a></h3>
+<h3 id="sending-osc-messages"><a class="header" href="#sending-osc-messages">Sending OSC messages</a></h3>
 <p>An OSC packet consists of at least two components: An OSC address and 0 or more arguments containing data. The OSC address is not to be confused with the network address we connected to before. Instead, an OSC address is a path sort of like a URL, for example <code>/circle/position</code>.</p>
 <p>To create an OSC packet, we first need to make an address.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
@@ -282,7 +282,7 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 </span>    model.sender.send(packet).ok();
 <span class="boring">}
 </span></code></pre></pre>
-<h2><a class="header" href="#the-finished-app" id="the-finished-app">The finished app</a></h2>
+<h2 id="the-finished-app"><a class="header" href="#the-finished-app">The finished app</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run">use nannou::prelude::*;
 use nannou_osc as osc;
 

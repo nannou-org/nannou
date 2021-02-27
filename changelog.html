@@ -163,12 +163,12 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#changelog" id="changelog">Changelog</a></h1>
+                        <h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
 <p>All notable changes to nannou should be documented below! From the most recent,
 back to the origins.</p>
 <hr />
-<h1><a class="header" href="#unreleased" id="unreleased">Unreleased</a></h1>
-<h3><a class="header" href="#nannou_audio" id="nannou_audio">nannou_audio</a></h3>
+<h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
+<h3 id="nannou_audio"><a class="header" href="#nannou_audio">nannou_audio</a></h3>
 <ul>
 <li>Update to CPAL 0.13.1 and from <code>sample</code> to <code>dasp_sample</code>.</li>
 <li>Add the ability to specify a device buffer size.</li>
@@ -180,7 +180,7 @@ back to the origins.</p>
 <li>Fix bug where stream channel count could be greater than specified.</li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-0150-2020-10-04" id="version-0150-2020-10-04">Version 0.15.0 (2020-10-04)</a></h1>
+<h1 id="version-0150-2020-10-04"><a class="header" href="#version-0150-2020-10-04">Version 0.15.0 (2020-10-04)</a></h1>
 <p><strong>Update to WGPU 0.5</strong></p>
 <p>For the most part, these changes will affect users of the <code>nannou::wgpu</code> module,
 but not so much the users of the <code>draw</code> or <code>ui</code> APIs. <em>Find the relevant wgpu
@@ -245,29 +245,29 @@ number of worker threads and optional timeout duration for the windows' inner
 <code>TextureCapturer</code>s.</li>
 </ul>
 <hr />
-<h3><a class="header" href="#nannou_laser-0143-2020-05-19" id="nannou_laser-0143-2020-05-19"><code>nannou_laser</code> 0.14.3 (2020-05-19)</a></h3>
+<h3 id="nannou_laser-0143-2020-05-19"><a class="header" href="#nannou_laser-0143-2020-05-19"><code>nannou_laser</code> 0.14.3 (2020-05-19)</a></h3>
 <ul>
 <li>Add support for enabling/disabling draw path reordering.</li>
 </ul>
 <hr />
-<h3><a class="header" href="#nannou_laser-0142-2020-05-15" id="nannou_laser-0142-2020-05-15"><code>nannou_laser</code> 0.14.2 (2020-05-15)</a></h3>
+<h3 id="nannou_laser-0142-2020-05-15"><a class="header" href="#nannou_laser-0142-2020-05-15"><code>nannou_laser</code> 0.14.2 (2020-05-15)</a></h3>
 <ul>
 <li>Update <code>lasy</code> to 0.4. Adds better support for points and improved euler
 circuit interpolation.</li>
 </ul>
 <hr />
-<h3><a class="header" href="#nannou_laser-0141-2020-05-06" id="nannou_laser-0141-2020-05-06"><code>nannou_laser</code> 0.14.1 (2020-05-06)</a></h3>
+<h3 id="nannou_laser-0141-2020-05-06"><a class="header" href="#nannou_laser-0141-2020-05-06"><code>nannou_laser</code> 0.14.1 (2020-05-06)</a></h3>
 <ul>
 <li>Add <code>ilda-idtf</code> feature to <code>nannou_laser</code>.</li>
 </ul>
 <hr />
-<h3><a class="header" href="#nannou-0141-2020-05-06" id="nannou-0141-2020-05-06"><code>nannou</code> 0.14.1 (2020-05-06)</a></h3>
+<h3 id="nannou-0141-2020-05-06"><a class="header" href="#nannou-0141-2020-05-06"><code>nannou</code> 0.14.1 (2020-05-06)</a></h3>
 <ul>
 <li>Fix bug where <code>draw::Renderer</code> was initialised with an incorrect scale factor.</li>
 <li>Fix <code>Vector::angle_between</code> implementation.</li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-0140-2020-04-24" id="version-0140-2020-04-24">Version 0.14.0 (2020-04-24)</a></h1>
+<h1 id="version-0140-2020-04-24"><a class="header" href="#version-0140-2020-04-24">Version 0.14.0 (2020-04-24)</a></h1>
 <ul>
 <li>Relax trait bounds on many mesh types.</li>
 <li>Add Rgb8 and Rgba8 type aliases.</li>
@@ -349,14 +349,14 @@ much higher-performance text rendering.</li>
 <li>Add nicer socket address and error handling to <code>nannou_laser::ffi</code>.</li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-0131-2020-03-05" id="version-0131-2020-03-05">Version 0.13.1 (2020-03-05)</a></h1>
+<h1 id="version-0131-2020-03-05"><a class="header" href="#version-0131-2020-03-05">Version 0.13.1 (2020-03-05)</a></h1>
 <ul>
 <li>Add <code>Texture::inner</code> producing a reference to the inner texture handle.</li>
 <li>Add <code>Texture::into_inner</code> producing the inner texture handle.</li>
 <li>Add <code>Into&lt;TextureHandle&gt;</code> impl for <code>Texture</code></li>
 <li>Add <code>Texture::into_ui_image</code>.</li>
 </ul>
-<h1><a class="header" href="#version-0130-2020-03-05" id="version-0130-2020-03-05">Version 0.13.0 (2020-03-05)</a></h1>
+<h1 id="version-0130-2020-03-05"><a class="header" href="#version-0130-2020-03-05">Version 0.13.0 (2020-03-05)</a></h1>
 <ul>
 <li>Transition from <code>vulkano</code> to <code>wgpu</code> for all graphics handling!
 <ul>
@@ -407,7 +407,7 @@ specifying the default window width and height.</li>
 </li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-0120-2019-11-03" id="version-0120-2019-11-03">Version 0.12.0 (2019-11-03)</a></h1>
+<h1 id="version-0120-2019-11-03"><a class="header" href="#version-0120-2019-11-03">Version 0.12.0 (2019-11-03)</a></h1>
 <ul>
 <li>Update vulkano dependencies to 0.16 in order to address <code>metal</code> related bug on
 macOS.</li>
@@ -421,7 +421,7 @@ copy/paste, double-click select and shift-click select support for the
 <code>secondary</code> buffer methods.</li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-0110-2019-09-17" id="version-0110-2019-09-17">Version 0.11.0 (2019-09-17)</a></h1>
+<h1 id="version-0110-2019-09-17"><a class="header" href="#version-0110-2019-09-17">Version 0.11.0 (2019-09-17)</a></h1>
 <ul>
 <li>Update vulkano and shaderc dependencies to fix linux build issues.</li>
 <li>Add an example that demonstrates using the Draw API with multiple windows.</li>
@@ -475,7 +475,7 @@ cache.</li>
 <li>Add <code>simple_text.rs</code> and <code>simple_text_path.rs</code> examples.</li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-0100-2019-07-21" id="version-0100-2019-07-21">Version 0.10.0 (2019-07-21)</a></h1>
+<h1 id="version-0100-2019-07-21"><a class="header" href="#version-0100-2019-07-21">Version 0.10.0 (2019-07-21)</a></h1>
 <ul>
 <li>Change the <code>view</code> function signature to take <code>Frame</code> by reference rather than
 by value.</li>
@@ -502,7 +502,7 @@ sRGB) to a linear sRGB format for better consistency across platforms.</li>
 </li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-090-2019-05-28" id="version-090-2019-05-28">Version 0.9.0 (2019-05-28)</a></h1>
+<h1 id="version-090-2019-05-28"><a class="header" href="#version-090-2019-05-28">Version 0.9.0 (2019-05-28)</a></h1>
 <ul>
 <li>Change graphics rendering backend from glium to vulkano! This affects a wide
 range of nannou's API including:
@@ -550,7 +550,7 @@ MSAA and keeping the image consistent between frames.</li>
 <li>Add some laser streaming examples using the <code>nannou-org/lasy</code> crate.</li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-080-2018-07-19" id="version-080-2018-07-19">Version 0.8.0 (2018-07-19)</a></h1>
+<h1 id="version-080-2018-07-19"><a class="header" href="#version-080-2018-07-19">Version 0.8.0 (2018-07-19)</a></h1>
 <ul>
 <li>Update deps: glium 0.22, image 0.19.</li>
 <li>Change <code>random_range</code> to check that <code>min</code> is smaller than <code>max</code>, swapping the
@@ -566,7 +566,7 @@ types.</li>
 <li>Add <code>geom::line::join</code> module with <code>miter</code> submodule implementation.</li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-070-2018-06-13" id="version-070-2018-06-13">Version 0.7.0 (2018-06-13)</a></h1>
+<h1 id="version-070-2018-06-13"><a class="header" href="#version-070-2018-06-13">Version 0.7.0 (2018-06-13)</a></h1>
 <ul>
 <li>Add better <code>panic!</code> message to <code>map_range</code> if cast fails.</li>
 <li>Add many items to prelude (audio, io, math, osc, ui, window).</li>
@@ -578,7 +578,7 @@ vertices.</li>
 <li>Update <code>Drawing</code> API to allow builders to produce new <code>Drawing</code> types.</li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-060-2018-06-07" id="version-060-2018-06-07">Version 0.6.0 (2018-06-07)</a></h1>
+<h1 id="version-060-2018-06-07"><a class="header" href="#version-060-2018-06-07">Version 0.6.0 (2018-06-07)</a></h1>
 <ul>
 <li>Add beginnings of Nature of Code and Generative Gestaltung examples.</li>
 <li>Add <code>App::elapsed_frames</code> method.</li>
@@ -590,11 +590,11 @@ to focused window.</li>
 <li>Add support for rotation and orientation to <code>draw</code> API.</li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-052-2018-04-28" id="version-052-2018-04-28">Version 0.5.2 (2018-04-28)</a></h1>
+<h1 id="version-052-2018-04-28"><a class="header" href="#version-052-2018-04-28">Version 0.5.2 (2018-04-28)</a></h1>
 <ul>
 <li>Improve efficiency of the <code>App</code> proxy by only making OS calls when needed.</li>
 </ul>
-<h1><a class="header" href="#version-051-2018-04-26" id="version-051-2018-04-26">Version 0.5.1 (2018-04-26)</a></h1>
+<h1 id="version-051-2018-04-26"><a class="header" href="#version-051-2018-04-26">Version 0.5.1 (2018-04-26)</a></h1>
 <ul>
 <li>Add <code>Ui::draw_to_frame_if_changed</code> method which only draws if necessary.</li>
 <li>Add README to nannou-package.</li>
@@ -602,7 +602,7 @@ to focused window.</li>
 <li>Add an <code>io</code> module with some helper functions simplifying <code>std::io</code>.</li>
 <li>Add <code>fmod</code> function to <code>math</code> module.</li>
 </ul>
-<h1><a class="header" href="#version-050-2018-04-17" id="version-050-2018-04-17">Version 0.5.0 (2018-04-17)</a></h1>
+<h1 id="version-050-2018-04-17"><a class="header" href="#version-050-2018-04-17">Version 0.5.0 (2018-04-17)</a></h1>
 <ul>
 <li>Add simple accessor field for getting the time since app start in secs.</li>
 <li>Add ability to adjust glyph cache size for text (ui).</li>
@@ -621,7 +621,7 @@ to focused window.</li>
 <li>Correct existing and add missing geometry scalar default types.</li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-040-2018-03-25" id="version-040-2018-03-25">Version 0.4.0 (2018-03-25)</a></h1>
+<h1 id="version-040-2018-03-25"><a class="header" href="#version-040-2018-03-25">Version 0.4.0 (2018-03-25)</a></h1>
 <ul>
 <li>Add hsv (aka hsb) color builder methods to Draw API.</li>
 <li>Add nicer panic message for when <code>max_supported_input/output_channels</code> methods
@@ -650,7 +650,7 @@ fail.</li>
 <li>Add <code>geom::line</code> module.</li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-030-2018-02-18" id="version-030-2018-02-18">Version 0.3.0 (2018-02-18)</a></h1>
+<h1 id="version-030-2018-02-18"><a class="header" href="#version-030-2018-02-18">Version 0.3.0 (2018-02-18)</a></h1>
 <ul>
 <li>Add <code>audio::Stream::id</code> method.</li>
 <li>Add <code>ExactSize</code> and <code>DoubleEnded</code> iterator implementations for
@@ -665,7 +665,7 @@ fail.</li>
 <li>Begin implementation of  tutorial <code>basics</code> examples.</li>
 </ul>
 <hr />
-<h1><a class="header" href="#version-020-2017-12-12" id="version-020-2017-12-12">Version 0.2.0 (2017-12-12)</a></h1>
+<h1 id="version-020-2017-12-12"><a class="header" href="#version-020-2017-12-12">Version 0.2.0 (2017-12-12)</a></h1>
 <ul>
 <li>Add support for audio output device and streams.</li>
 <li>Add OSC support.</li>

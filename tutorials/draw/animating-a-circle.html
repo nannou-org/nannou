@@ -163,7 +163,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#animating-a-circle" id="animating-a-circle">Animating a Circle</a></h1>
+                        <h1 id="animating-a-circle"><a class="header" href="#animating-a-circle">Animating a Circle</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: <a href="https://madskjeldgaard.dk">madskjeldgaard</a></li>
@@ -178,7 +178,7 @@
 </ul>
 <hr />
 <p><img src="/tutorials/basics/images/moving-circle.gif" alt="osc-circle" /></p>
-<h1><a class="header" href="#moving-a-circle-about-on-the-screen" id="moving-a-circle-about-on-the-screen">Moving a circle about on the screen</a></h1>
+<h1 id="moving-a-circle-about-on-the-screen"><a class="header" href="#moving-a-circle-about-on-the-screen">Moving a circle about on the screen</a></h1>
 <p>In this tutorial we will cover the basics of moving a shape around in the window of a nannou app.</p>
 <p>Let's start by making a simple program which draws a circle in the center of the screen.</p>
 <p>We will be using the barebones app from <a href="/tutorials/basics/anatomy-of-a-nannou-app.html">Anatomy of a nannou app</a> as a starting point for this.</p>
@@ -212,7 +212,7 @@
     draw.to_frame(app, &amp;frame).unwrap();
 }
 </code></pre></pre>
-<h2><a class="header" href="#adding-movement" id="adding-movement">Adding movement</a></h2>
+<h2 id="adding-movement"><a class="header" href="#adding-movement">Adding movement</a></h2>
 <p>Let's now add some movement to our circle to give it a bit of life.</p>
 <p>To do this, we will make use of the ever wonderful <a href="https://en.wikipedia.org/wiki/Sine_wave">sinewave</a>.</p>
 <p>These can be generated in nannou by taking the progressed time of the application and feeding it to a sine function.</p>
@@ -274,7 +274,7 @@
 </span>boundary.top();
 <span class="boring">}
 </span></code></pre></pre>
-<h2><a class="header" href="#mapping-values-to-a-range" id="mapping-values-to-a-range">Mapping values to a range</a></h2>
+<h2 id="mapping-values-to-a-range"><a class="header" href="#mapping-values-to-a-range">Mapping values to a range</a></h2>
 <p>Using these values, we can map our <code>sine</code> and <code>slowersine</code> values to ranges of values that are within the boundary of our window. To do this, we will use the <a href="https://docs.rs/nannou/latest/nannou/math/fn.map_range.html">map_range</a> function available in nannou.</p>
 <p>The <code>map_range</code> function takes 5 arguments: <code>val</code>, <code>in_min</code>, <code>in_max</code>, <code>out_min</code>, <code>out_max</code>. The <code>val</code> here is our sinewaves which has a minimum value of -1.0 and a maximum value of 1.0. For the x-coordinate, we then map it to a range of values between the leftmost point and the rightmost point.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]

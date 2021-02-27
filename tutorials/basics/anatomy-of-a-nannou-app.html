@@ -163,7 +163,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#anatomy-of-a-nannou-app" id="anatomy-of-a-nannou-app">Anatomy of a Nannou App</a></h1>
+                        <h1 id="anatomy-of-a-nannou-app"><a class="header" href="#anatomy-of-a-nannou-app">Anatomy of a Nannou App</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: tpltnt, mitchmindtree</li>
@@ -201,7 +201,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 }
 </code></pre></pre>
 <p>We will start from the top!</p>
-<h2><a class="header" href="#import-common-items" id="import-common-items">Import Common Items</a></h2>
+<h2 id="import-common-items"><a class="header" href="#import-common-items">Import Common Items</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
 </span>use nannou::prelude::*;
 <span class="boring">fn main() {}
@@ -218,7 +218,7 @@ different crates. That said, it also means we need to manually import every
 item we <em>do</em> want to use into scope. By providing a prelude nannou makes it a
 little easier to access all of the commonly used items.</p>
 </blockquote>
-<h2><a class="header" href="#model---our-app-state" id="model---our-app-state"><strong>Model</strong> - Our app state</a></h2>
+<h2 id="model---our-app-state"><a class="header" href="#model---our-app-state"><strong>Model</strong> - Our app state</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span>struct Model {}
 <span class="boring">fn main() {}
@@ -235,7 +235,7 @@ model can stay empty.</p>
 <p>Note: A <code>struct</code> describes a set of data. Our struct has no fields and thus is
 empty. There is no state information to be tracked in this example.</p>
 </blockquote>
-<h2><a class="header" href="#main---where-rust-programs-begin-and-end" id="main---where-rust-programs-begin-and-end"><strong>main</strong> - Where Rust programs begin and end</a></h2>
+<h2 id="main---where-rust-programs-begin-and-end"><a class="header" href="#main---where-rust-programs-begin-and-end"><strong>main</strong> - Where Rust programs begin and end</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
 </span>fn main() {
@@ -292,7 +292,7 @@ and can change the state of the model using the controller. If a program does
 not require <em>user</em> input, the controller might use time or some other
 application event to modify the model.</p>
 </blockquote>
-<h2><a class="header" href="#model---initialise-our-model" id="model---initialise-our-model"><strong>model</strong> - initialise our Model</a></h2>
+<h2 id="model---initialise-our-model"><a class="header" href="#model---initialise-our-model"><strong>model</strong> - initialise our Model</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -330,7 +330,7 @@ fn model(_app: &amp;App) -&gt; Model {
 <p>You can learn more about what the <strong>App</strong> is responsible for and capable of
 <a href="https://docs.rs/nannou/latest/nannou/app/struct.App.html">here</a>.</p>
 </blockquote>
-<h2><a class="header" href="#event---updating-the-model-on-app-events" id="event---updating-the-model-on-app-events"><strong>event</strong> - updating the Model on app events</a></h2>
+<h2 id="event---updating-the-model-on-app-events"><a class="header" href="#event---updating-the-model-on-app-events"><strong>event</strong> - updating the Model on app events</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -388,7 +388,7 @@ example</a>
 for a demonstration of most of the different kinds of events that are
 available.</p>
 </blockquote>
-<h2><a class="header" href="#view---presenting-the-model-to-a-window" id="view---presenting-the-model-to-a-window"><strong>view</strong> - presenting the Model to a window</a></h2>
+<h2 id="view---presenting-the-model-to-a-window"><a class="header" href="#view---presenting-the-model-to-a-window"><strong>view</strong> - presenting the Model to a window</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
@@ -401,7 +401,7 @@ drawing to its <strong>Frame</strong> and returning the frame at the end. Here w
 the background colour, use the <strong>Draw</strong> API to draw a scene, draw a GUI to the
 window or even use the wgpu API to draw to the frame using our own textures and
 render passes. All of this will be covered by future tutorials.</p>
-<h2><a class="header" href="#concluding-remarks" id="concluding-remarks">Concluding Remarks</a></h2>
+<h2 id="concluding-remarks"><a class="header" href="#concluding-remarks">Concluding Remarks</a></h2>
 <p>Hopefully this has given you a rough idea of how nannou apps work! Do not stress
 if some of the syntax looks confusing or some of the specifics still seem
 unclear - we will aim to cover these and more in future tutorials :)</p>

@@ -163,12 +163,12 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#publishing-new-versions" id="publishing-new-versions">Publishing New Versions</a></h1>
+                        <h1 id="publishing-new-versions"><a class="header" href="#publishing-new-versions">Publishing New Versions</a></h1>
 <p>The nannou repo allows community members to open a PR for publishing a new
 version of any or all of the nannou crates. This makes it much easier for
 maintainers to publish a new release - all we have to do is accept your PR!</p>
 <p>If you would like to see a new version of a crate published, follow these steps:</p>
-<h2><a class="header" href="#choose-a-version" id="choose-a-version">Choose a Version</a></h2>
+<h2 id="choose-a-version"><a class="header" href="#choose-a-version">Choose a Version</a></h2>
 <p>The version to use for the next version of the crate(s) you wish to publish will
 depend on the changes that have been made to the crate(s). The nannou crates
 follow the rust convention which you can read about <a href="https://doc.rust-lang.org/cargo/reference/manifest.html#the-version-field">here</a>.</p>
@@ -186,7 +186,7 @@ to <code>2.0.0</code>). In these cases, all crates with the name <code>nannou</c
 should be published together with the same version. This version synchronisation
 makes it easier for users to intuit compatible versions of nannou crates without
 the need to manually check all of the dependency versions on crates.io.</p>
-<h2><a class="header" href="#update-cargotoml" id="update-cargotoml">Update Cargo.toml</a></h2>
+<h2 id="update-cargotoml"><a class="header" href="#update-cargotoml">Update Cargo.toml</a></h2>
 <p>There are two sections of the <code>Cargo.toml</code> file(s) that will need updating.</p>
 <ol>
 <li>The <code>version</code> field under the <code>[package]</code> section.</li>
@@ -209,7 +209,7 @@ the version of all of the <code>nannou_*</code> crates!</p>
 updates each of their respective <code>nannou*</code> dependencies.</li>
 <li>Edits their Cargo.toml files with the result.</li>
 </ul>
-<h2><a class="header" href="#update-the-guide" id="update-the-guide">Update the Guide</a></h2>
+<h2 id="update-the-guide"><a class="header" href="#update-the-guide">Update the Guide</a></h2>
 <p>There are two places where we must update the version in the guide:</p>
 <ol>
 <li>The <strong>Changelog</strong>. You can find it at <code>guide/src/changelog.md</code>. See the most
@@ -228,7 +228,7 @@ double check that there are no more places to update:</p>
 <p>where <code>0.14</code> would be replaced with the beginning of the previous version of
 <code>nannou</code>. This should should list the files and line numbers where the previous
 version still exists and likely needs updating.</p>
-<h2><a class="header" href="#open-a-pr" id="open-a-pr">Open a PR</a></h2>
+<h2 id="open-a-pr"><a class="header" href="#open-a-pr">Open a PR</a></h2>
 <p>Now you should be ready to open a PR! Be sure to follow the <a href="./pr-checklist.html">PR
 Checklist</a>.</p>
 <p>Once your PR is reviewed and merged, the nannou repo's CI bot will automatically

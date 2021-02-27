@@ -163,7 +163,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#drawing-images" id="drawing-images">Drawing Images</a></h1>
+                        <h1 id="drawing-images"><a class="header" href="#drawing-images">Drawing Images</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: Josiah Savary</li>
@@ -177,20 +177,20 @@
 </ul>
 <hr />
 <p>In this tutorial, we explore drawing images with nannou. We will cover loading textures from images in the app's assets directory, drawing them, and applying basic transformations. You can also find this file, and other useful examples, in the <a href="https://github.com/nannou-org/nannou/tree/master/examples">examples</a> directory of the nannou source repository.</p>
-<h2><a class="header" href="#what-is-a-texture" id="what-is-a-texture">What is a Texture?</a></h2>
+<h2 id="what-is-a-texture"><a class="header" href="#what-is-a-texture">What is a Texture?</a></h2>
 <p>Given the introductory nature of the tutorial, I'd like to briefly answer this question. To quote the <a href="https://sotrh.github.io/learn-wgpu">Learn Wgpu</a> website:</p>
 <blockquote>
 <p>Textures are images overlayed over a triangle mesh to make the mesh seem more detailed.</p>
 </blockquote>
 <p>In short, this is how the GPU on your machine understands how to draw images. The <a href="https://sotrh.github.io/learn-wgpu/beginner/tutorial5-textures/#loading-an-image-from-a-file">Textures and bind groups</a> is definitely worth a read for those who want to learn more.</p>
-<h2><a class="header" href="#getting-started" id="getting-started">Getting Started</a></h2>
+<h2 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h2>
 <p>To begin, we will need to bootstrap an <code>assets</code> directory with some images at the root of our project. I recommend copying the assets directory from the <code>nannou</code> repo itself to get started. This can be accomplished from the command line like so:</p>
 <pre><code class="language-bash">git clone https://github.com/nannou-org/nannou.git
 cp -r nannou/assets ./assets
 rm -rf nannou
 </code></pre>
 <p>Once you have a fleshed-out <code>assets</code> directory at the root of your project, you'll be ready to return to your <code>main.rs</code> file for the following steps.</p>
-<h2><a class="header" href="#creating-a-window" id="creating-a-window">Creating a Window</a></h2>
+<h2 id="creating-a-window"><a class="header" href="#creating-a-window">Creating a Window</a></h2>
 <p>We need somewhere to display the image, so first, let's create a window:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables, dead_code)]
 </span>use nannou::prelude::*;
@@ -211,7 +211,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 }
 </code></pre></pre>
 <p>If you <code>cargo run</code> your app, you'll see an empty window.</p>
-<h2><a class="header" href="#setting-up-a-texture" id="setting-up-a-texture">Setting up a Texture</a></h2>
+<h2 id="setting-up-a-texture"><a class="header" href="#setting-up-a-texture">Setting up a Texture</a></h2>
 <p>Now, at the top of your <code>main.rs</code> file, add a <a href="https://docs.rs/nannou/latest/nannou/wgpu/struct.Texture.html">WGPU Texture</a> type field named <code>texture</code> to the <code>Model</code> struct.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables, dead_code)]
 </span><span class="boring">use nannou::prelude::*;
@@ -252,7 +252,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </span><span class="boring">}
 </span></code></pre></pre>
 <p>After all that, we've still got an empty window...but not for much longer!</p>
-<h2><a class="header" href="#drawing-a-texture" id="drawing-a-texture">Drawing a Texture</a></h2>
+<h2 id="drawing-a-texture"><a class="header" href="#drawing-a-texture">Drawing a Texture</a></h2>
 <p>Finally, in our <code>view</code> function, we can draw the texture stored in our model with the <code>texture</code> method of the <a href="https://docs.rs/nannou/latest/nannou/draw/struct.Draw.html">App's Draw API</a>.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables, dead_code)]
 </span><span class="boring">use nannou::prelude::*;
@@ -281,7 +281,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 }
 </code></pre></pre>
 <p><img src="./images/drawing-images-0.png" alt="A texture" /></p>
-<h2><a class="header" href="#translating-and-scaling-the-texture" id="translating-and-scaling-the-texture">Translating and Scaling the Texture</a></h2>
+<h2 id="translating-and-scaling-the-texture"><a class="header" href="#translating-and-scaling-the-texture">Translating and Scaling the Texture</a></h2>
 <p>A texture can be drawn at any location and any size desired within the frame. Let's say we wanted to draw this image in a 100x100 square at the top-left corner of the window. Our <code>view</code> function might look similar to the following.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables, dead_code)]
 </span><span class="boring">use nannou::prelude::*;

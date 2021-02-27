@@ -163,7 +163,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#basics---window-coordinates" id="basics---window-coordinates">Basics - Window Coordinates</a></h1>
+                        <h1 id="basics---window-coordinates"><a class="header" href="#basics---window-coordinates">Basics - Window Coordinates</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: mitchmindtree</li>
@@ -204,7 +204,7 @@ window height.</li>
 <p>In other words, nannou uses a <a href="https://en.wikipedia.org/wiki/Cartesian_coordinate_system">Cartesian coordinate system</a> to describe
 window space, where the origin is in the centre, <em>y</em> increases upwards and the
 distance between the edges of the window are equal to the size of the window.</p>
-<h2><a class="header" href="#drawing-in-window-coordinates" id="drawing-in-window-coordinates">Drawing in Window Coordinates</a></h2>
+<h2 id="drawing-in-window-coordinates"><a class="header" href="#drawing-in-window-coordinates">Drawing in Window Coordinates</a></h2>
 <p>Having the origin in the centre is a theme that carries through to the way that
 we draw shapes with nannou's <a href="https://guide.nannou.cc/tutorials.html#drawing"><code>draw</code> API</a>. Let's see what happens if we
 change the example to draw a plum colored square at <code>[0.0, 0.0]</code> and with a size
@@ -223,7 +223,7 @@ of <code>100.0</code>.</p>
 <p>Notice that when we say <code>.x_y(0.0, 0.0)</code>, this refers to where the <strong>centre</strong> of
 the square will be placed. You might notice the same applies to other drawing
 primitives like ellipse and text.</p>
-<h3><a class="header" href="#rotating-the-square" id="rotating-the-square">Rotating the square</a></h3>
+<h3 id="rotating-the-square"><a class="header" href="#rotating-the-square">Rotating the square</a></h3>
 <p>This property of describing positions via the centre allows for performing all
 kinds of symmetrical operations with ease. Rotations are a nice example of this.
 Let's try rotating our plum square by 45 degrees.</p>
@@ -240,7 +240,7 @@ Let's try rotating our plum square by 45 degrees.</p>
 </span></code></pre></pre>
 <p><img src="./images/window_coordinates_example3.png" alt="window_coordinates.rs" /></p>
 <p>Voila!</p>
-<h3><a class="header" href="#moving-the-square" id="moving-the-square">Moving the square</a></h3>
+<h3 id="moving-the-square"><a class="header" href="#moving-the-square">Moving the square</a></h3>
 <p>OK, now let's remove our rotation and try positioning the square so that the
 bottom left corner touches the origin while the top right corner touches the
 <code>[100.0, 100.0]</code> marker.</p>
@@ -281,7 +281,7 @@ draw.rect()
 <p>OK that worked! But it was a <strong>lot</strong> of effort. And what if the size of the
 window changes?</p>
 <p>Enter, <strong><code>Rect</code></strong>.</p>
-<h2><a class="header" href="#positioning-with-rect" id="positioning-with-rect">Positioning with <code>Rect</code></a></h2>
+<h2 id="positioning-with-rect"><a class="header" href="#positioning-with-rect">Positioning with <code>Rect</code></a></h2>
 <p>One of the most useful tools for working in window coordinates is <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html">the <code>Rect</code>
 type</a>. As the name suggests, <code>Rect</code> allows us to work with rectangles in a
 variety of useful ways. We can <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html#method.align_left_of">align</a> them, <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html#method.pad">pad</a> them, <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html#method.shift">shift</a>
@@ -298,7 +298,7 @@ the window. Let's retrieve the window <code>Rect</code> with the name <code>win<
 </span></code></pre></pre>
 <p>Let's use <code>win</code> to simplify aligning our plum square to the top left of the
 window.</p>
-<h3><a class="header" href="#alignment" id="alignment">Alignment</a></h3>
+<h3 id="alignment"><a class="header" href="#alignment">Alignment</a></h3>
 <p>First, let's make a <code>Rect</code> that represents the position and size of our plum
 square and call it <code>r</code>.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
@@ -340,7 +340,7 @@ draw.rect()
 <p><em>But what if we want some padding between the edges of the window and the
 square?</em></p>
 <p>Let's take a look!</p>
-<h3><a class="header" href="#padding" id="padding">Padding</a></h3>
+<h3 id="padding"><a class="header" href="#padding">Padding</a></h3>
 <p>We can use padding to add some space between the edges of an area and the
 content within it. In nannou, we can use the <code>pad</code> method to produce a padded
 instance of a <code>Rect</code>.</p>
@@ -375,7 +375,7 @@ draw.rect()
 <span class="boring">}
 </span></code></pre></pre>
 <p><img src="./images/window_coordinates_example7.png" alt="window_coordinates.rs" /></p>
-<h3><a class="header" href="#relative-positions" id="relative-positions">Relative Positions</a></h3>
+<h3 id="relative-positions"><a class="header" href="#relative-positions">Relative Positions</a></h3>
 <p>Now that we have our plum square situated with some nice padding in the top left
 corner, let's try drawing a salmon colored circle with the same size right below
 it.</p>
@@ -434,7 +434,7 @@ laying out our sketches. I'm already getting carried away, so I'll leave it as
 an exercise to the reader to check out <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html">the <code>Rect</code> docs</a> and explore!</p>
 <p>Before we bring this tutorial to a close, let's take a quick look at what we
 really mean by all these numbers.</p>
-<h2><a class="header" href="#points-and-pixels" id="points-and-pixels">Points and Pixels</a></h2>
+<h2 id="points-and-pixels"><a class="header" href="#points-and-pixels">Points and Pixels</a></h2>
 <p><em>What exactly does 600x400 measure? Millimetres? Pixels? Something
 else?</em></p>
 <p>In nannou, we generally describe positions within window space in <strong>points</strong>.
@@ -474,7 +474,7 @@ library <a href="https://docs.rs/winit/latest/winit/dpi/index.html">here</a>.</p
 <span class="boring">}
 </span></code></pre></pre>
 </blockquote>
-<h2><a class="header" href="#conclusion" id="conclusion">Conclusion</a></h2>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
 <p>Thanks for reading! Hopefully this has helped to demystify window coordinates in
 nannou at least a little.</p>
 <p>Remember, the more you experiment and play, the more these things become second
