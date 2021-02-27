@@ -7,6 +7,40 @@ back to the origins.
 
 # Unreleased
 
+**Update to wgpu 0.6**
+
+For the most part, these changes will affect users of the `nannou::wgpu` module,
+but not so much the users of the `draw` or `ui` APIs. *Find the relevant wgpu
+changelog entry
+[here](https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#v06-2020-08-17).*
+
+- `Window::current_monitor` now returns a result.
+- `wgpu::Device::create_buffer_with_data` has been removed in favour of
+  a new `wgpu::DeviceExt::create_buffer_init` trait method that takes a
+  `wgpu::BufferInitDescripor` as an argument.
+- `wgpu::BufferDescriptor` now requires specifying whether or not the buffer
+  should be mapped (accessible via CPU) upon creation.
+- The swap chain queue `submit` method now takes an iterator yielding commands
+  rather than a slice.
+- The async API for mapped reads/writes has changed.
+- `wgpu::Buffer`s can now be sliced.
+- `wgpu::PipelineLayoutDescriptor` requires specifying `push_constant_ranges`.
+- The render pass `set_vertex_buffer` method now takes a buffer slice directly,
+  rather than a range.
+- A new `wgpu::TextureViewInfo` type was added. It represents the
+  `wgpu::TextureViewDescriptor` parameters that were supplied to build a
+  `wgpu::TextureView`.
+- A top-level `wgpu::Instance` type has been introduced.
+- Load and store ops have been consolidated into a `wgpu::Operations` type.
+- `wgpu::Binding` was renamed to `wgpu::BindGroupEntry`.
+- A `RowPaddedBuffer` abstraction was added to more gracefully/safely handle
+  conversions between `wgpu::Buffer`s and `wgpu::Texture`s.
+- Updates some dependencies:
+    - `audrey` to 0.3.
+    - `winit` to 0.24.
+    - `conrod_derive` and `conrod_core` to 0.71 (`nannou_timeline` only).
+
+
 ### nannou_audio
 
 - Update to CPAL 0.13.1 and from `sample` to `dasp_sample`.

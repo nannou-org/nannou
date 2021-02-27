@@ -1115,24 +1115,17 @@ fn run_loop<M, E>(
                 if let Some(model) = model.as_ref() {
                     let swap_chain_output = swap_chain.get_current_frame();
                     if let Err(e) = swap_chain_output {
-                        if let wgpu::SwapChainError::Outdated = e {
+                        match e {
                             // Sometimes redraws get delivered before resizes on x11 for unclear reasons.
                             // It goes all the way down to the API: if you ask x11 about the window size
-                            // at this time, it'll tell you that it hasn't changed. So... just don't draw
-                            // this frame. The resize'll show up in a bit and then we can get on with our
-                            // lives.
-
+                            // at this time, it'll tell you that it hasn't changed. So... we skip
+                            // this frame. The resize will show up in a bit and then we can get on
+                            // with our lives.
                             // If you turn on debug logging this does occasionally cause some vulkan
                             // validation errors... that's not great.
-                            // TODO find a better long-term fix.
-
-                            eprintln!(
-                                "swap chain outdated, skipping frame (did you resize on x11?)"
-                            );
-                        } else {
-                            // If it's not an Outdated, it's probably a real problem.
-                            // Crash.
-                            panic!("swap chain error: {}", e);
+                            // TODO find a better long-term fix than ignoring.
+                            wgpu::SwapChainError::Outdated => {}
+                            _ => panic!("an error occurred acquiring the swapchain frame: {}", e),
                         }
                     } else if let Ok(swap_chain_output) = swap_chain_output {
                         let swap_chain_texture = &swap_chain_output.output.view;

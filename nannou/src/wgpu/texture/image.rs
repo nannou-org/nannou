@@ -556,7 +556,7 @@ where
 /// Encode the necessary commands to load a texture array directly from a sequence of image
 /// buffers.
 ///
-/// NOTE: The returned texture will remain empty u29ntil the given `encoder` has its command buffer
+/// NOTE: The returned texture will remain empty until the given `encoder` has its command buffer
 /// submitted to the given `device`'s queue.
 ///
 /// No format or size conversions are performed - the given buffer is loaded directly into GPU
