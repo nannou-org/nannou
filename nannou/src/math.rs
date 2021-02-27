@@ -46,7 +46,7 @@ where
 {
     macro_rules! unwrap_or_panic {
         ($result:expr, $arg:expr) => {
-            $result.unwrap_or_else(|| panic!("[map_range] failed to cast {} arg to `f64`"))
+            $result.unwrap_or_else(|| panic!("[map_range] failed to cast {} arg to `f64`", $arg))
         };
     }
 
