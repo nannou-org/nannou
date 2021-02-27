@@ -2236,9 +2236,9 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 <h2 id="setting-up-osc"><a class="header" href="#setting-up-osc">Setting up OSC</a></h2>
 <p>To use OSC in nannou, it is necessary to add the <code>nannou_osc</code> crate as a dependency in your nannou project.</p>
 <p>Open up your <code>Cargo.toml</code> file at the root of your nannou project and add the following line under the <code>[dependencies]</code> tag:</p>
-<pre><code class="language-toml">nannou_osc = &quot;0.1.0&quot;
+<pre><code class="language-toml">nannou_osc = &quot;0.15.0&quot;
 </code></pre>
-<p>The value in the quotes is the version of the OSC package. At the time of writing this, <code>&quot;0.1.0&quot;</code> is the latest version.</p>
+<p>The value in the quotes is the version of the OSC package. At the time of writing this, <code>&quot;0.15.0&quot;</code> is the latest version.</p>
 <p>To get the latest version of the osc library, execute <code>cargo search nannou_osc</code> on the command line and read the resulting version from there.</p>
 <p>To use the crate in your nannou-projects you can add a use-statement at the top of your <code>main.rs</code> file to import the OSC-functionality.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
