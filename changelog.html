@@ -168,6 +168,41 @@
 back to the origins.</p>
 <hr />
 <h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
+<p><strong>Update to wgpu 0.6</strong></p>
+<p>For the most part, these changes will affect users of the <code>nannou::wgpu</code> module,
+but not so much the users of the <code>draw</code> or <code>ui</code> APIs. <em>Find the relevant wgpu
+changelog entry
+<a href="https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#v06-2020-08-17">here</a>.</em></p>
+<ul>
+<li><code>Window::current_monitor</code> now returns a result.</li>
+<li><code>wgpu::Device::create_buffer_with_data</code> has been removed in favour of
+a new <code>wgpu::DeviceExt::create_buffer_init</code> trait method that takes a
+<code>wgpu::BufferInitDescripor</code> as an argument.</li>
+<li><code>wgpu::BufferDescriptor</code> now requires specifying whether or not the buffer
+should be mapped (accessible via CPU) upon creation.</li>
+<li>The swap chain queue <code>submit</code> method now takes an iterator yielding commands
+rather than a slice.</li>
+<li>The async API for mapped reads/writes has changed.</li>
+<li><code>wgpu::Buffer</code>s can now be sliced.</li>
+<li><code>wgpu::PipelineLayoutDescriptor</code> requires specifying <code>push_constant_ranges</code>.</li>
+<li>The render pass <code>set_vertex_buffer</code> method now takes a buffer slice directly,
+rather than a range.</li>
+<li>A new <code>wgpu::TextureViewInfo</code> type was added. It represents the
+<code>wgpu::TextureViewDescriptor</code> parameters that were supplied to build a
+<code>wgpu::TextureView</code>.</li>
+<li>A top-level <code>wgpu::Instance</code> type has been introduced.</li>
+<li>Load and store ops have been consolidated into a <code>wgpu::Operations</code> type.</li>
+<li><code>wgpu::Binding</code> was renamed to <code>wgpu::BindGroupEntry</code>.</li>
+<li>A <code>RowPaddedBuffer</code> abstraction was added to more gracefully/safely handle
+conversions between <code>wgpu::Buffer</code>s and <code>wgpu::Texture</code>s.</li>
+<li>Updates some dependencies:
+<ul>
+<li><code>audrey</code> to 0.3.</li>
+<li><code>winit</code> to 0.24.</li>
+<li><code>conrod_derive</code> and <code>conrod_core</code> to 0.71 (<code>nannou_timeline</code> only).</li>
+</ul>
+</li>
+</ul>
 <h3 id="nannou_audio"><a class="header" href="#nannou_audio">nannou_audio</a></h3>
 <ul>
 <li>Update to CPAL 0.13.1 and from <code>sample</code> to <code>dasp_sample</code>.</li>
