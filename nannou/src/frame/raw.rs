@@ -73,7 +73,7 @@ impl<'swap_chain> RawFrame<'swap_chain> {
             .into_inner();
         let command_buffer = command_encoder.finish();
         let queue = self.device_queue_pair.queue();
-        queue.submit(&[command_buffer]);
+        queue.submit(std::iter::once(command_buffer));
     }
 
     // Allow the `Frame` to check if the raw frame has already been submitted on drop.

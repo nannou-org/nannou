@@ -109,7 +109,11 @@ fn model(app: &App) -> Model {
     // Create the vertex buffer.
     let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
     let usage = wgpu::BufferUsage::VERTEX;
-    let vertex_buffer = device.create_buffer_with_data(vertices_bytes, usage);
+    let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+        label: None,
+        contents: vertices_bytes,
+        usage,
+    });
 
     Model {
         current_layer: 0.0,
@@ -139,7 +143,7 @@ fn update(app: &App, model: &mut Model, update: Update) {
     );
 
     // Update which layer we are viewing based on the playback speed and layer count.
-    let layer_count = model.texture_array.array_layer_count();
+    let layer_count = model.texture_array.extent().depth;
     model.current_layer = fmod(
         model.current_layer + update.since_last.secs() as f32 * fps,
         layer_count as f32,
@@ -163,7 +167,7 @@ fn view(_app: &App, model: &Model, frame: Frame) {
         .begin(&mut encoder);
     render_pass.set_bind_group(0, &model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
-    render_pass.set_vertex_buffer(0, &model.vertex_buffer, 0, 0);
+    render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
     let vertex_range = 0..VERTICES.len() as u32;
     let instance_range = 0..1;
     render_pass.draw(vertex_range, instance_range);
@@ -224,7 +228,9 @@ fn create_pipeline_layout(
     bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::PipelineLayout {
     let desc = wgpu::PipelineLayoutDescriptor {
+        label: None,
         bind_group_layouts: &[&bind_group_layout],
+        push_constant_ranges: &[],
     };
     device.create_pipeline_layout(&desc)
 }

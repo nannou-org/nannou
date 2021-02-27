@@ -65,6 +65,7 @@ pub struct Builder<M = (), E = Event> {
     default_window_size: Option<DefaultWindowSize>,
     capture_frame_timeout: Option<Option<Duration>>,
     max_capture_frame_jobs: Option<u32>,
+    backends: wgpu::BackendBit,
 }
 
 /// A nannou `Sketch` builder.
@@ -106,7 +107,11 @@ pub struct App {
     pub(crate) event_loop_window_target: Option<EventLoopWindowTarget>,
     pub(crate) event_loop_proxy: Proxy,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
-    /// A map of active wgpu physial device adapters.
+    /// The wgpu backends to choose between.
+    backends: wgpu::BackendBit,
+    /// The main wgpu instance.
+    instance: wgpu::Instance,
+    /// A map of active wgpu physical device adapters.
     adapters: wgpu::AdapterMap,
     draw_state: DrawState,
     pub(crate) ui: ui::Arrangement,
@@ -237,6 +242,9 @@ impl<M> Builder<M, Event>
 where
     M: 'static,
 {
+    /// The default set of backends requested.
+    pub const DEFAULT_BACKENDS: wgpu::BackendBit = wgpu::DEFAULT_BACKENDS;
+
     /// Begin building the `App`.
     ///
     /// The `model` argument is the function that the App will call to initialise your Model.
@@ -259,6 +267,7 @@ where
             default_window_size: None,
             max_capture_frame_jobs: None,
             capture_frame_timeout: None,
+            backends: Self::DEFAULT_BACKENDS,
         }
     }
 
@@ -283,6 +292,7 @@ where
             default_window_size,
             max_capture_frame_jobs,
             capture_frame_timeout,
+            backends,
             ..
         } = self;
         Builder {
@@ -295,6 +305,7 @@ where
             default_window_size,
             max_capture_frame_jobs,
             capture_frame_timeout,
+            backends
         }
     }
 }
@@ -414,6 +425,14 @@ where
         self
     }
 
+    /// Specify the set of preferred WGPU backends.
+    ///
+    /// By default, this is `wgpu::BackendBit::PRIMARY`.
+    pub fn backends(mut self, backends: wgpu::BackendBit) -> Self {
+        self.backends = backends;
+        self
+    }
+
     /// Build and run an `App` with the specified parameters.
     ///
     /// This function will not return until the application has exited.
@@ -447,6 +466,7 @@ where
             self.default_window_size,
             max_capture_frame_jobs,
             capture_frame_timeout,
+            self.backends,
         );
 
         // Create the default window if necessary
@@ -590,7 +610,9 @@ impl App {
         default_window_size: Option<DefaultWindowSize>,
         max_capture_frame_jobs: u32,
         capture_frame_timeout: Option<Duration>,
+        backends: wgpu::BackendBit,
     ) -> Self {
+        let instance = wgpu::Instance::new(backends);
         let adapters = Default::default();
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());
@@ -610,6 +632,8 @@ impl App {
             max_capture_frame_jobs,
             capture_frame_timeout,
             focused_window,
+            backends,
+            instance,
             adapters,
             windows,
             config,
@@ -640,7 +664,9 @@ impl App {
     }
 
     /// Returns the primary monitor of the system.
-    pub fn primary_monitor(&self) -> winit::monitor::MonitorHandle {
+    /// May return None if none can be detected. For example, this can happen when running on Linux
+    /// with Wayland.
+    pub fn primary_monitor(&self) -> Option<winit::monitor::MonitorHandle> {
         match self.event_loop_window_target {
             Some(EventLoopWindowTarget::Owned(ref event_loop)) => event_loop.primary_monitor(),
             _ => {
@@ -744,6 +770,18 @@ impl App {
             .expect("no window for focused id")
     }
 
+    /// Return the wgpu `Backends` in use.
+    pub fn backends(&self) -> wgpu::BackendBit {
+        self.backends
+    }
+
+    /// Return the main wgpu `Instance` in use.
+    ///
+    /// This must be passed into the various methods on `AdapterMap`.
+    pub fn instance(&self) -> &wgpu::Instance {
+        &self.instance
+    }
+
     /// Access to the **App**'s inner map of wgpu adapters representing access to physical GPU
     /// devices.
     ///
@@ -754,6 +792,9 @@ impl App {
     /// `DeviceDescriptor`s, nannou will automatically share devices between windows where
     /// possible. This allows for sharing GPU resources like **Texture**s and **Buffer**s between
     /// windows.
+    ///
+    /// All methods on `AdapterMap` that take a `wgpu::Instance` must be passed the main instance
+    /// in use by the app, accessed via `App::instance()`.
     pub fn wgpu_adapters(&self) -> &wgpu::AdapterMap {
         &self.adapters
     }
@@ -1066,85 +1107,110 @@ fn run_loop<M, E>(
                 };
 
                 if let Some(model) = model.as_ref() {
-                    let swap_chain_output = swap_chain
-                        .get_next_texture()
-                        .expect("failed to acquire next swapchain texture");
-                    let swap_chain_texture = &swap_chain_output.view;
+                    let swap_chain_output = swap_chain.get_current_frame();
+                    if let Err(e) = swap_chain_output {
+                        if let wgpu::SwapChainError::Outdated = e {
+                            // Sometimes redraws get delivered before resizes on x11 for unclear reasons.
+                            // It goes all the way down to the API: if you ask x11 about the window size
+                            // at this time, it'll tell you that it hasn't changed. So... just don't draw
+                            // this frame. The resize'll show up in a bit and then we can get on with our
+                            // lives.
 
-                    // Borrow the window now that we don't need it mutably until setting the render
-                    // data back.
-                    let windows = app.windows.borrow();
-                    let window = windows
-                        .get(&window_id)
-                        .expect("failed to find window for redraw request");
-                    let frame_data = &window.frame_data;
+                            // If you turn on debug logging this does occasionally cause some vulkan
+                            // validation errors... that's not great.
+                            // TODO find a better long-term fix.
 
-                    // Construct and emit a frame via `view` for receiving the user's graphics commands.
-                    let sf = window.tracked_state.scale_factor;
-                    let (w, h) = window
-                        .tracked_state
-                        .physical_size
-                        .to_logical::<f32>(sf)
-                        .into();
-                    let window_rect = geom::Rect::from_w_h(w, h);
-                    let raw_frame = RawFrame::new_empty(
-                        window.swap_chain_device_queue_pair().clone(),
-                        window_id,
-                        nth_frame,
-                        swap_chain_texture,
-                        window.swap_chain.descriptor.format,
-                        window_rect,
-                    );
-
-                    // If the user specified a view function specifically for this window, use it.
-                    // Otherwise, use the fallback, default view passed to the app if there was one.
-                    let window_view = window.user_functions.view.clone();
-
-                    match window_view {
-                        Some(window::View::Sketch(view)) => {
-                            let data = frame_data.as_ref().expect("missing `frame_data`");
-                            let frame = Frame::new_empty(raw_frame, &data.render, &data.capture);
-                            view(&app, frame);
-                        }
-                        Some(window::View::WithModel(view)) => {
-                            let data = frame_data.as_ref().expect("missing `frame_data`");
-                            let frame = Frame::new_empty(raw_frame, &data.render, &data.capture);
-                            let view = view
-                                .to_fn_ptr::<M>()
-                                .expect("unexpected model argument given to window view function");
-                            (*view)(&app, &model, frame);
-                        }
-                        Some(window::View::WithModelRaw(raw_view)) => {
-                            let raw_view = raw_view.to_fn_ptr::<M>().expect(
-                                "unexpected model argument given to window raw_view function",
+                            eprintln!(
+                                "swap chain outdated, skipping frame (did you resize on x11?)"
                             );
-                            (*raw_view)(&app, &model, raw_frame);
+                        } else {
+                            // If it's not an Outdated, it's probably a real problem.
+                            // Crash.
+                            panic!("swap chain error: {}", e);
                         }
-                        None => match default_view {
-                            Some(View::Sketch(view)) => {
+                    } else if let Ok(swap_chain_output) = swap_chain_output {
+                        let swap_chain_texture = &swap_chain_output.output.view;
+
+                        // Borrow the window now that we don't need it mutably until setting the render
+                        // data back.
+                        let windows = app.windows.borrow();
+                        let window = windows
+                            .get(&window_id)
+                            .expect("failed to find window for redraw request");
+                        let frame_data = &window.frame_data;
+
+                        // Construct and emit a frame via `view` for receiving the user's graphics commands.
+                        let sf = window.tracked_state.scale_factor;
+                        let (w, h) = window
+                            .tracked_state
+                            .physical_size
+                            .to_logical::<f32>(sf)
+                            .into();
+                        let window_rect = geom::Rect::from_w_h(w, h);
+                        let raw_frame = RawFrame::new_empty(
+                            window.swap_chain_device_queue_pair().clone(),
+                            window_id,
+                            nth_frame,
+                            swap_chain_texture,
+                            window.swap_chain.descriptor.format,
+                            window_rect,
+                        );
+
+                        // If the user specified a view function specifically for this window, use it.
+                        // Otherwise, use the fallback, default view passed to the app if there was one.
+                        let window_view = window.user_functions.view.clone();
+
+                        match window_view {
+                            Some(window::View::Sketch(view)) => {
                                 let data = frame_data.as_ref().expect("missing `frame_data`");
                                 let frame =
                                     Frame::new_empty(raw_frame, &data.render, &data.capture);
                                 view(&app, frame);
                             }
-                            Some(View::WithModel(view)) => {
+                            Some(window::View::WithModel(view)) => {
                                 let data = frame_data.as_ref().expect("missing `frame_data`");
                                 let frame =
                                     Frame::new_empty(raw_frame, &data.render, &data.capture);
-                                view(&app, &model, frame);
+                                let view = view.to_fn_ptr::<M>().expect(
+                                    "unexpected model argument given to window view function",
+                                );
+                                (*view)(&app, &model, frame);
                             }
-                            None => raw_frame.submit(),
-                        },
+                            Some(window::View::WithModelRaw(raw_view)) => {
+                                let raw_view = raw_view.to_fn_ptr::<M>().expect(
+                                    "unexpected model argument given to window raw_view function",
+                                );
+                                (*raw_view)(&app, &model, raw_frame);
+                            }
+                            None => match default_view {
+                                Some(View::Sketch(view)) => {
+                                    let data = frame_data.as_ref().expect("missing `frame_data`");
+                                    let frame =
+                                        Frame::new_empty(raw_frame, &data.render, &data.capture);
+                                    view(&app, frame);
+                                }
+                                Some(View::WithModel(view)) => {
+                                    let data = frame_data.as_ref().expect("missing `frame_data`");
+                                    let frame =
+                                        Frame::new_empty(raw_frame, &data.render, &data.capture);
+                                    view(&app, &model, frame);
+                                }
+                                None => raw_frame.submit(),
+                            },
+                        }
+
+                        // Release immutable lock
+                        drop(windows);
+
+                        // Replace the render data and swap chain.
+                        let mut windows = app.windows.borrow_mut();
+                        let window = windows
+                            .get_mut(&window_id)
+                            .expect("no window for redraw request ID");
+
+                        window.swap_chain.swap_chain = Some(swap_chain);
                     }
                 }
-
-                // Replace the render data and swap chain.
-                let mut windows = app.windows.borrow_mut();
-                let window = windows
-                    .get_mut(&window_id)
-                    .expect("no window for redraw request ID");
-
-                window.swap_chain.swap_chain = Some(swap_chain);
             }
 
             // Clear any inactive adapters and devices and poll those remaining.

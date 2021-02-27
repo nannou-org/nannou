@@ -68,7 +68,7 @@ fn view(app: &App, frame: Frame) {
         .y(y_off);
 
     // Window and monitor details.
-    let monitor = window.current_monitor();
+    let monitor = window.current_monitor().expect("Couldn't get monitor.");
     let w_scale_factor = window.scale_factor();
     let m_scale_factor = monitor.scale_factor();
     let mon_phys = monitor.size();

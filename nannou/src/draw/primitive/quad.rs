@@ -47,7 +47,6 @@ impl<S> Quad<S> {
 }
 
 // Trait implementations.
-
 impl draw::renderer::RenderPrimitive for Quad<f32> {
     fn render_primitive(
         self,

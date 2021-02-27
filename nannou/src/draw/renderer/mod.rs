@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
+use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 /// Draw API primitives that may be rendered via the **Renderer** type.
 pub trait RenderPrimitive {
@@ -395,7 +396,8 @@ impl Renderer {
             .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
             .format(Self::GLYPH_CACHE_TEXTURE_FORMAT)
             .build(device);
-        let glyph_cache_texture_view = glyph_cache_texture.create_default_view();
+        let glyph_cache_texture_view =
+            glyph_cache_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         // Create the depth texture.
         let depth_texture =
@@ -411,9 +413,13 @@ impl Renderer {
 
         // Initial uniform buffer values. These will be overridden on draw.
         let uniforms = create_uniforms(output_attachment_size, output_scale_factor);
-        let uniforms_bytes = uniforms_as_bytes(&uniforms);
+        let contents = uniforms_as_bytes(&uniforms);
         let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
-        let uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
+        let uniform_buffer = device.create_buffer_init(&wgpu::BufferInitDescriptor {
+            label: Some("nannou Renderer uniform_buffer"),
+            contents,
+            usage,
+        });
 
         // Bind group for uniforms.
         let uniform_bind_group_layout = create_uniform_bind_group_layout(device);
@@ -800,23 +806,20 @@ impl Renderer {
 
         // Retrieve the clear values based on the bg color.
         let bg_color = draw.state.borrow().background_color;
-        let (load_op, clear_color) = match bg_color {
-            None => (wgpu::LoadOp::Load, wgpu::Color::TRANSPARENT),
+        let load_op = match bg_color {
+            None => wgpu::LoadOp::Load,
             Some(color) => {
                 let (r, g, b, a) = color.into();
                 let (r, g, b, a) = (r as f64, g as f64, b as f64, a as f64);
                 let clear_color = wgpu::Color { r, g, b, a };
-                (wgpu::LoadOp::Clear, clear_color)
+                wgpu::LoadOp::Clear(clear_color)
             }
         };
 
         // Create render pass builder.
         let render_pass_builder = wgpu::RenderPassBuilder::new()
             .color_attachment(output_attachment, |color| {
-                color
-                    .resolve_target(resolve_target)
-                    .load_op(load_op)
-                    .clear_color(clear_color)
+                color.resolve_target(resolve_target).load_op(load_op)
             })
             .depth_stencil_attachment(&*depth_texture_view, |depth| depth);
 
@@ -834,11 +837,31 @@ impl Renderer {
         let tex_coords_bytes = tex_coords_as_bytes(mesh.tex_coords());
         let modes_bytes = vertex_modes_as_bytes(vertex_mode_buffer);
         let indices_bytes = indices_as_bytes(mesh.indices());
-        let point_buffer = device.create_buffer_with_data(points_bytes, vertex_usage);
-        let color_buffer = device.create_buffer_with_data(colors_bytes, vertex_usage);
-        let tex_coords_buffer = device.create_buffer_with_data(tex_coords_bytes, vertex_usage);
-        let mode_buffer = device.create_buffer_with_data(modes_bytes, vertex_usage);
-        let index_buffer = device.create_buffer_with_data(indices_bytes, wgpu::BufferUsage::INDEX);
+        let point_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("nannou Renderer point_buffer"),
+            contents: points_bytes,
+            usage: vertex_usage,
+        });
+        let color_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("nannou Renderer color_buffer"),
+            contents: colors_bytes,
+            usage: vertex_usage,
+        });
+        let tex_coords_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("nannou Renderer tex_coords_buffer"),
+            contents: tex_coords_bytes,
+            usage: vertex_usage,
+        });
+        let mode_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("nannou Renderer mode_buffer"),
+            contents: modes_bytes,
+            usage: vertex_usage,
+        });
+        let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("nannou Renderer index_buffer"),
+            contents: indices_bytes,
+            usage: wgpu::BufferUsage::INDEX,
+        });
 
         // If the scale factor or window size has changed, update the uniforms for vertex scaling.
         if *old_scale_factor != scale_factor || output_attachment_size != depth_size {
@@ -848,7 +871,11 @@ impl Renderer {
             let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
             let uniforms_bytes = uniforms_as_bytes(&uniforms);
             let usage = wgpu::BufferUsage::COPY_SRC;
-            let new_uniform_buffer = device.create_buffer_with_data(uniforms_bytes, usage);
+            let new_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
+                label: Some("nannou Renderer uniform_buffer"),
+                contents: uniforms_bytes,
+                usage,
+            });
             // Copy new uniform buffer state.
             encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, uniform_buffer, 0, uniforms_size);
         }
@@ -857,11 +884,11 @@ impl Renderer {
         let mut render_pass = render_pass_builder.begin(encoder);
 
         // Set the buffers.
-        render_pass.set_index_buffer(&index_buffer, 0, 0);
-        render_pass.set_vertex_buffer(0, &point_buffer, 0, 0);
-        render_pass.set_vertex_buffer(1, &color_buffer, 0, 0);
-        render_pass.set_vertex_buffer(2, &tex_coords_buffer, 0, 0);
-        render_pass.set_vertex_buffer(3, &mode_buffer, 0, 0);
+        render_pass.set_index_buffer(index_buffer.slice(..));
+        render_pass.set_vertex_buffer(0, point_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, color_buffer.slice(..));
+        render_pass.set_vertex_buffer(2, tex_coords_buffer.slice(..));
+        render_pass.set_vertex_buffer(3, mode_buffer.slice(..));
 
         // Set the uniform and text bind groups here.
         render_pass.set_bind_group(0, uniform_bind_group, &[]);
@@ -1013,7 +1040,7 @@ fn create_text_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout
             wgpu::ShaderStage::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
-            wgpu::texture_format_to_component_type(Renderer::GLYPH_CACHE_TEXTURE_FORMAT),
+            Renderer::GLYPH_CACHE_TEXTURE_FORMAT.into(),
         )
         .build(device)
 }

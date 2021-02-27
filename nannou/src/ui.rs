@@ -495,7 +495,7 @@ pub fn encode_render_pass(
     let render = renderer.render(&device, &ui.image_map);
     {
         let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
-        render_pass.set_vertex_buffer(0, &render.vertex_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, render.vertex_buffer.slice(..));
         let instance_range = 0..1;
         for cmd in render.commands {
             match cmd {
@@ -524,7 +524,7 @@ pub fn encode_render_pass(
 }
 
 mod conrod_winit_conv {
-    conrod_winit::v021_conversion_fns!();
+    conrod_winit::v023_conversion_fns!();
 }
 
 /// Convert the given window event to a UI Input.

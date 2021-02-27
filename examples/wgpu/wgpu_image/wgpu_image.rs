@@ -76,7 +76,11 @@ fn model(app: &App) -> Model {
 
     let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
     let usage = wgpu::BufferUsage::VERTEX;
-    let vertex_buffer = device.create_buffer_with_data(vertices_bytes, usage);
+    let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+        label: None,
+        contents: vertices_bytes,
+        usage,
+    });
 
     Model {
         bind_group,
@@ -92,7 +96,7 @@ fn view(_app: &App, model: &Model, frame: Frame) {
         .begin(&mut encoder);
     render_pass.set_bind_group(0, &model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
-    render_pass.set_vertex_buffer(0, &model.vertex_buffer, 0, 0);
+    render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
     let vertex_range = 0..VERTICES.len() as u32;
     let instance_range = 0..1;
     render_pass.draw(vertex_range, instance_range);
@@ -130,7 +134,9 @@ fn create_pipeline_layout(
     bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::PipelineLayout {
     let desc = wgpu::PipelineLayoutDescriptor {
+        label: None,
         bind_group_layouts: &[&bind_group_layout],
+        push_constant_ranges: &[],
     };
     device.create_pipeline_layout(&desc)
 }

@@ -1,10 +1,11 @@
 use crate::wgpu;
 use std::fmt;
 use std::future::Future;
-use std::ops::Deref;
 use std::sync::atomic::{self, AtomicU32};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+
+use image::{GenericImage, GenericImageView};
 
 /// A type dedicated to capturing a texture as a non-linear sRGBA image that can be read on the
 /// CPU.
@@ -37,22 +38,10 @@ struct ThreadPool {
 /// A snapshot is a thin wrapper around a **wgpu::BufferImage** that knows that the image format is
 /// specifically non-linear sRGBA8.
 pub struct Snapshot {
-    buffer: wgpu::BufferImage,
+    buffer: wgpu::RowPaddedBuffer,
     thread_pool: Arc<Mutex<Option<Arc<ThreadPool>>>>,
     workers: Option<u32>,
     timeout: Option<Duration>,
-}
-
-/// A wrapper around a slice of bytes representing a non-linear sRGBA image.
-///
-/// An **ImageReadMapping** may only be created by reading from a **Snapshot** returned by a
-/// `Texture::to_image` call.
-pub struct Rgba8ReadMapping {
-    // Hold on to the snapshot to ensure buffer lives as long as mapping. Without this, we get
-    // panics (or sigsegv). This seems to be because if snapshot and inner `wgpu::Buffer` drops,
-    // the memory is unmapped. TODO: This should be fixed in wgpu.
-    _snapshot: Snapshot,
-    mapping: wgpu::ImageReadMapping,
 }
 
 /// An error indicating that the threadpool timed out while waiting for a worker to become
@@ -66,8 +55,10 @@ struct ConverterDataPair {
     dst_texture: wgpu::Texture,
 }
 
-/// An alias for the image buffer that can be read from a captured **Snapshot**.
-pub struct Rgba8AsyncMappedImageBuffer(image::ImageBuffer<image::Rgba<u8>, Rgba8ReadMapping>);
+/// A wrapper around a slice of bytes representing a non-linear sRGBA image.
+///
+/// Can be read from a captured `Snapshot`.
+pub struct Rgba8AsyncMappedImageBuffer<'buffer>(wgpu::ImageReadMapping<'buffer>);
 
 impl ThreadPool {
     /// Spawns the given future if a worker is available. Otherwise, blocks and waits for a worker
@@ -198,7 +189,7 @@ impl Capturer {
         encoder: &mut wgpu::CommandEncoder,
         src_texture: &wgpu::Texture,
     ) -> Snapshot {
-        let buffer_image = if src_texture.format() != Self::DST_FORMAT {
+        let buffer = if src_texture.format() != Self::DST_FORMAT {
             let mut converter_data_pair = self
                 .converter_data_pair
                 .lock()
@@ -217,23 +208,18 @@ impl Capturer {
             }
 
             // Encode the texture format conversion.
-            let dst_view = converter_data_pair.dst_texture.create_default_view();
+            let dst_view = converter_data_pair.dst_texture.view();
             converter_data_pair
                 .reshaper
-                .encode_render_pass(&dst_view, encoder);
+                .encode_render_pass(&dst_view.build(), encoder);
 
-            converter_data_pair
-                .dst_texture
-                .to_image(device, encoder)
-                .expect("texture has unsupported format")
+            converter_data_pair.dst_texture.to_buffer(device, encoder)
         } else {
-            src_texture
-                .to_image(device, encoder)
-                .expect("texture has unsupported format")
+            src_texture.to_buffer(device, encoder)
         };
 
         Snapshot {
-            buffer: buffer_image,
+            buffer,
             thread_pool: self.thread_pool.clone(),
             workers: self.workers,
             timeout: self.timeout,
@@ -256,19 +242,12 @@ impl Capturer {
 }
 
 impl Snapshot {
-    /// Reads the non-linear sRGBA image from mapped memory.
-    ///
-    /// Specifically, this asynchronously maps the buffer of bytes from GPU to host memory and
-    /// returns the result as an `ImageBuffer` with non-linear, RGBA 8 pixels.
-    pub async fn read_async(self) -> Result<Rgba8AsyncMappedImageBuffer, wgpu::BufferAsyncErr> {
-        let [width, height] = self.buffer.size();
+    /// Reads the non-linear sRGBA image from mapped memory and convert it to an owned buffer.
+    pub async fn read_async<'buffer>(
+        &'buffer self,
+    ) -> Result<Rgba8AsyncMappedImageBuffer<'buffer>, wgpu::BufferAsyncError> {
         let mapping = self.buffer.read().await?;
-        let _snapshot = self;
-        let mapping = Rgba8ReadMapping { _snapshot, mapping };
-        let img_buffer = image::ImageBuffer::from_raw(width, height, mapping)
-            .expect("image buffer dimensions did not match mapping");
-        let img_buffer = Rgba8AsyncMappedImageBuffer(img_buffer);
-        Ok(img_buffer)
+        Ok(Rgba8AsyncMappedImageBuffer(mapping))
     }
 
     /// The same as `read_async`, but runs the resulting future on an inner threadpool and calls
@@ -288,10 +267,10 @@ impl Snapshot {
     /// instead and running the resulting future on a custom runtime or threadpool.
     pub fn read<F>(self, callback: F) -> Result<(), AwaitWorkerTimeout<impl Future<Output = ()>>>
     where
-        F: 'static + Send + FnOnce(Result<Rgba8AsyncMappedImageBuffer, wgpu::BufferAsyncErr>),
+        F: 'static + Send + FnOnce(Result<Rgba8AsyncMappedImageBuffer, wgpu::BufferAsyncError>),
     {
         let thread_pool = self.thread_pool();
-        let read_future = async {
+        let read_future = async move {
             let res = self.read_async().await;
             callback(res);
         };
@@ -321,33 +300,19 @@ impl Snapshot {
     }
 }
 
-impl Rgba8AsyncMappedImageBuffer {
+impl<'b> Rgba8AsyncMappedImageBuffer<'b> {
+    pub fn as_image(&self) -> image::SubImage<wgpu::ImageHolder<image::Rgba<u8>>> {
+        // safe: we know it's Rgba<u8>
+        unsafe { self.0.as_image::<image::Rgba<u8>>() }
+    }
     /// Convert the mapped image buffer to an owned buffer.
     pub fn to_owned(&self) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
-        let vec = self.as_flat_samples().as_slice().to_vec();
-        let (width, height) = self.dimensions();
-        image::ImageBuffer::from_raw(width, height, vec)
-            .expect("image buffer dimensions do not match vec len")
-    }
-}
-
-impl Deref for Rgba8ReadMapping {
-    type Target = [u8];
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl Deref for Rgba8AsyncMappedImageBuffer {
-    type Target = image::ImageBuffer<image::Rgba<u8>, Rgba8ReadMapping>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl AsRef<[u8]> for Rgba8ReadMapping {
-    fn as_ref(&self) -> &[u8] {
-        self.mapping.mapping().as_slice()
+        let view = self.as_image();
+        let mut result = image::ImageBuffer::new(view.width(), view.height());
+        result
+            .copy_from(&view, 0, 0)
+            .expect("nannou internal error: image copy failed");
+        result
     }
 }
 
@@ -371,7 +336,7 @@ fn create_converter_data_pair(
     src_texture: &wgpu::Texture,
 ) -> ConverterDataPair {
     // Create the destination format texture.
-    let dst_texture = wgpu::TextureBuilder::from(src_texture.descriptor_cloned())
+    let dst_texture = wgpu::TextureBuilder::from(src_texture.descriptor.clone())
         .sample_count(1)
         .format(Capturer::DST_FORMAT)
         .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::COPY_SRC)
@@ -380,7 +345,7 @@ fn create_converter_data_pair(
     // Create the converter.
     let src_sample_count = src_texture.sample_count();
     let src_component_type = src_texture.component_type();
-    let src_view = src_texture.create_default_view();
+    let src_view = src_texture.create_view(&wgpu::TextureViewDescriptor::default());
     let dst_sample_count = 1;
     let dst_format = dst_texture.format();
     let reshaper = wgpu::TextureReshaper::new(
@@ -393,7 +358,7 @@ fn create_converter_data_pair(
     );
 
     // Keep track of the `src_descriptor` to check if we need to recreate the converter.
-    let src_descriptor = src_texture.descriptor_cloned();
+    let src_descriptor = src_texture.descriptor.clone();
 
     ConverterDataPair {
         src_descriptor,

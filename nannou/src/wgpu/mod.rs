@@ -41,47 +41,48 @@ pub use self::render_pipeline_builder::RenderPipelineBuilder;
 pub use self::sampler_builder::SamplerBuilder;
 pub use self::texture::capturer::{
     AwaitWorkerTimeout as TextureCapturerAwaitWorkerTimeout, Capturer as TextureCapturer,
-    Rgba8ReadMapping, Snapshot as TextureSnapshot,
+    Snapshot as Textue5cfe74reSnapshot,
 };
-pub use self::texture::image::{
-    format_from_image_color_type as texture_format_from_image_color_type, BufferImage,
-    ImageReadMapping,
-};
+pub use self::texture::image::format_from_image_color_type as texture_format_from_image_color_type;
 pub use self::texture::reshaper::Reshaper as TextureReshaper;
+pub use self::texture::row_padded_buffer::{ImageHolder, ImageReadMapping, RowPaddedBuffer};
 pub use self::texture::{
     descriptor_eq as texture_descriptor_eq, extent_3d_eq,
-    format_size_bytes as texture_format_size_bytes,
-    format_to_component_type as texture_format_to_component_type, BufferBytes,
-    Builder as TextureBuilder, Texture, TextureId, TextureView, TextureViewId, ToTextureView,
+    format_size_bytes as texture_format_size_bytes, Builder as TextureBuilder, Texture, TextureId,
+    TextureView, TextureViewId, ToTextureView,
 };
 #[doc(inline)]
-pub use wgpu::{
-    read_spirv, vertex_attr_array, vertex_format_size, Adapter, AdapterInfo, AddressMode, Backend,
-    BackendBit, BindGroup, BindGroupDescriptor, BindGroupLayout, BindGroupLayoutDescriptor,
-    BindGroupLayoutEntry, Binding, BindingResource, BindingType, BlendDescriptor, BlendFactor,
-    BlendOperation, Buffer, BufferAddress, BufferAsyncErr, BufferCopyView, BufferDescriptor,
-    BufferReadMapping, BufferUsage, BufferWriteMapping, Color, ColorStateDescriptor, ColorWrite,
-    CommandBuffer, CommandBufferDescriptor, CommandEncoder, CommandEncoderDescriptor,
-    CompareFunction, ComputePass, ComputePipeline, ComputePipelineDescriptor, CreateBufferMapped,
-    CullMode, DepthStencilStateDescriptor, Device, DeviceDescriptor, DeviceType, DynamicOffset,
-    Extensions, Extent3d, FilterMode, FrontFace, IndexFormat, InputStepMode, Limits, LoadOp,
-    Maintain, Origin3d, PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PresentMode,
-    PrimitiveTopology, ProgrammableStageDescriptor, Queue, RasterizationStateDescriptor,
-    RenderPass, RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor,
+pub use wgpu_upstream::{
+    util::{self, BufferInitDescriptor},
+    vertex_attr_array, Adapter, AdapterInfo, AddressMode, Backend, BackendBit, BindGroup,
+    BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+    BindGroupLayoutEntry, BindingResource, BindingType, BlendDescriptor, BlendFactor,
+    BlendOperation, Buffer, BufferAddress, BufferAsyncError, BufferCopyView, BufferDescriptor,
+    BufferSlice, BufferUsage, BufferView, Color, ColorStateDescriptor, ColorWrite, CommandBuffer,
+    CommandBufferDescriptor, CommandEncoder, CommandEncoderDescriptor, CompareFunction,
+    ComputePass, ComputePipeline, ComputePipelineDescriptor, CullMode, DepthStencilStateDescriptor,
+    Device, DeviceDescriptor, DeviceType, DynamicOffset, Extent3d, Features, FilterMode, FrontFace,
+    IndexFormat, InputStepMode, Instance, Limits, LoadOp, Maintain, MapMode, Operations, Origin3d,
+    PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PresentMode, PrimitiveTopology,
+    ProgrammableStageDescriptor, Queue, RasterizationStateDescriptor, RenderPass,
+    RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor,
     RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, Sampler,
-    SamplerDescriptor, ShaderLocation, ShaderModule, ShaderStage, StencilOperation,
-    StencilStateFaceDescriptor, StoreOp, Surface, SwapChain, SwapChainDescriptor, SwapChainOutput,
-    Texture as TextureHandle, TextureAspect, TextureComponentType, TextureCopyView,
-    TextureDescriptor, TextureDimension, TextureFormat, TextureUsage,
-    TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension, TimeOut,
-    VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat, VertexStateDescriptor,
-    BIND_BUFFER_ALIGNMENT, MAX_BIND_GROUPS,
+    SamplerDescriptor, ShaderLocation, ShaderModule, ShaderModuleSource, ShaderStage,
+    StencilOperation, StencilStateDescriptor, StencilStateFaceDescriptor, Surface, SwapChain,
+    SwapChainDescriptor, SwapChainError, Texture as TextureHandle, TextureAspect,
+    TextureComponentType, TextureCopyView, TextureDataLayout, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureUsage, TextureView as TextureViewHandle, TextureViewDescriptor,
+    TextureViewDimension, VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat,
+    VertexStateDescriptor, BIND_BUFFER_ALIGNMENT, COPY_BUFFER_ALIGNMENT,
+    COPY_BYTES_PER_ROW_ALIGNMENT,
 };
 
-pub fn shader_from_spirv_bytes(device: &wgpu::Device, bytes: &[u8]) -> wgpu::ShaderModule {
-    let cursor = std::io::Cursor::new(bytes);
-    let vs_spirv = read_spirv(cursor).expect("failed to read hard-coded SPIRV");
-    device.create_shader_module(&vs_spirv)
+pub fn shader_from_spirv_bytes(
+    device: &wgpu_upstream::Device,
+    bytes: &[u8],
+) -> wgpu_upstream::ShaderModule {
+    let shader_module = util::make_spirv(bytes);
+    device.create_shader_module(shader_module)
 }
 
 /// The default power preference used for requesting the WGPU adapter.
@@ -89,11 +90,6 @@ pub const DEFAULT_POWER_PREFERENCE: PowerPreference = PowerPreference::HighPerfo
 
 /// Nannou's default WGPU backend preferences.
 pub const DEFAULT_BACKENDS: BackendBit = BackendBit::PRIMARY;
-
-/// The default set of `Extensions` used within the `default_device_descriptor()` function.
-pub const DEFAULT_EXTENSIONS: Extensions = Extensions {
-    anisotropic_filtering: true,
-};
 
 /// Adds a simple render pass command to the given encoder that simply clears the given texture
 /// with the given colour.
@@ -105,15 +101,22 @@ pub fn clear_texture(
     encoder: &mut CommandEncoder,
 ) {
     RenderPassBuilder::new()
-        .color_attachment(texture, |builder| builder.clear_color(clear_color))
+        .color_attachment(texture, |builder| {
+            builder.load_op(LoadOp::Clear(clear_color))
+        })
         .begin(encoder);
 }
 
 /// The default device descriptor used to instantiate a logical device when creating windows.
 pub fn default_device_descriptor() -> DeviceDescriptor {
-    let extensions = DEFAULT_EXTENSIONS;
+    let features = Features::default();
     let limits = Limits::default();
-    DeviceDescriptor { extensions, limits }
+    let shader_validation = true;
+    DeviceDescriptor {
+        features,
+        limits,
+        shader_validation,
+    }
 }
 
 /// Adds a simple render pass command to the given encoder that resolves the given multisampled
@@ -139,32 +142,23 @@ pub fn resolve_texture(
 }
 
 /// Shorthand for creating the pipeline layout from a slice of bind group layouts.
-pub fn create_pipeline_layout(
-    device: &wgpu::Device,
-    bind_group_layouts: &[&wgpu::BindGroupLayout],
-) -> wgpu::PipelineLayout {
-    let descriptor = wgpu::PipelineLayoutDescriptor { bind_group_layouts };
+pub fn create_pipeline_layout<'p>(
+    device: &wgpu_upstream::Device,
+    label: Option<&'p str>,
+    bind_group_layouts: &[&wgpu_upstream::BindGroupLayout],
+    push_constant_ranges: &'p [wgpu_upstream::PushConstantRange],
+) -> wgpu_upstream::PipelineLayout {
+    let descriptor = wgpu_upstream::PipelineLayoutDescriptor {
+        label,
+        bind_group_layouts,
+        push_constant_ranges,
+    };
     device.create_pipeline_layout(&descriptor)
-}
-
-/// TODO: Remove this once `derive(Clone)` is added to wgpu SamplerDescriptor.
-pub fn sampler_descriptor_clone(sampler: &wgpu::SamplerDescriptor) -> wgpu::SamplerDescriptor {
-    wgpu::SamplerDescriptor {
-        address_mode_u: sampler.address_mode_u,
-        address_mode_v: sampler.address_mode_v,
-        address_mode_w: sampler.address_mode_w,
-        mag_filter: sampler.mag_filter,
-        min_filter: sampler.min_filter,
-        mipmap_filter: sampler.mipmap_filter,
-        lod_min_clamp: sampler.lod_min_clamp,
-        lod_max_clamp: sampler.lod_max_clamp,
-        compare: sampler.compare,
-    }
 }
 
 /// The functions within this module use unsafe in order to retrieve their input as a slice of
 /// bytes. This is necessary in order to upload data to the GPU via the wgpu
-/// `create_buffer_with_data` buffer constructor. This method is unsafe as the type `T` may contain
+/// `DeviceExt::create_buffer_init` buffer constructor. This method is unsafe as the type `T` may contain
 /// padding which is considered to be uninitialised memory in Rust and may potentially lead to
 /// undefined behaviour.
 ///
@@ -198,6 +192,25 @@ pub mod bytes {
     {
         let len = std::mem::size_of::<T>();
         let ptr = t as *const T as *const u8;
+        std::slice::from_raw_parts(ptr, len)
+    }
+
+    /// This is really an astonishingly unsafe function.
+    /// Please don't use it.
+    pub unsafe fn to_slice<T>(slice: &[u8]) -> &[T]
+    where
+        T: Copy + Sized,
+    {
+        let size = std::mem::size_of::<T>();
+        let align = std::mem::align_of::<T>();
+        assert_eq!(slice.len() % size, 0, "incorrect buffer size");
+        assert_eq!(
+            slice.as_ptr() as usize % align,
+            0,
+            "incorrect buffer alignment"
+        );
+        let len = slice.len() / size;
+        let ptr = slice.as_ptr() as *const T;
         std::slice::from_raw_parts(ptr, len)
     }
 }

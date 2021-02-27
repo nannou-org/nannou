@@ -1,4 +1,5 @@
 use crate::wgpu;
+use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 /// Reshapes a texture from its original size, sample_count and format to the destination size,
 /// sample_count and format.
@@ -76,7 +77,11 @@ impl Reshaper {
                 };
                 let uniforms_bytes = uniforms_as_bytes(&uniforms);
                 let usage = wgpu::BufferUsage::UNIFORM;
-                let buffer = device.create_buffer_with_data(&uniforms_bytes, usage);
+                let buffer = device.create_buffer_init(&BufferInitDescriptor {
+                    label: None,
+                    contents: &uniforms_bytes,
+                    usage,
+                });
                 Some(buffer)
             }
         };
@@ -93,7 +98,11 @@ impl Reshaper {
         // Create the vertex buffer.
         let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
         let vertex_usage = wgpu::BufferUsage::VERTEX;
-        let vertex_buffer = device.create_buffer_with_data(vertices_bytes, vertex_usage);
+        let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            contents: vertices_bytes,
+            usage: vertex_usage,
+        });
 
         Reshaper {
             _vs_mod: vs_mod,
@@ -118,7 +127,7 @@ impl Reshaper {
             .color_attachment(dst_texture, |color| color)
             .begin(encoder);
         render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.set_vertex_buffer(0, &self.vertex_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         let vertex_range = 0..VERTICES.len() as u32;
         let instance_range = 0..1;
@@ -188,7 +197,9 @@ fn pipeline_layout(
     bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::PipelineLayout {
     let desc = wgpu::PipelineLayoutDescriptor {
+        label: Some("nannou_reshaper"),
         bind_group_layouts: &[&bind_group_layout],
+        push_constant_ranges: &[],
     };
     device.create_pipeline_layout(&desc)
 }
