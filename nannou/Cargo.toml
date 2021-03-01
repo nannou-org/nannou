@@ -31,8 +31,12 @@ toml = "0.5"
 walkdir = "2"
 wgpu_upstream = { version = "0.11", package = "wgpu" }
 winit = "0.25"
+getrandom = "0.2.3"
 
 [features]
 default = ["notosans"]
 # Enables SPIR-V support in the `wgpu` module.
 spirv = ["nannou_wgpu/spirv"]
+# Enables experimental WASM compilation for CI-use only
+wasm-experimental = ["winit/web-sys", "getrandom/js"]
+
