@@ -202,7 +202,7 @@ impl Texture {
     /// This is useful for distinguishing between two **Texture**s or for producing a hashable
     /// representation.
     pub fn id(&self) -> TextureId {
-        TextureId(Arc::into_raw(self.handle.clone()) as usize)
+        TextureId(Arc::as_ptr(&self.handle) as usize)
     }
 
     /// Begin building a **TextureView** for this **Texture**.
