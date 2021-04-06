@@ -26,6 +26,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
 use std::time::Duration;
+use wgpu_upstream::SwapChain;
 use winit;
 use winit::event_loop::ControlFlow;
 
@@ -749,6 +750,27 @@ impl App {
         windows.keys().cloned().collect()
     }
 
+    /// Return the **SwapChain** for the given `window_id`, rebuilding if it doesn't exist.
+    ///
+    /// **Panics** if `window_id` does not exist, or if the swap chain is missing and cannot be rebuilt.
+    pub fn get_or_rebuild_swap_chain(&self, window_id: window::Id) -> SwapChain {
+        let mut windows = self.windows.borrow_mut();
+
+        let window = windows
+            .get_mut(&window_id)
+            .expect("no window for redraw request ID");
+
+        if window.swap_chain.swap_chain.is_none() {
+            window.rebuild_swap_chain(window.tracked_state.physical_size.into());
+        }
+
+        window
+            .swap_chain
+            .swap_chain
+            .take()
+            .expect("missing swap chain")
+    }
+
     /// Return the **Rect** for the currently focused window.
     ///
     /// The **Rect** coords are described in "points" (pixels divided by the hidpi factor).
@@ -1097,24 +1119,21 @@ fn run_loop<M, E>(
                 // Take the render data and swapchain.
                 // We'll replace them before the end of this block.
                 let (mut swap_chain, nth_frame) = {
-                    let mut windows = app.windows.borrow_mut();
+                    let swap_chain = app.get_or_rebuild_swap_chain(window_id);
 
+                    let mut windows = app.windows.borrow_mut();
                     let window = windows
                         .get_mut(&window_id)
                         .expect("no window for redraw request ID");
-                    let swap_chain = window
-                        .swap_chain
-                        .swap_chain
-                        .take()
-                        .expect("missing swap chain");
+
                     let nth_frame = window.frame_count;
                     window.frame_count += 1;
                     (swap_chain, nth_frame)
                 };
 
                 if let Some(model) = model.as_ref() {
-                    let swap_chain_output = swap_chain.get_current_frame();
-                    if let Err(e) = swap_chain_output {
+                    let mut swap_chain_output = swap_chain.get_current_frame();
+                    if let Err(e) = &swap_chain_output {
                         match e {
                             // Sometimes redraws get delivered before resizes on x11 for unclear reasons.
                             // It goes all the way down to the API: if you ask x11 about the window size
@@ -1124,10 +1143,20 @@ fn run_loop<M, E>(
                             // If you turn on debug logging this does occasionally cause some vulkan
                             // validation errors... that's not great.
                             // TODO find a better long-term fix than ignoring.
-                            wgpu::SwapChainError::Outdated => {}
-                            _ => panic!("an error occurred acquiring the swapchain frame: {}", e),
+                            wgpu::SwapChainError::Lost => {
+                                // Attempt to rebuild the swap chain
+                                swap_chain = app.get_or_rebuild_swap_chain(window_id);
+                                swap_chain_output = swap_chain.get_current_frame();
+                            }
+                            wgpu::SwapChainError::Outdated => {} // skip frame
+                            wgpu::SwapChainError::Timeout => {}  // skip frame
+                            wgpu::SwapChainError::OutOfMemory => {
+                                panic!("out of memory acquiring the swap chain frame: {}", e);
+                            }
                         }
-                    } else if let Ok(swap_chain_output) = swap_chain_output {
+                    }
+
+                    if let Ok(swap_chain_output) = swap_chain_output {
                         let swap_chain_texture = &swap_chain_output.output.view;
 
                         // Borrow the window now that we don't need it mutably until setting the render
@@ -1243,7 +1272,6 @@ fn run_loop<M, E>(
                 winit::event::WindowEvent::Resized(new_inner_size) => {
                     let mut windows = app.windows.borrow_mut();
                     if let Some(window) = windows.get_mut(&window_id) {
-                        window.tracked_state.physical_size = new_inner_size.clone();
                         window.rebuild_swap_chain(new_inner_size.clone().into());
                     }
                 }
