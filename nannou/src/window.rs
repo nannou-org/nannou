@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{env, fmt};
-use winit::dpi::LogicalSize;
+use winit::dpi::{LogicalSize, PhysicalSize};
 
 pub use winit::window::Fullscreen;
 pub use winit::window::WindowId as Id;
@@ -25,6 +25,12 @@ pub use winit::window::WindowId as Id;
 pub const DEFAULT_DIMENSIONS: LogicalSize<geom::scalar::Default> = LogicalSize {
     width: 1024.0,
     height: 768.0,
+};
+
+/// The default minimum dimensions used for the swap chain
+pub const MIN_SC_PIXELS: PhysicalSize<u32> = PhysicalSize {
+    width: 2,
+    height: 2,
 };
 
 /// A context for building a window.
@@ -772,6 +778,11 @@ impl<'app> Builder<'app> {
             window.window.inner_size = Some(initial_window_size);
         }
 
+        // Set a default minimum window size to prevent requesting a too-small swap chains
+        if window.window.min_inner_size.is_none() && window.window.fullscreen.is_none() {
+            window.window.min_inner_size = Some(winit::dpi::Size::Physical(MIN_SC_PIXELS));
+        }
+
         // Build the window.
         let window = {
             let window_target = app
@@ -1353,11 +1364,20 @@ impl Window {
     // Custom methods.
 
     // A utility function to simplify the recreation of a swap_chain.
+    // Syncs the window tracked size with the swap chain size.
     pub(crate) fn rebuild_swap_chain(&mut self, size_px: [u32; 2]) {
-        std::mem::drop(self.swap_chain.swap_chain.take());
+        if self.swap_chain.swap_chain.is_some() {
+            std::mem::drop(self.swap_chain.swap_chain.take());
+        }
         let [width, height] = size_px;
-        self.swap_chain.descriptor.width = width;
-        self.swap_chain.descriptor.height = height;
+
+        // Ensure physical window size matches swap chain size
+        // Prevents crashing if a too-small swap chain is created
+        self.tracked_state.physical_size.width = width.max(MIN_SC_PIXELS.width);
+        self.tracked_state.physical_size.height = height.max(MIN_SC_PIXELS.height);
+
+        self.swap_chain.descriptor.width = self.tracked_state.physical_size.width;
+        self.swap_chain.descriptor.height = self.tracked_state.physical_size.height;
         self.swap_chain.swap_chain = Some(
             self.swap_chain_device()
                 .create_swap_chain(&self.surface, &self.swap_chain.descriptor),
@@ -1365,7 +1385,7 @@ impl Window {
         if self.frame_data.is_some() {
             let render_data = frame::RenderData::new(
                 self.swap_chain_device(),
-                size_px,
+                self.tracked_state.physical_size.into(),
                 self.swap_chain.descriptor.format,
                 self.msaa_samples,
             );
