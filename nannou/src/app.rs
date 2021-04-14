@@ -753,7 +753,7 @@ impl App {
     /// Return the **SwapChain** for the given `window_id`, rebuilding if it doesn't exist.
     ///
     /// **Panics** if `window_id` does not exist, or if the swap chain is missing and cannot be rebuilt.
-    pub fn get_or_rebuild_swap_chain(&self, window_id: window::Id) -> SwapChain {
+    fn take_or_rebuild_swap_chain(&self, window_id: window::Id) -> SwapChain {
         let mut windows = self.windows.borrow_mut();
 
         let window = windows
@@ -1119,7 +1119,7 @@ fn run_loop<M, E>(
                 // Take the render data and swapchain.
                 // We'll replace them before the end of this block.
                 let (mut swap_chain, nth_frame) = {
-                    let swap_chain = app.get_or_rebuild_swap_chain(window_id);
+                    let swap_chain = app.take_or_rebuild_swap_chain(window_id);
 
                     let mut windows = app.windows.borrow_mut();
                     let window = windows
@@ -1145,7 +1145,7 @@ fn run_loop<M, E>(
                             // TODO find a better long-term fix than ignoring.
                             wgpu::SwapChainError::Lost => {
                                 // Attempt to rebuild the swap chain
-                                swap_chain = app.get_or_rebuild_swap_chain(window_id);
+                                swap_chain = app.take_or_rebuild_swap_chain(window_id);
                                 swap_chain_output = swap_chain.get_current_frame();
                             }
                             wgpu::SwapChainError::Outdated => {} // skip frame
