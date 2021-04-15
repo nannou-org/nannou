@@ -86,7 +86,7 @@ pub fn shader_from_spirv_bytes(
 }
 
 /// The default power preference used for requesting the WGPU adapter.
-pub const DEFAULT_POWER_PREFERENCE: PowerPreference = PowerPreference::HighPerformance;
+pub const DEFAULT_POWER_PREFERENCE: PowerPreference = PowerPreference::Default;
 
 /// Nannou's default WGPU backend preferences.
 pub const DEFAULT_BACKENDS: BackendBit = BackendBit::PRIMARY;
