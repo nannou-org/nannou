@@ -339,12 +339,12 @@ fn create_converter_data_pair(
     let dst_texture = wgpu::TextureBuilder::from(src_texture.descriptor.clone())
         .sample_count(1)
         .format(Capturer::DST_FORMAT)
-        .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::COPY_SRC)
+        .usage(wgpu::TextureUsage::RENDER_ATTACHMENT | wgpu::TextureUsage::COPY_SRC)
         .build(device);
 
     // Create the converter.
     let src_sample_count = src_texture.sample_count();
-    let src_component_type = src_texture.component_type();
+    let src_sample_type = src_texture.sample_type();
     let src_view = src_texture.create_view(&wgpu::TextureViewDescriptor::default());
     let dst_sample_count = 1;
     let dst_format = dst_texture.format();
@@ -352,7 +352,7 @@ fn create_converter_data_pair(
         device,
         &src_view,
         src_sample_count,
-        src_component_type,
+        src_sample_type,
         dst_sample_count,
         dst_format,
     );

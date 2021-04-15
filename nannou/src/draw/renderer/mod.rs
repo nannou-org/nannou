@@ -88,7 +88,7 @@ pub struct Renderer {
     text_bind_group_layout: wgpu::BindGroupLayout,
     text_bind_group: wgpu::BindGroup,
     texture_samplers: HashMap<SamplerId, wgpu::Sampler>,
-    texture_bind_group_layouts: HashMap<wgpu::TextureComponentType, wgpu::BindGroupLayout>,
+    texture_bind_group_layouts: HashMap<wgpu::TextureSampleType, wgpu::BindGroupLayout>,
     texture_bind_groups: HashMap<BindGroupId, wgpu::BindGroup>,
     output_color_format: wgpu::TextureFormat,
     sample_count: u32,
@@ -165,7 +165,7 @@ struct PipelineId {
     color_id: ColorId,
     alpha_id: AlphaId,
     topology: wgpu::PrimitiveTopology,
-    texture_component_type: wgpu::TextureComponentType,
+    texture_sample_type: wgpu::TextureSampleType,
 }
 
 impl Default for PrimitiveRender {
@@ -356,6 +356,8 @@ impl Renderer {
     pub const DEFAULT_GLYPH_CACHE_POSITION_TOLERANCE: f32 = 0.1;
     /// The texture format of the inner glyph cache.
     pub const GLYPH_CACHE_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::R8Unorm;
+    /// The index format used to index into vertices.
+    pub const INDEX_FORMAT: wgpu::IndexFormat = wgpu::IndexFormat::Uint32;
 
     /// Create a new **Renderer**, ready to target an output attachment with the given size, sample
     /// count and color format.
@@ -390,7 +392,9 @@ impl Renderer {
         let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
 
         // Create the glyph cache texture.
-        let text_sampler = wgpu::SamplerBuilder::new().build(device);
+        let text_sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
+        let text_sampler_filtering = wgpu::sampler_filtering(&text_sampler_desc);
+        let text_sampler = device.create_sampler(&text_sampler_desc);
         let glyph_cache_texture = wgpu::TextureBuilder::new()
             .size(glyph_cache_size)
             .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
@@ -427,7 +431,7 @@ impl Renderer {
             create_uniform_bind_group(device, &uniform_bind_group_layout, &uniform_buffer);
 
         // Bind group for text.
-        let text_bind_group_layout = create_text_bind_group_layout(device);
+        let text_bind_group_layout = create_text_bind_group_layout(device, text_sampler_filtering);
         let text_bind_group = create_text_bind_group(
             device,
             &text_bind_group_layout,
@@ -592,27 +596,27 @@ impl Renderer {
                     }
 
                     // Retrieve the current texture view and texture view ID. These are necessary
-                    // for producing the curren tpipeline and bind group IDs. Also ensure we have
+                    // for producing the current pipeline and bind group IDs. Also ensure we have
                     // an entry for them in our map.
                     let tex_view = match render.texture_view {
                         Some(tex_view) => tex_view,
                         None => self.default_texture_view.clone(),
                     };
                     let tex_view_id = tex_view.id();
-                    let texture_component_type = tex_view.component_type();
+                    let texture_sample_type = tex_view.sample_type();
                     new_tex_views.insert(tex_view_id, tex_view);
 
                     // Determine the new current bind group layout ID, pipeline ID, bind group ID
                     // and scissor required for drawing this primitive.
                     let new_pipeline_id = {
-                        let color_id = blend_descriptor_hash(&curr_ctxt.color_blend);
-                        let alpha_id = blend_descriptor_hash(&curr_ctxt.alpha_blend);
+                        let color_id = blend_state_hash(&curr_ctxt.color_blend);
+                        let alpha_id = blend_state_hash(&curr_ctxt.alpha_blend);
                         let topology = curr_ctxt.topology;
                         PipelineId {
                             color_id,
                             alpha_id,
                             topology,
-                            texture_component_type,
+                            texture_sample_type,
                         }
                     };
                     let new_bind_group_id = {
@@ -643,7 +647,11 @@ impl Renderer {
                         curr_pipeline_id = Some(new_pipeline_id);
                         let color_blend = curr_ctxt.color_blend.clone();
                         let alpha_blend = curr_ctxt.alpha_blend.clone();
-                        new_pipeline_ids.insert(new_pipeline_id, (color_blend, alpha_blend));
+                        let sampler_filtering = wgpu::sampler_filtering(&curr_ctxt.sampler);
+                        new_pipeline_ids.insert(
+                            new_pipeline_id,
+                            (color_blend, alpha_blend, sampler_filtering),
+                        );
                         let cmd = RenderCommand::SetPipeline(new_pipeline_id);
                         self.render_commands.push(cmd);
                     }
@@ -700,12 +708,16 @@ impl Renderer {
         // Clear new combos that we already have.
         new_pipeline_ids.retain(|id, _| !self.pipelines.contains_key(id));
         // Create new render pipelines as necessary.
-        for (new_id, (color_blend, alpha_blend)) in new_pipeline_ids {
+        for (new_id, (color_blend, alpha_blend, sampler_filtering)) in new_pipeline_ids {
             let bind_group_layout = self
                 .texture_bind_group_layouts
-                .entry(new_id.texture_component_type)
+                .entry(new_id.texture_sample_type)
                 .or_insert_with(|| {
-                    create_texture_bind_group_layout(device, new_id.texture_component_type)
+                    create_texture_bind_group_layout(
+                        device,
+                        sampler_filtering,
+                        new_id.texture_sample_type,
+                    )
                 });
             let new_pipeline = create_render_pipeline(
                 device,
@@ -744,7 +756,7 @@ impl Renderer {
             let texture_view = &new_tex_views[&new_tex_view_id];
             // Retrieve the associated bind group layout.
             let bind_group_layout =
-                &self.texture_bind_group_layouts[&pipeline_id.texture_component_type];
+                &self.texture_bind_group_layouts[&pipeline_id.texture_sample_type];
             // Create the bind group.
             let bind_group =
                 create_texture_bind_group(device, bind_group_layout, sampler, texture_view);
@@ -884,7 +896,7 @@ impl Renderer {
         let mut render_pass = render_pass_builder.begin(encoder);
 
         // Set the buffers.
-        render_pass.set_index_buffer(index_buffer.slice(..));
+        render_pass.set_index_buffer(index_buffer.slice(..), Self::INDEX_FORMAT);
         render_pass.set_vertex_buffer(0, point_buffer.slice(..));
         render_pass.set_vertex_buffer(1, color_buffer.slice(..));
         render_pass.set_vertex_buffer(2, tex_coords_buffer.slice(..));
@@ -1005,7 +1017,7 @@ fn create_depth_texture(
     wgpu::TextureBuilder::new()
         .size(size)
         .format(depth_format)
-        .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT)
+        .usage(wgpu::TextureUsage::RENDER_ATTACHMENT)
         .sample_count(sample_count)
         .build(device)
 }
@@ -1033,29 +1045,30 @@ fn create_uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLay
         .build(device)
 }
 
-fn create_text_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+fn create_text_bind_group_layout(device: &wgpu::Device, filtering: bool) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
-        .sampler(wgpu::ShaderStage::FRAGMENT)
-        .sampled_texture(
+        .sampler(wgpu::ShaderStage::FRAGMENT, filtering)
+        .texture(
             wgpu::ShaderStage::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
-            Renderer::GLYPH_CACHE_TEXTURE_FORMAT.into(),
+            Renderer::GLYPH_CACHE_TEXTURE_FORMAT.describe().sample_type,
         )
         .build(device)
 }
 
 fn create_texture_bind_group_layout(
     device: &wgpu::Device,
-    texture_component_type: wgpu::TextureComponentType,
+    filtering: bool,
+    texture_sample_type: wgpu::TextureSampleType,
 ) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
-        .sampler(wgpu::ShaderStage::FRAGMENT)
-        .sampled_texture(
+        .sampler(wgpu::ShaderStage::FRAGMENT, filtering)
+        .texture(
             wgpu::ShaderStage::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
-            texture_component_type,
+            texture_sample_type,
         )
         .build(device)
 }
@@ -1104,8 +1117,8 @@ fn create_render_pipeline(
     dst_format: wgpu::TextureFormat,
     depth_format: wgpu::TextureFormat,
     sample_count: u32,
-    color_blend: wgpu::BlendDescriptor,
-    alpha_blend: wgpu::BlendDescriptor,
+    color_blend: wgpu::BlendState,
+    alpha_blend: wgpu::BlendState,
     topology: wgpu::PrimitiveTopology,
 ) -> wgpu::RenderPipeline {
     let bind_group_layouts = &[uniform_layout, text_layout, texture_layout];
@@ -1135,10 +1148,12 @@ fn sampler_descriptor_hash(desc: &wgpu::SamplerDescriptor) -> SamplerId {
     desc.lod_min_clamp.to_bits().hash(&mut s);
     desc.lod_max_clamp.to_bits().hash(&mut s);
     desc.compare.hash(&mut s);
+    desc.anisotropy_clamp.hash(&mut s);
+    desc.border_color.hash(&mut s);
     s.finish()
 }
 
-fn blend_descriptor_hash(desc: &wgpu::BlendDescriptor) -> BlendId {
+fn blend_state_hash(desc: &wgpu::BlendState) -> BlendId {
     let mut s = std::collections::hash_map::DefaultHasher::new();
     desc.src_factor.hash(&mut s);
     desc.dst_factor.hash(&mut s);

@@ -60,9 +60,12 @@ fn model(app: &App) -> Model {
     let texture_view = texture.view().build();
 
     // Create the sampler for sampling from the source texture.
-    let sampler = wgpu::SamplerBuilder::new().build(device);
+    let sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
+    let sampler_filtering = wgpu::sampler_filtering(&sampler_desc);
+    let sampler = device.create_sampler(&sampler_desc);
 
-    let bind_group_layout = create_bind_group_layout(device, texture_view.component_type());
+    let bind_group_layout =
+        create_bind_group_layout(device, texture_view.sample_type(), sampler_filtering);
     let bind_group = create_bind_group(device, &bind_group_layout, &texture_view, &sampler);
     let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
     let render_pipeline = create_render_pipeline(
@@ -104,16 +107,17 @@ fn view(_app: &App, model: &Model, frame: Frame) {
 
 fn create_bind_group_layout(
     device: &wgpu::Device,
-    texture_component_type: wgpu::TextureComponentType,
+    texture_sample_type: wgpu::TextureSampleType,
+    sampler_filtering: bool,
 ) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
-        .sampled_texture(
+        .texture(
             wgpu::ShaderStage::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
-            texture_component_type,
+            texture_sample_type,
         )
-        .sampler(wgpu::ShaderStage::FRAGMENT)
+        .sampler(wgpu::ShaderStage::FRAGMENT, sampler_filtering)
         .build(device)
 }
 

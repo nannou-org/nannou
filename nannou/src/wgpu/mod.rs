@@ -56,37 +56,47 @@ pub use wgpu_upstream::{
     util::{self, BufferInitDescriptor},
     vertex_attr_array, Adapter, AdapterInfo, AddressMode, Backend, BackendBit, BindGroup,
     BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-    BindGroupLayoutEntry, BindingResource, BindingType, BlendDescriptor, BlendFactor,
-    BlendOperation, Buffer, BufferAddress, BufferAsyncError, BufferCopyView, BufferDescriptor,
-    BufferSlice, BufferUsage, BufferView, Color, ColorStateDescriptor, ColorWrite, CommandBuffer,
-    CommandBufferDescriptor, CommandEncoder, CommandEncoderDescriptor, CompareFunction,
-    ComputePass, ComputePipeline, ComputePipelineDescriptor, CullMode, DepthStencilStateDescriptor,
-    Device, DeviceDescriptor, DeviceType, DynamicOffset, Extent3d, Features, FilterMode, FrontFace,
-    IndexFormat, InputStepMode, Instance, Limits, LoadOp, Maintain, MapMode, Operations, Origin3d,
-    PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PresentMode, PrimitiveTopology,
-    ProgrammableStageDescriptor, Queue, RasterizationStateDescriptor, RenderPass,
-    RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor,
-    RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, Sampler,
-    SamplerDescriptor, ShaderLocation, ShaderModule, ShaderModuleSource, ShaderStage,
-    StencilOperation, StencilStateDescriptor, StencilStateFaceDescriptor, Surface, SwapChain,
-    SwapChainDescriptor, SwapChainError, Texture as TextureHandle, TextureAspect,
-    TextureComponentType, TextureCopyView, TextureDataLayout, TextureDescriptor, TextureDimension,
-    TextureFormat, TextureUsage, TextureView as TextureViewHandle, TextureViewDescriptor,
-    TextureViewDimension, VertexAttributeDescriptor, VertexBufferDescriptor, VertexFormat,
-    VertexStateDescriptor, BIND_BUFFER_ALIGNMENT, COPY_BUFFER_ALIGNMENT,
-    COPY_BYTES_PER_ROW_ALIGNMENT,
+    BindGroupLayoutEntry, BindingResource, BindingType, BlendFactor, BlendOperation, BlendState,
+    Buffer, BufferAddress, BufferAsyncError, BufferBindingType, BufferCopyView, BufferCopyViewBase,
+    BufferDescriptor, BufferSize, BufferSlice, BufferUsage, BufferView, BufferViewMut, Color,
+    ColorTargetState, ColorWrite, CommandBuffer, CommandBufferDescriptor, CommandEncoder,
+    CommandEncoderDescriptor, CompareFunction, ComputePass, ComputePassDescriptor, ComputePipeline,
+    ComputePipelineDescriptor, CullMode, DepthBiasState, DepthStencilState, Device,
+    DeviceDescriptor, DeviceType, DynamicOffset, Error, Extent3d, Features, FilterMode,
+    FragmentState, FrontFace, IndexFormat, InputStepMode, Instance, Label, Limits, LoadOp,
+    Maintain, MapMode, MultisampleState, Operations, Origin3d, PipelineLayout,
+    PipelineLayoutDescriptor, PipelineStatisticsTypes, PolygonMode, PowerPreference, PresentMode,
+    PrimitiveState, PrimitiveTopology, PushConstantRange, QuerySet, QuerySetDescriptor, QueryType,
+    Queue, RenderBundle, RenderBundleDescriptor, RenderBundleEncoder,
+    RenderBundleEncoderDescriptor, RenderPass, RenderPassColorAttachmentDescriptor,
+    RenderPassDepthStencilAttachmentDescriptor, RenderPassDescriptor, RenderPipeline,
+    RenderPipelineDescriptor, RequestAdapterOptions, RequestAdapterOptionsBase, RequestDeviceError,
+    Sampler, SamplerBorderColor, SamplerDescriptor, ShaderFlags, ShaderLocation, ShaderModule,
+    ShaderModuleDescriptor, ShaderSource, ShaderStage, StencilFaceState, StencilOperation,
+    StencilState, StorageTextureAccess, Surface, SwapChain, SwapChainDescriptor, SwapChainError,
+    SwapChainFrame, SwapChainStatus, SwapChainTexture, Texture as TextureHandle, TextureAspect,
+    TextureCopyView, TextureCopyViewBase, TextureDataLayout, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureSampleType, TextureUsage, TextureView as TextureViewHandle,
+    TextureViewDescriptor, TextureViewDimension, UncapturedErrorHandler, VertexAttribute,
+    VertexBufferLayout, VertexFormat, VertexState, BIND_BUFFER_ALIGNMENT, COPY_BUFFER_ALIGNMENT,
+    COPY_BYTES_PER_ROW_ALIGNMENT, PUSH_CONSTANT_ALIGNMENT,
 };
 
 pub fn shader_from_spirv_bytes(
     device: &wgpu_upstream::Device,
     bytes: &[u8],
 ) -> wgpu_upstream::ShaderModule {
-    let shader_module = util::make_spirv(bytes);
-    device.create_shader_module(shader_module)
+    let source = util::make_spirv(bytes);
+    let desc = ShaderModuleDescriptor {
+        label: Some("nannou_shader_module"),
+        source,
+        flags: ShaderFlags::VALIDATION,
+    };
+    device.create_shader_module(&desc)
 }
 
 /// The default power preference used for requesting the WGPU adapter.
-pub const DEFAULT_POWER_PREFERENCE: PowerPreference = PowerPreference::Default;
+pub const DEFAULT_POWER_PREFERENCE: PowerPreference = PowerPreference::HighPerformance;
 
 /// Nannou's default WGPU backend preferences.
 pub const DEFAULT_BACKENDS: BackendBit = BackendBit::PRIMARY;
@@ -108,14 +118,13 @@ pub fn clear_texture(
 }
 
 /// The default device descriptor used to instantiate a logical device when creating windows.
-pub fn default_device_descriptor() -> DeviceDescriptor {
+pub fn default_device_descriptor() -> DeviceDescriptor<'static> {
     let features = Features::default();
     let limits = Limits::default();
-    let shader_validation = true;
     DeviceDescriptor {
+        label: Some("nannou_device"),
         features,
         limits,
-        shader_validation,
     }
 }
 
@@ -154,6 +163,17 @@ pub fn create_pipeline_layout<'p>(
         push_constant_ranges,
     };
     device.create_pipeline_layout(&descriptor)
+}
+
+/// Whether or not the sampler descriptor describes a sampler that might perform linear filtering.
+///
+/// This is used to determine the `filtering` field for the sampler binding type variant which
+/// assists wgpu with validation.
+pub fn sampler_filtering(desc: &SamplerDescriptor) -> bool {
+    match (desc.mag_filter, desc.min_filter, desc.mipmap_filter) {
+        (FilterMode::Nearest, FilterMode::Nearest, FilterMode::Nearest) => false,
+        _ => true,
+    }
 }
 
 /// The functions within this module use unsafe in order to retrieve their input as a slice of

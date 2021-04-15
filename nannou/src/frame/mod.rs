@@ -301,7 +301,7 @@ impl RenderData {
             device,
             &intermediary_lin_srgba.texture_view,
             src_sample_count,
-            intermediary_lin_srgba.texture_view.component_type(),
+            intermediary_lin_srgba.texture_view.sample_type(),
             swap_chain_sample_count,
             swap_chain_format,
         );
@@ -330,7 +330,7 @@ fn create_lin_srgba_msaa_texture(
     wgpu::TextureBuilder::new()
         .size(swap_chain_dims)
         .sample_count(msaa_samples)
-        .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT)
+        .usage(wgpu::TextureUsage::RENDER_ATTACHMENT)
         .format(Frame::TEXTURE_FORMAT)
         .build(device)
 }
@@ -339,7 +339,7 @@ fn create_lin_srgba_texture(device: &wgpu::Device, swap_chain_dims: [u32; 2]) ->
     wgpu::TextureBuilder::new()
         .size(swap_chain_dims)
         .format(Frame::TEXTURE_FORMAT)
-        .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::SAMPLED)
+        .usage(wgpu::TextureUsage::RENDER_ATTACHMENT | wgpu::TextureUsage::SAMPLED)
         .build(device)
 }
 

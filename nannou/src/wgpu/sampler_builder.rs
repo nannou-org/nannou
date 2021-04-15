@@ -20,6 +20,7 @@ impl<'b> SamplerBuilder {
     pub const DEFAULT_COMPARE: Option<wgpu::CompareFunction> = None;
     pub const DEFAULT_ANISOTROPY_CLAMP: Option<NonZeroU8> = None;
     pub const DEFAULT_LABEL: Option<&'static str> = None;
+    pub const DEFAULT_BORDER_COLOR: Option<wgpu::SamplerBorderColor> = None;
     pub const DEFAULT_DESCRIPTOR: wgpu::SamplerDescriptor<'static> = wgpu::SamplerDescriptor {
         address_mode_u: Self::DEFAULT_ADDRESS_MODE_U,
         address_mode_v: Self::DEFAULT_ADDRESS_MODE_V,
@@ -32,6 +33,7 @@ impl<'b> SamplerBuilder {
         compare: Self::DEFAULT_COMPARE,
         anisotropy_clamp: Self::DEFAULT_ANISOTROPY_CLAMP,
         label: Self::DEFAULT_LABEL,
+        border_color: Self::DEFAULT_BORDER_COLOR,
     };
 
     /// Begin building a `Sampler`, starting with the `Default` parameters.

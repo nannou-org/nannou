@@ -489,6 +489,7 @@ pub fn encode_render_pass(
 
     // Begin the render pass and add the draw commands.
     let render_pass_desc = wgpu::RenderPassDescriptor {
+        label: Some("nannou_ui_render_pass_descriptor"),
         color_attachments: &[color_attachment_desc],
         depth_stencil_attachment: None,
     };
