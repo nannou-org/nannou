@@ -37,11 +37,11 @@ pub struct IsfPipeline {
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 struct IsfUniforms {
-    pass_index: i32,
+    date: [f32; 4],
     render_size: [f32; 2],
     time: f32,
     time_delta: f32,
-    date: [f32; 4],
+    pass_index: i32,
     frame_index: i32,
 }
 
@@ -357,6 +357,22 @@ impl IsfInputData {
         }
     }
 
+    /// The size of this field when laid out within the dynamically sized input uniform buffer.
+    pub fn uniform_size_bytes(&self) -> Option<usize> {
+        let size = match *self {
+            IsfInputData::Color(_) => 4 * 4,
+            IsfInputData::Point2d(_) => 2 * 2,
+            IsfInputData::Long(_)
+            | IsfInputData::Float(_)
+            | IsfInputData::Bool(_)
+            | IsfInputData::Event { .. } => 1 * 4,
+            IsfInputData::Image(_) | IsfInputData::Audio { .. } | IsfInputData::AudioFft { .. } => {
+                return None
+            }
+        };
+        Some(size)
+    }
+
     /// Update an existing instance ISF input data instance with the given input.
     fn update(
         &mut self,
@@ -407,6 +423,9 @@ pub fn compile_isf_shader(
         .and_then(|(old_str, isf)| {
             let isf_str = crate::glsl_string_from_isf(&isf);
             let new_str = crate::prefix_isf_glsl_str(&isf_str, old_str);
+            println!("---------- {}", path.display());
+            println!("{}", new_str);
+            println!("----------");
             let ty = hotglsl::ShaderType::Fragment;
             hotglsl::compile_str(&new_str, ty).map_err(From::from)
         });
@@ -513,11 +532,11 @@ impl IsfPipeline {
         // Prepare the uniform data.
         let [dst_tex_w, dst_tex_h] = dst_texture_size;
         let isf_uniforms = IsfUniforms {
-            pass_index: 0,
+            date: [0.0; 4],
             render_size: [dst_tex_w as f32, dst_tex_h as f32],
             time: 0.0,
             time_delta: 0.0,
-            date: [0.0; 4],
+            pass_index: 0,
             frame_index: 0,
         };
         let isf_input_uniforms = isf_inputs_to_uniform_data(&isf_data.inputs);
@@ -791,7 +810,11 @@ impl IsfPipeline {
                 let isf_input_uniforms = isf_inputs_to_uniform_data(&self.isf_data.inputs);
                 let isf_input_uniforms_bytes = isf_input_uniforms_as_bytes(&isf_input_uniforms);
                 let usage = wgpu::BufferUsage::COPY_SRC;
-                let new_buffer = device.create_buffer_with_data(&isf_input_uniforms_bytes, usage);
+                let new_buffer = device.create_buffer_init(&BufferInitDescriptor {
+                    label: Some("nannou_isf-input_uniforms"),
+                    contents: &isf_input_uniforms_bytes,
+                    usage,
+                });
                 let size = isf_input_uniforms_bytes.len() as wgpu::BufferAddress;
                 encoder.copy_buffer_to_buffer(
                     &new_buffer,
@@ -996,10 +1019,32 @@ fn sync_isf_data(
     });
 }
 
+// The order in which inputs are laid out in the uniform buffer.
+//
+// This is important to meet the conditions required by wgpu uniform layout. Specifically, 16-byte
+// types must be aligned to 16 bytes, 8-byte types must be aligned to 8-bytes, etc.
+//
+// This must match the order specified in the generated glsl shader.
+fn isf_input_uniform_layout_order(
+    inputs: &BTreeMap<InputName, IsfInputData>,
+) -> impl Iterator<Item = (&InputName, &IsfInputData)> {
+    let b16 = inputs
+        .iter()
+        .filter(|(_k, v)| v.uniform_size_bytes() == Some(16));
+    let b8 = inputs
+        .iter()
+        .filter(|(_k, v)| v.uniform_size_bytes() == Some(8));
+    let b4 = inputs
+        .iter()
+        .filter(|(_k, v)| v.uniform_size_bytes() == Some(4));
+    b16.chain(b8).chain(b4)
+}
+
 // Encodes the ISF inputs to a slice of `u32` values, ready for uploading to the GPU.
 fn isf_inputs_to_uniform_data(inputs: &BTreeMap<InputName, IsfInputData>) -> Vec<u32> {
     let mut u32s: Vec<u32> = vec![];
-    for v in inputs.values() {
+    for (_k, v) in isf_input_uniform_layout_order(inputs) {
+        dbg!((_k, v));
         match *v {
             IsfInputData::Event { happening } => {
                 u32s.push(if happening { 1 } else { 0 });
@@ -1008,7 +1053,7 @@ fn isf_inputs_to_uniform_data(inputs: &BTreeMap<InputName, IsfInputData>) -> Vec
                 u32s.push(if b { 1 } else { 0 });
             }
             IsfInputData::Long(l) => {
-                u32s.push(unsafe { std::mem::transmute(l) });
+                u32s.push(u32::from_le_bytes(l.to_le_bytes()));
             }
             IsfInputData::Float(f) => {
                 u32s.push(f.to_bits());

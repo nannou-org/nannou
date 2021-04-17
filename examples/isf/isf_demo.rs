@@ -151,7 +151,9 @@ fn update(app: &App, model: &mut Model, update: Update) {
         let mut encoder = device.create_command_encoder(&desc);
         isf.pipeline
             .encode_update(device, &mut encoder, &images_dir, touched_shaders);
-        shader_window.swap_chain_queue().submit(&[encoder.finish()]);
+        shader_window
+            .swap_chain_queue()
+            .submit(Some(encoder.finish()));
         isf.time.time = update.since_start.secs() as _;
         isf.time.time_delta = update.since_last.secs() as _;
     }
@@ -391,7 +393,9 @@ fn create_isf_state(shader_window: &Window, fs_path: PathBuf, images_path: &Path
         dst_sample_count,
         images_path,
     );
-    shader_window.swap_chain_queue().submit(&[encoder.finish()]);
+    shader_window
+        .swap_chain_queue()
+        .submit(Some(encoder.finish()));
     let time = Default::default();
     IsfState {
         path: fs_path,
