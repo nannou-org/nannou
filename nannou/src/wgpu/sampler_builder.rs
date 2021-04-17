@@ -19,7 +19,7 @@ impl<'b> SamplerBuilder {
     pub const DEFAULT_LOD_MAX_CLAMP: f32 = 100.0;
     pub const DEFAULT_COMPARE: Option<wgpu::CompareFunction> = None;
     pub const DEFAULT_ANISOTROPY_CLAMP: Option<NonZeroU8> = None;
-    pub const DEFAULT_LABEL: Option<&'static str> = None;
+    pub const DEFAULT_LABEL: &'static str = "nannou-sampler";
     pub const DEFAULT_BORDER_COLOR: Option<wgpu::SamplerBorderColor> = None;
     pub const DEFAULT_DESCRIPTOR: wgpu::SamplerDescriptor<'static> = wgpu::SamplerDescriptor {
         address_mode_u: Self::DEFAULT_ADDRESS_MODE_U,
@@ -32,7 +32,7 @@ impl<'b> SamplerBuilder {
         lod_max_clamp: Self::DEFAULT_LOD_MAX_CLAMP,
         compare: Self::DEFAULT_COMPARE,
         anisotropy_clamp: Self::DEFAULT_ANISOTROPY_CLAMP,
-        label: Self::DEFAULT_LABEL,
+        label: Some(Self::DEFAULT_LABEL),
         border_color: Self::DEFAULT_BORDER_COLOR,
     };
 

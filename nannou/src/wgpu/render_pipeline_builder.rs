@@ -516,29 +516,6 @@ fn build(
         vertex_buffers,
     } = builder;
 
-    // let vertex_stage = wgpu::ProgrammableStageDescriptor {
-    //     module: &vs_mod,
-    //     entry_point: vs_entry_point,
-    // };
-
-    // let fragment_stage = fs_mod.map(|fs_mod| wgpu::ProgrammableStageDescriptor {
-    //     module: fs_mod,
-    //     entry_point: fs_entry_point,
-    // });
-
-    // let rasterization_state = match fragment_stage.is_some() {
-    //     true => {
-    //         Some(rasterization_state.unwrap_or(RenderPipelineBuilder::DEFAULT_RASTERIZATION_STATE))
-    //     }
-    //     false => {
-    //         if rasterization_state.is_some() {
-    //             panic!("specified rasterization state fields but no fragment shader");
-    //         } else {
-    //             None
-    //         }
-    //     }
-    // };
-
     let vertex = wgpu::VertexState {
         module: &vs_mod,
         entry_point: vs_entry_point,
