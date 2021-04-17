@@ -16,6 +16,7 @@ pub struct IsfPipeline {
     vs: Shader,
     fs: Shader,
     sampler: wgpu::Sampler,
+    sampler_filtering: bool,
     isf_uniform_buffer: wgpu::Buffer,
     isf_inputs_uniform_buffer: wgpu::Buffer,
     isf_bind_group_layout: wgpu::BindGroupLayout,
@@ -545,6 +546,11 @@ impl IsfPipeline {
             usage: uniforms_usage,
         });
 
+        // Create the sampler.
+        let sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
+        let sampler_filtering = wgpu::sampler_filtering(&sampler_desc);
+        let sampler = device.create_sampler(&sampler_desc);
+
         // Prepare the bind group layouts.
         let isf_bind_group_layout = wgpu::BindGroupLayoutBuilder::new()
             .uniform_buffer(wgpu::ShaderStage::FRAGMENT, false)
@@ -553,10 +559,7 @@ impl IsfPipeline {
             .uniform_buffer(wgpu::ShaderStage::FRAGMENT, false)
             .build(device);
         let isf_textures_bind_group_layout =
-            create_isf_textures_bind_group_layout(device, &isf_data);
-
-        // Create the sampler.
-        let sampler = wgpu::SamplerBuilder::new().build(device);
+            create_isf_textures_bind_group_layout(device, sampler_filtering, &isf_data);
 
         // Create the bind groups
         let isf_bind_group = wgpu::BindGroupBuilder::new()
@@ -610,6 +613,7 @@ impl IsfPipeline {
             vs,
             fs,
             sampler,
+            sampler_filtering,
             isf_uniform_buffer,
             isf_inputs_uniform_buffer,
             isf_bind_group_layout,
@@ -709,8 +713,11 @@ impl IsfPipeline {
         let new_texture_count = isf_data_textures(&self.isf_data).count();
         let texture_count_changed = texture_count != new_texture_count;
         if texture_count_changed {
-            self.isf_textures_bind_group_layout =
-                create_isf_textures_bind_group_layout(device, &self.isf_data);
+            self.isf_textures_bind_group_layout = create_isf_textures_bind_group_layout(
+                device,
+                self.sampler_filtering,
+                &self.isf_data,
+            );
             self.isf_textures_bind_group = create_isf_textures_bind_group(
                 device,
                 &self.isf_textures_bind_group_layout,
@@ -834,16 +841,18 @@ fn split_result<T, E>(res: Result<T, E>) -> (Option<T>, Option<E>) {
 // Includes the sampler and then all textures for all images and passes.
 fn create_isf_textures_bind_group_layout(
     device: &wgpu::Device,
+    sampler_filtering: bool,
     isf_data: &IsfData,
 ) -> wgpu::BindGroupLayout {
     // Begin with the sampler.
-    let mut builder = wgpu::BindGroupLayoutBuilder::new().sampler(wgpu::ShaderStage::FRAGMENT);
+    let mut builder =
+        wgpu::BindGroupLayoutBuilder::new().sampler(wgpu::ShaderStage::FRAGMENT, sampler_filtering);
     for texture in isf_data_textures(isf_data) {
-        builder = builder.sampled_texture(
+        builder = builder.texture(
             wgpu::ShaderStage::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
-            texture.component_type(),
+            texture.sample_type(),
         );
     }
     builder.build(device)

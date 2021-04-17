@@ -295,7 +295,7 @@ fn view(_app: &App, model: &Model, frame: Frame) {
     render_pass.set_pipeline(&g.render_pipeline);
     render_pass.set_vertex_buffer(0, g.vertex_buffer.slice(..));
     render_pass.set_vertex_buffer(1, g.normal_buffer.slice(..));
-    render_pass.set_index_buffer(g.index_buffer.slice(..));
+    render_pass.set_index_buffer(g.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
     let index_range = 0..data::INDICES.len() as u32;
     let start_vertex = 0;
     let instance_range = 0..1;
@@ -323,7 +323,7 @@ fn create_depth_texture(
     wgpu::TextureBuilder::new()
         .size(size)
         .format(depth_format)
-        .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT)
+        .usage(wgpu::TextureUsage::RENDER_ATTACHMENT)
         .sample_count(sample_count)
         .build(device)
 }
@@ -368,12 +368,11 @@ fn create_render_pipeline(
     wgpu::RenderPipelineBuilder::from_layout(layout, vs_mod)
         .fragment_shader(&fs_mod)
         .color_format(dst_format)
-        .color_blend(wgpu::BlendDescriptor::REPLACE)
-        .alpha_blend(wgpu::BlendDescriptor::REPLACE)
+        .color_blend(wgpu::BlendState::REPLACE)
+        .alpha_blend(wgpu::BlendState::REPLACE)
         .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float3])
         .add_vertex_buffer::<Normal>(&wgpu::vertex_attr_array![1 => Float3])
         .depth_format(depth_format)
-        .index_format(wgpu::IndexFormat::Uint16)
         .sample_count(sample_count)
         .build(device)
 }

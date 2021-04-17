@@ -138,7 +138,10 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         uniforms_size,
     );
     {
-        let mut cpass = encoder.begin_compute_pass();
+        let pass_desc = wgpu::ComputePassDescriptor {
+            label: Some("nannou-wgpu_compute_shader-compute_pass"),
+        };
+        let mut cpass = encoder.begin_compute_pass(&pass_desc);
         cpass.set_pipeline(&compute.pipeline);
         cpass.set_bind_group(0, &compute.bind_group, &[]);
         cpass.dispatch(OSCILLATOR_COUNT as u32, 1, 1);
@@ -240,8 +243,9 @@ fn create_bind_group(
     oscillator_buffer_size: wgpu::BufferAddress,
     uniform_buffer: &wgpu::Buffer,
 ) -> wgpu::BindGroup {
+    let buffer_size_bytes = std::num::NonZeroU64::new(oscillator_buffer_size).unwrap();
     wgpu::BindGroupBuilder::new()
-        .buffer_bytes(oscillator_buffer, 0..oscillator_buffer_size)
+        .buffer_bytes(oscillator_buffer, 0, Some(buffer_size_bytes))
         .buffer::<Uniforms>(uniform_buffer, 0..1)
         .build(device, layout)
 }
@@ -262,14 +266,11 @@ fn create_compute_pipeline(
     layout: &wgpu::PipelineLayout,
     cs_mod: &wgpu::ShaderModule,
 ) -> wgpu::ComputePipeline {
-    let compute_stage = wgpu::ProgrammableStageDescriptor {
-        module: &cs_mod,
-        entry_point: "main",
-    };
     let desc = wgpu::ComputePipelineDescriptor {
         label: Some("nannou"),
         layout: Some(layout),
-        compute_stage,
+        module: &cs_mod,
+        entry_point: "main",
     };
     device.create_compute_pipeline(&desc)
 }

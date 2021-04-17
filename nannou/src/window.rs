@@ -40,7 +40,7 @@ pub struct Builder<'app> {
     title_was_set: bool,
     swap_chain_builder: SwapChainBuilder,
     power_preference: wgpu::PowerPreference,
-    device_desc: Option<wgpu::DeviceDescriptor>,
+    device_desc: Option<wgpu::DeviceDescriptor<'static>>,
     user_functions: UserFunctions,
     msaa_samples: Option<u32>,
     max_capture_frame_jobs: u32,
@@ -280,7 +280,7 @@ pub struct SwapChainBuilder {
 }
 
 impl SwapChainBuilder {
-    pub const DEFAULT_USAGE: wgpu::TextureUsage = wgpu::TextureUsage::OUTPUT_ATTACHMENT;
+    pub const DEFAULT_USAGE: wgpu::TextureUsage = wgpu::TextureUsage::RENDER_ATTACHMENT;
     pub const DEFAULT_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
     pub const DEFAULT_PRESENT_MODE: wgpu::PresentMode = wgpu::PresentMode::Fifo;
 
@@ -384,7 +384,7 @@ impl<'app> Builder<'app> {
 
     /// Specify a device descriptor to use when requesting the logical device from the adapter.
     /// This allows for specifying custom wgpu device extensions.
-    pub fn device_descriptor(mut self, device_desc: wgpu::DeviceDescriptor) -> Self {
+    pub fn device_descriptor(mut self, device_desc: wgpu::DeviceDescriptor<'static>) -> Self {
         self.device_desc = Some(device_desc);
         self
     }

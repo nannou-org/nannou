@@ -28,56 +28,46 @@ pub struct RenderPipelineBuilder<'a> {
     fs_mod: Option<&'a wgpu::ShaderModule>,
     vs_entry_point: &'a str,
     fs_entry_point: &'a str,
-    rasterization_state: Option<wgpu::RasterizationStateDescriptor>,
-    primitive_topology: wgpu::PrimitiveTopology,
-    color_state: Option<wgpu::ColorStateDescriptor>,
-    color_states: &'a [wgpu::ColorStateDescriptor],
-    depth_stencil_state: Option<wgpu::DepthStencilStateDescriptor>,
-    index_format: wgpu::IndexFormat,
-    vertex_buffers: Vec<wgpu::VertexBufferDescriptor<'static>>,
-    sample_count: u32,
-    sample_mask: u32,
-    alpha_to_coverage_enabled: bool,
+    primitive: wgpu::PrimitiveState,
+    color_state: Option<wgpu::ColorTargetState>,
+    color_states: &'a [wgpu::ColorTargetState],
+    depth_stencil: Option<wgpu::DepthStencilState>,
+    vertex_buffers: Vec<wgpu::VertexBufferLayout<'static>>,
+    multisample: wgpu::MultisampleState,
 }
 
 impl<'a> RenderPipelineBuilder<'a> {
     // The default entry point used for shaders when unspecified.
     pub const DEFAULT_SHADER_ENTRY_POINT: &'static str = "main";
 
-    // Rasterization state defaults for the case where the user has submitted a fragment shader.
+    // Primitive state.
     pub const DEFAULT_FRONT_FACE: wgpu::FrontFace = wgpu::FrontFace::Ccw;
     pub const DEFAULT_CULL_MODE: wgpu::CullMode = wgpu::CullMode::None;
-    pub const DEFAULT_DEPTH_BIAS: i32 = 0;
-    pub const DEFAULT_DEPTH_BIAS_SLOPE_SCALE: f32 = 0.0;
-    pub const DEFAULT_DEPTH_BIAS_CLAMP: f32 = 0.0;
-    pub const DEFAULT_RASTERIZATION_STATE: wgpu::RasterizationStateDescriptor =
-        wgpu::RasterizationStateDescriptor {
-            front_face: Self::DEFAULT_FRONT_FACE,
-            cull_mode: Self::DEFAULT_CULL_MODE,
-            depth_bias: Self::DEFAULT_DEPTH_BIAS,
-            depth_bias_slope_scale: Self::DEFAULT_DEPTH_BIAS_SLOPE_SCALE,
-            depth_bias_clamp: Self::DEFAULT_DEPTH_BIAS_CLAMP,
-            clamp_depth: false,
-        };
-
-    // Primitive topology.
+    pub const DEFAULT_POLYGON_MODE: wgpu::PolygonMode = wgpu::PolygonMode::Fill;
     pub const DEFAULT_PRIMITIVE_TOPOLOGY: wgpu::PrimitiveTopology =
         wgpu::PrimitiveTopology::TriangleList;
+    pub const DEFAULT_PRIMITIVE: wgpu::PrimitiveState = wgpu::PrimitiveState {
+        topology: Self::DEFAULT_PRIMITIVE_TOPOLOGY,
+        strip_index_format: None,
+        front_face: Self::DEFAULT_FRONT_FACE,
+        cull_mode: Self::DEFAULT_CULL_MODE,
+        polygon_mode: Self::DEFAULT_POLYGON_MODE,
+    };
 
     // Color state defaults.
     pub const DEFAULT_COLOR_FORMAT: wgpu::TextureFormat = crate::frame::Frame::TEXTURE_FORMAT;
-    pub const DEFAULT_COLOR_BLEND: wgpu::BlendDescriptor = wgpu::BlendDescriptor {
+    pub const DEFAULT_COLOR_BLEND: wgpu::BlendState = wgpu::BlendState {
         src_factor: wgpu::BlendFactor::SrcAlpha,
         dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
         operation: wgpu::BlendOperation::Add,
     };
-    pub const DEFAULT_ALPHA_BLEND: wgpu::BlendDescriptor = wgpu::BlendDescriptor {
+    pub const DEFAULT_ALPHA_BLEND: wgpu::BlendState = wgpu::BlendState {
         src_factor: wgpu::BlendFactor::One,
         dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
         operation: wgpu::BlendOperation::Add,
     };
     pub const DEFAULT_COLOR_WRITE: wgpu::ColorWrite = wgpu::ColorWrite::ALL;
-    pub const DEFAULT_COLOR_STATE: wgpu::ColorStateDescriptor = wgpu::ColorStateDescriptor {
+    pub const DEFAULT_COLOR_STATE: wgpu::ColorTargetState = wgpu::ColorTargetState {
         format: Self::DEFAULT_COLOR_FORMAT,
         color_blend: Self::DEFAULT_COLOR_BLEND,
         alpha_blend: Self::DEFAULT_ALPHA_BLEND,
@@ -88,32 +78,43 @@ impl<'a> RenderPipelineBuilder<'a> {
     pub const DEFAULT_DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
     pub const DEFAULT_DEPTH_WRITE_ENABLED: bool = true;
     pub const DEFAULT_DEPTH_COMPARE: wgpu::CompareFunction = wgpu::CompareFunction::LessEqual;
-    pub const DEFAULT_STENCIL_FRONT: wgpu::StencilStateFaceDescriptor =
-        wgpu::StencilStateFaceDescriptor::IGNORE;
-    pub const DEFAULT_STENCIL_BACK: wgpu::StencilStateFaceDescriptor =
-        wgpu::StencilStateFaceDescriptor::IGNORE;
+    pub const DEFAULT_STENCIL_FRONT: wgpu::StencilFaceState = wgpu::StencilFaceState::IGNORE;
+    pub const DEFAULT_STENCIL_BACK: wgpu::StencilFaceState = wgpu::StencilFaceState::IGNORE;
     pub const DEFAULT_STENCIL_READ_MASK: u32 = 0;
     pub const DEFAULT_STENCIL_WRITE_MASK: u32 = 0;
-    pub const DEFAULT_STENCIL: wgpu::StencilStateDescriptor = wgpu::StencilStateDescriptor {
+    pub const DEFAULT_STENCIL: wgpu::StencilState = wgpu::StencilState {
         front: Self::DEFAULT_STENCIL_FRONT,
         back: Self::DEFAULT_STENCIL_BACK,
         read_mask: Self::DEFAULT_STENCIL_READ_MASK,
         write_mask: Self::DEFAULT_STENCIL_WRITE_MASK,
     };
-    pub const DEFAULT_DEPTH_STENCIL_STATE: wgpu::DepthStencilStateDescriptor =
-        wgpu::DepthStencilStateDescriptor {
-            format: Self::DEFAULT_DEPTH_FORMAT,
-            depth_write_enabled: Self::DEFAULT_DEPTH_WRITE_ENABLED,
-            depth_compare: Self::DEFAULT_DEPTH_COMPARE,
-            stencil: Self::DEFAULT_STENCIL,
-        };
+    pub const DEFAULT_DEPTH_BIAS_CONSTANT: i32 = 0;
+    pub const DEFAULT_DEPTH_BIAS_SLOPE_SCALE: f32 = 0.0;
+    pub const DEFAULT_DEPTH_BIAS_CLAMP: f32 = 0.0;
+    pub const DEFAULT_DEPTH_BIAS: wgpu::DepthBiasState = wgpu::DepthBiasState {
+        constant: Self::DEFAULT_DEPTH_BIAS_CONSTANT,
+        slope_scale: Self::DEFAULT_DEPTH_BIAS_SLOPE_SCALE,
+        clamp: Self::DEFAULT_DEPTH_BIAS_CLAMP,
+    };
+    pub const DEFAULT_CLAMP_DEPTH: bool = false;
+    pub const DEFAULT_DEPTH_STENCIL: wgpu::DepthStencilState = wgpu::DepthStencilState {
+        format: Self::DEFAULT_DEPTH_FORMAT,
+        depth_write_enabled: Self::DEFAULT_DEPTH_WRITE_ENABLED,
+        depth_compare: Self::DEFAULT_DEPTH_COMPARE,
+        stencil: Self::DEFAULT_STENCIL,
+        bias: Self::DEFAULT_DEPTH_BIAS,
+        clamp_depth: Self::DEFAULT_CLAMP_DEPTH,
+    };
 
-    // Vertex buffer defaults.
-    pub const DEFAULT_INDEX_FORMAT: wgpu::IndexFormat = wgpu::IndexFormat::Uint32;
-    // No MSAA by default.
+    // Multisample state.
     pub const DEFAULT_SAMPLE_COUNT: u32 = 1;
-    pub const DEFAULT_SAMPLE_MASK: u32 = !0;
+    pub const DEFAULT_SAMPLE_MASK: u64 = !0;
     pub const DEFAULT_ALPHA_TO_COVERAGE_ENABLED: bool = false;
+    pub const DEFAULT_MULTISAMPLE: wgpu::MultisampleState = wgpu::MultisampleState {
+        count: Self::DEFAULT_SAMPLE_COUNT,
+        mask: Self::DEFAULT_SAMPLE_MASK,
+        alpha_to_coverage_enabled: Self::DEFAULT_ALPHA_TO_COVERAGE_ENABLED,
+    };
 
     // Constructors
 
@@ -143,92 +144,76 @@ impl<'a> RenderPipelineBuilder<'a> {
             fs_mod: None,
             vs_entry_point: Self::DEFAULT_SHADER_ENTRY_POINT,
             fs_entry_point: Self::DEFAULT_SHADER_ENTRY_POINT,
-            rasterization_state: None,
             color_state: None,
             color_states: &[],
-            primitive_topology: Self::DEFAULT_PRIMITIVE_TOPOLOGY,
-            depth_stencil_state: None,
-            index_format: Self::DEFAULT_INDEX_FORMAT,
+            primitive: Self::DEFAULT_PRIMITIVE,
+            depth_stencil: None,
             vertex_buffers: vec![],
-            sample_count: Self::DEFAULT_SAMPLE_COUNT,
-            sample_mask: Self::DEFAULT_SAMPLE_MASK,
-            alpha_to_coverage_enabled: Self::DEFAULT_ALPHA_TO_COVERAGE_ENABLED,
+            multisample: Self::DEFAULT_MULTISAMPLE,
         }
     }
 
     // Builders
 
+    /// The name of the entry point in the compiled shader.
+    ///
+    /// There must be a function that returns void with this name in the shader.
     pub fn vertex_entry_point(mut self, entry_point: &'a str) -> Self {
         self.vs_entry_point = entry_point;
         self
     }
 
+    /// The name of the entry point in the compiled shader.
+    ///
+    /// There must be a function that returns void with this name in the shader.
     pub fn fragment_entry_point(mut self, entry_point: &'a str) -> Self {
         self.fs_entry_point = entry_point;
         self
     }
 
-    /// Specify a fragment shader for the render pipeline.
+    /// Specify a compiled fragment shader for the render pipeline.
     pub fn fragment_shader(mut self, fs_mod: &'a wgpu::ShaderModule) -> Self {
         self.fs_mod = Some(fs_mod);
         self
     }
 
-    // Rasterization state.
+    // Primitive state.
 
-    /// Specify the full rasterization state.
-    pub fn rasterization_state(mut self, state: wgpu::RasterizationStateDescriptor) -> Self {
-        self.rasterization_state = Some(state);
+    /// Specify the full primitive state.
+    ///
+    /// Describes the state of primitive assembly and rasterization in a render pipeline.
+    pub fn primitive(mut self, p: wgpu::PrimitiveState) -> Self {
+        self.primitive = p;
         self
     }
 
+    /// The face to consider the front for the purpose of culling and stencil operations.
     pub fn front_face(mut self, front_face: wgpu::FrontFace) -> Self {
-        let state = self
-            .rasterization_state
-            .get_or_insert(Self::DEFAULT_RASTERIZATION_STATE);
-        state.front_face = front_face;
+        self.primitive.front_face = front_face;
         self
     }
 
+    /// The face culling mode.
     pub fn cull_mode(mut self, cull_mode: wgpu::CullMode) -> Self {
-        let state = self
-            .rasterization_state
-            .get_or_insert(Self::DEFAULT_RASTERIZATION_STATE);
-        state.cull_mode = cull_mode;
+        self.primitive.cull_mode = cull_mode;
         self
     }
-
-    pub fn depth_bias(mut self, bias: i32) -> Self {
-        let state = self
-            .rasterization_state
-            .get_or_insert(Self::DEFAULT_RASTERIZATION_STATE);
-        state.depth_bias = bias;
-        self
-    }
-
-    pub fn depth_bias_slope_scale(mut self, scale: f32) -> Self {
-        let state = self
-            .rasterization_state
-            .get_or_insert(Self::DEFAULT_RASTERIZATION_STATE);
-        state.depth_bias_slope_scale = scale;
-        self
-    }
-
-    pub fn depth_bias_clamp(mut self, clamp: f32) -> Self {
-        let state = self
-            .rasterization_state
-            .get_or_insert(Self::DEFAULT_RASTERIZATION_STATE);
-        state.depth_bias_clamp = clamp;
-        self
-    }
-
-    // Primitive topology.
 
     /// Specify the primitive topology.
     ///
     /// This represents the way vertices will be read from the **VertexBuffer**.
     pub fn primitive_topology(mut self, topology: wgpu::PrimitiveTopology) -> Self {
-        self.primitive_topology = topology;
+        self.primitive.topology = topology;
+        self
+    }
+
+    /// Controls the way each polygon is rasterized. Can be either `Fill` (default), `Line` or
+    /// `Point`.
+    ///
+    /// Setting this to something other than `Fill` requires `Features::NON_FILL_POLYGON_MODE` to
+    /// be enabled.
+    pub fn polygon_mode(mut self, mode: wgpu::PolygonMode) -> Self {
+        self.primitive.polygon_mode = mode;
         self
     }
 
@@ -237,29 +222,35 @@ impl<'a> RenderPipelineBuilder<'a> {
     /// Specify the full color state for drawing to the output attachment.
     ///
     /// If you have multiple output attachments, see the `color_states` method.
-    pub fn color_state(mut self, state: wgpu::ColorStateDescriptor) -> Self {
+    pub fn color_state(mut self, state: wgpu::ColorTargetState) -> Self {
         self.color_state = Some(state);
         self
     }
 
+    /// The texture formrat of the image that this pipelinew ill render to.
+    ///
+    /// Must match the format of the corresponding color attachment.
     pub fn color_format(mut self, format: wgpu::TextureFormat) -> Self {
         let state = self.color_state.get_or_insert(Self::DEFAULT_COLOR_STATE);
         state.format = format;
         self
     }
 
-    pub fn color_blend(mut self, blend: wgpu::BlendDescriptor) -> Self {
+    /// The color blending used for this pipeline.
+    pub fn color_blend(mut self, blend: wgpu::BlendState) -> Self {
         let state = self.color_state.get_or_insert(Self::DEFAULT_COLOR_STATE);
         state.color_blend = blend;
         self
     }
 
-    pub fn alpha_blend(mut self, blend: wgpu::BlendDescriptor) -> Self {
+    /// The alpha blending used for this pipeline.
+    pub fn alpha_blend(mut self, blend: wgpu::BlendState) -> Self {
         let state = self.color_state.get_or_insert(Self::DEFAULT_COLOR_STATE);
         state.alpha_blend = blend;
         self
     }
 
+    /// Mask which enables/disables writes to different color/alpha channel.
     pub fn write_mask(mut self, mask: wgpu::ColorWrite) -> Self {
         let state = self.color_state.get_or_insert(Self::DEFAULT_COLOR_STATE);
         state.write_mask = mask;
@@ -268,80 +259,139 @@ impl<'a> RenderPipelineBuilder<'a> {
 
     // Depth / Stencil state
 
-    pub fn depth_stencil_state(mut self, state: wgpu::DepthStencilStateDescriptor) -> Self {
-        self.depth_stencil_state = Some(state);
+    /// Specify the full depth stencil state.
+    pub fn depth_stencil(mut self, state: wgpu::DepthStencilState) -> Self {
+        self.depth_stencil = Some(state);
         self
     }
 
+    /// Format of the depth/stencil buffer. Must be one of the depth formats. Must match the format
+    /// of the depth/stencil attachment.
     pub fn depth_format(mut self, format: wgpu::TextureFormat) -> Self {
         let state = self
-            .depth_stencil_state
-            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL_STATE);
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
         state.format = format;
         self
     }
 
     pub fn depth_write_enabled(mut self, enabled: bool) -> Self {
         let state = self
-            .depth_stencil_state
-            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL_STATE);
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
         state.depth_write_enabled = enabled;
         self
     }
 
+    /// Comparison function used to compare depth values in the depth test.
     pub fn depth_compare(mut self, compare: wgpu::CompareFunction) -> Self {
         let state = self
-            .depth_stencil_state
-            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL_STATE);
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
         state.depth_compare = compare;
         self
     }
 
-    pub fn stencil_front(mut self, stencil: wgpu::StencilStateFaceDescriptor) -> Self {
+    /// Specify the full set of stencil parameters.
+    pub fn stencil(mut self, stencil: wgpu::StencilState) -> Self {
         let state = self
-            .depth_stencil_state
-            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL_STATE);
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
+        state.stencil = stencil;
+        self
+    }
+
+    /// Front face mode.
+    pub fn stencil_front(mut self, stencil: wgpu::StencilFaceState) -> Self {
+        let state = self
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
         state.stencil.front = stencil;
         self
     }
 
-    pub fn stencil_back(mut self, stencil: wgpu::StencilStateFaceDescriptor) -> Self {
+    /// Back face mode.
+    pub fn stencil_back(mut self, stencil: wgpu::StencilFaceState) -> Self {
         let state = self
-            .depth_stencil_state
-            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL_STATE);
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
         state.stencil.back = stencil;
         self
     }
 
+    /// Stencil values are AND'd with this mask when reading and writing from the stencil buffer.
+    /// Only low 8 bits are used.
     pub fn stencil_read_mask(mut self, mask: u32) -> Self {
         let state = self
-            .depth_stencil_state
-            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL_STATE);
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
         state.stencil.read_mask = mask;
         self
     }
 
+    /// Stencil values are AND'd with this mask when writing to the stencil buffer.
+    /// Only low 8 bits are used.
     pub fn stencil_write_mask(mut self, mask: u32) -> Self {
         let state = self
-            .depth_stencil_state
-            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL_STATE);
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
         state.stencil.write_mask = mask;
+        self
+    }
+
+    /// Specify the full set of depth bias parameters.
+    ///
+    /// Describes the biasing setting for the depth target.
+    pub fn depth_bias(mut self, bias: wgpu::DepthBiasState) -> Self {
+        let state = self
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
+        state.bias = bias;
+        self
+    }
+
+    /// Constant depth biasing factor, in basic units of the depth format.
+    pub fn depth_bias_constant(mut self, constant: i32) -> Self {
+        let state = self
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
+        state.bias.constant = constant;
+        self
+    }
+
+    /// Slope depth biasing factor.
+    pub fn depth_bias_slope_scale(mut self, scale: f32) -> Self {
+        let state = self
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
+        state.bias.slope_scale = scale;
+        self
+    }
+
+    /// Depth bias clamp value (absolute).
+    pub fn depth_bias_clamp(mut self, clamp: f32) -> Self {
+        let state = self
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
+        state.bias.clamp = clamp;
+        self
+    }
+
+    /// If enabled polygon depth is clamped to 0-1 range instead of being clipped.
+    ///
+    /// Requires `Features::DEPTH_CLAMPING` enabled.
+    pub fn clamp_depth(mut self, b: bool) -> Self {
+        let state = self
+            .depth_stencil
+            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
+        state.clamp_depth = b;
         self
     }
 
     // Vertex buffer methods.
 
-    /// The format of the type used within the index buffer.
-    pub fn index_format(mut self, format: wgpu::IndexFormat) -> Self {
-        self.index_format = format;
-        self
-    }
-
     /// Add a new vertex buffer descriptor to the render pipeline.
-    pub fn add_vertex_buffer_descriptor(
-        mut self,
-        d: wgpu::VertexBufferDescriptor<'static>,
-    ) -> Self {
+    pub fn add_vertex_buffer_layout(mut self, d: wgpu::VertexBufferLayout<'static>) -> Self {
         self.vertex_buffers.push(d);
         self
     }
@@ -350,34 +400,64 @@ impl<'a> RenderPipelineBuilder<'a> {
     /// of the given vertex type.
     ///
     /// The vertex stride is assumed to be equal to `size_of::<V>()`. If this is not the case,
-    /// consider using `add_vertex_buffer_descriptor` instead.
-    pub fn add_vertex_buffer<V>(self, attrs: &'static [wgpu::VertexAttributeDescriptor]) -> Self {
-        let stride = std::mem::size_of::<V>() as wgpu::BufferAddress;
+    /// consider using `add_vertex_buffer_layout` instead.
+    pub fn add_vertex_buffer<V>(self, attrs: &'static [wgpu::VertexAttribute]) -> Self {
+        let array_stride = std::mem::size_of::<V>() as wgpu::BufferAddress;
         let step_mode = wgpu::InputStepMode::Vertex;
-        let descriptor = wgpu::VertexBufferDescriptor {
-            stride,
+        let descriptor = wgpu::VertexBufferLayout {
+            array_stride,
             step_mode,
             attributes: attrs,
         };
-        self.add_vertex_buffer_descriptor(descriptor)
+        self.add_vertex_buffer_layout(descriptor)
     }
 
     /// Short-hand for adding a descriptor to the render pipeline describing a buffer of instances
     /// of the given vertex type.
-    pub fn add_instance_buffer<I>(self, attrs: &'static [wgpu::VertexAttributeDescriptor]) -> Self {
-        let stride = std::mem::size_of::<I>() as wgpu::BufferAddress;
+    pub fn add_instance_buffer<I>(self, attrs: &'static [wgpu::VertexAttribute]) -> Self {
+        let array_stride = std::mem::size_of::<I>() as wgpu::BufferAddress;
         let step_mode = wgpu::InputStepMode::Instance;
-        let descriptor = wgpu::VertexBufferDescriptor {
-            stride,
+        let descriptor = wgpu::VertexBufferLayout {
+            array_stride,
             step_mode,
             attributes: attrs,
         };
-        self.add_vertex_buffer_descriptor(descriptor)
+        self.add_vertex_buffer_layout(descriptor)
     }
 
-    /// The sample count of the output attachment.
+    // Multisample state.
+
+    /// Specify the full multisample state.
+    pub fn multisample(mut self, multisample: wgpu::MultisampleState) -> Self {
+        self.multisample = multisample;
+        self
+    }
+
+    /// The number of samples calculated per pixel (for MSAA).
+    ///
+    /// For non-multisampled textures, this should be 1 (the default).
     pub fn sample_count(mut self, sample_count: u32) -> Self {
-        self.sample_count = sample_count;
+        self.multisample.count = sample_count;
+        self
+    }
+
+    /// Bitmask that restricts the samples of a pixel modified by this pipeline. All samples can be
+    /// enabled using the value !0 (the default).
+    pub fn sample_mask(mut self, sample_mask: u64) -> Self {
+        self.multisample.mask = sample_mask;
+        self
+    }
+
+    /// When enabled, produces another sample mask per pixel based on the alpha output value, that
+    /// is ANDed with the sample_mask and the primitive coverage to restrict the set of samples
+    /// affected by a primitive.
+    ///
+    /// The implicit mask produced for alpha of zero is guaranteed to be zero, and for alpha of one
+    /// is guaranteed to be all 1-s.
+    ///
+    /// Disabled by default.
+    pub fn alpha_to_coverage_enabled(mut self, b: bool) -> Self {
+        self.multisample.alpha_to_coverage_enabled = b;
         self
     }
 
@@ -428,43 +508,22 @@ fn build(
         fs_mod,
         vs_entry_point,
         fs_entry_point,
-        rasterization_state,
-        primitive_topology,
+        primitive,
         color_state,
         color_states,
-        depth_stencil_state,
-        index_format,
+        depth_stencil,
+        multisample,
         vertex_buffers,
-        sample_count,
-        sample_mask,
-        alpha_to_coverage_enabled,
     } = builder;
 
-    let vertex_stage = wgpu::ProgrammableStageDescriptor {
+    let vertex = wgpu::VertexState {
         module: &vs_mod,
         entry_point: vs_entry_point,
-    };
-
-    let fragment_stage = fs_mod.map(|fs_mod| wgpu::ProgrammableStageDescriptor {
-        module: fs_mod,
-        entry_point: fs_entry_point,
-    });
-
-    let rasterization_state = match fragment_stage.is_some() {
-        true => {
-            Some(rasterization_state.unwrap_or(RenderPipelineBuilder::DEFAULT_RASTERIZATION_STATE))
-        }
-        false => {
-            if rasterization_state.is_some() {
-                panic!("specified rasterization state fields but no fragment shader");
-            } else {
-                None
-            }
-        }
+        buffers: &vertex_buffers[..],
     };
 
     let mut single_color_state = [RenderPipelineBuilder::DEFAULT_COLOR_STATE];
-    let color_states = match (fragment_stage.is_some(), color_states.is_empty()) {
+    let color_states = match (fs_mod.is_some(), color_states.is_empty()) {
         (true, true) => {
             if let Some(cs) = color_state {
                 single_color_state[0] = cs;
@@ -478,25 +537,23 @@ fn build(
             false => &[],
         },
     };
-
-    let vertex_state = wgpu::VertexStateDescriptor {
-        index_format,
-        vertex_buffers: &vertex_buffers[..],
+    let fragment = match (fs_mod, color_states.is_empty()) {
+        (Some(fs_mod), false) => Some(wgpu::FragmentState {
+            module: &fs_mod,
+            entry_point: fs_entry_point,
+            targets: color_states,
+        }),
+        _ => None,
     };
 
     let pipeline_desc = wgpu::RenderPipelineDescriptor {
         label: Some("nannou render pipeline"),
         layout: Some(layout),
-        vertex_stage,
-        fragment_stage,
-        rasterization_state,
-        primitive_topology,
-        color_states,
-        depth_stencil_state,
-        vertex_state,
-        sample_count,
-        sample_mask,
-        alpha_to_coverage_enabled,
+        vertex,
+        primitive,
+        depth_stencil,
+        multisample,
+        fragment,
     };
 
     device.create_render_pipeline(&pipeline_desc)

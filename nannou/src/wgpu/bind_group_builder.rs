@@ -30,10 +30,11 @@ impl LayoutBuilder {
     }
 
     /// Add a uniform buffer binding to the layout.
-    pub fn uniform_buffer(self, visibility: wgpu::ShaderStage, dynamic: bool) -> Self {
-        let ty = wgpu::BindingType::UniformBuffer {
-            dynamic,
-            // wgpu 0.5-0.6 TODO: potential perf hit
+    pub fn uniform_buffer(self, visibility: wgpu::ShaderStage, has_dynamic_offset: bool) -> Self {
+        let ty = wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Uniform,
+            has_dynamic_offset,
+            // wgpu 0.5-0.6 TODO: potential perf hit, investigate this field
             min_binding_size: None,
         };
         self.binding(visibility, ty)
@@ -43,66 +44,67 @@ impl LayoutBuilder {
     pub fn storage_buffer(
         self,
         visibility: wgpu::ShaderStage,
-        dynamic: bool,
-        readonly: bool,
+        has_dynamic_offset: bool,
+        read_only: bool,
     ) -> Self {
-        let ty = wgpu::BindingType::StorageBuffer {
-            dynamic,
-            readonly,
-            // wgpu 0.5-0.6 TODO: potential perf hit
+        let ty = wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Storage { read_only },
+            has_dynamic_offset,
+            // wgpu 0.5-0.6 TODO: potential perf hit, investigate this field
             min_binding_size: None,
         };
         self.binding(visibility, ty)
     }
 
     /// Add a sampler binding to the layout.
-    pub fn sampler(self, visibility: wgpu::ShaderStage) -> Self {
+    pub fn sampler(self, visibility: wgpu::ShaderStage, filtering: bool) -> Self {
         let comparison = false;
-        let ty = wgpu::BindingType::Sampler { comparison };
-        self.binding(visibility, ty)
-    }
-
-    /// Add a sampler binding to the layout.
-    pub fn comparison_sampler(self, visibility: wgpu::ShaderStage) -> Self {
-        let comparison = true;
-        let ty = wgpu::BindingType::Sampler { comparison };
-        self.binding(visibility, ty)
-    }
-
-    /// Add a sampled texture binding to the layout.
-    pub fn sampled_texture(
-        self,
-        visibility: wgpu::ShaderStage,
-        multisampled: bool,
-        dimension: wgpu::TextureViewDimension,
-        component_type: wgpu::TextureComponentType,
-    ) -> Self {
-        let ty = wgpu::BindingType::SampledTexture {
-            multisampled,
-            dimension,
-            component_type,
+        let ty = wgpu::BindingType::Sampler {
+            filtering,
+            comparison,
         };
         self.binding(visibility, ty)
     }
 
-    /// Short-hand for adding a sampled textured binding for a full view of the given texture to
-    /// the layout.
+    /// Add a sampler binding to the layout.
+    pub fn comparison_sampler(self, visibility: wgpu::ShaderStage, filtering: bool) -> Self {
+        let comparison = true;
+        let ty = wgpu::BindingType::Sampler {
+            filtering,
+            comparison,
+        };
+        self.binding(visibility, ty)
+    }
+
+    /// Add a texture binding to the layout.
+    pub fn texture(
+        self,
+        visibility: wgpu::ShaderStage,
+        multisampled: bool,
+        view_dimension: wgpu::TextureViewDimension,
+        sample_type: wgpu::TextureSampleType,
+    ) -> Self {
+        let ty = wgpu::BindingType::Texture {
+            multisampled,
+            view_dimension,
+            sample_type,
+        };
+        self.binding(visibility, ty)
+    }
+
+    /// Short-hand for adding a texture binding for a full view of the given texture to the layout.
     ///
     /// The `multisampled` and `dimension` parameters are retrieved from the `Texture` itself.
     ///
     /// Note that if you wish to take a `Cube` or `CubeArray` view of the given texture, you will
     /// need to manually specify the `TextureViewDimension` via the `sampled_texture` method
     /// instead.
-    pub fn sampled_texture_from(
-        self,
-        visibility: wgpu::ShaderStage,
-        texture: &wgpu::Texture,
-    ) -> Self {
-        self.sampled_texture(
+    pub fn texture_from(self, visibility: wgpu::ShaderStage, texture: &wgpu::Texture) -> Self {
+        self.texture(
             visibility,
             texture.sample_count() > 1,
             texture.view_dimension(),
-            texture.component_type(),
+            texture.sample_type(),
         )
     }
 
@@ -111,13 +113,13 @@ impl LayoutBuilder {
         self,
         visibility: wgpu::ShaderStage,
         format: wgpu::TextureFormat,
-        dimension: wgpu::TextureViewDimension,
-        readonly: bool,
+        view_dimension: wgpu::TextureViewDimension,
+        access: wgpu::StorageTextureAccess,
     ) -> Self {
         let ty = wgpu::BindingType::StorageTexture {
-            dimension,
+            view_dimension,
             format,
-            readonly,
+            access,
         };
         self.binding(visibility, ty)
     }
@@ -125,18 +127,18 @@ impl LayoutBuilder {
     /// Short-hand for adding a storage texture binding for a full view of the given texture to the
     /// layout.
     ///
-    /// The `format`, `dimension` and `component_type` are inferred from the given `texture`.
+    /// The `format`, `dimension` and `sample_type` are inferred from the given `texture`.
     pub fn storage_texture_from(
         self,
         visibility: wgpu::ShaderStage,
         texture: &wgpu::Texture,
-        readonly: bool,
+        access: wgpu::StorageTextureAccess,
     ) -> Self {
         self.storage_texture(
             visibility,
             texture.format(),
             texture.view_dimension(),
-            readonly,
+            access,
         )
     }
 
@@ -183,9 +185,14 @@ impl<'a> Builder<'a> {
     pub fn buffer_bytes(
         self,
         buffer: &'a wgpu::Buffer,
-        range: std::ops::Range<wgpu::BufferAddress>,
+        offset: wgpu::BufferAddress,
+        size: Option<wgpu::BufferSize>,
     ) -> Self {
-        let resource = wgpu::BindingResource::Buffer(buffer.slice(range));
+        let resource = wgpu::BindingResource::Buffer {
+            buffer,
+            offset,
+            size,
+        };
         self.binding(resource)
     }
 
@@ -195,6 +202,7 @@ impl<'a> Builder<'a> {
     /// range of **bytes**.
     ///
     /// Type `T` *must* be either `#[repr(C)]` or `#[repr(transparent)]`.
+    // NOTE: We might want to change this to match the wgpu API by using a NonZeroU64 for size.
     pub fn buffer<T>(self, buffer: &'a wgpu::Buffer, range: std::ops::Range<usize>) -> Self
     where
         T: Copy,
@@ -202,8 +210,8 @@ impl<'a> Builder<'a> {
         let size_bytes = std::mem::size_of::<T>() as wgpu::BufferAddress;
         let start = range.start as wgpu::BufferAddress * size_bytes;
         let end = range.end as wgpu::BufferAddress * size_bytes;
-        let byte_range = start..end;
-        self.buffer_bytes(buffer, byte_range)
+        let size = std::num::NonZeroU64::new(end - start).expect("buffer slice must not be empty");
+        self.buffer_bytes(buffer, start, Some(size))
     }
 
     /// Specify a sampler to be bound.

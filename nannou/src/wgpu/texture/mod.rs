@@ -174,8 +174,8 @@ impl Texture {
     }
 
     /// The component type associated with the texture's format.
-    pub fn component_type(&self) -> wgpu::TextureComponentType {
-        self.format().into()
+    pub fn sample_type(&self) -> wgpu::TextureSampleType {
+        self.format().describe().sample_type
     }
 
     // Custom constructors.
@@ -301,7 +301,7 @@ impl Texture {
             let descriptor = self.descriptor.clone();
             let resolved_texture = wgpu::TextureBuilder::from(descriptor)
                 .sample_count(1)
-                .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::COPY_SRC)
+                .usage(wgpu::TextureUsage::RENDER_ATTACHMENT | wgpu::TextureUsage::COPY_SRC)
                 .build(device);
             let resolved_view =
                 resolved_texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -371,8 +371,8 @@ impl TextureView {
         self.info.array_layer_count
     }
 
-    pub fn component_type(&self) -> wgpu::TextureComponentType {
-        self.format().into()
+    pub fn sample_type(&self) -> wgpu::TextureSampleType {
+        self.format().describe().sample_type
     }
 
     pub fn id(&self) -> TextureViewId {
@@ -751,23 +751,7 @@ pub fn data_size_bytes(desc: &wgpu::TextureDescriptor) -> usize {
 
 /// Return the size of the given texture format in bytes.
 pub fn format_size_bytes(format: wgpu::TextureFormat) -> u32 {
-    use crate::wgpu::TextureFormat::*;
-    match format {
-        R8Unorm | R8Snorm | R8Uint | R8Sint => 1,
-
-        R16Uint | R16Sint | R16Float | Rg8Unorm | Rg8Snorm | Rg8Uint | Rg8Sint => 2,
-
-        R32Uint | R32Sint | R32Float | Rg16Uint | Rg16Sint | Rg16Float | Rgba8Unorm
-        | Rgba8UnormSrgb | Rgba8Snorm | Rgba8Uint | Rgba8Sint | Bgra8Unorm | Bgra8UnormSrgb
-        | Rgb10a2Unorm | Rg11b10Float => 4,
-
-        Rg32Uint | Rg32Sint | Rg32Float | Rgba16Uint | Rgba16Sint | Rgba16Float | Rgba32Uint
-        | Rgba32Sint | Rgba32Float => 8,
-
-        Depth32Float | Depth24Plus | Depth24PlusStencil8 => 4,
-
-        _ => unimplemented!(),
-    }
+    format.describe().block_size as u32
 }
 
 /// Returns `true` if the given `wgpu::Extent3d`s are equal.

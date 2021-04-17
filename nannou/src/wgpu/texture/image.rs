@@ -42,7 +42,7 @@ impl wgpu::TextureBuilder {
         wgpu::TextureUsage::COPY_SRC
             | wgpu::TextureUsage::COPY_DST
             | wgpu::TextureUsage::SAMPLED
-            | wgpu::TextureUsage::OUTPUT_ATTACHMENT
+            | wgpu::TextureUsage::RENDER_ATTACHMENT
     }
 }
 
@@ -68,7 +68,7 @@ impl wgpu::Texture {
     /// keeping in mind if you have more than one window and they do not share the same device.
     ///
     /// By default, the texture will have the `COPY_SRC`, `COPY_DST`, `SAMPLED` and
-    /// `OUTPUT_ATTACHMENT` usages enabled. If you wish to specify the usage yourself, see the
+    /// `RENDER_ATTACHMENT` usages enabled. If you wish to specify the usage yourself, see the
     /// `load_from_path` constructor.
     ///
     /// If the `&App` is passed as the `src`, the window returned via `app.main_window()` will be
@@ -95,7 +95,7 @@ impl wgpu::Texture {
     /// keeping in mind if you have more than one window and they do not share the same device.
     ///
     /// By default, the texture will have the `COPY_SRC`, `COPY_DST`, `SAMPLED` and
-    /// `OUTPUT_ATTACHMENT` usages enabled. If you wish to specify the usage yourself, see the
+    /// `RENDER_ATTACHMENT` usages enabled. If you wish to specify the usage yourself, see the
     /// `load_from_path` constructor.
     ///
     /// If the `&App` is passed as the `src`, the window returned via `app.main_window()` will be

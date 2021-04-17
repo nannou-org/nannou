@@ -210,6 +210,7 @@ impl<'a> Builder<'a> {
     pub fn begin(self, encoder: &'a mut wgpu::CommandEncoder) -> wgpu::RenderPass<'a> {
         let (color_attachments, depth_stencil_attachment) = self.into_inner();
         let descriptor = wgpu::RenderPassDescriptor {
+            label: Some("nannou_render_pass"),
             color_attachments: &color_attachments,
             depth_stencil_attachment,
         };

@@ -42,9 +42,9 @@ fn model(app: &App) -> Model {
     let sample_count = window.msaa_samples();
     let texture = wgpu::TextureBuilder::new()
         .size(texture_size)
-        // Our texture will be used as the OUTPUT_ATTACHMENT for our `Draw` render pass.
+        // Our texture will be used as the RENDER_ATTACHMENT for our `Draw` render pass.
         // It will also be SAMPLED by the `TextureCapturer` and `TextureResizer`.
-        .usage(wgpu::TextureUsage::OUTPUT_ATTACHMENT | wgpu::TextureUsage::SAMPLED)
+        .usage(wgpu::TextureUsage::RENDER_ATTACHMENT | wgpu::TextureUsage::SAMPLED)
         // Use nannou's default multisampling sample count.
         .sample_count(sample_count)
         // Use a spacious 16-bit linear sRGBA format suitable for high quality drawing.
@@ -63,13 +63,13 @@ fn model(app: &App) -> Model {
 
     // Create the texture reshaper.
     let texture_view = texture.view().build();
-    let texture_component_type = texture.component_type();
+    let texture_sample_type = texture.sample_type();
     let dst_format = Frame::TEXTURE_FORMAT;
     let texture_reshaper = wgpu::TextureReshaper::new(
         device,
         &texture_view,
         sample_count,
-        texture_component_type,
+        texture_sample_type,
         sample_count,
         dst_format,
     );

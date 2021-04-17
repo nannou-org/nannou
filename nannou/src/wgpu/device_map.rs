@@ -51,7 +51,7 @@ pub struct DeviceMap {
 /// `Eq` and `Hash`.
 #[derive(Clone, Debug)]
 pub struct DeviceMapKey {
-    descriptor: wgpu::DeviceDescriptor,
+    descriptor: wgpu::DeviceDescriptor<'static>,
 }
 
 /// A handle to a connected logical device and its associated queue.
@@ -172,7 +172,7 @@ impl ActiveAdapter {
     /// returned. Otherwise, a new device connection is requested via `Adapter::request_device`.
     pub fn get_or_request_device(
         &self,
-        descriptor: wgpu::DeviceDescriptor,
+        descriptor: wgpu::DeviceDescriptor<'static>,
     ) -> Arc<DeviceQueuePair> {
         futures::executor::block_on(self.get_or_request_device_async(descriptor))
     }
@@ -182,7 +182,10 @@ impl ActiveAdapter {
     /// This will always request a new device connection and will never attempt to share an
     /// existing one. The new device will take the place of the old within the map in the case that
     /// an existing connected device exists.
-    pub fn request_device(&self, descriptor: wgpu::DeviceDescriptor) -> Arc<DeviceQueuePair> {
+    pub fn request_device(
+        &self,
+        descriptor: wgpu::DeviceDescriptor<'static>,
+    ) -> Arc<DeviceQueuePair> {
         futures::executor::block_on(self.request_device_async(descriptor))
     }
 
@@ -192,7 +195,7 @@ impl ActiveAdapter {
     /// returned. Otherwise, a new device connection is requested via `Adapter::request_device`.
     pub async fn get_or_request_device_async(
         &self,
-        descriptor: wgpu::DeviceDescriptor,
+        descriptor: wgpu::DeviceDescriptor<'static>,
     ) -> Arc<DeviceQueuePair> {
         let key = DeviceMapKey { descriptor };
         let mut map = self
@@ -222,7 +225,7 @@ impl ActiveAdapter {
     /// an existing connected device exists.
     pub async fn request_device_async(
         &self,
-        descriptor: wgpu::DeviceDescriptor,
+        descriptor: wgpu::DeviceDescriptor<'static>,
     ) -> Arc<DeviceQueuePair> {
         let (device, queue) = self
             .adapter
@@ -305,16 +308,19 @@ impl PartialEq for DeviceMapKey {
 impl Eq for DeviceMapKey {}
 
 // NOTE: This should be updated as fields are added to the `wgpu::DeviceDescriptor` type.
-fn eq_device_descriptor(a: &wgpu::DeviceDescriptor, b: &wgpu::DeviceDescriptor) -> bool {
-    a.features == b.features && a.limits == b.limits && a.shader_validation == b.shader_validation
+fn eq_device_descriptor(
+    a: &wgpu::DeviceDescriptor<'static>,
+    b: &wgpu::DeviceDescriptor<'static>,
+) -> bool {
+    a.label == b.label && a.features == b.features && a.limits == b.limits
 }
 
 // NOTE: This should be updated as fields are added to the `wgpu::DeviceDescriptor` type.
-fn hash_device_descriptor<H>(desc: &wgpu::DeviceDescriptor, state: &mut H)
+fn hash_device_descriptor<H>(desc: &wgpu::DeviceDescriptor<'static>, state: &mut H)
 where
     H: Hasher,
 {
+    desc.label.hash(state);
     desc.features.hash(state);
     desc.limits.hash(state);
-    desc.shader_validation.hash(state);
 }

@@ -6,7 +6,7 @@ use wgpu::util::{BufferInitDescriptor, DeviceExt};
 ///
 /// The `src_texture` must have the `TextureUsage::SAMPLED` enabled.
 ///
-/// The `dst_texture` must have the `TextureUsage::OUTPUT_ATTACHMENT` enabled.
+/// The `dst_texture` must have the `TextureUsage::RENDER_ATTACHMENT` enabled.
 #[derive(Debug)]
 pub struct Reshaper {
     _vs_mod: wgpu::ShaderModule,
@@ -37,7 +37,7 @@ impl Reshaper {
         device: &wgpu::Device,
         src_texture: &wgpu::TextureViewHandle,
         src_sample_count: u32,
-        src_component_type: wgpu::TextureComponentType,
+        src_sample_type: wgpu::TextureSampleType,
         dst_sample_count: u32,
         dst_format: wgpu::TextureFormat,
     ) -> Self {
@@ -53,10 +53,13 @@ impl Reshaper {
         };
 
         // Create the sampler for sampling from the source texture.
-        let sampler = wgpu::SamplerBuilder::new().build(device);
+        let sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
+        let sampler_filtering = wgpu::sampler_filtering(&sampler_desc);
+        let sampler = device.create_sampler(&sampler_desc);
 
         // Create the render pipeline.
-        let bind_group_layout = bind_group_layout(device, src_sample_count, src_component_type);
+        let bind_group_layout =
+            bind_group_layout(device, src_sample_count, src_sample_type, sampler_filtering);
         let pipeline_layout = pipeline_layout(device, &bind_group_layout);
         let render_pipeline = render_pipeline(
             device,
@@ -161,16 +164,17 @@ fn unrolled_sample_count(sample_count: u32) -> bool {
 fn bind_group_layout(
     device: &wgpu::Device,
     src_sample_count: u32,
-    src_component_type: wgpu::TextureComponentType,
+    src_sample_type: wgpu::TextureSampleType,
+    sampler_filtering: bool,
 ) -> wgpu::BindGroupLayout {
     let mut builder = wgpu::BindGroupLayoutBuilder::new()
-        .sampled_texture(
+        .texture(
             wgpu::ShaderStage::FRAGMENT,
             src_sample_count > 1,
             wgpu::TextureViewDimension::D2,
-            src_component_type,
+            src_sample_type,
         )
-        .sampler(wgpu::ShaderStage::FRAGMENT);
+        .sampler(wgpu::ShaderStage::FRAGMENT, sampler_filtering);
     if !unrolled_sample_count(src_sample_count) {
         builder = builder.uniform_buffer(wgpu::ShaderStage::FRAGMENT, false);
     }
@@ -215,11 +219,10 @@ fn render_pipeline(
     wgpu::RenderPipelineBuilder::from_layout(layout, vs_mod)
         .fragment_shader(fs_mod)
         .color_format(dst_format)
-        .color_blend(wgpu::BlendDescriptor::REPLACE)
-        .alpha_blend(wgpu::BlendDescriptor::REPLACE)
+        .color_blend(wgpu::BlendState::REPLACE)
+        .alpha_blend(wgpu::BlendState::REPLACE)
         .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float2])
         .primitive_topology(wgpu::PrimitiveTopology::TriangleStrip)
-        .index_format(wgpu::IndexFormat::Uint16)
         .sample_count(dst_sample_count)
         .build(device)
 }
