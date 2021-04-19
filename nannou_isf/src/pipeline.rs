@@ -264,6 +264,13 @@ impl IsfData {
         &self.inputs
     }
 
+    /// An iterator yielding only the uniform inputs.
+    ///
+    /// Yields inputs in the order in which they are laid out in the generated shader.
+    pub fn uniform_inputs<'a>(&'a self) -> impl Iterator<Item = (&'a InputName, &'a IsfInputData)> {
+        isf_inputs_by_uniform_order(&self.inputs)
+    }
+
     /// The texture stored for each pass.
     pub fn passes(&self) -> &[wgpu::Texture] {
         &self.passes
@@ -922,7 +929,7 @@ fn create_pipeline_layout(
     bind_group_layouts: &[&wgpu::BindGroupLayout],
 ) -> wgpu::PipelineLayout {
     let desc = wgpu::PipelineLayoutDescriptor {
-        label: None,
+        label: Some("nannou_isf-pipeline_layout"),
         bind_group_layouts,
         push_constant_ranges: &[],
     };
@@ -1025,7 +1032,7 @@ fn sync_isf_data(
 // types must be aligned to 16 bytes, 8-byte types must be aligned to 8-bytes, etc.
 //
 // This must match the order specified in the generated glsl shader.
-fn isf_input_uniform_layout_order(
+fn isf_inputs_by_uniform_order(
     inputs: &BTreeMap<InputName, IsfInputData>,
 ) -> impl Iterator<Item = (&InputName, &IsfInputData)> {
     let b16 = inputs
@@ -1043,7 +1050,7 @@ fn isf_input_uniform_layout_order(
 // Encodes the ISF inputs to a slice of `u32` values, ready for uploading to the GPU.
 fn isf_inputs_to_uniform_data(inputs: &BTreeMap<InputName, IsfInputData>) -> Vec<u32> {
     let mut u32s: Vec<u32> = vec![];
-    for (_k, v) in isf_input_uniform_layout_order(inputs) {
+    for (_k, v) in isf_inputs_by_uniform_order(inputs) {
         dbg!((_k, v));
         match *v {
             IsfInputData::Event { happening } => {

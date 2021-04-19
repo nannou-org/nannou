@@ -3,7 +3,7 @@
 use fps_ticker::Fps;
 use nannou::prelude::*;
 use nannou::ui::prelude::*;
-use nannou_isf::{IsfPipeline, IsfTime};
+use nannou_isf::{IsfInputData, IsfPipeline, IsfTime};
 use std::path::{Path, PathBuf};
 
 fn main() {
@@ -49,6 +49,9 @@ widget_ids! {
         fps_max_text,
         separator1,
         separator2,
+        input_separators[],
+        input_sliders[],
+        input_texts[],
     }
 }
 
@@ -123,7 +126,7 @@ fn update(app: &App, model: &mut Model, update: Update) {
     {
         let Model {
             ref mut ui,
-            ref ids,
+            ref mut ids,
             ref mut isf,
             ref isf_shader_paths,
             ref fps,
@@ -168,9 +171,11 @@ fn ui_view(app: &App, model: &Model, frame: Frame) {
     model.ui.draw_to_frame(app, &frame).unwrap();
 }
 
-fn gui(ui: &mut UiCell, ids: &Ids, state: State) {
+fn gui(ui: &mut UiCell, ids: &mut Ids, state: State) {
     const PAD: Scalar = 20.0;
     const STATUS_FONT_SIZE: u32 = 14;
+    const SLIDER_H: Scalar = 30.0;
+    const BACK_COLOR: ui::color::Color = ui::color::Color::Rgba(0.06, 0.065, 0.07, 1.0);
 
     fn status_text(s: &str) -> widget::Text {
         widget::Text::new(s).font_size(STATUS_FONT_SIZE)
@@ -181,6 +186,16 @@ fn gui(ui: &mut UiCell, ids: &Ids, state: State) {
         let g = clamp(map_range(fps, 0.0, 60.0, 0.0, 1.0), 0.0, 1.0);
         let b = 0.5;
         (r, g, b)
+    }
+
+    fn slider<'a>(name: &'a str, f: f32, min: f32, max: f32) -> widget::Slider<'a, f32> {
+        widget::Slider::new(f, min, max)
+            .label(name)
+            .label_font_size(STATUS_FONT_SIZE)
+            .label_color(ui::color::WHITE)
+            .border(0.0)
+            .border_color(BACK_COLOR)
+            .color(ui::color::CHARCOAL)
     }
 
     widget::Canvas::new()
@@ -242,7 +257,7 @@ fn gui(ui: &mut UiCell, ids: &Ids, state: State) {
                     .unwrap_or("<invalid-file_name>");
                 let color = match Some(item.i) == selected_ix {
                     true => ui::color::DARK_BLUE,
-                    false => ui::color::rgb(0.06, 0.065, 0.07),
+                    false => BACK_COLOR,
                 };
                 let button = widget::Button::new()
                     .border(0.0)
@@ -258,6 +273,10 @@ fn gui(ui: &mut UiCell, ids: &Ids, state: State) {
             Event::Selection(new_ix) => {
                 let isf_path = state.isf_shader_paths[new_ix].clone();
                 let images_path = images_dir(state.assets);
+
+                // Free existing GPU resources *before* creating new ones.
+                std::mem::drop(state.isf.take());
+
                 *state.isf = Some(create_isf_state(
                     state.shader_window,
                     isf_path,
@@ -337,7 +356,73 @@ fn gui(ui: &mut UiCell, ids: &Ids, state: State) {
 
     separator().set(ids.separator1, ui);
 
-    // TODO: ISF Data Inputs
+    // ISF Data Input uniforms.
+
+    let isf = match state.isf {
+        Some(isf) => isf,
+        None => return,
+    };
+    let mut slider_ix = 0;
+    for (ix, (name, data)) in isf.pipeline.isf_data().inputs().iter().enumerate() {
+        if ix >= ids.input_texts.len() {
+            ids.input_texts
+                .resize(ix + 1, &mut ui.widget_id_generator());
+        }
+
+        status_text(name)
+            .padded_w_of(ids.background_canvas, PAD)
+            .color(ui::color::WHITE)
+            .down(PAD)
+            .set(ids.input_texts[ix], ui);
+
+        match *data {
+            // TODO: Button.
+            // Events in shaders are represented by a `bool` that is `true` only for the frame when
+            // the update occurred, so need to also remember to turn it back to `false` next frame
+            // somehow... Maybe can be done automatically by the ISF pipeline when rendering.
+            IsfInputData::Event { .. } => {}
+            // TODO: Toggle.
+            IsfInputData::Bool(b) => {}
+            // TODO: Slider OR Dropdownlist? Long is weird, see the isf docs...
+            IsfInputData::Long(i) => {}
+            IsfInputData::Float(f) => {
+                if slider_ix >= ids.input_sliders.len() {
+                    ids.input_sliders
+                        .resize(slider_ix + 1, &mut ui.widget_id_generator());
+                }
+
+                // TODO: We need min/max here! Possibly default on double click too.
+                let label = format!("{:.3}", f);
+                if let Some(new_f) = slider(&label, f, 0.0, 1.0)
+                    .parent(bg_id)
+                    .padded_w_of(ids.background_canvas, PAD)
+                    .h(SLIDER_H)
+                    .down(PAD * 0.5)
+                    .set(ids.input_sliders[slider_ix], ui)
+                {
+                    // TODO: Update the value in the ISF pipeline.
+                }
+
+                slider_ix += 1;
+            }
+            // TODO: XY Pad.
+            IsfInputData::Point2d(p) => {}
+            // TODO: Sliders / color picker.
+            IsfInputData::Color(lin_srgba) => {}
+            // TODO: Audio waveform (+ file drag and drop square?).
+            IsfInputData::Audio { .. } => {}
+            // TODO: Fft display?
+            IsfInputData::AudioFft { .. } => {}
+            // TODO: Show the image - make it drag and droppable with files.
+            IsfInputData::Image { .. } => {}
+        }
+
+        if ix >= ids.input_separators.len() {
+            ids.input_separators
+                .resize(ix + 1, &mut ui.widget_id_generator());
+        }
+        separator().set(ids.input_separators[ix], ui);
+    }
 }
 
 fn shader_view(_app: &App, model: &Model, frame: Frame) {

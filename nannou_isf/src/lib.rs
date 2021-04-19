@@ -1,6 +1,6 @@
 //! A crate aimed at making it easy to set up an ISF hot-loading environment with nannou.
 
-pub use crate::pipeline::{IsfPipeline, IsfTime};
+pub use crate::pipeline::{IsfInputData, IsfPipeline, IsfTime};
 use std::path::Path;
 
 mod pipeline;
@@ -48,6 +48,26 @@ pub fn input_type_uniform_size_bytes(ty: &isf::InputType) -> Option<usize> {
     Some(size)
 }
 
+/// Produces a `Vec` containing the given inputs in the order that they should be laid out within
+/// the glsl `uniforms`.
+///
+/// This *must* match the `pipeline::isf_inputs_by_uniform_order` order.
+pub fn inputs_by_uniform_order(inputs: &[isf::Input]) -> Vec<&isf::Input> {
+    let mut inputs: Vec<_> = inputs
+        .iter()
+        .filter(|i| input_type_uniform_size_bytes(&i.ty).is_some())
+        .collect();
+    inputs.sort_by(|a, b| {
+        let a_s = input_type_uniform_size_bytes(&a.ty);
+        let b_s = input_type_uniform_size_bytes(&b.ty);
+        match b_s.cmp(&a_s) {
+            std::cmp::Ordering::Equal => a.name.cmp(&b.name),
+            ord => ord,
+        }
+    });
+    inputs
+}
+
 /// Generate the necessary GLSL declarations from the given ISF to be prefixed to the GLSL string
 /// from which the ISF was parsed.
 ///
@@ -82,20 +102,9 @@ layout(set = 1, binding = 0) uniform IsfDataInputs {\n\
 
             // Input uniforms should be sorted by name and input type uniform size.
 
-            // Must layout from largest to smallest types to avoid padding holes.
-            let b16 = isf
-                .inputs
-                .iter()
-                .filter(|i| input_type_uniform_size_bytes(&i.ty) == Some(16));
-            let b8 = isf
-                .inputs
-                .iter()
-                .filter(|i| input_type_uniform_size_bytes(&i.ty) == Some(8));
-            let b4 = isf
-                .inputs
-                .iter()
-                .filter(|i| input_type_uniform_size_bytes(&i.ty) == Some(4));
-            for input in b16.chain(b8).chain(b4) {
+            // Must layout from largest to smallest types to avoid padding holes, and then ordered
+            // by `name` to match the `BTreeMap` stored in the `IsfPipeline`.
+            for input in inputs_by_uniform_order(&isf.inputs) {
                 dbg!(&input.ty);
                 let ty_str = match input_type_uniform_type(&input.ty) {
                     Some(s) => s,
