@@ -1,3 +1,4 @@
+use crate::color::conv::IntoLinSrgba;
 use crate::draw::drawing::DrawingContext;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
@@ -22,6 +23,7 @@ pub struct Text<S = geom::scalar::Default> {
 #[derive(Clone, Debug, Default)]
 pub struct Style {
     pub color: Option<LinSrgba>,
+    pub glyph_colors: Vec<LinSrgba>, // Overrides `color` if non-empty.
     pub layout: text::layout::Builder,
 }
 
@@ -129,7 +131,7 @@ impl<S> Text<S> {
         self.map_layout(|l| l.align_top())
     }
 
-    /// Align the middle of the text with the middle of the bounding rect along the y axis..
+    /// Align the middle of the text with the middle of the bounding rect along the y axis.
     ///
     /// This is the default behaviour.
     pub fn align_middle_y(self) -> Self {
@@ -149,6 +151,13 @@ impl<S> Text<S> {
     /// Specify the entire styling for the **Text**.
     pub fn with_style(mut self, style: Style) -> Self {
         self.style = style;
+        self
+    }
+
+    /// Set a color for each glyph.
+    /// Colors unspecified glyphs using the drawing color.
+    pub fn glyph_colors(mut self, colors: Vec<LinSrgba>) -> Self {
+        self.style.glyph_colors = colors;
         self
     }
 }
@@ -222,7 +231,7 @@ where
         self.map_ty(|ty| ty.align_top())
     }
 
-    /// Align the middle of the text with the middle of the bounding rect along the y axis..
+    /// Align the middle of the text with the middle of the bounding rect along the y axis.
     ///
     /// This is the default behaviour.
     pub fn align_text_middle_y(self) -> Self {
@@ -238,6 +247,21 @@ where
     pub fn layout(self, layout: &Layout) -> Self {
         self.map_ty(|ty| ty.layout(layout))
     }
+
+    /// Set a color for each glyph.
+    /// Colors unspecified glyphs using the drawing color.
+    pub fn glyph_colors<I, C>(self, glyph_colors: I) -> Self
+    where
+        I: IntoIterator<Item = C>,
+        C: IntoLinSrgba<ColorScalar>,
+    {
+        let glyph_colors = glyph_colors
+            .into_iter()
+            .map(|c| c.into_lin_srgba())
+            .collect();
+
+        self.map_ty(|ty| ty.glyph_colors(glyph_colors))
+    }
 }
 
 impl draw::renderer::RenderPrimitive for Text<f32> {
@@ -251,7 +275,11 @@ impl draw::renderer::RenderPrimitive for Text<f32> {
             style,
             text,
         } = self;
-        let Style { color, layout } = style;
+        let Style {
+            color,
+            glyph_colors,
+            layout,
+        } = style;
         let layout = layout.build();
         let (maybe_x, maybe_y, maybe_z) = (
             spatial.dimensions.x,
@@ -339,7 +367,11 @@ impl draw::renderer::RenderPrimitive for Text<f32> {
         };
 
         // Extend the mesh with a rect for each displayed glyph.
-        for g in positioned_glyphs {
+        // If `glyph_colors` contains insufficient colors, use `color` for the remaining glyphs.
+        for (g, g_color) in positioned_glyphs
+            .iter()
+            .zip(glyph_colors.iter().chain(std::iter::repeat(&color)))
+        {
             if let Ok(Some((uv_rect, screen_rect))) = ctxt.glyph_cache.rect_for(font_id.index(), &g)
             {
                 let rect = to_nannou_rect(screen_rect);
@@ -349,7 +381,7 @@ impl draw::renderer::RenderPrimitive for Text<f32> {
                     let p = geom::Point3::from(position);
                     let p = cgmath::Transform::transform_point(&transform, p.into());
                     let point = draw::mesh::vertex::Point::from(p);
-                    draw::mesh::vertex::new(point, color, tex_coords.into())
+                    draw::mesh::vertex::new(point, g_color.to_owned(), tex_coords.into())
                 };
 
                 // The sides of the UV rect.
