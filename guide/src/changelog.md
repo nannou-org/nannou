@@ -7,6 +7,51 @@ back to the origins.
 
 # Unreleased
 
+*No unreleased changes as of yet.
+
+---
+
+# Version 0.16.0 (2021-04-21)
+
+- Add ability to color characters individually to `Draw` API, i.e.
+  `draw.text().glyph_colors(color_iter)`.
+- Add a `app.quit()` method to allow for quitting the application without user
+  input.
+- Use the `instant` crate rather than `std::time::Instant` in preparation for
+  wasm support.
+- Fix a major memory leak and various resize crashes - thanks danwilhelm!
+- Fix non-uniform scaling in `Draw` API.
+
+**Update to wgpu 0.7**
+
+These changes mostly involved renaming of items, though also included some
+significant refactoring of the `wgpu::RenderPipeline`.
+
+- The `wgpu::RenderPipelineBuilder` had some methods added, some removed in
+  order to more closely match the newly refactored `wpgu::RenderPipeline`.
+  Documentation of `RenderPipelineBuilder` methods has been added to match
+  the upstream wgpu docs of the associated fields.
+- The `Sampler` binding type now requires specifying whether or not it uses the
+  `Linear` option for any of its minify, magnify or mipmap filters. A
+  `wgpu::sampler_filtering` function was added to make it easier to retrieve
+  this bool from the `SamplerDescriptor`.
+- The vertex buffer `IndexFormat` is now specified while setting the index
+  buffer in the render pass command, rather than in the render pipeline
+  descriptor.
+- Item name changes include:
+    - `PowerPreference::Default` -> `PowerPreference::LowPower`
+    - `TextureUsage::OUTPUT_ATTACHMENT` -> `TextureUsage::RENDER_ATTACHMENT`
+    - `TextureComponentType` -> `TextureSampleType`
+    - `component_type` -> `sample_type` (for textures)
+    - `BlendDescriptor` -> `BlendState`
+    - `VertexAttributeDescriptor` -> `VertexAttribute`
+    - `BindingType::SampledTexture` -> `BindingType::Texture`
+    - `ColorStateDescriptor` -> `ColorTargetState`
+    - `DepthStencilStateDescriptor` -> `DepthStencilState`
+    - `VertexBufferDescriptor` -> `VertexBufferLayout`
+- Also updates related dependencies:
+    - `conrod_derive` and `conrod_core` to `0.72`.
+
 **Update to wgpu 0.6**
 
 For the most part, these changes will affect users of the `nannou::wgpu` module,
@@ -39,7 +84,6 @@ changelog entry
     - `audrey` to 0.3.
     - `winit` to 0.24.
     - `conrod_derive` and `conrod_core` to 0.71 (`nannou_timeline` only).
-
 
 ### nannou_audio
 
