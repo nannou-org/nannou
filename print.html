@@ -632,7 +632,7 @@ authors = [&quot;mitchmindtree &lt;mitchell.nordine@gmail.com&gt;&quot;]
 edition = &quot;2018&quot;
 
 [dependencies]
-nannou = &quot;0.15&quot;
+nannou = &quot;0.16&quot;
 </code></pre>
 <p>Note that there is a chance the nannou version above might be out of date.
 You can check the latest version by typing <code>cargo search nannou</code> in your
@@ -2590,6 +2590,54 @@ published.</p>
 back to the origins.</p>
 <hr />
 <h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
+<p>*No unreleased changes as of yet.</p>
+<hr />
+<h1 id="version-0160-2021-04-21"><a class="header" href="#version-0160-2021-04-21">Version 0.16.0 (2021-04-21)</a></h1>
+<ul>
+<li>Add ability to color characters individually to <code>Draw</code> API, i.e.
+<code>draw.text().glyph_colors(color_iter)</code>.</li>
+<li>Add a <code>app.quit()</code> method to allow for quitting the application without user
+input.</li>
+<li>Use the <code>instant</code> crate rather than <code>std::time::Instant</code> in preparation for
+wasm support.</li>
+<li>Fix a major memory leak and various resize crashes - thanks danwilhelm!</li>
+<li>Fix non-uniform scaling in <code>Draw</code> API.</li>
+</ul>
+<p><strong>Update to wgpu 0.7</strong></p>
+<p>These changes mostly involved renaming of items, though also included some
+significant refactoring of the <code>wgpu::RenderPipeline</code>.</p>
+<ul>
+<li>The <code>wgpu::RenderPipelineBuilder</code> had some methods added, some removed in
+order to more closely match the newly refactored <code>wpgu::RenderPipeline</code>.
+Documentation of <code>RenderPipelineBuilder</code> methods has been added to match
+the upstream wgpu docs of the associated fields.</li>
+<li>The <code>Sampler</code> binding type now requires specifying whether or not it uses the
+<code>Linear</code> option for any of its minify, magnify or mipmap filters. A
+<code>wgpu::sampler_filtering</code> function was added to make it easier to retrieve
+this bool from the <code>SamplerDescriptor</code>.</li>
+<li>The vertex buffer <code>IndexFormat</code> is now specified while setting the index
+buffer in the render pass command, rather than in the render pipeline
+descriptor.</li>
+<li>Item name changes include:
+<ul>
+<li><code>PowerPreference::Default</code> -&gt; <code>PowerPreference::LowPower</code></li>
+<li><code>TextureUsage::OUTPUT_ATTACHMENT</code> -&gt; <code>TextureUsage::RENDER_ATTACHMENT</code></li>
+<li><code>TextureComponentType</code> -&gt; <code>TextureSampleType</code></li>
+<li><code>component_type</code> -&gt; <code>sample_type</code> (for textures)</li>
+<li><code>BlendDescriptor</code> -&gt; <code>BlendState</code></li>
+<li><code>VertexAttributeDescriptor</code> -&gt; <code>VertexAttribute</code></li>
+<li><code>BindingType::SampledTexture</code> -&gt; <code>BindingType::Texture</code></li>
+<li><code>ColorStateDescriptor</code> -&gt; <code>ColorTargetState</code></li>
+<li><code>DepthStencilStateDescriptor</code> -&gt; <code>DepthStencilState</code></li>
+<li><code>VertexBufferDescriptor</code> -&gt; <code>VertexBufferLayout</code></li>
+</ul>
+</li>
+<li>Also updates related dependencies:
+<ul>
+<li><code>conrod_derive</code> and <code>conrod_core</code> to <code>0.72</code>.</li>
+</ul>
+</li>
+</ul>
 <p><strong>Update to wgpu 0.6</strong></p>
 <p>For the most part, these changes will affect users of the <code>nannou::wgpu</code> module,
 but not so much the users of the <code>draw</code> or <code>ui</code> APIs. <em>Find the relevant wgpu
