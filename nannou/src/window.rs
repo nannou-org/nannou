@@ -156,10 +156,21 @@ pub type UnfocusedFn<Model> = fn(&App, &mut Model);
 pub type ClosedFn<Model> = fn(&App, &mut Model);
 
 /// Errors that might occur while building the window.
-#[derive(Debug)]
 pub enum BuildError {
+    /// Usually indicates that the wgpu was not able to detect a compatible graphics driver for the
+    /// traget system and the requested [`PowerPreference`](../wgpu/enum.PowerPreference.html).
     NoAvailableAdapter,
+    /// An error from winit.
     WinitOsError(winit::error::OsError),
+}
+
+impl std::fmt::Debug for BuildError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+              BuildError::NoAvailableAdapter => write!(f, "The wgpu did not detect a compatible graphics driver for the target system. Make sure the appropriate drivers for your hardware are installed. If you requested a different PowerPreference, make sure your card supports it."),
+              BuildError::WinitOsError(e) => e.fmt(f),
+          }
+    }
 }
 
 // A macro for generating a handle to a function that can be stored within the Window without
