@@ -30,7 +30,6 @@ fn model(app: &App) -> Model {
 
     Model {
         egui_backend: nannou_egui::EguiBackend::new(
-            window_id,
             window.swap_chain_device(),
             window.inner_size_pixels().0,
             window.inner_size_pixels().1,

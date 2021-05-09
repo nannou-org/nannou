@@ -15,7 +15,6 @@ const OUTPUT_FORMAT: egui_wgpu_backend::wgpu::TextureFormat =
 pub struct EguiBackend {
     render_pass: RefCell<egui_wgpu_backend::RenderPass>,
     platform: RefCell<egui_winit_platform::Platform>,
-    window: winit::window::WindowId,
     width: u32,
     height: u32,
     scale_factor: f64,
@@ -29,7 +28,6 @@ impl epi::RepaintSignal for ExampleRepaintSignal {
 
 impl EguiBackend {
     pub fn new(
-        window: winit::window::WindowId,
         device: &egui_wgpu_backend::wgpu::Device,
         width: u32,
         height: u32,
@@ -46,8 +44,7 @@ impl EguiBackend {
                     style: Default::default(),
                 },
             )),
-            window,
-
+            
             width,
             height,
             scale_factor,
