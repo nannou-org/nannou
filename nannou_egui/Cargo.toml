@@ -1,0 +1,15 @@
+[package]
+name = "nannou_egui"
+version = "0.1.0"
+authors = ["Alexandru Ene <alex.ene0x11@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+egui_wgpu_backend = "0.6"
+egui_winit_platform = "0.6"
+egui = "0.11.0"
+epi = "0.11.0"
+winit = "0.24"
+nannou = "0.16"

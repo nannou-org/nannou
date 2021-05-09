@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "nannou_egui",
+    "nannou_egui_example"
+]
