@@ -1,4 +1,4 @@
-use std::{borrow::BorrowMut, cell::RefCell, sync::Arc};
+use std::{borrow::BorrowMut, cell::RefCell, iter, sync::Arc};
 
 pub use egui;
 pub use egui_wgpu_backend;
@@ -44,15 +44,15 @@ impl EguiBackend {
                     style: Default::default(),
                 },
             )),
-            
+
             width,
             height,
             scale_factor,
         }
     }
 
-    pub fn handle_event(&mut self, event: &WindowEvent) {
-        // self.platform.handle_event::<winit::event::WindowEvent>(
+    pub fn handle_event(&mut self, _event: &WindowEvent) {
+        // self.platform.borrow_mut().handle_event::<winit::event::WindowEvent>(
         //     &winit::event::Event::WindowEvent {
         //         window_id: self.window,
         //         event: event.clone(),
@@ -63,7 +63,7 @@ impl EguiBackend {
     pub fn update_time(&mut self, dt: f64) {
         self.platform.borrow_mut().update_time(dt);
     }
-    
+
     pub fn context(&self) -> egui::CtxRef {
         let mut platform = self.platform.borrow_mut();
         platform.begin_frame();
@@ -101,7 +101,9 @@ impl EguiBackend {
             frame.texture_view(),
             &paint_jobs,
             &screen_descriptor,
-            Some(egui_wgpu_backend::wgpu::Color::BLACK),
+            Some(egui_wgpu_backend::wgpu::Color::TRANSPARENT),
         );
+
+        queue.submit(iter::once(encoder.finish()));
     }
 }

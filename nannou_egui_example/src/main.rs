@@ -19,9 +19,9 @@ fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
     let window_id = app
         .new_window()
-        .title("triangles")
+        .title("Nannou + Egui")
         .msaa_samples(1)
-        .raw_event(raw_window_event)
+        .raw_event(raw_window_event) // This is where we forward all raw events for egui to process them
         .view(view) // The function that will be called for presenting graphics to a frame.
         .build()
         .unwrap();
@@ -38,19 +38,19 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, update: Update) {
+fn update(_app: &App, model: &mut Model, update: Update) {
     model
         .egui_backend
         .update_time(update.since_last.as_secs_f64());
 
     let ctx = model.egui_backend.context();
-    egui::Window::new("Workshop window")
+    egui::Window::new("EGUI + Nannou window")
         .resizable(false)
         .collapsible(false)
         .fixed_size(egui::vec2(630.0, 800.0))
-        .default_pos(egui::pos2(600.0, 400.0))
+        .default_pos(egui::pos2(0.0, 0.0))
         .show(&ctx, |ui| {
-            ui.label("Hello world!");
+            ui.label("Hello world It works :D!");
         });
 }
 
@@ -62,7 +62,7 @@ fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event:
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
-    frame.clear(BLACK);
+    // frame.clear(BLACK);
 
     draw.ellipse().x_y(100.0, 100.0).color(WHITE);
 
@@ -70,7 +70,4 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     model.egui_backend.draw_ui_to_frame(&frame);
     frame.submit();
-
-    // let file_path = crate::helpers::captured_frame_path(app, &frame);
-    // app.main_window().capture_frame(file_path);
 }
