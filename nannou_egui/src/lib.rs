@@ -81,10 +81,10 @@ impl EguiBackend {
         let (_output, paint_commands) = platform.end_frame();
         let paint_jobs = platform.context().tessellate(paint_commands);
 
-        let mut encoder =
-            device.create_command_encoder(&egui_wgpu_backend::wgpu::CommandEncoderDescriptor {
-                label: Some("egui_encoder"),
-            });
+        let mut encoder = frame.command_encoder();
+            // device.create_command_encoder(&egui_wgpu_backend::wgpu::CommandEncoderDescriptor {
+            //     label: Some("egui_encoder"),
+            // });
 
         let screen_descriptor = ScreenDescriptor {
             physical_width: self.width,
@@ -101,9 +101,7 @@ impl EguiBackend {
             frame.texture_view(),
             &paint_jobs,
             &screen_descriptor,
-            Some(egui_wgpu_backend::wgpu::Color::TRANSPARENT),
+            None,
         );
-
-        queue.submit(iter::once(encoder.finish()));
     }
 }

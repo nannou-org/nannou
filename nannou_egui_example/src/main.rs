@@ -62,7 +62,7 @@ fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event:
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
-    // frame.clear(BLACK);
+    frame.clear(BLACK);
 
     draw.ellipse().x_y(100.0, 100.0).color(WHITE);
 
