@@ -68,6 +68,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     draw.to_frame(app, &frame).unwrap();
 
+    // Do this as the last operation on your frame.
     model.egui_backend.draw_ui_to_frame(&frame);
-    frame.submit();
 }
