@@ -1,5 +1,6 @@
+use egui::color_picker::Alpha;
 use nannou::prelude::*;
-use nannou_egui::{self, egui};
+use nannou_egui::{self, color_picker, egui};
 
 const WIDTH: f32 = 640.0;
 const HEIGHT: f32 = 360.0;
@@ -14,6 +15,7 @@ pub fn main() {
 struct Model {
     egui_backend: nannou_egui::EguiBackend,
     radius: f32,
+    color: Hsv,
 }
 
 fn model(app: &App) -> Model {
@@ -32,6 +34,7 @@ fn model(app: &App) -> Model {
     Model {
         egui_backend: nannou_egui::EguiBackend::new(&window),
         radius: 40.0,
+        color: hsv(10.0, 0.5, 1.0),
     }
 }
 
@@ -47,6 +50,7 @@ fn update(_app: &App, model: &mut Model, update: Update) {
             ui.separator();
             ui.label("Tune parameters with ease");
             ui.add(egui::Slider::new(&mut model.radius, 10.0..=100.0).text("Radius"));
+            nannou_egui::edit_color(ui, &mut model.color);
         });
     model.egui_backend.end_frame();
 }
@@ -64,7 +68,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.ellipse()
         .x_y(100.0, 100.0)
         .radius(model.radius)
-        .color(WHITE);
+        .color(model.color);
 
     draw.to_frame(app, &frame).unwrap();
 

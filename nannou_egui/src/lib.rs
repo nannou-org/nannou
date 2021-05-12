@@ -1,6 +1,7 @@
 use std::{borrow::BorrowMut, cell::RefCell};
 
 pub use egui;
+pub use egui::color_picker;
 pub use egui_wgpu_backend;
 
 use egui::{pos2, ClippedMesh, CtxRef};
@@ -62,6 +63,8 @@ impl EguiBackend {
         let mut raw_input = &mut self.raw_input;
         match event {
             Resized(physical_size) => {
+                self.width = physical_size.width;
+                self.height = physical_size.height;
                 raw_input.screen_rect = Some(egui::Rect::from_min_size(
                     Default::default(),
                     egui::vec2(physical_size.width as f32, physical_size.height as f32)
@@ -236,5 +239,20 @@ fn winit_to_egui_modifiers(modifiers: winit::event::ModifiersState) -> egui::Mod
         mac_cmd: false,
         #[cfg(not(target_os = "macos"))]
         command: modifiers.ctrl(),
+    }
+}
+
+pub fn edit_color(ui: &mut egui::Ui, color: &mut nannou::color::Hsv) {
+    let mut egui_hsv = egui::color::Hsva::new(
+        color.hue.to_positive_degrees() as f32 / (std::f32::consts::PI * 2.0),
+        color.saturation,
+        color.value,
+        1.0,
+    );
+
+    if color_picker::color_edit_button_hsva(ui, &mut egui_hsv, color_picker::Alpha::Opaque)
+        .changed()
+    {
+        *color = nannou::color::hsv(egui_hsv.h, egui_hsv.s, egui_hsv.v);
     }
 }
