@@ -1,3 +1,5 @@
+[![Latest version](https://img.shields.io/crates/v/nannou_egui.svg)](https://crates.io/crates/nannou_egui)
+
 # nannou_egui
 Egui integration for nannou
 
