@@ -14,6 +14,7 @@ pub fn main() {
 struct Model {
     egui_backend: nannou_egui::EguiBackend,
     text: String,
+    radius: f32,
 }
 
 fn model(app: &App) -> Model {
@@ -37,6 +38,7 @@ fn model(app: &App) -> Model {
             window.scale_factor() as f64,
         ),
         text: String::from("test"),
+        radius: 40.0,
     }
 }
 
@@ -53,6 +55,7 @@ fn update(_app: &App, model: &mut Model, update: Update) {
         .show(&ctx, |ui| {
             ui.label("Hello world It works :D!");
             ui.text_edit_singleline(&mut model.text);
+            ui.add(egui::Slider::new(&mut model.radius, 10.0..=100.0));
         });
     model.egui_backend.end_frame();
 }
@@ -67,7 +70,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     frame.clear(BLACK);
 
-    draw.ellipse().x_y(100.0, 100.0).color(WHITE);
+    draw.ellipse()
+        .x_y(100.0, 100.0)
+        .radius(model.radius)
+        .color(WHITE);
 
     draw.to_frame(app, &frame).unwrap();
 
