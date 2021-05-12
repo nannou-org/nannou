@@ -46,7 +46,6 @@ impl EguiBackend {
             render_pass: RefCell::new(egui_wgpu_backend::RenderPass::new(
                 window.swap_chain_device(),
                 OUTPUT_FORMAT,
-                window.msaa_samples()
             )),
             context,
             modifier_state: winit::event::ModifiersState::empty(),
