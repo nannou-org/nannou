@@ -47,15 +47,13 @@ fn update(_app: &App, model: &mut Model, update: Update) {
         .egui_backend
         .update_time(update.since_start.as_secs_f64());
     let ctx = model.egui_backend.begin_frame();
-    egui::Window::new("EGUI + Nannou window")
-        .resizable(false)
-        .collapsible(false)
-        .fixed_size(egui::vec2(630.0, 800.0))
+    egui::Window::new("EGUI window")
+        .default_size(egui::vec2(0.0, 200.0))
         .default_pos(egui::pos2(0.0, 0.0))
         .show(&ctx, |ui| {
-            ui.label("Hello world It works :D!");
-            ui.text_edit_singleline(&mut model.text);
-            ui.add(egui::Slider::new(&mut model.radius, 10.0..=100.0));
+            ui.separator();
+            ui.label("Tune parameters with ease");
+            ui.add(egui::Slider::new(&mut model.radius, 10.0..=100.0).text("Radius"));
         });
     model.egui_backend.end_frame();
 }
