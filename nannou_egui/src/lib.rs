@@ -1,23 +1,27 @@
-use std::{borrow::BorrowMut, cell::RefCell, iter, sync::Arc};
+use std::{borrow::BorrowMut, cell::RefCell};
 
 pub use egui;
 pub use egui_wgpu_backend;
 
-use egui::FontDefinitions;
+use egui::{pos2, ClippedMesh, CtxRef};
 use egui_wgpu_backend::ScreenDescriptor;
-use egui_winit_platform;
 use epi;
-use winit::event::WindowEvent;
+use winit::event::VirtualKeyCode;
+use winit::event::WindowEvent::*;
 
 const OUTPUT_FORMAT: egui_wgpu_backend::wgpu::TextureFormat =
     egui_wgpu_backend::wgpu::TextureFormat::Rgba16Float;
 
 pub struct EguiBackend {
     render_pass: RefCell<egui_wgpu_backend::RenderPass>,
-    platform: RefCell<egui_winit_platform::Platform>,
+    raw_input: egui::RawInput,
+    modifier_state: winit::event::ModifiersState,
+    pointer_pos: egui::Pos2,
     width: u32,
     height: u32,
     scale_factor: f64,
+    context: egui::CtxRef,
+    paint_jobs: Vec<ClippedMesh>,
 }
 
 struct ExampleRepaintSignal;
@@ -33,65 +37,147 @@ impl EguiBackend {
         height: u32,
         scale_factor: f64,
     ) -> EguiBackend {
+        let raw_input = egui::RawInput {
+            pixels_per_point: Some(scale_factor as f32),
+            screen_rect: Some(egui::Rect::from_min_size(
+                Default::default(),
+                egui::vec2(width as f32, height as f32) / scale_factor as f32,
+            )),
+            ..Default::default()
+        };
+
+        let context = egui::CtxRef::default();
+        context.set_fonts(egui::FontDefinitions::default());
+        context.set_style(egui::Style::default());
+
         EguiBackend {
             render_pass: RefCell::new(egui_wgpu_backend::RenderPass::new(device, OUTPUT_FORMAT)),
-            platform: RefCell::new(egui_winit_platform::Platform::new(
-                egui_winit_platform::PlatformDescriptor {
-                    physical_width: width,
-                    physical_height: height,
-                    scale_factor: scale_factor,
-                    font_definitions: FontDefinitions::default(),
-                    style: Default::default(),
-                },
-            )),
-
+            context,
+            modifier_state: winit::event::ModifiersState::empty(),
             width,
             height,
             scale_factor,
+            raw_input,
+            pointer_pos: Default::default(),
+            paint_jobs: Vec::new(),
         }
     }
 
-    pub fn handle_event(&mut self, _event: &WindowEvent) {
-        // self.platform.borrow_mut().handle_event::<winit::event::WindowEvent>(
-        //     &winit::event::Event::WindowEvent {
-        //         window_id: self.window,
-        //         event: event.clone(),
-        //     },
-        // );
+    pub fn handle_event(&mut self, event: &winit::event::WindowEvent) {
+        let mut raw_input = &mut self.raw_input;
+        match event {
+            Resized(physical_size) => {
+                raw_input.screen_rect = Some(egui::Rect::from_min_size(
+                    Default::default(),
+                    egui::vec2(physical_size.width as f32, physical_size.height as f32)
+                        / self.scale_factor as f32,
+                ));
+            }
+            ScaleFactorChanged {
+                scale_factor,
+                new_inner_size,
+            } => {
+                self.scale_factor = *scale_factor;
+                raw_input.pixels_per_point = Some(*scale_factor as f32);
+                raw_input.screen_rect = Some(egui::Rect::from_min_size(
+                    Default::default(),
+                    egui::vec2(new_inner_size.width as f32, new_inner_size.height as f32)
+                        / self.scale_factor as f32,
+                ));
+            }
+            MouseInput { state, button, .. } => {
+                if let winit::event::MouseButton::Other(..) = button {
+                } else {
+                    raw_input.events.push(egui::Event::PointerButton {
+                        pos: self.pointer_pos,
+                        button: match button {
+                            winit::event::MouseButton::Left => egui::PointerButton::Primary,
+                            winit::event::MouseButton::Right => egui::PointerButton::Secondary,
+                            winit::event::MouseButton::Middle => egui::PointerButton::Middle,
+                            winit::event::MouseButton::Other(_) => unreachable!(),
+                        },
+                        pressed: *state == winit::event::ElementState::Pressed,
+                        modifiers: Default::default(),
+                    });
+                }
+            }
+            MouseWheel { delta, .. } => {
+                match delta {
+                    winit::event::MouseScrollDelta::LineDelta(x, y) => {
+                        let line_height = 24.0;
+                        raw_input.scroll_delta = egui::vec2(*x, *y) * line_height;
+                    }
+                    winit::event::MouseScrollDelta::PixelDelta(delta) => {
+                        // Actually point delta
+                        raw_input.scroll_delta = egui::vec2(delta.x as f32, delta.y as f32);
+                    }
+                }
+            }
+            CursorMoved { position, .. } => {
+                self.pointer_pos = pos2(
+                    position.x as f32 / self.scale_factor as f32,
+                    position.y as f32 / self.scale_factor as f32,
+                );
+                raw_input
+                    .events
+                    .push(egui::Event::PointerMoved(self.pointer_pos));
+            }
+            CursorLeft { .. } => {
+                raw_input.events.push(egui::Event::PointerGone);
+            }
+            ModifiersChanged(input) => self.modifier_state = *input,
+            KeyboardInput { input, .. } => {
+                if let Some(virtual_keycode) = input.virtual_keycode {
+                    if let Some(key) = winit_to_egui_key_code(virtual_keycode) {
+                        // TODO figure out why if I enable this the characters get ignored
+
+                        raw_input.events.push(egui::Event::Key {
+                            key,
+                            pressed: input.state == winit::event::ElementState::Pressed,
+                            // modifiers: winit_to_egui_modifiers(self.modifier_state),
+                            modifiers: winit_to_egui_modifiers(self.modifier_state),
+                        });
+                    }
+                }
+            }
+            ReceivedCharacter(ch) => {
+                if ch.is_alphabetic() && !self.modifier_state.ctrl() && !self.modifier_state.logo()
+                {
+                    raw_input.events.push(egui::Event::Text(ch.to_string()));
+                }
+            }
+            _ => {}
+        }
     }
 
-    pub fn update_time(&mut self, dt: f64) {
-        self.platform.borrow_mut().update_time(dt);
+    pub fn begin_frame(&mut self) -> CtxRef {
+        self.context.begin_frame(self.raw_input.borrow_mut().take());
+        self.context.clone()
     }
 
-    pub fn context(&self) -> egui::CtxRef {
-        let mut platform = self.platform.borrow_mut();
-        platform.begin_frame();
-        platform.context()
+    pub fn end_frame(&mut self) {
+        let (_, paint_cmds) = self.context.end_frame();
+        self.paint_jobs = self.context.tessellate(paint_cmds);
+    }
+
+    pub fn update_time(&mut self, elapsed_seconds: f64) {
+        self.raw_input.time = Some(elapsed_seconds);
     }
 
     pub fn draw_ui_to_frame(&self, frame: &nannou::Frame) {
         let device_queue_pair = frame.device_queue_pair();
         let device = device_queue_pair.device();
         let queue = device_queue_pair.queue();
-
-        let mut platform = self.platform.borrow_mut();
         let mut render_pass = self.render_pass.borrow_mut();
-
-        let (_output, paint_commands) = platform.end_frame();
-        let paint_jobs = platform.context().tessellate(paint_commands);
-
+        let paint_jobs = &self.paint_jobs;
         let mut encoder = frame.command_encoder();
-            // device.create_command_encoder(&egui_wgpu_backend::wgpu::CommandEncoderDescriptor {
-            //     label: Some("egui_encoder"),
-            // });
 
         let screen_descriptor = ScreenDescriptor {
             physical_width: self.width,
             physical_height: self.height,
             scale_factor: self.scale_factor as f32,
         };
-        render_pass.update_texture(device, queue, &platform.context().texture());
+        render_pass.update_texture(device, queue, &self.context.texture());
         render_pass.update_user_textures(&device, &queue);
         render_pass.update_buffers(device, queue, &paint_jobs, &screen_descriptor);
 
@@ -103,5 +189,57 @@ impl EguiBackend {
             &screen_descriptor,
             None,
         );
+    }
+}
+
+/// Translates winit to egui keycodes.
+#[inline]
+fn winit_to_egui_key_code(key: VirtualKeyCode) -> Option<egui::Key> {
+    use egui::Key;
+
+    Some(match key {
+        VirtualKeyCode::Escape => Key::Escape,
+        VirtualKeyCode::Insert => Key::Insert,
+        VirtualKeyCode::Home => Key::Home,
+        VirtualKeyCode::Delete => Key::Delete,
+        VirtualKeyCode::End => Key::End,
+        VirtualKeyCode::PageDown => Key::PageDown,
+        VirtualKeyCode::PageUp => Key::PageUp,
+        VirtualKeyCode::Left => Key::ArrowLeft,
+        VirtualKeyCode::Up => Key::ArrowUp,
+        VirtualKeyCode::Right => Key::ArrowRight,
+        VirtualKeyCode::Down => Key::ArrowDown,
+        VirtualKeyCode::Back => Key::Backspace,
+        VirtualKeyCode::Return => Key::Enter,
+        VirtualKeyCode::Tab => Key::Tab,
+        VirtualKeyCode::Space => Key::Space,
+
+        VirtualKeyCode::A => Key::A,
+        VirtualKeyCode::K => Key::K,
+        VirtualKeyCode::U => Key::U,
+        VirtualKeyCode::W => Key::W,
+        VirtualKeyCode::Z => Key::Z,
+
+        _ => {
+            return None;
+        }
+    })
+}
+
+/// Translates winit to egui modifier keys.
+#[inline]
+fn winit_to_egui_modifiers(modifiers: winit::event::ModifiersState) -> egui::Modifiers {
+    egui::Modifiers {
+        alt: modifiers.alt(),
+        ctrl: modifiers.ctrl(),
+        shift: modifiers.shift(),
+        #[cfg(target_os = "macos")]
+        mac_cmd: modifiers.logo(),
+        #[cfg(target_os = "macos")]
+        command: modifiers.logo(),
+        #[cfg(not(target_os = "macos"))]
+        mac_cmd: false,
+        #[cfg(not(target_os = "macos"))]
+        command: modifiers.ctrl(),
     }
 }

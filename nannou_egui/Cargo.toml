@@ -8,7 +8,6 @@ edition = "2018"
 
 [dependencies]
 egui_wgpu_backend = "0.6"
-egui_winit_platform = "0.6"
 egui = "0.11.0"
 epi = "0.11.0"
 winit = "0.24"

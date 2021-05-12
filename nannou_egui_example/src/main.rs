@@ -13,6 +13,7 @@ pub fn main() {
 
 struct Model {
     egui_backend: nannou_egui::EguiBackend,
+    text: String,
 }
 
 fn model(app: &App) -> Model {
@@ -35,15 +36,15 @@ fn model(app: &App) -> Model {
             window.inner_size_pixels().1,
             window.scale_factor() as f64,
         ),
+        text: String::from("test"),
     }
 }
 
 fn update(_app: &App, model: &mut Model, update: Update) {
     model
         .egui_backend
-        .update_time(update.since_last.as_secs_f64());
-
-    let ctx = model.egui_backend.context();
+        .update_time(update.since_start.as_secs_f64());
+    let ctx = model.egui_backend.begin_frame();
     egui::Window::new("EGUI + Nannou window")
         .resizable(false)
         .collapsible(false)
@@ -51,7 +52,9 @@ fn update(_app: &App, model: &mut Model, update: Update) {
         .default_pos(egui::pos2(0.0, 0.0))
         .show(&ctx, |ui| {
             ui.label("Hello world It works :D!");
+            ui.text_edit_singleline(&mut model.text);
         });
+    model.egui_backend.end_frame();
 }
 
 fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event::WindowEvent) {
