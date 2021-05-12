@@ -5,7 +5,6 @@ pub use egui_wgpu_backend;
 
 use egui::{pos2, ClippedMesh, CtxRef};
 use egui_wgpu_backend::ScreenDescriptor;
-use epi;
 use winit::event::VirtualKeyCode;
 use winit::event::WindowEvent::*;
 
@@ -22,12 +21,6 @@ pub struct EguiBackend {
     scale_factor: f64,
     context: egui::CtxRef,
     paint_jobs: Vec<ClippedMesh>,
-}
-
-struct ExampleRepaintSignal;
-
-impl epi::RepaintSignal for ExampleRepaintSignal {
-    fn request_repaint(&self) {}
 }
 
 impl EguiBackend {
