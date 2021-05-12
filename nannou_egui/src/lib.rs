@@ -24,12 +24,11 @@ pub struct EguiBackend {
 }
 
 impl EguiBackend {
-    pub fn new(
-        device: &egui_wgpu_backend::wgpu::Device,
-        width: u32,
-        height: u32,
-        scale_factor: f64,
-    ) -> EguiBackend {
+    pub fn new(window: &nannou::window::Window) -> EguiBackend {
+        let scale_factor = window.scale_factor() as f64;
+        let width = window.inner_size_pixels().0;
+        let height = window.inner_size_pixels().1;
+
         let raw_input = egui::RawInput {
             pixels_per_point: Some(scale_factor as f32),
             screen_rect: Some(egui::Rect::from_min_size(
@@ -44,7 +43,11 @@ impl EguiBackend {
         context.set_style(egui::Style::default());
 
         EguiBackend {
-            render_pass: RefCell::new(egui_wgpu_backend::RenderPass::new(device, OUTPUT_FORMAT)),
+            render_pass: RefCell::new(egui_wgpu_backend::RenderPass::new(
+                window.swap_chain_device(),
+                OUTPUT_FORMAT,
+                window.msaa_samples()
+            )),
             context,
             modifier_state: winit::event::ModifiersState::empty(),
             width,

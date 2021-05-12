@@ -13,7 +13,6 @@ pub fn main() {
 
 struct Model {
     egui_backend: nannou_egui::EguiBackend,
-    text: String,
     radius: f32,
 }
 
@@ -22,7 +21,7 @@ fn model(app: &App) -> Model {
     let window_id = app
         .new_window()
         .title("Nannou + Egui")
-        .msaa_samples(1)
+        // .msaa_samples(4)
         .raw_event(raw_window_event) // This is where we forward all raw events for egui to process them
         .view(view) // The function that will be called for presenting graphics to a frame.
         .build()
@@ -31,13 +30,7 @@ fn model(app: &App) -> Model {
     let window = app.window(window_id).unwrap();
 
     Model {
-        egui_backend: nannou_egui::EguiBackend::new(
-            window.swap_chain_device(),
-            window.inner_size_pixels().0,
-            window.inner_size_pixels().1,
-            window.scale_factor() as f64,
-        ),
-        text: String::from("test"),
+        egui_backend: nannou_egui::EguiBackend::new(&window),
         radius: 40.0,
     }
 }
