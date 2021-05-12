@@ -3,6 +3,9 @@ name = "nannou_egui"
 version = "0.1.0"
 authors = ["Alexandru Ene <alex.ene0x11@gmail.com>"]
 edition = "2018"
+license = "MIT/Apache 2.0"
+description = "egui integration for nannou"
+repository = "https://github.com/AlexEne/nannou_egui"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
