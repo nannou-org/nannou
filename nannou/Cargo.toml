@@ -1,6 +1,6 @@
 [package]
 name = "nannou"
-version ="0.16.0"
+version ="0.17.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A Creative Coding Framework for Rust."
 readme = "README.md"
@@ -15,8 +15,10 @@ default = ["notosans"]
 
 [dependencies]
 cgmath = { version = "0.17", features = ["serde"] }
-conrod_core = "0.72"
-conrod_wgpu = "0.72"
+#conrod_core = "0.72"
+# conrod_wgpu = "0.72"
+conrod_core = {git = "https://github.com/AlexEne/conrod"}
+conrod_wgpu = {git = "https://github.com/AlexEne/conrod"}
 conrod_winit = "0.72"
 daggy = "0.6"
 find_folder = "0.3"
@@ -36,5 +38,5 @@ serde_derive = "1"
 serde_json = "1"
 toml = "0.5"
 walkdir = "2"
-wgpu_upstream = { version = "0.7.1", package = "wgpu" }
+wgpu_upstream = { version = "0.8", package = "wgpu" }
 winit = "0.24"

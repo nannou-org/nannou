@@ -42,7 +42,7 @@ impl<'a> RenderPipelineBuilder<'a> {
 
     // Primitive state.
     pub const DEFAULT_FRONT_FACE: wgpu::FrontFace = wgpu::FrontFace::Ccw;
-    pub const DEFAULT_CULL_MODE: wgpu::CullMode = wgpu::CullMode::None;
+    pub const DEFAULT_CULL_MODE: Option<wgpu::Face> = None;
     pub const DEFAULT_POLYGON_MODE: wgpu::PolygonMode = wgpu::PolygonMode::Fill;
     pub const DEFAULT_PRIMITIVE_TOPOLOGY: wgpu::PrimitiveTopology =
         wgpu::PrimitiveTopology::TriangleList;
@@ -52,16 +52,18 @@ impl<'a> RenderPipelineBuilder<'a> {
         front_face: Self::DEFAULT_FRONT_FACE,
         cull_mode: Self::DEFAULT_CULL_MODE,
         polygon_mode: Self::DEFAULT_POLYGON_MODE,
+        clamp_depth: Self::DEFAULT_CLAMP_DEPTH,
+        conservative: false,
     };
 
     // Color state defaults.
     pub const DEFAULT_COLOR_FORMAT: wgpu::TextureFormat = crate::frame::Frame::TEXTURE_FORMAT;
-    pub const DEFAULT_COLOR_BLEND: wgpu::BlendState = wgpu::BlendState {
+    pub const DEFAULT_COLOR_BLEND: wgpu::BlendComponent = wgpu::BlendComponent {
         src_factor: wgpu::BlendFactor::SrcAlpha,
         dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
         operation: wgpu::BlendOperation::Add,
     };
-    pub const DEFAULT_ALPHA_BLEND: wgpu::BlendState = wgpu::BlendState {
+    pub const DEFAULT_ALPHA_BLEND: wgpu::BlendComponent = wgpu::BlendComponent {
         src_factor: wgpu::BlendFactor::One,
         dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
         operation: wgpu::BlendOperation::Add,
@@ -69,8 +71,10 @@ impl<'a> RenderPipelineBuilder<'a> {
     pub const DEFAULT_COLOR_WRITE: wgpu::ColorWrite = wgpu::ColorWrite::ALL;
     pub const DEFAULT_COLOR_STATE: wgpu::ColorTargetState = wgpu::ColorTargetState {
         format: Self::DEFAULT_COLOR_FORMAT,
-        color_blend: Self::DEFAULT_COLOR_BLEND,
-        alpha_blend: Self::DEFAULT_ALPHA_BLEND,
+        blend: Some(wgpu::BlendState {
+            color: Self::DEFAULT_COLOR_BLEND,
+            alpha: Self::DEFAULT_ALPHA_BLEND,
+        }),
         write_mask: Self::DEFAULT_COLOR_WRITE,
     };
 
@@ -103,7 +107,6 @@ impl<'a> RenderPipelineBuilder<'a> {
         depth_compare: Self::DEFAULT_DEPTH_COMPARE,
         stencil: Self::DEFAULT_STENCIL,
         bias: Self::DEFAULT_DEPTH_BIAS,
-        clamp_depth: Self::DEFAULT_CLAMP_DEPTH,
     };
 
     // Multisample state.
@@ -194,7 +197,7 @@ impl<'a> RenderPipelineBuilder<'a> {
     }
 
     /// The face culling mode.
-    pub fn cull_mode(mut self, cull_mode: wgpu::CullMode) -> Self {
+    pub fn cull_mode(mut self, cull_mode: Option<wgpu::Face>) -> Self {
         self.primitive.cull_mode = cull_mode;
         self
     }
@@ -237,16 +240,20 @@ impl<'a> RenderPipelineBuilder<'a> {
     }
 
     /// The color blending used for this pipeline.
-    pub fn color_blend(mut self, blend: wgpu::BlendState) -> Self {
+    pub fn color_blend(mut self, color_blend: wgpu::BlendComponent) -> Self {
         let state = self.color_state.get_or_insert(Self::DEFAULT_COLOR_STATE);
-        state.color_blend = blend;
+        if let Some(blend) = state.blend.as_mut() {
+            blend.color = color_blend;
+        }
         self
     }
 
     /// The alpha blending used for this pipeline.
-    pub fn alpha_blend(mut self, blend: wgpu::BlendState) -> Self {
+    pub fn alpha_blend(mut self, alpha_blend: wgpu::BlendComponent) -> Self {
         let state = self.color_state.get_or_insert(Self::DEFAULT_COLOR_STATE);
-        state.alpha_blend = blend;
+        if let Some(blend) = state.blend.as_mut() {
+            blend.alpha = alpha_blend;
+        }
         self
     }
 
@@ -381,10 +388,7 @@ impl<'a> RenderPipelineBuilder<'a> {
     ///
     /// Requires `Features::DEPTH_CLAMPING` enabled.
     pub fn clamp_depth(mut self, b: bool) -> Self {
-        let state = self
-            .depth_stencil
-            .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
-        state.clamp_depth = b;
+        self.primitive.clamp_depth = b;
         self
     }
 

@@ -428,35 +428,35 @@ fn create_render_pipeline(
     wgpu::RenderPipelineBuilder::from_layout(layout, vs_mod)
         .fragment_shader(&fs_mod)
         .color_format(dst_format)
-        .color_blend(wgpu::BlendState::REPLACE)
-        .alpha_blend(wgpu::BlendState::REPLACE)
-        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float3])
-        .add_vertex_buffer::<Normal>(&wgpu::vertex_attr_array![1 => Float3])
+        .color_blend(wgpu::BlendComponent::REPLACE)
+        .alpha_blend(wgpu::BlendComponent::REPLACE)
+        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float32x3])
+        .add_vertex_buffer::<Normal>(&wgpu::vertex_attr_array![1 => Float32x3])
         // TODO: this can use the macro again when https://github.com/gfx-rs/wgpu/issues/836 is fixed
         .add_instance_buffer::<Instance>(&[
             wgpu::VertexAttribute {
                 shader_location: 2,
-                format: wgpu::VertexFormat::Float4,
+                format: wgpu::VertexFormat::Float32x4,
                 offset: std::mem::size_of::<[f32; 4]>() as u64 * 0,
             },
             wgpu::VertexAttribute {
                 shader_location: 3,
-                format: wgpu::VertexFormat::Float4,
+                format: wgpu::VertexFormat::Float32x4,
                 offset: std::mem::size_of::<[f32; 4]>() as u64 * 1,
             },
             wgpu::VertexAttribute {
                 shader_location: 4,
-                format: wgpu::VertexFormat::Float4,
+                format: wgpu::VertexFormat::Float32x4,
                 offset: std::mem::size_of::<[f32; 4]>() as u64 * 2,
             },
             wgpu::VertexAttribute {
                 shader_location: 5,
-                format: wgpu::VertexFormat::Float4,
+                format: wgpu::VertexFormat::Float32x4,
                 offset: std::mem::size_of::<[f32; 4]>() as u64 * 3,
             },
             wgpu::VertexAttribute {
                 shader_location: 6,
-                format: wgpu::VertexFormat::Float4,
+                format: wgpu::VertexFormat::Float32x4,
                 offset: std::mem::size_of::<[f32; 4]>() as u64 * 4,
             },
         ])

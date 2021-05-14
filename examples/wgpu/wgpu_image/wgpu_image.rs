@@ -156,7 +156,7 @@ fn create_render_pipeline(
     wgpu::RenderPipelineBuilder::from_layout(layout, vs_mod)
         .fragment_shader(fs_mod)
         .color_format(dst_format)
-        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float2])
+        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float32x2])
         .sample_count(sample_count)
         .primitive_topology(wgpu::PrimitiveTopology::TriangleStrip)
         .build(device)

@@ -223,7 +223,7 @@ impl Texture {
     pub fn view_dimension(&self) -> wgpu::TextureViewDimension {
         match self.dimension() {
             wgpu::TextureDimension::D1 => wgpu::TextureViewDimension::D1,
-            wgpu::TextureDimension::D2 => match self.descriptor.size.depth {
+            wgpu::TextureDimension::D2 => match self.descriptor.size.depth_or_array_layers {
                 1 => wgpu::TextureViewDimension::D2,
                 _ => wgpu::TextureViewDimension::D2Array,
             },
@@ -290,7 +290,7 @@ impl Texture {
         encoder: &mut wgpu::CommandEncoder,
     ) -> wgpu::RowPaddedBuffer {
         assert_eq!(
-            self.extent().depth,
+            self.extent().depth_or_array_layers,
             1,
             "cannot convert a 3d texture to a RowPaddedBuffer"
         );
@@ -414,7 +414,7 @@ impl Builder {
     pub const DEFAULT_SIZE: wgpu::Extent3d = wgpu::Extent3d {
         width: Self::DEFAULT_SIDE,
         height: Self::DEFAULT_SIDE,
-        depth: Self::DEFAULT_DEPTH,
+        depth_or_array_layers: Self::DEFAULT_DEPTH,
     };
     pub const DEFAULT_ARRAY_LAYER_COUNT: u32 = 1;
     pub const DEFAULT_MIP_LEVEL_COUNT: u32 = 1;
@@ -455,7 +455,7 @@ impl Builder {
     /// `wgpu::TextureDimension` of its inner `wgpu::TextureDescriptor` by examining its `size`
     /// field. Use `TextureBuilder::dimension()` to override this behavior.
     pub fn depth(mut self, depth: u32) -> Self {
-        self.descriptor.size.depth = depth;
+        self.descriptor.size.depth_or_array_layers = depth;
         self.infer_dimension_from_size();
         self
     }
@@ -510,7 +510,7 @@ impl Builder {
     // If `depth` is greater than `1` then `D3` is assumed, otherwise if `height` is greater than
     // `1` then `D2` is assumed, otherwise `D1` is assumed.
     fn infer_dimension_from_size(&mut self) {
-        if self.descriptor.size.depth > 1 {
+        if self.descriptor.size.depth_or_array_layers > 1 {
             self.descriptor.dimension = wgpu::TextureDimension::D3;
         } else if self.descriptor.size.height > 1 {
             self.descriptor.dimension = wgpu::TextureDimension::D2;
@@ -745,7 +745,7 @@ fn texture_view_id(texture_id: &TextureId, view_info: &TextureViewInfo) -> Textu
 pub fn data_size_bytes(desc: &wgpu::TextureDescriptor) -> usize {
     desc.size.width as usize
         * desc.size.height as usize
-        * desc.size.depth as usize
+        * desc.size.depth_or_array_layers as usize
         * format_size_bytes(desc.format) as usize
 }
 
@@ -756,7 +756,7 @@ pub fn format_size_bytes(format: wgpu::TextureFormat) -> u32 {
 
 /// Returns `true` if the given `wgpu::Extent3d`s are equal.
 pub fn extent_3d_eq(a: &wgpu::Extent3d, b: &wgpu::Extent3d) -> bool {
-    a.width == b.width && a.height == b.height && a.depth == b.depth
+    a.width == b.width && a.height == b.height && a.depth_or_array_layers == b.depth_or_array_layers
 }
 
 /// Returns `true` if the given texture descriptors are equal.
@@ -794,7 +794,7 @@ fn view_info_to_view_descriptor(info: &TextureViewInfo) -> wgpu::TextureViewDesc
         dimension: Some(info.dimension),
         aspect: info.aspect,
         base_mip_level: info.base_mip_level,
-        level_count: info.level_count,
+        mip_level_count: info.level_count,
         base_array_layer: info.base_array_layer,
         array_layer_count: info.array_layer_count,
     }

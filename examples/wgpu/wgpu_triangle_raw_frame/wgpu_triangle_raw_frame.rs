@@ -61,7 +61,7 @@ fn model(app: &App) -> Model {
     let render_pipeline = wgpu::RenderPipelineBuilder::from_layout(&pipeline_layout, &vs_mod)
         .fragment_shader(&fs_mod)
         .color_format(format)
-        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float2])
+        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float32x2])
         .build(device);
 
     Model {

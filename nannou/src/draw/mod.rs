@@ -64,8 +64,8 @@ where
 #[derive(Clone, Debug, PartialEq)]
 pub struct Context<S = geom::scalar::Default> {
     pub transform: Matrix4<S>,
-    pub alpha_blend: wgpu::BlendState,
-    pub color_blend: wgpu::BlendState,
+    pub alpha_blend: wgpu::BlendComponent,
+    pub color_blend: wgpu::BlendComponent,
     pub scissor: Scissor<S>,
     // TODO: Consider changing `PolygonMode` (added as of wgpu 0.7) rather than `PrimitiveTopology`
     // here.
@@ -403,21 +403,21 @@ where
     }
 
     /// Produce a new **Draw** instance that will draw with the given alpha blend descriptor.
-    pub fn alpha_blend(&self, blend_descriptor: wgpu::BlendState) -> Self {
+    pub fn alpha_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
         let mut context = self.context.clone();
         context.alpha_blend = blend_descriptor;
         self.context(context)
     }
 
     /// Produce a new **Draw** instance that will draw with the given color blend descriptor.
-    pub fn color_blend(&self, blend_descriptor: wgpu::BlendState) -> Self {
+    pub fn color_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
         let mut context = self.context.clone();
         context.color_blend = blend_descriptor;
         self.context(context)
     }
 
     /// Short-hand for `color_blend`, the common use-case.
-    pub fn blend(&self, blend_descriptor: wgpu::BlendState) -> Self {
+    pub fn blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
         self.color_blend(blend_descriptor)
     }
 

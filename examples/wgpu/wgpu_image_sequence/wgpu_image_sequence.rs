@@ -146,7 +146,7 @@ fn update(app: &App, model: &mut Model, update: Update) {
     );
 
     // Update which layer we are viewing based on the playback speed and layer count.
-    let layer_count = model.texture_array.extent().depth;
+    let layer_count = model.texture_array.extent().depth_or_array_layers;
     model.current_layer = fmod(
         model.current_layer + update.since_last.secs() as f32 * fps,
         layer_count as f32,
@@ -250,7 +250,7 @@ fn create_render_pipeline(
     wgpu::RenderPipelineBuilder::from_layout(layout, vs_mod)
         .fragment_shader(fs_mod)
         .color_format(dst_format)
-        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float2])
+        .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float32x2])
         .sample_count(sample_count)
         .primitive_topology(wgpu::PrimitiveTopology::TriangleStrip)
         .build(device)
