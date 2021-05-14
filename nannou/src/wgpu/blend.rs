@@ -27,13 +27,13 @@ pub const REVERSE_SUBTRACT: wgpu::BlendComponent = wgpu::BlendComponent {
 };
 
 pub const DARKEST: wgpu::BlendComponent = wgpu::BlendComponent {
-    src_factor: wgpu::BlendFactor::Src,
-    dst_factor: wgpu::BlendFactor::Dst,
+    src_factor: wgpu::BlendFactor::One,
+    dst_factor: wgpu::BlendFactor::One,
     operation: wgpu::BlendOperation::Min,
 };
 
 pub const LIGHTEST: wgpu::BlendComponent = wgpu::BlendComponent {
-    src_factor: wgpu::BlendFactor::Src,
-    dst_factor: wgpu::BlendFactor::Dst,
+    src_factor: wgpu::BlendFactor::One,
+    dst_factor: wgpu::BlendFactor::One,
     operation: wgpu::BlendOperation::Max,
 };
