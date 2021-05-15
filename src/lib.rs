@@ -139,7 +139,7 @@ impl EguiBackend {
                 }
             }
             ReceivedCharacter(ch) => {
-                if ch.is_alphabetic() && !self.modifier_state.ctrl() && !self.modifier_state.logo()
+                if ch.is_alphanumeric() && !self.modifier_state.ctrl() && !self.modifier_state.logo()
                 {
                     raw_input.events.push(egui::Event::Text(ch.to_string()));
                 }
@@ -244,7 +244,7 @@ fn winit_to_egui_modifiers(modifiers: winit::event::ModifiersState) -> egui::Mod
 
 pub fn edit_color(ui: &mut egui::Ui, color: &mut nannou::color::Hsv) {
     let mut egui_hsv = egui::color::Hsva::new(
-        color.hue.to_positive_degrees() as f32 / (std::f32::consts::PI * 2.0),
+        color.hue.to_positive_radians() as f32 / (std::f32::consts::PI * 2.0),
         color.saturation,
         color.value,
         1.0,
