@@ -69,12 +69,13 @@ impl<'a> RenderPipelineBuilder<'a> {
         operation: wgpu::BlendOperation::Add,
     };
     pub const DEFAULT_COLOR_WRITE: wgpu::ColorWrite = wgpu::ColorWrite::ALL;
+    pub const DEFAULT_BLEND_STATE: wgpu::BlendState = wgpu::BlendState {
+        color: Self::DEFAULT_COLOR_BLEND,
+        alpha: Self::DEFAULT_ALPHA_BLEND,
+    };
     pub const DEFAULT_COLOR_STATE: wgpu::ColorTargetState = wgpu::ColorTargetState {
         format: Self::DEFAULT_COLOR_FORMAT,
-        blend: Some(wgpu::BlendState {
-            color: Self::DEFAULT_COLOR_BLEND,
-            alpha: Self::DEFAULT_ALPHA_BLEND,
-        }),
+        blend: Some(Self::DEFAULT_BLEND_STATE),
         write_mask: Self::DEFAULT_COLOR_WRITE,
     };
 
@@ -242,18 +243,18 @@ impl<'a> RenderPipelineBuilder<'a> {
     /// The color blending used for this pipeline.
     pub fn color_blend(mut self, color_blend: wgpu::BlendComponent) -> Self {
         let state = self.color_state.get_or_insert(Self::DEFAULT_COLOR_STATE);
-        if let Some(blend) = state.blend.as_mut() {
-            blend.color = color_blend;
-        }
+        let blend = state.blend.get_or_insert(Self::DEFAULT_BLEND_STATE);
+        blend.color = color_blend;
+        
         self
     }
 
     /// The alpha blending used for this pipeline.
     pub fn alpha_blend(mut self, alpha_blend: wgpu::BlendComponent) -> Self {
         let state = self.color_state.get_or_insert(Self::DEFAULT_COLOR_STATE);
-        if let Some(blend) = state.blend.as_mut() {
-            blend.alpha = alpha_blend;
-        }
+        let blend = state.blend.get_or_insert(Self::DEFAULT_BLEND_STATE);
+        blend.alpha = alpha_blend;
+        
         self
     }
 
