@@ -245,7 +245,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         let state = self.color_state.get_or_insert(Self::DEFAULT_COLOR_STATE);
         let blend = state.blend.get_or_insert(Self::DEFAULT_BLEND_STATE);
         blend.color = color_blend;
-        
+
         self
     }
 
@@ -254,7 +254,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         let state = self.color_state.get_or_insert(Self::DEFAULT_COLOR_STATE);
         let blend = state.blend.get_or_insert(Self::DEFAULT_BLEND_STATE);
         blend.alpha = alpha_blend;
-        
+
         self
     }
 
