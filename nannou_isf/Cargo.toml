@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
 isf = { git = "https://github.com/nannou-org/isf", branch = "master" }
-nannou = { version ="0.17.0", path = "../nannou" }
+nannou = { version ="0.16.0", path = "../nannou" }
 thiserror = "1"
 threadpool = "1"
 walkdir = "2"
