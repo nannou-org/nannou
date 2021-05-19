@@ -17,6 +17,12 @@ Ensure that you have xcode-tools installed:
 xcode-select --install
 ```
 
+Some examples require that you have `cmake` installed as well. The easiest way to achieve this is to use [Homebrew](https://brew.sh).
+
+```bash
+brew install cmake
+```
+
 This should provide all the developer tools needed for building nannou.
 
 ## Windows
@@ -154,7 +160,7 @@ Ensure you have the following system packages installed:
   ```bash
   sudo pacman -S vulkan-radeon lib32-vulkan-radeon
   ```
-  
+
   For Arch with Intel graphics card:
   ```bash
   sudo pacman -S vulkan-intel
