@@ -14,6 +14,10 @@ landing your changes go smoothly:
   last commit. Keep in mind that sometimes warnings already exist due to changes
   in the compiler's linter between versions. Try to at least make sure that your
   changes do not add any new ones :)
+- **Check Examples** - Make sure the examples still work by running 
+`cargo run --bin run_all_examples`. This executes a script that builds and runs
+all the examples in the project. You need to do a manual check to see
+if examples have failed to run successfully (e.g. check for wgpu validation errors).
 - **Documentation** - If you have made any changes that could benefit from
   updating some code documentation, please be sure to do so! Try to put yourself
   in the shoes of someone reading your code for the first time.
