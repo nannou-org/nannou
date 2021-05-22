@@ -136,13 +136,15 @@
                         </a>
                         
                         
+                        
+
                     </div>
                 </div>
 
                 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -173,6 +175,9 @@ repo</a>!</p>
 <h2 id="macos"><a class="header" href="#macos">macOS</a></h2>
 <p>Ensure that you have xcode-tools installed:</p>
 <pre><code class="language-bash">xcode-select --install
+</code></pre>
+<p>Some examples require that you have <code>cmake</code> installed as well. The easiest way to achieve this is to use <a href="https://brew.sh">Homebrew</a>.</p>
+<pre><code class="language-bash">brew install cmake
 </code></pre>
 <p>This should provide all the developer tools needed for building nannou.</p>
 <h2 id="windows"><a class="header" href="#windows">Windows</a></h2>

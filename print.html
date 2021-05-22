@@ -138,13 +138,15 @@
                         </a>
                         
                         
+                        
+
                     </div>
                 </div>
 
                 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -197,7 +199,7 @@ architected and how you can contribute.</p>
 the API generated from the code itself.</p>
 <h3 id="a-hrefshowcaseshtmlshowcasesa"><a class="header" href="#a-hrefshowcaseshtmlshowcasesa"><a href="/showcases.html">Showcases</a></a></h3>
 <p>See what's possible with Nannou! A collection of projects made with Nannou.</p>
-<h1 id="why-nannou"><a class="header" href="#why-nannou">Why Nannou?</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="why-nannou"><a class="header" href="#why-nannou">Why Nannou?</a></h1>
 <p><strong>nannou</strong> is a collection of code aimed at making it easy for artists to
 express themselves with simple, fast, reliable, portable code.  Whether working
 on a 12-month installation or a 5 minute sketch, this framework aims to give
@@ -369,7 +371,7 @@ The MIT license provides compatibility with a lot of other FLOSS licenses.</p>
 <li><a href="https://opensource.stackexchange.com/questions/1881/against-what-does-the-apache-2-0-patent-clause-protect">Against what does the Apache 2.0 patent clause protect?</a></li>
 <li><a href="https://blog.gerv.net/2016/09/gplv2-combination-exception-for-the-apache-2-license/">GPLv2 Combination Exception for the Apache 2 License</a></li>
 </ul>
-<h1 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h1>
 <p>If you are new to nannou or Rust, you are in the right place!</p>
 <p>In this section, we will:</p>
 <ol>
@@ -380,7 +382,7 @@ The MIT license provides compatibility with a lot of other FLOSS licenses.</p>
 <li>Make our own, new nannou project!</li>
 </ol>
 <p>Let's get started.</p>
-<h1 id="platform-specific-setup"><a class="header" href="#platform-specific-setup">Platform-specific Setup</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="platform-specific-setup"><a class="header" href="#platform-specific-setup">Platform-specific Setup</a></h1>
 <p>Before we get started, let's make sure we have all the necessary ingredients for
 installing Rust and building nannou projects.</p>
 <p>Depending on what OS you are running, you might require an extra step or two.</p>
@@ -390,6 +392,9 @@ repo</a>!</p>
 <h2 id="macos"><a class="header" href="#macos">macOS</a></h2>
 <p>Ensure that you have xcode-tools installed:</p>
 <pre><code class="language-bash">xcode-select --install
+</code></pre>
+<p>Some examples require that you have <code>cmake</code> installed as well. The easiest way to achieve this is to use <a href="https://brew.sh">Homebrew</a>.</p>
+<pre><code class="language-bash">brew install cmake
 </code></pre>
 <p>This should provide all the developer tools needed for building nannou.</p>
 <h2 id="windows"><a class="header" href="#windows">Windows</a></h2>
@@ -510,7 +515,7 @@ sudo apt-get upgrade
 </li>
 </ul>
 <p>OK, we should now be ready to install Rust!</p>
-<h1 id="installing-rust"><a class="header" href="#installing-rust">Installing Rust</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="installing-rust"><a class="header" href="#installing-rust">Installing Rust</a></h1>
 <p>Nannou is a library written for the <a href="https://www.rust-lang.org/">Rust programming
 language</a>. Thus, the first step is to install Rust!</p>
 <p>To install Rust on <strong>Windows</strong>, download and run the installer from
@@ -526,7 +531,7 @@ auto-completion and go-to-definition.</p>
 </code></pre>
 <p>Please see <a href="https://www.rust-lang.org/tools/install">this link</a> if you would
 like more information on the Rust installation process.</p>
-<h1 id="editor-setup"><a class="header" href="#editor-setup">Editor Setup</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="editor-setup"><a class="header" href="#editor-setup">Editor Setup</a></h1>
 <p>While most popular development environments support Rust, support for certain
 features like auto-completion and go-to-definition is better in some than
 others.</p>
@@ -556,7 +561,7 @@ for supporting Rust.</p>
 <li><a href="https://github.com/PistonDevelopers/VisualRust">Visual Studio</a></li>
 <li><a href="https://github.com/eclipse/corrosion">Eclipse</a></li>
 </ol>
-<h1 id="running-examples"><a class="header" href="#running-examples">Running Examples</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="running-examples"><a class="header" href="#running-examples">Running Examples</a></h1>
 <p>The easiest way to get familiar with nannou is to explore the examples.</p>
 <p>Nannou provides three collections of examples:</p>
 <table><thead><tr><th><strong>Path</strong></th><th><strong>Description</strong></th></tr></thead><tbody>
@@ -604,7 +609,7 @@ have to wait for this the first time.</p>
 <p><img src="https://i.imgur.com/HVVamUI.gif" alt="draw_HD" /></p>
 <p>To run any of the other examples, replace <code>draw</code> with the name of the
 desired example.</p>
-<h1 id="create-a-project"><a class="header" href="#create-a-project">Create A Project</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="create-a-project"><a class="header" href="#create-a-project">Create A Project</a></h1>
 <p>Whether we are creating an artwork, an app, a quick sketch or an installation,
 we want to begin by creating a new project. A new nannou project lets us build a
 nannou application the way that <em>we</em> want to use it.</p>
@@ -686,7 +691,7 @@ be more than just a purple window.</p>
 <p>To find out how to add more features to our project like graphics, audio,
 multiple windows, laser output, projection mapping and much more, let's take a
 look at the next chapter.</p>
-<h1 id="updating-nannou"><a class="header" href="#updating-nannou">Updating nannou</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="updating-nannou"><a class="header" href="#updating-nannou">Updating nannou</a></h1>
 <p>You can update to a new version of nannou by editing your <code>Cargo.toml</code> file to
 use the new crate. For version 0.12 add the line</p>
 <pre><code class="language-toml">nannou = &quot;0.12&quot;
@@ -701,7 +706,7 @@ these cases, you can update your rust toolchain to the latest version by running
 the following:</p>
 <pre><code class="language-bash">rustup update
 </code></pre>
-<h1 id="tutorials"><a class="header" href="#tutorials">Tutorials</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="tutorials"><a class="header" href="#tutorials">Tutorials</a></h1>
 <p>In the previous chapter we prepared everything needed to start our own Nannou
 project! In this chapter, we will take a more focused look at all of the
 different features we can add to our Nannou project.</p>
@@ -815,7 +820,7 @@ these.</em></p>
 <p>If you were unable to find what you were looking for above, or if you have an
 idea for a tutorial not yet present, please feel free to create an issue or a
 pull request!</p>
-<h1 id="anatomy-of-a-nannou-app"><a class="header" href="#anatomy-of-a-nannou-app">Anatomy of a Nannou App</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="anatomy-of-a-nannou-app"><a class="header" href="#anatomy-of-a-nannou-app">Anatomy of a Nannou App</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: tpltnt, mitchmindtree</li>
@@ -1057,7 +1062,7 @@ render passes. All of this will be covered by future tutorials.</p>
 <p>Hopefully this has given you a rough idea of how nannou apps work! Do not stress
 if some of the syntax looks confusing or some of the specifics still seem
 unclear - we will aim to cover these and more in future tutorials :)</p>
-<h1 id="draw-a-sketch"><a class="header" href="#draw-a-sketch">Draw a Sketch</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="draw-a-sketch"><a class="header" href="#draw-a-sketch">Draw a Sketch</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: tpltnt</li>
@@ -1163,7 +1168,7 @@ kinds of input/output, track some state, or need more flexibility in general,
 you might be interested in creating a <a href="tutorials/basics/./anatomy-of-a-nannou-app.html">nannou app</a>
 instead! You can also learn more about the difference between sketches and apps
 <a href="tutorials/basics/./sketch-vs-app.html">here</a>.</p>
-<h1 id="basics---sketch-vs-app"><a class="header" href="#basics---sketch-vs-app">Basics - <code>sketch</code> vs <code>app</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="basics---sketch-vs-app"><a class="header" href="#basics---sketch-vs-app">Basics - <code>sketch</code> vs <code>app</code></a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: mitchmindtree</li>
@@ -1327,7 +1332,7 @@ flexibility, you can turn it into an app by following these steps:</p>
 </tbody></table>
 <p>To learn more about nannou <strong>sketches</strong> visit the <a href="tutorials/basics//tutorials/basics/draw-a-sketch.html">Draw a sketch</a> tutorial.</p>
 <p>To learn more about nannou <strong>apps</strong> visit the <a href="tutorials/basics//tutorials/basics/anatomy-of-a-nannou-app.html">Anatomy of a nannou app</a> tutorial.</p>
-<h1 id="basics---window-coordinates"><a class="header" href="#basics---window-coordinates">Basics - Window Coordinates</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="basics---window-coordinates"><a class="header" href="#basics---window-coordinates">Basics - Window Coordinates</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: mitchmindtree</li>
@@ -1644,7 +1649,7 @@ nannou at least a little.</p>
 <p>Remember, the more you experiment and play, the more these things become second
 nature. Next thing you know you will start seeing everything in window
 coordinates!</p>
-<h1 id="drawing-2d-shapes"><a class="header" href="#drawing-2d-shapes">Drawing 2D Shapes</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="drawing-2d-shapes"><a class="header" href="#drawing-2d-shapes">Drawing 2D Shapes</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: Seth Boyles</li>
@@ -1889,7 +1894,7 @@ drawing with nannou. Of course, this is just scratching the surface of ways in
 which you can generate shapes or polygons with nannou, but it should serve as a
 solid starting point in creating your own drawings.</p>
 <p>Happy coding!</p>
-<h1 id="animating-a-circle"><a class="header" href="#animating-a-circle">Animating a Circle</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="animating-a-circle"><a class="header" href="#animating-a-circle">Animating a Circle</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: <a href="https://madskjeldgaard.dk">madskjeldgaard</a></li>
@@ -2066,7 +2071,7 @@ solid starting point in creating your own drawings.</p>
     draw.to_frame(app, &amp;frame).unwrap();
 }
 </code></pre></pre>
-<h1 id="drawing-images"><a class="header" href="#drawing-images">Drawing Images</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="drawing-images"><a class="header" href="#drawing-images">Drawing Images</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: Josiah Savary</li>
@@ -2218,7 +2223,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 }
 </code></pre></pre>
 <p><img src="tutorials/draw/./images/drawing-images-1.png" alt="A translated and scaled texture" /></p>
-<h1 id="an-intro-to-osc"><a class="header" href="#an-intro-to-osc">An Intro to OSC</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="an-intro-to-osc"><a class="header" href="#an-intro-to-osc">An Intro to OSC</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: <a href="https://madskjeldgaard.dk">madskjeldgaard</a></li>
@@ -2245,7 +2250,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </span>use nannou_osc as osc;
 <span class="boring">fn main() {}
 </span></code></pre></pre>
-<h1 id="sending-osc"><a class="header" href="#sending-osc">Sending OSC</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="sending-osc"><a class="header" href="#sending-osc">Sending OSC</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
 <li>Author: <a href="https://madskjeldgaard.dk">madskjeldgaard</a></li>
@@ -2425,7 +2430,7 @@ fn view(app: &amp;App, model: &amp;Model, frame: Frame) {
 }
 </code></pre></pre>
 <p>In the next tutorial we will take a look at how to receive our OSC values and do something interesting with them.</p>
-<h1 id="contributing"><a class="header" href="#contributing">Contributing</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="contributing"><a class="header" href="#contributing">Contributing</a></h1>
 <p>Considering contributing to nannou? Awesome! Hopefully this section can guide
 you in the right direction.</p>
 <ul>
@@ -2437,7 +2442,7 @@ you in the right direction.</p>
 <h2 id="still-have-questions"><a class="header" href="#still-have-questions">Still have questions?</a></h2>
 <p>Remember, if you are still unsure about anything, you probably are not the only
 one! Feel free to <a href="https://github.com/nannou-org/nannou/issues">open an issue</a> with your question.</p>
-<h1 id="about-the-codebase"><a class="header" href="#about-the-codebase">About the Codebase</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="about-the-codebase"><a class="header" href="#about-the-codebase">About the Codebase</a></h1>
 <p>The nannou community uses <a href="https://en.wikipedia.org/wiki/Git">git</a> for managing and collaborating on all code
 and documentation, including this guide! At the moment, the main code repository
 (repo) is hosted <a href="https://github.com/nannou-org/nannou">at Github</a>.</p>
@@ -2448,7 +2453,7 @@ there</a>, but in short they are a nice way of proposing, reviewing,
 discussing and merging changes to a codebase.</p>
 <p>In the next section we'll take a look at a checklist for opening PRs at the
 nannou repo.</p>
-<h1 id="pr-checklist"><a class="header" href="#pr-checklist">PR Checklist</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="pr-checklist"><a class="header" href="#pr-checklist">PR Checklist</a></h1>
 <p>When creating a PR, there are a few things you can do to help the process of
 landing your changes go smoothly:</p>
 <ul>
@@ -2483,7 +2488,7 @@ understand your what your changes do will go a long way!</li>
 repo has a CI (continuous integration) bot that will check for some of these
 steps and notify you if anything is out of order. Once the bot checks pass, a
 community member will review the rest.</p>
-<h1 id="pr-reviews"><a class="header" href="#pr-reviews">PR Reviews</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="pr-reviews"><a class="header" href="#pr-reviews">PR Reviews</a></h1>
 <p>Now that you have made your PR it is time to wait for a review.</p>
 <p>Keep in mind that for the most part, the nannou team and community members take
 care of nannou in their personal time. As a result, it's difficult to say how
@@ -2498,7 +2503,7 @@ much easier for the maintainers to trust and land your changes. Knowing this,
 if you see a PR from another community member, you might consider offering
 your own review!</li>
 </ul>
-<h1 id="publishing-new-versions"><a class="header" href="#publishing-new-versions">Publishing New Versions</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="publishing-new-versions"><a class="header" href="#publishing-new-versions">Publishing New Versions</a></h1>
 <p>The nannou repo allows community members to open a PR for publishing a new
 version of any or all of the nannou crates. This makes it much easier for
 maintainers to publish a new release - all we have to do is accept your PR!</p>
@@ -2570,22 +2575,22 @@ Checklist</a>.</p>
 publish the new versions.</p>
 <p>Congrats, you just published some new goodies to crates.io for the nannou
 community!</p>
-<h1 id="developer-reference"><a class="header" href="#developer-reference">Developer Reference</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="developer-reference"><a class="header" href="#developer-reference">Developer Reference</a></h1>
 <p><strong>TODO:</strong> A guide to the architecture of Nannou's internals to help onboard new
 developers. Describes the layout of modules, how to navigate the reference, the
 scope of the main nannou crate i.e. the kinds of work that should go inside the
 main repo and the kinds that might be better off in separate repos, etc.</p>
-<h1 id="api-reference"><a class="header" href="#api-reference">API Reference</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="api-reference"><a class="header" href="#api-reference">API Reference</a></h1>
 <p>Eventually, we would like to host the API documentation here. For now, you can
 find it at <a href="https://docs.rs/nannou">docs.rs/nannou</a>.</p>
-<h1 id="showcases"><a class="header" href="#showcases">Showcases</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="showcases"><a class="header" href="#showcases">Showcases</a></h1>
 <p><strong>TODO:</strong> A collection of work made with nannou, perhaps ordered from most
 recent to the past. Users could do a PR to have their own nannou projects
 published.</p>
 <ul>
 <li><a href="https://github.com/mitchmindtree/nannou-sketches">sketches by mitchmindtree</a></li>
 </ul>
-<h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
 <p>All notable changes to nannou should be documented below! From the most recent,
 back to the origins.</p>
 <hr />
@@ -3178,7 +3183,7 @@ fail.</li>
 <hr />
 <br>
 <center>BEGINNING OF CHANGELOG</center>
-<h1 id="contributors"><a class="header" href="#contributors">Contributors</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="contributors"><a class="header" href="#contributors">Contributors</a></h1>
 <p>This project exists thanks to all the people who contribute.</p>
 <p><a href="https://github.com/nannou-org/nannou/graphs/contributors"><img src="https://opencollective.com/nannou/contributors.svg?width=890&button=false" /></a></p>
 <h2 id="backers"><a class="header" href="#backers">Backers</a></h2>
@@ -3196,7 +3201,7 @@ fail.</li>
 <a href="https://opencollective.com/nannou/sponsor/7/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/7/avatar.svg"></a>
 <a href="https://opencollective.com/nannou/sponsor/8/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/8/avatar.svg"></a>
 <a href="https://opencollective.com/nannou/sponsor/9/website" target="_blank"><img src="https://opencollective.com/nannou/sponsor/9/avatar.svg"></a></p>
-<h1 id="contributor-covenant-code-of-conduct"><a class="header" href="#contributor-covenant-code-of-conduct">Contributor Covenant Code of Conduct</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="contributor-covenant-code-of-conduct"><a class="header" href="#contributor-covenant-code-of-conduct">Contributor Covenant Code of Conduct</a></h1>
 <h2 id="our-pledge"><a class="header" href="#our-pledge">Our Pledge</a></h2>
 <p>In the interest of fostering an open and welcoming environment, we as contributors and maintainers pledge to making participation in our project and our community a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance, race, religion, or sexual identity and orientation.</p>
 <h2 id="conduct"><a class="header" href="#conduct">Conduct</a></h2>
