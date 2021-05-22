@@ -10,7 +10,11 @@ layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 //locations 3,4,5, are implicitely taken by `instance_transform`
 //since one location can contain at max vec4
-layout(location = 2) in mat4 instance_transform;
+// layout(location = 2) in mat4 instance_transform;
+layout(location = 2) in vec4 model_matrix_0;
+layout(location = 3) in vec4 model_matrix_1;
+layout(location = 4) in vec4 model_matrix_2;
+layout(location = 5) in vec4 model_matrix_3;
 layout(location = 6) in vec3 instance_color;
 
 layout(location = 0) out vec3 v_normal;
@@ -44,6 +48,13 @@ mat3x3 custom_inverse(mat3x3 m) {
 }
 
 void main() {
+    mat4 instance_transform = mat4(
+        model_matrix_0,
+        model_matrix_1,
+        model_matrix_2,
+        model_matrix_3
+    );
+    
     mat4 worldview = uniforms.view * uniforms.world * instance_transform;
     v_normal = transpose(custom_inverse(mat3(worldview))) * normal;
     v_color = instance_color;
