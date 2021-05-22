@@ -8,9 +8,9 @@
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
-//locations 3,4,5, are implicitely taken by `instance_transform`
-//since one location can contain at max vec4
-// layout(location = 2) in mat4 instance_transform;
+
+// This is the instance data for a 4x4 matrix that we reconstruct in main
+// Using a mat4 with location = 2 is not supported.
 layout(location = 2) in vec4 model_matrix_0;
 layout(location = 3) in vec4 model_matrix_1;
 layout(location = 4) in vec4 model_matrix_2;
