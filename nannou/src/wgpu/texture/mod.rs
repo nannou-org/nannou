@@ -597,6 +597,12 @@ impl<'a> ViewBuilder<'a> {
     ///
     /// If `None`, considered to include the rest of the array layers, but at least 1 in total.
     pub fn array_layer_count(mut self, array_layer_count: Option<NonZeroU32>) -> Self {
+        match (self.info.dimension, array_layer_count.map(|n| n.get())) {
+            (wgpu::TextureViewDimension::D2Array, Some(1)) => {
+                self.info.dimension = wgpu::TextureViewDimension::D2;
+            }
+            _ => (),
+        }
         self.info.array_layer_count = array_layer_count;
         self
     }
