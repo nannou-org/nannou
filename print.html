@@ -2467,6 +2467,10 @@ PR and let the repo bot check for you.</li>
 last commit. Keep in mind that sometimes warnings already exist due to changes
 in the compiler's linter between versions. Try to at least make sure that your
 changes do not add any new ones :)</li>
+<li><strong>Check Examples</strong> - Make sure the examples still work by running 
+<code>cargo run --bin run_all_examples</code>. This executes a script that builds and runs
+all the examples in the project. You need to do a manual check to see
+if examples have failed to run successfully (e.g. check for wgpu validation errors).</li>
 <li><strong>Documentation</strong> - If you have made any changes that could benefit from
 updating some code documentation, please be sure to do so! Try to put yourself
 in the shoes of someone reading your code for the first time.</li>
@@ -2595,7 +2599,17 @@ published.</p>
 back to the origins.</p>
 <hr />
 <h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
-<p>*No unreleased changes as of yet.</p>
+<p><strong>Upgrade WGPU to 0.8</strong></p>
+<p>Most changes have been about renaming Blend-related data structres and fixing shaders to avoid sampling textures inside of conditionals (wgpu validation layer found this one).</p>
+<ul>
+<li>Item Name changes:
+<ul>
+<li><code>BlendState</code> -&gt; <code>BlendComponent</code></li>
+<li><code>wgpu::Extend3d::depth</code> -&gt; <code>wgpu::Extend3d::depth_of_array_layers</code></li>
+<li>Float tpes are now typed more descripively. E.g., <code>Float2</code> -&gt; <code>Float32x2</code></li>
+</ul>
+</li>
+</ul>
 <hr />
 <h1 id="version-0160-2021-04-21"><a class="header" href="#version-0160-2021-04-21">Version 0.16.0 (2021-04-21)</a></h1>
 <ul>

@@ -170,7 +170,17 @@
 back to the origins.</p>
 <hr />
 <h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
-<p>*No unreleased changes as of yet.</p>
+<p><strong>Upgrade WGPU to 0.8</strong></p>
+<p>Most changes have been about renaming Blend-related data structres and fixing shaders to avoid sampling textures inside of conditionals (wgpu validation layer found this one).</p>
+<ul>
+<li>Item Name changes:
+<ul>
+<li><code>BlendState</code> -&gt; <code>BlendComponent</code></li>
+<li><code>wgpu::Extend3d::depth</code> -&gt; <code>wgpu::Extend3d::depth_of_array_layers</code></li>
+<li>Float tpes are now typed more descripively. E.g., <code>Float2</code> -&gt; <code>Float32x2</code></li>
+</ul>
+</li>
+</ul>
 <hr />
 <h1 id="version-0160-2021-04-21"><a class="header" href="#version-0160-2021-04-21">Version 0.16.0 (2021-04-21)</a></h1>
 <ul>
