@@ -609,8 +609,8 @@ impl Renderer {
                     // Determine the new current bind group layout ID, pipeline ID, bind group ID
                     // and scissor required for drawing this primitive.
                     let new_pipeline_id = {
-                        let color_id = blend_state_hash(&curr_ctxt.color_blend);
-                        let alpha_id = blend_state_hash(&curr_ctxt.alpha_blend);
+                        let color_id = blend_component_hash(&curr_ctxt.blend.color);
+                        let alpha_id = blend_component_hash(&curr_ctxt.blend.alpha);
                         let topology = curr_ctxt.topology;
                         PipelineId {
                             color_id,
@@ -645,8 +645,8 @@ impl Renderer {
                     // If necessary, push a new pipeline command.
                     if pipeline_changed {
                         curr_pipeline_id = Some(new_pipeline_id);
-                        let color_blend = curr_ctxt.color_blend.clone();
-                        let alpha_blend = curr_ctxt.alpha_blend.clone();
+                        let color_blend = curr_ctxt.blend.color.clone();
+                        let alpha_blend = curr_ctxt.blend.alpha.clone();
                         let sampler_filtering = wgpu::sampler_filtering(&curr_ctxt.sampler);
                         new_pipeline_ids.insert(
                             new_pipeline_id,
@@ -1117,18 +1117,20 @@ fn create_render_pipeline(
     dst_format: wgpu::TextureFormat,
     depth_format: wgpu::TextureFormat,
     sample_count: u32,
-    color_blend: wgpu::BlendState,
-    alpha_blend: wgpu::BlendState,
+    color_blend: wgpu::BlendComponent,
+    alpha_blend: wgpu::BlendComponent,
     topology: wgpu::PrimitiveTopology,
 ) -> wgpu::RenderPipeline {
     let bind_group_layouts = &[uniform_layout, text_layout, texture_layout];
     wgpu::RenderPipelineBuilder::from_layout_descriptor(&bind_group_layouts[..], vs_mod)
         .fragment_shader(fs_mod)
         .color_format(dst_format)
-        .add_vertex_buffer::<draw::mesh::vertex::Point>(&wgpu::vertex_attr_array![0 => Float3])
-        .add_vertex_buffer::<draw::mesh::vertex::Color>(&wgpu::vertex_attr_array![1 => Float4])
-        .add_vertex_buffer::<draw::mesh::vertex::TexCoords>(&wgpu::vertex_attr_array![2 => Float2])
-        .add_vertex_buffer::<VertexMode>(&wgpu::vertex_attr_array![3 => Uint])
+        .add_vertex_buffer::<draw::mesh::vertex::Point>(&wgpu::vertex_attr_array![0 => Float32x3])
+        .add_vertex_buffer::<draw::mesh::vertex::Color>(&wgpu::vertex_attr_array![1 => Float32x4])
+        .add_vertex_buffer::<draw::mesh::vertex::TexCoords>(
+            &wgpu::vertex_attr_array![2 => Float32x2],
+        )
+        .add_vertex_buffer::<VertexMode>(&wgpu::vertex_attr_array![3 => Uint32])
         .depth_format(depth_format)
         .sample_count(sample_count)
         .color_blend(color_blend)
@@ -1153,7 +1155,7 @@ fn sampler_descriptor_hash(desc: &wgpu::SamplerDescriptor) -> SamplerId {
     s.finish()
 }
 
-fn blend_state_hash(desc: &wgpu::BlendState) -> BlendId {
+fn blend_component_hash(desc: &wgpu::BlendComponent) -> BlendId {
     let mut s = std::collections::hash_map::DefaultHasher::new();
     desc.src_factor.hash(&mut s);
     desc.dst_factor.hash(&mut s);

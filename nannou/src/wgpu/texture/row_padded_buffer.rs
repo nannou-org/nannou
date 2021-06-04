@@ -181,7 +181,7 @@ impl RowPaddedBuffer {
         destination: &wgpu::Texture,
     ) {
         assert_eq!(
-            destination.extent().depth,
+            destination.extent().depth_or_array_layers,
             1,
             "use encode_copy_into_at for 3d textures"
         );
@@ -207,7 +207,7 @@ impl RowPaddedBuffer {
     /// The copy will not be performed until the encoded command buffer is submitted.
     pub fn encode_copy_from(&self, encoder: &mut wgpu::CommandEncoder, source: &wgpu::Texture) {
         assert_eq!(
-            source.extent().depth,
+            source.extent().depth_or_array_layers,
             1,
             "use encode_copy_from_at for 3d textures"
         );
@@ -235,8 +235,8 @@ impl RowPaddedBuffer {
         texture: &'t wgpu::Texture,
         depth: u32,
     ) -> (
-        wgpu::BufferCopyView<'s>,
-        wgpu::TextureCopyView<'t>,
+        wgpu::ImageCopyBuffer<'s>,
+        wgpu::ImageCopyTexture<'t>,
         wgpu::Extent3d,
     ) {
         let format_size_bytes = wgpu::texture_format_size_bytes(texture.format());
@@ -256,21 +256,24 @@ impl RowPaddedBuffer {
             self.height,
             "buffer is the wrong height"
         );
-        assert!(depth <= texture.extent().depth, "texture not deep enough");
+        assert!(
+            depth <= texture.extent().depth_or_array_layers,
+            "texture not deep enough"
+        );
 
         let mut copy_size = texture.extent();
-        copy_size.depth = 1;
+        copy_size.depth_or_array_layers = 1;
 
-        let buffer_view = wgpu::BufferCopyView {
+        let buffer_view = wgpu::ImageCopyBuffer {
             buffer: &self.buffer,
             // note: this is the layout of *this buffer*.
-            layout: wgpu::TextureDataLayout {
+            layout: wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: self.padded_width(),
-                rows_per_image: self.height,
+                bytes_per_row: std::num::NonZeroU32::new(self.padded_width()),
+                rows_per_image: std::num::NonZeroU32::new(self.height),
             },
         };
-        let texture_view = wgpu::TextureCopyView {
+        let texture_view = wgpu::ImageCopyTexture {
             texture,
             mip_level: 0, // TODO(jhg): should we handle this?
             origin: wgpu::Origin3d {

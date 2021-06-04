@@ -1,3 +1,5 @@
+use wgpu_upstream::BufferBinding;
+
 use crate::wgpu;
 
 /// A type aimed at simplifying the creation of a bind group layout.
@@ -188,11 +190,11 @@ impl<'a> Builder<'a> {
         offset: wgpu::BufferAddress,
         size: Option<wgpu::BufferSize>,
     ) -> Self {
-        let resource = wgpu::BindingResource::Buffer {
+        let resource = wgpu::BindingResource::Buffer(BufferBinding {
             buffer,
             offset,
             size,
-        };
+        });
         self.binding(resource)
     }
 

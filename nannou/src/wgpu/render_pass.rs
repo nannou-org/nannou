@@ -3,20 +3,20 @@ use crate::wgpu::{self, Color, LoadOp};
 /// A builder type to simplify the process of creating a render pass descriptor.
 #[derive(Debug, Default)]
 pub struct Builder<'a> {
-    color_attachments: Vec<wgpu::RenderPassColorAttachmentDescriptor<'a>>,
-    depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachmentDescriptor<'a>>,
+    color_attachments: Vec<wgpu::RenderPassColorAttachment<'a>>,
+    depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment<'a>>,
 }
 
 /// A builder type to simplify the process of creating a render pass descriptor.
 #[derive(Debug)]
 pub struct ColorAttachmentDescriptorBuilder<'a> {
-    descriptor: wgpu::RenderPassColorAttachmentDescriptor<'a>,
+    descriptor: wgpu::RenderPassColorAttachment<'a>,
 }
 
 /// A builder type to simplify the process of creating a render pass descriptor.
 #[derive(Debug)]
 pub struct DepthStencilAttachmentDescriptorBuilder<'a> {
-    descriptor: wgpu::RenderPassDepthStencilAttachmentDescriptor<'a>,
+    descriptor: wgpu::RenderPassDepthStencilAttachment<'a>,
 }
 
 impl<'a> ColorAttachmentDescriptorBuilder<'a> {
@@ -27,8 +27,8 @@ impl<'a> ColorAttachmentDescriptorBuilder<'a> {
     /// Begin building a new render pass color attachment descriptor.
     fn new(attachment: &'a wgpu::TextureViewHandle) -> Self {
         ColorAttachmentDescriptorBuilder {
-            descriptor: wgpu::RenderPassColorAttachmentDescriptor {
-                attachment,
+            descriptor: wgpu::RenderPassColorAttachment {
+                view: attachment,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: LoadOp::Clear(Color::TRANSPARENT),
@@ -73,8 +73,8 @@ impl<'a> DepthStencilAttachmentDescriptorBuilder<'a> {
 
     fn new(attachment: &'a wgpu::TextureViewHandle) -> Self {
         DepthStencilAttachmentDescriptorBuilder {
-            descriptor: wgpu::RenderPassDepthStencilAttachmentDescriptor {
-                attachment,
+            descriptor: wgpu::RenderPassDepthStencilAttachment {
+                view: attachment,
                 depth_ops: Some(wgpu::Operations {
                     load: Self::DEFAULT_DEPTH_LOAD_OP,
                     store: Self::DEFAULT_DEPTH_STORE_OP,
@@ -196,8 +196,8 @@ impl<'a> Builder<'a> {
     pub fn into_inner(
         self,
     ) -> (
-        Vec<wgpu::RenderPassColorAttachmentDescriptor<'a>>,
-        Option<wgpu::RenderPassDepthStencilAttachmentDescriptor<'a>>,
+        Vec<wgpu::RenderPassColorAttachment<'a>>,
+        Option<wgpu::RenderPassDepthStencilAttachment<'a>>,
     ) {
         let Builder {
             color_attachments,

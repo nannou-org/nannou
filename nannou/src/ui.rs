@@ -467,7 +467,7 @@ pub fn encode_render_pass(
     ui: &Ui,
     window: &Window,
     primitives: conrod_core::render::Primitives,
-    color_attachment_desc: wgpu::RenderPassColorAttachmentDescriptor,
+    color_attachment_desc: wgpu::RenderPassColorAttachment,
     encoder: &mut wgpu::CommandEncoder,
 ) -> Result<(), DrawToFrameError> {
     // Feed the renderer primitives and update glyph cache texture if necessary.

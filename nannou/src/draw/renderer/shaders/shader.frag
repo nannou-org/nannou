@@ -18,19 +18,18 @@ layout(location = 2) flat in uint v_mode;
 layout(location = 0) out vec4 f_color;
 
 void main() {
+    vec4 tex_color = texture(sampler2D(tex, tex_sampler), v_tex_coords);
+    float text_alpha = texture(sampler2D(text, text_sampler), v_tex_coords).r;
+    
     // Color
     if (v_mode == uint(0)) {
         f_color = v_color;
-
     // Texture
     } else if (v_mode == uint(1)) {
-        f_color = texture(sampler2D(tex, tex_sampler), v_tex_coords);
-
+        f_color = tex_color;
     // Text
     } else if (v_mode == uint(2)) {
-        float tex_a = texture(sampler2D(text, text_sampler), v_tex_coords).r;
-        f_color = vec4(v_color.rgb, v_color.a * tex_a);
-
+        f_color = vec4(v_color.rgb, v_color.a * text_alpha);
     // Unhandled mode - Indicate error with red.
     } else {
         f_color = vec4(1.0, 0.0, 0.0, 1.0);

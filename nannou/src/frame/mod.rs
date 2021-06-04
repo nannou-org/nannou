@@ -220,14 +220,14 @@ impl<'swap_chain> Frame<'swap_chain> {
         self.render_data.size
     }
 
-    /// Short-hand for constructing a `wgpu::RenderPassColorAttachmentDescriptor` for use within a
+    /// Short-hand for constructing a `wgpu::RenderPassColorAttachment` for use within a
     /// render pass that targets this frame's texture. The returned descriptor's `attachment` will
     /// the same `wgpu::TextureView` returned by the `Frame::texture` method.
     ///
     /// Note that this method will not perform any resolving. In the case that `msaa_samples` is
     /// greater than `1`, a render pass will be automatically added after the `view` completes and
     /// before the texture is drawn to the swapchain.
-    pub fn color_attachment_descriptor(&self) -> wgpu::RenderPassColorAttachmentDescriptor {
+    pub fn color_attachment_descriptor(&self) -> wgpu::RenderPassColorAttachment {
         let load = wgpu::LoadOp::Load;
         let store = true;
         let attachment = match self.render_data.intermediary_lin_srgba.msaa_texture {
@@ -235,8 +235,8 @@ impl<'swap_chain> Frame<'swap_chain> {
             Some((_, ref msaa_texture_view)) => msaa_texture_view,
         };
         let resolve_target = None;
-        wgpu::RenderPassColorAttachmentDescriptor {
-            attachment,
+        wgpu::RenderPassColorAttachment {
+            view: attachment,
             resolve_target,
             ops: wgpu::Operations { load, store },
         }

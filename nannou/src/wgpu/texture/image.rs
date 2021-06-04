@@ -588,7 +588,7 @@ where
         .extent(wgpu::Extent3d {
             width,
             height,
-            depth: array_layers,
+            depth_or_array_layers: array_layers,
         })
         .dimension(wgpu::TextureDimension::D2) // force an array
         .usage(wgpu::TextureBuilder::REQUIRED_IMAGE_TEXTURE_USAGE | usage)
