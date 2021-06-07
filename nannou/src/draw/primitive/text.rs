@@ -366,12 +366,19 @@ impl draw::renderer::RenderPrimitive for Text<f32> {
             geom::Rect::from_corners(geom::pt2(l, b), geom::pt2(r, t))
         };
 
-        // Extend the mesh with a rect for each displayed glyph.
-        // If `glyph_colors` contains insufficient colors, use `color` for the remaining glyphs.
-        for (g, g_color) in positioned_glyphs
+        // Skips non-rendered colors (e.g. due to line breaks),
+        //   assuming LineInfos are ordered by ascending character position.
+        let glyph_colors_iter = text
+            .line_infos()
             .iter()
-            .zip(glyph_colors.iter().chain(std::iter::repeat(&color)))
-        {
+            .flat_map(|li| li.char_range())
+            .take_while(|&i| i < glyph_colors.len())
+            .map(|i| &glyph_colors[i])
+            // Repeat `color` if more glyphs than glyph_colors
+            .chain(std::iter::repeat(&color));
+
+        // Extend the mesh with a rect for each displayed glyph.
+        for (g, g_color) in positioned_glyphs.iter().zip(glyph_colors_iter) {
             if let Ok(Some((uv_rect, screen_rect))) = ctxt.glyph_cache.rect_for(font_id.index(), &g)
             {
                 let rect = to_nannou_rect(screen_rect);
