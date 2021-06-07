@@ -21,3 +21,6 @@ thiserror = "1"
 
 [features]
 ffi = []
+
+[package.metadata.docs.rs]
+all-features = true
