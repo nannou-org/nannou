@@ -105,7 +105,6 @@ layout(set = 1, binding = 0) uniform IsfDataInputs {\n\
             // Must layout from largest to smallest types to avoid padding holes, and then ordered
             // by `name` to match the `BTreeMap` stored in the `IsfPipeline`.
             for input in inputs_by_uniform_order(&isf.inputs) {
-                dbg!(&input.ty);
                 let ty_str = match input_type_uniform_type(&input.ty) {
                     Some(s) => s,
                     None => continue,

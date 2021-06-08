@@ -22,6 +22,7 @@ pub struct IsfPipeline {
     isf_bind_group_layout: wgpu::BindGroupLayout,
     isf_inputs_bind_group_layout: wgpu::BindGroupLayout,
     isf_textures_bind_group_layout: wgpu::BindGroupLayout,
+    isf_textures_bind_group_descriptors: Vec<wgpu::TextureDescriptor<'static>>,
     isf_bind_group: wgpu::BindGroup,
     isf_inputs_bind_group: wgpu::BindGroup,
     isf_textures_bind_group: wgpu::BindGroup,
@@ -31,6 +32,7 @@ pub struct IsfPipeline {
     dst_format: wgpu::TextureFormat,
     dst_texture_size: [u32; 2],
     dst_sample_count: u32,
+    placeholder_texture: wgpu::Texture,
 }
 
 /// The first set of ISF uniforms that are available to every ISF shader.
@@ -430,9 +432,6 @@ pub fn compile_isf_shader(
         .and_then(|(old_str, isf)| {
             let isf_str = crate::glsl_string_from_isf(&isf);
             let new_str = crate::prefix_isf_glsl_str(&isf_str, old_str);
-            println!("---------- {}", path.display());
-            println!("{}", new_str);
-            println!("----------");
             let ty = hotglsl::ShaderType::Fragment;
             hotglsl::compile_str(&new_str, ty).map_err(From::from)
         });
@@ -570,6 +569,11 @@ impl IsfPipeline {
         let sampler_filtering = wgpu::sampler_filtering(&sampler_desc);
         let sampler = device.create_sampler(&sampler_desc);
 
+        // Create the placeholder texture for the case where an image is not yet loaded.
+        let placeholder_texture = wgpu::TextureBuilder::new()
+            .usage(wgpu::TextureUsage::SAMPLED)
+            .build(device);
+
         // Prepare the bind group layouts.
         let isf_bind_group_layout = wgpu::BindGroupLayoutBuilder::new()
             .uniform_buffer(wgpu::ShaderStage::FRAGMENT, false)
@@ -577,8 +581,18 @@ impl IsfPipeline {
         let isf_inputs_bind_group_layout = wgpu::BindGroupLayoutBuilder::new()
             .uniform_buffer(wgpu::ShaderStage::FRAGMENT, false)
             .build(device);
-        let isf_textures_bind_group_layout =
-            create_isf_textures_bind_group_layout(device, sampler_filtering, &isf_data);
+        let isf_textures_bind_group_layout = create_isf_textures_bind_group_layout(
+            device,
+            sampler_filtering,
+            &isf_data,
+            &placeholder_texture,
+        );
+
+        // Track the descriptors in case we need to rebuild pipeline.
+        let isf_textures_bind_group_descriptors =
+            isf_data_textures(&isf_data, &placeholder_texture)
+                .map(|texture| texture.descriptor().clone())
+                .collect();
 
         // Create the bind groups
         let isf_bind_group = wgpu::BindGroupBuilder::new()
@@ -592,6 +606,7 @@ impl IsfPipeline {
             &isf_textures_bind_group_layout,
             &sampler,
             &isf_data,
+            &placeholder_texture,
         );
 
         // Create the render pipeline.
@@ -638,6 +653,7 @@ impl IsfPipeline {
             isf_bind_group_layout,
             isf_inputs_bind_group_layout,
             isf_textures_bind_group_layout,
+            isf_textures_bind_group_descriptors,
             isf_bind_group,
             isf_inputs_bind_group,
             isf_textures_bind_group,
@@ -647,6 +663,7 @@ impl IsfPipeline {
             dst_format,
             dst_texture_size,
             dst_sample_count,
+            placeholder_texture,
         }
     }
 
@@ -718,9 +735,6 @@ impl IsfPipeline {
             Some(ref isf) => isf,
         };
 
-        // Keep track of whether the number of textures change for our bind groups.
-        let texture_count = isf_data_textures(&self.isf_data).count();
-
         // Synchronise the ISF data.
         sync_isf_data(
             device,
@@ -735,20 +749,25 @@ impl IsfPipeline {
         // UPDATE TEXTURE BIND GROUP
         // -------------------------
 
-        // If the number of textures have changed, update the bind group and pipeline layout.
-        let new_texture_count = isf_data_textures(&self.isf_data).count();
-        let texture_count_changed = texture_count != new_texture_count;
-        if texture_count_changed {
+        // If the textures have changed, update the bind group and pipeline layout.
+        let new_texture_descriptors = isf_data_textures(&self.isf_data, &self.placeholder_texture)
+            .map(|texture| texture.descriptor().clone())
+            .collect::<Vec<_>>();
+        let textures_changed = self.isf_textures_bind_group_descriptors != new_texture_descriptors;
+        if textures_changed {
+            self.isf_textures_bind_group_descriptors = new_texture_descriptors;
             self.isf_textures_bind_group_layout = create_isf_textures_bind_group_layout(
                 device,
                 self.sampler_filtering,
                 &self.isf_data,
+                &self.placeholder_texture,
             );
             self.isf_textures_bind_group = create_isf_textures_bind_group(
                 device,
                 &self.isf_textures_bind_group_layout,
                 &self.sampler,
                 &self.isf_data,
+                &self.placeholder_texture,
             );
             self.layout = create_pipeline_layout(
                 device,
@@ -763,7 +782,7 @@ impl IsfPipeline {
         // UPDATE RENDER PIPELINE
         // ----------------------
 
-        if shader_recompiled || texture_count_changed {
+        if shader_recompiled || textures_changed {
             if let (Some(vs_mod), Some(fs_mod)) = (self.vs.module.as_ref(), self.fs.module.as_ref())
             {
                 self.render_pipeline = Some(create_render_pipeline(
@@ -812,7 +831,7 @@ impl IsfPipeline {
             encoder.copy_buffer_to_buffer(&new_buffer, 0, &self.isf_uniform_buffer, 0, size);
 
             // TODO: Update the inputs, but only if changed.
-            let isf_inputs_changed = false;
+            let isf_inputs_changed = true;
             if isf_inputs_changed {
                 let isf_input_uniforms = isf_inputs_to_uniform_data(&self.isf_data.inputs);
                 let isf_input_uniforms_bytes = isf_input_uniforms_as_bytes(&isf_input_uniforms);
@@ -893,11 +912,12 @@ fn create_isf_textures_bind_group_layout(
     device: &wgpu::Device,
     sampler_filtering: bool,
     isf_data: &IsfData,
+    placeholder_texture: &wgpu::Texture,
 ) -> wgpu::BindGroupLayout {
     // Begin with the sampler.
     let mut builder =
         wgpu::BindGroupLayoutBuilder::new().sampler(wgpu::ShaderStage::FRAGMENT, sampler_filtering);
-    for texture in isf_data_textures(isf_data) {
+    for texture in isf_data_textures(isf_data, placeholder_texture) {
         builder = builder.texture(
             wgpu::ShaderStage::FRAGMENT,
             false,
@@ -913,9 +933,10 @@ fn create_isf_textures_bind_group(
     layout: &wgpu::BindGroupLayout,
     sampler: &wgpu::Sampler,
     isf_data: &IsfData,
+    placeholder_texture: &wgpu::Texture,
 ) -> wgpu::BindGroup {
     let mut builder = wgpu::BindGroupBuilder::new().sampler(sampler);
-    let texture_views: Vec<_> = isf_data_textures(isf_data)
+    let texture_views: Vec<_> = isf_data_textures(isf_data, placeholder_texture)
         .map(|tex| tex.view().build())
         .collect();
     for texture_view in &texture_views {
@@ -955,21 +976,23 @@ fn create_render_pipeline(
 
 // All textures stored within the `IsfData` instance in the order that they should be declared in
 // the order expected by the isf textures bind group.
-fn isf_data_textures(isf_data: &IsfData) -> impl Iterator<Item = &wgpu::Texture> {
-    let imported = isf_data.imported.values().filter_map(|state| match state {
-        ImageState::Ready(ref img_res) => match img_res {
-            Ok(ref img_data) => Some(&img_data.texture),
-            _ => None,
-        },
-        _ => None,
+fn isf_data_textures<'a>(
+    isf_data: &'a IsfData,
+    placeholder: &'a wgpu::Texture,
+) -> impl Iterator<Item = &'a wgpu::Texture> {
+    let imported = isf_data.imported.values().map(move |state| match state {
+        ImageState::Ready(Ok(ref img_data)) => &img_data.texture,
+        ImageState::Ready(Err(_)) | ImageState::None | ImageState::Loading(_) => placeholder,
     });
     let inputs = isf_data
         .inputs
         .values()
-        .filter_map(|input_data| match input_data {
+        .filter_map(move |input_data| match input_data {
             IsfInputData::Image(ref img_state) => match *img_state {
                 ImageState::Ready(Ok(ref data)) => Some(&data.texture),
-                _ => None,
+                ImageState::Ready(Err(_)) | ImageState::None | ImageState::Loading(_) => {
+                    Some(placeholder)
+                }
             },
             IsfInputData::Audio { ref texture, .. }
             | IsfInputData::AudioFft { ref texture, .. } => Some(texture),
@@ -1051,7 +1074,6 @@ fn isf_inputs_by_uniform_order(
 fn isf_inputs_to_uniform_data(inputs: &BTreeMap<InputName, IsfInputData>) -> Vec<u32> {
     let mut u32s: Vec<u32> = vec![];
     for (_k, v) in isf_inputs_by_uniform_order(inputs) {
-        dbg!((_k, v));
         match *v {
             IsfInputData::Event { happening } => {
                 u32s.push(if happening { 1 } else { 0 });
