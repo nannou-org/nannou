@@ -17,6 +17,9 @@ pub enum Break {
         /// The byte length which should be skipped in order to reach the first non-whitespace
         /// character to use as the beginning of the next line.
         len_bytes: usize,
+        /// The number of chars which should be skipped in order to reach the first non-whitespace
+        /// character to use as the beginning of the next line.
+        len_chars: usize,
     },
     /// A break caused by a newline character.
     Newline {
@@ -26,6 +29,8 @@ pub enum Break {
         char: usize,
         /// The width of the "newline" token in bytes.
         len_bytes: usize,
+        /// The width of the "newline" token in chars.
+        len_chars: usize,
     },
     /// The end of the string has been reached, with the given length.
     End {
@@ -56,7 +61,7 @@ pub struct NextBreak {
 pub struct Info {
     /// The index into the `&str` that represents the first character within the line.
     pub start_byte: usize,
-    /// The character index of the first character in the line.
+    /// The character index into the `&str` of the first character in the line.
     pub start_char: usize,
     /// The index within the `&str` at which this line breaks into a new line, along with the
     /// index at which the following line begins. The variant describes whether the break is
@@ -238,7 +243,8 @@ fn next_break(text: &str, font: &text::Font, font_size: FontSize) -> NextBreak {
                 let break_ = Break::Newline {
                     byte: byte_i,
                     char: char_i,
-                    len_bytes: 2,
+                    len_bytes: 2, // skip "\r\n"
+                    len_chars: 2,
                 };
                 return NextBreak {
                     break_,
@@ -250,7 +256,8 @@ fn next_break(text: &str, font: &text::Font, font_size: FontSize) -> NextBreak {
             let break_ = Break::Newline {
                 byte: byte_i,
                 char: char_i,
-                len_bytes: 1,
+                len_bytes: 1, // skip "\n"
+                len_chars: 1,
             };
             return NextBreak {
                 break_,
@@ -300,7 +307,8 @@ fn next_break_by_character(
                 let break_ = Break::Newline {
                     byte: byte_i,
                     char: char_i,
-                    len_bytes: 2,
+                    len_bytes: 2, // skip "\r\n"
+                    len_chars: 2,
                 };
                 return NextBreak {
                     break_,
@@ -312,7 +320,8 @@ fn next_break_by_character(
             let break_ = Break::Newline {
                 byte: byte_i,
                 char: char_i,
-                len_bytes: 1,
+                len_bytes: 1, // skip "\n"
+                len_chars: 1,
             };
             return NextBreak {
                 break_,
@@ -330,7 +339,8 @@ fn next_break_by_character(
             let break_ = Break::Wrap {
                 byte: byte_i,
                 char: char_i,
-                len_bytes: 0,
+                len_bytes: 0, // skip nothing in middle of word
+                len_chars: 0,
             };
             return NextBreak {
                 break_,
@@ -388,7 +398,8 @@ fn next_break_by_whitespace(
                 let break_ = Break::Newline {
                     byte: byte_i,
                     char: char_i,
-                    len_bytes: 2,
+                    len_bytes: 2, // skip "\r\n"
+                    len_chars: 2,
                 };
                 return NextBreak {
                     break_,
@@ -400,7 +411,8 @@ fn next_break_by_whitespace(
             let break_ = Break::Newline {
                 byte: byte_i,
                 char: char_i,
-                len_bytes: 1,
+                len_bytes: 1, // skip "\n"
+                len_chars: 1,
             };
             return NextBreak {
                 break_,
@@ -424,7 +436,8 @@ fn next_break_by_whitespace(
                     let break_ = Break::Wrap {
                         byte: byte,
                         char: char,
-                        len_bytes: 1,
+                        len_bytes: 1, // skip one whitespace character
+                        len_chars: 1,
                     };
                     let width = width_before;
                     return NextBreak {
@@ -437,7 +450,8 @@ fn next_break_by_whitespace(
                     let break_ = Break::Wrap {
                         byte: byte_i,
                         char: char_i,
-                        len_bytes: 0,
+                        len_bytes: 0, // skip nothing in middle of word
+                        len_chars: 0,
                     };
                     return NextBreak {
                         break_,
@@ -641,19 +655,23 @@ where
                         byte,
                         char,
                         len_bytes,
+                        len_chars,
                     } => Break::Newline {
                         byte: *start_byte + byte,
                         char: *start_char + char,
                         len_bytes: len_bytes,
+                        len_chars: len_chars,
                     },
                     Break::Wrap {
                         byte,
                         char,
                         len_bytes,
+                        len_chars,
                     } => Break::Wrap {
                         byte: *start_byte + byte,
                         char: *start_char + char,
                         len_bytes: len_bytes,
+                        len_chars: len_chars,
                     },
                     _ => unreachable!(),
                 };
@@ -671,14 +689,17 @@ where
                         byte,
                         char,
                         len_bytes,
+                        len_chars,
                     }
                     | Break::Wrap {
                         byte,
                         char,
                         len_bytes,
+                        len_chars,
                     } => {
+                        // skip over end-of-break " ", "\n", or "\r\n"
                         *start_byte = info.start_byte + byte + len_bytes;
-                        *start_char = info.start_char + char + 1;
+                        *start_char = info.start_char + char + len_chars;
                     }
                     _ => unreachable!(),
                 };
