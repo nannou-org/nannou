@@ -462,10 +462,10 @@ where
 
     /// Produce a new **Draw** instance.
     ///
-    /// All drawing that occurs on the new instance will be rendered as points on the vertices.
+    /// All drawing that occurs on the new instance will be rendered as triangles on the vertices.
     ///
     /// This will cause the **draw::Renderer** to switch render pipelines in order to use the
-    /// **PointList** primitive topology. The switch will only occur if this topology was not
+    /// **TriangleList** primitive topology. The switch will only occur if this topology was not
     /// already enabled.
     ///
     /// This is the default primitive topology mode.
