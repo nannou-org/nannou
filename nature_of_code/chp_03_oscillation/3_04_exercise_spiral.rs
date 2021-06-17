@@ -32,7 +32,11 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
 fn view(app: &App, model: &Model, frame: Frame) {
     // Begin drawing
     let draw = app.draw();
-    //draw.background().color(WHITE);
+
+    // Set the background color on the first update/frame
+    if model.theta <= 0.01 {
+        draw.background().color(WHITE);
+    }
 
     let x = model.r * model.theta.cos();
     let y = model.r * model.theta.sin();
