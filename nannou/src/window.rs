@@ -8,7 +8,8 @@ use crate::event::{
 };
 use crate::frame::{self, Frame, RawFrame};
 use crate::geom;
-use crate::geom::{Point2, Vector2};
+use crate::geom::Point2;
+use crate::glam::Vec2;
 use crate::wgpu;
 use crate::App;
 use std::any::Any;
@@ -126,10 +127,10 @@ pub type MouseExitedFn<Model> = fn(&App, &mut Model);
 pub type MouseWheelFn<Model> = fn(&App, &mut Model, MouseScrollDelta, TouchPhase);
 
 /// A function for processing window moved events.
-pub type MovedFn<Model> = fn(&App, &mut Model, Vector2);
+pub type MovedFn<Model> = fn(&App, &mut Model, Vec2);
 
 /// A function for processing window resized events.
-pub type ResizedFn<Model> = fn(&App, &mut Model, Vector2);
+pub type ResizedFn<Model> = fn(&App, &mut Model, Vec2);
 
 /// A function for processing touch events.
 pub type TouchFn<Model> = fn(&App, &mut Model, TouchEvent);

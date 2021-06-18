@@ -19,6 +19,7 @@ pub use rusttype::gpu_cache::Cache as GlyphCache;
 pub use rusttype::{Glyph, GlyphId, GlyphIter, LayoutIter, Scale, ScaledGlyph};
 
 use crate::geom;
+use crate::glam::Vec2;
 use std::borrow::Cow;
 
 /// The RustType `FontCollection` type used by nannou.
@@ -32,7 +33,7 @@ pub type PositionedGlyph = rusttype::PositionedGlyph<'static>;
 pub type Scalar = crate::geom::scalar::Default;
 
 /// The point type used when working with text.
-pub type Point<S = Scalar> = crate::geom::Point2<S>;
+pub type Point = crate::geom::Point2;
 
 /// The type used to specify `FontSize` in font points.
 pub type FontSize = u32;
@@ -77,7 +78,7 @@ type LineRects<'a> = line::Rects<std::iter::Cloned<std::slice::Iter<'a, line::In
 #[derive(Clone)]
 pub struct TextLineRects<'a> {
     line_rects: LineRects<'a>,
-    offset: geom::Vector2,
+    offset: Vec2,
 }
 
 /// An alias for the iterator yielded by `Text::lines_with_rects`.
@@ -423,12 +424,12 @@ impl<'a> Text<'a> {
         use lyon::path::PathEvent;
 
         // Translate the given lyon point by the given vector.
-        fn trans_lyon_point(p: &lyon::math::Point, v: geom::Vector2) -> lyon::math::Point {
+        fn trans_lyon_point(p: &lyon::math::Point, v: Vec2) -> lyon::math::Point {
             lyon::math::point(p.x + v.x, p.y + v.y)
         }
 
         // Translate the given path event in 2D space.
-        fn trans_path_event(e: &PathEvent, v: geom::Vector2) -> PathEvent {
+        fn trans_path_event(e: &PathEvent, v: Vec2) -> PathEvent {
             match *e {
                 PathEvent::Begin { ref at } => PathEvent::Begin {
                     at: trans_lyon_point(at, v),
@@ -473,7 +474,7 @@ impl<'a> Text<'a> {
             glyph::path_events(g)
                 .into_iter()
                 .flat_map(|es| es)
-                .map(move |e| trans_path_event(&e, r.bottom_left()))
+                .map(move |e| trans_path_event(&e, r.bottom_left().into()))
         })
     }
 
@@ -484,7 +485,7 @@ impl<'a> Text<'a> {
     /// pixel buffer.
     pub fn rt_glyphs<'b: 'a>(
         &'b self,
-        window_size: geom::Vector2,
+        window_size: Vec2,
         scale_factor: Scalar,
     ) -> impl 'a + 'b + Iterator<Item = PositionedGlyph> {
         rt_positioned_glyphs(
@@ -515,7 +516,7 @@ impl<'a> Text<'a> {
         }
     }
 
-    fn position_offset(&self) -> geom::Vector2 {
+    fn position_offset(&self) -> Vec2 {
         position_offset(
             self.num_lines(),
             self.layout.font_size,
@@ -543,7 +544,7 @@ where
 impl<'a> Iterator for TextLineRects<'a> {
     type Item = geom::Rect;
     fn next(&mut self) -> Option<Self::Item> {
-        self.line_rects.next().map(|r| r.shift(self.offset))
+        self.line_rects.next().map(|r| r.shift(self.offset.into()))
     }
 }
 
@@ -602,7 +603,7 @@ pub fn position_offset(
     line_spacing: f32,
     bounding_rect: geom::Rect,
     y_align: Align,
-) -> geom::Vector2 {
+) -> Vec2 {
     let x_offset = bounding_rect.x.start;
     let y_offset = {
         // Calculate the `y` `Range` of the first line `Rect`.
@@ -625,7 +626,7 @@ pub fn rt_positioned_glyphs<'a, I>(
     lines_with_rects: I,
     font: &'a Font,
     font_size: FontSize,
-    window_size: geom::Vector2,
+    window_size: Vec2,
     scale_factor: Scalar,
 ) -> impl 'a + Iterator<Item = PositionedGlyph>
 where

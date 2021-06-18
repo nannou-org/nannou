@@ -6,7 +6,8 @@
 //! - [**WindowEvent**](./enum.WindowEvent.html) - a stripped-back, simplified, newcomer-friendly
 //!   version of the **raw**, low-level winit event.
 
-use crate::geom::{self, Point2, Vector2};
+use crate::geom::{self, Point2};
+use crate::glam::Vec2;
 use crate::window;
 use crate::App;
 use std::path::PathBuf;
@@ -74,7 +75,7 @@ pub struct TouchEvent {
     /// The state of the touch.
     pub phase: TouchPhase,
     /// The position of the touch.
-    pub position: Point2<geom::scalar::Default>,
+    pub position: Point2,
 }
 
 /// Pressure on a touch pad.
@@ -112,7 +113,7 @@ pub struct AxisMotion {
 #[derive(Clone, Debug, PartialEq)]
 pub enum WindowEvent {
     /// The window has been moved to a new position.
-    Moved(Point2<geom::scalar::Default>),
+    Moved(Point2),
 
     /// The given keyboard key was pressed.
     KeyPressed(Key),
@@ -121,7 +122,7 @@ pub enum WindowEvent {
     KeyReleased(Key),
 
     /// The mouse moved to the given x, y position.
-    MouseMoved(Point2<geom::scalar::Default>),
+    MouseMoved(Point2),
 
     /// The given mouse button was pressed.
     MousePressed(MouseButton),
@@ -139,7 +140,7 @@ pub enum WindowEvent {
     MouseWheel(MouseScrollDelta, TouchPhase),
 
     /// The window was resized to the given dimensions (in DPI-agnostic points, not pixels).
-    Resized(Vector2<geom::scalar::Default>),
+    Resized(Vec2),
 
     /// A file at the given path was hovered over the window.
     HoveredFile(PathBuf),
@@ -195,24 +196,24 @@ impl WindowEvent {
         //
         // winit produces input events in pixels, so these positions need to be divided by the
         // width and height of the window in order to be DPI agnostic.
-        let tw = |w: f64| w as geom::scalar::Default;
-        let th = |h: f64| h as geom::scalar::Default;
-        let tx = |x: f64| (x - win_w / 2.0) as geom::scalar::Default;
-        let ty = |y: f64| (-(y - win_h / 2.0)) as geom::scalar::Default;
+        let tw = |w: f64| w as f32;
+        let th = |h: f64| h as f32;
+        let tx = |x: f64| (x - win_w / 2.0) as f32;
+        let ty = |y: f64| (-(y - win_h / 2.0)) as f32;
 
         let event = match event {
             winit::event::WindowEvent::Resized(new_size) => {
                 let (new_w, new_h) = new_size.to_logical::<f64>(scale_factor).into();
                 let x = tw(new_w);
                 let y = th(new_h);
-                Resized(Vector2 { x, y })
+                Resized([x, y].into())
             }
 
             winit::event::WindowEvent::Moved(new_pos) => {
                 let (new_x, new_y) = new_pos.to_logical::<f64>(scale_factor).into();
                 let x = tx(new_x);
                 let y = ty(new_y);
-                Moved(Point2 { x, y })
+                Moved([x, y].into())
             }
 
             // TODO: Should separate the behaviour of close requested and destroyed.
@@ -238,7 +239,7 @@ impl WindowEvent {
                 let (x, y) = position.to_logical::<f64>(scale_factor).into();
                 let x = tx(x);
                 let y = ty(y);
-                MouseMoved(Point2 { x, y })
+                MouseMoved([x, y].into())
             }
 
             winit::event::WindowEvent::CursorEntered { .. } => MouseEntered,
@@ -263,7 +264,7 @@ impl WindowEvent {
                 let (x, y) = location.to_logical::<f64>(scale_factor).into();
                 let x = tx(x);
                 let y = ty(y);
-                let position = Point2 { x, y };
+                let position = [x, y].into();
                 let touch = TouchEvent {
                     phase: phase.clone(),
                     position,

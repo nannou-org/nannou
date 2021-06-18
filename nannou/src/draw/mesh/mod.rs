@@ -10,22 +10,22 @@ pub mod vertex;
 pub use self::builder::MeshBuilder;
 pub use self::vertex::Vertex;
 
-pub type Points<S> = Vec<vertex::Point<S>>;
+pub type Points = Vec<vertex::Point>;
 pub type Indices = Vec<u32>;
 pub type Colors = Vec<vertex::Color>;
-pub type TexCoords<S> = Vec<vertex::TexCoords<S>>;
+pub type TexCoords = Vec<vertex::TexCoords>;
 
 /// The inner mesh type used by the **draw::Mesh**.
-pub type MeshType<S> =
-    WithTexCoords<WithColors<WithIndices<MeshPoints<Points<S>>, Indices>, Colors>, TexCoords<S>>;
+pub type MeshType =
+    WithTexCoords<WithColors<WithIndices<MeshPoints<Points>, Indices>, Colors>, TexCoords>;
 
 /// The custom mesh type used internally by the **Draw** API.
 #[derive(Clone, Debug)]
-pub struct Mesh<S = geom::scalar::Default> {
-    mesh: MeshType<S>,
+pub struct Mesh {
+    mesh: MeshType,
 }
 
-impl<S> Mesh<S> {
+impl Mesh {
     /// The number of raw vertices contained within the mesh.
     pub fn raw_vertex_count(&self) -> usize {
         mesh::raw_vertex_count(self)
@@ -42,7 +42,7 @@ impl<S> Mesh<S> {
     }
 
     /// The **Mesh**'s vertex position channel.
-    pub fn points(&self) -> &[vertex::Point<S>] {
+    pub fn points(&self) -> &[vertex::Point] {
         mesh::Points::points(self)
     }
 
@@ -57,12 +57,12 @@ impl<S> Mesh<S> {
     }
 
     /// The **Mesh**'s vertex texture coordinates channel.
-    pub fn tex_coords(&self) -> &[vertex::TexCoords<S>] {
+    pub fn tex_coords(&self) -> &[vertex::TexCoords] {
         mesh::TexCoords::tex_coords(self)
     }
 
     /// Push the given vertex onto the inner channels.
-    pub fn push_vertex(&mut self, v: Vertex<S>) {
+    pub fn push_vertex(&mut self, v: Vertex) {
         mesh::push_vertex(self, v);
     }
 
@@ -74,7 +74,7 @@ impl<S> Mesh<S> {
     /// Extend the mesh channels with the given vertices.
     pub fn extend_vertices<I>(&mut self, vs: I)
     where
-        I: IntoIterator<Item = Vertex<S>>,
+        I: IntoIterator<Item = Vertex>,
     {
         mesh::extend_vertices(self, vs);
     }
@@ -90,7 +90,7 @@ impl<S> Mesh<S> {
     /// Extend the **Mesh** with the given vertices and indices.
     pub fn extend<V, I>(&mut self, vs: V, is: I)
     where
-        V: IntoIterator<Item = Vertex<S>>,
+        V: IntoIterator<Item = Vertex>,
         I: IntoIterator<Item = u32>,
     {
         self.extend_vertices(vs);
@@ -121,12 +121,7 @@ impl<S> Mesh<S> {
     pub fn into_raw_vertices(self) -> mesh::RawVertices<Self> {
         mesh::raw_vertices(self)
     }
-}
 
-impl<S> Mesh<S>
-where
-    S: Clone,
-{
     /// Extend the mesh from the given slices.
     ///
     /// This is faster than `extend` which uses iteration internally.
@@ -134,10 +129,10 @@ where
     /// **Panic!**s if the length of the given points, colors and tex_coords slices do not match.
     pub fn extend_from_slices(
         &mut self,
-        points: &[vertex::Point<S>],
+        points: &[vertex::Point],
         indices: &[u32],
         colors: &[vertex::Color],
-        tex_coords: &[vertex::TexCoords<S>],
+        tex_coords: &[vertex::TexCoords],
     ) {
         assert_eq!(points.len(), colors.len());
         assert_eq!(points.len(), tex_coords.len());
@@ -148,9 +143,9 @@ where
     /// Extend the mesh with the given slices of vertices.
     pub fn extend_vertices_from_slices(
         &mut self,
-        points: &[vertex::Point<S>],
+        points: &[vertex::Point],
         colors: &[vertex::Color],
-        tex_coords: &[vertex::TexCoords<S>],
+        tex_coords: &[vertex::TexCoords],
     ) {
         self.extend_from_slices(points, &[], colors, tex_coords);
     }
@@ -181,45 +176,42 @@ where
     }
 }
 
-impl<S> Default for Mesh<S> {
+impl Default for Mesh {
     fn default() -> Self {
         let mesh = Default::default();
         Mesh { mesh }
     }
 }
 
-impl<S> Deref for Mesh<S> {
-    type Target = MeshType<S>;
+impl Deref for Mesh {
+    type Target = MeshType;
     fn deref(&self) -> &Self::Target {
         &self.mesh
     }
 }
 
-impl<S> DerefMut for Mesh<S> {
+impl DerefMut for Mesh {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.mesh
     }
 }
 
-impl<S> mesh::GetVertex<u32> for Mesh<S>
-where
-    S: Clone,
-{
-    type Vertex = Vertex<S>;
+impl mesh::GetVertex<u32> for Mesh {
+    type Vertex = Vertex;
     fn get_vertex(&self, index: u32) -> Option<Self::Vertex> {
         mesh::WithTexCoords::get_vertex(&self.mesh, index)
     }
 }
 
-impl<S> mesh::Points for Mesh<S> {
-    type Point = vertex::Point<S>;
-    type Points = Points<S>;
+impl mesh::Points for Mesh {
+    type Point = vertex::Point;
+    type Points = Points;
     fn points(&self) -> &Self::Points {
         self.mesh.points()
     }
 }
 
-impl<S> mesh::Indices for Mesh<S> {
+impl mesh::Indices for Mesh {
     type Index = u32;
     type Indices = Indices;
     fn indices(&self) -> &Self::Indices {
@@ -227,7 +219,7 @@ impl<S> mesh::Indices for Mesh<S> {
     }
 }
 
-impl<S> mesh::Colors for Mesh<S> {
+impl mesh::Colors for Mesh {
     type Color = vertex::Color;
     type Colors = Colors;
     fn colors(&self) -> &Self::Colors {
@@ -235,21 +227,21 @@ impl<S> mesh::Colors for Mesh<S> {
     }
 }
 
-impl<S> mesh::TexCoords for Mesh<S> {
-    type TexCoord = geom::Point2<S>;
-    type TexCoords = TexCoords<S>;
+impl mesh::TexCoords for Mesh {
+    type TexCoord = geom::Point2;
+    type TexCoords = TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
         self.mesh.tex_coords()
     }
 }
 
-impl<S> mesh::PushVertex<Vertex<S>> for Mesh<S> {
-    fn push_vertex(&mut self, v: Vertex<S>) {
+impl mesh::PushVertex<Vertex> for Mesh {
+    fn push_vertex(&mut self, v: Vertex) {
         self.mesh.push_vertex(v);
     }
 }
 
-impl<S> mesh::PushIndex for Mesh<S> {
+impl mesh::PushIndex for Mesh {
     type Index = u32;
 
     fn push_index(&mut self, index: Self::Index) {
@@ -264,13 +256,13 @@ impl<S> mesh::PushIndex for Mesh<S> {
     }
 }
 
-impl<S> mesh::ClearIndices for Mesh<S> {
+impl mesh::ClearIndices for Mesh {
     fn clear_indices(&mut self) {
         self.mesh.clear_indices();
     }
 }
 
-impl<S> mesh::ClearVertices for Mesh<S> {
+impl mesh::ClearVertices for Mesh {
     fn clear_vertices(&mut self) {
         self.mesh.clear_vertices();
     }

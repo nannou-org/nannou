@@ -1,12 +1,12 @@
 use crate::color::IntoLinSrgba;
-use crate::draw::mesh::vertex::Color;
+use crate::draw::mesh::vertex::{Color, TexCoords};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::{
     ColorScalar, SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Draw};
-use crate::geom::{self, Point2, Point3, Vector2, Vector3};
-use crate::math::{Angle, BaseFloat, Euler, Quaternion, Rad};
+use crate::geom::{Point2, Point3};
+use crate::glam::{Quat, Vec2, Vec3};
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
 use std::marker::PhantomData;
@@ -22,12 +22,9 @@ use std::marker::PhantomData;
 /// graph. As a result, each **Drawing** is associated with a single, unique node. Thus a
 /// **Drawing** can be thought of as a way of specifying properties for a node.
 #[derive(Debug)]
-pub struct Drawing<'a, T, S = geom::scalar::Default>
-where
-    S: 'a + BaseFloat,
-{
+pub struct Drawing<'a, T> {
     // The `Draw` instance used to create this drawing.
-    draw: &'a Draw<S>,
+    draw: &'a Draw,
     // The draw command index of the primitive being drawn.
     index: usize,
     // Whether or not the **Drawing** should attempt to finish the drawing on drop.
@@ -39,24 +36,21 @@ where
 /// Some context that may be optionally provided to primitives in the drawing implementation.
 ///
 /// This is particularly useful for paths and meshes.
-pub struct DrawingContext<'a, S> {
+pub struct DrawingContext<'a> {
     /// The intermediary mesh for buffering yet-to-be-drawn paths and meshes.
-    pub mesh: &'a mut draw::Mesh<S>,
+    pub mesh: &'a mut draw::Mesh,
     /// A re-usable buffer for collecting path events.
     pub path_event_buffer: &'a mut Vec<PathEvent>,
     /// A re-usable buffer for collecting colored polyline points.
-    pub path_points_colored_buffer: &'a mut Vec<(Point2<S>, Color)>,
+    pub path_points_colored_buffer: &'a mut Vec<(Point2, Color)>,
     /// A re-usable buffer for collecting textured polyline points.
-    pub path_points_textured_buffer: &'a mut Vec<(Point2<S>, Point2<S>)>,
+    pub path_points_textured_buffer: &'a mut Vec<(Point2, TexCoords)>,
     /// A re-usable buffer for collecting text.
     pub text_buffer: &'a mut String,
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<'a, T, S>(draw: &'a Draw<S>, index: usize) -> Drawing<'a, T, S>
-where
-    S: BaseFloat,
-{
+pub fn new<'a, T>(draw: &'a Draw, index: usize) -> Drawing<'a, T> {
     let _ty = PhantomData;
     let finish_on_drop = true;
     Drawing {
@@ -67,10 +61,7 @@ where
     }
 }
 
-impl<'a, T, S> Drop for Drawing<'a, T, S>
-where
-    S: BaseFloat,
-{
+impl<'a, T> Drop for Drawing<'a, T> {
     fn drop(&mut self) {
         if self.finish_on_drop {
             self.finish_inner();
@@ -78,9 +69,9 @@ where
     }
 }
 
-impl<'a, S> DrawingContext<'a, S> {
+impl<'a> DrawingContext<'a> {
     // Initialise the DrawingContext from the draw's IntermediaryState.
-    pub(crate) fn from_intermediary_state(state: &'a mut super::IntermediaryState<S>) -> Self {
+    pub(crate) fn from_intermediary_state(state: &'a mut super::IntermediaryState) -> Self {
         let super::IntermediaryState {
             ref mut intermediary_mesh,
             ref mut path_event_buffer,
@@ -98,10 +89,7 @@ impl<'a, S> DrawingContext<'a, S> {
     }
 }
 
-impl<'a, T, S> Drawing<'a, T, S>
-where
-    S: BaseFloat,
-{
+impl<'a, T> Drawing<'a, T> {
     // Shared between the **finish** method and the **Drawing**'s **Drop** implementation.
     //
     // 1. Create vertices based on node-specific position, points, etc.
@@ -123,10 +111,10 @@ where
     // Map the given function onto the primitive stored within **Draw** at `index`.
     //
     // The functionn is only applied if the node has not yet been **Drawn**.
-    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
+    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2>
     where
-        F: FnOnce(Primitive<S>) -> Primitive<S>,
-        T2: Into<Primitive<S>>,
+        F: FnOnce(Primitive) -> Primitive,
+        T2: Into<Primitive>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
@@ -147,10 +135,10 @@ where
     // The same as `map_primitive` but also passes a mutable reference to the vertex data to the
     // map function. This is useful for types that may have an unknown number of arbitrary
     // vertices.
-    fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2, S>
+    fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2>
     where
-        F: FnOnce(Primitive<S>, DrawingContext<S>) -> Primitive<S>,
-        T2: Into<Primitive<S>>,
+        F: FnOnce(Primitive, DrawingContext) -> Primitive,
+        T2: Into<Primitive>,
     {
         if let Ok(mut state) = self.draw.state.try_borrow_mut() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
@@ -177,11 +165,11 @@ where
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2, S>
+    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2>
     where
         F: FnOnce(T) -> T2,
-        T2: Into<Primitive<S>>,
-        Primitive<S>: Into<Option<T>>,
+        T2: Into<Primitive>,
+        Primitive: Into<Option<T>>,
     {
         self.map_primitive(|prim| {
             let maybe_ty: Option<T> = prim.into();
@@ -196,11 +184,11 @@ where
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2, S>
+    pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2>
     where
-        F: FnOnce(T, DrawingContext<S>) -> T2,
-        T2: Into<Primitive<S>>,
-        Primitive<S>: Into<Option<T>>,
+        F: FnOnce(T, DrawingContext) -> T2,
+        T2: Into<Primitive>,
+        Primitive: Into<Option<T>>,
     {
         self.map_primitive_with_context(|prim, ctxt| {
             let maybe_ty: Option<T> = prim.into();
@@ -213,11 +201,10 @@ where
 
 // SetColor implementations.
 
-impl<'a, T, S> Drawing<'a, T, S>
+impl<'a, T> Drawing<'a, T>
 where
-    T: SetColor<ColorScalar> + Into<Primitive<S>>,
-    Primitive<S>: Into<Option<T>>,
-    S: BaseFloat,
+    T: SetColor<ColorScalar> + Into<Primitive>,
+    Primitive: Into<Option<T>>,
 {
     /// Specify a color.
     ///
@@ -313,226 +300,192 @@ where
 
 // SetDimensions implementations.
 
-impl<'a, T, S> Drawing<'a, T, S>
+impl<'a, T> Drawing<'a, T>
 where
-    T: SetDimensions<S> + Into<Primitive<S>>,
-    Primitive<S>: Into<Option<T>>,
-    S: BaseFloat,
+    T: SetDimensions + Into<Primitive>,
+    Primitive: Into<Option<T>>,
 {
     /// Set the absolute width for the node.
-    pub fn width(self, w: S) -> Self {
+    pub fn width(self, w: f32) -> Self {
         self.map_ty(|ty| SetDimensions::width(ty, w))
     }
 
     /// Set the absolute height for the node.
-    pub fn height(self, h: S) -> Self {
+    pub fn height(self, h: f32) -> Self {
         self.map_ty(|ty| SetDimensions::height(ty, h))
     }
 
     /// Set the absolute depth for the node.
-    pub fn depth(self, d: S) -> Self {
+    pub fn depth(self, d: f32) -> Self {
         self.map_ty(|ty| SetDimensions::depth(ty, d))
     }
 
     /// Short-hand for the **width** method.
-    pub fn w(self, w: S) -> Self {
+    pub fn w(self, w: f32) -> Self {
         self.map_ty(|ty| SetDimensions::w(ty, w))
     }
 
     /// Short-hand for the **height** method.
-    pub fn h(self, h: S) -> Self {
+    pub fn h(self, h: f32) -> Self {
         self.map_ty(|ty| SetDimensions::h(ty, h))
     }
 
     /// Short-hand for the **depth** method.
-    pub fn d(self, d: S) -> Self {
+    pub fn d(self, d: f32) -> Self {
         self.map_ty(|ty| SetDimensions::d(ty, d))
     }
 
     /// Set the **x** and **y** dimensions for the node.
-    pub fn wh(self, v: Vector2<S>) -> Self {
+    pub fn wh(self, v: Vec2) -> Self {
         self.map_ty(|ty| SetDimensions::wh(ty, v))
     }
 
     /// Set the **x**, **y** and **z** dimensions for the node.
-    pub fn whd(self, v: Vector3<S>) -> Self {
+    pub fn whd(self, v: Vec3) -> Self {
         self.map_ty(|ty| SetDimensions::whd(ty, v))
     }
 
     /// Set the width and height for the node.
-    pub fn w_h(self, x: S, y: S) -> Self {
+    pub fn w_h(self, x: f32, y: f32) -> Self {
         self.map_ty(|ty| SetDimensions::w_h(ty, x, y))
     }
 
     /// Set the width and height for the node.
-    pub fn w_h_d(self, x: S, y: S, z: S) -> Self {
+    pub fn w_h_d(self, x: f32, y: f32, z: f32) -> Self {
         self.map_ty(|ty| SetDimensions::w_h_d(ty, x, y, z))
     }
 }
 
 // SetPosition methods.
 
-impl<'a, T, S> Drawing<'a, T, S>
+impl<'a, T> Drawing<'a, T>
 where
-    T: SetPosition<S> + Into<Primitive<S>>,
-    Primitive<S>: Into<Option<T>>,
-    S: BaseFloat,
+    T: SetPosition + Into<Primitive>,
+    Primitive: Into<Option<T>>,
 {
     /// Build with the given **Absolute** **Position** along the *x* axis.
-    pub fn x(self, x: S) -> Self {
+    pub fn x(self, x: f32) -> Self {
         self.map_ty(|ty| SetPosition::x(ty, x))
     }
 
     /// Build with the given **Absolute** **Position** along the *y* axis.
-    pub fn y(self, y: S) -> Self {
+    pub fn y(self, y: f32) -> Self {
         self.map_ty(|ty| SetPosition::y(ty, y))
     }
 
     /// Build with the given **Absolute** **Position** along the *z* axis.
-    pub fn z(self, z: S) -> Self {
+    pub fn z(self, z: f32) -> Self {
         self.map_ty(|ty| SetPosition::z(ty, z))
     }
 
     /// Set the **Position** with some two-dimensional point.
-    pub fn xy(self, p: Point2<S>) -> Self {
+    pub fn xy(self, p: Point2) -> Self {
         self.map_ty(|ty| SetPosition::xy(ty, p))
     }
 
     /// Set the **Position** with some three-dimensional point.
-    pub fn xyz(self, p: Point3<S>) -> Self {
+    pub fn xyz(self, p: Point3) -> Self {
         self.map_ty(|ty| SetPosition::xyz(ty, p))
     }
 
     /// Set the **Position** with *x* *y* coordinates.
-    pub fn x_y(self, x: S, y: S) -> Self {
+    pub fn x_y(self, x: f32, y: f32) -> Self {
         self.map_ty(|ty| SetPosition::x_y(ty, x, y))
     }
 
     /// Set the **Position** with *x* *y* *z* coordinates.
-    pub fn x_y_z(self, x: S, y: S, z: S) -> Self {
+    pub fn x_y_z(self, x: f32, y: f32, z: f32) -> Self {
         self.map_ty(|ty| SetPosition::x_y_z(ty, x, y, z))
     }
 }
 
 // SetOrientation methods.
 
-impl<'a, T, S> Drawing<'a, T, S>
+impl<'a, T> Drawing<'a, T>
 where
-    T: SetOrientation<S> + Into<Primitive<S>>,
-    Primitive<S>: Into<Option<T>>,
-    S: BaseFloat,
+    T: SetOrientation + Into<Primitive>,
+    Primitive: Into<Option<T>>,
 {
     /// Describe orientation via the vector that points to the given target.
-    pub fn look_at(self, target: Point3<S>) -> Self {
+    pub fn look_at(self, target: Point3) -> Self {
         self.map_ty(|ty| SetOrientation::look_at(ty, target))
     }
 
     /// Specify the orientation around the *x* axis as an absolute value in radians.
-    pub fn x_radians(self, x: S) -> Self {
+    pub fn x_radians(self, x: f32) -> Self {
         self.map_ty(|ty| SetOrientation::x_radians(ty, x))
     }
 
     /// Specify the orientation around the *y* axis as an absolute value in radians.
-    pub fn y_radians(self, y: S) -> Self {
+    pub fn y_radians(self, y: f32) -> Self {
         self.map_ty(|ty| SetOrientation::y_radians(ty, y))
     }
 
     /// Specify the orientation around the *z* axis as an absolute value in radians.
-    pub fn z_radians(self, z: S) -> Self {
+    pub fn z_radians(self, z: f32) -> Self {
         self.map_ty(|ty| SetOrientation::z_radians(ty, z))
     }
 
     /// Specify the orientation around the *x* axis as an absolute value in degrees.
-    pub fn x_degrees(self, x: S) -> Self
-    where
-        S: BaseFloat,
-    {
+    pub fn x_degrees(self, x: f32) -> Self {
         self.map_ty(|ty| SetOrientation::x_degrees(ty, x))
     }
 
     /// Specify the orientation around the *y* axis as an absolute value in degrees.
-    pub fn y_degrees(self, y: S) -> Self
-    where
-        S: BaseFloat,
-    {
+    pub fn y_degrees(self, y: f32) -> Self {
         self.map_ty(|ty| SetOrientation::y_degrees(ty, y))
     }
 
     /// Specify the orientation around the *z* axis as an absolute value in degrees.
-    pub fn z_degrees(self, z: S) -> Self
-    where
-        S: BaseFloat,
-    {
+    pub fn z_degrees(self, z: f32) -> Self {
         self.map_ty(|ty| SetOrientation::z_degrees(ty, z))
     }
 
     /// Specify the orientation around the *x* axis as a number of turns around the axis.
-    pub fn x_turns(self, x: S) -> Self
-    where
-        S: BaseFloat,
-    {
+    pub fn x_turns(self, x: f32) -> Self {
         self.map_ty(|ty| SetOrientation::x_turns(ty, x))
     }
 
     /// Specify the orientation around the *y* axis as a number of turns around the axis.
-    pub fn y_turns(self, y: S) -> Self
-    where
-        S: BaseFloat,
-    {
+    pub fn y_turns(self, y: f32) -> Self {
         self.map_ty(|ty| SetOrientation::y_turns(ty, y))
     }
 
     /// Specify the orientation around the *z* axis as a number of turns around the axis.
-    pub fn z_turns(self, z: S) -> Self
-    where
-        S: BaseFloat,
-    {
+    pub fn z_turns(self, z: f32) -> Self {
         self.map_ty(|ty| SetOrientation::z_turns(ty, z))
     }
 
     /// Specify the orientation along each axis with the given **Vector** of radians.
     ///
     /// This has the same affect as calling `self.x_radians(v.x).y_radians(v.y).z_radians(v.z)`.
-    pub fn radians(self, v: Vector3<S>) -> Self {
+    pub fn radians(self, v: Vec3) -> Self {
         self.map_ty(|ty| SetOrientation::radians(ty, v))
     }
 
     /// Specify the orientation along each axis with the given **Vector** of degrees.
     ///
     /// This has the same affect as calling `self.x_degrees(v.x).y_degrees(v.y).z_degrees(v.z)`.
-    pub fn degrees(self, v: Vector3<S>) -> Self
-    where
-        S: BaseFloat,
-    {
+    pub fn degrees(self, v: Vec3) -> Self {
         self.map_ty(|ty| SetOrientation::degrees(ty, v))
     }
 
     /// Specify the orientation along each axis with the given **Vector** of "turns".
     ///
     /// This has the same affect as calling `self.x_turns(v.x).y_turns(v.y).z_turns(v.z)`.
-    pub fn turns(self, v: Vector3<S>) -> Self
-    where
-        S: BaseFloat,
-    {
+    pub fn turns(self, v: Vec3) -> Self {
         self.map_ty(|ty| SetOrientation::turns(ty, v))
     }
 
     /// Specify the orientation with the given **Euler**.
     ///
-    /// The euler can be specified in either radians (via **Rad**) or degrees (via **Deg**).
-    pub fn euler<A>(self, e: Euler<A>) -> Self
-    where
-        S: BaseFloat,
-        A: Angle + Into<Rad<S>>,
-    {
+    /// The euler must be specified in radians.
+    pub fn euler(self, e: Vec3) -> Self {
         self.map_ty(|ty| SetOrientation::euler(ty, e))
     }
 
     /// Specify the orientation with the given **Quaternion**.
-    pub fn quaternion(self, q: Quaternion<S>) -> Self
-    where
-        S: BaseFloat,
-    {
+    pub fn quaternion(self, q: Quat) -> Self {
         self.map_ty(|ty| SetOrientation::quaternion(ty, q))
     }
 
@@ -541,21 +494,21 @@ where
     /// Specify the "pitch" of the orientation in radians.
     ///
     /// This has the same effect as calling `x_radians`.
-    pub fn pitch(self, pitch: S) -> Self {
+    pub fn pitch(self, pitch: f32) -> Self {
         self.map_ty(|ty| SetOrientation::pitch(ty, pitch))
     }
 
     /// Specify the "yaw" of the orientation in radians.
     ///
     /// This has the same effect as calling `y_radians`.
-    pub fn yaw(self, yaw: S) -> Self {
+    pub fn yaw(self, yaw: f32) -> Self {
         self.map_ty(|ty| SetOrientation::yaw(ty, yaw))
     }
 
     /// Specify the "roll" of the orientation in radians.
     ///
     /// This has the same effect as calling `z_radians`.
-    pub fn roll(self, roll: S) -> Self {
+    pub fn roll(self, roll: f32) -> Self {
         self.map_ty(|ty| SetOrientation::roll(ty, roll))
     }
 
@@ -563,18 +516,17 @@ where
     /// given value is specified in radians.
     ///
     /// This is equivalent to calling the `z_radians` or `roll` methods.
-    pub fn rotate(self, radians: S) -> Self {
+    pub fn rotate(self, radians: f32) -> Self {
         self.map_ty(|ty| SetOrientation::rotate(ty, radians))
     }
 }
 
 // SetFill methods
 
-impl<'a, T, S> Drawing<'a, T, S>
+impl<'a, T> Drawing<'a, T>
 where
-    T: SetFill + Into<Primitive<S>>,
-    Primitive<S>: Into<Option<T>>,
-    S: BaseFloat,
+    T: SetFill + Into<Primitive>,
+    Primitive: Into<Option<T>>,
 {
     /// Specify the whole set of fill tessellation options.
     pub fn fill_opts(self, opts: FillOptions) -> Self {
@@ -614,11 +566,10 @@ where
 
 // SetStroke methods
 
-impl<'a, T, S> Drawing<'a, T, S>
+impl<'a, T> Drawing<'a, T>
 where
-    T: SetStroke + Into<Primitive<S>>,
-    Primitive<S>: Into<Option<T>>,
-    S: BaseFloat,
+    T: SetStroke + Into<Primitive>,
+    Primitive: Into<Option<T>>,
 {
     /// The start line cap as specified by the SVG spec.
     pub fn start_cap(self, cap: LineCap) -> Self {

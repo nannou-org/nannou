@@ -6,24 +6,24 @@ use crate::draw::properties::{
     ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Drawing};
-use crate::geom::{self, Point2, Vector2};
-use crate::math::{BaseFloat, ElementWise};
+use crate::geom::{self, pt2, Point2};
+use crate::glam::vec2;
 use lyon::tessellation::StrokeOptions;
 
 /// Properties related to drawing a **Tri**.
 #[derive(Clone, Debug)]
-pub struct Tri<S = geom::scalar::Default> {
-    tri: geom::Tri<Point2<S>>,
-    dimensions: dimension::Properties<S>,
-    polygon: PolygonInit<S>,
+pub struct Tri {
+    tri: geom::Tri<Point2>,
+    dimensions: dimension::Properties,
+    polygon: PolygonInit,
 }
 
 /// The drawing context for a `Tri`.
-pub type DrawingTri<'a, S = geom::scalar::Default> = Drawing<'a, Tri<S>, S>;
+pub type DrawingTri<'a> = Drawing<'a, Tri>;
 
 // Tri-specific methods.
 
-impl<S> Tri<S> {
+impl Tri {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -35,7 +35,7 @@ impl<S> Tri<S> {
     /// Use the given three points as the vertices (corners) of the triangle.
     pub fn points<P>(mut self, a: P, b: P, c: P) -> Self
     where
-        P: Into<Point2<S>>,
+        P: Into<Point2>,
     {
         let a = a.into();
         let b = b.into();
@@ -47,10 +47,7 @@ impl<S> Tri<S> {
 
 // Drawing methods.
 
-impl<'a, S> DrawingTri<'a, S>
-where
-    S: BaseFloat,
-{
+impl<'a> DrawingTri<'a> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -62,7 +59,7 @@ where
     /// Use the given points as the vertices (corners) of the triangle.
     pub fn points<P>(self, a: P, b: P, c: P) -> Self
     where
-        P: Into<Point2<S>>,
+        P: Into<Point2>,
     {
         self.map_ty(|ty| ty.points(a, b, c))
     }
@@ -70,7 +67,7 @@ where
 
 // Trait implementations.
 
-impl draw::renderer::RenderPrimitive for Tri<f32> {
+impl draw::renderer::RenderPrimitive for Tri {
     fn render_primitive(
         self,
         ctxt: draw::renderer::RenderContext,
@@ -88,12 +85,9 @@ impl draw::renderer::RenderPrimitive for Tri<f32> {
             let centroid = tri.centroid();
             let x_scale = maybe_x.map(|x| x / cuboid.w()).unwrap_or(1.0);
             let y_scale = maybe_y.map(|y| y / cuboid.h()).unwrap_or(1.0);
-            let scale = Vector2 {
-                x: x_scale,
-                y: y_scale,
-            };
+            let scale = vec2(x_scale, y_scale);
             let (a, b, c) = tri.into();
-            let translate = |v: Point2| centroid + ((v - centroid).mul_element_wise(scale));
+            let translate = |v: Point2| centroid + ((v - centroid) * scale);
             let new_a = translate(a);
             let new_b = translate(b);
             let new_c = translate(c);
@@ -112,11 +106,8 @@ impl draw::renderer::RenderPrimitive for Tri<f32> {
     }
 }
 
-impl<S> From<geom::Tri<Point2<S>>> for Tri<S>
-where
-    S: BaseFloat,
-{
-    fn from(tri: geom::Tri<Point2<S>>) -> Self {
+impl From<geom::Tri<Point2>> for Tri {
+    fn from(tri: geom::Tri<Point2>) -> Self {
         let dimensions = <_>::default();
         let polygon = <_>::default();
         Tri {
@@ -127,74 +118,64 @@ where
     }
 }
 
-impl<S> Default for Tri<S>
-where
-    S: BaseFloat,
-{
+impl Default for Tri {
     fn default() -> Self {
         // Create a triangle pointing towards 0.0 radians.
-        let zero = S::zero();
-        let fifty = S::from(50.0).unwrap();
-        let thirty_three = S::from(33.0).unwrap();
-        let a = Point2 {
-            x: -fifty,
-            y: thirty_three,
-        };
-        let b = Point2 { x: fifty, y: zero };
-        let c = Point2 {
-            x: -fifty,
-            y: -thirty_three,
-        };
+        let fifty = 50.0;
+        let thirty_three = 33.0;
+        let a = pt2(-fifty, thirty_three);
+        let b = pt2(fifty, 0.0);
+        let c = pt2(-fifty, -thirty_three);
         Tri::from(geom::Tri([a, b, c]))
     }
 }
 
-impl<S> SetOrientation<S> for Tri<S> {
-    fn properties(&mut self) -> &mut orientation::Properties<S> {
+impl SetOrientation for Tri {
+    fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.polygon)
     }
 }
 
-impl<S> SetPosition<S> for Tri<S> {
-    fn properties(&mut self) -> &mut position::Properties<S> {
+impl SetPosition for Tri {
+    fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.polygon)
     }
 }
 
-impl<S> SetDimensions<S> for Tri<S> {
-    fn properties(&mut self) -> &mut dimension::Properties<S> {
+impl SetDimensions for Tri {
+    fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.dimensions)
     }
 }
 
-impl<S> SetColor<ColorScalar> for Tri<S> {
+impl SetColor<ColorScalar> for Tri {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.polygon)
     }
 }
 
-impl<S> SetStroke for Tri<S> {
+impl SetStroke for Tri {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.polygon)
     }
 }
 
-impl<S> SetPolygon<S> for Tri<S> {
-    fn polygon_options_mut(&mut self) -> &mut PolygonOptions<S> {
+impl SetPolygon for Tri {
+    fn polygon_options_mut(&mut self) -> &mut PolygonOptions {
         SetPolygon::polygon_options_mut(&mut self.polygon)
     }
 }
 
 // Primitive conversions.
 
-impl<S> From<Tri<S>> for Primitive<S> {
-    fn from(prim: Tri<S>) -> Self {
+impl From<Tri> for Primitive {
+    fn from(prim: Tri) -> Self {
         Primitive::Tri(prim)
     }
 }
 
-impl<S> Into<Option<Tri<S>>> for Primitive<S> {
-    fn into(self) -> Option<Tri<S>> {
+impl Into<Option<Tri>> for Primitive {
+    fn into(self) -> Option<Tri> {
         match self {
             Primitive::Tri(prim) => Some(prim),
             _ => None,

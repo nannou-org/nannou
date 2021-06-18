@@ -1,8 +1,9 @@
 use crate::draw;
-use crate::draw::mesh::vertex::Color;
+use crate::draw::mesh::vertex::{Color, TexCoords};
 use crate::frame::Frame;
-use crate::geom::{self, Point2, Rect, Vector2};
-use crate::math::{map_range, Matrix4};
+use crate::geom::{self, Point2, Rect};
+use crate::glam::{Mat4, Vec2, Vec3};
+use crate::math::map_range;
 use crate::text;
 use crate::wgpu;
 use lyon::path::PathEvent;
@@ -33,17 +34,17 @@ pub struct PrimitiveRender {
 
 /// The context provided to primitives to assist with the rendering process.
 pub struct RenderContext<'a> {
-    pub transform: &'a crate::math::Matrix4<f32>,
+    pub transform: &'a Mat4,
     pub intermediary_mesh: &'a draw::Mesh,
     pub path_event_buffer: &'a [PathEvent],
     pub path_points_colored_buffer: &'a [(Point2, Color)],
-    pub path_points_textured_buffer: &'a [(Point2, Point2)],
+    pub path_points_textured_buffer: &'a [(Point2, TexCoords)],
     pub text_buffer: &'a str,
     pub theme: &'a draw::Theme,
     pub glyph_cache: &'a mut GlyphCache,
     pub fill_tessellator: &'a mut FillTessellator,
     pub stroke_tessellator: &'a mut StrokeTessellator,
-    pub output_attachment_size: Vector2, // logical coords
+    pub output_attachment_size: Vec2, // logical coords
     pub output_attachment_scale_factor: f32,
 }
 
@@ -139,10 +140,6 @@ pub struct DrawError;
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 struct Uniforms {
-    // /// The vector to multiply onto vertices in the vertex shader to map them from window space to
-    // /// shader space.
-    // window_to_shader: [f32; 3],
-    //view: Matrix4<f32>,
     /// Translates from "logical pixel coordinate space" (our "world space") to screen space.
     ///
     /// Specifically:
@@ -150,7 +147,7 @@ struct Uniforms {
     /// - x is transformed from (-half_logical_win_w, half_logical_win_w) to (-1, 1).
     /// - y is transformed from (-half_logical_win_h, half_logical_win_h) to (1, -1).
     /// - z is transformed from (-max_logical_win_side, max_logical_win_side) to (0, 1).
-    proj: Matrix4<f32>,
+    proj: Mat4,
 }
 
 type SamplerId = u64;
@@ -532,7 +529,7 @@ impl Renderer {
         let pt_to_px = |s: f32| (s * scale_factor).round() as u32;
         let full_rect = Rect::from_w_h(px_to_pt(w_px), px_to_pt(h_px));
 
-        let window_to_scissor = |v: Vector2| -> [u32; 2] {
+        let window_to_scissor = |v: Vec2| -> [u32; 2] {
             let x = map_range(v.x, full_rect.left(), full_rect.right(), 0u32, w_px);
             let y = map_range(v.y, full_rect.bottom(), full_rect.top(), 0u32, h_px);
             [x, y]
@@ -578,7 +575,7 @@ impl Renderer {
                         fill_tessellator: &mut fill_tessellator,
                         stroke_tessellator: &mut stroke_tessellator,
                         glyph_cache: &mut self.glyph_cache,
-                        output_attachment_size: Vector2::new(px_to_pt(w_px), px_to_pt(h_px)),
+                        output_attachment_size: Vec2::new(px_to_pt(w_px), px_to_pt(h_px)),
                         output_attachment_scale_factor: scale_factor,
                     };
 
@@ -674,7 +671,7 @@ impl Renderer {
                                 .unwrap_or(geom::Rect::from_w_h(0.0, 0.0)),
                             draw::Scissor::NoOverlap => geom::Rect::from_w_h(0.0, 0.0),
                         };
-                        let [left, bottom] = window_to_scissor(rect.bottom_left());
+                        let [left, bottom] = window_to_scissor(rect.bottom_left().into());
                         let (width, height) = rect.w_h();
                         let (width, height) = (pt_to_px(width), pt_to_px(height));
                         let scissor = Scissor {
@@ -1029,11 +1026,12 @@ fn create_uniforms([img_w, img_h]: [u32; 2], scale_factor: f32) -> Uniforms {
     let bottom = -top;
     let far = std::cmp::max(img_w, img_h) as f32 / scale_factor;
     let near = -far;
-    let proj = cgmath::ortho(left, right, bottom, top, near, far);
+    let proj = Mat4::orthographic_rh_gl(left, right, bottom, top, near, far);
     // By default, ortho scales z values to the range -1.0 to 1.0. We want to scale and translate
     // the z axis so that it is in the range of 0.0 to 1.0.
-    let trans = cgmath::Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 1.0));
-    let scale = cgmath::Matrix4::from_nonuniform_scale(1.0, 1.0, 0.5);
+    // TODO: Can possibly solve this more easily by using `Mat4::orthographic_rh` above instead.
+    let trans = Mat4::from_translation(Vec3::Z);
+    let scale = Mat4::from_scale([1.0, 1.0, 0.5].into());
     let proj = scale * trans * proj;
     let proj = proj.into();
     Uniforms { proj }

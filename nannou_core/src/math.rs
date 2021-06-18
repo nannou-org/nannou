@@ -1,10 +1,10 @@
 //! A mathematical foundation for nannou including point and vector types and a range of
 //! helper/utility functions.
 
-pub use num_traits;
-
 use core::ops::Add;
 use num_traits::{Float, NumCast, One};
+
+pub use num_traits;
 
 const ONE_TURN_DEGREES_F32: f32 = 360.0;
 const ONE_TURN_DEGREES_F64: f64 = 360.0;
@@ -17,6 +17,14 @@ pub trait ConvertAngle {
     fn rad_to_deg(self) -> Self;
     fn turns_to_rad(self) -> Self;
     fn rad_to_turns(self) -> Self;
+}
+
+/// Short-hand for retrieving the angle of the vector in radians.
+pub trait Vec2Angle {
+    /// The angle of the vector in radians.
+    ///
+    /// Implemented internally as `glam::Vec2::X.angle_between(self)`.
+    fn angle(self) -> f32;
 }
 
 impl ConvertAngle for f32 {
@@ -46,6 +54,12 @@ impl ConvertAngle for f64 {
     }
     fn rad_to_turns(self) -> Self {
         self / core::f64::consts::TAU
+    }
+}
+
+impl Vec2Angle for glam::Vec2 {
+    fn angle(self) -> f32 {
+        glam::Vec2::X.angle_between(self)
     }
 }
 

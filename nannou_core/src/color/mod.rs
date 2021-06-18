@@ -3,9 +3,9 @@
 //!
 //! See the [**named**](./named/index.html) module for a set of provided color constants.
 
-//pub mod conv;
+pub mod conv;
 
-//pub use self::conv::IntoLinSrgba;
+pub use self::conv::IntoLinSrgba;
 pub use self::named::*;
 #[doc(inline)]
 pub use palette::*;

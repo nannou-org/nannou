@@ -6,23 +6,23 @@ use crate::draw::properties::{
     ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Drawing};
-use crate::geom::{self, Vector2};
-use crate::math::BaseFloat;
+use crate::geom;
+use crate::glam::Vec2;
 use lyon::tessellation::StrokeOptions;
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]
-pub struct Rect<S = geom::scalar::Default> {
-    dimensions: dimension::Properties<S>,
-    polygon: PolygonInit<S>,
+pub struct Rect {
+    dimensions: dimension::Properties,
+    polygon: PolygonInit,
 }
 
 /// The drawing context for a Rect.
-pub type DrawingRect<'a, S = geom::scalar::Default> = Drawing<'a, Rect<S>, S>;
+pub type DrawingRect<'a> = Drawing<'a, Rect>;
 
 // Trait implementations.
 
-impl<S> Rect<S> {
+impl Rect {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -32,10 +32,7 @@ impl<S> Rect<S> {
     }
 }
 
-impl<'a, S> DrawingRect<'a, S>
-where
-    S: BaseFloat,
-{
+impl<'a> DrawingRect<'a> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -45,7 +42,7 @@ where
     }
 }
 
-impl draw::renderer::RenderPrimitive for Rect<f32> {
+impl draw::renderer::RenderPrimitive for Rect {
     fn render_primitive(
         self,
         ctxt: draw::renderer::RenderContext,
@@ -64,8 +61,8 @@ impl draw::renderer::RenderPrimitive for Rect<f32> {
         );
         let w = maybe_x.unwrap_or(100.0);
         let h = maybe_y.unwrap_or(100.0);
-        let rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
-        let points = rect.corners().vertices();
+        let rect = geom::Rect::from_wh([w, h].into());
+        let points = rect.corners().vertices().map(Vec2::from);
         polygon::render_points_themed(
             polygon.opts,
             points,
@@ -78,20 +75,14 @@ impl draw::renderer::RenderPrimitive for Rect<f32> {
     }
 }
 
-impl<S> From<geom::Rect<S>> for Rect<S>
-where
-    S: BaseFloat,
-{
-    fn from(r: geom::Rect<S>) -> Self {
+impl From<geom::Rect<f32>> for Rect {
+    fn from(r: geom::Rect<f32>) -> Self {
         let (x, y, w, h) = r.x_y_w_h();
         Self::default().x_y(x, y).w_h(w, h)
     }
 }
 
-impl<S> Default for Rect<S>
-where
-    S: BaseFloat,
-{
+impl Default for Rect {
     fn default() -> Self {
         let dimensions = <_>::default();
         let polygon = <_>::default();
@@ -102,52 +93,52 @@ where
     }
 }
 
-impl<S> SetOrientation<S> for Rect<S> {
-    fn properties(&mut self) -> &mut orientation::Properties<S> {
+impl SetOrientation for Rect {
+    fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.polygon)
     }
 }
 
-impl<S> SetPosition<S> for Rect<S> {
-    fn properties(&mut self) -> &mut position::Properties<S> {
+impl SetPosition for Rect {
+    fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.polygon)
     }
 }
 
-impl<S> SetDimensions<S> for Rect<S> {
-    fn properties(&mut self) -> &mut dimension::Properties<S> {
+impl SetDimensions for Rect {
+    fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.dimensions)
     }
 }
 
-impl<S> SetColor<ColorScalar> for Rect<S> {
+impl SetColor<ColorScalar> for Rect {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.polygon)
     }
 }
 
-impl<S> SetStroke for Rect<S> {
+impl SetStroke for Rect {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.polygon)
     }
 }
 
-impl<S> SetPolygon<S> for Rect<S> {
-    fn polygon_options_mut(&mut self) -> &mut PolygonOptions<S> {
+impl SetPolygon for Rect {
+    fn polygon_options_mut(&mut self) -> &mut PolygonOptions {
         SetPolygon::polygon_options_mut(&mut self.polygon)
     }
 }
 
 // Primitive conversions.
 
-impl<S> From<Rect<S>> for Primitive<S> {
-    fn from(prim: Rect<S>) -> Self {
+impl From<Rect> for Primitive {
+    fn from(prim: Rect) -> Self {
         Primitive::Rect(prim)
     }
 }
 
-impl<S> Into<Option<Rect<S>>> for Primitive<S> {
-    fn into(self) -> Option<Rect<S>> {
+impl Into<Option<Rect>> for Primitive {
+    fn into(self) -> Option<Rect> {
         match self {
             Primitive::Rect(prim) => Some(prim),
             _ => None,

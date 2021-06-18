@@ -4,25 +4,24 @@ use crate::draw::primitive::{PathStroke, Primitive};
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{ColorScalar, SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use crate::geom::{self, pt2, Point2};
-use crate::math::{BaseFloat, Zero};
+use crate::geom::{pt2, Point2};
 use lyon::tessellation::StrokeOptions;
 
 /// A path containing only two points - a start and end.
 ///
 /// The usage of this type is almost identical to `PathStroke` but provides `start`, `end` and
 /// `points(a, b)` methods.
-#[derive(Clone, Debug)]
-pub struct Line<S = geom::scalar::Default> {
-    pub path: PathStroke<S>,
-    pub start: Option<Point2<S>>,
-    pub end: Option<Point2<S>>,
+#[derive(Clone, Debug, Default)]
+pub struct Line {
+    pub path: PathStroke,
+    pub start: Option<Point2>,
+    pub end: Option<Point2>,
 }
 
 /// The drawing context for a line.
-pub type DrawingLine<'a, S = geom::scalar::Default> = Drawing<'a, Line<S>, S>;
+pub type DrawingLine<'a> = Drawing<'a, Line>;
 
-impl<S> Line<S> {
+impl Line {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.map_path(|p| p.stroke_weight(weight))
@@ -34,26 +33,26 @@ impl<S> Line<S> {
     }
 
     /// Specify the start point of the line.
-    pub fn start(mut self, start: Point2<S>) -> Self {
+    pub fn start(mut self, start: Point2) -> Self {
         self.start = Some(start);
         self
     }
 
     /// Specify the end point of the line.
-    pub fn end(mut self, end: Point2<S>) -> Self {
+    pub fn end(mut self, end: Point2) -> Self {
         self.end = Some(end);
         self
     }
 
     /// Specify the start and end points of the line.
-    pub fn points(self, start: Point2<S>, end: Point2<S>) -> Self {
+    pub fn points(self, start: Point2, end: Point2) -> Self {
         self.start(start).end(end)
     }
 
     // Map the inner `PathStroke<S>` using the given function.
     fn map_path<F>(self, map: F) -> Self
     where
-        F: FnOnce(PathStroke<S>) -> PathStroke<S>,
+        F: FnOnce(PathStroke) -> PathStroke,
     {
         let Line { path, start, end } = self;
         let path = map(path);
@@ -61,10 +60,7 @@ impl<S> Line<S> {
     }
 }
 
-impl<'a, S> DrawingLine<'a, S>
-where
-    S: BaseFloat,
-{
+impl<'a> DrawingLine<'a> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.map_ty(|ty| ty.weight(weight))
@@ -76,53 +72,53 @@ where
     }
 
     /// Specify the start point of the line.
-    pub fn start(self, start: Point2<S>) -> Self {
+    pub fn start(self, start: Point2) -> Self {
         self.map_ty(|ty| ty.start(start))
     }
 
     /// Specify the end point of the line.
-    pub fn end(self, end: Point2<S>) -> Self {
+    pub fn end(self, end: Point2) -> Self {
         self.map_ty(|ty| ty.end(end))
     }
 
     /// Specify the start and end points of the line.
-    pub fn points(self, start: Point2<S>, end: Point2<S>) -> Self {
+    pub fn points(self, start: Point2, end: Point2) -> Self {
         self.map_ty(|ty| ty.points(start, end))
     }
 }
 
-impl<S> SetStroke for Line<S> {
+impl SetStroke for Line {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.path)
     }
 }
 
-impl<S> SetOrientation<S> for Line<S> {
-    fn properties(&mut self) -> &mut orientation::Properties<S> {
+impl SetOrientation for Line {
+    fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.path)
     }
 }
 
-impl<S> SetPosition<S> for Line<S> {
-    fn properties(&mut self) -> &mut position::Properties<S> {
+impl SetPosition for Line {
+    fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.path)
     }
 }
 
-impl<S> SetColor<ColorScalar> for Line<S> {
+impl SetColor<ColorScalar> for Line {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.path)
     }
 }
 
-impl<S> From<Line<S>> for Primitive<S> {
-    fn from(prim: Line<S>) -> Self {
+impl From<Line> for Primitive {
+    fn from(prim: Line) -> Self {
         Primitive::Line(prim)
     }
 }
 
-impl<S> Into<Option<Line<S>>> for Primitive<S> {
-    fn into(self) -> Option<Line<S>> {
+impl Into<Option<Line>> for Primitive {
+    fn into(self) -> Option<Line> {
         match self {
             Primitive::Line(prim) => Some(prim),
             _ => None,
@@ -130,7 +126,7 @@ impl<S> Into<Option<Line<S>>> for Primitive<S> {
     }
 }
 
-impl draw::renderer::RenderPrimitive for Line<f32> {
+impl draw::renderer::RenderPrimitive for Line {
     fn render_primitive(
         self,
         mut ctxt: draw::renderer::RenderContext,
@@ -144,11 +140,11 @@ impl draw::renderer::RenderPrimitive for Line<f32> {
         }
         let close = false;
         let points = [start, end];
-        let points = points.iter().cloned().map(Into::into);
+        let points = points.iter().cloned().map(|p| p.to_array().into());
         let events = lyon::path::iterator::FromPolyline::new(close, points);
 
         // Determine the transform to apply to all points.
-        let global_transform = ctxt.transform;
+        let global_transform = *ctxt.transform;
         let local_transform = path.position.transform() * path.orientation.transform();
         let transform = global_transform * local_transform;
 
@@ -165,18 +161,5 @@ impl draw::renderer::RenderPrimitive for Line<f32> {
         );
 
         draw::renderer::PrimitiveRender::default()
-    }
-}
-
-impl<S> Default for Line<S>
-where
-    S: Zero,
-{
-    fn default() -> Self {
-        Line {
-            path: Default::default(),
-            start: Default::default(),
-            end: Default::default(),
-        }
     }
 }

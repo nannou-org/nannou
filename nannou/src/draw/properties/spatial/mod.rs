@@ -1,6 +1,3 @@
-use crate::geom;
-use crate::math::Zero;
-
 pub mod dimension;
 pub mod orientation;
 pub mod position;
@@ -10,21 +7,18 @@ pub use self::orientation::SetOrientation;
 pub use self::position::SetPosition;
 
 /// Types that may be positioned, sized and oriented within 3D space.
-pub trait SetSpatial<S>: SetDimensions<S> + SetPosition<S> + SetOrientation<S> {}
+pub trait SetSpatial: SetDimensions + SetPosition + SetOrientation {}
 
-impl<S, T> SetSpatial<S> for T where T: SetDimensions<S> + SetPosition<S> + SetOrientation<S> {}
+impl<T> SetSpatial for T where T: SetDimensions + SetPosition + SetOrientation {}
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Properties<S = geom::scalar::Default> {
-    pub position: position::Properties<S>,
-    pub dimensions: dimension::Properties<S>,
-    pub orientation: orientation::Properties<S>,
+pub struct Properties {
+    pub position: position::Properties,
+    pub dimensions: dimension::Properties,
+    pub orientation: orientation::Properties,
 }
 
-impl<S> Default for Properties<S>
-where
-    S: Zero,
-{
+impl Default for Properties {
     fn default() -> Self {
         let position = Default::default();
         let dimensions = Default::default();
@@ -37,20 +31,20 @@ where
     }
 }
 
-impl<S> SetPosition<S> for Properties<S> {
-    fn properties(&mut self) -> &mut position::Properties<S> {
+impl SetPosition for Properties {
+    fn properties(&mut self) -> &mut position::Properties {
         self.position.properties()
     }
 }
 
-impl<S> SetDimensions<S> for Properties<S> {
-    fn properties(&mut self) -> &mut dimension::Properties<S> {
+impl SetDimensions for Properties {
+    fn properties(&mut self) -> &mut dimension::Properties {
         self.dimensions.properties()
     }
 }
 
-impl<S> SetOrientation<S> for Properties<S> {
-    fn properties(&mut self) -> &mut orientation::Properties<S> {
+impl SetOrientation for Properties {
+    fn properties(&mut self) -> &mut orientation::Properties {
         self.orientation.properties()
     }
 }

@@ -154,7 +154,7 @@ pub struct App {
     /// running installations. This is because the "resolution" of floating point values reduces as
     /// the number becomes higher. Instead, we recommend using `app.duration.since_start` or
     /// `app.duration.since_prev_update` to access a more precise form of app time.
-    pub time: DrawScalar,
+    pub time: f32,
 }
 
 /// Miscellaneous app configuration parameters.
@@ -168,15 +168,9 @@ struct Config {
 // Draw state managed by the **App**.
 #[derive(Debug)]
 struct DrawState {
-    draw: RefCell<draw::Draw<DrawScalar>>,
+    draw: RefCell<draw::Draw>,
     renderers: RefCell<HashMap<window::Id, RefCell<draw::Renderer>>>,
 }
-
-/// The app uses a set scalar type in order to provide a simplistic API to users.
-///
-/// If you require changing the scalar type to something else, consider using a custom
-/// **nannou::draw::Draw** instance.
-pub type DrawScalar = geom::scalar::Default;
 
 /// A handle to the **App** that can be shared across threads. This may be used to "wake up" the
 /// **App**'s inner event loop.
@@ -776,7 +770,7 @@ impl App {
     /// The **Rect** coords are described in "points" (pixels divided by the hidpi factor).
     ///
     /// **Panics** if there are no windows or if no window is in focus.
-    pub fn window_rect(&self) -> geom::Rect<DrawScalar> {
+    pub fn window_rect(&self) -> geom::Rect<f32> {
         self.main_window().rect()
     }
 
