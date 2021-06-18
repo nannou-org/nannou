@@ -37,7 +37,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .map(|point| {
             // Tex coords should be in range (0.0, 0.0) to (1.0, 1.0);
             // This will have the logo show on the front and back faces.
-            let tex_coords = [point.x + 0.5, 1.0 - (point.y + 0.5)];
+            let [x, y, _] = point;
+            let tex_coords = [x + 0.5, 1.0 - (y + 0.5)];
             (point, tex_coords)
         });
 

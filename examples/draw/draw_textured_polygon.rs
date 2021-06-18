@@ -28,15 +28,15 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
     // We'll make a wave from an ellipse with a wave added onto its circumference.
-    let resolution = win_rect.right() as usize;
+    let resolution = win_rect.right().floor();
     let rect = geom::Rect::from_wh(vec2(1.0, 1.0));
     let ellipse = geom::Ellipse::new(rect, resolution).circumference();
 
     // The wave's frequency and amplitude are derived from the mouse position.
     let freq = map_range(app.mouse.x, win_rect.left(), win_rect.right(), 1.0, 20.0);
     let amp = map_range(app.mouse.y, win_rect.bottom(), win_rect.top(), 0.0, 0.5);
-    let wave = (0..resolution).map(|i| {
-        let phase = i as f32 / resolution as f32;
+    let wave = (0..resolution as usize).map(|i| {
+        let phase = i as f32 / resolution;
         (phase * freq * PI * 2.0).sin() * amp
     });
 
@@ -44,6 +44,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let points = ellipse.zip(wave).map(|(point, wave)| {
         // Base the tex coords on the non-wavey points.
         // This will make the texture look wavey.
+        let point = Point2::from(point);
         let tex_coords = [point.x + 0.5, 1.0 - (point.y + 0.5)];
         // Apply the wave to the points.
         let point = point + point * wave;

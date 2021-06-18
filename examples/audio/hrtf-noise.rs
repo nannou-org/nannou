@@ -201,7 +201,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
 // Simple function for determining a gain based on the distance from the listener.
 fn dist_gain(p: &Point3) -> f32 {
-    let m = p.magnitude();
+    let m = p.length();
     if m == 0.0 {
         1.0
     } else if m > 1.0 {

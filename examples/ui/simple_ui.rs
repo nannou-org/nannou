@@ -8,7 +8,7 @@ fn main() {
 struct Model {
     ui: Ui,
     ids: Ids,
-    resolution: usize,
+    resolution: f32,
     scale: f32,
     rotation: f32,
     color: Rgb,
@@ -36,7 +36,7 @@ fn model(app: &App) -> Model {
     let ids = Ids::new(ui.widget_id_generator());
 
     // Init our variables
-    let resolution = 6;
+    let resolution = 6.0;
     let scale = 200.0;
     let rotation = 0.0;
     let position = pt2(0.0, 0.0);
@@ -66,12 +66,12 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
             .border(0.0)
     }
 
-    for value in slider(model.resolution as f32, 3.0, 15.0)
+    for value in slider(model.resolution, 3.0, 15.0)
         .top_left_with_margin(20.0)
         .label("Resolution")
         .set(model.ids.resolution, ui)
     {
-        model.resolution = value as usize;
+        model.resolution = value.round();
     }
 
     for value in slider(model.scale, 10.0, 500.0)

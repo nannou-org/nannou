@@ -1,4 +1,3 @@
-use nannou::math::cgmath::{self, Matrix3, Matrix4, Point3, Rad, Vector3};
 use nannou::prelude::*;
 use std::cell::RefCell;
 
@@ -9,7 +8,7 @@ mod data;
  * regularly than it would be with for instance polar coordinates (which is the case for UV map).
  * See https://en.wikipedia.org/wiki/Geodesic_polyhedron
  */
-fn make_geodesic_isocahedron(subdivisions: usize) -> Vec<Vector3<f32>> {
+fn make_geodesic_isocahedron(subdivisions: usize) -> Vec<Vec3> {
     let sqrt5 = 5f32.sqrt();
     let phi = (1f32 + sqrt5) * 0.5f32;
     let ratio = (10f32 + (2f32 * sqrt5)).sqrt() / (4f32 * phi);
@@ -17,18 +16,18 @@ fn make_geodesic_isocahedron(subdivisions: usize) -> Vec<Vector3<f32>> {
     let b = (1f32 / ratio) / (2f32 * phi);
 
     let mut points = vec![
-        Vector3::new(0f32, b, -a),
-        Vector3::new(b, a, 0f32),
-        Vector3::new(-b, a, 0f32),
-        Vector3::new(0f32, b, a),
-        Vector3::new(0f32, -b, a),
-        Vector3::new(-a, 0f32, b),
-        Vector3::new(0f32, -b, -a),
-        Vector3::new(a, 0f32, -b),
-        Vector3::new(a, 0f32, b),
-        Vector3::new(-a, 0f32, -b),
-        Vector3::new(b, -a, 0f32),
-        Vector3::new(-b, -a, 0f32),
+        vec3(0f32, b, -a),
+        vec3(b, a, 0f32),
+        vec3(-b, a, 0f32),
+        vec3(0f32, b, a),
+        vec3(0f32, -b, a),
+        vec3(-a, 0f32, b),
+        vec3(0f32, -b, -a),
+        vec3(a, 0f32, -b),
+        vec3(a, 0f32, b),
+        vec3(-a, 0f32, -b),
+        vec3(b, -a, 0f32),
+        vec3(-b, -a, 0f32),
     ];
 
     let triangles = vec![
@@ -103,7 +102,7 @@ fn make_geodesic_isocahedron(subdivisions: usize) -> Vec<Vector3<f32>> {
 
 struct Model {
     graphics: RefCell<Graphics>,
-    sphere: Vec<Vector3<f32>>,
+    sphere: Vec<Vec3>,
 }
 
 struct Graphics {
@@ -133,15 +132,15 @@ pub struct Normal {
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Uniforms {
-    world: Matrix4<f32>,
-    view: Matrix4<f32>,
-    proj: Matrix4<f32>,
+    world: Mat4,
+    view: Mat4,
+    proj: Mat4,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct Instance {
-    transformation: Matrix4<f32>,
+    transformation: Mat4,
     color: [f32; 3],
 }
 
@@ -233,27 +232,30 @@ fn model(app: &App) -> Model {
 }
 
 fn make_instance(
-    orientation: Vector3<f32>,
+    orientation: Vec3,
     offset: f32,
     local_rotation: f32,
     scale: f32,
     color: [f32; 3],
 ) -> Instance {
-    let scale_m = Matrix4::from_scale(scale);
-    let local_rotation_m = Matrix4::from(Matrix3::from_angle_y(Rad(local_rotation)));
+    let scale_m = Mat4::from_scale(Vec3::splat(scale));
+    let local_rotation_m = Mat4::from_rotation_y(local_rotation);
     let orientation_m = {
-        let up = Vector3::new(0f32, 1f32, 0f32);
+        let up = Vec3::Y;
         let cosine = orientation.dot(up);
         if cosine > 0.999 {
-            Matrix4::identity()
+            Mat4::IDENTITY
         } else if cosine < -0.999 {
-            Matrix4::from_axis_angle(Vector3::new(1f32, 0f32, 0f32), Rad(std::f32::consts::PI))
+            Mat4::from_axis_angle(Vec3::X, std::f32::consts::PI)
         } else {
-            Matrix4::from_axis_angle(up.cross(orientation).normalize(), up.angle(orientation))
+            Mat4::from_axis_angle(
+                up.cross(orientation).normalize(),
+                up.angle_between(orientation),
+            )
         }
     };
 
-    let translation_m = Matrix4::from_translation(offset * orientation);
+    let translation_m = Mat4::from_translation(offset * orientation);
 
     Instance {
         transformation: translation_m * orientation_m * local_rotation_m * scale_m,
@@ -356,19 +358,19 @@ fn view(app: &App, model: &Model, frame: Frame) {
 }
 
 fn create_uniforms(world_rotation: f32, [w, h]: [u32; 2]) -> Uniforms {
-    let world_rotation = Matrix3::from_angle_y(Rad(world_rotation as f32));
+    let world_rotation = Mat4::from_rotation_y(world_rotation);
     let aspect_ratio = w as f32 / h as f32;
-    let proj = cgmath::perspective(Rad(std::f32::consts::FRAC_PI_2), aspect_ratio, 0.01, 100.0);
-    let view = Matrix4::look_at(
-        Point3::new(0.3, 0.3, 1.0),
-        Point3::new(0.0, 0.0, 0.0),
-        Vector3::new(0.0, 1.0, 0.0),
-    );
-
-    let world_scale = Matrix4::from_scale(0.015);
-
+    let fov_y = std::f32::consts::FRAC_PI_2;
+    let near = 0.01;
+    let far = 100.0;
+    let proj = Mat4::perspective_rh_gl(fov_y, aspect_ratio, near, far);
+    let eye = pt3(0.3, 0.3, 1.0);
+    let target = Point3::ZERO;
+    let up = Vec3::Y;
+    let view = Mat4::look_at_rh(eye, target, up);
+    let world_scale = Mat4::from_scale(Vec3::splat(0.015));
     Uniforms {
-        world: Matrix4::from(world_rotation).into(),
+        world: world_rotation,
         view: (view * world_scale).into(),
         proj: proj.into(),
     }

@@ -297,8 +297,8 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
         TestPattern::Circle => {
             let n_points = frame.points_per_frame() as usize / 4;
             let rect = Rect::from_w_h(2.0, 2.0);
-            let ellipse: Vec<_> = geom::ellipse::Circumference::new(rect, n_points)
-                .map(|p| lit_p([p.x, p.y]))
+            let ellipse: Vec<_> = geom::ellipse::Circumference::new(rect, n_points as f32)
+                .map(|[x, y]| lit_p([x, y]))
                 .collect();
             add_points(&ellipse, laser.draw_mode, laser.scale, frame);
         }

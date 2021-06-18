@@ -1,4 +1,3 @@
-use nannou::math::cgmath::{self, Matrix3, Matrix4, Point3, Rad, Vector3};
 use nannou::prelude::*;
 use std::cell::RefCell;
 
@@ -35,9 +34,9 @@ pub struct Normal {
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Uniforms {
-    world: Matrix4<f32>,
-    view: Matrix4<f32>,
-    proj: Matrix4<f32>,
+    world: Mat4,
+    view: Mat4,
+    proj: Mat4,
 }
 
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
@@ -169,17 +168,19 @@ fn view(app: &App, model: &Model, frame: Frame) {
 }
 
 fn create_uniforms(rotation: f32, [w, h]: [u32; 2]) -> Uniforms {
-    let rotation = Matrix3::from_angle_y(Rad(rotation as f32));
+    let rotation = Mat4::from_rotation_y(rotation);
     let aspect_ratio = w as f32 / h as f32;
-    let proj = cgmath::perspective(Rad(std::f32::consts::FRAC_PI_2), aspect_ratio, 0.01, 100.0);
-    let view = Matrix4::look_at(
-        Point3::new(0.3, 0.3, 1.0),
-        Point3::new(0.0, 0.0, 0.0),
-        Vector3::new(0.0, 1.0, 0.0),
-    );
-    let scale = Matrix4::from_scale(0.01);
+    let fov_y = std::f32::consts::FRAC_PI_2;
+    let near = 0.01;
+    let far = 100.0;
+    let proj = Mat4::perspective_rh_gl(fov_y, aspect_ratio, near, far);
+    let eye = pt3(0.3, 0.3, 1.0);
+    let target = Point3::ZERO;
+    let up = Vec3::Y;
+    let view = Mat4::look_at_rh(eye, target, up);
+    let scale = Mat4::from_scale(Vec3::splat(0.01));
     Uniforms {
-        world: Matrix4::from(rotation).into(),
+        world: rotation,
         view: (view * scale).into(),
         proj: proj.into(),
     }
