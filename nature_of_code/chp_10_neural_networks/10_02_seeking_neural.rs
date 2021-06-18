@@ -28,7 +28,7 @@ impl Perceptron {
 
     // Function to train the Perceptron
     // Weights are adjusted based on "desired" answer
-    fn train(&mut self, forces: &Vec<Vector2>, error: Vector2) {
+    fn train(&mut self, forces: &Vec<Vec2>, error: Vec2) {
         for i in 0..self.weights.len() {
             self.weights[i] += self.c * error.x * forces[i].x;
             self.weights[i] += self.c * error.y * forces[i].y;
@@ -37,7 +37,7 @@ impl Perceptron {
     }
 
     // Give me a steering result
-    fn feedforward(&self, forces: &Vec<Vector2>) -> Vector2 {
+    fn feedforward(&self, forces: &Vec<Vec2>) -> Vec2 {
         // Sum all the values
         let mut sum = vec2(0.0, 0.0);
         for i in 0..self.weights.len() {
@@ -49,9 +49,9 @@ impl Perceptron {
 
 struct Vehicle {
     brain: Perceptron, // Vehicle now has a brain!
-    position: Vector2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    position: Vec2,
+    velocity: Vec2,
+    acceleration: Vec2,
     r: f32,
     max_force: f32, // Maximum steering force
     max_speed: f32, // Maximum speed
@@ -75,7 +75,7 @@ impl Vehicle {
         // Update velocity
         self.velocity += self.acceleration;
         // Limit speed
-        self.velocity.limit_magnitude(self.max_speed);
+        self.velocity = self.velocity.normalize() * self.max_speed;
         self.position += self.velocity;
         // Reset accelerationelertion to 0 each cycle
         self.acceleration *= 0.0;
@@ -84,13 +84,13 @@ impl Vehicle {
         self.position.y = clamp(self.position.y, win.bottom(), win.top());
     }
 
-    fn apply_force(&mut self, force: Vector2) {
+    fn apply_force(&mut self, force: Vec2) {
         // We could add mass here if we want A = F / M
         self.acceleration += force;
     }
 
     // Here is where the brain processes everything
-    fn steer(&mut self, targets: &Vec<Vector2>, desired: &Vector2) {
+    fn steer(&mut self, targets: &Vec<Vec2>, desired: &Vec2) {
         // Make an vector of forces
         let mut forces = vec![vec2(0.0, 0.0); targets.len()];
         // Steer towards all targets
@@ -111,7 +111,7 @@ impl Vehicle {
 
     // A method that calculates a steering force towards a target
     // STEER = DESIRED MINUS VELOCITY
-    fn seek(&mut self, target: Vector2) -> Vector2 {
+    fn seek(&mut self, target: Vec2) -> Vec2 {
         // A vector pointing from the position to the target
         let mut desired = target - self.position;
         // Normalize desired and scale to maximum speed
@@ -119,7 +119,7 @@ impl Vehicle {
         desired *= self.max_speed;
         // Steering = Desired minus velocity
         // Limit to maximum steering force
-        let steer = (desired - self.velocity).limit_magnitude(self.max_force);
+        let steer = (desired - self.velocity).clamp_length_max(self.max_force);
         steer
     }
 
@@ -143,8 +143,8 @@ impl Vehicle {
 
 struct Model {
     v: Vehicle, // A list of points we will use to "train" the perceptron
-    desired: Vector2,
-    targets: Vec<Vector2>,
+    desired: Vec2,
+    targets: Vec<Vec2>,
     num_targets: u32,
 }
 

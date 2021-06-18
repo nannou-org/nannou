@@ -11,8 +11,8 @@ fn main() {
 
 struct Mover {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     mass: f32,
 }
 
@@ -23,7 +23,7 @@ struct Attractor {
     position: Point2, // position
     dragging: bool,   // Is the object being dragged?
     roll_over: bool,  // Is the mouse over the ellipse?
-    drag: Vector2,    // holds the offset for when the object is clicked on
+    drag: Vec2,       // holds the offset for when the object is clicked on
 }
 
 impl Attractor {
@@ -44,9 +44,9 @@ impl Attractor {
         }
     }
 
-    fn attract(&self, m: &Mover) -> Vector2 {
+    fn attract(&self, m: &Mover) -> Vec2 {
         let mut force = self.position - m.position; // Calculate direction of force
-        let mut d = force.magnitude(); // Distance between objects
+        let mut d = force.length(); // Distance between objects
         d = d.max(5.0).min(25.0); // Limiting the distance to eliminate "extreme" results for very cose or very far object
         force = force.normalize(); // Normalize vector (distance doesn't matter, we just want this vector for direction)
         let g = 1.0;
@@ -114,7 +114,7 @@ impl Mover {
         }
     }
 
-    fn apply_force(&mut self, force: Vector2) {
+    fn apply_force(&mut self, force: Vec2) {
         let f = force / self.mass;
         self.acceleration += f;
     }
@@ -132,9 +132,9 @@ impl Mover {
             .rgba(0.6, 0.6, 0.6, 0.5);
     }
 
-    fn repel(&self, m: &Mover) -> Vector2 {
+    fn repel(&self, m: &Mover) -> Vec2 {
         let mut force = self.position - m.position; // Calculate direction of force
-        let mut distance = force.magnitude(); // Distance between objects
+        let mut distance = force.length(); // Distance between objects
         distance = distance.max(1.0).min(10000.0); // Limiting the distance to eliminate "extreme" results for very cose or very far object
         force = force.normalize(); // Normalize vector (distance doesn't matter, we just want this vector for direction)
         let g = 1.0;

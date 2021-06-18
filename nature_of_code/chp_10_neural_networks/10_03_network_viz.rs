@@ -13,7 +13,7 @@ fn main() {
 
 #[derive(Clone)]
 struct Neuron {
-    position: Vector2,            // Neuron has a position
+    position: Vec2,               // Neuron has a position
     connections: Vec<Connection>, //Neuron has a list of connections
 }
 

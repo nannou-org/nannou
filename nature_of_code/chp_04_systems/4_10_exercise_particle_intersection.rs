@@ -13,8 +13,8 @@ fn main() {
 #[derive(Clone)]
 struct Particle {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     life_span: f32,
     r: f32,
     highlight: bool,
@@ -50,7 +50,7 @@ impl Particle {
         }
     }
 
-    fn _apply_force(&mut self, f: Vector2) {
+    fn _apply_force(&mut self, f: Vec2) {
         self.acceleration += f;
     }
 

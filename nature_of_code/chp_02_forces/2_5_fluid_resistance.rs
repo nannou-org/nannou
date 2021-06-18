@@ -20,8 +20,8 @@ struct Model {
 
 struct Mover {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     mass: f32,
 }
 
@@ -46,9 +46,9 @@ impl Liquid {
     }
 
     // Calculate drag force
-    fn drag(&self, m: &Mover) -> Vector2 {
+    fn drag(&self, m: &Mover) -> Vec2 {
         // Magnitude is coefficient * speed squared
-        let speed = m.velocity.magnitude();
+        let speed = m.velocity.length();
         let drag_magnitude = self.c * speed * speed;
 
         // Direction is inverse of velocity
@@ -91,7 +91,7 @@ impl Mover {
 
     // Newton's 2nd law: F = M * A
     // or A = F / M
-    fn apply_force(&mut self, force: Vector2) {
+    fn apply_force(&mut self, force: Vec2) {
         // Divide by mass
         let f = force / self.mass;
         // Accumulate all forces in acceleration

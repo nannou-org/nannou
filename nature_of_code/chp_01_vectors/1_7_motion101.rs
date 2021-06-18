@@ -15,7 +15,7 @@ struct Model {
 
 struct Mover {
     position: Point2,
-    velocity: Vector2,
+    velocity: Vec2,
 }
 
 impl Mover {

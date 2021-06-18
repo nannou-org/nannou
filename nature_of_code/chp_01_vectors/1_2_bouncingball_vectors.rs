@@ -11,7 +11,7 @@ fn main() {
 
 struct Model {
     position: Point2,
-    velocity: Vector2,
+    velocity: Vec2,
 }
 
 fn model(app: &App) -> Model {

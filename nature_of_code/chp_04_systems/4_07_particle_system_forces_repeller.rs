@@ -35,9 +35,9 @@ impl Repeller {
     }
 
     // Calculate a force to push particle away from repeller
-    fn repel(&self, p: &Particle) -> Vector2 {
+    fn repel(&self, p: &Particle) -> Vec2 {
         let mut dir = self.position - p.position; // Calculate direction of force
-        let mut d = dir.magnitude(); // Distance between objects
+        let mut d = dir.length(); // Distance between objects
         dir = dir.normalize(); // Normalize vector (distance doesn't matter here, we just want this vector for direction)
         d = clamp(d, 5.0, 100.0); // Keep distance within a reasonable range
         let force = self.g as f32 / (d * d); // Repelling force is inversely proportional to distance
@@ -49,8 +49,8 @@ impl Repeller {
 // A simple particle type
 struct Particle {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     life_span: f32,
     mass: f32,
 }
@@ -72,7 +72,7 @@ impl Particle {
         }
     }
 
-    fn apply_force(&mut self, f: Vector2) {
+    fn apply_force(&mut self, f: Vec2) {
         self.acceleration += f / self.mass;
     }
 
@@ -121,7 +121,7 @@ impl ParticleSystem {
     }
 
     // A function to apply a force to all Particles
-    fn apply_force(&mut self, f: Vector2) {
+    fn apply_force(&mut self, f: Vec2) {
         for p in self.particles.iter_mut() {
             p.apply_force(f);
         }

@@ -20,7 +20,7 @@ fn view(app: &App, frame: Frame) {
     let center = vec2(0.0, 0.0);
     mouse -= center;
 
-    let m = mouse.magnitude();
+    let m = mouse.length();
 
     let r = Rect::from_w_h(m, 10.0).top_left_of(win);
     draw.rect().xy(r.xy()).wh(r.wh()).color(BLACK);

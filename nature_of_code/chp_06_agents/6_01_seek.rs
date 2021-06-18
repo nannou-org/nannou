@@ -19,9 +19,9 @@ struct Model {
 }
 
 struct Vehicle {
-    position: Vector2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    position: Vec2,
+    velocity: Vec2,
+    acceleration: Vec2,
     r: f32,
     // Maximum steering force
     max_force: f32,
@@ -53,13 +53,13 @@ impl Vehicle {
         // Update velocity
         self.velocity += self.acceleration;
         // Limit speed
-        self.velocity.limit_magnitude(self.max_speed);
+        self.velocity.clamp_length_max(self.max_speed);
         self.position += self.velocity;
         // Reset accelerationelertion to 0 each cycle
         self.acceleration *= 0.0;
     }
 
-    fn apply_force(&mut self, force: Vector2) {
+    fn apply_force(&mut self, force: Vec2) {
         // We could add mass here if we want A = F / M
         self.acceleration += force;
     }
@@ -110,11 +110,11 @@ fn seek(vehicle: &mut Vehicle, target: Point2) {
         } = vehicle;
         // A vector pointing from the position to the target
         // Scale to maximum speed
-        let desired = (target - *position).with_magnitude(*max_speed);
+        let desired = (target - *position).normalize() * *max_speed;
 
         // Steering = Desired minus velocity
         // Limit to maximum steering force
-        (desired - *velocity).limit_magnitude(*max_force)
+        (desired - *velocity).clamp_length_max(*max_force)
     };
 
     vehicle.apply_force(steer);

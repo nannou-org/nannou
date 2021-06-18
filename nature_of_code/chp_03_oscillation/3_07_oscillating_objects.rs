@@ -16,9 +16,9 @@ struct Model {
 
 #[derive(Clone)]
 struct Oscillator {
-    angle: Vector2,
-    velocity: Vector2,
-    amplitude: Vector2,
+    angle: Vec2,
+    velocity: Vec2,
+    amplitude: Vec2,
 }
 
 impl Oscillator {

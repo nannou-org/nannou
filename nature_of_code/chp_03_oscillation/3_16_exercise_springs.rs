@@ -27,7 +27,7 @@ impl Spring {
         // Vector pointing from anchor to bob position
         let mut force = a.position - b.position;
         // What is the distance
-        let d = force.magnitude();
+        let d = force.length();
         // Stretch is difference between current distance and rest length
         let stretch = d - self.len;
 
@@ -51,11 +51,11 @@ impl Spring {
 
 struct Bob {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     mass: f32,
     damping: f32,
-    drag_offset: Vector2,
+    drag_offset: Vec2,
     dragging: bool,
 }
 
@@ -81,7 +81,7 @@ impl Bob {
     }
 
     // Newton's law: F = M * A
-    fn apply_force(&mut self, force: Vector2) {
+    fn apply_force(&mut self, force: Vec2) {
         let f = force / self.mass;
         self.acceleration += f;
     }
