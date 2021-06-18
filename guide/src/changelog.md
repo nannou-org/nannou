@@ -14,7 +14,20 @@ Most changes have been about renaming Blend-related data structres and fixing sh
     - `BlendState` -> `BlendComponent`
     - `wgpu::Extend3d::depth` -> `wgpu::Extend3d::depth_of_array_layers`
     - Float tpes are now typed more descripively. E.g., `Float2` -> `Float32x2`
-    
+
+**Refactor core of `nannou` into `nannou_core` crate**
+
+- Add a new `nannou_core` crate, targeted towards headless or embedded apps,
+  libraries and rust-gpu.
+- Move the `color`, `geom`, `math` and `rand` crates into `nannou_core`.
+- Remove the `geom::Graph` type due to lack of strong use-case and no reports of
+  use.
+- Remove generic scalar param from `Draw` API in favour of using `f32`
+  generally.
+- Remove `cgmath` computer graphics linear algebra lib in favour of `glam` for
+  faster compile times, simpler API, easier documentation, `no_std` support and
+  more.
+
 ---
 
 # Version 0.16.0 (2021-04-21)
