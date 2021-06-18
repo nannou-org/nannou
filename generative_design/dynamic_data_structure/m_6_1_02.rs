@@ -41,7 +41,7 @@ struct Node {
     min_y: f32,
     max_y: f32,
     pub damping: f32,
-    pub velocity: Vector2,
+    pub velocity: Vec2,
     max_velocity: f32,
 }
 
@@ -61,7 +61,7 @@ impl Node {
     }
 
     fn update(&mut self) {
-        self.velocity = self.velocity.limit_magnitude(self.max_velocity);
+        self.velocity = self.velocity.clamp_length_max(self.max_velocity);
 
         self.x += self.velocity.x;
         self.y += self.velocity.y;

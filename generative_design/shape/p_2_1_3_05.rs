@@ -100,7 +100,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 draw.ellipse()
                     .x_y(x, y)
                     .radius(radius)
-                    .resolution(32)
+                    .resolution(32.0)
                     .color(col);
             }
         }

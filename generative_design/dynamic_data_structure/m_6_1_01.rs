@@ -41,7 +41,7 @@ struct Node {
     ramp: f32,     // Influences the shape of the function
     strength: f32, // Strength: positive value attracts, negative value repels
     damping: f32,
-    velocity: Vector2,
+    velocity: Vec2,
     max_velocity: f32,
 }
 
@@ -64,7 +64,7 @@ impl Node {
     }
 
     fn update(&mut self) {
-        self.velocity = self.velocity.limit_magnitude(self.max_velocity);
+        self.velocity = self.velocity.clamp_length_max(self.max_velocity);
 
         self.x += self.velocity.x;
         self.y += self.velocity.y;
@@ -136,7 +136,7 @@ fn attract_nodes(nodes: &mut Vec<Node>, target: usize) {
     }
 }
 
-fn attract(current_node: &Node, other_node: &Node) -> Vector2 {
+fn attract(current_node: &Node, other_node: &Node) -> Vec2 {
     let current_node_vector = vec2(current_node.x, current_node.y);
     let other_node_vector = vec2(other_node.x, other_node.y);
     let d = current_node_vector.distance(other_node_vector);

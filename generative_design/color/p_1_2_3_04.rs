@@ -155,8 +155,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
                     let index = counter % model.color_count;
                     let rect = nannou::geom::rect::Rect::from_x_y_w_h(0.0, 0.0, w, h);
-                    let points_colored = rect.corners_iter().map(|c| {
-                        let lum = map_range(c.y, h / 2.0, -h / 2.0, 0.0, 1.0);
+                    let points_colored = rect.corners_iter().map(|[x, y]| {
+                        let lum = map_range(y, h / 2.0, -h / 2.0, 0.0, 1.0);
 
                         let col = hsva(
                             model.hue_values[index as usize],
@@ -164,7 +164,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                             model.brightness_values[index as usize],
                             model.alpha_value * lum,
                         );
-                        (pt2(c.x, c.y), col)
+                        (pt2(x, y), col)
                     });
 
                     draw.polygon()
