@@ -2,7 +2,8 @@
 //!
 //! The main type is the `Cuboid` type.
 
-use crate::geom::{quad, scalar, Quad, Range, Scalar, Tri};
+use crate::geom::{quad, scalar, Point3, Quad, Range, Scalar, Tri};
+use crate::glam::{DVec3, Vec3};
 use crate::math::num_traits::Float;
 
 /// The number of faces on a Cuboid.
@@ -235,7 +236,7 @@ where
     S: Float + Scalar,
 {
     /// Construct a Rect from a given centre point (x, y, z) and dimensions (width, height, depth).
-    pub fn from_xyz_whd([x, y, z]: [S; 3], [w, h, d]: [S; 3]) -> Self {
+    pub fn from_x_y_z_w_h_d(x: S, y: S, z: S, w: S, h: S, d: S) -> Self {
         Cuboid {
             x: Range::from_pos_and_len(x, w),
             y: Range::from_pos_and_len(y, h),
@@ -256,11 +257,6 @@ where
     /// The position in the middle of the z range.
     pub fn z(&self) -> S {
         self.z.middle()
-    }
-
-    /// The xyz position in the middle of the bounds.
-    pub fn xyz(&self) -> [S; 3] {
-        [self.x(), self.y(), self.z()].into()
     }
 
     /// The centered x, y and z coordinates as a tuple.
@@ -285,11 +281,6 @@ where
             z_a,
             z_b,
         }
-    }
-
-    /// The position and dimensions of the cuboid.
-    pub fn xyz_whd(&self) -> ([S; 3], [S; 3]) {
-        (self.xyz(), self.whd())
     }
 
     /// The position and dimensions of the cuboid.
@@ -343,7 +334,7 @@ where
     }
 
     /// Shift the cuboid by the given vector.
-    pub fn shift(self, [x, y, z]: [S; 3]) -> Self {
+    pub fn shift_by(self, [x, y, z]: [S; 3]) -> Self {
         Cuboid {
             x: self.x.shift(x),
             y: self.y.shift(y),
@@ -352,7 +343,7 @@ where
     }
 
     /// Does the given cuboid contain the given point.
-    pub fn contains(&self, [x, y, z]: [S; 3]) -> bool {
+    pub fn contains_point(&self, [x, y, z]: [S; 3]) -> bool {
         self.x.contains(x) && self.y.contains(y) && self.z.contains(z)
     }
 
@@ -544,11 +535,6 @@ where
         self.z.len()
     }
 
-    /// The dimensions (width, height and depth) of the cuboid as a vector.
-    pub fn whd(&self) -> [S; 3] {
-        [self.w(), self.h(), self.d()].into()
-    }
-
     /// The dimensions (width, height and depth) of the cuboid as a tuple.
     pub fn w_h_d(&self) -> (S, S, S) {
         (self.w(), self.h(), self.d())
@@ -616,6 +602,86 @@ where
             y: y.pad(pad),
             z: z.pad(pad),
         }
+    }
+}
+
+impl Cuboid<f32> {
+    /// Construct a Rect from a given centre point (x, y, z) and dimensions (width, height, depth).
+    pub fn from_xyz_whd(p: Point3, s: Vec3) -> Self {
+        Self::from_x_y_z_w_h_d(p.x, p.y, p.z, s.x, s.y, s.z)
+    }
+
+    /// The xyz position in the middle of the bounds.
+    pub fn xyz(&self) -> Point3 {
+        let (x, y, z) = self.x_y_z();
+        [x, y, z].into()
+    }
+
+    /// The dimensions (width, height and depth) of the cuboid as a vector.
+    pub fn whd(&self) -> Vec3 {
+        let (w, h, d) = self.w_h_d();
+        [w, h, d].into()
+    }
+
+    /// The position and dimensions of the cuboid.
+    pub fn xyz_whd(&self) -> (Point3, Vec3) {
+        (self.xyz(), self.whd())
+    }
+
+    /// Shift the cuboid by the given vector.
+    pub fn shift(self, v: Vec3) -> Self {
+        self.shift_by(v.into())
+    }
+
+    /// Does the given cuboid contain the given point.
+    pub fn contains(&self, p: Point3) -> bool {
+        self.contains_point(p.into())
+    }
+
+    /// Stretches the closest side(s) to the given point if the point lies outside of the Cuboid
+    /// area.
+    pub fn stretch_to(self, p: Point3) -> Self {
+        self.stretch_to_point(p.into())
+    }
+}
+
+impl Cuboid<f64> {
+    /// Construct a Rect from a given centre point (x, y, z) and dimensions (width, height, depth).
+    pub fn from_xyz_whd_f64(p: DVec3, s: DVec3) -> Self {
+        Self::from_x_y_z_w_h_d(p.x, p.y, p.z, s.x, s.y, s.z)
+    }
+
+    /// The xyz position in the middle of the bounds.
+    pub fn xyz(&self) -> DVec3 {
+        let (x, y, z) = self.x_y_z();
+        [x, y, z].into()
+    }
+
+    /// The dimensions (width, height and depth) of the cuboid as a vector.
+    pub fn whd(&self) -> DVec3 {
+        let (w, h, d) = self.w_h_d();
+        [w, h, d].into()
+    }
+
+    /// The position and dimensions of the cuboid.
+    pub fn xyz_whd(&self) -> (DVec3, DVec3) {
+        (self.xyz(), self.whd())
+    }
+
+    /// Shift the cuboid by the given vector.
+    pub fn shift(self, v: DVec3) -> Self {
+        self.shift_by(v.into())
+    }
+
+    /// Does the given cuboid contain the given point.
+    pub fn contains(&self, p: DVec3) -> bool {
+        self.contains_point(p.into())
+    }
+
+    /// Stretches the closest side(s) to the given point if the point lies outside of the Cuboid
+    /// area.
+    pub fn stretch_to(self, p: DVec3) -> Self {
+        self.stretch_to_point(p.into())
     }
 }
 

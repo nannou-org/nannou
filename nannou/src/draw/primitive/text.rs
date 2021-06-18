@@ -6,7 +6,7 @@ use crate::draw::properties::{
     ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition,
 };
 use crate::draw::{self, theme, Drawing};
-use crate::geom;
+use crate::geom::{self, Point2};
 use crate::text::{self, Align, Font, FontSize, Justify, Layout, Scalar, Wrap};
 
 /// Properties related to drawing the **Text** primitive.
@@ -354,7 +354,7 @@ impl draw::renderer::RenderPrimitive for Text {
             let r = screen_rect.max.x as f32 / scale_factor - half_out_w;
             let t = -(screen_rect.min.y as f32 / scale_factor - half_out_h);
             let b = -(screen_rect.max.y as f32 / scale_factor - half_out_h);
-            geom::Rect::from_corners([l, b], [r, t])
+            geom::Rect::from_corners([l, b].into(), [r, t].into())
         };
 
         // Skips non-rendered colors (e.g. due to line breaks),
@@ -375,8 +375,8 @@ impl draw::renderer::RenderPrimitive for Text {
                 let rect = to_nannou_rect(screen_rect);
 
                 // Create a mesh-compatible vertex from the position and tex_coords.
-                let v = |[x, y]: [f32; 2], tex_coords: [f32; 2]| -> draw::mesh::Vertex {
-                    let p = transform.transform_point3([x, y, 0.0].into());
+                let v = |p: Point2, tex_coords: [f32; 2]| -> draw::mesh::Vertex {
+                    let p = transform.transform_point3([p.x, p.y, 0.0].into());
                     let point = draw::mesh::vertex::Point::from(p);
                     draw::mesh::vertex::new(point, g_color.to_owned(), tex_coords.into())
                 };
