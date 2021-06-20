@@ -190,7 +190,7 @@ like so:
 # use nannou::prelude::*;
 # fn main() {
 #     let draw: Draw = unimplemented!();
-let r = Rect::from_w_h(100.0, 100.0);
+let r = Rect::from_w_h(100.0f32, 100.0f32);
 draw.rect()
     .xy(r.xy())
     .wh(r.wh())

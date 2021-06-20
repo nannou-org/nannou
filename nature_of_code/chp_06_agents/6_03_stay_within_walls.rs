@@ -22,9 +22,9 @@ struct Model {
 }
 
 struct Vehicle {
-    position: Vector2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    position: Vec2,
+    velocity: Vec2,
+    acceleration: Vec2,
     r: f32,
     // Maximum steering force
     max_force: f32,
@@ -56,13 +56,13 @@ impl Vehicle {
         // Update velocity
         self.velocity += self.acceleration;
         // Limit speed
-        self.velocity.limit_magnitude(self.max_speed);
+        self.velocity.clamp_length_max(self.max_speed);
         self.position += self.velocity;
         // Reset accelerationelertion to 0 each cycle
         self.acceleration *= 0.0;
     }
 
-    fn apply_force(&mut self, force: Vector2) {
+    fn apply_force(&mut self, force: Vec2) {
         // We could add mass here if we want A = F / M
         self.acceleration += force;
     }
@@ -73,17 +73,17 @@ impl Vehicle {
         let top = win.top() - d;
         let bottom = win.bottom() + d;
 
-        let desired = match self.position {
-            Vector2 { x, .. } if x < left => Some(vec2(self.max_speed, self.velocity.y)),
-            Vector2 { x, .. } if x > right => Some(vec2(-self.max_speed, self.velocity.y)),
-            Vector2 { y, .. } if y < bottom => Some(vec2(self.velocity.x, self.max_speed)),
-            Vector2 { y, .. } if y > top => Some(vec2(self.velocity.x, -self.max_speed)),
+        let desired = match self.position.to_array() {
+            [x, _] if x < left => Some(vec2(self.max_speed, self.velocity.y)),
+            [x, _] if x > right => Some(vec2(-self.max_speed, self.velocity.y)),
+            [_, y] if y < bottom => Some(vec2(self.velocity.x, self.max_speed)),
+            [_, y] if y > top => Some(vec2(self.velocity.x, -self.max_speed)),
             _ => None,
         };
 
         if let Some(desired) = desired {
             let desired = desired.normalize() * self.max_speed;
-            let steer = (desired - self.velocity).limit_magnitude(self.max_force);
+            let steer = (desired - self.velocity).clamp_length_max(self.max_force);
             self.apply_force(steer);
         }
     }

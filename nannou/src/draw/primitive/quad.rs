@@ -6,24 +6,24 @@ use crate::draw::properties::{
     spatial, ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Drawing};
-use crate::geom::{self, Point2, Vector2};
-use crate::math::{BaseFloat, ElementWise};
+use crate::geom::{self, pt2, Point2};
+use crate::glam::vec2;
 use lyon::tessellation::StrokeOptions;
 
 /// Properties related to drawing a **Quad**.
 #[derive(Clone, Debug)]
-pub struct Quad<S = geom::scalar::Default> {
-    quad: geom::Quad<Point2<S>>,
-    polygon: PolygonInit<S>,
-    dimensions: spatial::dimension::Properties<S>,
+pub struct Quad {
+    quad: geom::Quad<Point2>,
+    polygon: PolygonInit,
+    dimensions: spatial::dimension::Properties,
 }
 
 /// The drawing context for a `Quad`.
-pub type DrawingQuad<'a, S = geom::scalar::Default> = Drawing<'a, Quad<S>, S>;
+pub type DrawingQuad<'a> = Drawing<'a, Quad>;
 
 // Quad-specific methods.
 
-impl<S> Quad<S> {
+impl Quad {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -35,7 +35,7 @@ impl<S> Quad<S> {
     /// Use the given four points as the vertices (corners) of the quad.
     pub fn points<P>(mut self, a: P, b: P, c: P, d: P) -> Self
     where
-        P: Into<Point2<S>>,
+        P: Into<Point2>,
     {
         let a = a.into();
         let b = b.into();
@@ -47,7 +47,7 @@ impl<S> Quad<S> {
 }
 
 // Trait implementations.
-impl draw::renderer::RenderPrimitive for Quad<f32> {
+impl draw::renderer::RenderPrimitive for Quad {
     fn render_primitive(
         self,
         ctxt: draw::renderer::RenderContext,
@@ -66,12 +66,9 @@ impl draw::renderer::RenderPrimitive for Quad<f32> {
             let centroid = quad.centroid();
             let x_scale = maybe_x.map(|x| x / cuboid.w()).unwrap_or(1.0);
             let y_scale = maybe_y.map(|y| y / cuboid.h()).unwrap_or(1.0);
-            let scale = Vector2 {
-                x: x_scale,
-                y: y_scale,
-            };
+            let scale = vec2(x_scale, y_scale);
             let (a, b, c, d) = quad.into();
-            let translate = |v: Point2| centroid + ((v - centroid).mul_element_wise(scale));
+            let translate = |v: Point2| centroid + ((v - centroid) * scale);
             let new_a = translate(a);
             let new_b = translate(b);
             let new_c = translate(c);
@@ -92,11 +89,8 @@ impl draw::renderer::RenderPrimitive for Quad<f32> {
     }
 }
 
-impl<S> From<geom::Quad<Point2<S>>> for Quad<S>
-where
-    S: BaseFloat,
-{
-    fn from(quad: geom::Quad<Point2<S>>) -> Self {
+impl From<geom::Quad<Point2>> for Quad {
+    fn from(quad: geom::Quad<Point2>) -> Self {
         let polygon = Default::default();
         let dimensions = Default::default();
         Quad {
@@ -107,74 +101,68 @@ where
     }
 }
 
-impl<S> Default for Quad<S>
-where
-    S: BaseFloat,
-{
+impl Default for Quad {
     fn default() -> Self {
         // Create a quad pointing towards 0.0 radians.
-        let fifty = S::from(50.0).unwrap();
+        let fifty = 50.0;
         let left = -fifty;
         let bottom = -fifty;
         let right = fifty;
         let top = fifty;
-        let a = Point2 { x: left, y: bottom };
-        let b = Point2 { x: left, y: top };
-        let c = Point2 { x: right, y: top };
-        let d = Point2 {
-            x: right,
-            y: bottom,
-        };
+        let a = pt2(left, bottom);
+        let b = pt2(left, top);
+        let c = pt2(right, top);
+        let d = pt2(right, bottom);
         Quad::from(geom::Quad([a, b, c, d]))
     }
 }
 
-impl<S> SetOrientation<S> for Quad<S> {
-    fn properties(&mut self) -> &mut orientation::Properties<S> {
+impl SetOrientation for Quad {
+    fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.polygon)
     }
 }
 
-impl<S> SetPosition<S> for Quad<S> {
-    fn properties(&mut self) -> &mut position::Properties<S> {
+impl SetPosition for Quad {
+    fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.polygon)
     }
 }
 
-impl<S> SetDimensions<S> for Quad<S> {
-    fn properties(&mut self) -> &mut dimension::Properties<S> {
+impl SetDimensions for Quad {
+    fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.dimensions)
     }
 }
 
-impl<S> SetColor<ColorScalar> for Quad<S> {
+impl SetColor<ColorScalar> for Quad {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.polygon)
     }
 }
 
-impl<S> SetStroke for Quad<S> {
+impl SetStroke for Quad {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.polygon)
     }
 }
 
-impl<S> SetPolygon<S> for Quad<S> {
-    fn polygon_options_mut(&mut self) -> &mut PolygonOptions<S> {
+impl SetPolygon for Quad {
+    fn polygon_options_mut(&mut self) -> &mut PolygonOptions {
         SetPolygon::polygon_options_mut(&mut self.polygon)
     }
 }
 
 // Primitive conversions.
 
-impl<S> From<Quad<S>> for Primitive<S> {
-    fn from(prim: Quad<S>) -> Self {
+impl From<Quad> for Primitive {
+    fn from(prim: Quad) -> Self {
         Primitive::Quad(prim)
     }
 }
 
-impl<S> Into<Option<Quad<S>>> for Primitive<S> {
-    fn into(self) -> Option<Quad<S>> {
+impl Into<Option<Quad>> for Primitive {
+    fn into(self) -> Option<Quad> {
         match self {
             Primitive::Quad(prim) => Some(prim),
             _ => None,
@@ -184,14 +172,11 @@ impl<S> Into<Option<Quad<S>>> for Primitive<S> {
 
 // Drawing methods.
 
-impl<'a, S> DrawingQuad<'a, S>
-where
-    S: BaseFloat,
-{
+impl<'a> DrawingQuad<'a> {
     /// Use the given points as the vertices (corners) of the quad.
     pub fn points<P>(self, a: P, b: P, c: P, d: P) -> Self
     where
-        P: Into<Point2<S>>,
+        P: Into<Point2>,
     {
         self.map_ty(|ty| ty.points(a, b, c, d))
     }

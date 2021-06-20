@@ -63,7 +63,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     let range = win.w() as usize / 10;
     let vertices = (0..=range).map(|i| {
-        let y = rng.gen_range(win.bottom(), win.top() + 1.0) as f32;
+        let y = rng.gen_range(win.bottom()..win.top() + 1.0) as f32;
         pt2(win.left() + (i as f32 * 10.0), y as f32)
     });
     draw.polyline()
@@ -74,7 +74,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 
     for x in (0..win.w() as usize).step_by(10) {
-        let y = rng.gen_range(win.bottom(), win.top() + 1.0) as f32;
+        let y = rng.gen_range(win.bottom()..win.top() + 1.0) as f32;
         draw.ellipse()
             .x_y(win.left() + x as f32, y as f32)
             .w_h(3.0, 3.0)

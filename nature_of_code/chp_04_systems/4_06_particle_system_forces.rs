@@ -12,8 +12,8 @@ fn main() {
 // A simple particle type
 struct Particle {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     life_span: f32,
     mass: f32,
 }
@@ -35,7 +35,7 @@ impl Particle {
         }
     }
 
-    fn apply_force(&mut self, f: Vector2) {
+    fn apply_force(&mut self, f: Vec2) {
         self.acceleration += f / self.mass;
     }
 
@@ -84,7 +84,7 @@ impl ParticleSystem {
     }
 
     // A function to apply a force to all Particles
-    fn apply_force(&mut self, f: Vector2) {
+    fn apply_force(&mut self, f: Vec2) {
         for p in self.particles.iter_mut() {
             p.apply_force(f);
         }

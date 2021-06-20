@@ -10,8 +10,6 @@ pub mod text;
 pub mod texture;
 pub mod tri;
 
-use crate::geom;
-
 pub use self::arrow::Arrow;
 pub use self::ellipse::Ellipse;
 pub use self::line::Line;
@@ -30,21 +28,21 @@ pub use self::tri::Tri;
 /// This also allows us to flush all pending drawings to the mesh if `Draw::to_frame` is called
 /// before their respective **Drawing** types are dropped.
 #[derive(Clone, Debug)]
-pub enum Primitive<S = geom::scalar::Default> {
-    Arrow(Arrow<S>),
-    Ellipse(Ellipse<S>),
-    Line(Line<S>),
+pub enum Primitive {
+    Arrow(Arrow),
+    Ellipse(Ellipse),
+    Line(Line),
     MeshVertexless(mesh::Vertexless),
-    Mesh(Mesh<S>),
-    PathInit(PathInit<S>),
-    PathFill(PathFill<S>),
-    PathStroke(PathStroke<S>),
-    Path(Path<S>),
-    PolygonInit(PolygonInit<S>),
-    Polygon(Polygon<S>),
-    Quad(Quad<S>),
-    Rect(Rect<S>),
-    Text(Text<S>),
-    Texture(Texture<S>),
-    Tri(Tri<S>),
+    Mesh(Mesh),
+    PathInit(PathInit),
+    PathFill(PathFill),
+    PathStroke(PathStroke),
+    Path(Path),
+    PolygonInit(PolygonInit),
+    Polygon(Polygon),
+    Quad(Quad),
+    Rect(Rect),
+    Text(Text),
+    Texture(Texture),
+    Tri(Tri),
 }

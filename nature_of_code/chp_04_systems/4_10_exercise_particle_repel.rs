@@ -13,8 +13,8 @@ fn main() {
 #[derive(Clone)]
 struct Particle {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     life_span: f32,
     r: f32,
     idx: u64,
@@ -40,15 +40,15 @@ impl Particle {
         for i in 0..particles.len() {
             if particles[i].idx != self.idx {
                 let mut dir = self.position - particles[i].position;
-                if dir.magnitude() < self.r {
-                    dir = dir.with_magnitude(0.5);
+                if dir.length() < self.r {
+                    dir = dir.normalize() * 0.5;
                     self.apply_force(dir);
                 }
             }
         }
     }
 
-    fn apply_force(&mut self, f: Vector2) {
+    fn apply_force(&mut self, f: Vec2) {
         self.acceleration += f;
     }
 
@@ -96,7 +96,7 @@ impl ParticleSystem {
         self.particles.push(Particle::new(self.origin, idx));
     }
 
-    fn _apply_force(&mut self, f: Vector2) {
+    fn _apply_force(&mut self, f: Vec2) {
         for i in 0..self.particles.len() {
             self.particles[i].apply_force(f);
         }

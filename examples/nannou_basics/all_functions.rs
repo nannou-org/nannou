@@ -105,7 +105,7 @@ fn touchpad_pressure(_app: &App, _model: &mut Model, _pressure: TouchpadPressure
 
 fn window_moved(_app: &App, _model: &mut Model, _pos: Point2) {}
 
-fn window_resized(_app: &App, _model: &mut Model, _dim: Vector2) {}
+fn window_resized(_app: &App, _model: &mut Model, _dim: Vec2) {}
 
 fn window_focused(_app: &App, _model: &mut Model) {}
 

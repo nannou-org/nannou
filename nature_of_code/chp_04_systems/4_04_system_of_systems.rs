@@ -15,14 +15,14 @@ struct Model {
 
 // A simple particle type
 struct Particle {
-    position: Point2<f32>,
-    velocity: Vector2<f32>,
-    acceleration: Vector2<f32>,
+    position: Point2,
+    velocity: Vec2,
+    acceleration: Vec2,
     life_span: f32,
 }
 
 impl Particle {
-    fn new(l: Point2<f32>) -> Self {
+    fn new(l: Point2) -> Self {
         let acceleration = vec2(0.0, 0.05);
         let velocity = vec2(random_f32() * 2.0 - 1.0, random_f32() - 2.0);
         let position = l;
@@ -65,11 +65,11 @@ impl Particle {
 
 struct ParticleSystem {
     particles: Vec<Particle>,
-    origin: Point2<f32>,
+    origin: Point2,
 }
 
 impl ParticleSystem {
-    fn new(num: i32, position: Point2<f32>) -> Self {
+    fn new(num: i32, position: Point2) -> Self {
         let origin = position; // An origin point for where particles are birthed
         let mut particles = Vec::new(); // Initialise the Vector
         for _i in 0..num {

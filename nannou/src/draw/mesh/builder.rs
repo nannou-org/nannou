@@ -6,8 +6,8 @@
 //! Lyon tessellators assume `f32` data, so we do the same in the following implementations.
 
 use crate::draw;
-use crate::geom;
-use cgmath::Matrix4;
+use crate::geom::Point2;
+use crate::glam::Mat4;
 use lyon::tessellation::geometry_builder::{
     self, FillGeometryBuilder, GeometryBuilder, StrokeGeometryBuilder,
 };
@@ -21,7 +21,7 @@ pub struct MeshBuilder<'a, A> {
     /// The number of indices in the mesh when begin was called.
     begin_index_count: u32,
     /// Transform matrix that also integrates position and orientation here.
-    transform: Matrix4<f32>,
+    transform: Mat4,
     /// The way in which vertex attributes should be sourced.
     attributes: A,
 }
@@ -32,7 +32,7 @@ pub struct TexCoordsPerPoint;
 
 impl<'a, A> MeshBuilder<'a, A> {
     /// Begin extending the mesh.
-    fn new(mesh: &'a mut draw::Mesh, transform: Matrix4<f32>, attributes: A) -> Self {
+    fn new(mesh: &'a mut draw::Mesh, transform: Mat4, attributes: A) -> Self {
         MeshBuilder {
             mesh,
             begin_vertex_count: 0,
@@ -47,7 +47,7 @@ impl<'a> MeshBuilder<'a, SingleColor> {
     /// Begin extending a mesh rendered with a single colour.
     pub fn single_color(
         mesh: &'a mut draw::Mesh,
-        transform: Matrix4<f32>,
+        transform: Mat4,
         color: draw::mesh::vertex::Color,
     ) -> Self {
         Self::new(mesh, transform, SingleColor(color))
@@ -56,14 +56,14 @@ impl<'a> MeshBuilder<'a, SingleColor> {
 
 impl<'a> MeshBuilder<'a, ColorPerPoint> {
     /// Begin extending a mesh where the path interpolates a unique color per point.
-    pub fn color_per_point(mesh: &'a mut draw::Mesh, transform: Matrix4<f32>) -> Self {
+    pub fn color_per_point(mesh: &'a mut draw::Mesh, transform: Mat4) -> Self {
         Self::new(mesh, transform, ColorPerPoint)
     }
 }
 
 impl<'a> MeshBuilder<'a, TexCoordsPerPoint> {
     /// Begin extending a mesh where the path interpolates a unique texture coordinates per point.
-    pub fn tex_coords_per_point(mesh: &'a mut draw::Mesh, transform: Matrix4<f32>) -> Self {
+    pub fn tex_coords_per_point(mesh: &'a mut draw::Mesh, transform: Mat4) -> Self {
         Self::new(mesh, transform, TexCoordsPerPoint)
     }
 }
@@ -102,9 +102,8 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
         let id = VertexId::from_usize(self.mesh.points().len());
 
         // Construct and insert the point
-        let p = geom::Point3::from(geom::Point2::from(position));
-        let p = cgmath::Transform::transform_point(&self.transform, p.into());
-        let point = geom::vec3(p.x, p.y, p.z);
+        let p = Point2::new(position.x, position.y).extend(0.0);
+        let point = self.transform.transform_point3(p);
         let SingleColor(color) = self.attributes;
         let tex_coords = draw::mesh::vertex::default_tex_coords();
         let vertex = draw::mesh::vertex::new(point, color, tex_coords);
@@ -125,9 +124,8 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, SingleColor> {
         let id = VertexId::from_usize(self.mesh.points().len());
 
         // Construct and insert the point
-        let p = geom::Point3::from(geom::Point2::from(position));
-        let p = cgmath::Transform::transform_point(&self.transform, p.into());
-        let point = geom::vec3(p.x, p.y, p.z);
+        let p = Point2::new(position.x, position.y).extend(0.0);
+        let point = self.transform.transform_point3(p);
         let SingleColor(color) = self.attributes;
         let tex_coords = draw::mesh::vertex::default_tex_coords();
         let vertex = draw::mesh::vertex::new(point, color, tex_coords);
@@ -148,9 +146,8 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
         let id = VertexId::from_usize(self.mesh.points().len());
 
         // Construct and insert the point
-        let p = geom::Point3::from(geom::Point2::from(position));
-        let p = cgmath::Transform::transform_point(&self.transform, p.into());
-        let point = geom::vec3(p.x, p.y, p.z);
+        let p = Point2::new(position.x, position.y).extend(0.0);
+        let point = self.transform.transform_point3(p);
         let col = &attrs.interpolated_attributes();
         let color: draw::mesh::vertex::Color = (col[0], col[1], col[2], col[3]).into();
         let tex_coords = draw::mesh::vertex::default_tex_coords();
@@ -172,9 +169,8 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
         let id = VertexId::from_usize(self.mesh.points().len());
 
         // Construct and insert the point
-        let p = geom::Point3::from(geom::Point2::from(position));
-        let p = cgmath::Transform::transform_point(&self.transform, p.into());
-        let point = geom::vec3(p.x, p.y, p.z);
+        let p = Point2::new(position.x, position.y).extend(0.0);
+        let point = self.transform.transform_point3(p);
         let col = &attrs.interpolated_attributes();
         let color: draw::mesh::vertex::Color = (col[0], col[1], col[2], col[3]).into();
         let tex_coords = draw::mesh::vertex::default_tex_coords();
@@ -196,9 +192,8 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
         let id = VertexId::from_usize(self.mesh.points().len());
 
         // Construct and insert the point
-        let p = geom::Point3::from(geom::Point2::from(position));
-        let p = cgmath::Transform::transform_point(&self.transform, p.into());
-        let point = geom::vec3(p.x, p.y, p.z);
+        let p = Point2::new(position.x, position.y).extend(0.0);
+        let point = self.transform.transform_point3(p);
         let tc = &attrs.interpolated_attributes();
         let tex_coords: draw::mesh::vertex::TexCoords = (tc[0], tc[1]).into();
         let color = draw::mesh::vertex::DEFAULT_VERTEX_COLOR;
@@ -220,9 +215,8 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
         let id = VertexId::from_usize(self.mesh.points().len());
 
         // Construct and insert the point
-        let p = geom::Point3::from(geom::Point2::from(position));
-        let p = cgmath::Transform::transform_point(&self.transform, p.into());
-        let point = geom::vec3(p.x, p.y, p.z);
+        let p = Point2::new(position.x, position.y).extend(0.0);
+        let point = self.transform.transform_point3(p);
         let tc = &attrs.interpolated_attributes();
         let tex_coords: draw::mesh::vertex::TexCoords = (tc[0], tc[1]).into();
         let color = draw::mesh::vertex::DEFAULT_VERTEX_COLOR;

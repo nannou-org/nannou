@@ -15,8 +15,8 @@ struct Model {
 
 struct Mover {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     mass: f32,
 }
 
@@ -34,7 +34,7 @@ impl Mover {
         }
     }
 
-    fn apply_force(&mut self, force: Vector2) {
+    fn apply_force(&mut self, force: Vec2) {
         let f = force / self.mass;
         self.acceleration += f;
     }

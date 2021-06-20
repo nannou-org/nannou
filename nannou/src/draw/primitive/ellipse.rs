@@ -7,27 +7,24 @@ use crate::draw::properties::{
     spatial, ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::Drawing;
-use crate::geom::{self, Vector2};
-use crate::math::{BaseFloat, Zero};
+use crate::geom;
+use crate::glam::Vec2;
 use lyon::tessellation::StrokeOptions;
 
 /// Properties related to drawing an **Ellipse**.
-#[derive(Clone, Debug)]
-pub struct Ellipse<S = geom::scalar::Default> {
-    dimensions: spatial::dimension::Properties<S>,
-    resolution: Option<usize>,
-    polygon: PolygonInit<S>,
+#[derive(Clone, Debug, Default)]
+pub struct Ellipse {
+    dimensions: spatial::dimension::Properties,
+    resolution: Option<f32>,
+    polygon: PolygonInit,
 }
 
 /// The drawing context for an ellipse.
-pub type DrawingEllipse<'a, S = geom::scalar::Default> = Drawing<'a, Ellipse<S>, S>;
+pub type DrawingEllipse<'a> = Drawing<'a, Ellipse>;
 
 // Ellipse-specific methods.
 
-impl<S> Ellipse<S>
-where
-    S: BaseFloat,
-{
+impl Ellipse {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -37,8 +34,8 @@ where
     }
 
     /// Specify the width and height of the **Ellipse** via a given **radius**.
-    pub fn radius(self, radius: S) -> Self {
-        let side = radius * (S::one() + S::one());
+    pub fn radius(self, radius: f32) -> Self {
+        let side = radius * 2.0;
         self.w_h(side, side)
     }
 
@@ -46,7 +43,7 @@ where
     ///
     /// By default, ellipse does not use a resolution, but rather uses a stroke tolerance to
     /// determine how many vertices to use during tessellation.
-    pub fn resolution(mut self, resolution: usize) -> Self {
+    pub fn resolution(mut self, resolution: f32) -> Self {
         self.resolution = Some(resolution);
         self
     }
@@ -54,7 +51,7 @@ where
 
 // Trait implementations.
 
-impl draw::renderer::RenderPrimitive for Ellipse<f32> {
+impl draw::renderer::RenderPrimitive for Ellipse {
     fn render_primitive(
         self,
         ctxt: draw::renderer::RenderContext,
@@ -98,9 +95,9 @@ impl draw::renderer::RenderPrimitive for Ellipse<f32> {
                 }
             }
             Some(resolution) => {
-                let rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
+                let rect = geom::Rect::from_w_h(w, h);
                 let ellipse = geom::Ellipse::new(rect, resolution);
-                let points = ellipse.circumference();
+                let points = ellipse.circumference().map(Vec2::from);
                 polygon::render_points_themed(
                     polygon.opts,
                     points,
@@ -115,68 +112,52 @@ impl draw::renderer::RenderPrimitive for Ellipse<f32> {
     }
 }
 
-impl<S> Default for Ellipse<S>
-where
-    S: Zero,
-{
-    fn default() -> Self {
-        let dimensions = Default::default();
-        let polygon = Default::default();
-        let resolution = Default::default();
-        Ellipse {
-            dimensions,
-            polygon,
-            resolution,
-        }
-    }
-}
-
-impl<S> SetOrientation<S> for Ellipse<S> {
-    fn properties(&mut self) -> &mut orientation::Properties<S> {
+impl SetOrientation for Ellipse {
+    fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.polygon)
     }
 }
 
-impl<S> SetPosition<S> for Ellipse<S> {
-    fn properties(&mut self) -> &mut position::Properties<S> {
+impl SetPosition for Ellipse {
+    fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.polygon)
     }
 }
 
-impl<S> SetDimensions<S> for Ellipse<S> {
-    fn properties(&mut self) -> &mut dimension::Properties<S> {
+impl SetDimensions for Ellipse {
+    fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.dimensions)
     }
 }
 
-impl<S> SetColor<ColorScalar> for Ellipse<S> {
+impl SetColor<ColorScalar> for Ellipse {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.polygon)
     }
 }
 
-impl<S> SetStroke for Ellipse<S> {
+impl SetStroke for Ellipse {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.polygon)
     }
 }
 
-impl<S> SetPolygon<S> for Ellipse<S> {
-    fn polygon_options_mut(&mut self) -> &mut PolygonOptions<S> {
+impl SetPolygon for Ellipse {
+    fn polygon_options_mut(&mut self) -> &mut PolygonOptions {
         SetPolygon::polygon_options_mut(&mut self.polygon)
     }
 }
 
 // Primitive conversion.
 
-impl<S> From<Ellipse<S>> for Primitive<S> {
-    fn from(prim: Ellipse<S>) -> Self {
+impl From<Ellipse> for Primitive {
+    fn from(prim: Ellipse) -> Self {
         Primitive::Ellipse(prim)
     }
 }
 
-impl<S> Into<Option<Ellipse<S>>> for Primitive<S> {
-    fn into(self) -> Option<Ellipse<S>> {
+impl Into<Option<Ellipse>> for Primitive {
+    fn into(self) -> Option<Ellipse> {
         match self {
             Primitive::Ellipse(prim) => Some(prim),
             _ => None,
@@ -186,10 +167,7 @@ impl<S> Into<Option<Ellipse<S>>> for Primitive<S> {
 
 // Drawing methods.
 
-impl<'a, S> DrawingEllipse<'a, S>
-where
-    S: BaseFloat,
-{
+impl<'a> DrawingEllipse<'a> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -199,12 +177,12 @@ where
     }
 
     /// Specify the width and height of the **Ellipse** via a given **radius**.
-    pub fn radius(self, radius: S) -> Self {
+    pub fn radius(self, radius: f32) -> Self {
         self.map_ty(|ty| ty.radius(radius))
     }
 
     /// The number of sides used to draw the ellipse.
-    pub fn resolution(self, resolution: usize) -> Self {
+    pub fn resolution(self, resolution: f32) -> Self {
         self.map_ty(|ty| ty.resolution(resolution))
     }
 }

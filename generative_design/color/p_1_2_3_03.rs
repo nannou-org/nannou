@@ -107,7 +107,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         // count tiles
         let mut counter = 0;
         // row count and row height
-        let row_count = rng.gen_range(5, 30);
+        let row_count = rng.gen_range(5..30);
         let row_height = (app.window_rect().h() as i32 / row_count) as i32;
 
         // seperate each line in parts
@@ -120,13 +120,13 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 // sub fragment of not?
                 if rng.gen::<f32>() < 0.075 {
                     // take care of big values
-                    let fragments = rng.gen_range(2, 20);
+                    let fragments = rng.gen_range(2..20);
                     part_count = part_count + fragments - 1;
                     for _ in 0..fragments {
-                        parts.push(rng.gen_range(0, 2));
+                        parts.push(rng.gen_range(0..2));
                     }
                 } else {
-                    parts.push(rng.gen_range(2, 20));
+                    parts.push(rng.gen_range(2..20));
                 }
             }
 
@@ -154,8 +154,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
                 let index = counter % model.color_count;
                 let rect = nannou::geom::rect::Rect::from_x_y_w_h(0.0, 0.0, w, h);
-                let points_colored = rect.corners_iter().map(|c| {
-                    let lum = map_range(c.y, h / 2.0, -h / 2.0, 0.0, 1.0);
+                let points_colored = rect.corners_iter().map(|[x, y]| {
+                    let lum = map_range(y, h / 2.0, -h / 2.0, 0.0, 1.0);
 
                     let col = hsva(
                         model.hue_values[index as usize],
@@ -163,7 +163,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                         model.brightness_values[index as usize],
                         model.alpha_value * lum,
                     );
-                    (pt2(c.x, c.y), col)
+                    (pt2(x, y), col)
                 });
 
                 draw.polygon()

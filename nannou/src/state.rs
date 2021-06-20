@@ -65,13 +65,9 @@ pub mod keys {
 
 /// Tracked state related to the mouse.
 pub mod mouse {
-    use crate::geom::{self, Point2};
-    use crate::math::BaseFloat;
+    use crate::geom::Point2;
     use crate::window;
     use std;
-
-    /// The default scalar value used for positions.
-    pub type DefaultScalar = geom::scalar::Default;
 
     #[doc(inline)]
     pub use crate::event::MouseButton as Button;
@@ -81,76 +77,64 @@ pub mod mouse {
 
     /// The state of the `Mouse` at a single moment in time.
     #[derive(Copy, Clone, Debug, PartialEq)]
-    pub struct Mouse<S = DefaultScalar> {
+    pub struct Mouse {
         /// The ID of the last window currently in focus.
         pub window: Option<window::Id>,
         /// *x* position relative to the middle of `window`.
-        pub x: S,
+        pub x: f32,
         /// *y* position relative to the middle of `window`.
-        pub y: S,
+        pub y: f32,
         /// A map describing the state of each mouse button.
         pub buttons: ButtonMap,
     }
 
     /// Whether the button is up or down.
     #[derive(Copy, Clone, Debug, PartialEq)]
-    pub enum ButtonPosition<S = DefaultScalar> {
+    pub enum ButtonPosition {
         /// The button is up (i.e. pressed).
         Up,
         /// The button is down and was originally pressed down at the given `Point2`.
-        Down(Point2<S>),
+        Down(Point2),
     }
 
     /// Stores the state of all mouse buttons.
     ///
     /// If the mouse button is down, it stores the position of the mouse when the button was pressed
     #[derive(Copy, Clone, Debug, PartialEq)]
-    pub struct ButtonMap<S = DefaultScalar> {
-        buttons: [ButtonPosition<S>; NUM_BUTTONS],
+    pub struct ButtonMap {
+        buttons: [ButtonPosition; NUM_BUTTONS],
     }
 
     /// An iterator yielding all pressed buttons.
     #[derive(Clone)]
-    pub struct PressedButtons<'a, S: 'a = DefaultScalar> {
-        buttons: std::iter::Enumerate<std::slice::Iter<'a, ButtonPosition<S>>>,
+    pub struct PressedButtons<'a> {
+        buttons: std::iter::Enumerate<std::slice::Iter<'a, ButtonPosition>>,
     }
 
-    impl<S> Mouse<S>
-    where
-        S: BaseFloat,
-    {
+    impl Mouse {
         /// Construct a new default `Mouse`.
         pub fn new() -> Self {
             Mouse {
                 window: None,
                 buttons: ButtonMap::new(),
-                x: S::zero(),
-                y: S::zero(),
+                x: 0.0,
+                y: 0.0,
             }
         }
 
         /// The position of the mouse relative to the middle of the window in focus..
-        pub fn position(&self) -> Point2<S> {
-            Point2 {
-                x: self.x,
-                y: self.y,
-            }
+        pub fn position(&self) -> Point2 {
+            [self.x, self.y].into()
         }
     }
 
-    impl<S> ButtonPosition<S>
-    where
-        S: BaseFloat,
-    {
+    impl ButtonPosition {
         /// If the mouse button is down, return a new one with position relative to the given `xy`.
-        pub fn relative_to(self, xy: Point2<S>) -> Self {
+        pub fn relative_to(self, xy: Point2) -> Self {
             match self {
                 ButtonPosition::Down(pos) => {
                     let rel_p = pos - xy;
-                    ButtonPosition::Down(Point2 {
-                        x: rel_p.x,
-                        y: rel_p.y,
-                    })
+                    ButtonPosition::Down([rel_p.x, rel_p.y].into())
                 }
                 button_pos => button_pos,
             }
@@ -173,7 +157,7 @@ pub mod mouse {
         }
 
         /// Returns the position at which the button was pressed.
-        pub fn if_down(&self) -> Option<Point2<S>> {
+        pub fn if_down(&self) -> Option<Point2> {
             match *self {
                 ButtonPosition::Down(xy) => Some(xy),
                 _ => None,
@@ -181,10 +165,7 @@ pub mod mouse {
         }
     }
 
-    impl<S> ButtonMap<S>
-    where
-        S: BaseFloat,
-    {
+    impl ButtonMap {
         /// Returns a new button map with all states set to `None`
         pub fn new() -> Self {
             ButtonMap {
@@ -193,7 +174,7 @@ pub mod mouse {
         }
 
         /// Returns a copy of the ButtonMap relative to the given `Point`
-        pub fn relative_to(self, xy: Point2<S>) -> Self {
+        pub fn relative_to(self, xy: Point2) -> Self {
             self.buttons
                 .iter()
                 .enumerate()
@@ -204,22 +185,22 @@ pub mod mouse {
         }
 
         /// The state of the left mouse button.
-        pub fn left(&self) -> &ButtonPosition<S> {
+        pub fn left(&self) -> &ButtonPosition {
             &self[Button::Left]
         }
 
         /// The state of the middle mouse button.
-        pub fn middle(&self) -> &ButtonPosition<S> {
+        pub fn middle(&self) -> &ButtonPosition {
             &self[Button::Middle]
         }
 
         /// The state of the right mouse button.
-        pub fn right(&self) -> &ButtonPosition<S> {
+        pub fn right(&self) -> &ButtonPosition {
             &self[Button::Right]
         }
 
         /// Sets the `Button` in the `Down` position.
-        pub fn press(&mut self, button: Button, xy: Point2<S>) {
+        pub fn press(&mut self, button: Button, xy: Point2) {
             self.buttons[button_to_idx(button)] = ButtonPosition::Down(xy);
         }
 
@@ -230,25 +211,22 @@ pub mod mouse {
 
         /// An iterator yielding all pressed mouse buttons along with the location at which they
         /// were originally pressed.
-        pub fn pressed(&self) -> PressedButtons<S> {
+        pub fn pressed(&self) -> PressedButtons {
             PressedButtons {
                 buttons: self.buttons.iter().enumerate(),
             }
         }
     }
 
-    impl<S> std::ops::Index<Button> for ButtonMap<S> {
-        type Output = ButtonPosition<S>;
+    impl std::ops::Index<Button> for ButtonMap {
+        type Output = ButtonPosition;
         fn index(&self, button: Button) -> &Self::Output {
             &self.buttons[button_to_idx(button)]
         }
     }
 
-    impl<'a, S> Iterator for PressedButtons<'a, S>
-    where
-        S: BaseFloat,
-    {
-        type Item = (Button, Point2<S>);
+    impl<'a> Iterator for PressedButtons<'a> {
+        type Item = (Button, Point2);
         fn next(&mut self) -> Option<Self::Item> {
             while let Some((idx, button_pos)) = self.buttons.next() {
                 if let ButtonPosition::Down(xy) = *button_pos {

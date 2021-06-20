@@ -6,14 +6,13 @@ use crate::draw::properties::{
     ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition,
 };
 use crate::draw::{self, theme, Drawing};
-use crate::geom::{self, Vector2};
-use crate::math::{BaseFloat, Zero};
+use crate::geom::{self, Point2};
 use crate::text::{self, Align, Font, FontSize, Justify, Layout, Scalar, Wrap};
 
 /// Properties related to drawing the **Text** primitive.
 #[derive(Clone, Debug)]
-pub struct Text<S = geom::scalar::Default> {
-    spatial: spatial::Properties<S>,
+pub struct Text {
+    spatial: spatial::Properties,
     style: Style,
     // The byte range into the `Draw` context's text buffer.
     text: std::ops::Range<usize>,
@@ -28,14 +27,11 @@ pub struct Style {
 }
 
 /// The drawing context for the **Text** primitive.
-pub type DrawingText<'a, S = geom::scalar::Default> = Drawing<'a, Text<S>, S>;
+pub type DrawingText<'a> = Drawing<'a, Text>;
 
-impl<S> Text<S> {
+impl Text {
     /// Begin drawing some text.
-    pub fn new(ctxt: DrawingContext<S>, text: &str) -> Self
-    where
-        S: Zero,
-    {
+    pub fn new(ctxt: DrawingContext, text: &str) -> Self {
         let start = ctxt.text_buffer.len();
         ctxt.text_buffer.push_str(text);
         let end = ctxt.text_buffer.len();
@@ -162,10 +158,7 @@ impl<S> Text<S> {
     }
 }
 
-impl<'a, S> DrawingText<'a, S>
-where
-    S: BaseFloat,
-{
+impl<'a> DrawingText<'a> {
     /// The font size to use for the text.
     pub fn font_size(self, size: text::FontSize) -> Self {
         self.map_ty(|ty| ty.font_size(size))
@@ -266,7 +259,7 @@ where
     }
 }
 
-impl draw::renderer::RenderPrimitive for Text<f32> {
+impl draw::renderer::RenderPrimitive for Text {
     fn render_primitive(
         self,
         ctxt: draw::renderer::RenderContext,
@@ -292,13 +285,9 @@ impl draw::renderer::RenderPrimitive for Text<f32> {
             maybe_z.is_none(),
             "z dimension support for text is unimplemented"
         );
-        let w = maybe_x
-            .map(|s| <f32 as crate::math::NumCast>::from(s).unwrap())
-            .unwrap_or(200.0);
-        let h = maybe_y
-            .map(|s| <f32 as crate::math::NumCast>::from(s).unwrap())
-            .unwrap_or(200.0);
-        let rect: geom::Rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
+        let w = maybe_x.unwrap_or(200.0);
+        let h = maybe_y.unwrap_or(200.0);
+        let rect: geom::Rect = geom::Rect::from_wh([w, h].into());
         let color = color.unwrap_or_else(|| ctxt.theme.fill_lin_srgba(&theme::Primitive::Text));
 
         let text_str = &ctxt.text_buffer[text.clone()];
@@ -352,7 +341,7 @@ impl draw::renderer::RenderPrimitive for Text<f32> {
         }
 
         // Determine the transform to apply to all points.
-        let global_transform = ctxt.transform;
+        let global_transform = *ctxt.transform;
         let local_transform = spatial.position.transform() * spatial.orientation.transform();
         let transform = global_transform * local_transform;
 
@@ -365,7 +354,7 @@ impl draw::renderer::RenderPrimitive for Text<f32> {
             let r = screen_rect.max.x as f32 / scale_factor - half_out_w;
             let t = -(screen_rect.min.y as f32 / scale_factor - half_out_h);
             let b = -(screen_rect.max.y as f32 / scale_factor - half_out_h);
-            geom::Rect::from_corners(geom::pt2(l, b), geom::pt2(r, t))
+            geom::Rect::from_corners([l, b].into(), [r, t].into())
         };
 
         // Skips non-rendered colors (e.g. due to line breaks),
@@ -386,9 +375,8 @@ impl draw::renderer::RenderPrimitive for Text<f32> {
                 let rect = to_nannou_rect(screen_rect);
 
                 // Create a mesh-compatible vertex from the position and tex_coords.
-                let v = |position, tex_coords: [f32; 2]| -> draw::mesh::Vertex {
-                    let p = geom::Point3::from(position);
-                    let p = cgmath::Transform::transform_point(&transform, p.into());
+                let v = |p: Point2, tex_coords: [f32; 2]| -> draw::mesh::Vertex {
+                    let p = transform.transform_point3([p.x, p.y, 0.0].into());
                     let point = draw::mesh::vertex::Point::from(p);
                     draw::mesh::vertex::new(point, g_color.to_owned(), tex_coords.into())
                 };
@@ -428,25 +416,25 @@ impl draw::renderer::RenderPrimitive for Text<f32> {
     }
 }
 
-impl<S> SetOrientation<S> for Text<S> {
-    fn properties(&mut self) -> &mut orientation::Properties<S> {
+impl SetOrientation for Text {
+    fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.spatial)
     }
 }
 
-impl<S> SetPosition<S> for Text<S> {
-    fn properties(&mut self) -> &mut position::Properties<S> {
+impl SetPosition for Text {
+    fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.spatial)
     }
 }
 
-impl<S> SetDimensions<S> for Text<S> {
-    fn properties(&mut self) -> &mut dimension::Properties<S> {
+impl SetDimensions for Text {
+    fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.spatial)
     }
 }
 
-impl<S> SetColor<ColorScalar> for Text<S> {
+impl SetColor<ColorScalar> for Text {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.style.color)
     }
@@ -454,14 +442,14 @@ impl<S> SetColor<ColorScalar> for Text<S> {
 
 // Primitive conversions.
 
-impl<S> From<Text<S>> for Primitive<S> {
-    fn from(prim: Text<S>) -> Self {
+impl From<Text> for Primitive {
+    fn from(prim: Text) -> Self {
         Primitive::Text(prim)
     }
 }
 
-impl<S> Into<Option<Text<S>>> for Primitive<S> {
-    fn into(self) -> Option<Text<S>> {
+impl Into<Option<Text>> for Primitive {
+    fn into(self) -> Option<Text> {
         match self {
             Primitive::Text(prim) => Some(prim),
             _ => None,

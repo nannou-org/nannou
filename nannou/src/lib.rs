@@ -19,17 +19,17 @@ pub use conrod_winit;
 pub use daggy;
 pub use find_folder;
 pub use lyon;
-use serde_derive;
 pub use winit;
 
+pub use self::app::{App, LoopMode};
+pub use self::draw::Draw;
 pub use self::event::Event;
 pub use self::frame::Frame;
 pub use self::ui::Ui;
-pub use crate::app::{App, LoopMode};
-pub use crate::draw::Draw;
+#[doc(inline)]
+pub use nannou_core::{color, glam, math, rand};
 
 pub mod app;
-pub mod color;
 pub mod draw;
 pub mod ease;
 pub mod event;
@@ -37,11 +37,9 @@ pub mod frame;
 pub mod geom;
 pub mod image;
 pub mod io;
-pub mod math;
 pub mod mesh;
 pub mod noise;
 pub mod prelude;
-pub mod rand;
 pub mod state;
 pub mod text;
 pub mod time;

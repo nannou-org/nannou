@@ -1,6 +1,6 @@
-use crate::geom::{vertex, Cuboid, Point2, Range, Rect, Vertex, Vertex2d, Vertex3d};
-use crate::math::{BaseNum, EuclideanSpace, Zero};
-use std::ops::Deref;
+use crate::geom::{vertex, Cuboid, Range, Rect, Scalar, Vertex, Vertex2d, Vertex3d};
+use crate::math::num_traits::Zero;
+use core::ops::Deref;
 
 /// The number of vertices in a triangle.
 pub const NUM_VERTICES: u8 = 3;
@@ -69,9 +69,9 @@ impl<V> Tri<V> {
     /// Produce the centroid of the triangle aka the "mean"/"average" of all the points.
     pub fn centroid(self) -> V
     where
-        V: EuclideanSpace,
+        V: vertex::Average,
     {
-        EuclideanSpace::centroid(&self[..])
+        crate::geom::centroid(self[..].iter().cloned()).unwrap()
     }
 
     /// Maps the underlying vertices to a new type and returns the resulting `Tri`.
@@ -88,15 +88,16 @@ impl<V> Tri<V> {
     /// # Example
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// # use nannou::prelude::*;
     /// # use nannou::geom::Tri;
     /// # fn main() {
-    /// let a = Point2 { x: -0.5, y: 0.0 };
-    /// let b = Point2 { x: 0.0, y: 1.0 };
-    /// let c = Point2 { x: 0.5, y: -0.75 };
+    /// let a = [-0.5, 0.0];
+    /// let b = [0.0, 1.0];
+    /// let c = [0.5, -0.75];
     /// let tri = Tri([a, b, c]);
-    /// assert!(tri.contains(&Point2 { x: 0.0, y: 0.0 }));
-    /// assert!(!tri.contains(&Point2 { x: 3.0, y: 3.0 }));
+    /// assert!(tri.contains(&[0.0, 0.0]));
+    /// assert!(!tri.contains(&[3.0, 3.0]));
     /// # }
     /// ```
     pub fn contains(&self, v: &V) -> bool
@@ -107,11 +108,11 @@ impl<V> Tri<V> {
         let (a, b, c) = (a.point2(), b.point2(), c.point2());
         let v = (*v).point2();
 
-        fn sign<S>(a: Point2<S>, b: Point2<S>, c: Point2<S>) -> S
+        fn sign<S>([ax, ay]: [S; 2], [bx, by]: [S; 2], [cx, cy]: [S; 2]) -> S
         where
-            S: BaseNum,
+            S: Scalar,
         {
-            (a[0] - c[0]) * (b[1] - c[1]) - (b[0] - c[0]) * (a[1] - c[1])
+            (ax - cx) * (by - cy) - (bx - cx) * (ay - cy)
         }
 
         let b1 = sign(v, a, b) < V::Scalar::zero();
@@ -127,10 +128,10 @@ impl<V> Tri<V> {
         V: Vertex2d,
     {
         let (a, b, c) = self.into();
-        let (a, b, c) = (a.point2(), b.point2(), c.point2());
+        let ([ax, ay], b, c) = (a.point2(), b.point2(), c.point2());
         let rect = Rect {
-            x: Range::new(a.x, a.x),
-            y: Range::new(a.y, a.y),
+            x: Range::new(ax, ax),
+            y: Range::new(ay, ay),
         };
         rect.stretch_to_point(b).stretch_to_point(c)
     }
@@ -141,11 +142,11 @@ impl<V> Tri<V> {
         V: Vertex3d,
     {
         let (a, b, c) = self.into();
-        let (a, b, c) = (a.point3(), b.point3(), c.point3());
+        let ([ax, ay, az], b, c) = (a.point3(), b.point3(), c.point3());
         let cuboid = Cuboid {
-            x: Range::new(a.x, a.x),
-            y: Range::new(a.y, a.y),
-            z: Range::new(a.z, a.z),
+            x: Range::new(ax, ax),
+            y: Range::new(ay, ay),
+            z: Range::new(az, az),
         };
         cuboid.stretch_to_point(b).stretch_to_point(c)
     }

@@ -9,12 +9,12 @@ fn main() {
 
 // A type for a draggable attractive body in our world
 struct Attractor {
-    mass: f32,            // Mass, tied to size
-    g: f32,               // Gravitational Constant
-    position: Point2,     // Position
-    dragging: bool,       // Is the object being dragged?
-    rollover: bool,       // Is the mouse over the ellipse?
-    drag_offset: Vector2, // Holds the offset for when the object is clicked on
+    mass: f32,         // Mass, tied to size
+    g: f32,            // Gravitational Constant
+    position: Point2,  // Position
+    dragging: bool,    // Is the object being dragged?
+    rollover: bool,    // Is the mouse over the ellipse?
+    drag_offset: Vec2, // Holds the offset for when the object is clicked on
 }
 
 impl Attractor {
@@ -29,9 +29,9 @@ impl Attractor {
         }
     }
 
-    fn attract(&self, m: &Mover) -> Vector2<f32> {
+    fn attract(&self, m: &Mover) -> Vec2 {
         let mut force = self.position - m.position; // Calculate direction of force
-        let mut distance = force.magnitude(); // Distance between objects
+        let mut distance = force.length(); // Distance between objects
         distance = distance.max(5.0).min(25.0); // Limiting the distance to eliminate "extreme" results for very cose or very far object
         force = force.normalize(); // Normalize vector (distance doesn't matter, we just want this vector for direction)
         let strength = (self.g * self.mass * m.mass) / (distance * distance); // Calculate gravitational force magnitude
@@ -87,8 +87,8 @@ impl Attractor {
 
 struct Mover {
     position: Point2,
-    velocity: Vector2<f32>,
-    acceleration: Vector2<f32>,
+    velocity: Vec2,
+    acceleration: Vec2,
     mass: f32,
 }
 
@@ -102,7 +102,7 @@ impl Mover {
         }
     }
 
-    fn apply_force(&mut self, force: Vector2<f32>) {
+    fn apply_force(&mut self, force: Vec2) {
         let f = force / self.mass;
         self.acceleration += f;
     }

@@ -1,6 +1,5 @@
 use crate::geom::{tri, vertex, Cuboid, Range, Rect, Tri, Vertex, Vertex2d, Vertex3d};
-use crate::math::EuclideanSpace;
-use std::ops::{Deref, Index};
+use core::ops::{Deref, Index};
 
 /// The number of vertices in a quad.
 pub const NUM_VERTICES: u8 = 4;
@@ -48,7 +47,7 @@ where
     /// Produce the centroid of the quad, aka the "mean"/"average" vertex.
     pub fn centroid(&self) -> V
     where
-        V: EuclideanSpace,
+        V: vertex::Average,
     {
         centroid(self)
     }
@@ -86,6 +85,7 @@ where
     /// Here's a basic code example:
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::{self, pt2, Quad, Tri};
     ///
     /// fn main() {
@@ -114,10 +114,10 @@ where
         V: Vertex2d,
     {
         let (a, b, c, d) = self.into();
-        let (a, b, c, d) = (a.point2(), b.point2(), c.point2(), d.point2());
+        let ([ax, ay], b, c, d) = (a.point2(), b.point2(), c.point2(), d.point2());
         let rect = Rect {
-            x: Range::new(a.x, a.x),
-            y: Range::new(a.y, a.y),
+            x: Range::new(ax, ax),
+            y: Range::new(ay, ay),
         };
         rect.stretch_to_point(b)
             .stretch_to_point(c)
@@ -130,11 +130,11 @@ where
         V: Vertex3d,
     {
         let (a, b, c, d) = self.into();
-        let (a, b, c, d) = (a.point3(), b.point3(), c.point3(), d.point3());
+        let ([ax, ay, az], b, c, d) = (a.point3(), b.point3(), c.point3(), d.point3());
         let cuboid = Cuboid {
-            x: Range::new(a.x, a.x),
-            y: Range::new(a.y, a.y),
-            z: Range::new(a.z, a.z),
+            x: Range::new(ax, ax),
+            y: Range::new(ay, ay),
+            z: Range::new(az, az),
         };
         cuboid
             .stretch_to_point(b)
@@ -161,9 +161,9 @@ pub fn vertices<V>(quad: Quad<V>) -> Vertices<V> {
 /// Produce the centroid of the quad, aka the "mean"/"average" vertex.
 pub fn centroid<V>(quad: &Quad<V>) -> V
 where
-    V: EuclideanSpace,
+    V: vertex::Average,
 {
-    EuclideanSpace::centroid(&quad[..])
+    crate::geom::centroid(quad.iter().cloned()).unwrap()
 }
 
 /// Triangulates the given quad, represented by four points that describe its edges in either
@@ -200,6 +200,7 @@ where
 /// Here's a basic code example:
 ///
 /// ```
+/// # use nannou_core as nannou;
 /// use nannou::geom::{self, pt2, Quad, Tri};
 ///
 /// fn main() {

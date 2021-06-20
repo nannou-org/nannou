@@ -11,8 +11,8 @@ fn main() {
 
 struct Mover {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     mass: f32,
 }
 
@@ -30,7 +30,7 @@ impl Mover {
         }
     }
 
-    fn apply_force(&mut self, force: Vector2) {
+    fn apply_force(&mut self, force: Vec2) {
         let f = force / self.mass;
         self.acceleration += f;
     }
@@ -48,9 +48,9 @@ impl Mover {
             .rgba(0.6, 0.6, 0.6, 0.7);
     }
 
-    fn attract(&self, m: &Mover) -> Vector2 {
+    fn attract(&self, m: &Mover) -> Vec2 {
         let mut force = self.position - m.position; // Calculate direction of force
-        let mut distance = force.magnitude(); // Distance between objects
+        let mut distance = force.length(); // Distance between objects
         distance = distance.max(5.0).min(25.0); // Limiting the distance to eliminate "extreme" results for very cose or very far object
         force = force.normalize(); // Normalize vector (distance doesn't matter, we just want this vector for direction)
         let g = 0.4;
@@ -72,7 +72,7 @@ impl Mover {
         } else if self.position.y < rect.pad(d).bottom() {
             force.y = 1.0;
         }
-        if force.magnitude() > 0.0 {
+        if force.length() > 0.0 {
             force = force.normalize();
             force *= 0.1;
             self.apply_force(force);

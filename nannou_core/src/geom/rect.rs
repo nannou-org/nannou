@@ -1,7 +1,7 @@
-use crate::geom::{quad, scalar, Align, Edge, Point2, Quad, Range, Tri, Vector2};
-use crate::math::num_traits::Float;
-use crate::math::{self, BaseNum};
-use std::ops::Neg;
+use crate::geom::{quad, scalar, Align, Edge, Point2, Quad, Range, Scalar, Tri};
+use crate::glam::{DVec2, Vec2};
+use crate::math::{self, num_traits::Float};
+use core::ops::Neg;
 
 /// Defines a Rectangle's bounds across the x and y axes.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
@@ -65,7 +65,7 @@ pub struct Corners<S = scalar::Default> {
 }
 
 /// The triangles iterator yielded by the `Rect`.
-pub type Triangles<S> = quad::Triangles<Point2<S>>;
+pub type Triangles<S> = quad::Triangles<[S; 2]>;
 
 /// The number of subdivisions when dividing a `Rect` in half along the *x* and *y* axes.
 pub const NUM_SUBDIVISIONS: u8 = 4;
@@ -78,7 +78,7 @@ pub const NUM_TRIANGLES: u8 = 2;
 
 impl<S> Padding<S>
 where
-    S: BaseNum,
+    S: Scalar,
 {
     /// No padding.
     pub fn none() -> Self {
@@ -120,54 +120,151 @@ macro_rules! subdivision_from_index {
 // Given some `Rect` and an index, produce the corner for that index.
 macro_rules! corner_from_index {
     ($rect:expr,0) => {
-        crate::geom::pt2($rect.x.start, $rect.y.end)
+        [$rect.x.start, $rect.y.end]
     };
     ($rect:expr,1) => {
-        crate::geom::pt2($rect.x.end, $rect.y.end)
+        [$rect.x.end, $rect.y.end]
     };
     ($rect:expr,2) => {
-        crate::geom::pt2($rect.x.end, $rect.y.start)
+        [$rect.x.end, $rect.y.start]
     };
     ($rect:expr,3) => {
-        crate::geom::pt2($rect.x.start, $rect.y.start)
+        [$rect.x.start, $rect.y.start]
     };
 }
 
 impl<S> Rect<S>
 where
-    S: BaseNum,
+    S: Scalar + Float,
 {
-    /// Construct a Rect from a given `Point` and `Dimensions`.
-    pub fn from_xy_wh(p: Point2<S>, wh: Vector2<S>) -> Self {
-        Rect {
-            x: Range::from_pos_and_len(p.x, wh.x),
-            y: Range::from_pos_and_len(p.y, wh.y),
-        }
-    }
-
     /// Construct a Rect from the given `x` `y` coordinates and `w` `h` dimensions.
     pub fn from_x_y_w_h(x: S, y: S, w: S, h: S) -> Self {
-        Rect::from_xy_wh(Point2 { x, y }, Vector2 { x: w, y: h })
-    }
-
-    /// Construct a Rect at origin with the given dimensions.
-    pub fn from_wh(wh: Vector2<S>) -> Self {
-        let p = Point2 {
-            x: S::zero(),
-            y: S::zero(),
-        };
-        Self::from_xy_wh(p, wh)
+        Rect {
+            x: Range::from_pos_and_len(x, w),
+            y: Range::from_pos_and_len(y, h),
+        }
     }
 
     /// Construct a Rect at origin with the given width and height.
     pub fn from_w_h(w: S, h: S) -> Self {
-        Self::from_wh(Vector2 { x: w, y: h })
+        Self::from_x_y_w_h(S::zero(), S::zero(), w, h)
     }
 
+    /// The position in the middle of the x bounds.
+    pub fn x(&self) -> S {
+        self.x.middle()
+    }
+
+    /// The position in the middle of the y bounds.
+    pub fn y(&self) -> S {
+        self.y.middle()
+    }
+
+    /// The centered x and y coordinates as a tuple.
+    pub fn x_y(&self) -> (S, S) {
+        (self.x(), self.y())
+    }
+
+    /// The Rect's centered coordinates and dimensions in a tuple.
+    pub fn x_y_w_h(&self) -> (S, S, S, S) {
+        let (x, y) = self.x_y();
+        let (w, h) = self.w_h();
+        (x, y, w, h)
+    }
+
+    /// Align `self` to `other` along the *x* axis in accordance with the given `Align` variant.
+    pub fn align_x_of(self, align: Align, other: Self) -> Self {
+        Rect {
+            x: self.x.align_to(align, other.x),
+            y: self.y,
+        }
+    }
+
+    /// Align `self` to `other` along the *y* axis in accordance with the given `Align` variant.
+    pub fn align_y_of(self, align: Align, other: Self) -> Self {
+        Rect {
+            x: self.x,
+            y: self.y.align_to(align, other.y),
+        }
+    }
+
+    /// Align the middle of `self` with the middle of the `other` **Rect** along the *x* axis.
+    pub fn align_middle_x_of(self, other: Self) -> Self {
+        Rect {
+            x: self.x.align_middle_of(other.x),
+            y: self.y,
+        }
+    }
+
+    /// Align the middle of `self` with the middle of the `other` **Rect** along the *y* axis.
+    pub fn align_middle_y_of(self, other: Self) -> Self {
+        Rect {
+            x: self.x,
+            y: self.y.align_middle_of(other.y),
+        }
+    }
+
+    /// Place `self` in the middle of the top edge of the `other` **Rect**.
+    pub fn mid_top_of(self, other: Self) -> Self {
+        self.align_middle_x_of(other).align_top_of(other)
+    }
+
+    /// Place `self` in the middle of the bottom edge of the `other` **Rect**.
+    pub fn mid_bottom_of(self, other: Self) -> Self {
+        self.align_middle_x_of(other).align_bottom_of(other)
+    }
+
+    /// Place `self` in the middle of the left edge of the `other` **Rect**.
+    pub fn mid_left_of(self, other: Self) -> Self {
+        self.align_left_of(other).align_middle_y_of(other)
+    }
+
+    /// Place `self` in the middle of the right edge of the `other` **Rect**.
+    pub fn mid_right_of(self, other: Self) -> Self {
+        self.align_right_of(other).align_middle_y_of(other)
+    }
+
+    /// Place `self` directly in the middle of the `other` **Rect**.
+    pub fn middle_of(self, other: Self) -> Self {
+        self.align_middle_x_of(other).align_middle_y_of(other)
+    }
+
+    /// The four ranges used for the `Rect`'s four subdivisions.
+    pub fn subdivision_ranges(&self) -> SubdivisionRanges<S> {
+        let (x, y) = self.x_y();
+        let x_a = Range::new(self.x.start, x);
+        let x_b = Range::new(x, self.x.end);
+        let y_a = Range::new(self.y.start, y);
+        let y_b = Range::new(y, self.y.end);
+        SubdivisionRanges { x_a, x_b, y_a, y_b }
+    }
+
+    /// Divide the `Rect` in half along the *x* and *y* axes and return the four subdivisions.
+    ///
+    /// Subdivisions are yielded in the following order:
+    ///
+    /// 1. Bottom left
+    /// 2. Bottom right
+    /// 3. Top left
+    /// 4. Top right
+    pub fn subdivisions(&self) -> [Self; NUM_SUBDIVISIONS as usize] {
+        self.subdivision_ranges().rects()
+    }
+
+    /// The same as `subdivisions` but each subdivision is yielded via the returned `Iterator`.
+    pub fn subdivisions_iter(&self) -> Subdivisions<S> {
+        self.subdivision_ranges().rects_iter()
+    }
+}
+
+impl<S> Rect<S>
+where
+    S: Scalar,
+{
     /// Construct a Rect from the coordinates of two points.
-    pub fn from_corners(a: Point2<S>, b: Point2<S>) -> Self {
-        let (left, right) = if a.x < b.x { (a.x, b.x) } else { (b.x, a.x) };
-        let (bottom, top) = if a.y < b.y { (a.y, b.y) } else { (b.y, a.y) };
+    pub fn from_corner_points([ax, ay]: [S; 2], [bx, by]: [S; 2]) -> Self {
+        let (left, right) = if ax < bx { (ax, bx) } else { (bx, ax) };
+        let (bottom, top) = if ay < by { (ay, by) } else { (by, ay) };
         Rect {
             x: Range {
                 start: left,
@@ -206,26 +303,6 @@ where
         }
     }
 
-    /// The position in the middle of the x bounds.
-    pub fn x(&self) -> S {
-        self.x.middle()
-    }
-
-    /// The position in the middle of the y bounds.
-    pub fn y(&self) -> S {
-        self.y.middle()
-    }
-
-    /// The xy position in the middle of the bounds.
-    pub fn xy(&self) -> Point2<S> {
-        [self.x(), self.y()].into()
-    }
-
-    /// The centered x and y coordinates as a tuple.
-    pub fn x_y(&self) -> (S, S) {
-        (self.x(), self.y())
-    }
-
     /// The Rect's lowest y value.
     pub fn bottom(&self) -> S {
         self.y.absolute().start
@@ -246,46 +323,6 @@ where
         self.x.absolute().end
     }
 
-    /// The top left corner **Point**.
-    pub fn top_left(&self) -> Point2<S> {
-        [self.left(), self.top()].into()
-    }
-
-    /// The bottom left corner **Point**.
-    pub fn bottom_left(&self) -> Point2<S> {
-        [self.left(), self.bottom()].into()
-    }
-
-    /// The top right corner **Point**.
-    pub fn top_right(&self) -> Point2<S> {
-        [self.right(), self.top()].into()
-    }
-
-    /// The bottom right corner **Point**.
-    pub fn bottom_right(&self) -> Point2<S> {
-        [self.right(), self.bottom()].into()
-    }
-
-    /// The middle of the left edge.
-    pub fn mid_left(&self) -> Point2<S> {
-        [self.left(), self.y()].into()
-    }
-
-    /// The middle of the top edge.
-    pub fn mid_top(&self) -> Point2<S> {
-        [self.x(), self.top()].into()
-    }
-
-    /// The middle of the right edge.
-    pub fn mid_right(&self) -> Point2<S> {
-        [self.right(), self.y()].into()
-    }
-
-    /// The middle of the bottom edge.
-    pub fn mid_bottom(&self) -> Point2<S> {
-        [self.x(), self.bottom()].into()
-    }
-
     /// The edges of the **Rect** in a tuple (left, right, bottom, top).
     pub fn l_r_b_t(&self) -> (S, S, S, S) {
         (self.left(), self.right(), self.bottom(), self.top())
@@ -304,25 +341,6 @@ where
         Rect {
             y: self.y.shift(y),
             ..self
-        }
-    }
-
-    /// Shift the Rect by the given vector.
-    pub fn shift(self, v: Vector2<S>) -> Self {
-        self.shift_x(v.x).shift_y(v.y)
-    }
-
-    /// Does the given point touch the Rectangle.
-    pub fn contains(&self, p: Point2<S>) -> bool {
-        self.x.contains(p.x) && self.y.contains(p.y)
-    }
-
-    /// Stretches the closest edge(s) to the given point if the point lies outside of the Rect area.
-    pub fn stretch_to_point(self, p: Point2<S>) -> Self {
-        let Rect { x, y } = self;
-        Rect {
-            x: x.stretch_to_value(p.x),
-            y: y.stretch_to_value(p.y),
         }
     }
 
@@ -358,34 +376,10 @@ where
         }
     }
 
-    /// Align `self` to `other` along the *x* axis in accordance with the given `Align` variant.
-    pub fn align_x_of(self, align: Align, other: Self) -> Self {
-        Rect {
-            x: self.x.align_to(align, other.x),
-            y: self.y,
-        }
-    }
-
-    /// Align `self` to `other` along the *y* axis in accordance with the given `Align` variant.
-    pub fn align_y_of(self, align: Align, other: Self) -> Self {
-        Rect {
-            x: self.x,
-            y: self.y.align_to(align, other.y),
-        }
-    }
-
     /// Align `self`'s left edge with the left edge of the `other` **Rect**.
     pub fn align_left_of(self, other: Self) -> Self {
         Rect {
             x: self.x.align_start_of(other.x),
-            y: self.y,
-        }
-    }
-
-    /// Align the middle of `self` with the middle of the `other` **Rect** along the *x* axis.
-    pub fn align_middle_x_of(self, other: Self) -> Self {
-        Rect {
-            x: self.x.align_middle_of(other.x),
             y: self.y,
         }
     }
@@ -403,14 +397,6 @@ where
         Rect {
             x: self.x,
             y: self.y.align_start_of(other.y),
-        }
-    }
-
-    /// Align the middle of `self` with the middle of the `other` **Rect** along the *y* axis.
-    pub fn align_middle_y_of(self, other: Self) -> Self {
-        Rect {
-            x: self.x,
-            y: self.y.align_middle_of(other.y),
         }
     }
 
@@ -442,35 +428,24 @@ where
         self.align_right_of(other).align_bottom_of(other)
     }
 
-    /// Place `self` in the middle of the top edge of the `other` **Rect**.
-    pub fn mid_top_of(self, other: Self) -> Self {
-        self.align_middle_x_of(other).align_top_of(other)
+    /// Does the given point touch the Rectangle.
+    pub fn contains_point(self, [x, y]: [S; 2]) -> bool {
+        self.x.contains(x) && self.y.contains(y)
     }
 
-    /// Place `self` in the middle of the bottom edge of the `other` **Rect**.
-    pub fn mid_bottom_of(self, other: Self) -> Self {
-        self.align_middle_x_of(other).align_bottom_of(other)
-    }
-
-    /// Place `self` in the middle of the left edge of the `other` **Rect**.
-    pub fn mid_left_of(self, other: Self) -> Self {
-        self.align_left_of(other).align_middle_y_of(other)
-    }
-
-    /// Place `self` in the middle of the right edge of the `other` **Rect**.
-    pub fn mid_right_of(self, other: Self) -> Self {
-        self.align_right_of(other).align_middle_y_of(other)
-    }
-
-    /// Place `self` directly in the middle of the `other` **Rect**.
-    pub fn middle_of(self, other: Self) -> Self {
-        self.align_middle_x_of(other).align_middle_y_of(other)
+    /// Stretches the closest edge(s) to the given point if the point lies outside of the Rect area.
+    pub fn stretch_to_point(self, [px, py]: [S; 2]) -> Self {
+        let Rect { x, y } = self;
+        Rect {
+            x: x.stretch_to_value(px),
+            y: y.stretch_to_value(py),
+        }
     }
 
     /// Return the **Corner** of `self` that is closest to the given **Point**.
-    pub fn closest_corner(&self, p: Point2<S>) -> Corner {
-        let x_edge = self.x.closest_edge(p.x);
-        let y_edge = self.y.closest_edge(p.y);
+    pub fn closest_corner(&self, [x, y]: [S; 2]) -> Corner {
+        let x_edge = self.x.closest_edge(x);
+        let y_edge = self.y.closest_edge(y);
         match (x_edge, y_edge) {
             (Edge::Start, Edge::Start) => Corner::BottomLeft,
             (Edge::Start, Edge::End) => Corner::TopLeft,
@@ -480,7 +455,7 @@ where
     }
 
     /// The four corners of the `Rect`.
-    pub fn corners(&self) -> Quad<Point2<S>> {
+    pub fn corners(&self) -> Quad<[S; 2]> {
         Quad::from([
             corner_from_index!(self, 0),
             corner_from_index!(self, 1),
@@ -497,7 +472,7 @@ where
     }
 
     /// Return two `Tri`s that represent the `Rect`.
-    pub fn triangles(&self) -> (Tri<Point2<S>>, Tri<Point2<S>>) {
+    pub fn triangles(&self) -> (Tri<[S; 2]>, Tri<[S; 2]>) {
         self.corners().triangles()
     }
 
@@ -506,35 +481,8 @@ where
         self.corners().triangles_iter()
     }
 
-    /// The four ranges used for the `Rect`'s four subdivisions.
-    pub fn subdivision_ranges(&self) -> SubdivisionRanges<S> {
-        let (x, y) = self.x_y();
-        let x_a = Range::new(self.x.start, x);
-        let x_b = Range::new(x, self.x.end);
-        let y_a = Range::new(self.y.start, y);
-        let y_b = Range::new(y, self.y.end);
-        SubdivisionRanges { x_a, x_b, y_a, y_b }
-    }
-
-    /// Divide the `Rect` in half along the *x* and *y* axes and return the four subdivisions.
-    ///
-    /// Subdivisions are yielded in the following order:
-    ///
-    /// 1. Bottom left
-    /// 2. Bottom right
-    /// 3. Top left
-    /// 4. Top right
-    pub fn subdivisions(&self) -> [Self; NUM_SUBDIVISIONS as usize] {
-        self.subdivision_ranges().rects()
-    }
-
-    /// The same as `subdivisions` but each subdivision is yielded via the returned `Iterator`.
-    pub fn subdivisions_iter(&self) -> Subdivisions<S> {
-        self.subdivision_ranges().rects_iter()
-    }
-
     /// Produce the corner at the given index.
-    pub fn corner_at_index(&self, index: u8) -> Option<Point2<S>> {
+    pub fn corner_at_index(&self, index: u8) -> Option<[S; 2]> {
         match index {
             0 => Some(corner_from_index!(self, 0)),
             1 => Some(corner_from_index!(self, 1)),
@@ -542,6 +490,180 @@ where
             3 => Some(corner_from_index!(self, 3)),
             _ => None,
         }
+    }
+}
+
+impl Rect<f32> {
+    /// Construct a Rect from a given `Point` and `Dimensions`.
+    pub fn from_xy_wh(p: Point2, s: Vec2) -> Self {
+        Self::from_x_y_w_h(p.x, p.y, s.x, s.y)
+    }
+
+    /// Construct a Rect at origin with the given dimensions.
+    pub fn from_wh(s: Vec2) -> Self {
+        Self::from_w_h(s.x, s.y)
+    }
+
+    /// Construct a Rect from the coordinates of two points.
+    pub fn from_corners(a: Point2, b: Point2) -> Self {
+        Self::from_corner_points(a.into(), b.into())
+    }
+
+    /// The xy position in the middle of the bounds.
+    pub fn xy(&self) -> Point2 {
+        [self.x(), self.y()].into()
+    }
+
+    /// The total dimensions of the Rect.
+    pub fn wh(&self) -> Vec2 {
+        [self.w(), self.h()].into()
+    }
+
+    /// Convert the Rect to a `Point` and `Dimensions`.
+    pub fn xy_wh(&self) -> (Point2, Vec2) {
+        (self.xy(), self.wh())
+    }
+
+    /// The top left corner **Point**.
+    pub fn top_left(&self) -> Point2 {
+        [self.left(), self.top()].into()
+    }
+
+    /// The bottom left corner **Point**.
+    pub fn bottom_left(&self) -> Point2 {
+        [self.left(), self.bottom()].into()
+    }
+
+    /// The top right corner **Point**.
+    pub fn top_right(&self) -> Point2 {
+        [self.right(), self.top()].into()
+    }
+
+    /// The bottom right corner **Point**.
+    pub fn bottom_right(&self) -> Point2 {
+        [self.right(), self.bottom()].into()
+    }
+
+    /// The middle of the left edge.
+    pub fn mid_left(&self) -> Point2 {
+        [self.left(), self.y()].into()
+    }
+
+    /// The middle of the top edge.
+    pub fn mid_top(&self) -> Point2 {
+        [self.x(), self.top()].into()
+    }
+
+    /// The middle of the right edge.
+    pub fn mid_right(&self) -> Point2 {
+        [self.right(), self.y()].into()
+    }
+
+    /// The middle of the bottom edge.
+    pub fn mid_bottom(&self) -> Point2 {
+        [self.x(), self.bottom()].into()
+    }
+
+    /// Shift the Rect by the given vector.
+    pub fn shift(self, v: Vec2) -> Self {
+        self.shift_x(v.x).shift_y(v.y)
+    }
+
+    /// Does the given point touch the Rectangle.
+    pub fn contains(&self, p: Point2) -> bool {
+        self.contains_point(p.into())
+    }
+
+    /// Stretches the closest edge(s) to the given point if the point lies outside of the Rect area.
+    pub fn stretch_to(self, p: Point2) -> Self {
+        self.stretch_to_point(p.into())
+    }
+}
+
+impl Rect<f64> {
+    /// Construct a Rect from a given `Point` and `Dimensions`.
+    pub fn from_xy_wh_f64(p: DVec2, s: DVec2) -> Self {
+        Self::from_x_y_w_h(p.x, p.y, s.x, s.y)
+    }
+
+    /// Construct a Rect at origin with the given dimensions.
+    pub fn from_wh_f64(s: DVec2) -> Self {
+        Self::from_w_h(s.x, s.y)
+    }
+
+    /// Construct a Rect from the coordinates of two points.
+    pub fn from_corners_f64(a: DVec2, b: DVec2) -> Self {
+        Self::from_corner_points(a.into(), b.into())
+    }
+
+    /// The xy position in the middle of the bounds.
+    pub fn xy(&self) -> DVec2 {
+        [self.x(), self.y()].into()
+    }
+
+    /// The total dimensions of the Rect.
+    pub fn wh(&self) -> DVec2 {
+        [self.w(), self.h()].into()
+    }
+
+    /// Convert the Rect to a `Point` and `Dimensions`.
+    pub fn xy_wh(&self) -> (DVec2, DVec2) {
+        (self.xy(), self.wh())
+    }
+
+    /// The top left corner **Point**.
+    pub fn top_left(&self) -> DVec2 {
+        [self.left(), self.top()].into()
+    }
+
+    /// The bottom left corner **Point**.
+    pub fn bottom_left(&self) -> DVec2 {
+        [self.left(), self.bottom()].into()
+    }
+
+    /// The top right corner **Point**.
+    pub fn top_right(&self) -> DVec2 {
+        [self.right(), self.top()].into()
+    }
+
+    /// The bottom right corner **Point**.
+    pub fn bottom_right(&self) -> DVec2 {
+        [self.right(), self.bottom()].into()
+    }
+
+    /// The middle of the left edge.
+    pub fn mid_left(&self) -> DVec2 {
+        [self.left(), self.y()].into()
+    }
+
+    /// The middle of the top edge.
+    pub fn mid_top(&self) -> DVec2 {
+        [self.x(), self.top()].into()
+    }
+
+    /// The middle of the right edge.
+    pub fn mid_right(&self) -> DVec2 {
+        [self.right(), self.y()].into()
+    }
+
+    /// The middle of the bottom edge.
+    pub fn mid_bottom(&self) -> DVec2 {
+        [self.x(), self.bottom()].into()
+    }
+
+    /// Shift the Rect by the given vector.
+    pub fn shift(self, v: DVec2) -> Self {
+        self.shift_x(v.x).shift_y(v.y)
+    }
+
+    /// Does the given point touch the Rectangle.
+    pub fn contains(&self, p: DVec2) -> bool {
+        self.contains_point(p.into())
+    }
+
+    /// Stretches the closest edge(s) to the given point if the point lies outside of the Rect area.
+    pub fn stretch_to(self, p: DVec2) -> Self {
+        self.stretch_to_point(p.into())
     }
 }
 
@@ -588,7 +710,7 @@ where
 
 impl<S> Rect<S>
 where
-    S: BaseNum + Neg<Output = S>,
+    S: Scalar + Neg<Output = S>,
 {
     /// The width of the Rect.
     pub fn w(&self) -> S {
@@ -600,25 +722,9 @@ where
         self.y.len()
     }
 
-    /// The total dimensions of the Rect.
-    pub fn wh(&self) -> Vector2<S> {
-        [self.w(), self.h()].into()
-    }
-
     /// The width and height of the Rect as a tuple.
     pub fn w_h(&self) -> (S, S) {
         (self.w(), self.h())
-    }
-
-    /// Convert the Rect to a `Point` and `Dimensions`.
-    pub fn xy_wh(&self) -> (Point2<S>, Vector2<S>) {
-        (self.xy(), self.wh())
-    }
-
-    /// The Rect's centered coordinates and dimensions in a tuple.
-    pub fn x_y_w_h(&self) -> (S, S, S, S) {
-        let (xy, wh) = self.xy_wh();
-        (xy[0], xy[1], wh[0], wh[1])
     }
 
     /// The length of the longest side of the rectangle.
@@ -704,8 +810,8 @@ where
     }
 
     /// Returns a `Rect` with a position relative to the given position.
-    pub fn relative_to(self, p: Point2<S>) -> Self {
-        self.relative_to_x(p.x).relative_to_y(p.y)
+    pub fn relative_to(self, [x, y]: [S; 2]) -> Self {
+        self.relative_to_x(x).relative_to_y(y)
     }
 
     /// Invert the x axis (aka flip *around* the y axis).
@@ -773,9 +879,9 @@ where
 
 impl<S> Iterator for Corners<S>
 where
-    S: BaseNum,
+    S: Scalar,
 {
-    type Item = Point2<S>;
+    type Item = [S; 2];
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(corner) = self.rect.corner_at_index(self.index) {
             self.index += 1;
@@ -792,7 +898,7 @@ where
 
 impl<S> DoubleEndedIterator for Corners<S>
 where
-    S: BaseNum,
+    S: Scalar,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         let next_index = self.index + 1;
@@ -806,7 +912,7 @@ where
 
 impl<S> ExactSizeIterator for Corners<S>
 where
-    S: BaseNum,
+    S: Scalar,
 {
     fn len(&self) -> usize {
         (NUM_CORNERS - self.index) as usize

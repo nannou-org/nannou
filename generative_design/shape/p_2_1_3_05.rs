@@ -85,7 +85,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let pos_y = (win.top() - (tile_height / 2.0)) - tile_height * grid_y as f32;
 
             //modules
-            let heading = rng.gen_range(0, 4);
+            let heading = rng.gen_range(0..4);
 
             for i in 0..step_size as usize {
                 let radius = map_range(i, 0, step_size as usize, tile_width, end_size) / 2.0;
@@ -100,7 +100,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 draw.ellipse()
                     .x_y(x, y)
                     .radius(radius)
-                    .resolution(32)
+                    .resolution(32.0)
                     .color(col);
             }
         }

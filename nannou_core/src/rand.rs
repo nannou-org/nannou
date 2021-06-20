@@ -5,22 +5,29 @@
 //! [**random_f64()**](./fn.random_f64.html) and [**random_range(min,
 //! max)**](./fn.random_range.html).
 
-pub use rand;
-
 pub use self::rand::*;
+pub use rand;
 
 /// A wrapper function around the `random` function that avoids the need for specifying a type in
 /// the case that it cannot be inferred. The primary purpose for this is to simplify the random API
 /// for new rust users.
+///
+/// NOTE: This helper function relies on a thread-local RNG and is currently only available with
+/// the "std" feature enabled.
+#[cfg(feature = "std")]
 pub fn random_f32() -> f32 {
-    random()
+    rand::random()
 }
 
 /// A wrapper function around the `random` function that avoids the need for specifying a type in
 /// the case that it cannot be inferred. The primary purpose for this is to simplify the random API
 /// for new rust users.
+///
+/// NOTE: This helper function relies on a thread-local RNG and is currently only available with
+/// the "std" feature enabled.
+#[cfg(feature = "std")]
 pub fn random_f64() -> f64 {
-    random()
+    rand::random()
 }
 
 /// A function for generating a random value within the given range.
@@ -31,14 +38,18 @@ pub fn random_f64() -> f64 {
 /// If the given `min` is greater than the given `max`, they will be swapped before calling
 /// `gen_range` internally to avoid triggering a `panic!`.
 ///
-/// This calls `rand::thread_rng().gen_range(min, max)` internally, in turn using the thread-local
+/// This calls `rand::thread_rng().gen_range(min..max)` internally, in turn using the thread-local
 /// default random number generator.
+///
+/// NOTE: This helper function relies on a thread-local RNG and is currently only available with
+/// the "std" feature enabled.
+#[cfg(feature = "std")]
 pub fn random_range<T>(min: T, max: T) -> T
 where
     T: PartialOrd + distributions::uniform::SampleUniform,
 {
     let (min, max) = if min <= max { (min, max) } else { (max, min) };
-    rand::thread_rng().gen_range(min, max)
+    rand::thread_rng().gen_range(min..max)
 }
 
 /// Generates and returns a random ascii character.
@@ -48,11 +59,15 @@ where
 ///  ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 /// abcdefghijklmnopqrstuvwxyz\
 /// 0123456789)(*&^%$#@!~.
+///
+/// NOTE: This helper function relies on a thread-local RNG and is currently only available with
+/// the "std" feature enabled.
+#[cfg(feature = "std")]
 pub fn random_ascii() -> char {
     const ASCIISET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
                             abcdefghijklmnopqrstuvwxyz\
                             0123456789)(*&^%$#@!~. ";
 
-    let idx = rand::thread_rng().gen_range(0, ASCIISET.len());
+    let idx = rand::thread_rng().gen_range(0..ASCIISET.len());
     ASCIISET[idx] as char
 }

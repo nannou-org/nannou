@@ -7,8 +7,8 @@ use crate::draw::properties::{
     ColorScalar, SetColor, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Drawing, DrawingContext};
-use crate::geom::{self, Point2};
-use crate::math::{BaseFloat, Zero};
+use crate::geom::Point2;
+use crate::glam::Mat4;
 use crate::wgpu;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, FillTessellator, StrokeOptions, StrokeTessellator};
@@ -51,16 +51,16 @@ pub(crate) enum PathEventSourceIter<'a> {
 
 /// The beginning of the path building process, prior to choosing the tessellation mode (fill or
 /// stroke).
-#[derive(Clone, Debug)]
-pub struct PathInit<S = geom::scalar::Default>(std::marker::PhantomData<S>);
+#[derive(Clone, Debug, Default)]
+pub struct PathInit;
 
 /// A path drawing context ready to specify tessellation options.
-#[derive(Clone, Debug)]
-pub struct PathOptions<T, S = geom::scalar::Default> {
+#[derive(Clone, Debug, Default)]
+pub struct PathOptions<T> {
     pub(crate) opts: T,
     pub(crate) color: Option<LinSrgba>,
-    pub(crate) position: position::Properties<S>,
-    pub(crate) orientation: orientation::Properties<S>,
+    pub(crate) position: position::Properties,
+    pub(crate) orientation: orientation::Properties,
 }
 
 /// Mutable access to stroke and fill tessellators.
@@ -70,17 +70,17 @@ pub struct Tessellators<'a> {
 }
 
 /// A filled path drawing context.
-pub type PathFill<S = geom::scalar::Default> = PathOptions<FillOptions, S>;
+pub type PathFill = PathOptions<FillOptions>;
 
 /// A stroked path drawing context.
-pub type PathStroke<S = geom::scalar::Default> = PathOptions<StrokeOptions, S>;
+pub type PathStroke = PathOptions<StrokeOptions>;
 
 /// Properties related to drawing a **Path**.
 #[derive(Clone, Debug)]
-pub struct Path<S = geom::scalar::Default> {
+pub struct Path {
     color: Option<LinSrgba>,
-    position: position::Properties<S>,
-    orientation: orientation::Properties<S>,
+    position: position::Properties,
+    orientation: orientation::Properties,
     path_event_src: PathEventSource,
     options: Options,
     vertex_mode: draw::renderer::VertexMode,
@@ -88,19 +88,19 @@ pub struct Path<S = geom::scalar::Default> {
 }
 
 /// The initial drawing context for a path.
-pub type DrawingPathInit<'a, S = geom::scalar::Default> = Drawing<'a, PathInit<S>, S>;
+pub type DrawingPathInit<'a> = Drawing<'a, PathInit>;
 
 /// The drawing context for a path in the tessellation options state.
-pub type DrawingPathOptions<'a, T, S = geom::scalar::Default> = Drawing<'a, PathOptions<T, S>, S>;
+pub type DrawingPathOptions<'a, T> = Drawing<'a, PathOptions<T>>;
 
 /// The drawing context for a stroked path, prior to path event submission.
-pub type DrawingPathStroke<'a, S = geom::scalar::Default> = Drawing<'a, PathStroke<S>, S>;
+pub type DrawingPathStroke<'a> = Drawing<'a, PathStroke>;
 
 /// The drawing context for a filled path, prior to path event submission.
-pub type DrawingPathFill<'a, S = geom::scalar::Default> = Drawing<'a, PathFill<S>, S>;
+pub type DrawingPathFill<'a> = Drawing<'a, PathFill>;
 
 /// The drawing context for a polyline whose vertices have been specified.
-pub type DrawingPath<'a, S = geom::scalar::Default> = Drawing<'a, Path<S>, S>;
+pub type DrawingPath<'a> = Drawing<'a, Path>;
 
 /// Dynamically distinguish between fill and stroke tessellation options.
 #[derive(Clone, Debug)]
@@ -109,14 +109,11 @@ pub enum Options {
     Stroke(StrokeOptions),
 }
 
-impl<S> PathInit<S> {
+impl PathInit {
     /// Specify that we want to use fill tessellation for the path.
     ///
     /// The returned building context allows for specifying the fill tessellation options.
-    pub fn fill(self) -> PathFill<S>
-    where
-        S: Zero,
-    {
+    pub fn fill(self) -> PathFill {
         let opts = FillOptions::default();
         PathFill::new(opts)
     }
@@ -124,19 +121,13 @@ impl<S> PathInit<S> {
     /// Specify that we want to use stroke tessellation for the path.
     ///
     /// The returned building context allows for specifying the stroke tessellation options.
-    pub fn stroke(self) -> PathStroke<S>
-    where
-        S: Zero,
-    {
+    pub fn stroke(self) -> PathStroke {
         let opts = Default::default();
         PathStroke::new(opts)
     }
 }
 
-impl<T, S> PathOptions<T, S>
-where
-    S: Zero,
-{
+impl<T> PathOptions<T> {
     /// Initialise the `PathOptions` builder.
     pub fn new(opts: T) -> Self {
         let orientation = Default::default();
@@ -151,7 +142,7 @@ where
     }
 }
 
-impl<S> PathFill<S> {
+impl PathFill {
     /// Maximum allowed distance to the path when building an approximation.
     ///
     /// This method is shorthand for the `fill_tolerance` method.
@@ -169,7 +160,7 @@ impl<S> PathFill<S> {
     }
 }
 
-impl<S> PathStroke<S> {
+impl PathStroke {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.stroke_weight(weight)
@@ -181,14 +172,13 @@ impl<S> PathStroke<S> {
     }
 }
 
-impl<T, S> PathOptions<T, S>
+impl<T> PathOptions<T>
 where
     T: TessellationOptions,
 {
     /// Submit the path events to be tessellated.
-    pub(crate) fn events<I>(self, ctxt: DrawingContext<S>, events: I) -> Path<S>
+    pub(crate) fn events<I>(self, ctxt: DrawingContext, events: I) -> Path
     where
-        S: BaseFloat,
         I: IntoIterator<Item = PathEvent>,
     {
         let DrawingContext {
@@ -209,11 +199,10 @@ where
     }
 
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
-    pub fn points<I>(self, ctxt: DrawingContext<S>, points: I) -> Path<S>
+    pub fn points<I>(self, ctxt: DrawingContext, points: I) -> Path
     where
-        S: BaseFloat,
         I: IntoIterator,
-        I::Item: Into<Point2<S>>,
+        I::Item: Into<Point2>,
     {
         self.points_inner(ctxt, false, points)
     }
@@ -221,32 +210,29 @@ where
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
     ///
     /// Closes the start and end points.
-    pub fn points_closed<I>(self, ctxt: DrawingContext<S>, points: I) -> Path<S>
+    pub fn points_closed<I>(self, ctxt: DrawingContext, points: I) -> Path
     where
-        S: BaseFloat,
         I: IntoIterator,
-        I::Item: Into<Point2<S>>,
+        I::Item: Into<Point2>,
     {
         self.points_inner(ctxt, true, points)
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn points_colored<I, P, C>(self, ctxt: DrawingContext<S>, points: I) -> Path<S>
+    pub fn points_colored<I, P, C>(self, ctxt: DrawingContext, points: I) -> Path
     where
-        S: BaseFloat,
         I: IntoIterator<Item = (P, C)>,
-        P: Into<Point2<S>>,
+        P: Into<Point2>,
         C: IntoLinSrgba<ColorScalar>,
     {
         self.points_colored_inner(ctxt, false, points)
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn points_colored_closed<I, P, C>(self, ctxt: DrawingContext<S>, points: I) -> Path<S>
+    pub fn points_colored_closed<I, P, C>(self, ctxt: DrawingContext, points: I) -> Path
     where
-        S: BaseFloat,
         I: IntoIterator<Item = (P, C)>,
-        P: Into<Point2<S>>,
+        P: Into<Point2>,
         C: IntoLinSrgba<ColorScalar>,
     {
         self.points_colored_inner(ctxt, true, points)
@@ -255,15 +241,14 @@ where
     /// Submit path events as a polyline of textured points.
     pub fn points_textured<I, P, TC>(
         self,
-        ctxt: DrawingContext<S>,
+        ctxt: DrawingContext,
         texture_view: &dyn wgpu::ToTextureView,
         points: I,
-    ) -> Path<S>
+    ) -> Path
     where
-        S: BaseFloat,
         I: IntoIterator<Item = (P, TC)>,
-        P: Into<Point2<S>>,
-        TC: Into<TexCoords<S>>,
+        P: Into<Point2>,
+        TC: Into<TexCoords>,
     {
         self.points_textured_inner(ctxt, texture_view.to_texture_view(), false, points)
     }
@@ -271,45 +256,37 @@ where
     /// Submit path events as a polyline of textured points.
     pub fn points_textured_closed<I, P, TC>(
         self,
-        ctxt: DrawingContext<S>,
+        ctxt: DrawingContext,
         texture_view: &dyn wgpu::ToTextureView,
         points: I,
-    ) -> Path<S>
+    ) -> Path
     where
-        S: BaseFloat,
         I: IntoIterator<Item = (P, TC)>,
-        P: Into<Point2<S>>,
-        TC: Into<TexCoords<S>>,
+        P: Into<Point2>,
+        TC: Into<TexCoords>,
     {
         self.points_textured_inner(ctxt, texture_view.to_texture_view(), true, points)
     }
 
     // Consumes an iterator of points and converts them to an iterator yielding events.
-    fn points_inner<I>(self, ctxt: DrawingContext<S>, close: bool, points: I) -> Path<S>
+    fn points_inner<I>(self, ctxt: DrawingContext, close: bool, points: I) -> Path
     where
-        S: BaseFloat,
         I: IntoIterator,
-        I::Item: Into<Point2<S>>,
+        I::Item: Into<Point2>,
     {
-        let iter = points.into_iter().map(Into::into).map(|p| {
-            let p: geom::Point2 = p.cast().expect("failed to cast point");
-            lyon::math::point(p.x, p.y)
-        });
+        let iter = points
+            .into_iter()
+            .map(Into::into)
+            .map(|p| lyon::math::point(p.x, p.y));
         let events = lyon::path::iterator::FromPolyline::new(close, iter);
         self.events(ctxt, events)
     }
 
     // Consumes an iterator of points and converts them to an iterator yielding events.
-    fn points_colored_inner<I, P, C>(
-        self,
-        ctxt: DrawingContext<S>,
-        close: bool,
-        points: I,
-    ) -> Path<S>
+    fn points_colored_inner<I, P, C>(self, ctxt: DrawingContext, close: bool, points: I) -> Path
     where
-        S: BaseFloat,
         I: IntoIterator<Item = (P, C)>,
-        P: Into<Point2<S>>,
+        P: Into<Point2>,
         C: IntoLinSrgba<ColorScalar>,
     {
         let DrawingContext {
@@ -340,16 +317,15 @@ where
     // Consumes an iterator of textured points and buffers them for rendering.
     fn points_textured_inner<I, P, TC>(
         self,
-        ctxt: DrawingContext<S>,
+        ctxt: DrawingContext,
         texture_view: wgpu::TextureView,
         close: bool,
         points: I,
-    ) -> Path<S>
+    ) -> Path
     where
-        S: BaseFloat,
         I: IntoIterator<Item = (P, TC)>,
-        P: Into<Point2<S>>,
-        TC: Into<TexCoords<S>>,
+        P: Into<Point2>,
+        TC: Into<TexCoords>,
     {
         let DrawingContext {
             path_points_textured_buffer,
@@ -378,7 +354,7 @@ where
 pub(crate) fn render_path_events<I>(
     events: I,
     color: Option<LinSrgba>,
-    transform: cgmath::Matrix4<f32>,
+    transform: Mat4,
     options: Options,
     theme: &draw::Theme,
     theme_prim: &draw::theme::Primitive,
@@ -408,7 +384,7 @@ pub(crate) fn render_path_events<I>(
 pub(crate) fn render_path_points_colored<I>(
     points_colored: I,
     close: bool,
-    transform: cgmath::Matrix4<f32>,
+    transform: Mat4,
     options: Options,
     fill_tessellator: &mut lyon::tessellation::FillTessellator,
     stroke_tessellator: &mut lyon::tessellation::StrokeTessellator,
@@ -447,7 +423,7 @@ pub(crate) fn render_path_points_colored<I>(
 pub(crate) fn render_path_points_textured<I>(
     points_textured: I,
     close: bool,
-    transform: cgmath::Matrix4<f32>,
+    transform: Mat4,
     options: Options,
     fill_tessellator: &mut lyon::tessellation::FillTessellator,
     stroke_tessellator: &mut lyon::tessellation::StrokeTessellator,
@@ -487,7 +463,7 @@ pub(crate) fn render_path_source(
     // TODO:
     path_src: PathEventSourceIter,
     color: Option<LinSrgba>,
-    transform: cgmath::Matrix4<f32>,
+    transform: Mat4,
     options: Options,
     theme: &draw::Theme,
     theme_prim: &draw::theme::Primitive,
@@ -528,7 +504,7 @@ pub(crate) fn render_path_source(
     }
 }
 
-impl draw::renderer::RenderPrimitive for Path<f32> {
+impl draw::renderer::RenderPrimitive for Path {
     fn render_primitive(
         self,
         mut ctxt: draw::renderer::RenderContext,
@@ -545,7 +521,7 @@ impl draw::renderer::RenderPrimitive for Path<f32> {
         } = self;
 
         // Determine the transform to apply to all points.
-        let global_transform = ctxt.transform;
+        let global_transform = *ctxt.transform;
         let local_transform = position.transform() * orientation.transform();
         let transform = global_transform * local_transform;
 
@@ -626,13 +602,13 @@ where
     // Begin the path.
     let mut iter = points_colored.into_iter();
     let (first_point, first_color) = iter.next()?;
-    let p = first_point.into();
+    let p = first_point.to_array().into();
     let (r, g, b, a) = first_color.into();
     path_builder.move_to(p, &[r, g, b, a]);
 
     // Add the lines, keeping track of the last
     for (point, color) in iter {
-        let p = point.into();
+        let p = point.to_array().into();
         let (r, g, b, a) = color.into();
         path_builder.line_to(p, &[r, g, b, a]);
     }
@@ -658,13 +634,13 @@ where
     // Begin the path.
     let mut iter = points_textured.into_iter();
     let (first_point, first_tex_coords) = iter.next()?;
-    let p = first_point.into();
+    let p = first_point.to_array().into();
     let (tc_x, tc_y) = first_tex_coords.into();
     path_builder.move_to(p, &[tc_x, tc_y]);
 
     // Add the lines, keeping track of the last
     for (point, tex_coords) in iter {
-        let p = point.into();
+        let p = point.to_array().into();
         let (tc_x, tc_y) = tex_coords.into();
         path_builder.line_to(p, &[tc_x, tc_y]);
     }
@@ -678,14 +654,11 @@ where
     Some(path_builder.build())
 }
 
-impl<S> Path<S>
-where
-    S: BaseFloat,
-{
+impl Path {
     // Initialise a new `Path` with its ranges into the intermediary mesh, ready for drawing.
     fn new(
-        position: position::Properties<S>,
-        orientation: orientation::Properties<S>,
+        position: position::Properties,
+        orientation: orientation::Properties,
         color: Option<LinSrgba>,
         path_event_src: PathEventSource,
         options: Options,
@@ -704,29 +677,23 @@ where
     }
 }
 
-impl<'a, S> DrawingPathInit<'a, S>
-where
-    S: BaseFloat,
-{
+impl<'a> DrawingPathInit<'a> {
     /// Specify that we want to use fill tessellation for the path.
     ///
     /// The returned building context allows for specifying the fill tessellation options.
-    pub fn fill(self) -> DrawingPathFill<'a, S> {
+    pub fn fill(self) -> DrawingPathFill<'a> {
         self.map_ty(|ty| ty.fill())
     }
 
     /// Specify that we want to use stroke tessellation for the path.
     ///
     /// The returned building context allows for specifying the stroke tessellation options.
-    pub fn stroke(self) -> DrawingPathStroke<'a, S> {
+    pub fn stroke(self) -> DrawingPathStroke<'a> {
         self.map_ty(|ty| ty.stroke())
     }
 }
 
-impl<'a, S> DrawingPathFill<'a, S>
-where
-    S: BaseFloat,
-{
+impl<'a> DrawingPathFill<'a> {
     /// Maximum allowed distance to the path when building an approximation.
     pub fn tolerance(self, tolerance: f32) -> Self {
         self.map_ty(|ty| ty.tolerance(tolerance))
@@ -740,10 +707,7 @@ where
     }
 }
 
-impl<'a, S> DrawingPathStroke<'a, S>
-where
-    S: BaseFloat,
-{
+impl<'a> DrawingPathStroke<'a> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.map_ty(|ty| ty.stroke_weight(weight))
@@ -755,15 +719,14 @@ where
     }
 }
 
-impl<'a, T, S> DrawingPathOptions<'a, T, S>
+impl<'a, T> DrawingPathOptions<'a, T>
 where
-    S: BaseFloat,
     T: TessellationOptions,
-    PathOptions<T, S>: Into<Primitive<S>>,
-    Primitive<S>: Into<Option<PathOptions<T, S>>>,
+    PathOptions<T>: Into<Primitive>,
+    Primitive: Into<Option<PathOptions<T>>>,
 {
     /// Submit the path events to be tessellated.
-    pub fn events<I>(self, events: I) -> DrawingPath<'a, S>
+    pub fn events<I>(self, events: I) -> DrawingPath<'a>
     where
         I: IntoIterator<Item = lyon::path::PathEvent>,
     {
@@ -771,10 +734,10 @@ where
     }
 
     /// Submit the path events as a polyline of points.
-    pub fn points<I>(self, points: I) -> DrawingPath<'a, S>
+    pub fn points<I>(self, points: I) -> DrawingPath<'a>
     where
         I: IntoIterator,
-        I::Item: Into<Point2<S>>,
+        I::Item: Into<Point2>,
     {
         self.map_ty_with_context(|ty, ctxt| ty.points(ctxt, points))
     }
@@ -782,20 +745,19 @@ where
     /// Submit the path events as a polyline of points.
     ///
     /// An event will be generated that closes the start and end points.
-    pub fn points_closed<I>(self, points: I) -> DrawingPath<'a, S>
+    pub fn points_closed<I>(self, points: I) -> DrawingPath<'a>
     where
         I: IntoIterator,
-        I::Item: Into<Point2<S>>,
+        I::Item: Into<Point2>,
     {
         self.map_ty_with_context(|ty, ctxt| ty.points_closed(ctxt, points))
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPath<'a, S>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPath<'a>
     where
-        S: BaseFloat,
         I: IntoIterator<Item = (P, C)>,
-        P: Into<Point2<S>>,
+        P: Into<Point2>,
         C: IntoLinSrgba<ColorScalar>,
     {
         self.map_ty_with_context(|ty, ctxt| ty.points_colored(ctxt, points))
@@ -804,11 +766,10 @@ where
     /// Submit path events as a polyline of colored points.
     ///
     /// The path with automatically close from the end point to the start point.
-    pub fn points_colored_closed<I, P, C>(self, points: I) -> DrawingPath<'a, S>
+    pub fn points_colored_closed<I, P, C>(self, points: I) -> DrawingPath<'a>
     where
-        S: BaseFloat,
         I: IntoIterator<Item = (P, C)>,
-        P: Into<Point2<S>>,
+        P: Into<Point2>,
         C: IntoLinSrgba<ColorScalar>,
     {
         self.map_ty_with_context(|ty, ctxt| ty.points_colored_closed(ctxt, points))
@@ -819,12 +780,11 @@ where
         self,
         view: &dyn wgpu::ToTextureView,
         points: I,
-    ) -> DrawingPath<'a, S>
+    ) -> DrawingPath<'a>
     where
-        S: BaseFloat,
         I: IntoIterator<Item = (P, TC)>,
-        P: Into<Point2<S>>,
-        TC: Into<TexCoords<S>>,
+        P: Into<Point2>,
+        TC: Into<TexCoords>,
     {
         self.map_ty_with_context(|ty, ctxt| ty.points_textured(ctxt, view, points))
     }
@@ -836,24 +796,23 @@ where
         self,
         view: &dyn wgpu::ToTextureView,
         points: I,
-    ) -> DrawingPath<'a, S>
+    ) -> DrawingPath<'a>
     where
-        S: BaseFloat,
         I: IntoIterator<Item = (P, TC)>,
-        P: Into<Point2<S>>,
-        TC: Into<TexCoords<S>>,
+        P: Into<Point2>,
+        TC: Into<TexCoords>,
     {
         self.map_ty_with_context(|ty, ctxt| ty.points_textured_closed(ctxt, view, points))
     }
 }
 
-impl<S> SetFill for PathFill<S> {
+impl SetFill for PathFill {
     fn fill_options_mut(&mut self) -> &mut FillOptions {
         &mut self.opts
     }
 }
 
-impl<S> SetStroke for PathStroke<S> {
+impl SetStroke for PathStroke {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         &mut self.opts
     }
@@ -873,85 +832,68 @@ impl TessellationOptions for StrokeOptions {
     }
 }
 
-impl<S> Default for PathInit<S> {
-    fn default() -> Self {
-        PathInit(std::marker::PhantomData)
-    }
-}
-
-impl<T, S> Default for PathOptions<T, S>
-where
-    S: Zero,
-    T: Default,
-{
-    fn default() -> Self {
-        let opts = Default::default();
-        PathOptions::new(opts)
-    }
-}
-
-impl<T, S> SetOrientation<S> for PathOptions<T, S> {
-    fn properties(&mut self) -> &mut orientation::Properties<S> {
+impl<T> SetOrientation for PathOptions<T> {
+    fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.orientation)
     }
 }
 
-impl<T, S> SetPosition<S> for PathOptions<T, S> {
-    fn properties(&mut self) -> &mut position::Properties<S> {
+impl<T> SetPosition for PathOptions<T> {
+    fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.position)
     }
 }
 
-impl<T, S> SetColor<ColorScalar> for PathOptions<T, S> {
+impl<T> SetColor<ColorScalar> for PathOptions<T> {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.color)
     }
 }
 
-impl<S> SetOrientation<S> for Path<S> {
-    fn properties(&mut self) -> &mut orientation::Properties<S> {
+impl SetOrientation for Path {
+    fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.orientation)
     }
 }
 
-impl<S> SetPosition<S> for Path<S> {
-    fn properties(&mut self) -> &mut position::Properties<S> {
+impl SetPosition for Path {
+    fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.position)
     }
 }
 
-impl<S> SetColor<ColorScalar> for Path<S> {
+impl SetColor<ColorScalar> for Path {
     fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
         SetColor::rgba_mut(&mut self.color)
     }
 }
 
-impl<S> From<PathInit<S>> for Primitive<S> {
-    fn from(prim: PathInit<S>) -> Self {
+impl From<PathInit> for Primitive {
+    fn from(prim: PathInit) -> Self {
         Primitive::PathInit(prim)
     }
 }
 
-impl<S> From<PathStroke<S>> for Primitive<S> {
-    fn from(prim: PathStroke<S>) -> Self {
+impl From<PathStroke> for Primitive {
+    fn from(prim: PathStroke) -> Self {
         Primitive::PathStroke(prim)
     }
 }
 
-impl<S> From<PathFill<S>> for Primitive<S> {
-    fn from(prim: PathFill<S>) -> Self {
+impl From<PathFill> for Primitive {
+    fn from(prim: PathFill) -> Self {
         Primitive::PathFill(prim)
     }
 }
 
-impl<S> From<Path<S>> for Primitive<S> {
-    fn from(prim: Path<S>) -> Self {
+impl From<Path> for Primitive {
+    fn from(prim: Path) -> Self {
         Primitive::Path(prim)
     }
 }
 
-impl<S> Into<Option<PathInit<S>>> for Primitive<S> {
-    fn into(self) -> Option<PathInit<S>> {
+impl Into<Option<PathInit>> for Primitive {
+    fn into(self) -> Option<PathInit> {
         match self {
             Primitive::PathInit(prim) => Some(prim),
             _ => None,
@@ -959,8 +901,8 @@ impl<S> Into<Option<PathInit<S>>> for Primitive<S> {
     }
 }
 
-impl<S> Into<Option<PathFill<S>>> for Primitive<S> {
-    fn into(self) -> Option<PathFill<S>> {
+impl Into<Option<PathFill>> for Primitive {
+    fn into(self) -> Option<PathFill> {
         match self {
             Primitive::PathFill(prim) => Some(prim),
             _ => None,
@@ -968,8 +910,8 @@ impl<S> Into<Option<PathFill<S>>> for Primitive<S> {
     }
 }
 
-impl<S> Into<Option<PathStroke<S>>> for Primitive<S> {
-    fn into(self) -> Option<PathStroke<S>> {
+impl Into<Option<PathStroke>> for Primitive {
+    fn into(self) -> Option<PathStroke> {
         match self {
             Primitive::PathStroke(prim) => Some(prim),
             _ => None,
@@ -977,8 +919,8 @@ impl<S> Into<Option<PathStroke<S>>> for Primitive<S> {
     }
 }
 
-impl<S> Into<Option<Path<S>>> for Primitive<S> {
-    fn into(self) -> Option<Path<S>> {
+impl Into<Option<Path>> for Primitive {
+    fn into(self) -> Option<Path> {
         match self {
             Primitive::Path(prim) => Some(prim),
             _ => None,

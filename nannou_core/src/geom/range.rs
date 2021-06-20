@@ -1,9 +1,9 @@
 //! A type for working with one-dimensional ranges.
 
 use crate::geom::scalar;
-use crate::math::num_traits::{Float, One, Zero};
-use crate::math::{self, two, BaseNum};
-use std::ops::Neg;
+use crate::math::num_traits::{Float, NumCast, One, Zero};
+use crate::math::{self, two};
+use core::ops::{Add, Neg, Sub};
 
 /// Some start and end position along a single axis.
 ///
@@ -36,13 +36,14 @@ pub enum Align {
 
 impl<S> Range<S>
 where
-    S: BaseNum,
+    S: Copy,
 {
     /// Construct a new `Range` from a given range, i.e. `Range::new(start, end)`.
     ///
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range { start: 0.0, end: 10.0 }, Range::new(0.0, 10.0));
@@ -59,13 +60,17 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(0.0, 10.0), Range::from_pos_and_len(5.0, 10.0));
     /// assert_eq!(Range::new(-5.0, 1.0), Range::from_pos_and_len(-2.0, 6.0));
     /// assert_eq!(Range::new(-100.0, 200.0), Range::from_pos_and_len(50.0, 300.0));
     /// ```
-    pub fn from_pos_and_len(pos: S, len: S) -> Self {
+    pub fn from_pos_and_len(pos: S, len: S) -> Self
+    where
+        S: Float,
+    {
         let half_len = len / two();
         let start = pos - half_len;
         let end = pos + half_len;
@@ -77,13 +82,17 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(-5.0, 5.0).magnitude(), 10.0);
     /// assert_eq!(Range::new(5.0, -5.0).magnitude(), -10.0);
     /// assert_eq!(Range::new(15.0, 10.0).magnitude(), -5.0);
     /// ```
-    pub fn magnitude(&self) -> S {
+    pub fn magnitude(&self) -> S
+    where
+        S: Sub<S, Output = S>,
+    {
         self.end - self.start
     }
 
@@ -92,6 +101,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(-5.0, 5.0).len(), 10.0);
@@ -100,7 +110,7 @@ where
     /// ```
     pub fn len(&self) -> S
     where
-        S: Neg<Output = S>,
+        S: Neg<Output = S> + PartialOrd + Sub<S, Output = S> + Zero,
     {
         let mag = self.magnitude();
         let zero = S::zero();
@@ -116,6 +126,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(-5.0, 5.0).middle(), 0.0);
@@ -124,7 +135,10 @@ where
     /// assert_eq!(Range::new(20.0, 40.0).middle(), 30.0);
     /// assert_eq!(Range::new(20.0, -40.0).middle(), -10.0);
     /// ```
-    pub fn middle(&self) -> S {
+    pub fn middle(&self) -> S
+    where
+        S: Float,
+    {
         (self.end + self.start) / two()
     }
 
@@ -133,6 +147,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(-5.0, 5.0).invert(), Range::new(5.0, -5.0));
@@ -152,6 +167,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// let a = Range::new(0.0, 5.0);
@@ -170,7 +186,10 @@ where
     /// assert_eq!(a.map_value(-5.0, &c), 30.0);
     /// assert_eq!(a.map_value(10.0, &c), -30.0);
     /// ```
-    pub fn map_value(&self, value: S, other: &Self) -> S {
+    pub fn map_value(&self, value: S, other: &Self) -> S
+    where
+        S: NumCast,
+    {
         math::map_range(value, self.start, self.end, other.start, other.end)
     }
 
@@ -179,6 +198,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// let r = Range::new(-5.0, 5.0);
@@ -186,7 +206,10 @@ where
     /// assert_eq!(r.lerp(1.0), 5.0);
     /// assert_eq!(r.lerp(0.5), 0.0);
     /// ```
-    pub fn lerp(&self, amount: S) -> S {
+    pub fn lerp(&self, amount: S) -> S
+    where
+        S: Float,
+    {
         self.start + ((self.end - self.start) * amount)
     }
 
@@ -195,13 +218,17 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(0.0, 5.0).shift(5.0), Range::new(5.0, 10.0));
     /// assert_eq!(Range::new(0.0, 5.0).shift(-5.0), Range::new(-5.0, 0.0));
     /// assert_eq!(Range::new(5.0, -5.0).shift(-5.0), Range::new(0.0, -10.0));
     /// ```
-    pub fn shift(self, amount: S) -> Self {
+    pub fn shift(self, amount: S) -> Self
+    where
+        S: Add<Output = S>,
+    {
         Range {
             start: self.start + amount,
             end: self.end + amount,
@@ -213,6 +240,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(0.0, 5.0).direction(), 1.0);
@@ -221,7 +249,7 @@ where
     /// ```
     pub fn direction(&self) -> S
     where
-        S: Neg<Output = S> + One + Zero,
+        S: Neg<Output = S> + One + PartialOrd + Zero,
     {
         if self.start < self.end {
             S::one()
@@ -232,29 +260,6 @@ where
         }
     }
 
-    /// Converts the Range to an undirected Range. By ensuring that `start` <= `end`.
-    ///
-    /// If `start` > `end`, then the start and end points will be swapped.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # #![allow(deprecated)]
-    /// use nannou::geom::Range;
-    ///
-    /// assert_eq!(Range::new(0.0, 5.0).undirected(), Range::new(0.0, 5.0));
-    /// assert_eq!(Range::new(5.0, 1.0).undirected(), Range::new(1.0, 5.0));
-    /// assert_eq!(Range::new(10.0, -10.0).undirected(), Range::new(-10.0, 10.0));
-    /// ```
-    #[deprecated = "use `absolute` instead"]
-    pub fn undirected(self) -> Self {
-        if self.start > self.end {
-            self.invert()
-        } else {
-            self
-        }
-    }
-
     /// Converts the Range to an absolute Range by ensuring that `start` <= `end`.
     ///
     /// If `start` > `end`, then the start and end points will be swapped.
@@ -262,13 +267,17 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(0.0, 5.0).absolute(), Range::new(0.0, 5.0));
     /// assert_eq!(Range::new(5.0, 1.0).absolute(), Range::new(1.0, 5.0));
     /// assert_eq!(Range::new(10.0, -10.0).absolute(), Range::new(-10.0, 10.0));
     /// ```
-    pub fn absolute(self) -> Self {
+    pub fn absolute(self) -> Self
+    where
+        S: PartialOrd,
+    {
         if self.start > self.end {
             self.invert()
         } else {
@@ -283,6 +292,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// let a = Range::new(0.0, 3.0);
@@ -314,6 +324,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// let a = Range::new(0.0, 6.0);
@@ -328,7 +339,10 @@ where
     /// let f = Range::new(50.0, 100.0);
     /// assert_eq!(e.overlap(f), None);
     /// ```
-    pub fn overlap(mut self, mut other: Self) -> Option<Self> {
+    pub fn overlap(mut self, mut other: Self) -> Option<Self>
+    where
+        S: PartialOrd + Sub<S, Output = S> + Zero,
+    {
         self = self.absolute();
         other = other.absolute();
         let start = math::partial_max(self.start, other.start);
@@ -349,6 +363,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// let a = Range::new(0.0, 3.0);
@@ -375,6 +390,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// let range = Range::new(0.0, 10.0);
@@ -384,7 +400,10 @@ where
     /// assert!(range.contains(0.0));
     /// assert!(range.contains(10.0));
     /// ```
-    pub fn contains(&self, pos: S) -> bool {
+    pub fn contains(&self, pos: S) -> bool
+    where
+        S: PartialOrd,
+    {
         let Range { start, end } = self.absolute();
         start <= pos && pos <= end
     }
@@ -394,6 +413,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(0.25, 9.5).round(), Range::new(0.0, 10.0));
@@ -411,6 +431,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(0.25, 9.5).floor(), Range::new(0.0, 9.0));
@@ -428,6 +449,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(0.0, 10.0).pad_start(2.0), Range::new(2.0, 10.0));
@@ -435,9 +457,10 @@ where
     /// ```
     pub fn pad_start(mut self, pad: S) -> Self
     where
-        S: Neg<Output = S>,
+        S: Add<Output = S> + Neg<Output = S> + PartialOrd,
     {
-        self.start += if self.start <= self.end { pad } else { -pad };
+        let new_start = self.start + if self.start <= self.end { pad } else { -pad };
+        self.start = new_start;
         self
     }
 
@@ -446,6 +469,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(0.0, 10.0).pad_end(2.0), Range::new(0.0, 8.0));
@@ -453,9 +477,10 @@ where
     /// ```
     pub fn pad_end(mut self, pad: S) -> Self
     where
-        S: Neg<Output = S>,
+        S: Add<Output = S> + Neg<Output = S> + PartialOrd,
     {
-        self.end += if self.start <= self.end { -pad } else { pad };
+        let new_end = self.end + if self.start <= self.end { -pad } else { pad };
+        self.end = new_end;
         self
     }
 
@@ -464,6 +489,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(0.0, 10.0).pad(2.0), Range::new(2.0, 8.0));
@@ -471,7 +497,7 @@ where
     /// ```
     pub fn pad(self, pad: S) -> Self
     where
-        S: Neg<Output = S>,
+        S: Add<Output = S> + Neg<Output = S> + PartialOrd,
     {
         self.pad_start(pad).pad_end(pad)
     }
@@ -481,6 +507,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(0.0, 10.0).pad_ends(1.0, 2.0), Range::new(1.0, 8.0));
@@ -488,7 +515,7 @@ where
     /// ```
     pub fn pad_ends(self, start: S, end: S) -> Self
     where
-        S: Neg<Output = S>,
+        S: Add<Output = S> + Neg<Output = S> + PartialOrd,
     {
         self.pad_start(start).pad_end(end)
     }
@@ -498,13 +525,17 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert_eq!(Range::new(0.0, 5.0).clamp_value(7.0), 5.0);
     /// assert_eq!(Range::new(5.0, -2.5).clamp_value(-3.0), -2.5);
     /// assert_eq!(Range::new(5.0, 10.0).clamp_value(0.0), 5.0);
     /// ```
-    pub fn clamp_value(&self, value: S) -> S {
+    pub fn clamp_value(&self, value: S) -> S
+    where
+        S: PartialOrd,
+    {
         math::clamp(value, self.start, self.end)
     }
 
@@ -515,6 +546,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// let a = Range::new(2.5, 5.0);
@@ -525,7 +557,10 @@ where
     /// assert_eq!(b.stretch_to_value(10.0), Range::new(10.0, -5.0));
     /// assert_eq!(b.stretch_to_value(-10.0), Range::new(0.0, -10.0));
     /// ```
-    pub fn stretch_to_value(self, value: S) -> Self {
+    pub fn stretch_to_value(self, value: S) -> Self
+    where
+        S: PartialOrd,
+    {
         let Range { start, end } = self;
         if start <= end {
             if value < start {
@@ -563,13 +598,17 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// assert!(Range::new(0.0, 1.0).has_same_direction(Range::new(100.0, 200.0)));
     /// assert!(Range::new(0.0, -5.0).has_same_direction(Range::new(-2.5, -6.0)));
     /// assert!(!Range::new(0.0, 5.0).has_same_direction(Range::new(2.5, -2.5)));
     /// ```
-    pub fn has_same_direction(self, other: Self) -> bool {
+    pub fn has_same_direction(self, other: Self) -> bool
+    where
+        S: PartialOrd,
+    {
         let self_direction = self.start <= self.end;
         let other_direction = other.start <= other.end;
         self_direction == other_direction
@@ -583,6 +622,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// let a = Range::new(2.5, 7.5);
@@ -595,7 +635,10 @@ where
     /// assert_eq!(c.align_start_of(d), Range::new(0.0, -5.0));
     /// assert_eq!(d.align_start_of(c), Range::new(-7.5, 2.5));
     /// ```
-    pub fn align_start_of(self, other: Self) -> Self {
+    pub fn align_start_of(self, other: Self) -> Self
+    where
+        S: PartialOrd + Add<S, Output = S> + Sub<S, Output = S>,
+    {
         let diff = if self.has_same_direction(other) {
             other.start - self.start
         } else {
@@ -612,6 +655,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// let a = Range::new(2.5, 7.5);
@@ -624,7 +668,10 @@ where
     /// assert_eq!(c.align_end_of(d), Range::new(5.0, 0.0));
     /// assert_eq!(d.align_end_of(c), Range::new(-2.5, 7.5));
     /// ```
-    pub fn align_end_of(self, other: Self) -> Self {
+    pub fn align_end_of(self, other: Self) -> Self
+    where
+        S: PartialOrd + Add<S, Output = S> + Sub<S, Output = S>,
+    {
         let diff = if self.has_same_direction(other) {
             other.end - self.end
         } else {
@@ -638,6 +685,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// let a = Range::new(0.0, 5.0);
@@ -650,7 +698,10 @@ where
     /// assert_eq!(c.align_middle_of(d), Range::new(-2.5, -7.5));
     /// assert_eq!(d.align_middle_of(c), Range::new(-5.0, 5.0));
     /// ```
-    pub fn align_middle_of(self, other: Self) -> Self {
+    pub fn align_middle_of(self, other: Self) -> Self
+    where
+        S: Float,
+    {
         let diff = other.middle() - self.middle();
         self.shift(diff)
     }
@@ -662,6 +713,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// let a = Range::new(2.5, 7.5);
@@ -674,7 +726,10 @@ where
     /// assert_eq!(c.align_after(d), Range::new(10.0, 5.0));
     /// assert_eq!(d.align_after(c), Range::new(-12.5, -2.5));
     /// ```
-    pub fn align_after(self, other: Self) -> Self {
+    pub fn align_after(self, other: Self) -> Self
+    where
+        S: PartialOrd + Add<S, Output = S> + Sub<S, Output = S>,
+    {
         let diff = if self.has_same_direction(other) {
             other.end - self.start
         } else {
@@ -690,6 +745,7 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::Range;
     ///
     /// let a = Range::new(2.5, 7.5);
@@ -702,7 +758,10 @@ where
     /// assert_eq!(c.align_before(d), Range::new(-5.0, -10.0));
     /// assert_eq!(d.align_before(c), Range::new(2.5, 12.5));
     /// ```
-    pub fn align_before(self, other: Self) -> Self {
+    pub fn align_before(self, other: Self) -> Self
+    where
+        S: PartialOrd + Add<S, Output = S> + Sub<S, Output = S>,
+    {
         let diff = if self.has_same_direction(other) {
             other.start - self.end
         } else {
@@ -712,7 +771,10 @@ where
     }
 
     /// Align `self` to `other` along the *x* axis in accordance with the given `Align` variant.
-    pub fn align_to(self, align: Align, other: Self) -> Self {
+    pub fn align_to(self, align: Align, other: Self) -> Self
+    where
+        S: Float,
+    {
         match align {
             Align::Start => self.align_start_of(other),
             Align::Middle => self.align_middle_of(other),
@@ -727,13 +789,17 @@ where
     /// # Examples
     ///
     /// ```
+    /// # use nannou_core as nannou;
     /// use nannou::geom::{Edge, Range};
     ///
     /// assert_eq!(Range::new(0.0, 10.0).closest_edge(4.0), Edge::Start);
     /// assert_eq!(Range::new(0.0, 10.0).closest_edge(7.0), Edge::End);
     /// assert_eq!(Range::new(0.0, 10.0).closest_edge(5.0), Edge::Start);
     /// ```
-    pub fn closest_edge(&self, scalar: S) -> Edge {
+    pub fn closest_edge(&self, scalar: S) -> Edge
+    where
+        S: PartialOrd + Sub<S, Output = S>,
+    {
         let Range { start, end } = *self;
         let start_diff = if scalar < start {
             start - scalar

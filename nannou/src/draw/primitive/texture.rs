@@ -3,32 +3,29 @@ use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{SetDimensions, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
-use crate::geom::{self, Vector2};
-use crate::math::BaseFloat;
+use crate::geom;
+use crate::glam::Vec2;
 use crate::wgpu;
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]
-pub struct Texture<S = geom::scalar::Default> {
+pub struct Texture {
     texture_view: wgpu::TextureView,
-    spatial: spatial::Properties<S>,
+    spatial: spatial::Properties,
     area: geom::Rect,
 }
 
 /// The drawing context for a Rect.
-pub type DrawingTexture<'a, S = geom::scalar::Default> = Drawing<'a, Texture<S>, S>;
+pub type DrawingTexture<'a> = Drawing<'a, Texture>;
 
 // Trait implementations.
 
-impl<S> Texture<S>
-where
-    S: BaseFloat,
-{
+impl Texture {
     pub(crate) fn new(view: &dyn wgpu::ToTextureView) -> Self {
         let texture_view = view.to_texture_view();
         let [w, h] = texture_view.size();
-        let w = S::from(w).unwrap();
-        let h = S::from(h).unwrap();
+        let w = w as f32;
+        let h = h as f32;
         let spatial = spatial::Properties::default().w_h(w, h);
         let x = geom::Range {
             start: 0.0,
@@ -47,7 +44,7 @@ where
     }
 }
 
-impl<S> Texture<S> {
+impl Texture {
     /// Specify the area of the texture to draw.
     ///
     /// The bounds of the rectangle should represent the desired area as texture coordinates of the
@@ -63,10 +60,7 @@ impl<S> Texture<S> {
     }
 }
 
-impl<'a, S> DrawingTexture<'a, S>
-where
-    S: BaseFloat,
-{
+impl<'a> DrawingTexture<'a> {
     /// Specify the area of the texture to draw.
     ///
     /// The bounds of the rectangle should represent the desired area as texture coordinates of the
@@ -81,7 +75,7 @@ where
     }
 }
 
-impl draw::renderer::RenderPrimitive for Texture<f32> {
+impl draw::renderer::RenderPrimitive for Texture {
     fn render_primitive(
         self,
         mut ctxt: draw::renderer::RenderContext,
@@ -106,10 +100,10 @@ impl draw::renderer::RenderPrimitive for Texture<f32> {
         );
         let w = maybe_x.unwrap_or(100.0);
         let h = maybe_y.unwrap_or(100.0);
-        let rect = geom::Rect::from_wh(Vector2 { x: w, y: h });
+        let rect = geom::Rect::from_w_h(w, h);
 
         // Determine the transform to apply to all points.
-        let global_transform = ctxt.transform;
+        let global_transform = *ctxt.transform;
         let local_transform = position.transform() * orientation.transform();
         let transform = global_transform * local_transform;
 
@@ -117,7 +111,8 @@ impl draw::renderer::RenderPrimitive for Texture<f32> {
         let points_textured = rect
             .corners()
             .vertices()
-            .zip(area.invert_y().corners().vertices());
+            .map(Vec2::from)
+            .zip(area.invert_y().corners().vertices().map(Vec2::from));
 
         path::render_path_points_textured(
             points_textured,
@@ -133,34 +128,34 @@ impl draw::renderer::RenderPrimitive for Texture<f32> {
     }
 }
 
-impl<S> SetOrientation<S> for Texture<S> {
-    fn properties(&mut self) -> &mut orientation::Properties<S> {
+impl SetOrientation for Texture {
+    fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.spatial)
     }
 }
 
-impl<S> SetPosition<S> for Texture<S> {
-    fn properties(&mut self) -> &mut position::Properties<S> {
+impl SetPosition for Texture {
+    fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.spatial)
     }
 }
 
-impl<S> SetDimensions<S> for Texture<S> {
-    fn properties(&mut self) -> &mut dimension::Properties<S> {
+impl SetDimensions for Texture {
+    fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.spatial)
     }
 }
 
 // Primitive conversions.
 
-impl<S> From<Texture<S>> for Primitive<S> {
-    fn from(prim: Texture<S>) -> Self {
+impl From<Texture> for Primitive {
+    fn from(prim: Texture) -> Self {
         Primitive::Texture(prim)
     }
 }
 
-impl<S> Into<Option<Texture<S>>> for Primitive<S> {
-    fn into(self) -> Option<Texture<S>> {
+impl Into<Option<Texture>> for Primitive {
+    fn into(self) -> Option<Texture> {
         match self {
             Primitive::Texture(prim) => Some(prim),
             _ => None,

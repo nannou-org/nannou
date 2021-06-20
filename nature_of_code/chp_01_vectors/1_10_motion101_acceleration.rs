@@ -15,8 +15,8 @@ struct Model {
 
 struct Mover {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     top_speed: f32,
 }
 
@@ -42,7 +42,7 @@ impl Mover {
         // Velocity chages according to acceleration
         self.velocity += self.acceleration;
         // Limit the velocity by top_speed
-        self.velocity = self.velocity.limit_magnitude(self.top_speed);
+        self.velocity = self.velocity.clamp_length_max(self.top_speed);
         // Position changes velocity
         self.position += self.velocity;
     }

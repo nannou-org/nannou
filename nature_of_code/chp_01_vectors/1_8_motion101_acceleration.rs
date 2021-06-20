@@ -15,8 +15,8 @@ struct Model {
 
 struct Mover {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     top_speed: f32,
 }
 

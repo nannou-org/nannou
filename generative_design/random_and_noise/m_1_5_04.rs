@@ -34,8 +34,8 @@ fn main() {
 }
 
 struct Agent {
-    vector: Vector2,
-    vector_old: Vector2,
+    vector: Vec2,
+    vector_old: Vec2,
     randomizer: f32,
     step_size: f32,
     z_noise: f32,

@@ -86,7 +86,7 @@ fn model(app: &App) -> Model {
     // Initialise the state that we want to live on the audio thread.
     let source_position = [0.0; 3].into();
     let audio_model = Audio {
-        rng: SmallRng::from_seed([0; 16]),
+        rng: SmallRng::seed_from_u64(0),
         hrtf_data: HrtfData::new(),
         hrtf_processor,
         source_position,
@@ -201,7 +201,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
 // Simple function for determining a gain based on the distance from the listener.
 fn dist_gain(p: &Point3) -> f32 {
-    let m = p.magnitude();
+    let m = p.length();
     if m == 0.0 {
         1.0
     } else if m > 1.0 {

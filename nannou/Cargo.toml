@@ -14,7 +14,6 @@ edition = "2018"
 default = ["notosans"]
 
 [dependencies]
-cgmath = { version = "0.17", features = ["serde"] }
 conrod_core = "0.73"
 conrod_wgpu = "0.73"
 conrod_winit = "0.72"
@@ -24,12 +23,11 @@ futures = { version = "0.3", features = ["executor", "thread-pool"] }
 image = "0.23"
 instant = "0.1.9"
 lyon = "0.15"
+nannou_core = { version = "0.16.0", path = "../nannou_core", features = ["std", "serde"] }
 noise = "0.6"
 notosans = { version = "0.1", optional = true }
 num_cpus = "1"
-palette = { version = "0.5", features = ["serializing"] }
 pennereq = "0.3"
-rand = { version = "0.7", features = ["small_rng"] }
 rusttype = "0.8"
 serde = "1"
 serde_derive = "1"

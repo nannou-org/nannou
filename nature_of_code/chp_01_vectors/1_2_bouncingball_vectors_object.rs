@@ -19,7 +19,7 @@ struct Model {
 
 struct Ball {
     position: Point2,
-    velocity: Vector2,
+    velocity: Vec2,
 }
 
 impl Ball {

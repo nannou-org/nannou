@@ -2,10 +2,9 @@
 //!
 //! The main type is the `Cuboid` type.
 
-use crate::geom::{quad, scalar, Point3, Quad, Range, Tri, Vector3};
+use crate::geom::{quad, scalar, Point3, Quad, Range, Scalar, Tri};
+use crate::glam::{DVec3, Vec3};
 use crate::math::num_traits::Float;
-use crate::math::BaseNum;
-use std::ops::Neg;
 
 /// The number of faces on a Cuboid.
 pub const NUM_FACES: u8 = 6;
@@ -59,7 +58,7 @@ pub struct Faces {
 }
 
 /// A quad representing a single face of a cuboid.
-pub type FaceQuad<S> = Quad<Point3<S>>;
+pub type FaceQuad<S> = Quad<[S; 3]>;
 
 /// An iterator yielding each face of a cuboid as a quad.
 #[derive(Clone, Debug)]
@@ -74,7 +73,7 @@ pub struct FaceQuads<'a, S: 'a = scalar::Default> {
 #[derive(Clone, Debug)]
 pub struct Triangles<'a, S: 'a> {
     face_quads: FaceQuads<'a, S>,
-    triangles: quad::Triangles<Point3<S>>,
+    triangles: quad::Triangles<[S; 3]>,
 }
 
 /// The three ranges that make up the 8 subdivisions of a cuboid.
@@ -234,29 +233,15 @@ macro_rules! subdivision_from_index {
 
 impl<S> Cuboid<S>
 where
-    S: BaseNum,
+    S: Float + Scalar,
 {
     /// Construct a Rect from a given centre point (x, y, z) and dimensions (width, height, depth).
-    pub fn from_xyz_whd(p: Point3<S>, d: Vector3<S>) -> Self {
+    pub fn from_x_y_z_w_h_d(x: S, y: S, z: S, w: S, h: S, d: S) -> Self {
         Cuboid {
-            x: Range::from_pos_and_len(p.x, d.x),
-            y: Range::from_pos_and_len(p.y, d.y),
-            z: Range::from_pos_and_len(p.z, d.z),
+            x: Range::from_pos_and_len(x, w),
+            y: Range::from_pos_and_len(y, h),
+            z: Range::from_pos_and_len(z, d),
         }
-    }
-
-    /// Construct a cuboid from its x, y and z ranges.
-    pub fn from_ranges(x: Range<S>, y: Range<S>, z: Range<S>) -> Self {
-        Cuboid { x, y, z }
-    }
-
-    /// Converts `self` to an absolute `Cuboid` so that the magnitude of each range is always
-    /// positive.
-    pub fn absolute(&self) -> Self {
-        let x = self.x.absolute();
-        let y = self.y.absolute();
-        let z = self.z.absolute();
-        Cuboid { x, y, z }
     }
 
     /// The position in the middle of the x range.
@@ -274,14 +259,54 @@ where
         self.z.middle()
     }
 
-    /// The xyz position in the middle of the bounds.
-    pub fn xyz(&self) -> Point3<S> {
-        [self.x(), self.y(), self.z()].into()
-    }
-
     /// The centered x, y and z coordinates as a tuple.
     pub fn x_y_z(&self) -> (S, S, S) {
         (self.x(), self.y(), self.z())
+    }
+
+    /// The six ranges used for the `Cuboid`'s eight subdivisions.
+    pub fn subdivision_ranges(&self) -> SubdivisionRanges<S> {
+        let (x, y, z) = self.x_y_z();
+        let x_a = Range::new(self.x.start, x);
+        let x_b = Range::new(x, self.x.end);
+        let y_a = Range::new(self.y.start, y);
+        let y_b = Range::new(y, self.y.end);
+        let z_a = Range::new(self.z.start, z);
+        let z_b = Range::new(z, self.z.end);
+        SubdivisionRanges {
+            x_a,
+            x_b,
+            y_a,
+            y_b,
+            z_a,
+            z_b,
+        }
+    }
+
+    /// The position and dimensions of the cuboid.
+    pub fn x_y_z_w_h_d(&self) -> (S, S, S, S, S, S) {
+        let (x, y, z) = self.x_y_z();
+        let (w, h, d) = self.w_h_d();
+        (x, y, z, w, h, d)
+    }
+}
+
+impl<S> Cuboid<S>
+where
+    S: Scalar,
+{
+    /// Construct a cuboid from its x, y and z ranges.
+    pub fn from_ranges(x: Range<S>, y: Range<S>, z: Range<S>) -> Self {
+        Cuboid { x, y, z }
+    }
+
+    /// Converts `self` to an absolute `Cuboid` so that the magnitude of each range is always
+    /// positive.
+    pub fn absolute(&self) -> Self {
+        let x = self.x.absolute();
+        let y = self.y.absolute();
+        let z = self.z.absolute();
+        Cuboid { x, y, z }
     }
 
     /// Shift the cuboid along the x axis.
@@ -309,8 +334,7 @@ where
     }
 
     /// Shift the cuboid by the given vector.
-    pub fn shift(self, v: Vector3<S>) -> Self {
-        let Vector3 { x, y, z } = v;
+    pub fn shift_by(self, [x, y, z]: [S; 3]) -> Self {
         Cuboid {
             x: self.x.shift(x),
             y: self.y.shift(y),
@@ -319,18 +343,18 @@ where
     }
 
     /// Does the given cuboid contain the given point.
-    pub fn contains(&self, p: Point3<S>) -> bool {
-        self.x.contains(p.x) && self.y.contains(p.y) && self.z.contains(p.z)
+    pub fn contains_point(&self, [x, y, z]: [S; 3]) -> bool {
+        self.x.contains(x) && self.y.contains(y) && self.z.contains(z)
     }
 
     /// Stretches the closest side(s) to the given point if the point lies outside of the Cuboid
     /// area.
-    pub fn stretch_to_point(self, p: Point3<S>) -> Self {
+    pub fn stretch_to_point(self, [px, py, pz]: [S; 3]) -> Self {
         let Cuboid { x, y, z } = self;
         Cuboid {
-            x: x.stretch_to_value(p.x),
-            y: y.stretch_to_value(p.y),
-            z: z.stretch_to_value(p.z),
+            x: x.stretch_to_value(px),
+            y: y.stretch_to_value(py),
+            z: z.stretch_to_value(pz),
         }
     }
 
@@ -442,7 +466,7 @@ where
     /// |/  |/
     /// 0---1
     /// ```
-    pub fn corners(&self) -> [Point3<S>; NUM_CORNERS as usize] {
+    pub fn corners(&self) -> [[S; 3]; NUM_CORNERS as usize] {
         let a = [self.x.start, self.y.start, self.z.start].into();
         let b = [self.x.end, self.y.start, self.z.start].into();
         let c = [self.x.start, self.y.end, self.z.start].into();
@@ -496,83 +520,6 @@ where
         }
     }
 
-    /// The six ranges used for the `Cuboid`'s eight subdivisions.
-    pub fn subdivision_ranges(&self) -> SubdivisionRanges<S> {
-        let (x, y, z) = self.x_y_z();
-        let x_a = Range::new(self.x.start, x);
-        let x_b = Range::new(x, self.x.end);
-        let y_a = Range::new(self.y.start, y);
-        let y_b = Range::new(y, self.y.end);
-        let z_a = Range::new(self.z.start, z);
-        let z_b = Range::new(z, self.z.end);
-        SubdivisionRanges {
-            x_a,
-            x_b,
-            y_a,
-            y_b,
-            z_a,
-            z_b,
-        }
-    }
-}
-
-impl<S> SubdivisionRanges<S>
-where
-    S: Copy,
-{
-    /// The `Cuboid`s representing each of the eight subdivisions.
-    ///
-    /// Subdivisions are yielded in the following order:
-    ///
-    /// 1. Front bottom left
-    /// 2. Front bottom right
-    /// 3. Front top left
-    /// 4. Front top right
-    /// 5. Back bottom left
-    /// 6. Back bottom right
-    /// 7. Back top left
-    /// 8. Back top right
-    pub fn cuboids(&self) -> [Cuboid<S>; NUM_SUBDIVISIONS as usize] {
-        let c1 = subdivision_from_index!(self, 0);
-        let c2 = subdivision_from_index!(self, 1);
-        let c3 = subdivision_from_index!(self, 2);
-        let c4 = subdivision_from_index!(self, 3);
-        let c5 = subdivision_from_index!(self, 4);
-        let c6 = subdivision_from_index!(self, 5);
-        let c7 = subdivision_from_index!(self, 6);
-        let c8 = subdivision_from_index!(self, 7);
-        [c1, c2, c3, c4, c5, c6, c7, c8]
-    }
-
-    /// The same as `cuboids` but each subdivision is yielded via the returned `Iterator`.
-    pub fn cuboids_iter(self) -> Subdivisions<S> {
-        Subdivisions {
-            ranges: self,
-            subdivision_index: 0,
-        }
-    }
-
-    // The subdivision at the given index within the range 0..NUM_SUBDIVISIONS.
-    fn subdivision_at_index(&self, index: u8) -> Option<Cuboid<S>> {
-        let cuboid = match index {
-            0 => subdivision_from_index!(self, 0),
-            1 => subdivision_from_index!(self, 1),
-            2 => subdivision_from_index!(self, 2),
-            3 => subdivision_from_index!(self, 3),
-            4 => subdivision_from_index!(self, 4),
-            5 => subdivision_from_index!(self, 5),
-            6 => subdivision_from_index!(self, 6),
-            7 => subdivision_from_index!(self, 7),
-            _ => return None,
-        };
-        Some(cuboid)
-    }
-}
-
-impl<S> Cuboid<S>
-where
-    S: BaseNum + Neg<Output = S>,
-{
     /// The length of the cuboid along the *x* axis (aka `width` or `w` for short).
     pub fn w(&self) -> S {
         self.x.len()
@@ -588,11 +535,6 @@ where
         self.z.len()
     }
 
-    /// The dimensions (width, height and depth) of the cuboid as a vector.
-    pub fn whd(&self) -> Vector3<S> {
-        [self.w(), self.h(), self.d()].into()
-    }
-
     /// The dimensions (width, height and depth) of the cuboid as a tuple.
     pub fn w_h_d(&self) -> (S, S, S) {
         (self.w(), self.h(), self.d())
@@ -602,18 +544,6 @@ where
     pub fn volume(&self) -> S {
         let (w, h, d) = self.w_h_d();
         w * h * d
-    }
-
-    /// The position and dimensions of the cuboid.
-    pub fn xyz_whd(&self) -> (Point3<S>, Vector3<S>) {
-        (self.xyz(), self.whd())
-    }
-
-    /// The position and dimensions of the cuboid.
-    pub fn x_y_z_w_h_d(&self) -> (S, S, S, S, S, S) {
-        let (x, y, z) = self.x_y_z();
-        let (w, h, d) = self.w_h_d();
-        (x, y, z, w, h, d)
     }
 
     /// The cuboid with some padding applied to the left side.
@@ -675,7 +605,140 @@ where
     }
 }
 
-fn corner_from_index<S>(c: &Cuboid<S>, index: u8) -> Option<Point3<S>>
+impl Cuboid<f32> {
+    /// Construct a Rect from a given centre point (x, y, z) and dimensions (width, height, depth).
+    pub fn from_xyz_whd(p: Point3, s: Vec3) -> Self {
+        Self::from_x_y_z_w_h_d(p.x, p.y, p.z, s.x, s.y, s.z)
+    }
+
+    /// The xyz position in the middle of the bounds.
+    pub fn xyz(&self) -> Point3 {
+        let (x, y, z) = self.x_y_z();
+        [x, y, z].into()
+    }
+
+    /// The dimensions (width, height and depth) of the cuboid as a vector.
+    pub fn whd(&self) -> Vec3 {
+        let (w, h, d) = self.w_h_d();
+        [w, h, d].into()
+    }
+
+    /// The position and dimensions of the cuboid.
+    pub fn xyz_whd(&self) -> (Point3, Vec3) {
+        (self.xyz(), self.whd())
+    }
+
+    /// Shift the cuboid by the given vector.
+    pub fn shift(self, v: Vec3) -> Self {
+        self.shift_by(v.into())
+    }
+
+    /// Does the given cuboid contain the given point.
+    pub fn contains(&self, p: Point3) -> bool {
+        self.contains_point(p.into())
+    }
+
+    /// Stretches the closest side(s) to the given point if the point lies outside of the Cuboid
+    /// area.
+    pub fn stretch_to(self, p: Point3) -> Self {
+        self.stretch_to_point(p.into())
+    }
+}
+
+impl Cuboid<f64> {
+    /// Construct a Rect from a given centre point (x, y, z) and dimensions (width, height, depth).
+    pub fn from_xyz_whd_f64(p: DVec3, s: DVec3) -> Self {
+        Self::from_x_y_z_w_h_d(p.x, p.y, p.z, s.x, s.y, s.z)
+    }
+
+    /// The xyz position in the middle of the bounds.
+    pub fn xyz(&self) -> DVec3 {
+        let (x, y, z) = self.x_y_z();
+        [x, y, z].into()
+    }
+
+    /// The dimensions (width, height and depth) of the cuboid as a vector.
+    pub fn whd(&self) -> DVec3 {
+        let (w, h, d) = self.w_h_d();
+        [w, h, d].into()
+    }
+
+    /// The position and dimensions of the cuboid.
+    pub fn xyz_whd(&self) -> (DVec3, DVec3) {
+        (self.xyz(), self.whd())
+    }
+
+    /// Shift the cuboid by the given vector.
+    pub fn shift(self, v: DVec3) -> Self {
+        self.shift_by(v.into())
+    }
+
+    /// Does the given cuboid contain the given point.
+    pub fn contains(&self, p: DVec3) -> bool {
+        self.contains_point(p.into())
+    }
+
+    /// Stretches the closest side(s) to the given point if the point lies outside of the Cuboid
+    /// area.
+    pub fn stretch_to(self, p: DVec3) -> Self {
+        self.stretch_to_point(p.into())
+    }
+}
+
+impl<S> SubdivisionRanges<S>
+where
+    S: Copy,
+{
+    /// The `Cuboid`s representing each of the eight subdivisions.
+    ///
+    /// Subdivisions are yielded in the following order:
+    ///
+    /// 1. Front bottom left
+    /// 2. Front bottom right
+    /// 3. Front top left
+    /// 4. Front top right
+    /// 5. Back bottom left
+    /// 6. Back bottom right
+    /// 7. Back top left
+    /// 8. Back top right
+    pub fn cuboids(&self) -> [Cuboid<S>; NUM_SUBDIVISIONS as usize] {
+        let c1 = subdivision_from_index!(self, 0);
+        let c2 = subdivision_from_index!(self, 1);
+        let c3 = subdivision_from_index!(self, 2);
+        let c4 = subdivision_from_index!(self, 3);
+        let c5 = subdivision_from_index!(self, 4);
+        let c6 = subdivision_from_index!(self, 5);
+        let c7 = subdivision_from_index!(self, 6);
+        let c8 = subdivision_from_index!(self, 7);
+        [c1, c2, c3, c4, c5, c6, c7, c8]
+    }
+
+    /// The same as `cuboids` but each subdivision is yielded via the returned `Iterator`.
+    pub fn cuboids_iter(self) -> Subdivisions<S> {
+        Subdivisions {
+            ranges: self,
+            subdivision_index: 0,
+        }
+    }
+
+    // The subdivision at the given index within the range 0..NUM_SUBDIVISIONS.
+    fn subdivision_at_index(&self, index: u8) -> Option<Cuboid<S>> {
+        let cuboid = match index {
+            0 => subdivision_from_index!(self, 0),
+            1 => subdivision_from_index!(self, 1),
+            2 => subdivision_from_index!(self, 2),
+            3 => subdivision_from_index!(self, 3),
+            4 => subdivision_from_index!(self, 4),
+            5 => subdivision_from_index!(self, 5),
+            6 => subdivision_from_index!(self, 6),
+            7 => subdivision_from_index!(self, 7),
+            _ => return None,
+        };
+        Some(cuboid)
+    }
+}
+
+fn corner_from_index<S>(c: &Cuboid<S>, index: u8) -> Option<[S; 3]>
 where
     S: Copy,
 {
@@ -697,7 +760,7 @@ impl<'a, S> Iterator for Corners<'a, S>
 where
     S: Copy,
 {
-    type Item = Point3<S>;
+    type Item = [S; 3];
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(p) = corner_from_index(self.cuboid, self.corner_index) {
             self.corner_index += 1;
@@ -779,7 +842,7 @@ impl ExactSizeIterator for Faces {
 
 impl<'a, S> Iterator for FaceQuads<'a, S>
 where
-    S: BaseNum,
+    S: Scalar,
 {
     type Item = FaceQuad<S>;
     fn next(&mut self) -> Option<Self::Item> {
@@ -792,7 +855,7 @@ where
 
 impl<'a, S> DoubleEndedIterator for FaceQuads<'a, S>
 where
-    S: BaseNum,
+    S: Scalar,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.faces.next_back().map(|f| self.cuboid.face_quad(f))
@@ -801,7 +864,7 @@ where
 
 impl<'a, S> ExactSizeIterator for FaceQuads<'a, S>
 where
-    S: BaseNum,
+    S: Scalar,
 {
     fn len(&self) -> usize {
         self.faces.len()
@@ -810,9 +873,9 @@ where
 
 impl<'a, S> Iterator for Triangles<'a, S>
 where
-    S: BaseNum,
+    S: Scalar,
 {
-    type Item = Tri<Point3<S>>;
+    type Item = Tri<[S; 3]>;
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if let Some(tri) = self.triangles.next() {
@@ -832,7 +895,7 @@ where
 
 impl<'a, S> DoubleEndedIterator for Triangles<'a, S>
 where
-    S: BaseNum,
+    S: Scalar,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
@@ -849,7 +912,7 @@ where
 
 impl<'a, S> ExactSizeIterator for Triangles<'a, S>
 where
-    S: BaseNum,
+    S: Scalar,
 {
     fn len(&self) -> usize {
         let remaining_triangles = self.triangles.len();

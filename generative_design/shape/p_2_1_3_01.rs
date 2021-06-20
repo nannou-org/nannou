@@ -90,7 +90,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             //println!("x {} || y {}", win.left() + model.tile_width * grid_x as f32, win.top() - model.tile_height * grid_y as f32);
             let scale = model.tile_width / model.tile_height;
             draw = draw.scale(scale);
-            let toggle = rng.gen_range(0, 4);
+            let toggle = rng.gen_range(0..4);
             let rotation = match toggle {
                 0 => -(PI / 2.0),
                 1 => 0.0,

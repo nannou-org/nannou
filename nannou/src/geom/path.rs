@@ -4,7 +4,8 @@
 //! offerred by `lyon` in a way that interoperates a little more fluidly and consistently with the
 //! rest of nannou's API.
 
-use crate::geom::{Point2, Vector2};
+use crate::geom::Point2;
+use crate::glam::Vec2;
 
 /// A wrapper around a 2D lyon path exposing a nannou-friendly API.
 pub struct Path {
@@ -97,13 +98,13 @@ impl Builder {
     ///
     /// If the current sub-path contains edges, this ends the sub-path without closing it.
     pub fn move_to(mut self, to: Point2) -> Self {
-        self.builder.move_to(to.into());
+        self.builder.move_to(to.to_array().into());
         self
     }
 
     /// Adds a line segment to the current sub-path and sets the current position.
     pub fn line_to(mut self, to: Point2) -> Self {
-        self.builder.line_to(to.into());
+        self.builder.line_to(to.to_array().into());
         self
     }
 
@@ -116,14 +117,18 @@ impl Builder {
 
     /// Add a quadratic bezier curve to the path.
     pub fn quadratic_bezier_to(mut self, ctrl: Point2, to: Point2) -> Self {
-        self.builder.quadratic_bezier_to(ctrl.into(), to.into());
+        self.builder
+            .quadratic_bezier_to(ctrl.to_array().into(), to.to_array().into());
         self
     }
 
     /// Add a cubic bezier curve to the path.
     pub fn cubic_bezier_to(mut self, ctrl1: Point2, ctrl2: Point2, to: Point2) -> Self {
-        self.builder
-            .cubic_bezier_to(ctrl1.into(), ctrl2.into(), to.into());
+        self.builder.cubic_bezier_to(
+            ctrl1.to_array().into(),
+            ctrl2.to_array().into(),
+            to.to_array().into(),
+        );
         self
     }
 
@@ -131,13 +136,13 @@ impl Builder {
     pub fn arc(
         mut self,
         center: Point2,
-        radii: Vector2,
+        radii: Vec2,
         sweep_angle_radians: f32,
         x_rotation_radians: f32,
     ) -> Self {
         self.builder.arc(
-            center.into(),
-            radii.into(),
+            center.to_array().into(),
+            radii.to_array().into(),
             lyon::math::Angle::radians(sweep_angle_radians),
             lyon::math::Angle::radians(x_rotation_radians),
         );
@@ -152,7 +157,8 @@ impl Builder {
 
     /// Returns the current position of the head of the path.
     pub fn position(&self) -> Point2 {
-        self.builder.current_position().into()
+        let p = self.builder.current_position();
+        [p.x, p.y].into()
     }
 
     /// Build the path and return it.

@@ -72,6 +72,31 @@ jobs:
         command: test
         args: --doc --all-features --verbose
 
+  cargo-test-core-no-std:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install libxcb dev tools
+      run: sudo apt-get install libxcb-composite0-dev
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Text no_std
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: -p nannou_core --no-default-features --features "libm" --verbose
+    - name: Test no_std serde
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: -p nannou_core --no-default-features --features "libm serde" --verbose
+
   cargo-check-examples:
     runs-on: ubuntu-latest
     steps:
@@ -113,6 +138,11 @@ jobs:
         profile: minimal
         toolchain: stable
         override: true
+    - name: Cargo publish nannou_core
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_core/Cargo.toml
+    - name: Wait for crates.io
+      run: sleep 30
     - name: Cargo publish nannou
       continue-on-error: true
       run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou/Cargo.toml

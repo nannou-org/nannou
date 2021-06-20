@@ -1,9 +1,7 @@
 //! Vertex types yielded by the mesh adaptors and their implementations.
 
 use crate::color::{self, IntoLinSrgba};
-use crate::geom::graph::node::{self, ApplyTransform};
-use crate::geom::{self, Point2, Point3};
-use crate::math::BaseFloat;
+use crate::geom::{self, Point2};
 use std::ops::{Deref, DerefMut};
 
 /// A vertex with a specified color.
@@ -15,7 +13,7 @@ pub struct WithColor<V, C = color::LinSrgba<color::DefaultScalar>> {
 
 /// A vertex with some specified texture coordinates.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
-pub struct WithTexCoords<V, T = Point2<geom::scalar::Default>> {
+pub struct WithTexCoords<V, T = Point2> {
     pub vertex: V,
     pub tex_coords: T,
 }
@@ -25,49 +23,6 @@ pub struct WithTexCoords<V, T = Point2<geom::scalar::Default>> {
 pub struct WithNormal<V, N = geom::vertex::Default> {
     pub vertex: V,
     pub normal: N,
-}
-
-// Node Transform application implementations.
-
-impl<S, V, C> ApplyTransform<S> for WithColor<V, C>
-where
-    V: ApplyTransform<S>,
-    S: BaseFloat,
-{
-    fn apply_transform(self, transform: &node::PreparedTransform<S>) -> Self {
-        let WithColor { mut vertex, color } = self;
-        vertex = vertex.apply_transform(transform);
-        WithColor { vertex, color }
-    }
-}
-
-impl<S, V, T> ApplyTransform<S> for WithTexCoords<V, T>
-where
-    V: ApplyTransform<S>,
-    S: BaseFloat,
-{
-    fn apply_transform(self, transform: &node::PreparedTransform<S>) -> Self {
-        let WithTexCoords {
-            mut vertex,
-            tex_coords,
-        } = self;
-        vertex = vertex.apply_transform(transform);
-        WithTexCoords { vertex, tex_coords }
-    }
-}
-
-impl<S, V, N> ApplyTransform<S> for WithNormal<V, N>
-where
-    V: ApplyTransform<S>,
-    S: BaseFloat,
-{
-    fn apply_transform(self, _transform: &node::PreparedTransform<S>) -> Self {
-        //let WithNormal { mut vertex, mut normal } = self;
-        //vertex = vertex.apply_transform(transform);
-        // TODO: Apply transform to the `normal`.
-        unimplemented!();
-        //WithNormal { vertex, normal }
-    }
 }
 
 // Deref implementations for each vertex adaptor to their inner vertex type.
@@ -142,7 +97,7 @@ where
     V: geom::Vertex2d,
     Self: geom::Vertex<Scalar = V::Scalar>,
 {
-    fn point2(self) -> Point2<Self::Scalar> {
+    fn point2(self) -> [Self::Scalar; 2] {
         self.vertex.point2()
     }
 }
@@ -152,7 +107,7 @@ where
     V: geom::Vertex2d,
     Self: geom::Vertex<Scalar = V::Scalar>,
 {
-    fn point2(self) -> Point2<Self::Scalar> {
+    fn point2(self) -> [Self::Scalar; 2] {
         self.vertex.point2()
     }
 }
@@ -162,7 +117,7 @@ where
     V: geom::Vertex2d,
     Self: geom::Vertex<Scalar = V::Scalar>,
 {
-    fn point2(self) -> Point2<Self::Scalar> {
+    fn point2(self) -> [Self::Scalar; 2] {
         self.vertex.point2()
     }
 }
@@ -172,7 +127,7 @@ where
     V: geom::Vertex3d,
     Self: geom::Vertex<Scalar = V::Scalar>,
 {
-    fn point3(self) -> Point3<Self::Scalar> {
+    fn point3(self) -> [Self::Scalar; 3] {
         self.vertex.point3()
     }
 }
@@ -182,7 +137,7 @@ where
     V: geom::Vertex3d,
     Self: geom::Vertex<Scalar = V::Scalar>,
 {
-    fn point3(self) -> Point3<Self::Scalar> {
+    fn point3(self) -> [Self::Scalar; 3] {
         self.vertex.point3()
     }
 }
@@ -192,7 +147,7 @@ where
     V: geom::Vertex3d,
     Self: geom::Vertex<Scalar = V::Scalar>,
 {
-    fn point3(self) -> Point3<Self::Scalar> {
+    fn point3(self) -> [Self::Scalar; 3] {
         self.vertex.point3()
     }
 }
@@ -240,6 +195,6 @@ where
 #[test]
 fn test_tuple_conv() {
     use crate::color::named::GREEN;
-    let _: Point2<_> = [0.0, 0.0].into();
-    let _: WithColor<Point2<_>> = ([0.0, 0.0], GREEN).into();
+    let _: Point2 = [0.0, 0.0].into();
+    let _: WithColor<Point2> = ([0.0, 0.0], GREEN).into();
 }

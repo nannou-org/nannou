@@ -46,7 +46,7 @@ struct Model {
     joints: usize,
     line_length: f32,
     speed_relation: f32,
-    center: Vector2,
+    center: Point2,
     pendulum_paths: Vec<Vec<Point2>>,
     start_positions: Vec<Point2>,
     angle: f32,
@@ -108,9 +108,8 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
             let vy = a.to_radians().sin();
             let mut next_pos = pt2(vx, vy);
 
-            next_pos = next_pos.with_magnitude(
-                (model.joints - i) as f32 / model.joints as f32 * model.line_length,
-            );
+            let magnitude = (model.joints - i) as f32 / model.joints as f32 * model.line_length;
+            next_pos = next_pos.normalize() * magnitude;
             next_pos += pos;
 
             model.start_positions[i] = pos;

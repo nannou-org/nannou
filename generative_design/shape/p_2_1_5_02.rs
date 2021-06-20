@@ -53,7 +53,7 @@ impl Shape {
             draw.ellipse()
                 .x_y(self.x, self.y)
                 .radius(i as f32 / 2.0)
-                .resolution(200)
+                .resolution(200.0)
                 .no_fill()
                 .stroke_weight(1.25)
                 .stroke(BLACK);

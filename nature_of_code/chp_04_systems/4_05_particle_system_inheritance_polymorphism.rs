@@ -17,8 +17,8 @@ enum ParticleType {
 // A simple particle type
 struct Particle {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     life_span: f32,
     particle_type: ParticleType,
 }

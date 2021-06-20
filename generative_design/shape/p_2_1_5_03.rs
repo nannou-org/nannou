@@ -49,11 +49,11 @@ struct Shape {
     x2: f32,
     y2: f32,
     h: f32,
-    c: Vector3,
+    c: Vec3,
 }
 
 impl Shape {
-    fn new(x1: f32, y1: f32, x2: f32, y2: f32, h: f32, c: Vector3) -> Self {
+    fn new(x1: f32, y1: f32, x2: f32, y2: f32, h: f32, c: Vec3) -> Self {
         Shape {
             x1,
             y1,
@@ -83,9 +83,9 @@ struct Model {
     shapes: Vec<Shape>,
     density: usize,
     shape_height: f32,
-    shape_color: Vector3,
+    shape_color: Vec3,
     new_shape: Option<Shape>,
-    p_mouse: Vector2,
+    p_mouse: Point2,
 }
 
 fn model(app: &App) -> Model {

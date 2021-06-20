@@ -33,8 +33,8 @@ fn main() {
 }
 
 struct Agent {
-    vector: Vector2,
-    vector_old: Vector2,
+    vector: Vec2,
+    vector_old: Vec2,
     step_size: f32,
     angle: f32,
     is_outside: bool,

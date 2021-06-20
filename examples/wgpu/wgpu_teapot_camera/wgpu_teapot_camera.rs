@@ -1,4 +1,3 @@
-use nannou::math::cgmath::{self, Matrix3, Matrix4, Point3, Rad, Vector3};
 use nannou::prelude::*;
 use nannou::winit;
 use std::cell::RefCell;
@@ -25,7 +24,7 @@ struct Graphics {
 // A simple first person camera.
 struct Camera {
     // The position of the camera.
-    eye: Point3<f32>,
+    eye: Point3,
     // Rotation around the x axis.
     pitch: f32,
     // Rotation around the y axis.
@@ -48,33 +47,33 @@ pub struct Normal {
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Uniforms {
-    world: Matrix4<f32>,
-    view: Matrix4<f32>,
-    proj: Matrix4<f32>,
+    world: Mat4,
+    view: Mat4,
+    proj: Mat4,
 }
 
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
 impl Camera {
     // Calculate the direction vector from the pitch and yaw.
-    fn direction(&self) -> Vector3<f32> {
+    fn direction(&self) -> Vec3 {
         pitch_yaw_to_direction(self.pitch, self.yaw)
     }
 
     // The camera's "view" matrix.
-    fn view(&self) -> Matrix4<f32> {
+    fn view(&self) -> Mat4 {
         let direction = self.direction();
-        let up = Vector3::new(0.0, 1.0, 0.0);
-        Matrix4::look_at_dir(self.eye, direction, up)
+        let up = Vec3::Y;
+        Mat4::look_to_rh(self.eye, direction, up)
     }
 }
 
-fn pitch_yaw_to_direction(pitch: f32, yaw: f32) -> Vector3<f32> {
+fn pitch_yaw_to_direction(pitch: f32, yaw: f32) -> Vec3 {
     let xz_unit_len = pitch.cos();
     let x = xz_unit_len * yaw.cos();
     let y = pitch.sin();
     let z = xz_unit_len * (-yaw).sin();
-    Vector3::new(x, y, z)
+    vec3(x, y, z)
 }
 
 fn main() {
@@ -302,13 +301,16 @@ fn view(_app: &App, model: &Model, frame: Frame) {
     render_pass.draw_indexed(index_range, start_vertex, instance_range);
 }
 
-fn create_uniforms([w, h]: [u32; 2], view: Matrix4<f32>) -> Uniforms {
-    let rotation = Matrix3::from_angle_y(Rad(0f32));
+fn create_uniforms([w, h]: [u32; 2], view: Mat4) -> Uniforms {
+    let rotation = Mat4::from_rotation_y(0f32);
     let aspect_ratio = w as f32 / h as f32;
-    let proj = cgmath::perspective(Rad(std::f32::consts::FRAC_PI_2), aspect_ratio, 0.01, 100.0);
-    let scale = Matrix4::from_scale(0.01);
+    let fov_y = std::f32::consts::FRAC_PI_2;
+    let near = 0.01;
+    let far = 100.0;
+    let proj = Mat4::perspective_rh_gl(fov_y, aspect_ratio, near, far);
+    let scale = Mat4::from_scale(Vec3::splat(0.01));
     Uniforms {
-        world: Matrix4::from(rotation).into(),
+        world: rotation,
         view: (view * scale).into(),
         proj: proj.into(),
     }

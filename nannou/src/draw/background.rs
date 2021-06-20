@@ -1,29 +1,18 @@
 use crate::color::{self, IntoLinSrgba, Srgb, Srgba};
 use crate::draw::properties::ColorScalar;
 use crate::draw::Draw;
-use crate::geom;
-use crate::math::BaseFloat;
 
 /// A type used to update the background colour.
-pub struct Background<'a, S = geom::scalar::Default>
-where
-    S: 'a + BaseFloat,
-{
-    draw: &'a Draw<S>,
+pub struct Background<'a> {
+    draw: &'a Draw,
 }
 
 /// Begin coloring the background.
-pub fn new<'a, S>(draw: &'a Draw<S>) -> Background<'a, S>
-where
-    S: BaseFloat,
-{
+pub fn new<'a>(draw: &'a Draw) -> Background<'a> {
     Background { draw }
 }
 
-impl<'a, S> Background<'a, S>
-where
-    S: BaseFloat,
-{
+impl<'a> Background<'a> {
     /// Clear the background with the given color.
     ///
     /// This method supports any color type that can be converted into RGBA.
@@ -100,10 +89,7 @@ where
     ///
     /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
     /// this color space.
-    pub fn hsva(self, h: ColorScalar, s: ColorScalar, v: ColorScalar, a: ColorScalar) -> Self
-    where
-        S: Into<color::RgbHue<S>>,
-    {
+    pub fn hsva(self, h: ColorScalar, s: ColorScalar, v: ColorScalar, a: ColorScalar) -> Self {
         let hue = h * 360.0;
         self.color(color::Hsva::new(hue, s, v, a))
     }

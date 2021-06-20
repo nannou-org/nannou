@@ -70,7 +70,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let mut rng = SmallRng::seed_from_u64(model.act_random_seed);
 
     let image = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |_x, _y| {
-        let r: u8 = rng.gen_range(0, std::u8::MAX);
+        let r: u8 = rng.gen_range(0..std::u8::MAX);
         nannou::image::Rgba([r, r, r, std::u8::MAX])
     });
 

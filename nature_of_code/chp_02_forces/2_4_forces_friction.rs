@@ -15,8 +15,8 @@ struct Model {
 
 struct Mover {
     position: Point2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    velocity: Vec2,
+    acceleration: Vec2,
     mass: f32,
 }
 
@@ -34,7 +34,7 @@ impl Mover {
         }
     }
 
-    fn apply_force(&mut self, force: Vector2) {
+    fn apply_force(&mut self, force: Vec2) {
         let f = force / self.mass;
         self.acceleration += f;
     }
@@ -97,7 +97,7 @@ fn update(app: &App, m: &mut Model, _update: Update) {
 
         let c = 0.05;
         let mut friction = mover.velocity;
-        if friction.magnitude() > 0.0 {
+        if friction.length() > 0.0 {
             friction *= -1.0;
             friction = friction.normalize();
             friction *= c;

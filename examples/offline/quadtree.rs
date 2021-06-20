@@ -14,7 +14,7 @@ pub struct QuadTree {
 }
 
 pub trait WithPos {
-    fn get_pos(&self) -> Vector2;
+    fn get_pos(&self) -> Vec2;
 }
 
 impl QuadTree {

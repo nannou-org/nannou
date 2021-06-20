@@ -211,17 +211,17 @@ path = "chp_04_systems/4_10_exercise_particle_repel.rs"
 [[example]]
 name = "6_01_seek"
 path = "chp_06_agents/6_01_seek.rs"
-[[example]] 
-name = "6_01_seek_trail" 
+[[example]]
+name = "6_01_seek_trail"
 path = "chp_06_agents/6_01_seek_trail.rs"
-[[example]] 
-name = "6_02_arrive" 
+[[example]]
+name = "6_02_arrive"
 path = "chp_06_agents/6_02_arrive.rs"
-[[example]] 
-name = "6_03_stay_within_walls" 
+[[example]]
+name = "6_03_stay_within_walls"
 path = "chp_06_agents/6_03_stay_within_walls.rs"
-[[example]] 
-name = "6_03_stay_within_walls_trail" 
+[[example]]
+name = "6_03_stay_within_walls_trail"
 path = "chp_06_agents/6_03_stay_within_walls_trail.rs"
 
 # Chapter 7 Cellular Automata
@@ -248,34 +248,34 @@ name = "7_hexagon_cells"
 path = "chp_07_cellular_automata/7_hexagon_cells.rs"
 
 # Chapter 8 Fractals
-[[example]] 
-name = "8_1_recursion" 
+[[example]]
+name = "8_1_recursion"
 path = "chp_08_fractals/8_1_recursion.rs"
-[[example]] 
-name = "8_2_recursion" 
+[[example]]
+name = "8_2_recursion"
 path = "chp_08_fractals/8_2_recursion.rs"
-[[example]] 
-name = "8_3_recursion" 
+[[example]]
+name = "8_3_recursion"
 path = "chp_08_fractals/8_3_recursion.rs"
-[[example]] 
-name = "8_4_cantor_set" 
+[[example]]
+name = "8_4_cantor_set"
 path = "chp_08_fractals/8_4_cantor_set.rs"
-[[example]] 
-name = "8_4_tree" 
+[[example]]
+name = "8_4_tree"
 path = "chp_08_fractals/8_4_tree.rs"
 
 # Chapter 9 Genetic Algorithms
-[[example]] 
-name = "9_1_ga_shakespeare" 
+[[example]]
+name = "9_1_ga_shakespeare"
 path = "chp_09_genetic_algorithms/9_1_ga_shakespeare.rs"
 
 # Chapter 10 Neural Networks
-[[example]] 
-name = "10_01_simple_perceptron" 
+[[example]]
+name = "10_01_simple_perceptron"
 path = "chp_10_neural_networks/10_01_simple_perceptron.rs"
-[[example]] 
-name = "10_02_seeking_neural" 
+[[example]]
+name = "10_02_seeking_neural"
 path = "chp_10_neural_networks/10_02_seeking_neural.rs"
-[[example]] 
-name = "10_03_network_viz" 
+[[example]]
+name = "10_03_network_viz"
 path = "chp_10_neural_networks/10_03_network_viz.rs"

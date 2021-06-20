@@ -16,9 +16,9 @@ struct Model {
 }
 
 struct Vehicle {
-    position: Vector2,
-    velocity: Vector2,
-    acceleration: Vector2,
+    position: Vec2,
+    velocity: Vec2,
+    acceleration: Vec2,
     r: f32,
     // Maximum steering force
     max_force: f32,
@@ -50,13 +50,13 @@ impl Vehicle {
         // Update velocity
         self.velocity += self.acceleration;
         // Limit speed
-        self.velocity.limit_magnitude(self.max_speed);
+        self.velocity.clamp_length_max(self.max_speed);
         self.position += self.velocity;
         // Reset accelerationelertion to 0 each cycle
         self.acceleration *= 0.0;
     }
 
-    fn apply_force(&mut self, force: Vector2) {
+    fn apply_force(&mut self, force: Vec2) {
         // We could add mass here if we want A = F / M
         self.acceleration += force;
     }
@@ -96,7 +96,7 @@ fn view(app: &App, m: &Model, frame: Frame) {
 
 // A method that calculates a steering force towards a target
 // STEER = DESIRED MINUS VELOCITY
-fn arrive(vehicle: &mut Vehicle, target: Vector2) {
+fn arrive(vehicle: &mut Vehicle, target: Vec2) {
     let steer = {
         let Vehicle {
             ref position,
@@ -108,17 +108,17 @@ fn arrive(vehicle: &mut Vehicle, target: Vector2) {
         // A vector pointing from the position to the target
         // Normalize desired and scale to maximum speed
         let desired = target - *position;
-        let magnitude = desired.magnitude();
+        let magnitude = desired.length();
         let damped_mag = if magnitude < 100.0 {
             map_range(magnitude, 0.0, 100.0, 0.0, *max_speed)
         } else {
             *max_speed
         };
-        let desired = desired.with_magnitude(damped_mag);
+        let desired = desired.normalize() * damped_mag;
 
         // Steering = Desired minus velocity
         // Limit to maximum steering force
-        (desired - *velocity).limit_magnitude(*max_force)
+        (desired - *velocity).clamp_length_max(*max_force)
     };
 
     vehicle.apply_force(steer);

@@ -89,11 +89,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 }
                 2 => {
                     for i in 0..count {
-                        let gradient = VectorSpace::lerp(
-                            vec3(0.0, 0.0, 0.0),
-                            vec3(0.14, 1.0, 0.71),
-                            i as f32 / count as f32,
-                        );
+                        let gradient =
+                            Vec3::ZERO.lerp(vec3(0.14, 1.0, 0.71), i as f32 / count as f32);
                         draw = draw.rotate(PI / 4.0);
                         draw.rect().x_y(0.0, 0.0).w_h(tile_width, tile_height).hsla(
                             gradient.x,
@@ -106,17 +103,14 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 }
                 3 => {
                     for i in 0..count {
-                        let gradient = VectorSpace::lerp(
-                            vec3(0.0, 0.5, 0.64),
-                            vec3(1.0, 1.0, 1.0),
-                            i as f32 / count as f32,
-                        );
+                        let gradient =
+                            vec3(0.0, 0.5, 0.64).lerp(vec3(1.0, 1.0, 1.0), i as f32 / count as f32);
                         let draw2 = draw.x_y(4.0 * i as f32, 0.0);
                         draw2
                             .ellipse()
                             .x_y(0.0, 0.0)
                             .w_h(tile_width / 4.0, tile_height / 4.0)
-                            .resolution(12)
+                            .resolution(12.0)
                             .rgba(gradient.x, gradient.y, gradient.z, 0.66);
 
                         let draw3 = draw.x_y(-4.0 * i as f32, 0.0);
@@ -124,7 +118,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                             .ellipse()
                             .x_y(0.0, 0.0)
                             .w_h(tile_width / 4.0, tile_height / 4.0)
-                            .resolution(12)
+                            .resolution(12.0)
                             .rgba(gradient.x, gradient.y, gradient.z, 0.66);
 
                         draw = draw.scale(1.0 - 1.5 / count as f32).rotate(para * 1.5);

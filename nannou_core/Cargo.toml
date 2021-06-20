@@ -1,0 +1,26 @@
+[package]
+name = "nannou_core"
+version = "0.16.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+glam = { version = "0.16", default-features = false, features = ["num-traits", "rand"] }
+# TODO: Awaiting `no-std` to be published.
+# noise = 0.6
+num-traits = { version = "0.2.14", default-features = false }
+palette = { version = "0.5", default-features = false, features = ["named"] }
+# TODO: Need to check support for no-std.
+# pennereq = "0.3"
+rand = { version = "0.8", default-features = false, features = ["small_rng"] }
+# TODO: Needs no-std support before we can add text logic to this core.
+# rusttype = "0.8"
+
+[features]
+default = ["std"]
+libm = ["glam/libm", "num-traits/libm", "palette/libm" ]
+serde = ["glam/serde", "palette/serializing"]
+std = ["glam/std", "num-traits/std", "palette/std", "rand/std", "rand/std_rng"]
+
+[package.metadata.docs.rs]
+features = ["serde", "std"]

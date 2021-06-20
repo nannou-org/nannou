@@ -1,8 +1,18 @@
-use crate::geom::{self, scalar, Point2, Rect, Tri};
-use crate::math::num_traits::NumCast;
-use crate::math::{self, BaseFloat, BaseNum};
-use std;
-use std::ops::Neg;
+use crate::geom::{
+    self,
+    scalar::{self, Scalar},
+    Rect, Tri,
+};
+use crate::math::{
+    self,
+    num_traits::{Float, NumCast},
+};
+
+/// Scalar types compatible with ellipses.
+pub trait EllipseScalar: Float + Scalar {
+    /// 2 * PI.
+    const TAU: Self;
+}
 
 /// A simple ellipse type with helper methods around the `ellipse` module's functions.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
@@ -10,7 +20,7 @@ pub struct Ellipse<S = scalar::Default> {
     /// The width and height off the `Ellipse`.
     pub rect: Rect<S>,
     /// The resolution (number of sides) of the `Ellipse`.
-    pub resolution: usize,
+    pub resolution: S,
 }
 
 /// A subsection of an `Ellipse`.
@@ -29,9 +39,9 @@ pub struct Section<S = scalar::Default> {
 #[derive(Clone, Debug)]
 #[allow(missing_copy_implementations)]
 pub struct Circumference<S = scalar::Default> {
-    index: usize,
-    num_points: usize,
-    middle: Point2<S>,
+    index: S,
+    num_points: S,
+    middle: [S; 2],
     rad_step: S,
     rad_offset: S,
     half_w: S,
@@ -42,7 +52,7 @@ pub struct Circumference<S = scalar::Default> {
 #[derive(Clone, Debug)]
 #[allow(missing_copy_implementations)]
 pub struct TriangleVertices<S = scalar::Default> {
-    middle: Option<Point2<S>>,
+    middle: Option<[S; 2]>,
     circumference: Circumference<S>,
 }
 
@@ -60,17 +70,17 @@ pub struct TriangleIndices {
 #[derive(Clone, Debug)]
 pub struct Triangles<S = scalar::Default> {
     // The last circumference point yielded by the `CircumferenceOffset` iterator.
-    last: Point2<S>,
+    last: [S; 2],
     // The circumference points used to yield yielded by the `CircumferenceOffset` iterator.
     points: Circumference<S>,
 }
 
 impl<S> Ellipse<S>
 where
-    S: BaseNum + Neg<Output = S>,
+    S: EllipseScalar,
 {
     /// Construct a new ellipse from its bounding rect and resolution (number of sides).
-    pub fn new(rect: Rect<S>, resolution: usize) -> Self {
+    pub fn new(rect: Rect<S>, resolution: S) -> Self {
         Ellipse { rect, resolution }
     }
 
@@ -92,12 +102,7 @@ where
         let Ellipse { rect, resolution } = self;
         Circumference::new(rect, resolution)
     }
-}
 
-impl<S> Ellipse<S>
-where
-    S: BaseFloat,
-{
     /// Produces an iterator yielding the triangles that describe the ellipse.
     ///
     /// TODO: Describe the order.
@@ -114,7 +119,7 @@ where
 
 impl<S> Section<S>
 where
-    S: BaseNum + Neg<Output = S>,
+    S: EllipseScalar,
 {
     /// Produces an iterator yielding the points of the ellipse circumference.
     pub fn circumference(self) -> Circumference<S> {
@@ -126,12 +131,7 @@ where
         let circ = Circumference::new_section(ellipse.rect, ellipse.resolution, section_radians);
         circ.offset_radians(offset_radians)
     }
-}
 
-impl<S> Section<S>
-where
-    S: BaseFloat,
-{
     /// Produces an iterator yielding the triangles that describe the ellipse section.
     ///
     /// TODO: Describe the order.
@@ -148,13 +148,13 @@ where
 
 impl<S> Circumference<S>
 where
-    S: BaseNum + Neg<Output = S>,
+    S: EllipseScalar,
 {
-    fn new_inner(rect: Rect<S>, num_points: usize, rad_step: S) -> Self {
+    fn new_inner(rect: Rect<S>, num_points: S, rad_step: S) -> Self {
         let (x, y, w, h) = rect.x_y_w_h();
         let two = math::two();
         Circumference {
-            index: 0,
+            index: S::zero(),
             num_points: num_points,
             middle: [x, y].into(),
             half_w: w / two,
@@ -169,11 +169,9 @@ where
     ///
     /// `resolution` is clamped to a minimum of `1` as to avoid creating a `Circumference` that
     /// produces `NaN` values.
-    pub fn new(rect: Rect<S>, mut resolution: usize) -> Self {
-        resolution = std::cmp::max(resolution, 1);
-        use std::f64::consts::PI;
-        let radians = S::from(2.0 * PI).unwrap();
-        Self::new_section(rect, resolution, radians)
+    pub fn new(rect: Rect<S>, mut resolution: S) -> Self {
+        resolution = crate::math::partial_max(resolution, S::one());
+        Self::new_section(rect, resolution, S::TAU)
     }
 
     /// Produces a new iterator that yields only a section of the ellipse's circumference, where
@@ -181,17 +179,15 @@ where
     ///
     /// `resolution` is clamped to a minimum of `1` as to avoid creating a `Circumference` that
     /// produces `NaN` values.
-    pub fn new_section(rect: Rect<S>, resolution: usize, radians: S) -> Self {
-        let res = S::from(resolution).unwrap();
-        Self::new_inner(rect, resolution + 1, radians / res)
+    pub fn new_section(rect: Rect<S>, resolution: S, radians: S) -> Self {
+        Self::new_inner(rect, resolution + S::one(), radians / resolution)
     }
 
     /// Produces a new iterator that yields only a section of the ellipse's circumference, where
     /// the section is described via its angle in radians.
     pub fn section(mut self, radians: S) -> Self {
-        let resolution = self.num_points - 1;
-        let res = S::from(resolution).unwrap();
-        self.rad_step = radians / res;
+        let resolution = self.num_points - S::one();
+        self.rad_step = radians / resolution;
         self
     }
 
@@ -203,12 +199,7 @@ where
         self.rad_offset = radians;
         self
     }
-}
 
-impl<S> Circumference<S>
-where
-    S: BaseFloat,
-{
     /// Produces an `Iterator` yielding `Triangle`s.
     ///
     /// Triangles are created by joining each edge yielded by the inner `Circumference` to the
@@ -238,16 +229,24 @@ where
     }
 }
 
+impl EllipseScalar for f32 {
+    const TAU: Self = core::f32::consts::TAU;
+}
+
+impl EllipseScalar for f64 {
+    const TAU: Self = core::f64::consts::TAU;
+}
+
 impl<S> Iterator for Circumference<S>
 where
-    S: BaseFloat,
+    S: EllipseScalar,
 {
-    type Item = Point2<S>;
+    type Item = [S; 2];
     fn next(&mut self) -> Option<Self::Item> {
         let Circumference {
             ref mut index,
             num_points,
-            middle,
+            middle: [mx, my],
             rad_step,
             rad_offset,
             half_w,
@@ -256,10 +255,9 @@ where
         if *index >= num_points {
             return None;
         }
-        let index_s: S = NumCast::from(*index).unwrap();
-        let x = middle.x + half_w * (rad_offset + rad_step * index_s).cos();
-        let y = middle.y + half_h * (rad_offset + rad_step * index_s).sin();
-        *index += 1;
+        let x = mx + half_w * (rad_offset + rad_step * *index).cos();
+        let y = my + half_h * (rad_offset + rad_step * *index).sin();
+        *index += S::one();
         Some([x, y].into())
     }
 
@@ -272,24 +270,24 @@ where
 // TODO:
 // impl<S> DoubleEndedIterator for Circumference<S>
 // where
-//     S: BaseNum + Float,
+//     S: Scalar,
 // {
 // }
 
 impl<S> ExactSizeIterator for Circumference<S>
 where
-    S: BaseFloat,
+    S: EllipseScalar + NumCast,
 {
     fn len(&self) -> usize {
-        self.num_points - self.index
+        NumCast::from(self.num_points - self.index).unwrap()
     }
 }
 
 impl<S> Iterator for TriangleVertices<S>
 where
-    S: BaseFloat,
+    S: EllipseScalar,
 {
-    type Item = Point2<S>;
+    type Item = [S; 2];
     fn next(&mut self) -> Option<Self::Item> {
         self.middle.take().or_else(|| self.circumference.next())
     }
@@ -302,7 +300,7 @@ where
 
 impl<S> ExactSizeIterator for TriangleVertices<S>
 where
-    S: BaseFloat,
+    S: EllipseScalar,
 {
     fn len(&self) -> usize {
         (if self.middle.is_some() { 1 } else { 0 }) + self.circumference.len()
@@ -355,9 +353,9 @@ impl ExactSizeIterator for TriangleIndices {
 
 impl<S> Iterator for Triangles<S>
 where
-    S: BaseFloat,
+    S: EllipseScalar,
 {
-    type Item = Tri<Point2<S>>;
+    type Item = Tri<[S; 2]>;
     fn next(&mut self) -> Option<Self::Item> {
         let Triangles {
             ref mut points,
@@ -378,7 +376,7 @@ where
 
 impl<S> ExactSizeIterator for Triangles<S>
 where
-    S: BaseFloat,
+    S: EllipseScalar,
 {
     fn len(&self) -> usize {
         self.points.len()

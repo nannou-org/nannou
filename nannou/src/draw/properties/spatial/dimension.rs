@@ -1,84 +1,74 @@
-use crate::geom::{self, Vector2, Vector3};
+use crate::glam::{Vec2, Vec3};
 
 /// Dimension properties for **Drawing** a **Primitive**.
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Properties<S = geom::scalar::Default> {
-    pub x: Option<S>,
-    pub y: Option<S>,
-    pub z: Option<S>,
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
+pub struct Properties {
+    pub x: Option<f32>,
+    pub y: Option<f32>,
+    pub z: Option<f32>,
 }
 
 /// Primitives that support different dimensions.
-pub trait SetDimensions<S>: Sized {
+pub trait SetDimensions: Sized {
     /// Provide a mutable reference to the **dimension::Properties** for updating.
-    fn properties(&mut self) -> &mut Properties<S>;
+    fn properties(&mut self) -> &mut Properties;
 
     /// Set the absolute width for the primitive.
-    fn width(mut self, w: S) -> Self {
+    fn width(mut self, w: f32) -> Self {
         self.properties().x = Some(w);
         self
     }
 
     /// Set the absolute height for the primitive.
-    fn height(mut self, h: S) -> Self {
+    fn height(mut self, h: f32) -> Self {
         self.properties().y = Some(h);
         self
     }
 
     /// Set the absolute depth for the primitive.
-    fn depth(mut self, d: S) -> Self {
+    fn depth(mut self, d: f32) -> Self {
         self.properties().z = Some(d);
         self
     }
 
     /// Short-hand for the **width** method.
-    fn w(self, w: S) -> Self {
+    fn w(self, w: f32) -> Self {
         self.width(w)
     }
 
     /// Short-hand for the **height** method.
-    fn h(self, h: S) -> Self {
+    fn h(self, h: f32) -> Self {
         self.height(h)
     }
 
     /// Short-hand for the **depth** method.
-    fn d(self, d: S) -> Self {
+    fn d(self, d: f32) -> Self {
         self.depth(d)
     }
 
     /// Set the **x** and **y** dimensions for the primitive.
-    fn wh(self, v: Vector2<S>) -> Self {
+    fn wh(self, v: Vec2) -> Self {
         self.w(v.x).h(v.y)
     }
 
     /// Set the **x**, **y** and **z** dimensions for the primitive.
-    fn whd(self, v: Vector3<S>) -> Self {
+    fn whd(self, v: Vec3) -> Self {
         self.w(v.x).h(v.y).d(v.z)
     }
 
     /// Set the width and height for the primitive.
-    fn w_h(self, x: S, y: S) -> Self {
-        self.wh(Vector2 { x, y })
+    fn w_h(self, x: f32, y: f32) -> Self {
+        self.wh([x, y].into())
     }
 
     /// Set the width and height for the primitive.
-    fn w_h_d(self, x: S, y: S, z: S) -> Self {
-        self.whd(Vector3 { x, y, z })
+    fn w_h_d(self, x: f32, y: f32, z: f32) -> Self {
+        self.whd([x, y, z].into())
     }
 }
 
-impl<S> SetDimensions<S> for Properties<S> {
-    fn properties(&mut self) -> &mut Properties<S> {
+impl SetDimensions for Properties {
+    fn properties(&mut self) -> &mut Properties {
         self
-    }
-}
-
-impl<S> Default for Properties<S> {
-    fn default() -> Self {
-        Self {
-            x: None,
-            y: None,
-            z: None,
-        }
     }
 }

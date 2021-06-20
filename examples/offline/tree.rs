@@ -21,7 +21,7 @@ struct Model {
 
 // a Thing will be our main object, it'll try to grow outward
 struct Thing {
-    position: Vector2,
+    position: Vec2,
     size: f32,
     energy: f32,
     frac: f32,
@@ -39,7 +39,7 @@ impl PartialEq for Thing {
 }
 // define what to use for the quadtree
 impl quadtree::WithPos for Thing {
-    fn get_pos(&self) -> Vector2 {
+    fn get_pos(&self) -> Vec2 {
         self.position
     }
 }
@@ -275,7 +275,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
         //draw in three steps
         draw.ellipse()
-            .resolution(20)
+            .resolution(20.0)
             .xy(model.things[k].position * scale)
             .w_h(
                 model.things[k].size * 1.3 * scale,
@@ -283,7 +283,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             )
             .color(c);
         draw.ellipse()
-            .resolution(20)
+            .resolution(20.0)
             .xy(model.things[k].position * scale)
             .w_h(
                 model.things[k].size * 1.2 * scale,
@@ -291,7 +291,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             )
             .color(c2);
         draw.ellipse()
-            .resolution(20)
+            .resolution(20.0)
             .xy(model.things[k].position * scale)
             .w_h(
                 model.things[k].size * 0.5 * scale,
