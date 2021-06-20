@@ -614,11 +614,11 @@ authors = [&quot;mitchmindtree &lt;mitchell.nordine@gmail.com&gt;&quot;]
 edition = &quot;2018&quot;
 
 [dependencies]
-nannou = &quot;0.16&quot;
+nannou = &quot;0.17&quot;
 </code></pre>
 <p>Note that there is a chance the nannou version above might be out of date.
 You can check the latest version by typing <code>cargo search nannou</code> in your
-terminal.</p>
+terminal. Be sure to change the author to your name too!</p>
 </li>
 <li>
 <p>Replace the code in <code>src/main.rs</code> with the following to setup our nannou
@@ -2576,7 +2576,10 @@ published.</p>
 back to the origins.</p>
 <hr />
 <h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
-<p><strong>Upgrade WGPU to 0.8</strong></p>
+<p><em>No unreleased changes yet.</em></p>
+<hr />
+<h1 id="version-0170-2021-06-20"><a class="header" href="#version-0170-2021-06-20">Version 0.17.0 (2021-06-20)</a></h1>
+<p><strong>Upgrade WGPU to 0.9</strong></p>
 <p>Most changes have been about renaming Blend-related data structres and fixing shaders to avoid sampling textures inside of conditionals (wgpu validation layer found this one).</p>
 <ul>
 <li>Item Name changes:
@@ -2599,6 +2602,25 @@ generally.</li>
 <li>Remove <code>cgmath</code> computer graphics linear algebra lib in favour of <code>glam</code> for
 faster compile times, simpler API, easier documentation, <code>no_std</code> support and
 more.</li>
+<li>Refactor the <code>Rect</code> and <code>Cuboid</code> method implementations that expose <code>Point</code>
+and <code>Vec</code> to avoid breakage. Previously, our <code>Point</code> and <code>Vector</code> types were
+generic, however as of switching to <code>glam</code> this is no longer the case.
+Instead, methods that used these types are now implemented independently for
+<code>Rect&lt;f32&gt;</code> and <code>Rect&lt;f64&gt;</code> (likewise for <code>Cuboid</code>).</li>
+</ul>
+<p><strong>General</strong></p>
+<ul>
+<li>Fix a bug in <code>text::line::Infos</code> iterator where reported character index was
+incorrect.</li>
+<li>Fix <code>glyph_colors</code> miscoloring on resize.</li>
+<li>Enable serializing of color types.</li>
+<li>Enable <code>nannou_laser</code> features for documentation build.</li>
+<li>Update dependencies:
+<ul>
+<li><code>conrod_*</code> from 0.73 to 0.74.</li>
+<li><code>noise</code> from 0.6 to 0.7 (<code>image</code> feature no longer enabled).</li>
+</ul>
+</li>
 </ul>
 <hr />
 <h1 id="version-0160-2021-04-21"><a class="header" href="#version-0160-2021-04-21">Version 0.16.0 (2021-04-21)</a></h1>
