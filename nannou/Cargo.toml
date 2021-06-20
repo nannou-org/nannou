@@ -1,6 +1,6 @@
 [package]
 name = "nannou"
-version ="0.16.0"
+version ="0.17.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A Creative Coding Framework for Rust."
 readme = "README.md"
@@ -23,8 +23,8 @@ futures = { version = "0.3", features = ["executor", "thread-pool"] }
 image = "0.23"
 instant = "0.1.9"
 lyon = "0.15"
-nannou_core = { version = "0.16.0", path = "../nannou_core", features = ["std", "serde"] }
-noise = "0.6"
+nannou_core = { version ="0.17.0", path = "../nannou_core", features = ["std", "serde"] }
+noise = "0.7"
 notosans = { version = "0.1", optional = true }
 num_cpus = "1"
 pennereq = "0.3"
@@ -35,4 +35,4 @@ serde_json = "1"
 toml = "0.5"
 walkdir = "2"
 wgpu_upstream = { version = "0.9", package = "wgpu" }
-winit = "0.24"
+winit = "0.25"

@@ -7,7 +7,13 @@ back to the origins.
 
 # Unreleased
 
-**Upgrade WGPU to 0.8**
+*No unreleased changes yet.*
+
+---
+
+# Version 0.17.0 (2021-06-20)
+
+**Upgrade WGPU to 0.9**
 
 Most changes have been about renaming Blend-related data structres and fixing shaders to avoid sampling textures inside of conditionals (wgpu validation layer found this one).
 - Item Name changes:
@@ -27,6 +33,22 @@ Most changes have been about renaming Blend-related data structres and fixing sh
 - Remove `cgmath` computer graphics linear algebra lib in favour of `glam` for
   faster compile times, simpler API, easier documentation, `no_std` support and
   more.
+- Refactor the `Rect` and `Cuboid` method implementations that expose `Point`
+  and `Vec` to avoid breakage. Previously, our `Point` and `Vector` types were
+  generic, however as of switching to `glam` this is no longer the case.
+  Instead, methods that used these types are now implemented independently for
+  `Rect<f32>` and `Rect<f64>` (likewise for `Cuboid`).
+
+**General**
+
+- Fix a bug in `text::line::Infos` iterator where reported character index was
+  incorrect.
+- Fix `glyph_colors` miscoloring on resize.
+- Enable serializing of color types.
+- Enable `nannou_laser` features for documentation build.
+- Update dependencies:
+    - `conrod_*` from 0.73 to 0.74.
+    - `noise` from 0.6 to 0.7 (`image` feature no longer enabled).
 
 ---
 
