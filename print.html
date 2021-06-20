@@ -1460,7 +1460,7 @@ like so:</p>
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
-</span>let r = Rect::from_w_h(100.0, 100.0);
+</span>let r = Rect::from_w_h(100.0f32, 100.0f32);
 draw.rect()
     .xy(r.xy())
     .wh(r.wh())
@@ -2586,6 +2586,19 @@ back to the origins.</p>
 <li>Float tpes are now typed more descripively. E.g., <code>Float2</code> -&gt; <code>Float32x2</code></li>
 </ul>
 </li>
+</ul>
+<p><strong>Refactor core of <code>nannou</code> into <code>nannou_core</code> crate</strong></p>
+<ul>
+<li>Add a new <code>nannou_core</code> crate, targeted towards headless or embedded apps,
+libraries and rust-gpu.</li>
+<li>Move the <code>color</code>, <code>geom</code>, <code>math</code> and <code>rand</code> crates into <code>nannou_core</code>.</li>
+<li>Remove the <code>geom::Graph</code> type due to lack of strong use-case and no reports of
+use.</li>
+<li>Remove generic scalar param from <code>Draw</code> API in favour of using <code>f32</code>
+generally.</li>
+<li>Remove <code>cgmath</code> computer graphics linear algebra lib in favour of <code>glam</code> for
+faster compile times, simpler API, easier documentation, <code>no_std</code> support and
+more.</li>
 </ul>
 <hr />
 <h1 id="version-0160-2021-04-21"><a class="header" href="#version-0160-2021-04-21">Version 0.16.0 (2021-04-21)</a></h1>
