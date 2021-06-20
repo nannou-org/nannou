@@ -10,8 +10,8 @@ repository = "https://github.com/nannou-org/nannou_timeline.git"
 homepage = "https://nannou.cc"
 
 [dependencies]
-conrod_derive = "0.73"
-conrod_core = "0.73"
+conrod_derive = "0.74"
+conrod_core = "0.74"
 envelope = "0.8"
 itertools = "0.4.16"
 num = "0.1.27"
