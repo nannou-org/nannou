@@ -1,7 +1,12 @@
 [package]
 name = "nannou_core"
-version = "0.16.0"
+version ="0.17.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+description = "The core components of nannou - a creative coding framework for Rust. Ideal for libraries and headless/embedded applications that use nannou."
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/nannou-org/nannou.git"
+homepage = "https://nannou.cc"
 edition = "2018"
 
 [dependencies]
