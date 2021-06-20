@@ -248,8 +248,10 @@ where
         self.map_ty(|ty| ty.layout(layout))
     }
 
-    /// Set a color for each glyph.
+    /// Set a color for each glyph, which is typically one character.
     /// Colors unspecified glyphs using the drawing color.
+    /// NOTE: Sometimes, a glyph can represent multiple characters,
+    ///       or be a part in other glyphs.
     pub fn glyph_colors<I, C>(self, glyph_colors: I) -> Self
     where
         I: IntoIterator<Item = C>,
