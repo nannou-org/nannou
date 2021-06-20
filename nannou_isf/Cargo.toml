@@ -1,6 +1,6 @@
 [package]
 name = "nannou_isf"
-version ="0.17.0"
+version ="0.1.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 edition = "2018"
 
