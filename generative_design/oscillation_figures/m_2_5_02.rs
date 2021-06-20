@@ -181,8 +181,8 @@ fn calculate_lissajous_points(app: &App, model: &mut Model) {
             * (angle * model.mod_freq_x).cos();
         let mut y = (angle * model.freq_y * fmy).sin() * (angle * model.mod_freq_y).cos();
 
-        let rx = rng.gen_range(-model.random_offset, model.random_offset + 1.0);
-        let ry = rng.gen_range(-model.random_offset, model.random_offset + 1.0);
+        let rx = rng.gen_range(-model.random_offset..model.random_offset + 1.0);
+        let ry = rng.gen_range(-model.random_offset..model.random_offset + 1.0);
 
         x = (x * (win.w() / 2.0 - 30.0 - model.random_offset) + win.w() / 2.0) + rx;
         y = (y * (win.h() / 2.0 - 30.0 - model.random_offset) + win.h() / 2.0) + ry;

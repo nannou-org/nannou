@@ -95,8 +95,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let pos_x = (win.left() + (tile_w / 2.0)) + tile_w * grid_x as f32;
             let pos_y = (win.top() - (tile_h / 2.0)) - tile_h * grid_y as f32;
 
-            let shift_x = rng.gen_range(-mx, mx + 1.0) / 20.0;
-            let shift_y = rng.gen_range(-my, my + 1.0) / 20.0;
+            let shift_x = rng.gen_range(-mx..mx + 1.0) / 20.0;
+            let shift_y = rng.gen_range(-my..my + 1.0) / 20.0;
 
             draw.ellipse()
                 .x_y(pos_x + shift_x, pos_y + shift_y)

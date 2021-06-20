@@ -86,7 +86,7 @@ fn model(app: &App) -> Model {
     // Initialise the state that we want to live on the audio thread.
     let source_position = [0.0; 3].into();
     let audio_model = Audio {
-        rng: SmallRng::from_seed([0; 16]),
+        rng: SmallRng::seed_from_u64(0),
         hrtf_data: HrtfData::new(),
         hrtf_processor,
         source_position,
