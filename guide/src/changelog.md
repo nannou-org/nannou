@@ -49,7 +49,7 @@ Most changes have been about renaming Blend-related data structres and fixing sh
 - Update dependencies:
     - `conrod_*` from 0.73 to 0.74.
     - `noise` from 0.6 to 0.7 (`image` feature no longer enabled).
-
+    - `rand` from 0.7 to 0.8 (changes `gen_range(a,b)` to `gen_range(a..b)`)
 ---
 
 # Version 0.16.0 (2021-04-21)
