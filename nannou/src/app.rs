@@ -433,7 +433,7 @@ where
     ///
     /// This function will not return until the application has exited.
     ///
-    /// If you wish to remain cross-platform frienly, we recommend that you call this on the main
+    /// If you wish to remain cross-platform friendly, we recommend that you call this on the main
     /// thread as some platforms require that their application event loop and windows are
     /// initialised on the main thread.
     pub fn run(self) {
