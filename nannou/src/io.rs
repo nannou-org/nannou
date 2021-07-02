@@ -68,8 +68,17 @@ where
     }
 }
 
-/// Saves the file to a temporary file before removing the original to reduce the chance of losing
-/// data in the case that something goes wrong during saving.
+/// Safely save a file with the given contents, replacing the original if necessary.
+///
+/// Works as follows:
+///
+/// 1. Writes the content to a `.tmp` file.
+/// 2. Renames the original file (if there is one) to `.backup`.
+/// 3. Renames the `.tmp` file to the desired path file name.
+/// 4. Removes the `.backup` file.
+///
+/// This should at least ensure that a `.backup` of the original file exists if something goes
+/// wrong while writing the new one.
 ///
 /// This function also creates all necessary parent directories if they do not exist.
 pub fn safe_file_save<P>(path: P, content: &[u8]) -> io::Result<()>
@@ -78,6 +87,7 @@ where
 {
     let path = path.as_ref();
     let temp_path = path.with_extension("tmp");
+    let backup_path = path.with_extension("backup");
 
     // If the temp file exists, remove it.
     if temp_path.exists() {
@@ -92,17 +102,38 @@ where
     }
 
     // Write the temp file.
-    let file = fs::File::create(&temp_path)?;
-    let mut buffered = io::BufWriter::new(file);
-    buffered.write(content)?;
+    {
+        let file = fs::File::create(&temp_path)?;
+        let mut buffered = io::BufWriter::new(file);
+        buffered.write(content)?;
+        match buffered.into_inner() {
+            Err(err) => {
+                let io_err = err.error();
+                return Err(std::io::Error::new(io_err.kind(), format!("{}", io_err)));
+            }
+            Ok(file) => {
+                // Ensure all written data is synchronised with disk before going on.
+                file.sync_all()?;
+            }
+        }
+    }
 
-    // If there's already a file at `path`, remove it.
+    // If there's already a file at `path`, rename it with extension `.backup`.
     if path.exists() {
-        fs::remove_file(&path)?;
+        // If an old backup file exists due to a failed save, remove it first.
+        if backup_path.exists() {
+            fs::remove_file(&backup_path)?;
+        }
+        fs::rename(&path, &backup_path)?;
     }
 
     // Rename the temp file to the original path name.
     fs::rename(temp_path, path)?;
+
+    // Now that we've safely saved our file, remove the backup.
+    if backup_path.exists() {
+        fs::remove_file(&backup_path)?;
+    }
 
     Ok(())
 }
