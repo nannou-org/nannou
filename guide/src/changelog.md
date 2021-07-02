@@ -11,6 +11,12 @@ back to the origins.
 
 ---
 
+### `nannou` 0.17.1 (2021-07-02)
+
+- Fix some edge-cases in the behaviour of `io::safe_file_save`.
+
+---
+
 # Version 0.17.0 (2021-06-20)
 
 **Upgrade WGPU to 0.9**
