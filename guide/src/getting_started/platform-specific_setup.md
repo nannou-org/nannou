@@ -7,7 +7,7 @@ Depending on what OS you are running, you might require an extra step or two.
 
 By the way, if you notice some steps are missing from this section of the guide,
 feel free to open an issue or PR at [the nannou guide
-repo](https://github.com/nannou-org/guide)!
+repo](https://github.com/nannou-org/nannou/tree/master/guide)!
 
 ## macOS
 
