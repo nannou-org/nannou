@@ -141,6 +141,14 @@ jobs:
     - name: Cargo publish nannou_core
       continue-on-error: true
       run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_core/Cargo.toml
+    - name: Cargo publish nannou_wgpu
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_wgpu/Cargo.toml
+    - name: Wait for crates.io
+      run: sleep 30
+    - name: Cargo publish nannou_mesh
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_mesh/Cargo.toml
     - name: Wait for crates.io
       run: sleep 30
     - name: Cargo publish nannou
