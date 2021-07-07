@@ -8,6 +8,7 @@ members = [
     "nannou_core",
     "nannou_isf",
     "nannou_laser",
+    "nannou_mesh",
     "nannou_new",
     "nannou_osc",
     "nannou_package",

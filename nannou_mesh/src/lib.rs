@@ -2,11 +2,11 @@
 //! including position, color, texture-coordinate and normals. Note that this is quite a low-level
 //! representation. For a higher-level, graphics-related mesh API, see the `draw` module.
 
-use crate::geom;
-use std::cell::{Ref, RefMut};
-use std::cmp;
-use std::convert::{TryFrom, TryInto};
-use std::ops::{self, Deref, DerefMut};
+use core::cell::{Ref, RefMut};
+use core::cmp;
+use core::convert::{TryFrom, TryInto};
+use core::ops::{self, Deref, DerefMut};
+use nannou_core::geom;
 
 pub mod channel;
 pub mod vertex;
