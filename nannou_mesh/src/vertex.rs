@@ -1,11 +1,15 @@
 //! Vertex types yielded by the mesh adaptors and their implementations.
 
-use crate::color::{self, IntoLinSrgba};
-use crate::geom::{self, Point2};
-use std::ops::{Deref, DerefMut};
+use core::ops::{Deref, DerefMut};
+use nannou_core::color::{self, IntoLinSrgba};
+use nannou_core::geom::{self, Point2};
+
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
 
 /// A vertex with a specified color.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
 pub struct WithColor<V, C = color::LinSrgba<color::DefaultScalar>> {
     pub vertex: V,
     pub color: C,
@@ -13,6 +17,7 @@ pub struct WithColor<V, C = color::LinSrgba<color::DefaultScalar>> {
 
 /// A vertex with some specified texture coordinates.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
 pub struct WithTexCoords<V, T = Point2> {
     pub vertex: V,
     pub tex_coords: T,
@@ -20,6 +25,7 @@ pub struct WithTexCoords<V, T = Point2> {
 
 /// A vertex with its normal vector.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
 pub struct WithNormal<V, N = geom::vertex::Default> {
     pub vertex: V,
     pub normal: N,
@@ -158,7 +164,7 @@ impl<A, V, B, C> From<(A, B)> for WithColor<V, C>
 where
     A: Into<V>,
     B: IntoLinSrgba<f32>,
-    C: From<crate::color::LinSrgba<f32>>,
+    C: From<color::LinSrgba<f32>>,
 {
     fn from((vertex, color): (A, B)) -> Self {
         let vertex = vertex.into();
@@ -194,7 +200,7 @@ where
 
 #[test]
 fn test_tuple_conv() {
-    use crate::color::named::GREEN;
+    use color::named::GREEN;
     let _: Point2 = [0.0, 0.0].into();
     let _: WithColor<Point2> = ([0.0, 0.0], GREEN).into();
 }

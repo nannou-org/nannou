@@ -41,18 +41,6 @@ pub fn default_tex_coords() -> TexCoords {
     [0.0; 2].into()
 }
 
-impl Vertex {
-    /// Borrow the inner **Point**.
-    pub fn point(&self) -> &Point {
-        &self.vertex.vertex
-    }
-
-    /// Mutably borrow the inner **Point**.
-    pub fn point_mut(&mut self) -> &mut Point {
-        &mut self.vertex.vertex
-    }
-}
-
 /// A type that converts an iterator yielding colored points to an iterator yielding **Vertex**s.
 ///
 /// Default values are used for tex_coords.

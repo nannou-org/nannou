@@ -28,6 +28,8 @@ pub use self::frame::Frame;
 pub use self::ui::Ui;
 #[doc(inline)]
 pub use nannou_core::{color, glam, math, rand};
+#[doc(inline)]
+pub use nannou_mesh as mesh;
 
 pub mod app;
 pub mod draw;
@@ -37,7 +39,6 @@ pub mod frame;
 pub mod geom;
 pub mod image;
 pub mod io;
-pub mod mesh;
 pub mod noise;
 pub mod prelude;
 pub mod state;
