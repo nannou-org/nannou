@@ -443,22 +443,20 @@ impl Ui {
     }
 }
 
-impl wgpu::Texture {
-    /// Convert the texture into an image compatible with the UI's image map.
-    ///
-    /// **Panic**s if the texture's `Arc<TextureHandle>` has been cloned and more than one unique
-    /// reference to the inner data still exists.
-    pub fn into_ui_image(self) -> conrod_wgpu::Image {
-        let texture_format = self.format();
-        let [width, height] = self.size();
-        let texture = Arc::try_unwrap(self.into_inner())
-            .expect("converting to UI image requires unique access to texture");
-        conrod_wgpu::Image {
-            texture,
-            texture_format,
-            width,
-            height,
-        }
+/// Convert the texture into an image compatible with the UI's image map.
+///
+/// **Panic**s if the texture's `Arc<TextureHandle>` has been cloned and more than one unique
+/// reference to the inner data still exists.
+pub fn image_from_texture(texture: wgpu::Texture) -> conrod_wgpu::Image {
+    let texture_format = texture.format();
+    let [width, height] = texture.size();
+    let texture = Arc::try_unwrap(texture.into_inner())
+        .expect("converting to UI image requires unique access to texture");
+    conrod_wgpu::Image {
+        texture,
+        texture_format,
+        width,
+        height,
     }
 }
 
