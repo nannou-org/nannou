@@ -29,12 +29,7 @@ impl RowPaddedBuffer {
     /// Create a row-padded buffer on the device.
     ///
     /// Width should be given in bytes.
-    pub fn new(
-        device: &wgpu::Device,
-        width: u32,
-        height: u32,
-        usage: wgpu::BufferUsage,
-    ) -> Self {
+    pub fn new(device: &wgpu::Device, width: u32, height: u32, usage: wgpu::BufferUsage) -> Self {
         let row_padding = Self::compute_row_padding(width);
 
         // only create mapped for buffers that we're going to write to.
