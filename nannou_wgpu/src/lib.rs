@@ -4,8 +4,17 @@
 //! that is both fast and allows us to target a wide range of platforms. **wgpu** is the name of
 //! the crate we use that implements this specification.
 //!
-//! This module re-exports the entire `wgpu` crate along with all of its documentation while also
+//! This crate re-exports the entire `wgpu` crate along with all of its documentation while also
 //! adding some additional items that makes `wgpu` easier to use alongside nannou.
+//!
+//! The `image` feature enables easier interoperation with the `image` crate, including functions
+//! for uploading textures from image files.
+//!
+//! The `capturer` feature provides the `wgpu::TextureCapturer` API that aims to simplify the
+//! process of downloading textures from the GPU and easily save them as image files. As an
+//! example, this is particularly useful for recording the contents of a window or sketch.
+//!
+//! Note that when using `nannou_wgpu` via `nannou::wgpu`, both features are enabled by default.
 //!
 //! Useful links:
 //!
@@ -39,13 +48,18 @@ pub use self::render_pass::{
 };
 pub use self::render_pipeline_builder::RenderPipelineBuilder;
 pub use self::sampler_builder::SamplerBuilder;
+#[cfg(feature = "capturer")]
 pub use self::texture::capturer::{
     AwaitWorkerTimeout as TextureCapturerAwaitWorkerTimeout, Capturer as TextureCapturer,
-    Snapshot as Textue5cfe74reSnapshot,
+    Snapshot as TextueSnapshot,
 };
-pub use self::texture::image::format_from_image_color_type as texture_format_from_image_color_type;
+#[cfg(feature = "image")]
+pub use self::texture::image::{
+    format_from_image_color_type as texture_format_from_image_color_type, ImageHolder,
+    ImageReadMapping, WithDeviceQueuePair,
+};
 pub use self::texture::reshaper::Reshaper as TextureReshaper;
-pub use self::texture::row_padded_buffer::{ImageHolder, ImageReadMapping, RowPaddedBuffer};
+pub use self::texture::row_padded_buffer::RowPaddedBuffer;
 pub use self::texture::{
     descriptor_eq as texture_descriptor_eq, extent_3d_eq,
     format_size_bytes as texture_format_size_bytes, Builder as TextureBuilder, Texture, TextureId,

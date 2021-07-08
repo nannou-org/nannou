@@ -70,7 +70,8 @@ impl<'swap_chain> Frame<'swap_chain> {
     /// converting from the linear representation to the swapchain format (normally a non-linear
     /// representation).
     // TODO: Kvark recommends trying `Rgb10A2Unorm`.
-    pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
+    pub const TEXTURE_FORMAT: wgpu::TextureFormat =
+        wgpu::RenderPipelineBuilder::DEFAULT_COLOR_FORMAT;
 
     // Initialise a new empty frame ready for "drawing".
     pub(crate) fn new_empty(

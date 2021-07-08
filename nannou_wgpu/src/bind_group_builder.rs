@@ -1,6 +1,6 @@
 use wgpu_upstream::BufferBinding;
 
-use crate::wgpu;
+use crate as wgpu;
 
 /// A type aimed at simplifying the creation of a bind group layout.
 #[derive(Debug, Default)]

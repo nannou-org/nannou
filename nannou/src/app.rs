@@ -976,6 +976,15 @@ impl draw::Draw {
     }
 }
 
+impl<'a> wgpu::WithDeviceQueuePair for &'a crate::app::App {
+    fn with_device_queue_pair<F, O>(self, f: F) -> O
+    where
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
+    {
+        self.main_window().with_device_queue_pair(f)
+    }
+}
+
 /// Attempt to find the assets directory path relative to the executable location.
 pub fn find_assets_path() -> Result<PathBuf, find_folder::Error> {
     let exe_path = std::env::current_exe()?;

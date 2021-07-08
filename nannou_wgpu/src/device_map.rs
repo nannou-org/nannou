@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex, Weak};
 
-use crate::wgpu;
+use crate as wgpu;
 
 /// A map from `RequestAdapterOptions` to active adapters.
 ///
@@ -142,7 +142,7 @@ impl AdapterMap {
     /// Clear all adapters that currently have no connected devices.
     ///
     /// First clears all devices that no longer have any external references.
-    pub(crate) fn clear_inactive_adapters_and_devices(&self) {
+    pub fn clear_inactive_adapters_and_devices(&self) {
         let mut map = self
             .map
             .lock()
@@ -244,7 +244,7 @@ impl ActiveAdapter {
     }
 
     /// A count of devices that are currently active.
-    fn device_count(&self) -> usize {
+    pub fn device_count(&self) -> usize {
         let map = self
             .device_map
             .map
@@ -254,7 +254,7 @@ impl ActiveAdapter {
     }
 
     /// Clear all device queue pairs that have been dropped.
-    fn clear_inactive_devices(&self) {
+    pub fn clear_inactive_devices(&self) {
         let mut map = self
             .device_map
             .map

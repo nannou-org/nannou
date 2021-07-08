@@ -4,7 +4,7 @@
 //! have to consider when writing graphics code. Here we define a set of helpers that allow us to
 //! simplify the process and fall back to a set of reasonable defaults.
 
-use crate::wgpu;
+use crate as wgpu;
 
 #[derive(Debug)]
 enum Layout<'a> {
@@ -57,7 +57,7 @@ impl<'a> RenderPipelineBuilder<'a> {
     };
 
     // Color state defaults.
-    pub const DEFAULT_COLOR_FORMAT: wgpu::TextureFormat = crate::frame::Frame::TEXTURE_FORMAT;
+    pub const DEFAULT_COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
     pub const DEFAULT_COLOR_BLEND: wgpu::BlendComponent = wgpu::BlendComponent {
         src_factor: wgpu::BlendFactor::SrcAlpha,
         dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,

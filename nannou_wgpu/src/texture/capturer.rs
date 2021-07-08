@@ -1,4 +1,4 @@
-use crate::wgpu;
+use crate as wgpu;
 use std::fmt;
 use std::future::Future;
 use std::sync::atomic::{self, AtomicU32};

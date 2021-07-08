@@ -1,4 +1,4 @@
-use crate::wgpu::{self, Color, LoadOp};
+use crate::{self as wgpu, Color, LoadOp};
 
 /// A builder type to simplify the process of creating a render pass descriptor.
 #[derive(Debug, Default)]

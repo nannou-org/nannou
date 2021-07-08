@@ -1,6 +1,4 @@
-use super::image::Pixel;
-use crate::wgpu;
-use std::ops::Deref;
+use crate as wgpu;
 
 /// A wrapper around a wgpu buffer suitable for copying to and from Textures. Automatically handles
 /// the padding necessary for buffer-to-texture and texture-to-buffer copies.
@@ -22,7 +20,7 @@ pub struct RowPaddedBuffer {
     /// The height of the buffer.
     height: u32,
     /// The wrapped buffer handle.
-    buffer: wgpu::Buffer,
+    pub(crate) buffer: wgpu::Buffer,
     /// The descriptor used to create the wrapped buffer.
     buffer_descriptor: wgpu::BufferDescriptor<'static>,
 }
@@ -31,13 +29,8 @@ impl RowPaddedBuffer {
     /// Create a row-padded buffer on the device.
     ///
     /// Width should be given in bytes.
-    pub fn new(
-        device: &wgpu::Device,
-        width: u32,
-        height: u32,
-        usage: wgpu::BufferUsage,
-    ) -> RowPaddedBuffer {
-        let row_padding = RowPaddedBuffer::compute_row_padding(width);
+    pub fn new(device: &wgpu::Device, width: u32, height: u32, usage: wgpu::BufferUsage) -> Self {
+        let row_padding = Self::compute_row_padding(width);
 
         // only create mapped for buffers that we're going to write to.
         let mapped_at_creation = usage.contains(wgpu::BufferUsage::MAP_WRITE);
@@ -50,7 +43,7 @@ impl RowPaddedBuffer {
         };
         let buffer = device.create_buffer(&buffer_descriptor);
 
-        RowPaddedBuffer {
+        Self {
             width,
             row_padding,
             height,
@@ -59,36 +52,13 @@ impl RowPaddedBuffer {
         }
     }
 
-    /// Initialize from an image buffer (i.e. an image on CPU).
-    pub fn from_image_buffer<P, Container>(
-        device: &wgpu::Device,
-        image_buffer: &image::ImageBuffer<P, Container>,
-    ) -> RowPaddedBuffer
-    where
-        P: 'static + Pixel,
-        Container: std::ops::Deref<Target = [P::Subpixel]>,
-    {
-        let result = RowPaddedBuffer::new(
-            device,
-            image_buffer.width() * P::COLOR_TYPE.bytes_per_pixel() as u32,
-            image_buffer.height(),
-            wgpu::BufferUsage::MAP_WRITE | wgpu::BufferUsage::COPY_SRC,
-        );
-        // TODO:
-        // This can theoretically be exploited by implementing `image::Primitive` for some type
-        // that has padding. Instead, should make some `Subpixel` trait that we can control and is
-        // only guaranteed to be implemented for safe types.
-        result.write(unsafe { wgpu::bytes::from_slice(&*image_buffer) });
-        result
-    }
-
     /// Creates a buffer compatible with a 2d slice of the given texture.
     pub fn for_texture(
         device: &wgpu::Device,
         texture: &wgpu::Texture,
         usage: wgpu::BufferUsage,
     ) -> RowPaddedBuffer {
-        RowPaddedBuffer::new(
+        Self::new(
             device,
             texture.extent().width * wgpu::texture_format_size_bytes(texture.format()),
             texture.extent().height,
@@ -153,23 +123,6 @@ impl RowPaddedBuffer {
             // note: leaves mapped[out_start + width..out_start + padded_width] uninitialized!
             mapped[out_start..out_start + width].copy_from_slice(&buf[in_start..in_start + width]);
         }
-    }
-
-    /// Asynchronously maps the buffer of bytes from GPU to host memory and, once mapped, calls the
-    /// given user callback with the data represented as an `ImageReadMapping`.
-    ///
-    /// Note: The given callback will not be called until the memory is mapped and the device is
-    /// polled. You should not rely on the callback being called immediately.
-    pub async fn read<'b>(&'b self) -> Result<ImageReadMapping<'b>, wgpu::BufferAsyncError> {
-        let slice = self.buffer.slice(..);
-        slice.map_async(wgpu::MapMode::Read).await?;
-        Ok(wgpu::ImageReadMapping {
-            buffer: self,
-            // fun exercise:
-            // read the signature of wgpu::BufferSlice::get_mapped_range()
-            // and try to figure out why we don't need another lifetime in ImageReadMapping :)
-            view: slice.get_mapped_range(),
-        })
     }
 
     /// Encode a copy into a texture. Assumes the texture is 2d.
@@ -283,70 +236,5 @@ impl RowPaddedBuffer {
             },
         };
         (buffer_view, texture_view, copy_size)
-    }
-}
-
-/// A wrapper around a slice of bytes representing an image.
-///
-/// An `ImageReadMapping` may only be created via `RowPaddedBuffer::read()`.
-pub struct ImageReadMapping<'buffer> {
-    buffer: &'buffer wgpu::RowPaddedBuffer,
-    view: wgpu::BufferView<'buffer>,
-}
-
-impl<'buffer> ImageReadMapping<'buffer> {
-    /// View as an image::SubImage.
-    ///
-    /// Unsafe: `P::TEXTURE_FORMAT` MUST match the texture format / image type used to create the
-    /// wrapped RowPaddedBuffer! If this is not the case, may result in undefined behavior!
-    pub unsafe fn as_image<P>(&self) -> image::SubImage<ImageHolder<P>>
-    where
-        P: Pixel + 'static,
-    {
-        let subpixel_size = std::mem::size_of::<P::Subpixel>() as u32;
-        let pixel_size = subpixel_size * P::CHANNEL_COUNT as u32;
-        assert_eq!(pixel_size, P::COLOR_TYPE.bytes_per_pixel() as u32);
-
-        assert_eq!(
-            self.buffer.padded_width() % pixel_size,
-            0,
-            "buffer padded width not an even multiple of primitive size"
-        );
-        assert_eq!(
-            self.buffer.width() % pixel_size,
-            0,
-            "buffer row width not an even multiple of primitive size"
-        );
-
-        let width_pixels = self.buffer.width() / pixel_size;
-        let padded_width_pixels = self.buffer.padded_width() / pixel_size;
-
-        // ways this cast could go wrong:
-        // - buffer is the wrong size: checked in to_slice, panics
-        // - buffer is the wrong alignment: checked in to_slice, panics
-        // - buffer rows are the wrong size: checked above, panics
-        // - buffer has not been initialized / has invalid data for primitive type:
-        //   very possible. That's why this function is `unsafe`.
-        let container = wgpu::bytes::to_slice::<P::Subpixel>(&self.view[..]);
-
-        let full_image =
-            image::ImageBuffer::from_raw(padded_width_pixels, self.buffer.height(), container)
-                .expect("nannou internal error: incorrect buffer size");
-        image::SubImage::new(
-            ImageHolder(full_image),
-            0,
-            0,
-            width_pixels,
-            self.buffer.height(),
-        )
-    }
-}
-
-/// Workaround for the fact that `image::SubImage` requires a `Deref` impl on the wrapped image.
-pub struct ImageHolder<'b, P: Pixel>(image::ImageBuffer<P, &'b [P::Subpixel]>);
-impl<'b, P: Pixel> Deref for ImageHolder<'b, P> {
-    type Target = image::ImageBuffer<P, &'b [P::Subpixel]>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }

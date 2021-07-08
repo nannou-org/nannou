@@ -1,6 +1,6 @@
 //! A set of useful descriptors for blending colours!
 
-use crate::wgpu;
+use crate as wgpu;
 
 pub const NORMAL: wgpu::BlendComponent = wgpu::BlendComponent {
     src_factor: wgpu::BlendFactor::SrcAlpha,

@@ -30,6 +30,8 @@ pub use self::ui::Ui;
 pub use nannou_core::{color, glam, math, rand};
 #[doc(inline)]
 pub use nannou_mesh as mesh;
+#[doc(inline)]
+pub use nannou_wgpu as wgpu;
 
 pub mod app;
 pub mod draw;
@@ -45,7 +47,6 @@ pub mod state;
 pub mod text;
 pub mod time;
 pub mod ui;
-pub mod wgpu;
 pub mod window;
 
 /// Begin building the `App`.

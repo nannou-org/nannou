@@ -74,8 +74,10 @@ The following nannou **libraries** are included within this repository.
 | [**`nannou_core`**](./nannou_core) | [![Crates.io](https://img.shields.io/crates/v/nannou_core.svg)](https://crates.io/crates/nannou_core) [![docs.rs](https://docs.rs/nannou_core/badge.svg)](https://docs.rs/nannou_core/) | Just-the-core for headless, embedded and libraries. |
 | [**`nannou_isf`**](./nannou_isf) | [![Crates.io](https://img.shields.io/crates/v/nannou_isf.svg)](https://crates.io/crates/nannou_isf) [![docs.rs](https://docs.rs/nannou_isf/badge.svg)](https://docs.rs/nannou_isf/) | An Interactive Shader Format pipeline. |
 | [**`nannou_laser`**](./nannou_laser) | [![Crates.io](https://img.shields.io/crates/v/nannou_laser.svg)](https://crates.io/crates/nannou_laser) [![docs.rs](https://docs.rs/nannou_laser/badge.svg)](https://docs.rs/nannou_laser/) | LASER devices, streams and path optimisation. |
+| [**`nannou_mesh`**](./nannou_mesh) | [![Crates.io](https://img.shields.io/crates/v/nannou_mesh.svg)](https://crates.io/crates/nannou_mesh) [![docs.rs](https://docs.rs/nannou_mesh/badge.svg)](https://docs.rs/nannou_mesh/) | API for composing meshes from channels. |
 | [**`nannou_osc`**](./nannou_osc) | [![Crates.io](https://img.shields.io/crates/v/nannou_osc.svg)](https://crates.io/crates/nannou_osc) [![docs.rs](https://docs.rs/nannou_osc/badge.svg)](https://docs.rs/nannou_osc/) | Simple OSC sender and receiver. |
 | [**`nannou_timeline`**](./nannou_timeline) | [![Crates.io](https://img.shields.io/crates/v/nannou_timeline.svg)](https://crates.io/crates/nannou_timeline) [![docs.rs](https://docs.rs/nannou_timeline/badge.svg)](https://docs.rs/nannou_timeline/) | A timeline widget for nannou GUIs. |
+| [**`nannou_wgpu`**](./nannou_wgpu) | [![Crates.io](https://img.shields.io/crates/v/nannou_wgpu.svg)](https://crates.io/crates/nannou_wgpu) [![docs.rs](https://docs.rs/nannou_wgpu/badge.svg)](https://docs.rs/nannou_wgpu/) | WGPU helpers and extensions. |
 
 ## Tools
 
