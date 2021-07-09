@@ -10,9 +10,6 @@ repository = "https://github.com/nannou-org/nannou.git"
 homepage = "https://github.com/nannou-org/nannou"
 edition = "2018"
 
-[features]
-default = ["notosans"]
-
 [dependencies]
 daggy = "0.6"
 find_folder = "0.3"
@@ -35,3 +32,6 @@ toml = "0.5"
 walkdir = "2"
 wgpu_upstream = { version = "0.9", package = "wgpu" }
 winit = "0.25"
+
+[features]
+default = ["notosans"]
