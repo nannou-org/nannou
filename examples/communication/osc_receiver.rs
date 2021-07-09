@@ -1,5 +1,6 @@
 use nannou::prelude::*;
-use nannou::ui::prelude::*;
+use nannou_conrod as ui;
+use nannou_conrod::prelude::*;
 use nannou_osc as osc;
 
 fn main() {
@@ -17,9 +18,11 @@ struct Model {
 const PORT: u16 = 34254;
 
 fn model(app: &App) -> Model {
-    app.new_window()
+    let w_id = app
+        .new_window()
         .title("OSC Receiver")
         .size(1400, 480)
+        .raw_event(raw_window_event)
         .view(view)
         .build()
         .unwrap();
@@ -31,7 +34,7 @@ fn model(app: &App) -> Model {
     let received_packets = vec![];
 
     // Create a simple UI to display received messages.
-    let mut ui = app.new_ui().build().unwrap();
+    let mut ui = ui::builder(app).window(w_id).build().unwrap();
     let text = ui.generate_widget_id();
 
     Model {
@@ -40,6 +43,10 @@ fn model(app: &App) -> Model {
         ui,
         text,
     }
+}
+
+fn raw_window_event(app: &App, model: &mut Model, event: &ui::RawWindowEvent) {
+    model.ui.handle_raw_event(app, event);
 }
 
 fn update(_app: &App, model: &mut Model, _update: Update) {

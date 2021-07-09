@@ -11,7 +11,6 @@ pub use crate::frame::{Frame, RawFrame};
 pub use crate::io::{load_from_json, load_from_toml, safe_file_save, save_to_json, save_to_toml};
 pub use crate::text::{self, text};
 pub use crate::time::DurationF64;
-pub use crate::ui;
 pub use crate::wgpu;
 pub use crate::wgpu::blend::{
     ADD as BLEND_ADD, DARKEST as BLEND_DARKEST, LIGHTEST as BLEND_LIGHTEST, NORMAL as BLEND_NORMAL,

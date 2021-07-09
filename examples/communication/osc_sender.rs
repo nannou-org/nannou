@@ -1,5 +1,6 @@
 use nannou::prelude::*;
-use nannou::ui::prelude::*;
+use nannou_conrod as ui;
+use nannou_conrod::prelude::*;
 use nannou_osc as osc;
 use nannou_osc::Type;
 
@@ -21,10 +22,12 @@ fn target_address_string() -> String {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window()
+    let w_id = app
+        .new_window()
         .title("OSC Sender")
         .size(680, 480)
         .event(event)
+        .raw_event(raw_window_event)
         .view(view)
         .build()
         .unwrap();
@@ -36,7 +39,7 @@ fn model(app: &App) -> Model {
     let sender = osc::sender().unwrap().connect(target_addr).unwrap();
 
     // Create a simple UI to tell the user what to do.
-    let mut ui = app.new_ui().build().unwrap();
+    let mut ui = ui::builder(app).window(w_id).build().unwrap();
     let text = ui.generate_widget_id();
 
     Model { sender, ui, text }
@@ -66,6 +69,10 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
 
         _other => (),
     }
+}
+
+fn raw_window_event(app: &App, model: &mut Model, event: &ui::RawWindowEvent) {
+    model.ui.handle_raw_event(app, event);
 }
 
 fn update(_app: &App, model: &mut Model, _update: Update) {

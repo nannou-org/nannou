@@ -1,0 +1,19 @@
+[package]
+name = "nannou_conrod"
+version = "0.17.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+description = "Simplifies creating conrod GUIs in nannou apps."
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/nannou-org/nannou.git"
+homepage = "https://nannou.cc"
+edition = "2018"
+
+[dependencies]
+conrod_core = "0.74"
+conrod_wgpu = "0.74"
+conrod_winit = "0.74"
+nannou = { version = "0.17.0", path = "../nannou" }
+# Must be synchronised with the version used in the nannou dependency.
+# Required for the winit event conversion function macro to work.
+winit = "0.25"

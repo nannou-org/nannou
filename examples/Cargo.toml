@@ -20,6 +20,7 @@ hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
 hrtf = "0.2"
 nannou = { version ="0.17.0", path = "../nannou" }
 nannou_audio = { version ="0.17.0", path = "../nannou_audio" }
+nannou_conrod = { version ="0.17.0", path = "../nannou_conrod" }
 nannou_isf = { version = "0.1.0", path = "../nannou_isf" }
 nannou_laser = { version ="0.17.0", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
 nannou_osc = { version ="0.17.0", path = "../nannou_osc" }
@@ -189,13 +190,13 @@ path = "templates/template_sketch.rs"
 # User Interface
 [[example]]
 name = "named_color_reference"
-path = "ui/named_color_reference.rs"
+path = "ui/conrod/named_color_reference.rs"
 [[example]]
 name = "simple_ui"
-path = "ui/simple_ui.rs"
+path = "ui/conrod/simple_ui.rs"
 [[example]]
 name = "timeline_demo"
-path = "ui/timeline_demo.rs"
+path = "ui/conrod/timeline_demo.rs"
 
 # WebGPU
 [[example]]

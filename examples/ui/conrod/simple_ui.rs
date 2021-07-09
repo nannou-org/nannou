@@ -1,8 +1,9 @@
 use nannou::prelude::*;
-use nannou::ui::prelude::*;
+use nannou_conrod as ui;
+use nannou_conrod::prelude::*;
 
 fn main() {
-    nannou::app(model).update(update).simple_window(view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -29,8 +30,16 @@ fn model(app: &App) -> Model {
     // Set the loop mode to wait for events, an energy-efficient option for pure-GUI apps.
     app.set_loop_mode(LoopMode::Wait);
 
-    // Create the UI.
-    let mut ui = app.new_ui().build().unwrap();
+    // Create a window.
+    let w_id = app
+        .new_window()
+        .raw_event(raw_window_event)
+        .view(view)
+        .build()
+        .unwrap();
+
+    // Create the UI for our window.
+    let mut ui = ui::builder(app).window(w_id).build().unwrap();
 
     // Generate some ids for our widgets.
     let ids = Ids::new(ui.widget_id_generator());
@@ -51,6 +60,10 @@ fn model(app: &App) -> Model {
         position,
         color,
     }
+}
+
+fn raw_window_event(app: &App, model: &mut Model, event: &ui::RawWindowEvent) {
+    model.ui.handle_raw_event(app, event);
 }
 
 fn update(_app: &App, model: &mut Model, _update: Update) {

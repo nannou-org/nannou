@@ -14,7 +14,6 @@ use crate::frame::{Frame, RawFrame};
 use crate::geom;
 use crate::state;
 use crate::time::DurationF64;
-use crate::ui;
 use crate::wgpu;
 use crate::window::{self, Window};
 use find_folder;
@@ -116,7 +115,6 @@ pub struct App {
     /// A map of active wgpu physical device adapters.
     adapters: wgpu::AdapterMap,
     draw_state: DrawState,
-    pub(crate) ui: ui::Arrangement,
     /// The window that is currently in focus.
     pub(crate) focused_window: RefCell<Option<window::Id>>,
     /// The current state of the `Mouse`.
@@ -616,7 +614,6 @@ impl App {
         let renderers = RefCell::new(Default::default());
         let draw_state = DrawState { draw, renderers };
         let focused_window = RefCell::new(None);
-        let ui = ui::Arrangement::new();
         let mouse = state::Mouse::new();
         let keys = state::Keys::default();
         let duration = state::Time::default();
@@ -634,7 +631,6 @@ impl App {
             windows,
             config,
             draw_state,
-            ui,
             mouse,
             keys,
             duration,
@@ -869,14 +865,6 @@ impl App {
     /// This can be used to "wake up" the **App**'s inner event loop.
     pub fn create_proxy(&self) -> Proxy {
         self.event_loop_proxy.clone()
-    }
-
-    /// A builder for creating a new **Ui**.
-    ///
-    /// Each **Ui** is associated with one specific window. By default, this is the window returned
-    /// by `App::window_id` (the currently focused window).
-    pub fn new_ui(&self) -> ui::Builder {
-        ui::Builder::new(self)
     }
 
     /// Produce the **App**'s **Draw** API for drawing geometry and text with colors and textures.
@@ -1544,20 +1532,6 @@ where
                 }
 
                 _ => (),
-            }
-
-            // See if the event could be interpreted as a `ui::Input`. If so, submit it to the
-            // `Ui`s associated with this window.
-            if let Some(window) = app.windows.borrow().get(&window_id) {
-                if let Some(input) = ui::winit_window_event_to_input(event, window) {
-                    if let Some(handles) = app.ui.windows.borrow().get(&window_id) {
-                        for handle in handles {
-                            if let Some(ref tx) = handle.input_tx {
-                                tx.try_send(input.clone()).ok();
-                            }
-                        }
-                    }
-                }
             }
         }
     }

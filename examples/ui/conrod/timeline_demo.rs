@@ -1,5 +1,6 @@
 use nannou::prelude::*;
-use nannou::ui::prelude::*;
+use nannou_conrod as ui;
+use nannou_conrod::prelude::*;
 use nannou_timeline as timeline;
 use pitch_calc as pitch;
 use std::iter::once;
@@ -19,7 +20,6 @@ fn main() {
 }
 
 struct Model {
-    _window: window::Id,
     ui: Ui,
     ids: Ids,
     timeline_data: TimelineData,
@@ -48,9 +48,10 @@ widget_ids! {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app
+    let window_id = app
         .new_window()
         .key_pressed(key_pressed)
+        .raw_event(raw_window_event)
         .size(WIDTH, HEIGHT)
         .title("Timeline Demo")
         .view(view)
@@ -58,7 +59,7 @@ fn model(app: &App) -> Model {
         .unwrap();
 
     // Create the UI.
-    let mut ui = app.new_ui().build().unwrap();
+    let mut ui = ui::builder(app).window(window_id).build().unwrap();
     let ids = Ids::new(ui.widget_id_generator());
 
     // Start the playhead at the beginning.
@@ -160,12 +161,15 @@ fn model(app: &App) -> Model {
     };
 
     Model {
-        _window,
         ui,
         ids,
         timeline_data,
         playing: false,
     }
+}
+
+fn raw_window_event(app: &App, model: &mut Model, event: &ui::RawWindowEvent) {
+    model.ui.handle_raw_event(app, event);
 }
 
 fn update(_app: &App, model: &mut Model, update: Update) {

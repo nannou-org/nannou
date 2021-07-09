@@ -3,7 +3,8 @@
 
 use nannou::geom::Rect;
 use nannou::prelude::*;
-use nannou::ui::prelude::*;
+use nannou_conrod as ui;
+use nannou_conrod::prelude::*;
 use nannou_laser as laser;
 use std::sync::{mpsc, Arc};
 
@@ -142,9 +143,11 @@ impl Default for RgbProfile {
 
 fn model(app: &App) -> Model {
     // Create a window to receive keyboard events.
-    app.new_window()
+    let w_id = app
+        .new_window()
         .size(240, 690)
         .key_pressed(key_pressed)
+        .raw_event(raw_window_event)
         .view(view)
         .build()
         .unwrap();
@@ -181,7 +184,7 @@ fn model(app: &App) -> Model {
     let laser_streams = vec![];
 
     // A user-interface to tweak the settings.
-    let mut ui = app.new_ui().build().unwrap();
+    let mut ui = ui::builder(app).window(w_id).build().unwrap();
     let ids = Ids {
         background_canvas: ui.generate_widget_id(),
         laser_points_text: ui.generate_widget_id(),
@@ -321,6 +324,10 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
             add_points(&points, laser.draw_mode, laser.scale, frame);
         }
     }
+}
+
+fn raw_window_event(app: &App, model: &mut Model, event: &ui::RawWindowEvent) {
+    model.ui.handle_raw_event(app, event);
 }
 
 fn update(_app: &App, model: &mut Model, _update: Update) {

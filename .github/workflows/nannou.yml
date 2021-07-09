@@ -170,6 +170,11 @@ jobs:
     - name: Cargo publish nannou_timeline
       continue-on-error: true
       run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_timeline/Cargo.toml
+    - name: Wait for crates.io
+      run: sleep 15
+    - name: Cargo publish nannou_conrod
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_conrod/Cargo.toml
 
   guide-build-book:
     runs-on: ubuntu-latest
