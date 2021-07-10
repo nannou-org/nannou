@@ -1,19 +1,19 @@
-//! The User Interface API.
-//!
-//! Instantiate a [**Ui**](struct.Ui.html) via `app.new_ui()`.
+//! A library for simplifying using the conrod 2D GUI library with nannou.
 
-pub use self::conrod_core::event::Input;
-pub use self::conrod_core::{
+pub extern crate conrod_core;
+pub extern crate conrod_wgpu;
+pub extern crate conrod_winit;
+
+pub use conrod_core::event::Input;
+pub use conrod_core::{
     color, cursor, event, graph, image, input, position, scroll, text, theme, utils, widget,
     widget_ids,
 };
-pub use self::conrod_core::{
+pub use conrod_core::{
     Borderable, Bordering, Color, Colorable, Dimensions, FontSize, Labelable, Point, Positionable,
     Range, Rect, Scalar, Sizeable, Theme, UiCell, Widget,
 };
-pub use crate::conrod_core;
-pub use crate::conrod_wgpu;
-pub use crate::conrod_winit;
+pub use nannou::winit::event::WindowEvent as RawWindowEvent;
 
 /// Simplify inclusion of common traits with a `nannou::ui::prelude` module.
 pub mod prelude {
@@ -28,37 +28,21 @@ pub mod prelude {
 }
 
 use self::conrod_core::text::rt::gpu_cache::CacheWriteErr;
-use crate::frame::Frame;
-use crate::text::{font, Font};
-use crate::window::{self, Window};
-use crate::{wgpu, App};
-use std::cell::RefCell;
-use std::collections::HashMap;
+use nannou::frame::Frame;
+use nannou::text::{font, Font};
+use nannou::window::{self, Window};
+use nannou::{wgpu, App};
 use std::error::Error as StdError;
 use std::fmt;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::sync::{mpsc, Arc, Mutex};
-use winit;
-
-/// Owned by the `App`, the `Arrangement` handles the mapping between `Ui`s and their associated
-/// windows.
-pub(crate) struct Arrangement {
-    pub(super) windows: RefCell<HashMap<window::Id, Vec<Handle>>>,
-}
-
-/// A handle to the `Ui` owned by the `App`.
-pub(crate) struct Handle {
-    /// A channel used for automatically submitting `Input` to the associated `Ui`.
-    pub(crate) input_tx: Option<mpsc::SyncSender<Input>>,
-}
+use std::sync::{Arc, Mutex};
 
 /// A handle to the `Ui` for a specific window.
 pub struct Ui {
     /// The `Id` of the window upon which this `Ui` is instantiated.
     window_id: window::Id,
     ui: conrod_core::Ui,
-    input_rx: Option<mpsc::Receiver<Input>>,
     pub image_map: ImageMap,
     renderer: Mutex<conrod_wgpu::Renderer>,
 }
@@ -69,8 +53,6 @@ pub struct Builder<'a> {
     window_id: Option<window::Id>,
     dimensions: Option<[Scalar; 2]>,
     theme: Option<Theme>,
-    automatically_handle_input: bool,
-    pending_input_limit: usize,
     default_font_path: Option<PathBuf>,
     glyph_cache_dimensions: Option<(u32, u32)>,
 }
@@ -97,24 +79,14 @@ pub enum DrawToFrameError {
 /// A map from `image::Id`s to their associated `Texture2d`.
 pub type ImageMap = conrod_core::image::Map<conrod_wgpu::Image>;
 
-impl Arrangement {
-    /// Initialise a new UI **Arrangement** (used by the App).
-    pub(crate) fn new() -> Self {
-        let windows = RefCell::new(HashMap::new());
-        Arrangement { windows }
-    }
-}
-
 impl<'a> Builder<'a> {
     /// Begin building a new `Ui`.
-    pub(super) fn new(app: &'a App) -> Self {
+    pub fn new(app: &'a App) -> Self {
         Builder {
             app,
             window_id: None,
             dimensions: None,
             theme: None,
-            automatically_handle_input: true,
-            pending_input_limit: Ui::DEFAULT_PENDING_INPUT_LIMIT,
             default_font_path: None,
             glyph_cache_dimensions: None,
         }
@@ -142,35 +114,6 @@ impl<'a> Builder<'a> {
     /// By default, nannou uses conrod's default theme.
     pub fn with_theme(mut self, theme: Theme) -> Self {
         self.theme = Some(theme);
-        self
-    }
-
-    /// Whether or not the `App` should automatically submit input to the `Ui`.
-    ///
-    /// When enabled, events that can be interpreted as UI `Input` will be passed to the `Ui` via
-    /// the `conrod::Ui::handle_input` method.
-    ///
-    /// Note that `Input`s are not immediately submitted to the `Ui` when received by the `App`.
-    /// Instead, they are enqueued for the `Ui` to be processed next time `Ui::set_widgets` is
-    /// called. The max number of pending `Input`s before they become ignored can be specified via
-    /// the `pending_input_limit` method.
-    ///
-    /// By default this is `true`. Users should set this to `false` if they wish to manually filter
-    /// and submit events (e.g. if something is occluding the `Ui` and the user wishes to filter
-    /// occluded input).
-    pub fn automatically_handle_input(mut self, b: bool) -> Self {
-        self.automatically_handle_input = b;
-        self
-    }
-
-    /// Specify the max number of pending `Input`s that can be enqueued for processing by the `Ui`
-    /// before `Input`s start being ignored.
-    ///
-    /// By default this is `Ui::DEFAULT_PENDING_INPUT_LIMIT`.
-    ///
-    /// This has no affect if `automatically_handle_input` is set to `false`.
-    pub fn pending_input_limit(mut self, limit: usize) -> Self {
-        self.pending_input_limit = limit;
         self
     }
 
@@ -209,8 +152,6 @@ impl<'a> Builder<'a> {
             window_id,
             dimensions,
             theme,
-            pending_input_limit,
-            automatically_handle_input,
             default_font_path,
             glyph_cache_dimensions,
         } = self;
@@ -231,28 +172,6 @@ impl<'a> Builder<'a> {
         // Build the conrod `Ui`.
         let theme = theme.unwrap_or_else(Theme::default);
         let ui = conrod_core::UiBuilder::new(dimensions).theme(theme).build();
-
-        // The queue for receiving application events.
-        let (input_rx, handle) = if automatically_handle_input {
-            let (input_tx, input_rx) = mpsc::sync_channel(pending_input_limit);
-            let input_tx = Some(input_tx);
-            let input_rx = Some(input_rx);
-            let handle = Handle { input_tx };
-            (input_rx, handle)
-        } else {
-            let input_tx = None;
-            let input_rx = None;
-            let handle = Handle { input_tx };
-            (input_rx, handle)
-        };
-
-        // Insert the handle into the app's UI arrangement.
-        app.ui
-            .windows
-            .borrow_mut()
-            .entry(window_id)
-            .or_insert(Vec::new())
-            .push(handle);
 
         // The device with which to create the `Ui` renderer.
         let device = window.swap_chain_device().clone();
@@ -280,7 +199,6 @@ impl<'a> Builder<'a> {
         let mut ui = Ui {
             window_id,
             ui,
-            input_rx,
             image_map,
             renderer,
         };
@@ -294,10 +212,6 @@ impl<'a> Builder<'a> {
 }
 
 impl Ui {
-    /// The default maximum number of `Input`s that a `Ui` will store in its pending `Input` queue
-    /// before `Input`s start being ignored.
-    pub const DEFAULT_PENDING_INPUT_LIMIT: usize = 1024;
-
     /// Generate a new, unique `widget::Id` into a Placeholder node within the widget graph. This
     /// should only be called once for each unique widget needed to avoid unnecessary bloat within
     /// the `Ui`'s internal widget graph.
@@ -328,24 +242,19 @@ impl Ui {
         self.ui.handle_event(input)
     }
 
-    /// Processes all pending input.
+    /// Check the given raw event for a valid conrod `Input` and if there is one, call
+    /// `self.handle_input(input)`.
     ///
-    /// This is automatically called at the beginning of the `set_widgets` method, so the user
-    /// should never need to call this manually, however the method is exposed for flexibility
-    /// just in case.
-    ///
-    /// This has no effect if automatic input handling is disabled.
-    pub fn handle_pending_input(&mut self) {
-        let Ui {
-            ref mut ui,
-            ref input_rx,
-            ..
-        } = *self;
-        if let Some(ref rx) = *input_rx {
-            for input in rx.try_iter() {
-                ui.handle_event(input);
+    /// Returns `false` in the case that no `Input` could be parsed, or if there was no `Window`
+    /// for the `Ui`'s associated `window::Id`.
+    pub fn handle_raw_event(&mut self, app: &App, event: &RawWindowEvent) -> bool {
+        if let Some(window) = app.window(self.window_id) {
+            if let Some(input) = winit_window_event_to_input(event, &*window) {
+                self.handle_input(input);
+                return true;
             }
         }
+        false
     }
 
     /// Returns a context upon which UI widgets can be instantiated.
@@ -354,8 +263,6 @@ impl Ui {
     /// are instantiated. Once the **UiCell** is dropped, it does some cleanup and sorting that is
     /// required after widget instantiation.
     pub fn set_widgets(&mut self) -> UiCell {
-        // Process any pending inputs first.
-        self.handle_pending_input();
         self.ui.set_widgets()
     }
 
@@ -441,6 +348,13 @@ impl Ui {
             }
         }
     }
+}
+
+/// Begin building a new `Ui`.
+///
+/// This is short-hand for the `Builder::new`.
+pub fn builder(app: &App) -> Builder {
+    Builder::new(app)
 }
 
 /// Convert the texture into an image compatible with the UI's image map.
@@ -533,7 +447,7 @@ pub fn winit_window_event_to_input(
     event: &winit::event::WindowEvent,
     window: &Window,
 ) -> Option<Input> {
-    conrod_winit_conv::convert_window_event(event, &window.window)
+    conrod_winit_conv::convert_window_event(event, window.winit_window())
 }
 
 impl Deref for Ui {
@@ -624,7 +538,7 @@ fn default_font(default_font_path: Option<&Path>) -> Result<Font, text::font::Er
             }
             #[cfg(not(feature = "notosans"))]
             {
-                match crate::app::find_assets_path() {
+                match nannou::app::find_assets_path() {
                     Err(_err) => return Err(text::font::Error::NoFont)?,
                     Ok(assets) => font::default(&assets).map_err(conv_err)?,
                 }

@@ -10,13 +10,7 @@ repository = "https://github.com/nannou-org/nannou.git"
 homepage = "https://github.com/nannou-org/nannou"
 edition = "2018"
 
-[features]
-default = ["notosans"]
-
 [dependencies]
-conrod_core = "0.74"
-conrod_wgpu = "0.74"
-conrod_winit = "0.74"
 daggy = "0.6"
 find_folder = "0.3"
 futures = { version = "0.3", features = ["executor", "thread-pool"] }
@@ -30,7 +24,7 @@ noise = "0.7"
 notosans = { version = "0.1", optional = true }
 num_cpus = "1"
 pennereq = "0.3"
-rusttype = "0.8"
+rusttype = { version = "0.8", features = ["gpu_cache"] }
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
@@ -38,3 +32,6 @@ toml = "0.5"
 walkdir = "2"
 wgpu_upstream = { version = "0.9", package = "wgpu" }
 winit = "0.25"
+
+[features]
+default = ["notosans"]

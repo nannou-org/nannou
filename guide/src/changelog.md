@@ -7,7 +7,16 @@ back to the origins.
 
 # Unreleased
 
-*No unreleased changes yet.*
+- Refactor the `nannou::mesh` module into a `nannou_mesh` crate, re-exported to
+  maintain the same API.
+- Refactor the `nannou::wgpu` module into a `nannou_wgpu` crate, re-exported to
+  maintain the same API.
+- Remove the `nannou::ui` module in favour of providing a `nannou_conrod` crate.
+  See the updated `examples/ui/conrod` examples to find out how to update. Note
+  that input must now be manually submitted to the `Ui` and is no longer done
+  automatically by the nannou `App`. The easiest approach is to register a
+  `raw_event` function with the `Ui`'s window. Refer to the updated examples for
+  demonstration.
 
 ---
 

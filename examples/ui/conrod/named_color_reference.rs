@@ -5,11 +5,12 @@
 //! https://www.w3schools.com/cssref/css_colors.asp
 
 use nannou::prelude::*;
-use nannou::ui::position::{Place, Relative};
-use nannou::ui::prelude::*;
+use nannou_conrod as ui;
+use nannou_conrod::position::{Place, Relative};
+use nannou_conrod::prelude::*;
 
 fn main() {
-    nannou::app(model).update(update).simple_window(view).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -21,7 +22,13 @@ struct Model {
 fn model(app: &App) -> Model {
     check_color_list_lengths();
     app.set_loop_mode(LoopMode::Wait);
-    let mut ui = app.new_ui().build().unwrap();
+    let w_id = app
+        .new_window()
+        .raw_event(raw_window_event)
+        .view(view)
+        .build()
+        .unwrap();
+    let mut ui = ui::builder(app).window(w_id).build().unwrap();
     let color_list = ui.generate_widget_id();
     let selected_color_index = 0;
     Model {
@@ -29,6 +36,10 @@ fn model(app: &App) -> Model {
         color_list,
         selected_color_index,
     }
+}
+
+fn raw_window_event(app: &App, model: &mut Model, event: &ui::RawWindowEvent) {
+    model.ui.handle_raw_event(app, event);
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
@@ -53,12 +64,12 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         .set(color_list, ui);
 
     while let Some(event) = events.next(ui, |i| i == *selected_color_index) {
-        use nannou::ui::widget::list_select::Event;
+        use nannou_conrod::widget::list_select::Event;
         match event {
             Event::Item(item) => {
                 let label = &ALL_NAMED_COLOR_NAMES[item.i];
                 let (r, g, b) = ALL_NAMED_COLORS[item.i].into();
-                let color = nannou::ui::color::rgb_bytes(r, g, b);
+                let color = ui::color::rgb_bytes(r, g, b);
                 let button = widget::Button::new()
                     .border(0.0)
                     .color(color)

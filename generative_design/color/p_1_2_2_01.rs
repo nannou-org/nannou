@@ -40,7 +40,6 @@
 use nannou::image;
 use nannou::image::GenericImageView;
 use nannou::prelude::*;
-use nannou::ui::color::rgb_to_hsl;
 
 fn main() {
     nannou::app(model).run();
@@ -196,33 +195,33 @@ fn sort_colors(colors: &mut Vec<Rgba>, mode: &SortMode) {
         }
         SortMode::Hue => {
             colors.sort_by(|a, b| {
-                let (a_hue, _, _) = rgb_to_hsl(a.red, a.green, a.blue);
-                let (b_hue, _, _) = rgb_to_hsl(b.red, b.green, b.blue);
-                a_hue.partial_cmp(&b_hue).unwrap()
+                let a: Hsl = a.clone().into();
+                let b: Hsl = b.clone().into();
+                a.hue.to_radians().partial_cmp(&b.hue.to_radians()).unwrap()
             });
         }
         SortMode::Saturation => {
             colors.sort_by(|a, b| {
-                let (_, a_sat, _) = rgb_to_hsl(a.red, a.green, a.blue);
-                let (_, b_sat, _) = rgb_to_hsl(b.red, b.green, b.blue);
+                let a: Hsl = a.clone().into();
+                let b: Hsl = b.clone().into();
 
                 // temporary fix until conrod bug with saturation is resolved
-                if a_sat.is_nan() && b_sat.is_nan() {
+                if a.saturation.is_nan() && b.saturation.is_nan() {
                     0.0.partial_cmp(&0.0).unwrap()
-                } else if a_sat.is_nan() {
-                    0.0.partial_cmp(&b_sat).unwrap()
-                } else if b_sat.is_nan() {
-                    a_sat.partial_cmp(&0.0).unwrap()
+                } else if a.saturation.is_nan() {
+                    0.0.partial_cmp(&b.saturation).unwrap()
+                } else if b.saturation.is_nan() {
+                    a.saturation.partial_cmp(&0.0).unwrap()
                 } else {
-                    a_sat.partial_cmp(&b_sat).unwrap()
+                    a.saturation.partial_cmp(&b.saturation).unwrap()
                 }
             });
         }
         SortMode::Brightness => {
             colors.sort_by(|a, b| {
-                let (_, _, a_bright) = rgb_to_hsl(a.red, a.green, a.blue);
-                let (_, _, b_bright) = rgb_to_hsl(b.red, b.green, b.blue);
-                a_bright.partial_cmp(&b_bright).unwrap()
+                let a: Hsl = a.clone().into();
+                let b: Hsl = b.clone().into();
+                a.lightness.partial_cmp(&b.lightness).unwrap()
             });
         }
         SortMode::Alpha => {

@@ -1429,6 +1429,13 @@ impl Window {
         self.capture_frame_inner(path.as_ref());
     }
 
+    /// Produces a reference to the inner winit window.
+    ///
+    /// This is sometimes useful for integration with other winit-aware libraries (e.g. UI).
+    pub fn winit_window(&self) -> &winit::window::Window {
+        &self.window
+    }
+
     fn capture_frame_inner(&self, path: &Path) {
         // If the parent directory does not exist, create it.
         let dir = path.parent().expect("capture_frame path has no directory");

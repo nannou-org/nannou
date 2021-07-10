@@ -5,6 +5,7 @@ members = [
     "guide/book_tests",
     "nannou",
     "nannou_audio",
+    "nannou_conrod",
     "nannou_core",
     "nannou_isf",
     "nannou_laser",
