@@ -1,96 +1,221 @@
-use std::{borrow::BorrowMut, cell::RefCell, sync::{Arc, Mutex}};
-
 pub use egui;
 pub use egui::color_picker;
 pub use egui_wgpu_backend;
 
 use egui::{pos2, ClippedMesh, CtxRef};
 use egui_wgpu_backend::{epi, ScreenDescriptor};
-use winit::event::VirtualKeyCode;
-use winit::event::WindowEvent::*;
+use nannou::{
+    wgpu,
+    winit::event::VirtualKeyCode,
+    winit::event::WindowEvent::*,
+};
+use std::{
+    cell::RefCell,
+    ops::Deref,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
-const OUTPUT_FORMAT: egui_wgpu_backend::wgpu::TextureFormat = nannou::Frame::TEXTURE_FORMAT;
+/// All `egui`-related state for a single window.
+///
+/// Includes the context, a renderer, and an input tracker.
+///
+/// For multi-window user interfaces, you will need to create an instance of this type per-window.
+pub struct Egui {
+    context: CtxRef,
+    renderer: RefCell<Renderer>,
+    input: Input,
+}
 
-pub struct EguiBackend {
-    render_pass: RefCell<egui_wgpu_backend::RenderPass>,
-    raw_input: egui::RawInput,
-    modifier_state: winit::event::ModifiersState,
-    pointer_pos: egui::Pos2,
-    width: u32,
-    height: u32,
-    scale_factor: f64,
-    context: egui::CtxRef,
+/// A wrapper around all necessary state for rendering a `Egui` to a single texture (often a window
+/// texture).
+///
+/// For targeting more than one window, users should construct a `Egui` for each.
+pub struct Renderer {
+    render_pass: egui_wgpu_backend::RenderPass,
     paint_jobs: Vec<ClippedMesh>,
-    repaint_signal: Arc<dyn epi::RepaintSignal + 'static>,
+}
+
+/// Tracking user and application event input.
+pub struct Input {
+    pub pointer_pos: egui::Pos2,
+    pub raw: egui::RawInput,
+    pub modifiers: winit::event::ModifiersState,
+    pub window_size_pixels: [u32; 2],
+    pub window_scale_factor: f32,
+}
+
+/// A wrapper around a `CtxRef` on which `begin_frame` was called.
+///
+/// Automatically calls `end_frame` on `drop` in the case that it wasn't already called by the
+/// usef.
+pub struct FrameCtx<'a> {
+    ui: &'a mut Egui,
+    ended: bool,
 }
 
 struct RepaintSignal(Mutex<nannou::app::Proxy>);
 
-impl EguiBackend {
-    pub fn from_window(window: &nannou::window::Window, proxy: nannou::app::Proxy) -> EguiBackend {
-        let scale_factor = window.scale_factor() as f64;
-        let width = window.inner_size_pixels().0;
-        let height = window.inner_size_pixels().1;
-
-        let raw_input = egui::RawInput {
-            pixels_per_point: Some(scale_factor as f32),
-            screen_rect: Some(egui::Rect::from_min_size(
-                Default::default(),
-                egui::vec2(width as f32, height as f32) / scale_factor as f32,
-            )),
-            ..Default::default()
-        };
-
-        let context = egui::CtxRef::default();
-        context.set_fonts(egui::FontDefinitions::default());
-        context.set_style(egui::Style::default());
-
-        EguiBackend {
-            render_pass: RefCell::new(egui_wgpu_backend::RenderPass::new(
-                window.swap_chain_device(),
-                OUTPUT_FORMAT,
-                window.msaa_samples(),
-            )),
-            context,
-            modifier_state: winit::event::ModifiersState::empty(),
-            width,
-            height,
-            scale_factor,
-            raw_input,
-            pointer_pos: Default::default(),
-            paint_jobs: Vec::new(),
-            repaint_signal: Arc::new(RepaintSignal(Mutex::new(proxy))) as _,
-        }
+impl Egui {
+    /// Construct the `Egui` from its parts.
+    ///
+    /// The given `device` must be the same used to create the queue to which the Egui's render
+    /// commands will be submitted.
+    ///
+    /// The `target_format`, `target_msaa_samples`, `window_scale_factor` and `window_size_pixels`
+    /// must match the window to which the UI will be drawn.
+    ///
+    /// The `context` should have the desired initial styling and fonts already set.
+    pub fn new(
+        device: &wgpu::Device,
+        target_format: wgpu::TextureFormat,
+        target_msaa_samples: u32,
+        window_scale_factor: f32,
+        window_size_pixels: [u32; 2],
+    ) -> Self {
+        let renderer = RefCell::new(Renderer::new(device, target_format, target_msaa_samples));
+        let input = Input::new(window_scale_factor, window_size_pixels);
+        let context = Default::default();
+        Self { renderer, input, context }
     }
 
-    pub fn handle_event(&mut self, event: &winit::event::WindowEvent) {
-        let mut raw_input = &mut self.raw_input;
+    /// Construct a `Egui` associated with the given window.
+    pub fn from_window(window: &nannou::window::Window) -> Self {
+        let device = window.swap_chain_device();
+        let format = nannou::Frame::TEXTURE_FORMAT;
+        let msaa_samples = window.msaa_samples();
+        let scale_factor = window.scale_factor();
+        let (w_px, h_px) = window.inner_size_pixels();
+        Self::new(device, format, msaa_samples, scale_factor, [w_px, h_px])
+    }
+
+    /// Access to the inner `egui::CtxRef`.
+    pub fn ctx(&self) -> &CtxRef {
+        &self.context
+    }
+
+    /// Access to the currently tracked input state.
+    pub fn input(&self) -> &Input {
+        &self.input
+    }
+
+    /// Handles a raw window event, tracking all input and events relevant to the UI as necessary.
+    pub fn handle_raw_event(&mut self, event: &winit::event::WindowEvent) {
+        self.input.handle_raw_event(event);
+    }
+
+    /// Set the elapsed time since the `Egui` app started running.
+    pub fn set_elapsed_time(&mut self, elapsed: Duration) {
+        self.input.set_elapsed_time(elapsed);
+    }
+
+    /// Begin describing a UI frame.
+    pub fn begin_frame(&mut self) -> FrameCtx {
+        self.begin_frame_inner();
+        let ui = self;
+        let ended = false;
+        FrameCtx { ui, ended }
+    }
+
+    /// Draws the contents of the inner `context` to the given frame.
+    pub fn draw_to_frame(&self, frame: &nannou::Frame) {
+        let mut renderer = self.renderer.borrow_mut();
+        renderer.draw_to_frame(&self.context, frame);
+    }
+
+    /// Provide access to an `epi::Frame` within the given function.
+    ///
+    /// This method is primarily used for apps based on the `epi` interface.
+    pub fn with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F)
+    where
+        F: FnOnce(&CtxRef, &mut epi::Frame),
+    {
+        let mut renderer = self.renderer.borrow_mut();
+        let integration_info = epi::IntegrationInfo {
+            native_pixels_per_point: Some(self.input.window_scale_factor as _),
+            // TODO: Provide access to this stuff.
+            web_info: None,
+            prefer_dark_mode: None,
+            cpu_usage: None,
+            seconds_since_midnight: None,
+        };
+        let mut app_output = epi::backend::AppOutput::default();
+        let repaint_signal = Arc::new(RepaintSignal(Mutex::new(proxy)));
+        let mut frame = epi::backend::FrameBuilder {
+            info: integration_info,
+            tex_allocator: &mut renderer.render_pass,
+            // TODO: We may want to support a http feature for hyperlinks?
+            // #[cfg(feature = "http")]
+            // http: http.clone(),
+            output: &mut app_output,
+            repaint_signal: repaint_signal as Arc<_>,
+        }
+        .build();
+        f(&self.context, &mut frame)
+    }
+
+    /// The same as `with_epi_frame`, but calls `begin_frame` before calling the given function,
+    /// and then calls `end_frame` before returning.
+    pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F)
+    where
+        F: FnOnce(&CtxRef, &mut epi::Frame),
+    {
+        self.begin_frame_inner();
+        self.with_epi_frame(proxy, f);
+        self.end_frame_inner();
+    }
+
+    fn begin_frame_inner(&mut self) {
+        self.context.begin_frame(self.input.raw.take());
+    }
+
+    fn end_frame_inner(&mut self) {
+        let (_, paint_cmds) = self.context.end_frame();
+        self.renderer.borrow_mut().paint_jobs = self.context.tessellate(paint_cmds);
+    }
+}
+
+impl Input {
+    /// Initialise user input and window event tracking with the given target scale factor and size
+    /// in pixels.
+    pub fn new(window_scale_factor: f32, window_size_pixels: [u32; 2]) -> Self {
+        let raw = egui::RawInput {
+            pixels_per_point: Some(window_scale_factor),
+            ..Default::default()
+        };
+        let modifiers = winit::event::ModifiersState::empty();
+        let pointer_pos = Default::default();
+        let mut input = Self {
+            raw,
+            modifiers,
+            pointer_pos,
+            window_scale_factor,
+            window_size_pixels,
+        };
+        input.raw.screen_rect = Some(input.egui_window_rect());
+        input
+    }
+
+    /// Handles a raw window event, tracking all input and events relevant to the UI as necessary.
+    pub fn handle_raw_event(&mut self, event: &winit::event::WindowEvent) {
         match event {
             Resized(physical_size) => {
-                self.width = physical_size.width;
-                self.height = physical_size.height;
-                raw_input.screen_rect = Some(egui::Rect::from_min_size(
-                    Default::default(),
-                    egui::vec2(physical_size.width as f32, physical_size.height as f32)
-                        / self.scale_factor as f32,
-                ));
+                self.window_size_pixels = [physical_size.width, physical_size.height];
+                self.raw.screen_rect = Some(self.egui_window_rect());
             }
             ScaleFactorChanged {
                 scale_factor,
                 new_inner_size,
             } => {
-                self.scale_factor = *scale_factor;
-                raw_input.pixels_per_point = Some(*scale_factor as f32);
-                raw_input.screen_rect = Some(egui::Rect::from_min_size(
-                    Default::default(),
-                    egui::vec2(new_inner_size.width as f32, new_inner_size.height as f32)
-                        / self.scale_factor as f32,
-                ));
+                self.window_scale_factor = *scale_factor as f32;
+                self.window_size_pixels = [new_inner_size.width, new_inner_size.height];
+                self.raw.pixels_per_point = Some(self.window_scale_factor);
+                self.raw.screen_rect = Some(self.egui_window_rect());
             }
             MouseInput { state, button, .. } => {
                 if let winit::event::MouseButton::Other(..) = button {
                 } else {
-                    raw_input.events.push(egui::Event::PointerButton {
+                    self.raw.events.push(egui::Event::PointerButton {
                         pos: self.pointer_pos,
                         button: match button {
                             winit::event::MouseButton::Left => egui::PointerButton::Primary,
@@ -107,117 +232,178 @@ impl EguiBackend {
                 match delta {
                     winit::event::MouseScrollDelta::LineDelta(x, y) => {
                         let line_height = 24.0;
-                        raw_input.scroll_delta = egui::vec2(*x, *y) * line_height;
+                        self.raw.scroll_delta = egui::vec2(*x, *y) * line_height;
                     }
                     winit::event::MouseScrollDelta::PixelDelta(delta) => {
                         // Actually point delta
-                        raw_input.scroll_delta = egui::vec2(delta.x as f32, delta.y as f32);
+                        self.raw.scroll_delta = egui::vec2(delta.x as f32, delta.y as f32);
                     }
                 }
             }
             CursorMoved { position, .. } => {
                 self.pointer_pos = pos2(
-                    position.x as f32 / self.scale_factor as f32,
-                    position.y as f32 / self.scale_factor as f32,
+                    position.x as f32 / self.window_scale_factor as f32,
+                    position.y as f32 / self.window_scale_factor as f32,
                 );
-                raw_input
+                self.raw
                     .events
                     .push(egui::Event::PointerMoved(self.pointer_pos));
             }
             CursorLeft { .. } => {
-                raw_input.events.push(egui::Event::PointerGone);
+                self.raw.events.push(egui::Event::PointerGone);
             }
-            ModifiersChanged(input) => self.modifier_state = *input,
+            ModifiersChanged(input) => self.modifiers = *input,
             KeyboardInput { input, .. } => {
                 if let Some(virtual_keycode) = input.virtual_keycode {
                     if let Some(key) = winit_to_egui_key_code(virtual_keycode) {
                         // TODO figure out why if I enable this the characters get ignored
-
-                        raw_input.events.push(egui::Event::Key {
+                        self.raw.events.push(egui::Event::Key {
                             key,
                             pressed: input.state == winit::event::ElementState::Pressed,
-                            // modifiers: winit_to_egui_modifiers(self.modifier_state),
-                            modifiers: winit_to_egui_modifiers(self.modifier_state),
+                            modifiers: winit_to_egui_modifiers(self.modifiers),
                         });
                     }
                 }
             }
             ReceivedCharacter(ch) => {
-                if ch.is_alphanumeric() && !self.modifier_state.ctrl() && !self.modifier_state.logo()
+                if ch.is_alphanumeric() && !self.modifiers.ctrl() && !self.modifiers.logo()
                 {
-                    raw_input.events.push(egui::Event::Text(ch.to_string()));
+                    self.raw.events.push(egui::Event::Text(ch.to_string()));
                 }
             }
             _ => {}
         }
     }
 
-    pub fn begin_frame(&mut self) -> CtxRef {
-        self.context.begin_frame(self.raw_input.borrow_mut().take());
-        self.context.clone()
+    /// Set the elapsed time since the `Egui` app started running.
+    pub fn set_elapsed_time(&mut self, elapsed: Duration) {
+        self.raw.time = Some(elapsed.as_secs_f64());
     }
 
-    pub fn end_frame(&mut self) {
-        let (_, paint_cmds) = self.context.end_frame();
-        self.paint_jobs = self.context.tessellate(paint_cmds);
+    /// Small helper for the common task of producing an `egui::Rect` describing the window.
+    fn egui_window_rect(&self) -> egui::Rect {
+        let [w, h] = self.window_size_pixels;
+        egui::Rect::from_min_size(
+            Default::default(),
+            egui::vec2(w as f32, h as f32) / self.window_scale_factor as f32,
+        )
     }
+}
 
-    pub fn update_time(&mut self, elapsed_seconds: f64) {
-        self.raw_input.time = Some(elapsed_seconds);
-    }
-
-    pub fn with_ctxt_and_frame<F>(&mut self, f: F)
-    where
-        F: for<'a> FnOnce(&CtxRef, &mut epi::Frame<'a>),
-    {
-        let mut render_pass = self.render_pass.borrow_mut();
-
-        let integration_info = epi::IntegrationInfo {
-            web_info: None,
-            prefer_dark_mode: None, // TODO: figure out system default
-            cpu_usage: None,
-            seconds_since_midnight: None,
-            native_pixels_per_point: Some(self.scale_factor as _),
-        };
-        let mut app_output = epi::backend::AppOutput::default();
-
-        let mut frame = epi::backend::FrameBuilder {
-            info: integration_info,
-            tex_allocator: &mut *render_pass,
-            // #[cfg(feature = "http")]
-            // http: http.clone(),
-            output: &mut app_output,
-            repaint_signal: self.repaint_signal.clone(),
+impl Renderer {
+    /// Create a new `Renderer` from its parts.
+    ///
+    /// The `device` must be the same that was used to create the queue to which the `Renderer`s
+    /// render passes will be submitted.
+    ///
+    /// The `target_format` and `target_msaa_samples` should describe the target texture to which
+    /// the `Egui` will be rendered.
+    pub fn new(
+        device: &wgpu::Device,
+        target_format: wgpu::TextureFormat,
+        target_msaa_samples: u32,
+    ) -> Self {
+        Self {
+            render_pass: egui_wgpu_backend::RenderPass::new(
+                device,
+                target_format,
+                target_msaa_samples,
+            ),
+            paint_jobs: Vec::new(),
         }
-        .build();
-        f(&self.context, &mut frame)
     }
 
-    pub fn draw_ui_to_frame(&self, frame: &nannou::Frame) {
-        let device_queue_pair = frame.device_queue_pair();
-        let device = device_queue_pair.device();
-        let queue = device_queue_pair.queue();
-        let mut render_pass = self.render_pass.borrow_mut();
-        let paint_jobs = &self.paint_jobs;
-        let mut encoder = frame.command_encoder();
+    /// Construct a `Renderer` ready for drawing to the given window.
+    pub fn from_window(window: &nannou::window::Window) -> Self {
+        let device = window.swap_chain_device();
+        let format = nannou::Frame::TEXTURE_FORMAT;
+        let msaa_samples = window.msaa_samples();
+        Self::new(device, format, msaa_samples)
+    }
 
+    /// Encode a render pass for drawing the given context's texture to the given `dst_texture`.
+    pub fn encode_render_pass(
+        &mut self,
+        context: &CtxRef,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
+        dst_size_pixels: [u32; 2],
+        dst_scale_factor: f32,
+        dst_texture: &wgpu::TextureView,
+    ) {
+        let render_pass = &mut self.render_pass;
+        let paint_jobs = &self.paint_jobs;
+        let [physical_width, physical_height] = dst_size_pixels;
         let screen_descriptor = ScreenDescriptor {
-            physical_width: self.width,
-            physical_height: self.height,
-            scale_factor: self.scale_factor as f32,
+            physical_width,
+            physical_height,
+            scale_factor: dst_scale_factor,
         };
-        render_pass.update_texture(device, queue, &self.context.texture());
+        render_pass.update_texture(device, queue, &context.texture());
         render_pass.update_user_textures(&device, &queue);
         render_pass.update_buffers(device, queue, &paint_jobs, &screen_descriptor);
-
-        // Record all render passes.
         render_pass.execute(
-            &mut encoder,
-            frame.texture_view(),
+            encoder,
+            dst_texture,
             &paint_jobs,
             &screen_descriptor,
             None,
         );
+    }
+
+    /// Encodes a render pass for drawing the given context's texture to the given frame.
+    pub fn draw_to_frame(&mut self, context: &CtxRef, frame: &nannou::Frame) {
+        let device_queue_pair = frame.device_queue_pair();
+        let device = device_queue_pair.device();
+        let queue = device_queue_pair.queue();
+        let size_pixels = frame.texture_size();
+        let [width_px, _] = size_pixels;
+        let scale_factor = width_px as f32 / frame.rect().w();
+        let texture_view = frame.texture_view();
+        let mut encoder = frame.command_encoder();
+        self.encode_render_pass(
+            context,
+            device,
+            queue,
+            &mut encoder,
+            size_pixels,
+            scale_factor,
+            texture_view,
+        );
+    }
+}
+
+impl<'a> FrameCtx<'a> {
+    /// Produces a `CtxRef` ready for describing the UI for this frame.
+    pub fn context(&self) -> CtxRef {
+        self.ui.context.clone()
+    }
+
+    /// End the current frame,
+    pub fn end(mut self) {
+        self.end_inner();
+    }
+
+    // The inner `end` implementation, shared between `end` and `drop`.
+    fn end_inner(&mut self) {
+        if !self.ended {
+            self.ui.end_frame_inner();
+            self.ended = true;
+        }
+    }
+}
+
+impl<'a> Drop for FrameCtx<'a> {
+    fn drop(&mut self) {
+        self.end_inner();
+    }
+}
+
+impl<'a> Deref for FrameCtx<'a> {
+    type Target = egui::CtxRef;
+    fn deref(&self) -> &Self::Target {
+        &self.ui.context
     }
 }
 
@@ -289,7 +475,7 @@ pub fn edit_color(ui: &mut egui::Ui, color: &mut nannou::color::Hsv) {
         1.0,
     );
 
-    if color_picker::color_edit_button_hsva(ui, &mut egui_hsv, color_picker::Alpha::Opaque)
+    if egui::color_picker::color_edit_button_hsva(ui, &mut egui_hsv, egui::color_picker::Alpha::Opaque)
         .changed()
     {
         *color = nannou::color::hsv(egui_hsv.h, egui_hsv.s, egui_hsv.v);
