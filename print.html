@@ -2570,7 +2570,18 @@ published.</p>
 back to the origins.</p>
 <hr />
 <h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
-<p><em>No unreleased changes yet.</em></p>
+<ul>
+<li>Refactor the <code>nannou::mesh</code> module into a <code>nannou_mesh</code> crate, re-exported to
+maintain the same API.</li>
+<li>Refactor the <code>nannou::wgpu</code> module into a <code>nannou_wgpu</code> crate, re-exported to
+maintain the same API.</li>
+<li>Remove the <code>nannou::ui</code> module in favour of providing a <code>nannou_conrod</code> crate.
+See the updated <code>examples/ui/conrod</code> examples to find out how to update. Note
+that input must now be manually submitted to the <code>Ui</code> and is no longer done
+automatically by the nannou <code>App</code>. The easiest approach is to register a
+<code>raw_event</code> function with the <code>Ui</code>'s window. Refer to the updated examples for
+demonstration.</li>
+</ul>
 <hr />
 <h3 id="nannou-0171-2021-07-02"><a class="header" href="#nannou-0171-2021-07-02"><code>nannou</code> 0.17.1 (2021-07-02)</a></h3>
 <ul>
