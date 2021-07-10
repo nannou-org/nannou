@@ -23,7 +23,6 @@ fn model(app: &App) -> Model {
     let window_id = app
         .new_window()
         .title("Nannou + Egui")
-        .msaa_samples(1)
         .raw_event(raw_window_event) // This is where we forward all raw events for egui to process them
         .view(view) // The function that will be called for presenting graphics to a frame.
         .build()
@@ -32,7 +31,7 @@ fn model(app: &App) -> Model {
     let window = app.window(window_id).unwrap();
 
     Model {
-        egui_backend: nannou_egui::EguiBackend::new(&window),
+        egui_backend: nannou_egui::EguiBackend::from_window(&window),
         radius: 40.0,
         color: hsv(10.0, 0.5, 1.0),
     }

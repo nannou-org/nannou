@@ -70,7 +70,7 @@ impl Model {
                 radius,
                 color,
             };
-            
+
             loops += 1;
             if loops > 20000 {
                 break;
@@ -121,13 +121,12 @@ fn model(app: &App) -> Model {
     let window_id = app
         .new_window()
         .view(view)
-        .msaa_samples(1)
         .raw_event(raw_window_event)
         .build()
         .unwrap();
 
     let window = app.window(window_id).unwrap();
-    Model::new(EguiBackend::new(&window))
+    Model::new(EguiBackend::from_window(&window))
 }
 
 fn update(_app: &App, model: &mut Model, _update: Update) {

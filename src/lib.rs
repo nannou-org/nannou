@@ -9,8 +9,7 @@ use egui_wgpu_backend::ScreenDescriptor;
 use winit::event::VirtualKeyCode;
 use winit::event::WindowEvent::*;
 
-const OUTPUT_FORMAT: egui_wgpu_backend::wgpu::TextureFormat =
-    egui_wgpu_backend::wgpu::TextureFormat::Rgba16Float;
+const OUTPUT_FORMAT: egui_wgpu_backend::wgpu::TextureFormat = nannou::Frame::TEXTURE_FORMAT;
 
 pub struct EguiBackend {
     render_pass: RefCell<egui_wgpu_backend::RenderPass>,
@@ -25,7 +24,7 @@ pub struct EguiBackend {
 }
 
 impl EguiBackend {
-    pub fn new(window: &nannou::window::Window) -> EguiBackend {
+    pub fn from_window(window: &nannou::window::Window) -> EguiBackend {
         let scale_factor = window.scale_factor() as f64;
         let width = window.inner_size_pixels().0;
         let height = window.inner_size_pixels().1;
@@ -47,6 +46,7 @@ impl EguiBackend {
             render_pass: RefCell::new(egui_wgpu_backend::RenderPass::new(
                 window.swap_chain_device(),
                 OUTPUT_FORMAT,
+                window.msaa_samples(),
             )),
             context,
             modifier_state: winit::event::ModifiersState::empty(),
