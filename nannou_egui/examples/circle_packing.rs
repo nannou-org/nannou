@@ -126,7 +126,8 @@ fn model(app: &App) -> Model {
         .unwrap();
 
     let window = app.window(window_id).unwrap();
-    Model::new(EguiBackend::from_window(&window))
+    let proxy = app.create_proxy();
+    Model::new(EguiBackend::from_window(&window, proxy))
 }
 
 fn update(_app: &App, model: &mut Model, _update: Update) {

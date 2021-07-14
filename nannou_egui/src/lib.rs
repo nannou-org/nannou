@@ -1,11 +1,11 @@
-use std::{borrow::BorrowMut, cell::RefCell};
+use std::{borrow::BorrowMut, cell::RefCell, sync::{Arc, Mutex}};
 
 pub use egui;
 pub use egui::color_picker;
 pub use egui_wgpu_backend;
 
 use egui::{pos2, ClippedMesh, CtxRef};
-use egui_wgpu_backend::ScreenDescriptor;
+use egui_wgpu_backend::{epi, ScreenDescriptor};
 use winit::event::VirtualKeyCode;
 use winit::event::WindowEvent::*;
 
@@ -21,10 +21,13 @@ pub struct EguiBackend {
     scale_factor: f64,
     context: egui::CtxRef,
     paint_jobs: Vec<ClippedMesh>,
+    repaint_signal: Arc<dyn epi::RepaintSignal + 'static>,
 }
 
+struct RepaintSignal(Mutex<nannou::app::Proxy>);
+
 impl EguiBackend {
-    pub fn from_window(window: &nannou::window::Window) -> EguiBackend {
+    pub fn from_window(window: &nannou::window::Window, proxy: nannou::app::Proxy) -> EguiBackend {
         let scale_factor = window.scale_factor() as f64;
         let width = window.inner_size_pixels().0;
         let height = window.inner_size_pixels().1;
@@ -56,6 +59,7 @@ impl EguiBackend {
             raw_input,
             pointer_pos: Default::default(),
             paint_jobs: Vec::new(),
+            repaint_signal: Arc::new(RepaintSignal(Mutex::new(proxy))) as _,
         }
     }
 
@@ -162,6 +166,33 @@ impl EguiBackend {
         self.raw_input.time = Some(elapsed_seconds);
     }
 
+    pub fn with_ctxt_and_frame<F>(&mut self, f: F)
+    where
+        F: for<'a> FnOnce(&CtxRef, &mut epi::Frame<'a>),
+    {
+        let mut render_pass = self.render_pass.borrow_mut();
+
+        let integration_info = epi::IntegrationInfo {
+            web_info: None,
+            prefer_dark_mode: None, // TODO: figure out system default
+            cpu_usage: None,
+            seconds_since_midnight: None,
+            native_pixels_per_point: Some(self.scale_factor as _),
+        };
+        let mut app_output = epi::backend::AppOutput::default();
+
+        let mut frame = epi::backend::FrameBuilder {
+            info: integration_info,
+            tex_allocator: &mut *render_pass,
+            // #[cfg(feature = "http")]
+            // http: http.clone(),
+            output: &mut app_output,
+            repaint_signal: self.repaint_signal.clone(),
+        }
+        .build();
+        f(&self.context, &mut frame)
+    }
+
     pub fn draw_ui_to_frame(&self, frame: &nannou::Frame) {
         let device_queue_pair = frame.device_queue_pair();
         let device = device_queue_pair.device();
@@ -187,6 +218,14 @@ impl EguiBackend {
             &screen_descriptor,
             None,
         );
+    }
+}
+
+impl epi::RepaintSignal for RepaintSignal {
+    fn request_repaint(&self) {
+        if let Ok(guard) = self.0.lock() {
+            guard.wakeup().ok();
+        }
     }
 }
 

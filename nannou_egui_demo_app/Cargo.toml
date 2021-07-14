@@ -1,0 +1,11 @@
+[package]
+name = "nannou_egui_demo_app"
+version = "0.1.0"
+authors = ["mitchmindtree <mail@mitchellnordine.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+nannou_egui = { version = "0.3.1", path = "../nannou_egui" }
+nannou = "0.17.1"
+egui_demo_lib = { version = "0.13" }

@@ -29,9 +29,10 @@ fn model(app: &App) -> Model {
         .unwrap();
 
     let window = app.window(window_id).unwrap();
+    let proxy = app.create_proxy();
 
     Model {
-        egui_backend: nannou_egui::EguiBackend::from_window(&window),
+        egui_backend: nannou_egui::EguiBackend::from_window(&window, proxy),
         radius: 40.0,
         color: hsv(10.0, 0.5, 1.0),
     }
