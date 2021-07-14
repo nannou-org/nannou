@@ -4,11 +4,7 @@ pub use egui_wgpu_backend;
 
 use egui::{pos2, ClippedMesh, CtxRef};
 use egui_wgpu_backend::{epi, ScreenDescriptor};
-use nannou::{
-    wgpu,
-    winit::event::VirtualKeyCode,
-    winit::event::WindowEvent::*,
-};
+use nannou::{wgpu, winit::event::VirtualKeyCode, winit::event::WindowEvent::*};
 use std::{
     cell::RefCell,
     ops::Deref,
@@ -75,7 +71,11 @@ impl Egui {
         let renderer = RefCell::new(Renderer::new(device, target_format, target_msaa_samples));
         let input = Input::new(window_scale_factor, window_size_pixels);
         let context = Default::default();
-        Self { renderer, input, context }
+        Self {
+            renderer,
+            input,
+            context,
+        }
     }
 
     /// Construct a `Egui` associated with the given window.
@@ -251,7 +251,7 @@ impl Input {
             }
             ModifiersChanged(input) => {
                 self.raw.modifiers = winit_to_egui_modifiers(*input);
-            },
+            }
             KeyboardInput { input, .. } => {
                 if let Some(virtual_keycode) = input.virtual_keycode {
                     if let Some(key) = winit_to_egui_key_code(virtual_keycode) {
@@ -265,8 +265,7 @@ impl Input {
                 }
             }
             ReceivedCharacter(ch) => {
-                if ch.is_alphanumeric() && !self.raw.modifiers.ctrl && !self.raw.modifiers.command
-                {
+                if ch.is_alphanumeric() && !self.raw.modifiers.ctrl && !self.raw.modifiers.command {
                     self.raw.events.push(egui::Event::Text(ch.to_string()));
                 }
             }
@@ -342,13 +341,7 @@ impl Renderer {
         render_pass.update_texture(device, queue, &context.texture());
         render_pass.update_user_textures(&device, &queue);
         render_pass.update_buffers(device, queue, &paint_jobs, &screen_descriptor);
-        render_pass.execute(
-            encoder,
-            dst_texture,
-            &paint_jobs,
-            &screen_descriptor,
-            None,
-        );
+        render_pass.execute(encoder, dst_texture, &paint_jobs, &screen_descriptor, None);
     }
 
     /// Encodes a render pass for drawing the given context's texture to the given frame.
@@ -506,8 +499,12 @@ pub fn edit_color(ui: &mut egui::Ui, color: &mut nannou::color::Hsv) {
         1.0,
     );
 
-    if egui::color_picker::color_edit_button_hsva(ui, &mut egui_hsv, egui::color_picker::Alpha::Opaque)
-        .changed()
+    if egui::color_picker::color_edit_button_hsva(
+        ui,
+        &mut egui_hsv,
+        egui::color_picker::Alpha::Opaque,
+    )
+    .changed()
     {
         *color = nannou::color::hsv(egui_hsv.h, egui_hsv.s, egui_hsv.v);
     }

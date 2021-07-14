@@ -60,23 +60,22 @@ fn update(_app: &App, model: &mut Model, update: Update) {
 
     egui.set_elapsed_time(update.since_start);
     let ctx = egui.begin_frame();
-    egui::Window::new("Workshop window")
-        .show(&ctx, |ui| {
-            let mut changed = false;
-            changed |= ui
-                .add(egui::Slider::new(&mut settings.min_radius, 0.0..=20.0).text("min radius"))
-                .changed();
-            changed |= ui
-                .add(egui::Slider::new(&mut settings.max_radius, 0.0..=200.0).text("max radius"))
-                .changed();
-            changed |= ui
-                .add(egui::Slider::new(&mut settings.circle_count, 0..=2000).text("circle count"))
-                .changed();
-            changed |= ui.button("Generate").clicked();
-            if changed {
-                *circles = generate_circles(settings);
-            }
-        });
+    egui::Window::new("Workshop window").show(&ctx, |ui| {
+        let mut changed = false;
+        changed |= ui
+            .add(egui::Slider::new(&mut settings.min_radius, 0.0..=20.0).text("min radius"))
+            .changed();
+        changed |= ui
+            .add(egui::Slider::new(&mut settings.max_radius, 0.0..=200.0).text("max radius"))
+            .changed();
+        changed |= ui
+            .add(egui::Slider::new(&mut settings.circle_count, 0..=2000).text("circle count"))
+            .changed();
+        changed |= ui.button("Generate").clicked();
+        if changed {
+            *circles = generate_circles(settings);
+        }
+    });
 }
 
 fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event::WindowEvent) {
