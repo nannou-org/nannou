@@ -24,6 +24,10 @@ jobs:
     - uses: actions/checkout@v2
     - name: Update apt
       run: sudo apt update
+    - name: Install alsa dev tools
+      run: sudo apt-get install libasound2-dev
+    - name: Install libxcb dev tools
+      run: sudo apt-get install libxcb-composite0-dev
     - name: Install stable
       uses: actions-rs/toolchain@v1
       with:
