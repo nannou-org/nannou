@@ -1,6 +1,6 @@
 [package]
 name = "nannou_egui"
-version = "0.3.1"
+version = "0.4"
 authors = ["Alexandru Ene <alex.ene0x11@gmail.com>"]
 edition = "2018"
 license = "MIT/Apache-2.0"
