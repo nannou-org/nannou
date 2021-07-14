@@ -40,7 +40,6 @@ pub struct Renderer {
 pub struct Input {
     pub pointer_pos: egui::Pos2,
     pub raw: egui::RawInput,
-    pub modifiers: winit::event::ModifiersState,
     pub window_size_pixels: [u32; 2],
     pub window_scale_factor: f32,
 }
@@ -183,11 +182,9 @@ impl Input {
             pixels_per_point: Some(window_scale_factor),
             ..Default::default()
         };
-        let modifiers = winit::event::ModifiersState::empty();
         let pointer_pos = Default::default();
         let mut input = Self {
             raw,
-            modifiers,
             pointer_pos,
             window_scale_factor,
             window_size_pixels,
@@ -224,7 +221,7 @@ impl Input {
                             winit::event::MouseButton::Other(_) => unreachable!(),
                         },
                         pressed: *state == winit::event::ElementState::Pressed,
-                        modifiers: Default::default(),
+                        modifiers: self.raw.modifiers,
                     });
                 }
             }
@@ -252,7 +249,9 @@ impl Input {
             CursorLeft { .. } => {
                 self.raw.events.push(egui::Event::PointerGone);
             }
-            ModifiersChanged(input) => self.modifiers = *input,
+            ModifiersChanged(input) => {
+                self.raw.modifiers = winit_to_egui_modifiers(*input);
+            },
             KeyboardInput { input, .. } => {
                 if let Some(virtual_keycode) = input.virtual_keycode {
                     if let Some(key) = winit_to_egui_key_code(virtual_keycode) {
@@ -260,13 +259,13 @@ impl Input {
                         self.raw.events.push(egui::Event::Key {
                             key,
                             pressed: input.state == winit::event::ElementState::Pressed,
-                            modifiers: winit_to_egui_modifiers(self.modifiers),
+                            modifiers: self.raw.modifiers,
                         });
                     }
                 }
             }
             ReceivedCharacter(ch) => {
-                if ch.is_alphanumeric() && !self.modifiers.ctrl() && !self.modifiers.logo()
+                if ch.is_alphanumeric() && !self.raw.modifiers.ctrl && !self.raw.modifiers.command
                 {
                     self.raw.events.push(egui::Event::Text(ch.to_string()));
                 }
@@ -438,10 +437,42 @@ fn winit_to_egui_key_code(key: VirtualKeyCode) -> Option<egui::Key> {
         VirtualKeyCode::Space => Key::Space,
 
         VirtualKeyCode::A => Key::A,
+        VirtualKeyCode::B => Key::B,
+        VirtualKeyCode::C => Key::C,
+        VirtualKeyCode::D => Key::D,
+        VirtualKeyCode::E => Key::E,
+        VirtualKeyCode::F => Key::F,
+        VirtualKeyCode::G => Key::G,
+        VirtualKeyCode::H => Key::H,
+        VirtualKeyCode::I => Key::I,
+        VirtualKeyCode::J => Key::J,
         VirtualKeyCode::K => Key::K,
+        VirtualKeyCode::L => Key::L,
+        VirtualKeyCode::M => Key::M,
+        VirtualKeyCode::N => Key::N,
+        VirtualKeyCode::O => Key::O,
+        VirtualKeyCode::P => Key::P,
+        VirtualKeyCode::Q => Key::Q,
+        VirtualKeyCode::R => Key::R,
+        VirtualKeyCode::S => Key::S,
+        VirtualKeyCode::T => Key::T,
         VirtualKeyCode::U => Key::U,
+        VirtualKeyCode::V => Key::V,
         VirtualKeyCode::W => Key::W,
+        VirtualKeyCode::X => Key::X,
+        VirtualKeyCode::Y => Key::Y,
         VirtualKeyCode::Z => Key::Z,
+
+        VirtualKeyCode::Key0 => Key::Num0,
+        VirtualKeyCode::Key1 => Key::Num1,
+        VirtualKeyCode::Key2 => Key::Num2,
+        VirtualKeyCode::Key3 => Key::Num3,
+        VirtualKeyCode::Key4 => Key::Num4,
+        VirtualKeyCode::Key5 => Key::Num5,
+        VirtualKeyCode::Key6 => Key::Num6,
+        VirtualKeyCode::Key7 => Key::Num7,
+        VirtualKeyCode::Key8 => Key::Num8,
+        VirtualKeyCode::Key9 => Key::Num9,
 
         _ => {
             return None;
