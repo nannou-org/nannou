@@ -25,6 +25,7 @@ struct CaptureModel {
 fn model(app: &App) -> Model {
     // Create a window to receive key pressed events.
     app.new_window()
+        .windowsos_drag_and_drop(false) // Required for Windows (no effect otherwise)
         .key_pressed(key_pressed)
         .view(view)
         .build()
@@ -43,6 +44,8 @@ fn model(app: &App) -> Model {
         .capture(capture_fn)
         .build()
         .unwrap();
+
+    stream.play().unwrap();
 
     Model { stream }
 }

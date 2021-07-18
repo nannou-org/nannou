@@ -19,22 +19,29 @@ struct Audio {
 fn model(app: &App) -> Model {
     // Create a window to receive key pressed events.
     app.new_window()
+        .windowsos_drag_and_drop(false) // Required for Windows (no effect otherwise)
         .key_pressed(key_pressed)
         .view(view)
         .build()
         .unwrap();
+
     // Initialise the audio API so we can spawn an audio stream.
     let audio_host = audio::Host::new();
+
     // Initialise the state that we want to live on the audio thread.
     let model = Audio {
         phase: 0.0,
         hz: 440.0,
     };
+
     let stream = audio_host
         .new_output_stream(model)
         .render(audio)
         .build()
         .unwrap();
+
+    stream.play().unwrap();
+
     Model { stream }
 }
 
