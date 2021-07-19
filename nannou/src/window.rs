@@ -22,6 +22,9 @@ use winit::dpi::{LogicalSize, PhysicalSize};
 pub use winit::window::Fullscreen;
 pub use winit::window::WindowId as Id;
 
+#[cfg(target_os = "windows")]
+use winit::platform::windows::WindowBuilderExtWindows;
+
 /// The default dimensions used for a window in the case that none are specified.
 pub const DEFAULT_DIMENSIONS: LogicalSize<geom::scalar::Default> = LogicalSize {
     width: 1024.0,
@@ -990,6 +993,23 @@ impl<'app> Builder<'app> {
     /// Sets the window icon.
     pub fn window_icon(self, window_icon: Option<winit::window::Icon>) -> Self {
         self.map_window(|w| w.with_window_icon(window_icon))
+    }
+
+    /// On Windows only, enables or disables drag and drop onto the window.
+    /// On non-Windows, drag and drop is enabled and this function has no effect.
+    /// To use `nannou_audio` on Windows on the same thread, disable drag and drop.
+    ///
+    /// NOTE: Drag and drop requires multi-threaded COM, which can interfere with
+    /// other crates such as `cpal` and `nannou_audio` on the same thread.
+    pub fn windowsos_drag_and_drop(self, drag_and_drop: bool) -> Self {
+        #[cfg(target_os = "windows")]
+        {
+            self.map_window(|w| w.with_drag_and_drop(drag_and_drop))
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            self
+        }
     }
 }
 

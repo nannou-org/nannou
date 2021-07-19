@@ -66,6 +66,7 @@ impl HrtfData {
 
 fn model(app: &App) -> Model {
     app.new_window()
+        .windowsos_drag_and_drop(false) // Required for Windows (no effect otherwise)
         .size(WINDOW_SIDE, WINDOW_SIDE)
         .key_pressed(key_pressed)
         .mouse_moved(mouse_moved)
@@ -101,6 +102,9 @@ fn model(app: &App) -> Model {
         .frames_per_buffer(BUFFER_LEN_FRAMES)
         .build()
         .unwrap();
+
+    stream.play().unwrap();
+
     Model {
         stream,
         source_position,
