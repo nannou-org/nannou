@@ -20,6 +20,7 @@
     - [Draw - Drawing Images](./tutorials/draw/drawing-images.md)
     - [OSC - Introduction](./tutorials/osc/osc-introduction.md)
     - [OSC - Sending OSC](./tutorials/osc/osc-sender.md)
+- [Community Tutorials](./community_tutorials.md)
 - [Contributing](./contributing.md)
     - [About the Codebase](./contributing/about-the-codebase.md)
     - [PR Checklist](./contributing/pr-checklist.md)

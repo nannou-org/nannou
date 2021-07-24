@@ -36,6 +36,7 @@ It is still early days and there is a lot of work to be done. Feel free to help 
   - [**Create A Project**](https://www.guide.nannou.cc/getting_started/create_a_project.html)
   - [**Upgrading to a New Release**](https://guide.nannou.cc/getting_started/upgrading.html)
 - [**Tutorials**](https://www.guide.nannou.cc/tutorials.html)
+- [**Community Tutorials**](https://www.guide.nannou.cc/community_tutorials.html)
 - [**Developer Reference**](https://www.guide.nannou.cc/developer_reference.html)
 - [**API Reference**](https://www.guide.nannou.cc/api_reference.html)
 - [**Showcases**](https://www.guide.nannou.cc/showcases.html)
