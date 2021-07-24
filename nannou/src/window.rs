@@ -995,12 +995,13 @@ impl<'app> Builder<'app> {
         self.map_window(|w| w.with_window_icon(window_icon))
     }
 
-    /// On Windows only, enables or disables drag and drop onto the window.
-    /// On non-Windows, drag and drop is enabled and this function has no effect.
-    /// To use `nannou_audio` on Windows on the same thread, disable drag and drop.
+    /// On Windows only, enables or disables drag & drop onto the window.
+    /// On non-Windows, drag & drop is enabled and this function has no effect.
+    /// To use `nannou_audio` on Windows on the same thread, disable this.
     ///
-    /// NOTE: Drag and drop requires multi-threaded COM, which can interfere with
+    /// NOTE: Drag & drop requires multi-threaded COM, which can interfere with
     /// other crates such as `cpal` and `nannou_audio` on the same thread.
+    #[allow(unused_variables)]
     pub fn windowsos_drag_and_drop(self, drag_and_drop: bool) -> Self {
         #[cfg(target_os = "windows")]
         {

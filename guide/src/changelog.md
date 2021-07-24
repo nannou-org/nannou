@@ -17,6 +17,8 @@ back to the origins.
   automatically by the nannou `App`. The easiest approach is to register a
   `raw_event` function with the `Ui`'s window. Refer to the updated examples for
   demonstration.
+- Fix audio examples on Windows by adding `WindowBuilder` method `windowsos_drag_and_drop`. Disabling this allows `cpal` and `winit` to coexist on the same thread.
+- Add community tutorials section to the guide.
 
 ---
 
