@@ -143,6 +143,11 @@ impl<'swap_chain> RawFrame<'swap_chain> {
     pub fn submit(mut self) {
         self.submit_inner();
     }
+
+    /// Clear the texture with the given color.
+    pub fn clear(&self, texture_view: &wgpu::TextureView, color: wgpu::Color) {
+        wgpu::clear_texture(texture_view, color, &mut *self.command_encoder())
+    }
 }
 
 impl<'swap_chain> Drop for RawFrame<'swap_chain> {

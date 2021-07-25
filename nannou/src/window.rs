@@ -3,6 +3,7 @@
 //! Create a new window via `app.new_window()`. This produces a [**Builder**](./struct.Builder.html)
 //! which can be used to build a [**Window**](./struct.Window.html).
 
+use crate::color::IntoLinSrgba;
 use crate::event::{
     Key, MouseButton, MouseScrollDelta, TouchEvent, TouchPhase, TouchpadPressure, WindowEvent,
 };
@@ -49,6 +50,7 @@ pub struct Builder<'app> {
     msaa_samples: Option<u32>,
     max_capture_frame_jobs: u32,
     capture_frame_timeout: Option<Duration>,
+    clear_color: Option<wgpu::Color>,
 }
 
 /// For storing all user functions within the window.
@@ -241,6 +243,8 @@ pub struct Window {
     pub(crate) frame_count: u64,
     pub(crate) user_functions: UserFunctions,
     pub(crate) tracked_state: TrackedState,
+    pub(crate) is_invalidated: bool, // Whether framebuffer must be cleared
+    pub(crate) clear_color: wgpu::Color,
 }
 
 // Data related to `Frame`s produced for this window's swapchain textures.
@@ -363,6 +367,7 @@ impl<'app> Builder<'app> {
             msaa_samples: None,
             max_capture_frame_jobs: Default::default(),
             capture_frame_timeout: Default::default(),
+            clear_color: None,
         }
     }
 
@@ -448,6 +453,20 @@ impl<'app> Builder<'app> {
         M: 'static,
     {
         self.user_functions.view = Some(View::WithModelRaw(RawViewFnAny::from_fn_ptr(raw_view_fn)));
+        self
+    }
+
+    /// Set the initial color of the window background
+    /// when its contents are invalidated, e.g. upon window resize.
+    pub fn clear_color<C>(mut self, color: C) -> Self
+    where
+        C: IntoLinSrgba<f32>,
+    {
+        let lin_srgba = color.into_lin_srgba();
+        let (r, g, b, a) = lin_srgba.into_components();
+        let (r, g, b, a) = (r as f64, g as f64, b as f64, a as f64);
+
+        self.clear_color = Some(wgpu::Color { r, g, b, a });
         self
     }
 
@@ -704,6 +723,7 @@ impl<'app> Builder<'app> {
             msaa_samples,
             max_capture_frame_jobs,
             capture_frame_timeout,
+            clear_color,
         } = self;
 
         // If the title was not set, default to the "nannou - <exe_name>".
@@ -787,6 +807,15 @@ impl<'app> Builder<'app> {
             window.window.min_inner_size = Some(winit::dpi::Size::Physical(MIN_SC_PIXELS));
         }
 
+        // Background must be initially cleared
+        let is_invalidated = true;
+
+        let clear_color = clear_color.unwrap_or_else(|| {
+            let mut color: wgpu::Color = Default::default();
+            color.a = if window.window.transparent { 0.0 } else { 1.0 };
+            color
+        });
+
         // Build the window.
         let window = {
             let window_target = app
@@ -864,6 +893,8 @@ impl<'app> Builder<'app> {
             frame_count,
             user_functions,
             tracked_state,
+            is_invalidated,
+            clear_color,
         };
         app.windows.borrow_mut().insert(window_id, window);
 
@@ -890,6 +921,7 @@ impl<'app> Builder<'app> {
             msaa_samples,
             max_capture_frame_jobs,
             capture_frame_timeout,
+            clear_color,
         } = self;
         let window = map(window);
         Builder {
@@ -903,6 +935,7 @@ impl<'app> Builder<'app> {
             msaa_samples,
             max_capture_frame_jobs,
             capture_frame_timeout,
+            clear_color,
         }
     }
 
@@ -1413,6 +1446,9 @@ impl Window {
             );
             self.frame_data.as_mut().unwrap().render = render_data;
         }
+
+        // May contain uninitialized or previous contents, so must be cleared
+        self.is_invalidated = true;
     }
 
     /// Attempts to determine whether or not the window is currently fullscreen.
