@@ -67,16 +67,13 @@ pub mod keys {
 pub mod mouse {
     use crate::geom::Point2;
     use crate::window;
-    use std;
+    use std::collections::HashMap;
 
     #[doc(inline)]
     pub use crate::event::MouseButton as Button;
 
-    /// The max total number of buttons on a mouse.
-    pub const NUM_BUTTONS: usize = 9;
-
     /// The state of the `Mouse` at a single moment in time.
-    #[derive(Copy, Clone, Debug, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     pub struct Mouse {
         /// The ID of the last window currently in focus.
         pub window: Option<window::Id>,
@@ -91,7 +88,7 @@ pub mod mouse {
     /// Whether the button is up or down.
     #[derive(Copy, Clone, Debug, PartialEq)]
     pub enum ButtonPosition {
-        /// The button is up (i.e. pressed).
+        /// The button is up (i.e. unpressed).
         Up,
         /// The button is down and was originally pressed down at the given `Point2`.
         Down(Point2),
@@ -100,15 +97,9 @@ pub mod mouse {
     /// Stores the state of all mouse buttons.
     ///
     /// If the mouse button is down, it stores the position of the mouse when the button was pressed
-    #[derive(Copy, Clone, Debug, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     pub struct ButtonMap {
-        buttons: [ButtonPosition; NUM_BUTTONS],
-    }
-
-    /// An iterator yielding all pressed buttons.
-    #[derive(Clone)]
-    pub struct PressedButtons<'a> {
-        buttons: std::iter::Enumerate<std::slice::Iter<'a, ButtonPosition>>,
+        buttons: HashMap<Button, ButtonPosition>,
     }
 
     impl Mouse {
@@ -166,22 +157,22 @@ pub mod mouse {
     }
 
     impl ButtonMap {
-        /// Returns a new button map with all states set to `None`
+        /// Returns a new button map with all buttons unpressed
         pub fn new() -> Self {
             ButtonMap {
-                buttons: [ButtonPosition::Up; NUM_BUTTONS],
+                buttons: HashMap::with_capacity(5),
             }
         }
 
-        /// Returns a copy of the ButtonMap relative to the given `Point`
+        /// Returns a copy of the ButtonMap relative to the given `Point2`
         pub fn relative_to(self, xy: Point2) -> Self {
-            self.buttons
-                .iter()
-                .enumerate()
-                .fold(ButtonMap::new(), |mut map, (idx, button_pos)| {
-                    map.buttons[idx] = button_pos.relative_to(xy);
-                    map
-                })
+            Self {
+                buttons: self
+                    .buttons
+                    .iter()
+                    .map(|(&button, &point)| (button, point.relative_to(xy)))
+                    .collect(),
+            }
         }
 
         /// The state of the left mouse button.
@@ -201,58 +192,33 @@ pub mod mouse {
 
         /// Sets the `Button` in the `Down` position.
         pub fn press(&mut self, button: Button, xy: Point2) {
-            self.buttons[button_to_idx(button)] = ButtonPosition::Down(xy);
+            self[button] = ButtonPosition::Down(xy);
         }
 
         /// Set's the `Button` in the `Up` position.
         pub fn release(&mut self, button: Button) {
-            self.buttons[button_to_idx(button)] = ButtonPosition::Up;
+            self[button] = ButtonPosition::Up;
         }
 
         /// An iterator yielding all pressed mouse buttons along with the location at which they
         /// were originally pressed.
-        pub fn pressed(&self) -> PressedButtons {
-            PressedButtons {
-                buttons: self.buttons.iter().enumerate(),
-            }
+        pub fn pressed<'a>(&'a self) -> impl Iterator<Item = (Button, Point2)> + 'a {
+            self.buttons
+                .iter()
+                .filter_map(|(&button, &point)| point.if_down().map(|point| (button, point)))
         }
     }
 
     impl std::ops::Index<Button> for ButtonMap {
         type Output = ButtonPosition;
         fn index(&self, button: Button) -> &Self::Output {
-            &self.buttons[button_to_idx(button)]
+            self.buttons.get(&button).unwrap_or(&ButtonPosition::Up)
         }
     }
 
-    impl<'a> Iterator for PressedButtons<'a> {
-        type Item = (Button, Point2);
-        fn next(&mut self) -> Option<Self::Item> {
-            while let Some((idx, button_pos)) = self.buttons.next() {
-                if let ButtonPosition::Down(xy) = *button_pos {
-                    return Some((idx_to_button(idx), xy));
-                }
-            }
-            None
-        }
-    }
-
-    fn idx_to_button(i: usize) -> Button {
-        match i {
-            n @ 0..=5 => Button::Other(n as u16),
-            6 => Button::Left,
-            7 => Button::Right,
-            8 => Button::Middle,
-            _ => Button::Other(std::u16::MAX),
-        }
-    }
-
-    fn button_to_idx(button: Button) -> usize {
-        match button {
-            Button::Other(n) => n as usize,
-            Button::Left => 6,
-            Button::Right => 7,
-            Button::Middle => 8,
+    impl std::ops::IndexMut<Button> for ButtonMap {
+        fn index_mut(&mut self, button: Button) -> &mut Self::Output {
+            self.buttons.entry(button).or_insert(ButtonPosition::Up)
         }
     }
 }
