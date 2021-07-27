@@ -2243,7 +2243,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 <p>We are going to write a simple program which has a circle moving about on the screen while the circle's position is sent via OSC to another application. We will continue working on the app from <a href="tutorials/osc//tutorials/basics/moving-a-circle-about.html">Moving a circle about on the screen</a>.</p>
 <h2 id="setting-up-an-osc-sender"><a class="header" href="#setting-up-an-osc-sender">Setting up an OSC sender</a></h2>
 <p>At the top of your <code>main.rs</code>-file, import the <code>nannou_osc</code> crate and make it available in your program via the shorthand <code>osc</code>.</p>
-<pre><pre class="playground"><code class="language-rust norun"><span class="boring">#![allow(unused_imports)]
+<pre><pre class="playground"><code class="language-rust  norun"><span class="boring">#![allow(unused_imports)]
 </span>use nannou_osc as osc;
 <span class="boring">fn main(){}
 </span></code></pre></pre>
