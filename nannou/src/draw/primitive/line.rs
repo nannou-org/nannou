@@ -154,7 +154,7 @@ impl draw::renderer::RenderPrimitive for Line {
             transform,
             path::Options::Stroke(path.opts),
             &ctxt.theme,
-            &draw::theme::Primitive::Line,
+            draw::theme::Primitive::Line,
             &mut ctxt.fill_tessellator,
             &mut ctxt.stroke_tessellator,
             mesh,

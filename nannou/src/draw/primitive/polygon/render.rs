@@ -8,7 +8,7 @@ pub fn render_events_themed<F, I>(
     opts: PolygonOptions,
     events: F,
     mut ctxt: draw::renderer::RenderContext,
-    theme_primitive: &draw::theme::Primitive,
+    theme_primitive: draw::theme::Primitive,
     mesh: &mut draw::Mesh,
 ) where
     F: Fn() -> I,
@@ -78,7 +78,7 @@ pub fn render_points_themed<I>(
     opts: PolygonOptions,
     points: I,
     ctxt: draw::renderer::RenderContext,
-    theme_primitive: &draw::theme::Primitive,
+    theme_primitive: draw::theme::Primitive,
     mesh: &mut draw::Mesh,
 ) where
     I: Clone + Iterator<Item = Point2>,
@@ -97,7 +97,7 @@ impl Polygon {
         self,
         ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
-        theme_primitive: &draw::theme::Primitive,
+        theme_primitive: draw::theme::Primitive,
     ) -> draw::renderer::PrimitiveRender {
         let Polygon {
             path_event_src,
@@ -270,6 +270,6 @@ impl draw::renderer::RenderPrimitive for Polygon {
         ctxt: draw::renderer::RenderContext,
         mesh: &mut draw::Mesh,
     ) -> draw::renderer::PrimitiveRender {
-        self.render_themed(ctxt, mesh, &draw::theme::Primitive::Polygon)
+        self.render_themed(ctxt, mesh, draw::theme::Primitive::Polygon)
     }
 }

@@ -1,4 +1,4 @@
-use crate::color::{LinSrgba, Srgba};
+use crate::color::LinSrgba;
 use std::collections::HashMap;
 
 /// A set of styling defaults used for coloring texturing geometric primitives that have no entry
@@ -14,8 +14,8 @@ pub struct Theme {
 /// A set of defaults used for coloring.
 #[derive(Clone, Debug)]
 pub struct Color {
-    pub default: Srgba,
-    pub primitive: HashMap<Primitive, Srgba>,
+    pub default: LinSrgba,
+    pub primitive: HashMap<Primitive, LinSrgba>,
 }
 
 /// Primitive geometry types that may have unique default styles.
@@ -38,40 +38,30 @@ pub enum Primitive {
 }
 
 impl Theme {
-    /// Retrieve the non-linear sRGBA fill color representation for the given primitive.
-    pub fn fill_srgba(&self, prim: &Primitive) -> Srgba {
+    /// Retrieve the linear sRGBA fill color representation for the given primitive.
+    pub fn fill_lin_srgba(&self, prim: Primitive) -> LinSrgba {
         self.fill_color
             .primitive
-            .get(prim)
-            .map(|&c| c)
+            .get(&prim)
+            .copied()
             .unwrap_or(self.fill_color.default)
     }
 
-    /// Retrieve the linaer sRGBA fill color representation for the given primitive.
-    pub fn fill_lin_srgba(&self, prim: &Primitive) -> LinSrgba {
-        self.fill_srgba(prim).into_linear()
-    }
-
-    /// Retrieve the non-linear sRGBA stroke color representation for the given primitive.
-    pub fn stroke_srgba(&self, prim: &Primitive) -> Srgba {
+    /// Retrieve the linear sRGBA stroke color representation for the given primitive.
+    pub fn stroke_lin_srgba(&self, prim: Primitive) -> LinSrgba {
         self.stroke_color
             .primitive
-            .get(prim)
-            .map(|&c| c)
+            .get(&prim)
+            .copied()
             .unwrap_or(self.stroke_color.default)
-    }
-
-    /// Retrieve the linaer sRGBA stroke color representation for the given primitive.
-    pub fn stroke_lin_srgba(&self, prim: &Primitive) -> LinSrgba {
-        self.stroke_srgba(prim).into_linear()
     }
 }
 
 impl Default for Theme {
     fn default() -> Self {
         // TODO: This should be pub const.
-        let default_fill = Srgba::new(1.0, 1.0, 1.0, 1.0);
-        let default_stroke = Srgba::new(0.0, 0.0, 0.0, 1.0);
+        let default_fill = LinSrgba::new(1.0, 1.0, 1.0, 1.0);
+        let default_stroke = LinSrgba::new(0.0, 0.0, 0.0, 1.0);
 
         let fill_color = Color {
             default: default_fill,

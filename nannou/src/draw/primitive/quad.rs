@@ -81,7 +81,7 @@ impl draw::renderer::RenderPrimitive for Quad {
             polygon.opts,
             points,
             ctxt,
-            &draw::theme::Primitive::Quad,
+            draw::theme::Primitive::Quad,
             mesh,
         );
 

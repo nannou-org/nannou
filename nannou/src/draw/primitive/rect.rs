@@ -67,7 +67,7 @@ impl draw::renderer::RenderPrimitive for Rect {
             polygon.opts,
             points,
             ctxt,
-            &draw::theme::Primitive::Rect,
+            draw::theme::Primitive::Rect,
             mesh,
         );
 

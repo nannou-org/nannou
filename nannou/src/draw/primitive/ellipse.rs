@@ -89,7 +89,7 @@ impl draw::renderer::RenderPrimitive for Ellipse {
                         polygon.opts,
                         || (&path).into_iter(),
                         ctxt,
-                        &draw::theme::Primitive::Ellipse,
+                        draw::theme::Primitive::Ellipse,
                         mesh,
                     );
                 }
@@ -102,7 +102,7 @@ impl draw::renderer::RenderPrimitive for Ellipse {
                     polygon.opts,
                     points,
                     ctxt,
-                    &draw::theme::Primitive::Ellipse,
+                    draw::theme::Primitive::Ellipse,
                     mesh,
                 );
             }

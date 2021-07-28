@@ -518,7 +518,7 @@ impl draw::renderer::RenderPrimitive for Mesh {
                 let theme_prim = draw::theme::Primitive::Mesh;
                 let color = fill
                     .0
-                    .unwrap_or_else(|| ctxt.theme.fill_lin_srgba(&theme_prim));
+                    .unwrap_or_else(|| ctxt.theme.fill_lin_srgba(theme_prim));
                 let vertices = vertex_range.map(|i| {
                     let point = transform_point(ctxt.intermediary_mesh.points()[i]);
                     let tex_coords = ctxt.intermediary_mesh.tex_coords()[i];

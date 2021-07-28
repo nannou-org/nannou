@@ -98,7 +98,7 @@ impl draw::renderer::RenderPrimitive for Tri {
             polygon.opts,
             points,
             ctxt,
-            &draw::theme::Primitive::Tri,
+            draw::theme::Primitive::Tri,
             mesh,
         );
 
