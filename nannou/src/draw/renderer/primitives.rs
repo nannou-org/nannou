@@ -1,17 +1,15 @@
-#![allow(dead_code, unused_variables)] // temporary while text() and mesh() are unimplemented
-
 use crate::color::LinSrgba;
 use crate::draw;
 use crate::draw::mesh::vertex::{Color, TexCoords};
+use crate::draw::primitive::mesh::render_mesh;
 use crate::draw::primitive::path::render::{
     render_path_events, render_path_points_colored, render_path_points_textured,
 };
+use crate::draw::primitive::text::render_text;
 use crate::geom::Point2;
 use crate::glam::{Mat4, Vec2};
-use crate::wgpu;
-use draw::primitive::mesh;
 use draw::primitive::path::Options;
-use draw::renderer::{GlyphCache, PrimitiveRender, VertexMode};
+use draw::renderer::{GlyphCache, PrimitiveRender};
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillTessellator, StrokeTessellator};
 
@@ -61,12 +59,16 @@ pub trait PrimitiveRenderer {
         local_transform: Mat4,
         vertex_range: std::ops::Range<usize>,
         index_range: std::ops::Range<usize>,
-        vertex_mode: VertexMode,
-        fill_color: Option<mesh::FillColor>,
-        texture_view: Option<wgpu::TextureView>,
+        fill_color: Option<LinSrgba>,
     );
 
-    fn text(&mut self, text: crate::text::Text, color: LinSrgba, glyph_colors: Vec<LinSrgba>);
+    fn text(
+        &mut self,
+        local_transform: Mat4,
+        text: crate::text::Text,
+        color: LinSrgba,
+        glyph_colors: Vec<LinSrgba>,
+    );
 }
 
 impl RenderPrimitive2 for draw::Primitive {
@@ -76,7 +78,7 @@ impl RenderPrimitive2 for draw::Primitive {
     {
         match self {
             draw::Primitive::Arrow(prim) => prim.render_primitive(ctxt, renderer),
-            // draw::Primitive::Mesh(prim) => prim.render_primitive(ctxt, renderer),
+            draw::Primitive::Mesh(prim) => prim.render_primitive(ctxt, renderer),
             draw::Primitive::Path(prim) => prim.render_primitive(ctxt, renderer),
             draw::Primitive::Polygon(prim) => prim.render_primitive(ctxt, renderer),
             draw::Primitive::Tri(prim) => prim.render_primitive(ctxt, renderer),
@@ -84,8 +86,8 @@ impl RenderPrimitive2 for draw::Primitive {
             draw::Primitive::Quad(prim) => prim.render_primitive(ctxt, renderer),
             draw::Primitive::Rect(prim) => prim.render_primitive(ctxt, renderer),
             draw::Primitive::Line(prim) => prim.render_primitive(ctxt, renderer),
-            // draw::Primitive::Text(prim) => prim.render_primitive(ctxt, renderer),
-            // draw::Primitive::Texture(prim) => prim.render_primitive(ctxt, renderer),
+            draw::Primitive::Text(prim) => prim.render_primitive(ctxt, renderer),
+            draw::Primitive::Texture(prim) => prim.render_primitive(ctxt, renderer),
             _ => PrimitiveRender::default(),
         }
     }
@@ -168,16 +170,37 @@ impl<'a> PrimitiveRenderer for PrimitiveRendererImpl<'a> {
         local_transform: Mat4,
         vertex_range: std::ops::Range<usize>,
         index_range: std::ops::Range<usize>,
-        vertex_mode: VertexMode,
-        fill_color: Option<mesh::FillColor>,
-        texture_view: Option<wgpu::TextureView>,
+        fill_color: Option<LinSrgba>,
     ) {
         let transform = *self.transform * local_transform;
-        todo!()
+        render_mesh(
+            transform,
+            vertex_range,
+            index_range,
+            fill_color,
+            self.intermediary_mesh,
+            self.mesh,
+        );
     }
 
-    fn text(&mut self, text: crate::text::Text, color: LinSrgba, glyph_colors: Vec<LinSrgba>) {
-        todo!()
+    fn text(
+        &mut self,
+        local_transform: Mat4,
+        text: crate::text::Text,
+        color: LinSrgba,
+        glyph_colors: Vec<LinSrgba>,
+    ) {
+        let transform = *self.transform * local_transform;
+        render_text(
+            transform,
+            text,
+            color,
+            glyph_colors,
+            self.output_attachment_size,
+            self.output_attachment_scale_factor,
+            self.glyph_cache,
+            self.mesh,
+        );
     }
 }
 

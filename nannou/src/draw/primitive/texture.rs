@@ -75,12 +75,15 @@ impl<'a> DrawingTexture<'a> {
     }
 }
 
-impl draw::renderer::RenderPrimitive for Texture {
-    fn render_primitive(
+impl draw::renderer::RenderPrimitive2 for Texture {
+    fn render_primitive<R>(
         self,
-        mut ctxt: draw::renderer::RenderContext,
-        mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender {
+        _ctxt: draw::renderer::RenderContext2,
+        mut renderer: R,
+    ) -> draw::renderer::PrimitiveRender
+    where
+        R: draw::renderer::PrimitiveRenderer,
+    {
         let Texture {
             texture_view,
             spatial,
@@ -102,10 +105,7 @@ impl draw::renderer::RenderPrimitive for Texture {
         let h = maybe_y.unwrap_or(100.0);
         let rect = geom::Rect::from_w_h(w, h);
 
-        // Determine the transform to apply to all points.
-        let global_transform = *ctxt.transform;
         let local_transform = position.transform() * orientation.transform();
-        let transform = global_transform * local_transform;
 
         // Create an iterator yielding texture points.
         let points_textured = rect
@@ -114,14 +114,11 @@ impl draw::renderer::RenderPrimitive for Texture {
             .map(Vec2::from)
             .zip(area.invert_y().corners().vertices().map(Vec2::from));
 
-        path::render_path_points_textured(
+        renderer.path_textured_points(
+            local_transform,
             points_textured,
             true,
-            transform,
             path::Options::Fill(Default::default()),
-            &mut ctxt.fill_tessellator,
-            &mut ctxt.stroke_tessellator,
-            mesh,
         );
 
         draw::renderer::PrimitiveRender::texture(texture_view)

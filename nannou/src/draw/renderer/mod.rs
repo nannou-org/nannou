@@ -175,11 +175,8 @@ impl Default for PrimitiveRender {
 }
 
 impl RenderPrimitive for draw::Primitive {
-    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender {
+    fn render_primitive(self, _ctxt: RenderContext, _mesh: &mut draw::Mesh) -> PrimitiveRender {
         match self {
-            draw::Primitive::Mesh(prim) => prim.render_primitive(ctxt, mesh),
-            draw::Primitive::Text(prim) => prim.render_primitive(ctxt, mesh),
-            draw::Primitive::Texture(prim) => prim.render_primitive(ctxt, mesh),
             _ => PrimitiveRender::default(),
         }
     }

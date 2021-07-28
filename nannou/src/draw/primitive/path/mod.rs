@@ -1,6 +1,6 @@
 pub mod render;
 
-pub(crate) use self::render::{render_path_points_textured, PathEventSource};
+pub(crate) use self::render::PathEventSource;
 use crate::color::conv::IntoLinSrgba;
 use crate::color::LinSrgba;
 use crate::draw::mesh::vertex::TexCoords;
