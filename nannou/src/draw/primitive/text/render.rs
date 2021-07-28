@@ -123,10 +123,10 @@ pub fn render_text(
     }
 }
 
-impl draw::renderer::RenderPrimitive2 for Text {
+impl draw::renderer::RenderPrimitive for Text {
     fn render_primitive<R>(
         self,
-        ctxt: draw::renderer::RenderContext2,
+        ctxt: draw::renderer::RenderContext,
         mut renderer: R,
     ) -> draw::renderer::PrimitiveRender
     where

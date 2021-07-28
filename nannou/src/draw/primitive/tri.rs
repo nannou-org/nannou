@@ -67,10 +67,10 @@ impl<'a> DrawingTri<'a> {
 
 // Trait implementations.
 
-impl draw::renderer::RenderPrimitive2 for Tri {
+impl draw::renderer::RenderPrimitive for Tri {
     fn render_primitive<R>(
         self,
-        _ctxt: draw::renderer::RenderContext2,
+        _ctxt: draw::renderer::RenderContext,
         renderer: R,
     ) -> draw::renderer::PrimitiveRender
     where

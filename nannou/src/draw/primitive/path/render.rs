@@ -125,10 +125,10 @@ pub(crate) fn render_path_points_textured<I>(
     }
 }
 
-impl draw::renderer::RenderPrimitive2 for Path {
+impl draw::renderer::RenderPrimitive for Path {
     fn render_primitive<R>(
         self,
-        ctxt: draw::renderer::RenderContext2,
+        ctxt: draw::renderer::RenderContext,
         mut renderer: R,
     ) -> draw::renderer::PrimitiveRender
     where

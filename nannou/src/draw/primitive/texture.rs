@@ -75,10 +75,10 @@ impl<'a> DrawingTexture<'a> {
     }
 }
 
-impl draw::renderer::RenderPrimitive2 for Texture {
+impl draw::renderer::RenderPrimitive for Texture {
     fn render_primitive<R>(
         self,
-        _ctxt: draw::renderer::RenderContext2,
+        _ctxt: draw::renderer::RenderContext,
         mut renderer: R,
     ) -> draw::renderer::PrimitiveRender
     where

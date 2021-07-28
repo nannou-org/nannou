@@ -47,10 +47,10 @@ impl Quad {
 }
 
 // Trait implementations.
-impl draw::renderer::RenderPrimitive2 for Quad {
+impl draw::renderer::RenderPrimitive for Quad {
     fn render_primitive<R>(
         self,
-        _ctxt: draw::renderer::RenderContext2,
+        _ctxt: draw::renderer::RenderContext,
         renderer: R,
     ) -> draw::renderer::PrimitiveRender
     where

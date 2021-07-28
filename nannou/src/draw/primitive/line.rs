@@ -126,10 +126,10 @@ impl Into<Option<Line>> for Primitive {
     }
 }
 
-impl draw::renderer::RenderPrimitive2 for Line {
+impl draw::renderer::RenderPrimitive for Line {
     fn render_primitive<R>(
         self,
-        _ctxt: draw::renderer::RenderContext2,
+        _ctxt: draw::renderer::RenderContext,
         mut renderer: R,
     ) -> draw::renderer::PrimitiveRender
     where

@@ -6,14 +6,15 @@ use crate::draw::primitive::path::render::{
     render_path_events, render_path_points_colored, render_path_points_textured,
 };
 use crate::draw::primitive::text::render_text;
+use crate::draw::renderer::PrimitiveRendererImpl;
 use crate::geom::Point2;
 use crate::glam::{Mat4, Vec2};
 use draw::primitive::path::Options;
-use draw::renderer::{GlyphCache, PrimitiveRender};
+use draw::renderer::PrimitiveRender;
 use lyon::path::PathEvent;
-use lyon::tessellation::{FillTessellator, StrokeTessellator};
 
-pub struct RenderContext2<'a> {
+/// The context provided to primitives to assist with the rendering process.
+pub struct RenderContext<'a> {
     pub path_event_buffer: &'a [PathEvent],
     pub path_points_colored_buffer: &'a [(Point2, Color)],
     pub path_points_textured_buffer: &'a [(Point2, TexCoords)],
@@ -21,9 +22,9 @@ pub struct RenderContext2<'a> {
     pub theme: &'a draw::Theme,
 }
 
-pub trait RenderPrimitive2 {
+pub trait RenderPrimitive {
     /// Render self into the given PrimitiveRenderer.
-    fn render_primitive<R>(self, ctxt: RenderContext2, renderer: R) -> PrimitiveRender
+    fn render_primitive<R>(self, ctxt: RenderContext, renderer: R) -> PrimitiveRender
     where
         R: PrimitiveRenderer;
 }
@@ -71,8 +72,8 @@ pub trait PrimitiveRenderer {
     );
 }
 
-impl RenderPrimitive2 for draw::Primitive {
-    fn render_primitive<R>(self, ctxt: RenderContext2, renderer: R) -> PrimitiveRender
+impl RenderPrimitive for draw::Primitive {
+    fn render_primitive<R>(self, ctxt: RenderContext, renderer: R) -> PrimitiveRender
     where
         R: PrimitiveRenderer,
     {
@@ -91,18 +92,6 @@ impl RenderPrimitive2 for draw::Primitive {
             _ => PrimitiveRender::default(),
         }
     }
-}
-
-struct PrimitiveRendererImpl<'a> {
-    mesh: &'a mut draw::Mesh,
-    transform: &'a Mat4,
-    intermediary_mesh: &'a draw::Mesh,
-    theme: &'a draw::Theme,
-    glyph_cache: &'a mut GlyphCache,
-    fill_tessellator: &'a mut FillTessellator,
-    stroke_tessellator: &'a mut StrokeTessellator,
-    output_attachment_size: Vec2, // logical coords
-    output_attachment_scale_factor: f32,
 }
 
 impl<'a> PrimitiveRenderer for PrimitiveRendererImpl<'a> {

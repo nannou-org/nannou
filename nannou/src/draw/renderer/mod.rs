@@ -1,27 +1,19 @@
 pub mod primitives;
 
-pub use self::primitives::{PrimitiveRenderer, RenderContext2, RenderPrimitive2};
+pub use self::primitives::{PrimitiveRenderer, RenderContext, RenderPrimitive};
 use crate::draw;
-use crate::draw::mesh::vertex::{Color, TexCoords};
 use crate::frame::Frame;
-use crate::geom::{self, Point2, Rect};
+use crate::geom::{self, Rect};
 use crate::glam::{Mat4, Vec2, Vec3};
 use crate::math::map_range;
 use crate::text;
 use crate::wgpu;
-use lyon::path::PathEvent;
 use lyon::tessellation::{FillTessellator, StrokeTessellator};
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
-
-/// Draw API primitives that may be rendered via the **Renderer** type.
-pub trait RenderPrimitive {
-    /// Render self into the given mesh.
-    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender;
-}
 
 /// Information about the way in which a primitive was rendered.
 pub struct PrimitiveRender {
@@ -35,20 +27,16 @@ pub struct PrimitiveRender {
     pub vertex_mode: VertexMode,
 }
 
-/// The context provided to primitives to assist with the rendering process.
-pub struct RenderContext<'a> {
-    pub transform: &'a Mat4,
-    pub intermediary_mesh: &'a draw::Mesh,
-    pub path_event_buffer: &'a [PathEvent],
-    pub path_points_colored_buffer: &'a [(Point2, Color)],
-    pub path_points_textured_buffer: &'a [(Point2, TexCoords)],
-    pub text_buffer: &'a str,
-    pub theme: &'a draw::Theme,
-    pub glyph_cache: &'a mut GlyphCache,
-    pub fill_tessellator: &'a mut FillTessellator,
-    pub stroke_tessellator: &'a mut StrokeTessellator,
-    pub output_attachment_size: Vec2, // logical coords
-    pub output_attachment_scale_factor: f32,
+struct PrimitiveRendererImpl<'a> {
+    mesh: &'a mut draw::Mesh,
+    transform: &'a Mat4,
+    intermediary_mesh: &'a draw::Mesh,
+    theme: &'a draw::Theme,
+    glyph_cache: &'a mut GlyphCache,
+    fill_tessellator: &'a mut FillTessellator,
+    stroke_tessellator: &'a mut StrokeTessellator,
+    output_attachment_size: Vec2, // logical coords
+    output_attachment_scale_factor: f32,
 }
 
 pub struct GlyphCache {
@@ -171,14 +159,6 @@ struct PipelineId {
 impl Default for PrimitiveRender {
     fn default() -> Self {
         Self::color()
-    }
-}
-
-impl RenderPrimitive for draw::Primitive {
-    fn render_primitive(self, _ctxt: RenderContext, _mesh: &mut draw::Mesh) -> PrimitiveRender {
-        match self {
-            _ => PrimitiveRender::default(),
-        }
     }
 }
 
@@ -556,14 +536,19 @@ impl Renderer {
 
                     // Info required during rendering.
                     let ctxt = RenderContext {
-                        intermediary_mesh: &intermediary_state.intermediary_mesh,
                         path_event_buffer: &intermediary_state.path_event_buffer,
                         path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
                         path_points_textured_buffer: &intermediary_state
                             .path_points_textured_buffer,
                         text_buffer: &intermediary_state.text_buffer,
                         theme: &draw_state.theme,
+                    };
+
+                    let renderer = PrimitiveRendererImpl {
+                        mesh: &mut self.mesh,
                         transform: &curr_ctxt.transform,
+                        intermediary_mesh: &intermediary_state.intermediary_mesh,
+                        theme: &draw_state.theme,
                         fill_tessellator: &mut fill_tessellator,
                         stroke_tessellator: &mut stroke_tessellator,
                         glyph_cache: &mut self.glyph_cache,
@@ -572,7 +557,7 @@ impl Renderer {
                     };
 
                     // Render the primitive.
-                    let render = RenderPrimitive::render_primitive(prim, ctxt, &mut self.mesh);
+                    let render = RenderPrimitive::render_primitive(prim, ctxt, renderer);
 
                     // If the mesh indices are unchanged, there's nothing to be drawn.
                     if prev_index_count == self.mesh.indices().len() as u32 {

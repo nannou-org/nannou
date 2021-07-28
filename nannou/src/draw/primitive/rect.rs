@@ -42,10 +42,10 @@ impl<'a> DrawingRect<'a> {
     }
 }
 
-impl draw::renderer::RenderPrimitive2 for Rect {
+impl draw::renderer::RenderPrimitive for Rect {
     fn render_primitive<R>(
         self,
-        _ctxt: draw::renderer::RenderContext2,
+        _ctxt: draw::renderer::RenderContext,
         renderer: R,
     ) -> draw::renderer::PrimitiveRender
     where

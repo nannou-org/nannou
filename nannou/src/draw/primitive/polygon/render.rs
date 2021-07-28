@@ -55,10 +55,10 @@ pub fn render_points_themed<I, R>(
     );
 }
 
-impl draw::renderer::RenderPrimitive2 for Polygon {
+impl draw::renderer::RenderPrimitive for Polygon {
     fn render_primitive<R>(
         self,
-        ctxt: draw::renderer::RenderContext2,
+        ctxt: draw::renderer::RenderContext,
         mut renderer: R,
     ) -> draw::renderer::PrimitiveRender
     where
@@ -77,7 +77,7 @@ impl draw::renderer::RenderPrimitive2 for Polygon {
                 },
             texture_view,
         } = self;
-        let draw::renderer::RenderContext2 {
+        let draw::renderer::RenderContext {
             path_event_buffer,
             path_points_colored_buffer,
             path_points_textured_buffer,
