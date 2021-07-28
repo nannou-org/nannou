@@ -42,12 +42,15 @@ impl<'a> DrawingRect<'a> {
     }
 }
 
-impl draw::renderer::RenderPrimitive for Rect {
-    fn render_primitive(
+impl draw::renderer::RenderPrimitive2 for Rect {
+    fn render_primitive<R>(
         self,
-        ctxt: draw::renderer::RenderContext,
-        mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender {
+        _ctxt: draw::renderer::RenderContext2,
+        renderer: R,
+    ) -> draw::renderer::PrimitiveRender
+    where
+        R: draw::renderer::PrimitiveRenderer,
+    {
         let Rect {
             polygon,
             dimensions,
@@ -63,12 +66,11 @@ impl draw::renderer::RenderPrimitive for Rect {
         let h = maybe_y.unwrap_or(100.0);
         let rect = geom::Rect::from_wh([w, h].into());
         let points = rect.corners().vertices().map(Vec2::from);
-        polygon::render_points_themed(
+        polygon::render::render_points_themed(
             polygon.opts,
             points,
-            ctxt,
             draw::theme::Primitive::Rect,
-            mesh,
+            renderer,
         );
 
         draw::renderer::PrimitiveRender::default()

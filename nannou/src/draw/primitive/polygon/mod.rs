@@ -14,7 +14,6 @@ use crate::geom::Point2;
 use crate::wgpu;
 use lyon::path::PathEvent;
 use lyon::tessellation::StrokeOptions;
-pub use render::{render_events_themed, render_points_themed};
 
 /// A trait implemented for all polygon draw primitives.
 pub trait SetPolygon: Sized {

@@ -37,6 +37,11 @@ pub enum Primitive {
     Tri,
 }
 
+pub enum ColorType {
+    Fill,
+    Stroke,
+}
+
 impl Theme {
     /// Retrieve the linear sRGBA fill color representation for the given primitive.
     pub fn fill_lin_srgba(&self, prim: Primitive) -> LinSrgba {
@@ -54,6 +59,16 @@ impl Theme {
             .get(&prim)
             .copied()
             .unwrap_or(self.stroke_color.default)
+    }
+
+    pub fn resolve_color<T>(&self, color: Option<LinSrgba>, prim: Primitive, options: T) -> LinSrgba
+    where
+        T: Into<ColorType>,
+    {
+        color.unwrap_or_else(|| match options.into() {
+            ColorType::Fill => self.fill_lin_srgba(prim),
+            ColorType::Stroke => self.stroke_lin_srgba(prim),
+        })
     }
 }
 

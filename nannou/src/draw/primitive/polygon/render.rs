@@ -1,18 +1,17 @@
 use crate::draw;
 use crate::draw::primitive::path::{self, PathEventSource};
 use crate::draw::primitive::polygon::{Polygon, PolygonOptions};
-use crate::draw::properties::LinSrgba;
 use crate::geom::Point2;
 
-pub fn render_events_themed<F, I>(
-    opts: PolygonOptions,
+pub fn render_events_themed<F, I, R>(
+    options: PolygonOptions,
     events: F,
-    mut ctxt: draw::renderer::RenderContext,
     theme_primitive: draw::theme::Primitive,
-    mesh: &mut draw::Mesh,
+    mut renderer: R,
 ) where
     F: Fn() -> I,
     I: Iterator<Item = lyon::path::PathEvent>,
+    R: draw::renderer::PrimitiveRenderer,
 {
     let PolygonOptions {
         position,
@@ -21,84 +20,50 @@ pub fn render_events_themed<F, I>(
         stroke_color,
         color,
         stroke,
-    } = opts;
+    } = options;
 
-    // Determine the transform to apply to all points.
-    let global_transform = *ctxt.transform;
     let local_transform = position.transform() * orientation.transform();
-    let transform = global_transform * local_transform;
-
-    // A function for rendering the path.
-    let mut render =
-        |opts: path::Options,
-         color: Option<LinSrgba>,
-         theme: &draw::Theme,
-         fill_tessellator: &mut lyon::tessellation::FillTessellator,
-         stroke_tessellator: &mut lyon::tessellation::StrokeTessellator| {
-            path::render_path_events(
-                events(),
-                color,
-                transform,
-                opts,
-                theme,
-                theme_primitive,
-                fill_tessellator,
-                stroke_tessellator,
-                mesh,
-            )
-        };
 
     // Do the fill tessellation first.
     if !no_fill {
-        let opts = path::Options::Fill(lyon::tessellation::FillOptions::default());
-        render(
-            opts,
-            color,
-            &ctxt.theme,
-            &mut ctxt.fill_tessellator,
-            &mut ctxt.stroke_tessellator,
-        );
+        let options = path::Options::Fill(lyon::tessellation::FillOptions::default());
+        renderer.path_flat_color(local_transform, events(), color, theme_primitive, options);
     }
 
     // Do the stroke tessellation on top.
     if let Some(stroke_opts) = stroke {
-        let opts = path::Options::Stroke(stroke_opts);
+        let options = path::Options::Stroke(stroke_opts);
         let color = stroke_color;
-        render(
-            opts,
-            color,
-            &ctxt.theme,
-            &mut ctxt.fill_tessellator,
-            &mut ctxt.stroke_tessellator,
-        );
+        renderer.path_flat_color(local_transform, events(), color, theme_primitive, options);
     }
 }
 
-pub fn render_points_themed<I>(
-    opts: PolygonOptions,
+pub fn render_points_themed<I, R>(
+    options: PolygonOptions,
     points: I,
-    ctxt: draw::renderer::RenderContext,
     theme_primitive: draw::theme::Primitive,
-    mesh: &mut draw::Mesh,
+    renderer: R,
 ) where
     I: Clone + Iterator<Item = Point2>,
+    R: draw::renderer::PrimitiveRenderer,
 {
     render_events_themed(
-        opts,
+        options,
         || lyon::path::iterator::FromPolyline::closed(points.clone().map(|p| p.to_array().into())),
-        ctxt,
         theme_primitive,
-        mesh,
+        renderer,
     );
 }
 
-impl Polygon {
-    pub(crate) fn render_themed(
+impl draw::renderer::RenderPrimitive2 for Polygon {
+    fn render_primitive<R>(
         self,
-        ctxt: draw::renderer::RenderContext,
-        mesh: &mut draw::Mesh,
-        theme_primitive: draw::theme::Primitive,
-    ) -> draw::renderer::PrimitiveRender {
+        ctxt: draw::renderer::RenderContext2,
+        mut renderer: R,
+    ) -> draw::renderer::PrimitiveRender
+    where
+        R: draw::renderer::PrimitiveRenderer,
+    {
         let Polygon {
             path_event_src,
             opts:
@@ -112,144 +77,68 @@ impl Polygon {
                 },
             texture_view,
         } = self;
-        let draw::renderer::RenderContext {
-            fill_tessellator,
-            stroke_tessellator,
+        let draw::renderer::RenderContext2 {
             path_event_buffer,
             path_points_colored_buffer,
             path_points_textured_buffer,
-            transform,
             theme,
             ..
         } = ctxt;
 
-        // Determine the transform to apply to all points.
-        let global_transform = *transform;
+        let theme_primitive = draw::theme::Primitive::Polygon;
         let local_transform = position.transform() * orientation.transform();
-        let transform = global_transform * local_transform;
-
-        // A function for rendering the path.
-        let mut render =
-            |src: path::PathEventSourceIter,
-             opts: path::Options,
-             color: Option<LinSrgba>,
-             theme: &draw::Theme,
-             fill_tessellator: &mut lyon::tessellation::FillTessellator,
-             stroke_tessellator: &mut lyon::tessellation::StrokeTessellator| {
-                path::render_path_source(
-                    src,
-                    color,
-                    transform,
-                    opts,
-                    theme,
-                    theme_primitive,
-                    fill_tessellator,
-                    stroke_tessellator,
-                    mesh,
-                )
-            };
 
         // Do the fill tessellation first.
         if !no_fill {
-            let opts = path::Options::Fill(lyon::tessellation::FillOptions::default());
+            let options = path::Options::Fill(lyon::tessellation::FillOptions::default());
             match path_event_src {
                 PathEventSource::Buffered(ref range) => {
-                    let mut events = path_event_buffer[range.clone()].iter().cloned();
-                    let src = path::PathEventSourceIter::Events(&mut events);
-                    render(
-                        src,
-                        opts,
+                    let events = path_event_buffer[range.clone()].iter().cloned();
+                    renderer.path_flat_color(
+                        local_transform,
+                        events,
                         color,
-                        theme,
-                        fill_tessellator,
-                        stroke_tessellator,
+                        theme_primitive,
+                        options,
                     );
                 }
                 PathEventSource::ColoredPoints { ref range, close } => {
-                    let mut points_colored =
-                        path_points_colored_buffer[range.clone()].iter().cloned();
-                    let src = path::PathEventSourceIter::ColoredPoints {
-                        points: &mut points_colored,
-                        close,
-                    };
-                    render(
-                        src,
-                        opts,
-                        color,
-                        theme,
-                        fill_tessellator,
-                        stroke_tessellator,
-                    );
+                    let points_colored = path_points_colored_buffer[range.clone()].iter().cloned();
+                    renderer.path_colored_points(local_transform, points_colored, close, options);
                 }
                 PathEventSource::TexturedPoints { ref range, close } => {
-                    let mut textured_points =
+                    let points_textured =
                         path_points_textured_buffer[range.clone()].iter().cloned();
-                    let src = path::PathEventSourceIter::TexturedPoints {
-                        points: &mut textured_points,
-                        close,
-                    };
-                    render(
-                        src,
-                        opts,
-                        color,
-                        theme,
-                        fill_tessellator,
-                        stroke_tessellator,
-                    );
+                    renderer.path_textured_points(local_transform, points_textured, close, options);
                 }
             }
         }
 
         // Then the the stroked outline.
         if let Some(stroke_opts) = stroke {
-            let opts = path::Options::Stroke(stroke_opts);
+            let options = path::Options::Stroke(stroke_opts);
             match path_event_src {
                 PathEventSource::Buffered(range) => {
-                    let mut events = path_event_buffer[range].iter().cloned();
-                    let src = path::PathEventSourceIter::Events(&mut events);
-                    render(
-                        src,
-                        opts,
-                        stroke_color,
-                        theme,
-                        fill_tessellator,
-                        stroke_tessellator,
+                    let events = path_event_buffer[range].iter().cloned();
+                    renderer.path_flat_color(
+                        local_transform,
+                        events,
+                        color,
+                        theme_primitive,
+                        options,
                     );
                 }
                 PathEventSource::ColoredPoints { range, close } => {
-                    let color =
-                        stroke_color.unwrap_or_else(|| theme.stroke_lin_srgba(theme_primitive));
-                    let mut points_colored = path_points_colored_buffer[range]
+                    let color = theme.resolve_color(stroke_color, theme_primitive, &options);
+                    let points_colored = path_points_colored_buffer[range]
                         .iter()
                         .cloned()
                         .map(|(point, _)| (point, color));
-                    let src = path::PathEventSourceIter::ColoredPoints {
-                        points: &mut points_colored,
-                        close,
-                    };
-                    render(
-                        src,
-                        opts,
-                        stroke_color,
-                        theme,
-                        fill_tessellator,
-                        stroke_tessellator,
-                    );
+                    renderer.path_colored_points(local_transform, points_colored, close, options);
                 }
                 PathEventSource::TexturedPoints { range, close } => {
-                    let mut textured_points = path_points_textured_buffer[range].iter().cloned();
-                    let src = path::PathEventSourceIter::TexturedPoints {
-                        points: &mut textured_points,
-                        close,
-                    };
-                    render(
-                        src,
-                        opts,
-                        stroke_color,
-                        theme,
-                        fill_tessellator,
-                        stroke_tessellator,
-                    );
+                    let points_textured = path_points_textured_buffer[range].iter().cloned();
+                    renderer.path_textured_points(local_transform, points_textured, close, options);
                 }
             }
         }
@@ -261,15 +150,5 @@ impl Polygon {
                 vertex_mode: draw::renderer::VertexMode::Texture,
             },
         }
-    }
-}
-
-impl draw::renderer::RenderPrimitive for Polygon {
-    fn render_primitive(
-        self,
-        ctxt: draw::renderer::RenderContext,
-        mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender {
-        self.render_themed(ctxt, mesh, draw::theme::Primitive::Polygon)
     }
 }

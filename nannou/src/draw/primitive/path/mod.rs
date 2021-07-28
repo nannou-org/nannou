@@ -1,9 +1,6 @@
 pub mod render;
 
-pub(crate) use self::render::{
-    render_path_events, render_path_points_colored, render_path_points_textured,
-    render_path_source, PathEventSource, PathEventSourceIter,
-};
+pub(crate) use self::render::{render_path_points_textured, PathEventSource};
 use crate::color::conv::IntoLinSrgba;
 use crate::color::LinSrgba;
 use crate::draw::mesh::vertex::TexCoords;
@@ -91,7 +88,7 @@ impl PathInit {
     ///
     /// The returned building context allows for specifying the fill tessellation options.
     pub fn fill(self) -> PathFill {
-        let opts = FillOptions::default();
+        let opts = Default::default();
         PathFill::new(opts)
     }
 

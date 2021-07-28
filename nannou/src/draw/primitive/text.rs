@@ -288,7 +288,9 @@ impl draw::renderer::RenderPrimitive for Text {
         let w = maybe_x.unwrap_or(200.0);
         let h = maybe_y.unwrap_or(200.0);
         let rect: geom::Rect = geom::Rect::from_wh([w, h].into());
-        let color = color.unwrap_or_else(|| ctxt.theme.fill_lin_srgba(theme::Primitive::Text));
+        let color = ctxt
+            .theme
+            .resolve_color(color, theme::Primitive::Text, theme::ColorType::Fill);
 
         let text_str = &ctxt.text_buffer[text.clone()];
         let text = text::text(text_str).layout(&layout).build(rect);

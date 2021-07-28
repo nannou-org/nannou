@@ -67,12 +67,15 @@ impl<'a> DrawingTri<'a> {
 
 // Trait implementations.
 
-impl draw::renderer::RenderPrimitive for Tri {
-    fn render_primitive(
+impl draw::renderer::RenderPrimitive2 for Tri {
+    fn render_primitive<R>(
         self,
-        ctxt: draw::renderer::RenderContext,
-        mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender {
+        _ctxt: draw::renderer::RenderContext2,
+        renderer: R,
+    ) -> draw::renderer::PrimitiveRender
+    where
+        R: draw::renderer::PrimitiveRenderer,
+    {
         let Tri {
             mut tri,
             dimensions,
@@ -94,12 +97,11 @@ impl draw::renderer::RenderPrimitive for Tri {
             tri = geom::Tri([new_a, new_b, new_c]);
         }
         let points = tri.vertices();
-        polygon::render_points_themed(
+        polygon::render::render_points_themed(
             polygon.opts,
             points,
-            ctxt,
             draw::theme::Primitive::Tri,
-            mesh,
+            renderer,
         );
 
         draw::renderer::PrimitiveRender::default()

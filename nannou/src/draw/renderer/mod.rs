@@ -1,3 +1,6 @@
+pub mod primitives;
+
+pub use self::primitives::{PrimitiveRenderer, RenderContext2, RenderPrimitive2};
 use crate::draw;
 use crate::draw::mesh::vertex::{Color, TexCoords};
 use crate::frame::Frame;
@@ -174,15 +177,7 @@ impl Default for PrimitiveRender {
 impl RenderPrimitive for draw::Primitive {
     fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender {
         match self {
-            draw::Primitive::Arrow(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Mesh(prim) => prim.render_primitive(ctxt, mesh),
-            draw::Primitive::Path(prim) => prim.render_primitive(ctxt, mesh),
-            draw::Primitive::Polygon(prim) => prim.render_primitive(ctxt, mesh),
-            draw::Primitive::Tri(prim) => prim.render_primitive(ctxt, mesh),
-            draw::Primitive::Ellipse(prim) => prim.render_primitive(ctxt, mesh),
-            draw::Primitive::Quad(prim) => prim.render_primitive(ctxt, mesh),
-            draw::Primitive::Rect(prim) => prim.render_primitive(ctxt, mesh),
-            draw::Primitive::Line(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Text(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Texture(prim) => prim.render_primitive(ctxt, mesh),
             _ => PrimitiveRender::default(),
@@ -580,7 +575,7 @@ impl Renderer {
                     };
 
                     // Render the primitive.
-                    let render = prim.render_primitive(ctxt, &mut self.mesh);
+                    let render = RenderPrimitive::render_primitive(prim, ctxt, &mut self.mesh);
 
                     // If the mesh indices are unchanged, there's nothing to be drawn.
                     if prev_index_count == self.mesh.indices().len() as u32 {

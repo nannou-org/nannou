@@ -25,7 +25,7 @@ pub struct Mesh {
 }
 
 #[derive(Clone, Debug, Default)]
-struct FillColor(Option<LinSrgba>);
+pub struct FillColor(Option<LinSrgba>);
 
 // A simple iterator for flattening a fixed-size array of indices.
 struct FlattenIndices<I> {
@@ -515,10 +515,10 @@ impl draw::renderer::RenderPrimitive for Mesh {
         // Color the vertices based on whether or not we should fill, then extend the mesh!
         match fill_color {
             Some(fill) => {
-                let theme_prim = draw::theme::Primitive::Mesh;
-                let color = fill
-                    .0
-                    .unwrap_or_else(|| ctxt.theme.fill_lin_srgba(theme_prim));
+                let theme_primitive = draw::theme::Primitive::Mesh;
+                let color =
+                    ctxt.theme
+                        .resolve_color(fill.0, theme_primitive, draw::theme::ColorType::Fill);
                 let vertices = vertex_range.map(|i| {
                     let point = transform_point(ctxt.intermediary_mesh.points()[i]);
                     let tex_coords = ctxt.intermediary_mesh.tex_coords()[i];
