@@ -1,4 +1,5 @@
 pub mod primitives;
+pub mod svg;
 
 pub use self::primitives::{PrimitiveRenderer, RenderContext, RenderPrimitive};
 use crate::draw;
@@ -524,7 +525,7 @@ impl Renderer {
 
         // Collect all draw commands to avoid borrow errors.
         let draw_cmds: Vec<_> = draw.drain_commands().collect();
-        let draw_state = draw.state.borrow_mut();
+        let draw_state = draw.state.borrow();
         let intermediary_state = draw_state.intermediary_state.borrow();
         for cmd in draw_cmds {
             match cmd {
