@@ -105,6 +105,7 @@ fn window_event(_app: &App, _model: &mut Model, event: WindowEvent) {
     match event {
         KeyPressed(_key) => {}
         KeyReleased(_key) => {}
+        ReceivedCharacter(_char) => {}
         MouseMoved(_pos) => {}
         MousePressed(_button) => {}
         MouseReleased(_button) => {}
