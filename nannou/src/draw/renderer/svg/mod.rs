@@ -4,7 +4,7 @@ use crate::draw::mesh::vertex::TexCoords;
 use crate::draw::primitive::path::Options;
 use crate::draw::properties::LinSrgba;
 use crate::draw::renderer::{PrimitiveRenderer, RenderContext, RenderPrimitive};
-use crate::draw::{self, DrawCommand};
+use crate::draw::{self, Context, DrawCommand};
 use crate::glam::{Mat4, Vec2};
 use crate::Draw;
 use nannou_core::geom::Rect;
@@ -21,6 +21,7 @@ pub fn render_and_save(dims: Rect, draw: &Draw, path: impl AsRef<Path>) {
 
 fn write_file(path: impl AsRef<Path>, document: &Document) -> io::Result<()> {
     let mut file = File::create(path)?;
+    file.write_all("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n".as_bytes())?;
     file.write_all(&document.to_string().into_bytes())?;
     file.sync_all()
 }
@@ -36,7 +37,12 @@ pub fn render(dims: Rect, draw: &Draw) -> Document {
     for command in draw_commands {
         match command {
             DrawCommand::Context(new_context) => {
-                if new_context != Default::default() {
+                let default_context = Context::default();
+                if new_context.blend != default_context.blend
+                    || new_context.scissor != default_context.scissor
+                    || new_context.topology != default_context.topology
+                    || new_context.sampler != default_context.sampler
+                {
                     unimplemented!();
                 }
                 curr_ctxt = new_context;
@@ -80,12 +86,8 @@ impl<'a> PrimitiveRenderer for SvgPrimitiveRenderer<'a> {
         options: Options,
     ) {
         let transform = *self.transform * local_transform;
-        if transform != Mat4::IDENTITY {
-            unimplemented!();
-        }
-
         let color = self.theme.resolve_color(color, theme_primitive, &options);
-        encode::render_path(self.svg, events, color, options);
+        encode::render_path(self.svg, events, transform, color, options);
     }
 
     fn path_colored_points(
