@@ -22,7 +22,7 @@ pub fn svg_document(dims: Rect, elements: Group, background: Option<LinSrgba>) -
     if let Some(color) = background {
         document.append(
             Rectangle::new()
-                .set("fill", convert_color(color))
+                .set("style", fill_color(color))
                 .set("x", corner.x)
                 .set("y", corner.y)
                 .set("width", "100%")
@@ -102,22 +102,20 @@ where
 fn path_options(color: LinSrgba, options: Options) -> Path {
     match options {
         Options::Fill(options) => Path::new()
-            .set("stroke", "none")
-            .set("fill", convert_color(color))
             .set(
                 "fill-rule",
                 match options.fill_rule {
                     FillRule::EvenOdd => "evenodd",
                     FillRule::NonZero => "nonzero",
                 },
-            ),
+            )
+            .set("style", fill_color(color)),
         Options::Stroke(options) => {
             if options.start_cap != options.end_cap {
                 unimplemented!();
             }
             Path::new()
-                .set("fill", "none")
-                .set("stroke", convert_color(color))
+                .set("style", stroke_color(color))
                 .set(
                     "stroke-linecap",
                     match options.start_cap {
@@ -141,11 +139,16 @@ fn path_options(color: LinSrgba, options: Options) -> Path {
     }
 }
 
-fn convert_color(color: LinSrgba) -> String {
+fn fill_color(color: LinSrgba) -> String {
     let color: Alpha<Srgb<u8>, f32> = color.into_encoding().into_format();
+    let Alpha { color, alpha } = color;
 
-    format!(
-        "rgba({}, {}, {}, {:.3})",
-        color.red, color.green, color.blue, color.alpha
-    )
+    format!("stroke:none;fill:#{:x};fill-opacity:{};", color, alpha)
+}
+
+fn stroke_color(color: LinSrgba) -> String {
+    let color: Alpha<Srgb<u8>, f32> = color.into_encoding().into_format();
+    let Alpha { color, alpha } = color;
+
+    format!("fill:none;stroke:#{:x};stroke-opacity:{};", color, alpha)
 }
