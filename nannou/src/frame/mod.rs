@@ -188,12 +188,7 @@ impl<'swap_chain> Frame<'swap_chain> {
     ///
     /// See `texture` for details.
     pub fn texture_view(&self) -> &wgpu::TextureView {
-        self.render_data
-            .intermediary_lin_srgba
-            .msaa_texture
-            .as_ref()
-            .map(|(_, view)| view)
-            .unwrap_or(&self.render_data.intermediary_lin_srgba.texture_view)
+        self.render_data.texture_view()
     }
 
     /// Returns the resolve target texture in the case that MSAA is enabled.
@@ -252,7 +247,8 @@ impl<'swap_chain> Frame<'swap_chain> {
         let (r, g, b, a) = lin_srgba.into_components();
         let (r, g, b, a) = (r as f64, g as f64, b as f64, a as f64);
         let color = wgpu::Color { r, g, b, a };
-        wgpu::clear_texture(self.texture_view(), color, &mut *self.command_encoder())
+
+        self.raw_frame.clear(self.texture_view(), color);
     }
 
     /// Submit the frame to the GPU!
@@ -312,6 +308,17 @@ impl RenderData {
             size: swap_chain_dims,
             msaa_samples,
         }
+    }
+
+    /// A full view into the associated texture.
+    ///
+    /// See `texture` for details.
+    pub(crate) fn texture_view(&self) -> &wgpu::TextureView {
+        self.intermediary_lin_srgba
+            .msaa_texture
+            .as_ref()
+            .map(|(_, view)| view)
+            .unwrap_or(&self.intermediary_lin_srgba.texture_view)
     }
 }
 

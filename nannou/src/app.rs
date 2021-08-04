@@ -1175,6 +1175,13 @@ fn run_loop<M, E>(
                             window_rect,
                         );
 
+                        // Clear the raw frame immediately once the window is invalidated
+                        if window.is_invalidated {
+                            if let Some(data) = frame_data {
+                                raw_frame.clear(&data.render.texture_view(), window.clear_color);
+                            }
+                        }
+
                         // If the user specified a view function specifically for this window, use it.
                         // Otherwise, use the fallback, default view passed to the app if there was one.
                         let window_view = window.user_functions.view.clone();
@@ -1227,6 +1234,8 @@ fn run_loop<M, E>(
                             .get_mut(&window_id)
                             .expect("no window for redraw request ID");
 
+                        // Assume invalidated window was cleared above before `view()`
+                        window.is_invalidated = false;
                         window.swap_chain.swap_chain = Some(swap_chain);
                     }
                 }
