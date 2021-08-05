@@ -31,6 +31,7 @@ fn event(_app: &App, _model: &mut Model, event: WindowEvent) {
         // Keyboard events
         KeyPressed(_key) => {}
         KeyReleased(_key) => {}
+        ReceivedCharacter(_char) => {}
 
         // Mouse events
         MouseMoved(_pos) => {}

@@ -61,6 +61,7 @@ pub(crate) struct UserFunctions {
     pub(crate) raw_event: Option<RawEventFnAny>,
     pub(crate) key_pressed: Option<KeyPressedFnAny>,
     pub(crate) key_released: Option<KeyReleasedFnAny>,
+    pub(crate) received_character: Option<ReceivedCharacterFnAny>,
     pub(crate) mouse_moved: Option<MouseMovedFnAny>,
     pub(crate) mouse_pressed: Option<MousePressedFnAny>,
     pub(crate) mouse_released: Option<MouseReleasedFnAny>,
@@ -112,6 +113,9 @@ pub type KeyPressedFn<Model> = fn(&App, &mut Model, Key);
 
 /// A function for processing key release events.
 pub type KeyReleasedFn<Model> = fn(&App, &mut Model, Key);
+
+/// A function for processing received characters.
+pub type ReceivedCharacterFn<Model> = fn(&App, &mut Model, char);
 
 /// A function for processing mouse moved events.
 pub type MouseMovedFn<Model> = fn(&App, &mut Model, Point2);
@@ -211,6 +215,7 @@ fn_any!(EventFn<M>, EventFnAny);
 fn_any!(RawEventFn<M>, RawEventFnAny);
 fn_any!(KeyPressedFn<M>, KeyPressedFnAny);
 fn_any!(KeyReleasedFn<M>, KeyReleasedFnAny);
+fn_any!(ReceivedCharacterFn<M>, ReceivedCharacterFnAny);
 fn_any!(MouseMovedFn<M>, MouseMovedFnAny);
 fn_any!(MousePressedFn<M>, MousePressedFnAny);
 fn_any!(MouseReleasedFn<M>, MouseReleasedFnAny);
@@ -527,6 +532,14 @@ impl<'app> Builder<'app> {
         M: 'static,
     {
         self.user_functions.key_released = Some(KeyReleasedFnAny::from_fn_ptr(f));
+        self
+    }
+
+    pub fn received_character<M>(mut self, f: ReceivedCharacterFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.received_character = Some(ReceivedCharacterFnAny::from_fn_ptr(f));
         self
     }
 

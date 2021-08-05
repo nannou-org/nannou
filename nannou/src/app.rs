@@ -1651,6 +1651,9 @@ where
             match simple {
                 event::WindowEvent::KeyPressed(key) => call_user_function!(key_pressed, key),
                 event::WindowEvent::KeyReleased(key) => call_user_function!(key_released, key),
+                event::WindowEvent::ReceivedCharacter(char) => {
+                    call_user_function!(received_character, char)
+                }
                 event::WindowEvent::MouseMoved(pos) => call_user_function!(mouse_moved, pos),
                 event::WindowEvent::MousePressed(button) => {
                     call_user_function!(mouse_pressed, button)
