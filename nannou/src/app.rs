@@ -190,6 +190,7 @@ struct LoopState {
     loop_start: Instant,
     last_update: Instant,
     total_updates: u64,
+    events_since_wakeup: usize,
 }
 
 /// The mode in which the **App** is currently running the event loop and emitting `Update` events.
@@ -1074,6 +1075,7 @@ fn run_loop<M, E>(
         loop_start,
         last_update: loop_start,
         total_updates: 0,
+        events_since_wakeup: 0,
     };
 
     // Run the event loop.
@@ -1097,6 +1099,10 @@ fn run_loop<M, E>(
                     match loop_mode {
                         LoopMode::NTimes { number_of_updates }
                             if loop_state.total_updates >= number_of_updates as u64 => {}
+                        // Sometimes winit interrupts ControlFlow::Wait for no good reason, so we
+                        // make sure that there were some events in order to do an update when
+                        // LoopMode::Wait is used.
+                        LoopMode::Wait if loop_state.events_since_wakeup == 0 => {}
                         _ => do_update(&mut loop_state),
                     }
                 }
@@ -1253,12 +1259,15 @@ fn run_loop<M, E>(
             }
 
             // Ignore wake-up events for now. Currently, these can only be triggered via the app proxy.
-            winit::event::Event::NewEvents(_) => {}
+            winit::event::Event::NewEvents(_) => {
+                loop_state.events_since_wakeup = 0;
+            }
 
             // Track the number of updates since the last I/O event.
             // This is necessary for the `Wait` loop mode to behave correctly.
             ref _other_event => {
                 loop_state.updates_since_event = 0;
+                loop_state.events_since_wakeup += 1;
             }
         }
 
