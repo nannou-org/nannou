@@ -14,8 +14,8 @@ use crate::{
 
 pub struct App {
     window: Window,
-    duration: state::Time,
-    time: f32,
+    pub duration: state::Time,
+    pub time: f32,
 
     draw: RefCell<Draw>,
     exit: Cell<bool>,
@@ -108,11 +108,13 @@ pub type ViewFn<Model> = fn(&App, &Model, frame::Frame);
 
 pub type ExitFn<Model> = fn(&App, Model);
 
+pub type SketchViewFn = fn(&App, frame::Frame);
+
 pub(crate) enum View<Model = ()> {
     /// A view function allows for viewing the user's model.
     WithModel(ViewFn<Model>),
     // A **Simple** view function does not require a user **Model**. Simpler to get started.
-    // Sketch(SketchViewFn),
+    Sketch(SketchViewFn),
 }
 
 pub struct Window {
@@ -149,7 +151,7 @@ impl Window {
             .next_frame_path
             .lock()
             .expect("failed to lock `capture_next_frame_path`");
-            *capture_next_frame_path = Some(path.to_path_buf());
+        *capture_next_frame_path = Some(path.to_path_buf());
     }
 
     pub fn await_capture_frame_jobs(
@@ -185,6 +187,10 @@ pub struct Builder<M = ()> {
     power_preference: wgpu::PowerPreference,
     device_desc: wgpu::DeviceDescriptor<'static>,
     msaa_samples: u32,
+}
+
+pub struct SketchBuilder {
+    builder: Builder<()>,
 }
 
 impl<M> Builder<M>
@@ -301,6 +307,33 @@ where
     }
 }
 
+fn default_model(_: &App) -> () {
+    ()
+}
+
+impl SketchBuilder {
+    pub fn size(mut self, width: u32, height: u32) -> Self {
+        self.builder = self.builder.size(width, height);
+        self
+    }
+
+    pub fn run(self) {
+        self.builder.run()
+    }
+}
+impl Builder<()> {
+    /// Shorthand for building a simple app that has no model, handles no events and simply draws
+    /// to a single window.
+    ///
+    /// This is useful for late night hack sessions where you just don't care about all that other
+    /// stuff, you just want to play around with some ideas or make something pretty.
+    pub fn sketch(view: SketchViewFn) -> SketchBuilder {
+        let mut builder = Builder::new(default_model);
+        builder.view = Some(View::Sketch(view));
+        SketchBuilder { builder }
+    }
+}
+
 fn run_loop<M>(
     mut app: App,
     model: M,
@@ -332,7 +365,7 @@ fn run_loop<M>(
         if let Some(model) = model.as_ref() {
             let raw_frame = frame::RawFrame::new_fake(
                 window.device_queue_pair.clone(),
-                window.frame_count,
+                app.frame_count,
                 window.format,
                 window.rect,
             );
@@ -344,6 +377,11 @@ fn run_loop<M>(
                     let frame =
                         frame::Frame::new_empty(raw_frame, &frame_data.render, &frame_data.capture);
                     view(&app, &model, frame);
+                }
+                Some(View::Sketch(view)) => {
+                    let frame =
+                        frame::Frame::new_empty(raw_frame, &frame_data.render, &frame_data.capture);
+                    view(&app, frame);
                 }
                 None => raw_frame.submit(),
             }
