@@ -82,7 +82,7 @@ enum DefaultWindowSize {
 }
 
 /// The default `model` function used when none is specified by the user.
-fn default_model(_: &App) -> () {
+pub(crate) fn default_model(_: &App) -> () {
     ()
 }
 

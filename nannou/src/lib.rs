@@ -72,3 +72,7 @@ pub fn sketch(view: app::SketchViewFn) -> app::SketchBuilder<Event> {
 pub fn headless<M: 'static>(model: headless::ModelFn<M>) -> headless::Builder<M> {
     headless::Builder::new(model)
 }
+
+pub fn headless_sketch(view: headless::SketchViewFn) -> headless::SketchBuilder {
+    headless::Builder::sketch(view)
+}
