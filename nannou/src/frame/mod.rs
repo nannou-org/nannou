@@ -124,11 +124,11 @@ impl<'swap_chain> Frame<'swap_chain> {
         //
         // To do so, we sample the linear sRGBA image and draw it to the swapchain image using
         // two triangles and a fragment shader.
-        {
+        if let Some(swap_chain_texture) = raw_frame.swap_chain_texture() {
             let mut encoder = raw_frame.command_encoder();
             render_data
                 .texture_reshaper
-                .encode_render_pass(raw_frame.swap_chain_texture(), &mut *encoder);
+                .encode_render_pass(swap_chain_texture, &mut *encoder);
         }
 
         // Submit all commands on the device queue.
@@ -138,12 +138,12 @@ impl<'swap_chain> Frame<'swap_chain> {
         if let Some((path, snapshot)) = snapshot_capture {
             let result = snapshot.read(move |result| match result {
                 // TODO: Log errors, don't print to stderr.
-                Err(e) => eprintln!("failed to async read captured frame: {:?}", e),
+                Err(e) => panic!("failed to async read captured frame: {:?}", e),
                 Ok(image) => {
                     let image = image.to_owned();
                     if let Err(e) = image.save(&path) {
                         // TODO: Log errors, don't print to stderr.
-                        eprintln!(
+                        panic!(
                             "failed to save captured frame to \"{}\": {}",
                             path.display(),
                             e
@@ -153,7 +153,7 @@ impl<'swap_chain> Frame<'swap_chain> {
             });
             if let Err(wgpu::TextureCapturerAwaitWorkerTimeout(_)) = result {
                 // TODO: Log errors, don't print to stderr.
-                eprintln!("timed out while waiting for a worker thread to capture the frame");
+                panic!("timed out while waiting for a worker thread to capture the frame");
             }
         }
     }

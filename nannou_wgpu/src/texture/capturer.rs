@@ -86,8 +86,8 @@ impl ThreadPool {
 
         // Wrap the future with the counter.
         let active_futures = self.active_futures.clone();
+        active_futures.fetch_add(1, atomic::Ordering::SeqCst);
         let future = async move {
-            active_futures.fetch_add(1, atomic::Ordering::SeqCst);
             future.await;
             active_futures.fetch_sub(1, atomic::Ordering::SeqCst);
         };
