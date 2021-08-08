@@ -15,7 +15,7 @@ pub trait Widget: conrod::Widget {
     /// Build the widget with the given playhead position and delta in ticks.
     ///
     /// If this method is not overridden, the playhead will be ignored.
-    fn playhead(self, (time::Ticks, time::Ticks)) -> Self {
+    fn playhead(self, _: (time::Ticks, time::Ticks)) -> Self {
         self
     }
 }

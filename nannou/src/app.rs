@@ -58,6 +58,7 @@ enum View<Model = ()> {
 /// A nannou `App` builder.
 pub struct Builder<M = (), E = Event> {
     model: ModelFn<M>,
+    config: Config,
     event: Option<EventFn<M, E>>,
     update: Option<UpdateFn<M>>,
     default_view: Option<View<M>>,
@@ -253,6 +254,7 @@ where
     pub fn new(model: ModelFn<M>) -> Self {
         Builder {
             model,
+            config: Config::default(),
             event: None,
             update: None,
             default_view: None,
@@ -279,6 +281,7 @@ where
     {
         let Builder {
             model,
+            config,
             update,
             default_view,
             exit,
@@ -291,6 +294,7 @@ where
         } = self;
         Builder {
             model,
+            config,
             event: Some(event),
             update,
             default_view,
@@ -383,6 +387,12 @@ where
         self
     }
 
+    /// Specify the default initial loop mode for this app.
+    pub fn loop_mode(mut self, mode: LoopMode) -> Self {
+        self.config.loop_mode = mode;
+        self
+    }
+
     /// The maximum number of simultaneous capture frame jobs that can be run per window before we
     /// block and wait for the existing jobs to complete.
     ///
@@ -455,6 +465,7 @@ where
             .unwrap_or(Some(Self::DEFAULT_CAPTURE_FRAME_TIMEOUT));
         let event_loop_window_target = Some(EventLoopWindowTarget::Owned(event_loop));
         let app = App::new(
+            self.config,
             event_loop_proxy,
             event_loop_window_target,
             self.default_window_size,
@@ -497,6 +508,14 @@ impl<E> SketchBuilder<E>
 where
     E: LoopEvent,
 {
+    /// Specify the default initial loop mode for this sketch.
+    ///
+    /// This method delegates to `Builder::loop_mode`.
+    pub fn loop_mode(mut self, mode: LoopMode) -> Self {
+        self.builder = self.builder.loop_mode(mode);
+        self
+    }
+
     /// The size of the sketch window.
     pub fn size(mut self, width: u32, height: u32) -> Self {
         self.builder = self.builder.size(width, height);
@@ -599,6 +618,7 @@ impl App {
 
     // Create a new `App`.
     fn new(
+        config: Config,
         event_loop_proxy: Proxy,
         event_loop_window_target: Option<EventLoopWindowTarget>,
         default_window_size: Option<DefaultWindowSize>,
@@ -610,7 +630,7 @@ impl App {
         let adapters = Default::default();
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());
-        let config = RefCell::new(Default::default());
+        let config = RefCell::new(config);
         let renderers = RefCell::new(Default::default());
         let draw_state = DrawState { draw, renderers };
         let focused_window = RefCell::new(None);

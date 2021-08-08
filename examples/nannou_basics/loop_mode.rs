@@ -10,14 +10,16 @@
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).update(update).run();
+    // Start in `Wait` mode. In other words, don't keep looping, just wait for events.
+    nannou::app(model)
+        .loop_mode(LoopMode::Wait)
+        .update(update)
+        .run();
 }
 
 struct Model;
 
 fn model(app: &App) -> Model {
-    // Start in `Wait` mode. In other words, don't keep looping, just wait for events.
-    app.set_loop_mode(LoopMode::Wait);
     let _window = app
         .new_window()
         .title(format!(
