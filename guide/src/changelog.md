@@ -20,6 +20,8 @@ back to the origins.
 - Fix audio examples on Windows by adding `WindowBuilder` method `windowsos_drag_and_drop`. Disabling this allows `cpal` and `winit` to coexist on the same thread.
 - Add community tutorials section to the guide.
 - Provided an user-friendly way to get the character value of a pressed keyboard key.
+- Clear swapchain background automatically when re-allocated. Can set the clear color via `WindowBuilder::clear_color()`.
+- Remove `windowsos_drag_and_drop()`, since `cpal` and `winit` can now share a thread.
 
 ---
 

@@ -66,7 +66,6 @@ impl HrtfData {
 
 fn model(app: &App) -> Model {
     app.new_window()
-        .windowsos_drag_and_drop(false) // Required for Windows (no effect otherwise)
         .size(WINDOW_SIDE, WINDOW_SIDE)
         .key_pressed(key_pressed)
         .mouse_moved(mouse_moved)
