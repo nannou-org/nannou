@@ -2,6 +2,7 @@ mod encode;
 
 use crate::draw::mesh::vertex::TexCoords;
 use crate::draw::primitive::path::Options;
+use crate::draw::primitive::text;
 use crate::draw::properties::LinSrgba;
 use crate::draw::renderer::{PrimitiveRenderer, RenderContext, RenderPrimitive};
 use crate::draw::{self, Context, DrawCommand};
@@ -12,7 +13,7 @@ use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
 use svg::node::element::Group;
-use svg::Document;
+use svg::{Document, Node};
 
 pub fn render_and_save(dims: Rect, draw: &Draw, path: impl AsRef<Path>) {
     let document = render(dims, draw);
@@ -123,12 +124,26 @@ impl<'a> PrimitiveRenderer for SvgPrimitiveRenderer<'a> {
     fn text(
         &mut self,
         local_transform: Mat4,
-        _text: crate::text::Text,
-        _color: LinSrgba,
-        _glyph_colors: Vec<LinSrgba>,
+        text: crate::text::Text,
+        color: LinSrgba,
+        glyph_colors: Vec<LinSrgba>,
     ) {
-        let _transform = *self.transform * local_transform;
-        // TODO: render each glyph as a path_flat_color
-        unimplemented!();
+        let transform = *self.transform * local_transform;
+        let options = Options::Fill(Default::default());
+
+        if glyph_colors.is_empty() {
+            // render as a single path
+            encode::render_path(self.svg, text.path_events(), transform, color, options);
+        } else {
+            // render each glyph as a separate path
+            let glyph_colors_iter = text::render::glyph_colors_iter(&text, &glyph_colors, color);
+            let mut group = Group::new();
+
+            for (path_events, color) in text.glyph_path_events().zip(glyph_colors_iter) {
+                encode::render_path(&mut group, path_events, transform, color, options.clone());
+            }
+
+            self.svg.append(group);
+        }
     }
 }

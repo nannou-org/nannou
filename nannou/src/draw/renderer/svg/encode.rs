@@ -52,6 +52,9 @@ pub fn render_path<I>(
 }
 
 pub fn render_path_data(svg: &mut Group, path_data: Data, color: LinSrgba, options: Options) {
+    if path_data.is_empty() {
+        return;
+    }
     svg.append(path_options(color, options).set("d", path_data));
 }
 

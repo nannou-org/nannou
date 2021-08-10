@@ -68,16 +68,7 @@ pub fn render_text(
         geom::Rect::from_corners([l, b].into(), [r, t].into())
     };
 
-    // Skips non-rendered colors (e.g. due to line breaks),
-    //   assuming LineInfos are ordered by ascending character position.
-    let glyph_colors_iter = text
-        .line_infos()
-        .iter()
-        .flat_map(|li| li.char_range())
-        .take_while(|&i| i < glyph_colors.len())
-        .map(|i| &glyph_colors[i])
-        // Repeat `color` if more glyphs than glyph_colors
-        .chain(std::iter::repeat(&color));
+    let glyph_colors_iter = glyph_colors_iter(&text, &glyph_colors, color);
 
     // Extend the mesh with a rect for each displayed glyph.
     for (g, g_color) in positioned_glyphs.iter().zip(glyph_colors_iter) {
@@ -88,7 +79,7 @@ pub fn render_text(
             let v = |p: Point2, tex_coords: [f32; 2]| -> draw::mesh::Vertex {
                 let p = transform.transform_point3([p.x, p.y, 0.0].into());
                 let point = draw::mesh::vertex::Point::from(p);
-                draw::mesh::vertex::new(point, g_color.to_owned(), tex_coords.into())
+                draw::mesh::vertex::new(point, g_color, tex_coords.into())
             };
 
             // The sides of the UV rect.
@@ -170,4 +161,20 @@ impl draw::renderer::RenderPrimitive for Text {
 
         draw::renderer::PrimitiveRender::text()
     }
+}
+
+pub(crate) fn glyph_colors_iter<'a>(
+    text: &'a crate::text::Text,
+    glyph_colors: &'a [LinSrgba],
+    color: LinSrgba,
+) -> impl Iterator<Item = LinSrgba> + 'a {
+    // Skips non-rendered colors (e.g. due to line breaks),
+    //   assuming LineInfos are ordered by ascending character position.
+    text.line_infos()
+        .iter()
+        .flat_map(|li| li.char_range())
+        .take_while(move |&i| i < glyph_colors.len())
+        .map(move |i| glyph_colors[i].to_owned())
+        // Repeat `color` if more glyphs than glyph_colors
+        .chain(std::iter::repeat(color))
 }

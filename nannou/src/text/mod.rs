@@ -379,8 +379,10 @@ impl<'a> Text<'a> {
         self.glyphs_per_line().flatten()
     }
 
-    /// Produce an iterator yielding the path events for every glyph in every line.
-    pub fn path_events<'b>(&'b self) -> impl 'b + Iterator<Item = lyon::path::PathEvent> {
+    /// Produce an iterator yielding the path events for each individual glyph in every line.
+    pub fn glyph_path_events(
+        &self,
+    ) -> impl Iterator<Item = impl Iterator<Item = lyon::path::PathEvent> + '_> {
         use lyon::path::PathEvent;
 
         // Translate the given lyon point by the given vector.
@@ -430,12 +432,17 @@ impl<'a> Text<'a> {
             }
         }
 
-        self.glyphs().flat_map(|(g, r)| {
+        self.glyphs().map(|(g, r)| {
             glyph::path_events(g)
                 .into_iter()
-                .flat_map(|es| es)
+                .flatten()
                 .map(move |e| trans_path_event(&e, r.bottom_left().into()))
         })
+    }
+
+    /// Produce an iterator yielding the path events for every glyph in every line.
+    pub fn path_events(&self) -> impl Iterator<Item = lyon::path::PathEvent> + '_ {
+        self.glyph_path_events().flatten()
     }
 
     /// Produce an iterator yielding positioned rusttype glyphs ready for caching.
