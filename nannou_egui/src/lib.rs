@@ -265,7 +265,7 @@ impl Input {
                 }
             }
             ReceivedCharacter(ch) => {
-                if ch.is_alphanumeric() && !self.raw.modifiers.ctrl && !self.raw.modifiers.command {
+                if is_printable(*ch) && !self.raw.modifiers.ctrl && !self.raw.modifiers.command {
                     self.raw.events.push(egui::Event::Text(ch.to_string()));
                 }
             }
@@ -508,4 +508,12 @@ pub fn edit_color(ui: &mut egui::Ui, color: &mut nannou::color::Hsv) {
     {
         *color = nannou::color::hsv(egui_hsv.h, egui_hsv.s, egui_hsv.v);
     }
+}
+
+/// We only want printable characters and ignore all special keys.
+fn is_printable(chr: char) -> bool {
+    let is_in_private_use_area = '\u{e000}' <= chr && chr <= '\u{f8ff}'
+        || '\u{f0000}' <= chr && chr <= '\u{ffffd}'
+        || '\u{100000}' <= chr && chr <= '\u{10fffd}';
+    !is_in_private_use_area && !chr.is_ascii_control()
 }
