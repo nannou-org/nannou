@@ -1371,9 +1371,15 @@ fn apply_update<M, E>(
     if let Some(update_fn) = update_fn {
         update_fn(app, model, update);
     }
-    loop_state.last_update = now;
-    loop_state.total_updates += 1;
-    loop_state.updates_since_event += 1;
+
+    if app.loop_mode() == LoopMode::Wait && loop_state.updates_since_event != 0 {
+        return;
+    } else {
+        loop_state.last_update = now;
+        loop_state.total_updates += 1;
+        loop_state.updates_since_event += 1;
+    }
+
     // Request redraw from windows.
     let windows = app.windows.borrow();
     for window in windows.values() {
