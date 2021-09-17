@@ -166,7 +166,7 @@ impl Texture {
     }
 
     /// The set of usage bits describing the ways in which the **Texture** may be used.
-    pub fn usage(&self) -> wgpu::TextureUsage {
+    pub fn usage(&self) -> wgpu::TextureUsages {
         self.descriptor.usage
     }
 
@@ -269,7 +269,7 @@ impl Texture {
         let buffer = wgpu::RowPaddedBuffer::for_texture(
             device,
             self,
-            wgpu::BufferUsage::COPY_SRC | wgpu::BufferUsage::MAP_WRITE,
+            wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_WRITE,
         );
         buffer.write(data);
         buffer.encode_copy_into(encoder, self);
@@ -303,7 +303,7 @@ impl Texture {
             let descriptor = self.descriptor.clone();
             let resolved_texture = wgpu::TextureBuilder::from(descriptor)
                 .sample_count(1)
-                .usage(wgpu::TextureUsage::RENDER_ATTACHMENT | wgpu::TextureUsage::COPY_SRC)
+                .usage(wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC)
                 .build(device);
             let resolved_view =
                 resolved_texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -311,7 +311,7 @@ impl Texture {
             let buffer = RowPaddedBuffer::for_texture(
                 device,
                 &resolved_texture,
-                wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ,
+                wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             );
             buffer.encode_copy_from(encoder, &resolved_texture);
             buffer
@@ -319,7 +319,7 @@ impl Texture {
             let buffer = RowPaddedBuffer::for_texture(
                 device,
                 self,
-                wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ,
+                wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             );
             buffer.encode_copy_from(encoder, self);
             buffer
@@ -423,7 +423,7 @@ impl Builder {
     pub const DEFAULT_SAMPLE_COUNT: u32 = 1;
     pub const DEFAULT_DIMENSION: wgpu::TextureDimension = wgpu::TextureDimension::D2;
     pub const DEFAULT_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
-    pub const DEFAULT_USAGE: wgpu::TextureUsage = wgpu::TextureUsage::all(); // TODO: is this the right choice?
+    pub const DEFAULT_USAGE: wgpu::TextureUsages = wgpu::TextureUsages::all(); // TODO: is this the right choice?
     pub const DEFAULT_DESCRIPTOR: wgpu::TextureDescriptor<'static> = wgpu::TextureDescriptor {
         label: Some("nannou Texture"),
         size: Self::DEFAULT_SIZE,
@@ -504,7 +504,7 @@ impl Builder {
     /// Describes to the implementation how the texture is to be used.
     ///
     /// It is important that the set of usage bits reflects the
-    pub fn usage(mut self, usage: wgpu::TextureUsage) -> Self {
+    pub fn usage(mut self, usage: wgpu::TextureUsages) -> Self {
         self.descriptor.usage = usage;
         self
     }

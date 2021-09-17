@@ -67,53 +67,44 @@ pub use self::texture::{
 };
 #[doc(inline)]
 pub use wgpu_upstream::{
+    include_wgsl,
     util::{self, BufferInitDescriptor},
-    vertex_attr_array, Adapter, AdapterInfo, AddressMode, Backend, BackendBit, BindGroup,
+    vertex_attr_array, Adapter, AdapterInfo, AddressMode, Backend, Backends, BindGroup,
     BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
     BindGroupLayoutEntry, BindingResource, BindingType, BlendComponent, BlendFactor,
-    BlendOperation, BlendState, Buffer, BufferAddress, BufferAsyncError, BufferBindingType,
-    BufferDescriptor, BufferSize, BufferSlice, BufferUsage, BufferView, BufferViewMut, Color,
-    ColorTargetState, ColorWrite, CommandBuffer, CommandBufferDescriptor, CommandEncoder,
-    CommandEncoderDescriptor, CompareFunction, ComputePass, ComputePassDescriptor, ComputePipeline,
-    ComputePipelineDescriptor, DepthBiasState, DepthStencilState, Device, DeviceDescriptor,
-    DeviceType, DynamicOffset, Error, Extent3d, Face, Features, FilterMode, FragmentState,
-    FrontFace, ImageCopyBuffer, ImageCopyBufferBase, ImageCopyTexture, ImageCopyTextureBase,
-    ImageDataLayout, IndexFormat, InputStepMode, Instance, Label, Limits, LoadOp, Maintain,
-    MapMode, MultisampleState, Operations, Origin3d, PipelineLayout, PipelineLayoutDescriptor,
+    BlendOperation, BlendState, Buffer, BufferAddress, BufferAsyncError, BufferBinding,
+    BufferBindingType, BufferDescriptor, BufferSize, BufferSlice, BufferUsages, BufferView,
+    BufferViewMut, Color, ColorTargetState, ColorWrites, CommandBuffer, CommandBufferDescriptor,
+    CommandEncoder, CommandEncoderDescriptor, CompareFunction, ComputePass, ComputePassDescriptor,
+    ComputePipeline, ComputePipelineDescriptor, DepthBiasState, DepthStencilState, Device,
+    DeviceDescriptor, DeviceType, DownlevelCapabilities, DownlevelFlags, DynamicOffset, Error,
+    Extent3d, Face, Features, FilterMode, FragmentState, FrontFace, ImageCopyBuffer,
+    ImageCopyBufferBase, ImageCopyTexture, ImageCopyTextureBase, ImageDataLayout,
+    ImageSubresourceRange, IndexFormat, Instance, Label, Limits, LoadOp, Maintain, MapMode,
+    MultisampleState, Operations, Origin3d, PipelineLayout, PipelineLayoutDescriptor,
     PipelineStatisticsTypes, PolygonMode, PowerPreference, PresentMode, PrimitiveState,
     PrimitiveTopology, PushConstantRange, QuerySet, QuerySetDescriptor, QueryType, Queue,
-    RenderBundle, RenderBundleDescriptor, RenderBundleEncoder, RenderBundleEncoderDescriptor,
-    RenderPass, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
-    RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, RequestAdapterOptionsBase,
-    RequestDeviceError, Sampler, SamplerBorderColor, SamplerDescriptor, ShaderFlags,
-    ShaderLocation, ShaderModule, ShaderModuleDescriptor, ShaderSource, ShaderStage,
-    StencilFaceState, StencilOperation, StencilState, StorageTextureAccess, Surface, SwapChain,
-    SwapChainDescriptor, SwapChainError, SwapChainFrame, SwapChainStatus, SwapChainTexture,
-    Texture as TextureHandle, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
-    TextureSampleType, TextureUsage, TextureView as TextureViewHandle, TextureViewDescriptor,
+    RenderBundle, RenderBundleDepthStencil, RenderBundleDescriptor, RenderBundleEncoder,
+    RenderBundleEncoderDescriptor, RenderPass, RenderPassColorAttachment,
+    RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
+    RenderPipelineDescriptor, RequestAdapterOptions, RequestAdapterOptionsBase, RequestDeviceError,
+    Sampler, SamplerBorderColor, SamplerDescriptor, ShaderLocation, ShaderModel, ShaderModule,
+    ShaderModuleDescriptor, ShaderSource, ShaderStages, StencilFaceState, StencilOperation,
+    StencilState, StorageTextureAccess, Surface, SurfaceConfiguration, SurfaceError, SurfaceFrame,
+    SurfaceStatus, SurfaceTexture, Texture as TextureHandle, TextureAspect, TextureDescriptor,
+    TextureDimension, TextureFormat, TextureFormatFeatureFlags, TextureFormatFeatures,
+    TextureSampleType, TextureUsages, TextureView as TextureViewHandle, TextureViewDescriptor,
     TextureViewDimension, UncapturedErrorHandler, VertexAttribute, VertexBufferLayout,
-    VertexFormat, VertexState, BIND_BUFFER_ALIGNMENT, COPY_BUFFER_ALIGNMENT,
-    COPY_BYTES_PER_ROW_ALIGNMENT, PUSH_CONSTANT_ALIGNMENT,
+    VertexFormat, VertexState, VertexStepMode, BIND_BUFFER_ALIGNMENT, COPY_BUFFER_ALIGNMENT,
+    COPY_BYTES_PER_ROW_ALIGNMENT, MAP_ALIGNMENT, PUSH_CONSTANT_ALIGNMENT, QUERY_SET_MAX_QUERIES,
+    QUERY_SIZE, VERTEX_STRIDE_ALIGNMENT,
 };
-
-pub fn shader_from_spirv_bytes(
-    device: &wgpu_upstream::Device,
-    bytes: &[u8],
-) -> wgpu_upstream::ShaderModule {
-    let source = util::make_spirv(bytes);
-    let desc = ShaderModuleDescriptor {
-        label: Some("nannou_shader_module"),
-        source,
-        flags: ShaderFlags::VALIDATION,
-    };
-    device.create_shader_module(&desc)
-}
 
 /// The default power preference used for requesting the WGPU adapter.
 pub const DEFAULT_POWER_PREFERENCE: PowerPreference = PowerPreference::HighPerformance;
 
 /// Nannou's default WGPU backend preferences.
-pub const DEFAULT_BACKENDS: BackendBit = BackendBit::PRIMARY;
+pub const DEFAULT_BACKENDS: Backends = Backends::PRIMARY;
 
 /// Adds a simple render pass command to the given encoder that simply clears the given texture
 /// with the given colour.

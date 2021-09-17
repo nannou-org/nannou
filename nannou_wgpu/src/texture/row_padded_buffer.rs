@@ -29,11 +29,11 @@ impl RowPaddedBuffer {
     /// Create a row-padded buffer on the device.
     ///
     /// Width should be given in bytes.
-    pub fn new(device: &wgpu::Device, width: u32, height: u32, usage: wgpu::BufferUsage) -> Self {
+    pub fn new(device: &wgpu::Device, width: u32, height: u32, usage: wgpu::BufferUsages) -> Self {
         let row_padding = Self::compute_row_padding(width);
 
         // only create mapped for buffers that we're going to write to.
-        let mapped_at_creation = usage.contains(wgpu::BufferUsage::MAP_WRITE);
+        let mapped_at_creation = usage.contains(wgpu::BufferUsages::MAP_WRITE);
 
         let buffer_descriptor = wgpu::BufferDescriptor {
             label: Some("nannou::RowPaddedBuffer"),
@@ -56,7 +56,7 @@ impl RowPaddedBuffer {
     pub fn for_texture(
         device: &wgpu::Device,
         texture: &wgpu::Texture,
-        usage: wgpu::BufferUsage,
+        usage: wgpu::BufferUsages,
     ) -> RowPaddedBuffer {
         Self::new(
             device,
@@ -96,7 +96,7 @@ impl RowPaddedBuffer {
     /// Will copy `data_width` bytes of data into each row of the buffer, leaving the remainder
     /// of the buffer unmodified.
     ///
-    /// The buffer usage must include `BufferUsage::map_read()`.
+    /// The buffer usage must include `BufferUsages::map_read()`.
     pub fn write(&self, buf: &[u8]) {
         assert_eq!(
             (self.width * self.height) as usize,
@@ -106,7 +106,7 @@ impl RowPaddedBuffer {
         assert!(
             self.buffer_descriptor
                 .usage
-                .contains(wgpu::BufferUsage::MAP_WRITE),
+                .contains(wgpu::BufferUsages::MAP_WRITE),
             "Wrapped buffer cannot be mapped for writing"
         );
 
@@ -226,15 +226,7 @@ impl RowPaddedBuffer {
                 rows_per_image: std::num::NonZeroU32::new(self.height),
             },
         };
-        let texture_view = wgpu::ImageCopyTexture {
-            texture,
-            mip_level: 0, // TODO(jhg): should we handle this?
-            origin: wgpu::Origin3d {
-                x: 0,
-                y: 0,
-                z: depth,
-            },
-        };
+        let texture_view = texture.as_image_copy();
         (buffer_view, texture_view, copy_size)
     }
 }

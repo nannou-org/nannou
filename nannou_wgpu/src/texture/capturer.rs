@@ -339,7 +339,7 @@ fn create_converter_data_pair(
     let dst_texture = wgpu::TextureBuilder::from(src_texture.descriptor.clone())
         .sample_count(1)
         .format(Capturer::DST_FORMAT)
-        .usage(wgpu::TextureUsage::RENDER_ATTACHMENT | wgpu::TextureUsage::COPY_SRC)
+        .usage(wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC)
         .build(device);
 
     // Create the converter.

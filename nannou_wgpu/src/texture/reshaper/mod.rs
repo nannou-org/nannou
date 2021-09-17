@@ -3,9 +3,9 @@ use crate::{self as wgpu, util::DeviceExt, BufferInitDescriptor};
 /// Reshapes a texture from its original size, sample_count and format to the destination size,
 /// sample_count and format.
 ///
-/// The `src_texture` must have the `TextureUsage::SAMPLED` enabled.
+/// The `src_texture` must have the `TextureUsages::SAMPLED` enabled.
 ///
-/// The `dst_texture` must have the `TextureUsage::RENDER_ATTACHMENT` enabled.
+/// The `dst_texture` must have the `TextureUsages::RENDER_ATTACHMENT` enabled.
 #[derive(Debug)]
 pub struct Reshaper {
     _vs_mod: wgpu::ShaderModule,
@@ -41,15 +41,27 @@ impl Reshaper {
         dst_format: wgpu::TextureFormat,
     ) -> Self {
         // Load shader modules.
-        let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
-        let fs_mod = match src_sample_count {
-            1 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv")),
-            2 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa2.spv")),
-            4 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa4.spv")),
-            8 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa8.spv")),
-            16 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa16.spv")),
-            _ => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa.spv")),
+        let vs_desc = wgpu::include_wgsl!("shaders/vs.wgsl");
+        let fs_desc = match src_sample_count {
+            1 => wgpu::include_wgsl!("shaders/fs.wgsl"),
+            2 => wgpu::include_wgsl!("shaders/fs_msaa2.wgsl"),
+            4 => wgpu::include_wgsl!("shaders/fs_msaa4.wgsl"),
+            8 => wgpu::include_wgsl!("shaders/fs_msaa8.wgsl"),
+            16 => wgpu::include_wgsl!("shaders/fs_msaa16.wgsl"),
+            _ => wgpu::include_wgsl!("shaders/fs_msaa.wgsl"),
         };
+        let vs_mod = device.create_shader_module(&vs_desc);
+        let fs_mod = device.create_shader_module(&fs_desc);
+
+        // let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
+        // let fs_mod = match src_sample_count {
+        //     1 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv")),
+        //     2 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa2.spv")),
+        //     4 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa4.spv")),
+        //     8 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa8.spv")),
+        //     16 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa16.spv")),
+        //     _ => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa.spv")),
+        // };
 
         // Create the sampler for sampling from the source texture.
         let sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
@@ -78,7 +90,7 @@ impl Reshaper {
                     sample_count: src_sample_count,
                 };
                 let uniforms_bytes = uniforms_as_bytes(&uniforms);
-                let usage = wgpu::BufferUsage::UNIFORM;
+                let usage = wgpu::BufferUsages::UNIFORM;
                 let buffer = device.create_buffer_init(&BufferInitDescriptor {
                     label: None,
                     contents: &uniforms_bytes,
@@ -99,7 +111,7 @@ impl Reshaper {
 
         // Create the vertex buffer.
         let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
-        let vertex_usage = wgpu::BufferUsage::VERTEX;
+        let vertex_usage = wgpu::BufferUsages::VERTEX;
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: None,
             contents: vertices_bytes,
@@ -168,14 +180,14 @@ fn bind_group_layout(
 ) -> wgpu::BindGroupLayout {
     let mut builder = wgpu::BindGroupLayoutBuilder::new()
         .texture(
-            wgpu::ShaderStage::FRAGMENT,
+            wgpu::ShaderStages::FRAGMENT,
             src_sample_count > 1,
             wgpu::TextureViewDimension::D2,
             src_sample_type,
         )
-        .sampler(wgpu::ShaderStage::FRAGMENT, sampler_filtering);
+        .sampler(wgpu::ShaderStages::FRAGMENT, sampler_filtering);
     if !unrolled_sample_count(src_sample_count) {
-        builder = builder.uniform_buffer(wgpu::ShaderStage::FRAGMENT, false);
+        builder = builder.uniform_buffer(wgpu::ShaderStages::FRAGMENT, false);
     }
     builder.build(device)
 }

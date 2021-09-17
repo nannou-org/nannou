@@ -37,14 +37,14 @@ impl<'b, P: Pixel> Deref for ImageHolder<'b, P> {
 
 impl wgpu::TextureBuilder {
     /// The minimum required texture usage when loading from an image.
-    pub const REQUIRED_IMAGE_TEXTURE_USAGE: wgpu::TextureUsage = wgpu::TextureUsage::COPY_DST;
+    pub const REQUIRED_IMAGE_TEXTURE_USAGE: wgpu::TextureUsages = wgpu::TextureUsages::COPY_DST;
 
     /// Produce a texture descriptor from an image.
     ///
     /// Specifically, this supports any image type implementing `image::GenericImageView` whose
     /// `Pixel` type implements `Pixel`.
     ///
-    /// By default, the produced builder will have the `wgpu::TextureUsage` returned by
+    /// By default, the produced builder will have the `wgpu::TextureUsages` returned by
     /// `wgpu::TextureBuilder::default_image_texture_usage()`. This is a general-purpose usage that
     /// should allow for copying to and from the texture, sampling the texture and rendering to the
     /// texture. Specifying only the texture usage required may result in better performance. It
@@ -58,11 +58,11 @@ impl wgpu::TextureBuilder {
     }
 
     /// The default texture usage for the case where a user has loaded a texture from an image.
-    pub fn default_image_texture_usage() -> wgpu::TextureUsage {
-        wgpu::TextureUsage::COPY_SRC
-            | wgpu::TextureUsage::COPY_DST
-            | wgpu::TextureUsage::SAMPLED
-            | wgpu::TextureUsage::RENDER_ATTACHMENT
+    pub fn default_image_texture_usage() -> wgpu::TextureUsages {
+        wgpu::TextureUsages::COPY_SRC
+            | wgpu::TextureUsages::COPY_DST
+            | wgpu::TextureUsages::TEXTURE_BINDING
+            | wgpu::TextureUsages::RENDER_ATTACHMENT
     }
 }
 
@@ -139,7 +139,7 @@ impl wgpu::Texture {
     pub fn load_from_path<P>(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        usage: wgpu::TextureUsage,
+        usage: wgpu::TextureUsages,
         path: P,
     ) -> image::ImageResult<Self>
     where
@@ -161,7 +161,7 @@ impl wgpu::Texture {
     pub fn load_from_image(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        usage: wgpu::TextureUsage,
+        usage: wgpu::TextureUsages,
         image: &image::DynamicImage,
     ) -> Self {
         load_texture_from_image(device, queue, usage, image)
@@ -176,7 +176,7 @@ impl wgpu::Texture {
     pub fn load_from_image_buffer<P, Container>(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        usage: wgpu::TextureUsage,
+        usage: wgpu::TextureUsages,
         buffer: &image::ImageBuffer<P, Container>,
     ) -> Self
     where
@@ -197,7 +197,7 @@ impl wgpu::Texture {
     pub fn load_array_from_image_buffers<'a, I, P, Container>(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        usage: wgpu::TextureUsage,
+        usage: wgpu::TextureUsages,
         buffers: I,
     ) -> Option<Self>
     where
@@ -223,7 +223,7 @@ impl wgpu::Texture {
     pub fn encode_load_from_image(
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        usage: wgpu::TextureUsage,
+        usage: wgpu::TextureUsages,
         image: &image::DynamicImage,
     ) -> Self {
         encode_load_texture_from_image(device, encoder, usage, image)
@@ -241,7 +241,7 @@ impl wgpu::Texture {
     pub fn encode_load_from_image_buffer<P, Container>(
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        usage: wgpu::TextureUsage,
+        usage: wgpu::TextureUsages,
         buffer: &image::ImageBuffer<P, Container>,
     ) -> Self
     where
@@ -268,7 +268,7 @@ impl wgpu::Texture {
     pub fn encode_load_3d_from_image_buffers<'a, I, P, Container>(
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        usage: wgpu::TextureUsage,
+        usage: wgpu::TextureUsages,
         buffers: I,
     ) -> Option<Self>
     where
@@ -295,7 +295,7 @@ impl wgpu::RowPaddedBuffer {
             device,
             image_buffer.width() * P::COLOR_TYPE.bytes_per_pixel() as u32,
             image_buffer.height(),
-            wgpu::BufferUsage::MAP_WRITE | wgpu::BufferUsage::COPY_SRC,
+            wgpu::BufferUsages::MAP_WRITE | wgpu::BufferUsages::COPY_SRC,
         );
         // TODO:
         // This can theoretically be exploited by implementing `image::Primitive` for some type
@@ -478,7 +478,7 @@ pub fn format_from_image_color_type(color_type: image::ColorType) -> Option<wgpu
 /// Produce a texture descriptor from any type implementing `image::GenericImageView` whose `Pixel`
 /// type implements `Pixel`.
 ///
-/// By default, the produced builder will have the `wgpu::TextureUsage` returned by
+/// By default, the produced builder will have the `wgpu::TextureUsages` returned by
 /// `wgpu::TextureBuilder::default_image_texture_usage()`. This is a general-purpose usage that
 /// should allow for copying to and from the texture, sampling the texture and rendering to the
 /// texture. Specifying only the texture usage required may result in better performance. It
@@ -507,7 +507,7 @@ where
 pub fn load_texture_from_image(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    usage: wgpu::TextureUsage,
+    usage: wgpu::TextureUsages,
     image: &image::DynamicImage,
 ) -> wgpu::Texture {
     let cmd_encoder_desc = wgpu::CommandEncoderDescriptor {
@@ -528,7 +528,7 @@ pub fn load_texture_from_image(
 pub fn load_texture_from_image_buffer<P, Container>(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    usage: wgpu::TextureUsage,
+    usage: wgpu::TextureUsages,
     buffer: &image::ImageBuffer<P, Container>,
 ) -> wgpu::Texture
 where
@@ -555,7 +555,7 @@ where
 pub fn load_texture_array_from_image_buffers<'a, I, P, Container>(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    usage: wgpu::TextureUsage,
+    usage: wgpu::TextureUsages,
     buffers: I,
 ) -> Option<wgpu::Texture>
 where
@@ -588,7 +588,7 @@ where
 pub fn encode_load_texture_from_image(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
-    usage: wgpu::TextureUsage,
+    usage: wgpu::TextureUsages,
     image: &image::DynamicImage,
 ) -> wgpu::Texture {
     use image::DynamicImage::*;
@@ -628,7 +628,7 @@ pub fn encode_load_texture_from_image(
 pub fn encode_load_texture_from_image_buffer<P, Container>(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
-    usage: wgpu::TextureUsage,
+    usage: wgpu::TextureUsages,
     buffer: &image::ImageBuffer<P, Container>,
 ) -> wgpu::Texture
 where
@@ -661,7 +661,7 @@ where
 pub fn encode_load_texture_array_from_image_buffers<'a, I, P, Container>(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
-    usage: wgpu::TextureUsage,
+    usage: wgpu::TextureUsages,
     buffers: I,
 ) -> Option<wgpu::Texture>
 where

@@ -5,7 +5,7 @@ use crate as wgpu;
 /// A type aimed at simplifying the creation of a bind group layout.
 #[derive(Debug, Default)]
 pub struct LayoutBuilder {
-    bindings: Vec<(wgpu::ShaderStage, wgpu::BindingType)>,
+    bindings: Vec<(wgpu::ShaderStages, wgpu::BindingType)>,
 }
 
 /// Simplified creation of a bind group.
@@ -26,13 +26,13 @@ impl LayoutBuilder {
     /// they are added to this builder type. If you require manually specifying the binding
     /// location, you may be better off not using the `BindGroupLayoutBuilder` and instead
     /// constructing the `BindGroupLayout` and `BindGroup` manually.
-    pub fn binding(mut self, visibility: wgpu::ShaderStage, ty: wgpu::BindingType) -> Self {
+    pub fn binding(mut self, visibility: wgpu::ShaderStages, ty: wgpu::BindingType) -> Self {
         self.bindings.push((visibility, ty));
         self
     }
 
     /// Add a uniform buffer binding to the layout.
-    pub fn uniform_buffer(self, visibility: wgpu::ShaderStage, has_dynamic_offset: bool) -> Self {
+    pub fn uniform_buffer(self, visibility: wgpu::ShaderStages, has_dynamic_offset: bool) -> Self {
         let ty = wgpu::BindingType::Buffer {
             ty: wgpu::BufferBindingType::Uniform,
             has_dynamic_offset,
@@ -45,7 +45,7 @@ impl LayoutBuilder {
     /// Add a storage buffer binding to the layout.
     pub fn storage_buffer(
         self,
-        visibility: wgpu::ShaderStage,
+        visibility: wgpu::ShaderStages,
         has_dynamic_offset: bool,
         read_only: bool,
     ) -> Self {
@@ -59,7 +59,7 @@ impl LayoutBuilder {
     }
 
     /// Add a sampler binding to the layout.
-    pub fn sampler(self, visibility: wgpu::ShaderStage, filtering: bool) -> Self {
+    pub fn sampler(self, visibility: wgpu::ShaderStages, filtering: bool) -> Self {
         let comparison = false;
         let ty = wgpu::BindingType::Sampler {
             filtering,
@@ -69,7 +69,7 @@ impl LayoutBuilder {
     }
 
     /// Add a sampler binding to the layout.
-    pub fn comparison_sampler(self, visibility: wgpu::ShaderStage, filtering: bool) -> Self {
+    pub fn comparison_sampler(self, visibility: wgpu::ShaderStages, filtering: bool) -> Self {
         let comparison = true;
         let ty = wgpu::BindingType::Sampler {
             filtering,
@@ -81,7 +81,7 @@ impl LayoutBuilder {
     /// Add a texture binding to the layout.
     pub fn texture(
         self,
-        visibility: wgpu::ShaderStage,
+        visibility: wgpu::ShaderStages,
         multisampled: bool,
         view_dimension: wgpu::TextureViewDimension,
         sample_type: wgpu::TextureSampleType,
@@ -101,7 +101,7 @@ impl LayoutBuilder {
     /// Note that if you wish to take a `Cube` or `CubeArray` view of the given texture, you will
     /// need to manually specify the `TextureViewDimension` via the `sampled_texture` method
     /// instead.
-    pub fn texture_from(self, visibility: wgpu::ShaderStage, texture: &wgpu::Texture) -> Self {
+    pub fn texture_from(self, visibility: wgpu::ShaderStages, texture: &wgpu::Texture) -> Self {
         self.texture(
             visibility,
             texture.sample_count() > 1,
@@ -113,7 +113,7 @@ impl LayoutBuilder {
     /// Add a storage texture binding to the layout.
     pub fn storage_texture(
         self,
-        visibility: wgpu::ShaderStage,
+        visibility: wgpu::ShaderStages,
         format: wgpu::TextureFormat,
         view_dimension: wgpu::TextureViewDimension,
         access: wgpu::StorageTextureAccess,
@@ -132,7 +132,7 @@ impl LayoutBuilder {
     /// The `format`, `dimension` and `sample_type` are inferred from the given `texture`.
     pub fn storage_texture_from(
         self,
-        visibility: wgpu::ShaderStage,
+        visibility: wgpu::ShaderStages,
         texture: &wgpu::Texture,
         access: wgpu::StorageTextureAccess,
     ) -> Self {
