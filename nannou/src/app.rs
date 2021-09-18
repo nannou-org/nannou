@@ -25,7 +25,6 @@ use std::path::PathBuf;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
 use std::time::Duration;
-use wgpu_upstream::SwapChain;
 use winit;
 use winit::event_loop::ControlFlow;
 
@@ -66,7 +65,7 @@ pub struct Builder<M = (), E = Event> {
     default_window_size: Option<DefaultWindowSize>,
     capture_frame_timeout: Option<Option<Duration>>,
     max_capture_frame_jobs: Option<u32>,
-    backends: wgpu::BackendBit,
+    backends: wgpu::Backends,
 }
 
 /// A nannou `Sketch` builder.
@@ -109,7 +108,7 @@ pub struct App {
     pub(crate) event_loop_proxy: Proxy,
     pub(crate) windows: RefCell<HashMap<window::Id, Window>>,
     /// The wgpu backends to choose between.
-    backends: wgpu::BackendBit,
+    backends: wgpu::Backends,
     /// The main wgpu instance.
     instance: wgpu::Instance,
     /// A map of active wgpu physical device adapters.
@@ -195,7 +194,7 @@ struct LoopState {
 /// The mode in which the **App** is currently running the event loop and emitting `Update` events.
 #[derive(Clone, Debug, PartialEq)]
 pub enum LoopMode {
-    /// Synchronises `Update` events with requests for a new image by the swap chain.
+    /// Synchronises `Update` events with requests for a new frame for the surface.
     ///
     /// The result of using this loop mode is similar to using vsync in traditional applications.
     /// E.g. if you have one window running on a monitor with a 60hz refresh rate, your update will
@@ -237,7 +236,7 @@ where
     M: 'static,
 {
     /// The default set of backends requested.
-    pub const DEFAULT_BACKENDS: wgpu::BackendBit = wgpu::DEFAULT_BACKENDS;
+    pub const DEFAULT_BACKENDS: wgpu::Backends = wgpu::DEFAULT_BACKENDS;
 
     /// Begin building the `App`.
     ///
@@ -421,8 +420,8 @@ where
 
     /// Specify the set of preferred WGPU backends.
     ///
-    /// By default, this is `wgpu::BackendBit::PRIMARY`.
-    pub fn backends(mut self, backends: wgpu::BackendBit) -> Self {
+    /// By default, this is `wgpu::Backends::PRIMARY`.
+    pub fn backends(mut self, backends: wgpu::Backends) -> Self {
         self.backends = backends;
         self
     }
@@ -604,7 +603,7 @@ impl App {
         default_window_size: Option<DefaultWindowSize>,
         max_capture_frame_jobs: u32,
         capture_frame_timeout: Option<Duration>,
-        backends: wgpu::BackendBit,
+        backends: wgpu::Backends,
     ) -> Self {
         let instance = wgpu::Instance::new(backends);
         let adapters = Default::default();
@@ -740,27 +739,6 @@ impl App {
         windows.keys().cloned().collect()
     }
 
-    /// Return the **SwapChain** for the given `window_id`, rebuilding if it doesn't exist.
-    ///
-    /// **Panics** if `window_id` does not exist, or if the swap chain is missing and cannot be rebuilt.
-    fn take_or_rebuild_swap_chain(&self, window_id: window::Id) -> SwapChain {
-        let mut windows = self.windows.borrow_mut();
-
-        let window = windows
-            .get_mut(&window_id)
-            .expect("no window for redraw request ID");
-
-        if window.swap_chain.swap_chain.is_none() {
-            window.rebuild_swap_chain(window.tracked_state.physical_size.into());
-        }
-
-        window
-            .swap_chain
-            .swap_chain
-            .take()
-            .expect("missing swap chain")
-    }
-
     /// Return the **Rect** for the currently focused window.
     ///
     /// The **Rect** coords are described in "points" (pixels divided by the hidpi factor).
@@ -784,7 +762,7 @@ impl App {
     }
 
     /// Return the wgpu `Backends` in use.
-    pub fn backends(&self) -> wgpu::BackendBit {
+    pub fn backends(&self) -> wgpu::Backends {
         self.backends
     }
 
@@ -941,7 +919,7 @@ impl draw::Draw {
         let renderers = app.draw_state.renderers.borrow_mut();
         let renderer = RefMut::map(renderers, |renderers| {
             renderers.entry(window_id).or_insert_with(|| {
-                let device = window.swap_chain_device();
+                let device = window.device();
                 let frame_dims: [u32; 2] = window.tracked_state.physical_size.into();
                 let scale_factor = window.tracked_state.scale_factor as f32;
                 let msaa_samples = window.msaa_samples();
@@ -959,7 +937,7 @@ impl draw::Draw {
 
         let scale_factor = window.tracked_state.scale_factor as _;
         let mut renderer = renderer.borrow_mut();
-        renderer.render_to_frame(window.swap_chain_device(), self, scale_factor, frame);
+        renderer.render_to_frame(window.device(), self, scale_factor, frame);
         Ok(())
     }
 }
@@ -1107,24 +1085,21 @@ fn run_loop<M, E>(
             // TODO: Only request a frame from the user if this redraw was requested following an
             // update. Otherwise, just use the existing intermediary frame.
             winit::event::Event::RedrawRequested(window_id) => {
-                // Take the render data and swapchain.
-                // We'll replace them before the end of this block.
-                let (mut swap_chain, nth_frame) = {
-                    let swap_chain = app.take_or_rebuild_swap_chain(window_id);
-
-                    let mut windows = app.windows.borrow_mut();
-                    let window = windows
-                        .get_mut(&window_id)
-                        .expect("no window for redraw request ID");
-
-                    let nth_frame = window.frame_count;
-                    window.frame_count += 1;
-                    (swap_chain, nth_frame)
-                };
-
                 if let Some(model) = model.as_ref() {
-                    let mut swap_chain_output = swap_chain.get_current_frame();
-                    if let Err(e) = &swap_chain_output {
+                    // Retrieve the surface frame and the number of this frame.
+                    // NOTE: We avoid mutably borrowing `windows` map any longer than necessary to
+                    // avoid restricting users from accessing `windows` during `view`.
+                    let (mut surface_frame_result, nth_frame) = {
+                        let mut windows = app.windows.borrow_mut();
+                        let window = windows
+                            .get_mut(&window_id)
+                            .expect("no window for `RedrawRequest`");
+                        let frame = window.surface.get_current_frame();
+                        let nth_frame = window.frame_count;
+                        (frame, nth_frame)
+                    };
+
+                    if let Err(e) = &surface_frame_result {
                         match e {
                             // Sometimes redraws get delivered before resizes on x11 for unclear reasons.
                             // It goes all the way down to the API: if you ask x11 about the window size
@@ -1134,21 +1109,29 @@ fn run_loop<M, E>(
                             // If you turn on debug logging this does occasionally cause some vulkan
                             // validation errors... that's not great.
                             // TODO find a better long-term fix than ignoring.
-                            wgpu::SwapChainError::Lost => {
-                                // Attempt to rebuild the swap chain
-                                swap_chain = app.take_or_rebuild_swap_chain(window_id);
-                                swap_chain_output = swap_chain.get_current_frame();
+                            wgpu::SurfaceError::Lost => {
+                                // Attempt to reconfigure the surface.
+                                let mut windows = app.windows.borrow_mut();
+                                let window = windows
+                                    .get_mut(&window_id)
+                                    .expect("no window for `RedrawRequest`");
+                                window
+                                    .reconfigure_surface(window.tracked_state.physical_size.into());
+                                surface_frame_result = window.surface.get_current_frame();
                             }
-                            wgpu::SwapChainError::Outdated => {} // skip frame
-                            wgpu::SwapChainError::Timeout => {}  // skip frame
-                            wgpu::SwapChainError::OutOfMemory => {
-                                panic!("out of memory acquiring the swap chain frame: {}", e);
+                            wgpu::SurfaceError::Outdated => {} // skip frame
+                            wgpu::SurfaceError::Timeout => {}  // skip frame
+                            wgpu::SurfaceError::OutOfMemory => {
+                                panic!("out of memory acquiring the surface frame: {}", e);
                             }
                         }
                     }
 
-                    if let Ok(swap_chain_output) = swap_chain_output {
-                        let swap_chain_texture = &swap_chain_output.output.view;
+                    if let Ok(surface_frame) = surface_frame_result {
+                        let surface_texture = &surface_frame
+                            .output
+                            .texture
+                            .create_view(&wgpu::TextureViewDescriptor::default());
 
                         // Borrow the window now that we don't need it mutably until setting the render
                         // data back.
@@ -1167,11 +1150,11 @@ fn run_loop<M, E>(
                             .into();
                         let window_rect = geom::Rect::from_w_h(w, h);
                         let raw_frame = RawFrame::new_empty(
-                            window.swap_chain_device_queue_pair().clone(),
+                            window.device_queue_pair().clone(),
                             window_id,
                             nth_frame,
-                            swap_chain_texture,
-                            window.swap_chain.descriptor.format,
+                            surface_texture,
+                            window.surface_conf.format,
                             window_rect,
                         );
 
@@ -1228,7 +1211,7 @@ fn run_loop<M, E>(
                         // Release immutable lock
                         drop(windows);
 
-                        // Replace the render data and swap chain.
+                        // Increment the window's frame count.
                         let mut windows = app.windows.borrow_mut();
                         let window = windows
                             .get_mut(&window_id)
@@ -1236,7 +1219,7 @@ fn run_loop<M, E>(
 
                         // Assume invalidated window was cleared above before `view()`
                         window.is_invalidated = false;
-                        window.swap_chain.swap_chain = Some(swap_chain);
+                        window.frame_count += 1;
                     }
                 }
             }
@@ -1262,7 +1245,7 @@ fn run_loop<M, E>(
             }
         }
 
-        // We must re-build the swap chain if the window was resized.
+        // We must reconfigure the wgpu surface if the window was resized.
         if let winit::event::Event::WindowEvent {
             ref mut event,
             window_id,
@@ -1272,7 +1255,7 @@ fn run_loop<M, E>(
                 winit::event::WindowEvent::Resized(new_inner_size) => {
                     let mut windows = app.windows.borrow_mut();
                     if let Some(window) = windows.get_mut(&window_id) {
-                        window.rebuild_swap_chain(new_inner_size.clone().into());
+                        window.reconfigure_surface(new_inner_size.clone().into());
                     }
                 }
 
@@ -1283,7 +1266,7 @@ fn run_loop<M, E>(
                     let mut windows = app.windows.borrow_mut();
                     if let Some(window) = windows.get_mut(&window_id) {
                         window.tracked_state.scale_factor = *scale_factor;
-                        window.rebuild_swap_chain(new_inner_size.clone().into());
+                        window.reconfigure_surface(new_inner_size.clone().into());
                     }
                 }
 

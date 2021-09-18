@@ -29,7 +29,7 @@ pub const DEFAULT_DIMENSIONS: LogicalSize<geom::scalar::Default> = LogicalSize {
     height: 768.0,
 };
 
-/// The default minimum dimensions used for the swap chain
+/// The default minimum dimensions used for the surface
 pub const MIN_SC_PIXELS: PhysicalSize<u32> = PhysicalSize {
     width: 2,
     height: 2,
@@ -40,7 +40,7 @@ pub struct Builder<'app> {
     app: &'app App,
     window: winit::window::WindowBuilder,
     title_was_set: bool,
-    swap_chain_builder: SwapChainBuilder,
+    surface_conf_builder: SurfaceConfigurationBuilder,
     power_preference: wgpu::PowerPreference,
     device_desc: Option<wgpu::DeviceDescriptor<'static>>,
     user_functions: UserFunctions,
@@ -82,8 +82,8 @@ pub type ViewFn<Model> = fn(&App, &Model, Frame);
 
 /// The user function type for drawing their model to the surface of a single window.
 ///
-/// Unlike the `ViewFn`, the `RawViewFn` is designed for drawing directly to a window's swap chain
-/// images rather than to a convenient intermediary image.
+/// Unlike the `ViewFn`, the `RawViewFn` is designed for drawing directly to a window's surface
+/// texture rather than to a convenient intermediary image.
 pub type RawViewFn<Model> = fn(&App, &Model, RawFrame);
 
 /// The same as `ViewFn`, but provides no user model to draw from.
@@ -233,14 +233,14 @@ fn_any!(ClosedFn<M>, ClosedFnAny);
 /// A nannou window.
 ///
 /// The **Window** acts as a wrapper around the `winit::window::Window` and the `wgpu::Surface`
-/// types. It also manages the associated swap chain, providing a more nannou-friendly API.
+/// types.
 #[derive(Debug)]
 pub struct Window {
     pub(crate) window: winit::window::Window,
     pub(crate) surface: wgpu::Surface,
+    pub(crate) surface_conf: wgpu::SurfaceConfiguration,
     pub(crate) device_queue_pair: Arc<wgpu::DeviceQueuePair>,
     msaa_samples: u32,
-    pub(crate) swap_chain: WindowSwapChain,
     pub(crate) frame_data: Option<FrameData>,
     pub(crate) frame_count: u64,
     pub(crate) user_functions: UserFunctions,
@@ -249,10 +249,10 @@ pub struct Window {
     pub(crate) clear_color: wgpu::Color,
 }
 
-// Data related to `Frame`s produced for this window's swapchain textures.
+// Data related to `Frame`s produced for this window's surface textures.
 #[derive(Debug)]
 pub(crate) struct FrameData {
-    // Data for rendering a `Frame`'s intermediary image to a swap chain image.
+    // Data for rendering a `Frame`'s intermediary image to a surface texture.
     pub(crate) render: frame::RenderData,
     // Data for capturing a `Frame`'s intermediary image before submission.
     pub(crate) capture: frame::CaptureData,
@@ -269,59 +269,48 @@ pub(crate) struct TrackedState {
     pub(crate) physical_size: winit::dpi::PhysicalSize<u32>,
 }
 
-/// A swap_chain and its images associated with a single window.
-pub(crate) struct WindowSwapChain {
-    // The descriptor used to create the original swap chain. Useful for recreation.
-    pub(crate) descriptor: wgpu::SwapChainDescriptor,
-    // This is an `Option` in order to allow for separating ownership of the swapchain from the
-    // window during a `RedrawRequest`. Other than during `RedrawRequest`, this should always be
-    // `Some`.
-    pub(crate) swap_chain: Option<wgpu::SwapChain>,
-}
-
-/// SwapChain building parameters for which Nannou will provide a default if unspecified.
+/// Surface configuration for which nannou will provide a default if unspecified.
 ///
 /// See the builder methods for more details on each parameter.
 #[derive(Clone, Debug, Default)]
-pub struct SwapChainBuilder {
-    pub usage: Option<wgpu::TextureUsage>,
+pub struct SurfaceConfigurationBuilder {
+    pub usage: Option<wgpu::TextureUsages>,
     pub format: Option<wgpu::TextureFormat>,
     pub present_mode: Option<wgpu::PresentMode>,
 }
 
-impl SwapChainBuilder {
-    pub const DEFAULT_USAGE: wgpu::TextureUsage = wgpu::TextureUsage::RENDER_ATTACHMENT;
+impl SurfaceConfigurationBuilder {
+    /// Only used in the case that the `wgpu::Surface::get_preferred_format` method returns `None`.
     pub const DEFAULT_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
     pub const DEFAULT_PRESENT_MODE: wgpu::PresentMode = wgpu::PresentMode::Fifo;
+    pub const DEFAULT_USAGE: wgpu::TextureUsages = wgpu::TextureUsages::RENDER_ATTACHMENT;
 
-    /// A new empty **SwapChainBuilder** with all parameters set to `None`.
+    /// A new empty **SurfaceConfigurationBuilder** with all parameters set to `None`.
     pub fn new() -> Self {
         Default::default()
     }
 
-    /// Create a **SwapChainBuilder** from an existing descriptor.
-    ///
-    /// The resulting swap chain parameters will match that of the given `SwapChainDescriptor`.
-    pub fn from_descriptor(desc: &wgpu::SwapChainDescriptor) -> Self {
-        SwapChainBuilder::new()
-            .usage(desc.usage)
-            .format(desc.format)
-            .present_mode(desc.present_mode)
+    /// Create a **SurfaceConfigurationBuilder** from an existing descriptor.
+    pub fn from_configuration(conf: &wgpu::SurfaceConfiguration) -> Self {
+        SurfaceConfigurationBuilder::new()
+            .usage(conf.usage)
+            .format(conf.format)
+            .present_mode(conf.present_mode)
     }
 
-    /// Specify the texture usage for the swap chain.
-    pub fn usage(mut self, usage: wgpu::TextureUsage) -> Self {
+    /// Specify the texture usages for the surface.
+    pub fn usage(mut self, usage: wgpu::TextureUsages) -> Self {
         self.usage = Some(usage);
         self
     }
 
-    /// Specify the texture format for the swap chain.
+    /// Specify the texture format for the surface.
     pub fn format(mut self, format: wgpu::TextureFormat) -> Self {
         self.format = Some(format);
         self
     }
 
-    /// The way in which swap chain images are presented to the display.
+    /// The way in which a surface's frames are presented to the display.
     ///
     /// By default, nannou will attempt to select the ideal present mode depending on the current
     /// app `LoopMode`.
@@ -330,25 +319,26 @@ impl SwapChainBuilder {
         self
     }
 
-    /// Build the swap chain.
+    /// Build the surface configuration.
     pub(crate) fn build(
         self,
-        device: &wgpu::Device,
         surface: &wgpu::Surface,
+        adapter: &wgpu::Adapter,
         [width_px, height_px]: [u32; 2],
-    ) -> (wgpu::SwapChain, wgpu::SwapChainDescriptor) {
+    ) -> wgpu::SurfaceConfiguration {
         let usage = self.usage.unwrap_or(Self::DEFAULT_USAGE);
-        let format = self.format.unwrap_or(Self::DEFAULT_FORMAT);
+        let format = self
+            .format
+            .or_else(|| surface.get_preferred_format(&adapter))
+            .unwrap_or(Self::DEFAULT_FORMAT);
         let present_mode = self.present_mode.unwrap_or(Self::DEFAULT_PRESENT_MODE);
-        let desc = wgpu::SwapChainDescriptor {
+        wgpu::SurfaceConfiguration {
             usage,
             format,
             width: width_px,
             height: height_px,
             present_mode,
-        };
-        let swap_chain = device.create_swap_chain(surface, &desc);
-        (swap_chain, desc)
+        }
     }
 }
 
@@ -362,7 +352,7 @@ impl<'app> Builder<'app> {
             app,
             window: winit::window::WindowBuilder::new(),
             title_was_set: false,
-            swap_chain_builder: Default::default(),
+            surface_conf_builder: Default::default(),
             power_preference: Self::DEFAULT_POWER_PREFERENCE,
             device_desc: None,
             user_functions: Default::default(),
@@ -379,9 +369,12 @@ impl<'app> Builder<'app> {
         self
     }
 
-    /// Specify a set of parameters for building the window surface swap chain.
-    pub fn swap_chain_builder(mut self, swap_chain_builder: SwapChainBuilder) -> Self {
-        self.swap_chain_builder = swap_chain_builder;
+    /// Specify a set of parameters for building the window surface.
+    pub fn surface_conf_builder(
+        mut self,
+        surface_conf_builder: SurfaceConfigurationBuilder,
+    ) -> Self {
+        self.surface_conf_builder = surface_conf_builder;
         self
     }
 
@@ -407,14 +400,14 @@ impl<'app> Builder<'app> {
     ///
     /// **Note:** This parameter has no meaning if the window uses a **raw_view** function for
     /// rendering graphics to the window rather than a **view** function. This is because the
-    /// **raw_view** function provides a **RawFrame** with direct access to the swap chain image
+    /// **raw_view** function provides a **RawFrame** with direct access to the surface texture
     /// itself and thus must manage their own MSAA pass.
     ///
     /// On the other hand, the `view` function provides the `Frame` type which allows the user to
     /// render to a multisampled intermediary image allowing Nannou to take care of resolving the
-    /// multisampled image to the swap chain image. In order to avoid confusion, The `Window::build`
-    /// method will `panic!` if the user tries to specify `msaa_samples` as well as a `raw_view`
-    /// method.
+    /// multisampled texture to the surface texture. In order to avoid confusion, The
+    /// `Window::build` method will `panic!` if the user tries to specify `msaa_samples` as well as
+    /// a `raw_view` method.
     ///
     /// *TODO: Perhaps it would be worth adding two separate methods for specifying msaa samples.
     /// One for forcing a certain number of samples and returning an error otherwise, and another
@@ -448,7 +441,7 @@ impl<'app> Builder<'app> {
     /// surface of the window on your display.
     ///
     /// Unlike the **ViewFn**, the **RawViewFn** provides a **RawFrame** that is designed for
-    /// drawing directly to a window's swap chain images, rather than to a convenient intermediary
+    /// drawing directly to a window's surface texture, rather than to a convenient intermediary
     /// image.
     pub fn raw_view<M>(mut self, raw_view_fn: RawViewFn<M>) -> Self
     where
@@ -726,7 +719,7 @@ impl<'app> Builder<'app> {
             app,
             mut window,
             title_was_set,
-            swap_chain_builder,
+            surface_conf_builder,
             power_preference,
             device_desc,
             user_functions,
@@ -806,13 +799,13 @@ impl<'app> Builder<'app> {
                 dim.into()
             });
 
-        // Use the `initial_swapchain_dimensions` as the default dimensions for the window if none
+        // Use the `initial_window_size` as the default dimensions for the window if none
         // were specified.
         if window.window.inner_size.is_none() && window.window.fullscreen.is_none() {
             window.window.inner_size = Some(initial_window_size);
         }
 
-        // Set a default minimum window size to prevent requesting a too-small swap chains
+        // Set a default minimum window size for configuring the surface.
         if window.window.min_inner_size.is_none() && window.window.fullscreen.is_none() {
             window.window.min_inner_size = Some(winit::dpi::Size::Physical(MIN_SC_PIXELS));
         }
@@ -853,24 +846,24 @@ impl<'app> Builder<'app> {
         let device_desc = device_desc.unwrap_or_else(wgpu::default_device_descriptor);
         let device_queue_pair = adapter.get_or_request_device(device_desc);
 
-        // Build the swapchain.
+        // Configure the surface.
         let win_physical_size = window.inner_size();
         let win_dims_px: [u32; 2] = win_physical_size.into();
         let device = device_queue_pair.device();
-        let (swap_chain, swap_chain_desc) =
-            swap_chain_builder.build(&device, &surface, win_dims_px);
+        let surface_conf = surface_conf_builder.build(&surface, &*adapter, win_dims_px);
+        surface.configure(&device, &surface_conf);
 
-        // If we're using an intermediary image for rendering frames to swap_chain images, create
+        // If we're using an intermediary image for rendering frames to surface textures, create
         // the necessary render data.
         let (frame_data, msaa_samples) = match user_functions.view {
             Some(View::WithModel(_)) | Some(View::Sketch(_)) | None => {
                 let msaa_samples = msaa_samples.unwrap_or(Frame::DEFAULT_MSAA_SAMPLES);
                 // TODO: Verity that requested sample count is valid for surface?
-                let swap_chain_dims = [swap_chain_desc.width, swap_chain_desc.height];
+                let surface_dims = [surface_conf.width, surface_conf.height];
                 let render = frame::RenderData::new(
                     &device,
-                    swap_chain_dims,
-                    swap_chain_desc.format,
+                    surface_dims,
+                    surface_conf.format,
                     msaa_samples,
                 );
                 let capture =
@@ -883,10 +876,6 @@ impl<'app> Builder<'app> {
 
         let window_id = window.id();
         let frame_count = 0;
-        let swap_chain = WindowSwapChain {
-            descriptor: swap_chain_desc,
-            swap_chain: Some(swap_chain),
-        };
 
         let tracked_state = TrackedState {
             scale_factor: window.scale_factor(),
@@ -896,9 +885,9 @@ impl<'app> Builder<'app> {
         let window = Window {
             window,
             surface,
+            surface_conf,
             device_queue_pair,
             msaa_samples,
-            swap_chain,
             frame_data,
             frame_count,
             user_functions,
@@ -926,7 +915,7 @@ impl<'app> Builder<'app> {
             title_was_set,
             device_desc,
             power_preference,
-            swap_chain_builder,
+            surface_conf_builder,
             user_functions,
             msaa_samples,
             max_capture_frame_jobs,
@@ -940,7 +929,7 @@ impl<'app> Builder<'app> {
             title_was_set,
             device_desc,
             power_preference,
-            swap_chain_builder,
+            surface_conf_builder,
             user_functions,
             msaa_samples,
             max_capture_frame_jobs,
@@ -1367,35 +1356,30 @@ impl Window {
 
     // Access to wgpu API.
 
-    /// Returns a reference to the window's wgpu swap chain surface.
+    /// Returns a reference to the window's wgpu surface.
     pub fn surface(&self) -> &wgpu::Surface {
         &self.surface
     }
 
-    /// The descriptor for the swap chain associated with this window's wgpu surface.
-    pub fn swap_chain_descriptor(&self) -> &wgpu::SwapChainDescriptor {
-        &self.swap_chain.descriptor
+    /// The current configuration of the window's wgpu surface.
+    pub fn surface_configuration(&self) -> &wgpu::SurfaceConfiguration {
+        &self.surface_conf
     }
 
-    /// The wgpu logical device on which the window's swap chain is running.
-    ///
-    /// This is shorthand for `DeviceOwned::device(window.swap_chain())`.
-    pub fn swap_chain_device(&self) -> &wgpu::Device {
+    /// The wgpu logical device on which the window's wgpu surface is running.
+    pub fn device(&self) -> &wgpu::Device {
         self.device_queue_pair.device()
     }
 
-    /// The wgpu graphics queue on which the window swap chain work is run.
-    ///
-    /// The queue is guarded by a `Mutex` in order to synchronise submissions of command buffers in
-    /// cases that the queue is shared between more than one window.
-    pub fn swap_chain_queue(&self) -> &wgpu::Queue {
+    /// The wgpu graphics queue to which the window's wgpu surface frames are submitted.
+    pub fn queue(&self) -> &wgpu::Queue {
         self.device_queue_pair.queue()
     }
 
     /// Provides access to the device queue pair and the `Arc` behind which it is stored. This can
-    /// be useful in cases where using references provided by the `swap_chain_device` or
-    /// `swap_chain_queue` methods cause awkward ownership problems.
-    pub fn swap_chain_device_queue_pair(&self) -> &Arc<wgpu::DeviceQueuePair> {
+    /// be useful in cases where using references provided by the `device` or `queue` methods cause
+    /// awkward ownership problems.
+    pub fn device_queue_pair(&self) -> &Arc<wgpu::DeviceQueuePair> {
         &self.device_queue_pair
     }
 
@@ -1410,30 +1394,22 @@ impl Window {
 
     // Custom methods.
 
-    // A utility function to simplify the recreation of a swap_chain.
-    // Syncs the window tracked size with the swap chain size.
-    pub(crate) fn rebuild_swap_chain(&mut self, size_px: [u32; 2]) {
-        if self.swap_chain.swap_chain.is_some() {
-            std::mem::drop(self.swap_chain.swap_chain.take());
-        }
-        let [width, height] = size_px;
-
-        // Ensure physical window size matches swap chain size
-        // Prevents crashing if a too-small swap chain is created
-        self.tracked_state.physical_size.width = width.max(MIN_SC_PIXELS.width);
-        self.tracked_state.physical_size.height = height.max(MIN_SC_PIXELS.height);
-
-        self.swap_chain.descriptor.width = self.tracked_state.physical_size.width;
-        self.swap_chain.descriptor.height = self.tracked_state.physical_size.height;
-        self.swap_chain.swap_chain = Some(
-            self.swap_chain_device()
-                .create_swap_chain(&self.surface, &self.swap_chain.descriptor),
-        );
+    // A utility function to simplify the reconfiguration of the window's wgpu surface.
+    //
+    // Upon resizing of the window, the window's surface needs to be reconfigured to match.
+    //
+    // Also syncs the window tracked size with the surface size.
+    pub(crate) fn reconfigure_surface(&mut self, [w_px, h_px]: [u32; 2]) {
+        self.tracked_state.physical_size.width = w_px.max(MIN_SC_PIXELS.width);
+        self.tracked_state.physical_size.height = h_px.max(MIN_SC_PIXELS.height);
+        self.surface_conf.width = self.tracked_state.physical_size.width;
+        self.surface_conf.height = self.tracked_state.physical_size.height;
+        self.surface.configure(self.device(), &self.surface_conf);
         if self.frame_data.is_some() {
             let render_data = frame::RenderData::new(
-                self.swap_chain_device(),
+                self.device(),
                 self.tracked_state.physical_size.into(),
-                self.swap_chain.descriptor.format,
+                self.surface_conf.format,
                 self.msaa_samples,
             );
             self.frame_data.as_mut().unwrap().render = render_data;
@@ -1512,7 +1488,7 @@ impl Window {
     ) -> Result<(), wgpu::TextureCapturerAwaitWorkerTimeout<()>> {
         if let Some(frame_data) = self.frame_data.as_ref() {
             let capture_data = &frame_data.capture;
-            let device = self.swap_chain_device();
+            let device = self.device();
             return capture_data.texture_capturer.await_active_snapshots(device);
         }
         Ok(())
@@ -1543,18 +1519,6 @@ impl fmt::Debug for View {
     }
 }
 
-// Deref implementations.
-
-impl fmt::Debug for WindowSwapChain {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "WindowSwapChain ( descriptor: {:?}, swap_chain: {:?} )",
-            self.descriptor, self.swap_chain,
-        )
-    }
-}
-
 // Error implementations.
 
 impl fmt::Display for BuildError {
@@ -1579,7 +1543,6 @@ impl<'a> wgpu::WithDeviceQueuePair for &'a crate::window::Window {
     where
         F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
     {
-        self.swap_chain_device_queue_pair()
-            .with_device_queue_pair(f)
+        self.device_queue_pair().with_device_queue_pair(f)
     }
 }

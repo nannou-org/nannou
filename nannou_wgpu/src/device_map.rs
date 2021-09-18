@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::sync::{Arc, Mutex, Weak};
 
 use crate as wgpu;
@@ -290,6 +291,13 @@ impl DeviceQueuePair {
     /// cases that the queue is shared between more than one window.
     pub fn queue(&self) -> &wgpu::Queue {
         &self.queue
+    }
+}
+
+impl Deref for ActiveAdapter {
+    type Target = wgpu::Adapter;
+    fn deref(&self) -> &Self::Target {
+        &self.adapter
     }
 }
 
