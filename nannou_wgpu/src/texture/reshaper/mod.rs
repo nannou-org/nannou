@@ -53,16 +53,6 @@ impl Reshaper {
         let vs_mod = device.create_shader_module(&vs_desc);
         let fs_mod = device.create_shader_module(&fs_desc);
 
-        // let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
-        // let fs_mod = match src_sample_count {
-        //     1 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv")),
-        //     2 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa2.spv")),
-        //     4 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa4.spv")),
-        //     8 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa8.spv")),
-        //     16 => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa16.spv")),
-        //     _ => wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag_msaa.spv")),
-        // };
-
         // Create the sampler for sampling from the source texture.
         let sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
         let sampler_filtering = wgpu::sampler_filtering(&sampler_desc);
