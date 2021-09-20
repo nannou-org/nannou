@@ -30,7 +30,7 @@ impl RowPaddedBuffer {
     ///
     /// Width should be given in bytes.
     pub fn new(device: &wgpu::Device, width: u32, height: u32, usage: wgpu::BufferUsages) -> Self {
-        let row_padding = Self::compute_row_padding(width);
+        let row_padding = wgpu::compute_row_padding(width);
 
         // only create mapped for buffers that we're going to write to.
         let mapped_at_creation = usage.contains(wgpu::BufferUsages::MAP_WRITE);
@@ -64,11 +64,6 @@ impl RowPaddedBuffer {
             texture.extent().height,
             usage,
         )
-    }
-
-    /// Compute the necessary padding for each row.
-    fn compute_row_padding(width: u32) -> u32 {
-        wgpu::COPY_BYTES_PER_ROW_ALIGNMENT - (width % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
     }
 
     /// The width of the buffer, in bytes, NOT including padding bytes.

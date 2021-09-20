@@ -106,6 +106,20 @@ pub const DEFAULT_POWER_PREFERENCE: PowerPreference = PowerPreference::HighPerfo
 /// Nannou's default WGPU backend preferences.
 pub const DEFAULT_BACKENDS: Backends = Backends::PRIMARY;
 
+/// Create a wgpu shader module from the given slice of SPIR-V bytes.
+#[cfg(feature = "spirv")]
+pub fn shader_from_spirv_bytes(
+    device: &wgpu_upstream::Device,
+    bytes: &[u8],
+) -> wgpu_upstream::ShaderModule {
+    let source = util::make_spirv(bytes);
+    let desc = ShaderModuleDescriptor {
+        label: Some("nannou_shader_module"),
+        source,
+    };
+    device.create_shader_module(&desc)
+}
+
 /// Adds a simple render pass command to the given encoder that simply clears the given texture
 /// with the given colour.
 ///
@@ -179,6 +193,15 @@ pub fn sampler_filtering(desc: &SamplerDescriptor) -> bool {
         (FilterMode::Nearest, FilterMode::Nearest, FilterMode::Nearest) => false,
         _ => true,
     }
+}
+
+/// Given the initial number of bytes per row within an image, compute the number of bytes that
+/// must be added per row to produce a valid bytes per row alignment.
+///
+/// See here:
+/// https://docs.rs/wgpu/latest/wgpu/struct.ImageDataLayout.html#structfield.bytes_per_row
+pub fn compute_row_padding(bytes_per_row: u32) -> u32 {
+    COPY_BYTES_PER_ROW_ALIGNMENT - (bytes_per_row % COPY_BYTES_PER_ROW_ALIGNMENT)
 }
 
 /// The functions within this module use unsafe in order to retrieve their input as a slice of
