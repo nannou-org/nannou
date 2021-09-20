@@ -72,7 +72,7 @@ fn model(app: &App) -> Model {
         .unwrap();
 
     let window = app.window(w_id).unwrap();
-    let device = window.swap_chain_device();
+    let device = window.device();
     let format = Frame::TEXTURE_FORMAT;
     let msaa_samples = window.msaa_samples();
 
@@ -81,9 +81,9 @@ fn model(app: &App) -> Model {
 
     let texture_array = {
         // The wgpu device queue used to load the image data.
-        let queue = window.swap_chain_queue();
+        let queue = window.queue();
         // Describe how we will use the texture so that the GPU may handle it efficiently.
-        let usage = wgpu::TextureUsage::SAMPLED;
+        let usage = wgpu::TextureUsages::TEXTURE_BINDING;
         let iter = images.iter().map(|&(_, ref img)| img);
         wgpu::Texture::load_array_from_image_buffers(device, queue, usage, iter)
             .expect("tied to load texture array with an empty image buffer sequence")
@@ -111,7 +111,7 @@ fn model(app: &App) -> Model {
 
     // Create the vertex buffer.
     let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
-    let usage = wgpu::BufferUsage::VERTEX;
+    let usage = wgpu::BufferUsages::VERTEX;
     let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
         label: None,
         contents: vertices_bytes,
@@ -133,7 +133,7 @@ fn model(app: &App) -> Model {
 fn update(app: &App, model: &mut Model, update: Update) {
     // Update which layer in the texture array that are viewing.
     let window = app.main_window();
-    let device = window.swap_chain_device();
+    let device = window.device();
 
     // Determine how fast to play back the frames based on the mouse x.
     let win_rect = window.rect();
@@ -206,12 +206,12 @@ fn create_bind_group_layout(
 ) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
         .texture(
-            wgpu::ShaderStage::FRAGMENT,
+            wgpu::ShaderStages::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
             texture_sample_type,
         )
-        .sampler(wgpu::ShaderStage::FRAGMENT, sampler_filtering)
+        .sampler(wgpu::ShaderStages::FRAGMENT, sampler_filtering)
         .build(device)
 }
 

@@ -24,7 +24,7 @@ fn model(app: &App) -> Model {
 
     // Create the hotloaded render pipeline.
     let window = app.main_window();
-    let device = window.swap_chain_device();
+    let device = window.device();
     let vs_path = None;
     let fs_path = shader_dir.join("Test-Float.fs");
     let dst_format = Frame::TEXTURE_FORMAT;
@@ -44,7 +44,7 @@ fn model(app: &App) -> Model {
         sample_count,
         &images_dir,
     );
-    window.swap_chain_queue().submit(Some(encoder.finish()));
+    window.queue().submit(Some(encoder.finish()));
 
     let isf_time = Default::default();
 
@@ -57,7 +57,7 @@ fn model(app: &App) -> Model {
 
 fn update(app: &App, model: &mut Model, update: Update) {
     let window = app.main_window();
-    let device = window.swap_chain_device();
+    let device = window.device();
     // Feed new compilation result to the render pipeline for hotloading.
     let touched_shaders = model.watch.paths_touched().unwrap();
     let assets = app.assets_path().unwrap();
@@ -69,7 +69,7 @@ fn update(app: &App, model: &mut Model, update: Update) {
     model
         .isf_pipeline
         .encode_update(device, &mut encoder, &images_dir, touched_shaders);
-    window.swap_chain_queue().submit(Some(encoder.finish()));
+    window.queue().submit(Some(encoder.finish()));
     model.isf_time.time = update.since_start.secs() as _;
     model.isf_time.time_delta = update.since_last.secs() as _;
 }

@@ -93,7 +93,7 @@ fn model(app: &App) -> Model {
     let camera_is_active = true;
     window.set_cursor_grab(true).unwrap();
     window.set_cursor_visible(false);
-    let device = window.swap_chain_device();
+    let device = window.device();
     let format = Frame::TEXTURE_FORMAT;
     let msaa_samples = window.msaa_samples();
     let (win_w, win_h) = window.inner_size_pixels();
@@ -105,8 +105,8 @@ fn model(app: &App) -> Model {
     let vertices_bytes = vertices_as_bytes(&data::VERTICES);
     let normals_bytes = normals_as_bytes(&data::NORMALS);
     let indices_bytes = indices_as_bytes(&data::INDICES);
-    let vertex_usage = wgpu::BufferUsage::VERTEX;
-    let index_usage = wgpu::BufferUsage::INDEX;
+    let vertex_usage = wgpu::BufferUsages::VERTEX;
+    let index_usage = wgpu::BufferUsages::INDEX;
     let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
         label: None,
         contents: vertices_bytes,
@@ -133,7 +133,7 @@ fn model(app: &App) -> Model {
 
     let uniforms = create_uniforms([win_w, win_h], camera.view());
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
-    let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
+    let usage = wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST;
     let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
         label: None,
         contents: uniforms_bytes,
@@ -276,7 +276,7 @@ fn view(_app: &App, model: &Model, frame: Frame) {
     let uniforms = create_uniforms(frame_size, model.camera.view());
     let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
-    let usage = wgpu::BufferUsage::COPY_SRC;
+    let usage = wgpu::BufferUsages::COPY_SRC;
     let new_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
         label: None,
         contents: uniforms_bytes,
@@ -325,14 +325,14 @@ fn create_depth_texture(
     wgpu::TextureBuilder::new()
         .size(size)
         .format(depth_format)
-        .usage(wgpu::TextureUsage::RENDER_ATTACHMENT)
+        .usage(wgpu::TextureUsages::RENDER_ATTACHMENT)
         .sample_count(sample_count)
         .build(device)
 }
 
 fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
-        .uniform_buffer(wgpu::ShaderStage::VERTEX, false)
+        .uniform_buffer(wgpu::ShaderStages::VERTEX, false)
         .build(device)
 }
 
