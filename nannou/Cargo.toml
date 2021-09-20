@@ -35,3 +35,5 @@ winit = "0.25"
 
 [features]
 default = ["notosans"]
+# Enables SPIR-V support in the `wgpu` module.
+spirv = ["nannou_wgpu/spirv"]
