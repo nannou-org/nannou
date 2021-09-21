@@ -245,7 +245,8 @@ impl ImageState {
             }
             ImageState::Loading(ref rx) => match rx.try_recv() {
                 Ok(img_res) => {
-                    let usage = wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING;
+                    let usage =
+                        wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING;
                     let res = img_res.map(|image| {
                         let texture = wgpu::Texture::encode_load_from_image_buffer(
                             device, encoder, usage, &image,
@@ -845,8 +846,8 @@ fn create_isf_textures_bind_group_layout(
     isf_data: &IsfData,
 ) -> wgpu::BindGroupLayout {
     // Begin with the sampler.
-    let mut builder =
-        wgpu::BindGroupLayoutBuilder::new().sampler(wgpu::ShaderStages::FRAGMENT, sampler_filtering);
+    let mut builder = wgpu::BindGroupLayoutBuilder::new()
+        .sampler(wgpu::ShaderStages::FRAGMENT, sampler_filtering);
     for texture in isf_data_textures(isf_data) {
         builder = builder.texture(
             wgpu::ShaderStages::FRAGMENT,
