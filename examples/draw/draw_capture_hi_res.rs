@@ -36,7 +36,7 @@ fn model(app: &App) -> Model {
     let window = app.window(w_id).unwrap();
 
     // Retrieve the wgpu device.
-    let device = window.swap_chain_device();
+    let device = window.device();
 
     // Create our custom texture.
     let sample_count = window.msaa_samples();
@@ -44,7 +44,7 @@ fn model(app: &App) -> Model {
         .size(texture_size)
         // Our texture will be used as the RENDER_ATTACHMENT for our `Draw` render pass.
         // It will also be SAMPLED by the `TextureCapturer` and `TextureResizer`.
-        .usage(wgpu::TextureUsage::RENDER_ATTACHMENT | wgpu::TextureUsage::SAMPLED)
+        .usage(wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING)
         // Use nannou's default multisampling sample count.
         .sample_count(sample_count)
         // Use a spacious 16-bit linear sRGBA format suitable for high quality drawing.
@@ -137,7 +137,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 
     // Render our drawing to the texture.
     let window = app.main_window();
-    let device = window.swap_chain_device();
+    let device = window.device();
     let ce_desc = wgpu::CommandEncoderDescriptor {
         label: Some("texture renderer"),
     };
@@ -156,7 +156,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         .capture(device, &mut encoder, &model.texture);
 
     // Submit the commands for our drawing and texture capture to the GPU.
-    window.swap_chain_queue().submit(Some(encoder.finish()));
+    window.queue().submit(Some(encoder.finish()));
 
     // Submit a function for writing our snapshot to a PNG.
     //
@@ -188,7 +188,7 @@ fn view(_app: &App, model: &Model, frame: Frame) {
 fn exit(app: &App, model: Model) {
     println!("Waiting for PNG writing to complete...");
     let window = app.main_window();
-    let device = window.swap_chain_device();
+    let device = window.device();
     model
         .texture_capturer
         .await_active_snapshots(&device)
