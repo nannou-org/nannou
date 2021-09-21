@@ -52,8 +52,10 @@ fn model(app: &App) -> Model {
     let format = Frame::TEXTURE_FORMAT;
     let msaa_samples = window.msaa_samples();
 
-    let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
-    let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
+    let vs_desc = wgpu::include_wgsl!("shaders/vs.wgsl");
+    let fs_desc = wgpu::include_wgsl!("shaders/fs.wgsl");
+    let vs_mod = device.create_shader_module(&vs_desc);
+    let fs_mod = device.create_shader_module(&fs_desc);
 
     // Load the image as a texture.
     let texture = wgpu::Texture::from_image(&window, &image);

@@ -43,7 +43,8 @@ fn model(app: &App) -> Model {
     let device = window.device();
 
     // Create the compute shader module.
-    let cs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/comp.spv"));
+    let cs_desc = wgpu::include_wgsl!("shaders/cs.wgsl");
+    let cs_mod = device.create_shader_module(&cs_desc);
 
     // Create the buffer that will store the result of our compute operation.
     let oscillator_buffer_size =

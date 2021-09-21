@@ -44,8 +44,10 @@ fn model(app: &App) -> Model {
     // NOTE: We are drawing to the swap chain format, rather than the `Frame::TEXTURE_FORMAT`.
     let format = window.surface_configuration().format;
 
-    let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
-    let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
+    let vs_desc = wgpu::include_wgsl!("shaders/vs.wgsl");
+    let fs_desc = wgpu::include_wgsl!("shaders/fs.wgsl");
+    let vs_mod = device.create_shader_module(&vs_desc);
+    let fs_mod = device.create_shader_module(&fs_desc);
 
     let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
     let usage = wgpu::BufferUsages::VERTEX;

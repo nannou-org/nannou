@@ -161,8 +161,10 @@ fn model(app: &App) -> Model {
     let (win_w, win_h) = window.inner_size_pixels();
 
     // Load shader modules.
-    let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
-    let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
+    let vs_desc = wgpu::include_wgsl!("shaders/vs.wgsl");
+    let fs_desc = wgpu::include_wgsl!("shaders/fs.wgsl");
+    let vs_mod = device.create_shader_module(&vs_desc);
+    let fs_mod = device.create_shader_module(&fs_desc);
 
     // Create the vertex, normal and index buffers.
     let vertices_bytes = vertices_as_bytes(&data::VERTICES);
