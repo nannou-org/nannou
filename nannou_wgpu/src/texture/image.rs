@@ -576,13 +576,7 @@ where
     };
 
     // Copy into the entire texture.
-    let image_copy_texture = wgpu::ImageCopyTexture {
-        texture: texture.inner(),
-        mip_level: 0,
-        origin: wgpu::Origin3d::ZERO,
-        // TODO: Maybe we shouldn't assume this?
-        aspect: wgpu::TextureAspect::All,
-    };
+    let image_copy_texture = texture.as_image_copy();
 
     // TODO:
     // This can theoretically be exploited by implementing our `image::Pixel` trait for some type
@@ -663,13 +657,7 @@ where
     }
 
     // Copy into the entire texture.
-    let image_copy_texture = wgpu::ImageCopyTexture {
-        texture: texture.inner(),
-        mip_level: 0,
-        origin: wgpu::Origin3d::ZERO,
-        // TODO: Maybe we shouldn't assume this?
-        aspect: wgpu::TextureAspect::All,
-    };
+    let image_copy_texture = texture.as_image_copy();
 
     queue.write_texture(image_copy_texture, &data, image_data_layout, extent);
 
