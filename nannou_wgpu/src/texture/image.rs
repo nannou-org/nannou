@@ -635,15 +635,13 @@ where
     let format = texture.format();
     let block_size = format.describe().block_size;
     let bytes_per_row = extent.width * block_size as u32;
-    let padding = wgpu::compute_row_padding(bytes_per_row);
-    let padded_bytes_per_row = bytes_per_row + padding;
     let image_data_layout = wgpu::ImageDataLayout {
         offset: 0,
-        bytes_per_row: std::num::NonZeroU32::new(padded_bytes_per_row),
+        bytes_per_row: std::num::NonZeroU32::new(bytes_per_row),
         rows_per_image: std::num::NonZeroU32::new(height),
     };
 
-    // Collect the data into a single slice, padding each row as necessary.
+    // Collect the data into a single slice.
     //
     // NOTE: Previously we used `encode_load_texture_array_from_image_buffers` which avoids
     // collecting the image data into a single slice. However, the `wgpu::Texture::from_*`
@@ -661,10 +659,7 @@ where
     let mut data: Vec<u8> = Vec::with_capacity(capacity);
     for buffer in Some(first_buffer).into_iter().chain(buffers) {
         let layer_data = unsafe { wgpu::bytes::from_slice(&*buffer) };
-        for row_data in layer_data.chunks(bytes_per_row as usize) {
-            data.extend_from_slice(row_data);
-            data.extend((0..padding).map(|_| 0u8));
-        }
+        data.extend_from_slice(layer_data);
     }
 
     // Copy into the entire texture.
