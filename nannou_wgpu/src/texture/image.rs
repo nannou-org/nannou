@@ -532,8 +532,7 @@ pub fn load_texture_from_image(
             load_texture_from_image_buffer(device, queue, usage, &img)
         }
         ImageRgb16(_img) => {
-            // TODO: I think we lose some quality here - e.g. 16-bit channels down to 8-bit??.
-            let img = image.to_rgba8();
+            let img = image.to_rgba16();
             load_texture_from_image_buffer(device, queue, usage, &img)
         }
     }
@@ -699,8 +698,7 @@ pub fn encode_load_texture_from_image(
             encode_load_texture_from_image_buffer(device, encoder, usage, &img)
         }
         ImageRgb16(_img) => {
-            // TODO: I think we lose some quality here - e.g. 16-bit channels down to 8-bit??.
-            let img = image.to_rgba8();
+            let img = image.to_rgba16();
             encode_load_texture_from_image_buffer(device, encoder, usage, &img)
         }
     }
