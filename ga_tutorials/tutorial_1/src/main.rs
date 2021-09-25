@@ -20,8 +20,6 @@ fn view(app: &App, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-
-
 fn draw_line(draw: &Draw, step: f32, weight: f32) {
     let gdraw = draw
         .scale(step)

@@ -13,7 +13,7 @@ struct Line {
     x: f32,
     y: f32,
     scale: f32,
-    rotate: f32
+    rotate: f32,
 }
 
 fn main() {
@@ -29,7 +29,6 @@ fn view(app: &App, frame: Frame) {
     let start_x = app.window_rect().bottom_left().x + MARGIN as f32;
     let start_y = app.window_rect().bottom_left().y + MARGIN as f32;
 
-
     for i in 0..DAYS {
         let col = i / ROWS;
         let row = i % ROWS;
@@ -37,15 +36,14 @@ fn view(app: &App, frame: Frame) {
         let x = start_x + (col * SIZE as u32) as f32;
         let y = start_y + (row * SIZE as u32) as f32;
 
-
         let phi = (i as f64 / 365.0) * PI;
         let roate = phi.sin() * PI * 0.45 + 0.85;
-        let scale = phi.cos().abs()*2.0+1.0;
+        let scale = phi.cos().abs() * 2.0 + 1.0;
         let line = Line {
             x: x,
             y: y,
             scale: scale as f32,
-            rotate: roate as f32
+            rotate: roate as f32,
         };
         draw_line(&draw, line);
     }
