@@ -22,8 +22,3 @@ members = [
 
 # Required for wgpu v0.10 feature resolution.
 resolver = "2"
-
-[patch.crates-io]
-conrod_core = { git = "https://github.com/pistondevelopers/conrod", branch = "master" }
-conrod_wgpu = { git = "https://github.com/pistondevelopers/conrod", branch = "master" }
-conrod_winit = { git = "https://github.com/pistondevelopers/conrod", branch = "master" }
