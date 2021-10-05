@@ -49,5 +49,5 @@ fn update(app: &App, model: &mut Model, update: Update) {
 }
 
 fn view(_app: &App, model: &Model, frame: Frame) {
-    model.egui.draw_to_frame(&frame);
+    model.egui.draw_to_frame(&frame).unwrap();
 }
