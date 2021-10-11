@@ -80,7 +80,7 @@ let target_addr = format!("{}:{}", "127.0.0.1", port);
 # }
 ```
 
-Lastly, we need to bind our OSC sender to the network socket. This isn't always successful, so we are attaching the `expect()`-method (read more about [expect here](https://doc.rust-lang.org/std/option/enum.Option.html# method.expect)) to post an error message if it is not successful. If it is successful, the `.connect(target_addr)`-method is used to connect the sender to the target address. Again, this may be unsuccesful so we use the `expect()`-method on the result of that operation as well.
+Lastly, we need to bind our OSC sender to the network socket. This isn't always successful, so we are attaching the `expect()`-method (read more about [`expect()` here](https://doc.rust-lang.org/std/option/enum.Option.html#method.expect)) to post an error message if it is not successful. If it is successful, the `.connect(target_addr)`-method is used to connect the sender to the target address. Again, this may be unsuccesful so we use the `expect()`-method on the result of that operation as well.
 
 ```rust,no_run
 # #![allow(unused_variables)]
