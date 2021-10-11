@@ -2287,7 +2287,7 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 </span>let target_addr = format!(&quot;{}:{}&quot;, &quot;127.0.0.1&quot;, port);
 <span class="boring">}
 </span></code></pre></pre>
-<p>Lastly, we need to bind our OSC sender to the network socket. This isn't always successful, so we are attaching the <code>expect()</code>-method (read more about [expect here](https://doc.rust-lang.org/std/option/enum.Option.html# method.expect)) to post an error message if it is not successful. If it is successful, the <code>.connect(target_addr)</code>-method is used to connect the sender to the target address. Again, this may be unsuccesful so we use the <code>expect()</code>-method on the result of that operation as well.</p>
+<p>Lastly, we need to bind our OSC sender to the network socket. This isn't always successful, so we are attaching the <code>expect()</code>-method (read more about <a href="https://doc.rust-lang.org/std/option/enum.Option.html#method.expect"><code>expect()</code> here</a>) to post an error message if it is not successful. If it is successful, the <code>.connect(target_addr)</code>-method is used to connect the sender to the target address. Again, this may be unsuccesful so we use the <code>expect()</code>-method on the result of that operation as well.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">use nannou_osc as osc;
 </span><span class="boring">fn main() {
