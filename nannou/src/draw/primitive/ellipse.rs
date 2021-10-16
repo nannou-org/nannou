@@ -78,7 +78,7 @@ impl draw::renderer::RenderPrimitive for Ellipse {
                 let radii = lyon::math::vector(w * 0.5, h * 0.5);
                 if radii.square_length() > 0.0 {
                     let centre = lyon::math::point(0.0, 0.0);
-                    let mut builder = lyon::path::Path::builder();
+                    let mut builder = lyon::path::Path::svg_builder();
                     let sweep_angle = lyon::math::Angle::radians(std::f32::consts::PI * 2.0);
                     let x_rotation = lyon::math::Angle::radians(0.0);
                     let start = lyon::math::point(w * 0.5, 0.0);

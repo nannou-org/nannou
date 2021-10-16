@@ -32,7 +32,6 @@ use nannou::lyon;
 use nannou::lyon::algorithms::path::math::Point;
 use nannou::lyon::algorithms::path::PathSlice;
 use nannou::lyon::algorithms::walk::{walk_along_path, RepeatedPattern};
-use nannou::lyon::path::builder::PathBuilder;
 use nannou::lyon::path::iterator::*;
 use nannou::prelude::*;
 
@@ -72,7 +71,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
     for e in text.path_events() {
         builder.path_event(e);
     }
-    builder.close();
     let path = builder.build();
 
     let mut path_points: Vec<lyon::path::math::Point> = Vec::new();
