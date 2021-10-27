@@ -52,11 +52,14 @@ impl Ellipse {
 // Trait implementations.
 
 impl draw::renderer::RenderPrimitive for Ellipse {
-    fn render_primitive(
+    fn render_primitive<R>(
         self,
-        ctxt: draw::renderer::RenderContext,
-        mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender {
+        _ctxt: draw::renderer::RenderContext,
+        renderer: R,
+    ) -> draw::renderer::PrimitiveRender
+    where
+        R: draw::renderer::PrimitiveRenderer,
+    {
         let Ellipse {
             dimensions,
             polygon,
@@ -70,6 +73,7 @@ impl draw::renderer::RenderPrimitive for Ellipse {
             "z dimension support for ellipse is unimplemented"
         );
 
+        let theme_primitive = draw::theme::Primitive::Ellipse;
         let w = maybe_x.map(f32::abs).unwrap_or(100.0);
         let h = maybe_y.map(f32::abs).unwrap_or(100.0);
         match resolution {
@@ -85,12 +89,11 @@ impl draw::renderer::RenderPrimitive for Ellipse {
                     builder.move_to(start);
                     builder.arc(centre, radii, sweep_angle, x_rotation);
                     let path = builder.build();
-                    polygon::render_events_themed(
+                    polygon::render::render_events_themed(
                         polygon.opts,
                         || (&path).into_iter(),
-                        ctxt,
-                        &draw::theme::Primitive::Ellipse,
-                        mesh,
+                        theme_primitive,
+                        renderer,
                     );
                 }
             }
@@ -98,12 +101,11 @@ impl draw::renderer::RenderPrimitive for Ellipse {
                 let rect = geom::Rect::from_w_h(w, h);
                 let ellipse = geom::Ellipse::new(rect, resolution);
                 let points = ellipse.circumference().map(Vec2::from);
-                polygon::render_points_themed(
+                polygon::render::render_points_themed(
                     polygon.opts,
                     points,
-                    ctxt,
-                    &draw::theme::Primitive::Ellipse,
-                    mesh,
+                    theme_primitive,
+                    renderer,
                 );
             }
         }

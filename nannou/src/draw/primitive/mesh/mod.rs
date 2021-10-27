@@ -1,3 +1,5 @@
+pub mod render;
+
 use crate::color::conv::IntoLinSrgba;
 use crate::draw::mesh::vertex::{self, Point, TexCoords, Vertex};
 use crate::draw::primitive::Primitive;
@@ -6,6 +8,7 @@ use crate::draw::properties::{ColorScalar, LinSrgba, SetColor, SetOrientation, S
 use crate::draw::{self, Drawing};
 use crate::geom;
 use crate::wgpu;
+pub use render::render_mesh;
 use std::ops;
 
 /// The mesh type prior to being initialised with vertices or indices.
@@ -25,7 +28,7 @@ pub struct Mesh {
 }
 
 #[derive(Clone, Debug, Default)]
-struct FillColor(Option<LinSrgba>);
+pub struct FillColor(Option<LinSrgba>);
 
 // A simple iterator for flattening a fixed-size array of indices.
 struct FlattenIndices<I> {
@@ -478,69 +481,6 @@ impl<'a> Drawing<'a, Vertexless> {
         T: Into<TexCoords>,
     {
         self.map_ty_with_context(|ty, ctxt| ty.indexed_textured(ctxt.mesh, view, points, indices))
-    }
-}
-
-impl draw::renderer::RenderPrimitive for Mesh {
-    fn render_primitive(
-        self,
-        ctxt: draw::renderer::RenderContext,
-        mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender {
-        let Mesh {
-            orientation,
-            position,
-            vertex_range,
-            index_range,
-            vertex_mode,
-            fill_color,
-            texture_view,
-        } = self;
-
-        // Determine the transform to apply to vertices.
-        let global_transform = *ctxt.transform;
-        let local_transform = position.transform() * orientation.transform();
-        let transform = global_transform * local_transform;
-
-        // We need to update the indices to point to where vertices will be in the new mesh.
-        let old_mesh_vertex_start = vertex_range.start as u32;
-        let new_mesh_vertex_start = mesh.raw_vertex_count() as u32;
-        let indices = index_range
-            .map(|i| ctxt.intermediary_mesh.indices()[i])
-            .map(|i| new_mesh_vertex_start + i - old_mesh_vertex_start);
-
-        // A small function for transforming a point via the transform matrix.
-        let transform_point = |p: geom::Point3| -> geom::Point3 { transform.transform_point3(p) };
-
-        // Color the vertices based on whether or not we should fill, then extend the mesh!
-        match fill_color {
-            Some(fill) => {
-                let theme_prim = draw::theme::Primitive::Mesh;
-                let color = fill
-                    .0
-                    .unwrap_or_else(|| ctxt.theme.fill_lin_srgba(&theme_prim));
-                let vertices = vertex_range.map(|i| {
-                    let point = transform_point(ctxt.intermediary_mesh.points()[i]);
-                    let tex_coords = ctxt.intermediary_mesh.tex_coords()[i];
-                    ((point, color), tex_coords).into()
-                });
-                mesh.extend(vertices, indices);
-            }
-            None => {
-                let vertices = vertex_range.map(|i| {
-                    let point = transform_point(ctxt.intermediary_mesh.points()[i]);
-                    let color = ctxt.intermediary_mesh.colors()[i];
-                    let tex_coords = ctxt.intermediary_mesh.tex_coords()[i];
-                    ((point, color), tex_coords).into()
-                });
-                mesh.extend(vertices, indices);
-            }
-        }
-
-        draw::renderer::PrimitiveRender {
-            texture_view,
-            vertex_mode,
-        }
     }
 }
 

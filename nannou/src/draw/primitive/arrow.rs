@@ -168,11 +168,14 @@ impl Into<Option<Arrow>> for Primitive {
 }
 
 impl draw::renderer::RenderPrimitive for Arrow {
-    fn render_primitive(
+    fn render_primitive<R>(
         self,
-        mut ctxt: draw::renderer::RenderContext,
-        mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender {
+        _ctxt: draw::renderer::RenderContext,
+        mut renderer: R,
+    ) -> draw::renderer::PrimitiveRender
+    where
+        R: draw::renderer::PrimitiveRenderer,
+    {
         let Arrow {
             line,
             head_length,
@@ -204,26 +207,20 @@ impl draw::renderer::RenderPrimitive for Arrow {
         // The line should only be drawn if there is space after drawing the triangle.
         let draw_line = line_dir_len > tri_len;
 
-        // Determine the transform to apply to all points.
-        let global_transform = *ctxt.transform;
+        let theme_primitive = draw::theme::Primitive::Arrow;
         let local_transform = line.path.position.transform() * line.path.orientation.transform();
-        let transform = global_transform * local_transform;
 
         // Draw the tri.
         let tri_points = [tri_a, tri_b, tri_c];
         let tri_points = tri_points.iter().cloned().map(|p| p.to_array().into());
         let close_tri = true;
         let tri_events = lyon::path::iterator::FromPolyline::new(close_tri, tri_points);
-        path::render_path_events(
+        renderer.path_flat_color(
+            local_transform,
             tri_events,
             line.path.color,
-            transform,
+            theme_primitive,
             path::Options::Fill(Default::default()),
-            &ctxt.theme,
-            &draw::theme::Primitive::Arrow,
-            &mut ctxt.fill_tessellator,
-            &mut ctxt.stroke_tessellator,
-            mesh,
         );
 
         // Draw the line.
@@ -232,16 +229,12 @@ impl draw::renderer::RenderPrimitive for Arrow {
             let line_points = line_points.iter().cloned().map(|p| p.to_array().into());
             let close_line = false;
             let line_events = lyon::path::iterator::FromPolyline::new(close_line, line_points);
-            path::render_path_events(
+            renderer.path_flat_color(
+                local_transform,
                 line_events,
                 line.path.color,
-                transform,
+                theme_primitive,
                 path::Options::Stroke(line.path.opts),
-                &ctxt.theme,
-                &draw::theme::Primitive::Arrow,
-                &mut ctxt.fill_tessellator,
-                &mut ctxt.stroke_tessellator,
-                mesh,
             );
         }
 

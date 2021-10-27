@@ -127,11 +127,14 @@ impl Into<Option<Line>> for Primitive {
 }
 
 impl draw::renderer::RenderPrimitive for Line {
-    fn render_primitive(
+    fn render_primitive<R>(
         self,
-        mut ctxt: draw::renderer::RenderContext,
-        mesh: &mut draw::Mesh,
-    ) -> draw::renderer::PrimitiveRender {
+        _ctxt: draw::renderer::RenderContext,
+        mut renderer: R,
+    ) -> draw::renderer::PrimitiveRender
+    where
+        R: draw::renderer::PrimitiveRenderer,
+    {
         let Line { path, start, end } = self;
         let start = start.unwrap_or(pt2(0.0, 0.0));
         let end = end.unwrap_or(pt2(0.0, 0.0));
@@ -143,21 +146,14 @@ impl draw::renderer::RenderPrimitive for Line {
         let points = points.iter().cloned().map(|p| p.to_array().into());
         let events = lyon::path::iterator::FromPolyline::new(close, points);
 
-        // Determine the transform to apply to all points.
-        let global_transform = *ctxt.transform;
         let local_transform = path.position.transform() * path.orientation.transform();
-        let transform = global_transform * local_transform;
 
-        path::render_path_events(
+        renderer.path_flat_color(
+            local_transform,
             events,
             path.color,
-            transform,
+            draw::theme::Primitive::Line,
             path::Options::Stroke(path.opts),
-            &ctxt.theme,
-            &draw::theme::Primitive::Line,
-            &mut ctxt.fill_tessellator,
-            &mut ctxt.stroke_tessellator,
-            mesh,
         );
 
         draw::renderer::PrimitiveRender::default()

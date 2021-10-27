@@ -54,46 +54,6 @@ pub struct Text<'a> {
     rect: geom::Rect,
 }
 
-/// An iterator yielding each line within the given `text` as a new `&str`, where the start and end
-/// indices into each line are provided by the given iterator.
-#[derive(Clone)]
-pub struct Lines<'a, I> {
-    text: &'a str,
-    ranges: I,
-}
-
-/// An alias for the line info iterator yielded by `Text::line_infos`.
-pub type TextLineInfos<'a> = line::Infos<'a, line::NextBreakFnPtr>;
-
-/// An alias for the line iterator yielded by `Text::lines`.
-pub type TextLines<'a> = Lines<
-    'a,
-    std::iter::Map<std::slice::Iter<'a, line::Info>, fn(&line::Info) -> std::ops::Range<usize>>,
->;
-
-/// An alias for the line rect iterator used internally within the `Text::line_rects` iterator.
-type LineRects<'a> = line::Rects<std::iter::Cloned<std::slice::Iter<'a, line::Info>>>;
-
-/// An alias for the line rect iterator yielded by `Text::line_rects`.
-#[derive(Clone)]
-pub struct TextLineRects<'a> {
-    line_rects: LineRects<'a>,
-    offset: Vec2,
-}
-
-/// An alias for the iterator yielded by `Text::lines_with_rects`.
-pub type TextLinesWithRects<'a> = std::iter::Zip<TextLines<'a>, TextLineRects<'a>>;
-
-/// An alias for the iterator yielded by `Text::glyphs_per_line`.
-pub type TextGlyphsPerLine<'a> = glyph::RectsPerLine<'a, TextLinesWithRects<'a>>;
-
-/// An alias for the iterator yielded by `Text::glyphs`.
-pub type TextGlyphs<'a> = std::iter::FlatMap<
-    TextGlyphsPerLine<'a>,
-    glyph::Rects<'a, 'a>,
-    fn(glyph::Rects<'a, 'a>) -> glyph::Rects<'a, 'a>,
->;
-
 /// Alignment along an axis.
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub enum Align {
@@ -381,16 +341,16 @@ impl<'a> Text<'a> {
     }
 
     /// Produce an iterator yielding each wrapped line within the **Text**.
-    pub fn lines(&self) -> TextLines {
-        fn info_byte_range(info: &line::Info) -> std::ops::Range<usize> {
-            info.byte_range()
-        }
-        lines(&self.text, self.line_infos.iter().map(info_byte_range))
+    pub fn lines(&self) -> impl Iterator<Item = &str> {
+        lines(
+            &self.text,
+            self.line_infos.iter().map(|info| info.byte_range()),
+        )
     }
 
     /// The bounding rectangle for each line.
-    pub fn line_rects(&self) -> TextLineRects {
-        let offset = self.position_offset();
+    pub fn line_rects(&self) -> impl Iterator<Item = geom::Rect> + '_ {
+        let offset = self.position_offset().into();
         let line_rects = line::rects(
             self.line_infos.iter().cloned(),
             self.layout.font_size,
@@ -398,29 +358,31 @@ impl<'a> Text<'a> {
             self.layout.justify,
             self.layout.line_spacing,
         );
-        TextLineRects { line_rects, offset }
+        line_rects.map(move |r| r.shift(offset))
     }
 
     /// Produce an iterator yielding all lines of text alongside their bounding rects.
-    pub fn lines_with_rects(&self) -> TextLinesWithRects {
+    pub fn lines_with_rects(&self) -> impl Iterator<Item = (&str, geom::Rect)> {
         self.lines().zip(self.line_rects())
     }
 
     /// Produce an iterator yielding iterators yielding every glyph alongside its bounding rect for
     /// each line.
-    pub fn glyphs_per_line(&self) -> TextGlyphsPerLine {
+    pub fn glyphs_per_line(&self) -> impl Iterator<Item = glyph::Rects> {
         glyph::rects_per_line(self.lines_with_rects(), &self.font, self.layout.font_size)
     }
 
     /// Produce an iterator yielding every glyph alongside its bounding rect.
     ///
     /// This is the "flattened" version of the `glyphs_per_line` method.
-    pub fn glyphs(&self) -> TextGlyphs {
-        self.glyphs_per_line().flat_map(std::convert::identity)
+    pub fn glyphs(&self) -> impl Iterator<Item = (ScaledGlyph<'_>, geom::Rect)> {
+        self.glyphs_per_line().flatten()
     }
 
-    /// Produce an iterator yielding the path events for every glyph in every line.
-    pub fn path_events<'b>(&'b self) -> impl 'b + Iterator<Item = lyon::path::PathEvent> {
+    /// Produce an iterator yielding the path events for each individual glyph in every line.
+    pub fn glyph_path_events(
+        &self,
+    ) -> impl Iterator<Item = impl Iterator<Item = lyon::path::PathEvent> + '_> {
         use lyon::path::PathEvent;
 
         // Translate the given lyon point by the given vector.
@@ -470,12 +432,17 @@ impl<'a> Text<'a> {
             }
         }
 
-        self.glyphs().flat_map(|(g, r)| {
+        self.glyphs().map(|(g, r)| {
             glyph::path_events(g)
                 .into_iter()
-                .flat_map(|es| es)
+                .flatten()
                 .map(move |e| trans_path_event(&e, r.bottom_left().into()))
         })
+    }
+
+    /// Produce an iterator yielding the path events for every glyph in every line.
+    pub fn path_events(&self) -> impl Iterator<Item = lyon::path::PathEvent> + '_ {
+        self.glyph_path_events().flatten()
     }
 
     /// Produce an iterator yielding positioned rusttype glyphs ready for caching.
@@ -483,11 +450,11 @@ impl<'a> Text<'a> {
     /// The window dimensions (in logical space) and scale_factor are required to transform glyph
     /// positions into rusttype's pixel-space, ready for caching into the rusttype glyph cache
     /// pixel buffer.
-    pub fn rt_glyphs<'b: 'a>(
-        &'b self,
+    pub fn rt_glyphs(
+        &self,
         window_size: Vec2,
         scale_factor: Scalar,
-    ) -> impl 'a + 'b + Iterator<Item = PositionedGlyph> {
+    ) -> impl Iterator<Item = PositionedGlyph> + '_ {
         rt_positioned_glyphs(
             self.lines_with_rects(),
             &self.font,
@@ -527,27 +494,6 @@ impl<'a> Text<'a> {
     }
 }
 
-impl<'a, I> Iterator for Lines<'a, I>
-where
-    I: Iterator<Item = std::ops::Range<usize>>,
-{
-    type Item = &'a str;
-    fn next(&mut self) -> Option<Self::Item> {
-        let Lines {
-            text,
-            ref mut ranges,
-        } = *self;
-        ranges.next().map(|range| &text[range])
-    }
-}
-
-impl<'a> Iterator for TextLineRects<'a> {
-    type Item = geom::Rect;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.line_rects.next().map(|r| r.shift(self.offset.into()))
-    }
-}
-
 /// Determine the total height of a block of text with the given number of lines, font size and
 /// `line_spacing` (the space that separates each line of text).
 ///
@@ -583,14 +529,11 @@ pub fn exact_height(
 
 /// Produce an iterator yielding each line within the given `text` as a new `&str`, where the
 /// start and end indices into each line are provided by the given iterator.
-pub fn lines<I>(text: &str, ranges: I) -> Lines<I>
+pub fn lines<I>(text: &str, ranges: I) -> impl Iterator<Item = &str>
 where
     I: Iterator<Item = std::ops::Range<usize>>,
 {
-    Lines {
-        text: text,
-        ranges: ranges,
-    }
+    ranges.map(move |range| &text[range])
 }
 
 /// The position offset required to shift the associated text into the given bounding rectangle.
