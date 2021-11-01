@@ -13,7 +13,6 @@
 //! examples](https://github.com/nannou-org/nannou/tree/master/examples) to get an idea of how
 //! nannou applications are structured and how the API works.
 
-pub use daggy;
 pub use find_folder;
 pub use lyon;
 pub use winit;
