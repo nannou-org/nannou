@@ -604,7 +604,7 @@ where
     let (first_point, first_color) = iter.next()?;
     let p = first_point.to_array().into();
     let (r, g, b, a) = first_color.into();
-    path_builder.move_to(p, &[r, g, b, a]);
+    path_builder.begin(p, &[r, g, b, a]);
 
     // Add the lines, keeping track of the last
     for (point, color) in iter {
@@ -613,10 +613,8 @@ where
         path_builder.line_to(p, &[r, g, b, a]);
     }
 
-    // Close if necessary.
-    if close {
-        path_builder.close();
-    }
+    // End the path, closing if necessary.
+    path_builder.end(close);
 
     // Build it!
     Some(path_builder.build())
@@ -636,7 +634,7 @@ where
     let (first_point, first_tex_coords) = iter.next()?;
     let p = first_point.to_array().into();
     let (tc_x, tc_y) = first_tex_coords.into();
-    path_builder.move_to(p, &[tc_x, tc_y]);
+    path_builder.begin(p, &[tc_x, tc_y]);
 
     // Add the lines, keeping track of the last
     for (point, tex_coords) in iter {
@@ -645,10 +643,8 @@ where
         path_builder.line_to(p, &[tc_x, tc_y]);
     }
 
-    // Close if necessary.
-    if close {
-        path_builder.close();
-    }
+    // End the path, closing if necessary.
+    path_builder.end(close);
 
     // Build it!
     Some(path_builder.build())

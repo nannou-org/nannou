@@ -30,6 +30,7 @@
  * Delete/Backspace    : clear display
  * s                   : save png
  */
+use nannou::lyon;
 use nannou::prelude::*;
 
 fn main() {
@@ -97,33 +98,32 @@ fn view(app: &App, model: &Model, frame: Frame) {
         draw.background().color(WHITE);
     }
 
-    let mut builder = nannou::geom::path::Builder::new();
+    let mut builder = nannou::geom::path::Builder::new().with_svg();
 
     // TODO implement the Catmull–Rom spline algo in lyon, see curveVertex() in Processing
     // first control point
-    builder = builder.move_to(pt2(
+    builder.move_to(lyon::math::point(
         model.x[model.form_resolution - 1] + model.center_x,
         model.y[model.form_resolution - 1] + model.center_y,
     ));
     // only these points are drawn
     for i in 0..model.form_resolution {
-        builder = builder.quadratic_bezier_to(
-            pt2(model.x[i] + model.center_x, model.y[i] + model.center_y),
-            pt2(model.x[i] + model.center_x, model.y[i] + model.center_y),
+        builder.quadratic_bezier_to(
+            lyon::math::point(model.x[i] + model.center_x, model.y[i] + model.center_y),
+            lyon::math::point(model.x[i] + model.center_x, model.y[i] + model.center_y),
         );
     }
-    let path = builder
-        .quadratic_bezier_to(
-            pt2(model.x[0] + model.center_x, model.y[0] + model.center_y),
-            pt2(model.x[0] + model.center_x, model.y[0] + model.center_y),
-        )
-        // end control point
-        .move_to(pt2(
-            model.x[1] + model.center_x,
-            model.y[1] + model.center_y,
-        ))
-        .close()
-        .build();
+    builder.quadratic_bezier_to(
+        lyon::math::point(model.x[0] + model.center_x, model.y[0] + model.center_y),
+        lyon::math::point(model.x[0] + model.center_x, model.y[0] + model.center_y),
+    );
+    // end control point
+    builder.move_to(lyon::math::point(
+        model.x[1] + model.center_x,
+        model.y[1] + model.center_y,
+    ));
+    builder.close();
+    let path = builder.build();
 
     if model.filled {
         let gray = random_f32();

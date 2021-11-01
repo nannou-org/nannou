@@ -24,6 +24,7 @@
  * 0-9                 : recursion level
  * s                   : save png
  */
+use nannou::lyon;
 use nannou::prelude::*;
 
 fn main() {
@@ -70,9 +71,14 @@ fn view(app: &App, model: &Model, frame: Frame) {
 // Recursive function
 fn draw_branch(draw: &Draw, x: f32, y: f32, radius: f32, level: u8, mx: f32, my: f32) {
     use nannou::geom::path::Builder;
-    let mut builder = Builder::new();
-    builder = builder.move_to(pt2(x - radius, y));
-    builder = builder.arc(pt2(x, y), vec2(radius, radius), -PI, 0.0);
+    let mut builder = Builder::new().with_svg();
+    builder.move_to(lyon::math::point(x - radius, y));
+    builder.arc(
+        lyon::math::point(x, y),
+        lyon::math::vector(radius, radius),
+        -lyon::math::Angle::pi(),
+        lyon::math::Angle::radians(0.0),
+    );
     let arc_path = builder.build();
 
     // draw arc

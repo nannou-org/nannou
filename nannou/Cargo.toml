@@ -15,7 +15,7 @@ find_folder = "0.3"
 futures = { version = "0.3", features = ["executor", "thread-pool"] }
 image = "0.23"
 instant = "0.1.9"
-lyon = "0.15"
+lyon = "0.17"
 nannou_core = { version ="0.17.0", path = "../nannou_core", features = ["std", "serde"] }
 nannou_mesh = { version ="0.17.0", path = "../nannou_mesh", features = ["serde1"] }
 nannou_wgpu = { version ="0.17.0", path = "../nannou_wgpu", features = ["capturer"] }

@@ -11,7 +11,7 @@ use crate::glam::Mat4;
 use lyon::tessellation::geometry_builder::{
     self, FillGeometryBuilder, GeometryBuilder, StrokeGeometryBuilder,
 };
-use lyon::tessellation::{FillAttributes, GeometryBuilderError, StrokeAttributes, VertexId};
+use lyon::tessellation::{FillVertex, GeometryBuilderError, StrokeVertex, VertexId};
 
 pub struct MeshBuilder<'a, A> {
     /// The mesh that is to be extended.
@@ -93,13 +93,11 @@ impl<'a, A> GeometryBuilder for MeshBuilder<'a, A> {
 }
 
 impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
-    fn add_fill_vertex(
-        &mut self,
-        position: lyon::math::Point,
-        _attrs: FillAttributes,
-    ) -> Result<VertexId, GeometryBuilderError> {
+    fn add_fill_vertex(&mut self, vertex: FillVertex) -> Result<VertexId, GeometryBuilderError> {
         // Retrieve the index.
         let id = VertexId::from_usize(self.mesh.points().len());
+
+        let position = vertex.position();
 
         // Construct and insert the point
         let p = Point2::new(position.x, position.y).extend(0.0);
@@ -117,11 +115,12 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
 impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, SingleColor> {
     fn add_stroke_vertex(
         &mut self,
-        position: lyon::math::Point,
-        _attrs: StrokeAttributes,
+        vertex: StrokeVertex,
     ) -> Result<VertexId, GeometryBuilderError> {
         // Retrieve the index.
         let id = VertexId::from_usize(self.mesh.points().len());
+
+        let position = vertex.position();
 
         // Construct and insert the point
         let p = Point2::new(position.x, position.y).extend(0.0);
@@ -139,16 +138,17 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, SingleColor> {
 impl<'a> FillGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
     fn add_fill_vertex(
         &mut self,
-        position: lyon::math::Point,
-        mut attrs: FillAttributes,
+        mut vertex: FillVertex,
     ) -> Result<VertexId, GeometryBuilderError> {
         // Retrieve the index.
         let id = VertexId::from_usize(self.mesh.points().len());
 
+        let position = vertex.position();
+
         // Construct and insert the point
         let p = Point2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
-        let col = &attrs.interpolated_attributes();
+        let col = vertex.interpolated_attributes();
         let color: draw::mesh::vertex::Color = (col[0], col[1], col[2], col[3]).into();
         let tex_coords = draw::mesh::vertex::default_tex_coords();
         let vertex = draw::mesh::vertex::new(point, color, tex_coords);
@@ -162,16 +162,17 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
 impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
     fn add_stroke_vertex(
         &mut self,
-        position: lyon::math::Point,
-        mut attrs: StrokeAttributes,
+        mut vertex: StrokeVertex,
     ) -> Result<VertexId, GeometryBuilderError> {
         // Retrieve the index.
         let id = VertexId::from_usize(self.mesh.points().len());
 
+        let position = vertex.position();
+
         // Construct and insert the point
         let p = Point2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
-        let col = &attrs.interpolated_attributes();
+        let col = vertex.interpolated_attributes();
         let color: draw::mesh::vertex::Color = (col[0], col[1], col[2], col[3]).into();
         let tex_coords = draw::mesh::vertex::default_tex_coords();
         let vertex = draw::mesh::vertex::new(point, color, tex_coords);
@@ -185,16 +186,17 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
 impl<'a> FillGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
     fn add_fill_vertex(
         &mut self,
-        position: lyon::math::Point,
-        mut attrs: FillAttributes,
+        mut vertex: FillVertex,
     ) -> Result<VertexId, GeometryBuilderError> {
         // Retrieve the index.
         let id = VertexId::from_usize(self.mesh.points().len());
 
+        let position = vertex.position();
+
         // Construct and insert the point
         let p = Point2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
-        let tc = &attrs.interpolated_attributes();
+        let tc = vertex.interpolated_attributes();
         let tex_coords: draw::mesh::vertex::TexCoords = (tc[0], tc[1]).into();
         let color = draw::mesh::vertex::DEFAULT_VERTEX_COLOR;
         let vertex = draw::mesh::vertex::new(point, color, tex_coords);
@@ -208,16 +210,17 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
 impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
     fn add_stroke_vertex(
         &mut self,
-        position: lyon::math::Point,
-        mut attrs: StrokeAttributes,
+        mut vertex: StrokeVertex,
     ) -> Result<VertexId, GeometryBuilderError> {
         // Retrieve the index.
         let id = VertexId::from_usize(self.mesh.points().len());
 
+        let position = vertex.position();
+
         // Construct and insert the point
         let p = Point2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
-        let tc = &attrs.interpolated_attributes();
+        let tc = vertex.interpolated_attributes();
         let tex_coords: draw::mesh::vertex::TexCoords = (tc[0], tc[1]).into();
         let color = draw::mesh::vertex::DEFAULT_VERTEX_COLOR;
         let vertex = draw::mesh::vertex::new(point, color, tex_coords);
