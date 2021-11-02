@@ -1,6 +1,6 @@
 //! A crate aimed at making it easy to set up an ISF hot-loading environment with nannou.
 
-pub use crate::pipeline::{IsfPipeline, IsfTime};
+pub use crate::pipeline::{IsfInputData, IsfPipeline, IsfTime};
 use std::path::Path;
 
 mod pipeline;
@@ -13,6 +13,61 @@ pub fn isf_from_shader_path(path: &Path) -> Result<isf::Isf, isf::ParseError> {
     isf::parse(&glsl_string)
 }
 
+/// The associated uniform type for the given input type.
+///
+/// Returns `None` for variants that are not stored within the uniform buffer.
+pub fn input_type_uniform_type(ty: &isf::InputType) -> Option<&'static str> {
+    let s = match *ty {
+        isf::InputType::Event | isf::InputType::Bool(_) => "bool",
+        isf::InputType::Long(_) => "int",
+        isf::InputType::Float(_) => "float",
+        isf::InputType::Point2d(_) => "vec2",
+        isf::InputType::Color(_) => "vec4",
+        isf::InputType::Image | isf::InputType::Audio(_) | isf::InputType::AudioFft(_) => {
+            return None
+        }
+    };
+    Some(s)
+}
+
+/// The size in bytes of the input type when laid out within the uniform struct.
+///
+/// Returns `None` for variants that are not stored within the uniform buffer.
+pub fn input_type_uniform_size_bytes(ty: &isf::InputType) -> Option<usize> {
+    let size = match *ty {
+        isf::InputType::Color(_) => 4 * 4,
+        isf::InputType::Point2d(_) => 2 * 2,
+        isf::InputType::Long(_)
+        | isf::InputType::Float(_)
+        | isf::InputType::Bool(_)
+        | isf::InputType::Event { .. } => 1 * 4,
+        isf::InputType::Image | isf::InputType::Audio(_) | isf::InputType::AudioFft(_) => {
+            return None
+        }
+    };
+    Some(size)
+}
+
+/// Produces a `Vec` containing the given inputs in the order that they should be laid out within
+/// the glsl `uniforms`.
+///
+/// This *must* match the `pipeline::isf_inputs_by_uniform_order` order.
+pub fn inputs_by_uniform_order(inputs: &[isf::Input]) -> Vec<&isf::Input> {
+    let mut inputs: Vec<_> = inputs
+        .iter()
+        .filter(|i| input_type_uniform_size_bytes(&i.ty).is_some())
+        .collect();
+    inputs.sort_by(|a, b| {
+        let a_s = input_type_uniform_size_bytes(&a.ty);
+        let b_s = input_type_uniform_size_bytes(&b.ty);
+        match b_s.cmp(&a_s) {
+            std::cmp::Ordering::Equal => a.name.cmp(&b.name),
+            ord => ord,
+        }
+    });
+    inputs
+}
+
 /// Generate the necessary GLSL declarations from the given ISF to be prefixed to the GLSL string
 /// from which the ISF was parsed.
 ///
@@ -20,19 +75,19 @@ pub fn isf_from_shader_path(path: &Path) -> Result<isf::Isf, isf::ParseError> {
 pub fn glsl_string_from_isf(isf: &isf::Isf) -> String {
     // The normalised coords passed through from the vertex shader.
     let frag_norm_coord_str = "
-        layout(location = 0) in vec2 isf_FragNormCoord;
+layout(location = 0) in vec2 isf_FragNormCoord;\n\
     ";
 
     // Create the `IsfData` uniform buffer with time, date, etc.
     let isf_data_str = "
-        layout(set = 0, binding = 0) uniform IsfData {
-            int PASSINDEX;
-            vec2 RENDERSIZE;
-            float TIME;
-            float TIMEDELTA;
-            vec4 DATE;
-            int FRAMEINDEX;
-        };
+layout(set = 0, binding = 0) uniform IsfData {
+    vec4 DATE;
+    vec2 RENDERSIZE;
+    float TIME;
+    float TIMEDELTA;
+    int PASSINDEX;
+    int FRAMEINDEX;
+};\n\
     ";
 
     // Create the `IsfDataInputs` uniform buffer with a field for each event, float, long, bool,
@@ -41,21 +96,20 @@ pub fn glsl_string_from_isf(isf: &isf::Isf) -> String {
         false => None,
         true => {
             let mut isf_data_input_string = "
-                layout(set = 1, binding = 0) uniform IsfDataInputs {\n
+layout(set = 1, binding = 0) uniform IsfDataInputs {\n\
             "
             .to_string();
-            for input in &isf.inputs {
-                let ty_str = match input.ty {
-                    isf::InputType::Event | isf::InputType::Bool(_) => "bool",
-                    isf::InputType::Long(_) => "int",
-                    isf::InputType::Float(_) => "float",
-                    isf::InputType::Point2d(_) => "vec2",
-                    isf::InputType::Color(_) => "vec4",
-                    isf::InputType::Image
-                    | isf::InputType::Audio(_)
-                    | isf::InputType::AudioFft(_) => continue,
+
+            // Input uniforms should be sorted by name and input type uniform size.
+
+            // Must layout from largest to smallest types to avoid padding holes, and then ordered
+            // by `name` to match the `BTreeMap` stored in the `IsfPipeline`.
+            for input in inputs_by_uniform_order(&isf.inputs) {
+                let ty_str = match input_type_uniform_type(&input.ty) {
+                    Some(s) => s,
+                    None => continue,
                 };
-                isf_data_input_string.push_str(&format!("{} {};\n", ty_str, input.name));
+                isf_data_input_string.push_str(&format!("    {} {};\n", ty_str, input.name));
             }
             isf_data_input_string.push_str("};\n");
             Some(isf_data_input_string)
@@ -64,7 +118,7 @@ pub fn glsl_string_from_isf(isf: &isf::Isf) -> String {
 
     // Create the `img_sampler` binding, used for sampling all input images.
     let img_sampler_str = "
-        layout(set = 2, binding = 0) uniform sampler img_sampler;
+layout(set = 2, binding = 0) uniform sampler img_sampler;\n\
     ";
 
     // Create the textures for the "IMPORTED" images.
@@ -111,32 +165,32 @@ pub fn glsl_string_from_isf(isf: &isf::Isf) -> String {
 
     // Image functions.
     let img_fns_str = "
-        // ISF provided short-hand for retrieving image size.
-        ivec2 IMG_SIZE(texture2D img) {
-            return textureSize(sampler2D(img, img_sampler), 0);
-        }
+// ISF provided short-hand for retrieving image size.
+ivec2 IMG_SIZE(texture2D img) {
+    return textureSize(sampler2D(img, img_sampler), 0);
+}
 
-        // ISF provided short-hand for retrieving image color.
-        vec4 IMG_NORM_PIXEL(texture2D img, vec2 norm_px_coord) {
-            return texture(sampler2D(img, img_sampler), norm_px_coord);
-        }
+// ISF provided short-hand for retrieving image color.
+vec4 IMG_NORM_PIXEL(texture2D img, vec2 norm_px_coord) {
+    return texture(sampler2D(img, img_sampler), norm_px_coord);
+}
 
-        // ISF provided short-hand for retrieving image color.
-        vec4 IMG_PIXEL(texture2D img, vec2 px_coord) {
-            ivec2 s = IMG_SIZE(img);
-            vec2 norm_px_coord = vec2(px_coord.x / float(s.x), px_coord.y / float(s.y));
-            return IMG_NORM_PIXEL(img, px_coord);
-        }
+// ISF provided short-hand for retrieving image color.
+vec4 IMG_PIXEL(texture2D img, vec2 px_coord) {
+    ivec2 s = IMG_SIZE(img);
+    vec2 norm_px_coord = vec2(px_coord.x / float(s.x), px_coord.y / float(s.y));
+    return IMG_NORM_PIXEL(img, px_coord);
+}
 
-        // ISF provided short-hand for retrieving image color.
-        vec4 IMG_THIS_NORM_PIXEL(texture2D img) {
-            return IMG_NORM_PIXEL(img, isf_FragNormCoord);
-        }
+// ISF provided short-hand for retrieving image color.
+vec4 IMG_THIS_NORM_PIXEL(texture2D img) {
+    return IMG_NORM_PIXEL(img, isf_FragNormCoord);
+}
 
-        // ISF provided short-hand for retrieving image color.
-        vec4 IMG_THIS_PIXEL(texture2D img) {
-            return IMG_THIS_NORM_PIXEL(img);
-        }
+// ISF provided short-hand for retrieving image color.
+vec4 IMG_THIS_PIXEL(texture2D img) {
+    return IMG_THIS_NORM_PIXEL(img);
+}
     ";
 
     // Combine all the declarations together.

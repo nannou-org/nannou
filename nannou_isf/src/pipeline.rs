@@ -1,7 +1,7 @@
 use nannou::image;
 use nannou::prelude::*;
 use nannou::wgpu::BufferInitDescriptor;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use thiserror::Error;
@@ -10,7 +10,7 @@ use threadpool::ThreadPool;
 /// A render pipeline designed for hotloading!
 pub struct IsfPipeline {
     isf: Option<isf::Isf>,
-    pub isf_data: IsfData,
+    isf_data: IsfData,
     isf_err: Option<IsfError>,
     image_loader: ImageLoader,
     vs: Shader,
@@ -22,6 +22,7 @@ pub struct IsfPipeline {
     isf_bind_group_layout: wgpu::BindGroupLayout,
     isf_inputs_bind_group_layout: wgpu::BindGroupLayout,
     isf_textures_bind_group_layout: wgpu::BindGroupLayout,
+    isf_textures_bind_group_descriptors: Vec<wgpu::TextureDescriptor<'static>>,
     isf_bind_group: wgpu::BindGroup,
     isf_inputs_bind_group: wgpu::BindGroup,
     isf_textures_bind_group: wgpu::BindGroup,
@@ -31,17 +32,18 @@ pub struct IsfPipeline {
     dst_format: wgpu::TextureFormat,
     dst_texture_size: [u32; 2],
     dst_sample_count: u32,
+    placeholder_texture: wgpu::Texture,
 }
 
 /// The first set of ISF uniforms that are available to every ISF shader.
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 struct IsfUniforms {
-    pass_index: i32,
+    date: [f32; 4],
     render_size: [f32; 2],
     time: f32,
     time_delta: f32,
-    date: [f32; 4],
+    pass_index: i32,
     frame_index: i32,
 }
 
@@ -63,8 +65,8 @@ pub struct IsfTime {
 /// `imported` textures can be accessed by the user.
 #[derive(Debug, Default)]
 pub struct IsfData {
-    imported: HashMap<ImportName, ImageState>,
-    inputs: HashMap<InputName, IsfInputData>,
+    imported: BTreeMap<ImportName, ImageState>,
+    inputs: BTreeMap<InputName, IsfInputData>,
     passes: Vec<wgpu::Texture>,
 }
 
@@ -106,14 +108,6 @@ pub enum IsfInputData {
         texture: wgpu::Texture,
     },
 }
-
-type IsfInputUniforms = [u32; 128];
-
-// #[derive(Clone, Debug)]
-// struct IsfInputUniforms {
-//     // Each supported uniform field type is 32-bit long, so store them as such.
-//     fields: Vec<u32>,
-// }
 
 /// A shader with some extra information relating to recent compilation success/failure.
 #[derive(Debug)]
@@ -192,16 +186,16 @@ pub enum ShaderError {
 
 const VERTICES: [Vertex; 4] = [
     Vertex {
-        position: [-1.0, -1.0],
-    },
-    Vertex {
         position: [-1.0, 1.0],
     },
     Vertex {
-        position: [1.0, -1.0],
+        position: [-1.0, -1.0],
     },
     Vertex {
         position: [1.0, 1.0],
+    },
+    Vertex {
+        position: [1.0, -1.0],
     },
 ];
 
@@ -263,13 +257,20 @@ impl ImageState {
 
 impl IsfData {
     /// The map of imported images.
-    pub fn imported(&self) -> &HashMap<ImportName, ImageState> {
+    pub fn imported(&self) -> &BTreeMap<ImportName, ImageState> {
         &self.imported
     }
 
     /// The map of all declared inputs.
-    pub fn inputs(&self) -> &HashMap<InputName, IsfInputData> {
+    pub fn inputs(&self) -> &BTreeMap<InputName, IsfInputData> {
         &self.inputs
+    }
+
+    /// An iterator yielding only the uniform inputs.
+    ///
+    /// Yields inputs in the order in which they are laid out in the generated shader.
+    pub fn uniform_inputs<'a>(&'a self) -> impl Iterator<Item = (&'a InputName, &'a IsfInputData)> {
+        isf_inputs_by_uniform_order(&self.inputs)
     }
 
     /// The texture stored for each pass.
@@ -318,7 +319,7 @@ impl IsfInputData {
             // `assets/images/`?  For now we'll black images.
             isf::InputType::Image => {
                 let mut image_state = ImageState::None;
-                if let Some(img_path) = image_paths(images_path).next() {
+                if let Some(img_path) = image_paths_ordered(images_path).into_iter().next() {
                     image_state.update(device, encoder, image_loader, img_path);
                 }
                 IsfInputData::Image(image_state)
@@ -365,6 +366,22 @@ impl IsfInputData {
         }
     }
 
+    /// The size of this field when laid out within the dynamically sized input uniform buffer.
+    pub fn uniform_size_bytes(&self) -> Option<usize> {
+        let size = match *self {
+            IsfInputData::Color(_) => 4 * 4,
+            IsfInputData::Point2d(_) => 2 * 2,
+            IsfInputData::Long(_)
+            | IsfInputData::Float(_)
+            | IsfInputData::Bool(_)
+            | IsfInputData::Event { .. } => 1 * 4,
+            IsfInputData::Image(_) | IsfInputData::Audio { .. } | IsfInputData::AudioFft { .. } => {
+                return None
+            }
+        };
+        Some(size)
+    }
+
     /// Update an existing instance ISF input data instance with the given input.
     fn update(
         &mut self,
@@ -382,7 +399,7 @@ impl IsfInputData {
             (IsfInputData::Point2d(_), isf::InputType::Point2d(_)) => {}
             (IsfInputData::Color(_), isf::InputType::Color(_)) => {}
             (IsfInputData::Image(ref mut state), isf::InputType::Image) => {
-                if let Some(img_path) = image_paths(images_path).next() {
+                if let Some(img_path) = image_paths_ordered(images_path).into_iter().next() {
                     state.update(device, encoder, image_loader, img_path);
                 }
             }
@@ -500,9 +517,6 @@ impl IsfPipeline {
         };
         let fs = Shader::fragment_from_path(device, fs_path);
 
-        dbg!(&vs);
-        dbg!(&fs);
-
         // Create a threadpool for loading images.
         let threadpool = ThreadPool::default();
         let image_loader = ImageLoader { threadpool };
@@ -521,19 +535,23 @@ impl IsfPipeline {
             );
         }
 
-        // Prepare the uniform buffers.
+        // Prepare the uniform data.
         let [dst_tex_w, dst_tex_h] = dst_texture_size;
         let isf_uniforms = IsfUniforms {
-            pass_index: 0,
+            date: [0.0; 4],
             render_size: [dst_tex_w as f32, dst_tex_h as f32],
             time: 0.0,
             time_delta: 0.0,
-            date: [0.0; 4],
+            pass_index: 0,
             frame_index: 0,
         };
+        let isf_input_uniforms = isf_inputs_to_uniform_data(&isf_data.inputs);
+
+        // Convert uniform data to bytes for upload.
         let isf_uniforms_bytes = isf_uniforms_as_bytes(&isf_uniforms);
-        let isf_input_uniforms: IsfInputUniforms = [0u32; 128];
         let isf_input_uniforms_bytes = isf_input_uniforms_as_bytes(&isf_input_uniforms);
+
+        // Create the uniform buffers.
         let uniforms_usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
         let isf_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: None,
@@ -551,6 +569,11 @@ impl IsfPipeline {
         let sampler_filtering = wgpu::sampler_filtering(&sampler_desc);
         let sampler = device.create_sampler(&sampler_desc);
 
+        // Create the placeholder texture for the case where an image is not yet loaded.
+        let placeholder_texture = wgpu::TextureBuilder::new()
+            .usage(wgpu::TextureUsage::SAMPLED)
+            .build(device);
+
         // Prepare the bind group layouts.
         let isf_bind_group_layout = wgpu::BindGroupLayoutBuilder::new()
             .uniform_buffer(wgpu::ShaderStage::FRAGMENT, false)
@@ -558,21 +581,32 @@ impl IsfPipeline {
         let isf_inputs_bind_group_layout = wgpu::BindGroupLayoutBuilder::new()
             .uniform_buffer(wgpu::ShaderStage::FRAGMENT, false)
             .build(device);
-        let isf_textures_bind_group_layout =
-            create_isf_textures_bind_group_layout(device, sampler_filtering, &isf_data);
+        let isf_textures_bind_group_layout = create_isf_textures_bind_group_layout(
+            device,
+            sampler_filtering,
+            &isf_data,
+            &placeholder_texture,
+        );
+
+        // Track the descriptors in case we need to rebuild pipeline.
+        let isf_textures_bind_group_descriptors =
+            isf_data_textures(&isf_data, &placeholder_texture)
+                .map(|texture| texture.descriptor().clone())
+                .collect();
 
         // Create the bind groups
         let isf_bind_group = wgpu::BindGroupBuilder::new()
             .buffer::<IsfUniforms>(&isf_uniform_buffer, 0..1)
             .build(device, &isf_bind_group_layout);
         let isf_inputs_bind_group = wgpu::BindGroupBuilder::new()
-            .buffer::<IsfInputUniforms>(&isf_inputs_uniform_buffer, 0..1)
+            .buffer::<u32>(&isf_inputs_uniform_buffer, 0..isf_input_uniforms.len())
             .build(device, &isf_inputs_bind_group_layout);
         let isf_textures_bind_group = create_isf_textures_bind_group(
             device,
             &isf_textures_bind_group_layout,
             &sampler,
             &isf_data,
+            &placeholder_texture,
         );
 
         // Create the render pipeline.
@@ -619,6 +653,7 @@ impl IsfPipeline {
             isf_bind_group_layout,
             isf_inputs_bind_group_layout,
             isf_textures_bind_group_layout,
+            isf_textures_bind_group_descriptors,
             isf_bind_group,
             isf_inputs_bind_group,
             isf_textures_bind_group,
@@ -628,7 +663,15 @@ impl IsfPipeline {
             dst_format,
             dst_texture_size,
             dst_sample_count,
+            placeholder_texture,
         }
+    }
+
+    /// Data loaded after successfully parsing the ISF descriptor.
+    ///
+    /// Provides access to the resources loaded for textures, inputs and passes.
+    pub fn isf_data(&self) -> &IsfData {
+        &self.isf_data
     }
 
     /// Update the ISF pipeline.
@@ -692,9 +735,6 @@ impl IsfPipeline {
             Some(ref isf) => isf,
         };
 
-        // Keep track of whether the number of textures change for our bind groups.
-        let texture_count = isf_data_textures(&self.isf_data).count();
-
         // Synchronise the ISF data.
         sync_isf_data(
             device,
@@ -709,20 +749,25 @@ impl IsfPipeline {
         // UPDATE TEXTURE BIND GROUP
         // -------------------------
 
-        // If the number of textures have changed, update the bind group and pipeline layout.
-        let new_texture_count = isf_data_textures(&self.isf_data).count();
-        let texture_count_changed = texture_count != new_texture_count;
-        if texture_count_changed {
+        // If the textures have changed, update the bind group and pipeline layout.
+        let new_texture_descriptors = isf_data_textures(&self.isf_data, &self.placeholder_texture)
+            .map(|texture| texture.descriptor().clone())
+            .collect::<Vec<_>>();
+        let textures_changed = self.isf_textures_bind_group_descriptors != new_texture_descriptors;
+        if textures_changed {
+            self.isf_textures_bind_group_descriptors = new_texture_descriptors;
             self.isf_textures_bind_group_layout = create_isf_textures_bind_group_layout(
                 device,
                 self.sampler_filtering,
                 &self.isf_data,
+                &self.placeholder_texture,
             );
             self.isf_textures_bind_group = create_isf_textures_bind_group(
                 device,
                 &self.isf_textures_bind_group_layout,
                 &self.sampler,
                 &self.isf_data,
+                &self.placeholder_texture,
             );
             self.layout = create_pipeline_layout(
                 device,
@@ -737,7 +782,7 @@ impl IsfPipeline {
         // UPDATE RENDER PIPELINE
         // ----------------------
 
-        if shader_recompiled || texture_count_changed {
+        if shader_recompiled || textures_changed {
             if let (Some(vs_mod), Some(fs_mod)) = (self.vs.module.as_ref(), self.fs.module.as_ref())
             {
                 self.render_pipeline = Some(create_render_pipeline(
@@ -785,10 +830,26 @@ impl IsfPipeline {
             let size = isf_uniforms_bytes.len() as wgpu::BufferAddress;
             encoder.copy_buffer_to_buffer(&new_buffer, 0, &self.isf_uniform_buffer, 0, size);
 
-            // TODO: Update the inputs.
-            let _ = &self.isf_inputs_uniform_buffer;
-            //let size = std::mem::size_of::<IsfInputUniforms>() as wgpu::BufferAddress;
-            //encoder.copy_buffer_to_buffer(&new_buffer, 0, &self.isf_inputs_uniform_buffer, 0, size);
+            // TODO: Update the inputs, but only if changed.
+            let isf_inputs_changed = true;
+            if isf_inputs_changed {
+                let isf_input_uniforms = isf_inputs_to_uniform_data(&self.isf_data.inputs);
+                let isf_input_uniforms_bytes = isf_input_uniforms_as_bytes(&isf_input_uniforms);
+                let usage = wgpu::BufferUsage::COPY_SRC;
+                let new_buffer = device.create_buffer_init(&BufferInitDescriptor {
+                    label: Some("nannou_isf-input_uniforms"),
+                    contents: &isf_input_uniforms_bytes,
+                    usage,
+                });
+                let size = isf_input_uniforms_bytes.len() as wgpu::BufferAddress;
+                encoder.copy_buffer_to_buffer(
+                    &new_buffer,
+                    0,
+                    &self.isf_inputs_uniform_buffer,
+                    0,
+                    size,
+                );
+            }
 
             // Encode the render pass.
             let mut render_pass = wgpu::RenderPassBuilder::new()
@@ -812,6 +873,14 @@ impl IsfPipeline {
         let device = frame.device_queue_pair().device();
         let mut encoder = frame.command_encoder();
         self.encode_render_pass(device, &mut *encoder, frame.texture_view(), isf_time);
+    }
+
+    /// Returns the current ISF read error for the fragment shader if there is one.
+    ///
+    /// Returns `Some` if an error occurred when parsing the ISF from the fragment shader the last
+    /// time the fragment shader file was touched.
+    pub fn isf_err(&self) -> Option<&IsfError> {
+        self.isf_err.as_ref()
     }
 
     /// Returns the current compilation error for the vertex shader if there is one.
@@ -843,11 +912,12 @@ fn create_isf_textures_bind_group_layout(
     device: &wgpu::Device,
     sampler_filtering: bool,
     isf_data: &IsfData,
+    placeholder_texture: &wgpu::Texture,
 ) -> wgpu::BindGroupLayout {
     // Begin with the sampler.
     let mut builder =
         wgpu::BindGroupLayoutBuilder::new().sampler(wgpu::ShaderStage::FRAGMENT, sampler_filtering);
-    for texture in isf_data_textures(isf_data) {
+    for texture in isf_data_textures(isf_data, placeholder_texture) {
         builder = builder.texture(
             wgpu::ShaderStage::FRAGMENT,
             false,
@@ -863,9 +933,10 @@ fn create_isf_textures_bind_group(
     layout: &wgpu::BindGroupLayout,
     sampler: &wgpu::Sampler,
     isf_data: &IsfData,
+    placeholder_texture: &wgpu::Texture,
 ) -> wgpu::BindGroup {
     let mut builder = wgpu::BindGroupBuilder::new().sampler(sampler);
-    let texture_views: Vec<_> = isf_data_textures(isf_data)
+    let texture_views: Vec<_> = isf_data_textures(isf_data, placeholder_texture)
         .map(|tex| tex.view().build())
         .collect();
     for texture_view in &texture_views {
@@ -879,7 +950,7 @@ fn create_pipeline_layout(
     bind_group_layouts: &[&wgpu::BindGroupLayout],
 ) -> wgpu::PipelineLayout {
     let desc = wgpu::PipelineLayoutDescriptor {
-        label: None,
+        label: Some("nannou_isf-pipeline_layout"),
         bind_group_layouts,
         push_constant_ranges: &[],
     };
@@ -905,21 +976,23 @@ fn create_render_pipeline(
 
 // All textures stored within the `IsfData` instance in the order that they should be declared in
 // the order expected by the isf textures bind group.
-fn isf_data_textures(isf_data: &IsfData) -> impl Iterator<Item = &wgpu::Texture> {
-    let imported = isf_data.imported.values().filter_map(|state| match state {
-        ImageState::Ready(ref img_res) => match img_res {
-            Ok(ref img_data) => Some(&img_data.texture),
-            _ => None,
-        },
-        _ => None,
+fn isf_data_textures<'a>(
+    isf_data: &'a IsfData,
+    placeholder: &'a wgpu::Texture,
+) -> impl Iterator<Item = &'a wgpu::Texture> {
+    let imported = isf_data.imported.values().map(move |state| match state {
+        ImageState::Ready(Ok(ref img_data)) => &img_data.texture,
+        ImageState::Ready(Err(_)) | ImageState::None | ImageState::Loading(_) => placeholder,
     });
     let inputs = isf_data
         .inputs
         .values()
-        .filter_map(|input_data| match input_data {
+        .filter_map(move |input_data| match input_data {
             IsfInputData::Image(ref img_state) => match *img_state {
                 ImageState::Ready(Ok(ref data)) => Some(&data.texture),
-                _ => None,
+                ImageState::Ready(Err(_)) | ImageState::None | ImageState::Loading(_) => {
+                    Some(placeholder)
+                }
             },
             IsfInputData::Audio { ref texture, .. }
             | IsfInputData::AudioFft { ref texture, .. } => Some(texture),
@@ -940,9 +1013,7 @@ fn sync_isf_data(
     isf_data: &mut IsfData,
 ) {
     // Update imported images. first.
-    isf_data
-        .imported
-        .retain(|name, _| isf.imported.contains_key(name));
+    btreemap_retain(&mut isf_data.imported, |k, _| isf.imported.contains_key(k));
     for (key, img) in &isf.imported {
         let state = isf_data
             .imported
@@ -952,9 +1023,9 @@ fn sync_isf_data(
     }
 
     // First, check all imported textures are loading.
-    isf_data
-        .inputs
-        .retain(|key, _| isf.inputs.iter().map(|i| &i.name).any(|n| n == key));
+    btreemap_retain(&mut isf_data.inputs, |k, _| {
+        isf.inputs.iter().map(|i| &i.name).any(|n| n == k)
+    });
     for input in &isf.inputs {
         let input_data = isf_data
             .inputs
@@ -976,6 +1047,62 @@ fn sync_isf_data(
         texture.upload_data(device, encoder, &data);
         texture
     });
+}
+
+// The order in which inputs are laid out in the uniform buffer.
+//
+// This is important to meet the conditions required by wgpu uniform layout. Specifically, 16-byte
+// types must be aligned to 16 bytes, 8-byte types must be aligned to 8-bytes, etc.
+//
+// This must match the order specified in the generated glsl shader.
+fn isf_inputs_by_uniform_order(
+    inputs: &BTreeMap<InputName, IsfInputData>,
+) -> impl Iterator<Item = (&InputName, &IsfInputData)> {
+    let b16 = inputs
+        .iter()
+        .filter(|(_k, v)| v.uniform_size_bytes() == Some(16));
+    let b8 = inputs
+        .iter()
+        .filter(|(_k, v)| v.uniform_size_bytes() == Some(8));
+    let b4 = inputs
+        .iter()
+        .filter(|(_k, v)| v.uniform_size_bytes() == Some(4));
+    b16.chain(b8).chain(b4)
+}
+
+// Encodes the ISF inputs to a slice of `u32` values, ready for uploading to the GPU.
+fn isf_inputs_to_uniform_data(inputs: &BTreeMap<InputName, IsfInputData>) -> Vec<u32> {
+    let mut u32s: Vec<u32> = vec![];
+    for (_k, v) in isf_inputs_by_uniform_order(inputs) {
+        match *v {
+            IsfInputData::Event { happening } => {
+                u32s.push(if happening { 1 } else { 0 });
+            }
+            IsfInputData::Bool(b) => {
+                u32s.push(if b { 1 } else { 0 });
+            }
+            IsfInputData::Long(l) => {
+                u32s.push(u32::from_le_bytes(l.to_le_bytes()));
+            }
+            IsfInputData::Float(f) => {
+                u32s.push(f.to_bits());
+            }
+            IsfInputData::Point2d(Point2 { x, y }) => {
+                u32s.push(x.to_bits());
+                u32s.push(y.to_bits());
+            }
+            IsfInputData::Color(ref color) => {
+                u32s.push(color.red.to_bits());
+                u32s.push(color.green.to_bits());
+                u32s.push(color.blue.to_bits());
+                u32s.push(color.alpha.to_bits());
+            }
+            IsfInputData::Image(_) | IsfInputData::Audio { .. } | IsfInputData::AudioFft { .. } => {
+                ()
+            }
+        }
+    }
+    u32s
 }
 
 fn create_black_texture(
@@ -1011,6 +1138,25 @@ fn image_paths(dir: &Path) -> impl Iterator<Item = PathBuf> {
         .filter_map(|res| res.ok())
         .map(|entry| entry.path().to_path_buf())
         .filter(|path| image::image_dimensions(path).ok().is_some())
+}
+
+fn image_paths_ordered(dir: &Path) -> Vec<PathBuf> {
+    let mut paths: Vec<_> = image_paths(dir).collect();
+    paths.sort();
+    paths
+}
+
+fn btreemap_retain<K, V, F>(map: &mut BTreeMap<K, V>, mut pred: F)
+where
+    K: Ord,
+    F: FnMut(&mut K, &mut V) -> bool,
+{
+    let temp = std::mem::replace(map, Default::default());
+    for (mut k, mut v) in temp {
+        if pred(&mut k, &mut v) {
+            map.insert(k, v);
+        }
+    }
 }
 
 // Conversions to bytes for GPU buffer uploads.
