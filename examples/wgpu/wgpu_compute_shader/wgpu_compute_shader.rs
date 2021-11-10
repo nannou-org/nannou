@@ -40,10 +40,11 @@ fn main() {
 fn model(app: &App) -> Model {
     let w_id = app.new_window().size(1440, 512).view(view).build().unwrap();
     let window = app.window(w_id).unwrap();
-    let device = window.swap_chain_device();
+    let device = window.device();
 
     // Create the compute shader module.
-    let cs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/comp.spv"));
+    let cs_desc = wgpu::include_wgsl!("shaders/cs.wgsl");
+    let cs_mod = device.create_shader_module(&cs_desc);
 
     // Create the buffer that will store the result of our compute operation.
     let oscillator_buffer_size =
@@ -51,16 +52,16 @@ fn model(app: &App) -> Model {
     let oscillator_buffer = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("oscillators"),
         size: oscillator_buffer_size,
-        usage: wgpu::BufferUsage::STORAGE
-            | wgpu::BufferUsage::COPY_DST
-            | wgpu::BufferUsage::COPY_SRC,
+        usage: wgpu::BufferUsages::STORAGE
+            | wgpu::BufferUsages::COPY_DST
+            | wgpu::BufferUsages::COPY_SRC,
         mapped_at_creation: false,
     });
 
     // Create the buffer that will store time.
     let uniforms = create_uniforms(app.time, app.mouse.x, window.rect());
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
-    let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
+    let usage = wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST;
     let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
         label: Some("uniform-buffer"),
         contents: uniforms_bytes,
@@ -102,7 +103,7 @@ fn model(app: &App) -> Model {
 
 fn update(app: &App, model: &mut Model, _update: Update) {
     let window = app.main_window();
-    let device = window.swap_chain_device();
+    let device = window.device();
     let win_rect = window.rect();
     let compute = &mut model.compute;
 
@@ -110,7 +111,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     let read_buffer = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("read-oscillators"),
         size: compute.oscillator_buffer_size,
-        usage: wgpu::BufferUsage::MAP_READ | wgpu::BufferUsage::COPY_DST,
+        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
         mapped_at_creation: false,
     });
 
@@ -118,7 +119,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     let uniforms = create_uniforms(app.time, app.mouse.x, win_rect);
     let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
-    let usage = wgpu::BufferUsage::COPY_SRC;
+    let usage = wgpu::BufferUsages::COPY_SRC;
     let new_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
         label: Some("uniform-data-transfer"),
         contents: uniforms_bytes,
@@ -155,7 +156,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     );
 
     // Submit the compute pass to the device's queue.
-    window.swap_chain_queue().submit(Some(encoder.finish()));
+    window.queue().submit(Some(encoder.finish()));
 
     // Spawn a future that reads the result of the compute pass.
     let oscillators = model.oscillators.clone();
@@ -228,11 +229,11 @@ fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     let uniform_dynamic = false;
     wgpu::BindGroupLayoutBuilder::new()
         .storage_buffer(
-            wgpu::ShaderStage::COMPUTE,
+            wgpu::ShaderStages::COMPUTE,
             storage_dynamic,
             storage_readonly,
         )
-        .uniform_buffer(wgpu::ShaderStage::COMPUTE, uniform_dynamic)
+        .uniform_buffer(wgpu::ShaderStages::COMPUTE, uniform_dynamic)
         .build(device)
 }
 

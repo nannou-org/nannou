@@ -174,7 +174,7 @@ impl<'a> Builder<'a> {
         let ui = conrod_core::UiBuilder::new(dimensions).theme(theme).build();
 
         // The device with which to create the `Ui` renderer.
-        let device = window.swap_chain_device().clone();
+        let device = window.device().clone();
 
         // Initialise the renderer which draws conrod::render::Primitives to the frame.
         let texture_format = Frame::TEXTURE_FORMAT;
@@ -388,7 +388,7 @@ pub fn encode_render_pass(
         .lock()
         .ok()
         .ok_or(DrawToFrameError::RendererPoisoned)?;
-    let device = window.swap_chain_device();
+    let device = window.device();
     let scale_factor = window.scale_factor();
     let (win_w, win_h) = window.inner_size_pixels();
     let viewport = [0.0, 0.0, win_w as f32, win_h as f32];

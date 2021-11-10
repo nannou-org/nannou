@@ -245,7 +245,8 @@ impl ImageState {
             }
             ImageState::Loading(ref rx) => match rx.try_recv() {
                 Ok(img_res) => {
-                    let usage = wgpu::TextureUsage::COPY_DST | wgpu::TextureUsage::SAMPLED;
+                    let usage =
+                        wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING;
                     let res = img_res.map(|image| {
                         let texture = wgpu::Texture::encode_load_from_image_buffer(
                             device, encoder, usage, &image,
@@ -534,7 +535,7 @@ impl IsfPipeline {
         let isf_uniforms_bytes = isf_uniforms_as_bytes(&isf_uniforms);
         let isf_input_uniforms: IsfInputUniforms = [0u32; 128];
         let isf_input_uniforms_bytes = isf_input_uniforms_as_bytes(&isf_input_uniforms);
-        let uniforms_usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
+        let uniforms_usage = wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST;
         let isf_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: None,
             contents: &isf_uniforms_bytes,
@@ -553,10 +554,10 @@ impl IsfPipeline {
 
         // Prepare the bind group layouts.
         let isf_bind_group_layout = wgpu::BindGroupLayoutBuilder::new()
-            .uniform_buffer(wgpu::ShaderStage::FRAGMENT, false)
+            .uniform_buffer(wgpu::ShaderStages::FRAGMENT, false)
             .build(device);
         let isf_inputs_bind_group_layout = wgpu::BindGroupLayoutBuilder::new()
-            .uniform_buffer(wgpu::ShaderStage::FRAGMENT, false)
+            .uniform_buffer(wgpu::ShaderStages::FRAGMENT, false)
             .build(device);
         let isf_textures_bind_group_layout =
             create_isf_textures_bind_group_layout(device, sampler_filtering, &isf_data);
@@ -598,7 +599,7 @@ impl IsfPipeline {
 
         // The quad vertex buffer.
         let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
-        let vertex_usage = wgpu::BufferUsage::VERTEX;
+        let vertex_usage = wgpu::BufferUsages::VERTEX;
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: None,
             contents: vertices_bytes,
@@ -776,7 +777,7 @@ impl IsfPipeline {
                 frame_index: isf_time.frame_index,
             };
             let isf_uniforms_bytes = isf_uniforms_as_bytes(&isf_uniforms);
-            let usage = wgpu::BufferUsage::COPY_SRC;
+            let usage = wgpu::BufferUsages::COPY_SRC;
             let new_buffer = device.create_buffer_init(&BufferInitDescriptor {
                 label: None,
                 contents: &isf_uniforms_bytes,
@@ -845,11 +846,11 @@ fn create_isf_textures_bind_group_layout(
     isf_data: &IsfData,
 ) -> wgpu::BindGroupLayout {
     // Begin with the sampler.
-    let mut builder =
-        wgpu::BindGroupLayoutBuilder::new().sampler(wgpu::ShaderStage::FRAGMENT, sampler_filtering);
+    let mut builder = wgpu::BindGroupLayoutBuilder::new()
+        .sampler(wgpu::ShaderStages::FRAGMENT, sampler_filtering);
     for texture in isf_data_textures(isf_data) {
         builder = builder.texture(
-            wgpu::ShaderStage::FRAGMENT,
+            wgpu::ShaderStages::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
             texture.sample_type(),
@@ -994,8 +995,8 @@ fn create_black_texture(
     texture
 }
 
-fn default_isf_texture_usage() -> wgpu::TextureUsage {
-    wgpu::TextureUsage::COPY_DST | wgpu::TextureUsage::SAMPLED
+fn default_isf_texture_usage() -> wgpu::TextureUsages {
+    wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING
 }
 
 fn read_isf_from_path(path: &Path) -> Result<isf::Isf, IsfError> {

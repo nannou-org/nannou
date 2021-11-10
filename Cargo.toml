@@ -19,3 +19,6 @@ members = [
     "scripts/run_all_examples",
     "scripts/set_version",
 ]
+
+# Required for wgpu v0.10 feature resolution.
+resolver = "2"

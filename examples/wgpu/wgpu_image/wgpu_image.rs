@@ -48,12 +48,14 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
     let window = app.window(w_id).unwrap();
-    let device = window.swap_chain_device();
+    let device = window.device();
     let format = Frame::TEXTURE_FORMAT;
     let msaa_samples = window.msaa_samples();
 
-    let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
-    let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
+    let vs_desc = wgpu::include_wgsl!("shaders/vs.wgsl");
+    let fs_desc = wgpu::include_wgsl!("shaders/fs.wgsl");
+    let vs_mod = device.create_shader_module(&vs_desc);
+    let fs_mod = device.create_shader_module(&fs_desc);
 
     // Load the image as a texture.
     let texture = wgpu::Texture::from_image(&window, &image);
@@ -78,7 +80,7 @@ fn model(app: &App) -> Model {
     );
 
     let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
-    let usage = wgpu::BufferUsage::VERTEX;
+    let usage = wgpu::BufferUsages::VERTEX;
     let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
         label: None,
         contents: vertices_bytes,
@@ -112,12 +114,12 @@ fn create_bind_group_layout(
 ) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
         .texture(
-            wgpu::ShaderStage::FRAGMENT,
+            wgpu::ShaderStages::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
             texture_sample_type,
         )
-        .sampler(wgpu::ShaderStage::FRAGMENT, sampler_filtering)
+        .sampler(wgpu::ShaderStages::FRAGMENT, sampler_filtering)
         .build(device)
 }
 

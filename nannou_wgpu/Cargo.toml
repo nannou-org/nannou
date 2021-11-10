@@ -14,10 +14,15 @@ futures = { version = "0.3", features = ["executor", "thread-pool"] }
 image = { version = "0.23", optional = true }
 instant = { version = "0.1.9", optional = true }
 num_cpus = { version = "1", optional = true }
-wgpu_upstream = { version = "0.9", package = "wgpu" }
+wgpu_upstream = { version = "0.10", package = "wgpu" }
 
 [features]
 capturer = ["image", "instant", "num_cpus"]
+replay = ["wgpu_upstream/replay"]
+serde = ["wgpu_upstream/serde"]
+spirv = ["wgpu_upstream/spirv"]
+trace = ["wgpu_upstream/trace"]
+webgl = ["wgpu_upstream/webgl"]
 
 [package.metadata.docs.rs]
-features = ["image", "capturer"]
+features = ["capturer", "image", "replay", "serde", "spirv", "trace", "webgl"]

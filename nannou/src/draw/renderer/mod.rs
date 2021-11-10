@@ -385,8 +385,10 @@ impl Renderer {
         );
 
         // Load shader modules.
-        let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
-        let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
+        let vs_desc = wgpu::include_wgsl!("shaders/vs.wgsl");
+        let fs_desc = wgpu::include_wgsl!("shaders/fs.wgsl");
+        let vs_mod = device.create_shader_module(&vs_desc);
+        let fs_mod = device.create_shader_module(&fs_desc);
 
         // Create the glyph cache texture.
         let text_sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
@@ -394,7 +396,7 @@ impl Renderer {
         let text_sampler = device.create_sampler(&text_sampler_desc);
         let glyph_cache_texture = wgpu::TextureBuilder::new()
             .size(glyph_cache_size)
-            .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
+            .usage(wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST)
             .format(Self::GLYPH_CACHE_TEXTURE_FORMAT)
             .build(device);
         let glyph_cache_texture_view =
@@ -408,14 +410,14 @@ impl Renderer {
         // The default texture for the case where the user has not specified one.
         let default_texture = wgpu::TextureBuilder::new()
             .size([64; 2])
-            .usage(wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST)
+            .usage(wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST)
             .build(device);
         let default_texture_view = default_texture.view().build();
 
         // Initial uniform buffer values. These will be overridden on draw.
         let uniforms = create_uniforms(output_attachment_size, output_scale_factor);
         let contents = uniforms_as_bytes(&uniforms);
-        let usage = wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST;
+        let usage = wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST;
         let uniform_buffer = device.create_buffer_init(&wgpu::BufferInitDescriptor {
             label: Some("nannou Renderer uniform_buffer"),
             contents,
@@ -840,7 +842,7 @@ impl Renderer {
         }
 
         // Create the vertex and index buffers.
-        let vertex_usage = wgpu::BufferUsage::VERTEX;
+        let vertex_usage = wgpu::BufferUsages::VERTEX;
         let points_bytes = points_as_bytes(mesh.points());
         let colors_bytes = colors_as_bytes(mesh.colors());
         let tex_coords_bytes = tex_coords_as_bytes(mesh.tex_coords());
@@ -869,7 +871,7 @@ impl Renderer {
         let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("nannou Renderer index_buffer"),
             contents: indices_bytes,
-            usage: wgpu::BufferUsage::INDEX,
+            usage: wgpu::BufferUsages::INDEX,
         });
 
         // If the scale factor or window size has changed, update the uniforms for vertex scaling.
@@ -879,7 +881,7 @@ impl Renderer {
             let uniforms = create_uniforms(output_attachment_size, scale_factor);
             let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
             let uniforms_bytes = uniforms_as_bytes(&uniforms);
-            let usage = wgpu::BufferUsage::COPY_SRC;
+            let usage = wgpu::BufferUsages::COPY_SRC;
             let new_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
                 label: Some("nannou Renderer uniform_buffer"),
                 contents: uniforms_bytes,
@@ -1014,7 +1016,7 @@ fn create_depth_texture(
     wgpu::TextureBuilder::new()
         .size(size)
         .format(depth_format)
-        .usage(wgpu::TextureUsage::RENDER_ATTACHMENT)
+        .usage(wgpu::TextureUsages::RENDER_ATTACHMENT)
         .sample_count(sample_count)
         .build(device)
 }
@@ -1039,15 +1041,15 @@ fn create_uniforms([img_w, img_h]: [u32; 2], scale_factor: f32) -> Uniforms {
 
 fn create_uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
-        .uniform_buffer(wgpu::ShaderStage::VERTEX, false)
+        .uniform_buffer(wgpu::ShaderStages::VERTEX, false)
         .build(device)
 }
 
 fn create_text_bind_group_layout(device: &wgpu::Device, filtering: bool) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
-        .sampler(wgpu::ShaderStage::FRAGMENT, filtering)
+        .sampler(wgpu::ShaderStages::FRAGMENT, filtering)
         .texture(
-            wgpu::ShaderStage::FRAGMENT,
+            wgpu::ShaderStages::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
             Renderer::GLYPH_CACHE_TEXTURE_FORMAT.describe().sample_type,
@@ -1061,9 +1063,9 @@ fn create_texture_bind_group_layout(
     texture_sample_type: wgpu::TextureSampleType,
 ) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
-        .sampler(wgpu::ShaderStage::FRAGMENT, filtering)
+        .sampler(wgpu::ShaderStages::FRAGMENT, filtering)
         .texture(
-            wgpu::ShaderStage::FRAGMENT,
+            wgpu::ShaderStages::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
             texture_sample_type,

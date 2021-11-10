@@ -43,17 +43,19 @@ fn model(app: &App) -> Model {
 
     // The gpu device associated with the window's swapchain
     let window = app.window(w_id).unwrap();
-    let device = window.swap_chain_device();
+    let device = window.device();
     let format = Frame::TEXTURE_FORMAT;
     let sample_count = window.msaa_samples();
 
     // Load shader modules.
-    let vs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/vert.spv"));
-    let fs_mod = wgpu::shader_from_spirv_bytes(device, include_bytes!("shaders/frag.spv"));
+    let vs_desc = wgpu::include_wgsl!("shaders/vs.wgsl");
+    let fs_desc = wgpu::include_wgsl!("shaders/fs.wgsl");
+    let vs_mod = device.create_shader_module(&vs_desc);
+    let fs_mod = device.create_shader_module(&fs_desc);
 
     // Create the vertex buffer.
     let vertices_bytes = vertices_as_bytes(&VERTICES[..]);
-    let usage = wgpu::BufferUsage::VERTEX;
+    let usage = wgpu::BufferUsages::VERTEX;
     let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
         label: None,
         contents: vertices_bytes,

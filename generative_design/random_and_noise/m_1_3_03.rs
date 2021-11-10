@@ -62,8 +62,8 @@ fn model(app: &App) -> Model {
     let texture = wgpu::TextureBuilder::new()
         .size([win.w() as u32, win.h() as u32])
         .format(wgpu::TextureFormat::Rgba8Unorm)
-        .usage(wgpu::TextureUsage::COPY_DST | wgpu::TextureUsage::SAMPLED)
-        .build(window.swap_chain_device());
+        .usage(wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING)
+        .build(window.device());
     Model {
         octaves: 4,
         falloff: 0.5,
@@ -114,7 +114,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     let flat_samples = image.as_flat_samples();
     model.texture.upload_data(
-        app.main_window().swap_chain_device(),
+        app.main_window().device(),
         &mut *frame.command_encoder(),
         &flat_samples.as_slice(),
     );

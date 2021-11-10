@@ -68,7 +68,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
         operation: wgpu::BlendOperation::Add,
     };
-    pub const DEFAULT_COLOR_WRITE: wgpu::ColorWrite = wgpu::ColorWrite::ALL;
+    pub const DEFAULT_COLOR_WRITE: wgpu::ColorWrites = wgpu::ColorWrites::ALL;
     pub const DEFAULT_BLEND_STATE: wgpu::BlendState = wgpu::BlendState {
         color: Self::DEFAULT_COLOR_BLEND,
         alpha: Self::DEFAULT_ALPHA_BLEND,
@@ -259,7 +259,7 @@ impl<'a> RenderPipelineBuilder<'a> {
     }
 
     /// Mask which enables/disables writes to different color/alpha channel.
-    pub fn write_mask(mut self, mask: wgpu::ColorWrite) -> Self {
+    pub fn write_mask(mut self, mask: wgpu::ColorWrites) -> Self {
         let state = self.color_state.get_or_insert(Self::DEFAULT_COLOR_STATE);
         state.write_mask = mask;
         self
@@ -408,7 +408,7 @@ impl<'a> RenderPipelineBuilder<'a> {
     /// consider using `add_vertex_buffer_layout` instead.
     pub fn add_vertex_buffer<V>(self, attrs: &'static [wgpu::VertexAttribute]) -> Self {
         let array_stride = std::mem::size_of::<V>() as wgpu::BufferAddress;
-        let step_mode = wgpu::InputStepMode::Vertex;
+        let step_mode = wgpu::VertexStepMode::Vertex;
         let descriptor = wgpu::VertexBufferLayout {
             array_stride,
             step_mode,
@@ -421,7 +421,7 @@ impl<'a> RenderPipelineBuilder<'a> {
     /// of the given vertex type.
     pub fn add_instance_buffer<I>(self, attrs: &'static [wgpu::VertexAttribute]) -> Self {
         let array_stride = std::mem::size_of::<I>() as wgpu::BufferAddress;
-        let step_mode = wgpu::InputStepMode::Instance;
+        let step_mode = wgpu::VertexStepMode::Instance;
         let descriptor = wgpu::VertexBufferLayout {
             array_stride,
             step_mode,
