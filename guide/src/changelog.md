@@ -22,6 +22,8 @@ back to the origins.
 - Provided an user-friendly way to get the character value of a pressed keyboard key.
 - Clear swapchain background automatically when re-allocated. Can set the clear color via `WindowBuilder::clear_color()`.
 - Remove `windowsos_drag_and_drop()`, since `cpal` and `winit` can now share a thread.
+- Provided a method which allows users to specify an initial default `LoopMode` in both `SketchBuilder` and `Builder`.
+  Updated the relevant example to showcase the new functionality.
 
 ---
 
