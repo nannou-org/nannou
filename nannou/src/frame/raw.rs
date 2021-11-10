@@ -30,19 +30,18 @@ pub struct RawFrame<'swap_chain> {
     command_encoder: Option<RefCell<wgpu::CommandEncoder>>,
     window_id: window::Id,
     nth: u64,
-    swap_chain_texture: &'swap_chain wgpu::TextureViewHandle,
+    swap_chain_texture: Option<&'swap_chain wgpu::TextureViewHandle>,
     device_queue_pair: Arc<wgpu::DeviceQueuePair>,
     texture_format: wgpu::TextureFormat,
     window_rect: geom::Rect,
 }
 
 impl<'swap_chain> RawFrame<'swap_chain> {
-    // Initialise a new empty frame ready for "drawing".
-    pub(crate) fn new_empty(
+    fn new_inner(
         device_queue_pair: Arc<wgpu::DeviceQueuePair>,
         window_id: window::Id,
         nth: u64,
-        swap_chain_texture: &'swap_chain wgpu::TextureViewHandle,
+        swap_chain_texture: Option<&'swap_chain wgpu::TextureViewHandle>,
         texture_format: wgpu::TextureFormat,
         window_rect: geom::Rect,
     ) -> Self {
@@ -62,7 +61,39 @@ impl<'swap_chain> RawFrame<'swap_chain> {
         };
         frame
     }
-
+    // Initialise a new empty frame ready for "drawing".
+    pub(crate) fn new_empty(
+        device_queue_pair: Arc<wgpu::DeviceQueuePair>,
+        window_id: window::Id,
+        nth: u64,
+        swap_chain_texture: &'swap_chain wgpu::TextureViewHandle,
+        texture_format: wgpu::TextureFormat,
+        window_rect: geom::Rect,
+    ) -> Self {
+        Self::new_inner(
+            device_queue_pair,
+            window_id,
+            nth,
+            Some(swap_chain_texture),
+            texture_format,
+            window_rect,
+        )
+    }
+    pub(crate) fn new_fake(
+        device_queue_pair: Arc<wgpu::DeviceQueuePair>,
+        nth: u64,
+        texture_format: wgpu::TextureFormat,
+        window_rect: geom::Rect,
+    ) -> Self {
+        Self::new_inner(
+            device_queue_pair,
+            unsafe { window::Id::dummy() },
+            nth,
+            None,
+            texture_format,
+            window_rect,
+        )
+    }
     // Submit the encoded commands to the queue of the device that was used to create the swap
     // chain texture.
     pub(crate) fn submit_inner(&mut self) {
@@ -111,8 +142,8 @@ impl<'swap_chain> RawFrame<'swap_chain> {
     }
 
     /// The swap chain texture that will be the target for drawing this frame.
-    pub fn swap_chain_texture(&self) -> &wgpu::TextureViewHandle {
-        &self.swap_chain_texture
+    pub fn swap_chain_texture(&self) -> Option<&wgpu::TextureViewHandle> {
+        self.swap_chain_texture
     }
 
     /// The texture format of the frame's swap chain texture.

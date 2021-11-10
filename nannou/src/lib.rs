@@ -34,6 +34,7 @@ pub mod ease;
 pub mod event;
 pub mod frame;
 pub mod geom;
+pub mod headless;
 pub mod image;
 pub mod io;
 pub mod noise;
@@ -65,4 +66,12 @@ pub fn app<M: 'static>(model: app::ModelFn<M>) -> app::Builder<M, Event> {
 /// stuff, you just want to play around with some ideas or make something pretty.
 pub fn sketch(view: app::SketchViewFn) -> app::SketchBuilder<Event> {
     app::Builder::sketch(view)
+}
+
+pub fn headless<M: 'static>(model: headless::ModelFn<M>) -> headless::Builder<M> {
+    headless::Builder::new(model)
+}
+
+pub fn headless_sketch(view: headless::SketchViewFn) -> headless::SketchBuilder {
+    headless::Builder::sketch(view)
 }

@@ -81,7 +81,7 @@ enum DefaultWindowSize {
 }
 
 /// The default `model` function used when none is specified by the user.
-fn default_model(_: &App) -> () {
+pub(crate) fn default_model(_: &App) -> () {
     ()
 }
 
@@ -184,11 +184,11 @@ pub struct Proxy {
 }
 
 // State related specifically to the application loop, shared between loop modes.
-struct LoopState {
-    updates_since_event: usize,
-    loop_start: Instant,
-    last_update: Instant,
-    total_updates: u64,
+pub(crate) struct LoopState {
+    pub(crate) updates_since_event: usize,
+    pub(crate) loop_start: Instant,
+    pub(crate) last_update: Instant,
+    pub(crate) total_updates: u64,
 }
 
 /// The mode in which the **App** is currently running the event loop and emitting `Update` events.
@@ -1053,7 +1053,6 @@ fn run_loop<M, E>(
         last_update: loop_start,
         total_updates: 0,
     };
-
     // Run the event loop.
     event_loop.run(move |mut event, event_loop_window_target, control_flow| {
         // Set the event loop window target pointer to allow for building windows.
