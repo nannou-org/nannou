@@ -1115,17 +1115,17 @@ fn run_loop<M, E>(
                     // Retrieve the surface frame and the number of this frame.
                     // NOTE: We avoid mutably borrowing `windows` map any longer than necessary to
                     // avoid restricting users from accessing `windows` during `view`.
-                    let (mut surface_frame_result, nth_frame) = {
+                    let (mut surface_tex_result, nth_frame) = {
                         let mut windows = app.windows.borrow_mut();
                         let window = windows
                             .get_mut(&window_id)
                             .expect("no window for `RedrawRequest`");
-                        let frame = window.surface.get_current_frame();
+                        let texture = window.surface.get_current_texture();
                         let nth_frame = window.frame_count;
-                        (frame, nth_frame)
+                        (texture, nth_frame)
                     };
 
-                    if let Err(e) = &surface_frame_result {
+                    if let Err(e) = &surface_tex_result {
                         match e {
                             // Sometimes redraws get delivered before resizes on x11 for unclear reasons.
                             // It goes all the way down to the API: if you ask x11 about the window size
@@ -1143,7 +1143,7 @@ fn run_loop<M, E>(
                                     .expect("no window for `RedrawRequest`");
                                 window
                                     .reconfigure_surface(window.tracked_state.physical_size.into());
-                                surface_frame_result = window.surface.get_current_frame();
+                                surface_tex_result = window.surface.get_current_texture();
                             }
                             wgpu::SurfaceError::Outdated => {} // skip frame
                             wgpu::SurfaceError::Timeout => {}  // skip frame
@@ -1153,9 +1153,8 @@ fn run_loop<M, E>(
                         }
                     }
 
-                    if let Ok(surface_frame) = surface_frame_result {
-                        let surface_texture = &surface_frame
-                            .output
+                    if let Ok(surface_tex) = surface_tex_result {
+                        let surface_texture = &surface_tex
                             .texture
                             .create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -1233,6 +1232,9 @@ fn run_loop<M, E>(
                                 None => raw_frame.submit(),
                             },
                         }
+
+                        // Queue has been submitted by now, time to present.
+                        surface_tex.present();
 
                         // Release immutable lock
                         drop(windows);

@@ -90,14 +90,14 @@ pub use wgpu_upstream::{
     RenderPipelineDescriptor, RequestAdapterOptions, RequestAdapterOptionsBase, RequestDeviceError,
     Sampler, SamplerBorderColor, SamplerDescriptor, ShaderLocation, ShaderModel, ShaderModule,
     ShaderModuleDescriptor, ShaderSource, ShaderStages, StencilFaceState, StencilOperation,
-    StencilState, StorageTextureAccess, Surface, SurfaceConfiguration, SurfaceError, SurfaceFrame,
-    SurfaceStatus, SurfaceTexture, Texture as TextureHandle, TextureAspect, TextureDescriptor,
-    TextureDimension, TextureFormat, TextureFormatFeatureFlags, TextureFormatFeatures,
-    TextureSampleType, TextureUsages, TextureView as TextureViewHandle, TextureViewDescriptor,
-    TextureViewDimension, UncapturedErrorHandler, VertexAttribute, VertexBufferLayout,
-    VertexFormat, VertexState, VertexStepMode, BIND_BUFFER_ALIGNMENT, COPY_BUFFER_ALIGNMENT,
-    COPY_BYTES_PER_ROW_ALIGNMENT, MAP_ALIGNMENT, PUSH_CONSTANT_ALIGNMENT, QUERY_SET_MAX_QUERIES,
-    QUERY_SIZE, VERTEX_STRIDE_ALIGNMENT,
+    StencilState, StorageTextureAccess, Surface, SurfaceConfiguration, SurfaceError, SurfaceStatus,
+    SurfaceTexture, Texture as TextureHandle, TextureAspect, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureFormatFeatureFlags, TextureFormatFeatures, TextureSampleType,
+    TextureUsages, TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension,
+    UncapturedErrorHandler, VertexAttribute, VertexBufferLayout, VertexFormat, VertexState,
+    VertexStepMode, COPY_BUFFER_ALIGNMENT, COPY_BYTES_PER_ROW_ALIGNMENT, MAP_ALIGNMENT,
+    PUSH_CONSTANT_ALIGNMENT, QUERY_RESOLVE_BUFFER_ALIGNMENT, QUERY_SET_MAX_QUERIES, QUERY_SIZE,
+    VERTEX_STRIDE_ALIGNMENT,
 };
 
 /// The default power preference used for requesting the WGPU adapter.
