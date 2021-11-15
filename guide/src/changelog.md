@@ -7,10 +7,33 @@ back to the origins.
 
 # Unreleased
 
+*No unreleased changes yet!*
+
+---
+
+# Version 0.18.0 (2021-11-15)
+
 ### wgpu 0.9 -> 0.11
 
-- `resolver = "2"` is now required in the top-level cargo manifest. See the
-  nannou workspace's `Cargo.toml` for an example.
+**Note:** As of wgpu 0.10, all nannou projects now require either:
+
+1. The following line in their top-level cargo manifest:
+   ```toml
+   resolver = "2"
+   ```
+   OR
+2. All packages must use the 2021 edition (or later) of Rust, e.g.
+   ```toml
+   edition = "2021"
+   ```
+
+This requirement is due to wgpu 0.10's reliance on the new version of cargo's
+dependency resolver and how it unifies features. Without either of the above
+amendments, you will likely run into strange upstream compilation errors. You
+can read more about the cargo dependency resolver versions here:
+
+https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions
+
 - As of wgpu 0.10, it is now pure Rust! No more SPIR-V cross.
 - The concept of the wgpu `SwapChain` has been removed by merging it into the
   `Surface`, simplifying internals and improving approachability.
@@ -32,7 +55,7 @@ For more details, see the wgpu CHANGELOG:
 - 0.10: https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#v010-2021-08-18
 - 0.11: https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#wgpu-011-2021-10-07
 
-### Other
+### General
 
 - Update `lyon` to version `0.17`.
 - Refactor the `nannou::mesh` module into a `nannou_mesh` crate, re-exported to

@@ -14,7 +14,7 @@ homepage = "https://github.com/nannou-org/nannou"
 edition = "2018"
 
 [dev-dependencies]
-nannou = { version ="0.17.0", path = "../nannou" }
+nannou = { version ="0.18.0", path = "../nannou" }
 usvg = "0.4"
 wikipedia = "0.3"
 
