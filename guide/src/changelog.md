@@ -7,6 +7,34 @@ back to the origins.
 
 # Unreleased
 
+### wgpu 0.9 -> 0.11
+
+- `resolver = "2"` is now required in the top-level cargo manifest. See the
+  nannou workspace's `Cargo.toml` for an example.
+- As of wgpu 0.10, it is now pure Rust! No more SPIR-V cross.
+- The concept of the wgpu `SwapChain` has been removed by merging it into the
+  `Surface`, simplifying internals and improving approachability.
+- WGSL is now wgpu's default shader format. All internal shaders and examples
+  have been updated to use WGSL instead of SPIR-V.
+- A new `spirv` feature has been added that enables the old behaviour of
+  accepting SPIR-V. This is disabled by default to try and keep build times low.
+- `TextureUsage`, `BufferUsage`, `ColorWrite` are renamed to plural.
+- Renamed `TextureUsage` consts: `SAMPLED` -> `TEXTURE_BINDING`, `STORAGE` ->
+  `STORAGE_BINDING`.
+- Renamed `InputStepMode` to `VertexStepMode`.
+- Readable storage textures are no longer a part of the base API. They are now
+  exposed via format-specific features, non-portably.
+- Added limits for binding sizes, vertex data, per-stage bindings, and others.
+- Adds ability to request a software (fallback) adapter.
+
+For more details, see the wgpu CHANGELOG:
+
+- 0.10: https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#v010-2021-08-18
+- 0.11: https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#wgpu-011-2021-10-07
+
+### Other
+
+- Update `lyon` to version `0.17`.
 - Refactor the `nannou::mesh` module into a `nannou_mesh` crate, re-exported to
   maintain the same API.
 - Refactor the `nannou::wgpu` module into a `nannou_wgpu` crate, re-exported to
@@ -17,13 +45,15 @@ back to the origins.
   automatically by the nannou `App`. The easiest approach is to register a
   `raw_event` function with the `Ui`'s window. Refer to the updated examples for
   demonstration.
-- Fix audio examples on Windows by adding `WindowBuilder` method `windowsos_drag_and_drop`. Disabling this allows `cpal` and `winit` to coexist on the same thread.
 - Add community tutorials section to the guide.
 - Provided an user-friendly way to get the character value of a pressed keyboard key.
-- Clear swapchain background automatically when re-allocated. Can set the clear color via `WindowBuilder::clear_color()`.
-- Remove `windowsos_drag_and_drop()`, since `cpal` and `winit` can now share a thread.
-- Provided a method which allows users to specify an initial default `LoopMode` in both `SketchBuilder` and `Builder`.
-  Updated the relevant example to showcase the new functionality.
+- Clear surface background automatically when re-allocated. Can set the clear
+  color via `WindowBuilder::clear_color()`.
+- Provided a method which allows users to specify an initial default `LoopMode`
+  in both `SketchBuilder` and `Builder`. Updated the relevant example to
+  showcase the new functionality.
+- Remove unused `daggy` dependency.
+- Avoids calling `update` under `LoopMode::Wait` if no events were received.
 
 ---
 
