@@ -42,6 +42,7 @@ pub struct Builder<'app> {
     title_was_set: bool,
     surface_conf_builder: SurfaceConfigurationBuilder,
     power_preference: wgpu::PowerPreference,
+    force_fallback_adapter: bool,
     device_desc: Option<wgpu::DeviceDescriptor<'static>>,
     user_functions: UserFunctions,
     msaa_samples: Option<u32>,
@@ -345,6 +346,8 @@ impl SurfaceConfigurationBuilder {
 impl<'app> Builder<'app> {
     /// The default power preference used to request the WGPU adapter.
     pub const DEFAULT_POWER_PREFERENCE: wgpu::PowerPreference = wgpu::DEFAULT_POWER_PREFERENCE;
+    /// The default `force_fallback_adapter` field used to request the WGPU adapter.
+    pub const DEFAULT_FORCE_FALLBACK_ADAPTER: bool = false;
 
     /// Begin building a new window.
     pub fn new(app: &'app App) -> Self {
@@ -354,6 +357,7 @@ impl<'app> Builder<'app> {
             title_was_set: false,
             surface_conf_builder: Default::default(),
             power_preference: Self::DEFAULT_POWER_PREFERENCE,
+            force_fallback_adapter: Self::DEFAULT_FORCE_FALLBACK_ADAPTER,
             device_desc: None,
             user_functions: Default::default(),
             msaa_samples: None,
@@ -383,6 +387,15 @@ impl<'app> Builder<'app> {
     /// By default, this is `wgpu::PowerPreference::HighPerformance`.
     pub fn power_preference(mut self, pref: wgpu::PowerPreference) -> Self {
         self.power_preference = pref;
+        self
+    }
+
+    /// Indicates that only a fallback adapter can be returned. This is generally a "software"
+    /// implementation on the system..
+    ///
+    /// By default, this is `false`.
+    pub fn force_fallback_adapter(mut self, force: bool) -> Self {
+        self.force_fallback_adapter = force;
         self
     }
 
@@ -721,6 +734,7 @@ impl<'app> Builder<'app> {
             title_was_set,
             surface_conf_builder,
             power_preference,
+            force_fallback_adapter,
             device_desc,
             user_functions,
             msaa_samples,
@@ -836,6 +850,7 @@ impl<'app> Builder<'app> {
         let request_adapter_opts = wgpu::RequestAdapterOptions {
             power_preference,
             compatible_surface: Some(&surface),
+            force_fallback_adapter,
         };
         let adapter = app
             .wgpu_adapters()
@@ -915,6 +930,7 @@ impl<'app> Builder<'app> {
             title_was_set,
             device_desc,
             power_preference,
+            force_fallback_adapter,
             surface_conf_builder,
             user_functions,
             msaa_samples,
@@ -929,6 +945,7 @@ impl<'app> Builder<'app> {
             title_was_set,
             device_desc,
             power_preference,
+            force_fallback_adapter,
             surface_conf_builder,
             user_functions,
             msaa_samples,

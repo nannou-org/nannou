@@ -10,9 +10,9 @@ homepage = "https://nannou.cc"
 edition = "2018"
 
 [dependencies]
-conrod_core = "0.75"
-conrod_wgpu = "0.75"
-conrod_winit = "0.75"
+conrod_core = "0.76"
+conrod_wgpu = "0.76"
+conrod_winit = "0.76"
 nannou = { version = "0.17.0", path = "../nannou", default-features = false }
 # Must be synchronised with the version used in the nannou dependency.
 # Required for the winit event conversion function macro to work.
