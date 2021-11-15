@@ -2583,7 +2583,34 @@ published.</p>
 back to the origins.</p>
 <hr />
 <h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
+<h3 id="wgpu-09---011"><a class="header" href="#wgpu-09---011">wgpu 0.9 -&gt; 0.11</a></h3>
 <ul>
+<li><code>resolver = &quot;2&quot;</code> is now required in the top-level cargo manifest. See the
+nannou workspace's <code>Cargo.toml</code> for an example.</li>
+<li>As of wgpu 0.10, it is now pure Rust! No more SPIR-V cross.</li>
+<li>The concept of the wgpu <code>SwapChain</code> has been removed by merging it into the
+<code>Surface</code>, simplifying internals and improving approachability.</li>
+<li>WGSL is now wgpu's default shader format. All internal shaders and examples
+have been updated to use WGSL instead of SPIR-V.</li>
+<li>A new <code>spirv</code> feature has been added that enables the old behaviour of
+accepting SPIR-V. This is disabled by default to try and keep build times low.</li>
+<li><code>TextureUsage</code>, <code>BufferUsage</code>, <code>ColorWrite</code> are renamed to plural.</li>
+<li>Renamed <code>TextureUsage</code> consts: <code>SAMPLED</code> -&gt; <code>TEXTURE_BINDING</code>, <code>STORAGE</code> -&gt;
+<code>STORAGE_BINDING</code>.</li>
+<li>Renamed <code>InputStepMode</code> to <code>VertexStepMode</code>.</li>
+<li>Readable storage textures are no longer a part of the base API. They are now
+exposed via format-specific features, non-portably.</li>
+<li>Added limits for binding sizes, vertex data, per-stage bindings, and others.</li>
+<li>Adds ability to request a software (fallback) adapter.</li>
+</ul>
+<p>For more details, see the wgpu CHANGELOG:</p>
+<ul>
+<li>0.10: https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#v010-2021-08-18</li>
+<li>0.11: https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#wgpu-011-2021-10-07</li>
+</ul>
+<h3 id="other"><a class="header" href="#other">Other</a></h3>
+<ul>
+<li>Update <code>lyon</code> to version <code>0.17</code>.</li>
 <li>Refactor the <code>nannou::mesh</code> module into a <code>nannou_mesh</code> crate, re-exported to
 maintain the same API.</li>
 <li>Refactor the <code>nannou::wgpu</code> module into a <code>nannou_wgpu</code> crate, re-exported to
@@ -2594,13 +2621,15 @@ that input must now be manually submitted to the <code>Ui</code> and is no longe
 automatically by the nannou <code>App</code>. The easiest approach is to register a
 <code>raw_event</code> function with the <code>Ui</code>'s window. Refer to the updated examples for
 demonstration.</li>
-<li>Fix audio examples on Windows by adding <code>WindowBuilder</code> method <code>windowsos_drag_and_drop</code>. Disabling this allows <code>cpal</code> and <code>winit</code> to coexist on the same thread.</li>
 <li>Add community tutorials section to the guide.</li>
 <li>Provided an user-friendly way to get the character value of a pressed keyboard key.</li>
-<li>Clear swapchain background automatically when re-allocated. Can set the clear color via <code>WindowBuilder::clear_color()</code>.</li>
-<li>Remove <code>windowsos_drag_and_drop()</code>, since <code>cpal</code> and <code>winit</code> can now share a thread.</li>
-<li>Provided a method which allows users to specify an initial default <code>LoopMode</code> in both <code>SketchBuilder</code> and <code>Builder</code>.
-Updated the relevant example to showcase the new functionality.</li>
+<li>Clear surface background automatically when re-allocated. Can set the clear
+color via <code>WindowBuilder::clear_color()</code>.</li>
+<li>Provided a method which allows users to specify an initial default <code>LoopMode</code>
+in both <code>SketchBuilder</code> and <code>Builder</code>. Updated the relevant example to
+showcase the new functionality.</li>
+<li>Remove unused <code>daggy</code> dependency.</li>
+<li>Avoids calling <code>update</code> under <code>LoopMode::Wait</code> if no events were received.</li>
 </ul>
 <hr />
 <h3 id="nannou-0171-2021-07-02"><a class="header" href="#nannou-0171-2021-07-02"><code>nannou</code> 0.17.1 (2021-07-02)</a></h3>
