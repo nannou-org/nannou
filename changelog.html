@@ -147,10 +147,27 @@
 back to the origins.</p>
 <hr />
 <h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
+<p><em>No unreleased changes yet!</em></p>
+<hr />
+<h1 id="version-0180-2021-11-15"><a class="header" href="#version-0180-2021-11-15">Version 0.18.0 (2021-11-15)</a></h1>
 <h3 id="wgpu-09---011"><a class="header" href="#wgpu-09---011">wgpu 0.9 -&gt; 0.11</a></h3>
+<p><strong>Note:</strong> As of wgpu 0.10, all nannou projects now require either:</p>
+<ol>
+<li>The following line in their top-level cargo manifest:
+<pre><code class="language-toml">resolver = &quot;2&quot;
+</code></pre>
+OR</li>
+<li>All packages must use the 2021 edition (or later) of Rust, e.g.
+<pre><code class="language-toml">edition = &quot;2021&quot;
+</code></pre>
+</li>
+</ol>
+<p>This requirement is due to wgpu 0.10's reliance on the new version of cargo's
+dependency resolver and how it unifies features. Without either of the above
+amendments, you will likely run into strange upstream compilation errors. You
+can read more about the cargo dependency resolver versions here:</p>
+<p>https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions</p>
 <ul>
-<li><code>resolver = &quot;2&quot;</code> is now required in the top-level cargo manifest. See the
-nannou workspace's <code>Cargo.toml</code> for an example.</li>
 <li>As of wgpu 0.10, it is now pure Rust! No more SPIR-V cross.</li>
 <li>The concept of the wgpu <code>SwapChain</code> has been removed by merging it into the
 <code>Surface</code>, simplifying internals and improving approachability.</li>
@@ -172,7 +189,7 @@ exposed via format-specific features, non-portably.</li>
 <li>0.10: https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#v010-2021-08-18</li>
 <li>0.11: https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#wgpu-011-2021-10-07</li>
 </ul>
-<h3 id="other"><a class="header" href="#other">Other</a></h3>
+<h3 id="general"><a class="header" href="#general">General</a></h3>
 <ul>
 <li>Update <code>lyon</code> to version <code>0.17</code>.</li>
 <li>Refactor the <code>nannou::mesh</code> module into a <code>nannou_mesh</code> crate, re-exported to
