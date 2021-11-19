@@ -95,6 +95,14 @@ impl Builder {
         lyon::path::builder::Flattened::new(self, tolerance)
     }
 
+    /// Sets the position in preparation for the next sub-path.
+    ///
+    /// If the current sub-path contains edges, this ends the sub-path without closing it.
+    pub fn begin(mut self, to: Point2) -> Self {
+        self.builder.begin(to.to_array().into());
+        self
+    }
+
     /// Adds a line segment to the current sub-path and sets the current position.
     pub fn line_to(mut self, to: Point2) -> Self {
         self.builder.line_to(to.to_array().into());
