@@ -963,7 +963,7 @@ impl draw::Draw {
     }
 }
 
-impl<'a> wgpu::DeviceQueuePair for &'a crate::app::App {
+impl<'a> wgpu::WithDeviceQueuePair for &'a crate::app::App {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
         F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
