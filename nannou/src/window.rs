@@ -1555,7 +1555,7 @@ impl From<winit::error::OsError> for BuildError {
 
 // Some WGPU helper implementations.
 
-impl<'a> wgpu::WithDeviceQueuePair for &'a crate::window::Window {
+impl<'a> wgpu::DeviceQueuePair for &'a crate::window::Window {
     fn with_device_queue_pair<F, O>(self, f: F) -> O
     where
         F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
