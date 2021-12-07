@@ -862,6 +862,21 @@ impl<'app> Builder<'app> {
             window.build(window_target)?
         };
 
+        #[cfg(target_arch = "wasm32")]
+        {
+            use winit::platform::web::WindowExtWebSys;
+            let canvas = window.canvas();
+
+            web_sys::window()
+                .expect("window")
+                .document()
+                .expect("document")
+                .body()
+                .expect("body")
+                .append_child(&canvas)
+                .expect("append_child");
+        }
+
         // Build the wgpu surface.
         let surface = unsafe { app.instance().create_surface(&window) };
 
