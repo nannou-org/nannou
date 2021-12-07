@@ -18,13 +18,15 @@ use crate::wgpu;
 use crate::window::{self, Window};
 use find_folder;
 use instant::Instant;
-use std;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
+use std::future::Future;
 use std::path::PathBuf;
+use std::pin::Pin;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
 use std::time::Duration;
+use std::{self, future};
 use winit;
 use winit::event_loop::ControlFlow;
 
@@ -56,7 +58,7 @@ enum View<Model = ()> {
 
 /// A nannou `App` builder.
 pub struct Builder<M = (), E = Event> {
-    model: ModelFn<M>,
+    model: Box<dyn FnOnce(&App) -> Box<dyn Future<Output = M> + '_>>,
     config: Config,
     event: Option<EventFn<M, E>>,
     update: Option<UpdateFn<M>>,
@@ -252,8 +254,14 @@ where
     /// The Model that is returned by the function is the same model that will be passed to the
     /// given event and view functions.
     pub fn new(model: ModelFn<M>) -> Self {
+        Self::new_async(move |app| Box::new(future::ready(model(app))))
+    }
+
+    pub fn new_async(
+        model: impl FnOnce(&App) -> Box<dyn Future<Output = M> + '_> + 'static,
+    ) -> Self {
         Builder {
-            model,
+            model: Box::new(model),
             config: Config::default(),
             event: None,
             update: None,
@@ -445,6 +453,10 @@ where
     /// thread as some platforms require that their application event loop and windows are
     /// initialised on the main thread.
     pub fn run(self) {
+        futures::executor::block_on(self.run_async())
+    }
+
+    pub async fn run_async(self) {
         // Start the winit window event loop.
         let event_loop = winit::event_loop::EventLoop::new();
 
@@ -478,13 +490,14 @@ where
         if self.create_default_window {
             let window_id = app
                 .new_window()
-                .build()
+                .build_async()
+                .await
                 .expect("could not build default app window");
             *app.focused_window.borrow_mut() = Some(window_id);
         }
 
         // Call the user's model function.
-        let model = (self.model)(&app);
+        let model = Pin::from((self.model)(&app)).await;
 
         // If there is not yet some default window in "focus" check to see if one has been created.
         if app.focused_window.borrow().is_none() {
