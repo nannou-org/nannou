@@ -755,6 +755,10 @@ impl<'app> Builder<'app> {
             }
         }
 
+        // Set the class type for X11
+        use winit::platform::unix::WindowBuilderExtUnix;
+        window = window.with_class("nannou".to_string(), "nannou".to_string());
+
         // Set default dimensions in the case that none were given.
         let initial_window_size = window
             .window
