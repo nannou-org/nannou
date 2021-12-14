@@ -95,5 +95,5 @@ address before we can recommend using them just yet!
 
 - [Website](https://www.nannou.cc/)
 - [Guide](https://www.guide.nannou.cc/)
-- [Slack](https://communityinviter.com/apps/nannou/nannou-slack) / [Matrix](https://matrix.to/#/+nannou:matrix.org)
+- [Slack](https://communityinviter.com/apps/nannou/join-nannou-slack) / [Matrix](https://matrix.to/#/+nannou:matrix.org)
 - [Support nannou!](https://opencollective.com/nannou)
