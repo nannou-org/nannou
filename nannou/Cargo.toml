@@ -13,6 +13,7 @@ edition = "2018"
 [dependencies]
 find_folder = "0.3"
 futures = { version = "0.3", features = ["executor", "thread-pool"] }
+getrandom = "0.2.3"
 image = "0.23"
 instant = "0.1.9"
 lyon = "0.17"
@@ -29,9 +30,8 @@ serde_derive = "1"
 serde_json = "1"
 toml = "0.5"
 walkdir = "2"
-wgpu_upstream = { version = "0.11", package = "wgpu" }
-winit = "0.25"
-getrandom = "0.2.3"
+wgpu_upstream = { version = "0.11.1", package = "wgpu" }
+winit = "0.26"
 
 [features]
 default = ["notosans"]
