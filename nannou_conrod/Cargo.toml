@@ -16,7 +16,7 @@ conrod_winit = "0.76"
 nannou = { version ="0.18.0", path = "../nannou", default-features = false }
 # Must be synchronised with the version used in the nannou dependency.
 # Required for the winit event conversion function macro to work.
-winit = "0.25"
+winit = "0.26"
 
 [features]
 default = ["notosans"]
