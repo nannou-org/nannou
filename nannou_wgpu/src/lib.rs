@@ -104,7 +104,7 @@ pub use wgpu_upstream::{
 pub const DEFAULT_POWER_PREFERENCE: PowerPreference = PowerPreference::HighPerformance;
 
 /// Nannou's default WGPU backend preferences.
-pub const DEFAULT_BACKENDS: Backends = Backends::PRIMARY;
+pub const DEFAULT_BACKENDS: Backends = Backends::PRIMARY.union(Backends::GL);
 
 /// Create a wgpu shader module from the given slice of SPIR-V bytes.
 #[cfg(feature = "spirv")]

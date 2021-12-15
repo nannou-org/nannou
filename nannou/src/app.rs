@@ -431,7 +431,7 @@ where
 
     /// Specify the set of preferred WGPU backends.
     ///
-    /// By default, this is `wgpu::Backends::PRIMARY`.
+    /// By default, this is `wgpu::Backends::PRIMARY | wgpu::Backends::GL`.
     pub fn backends(mut self, backends: wgpu::Backends) -> Self {
         self.backends = backends;
         self
