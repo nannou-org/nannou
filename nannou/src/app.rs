@@ -177,22 +177,19 @@ struct DrawState {
 #[derive(Clone)]
 pub struct Proxy {
     event_loop_proxy: winit::event_loop::EventLoopProxy<()>,
-    // Indicates whether or not the events loop is currently asleep.
+    // Whether or not a wakeup is already queued.
     //
-    // This is set to `true` each time the events loop is ready to return and the `LoopMode` is
-    // set to `Wait` for events.
-    //
-    // This value is set back to `false` each time the events loop receives any kind of event.
-    event_loop_is_asleep: Arc<AtomicBool>,
+    // Used to avoid spuriously calling `EventLoopProxy::send_event` as this can be expensive on
+    // some platforms.
+    wakeup_queued: Arc<AtomicBool>,
 }
 
 // State related specifically to the application loop, shared between loop modes.
 struct LoopState {
-    updates_since_event: usize,
+    updates_since_event: u64,
     loop_start: Instant,
     last_update: Instant,
     total_updates: u64,
-    events_since_wakeup: usize,
 }
 
 /// The mode in which the **App** is currently running the event loop and emitting `Update` events.
@@ -214,7 +211,8 @@ pub enum LoopMode {
         update_interval: Duration,
     },
 
-    /// Waits for user input events to occur before calling `event` with an `Update` event.
+    /// Waits for user input, window, device and wake-up events to occur before producing `Update`
+    /// events.
     ///
     /// This is particularly useful for low-energy GUIs that only need to update when some sort of
     /// input has occurred. The benefit of using this mode is that you don't waste CPU cycles
@@ -462,10 +460,10 @@ where
 
         // Create the proxy used to awaken the event loop.
         let event_loop_proxy = event_loop.create_proxy();
-        let event_loop_is_asleep = Arc::new(AtomicBool::new(false));
+        let wakeup_queued = Arc::new(AtomicBool::new(false));
         let event_loop_proxy = Proxy {
             event_loop_proxy,
-            event_loop_is_asleep,
+            wakeup_queued,
         };
 
         // Initialise the app.
@@ -930,10 +928,9 @@ impl Proxy {
     /// method as frequently as necessary across methods without causing any underlying OS methods
     /// to be called more than necessary.
     pub fn wakeup(&self) -> Result<(), winit::event_loop::EventLoopClosed<()>> {
-        if self.event_loop_is_asleep.load(atomic::Ordering::Relaxed) {
+        if !self.wakeup_queued.load(atomic::Ordering::SeqCst) {
             self.event_loop_proxy.send_event(())?;
-            self.event_loop_is_asleep
-                .store(false, atomic::Ordering::Relaxed);
+            self.wakeup_queued.store(true, atomic::Ordering::SeqCst);
         }
         Ok(())
     }
@@ -1086,7 +1083,6 @@ fn run_loop<M, E>(
         loop_start,
         last_update: loop_start,
         total_updates: 0,
-        events_since_wakeup: 0,
     };
 
     // Run the event loop.
@@ -1113,8 +1109,13 @@ fn run_loop<M, E>(
                         // Sometimes winit interrupts ControlFlow::Wait for no good reason, so we
                         // make sure that there were some events in order to do an update when
                         // LoopMode::Wait is used.
-                        LoopMode::Wait if loop_state.events_since_wakeup == 0 => {}
-                        _ => do_update(&mut loop_state),
+                        LoopMode::Wait if loop_state.updates_since_event > 0 => {}
+                        // TODO: Consider allowing for a custom number of updates like so:
+                        // LoopMode::Wait { updates_before_waiting } =>
+                        //     if loop_state.updates_since_event > updates_before_waiting as u64 => {}
+                        _ => {
+                            do_update(&mut loop_state);
+                        },
                     }
                 }
             }
@@ -1276,17 +1277,26 @@ fn run_loop<M, E>(
                 //app.wgpu_adapters().poll_all_devices(false);
             }
 
-            // Ignore wake-up events for now. Currently, these can only be triggered via the app proxy.
-            winit::event::Event::NewEvents(_) => {
-                loop_state.events_since_wakeup = 0;
+            // For all window, device and user (app proxy) events reset the `updates_since_event`
+            // count which is used to improve behaviour for the `Wait` loop mode.
+            // TODO: Document this set of events under `LoopMode::Wait`.
+            winit::event::Event::WindowEvent { .. }
+            | winit::event::Event::DeviceEvent { .. }
+            | winit::event::Event::UserEvent(_)
+            | winit::event::Event::Suspended
+            | winit::event::Event::Resumed => {
+                loop_state.updates_since_event = 0;
+
+                // `UserEvent` is emitted on `wakeup`.
+                if let winit::event::Event::UserEvent(_) = event {
+                    app.event_loop_proxy.wakeup_queued.store(false, atomic::Ordering::SeqCst);
+                }
             }
 
-            // Track the number of updates since the last I/O event.
-            // This is necessary for the `Wait` loop mode to behave correctly.
-            ref _other_event => {
-                loop_state.updates_since_event = 0;
-                loop_state.events_since_wakeup += 1;
-            }
+            // Ignore `NewEvents`.
+            winit::event::Event::NewEvents(_)
+            // `LoopDestroyed` is handled later in `process_and_emit_winit_event` so ignore it here.
+            | winit::event::Event::LoopDestroyed => {}
         }
 
         // We must reconfigure the wgpu surface if the window was resized.
@@ -1318,7 +1328,7 @@ fn run_loop<M, E>(
             }
         }
 
-        // Process the event with the users functions and see if we need to exit.
+        // Process the event with the user's functions and see if we need to exit.
         if let Some(model) = model.as_mut() {
             exit |= process_and_emit_winit_event::<M, E>(&mut app, model, event_fn, &event);
         }
@@ -1326,16 +1336,7 @@ fn run_loop<M, E>(
         // Set the control flow based on the loop mode.
         let loop_mode = app.loop_mode();
         *control_flow = match loop_mode {
-            LoopMode::Wait => {
-                // Trigger some extra updates for conrod GUIs to finish "animating". The number of
-                // updates used to be configurable, but I don't think there's any use besides GUI.
-                if loop_state.updates_since_event < LoopMode::UPDATES_PER_WAIT_EVENT as usize {
-                    let ten_ms = Instant::now() + Duration::from_millis(10);
-                    ControlFlow::WaitUntil(ten_ms)
-                } else {
-                    ControlFlow::Wait
-                }
-            }
+            LoopMode::Wait => ControlFlow::Wait,
             LoopMode::NTimes { number_of_updates }
                 if loop_state.total_updates >= number_of_updates as u64 =>
             {
