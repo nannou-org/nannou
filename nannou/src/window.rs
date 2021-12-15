@@ -758,11 +758,11 @@ impl<'app> Builder<'app> {
         // Set the class type for X11 if WindowExtUnix trait is compiled in winit
         // (see lines https://docs.rs/winit/0.26.0/src/winit/platform/unix.rs.html#1-7)
         #[cfg(any(
-                target_os = "linux",
-                target_os = "dragonfly",
-                target_os = "freebsd",
-                target_os = "netbsd",
-                target_os = "openbsd"
+            target_os = "linux",
+            target_os = "dragonfly",
+            target_os = "freebsd",
+            target_os = "netbsd",
+            target_os = "openbsd"
         ))]
         {
             use winit::platform::unix::WindowBuilderExtUnix;
