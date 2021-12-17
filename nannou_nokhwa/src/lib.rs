@@ -1,3 +1,6 @@
+//! Nannou integration for [`nokhwa`](https://crates.io/crates/nokhwa). Creates a threaded camera that
+//! allows you to use a callback to query from the camera. Supports Windows and Linux, and MacOS (somewhat)
+
 use image::{DynamicImage, ImageBuffer, Rgb, Rgba};
 #[cfg(feature = "wgpu")]
 use nannou_wgpu::{Device, Queue, Texture, TextureUsages, WithDeviceQueuePair};
@@ -99,24 +102,23 @@ impl Into<DynamicImage> for ImageTexture {
 /// complete before a new frame is available. If you need to do heavy image processing, it may be
 /// beneficial to directly pipe the data to a new thread to process it there.
 ///
-/// Note that this does not have `WGPU` capabilities. However, it should be easy to implement.
 /// # SAFETY
 /// The `Mutex` guarantees exclusive access to the underlying camera struct. They should be safe to
 /// impl `Send` on.
 #[derive(Clone)]
-pub struct ThreadedCamera {
+pub struct NannouCamera {
     camera: Arc<Mutex<Camera>>,
     frame_callback: Arc<Mutex<Option<fn(ImageTexture)>>>,
     last_frame_captured: Arc<Mutex<ImageTexture>>,
     die_bool: Arc<AtomicBool>,
 }
 
-impl ThreadedCamera {
+impl NannouCamera {
     /// Create a new `ThreadedCamera` from an `index` and `format`. `format` can be `None`.
     /// # Errors
     /// This will error if you either have a bad platform configuration (e.g. `input-v4l` but not on linux) or the backend cannot create the camera (e.g. permission denied).
     pub fn new(index: usize, format: Option<CameraFormat>) -> Result<Self, NokhwaError> {
-        ThreadedCamera::with_backend(index, format, CaptureAPIBackend::Auto)
+        NannouCamera::with_backend(index, format, CaptureAPIBackend::Auto)
     }
 
     /// Create a new camera from an `index`, `format`, and `backend`. `format` can be `None`.
@@ -142,7 +144,7 @@ impl ThreadedCamera {
         backend: CaptureAPIBackend,
     ) -> Result<Self, NokhwaError> {
         let camera_format = CameraFormat::new_from(width, height, fourcc, fps);
-        ThreadedCamera::with_backend(index, Some(camera_format), backend)
+        NannouCamera::with_backend(index, Some(camera_format), backend)
     }
 
     /// Create a new `ThreadedCamera` from raw values, including the raw capture function.
@@ -189,7 +191,7 @@ impl ThreadedCamera {
             func(camera_clone, callback_clone, holding_cell_clone, die_clone)
         });
 
-        Ok(ThreadedCamera {
+        Ok(NannouCamera {
             camera,
             frame_callback,
             last_frame_captured: holding_cell,
@@ -260,6 +262,23 @@ impl ThreadedCamera {
     /// This will error if the camera is not queryable or a query operation has failed. Some backends will error this out as a [`UnsupportedOperationError`](crate::NokhwaError::UnsupportedOperationError).
     pub fn compatible_fourcc(&mut self) -> Result<Vec<FrameFormat>, NokhwaError> {
         self.camera.lock().compatible_fourcc()
+    }
+
+    /// A Vector of available [`CameraFormat`]s.
+    /// # Errors
+    /// This will error if the camera is not queryable or a query operation has failed. Some backends will error this out as a [`UnsupportedOperationError`](crate::NokhwaError::UnsupportedOperationError).
+    pub fn compatible_camera_formats(&mut self) -> Result<Vec<CameraFormat>, NokhwaError> {
+        let mut camera_formats = Vec::with_capacity(64);
+        for foramt in self.compatible_fourcc()? {
+            let resolution_and_fps: HashMap<Resolution, Vec<u32>> =
+                self.compatible_list_by_resolution(foramt)?;
+            for (res, rates) in resolution_and_fps {
+                for fps in rates {
+                    camera_formats.push(CameraFormat::new(res, foramt, fps))
+                }
+            }
+        }
+        Ok(camera_formats)
     }
 
     /// Gets the current camera resolution (See: [`Resolution`], [`CameraFormat`]).
@@ -499,11 +518,12 @@ impl ThreadedCamera {
     /// # Errors
     /// Please check the `Quirks` section of each backend.
     pub fn stop_stream(&mut self) -> Result<(), NokhwaError> {
+        self.set_callback(null_frame);
         self.camera.lock().stop_stream()
     }
 }
 
-impl Drop for ThreadedCamera {
+impl Drop for NannouCamera {
     fn drop(&mut self) {
         let _ = self.stop_stream();
         self.die_bool.store(true, Ordering::SeqCst);
@@ -529,3 +549,5 @@ fn camera_frame_thread_loop(
         }
     }
 }
+
+fn null_frame(_: ImageTexture) {}
