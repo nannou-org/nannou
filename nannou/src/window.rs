@@ -728,6 +728,10 @@ impl<'app> Builder<'app> {
 
     /// Builds the window, inserts it into the `App`'s display map and returns the unique ID.
     pub fn build(self) -> Result<Id, BuildError> {
+        futures::executor::block_on(self.build_async())
+    }
+
+    pub async fn build_async(self) -> Result<Id, BuildError> {
         let Builder {
             app,
             mut window,
@@ -753,6 +757,20 @@ impl<'app> Builder<'app> {
                     }
                 }
             }
+        }
+
+        // Set the class type for X11 if WindowExtUnix trait is compiled in winit
+        // (see lines https://docs.rs/winit/0.26.0/src/winit/platform/unix.rs.html#1-7)
+        #[cfg(any(
+            target_os = "linux",
+            target_os = "dragonfly",
+            target_os = "freebsd",
+            target_os = "netbsd",
+            target_os = "openbsd"
+        ))]
+        {
+            use winit::platform::unix::WindowBuilderExtUnix;
+            window = window.with_class("nannou".to_string(), "nannou".to_string());
         }
 
         // Set default dimensions in the case that none were given.
@@ -854,12 +872,13 @@ impl<'app> Builder<'app> {
         };
         let adapter = app
             .wgpu_adapters()
-            .get_or_request(request_adapter_opts, app.instance())
+            .get_or_request_async(request_adapter_opts, app.instance())
+            .await
             .ok_or(BuildError::NoAvailableAdapter)?;
 
         // Instantiate the logical device.
         let device_desc = device_desc.unwrap_or_else(wgpu::default_device_descriptor);
-        let device_queue_pair = adapter.get_or_request_device(device_desc);
+        let device_queue_pair = adapter.get_or_request_device_async(device_desc).await;
 
         // Configure the surface.
         let win_physical_size = window.inner_size();

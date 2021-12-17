@@ -15,7 +15,7 @@ by Processing, OpenFrameworks and Cinder, but for Rust. <sup>Named after
 
 |     |     |     |
 | --- |:---:| ---:|
-| [![1](https://i.imgur.com/kPn91tW.gif)](https://github.com/nannou-org/nannou/blob/master/examples/draw/draw_polygon.rs) | [![2](https://i.imgur.com/gaiWHZX.gif)](https://github.com/nannou-org/nannou/blob/master/examples/ui/simple_ui.rs) | [![3](https://i.imgur.com/lm4RI4N.gif)](https://github.com/nannou-org/nannou/blob/master/examples/draw/draw_polyline.rs) |
+| [![1](https://i.imgur.com/kPn91tW.gif)](https://github.com/nannou-org/nannou/blob/master/examples/draw/draw_polygon.rs) | [![2](https://i.imgur.com/gaiWHZX.gif)](https://github.com/nannou-org/nannou/blob/master/examples/ui/conrod/simple_ui.rs) | [![3](https://i.imgur.com/lm4RI4N.gif)](https://github.com/nannou-org/nannou/blob/master/examples/draw/draw_polyline.rs) |
 
 ### A Quick Note
 
@@ -95,5 +95,5 @@ address before we can recommend using them just yet!
 
 - [Website](https://www.nannou.cc/)
 - [Guide](https://www.guide.nannou.cc/)
-- [Slack](https://communityinviter.com/apps/nannou/nannou-slack) / [Matrix](https://matrix.to/#/+nannou:matrix.org)
+- [Slack](https://communityinviter.com/apps/nannou/join-nannou-slack) / [Matrix](https://matrix.to/#/+nannou:matrix.org)
 - [Support nannou!](https://opencollective.com/nannou)

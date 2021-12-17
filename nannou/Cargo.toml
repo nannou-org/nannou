@@ -13,6 +13,7 @@ edition = "2018"
 [dependencies]
 find_folder = "0.3"
 futures = { version = "0.3", features = ["executor", "thread-pool"] }
+getrandom = "0.2.3"
 image = "0.23"
 instant = "0.1.9"
 lyon = "0.17"
@@ -29,10 +30,12 @@ serde_derive = "1"
 serde_json = "1"
 toml = "0.5"
 walkdir = "2"
-wgpu_upstream = { version = "0.11", package = "wgpu" }
-winit = "0.25"
+wgpu_upstream = { version = "0.11.1", package = "wgpu" }
+winit = "0.26"
 
 [features]
 default = ["notosans"]
 # Enables SPIR-V support in the `wgpu` module.
 spirv = ["nannou_wgpu/spirv"]
+# Enables experimental WASM compilation for CI-use only
+wasm-experimental = ["getrandom/js", "wgpu_upstream/webgl"]

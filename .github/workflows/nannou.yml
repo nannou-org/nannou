@@ -113,11 +113,17 @@ jobs:
         profile: minimal
         toolchain: stable
         override: true
+        target: wasm32-unknown-unknown
     - name: Run check
       uses: actions-rs/cargo@v1
       with:
         command: check
         args: --examples --verbose
+    - name: Check nannou package builds against wasm32-unknown-unknown
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: -p nannou --features wasm-experimental --target wasm32-unknown-unknown
 
   cargo-publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
