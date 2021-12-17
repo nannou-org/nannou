@@ -7,7 +7,18 @@ back to the origins.
 
 # Unreleased
 
-*No unreleased changes yet!*
+- Add GL backend to default backends for better WASM support.
+- Add CI for testing the `wasm32-unknown-unknown` target.
+- Enable `wgpu/webgl` when `wasm` feature is enabled.
+- Update minimum wgpu version to `0.11.1`, update winit to `0.26`.
+
+---
+
+# `nannou` 0.18.1 (2021-12-17)
+
+- Expose missing `begin()` method in `geom::path::Builder`.
+- Set window class for X11 running apps.
+- Ensure wakeup calls (`UserEvent`s) provide updates in `Wait` mode.
 
 ---
 
