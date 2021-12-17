@@ -147,7 +147,19 @@
 back to the origins.</p>
 <hr />
 <h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
-<p><em>No unreleased changes yet!</em></p>
+<ul>
+<li>Add GL backend to default backends for better WASM support.</li>
+<li>Add CI for testing the <code>wasm32-unknown-unknown</code> target.</li>
+<li>Enable <code>wgpu/webgl</code> when <code>wasm</code> feature is enabled.</li>
+<li>Update minimum wgpu version to <code>0.11.1</code>, update winit to <code>0.26</code>.</li>
+</ul>
+<hr />
+<h1 id="nannou-0181-2021-12-17"><a class="header" href="#nannou-0181-2021-12-17"><code>nannou</code> 0.18.1 (2021-12-17)</a></h1>
+<ul>
+<li>Expose missing <code>begin()</code> method in <code>geom::path::Builder</code>.</li>
+<li>Set window class for X11 running apps.</li>
+<li>Ensure wakeup calls (<code>UserEvent</code>s) provide updates in <code>Wait</code> mode.</li>
+</ul>
 <hr />
 <h1 id="version-0180-2021-11-15"><a class="header" href="#version-0180-2021-11-15">Version 0.18.0 (2021-11-15)</a></h1>
 <h3 id="wgpu-09---011"><a class="header" href="#wgpu-09---011">wgpu 0.9 -&gt; 0.11</a></h3>
