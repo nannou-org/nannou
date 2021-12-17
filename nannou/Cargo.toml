@@ -38,4 +38,4 @@ default = ["notosans"]
 # Enables SPIR-V support in the `wgpu` module.
 spirv = ["nannou_wgpu/spirv"]
 # Enables experimental WASM compilation for CI-use only
-wasm-experimental = ["getrandom/js"]
+wasm-experimental = ["getrandom/js", "wgpu_upstream/webgl"]
