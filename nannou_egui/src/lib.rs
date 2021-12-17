@@ -80,7 +80,7 @@ impl Egui {
 
     /// Construct a `Egui` associated with the given window.
     pub fn from_window(window: &nannou::window::Window) -> Self {
-        let device = window.swap_chain_device();
+        let device = window.device();
         let format = nannou::Frame::TEXTURE_FORMAT;
         let msaa_samples = window.msaa_samples();
         let scale_factor = window.scale_factor();
@@ -117,9 +117,12 @@ impl Egui {
     }
 
     /// Draws the contents of the inner `context` to the given frame.
-    pub fn draw_to_frame(&self, frame: &nannou::Frame) {
+    pub fn draw_to_frame(
+        &self,
+        frame: &nannou::Frame,
+    ) -> Result<(), egui_wgpu_backend::BackendError> {
         let mut renderer = self.renderer.borrow_mut();
-        renderer.draw_to_frame(&self.context, frame);
+        renderer.draw_to_frame(&self.context, frame)
     }
 
     /// Provide access to an `epi::Frame` within the given function.
@@ -136,7 +139,7 @@ impl Egui {
             web_info: None,
             prefer_dark_mode: None,
             cpu_usage: None,
-            seconds_since_midnight: None,
+            name: "egui_nannou_wgpu",
         };
         let mut app_output = epi::backend::AppOutput::default();
         let repaint_signal = Arc::new(RepaintSignal(Mutex::new(proxy)));
@@ -155,22 +158,30 @@ impl Egui {
 
     /// The same as `with_epi_frame`, but calls `begin_frame` before calling the given function,
     /// and then calls `end_frame` before returning.
-    pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F)
+    pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F) -> egui::Output
     where
         F: FnOnce(&CtxRef, &mut epi::Frame),
     {
         self.begin_frame_inner();
-        self.with_epi_frame(proxy, f);
-        self.end_frame_inner();
+        self.with_epi_frame(proxy.clone(), f);
+        let output = self.end_frame_inner();
+
+        // If a repaint is required, ensure the event loop emits another update.
+        if output.needs_repaint {
+            proxy.wakeup().unwrap();
+        }
+
+        output
     }
 
     fn begin_frame_inner(&mut self) {
         self.context.begin_frame(self.input.raw.take());
     }
 
-    fn end_frame_inner(&mut self) {
-        let (_, paint_cmds) = self.context.end_frame();
+    fn end_frame_inner(&mut self) -> egui::Output {
+        let (output, paint_cmds) = self.context.end_frame();
         self.renderer.borrow_mut().paint_jobs = self.context.tessellate(paint_cmds);
+        output
     }
 }
 
@@ -313,7 +324,7 @@ impl Renderer {
 
     /// Construct a `Renderer` ready for drawing to the given window.
     pub fn from_window(window: &nannou::window::Window) -> Self {
-        let device = window.swap_chain_device();
+        let device = window.device();
         let format = nannou::Frame::TEXTURE_FORMAT;
         let msaa_samples = window.msaa_samples();
         Self::new(device, format, msaa_samples)
@@ -329,7 +340,7 @@ impl Renderer {
         dst_size_pixels: [u32; 2],
         dst_scale_factor: f32,
         dst_texture: &wgpu::TextureView,
-    ) {
+    ) -> Result<(), egui_wgpu_backend::BackendError> {
         let render_pass = &mut self.render_pass;
         let paint_jobs = &self.paint_jobs;
         let [physical_width, physical_height] = dst_size_pixels;
@@ -338,14 +349,18 @@ impl Renderer {
             physical_height,
             scale_factor: dst_scale_factor,
         };
-        render_pass.update_texture(device, queue, &context.texture());
+        render_pass.update_texture(device, queue, &*context.texture());
         render_pass.update_user_textures(&device, &queue);
         render_pass.update_buffers(device, queue, &paint_jobs, &screen_descriptor);
-        render_pass.execute(encoder, dst_texture, &paint_jobs, &screen_descriptor, None);
+        render_pass.execute(encoder, dst_texture, &paint_jobs, &screen_descriptor, None)
     }
 
     /// Encodes a render pass for drawing the given context's texture to the given frame.
-    pub fn draw_to_frame(&mut self, context: &CtxRef, frame: &nannou::Frame) {
+    pub fn draw_to_frame(
+        &mut self,
+        context: &CtxRef,
+        frame: &nannou::Frame,
+    ) -> Result<(), egui_wgpu_backend::BackendError> {
         let device_queue_pair = frame.device_queue_pair();
         let device = device_queue_pair.device();
         let queue = device_queue_pair.queue();
@@ -362,7 +377,7 @@ impl Renderer {
             size_pixels,
             scale_factor,
             texture_view,
-        );
+        )
     }
 }
 

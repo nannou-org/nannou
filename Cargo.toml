@@ -3,3 +3,6 @@ members = [
     "nannou_egui",
     "nannou_egui_demo_app",
 ]
+
+# wgpu requires feature resolver 2.
+resolver = "2"
