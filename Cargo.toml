@@ -6,8 +6,3 @@ members = [
 
 # wgpu requires feature resolver 2.
 resolver = "2"
-
-[patch.crates-io]
-nannou = { git = "https://github.com/mitchmindtree/nannou", branch = "wgpu-0.10" }
-nannou_core = { git = "https://github.com/mitchmindtree/nannou", branch = "wgpu-0.10" }
-nannou_wgpu = { git = "https://github.com/mitchmindtree/nannou", branch = "wgpu-0.10" }

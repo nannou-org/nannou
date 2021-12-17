@@ -9,7 +9,7 @@ repository = "https://github.com/AlexEne/nannou_egui"
 readme = "../README.md"
 
 [dependencies]
-egui_wgpu_backend = "0.12"
-egui = "0.14.0"
+egui_wgpu_backend = "0.14"
+egui = "0.15.0"
 winit = "0.25"
-nannou = "0.17.1"
+nannou = "0.18.1"

@@ -139,7 +139,7 @@ impl Egui {
             web_info: None,
             prefer_dark_mode: None,
             cpu_usage: None,
-            seconds_since_midnight: None,
+            name: "egui_nannou_wgpu",
         };
         let mut app_output = epi::backend::AppOutput::default();
         let repaint_signal = Arc::new(RepaintSignal(Mutex::new(proxy)));
@@ -158,22 +158,30 @@ impl Egui {
 
     /// The same as `with_epi_frame`, but calls `begin_frame` before calling the given function,
     /// and then calls `end_frame` before returning.
-    pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F)
+    pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F) -> egui::Output
     where
         F: FnOnce(&CtxRef, &mut epi::Frame),
     {
         self.begin_frame_inner();
-        self.with_epi_frame(proxy, f);
-        self.end_frame_inner();
+        self.with_epi_frame(proxy.clone(), f);
+        let output = self.end_frame_inner();
+
+        // If a repaint is required, ensure the event loop emits another update.
+        if output.needs_repaint {
+            proxy.wakeup().unwrap();
+        }
+
+        output
     }
 
     fn begin_frame_inner(&mut self) {
         self.context.begin_frame(self.input.raw.take());
     }
 
-    fn end_frame_inner(&mut self) {
-        let (_, paint_cmds) = self.context.end_frame();
+    fn end_frame_inner(&mut self) -> egui::Output {
+        let (output, paint_cmds) = self.context.end_frame();
         self.renderer.borrow_mut().paint_jobs = self.context.tessellate(paint_cmds);
+        output
     }
 }
 
