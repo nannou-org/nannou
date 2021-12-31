@@ -16,5 +16,4 @@ dasp_sample = "0.11.0"
 thiserror = "1"
 
 [features]
-# FIXME: I had to disable this because it kept interfering with nannou_nokhwa's bindgen. Someone please tell CPAL to update asio bindgen to 0.56
-#asio = ["cpal/asio"]
+asio = ["cpal/asio"]
