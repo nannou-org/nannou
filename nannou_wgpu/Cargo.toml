@@ -1,6 +1,6 @@
 [package]
 name = "nannou_wgpu"
-version ="0.18.0"
+version = "0.18.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "Items related to wgpu and its integration in nannou - a creative coding framework for Rust."
 readme = "README.md"
@@ -10,7 +10,7 @@ homepage = "https://nannou.cc"
 edition = "2018"
 
 [dependencies]
-futures = { version = "0.3", features = ["executor", "thread-pool"] }
+async-std = "1.10.0"
 image = { version = "0.23", optional = true }
 instant = { version = "0.1.9", optional = true }
 num_cpus = { version = "1", optional = true }

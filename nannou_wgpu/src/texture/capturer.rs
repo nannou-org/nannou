@@ -27,7 +27,6 @@ pub struct Capturer {
 /// A wrapper around the futures thread pool that counts active futures.
 #[derive(Debug)]
 struct ThreadPool {
-    thread_pool: futures::executor::ThreadPool,
     active_futures: Arc<AtomicU32>,
     workers: u32,
     timeout: Option<Duration>,
@@ -92,7 +91,11 @@ impl ThreadPool {
             active_futures.fetch_sub(1, atomic::Ordering::SeqCst);
         };
 
-        self.thread_pool.spawn_ok(future);
+        #[cfg(not(target_os = "unknown"))]
+        async_std::task::spawn(future);
+        #[cfg(target_os = "unknown")]
+        async_std::task::spawn_local(future);
+
         Ok(())
     }
 
@@ -284,12 +287,7 @@ impl Snapshot {
             .expect("failed to acquire thread handle");
         let thread_pool = guard.get_or_insert_with(|| {
             let workers = self.workers.unwrap_or(num_cpus::get() as u32);
-            let thread_pool = futures::executor::ThreadPoolBuilder::new()
-                .pool_size(workers as usize)
-                .create()
-                .expect("failed to create thread pool");
             let thread_pool = ThreadPool {
-                thread_pool,
                 active_futures: Arc::new(AtomicU32::new(0)),
                 workers,
                 timeout: self.timeout,
