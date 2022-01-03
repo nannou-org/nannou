@@ -116,6 +116,33 @@ impl Egui {
         FrameCtx { ui, ended }
     }
 
+    /// Registers a wgpu::Texture with a egui::TextureId.
+    pub fn texture_from_wgpu_texture(
+        &mut self,
+        device: &wgpu::Device,
+        texture: &wgpu::Texture,
+        texture_filter: wgpu::FilterMode,
+    ) -> egui::TextureId {
+        self.renderer
+            .borrow_mut()
+            .render_pass
+            .egui_texture_from_wgpu_texture(device, texture, texture_filter)
+    }
+
+    /// Registers a wgpu::Texture with an existing egui::TextureId.
+    pub fn update_texture_from_wgpu_texture(
+        &mut self,
+        device: &wgpu::Device,
+        texture: &wgpu::Texture,
+        texture_filter: wgpu::FilterMode,
+        id: egui::TextureId,
+    ) -> Result<(), egui_wgpu_backend::BackendError> {
+        self.renderer
+            .borrow_mut()
+            .render_pass
+            .update_egui_texture_from_wgpu_texture(device, texture, texture_filter, id)
+    }
+
     /// Draws the contents of the inner `context` to the given frame.
     pub fn draw_to_frame(
         &self,
