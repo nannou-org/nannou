@@ -726,9 +726,10 @@ impl<'app> Builder<'app> {
         self
     }
 
+    #[cfg(not(target_os = "unknown"))]
     /// Builds the window, inserts it into the `App`'s display map and returns the unique ID.
     pub fn build(self) -> Result<Id, BuildError> {
-        futures::executor::block_on(self.build_async())
+        async_std::task::block_on(self.build_async())
     }
 
     pub async fn build_async(self) -> Result<Id, BuildError> {

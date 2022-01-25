@@ -63,6 +63,7 @@ pub struct DeviceQueuePair {
 }
 
 impl AdapterMap {
+    #[cfg(not(target_os = "unknown"))]
     /// Check for an adaptor with the given options or request one.
     ///
     /// First checks to see if an adapter for the given set of options is active. If so, returns a
@@ -74,9 +75,10 @@ impl AdapterMap {
         options: wgpu::RequestAdapterOptions<'b>,
         instance: &'a wgpu::Instance,
     ) -> Option<Arc<ActiveAdapter>> {
-        futures::executor::block_on(self.get_or_request_async(options, instance))
+        async_std::task::block_on(self.get_or_request_async(options, instance))
     }
 
+    #[cfg(not(target_os = "unknown"))]
     /// Request an adaptor with the given options.
     ///
     /// This will always request a new adapter and will never attempt to share an existing one. The
@@ -89,7 +91,7 @@ impl AdapterMap {
         options: wgpu::RequestAdapterOptions<'b>,
         instance: &'a wgpu::Instance,
     ) -> Option<Arc<ActiveAdapter>> {
-        futures::executor::block_on(self.request_async(options, instance))
+        async_std::task::block_on(self.request_async(options, instance))
     }
 
     /// The async implementation of `get_or_request`.
@@ -167,6 +169,7 @@ impl AdapterMap {
 }
 
 impl ActiveAdapter {
+    #[cfg(not(target_os = "unknown"))]
     /// Check for a device with the given descriptor or request one.
     ///
     /// First checks for a connected device that matches the given descriptor. If one exists, it is
@@ -175,9 +178,10 @@ impl ActiveAdapter {
         &self,
         descriptor: wgpu::DeviceDescriptor<'static>,
     ) -> Arc<DeviceQueuePair> {
-        futures::executor::block_on(self.get_or_request_device_async(descriptor))
+        async_std::task::block_on(self.get_or_request_device_async(descriptor))
     }
 
+    #[cfg(not(target_os = "unknown"))]
     /// Request a device with the given descriptor.
     ///
     /// This will always request a new device connection and will never attempt to share an
@@ -187,7 +191,7 @@ impl ActiveAdapter {
         &self,
         descriptor: wgpu::DeviceDescriptor<'static>,
     ) -> Arc<DeviceQueuePair> {
-        futures::executor::block_on(self.request_device_async(descriptor))
+        async_std::task::block_on(self.request_device_async(descriptor))
     }
 
     /// Check for a device with the given descriptor or request one.

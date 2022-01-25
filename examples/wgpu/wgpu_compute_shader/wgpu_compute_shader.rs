@@ -12,7 +12,6 @@ use std::sync::{Arc, Mutex};
 struct Model {
     compute: Compute,
     oscillators: Arc<Mutex<Vec<f32>>>,
-    threadpool: futures::executor::ThreadPool,
 }
 
 struct Compute {
@@ -91,13 +90,9 @@ fn model(app: &App) -> Model {
     // The vector that we will write oscillator values to.
     let oscillators = Arc::new(Mutex::new(vec![0.0; OSCILLATOR_COUNT as usize]));
 
-    // Create a thread pool capable of running our GPU buffer read futures.
-    let threadpool = futures::executor::ThreadPool::new().unwrap();
-
     Model {
         compute,
         oscillators,
-        threadpool,
     }
 }
 
@@ -175,7 +170,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
             }
         }
     };
-    model.threadpool.spawn_ok(future);
+    async_std::task::spawn(future);
 
     // Check for resource cleanups and mapping callbacks.
     //

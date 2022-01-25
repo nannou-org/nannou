@@ -14,8 +14,8 @@ homepage = "https://github.com/nannou-org/nannou"
 edition = "2018"
 
 [dev-dependencies]
+async-std = "1.10.0"
 audrey = "0.3"
-futures = "0.3"
 hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
 hrtf = "0.2"
 nannou = { version ="0.18.0", path = "../nannou" }
