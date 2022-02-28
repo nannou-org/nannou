@@ -15,7 +15,7 @@ steps we recommend for getting started with Nannou development using VS-Code.
 1. [Download VS-Code](https://code.visualstudio.com/download) for your OS.
 2. [Install
    rust-analyzer](https://marketplace.visualstudio.com/items?itemName=matklad.rust-analyzer) plugin for VS-Code.
-3. Click on the 'view' menu and select 'integrated terminal'.
+3. Click on the 'view' menu and select 'terminal'.
 
 ### Other Environments
 
