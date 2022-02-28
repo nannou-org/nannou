@@ -13,11 +13,9 @@ comes with an integrated unix terminal and file navigation system. Below are the
 steps we recommend for getting started with Nannou development using VS-Code.
 
 1. [Download VS-Code](https://code.visualstudio.com/download) for your OS.
-2. In VS code user settings, set `"rust-client.channel": "stable"`.
-3. [Install
-   RLS](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust) (the
-   Rust Language Server) plugin for VS-Code.
-4. Click on the 'view' menu and select 'integrated terminal'.
+2. [Install
+   rust-analyzer](https://marketplace.visualstudio.com/items?itemName=matklad.rust-analyzer) plugin for VS-Code.
+3. Click on the 'view' menu and select 'integrated terminal'.
 
 ### Other Environments
 
