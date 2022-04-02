@@ -1,8 +1,8 @@
 //! A cross-platform laser DAC detection and streaming API.
 
 pub extern crate ether_dream;
+pub extern crate helios_dac;
 
-pub mod dac;
 #[cfg(feature = "ffi")]
 pub mod ffi;
 #[cfg(feature = "ilda-idtf")]
@@ -10,13 +10,21 @@ pub mod ilda_idtf;
 pub mod point;
 pub mod stream;
 pub mod util;
+pub mod dac_manager;
+pub mod dac;
+pub mod dac_manager_helios;
+pub mod dac_base;
+pub mod dac_base_helios;
 
-pub use dac::{DetectDacs, DetectDacsAsync, DetectedDac, DetectedDacCallback, Id as DacId};
+// pub use dac_manager_etherdream::{DetectDacs, DetectDacsAsync, DetectedDac, DetectedDacCallback, Id as DacId};
+pub use dac::{DetectEtherDreamDacsAsync, DetectedDacCallback};
 pub use point::{Point, RawPoint};
 pub use stream::frame::Frame;
 pub use stream::frame::Stream as FrameStream;
 pub use stream::raw::Stream as RawStream;
 pub use stream::raw::{Buffer, StreamError, StreamErrorAction};
+
+pub use dac_manager::{DacManager, Id as DacId, DetectDacs, DetectedDac, Result, DetectedDacError};
 
 use std::io;
 use std::sync::Arc;
@@ -49,12 +57,12 @@ impl Api {
     ///
     /// **Note** that the produced iterator will iterate forever and never terminate unless
     /// `set_timeout` is called on the returned `DetectDacs` instance.
-    pub fn detect_dacs(&self) -> io::Result<DetectDacs> {
+    pub fn detect_dacs(&self) -> Vec<Result<DetectDacs>> {
         self.inner.detect_dacs()
     }
 
     /// Block and wait until the DAC with the given `Id` is detected.
-    pub fn detect_dac(&self, id: DacId) -> io::Result<DetectedDac> {
+    pub fn detect_dac(&self, id: DacId) -> Result<DetectedDac> {
         self.inner.detect_dac(id)
     }
 
@@ -67,7 +75,7 @@ impl Api {
         &self,
         timeout: Option<Duration>,
         callback: F,
-    ) -> io::Result<DetectDacsAsync>
+    ) -> io::Result<DetectEtherDreamDacsAsync>
     where
         F: 'static + DetectedDacCallback + Send,
     {
@@ -128,16 +136,18 @@ impl Api {
 
 impl Inner {
     /// See the `Api::detect_dacs` docs.
-    pub(crate) fn detect_dacs(&self) -> io::Result<DetectDacs> {
-        dac::detect_dacs()
+    pub(crate) fn detect_dacs(&self) -> Vec<Result<DetectDacs>> {
+        dac_manager::detect_all_dacs()
     }
 
     /// Block and wait until the DAC with the given `Id` is detected.
-    pub(crate) fn detect_dac(&self, id: DacId) -> io::Result<DetectedDac> {
-        for res in self.detect_dacs()? {
-            let dac = res?;
-            if dac.id() == id {
-                return Ok(dac);
+    pub(crate) fn detect_dac(&self, id: DacId) -> Result<DetectedDac> {
+        for dacIter in self.detect_dacs(){
+            for res in dacIter? {
+                let dac = res?;
+                if dac.id() == id {
+                    return Ok(dac);
+                }
             }
         }
         unreachable!("DAC detection iterator should never return `None`")
@@ -148,7 +158,7 @@ impl Inner {
         &self,
         timeout: Option<Duration>,
         callback: F,
-    ) -> io::Result<DetectDacsAsync>
+    ) -> io::Result<DetectEtherDreamDacsAsync>
     where
         F: 'static + DetectedDacCallback + Send,
     {

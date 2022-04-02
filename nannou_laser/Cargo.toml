@@ -15,6 +15,9 @@ crate-type = ["rlib", "staticlib", "cdylib"]
 
 [dependencies]
 ether-dream = "~0.2.5"
+rusb = "0.7"
+# helios-dac = { git = "https://github.com/seem-less/helios-dac-rs.git", default-features = false, features = ["native"] }
+helios-dac = { path = "../../helios-dac-rs/", default-features = false, features = ["native"] }
 ilda-idtf = { version = "0.1", optional = true }
 lasy = "0.4.1"
 thiserror = "1"
