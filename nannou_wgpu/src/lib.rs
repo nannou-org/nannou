@@ -51,7 +51,7 @@ pub use self::sampler_builder::SamplerBuilder;
 #[cfg(feature = "capturer")]
 pub use self::texture::capturer::{
     AwaitWorkerTimeout as TextureCapturerAwaitWorkerTimeout, Capturer as TextureCapturer,
-    Snapshot as TextueSnapshot,
+    Snapshot as TextureSnapshot,
 };
 #[cfg(feature = "image")]
 pub use self::texture::image::{
