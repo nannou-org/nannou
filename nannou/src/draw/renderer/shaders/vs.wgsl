@@ -1,4 +1,3 @@
-[[block]]
 struct Data {
     proj: mat4x4<f32>;
 };

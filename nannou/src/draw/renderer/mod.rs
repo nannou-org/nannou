@@ -82,7 +82,7 @@ pub struct Renderer {
     glyph_cache_texture: wgpu::Texture,
     depth_texture: wgpu::Texture,
     depth_texture_view: wgpu::TextureView,
-    default_texture: wgpu::Texture,
+    _default_texture: wgpu::Texture,
     default_texture_view: wgpu::TextureView,
     uniform_bind_group_layout: wgpu::BindGroupLayout,
     uniform_bind_group: wgpu::BindGroup,
@@ -393,6 +393,7 @@ impl Renderer {
         // Create the glyph cache texture.
         let text_sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
         let text_sampler_filtering = wgpu::sampler_filtering(&text_sampler_desc);
+        let text_sampler_binding_ty = sampler_binding_type(text_sampler_filtering);
         let text_sampler = device.create_sampler(&text_sampler_desc);
         let glyph_cache_texture = wgpu::TextureBuilder::new()
             .size(glyph_cache_size)
@@ -430,7 +431,7 @@ impl Renderer {
             create_uniform_bind_group(device, &uniform_bind_group_layout, &uniform_buffer);
 
         // Bind group for text.
-        let text_bind_group_layout = create_text_bind_group_layout(device, text_sampler_filtering);
+        let text_bind_group_layout = create_text_bind_group_layout(device, text_sampler_binding_ty);
         let text_bind_group = create_text_bind_group(
             device,
             &text_bind_group_layout,
@@ -462,7 +463,7 @@ impl Renderer {
             glyph_cache_texture,
             depth_texture,
             depth_texture_view,
-            default_texture,
+            _default_texture: default_texture,
             default_texture_view,
             uniform_bind_group_layout,
             uniform_bind_group,
@@ -647,9 +648,10 @@ impl Renderer {
                         let color_blend = curr_ctxt.blend.color.clone();
                         let alpha_blend = curr_ctxt.blend.alpha.clone();
                         let sampler_filtering = wgpu::sampler_filtering(&curr_ctxt.sampler);
+                        let sampler_binding_ty = sampler_binding_type(sampler_filtering);
                         new_pipeline_ids.insert(
                             new_pipeline_id,
-                            (color_blend, alpha_blend, sampler_filtering),
+                            (color_blend, alpha_blend, sampler_binding_ty),
                         );
                         let cmd = RenderCommand::SetPipeline(new_pipeline_id);
                         self.render_commands.push(cmd);
@@ -707,14 +709,14 @@ impl Renderer {
         // Clear new combos that we already have.
         new_pipeline_ids.retain(|id, _| !self.pipelines.contains_key(id));
         // Create new render pipelines as necessary.
-        for (new_id, (color_blend, alpha_blend, sampler_filtering)) in new_pipeline_ids {
+        for (new_id, (color_blend, alpha_blend, sampler_binding_ty)) in new_pipeline_ids {
             let bind_group_layout = self
                 .texture_bind_group_layouts
                 .entry(new_id.texture_sample_type)
                 .or_insert_with(|| {
                     create_texture_bind_group_layout(
                         device,
-                        sampler_filtering,
+                        sampler_binding_ty,
                         new_id.texture_sample_type,
                     )
                 });
@@ -1045,9 +1047,9 @@ fn create_uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLay
         .build(device)
 }
 
-fn create_text_bind_group_layout(device: &wgpu::Device, filtering: bool) -> wgpu::BindGroupLayout {
+fn create_text_bind_group_layout(device: &wgpu::Device, sampler_ty: wgpu::SamplerBindingType) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
-        .sampler(wgpu::ShaderStages::FRAGMENT, filtering)
+        .sampler(wgpu::ShaderStages::FRAGMENT, sampler_ty)
         .texture(
             wgpu::ShaderStages::FRAGMENT,
             false,
@@ -1057,13 +1059,20 @@ fn create_text_bind_group_layout(device: &wgpu::Device, filtering: bool) -> wgpu
         .build(device)
 }
 
+fn sampler_binding_type(filtering: bool) -> wgpu::SamplerBindingType {
+    match filtering {
+        true => wgpu::SamplerBindingType::Filtering,
+        false => wgpu::SamplerBindingType::NonFiltering,
+    }
+}
+
 fn create_texture_bind_group_layout(
     device: &wgpu::Device,
-    filtering: bool,
+    sampler_binding_ty: wgpu::SamplerBindingType,
     texture_sample_type: wgpu::TextureSampleType,
 ) -> wgpu::BindGroupLayout {
     wgpu::BindGroupLayoutBuilder::new()
-        .sampler(wgpu::ShaderStages::FRAGMENT, filtering)
+        .sampler(wgpu::ShaderStages::FRAGMENT, sampler_binding_ty)
         .texture(
             wgpu::ShaderStages::FRAGMENT,
             false,
