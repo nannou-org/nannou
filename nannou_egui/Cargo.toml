@@ -1,0 +1,15 @@
+[package]
+name = "nannou_egui"
+version = "0.5.0"
+authors = ["Alexandru Ene <alex.ene0x11@gmail.com>"]
+edition = "2018"
+license = "MIT/Apache-2.0"
+description = "egui integration for nannou"
+repository = "https://github.com/AlexEne/nannou_egui"
+readme = "../README.md"
+
+[dependencies]
+egui_wgpu_backend = "0.14"
+egui = "0.15.0"
+winit = "0.25"
+nannou = "0.18.1"

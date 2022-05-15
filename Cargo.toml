@@ -7,6 +7,8 @@ members = [
     "nannou_audio",
     "nannou_conrod",
     "nannou_core",
+    "nannou_egui",
+    "nannou_egui_demo_app",
     "nannou_isf",
     "nannou_laser",
     "nannou_mesh",
