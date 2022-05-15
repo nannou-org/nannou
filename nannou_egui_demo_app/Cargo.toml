@@ -7,5 +7,5 @@ publish = false
 
 [dependencies]
 nannou_egui = { version = "0.5", path = "../nannou_egui" }
-nannou = "0.18.1"
-egui_demo_lib = { version = "0.15" }
+nannou = { version = "0.18.1", path = "../nannou" }
+egui_demo_lib = "0.15"
