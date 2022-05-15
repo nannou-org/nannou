@@ -10,11 +10,11 @@ use crate::{self as wgpu, util::DeviceExt, BufferInitDescriptor};
 pub struct Reshaper {
     _vs_mod: wgpu::ShaderModule,
     _fs_mod: wgpu::ShaderModule,
-    bind_group_layout: wgpu::BindGroupLayout,
+    _bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
-    sampler: wgpu::Sampler,
-    uniform_buffer: Option<wgpu::Buffer>,
+    _sampler: wgpu::Sampler,
+    _uniform_buffer: Option<wgpu::Buffer>,
     vertex_buffer: wgpu::Buffer,
 }
 
@@ -56,11 +56,19 @@ impl Reshaper {
         // Create the sampler for sampling from the source texture.
         let sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
         let sampler_filtering = wgpu::sampler_filtering(&sampler_desc);
+        let sampler_binding_ty = match sampler_filtering {
+            true => wgpu::SamplerBindingType::Filtering,
+            false => wgpu::SamplerBindingType::NonFiltering,
+        };
         let sampler = device.create_sampler(&sampler_desc);
 
         // Create the render pipeline.
-        let bind_group_layout =
-            bind_group_layout(device, src_sample_count, src_sample_type, sampler_filtering);
+        let bind_group_layout = bind_group_layout(
+            device,
+            src_sample_count,
+            src_sample_type,
+            sampler_binding_ty,
+        );
         let pipeline_layout = pipeline_layout(device, &bind_group_layout);
         let render_pipeline = render_pipeline(
             device,
@@ -111,11 +119,11 @@ impl Reshaper {
         Reshaper {
             _vs_mod: vs_mod,
             _fs_mod: fs_mod,
-            bind_group_layout,
+            _bind_group_layout: bind_group_layout,
             bind_group,
             render_pipeline,
-            sampler,
-            uniform_buffer,
+            _sampler: sampler,
+            _uniform_buffer: uniform_buffer,
             vertex_buffer,
         }
     }
@@ -166,7 +174,7 @@ fn bind_group_layout(
     device: &wgpu::Device,
     src_sample_count: u32,
     src_sample_type: wgpu::TextureSampleType,
-    sampler_filtering: bool,
+    sampler_binding_ty: wgpu::SamplerBindingType,
 ) -> wgpu::BindGroupLayout {
     let mut builder = wgpu::BindGroupLayoutBuilder::new()
         .texture(
@@ -175,7 +183,7 @@ fn bind_group_layout(
             wgpu::TextureViewDimension::D2,
             src_sample_type,
         )
-        .sampler(wgpu::ShaderStages::FRAGMENT, sampler_filtering);
+        .sampler(wgpu::ShaderStages::FRAGMENT, sampler_binding_ty);
     if !unrolled_sample_count(src_sample_count) {
         builder = builder.uniform_buffer(wgpu::ShaderStages::FRAGMENT, false);
     }

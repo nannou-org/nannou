@@ -58,24 +58,34 @@ impl LayoutBuilder {
         self.binding(visibility, ty)
     }
 
-    /// Add a sampler binding to the layout.
-    pub fn sampler(self, visibility: wgpu::ShaderStages, filtering: bool) -> Self {
-        let comparison = false;
-        let ty = wgpu::BindingType::Sampler {
-            filtering,
-            comparison,
-        };
+    /// Add a sampler binding of the given type to the layout.
+    pub fn sampler(self, visibility: wgpu::ShaderStages, ty: wgpu::SamplerBindingType) -> Self {
+        let ty = wgpu::BindingType::Sampler(ty);
         self.binding(visibility, ty)
     }
 
-    /// Add a sampler binding to the layout.
-    pub fn comparison_sampler(self, visibility: wgpu::ShaderStages, filtering: bool) -> Self {
-        let comparison = true;
-        let ty = wgpu::BindingType::Sampler {
-            filtering,
-            comparison,
-        };
-        self.binding(visibility, ty)
+    /// Add a comparison sampler binding to the layout.
+    ///
+    /// Use as a comparison sampler instead of a normal sampler. For more info take a look at the
+    /// analogous functionality in OpenGL:
+    /// https://www.khronos.org/opengl/wiki/Sampler_Object#Comparison_mode.
+    pub fn comparison_sampler(self, visibility: wgpu::ShaderStages) -> Self {
+        self.sampler(visibility, wgpu::SamplerBindingType::Comparison)
+    }
+
+    /// Add a filtering sampler binding to the layout.
+    ///
+    /// Used when the sampling result is produced based on more than a single color sample from a
+    /// texture, e.g. when bilinear interpolation is enabled.
+    pub fn filtering_sampler(self, visibility: wgpu::ShaderStages) -> Self {
+        self.sampler(visibility, wgpu::SamplerBindingType::Filtering)
+    }
+
+    /// Add a filtering sampler binding to the layout.
+    ///
+    /// The sampling result is produced based on a single color sample from a texture.
+    pub fn non_filtering_sampler(self, visibility: wgpu::ShaderStages) -> Self {
+        self.sampler(visibility, wgpu::SamplerBindingType::NonFiltering)
     }
 
     /// Add a texture binding to the layout.

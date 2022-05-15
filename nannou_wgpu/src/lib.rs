@@ -78,7 +78,7 @@ pub use wgpu_upstream::{
     CommandEncoder, CommandEncoderDescriptor, CompareFunction, ComputePass, ComputePassDescriptor,
     ComputePipeline, ComputePipelineDescriptor, DepthBiasState, DepthStencilState, Device,
     DeviceDescriptor, DeviceType, DownlevelCapabilities, DownlevelFlags, DynamicOffset, Error,
-    Extent3d, Face, Features, FilterMode, FragmentState, FrontFace, ImageCopyBuffer,
+    ErrorFilter, Extent3d, Face, Features, FilterMode, FragmentState, FrontFace, ImageCopyBuffer,
     ImageCopyBufferBase, ImageCopyTexture, ImageCopyTextureBase, ImageDataLayout,
     ImageSubresourceRange, IndexFormat, Instance, Label, Limits, LoadOp, Maintain, MapMode,
     MultisampleState, Operations, Origin3d, PipelineLayout, PipelineLayoutDescriptor,
@@ -88,16 +88,16 @@ pub use wgpu_upstream::{
     RenderBundleEncoderDescriptor, RenderPass, RenderPassColorAttachment,
     RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
     RenderPipelineDescriptor, RequestAdapterOptions, RequestAdapterOptionsBase, RequestDeviceError,
-    Sampler, SamplerBorderColor, SamplerDescriptor, ShaderLocation, ShaderModel, ShaderModule,
-    ShaderModuleDescriptor, ShaderSource, ShaderStages, StencilFaceState, StencilOperation,
-    StencilState, StorageTextureAccess, Surface, SurfaceConfiguration, SurfaceError, SurfaceStatus,
-    SurfaceTexture, Texture as TextureHandle, TextureAspect, TextureDescriptor, TextureDimension,
-    TextureFormat, TextureFormatFeatureFlags, TextureFormatFeatures, TextureSampleType,
-    TextureUsages, TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension,
-    UncapturedErrorHandler, VertexAttribute, VertexBufferLayout, VertexFormat, VertexState,
-    VertexStepMode, COPY_BUFFER_ALIGNMENT, COPY_BYTES_PER_ROW_ALIGNMENT, MAP_ALIGNMENT,
-    PUSH_CONSTANT_ALIGNMENT, QUERY_RESOLVE_BUFFER_ALIGNMENT, QUERY_SET_MAX_QUERIES, QUERY_SIZE,
-    VERTEX_STRIDE_ALIGNMENT,
+    Sampler, SamplerBindingType, SamplerBorderColor, SamplerDescriptor, ShaderLocation,
+    ShaderModel, ShaderModule, ShaderModuleDescriptor, ShaderModuleDescriptorSpirV, ShaderSource,
+    ShaderStages, StencilFaceState, StencilOperation, StencilState, StorageTextureAccess, Surface,
+    SurfaceConfiguration, SurfaceError, SurfaceStatus, SurfaceTexture, Texture as TextureHandle,
+    TextureAspect, TextureDescriptor, TextureDimension, TextureFormat, TextureFormatFeatureFlags,
+    TextureFormatFeatures, TextureSampleType, TextureUsages, TextureView as TextureViewHandle,
+    TextureViewDescriptor, TextureViewDimension, UncapturedErrorHandler, VertexAttribute,
+    VertexBufferLayout, VertexFormat, VertexState, VertexStepMode, COPY_BUFFER_ALIGNMENT,
+    COPY_BYTES_PER_ROW_ALIGNMENT, MAP_ALIGNMENT, PUSH_CONSTANT_ALIGNMENT,
+    QUERY_RESOLVE_BUFFER_ALIGNMENT, QUERY_SET_MAX_QUERIES, QUERY_SIZE, VERTEX_STRIDE_ALIGNMENT,
 };
 
 /// The default power preference used for requesting the WGPU adapter.
@@ -186,7 +186,7 @@ pub fn create_pipeline_layout<'p>(
 
 /// Whether or not the sampler descriptor describes a sampler that might perform linear filtering.
 ///
-/// This is used to determine the `filtering` field for the sampler binding type variant which
+/// This is used to determine the `SamplerBindingType` for the sampler binding variant which
 /// assists wgpu with validation.
 pub fn sampler_filtering(desc: &SamplerDescriptor) -> bool {
     match (desc.mag_filter, desc.min_filter, desc.mipmap_filter) {

@@ -34,6 +34,7 @@ pub struct RenderPipelineBuilder<'a> {
     depth_stencil: Option<wgpu::DepthStencilState>,
     vertex_buffers: Vec<wgpu::VertexBufferLayout<'static>>,
     multisample: wgpu::MultisampleState,
+    multiview: Option<std::num::NonZeroU32>,
 }
 
 impl<'a> RenderPipelineBuilder<'a> {
@@ -52,7 +53,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         front_face: Self::DEFAULT_FRONT_FACE,
         cull_mode: Self::DEFAULT_CULL_MODE,
         polygon_mode: Self::DEFAULT_POLYGON_MODE,
-        clamp_depth: Self::DEFAULT_CLAMP_DEPTH,
+        unclipped_depth: false,
         conservative: false,
     };
 
@@ -101,7 +102,6 @@ impl<'a> RenderPipelineBuilder<'a> {
         slope_scale: Self::DEFAULT_DEPTH_BIAS_SLOPE_SCALE,
         clamp: Self::DEFAULT_DEPTH_BIAS_CLAMP,
     };
-    pub const DEFAULT_CLAMP_DEPTH: bool = false;
     pub const DEFAULT_DEPTH_STENCIL: wgpu::DepthStencilState = wgpu::DepthStencilState {
         format: Self::DEFAULT_DEPTH_FORMAT,
         depth_write_enabled: Self::DEFAULT_DEPTH_WRITE_ENABLED,
@@ -154,6 +154,7 @@ impl<'a> RenderPipelineBuilder<'a> {
             depth_stencil: None,
             vertex_buffers: vec![],
             multisample: Self::DEFAULT_MULTISAMPLE,
+            multiview: None,
         }
     }
 
@@ -385,11 +386,11 @@ impl<'a> RenderPipelineBuilder<'a> {
         self
     }
 
-    /// If enabled polygon depth is clamped to 0-1 range instead of being clipped.
+    /// If set to true, the polygon depth is not clipped to 0-1 before rasterization.
     ///
-    /// Requires `Features::DEPTH_CLAMPING` enabled.
-    pub fn clamp_depth(mut self, b: bool) -> Self {
-        self.primitive.clamp_depth = b;
+    /// Enabling this requires `Features::DEPTH_CLIP_CONTROL` to be enabled.
+    pub fn unclipped_depth(mut self, b: bool) -> Self {
+        self.primitive.unclipped_depth = b;
         self
     }
 
@@ -466,6 +467,17 @@ impl<'a> RenderPipelineBuilder<'a> {
         self
     }
 
+    // Multiview.
+
+    /// If the pipeline will be used with a multiview render pass, this indicates how many array
+    /// layers the attachments will have.
+    ///
+    /// `None` by default.
+    pub fn multiview(mut self, layers: Option<std::num::NonZeroU32>) -> Self {
+        self.multiview = layers;
+        self
+    }
+
     // Finalising methods.
 
     /// Build the render pipeline layout, its descriptor and ultimately the pipeline itself with
@@ -519,6 +531,7 @@ fn build(
         depth_stencil,
         multisample,
         vertex_buffers,
+        multiview,
     } = builder;
 
     let vertex = wgpu::VertexState {
@@ -559,6 +572,7 @@ fn build(
         depth_stencil,
         multisample,
         fragment,
+        multiview,
     };
 
     device.create_render_pipeline(&pipeline_desc)
