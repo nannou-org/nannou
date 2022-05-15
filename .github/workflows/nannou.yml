@@ -185,6 +185,9 @@ jobs:
     - name: Cargo publish nannou_conrod
       continue-on-error: true
       run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_conrod/Cargo.toml
+    - name: Cargo publish nannou_egui
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_egui/Cargo.toml
 
   guide-build-book:
     runs-on: ubuntu-latest
