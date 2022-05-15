@@ -1,6 +1,4 @@
 use nannou::prelude::*;
-use nannou_conrod as ui;
-use nannou_conrod::prelude::*;
 use nannou_osc as osc;
 
 fn main() {
@@ -10,19 +8,16 @@ fn main() {
 struct Model {
     receiver: osc::Receiver,
     received_packets: Vec<(std::net::SocketAddr, osc::Packet)>,
-    ui: Ui,
-    text: widget::Id,
 }
 
 // Make sure this matches the `TARGET_PORT` in the `osc_sender.rs` example.
 const PORT: u16 = 34254;
 
 fn model(app: &App) -> Model {
-    let w_id = app
+    let _w_id = app
         .new_window()
         .title("OSC Receiver")
         .size(1400, 480)
-        .raw_event(raw_window_event)
         .view(view)
         .build()
         .unwrap();
@@ -33,20 +28,10 @@ fn model(app: &App) -> Model {
     // A vec for collecting packets and their source address.
     let received_packets = vec![];
 
-    // Create a simple UI to display received messages.
-    let mut ui = ui::builder(app).window(w_id).build().unwrap();
-    let text = ui.generate_widget_id();
-
     Model {
         receiver,
         received_packets,
-        ui,
-        text,
     }
-}
-
-fn raw_window_event(app: &App, model: &mut Model, event: &ui::RawWindowEvent) {
-    model.ui.handle_raw_event(app, event);
 }
 
 fn update(_app: &App, model: &mut Model, _update: Update) {
@@ -60,24 +45,25 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     while model.received_packets.len() > max_packets {
         model.received_packets.remove(0);
     }
+}
+
+// Draw the state of your `Model` into the given `Frame` here.
+fn view(app: &App, model: &Model, frame: Frame) {
+    let draw = app.draw();
+    draw.background().color(DARKBLUE);
 
     // Create a string showing all the packets.
     let mut packets_text = format!("Listening on port {}\nReceived packets:\n", PORT);
     for &(addr, ref packet) in model.received_packets.iter().rev() {
         packets_text.push_str(&format!("{}: {:?}\n", addr, packet));
     }
-
-    // Use the UI to display the packet string.
-    model.ui.clear_with(color::DARK_BLUE);
-    let mut ui = model.ui.set_widgets();
-    widget::Text::new(&packets_text)
-        .top_left_with_margin_on(ui.window, 20.0)
-        .color(color::WHITE)
+    let rect = frame.rect().pad(10.0);
+    draw.text(&packets_text)
+        .font_size(16)
+        .align_text_top()
         .line_spacing(10.0)
-        .set(model.text, &mut ui);
-}
+        .left_justify()
+        .wh(rect.wh());
 
-// Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    model.ui.draw_to_frame(app, &frame).unwrap();
+    draw.to_frame(app, &frame).unwrap();
 }

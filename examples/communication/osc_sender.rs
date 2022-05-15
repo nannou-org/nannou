@@ -1,17 +1,13 @@
 use nannou::prelude::*;
-use nannou_conrod as ui;
-use nannou_conrod::prelude::*;
 use nannou_osc as osc;
 use nannou_osc::Type;
 
 fn main() {
-    nannou::app(model).update(update).run();
+    nannou::app(model).run();
 }
 
 struct Model {
     sender: osc::Sender<osc::Connected>,
-    ui: Ui,
-    text: widget::Id,
 }
 
 // Make sure this matches `PORT` in the `osc_receiver.rs` example.
@@ -22,12 +18,11 @@ fn target_address_string() -> String {
 }
 
 fn model(app: &App) -> Model {
-    let w_id = app
+    let _w_id = app
         .new_window()
         .title("OSC Sender")
         .size(680, 480)
         .event(event)
-        .raw_event(raw_window_event)
         .view(view)
         .build()
         .unwrap();
@@ -38,11 +33,7 @@ fn model(app: &App) -> Model {
     // Bind an `osc::Sender` and connect it to the target address.
     let sender = osc::sender().unwrap().connect(target_addr).unwrap();
 
-    // Create a simple UI to tell the user what to do.
-    let mut ui = ui::builder(app).window(w_id).build().unwrap();
-    let text = ui.generate_widget_id();
-
-    Model { sender, ui, text }
+    Model { sender }
 }
 
 fn event(_app: &App, model: &mut Model, event: WindowEvent) {
@@ -71,27 +62,17 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
     }
 }
 
-fn raw_window_event(app: &App, model: &mut Model, event: &ui::RawWindowEvent) {
-    model.ui.handle_raw_event(app, event);
-}
+fn view(app: &App, _model: &Model, frame: Frame) {
+    let draw = app.draw();
+    draw.background().color(DARKRED);
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
-    // Use the UI to show the user where packets are being sent.
-    model.ui.clear_with(color::DARK_RED);
-    let mut ui = model.ui.set_widgets();
     let text = format!(
         "Move or click the mouse to send\nmessages to the \
          receiver example!\n\nSending OSC packets to {}",
         target_address_string()
     );
-    widget::Text::new(&text)
-        .middle_of(ui.window)
-        .center_justify()
-        .color(color::WHITE)
-        .line_spacing(10.0)
-        .set(model.text, &mut ui);
-}
+    let rect = frame.rect();
+    draw.text(&text).font_size(16).line_spacing(10.0).wh(rect.wh());
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    model.ui.draw_to_frame(app, &frame).unwrap();
+    draw.to_frame(app, &frame).unwrap();
 }
