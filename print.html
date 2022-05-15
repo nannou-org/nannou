@@ -199,8 +199,8 @@ output streams. Duplex are not yet supported.</em></li>
 <strong>Video</strong> input, playback and processing (<em>would love suggestions and
 ideas</em>).</li>
 <li><input disabled="" type="checkbox" checked=""/>
-<strong>GUI</strong> via <a href="https://crates.io/crates/conrod">conrod</a>. <em>May switch to a
-custom nannou solution <a href="https://github.com/nannou-org/nannou/issues/383">in the
+<strong>GUI</strong> via <a href="https://crates.io/crates/egui">egui</a>. <em>May switch to a custom
+nannou solution <a href="https://github.com/nannou-org/nannou/issues/383">in the
 future</a></em>.</li>
 <li><strong>Geometry</strong> with functions and iterators for producing vertices and indices:
 <ul>
@@ -2591,6 +2591,10 @@ back to the origins.</p>
 <li>Add CI for testing the <code>wasm32-unknown-unknown</code> target.</li>
 <li>Enable <code>wgpu/webgl</code> when <code>wasm</code> feature is enabled.</li>
 <li>Update minimum wgpu version to <code>0.11.1</code>, update winit to <code>0.26</code>.</li>
+<li>Merge the <code>nannou_egui</code> repo into the main <code>nannou</code> repo.</li>
+<li>Move <code>nannou_conrod</code> and <code>nannou_timeline</code> into a new repository:
+https://github.com/nannou-org/nannou_conrod. Both crates are deprecated in
+favour of <code>nannou_egui</code>.</li>
 </ul>
 <hr />
 <h1 id="nannou-0181-2021-12-17"><a class="header" href="#nannou-0181-2021-12-17"><code>nannou</code> 0.18.1 (2021-12-17)</a></h1>
