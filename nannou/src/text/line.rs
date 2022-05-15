@@ -76,7 +76,7 @@ pub struct Info {
 /// An iterator yielding an `Info` struct for each line in the given `text` wrapped by the
 /// given `next_break_fn`.
 ///
-/// `Infos` is a fundamental part of performing lazy reasoning about text within conrod.
+/// `Infos` is a fundamental part of performing lazy reasoning about text within nannou.
 ///
 /// Construct an `Infos` iterator via the [infos function](./fn.infos.html) and its two builder
 /// methods, [wrap_by_character](./struct.Infos.html#method.wrap_by_character) and

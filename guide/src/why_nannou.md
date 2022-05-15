@@ -19,8 +19,8 @@ need:
   output streams. Duplex are not yet supported.*
 - [ ] **Video** input, playback and processing (*would love suggestions and
   ideas*).
-- [x] **GUI** via [conrod](https://crates.io/crates/conrod). *May switch to a
-  custom nannou solution [in the
+- [x] **GUI** via [egui](https://crates.io/crates/egui). *May switch to a custom
+  nannou solution [in the
   future](https://github.com/nannou-org/nannou/issues/383)*.
 - **Geometry** with functions and iterators for producing vertices and indices:
   - [x] 1D - `Scalar`, `Range`.
