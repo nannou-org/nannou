@@ -3,8 +3,7 @@
 
 use nannou::geom::Rect;
 use nannou::prelude::*;
-use nannou_conrod as ui;
-use nannou_conrod::prelude::*;
+use nannou_egui::{self, egui, Egui};
 use nannou_laser as laser;
 use std::sync::{mpsc, Arc};
 
@@ -24,9 +23,7 @@ struct Model {
     // For receiving newly detected DACs.
     dac_rx: mpsc::Receiver<laser::DetectedDac>,
     // The UI for control over laser parameters and settings.
-    ui: Ui,
-    // The unique ID for each UI widget.
-    ids: Ids,
+    egui: Egui,
 }
 
 #[derive(Clone)]
@@ -50,12 +47,10 @@ struct LaserSettings {
 
 #[derive(Clone, Copy)]
 struct RgbProfile {
-    red: f32,
-    green: f32,
-    blue: f32,
+    rgb: [f32; 3],
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum DrawMode {
     Lines,
     Points,
@@ -76,28 +71,6 @@ pub enum TestPattern {
     Circle,
     // A spiral that starts from the centre and revolves out towards the edge of the field.
     Spiral,
-}
-
-struct Ids {
-    background_canvas: widget::Id,
-    laser_points_text: widget::Id,
-    draw_mode_lines_button: widget::Id,
-    draw_mode_points_button: widget::Id,
-    point_weight_slider: widget::Id,
-    scale_slider: widget::Id,
-    laser_settings_text: widget::Id,
-    point_hz_slider: widget::Id,
-    latency_points_slider: widget::Id,
-    frame_hz_slider: widget::Id,
-    laser_path_interpolation_text: widget::Id,
-    enable_optimisations_toggle: widget::Id,
-    distance_per_point_slider: widget::Id,
-    blank_delay_points_slider: widget::Id,
-    radians_per_point_slider: widget::Id,
-    color_profile_text: widget::Id,
-    red_slider: widget::Id,
-    green_slider: widget::Id,
-    blue_slider: widget::Id,
 }
 
 impl Default for Laser {
@@ -133,11 +106,7 @@ impl Default for LaserSettings {
 
 impl Default for RgbProfile {
     fn default() -> Self {
-        RgbProfile {
-            red: 1.0,
-            green: 1.0,
-            blue: 1.0,
-        }
+        RgbProfile { rgb: [1.0; 3] }
     }
 }
 
@@ -145,7 +114,7 @@ fn model(app: &App) -> Model {
     // Create a window to receive keyboard events.
     let w_id = app
         .new_window()
-        .size(240, 690)
+        .size(312, 530)
         .key_pressed(key_pressed)
         .raw_event(raw_window_event)
         .view(view)
@@ -184,28 +153,10 @@ fn model(app: &App) -> Model {
     let laser_streams = vec![];
 
     // A user-interface to tweak the settings.
-    let mut ui = ui::builder(app).window(w_id).build().unwrap();
-    let ids = Ids {
-        background_canvas: ui.generate_widget_id(),
-        laser_points_text: ui.generate_widget_id(),
-        draw_mode_lines_button: ui.generate_widget_id(),
-        draw_mode_points_button: ui.generate_widget_id(),
-        point_weight_slider: ui.generate_widget_id(),
-        scale_slider: ui.generate_widget_id(),
-        laser_settings_text: ui.generate_widget_id(),
-        point_hz_slider: ui.generate_widget_id(),
-        latency_points_slider: ui.generate_widget_id(),
-        frame_hz_slider: ui.generate_widget_id(),
-        laser_path_interpolation_text: ui.generate_widget_id(),
-        enable_optimisations_toggle: ui.generate_widget_id(),
-        distance_per_point_slider: ui.generate_widget_id(),
-        blank_delay_points_slider: ui.generate_widget_id(),
-        radians_per_point_slider: ui.generate_widget_id(),
-        color_profile_text: ui.generate_widget_id(),
-        red_slider: ui.generate_widget_id(),
-        green_slider: ui.generate_widget_id(),
-        blue_slider: ui.generate_widget_id(),
-    };
+    let window = app.window(w_id).unwrap();
+    let egui = Egui::from_window(&window);
+    egui.ctx().set_fonts(fonts());
+    egui.ctx().set_style(style());
 
     Model {
         laser_api,
@@ -213,8 +164,7 @@ fn model(app: &App) -> Model {
         laser_model,
         laser_streams,
         dac_rx,
-        ui,
-        ids,
+        egui,
     }
 }
 
@@ -238,11 +188,7 @@ where
 
 fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
     // Simple constructor for a lit point.
-    let color = [
-        laser.color_profile.red,
-        laser.color_profile.green,
-        laser.color_profile.blue,
-    ];
+    let color = laser.color_profile.rgb;
     let weight = laser.point_weight;
     let lit_p = |position| laser::Point {
         position,
@@ -326,11 +272,11 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
     }
 }
 
-fn raw_window_event(app: &App, model: &mut Model, event: &ui::RawWindowEvent) {
-    model.ui.handle_raw_event(app, event);
+fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event::WindowEvent) {
+    model.egui.handle_raw_event(event);
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model, update: Update) {
     // First, check for new laser DACs.
     for dac in model.dac_rx.try_recv() {
         println!("Detected DAC {:?}!", dac.id());
@@ -375,241 +321,168 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         }
     }
 
-    // Calling `set_widgets` allows us to instantiate some widgets.
-    let ui = &mut model.ui.set_widgets();
+    // Update the GUI.
+    let Model {
+        ref mut egui,
+        ref laser_streams,
+        ref mut laser_model,
+        ref mut laser_settings,
+        ..
+    } = *model;
 
-    fn slider(val: f32, min: f32, max: f32) -> widget::Slider<'static, f32> {
-        widget::Slider::new(val, min, max)
-            .down(5.0)
-            .w_h(200.0, 30.0)
-            .label_font_size(12)
-            .rgb(0.3, 0.3, 0.3)
-            .label_rgb(1.0, 1.0, 1.0)
-            .border(0.0)
-    }
+    egui.set_elapsed_time(update.since_start);
+    let ctx = egui.begin_frame();
 
-    fn button() -> widget::Button<'static, widget::button::Flat> {
-        widget::Button::new()
-            .w_h(95.0, 30.0)
-            .label_font_size(12)
-            .label_rgb(1.0, 1.0, 1.0)
-            .border(0.0)
-    }
-
-    widget::Canvas::new()
-        .rgb(0.011, 0.013, 0.017)
-        .set(model.ids.background_canvas, ui);
-
-    widget::Text::new("Laser Points")
-        .color(color::WHITE)
-        .top_left_with_margin(20.0)
-        .set(model.ids.laser_points_text, ui);
-
-    // Button colours.
-    let (lines_color, points_color) = match model.laser_model.draw_mode {
-        DrawMode::Lines => (color::BLUE, color::BLACK),
-        DrawMode::Points => (color::BLACK, color::BLUE),
-    };
-
-    for _click in button()
-        .label("LINES")
-        .down(20.0)
-        .color(lines_color)
-        .set(model.ids.draw_mode_lines_button, ui)
-    {
-        let mode = DrawMode::Lines;
-        model.laser_model.draw_mode = mode;
-        for stream in &model.laser_streams {
-            stream.send(move |laser| laser.draw_mode = mode).ok();
+    // The timeline area.
+    egui::containers::CentralPanel::default().show(&ctx, |ui| {
+        fn grid_min_col_width(ui: &egui::Ui, n_options: usize) -> f32 {
+            let gap_space = ui.spacing().item_spacing.x * (n_options as f32 - 1.0);
+            let grid_w = ui.available_width();
+            (grid_w - gap_space) / n_options as f32
         }
-    }
 
-    for _click in button()
-        .label("POINTS")
-        .right(10.0)
-        .color(points_color)
-        .set(model.ids.draw_mode_points_button, ui)
-    {
-        let mode = DrawMode::Points;
-        model.laser_model.draw_mode = mode;
-        for stream in &model.laser_streams {
-            stream.send(move |laser| laser.draw_mode = mode).ok();
+        ui.heading("Laser Points");
+
+        let col_w = grid_min_col_width(ui, 2);
+        egui::Grid::new("Mode")
+            .min_col_width(col_w)
+            .max_col_width(col_w)
+            .show(ui, |ui| {
+                use DrawMode::{Lines, Points};
+                let mut changed = false;
+                ui.vertical_centered_justified(|ui| {
+                    changed |= ui
+                        .selectable_value(&mut laser_model.draw_mode, Lines, "LINES")
+                        .changed();
+                });
+                ui.vertical_centered_justified(|ui| {
+                    changed |= ui
+                        .selectable_value(&mut laser_model.draw_mode, Points, "POINTS")
+                        .changed();
+                });
+                if changed {
+                    let mode = laser_model.draw_mode;
+                    for stream in laser_streams {
+                        stream.send(move |laser| laser.draw_mode = mode).ok();
+                    }
+                }
+            });
+
+        if ui
+            .add(egui::Slider::new(&mut laser_model.scale, 0.0..=1.0).text("Scale"))
+            .changed()
+        {
+            let scale = laser_model.scale;
+            for stream in laser_streams {
+                stream.send(move |laser| laser.scale = scale).ok();
+            }
         }
-    }
-
-    let label = format!("Scale: {}", model.laser_model.scale);
-    for value in slider(model.laser_model.scale as _, 0.0, 1.0)
-        .down_from(model.ids.draw_mode_lines_button, 10.0)
-        .label(&label)
-        .set(model.ids.scale_slider, ui)
-    {
-        model.laser_model.scale = value as _;
-        for stream in &model.laser_streams {
-            stream.send(move |laser| laser.scale = value as _).ok();
+        if ui
+            .add(egui::Slider::new(&mut laser_model.point_weight, 0..=128).text("Point Weight"))
+            .changed()
+        {
+            let scale = laser_model.scale;
+            for stream in laser_streams {
+                stream.send(move |laser| laser.scale = scale).ok();
+            }
         }
-    }
 
-    let label = format!("Point Weight: {}", model.laser_model.point_weight);
-    for value in slider(model.laser_model.point_weight as _, 0.0, 128.0)
-        .label(&label)
-        .set(model.ids.point_weight_slider, ui)
-    {
-        model.laser_model.point_weight = value as _;
-        for stream in &model.laser_streams {
-            stream
-                .send(move |laser| laser.point_weight = value as _)
-                .ok();
+        ui.separator();
+
+        ui.heading("Laser Settings");
+
+        if ui
+            .add(egui::Slider::new(&mut laser_settings.point_hz, 1_000..=10_000).text("DAC PPS"))
+            .changed()
+        {
+            let hz = laser_settings.point_hz;
+            for stream in laser_streams {
+                stream.set_point_hz(hz).ok();
+            }
         }
-    }
-
-    widget::Text::new("Laser Settings")
-        .color(color::WHITE)
-        .down(20.0)
-        .set(model.ids.laser_settings_text, ui);
-
-    let label = format!("DAC PPS: {}", model.laser_settings.point_hz);
-    for value in slider(model.laser_settings.point_hz as _, 1_000.0, 10_000.0)
-        .down(20.0)
-        .label(&label)
-        .set(model.ids.point_hz_slider, ui)
-    {
-        model.laser_settings.point_hz = value as _;
-        for stream in &model.laser_streams {
-            stream.set_point_hz(value as _).ok();
+        if ui
+            .add(egui::Slider::new(&mut laser_settings.latency_points, 10..=1_500).text("Latency"))
+            .changed()
+        {
+            let latency = laser_settings.latency_points;
+            for stream in laser_streams {
+                stream.set_latency_points(latency).ok();
+            }
         }
-    }
-
-    let label = format!("Latency: {} points", model.laser_settings.latency_points);
-    for value in slider(model.laser_settings.latency_points as _, 10.0, 1_500.0)
-        .label(&label)
-        .set(model.ids.latency_points_slider, ui)
-    {
-        model.laser_settings.latency_points = value as _;
-        for stream in &model.laser_streams {
-            stream.set_latency_points(value as _).ok();
+        if ui
+            .add(egui::Slider::new(&mut laser_settings.frame_hz, 1..=120).text("Target FPS"))
+            .changed()
+        {
+            let hz = laser_settings.frame_hz;
+            for stream in laser_streams {
+                stream.set_frame_hz(hz).ok();
+            }
         }
-    }
 
-    let label = format!("Target FPS: {}", model.laser_settings.frame_hz);
-    for value in slider(model.laser_settings.frame_hz as _, 1.0, 120.0)
-        .label(&label)
-        .set(model.ids.frame_hz_slider, ui)
-    {
-        model.laser_settings.frame_hz = value as _;
-        for stream in &model.laser_streams {
-            stream.set_frame_hz(value as _).ok();
+        ui.separator();
+
+        ui.heading("Laser Path Interpolation");
+
+        if ui
+            .checkbox(&mut laser_settings.enable_optimisations, "Optimize Path")
+            .changed()
+        {
+            for stream in laser_streams {
+                stream
+                    .enable_optimisations(laser_settings.enable_optimisations)
+                    .ok();
+            }
         }
-    }
-
-    widget::Text::new("Laser Path Interpolation")
-        .down(20.0)
-        .color(color::WHITE)
-        .font_size(16)
-        .set(model.ids.laser_path_interpolation_text, ui);
-
-    let (label, color) = if model.laser_settings.enable_optimisations {
-        ("Optimisations: Enabled", color::DARK_GREEN)
-    } else {
-        ("Optimisations: Disabled", color::DARK_RED)
-    };
-    for _click in button()
-        .w(200.0)
-        .label(label)
-        .down(20.0)
-        .color(color)
-        .set(model.ids.enable_optimisations_toggle, ui)
-    {
-        model.laser_settings.enable_optimisations = !model.laser_settings.enable_optimisations;
-        for stream in &model.laser_streams {
-            stream
-                .enable_optimisations(model.laser_settings.enable_optimisations)
-                .ok();
+        if ui
+            .add(
+                egui::Slider::new(&mut laser_settings.distance_per_point, 0.01..=1.0)
+                    .text("Distance Per Point"),
+            )
+            .changed()
+        {
+            let distance = laser_settings.distance_per_point;
+            for stream in laser_streams {
+                stream.set_distance_per_point(distance).ok();
+            }
         }
-    }
-
-    let label = format!(
-        "Distance per point: {:.2}",
-        model.laser_settings.distance_per_point
-    );
-    for value in slider(model.laser_settings.distance_per_point, 0.01, 1.0)
-        .label(&label)
-        .set(model.ids.distance_per_point_slider, ui)
-    {
-        model.laser_settings.distance_per_point = value;
-        for stream in &model.laser_streams {
-            stream.set_distance_per_point(value).ok();
+        if ui
+            .add(
+                egui::Slider::new(&mut laser_settings.blank_delay_points, 0..=32)
+                    .text("Blank Delay (Points)"),
+            )
+            .changed()
+        {
+            let delay = laser_settings.blank_delay_points;
+            for stream in laser_streams {
+                stream.set_blank_delay_points(delay).ok();
+            }
         }
-    }
-
-    let label = format!(
-        "Blank delay: {} points",
-        model.laser_settings.blank_delay_points
-    );
-    for value in slider(model.laser_settings.blank_delay_points as _, 0.0, 32.0)
-        .label(&label)
-        .set(model.ids.blank_delay_points_slider, ui)
-    {
-        model.laser_settings.blank_delay_points = value as _;
-        for stream in &model.laser_streams {
-            stream.set_blank_delay_points(value as _).ok();
+        let mut degrees = rad_to_deg(laser_settings.radians_per_point);
+        if ui
+            .add(egui::Slider::new(&mut degrees, 1.0..=180.0).text("Degrees Per Point"))
+            .changed()
+        {
+            let radians = deg_to_rad(degrees);
+            laser_settings.radians_per_point = radians;
+            for stream in laser_streams {
+                stream.set_radians_per_point(radians).ok();
+            }
         }
-    }
 
-    let degrees_per_point = rad_to_deg(model.laser_settings.radians_per_point);
-    let label = format!("Degrees per point (inertia): {:.2}", degrees_per_point);
-    for value in slider(degrees_per_point, 1.0, 180.0)
-        .label(&label)
-        .set(model.ids.radians_per_point_slider, ui)
-    {
-        let radians = deg_to_rad(value);
-        model.laser_settings.radians_per_point = radians;
-        for stream in &model.laser_streams {
-            stream.set_radians_per_point(radians).ok();
+        ui.separator();
+
+        ui.heading("Color Profile");
+
+        if ui
+            .color_edit_button_rgb(&mut laser_model.color_profile.rgb)
+            .changed()
+        {
+            let rgb = laser_model.color_profile.rgb;
+            for stream in laser_streams {
+                stream.send(move |model| model.color_profile.rgb = rgb).ok();
+            }
         }
-    }
-
-    widget::Text::new("Color Profile")
-        .down(20.0)
-        .color(color::WHITE)
-        .font_size(16)
-        .set(model.ids.color_profile_text, ui);
-
-    for value in slider(model.laser_model.color_profile.red, 0.0, 1.0)
-        .down(20.0)
-        .color(color::RED)
-        .set(model.ids.red_slider, ui)
-    {
-        model.laser_model.color_profile.red = value;
-        for stream in &model.laser_streams {
-            stream
-                .send(move |model| model.color_profile.red = value)
-                .ok();
-        }
-    }
-
-    for value in slider(model.laser_model.color_profile.green, 0.0, 1.0)
-        .color(color::GREEN)
-        .set(model.ids.green_slider, ui)
-    {
-        model.laser_model.color_profile.green = value;
-        for stream in &model.laser_streams {
-            stream
-                .send(move |model| model.color_profile.green = value)
-                .ok();
-        }
-    }
-
-    for value in slider(model.laser_model.color_profile.blue, 0.0, 1.0)
-        .color(color::BLUE)
-        .set(model.ids.blue_slider, ui)
-    {
-        model.laser_model.color_profile.blue = value;
-        for stream in &model.laser_streams {
-            stream
-                .send(move |model| model.color_profile.blue = value)
-                .ok();
-        }
-    }
+    });
 }
 
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
@@ -630,6 +503,58 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    model.ui.draw_to_frame_if_changed(app, &frame).unwrap();
+fn view(_app: &App, model: &Model, frame: Frame) {
+    model.egui.draw_to_frame(&frame).unwrap();
+}
+
+// The following functions are some custom styling preferences in an attempt to improve on the
+// default egui theming.
+
+fn fonts() -> egui::FontDefinitions {
+    let mut fonts = egui::FontDefinitions::default();
+    let entries = [
+        (
+            egui::TextStyle::Small,
+            (egui::FontFamily::Proportional, 13.0),
+        ),
+        (
+            egui::TextStyle::Body,
+            (egui::FontFamily::Proportional, 16.0),
+        ),
+        (
+            egui::TextStyle::Button,
+            (egui::FontFamily::Proportional, 16.0),
+        ),
+        (
+            egui::TextStyle::Heading,
+            (egui::FontFamily::Proportional, 20.0),
+        ),
+        (
+            egui::TextStyle::Monospace,
+            (egui::FontFamily::Monospace, 14.0),
+        ),
+    ];
+    fonts.family_and_size.extend(entries.iter().cloned());
+    fonts
+}
+
+fn style() -> egui::Style {
+    let mut style = egui::Style::default();
+    style.spacing = egui::style::Spacing {
+        item_spacing: egui::Vec2::splat(8.0),
+        window_padding: egui::Vec2::new(6.0, 6.0),
+        button_padding: egui::Vec2::new(4.0, 2.0),
+        interact_size: egui::Vec2::new(56.0, 24.0),
+        indent: 10.0,
+        icon_width: 20.0,
+        icon_spacing: 1.0,
+        ..style.spacing
+    };
+    style.visuals.widgets.inactive.fg_stroke.color = egui::Color32::WHITE;
+    style.visuals.extreme_bg_color = egui::Color32::from_gray(12);
+    style.visuals.faint_bg_color = egui::Color32::from_gray(24);
+    style.visuals.widgets.noninteractive.bg_fill = egui::Color32::from_gray(36);
+    style.visuals.widgets.noninteractive.bg_stroke.color = egui::Color32::BLACK;
+    style.visuals.widgets.noninteractive.fg_stroke.color = egui::Color32::WHITE;
+    style
 }
