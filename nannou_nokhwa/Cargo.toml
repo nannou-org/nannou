@@ -1,0 +1,27 @@
+[package]
+name = "nannou_nokhwa"
+version = "0.1.0"
+authors = ["l1npengtul <l1npengtul@protonmail.com>"]
+edition = "2018"
+description = "The  API for Nannou, the creative coding framework."
+readme = "README.md"
+keywords = ["webcam", "capture", "cross-platform", "nokhwa"]
+license = "MIT"
+homepage = "https://nannou.cc"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+wgpu = ["nannou_wgpu"]
+
+[dependencies]
+nokhwa = { version = "^0.9", features = ["input-avfoundation", "input-msmf", "input-v4l", "output-threaded"] }
+parking_lot = "^0.11"
+nannou_wgpu = {version = "^0.18", path="../nannou_wgpu", features = ["image"], optional = true }
+
+[dependencies.image]
+version = "^0.23"
+no-default-features = true
+
+[package.metadata.docs.rs]
+features = ["nokhwa/docs-only", "nokhwa/docs-nolink", "nokhwa/docs-features"]
