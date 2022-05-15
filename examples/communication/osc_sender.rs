@@ -72,7 +72,10 @@ fn view(app: &App, _model: &Model, frame: Frame) {
         target_address_string()
     );
     let rect = frame.rect();
-    draw.text(&text).font_size(16).line_spacing(10.0).wh(rect.wh());
+    draw.text(&text)
+        .font_size(16)
+        .line_spacing(10.0)
+        .wh(rect.wh());
 
     draw.to_frame(app, &frame).unwrap();
 }

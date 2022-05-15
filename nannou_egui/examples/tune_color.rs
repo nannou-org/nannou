@@ -92,5 +92,3 @@ fn edit_hsv(ui: &mut egui::Ui, color: &mut Hsv) {
         *color = nannou::color::hsv(egui_hsv.h, egui_hsv.s, egui_hsv.v);
     }
 }
-
-
