@@ -198,6 +198,12 @@ path = "ui/conrod/simple_ui.rs"
 [[example]]
 name = "timeline_demo"
 path = "ui/conrod/timeline_demo.rs"
+[[example]]
+name = "circle_packing"
+path = "ui/egui/circle_packing.rs"
+[[example]]
+name = "tune_color"
+path = "ui/egui/tune_color.rs"
 
 # WebGPU
 [[example]]
