@@ -533,25 +533,6 @@ fn winit_to_egui_modifiers(modifiers: winit::event::ModifiersState) -> egui::Mod
     }
 }
 
-pub fn edit_color(ui: &mut egui::Ui, color: &mut nannou::color::Hsv) {
-    let mut egui_hsv = egui::color::Hsva::new(
-        color.hue.to_positive_radians() as f32 / (std::f32::consts::PI * 2.0),
-        color.saturation,
-        color.value,
-        1.0,
-    );
-
-    if egui::color_picker::color_edit_button_hsva(
-        ui,
-        &mut egui_hsv,
-        egui::color_picker::Alpha::Opaque,
-    )
-    .changed()
-    {
-        *color = nannou::color::hsv(egui_hsv.h, egui_hsv.s, egui_hsv.v);
-    }
-}
-
 /// We only want printable characters and ignore all special keys.
 fn is_printable(chr: char) -> bool {
     let is_in_private_use_area = '\u{e000}' <= chr && chr <= '\u{f8ff}'

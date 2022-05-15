@@ -49,7 +49,7 @@ fn update(_app: &App, model: &mut Model, update: Update) {
             ui.separator();
             ui.label("Tune parameters with ease");
             ui.add(egui::Slider::new(radius, 10.0..=100.0).text("Radius"));
-            nannou_egui::edit_color(ui, color);
+            edit_hsv(ui, color);
         });
 }
 
@@ -71,5 +71,26 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 
     // Do this as the last operation on your frame.
-    model.egui.draw_to_frame(&frame);
+    model.egui.draw_to_frame(&frame).unwrap();
 }
+
+fn edit_hsv(ui: &mut egui::Ui, color: &mut Hsv) {
+    let mut egui_hsv = egui::color::Hsva::new(
+        color.hue.to_positive_radians() as f32 / (std::f32::consts::PI * 2.0),
+        color.saturation,
+        color.value,
+        1.0,
+    );
+
+    if egui::color_picker::color_edit_button_hsva(
+        ui,
+        &mut egui_hsv,
+        egui::color_picker::Alpha::Opaque,
+    )
+    .changed()
+    {
+        *color = nannou::color::hsv(egui_hsv.h, egui_hsv.s, egui_hsv.v);
+    }
+}
+
+

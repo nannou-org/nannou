@@ -96,7 +96,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     draw.to_frame(app, &frame).unwrap();
 
-    model.egui.draw_to_frame(&frame);
+    model.egui.draw_to_frame(&frame).unwrap();
 }
 
 fn intersects(circle: &Circle, circles: &Vec<Circle>) -> bool {
