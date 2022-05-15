@@ -20,12 +20,10 @@ hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
 hrtf = "0.2"
 nannou = { version ="0.18.0", path = "../nannou" }
 nannou_audio = { version ="0.18.0", path = "../nannou_audio" }
-nannou_conrod = { version ="0.18.0", path = "../nannou_conrod" }
 nannou_egui = { version = "0.5.0", path = "../nannou_egui" }
 nannou_isf = { version = "0.1.0", path = "../nannou_isf" }
 nannou_laser = { version ="0.18.0", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
 nannou_osc = { version ="0.18.0", path = "../nannou_osc" }
-nannou_timeline = { version ="0.18.0", features = ["serde1"], path =  "../nannou_timeline" }
 pitch_calc = { version = "0.12", features = ["serde"] }
 time_calc = { version= "0.13", features = ["serde"] }
 walkdir = "2"
@@ -189,15 +187,6 @@ name = "template_sketch"
 path = "templates/template_sketch.rs"
 
 # User Interface
-[[example]]
-name = "named_color_reference"
-path = "ui/conrod/named_color_reference.rs"
-[[example]]
-name = "simple_ui"
-path = "ui/conrod/simple_ui.rs"
-[[example]]
-name = "timeline_demo"
-path = "ui/conrod/timeline_demo.rs"
 [[example]]
 name = "circle_packing"
 path = "ui/egui/circle_packing.rs"

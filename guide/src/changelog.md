@@ -11,6 +11,10 @@ back to the origins.
 - Add CI for testing the `wasm32-unknown-unknown` target.
 - Enable `wgpu/webgl` when `wasm` feature is enabled.
 - Update minimum wgpu version to `0.11.1`, update winit to `0.26`.
+- Merge the `nannou_egui` repo into the main `nannou` repo.
+- Move `nannou_conrod` and `nannou_timeline` into a new repository:
+  https://github.com/nannou-org/nannou_conrod. Both crates are deprecated in
+  favour of `nannou_egui`.
 
 ---
 
