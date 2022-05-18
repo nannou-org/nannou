@@ -12,8 +12,7 @@ repository = "https://github.com/AlexEne/nannou_egui"
 readme = "../README.md"
 
 [dependencies]
-egui_wgpu_backend = "0.17"
-egui = "0.17"
-epi = "0.17"
+egui-wgpu = "0.18"
+egui = "0.18"
 winit = "0.26"
 nannou = { version = "0.18.1", path = "../nannou" }

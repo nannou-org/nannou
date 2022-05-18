@@ -1,10 +1,10 @@
 pub use egui;
 pub use egui::color_picker;
-pub use egui_wgpu_backend;
-pub use epi;
+pub use egui_wgpu;
+//pub use epi;
 
-use egui::{pos2, ClippedMesh, Context};
-use egui_wgpu_backend::ScreenDescriptor;
+use egui::{pos2, ClippedPrimitive, Context};
+use egui_wgpu::renderer::{RenderPass, ScreenDescriptor};
 use nannou::{wgpu, winit::event::VirtualKeyCode, winit::event::WindowEvent::*};
 use std::{
     cell::RefCell,
@@ -29,8 +29,8 @@ pub struct Egui {
 ///
 /// For targeting more than one window, users should construct a `Egui` for each.
 pub struct Renderer {
-    render_pass: egui_wgpu_backend::RenderPass,
-    paint_jobs: Vec<ClippedMesh>,
+    render_pass: RenderPass,
+    paint_jobs: Vec<ClippedPrimitive>,
     textures_delta: egui::TexturesDelta,
 }
 
@@ -118,85 +118,85 @@ impl Egui {
         FrameCtx { ui, ended }
     }
 
-    /// Registers a wgpu::Texture with a egui::TextureId.
-    pub fn texture_from_wgpu_texture(
-        &mut self,
-        device: &wgpu::Device,
-        texture: &wgpu::TextureView,
-        texture_filter: wgpu::FilterMode,
-    ) -> egui::TextureId {
-        self.renderer
-            .borrow_mut()
-            .render_pass
-            .egui_texture_from_wgpu_texture(device, texture, texture_filter)
-    }
+    // /// Registers a wgpu::Texture with a egui::TextureId.
+    // pub fn texture_from_wgpu_texture(
+    //     &mut self,
+    //     device: &wgpu::Device,
+    //     texture: &wgpu::TextureView,
+    //     texture_filter: wgpu::FilterMode,
+    // ) -> egui::TextureId {
+    //     self.renderer
+    //         .borrow_mut()
+    //         .render_pass
+    //         .egui_texture_from_wgpu_texture(device, texture, texture_filter)
+    // }
 
-    /// Registers a wgpu::Texture with an existing egui::TextureId.
-    pub fn update_texture_from_wgpu_texture(
-        &mut self,
-        device: &wgpu::Device,
-        texture: &wgpu::TextureView,
-        texture_filter: wgpu::FilterMode,
-        id: egui::TextureId,
-    ) -> Result<(), egui_wgpu_backend::BackendError> {
-        self.renderer
-            .borrow_mut()
-            .render_pass
-            .update_egui_texture_from_wgpu_texture(device, texture, texture_filter, id)
-    }
+    // /// Registers a wgpu::Texture with an existing egui::TextureId.
+    // pub fn update_texture_from_wgpu_texture(
+    //     &mut self,
+    //     device: &wgpu::Device,
+    //     texture: &wgpu::TextureView,
+    //     texture_filter: wgpu::FilterMode,
+    //     id: egui::TextureId,
+    // ) {
+    //     self.renderer
+    //         .borrow_mut()
+    //         .render_pass
+    //         .update_egui_texture_from_wgpu_texture(device, texture, texture_filter, id)
+    // }
 
     /// Draws the contents of the inner `context` to the given frame.
     pub fn draw_to_frame(
         &self,
         frame: &nannou::Frame,
-    ) -> Result<(), egui_wgpu_backend::BackendError> {
+    ) {
         let mut renderer = self.renderer.borrow_mut();
         renderer.draw_to_frame(frame)
     }
 
-    /// Provide access to an `epi::Frame` within the given function.
-    ///
-    /// This method is primarily used for apps based on the `epi` interface.
-    pub fn with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F)
-    where
-        F: FnOnce(&Context, &mut epi::Frame),
-    {
-        let integration_info = epi::IntegrationInfo {
-            native_pixels_per_point: Some(self.input.window_scale_factor as _),
-            // TODO: Provide access to this stuff.
-            web_info: None,
-            prefer_dark_mode: None,
-            cpu_usage: None,
-            name: "egui_nannou_wgpu",
-        };
-        let app_output = epi::backend::AppOutput::default();
-        let repaint_signal = Arc::new(RepaintSignal(Mutex::new(proxy)));
-        let frame_data = epi::backend::FrameData {
-            info: integration_info,
-            output: app_output,
-            repaint_signal: repaint_signal as Arc<_>,
-        };
-        let mut frame = epi::Frame(Arc::new(Mutex::new(frame_data)));
-        f(&self.context, &mut frame)
-    }
+    // /// Provide access to an `epi::Frame` within the given function.
+    // ///
+    // /// This method is primarily used for apps based on the `epi` interface.
+    // pub fn with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F)
+    // where
+    //     F: FnOnce(&Context, &mut epi::Frame),
+    // {
+    //     let integration_info = epi::IntegrationInfo {
+    //         native_pixels_per_point: Some(self.input.window_scale_factor as _),
+    //         // TODO: Provide access to this stuff.
+    //         web_info: None,
+    //         prefer_dark_mode: None,
+    //         cpu_usage: None,
+    //         name: "egui_nannou_wgpu",
+    //     };
+    //     let app_output = epi::backend::AppOutput::default();
+    //     let repaint_signal = Arc::new(RepaintSignal(Mutex::new(proxy)));
+    //     let frame_data = epi::backend::FrameData {
+    //         info: integration_info,
+    //         output: app_output,
+    //         repaint_signal: repaint_signal as Arc<_>,
+    //     };
+    //     let mut frame = epi::Frame(Arc::new(Mutex::new(frame_data)));
+    //     f(&self.context, &mut frame)
+    // }
 
-    /// The same as `with_epi_frame`, but calls `begin_frame` before calling the given function,
-    /// and then calls `end_frame` before returning.
-    pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F) -> egui::FullOutput
-    where
-        F: FnOnce(&Context, &mut epi::Frame),
-    {
-        self.begin_frame_inner();
-        self.with_epi_frame(proxy.clone(), f);
-        let output = self.end_frame_inner();
+    // /// The same as `with_epi_frame`, but calls `begin_frame` before calling the given function,
+    // /// and then calls `end_frame` before returning.
+    // pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F) -> egui::FullOutput
+    // where
+    //     F: FnOnce(&Context, &mut epi::Frame),
+    // {
+    //     self.begin_frame_inner();
+    //     self.with_epi_frame(proxy.clone(), f);
+    //     let output = self.end_frame_inner();
 
-        // If a repaint is required, ensure the event loop emits another update.
-        if output.needs_repaint {
-            proxy.wakeup().unwrap();
-        }
+    //     // If a repaint is required, ensure the event loop emits another update.
+    //     if output.needs_repaint {
+    //         proxy.wakeup().unwrap();
+    //     }
 
-        output
-    }
+    //     output
+    // }
 
     fn begin_frame_inner(&mut self) {
         self.context.begin_frame(self.input.raw.take());
@@ -340,12 +340,9 @@ impl Renderer {
         target_format: wgpu::TextureFormat,
         target_msaa_samples: u32,
     ) -> Self {
+        let render_pass = RenderPass::new(device, target_format, target_msaa_samples);
         Self {
-            render_pass: egui_wgpu_backend::RenderPass::new(
-                device,
-                target_format,
-                target_msaa_samples,
-            ),
+            render_pass,
             paint_jobs: Vec::new(),
             textures_delta: Default::default(),
         }
@@ -368,27 +365,30 @@ impl Renderer {
         dst_size_pixels: [u32; 2],
         dst_scale_factor: f32,
         dst_texture: &wgpu::TextureView,
-    ) -> Result<(), egui_wgpu_backend::BackendError> {
+    ) {
         let textures_delta = std::mem::take(&mut self.textures_delta);
         let render_pass = &mut self.render_pass;
         let paint_jobs = &self.paint_jobs;
-        let [physical_width, physical_height] = dst_size_pixels;
-        let screen_descriptor = ScreenDescriptor {
-            physical_width,
-            physical_height,
-            scale_factor: dst_scale_factor,
-        };
-        render_pass.add_textures(device, queue, &textures_delta)?;
+        let size_in_pixels = dst_size_pixels;
+        let pixels_per_point = dst_scale_factor;
+        let screen_descriptor = ScreenDescriptor { size_in_pixels, pixels_per_point };
+        for (id, image_delta) in &textures_delta.set {
+            render_pass.update_texture(device, queue, *id, image_delta);
+        }
+        for id in &textures_delta.free {
+            render_pass.free_texture(id);
+        }
         render_pass.update_buffers(device, queue, &paint_jobs, &screen_descriptor);
-        render_pass.execute(encoder, dst_texture, &paint_jobs, &screen_descriptor, None)?;
-        render_pass.remove_textures(textures_delta)
+        render_pass.execute(encoder, dst_texture, &paint_jobs, &screen_descriptor, None);
+
+        //render_pass.remove_textures(textures_delta)
     }
 
     /// Encodes a render pass for drawing the given context's texture to the given frame.
     pub fn draw_to_frame(
         &mut self,
         frame: &nannou::Frame,
-    ) -> Result<(), egui_wgpu_backend::BackendError> {
+    ) {
         let device_queue_pair = frame.device_queue_pair();
         let device = device_queue_pair.device();
         let queue = device_queue_pair.queue();
@@ -441,13 +441,13 @@ impl<'a> Deref for FrameCtx<'a> {
     }
 }
 
-impl epi::backend::RepaintSignal for RepaintSignal {
-    fn request_repaint(&self) {
-        if let Ok(guard) = self.0.lock() {
-            guard.wakeup().ok();
-        }
-    }
-}
+// impl epi::backend::RepaintSignal for RepaintSignal {
+//     fn request_repaint(&self) {
+//         if let Ok(guard) = self.0.lock() {
+//             guard.wakeup().ok();
+//         }
+//     }
+// }
 
 /// Translates winit to egui keycodes.
 #[inline]

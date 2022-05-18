@@ -11,6 +11,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    println!("model");
     app.set_loop_mode(LoopMode::wait());
     let w_id = app
         .new_window()
@@ -36,6 +37,7 @@ fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event:
 }
 
 fn update(app: &App, model: &mut Model, update: Update) {
+    println!("update");
     let Model {
         ref mut egui,
         ref mut egui_demo_app,
@@ -49,5 +51,6 @@ fn update(app: &App, model: &mut Model, update: Update) {
 }
 
 fn view(_app: &App, model: &Model, frame: Frame) {
+    println!("view");
     model.egui.draw_to_frame(&frame).unwrap();
 }
