@@ -56,7 +56,7 @@ pub struct Draw {
     /// and focus on creativity. Rust-lang nuances can come later.
     state: Rc<RefCell<State>>,
     /// The current context of this **Draw** instance.
-    pub context: Context,
+    context: Context,
 }
 
 /// The current **Transform**, alpha **BlendState** and **Scissor** of a **Draw** instance.
