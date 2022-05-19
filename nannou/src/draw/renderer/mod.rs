@@ -11,8 +11,19 @@ use lyon::tessellation::{FillTessellator, StrokeTessellator};
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Range};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
+
+
+#[repr(C)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct Instance {
+    pub transform: Mat4
+}
+
+fn instances_as_bytes(data: &[Instance]) -> &[u8] {
+    unsafe { wgpu::bytes::from_slice(data) }
+}
 
 /// Draw API primitives that may be rendered via the **Renderer** type.
 pub trait RenderPrimitive {
@@ -98,6 +109,7 @@ pub struct Renderer {
     mesh: draw::Mesh,
     vertex_mode_buffer: Vec<VertexMode>,
     uniform_buffer: wgpu::Buffer,
+    instances: Vec<Instance>
 }
 
 /// A type aimed at simplifying construction of a `draw::Renderer`.
@@ -119,9 +131,11 @@ enum RenderCommand {
     /// Set the rectangular scissor.
     SetScissor(Scissor),
     /// Draw the given vertex range.
+
     DrawIndexed {
         start_vertex: i32,
         index_range: std::ops::Range<u32>,
+        instance_range: std::ops::Range<u32>
     },
 }
 
@@ -454,6 +468,7 @@ impl Renderer {
         let render_commands = vec![];
         let mesh = Default::default();
         let vertex_mode_buffer = vec![];
+        let instances = vec![Instance{transform: Mat4::IDENTITY}];
 
         Self {
             vs_mod,
@@ -479,6 +494,7 @@ impl Renderer {
             mesh,
             vertex_mode_buffer,
             uniform_buffer,
+            instances
         }
     }
 
@@ -487,6 +503,7 @@ impl Renderer {
         self.render_commands.clear();
         self.mesh.clear();
         self.vertex_mode_buffer.clear();
+        self.instances = vec![Instance{transform: Mat4::IDENTITY}];
     }
 
     /// Generate a list of `RenderCommand`s from the given **Draw** instance and prepare any
@@ -508,6 +525,7 @@ impl Renderer {
             curr_start_index: &mut u32,
             end_index: u32,
             render_commands: &mut Vec<RenderCommand>,
+            instance_range: Range<u32>
         ) -> bool {
             let index_range = *curr_start_index..end_index;
             if index_range.len() != 0 {
@@ -516,6 +534,7 @@ impl Renderer {
                 let cmd = RenderCommand::DrawIndexed {
                     start_vertex,
                     index_range,
+                    instance_range
                 };
                 render_commands.push(cmd);
                 true
@@ -551,14 +570,37 @@ impl Renderer {
         let mut curr_pipeline_id = None;
         let mut curr_scissor = None;
         let mut curr_tex_sampler_id = None;
+        let mut curr_instancing_range = 0..1u32;
 
         // Collect all draw commands to avoid borrow errors.
         let draw_cmds: Vec<_> = draw.drain_commands().collect();
         let draw_state = draw.state.borrow_mut();
         let intermediary_state = draw_state.intermediary_state.borrow();
+
         for cmd in draw_cmds {
             match cmd {
-                draw::DrawCommand::Context(ctxt) => curr_ctxt = ctxt,
+                draw::DrawCommand::Context(ctxt) => {
+                    if  ctxt.instances != curr_ctxt.instances {
+
+                        let old_instancing_range = curr_instancing_range.clone();
+                        push_draw_cmd(
+                            &mut curr_start_index,
+                            self.mesh.indices().len() as u32,
+                            &mut self.render_commands,
+                            old_instancing_range.clone()
+                        );
+
+                        if ctxt.instances.len() == 1 {
+                            curr_instancing_range = 0..1u32;
+                        } else {
+                            let instance_len = self.instances.len() as u32;
+                            curr_instancing_range = instance_len .. instance_len + ctxt.instances.len() as u32;
+                            self.instances.append(&mut ctxt.instances.clone());
+                        }
+                    }
+
+                    curr_ctxt = ctxt;
+                },
                 draw::DrawCommand::Primitive(prim) => {
                     // Track the prev index and vertex counts.
                     let prev_index_count = self.mesh.indices().len() as u32;
@@ -638,6 +680,7 @@ impl Renderer {
                             &mut curr_start_index,
                             prev_index_count,
                             &mut self.render_commands,
+                            curr_instancing_range.clone()
                         );
                     }
 
@@ -699,6 +742,7 @@ impl Renderer {
             &mut curr_start_index,
             self.mesh.indices().len() as u32,
             &mut self.render_commands,
+            curr_instancing_range.clone()
         );
 
         // Clear out unnecessary pipelines.
@@ -762,6 +806,8 @@ impl Renderer {
             self.texture_bind_groups.insert(new_id, bind_group);
         }
     }
+
+
 
     /// Encode a render pass with the given **Draw**ing to the given `output_attachment`.
     ///
@@ -891,6 +937,14 @@ impl Renderer {
             encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, uniform_buffer, 0, uniforms_size);
         }
 
+        let instances_bytes = instances_as_bytes(&self.instances[..]);
+        let usage = wgpu::BufferUsages::VERTEX;
+        let instance_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            contents: instances_bytes,
+            usage,
+        });
+
         // Encode the render pass.
         let mut render_pass = render_pass_builder.begin(encoder);
 
@@ -900,6 +954,8 @@ impl Renderer {
         render_pass.set_vertex_buffer(1, color_buffer.slice(..));
         render_pass.set_vertex_buffer(2, tex_coords_buffer.slice(..));
         render_pass.set_vertex_buffer(3, mode_buffer.slice(..));
+        render_pass.set_vertex_buffer(4, instance_buffer.slice(..));
+
 
         // Set the uniform and text bind groups here.
         render_pass.set_bind_group(0, uniform_bind_group, &[]);
@@ -930,9 +986,9 @@ impl Renderer {
                 RenderCommand::DrawIndexed {
                     start_vertex,
                     index_range,
+                    instance_range
                 } => {
-                    let instance_range = 0..1u32;
-                    render_pass.draw_indexed(index_range, start_vertex, instance_range);
+                    render_pass.draw_indexed(index_range, start_vertex, instance_range.clone());
                 }
             }
         }
@@ -1131,6 +1187,28 @@ fn create_render_pipeline(
             &wgpu::vertex_attr_array![2 => Float32x2],
         )
         .add_vertex_buffer::<VertexMode>(&wgpu::vertex_attr_array![3 => Uint32])
+        .add_instance_buffer::<Instance>(&[
+            wgpu::VertexAttribute {
+                shader_location: 4,
+                format: wgpu::VertexFormat::Float32x4,
+                offset: 0,
+            },
+            wgpu::VertexAttribute {
+                shader_location: 5,
+                format: wgpu::VertexFormat::Float32x4,
+                offset: std::mem::size_of::<[f32; 4]>() as u64 * 1,
+            },
+            wgpu::VertexAttribute {
+                shader_location: 6,
+                format: wgpu::VertexFormat::Float32x4,
+                offset: std::mem::size_of::<[f32; 4]>() as u64 * 2,
+            },
+            wgpu::VertexAttribute {
+                shader_location: 7,
+                format: wgpu::VertexFormat::Float32x4,
+                offset: std::mem::size_of::<[f32; 4]>() as u64 * 3,
+            }
+        ])
         .depth_format(depth_format)
         .sample_count(sample_count)
         .color_blend(color_blend)

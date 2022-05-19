@@ -19,6 +19,7 @@ pub use self::mesh::Mesh;
 use self::primitive::Primitive;
 pub use self::renderer::{Builder as RendererBuilder, Renderer};
 pub use self::theme::Theme;
+use crate::draw::renderer::Instance;
 
 pub mod background;
 mod drawing;
@@ -55,13 +56,14 @@ pub struct Draw {
     /// and focus on creativity. Rust-lang nuances can come later.
     state: Rc<RefCell<State>>,
     /// The current context of this **Draw** instance.
-    context: Context,
+    pub context: Context,
 }
 
 /// The current **Transform**, alpha **BlendState** and **Scissor** of a **Draw** instance.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Context {
     pub transform: Mat4,
+    pub instances: Vec<Instance>,
     pub blend: wgpu::BlendState,
     pub scissor: Scissor,
     // TODO: Consider changing `PolygonMode` (added as of wgpu 0.7) rather than `PrimitiveTopology`
@@ -201,6 +203,12 @@ impl Draw {
     pub fn transform(&self, transform_matrix: Mat4) -> Self {
         let mut context = self.context.clone();
         context.transform = context.transform * transform_matrix;
+        self.context(context)
+    }
+
+    pub fn instances (&self, instances: Vec<Instance>) -> Self {
+        let mut context = self.context.clone();
+        context.instances = instances;
         self.context(context)
     }
 
@@ -642,6 +650,7 @@ impl Default for Context {
     fn default() -> Self {
         Self {
             transform: Mat4::IDENTITY,
+            instances: vec![Instance{transform: Mat4::IDENTITY}],
             blend: wgpu::BlendState {
                 color: wgpu::RenderPipelineBuilder::DEFAULT_COLOR_BLEND,
                 alpha: wgpu::RenderPipelineBuilder::DEFAULT_ALPHA_BLEND,
