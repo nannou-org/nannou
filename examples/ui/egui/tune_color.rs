@@ -71,7 +71,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 
     // Do this as the last operation on your frame.
-    model.egui.draw_to_frame(&frame).unwrap();
+    model.egui.draw_to_frame(&frame);
 }
 
 fn edit_hsv(ui: &mut egui::Ui, color: &mut Hsv) {
