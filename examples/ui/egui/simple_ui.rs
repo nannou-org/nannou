@@ -2,9 +2,7 @@ use nannou::prelude::*;
 use nannou_egui::{self, egui, Egui};
 
 fn main() {
-    nannou::app(model)
-        .update(update) 
-        .run();
+    nannou::app(model).update(update).run();
 }
 
 struct Settings {
@@ -16,13 +14,14 @@ struct Settings {
 }
 
 struct Model {
-    settings: Settings, 
-    egui: Egui
+    settings: Settings,
+    egui: Egui,
 }
 
 fn model(app: &App) -> Model {
     // Create window
-    let window_id = app.new_window()
+    let window_id = app
+        .new_window()
         .view(view)
         .raw_event(raw_window_event)
         .build()
@@ -30,7 +29,7 @@ fn model(app: &App) -> Model {
     let window = app.window(window_id).unwrap();
 
     let egui = Egui::from_window(&window);
-    
+
     Model {
         egui,
         settings: Settings {
@@ -38,8 +37,8 @@ fn model(app: &App) -> Model {
             scale: 200.0,
             rotation: 0.0,
             color: WHITE,
-            position: vec2(0.0, 0.0)
-        }
+            position: vec2(0.0, 0.0),
+        },
     }
 }
 
@@ -64,8 +63,7 @@ fn update(_app: &App, model: &mut Model, update: Update) {
         ui.add(egui::Slider::new(&mut settings.rotation, 0.0..=360.0));
 
         // Random color button
-        let clicked = ui.add(egui::Button::new("Random color"))
-            .clicked();
+        let clicked = ui.add(egui::Button::new("Random color")).clicked();
 
         if clicked {
             settings.color = rgb(random(), random(), random());
@@ -79,7 +77,7 @@ fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event:
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
-    let settings = &model.settings;    
+    let settings = &model.settings;
 
     let draw = app.draw();
     draw.background().color(BLACK);
@@ -91,7 +89,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .color(settings.color)
         .rotate(-rotation_radians)
         .radius(settings.scale);
-    
+
     draw.to_frame(app, &frame).unwrap();
     model.egui.draw_to_frame(&frame).unwrap();
 }
