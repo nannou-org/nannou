@@ -193,6 +193,9 @@ path = "ui/egui/circle_packing.rs"
 [[example]]
 name = "tune_color"
 path = "ui/egui/tune_color.rs"
+[[example]]
+name = "simple_ui"
+path = "ui/egui/simple_ui.rs"
 
 # WebGPU
 [[example]]
