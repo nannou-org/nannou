@@ -36,7 +36,7 @@ pub struct DetectedDac {
 #[derive(Clone, Copy)]
 pub union DetectedDacKind {
     pub ether_dream: DacEtherDream,
-    pub helios: DacHelios
+    pub helios: DacHelios,
 }
 
 /// An Ether Dream DAC that was detected on the network.
@@ -50,14 +50,14 @@ pub struct DacEtherDream {
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct DacHelios {
-    pub dac: helios_dac::NativeHeliosDacParams
+    pub dac: helios_dac::NativeHeliosDacParams,
 }
 
 #[repr(C)]
-#[derive(Clone, Debug,Copy)]
+#[derive(Clone, Debug, Copy)]
 pub enum DacVariant {
     DacVariantEtherdream,
-    DacVariantHelios
+    DacVariantHelios,
 }
 /// A set of stream configuration parameters applied to the initialisation of both `Raw` and
 /// `Frame` streams.
@@ -153,7 +153,7 @@ pub enum StreamErrorKind {
     HeliosInvalidDeviceResult,
     HeliosUtf8Error,
     HeliosChannelSendError,
-    HeliosInvalidWriteFrameFlag
+    HeliosInvalidWriteFrameFlag,
 }
 
 #[repr(C)]
@@ -326,7 +326,11 @@ pub unsafe extern "C" fn available_dacs(
 
 /// Block the current thread until a new DAC is detected and return it.
 #[no_mangle]
-pub unsafe extern "C" fn detect_dac(api: *mut Api, detected_dac: *mut DetectedDac, variant:DacVariant) -> Result {
+pub unsafe extern "C" fn detect_dac(
+    api: *mut Api,
+    detected_dac: *mut DetectedDac,
+    variant: DacVariant,
+) -> Result {
     let api: &mut ApiInner = &mut (*(*api).inner);
     let mut iter = match api.inner.detect_dacs(dac_variant_from_ffi(variant)) {
         Err(err) => {
@@ -1124,12 +1128,10 @@ fn detected_dac_to_ffi(dac: crate::DetectedDac) -> DetectedDac {
             let kind = DetectedDacKind { ether_dream };
             DetectedDac { kind }
         }
-        crate::DetectedDac::Helios {
-            dac 
-        } => {
-            let helios = DacHelios{dac};
-            let kind = DetectedDacKind{ helios };
-            DetectedDac{kind}
+        crate::DetectedDac::Helios { dac } => {
+            let helios = DacHelios { dac };
+            let kind = DetectedDacKind { helios };
+            DetectedDac { kind }
         }
     }
 }
@@ -1145,8 +1147,8 @@ fn detected_dac_from_ffi(ffi_dac: DetectedDac) -> crate::DetectedDac {
     }
 }
 
-fn dac_variant_from_ffi(variant: DacVariant) -> crate::DacVariant{
-    match variant{
+fn dac_variant_from_ffi(variant: DacVariant) -> crate::DacVariant {
+    match variant {
         DacVariant::DacVariantEtherdream => crate::DacVariant::DacVariantEtherdream,
         DacVariant::DacVariantHelios => crate::DacVariant::DacVariantHelios,
     }
@@ -1179,24 +1181,18 @@ fn stream_error_to_kind(err: &crate::StreamError) -> StreamErrorKind {
                 StreamErrorKind::EtherDreamFailedToStopStream
             }
         },
-        crate::StreamError::HeliosStream { err } => match err{
-            HeliosStreamError::FailedToCreateUSBContext { .. } => {
-                StreamErrorKind::HeliosUsbError
-            }
-            HeliosStreamError::FailedToDetectDacs { .. } => {
-                StreamErrorKind::HeliosUsbError
-            }
+        crate::StreamError::HeliosStream { err } => match err {
+            HeliosStreamError::FailedToCreateUSBContext { .. } => StreamErrorKind::HeliosUsbError,
+            HeliosStreamError::FailedToDetectDacs { .. } => StreamErrorKind::HeliosUsbError,
             HeliosStreamError::InvalidDeviceResult { .. } => {
                 StreamErrorKind::HeliosInvalidDeviceResult
             }
-            HeliosStreamError::FailedToWriteFrame { .. } => {
-                StreamErrorKind::HeliosUsbError
-            },
+            HeliosStreamError::FailedToWriteFrame { .. } => StreamErrorKind::HeliosUsbError,
             HeliosStreamError::FailedToStopStream { err } => match err {
                 helios_dac::NativeHeliosError::UsbError(_) => StreamErrorKind::HeliosUsbError,
-                _=> StreamErrorKind::HeliosDeviceNotOpened,
-            } 
-        }
+                _ => StreamErrorKind::HeliosDeviceNotOpened,
+            },
+        },
     }
 }
 
@@ -1209,10 +1205,10 @@ fn stream_error_to_attempts(err: &crate::StreamError) -> u32 {
             | EtherDreamStreamError::FailedToConnectStream { attempts, .. } => attempts,
             _ => 0,
         },
-        crate::StreamError::HeliosStream { ref err } => match *err{
-            HeliosStreamError::FailedToCreateUSBContext { attempts,.. }
-            |HeliosStreamError::FailedToDetectDacs { attempts,.. } => attempts,
-            _ => 0
+        crate::StreamError::HeliosStream { ref err } => match *err {
+            HeliosStreamError::FailedToCreateUSBContext { attempts, .. }
+            | HeliosStreamError::FailedToDetectDacs { attempts, .. } => attempts,
+            _ => 0,
         },
     }
 }

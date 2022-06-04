@@ -11,6 +11,7 @@ back to the origins.
 - Add CI for testing the `wasm32-unknown-unknown` target.
 - Enable `wgpu/webgl` when `wasm` feature is enabled.
 - Update minimum wgpu version to `0.11.1`, update winit to `0.26`.
+- Added support for the Helios DAC to nannou_laser
 
 ---
 

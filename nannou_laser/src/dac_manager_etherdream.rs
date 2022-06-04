@@ -7,9 +7,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 
+use crate::dac_manager::{DetectDacs, DetectedDac};
 use crate::util::{clamp, map_range};
-use crate::{DetectedDacError,RawPoint};
-use crate::dac_manager::{DetectDacs,DetectedDac};
+use crate::{DetectedDacError, RawPoint};
 /// Callback functions that may be passed to the `detect_dacs_async` function.
 pub trait DetectedDacCallback: FnMut(io::Result<DetectedDac>) {}
 impl<F> DetectedDacCallback for F where F: FnMut(io::Result<DetectedDac>) {}
@@ -106,17 +106,19 @@ fn detect_dacs_async_inner(
                     if let Err(ref e) = res {
                         match e {
                             DetectedDacError::IoError(err) => {
-                                if let io::ErrorKind::TimedOut | io::ErrorKind::WouldBlock = err.kind(){
-                                    continue 'msgs
+                                if let io::ErrorKind::TimedOut | io::ErrorKind::WouldBlock =
+                                    err.kind()
+                                {
+                                    continue 'msgs;
                                 }
-                            }, 
+                            }
                             _ => (),
                         }
                     }
-                    let cb = res.map_err(|e|{
-                        if let DetectedDacError::IoError(err) = e{
+                    let cb = res.map_err(|e| {
+                        if let DetectedDacError::IoError(err) = e {
                             io::Error::from(err)
-                        }else{
+                        } else {
                             unreachable!("The detect_dacs enum variant here should be 'EtherDream'")
                         }
                     });

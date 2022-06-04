@@ -168,20 +168,18 @@ fn model(app: &App) -> Model {
         let mut detected = std::collections::HashSet::new();
 
         // detect Helios DACs first since they can't be detected while simultaneously sending data to them
-        for res in laser_api2
-            .detect_dacs(laser::DacVariant::DacVariantHelios)
-        {
-            if let laser::DetectDacs::Helios{previous_dac} = res{
-                if !detected.insert(laser::DetectedDac::from(previous_dac).id()){
+        for res in laser_api2.detect_dacs(laser::DacVariant::DacVariantHelios) {
+            if let laser::DetectDacs::Helios { previous_dac } = res {
+                if !detected.insert(laser::DetectedDac::from(previous_dac).id()) {
                     break;
                 }
             }
         }
-        for detected_helios in &detected{
-            if let laser::dac_manager::Id::Helios { id } = *detected_helios{
-                let dac:laser::helios_dac::NativeHeliosDacParams = id.into();
+        for detected_helios in &detected {
+            if let laser::dac_manager::Id::Helios { id } = *detected_helios {
+                let dac: laser::helios_dac::NativeHeliosDacParams = id.into();
                 println!("{:#?}", dac);
-                if dac_tx.send(dac.into()).is_err(){
+                if dac_tx.send(dac.into()).is_err() {
                     break;
                 }
             }

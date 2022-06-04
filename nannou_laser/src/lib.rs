@@ -3,6 +3,9 @@
 pub extern crate ether_dream;
 pub extern crate helios_dac;
 
+pub mod dac_manager;
+pub mod dac_manager_etherdream;
+pub mod dac_manager_helios;
 #[cfg(feature = "ffi")]
 pub mod ffi;
 #[cfg(feature = "ilda-idtf")]
@@ -10,12 +13,9 @@ pub mod ilda_idtf;
 pub mod point;
 pub mod stream;
 pub mod util;
-pub mod dac_manager;
-pub mod dac_manager_etherdream;
-pub mod dac_manager_helios;
 
+pub use dac_manager::{DacVariant, DetectDacs, DetectedDac, DetectedDacError, Id as DacId, Result};
 pub use dac_manager_etherdream::{DetectEtherDreamDacsAsync, DetectedDacCallback};
-pub use dac_manager::{Id as DacId, DetectDacs, DetectedDac, Result, DetectedDacError, DacVariant};
 pub use point::{Point, RawPoint};
 pub use stream::frame::Frame;
 pub use stream::frame::Stream as FrameStream;
@@ -50,16 +50,16 @@ impl Api {
     ///
     /// **Note** that the DetectDacs::EtherDream iterator will iterate forever and never terminate unless
     /// `set_timeout` is called on the returned `DetectDacs` instance.
-    pub fn detect_dacs(&self, variant:DacVariant) -> Result<DetectDacs> {
+    pub fn detect_dacs(&self, variant: DacVariant) -> Result<DetectDacs> {
         self.inner.detect_dacs(variant)
     }
 
     /// Block and wait until the DAC with the given `Id` is detected.
-    pub fn detect_dac(&self, id: DacId, variant:DacVariant) -> Result<DetectedDac> {
-        self.inner.detect_dac(id,variant)
+    pub fn detect_dac(&self, id: DacId, variant: DacVariant) -> Result<DetectedDac> {
+        self.inner.detect_dac(id, variant)
     }
 
-    /// Spawn a thread for DAC detection. Currently only implemented for the Etherdream DAC 
+    /// Spawn a thread for DAC detection. Currently only implemented for the Etherdream DAC
     ///
     /// Calls the given `callback` with broadcasts as they are received.
     ///
@@ -123,22 +123,24 @@ impl Api {
             model,
             render,
             stream_error,
-            is_frame:false
+            is_frame: false,
         }
     }
 }
 
 impl Inner {
     /// See the `Api::detect_dacs` docs.
-    pub(crate) fn detect_dacs(&self, variant:DacVariant) -> Result<DetectDacs> {
-        match variant{
-            DacVariant::DacVariantEtherdream=>dac_manager_etherdream::detect_dacs().map_err(DetectedDacError::from),
-            DacVariant::DacVariantHelios=>dac_manager_helios::detect_dacs()
+    pub(crate) fn detect_dacs(&self, variant: DacVariant) -> Result<DetectDacs> {
+        match variant {
+            DacVariant::DacVariantEtherdream => {
+                dac_manager_etherdream::detect_dacs().map_err(DetectedDacError::from)
+            }
+            DacVariant::DacVariantHelios => dac_manager_helios::detect_dacs(),
         }
     }
 
     /// Block and wait until the DAC with the given `Id` is detected.
-    pub(crate) fn detect_dac(&self, id: DacId, variant:DacVariant) -> Result<DetectedDac> {
+    pub(crate) fn detect_dac(&self, id: DacId, variant: DacVariant) -> Result<DetectedDac> {
         for res in self.detect_dacs(variant)? {
             let dac = res?;
             if dac.id() == id {
