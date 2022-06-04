@@ -1,12 +1,14 @@
-//! Items related to EtherDream DAC detection.
+//! Items related specifically to the EtherDream DAC.
 
 use std::io;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::time::Duration;
+use thiserror::Error;
 
-use crate::DetectedDacError;
+use crate::util::{clamp, map_range};
+use crate::{DetectedDacError,RawPoint};
 use crate::dac_manager::{DetectDacs,DetectedDac};
 /// Callback functions that may be passed to the `detect_dacs_async` function.
 pub trait DetectedDacCallback: FnMut(io::Result<DetectedDac>) {}
@@ -128,4 +130,114 @@ fn detect_dacs_async_inner(
         msg_tx,
         thread: Some(thread),
     })
+}
+
+// The number of remaining points in the DAC.
+pub fn dac_remaining_buffer_capacity(dac: &ether_dream::dac::Dac) -> u16 {
+    dac.buffer_capacity - 1 - dac.status.buffer_fullness
+}
+
+// Determine the number of points needed to fill the DAC.
+pub fn points_to_generate(dac: &ether_dream::dac::Dac, latency_points: u16) -> u16 {
+    let remaining_capacity = dac_remaining_buffer_capacity(dac);
+    let n = if dac.status.buffer_fullness < latency_points {
+        latency_points - dac.status.buffer_fullness
+    } else {
+        0
+    };
+    std::cmp::min(n, remaining_capacity)
+}
+
+// Constructor for a centered, blank ether dream DAC point.
+pub fn centered_blank() -> ether_dream::protocol::DacPoint {
+    ether_dream::protocol::DacPoint {
+        control: 0,
+        x: 0,
+        y: 0,
+        r: 0,
+        g: 0,
+        b: 0,
+        i: 0,
+        u1: 0,
+        u2: 0,
+    }
+}
+
+// Convert a `lase::point::Position` type to an `i16` representation compatible with ether dream.
+fn position_to_ether_dream_position([px, py]: crate::point::Position) -> [i16; 2] {
+    let min = std::i16::MIN;
+    let max = std::i16::MAX;
+    let x = map_range(clamp(px, -1.0, 1.0), -1.0, 1.0, min as f64, max as f64) as i16;
+    let y = map_range(clamp(py, -1.0, 1.0), -1.0, 1.0, min as f64, max as f64) as i16;
+    [x, y]
+}
+
+// Convert a `lase::point::Rgb` type to an `u16` representation compatible with ether dream.
+fn color_to_ether_dream_color([pr, pg, pb]: crate::point::Rgb) -> [u16; 3] {
+    let r = (clamp(pr, 0.0, 1.0) * std::u16::MAX as f32) as u16;
+    let g = (clamp(pg, 0.0, 1.0) * std::u16::MAX as f32) as u16;
+    let b = (clamp(pb, 0.0, 1.0) * std::u16::MAX as f32) as u16;
+    [r, g, b]
+}
+
+// Convert the laser point to an ether dream DAC point.
+pub fn point_to_ether_dream_point(p: RawPoint) -> ether_dream::protocol::DacPoint {
+    let [x, y] = position_to_ether_dream_position(p.position);
+    let [r, g, b] = color_to_ether_dream_color(p.color);
+    let (control, i, u1, u2) = (0, 0, 0, 0);
+    ether_dream::protocol::DacPoint {
+        control,
+        x,
+        y,
+        r,
+        g,
+        b,
+        i,
+        u1,
+        u2,
+    }
+}
+
+/// Errors that may occur while creating a node crate.
+#[derive(Debug, Error)]
+pub enum EtherDreamStreamError {
+    #[error("laser DAC detection failed: {err}")]
+    FailedToDetectDacs {
+        #[source]
+        err: io::Error,
+        /// The number of DAC detection attempts so far.
+        attempts: u32,
+    },
+    #[error("failed to connect the DAC stream (attempt {attempts}): {err}")]
+    FailedToConnectStream {
+        #[source]
+        err: ether_dream::dac::stream::CommunicationError,
+        /// The number of connection attempts so far.
+        attempts: u32,
+    },
+    #[error("failed to prepare the DAC stream: {err}")]
+    FailedToPrepareStream {
+        #[source]
+        err: ether_dream::dac::stream::CommunicationError,
+    },
+    #[error("failed to begin the DAC stream: {err}")]
+    FailedToBeginStream {
+        #[source]
+        err: ether_dream::dac::stream::CommunicationError,
+    },
+    #[error("failed to submit data over the DAC stream: {err}")]
+    FailedToSubmitData {
+        #[source]
+        err: ether_dream::dac::stream::CommunicationError,
+    },
+    #[error("failed to submit point rate change over the DAC stream: {err}")]
+    FailedToSubmitPointRate {
+        #[source]
+        err: ether_dream::dac::stream::CommunicationError,
+    },
+    #[error("failed to submit stop command to the DAC stream: {err}")]
+    FailedToStopStream {
+        #[source]
+        err: ether_dream::dac::stream::CommunicationError,
+    },
 }

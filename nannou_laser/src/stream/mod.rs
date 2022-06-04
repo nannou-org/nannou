@@ -31,6 +31,10 @@ pub struct Builder {
     ///
     /// If this value is `None`, no timeout will be applied and the stream will wait forever.
     pub tcp_timeout: Option<std::time::Duration>,
+    /// If Builder::dac is not specified, the stream will attempt to detect this DAC variant
+    /// 
+    /// By default this value is 'DacVariant::DacVariantEtherdream'
+    pub dac_variant: Option<crate::DacVariant>
 }
 
 /// Given a DAC point rate and a desired frame rate, determine how many points to generate per

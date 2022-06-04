@@ -1,11 +1,13 @@
-use crate::util::{clamp, map_range};
 use crate::Inner as ApiInner;
-use crate::{DetectedDac, RawPoint};
+use crate::{DetectedDac, DetectedDacError, RawPoint, DacVariant};
+use crate::dac_manager_helios::{HeliosStreamError, point_to_helios_point};
+use crate::dac_manager_etherdream::{EtherDreamStreamError, dac_remaining_buffer_capacity,centered_blank,points_to_generate,point_to_ether_dream_point};
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
+use helios_dac::{NativeHeliosDacController, NativeHeliosError, DeviceStatus};
 use thiserror::Error;
 
 /// The function that will be called when a `Buffer` of points is requested.
@@ -70,6 +72,7 @@ pub struct Builder<M, F, E = DefaultStreamErrorFn<M>> {
     pub model: M,
     pub render: F,
     pub stream_error: E,
+    pub is_frame: bool
 }
 
 /// The default stream error function type expected if none are specified.
@@ -91,50 +94,11 @@ pub enum StreamError {
         #[from]
         err: EtherDreamStreamError,
     },
-}
-
-/// Errors that may occur while creating a node crate.
-#[derive(Debug, Error)]
-pub enum EtherDreamStreamError {
-    #[error("laser DAC detection failed: {err}")]
-    FailedToDetectDacs {
-        #[source]
-        err: io::Error,
-        /// The number of DAC detection attempts so far.
-        attempts: u32,
-    },
-    #[error("failed to connect the DAC stream (attempt {attempts}): {err}")]
-    FailedToConnectStream {
-        #[source]
-        err: ether_dream::dac::stream::CommunicationError,
-        /// The number of connection attempts so far.
-        attempts: u32,
-    },
-    #[error("failed to prepare the DAC stream: {err}")]
-    FailedToPrepareStream {
-        #[source]
-        err: ether_dream::dac::stream::CommunicationError,
-    },
-    #[error("failed to begin the DAC stream: {err}")]
-    FailedToBeginStream {
-        #[source]
-        err: ether_dream::dac::stream::CommunicationError,
-    },
-    #[error("failed to submit data over the DAC stream: {err}")]
-    FailedToSubmitData {
-        #[source]
-        err: ether_dream::dac::stream::CommunicationError,
-    },
-    #[error("failed to submit point rate change over the DAC stream: {err}")]
-    FailedToSubmitPointRate {
-        #[source]
-        err: ether_dream::dac::stream::CommunicationError,
-    },
-    #[error("failed to submit stop command to the DAC stream: {err}")]
-    FailedToStopStream {
-        #[source]
-        err: ether_dream::dac::stream::CommunicationError,
-    },
+    #[error("a Helios DAC stream error occurred: {err}")]
+    HeliosStream {
+        #[from]
+        err: HeliosStreamError
+    }
 }
 
 /// An action to perform in response to a `StreamError` occurring.
@@ -320,6 +284,14 @@ impl<M, F, E> Builder<M, F, E> {
     /// detected on the system.
     pub fn detected_dac(mut self, dac: DetectedDac) -> Self {
         self.builder.dac = Some(dac);
+        self.builder.dac_variant = if let Some(ref dac) = self.builder.dac {
+            match dac {
+                crate::DetectedDac::EtherDream { .. } => Some(DacVariant::DacVariantEtherdream),
+                crate::DetectedDac::Helios { .. } => Some(DacVariant::DacVariantHelios),
+            }
+        }else{
+            None
+        };
         self
     }
 
@@ -360,6 +332,7 @@ impl<M, F, E> Builder<M, F, E> {
             builder,
             model,
             render,
+            is_frame,
             ..
         } = self;
         Builder {
@@ -368,7 +341,18 @@ impl<M, F, E> Builder<M, F, E> {
             model,
             render,
             stream_error,
+            is_frame
         }
+    }
+
+    /// DAC variant specified by user to be used for this stream.
+    /// 
+    /// If none is specified DacVariant::DacVariantEtherdream will be used.
+    /// 
+    /// DAC detection will only be attempted for this DAC variant.
+    pub fn dac_variant(mut self, variant: DacVariant) -> Self{
+        self.builder.dac_variant = Some(variant);
+        self
     }
 
     /// Build the stream with the specified parameters.
@@ -387,6 +371,7 @@ impl<M, F, E> Builder<M, F, E> {
             model,
             render,
             stream_error,
+            is_frame
         } = self;
 
         // Prepare the model for sharing between the laser thread and stream handle.
@@ -417,6 +402,9 @@ impl<M, F, E> Builder<M, F, E> {
         // The TCP timeout duration.
         let tcp_timeout = builder.tcp_timeout;
 
+        // The DAC variant that will be attempted to be detected
+        let dac_variant = builder.dac_variant.unwrap_or_default();
+
         // A flag for tracking whether or not the stream has been closed.
         let is_closed = Arc::new(AtomicBool::new(false));
         let is_closed2 = is_closed.clone();
@@ -436,6 +424,8 @@ impl<M, F, E> Builder<M, F, E> {
                     &s_rx,
                     &m_rx,
                     &is_closed2,
+                    dac_variant,
+                    is_frame
                 );
                 is_closed2.store(true, atomic::Ordering::Relaxed);
                 res
@@ -501,6 +491,8 @@ fn run_laser_stream<M, F, E>(
     state_update_rx: &mpsc::Receiver<StateUpdate>,
     model_update_rx: &mpsc::Receiver<ModelUpdate<M>>,
     is_closed: &AtomicBool,
+    dac_variant: DacVariant,
+    is_frame: bool
 ) -> Result<(), StreamError>
 where
     F: RenderFn<M>,
@@ -529,15 +521,21 @@ where
             if let Some(ref mut dac) = maybe_dac {
                 let dac_id = dac.id();
                 detect_attempts += 1;
-                *dac = match api_inner.detect_dac(dac_id) {
+                *dac = match api_inner.detect_dac(dac_id,dac_variant) {
                     Ok(dac) => {
                         detect_attempts = 0;
                         dac
                     }
                     Err(err) => {
                         let attempts = detect_attempts;
-                        let err = EtherDreamStreamError::FailedToDetectDacs { err, attempts };
-                        let err = StreamError::from(err);
+                        let err = match err{
+                            DetectedDacError::IoError(err) => {
+                                StreamError::from(EtherDreamStreamError::FailedToDetectDacs { err, attempts })
+                            },
+                            DetectedDacError::HeliosDacError(err) =>{
+                                StreamError::from(HeliosStreamError::FailedToDetectDacs{err,attempts})
+                            }
+                        };
                         let mut guard = lock_or_return_err!(model, err);
                         let mut model = guard.take().unwrap();
                         let mut action = StreamErrorAction::default();
@@ -563,57 +561,81 @@ where
             None => {
                 detect_attempts += 1;
                 let attempts = detect_attempts;
-                let detect_err = &|err| EtherDreamStreamError::FailedToDetectDacs { err, attempts };
+                let detect_err = &|err| match err {
+                    DetectedDacError::IoError(err) => StreamError::from(EtherDreamStreamError::FailedToDetectDacs { err, attempts }),
+                    DetectedDacError::HeliosDacError(err) => StreamError::from(HeliosStreamError::FailedToDetectDacs { err, attempts })
+                };
+                let set_timeout_error = &|err:io::Error| match err.kind() {
+                    io::ErrorKind::Other => StreamError::from(HeliosStreamError::InvalidDeviceResult { err: NativeHeliosError::InvalidDeviceResult}),
+                    _ => StreamError::from(EtherDreamStreamError::FailedToDetectDacs { err, attempts })
+                };
                 match api_inner
-                    .detect_dacs()
+                    .detect_dacs(dac_variant)
                     .map_err(detect_err)
                     .and_then(|detect_dacs| {
                         detect_dacs
                             .set_timeout(detect_timeout)
-                            .map_err(detect_err)?;
+                            .map_err(set_timeout_error)?;
                         Ok(detect_dacs)
                     })
                     .and_then(|mut dacs| {
                         dacs.next()
-                            .expect("ether dream DAC detection iterator should never return `None`")
+                            .expect("DAC detection iterator should never return `None`")
                             .map_err(detect_err)
                     }) {
-                    Ok(dac) => {
-                        detect_attempts = 0;
-                        dac
-                    }
-                    Err(err) => {
-                        let err = StreamError::from(err);
-                        let mut guard = lock_or_return_err!(model, err);
-                        let mut model = guard.take().unwrap();
-                        let mut action = StreamErrorAction::default();
-                        stream_error(&mut model, &err, &mut action);
-                        *guard = Some(model);
-                        match action {
-                            StreamErrorAction::CloseThread => return Err(err),
-                            StreamErrorAction::ReattemptConnect => continue,
-                            StreamErrorAction::RedetectDac { timeout } => {
-                                detect_timeout = timeout;
-                                continue;
+                        Ok(dac) => {
+                            detect_attempts = 0;
+                            dac
+                        }
+                        Err(err) => {
+                            let mut guard = lock_or_return_err!(model, err);
+                            let mut model = guard.take().unwrap();
+                            let mut action = StreamErrorAction::default();
+                            stream_error(&mut model, &err, &mut action);
+                            *guard = Some(model);
+                            match action {
+                                StreamErrorAction::CloseThread => return Err(err),
+                                StreamErrorAction::ReattemptConnect => continue,
+                                StreamErrorAction::RedetectDac { timeout } => {
+                                    detect_timeout = timeout;
+                                    continue;
+                                }
                             }
                         }
-                    }
                 }
             }
         };
 
         // Connect and run the laser stream.
-        match run_laser_stream_tcp_loop(
-            &dac,
-            tcp_timeout,
-            &state,
-            &model,
-            &render,
-            &state_update_rx,
-            &model_update_rx,
-            &is_closed,
-            &mut connect_attempts,
-        ) {
+        let res = match dac{
+            DetectedDac::EtherDream { broadcast:_, source_addr:_ } => {
+                run_laser_stream_tcp_loop(
+                    &dac,
+                    tcp_timeout,
+                    state,
+                    model,
+                    &render,
+                    state_update_rx,
+                    model_update_rx,
+                    is_closed,
+                    &mut connect_attempts,
+                ) 
+            },
+            DetectedDac::Helios { dac:_} => {
+                run_laser_stream_usb_loop(
+                    &dac,
+                    state,
+                    model,
+                    &render,
+                    state_update_rx,
+                    model_update_rx,
+                    is_closed,
+                    &mut connect_attempts,
+                    is_frame
+                ) 
+            },
+        };
+        match res{
             Ok(()) => break,
             Err(err) => {
                 let mut guard = lock_or_return_err!(model, err);
@@ -637,6 +659,86 @@ where
 }
 
 // Attempts to connect to the DAC via TCP and enters the stream loop.
+fn run_laser_stream_usb_loop<M, F>(
+    dac: &DetectedDac,
+    state: &Arc<Mutex<State>>,
+    model: &Arc<Mutex<Option<M>>>,
+    render: F,
+    state_update_rx: &mpsc::Receiver<StateUpdate>,
+    model_update_rx: &mpsc::Receiver<ModelUpdate<M>>,
+    is_closed: &AtomicBool,
+    connection_attempts: &mut u32,
+    is_frame: bool
+) -> Result<(),StreamError>
+where
+    F:RenderFn<M>,
+{
+    // Retrieve the DAC iterator from the USB connected DAC.
+    let dac_params = if let DetectedDac::Helios { dac:params} = dac{
+        params
+    }else{
+        unreachable!("'run_laser_stream_usb_loop()' is only meant to run if the DAC variant is Helios")
+    };
+    
+    // A buffer for collecting model updates.
+    let mut pending_model_updates: Vec<ModelUpdate<M>> = Vec::new();
+    let helios_device = NativeHeliosDacController::new()
+                .map_err(|err|HeliosStreamError::FailedToCreateUSBContext{err, attempts:*connection_attempts})?
+                .get_device(dac_params.id)
+                .map_err(|err|HeliosStreamError::FailedToDetectDacs { err, attempts:*connection_attempts })?
+                .open()
+                .map_err(|err|HeliosStreamError::FailedToDetectDacs { err, attempts:*connection_attempts })?;
+    
+    *connection_attempts = 0;
+
+    while !is_closed.load(atomic::Ordering::Relaxed) {
+
+        let (state,..) = 
+            get_stream_updates(
+                &mut pending_model_updates,
+                model_update_rx,
+                model,
+                state,
+                state_update_rx,
+                dac);
+        
+        // Clamp the point hz by the DAC's maximum point rate.
+        let point_hz = std::cmp::min(state.point_hz, dac.max_point_hz());
+
+        // Clamp the latency by the DAC's buffer capacity.
+        let latency_points = std::cmp::min(state.latency_points, dac.buffer_capacity());
+        // Determine how many points the DAC can currently receive.
+        let n_points = if let DeviceStatus::Ready = helios_device.status().map_err(|err|HeliosStreamError::FailedToWriteFrame{err})?{
+            // The Helios DAC is either ready or not, which indicates whether it can recieve a new frame.
+            // Because of this, the latency points determines the number of points that can be sent 
+            latency_points as usize
+        }else{
+            // Continue the loop until the DAC is ready in order to get the latest frame updates.
+            continue;
+        };
+
+        // The buffer that the user will write to. TODO: Re-use this points buffer.
+        let mut buffer = Buffer {
+            point_hz,
+            latency_points: latency_points as _,
+            points: vec![RawPoint::centered_blank(); n_points].into_boxed_slice(),
+        };
+
+        // Request the points from the user.
+        apply_point_updates_to_buffer(model,&render,&mut buffer);
+        helios_device.write_frame(
+                helios_dac::Frame::new_with_flags(
+                buffer.point_hz,
+             buffer.iter().cloned().map(point_to_helios_point).collect(),
+              if is_frame { helios_dac::WriteFrameFlags::empty() }else{ helios_dac::WriteFrameFlags::SINGLE_MODE }))
+                    .map_err(|err|HeliosStreamError::FailedToWriteFrame{err})?
+    }
+    helios_device.stop().map_err(|err|HeliosStreamError::FailedToStopStream{err})?;
+    helios_device.close();
+    Ok(())
+}
+
+// Attempts to connect to the DAC via TCP and enters the stream loop.
 fn run_laser_stream_tcp_loop<M, F>(
     dac: &DetectedDac,
     tcp_timeout: Option<Duration>,
@@ -651,12 +753,14 @@ fn run_laser_stream_tcp_loop<M, F>(
 where
     F: RenderFn<M>,
 {
-    // Currently only ether dream is supported, so retrieve the broadcast and addr.
-    let (broadcast, src_addr) = match dac {
-        DetectedDac::EtherDream {
-            broadcast,
-            source_addr,
-        } => (broadcast, source_addr),
+    // Retrieve the broadcast and addr from the TCP supported DAC.
+    let (broadcast, src_addr) = if let DetectedDac::EtherDream {
+        broadcast,
+        source_addr,
+    } = dac{
+        (broadcast, source_addr)
+    }else{
+        unreachable!("'run_laser_stream_tcp_loop()' will only run if the DAC connection type is TCP")
     };
 
     // A buffer for collecting model updates.
@@ -714,34 +818,16 @@ where
     let mut ether_dream_points = vec![];
 
     while !is_closed.load(atomic::Ordering::Relaxed) {
-        // Collect any pending updates.
-        pending_model_updates.extend(model_update_rx.try_iter());
-        // If there are some updates available, take the lock and apply them.
-        if !pending_model_updates.is_empty() {
-            if let Ok(mut guard) = model.lock() {
-                let mut model = guard.take().unwrap();
-                for mut update in pending_model_updates.drain(..) {
-                    update(&mut model);
-                }
-                *guard = Some(model);
-            }
-        }
 
-        // Check for updates and retrieve a copy of the state.
-        let (state, prev_point_hz) = {
-            let mut state = state.lock().expect("failed to acquare raw state lock");
-
-            // Keep track of whether or not the `point_hz` as changed.
-            let prev_point_hz = std::cmp::min(state.point_hz, dac.max_point_hz());
-
-            // Apply updates.
-            for mut state_update in state_update_rx.try_iter() {
-                (*state_update)(&mut state);
-            }
-
-            (state.clone(), prev_point_hz)
-        };
-
+        let (state,prev_point_hz) = 
+        get_stream_updates(
+            &mut pending_model_updates,
+            model_update_rx,
+            model,
+            state,
+            state_update_rx,
+            dac);
+        
         // Clamp the point hz by the DAC's maximum point rate.
         let point_hz = std::cmp::min(state.point_hz, dac.max_point_hz());
 
@@ -768,11 +854,7 @@ where
         };
 
         // Request the points from the user.
-        if let Ok(mut guard) = model.lock() {
-            let mut m = guard.take().unwrap();
-            render(&mut m, &mut buffer);
-            *guard = Some(m);
-        }
+        apply_point_updates_to_buffer(model,&render,&mut buffer);
 
         // Retrieve the points.
         ether_dream_points.extend(buffer.iter().cloned().map(point_to_ether_dream_point));
@@ -799,72 +881,51 @@ where
     Ok(())
 }
 
-// The number of remaining points in the DAC.
-fn dac_remaining_buffer_capacity(dac: &ether_dream::dac::Dac) -> u16 {
-    dac.buffer_capacity - 1 - dac.status.buffer_fullness
+fn get_stream_updates<M>(
+    pending_model_updates: &mut Vec<ModelUpdate<M>>,
+    model_update_rx: &mpsc::Receiver<ModelUpdate<M>>,
+    model:&Arc<Mutex<Option<M>>>,
+    state: &Arc<Mutex<State>>,
+    state_update_rx: &mpsc::Receiver<StateUpdate>,
+    dac: &DetectedDac) -> (State, u32)
+    {
+        // Collect any pending updates.
+        pending_model_updates.extend(model_update_rx.try_iter());
+        // If there are some updates available, take the lock and apply them.
+        if !pending_model_updates.is_empty() {
+            if let Ok(mut guard) = model.lock() {
+                let mut model = guard.take().unwrap();
+                for mut update in pending_model_updates.drain(..) {
+                    update(&mut model);
+                }
+                *guard = Some(model);
+            }
+        }
+
+        // Check for updates and retrieve a copy of the state.
+        let mut state = state.lock().expect("failed to acquare raw state lock");
+
+        // Keep track of whether or not the `point_hz` as changed.
+        let prev_point_hz = std::cmp::min(state.point_hz, dac.max_point_hz());
+
+        // Apply updates.
+        for mut state_update in state_update_rx.try_iter() {
+            (*state_update)(&mut state);
+        }
+
+        (state.clone(), prev_point_hz)
 }
 
-// Determine the number of points needed to fill the DAC.
-fn points_to_generate(dac: &ether_dream::dac::Dac, latency_points: u16) -> u16 {
-    let remaining_capacity = dac_remaining_buffer_capacity(dac);
-    let n = if dac.status.buffer_fullness < latency_points {
-        latency_points - dac.status.buffer_fullness
-    } else {
-        0
-    };
-    std::cmp::min(n, remaining_capacity)
-}
-
-// Constructor for a centered, blank ether dream DAC point.
-fn centered_blank() -> ether_dream::protocol::DacPoint {
-    ether_dream::protocol::DacPoint {
-        control: 0,
-        x: 0,
-        y: 0,
-        r: 0,
-        g: 0,
-        b: 0,
-        i: 0,
-        u1: 0,
-        u2: 0,
+fn apply_point_updates_to_buffer<M,F>(model:&Arc<Mutex<Option<M>>>,render:&F,buffer:&mut Buffer)
+where
+F: RenderFn<M>,{
+    // Request the points from the user.
+    if let Ok(mut guard) = model.lock() {
+        let mut m = guard.take().unwrap();
+        render(&mut m, buffer);
+        *guard = Some(m);
     }
 }
-
-// Convert a `lase::point::Position` type to an `i16` representation compatible with ether dream.
-fn position_to_ether_dream_position([px, py]: crate::point::Position) -> [i16; 2] {
-    let min = std::i16::MIN;
-    let max = std::i16::MAX;
-    let x = map_range(clamp(px, -1.0, 1.0), -1.0, 1.0, min as f64, max as f64) as i16;
-    let y = map_range(clamp(py, -1.0, 1.0), -1.0, 1.0, min as f64, max as f64) as i16;
-    [x, y]
-}
-
-// Convert a `lase::point::Rgb` type to an `u16` representation compatible with ether dream.
-fn color_to_ether_dream_color([pr, pg, pb]: crate::point::Rgb) -> [u16; 3] {
-    let r = (clamp(pr, 0.0, 1.0) * std::u16::MAX as f32) as u16;
-    let g = (clamp(pg, 0.0, 1.0) * std::u16::MAX as f32) as u16;
-    let b = (clamp(pb, 0.0, 1.0) * std::u16::MAX as f32) as u16;
-    [r, g, b]
-}
-
-// Convert the laser point to an ether dream DAC point.
-fn point_to_ether_dream_point(p: RawPoint) -> ether_dream::protocol::DacPoint {
-    let [x, y] = position_to_ether_dream_position(p.position);
-    let [r, g, b] = color_to_ether_dream_color(p.color);
-    let (control, i, u1, u2) = (0, 0, 0, 0);
-    ether_dream::protocol::DacPoint {
-        control,
-        x,
-        y,
-        r,
-        g,
-        b,
-        i,
-        u1,
-        u2,
-    }
-}
-
 /// The default function used for the `stream_error` function if none is specified.
 ///
 /// If an error occurs while the TCP stream is running, an attempt will be made to re-establish a
@@ -884,26 +945,40 @@ pub fn default_stream_error_fn<M>(
         let timeout = Some(Duration::from_secs(2));
         StreamErrorAction::RedetectDac { timeout }
     }
-    let ether_dream_err = match *err {
-        StreamError::EtherDreamStream { ref err } => err,
-    };
-    *action = match *ether_dream_err {
-        EtherDreamStreamError::FailedToDetectDacs { attempts, .. } if attempts < 3 => {
-            redetect_dac_action()
+    *action = match err {
+        StreamError::HeliosStream { ref err } => {
+            match *err{
+                HeliosStreamError::FailedToDetectDacs { attempts,.. }
+                |HeliosStreamError::FailedToCreateUSBContext { attempts,.. } if attempts < 3 => redetect_dac_action(),
+                HeliosStreamError::FailedToStopStream { .. }
+                |HeliosStreamError::FailedToWriteFrame { .. }
+                |HeliosStreamError::InvalidDeviceResult { .. } => {
+                    StreamErrorAction::ReattemptConnect
+                }
+                _ => StreamErrorAction::CloseThread
+            }
+        },
+        StreamError::EtherDreamStream { ref err } =>{
+            match *err {
+                EtherDreamStreamError::FailedToDetectDacs { attempts, .. } if attempts < 3 => {
+                    redetect_dac_action()
+                }
+                EtherDreamStreamError::FailedToConnectStream { attempts, .. } if attempts < 3 => {
+                    std::thread::sleep(std::time::Duration::from_millis(16));
+                    StreamErrorAction::ReattemptConnect
+                }
+                EtherDreamStreamError::FailedToConnectStream { attempts, .. } if attempts == 3 => {
+                    redetect_dac_action()
+                }
+                EtherDreamStreamError::FailedToPrepareStream { .. }
+                | EtherDreamStreamError::FailedToBeginStream { .. }
+                | EtherDreamStreamError::FailedToSubmitData { .. }
+                | EtherDreamStreamError::FailedToSubmitPointRate { .. } => {
+                    StreamErrorAction::ReattemptConnect
+                }
+                _ => StreamErrorAction::CloseThread,
+            }
         }
-        EtherDreamStreamError::FailedToConnectStream { attempts, .. } if attempts < 3 => {
-            std::thread::sleep(std::time::Duration::from_millis(16));
-            StreamErrorAction::ReattemptConnect
-        }
-        EtherDreamStreamError::FailedToConnectStream { attempts, .. } if attempts == 3 => {
-            redetect_dac_action()
-        }
-        EtherDreamStreamError::FailedToPrepareStream { .. }
-        | EtherDreamStreamError::FailedToBeginStream { .. }
-        | EtherDreamStreamError::FailedToSubmitData { .. }
-        | EtherDreamStreamError::FailedToSubmitPointRate { .. } => {
-            StreamErrorAction::ReattemptConnect
-        }
-        _ => StreamErrorAction::CloseThread,
+
     };
 }

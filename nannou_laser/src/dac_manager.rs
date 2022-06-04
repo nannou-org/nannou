@@ -1,32 +1,9 @@
-//! Implementation of the general laser point type used throughout the crate.
+//! DAC detection items shared among all supported DACs
+
 use std::io;
-use std::io::ErrorKind;
 use thiserror::Error;
-use helios_dac::{NativeHeliosError, NativeHeliosDac, NativeHeliosDacParams, NativeHeliosDacController};
 
-use crate::dac_manager_helios;
-use crate::{dac_base::DacBase, dac};
 pub type Result<T> = std::result::Result<T, DetectedDacError>;
-
-/// DAC discovery Iterators for all supported DACs available on the system.
-pub(crate) fn detect_all_dacs() -> Vec<Result<DetectDacs>> {
-    let dacs = vec![];
-    
-    let etherdream = dac::detect_dacs().map_err(|e|DetectedDacError::from(e));
-    let helios = dac_manager_helios::detect_dacs();
-    
-    dacs.push(etherdream);
-    dacs.push(helios);
-    dacs
-}
-pub trait DacManager {
-//     /// Return a detected DAC by DacId
-//     fn detect_dac(&self, id: Id) -> Result<Box<dyn DetectedDac>>;
-//     /// Function to detect DACs per DAC type
-//     fn detect_dacs() -> Result<Vec<DacManagerData>>;
-//     /// get map of DACs indexed by DacId
-//     fn get_dac_map(&self) -> HashMap<&str, Box<dyn DacBase>>;  
-}
 
 /// Iterators yielding laser DACs available on the system as they are discovered.
 pub enum DetectDacs {
@@ -34,28 +11,26 @@ pub enum DetectDacs {
         dac_broadcasts: ether_dream::RecvDacBroadcasts,
     },
     Helios{    
-        previous_dac:NativeHeliosDacParams
+        previous_dac: helios_dac::NativeHeliosDacParams
     }
 }
 
 impl DetectDacs {
     /// Specify a duration for the detection to wait before timing out.
     pub fn set_timeout(&self, duration: Option<std::time::Duration>) -> io::Result<()> {
-        if let DetectDacs::EtherDream { dac_broadcasts } = self {
-            dac_broadcasts.set_timeout(duration)
-        }else{
+        match self{
+            DetectDacs::EtherDream { dac_broadcasts } => dac_broadcasts.set_timeout(duration),
             // Helios DAC does not require this function
-            Err(io::Error::new(ErrorKind::Other, "The Helios DAC does not implement the set_timeout function"))
+            DetectDacs::Helios { .. } => Ok(()),
         }
     }
 
     /// Specify whether or not retrieving the next DAC should block.
     pub fn set_nonblocking(&self, nonblocking: bool) -> io::Result<()> {
-        if let DetectDacs::EtherDream { dac_broadcasts } = self {
-            dac_broadcasts.set_nonblocking(nonblocking)
-        }else{
+        match self{
+            DetectDacs::EtherDream { dac_broadcasts } => dac_broadcasts.set_nonblocking(nonblocking),
             // Helios DAC does not require this function
-            Err(io::Error::new(ErrorKind::Other, "The Helios DAC does not implement the set_nonblocking function"))
+            DetectDacs::Helios { .. } => Ok(()),
         }
     }
 }
@@ -75,13 +50,21 @@ impl Iterator for DetectDacs {
                 }
             },
             DetectDacs::Helios { previous_dac } => {
-                match NativeHeliosDacController::new(){
+                match helios_dac::NativeHeliosDacController::new(){
                     Ok(res)=>{
                         match res.list_devices(){
-                            Ok(dacs) =>{
-                                match dacs.iter().position(|d|d.get_id() == previous_dac.id){
-                                    Some(i) => Some(Ok(DetectedDac::Helios{dac: dacs.get(i+1)?.get_helios_constants()})),
-                                    None => Some(Err(NativeHeliosError::InvalidDeviceResult.into()))
+                            Ok(dacs)=>{
+                                let current_position = dacs.iter().position(|(id,..)|*id == previous_dac.id);
+                                if let Some(pos) = current_position{
+                                    if let Some((new_id,..)) = dacs.get(pos+1){
+                                        Some(Ok(DetectedDac::Helios { dac: (*new_id).into()}))
+                                    }else{
+                                        // Reached end of list of detected Helios DACs
+                                        // Return the first DAC in list:
+                                        Some(Ok(DetectedDac::Helios { dac: dacs.get(0)?.0.into()}))
+                                    }
+                                }else{
+                                    Some(Err(helios_dac::NativeHeliosError::InvalidDeviceResult.into()))
                                 }
                             },
                             Err(e) => Some(Err(e.into()))
@@ -103,7 +86,13 @@ pub enum DetectedDac {
         source_addr: std::net::SocketAddr,
     },
     Helios{
-        dac: NativeHeliosDacParams
+        dac: helios_dac::NativeHeliosDacParams
+    }
+}
+
+impl From<helios_dac::NativeHeliosDacParams> for DetectedDac{
+    fn from(dac:helios_dac::NativeHeliosDacParams)-> Self{
+        DetectedDac::Helios { dac }
     }
 }
 
@@ -112,7 +101,7 @@ impl DetectedDac {
     pub fn max_point_hz(&self) -> u32 {
         match self {
             DetectedDac::EtherDream { ref broadcast, .. } => broadcast.max_point_rate as _,
-            DetectedDac::Helios {ref dac} => dac.max_point_rate as _ // NativeHeliosDac::get_helios_constants().max_point_rate as _
+            DetectedDac::Helios {ref dac} => dac.max_point_rate as _
         }
     }
 
@@ -120,7 +109,7 @@ impl DetectedDac {
     pub fn buffer_capacity(&self) -> u32 {
         match self {
             DetectedDac::EtherDream { ref broadcast, .. } => broadcast.buffer_capacity as _,
-            DetectedDac::Helios {ref dac} => dac.buffer_capacity as _ //NativeHeliosDac::get_helios_constants().buffer_capacity as _
+            DetectedDac::Helios {ref dac} => dac.buffer_capacity as _
         }
     }
 
@@ -147,26 +136,20 @@ pub enum Id {
     Helios {id: u32}
 }
 
+#[derive(Clone, Debug,Copy)]
+pub enum DacVariant {
+    DacVariantEtherdream,
+    DacVariantHelios
+}
 
-// #[derive(Clone,Debug)]
-// pub struct DacManagerData{
-//     /// The unique hardware identifier for the DAC.
-//     pub id: Id,
-//     /// The DAC's maximum point rate.
-//     ///
-//     /// As of writing this, this is hardcoded to `0xFFFF` in the original DAC source code.
-//     pub max_point_rate:u32,
-//     /// The DAC's maximum buffer capacity for storing points that are yet to be converted to
-//     /// output.
-//     ///
-//     /// As of writing this, this is hardcoded to `HELIOS_MAX_POINTS (0x1000) * 7 + 5` in the original DAC source code.
-//     pub buffer_capacity: u32,
-// }
+impl Default for DacVariant {
+    fn default() -> Self { DacVariant::DacVariantEtherdream }
+}
 
 #[derive(Error, Debug)]
 pub enum DetectedDacError {
     #[error("Helios_dac error: {0}")]
-    HeliosDacError(#[from] NativeHeliosError),
+    HeliosDacError(#[from] helios_dac::NativeHeliosError),
     #[error("EtherDream DAC IO detection error: {0}")]
     IoError(#[from] io::Error),
 }

@@ -74,7 +74,7 @@ fn main() {
         // Synchronous DAC detection.
         println!("Detecting DAC...");
         let mut dac = std::mem::MaybeUninit::<nannou_laser::ffi::DetectedDac>::uninit();
-        let res = nannou_laser::ffi::detect_dac(&mut api, dac.as_mut_ptr());
+        let res = nannou_laser::ffi::detect_dac(&mut api, dac.as_mut_ptr(), nannou_laser::ffi::DacVariant::DacVariantEtherdream);
         if res as u32 != 0 {
             let err_cstr = std::ffi::CStr::from_ptr(nannou_laser::ffi::api_last_error(&api));
             eprintln!("failed to detect DAC: {:?}", err_cstr);

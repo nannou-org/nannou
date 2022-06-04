@@ -11,20 +11,16 @@ pub mod point;
 pub mod stream;
 pub mod util;
 pub mod dac_manager;
-pub mod dac;
+pub mod dac_manager_etherdream;
 pub mod dac_manager_helios;
-pub mod dac_base;
-pub mod dac_base_helios;
 
-// pub use dac_manager_etherdream::{DetectDacs, DetectDacsAsync, DetectedDac, DetectedDacCallback, Id as DacId};
-pub use dac::{DetectEtherDreamDacsAsync, DetectedDacCallback};
+pub use dac_manager_etherdream::{DetectEtherDreamDacsAsync, DetectedDacCallback};
+pub use dac_manager::{Id as DacId, DetectDacs, DetectedDac, Result, DetectedDacError, DacVariant};
 pub use point::{Point, RawPoint};
 pub use stream::frame::Frame;
 pub use stream::frame::Stream as FrameStream;
 pub use stream::raw::Stream as RawStream;
 pub use stream::raw::{Buffer, StreamError, StreamErrorAction};
-
-pub use dac_manager::{DacManager, Id as DacId, DetectDacs, DetectedDac, Result, DetectedDacError};
 
 use std::io;
 use std::sync::Arc;
@@ -50,23 +46,20 @@ impl Api {
         }
     }
 
-    /// An iterator yielding laser DACs available on the system as they are discovered.
+    /// An iterator yielding laser DACs available on the system per supported DAC variant.
     ///
-    /// Currently, the only laser protocol supported is the ether dream protocol. Thus, this
-    /// enumerates ether dream DACs that are discovered on the LAN.
-    ///
-    /// **Note** that the produced iterator will iterate forever and never terminate unless
+    /// **Note** that the DetectDacs::EtherDream iterator will iterate forever and never terminate unless
     /// `set_timeout` is called on the returned `DetectDacs` instance.
-    pub fn detect_dacs(&self) -> Vec<Result<DetectDacs>> {
-        self.inner.detect_dacs()
+    pub fn detect_dacs(&self, variant:DacVariant) -> Result<DetectDacs> {
+        self.inner.detect_dacs(variant)
     }
 
     /// Block and wait until the DAC with the given `Id` is detected.
-    pub fn detect_dac(&self, id: DacId) -> Result<DetectedDac> {
-        self.inner.detect_dac(id)
+    pub fn detect_dac(&self, id: DacId, variant:DacVariant) -> Result<DetectedDac> {
+        self.inner.detect_dac(id,variant)
     }
 
-    /// Spawn a thread for DAC detection.
+    /// Spawn a thread for DAC detection. Currently only implemented for the Etherdream DAC 
     ///
     /// Calls the given `callback` with broadcasts as they are received.
     ///
@@ -130,24 +123,26 @@ impl Api {
             model,
             render,
             stream_error,
+            is_frame:false
         }
     }
 }
 
 impl Inner {
     /// See the `Api::detect_dacs` docs.
-    pub(crate) fn detect_dacs(&self) -> Vec<Result<DetectDacs>> {
-        dac_manager::detect_all_dacs()
+    pub(crate) fn detect_dacs(&self, variant:DacVariant) -> Result<DetectDacs> {
+        match variant{
+            DacVariant::DacVariantEtherdream=>dac_manager_etherdream::detect_dacs().map_err(DetectedDacError::from),
+            DacVariant::DacVariantHelios=>dac_manager_helios::detect_dacs()
+        }
     }
 
     /// Block and wait until the DAC with the given `Id` is detected.
-    pub(crate) fn detect_dac(&self, id: DacId) -> Result<DetectedDac> {
-        for dacIter in self.detect_dacs(){
-            for res in dacIter? {
-                let dac = res?;
-                if dac.id() == id {
-                    return Ok(dac);
-                }
+    pub(crate) fn detect_dac(&self, id: DacId, variant:DacVariant) -> Result<DetectedDac> {
+        for res in self.detect_dacs(variant)? {
+            let dac = res?;
+            if dac.id() == id {
+                return Ok(dac);
             }
         }
         unreachable!("DAC detection iterator should never return `None`")
@@ -162,7 +157,7 @@ impl Inner {
     where
         F: 'static + DetectedDacCallback + Send,
     {
-        dac::detect_dacs_async(timeout, callback)
+        dac_manager_etherdream::detect_dacs_async(timeout, callback)
     }
 }
 
