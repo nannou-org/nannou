@@ -1,6 +1,6 @@
 [package]
 name = "nannou"
-version ="0.18.0"
+version = "0.18.1"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A Creative Coding Framework for Rust."
 readme = "README.md"
@@ -30,6 +30,7 @@ serde_derive = "1"
 serde_json = "1"
 toml = "0.5"
 walkdir = "2"
+web-sys = { version = "0.3.55", optional = true }
 wgpu_upstream = { version = "0.11.1", package = "wgpu" }
 winit = "0.26"
 
@@ -38,4 +39,4 @@ default = ["notosans"]
 # Enables SPIR-V support in the `wgpu` module.
 spirv = ["nannou_wgpu/spirv"]
 # Enables experimental WASM compilation for CI-use only
-wasm-experimental = ["getrandom/js", "wgpu_upstream/webgl", "async-std/unstable"]
+wasm-experimental = ["getrandom/js", "web-sys", "wgpu_upstream/webgl", "async-std/unstable"]

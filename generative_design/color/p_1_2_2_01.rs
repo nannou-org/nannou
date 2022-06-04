@@ -224,9 +224,14 @@ fn sort_colors(colors: &mut Vec<Rgba>, mode: &SortMode) {
                 a.lightness.partial_cmp(&b.lightness).unwrap()
             });
         }
+        SortMode::Grayscale => {
+            colors.sort_by(|a, b| {
+                let gray = |c: &Rgba| c.red * 0.222 + c.green * 0.707 + c.blue * 0.071;
+                gray(a).partial_cmp(&gray(b)).unwrap()
+            });
+        }
         SortMode::Alpha => {
             colors.sort_by(|a, b| a.alpha.partial_cmp(&b.alpha).unwrap());
         }
-        _ => (),
     }
 }

@@ -71,7 +71,7 @@ pub enum VertexMode {
     Text = 2,
 }
 
-/// A helper type aimed at simplifying the rendering of conrod primitives via wgpu.
+/// A helper type aimed at simplifying the rendering of nannou primitives via wgpu.
 #[derive(Debug)]
 pub struct Renderer {
     glyph_cache: GlyphCache,
