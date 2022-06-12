@@ -82,7 +82,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.background().color(BLACK);
 
-    let rotation_radians = settings.rotation / 360.0 * 2.0 * std::f32::consts::PI;
+    let rotation_radians = deg_to_rad(settings.rotation);
     draw.ellipse()
         .resolution(settings.resolution as f32)
         .xy(settings.position)
