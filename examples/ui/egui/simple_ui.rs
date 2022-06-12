@@ -51,15 +51,15 @@ fn update(_app: &App, model: &mut Model, update: Update) {
 
     egui::Window::new("Settings").show(&ctx, |ui| {
         // Resolution slider
-        ui.add(egui::Label::new("Resolution:"));
+        ui.label("Resolution:");
         ui.add(egui::Slider::new(&mut settings.resolution, 1..=40));
 
         // Scale slider
-        ui.add(egui::Label::new("Scale:"));
+        ui.label("Scale:");
         ui.add(egui::Slider::new(&mut settings.scale, 0.0..=1000.0));
 
         // Rotation slider
-        ui.add(egui::Label::new("Rotation:"));
+        ui.label("Rotation:");
         ui.add(egui::Slider::new(&mut settings.rotation, 0.0..=360.0));
 
         // Random color button
