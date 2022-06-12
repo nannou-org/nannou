@@ -63,7 +63,7 @@ fn update(_app: &App, model: &mut Model, update: Update) {
         ui.add(egui::Slider::new(&mut settings.rotation, 0.0..=360.0));
 
         // Random color button
-        let clicked = ui.add(egui::Button::new("Random color")).clicked();
+        let clicked = ui.button("Random color").clicked();
 
         if clicked {
             settings.color = rgb(random(), random(), random());
