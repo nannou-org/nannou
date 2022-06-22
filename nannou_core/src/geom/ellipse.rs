@@ -135,7 +135,7 @@ where
     /// Produces an iterator yielding the triangles that describe the ellipse section.
     ///
     /// TODO: Describe the order.
-    pub fn trangles(self) -> Triangles<S> {
+    pub fn triangles(self) -> Triangles<S> {
         self.circumference().triangles()
     }
 
