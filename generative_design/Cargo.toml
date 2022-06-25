@@ -14,8 +14,12 @@ homepage = "https://github.com/nannou-org/nannou"
 edition = "2018"
 
 [dev-dependencies]
-nannou = { version ="0.18.0", path = "../nannou" }
-usvg = "0.4"
+nannou = { version = "0.18.0", path = "../nannou" }
+resvg = { version = "0.23.0", features = ["dump-svg"] }
+usvg = { version = "0.23.0" }
+tiny-skia = { version = "0.6.5" }
+# image = { version = "0.24.2" }
+
 wikipedia = "0.3"
 
 # Color
@@ -66,6 +70,9 @@ path = "shape/p_2_1_1_02.rs"
 [[example]]
 name = "p_2_1_1_03"
 path = "shape/p_2_1_1_03.rs"
+[[example]]
+name = "p_2_1_1_04"
+path = "shape/p_2_1_1_04.rs"
 [[example]]
 name = "p_2_1_2_01"
 path = "shape/p_2_1_2_01.rs"
