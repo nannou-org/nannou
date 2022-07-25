@@ -8,7 +8,7 @@ While developing with Nannou, the following tooling is available:
 ![tooling_component_diagram](./diagrams/tooling_component_diagram.png)
 
 ## Architecture
-And then it all starts with the creative artist to decide what to create:
+It all starts with the creative artist deciding what to create:
 #developer_context.png  
 ![developer_context](./diagrams/developer_context.png)      
 
