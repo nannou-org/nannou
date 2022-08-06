@@ -107,6 +107,9 @@ path = "draw/draw_textured_polygon.rs"
 [[example]]
 name = "draw_transform"
 path = "draw/draw_transform.rs"
+[[example]]
+name = "draw_with_ratio"
+path = "draw/draw_with_ratio.rs"
 
 # Interactive Shader Format
 [[example]]
