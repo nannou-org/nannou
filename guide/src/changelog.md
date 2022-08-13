@@ -15,6 +15,7 @@ back to the origins.
 - Move `nannou_conrod` and `nannou_timeline` into a new repository:
   https://github.com/nannou-org/nannou_conrod. Both crates are deprecated in
   favour of `nannou_egui`.
+- Fix fullscreen shortcut for Windows : use either `Alt + Enter` or `F11` instead of `Windows + F`.
 
 ---
 
@@ -106,10 +107,11 @@ For more details, see the wgpu CHANGELOG:
 **Upgrade WGPU to 0.9**
 
 Most changes have been about renaming Blend-related data structres and fixing shaders to avoid sampling textures inside of conditionals (wgpu validation layer found this one).
+
 - Item Name changes:
-    - `BlendState` -> `BlendComponent`
-    - `wgpu::Extend3d::depth` -> `wgpu::Extend3d::depth_of_array_layers`
-    - Float tpes are now typed more descripively. E.g., `Float2` -> `Float32x2`
+  - `BlendState` -> `BlendComponent`
+  - `wgpu::Extend3d::depth` -> `wgpu::Extend3d::depth_of_array_layers`
+  - Float tpes are now typed more descripively. E.g., `Float2` -> `Float32x2`
 
 **Refactor core of `nannou` into `nannou_core` crate**
 
@@ -137,9 +139,10 @@ Most changes have been about renaming Blend-related data structres and fixing sh
 - Enable serializing of color types.
 - Enable `nannou_laser` features for documentation build.
 - Update dependencies:
-    - `conrod_*` from 0.73 to 0.74.
-    - `noise` from 0.6 to 0.7 (`image` feature no longer enabled).
-    - `rand` from 0.7 to 0.8 (changes `gen_range(a,b)` to `gen_range(a..b)`)
+  - `conrod_*` from 0.73 to 0.74.
+  - `noise` from 0.6 to 0.7 (`image` feature no longer enabled).
+  - `rand` from 0.7 to 0.8 (changes `gen_range(a,b)` to `gen_range(a..b)`)
+
 ---
 
 # Version 0.16.0 (2021-04-21)
@@ -170,25 +173,25 @@ significant refactoring of the `wgpu::RenderPipeline`.
   buffer in the render pass command, rather than in the render pipeline
   descriptor.
 - Item name changes include:
-    - `PowerPreference::Default` -> `PowerPreference::LowPower`
-    - `TextureUsage::OUTPUT_ATTACHMENT` -> `TextureUsage::RENDER_ATTACHMENT`
-    - `TextureComponentType` -> `TextureSampleType`
-    - `component_type` -> `sample_type` (for textures)
-    - `BlendDescriptor` -> `BlendState`
-    - `VertexAttributeDescriptor` -> `VertexAttribute`
-    - `BindingType::SampledTexture` -> `BindingType::Texture`
-    - `ColorStateDescriptor` -> `ColorTargetState`
-    - `DepthStencilStateDescriptor` -> `DepthStencilState`
-    - `VertexBufferDescriptor` -> `VertexBufferLayout`
+  - `PowerPreference::Default` -> `PowerPreference::LowPower`
+  - `TextureUsage::OUTPUT_ATTACHMENT` -> `TextureUsage::RENDER_ATTACHMENT`
+  - `TextureComponentType` -> `TextureSampleType`
+  - `component_type` -> `sample_type` (for textures)
+  - `BlendDescriptor` -> `BlendState`
+  - `VertexAttributeDescriptor` -> `VertexAttribute`
+  - `BindingType::SampledTexture` -> `BindingType::Texture`
+  - `ColorStateDescriptor` -> `ColorTargetState`
+  - `DepthStencilStateDescriptor` -> `DepthStencilState`
+  - `VertexBufferDescriptor` -> `VertexBufferLayout`
 - Also updates related dependencies:
-    - `conrod_derive` and `conrod_core` to `0.72`.
+  - `conrod_derive` and `conrod_core` to `0.72`.
 
 **Update to wgpu 0.6**
 
 For the most part, these changes will affect users of the `nannou::wgpu` module,
-but not so much the users of the `draw` or `ui` APIs. *Find the relevant wgpu
+but not so much the users of the `draw` or `ui` APIs. _Find the relevant wgpu
 changelog entry
-[here](https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#v06-2020-08-17).*
+[here](https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#v06-2020-08-17)._
 
 - `Window::current_monitor` now returns a result.
 - `wgpu::Device::create_buffer_with_data` has been removed in favour of
@@ -212,9 +215,9 @@ changelog entry
 - A `RowPaddedBuffer` abstraction was added to more gracefully/safely handle
   conversions between `wgpu::Buffer`s and `wgpu::Texture`s.
 - Updates some dependencies:
-    - `audrey` to 0.3.
-    - `winit` to 0.24.
-    - `conrod_derive` and `conrod_core` to 0.71 (`nannou_timeline` only).
+  - `audrey` to 0.3.
+  - `winit` to 0.24.
+  - `conrod_derive` and `conrod_core` to 0.71 (`nannou_timeline` only).
 
 ### nannou_audio
 
@@ -234,11 +237,11 @@ changelog entry
 **Update to WGPU 0.5**
 
 For the most part, these changes will affect users of the `nannou::wgpu` module,
-but not so much the users of the `draw` or `ui` APIs. *Find the relevant wgpu
+but not so much the users of the `draw` or `ui` APIs. _Find the relevant wgpu
 changelog entry
-[here](https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#v05-06-04-2020).*
+[here](https://github.com/gfx-rs/wgpu/blob/master/CHANGELOG.md#v05-06-04-2020)._
 
-- The *y* axis has been inverted for wgpu pipelines, meaning the y axis now
+- The _y_ axis has been inverted for wgpu pipelines, meaning the y axis now
   increases upwards in NDC (normalised device coordinates). This does not affect
   the `Draw` or `Ui` APIs, but does affect users creating custom render
   pipelines. The updated wgpu examples should demonstrate how to deal with this
@@ -374,8 +377,7 @@ changelog entry
 - Removed many relative positioning methods in favour of draw transforms.
 - Add `draw.texture` API.
 - Rename all APIs taking `points`, `points_colored` and `points_textured` to
-  take iterators yielding tuples, e.g. `point`, `(point, color)`, `(point,
-  tex_coords)`.
+  take iterators yielding tuples, e.g. `point`, `(point, color)`, `(point, tex_coords)`.
 - Add support for `.points_textured(tex, pts)` to `draw.mesh()`,
   `draw.path()` and `draw.polygon()`.
 - Add support for `draw.sampler(sampler_desc)`, for specifying a draw
@@ -417,15 +419,15 @@ changelog entry
 # Version 0.13.0 (2020-03-05)
 
 - Transition from `vulkano` to `wgpu` for all graphics handling!
-    - Fixes llooooooooooottss of macOS bugs.
-    - The `draw` and `ui` APIs now render via wgpu.
-    - Replace `vk` module with `wgpu` module.
-    - Replace `examples/vulkan` with `examples/wgpu`.
-    - Big step towards enabling web target.
-    - Add `wgpu::TextureBuilder` to simplify texture building process.
-    - Add `wgpu::TextureReshaper` for writing a texture to another of differing
-      size, format and sample_count.
-    - Add `wgpu::TextureCapturer` for reading textures onto CPU as images.
+  - Fixes llooooooooooottss of macOS bugs.
+  - The `draw` and `ui` APIs now render via wgpu.
+  - Replace `vk` module with `wgpu` module.
+  - Replace `examples/vulkan` with `examples/wgpu`.
+  - Big step towards enabling web target.
+  - Add `wgpu::TextureBuilder` to simplify texture building process.
+  - Add `wgpu::TextureReshaper` for writing a texture to another of differing
+    size, format and sample_count.
+  - Add `wgpu::TextureCapturer` for reading textures onto CPU as images.
 - Update to `winit` 0.21. Another big step towards enabling web target. Also
   includes an overhaul of the application loop which should be significantly
   simpler.
@@ -456,9 +458,9 @@ changelog entry
 - The `app::Builder` now also supports a `.size(width, height)` method for
   specifying the default window width and height.
 - `LoopMode`s have been simplified:
-    - `Wait` no longer requires `update_following_event` or `update_interval`
-    - `NTimes` no longer requires `update_interval`
-    - `Refresh` no longer requires `minimum_update_interval` or `windows`
+  - `Wait` no longer requires `update_following_event` or `update_interval`
+  - `NTimes` no longer requires `update_interval`
+  - `Refresh` no longer requires `minimum_update_interval` or `windows`
 
 ---
 
@@ -717,7 +719,7 @@ changelog entry
 - Add `geom` module. Includes basic 2D primitives (lines/text).
 - Add `ease` module which re-exports the `pennereq` crate.
 - Add `map_range`, `partial_max`, `min`, `clamp` math functions
-- Begin implementation of  tutorial `basics` examples.
+- Begin implementation of tutorial `basics` examples.
 
 ---
 
@@ -727,5 +729,6 @@ changelog entry
 - Add OSC support.
 
 ---
+
 <br>
 <center>BEGINNING OF CHANGELOG</center>
