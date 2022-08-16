@@ -45,10 +45,9 @@ let laser_stream = _laser_api
     .build()
     .unwrap();
 ```
+If you have issues starting a laser stream using the Helios DAC in linux, ensure you have [setup your udev rules](https://github.com/Grix/helios_dac/blob/master/docs/udev_rules_for_linux.md). 
 
-The plan is to progressively add
-support for more protocols as they are needed by ourselves and users throughout
-the lifetime of the project.
+The plan is to progressively add support for more protocols as they are needed by ourselves and users throughout the lifetime of the project.
 
 ## License
 
