@@ -1,4 +1,7 @@
+use nannou_core::prelude::abs;
+
 use crate::glam::{Vec2, Vec3};
+
 
 /// Dimension properties for **Drawing** a **Primitive**.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
@@ -15,13 +18,13 @@ pub trait SetDimensions: Sized {
 
     /// Set the absolute width for the primitive.
     fn width(mut self, w: f32) -> Self {
-        self.properties().x = Some(w);
+        self.properties().x = Some(abs(w));
         self
     }
 
     /// Set the absolute height for the primitive.
     fn height(mut self, h: f32) -> Self {
-        self.properties().y = Some(h);
+        self.properties().y = Some(abs(h));
         self
     }
 

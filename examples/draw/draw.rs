@@ -41,6 +41,7 @@ fn view(app: &App, frame: Frame) {
     draw.rect()
         .x_y(app.mouse.y, app.mouse.x)
         .w(app.mouse.x * 0.25)
+        .corner_radius(app.mouse.x * 0.05)
         .hsv(t, 1.0, 1.0);
 
     // Write the result of our drawing to the window's frame.
