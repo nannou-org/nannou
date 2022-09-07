@@ -20,7 +20,6 @@ pub struct Rect {
     dimensions: dimension::Properties,
     polygon: PolygonInit,
     corner_radius: Option<f32>,
-    corner_segments: u32,
 }
 
 /// The drawing context for a Rect.
@@ -42,42 +41,6 @@ impl Rect {
         self
     }
 
-    pub fn corner_segments(mut self, segments: u32) -> Self {
-        self.corner_segments = segments;
-        self
-    }
-
-    fn round_vertices(self, vertices: Vec<Vec2>) -> Vec<Vec2> {
-        let corner_segments = self.corner_segments;
-        let mut rounded_rect: Vec<Vec2> = Vec::with_capacity(4 * corner_segments as usize);
-        match self.corner_radius {
-            
-            Some(radius) => {
-                // The method below is readily extensible to arbitrary polygons except for the 90 degree angle assumption.
-
-                // The segment vector is the unit vector of each segment
-                let mut segment_vector = vertices[0] - vertices[3];
-                for vertex in vertices {
-                    // The segment is the endpoint of each segment.
-                    // The segment is shortened by the radius, in the direction of the incoming segment vector.
-                    let mut segment = vertex - segment_vector * radius;
-
-                    let angle_step = std::f32::consts::PI / (2.0 * corner_segments as f32);
-
-                    for _ in 0..corner_segments {
-                        rounded_rect.push(segment);
-                        // rotate the segment vector by the angle step
-                        segment_vector = segment_vector.rotate(-angle_step);
-                        segment = segment + segment_vector * radius * angle_step;
-                    
-                    }
-                }
-                rounded_rect
-            },
-
-            None => vertices
-        }              
-    }
 }
 
 
@@ -95,9 +58,6 @@ impl<'a> DrawingRect<'a> {
         self.map_ty(|ty| ty.corner_radius(radius))
     }
 
-    pub fn corner_segments(self, segments: u32) -> Self {
-        self.map_ty(|ty| ty.corner_segments(segments))
-    }
 }
 
 impl draw::renderer::RenderPrimitive for Rect {
@@ -110,7 +70,6 @@ impl draw::renderer::RenderPrimitive for Rect {
             polygon,
             dimensions,
             corner_radius,
-            corner_segments: _,
         } = self;
 
 
@@ -192,7 +151,6 @@ impl Default for Rect {
             dimensions,
             polygon,
             corner_radius: None,
-            corner_segments: 0,
         }
     }
 }
