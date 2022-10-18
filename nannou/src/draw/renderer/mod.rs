@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
+use thiserror::Error;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 /// Draw API primitives that may be rendered via the **Renderer** type.
@@ -134,7 +135,8 @@ pub struct Scissor {
     height: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error("error rendering drawing")]
 pub struct DrawError;
 
 #[repr(C)]
