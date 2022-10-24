@@ -3,28 +3,24 @@
 
 use serde;
 use serde_json;
-use std::error::Error;
 use std::io::{Read, Write};
 use std::path::Path;
-use std::{fmt, fs, io};
+use std::{fs, io};
+use thiserror::Error;
 use toml;
 
 /// Errors that might occur when saving a file.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum FileError<E> {
-    Io(io::Error),
+    #[error(transparent)]
+    Io(#[from] io::Error),
+    #[error(transparent)]
     Format(E),
 }
 
 pub type JsonFileError = FileError<serde_json::Error>;
 pub type TomlFileSaveError = FileError<toml::ser::Error>;
 pub type TomlFileLoadError = FileError<toml::de::Error>;
-
-impl<E> From<io::Error> for FileError<E> {
-    fn from(err: io::Error) -> Self {
-        FileError::Io(err)
-    }
-}
 
 impl From<serde_json::Error> for JsonFileError {
     fn from(err: serde_json::Error) -> Self {
@@ -41,30 +37,6 @@ impl From<toml::ser::Error> for TomlFileSaveError {
 impl From<toml::de::Error> for TomlFileLoadError {
     fn from(err: toml::de::Error) -> Self {
         FileError::Format(err)
-    }
-}
-
-impl<E> Error for FileError<E>
-where
-    E: Error,
-{
-    fn cause(&self) -> Option<&dyn Error> {
-        match *self {
-            FileError::Io(ref err) => Some(err),
-            FileError::Format(ref err) => Some(err),
-        }
-    }
-}
-
-impl<E> fmt::Display for FileError<E>
-where
-    E: Error,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            FileError::Io(ref err) => fmt::Display::fmt(err, f),
-            FileError::Format(ref err) => fmt::Display::fmt(err, f),
-        }
     }
 }
 
