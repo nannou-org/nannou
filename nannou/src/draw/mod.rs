@@ -7,7 +7,7 @@ use crate::glam::{vec3, EulerRot, Mat4, Quat, Vec2, Vec3};
 use crate::math::{deg_to_rad, turns_to_rad};
 use crate::wgpu;
 use lyon::path::PathEvent;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
 use std::mem;
 use std::rc::Rc;
@@ -143,6 +143,27 @@ impl IntermediaryState {
         self.path_points_textured_buffer.clear();
         self.text_buffer.clear();
     }
+
+    /// Allows inspecting the intermediary mesh
+    pub fn intermediary_mesh(&self) -> &Mesh {
+        &self.intermediary_mesh
+    }
+    /// Allows inspecting the path event buffer
+    pub fn path_event_buffer(&self) -> &[PathEvent] {
+        &self.path_event_buffer
+    }
+    /// Allows inspecting the path points colored buffer
+    pub fn path_points_colored_buffer(&self) -> &[(Point2, Color)] {
+        &self.path_points_colored_buffer
+    }
+    /// Allows inspecting the path points textured buffer
+    pub fn path_points_textured_buffer(&self) -> &[(Point2, TexCoords)] {
+        &self.path_points_textured_buffer
+    }
+    /// Allows inspecting the text buffer
+    pub fn text_buffer(&self) -> &str {
+        self.text_buffer.as_str()
+    }
 }
 
 impl State {
@@ -177,6 +198,16 @@ impl State {
             *elem = Some(DrawCommand::Primitive(prim));
         }
     }
+
+    /// Allows inspecting the intermediary_state.
+    pub fn intermediary_state(&self) -> Ref<IntermediaryState> {
+        self.intermediary_state.borrow()
+    }
+
+    /// Allows inspecting the theme
+    pub fn theme(&self) -> &Theme {
+        &self.theme
+    }
 }
 
 impl Draw {
@@ -190,6 +221,11 @@ impl Draw {
     /// Resets all state within the `Draw` instance.
     pub fn reset(&self) {
         self.state.borrow_mut().reset();
+    }
+
+    /// Returns a reference to the state
+    pub fn state(&self) -> Ref<State> {
+        self.state.borrow()
     }
 
     // Context changes.
