@@ -1,8 +1,9 @@
 use nannou::prelude::*;
+use nannou::{model, update};
 use nannou_egui::{egui_wgpu_backend::epi::App as EguiApp, Egui};
 
 fn main() {
-    nannou::app(model).update(update).run();
+    nannou::app(model!(model)).update(update!(update)).run();
 }
 
 struct Model {

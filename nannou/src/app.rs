@@ -31,22 +31,74 @@ use winit;
 use winit::event_loop::ControlFlow;
 
 /// The user function type for initialising their model.
-pub type ModelFn<Model> = fn(&App) -> Model;
+pub type ModelFn<Model> = Arc<dyn Fn(&App) -> Model>;
+#[macro_export]
+macro_rules! model {
+    ($e:expr) => {
+        { std::sync::Arc::new($e) }
+    }
+}
+
 
 /// The user function type for updating their model in accordance with some event.
-pub type EventFn<Model, Event> = fn(&App, &mut Model, Event);
+pub type EventFn<Model, Event> = Arc<dyn Fn(&App, &mut Model, Event)>;
+#[macro_export]
+macro_rules! event {
+    ($e:expr) => {
+        {
+            use std::sync::Arc;
+            Arc::new($e)
+        }
+    }
+}
 
 /// The user function type for updating the user model within the application loop.
-pub type UpdateFn<Model> = fn(&App, &mut Model, Update);
+pub type UpdateFn<Model> = Arc<dyn Fn(&App, &mut Model, Update)>;
+#[macro_export]
+macro_rules! update {
+    ($e:expr) => {
+        {
+            use std::sync::Arc;
+            Arc::new($e)
+        }
+    }
+}
 
 /// The user function type for drawing their model to the surface of a single window.
-pub type ViewFn<Model> = fn(&App, &Model, Frame);
+pub type ViewFn<Model> = Arc<dyn Fn(&App, &Model, Frame)>;
+#[macro_export]
+macro_rules! view {
+    ($e:expr) => {
+        {
+            use std::sync::Arc;
+            Arc::new($e)
+        }
+    }
+}
 
 /// A shorthand version of `ViewFn` for sketches where the user does not need a model.
-pub type SketchViewFn = fn(&App, Frame);
+pub type SketchViewFn = Arc<dyn Fn(&App, Frame)>;
+#[macro_export]
+macro_rules! sketch_view {
+    ($e:expr) => {
+        {
+            use std::sync::Arc;
+            Arc::new($e)
+        }
+    }
+}
 
 /// The user function type allowing them to consume the `model` when the application exits.
-pub type ExitFn<Model> = fn(&App, Model);
+pub type ExitFn<Model> = Arc<dyn Fn(&App, Model)>;
+#[macro_export]
+macro_rules! exit {
+    ($e:expr) => {
+        {
+            use std::sync::Arc;
+            Arc::new($e)
+        }
+    }
+}
 
 /// The **App**'s view function.
 enum View<Model = ()> {
@@ -548,7 +600,7 @@ impl Builder<(), Event> {
     /// This is useful for late night hack sessions where you just don't care about all that other
     /// stuff, you just want to play around with some ideas or make something pretty.
     pub fn sketch(view: SketchViewFn) -> SketchBuilder<Event> {
-        let mut builder = Builder::new(default_model);
+        let mut builder = Builder::new(model!(default_model));
         builder.default_view = Some(View::Sketch(view));
         builder.create_default_window = true;
         SketchBuilder { builder }
@@ -1028,7 +1080,7 @@ impl EventLoopWindowTarget {
     // This method is solely used during `window::Builder::build` to allow for
     pub(crate) fn as_ref(&self) -> &winit::event_loop::EventLoopWindowTarget<()> {
         match *self {
-            EventLoopWindowTarget::Owned(ref event_loop) => (&**event_loop),
+            EventLoopWindowTarget::Owned(ref event_loop) => &**event_loop,
             EventLoopWindowTarget::Pointer(ptr) => {
                 // This cast is safe, assuming that the `App`'s `EventLoopWindowTarget` will only
                 // ever be in the `Pointer` state while the pointer is valid - that is, during the
@@ -1100,9 +1152,6 @@ fn run_loop<M, E>(
                 if let Some(model) = model.as_mut() {
                     let loop_mode = app.loop_mode();
                     let now = Instant::now();
-                    let mut do_update = |loop_state: &mut LoopState| {
-                        apply_update(&mut app, model, event_fn, update_fn, loop_state, now);
-                    };
                     match loop_mode {
                         LoopMode::NTimes { number_of_updates }
                             if loop_state.total_updates >= number_of_updates as u64 => {}
@@ -1114,7 +1163,7 @@ fn run_loop<M, E>(
                         // LoopMode::Wait { updates_before_waiting } =>
                         //     if loop_state.updates_since_event > updates_before_waiting as u64 => {}
                         _ => {
-                            do_update(&mut loop_state);
+                            apply_update(&mut app, model, event_fn.clone(), update_fn.clone(), &mut loop_state, now);
                         },
                     }
                 }
@@ -1231,13 +1280,13 @@ fn run_loop<M, E>(
                                 (*raw_view)(&app, &model, raw_frame);
                             }
                             None => match default_view {
-                                Some(View::Sketch(view)) => {
+                                Some(View::Sketch(ref view)) => {
                                     let data = frame_data.as_ref().expect("missing `frame_data`");
                                     let frame =
                                         Frame::new_empty(raw_frame, &data.render, &data.capture);
                                     view(&app, frame);
                                 }
-                                Some(View::WithModel(view)) => {
+                                Some(View::WithModel(ref view)) => {
                                     let data = frame_data.as_ref().expect("missing `frame_data`");
                                     let frame =
                                         Frame::new_empty(raw_frame, &data.render, &data.capture);
@@ -1330,7 +1379,7 @@ fn run_loop<M, E>(
 
         // Process the event with the user's functions and see if we need to exit.
         if let Some(model) = model.as_mut() {
-            exit |= process_and_emit_winit_event::<M, E>(&mut app, model, event_fn, &event);
+            exit |= process_and_emit_winit_event::<M, E>(&mut app, model, event_fn.clone(), &event);
         }
 
         // Set the control flow based on the loop mode.
@@ -1348,7 +1397,7 @@ fn run_loop<M, E>(
         // If we need to exit, call the user's function and update control flow.
         if exit {
             if let Some(model) = model.take() {
-                if let Some(exit_fn) = exit_fn {
+                if let Some(exit_fn) = exit_fn.clone() {
                     exit_fn(&app, model);
                 }
             }
