@@ -9,7 +9,6 @@
 
         <!-- Custom HTML head -->
         
-        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
@@ -35,13 +34,13 @@
     </head>
     <body>
         <!-- Provide site root to javascript -->
-        <script type="text/javascript">
+        <script>
             var path_to_root = "";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
-        <script type="text/javascript">
+        <script>
             try {
                 var theme = localStorage.getItem('mdbook-theme');
                 var sidebar = localStorage.getItem('mdbook-sidebar');
@@ -57,7 +56,7 @@
         </script>
 
         <!-- Set the theme before any content is loaded, prevents flash -->
-        <script type="text/javascript">
+        <script>
             var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
@@ -69,7 +68,7 @@
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
-        <script type="text/javascript">
+        <script>
             var html = document.querySelector('html');
             var sidebar = 'hidden';
             if (document.body.clientWidth >= 1080) {
@@ -100,7 +99,7 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
@@ -133,7 +132,7 @@
                 </div>
 
                 <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
-                <script type="text/javascript">
+                <script>
                     document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
                     document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
                     Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
@@ -643,10 +642,9 @@ fn model(_app: &amp;App) -&gt; Model {
 fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
 }
 
-fn view(_app: &amp;App, _model: &amp;Model, frame: Frame){
+fn view(_app: &amp;App, _model: &amp;Model, frame: Frame) {
     frame.clear(PURPLE);
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p>If you are new to Rust or simply do not understand the code above just yet,
 do not fear! In the first tutorial of the next chapter we will break down
 this code step-by-step.</p>
@@ -833,14 +831,12 @@ fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 }
 
 fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p>We will start from the top!</p>
 <h2 id="import-common-items"><a class="header" href="#import-common-items">Import Common Items</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
 </span>use nannou::prelude::*;
-<span class="boring">fn main() {}
-</span></code></pre></pre>
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>This line imports all of the commonly used items from nannou into scope. These
 include items such as <code>App</code>, <code>Frame</code>, and many more that we will learn about
 over time. To see the full list of items re-exported by the prelude, see
@@ -856,8 +852,7 @@ little easier to access all of the commonly used items.</p>
 <h2 id="model---our-app-state"><a class="header" href="#model---our-app-state"><strong>Model</strong> - Our app state</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span>struct Model {}
-<span class="boring">fn main() {}
-</span></code></pre></pre>
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>The <strong>Model</strong> is where we define the state of our application. We can think of
 the model as the representation of our program at any point in time. Throughout
 the life of our program, we can update the model as certain events occur such as
@@ -885,8 +880,7 @@ empty. There is no state information to be tracked in this example.</p>
 </span><span class="boring">fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 </span><span class="boring">}
 </span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
-</span><span class="boring">}
-</span></code></pre></pre>
+</span><span class="boring">}</span></code></pre></pre>
 <p>All Rust programs begin executing at the start of the <code>main</code> function and end
 when the <code>main</code> function ends. In most nannou programs, the main function is
 quite small. In short, we build a description of our app and then run it!</p>
@@ -904,8 +898,7 @@ quite small. In short, we build a description of our app and then run it!</p>
 </span><span class="boring">fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 </span><span class="boring">}
 </span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
-</span><span class="boring">}
-</span></code></pre></pre>
+</span><span class="boring">}</span></code></pre></pre>
 <p>We will describe what these <strong>model</strong>, <strong>event</strong> and <strong>view</strong> functions do
 below!</p>
 <blockquote>
@@ -934,8 +927,7 @@ application event to modify the model.</p>
 </span>fn model(_app: &amp;App) -&gt; Model {
     Model {}
 }
-<span class="boring">fn main() {}
-</span></code></pre></pre>
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>The <code>model</code> function is run once at the beginning of the nannou app and produces
 a fresh, new instance of the <strong>Model</strong> that we declared previously, AKA the app
 state. This can be thought of as the &quot;setup&quot; stage of our application. Here, we
@@ -960,8 +952,7 @@ throughout nannou's API.</p>
 fn model(_app: &amp;App) -&gt; Model {
     Model {}
 }
-<span class="boring">fn main() {}
-</span></code></pre></pre>
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>You can learn more about what the <strong>App</strong> is responsible for and capable of
 <a href="https://docs.rs/nannou/latest/nannou/app/struct.App.html">here</a>.</p>
 </blockquote>
@@ -971,8 +962,7 @@ fn model(_app: &amp;App) -&gt; Model {
 </span><span class="boring">struct Model {}
 </span>fn event(_app: &amp;App, _model: &amp;mut Model, _event: Event) {
 }
-<span class="boring">fn main() {}
-</span></code></pre></pre>
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>The <strong>event</strong> function is some code that will run every time some kind of app
 event occurs. There are many different kinds of app events including mouse and
 keyboard presses, window resizes, timed updates and many more. Each of these are
@@ -1004,16 +994,14 @@ our app building code to this:</p>
 </span><span class="boring">fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
 </span><span class="boring">}
 </span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
-</span><span class="boring">}
-</span></code></pre></pre>
+</span><span class="boring">}</span></code></pre></pre>
 <p>And remove our <code>event</code> function in favour of an <code>update</code> function:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {}
 </span>fn update(_app: &amp;App, _model: &amp;mut Model, _update: Update) {
 }
-<span class="boring">fn main() {}
-</span></code></pre></pre>
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>Now, our new <strong>update</strong> function will only run each time a timed update
 occurs.</p>
 <blockquote>
@@ -1029,8 +1017,7 @@ available.</p>
 </span><span class="boring">struct Model {}
 </span>fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 }
-<span class="boring">fn main() {}
-</span></code></pre></pre>
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>Finally, the <strong>view</strong> allows us to present the state of the model to a window by
 drawing to its <strong>Frame</strong> and returning the frame at the end. Here we can change
 the background colour, use the <strong>Draw</strong> API to draw a scene, draw a GUI to the
@@ -1071,24 +1058,21 @@ fn view(app: &amp;App, frame: Frame) {
 
     // put everything on the frame
     draw.to_frame(app, &amp;frame).unwrap();
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p>You can exit the sketch by pressing <code>ESC</code>.</p>
 <h2 id="explaining-the-code"><a class="header" href="#explaining-the-code">Explaining the Code</a></h2>
 <p>A sketch consists of at least two functions: <code>main()</code> and <code>view()</code>.
 First we import some building blocks:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
 </span>use nannou::prelude::*;
-<span class="boring">fn main() {}
-</span></code></pre></pre>
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>After this import the actual sketching code starts. The <code>main()</code> functions is where all your logic starts. The code</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">use nannou::prelude::*;
 </span><span class="boring">
 </span><span class="boring">fn main() {
 </span>    nannou::sketch(view).run();
 <span class="boring">}
-</span><span class="boring">fn view(_app: &amp;App, _frame: Frame) {}
-</span></code></pre></pre>
+</span><span class="boring">fn view(_app: &amp;App, _frame: Frame) {}</span></code></pre></pre>
 <p>calls a function to draw on the single window (<code>view()</code> in this case). This
 function has the signature <code>fn(_: &amp;App, _: Frame);</code>. Don't worry if you
 don't know what a function signature is. Just copy the <code>main()</code> function
@@ -1105,8 +1089,7 @@ and you will be fine.</p>
     draw.background().color(BLUE);
 
     draw.to_frame(app, &amp;frame).unwrap();
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p>This function follows the same scheme. First some setup is done. The line</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
@@ -1115,8 +1098,7 @@ and you will be fine.</p>
 </span><span class="boring">}
 </span><span class="boring">fn view(app: &amp;App, _frame: Frame) {
 </span>let draw = app.draw();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>lets us assign a canvas-like datatype to the variable <code>draw</code>.
 We can now paint on the this canvas by setting the background to blue.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
@@ -1127,8 +1109,7 @@ We can now paint on the this canvas by setting the background to blue.</p>
 </span><span class="boring">fn view(app: &amp;App, _frame: Frame) {
 </span><span class="boring">let draw = app.draw();
 </span>draw.background().color(BLUE);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>Now we have a canvas with only a blue background. We take this canvas and
 create a computer graphics frame from it to display in the main window.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
@@ -1139,8 +1120,7 @@ create a computer graphics frame from it to display in the main window.</p>
 </span><span class="boring">fn view(app: &amp;App, frame: Frame) {
 </span><span class="boring">let draw = app.draw();
 </span>draw.to_frame(app, &amp;frame).unwrap();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>If you find the desire to respond to other kinds of events, interact with other
 kinds of input/output, track some state, or need more flexibility in general,
 you might be interested in creating a <a href="tutorials/basics/./anatomy-of-a-nannou-app.html">nannou app</a>
@@ -1189,8 +1169,7 @@ fn view(app: &amp;App, frame: Frame) {
     draw.background().color(PLUM);
     draw.ellipse().color(STEELBLUE);
     draw.to_frame(app, &amp;frame).unwrap();
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p>While you cannot update or track any custom state, we still have access to
 plenty of fun inputs including time, the state of the keyboard, mouse and more.</p>
 <h2 id="apps"><a class="header" href="#apps">Apps</a></h2>
@@ -1222,18 +1201,15 @@ fn view(app: &amp;App, _model: &amp;Model, frame: Frame) {
     draw.background().color(PLUM);
     draw.ellipse().color(STEELBLUE);
     draw.to_frame(app, &amp;frame).unwrap();
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p>More specifically, the primary difference is that an app allows for working with
 custom <em><strong>state</strong></em> (i.e. the <code>Model</code>), whereas a sketch does not.</p>
 <blockquote>
 <p><em><strong>Hot tip!</strong></em></p>
 <p>The line:</p>
-<pre><code class="language-rust ignore">nannou::sketch(view).run()
-</code></pre>
+<pre><code class="language-rust ignore">nannou::sketch(view).run()</code></pre>
 <p>is simply short-hand for</p>
-<pre><code class="language-rust ignore">nannou::app(model).simple_window(view).run()
-</code></pre>
+<pre><code class="language-rust ignore">nannou::app(model).simple_window(view).run()</code></pre>
 <p>except without the need for <code>model</code> and with a slightly simpler <code>view</code> function.</p>
 </blockquote>
 <h2 id="switching-from-sketch-to-app"><a class="header" href="#switching-from-sketch-to-app">Switching from <code>sketch</code> to <code>app</code></a></h2>
@@ -1249,8 +1225,7 @@ flexibility, you can turn it into an app by following these steps:</p>
 </span><span class="boring">fn main() {
 </span>nannou::sketch(view).run()
 <span class="boring">}
-</span><span class="boring">fn view(_: &amp;App, _: Frame) {}
-</span></code></pre></pre>
+</span><span class="boring">fn view(_: &amp;App, _: Frame) {}</span></code></pre></pre>
 <p>to</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">use nannou::prelude::*;
@@ -1259,15 +1234,13 @@ flexibility, you can turn it into an app by following these steps:</p>
 <span class="boring">}
 </span><span class="boring">struct Model {}
 </span><span class="boring">fn model(_: &amp;App) -&gt; Model { Model {} }
-</span><span class="boring">fn view(_: &amp;App, _: &amp;Model, _: Frame) {}
-</span></code></pre></pre>
+</span><span class="boring">fn view(_: &amp;App, _: &amp;Model, _: Frame) {}</span></code></pre></pre>
 </li>
 <li>
 <p>Add a <code>Model</code> for tracking state:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code)]
 </span><span class="boring">fn main() {}
-</span>struct Model {}
-</code></pre></pre>
+</span>struct Model {}</code></pre></pre>
 </li>
 <li>
 <p>Add a <code>model</code> function for creating the <code>Model</code>:</p>
@@ -1277,8 +1250,7 @@ flexibility, you can turn it into an app by following these steps:</p>
 </span><span class="boring">struct Model {}
 </span>fn model(_app: &amp;App) -&gt; Model {
     Model {}
-}
-</code></pre></pre>
+}</code></pre></pre>
 </li>
 <li>
 <p>Change the <code>view</code> function signature from:</p>
@@ -1286,16 +1258,14 @@ flexibility, you can turn it into an app by following these steps:</p>
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {}
 </span>fn view(app: &amp;App, frame: Frame) {
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>to</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {}
 </span><span class="boring">struct Model {}
 </span>fn view(app: &amp;App, _model: &amp;Model, frame: Frame) {
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 </li>
 </ol>
 <p>And that's it! You are now ready to take your sketch to the next level.</p>
@@ -1365,8 +1335,7 @@ of <code>100.0</code>.</p>
     .x_y(0.0, 0.0)
     .w_h(100.0, 100.0)
     .color(PLUM);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/basics/./images/window_coordinates_example2.png" alt="window_coordinates.rs" /></p>
 <p>Notice that when we say <code>.x_y(0.0, 0.0)</code>, this refers to where the <strong>centre</strong> of
 the square will be placed. You might notice the same applies to other drawing
@@ -1384,8 +1353,7 @@ Let's try rotating our plum square by 45 degrees.</p>
     .w_h(100.0, 100.0)
     .z_degrees(45.0)
     .color(PLUM);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/basics/./images/window_coordinates_example3.png" alt="window_coordinates.rs" /></p>
 <p>Voila!</p>
 <h3 id="moving-the-square"><a class="header" href="#moving-the-square">Moving the square</a></h3>
@@ -1402,8 +1370,7 @@ the origin and the marker, so <code>[50.0, 50.0]</code>.</p>
     .x_y(50.0, 50.0)
     .w_h(100.0, 100.0)
     .color(PLUM);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/basics/./images/window_coordinates_example4.png" alt="window_coordinates.rs" /></p>
 <p>So satisfying!</p>
 <p><em>OK, but what if we want to position our square in the top-left corner of the
@@ -1423,8 +1390,7 @@ draw.rect()
     .xy(xy)
     .w_h(side, side)
     .color(PLUM);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/basics/./images/window_coordinates_example5.png" alt="window_coordinates.rs" /></p>
 <p>OK that worked! But it was a <strong>lot</strong> of effort. And what if the size of the
 window changes?</p>
@@ -1442,8 +1408,7 @@ the window. Let's retrieve the window <code>Rect</code> with the name <code>win<
 </span><span class="boring">fn main() {
 </span><span class="boring">    let app: App = unimplemented!();
 </span>let win = app.window_rect();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>Let's use <code>win</code> to simplify aligning our plum square to the top left of the
 window.</p>
 <h3 id="alignment"><a class="header" href="#alignment">Alignment</a></h3>
@@ -1453,8 +1418,7 @@ square and call it <code>r</code>.</p>
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span>let r = Rect::from_w_h(100.0, 100.0);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><code>r</code> now represents our square, positioned at [0.0, 0.0] with a width and height
 of 100.0. We can confirm this by changing our square drawing code to use <code>r</code>
 like so:</p>
@@ -1467,8 +1431,7 @@ draw.rect()
     .xy(r.xy())
     .wh(r.wh())
     .color(PLUM);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/basics/./images/window_coordinates_example2.png" alt="window_coordinates.rs" /></p>
 <p>We can align our plum square to the <code>top_left_of</code> the window like so:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
@@ -1481,8 +1444,7 @@ draw.rect()
     .xy(r.xy())
     .wh(r.wh())
     .color(PLUM);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/basics/./images/window_coordinates_example5.png" alt="window_coordinates.rs" /></p>
 <p>Much nicer!</p>
 <p><em>But what if we want some padding between the edges of the window and the
@@ -1504,8 +1466,7 @@ draw.rect()
     .xy(win_p.xy())
     .wh(win_p.wh())
     .color(rgba(0.3, 0.4, 0.7, 0.5));
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/basics/./images/window_coordinates_example6.png" alt="window_coordinates.rs" /></p>
 <p>As you may have guessed, we can use this new padded <code>Rect</code> to align our plum
 square and achieve the desired look:</p>
@@ -1520,8 +1481,7 @@ draw.rect()
     .xy(r.xy())
     .wh(r.wh())
     .color(PLUM);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/basics/./images/window_coordinates_example7.png" alt="window_coordinates.rs" /></p>
 <h3 id="relative-positions"><a class="header" href="#relative-positions">Relative Positions</a></h3>
 <p>Now that we have our plum square situated with some nice padding in the top left
@@ -1548,8 +1508,7 @@ draw.ellipse()
     .xy(circle.xy())
     .wh(circle.wh())
     .color(SALMON);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/basics/./images/window_coordinates_example8.png" alt="window_coordinates.rs" /></p>
 <p>For consistency, let's try and add the same padding between the circle and the
 square as we have between the square and the edges of the window.</p>
@@ -1573,8 +1532,7 @@ draw.ellipse()
     .xy(circle.xy())
     .wh(circle.wh())
     .color(SALMON);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/basics/./images/window_coordinates_example9.png" alt="window_coordinates.rs" /></p>
 <p><em>Gee wizz, I love salmon!</em></p>
 <p>There are many more fancy tricks we can do with <code>Rect</code> to assist as a guide for
@@ -1610,8 +1568,7 @@ library <a href="https://docs.rs/winit/latest/winit/dpi/index.html">here</a>.</p
 </span><span class="boring">    let points = 100.0;
 </span><span class="boring">    let window: Window = unimplemented!();
 </span>let pixels = points * window.scale_factor();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>Similarly, we can convert pixels to points by dividing by the scale factor:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
@@ -1619,8 +1576,7 @@ library <a href="https://docs.rs/winit/latest/winit/dpi/index.html">here</a>.</p
 </span><span class="boring">    let pixels = 100.0;
 </span><span class="boring">    let window: Window = unimplemented!();
 </span>let points = pixels / window.scale_factor();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 </blockquote>
 <h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
 <p>Thanks for reading! Hopefully this has helped to demystify window coordinates in
@@ -1664,8 +1620,7 @@ fn view(app: &amp;App, frame: Frame) {
 
     // Write to the window frame.
     draw.to_frame(app, &amp;frame).unwrap();
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p>You can also find this file, and other useful examples, in the <a href="https://github.com/nannou-org/nannou/tree/master/examples">examples</a> directory of the nannou source repository.</p>
 <h2 id="drawing-simple-shapes"><a class="header" href="#drawing-simple-shapes">Drawing Simple Shapes</a></h2>
 <p>Let's try running the file!  (if you haven't already, you will need to add this file to your Cargo.toml file)</p>
@@ -1678,8 +1633,7 @@ fn view(app: &amp;App, frame: Frame) {
 </span><span class="boring">    let draw: Draw = unimplemented!();
 </span>draw.ellipse()
     .color(STEELBLUE);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>There are many ways we can alter our circle here.  Let's start with changing the size:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
@@ -1689,8 +1643,7 @@ fn view(app: &amp;App, frame: Frame) {
     .color(STEELBLUE)
     .w(300.0)
     .h(200.0);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>The <code>w</code> function here changes the width of the ellipse to 300 pixels, and the <code>h</code> function changes the height to 200.0 pixels. You should see what we would more colloquially refer to as an ellipse.</p>
 <p>We can also change the position of our ellipse with the <code>x_y</code> method:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
@@ -1702,8 +1655,7 @@ fn view(app: &amp;App, frame: Frame) {
     .w(300.0)
     .h(200.0)
     .x_y(200.0, -100.0);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/draw/./images/2d-shape-ellipse.png" alt="An ellipse" /></p>
 <p>As you can see, we edit our ellipse by chaining together different methods which will change one or more properties of our shape.  This is called the <strong>Builder</strong> pattern.  The call to <code>draw.ellipse()</code> returns an object of type <code>Drawing&lt;Ellipse&gt;</code>.  In turn, each call to a builder method, such as <code>w(300.0)</code> or <code>x_y(200.0, -100.0)</code>, returns the same instance of our shape. By chaining these function calls, we are able to build an ellipse with the attributes we want.</p>
 <p>There are several more methods we can use to build our ellipse. You can view the documentation for many of these methods <a href="https://docs.rs/nannou/latest/nannou/draw/struct.Drawing.html">here</a>.</p>
@@ -1717,8 +1669,7 @@ fn view(app: &amp;App, frame: Frame) {
     .color(STEELBLUE)
     .w(300.0)
     .h(200.0);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>You will see an image like this:</p>
 <p><img src="tutorials/draw/./images/2d-shape-rect.png" alt="A rectangle" /></p>
 <p>In addition to <code>rect</code>, you can also use the <code>quad</code> method, which is for drawing quadrilaterals. This function is similar to <code>rect</code>, but you can also choose to supply your own coordinates for your shape.  Try the following:</p>
@@ -1736,8 +1687,7 @@ draw.quad()
     .w(300.0)
     .h(200.0)
     .points(point1, point2, point3, point4);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>You should see the following:</p>
 <p><img src="tutorials/draw/./images/2d-shape-quad.png" alt="A quadrilateral with custom defined points" /></p>
 <p>The <code>pt2</code> method above will create a point object that represents a point in XY coordinate space, like a graph or a Cartesian plane. nannou's coordinate system places (0,0) at the center of the window. This is <strong>not</strong> like many other graphical creative coding frameworks, which place (0,0) at the upper-leftmost position of the window.</p>
@@ -1759,8 +1709,7 @@ draw.line()
     .end(end_point)
     .weight(4.0)
     .color(STEELBLUE);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/draw/./images/2d-simple-line.png" alt="A simple line" /></p>
 <p>Simply provide a starting point and an ending point, and you have your line.</p>
 <p>This is great for simpler drawings, but what if you want to draw something more complicated? A sine wave, for instance.</p>
@@ -1777,8 +1726,7 @@ draw.line()
 draw.polyline()
     .weight(3.0)
     .points_colored(points);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/draw/./images/2d-simple-polyline.png" alt="A sine wave polyline drawing" /></p>
 <p>As you can see, the power of <code>polyline</code> is the ability to draw a series of lines
 connecting and ordered array of points.  With this, you can easily draw a
@@ -1808,8 +1756,7 @@ let points = (0..=360).map(|i| {
 draw.polyline()
     .weight(3.0)
     .points_colored(points); // Submit our points.
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/draw/./images/2d-custom-circle-outline.png" alt="A custom circle" /></p>
 <p>A custom drawn circle! ...okay, perhaps this isn't too exciting, given that we
 already have an easy way of drawing circles with <code>ellipse</code>. But with a simple
@@ -1822,8 +1769,7 @@ calling <code>(0..=360).map</code>, we will call <code>(0..=360).step_by(45).map
 </span>let points = (0..=360).step_by(45).map(|i| {
 <span class="boring">    0.0
 </span><span class="boring">});
-</span><span class="boring">}
-</span></code></pre></pre>
+</span><span class="boring">}</span></code></pre></pre>
 <p>The rest of our code will remain unchanged.</p>
 <p>Because 45 divides into 360 eight times, our code generated 8 points to represent a regular octagon.</p>
 <p><img src="tutorials/draw/./images/2d-complete-octogon-outline.png" alt="An octagon outline" /></p>
@@ -1851,8 +1797,7 @@ let points = (0..=360).step_by(45).map(|i| {
 });
 draw.polygon()
     .points_colored(points);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><img src="tutorials/draw/./images/2d-custom-octogon-polygon.png" alt="An octagon" /></p>
 <h2 id="concluding-remarks-1"><a class="header" href="#concluding-remarks-1">Concluding Remarks</a></h2>
 <p>In this tutorial, we learned about most basic 2D drawing functions with nannou.</p>
@@ -1920,8 +1865,7 @@ solid starting point in creating your own drawings.</p>
     draw.ellipse().color(STEELBLUE).x_y(0.0,0.0);
 
     draw.to_frame(app, &amp;frame).unwrap();
-}
-</code></pre></pre>
+}</code></pre></pre>
 <h2 id="adding-movement"><a class="header" href="#adding-movement">Adding movement</a></h2>
 <p>Let's now add some movement to our circle to give it a bit of life.</p>
 <p>To do this, we will make use of the ever wonderful <a href="https://en.wikipedia.org/wiki/Sine_wave">sinewave</a>.</p>
@@ -1931,16 +1875,14 @@ solid starting point in creating your own drawings.</p>
 </span><span class="boring">fn main() {
 </span><span class="boring">    let app: App = unimplemented!();
 </span>let sine = app.time.sin();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>Let's make another one but at half the speed by dividing the time value by two</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let app: App = unimplemented!();
 </span>let slowersine = (app.time / 2.0).sin();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>Now that we have two functions generating nice, smooth wave movements, let's use them to control our little circle.</p>
 <p>If we put these values directly in the ellipse's <code>.x_y()</code>-method we would not see much movement. That's because the sine waves generate values between -1.0 and 1.0 and the coordinates expect a pixel position.</p>
 <p>But how wide is our window ? To get a precise idea of this, we can use a handy method called <a href="https://docs.rs/nannou/latest/nannou/app/struct.App.html#method.window_rect">window_rect</a> which is available in the <code>app</code> variable.</p>
@@ -1949,8 +1891,7 @@ solid starting point in creating your own drawings.</p>
 </span><span class="boring">fn main() {
 </span><span class="boring">    let app: App = unimplemented!();
 </span>let boundary = app.window_rect();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>This will give us the boundary of the window as a handy <code>Rect</code>. This is a struct that responds to <a href="https://docs.rs/nannou/latest/nannou/geom/rect/struct.Rect.html">tons of useful methods</a> that we can use to define the minimum and maximum values of our x and y coordinates respectively to constrain the movements of our circle.</p>
 <p>The minimum x value is thus available as:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
@@ -1958,32 +1899,28 @@ solid starting point in creating your own drawings.</p>
 </span><span class="boring">fn main() {
 </span><span class="boring">    let boundary: geom::Rect = unimplemented!();
 </span>boundary.left();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>And the maximum x value is</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let boundary: geom::Rect = unimplemented!();
 </span>boundary.right();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>The minimum y value is</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let boundary: geom::Rect = unimplemented!();
 </span>boundary.bottom();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>And the maximum y value is</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let boundary: geom::Rect = unimplemented!();
 </span>boundary.top();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <h2 id="mapping-values-to-a-range"><a class="header" href="#mapping-values-to-a-range">Mapping values to a range</a></h2>
 <p>Using these values, we can map our <code>sine</code> and <code>slowersine</code> values to ranges of values that are within the boundary of our window. To do this, we will use the <a href="https://docs.rs/nannou/latest/nannou/math/fn.map_range.html">map_range</a> function available in nannou.</p>
 <p>The <code>map_range</code> function takes 5 arguments: <code>val</code>, <code>in_min</code>, <code>in_max</code>, <code>out_min</code>, <code>out_max</code>. The <code>val</code> here is our sinewaves which has a minimum value of -1.0 and a maximum value of 1.0. For the x-coordinate, we then map it to a range of values between the leftmost point and the rightmost point.</p>
@@ -1994,8 +1931,7 @@ solid starting point in creating your own drawings.</p>
 </span><span class="boring">    let sine = app.time.sin();
 </span><span class="boring">    let boundary = app.window_rect();
 </span>let x = map_range(sine, -1.0, 1.0, boundary.left(), boundary.right());
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>And then the same for the y value but using the <code>slowersine</code> variable.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
@@ -2005,8 +1941,7 @@ solid starting point in creating your own drawings.</p>
 </span><span class="boring">    let slowersine = (app.time / 2.0).sin();
 </span><span class="boring">    let boundary = app.window_rect();
 </span>let y = map_range(slowersine, -1.0, 1.0, boundary.bottom(), boundary.top());
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>The only thing left to do now is to put this into the arguments of our circle-drawing function.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
@@ -2019,8 +1954,7 @@ solid starting point in creating your own drawings.</p>
 </span><span class="boring">    let x = map_range(sine, -1.0, 1.0, boundary.left(), boundary.right());
 </span><span class="boring">    let y = map_range(slowersine, -1.0, 1.0, boundary.bottom(), boundary.top());
 </span>draw.ellipse().color(STEELBLUE).x_y(x, y);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>Your updated <code>view</code> function should now look something like this:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
@@ -2048,8 +1982,7 @@ solid starting point in creating your own drawings.</p>
     draw.ellipse().color(STEELBLUE).x_y(x, y);
 
     draw.to_frame(app, &amp;frame).unwrap();
-}
-</code></pre></pre>
+}</code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="drawing-images"><a class="header" href="#drawing-images">Drawing Images</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
@@ -2095,8 +2028,7 @@ fn model(app: &amp;App) -&gt; Model {
 }
 
 fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p>If you <code>cargo run</code> your app, you'll see an empty window.</p>
 <h2 id="setting-up-a-texture"><a class="header" href="#setting-up-a-texture">Setting up a Texture</a></h2>
 <p>Now, at the top of your <code>main.rs</code> file, add a <a href="https://docs.rs/nannou/latest/nannou/wgpu/struct.Texture.html">WGPU Texture</a> type field named <code>texture</code> to the <code>Model</code> struct.</p>
@@ -2115,8 +2047,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </span><span class="boring">  Model { texture }
 </span><span class="boring">}
 </span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
-</span><span class="boring">}
-</span></code></pre></pre>
+</span><span class="boring">}</span></code></pre></pre>
 <p>Next, we'll need to create a GPU texture to initialize the struct with. We can accomplish this by loading a texture from an image file after we create the window in our <code>model</code> function. We will let nannou find the assets directory for us using the app's <a href="https://docs.rs/nannou/0.14.1/nannou/app/struct.App.html#method.assets_path"><code>assets_path()</code></a> method, so we only need to spell out the image path from the root of that directory.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables, dead_code)]
 </span><span class="boring">use nannou::prelude::*;
@@ -2136,8 +2067,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
   Model { texture }
 }
 <span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
-</span><span class="boring">}
-</span></code></pre></pre>
+</span><span class="boring">}</span></code></pre></pre>
 <p>After all that, we've still got an empty window...but not for much longer!</p>
 <h2 id="drawing-a-texture"><a class="header" href="#drawing-a-texture">Drawing a Texture</a></h2>
 <p>Finally, in our <code>view</code> function, we can draw the texture stored in our model with the <code>texture</code> method of the <a href="https://docs.rs/nannou/latest/nannou/draw/struct.Draw.html">App's Draw API</a>.</p>
@@ -2165,8 +2095,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
   draw.texture(&amp;model.texture);
 
   draw.to_frame(app, &amp;frame).unwrap();
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p><img src="tutorials/draw/./images/drawing-images-0.png" alt="A texture" /></p>
 <h2 id="translating-and-scaling-the-texture"><a class="header" href="#translating-and-scaling-the-texture">Translating and Scaling the Texture</a></h2>
 <p>A texture can be drawn at any location and any size desired within the frame. Let's say we wanted to draw this image in a 100x100 square at the top-left corner of the window. Our <code>view</code> function might look similar to the following.</p>
@@ -2199,8 +2128,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
     .wh(r.wh());
 
   draw.to_frame(app, &amp;frame).unwrap();
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p><img src="tutorials/draw/./images/drawing-images-1.png" alt="A translated and scaled texture" /></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="an-intro-to-osc"><a class="header" href="#an-intro-to-osc">An Intro to OSC</a></h1>
 <p><strong>Tutorial Info</strong></p>
@@ -2227,8 +2155,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 <p>To use the crate in your nannou-projects you can add a use-statement at the top of your <code>main.rs</code> file to import the OSC-functionality.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
 </span>use nannou_osc as osc;
-<span class="boring">fn main() {}
-</span></code></pre></pre>
+<span class="boring">fn main() {}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="sending-osc"><a class="header" href="#sending-osc">Sending OSC</a></h1>
 <p><strong>Tutorial Info</strong></p>
 <ul>
@@ -2250,8 +2177,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 <p>At the top of your <code>main.rs</code>-file, import the <code>nannou_osc</code> crate and make it available in your program via the shorthand <code>osc</code>.</p>
 <pre><pre class="playground"><code class="language-rust  norun"><span class="boring">#![allow(unused_imports)]
 </span>use nannou_osc as osc;
-<span class="boring">fn main(){}
-</span></code></pre></pre>
+<span class="boring">fn main(){}</span></code></pre></pre>
 <p>The first thing we then need to do is set up our OSC-sender in the <code>Model</code>-struct you may have seen in other nannou-tutorials.
 Add a field to the struct called <code>sender</code> with a <a href="https://docs.rs/nannou_osc/latest/nannou_osc/send/struct.Sender.html">Sender</a>-struct as the type input.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_imports)]
@@ -2259,8 +2185,7 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 </span>struct Model {
     sender: osc::Sender&lt;osc::Connected&gt;,
 }
-<span class="boring">fn main() {}
-</span></code></pre></pre>
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>Next, we need to setup our <code>Model</code> struct using the <code>model</code> function. Don't worry if it looks a bit daunting at first, we will go through it step by step.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_imports)]
 </span><span class="boring">use nannou_osc as osc;
@@ -2279,22 +2204,19 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 
     Model { sender }
 }
-<span class="boring">fn main() {}
-</span></code></pre></pre>
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>First, let's choose the network port that our data will be sent to.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
 </span>let port = 1234;
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>The osc-sender expects a string in the format &quot;address:port&quot;, for example <code>&quot;127.0.0.1:1234&quot;</code>.</p>
 <p>The address can either be an internal address or the address of another computer on your network. In this tutorial we will be targetting our own computer's internal address which is represented by <code>&quot;127.0.0.1&quot;</code>.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let port = 1234;
 </span>let target_addr = format!(&quot;{}:{}&quot;, &quot;127.0.0.1&quot;, port);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>Lastly, we need to bind our OSC sender to the network socket. This isn't always successful, so we are attaching the <code>expect()</code>-method (read more about <a href="https://doc.rust-lang.org/std/option/enum.Option.html#method.expect"><code>expect()</code> here</a>) to post an error message if it is not successful. If it is successful, the <code>.connect(target_addr)</code>-method is used to connect the sender to the target address. Again, this may be unsuccesful so we use the <code>expect()</code>-method on the result of that operation as well.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">use nannou_osc as osc;
@@ -2305,16 +2227,14 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
     .expect(&quot;Could not bind to default socket&quot;)
     .connect(target_addr)
     .expect(&quot;Could not connect to socket at address&quot;);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <h3 id="sending-osc-messages"><a class="header" href="#sending-osc-messages">Sending OSC messages</a></h3>
 <p>An OSC packet consists of at least two components: An OSC address and 0 or more arguments containing data. The OSC address is not to be confused with the network address we connected to before. Instead, an OSC address is a path sort of like a URL, for example <code>/circle/position</code>.</p>
 <p>To create an OSC packet, we first need to make an address.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
 </span>let osc_addr = &quot;/circle/position&quot;.to_string();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p>Then create a vector of arguments. These need to be formatted using the types found in <a href="https://docs.rs/nannou_osc/latest/nannou_osc/enum.Type.html">osc::Type</a> in the nannou_osc crate. Below we create an argument list of two floating point values: the <code>x</code> and <code>y</code> coordinates of our circle.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">use nannou_osc as osc;
@@ -2324,16 +2244,14 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 </span>let args = vec![osc::Type::Float(x), osc::Type::Float(y)];
 <span class="boring">
 </span><span class="boring">}
-</span>
-</code></pre></pre>
+</span></code></pre></pre>
 <p>Now, bringing these two things together we get an OSC packet. The sender expect these to be delivered in a tuple.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let osc_addr = unimplemented!();
 </span><span class="boring">let args = unimplemented!();
 </span>let packet = (osc_addr, args);
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <p><a href="https://docs.rs/nannou_osc/latest/nannou_osc/send/struct.Sender.html#method.send-1">Reading the documentation</a> for the <code>send</code>-method, we can see that it returns a Result type which will either contain the number of bytes written (if it was successful) and, more importantly, some useful errors of type CommunicationError if it was not succesful. To discard the error part of this, we use the <code>ok()</code> method at the end.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou_osc as osc;
@@ -2346,8 +2264,7 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 </span><span class="boring">   let args = vec![osc::Type::Float(0.0), osc::Type::Float(0.0)];
 </span><span class="boring">   let packet = (osc_addr, args);
 </span>    model.sender.send(packet).ok();
-<span class="boring">}
-</span></code></pre></pre>
+<span class="boring">}</span></code></pre></pre>
 <h2 id="the-finished-app"><a class="header" href="#the-finished-app">The finished app</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run">use nannou::prelude::*;
 use nannou_osc as osc;
@@ -2406,8 +2323,7 @@ fn view(app: &amp;App, model: &amp;Model, frame: Frame) {
     draw.ellipse().color(STEELBLUE).x_y(x, y);
 
     draw.to_frame(app, &amp;frame).unwrap();
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p>In the next tutorial we will take a look at how to receive our OSC values and do something interesting with them.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="community-tutorials"><a class="header" href="#community-tutorials">Community Tutorials</a></h1>
 <p>This is a collection of tutorials by the community.</p>
@@ -3010,11 +2926,9 @@ includes an overhaul of the application loop which should be significantly
 simpler.</li>
 <li>Update <code>view</code> function API to take <code>Frame</code> by value rather than by reference.
 For example, rather than:
-<pre><code class="language-rust ignore">fn view(app: &amp;App, model: &amp;Model, frame: &amp;Frame) {}
-</code></pre>
+<pre><code class="language-rust ignore">fn view(app: &amp;App, model: &amp;Model, frame: &amp;Frame) {}</code></pre>
 the <code>view</code> function signature now must look like:
-<pre><code class="language-rust ignore">fn view(app: &amp;App, model: &amp;Model, frame: Frame) {}
-</code></pre>
+<pre><code class="language-rust ignore">fn view(app: &amp;App, model: &amp;Model, frame: Frame) {}</code></pre>
 This was necessary to enable ergonomic texture capturing.</li>
 <li><code>frame.submit()</code> can now be used to submit the frame to the GPU before the end
 of the <code>view</code> function.</li>
@@ -3383,22 +3297,22 @@ fail.</li>
 
 
 
-        <script type="text/javascript">
+        <script>
             window.playground_copyable = true;
         </script>
 
 
-        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
 
-        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
-        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
 
-        <script type="text/javascript">
+        <script>
         window.addEventListener('load', function() {
             window.setTimeout(window.print, 100);
         });

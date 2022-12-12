@@ -8,7 +8,6 @@
 
         <!-- Custom HTML head -->
         
-        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
@@ -34,13 +33,13 @@
     </head>
     <body>
         <!-- Provide site root to javascript -->
-        <script type="text/javascript">
+        <script>
             var path_to_root = "../../";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
-        <script type="text/javascript">
+        <script>
             try {
                 var theme = localStorage.getItem('mdbook-theme');
                 var sidebar = localStorage.getItem('mdbook-sidebar');
@@ -56,7 +55,7 @@
         </script>
 
         <!-- Set the theme before any content is loaded, prevents flash -->
-        <script type="text/javascript">
+        <script>
             var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
@@ -68,7 +67,7 @@
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
-        <script type="text/javascript">
+        <script>
             var html = document.querySelector('html');
             var sidebar = 'hidden';
             if (document.body.clientWidth >= 1080) {
@@ -99,7 +98,7 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
@@ -132,7 +131,7 @@
                 </div>
 
                 <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
-                <script type="text/javascript">
+                <script>
                     document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
                     document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
                     Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
@@ -187,8 +186,7 @@ fn model(app: &amp;App) -&gt; Model {
 }
 
 fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p>If you <code>cargo run</code> your app, you'll see an empty window.</p>
 <h2 id="setting-up-a-texture"><a class="header" href="#setting-up-a-texture">Setting up a Texture</a></h2>
 <p>Now, at the top of your <code>main.rs</code> file, add a <a href="https://docs.rs/nannou/latest/nannou/wgpu/struct.Texture.html">WGPU Texture</a> type field named <code>texture</code> to the <code>Model</code> struct.</p>
@@ -207,8 +205,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </span><span class="boring">  Model { texture }
 </span><span class="boring">}
 </span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
-</span><span class="boring">}
-</span></code></pre></pre>
+</span><span class="boring">}</span></code></pre></pre>
 <p>Next, we'll need to create a GPU texture to initialize the struct with. We can accomplish this by loading a texture from an image file after we create the window in our <code>model</code> function. We will let nannou find the assets directory for us using the app's <a href="https://docs.rs/nannou/0.14.1/nannou/app/struct.App.html#method.assets_path"><code>assets_path()</code></a> method, so we only need to spell out the image path from the root of that directory.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables, dead_code)]
 </span><span class="boring">use nannou::prelude::*;
@@ -228,8 +225,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
   Model { texture }
 }
 <span class="boring">fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
-</span><span class="boring">}
-</span></code></pre></pre>
+</span><span class="boring">}</span></code></pre></pre>
 <p>After all that, we've still got an empty window...but not for much longer!</p>
 <h2 id="drawing-a-texture"><a class="header" href="#drawing-a-texture">Drawing a Texture</a></h2>
 <p>Finally, in our <code>view</code> function, we can draw the texture stored in our model with the <code>texture</code> method of the <a href="https://docs.rs/nannou/latest/nannou/draw/struct.Draw.html">App's Draw API</a>.</p>
@@ -257,8 +253,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
   draw.texture(&amp;model.texture);
 
   draw.to_frame(app, &amp;frame).unwrap();
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p><img src="./images/drawing-images-0.png" alt="A texture" /></p>
 <h2 id="translating-and-scaling-the-texture"><a class="header" href="#translating-and-scaling-the-texture">Translating and Scaling the Texture</a></h2>
 <p>A texture can be drawn at any location and any size desired within the frame. Let's say we wanted to draw this image in a 100x100 square at the top-left corner of the window. Our <code>view</code> function might look similar to the following.</p>
@@ -291,8 +286,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
     .wh(r.wh());
 
   draw.to_frame(app, &amp;frame).unwrap();
-}
-</code></pre></pre>
+}</code></pre></pre>
 <p><img src="./images/drawing-images-1.png" alt="A translated and scaled texture" /></p>
 
                     </main>
@@ -327,18 +321,18 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 
 
 
-        <script type="text/javascript">
+        <script>
             window.playground_copyable = true;
         </script>
 
 
-        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
 
-        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
 
         <!-- Custom JS scripts -->
 
