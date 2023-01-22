@@ -80,6 +80,7 @@ pub(crate) struct UserFunctions {
     pub(crate) focused: Option<FocusedFnAny>,
     pub(crate) unfocused: Option<UnfocusedFnAny>,
     pub(crate) closed: Option<ClosedFnAny>,
+    pub(crate) occluded: Option<OccludedFnAny>,
 }
 
 /// The user function type for drawing their model to the surface of a single window.
@@ -167,6 +168,9 @@ pub type UnfocusedFn<Model> = fn(&App, &mut Model);
 /// A function for processing window closed events.
 pub type ClosedFn<Model> = fn(&App, &mut Model);
 
+/// A function for processing window occluded events.
+pub type OccludedFn<Model> = fn(&App, &mut Model, bool);
+
 /// Errors that might occur while building the window.
 #[derive(Debug)]
 pub enum BuildError {
@@ -234,6 +238,7 @@ fn_any!(DroppedFileFn<M>, DroppedFileFnAny);
 fn_any!(FocusedFn<M>, FocusedFnAny);
 fn_any!(UnfocusedFn<M>, UnfocusedFnAny);
 fn_any!(ClosedFn<M>, ClosedFnAny);
+fn_any!(OccludedFn<M>, OccludedFnAny);
 
 /// A nannou window.
 ///
@@ -696,6 +701,16 @@ impl<'app> Builder<'app> {
         M: 'static,
     {
         self.user_functions.closed = Some(ClosedFnAny::from_fn_ptr(f));
+        self
+    }
+
+    /// A function for processing the occluded event associated with this
+    /// window.
+    pub fn occluded<M>(mut self, f: OccludedFn<M>) -> Self
+    where
+        M: 'static,
+    {
+        self.user_functions.occluded = Some(OccludedFnAny::from_fn_ptr(f));
         self
     }
 

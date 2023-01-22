@@ -1708,6 +1708,7 @@ where
                 event::WindowEvent::Focused => call_user_function!(focused),
                 event::WindowEvent::Unfocused => call_user_function!(unfocused),
                 event::WindowEvent::Closed => call_user_function!(closed),
+                event::WindowEvent::Occluded(val) => call_user_function!(occluded, val),
             }
         }
     }

@@ -172,6 +172,13 @@ pub enum WindowEvent {
 
     /// The window was closed and is no longer stored in the `App`.
     Closed,
+
+    /// The window has been hidden from view. This event could be used to
+    /// optimize rendering.
+    ///
+    /// Currently supported on macOS, unsupported on iOS / Android / Web /
+    /// Wayland / Windows.
+    Occluded(bool),
 }
 
 impl WindowEvent {
@@ -307,6 +314,14 @@ impl WindowEvent {
             | winit::event::WindowEvent::ScaleFactorChanged { .. } => {
                 return None;
             }
+
+            // These events will never happen as long as
+            // `Window::set_ime_allowed` is not called.
+            winit::event::WindowEvent::Ime(_) => {
+                return None;
+            }
+
+            winit::event::WindowEvent::Occluded(occluded) => Occluded(*occluded),
         };
 
         Some(event)
