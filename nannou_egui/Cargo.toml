@@ -14,5 +14,5 @@ readme = "../README.md"
 [dependencies]
 egui_wgpu_backend = "0.14"
 egui = "0.15.0"
-winit = "0.26"
+winit = "0.27"
 nannou = { version = "0.18.1", path = "../nannou" }

@@ -40,6 +40,10 @@ pub struct Builder<'app> {
     app: &'app App,
     window: winit::window::WindowBuilder,
     title_was_set: bool,
+    fullscreen: Option<Fullscreen>,
+    size: Option<winit::dpi::Size>,
+    min_size: Option<winit::dpi::Size>,
+    max_size: Option<winit::dpi::Size>,
     surface_conf_builder: SurfaceConfigurationBuilder,
     power_preference: wgpu::PowerPreference,
     force_fallback_adapter: bool,
@@ -355,6 +359,10 @@ impl<'app> Builder<'app> {
             app,
             window: winit::window::WindowBuilder::new(),
             title_was_set: false,
+            fullscreen: None,
+            size: None,
+            min_size: None,
+            max_size: None,
             surface_conf_builder: Default::default(),
             power_preference: Self::DEFAULT_POWER_PREFERENCE,
             force_fallback_adapter: Self::DEFAULT_FORCE_FALLBACK_ADAPTER,
@@ -737,6 +745,10 @@ impl<'app> Builder<'app> {
             app,
             mut window,
             title_was_set,
+            fullscreen,
+            size,
+            min_size,
+            max_size,
             surface_conf_builder,
             power_preference,
             force_fallback_adapter,
@@ -775,35 +787,29 @@ impl<'app> Builder<'app> {
         }
 
         // Set default dimensions in the case that none were given.
-        let initial_window_size = window
-            .window
-            .inner_size
+        let initial_window_size = size
             .or_else(|| {
-                window
-                    .window
-                    .fullscreen
-                    .as_ref()
-                    .and_then(|fullscreen| match fullscreen {
-                        Fullscreen::Exclusive(video_mode) => {
-                            let monitor = video_mode.monitor();
-                            Some(
-                                video_mode
-                                    .size()
-                                    .to_logical::<f32>(monitor.scale_factor())
-                                    .into(),
-                            )
-                        }
-                        Fullscreen::Borderless(monitor) => monitor.as_ref().map(|monitor| {
-                            monitor
+                fullscreen.as_ref().and_then(|fullscreen| match fullscreen {
+                    Fullscreen::Exclusive(video_mode) => {
+                        let monitor = video_mode.monitor();
+                        Some(
+                            video_mode
                                 .size()
                                 .to_logical::<f32>(monitor.scale_factor())
-                                .into()
-                        }),
-                    })
+                                .into(),
+                        )
+                    }
+                    Fullscreen::Borderless(monitor) => monitor.as_ref().map(|monitor| {
+                        monitor
+                            .size()
+                            .to_logical::<f32>(monitor.scale_factor())
+                            .into()
+                    }),
+                })
             })
             .unwrap_or_else(|| {
                 let mut dim = DEFAULT_DIMENSIONS;
-                if let Some(min) = window.window.min_inner_size {
+                if let Some(min) = min_size {
                     match min {
                         winit::dpi::Size::Logical(min) => {
                             dim.width = dim.width.max(min.width as _);
@@ -816,7 +822,7 @@ impl<'app> Builder<'app> {
                         }
                     }
                 }
-                if let Some(max) = window.window.max_inner_size {
+                if let Some(max) = max_size {
                     match max {
                         winit::dpi::Size::Logical(max) => {
                             dim.width = dim.width.min(max.width as _);
@@ -832,24 +838,23 @@ impl<'app> Builder<'app> {
                 dim.into()
             });
 
-        // Use the `initial_window_size` as the default dimensions for the window if none
-        // were specified.
-        if window.window.inner_size.is_none() && window.window.fullscreen.is_none() {
-            window.window.inner_size = Some(initial_window_size);
+        // Defaults dimensions are used if no size was set and not in fullscreen
+        // mode.
+        if size.is_none() && fullscreen.is_none() {
+            window = window.with_inner_size(initial_window_size);
         }
 
         // Set a default minimum window size for configuring the surface.
-        if window.window.min_inner_size.is_none() && window.window.fullscreen.is_none() {
-            window.window.min_inner_size = Some(winit::dpi::Size::Physical(MIN_SC_PIXELS));
+        if min_size.is_none() && fullscreen.is_none() {
+            window = window.with_min_inner_size(winit::dpi::Size::Physical(MIN_SC_PIXELS));
         }
 
         // Background must be initially cleared
         let is_invalidated = true;
 
-        let clear_color = clear_color.unwrap_or_else(|| {
-            let mut color: wgpu::Color = Default::default();
-            color.a = if window.window.transparent { 0.0 } else { 1.0 };
-            color
+        let clear_color = clear_color.unwrap_or_else(|| nannou_wgpu::Color {
+            a: if window.transparent() { 0.0 } else { 1.0 },
+            ..Default::default()
         });
 
         // Build the window.
@@ -963,6 +968,10 @@ impl<'app> Builder<'app> {
             app,
             window,
             title_was_set,
+            fullscreen,
+            size,
+            min_size,
+            max_size,
             device_desc,
             power_preference,
             force_fallback_adapter,
@@ -978,6 +987,10 @@ impl<'app> Builder<'app> {
             app,
             window,
             title_was_set,
+            fullscreen,
+            size,
+            min_size,
+            max_size,
             device_desc,
             power_preference,
             force_fallback_adapter,
@@ -999,13 +1012,17 @@ impl<'app> Builder<'app> {
     ///
     /// This describes to the "inner" part of the window, not including desktop decorations like the
     /// title bar.
-    pub fn size(self, width: u32, height: u32) -> Self {
-        self.map_window(|w| w.with_inner_size(winit::dpi::LogicalSize { width, height }))
+    pub fn size(mut self, width: u32, height: u32) -> Self {
+        let size = winit::dpi::LogicalSize { width, height };
+        self.size = Some(size.into());
+        self.map_window(|w| w.with_inner_size(size))
     }
 
     /// Set the minimum size in points for the window.
-    pub fn min_size(self, width: u32, height: u32) -> Self {
-        self.map_window(|w| w.with_min_inner_size(winit::dpi::LogicalSize { width, height }))
+    pub fn min_size(mut self, width: u32, height: u32) -> Self {
+        let size = winit::dpi::LogicalSize { width, height };
+        self.min_size = Some(size.into());
+        self.map_window(|w| w.with_min_inner_size(size))
     }
 
     /// Set the maximum size in points for the window.
@@ -1017,8 +1034,10 @@ impl<'app> Builder<'app> {
     ///
     /// This describes to the "inner" part of the window, not including desktop decorations like the
     /// title bar.
-    pub fn size_pixels(self, width: u32, height: u32) -> Self {
-        self.map_window(|w| w.with_inner_size(winit::dpi::PhysicalSize { width, height }))
+    pub fn size_pixels(mut self, width: u32, height: u32) -> Self {
+        let size = winit::dpi::PhysicalSize { width, height };
+        self.size = Some(size.into());
+        self.map_window(|w| w.with_inner_size(size))
     }
 
     /// Whether or not the window should be resizable after creation.
@@ -1036,8 +1055,9 @@ impl<'app> Builder<'app> {
     }
 
     /// Create the window fullscreened on the current monitor.
-    pub fn fullscreen(self) -> Self {
+    pub fn fullscreen(mut self) -> Self {
         let fullscreen = Fullscreen::Borderless(self.app.primary_monitor());
+        self.fullscreen = Some(fullscreen.clone());
         self.fullscreen_with(Some(fullscreen))
     }
 
@@ -1380,7 +1400,17 @@ impl Window {
     /// - **iOS:** Always returns an Err.
     /// - **Web:** Has no effect.
     pub fn set_cursor_grab(&self, grab: bool) -> Result<(), winit::error::ExternalError> {
-        self.window.set_cursor_grab(grab)
+        if grab {
+            self.window
+                .set_cursor_grab(winit::window::CursorGrabMode::Confined)
+                .or_else(|_e| {
+                    self.window
+                        .set_cursor_grab(winit::window::CursorGrabMode::Locked)
+                })
+        } else {
+            self.window
+                .set_cursor_grab(winit::window::CursorGrabMode::None)
+        }
     }
 
     /// Set the cursor's visibility.
