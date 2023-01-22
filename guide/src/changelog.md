@@ -7,6 +7,8 @@ back to the origins.
 
 # Unreleased
 
+- Handle `winit::window::WindowEvent::Occluded` events. 
+- Update winit to `0.27`. 
 - Add GL backend to default backends for better WASM support.
 - Add CI for testing the `wasm32-unknown-unknown` target.
 - Enable `wgpu/webgl` when `wasm` feature is enabled.
