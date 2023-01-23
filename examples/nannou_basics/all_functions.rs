@@ -33,6 +33,7 @@ fn model(app: &App) -> Model {
         .focused(window_focused)
         .unfocused(window_unfocused)
         .closed(window_closed)
+        .occluded(occluded)
         .build()
         .unwrap();
     Model {}
@@ -79,6 +80,7 @@ fn window_event(_app: &App, _model: &mut Model, event: WindowEvent) {
         Focused => {}
         Unfocused => {}
         Closed => {}
+        Occluded(_val) => {}
     }
 }
 
@@ -119,3 +121,5 @@ fn hovered_file(_app: &App, _model: &mut Model, _path: std::path::PathBuf) {}
 fn hovered_file_cancelled(_app: &App, _model: &mut Model) {}
 
 fn dropped_file(_app: &App, _model: &mut Model, _path: std::path::PathBuf) {}
+
+fn occluded(_app: &App, _model: &mut Model, _val: bool) {}

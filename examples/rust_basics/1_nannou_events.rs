@@ -54,6 +54,7 @@ fn event(_app: &App, _model: &mut Model, event: WindowEvent) {
         Focused => {}
         Unfocused => {}
         Closed => {}
+        Occluded(_val) => {}
     }
 }
 
