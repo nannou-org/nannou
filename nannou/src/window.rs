@@ -798,7 +798,7 @@ impl<'app> Builder<'app> {
         ))]
         {
             use winit::platform::unix::WindowBuilderExtUnix;
-            window = window.with_class("nannou".to_string(), "nannou".to_string());
+            window = window.with_name("nannou".to_string(), "nannou".to_string());
         }
 
         // Set default dimensions in the case that none were given.
