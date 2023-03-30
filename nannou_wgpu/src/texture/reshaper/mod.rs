@@ -50,8 +50,8 @@ impl Reshaper {
             16 => wgpu::include_wgsl!("shaders/fs_msaa16.wgsl"),
             _ => wgpu::include_wgsl!("shaders/fs_msaa.wgsl"),
         };
-        let vs_mod = device.create_shader_module(&vs_desc);
-        let fs_mod = device.create_shader_module(&fs_desc);
+        let vs_mod = device.create_shader_module(vs_desc);
+        let fs_mod = device.create_shader_module(fs_desc);
 
         // Create the sampler for sampling from the source texture.
         let sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();

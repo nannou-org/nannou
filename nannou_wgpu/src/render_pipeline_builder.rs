@@ -30,7 +30,7 @@ pub struct RenderPipelineBuilder<'a> {
     fs_entry_point: &'a str,
     primitive: wgpu::PrimitiveState,
     color_state: Option<wgpu::ColorTargetState>,
-    color_states: &'a [wgpu::ColorTargetState],
+    color_states: &'a [Option<wgpu::ColorTargetState>],
     depth_stencil: Option<wgpu::DepthStencilState>,
     vertex_buffers: Vec<wgpu::VertexBufferLayout<'static>>,
     multisample: wgpu::MultisampleState,
@@ -52,7 +52,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         front_face: Self::DEFAULT_FRONT_FACE,
         cull_mode: Self::DEFAULT_CULL_MODE,
         polygon_mode: Self::DEFAULT_POLYGON_MODE,
-        clamp_depth: Self::DEFAULT_CLAMP_DEPTH,
+        unclipped_depth: false,
         conservative: false,
     };
 
@@ -389,7 +389,7 @@ impl<'a> RenderPipelineBuilder<'a> {
     ///
     /// Requires `Features::DEPTH_CLAMPING` enabled.
     pub fn clamp_depth(mut self, b: bool) -> Self {
-        self.primitive.clamp_depth = b;
+        // self.primitive.clamp_depth = b;
         self
     }
 
@@ -528,20 +528,20 @@ fn build(
     };
 
     let mut single_color_state = [RenderPipelineBuilder::DEFAULT_COLOR_STATE];
-    let color_states = match (fs_mod.is_some(), color_states.is_empty()) {
-        (true, true) => {
-            if let Some(cs) = color_state {
-                single_color_state[0] = cs;
-            }
-            &single_color_state[..]
-        }
-        (true, false) => color_states,
-        (false, true) => panic!("specified color states but no fragment shader"),
-        (false, false) => match color_state.is_some() {
-            true => panic!("specified color state fields but no fragment shader"),
-            false => &[],
-        },
-    };
+    // let color_states = match (fs_mod.is_some(), color_states.is_empty()) {
+    //     (true, true) => {
+    //         if let Some(cs) = color_state {
+    //             single_color_state[0] = cs;
+    //         }
+    //         &single_color_state[..]
+    //     }
+    //     (true, false) => color_states,
+    //     (false, true) => panic!("specified color states but no fragment shader"),
+    //     (false, false) => match color_state.is_some() {
+    //         true => panic!("specified color state fields but no fragment shader"),
+    //         false => &[],
+    //     },
+    // };
     let fragment = match (fs_mod, color_states.is_empty()) {
         (Some(fs_mod), false) => Some(wgpu::FragmentState {
             module: &fs_mod,
@@ -559,6 +559,7 @@ fn build(
         depth_stencil,
         multisample,
         fragment,
+        multiview: None,
     };
 
     device.create_render_pipeline(&pipeline_desc)
