@@ -18,14 +18,12 @@ async-std = "1.10.0"
 audrey = "0.3"
 hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
 hrtf = "0.2"
-nannou = { version ="0.18.0", path = "../nannou" }
-nannou_audio = { version ="0.18.0", path = "../nannou_audio" }
-nannou_egui = { version = "0.5.0", path = "../nannou_egui" }
+nannou = { version = "0.18.0", path = "../nannou" }
+nannou_audio = { version = "0.18.0", path = "../nannou_audio" }
 nannou_isf = { version = "0.1.0", path = "../nannou_isf" }
-nannou_laser = { version ="0.18.0", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
-nannou_osc = { version ="0.18.0", path = "../nannou_osc" }
+nannou_osc = { version = "0.18.0", path = "../nannou_osc" }
 pitch_calc = { version = "0.12", features = ["serde"] }
-time_calc = { version= "0.13", features = ["serde"] }
+time_calc = { version = "0.13", features = ["serde"] }
 walkdir = "2"
 hound = "3.4.0"
 ringbuf = "0.2.2"
@@ -113,23 +111,6 @@ path = "draw/draw_transform.rs"
 name = "isf_demo"
 path = "isf/isf_demo.rs"
 
-# Laser
-[[example]]
-name = "laser_ffi"
-path = "laser/laser_ffi.rs"
-[[example]]
-name = "laser_frame_stream"
-path = "laser/laser_frame_stream.rs"
-[[example]]
-name = "laser_frame_stream_gui"
-path = "laser/laser_frame_stream_gui.rs"
-[[example]]
-name = "laser_raw_stream"
-path = "laser/laser_raw_stream.rs"
-[[example]]
-name = "laser_ilda_idtf"
-path = "laser/laser_ilda_idtf.rs"
-
 # Nannou Basics
 [[example]]
 name = "all_functions"
@@ -185,40 +166,3 @@ path = "templates/template_app.rs"
 [[example]]
 name = "template_sketch"
 path = "templates/template_sketch.rs"
-
-# User Interface
-[[example]]
-name = "circle_packing"
-path = "ui/egui/circle_packing.rs"
-[[example]]
-name = "tune_color"
-path = "ui/egui/tune_color.rs"
-[[example]]
-name = "simple_ui"
-path = "ui/egui/simple_ui.rs"
-
-# WebGPU
-[[example]]
-name = "wgpu_compute_shader"
-path = "wgpu/wgpu_compute_shader/wgpu_compute_shader.rs"
-[[example]]
-name = "wgpu_image"
-path = "wgpu/wgpu_image/wgpu_image.rs"
-[[example]]
-name = "wgpu_image_sequence"
-path = "wgpu/wgpu_image_sequence/wgpu_image_sequence.rs"
-[[example]]
-name = "wgpu_instancing"
-path = "wgpu/wgpu_instancing/wgpu_instancing.rs"
-[[example]]
-name = "wgpu_teapot"
-path = "wgpu/wgpu_teapot/wgpu_teapot.rs"
-[[example]]
-name = "wgpu_teapot_camera"
-path = "wgpu/wgpu_teapot_camera/wgpu_teapot_camera.rs"
-[[example]]
-name = "wgpu_triangle"
-path = "wgpu/wgpu_triangle/wgpu_triangle.rs"
-[[example]]
-name = "wgpu_triangle_raw_frame"
-path = "wgpu/wgpu_triangle_raw_frame/wgpu_triangle_raw_frame.rs"

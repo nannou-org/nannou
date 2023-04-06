@@ -39,7 +39,7 @@ toml = "0.5"
 walkdir = "2"
 web-sys = { version = "0.3.55", optional = true }
 wgpu_upstream = { version = "0.15.0", package = "wgpu" }
-winit = "0.26"
+winit = "0.28.1"
 
 [features]
 default = ["notosans"]

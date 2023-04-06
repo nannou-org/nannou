@@ -302,9 +302,7 @@ impl WindowEvent {
                 return None;
             }
 
-            winit::event::WindowEvent::AxisMotion { .. }
-            | winit::event::WindowEvent::ThemeChanged(_)
-            | winit::event::WindowEvent::ScaleFactorChanged { .. } => {
+            _ => {
                 return None;
             }
         };
