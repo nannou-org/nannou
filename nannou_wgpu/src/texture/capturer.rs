@@ -30,6 +30,7 @@ struct ThreadPool {
     active_futures: Arc<AtomicU32>,
     workers: u32,
     timeout: Option<Duration>,
+    rc: futures_intrusive::channel::OneshotChannel<Result<(), wgpu::BufferAsyncError>>,
 }
 
 /// A snapshot captured by a **Capturer**.
@@ -120,6 +121,9 @@ impl ThreadPool {
                 }
             }
             device.poll(wgpu::Maintain::Wait);
+            // self.
+            // self.rc.receive().await.unwrap().unwrap();
+
             let duration = Duration::from_micros(interval_us);
             std::thread::sleep(duration);
             interval_us *= 2;
