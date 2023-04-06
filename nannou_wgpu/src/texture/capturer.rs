@@ -123,6 +123,7 @@ impl ThreadPool {
                 }
             }
             device.poll(wgpu::Maintain::Wait);
+            // Read: https://sotrh.github.io/learn-wgpu/showcase/windowless/#getting-data-out-of-a-buffer
             let f = async move {
                 let t = self.receiver.await.unwrap();
                 t.unwrap()
