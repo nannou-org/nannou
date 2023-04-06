@@ -32,6 +32,7 @@ struct ThreadPool {
     active_futures: Arc<AtomicU32>,
     workers: u32,
     timeout: Option<Duration>,
+    // TODO: use async_std::channel with one capacity
     receiver: futures_channel::oneshot::Receiver<Result<(), BufferAsyncError>>,
 }
 
