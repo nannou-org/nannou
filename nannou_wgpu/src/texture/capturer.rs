@@ -6,6 +6,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use image::{GenericImage, GenericImageView};
+use parking_lot::lock_api::RawMutex;
+use wgpu_upstream::BufferAsyncError;
 
 /// A type dedicated to capturing a texture as a non-linear sRGBA image that can be read on the
 /// CPU.
@@ -30,7 +32,7 @@ struct ThreadPool {
     active_futures: Arc<AtomicU32>,
     workers: u32,
     timeout: Option<Duration>,
-    rc: futures_intrusive::channel::OneshotChannel<Result<(), wgpu::BufferAsyncError>>,
+    receiver: futures_channel::oneshot::Receiver<Result<(), BufferAsyncError>>,
 }
 
 /// A snapshot captured by a **Capturer**.
@@ -121,8 +123,15 @@ impl ThreadPool {
                 }
             }
             device.poll(wgpu::Maintain::Wait);
+            let f = async move {
+                let t = self.receiver.await.unwrap();
+                t.unwrap()
+            };
+            // .await
+            // .map(|i| self.spawn_when_worker_available(i));
             // self.
-            // self.rc.receive().await.unwrap().unwrap();
+            // let f = async { self.receiver.try_recv().unwrap().unwrap().unwrap() };
+            self.spawn_when_worker_available(f);
 
             let duration = Duration::from_micros(interval_us);
             std::thread::sleep(duration);
@@ -252,8 +261,9 @@ impl Snapshot {
     /// Reads the non-linear sRGBA image from mapped memory and convert it to an owned buffer.
     pub async fn read_async<'buffer>(
         &'buffer self,
+        sender: futures_channel::oneshot::Sender<Result<(), BufferAsyncError>>,
     ) -> Result<Rgba8AsyncMappedImageBuffer<'buffer>, wgpu::BufferAsyncError> {
-        let mapping = self.buffer.read().await?;
+        let mapping = self.buffer.read(sender).await?;
         Ok(Rgba8AsyncMappedImageBuffer(mapping))
     }
 
@@ -276,29 +286,40 @@ impl Snapshot {
     where
         F: 'static + Send + FnOnce(Result<Rgba8AsyncMappedImageBuffer, wgpu::BufferAsyncError>),
     {
-        let thread_pool = self.thread_pool();
+        let (thread_pool, sender) = self.thread_pool();
+        // let sender = thread_pool.sender;
         let read_future = async move {
-            let res = self.read_async().await;
+            let res = self.read_async(sender).await;
             callback(res);
         };
         thread_pool.spawn_when_worker_available(read_future)
     }
 
-    fn thread_pool(&self) -> Arc<ThreadPool> {
+    fn thread_pool(
+        &self,
+    ) -> (
+        Arc<ThreadPool>,
+        futures_channel::oneshot::Sender<Result<(), BufferAsyncError>>,
+    ) {
         let mut guard = self
             .thread_pool
             .lock()
             .expect("failed to acquire thread handle");
+
+        let (sender, receiver) =
+            futures_channel::oneshot::channel::<Result<(), wgpu_upstream::BufferAsyncError>>();
+
         let thread_pool = guard.get_or_insert_with(|| {
             let workers = self.workers.unwrap_or(num_cpus::get() as u32);
             let thread_pool = ThreadPool {
                 active_futures: Arc::new(AtomicU32::new(0)),
                 workers,
                 timeout: self.timeout,
+                receiver,
             };
             Arc::new(thread_pool)
         });
-        thread_pool.clone()
+        (thread_pool.clone(), sender)
     }
 }
 

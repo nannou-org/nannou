@@ -16,6 +16,8 @@ instant = { version = "0.1.9", optional = true }
 num_cpus = { version = "1", optional = true }
 wgpu_upstream = { version = "0.15.0", package = "wgpu" }
 futures-intrusive = "0.4"
+parking_lot = "0.12.1"
+futures-channel = "0.3.28"
 
 [features]
 capturer = ["image", "instant", "num_cpus"]
