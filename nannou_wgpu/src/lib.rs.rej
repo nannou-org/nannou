@@ -1,0 +1,37 @@
+diff a/nannou_wgpu/src/lib.rs b/nannou_wgpu/src/lib.rs	(rejected hunks)
+@@ -75,16 +75,16 @@ pub use wgpu_upstream::{
+     BlendOperation, BlendState, Buffer, BufferAddress, BufferAsyncError, BufferBinding,
+     BufferBindingType, BufferDescriptor, BufferSize, BufferSlice, BufferUsages, BufferView,
+     BufferViewMut, Color, ColorTargetState, ColorWrites, CommandBuffer, CommandBufferDescriptor,
+-    CommandEncoder, CommandEncoderDescriptor, CompareFunction, CompositeAlphaMode, ComputePass,
+-    ComputePassDescriptor, ComputePipeline, ComputePipelineDescriptor, DepthBiasState,
+-    DepthStencilState, Device, DeviceDescriptor, DeviceType, DownlevelCapabilities, DownlevelFlags,
+-    DynamicOffset, Error, Extent3d, Face, Features, FilterMode, FragmentState, FrontFace,
+-    ImageCopyBuffer, ImageCopyBufferBase, ImageCopyTexture, ImageCopyTextureBase, ImageDataLayout,
+-    ImageSubresourceRange, IndexFormat, Instance, InstanceDescriptor, Label, Limits, LoadOp,
+-    Maintain, MapMode, MultisampleState, Operations, Origin3d, PipelineLayout,
+-    PipelineLayoutDescriptor, PipelineStatisticsTypes, PolygonMode, PowerPreference, PresentMode,
+-    PrimitiveState, PrimitiveTopology, PushConstantRange, QuerySet, QuerySetDescriptor, QueryType,
+-    Queue, RenderBundle, RenderBundleDepthStencil, RenderBundleDescriptor, RenderBundleEncoder,
++    CommandEncoder, CommandEncoderDescriptor, CompareFunction, ComputePass, ComputePassDescriptor,
++    ComputePipeline, ComputePipelineDescriptor, DepthBiasState, DepthStencilState, Device,
++    DeviceDescriptor, DeviceType, DownlevelCapabilities, DownlevelFlags, DynamicOffset, Error,
++    Extent3d, Face, Features, FilterMode, FragmentState, FrontFace, ImageCopyBuffer,
++    ImageCopyBufferBase, ImageCopyTexture, ImageCopyTextureBase, ImageDataLayout,
++    ImageSubresourceRange, IndexFormat, Instance, Label, Limits, LoadOp, Maintain, MapMode,
++    MultisampleState, Operations, Origin3d, PipelineLayout, PipelineLayoutDescriptor,
++    PipelineStatisticsTypes, PolygonMode, PowerPreference, PresentMode, PrimitiveState,
++    PrimitiveTopology, PushConstantRange, QuerySet, QuerySetDescriptor, QueryType, Queue,
++    RenderBundle, RenderBundleDepthStencil, RenderBundleDescriptor, RenderBundleEncoder,
+     RenderBundleEncoderDescriptor, RenderPass, RenderPassColorAttachment,
+     RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
+     RenderPipelineDescriptor, RequestAdapterOptions, RequestAdapterOptionsBase, RequestDeviceError,
+@@ -117,7 +117,7 @@ pub fn shader_from_spirv_bytes(
+         label: Some("nannou_shader_module"),
+         source,
+     };
+-    device.create_shader_module(desc)
++    device.create_shader_module(&desc)
+ }
+ 
+ /// Adds a simple render pass command to the given encoder that simply clears the given texture

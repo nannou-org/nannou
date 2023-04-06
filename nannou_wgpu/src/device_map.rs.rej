@@ -1,0 +1,19 @@
+diff a/nannou_wgpu/src/device_map.rs b/nannou_wgpu/src/device_map.rs	(rejected hunks)
+@@ -163,7 +163,7 @@ impl AdapterMap {
+             .lock()
+             .expect("failed to acquire `AdapterMap` lock");
+         for adapter in map.values() {
+-            adapter._poll_all_devices(maintain.clone());
++            adapter._poll_all_devices(maintain);
+         }
+     }
+ }
+@@ -277,7 +277,7 @@ impl ActiveAdapter {
+             .expect("failed to acquire `DeviceMap` lock");
+         for weak in map.values() {
+             if let Some(pair) = weak.upgrade() {
+-                pair.device().poll(maintain.clone());
++                pair.device().poll(maintain);
+             }
+         }
+     }

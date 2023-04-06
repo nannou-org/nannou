@@ -1,0 +1,53 @@
+diff a/nannou/src/window.rs b/nannou/src/window.rs	(rejected hunks)
+@@ -18,7 +18,6 @@ use std::path::{Path, PathBuf};
+ use std::sync::Arc;
+ use std::time::Duration;
+ use std::{env, fmt};
+-use wgpu::TextureFormat;
+ use winit::dpi::{LogicalSize, PhysicalSize};
+ 
+ pub use winit::window::Fullscreen;
+@@ -329,15 +328,9 @@ impl SurfaceConfigurationBuilder {
+         [width_px, height_px]: [u32; 2],
+     ) -> wgpu::SurfaceConfiguration {
+         let usage = self.usage.unwrap_or(Self::DEFAULT_USAGE);
+-
+         let format = self
+             .format
+-            .or_else(|| {
+-                surface
+-                    .get_current_texture()
+-                    .ok()
+-                    .map(|x| x.texture.format())
+-            })
++            .or_else(|| surface.get_preferred_format(&adapter))
+             .unwrap_or(Self::DEFAULT_FORMAT);
+         let present_mode = self.present_mode.unwrap_or(Self::DEFAULT_PRESENT_MODE);
+         wgpu::SurfaceConfiguration {
+@@ -346,8 +339,6 @@ impl SurfaceConfigurationBuilder {
+             width: width_px,
+             height: height_px,
+             present_mode,
+-            alpha_mode: crate::wgpu::CompositeAlphaMode::Auto,
+-            view_formats: vec![wgpu::TextureFormat::Rgba8Unorm],
+         }
+     }
+ }
+@@ -910,7 +901,7 @@ impl<'app> Builder<'app> {
+         let win_dims_px: [u32; 2] = win_physical_size.into();
+         let device = device_queue_pair.device();
+         let surface_conf = surface_conf_builder.build(&surface, &*adapter, win_dims_px);
+-        surface?.configure(&device, &surface_conf);
++        surface.configure(&device, &surface_conf);
+ 
+         // If we're using an intermediary image for rendering frames to surface textures, create
+         // the necessary render data.
+@@ -943,7 +934,7 @@ impl<'app> Builder<'app> {
+ 
+         let window = Window {
+             window,
+-            surface: surface.unwrap(),
++            surface,
+             surface_conf,
+             device_queue_pair,
+             msaa_samples,

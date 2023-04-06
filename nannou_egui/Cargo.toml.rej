@@ -1,0 +1,9 @@
+diff a/nannou_egui/Cargo.toml b/nannou_egui/Cargo.toml	(rejected hunks)
+@@ -13,6 +13,6 @@ readme = "../README.md"
+ 
+ [dependencies]
+ egui_wgpu_backend = "0.22"
+-egui = "0.20.1"
++egui = "0.15.0"
+ winit = "0.26"
+ nannou = { version = "0.18.1", path = "../nannou" }
