@@ -209,6 +209,7 @@ impl<'a> Builder<'a> {
     /// Begin a render pass with the specified parameters on the given encoder.
     pub fn begin(self, encoder: &'a mut wgpu::CommandEncoder) -> wgpu::RenderPass<'a> {
         let (color_attachments, depth_stencil_attachment) = self.into_inner();
+        let color_attachments = color_attachments.into_iter().map(Some).collect::<Vec<_>>();
         let descriptor = wgpu::RenderPassDescriptor {
             label: Some("nannou_render_pass"),
             color_attachments: &color_attachments,

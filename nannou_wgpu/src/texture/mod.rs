@@ -432,6 +432,7 @@ impl Builder {
         dimension: Self::DEFAULT_DIMENSION,
         format: Self::DEFAULT_FORMAT,
         usage: Self::DEFAULT_USAGE,
+        view_formats: &[wgpu::TextureFormat::Rgba8Unorm],
     };
 
     /// Creates a new `Default` builder

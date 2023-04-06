@@ -328,17 +328,22 @@ impl SurfaceConfigurationBuilder {
         [width_px, height_px]: [u32; 2],
     ) -> wgpu::SurfaceConfiguration {
         let usage = self.usage.unwrap_or(Self::DEFAULT_USAGE);
-        let format = self
-            .format
-            .or_else(|| surface.get_preferred_format(&adapter))
-            .unwrap_or(Self::DEFAULT_FORMAT);
+
+        let format = self.format.or_else(|| {
+            surface
+                .get_current_texture()
+                .ok()
+                .map(|x| x.texture.format())
+        });
         let present_mode = self.present_mode.unwrap_or(Self::DEFAULT_PRESENT_MODE);
         wgpu::SurfaceConfiguration {
             usage,
-            format,
+            format: format.unwrap(),
             width: width_px,
             height: height_px,
             present_mode,
+            alpha_mode: crate::wgpu::CompositeAlphaMode::Auto,
+            view_formats: vec![crate::wgpu::TextureFormat::Rgba8Unorm],
         }
     }
 }

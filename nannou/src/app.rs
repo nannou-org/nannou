@@ -637,7 +637,10 @@ impl App {
         capture_frame_timeout: Option<Duration>,
         backends: wgpu::Backends,
     ) -> Self {
-        let instance = wgpu::Instance::new(backends);
+        let instance = wgpu::Instance::new(crate::wgpu::InstanceDescriptor {
+            backends,
+            dx12_shader_compiler: Default::default(),
+        });
         let adapters = Default::default();
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());
@@ -1028,7 +1031,7 @@ impl EventLoopWindowTarget {
     // This method is solely used during `window::Builder::build` to allow for
     pub(crate) fn as_ref(&self) -> &winit::event_loop::EventLoopWindowTarget<()> {
         match *self {
-            EventLoopWindowTarget::Owned(ref event_loop) => (&**event_loop),
+            EventLoopWindowTarget::Owned(ref event_loop) => &**event_loop,
             EventLoopWindowTarget::Pointer(ptr) => {
                 // This cast is safe, assuming that the `App`'s `EventLoopWindowTarget` will only
                 // ever be in the `Pointer` state while the pointer is valid - that is, during the

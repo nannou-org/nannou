@@ -4,6 +4,8 @@
 //! have to consider when writing graphics code. Here we define a set of helpers that allow us to
 //! simplify the process and fall back to a set of reasonable defaults.
 
+use wgpu_upstream::ColorTargetState;
+
 use crate as wgpu;
 
 #[derive(Debug)]
@@ -46,13 +48,14 @@ impl<'a> RenderPipelineBuilder<'a> {
     pub const DEFAULT_POLYGON_MODE: wgpu::PolygonMode = wgpu::PolygonMode::Fill;
     pub const DEFAULT_PRIMITIVE_TOPOLOGY: wgpu::PrimitiveTopology =
         wgpu::PrimitiveTopology::TriangleList;
+    pub const DEFAULT_UNCLIPPED_DEPTH: bool = false;
     pub const DEFAULT_PRIMITIVE: wgpu::PrimitiveState = wgpu::PrimitiveState {
         topology: Self::DEFAULT_PRIMITIVE_TOPOLOGY,
         strip_index_format: None,
         front_face: Self::DEFAULT_FRONT_FACE,
         cull_mode: Self::DEFAULT_CULL_MODE,
         polygon_mode: Self::DEFAULT_POLYGON_MODE,
-        clamp_depth: Self::DEFAULT_CLAMP_DEPTH,
+        unclipped_depth: Self::DEFAULT_UNCLIPPED_DEPTH,
         conservative: false,
     };
 
@@ -389,7 +392,7 @@ impl<'a> RenderPipelineBuilder<'a> {
     ///
     /// Requires `Features::DEPTH_CLAMPING` enabled.
     pub fn clamp_depth(mut self, b: bool) -> Self {
-        self.primitive.clamp_depth = b;
+        self.primitive.unclipped_depth = b;
         self
     }
 
@@ -476,12 +479,18 @@ impl<'a> RenderPipelineBuilder<'a> {
     /// - A rasterization state field was specified but no fragment shader was given.
     /// - A color state field was specified but no fragment shader was given.
     pub fn build(self, device: &wgpu::Device) -> wgpu::RenderPipeline {
+        let color_states = self
+            .color_states
+            .to_vec()
+            .into_iter()
+            .map(Some)
+            .collect::<Vec<_>>();
         match self.layout {
             Layout::Descriptor(ref desc) => {
                 let layout = device.create_pipeline_layout(desc);
-                build(self, &layout, device)
+                build(self, &layout, device, &color_states[..])
             }
-            Layout::Created(layout) => build(self, layout, device),
+            Layout::Created(layout) => build(self, layout, device, &color_states[..]),
         }
     }
 }
@@ -506,6 +515,7 @@ fn build(
     builder: RenderPipelineBuilder,
     layout: &wgpu::PipelineLayout,
     device: &wgpu::Device,
+    color_states: &[Option<ColorTargetState>],
 ) -> wgpu::RenderPipeline {
     let RenderPipelineBuilder {
         layout: _layout,
@@ -515,10 +525,10 @@ fn build(
         fs_entry_point,
         primitive,
         color_state,
-        color_states,
         depth_stencil,
         multisample,
         vertex_buffers,
+        ..
     } = builder;
 
     let vertex = wgpu::VertexState {
@@ -527,11 +537,11 @@ fn build(
         buffers: &vertex_buffers[..],
     };
 
-    let mut single_color_state = [RenderPipelineBuilder::DEFAULT_COLOR_STATE];
+    let mut single_color_state = [Some(RenderPipelineBuilder::DEFAULT_COLOR_STATE)];
     let color_states = match (fs_mod.is_some(), color_states.is_empty()) {
         (true, true) => {
             if let Some(cs) = color_state {
-                single_color_state[0] = cs;
+                single_color_state[0] = Some(cs);
             }
             &single_color_state[..]
         }
@@ -539,7 +549,7 @@ fn build(
         (false, true) => panic!("specified color states but no fragment shader"),
         (false, false) => match color_state.is_some() {
             true => panic!("specified color state fields but no fragment shader"),
-            false => &[],
+            false => &[None],
         },
     };
     let fragment = match (fs_mod, color_states.is_empty()) {
@@ -559,6 +569,7 @@ fn build(
         depth_stencil,
         multisample,
         fragment,
+        multiview: None,
     };
 
     device.create_render_pipeline(&pipeline_desc)

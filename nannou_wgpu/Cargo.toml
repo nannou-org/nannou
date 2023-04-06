@@ -14,7 +14,8 @@ async-std = "1.10.0"
 image = { version = "0.23", optional = true }
 instant = { version = "0.1.9", optional = true }
 num_cpus = { version = "1", optional = true }
-wgpu_upstream = { version = "0.11.1", package = "wgpu" }
+wgpu_upstream = { version = "0.15.0", package = "wgpu" }
+futures-intrusive = "0.4"
 
 [features]
 capturer = ["image", "instant", "num_cpus"]
