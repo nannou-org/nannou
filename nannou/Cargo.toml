@@ -8,7 +8,7 @@ keywords = ["creative", "sketch", "graphics", "audio"]
 license = "MIT"
 repository = "https://github.com/nannou-org/nannou.git"
 homepage = "https://github.com/nannou-org/nannou"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 async-std = "1.10.0"

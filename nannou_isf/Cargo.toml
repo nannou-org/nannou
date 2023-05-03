@@ -2,7 +2,7 @@
 name = "nannou_isf"
 version = "0.1.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }

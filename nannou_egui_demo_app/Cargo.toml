@@ -2,7 +2,7 @@
 name = "nannou_egui_demo_app"
 version = "0.1.0"
 authors = ["mitchmindtree <mail@mitchellnordine.com>"]
-edition = "2018"
+edition = "2021"
 publish = false
 
 [dependencies]

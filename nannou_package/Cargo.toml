@@ -8,7 +8,7 @@ keywords = ["package", "build", "creative", "sketch"]
 license = "MIT"
 repository = "https://github.com/nannou-org/nannou.git"
 homepage = "https://github.com/nannou-org/nannou"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 chrono = "0.4"
