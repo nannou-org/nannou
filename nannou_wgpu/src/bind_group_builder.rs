@@ -60,21 +60,15 @@ impl LayoutBuilder {
 
     /// Add a sampler binding to the layout.
     pub fn sampler(self, visibility: wgpu::ShaderStages, filtering: bool) -> Self {
-        let comparison = false;
-        let ty = wgpu::BindingType::Sampler {
-            filtering,
-            comparison,
-        };
+        // let comparison = false;
+        let ty = wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering);
         self.binding(visibility, ty)
     }
 
     /// Add a sampler binding to the layout.
     pub fn comparison_sampler(self, visibility: wgpu::ShaderStages, filtering: bool) -> Self {
-        let comparison = true;
-        let ty = wgpu::BindingType::Sampler {
-            filtering,
-            comparison,
-        };
+        // let comparison = true;
+        let ty = wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering);
         self.binding(visibility, ty)
     }
 

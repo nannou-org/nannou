@@ -32,8 +32,8 @@ toml = "0.5"
 walkdir = "2"
 wasm-bindgen = "*"
 web-sys = { version = "0.3", optional = true }
-wgpu_upstream = { version = "0.15", package = "wgpu" }
-winit = "0.27"
+wgpu_upstream = { version = "0.16", package = "wgpu" }
+winit = "0.28"
 
 [features]
 default = ["notosans"]

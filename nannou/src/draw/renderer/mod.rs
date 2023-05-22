@@ -387,8 +387,8 @@ impl Renderer {
         // Load shader modules.
         let vs_desc = wgpu::include_wgsl!("shaders/vs.wgsl");
         let fs_desc = wgpu::include_wgsl!("shaders/fs.wgsl");
-        let vs_mod = device.create_shader_module(&vs_desc);
-        let fs_mod = device.create_shader_module(&fs_desc);
+        let vs_mod = device.create_shader_module(vs_desc);
+        let fs_mod = device.create_shader_module(fs_desc);
 
         // Create the glyph cache texture.
         let text_sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();

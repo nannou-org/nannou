@@ -307,6 +307,11 @@ impl WindowEvent {
             | winit::event::WindowEvent::ScaleFactorChanged { .. } => {
                 return None;
             }
+
+            _ => {
+                // TODO: some unhandled variants?
+                return None;
+            }
         };
 
         Some(event)

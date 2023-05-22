@@ -1,9 +1,9 @@
+use eframe::backend::AppOutput;
 pub use egui;
 pub use egui::color_picker;
-pub use egui_wgpu_backend;
 
-use egui::{pos2, ClippedMesh, CtxRef};
-use egui_wgpu_backend::{epi, ScreenDescriptor};
+use egui::{pos2, Context, ClippedPrimitive, Frame};
+use egui_wgpu::{WgpuError, wgpu::RenderPass, renderer::ScreenDescriptor};
 use nannou::{wgpu, winit::event::VirtualKeyCode, winit::event::WindowEvent::*};
 use std::{
     cell::RefCell,
@@ -18,7 +18,7 @@ use std::{
 ///
 /// For multi-window user interfaces, you will need to create an instance of this type per-window.
 pub struct Egui {
-    context: CtxRef,
+    context: Context,
     renderer: RefCell<Renderer>,
     input: Input,
 }
@@ -28,8 +28,8 @@ pub struct Egui {
 ///
 /// For targeting more than one window, users should construct a `Egui` for each.
 pub struct Renderer {
-    render_pass: egui_wgpu_backend::RenderPass,
-    paint_jobs: Vec<ClippedMesh>,
+    render_pass: egui_wgpu::Renderer,
+    paint_jobs: Vec<ClippedPrimitive>,
 }
 
 /// Tracking user and application event input.
@@ -89,7 +89,7 @@ impl Egui {
     }
 
     /// Access to the inner `egui::CtxRef`.
-    pub fn ctx(&self) -> &CtxRef {
+    pub fn ctx(&self) -> &Context {
         &self.context
     }
 
@@ -136,19 +136,19 @@ impl Egui {
         texture: &wgpu::Texture,
         texture_filter: wgpu::FilterMode,
         id: egui::TextureId,
-    ) -> Result<(), egui_wgpu_backend::BackendError> {
-        self.renderer
+    ) -> Result<(), egui_wgpu::WgpuError> {
+        Ok(self.renderer
             .borrow_mut()
             .render_pass
-            .update_egui_texture_from_wgpu_texture(device, texture, texture_filter, id)
+            .update_egui_texture_from_wgpu_texture(device, texture, texture_filter, id))
     }
 
     /// Draws the contents of the inner `context` to the given frame.
     pub fn draw_to_frame(
         &self,
         frame: &nannou::Frame,
-    ) -> Result<(), egui_wgpu_backend::BackendError> {
-        let mut renderer = self.renderer.borrow_mut();
+    ) -> Result<(), egui_wgpu::WgpuError> {
+        let mut renderer: std::cell::RefMut<Renderer> = self.renderer.borrow_mut();
         renderer.draw_to_frame(&self.context, frame)
     }
 
@@ -157,20 +157,23 @@ impl Egui {
     /// This method is primarily used for apps based on the `epi` interface.
     pub fn with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F)
     where
-        F: FnOnce(&CtxRef, &mut epi::Frame),
+        F: FnOnce(&Context, &mut Frame),
     {
         let mut renderer = self.renderer.borrow_mut();
-        let integration_info = epi::IntegrationInfo {
+        let integration_info = eframe::IntegrationInfo {
             native_pixels_per_point: Some(self.input.window_scale_factor as _),
             // TODO: Provide access to this stuff.
-            web_info: None,
-            prefer_dark_mode: None,
+            // web_info: None,
+            // prefer_dark_mode: None,
             cpu_usage: None,
-            name: "egui_nannou_wgpu",
+            // name: "egui_nannou_wgpu",
+            system_theme: todo!(),
+            window_info: todo!(),
         };
-        let mut app_output = epi::backend::AppOutput::default();
+        // AppOutput
+        let mut app_output = AppOutput::default();
         let repaint_signal = Arc::new(RepaintSignal(Mutex::new(proxy)));
-        let mut frame = epi::backend::FrameBuilder {
+        let mut frame = FrameBuilder {
             info: integration_info,
             tex_allocator: &mut renderer.render_pass,
             // TODO: We may want to support a http feature for hyperlinks?
@@ -187,7 +190,7 @@ impl Egui {
     /// and then calls `end_frame` before returning.
     pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F) -> egui::Output
     where
-        F: FnOnce(&CtxRef, &mut epi::Frame),
+        F: FnOnce(&Context, &mut epi::Frame),
     {
         self.begin_frame_inner();
         self.with_epi_frame(proxy.clone(), f);
@@ -298,6 +301,7 @@ impl Input {
                             key,
                             pressed: input.state == winit::event::ElementState::Pressed,
                             modifiers: self.raw.modifiers,
+                            repeat: false
                         });
                     }
                 }
@@ -340,7 +344,7 @@ impl Renderer {
         target_msaa_samples: u32,
     ) -> Self {
         Self {
-            render_pass: egui_wgpu_backend::RenderPass::new(
+            render_pass: RenderPass::new(
                 device,
                 target_format,
                 target_msaa_samples,
@@ -360,14 +364,14 @@ impl Renderer {
     /// Encode a render pass for drawing the given context's texture to the given `dst_texture`.
     pub fn encode_render_pass(
         &mut self,
-        context: &CtxRef,
+        context: &Context,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         dst_size_pixels: [u32; 2],
         dst_scale_factor: f32,
         dst_texture: &wgpu::TextureView,
-    ) -> Result<(), egui_wgpu_backend::BackendError> {
+    ) -> Result<(), WgpuError> {
         let render_pass = &mut self.render_pass;
         let paint_jobs = &self.paint_jobs;
         let [physical_width, physical_height] = dst_size_pixels;
@@ -385,9 +389,9 @@ impl Renderer {
     /// Encodes a render pass for drawing the given context's texture to the given frame.
     pub fn draw_to_frame(
         &mut self,
-        context: &CtxRef,
+        context: &Context,
         frame: &nannou::Frame,
-    ) -> Result<(), egui_wgpu_backend::BackendError> {
+    ) -> Result<(), WgpuError> {
         let device_queue_pair = frame.device_queue_pair();
         let device = device_queue_pair.device();
         let queue = device_queue_pair.queue();
@@ -410,7 +414,7 @@ impl Renderer {
 
 impl<'a> FrameCtx<'a> {
     /// Produces a `CtxRef` ready for describing the UI for this frame.
-    pub fn context(&self) -> CtxRef {
+    pub fn context(&self) -> Context {
         self.ui.context.clone()
     }
 
@@ -435,7 +439,7 @@ impl<'a> Drop for FrameCtx<'a> {
 }
 
 impl<'a> Deref for FrameCtx<'a> {
-    type Target = egui::CtxRef;
+    type Target = egui::Context;
     fn deref(&self) -> &Self::Target {
         &self.ui.context
     }

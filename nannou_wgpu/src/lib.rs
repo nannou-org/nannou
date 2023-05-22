@@ -94,7 +94,7 @@ pub use wgpu_upstream::{
     SurfaceTexture, Texture as TextureHandle, TextureAspect, TextureDescriptor, TextureDimension,
     TextureFormat, TextureFormatFeatureFlags, TextureFormatFeatures, TextureSampleType,
     TextureUsages, TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension,
-    UncapturedErrorHandler, VertexAttribute, VertexBufferLayout, VertexFormat, VertexState,
+    UncapturedErrorHandler, VertexAttribute, VertexBufferLayout, VertexFormat, VertexState,SamplerBindingType,CompositeAlphaMode,
     VertexStepMode, COPY_BUFFER_ALIGNMENT, COPY_BYTES_PER_ROW_ALIGNMENT, MAP_ALIGNMENT,
     PUSH_CONSTANT_ALIGNMENT, QUERY_RESOLVE_BUFFER_ALIGNMENT, QUERY_SET_MAX_QUERIES, QUERY_SIZE,
     VERTEX_STRIDE_ALIGNMENT,
