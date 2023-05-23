@@ -13,7 +13,7 @@ readme = "../README.md"
 
 [dependencies]
 eframe = "0.21.3"
-egui-wgpu = "0.21"
+egui-wgpu = { version ="0.21", features=["winit"]}
 egui = "0.21.0"
 winit = "0.28"
 nannou = { version = "0.18.1", path = "../nannou" }

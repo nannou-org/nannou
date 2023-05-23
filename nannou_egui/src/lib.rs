@@ -1,9 +1,8 @@
-use eframe::backend::AppOutput;
 pub use egui;
 pub use egui::color_picker;
 
 use egui::{pos2, Context, ClippedPrimitive, Frame};
-use egui_wgpu::{WgpuError, wgpu::RenderPass, renderer::ScreenDescriptor};
+use egui_wgpu::{WgpuError, wgpu::RenderPass, renderer::ScreenDescriptor, winit::Painter};
 use nannou::{wgpu, winit::event::VirtualKeyCode, winit::event::WindowEvent::*};
 use std::{
     cell::RefCell,
@@ -28,8 +27,7 @@ pub struct Egui {
 ///
 /// For targeting more than one window, users should construct a `Egui` for each.
 pub struct Renderer {
-    render_pass: egui_wgpu::Renderer,
-    paint_jobs: Vec<ClippedPrimitive>,
+   painter: Painter
 }
 
 /// Tracking user and application event input.
@@ -126,6 +124,7 @@ impl Egui {
         self.renderer
             .borrow_mut()
             .render_pass
+            .egui
             .egui_texture_from_wgpu_texture(device, texture, texture_filter)
     }
 
@@ -152,57 +151,57 @@ impl Egui {
         renderer.draw_to_frame(&self.context, frame)
     }
 
-    /// Provide access to an `epi::Frame` within the given function.
-    ///
-    /// This method is primarily used for apps based on the `epi` interface.
-    pub fn with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F)
-    where
-        F: FnOnce(&Context, &mut Frame),
-    {
-        let mut renderer = self.renderer.borrow_mut();
-        let integration_info = eframe::IntegrationInfo {
-            native_pixels_per_point: Some(self.input.window_scale_factor as _),
-            // TODO: Provide access to this stuff.
-            // web_info: None,
-            // prefer_dark_mode: None,
-            cpu_usage: None,
-            // name: "egui_nannou_wgpu",
-            system_theme: todo!(),
-            window_info: todo!(),
-        };
-        // AppOutput
-        let mut app_output = AppOutput::default();
-        let repaint_signal = Arc::new(RepaintSignal(Mutex::new(proxy)));
-        let mut frame = FrameBuilder {
-            info: integration_info,
-            tex_allocator: &mut renderer.render_pass,
-            // TODO: We may want to support a http feature for hyperlinks?
-            // #[cfg(feature = "http")]
-            // http: http.clone(),
-            output: &mut app_output,
-            repaint_signal: repaint_signal as Arc<_>,
-        }
-        .build();
-        f(&self.context, &mut frame)
-    }
+//     /// Provide access to an `epi::Frame` within the given function.
+//     ///
+//     /// This method is primarily used for apps based on the `epi` interface.
+//     pub fn with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F)
+//     where
+//         F: FnOnce(&Context, &mut Frame),
+//     {
+//         let mut renderer = self.renderer.borrow_mut();
+//         let integration_info = eframe::IntegrationInfo {
+//             native_pixels_per_point: Some(self.input.window_scale_factor as _),
+//             // TODO: Provide access to this stuff.
+//             // web_info: None,
+//             // prefer_dark_mode: None,
+//             cpu_usage: None,
+//             // name: "egui_nannou_wgpu",
+//             system_theme: todo!(),
+//             window_info: todo!(),
+//         };
+//         // AppOutput
+//         let mut app_output = AppOutput::default();
+//         let repaint_signal = Arc::new(RepaintSignal(Mutex::new(proxy)));
+//         let mut frame = FrameBuilder {
+//             info: integration_info,
+//             tex_allocator: &mut renderer.render_pass,
+//             // TODO: We may want to support a http feature for hyperlinks?
+//             // #[cfg(feature = "http")]
+//             // http: http.clone(),
+//             output: &mut app_output,
+//             repaint_signal: repaint_signal as Arc<_>,
+//         }
+//         .build();
+//         f(&self.context, &mut frame)
+//     }
 
-    /// The same as `with_epi_frame`, but calls `begin_frame` before calling the given function,
-    /// and then calls `end_frame` before returning.
-    pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F) -> egui::Output
-    where
-        F: FnOnce(&Context, &mut epi::Frame),
-    {
-        self.begin_frame_inner();
-        self.with_epi_frame(proxy.clone(), f);
-        let output = self.end_frame_inner();
+//     /// The same as `with_epi_frame`, but calls `begin_frame` before calling the given function,
+//     /// and then calls `end_frame` before returning.
+//     pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F) -> egui::Output
+//     where
+//         F: FnOnce(&Context, &mut epi::Frame),
+//     {
+//         self.begin_frame_inner();
+//         self.with_epi_frame(proxy.clone(), f);
+//         let output = self.end_frame_inner();
 
-        // If a repaint is required, ensure the event loop emits another update.
-        if output.needs_repaint {
-            proxy.wakeup().unwrap();
-        }
+//         // If a repaint is required, ensure the event loop emits another update.
+//         if output.needs_repaint {
+//             proxy.wakeup().unwrap();
+//         }
 
-        output
-    }
+//         output
+//     }
 
     fn begin_frame_inner(&mut self) {
         self.context.begin_frame(self.input.raw.take());
@@ -343,13 +342,16 @@ impl Renderer {
         target_format: wgpu::TextureFormat,
         target_msaa_samples: u32,
     ) -> Self {
+        // Self {
+        //     render_pass: RenderPass::new(
+        //         device,
+        //         target_format,
+        //         target_msaa_samples,
+        //     ),
+        //     paint_jobs: Vec::new(),
+        // }
         Self {
-            render_pass: RenderPass::new(
-                device,
-                target_format,
-                target_msaa_samples,
-            ),
-            paint_jobs: Vec::new(),
+            painter: Painter::new(device)
         }
     }
 
@@ -376,13 +378,18 @@ impl Renderer {
         let paint_jobs = &self.paint_jobs;
         let [physical_width, physical_height] = dst_size_pixels;
         let screen_descriptor = ScreenDescriptor {
-            physical_width,
-            physical_height,
-            scale_factor: dst_scale_factor,
+            // physical_width,
+            // physical_height,
+            // scale_factor: dst_scale_factor,
+            size_in_pixels: dst_size_pixels,
+            pixels_per_point: dst_scale_factor
+
         };
-        render_pass.update_texture(device, queue, &*context.texture());
+        // TODO: we're randomly picking id 0 here
+        render_pass.update_texture(device, queue, 0, &*context.texture());
         render_pass.update_user_textures(&device, &queue);
-        render_pass.update_buffers(device, queue, &paint_jobs, &screen_descriptor);
+        // TODO: Need a command encoder?
+        render_pass.update_buffers(device, queue, self.paint_jobs, &paint_jobs, &screen_descriptor);
         render_pass.execute(encoder, dst_texture, &paint_jobs, &screen_descriptor, None)
     }
 
@@ -445,13 +452,13 @@ impl<'a> Deref for FrameCtx<'a> {
     }
 }
 
-impl epi::RepaintSignal for RepaintSignal {
-    fn request_repaint(&self) {
-        if let Ok(guard) = self.0.lock() {
-            guard.wakeup().ok();
-        }
-    }
-}
+// impl epi::RepaintSignal for RepaintSignal {
+//     fn request_repaint(&self) {
+//         if let Ok(guard) = self.0.lock() {
+//             guard.wakeup().ok();
+//         }
+//     }
+// }
 
 /// Translates winit to egui keycodes.
 #[inline]
