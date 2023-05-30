@@ -1,9 +1,9 @@
 pub use egui;
 pub use egui::color_picker;
 
-use egui::{pos2, Context, ClippedPrimitive, Frame};
-use egui_wgpu::{WgpuError, wgpu::RenderPass, renderer::ScreenDescriptor, winit::Painter};
-use nannou::{wgpu, winit::event::VirtualKeyCode, winit::event::WindowEvent::*};
+use egui::{pos2, Context, ClippedPrimitive, Frame, TextureId};
+use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
+use nannou::{winit::event::VirtualKeyCode, winit::event::WindowEvent::*, wgpu::{TextureHandle, ToTextureView, FilterMode}};
 use std::{
     cell::RefCell,
     ops::Deref,
@@ -18,7 +18,7 @@ use std::{
 /// For multi-window user interfaces, you will need to create an instance of this type per-window.
 pub struct Egui {
     context: Context,
-    renderer: RefCell<Renderer>,
+    renderer: RefCell<NannouRenderer>,
     input: Input,
 }
 
@@ -26,8 +26,9 @@ pub struct Egui {
 /// texture).
 ///
 /// For targeting more than one window, users should construct a `Egui` for each.
-pub struct Renderer {
-   painter: Painter
+pub struct NannouRenderer {
+    render_pass: RenderPass,
+    paint_jobs: Vec<ClippedPrimitive>,
 }
 
 /// Tracking user and application event input.
@@ -60,13 +61,13 @@ impl Egui {
     ///
     /// The `context` should have the desired initial styling and fonts already set.
     pub fn new(
-        device: &wgpu::Device,
-        target_format: wgpu::TextureFormat,
+        device: &nannou::wgpu::Device,
+        target_format: nannou::wgpu::TextureFormat,
         target_msaa_samples: u32,
         window_scale_factor: f32,
         window_size_pixels: [u32; 2],
     ) -> Self {
-        let renderer = RefCell::new(Renderer::new(device, target_format, target_msaa_samples));
+        let renderer = RefCell::new(NannouRenderer::new(device, target_format, target_msaa_samples));
         let input = Input::new(window_scale_factor, window_size_pixels);
         let context = Default::default();
         Self {
@@ -117,37 +118,38 @@ impl Egui {
     /// Registers a wgpu::Texture with a egui::TextureId.
     pub fn texture_from_wgpu_texture(
         &mut self,
-        device: &wgpu::Device,
-        texture: &wgpu::Texture,
-        texture_filter: wgpu::FilterMode,
+        device: &nannou::wgpu::Device,
+        texture: &nannou::wgpu::Texture,
+        texture_filter: nannou::wgpu::FilterMode,
     ) -> egui::TextureId {
+        let texture_view_handle = texture.to_texture_view();
         self.renderer
             .borrow_mut()
             .render_pass
-            .egui
-            .egui_texture_from_wgpu_texture(device, texture, texture_filter)
+            .egui_texture_from_wgpu_texture(device, texture_view_handle.inner(), texture_filter)
     }
 
     /// Registers a wgpu::Texture with an existing egui::TextureId.
     pub fn update_texture_from_wgpu_texture(
         &mut self,
-        device: &wgpu::Device,
-        texture: &wgpu::Texture,
-        texture_filter: wgpu::FilterMode,
+        device: &nannou::wgpu::Device,
+        texture: &nannou::wgpu::Texture,
+        texture_filter: nannou::wgpu::FilterMode,
         id: egui::TextureId,
-    ) -> Result<(), egui_wgpu::WgpuError> {
-        Ok(self.renderer
+    ) -> Result<(), egui_wgpu_backend::BackendError> {
+        let texture_view_handle = texture.to_texture_view();
+        self.renderer
             .borrow_mut()
             .render_pass
-            .update_egui_texture_from_wgpu_texture(device, texture, texture_filter, id))
+            .update_egui_texture_from_wgpu_texture(device, texture_view_handle.inner(), texture_filter, id)
     }
 
     /// Draws the contents of the inner `context` to the given frame.
     pub fn draw_to_frame(
         &self,
         frame: &nannou::Frame,
-    ) -> Result<(), egui_wgpu::WgpuError> {
-        let mut renderer: std::cell::RefMut<Renderer> = self.renderer.borrow_mut();
+    ) -> Result<(),  egui_wgpu_backend::BackendError> {
+        let mut renderer: std::cell::RefMut<NannouRenderer> = self.renderer.borrow_mut();
         renderer.draw_to_frame(&self.context, frame)
     }
 
@@ -207,10 +209,9 @@ impl Egui {
         self.context.begin_frame(self.input.raw.take());
     }
 
-    fn end_frame_inner(&mut self) -> egui::Output {
-        let (output, paint_cmds) = self.context.end_frame();
-        self.renderer.borrow_mut().paint_jobs = self.context.tessellate(paint_cmds);
-        output
+    fn end_frame_inner(&mut self) -> egui::FullOutput {
+        self.renderer.borrow_mut().paint_jobs = self.context.tessellate(self.context.end_frame().shapes);
+        self.context.end_frame()
     }
 }
 
@@ -269,11 +270,14 @@ impl Input {
                 match delta {
                     winit::event::MouseScrollDelta::LineDelta(x, y) => {
                         let line_height = 24.0;
-                        self.raw.scroll_delta = egui::vec2(*x, *y) * line_height;
+                        // TODO: scroll_delta has been replacd with screen_rect ?
+                        // self.raw.scroll_delta = egui::vec2(*x, *y) * line_height;
                     }
                     winit::event::MouseScrollDelta::PixelDelta(delta) => {
                         // Actually point delta
-                        self.raw.scroll_delta = egui::vec2(delta.x as f32, delta.y as f32);
+                        // TODO: scroll_delta has been replacd with screen_rect ?
+
+                        // self.raw.scroll_delta = egui::vec2(delta.x as f32, delta.y as f32);
                     }
                 }
             }
@@ -300,7 +304,7 @@ impl Input {
                             key,
                             pressed: input.state == winit::event::ElementState::Pressed,
                             modifiers: self.raw.modifiers,
-                            repeat: false
+                            // repeat: false
                         });
                     }
                 }
@@ -329,7 +333,7 @@ impl Input {
     }
 }
 
-impl Renderer {
+impl NannouRenderer {
     /// Create a new `Renderer` from its parts.
     ///
     /// The `device` must be the same that was used to create the queue to which the `Renderer`s
@@ -338,20 +342,17 @@ impl Renderer {
     /// The `target_format` and `target_msaa_samples` should describe the target texture to which
     /// the `Egui` will be rendered.
     pub fn new(
-        device: &wgpu::Device,
-        target_format: wgpu::TextureFormat,
+        device: &nannou::wgpu::Device,
+        target_format: nannou::wgpu::TextureFormat,
         target_msaa_samples: u32,
     ) -> Self {
-        // Self {
-        //     render_pass: RenderPass::new(
-        //         device,
-        //         target_format,
-        //         target_msaa_samples,
-        //     ),
-        //     paint_jobs: Vec::new(),
-        // }
         Self {
-            painter: Painter::new(device)
+            render_pass: RenderPass::new(
+                device,
+                target_format,
+                target_msaa_samples,
+            ),
+            paint_jobs: Vec::new(),
         }
     }
 
@@ -364,41 +365,41 @@ impl Renderer {
     }
 
     /// Encode a render pass for drawing the given context's texture to the given `dst_texture`.
-    pub fn encode_render_pass(
-        &mut self,
-        context: &Context,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        encoder: &mut wgpu::CommandEncoder,
-        dst_size_pixels: [u32; 2],
-        dst_scale_factor: f32,
-        dst_texture: &wgpu::TextureView,
-    ) -> Result<(), WgpuError> {
-        let render_pass = &mut self.render_pass;
-        let paint_jobs = &self.paint_jobs;
-        let [physical_width, physical_height] = dst_size_pixels;
-        let screen_descriptor = ScreenDescriptor {
-            // physical_width,
-            // physical_height,
-            // scale_factor: dst_scale_factor,
-            size_in_pixels: dst_size_pixels,
-            pixels_per_point: dst_scale_factor
+    // pub fn encode_render_pass(
+    //     &mut self,
+    //     context: &Context,
+    //     device: &nannou::wgpu::Device,
+    //     queue: &nannou::wgpu::Queue,
+    //     encoder: &mut nannou::wgpu::CommandEncoder,
+    //     dst_size_pixels: [u32; 2],
+    //     dst_scale_factor: f32,
+    //     dst_texture: &nannou::wgpu::TextureView,
+    // ) -> Result<(),  egui_wgpu_backend::BackendError> {
+    //     let render_pass = &mut self.render_pass;
+    //     let paint_jobs = &self.paint_jobs;
+    //     let [physical_width, physical_height] = dst_size_pixels;
+    //     let screen_descriptor = ScreenDescriptor {
+    //         physical_width,
+    //         physical_height,
+    //         scale_factor: dst_scale_factor,
+    //         // size_in_pixels: dst_size_pixels,
+    //         // pixels_per_point: dst_scale_factor
 
-        };
-        // TODO: we're randomly picking id 0 here
-        render_pass.update_texture(device, queue, 0, &*context.texture());
-        render_pass.update_user_textures(&device, &queue);
-        // TODO: Need a command encoder?
-        render_pass.update_buffers(device, queue, self.paint_jobs, &paint_jobs, &screen_descriptor);
-        render_pass.execute(encoder, dst_texture, &paint_jobs, &screen_descriptor, None)
-    }
+    //     };
+    //     // TODO: we're randomly picking id 0 here
+    //     render_pass.update_texture(device, queue, 0, &*context);
+    //     render_pass.update_user_textures(&device, &queue);
+    //     // TODO: Need a command encoder?
+    //     render_pass.update_buffers(device, queue, self.paint_jobs, &paint_jobs, &screen_descriptor);
+    //     render_pass.execute(encoder, dst_texture, &paint_jobs, &screen_descriptor, None)
+    // }
 
     /// Encodes a render pass for drawing the given context's texture to the given frame.
     pub fn draw_to_frame(
         &mut self,
         context: &Context,
         frame: &nannou::Frame,
-    ) -> Result<(), WgpuError> {
+    ) -> Result<(),  egui_wgpu_backend::BackendError> {
         let device_queue_pair = frame.device_queue_pair();
         let device = device_queue_pair.device();
         let queue = device_queue_pair.queue();
@@ -407,15 +408,17 @@ impl Renderer {
         let scale_factor = width_px as f32 / frame.rect().w();
         let texture_view = frame.texture_view();
         let mut encoder = frame.command_encoder();
-        self.encode_render_pass(
-            context,
-            device,
-            queue,
-            &mut encoder,
-            size_pixels,
-            scale_factor,
-            texture_view,
-        )
+        // We're guessing texture_id 0 here. Presumably texture should be from Context.
+        self.render_pass.update_egui_texture_from_wgpu_texture(device, texture_view, FilterMode::Nearest, TextureId::User(0))
+        // self.encode_render_pass(
+        //     context,
+        //     device,
+        //     queue,
+        //     &mut encoder,
+        //     size_pixels,
+        //     scale_factor,
+        //     texture_view,
+        // )
     }
 }
 

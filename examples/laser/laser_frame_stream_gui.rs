@@ -534,7 +534,7 @@ fn fonts() -> egui::FontDefinitions {
             (egui::FontFamily::Monospace, 14.0),
         ),
     ];
-    fonts.family_and_size.extend(entries.iter().cloned());
+    // fonts.family_and_size.extend(entries.iter().cloned());
     fonts
 }
 
@@ -542,7 +542,7 @@ fn style() -> egui::Style {
     let mut style = egui::Style::default();
     style.spacing = egui::style::Spacing {
         item_spacing: egui::Vec2::splat(8.0),
-        window_padding: egui::Vec2::new(6.0, 6.0),
+        // window_padding: egui::Vec2::new(6.0, 6.0),
         button_padding: egui::Vec2::new(4.0, 2.0),
         interact_size: egui::Vec2::new(56.0, 24.0),
         indent: 10.0,

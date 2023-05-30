@@ -43,7 +43,7 @@ fn model(app: &App) -> Model {
 
     // Create the compute shader module.
     let cs_desc = wgpu::include_wgsl!("shaders/cs.wgsl");
-    let cs_mod = device.create_shader_module(&cs_desc);
+    let cs_mod = device.create_shader_module(cs_desc);
 
     // Create the buffer that will store the result of our compute operation.
     let oscillator_buffer_size =
@@ -140,7 +140,8 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         let mut cpass = encoder.begin_compute_pass(&pass_desc);
         cpass.set_pipeline(&compute.pipeline);
         cpass.set_bind_group(0, &compute.bind_group, &[]);
-        cpass.dispatch(OSCILLATOR_COUNT as u32, 1, 1);
+        // cpass.dis
+        cpass.dispatch_workgroups(OSCILLATOR_COUNT as u32, 1, 1);
     }
     encoder.copy_buffer_to_buffer(
         &compute.oscillator_buffer,

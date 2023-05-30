@@ -637,7 +637,7 @@ impl App {
         capture_frame_timeout: Option<Duration>,
         backends: wgpu::Backends,
     ) -> Self {
-        let instance = wgpu::Instance::new(backends);
+        let instance = wgpu::Instance::default();
         let adapters = Default::default();
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());

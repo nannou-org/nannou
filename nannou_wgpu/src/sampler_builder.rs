@@ -15,7 +15,7 @@ impl<'b> SamplerBuilder {
     pub const DEFAULT_MAG_FILTER: wgpu::FilterMode = wgpu::FilterMode::Linear;
     pub const DEFAULT_MIN_FILTER: wgpu::FilterMode = wgpu::FilterMode::Linear;
     pub const DEFAULT_MIPMAP_FILTER: wgpu::FilterMode = wgpu::FilterMode::Nearest;
-    pub const DEFAULT_LOD_MIN_CLAMP: f32 = -100.0;
+    pub const DEFAULT_LOD_MIN_CLAMP: f32 = 0.;
     pub const DEFAULT_LOD_MAX_CLAMP: f32 = 100.0;
     pub const DEFAULT_COMPARE: Option<wgpu::CompareFunction> = None;
     pub const DEFAULT_ANISOTROPY_CLAMP: Option<NonZeroU8> = None;

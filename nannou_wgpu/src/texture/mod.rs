@@ -1,3 +1,5 @@
+use wgpu_upstream::TextureFormat;
+
 use crate::{self as wgpu, RowPaddedBuffer, TextureHandle, TextureViewHandle};
 use std::ops::Deref;
 use std::sync::Arc;
@@ -432,6 +434,7 @@ impl Builder {
         dimension: Self::DEFAULT_DIMENSION,
         format: Self::DEFAULT_FORMAT,
         usage: Self::DEFAULT_USAGE,
+        view_formats: &[]
     };
 
     /// Creates a new `Default` builder
@@ -532,6 +535,7 @@ impl Builder {
     pub fn into_descriptor(self) -> wgpu::TextureDescriptor<'static> {
         self.into()
     }
+
 }
 
 impl<'a> ViewBuilder<'a> {

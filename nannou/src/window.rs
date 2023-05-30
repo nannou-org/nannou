@@ -21,7 +21,6 @@ use std::{env, fmt};
 use winit::dpi::{LogicalSize, PhysicalSize};
 
 pub use winit::window::Fullscreen;
-use winit::window::WindowAttributes;
 pub use winit::window::WindowId as Id;
 
 /// The default dimensions used for a window in the case that none are specified.
@@ -334,13 +333,15 @@ impl SurfaceConfigurationBuilder {
             // .or_else(|| surface.get_preferred_format(&adapter))
             .unwrap_or(Self::DEFAULT_FORMAT);
         let present_mode = self.present_mode.unwrap_or(Self::DEFAULT_PRESENT_MODE);
+        // println!("preferred format: {:?} vs chosen format {:?}", format, Self::DEFAULT_FORMAT);
         wgpu::SurfaceConfiguration {
             usage,
             format,
             width: width_px,
             height: height_px,
             present_mode,
-            alpha_mode: wgpu::CompositeAlphaMode::Auto
+            alpha_mode: wgpu::CompositeAlphaMode::Auto,
+            view_formats: vec![Self::DEFAULT_FORMAT]
         }
     }
 }
@@ -777,80 +778,82 @@ impl<'app> Builder<'app> {
         }
 
         // Set default dimensions in the case that none were given.
-        let initial_window_size = WindowAttributes::default()
-            .inner_size
-            .or_else(|| {
-                WindowAttributes::default()
-                    .fullscreen
-                    .as_ref()
-                    .and_then(|fullscreen| match fullscreen {
-                        Fullscreen::Exclusive(video_mode) => {
-                            let monitor = video_mode.monitor();
-                            Some(
-                                video_mode
-                                    .size()
-                                    .to_logical::<f32>(monitor.scale_factor())
-                                    .into(),
-                            )
-                        }
-                        Fullscreen::Borderless(monitor) => monitor.as_ref().map(|monitor| {
-                            monitor
-                                .size()
-                                .to_logical::<f32>(monitor.scale_factor())
-                                .into()
-                        }),
-                    })
-            })
-            .unwrap_or_else(|| {
-                let mut dim = DEFAULT_DIMENSIONS;
-                if let Some(min) = window.window_attributes().min_inner_size {
-                    match min {
-                        winit::dpi::Size::Logical(min) => {
-                            dim.width = dim.width.max(min.width as _);
-                            dim.height = dim.height.max(min.height as _);
-                        }
-                        winit::dpi::Size::Physical(min) => {
-                            dim.width = dim.width.max(min.width as _);
-                            dim.height = dim.height.max(min.height as _);
-                            unimplemented!("consider scale factor");
-                        }
-                    }
-                }
-                if let Some(max) = window.window_attributes().max_inner_size {
-                    match max {
-                        winit::dpi::Size::Logical(max) => {
-                            dim.width = dim.width.min(max.width as _);
-                            dim.height = dim.height.min(max.height as _);
-                        }
-                        winit::dpi::Size::Physical(max) => {
-                            dim.width = dim.width.min(max.width as _);
-                            dim.height = dim.height.min(max.height as _);
-                            unimplemented!("consider scale factor");
-                        }
-                    }
-                }
-                dim.into()
-            });
+        // let initial_window_size = window
+        
+        //     .inner_size
+        //     .or_else(|| {
+        //         window
+        //             .fullscreen
+        //             .as_ref()
+        //             .and_then(|fullscreen| match fullscreen {
+        //                 Fullscreen::Exclusive(video_mode) => {
+        //                     let monitor = video_mode.monitor();
+        //                     Some(
+        //                         video_mode
+        //                             .size()
+        //                             .to_logical::<f32>(monitor.scale_factor())
+        //                             .into(),
+        //                     )
+        //                 }
+        //                 Fullscreen::Borderless(monitor) => monitor.as_ref().map(|monitor| {
+        //                     monitor
+        //                         .size()
+        //                         .to_logical::<f32>(monitor.scale_factor())
+        //                         .into()
+        //                 }),
+        //             })
+        //     })
+        //     .unwrap_or_else(|| {
+        //         let mut dim = DEFAULT_DIMENSIONS;
+        //         if let Some(min) = window.window_attributes().min_inner_size {
+        //             match min {
+        //                 winit::dpi::Size::Logical(min) => {
+        //                     dim.width = dim.width.max(min.width as _);
+        //                     dim.height = dim.height.max(min.height as _);
+        //                 }
+        //                 winit::dpi::Size::Physical(min) => {
+        //                     dim.width = dim.width.max(min.width as _);
+        //                     dim.height = dim.height.max(min.height as _);
+        //                     unimplemented!("consider scale factor");
+        //                 }
+        //             }
+        //         }
+        //         if let Some(max) = window.window_attributes().max_inner_size {
+        //             match max {
+        //                 winit::dpi::Size::Logical(max) => {
+        //                     dim.width = dim.width.min(max.width as _);
+        //                     dim.height = dim.height.min(max.height as _);
+        //                 }
+        //                 winit::dpi::Size::Physical(max) => {
+        //                     dim.width = dim.width.min(max.width as _);
+        //                     dim.height = dim.height.min(max.height as _);
+        //                     unimplemented!("consider scale factor");
+        //                 }
+        //             }
+        //         }
+        //         dim.into()
+        //     });
 
-        // Use the `initial_window_size` as the default dimensions for the window if none
-        // were specified.
-        if window.window_attributes().inner_size.is_none() && window.window_attributes().fullscreen.is_none() {
-            // TODO: how to mutate this in new API?
-            // window.window_attributes().inner_size = Some(initial_window_size);
-        }
+        // // Use the `initial_window_size` as the default dimensions for the window if none
+        // // were specified.
+        // if window.window_attributes().inner_size.is_none() && window.window_attributes().fullscreen.is_none() {
+        //     // TODO: how to mutate this in new API?
+        //     // window.window_attributes().inner_size = Some(initial_window_size);
+        // }
 
-        // Set a default minimum window size for configuring the surface.
-        if window.window_attributes().min_inner_size.is_none() && window.window_attributes().fullscreen.is_none() {
-            // TODO: how to mutate this in new API?
-            // window.window_attributes().min_inner_size = Some(winit::dpi::Size::Physical(MIN_SC_PIXELS));
-        }
+        // // Set a default minimum window size for configuring the surface.
+        // if window.window_attributes().min_inner_size.is_none() && window.window_attributes().fullscreen.is_none() {
+        //     // TODO: how to mutate this in new API?
+        //     // window.window_attributes().min_inner_size = Some(winit::dpi::Size::Physical(MIN_SC_PIXELS));
+        // }
 
         // Background must be initially cleared
         let is_invalidated = true;
 
         let clear_color = clear_color.unwrap_or_else(|| {
             let mut color: wgpu::Color = Default::default();
-            color.a = if window.window_attributes().transparent { 0.0 } else { 1.0 };
+            // color.a = if window.window_attributes().transparent { 0.0 } else { 1.0 };
+            color.a = 1.0;
             color
         });
 
@@ -880,7 +883,7 @@ impl<'app> Builder<'app> {
         }
 
         // Build the wgpu surface.
-        let surface = unsafe { app.instance().create_surface(&window) };
+        let surface = unsafe { app.instance().create_surface(&window) }.expect("failed to create surface");
 
         // Request the adapter.
         let request_adapter_opts = wgpu::RequestAdapterOptions {
