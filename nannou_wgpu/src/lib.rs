@@ -56,7 +56,7 @@ pub use self::texture::capturer::{
 #[cfg(feature = "image")]
 pub use self::texture::image::{
     format_from_image_color_type as texture_format_from_image_color_type, ImageHolder,
-    ImageReadMapping, WithDeviceQueuePair,
+    ImageReadMapping, Pixel, WithDeviceQueuePair,
 };
 pub use self::texture::reshaper::Reshaper as TextureReshaper;
 pub use self::texture::row_padded_buffer::RowPaddedBuffer;
