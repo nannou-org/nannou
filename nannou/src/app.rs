@@ -31,91 +31,39 @@ use winit;
 use winit::event_loop::ControlFlow;
 
 /// The user function type for initialising their model.
-pub type ModelFn<Model> = Arc<dyn Fn(&App) -> Model>;
-#[macro_export]
-macro_rules! model {
-    ($e:expr) => {
-        { std::sync::Arc::new($e) }
-    }
-}
-
+pub trait ModelFn<Model> = 'static + Fn(&App) -> Model;
 
 /// The user function type for updating their model in accordance with some event.
-pub type EventFn<Model, Event> = Arc<dyn Fn(&App, &mut Model, Event)>;
-#[macro_export]
-macro_rules! event {
-    ($e:expr) => {
-        {
-            use std::sync::Arc;
-            Arc::new($e)
-        }
-    }
-}
+pub trait EventFn<Model, Event> = 'static + Fn(&App, &mut Model, Event);
 
 /// The user function type for updating the user model within the application loop.
-pub type UpdateFn<Model> = Arc<dyn Fn(&App, &mut Model, Update)>;
-#[macro_export]
-macro_rules! update {
-    ($e:expr) => {
-        {
-            use std::sync::Arc;
-            Arc::new($e)
-        }
-    }
-}
+pub trait UpdateFn<Model> = 'static + Fn(&App, &mut Model, Update);
 
 /// The user function type for drawing their model to the surface of a single window.
-pub type ViewFn<Model> = Arc<dyn Fn(&App, &Model, Frame)>;
-#[macro_export]
-macro_rules! view {
-    ($e:expr) => {
-        {
-            use std::sync::Arc;
-            Arc::new($e)
-        }
-    }
-}
+pub trait ViewFn<Model> = 'static + Fn(&App, &Model, Frame);
 
 /// A shorthand version of `ViewFn` for sketches where the user does not need a model.
-pub type SketchViewFn = Arc<dyn Fn(&App, Frame)>;
-#[macro_export]
-macro_rules! sketch_view {
-    ($e:expr) => {
-        {
-            use std::sync::Arc;
-            Arc::new($e)
-        }
-    }
-}
+pub trait SketchViewFn = 'static + Fn(&App, Frame);
 
 /// The user function type allowing them to consume the `model` when the application exits.
-pub type ExitFn<Model> = Arc<dyn Fn(&App, Model)>;
-#[macro_export]
-macro_rules! exit {
-    ($e:expr) => {
-        {
-            use std::sync::Arc;
-            Arc::new($e)
-        }
-    }
-}
+pub trait ExitFn<Model> = 'static + Fn(&App, Model);
 
 /// The **App**'s view function.
 enum View<Model = ()> {
     /// A view function allows for viewing the user's model.
-    WithModel(ViewFn<Model>),
+    WithModel(Box<dyn ViewFn<Model>>),
     /// A **Simple** view function does not require a user **Model**. Simpler to get started.
-    Sketch(SketchViewFn),
+    Sketch(Box<dyn SketchViewFn>),
 }
 
 /// A nannou `App` builder.
 pub struct Builder<M = (), E = Event> {
     model: Box<dyn FnOnce(&App) -> Box<dyn Future<Output = M> + '_>>,
     config: Config,
-    event: Option<EventFn<M, E>>,
-    update: Option<UpdateFn<M>>,
+    event: Option<Box<dyn EventFn<M, E>>>,
+    update: Option<Box<dyn UpdateFn<M>>>,
     default_view: Option<View<M>>,
-    exit: Option<ExitFn<M>>,
+    exit: Option<Box<dyn ExitFn<M>>>,
     create_default_window: bool,
     default_window_size: Option<DefaultWindowSize>,
     capture_frame_timeout: Option<Option<Duration>>,
@@ -303,7 +251,7 @@ where
     ///
     /// The Model that is returned by the function is the same model that will be passed to the
     /// given event and view functions.
-    pub fn new(model: ModelFn<M>) -> Self {
+    pub fn new(model: impl ModelFn<M>) -> Self {
         Self::new_async(move |app| Box::new(future::ready(model(app))))
     }
 
@@ -333,7 +281,7 @@ where
     /// occur during the life of the program. These include things like `Update`s and
     /// `WindowEvent`s such as `KeyPressed`, `MouseMoved`, and so on.
     #[cfg_attr(rustfmt, rustfmt_skip)]
-    pub fn event<E>(self, event: EventFn<M, E>) -> Builder<M, E>
+    pub fn event<E>(self, event: impl EventFn<M, E>) -> Builder<M, E>
     where
         E: LoopEvent,
     {
@@ -353,7 +301,7 @@ where
         Builder {
             model,
             config,
-            event: Some(event),
+            event: Some(Box::new(event)),
             update,
             default_view,
             exit,
@@ -384,8 +332,8 @@ where
     ///
     /// Note that when working with more than one window, you can use `frame.window_id()` to
     /// determine which window the current call is associated with.
-    pub fn view(mut self, view: ViewFn<M>) -> Self {
-        self.default_view = Some(View::WithModel(view));
+    pub fn view(mut self, view: impl ViewFn<M>) -> Self {
+        self.default_view = Some(View::WithModel(Box::new(view)));
         self
     }
 
@@ -397,8 +345,8 @@ where
     /// Update events are also emitted as a variant of the `event` function. Note that if you
     /// specify both an `event` function and an `update` function, the `event` function will always
     /// be called with an update event prior to this `update` function.
-    pub fn update(mut self, update: UpdateFn<M>) -> Self {
-        self.update = Some(update);
+    pub fn update(mut self, update: impl UpdateFn<M>) -> Self {
+        self.update = Some(Box::new(update));
         self
     }
 
@@ -415,8 +363,8 @@ where
     /// `App::new_window` method. The role of this `simple_window` method is to provide a
     /// quick-and-easy way to start with a simple window. This can be very useful for quick ideas,
     /// small single-window applications and examples.
-    pub fn simple_window(mut self, view: ViewFn<M>) -> Self {
-        self.default_view = Some(View::WithModel(view));
+    pub fn simple_window(mut self, view: impl ViewFn<M>) -> Self {
+        self.default_view = Some(View::WithModel(Box::new(view)));
         self.create_default_window = true;
         self
     }
@@ -425,8 +373,8 @@ where
     ///
     /// The exit function gives ownership of the model back to you for any cleanup that might be
     /// necessary.
-    pub fn exit(mut self, exit: ExitFn<M>) -> Self {
-        self.exit = Some(exit);
+    pub fn exit(mut self, exit: impl ExitFn<M>) -> Self {
+        self.exit = Some(Box::new(exit));
         self
     }
 
@@ -599,9 +547,9 @@ impl Builder<(), Event> {
     ///
     /// This is useful for late night hack sessions where you just don't care about all that other
     /// stuff, you just want to play around with some ideas or make something pretty.
-    pub fn sketch(view: SketchViewFn) -> SketchBuilder<Event> {
-        let mut builder = Builder::new(model!(default_model));
-        builder.default_view = Some(View::Sketch(view));
+    pub fn sketch(view: impl SketchViewFn) -> SketchBuilder<Event> {
+        let mut builder = Builder::new(default_model);
+        builder.default_view = Some(View::Sketch(Box::new(view)));
         builder.create_default_window = true;
         SketchBuilder { builder }
     }
@@ -1108,10 +1056,10 @@ impl EventLoopWindowTarget {
 fn run_loop<M, E>(
     mut app: App,
     model: M,
-    event_fn: Option<EventFn<M, E>>,
-    update_fn: Option<UpdateFn<M>>,
+    event_fn: Option<impl EventFn<M, E>>,
+    update_fn: Option<impl UpdateFn<M>>,
     default_view: Option<View<M>>,
-    exit_fn: Option<ExitFn<M>>,
+    exit_fn: Option<impl ExitFn<M>>,
 ) where
     M: 'static,
     E: LoopEvent,
@@ -1163,7 +1111,7 @@ fn run_loop<M, E>(
                         // LoopMode::Wait { updates_before_waiting } =>
                         //     if loop_state.updates_since_event > updates_before_waiting as u64 => {}
                         _ => {
-                            apply_update(&mut app, model, event_fn.clone(), update_fn.clone(), &mut loop_state, now);
+                            apply_update(&mut app, model, &event_fn, &update_fn, &mut loop_state, now);
                         },
                     }
                 }
@@ -1379,7 +1327,7 @@ fn run_loop<M, E>(
 
         // Process the event with the user's functions and see if we need to exit.
         if let Some(model) = model.as_mut() {
-            exit |= process_and_emit_winit_event::<M, E>(&mut app, model, event_fn.clone(), &event);
+            exit |= process_and_emit_winit_event::<M, E>(&mut app, model, &event_fn, &event);
         }
 
         // Set the control flow based on the loop mode.
@@ -1397,7 +1345,7 @@ fn run_loop<M, E>(
         // If we need to exit, call the user's function and update control flow.
         if exit {
             if let Some(model) = model.take() {
-                if let Some(exit_fn) = exit_fn.clone() {
+                if let Some(exit_fn) = exit_fn.as_ref() {
                     exit_fn(&app, model);
                 }
             }
@@ -1421,8 +1369,8 @@ fn run_loop<M, E>(
 fn apply_update<M, E>(
     app: &mut App,
     model: &mut M,
-    event_fn: Option<EventFn<M, E>>,
-    update_fn: Option<UpdateFn<M>>,
+    event_fn: &Option<impl EventFn<M, E>>,
+    update_fn: &Option<impl UpdateFn<M>>,
     loop_state: &mut LoopState,
     now: Instant,
 ) where
@@ -1507,7 +1455,7 @@ fn should_toggle_fullscreen(
 fn process_and_emit_winit_event<'a, M, E>(
     app: &mut App,
     model: &mut M,
-    event_fn: Option<EventFn<M, E>>,
+    event_fn: &Option<impl EventFn<M, E>>,
     winit_event: &winit::event::Event<'a, ()>,
 ) -> bool
 where
