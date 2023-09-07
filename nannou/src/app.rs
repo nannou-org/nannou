@@ -27,26 +27,29 @@ use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{self, future};
+use trait_set::trait_set;
 use winit;
 use winit::event_loop::ControlFlow;
 
-/// The user function type for initialising their model.
-pub trait ModelFn<Model> = 'static + Fn(&App) -> Model;
+trait_set! {
+    /// The user function type for initialising their model.
+    pub trait ModelFn<Model> = 'static + Fn(&App) -> Model;
 
-/// The user function type for updating their model in accordance with some event.
-pub trait EventFn<Model, Event> = 'static + Fn(&App, &mut Model, Event);
+    /// The user function type for updating their model in accordance with some event.
+    pub trait EventFn<Model, Event> = 'static + Fn(&App, &mut Model, Event);
 
-/// The user function type for updating the user model within the application loop.
-pub trait UpdateFn<Model> = 'static + Fn(&App, &mut Model, Update);
+    /// The user function type for updating the user model within the application loop.
+    pub trait UpdateFn<Model> = 'static + Fn(&App, &mut Model, Update);
 
-/// The user function type for drawing their model to the surface of a single window.
-pub trait ViewFn<Model> = 'static + Fn(&App, &Model, Frame);
+    /// The user function type for drawing their model to the surface of a single window.
+    pub trait ViewFn<Model> = 'static + Fn(&App, &Model, Frame);
 
-/// A shorthand version of `ViewFn` for sketches where the user does not need a model.
-pub trait SketchViewFn = 'static + Fn(&App, Frame);
+    /// A shorthand version of `ViewFn` for sketches where the user does not need a model.
+    pub trait SketchViewFn = 'static + Fn(&App, Frame);
 
-/// The user function type allowing them to consume the `model` when the application exits.
-pub trait ExitFn<Model> = 'static + Fn(&App, Model);
+    /// The user function type allowing them to consume the `model` when the application exits.
+    pub trait ExitFn<Model> = 'static + Fn(&App, Model);
+}
 
 /// The **App**'s view function.
 enum View<Model = ()> {
