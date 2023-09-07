@@ -16,7 +16,7 @@ fn view(app: &App, frame: Frame) {
                 let start = r.xy();
                 let start_to_mouse = app.mouse.position() - start;
                 let target_mag = start_to_mouse.length().min(side * 0.5);
-                let end = start + start_to_mouse.normalize() * target_mag;
+                let end = start + start_to_mouse.normalize_or_zero() * target_mag;
                 draw.arrow().weight(5.0).points(start, end);
             }
         }
