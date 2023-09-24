@@ -10,8 +10,9 @@ pub use rosc;
 pub use self::recv::Receiver;
 #[doc(inline)]
 pub use self::rosc::{
-    decoder, encoder, OscBundle as Bundle, OscColor as Color, OscError as Error,
-    OscMessage as Message, OscMidiMessage as MidiMessage, OscType as Type,
+    address, decoder, encoder, OscArray as Array, OscBundle as Bundle, OscColor as Color,
+    OscError as Error, OscMessage as Message, OscMidiMessage as MidiMessage, OscTime as Time,
+    OscTimeError as TimeError, OscType as Type,
 };
 pub use self::send::Sender;
 
@@ -121,7 +122,6 @@ where
     A: Into<String>,
 {
     let addr = addr.into();
-    let args = Some(args);
     Message { addr, args }
 }
 
@@ -129,7 +129,7 @@ where
 ///
 /// Returns an `Error` if the slice does not contain a valid OSC packet.
 pub fn decode(bytes: &[u8]) -> Result<Packet, Error> {
-    rosc::decoder::decode(bytes).map(|p| p.into())
+    rosc::decoder::decode_udp(bytes).map(|(_bytes, p)| p.into())
 }
 
 /// Encodes the given `Packet` into a `Vec` of bytes.

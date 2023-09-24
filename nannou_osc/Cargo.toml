@@ -11,4 +11,4 @@ homepage = "https://nannou.cc"
 edition = "2018"
 
 [dependencies]
-rosc = "0.1"
+rosc = "0.10"
