@@ -729,7 +729,11 @@ impl<'app> Builder<'app> {
     #[cfg(not(target_os = "unknown"))]
     /// Builds the window, inserts it into the `App`'s display map and returns the unique ID.
     pub fn build(self) -> Result<Id, BuildError> {
-        async_std::task::block_on(self.build_async())
+        tokio::task::block_in_place(move || {
+            tokio::runtime::Handle::current().block_on(async move {
+                self.build_async().await
+            })
+        })
     }
 
     pub async fn build_async(self) -> Result<Id, BuildError> {

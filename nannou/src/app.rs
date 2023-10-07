@@ -451,7 +451,11 @@ where
     /// thread as some platforms require that their application event loop and windows are
     /// initialised on the main thread.
     pub fn run(self) {
-        async_std::task::block_on(self.run_async())
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .expect("failed to create tokio runtime");
+        rt.block_on(self.run_async())
     }
 
     pub async fn run_async(self) {

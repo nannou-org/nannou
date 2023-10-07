@@ -10,7 +10,8 @@ homepage = "https://nannou.cc"
 edition = "2018"
 
 [dependencies]
-async-std = "1.10.0"
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
 image = { version = "0.23", optional = true }
 instant = { version = "0.1.9", optional = true }
 num_cpus = { version = "1", optional = true }
