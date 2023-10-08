@@ -7,7 +7,7 @@ fn main() {
 
 struct Model {
     egui: Egui,
-    egui_demo_app: egui_demo_lib::WrapApp,
+    egui_demo_app: egui_demo_lib::DemoWindows,
 }
 
 fn model(app: &App) -> Model {
@@ -20,7 +20,7 @@ fn model(app: &App) -> Model {
         .unwrap();
     let window = app.window(w_id).unwrap();
     let mut egui = Egui::from_window(&window);
-    let mut egui_demo_app = egui_demo_lib::WrapApp::default();
+    let mut egui_demo_app = egui_demo_lib::DemoWindows::default();
     let proxy = app.create_proxy();
     // egui.do_frame_with_epi_frame(proxy, |ctx, epi_frame| {
     //     egui_demo_app.setup(&ctx, epi_frame, None);
@@ -43,11 +43,11 @@ fn update(app: &App, model: &mut Model, update: Update) {
     } = *model;
     egui.set_elapsed_time(update.since_start);
     let proxy = app.create_proxy();
-    egui.do_frame_with_epi_frame(proxy, |ctx, frame| {
-        egui_demo_app.update(&ctx, frame);
-    });
+    // egui.do_frame_with_epi_frame(proxy, |ctx, frame| {
+    //     egui_demo_app.update(&ctx, frame);
+    // });
 }
 
-fn view(_app: &App, model: &Model, frame: Frame) {
+fn view(_app: &App, model: &mut Model, frame: Frame) {
     model.egui.draw_to_frame(&frame).unwrap();
 }

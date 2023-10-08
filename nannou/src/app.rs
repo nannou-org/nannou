@@ -1130,7 +1130,7 @@ fn run_loop<M, E>(
             // TODO: Only request a frame from the user if this redraw was requested following an
             // update. Otherwise, just use the existing intermediary frame.
             winit::event::Event::RedrawRequested(window_id) => {
-                if let Some(model) = model.as_ref() {
+                if let Some(model) = model.as_mut() {
                     // Retrieve the surface frame and the number of this frame.
                     // NOTE: We avoid mutably borrowing `windows` map any longer than necessary to
                     // avoid restricting users from accessing `windows` during `view`.
@@ -1227,7 +1227,7 @@ fn run_loop<M, E>(
                                 let view = view.to_fn_ptr::<M>().expect(
                                     "unexpected model argument given to window view function",
                                 );
-                                (*view)(&app, &model, frame);
+                                (*view)(&app, model, frame);
                             }
                             Some(window::View::WithModelRaw(raw_view)) => {
                                 let raw_view = raw_view.to_fn_ptr::<M>().expect(

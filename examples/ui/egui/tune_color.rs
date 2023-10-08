@@ -58,7 +58,7 @@ fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event:
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &mut Model, frame: Frame) {
     let draw = app.draw();
 
     frame.clear(BLACK);
@@ -75,7 +75,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 }
 
 fn edit_hsv(ui: &mut egui::Ui, color: &mut Hsv) {
-    let mut egui_hsv = egui::color::Hsva::new(
+    let mut egui_hsv = egui::ecolor::Hsva::new(
         color.hue.to_positive_radians() as f32 / (std::f32::consts::PI * 2.0),
         color.saturation,
         color.value,
