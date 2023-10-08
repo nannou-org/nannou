@@ -6,6 +6,7 @@
 use crate as wgpu;
 use std::ops::Deref;
 use std::path::Path;
+use wgpu_upstream::BufferAsyncError;
 
 /// The set of pixel types from the image crate that can be loaded directly into a texture.
 ///
@@ -311,7 +312,14 @@ impl wgpu::RowPaddedBuffer {
     /// polled. You should *not* rely on the being ready immediately.
     pub async fn read<'b>(&'b self) -> Result<ImageReadMapping<'b>, wgpu::BufferAsyncError> {
         let slice = self.buffer.slice(..);
-        slice.map_async(wgpu::MapMode::Read).await?;
+        let (tx, rx) = futures::channel::oneshot::channel();
+
+        slice.map_async(wgpu::MapMode::Read, |res| {
+            tx.send(res).expect("Failed to send map_async result");
+        });
+
+        rx.await.expect("Failed to receive map_async result")?;
+
         Ok(wgpu::ImageReadMapping {
             buffer: self,
             // fun exercise:

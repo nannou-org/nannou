@@ -211,7 +211,7 @@ impl<'a> Builder<'a> {
         let (color_attachments, depth_stencil_attachment) = self.into_inner();
         let descriptor = wgpu::RenderPassDescriptor {
             label: Some("nannou_render_pass"),
-            color_attachments: &color_attachments,
+            color_attachments: &color_attachments.into_iter().map(|x| Some(x)).collect(),
             depth_stencil_attachment,
         };
         encoder.begin_render_pass(&descriptor)

@@ -1,4 +1,4 @@
-use wgpu_upstream::BufferBinding;
+use wgpu_upstream::{BufferBinding, SamplerBindingType};
 
 use crate as wgpu;
 
@@ -60,21 +60,13 @@ impl LayoutBuilder {
 
     /// Add a sampler binding to the layout.
     pub fn sampler(self, visibility: wgpu::ShaderStages, filtering: bool) -> Self {
-        let comparison = false;
-        let ty = wgpu::BindingType::Sampler {
-            filtering,
-            comparison,
-        };
+        let ty = wgpu::BindingType::Sampler(if filtering { SamplerBindingType::Filtering } else { SamplerBindingType::NonFiltering });
         self.binding(visibility, ty)
     }
 
     /// Add a sampler binding to the layout.
-    pub fn comparison_sampler(self, visibility: wgpu::ShaderStages, filtering: bool) -> Self {
-        let comparison = true;
-        let ty = wgpu::BindingType::Sampler {
-            filtering,
-            comparison,
-        };
+    pub fn comparison_sampler(self, visibility: wgpu::ShaderStages) -> Self {
+        let ty = wgpu::BindingType::Sampler(SamplerBindingType::Comparison);
         self.binding(visibility, ty)
     }
 
