@@ -6,12 +6,12 @@ struct Data {
 };
 
 struct VertexOutput {
-    [[location(0)]] out_normal: vec3<f32>;
+    @location(0) out_normal: vec3<f32>;
     [[location(1)]] out_color: vec3<f32>;
-    [[builtin(position)]] out_pos: vec4<f32>;
+    @builtin(position) out_pos: vec4<f32>,
 };
 
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> uniforms: Data;
 
 fn custom_inverse(m: mat3x3<f32>) -> mat3x3<f32> {
@@ -30,9 +30,9 @@ fn custom_inverse(m: mat3x3<f32>) -> mat3x3<f32> {
     return minv;
 }
 
-[[stage(vertex)]]
+@vertex
 fn main(
-    [[location(0)]] pos: vec3<f32>,
+    @location(0) pos: vec3<f32>,
     [[location(1)]] normal: vec3<f32>,
     [[location(2)]] mat0: vec4<f32>,
     [[location(3)]] mat1: vec4<f32>,

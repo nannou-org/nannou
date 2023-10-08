@@ -559,7 +559,7 @@ fn build(
         depth_stencil,
         multisample,
         fragment,
-        multiview: todo!(),
+        multiview: None,
     };
 
     device.create_render_pipeline(&pipeline_desc)

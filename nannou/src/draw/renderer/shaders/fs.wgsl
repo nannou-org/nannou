@@ -1,5 +1,5 @@
 struct FragmentOutput {
-    [[location(0)]] color: vec4<f32>;
+    @location(0) color: vec4<f32>;
 };
 
 [[group(1), binding(0)]]
@@ -11,9 +11,9 @@ var tex_sampler: sampler;
 [[group(2), binding(1)]]
 var tex: texture_2d<f32>;
 
-[[stage(fragment)]]
+@fragment
 fn main(
-    [[location(0)]] color: vec4<f32>,
+    @location(0) color: vec4<f32>,
     [[location(1)]] tex_coords: vec2<f32>,
     [[location(2)]] mode: u32,
 ) -> FragmentOutput {
