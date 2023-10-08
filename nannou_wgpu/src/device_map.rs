@@ -165,7 +165,7 @@ impl AdapterMap {
             .lock()
             .expect("failed to acquire `AdapterMap` lock");
         for adapter in map.values() {
-            adapter._poll_all_devices(maintain);
+            adapter._poll_all_devices(maintain.clone()); // TODO: clone?
         }
     }
 }
@@ -281,7 +281,7 @@ impl ActiveAdapter {
             .expect("failed to acquire `DeviceMap` lock");
         for weak in map.values() {
             if let Some(pair) = weak.upgrade() {
-                pair.device().poll(maintain);
+                pair.device().poll(maintain.clone()); // TODO: clone?
             }
         }
     }

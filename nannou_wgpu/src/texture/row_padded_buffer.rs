@@ -217,8 +217,8 @@ impl RowPaddedBuffer {
             // note: this is the layout of *this buffer*.
             layout: wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: std::num::NonZeroU32::new(self.padded_width()),
-                rows_per_image: std::num::NonZeroU32::new(self.height),
+                bytes_per_row: Some(self.padded_width()),
+                rows_per_image: Some(self.height),
             },
         };
         let texture_view = texture.as_image_copy();

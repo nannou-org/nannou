@@ -117,7 +117,7 @@ pub fn shader_from_spirv_bytes(
         label: Some("nannou_shader_module"),
         source,
     };
-    device.create_shader_module(&desc)
+    device.create_shader_module(desc)
 }
 
 /// Adds a simple render pass command to the given encoder that simply clears the given texture
