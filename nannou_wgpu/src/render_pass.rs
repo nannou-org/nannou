@@ -3,7 +3,7 @@ use crate::{self as wgpu, Color, LoadOp};
 /// A builder type to simplify the process of creating a render pass descriptor.
 #[derive(Debug, Default)]
 pub struct Builder<'a> {
-    color_attachments: Vec<wgpu::RenderPassColorAttachment<'a>>,
+    color_attachments: Vec<Option<wgpu::RenderPassColorAttachment<'a>>>,
     depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment<'a>>,
 }
 
@@ -168,7 +168,7 @@ impl<'a> Builder<'a> {
     {
         let builder = ColorAttachmentDescriptorBuilder::new(attachment);
         let descriptor = color_builder(builder).descriptor;
-        self.color_attachments.push(descriptor);
+        self.color_attachments.push(Some(descriptor));
         self
     }
 
@@ -196,7 +196,7 @@ impl<'a> Builder<'a> {
     pub fn into_inner(
         self,
     ) -> (
-        Vec<wgpu::RenderPassColorAttachment<'a>>,
+        Vec<Option<wgpu::RenderPassColorAttachment<'a>>>,
         Option<wgpu::RenderPassDepthStencilAttachment<'a>>,
     ) {
         let Builder {
@@ -211,7 +211,7 @@ impl<'a> Builder<'a> {
         let (color_attachments, depth_stencil_attachment) = self.into_inner();
         let descriptor = wgpu::RenderPassDescriptor {
             label: Some("nannou_render_pass"),
-            color_attachments: &color_attachments.into_iter().map(|x| Some(x)).collect(),
+            color_attachments: &color_attachments,
             depth_stencil_attachment,
         };
         encoder.begin_render_pass(&descriptor)

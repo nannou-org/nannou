@@ -52,7 +52,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         front_face: Self::DEFAULT_FRONT_FACE,
         cull_mode: Self::DEFAULT_CULL_MODE,
         polygon_mode: Self::DEFAULT_POLYGON_MODE,
-        clamp_depth: Self::DEFAULT_CLAMP_DEPTH,
+        unclipped_depth: Self::DEFAULT_UNCLIPPED_DEPTH,
         conservative: false,
     };
 
@@ -101,7 +101,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         slope_scale: Self::DEFAULT_DEPTH_BIAS_SLOPE_SCALE,
         clamp: Self::DEFAULT_DEPTH_BIAS_CLAMP,
     };
-    pub const DEFAULT_CLAMP_DEPTH: bool = false;
+    pub const DEFAULT_UNCLIPPED_DEPTH: bool = false;
     pub const DEFAULT_DEPTH_STENCIL: wgpu::DepthStencilState = wgpu::DepthStencilState {
         format: Self::DEFAULT_DEPTH_FORMAT,
         depth_write_enabled: Self::DEFAULT_DEPTH_WRITE_ENABLED,
