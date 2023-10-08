@@ -5,7 +5,7 @@ struct FragmentOutput {
 @fragment
 fn main(
     @location(0) normal: vec3<f32>,
-    [[location(1)]] color: vec3<f32>,
+    @location(1) color: vec3<f32>,
 ) -> FragmentOutput {
     let light: vec3<f32> = vec3<f32>(0.0, 0.0, 1.0);
     let brightness: f32 = dot(normalize(normal), normalize(light));

@@ -1,9 +1,7 @@
-[[block]]
 struct Buffer {
-    data: [[stride(4)]] array<f32>;
+    data: array<f32, 1>;
 };
 
-[[block]]
 struct Uniforms {
     time: f32;
     freq: f32;

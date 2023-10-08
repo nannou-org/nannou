@@ -1,4 +1,3 @@
-[[block]]
 struct Data {
     world: mat4x4<f32>;
     view: mat4x4<f32>;
@@ -32,7 +31,7 @@ fn custom_inverse(m: mat3x3<f32>) -> mat3x3<f32> {
 @vertex
 fn main(
     @location(0) pos: vec3<f32>,
-    [[location(1)]] normal: vec3<f32>,
+    @location(1) normal: vec3<f32>,
 ) -> VertexOutput {
     let worldview: mat4x4<f32> = uniforms.view * uniforms.world;
     let wv3: mat3x3<f32> = mat3x3<f32>(worldview[0].xyz, worldview[1].xyz, worldview[2].xyz);
