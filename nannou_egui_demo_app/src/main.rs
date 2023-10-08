@@ -1,5 +1,5 @@
 use nannou::prelude::*;
-use nannou_egui::{egui_wgpu_backend::epi::App as EguiApp, Egui};
+use nannou_egui::{Egui};
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -22,9 +22,9 @@ fn model(app: &App) -> Model {
     let mut egui = Egui::from_window(&window);
     let mut egui_demo_app = egui_demo_lib::WrapApp::default();
     let proxy = app.create_proxy();
-    egui.do_frame_with_epi_frame(proxy, |ctx, epi_frame| {
-        egui_demo_app.setup(&ctx, epi_frame, None);
-    });
+    // egui.do_frame_with_epi_frame(proxy, |ctx, epi_frame| {
+    //     egui_demo_app.setup(&ctx, epi_frame, None);
+    // });
     Model {
         egui,
         egui_demo_app,

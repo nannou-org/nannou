@@ -18,10 +18,13 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{env, fmt};
+use wgpu_upstream::CompositeAlphaMode;
 use winit::dpi::{LogicalSize, PhysicalSize};
+use winit::platform::macos::WindowBuilderExtMacOS;
 
 pub use winit::window::Fullscreen;
 pub use winit::window::WindowId as Id;
+use winit::window::{CursorGrabMode, WindowLevel};
 
 /// The default dimensions used for a window in the case that none are specified.
 pub const DEFAULT_DIMENSIONS: LogicalSize<geom::scalar::Default> = LogicalSize {
@@ -330,7 +333,7 @@ impl SurfaceConfigurationBuilder {
         let usage = self.usage.unwrap_or(Self::DEFAULT_USAGE);
         let format = self
             .format
-            .or_else(|| surface.get_preferred_format(&adapter))
+            .or_else(|| surface.get_capabilities(&adapter).formats.get(0).map(|x| x.clone()))
             .unwrap_or(Self::DEFAULT_FORMAT);
         let present_mode = self.present_mode.unwrap_or(Self::DEFAULT_PRESENT_MODE);
         wgpu::SurfaceConfiguration {
@@ -339,6 +342,8 @@ impl SurfaceConfigurationBuilder {
             width: width_px,
             height: height_px,
             present_mode,
+            alpha_mode: CompositeAlphaMode::Auto,
+            view_formats: Vec::new(),
         }
     }
 }
@@ -780,11 +785,11 @@ impl<'app> Builder<'app> {
 
         // Set default dimensions in the case that none were given.
         let initial_window_size = window
-            .window
+            .window_attributes()
             .inner_size
             .or_else(|| {
                 window
-                    .window
+                    .window_attributes()
                     .fullscreen
                     .as_ref()
                     .and_then(|fullscreen| match fullscreen {
@@ -807,7 +812,7 @@ impl<'app> Builder<'app> {
             })
             .unwrap_or_else(|| {
                 let mut dim = DEFAULT_DIMENSIONS;
-                if let Some(min) = window.window.min_inner_size {
+                if let Some(min) = window.window_attributes().min_inner_size {
                     match min {
                         winit::dpi::Size::Logical(min) => {
                             dim.width = dim.width.max(min.width as _);
@@ -820,7 +825,7 @@ impl<'app> Builder<'app> {
                         }
                     }
                 }
-                if let Some(max) = window.window.max_inner_size {
+                if let Some(max) = window.window_attributes().max_inner_size {
                     match max {
                         winit::dpi::Size::Logical(max) => {
                             dim.width = dim.width.min(max.width as _);
@@ -838,13 +843,13 @@ impl<'app> Builder<'app> {
 
         // Use the `initial_window_size` as the default dimensions for the window if none
         // were specified.
-        if window.window.inner_size.is_none() && window.window.fullscreen.is_none() {
-            window.window.inner_size = Some(initial_window_size);
+        if window.window_attributes().inner_size.is_none() && window.window_attributes().fullscreen.is_none() {
+            window = window.with_inner_size(initial_window_size);
         }
 
         // Set a default minimum window size for configuring the surface.
-        if window.window.min_inner_size.is_none() && window.window.fullscreen.is_none() {
-            window.window.min_inner_size = Some(winit::dpi::Size::Physical(MIN_SC_PIXELS));
+        if window.window_attributes().min_inner_size.is_none() && window.window_attributes().fullscreen.is_none() {
+            window = window.with_min_inner_size(winit::dpi::Size::Physical(MIN_SC_PIXELS));
         }
 
         // Background must be initially cleared
@@ -852,7 +857,7 @@ impl<'app> Builder<'app> {
 
         let clear_color = clear_color.unwrap_or_else(|| {
             let mut color: wgpu::Color = Default::default();
-            color.a = if window.window.transparent { 0.0 } else { 1.0 };
+            color.a = if window.window_attributes().transparent { 0.0 } else { 1.0 };
             color
         });
 
@@ -882,7 +887,7 @@ impl<'app> Builder<'app> {
         }
 
         // Build the wgpu surface.
-        let surface = unsafe { app.instance().create_surface(&window) };
+        let surface = unsafe { app.instance().create_surface(&window).expect("Could not create surface") };
 
         // Request the adapter.
         let request_adapter_opts = wgpu::RequestAdapterOptions {
@@ -1075,7 +1080,7 @@ impl<'app> Builder<'app> {
 
     /// Sets whether or not the window will always be on top of other windows.
     pub fn always_on_top(self, always_on_top: bool) -> Self {
-        self.map_window(|w| w.with_always_on_top(always_on_top))
+        self.map_window(|w| w.with_window_level(if always_on_top { WindowLevel::AlwaysOnBottom } else { WindowLevel::Normal }))
     }
 
     /// Sets the window icon.
@@ -1319,7 +1324,7 @@ impl Window {
 
     /// Change whether or not the window will always be on top of other windows.
     pub fn set_always_on_top(&self, always_on_top: bool) {
-        self.window.set_always_on_top(always_on_top)
+        self.window.set_window_level(if always_on_top { WindowLevel::AlwaysOnTop } else { WindowLevel::Normal })
     }
 
     /// Sets the window icon. On Windows and X11, this is typically the small icon in the top-left
@@ -1384,7 +1389,7 @@ impl Window {
     /// - **iOS:** Always returns an Err.
     /// - **Web:** Has no effect.
     pub fn set_cursor_grab(&self, grab: bool) -> Result<(), winit::error::ExternalError> {
-        self.window.set_cursor_grab(grab)
+        self.window.set_cursor_grab(if grab { CursorGrabMode::Locked } else { CursorGrabMode::None })
     }
 
     /// Set the cursor's visibility.

@@ -2,8 +2,8 @@ pub use egui;
 pub use egui::color_picker;
 pub use egui_wgpu_backend;
 
-use egui::{pos2, ClippedMesh, CtxRef};
-use egui_wgpu_backend::{epi, ScreenDescriptor};
+use egui::{pos2};
+use egui_wgpu_backend::{ScreenDescriptor};
 use nannou::{wgpu, winit::event::VirtualKeyCode, winit::event::WindowEvent::*};
 use std::{
     cell::RefCell,
@@ -11,6 +11,7 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
+use nannou::wgpu::ToTextureView;
 
 /// All `egui`-related state for a single window.
 ///
@@ -126,7 +127,7 @@ impl Egui {
         self.renderer
             .borrow_mut()
             .render_pass
-            .egui_texture_from_wgpu_texture(device, texture, texture_filter)
+            .egui_texture_from_wgpu_texture(device, &texture.to_texture_view(), texture_filter)
     }
 
     /// Registers a wgpu::Texture with an existing egui::TextureId.
@@ -152,54 +153,54 @@ impl Egui {
         renderer.draw_to_frame(&self.context, frame)
     }
 
-    /// Provide access to an `epi::Frame` within the given function.
-    ///
-    /// This method is primarily used for apps based on the `epi` interface.
-    pub fn with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F)
-    where
-        F: FnOnce(&CtxRef, &mut epi::Frame),
-    {
-        let mut renderer = self.renderer.borrow_mut();
-        let integration_info = epi::IntegrationInfo {
-            native_pixels_per_point: Some(self.input.window_scale_factor as _),
-            // TODO: Provide access to this stuff.
-            web_info: None,
-            prefer_dark_mode: None,
-            cpu_usage: None,
-            name: "egui_nannou_wgpu",
-        };
-        let mut app_output = epi::backend::AppOutput::default();
-        let repaint_signal = Arc::new(RepaintSignal(Mutex::new(proxy)));
-        let mut frame = epi::backend::FrameBuilder {
-            info: integration_info,
-            tex_allocator: &mut renderer.render_pass,
-            // TODO: We may want to support a http feature for hyperlinks?
-            // #[cfg(feature = "http")]
-            // http: http.clone(),
-            output: &mut app_output,
-            repaint_signal: repaint_signal as Arc<_>,
-        }
-        .build();
-        f(&self.context, &mut frame)
-    }
+    // /// Provide access to an `epi::Frame` within the given function.
+    // ///
+    // /// This method is primarily used for apps based on the `epi` interface.
+    // pub fn with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F)
+    // where
+    //     F: FnOnce(&CtxRef, &mut epi::Frame),
+    // {
+    //     let mut renderer = self.renderer.borrow_mut();
+    //     let integration_info = epi::IntegrationInfo {
+    //         native_pixels_per_point: Some(self.input.window_scale_factor as _),
+    //         // TODO: Provide access to this stuff.
+    //         web_info: None,
+    //         prefer_dark_mode: None,
+    //         cpu_usage: None,
+    //         name: "egui_nannou_wgpu",
+    //     };
+    //     let mut app_output = AppOutput::default();
+    //     let repaint_signal = Arc::new(RepaintSignal(Mutex::new(proxy)));
+    //     let mut frame = epi::backend::FrameBuilder {
+    //         info: integration_info,
+    //         tex_allocator: &mut renderer.render_pass,
+    //         // TODO: We may want to support a http feature for hyperlinks?
+    //         // #[cfg(feature = "http")]
+    //         // http: http.clone(),
+    //         output: &mut app_output,
+    //         repaint_signal: repaint_signal as Arc<_>,
+    //     }
+    //     .build();
+    //     f(&self.context, &mut frame)
+    // }
 
-    /// The same as `with_epi_frame`, but calls `begin_frame` before calling the given function,
-    /// and then calls `end_frame` before returning.
-    pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F) -> egui::Output
-    where
-        F: FnOnce(&CtxRef, &mut epi::Frame),
-    {
-        self.begin_frame_inner();
-        self.with_epi_frame(proxy.clone(), f);
-        let output = self.end_frame_inner();
-
-        // If a repaint is required, ensure the event loop emits another update.
-        if output.needs_repaint {
-            proxy.wakeup().unwrap();
-        }
-
-        output
-    }
+    // /// The same as `with_epi_frame`, but calls `begin_frame` before calling the given function,
+    // /// and then calls `end_frame` before returning.
+    // pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F) -> egui::Output
+    // where
+    //     F: FnOnce(&CtxRef, &mut epi::Frame),
+    // {
+    //     self.begin_frame_inner();
+    //     self.with_epi_frame(proxy.clone(), f);
+    //     let output = self.end_frame_inner();
+    //
+    //     // If a repaint is required, ensure the event loop emits another update.
+    //     if output.needs_repaint {
+    //         proxy.wakeup().unwrap();
+    //     }
+    //
+    //     output
+    // }
 
     fn begin_frame_inner(&mut self) {
         self.context.begin_frame(self.input.raw.take());
@@ -441,13 +442,13 @@ impl<'a> Deref for FrameCtx<'a> {
     }
 }
 
-impl epi::RepaintSignal for RepaintSignal {
-    fn request_repaint(&self) {
-        if let Ok(guard) = self.0.lock() {
-            guard.wakeup().ok();
-        }
-    }
-}
+// impl epi::RepaintSignal for RepaintSignal {
+//     fn request_repaint(&self) {
+//         if let Ok(guard) = self.0.lock() {
+//             guard.wakeup().ok();
+//         }
+//     }
+// }
 
 /// Translates winit to egui keycodes.
 #[inline]

@@ -27,6 +27,7 @@ use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{self, future};
+use wgpu_upstream::InstanceDescriptor;
 use winit;
 use winit::event_loop::ControlFlow;
 
@@ -641,7 +642,7 @@ impl App {
         capture_frame_timeout: Option<Duration>,
         backends: wgpu::Backends,
     ) -> Self {
-        let instance = wgpu::Instance::new(backends);
+        let instance = wgpu::Instance::new(InstanceDescriptor{ backends, ..Default::default() });
         let adapters = Default::default();
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());

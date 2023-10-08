@@ -387,8 +387,8 @@ impl Renderer {
         // Load shader modules.
         let vs_desc = wgpu::include_wgsl!("shaders/vs.wgsl");
         let fs_desc = wgpu::include_wgsl!("shaders/fs.wgsl");
-        let vs_mod = device.create_shader_module(&vs_desc);
-        let fs_mod = device.create_shader_module(&fs_desc);
+        let vs_mod = device.create_shader_module(vs_desc);
+        let fs_mod = device.create_shader_module(fs_desc);
 
         // Create the glyph cache texture.
         let text_sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
@@ -1052,7 +1052,7 @@ fn create_text_bind_group_layout(device: &wgpu::Device, filtering: bool) -> wgpu
             wgpu::ShaderStages::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
-            Renderer::GLYPH_CACHE_TEXTURE_FORMAT.describe().sample_type,
+            Renderer::GLYPH_CACHE_TEXTURE_FORMAT.sample_type(None).expect("Expected format to have sample type"),
         )
         .build(device)
 }

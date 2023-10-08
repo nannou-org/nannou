@@ -307,6 +307,12 @@ impl WindowEvent {
             | winit::event::WindowEvent::ScaleFactorChanged { .. } => {
                 return None;
             }
+            // new 0.28 events
+            winit::event::WindowEvent::Ime(_) |
+            winit::event::WindowEvent::TouchpadMagnify { .. } |
+            winit::event::WindowEvent::SmartMagnify { .. } |
+            winit::event::WindowEvent::TouchpadRotate { .. } |
+            winit::event::WindowEvent::Occluded(_) => { return None }
         };
 
         Some(event)
