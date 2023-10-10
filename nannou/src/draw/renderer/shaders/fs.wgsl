@@ -1,5 +1,5 @@
 struct FragmentOutput {
-    @location(0) color: vec4<f32>;
+    @location(0) color: vec4<f32>,
 };
 
 @group(1) @binding(0)

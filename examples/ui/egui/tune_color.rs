@@ -58,7 +58,7 @@ fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event:
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &mut Model, frame: Frame) {
+fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
     frame.clear(BLACK);

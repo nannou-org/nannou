@@ -1,9 +1,9 @@
 pub use egui;
 pub use egui::color_picker;
-pub use egui_wgpu_backend;
+pub use egui_wgpu;
 
-use egui::{ClippedPrimitive, pos2};
-use egui_wgpu_backend::{ScreenDescriptor};
+use egui::{ClippedPrimitive, PlatformOutput, pos2};
+use egui_wgpu::renderer::ScreenDescriptor;
 use nannou::{wgpu, winit::event::VirtualKeyCode, winit::event::WindowEvent::*};
 use std::{
     cell::RefCell,
@@ -29,8 +29,9 @@ pub struct Egui {
 ///
 /// For targeting more than one window, users should construct a `Egui` for each.
 pub struct Renderer {
-    render_pass: egui_wgpu_backend::RenderPass,
+    renderer: egui_wgpu::Renderer,
     paint_jobs: Vec<ClippedPrimitive>,
+    textures_delta: egui::TexturesDelta,
 }
 
 /// Tracking user and application event input.
@@ -117,6 +118,10 @@ impl Egui {
         FrameCtx { ui, ended }
     }
 
+    pub fn end_frame(&mut self) -> PlatformOutput {
+        self.end_frame_inner()
+    }
+
     /// Registers a wgpu::Texture with a egui::TextureId.
     pub fn texture_from_wgpu_texture(
         &mut self,
@@ -126,8 +131,8 @@ impl Egui {
     ) -> egui::TextureId {
         self.renderer
             .borrow_mut()
-            .render_pass
-            .egui_texture_from_wgpu_texture(device, &texture.to_texture_view(), texture_filter)
+            .renderer
+            .register_native_texture(device, &texture.to_texture_view(), texture_filter)
     }
 
     /// Registers a wgpu::Texture with an existing egui::TextureId.
@@ -137,78 +142,31 @@ impl Egui {
         texture: &wgpu::Texture,
         texture_filter: wgpu::FilterMode,
         id: egui::TextureId,
-    ) -> Result<(), egui_wgpu_backend::BackendError> {
+    ) -> Result<(), egui_wgpu::WgpuError> {
         self.renderer
             .borrow_mut()
-            .render_pass
-            .update_egui_texture_from_wgpu_texture(device, &texture.to_texture_view(), texture_filter, id)
+            .renderer
+            .update_egui_texture_from_wgpu_texture(device, &texture.to_texture_view(), texture_filter, id);
+        Ok(())
     }
 
     /// Draws the contents of the inner `context` to the given frame.
     pub fn draw_to_frame(
-        &mut self,
+        &self,
         frame: &nannou::Frame,
-    ) -> Result<(), egui_wgpu_backend::BackendError> {
+    ) -> Result<(), egui_wgpu::WgpuError> {
         let mut renderer = self.renderer.borrow_mut();
-        renderer.draw_to_frame(&mut self.context, frame)
+        renderer.draw_to_frame(&self.context, frame)
     }
-
-    // /// Provide access to an `epi::Frame` within the given function.
-    // ///
-    // /// This method is primarily used for apps based on the `epi` interface.
-    // pub fn with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F)
-    // where
-    //     F: FnOnce(&CtxRef, &mut epi::Frame),
-    // {
-    //     let mut renderer = self.renderer.borrow_mut();
-    //     let integration_info = epi::IntegrationInfo {
-    //         native_pixels_per_point: Some(self.input.window_scale_factor as _),
-    //         // TODO: Provide access to this stuff.
-    //         web_info: None,
-    //         prefer_dark_mode: None,
-    //         cpu_usage: None,
-    //         name: "egui_nannou_wgpu",
-    //     };
-    //     let mut app_output = AppOutput::default();
-    //     let repaint_signal = Arc::new(RepaintSignal(Mutex::new(proxy)));
-    //     let mut frame = epi::backend::FrameBuilder {
-    //         info: integration_info,
-    //         tex_allocator: &mut renderer.render_pass,
-    //         // TODO: We may want to support a http feature for hyperlinks?
-    //         // #[cfg(feature = "http")]
-    //         // http: http.clone(),
-    //         output: &mut app_output,
-    //         repaint_signal: repaint_signal as Arc<_>,
-    //     }
-    //     .build();
-    //     f(&self.context, &mut frame)
-    // }
-
-    // /// The same as `with_epi_frame`, but calls `begin_frame` before calling the given function,
-    // /// and then calls `end_frame` before returning.
-    // pub fn do_frame_with_epi_frame<F>(&mut self, proxy: nannou::app::Proxy, f: F) -> egui::Output
-    // where
-    //     F: FnOnce(&CtxRef, &mut epi::Frame),
-    // {
-    //     self.begin_frame_inner();
-    //     self.with_epi_frame(proxy.clone(), f);
-    //     let output = self.end_frame_inner();
-    //
-    //     // If a repaint is required, ensure the event loop emits another update.
-    //     if output.needs_repaint {
-    //         proxy.wakeup().unwrap();
-    //     }
-    //
-    //     output
-    // }
 
     fn begin_frame_inner(&mut self) {
         self.context.begin_frame(self.input.raw.take());
     }
 
     fn end_frame_inner(&mut self) -> egui::PlatformOutput {
-        let egui::FullOutput { shapes, platform_output, .. } = self.context.end_frame();
+        let egui::FullOutput { shapes, platform_output, textures_delta, .. } = self.context.end_frame();
         self.renderer.borrow_mut().paint_jobs = self.context.tessellate(shapes);
+        self.renderer.borrow_mut().textures_delta = textures_delta;
         platform_output
     }
 }
@@ -342,12 +300,14 @@ impl Renderer {
         target_msaa_samples: u32,
     ) -> Self {
         Self {
-            render_pass: egui_wgpu_backend::RenderPass::new(
+            renderer: egui_wgpu::Renderer::new(
                 device,
                 target_format,
+               None,
                 target_msaa_samples,
             ),
             paint_jobs: Vec::new(),
+            textures_delta: Default::default(),
         }
     }
 
@@ -362,36 +322,47 @@ impl Renderer {
     /// Encode a render pass for drawing the given context's texture to the given `dst_texture`.
     pub fn encode_render_pass(
         &mut self,
-        context: &mut egui::Context,
+        context: &egui::Context,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         dst_size_pixels: [u32; 2],
         dst_scale_factor: f32,
         dst_texture: &wgpu::TextureView,
-    ) -> Result<(), egui_wgpu_backend::BackendError> {
-        let render_pass = &mut self.render_pass;
+    ) -> Result<(), egui_wgpu::WgpuError> {
+        let renderer = &mut self.renderer;
+        let textures = &self.textures_delta;
         let paint_jobs = &self.paint_jobs;
-        let [physical_width, physical_height] = dst_size_pixels;
         let screen_descriptor = ScreenDescriptor {
-            physical_width,
-            physical_height,
-            scale_factor: dst_scale_factor,
+            size_in_pixels: dst_size_pixels,
+            pixels_per_point: dst_scale_factor,
         };
-        let mut tex_manager = context.tex_manager();
-        let textures= tex_manager.write().take_delta();
-        render_pass.add_textures(device, queue, &textures)?;
-        render_pass.add_textures(&device, &queue, &Default::default())?;
-        render_pass.update_buffers(device, queue, &paint_jobs, &screen_descriptor);
-        render_pass.execute(encoder, dst_texture, &paint_jobs, &screen_descriptor, None)
+        for (id, image_delta) in &textures.set {
+            renderer.update_texture(&device, &queue, *id, &image_delta);
+        }
+        renderer.update_buffers(device, queue, encoder, &paint_jobs, &screen_descriptor);
+        let mut render_pass = encoder.begin_render_pass(&egui_wgpu::wgpu::RenderPassDescriptor {
+            label: Some("nannou_egui_render_pass"),
+            color_attachments: &[Some(egui_wgpu::wgpu::RenderPassColorAttachment {
+                view: &dst_texture,
+                resolve_target: None,
+                ops: egui_wgpu::wgpu::Operations {
+                    load: egui_wgpu::wgpu::LoadOp::Load,
+                    store: true,
+                },
+            })],
+            depth_stencil_attachment: None,
+        });
+        renderer.render(&mut render_pass, &paint_jobs, &screen_descriptor);
+        Ok(())
     }
 
     /// Encodes a render pass for drawing the given context's texture to the given frame.
     pub fn draw_to_frame(
         &mut self,
-        context: &mut egui::Context,
+        context: &egui::Context,
         frame: &nannou::Frame,
-    ) -> Result<(), egui_wgpu_backend::BackendError> {
+    ) -> Result<(), egui_wgpu::WgpuError> {
         let device_queue_pair = frame.device_queue_pair();
         let device = device_queue_pair.device();
         let queue = device_queue_pair.queue();

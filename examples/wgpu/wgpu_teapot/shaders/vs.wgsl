@@ -1,12 +1,12 @@
 struct Data {
-    world: mat4x4<f32>;
-    view: mat4x4<f32>;
-    proj: mat4x4<f32>;
+    world: mat4x4<f32>,
+    view: mat4x4<f32>,
+    proj: mat4x4<f32>,
 };
 
 struct VertexOutput {
-    @location(0) normal: vec3<f32>;
-    @builtin(position) pos: vec4<f32>;
+    @location(0) normal: vec3<f32>,
+    @builtin(position) pos: vec4<f32>,
 };
 
 @group(0) @binding(0)

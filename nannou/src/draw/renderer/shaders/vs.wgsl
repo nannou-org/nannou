@@ -1,12 +1,12 @@
 struct Data {
-    proj: mat4x4<f32>;
+    proj: mat4x4<f32>,
 };
 
 struct VertexOutput {
-    @location(0) color: vec4<f32>;
-    @location(1) tex_coords: vec2<f32>;
-    @location(2) mode: u32;
-    @builtin(position) pos: vec4<f32>;
+    @location(0) color: vec4<f32>,
+    @location(1) tex_coords: vec2<f32>,
+    @location(2) mode: u32,
+    @builtin(position) pos: vec4<f32>,
 };
 
 @group(0) @binding(0)

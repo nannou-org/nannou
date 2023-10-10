@@ -82,7 +82,7 @@ pub(crate) struct UserFunctions {
 }
 
 /// The user function type for drawing their model to the surface of a single window.
-pub type ViewFn<Model> = fn(&App, &mut Model, Frame);
+pub type ViewFn<Model> = fn(&App, &Model, Frame);
 
 /// The user function type for drawing their model to the surface of a single window.
 ///

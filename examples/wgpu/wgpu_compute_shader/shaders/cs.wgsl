@@ -1,11 +1,11 @@
 struct Buffer {
-    data: array<f32, 1>;
+    data: array<f32>,
 };
 
 struct Uniforms {
-    time: f32;
-    freq: f32;
-    oscillator_count: u32;
+    time: f32,
+    freq: f32,
+    oscillator_count: u32,
 };
 
 @group(0) @binding(0)
