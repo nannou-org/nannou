@@ -2,16 +2,15 @@ struct FragmentOutput {
     @location(0) out_color: vec4<f32>,
 };
 
-[[block]]
 struct Data {
-    sample_count: u32;
+    sample_count: u32,
 };
 
 @group(0) @binding(0)
 var tex: texture_multisampled_2d<f32>;
 @group(0) @binding(1)
 var tex_sampler: sampler;
-[[group(0), binding(2)]]
+@group(0) @binding(2)
 var<uniform> uniforms: Data;
 
 @fragment
