@@ -20,6 +20,7 @@ use std::time::Duration;
 use std::{env, fmt};
 use wgpu_upstream::CompositeAlphaMode;
 use winit::dpi::{LogicalSize, PhysicalSize};
+#[cfg(target_os = "macos")]
 use winit::platform::macos::WindowBuilderExtMacOS;
 
 pub use winit::window::Fullscreen;
