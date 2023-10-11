@@ -452,11 +452,25 @@ where
     /// thread as some platforms require that their application event loop and windows are
     /// initialised on the main thread.
     pub fn run(self) {
-        let rt = tokio::runtime::Builder::new_multi_thread()
+        let rt = Self::build_runtime();
+        rt.block_on(self.run_async())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn build_runtime() -> tokio::runtime::Runtime {
+        tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
-            .expect("failed to create tokio runtime");
-        rt.block_on(self.run_async())
+            .expect("failed to create tokio runtime")
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn build_runtime() -> tokio::runtime::Runtime {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("failed to create tokio runtime")
+
     }
 
     pub async fn run_async(self) {

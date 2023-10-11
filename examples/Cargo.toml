@@ -14,8 +14,6 @@ homepage = "https://github.com/nannou-org/nannou"
 edition = "2018"
 
 [dev-dependencies]
-tokio = { version = "1", features = ["full"] }
-futures = "0.3"
 audrey = "0.3"
 hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
 hrtf = "0.2"
