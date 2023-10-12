@@ -779,10 +779,25 @@ impl<'app> Builder<'app> {
             target_os = "netbsd",
             target_os = "openbsd"
         ))]
+        #[cfg(not(feature = "wayland"))]
         {
-            use winit::platform::unix::WindowBuilderExtUnix;
-            window = window.with_class("nannou".to_string(), "nannou".to_string());
+            use winit::platform::x11::WindowBuilderExtX11;
+            window = window.with_name("nannou".to_string(), "nannou".to_string());
         }
+
+        #[cfg(any(
+            target_os = "linux",
+            target_os = "dragonfly",
+            target_os = "freebsd",
+            target_os = "netbsd",
+            target_os = "openbsd"
+        ))]
+        #[cfg(feature = "wayland")]
+        {
+            use winit::platform::wayland::WindowBuilderExtWayland;
+            window = window.with_name("nannou".to_string(), "nannou".to_string());
+        }
+
 
         // Set default dimensions in the case that none were given.
         let initial_window_size = window
