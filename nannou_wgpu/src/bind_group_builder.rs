@@ -78,6 +78,16 @@ impl LayoutBuilder {
         view_dimension: wgpu::TextureViewDimension,
         sample_type: wgpu::TextureSampleType,
     ) -> Self {
+        // fix sample type in certain scenarios (constraint given by wgpu)
+        let sample_type = if multisampled
+            && matches!(
+                sample_type,
+                wgpu::TextureSampleType::Float { filterable: true }
+            ) {
+            wgpu::TextureSampleType::Float { filterable: false }
+        } else {
+            sample_type
+        };
         let ty = wgpu::BindingType::Texture {
             multisampled,
             view_dimension,
