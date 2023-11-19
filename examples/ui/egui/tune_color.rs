@@ -36,10 +36,10 @@ fn model(app: &App) -> Model {
 
 fn update(_app: &App, model: &mut Model, update: Update) {
     let Model {
-        ref mut egui,
-        ref mut radius,
-        ref mut color,
-    } = *model;
+        egui,
+        radius,
+        color,
+    } = model;
 
     egui.set_elapsed_time(update.since_start);
     let ctx = egui.begin_frame();

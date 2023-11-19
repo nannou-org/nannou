@@ -48,16 +48,16 @@ where
         FR: stream::output::RenderFn<M, S>,
     {
         let Requester {
-            ref mut samples,
+            samples,
             num_frames,
-            ref mut pending_range,
-        } = *self;
+            pending_range,
+        } = self;
 
         // Ensure that the buffer length makes sense given the number of channels.
         assert_eq!(output.len() % channels, 0);
 
         // Determine the number of samples in the buffer.
-        let num_samples = num_frames * channels;
+        let num_samples = *num_frames * channels;
 
         // if `output` is empty, there's nothing to fill.
         if output.is_empty() {

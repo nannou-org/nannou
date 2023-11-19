@@ -220,7 +220,7 @@ impl<M, FC, FE, S> Builder<M, FC, FE, S> {
         // Wrap the user's error function.
         let err_fn = move |err| {
             if let Ok(mut guard) = model_error.lock() {
-                if let Some(ref mut model) = *guard {
+                if let Some(model) = guard.as_mut() {
                     error(model, err);
                 }
             }

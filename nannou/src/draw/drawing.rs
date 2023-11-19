@@ -73,12 +73,12 @@ impl<'a> DrawingContext<'a> {
     // Initialise the DrawingContext from the draw's IntermediaryState.
     pub(crate) fn from_intermediary_state(state: &'a mut super::IntermediaryState) -> Self {
         let super::IntermediaryState {
-            ref mut intermediary_mesh,
-            ref mut path_event_buffer,
-            ref mut path_points_colored_buffer,
-            ref mut path_points_textured_buffer,
-            ref mut text_buffer,
-        } = *state;
+            intermediary_mesh,
+            path_event_buffer,
+            path_points_colored_buffer,
+            path_points_textured_buffer,
+            text_buffer,
+        } = state;
         DrawingContext {
             mesh: intermediary_mesh,
             path_event_buffer: path_event_buffer,

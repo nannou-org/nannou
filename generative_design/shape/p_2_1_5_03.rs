@@ -110,7 +110,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
-    if let Some(ref mut s) = model.new_shape {
+    if let Some(s) = model.new_shape {
         s.x2 = app.mouse.x;
         s.y2 = app.mouse.y;
         s.h = model.shape_height;
