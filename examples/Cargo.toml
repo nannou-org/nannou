@@ -81,6 +81,9 @@ path = "draw/draw_mesh.rs"
 name = "draw_polygon"
 path = "draw/draw_polygon.rs"
 [[example]]
+name = "draw_instanced_polygon"
+path = "draw/draw_instanced_polygon.rs"
+[[example]]
 name = "draw_polyline"
 path = "draw/draw_polyline.rs"
 [[example]]
