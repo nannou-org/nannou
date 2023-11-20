@@ -839,7 +839,7 @@ impl App {
     ///
     /// - Linux uses F11.
     /// - macOS uses apple key + f.
-    /// - Windows uses windows key + f.
+    /// - Windows uses Alt + Enter or F11.
     pub fn fullscreen_on_shortcut(&self) -> bool {
         self.config.borrow().fullscreen_on_shortcut
     }
@@ -849,7 +849,7 @@ impl App {
     ///
     /// - Linux uses F11.
     /// - macOS uses apple key + f.
-    /// - Windows uses windows key + f.
+    /// - Windows uses Alt + Enter or F11.
     pub fn set_fullscreen_on_shortcut(&self, b: bool) {
         self.config.borrow_mut().fullscreen_on_shortcut = b;
     }
@@ -1437,8 +1437,22 @@ fn should_toggle_fullscreen(
             }
         }
 
-    // On macos and windows check for the logo key plus `f` with no other modifiers.
-    } else if cfg!(target_os = "macos") || cfg!(target_os = "windows") {
+    // On windows check for Alt+Enter or F11 key (with no modifiers down).
+    } else if cfg!(target_os = "windows") {
+        if mods.alt() {
+            if let Key::Return = key {
+                return true;
+            }
+        }
+
+        if *mods == winit::event::ModifiersState::empty() {
+            if let Key::F11 = key {
+                return true;
+            }
+        }
+
+    // On macos check for the logo key plus `f` with no other modifiers.
+    } else if cfg!(target_os = "macos") {
         if mods.logo() {
             if let Key::F = key {
                 return true;
