@@ -33,10 +33,21 @@ streams.*
 
 ## Supported Protocols
 
-Currently, **nannou_laser** only supports the open source [Ether Dream
-DAC](https://ether-dream.com/) protocol. The plan is to progressively add
-support for more protocols as they are needed by ourselves and users throughout
-the lifetime of the project.
+Currently, **nannou_laser** supports the [Ether Dream](https://ether-dream.com/) and [Helios](https://bitlasers.com/helios-laser-dac/) open-source DAC protocols.
+
+When creating a new Frame/Raw Stream the type of DAC to be detected can be specified using the `Builder::dac_variant()` method. If this is not specified the Ether dream variant is selected by default.
+
+```
+let _laser_api = laser::Api::new();
+let laser_stream = _laser_api
+    .new_raw_stream(laser_model, laser)
+    .dac_variant(laser::DacVariant::DacVariantHelios)
+    .build()
+    .unwrap();
+```
+If you have issues starting a laser stream using the Helios DAC in linux, ensure you have [setup your udev rules](https://github.com/Grix/helios_dac/blob/master/docs/udev_rules_for_linux.md). 
+
+The plan is to progressively add support for more protocols as they are needed by ourselves and users throughout the lifetime of the project.
 
 ## License
 

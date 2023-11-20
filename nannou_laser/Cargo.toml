@@ -1,10 +1,10 @@
 [package]
 name = "nannou_laser"
 version ="0.18.0"
-authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>, Waseem G <contact@waseem-g.com>"]
 description = "A cross-platform laser DAC detection and streaming API."
 edition = "2018"
-keywords = ["laser", "dac", "stream", "frame", "ether-dream"]
+keywords = ["laser", "dac", "stream", "frame", "ether-dream", "helios"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/nannou-org/nannou_laser.git"
 homepage = "https://github.com/nannou-org/nannou_laser"
@@ -15,6 +15,7 @@ crate-type = ["rlib", "staticlib", "cdylib"]
 
 [dependencies]
 ether-dream = "~0.2.5"
+helios-dac = { git = "https://github.com/seem-less/helios-dac-rs.git", branch="nannou-integration", default-features = false, features = ["native"] }
 ilda-idtf = { version = "0.1", optional = true }
 lasy = "0.4.1"
 thiserror = "1"

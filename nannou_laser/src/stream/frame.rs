@@ -1,5 +1,5 @@
-use crate::stream;
 use crate::stream::raw::{self, Buffer, StreamError};
+use crate::{stream, DacVariant};
 use crate::{Point, RawPoint};
 use std::io;
 use std::ops::{Deref, DerefMut};
@@ -162,6 +162,14 @@ impl<M, F, R, E> Builder<M, F, R, E> {
     /// The DAC with which the stream should be established.
     pub fn detected_dac(mut self, dac: crate::DetectedDac) -> Self {
         self.builder.dac = Some(dac);
+        self.builder.dac_variant = if let Some(ref dac) = self.builder.dac {
+            match dac {
+                crate::DetectedDac::EtherDream { .. } => Some(DacVariant::DacVariantEtherdream),
+                crate::DetectedDac::Helios { .. } => Some(DacVariant::DacVariantHelios),
+            }
+        } else {
+            None
+        };
         self
     }
 
@@ -331,6 +339,16 @@ impl<M, F, R, E> Builder<M, F, R, E> {
         }
     }
 
+    /// DAC variant specified by user to be used for this stream.
+    ///
+    /// If none is specified DacVariant::DacVariantEtherdream will be used.
+    ///
+    /// DAC detection will only be attempted for this DAC variant.
+    pub fn dac_variant(mut self, variant: DacVariant) -> Self {
+        self.builder.dac_variant = Some(variant);
+        self
+    }
+
     /// Build the stream with the specified parameters.
     ///
     /// **Note:** If no `dac` was specified, this will method will block until a DAC is detected.
@@ -401,6 +419,7 @@ impl<M, F, R, E> Builder<M, F, R, E> {
             model,
             render: raw_render,
             stream_error,
+            is_frame: true,
         };
         let raw_stream = raw_builder.build()?;
         let stream = Stream {

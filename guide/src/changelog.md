@@ -15,6 +15,7 @@ back to the origins.
 - Move `nannou_conrod` and `nannou_timeline` into a new repository:
   https://github.com/nannou-org/nannou_conrod. Both crates are deprecated in
   favour of `nannou_egui`.
+- Added support for the Helios DAC to nannou_laser
 
 ---
 
