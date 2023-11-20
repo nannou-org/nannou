@@ -54,7 +54,7 @@ pub mod window;
 ///
 /// The Model that is returned by the function is the same model that will be passed to the
 /// given event and view functions.
-pub fn app<M: 'static>(model: app::ModelFn<M>) -> app::Builder<M, Event> {
+pub fn app<M: 'static>(model: impl app::ModelFn<M>) -> app::Builder<M, Event> {
     app::Builder::new(model)
 }
 
@@ -63,6 +63,6 @@ pub fn app<M: 'static>(model: app::ModelFn<M>) -> app::Builder<M, Event> {
 ///
 /// This is useful for late night hack sessions where you just don't care about all that other
 /// stuff, you just want to play around with some ideas or make something pretty.
-pub fn sketch(view: app::SketchViewFn) -> app::SketchBuilder<Event> {
+pub fn sketch(view: impl app::SketchViewFn) -> app::SketchBuilder<Event> {
     app::Builder::sketch(view)
 }

@@ -29,6 +29,7 @@ serde = "1"
 serde_derive = "1"
 serde_json = "1"
 toml = "0.5"
+trait-set = "0.3.0"
 walkdir = "2"
 web-sys = { version = "0.3.55", optional = true }
 wgpu_upstream = { version = "0.11.1", package = "wgpu" }
