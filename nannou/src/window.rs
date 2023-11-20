@@ -101,10 +101,10 @@ pub(crate) enum View {
 }
 
 /// A function for processing raw winit window events.
-pub type RawEventFn<Model> = fn(&App, &mut Model, &winit::event::WindowEvent);
+pub type RawEventFn<Model> = fn(&App, &mut Model, &winit::event::WindowEvent, Id);
 
 /// A function for processing window events.
-pub type EventFn<Model> = fn(&App, &mut Model, WindowEvent);
+pub type EventFn<Model> = fn(&App, &mut Model, WindowEvent, Id);
 
 /// A function for processing key press events.
 pub type KeyPressedFn<Model> = fn(&App, &mut Model, Key);

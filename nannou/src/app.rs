@@ -1610,7 +1610,7 @@ where
             let raw_window_event_fn = raw_window_event_fn
                 .to_fn_ptr::<M>()
                 .expect("unexpected model argument given to window event function");
-            (*raw_window_event_fn)(&app, model, event);
+            (*raw_window_event_fn)(&app, model, event, window_id);
         }
 
         let (win_w, win_h, scale_factor) = {
@@ -1645,7 +1645,7 @@ where
                 let window_event_fn = window_event_fn
                     .to_fn_ptr::<M>()
                     .expect("unexpected model argument given to window event function");
-                (*window_event_fn)(&app, model, simple.clone());
+                (*window_event_fn)(&app, model, simple.clone(), window_id);
             }
 
             // A macro to simplify calling event-specific user functions.
