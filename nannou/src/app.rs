@@ -1028,7 +1028,7 @@ impl EventLoopWindowTarget {
     // This method is solely used during `window::Builder::build` to allow for
     pub(crate) fn as_ref(&self) -> &winit::event_loop::EventLoopWindowTarget<()> {
         match *self {
-            EventLoopWindowTarget::Owned(ref event_loop) => (&**event_loop),
+            EventLoopWindowTarget::Owned(ref event_loop) => &**event_loop,
             EventLoopWindowTarget::Pointer(ptr) => {
                 // This cast is safe, assuming that the `App`'s `EventLoopWindowTarget` will only
                 // ever be in the `Pointer` state while the pointer is valid - that is, during the

@@ -7,7 +7,7 @@ readme = "README.md"
 license = "MIT"
 repository = "https://github.com/nannou-org/nannou.git"
 homepage = "https://nannou.cc"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 glam = { version = "0.17", default-features = false, features = ["num-traits", "rand"] }

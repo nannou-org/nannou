@@ -8,7 +8,7 @@ keywords = ["OSC", "protocol", "cross-platform", "UDP", "socket"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/nannou-org/nannou_osc.git"
 homepage = "https://nannou.cc"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 rosc = "0.1"
