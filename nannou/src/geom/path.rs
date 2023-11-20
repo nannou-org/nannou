@@ -116,6 +116,13 @@ impl Builder {
         self
     }
 
+    /// Closes the current sub path without resetting the position to the first position of the
+    /// current sub-path.
+    pub fn end(mut self) -> Self {
+        self.builder.end(false);
+        self
+    }
+
     /// Add a quadratic bezier curve to the path.
     pub fn quadratic_bezier_to(mut self, ctrl: Point2, to: Point2) -> Self {
         self.builder
