@@ -18,6 +18,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{env, fmt};
+use thiserror::Error;
 use winit::dpi::{LogicalSize, PhysicalSize};
 
 pub use winit::window::Fullscreen;
@@ -164,10 +165,12 @@ pub type UnfocusedFn<Model> = fn(&App, &mut Model);
 pub type ClosedFn<Model> = fn(&App, &mut Model);
 
 /// Errors that might occur while building the window.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum BuildError {
+    #[error("no wgpu adapter available to build window")]
     NoAvailableAdapter,
-    WinitOsError(winit::error::OsError),
+    #[error(transparent)]
+    WinitOsError(#[from] winit::error::OsError),
 }
 
 // A macro for generating a handle to a function that can be stored within the Window without
@@ -1568,23 +1571,6 @@ impl fmt::Debug for View {
             View::Sketch(_) => "Sketch".to_string(),
         };
         write!(f, "View::{}", variant)
-    }
-}
-
-// Error implementations.
-
-impl fmt::Display for BuildError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            BuildError::NoAvailableAdapter => write!(f, "no available wgpu adapter detected"),
-            BuildError::WinitOsError(ref e) => e.fmt(f),
-        }
-    }
-}
-
-impl From<winit::error::OsError> for BuildError {
-    fn from(e: winit::error::OsError) -> Self {
-        BuildError::WinitOsError(e)
     }
 }
 

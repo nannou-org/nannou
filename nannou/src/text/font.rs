@@ -4,6 +4,7 @@ use crate::text::{Font, FontCollection};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
+use thiserror::Error;
 
 /// A type-safe wrapper around the `FontId`.
 ///
@@ -34,11 +35,13 @@ pub struct Ids<'a> {
 }
 
 /// Returned when loading new fonts from file or bytes.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
     /// Some error occurred while loading a `FontCollection` from a file.
-    Io(std::io::Error),
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
     /// No `Font`s could be yielded from the `FontCollection`.
+    #[error("No `Font` found in the loaded `FontCollection`.")]
     NoFont,
 }
 
@@ -200,29 +203,5 @@ impl<'a> Iterator for Ids<'a> {
     type Item = Id;
     fn next(&mut self) -> Option<Self::Item> {
         self.keys.next().map(|&id| id)
-    }
-}
-
-impl From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Self {
-        Error::Io(e)
-    }
-}
-
-impl std::error::Error for Error {
-    fn cause(&self) -> Option<&dyn std::error::Error> {
-        match *self {
-            Error::Io(ref e) => Some(e),
-            Error::NoFont => None,
-        }
-    }
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        match *self {
-            Error::Io(ref e) => std::fmt::Display::fmt(e, f),
-            Error::NoFont => write!(f, "No `Font` found in the loaded `FontCollection`."),
-        }
     }
 }
