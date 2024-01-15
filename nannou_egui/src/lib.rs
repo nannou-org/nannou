@@ -2,7 +2,7 @@ pub use egui;
 pub use egui::color_picker;
 pub use egui_wgpu;
 
-use egui::{ClippedPrimitive, PlatformOutput, pos2};
+use egui::{ClippedPrimitive, Context, PlatformOutput, pos2};
 use egui_wgpu::renderer::ScreenDescriptor;
 use nannou::{wgpu, winit::event::VirtualKeyCode, winit::event::WindowEvent::*};
 use std::{

@@ -1,4 +1,5 @@
 use std::ops::Deref;
+use std::sync::{Arc, Mutex};
 use nannou::prelude::*;
 use nannou_egui::{Egui};
 
@@ -22,7 +23,11 @@ fn model(app: &App) -> Model {
     let window = app.window(w_id).unwrap();
     let mut egui = Egui::from_window(&window);
     let mut egui_demo_app = egui_demo_lib::DemoWindows::default();
-    let proxy = app.create_proxy();
+
+    let proxy = Arc::new(Mutex::new(app.create_proxy()));
+    egui.ctx().set_request_repaint_callback(move |_| {
+        proxy.lock().unwrap().wakeup().unwrap();
+    });
     Model {
         egui,
         egui_demo_app,
@@ -40,11 +45,12 @@ fn update(app: &App, model: &mut Model, update: Update) {
         ..
     } = *model;
     egui.set_elapsed_time(update.since_start);
-    let proxy = app.create_proxy();
-    egui.begin_frame();
-    egui_demo_app.ui(egui.ctx());
+    let ctx = egui.begin_frame();
+    egui_demo_app.ui(&ctx.context());
+    let _ = ctx.end();
 }
 
 fn view(_app: &App, model: &Model, frame: Frame) {
+    frame.clear(BLACK);
     model.egui.draw_to_frame(&frame).unwrap();
 }
