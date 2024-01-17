@@ -59,7 +59,7 @@ struct ContourPathEvents {
 impl<'a, 'b> Iterator for Rects<'a, 'b> {
     type Item = (ScaledGlyph<'a>, Rect);
     fn next(&mut self) -> Option<Self::Item> {
-        let Rects { ref mut layout, y } = *self;
+        let Rects { layout, y } = self;
         layout.next().map(|g| {
             let left = g.position().x;
             let (right, height) = g

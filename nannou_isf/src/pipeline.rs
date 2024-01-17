@@ -382,7 +382,7 @@ impl IsfInputData {
             (IsfInputData::Float(_), isf::InputType::Float(_)) => {}
             (IsfInputData::Point2d(_), isf::InputType::Point2d(_)) => {}
             (IsfInputData::Color(_), isf::InputType::Color(_)) => {}
-            (IsfInputData::Image(ref mut state), isf::InputType::Image) => {
+            (IsfInputData::Image(state), isf::InputType::Image) => {
                 if let Some(img_path) = image_paths(images_path).next() {
                     state.update(device, encoder, image_loader, img_path);
                 }

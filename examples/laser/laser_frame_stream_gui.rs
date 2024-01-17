@@ -326,7 +326,7 @@ fn update(_app: &App, model: &mut Model, update: Update) {
         ref mut egui,
         ref laser_streams,
         ref mut laser_model,
-        ref mut laser_settings,
+        laser_settings,
         ..
     } = *model;
 

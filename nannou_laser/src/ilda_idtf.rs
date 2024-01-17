@@ -52,10 +52,10 @@ where
         self.points.clear();
         loop {
             let FrameReader {
-                ref mut reader,
-                ref mut points,
-                ref mut palette,
-            } = *self;
+                reader,
+                points,
+                palette,
+            } = self;
 
             // Read the next section.
             let section = match reader.read_next()? {

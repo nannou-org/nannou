@@ -52,11 +52,11 @@ fn model(app: &App) -> Model {
 
 fn update(_app: &App, model: &mut Model, update: Update) {
     let Model {
-        ref mut egui,
-        ref mut settings,
-        ref mut circles,
+        egui,
+        settings,
+        circles,
         ..
-    } = *model;
+    } = model;
 
     egui.set_elapsed_time(update.since_start);
     let ctx = egui.begin_frame();
@@ -72,7 +72,7 @@ fn update(_app: &App, model: &mut Model, update: Update) {
             .add(egui::Slider::new(&mut settings.circle_count, 0..=2000).text("circle count"))
             .changed();
         changed |= ui.button("Generate").clicked();
-        if changed {
+        if !changed {
             *circles = generate_circles(settings);
         }
     });

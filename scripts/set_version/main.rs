@@ -103,12 +103,12 @@ fn update_dependencies_table(table: &mut toml_edit::Table, desired_version: &sem
             .entry(&dep)
             .as_value_mut()
             .expect("failed to retrieve toml value for dependency");
-        let version_value = match *value {
+        let version_value = match value {
             toml_edit::Value::String(_) => value,
-            toml_edit::Value::InlineTable(ref mut inline_table) => {
+            toml_edit::Value::InlineTable(inline_table) => {
                 inline_table.get_or_insert("version", "")
             }
-            ref v => panic!("unexpected dependency value: {:?}", v),
+            v => panic!("unexpected dependency value: {:?}", v),
         };
         *version_value = format!("{}", desired_version).into();
     }

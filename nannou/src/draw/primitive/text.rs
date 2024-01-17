@@ -310,10 +310,10 @@ impl draw::renderer::RenderPrimitive for Text {
         {
             let draw::renderer::RenderContext {
                 glyph_cache:
-                    &mut draw::renderer::GlyphCache {
-                        ref mut cache,
-                        ref mut pixel_buffer,
-                        ref mut requires_upload,
+                    draw::renderer::GlyphCache {
+                        cache,
+                        pixel_buffer,
+                        requires_upload,
                         ..
                     },
                 ..

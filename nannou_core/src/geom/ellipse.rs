@@ -357,10 +357,7 @@ where
 {
     type Item = Tri<[S; 2]>;
     fn next(&mut self) -> Option<Self::Item> {
-        let Triangles {
-            ref mut points,
-            ref mut last,
-        } = *self;
+        let Triangles { points, last } = self;
         points.next().map(|next| {
             let triangle = Tri([points.middle, *last, next]);
             *last = next;

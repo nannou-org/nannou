@@ -181,8 +181,8 @@ impl Default for Properties {
 
 // Expects the `Axes` variant from the given properties.
 fn expect_axes(p: &mut Properties) -> &mut Vec3 {
-    match *p {
-        Properties::Axes(ref mut axes) => axes,
+    match p {
+        Properties::Axes(axes) => axes,
         Properties::LookAt(_) => panic!("expected `Axes`, found `LookAt`"),
         Properties::Quat(_) => panic!("expected `Axes`, found `Quat`"),
     }
