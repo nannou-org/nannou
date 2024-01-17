@@ -3033,7 +3033,7 @@ dependencies = [
 
 [[package]]
 name = "nannou_egui_demo_app"
-version = "0.19.0"
+version = "0.1.0"
 dependencies = [
  "egui_demo_lib",
  "nannou",
@@ -3042,7 +3042,7 @@ dependencies = [
 
 [[package]]
 name = "nannou_isf"
-version = "0.19.0"
+version = "0.1.0"
 dependencies = [
  "hotglsl",
  "isf",
