@@ -255,6 +255,18 @@ where
     pub fn subdivisions_iter(&self) -> Subdivisions<S> {
         self.subdivision_ranges().rects_iter()
     }
+
+    /// Creates a rect with the specified ratio that fit in `self`.
+    ///
+    /// ratio = width / height
+    pub fn with_ratio(&self, ratio: S) -> Self {
+        let (w, h) = self.w_h();
+        if w < h * ratio {
+            Rect::from_w_h(w, w / ratio)
+        } else {
+            Rect::from_w_h(h * ratio, h)
+        }
+    }
 }
 
 impl<S> Rect<S>
