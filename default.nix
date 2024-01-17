@@ -16,7 +16,7 @@
 rustPlatform.buildRustPackage rec {
   pname = "nannou";
   src = ./.;
-  version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).workspace.package.version;
+  version = (builtins.fromTOML (builtins.readFile ./nannou/Cargo.toml)).package.version;
 
   cargoLock = {
     lockFile = ./Cargo.lock;

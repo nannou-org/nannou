@@ -24,9 +24,6 @@ members = [
     "scripts/set_version",
 ]
 
-[workspace.package]
-version = "0.19.0"
-
 # Required for wgpu v0.10 feature resolution.
 resolver = "2"
 
