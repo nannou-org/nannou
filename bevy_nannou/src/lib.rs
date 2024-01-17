@@ -11,7 +11,6 @@ impl Plugin for NannouPlugin {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use bevy::app::App;

@@ -4,6 +4,5 @@ use bevy::prelude::*;
 struct NannouWgpuPlugin;
 
 impl Plugin for NannouWgpuPlugin {
-    fn build(&self, app: &mut App) {
-    }
+    fn build(&self, app: &mut App) {}
 }
