@@ -1,5 +1,3 @@
-use std::num::NonZeroU8;
-
 use crate as wgpu;
 
 /// Simplifies the construction of a `Sampler` with a set of reasonable defaults.
@@ -15,10 +13,10 @@ impl<'b> SamplerBuilder {
     pub const DEFAULT_MAG_FILTER: wgpu::FilterMode = wgpu::FilterMode::Linear;
     pub const DEFAULT_MIN_FILTER: wgpu::FilterMode = wgpu::FilterMode::Linear;
     pub const DEFAULT_MIPMAP_FILTER: wgpu::FilterMode = wgpu::FilterMode::Nearest;
-    pub const DEFAULT_LOD_MIN_CLAMP: f32 = -100.0;
+    pub const DEFAULT_LOD_MIN_CLAMP: f32 = 0.0;
     pub const DEFAULT_LOD_MAX_CLAMP: f32 = 100.0;
     pub const DEFAULT_COMPARE: Option<wgpu::CompareFunction> = None;
-    pub const DEFAULT_ANISOTROPY_CLAMP: Option<NonZeroU8> = None;
+    pub const DEFAULT_ANISOTROPY_CLAMP: u16 = 1;
     pub const DEFAULT_LABEL: &'static str = "nannou-sampler";
     pub const DEFAULT_BORDER_COLOR: Option<wgpu::SamplerBorderColor> = None;
     pub const DEFAULT_DESCRIPTOR: wgpu::SamplerDescriptor<'static> = wgpu::SamplerDescriptor {
@@ -111,7 +109,7 @@ impl<'b> SamplerBuilder {
     }
 
     /// The anisotropy level to clamp to, if any.
-    pub fn anisotropy_clamp(mut self, clamp: Option<NonZeroU8>) -> Self {
+    pub fn anisotropy_clamp(mut self, clamp: u16) -> Self {
         self.descriptor.anisotropy_clamp = clamp;
         self
     }

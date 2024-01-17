@@ -2,8 +2,6 @@ use crate::{self as wgpu, RowPaddedBuffer, TextureHandle, TextureViewHandle};
 use std::ops::Deref;
 use std::sync::Arc;
 
-use std::num::NonZeroU32;
-
 #[cfg(feature = "capturer")]
 pub mod capturer;
 #[cfg(feature = "image")]
@@ -72,14 +70,14 @@ pub struct TextureViewInfo {
     /// If `Some`, base_mip_level + count must be less or equal to underlying texture mip count.
     ///
     /// If `None`, considered to include the rest of the mipmap levels, but at least 1 in total.
-    pub level_count: Option<NonZeroU32>,
+    pub level_count: Option<u32>,
     pub base_array_layer: u32,
     /// Layer count.
     ///
     /// If `Some`, base_array_layer + count must be less or equal to the underlying array count.
     ///
     /// If `None`, considered to include the rest of the array layers, but at least 1 in total.
-    pub array_layer_count: Option<NonZeroU32>,
+    pub array_layer_count: Option<u32>,
 }
 
 /// A unique identifier associated with a **Texture**.
@@ -177,7 +175,9 @@ impl Texture {
 
     /// The component type associated with the texture's format.
     pub fn sample_type(&self) -> wgpu::TextureSampleType {
-        self.format().describe().sample_type
+        self.format()
+            .sample_type(None)
+            .expect("Expected the format to have a sample type")
     }
 
     // Custom constructors.
@@ -242,9 +242,9 @@ impl Texture {
             dimension: self.view_dimension(),
             aspect: infer_aspect_from_format(format),
             base_mip_level: 0,
-            level_count: NonZeroU32::new(self.mip_level_count()),
+            level_count: Some(self.mip_level_count()),
             base_array_layer: 0,
-            array_layer_count: NonZeroU32::new(1),
+            array_layer_count: Some(1),
         }
     }
 
@@ -361,7 +361,7 @@ impl TextureView {
         self.info.base_mip_level
     }
 
-    pub fn level_count(&self) -> Option<NonZeroU32> {
+    pub fn level_count(&self) -> Option<u32> {
         self.info.level_count
     }
 
@@ -369,12 +369,14 @@ impl TextureView {
         self.info.base_array_layer
     }
 
-    pub fn array_layer_count(&self) -> Option<NonZeroU32> {
+    pub fn array_layer_count(&self) -> Option<u32> {
         self.info.array_layer_count
     }
 
     pub fn sample_type(&self) -> wgpu::TextureSampleType {
-        self.format().describe().sample_type
+        self.format()
+            .sample_type(None)
+            .expect("Expected the format to have a sample type")
     }
 
     pub fn id(&self) -> TextureViewId {
@@ -432,6 +434,7 @@ impl Builder {
         dimension: Self::DEFAULT_DIMENSION,
         format: Self::DEFAULT_FORMAT,
         usage: Self::DEFAULT_USAGE,
+        view_formats: &[],
     };
 
     /// Creates a new `Default` builder
@@ -583,7 +586,7 @@ impl<'a> ViewBuilder<'a> {
     /// If `Some`, base_mip_level + count must be less or equal to underlying texture mip count.
     ///
     /// If `None`, considered to include the rest of the mipmap levels, but at least 1 in total.
-    pub fn level_count(mut self, level_count: Option<NonZeroU32>) -> Self {
+    pub fn level_count(mut self, level_count: Option<u32>) -> Self {
         self.info.level_count = level_count;
         self
     }
@@ -598,8 +601,8 @@ impl<'a> ViewBuilder<'a> {
     /// If `Some`, base_array_layer + count must be less or equal to the underlying array count.
     ///
     /// If `None`, considered to include the rest of the array layers, but at least 1 in total.
-    pub fn array_layer_count(mut self, array_layer_count: Option<NonZeroU32>) -> Self {
-        match (self.info.dimension, array_layer_count.map(|n| n.get())) {
+    pub fn array_layer_count(mut self, array_layer_count: Option<u32>) -> Self {
+        match (self.info.dimension, array_layer_count) {
             (wgpu::TextureViewDimension::D2Array, Some(1)) => {
                 self.info.dimension = wgpu::TextureViewDimension::D2;
             }
@@ -619,8 +622,7 @@ impl<'a> ViewBuilder<'a> {
     ///     .array_layer_count(1)
     /// ```
     pub fn layer(self, layer: u32) -> Self {
-        self.base_array_layer(layer)
-            .array_layer_count(NonZeroU32::new(1))
+        self.base_array_layer(layer).array_layer_count(Some(1))
     }
 
     pub fn build(self) -> TextureView {
@@ -759,7 +761,9 @@ pub fn data_size_bytes(desc: &wgpu::TextureDescriptor) -> usize {
 
 /// Return the size of the given texture format in bytes.
 pub fn format_size_bytes(format: wgpu::TextureFormat) -> u32 {
-    format.describe().block_size as u32
+    format
+        .block_size(None)
+        .expect("Expected the format to have a block size") as u32
 }
 
 /// Returns `true` if the given `wgpu::Extent3d`s are equal.

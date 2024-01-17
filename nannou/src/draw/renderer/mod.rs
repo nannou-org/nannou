@@ -82,7 +82,7 @@ pub struct Renderer {
     glyph_cache_texture: wgpu::Texture,
     depth_texture: wgpu::Texture,
     depth_texture_view: wgpu::TextureView,
-    default_texture: wgpu::Texture,
+    _default_texture: wgpu::Texture,
     default_texture_view: wgpu::TextureView,
     uniform_bind_group_layout: wgpu::BindGroupLayout,
     uniform_bind_group: wgpu::BindGroup,
@@ -387,8 +387,8 @@ impl Renderer {
         // Load shader modules.
         let vs_desc = wgpu::include_wgsl!("shaders/vs.wgsl");
         let fs_desc = wgpu::include_wgsl!("shaders/fs.wgsl");
-        let vs_mod = device.create_shader_module(&vs_desc);
-        let fs_mod = device.create_shader_module(&fs_desc);
+        let vs_mod = device.create_shader_module(vs_desc);
+        let fs_mod = device.create_shader_module(fs_desc);
 
         // Create the glyph cache texture.
         let text_sampler_desc = wgpu::SamplerBuilder::new().into_descriptor();
@@ -462,7 +462,7 @@ impl Renderer {
             glyph_cache_texture,
             depth_texture,
             depth_texture_view,
-            default_texture,
+            _default_texture: default_texture,
             default_texture_view,
             uniform_bind_group_layout,
             uniform_bind_group,
@@ -1052,7 +1052,9 @@ fn create_text_bind_group_layout(device: &wgpu::Device, filtering: bool) -> wgpu
             wgpu::ShaderStages::FRAGMENT,
             false,
             wgpu::TextureViewDimension::D2,
-            Renderer::GLYPH_CACHE_TEXTURE_FORMAT.describe().sample_type,
+            Renderer::GLYPH_CACHE_TEXTURE_FORMAT
+                .sample_type(None)
+                .expect("Expected format to have sample type"),
         )
         .build(device)
 }

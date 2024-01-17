@@ -27,6 +27,7 @@ use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{self, future};
+use wgpu_upstream::InstanceDescriptor;
 use winit;
 use winit::event_loop::ControlFlow;
 
@@ -451,7 +452,24 @@ where
     /// thread as some platforms require that their application event loop and windows are
     /// initialised on the main thread.
     pub fn run(self) {
-        async_std::task::block_on(self.run_async())
+        let rt = Self::build_runtime();
+        rt.block_on(self.run_async())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn build_runtime() -> tokio::runtime::Runtime {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .expect("failed to create tokio runtime")
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn build_runtime() -> tokio::runtime::Runtime {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("failed to create tokio runtime")
     }
 
     pub async fn run_async(self) {
@@ -637,7 +655,10 @@ impl App {
         capture_frame_timeout: Option<Duration>,
         backends: wgpu::Backends,
     ) -> Self {
-        let instance = wgpu::Instance::new(backends);
+        let instance = wgpu::Instance::new(InstanceDescriptor {
+            backends,
+            ..Default::default()
+        });
         let adapters = Default::default();
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());
@@ -1028,7 +1049,7 @@ impl EventLoopWindowTarget {
     // This method is solely used during `window::Builder::build` to allow for
     pub(crate) fn as_ref(&self) -> &winit::event_loop::EventLoopWindowTarget<()> {
         match *self {
-            EventLoopWindowTarget::Owned(ref event_loop) => (&**event_loop),
+            EventLoopWindowTarget::Owned(ref event_loop) => &**event_loop,
             EventLoopWindowTarget::Pointer(ptr) => {
                 // This cast is safe, assuming that the `App`'s `EventLoopWindowTarget` will only
                 // ever be in the `Pointer` state while the pointer is valid - that is, during the
@@ -1125,7 +1146,7 @@ fn run_loop<M, E>(
             // TODO: Only request a frame from the user if this redraw was requested following an
             // update. Otherwise, just use the existing intermediary frame.
             winit::event::Event::RedrawRequested(window_id) => {
-                if let Some(model) = model.as_ref() {
+                if let Some(model) = model.as_mut() {
                     // Retrieve the surface frame and the number of this frame.
                     // NOTE: We avoid mutably borrowing `windows` map any longer than necessary to
                     // avoid restricting users from accessing `windows` during `view`.
@@ -1222,7 +1243,7 @@ fn run_loop<M, E>(
                                 let view = view.to_fn_ptr::<M>().expect(
                                     "unexpected model argument given to window view function",
                                 );
-                                (*view)(&app, &model, frame);
+                                (*view)(&app, model, frame);
                             }
                             Some(window::View::WithModelRaw(raw_view)) => {
                                 let raw_view = raw_view.to_fn_ptr::<M>().expect(

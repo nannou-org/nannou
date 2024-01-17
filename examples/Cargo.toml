@@ -14,7 +14,6 @@ homepage = "https://github.com/nannou-org/nannou"
 edition = "2018"
 
 [dev-dependencies]
-async-std = "1.10.0"
 audrey = "0.3"
 hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
 hrtf = "0.2"
@@ -29,6 +28,12 @@ time_calc = { version= "0.13", features = ["serde"] }
 walkdir = "2"
 hound = "3.4.0"
 ringbuf = "0.2.2"
+futures = "0.3"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["full"]}
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tokio = { version = "1", features = ["rt"]}
 
 # Audio
 [[example]]
