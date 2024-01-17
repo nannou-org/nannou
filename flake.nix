@@ -41,7 +41,7 @@
         nannou-dev = pkgs.callPackage ./shell.nix {
           inherit (inputs.self.packages.${pkgs.system}) nannou;
         };
-        default = inputs.self.packages.${pkgs.system}.nannou;
+        default = inputs.self.devShells.${pkgs.system}.nannou-dev;
       });
 
       formatter = perSystemPkgs (pkgs: pkgs.nixpkgs-fmt);
