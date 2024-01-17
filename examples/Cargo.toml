@@ -28,6 +28,7 @@ time_calc = { version= "0.13", features = ["serde"] }
 walkdir = "2"
 hound = "3.4.0"
 ringbuf = "0.2.2"
+futures = "0.3"
 
 # Audio
 [[example]]
