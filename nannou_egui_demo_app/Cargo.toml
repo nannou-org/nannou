@@ -1,11 +1,11 @@
 [package]
 name = "nannou_egui_demo_app"
-version = "0.1.0"
+version ="0.19.0"
 authors = ["mitchmindtree <mail@mitchellnordine.com>"]
 edition = "2018"
 publish = false
 
 [dependencies]
-nannou_egui = { version = "0.5", path = "../nannou_egui" }
-nannou = { version = "0.18.1", path = "../nannou" }
+nannou_egui = { version ="0.19.0", path = "../nannou_egui" }
+nannou = { version ="0.19.0", path = "../nannou" }
 egui_demo_lib = "0.23"

@@ -1,6 +1,6 @@
 [package]
 name = "nannou_mesh"
-version ="0.18.0"
+version ="0.19.0"
 authors = ["mitchmindtree <mail@mitchellnordine.com>"]
 description = "The mesh abstraction shared between nannou's `Draw` and `Ui` abstractions."
 readme = "README.md"
@@ -10,7 +10,7 @@ homepage = "https://nannou.cc"
 edition = "2018"
 
 [dependencies]
-nannou_core = { version ="0.18.0", path = "../nannou_core" }
+nannou_core = { version ="0.19.0", path = "../nannou_core" }
 serde = { version = "1", optional = true, features = ["derive"] }
 
 [features]
