@@ -28,6 +28,8 @@ jobs:
       run: sudo apt-get install libasound2-dev
     - name: Install libxcb dev tools
       run: sudo apt-get install libxcb-composite0-dev
+    - name: Install libuv dev tools
+      run: sudo apt-get install libudev-dev
     - name: Install stable
       uses: actions-rs/toolchain@v1
       with:
@@ -56,6 +58,8 @@ jobs:
       run: sudo apt-get install libasound2-dev
     - name: Install libxcb dev tools
       run: sudo apt-get install libxcb-composite0-dev
+    - name: Install libuv dev tools
+      run: sudo apt-get install libudev-dev
     - name: Install stable
       uses: actions-rs/toolchain@v1
       with:
@@ -82,6 +86,8 @@ jobs:
       run: sudo apt update
     - name: Install libxcb dev tools
       run: sudo apt-get install libxcb-composite0-dev
+    - name: Install libuv dev tools
+      run: sudo apt-get install libudev-dev
     - name: Install stable
       uses: actions-rs/toolchain@v1
       with:
@@ -110,6 +116,8 @@ jobs:
       run: sudo apt-get install libasound2-dev
     - name: Install libxcb dev tools
       run: sudo apt-get install libxcb-composite0-dev
+    - name: Install libuv dev tools
+      run: sudo apt-get install libudev-dev
     - name: Install stable
       uses: actions-rs/toolchain@v1
       with:
@@ -142,6 +150,8 @@ jobs:
       run: sudo apt-get install libasound2-dev
     - name: Install libxcb dev tools
       run: sudo apt-get install libxcb-composite0-dev
+    - name: Install libuv dev tools
+      run: sudo apt-get install libudev-dev
     - name: Install stable
       uses: actions-rs/toolchain@v1
       with:
@@ -214,6 +224,8 @@ jobs:
       run: sudo apt-get install libasound2-dev
     - name: Install libxcb dev tools
       run: sudo apt-get install libxcb-composite0-dev
+    - name: Install libuv dev tools
+      run: sudo apt-get install libudev-dev
     - name: Install stable
       uses: actions-rs/toolchain@v1
       with:
