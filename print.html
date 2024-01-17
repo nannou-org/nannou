@@ -2536,16 +2536,27 @@ published.</p>
 back to the origins.</p>
 <hr />
 <h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
+<p><em>There are currently no unreleased changes.</em></p>
+<hr />
+<h1 id="version-0190-2024-01-17"><a class="header" href="#version-0190-2024-01-17">Version 0.19.0 (2024-01-17)</a></h1>
 <ul>
 <li>Add GL backend to default backends for better WASM support.</li>
 <li>Add CI for testing the <code>wasm32-unknown-unknown</code> target.</li>
 <li>Enable <code>wgpu/webgl</code> when <code>wasm</code> feature is enabled.</li>
-<li>Update minimum wgpu version to <code>0.11.1</code>, update winit to <code>0.26</code>.</li>
 <li>Merge the <code>nannou_egui</code> repo into the main <code>nannou</code> repo.</li>
 <li>Move <code>nannou_conrod</code> and <code>nannou_timeline</code> into a new repository:
 https://github.com/nannou-org/nannou_conrod. Both crates are deprecated in
 favour of <code>nannou_egui</code>.</li>
+<li>Switch from <code>async-std</code> to <code>tokio</code> for async texture capture handling.</li>
+<li>Switch <code>egui_wgpu_backend</code> to the in-tree <code>egui-wgpu</code>.</li>
+<li>Update <code>egui</code> to <code>0.23</code>.</li>
+<li>Update <code>wgpu</code> to <code>0.17</code>.</li>
+<li>Update <code>winit</code> to <code>0.28</code>. (See #940).</li>
 </ul>
+<p><em><strong>Note: version 0.19 will be the last stable version prior to the bevy-plugin
+refactor/overhaul. See https://github.com/nannou-org/nannou/issues/946 for
+details on the planned changes, and refer to the <code>bevy-refactor</code> branch for
+progress once it's available.</strong></em></p>
 <hr />
 <h1 id="nannou-0181-2021-12-17"><a class="header" href="#nannou-0181-2021-12-17"><code>nannou</code> 0.18.1 (2021-12-17)</a></h1>
 <ul>
