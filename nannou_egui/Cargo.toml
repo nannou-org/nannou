@@ -6,7 +6,7 @@ authors = [
     "mitchmindtree <mitchell.nordine@gmail.com>",
 ]
 edition = "2018"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 description = "egui integration for nannou"
 repository = "https://github.com/AlexEne/nannou_egui"
 readme = "../README.md"
