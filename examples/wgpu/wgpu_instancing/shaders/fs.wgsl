@@ -1,5 +1,5 @@
 struct FragmentOutput {
-    @location(0) f_color: vec4<f32>;
+    @location(0) f_color: vec4<f32>,
 };
 
 @fragment
