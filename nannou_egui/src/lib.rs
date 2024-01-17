@@ -418,14 +418,6 @@ impl<'a> Deref for FrameCtx<'a> {
     }
 }
 
-// impl epi::RepaintSignal for RepaintSignal {
-//     fn request_repaint(&self) {
-//         if let Ok(guard) = self.0.lock() {
-//             guard.wakeup().ok();
-//         }
-//     }
-// }
-
 /// Translates winit to egui keycodes.
 #[inline]
 fn winit_to_egui_key_code(key: VirtualKeyCode) -> Option<egui::Key> {
