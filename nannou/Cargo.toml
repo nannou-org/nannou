@@ -1,6 +1,6 @@
 [package]
 name = "nannou"
-version = "0.18.1"
+version ="0.19.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A Creative Coding Framework for Rust."
 readme = "README.md"
@@ -17,9 +17,9 @@ getrandom = "0.2.3"
 image = "0.23"
 instant = "0.1.9"
 lyon = "0.17"
-nannou_core = { version ="0.18.0", path = "../nannou_core", features = ["std", "serde"] }
-nannou_mesh = { version ="0.18.0", path = "../nannou_mesh", features = ["serde1"] }
-nannou_wgpu = { version ="0.18.0", path = "../nannou_wgpu", features = ["capturer"] }
+nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std", "serde"] }
+nannou_mesh = { version ="0.19.0", path = "../nannou_mesh", features = ["serde1"] }
+nannou_wgpu = { version ="0.19.0", path = "../nannou_wgpu", features = ["capturer"] }
 noise = "0.7"
 notosans = { version = "0.1", optional = true }
 num_cpus = "1"
