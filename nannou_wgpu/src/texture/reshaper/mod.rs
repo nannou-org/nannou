@@ -10,11 +10,11 @@ use crate::{self as wgpu, util::DeviceExt, BufferInitDescriptor};
 pub struct Reshaper {
     _vs_mod: wgpu::ShaderModule,
     _fs_mod: wgpu::ShaderModule,
-    bind_group_layout: wgpu::BindGroupLayout,
+    _bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
-    sampler: wgpu::Sampler,
-    uniform_buffer: Option<wgpu::Buffer>,
+    _sampler: wgpu::Sampler,
+    _uniform_buffer: Option<wgpu::Buffer>,
     vertex_buffer: wgpu::Buffer,
 }
 
@@ -111,11 +111,11 @@ impl Reshaper {
         Reshaper {
             _vs_mod: vs_mod,
             _fs_mod: fs_mod,
-            bind_group_layout,
+            _bind_group_layout: bind_group_layout,
             bind_group,
             render_pipeline,
-            sampler,
-            uniform_buffer,
+            _sampler: sampler,
+            _uniform_buffer: uniform_buffer,
             vertex_buffer,
         }
     }

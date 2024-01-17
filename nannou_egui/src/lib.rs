@@ -2,14 +2,13 @@ pub use egui;
 pub use egui::color_picker;
 pub use egui_wgpu;
 
-use egui::{pos2, ClippedPrimitive, Context, PlatformOutput};
+use egui::{pos2, ClippedPrimitive, PlatformOutput};
 use egui_wgpu::renderer::ScreenDescriptor;
 use nannou::wgpu::ToTextureView;
 use nannou::{wgpu, winit::event::VirtualKeyCode, winit::event::WindowEvent::*};
 use std::{
     cell::RefCell,
     ops::Deref,
-    sync::{Arc, Mutex},
     time::Duration,
 };
 
@@ -50,8 +49,6 @@ pub struct FrameCtx<'a> {
     ui: &'a mut Egui,
     ended: bool,
 }
-
-struct RepaintSignal(Mutex<nannou::app::Proxy>);
 
 impl Egui {
     /// Construct the `Egui` from its parts.
@@ -159,7 +156,7 @@ impl Egui {
     /// Draws the contents of the inner `context` to the given frame.
     pub fn draw_to_frame(&self, frame: &nannou::Frame) -> Result<(), egui_wgpu::WgpuError> {
         let mut renderer = self.renderer.borrow_mut();
-        renderer.draw_to_frame(&self.context, frame)
+        renderer.draw_to_frame(frame)
     }
 
     fn begin_frame_inner(&mut self) {
@@ -330,7 +327,6 @@ impl Renderer {
     /// Encode a render pass for drawing the given context's texture to the given `dst_texture`.
     pub fn encode_render_pass(
         &mut self,
-        context: &egui::Context,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
@@ -368,7 +364,6 @@ impl Renderer {
     /// Encodes a render pass for drawing the given context's texture to the given frame.
     pub fn draw_to_frame(
         &mut self,
-        context: &egui::Context,
         frame: &nannou::Frame,
     ) -> Result<(), egui_wgpu::WgpuError> {
         let device_queue_pair = frame.device_queue_pair();
@@ -380,7 +375,6 @@ impl Renderer {
         let texture_view = frame.texture_view();
         let mut encoder = frame.command_encoder();
         self.encode_render_pass(
-            context,
             device,
             queue,
             &mut encoder,

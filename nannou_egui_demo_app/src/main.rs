@@ -1,6 +1,5 @@
 use nannou::prelude::*;
 use nannou_egui::Egui;
-use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 
 fn main() {
@@ -21,8 +20,8 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
     let window = app.window(w_id).unwrap();
-    let mut egui = Egui::from_window(&window);
-    let mut egui_demo_app = egui_demo_lib::DemoWindows::default();
+    let egui = Egui::from_window(&window);
+    let egui_demo_app = egui_demo_lib::DemoWindows::default();
 
     let proxy = Arc::new(Mutex::new(app.create_proxy()));
     egui.ctx().set_request_repaint_callback(move |_| {
@@ -38,7 +37,7 @@ fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event:
     model.egui.handle_raw_event(event);
 }
 
-fn update(app: &App, model: &mut Model, update: Update) {
+fn update(_app: &App, model: &mut Model, update: Update) {
     let Model {
         ref mut egui,
         ref mut egui_demo_app,

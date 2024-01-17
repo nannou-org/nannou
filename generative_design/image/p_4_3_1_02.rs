@@ -44,18 +44,14 @@ struct SvgPath {
     events: Vec<PathEvent>,
     weight: f32,
     color: Rgba,
-    width: f32,
-    height: f32,
 }
 
 impl SvgPath {
-    fn new(events: Vec<PathEvent>, weight: f32, color: Rgba, width: f32, height: f32) -> Self {
+    fn new(events: Vec<PathEvent>, weight: f32, color: Rgba) -> Self {
         SvgPath {
             events,
             weight,
             color,
-            width,
-            height,
         }
     }
 }
@@ -95,7 +91,6 @@ fn model(app: &App) -> Model {
     for asset in assets {
         let opt = usvg::Options::default();
         let rtree = usvg::Tree::from_file(&asset, &opt).unwrap();
-        let view_box = rtree.svg_node().view_box;
 
         for node in rtree.root().descendants() {
             if let usvg::NodeKind::Path(ref p) = *node.borrow() {
@@ -115,9 +110,7 @@ fn model(app: &App) -> Model {
                     for e in path_events {
                         v.push(e);
                     }
-                    let w = view_box.rect.size().width as f32;
-                    let h = view_box.rect.size().height as f32;
-                    let path = SvgPath::new(v, stroke.width.value() as f32, color, w, h);
+                    let path = SvgPath::new(v, stroke.width.value() as f32, color);
                     shapes.push(path);
                 }
             }

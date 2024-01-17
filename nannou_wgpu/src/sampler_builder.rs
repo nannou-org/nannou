@@ -1,5 +1,3 @@
-use std::num::NonZeroU8;
-
 use crate as wgpu;
 
 /// Simplifies the construction of a `Sampler` with a set of reasonable defaults.

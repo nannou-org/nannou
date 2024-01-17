@@ -278,7 +278,7 @@ fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event:
 
 fn update(_app: &App, model: &mut Model, update: Update) {
     // First, check for new laser DACs.
-    for dac in model.dac_rx.try_recv() {
+    for dac in model.dac_rx.try_iter() {
         println!("Detected DAC {:?}!", dac.id());
         let stream = model
             .laser_api

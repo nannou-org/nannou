@@ -6,7 +6,6 @@
 use crate as wgpu;
 use std::ops::Deref;
 use std::path::Path;
-use wgpu_upstream::BufferAsyncError;
 
 /// The set of pixel types from the image crate that can be loaded directly into a texture.
 ///
