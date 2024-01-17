@@ -21,7 +21,6 @@ tokio = { version = "1", features = ["full"]}
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { version = "1", features = ["rt"]}
 
-
 [features]
 capturer = ["image", "instant", "num_cpus"]
 replay = ["wgpu_upstream/replay"]
