@@ -6,11 +6,7 @@ use egui::{pos2, ClippedPrimitive, PlatformOutput};
 use egui_wgpu::renderer::ScreenDescriptor;
 use nannou::wgpu::ToTextureView;
 use nannou::{wgpu, winit::event::VirtualKeyCode, winit::event::WindowEvent::*};
-use std::{
-    cell::RefCell,
-    ops::Deref,
-    time::Duration,
-};
+use std::{cell::RefCell, ops::Deref, time::Duration};
 
 /// All `egui`-related state for a single window.
 ///
@@ -362,10 +358,7 @@ impl Renderer {
     }
 
     /// Encodes a render pass for drawing the given context's texture to the given frame.
-    pub fn draw_to_frame(
-        &mut self,
-        frame: &nannou::Frame,
-    ) -> Result<(), egui_wgpu::WgpuError> {
+    pub fn draw_to_frame(&mut self, frame: &nannou::Frame) -> Result<(), egui_wgpu::WgpuError> {
         let device_queue_pair = frame.device_queue_pair();
         let device = device_queue_pair.device();
         let queue = device_queue_pair.queue();
