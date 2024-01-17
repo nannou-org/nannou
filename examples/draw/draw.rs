@@ -38,10 +38,19 @@ fn view(app: &App, frame: Frame) {
         .rotate(t);
 
     // Draw a rect that follows a different inverse of the ellipse.
-    draw.rect()
+    if app.mouse.y > 0.0 {
+        draw.rect()
+        .x_y(app.mouse.y, app.mouse.x)
+        .w(app.mouse.x * 0.25)
+        .corner_radius(app.mouse.x * 0.05)
+        .hsv(t, 1.0, 1.0);
+    } else {
+        draw.rect()
         .x_y(app.mouse.y, app.mouse.x)
         .w(app.mouse.x * 0.25)
         .hsv(t, 1.0, 1.0);
+    }
+    
 
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
