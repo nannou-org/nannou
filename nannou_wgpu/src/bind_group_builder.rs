@@ -60,7 +60,11 @@ impl LayoutBuilder {
 
     /// Add a sampler binding to the layout.
     pub fn sampler(self, visibility: wgpu::ShaderStages, filtering: bool) -> Self {
-        let ty = wgpu::BindingType::Sampler(if filtering { SamplerBindingType::Filtering } else { SamplerBindingType::NonFiltering });
+        let ty = wgpu::BindingType::Sampler(if filtering {
+            SamplerBindingType::Filtering
+        } else {
+            SamplerBindingType::NonFiltering
+        });
         self.binding(visibility, ty)
     }
 

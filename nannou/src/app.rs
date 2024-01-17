@@ -470,7 +470,6 @@ where
             .enable_all()
             .build()
             .expect("failed to create tokio runtime")
-
     }
 
     pub async fn run_async(self) {
@@ -656,7 +655,10 @@ impl App {
         capture_frame_timeout: Option<Duration>,
         backends: wgpu::Backends,
     ) -> Self {
-        let instance = wgpu::Instance::new(InstanceDescriptor{ backends, ..Default::default() });
+        let instance = wgpu::Instance::new(InstanceDescriptor {
+            backends,
+            ..Default::default()
+        });
         let adapters = Default::default();
         let windows = RefCell::new(HashMap::new());
         let draw = RefCell::new(draw::Draw::default());

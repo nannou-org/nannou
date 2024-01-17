@@ -177,7 +177,9 @@ impl Texture {
 
     /// The component type associated with the texture's format.
     pub fn sample_type(&self) -> wgpu::TextureSampleType {
-        self.format().sample_type(None).expect("Expected the format to have a sample type")
+        self.format()
+            .sample_type(None)
+            .expect("Expected the format to have a sample type")
     }
 
     // Custom constructors.
@@ -374,7 +376,9 @@ impl TextureView {
     }
 
     pub fn sample_type(&self) -> wgpu::TextureSampleType {
-        self.format().sample_type(None).expect("Expected the format to have a sample type")
+        self.format()
+            .sample_type(None)
+            .expect("Expected the format to have a sample type")
     }
 
     pub fn id(&self) -> TextureViewId {
@@ -620,8 +624,7 @@ impl<'a> ViewBuilder<'a> {
     ///     .array_layer_count(1)
     /// ```
     pub fn layer(self, layer: u32) -> Self {
-        self.base_array_layer(layer)
-            .array_layer_count(Some(1))
+        self.base_array_layer(layer).array_layer_count(Some(1))
     }
 
     pub fn build(self) -> TextureView {
@@ -760,7 +763,9 @@ pub fn data_size_bytes(desc: &wgpu::TextureDescriptor) -> usize {
 
 /// Return the size of the given texture format in bytes.
 pub fn format_size_bytes(format: wgpu::TextureFormat) -> u32 {
-    format.block_size(None).expect("Expected the format to have a block size") as u32
+    format
+        .block_size(None)
+        .expect("Expected the format to have a block size") as u32
 }
 
 /// Returns `true` if the given `wgpu::Extent3d`s are equal.

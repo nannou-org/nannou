@@ -3,10 +3,10 @@
 
 use nannou::geom::Rect;
 use nannou::prelude::*;
+use nannou_egui::egui::FontId;
 use nannou_egui::{self, egui, Egui};
 use nannou_laser as laser;
 use std::sync::{mpsc, Arc};
-use nannou_egui::egui::FontId;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -536,24 +536,25 @@ fn style() -> egui::Style {
     style.text_styles = [
         (
             egui::TextStyle::Small,
-            FontId::new( 13.0, egui::FontFamily::Proportional),
+            FontId::new(13.0, egui::FontFamily::Proportional),
         ),
         (
             egui::TextStyle::Body,
-            FontId::new( 16.0, egui::FontFamily::Proportional),
+            FontId::new(16.0, egui::FontFamily::Proportional),
         ),
         (
             egui::TextStyle::Button,
-            FontId::new( 16.0, egui::FontFamily::Proportional),
+            FontId::new(16.0, egui::FontFamily::Proportional),
         ),
         (
             egui::TextStyle::Heading,
-            FontId::new( 20.0, egui::FontFamily::Proportional),
+            FontId::new(20.0, egui::FontFamily::Proportional),
         ),
         (
             egui::TextStyle::Monospace,
-            FontId::new( 14.0, egui::FontFamily::Monospace),
+            FontId::new(14.0, egui::FontFamily::Monospace),
         ),
-    ].into();
+    ]
+    .into();
     style
 }

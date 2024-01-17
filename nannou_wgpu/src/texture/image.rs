@@ -574,7 +574,9 @@ where
     // Describe the layout of the data.
     let extent = texture.extent();
     let format = texture.format();
-    let block_size = format.block_size(None).expect("Expected the format to have a block size");
+    let block_size = format
+        .block_size(None)
+        .expect("Expected the format to have a block size");
     let bytes_per_row = extent.width * block_size as u32;
     let image_data_layout = wgpu::ImageDataLayout {
         offset: 0,
@@ -634,7 +636,9 @@ where
 
     // Describe the layout of the data.
     let format = texture.format();
-    let block_size = format.block_size(None).expect("Expected the format to have a block size");
+    let block_size = format
+        .block_size(None)
+        .expect("Expected the format to have a block size");
     let bytes_per_row = extent.width * block_size as u32;
     let image_data_layout = wgpu::ImageDataLayout {
         offset: 0,

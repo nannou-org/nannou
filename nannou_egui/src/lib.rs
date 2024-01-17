@@ -2,8 +2,9 @@ pub use egui;
 pub use egui::color_picker;
 pub use egui_wgpu;
 
-use egui::{ClippedPrimitive, Context, PlatformOutput, pos2};
+use egui::{pos2, ClippedPrimitive, Context, PlatformOutput};
 use egui_wgpu::renderer::ScreenDescriptor;
+use nannou::wgpu::ToTextureView;
 use nannou::{wgpu, winit::event::VirtualKeyCode, winit::event::WindowEvent::*};
 use std::{
     cell::RefCell,
@@ -11,7 +12,6 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
-use nannou::wgpu::ToTextureView;
 
 /// All `egui`-related state for a single window.
 ///
@@ -129,10 +129,11 @@ impl Egui {
         texture: &wgpu::Texture,
         texture_filter: wgpu::FilterMode,
     ) -> egui::TextureId {
-        self.renderer
-            .borrow_mut()
-            .renderer
-            .register_native_texture(device, &texture.to_texture_view(), texture_filter)
+        self.renderer.borrow_mut().renderer.register_native_texture(
+            device,
+            &texture.to_texture_view(),
+            texture_filter,
+        )
     }
 
     /// Registers a wgpu::Texture with an existing egui::TextureId.
@@ -146,15 +147,17 @@ impl Egui {
         self.renderer
             .borrow_mut()
             .renderer
-            .update_egui_texture_from_wgpu_texture(device, &texture.to_texture_view(), texture_filter, id);
+            .update_egui_texture_from_wgpu_texture(
+                device,
+                &texture.to_texture_view(),
+                texture_filter,
+                id,
+            );
         Ok(())
     }
 
     /// Draws the contents of the inner `context` to the given frame.
-    pub fn draw_to_frame(
-        &self,
-        frame: &nannou::Frame,
-    ) -> Result<(), egui_wgpu::WgpuError> {
+    pub fn draw_to_frame(&self, frame: &nannou::Frame) -> Result<(), egui_wgpu::WgpuError> {
         let mut renderer = self.renderer.borrow_mut();
         renderer.draw_to_frame(&self.context, frame)
     }
@@ -164,7 +167,12 @@ impl Egui {
     }
 
     fn end_frame_inner(&mut self) -> egui::PlatformOutput {
-        let egui::FullOutput { shapes, platform_output, textures_delta, .. } = self.context.end_frame();
+        let egui::FullOutput {
+            shapes,
+            platform_output,
+            textures_delta,
+            ..
+        } = self.context.end_frame();
         self.renderer.borrow_mut().paint_jobs = self.context.tessellate(shapes);
         self.renderer.borrow_mut().textures_delta = textures_delta;
         platform_output
@@ -226,11 +234,16 @@ impl Input {
                 match delta {
                     winit::event::MouseScrollDelta::LineDelta(x, y) => {
                         let line_height = 24.0;
-                        self.raw.events.push(egui::Event::Scroll(egui::vec2(*x, *y) * line_height));
+                        self.raw
+                            .events
+                            .push(egui::Event::Scroll(egui::vec2(*x, *y) * line_height));
                     }
                     winit::event::MouseScrollDelta::PixelDelta(delta) => {
                         // Actually point delta
-                        self.raw.events.push(egui::Event::Scroll(egui::vec2(delta.x as f32, delta.y as f32)));
+                        self.raw.events.push(egui::Event::Scroll(egui::vec2(
+                            delta.x as f32,
+                            delta.y as f32,
+                        )));
                     }
                 }
             }
@@ -300,12 +313,7 @@ impl Renderer {
         target_msaa_samples: u32,
     ) -> Self {
         Self {
-            renderer: egui_wgpu::Renderer::new(
-                device,
-                target_format,
-               None,
-                target_msaa_samples,
-            ),
+            renderer: egui_wgpu::Renderer::new(device, target_format, None, target_msaa_samples),
             paint_jobs: Vec::new(),
             textures_delta: Default::default(),
         }

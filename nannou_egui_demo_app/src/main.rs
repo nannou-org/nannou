@@ -1,7 +1,7 @@
+use nannou::prelude::*;
+use nannou_egui::Egui;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
-use nannou::prelude::*;
-use nannou_egui::{Egui};
 
 fn main() {
     nannou::app(model).update(update).run();
