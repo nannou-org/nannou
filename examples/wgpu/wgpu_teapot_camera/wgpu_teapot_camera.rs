@@ -91,7 +91,9 @@ fn model(app: &App) -> Model {
 
     let window = app.window(w_id).unwrap();
     let camera_is_active = true;
-    window.set_cursor_grab(true).unwrap();
+    if let Err(e) = window.set_cursor_grab(true) {
+        eprintln!("warning: cursor grabbing not supported: {e}");
+    }
     window.set_cursor_visible(false);
     let device = window.device();
     let format = Frame::TEXTURE_FORMAT;
