@@ -187,12 +187,13 @@ fn view(_app: &App, model: &Model, frame: Frame) {
 // Wait for capture to finish.
 fn exit(app: &App, model: Model) {
     println!("Waiting for PNG writing to complete...");
-    let window = app.main_window();
-    let device = window.device();
-    model
-        .texture_capturer
-        .await_active_snapshots(&device)
-        .unwrap();
+    if let Some(window) = app.try_main_window() {
+        let device = window.device();
+        model
+            .texture_capturer
+            .await_active_snapshots(&device)
+            .unwrap();
+    }
     println!("Done!");
 }
 

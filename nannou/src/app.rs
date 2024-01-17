@@ -785,6 +785,11 @@ impl App {
             .expect("called `App::window_id` but there is no window currently in focus")
     }
 
+    /// Return the **Id** of the currently focused window if it exists.
+    pub fn try_window_id(&self) -> Option<window::Id> {
+        *self.focused_window.borrow()
+    }
+
     /// Return a `Vec` containing a unique `window::Id` for each currently open window managed by
     /// the `App`.
     pub fn window_ids(&self) -> Vec<window::Id> {
@@ -803,7 +808,7 @@ impl App {
 
     /// A reference to the window currently in focus.
     ///
-    /// **Panics** if their are no windows open in the **App**.
+    /// **Panics** if there are no windows open in the **App**.
     ///
     /// Uses the **App::window** method internally.
     ///
@@ -812,6 +817,20 @@ impl App {
     pub fn main_window(&self) -> std::cell::Ref<Window> {
         self.window(self.window_id())
             .expect("no window for focused id")
+    }
+
+    /// A reference to the window currently in focus if it exists.
+    ///
+    /// Uses the **App::window** method internally.
+    ///
+    /// TODO: Currently this produces a reference to the *focused* window, but this behaviour
+    /// should be changed to track the "main" window (the first window created?).
+    pub fn try_main_window(&self) -> Option<std::cell::Ref<Window>> {
+        if let Some(id) = self.try_window_id() {
+            self.window(id)
+        } else {
+            None
+        }
     }
 
     /// Return the wgpu `Backends` in use.
