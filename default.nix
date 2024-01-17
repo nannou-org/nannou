@@ -1,7 +1,8 @@
 { alsaLib
-, cmake
+, darwin
 , jq
 , lib
+, libiconv
 , makeWrapper
 , pkg-config
 , rustPlatform
@@ -9,6 +10,7 @@
 , vulkan-validation-layers
 , xorg
 , openssl
+, stdenv
 , XCURSOR_THEME ? "Adwaita"
 }:
 rustPlatform.buildRustPackage rec {
@@ -19,7 +21,6 @@ rustPlatform.buildRustPackage rec {
   cargoLock = {
     lockFile = ./Cargo.lock;
     outputHashes = {
-      "hotglsl-0.1.0" = "sha256-G88Sa/tgGppaxIIPXDqIazMWRBXpaSFb2mulNfCclm8=";
       "isf-0.1.0" = "sha256-utexaXpZZgpRunVAQyD2JAwvabhZGzeorC4pRFIumAc=";
       "skeptic-0.13.4" = "sha256-EZFtWIPfsfbpGBD8NwsVtMzRM10kVdg+djoV00dhT4Y=";
     };
@@ -29,34 +30,41 @@ rustPlatform.buildRustPackage rec {
   doCheck = false;
 
   nativeBuildInputs = [
-    # Required for `glsl-to-spirv` for `nannou_isf`. Should switch to `naga`.
-    cmake
     makeWrapper
     pkg-config
   ];
 
-  buildInputs = [
+  buildInputs = ([
     # For filtering `cargo metadata` to get example names.
     jq
-    # WGPU device availability.
+    # `nannou-new` needs this because of `cargo` dep. See #606.
+    openssl
+  ] ++ lib.optionals stdenv.isLinux [
+    alsaLib
     vulkan-loader
     vulkan-validation-layers
-    # Required for X11 backend on Linux.
     xorg.libX11
     xorg.libXcursor
     xorg.libXi
     xorg.libXrandr
-    # `nannou-new` needs this because of `cargo` dep. See #606.
-    openssl
-    # `nannou_audio`.
-    alsaLib
-  ];
+  ] ++ lib.optionals stdenv.isDarwin [
+    darwin.apple_sdk.frameworks.AppKit
+    darwin.apple_sdk.frameworks.AudioToolbox
+    darwin.apple_sdk.frameworks.AudioUnit
+    darwin.apple_sdk.frameworks.CoreAudio
+    libiconv
+    rustPlatform.bindgenHook
+  ]);
 
-  env = {
-    inherit XCURSOR_THEME;
-    ALSA_LIB_DEV = "${alsaLib.dev}";
-    LD_LIBRARY_PATH = "${lib.makeLibraryPath buildInputs}";
-  };
+  env = (lib.optionalAttrs stdenv.isLinux
+    {
+      inherit XCURSOR_THEME;
+      LD_LIBRARY_PATH = "${lib.makeLibraryPath buildInputs}";
+      ALSA_LIB_DEV = "${alsaLib.dev}";
+    } // lib.optionalAttrs stdenv.isDarwin {
+    COREAUDIO_SDK_PATH = "${darwin.apple_sdk.frameworks.CoreAudio}/Library/Frameworks/CoreAudio.framework";
+  });
+
 
   # Build and include example binaries in `$out/bin/examples`
   postBuild = ''
@@ -70,14 +78,22 @@ rustPlatform.buildRustPackage rec {
   '';
 
   # Wrap the binaries to ensure the runtime env vars are set.
-  postFixup = ''
-    for prog in $out/bin/* $out/bin/examples/*; do
-      if [ -f "$prog" -a -x "$prog" ]; then
-        wrapProgram "$prog" \
-          --set ALSA_LIB_DEV "${env.ALSA_LIB_DEV}" \
-          --set LD_LIBRARY_PATH "${env.LD_LIBRARY_PATH}" \
-          --set XCURSOR_THEME "${env.XCURSOR_THEME}"
-      fi
-    done
-  '';
+  postFixup =
+    let
+      linuxWrapArgs = lib.optionalString stdenv.isLinux ''\
+      --set LD_LIBRARY_PATH "${env.LD_LIBRARY_PATH}" \
+      --set ALSA_LIB_DEV "${env.ALSA_LIB_DEV}" \
+      --set XCURSOR_THEME "${env.XCURSOR_THEME}"'';
+      macosWrapArgs = lib.optionalString stdenv.isDarwin ''\
+      --set COREAUDIO_SDK_PATH "${env.COREAUDIO_SDK_PATH}"'';
+    in
+    ''
+      for prog in $out/bin/* $out/bin/examples/*; do
+        if [ -f "$prog" -a -x "$prog" ]; then
+          wrapProgram "$prog" \
+            ${linuxWrapArgs} \
+            ${macosWrapArgs}
+        fi
+      done
+    '';
 }
