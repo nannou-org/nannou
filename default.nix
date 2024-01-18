@@ -11,6 +11,7 @@
 , xorg
 , openssl
 , stdenv
+, udev
 , XCURSOR_THEME ? "Adwaita"
 }:
 rustPlatform.buildRustPackage rec {
@@ -41,6 +42,7 @@ rustPlatform.buildRustPackage rec {
     openssl
   ] ++ lib.optionals stdenv.isLinux [
     alsaLib
+    udev
     vulkan-loader
     vulkan-validation-layers
     xorg.libX11
