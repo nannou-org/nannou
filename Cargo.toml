@@ -28,4 +28,4 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy", branch = "main", features = ["default"] }
+bevy = "0.12"
