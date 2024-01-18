@@ -1,0 +1,9 @@
+[package]
+name = "bevy_nannou"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { workspace = true }
+bevy_nannou_render = { path = "../bevy_nannou_render" }
+bevy_nannou_draw = { path = "../bevy_nannou_draw" }

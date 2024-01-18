@@ -1,5 +1,9 @@
 [workspace]
 members = [
+    "bevy_nannou",
+    "bevy_nannou_draw",
+    "bevy_nannou_render",
+    "bevy_nannou_wgpu",
     "examples",
     "generative_design",
     "guide/book_tests",
@@ -22,3 +26,6 @@ members = [
 
 # Required for wgpu v0.10 feature resolution.
 resolver = "2"
+
+[workspace.dependencies]
+bevy = { git = "https://github.com/bevyengine/bevy", branch = "main", features = ["default"] }
