@@ -5,3 +5,9 @@ edition = "2021"
 
 [dependencies]
 bevy = { workspace = true }
+bevy_nannou_wgpu = { path = "../bevy_nannou_wgpu" }
+nannou_core = { path = "../nannou_core" }
+nannou_mesh = { path = "../nannou_mesh" }
+rusttype = { version = "0.8", features = ["gpu_cache"] }
+lyon = "0.17"
+bevy_mod_debugdump = "0.9.0"

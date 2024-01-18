@@ -893,7 +893,28 @@ version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ec4962977a746d870170532fc92759e04d3dbcae8b7b82e7ca3bb83b1d75277"
 dependencies = [
+<<<<<<< HEAD
  "glam 0.24.2",
+||||||| parent of 1b1dc0b (Bevy render PoC.)
+ "glam 0.25.0",
+=======
+ "glam 0.24.2",
+]
+
+[[package]]
+name = "bevy_mod_debugdump"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4db8601f41ea570b7d32f3177292a608196c59bdf3298001a9e202d5e7439438"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_render",
+ "bevy_utils",
+ "once_cell",
+ "petgraph 0.6.4",
+ "pretty-type-name",
+>>>>>>> 1b1dc0b (Bevy render PoC.)
 ]
 
 [[package]]
@@ -917,6 +938,12 @@ name = "bevy_nannou_render"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_mod_debugdump",
+ "bevy_nannou_wgpu",
+ "lyon",
+ "nannou_core",
+ "nannou_mesh",
+ "rusttype",
 ]
 
 [[package]]
@@ -924,6 +951,7 @@ name = "bevy_nannou_wgpu"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "wgpu-types",
 ]
 
 [[package]]
@@ -5354,6 +5382,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
+<<<<<<< HEAD
+||||||| parent of 1b1dc0b (Bevy render PoC.)
+name = "presser"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8cf8e6a8aa66ce33f63993ffc4ea4271eb5b0530a9002db8455ea6050c77bfa"
+
+[[package]]
+=======
+name = "pretty-type-name"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0f73cdaf19b52e6143685c3606206e114a4dfa969d6b14ec3894c88eb38bd4b"
+
+[[package]]
+>>>>>>> 1b1dc0b (Bevy render PoC.)
 name = "proc-macro-crate"
 version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
