@@ -7,6 +7,7 @@ you in the right direction.
 - [**PR Checklist**](./contributing/pr-checklist.md)
 - [**PR Reviews**](./contributing/pr-reviews.md)
 - [**Publishing New Versions**](./contributing/publishing-new-versions.md)
+- [**Nix Shell**](./contributing/nix-shell.md)
 
 ## Still have questions?
 
