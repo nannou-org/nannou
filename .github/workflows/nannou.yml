@@ -8,74 +8,29 @@ jobs:
     - uses: DeterminateSystems/nix-installer-action@main
     - run: nix fmt -- --check ./
 
-  cargo-fmt-check:
+  cargo-verifications:
     runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: DeterminateSystems/nix-installer-action@main
-    - run: nix develop --command cargo fmt --verbose --all -- --check
-
-  cargo-check:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: DeterminateSystems/nix-installer-action@main
-    - uses: Swatinem/rust-cache@v2
-    - run: nix develop --command cargo check --locked --workspace
-    - run: nix develop --command cargo check --locked --examples --workspace
-
-  cargo-test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: DeterminateSystems/nix-installer-action@main
-    - uses: Swatinem/rust-cache@v2
-    - run: nix develop --command cargo test --locked --lib --bins --workspace
-
-  cargo-test-all-features:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - command: cargo fmt --verbose --all -- --check
+          - command: cargo check --locked --workspace
+          - command: cargo check --locked --examples --workspace
+          - command: cargo test --locked --lib --bins --all-features --workspace
+          - command: cargo doc --locked --all-features --workspace
+          - command: cargo test --locked -p nannou_core --no-default-features --features "libm serde"
+          - command: cargo build --locked -p nannou --features "wasm-experimental" --target wasm32-unknown-unknown
+          - command: mdbook build guide/
+          - command: cargo test --locked -p book_tests
     steps:
     - uses: actions/checkout@v3
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: Swatinem/rust-cache@v2
-    - run: nix develop --command cargo test --locked --lib --bins --all-features --workspace
-
-  cargo-doc-all-features:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: DeterminateSystems/nix-installer-action@main
-    - uses: Swatinem/rust-cache@v2
-    - run: nix develop --command cargo doc --locked --all-features --workspace
-
-  cargo-test-nannou-core-no-std:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: DeterminateSystems/nix-installer-action@main
-    - uses: Swatinem/rust-cache@v2
-    - run: nix develop --command cargo test --locked -p nannou_core --no-default-features --features "libm serde"
-
-  cargo-build-nannou-wasm32:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: DeterminateSystems/nix-installer-action@main
-    - uses: Swatinem/rust-cache@v2
-    - run: nix develop --command cargo build --locked -p nannou --features "wasm-experimental" --target wasm32-unknown-unknown
+    - run: nix develop --command ${{ matrix.command }}
 
   verifications:
-    needs:
-      [
-        cargo-build-nannou-wasm32,
-        cargo-check,
-        cargo-doc-all-features,
-        cargo-fmt-check,
-        cargo-test,
-        cargo-test-all-features,
-        cargo-test-nannou-core-no-std,
-        nix-fmt-check,
-      ]
+    needs: [ cargo-verifications, nix-fmt-check ]
     runs-on: ubuntu-latest
     steps:
     - run: echo "Verifications complete"
@@ -114,21 +69,6 @@ jobs:
     - name: Cargo publish nannou_egui
       continue-on-error: true
       run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_egui/Cargo.toml
-
-  guide-build-book:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: DeterminateSystems/nix-installer-action@main
-    - run: nix develop --command mdbook build guide/
-
-  guide-test-code:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: DeterminateSystems/nix-installer-action@main
-    - uses: Swatinem/rust-cache@v2
-    - run: nix develop --command cargo test --locked -p book_tests
 
   guide-push-to-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
