@@ -22,7 +22,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: DeterminateSystems/nix-installer-action@main
-    - run: nix develop --command cargo fmt --verbose --workspace -- --check
+    - run: nix develop --command cargo fmt --verbose --all -- --check
 
   cargo-check:
     runs-on: ubuntu-latest
@@ -31,7 +31,7 @@ jobs:
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: Swatinem/rust-cache@v2
     - run: nix develop --command cargo check --locked --workspace
-    - run: nix develop --command cargo check --examples --workspace
+    - run: nix develop --command cargo check --locked --examples --workspace
 
   cargo-test:
     runs-on: ubuntu-latest
@@ -39,7 +39,7 @@ jobs:
     - uses: actions/checkout@v3
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: Swatinem/rust-cache@v2
-    - run: nix develop --command cargo test --locked --workspace
+    - run: nix develop --command cargo test --locked --lib --bins --workspace
 
   cargo-test-all-features:
     runs-on: ubuntu-latest
@@ -47,7 +47,7 @@ jobs:
     - uses: actions/checkout@v3
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: Swatinem/rust-cache@v2
-    - run: nix develop --command cargo test --locked --all-features --workspace
+    - run: nix develop --command cargo test --locked --lib --bins --all-features --workspace
 
   cargo-doc-all-features:
     runs-on: ubuntu-latest
