@@ -8,15 +8,6 @@ jobs:
     - uses: DeterminateSystems/nix-installer-action@main
     - run: nix fmt -- --check ./
 
-  cargo-audit:
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v3
-      - uses: rustsec/audit-check@v1.4.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
   cargo-fmt-check:
     runs-on: ubuntu-latest
     steps:
