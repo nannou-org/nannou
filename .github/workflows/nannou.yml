@@ -1,6 +1,7 @@
 name: nannou
 on: [push, pull_request]
 jobs:
+  # Check the nix code is formatted.
   nix-fmt-check:
     runs-on: ubuntu-latest
     steps:
@@ -8,7 +9,20 @@ jobs:
     - uses: DeterminateSystems/nix-installer-action@main
     - run: nix fmt -- --check ./
 
-  cargo-verifications:
+  # Check the nix flake is valid on macos and linux.
+  nix-flake-check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v3
+    - uses: DeterminateSystems/nix-installer-action@main
+    - run: nix flake check
+
+  # A colleciton of cargo verifications that should pass before landing PRs.
+  cargo:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -29,12 +43,20 @@ jobs:
     - uses: Swatinem/rust-cache@v2
     - run: nix develop --command ${{ matrix.command }}
 
+  # Synchronise the verification jobs under one that we can depend on for publish jobs.
   verifications:
-    needs: [ cargo-verifications, nix-fmt-check ]
+    needs:
+      [
+        cargo,
+        nix-flake-check,
+        nix-fmt-check,
+      ]
     runs-on: ubuntu-latest
     steps:
     - run: echo "Verifications complete"
 
+  # Publish all the crates.
+  # TODO: There's probs a single action out there for publishing a whole workspacce?
   cargo-publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [ verifications ]
@@ -70,8 +92,10 @@ jobs:
       continue-on-error: true
       run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_egui/Cargo.toml
 
+  # Publish the guide by pushing it to `deploy` branch.
   guide-push-to-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [ verifications ]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
