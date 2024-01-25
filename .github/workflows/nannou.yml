@@ -69,28 +69,28 @@ jobs:
     - uses: Swatinem/rust-cache@v2
     - name: Cargo publish nannou_core
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_core/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_core/Cargo.toml
     - name: Cargo publish nannou_wgpu
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_wgpu/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_wgpu/Cargo.toml
     - name: Cargo publish nannou_mesh
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_mesh/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_mesh/Cargo.toml
     - name: Cargo publish nannou
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou/Cargo.toml
     - name: Cargo publish nannou_audio
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_audio/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_audio/Cargo.toml
     - name: Cargo publish nannou_laser
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_laser/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_laser/Cargo.toml
     - name: Cargo publish nannou_osc
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_osc/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_osc/Cargo.toml
     - name: Cargo publish nannou_egui
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_egui/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_egui/Cargo.toml
 
   # Publish the guide by pushing it to `deploy` branch.
   guide-push-to-deploy:
