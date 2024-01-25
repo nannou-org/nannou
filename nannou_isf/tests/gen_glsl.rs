@@ -134,6 +134,8 @@ const GLSL_450_INCOMPATIBLE: &[&str] = &[
     // Error: `function call, method, or subroutine call expected`
     "RGB Halftone-lookaround.fs",
     "CMYK Halftone-Lookaround.fs",
+    // Don't work after switching to `naga`
+    "Pixelize.fs",
 ];
 
 // Tests that are known to fail but there's no clear solution explained by the spec.

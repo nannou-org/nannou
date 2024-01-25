@@ -1,262 +1,107 @@
 name: nannou
 on: [push, pull_request]
 jobs:
-  rustfmt-check:
+  # Check the nix code is formatted.
+  nix-fmt-check:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-        components: rustfmt
-    - name: Run rustfmt
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: --all -- --check
+    - uses: actions/checkout@v3
+    - uses: DeterminateSystems/nix-installer-action@main
+    - run: nix fmt -- --check ./
 
-  cargo-test:
+  # Check the nix flake is valid on macos and linux.
+  nix-flake-check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v3
+    - uses: DeterminateSystems/nix-installer-action@main
+    - run: nix flake check
+
+  # A colleciton of cargo verifications that should pass before landing PRs.
+  cargo:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - command: cargo fmt --verbose --all -- --check
+          - command: cargo check --locked --workspace
+          - command: cargo check --locked --examples --workspace
+          - command: cargo test --locked --lib --bins --all-features --workspace
+          - command: cargo doc --locked --all-features --workspace
+          - command: cargo test --locked -p nannou_core --no-default-features --features "libm serde"
+          - command: cargo build --locked -p nannou --features "wasm-experimental" --target wasm32-unknown-unknown
+          - command: mdbook build guide/
+          - command: cargo test --locked -p book_tests
+    steps:
+    - uses: actions/checkout@v3
+    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: Swatinem/rust-cache@v2
+    - run: nix develop --command ${{ matrix.command }}
+
+  # Synchronise the verification jobs under one that we can depend on for publish jobs.
+  verifications:
+    needs:
+      [
+        cargo,
+        nix-flake-check,
+        nix-fmt-check,
+      ]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Update apt
-      run: sudo apt update
-    - name: Install alsa dev tools
-      run: sudo apt-get install libasound2-dev
-    - name: Install libxcb dev tools
-      run: sudo apt-get install libxcb-composite0-dev
-    - name: Install libuv dev tools
-      run: sudo apt-get install libudev-dev
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-    - uses: Swatinem/rust-cache@v1
-    - name: Run default features
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --lib --bins --verbose
-    - name: Test docs
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --doc --verbose
+    - run: echo "Verifications complete"
 
-  cargo-test-all-features:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Update apt
-      run: sudo apt update
-    - name: Install alsa dev tools
-      run: sudo apt-get install libasound2-dev
-    - name: Install libxcb dev tools
-      run: sudo apt-get install libxcb-composite0-dev
-    - name: Install libuv dev tools
-      run: sudo apt-get install libudev-dev
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-    - uses: Swatinem/rust-cache@v1
-    - name: Run all features
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --lib --bins --all-features --verbose
-    - name: Test docs all features
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --doc --all-features --verbose
-
-  cargo-test-core-no-std:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Update apt
-      run: sudo apt update
-    - name: Install libxcb dev tools
-      run: sudo apt-get install libxcb-composite0-dev
-    - name: Install libuv dev tools
-      run: sudo apt-get install libudev-dev
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-    - uses: Swatinem/rust-cache@v1
-    - name: Text no_std
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: -p nannou_core --no-default-features --features "libm" --verbose
-    - name: Test no_std serde
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: -p nannou_core --no-default-features --features "libm serde" --verbose
-
-  cargo-check-examples:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Update apt
-      run: sudo apt update
-    - name: Install alsa dev tools
-      run: sudo apt-get install libasound2-dev
-    - name: Install libxcb dev tools
-      run: sudo apt-get install libxcb-composite0-dev
-    - name: Install libuv dev tools
-      run: sudo apt-get install libudev-dev
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-        target: wasm32-unknown-unknown
-    - uses: Swatinem/rust-cache@v1
-    - name: Run check
-      uses: actions-rs/cargo@v1
-      with:
-        command: check
-        args: --examples --verbose
-    - name: Check nannou package builds against wasm32-unknown-unknown
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: -p nannou --features wasm-experimental --target wasm32-unknown-unknown
-
+  # Publish all the crates.
+  # TODO: There's probs a single action out there for publishing a whole workspacce?
   cargo-publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [ verifications ]
     env:
       CRATESIO_TOKEN: ${{ secrets.CRATESIO_TOKEN }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Update apt
-      run: sudo apt update
-    - name: Install alsa dev tools
-      run: sudo apt-get install libasound2-dev
-    - name: Install libxcb dev tools
-      run: sudo apt-get install libxcb-composite0-dev
-    - name: Install libuv dev tools
-      run: sudo apt-get install libudev-dev
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+    - uses: actions/checkout@v3
+    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: Swatinem/rust-cache@v2
     - name: Cargo publish nannou_core
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_core/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_core/Cargo.toml
     - name: Cargo publish nannou_wgpu
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_wgpu/Cargo.toml
-    - name: Wait for crates.io
-      run: sleep 30
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_wgpu/Cargo.toml
     - name: Cargo publish nannou_mesh
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_mesh/Cargo.toml
-    - name: Wait for crates.io
-      run: sleep 30
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_mesh/Cargo.toml
     - name: Cargo publish nannou
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou/Cargo.toml
     - name: Cargo publish nannou_audio
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_audio/Cargo.toml
-    # TODO: Add this once `nannou_isf` is ready.
-    # - name: Cargo publish nannou_isf
-    #   continue-on-error: true
-    #   run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_isf/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_audio/Cargo.toml
     - name: Cargo publish nannou_laser
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_laser/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_laser/Cargo.toml
     - name: Cargo publish nannou_osc
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_osc/Cargo.toml
-    - name: Wait for crates.io
-      run: sleep 15
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_osc/Cargo.toml
     - name: Cargo publish nannou_egui
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_egui/Cargo.toml
+      run: nix develop --command cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_egui/Cargo.toml
 
-  guide-build-book:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Update apt
-      run: sudo apt update
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-    - uses: Swatinem/rust-cache@v1
-    - name: Install mdbook
-      uses: actions-rs/cargo@v1
-      with:
-        command: install
-        args: mdbook
-    - name: Build book
-      run: mdbook build guide/
-
-  guide-test-code:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Update apt
-      run: sudo apt update
-    - name: Install alsa dev tools
-      run: sudo apt-get install libasound2-dev
-    - name: Install libxcb dev tools
-      run: sudo apt-get install libxcb-composite0-dev
-    - name: Install libuv dev tools
-      run: sudo apt-get install libudev-dev
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-    - uses: Swatinem/rust-cache@v1
-    - name: Run guide tests
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: -p book_tests --verbose
-
+  # Publish the guide by pushing it to `deploy` branch.
   guide-push-to-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [ verifications ]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Install rust stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-    - name: Install mdbook
-      uses: actions-rs/cargo@v1
-      with:
-        command: install
-        args: mdbook
-    - name: Build book
-      run: mdbook build guide/
+    - uses: actions/checkout@v3
+    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: Swatinem/rust-cache@v2
+    - run: nix develop --command mdbook build guide/
     - name: Commit book to deploy branch
       run: |
         git config user.email "action@github.com"
