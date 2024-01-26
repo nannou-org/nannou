@@ -13,41 +13,13 @@ use bevy::render::render_resource::{
 };
 use bevy::render::renderer::{RenderContext, RenderDevice};
 use bevy::render::view::{
-    ExtractedView, ExtractedWindow, ExtractedWindows, ViewDepthTexture, ViewTarget, ViewUniform,
+    ExtractedWindows, ViewDepthTexture, ViewTarget, ViewUniform,
 };
 use bevy::utils;
 
 use crate::mesh::vertex::Point;
 use crate::mesh::{TexCoords, ViewMesh};
-use crate::{text, VertexMode, ViewUniformBindGroup, NANNOU_SHADER_HANDLE};
-
-pub struct GlyphCache {
-    /// Tracks glyphs and their location within the cache.
-    pub cache: text::GlyphCache<'static>,
-    /// The buffer used to store the pixels of the glyphs.
-    pub pixel_buffer: Vec<u8>,
-    /// Will be set to `true` after the cache has been updated if the texture requires re-uploading.
-    pub requires_upload: bool,
-}
-
-impl GlyphCache {
-    fn new(size: [u32; 2], scale_tolerance: f32, position_tolerance: f32) -> Self {
-        let [w, h] = size;
-        let cache = text::GlyphCache::builder()
-            .dimensions(w, h)
-            .scale_tolerance(scale_tolerance)
-            .position_tolerance(position_tolerance)
-            .build()
-            .into();
-        let pixel_buffer = vec![0u8; w as usize * h as usize];
-        let requires_upload = false;
-        GlyphCache {
-            cache,
-            pixel_buffer,
-            requires_upload,
-        }
-    }
-}
+use crate::{GlyphCache, NANNOU_SHADER_HANDLE, VertexMode, ViewUniformBindGroup};
 
 #[derive(Resource)]
 pub struct NannouPipeline {
@@ -56,14 +28,16 @@ pub struct NannouPipeline {
     text_bind_group_layout: wgpu::BindGroupLayout,
     text_bind_group: wgpu::BindGroup,
     texture_samplers: HashMap<wgpu::SamplerId, wgpu::Sampler>,
+    // TODO: move to resource and support multiple textures.
     texture_bind_group_layout: wgpu::BindGroupLayout,
     texture_bind_group: wgpu::BindGroup,
     output_color_format: wgpu::TextureFormat,
-    view_bind_group_layout: wgpu::BindGroupLayout,
+    pub(crate) view_bind_group_layout: wgpu::BindGroupLayout,
     view_bind_group: wgpu::BindGroup,
     view_buffer: wgpu::Buffer,
 }
 
+// This key is computed and used to cache the pipeline.
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
 pub struct NannouPipelineKey {
     pub sample_count: u32,
@@ -137,12 +111,85 @@ impl NannouPipeline {
             offset: 0,
             shader_location: 3,
         }])
+        // TODO: figure out how to use the default depth buffer.
         // .depth_format(depth_format)
         .sample_count(sample_count)
         .color_blend(blend_state.color)
         .alpha_blend(blend_state.alpha)
         .primitive_topology(topology)
         .build()
+    }
+
+    fn create_texture_bind_group_layout(
+        device: &RenderDevice,
+        filtering: bool,
+        texture_sample_type: wgpu::TextureSampleType,
+    ) -> wgpu::BindGroupLayout {
+        bevy_nannou_wgpu::BindGroupLayoutBuilder::new()
+            .sampler(wgpu::ShaderStages::FRAGMENT, filtering)
+            .texture(
+                wgpu::ShaderStages::FRAGMENT,
+                false,
+                wgpu::TextureViewDimension::D2,
+                texture_sample_type,
+            )
+            .build(device)
+    }
+
+    fn create_text_bind_group(
+        device: &RenderDevice,
+        layout: &wgpu::BindGroupLayout,
+        sampler: &wgpu::Sampler,
+        glyph_cache_texture_view: &wgpu::TextureView,
+    ) -> wgpu::BindGroup {
+        bevy_nannou_wgpu::BindGroupBuilder::new()
+            .sampler(sampler)
+            .texture_view(glyph_cache_texture_view)
+            .build(device, layout)
+    }
+
+    fn create_texture_bind_group(
+        device: &RenderDevice,
+        layout: &wgpu::BindGroupLayout,
+        sampler: &wgpu::Sampler,
+        texture_view: &wgpu::TextureView,
+    ) -> wgpu::BindGroup {
+        bevy_nannou_wgpu::BindGroupBuilder::new()
+            .sampler(sampler)
+            .texture_view(texture_view)
+            .build(device, layout)
+    }
+
+    fn sampler_descriptor_hash(desc: &wgpu::SamplerDescriptor) -> wgpu::SamplerId {
+        let mut s = std::collections::hash_map::DefaultHasher::new();
+        desc.address_mode_u.hash(&mut s);
+        desc.address_mode_v.hash(&mut s);
+        desc.address_mode_w.hash(&mut s);
+        desc.mag_filter.hash(&mut s);
+        desc.min_filter.hash(&mut s);
+        desc.mipmap_filter.hash(&mut s);
+        desc.lod_min_clamp.to_bits().hash(&mut s);
+        desc.lod_max_clamp.to_bits().hash(&mut s);
+        desc.compare.hash(&mut s);
+        desc.anisotropy_clamp.hash(&mut s);
+        desc.border_color.hash(&mut s);
+        // TODO: can we just use bevy's version?
+        let id = s.finish() as u32;
+        unsafe { std::mem::transmute(id) }
+    }
+
+    fn create_text_bind_group_layout(device: &RenderDevice, filtering: bool) -> wgpu::BindGroupLayout {
+        bevy_nannou_wgpu::BindGroupLayoutBuilder::new()
+            .sampler(wgpu::ShaderStages::FRAGMENT, filtering)
+            .texture(
+                wgpu::ShaderStages::FRAGMENT,
+                false,
+                wgpu::TextureViewDimension::D2,
+                wgpu::TextureFormat::R8Unorm
+                    .sample_type(None)
+                    .expect("Expected format to have sample type"),
+            )
+            .build(device)
     }
 }
 
@@ -184,8 +231,8 @@ impl FromWorld for NannouPipeline {
             .build(device);
 
         // Bind group for text.
-        let text_bind_group_layout = create_text_bind_group_layout(device, text_sampler_filtering);
-        let text_bind_group = create_text_bind_group(
+        let text_bind_group_layout = Self::create_text_bind_group_layout(device, text_sampler_filtering);
+        let text_bind_group = Self::create_text_bind_group(
             device,
             &text_bind_group_layout,
             &text_sampler,
@@ -194,7 +241,7 @@ impl FromWorld for NannouPipeline {
 
         // Initialise the sampler set with the default sampler.
         let sampler_desc = bevy_nannou_wgpu::SamplerBuilder::new().into_descriptor();
-        let sampler_id = sampler_descriptor_hash(&sampler_desc);
+        let sampler_id = Self::sampler_descriptor_hash(&sampler_desc);
         let texture_sampler = device.create_sampler(&sampler_desc);
         let texture_samplers = Some((sampler_id, texture_sampler.clone()))
             .into_iter()
@@ -204,12 +251,12 @@ impl FromWorld for NannouPipeline {
         // let texture_bind_group_layouts = Default::default();
         // let texture_bind_groups = Default::default();
 
-        let texture_bind_group_layout = create_texture_bind_group_layout(
+        let texture_bind_group_layout = Self::create_texture_bind_group_layout(
             device,
             bevy_nannou_wgpu::sampler_filtering(&sampler_desc),
             wgpu::TextureSampleType::Float { filterable: true },
         );
-        let texture_bind_group = create_texture_bind_group(
+        let texture_bind_group = Self::create_texture_bind_group(
             device,
             &texture_bind_group_layout,
             &texture_sampler,
@@ -239,6 +286,7 @@ impl FromWorld for NannouPipeline {
             texture_samplers,
             texture_bind_group_layout,
             texture_bind_group,
+            // TODO: make configurable.
             output_color_format: wgpu::TextureFormat::Rgba8UnormSrgb,
             view_bind_group_layout,
             view_bind_group,
@@ -247,90 +295,11 @@ impl FromWorld for NannouPipeline {
     }
 }
 
-fn create_depth_texture(device: &RenderDevice, size: [u32; 2], sample_count: u32) -> wgpu::Texture {
-    bevy_nannou_wgpu::TextureBuilder::new()
-        .size(size)
-        .format(wgpu::TextureFormat::Depth32Float)
-        .usage(wgpu::TextureUsages::RENDER_ATTACHMENT)
-        .sample_count(sample_count)
-        .build(device)
-}
-
-fn create_texture_bind_group_layout(
-    device: &RenderDevice,
-    filtering: bool,
-    texture_sample_type: wgpu::TextureSampleType,
-) -> wgpu::BindGroupLayout {
-    bevy_nannou_wgpu::BindGroupLayoutBuilder::new()
-        .sampler(wgpu::ShaderStages::FRAGMENT, filtering)
-        .texture(
-            wgpu::ShaderStages::FRAGMENT,
-            false,
-            wgpu::TextureViewDimension::D2,
-            texture_sample_type,
-        )
-        .build(device)
-}
-
-fn create_text_bind_group(
-    device: &RenderDevice,
-    layout: &wgpu::BindGroupLayout,
-    sampler: &wgpu::Sampler,
-    glyph_cache_texture_view: &wgpu::TextureView,
-) -> wgpu::BindGroup {
-    bevy_nannou_wgpu::BindGroupBuilder::new()
-        .sampler(sampler)
-        .texture_view(glyph_cache_texture_view)
-        .build(device, layout)
-}
-
-fn create_texture_bind_group(
-    device: &RenderDevice,
-    layout: &wgpu::BindGroupLayout,
-    sampler: &wgpu::Sampler,
-    texture_view: &wgpu::TextureView,
-) -> wgpu::BindGroup {
-    bevy_nannou_wgpu::BindGroupBuilder::new()
-        .sampler(sampler)
-        .texture_view(texture_view)
-        .build(device, layout)
-}
-
-fn sampler_descriptor_hash(desc: &wgpu::SamplerDescriptor) -> wgpu::SamplerId {
-    let mut s = std::collections::hash_map::DefaultHasher::new();
-    desc.address_mode_u.hash(&mut s);
-    desc.address_mode_v.hash(&mut s);
-    desc.address_mode_w.hash(&mut s);
-    desc.mag_filter.hash(&mut s);
-    desc.min_filter.hash(&mut s);
-    desc.mipmap_filter.hash(&mut s);
-    desc.lod_min_clamp.to_bits().hash(&mut s);
-    desc.lod_max_clamp.to_bits().hash(&mut s);
-    desc.compare.hash(&mut s);
-    desc.anisotropy_clamp.hash(&mut s);
-    desc.border_color.hash(&mut s);
-    // TODO: can we just use bevy's version?
-    let id = s.finish() as u32;
-    unsafe { std::mem::transmute(id) }
-}
-
-fn create_text_bind_group_layout(device: &RenderDevice, filtering: bool) -> wgpu::BindGroupLayout {
-    bevy_nannou_wgpu::BindGroupLayoutBuilder::new()
-        .sampler(wgpu::ShaderStages::FRAGMENT, filtering)
-        .texture(
-            wgpu::ShaderStages::FRAGMENT,
-            false,
-            wgpu::TextureViewDimension::D2,
-            wgpu::TextureFormat::R8Unorm
-                .sample_type(None)
-                .expect("Expected format to have sample type"),
-        )
-        .build(device)
-}
-
+// A resource that caches the render pipelines for each camera.
 #[derive(Resource, Deref, DerefMut)]
 pub struct NannouPipelines(pub utils::HashMap<Entity, CachedRenderPipelineId>);
 
+// Ensures that the render pipeline is cached for each camera.
 pub fn queue_pipelines(
     mut commands: Commands,
     pipeline: Res<NannouPipeline>,
@@ -342,8 +311,7 @@ pub fn queue_pipelines(
         .iter()
         .filter_map(|entity| {
             let key = NannouPipelineKey {
-                /// TODO: this should be configurable based on a user
-                /// registered resource, i.e. when spawning a new window
+                // TODO: this should be configurable based on a user registered resource
                 sample_count: NannouPipeline::DEFAULT_SAMPLE_COUNT,
                 depth_format: NannouPipeline::DEFAULT_DEPTH_FORMAT,
                 blend_state: NannouPipeline::DEFAULT_BLEND_STATE,
@@ -379,7 +347,7 @@ impl ViewNode for NannouViewNode {
 
     fn run(
         &self,
-        graph: &mut RenderGraphContext,
+        _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
         (entity, target, mesh, depth_texture): QueryItem<Self::ViewQuery>,
         world: &World,
@@ -387,7 +355,6 @@ impl ViewNode for NannouViewNode {
         let nannou_pipeline = world.resource::<NannouPipeline>();
         let nannou_pipelines = world.resource::<NannouPipelines>();
         let pipeline_cache = world.resource::<PipelineCache>();
-        let windows = world.resource::<ExtractedWindows>();
         let Some(pipeline_id) = nannou_pipelines.get(&entity) else {
             return Ok(());
         };

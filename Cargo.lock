@@ -897,21 +897,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_mod_debugdump"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4db8601f41ea570b7d32f3177292a608196c59bdf3298001a9e202d5e7439438"
-dependencies = [
- "bevy_app",
- "bevy_ecs",
- "bevy_render",
- "bevy_utils",
- "once_cell",
- "petgraph 0.6.4",
- "pretty-type-name",
-]
-
-[[package]]
 name = "bevy_nannou"
 version = "0.1.0"
 dependencies = [
@@ -932,7 +917,6 @@ name = "bevy_nannou_render"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_mod_debugdump",
  "bevy_nannou_wgpu",
  "lyon",
  "nannou_core",
@@ -5374,12 +5358,6 @@ name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
-
-[[package]]
-name = "pretty-type-name"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0f73cdaf19b52e6143685c3606206e114a4dfa969d6b14ec3894c88eb38bd4b"
 
 [[package]]
 name = "proc-macro-crate"

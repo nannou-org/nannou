@@ -2,20 +2,17 @@ use bevy::asset::load_internal_asset;
 use bevy::core_pipeline::core_3d;
 use bevy::core_pipeline::core_3d::CORE_3D;
 use bevy::prelude::*;
-use bevy::render::{Extract, render_resource as wgpu, RenderSet};
-use bevy::render::{Render, RenderApp};
 use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::render_asset::RenderAsset;
 use bevy::render::render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner};
-use bevy::render::render_phase::{
-    AddRenderCommand, PhaseItem, RenderCommand,
-};
+use bevy::render::render_phase::{AddRenderCommand, PhaseItem, RenderCommand};
 use bevy::render::render_resource::{
-    ShaderType, SpecializedRenderPipeline,
-    SpecializedRenderPipelines,
+    ShaderType, SpecializedRenderPipeline, SpecializedRenderPipelines,
 };
 use bevy::render::renderer::RenderDevice;
 use bevy::render::view::ViewUniforms;
+use bevy::render::{render_resource as wgpu, RenderSet};
+use bevy::render::{Render, RenderApp};
 
 use mesh::ViewMesh;
 use pipeline::queue_pipelines;
@@ -25,7 +22,6 @@ use crate::pipeline::{NannouPipeline, NannouViewNode};
 pub mod mesh;
 mod pipeline;
 mod text;
-// mod reshaper;
 
 pub struct NannouRenderPlugin;
 
@@ -41,10 +37,10 @@ impl Plugin for NannouRenderPlugin {
         );
 
         app
+            // TODO: We should extract Draw and compute the mesh from the Draw component
+            // in the render world
             .add_plugins(ExtractComponentPlugin::<ViewMesh>::default());
 
-
-        println!("NannouRenderPlugin::build");
         app.get_sub_app_mut(RenderApp)
             .unwrap()
             .init_resource::<SpecializedRenderPipelines<NannouPipeline>>()
@@ -52,25 +48,22 @@ impl Plugin for NannouRenderPlugin {
                 Render,
                 prepare_view_uniform.in_set(RenderSet::PrepareBindGroups),
             )
-            .add_systems(
-                Render,
-                queue_pipelines
-                    .in_set(RenderSet::PrepareAssets)
-            )
+            .add_systems(Render, queue_pipelines.in_set(RenderSet::PrepareAssets))
+
+            // Register the NannouViewNode with the render graph
+            // The node runs at the last stage of the main 3d pass
             .add_render_graph_node::<ViewNodeRunner<NannouViewNode>>(
                 core_3d::graph::NAME,
                 NannouViewNode::NAME,
             )
             .add_render_graph_edges(
-            CORE_3D,
-            &[
-                core_3d::graph::node::MAIN_TRANSPARENT_PASS,
-                NannouViewNode::NAME,
-                core_3d::graph::node::END_MAIN_PASS,
-            ],
-        );
-
-        bevy_mod_debugdump::print_render_graph(app);
+                CORE_3D,
+                &[
+                    core_3d::graph::node::MAIN_TRANSPARENT_PASS,
+                    NannouViewNode::NAME,
+                    core_3d::graph::node::END_MAIN_PASS,
+                ],
+            );
     }
 
     fn finish(&self, app: &mut App) {
@@ -82,6 +75,7 @@ impl Plugin for NannouRenderPlugin {
     }
 }
 
+// Prepare our uniform bind group from Bevy's view uniforms
 fn prepare_view_uniform(
     mut commands: Commands,
     render_device: Res<RenderDevice>,
@@ -96,6 +90,8 @@ fn prepare_view_uniform(
         ));
     }
 }
+
+// Resource wrapper for our view uniform bind group
 #[derive(Resource)]
 struct ViewUniformBindGroup {
     bind_group: wgpu::BindGroup,
@@ -127,4 +123,32 @@ pub enum VertexMode {
     ///
     /// Uses the color values, but multiplies the alpha by the glyph cache texture's red value.
     Text = 2,
+}
+
+pub struct GlyphCache {
+    /// Tracks glyphs and their location within the cache.
+    pub cache: text::GlyphCache<'static>,
+    /// The buffer used to store the pixels of the glyphs.
+    pub pixel_buffer: Vec<u8>,
+    /// Will be set to `true` after the cache has been updated if the texture requires re-uploading.
+    pub requires_upload: bool,
+}
+
+impl GlyphCache {
+    fn new(size: [u32; 2], scale_tolerance: f32, position_tolerance: f32) -> Self {
+        let [w, h] = size;
+        let cache = text::GlyphCache::builder()
+            .dimensions(w, h)
+            .scale_tolerance(scale_tolerance)
+            .position_tolerance(position_tolerance)
+            .build()
+            .into();
+        let pixel_buffer = vec![0u8; w as usize * h as usize];
+        let requires_upload = false;
+        GlyphCache {
+            cache,
+            pixel_buffer,
+            requires_upload,
+        }
+    }
 }
