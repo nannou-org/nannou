@@ -13,9 +13,7 @@ use bevy::render::render_resource::{
     SpecializedRenderPipeline, SpecializedRenderPipelines,
 };
 use bevy::render::renderer::{RenderContext, RenderDevice};
-use bevy::render::view::{
-    ExtractedWindows, ViewDepthTexture, ViewTarget, ViewUniform,
-};
+use bevy::render::view::{ExtractedWindows, ViewDepthTexture, ViewTarget, ViewUniform, ViewUniformOffset};
 use bevy::utils;
 
 use crate::mesh::vertex::Point;
@@ -272,7 +270,7 @@ impl FromWorld for NannouPipeline {
             mapped_at_creation: false,
         });
         let view_bind_group_layout = bevy_nannou_wgpu::BindGroupLayoutBuilder::new()
-            .uniform_buffer(wgpu::ShaderStages::VERTEX, false)
+            .uniform_buffer(wgpu::ShaderStages::VERTEX, true)
             .build(device);
         let view_bind_group = bevy_nannou_wgpu::BindGroupBuilder::new()
             .buffer::<ViewUniform>(&view_buffer, 0..1)
@@ -341,6 +339,7 @@ impl ViewNode for NannouViewNode {
     type ViewQuery = (
         Entity,
         &'static ViewTarget,
+        &'static ViewUniformOffset,
         &'static ViewMesh,
         &'static ViewDepthTexture,
     );
@@ -349,7 +348,7 @@ impl ViewNode for NannouViewNode {
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        (entity, target, mesh, depth_texture): QueryItem<Self::ViewQuery>,
+        (entity, target, uniform_offset, mesh, depth_texture): QueryItem<Self::ViewQuery>,
         world: &World,
     ) -> Result<(), NodeRunError> {
         let nannou_pipeline = world.resource::<NannouPipeline>();
@@ -438,7 +437,7 @@ impl ViewNode for NannouViewNode {
 
         // Set the uniform and text bind groups here.
         let uniform_bind_group = world.resource::<ViewUniformBindGroup>();
-        render_pass.set_bind_group(0, &uniform_bind_group.bind_group, &[]);
+        render_pass.set_bind_group(0, &uniform_bind_group.bind_group, &[uniform_offset.offset]);
         render_pass.set_bind_group(1, &nannou_pipeline.text_bind_group, &[]);
         render_pass.set_bind_group(2, &texture_bind_group, &[]);
 
