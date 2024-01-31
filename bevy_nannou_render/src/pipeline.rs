@@ -5,6 +5,7 @@ use std::hash::{Hash, Hasher};
 use bevy::ecs::query::QueryItem;
 use bevy::prelude::*;
 use bevy::render::camera::ExtractedCamera;
+use bevy::render::render_asset::RenderAssets;
 use bevy::render::render_graph::{NodeRunError, RenderGraphContext, ViewNode};
 use bevy::render::render_resource as wgpu;
 use bevy::render::render_resource::{
@@ -19,7 +20,7 @@ use bevy::utils;
 
 use crate::mesh::vertex::Point;
 use crate::mesh::{TexCoords, ViewMesh};
-use crate::{GlyphCache, NANNOU_SHADER_HANDLE, VertexMode, ViewUniformBindGroup};
+use crate::{GlyphCache, mesh, NANNOU_SHADER_HANDLE, VertexMode, ViewUniformBindGroup};
 
 #[derive(Resource)]
 pub struct NannouPipeline {
@@ -28,7 +29,6 @@ pub struct NannouPipeline {
     text_bind_group_layout: wgpu::BindGroupLayout,
     text_bind_group: wgpu::BindGroup,
     texture_samplers: HashMap<wgpu::SamplerId, wgpu::Sampler>,
-    // TODO: move to resource and support multiple textures.
     texture_bind_group_layout: wgpu::BindGroupLayout,
     texture_bind_group: wgpu::BindGroup,
     output_color_format: wgpu::TextureFormat,
@@ -96,13 +96,13 @@ impl NannouPipeline {
             offset: 0,
             shader_location: 0,
         }])
-        .add_vertex_buffer::<Color>(&[wgpu::VertexAttribute {
-            format: wgpu::VertexFormat::Float32x3,
+        .add_vertex_buffer::<mesh::vertex::Color>(&[wgpu::VertexAttribute {
+            format: wgpu::VertexFormat::Float32x4,
             offset: 0,
             shader_location: 1,
         }])
-        .add_vertex_buffer::<TexCoords>(&[wgpu::VertexAttribute {
-            format: wgpu::VertexFormat::Float32x3,
+        .add_vertex_buffer::<mesh::vertex::TexCoords>(&[wgpu::VertexAttribute {
+            format: wgpu::VertexFormat::Float32x2,
             offset: 0,
             shader_location: 2,
         }])
@@ -148,7 +148,7 @@ impl NannouPipeline {
             .build(device, layout)
     }
 
-    fn create_texture_bind_group(
+    pub fn create_texture_bind_group(
         device: &RenderDevice,
         layout: &wgpu::BindGroupLayout,
         sampler: &wgpu::Sampler,
@@ -364,7 +364,9 @@ impl ViewNode for NannouViewNode {
 
         // Create render pass builder.
         let render_pass_builder = bevy_nannou_wgpu::RenderPassBuilder::new()
-            .color_attachment(target.main_texture_view(), |color| color);
+            .color_attachment(target.main_texture_view(), |color|
+                color.load_op(wgpu::LoadOp::Load) // TODO: bg color
+            );
 
         let render_device = render_context.render_device();
 
@@ -372,7 +374,7 @@ impl ViewNode for NannouViewNode {
         let points_bytes = cast_slice(&mesh.points()[..]);
         let colors_bytes = cast_slice(mesh.colors());
         let tex_coords_bytes = cast_slice(mesh.tex_coords());
-        // let modes_bytes = vertex_modes_as_bytes(vertex_mode_buffer);
+        let modes_bytes = cast_slice(&[VertexMode::Texture as u32; 4]);
         let indices_bytes = cast_slice(mesh.indices());
         let point_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: Some("nannou Renderer point_buffer"),
@@ -391,7 +393,7 @@ impl ViewNode for NannouViewNode {
         });
         let mode_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: Some("nannou Renderer mode_buffer"),
-            contents: &[],
+            contents: modes_bytes,
             usage: vertex_usage,
         });
         let index_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
@@ -399,6 +401,30 @@ impl ViewNode for NannouViewNode {
             contents: indices_bytes,
             usage: wgpu::BufferUsages::INDEX,
         });
+
+        let texture_bind_group = match &mesh.texture {
+            Some(texture) => {
+                let images = world.resource::<RenderAssets<Image>>();
+                if let Some(gpu_image) = images.get(texture) {
+                    let texture_bind_group_layout = NannouPipeline::create_texture_bind_group_layout(
+                        render_device,
+                        true,
+                        wgpu::TextureSampleType::Float { filterable: true },
+                    );
+                    NannouPipeline::create_texture_bind_group(
+                        render_device,
+                        &texture_bind_group_layout,
+                        &gpu_image.sampler,
+                        &gpu_image.texture_view,
+                    )
+                } else {
+                    nannou_pipeline.texture_bind_group.clone()
+                }
+            }
+            None => {
+                nannou_pipeline.texture_bind_group.clone()
+            }
+        };
 
         let mut render_pass = render_pass_builder.begin(render_context);
         render_pass.set_render_pipeline(pipeline);
@@ -414,7 +440,7 @@ impl ViewNode for NannouViewNode {
         let uniform_bind_group = world.resource::<ViewUniformBindGroup>();
         render_pass.set_bind_group(0, &uniform_bind_group.bind_group, &[]);
         render_pass.set_bind_group(1, &nannou_pipeline.text_bind_group, &[]);
-        render_pass.set_bind_group(2, &nannou_pipeline.texture_bind_group, &[]);
+        render_pass.set_bind_group(2, &texture_bind_group, &[]);
 
         // Draw the mesh.
         let indices = 0..mesh.indices().len() as u32;

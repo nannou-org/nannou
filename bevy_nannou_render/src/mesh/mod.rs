@@ -27,6 +27,7 @@ pub type MeshType =
 #[derive(Component, Debug, Clone, ExtractComponent)]
 pub struct ViewMesh {
     mesh: MeshType,
+    pub texture: Option<Handle<Image>>,
 }
 
 impl ViewMesh {
@@ -183,7 +184,7 @@ impl ViewMesh {
 impl Default for ViewMesh {
     fn default() -> Self {
         let mesh = Default::default();
-        ViewMesh { mesh }
+        ViewMesh { mesh, texture: None }
     }
 }
 

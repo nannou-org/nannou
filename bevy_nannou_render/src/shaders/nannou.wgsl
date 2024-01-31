@@ -22,9 +22,8 @@ struct VertexOutput {
 fn vertex(
     input: VertexInput,
 ) -> VertexOutput {
-    let out_pos: vec4<f32> = view.projection * vec4<f32>(input.position, 1.0);
+    let out_pos: vec4<f32> = view.view_proj * vec4<f32>(input.position, 1.0);
     return VertexOutput(input.color, input.tex_coords, input.mode, out_pos);
-
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FRAGMENT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
