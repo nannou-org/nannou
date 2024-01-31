@@ -18,7 +18,7 @@ use bevy::utils;
 
 use crate::mesh::vertex::Point;
 use crate::mesh::{TexCoords, ViewMesh};
-use crate::{GlyphCache, mesh, NANNOU_SHADER_HANDLE, VertexMode, ViewUniformBindGroup};
+use crate::{GlyphCache, mesh, NANNOU_SHADER_HANDLE, RenderCommand, Scissor, VertexMode, ViewRenderCommands, ViewUniformBindGroup};
 
 #[derive(Resource)]
 pub struct NannouPipeline {
@@ -293,36 +293,11 @@ impl FromWorld for NannouPipeline {
     }
 }
 
-// A resource that caches the render pipelines for each camera.
-#[derive(Resource, Deref, DerefMut)]
-pub struct NannouPipelines(pub utils::HashMap<Entity, CachedRenderPipelineId>);
-
-// Ensures that the render pipeline is cached for each camera.
-pub fn queue_pipelines(
-    mut commands: Commands,
-    pipeline: Res<NannouPipeline>,
-    mut pipelines: ResMut<SpecializedRenderPipelines<NannouPipeline>>,
-    pipeline_cache: Res<PipelineCache>,
-    cameras: Query<Entity, Has<ExtractedCamera>>,
-) {
-    let pipelines = cameras
-        .iter()
-        .filter_map(|entity| {
-            let key = NannouPipelineKey {
-                // TODO: this should be configurable based on a user registered resource
-                sample_count: NannouPipeline::DEFAULT_SAMPLE_COUNT,
-                depth_format: NannouPipeline::DEFAULT_DEPTH_FORMAT,
-                blend_state: NannouPipeline::DEFAULT_BLEND_STATE,
-                topology: NannouPipeline::DEFAULT_PRIMITIVE_TOPOLOGY,
-            };
-            let pipeline_id = pipelines.specialize(&pipeline_cache, &pipeline, key);
-
-            Some((entity, pipeline_id))
-        })
-        .collect();
-
-    commands.insert_resource(NannouPipelines(pipelines));
+#[derive(Resource, Default)]
+pub struct TextureBindGroupCache {
+    pub bind_groups: HashMap<Handle<Image>, wgpu::BindGroup>,
 }
+
 pub struct NannouViewNode;
 
 impl NannouViewNode {
@@ -341,6 +316,7 @@ impl ViewNode for NannouViewNode {
         &'static ViewTarget,
         &'static ViewUniformOffset,
         &'static ViewMesh,
+        &'static ViewRenderCommands,
         &'static ViewDepthTexture,
     );
 
@@ -348,18 +324,12 @@ impl ViewNode for NannouViewNode {
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        (entity, target, uniform_offset, mesh, depth_texture): QueryItem<Self::ViewQuery>,
+        (entity, target, uniform_offset, mesh, render_commands, depth_texture): QueryItem<Self::ViewQuery>,
         world: &World,
     ) -> Result<(), NodeRunError> {
         let nannou_pipeline = world.resource::<NannouPipeline>();
-        let nannou_pipelines = world.resource::<NannouPipelines>();
         let pipeline_cache = world.resource::<PipelineCache>();
-        let Some(pipeline_id) = nannou_pipelines.get(&entity) else {
-            return Ok(());
-        };
-        let Some(pipeline) = pipeline_cache.get_render_pipeline(*pipeline_id) else {
-            return Ok(());
-        };
+        let bind_group_cache = world.resource::<TextureBindGroupCache>();
 
         // Create render pass builder.
         let render_pass_builder = bevy_nannou_wgpu::RenderPassBuilder::new()
@@ -401,32 +371,7 @@ impl ViewNode for NannouViewNode {
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let texture_bind_group = match &mesh.texture {
-            Some(texture) => {
-                let images = world.resource::<RenderAssets<Image>>();
-                if let Some(gpu_image) = images.get(texture) {
-                    let texture_bind_group_layout = NannouPipeline::create_texture_bind_group_layout(
-                        render_device,
-                        true,
-                        wgpu::TextureSampleType::Float { filterable: true },
-                    );
-                    NannouPipeline::create_texture_bind_group(
-                        render_device,
-                        &texture_bind_group_layout,
-                        &gpu_image.sampler,
-                        &gpu_image.texture_view,
-                    )
-                } else {
-                    nannou_pipeline.texture_bind_group.clone()
-                }
-            }
-            None => {
-                nannou_pipeline.texture_bind_group.clone()
-            }
-        };
-
         let mut render_pass = render_pass_builder.begin(render_context);
-        render_pass.set_render_pipeline(pipeline);
 
         // Set the buffers.
         render_pass.set_index_buffer(index_buffer.slice(..), 0, wgpu::IndexFormat::Uint32);
@@ -439,11 +384,40 @@ impl ViewNode for NannouViewNode {
         let uniform_bind_group = world.resource::<ViewUniformBindGroup>();
         render_pass.set_bind_group(0, &uniform_bind_group.bind_group, &[uniform_offset.offset]);
         render_pass.set_bind_group(1, &nannou_pipeline.text_bind_group, &[]);
-        render_pass.set_bind_group(2, &texture_bind_group, &[]);
 
-        // Draw the mesh.
-        let indices = 0..mesh.indices().len() as u32;
-        render_pass.draw_indexed(indices, 0, 0..1);
+        // Follow the render commands.
+        for cmd in render_commands.commands.clone() {
+            match cmd {
+                RenderCommand::SetPipeline(id) => {
+                    let pipeline = pipeline_cache.get_render_pipeline(id).expect("Expected pipeline to exist");
+                    render_pass.set_render_pipeline(pipeline);
+                }
+
+                RenderCommand::SetBindGroup(texture) => {
+                    let bind_group = bind_group_cache
+                        .bind_groups
+                        .get(&texture)
+                        .expect("Expected texture bind group to exist");
+                    render_pass.set_bind_group(2, bind_group, &[]);
+                }
+                RenderCommand::SetScissor(Scissor {
+                                              left,
+                                              bottom,
+                                              width,
+                                              height,
+                                          }) => {
+                    render_pass.set_scissor_rect(left, bottom, width, height);
+                }
+                RenderCommand::DrawIndexed {
+                    start_vertex,
+                    index_range,
+                } => {
+                    let instance_range = 0..1u32;
+                    render_pass.draw_indexed(index_range, start_vertex, instance_range);
+                }
+            }
+        }
+
         Ok(())
     }
 }

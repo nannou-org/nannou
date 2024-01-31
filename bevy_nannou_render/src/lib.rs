@@ -5,19 +5,15 @@ use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::render_asset::RenderAsset;
 use bevy::render::render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner};
-use bevy::render::render_phase::{AddRenderCommand, PhaseItem, RenderCommand};
-use bevy::render::render_resource::{
-    ShaderType, SpecializedRenderPipeline, SpecializedRenderPipelines,
-};
+use bevy::render::render_resource::{CachedRenderPipelineId, ShaderType, SpecializedRenderPipeline, SpecializedRenderPipelines};
 use bevy::render::renderer::RenderDevice;
 use bevy::render::view::ViewUniforms;
 use bevy::render::{render_resource as wgpu, RenderSet};
 use bevy::render::{Render, RenderApp};
 
 use mesh::ViewMesh;
-use pipeline::queue_pipelines;
 
-use crate::pipeline::{NannouPipeline, NannouViewNode};
+use crate::pipeline::{NannouPipeline, NannouViewNode, TextureBindGroupCache};
 
 pub mod mesh;
 mod pipeline;
@@ -44,11 +40,11 @@ impl Plugin for NannouRenderPlugin {
         app.get_sub_app_mut(RenderApp)
             .unwrap()
             .init_resource::<SpecializedRenderPipelines<NannouPipeline>>()
+            .init_resource::<TextureBindGroupCache>()
             .add_systems(
                 Render,
                 prepare_view_uniform.in_set(RenderSet::PrepareBindGroups),
             )
-            .add_systems(Render, queue_pipelines.in_set(RenderSet::PrepareAssets))
 
             // Register the NannouViewNode with the render graph
             // The node runs at the last stage of the main 3d pass
@@ -123,6 +119,36 @@ pub enum VertexMode {
     ///
     /// Uses the color values, but multiplies the alpha by the glyph cache texture's red value.
     Text = 2,
+}
+
+/// Commands that map to wgpu encodable commands.
+#[derive(Debug, Clone)]
+enum RenderCommand {
+    /// Change pipeline for the new blend mode and topology.
+    SetPipeline(CachedRenderPipelineId),
+    /// Change bind group for a new image.
+    SetBindGroup(Handle<Image>),
+    /// Set the rectangular scissor.
+    SetScissor(Scissor),
+    /// Draw the given vertex range.
+    DrawIndexed {
+        start_vertex: i32,
+        index_range: std::ops::Range<u32>,
+    },
+}
+
+#[derive(Component)]
+pub struct ViewRenderCommands {
+    commands: Vec<RenderCommand>,
+}
+
+/// The position and dimensions of the scissor.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Scissor {
+    left: u32,
+    bottom: u32,
+    width: u32,
+    height: u32,
 }
 
 pub struct GlyphCache {

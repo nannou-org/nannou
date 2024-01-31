@@ -6,6 +6,7 @@ use nannou_mesh::{self, MeshPoints, WithColors, WithIndices, WithTexCoords};
 use std::ops::{Deref, DerefMut};
 use bevy::render::extract_component::ExtractComponent;
 use crate::mesh::vertex::Point;
+use crate::RenderCommand;
 
 pub mod builder;
 pub mod vertex;
@@ -27,7 +28,6 @@ pub type MeshType =
 #[derive(Component, Debug, Clone, ExtractComponent)]
 pub struct ViewMesh {
     mesh: MeshType,
-    pub texture: Option<Handle<Image>>,
 }
 
 impl ViewMesh {
@@ -184,7 +184,7 @@ impl ViewMesh {
 impl Default for ViewMesh {
     fn default() -> Self {
         let mesh = Default::default();
-        ViewMesh { mesh, texture: None }
+        ViewMesh { mesh }
     }
 }
 
