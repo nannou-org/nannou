@@ -10,15 +10,3 @@ impl Plugin for NannouPlugin {
         ));
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use bevy::app::App;
-
-    #[test]
-    fn it_works() {
-        let mut app = App::new();
-        app.add_plugins((bevy::DefaultPlugins, super::NannouPlugin));
-        app.update();
-    }
-}

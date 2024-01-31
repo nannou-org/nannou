@@ -2576,7 +2576,7 @@ version = "0.1.0"
 dependencies = [
  "audrey",
  "futures 0.3.30",
- "hotglsl 0.2.0 (git+https://github.com/nannou-org/hotglsl?branch=master)",
+ "hotglsl",
  "hound",
  "hrtf",
  "nannou",
@@ -3322,16 +3322,6 @@ name = "hotglsl"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4255b32d5626f6c2f38801fb57b540edd95e8014ebb757b753bea7d946c031f7"
-dependencies = [
- "naga 0.14.2",
- "notify",
- "thiserror",
-]
-
-[[package]]
-name = "hotglsl"
-version = "0.2.0"
-source = "git+https://github.com/nannou-org/hotglsl?branch=master#534b2288809f4ada29089d27425a2064f8cacdcd"
 dependencies = [
  "naga 0.14.2",
  "notify",
@@ -4416,7 +4406,7 @@ dependencies = [
 name = "nannou_isf"
 version = "0.1.0"
 dependencies = [
- "hotglsl 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hotglsl",
  "isf",
  "nannou",
  "thiserror",

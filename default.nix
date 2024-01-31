@@ -24,7 +24,6 @@ rustPlatform.buildRustPackage rec {
     outputHashes = {
       "isf-0.1.0" = "sha256-utexaXpZZgpRunVAQyD2JAwvabhZGzeorC4pRFIumAc=";
       "skeptic-0.13.4" = "sha256-EZFtWIPfsfbpGBD8NwsVtMzRM10kVdg+djoV00dhT4Y=";
-      "hotglsl-0.2.0" = "sha256-i4THFfh+y3kxooRynjXxqRiVYK28t3fE8u1118/ugD0=";
     };
   };
 
