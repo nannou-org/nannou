@@ -191,6 +191,7 @@ struct LoopState {
     loop_start: Instant,
     last_update: Instant,
     total_updates: u64,
+    last_surface_texture_acquired: Option<std::time::Instant>,
 }
 
 /// The mode in which the **App** is currently running the event loop and emitting `Update` events.
@@ -1104,39 +1105,69 @@ fn run_loop<M, E>(
         loop_start,
         last_update: loop_start,
         total_updates: 0,
+        last_surface_texture_acquired: None,
     };
 
     // Run the event loop.
     event_loop.run(move |mut event, event_loop_window_target, control_flow| {
+        println!("{:?}", event);
+
         // Set the event loop window target pointer to allow for building windows.
         app.event_loop_window_target = Some(EventLoopWindowTarget::Pointer(
             event_loop_window_target as *const _,
         ));
 
         let mut exit = false;
+        let mut requested_redraw = false;
 
         match event {
             // Check to see if we need to emit an update and request a redraw.
             winit::event::Event::MainEventsCleared => {
-                if let Some(model) = model.as_mut() {
-                    let loop_mode = app.loop_mode();
-                    let now = Instant::now();
-                    let mut do_update = |loop_state: &mut LoopState| {
-                        apply_update(&mut app, model, event_fn, update_fn, loop_state, now);
-                    };
+                // After all events are cleared, check if we should update and request a redraw.
+                fn should_update(
+                    loop_mode: LoopMode,
+                    loop_state: &LoopState,
+                    now: std::time::Instant,
+                    display_frame_interval: std::time::Duration,
+                ) -> bool {
                     match loop_mode {
                         LoopMode::NTimes { number_of_updates }
-                            if loop_state.total_updates >= number_of_updates as u64 => {}
+                            if loop_state.total_updates >= number_of_updates as u64 => return false,
                         // Sometimes winit interrupts ControlFlow::Wait for no good reason, so we
                         // make sure that there were some events in order to do an update when
                         // LoopMode::Wait is used.
-                        LoopMode::Wait if loop_state.updates_since_event > 0 => {}
+                        LoopMode::Wait if loop_state.updates_since_event > 0 => return false,
                         // TODO: Consider allowing for a custom number of updates like so:
                         // LoopMode::Wait { updates_before_waiting } =>
                         //     if loop_state.updates_since_event > updates_before_waiting as u64 => {}
-                        _ => {
-                            do_update(&mut loop_state);
-                        },
+                        _ => (),
+                    }
+                    // If any of the windows are `wgpu::PresentMode::Fifo` (the default), we should
+                    // avoid updating and requesting a redraw too early in order to avoid getting
+                    // blocked on `get_current_texture`. This allows for collecting more input
+                    // events in the mean time, reducing the input lag by up to a frame.
+                    // TODO: Check `PresentMode`s here.
+                    let last_redraw = match loop_state.last_surface_texture_acquired {
+                        // If we haven't drawn anything yet, do so.
+                        None => return true,
+                        Some(ts) => ts,
+                    };
+                    if now.duration_since(last_redraw) < display_frame_interval {
+                        return false;
+                    }
+                    true
+                }
+
+                if let Some(model) = model.as_mut() {
+                    let loop_mode = app.loop_mode();
+                    let now = Instant::now();
+                    // TODO: Retrieve this from winit... maybe monitor video mode?
+                    let frame_interval = std::time::Duration::from_millis(16);
+                    if should_update(loop_mode, &loop_state, now, frame_interval) {
+                        apply_update(&mut app, model, event_fn, update_fn, &mut loop_state, now);
+
+                        // TODO: This necessary?
+                        requested_redraw = true;
                     }
                 }
             }
@@ -1156,6 +1187,7 @@ fn run_loop<M, E>(
                             .get_mut(&window_id)
                             .expect("no window for `RedrawRequest`");
                         let texture = window.surface.get_current_texture();
+                        loop_state.last_surface_texture_acquired = Some(std::time::Instant::now());
                         let nth_frame = window.frame_count;
                         (texture, nth_frame)
                     };
@@ -1283,6 +1315,7 @@ fn run_loop<M, E>(
                         // Assume invalidated window was cleared above before `view()`
                         window.is_invalidated = false;
                         window.frame_count += 1;
+                        loop_state.updates_since_event += 1;
                     }
                 }
             }
@@ -1357,7 +1390,27 @@ fn run_loop<M, E>(
         // Set the control flow based on the loop mode.
         let loop_mode = app.loop_mode();
         *control_flow = match loop_mode {
-            LoopMode::Wait => ControlFlow::Wait,
+            LoopMode::Wait => {
+                if requested_redraw {
+                    ControlFlow::Wait
+                } else {
+                    if let Some(ts) = loop_state.last_surface_texture_acquired {
+                        let since_last_frame = ts.elapsed();
+                        // TODO: Get this from winit.
+                        let frame_interval = std::time::Duration::from_millis(16);
+                        dbg!(since_last_frame);
+                        if since_last_frame < frame_interval {
+                            let remaining = frame_interval - since_last_frame;
+                            ControlFlow::WaitUntil(Instant::now() + remaining)
+                        } else {
+                            ControlFlow::Wait
+                        }
+                    } else {
+                        ControlFlow::Wait
+                    }
+                    //ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(16))
+                }
+            }
             LoopMode::NTimes { number_of_updates }
                 if loop_state.total_updates >= number_of_updates as u64 =>
             {
@@ -1422,7 +1475,8 @@ fn apply_update<M, E>(
     }
     loop_state.last_update = now;
     loop_state.total_updates += 1;
-    loop_state.updates_since_event += 1;
+    //loop_state.updates_since_event += 1;
+
     // Request redraw from windows.
     let windows = app.windows.borrow();
     for window in windows.values() {
