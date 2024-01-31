@@ -1,7 +1,7 @@
 //! Logic and types specific to individual glyph layout.
 
-use nannou_core::geom::{Range, Rect};
 use crate::text::{self, FontSize, Scalar, ScaledGlyph};
+use nannou_core::geom::{Range, Rect};
 
 /// Some position along the X axis (used within `CharXs`).
 pub type X = Scalar;

@@ -129,8 +129,11 @@ impl BindGroupLayoutBuilder {
             entries.push(layout_binding);
         }
 
-        let label =  Some("nannou bind group layout");
-        let desc = wgpu::BindGroupLayoutDescriptor { label, entries: &entries };
+        let label = Some("nannou bind group layout");
+        let desc = wgpu::BindGroupLayoutDescriptor {
+            label,
+            entries: &entries,
+        };
         device.create_bind_group_layout(&desc)
     }
 }
@@ -177,7 +180,7 @@ impl<'a> BindGroupBuilder<'a> {
     /// Type `T` *must* be either `#[repr(C)]` or `#[repr(transparent)]`.
     // NOTE: We might want to change this to match the wgpu API by using a NonZeroU64 for size.
     pub fn buffer<T>(self, buffer: &'a wgpu::Buffer, range: std::ops::Range<usize>) -> Self
-    // TODO: why was this necessary?
+// TODO: why was this necessary?
     // where
     //     T: Copy,
     {

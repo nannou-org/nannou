@@ -26,15 +26,15 @@ impl TextureBuilder {
     pub const DEFAULT_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
     pub const DEFAULT_USAGE: wgpu::TextureUsages = wgpu::TextureUsages::all(); // TODO: is this the right choice?
     pub const DEFAULT_DESCRIPTOR: wgpu::TextureDescriptor<'static> = wgpu::TextureDescriptor {
-            label: Some("nannou Texture"),
-            size: Self::DEFAULT_SIZE,
-            mip_level_count: Self::DEFAULT_MIP_LEVEL_COUNT,
-            sample_count: Self::DEFAULT_SAMPLE_COUNT,
-            dimension: Self::DEFAULT_DIMENSION,
-            format: Self::DEFAULT_FORMAT,
-            usage: Self::DEFAULT_USAGE,
-            view_formats: &[],
-        };
+        label: Some("nannou Texture"),
+        size: Self::DEFAULT_SIZE,
+        mip_level_count: Self::DEFAULT_MIP_LEVEL_COUNT,
+        sample_count: Self::DEFAULT_SAMPLE_COUNT,
+        dimension: Self::DEFAULT_DIMENSION,
+        format: Self::DEFAULT_FORMAT,
+        usage: Self::DEFAULT_USAGE,
+        view_formats: &[],
+    };
 
     /// Creates a new `Default` builder
     pub fn new() -> Self {
@@ -153,7 +153,6 @@ impl Into<wgpu::TextureDescriptor<'static>> for TextureBuilder {
         self.descriptor
     }
 }
-
 
 /// The size of the texture data in bytes as described by the given descriptor.
 pub fn data_size_bytes(desc: &wgpu::TextureDescriptor) -> usize {

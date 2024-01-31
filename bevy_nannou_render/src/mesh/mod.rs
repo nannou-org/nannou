@@ -1,12 +1,12 @@
 //! Items related to the custom mesh type used by the `Draw` API.
 
+use crate::mesh::vertex::Point;
+use crate::RenderCommand;
 use bevy::prelude::*;
+use bevy::render::extract_component::ExtractComponent;
 use nannou_mesh as mesh;
 use nannou_mesh::{self, MeshPoints, WithColors, WithIndices, WithTexCoords};
 use std::ops::{Deref, DerefMut};
-use bevy::render::extract_component::ExtractComponent;
-use crate::mesh::vertex::Point;
-use crate::RenderCommand;
 
 pub mod builder;
 pub mod vertex;

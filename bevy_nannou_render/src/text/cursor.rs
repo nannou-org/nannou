@@ -1,7 +1,7 @@
 //! Logic related to the positioning of the cursor within text.
 
-use nannou_core::geom::{Range, Rect};
 use crate::text::{self, FontSize, Point, Scalar};
+use nannou_core::geom::{Range, Rect};
 
 /// An index representing the position of a cursor within some text.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]

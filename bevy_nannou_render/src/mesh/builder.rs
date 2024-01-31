@@ -11,8 +11,8 @@ use lyon::tessellation::geometry_builder::{
 };
 use lyon::tessellation::{FillVertex, GeometryBuilderError, StrokeVertex, VertexId};
 
-use nannou_mesh::{Indices, Points, PushIndex, PushVertex};
 use bevy::prelude::*;
+use nannou_mesh::{Indices, Points, PushIndex, PushVertex};
 
 pub struct MeshBuilder<'a, A> {
     /// The mesh that is to be extended.

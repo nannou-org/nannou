@@ -258,29 +258,29 @@ impl<'a> Builder<'a> {
     /// The given `rect` will be used for applying the layout including text alignment, positioning
     /// of text, multi-line wrapping, etc,
     pub fn build(self, rect: geom::Rect) -> Text<'a> {
-    //     let text = self.text;
-    //     let layout = self.layout_builder.build();
-    //     #[allow(unreachable_code)]
-    //     let font = layout.font.clone().unwrap_or_else(|| {
-    //         #[cfg(feature = "notosans")]
-    //         {
-    //             return font::default_notosans();
-    //         }
-    //         let assets = nannou_core::app::find_assets_path()
-    //             .expect("failed to detect the assets directory when searching for a default font");
-    //         font::default(&assets).expect("failed to detect a default font")
-    //     });
-    //     let max_width = rect.w();
-    //     let line_infos =
-    //         line::infos_maybe_wrapped(&text, &font, layout.font_size, layout.line_wrap, max_width)
-    //             .collect();
-    //     Text {
-    //         text,
-    //         font,
-    //         layout,
-    //         line_infos,
-    //         rect,
-    //     }
+        //     let text = self.text;
+        //     let layout = self.layout_builder.build();
+        //     #[allow(unreachable_code)]
+        //     let font = layout.font.clone().unwrap_or_else(|| {
+        //         #[cfg(feature = "notosans")]
+        //         {
+        //             return font::default_notosans();
+        //         }
+        //         let assets = nannou_core::app::find_assets_path()
+        //             .expect("failed to detect the assets directory when searching for a default font");
+        //         font::default(&assets).expect("failed to detect a default font")
+        //     });
+        //     let max_width = rect.w();
+        //     let line_infos =
+        //         line::infos_maybe_wrapped(&text, &font, layout.font_size, layout.line_wrap, max_width)
+        //             .collect();
+        //     Text {
+        //         text,
+        //         font,
+        //         layout,
+        //         line_infos,
+        //         rect,
+        //     }
         todo!()
     }
 }

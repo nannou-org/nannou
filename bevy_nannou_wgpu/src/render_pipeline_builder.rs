@@ -3,9 +3,9 @@
 //! Creating a `RenderPipeline` tends to involve a lot of boilerplate that we don't always want to
 //! have to consider when writing graphics code. Here we definGe a set of helpers that allow us to
 //! simplify the process and fall back to a set of reasonable defaults.
-use std::borrow::Cow;
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
+use std::borrow::Cow;
 
 /// Types that may be directly converted into a pipeline layout descriptor.
 
@@ -447,7 +447,6 @@ impl<'a> RenderPipelineBuilder<'a> {
         self.multisample.alpha_to_coverage_enabled = b;
         self
     }
-
 
     pub fn build(self) -> wgpu::RenderPipelineDescriptor {
         let RenderPipelineBuilder {

@@ -1,5 +1,5 @@
-use nannou_mesh::vertex::{WithColor, WithTexCoords};
 use bevy::prelude::*;
+use nannou_mesh::vertex::{WithColor, WithTexCoords};
 
 pub type Point = Vec3;
 pub type Color = Vec4;

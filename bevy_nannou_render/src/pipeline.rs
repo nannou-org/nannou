@@ -13,12 +13,17 @@ use bevy::render::render_resource::{
     SpecializedRenderPipeline, SpecializedRenderPipelines,
 };
 use bevy::render::renderer::{RenderContext, RenderDevice};
-use bevy::render::view::{ExtractedWindows, ViewDepthTexture, ViewTarget, ViewUniform, ViewUniformOffset};
+use bevy::render::view::{
+    ExtractedWindows, ViewDepthTexture, ViewTarget, ViewUniform, ViewUniformOffset,
+};
 use bevy::utils;
 
 use crate::mesh::vertex::Point;
 use crate::mesh::{TexCoords, ViewMesh};
-use crate::{GlyphCache, mesh, NANNOU_SHADER_HANDLE, RenderCommand, Scissor, VertexMode, ViewRenderCommands, ViewUniformBindGroup};
+use crate::{
+    mesh, GlyphCache, RenderCommand, Scissor, VertexMode, ViewRenderCommands, ViewUniformBindGroup,
+    NANNOU_SHADER_HANDLE,
+};
 
 #[derive(Resource)]
 pub struct NannouPipeline {
@@ -176,7 +181,10 @@ impl NannouPipeline {
         unsafe { std::mem::transmute(id) }
     }
 
-    fn create_text_bind_group_layout(device: &RenderDevice, filtering: bool) -> wgpu::BindGroupLayout {
+    fn create_text_bind_group_layout(
+        device: &RenderDevice,
+        filtering: bool,
+    ) -> wgpu::BindGroupLayout {
         bevy_nannou_wgpu::BindGroupLayoutBuilder::new()
             .sampler(wgpu::ShaderStages::FRAGMENT, filtering)
             .texture(
@@ -229,7 +237,8 @@ impl FromWorld for NannouPipeline {
             .build(device);
 
         // Bind group for text.
-        let text_bind_group_layout = Self::create_text_bind_group_layout(device, text_sampler_filtering);
+        let text_bind_group_layout =
+            Self::create_text_bind_group_layout(device, text_sampler_filtering);
         let text_bind_group = Self::create_text_bind_group(
             device,
             &text_bind_group_layout,
@@ -324,7 +333,9 @@ impl ViewNode for NannouViewNode {
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        (entity, target, uniform_offset, mesh, render_commands, depth_texture): QueryItem<Self::ViewQuery>,
+        (entity, target, uniform_offset, mesh, render_commands, depth_texture): QueryItem<
+            Self::ViewQuery,
+        >,
         world: &World,
     ) -> Result<(), NodeRunError> {
         let nannou_pipeline = world.resource::<NannouPipeline>();
@@ -332,10 +343,10 @@ impl ViewNode for NannouViewNode {
         let bind_group_cache = world.resource::<TextureBindGroupCache>();
 
         // Create render pass builder.
-        let render_pass_builder = bevy_nannou_wgpu::RenderPassBuilder::new()
-            .color_attachment(target.main_texture_view(), |color|
-                color.load_op(wgpu::LoadOp::Load) // TODO: bg color
-            );
+        let render_pass_builder = bevy_nannou_wgpu::RenderPassBuilder::new().color_attachment(
+            target.main_texture_view(),
+            |color| color.load_op(wgpu::LoadOp::Load), // TODO: bg color
+        );
 
         let render_device = render_context.render_device();
 
@@ -389,7 +400,9 @@ impl ViewNode for NannouViewNode {
         for cmd in render_commands.commands.clone() {
             match cmd {
                 RenderCommand::SetPipeline(id) => {
-                    let pipeline = pipeline_cache.get_render_pipeline(id).expect("Expected pipeline to exist");
+                    let pipeline = pipeline_cache
+                        .get_render_pipeline(id)
+                        .expect("Expected pipeline to exist");
                     render_pass.set_render_pipeline(pipeline);
                 }
 
@@ -401,11 +414,11 @@ impl ViewNode for NannouViewNode {
                     render_pass.set_bind_group(2, bind_group, &[]);
                 }
                 RenderCommand::SetScissor(Scissor {
-                                              left,
-                                              bottom,
-                                              width,
-                                              height,
-                                          }) => {
+                    left,
+                    bottom,
+                    width,
+                    height,
+                }) => {
                     render_pass.set_scissor_rect(left, bottom, width, height);
                 }
                 RenderCommand::DrawIndexed {

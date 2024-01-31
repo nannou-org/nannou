@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use bevy::prelude::shape::Cube;
+use bevy::prelude::*;
 
 use bevy_nannou_render::mesh::ViewMesh;
 
@@ -7,11 +7,10 @@ pub struct NannouPlugin;
 
 impl Plugin for NannouPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugins((
-                bevy_nannou_render::NannouRenderPlugin,
-                bevy_nannou_draw::NannouDrawPlugin,
-            ));
+        app.add_plugins((
+            bevy_nannou_render::NannouRenderPlugin,
+            bevy_nannou_draw::NannouDrawPlugin,
+        ));
     }
 }
 

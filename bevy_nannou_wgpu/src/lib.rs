@@ -1,14 +1,16 @@
-mod render_pipeline_builder;
 mod bind_group_builder;
+mod render_pass;
+mod render_pipeline_builder;
 mod sampler_builder;
 mod texture;
-mod render_pass;
 
-pub use render_pipeline_builder::RenderPipelineBuilder;
 pub use bind_group_builder::{BindGroupBuilder, BindGroupLayoutBuilder};
+pub use render_pass::{
+    ColorAttachmentDescriptorBuilder, DepthStencilAttachmentDescriptorBuilder, RenderPassBuilder,
+};
+pub use render_pipeline_builder::RenderPipelineBuilder;
+pub use sampler_builder::SamplerBuilder;
 pub use texture::TextureBuilder;
-pub use sampler_builder::{SamplerBuilder};
-pub use render_pass::{RenderPassBuilder, ColorAttachmentDescriptorBuilder, DepthStencilAttachmentDescriptorBuilder};
 
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;

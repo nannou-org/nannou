@@ -1,8 +1,8 @@
-use wgpu_types::Color;
 use bevy::prelude::*;
 use bevy::render::render_phase::TrackedRenderPass;
 use bevy::render::render_resource as wgpu;
 use bevy::render::renderer::RenderContext;
+use wgpu_types::Color;
 
 /// A builder type to simplify the process of creating a render pass descriptor.
 #[derive(Debug, Default)]

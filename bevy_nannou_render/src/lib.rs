@@ -5,7 +5,9 @@ use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::render_asset::RenderAsset;
 use bevy::render::render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner};
-use bevy::render::render_resource::{CachedRenderPipelineId, ShaderType, SpecializedRenderPipeline, SpecializedRenderPipelines};
+use bevy::render::render_resource::{
+    CachedRenderPipelineId, ShaderType, SpecializedRenderPipeline, SpecializedRenderPipelines,
+};
 use bevy::render::renderer::RenderDevice;
 use bevy::render::view::ViewUniforms;
 use bevy::render::{render_resource as wgpu, RenderSet};
@@ -45,7 +47,6 @@ impl Plugin for NannouRenderPlugin {
                 Render,
                 prepare_view_uniform.in_set(RenderSet::PrepareBindGroups),
             )
-
             // Register the NannouViewNode with the render graph
             // The node runs at the last stage of the main 3d pass
             .add_render_graph_node::<ViewNodeRunner<NannouViewNode>>(
