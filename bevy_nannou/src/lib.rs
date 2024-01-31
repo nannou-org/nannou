@@ -1,7 +1,4 @@
-use bevy::prelude::shape::Cube;
 use bevy::prelude::*;
-
-use bevy_nannou_render::mesh::ViewMesh;
 
 pub struct NannouPlugin;
 

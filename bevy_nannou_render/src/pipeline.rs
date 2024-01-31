@@ -1,25 +1,19 @@
-use bevy::core::cast_slice;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
+use bevy::core::cast_slice;
 use bevy::ecs::query::QueryItem;
 use bevy::prelude::*;
-use bevy::render::camera::ExtractedCamera;
-use bevy::render::render_asset::RenderAssets;
 use bevy::render::render_graph::{NodeRunError, RenderGraphContext, ViewNode};
 use bevy::render::render_resource as wgpu;
 use bevy::render::render_resource::{
-    BufferInitDescriptor, CachedRenderPipelineId, PipelineCache, RenderPipelineDescriptor,
-    SpecializedRenderPipeline, SpecializedRenderPipelines,
+    BufferInitDescriptor, PipelineCache, RenderPipelineDescriptor, SpecializedRenderPipeline,
 };
 use bevy::render::renderer::{RenderContext, RenderDevice};
-use bevy::render::view::{
-    ExtractedWindows, ViewDepthTexture, ViewTarget, ViewUniform, ViewUniformOffset,
-};
-use bevy::utils;
+use bevy::render::view::{ViewDepthTexture, ViewTarget, ViewUniform, ViewUniformOffset};
 
 use crate::mesh::vertex::Point;
-use crate::mesh::{TexCoords, ViewMesh};
+use crate::mesh::ViewMesh;
 use crate::{
     mesh, GlyphCache, RenderCommand, Scissor, VertexMode, ViewRenderCommands, ViewUniformBindGroup,
     NANNOU_SHADER_HANDLE,
