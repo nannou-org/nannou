@@ -40,7 +40,7 @@ impl Plugin for NannouRenderPlugin {
             .init_resource::<SpecializedRenderPipelines<NannouPipeline>>()
             .init_resource::<TextureBindGroupCache>()
             .add_systems(
-                Prepare,
+                Render,
                 (
                     prepare_view_mesh,
                     prepare_texture_bind_groups.in_set(RenderSet::PrepareBindGroups),
