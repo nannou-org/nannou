@@ -43,6 +43,7 @@ impl Plugin for NannouRenderPlugin {
                 Prepare,
                 (
                     prepare_view_mesh,
+                    prepare_texture_bind_groups.in_set(RenderSet::PrepareBindGroups),
                     prepare_view_uniform.in_set(RenderSet::PrepareBindGroups),
                 ),
             )
@@ -71,9 +72,8 @@ impl Plugin for NannouRenderPlugin {
     }
 }
 
-fn prepare_view_mesh(
-    commands: Commands,
-) {
+// Prepare our mesh for rendering
+fn prepare_view_mesh(commands: Commands) {
     // TODO: process the extracted draw components
 }
 
@@ -91,6 +91,16 @@ fn prepare_view_uniform(
             binding,
         ));
     }
+}
+
+// Prepare user uploaded textures for rendering
+fn prepare_texture_bind_groups(
+    mut commands: Commands,
+    render_device: Res<RenderDevice>,
+    mut texture_bind_group_cache: ResMut<TextureBindGroupCache>,
+) {
+    // TODO: draw will add the texture as a component that
+    // will be extracted here and added to the cache
 }
 
 // Resource wrapper for our view uniform bind group

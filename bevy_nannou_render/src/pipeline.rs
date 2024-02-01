@@ -108,8 +108,7 @@ impl NannouPipeline {
             offset: 0,
             shader_location: 3,
         }])
-        // TODO: figure out how to use the default depth buffer.
-        // .depth_format(depth_format)
+        .depth_format(depth_format)
         .sample_count(sample_count)
         .color_blend(blend_state.color)
         .alpha_blend(blend_state.alpha)
@@ -247,10 +246,6 @@ impl FromWorld for NannouPipeline {
         let texture_samplers = Some((sampler_id, texture_sampler.clone()))
             .into_iter()
             .collect();
-
-        // Bind group per user-uploaded texture.
-        // let texture_bind_group_layouts = Default::default();
-        // let texture_bind_groups = Default::default();
 
         let texture_bind_group_layout = Self::create_texture_bind_group_layout(
             device,
