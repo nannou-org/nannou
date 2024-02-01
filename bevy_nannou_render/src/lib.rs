@@ -10,6 +10,7 @@ use bevy::render::render_resource::{
 };
 use bevy::render::renderer::RenderDevice;
 use bevy::render::view::ViewUniforms;
+use bevy::render::RenderSet::Prepare;
 use bevy::render::{render_resource as wgpu, RenderSet};
 use bevy::render::{Render, RenderApp};
 
@@ -34,18 +35,16 @@ impl Plugin for NannouRenderPlugin {
             Shader::from_wgsl
         );
 
-        app
-            // TODO: We should extract Draw and compute the mesh from the Draw component
-            // in the render world
-            .add_plugins(ExtractComponentPlugin::<ViewMesh>::default());
-
         app.get_sub_app_mut(RenderApp)
             .unwrap()
             .init_resource::<SpecializedRenderPipelines<NannouPipeline>>()
             .init_resource::<TextureBindGroupCache>()
             .add_systems(
-                Render,
-                prepare_view_uniform.in_set(RenderSet::PrepareBindGroups),
+                Prepare,
+                (
+                    prepare_view_mesh,
+                    prepare_view_uniform.in_set(RenderSet::PrepareBindGroups),
+                ),
             )
             // Register the NannouViewNode with the render graph
             // The node runs at the last stage of the main 3d pass
@@ -70,6 +69,12 @@ impl Plugin for NannouRenderPlugin {
 
         render_app.init_resource::<NannouPipeline>();
     }
+}
+
+fn prepare_view_mesh(
+    commands: Commands,
+) {
+    // TODO: process the extracted draw components
 }
 
 // Prepare our uniform bind group from Bevy's view uniforms
