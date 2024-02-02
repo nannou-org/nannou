@@ -5,19 +5,25 @@ use bevy::asset::load_internal_asset;
 use bevy::core_pipeline::core_3d;
 use bevy::core_pipeline::core_3d::CORE_3D;
 use bevy::prelude::*;
-use bevy::render::{render_resource as wgpu, RenderSet};
-use bevy::render::{Render, RenderApp};
 use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::render_asset::{RenderAsset, RenderAssets};
 use bevy::render::render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner};
-use bevy::render::render_resource::{CachedRenderPipelineId, PipelineCache, ShaderType, SpecializedRenderPipeline, SpecializedRenderPipelines};
+use bevy::render::render_resource::{
+    CachedRenderPipelineId, PipelineCache, ShaderType, SpecializedRenderPipeline,
+    SpecializedRenderPipelines,
+};
 use bevy::render::renderer::RenderDevice;
-use bevy::render::view::{ExtractedWindow, ViewDepthTexture, ViewUniforms};
+use bevy::render::texture::BevyDefault;
+use bevy::render::view::{
+    ExtractedView, ExtractedWindow, ViewDepthTexture, ViewTarget, ViewUniforms,
+};
+use bevy::render::{render_resource as wgpu, RenderSet};
+use bevy::render::{Render, RenderApp};
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
-use bevy_nannou_draw::{Draw, draw};
 use bevy_nannou_draw::draw::render::{GlyphCache, RenderContext, RenderPrimitive, Scissor};
+use bevy_nannou_draw::{draw, Draw};
 use nannou_core::geom;
 use nannou_core::math::map_range;
 
@@ -38,8 +44,7 @@ impl Plugin for NannouRenderPlugin {
             Shader::from_wgsl
         );
 
-        app
-            .add_systems(Startup, setup_default_texture)
+        app.add_systems(Startup, setup_default_texture)
             .add_plugins(ExtractComponentPlugin::<Draw>::default())
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default());
 
@@ -85,10 +90,7 @@ impl Plugin for NannouRenderPlugin {
 #[derive(Resource, Deref, DerefMut, ExtractResource, Clone)]
 struct DefaultTextureHandle(Handle<Image>);
 
-fn setup_default_texture(
-    mut commands: Commands,
-    mut images: ResMut<Assets<Image>>,
-) {
+fn setup_default_texture(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let texture = images.add(Image::default());
     commands.insert_resource(DefaultTextureHandle(texture));
 }
@@ -120,10 +122,9 @@ fn prepare_view_mesh(
     mut pipelines: ResMut<SpecializedRenderPipelines<NannouPipeline>>,
     pipeline_cache: Res<PipelineCache>,
     default_texture_handle: Res<DefaultTextureHandle>,
-    draw: Query<(Entity, &Draw, &ViewDepthTexture)>,
+    draw: Query<(Entity, &Draw, &ExtractedView, &ViewDepthTexture)>,
 ) {
-
-    for (entity, draw, depth) in &draw {
+    for (entity, draw, view, depth) in &draw {
         let mut render_commands = ViewRenderCommands::default();
         let mut mesh = ViewMesh::default();
         {
@@ -180,7 +181,10 @@ fn prepare_view_mesh(
             // Collect all draw commands to avoid borrow errors.
             let draw_cmds: Vec<_> = draw.drain_commands().collect();
             let draw_state = draw.state.write().expect("failed to lock draw state");
-            let intermediary_state = draw_state.intermediary_state.read().expect("failed to lock intermediary state");
+            let intermediary_state = draw_state
+                .intermediary_state
+                .read()
+                .expect("failed to lock intermediary state");
             for cmd in draw_cmds {
                 match cmd {
                     draw::DrawCommand::Context(ctxt) => curr_ctxt = ctxt,
@@ -193,7 +197,8 @@ fn prepare_view_mesh(
                         let ctxt = RenderContext {
                             intermediary_mesh: &intermediary_state.intermediary_mesh,
                             path_event_buffer: &intermediary_state.path_event_buffer,
-                            path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
+                            path_points_colored_buffer: &intermediary_state
+                                .path_points_colored_buffer,
                             path_points_textured_buffer: &intermediary_state
                                 .path_points_textured_buffer,
                             text_buffer: &intermediary_state.text_buffer,
@@ -221,16 +226,21 @@ fn prepare_view_mesh(
 
                         let new_pipeline_key = {
                             let topology = curr_ctxt.topology;
-                            // TODO: configurable
                             NannouPipelineKey {
+                                output_color_format: if view.hdr {
+                                    ViewTarget::TEXTURE_FORMAT_HDR
+                                } else {
+                                    wgpu::TextureFormat::bevy_default()
+                                },
                                 sample_count: msaa.samples(),
                                 depth_format: depth.texture.format(),
                                 topology,
-                                blend_state: curr_ctxt.blend
+                                blend_state: curr_ctxt.blend,
                             }
                         };
 
-                        let new_pipeline_id = pipelines.specialize(&pipeline_cache, &pipeline, new_pipeline_key);
+                        let new_pipeline_id =
+                            pipelines.specialize(&pipeline_cache, &pipeline, new_pipeline_key);
                         let new_scissor = curr_ctxt.scissor;
 
                         // Determine which have changed and in turn which require submitting new
@@ -265,8 +275,9 @@ fn prepare_view_mesh(
                         //     self.render_commands.push(cmd);
                         // }
 
-                        render_commands.push(RenderCommand::SetBindGroup((**default_texture_handle).clone()));
-
+                        render_commands.push(RenderCommand::SetBindGroup(
+                            (**default_texture_handle).clone(),
+                        ));
 
                         // If necessary, push a new scissor command.
                         if scissor_changed {
@@ -293,8 +304,13 @@ fn prepare_view_mesh(
 
                         // Extend the vertex mode channel.
                         let mode = render.vertex_mode;
-                        let new_vs = mesh.points().len().saturating_sub(pipeline.vertex_mode_buffer.len());
-                        pipeline.vertex_mode_buffer.extend((0..new_vs).map(|_| mode));
+                        let new_vs = mesh
+                            .points()
+                            .len()
+                            .saturating_sub(pipeline.vertex_mode_buffer.len());
+                        pipeline
+                            .vertex_mode_buffer
+                            .extend((0..new_vs).map(|_| mode));
                     }
                 }
             }
@@ -325,7 +341,6 @@ fn prepare_view_uniform(
         ));
     }
 }
-
 
 // Resource wrapper for our view uniform bind group
 #[derive(Resource)]

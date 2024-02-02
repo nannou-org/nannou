@@ -25,10 +25,8 @@ pub struct NannouPipeline {
     glyph_cache_texture: wgpu::Texture,
     text_bind_group_layout: wgpu::BindGroupLayout,
     text_bind_group: wgpu::BindGroup,
-    texture_samplers: HashMap<wgpu::SamplerId, wgpu::Sampler>,
     pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
     texture_bind_group: wgpu::BindGroup,
-    output_color_format: wgpu::TextureFormat,
     pub(crate) view_bind_group_layout: wgpu::BindGroupLayout,
     view_bind_group: wgpu::BindGroup,
     view_buffer: wgpu::Buffer,
@@ -38,6 +36,7 @@ pub struct NannouPipeline {
 // This key is computed and used to cache the pipeline.
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
 pub struct NannouPipelineKey {
+    pub output_color_format: wgpu::TextureFormat,
     pub sample_count: u32,
     pub depth_format: wgpu::TextureFormat,
     pub blend_state: wgpu::BlendState,
@@ -157,24 +156,6 @@ impl NannouPipeline {
             .build(device, layout)
     }
 
-    fn sampler_descriptor_hash(desc: &wgpu::SamplerDescriptor) -> wgpu::SamplerId {
-        let mut s = std::collections::hash_map::DefaultHasher::new();
-        desc.address_mode_u.hash(&mut s);
-        desc.address_mode_v.hash(&mut s);
-        desc.address_mode_w.hash(&mut s);
-        desc.mag_filter.hash(&mut s);
-        desc.min_filter.hash(&mut s);
-        desc.mipmap_filter.hash(&mut s);
-        desc.lod_min_clamp.to_bits().hash(&mut s);
-        desc.lod_max_clamp.to_bits().hash(&mut s);
-        desc.compare.hash(&mut s);
-        desc.anisotropy_clamp.hash(&mut s);
-        desc.border_color.hash(&mut s);
-        // TODO: can we just use bevy's version?
-        let id = s.finish() as u32;
-        unsafe { std::mem::transmute(id) }
-    }
-
     fn create_text_bind_group_layout(
         device: &RenderDevice,
         filtering: bool,
@@ -198,7 +179,7 @@ impl SpecializedRenderPipeline for NannouPipeline {
 
     fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
         self.render_pipeline(
-            self.output_color_format,
+            key.output_color_format,
             key.depth_format,
             key.sample_count,
             key.blend_state,
@@ -243,11 +224,7 @@ impl FromWorld for NannouPipeline {
 
         // Initialise the sampler set with the default sampler.
         let sampler_desc = bevy_nannou_wgpu::SamplerBuilder::new().into_descriptor();
-        let sampler_id = Self::sampler_descriptor_hash(&sampler_desc);
         let texture_sampler = device.create_sampler(&sampler_desc);
-        let texture_samplers = Some((sampler_id, texture_sampler.clone()))
-            .into_iter()
-            .collect();
 
         let texture_bind_group_layout = Self::create_texture_bind_group_layout(
             device,
@@ -282,11 +259,8 @@ impl FromWorld for NannouPipeline {
             glyph_cache_texture,
             text_bind_group_layout,
             text_bind_group,
-            texture_samplers,
             texture_bind_group_layout,
             texture_bind_group,
-            // TODO: make configurable.
-            output_color_format: wgpu::TextureFormat::Rgba8UnormSrgb,
             view_bind_group_layout,
             view_bind_group,
             view_buffer,
