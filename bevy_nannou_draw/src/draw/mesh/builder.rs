@@ -16,7 +16,7 @@ use nannou_mesh::{Indices, Points, PushIndex, PushVertex};
 
 pub struct MeshBuilder<'a, A> {
     /// The mesh that is to be extended.
-    mesh: &'a mut crate::ViewMesh,
+    mesh: &'a mut crate::draw::mesh::Mesh,
     /// The number of vertices in the mesh when begin was called.
     begin_vertex_count: u32,
     /// The number of indices in the mesh when begin was called.
@@ -27,13 +27,13 @@ pub struct MeshBuilder<'a, A> {
     attributes: A,
 }
 
-pub struct SingleColor(crate::mesh::vertex::Color);
+pub struct SingleColor(crate::draw::mesh::vertex::Color);
 pub struct ColorPerPoint;
 pub struct TexCoordsPerPoint;
 
 impl<'a, A> MeshBuilder<'a, A> {
     /// Begin extending the mesh.
-    fn new(mesh: &'a mut crate::ViewMesh, transform: Mat4, attributes: A) -> Self {
+    fn new(mesh: &'a mut crate::draw::mesh::Mesh, transform: Mat4, attributes: A) -> Self {
         MeshBuilder {
             mesh,
             begin_vertex_count: 0,
@@ -47,9 +47,9 @@ impl<'a, A> MeshBuilder<'a, A> {
 impl<'a> MeshBuilder<'a, SingleColor> {
     /// Begin extending a mesh rendered with a single colour.
     pub fn single_color(
-        mesh: &'a mut crate::ViewMesh,
+        mesh: &'a mut crate::draw::mesh::Mesh,
         transform: Mat4,
-        color: crate::mesh::vertex::Color,
+        color: crate::draw::mesh::vertex::Color,
     ) -> Self {
         Self::new(mesh, transform, SingleColor(color))
     }
@@ -57,14 +57,14 @@ impl<'a> MeshBuilder<'a, SingleColor> {
 
 impl<'a> MeshBuilder<'a, ColorPerPoint> {
     /// Begin extending a mesh where the path interpolates a unique color per point.
-    pub fn color_per_point(mesh: &'a mut crate::ViewMesh, transform: Mat4) -> Self {
+    pub fn color_per_point(mesh: &'a mut crate::draw::mesh::Mesh, transform: Mat4) -> Self {
         Self::new(mesh, transform, ColorPerPoint)
     }
 }
 
 impl<'a> MeshBuilder<'a, TexCoordsPerPoint> {
     /// Begin extending a mesh where the path interpolates a unique texture coordinates per point.
-    pub fn tex_coords_per_point(mesh: &'a mut crate::ViewMesh, transform: Mat4) -> Self {
+    pub fn tex_coords_per_point(mesh: &'a mut crate::draw::mesh::Mesh, transform: Mat4) -> Self {
         Self::new(mesh, transform, TexCoordsPerPoint)
     }
 }
@@ -104,8 +104,8 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
         let p = Vec2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
         let SingleColor(color) = self.attributes;
-        let tex_coords = crate::mesh::vertex::default_tex_coords();
-        let vertex = crate::mesh::vertex::new(point, color, tex_coords);
+        let tex_coords = crate::draw::mesh::vertex::default_tex_coords();
+        let vertex = crate::draw::mesh::vertex::new(point, color, tex_coords);
         self.mesh.push_vertex(vertex);
 
         // Return the index.
@@ -127,8 +127,8 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, SingleColor> {
         let p = Vec2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
         let SingleColor(color) = self.attributes;
-        let tex_coords = crate::mesh::vertex::default_tex_coords();
-        let vertex = crate::mesh::vertex::new(point, color, tex_coords);
+        let tex_coords = crate::draw::mesh::vertex::default_tex_coords();
+        let vertex = crate::draw::mesh::vertex::new(point, color, tex_coords);
         self.mesh.push_vertex(vertex);
 
         // Return the index.
@@ -150,9 +150,9 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
         let p = Vec2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
         let col = vertex.interpolated_attributes();
-        let color: crate::mesh::vertex::Color = (col[0], col[1], col[2], col[3]).into();
-        let tex_coords = crate::mesh::vertex::default_tex_coords();
-        let vertex = crate::mesh::vertex::new(point, color, tex_coords);
+        let color: crate::draw::mesh::vertex::Color = (col[0], col[1], col[2], col[3]).into();
+        let tex_coords = crate::draw::mesh::vertex::default_tex_coords();
+        let vertex = crate::draw::mesh::vertex::new(point, color, tex_coords);
         self.mesh.push_vertex(vertex);
 
         // Return the index.
@@ -174,9 +174,9 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
         let p = Vec2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
         let col = vertex.interpolated_attributes();
-        let color: crate::mesh::vertex::Color = (col[0], col[1], col[2], col[3]).into();
-        let tex_coords = crate::mesh::vertex::default_tex_coords();
-        let vertex = crate::mesh::vertex::new(point, color, tex_coords);
+        let color: crate::draw::mesh::vertex::Color = (col[0], col[1], col[2], col[3]).into();
+        let tex_coords = crate::draw::mesh::vertex::default_tex_coords();
+        let vertex = crate::draw::mesh::vertex::new(point, color, tex_coords);
         self.mesh.push_vertex(vertex);
 
         // Return the index.
@@ -198,9 +198,9 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
         let p = Vec2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
         let tc = vertex.interpolated_attributes();
-        let tex_coords: crate::mesh::vertex::TexCoords = (tc[0], tc[1]).into();
-        let color = crate::mesh::vertex::DEFAULT_VERTEX_COLOR;
-        let vertex = crate::mesh::vertex::new(point, color, tex_coords);
+        let tex_coords: crate::draw::mesh::vertex::TexCoords = (tc[0], tc[1]).into();
+        let color = crate::draw::mesh::vertex::DEFAULT_VERTEX_COLOR;
+        let vertex = crate::draw::mesh::vertex::new(point, color, tex_coords);
         self.mesh.push_vertex(vertex);
 
         // Return the index.
@@ -222,9 +222,9 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
         let p = Vec2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
         let tc = vertex.interpolated_attributes();
-        let tex_coords: crate::mesh::vertex::TexCoords = (tc[0], tc[1]).into();
-        let color = crate::mesh::vertex::DEFAULT_VERTEX_COLOR;
-        let vertex = crate::mesh::vertex::new(point, color, tex_coords);
+        let tex_coords: crate::draw::mesh::vertex::TexCoords = (tc[0], tc[1]).into();
+        let color = crate::draw::mesh::vertex::DEFAULT_VERTEX_COLOR;
+        let vertex = crate::draw::mesh::vertex::new(point, color, tex_coords);
         self.mesh.push_vertex(vertex);
 
         // Return the index.

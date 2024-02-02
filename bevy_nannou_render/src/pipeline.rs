@@ -11,17 +11,18 @@ use bevy::render::render_resource::{
 };
 use bevy::render::renderer::{RenderContext, RenderDevice};
 use bevy::render::view::{ViewDepthTexture, ViewTarget, ViewUniform, ViewUniformOffset};
+use bevy_nannou_draw::draw::mesh;
+use bevy_nannou_draw::draw::mesh::vertex::Point;
+use bevy_nannou_draw::draw::render::VertexMode;
 
-use crate::mesh::vertex::Point;
-use crate::mesh::ViewMesh;
+use crate::ViewMesh;
 use crate::{
-    mesh, GlyphCache, RenderCommand, Scissor, VertexMode, ViewRenderCommands, ViewUniformBindGroup,
+    RenderCommand, Scissor, ViewRenderCommands, ViewUniformBindGroup,
     NANNOU_SHADER_HANDLE,
 };
 
 #[derive(Resource)]
 pub struct NannouPipeline {
-    glyph_cache: GlyphCache,
     glyph_cache_texture: wgpu::Texture,
     text_bind_group_layout: wgpu::BindGroupLayout,
     text_bind_group: wgpu::BindGroup,
@@ -221,7 +222,6 @@ impl FromWorld for NannouPipeline {
             .build(device);
         let glyph_cache_texture_view =
             glyph_cache_texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let glyph_cache = GlyphCache::new([1024; 2], 0.1, 0.1);
 
         // The default texture for the case where the user has not specified one.
         let default_texture = bevy_nannou_wgpu::TextureBuilder::new()
@@ -275,7 +275,6 @@ impl FromWorld for NannouPipeline {
             .build(device, &view_bind_group_layout);
 
         NannouPipeline {
-            glyph_cache,
             glyph_cache_texture,
             text_bind_group_layout,
             text_bind_group,
@@ -339,9 +338,11 @@ impl ViewNode for NannouViewNode {
 
         let render_device = render_context.render_device();
 
+        // TODO: we should just be able to cast the color slice
+        let colors = mesh.colors().iter().map(|c| Vec4::new(c.red, c.green, c.blue, c.alpha)).collect::<Vec<Vec4>>();
         let vertex_usage = wgpu::BufferUsages::VERTEX;
         let points_bytes = cast_slice(&mesh.points()[..]);
-        let colors_bytes = cast_slice(mesh.colors());
+        let colors_bytes = cast_slice(&colors);
         let tex_coords_bytes = cast_slice(mesh.tex_coords());
         let modes_bytes = cast_slice(&[VertexMode::Texture as u32; 4]);
         let indices_bytes = cast_slice(mesh.indices());

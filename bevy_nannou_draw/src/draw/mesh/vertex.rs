@@ -1,8 +1,9 @@
 use bevy::prelude::*;
+use nannou_core::color;
 use nannou_mesh::vertex::{WithColor, WithTexCoords};
 
 pub type Point = Vec3;
-pub type Color = Vec4;
+pub type Color = color::LinSrgba;
 pub type TexCoords = Vec2;
 pub type Normal = Vec3;
 pub type ColoredPoint = WithColor<Point, Color>;
@@ -14,7 +15,15 @@ pub type Vertex = WithTexCoords<WithColor<Point, Color>, TexCoords>;
 /// The number of channels in the color type.
 pub const COLOR_CHANNEL_COUNT: usize = 4;
 
-pub const DEFAULT_VERTEX_COLOR: Color = Vec4::new(1.0, 1.0, 1.0, 1.0);
+pub const DEFAULT_VERTEX_COLOR: Color = color::Alpha {
+    color: color::rgb::Rgb {
+        red: 1.0,
+        green: 1.0,
+        blue: 1.0,
+        standard: std::marker::PhantomData,
+    },
+    alpha: 1.0,
+};
 
 /// Simplified constructor for a **draw::mesh::Vertex**.
 pub fn new(point: Point, color: Color, tex_coords: TexCoords) -> Vertex {

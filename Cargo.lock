@@ -883,7 +883,7 @@ version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "58ddc2b76783939c530178f88e5711a1b01044d7b02db4033e2eb8b43b6cf4ec"
 dependencies = [
- "glam 0.24.2",
+ "glam",
  "serde",
 ]
 
@@ -893,7 +893,7 @@ version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ec4962977a746d870170532fc92759e04d3dbcae8b7b82e7ca3bb83b1d75277"
 dependencies = [
- "glam 0.24.2",
+ "glam",
 ]
 
 [[package]]
@@ -910,6 +910,11 @@ name = "bevy_nannou_draw"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "lyon",
+ "nannou_core",
+ "nannou_mesh",
+ "num-traits",
+ "rusttype",
 ]
 
 [[package]]
@@ -917,11 +922,10 @@ name = "bevy_nannou_render"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_nannou_draw",
  "bevy_nannou_wgpu",
  "lyon",
  "nannou_core",
- "nannou_mesh",
- "rusttype",
 ]
 
 [[package]]
@@ -976,7 +980,7 @@ dependencies = [
  "bevy_utils",
  "downcast-rs",
  "erased-serde",
- "glam 0.24.2",
+ "glam",
  "serde",
  "smallvec 1.13.1",
  "smol_str",
@@ -2362,7 +2366,7 @@ checksum = "8fce2eeef77fd4a293a54b62aa00ac9daebfbcda4bf8998c5a815635b004aa1c"
 dependencies = [
  "const_panic",
  "encase_derive",
- "glam 0.24.2",
+ "glam",
  "thiserror",
 ]
 
@@ -3050,22 +3054,13 @@ dependencies = [
 
 [[package]]
 name = "glam"
-version = "0.17.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e01732b97afd8508eee3333a541b9f7610f454bb818669e66e90f5f57c93a776"
-dependencies = [
- "num-traits",
- "rand 0.8.5",
- "serde",
-]
-
-[[package]]
-name = "glam"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5418c17512bdf42730f9032c74e1ae39afc408745ebb2acf72fbc4691c17945"
 dependencies = [
  "bytemuck",
+ "libm",
+ "rand 0.8.5",
  "serde",
 ]
 
@@ -3299,7 +3294,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7cb3df16a7bcb1b5bc092abd55e14f77ca70aea14445026e264586fc62889a10"
 dependencies = [
  "constgebra",
- "glam 0.24.2",
+ "glam",
 ]
 
 [[package]]
@@ -4377,7 +4372,7 @@ dependencies = [
 name = "nannou_core"
 version = "0.19.0"
 dependencies = [
- "glam 0.17.3",
+ "glam",
  "num-traits",
  "palette",
  "rand 0.8.5",

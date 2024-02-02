@@ -13,14 +13,11 @@ use bevy::render::view::ViewUniforms;
 use bevy::render::RenderSet::Prepare;
 use bevy::render::{render_resource as wgpu, RenderSet};
 use bevy::render::{Render, RenderApp};
-
-use mesh::ViewMesh;
+use bevy_nannou_draw::draw::render::Scissor;
 
 use crate::pipeline::{NannouPipeline, NannouViewNode, TextureBindGroupCache};
 
-pub mod mesh;
 mod pipeline;
-mod text;
 
 pub struct NannouRenderPlugin;
 
@@ -42,7 +39,7 @@ impl Plugin for NannouRenderPlugin {
             .add_systems(
                 Render,
                 (
-                    prepare_view_mesh,
+                    prepare_view_mesh.in_set(RenderSet::PrepareResources),
                     prepare_texture_bind_groups.in_set(RenderSet::PrepareBindGroups),
                     prepare_view_uniform.in_set(RenderSet::PrepareBindGroups),
                 ),
@@ -123,20 +120,8 @@ impl ViewUniformBindGroup {
     }
 }
 
-/// A top-level indicator of whether or not
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-#[repr(u32)]
-pub enum VertexMode {
-    /// Use the color values and ignore the texture coordinates.
-    Color = 0,
-    /// Use the texture color and ignore the color values.
-    Texture = 1,
-    /// A special mode used by the text primitive.
-    ///
-    /// Uses the color values, but multiplies the alpha by the glyph cache texture's red value.
-    Text = 2,
-}
-
+#[derive(Component, Deref, DerefMut)]
+pub struct ViewMesh(bevy_nannou_draw::draw::Mesh);
 /// Commands that map to wgpu encodable commands.
 #[derive(Debug, Clone)]
 enum RenderCommand {
@@ -156,41 +141,4 @@ enum RenderCommand {
 #[derive(Component)]
 pub struct ViewRenderCommands {
     commands: Vec<RenderCommand>,
-}
-
-/// The position and dimensions of the scissor.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Scissor {
-    left: u32,
-    bottom: u32,
-    width: u32,
-    height: u32,
-}
-
-pub struct GlyphCache {
-    /// Tracks glyphs and their location within the cache.
-    pub cache: text::GlyphCache<'static>,
-    /// The buffer used to store the pixels of the glyphs.
-    pub pixel_buffer: Vec<u8>,
-    /// Will be set to `true` after the cache has been updated if the texture requires re-uploading.
-    pub requires_upload: bool,
-}
-
-impl GlyphCache {
-    fn new(size: [u32; 2], scale_tolerance: f32, position_tolerance: f32) -> Self {
-        let [w, h] = size;
-        let cache = text::GlyphCache::builder()
-            .dimensions(w, h)
-            .scale_tolerance(scale_tolerance)
-            .position_tolerance(position_tolerance)
-            .build()
-            .into();
-        let pixel_buffer = vec![0u8; w as usize * h as usize];
-        let requires_upload = false;
-        GlyphCache {
-            cache,
-            pixel_buffer,
-            requires_upload,
-        }
-    }
 }

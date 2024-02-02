@@ -1,7 +1,5 @@
 //! Items related to the custom mesh type used by the `Draw` API.
 
-use crate::mesh::vertex::Point;
-use crate::RenderCommand;
 use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponent;
 use nannou_mesh as mesh;
@@ -24,13 +22,12 @@ pub type MeshType =
     WithTexCoords<WithColors<WithIndices<MeshPoints<Points>, Indices>, Colors>, TexCoords>;
 
 /// The custom mesh type used internally by the **Draw** API.
-
-#[derive(Component, Debug, Clone, ExtractComponent)]
-pub struct ViewMesh {
+#[derive(Clone, Debug)]
+pub struct Mesh {
     mesh: MeshType,
 }
 
-impl ViewMesh {
+impl Mesh {
     /// The number of raw vertices contained within the mesh.
     pub fn raw_vertex_count(&self) -> usize {
         mesh::raw_vertex_count(self)
@@ -181,34 +178,34 @@ impl ViewMesh {
     }
 }
 
-impl Default for ViewMesh {
+impl Default for Mesh {
     fn default() -> Self {
         let mesh = Default::default();
-        ViewMesh { mesh }
+        Mesh { mesh }
     }
 }
 
-impl Deref for ViewMesh {
+impl Deref for Mesh {
     type Target = MeshType;
     fn deref(&self) -> &Self::Target {
         &self.mesh
     }
 }
 
-impl DerefMut for ViewMesh {
+impl DerefMut for Mesh {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.mesh
     }
 }
 
-impl mesh::GetVertex<u32> for ViewMesh {
+impl mesh::GetVertex<u32> for Mesh {
     type Vertex = Vertex;
     fn get_vertex(&self, index: u32) -> Option<Self::Vertex> {
         mesh::WithTexCoords::get_vertex(&self.mesh, index)
     }
 }
 
-impl mesh::Points for ViewMesh {
+impl mesh::Points for Mesh {
     type Point = vertex::Point;
     type Points = Points;
     fn points(&self) -> &Self::Points {
@@ -216,7 +213,7 @@ impl mesh::Points for ViewMesh {
     }
 }
 
-impl mesh::Indices for ViewMesh {
+impl mesh::Indices for Mesh {
     type Index = u32;
     type Indices = Indices;
     fn indices(&self) -> &Self::Indices {
@@ -224,7 +221,7 @@ impl mesh::Indices for ViewMesh {
     }
 }
 
-impl mesh::Colors for ViewMesh {
+impl mesh::Colors for Mesh {
     type Color = vertex::Color;
     type Colors = Colors;
     fn colors(&self) -> &Self::Colors {
@@ -232,7 +229,7 @@ impl mesh::Colors for ViewMesh {
     }
 }
 
-impl mesh::TexCoords for ViewMesh {
+impl mesh::TexCoords for Mesh {
     type TexCoord = Vec2;
     type TexCoords = TexCoords;
     fn tex_coords(&self) -> &Self::TexCoords {
@@ -240,13 +237,13 @@ impl mesh::TexCoords for ViewMesh {
     }
 }
 
-impl mesh::PushVertex<Vertex> for ViewMesh {
+impl mesh::PushVertex<Vertex> for Mesh {
     fn push_vertex(&mut self, v: Vertex) {
         self.mesh.push_vertex(v);
     }
 }
 
-impl mesh::PushIndex for ViewMesh {
+impl mesh::PushIndex for Mesh {
     type Index = u32;
 
     fn push_index(&mut self, index: Self::Index) {
@@ -261,13 +258,13 @@ impl mesh::PushIndex for ViewMesh {
     }
 }
 
-impl mesh::ClearIndices for ViewMesh {
+impl mesh::ClearIndices for Mesh {
     fn clear_indices(&mut self) {
         self.mesh.clear_indices();
     }
 }
 
-impl mesh::ClearVertices for ViewMesh {
+impl mesh::ClearVertices for Mesh {
     fn clear_vertices(&mut self) {
         self.mesh.clear_vertices();
     }
@@ -275,7 +272,7 @@ impl mesh::ClearVertices for ViewMesh {
 
 #[test]
 fn test_method_access() {
-    let mesh: ViewMesh = Default::default();
+    let mesh: Mesh = Default::default();
     assert_eq!(None, mesh::GetVertex::get_vertex(&mesh, 0));
     mesh::Points::points(&mesh);
     mesh::Indices::indices(&mesh);

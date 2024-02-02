@@ -18,8 +18,8 @@ pub use self::layout::Layout;
 pub use rusttype::gpu_cache::Cache as GlyphCache;
 pub use rusttype::{Glyph, GlyphId, GlyphIter, LayoutIter, Scale, ScaledGlyph};
 
+use bevy::prelude::*;
 use nannou_core::geom;
-use nannou_core::glam::Vec2;
 use std::borrow::Cow;
 
 /// The RustType `FontCollection` type used by nannou.
