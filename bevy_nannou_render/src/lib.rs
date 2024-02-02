@@ -116,6 +116,7 @@ fn prepare_view_mesh(
     mut pipeline: ResMut<NannouPipeline>,
     mut glyph_cache: ResMut<GlyphCache>,
     mut texture_bind_group_cache: ResMut<TextureBindGroupCache>,
+    msaa: Res<Msaa>,
     mut pipelines: ResMut<SpecializedRenderPipelines<NannouPipeline>>,
     pipeline_cache: Res<PipelineCache>,
     default_texture_handle: Res<DefaultTextureHandle>,
@@ -222,7 +223,7 @@ fn prepare_view_mesh(
                             let topology = curr_ctxt.topology;
                             // TODO: configurable
                             NannouPipelineKey {
-                                sample_count: NannouPipeline::DEFAULT_SAMPLE_COUNT,
+                                sample_count: msaa.samples(),
                                 depth_format: wgpu::TextureFormat::R8Unorm,
                                 topology,
                                 blend_state: curr_ctxt.blend
