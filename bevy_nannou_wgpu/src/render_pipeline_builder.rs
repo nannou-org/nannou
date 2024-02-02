@@ -78,7 +78,7 @@ impl<'a> RenderPipelineBuilder<'a> {
     // Depth state defaults.
     pub const DEFAULT_DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
     pub const DEFAULT_DEPTH_WRITE_ENABLED: bool = true;
-    pub const DEFAULT_DEPTH_COMPARE: wgpu::CompareFunction = wgpu::CompareFunction::LessEqual;
+    pub const DEFAULT_DEPTH_COMPARE: wgpu::CompareFunction = wgpu::CompareFunction::GreaterEqual;
     pub const DEFAULT_STENCIL_FRONT: wgpu::StencilFaceState = wgpu::StencilFaceState::IGNORE;
     pub const DEFAULT_STENCIL_BACK: wgpu::StencilFaceState = wgpu::StencilFaceState::IGNORE;
     pub const DEFAULT_STENCIL_READ_MASK: u32 = 0;

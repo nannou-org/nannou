@@ -46,17 +46,18 @@ fn update_mesh(
     mut handles: Query<(&Handle<Mesh>, &mut Transform)>,
 ) {
     for (_, mut transform )in handles.iter_mut() {
-        transform.translation.x += 10.0;
-        transform.translation.y += 10.0;
-        transform.translation.z += 10.0;
+        transform.translation.x += 1.0;
+        transform.translation.y += 1.0;
+        transform.translation.z += 1.0;
+        transform.translation.z += 1.0;
     }
 }
 
 fn update_draw(draw: Query<(&mut bevy_nannou_draw::Draw)>, time: Res<Time>) {
     let draw = draw.single();
-    // draw.ellipse().w_h(100.0, 100.0).color(SALMON);
+    draw.ellipse().w_h(100.0, 100.0).color(SALMON);
     draw.ellipse().x(100.0 + time.elapsed().as_millis() as f32 / 100.0).w_h(100.0, 100.0).color(SEASHELL);
-    // draw.ellipse().x(-100.0).w_h(100.0, 100.0).color(SKYBLUE);
+    draw.ellipse().x(-100.0).w_h(100.0, 100.0).color(SKYBLUE);
 }
 
 

@@ -109,7 +109,7 @@ impl NannouPipeline {
             offset: 0,
             shader_location: 3,
         }])
-        // .depth_format(depth_format)
+        .depth_format(depth_format)
         .sample_count(sample_count)
         .color_blend(blend_state.color)
         .alpha_blend(blend_state.alpha)
@@ -312,7 +312,6 @@ impl FromWorld for NannouViewNode {
 
 impl ViewNode for NannouViewNode {
     type ViewQuery = (
-        Entity,
         &'static ViewTarget,
         &'static ViewUniformOffset,
         &'static ViewMesh,
@@ -324,7 +323,7 @@ impl ViewNode for NannouViewNode {
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        (entity, target, uniform_offset, mesh, render_commands, depth_texture): QueryItem<
+        (target, uniform_offset, mesh, render_commands, depth): QueryItem<
             Self::ViewQuery,
         >,
         world: &World,
@@ -377,7 +376,16 @@ impl ViewNode for NannouViewNode {
                 load: LoadOp::Load,
                 store: true,
             }))],
-            depth_stencil_attachment: None,
+            depth_stencil_attachment:
+
+            Some(wgpu::RenderPassDepthStencilAttachment {
+                view: &depth.view,
+                depth_ops: Some(Operations {
+                    load: LoadOp::Clear(0.0),
+                    store:false,
+                }),
+                stencil_ops: None,
+            }),
         };
         let mut render_pass = render_context.begin_tracked_render_pass(render_pass_descriptor);
 

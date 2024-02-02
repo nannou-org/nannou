@@ -13,7 +13,7 @@ use bevy::render::render_asset::{RenderAsset, RenderAssets};
 use bevy::render::render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner};
 use bevy::render::render_resource::{CachedRenderPipelineId, PipelineCache, ShaderType, SpecializedRenderPipeline, SpecializedRenderPipelines};
 use bevy::render::renderer::RenderDevice;
-use bevy::render::view::{ExtractedWindow, ViewUniforms};
+use bevy::render::view::{ExtractedWindow, ViewDepthTexture, ViewUniforms};
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
 use bevy_nannou_draw::{Draw, draw};
@@ -120,10 +120,10 @@ fn prepare_view_mesh(
     mut pipelines: ResMut<SpecializedRenderPipelines<NannouPipeline>>,
     pipeline_cache: Res<PipelineCache>,
     default_texture_handle: Res<DefaultTextureHandle>,
-    draw: Query<(Entity, &Draw)>,
+    draw: Query<(Entity, &Draw, &ViewDepthTexture)>,
 ) {
 
-    for (entity, draw) in &draw {
+    for (entity, draw, depth) in &draw {
         let mut render_commands = ViewRenderCommands::default();
         let mut mesh = ViewMesh::default();
         {
@@ -224,7 +224,7 @@ fn prepare_view_mesh(
                             // TODO: configurable
                             NannouPipelineKey {
                                 sample_count: msaa.samples(),
-                                depth_format: wgpu::TextureFormat::R8Unorm,
+                                depth_format: depth.texture.format(),
                                 topology,
                                 blend_state: curr_ctxt.blend
                             }
