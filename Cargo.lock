@@ -926,6 +926,7 @@ dependencies = [
  "bevy_nannou_wgpu",
  "lyon",
  "nannou_core",
+ "wgpu-types",
 ]
 
 [[package]]

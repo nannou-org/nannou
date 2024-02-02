@@ -41,6 +41,7 @@ pub struct RenderContext<'a> {
     pub output_attachment_scale_factor: f32,
 }
 
+#[derive(Resource)]
 pub struct GlyphCache {
     /// Tracks glyphs and their location within the cache.
     pub cache: text::GlyphCache<'static>,
@@ -146,7 +147,7 @@ impl PrimitiveRender {
 }
 
 impl GlyphCache {
-    fn new(size: [u32; 2], scale_tolerance: f32, position_tolerance: f32) -> Self {
+    pub fn new(size: [u32; 2], scale_tolerance: f32, position_tolerance: f32) -> Self {
         let [w, h] = size;
         let cache = text::GlyphCache::builder()
             .dimensions(w, h)

@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 
 use bevy::core::cast_slice;
 use bevy::ecs::query::QueryItem;
 use bevy::prelude::*;
 use bevy::render::render_graph::{NodeRunError, RenderGraphContext, ViewNode};
 use bevy::render::render_resource as wgpu;
-use bevy::render::render_resource::{
-    BufferInitDescriptor, PipelineCache, RenderPipelineDescriptor, SpecializedRenderPipeline,
-};
+use bevy::render::render_resource::{BufferInitDescriptor, LoadOp, Operations, PipelineCache, RenderPassDescriptor, RenderPipelineDescriptor, SpecializedRenderPipeline};
 use bevy::render::renderer::{RenderContext, RenderDevice};
 use bevy::render::view::{ViewDepthTexture, ViewTarget, ViewUniform, ViewUniformOffset};
 use bevy_nannou_draw::draw::mesh;
@@ -27,12 +26,13 @@ pub struct NannouPipeline {
     text_bind_group_layout: wgpu::BindGroupLayout,
     text_bind_group: wgpu::BindGroup,
     texture_samplers: HashMap<wgpu::SamplerId, wgpu::Sampler>,
-    texture_bind_group_layout: wgpu::BindGroupLayout,
+    pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
     texture_bind_group: wgpu::BindGroup,
     output_color_format: wgpu::TextureFormat,
     pub(crate) view_bind_group_layout: wgpu::BindGroupLayout,
     view_bind_group: wgpu::BindGroup,
     view_buffer: wgpu::Buffer,
+    pub(crate) vertex_mode_buffer: Vec<VertexMode>,
 }
 
 // This key is computed and used to cache the pipeline.
@@ -109,7 +109,7 @@ impl NannouPipeline {
             offset: 0,
             shader_location: 3,
         }])
-        .depth_format(depth_format)
+        // .depth_format(depth_format)
         .sample_count(sample_count)
         .color_blend(blend_state.color)
         .alpha_blend(blend_state.alpha)
@@ -220,6 +220,8 @@ impl FromWorld for NannouPipeline {
             .usage(wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST)
             .format(Self::GLYPH_CACHE_TEXTURE_FORMAT)
             .build(device);
+
+
         let glyph_cache_texture_view =
             glyph_cache_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -274,6 +276,8 @@ impl FromWorld for NannouPipeline {
             .buffer::<ViewUniform>(&view_buffer, 0..1)
             .build(device, &view_bind_group_layout);
 
+        let vertex_mode_buffer = Vec::new();
+
         NannouPipeline {
             glyph_cache_texture,
             text_bind_group_layout,
@@ -286,14 +290,13 @@ impl FromWorld for NannouPipeline {
             view_bind_group_layout,
             view_bind_group,
             view_buffer,
+            vertex_mode_buffer,
         }
     }
 }
 
-#[derive(Resource, Default)]
-pub struct TextureBindGroupCache {
-    pub bind_groups: HashMap<Handle<Image>, wgpu::BindGroup>,
-}
+#[derive(Resource, Deref, DerefMut, Default)]
+pub struct TextureBindGroupCache(HashMap<Handle<Image>, wgpu::BindGroup>);
 
 pub struct NannouViewNode;
 
@@ -330,21 +333,16 @@ impl ViewNode for NannouViewNode {
         let pipeline_cache = world.resource::<PipelineCache>();
         let bind_group_cache = world.resource::<TextureBindGroupCache>();
 
-        // Create render pass builder.
-        let render_pass_builder = bevy_nannou_wgpu::RenderPassBuilder::new().color_attachment(
-            target.main_texture_view(),
-            |color| color.load_op(wgpu::LoadOp::Load), // TODO: bg color
-        );
-
         let render_device = render_context.render_device();
 
         // TODO: we should just be able to cast the color slice
         let colors = mesh.colors().iter().map(|c| Vec4::new(c.red, c.green, c.blue, c.alpha)).collect::<Vec<Vec4>>();
+        let modes = nannou_pipeline.vertex_mode_buffer.iter().map(|vm| *vm as u32).collect::<Vec<u32>>();
         let vertex_usage = wgpu::BufferUsages::VERTEX;
         let points_bytes = cast_slice(&mesh.points()[..]);
         let colors_bytes = cast_slice(&colors);
         let tex_coords_bytes = cast_slice(mesh.tex_coords());
-        let modes_bytes = cast_slice(&[VertexMode::Texture as u32; 4]);
+        let modes_bytes = cast_slice(&modes);
         let indices_bytes = cast_slice(mesh.indices());
         let point_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: Some("nannou Renderer point_buffer"),
@@ -372,7 +370,16 @@ impl ViewNode for NannouViewNode {
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let mut render_pass = render_pass_builder.begin(render_context);
+        // Create render pass builder.
+        let render_pass_descriptor = RenderPassDescriptor {
+            label: None,
+            color_attachments: &[Some(target.get_color_attachment(Operations {
+                load: LoadOp::Load,
+                store: true,
+            }))],
+            depth_stencil_attachment: None,
+        };
+        let mut render_pass = render_context.begin_tracked_render_pass(render_pass_descriptor);
 
         // Set the buffers.
         render_pass.set_index_buffer(index_buffer.slice(..), 0, wgpu::IndexFormat::Uint32);
@@ -387,7 +394,8 @@ impl ViewNode for NannouViewNode {
         render_pass.set_bind_group(1, &nannou_pipeline.text_bind_group, &[]);
 
         // Follow the render commands.
-        for cmd in render_commands.commands.clone() {
+        // todo: can we get mutable access in `view`?
+        for cmd in render_commands.deref().clone() {
             match cmd {
                 RenderCommand::SetPipeline(id) => {
                     let pipeline = pipeline_cache
@@ -398,7 +406,6 @@ impl ViewNode for NannouViewNode {
 
                 RenderCommand::SetBindGroup(texture) => {
                     let bind_group = bind_group_cache
-                        .bind_groups
                         .get(&texture)
                         .expect("Expected texture bind group to exist");
                     render_pass.set_bind_group(2, bind_group, &[]);

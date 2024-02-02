@@ -54,7 +54,7 @@ pub struct Draw {
     /// purpose of a **Draw** is to be an easy-as-possible, high-level API for drawing stuff. In
     /// order to be friendlier to new users, we want to avoid them having to think about mutability
     /// and focus on creativity. Rust-lang nuances can come later.
-    state: Arc<RwLock<State>>,
+    pub state: Arc<RwLock<State>>,
     /// The current context of this **Draw** instance.
     context: Context,
 }
@@ -115,24 +115,24 @@ pub struct State {
     /// An element may be `None` if it is a primitive in the process of being drawn.
     draw_commands: Vec<Option<DrawCommand>>,
     /// State made accessible via the `DrawingContext`.
-    intermediary_state: Arc<RwLock<IntermediaryState>>,
+    pub intermediary_state: Arc<RwLock<IntermediaryState>>,
     /// The theme containing default values.
-    theme: Theme,
+    pub theme: Theme,
 }
 
 /// State made accessible via the `DrawingContext`.
 #[derive(Clone, Debug)]
 pub struct IntermediaryState {
     /// Buffers of vertex data that may be re-used for paths, meshes, etc between view calls.
-    intermediary_mesh: crate::draw::Mesh,
+    pub intermediary_mesh: crate::draw::Mesh,
     /// A re-usable buffer for collecting path events.
-    path_event_buffer: Vec<PathEvent>,
+    pub path_event_buffer: Vec<PathEvent>,
     /// A re-usable buffer for collecting colored polyline points.
-    path_points_colored_buffer: Vec<(Vec2, Color)>,
+    pub path_points_colored_buffer: Vec<(Vec2, Color)>,
     /// A re-usable buffer for collecting textured polyline points.
-    path_points_textured_buffer: Vec<(Vec2, TexCoords)>,
+    pub path_points_textured_buffer: Vec<(Vec2, TexCoords)>,
     /// A buffer containing all text.
-    text_buffer: String,
+    pub text_buffer: String,
 }
 
 impl IntermediaryState {
