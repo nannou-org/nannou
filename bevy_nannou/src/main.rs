@@ -29,19 +29,21 @@ fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<
         ..default()
     });
 
-    commands.spawn((Camera3dBundle {
-        camera_3d: Camera3d {
-            clear_color: ClearColorConfig::None,
+    commands.spawn(
+        (Camera3dBundle {
+            camera_3d: Camera3d {
+                clear_color: ClearColorConfig::None,
+                ..Default::default()
+            },
+            transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Z),
+            projection: OrthographicProjection {
+                scale: 1.0,
+                ..Default::default()
+            }
+            .into(),
             ..Default::default()
-        },
-        transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Z),
-        projection: OrthographicProjection {
-            scale: 1.0,
-            ..Default::default()
-        }
-        .into(),
-        ..Default::default()
-    }));
+        }),
+    );
 
     let handle = assets.load("images/nannou.png");
     commands.insert_resource(MyTexture(handle));
@@ -56,18 +58,24 @@ fn update_mesh(mut handles: Query<(&Handle<Mesh>, &mut Transform)>) {
     }
 }
 
-fn update_draw(draw: Query<(&mut bevy_nannou_draw::Draw)>, texture_handle: Res<MyTexture>, images: Res<Assets<Image>>, time: Res<Time>) {
+fn update_draw(
+    draw: Query<(&mut bevy_nannou_draw::Draw)>,
+    texture_handle: Res<MyTexture>,
+    images: Res<Assets<Image>>,
+    time: Res<Time>,
+) {
     let draw = draw.single();
+
+    let texture = match images.get(&**texture_handle) {
+        None => return,
+        Some(texture) => texture,
+    };
+
+    draw.texture(texture_handle.clone(), texture.clone());
     draw.ellipse().w_h(100.0, 100.0).color(SALMON);
     draw.ellipse()
         .x(100.0 + time.elapsed().as_millis() as f32 / 100.0)
         .w_h(100.0, 100.0)
         .color(SEASHELL);
     draw.ellipse().x(-100.0).w_h(100.0, 100.0).color(SKYBLUE);
-
-    let texture = match images.get(&**texture_handle) {
-        None => return,
-        Some(texture) => texture
-    };
-    draw.texture(texture_handle.clone(), texture.clone());
 }

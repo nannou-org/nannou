@@ -6,7 +6,7 @@ use bevy::core_pipeline::core_3d;
 use bevy::core_pipeline::core_3d::CORE_3D;
 use bevy::prelude::*;
 use bevy::render::camera::{ExtractedCamera, NormalizedRenderTarget};
-use bevy::render::extract_component::ExtractComponentPlugin;
+use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::render_asset::{RenderAsset, RenderAssets};
 use bevy::render::render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner};
@@ -16,7 +16,9 @@ use bevy::render::render_resource::{
 };
 use bevy::render::renderer::RenderDevice;
 use bevy::render::texture::BevyDefault;
-use bevy::render::view::{ExtractedView, ExtractedWindow, ExtractedWindows, ViewDepthTexture, ViewTarget, ViewUniforms};
+use bevy::render::view::{
+    ExtractedView, ExtractedWindow, ExtractedWindows, ViewDepthTexture, ViewTarget, ViewUniforms,
+};
 use bevy::render::{render_resource as wgpu, RenderSet};
 use bevy::render::{Render, RenderApp};
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
@@ -44,7 +46,11 @@ impl Plugin for NannouRenderPlugin {
         );
 
         app.add_systems(Startup, setup_default_texture)
-            .add_plugins(ExtractComponentPlugin::<Draw>::default())
+            .add_systems(Update, texture_event_handler)
+            .add_plugins((
+                ExtractComponentPlugin::<Draw>::default(),
+                ExtractComponentPlugin::<NannouTextureHandle>::default(),
+            ))
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default());
 
         app.get_sub_app_mut(RenderApp)
@@ -57,6 +63,7 @@ impl Plugin for NannouRenderPlugin {
                 Render,
                 (
                     prepare_default_texture_bind_group.in_set(RenderSet::PrepareBindGroups),
+                    prepare_texture_bind_groups.in_set(RenderSet::PrepareBindGroups),
                     prepare_view_mesh.after(prepare_default_texture_bind_group),
                     prepare_view_uniform.in_set(RenderSet::PrepareBindGroups),
                 ),
@@ -89,6 +96,34 @@ impl Plugin for NannouRenderPlugin {
 #[derive(Resource, Deref, DerefMut, ExtractResource, Clone)]
 struct DefaultTextureHandle(Handle<Image>);
 
+#[derive(Component, Deref, DerefMut, ExtractComponent, Clone)]
+struct NannouTextureHandle(Handle<Image>);
+
+fn texture_event_handler(
+    mut commands: Commands,
+    mut ev_asset: EventReader<AssetEvent<Image>>,
+    assets: Res<Assets<Image>>,
+) {
+    for ev in ev_asset.read() {
+        match ev {
+            AssetEvent::Added { .. } | AssetEvent::Modified { .. } | AssetEvent::Removed { .. } => {
+                // TODO: handle these events
+            }
+            AssetEvent::LoadedWithDependencies { id } => {
+                let handle = Handle::Weak(*id);
+                let image = assets.get(&handle).unwrap();
+                // TODO hack to only handle 2D textures for now
+                // We should maybe require users to spawn a NannouTextureHandle themselves
+                if image.texture_descriptor.dimension == wgpu::TextureDimension::D2 {
+                    println!("Spawning NannouTextureHandle");
+                    commands.spawn(NannouTextureHandle(handle));
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
 fn setup_default_texture(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let texture = images.add(Image::default());
     commands.insert_resource(DefaultTextureHandle(texture));
@@ -109,6 +144,36 @@ fn prepare_default_texture_bind_group(
         &texture.texture_view,
     );
     texture_bind_group_cache.insert((**default_texture_handle).clone(), bind_group);
+}
+
+fn prepare_texture_bind_groups(
+    gpu_images: Res<RenderAssets<Image>>,
+    mut texture_bind_group_cache: ResMut<TextureBindGroupCache>,
+    render_device: Res<RenderDevice>,
+    nannou_textures: Query<&NannouTextureHandle>,
+) {
+    // TODO: maybe don't use components for this? we don't really
+    // need to run this on every frame, just when the textures change
+    for texture in nannou_textures.iter() {
+        if !texture_bind_group_cache.contains_key(&**texture) {
+            println!("Found texture {:?}", &**texture);
+            if let Some(gpu_image) = gpu_images.get(&**texture) {
+                println!("Creating bind group for texture {:?}", &**texture);
+                let bind_group_layout = NannouPipeline::create_texture_bind_group_layout(
+                    &render_device,
+                    true,
+                    wgpu::TextureSampleType::Float { filterable: true },
+                );
+                let bind_group = NannouPipeline::create_texture_bind_group(
+                    &render_device,
+                    &bind_group_layout,
+                    &gpu_image.sampler,
+                    &gpu_image.texture_view,
+                );
+                texture_bind_group_cache.insert((**texture).clone(), bind_group);
+            }
+        }
+    }
 }
 
 // Prepare our mesh for rendering
@@ -279,7 +344,7 @@ fn prepare_view_mesh(
                     // If we require submitting a scissor, pipeline or bind group command, first
                     // draw whatever pending vertices we have collected so far. If there have been
                     // no graphics yet, this will do nothing.
-                    if scissor_changed || pipeline_changed {
+                    if scissor_changed || pipeline_changed || texture_changed {
                         push_draw_cmd(
                             &mut curr_start_index,
                             prev_index_count,
@@ -295,8 +360,18 @@ fn prepare_view_mesh(
                     }
 
                     // If necessary, push a new bind group command.
-                    if texture_changed {
+                    // Because the texture is loaded asynchronously, we need to check if the
+                    // bind group is already in the cache.
+                    if texture_changed && texture_bind_group_cache.contains_key(&new_texture_handle)
+                    {
                         let cmd = RenderCommand::SetBindGroup(new_texture_handle.clone());
+                        render_commands.push(cmd);
+                    // If the texture is not in the cache and we haven't set a bind group yet,
+                    // we need to use the default texture. This happens when a user texture
+                    // is the first draw command.
+                    } else if curr_texture_handle.is_none() {
+                        curr_texture_handle = Some(new_texture_handle.clone());
+                        let cmd = RenderCommand::SetBindGroup((**default_texture_handle).clone());
                         render_commands.push(cmd);
                     }
 

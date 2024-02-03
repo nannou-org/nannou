@@ -118,7 +118,7 @@ impl NannouPipeline {
         .build()
     }
 
-    fn create_texture_bind_group_layout(
+    pub(crate) fn create_texture_bind_group_layout(
         device: &RenderDevice,
         filtering: bool,
         texture_sample_type: wgpu::TextureSampleType,
@@ -132,18 +132,6 @@ impl NannouPipeline {
                 texture_sample_type,
             )
             .build(device)
-    }
-
-    fn create_text_bind_group(
-        device: &RenderDevice,
-        layout: &wgpu::BindGroupLayout,
-        sampler: &wgpu::Sampler,
-        glyph_cache_texture_view: &wgpu::TextureView,
-    ) -> wgpu::BindGroup {
-        bevy_nannou_wgpu::BindGroupBuilder::new()
-            .sampler(sampler)
-            .texture_view(glyph_cache_texture_view)
-            .build(device, layout)
     }
 
     pub fn create_texture_bind_group(
@@ -173,6 +161,18 @@ impl NannouPipeline {
                     .expect("Expected format to have sample type"),
             )
             .build(device)
+    }
+
+    fn create_text_bind_group(
+        device: &RenderDevice,
+        layout: &wgpu::BindGroupLayout,
+        sampler: &wgpu::Sampler,
+        glyph_cache_texture_view: &wgpu::TextureView,
+    ) -> wgpu::BindGroup {
+        bevy_nannou_wgpu::BindGroupBuilder::new()
+            .sampler(sampler)
+            .texture_view(glyph_cache_texture_view)
+            .build(device, layout)
     }
 }
 

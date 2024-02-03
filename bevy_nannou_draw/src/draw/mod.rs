@@ -575,7 +575,14 @@ impl Draw {
     }
 
     /// Begin drawing a **Texture**.
-    pub fn texture(&self, texture_handle: Handle<Image>, texture: Image) -> Drawing<primitive::Texture> {
+    // TODO: this api sucks, because it requires the user to wait for the texture to load before
+    // they can draw it. We should provide a way to draw a texture without waiting for it to load.
+    // This is mostly due to the image size being unknown until the texture is loaded.
+    pub fn texture(
+        &self,
+        texture_handle: Handle<Image>,
+        texture: Image,
+    ) -> Drawing<primitive::Texture> {
         self.a(primitive::Texture::new(texture_handle, texture))
     }
 
