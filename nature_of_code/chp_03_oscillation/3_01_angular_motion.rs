@@ -46,14 +46,14 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .rotate(model.angle);
 
     draw.ellipse()
-        .xy(pt2(60.0, 0.0).rotate(model.angle))
+        .xy(pt2(60.0, 0.0).rotate(Vec2::from_angle(model.angle)))
         .w_h(16.0, 16.0)
         .gray(0.5)
         .stroke_weight(2.0)
         .stroke_color(BLACK);
 
     draw.ellipse()
-        .xy(pt2(-60.0, 0.0).rotate(model.angle))
+        .xy(pt2(-60.0, 0.0).rotate(Vec2::from_angle(model.angle)))
         .w_h(16.0, 16.0)
         .gray(0.5)
         .stroke_weight(2.0)
