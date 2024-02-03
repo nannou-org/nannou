@@ -1,9 +1,9 @@
-use bevy::prelude::*;
 use crate::draw::primitive::path;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{SetDimensions, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
+use bevy::prelude::*;
 use nannou_core::geom;
 
 /// Properties related to drawing a **Rect**.

@@ -1,13 +1,13 @@
-use bevy::prelude::*;
-use nannou_core::color::IntoLinSrgba;
 use crate::draw::mesh::vertex::{Color, TexCoords};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::{
     ColorScalar, SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Draw};
+use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
+use nannou_core::color::IntoLinSrgba;
 use std::marker::PhantomData;
 
 /// A **Drawing** in progress.
@@ -142,7 +142,10 @@ impl<'a, T> Drawing<'a, T> {
         if let Ok(mut state) = self.draw.state.try_write() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
                 {
-                    let mut intermediary_state = state.intermediary_state.write().expect("intermediary state lock poisoned");
+                    let mut intermediary_state = state
+                        .intermediary_state
+                        .write()
+                        .expect("intermediary state lock poisoned");
                     let ctxt = DrawingContext::from_intermediary_state(&mut *intermediary_state);
                     primitive = map(primitive, ctxt);
                 }

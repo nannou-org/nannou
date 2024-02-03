@@ -1,5 +1,5 @@
-use num_traits::Float;
 use nannou_core::color::{self, Component, IntoLinSrgba, LinSrgba};
+use num_traits::Float;
 
 /// A **Srgba** type with the default Scalar.
 pub type DefaultSrgba = color::Srgba<color::DefaultScalar>;

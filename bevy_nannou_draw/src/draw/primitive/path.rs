@@ -1,6 +1,3 @@
-use bevy::prelude::*;
-use nannou_core::color::conv::IntoLinSrgba;
-use nannou_core::color::LinSrgba;
 use crate::draw::mesh::vertex::{Color, TexCoords};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{orientation, position};
@@ -8,8 +5,11 @@ use crate::draw::properties::{
     ColorScalar, SetColor, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Drawing, DrawingContext};
+use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, FillTessellator, StrokeOptions, StrokeTessellator};
+use nannou_core::color::conv::IntoLinSrgba;
+use nannou_core::color::LinSrgba;
 
 /// A set of path tessellation options (FillOptions or StrokeOptions).
 pub trait TessellationOptions {

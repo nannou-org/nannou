@@ -1,6 +1,6 @@
 use bevy::core_pipeline::clear_color::ClearColorConfig;
-use bevy::prelude::*;
 use bevy::prelude::shape::Torus;
+use bevy::prelude::*;
 use bevy_nannou::NannouPlugin;
 use bevy_nannou_draw::color::{RED, SALMON, SEAGREEN, SEASHELL, SKYBLUE};
 
@@ -12,8 +12,7 @@ pub fn main() {
         .run();
 }
 
-fn startup(mut commands: Commands,
-           mut meshes: ResMut<Assets<Mesh>>) {
+fn startup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 1.0,
@@ -42,10 +41,8 @@ fn startup(mut commands: Commands,
     },));
 }
 
-fn update_mesh(
-    mut handles: Query<(&Handle<Mesh>, &mut Transform)>,
-) {
-    for (_, mut transform )in handles.iter_mut() {
+fn update_mesh(mut handles: Query<(&Handle<Mesh>, &mut Transform)>) {
+    for (_, mut transform) in handles.iter_mut() {
         transform.translation.x += 1.0;
         transform.translation.y += 1.0;
         transform.translation.z += 1.0;
@@ -56,10 +53,9 @@ fn update_mesh(
 fn update_draw(draw: Query<(&mut bevy_nannou_draw::Draw)>, time: Res<Time>) {
     let draw = draw.single();
     draw.ellipse().w_h(100.0, 100.0).color(SALMON);
-    draw.ellipse().x(100.0 + time.elapsed().as_millis() as f32 / 100.0).w_h(100.0, 100.0).color(SEASHELL);
+    draw.ellipse()
+        .x(100.0 + time.elapsed().as_millis() as f32 / 100.0)
+        .w_h(100.0, 100.0)
+        .color(SEASHELL);
     draw.ellipse().x(-100.0).w_h(100.0, 100.0).color(SKYBLUE);
 }
-
-
-
-

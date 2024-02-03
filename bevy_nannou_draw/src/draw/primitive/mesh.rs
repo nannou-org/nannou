@@ -1,11 +1,11 @@
-use bevy::prelude::*;
-use nannou_core::color::conv::IntoLinSrgba;
-use nannou_core::{color, geom};
 use crate::draw::mesh::vertex::{self, Point, TexCoords, Vertex};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{ColorScalar, LinSrgba, SetColor, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
+use bevy::prelude::*;
+use nannou_core::color::conv::IntoLinSrgba;
+use nannou_core::{color, geom};
 use std::ops;
 
 /// The mesh type prior to being initialised with vertices or indices.
@@ -62,12 +62,7 @@ impl Vertexless {
             ((point, color), tex_coords).into()
         });
         let vertex_mode = draw::render::VertexMode::Texture;
-        self.points_inner(
-            inner_mesh,
-            points,
-            vertex_mode,
-            Some(texture_handle),
-        )
+        self.points_inner(inner_mesh, points, vertex_mode, Some(texture_handle))
     }
 
     /// Describe the mesh with a sequence of colored points.
@@ -477,7 +472,9 @@ impl<'a> Drawing<'a, Vertexless> {
         P: Into<Point>,
         T: Into<TexCoords>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.indexed_textured(ctxt.mesh, texture_handle, points, indices))
+        self.map_ty_with_context(|ty, ctxt| {
+            ty.indexed_textured(ctxt.mesh, texture_handle, points, indices)
+        })
     }
 }
 

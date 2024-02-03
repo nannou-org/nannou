@@ -7,7 +7,10 @@ use bevy::ecs::query::QueryItem;
 use bevy::prelude::*;
 use bevy::render::render_graph::{NodeRunError, RenderGraphContext, ViewNode};
 use bevy::render::render_resource as wgpu;
-use bevy::render::render_resource::{BufferInitDescriptor, LoadOp, Operations, PipelineCache, RenderPassDescriptor, RenderPipelineDescriptor, SpecializedRenderPipeline};
+use bevy::render::render_resource::{
+    BufferInitDescriptor, LoadOp, Operations, PipelineCache, RenderPassDescriptor,
+    RenderPipelineDescriptor, SpecializedRenderPipeline,
+};
 use bevy::render::renderer::{RenderContext, RenderDevice};
 use bevy::render::view::{ViewDepthTexture, ViewTarget, ViewUniform, ViewUniformOffset};
 use bevy_nannou_draw::draw::mesh;
@@ -16,8 +19,7 @@ use bevy_nannou_draw::draw::render::VertexMode;
 
 use crate::ViewMesh;
 use crate::{
-    RenderCommand, Scissor, ViewRenderCommands, ViewUniformBindGroup,
-    NANNOU_SHADER_HANDLE,
+    RenderCommand, Scissor, ViewRenderCommands, ViewUniformBindGroup, NANNOU_SHADER_HANDLE,
 };
 
 #[derive(Resource)]
@@ -202,7 +204,6 @@ impl FromWorld for NannouPipeline {
             .format(Self::GLYPH_CACHE_TEXTURE_FORMAT)
             .build(device);
 
-
         let glyph_cache_texture_view =
             glyph_cache_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -297,9 +298,7 @@ impl ViewNode for NannouViewNode {
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        (target, uniform_offset, mesh, render_commands, depth): QueryItem<
-            Self::ViewQuery,
-        >,
+        (target, uniform_offset, mesh, render_commands, depth): QueryItem<Self::ViewQuery>,
         world: &World,
     ) -> Result<(), NodeRunError> {
         let nannou_pipeline = world.resource::<NannouPipeline>();
@@ -309,8 +308,16 @@ impl ViewNode for NannouViewNode {
         let render_device = render_context.render_device();
 
         // TODO: we should just be able to cast the color slice
-        let colors = mesh.colors().iter().map(|c| Vec4::new(c.red, c.green, c.blue, c.alpha)).collect::<Vec<Vec4>>();
-        let modes = nannou_pipeline.vertex_mode_buffer.iter().map(|vm| *vm as u32).collect::<Vec<u32>>();
+        let colors = mesh
+            .colors()
+            .iter()
+            .map(|c| Vec4::new(c.red, c.green, c.blue, c.alpha))
+            .collect::<Vec<Vec4>>();
+        let modes = nannou_pipeline
+            .vertex_mode_buffer
+            .iter()
+            .map(|vm| *vm as u32)
+            .collect::<Vec<u32>>();
         let vertex_usage = wgpu::BufferUsages::VERTEX;
         let points_bytes = cast_slice(&mesh.points()[..]);
         let colors_bytes = cast_slice(&colors);
@@ -350,13 +357,11 @@ impl ViewNode for NannouViewNode {
                 load: LoadOp::Load,
                 store: true,
             }))],
-            depth_stencil_attachment:
-
-            Some(wgpu::RenderPassDepthStencilAttachment {
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                 view: &depth.view,
                 depth_ops: Some(Operations {
                     load: LoadOp::Clear(0.0),
-                    store:false,
+                    store: false,
                 }),
                 stencil_ops: None,
             }),

@@ -1,12 +1,12 @@
-use bevy::prelude::*;
-use nannou_core::color::LinSrgba;
 use crate::draw::primitive::path;
 use crate::draw::primitive::Line;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{ColorScalar, SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
+use bevy::prelude::*;
 use lyon::tessellation::StrokeOptions;
+use nannou_core::color::LinSrgba;
 
 /// A path containing only two points - a start and end.
 ///

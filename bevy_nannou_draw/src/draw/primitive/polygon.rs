@@ -1,5 +1,3 @@
-use bevy::prelude::*;
-use nannou_core::color::conv::IntoLinSrgba;
 use crate::draw::drawing::DrawingContext;
 use crate::draw::mesh::vertex::TexCoords;
 use crate::draw::primitive::path::{self, PathEventSource};
@@ -9,8 +7,10 @@ use crate::draw::properties::{
     ColorScalar, LinSrgba, SetColor, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Drawing};
+use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::StrokeOptions;
+use nannou_core::color::conv::IntoLinSrgba;
 
 /// A trait implemented for all polygon draw primitives.
 pub trait SetPolygon: Sized {

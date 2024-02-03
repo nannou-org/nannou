@@ -1,5 +1,3 @@
-use bevy::prelude::*;
-use nannou_core::color::conv::IntoLinSrgba;
 use crate::draw;
 use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
@@ -8,7 +6,9 @@ use crate::draw::properties::{
     spatial, ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::Drawing;
+use bevy::prelude::*;
 use lyon::tessellation::StrokeOptions;
+use nannou_core::color::conv::IntoLinSrgba;
 use nannou_core::geom;
 
 /// Properties related to drawing an **Ellipse**.

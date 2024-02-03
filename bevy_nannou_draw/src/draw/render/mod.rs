@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::{draw, text};
 use crate::draw::mesh::vertex::{Color, TexCoords};
+use crate::{draw, text};
+use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillTessellator, StrokeTessellator};
 use std::fmt;

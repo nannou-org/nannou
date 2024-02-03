@@ -1,6 +1,6 @@
-use nannou_core::color::{self, IntoLinSrgba, Srgb, Srgba};
 use crate::draw::properties::ColorScalar;
 use crate::draw::Draw;
+use nannou_core::color::{self, IntoLinSrgba, Srgb, Srgba};
 
 /// A type used to update the background colour.
 pub struct Background<'a> {

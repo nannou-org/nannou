@@ -1,6 +1,3 @@
-use bevy::prelude::*;
-use nannou_core::color::conv::IntoLinSrgba;
-use nannou_core::geom;
 use crate::draw::drawing::DrawingContext;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
@@ -9,6 +6,9 @@ use crate::draw::properties::{
 };
 use crate::draw::{self, theme, Drawing};
 use crate::text::{self, Align, Font, FontSize, Justify, Layout, Scalar, Wrap};
+use bevy::prelude::*;
+use nannou_core::color::conv::IntoLinSrgba;
+use nannou_core::geom;
 
 /// Properties related to drawing the **Text** primitive.
 #[derive(Clone, Debug)]

@@ -16,8 +16,8 @@ use nannou_mesh::Clear;
 
 pub use self::background::Background;
 pub use self::drawing::{Drawing, DrawingContext};
-pub use self::mesh::Mesh;
 use self::mesh::vertex::{Color, TexCoords};
+pub use self::mesh::Mesh;
 use self::primitive::Primitive;
 pub use self::theme::Theme;
 
@@ -26,8 +26,8 @@ mod drawing;
 pub mod mesh;
 pub mod primitive;
 pub mod properties;
-pub mod theme;
 pub mod render;
+pub mod theme;
 
 /// A simple API for drawing 2D and 3D graphics.
 ///
@@ -152,7 +152,10 @@ impl State {
         self.last_draw_context = None;
         self.drawing.clear();
         self.draw_commands.clear();
-        self.intermediary_state.write().expect("lock poisoned").reset();
+        self.intermediary_state
+            .write()
+            .expect("lock poisoned")
+            .reset();
     }
 
     // Drain any remaining `drawing`s and insert them as draw commands.
@@ -310,7 +313,11 @@ impl Draw {
 
     /// Specify the orientation along each axis with the given **Vector** of degrees.
     pub fn degrees(&self, v: Vec3) -> Self {
-        self.radians(Vec3::new(v.x.to_radians(), v.y.to_radians(), v.z.to_radians()))
+        self.radians(Vec3::new(
+            v.x.to_radians(),
+            v.y.to_radians(),
+            v.z.to_radians(),
+        ))
     }
 
     /// Specify the orientation around the *x* axis in degrees.
@@ -481,9 +488,9 @@ impl Draw {
 
     /// Add the given type to be drawn.
     pub fn a<T>(&self, primitive: T) -> Drawing<T>
-        where
-            T: Into<Primitive>,
-            Primitive: Into<Option<T>>,
+    where
+        T: Into<Primitive>,
+        Primitive: Into<Option<T>>,
     {
         let index = {
             let mut state = self.state.write().expect("lock poisoned");
@@ -578,7 +585,10 @@ impl Draw {
     pub fn drain_commands(&self) -> impl Iterator<Item = DrawCommand> {
         self.finish_remaining_drawings();
         let cmds = {
-            let mut state = self.state.write().expect("failed to lock state for writing");
+            let mut state = self
+                .state
+                .write()
+                .expect("failed to lock state for writing");
             let empty = Vec::with_capacity(state.draw_commands.len());
             std::mem::replace(&mut state.draw_commands, empty)
         };
@@ -587,7 +597,10 @@ impl Draw {
 
     /// Drain any remaining `drawing`s and convert them to draw commands.
     pub fn finish_remaining_drawings(&self) {
-        self.state.write().expect("lock poisoned").finish_remaining_drawings()
+        self.state
+            .write()
+            .expect("lock poisoned")
+            .finish_remaining_drawings()
     }
 }
 
