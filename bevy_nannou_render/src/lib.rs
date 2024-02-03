@@ -243,6 +243,14 @@ fn prepare_view_mesh(
                         continue;
                     }
 
+                    let new_texture_handle = match render.texture_handle {
+                        Some(handle) => handle,
+                        None => {
+                            // If there is no texture, use the default texture.
+                            (**default_texture_handle).clone()
+                        }
+                    };
+
                     let new_pipeline_key = {
                         let topology = curr_ctxt.topology;
                         NannouPipelineKey {
@@ -265,7 +273,7 @@ fn prepare_view_mesh(
                     // Determine which have changed and in turn which require submitting new
                     // commands.
                     let pipeline_changed = Some(new_pipeline_id) != curr_pipeline_id;
-                    // let bind_group_changed = Some(new_bind_group_id) != curr_texture_handle;
+                    let texture_changed = Some(new_texture_handle.clone()) != curr_texture_handle;
                     let scissor_changed = Some(new_scissor) != curr_scissor;
 
                     // If we require submitting a scissor, pipeline or bind group command, first
@@ -286,17 +294,11 @@ fn prepare_view_mesh(
                         render_commands.push(cmd);
                     }
 
-                    // // If necessary, push a new bind group command.
-                    // if bind_group_changed {
-                    //     curr_texture_handle = Some(new_bind_group_id);
-                    //     new_tex_sampler_combos.insert(new_bind_group_id, new_pipeline_id);
-                    //     let cmd = RenderCommand::SetBindGroup(new_bind_group_id);
-                    //     self.render_commands.push(cmd);
-                    // }
-
-                    render_commands.push(RenderCommand::SetBindGroup(
-                        (**default_texture_handle).clone(),
-                    ));
+                    // If necessary, push a new bind group command.
+                    if texture_changed {
+                        let cmd = RenderCommand::SetBindGroup(new_texture_handle.clone());
+                        render_commands.push(cmd);
+                    }
 
                     // If necessary, push a new scissor command.
                     if scissor_changed {

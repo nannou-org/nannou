@@ -20,9 +20,9 @@ pub type DrawingTexture<'a> = Drawing<'a, Texture>;
 // Trait implementations.
 
 impl Texture {
-    pub(crate) fn new(texture_handle: Handle<Image>, [w, h]: [f32; 2]) -> Self {
-        let w = w as f32;
-        let h = h as f32;
+    pub(crate) fn new(texture_handle: Handle<Image>, texture: Image) -> Self {
+        let w = texture.width() as f32;
+        let h = texture.height() as f32;
         let spatial = spatial::Properties::default().w_h(w, h);
         let x = geom::Range {
             start: 0.0,

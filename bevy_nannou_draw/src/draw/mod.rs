@@ -575,10 +575,9 @@ impl Draw {
     }
 
     /// Begin drawing a **Texture**.
-    // TODO: can we just use a bevy image?
-    // pub fn texture(&self, view: &dyn wgpu::ToTextureView) -> Drawing<primitive::Texture> {
-    //     self.a(primitive::Texture::new(view))
-    // }
+    pub fn texture(&self, texture_handle: Handle<Image>, texture: Image) -> Drawing<primitive::Texture> {
+        self.a(primitive::Texture::new(texture_handle, texture))
+    }
 
     /// Finish any drawings-in-progress and produce an iterator draining the inner draw commands
     /// and yielding them by value.

@@ -12,7 +12,10 @@ pub fn main() {
         .run();
 }
 
-fn startup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
+#[derive(Resource, Deref, DerefMut)]
+struct MyTexture(Handle<Image>);
+
+fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<Assets<Mesh>>) {
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 1.0,
@@ -38,7 +41,10 @@ fn startup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
         }
         .into(),
         ..Default::default()
-    },));
+    }));
+
+    let handle = assets.load("images/nannou.png");
+    commands.insert_resource(MyTexture(handle));
 }
 
 fn update_mesh(mut handles: Query<(&Handle<Mesh>, &mut Transform)>) {
@@ -50,7 +56,7 @@ fn update_mesh(mut handles: Query<(&Handle<Mesh>, &mut Transform)>) {
     }
 }
 
-fn update_draw(draw: Query<(&mut bevy_nannou_draw::Draw)>, time: Res<Time>) {
+fn update_draw(draw: Query<(&mut bevy_nannou_draw::Draw)>, texture_handle: Res<MyTexture>, images: Res<Assets<Image>>, time: Res<Time>) {
     let draw = draw.single();
     draw.ellipse().w_h(100.0, 100.0).color(SALMON);
     draw.ellipse()
@@ -58,4 +64,10 @@ fn update_draw(draw: Query<(&mut bevy_nannou_draw::Draw)>, time: Res<Time>) {
         .w_h(100.0, 100.0)
         .color(SEASHELL);
     draw.ellipse().x(-100.0).w_h(100.0, 100.0).color(SKYBLUE);
+
+    let texture = match images.get(&**texture_handle) {
+        None => return,
+        Some(texture) => texture
+    };
+    draw.texture(texture_handle.clone(), texture.clone());
 }
