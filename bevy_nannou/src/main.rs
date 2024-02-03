@@ -32,6 +32,7 @@ fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<
     commands.spawn(
         (Camera3dBundle {
             camera_3d: Camera3d {
+                // TODO: we should manage this in the nannou plugin as function of backgrond color
                 clear_color: ClearColorConfig::None,
                 ..Default::default()
             },
