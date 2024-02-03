@@ -64,7 +64,9 @@ impl Plugin for NannouRenderPlugin {
                 (
                     prepare_default_texture_bind_group.in_set(RenderSet::PrepareBindGroups),
                     prepare_texture_bind_groups.in_set(RenderSet::PrepareBindGroups),
-                    prepare_view_mesh.after(prepare_default_texture_bind_group).in_set(RenderSet::Prepare),
+                    prepare_view_mesh
+                        .after(prepare_default_texture_bind_group)
+                        .in_set(RenderSet::Prepare),
                     prepare_view_uniform.in_set(RenderSet::PrepareBindGroups),
                 ),
             )
