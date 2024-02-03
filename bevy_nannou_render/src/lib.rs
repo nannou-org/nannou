@@ -5,6 +5,7 @@ use bevy::asset::load_internal_asset;
 use bevy::core_pipeline::core_3d;
 use bevy::core_pipeline::core_3d::CORE_3D;
 use bevy::prelude::*;
+use bevy::render::camera::{ExtractedCamera, NormalizedRenderTarget};
 use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::render_asset::{RenderAsset, RenderAssets};
@@ -15,9 +16,7 @@ use bevy::render::render_resource::{
 };
 use bevy::render::renderer::RenderDevice;
 use bevy::render::texture::BevyDefault;
-use bevy::render::view::{
-    ExtractedView, ExtractedWindow, ViewDepthTexture, ViewTarget, ViewUniforms,
-};
+use bevy::render::view::{ExtractedView, ExtractedWindow, ExtractedWindows, ViewDepthTexture, ViewTarget, ViewUniforms};
 use bevy::render::{render_resource as wgpu, RenderSet};
 use bevy::render::{Render, RenderApp};
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
@@ -118,210 +117,229 @@ fn prepare_view_mesh(
     mut pipeline: ResMut<NannouPipeline>,
     mut glyph_cache: ResMut<GlyphCache>,
     mut texture_bind_group_cache: ResMut<TextureBindGroupCache>,
-    msaa: Res<Msaa>,
     mut pipelines: ResMut<SpecializedRenderPipelines<NannouPipeline>>,
+    windows: Res<ExtractedWindows>,
+    msaa: Res<Msaa>,
     pipeline_cache: Res<PipelineCache>,
     default_texture_handle: Res<DefaultTextureHandle>,
-    draw: Query<(Entity, &Draw, &ExtractedView, &ViewDepthTexture)>,
+    draw: Query<(
+        Entity,
+        &Draw,
+        &ExtractedView,
+        &ExtractedCamera,
+        &ViewDepthTexture,
+    )>,
 ) {
-    for (entity, draw, view, depth) in &draw {
+    for (entity, draw, view, camera, depth) in &draw {
         let mut render_commands = ViewRenderCommands::default();
         let mut mesh = ViewMesh::default();
-        {
-            // Pushes a draw command and updates the `curr_start_index`.
-            //
-            // Returns `true` if the command was added, `false` if there was nothing to
-            // draw.
-            fn push_draw_cmd(
-                curr_start_index: &mut u32,
-                end_index: u32,
-                render_commands: &mut Vec<RenderCommand>,
-            ) -> bool {
-                let index_range = *curr_start_index..end_index;
-                if index_range.len() != 0 {
-                    let start_vertex = 0;
-                    *curr_start_index = index_range.end;
-                    let cmd = RenderCommand::DrawIndexed {
-                        start_vertex,
-                        index_range,
-                    };
-                    render_commands.push(cmd);
-                    true
-                } else {
-                    false
-                }
+
+        // Pushes a draw command and updates the `curr_start_index`.
+        //
+        // Returns `true` if the command was added, `false` if there was nothing to
+        // draw.
+        fn push_draw_cmd(
+            curr_start_index: &mut u32,
+            end_index: u32,
+            render_commands: &mut Vec<RenderCommand>,
+        ) -> bool {
+            let index_range = *curr_start_index..end_index;
+            if index_range.len() != 0 {
+                let start_vertex = 0;
+                *curr_start_index = index_range.end;
+                let cmd = RenderCommand::DrawIndexed {
+                    start_vertex,
+                    index_range,
+                };
+                render_commands.push(cmd);
+                true
+            } else {
+                false
             }
-
-            let scale_factor = 1.0; // todo: get from window
-            let [w_px, h_px] = [2560, 1440]; // todo: get from window
-
-            // Converting between pixels and points.
-            let px_to_pt = |s: u32| s as f32 / scale_factor;
-            let pt_to_px = |s: f32| (s * scale_factor).round() as u32;
-            let full_rect = nannou_core::geom::Rect::from_w_h(px_to_pt(w_px), px_to_pt(h_px));
-
-            let window_to_scissor = |v: nannou_core::geom::Vec2| -> [u32; 2] {
-                let x = map_range(v.x, full_rect.left(), full_rect.right(), 0u32, w_px);
-                let y = map_range(v.y, full_rect.bottom(), full_rect.top(), 0u32, h_px);
-                [x, y]
-            };
-
-            // TODO: Store these in `Renderer`.
-            let mut fill_tessellator = FillTessellator::new();
-            let mut stroke_tessellator = StrokeTessellator::new();
-
-            // Keep track of context changes.
-            let mut curr_ctxt = draw::Context::default();
-            let mut curr_start_index = 0;
-            // Track whether new commands are required.
-            let mut curr_pipeline_id = None;
-            let mut curr_scissor = None;
-            let mut curr_texture_handle: Option<Handle<Image>> = None;
-
-            // Collect all draw commands to avoid borrow errors.
-            let draw_cmds: Vec<_> = draw.drain_commands().collect();
-            let draw_state = draw.state.write().expect("failed to lock draw state");
-            let intermediary_state = draw_state
-                .intermediary_state
-                .read()
-                .expect("failed to lock intermediary state");
-            for cmd in draw_cmds {
-                match cmd {
-                    draw::DrawCommand::Context(ctxt) => curr_ctxt = ctxt,
-                    draw::DrawCommand::Primitive(prim) => {
-                        // Track the prev index and vertex counts.
-                        let prev_index_count = mesh.indices().len() as u32;
-                        let prev_vert_count = mesh.vertex_count();
-
-                        // Info required during rendering.
-                        let ctxt = RenderContext {
-                            intermediary_mesh: &intermediary_state.intermediary_mesh,
-                            path_event_buffer: &intermediary_state.path_event_buffer,
-                            path_points_colored_buffer: &intermediary_state
-                                .path_points_colored_buffer,
-                            path_points_textured_buffer: &intermediary_state
-                                .path_points_textured_buffer,
-                            text_buffer: &intermediary_state.text_buffer,
-                            theme: &draw_state.theme,
-                            transform: &curr_ctxt.transform,
-                            fill_tessellator: &mut fill_tessellator,
-                            stroke_tessellator: &mut stroke_tessellator,
-                            glyph_cache: &mut glyph_cache,
-                            output_attachment_size: Vec2::new(px_to_pt(w_px), px_to_pt(h_px)),
-                            output_attachment_scale_factor: scale_factor,
-                        };
-
-                        // Render the primitive.
-                        let render = prim.render_primitive(ctxt, &mut mesh);
-
-                        // If the mesh indices are unchanged, there's nothing to be drawn.
-                        if prev_index_count == mesh.indices().len() as u32 {
-                            assert_eq!(
-                                prev_vert_count,
-                                mesh.vertex_count(),
-                                "vertices were submitted during `render` without submitting indices",
-                            );
-                            continue;
-                        }
-
-                        let new_pipeline_key = {
-                            let topology = curr_ctxt.topology;
-                            NannouPipelineKey {
-                                output_color_format: if view.hdr {
-                                    ViewTarget::TEXTURE_FORMAT_HDR
-                                } else {
-                                    wgpu::TextureFormat::bevy_default()
-                                },
-                                sample_count: msaa.samples(),
-                                depth_format: depth.texture.format(),
-                                topology,
-                                blend_state: curr_ctxt.blend,
-                            }
-                        };
-
-                        let new_pipeline_id =
-                            pipelines.specialize(&pipeline_cache, &pipeline, new_pipeline_key);
-                        let new_scissor = curr_ctxt.scissor;
-
-                        // Determine which have changed and in turn which require submitting new
-                        // commands.
-                        let pipeline_changed = Some(new_pipeline_id) != curr_pipeline_id;
-                        // let bind_group_changed = Some(new_bind_group_id) != curr_texture_handle;
-                        let scissor_changed = Some(new_scissor) != curr_scissor;
-
-                        // If we require submitting a scissor, pipeline or bind group command, first
-                        // draw whatever pending vertices we have collected so far. If there have been
-                        // no graphics yet, this will do nothing.
-                        if scissor_changed || pipeline_changed {
-                            push_draw_cmd(
-                                &mut curr_start_index,
-                                prev_index_count,
-                                &mut render_commands,
-                            );
-                        }
-
-                        // If necessary, push a new pipeline command.
-                        if pipeline_changed {
-                            curr_pipeline_id = Some(new_pipeline_id);
-                            let cmd = RenderCommand::SetPipeline(new_pipeline_id);
-                            render_commands.push(cmd);
-                        }
-
-                        // // If necessary, push a new bind group command.
-                        // if bind_group_changed {
-                        //     curr_texture_handle = Some(new_bind_group_id);
-                        //     new_tex_sampler_combos.insert(new_bind_group_id, new_pipeline_id);
-                        //     let cmd = RenderCommand::SetBindGroup(new_bind_group_id);
-                        //     self.render_commands.push(cmd);
-                        // }
-
-                        render_commands.push(RenderCommand::SetBindGroup(
-                            (**default_texture_handle).clone(),
-                        ));
-
-                        // If necessary, push a new scissor command.
-                        if scissor_changed {
-                            curr_scissor = Some(new_scissor);
-                            let rect = match curr_ctxt.scissor {
-                                draw::Scissor::Full => full_rect,
-                                draw::Scissor::Rect(rect) => full_rect
-                                    .overlap(rect)
-                                    .unwrap_or(geom::Rect::from_w_h(0.0, 0.0)),
-                                draw::Scissor::NoOverlap => geom::Rect::from_w_h(0.0, 0.0),
-                            };
-                            let [left, bottom] = window_to_scissor(rect.bottom_left().into());
-                            let (width, height) = rect.w_h();
-                            let (width, height) = (pt_to_px(width), pt_to_px(height));
-                            let scissor = Scissor {
-                                left,
-                                bottom,
-                                width,
-                                height,
-                            };
-                            let cmd = RenderCommand::SetScissor(scissor);
-                            render_commands.push(cmd);
-                        }
-
-                        // Extend the vertex mode channel.
-                        let mode = render.vertex_mode;
-                        let new_vs = mesh
-                            .points()
-                            .len()
-                            .saturating_sub(pipeline.vertex_mode_buffer.len());
-                        pipeline
-                            .vertex_mode_buffer
-                            .extend((0..new_vs).map(|_| mode));
-                    }
-                }
-            }
-
-            // Insert the final draw command if there is still some drawing to be done.
-            push_draw_cmd(
-                &mut curr_start_index,
-                mesh.indices().len() as u32,
-                &mut render_commands,
-            );
         }
+
+        let window = if let Some(NormalizedRenderTarget::Window(window_ref)) = camera.target {
+            let window_entity = window_ref.entity();
+            if let Some(window) = windows.windows.get(&window_entity) {
+                window
+            } else {
+                continue;
+            }
+        } else {
+            // TODO: handle other render targets
+            // For now, we only support rendering to a window
+            continue;
+        };
+
+        // TODO: Unclear if we need to track this, or if the physical size is enough.
+        let scale_factor = 1.0;
+        let [w_px, h_px] = [window.physical_width, window.physical_height];
+
+        // Converting between pixels and points.
+        let px_to_pt = |s: u32| s as f32 / scale_factor;
+        let pt_to_px = |s: f32| (s * scale_factor).round() as u32;
+        let full_rect = nannou_core::geom::Rect::from_w_h(px_to_pt(w_px), px_to_pt(h_px));
+
+        let window_to_scissor = |v: nannou_core::geom::Vec2| -> [u32; 2] {
+            let x = map_range(v.x, full_rect.left(), full_rect.right(), 0u32, w_px);
+            let y = map_range(v.y, full_rect.bottom(), full_rect.top(), 0u32, h_px);
+            [x, y]
+        };
+
+        // TODO: Store these in `Renderer`.
+        let mut fill_tessellator = FillTessellator::new();
+        let mut stroke_tessellator = StrokeTessellator::new();
+
+        // Keep track of context changes.
+        let mut curr_ctxt = draw::Context::default();
+        let mut curr_start_index = 0;
+        // Track whether new commands are required.
+        let mut curr_pipeline_id = None;
+        let mut curr_scissor = None;
+        let mut curr_texture_handle: Option<Handle<Image>> = None;
+
+        // Collect all draw commands to avoid borrow errors.
+        let draw_cmds: Vec<_> = draw.drain_commands().collect();
+        let draw_state = draw.state.write().expect("failed to lock draw state");
+        let intermediary_state = draw_state
+            .intermediary_state
+            .read()
+            .expect("failed to lock intermediary state");
+        for cmd in draw_cmds {
+            match cmd {
+                draw::DrawCommand::Context(ctxt) => curr_ctxt = ctxt,
+                draw::DrawCommand::Primitive(prim) => {
+                    // Track the prev index and vertex counts.
+                    let prev_index_count = mesh.indices().len() as u32;
+                    let prev_vert_count = mesh.vertex_count();
+
+                    // Info required during rendering.
+                    let ctxt = RenderContext {
+                        intermediary_mesh: &intermediary_state.intermediary_mesh,
+                        path_event_buffer: &intermediary_state.path_event_buffer,
+                        path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
+                        path_points_textured_buffer: &intermediary_state
+                            .path_points_textured_buffer,
+                        text_buffer: &intermediary_state.text_buffer,
+                        theme: &draw_state.theme,
+                        transform: &curr_ctxt.transform,
+                        fill_tessellator: &mut fill_tessellator,
+                        stroke_tessellator: &mut stroke_tessellator,
+                        glyph_cache: &mut glyph_cache,
+                        output_attachment_size: Vec2::new(px_to_pt(w_px), px_to_pt(h_px)),
+                        output_attachment_scale_factor: scale_factor,
+                    };
+
+                    // Render the primitive.
+                    let render = prim.render_primitive(ctxt, &mut mesh);
+
+                    // If the mesh indices are unchanged, there's nothing to be drawn.
+                    if prev_index_count == mesh.indices().len() as u32 {
+                        assert_eq!(
+                            prev_vert_count,
+                            mesh.vertex_count(),
+                            "vertices were submitted during `render` without submitting indices",
+                        );
+                        continue;
+                    }
+
+                    let new_pipeline_key = {
+                        let topology = curr_ctxt.topology;
+                        NannouPipelineKey {
+                            output_color_format: if view.hdr {
+                                ViewTarget::TEXTURE_FORMAT_HDR
+                            } else {
+                                wgpu::TextureFormat::bevy_default()
+                            },
+                            sample_count: msaa.samples(),
+                            depth_format: depth.texture.format(),
+                            topology,
+                            blend_state: curr_ctxt.blend,
+                        }
+                    };
+
+                    let new_pipeline_id =
+                        pipelines.specialize(&pipeline_cache, &pipeline, new_pipeline_key);
+                    let new_scissor = curr_ctxt.scissor;
+
+                    // Determine which have changed and in turn which require submitting new
+                    // commands.
+                    let pipeline_changed = Some(new_pipeline_id) != curr_pipeline_id;
+                    // let bind_group_changed = Some(new_bind_group_id) != curr_texture_handle;
+                    let scissor_changed = Some(new_scissor) != curr_scissor;
+
+                    // If we require submitting a scissor, pipeline or bind group command, first
+                    // draw whatever pending vertices we have collected so far. If there have been
+                    // no graphics yet, this will do nothing.
+                    if scissor_changed || pipeline_changed {
+                        push_draw_cmd(
+                            &mut curr_start_index,
+                            prev_index_count,
+                            &mut render_commands,
+                        );
+                    }
+
+                    // If necessary, push a new pipeline command.
+                    if pipeline_changed {
+                        curr_pipeline_id = Some(new_pipeline_id);
+                        let cmd = RenderCommand::SetPipeline(new_pipeline_id);
+                        render_commands.push(cmd);
+                    }
+
+                    // // If necessary, push a new bind group command.
+                    // if bind_group_changed {
+                    //     curr_texture_handle = Some(new_bind_group_id);
+                    //     new_tex_sampler_combos.insert(new_bind_group_id, new_pipeline_id);
+                    //     let cmd = RenderCommand::SetBindGroup(new_bind_group_id);
+                    //     self.render_commands.push(cmd);
+                    // }
+
+                    render_commands.push(RenderCommand::SetBindGroup(
+                        (**default_texture_handle).clone(),
+                    ));
+
+                    // If necessary, push a new scissor command.
+                    if scissor_changed {
+                        curr_scissor = Some(new_scissor);
+                        let rect = match curr_ctxt.scissor {
+                            draw::Scissor::Full => full_rect,
+                            draw::Scissor::Rect(rect) => full_rect
+                                .overlap(rect)
+                                .unwrap_or(geom::Rect::from_w_h(0.0, 0.0)),
+                            draw::Scissor::NoOverlap => geom::Rect::from_w_h(0.0, 0.0),
+                        };
+                        let [left, bottom] = window_to_scissor(rect.bottom_left().into());
+                        let (width, height) = rect.w_h();
+                        let (width, height) = (pt_to_px(width), pt_to_px(height));
+                        let scissor = Scissor {
+                            left,
+                            bottom,
+                            width,
+                            height,
+                        };
+                        let cmd = RenderCommand::SetScissor(scissor);
+                        render_commands.push(cmd);
+                    }
+
+                    // Extend the vertex mode channel.
+                    let mode = render.vertex_mode;
+                    let new_vs = mesh
+                        .points()
+                        .len()
+                        .saturating_sub(pipeline.vertex_mode_buffer.len());
+                    pipeline
+                        .vertex_mode_buffer
+                        .extend((0..new_vs).map(|_| mode));
+                }
+            }
+        }
+
+        // Insert the final draw command if there is still some drawing to be done.
+        push_draw_cmd(
+            &mut curr_start_index,
+            mesh.indices().len() as u32,
+            &mut render_commands,
+        );
         commands.entity(entity).insert((mesh, render_commands));
     }
 }
