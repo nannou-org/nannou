@@ -117,7 +117,6 @@ fn texture_event_handler(
                 // TODO hack to only handle 2D textures for now
                 // We should maybe require users to spawn a NannouTextureHandle themselves
                 if image.texture_descriptor.dimension == wgpu::TextureDimension::D2 {
-                    println!("Spawning NannouTextureHandle");
                     commands.spawn(NannouTextureHandle(handle));
                 }
             }
@@ -158,9 +157,7 @@ fn prepare_texture_bind_groups(
     // need to run this on every frame, just when the textures change
     for texture in nannou_textures.iter() {
         if !texture_bind_group_cache.contains_key(&**texture) {
-            println!("Found texture {:?}", &**texture);
             if let Some(gpu_image) = gpu_images.get(&**texture) {
-                println!("Creating bind group for texture {:?}", &**texture);
                 let bind_group_layout = NannouPipeline::create_texture_bind_group_layout(
                     &render_device,
                     true,

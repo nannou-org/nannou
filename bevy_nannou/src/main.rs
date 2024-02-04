@@ -7,6 +7,7 @@ use bevy_nannou_draw::color::{RED, SALMON, SEAGREEN, SEASHELL, SKYBLUE};
 pub fn main() {
     App::new()
         .add_plugins((DefaultPlugins, NannouPlugin))
+        .insert_resource(Msaa::default())
         .add_systems(Startup, startup)
         .add_systems(Update, (update_draw, update_mesh))
         .run();
@@ -31,6 +32,10 @@ fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<
 
     commands.spawn(
         (Camera3dBundle {
+            camera: Camera {
+                hdr: false,
+                ..Default::default()
+            },
             camera_3d: Camera3d {
                 // TODO: we should manage this in the nannou plugin as function of backgrond color
                 clear_color: ClearColorConfig::None,
@@ -72,7 +77,8 @@ fn update_draw(
         Some(texture) => texture,
     };
 
-    draw.texture(texture_handle.clone(), texture.clone());
+    // TODO: why is the texture rotated?
+    // draw.texture(texture_handle.clone(), texture.clone());
     draw.ellipse().w_h(100.0, 100.0).color(SALMON);
     draw.ellipse()
         .x(100.0 + time.elapsed().as_millis() as f32 / 100.0)
