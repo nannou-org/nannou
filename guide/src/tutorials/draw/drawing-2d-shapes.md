@@ -215,11 +215,11 @@ let radius = 150.0;
 let points = (0..=360).map(|i| {
     // Convert each degree to radians.
     let radian = deg_to_rad(i as f32);
-    // Get the sine of the radian to find the x co-ordinate of this point of the circle
+    // Get the cosine of the radian to find the x co-ordinate of this point of the circle
     // and multiply it by the radius.
-    let x = radian.sin() * radius;
-    // Do the same with cosine to find the y co-ordinate.
-    let y = radian.cos() * radius;
+    let x = radian.cos() * radius;
+    // Do the same with sine to find the y co-ordinate.
+    let y = radian.sin() * radius;
     // Construct and return a point object with a color.
     (pt2(x,y), STEELBLUE)
 });
