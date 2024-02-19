@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::ops::Deref;
 
 use bevy::core::cast_slice;
@@ -7,9 +7,13 @@ use bevy::ecs::query::QueryItem;
 use bevy::prelude::*;
 use bevy::render::render_graph::{NodeRunError, RenderGraphContext, RenderLabel, ViewNode};
 use bevy::render::render_resource as wgpu;
-use bevy::render::render_resource::{BufferInitDescriptor, LoadOp, Operations, PipelineCache, RenderPassColorAttachment, RenderPassDescriptor, RenderPipelineDescriptor, SpecializedRenderPipeline, StoreOp};
+use bevy::render::render_resource::{
+    BufferInitDescriptor, LoadOp, Operations, PipelineCache, RenderPassDescriptor,
+    RenderPipelineDescriptor, SpecializedRenderPipeline, StoreOp,
+};
 use bevy::render::renderer::{RenderContext, RenderDevice};
 use bevy::render::view::{ViewDepthTexture, ViewTarget, ViewUniform, ViewUniformOffset};
+
 use bevy_nannou_draw::draw::mesh;
 use bevy_nannou_draw::draw::mesh::vertex::Point;
 use bevy_nannou_draw::draw::render::VertexMode;
