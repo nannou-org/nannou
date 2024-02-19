@@ -1,4 +1,3 @@
-use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::shape::Torus;
 use bevy::prelude::*;
 use bevy_nannou::NannouPlugin;
@@ -34,11 +33,11 @@ fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<
         (Camera3dBundle {
             camera: Camera {
                 hdr: false,
+                // TODO: we should manage this in the nannou plugin as function of backgrond color
+                clear_color: ClearColorConfig::None,
                 ..Default::default()
             },
             camera_3d: Camera3d {
-                // TODO: we should manage this in the nannou plugin as function of backgrond color
-                clear_color: ClearColorConfig::None,
                 ..Default::default()
             },
             transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Z),
@@ -79,6 +78,7 @@ fn update_draw(
 
     // TODO: why is the texture rotated?
     // draw.texture(texture_handle.clone(), texture.clone());
+    draw.line_mode();
     draw.ellipse().w_h(100.0, 100.0).color(SALMON);
     draw.ellipse()
         .x(100.0 + time.elapsed().as_millis() as f32 / 100.0)

@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 bevy = { workspace = true }
 # We use bevy's mirrored wgpu types almost always, but in a few rare cases, we need to use wgpu types directly
-wgpu-types = "0.17"
+wgpu-types = "0.19"

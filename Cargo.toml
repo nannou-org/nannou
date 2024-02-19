@@ -28,4 +28,4 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-bevy = "0.12"
+bevy = "0.13"

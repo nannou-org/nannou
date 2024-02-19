@@ -130,11 +130,7 @@ impl BindGroupLayoutBuilder {
         }
 
         let label = Some("nannou bind group layout");
-        let desc = wgpu::BindGroupLayoutDescriptor {
-            label,
-            entries: &entries,
-        };
-        device.create_bind_group_layout(&desc)
+        device.create_bind_group_layout(label, &entries)
     }
 }
 

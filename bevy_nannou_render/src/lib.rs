@@ -3,7 +3,7 @@ use std::ops::Deref;
 
 use bevy::asset::load_internal_asset;
 use bevy::core_pipeline::core_3d;
-use bevy::core_pipeline::core_3d::CORE_3D;
+use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
 use bevy::prelude::*;
 use bevy::render::camera::{ExtractedCamera, NormalizedRenderTarget};
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
@@ -72,17 +72,14 @@ impl Plugin for NannouRenderPlugin {
             )
             // Register the NannouViewNode with the render graph
             // The node runs at the last stage of the main 3d pass
-            .add_render_graph_node::<ViewNodeRunner<NannouViewNode>>(
-                core_3d::graph::NAME,
-                NannouViewNode::NAME,
-            )
+            .add_render_graph_node::<ViewNodeRunner<NannouViewNode>>(Core3d, NannouViewNode)
             .add_render_graph_edges(
-                CORE_3D,
-                &[
-                    core_3d::graph::node::MAIN_TRANSPARENT_PASS,
-                    NannouViewNode::NAME,
-                    core_3d::graph::node::END_MAIN_PASS,
-                ],
+                Core3d,
+                (
+                    Node3d::MainTransparentPass,
+                    NannouViewNode,
+                    Node3d::EndMainPass,
+                ),
             );
     }
 
