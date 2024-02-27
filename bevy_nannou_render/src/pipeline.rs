@@ -5,12 +5,9 @@ use std::ops::Deref;
 use bevy::core::cast_slice;
 use bevy::ecs::query::QueryItem;
 use bevy::prelude::*;
-use bevy::render::render_graph::{NodeRunError, RenderGraphContext, RenderLabel, ViewNode};
+use bevy::render::render_graph::{NodeRunError, RenderGraphContext, ViewNode};
 use bevy::render::render_resource as wgpu;
-use bevy::render::render_resource::{
-    BufferInitDescriptor, LoadOp, Operations, PipelineCache, RenderPassDescriptor,
-    RenderPipelineDescriptor, SpecializedRenderPipeline, StoreOp,
-};
+use bevy::render::render_resource::{BufferInitDescriptor, LoadOp, Operations, PipelineCache, RenderPassDescriptor, RenderPipelineDescriptor, SpecializedRenderPipeline};
 use bevy::render::renderer::{RenderContext, RenderDevice};
 use bevy::render::view::{ViewDepthTexture, ViewTarget, ViewUniform, ViewUniformOffset};
 
@@ -18,10 +15,10 @@ use bevy_nannou_draw::draw::mesh;
 use bevy_nannou_draw::draw::mesh::vertex::Point;
 use bevy_nannou_draw::draw::render::VertexMode;
 
-use crate::ViewMesh;
 use crate::{
-    RenderCommand, Scissor, ViewRenderCommands, ViewUniformBindGroup, NANNOU_SHADER_HANDLE,
+    NANNOU_SHADER_HANDLE, RenderCommand, Scissor, ViewRenderCommands, ViewUniformBindGroup,
 };
+use crate::ViewMesh;
 
 #[derive(Resource)]
 pub struct NannouPipeline {
@@ -158,7 +155,7 @@ impl NannouPipeline {
                 false,
                 wgpu::TextureViewDimension::D2,
                 wgpu::TextureFormat::R8Unorm
-                    .sample_type(None, None)
+                    .sample_type(None)
                     .expect("Expected format to have sample type"),
             )
             .build(device)
@@ -274,7 +271,6 @@ impl FromWorld for NannouPipeline {
 #[derive(Resource, Deref, DerefMut, Default)]
 pub struct TextureBindGroupCache(HashMap<Handle<Image>, wgpu::BindGroup>);
 
-#[derive(RenderLabel, Hash, PartialEq, Eq, Clone, Debug)]
 pub struct NannouViewNode;
 
 impl NannouViewNode {
@@ -352,19 +348,21 @@ impl ViewNode for NannouViewNode {
             usage: wgpu::BufferUsages::INDEX,
         });
 
+        // Create render pass builder.
         let render_pass_descriptor = RenderPassDescriptor {
             label: None,
-            color_attachments: &[Some(target.get_color_attachment())],
+            color_attachments: &[Some(target.get_color_attachment(Operations {
+                load: LoadOp::Load,
+                store: true,
+            }))],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: &depth.view(),
+                view: &depth.view,
                 depth_ops: Some(Operations {
                     load: LoadOp::Clear(0.0),
-                    store: StoreOp::Discard,
+                    store: false,
                 }),
                 stencil_ops: None,
             }),
-            timestamp_writes: None,
-            occlusion_query_set: None,
         };
         let mut render_pass = render_context.begin_tracked_render_pass(render_pass_descriptor);
 
