@@ -7,7 +7,10 @@ use bevy::ecs::query::QueryItem;
 use bevy::prelude::*;
 use bevy::render::render_graph::{NodeRunError, RenderGraphContext, ViewNode};
 use bevy::render::render_resource as wgpu;
-use bevy::render::render_resource::{BufferInitDescriptor, LoadOp, Operations, PipelineCache, RenderPassDescriptor, RenderPipelineDescriptor, SpecializedRenderPipeline};
+use bevy::render::render_resource::{
+    BufferInitDescriptor, LoadOp, Operations, PipelineCache, RenderPassDescriptor,
+    RenderPipelineDescriptor, SpecializedRenderPipeline,
+};
 use bevy::render::renderer::{RenderContext, RenderDevice};
 use bevy::render::view::{ViewDepthTexture, ViewTarget, ViewUniform, ViewUniformOffset};
 
@@ -15,10 +18,10 @@ use bevy_nannou_draw::draw::mesh;
 use bevy_nannou_draw::draw::mesh::vertex::Point;
 use bevy_nannou_draw::draw::render::VertexMode;
 
-use crate::{
-    NANNOU_SHADER_HANDLE, RenderCommand, Scissor, ViewRenderCommands, ViewUniformBindGroup,
-};
 use crate::ViewMesh;
+use crate::{
+    RenderCommand, Scissor, ViewRenderCommands, ViewUniformBindGroup, NANNOU_SHADER_HANDLE,
+};
 
 #[derive(Resource)]
 pub struct NannouPipeline {
