@@ -5,3 +5,8 @@ edition = "2021"
 
 [dependencies]
 bevy = { workspace = true }
+bevy_nannou_wgpu = { path = "../bevy_nannou_wgpu" }
+bevy_nannou_draw = { path = "../bevy_nannou_draw" }
+nannou_core = { path = "../nannou_core" }
+lyon = "0.17"
+wgpu-types = "0.17"
