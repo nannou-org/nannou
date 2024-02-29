@@ -78,7 +78,7 @@ fn update_draw(
     };
 
     // TODO: why is the texture rotated?
-    draw.texture(texture_handle.clone(), texture.clone());
+    // draw.texture(texture_handle.clone(), texture.clone());
     draw.ellipse().w_h(100.0, 100.0).color(SALMON);
     draw.ellipse()
         .x(100.0 + time.elapsed().as_millis() as f32 / 100.0)

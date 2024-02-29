@@ -33,7 +33,11 @@ impl BindGroupLayoutBuilder {
     }
 
     /// Add a uniform buffer binding to the layout.
-    pub fn uniform_buffer<T: ShaderType>(self, visibility: wgpu::ShaderStages, has_dynamic_offset: bool) -> Self {
+    pub fn uniform_buffer<T: ShaderType>(
+        self,
+        visibility: wgpu::ShaderStages,
+        has_dynamic_offset: bool,
+    ) -> Self {
         let ty = wgpu::BindingType::Buffer {
             ty: wgpu::BufferBindingType::Uniform,
             has_dynamic_offset,

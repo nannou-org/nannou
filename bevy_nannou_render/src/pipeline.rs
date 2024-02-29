@@ -1,5 +1,4 @@
 use std::hash::Hash;
-use std::ops::Range;
 
 use bevy::core_pipeline::core_3d::{Transparent3d, CORE_3D_DEPTH_FORMAT};
 use bevy::ecs::query::ROQueryItem;
@@ -19,12 +18,15 @@ use bevy::render::render_resource::{
 };
 use bevy::render::renderer::RenderDevice;
 use bevy::render::texture::BevyDefault;
-use bevy::render::view::{ExtractedView, ViewDepthTexture, ViewTarget, ViewUniform};
+use bevy::render::view::{ExtractedView, ViewTarget};
+
 use bevy_nannou_draw::draw::mesh;
 use bevy_nannou_draw::draw::mesh::vertex::Point;
-use bevy_nannou_draw::draw::render::VertexMode;
 
-use crate::{DrawMesh, DrawMeshHandle, DrawMeshItem, DrawMeshUniform, DrawMeshUniformBindGroup, Scissor, TextureBindGroupCache, NANNOU_SHADER_HANDLE, DefaultTextureHandle};
+use crate::{
+    DefaultTextureHandle, DrawMesh, DrawMeshHandle, DrawMeshItem, DrawMeshUniform,
+    DrawMeshUniformBindGroup, TextureBindGroupCache, NANNOU_SHADER_HANDLE,
+};
 
 #[derive(Resource)]
 pub struct NannouPipeline {
@@ -331,10 +333,7 @@ impl<const I: usize, P: PhaseItem> RenderCommand<P> for SetDrawMeshUniformBindGr
 
 pub struct SetDrawMeshTextureBindGroup<const I: usize>;
 impl<const I: usize, P: PhaseItem> RenderCommand<P> for SetDrawMeshTextureBindGroup<I> {
-    type Param = (
-        SRes<DefaultTextureHandle>,
-        SRes<TextureBindGroupCache>
-    );
+    type Param = (SRes<DefaultTextureHandle>, SRes<TextureBindGroupCache>);
     type ViewWorldQuery = ();
     type ItemWorldQuery = Read<DrawMeshItem>;
 
@@ -399,7 +398,6 @@ impl<P: PhaseItem> RenderCommand<P> for SetDrawMeshScissor {
         RenderCommandResult::Success
     }
 }
-
 
 pub struct DrawDrawMeshItem;
 impl<P: PhaseItem> RenderCommand<P> for DrawDrawMeshItem {
