@@ -98,15 +98,15 @@ impl Plugin for NannouRenderPlugin {
 }
 
 #[derive(Resource, Deref, DerefMut, ExtractResource, Clone)]
-struct DefaultTextureHandle(Handle<Image>);
+pub struct DefaultTextureHandle(Handle<Image>);
 
 #[derive(Component, Deref, DerefMut, ExtractComponent, Clone)]
-struct NannouTextureHandle(Handle<Image>);
+pub struct NannouTextureHandle(Handle<Image>);
 
 #[derive(Component, ExtractComponent, Clone)]
 pub struct DrawMeshItem {
     scissor: Option<Scissor>,
-    texture: Handle<Image>,
+    texture: Option<Handle<Image>>,
     vertex_mode: VertexMode,
     blend: wgpu::BlendState,
     topology: wgpu::PrimitiveTopology,
@@ -249,7 +249,12 @@ fn update_draw_mesh(
                             break;
                         }
                     }
-                    primary_window.unwrap()
+                    if let Some(primary_window) = primary_window {
+                        primary_window
+                    } else {
+                        warn!("No primary window found");
+                        continue;
+                    }
                 }
                 WindowRef::Entity(entity) => windows.get(entity).unwrap().0,
             }
@@ -281,11 +286,7 @@ fn update_draw_mesh(
 
         // Keep track of context changes.
         let mut curr_ctxt = draw::Context::default();
-        let mut curr_start_index = 0;
-        // Track whether new commands are required.
         let mut curr_scissor = None;
-        let mut curr_texture_handle: Handle<Image> = (**default_texture_handle).clone();
-        let mut curr_mode = VertexMode::Color;
 
         // Collect all draw commands to avoid borrow errors.
         let draw_cmds: Vec<_> = draw.drain_commands().collect();
@@ -332,32 +333,9 @@ fn update_draw_mesh(
                         continue;
                     }
 
-                    curr_texture_handle = match render.texture_handle {
-                        Some(handle) => handle,
-                        None => {
-                            // If there is no texture, use the default texture.
-                            (**default_texture_handle).clone()
-                        }
-                    };
-
-                    let new_pipeline_key = {
-                        let topology = curr_ctxt.topology;
-                        NannouPipelineKey {
-                            output_color_format: if camera.hdr {
-                                ViewTarget::TEXTURE_FORMAT_HDR
-                            } else {
-                                wgpu::TextureFormat::bevy_default()
-                            },
-                            sample_count: msaa.samples(),
-                            topology,
-                            blend_state: curr_ctxt.blend,
-                        }
-                    };
-
                     let new_scissor = curr_ctxt.scissor;
                     let scissor_changed = Some(new_scissor) != curr_scissor;
 
-                    // If necessary, push a new scissor command.
                     let scissor = if scissor_changed {
                         curr_scissor = Some(new_scissor);
                         let rect = match curr_ctxt.scissor {
@@ -381,30 +359,18 @@ fn update_draw_mesh(
                         None
                     };
 
-                    // Extend the vertex mode channel.
-                    curr_mode = render.vertex_mode;
                     items.push(DrawMeshItem {
                         scissor,
-                        texture: curr_texture_handle.clone(),
-                        vertex_mode: curr_mode,
+                        texture: render.texture_handle.clone(),
+                        vertex_mode: render.vertex_mode,
                         blend: curr_ctxt.blend,
                         topology: curr_ctxt.topology,
-                        index_range: curr_start_index..mesh.indices().len() as u32,
+                        index_range: prev_index_count..mesh.indices().len() as u32,
                     });
-                    curr_start_index = mesh.indices().len() as u32;
                 }
             }
         }
 
-        // Insert a final item if there is still draw data.
-        items.push(DrawMeshItem {
-            scissor: None,
-            texture: curr_texture_handle.clone(),
-            vertex_mode: curr_mode,
-            blend: curr_ctxt.blend,
-            topology: curr_ctxt.topology,
-            index_range: curr_start_index..mesh.indices().len() as u32,
-        });
         commands.spawn_batch(items);
     }
 }

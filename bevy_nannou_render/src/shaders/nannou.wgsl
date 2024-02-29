@@ -51,7 +51,7 @@ struct FragmentOutput {
 fn fragment(
     input: FragmentInput,
 ) -> FragmentOutput {
-    let tex_color: vec4<f32> = textureSample(texture, texture_sampler, input.tex_coords);
+    let texture_color: vec4<f32> = textureSample(texture, texture_sampler, input.tex_coords);
     let text_color: vec4<f32> = textureSample(text, text_sampler, input.tex_coords);
     let text_alpha: f32 = text_color.x;
     var out_color: vec4<f32>;
@@ -59,7 +59,7 @@ fn fragment(
         out_color = input.color;
     } else {
         if (input.mode == u32(1)) {
-            out_color = tex_color;
+            out_color = texture_color;
         } else {
             if (input.mode == u32(2)) {
                 out_color = vec4<f32>(input.color.xyz, input.color.w * text_alpha);

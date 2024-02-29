@@ -24,10 +24,7 @@ use bevy_nannou_draw::draw::mesh;
 use bevy_nannou_draw::draw::mesh::vertex::Point;
 use bevy_nannou_draw::draw::render::VertexMode;
 
-use crate::{
-    DrawMesh, DrawMeshHandle, DrawMeshItem, DrawMeshUniform, DrawMeshUniformBindGroup, Scissor,
-    TextureBindGroupCache, NANNOU_SHADER_HANDLE,
-};
+use crate::{DrawMesh, DrawMeshHandle, DrawMeshItem, DrawMeshUniform, DrawMeshUniformBindGroup, Scissor, TextureBindGroupCache, NANNOU_SHADER_HANDLE, DefaultTextureHandle};
 
 #[derive(Resource)]
 pub struct NannouPipeline {
@@ -258,131 +255,6 @@ impl FromWorld for NannouPipeline {
         }
     }
 }
-pub type DrawDrawMeshItem3d = (
-    SetItemPipeline,
-    SetMeshViewBindGroup<0>,
-    SetDrawMeshUniformBindGroup<1>,
-    SetDrawMeshTextureBindGroup<2>,
-    SetDrawMeshTextBindGroup<3>,
-    SetDrawMeshScissor,
-    DrawDrawMeshItem,
-);
-
-pub struct SetDrawMeshScissor;
-impl<P: PhaseItem> RenderCommand<P> for SetDrawMeshScissor {
-    type Param = ();
-    type ViewWorldQuery = ();
-    type ItemWorldQuery = Read<DrawMeshItem>;
-
-    fn render<'w>(
-        _item: &P,
-        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        entity: ROQueryItem<'w, Self::ItemWorldQuery>,
-        _param: SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut TrackedRenderPass<'w>,
-    ) -> RenderCommandResult {
-        if let Some(scissor) = entity.scissor {
-            pass.set_scissor_rect(scissor.left, scissor.bottom, scissor.width, scissor.height);
-        }
-
-        RenderCommandResult::Success
-    }
-}
-
-pub struct DrawDrawMeshItem;
-impl<P: PhaseItem> RenderCommand<P> for DrawDrawMeshItem {
-    type Param = SRes<RenderAssets<DrawMesh>>;
-    type ViewWorldQuery = Read<DrawMeshHandle>;
-    type ItemWorldQuery = ();
-
-    #[inline]
-    fn render<'w>(
-        item: &P,
-        handle: ROQueryItem<'w, Self::ViewWorldQuery>,
-        _: ROQueryItem<'w, Self::ItemWorldQuery>,
-        draw_meshes: SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut TrackedRenderPass<'w>,
-    ) -> RenderCommandResult {
-        let Some(mesh) = draw_meshes.into_inner().get(&handle.0) else {
-            return RenderCommandResult::Failure;
-        };
-
-        // Set the buffers.
-        pass.set_index_buffer(mesh.index_buffer.slice(..), 0, wgpu::IndexFormat::Uint32);
-        pass.set_vertex_buffer(0, mesh.point_buffer.slice(..));
-        pass.set_vertex_buffer(1, mesh.color_buffer.slice(..));
-        pass.set_vertex_buffer(2, mesh.tex_coords_buffer.slice(..));
-
-        let vertices = item.batch_range();
-        pass.draw(vertices.clone(), 0..1);
-        RenderCommandResult::Success
-    }
-}
-
-pub struct SetDrawMeshUniformBindGroup<const I: usize>;
-impl<const I: usize, P: PhaseItem> RenderCommand<P> for SetDrawMeshUniformBindGroup<I> {
-    type Param = SRes<DrawMeshUniformBindGroup>;
-    type ViewWorldQuery = ();
-    type ItemWorldQuery = Read<DynamicUniformIndex<DrawMeshUniform>>;
-
-    #[inline]
-    fn render<'w>(
-        _item: &P,
-        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        uniform_index: ROQueryItem<'w, Self::ItemWorldQuery>,
-        bind_group: SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut TrackedRenderPass<'w>,
-    ) -> RenderCommandResult {
-        pass.set_bind_group(
-            I,
-            &bind_group.into_inner().bind_group,
-            &[uniform_index.index()],
-        );
-        RenderCommandResult::Success
-    }
-}
-
-pub struct SetDrawMeshTextureBindGroup<const I: usize>;
-impl<const I: usize, P: PhaseItem> RenderCommand<P> for SetDrawMeshTextureBindGroup<I> {
-    type Param = SRes<TextureBindGroupCache>;
-    type ViewWorldQuery = ();
-    type ItemWorldQuery = Read<DrawMeshItem>;
-
-    #[inline]
-    fn render<'w>(
-        _item: &P,
-        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        draw_mesh_item: ROQueryItem<'w, Self::ItemWorldQuery>,
-        bind_groups: SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut TrackedRenderPass<'w>,
-    ) -> RenderCommandResult {
-        let Some(bind_group) = bind_groups.into_inner().get(&draw_mesh_item.texture) else {
-            return RenderCommandResult::Failure;
-        };
-
-        pass.set_bind_group(I, &bind_group, &[]);
-        RenderCommandResult::Success
-    }
-}
-
-pub struct SetDrawMeshTextBindGroup<const I: usize>;
-impl<const I: usize, P: PhaseItem> RenderCommand<P> for SetDrawMeshTextBindGroup<I> {
-    type Param = SRes<NannouPipeline>;
-    type ViewWorldQuery = ();
-    type ItemWorldQuery = ();
-
-    #[inline]
-    fn render<'w>(
-        _item: &P,
-        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
-        pipeline: SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut TrackedRenderPass<'w>,
-    ) -> RenderCommandResult {
-        pass.set_bind_group(I, &pipeline.into_inner().text_bind_group, &[]);
-        RenderCommandResult::Success
-    }
-}
 
 pub fn queue_draw_mesh_items(
     draw_functions: Res<DrawFunctions<Transparent3d>>,
@@ -417,9 +289,143 @@ pub fn queue_draw_mesh_items(
                 draw_function,
                 pipeline,
                 distance: 0.,
-                batch_range: item.index_range.clone(),
+                batch_range: 0..1,
                 dynamic_offset: None,
             });
         }
+    }
+}
+
+pub type DrawDrawMeshItem3d = (
+    SetItemPipeline,
+    SetMeshViewBindGroup<0>,
+    SetDrawMeshUniformBindGroup<1>,
+    SetDrawMeshTextBindGroup<2>,
+    SetDrawMeshTextureBindGroup<3>,
+    SetDrawMeshScissor,
+    DrawDrawMeshItem,
+);
+
+pub struct SetDrawMeshUniformBindGroup<const I: usize>;
+impl<const I: usize, P: PhaseItem> RenderCommand<P> for SetDrawMeshUniformBindGroup<I> {
+    type Param = SRes<DrawMeshUniformBindGroup>;
+    type ViewWorldQuery = ();
+    type ItemWorldQuery = Read<DynamicUniformIndex<DrawMeshUniform>>;
+
+    #[inline]
+    fn render<'w>(
+        _item: &P,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        uniform_index: ROQueryItem<'w, Self::ItemWorldQuery>,
+        bind_group: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        pass.set_bind_group(
+            I,
+            &bind_group.into_inner().bind_group,
+            &[uniform_index.index()],
+        );
+        RenderCommandResult::Success
+    }
+}
+
+pub struct SetDrawMeshTextureBindGroup<const I: usize>;
+impl<const I: usize, P: PhaseItem> RenderCommand<P> for SetDrawMeshTextureBindGroup<I> {
+    type Param = (
+        SRes<DefaultTextureHandle>,
+        SRes<TextureBindGroupCache>
+    );
+    type ViewWorldQuery = ();
+    type ItemWorldQuery = Read<DrawMeshItem>;
+
+    #[inline]
+    fn render<'w>(
+        _item: &P,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        draw_mesh_item: ROQueryItem<'w, Self::ItemWorldQuery>,
+        (default_texture, bind_groups): SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        let texture = match &draw_mesh_item.texture {
+            None => &default_texture.0,
+            Some(texture) => texture,
+        };
+
+        let Some(bind_group) = bind_groups.into_inner().get(texture) else {
+            return RenderCommandResult::Failure;
+        };
+
+        pass.set_bind_group(I, &bind_group, &[]);
+        RenderCommandResult::Success
+    }
+}
+
+pub struct SetDrawMeshTextBindGroup<const I: usize>;
+impl<const I: usize, P: PhaseItem> RenderCommand<P> for SetDrawMeshTextBindGroup<I> {
+    type Param = SRes<NannouPipeline>;
+    type ViewWorldQuery = ();
+    type ItemWorldQuery = ();
+
+    #[inline]
+    fn render<'w>(
+        _item: &P,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        pipeline: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        pass.set_bind_group(I, &pipeline.into_inner().text_bind_group, &[]);
+        RenderCommandResult::Success
+    }
+}
+
+pub struct SetDrawMeshScissor;
+impl<P: PhaseItem> RenderCommand<P> for SetDrawMeshScissor {
+    type Param = ();
+    type ViewWorldQuery = ();
+    type ItemWorldQuery = Read<DrawMeshItem>;
+
+    fn render<'w>(
+        _item: &P,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        _param: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        if let Some(scissor) = entity.scissor {
+            pass.set_scissor_rect(scissor.left, scissor.bottom, scissor.width, scissor.height);
+        }
+
+        RenderCommandResult::Success
+    }
+}
+
+
+pub struct DrawDrawMeshItem;
+impl<P: PhaseItem> RenderCommand<P> for DrawDrawMeshItem {
+    type Param = SRes<RenderAssets<DrawMesh>>;
+    type ViewWorldQuery = Read<DrawMeshHandle>;
+    type ItemWorldQuery = Read<DrawMeshItem>;
+
+    #[inline]
+    fn render<'w>(
+        _item: &P,
+        handle: ROQueryItem<'w, Self::ViewWorldQuery>,
+        draw_mesh_item: ROQueryItem<'w, Self::ItemWorldQuery>,
+        draw_meshes: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        let Some(mesh) = draw_meshes.into_inner().get(&handle.0) else {
+            return RenderCommandResult::Failure;
+        };
+
+        // Set the buffers.
+        pass.set_index_buffer(mesh.index_buffer.slice(..), 0, wgpu::IndexFormat::Uint32);
+        pass.set_vertex_buffer(0, mesh.point_buffer.slice(..));
+        pass.set_vertex_buffer(1, mesh.color_buffer.slice(..));
+        pass.set_vertex_buffer(2, mesh.tex_coords_buffer.slice(..));
+
+        pass.draw_indexed(draw_mesh_item.index_range.clone(), 0, 0..1);
+        RenderCommandResult::Success
     }
 }
