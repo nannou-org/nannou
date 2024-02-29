@@ -1,39 +1,43 @@
-use std::collections::HashMap;
 use std::hash::Hash;
-use std::ops::Deref;
+use std::ops::Range;
 
-use bevy::core::cast_slice;
-use bevy::ecs::query::QueryItem;
+use bevy::core_pipeline::core_3d::{Transparent3d, CORE_3D_DEPTH_FORMAT};
+use bevy::ecs::query::ROQueryItem;
+use bevy::ecs::system::lifetimeless::{Read, SRes};
+use bevy::ecs::system::SystemParamItem;
+use bevy::pbr::{MeshPipeline, MeshPipelineKey, SetMeshViewBindGroup};
 use bevy::prelude::*;
-use bevy::render::render_graph::{NodeRunError, RenderGraphContext, ViewNode};
+use bevy::render::extract_component::DynamicUniformIndex;
+use bevy::render::render_asset::RenderAssets;
+use bevy::render::render_phase::{
+    DrawFunctions, PhaseItem, RenderCommand, RenderCommandResult, RenderPhase, SetItemPipeline,
+    TrackedRenderPass,
+};
 use bevy::render::render_resource as wgpu;
 use bevy::render::render_resource::{
-    BufferInitDescriptor, LoadOp, Operations, PipelineCache, RenderPassDescriptor,
-    RenderPipelineDescriptor, SpecializedRenderPipeline,
+    PipelineCache, RenderPipelineDescriptor, SpecializedRenderPipeline, SpecializedRenderPipelines,
 };
-use bevy::render::renderer::{RenderContext, RenderDevice};
-use bevy::render::view::{ViewDepthTexture, ViewTarget, ViewUniform, ViewUniformOffset};
-
+use bevy::render::renderer::RenderDevice;
+use bevy::render::texture::BevyDefault;
+use bevy::render::view::{ExtractedView, ViewDepthTexture, ViewTarget, ViewUniform};
 use bevy_nannou_draw::draw::mesh;
 use bevy_nannou_draw::draw::mesh::vertex::Point;
 use bevy_nannou_draw::draw::render::VertexMode;
 
-use crate::ViewMesh;
 use crate::{
-    RenderCommand, Scissor, ViewRenderCommands, ViewUniformBindGroup, NANNOU_SHADER_HANDLE,
+    DrawMesh, DrawMeshHandle, DrawMeshItem, DrawMeshUniform, DrawMeshUniformBindGroup, Scissor,
+    TextureBindGroupCache, NANNOU_SHADER_HANDLE,
 };
 
 #[derive(Resource)]
 pub struct NannouPipeline {
+    mesh_pipeline: MeshPipeline,
     glyph_cache_texture: wgpu::Texture,
     text_bind_group_layout: wgpu::BindGroupLayout,
     text_bind_group: wgpu::BindGroup,
     pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
     texture_bind_group: wgpu::BindGroup,
-    pub(crate) view_bind_group_layout: wgpu::BindGroupLayout,
-    view_bind_group: wgpu::BindGroup,
-    view_buffer: wgpu::Buffer,
-    pub(crate) vertex_mode_buffer: Vec<VertexMode>,
+    pub(crate) mesh_bind_group_layout: wgpu::BindGroupLayout,
 }
 
 // This key is computed and used to cache the pipeline.
@@ -41,7 +45,6 @@ pub struct NannouPipeline {
 pub struct NannouPipelineKey {
     pub output_color_format: wgpu::TextureFormat,
     pub sample_count: u32,
-    pub depth_format: wgpu::TextureFormat,
     pub blend_state: wgpu::BlendState,
     pub topology: wgpu::PrimitiveTopology,
 }
@@ -74,14 +77,19 @@ impl NannouPipeline {
     fn render_pipeline(
         &self,
         color_format: wgpu::TextureFormat,
-        depth_format: wgpu::TextureFormat,
         sample_count: u32,
         blend_state: wgpu::BlendState,
         topology: wgpu::PrimitiveTopology,
     ) -> RenderPipelineDescriptor {
+        let view_key = MeshPipelineKey::from_msaa_samples(sample_count)
+            | MeshPipelineKey::from_hdr(color_format == ViewTarget::TEXTURE_FORMAT_HDR)
+            | MeshPipelineKey::from_primitive_topology(topology);
+        let view_layout = self.mesh_pipeline.get_view_layout(view_key.into());
+
         bevy_nannou_wgpu::RenderPipelineBuilder::from_layout(
             &[
-                self.view_bind_group_layout.clone(),
+                view_layout.clone(),
+                self.mesh_bind_group_layout.clone(),
                 self.text_bind_group_layout.clone(),
                 self.texture_bind_group_layout.clone(),
             ],
@@ -106,12 +114,7 @@ impl NannouPipeline {
             offset: 0,
             shader_location: 2,
         }])
-        .add_vertex_buffer::<VertexMode>(&[wgpu::VertexAttribute {
-            format: wgpu::VertexFormat::Uint32,
-            offset: 0,
-            shader_location: 3,
-        }])
-        .depth_format(depth_format)
+        .depth_format(CORE_3D_DEPTH_FORMAT)
         .sample_count(sample_count)
         .color_blend(blend_state.color)
         .alpha_blend(blend_state.alpha)
@@ -183,7 +186,6 @@ impl SpecializedRenderPipeline for NannouPipeline {
     fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
         self.render_pipeline(
             key.output_color_format,
-            key.depth_format,
             key.sample_count,
             key.blend_state,
             key.topology,
@@ -240,22 +242,10 @@ impl FromWorld for NannouPipeline {
             &default_texture.create_view(&wgpu::TextureViewDescriptor::default()),
         );
 
-        // Create the view bind group.
-        let usage = wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST;
-        let view_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("nannou Renderer uniform_buffer"),
-            usage,
-            size: std::mem::size_of::<ViewUniform>() as u64,
-            mapped_at_creation: false,
-        });
-        let view_bind_group_layout = bevy_nannou_wgpu::BindGroupLayoutBuilder::new()
-            .uniform_buffer(wgpu::ShaderStages::VERTEX, true)
+        let mesh_bind_group_layout = bevy_nannou_wgpu::BindGroupLayoutBuilder::new()
+            .uniform_buffer::<DrawMeshUniform>(wgpu::ShaderStages::VERTEX, true)
             .build(device);
-        let view_bind_group = bevy_nannou_wgpu::BindGroupBuilder::new()
-            .buffer::<ViewUniform>(&view_buffer, 0..1)
-            .build(device, &view_bind_group_layout);
-
-        let vertex_mode_buffer = Vec::new();
+        let mesh_pipeline = render_world.resource::<MeshPipeline>().clone();
 
         NannouPipeline {
             glyph_cache_texture,
@@ -263,159 +253,173 @@ impl FromWorld for NannouPipeline {
             text_bind_group,
             texture_bind_group_layout,
             texture_bind_group,
-            view_bind_group_layout,
-            view_bind_group,
-            view_buffer,
-            vertex_mode_buffer,
+            mesh_bind_group_layout,
+            mesh_pipeline,
         }
     }
 }
+pub type DrawDrawMeshItem3d = (
+    SetItemPipeline,
+    SetMeshViewBindGroup<0>,
+    SetDrawMeshUniformBindGroup<1>,
+    SetDrawMeshTextureBindGroup<2>,
+    SetDrawMeshTextBindGroup<3>,
+    SetDrawMeshScissor,
+    DrawDrawMeshItem,
+);
 
-#[derive(Resource, Deref, DerefMut, Default)]
-pub struct TextureBindGroupCache(HashMap<Handle<Image>, wgpu::BindGroup>);
+pub struct SetDrawMeshScissor;
+impl<P: PhaseItem> RenderCommand<P> for SetDrawMeshScissor {
+    type Param = ();
+    type ViewWorldQuery = ();
+    type ItemWorldQuery = Read<DrawMeshItem>;
 
-pub struct NannouViewNode;
+    fn render<'w>(
+        _item: &P,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        _param: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        if let Some(scissor) = entity.scissor {
+            pass.set_scissor_rect(scissor.left, scissor.bottom, scissor.width, scissor.height);
+        }
 
-impl NannouViewNode {
-    pub const NAME: &'static str = "nannou";
-}
-
-impl FromWorld for NannouViewNode {
-    fn from_world(_world: &mut World) -> Self {
-        NannouViewNode
+        RenderCommandResult::Success
     }
 }
 
-impl ViewNode for NannouViewNode {
-    type ViewQuery = (
-        &'static ViewTarget,
-        &'static ViewUniformOffset,
-        &'static ViewMesh,
-        &'static ViewRenderCommands,
-        &'static ViewDepthTexture,
-    );
+pub struct DrawDrawMeshItem;
+impl<P: PhaseItem> RenderCommand<P> for DrawDrawMeshItem {
+    type Param = SRes<RenderAssets<DrawMesh>>;
+    type ViewWorldQuery = Read<DrawMeshHandle>;
+    type ItemWorldQuery = ();
 
-    fn run(
-        &self,
-        _graph: &mut RenderGraphContext,
-        render_context: &mut RenderContext,
-        (target, uniform_offset, mesh, render_commands, depth): QueryItem<Self::ViewQuery>,
-        world: &World,
-    ) -> Result<(), NodeRunError> {
-        let nannou_pipeline = world.resource::<NannouPipeline>();
-        let pipeline_cache = world.resource::<PipelineCache>();
-        let bind_group_cache = world.resource::<TextureBindGroupCache>();
-
-        let render_device = render_context.render_device();
-
-        // TODO: we should just be able to cast the color slice
-        let colors = mesh
-            .colors()
-            .iter()
-            .map(|c| Vec4::new(c.red, c.green, c.blue, c.alpha))
-            .collect::<Vec<Vec4>>();
-        let modes = nannou_pipeline
-            .vertex_mode_buffer
-            .iter()
-            .map(|vm| *vm as u32)
-            .collect::<Vec<u32>>();
-        let vertex_usage = wgpu::BufferUsages::VERTEX;
-        let points_bytes = cast_slice(&mesh.points()[..]);
-        let colors_bytes = cast_slice(&colors);
-        let tex_coords_bytes = cast_slice(mesh.tex_coords());
-        let modes_bytes = cast_slice(&modes);
-        let indices_bytes = cast_slice(mesh.indices());
-        let point_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-            label: Some("nannou Renderer point_buffer"),
-            contents: points_bytes,
-            usage: vertex_usage,
-        });
-        let color_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-            label: Some("nannou Renderer color_buffer"),
-            contents: colors_bytes,
-            usage: vertex_usage,
-        });
-        let tex_coords_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-            label: Some("nannou Renderer tex_coords_buffer"),
-            contents: tex_coords_bytes,
-            usage: vertex_usage,
-        });
-        let mode_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-            label: Some("nannou Renderer mode_buffer"),
-            contents: modes_bytes,
-            usage: vertex_usage,
-        });
-        let index_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-            label: Some("nannou Renderer index_buffer"),
-            contents: indices_bytes,
-            usage: wgpu::BufferUsages::INDEX,
-        });
-
-        // Create render pass builder.
-        let render_pass_descriptor = RenderPassDescriptor {
-            label: None,
-            color_attachments: &[Some(target.get_color_attachment(Operations {
-                load: LoadOp::Load,
-                store: true,
-            }))],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: &depth.view,
-                depth_ops: Some(Operations {
-                    load: LoadOp::Clear(0.0),
-                    store: false,
-                }),
-                stencil_ops: None,
-            }),
+    #[inline]
+    fn render<'w>(
+        item: &P,
+        handle: ROQueryItem<'w, Self::ViewWorldQuery>,
+        _: ROQueryItem<'w, Self::ItemWorldQuery>,
+        draw_meshes: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        let Some(mesh) = draw_meshes.into_inner().get(&handle.0) else {
+            return RenderCommandResult::Failure;
         };
-        let mut render_pass = render_context.begin_tracked_render_pass(render_pass_descriptor);
 
         // Set the buffers.
-        render_pass.set_index_buffer(index_buffer.slice(..), 0, wgpu::IndexFormat::Uint32);
-        render_pass.set_vertex_buffer(0, point_buffer.slice(..));
-        render_pass.set_vertex_buffer(1, color_buffer.slice(..));
-        render_pass.set_vertex_buffer(2, tex_coords_buffer.slice(..));
-        render_pass.set_vertex_buffer(3, mode_buffer.slice(..));
+        pass.set_index_buffer(mesh.index_buffer.slice(..), 0, wgpu::IndexFormat::Uint32);
+        pass.set_vertex_buffer(0, mesh.point_buffer.slice(..));
+        pass.set_vertex_buffer(1, mesh.color_buffer.slice(..));
+        pass.set_vertex_buffer(2, mesh.tex_coords_buffer.slice(..));
 
-        // Set the uniform and text bind groups here.
-        let uniform_bind_group = world.resource::<ViewUniformBindGroup>();
-        render_pass.set_bind_group(0, &uniform_bind_group.bind_group, &[uniform_offset.offset]);
-        render_pass.set_bind_group(1, &nannou_pipeline.text_bind_group, &[]);
+        let vertices = item.batch_range();
+        pass.draw(vertices.clone(), 0..1);
+        RenderCommandResult::Success
+    }
+}
 
-        // Follow the render commands.
-        // todo: can we get mutable access in `view`?
-        for cmd in render_commands.deref().clone() {
-            match cmd {
-                RenderCommand::SetPipeline(id) => {
-                    let pipeline = pipeline_cache
-                        .get_render_pipeline(id)
-                        .expect("Expected pipeline to exist");
-                    render_pass.set_render_pipeline(pipeline);
-                }
+pub struct SetDrawMeshUniformBindGroup<const I: usize>;
+impl<const I: usize, P: PhaseItem> RenderCommand<P> for SetDrawMeshUniformBindGroup<I> {
+    type Param = SRes<DrawMeshUniformBindGroup>;
+    type ViewWorldQuery = ();
+    type ItemWorldQuery = Read<DynamicUniformIndex<DrawMeshUniform>>;
 
-                RenderCommand::SetBindGroup(texture) => {
-                    let bind_group = bind_group_cache
-                        .get(&texture)
-                        .expect("Expected texture bind group to exist");
-                    render_pass.set_bind_group(2, bind_group, &[]);
-                }
-                RenderCommand::SetScissor(Scissor {
-                    left,
-                    bottom,
-                    width,
-                    height,
-                }) => {
-                    render_pass.set_scissor_rect(left, bottom, width, height);
-                }
-                RenderCommand::DrawIndexed {
-                    start_vertex,
-                    index_range,
-                } => {
-                    let instance_range = 0..1u32;
-                    render_pass.draw_indexed(index_range, start_vertex, instance_range);
-                }
-            }
+    #[inline]
+    fn render<'w>(
+        _item: &P,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        uniform_index: ROQueryItem<'w, Self::ItemWorldQuery>,
+        bind_group: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        pass.set_bind_group(
+            I,
+            &bind_group.into_inner().bind_group,
+            &[uniform_index.index()],
+        );
+        RenderCommandResult::Success
+    }
+}
+
+pub struct SetDrawMeshTextureBindGroup<const I: usize>;
+impl<const I: usize, P: PhaseItem> RenderCommand<P> for SetDrawMeshTextureBindGroup<I> {
+    type Param = SRes<TextureBindGroupCache>;
+    type ViewWorldQuery = ();
+    type ItemWorldQuery = Read<DrawMeshItem>;
+
+    #[inline]
+    fn render<'w>(
+        _item: &P,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        draw_mesh_item: ROQueryItem<'w, Self::ItemWorldQuery>,
+        bind_groups: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        let Some(bind_group) = bind_groups.into_inner().get(&draw_mesh_item.texture) else {
+            return RenderCommandResult::Failure;
+        };
+
+        pass.set_bind_group(I, &bind_group, &[]);
+        RenderCommandResult::Success
+    }
+}
+
+pub struct SetDrawMeshTextBindGroup<const I: usize>;
+impl<const I: usize, P: PhaseItem> RenderCommand<P> for SetDrawMeshTextBindGroup<I> {
+    type Param = SRes<NannouPipeline>;
+    type ViewWorldQuery = ();
+    type ItemWorldQuery = ();
+
+    #[inline]
+    fn render<'w>(
+        _item: &P,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        pipeline: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        pass.set_bind_group(I, &pipeline.into_inner().text_bind_group, &[]);
+        RenderCommandResult::Success
+    }
+}
+
+pub fn queue_draw_mesh_items(
+    draw_functions: Res<DrawFunctions<Transparent3d>>,
+    pipeline: Res<NannouPipeline>,
+    mut pipelines: ResMut<SpecializedRenderPipelines<NannouPipeline>>,
+    pipeline_cache: Res<PipelineCache>,
+    msaa: Res<Msaa>,
+    items: Query<(Entity, &DrawMeshItem)>,
+    mut views: Query<(&ExtractedView, &mut RenderPhase<Transparent3d>)>,
+) {
+    let draw_function = draw_functions
+        .read()
+        .get_id::<DrawDrawMeshItem3d>()
+        .unwrap();
+    for (view, mut transparent_phase) in &mut views {
+        for (entity, item) in items.iter() {
+            let key = NannouPipelineKey {
+                output_color_format: if view.hdr {
+                    ViewTarget::TEXTURE_FORMAT_HDR
+                } else {
+                    wgpu::TextureFormat::bevy_default()
+                },
+                sample_count: msaa.samples(),
+                topology: item.topology,
+                blend_state: item.blend,
+            };
+
+            let pipeline = pipelines.specialize(&pipeline_cache, &pipeline, key);
+
+            transparent_phase.add(Transparent3d {
+                entity,
+                draw_function,
+                pipeline,
+                distance: 0.,
+                batch_range: item.index_range.clone(),
+                dynamic_offset: None,
+            });
         }
-
-        Ok(())
     }
 }
