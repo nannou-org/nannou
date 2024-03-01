@@ -227,8 +227,6 @@ fn update_draw_mesh(
     mut commands: Commands,
     mut glyph_cache: ResMut<GlyphCache>,
     windows: Query<(&Window, Has<PrimaryWindow>)>,
-    msaa: Res<Msaa>,
-    default_texture_handle: Res<DefaultTextureHandle>,
     mut meshes: ResMut<Assets<DrawMesh>>,
     draw: Query<(&Draw, &DrawMeshHandle, &Camera)>,
 ) {
