@@ -15,7 +15,7 @@ use bevy::render::extract_component::{
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::render_asset::{PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets};
 use bevy::render::render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner};
-use bevy::render::render_phase::{AddRenderCommand, RenderPhase};
+use bevy::render::render_phase::{AddRenderCommand, DrawFunctions, RenderPhase};
 use bevy::render::render_resource::{
     BindGroupLayout, BufferInitDescriptor, CachedRenderPipelineId, PipelineCache, ShaderType,
     SpecializedRenderPipeline, SpecializedRenderPipelines,
@@ -30,6 +30,7 @@ use bevy::render::{Render, RenderApp};
 use bevy::window::{PrimaryWindow, WindowRef};
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
+use crate::draw_function::DrawDrawMeshItem3d;
 use bevy_nannou_draw::draw::mesh::vertex;
 use bevy_nannou_draw::draw::render::{
     GlyphCache, RenderContext, RenderPrimitive, Scissor, VertexMode,
@@ -38,10 +39,9 @@ use bevy_nannou_draw::{draw, Draw};
 use nannou_core::geom;
 use nannou_core::math::map_range;
 
-use crate::pipeline::{
-    queue_draw_mesh_items, DrawDrawMeshItem3d, NannouPipeline, NannouPipelineKey,
-};
+use crate::pipeline::{NannouPipeline, NannouPipelineKey};
 
+mod draw_function;
 mod pipeline;
 
 pub struct NannouRenderPlugin;
@@ -96,6 +96,10 @@ impl Plugin for NannouRenderPlugin {
             .init_resource::<NannouPipeline>();
     }
 }
+
+// ----------------------------------------------------------------------------
+// Components and Resources
+// ----------------------------------------------------------------------------
 
 #[derive(Resource, Deref, DerefMut, ExtractResource, Clone)]
 pub struct DefaultTextureHandle(Handle<Image>);
@@ -479,3 +483,43 @@ impl RenderAsset for DrawMesh {
 
 #[derive(Resource, Deref, DerefMut, Default)]
 pub struct TextureBindGroupCache(HashMap<Handle<Image>, wgpu::BindGroup>);
+
+pub fn queue_draw_mesh_items(
+    draw_functions: Res<DrawFunctions<Transparent3d>>,
+    pipeline: Res<NannouPipeline>,
+    mut pipelines: ResMut<SpecializedRenderPipelines<NannouPipeline>>,
+    pipeline_cache: Res<PipelineCache>,
+    msaa: Res<Msaa>,
+    items: Query<(Entity, &DrawMeshItem)>,
+    mut views: Query<(&ExtractedView, &mut RenderPhase<Transparent3d>)>,
+) {
+    let draw_function = draw_functions
+        .read()
+        .get_id::<DrawDrawMeshItem3d>()
+        .unwrap();
+    for (view, mut transparent_phase) in &mut views {
+        for (entity, item) in items.iter() {
+            let key = NannouPipelineKey {
+                output_color_format: if view.hdr {
+                    ViewTarget::TEXTURE_FORMAT_HDR
+                } else {
+                    wgpu::TextureFormat::bevy_default()
+                },
+                sample_count: msaa.samples(),
+                topology: item.topology,
+                blend_state: item.blend,
+            };
+
+            let pipeline = pipelines.specialize(&pipeline_cache, &pipeline, key);
+
+            transparent_phase.add(Transparent3d {
+                entity,
+                draw_function,
+                pipeline,
+                distance: 0.,
+                batch_range: 0..1,
+                dynamic_offset: None,
+            });
+        }
+    }
+}
