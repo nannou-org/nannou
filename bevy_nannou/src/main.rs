@@ -65,7 +65,7 @@ fn update_mesh(mut handles: Query<(&Handle<Mesh>, &mut Transform)>) {
 }
 
 fn update_draw(
-    draw: Query<(&mut bevy_nannou_draw::Draw)>,
+    draw: Query<&mut bevy_nannou_draw::Draw>,
     texture_handle: Res<MyTexture>,
     images: Res<Assets<Image>>,
     time: Res<Time>,

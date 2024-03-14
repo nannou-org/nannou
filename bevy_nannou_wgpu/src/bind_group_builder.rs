@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
+use bevy::render::render_resource::ShaderType;
 use bevy::render::renderer::RenderDevice;
 
 /// A type aimed at simplifying the creation of a bind group layout.
@@ -32,12 +33,15 @@ impl BindGroupLayoutBuilder {
     }
 
     /// Add a uniform buffer binding to the layout.
-    pub fn uniform_buffer(self, visibility: wgpu::ShaderStages, has_dynamic_offset: bool) -> Self {
+    pub fn uniform_buffer<T: ShaderType>(
+        self,
+        visibility: wgpu::ShaderStages,
+        has_dynamic_offset: bool,
+    ) -> Self {
         let ty = wgpu::BindingType::Buffer {
             ty: wgpu::BufferBindingType::Uniform,
             has_dynamic_offset,
-            // wgpu 0.5-0.6 TODO: potential perf hit, investigate this field
-            min_binding_size: None,
+            min_binding_size: Some(T::min_size()),
         };
         self.binding(visibility, ty)
     }

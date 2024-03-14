@@ -14,8 +14,8 @@ impl Plugin for NannouDrawPlugin {
     }
 }
 
-fn spawn_draw(mut commands: Commands, query: Query<(Entity, &Camera), Added<Camera>>) {
-    for (entity, _camera) in query.iter() {
+fn spawn_draw(mut commands: Commands, query: Query<Entity, Added<Camera>>) {
+    for entity in query.iter() {
         commands.entity(entity).insert(Draw(draw::Draw::new()));
     }
 }
