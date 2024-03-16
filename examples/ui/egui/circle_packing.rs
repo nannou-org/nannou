@@ -66,7 +66,7 @@ fn update(_app: &App, model: &mut Model, update: Update) {
             .add(egui::Slider::new(&mut settings.min_radius, 0.0..=20.0).text("min radius"))
             .changed();
         changed |= ui
-            .add(egui::Slider::new(&mut settings.max_radius, 0.0..=200.0).text("max radius"))
+            .add(egui::Slider::new(&mut settings.max_radius, 0.1..=200.0).text("max radius"))
             .changed();
         changed |= ui
             .add(egui::Slider::new(&mut settings.circle_count, 0..=2000).text("circle count"))
