@@ -596,7 +596,7 @@ where
     I: IntoIterator<Item = (Point2, Color)>,
 {
     // Build a path with a color attribute for each channel.
-    let channels = draw::mesh::vertex::COLOR_CHANNEL_COUNT;
+    let channels = draw::mesh::vertex::Into<Color>;
     let mut path_builder = lyon::path::Path::builder_with_attributes(channels);
 
     // Begin the path.

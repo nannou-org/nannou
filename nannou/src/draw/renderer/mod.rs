@@ -561,7 +561,7 @@ impl Renderer {
                 draw::DrawCommand::Context(ctxt) => curr_ctxt = ctxt,
                 draw::DrawCommand::Primitive(prim) => {
                     // Track the prev index and vertex counts.
-                    let prev_index_count = self.mesh.indices().len() as u32;
+                    let prev_index_count = self.mesh.count_indices() as u32;
                     let prev_vert_count = self.mesh.vertex_count();
 
                     // Info required during rendering.
@@ -585,7 +585,7 @@ impl Renderer {
                     let render = prim.render_primitive(ctxt, &mut self.mesh);
 
                     // If the mesh indices are unchanged, there's nothing to be drawn.
-                    if prev_index_count == self.mesh.indices().len() as u32 {
+                    if prev_index_count == self.mesh.count_indices() as u32 {
                         assert_eq!(
                             prev_vert_count,
                             self.mesh.vertex_count(),
@@ -697,7 +697,7 @@ impl Renderer {
         // Insert the final draw command if there is still some drawing to be done.
         push_draw_cmd(
             &mut curr_start_index,
-            self.mesh.indices().len() as u32,
+            self.mesh.count_indices() as u32,
             &mut self.render_commands,
         );
 

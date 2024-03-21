@@ -76,7 +76,7 @@ impl draw::render::RenderPrimitive for Texture {
     fn render_primitive(
         self,
         mut ctxt: draw::render::RenderContext,
-        mesh: &mut draw::Mesh,
+        mesh: &mut Mesh,
     ) -> draw::render::PrimitiveRender {
         let Texture {
             texture_handle,

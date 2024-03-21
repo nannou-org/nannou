@@ -13,11 +13,10 @@ use bevy::render::render_resource as wgpu;
 use lyon::path::PathEvent;
 use nannou_core::geom;
 use nannou_mesh::Clear;
+use crate::draw::mesh::MeshExt;
 
 pub use self::background::Background;
 pub use self::drawing::{Drawing, DrawingContext};
-use self::mesh::vertex::{Color, TexCoords};
-pub use self::mesh::Mesh;
 use self::primitive::Primitive;
 pub use self::theme::Theme;
 
@@ -105,7 +104,7 @@ pub struct State {
     /// The last context used to draw an image, used to detect changes and emit commands for them.
     last_draw_context: Option<Context>,
     /// If `Some`, the **Draw** should first clear the frame's texture with the given color.
-    background_color: Option<properties::LinSrgba>,
+    background_color: Option<Color>,
     /// Primitives that are in the process of being drawn.
     ///
     /// Keys are indices into the `draw_commands` Vec.
@@ -124,13 +123,13 @@ pub struct State {
 #[derive(Clone, Debug)]
 pub struct IntermediaryState {
     /// Buffers of vertex data that may be re-used for paths, meshes, etc between view calls.
-    pub intermediary_mesh: crate::draw::Mesh,
+    pub intermediary_mesh: Mesh,
     /// A re-usable buffer for collecting path events.
     pub path_event_buffer: Vec<PathEvent>,
     /// A re-usable buffer for collecting colored polyline points.
     pub path_points_colored_buffer: Vec<(Vec2, Color)>,
     /// A re-usable buffer for collecting textured polyline points.
-    pub path_points_textured_buffer: Vec<(Vec2, TexCoords)>,
+    pub path_points_textured_buffer: Vec<(Vec2, Vec2)>,
     /// A buffer containing all text.
     pub text_buffer: String,
 }
@@ -612,7 +611,7 @@ impl Draw {
 
 impl Default for IntermediaryState {
     fn default() -> Self {
-        let intermediary_mesh = Default::default();
+        let intermediary_mesh = Mesh::init();
         let path_event_buffer = Default::default();
         let path_points_colored_buffer = Default::default();
         let path_points_textured_buffer = Default::default();

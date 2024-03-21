@@ -1,11 +1,10 @@
 use crate::draw::primitive::path;
 use crate::draw::primitive::{PathStroke, Primitive};
 use crate::draw::properties::spatial::{orientation, position};
-use crate::draw::properties::{ColorScalar, SetColor, SetOrientation, SetPosition, SetStroke};
+use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
 use bevy::prelude::*;
 use lyon::tessellation::StrokeOptions;
-use nannou_core::color::LinSrgba;
 
 /// A path containing only two points - a start and end.
 ///
@@ -105,9 +104,9 @@ impl SetPosition for Line {
     }
 }
 
-impl SetColor<ColorScalar> for Line {
-    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
-        SetColor::rgba_mut(&mut self.path)
+impl SetColor for Line {
+    fn color_mut(&mut self) -> &mut Option<Color> {
+        SetColor::color_mut(&mut self.path)
     }
 }
 
@@ -130,7 +129,7 @@ impl draw::render::RenderPrimitive for Line {
     fn render_primitive(
         self,
         mut ctxt: draw::render::RenderContext,
-        mesh: &mut draw::Mesh,
+        mesh: &mut Mesh,
     ) -> draw::render::PrimitiveRender {
         let Line { path, start, end } = self;
         let start = start.unwrap_or(Vec2::new(0.0, 0.0));

@@ -1,16 +1,14 @@
 use crate::draw::drawing::DrawingContext;
-use crate::draw::mesh::vertex::TexCoords;
 use crate::draw::primitive::path::{self, PathEventSource};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{
-    ColorScalar, LinSrgba, SetColor, SetOrientation, SetPosition, SetStroke,
+    SetColor, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Drawing};
 use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::StrokeOptions;
-use nannou_core::color::conv::IntoLinSrgba;
 
 /// A trait implemented for all polygon draw primitives.
 pub trait SetPolygon: Sized {
@@ -29,9 +27,9 @@ pub trait SetPolygon: Sized {
     /// are called.
     fn stroke_color<C>(mut self, color: C) -> Self
     where
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
-        self.polygon_options_mut().stroke_color = Some(color.into_lin_srgba());
+        self.polygon_options_mut().stroke_color = Some(color.into());
         self
     }
 
@@ -54,8 +52,8 @@ pub struct PolygonOptions {
     pub position: position::Properties,
     pub orientation: orientation::Properties,
     pub no_fill: bool,
-    pub stroke_color: Option<LinSrgba>,
-    pub color: Option<LinSrgba>,
+    pub stroke_color: Option<Color>,
+    pub color: Option<Color>,
     pub stroke: Option<StrokeOptions>,
 }
 
@@ -77,7 +75,7 @@ impl PolygonInit {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
         self.stroke_color(color)
     }
@@ -120,7 +118,7 @@ impl PolygonInit {
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
         let DrawingContext {
             path_points_colored_buffer,
@@ -129,8 +127,9 @@ impl PolygonInit {
         let start = path_points_colored_buffer.len();
         let points = points
             .into_iter()
-            .map(|(p, c)| (p.into(), c.into_lin_srgba()));
+            .map(|(p, c)| (p.into(), c.into()));
         path_points_colored_buffer.extend(points);
+
         let end = path_points_colored_buffer.len();
         Polygon {
             opts: self.opts,
@@ -152,7 +151,7 @@ impl PolygonInit {
     where
         I: IntoIterator<Item = (P, T)>,
         P: Into<Vec2>,
-        T: Into<TexCoords>,
+        T: Into<Vec2>,
     {
         let DrawingContext {
             path_points_textured_buffer,
@@ -178,7 +177,7 @@ pub fn render_events_themed<F, I>(
     events: F,
     mut ctxt: draw::render::RenderContext,
     theme_primitive: &draw::theme::Primitive,
-    mesh: &mut draw::Mesh,
+    mesh: &mut Mesh,
 ) where
     F: Fn() -> I,
     I: Iterator<Item = lyon::path::PathEvent>,
@@ -200,7 +199,7 @@ pub fn render_events_themed<F, I>(
     // A function for rendering the path.
     let mut render =
         |opts: path::Options,
-         color: Option<LinSrgba>,
+         color: Option<Color>,
          theme: &draw::Theme,
          fill_tessellator: &mut lyon::tessellation::FillTessellator,
          stroke_tessellator: &mut lyon::tessellation::StrokeTessellator| {
@@ -248,7 +247,7 @@ pub fn render_points_themed<I>(
     points: I,
     ctxt: draw::render::RenderContext,
     theme_primitive: &draw::theme::Primitive,
-    mesh: &mut draw::Mesh,
+    mesh: &mut Mesh,
 ) where
     I: Clone + Iterator<Item = Vec2>,
 {
@@ -265,7 +264,7 @@ impl Polygon {
     pub(crate) fn render_themed(
         self,
         ctxt: draw::render::RenderContext,
-        mesh: &mut draw::Mesh,
+        mesh: &mut Mesh,
         theme_primitive: &draw::theme::Primitive,
     ) -> draw::render::PrimitiveRender {
         let Polygon {
@@ -301,7 +300,7 @@ impl Polygon {
         let mut render =
             |src: path::PathEventSourceIter,
              opts: path::Options,
-             color: Option<LinSrgba>,
+             color: Option<Color>,
              theme: &draw::Theme,
              fill_tessellator: &mut lyon::tessellation::FillTessellator,
              stroke_tessellator: &mut lyon::tessellation::StrokeTessellator| {
@@ -387,7 +386,7 @@ impl Polygon {
                 }
                 PathEventSource::ColoredPoints { range, close } => {
                     let color =
-                        stroke_color.unwrap_or_else(|| theme.stroke_lin_srgba(theme_primitive));
+                        stroke_color.unwrap_or_else(|| theme.stroke(theme_primitive));
                     let mut points_colored = path_points_colored_buffer[range]
                         .iter()
                         .cloned()
@@ -437,7 +436,7 @@ impl draw::render::RenderPrimitive for Polygon {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
-        mesh: &mut draw::Mesh,
+        mesh: &mut Mesh,
     ) -> draw::render::PrimitiveRender {
         self.render_themed(ctxt, mesh, &draw::theme::Primitive::Polygon)
     }
@@ -459,7 +458,7 @@ where
     /// are called.
     pub fn stroke_color<C>(self, color: C) -> Self
     where
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
         self.map_ty(|ty| ty.stroke_color(color))
     }
@@ -474,7 +473,7 @@ impl<'a> DrawingPolygonInit<'a> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
         self.map_ty(|ty| ty.stroke(color))
     }
@@ -501,7 +500,7 @@ impl<'a> DrawingPolygonInit<'a> {
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
         self.map_ty_with_context(|ty, ctxt| ty.points_colored(ctxt, points))
     }
@@ -515,7 +514,7 @@ impl<'a> DrawingPolygonInit<'a> {
     where
         I: IntoIterator<Item = (P, T)>,
         P: Into<Vec2>,
-        T: Into<TexCoords>,
+        T: Into<Vec2>,
     {
         self.map_ty_with_context(|ty, ctxt| ty.points_textured(ctxt, texture_handle, points))
     }
@@ -539,9 +538,9 @@ impl SetPosition for PolygonInit {
     }
 }
 
-impl SetColor<ColorScalar> for PolygonInit {
-    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
-        SetColor::rgba_mut(&mut self.opts.color)
+impl SetColor for PolygonInit {
+    fn color_mut(&mut self) -> &mut Option<Color> {
+        SetColor::color_mut(&mut self.opts.color)
     }
 }
 
@@ -569,9 +568,9 @@ impl SetPosition for Polygon {
     }
 }
 
-impl SetColor<ColorScalar> for Polygon {
-    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
-        SetColor::rgba_mut(&mut self.opts.color)
+impl SetColor for Polygon {
+    fn color_mut(&mut self) -> &mut Option<Color> {
+        SetColor::color_mut(&mut self.opts.color)
     }
 }
 

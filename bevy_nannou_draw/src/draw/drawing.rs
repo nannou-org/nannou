@@ -1,13 +1,12 @@
-use crate::draw::mesh::vertex::{Color, TexCoords};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::{
-    ColorScalar, SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
+    SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Draw};
 use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
-use nannou_core::color::IntoLinSrgba;
+use nannou_core::color::IntoColor;
 use std::marker::PhantomData;
 
 /// A **Drawing** in progress.
@@ -37,13 +36,13 @@ pub struct Drawing<'a, T> {
 /// This is particularly useful for paths and meshes.
 pub struct DrawingContext<'a> {
     /// The intermediary mesh for buffering yet-to-be-drawn paths and meshes.
-    pub mesh: &'a mut draw::Mesh,
+    pub mesh: &'a mut Mesh,
     /// A re-usable buffer for collecting path events.
     pub path_event_buffer: &'a mut Vec<PathEvent>,
     /// A re-usable buffer for collecting colored polyline points.
     pub path_points_colored_buffer: &'a mut Vec<(Vec2, Color)>,
     /// A re-usable buffer for collecting textured polyline points.
-    pub path_points_textured_buffer: &'a mut Vec<(Vec2, TexCoords)>,
+    pub path_points_textured_buffer: &'a mut Vec<(Vec2, Vec2)>,
     /// A re-usable buffer for collecting text.
     pub text_buffer: &'a mut String,
 }
@@ -205,7 +204,7 @@ impl<'a, T> Drawing<'a, T> {
 
 impl<'a, T> Drawing<'a, T>
 where
-    T: SetColor<ColorScalar> + Into<Primitive>,
+    T: SetColor + Into<Primitive>,
     Primitive: Into<Option<T>>,
 {
     /// Specify a color.
@@ -215,13 +214,13 @@ where
     /// Colors that have no alpha channel will be given an opaque alpha channel value `1.0`.
     pub fn color<C>(self, color: C) -> Self
     where
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
         self.map_ty(|ty| SetColor::color(ty, color))
     }
 
     /// Specify the color via red, green and blue channels.
-    pub fn rgb(self, r: ColorScalar, g: ColorScalar, b: ColorScalar) -> Self {
+    pub fn rgb(self, r: f32, g: f32, b: f32) -> Self {
         self.map_ty(|ty| SetColor::rgb(ty, r, g, b))
     }
 
@@ -231,7 +230,7 @@ where
     }
 
     /// Specify the color via red, green, blue and alpha channels.
-    pub fn rgba(self, r: ColorScalar, g: ColorScalar, b: ColorScalar, a: ColorScalar) -> Self {
+    pub fn rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
         self.map_ty(|ty| SetColor::rgba(ty, r, g, b, a))
     }
 
@@ -249,7 +248,7 @@ where
     ///
     /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
     /// this color space.
-    pub fn hsl(self, h: ColorScalar, s: ColorScalar, l: ColorScalar) -> Self {
+    pub fn hsl(self, h: f32, s: f32, l: f32) -> Self {
         self.map_ty(|ty| SetColor::hsl(ty, h, s, l))
     }
 
@@ -262,40 +261,40 @@ where
     ///
     /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
     /// this color space.
-    pub fn hsla(self, h: ColorScalar, s: ColorScalar, l: ColorScalar, a: ColorScalar) -> Self {
+    pub fn hsla(self, h: f32, s: f32, l: f32, a: f32) -> Self {
         self.map_ty(|ty| SetColor::hsla(ty, h, s, l, a))
     }
 
-    /// Specify the color via hue, saturation and *value* (brightness).
-    ///
-    /// This is sometimes also known as "hsb".
-    ///
-    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
-    /// 360 degrees (or 2 PI radians).
-    ///
-    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
-    /// this color space.
-    pub fn hsv(self, h: ColorScalar, s: ColorScalar, v: ColorScalar) -> Self {
-        self.map_ty(|ty| SetColor::hsv(ty, h, s, v))
-    }
-
-    /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
-    ///
-    /// This is sometimes also known as "hsba".
-    ///
-    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
-    /// 360 degrees (or 2 PI radians).
-    ///
-    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
-    /// this color space.
-    pub fn hsva(self, h: ColorScalar, s: ColorScalar, v: ColorScalar, a: ColorScalar) -> Self {
-        self.map_ty(|ty| SetColor::hsva(ty, h, s, v, a))
-    }
+    // /// Specify the color via hue, saturation and *value* (brightness).
+    // ///
+    // /// This is sometimes also known as "hsb".
+    // ///
+    // /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    // /// 360 degrees (or 2 PI radians).
+    // ///
+    // /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    // /// this color space.
+    // pub fn hsv(self, h: f32, s: f32, v: f32) -> Self {
+    //     self.map_ty(|ty| SetColor::hsv(ty, h, s, v))
+    // }
+    //
+    // /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
+    // ///
+    // /// This is sometimes also known as "hsba".
+    // ///
+    // /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    // /// 360 degrees (or 2 PI radians).
+    // ///
+    // /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    // /// this color space.
+    // pub fn hsva(self, h: f32, s: f32, v: f32, a: f32) -> Self {
+    //     self.map_ty(|ty| SetColor::hsva(ty, h, s, v, a))
+    // }
 
     /// Specify the color as gray scale
     ///
     /// The given g expects a value between `0.0` and `1.0` where `0.0` is black and `1.0` is white
-    pub fn gray(self, g: ColorScalar) -> Self {
+    pub fn gray(self, g: f32) -> Self {
         self.map_ty(|ty| SetColor::gray(ty, g))
     }
 }

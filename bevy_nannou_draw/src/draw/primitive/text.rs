@@ -1,14 +1,14 @@
 use crate::draw::drawing::DrawingContext;
-use crate::draw::primitive::Primitive;
+use crate::draw::primitive::{Primitive, Vertex};
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{
-    ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition,
+    SetColor, SetDimensions, SetOrientation, SetPosition,
 };
 use crate::draw::{self, theme, Drawing};
 use crate::text::{self, Align, Font, FontSize, Justify, Layout, Scalar, Wrap};
 use bevy::prelude::*;
-use nannou_core::color::conv::IntoLinSrgba;
 use nannou_core::geom;
+use crate::draw::mesh::MeshExt;
 
 /// Properties related to drawing the **Text** primitive.
 #[derive(Clone, Debug)]
@@ -22,8 +22,8 @@ pub struct Text {
 /// Styling properties for the **Text** primitive.
 #[derive(Clone, Debug, Default)]
 pub struct Style {
-    pub color: Option<LinSrgba>,
-    pub glyph_colors: Vec<LinSrgba>, // Overrides `color` if non-empty.
+    pub color: Option<Color>,
+    pub glyph_colors: Vec<Color>, // Overrides `color` if non-empty.
     pub layout: text::layout::Builder,
 }
 
@@ -153,7 +153,7 @@ impl Text {
 
     /// Set a color for each glyph.
     /// Colors unspecified glyphs using the drawing color.
-    pub fn glyph_colors(mut self, colors: Vec<LinSrgba>) -> Self {
+    pub fn glyph_colors(mut self, colors: Vec<Color>) -> Self {
         self.style.glyph_colors = colors;
         self
     }
@@ -249,11 +249,11 @@ impl<'a> DrawingText<'a> {
     pub fn glyph_colors<I, C>(self, glyph_colors: I) -> Self
     where
         I: IntoIterator<Item = C>,
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
         let glyph_colors = glyph_colors
             .into_iter()
-            .map(|c| c.into_lin_srgba())
+            .map(|c| c.into())
             .collect();
 
         self.map_ty(|ty| ty.glyph_colors(glyph_colors))
@@ -264,7 +264,7 @@ impl draw::render::RenderPrimitive for Text {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
-        mesh: &mut draw::Mesh,
+        mesh: &mut Mesh,
     ) -> draw::render::PrimitiveRender {
         let Text {
             spatial,
@@ -289,7 +289,7 @@ impl draw::render::RenderPrimitive for Text {
         let w = maybe_x.unwrap_or(200.0);
         let h = maybe_y.unwrap_or(200.0);
         let rect: geom::Rect = geom::Rect::from_wh([w, h].into());
-        let color = color.unwrap_or_else(|| ctxt.theme.fill_lin_srgba(&theme::Primitive::Text));
+        let color = color.unwrap_or_else(|| ctxt.theme.fill(&theme::Primitive::Text));
 
         let text_str = &ctxt.text_buffer[text.clone()];
         let text = text::text(text_str).layout(&layout).build(rect);
@@ -376,10 +376,9 @@ impl draw::render::RenderPrimitive for Text {
                 let rect = to_nannou_rect(screen_rect);
 
                 // Create a mesh-compatible vertex from the position and tex_coords.
-                let v = |p: Vec2, tex_coords: [f32; 2]| -> draw::mesh::Vertex {
-                    let p = transform.transform_point3([p.x, p.y, 0.0].into());
-                    let point = draw::mesh::vertex::Point::from(p);
-                    draw::mesh::vertex::new(point, g_color.to_owned(), tex_coords.into())
+                let v = |p: Vec2, tex_coords: [f32; 2]| -> Vertex {
+                    let point = transform.transform_point3([p.x, p.y, 0.0].into());
+                    (point, g_color.to_owned(), tex_coords.into())
                 };
 
                 // The sides of the UV rect.
@@ -393,11 +392,13 @@ impl draw::render::RenderPrimitive for Text {
                 let bottom_right = v(rect.bottom_right(), [uv_r, uv_b]);
                 let top_left = v(rect.top_left(), [uv_l, uv_t]);
                 let top_right = v(rect.top_right(), [uv_r, uv_t]);
-                let start_ix = mesh.points().len() as u32;
-                mesh.push_vertex(top_left);
-                mesh.push_vertex(bottom_left);
-                mesh.push_vertex(bottom_right);
-                mesh.push_vertex(top_right);
+                let start_ix = mesh.count_vertices() as u32;
+
+                for (point, color, uv) in [top_left, bottom_left, bottom_right, top_right] {
+                    mesh.points_mut().push(point.to_array());
+                    mesh.colors_mut().push(color.as_linear_rgba_f32());
+                    mesh.tex_coords_mut().push(uv.to_array());
+                }
 
                 // Now the indices.
                 let tl_ix = start_ix;
@@ -435,9 +436,9 @@ impl SetDimensions for Text {
     }
 }
 
-impl SetColor<ColorScalar> for Text {
-    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
-        SetColor::rgba_mut(&mut self.style.color)
+impl SetColor for Text {
+    fn color_mut(&mut self) -> &mut Option<Color> {
+        SetColor::color_mut(&mut self.style.color)
     }
 }
 

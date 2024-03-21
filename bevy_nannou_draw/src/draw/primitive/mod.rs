@@ -10,10 +10,12 @@ pub mod text;
 pub mod texture;
 pub mod tri;
 
+use bevy::prelude::Color;
+use nannou_core::geom::{Vec2, Vec3};
 pub use self::arrow::Arrow;
 pub use self::ellipse::Ellipse;
 pub use self::line::Line;
-pub use self::mesh::Mesh;
+pub use self::mesh::PrimitiveMesh;
 pub use self::path::{Path, PathFill, PathInit, PathStroke};
 pub use self::polygon::{Polygon, PolygonInit};
 pub use self::quad::Quad;
@@ -21,6 +23,10 @@ pub use self::rect::Rect;
 pub use self::text::Text;
 pub use self::texture::Texture;
 pub use self::tri::Tri;
+
+
+type Vertex = (Vec3, Color, Vec2);
+
 
 /// A wrapper around all primitive sets of properties so that they may be stored within the
 /// **Draw**'s `drawing` field while they are being drawn.
@@ -33,7 +39,7 @@ pub enum Primitive {
     Ellipse(Ellipse),
     Line(Line),
     MeshVertexless(mesh::Vertexless),
-    Mesh(Mesh),
+    Mesh(PrimitiveMesh),
     PathInit(PathInit),
     PathFill(PathFill),
     PathStroke(PathStroke),

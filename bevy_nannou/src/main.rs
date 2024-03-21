@@ -1,8 +1,11 @@
+use bevy::core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings};
 use bevy::core_pipeline::clear_color::ClearColorConfig;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::prelude::shape::Torus;
 use bevy::prelude::*;
 use bevy_nannou::NannouPlugin;
 use bevy_nannou_draw::color::{RED, SALMON, SEAGREEN, SEASHELL, SKYBLUE};
+use bevy_nannou_render::NannouMesh;
 
 pub fn main() {
     App::new()
@@ -21,6 +24,40 @@ fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<
         color: Color::WHITE,
         brightness: 1.0,
     });
+
+    commands.spawn(PointLightBundle {
+        point_light: PointLight {
+            shadows_enabled: true,
+            intensity: 10_000_000_000.,
+            range: 100.0,
+            ..default()
+        },
+        transform: Transform::from_xyz(0.0, 500.0, 100.0),
+        ..default()
+    });
+    //
+    // commands.spawn(DirectionalLightBundle {
+    //     directional_light: DirectionalLight {
+    //         color: Color::rgb(1.0, 0.00, 0.00),
+    //         shadows_enabled: true,
+    //         ..default()
+    //     },
+    //     transform: Transform::from_xyz(100.0, 50.0, 100.0)
+    //         .looking_at(Vec3::new(-0.15, -0.05, 0.25), Vec3::Y),
+    //     ..default()
+    // });
+    //
+    // commands.spawn(DirectionalLightBundle {
+    //     directional_light: DirectionalLight {
+    //         color: Color::rgb(0.0, 0.00, 1.00),
+    //         shadows_enabled: true,
+    //         ..default()
+    //     },
+    //     transform: Transform::from_xyz(-100.0, -50.0, 100.0)
+    //         .looking_at(Vec3::new(-0.15, -0.05, 0.25), Vec3::Y),
+    //     ..default()
+    // });
+
     commands.spawn(PbrBundle {
         mesh: meshes.add(Mesh::from(Torus {
             radius: 100.0,
@@ -33,7 +70,7 @@ fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<
     commands.spawn(
         (Camera3dBundle {
             camera: Camera {
-                hdr: false,
+                hdr: true,
                 ..Default::default()
             },
             camera_3d: Camera3d {
@@ -42,20 +79,33 @@ fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<
                 ..Default::default()
             },
             transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Z),
+            tonemapping: Tonemapping::TonyMcMapface, // 2. Using a tonemapper that desaturates to white is recommended
             projection: OrthographicProjection {
                 scale: 1.0,
                 ..Default::default()
             }
             .into(),
             ..Default::default()
-        }),
+        },
+         BloomSettings {
+             intensity: 0.09,
+             low_frequency_boost: 0.7,
+             low_frequency_boost_curvature: 0.95,
+             high_pass_frequency: 1.0,
+             prefilter_settings: BloomPrefilterSettings {
+                 threshold: 0.1,
+                 threshold_softness: 0.4,
+             },
+             composite_mode: BloomCompositeMode::Additive,
+         }
+        ),
     );
 
     let handle = assets.load("images/nannou.png");
     commands.insert_resource(MyTexture(handle));
 }
 
-fn update_mesh(mut handles: Query<(&Handle<Mesh>, &mut Transform)>) {
+fn update_mesh(mut handles: Query<(&Handle<Mesh>, &mut Transform), Without<NannouMesh>>) {
     for (_, mut transform) in handles.iter_mut() {
         transform.translation.x += 1.0;
         transform.translation.y += 1.0;
@@ -79,10 +129,10 @@ fn update_draw(
 
     // TODO: why is the texture rotated?
     // draw.texture(texture_handle.clone(), texture.clone());
-    draw.ellipse().w_h(100.0, 100.0).color(SALMON);
+    draw.ellipse().w_h(100.0, 100.0).color(Color::SALMON);
     draw.ellipse()
         .x(100.0 + time.elapsed().as_millis() as f32 / 100.0)
         .w_h(100.0, 100.0)
-        .color(SEASHELL);
-    draw.ellipse().x(-100.0).w_h(100.0, 100.0).color(SKYBLUE);
+        .color(Color::SEA_GREEN);
+    draw.ellipse().x(-100.0).w_h(100.0, 100.0).color(Color::BISQUE);
 }

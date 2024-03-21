@@ -3,12 +3,11 @@ use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPoly
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    spatial, ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
+    spatial, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::Drawing;
 use bevy::prelude::*;
 use lyon::tessellation::StrokeOptions;
-use nannou_core::color::conv::IntoLinSrgba;
 use nannou_core::geom;
 
 /// Properties related to drawing an **Ellipse**.
@@ -28,7 +27,7 @@ impl Ellipse {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
         self.stroke_color(color)
     }
@@ -55,7 +54,7 @@ impl draw::render::RenderPrimitive for Ellipse {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
-        mesh: &mut draw::Mesh,
+        mesh: &mut Mesh,
     ) -> draw::render::PrimitiveRender {
         let Ellipse {
             dimensions,
@@ -130,9 +129,9 @@ impl SetDimensions for Ellipse {
     }
 }
 
-impl SetColor<ColorScalar> for Ellipse {
-    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
-        SetColor::rgba_mut(&mut self.polygon)
+impl SetColor for Ellipse {
+    fn color_mut(&mut self) -> &mut Option<Color> {
+        SetColor::color_mut(&mut self.polygon)
     }
 }
 
@@ -171,7 +170,7 @@ impl<'a> DrawingEllipse<'a> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
         self.map_ty(|ty| ty.stroke(color))
     }
