@@ -1,12 +1,12 @@
+use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::{Primitive, Vertex};
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
 use bevy::prelude::*;
+use bevy::render::mesh::Indices;
 use nannou_core::{color, geom};
 use std::ops;
-use bevy::render::mesh::Indices;
-use crate::draw::mesh::MeshExt;
 /// The mesh type prior to being initialised with vertices or indices.
 #[derive(Clone, Debug, Default)]
 pub struct Vertexless;
@@ -116,12 +116,12 @@ impl Vertexless {
         vertex_mode: draw::render::VertexMode,
         texture_handle: Option<Handle<Image>>,
     ) -> PrimitiveMesh
-        where I: Iterator<Item = Vertex>,
+    where
+        I: Iterator<Item = Vertex>,
     {
         let v_start = inner_mesh.count_vertices();
         let i_start = inner_mesh.count_indices();
-        for (i,(point, color, tex_coords)) in vertices.enumerate() {
-
+        for (i, (point, color, tex_coords)) in vertices.enumerate() {
             inner_mesh.points_mut().push(point.to_array());
             inner_mesh.colors_mut().push(color.as_linear_rgba_f32());
             inner_mesh.tex_coords_mut().push(tex_coords.to_array());
@@ -522,9 +522,7 @@ impl draw::render::RenderPrimitive for PrimitiveMesh {
         match fill_color {
             Some(fill) => {
                 let theme_prim = draw::theme::Primitive::Mesh;
-                let color = fill
-                    .0
-                    .unwrap_or_else(|| ctxt.theme.fill(&theme_prim));
+                let color = fill.0.unwrap_or_else(|| ctxt.theme.fill(&theme_prim));
                 let vertices = vertex_range.map(|i| {
                     let point = transform_point(ctxt.intermediary_mesh.points()[i].into());
                     let tex_coords: Vec2 = ctxt.intermediary_mesh.tex_coords()[i].into();

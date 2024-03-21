@@ -10,8 +10,6 @@ pub mod text;
 pub mod texture;
 pub mod tri;
 
-use bevy::prelude::Color;
-use nannou_core::geom::{Vec2, Vec3};
 pub use self::arrow::Arrow;
 pub use self::ellipse::Ellipse;
 pub use self::line::Line;
@@ -23,10 +21,10 @@ pub use self::rect::Rect;
 pub use self::text::Text;
 pub use self::texture::Texture;
 pub use self::tri::Tri;
-
+use bevy::prelude::Color;
+use nannou_core::geom::{Vec2, Vec3};
 
 type Vertex = (Vec3, Color, Vec2);
-
 
 /// A wrapper around all primitive sets of properties so that they may be stored within the
 /// **Draw**'s `drawing` field while they are being drawn.

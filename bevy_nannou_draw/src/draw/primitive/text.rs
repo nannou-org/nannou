@@ -1,14 +1,12 @@
 use crate::draw::drawing::DrawingContext;
+use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::{Primitive, Vertex};
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
-use crate::draw::properties::{
-    SetColor, SetDimensions, SetOrientation, SetPosition,
-};
+use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition};
 use crate::draw::{self, theme, Drawing};
 use crate::text::{self, Align, Font, FontSize, Justify, Layout, Scalar, Wrap};
 use bevy::prelude::*;
 use nannou_core::geom;
-use crate::draw::mesh::MeshExt;
 
 /// Properties related to drawing the **Text** primitive.
 #[derive(Clone, Debug)]
@@ -251,10 +249,7 @@ impl<'a> DrawingText<'a> {
         I: IntoIterator<Item = C>,
         C: Into<Color>,
     {
-        let glyph_colors = glyph_colors
-            .into_iter()
-            .map(|c| c.into())
-            .collect();
+        let glyph_colors = glyph_colors.into_iter().map(|c| c.into()).collect();
 
         self.map_ty(|ty| ty.glyph_colors(glyph_colors))
     }

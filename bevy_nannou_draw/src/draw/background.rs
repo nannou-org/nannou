@@ -1,5 +1,5 @@
-use bevy::prelude::Color;
 use crate::draw::Draw;
+use bevy::prelude::Color;
 use nannou_core::color::{self, IntoColor, Srgb, Srgba};
 
 /// A type used to update the background colour.

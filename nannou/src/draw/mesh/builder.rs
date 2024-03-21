@@ -71,13 +71,13 @@ impl<'a> MeshBuilder<'a, TexCoordsPerPoint> {
 impl<'a, A> GeometryBuilder for MeshBuilder<'a, A> {
     fn begin_geometry(&mut self) {
         self.begin_vertex_count = self.mesh.points().len() as u32;
-        self.begin_index_count = self.mesh.count_indices() as u32;
+        self.begin_index_count = self.mesh.indices().len() as u32;
     }
 
     fn end_geometry(&mut self) -> geometry_builder::Count {
         geometry_builder::Count {
             vertices: self.mesh.points().len() as u32 - self.begin_vertex_count,
-            indices: self.mesh.count_indices() as u32 - self.begin_index_count,
+            indices: self.mesh.indices().len() as u32 - self.begin_index_count,
         }
     }
 

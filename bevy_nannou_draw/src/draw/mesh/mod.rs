@@ -1,9 +1,9 @@
 //! Items related to the custom mesh type used by the `Draw` API.
 
 use bevy::prelude::*;
-use std::ops::{Deref, DerefMut};
 use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
 use nannou_mesh::{ClearIndices, ClearVertices};
+use std::ops::{Deref, DerefMut};
 
 pub mod builder;
 
@@ -31,8 +31,7 @@ impl MeshExt for Mesh {
 
     fn init_with_topology(topology: PrimitiveTopology) -> Mesh {
         let mesh = Mesh::new(topology);
-        mesh
-            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, Vec::<[f32; 3]>::new())
+        mesh.with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, Vec::<[f32; 3]>::new())
             .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, Vec::<[f32; 4]>::new())
             .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, Vec::<[f32; 2]>::new())
             .with_indices(Some(Indices::U32(vec![])))
@@ -114,7 +113,6 @@ impl MeshExt for Mesh {
             _ => panic!("Mesh must have U32 indices"),
         }
     }
-
 
     fn count_indices(&self) -> usize {
         match self.indices() {

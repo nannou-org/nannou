@@ -1,8 +1,6 @@
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{orientation, position};
-use crate::draw::properties::{
-    SetColor, SetFill, SetOrientation, SetPosition, SetStroke,
-};
+use crate::draw::properties::{SetColor, SetFill, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing, DrawingContext};
 use bevy::prelude::*;
 use lyon::path::PathEvent;
@@ -289,12 +287,9 @@ where
             ..
         } = ctxt;
         let start = path_points_colored_buffer.len();
-        let points = points
-            .into_iter()
-            .map(|(p, c)| (p.into(), c.into()));
+        let points = points.into_iter().map(|(p, c)| (p.into(), c.into()));
 
         path_points_colored_buffer.extend(points);
-
 
         let end = path_points_colored_buffer.len();
         let path_event_src = PathEventSource::ColoredPoints {

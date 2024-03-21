@@ -2,9 +2,7 @@ use crate::draw::drawing::DrawingContext;
 use crate::draw::primitive::path::{self, PathEventSource};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{orientation, position};
-use crate::draw::properties::{
-    SetColor, SetOrientation, SetPosition, SetStroke,
-};
+use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
 use bevy::prelude::*;
 use lyon::path::PathEvent;
@@ -125,9 +123,7 @@ impl PolygonInit {
             ..
         } = ctxt;
         let start = path_points_colored_buffer.len();
-        let points = points
-            .into_iter()
-            .map(|(p, c)| (p.into(), c.into()));
+        let points = points.into_iter().map(|(p, c)| (p.into(), c.into()));
         path_points_colored_buffer.extend(points);
 
         let end = path_points_colored_buffer.len();
@@ -385,8 +381,7 @@ impl Polygon {
                     );
                 }
                 PathEventSource::ColoredPoints { range, close } => {
-                    let color =
-                        stroke_color.unwrap_or_else(|| theme.stroke(theme_primitive));
+                    let color = stroke_color.unwrap_or_else(|| theme.stroke(theme_primitive));
                     let mut points_colored = path_points_colored_buffer[range]
                         .iter()
                         .cloned()

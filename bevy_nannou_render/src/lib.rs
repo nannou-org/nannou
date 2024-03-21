@@ -196,9 +196,7 @@ fn update_draw_mesh(
                     // Get or spawn the mesh and material.
                     let (mesh, material) = match mesh_q.iter().nth(i) {
                         // We already have a mesh and material for this index.
-                        Some((mesh, material)) => {
-                            (mesh.clone(), material.clone())
-                        }
+                        Some((mesh, material)) => (mesh.clone(), material.clone()),
                         // We need to spawn a new mesh and material for this index.
                         None => {
                             let mesh = Mesh::init_with_topology(curr_ctxt.topology);

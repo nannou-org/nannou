@@ -11,10 +11,10 @@ use lyon::tessellation::geometry_builder::{
 };
 use lyon::tessellation::{FillVertex, GeometryBuilderError, StrokeVertex, VertexId};
 
+use crate::draw::mesh::MeshExt;
 use bevy::prelude::*;
 use bevy::render::mesh::Indices;
 use bevy::render::render_resource::encase::private::RuntimeSizedArray;
-use crate::draw::mesh::MeshExt;
 
 pub struct MeshBuilder<'a, A> {
     /// The mesh that is to be extended.
@@ -48,11 +48,7 @@ impl<'a, A> MeshBuilder<'a, A> {
 
 impl<'a> MeshBuilder<'a, SingleColor> {
     /// Begin extending a mesh rendered with a single colour.
-    pub fn single_color(
-        mesh: &'a mut Mesh,
-        transform: Mat4,
-        color: Color,
-    ) -> Self {
+    pub fn single_color(mesh: &'a mut Mesh, transform: Mat4, color: Color) -> Self {
         Self::new(mesh, transform, SingleColor(color))
     }
 }
@@ -99,7 +95,6 @@ impl<'a, A> GeometryBuilder for MeshBuilder<'a, A> {
                     indices.push(c.to_usize() as u32);
                 }
             }
-
         }
     }
 
@@ -169,7 +164,7 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
         let p = Vec2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
         let col = vertex.interpolated_attributes();
-        let color= Vec4::new(col[0], col[1], col[2], col[3]);
+        let color = Vec4::new(col[0], col[1], col[2], col[3]);
         let tex_coords = Vec2::ZERO;
 
         self.mesh.points_mut().push(point.to_array());
@@ -227,7 +222,6 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
         self.mesh.points_mut().push(point.to_array());
         self.mesh.colors_mut().push(color.as_linear_rgba_f32());
         self.mesh.tex_coords_mut().push(tex_coords.to_array());
-
 
         // Return the index.
         Ok(id)

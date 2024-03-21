@@ -67,8 +67,8 @@ fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<
         ..default()
     });
 
-    commands.spawn(
-        (Camera3dBundle {
+    commands.spawn((
+        Camera3dBundle {
             camera: Camera {
                 hdr: true,
                 ..Default::default()
@@ -87,19 +87,18 @@ fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<
             .into(),
             ..Default::default()
         },
-         BloomSettings {
-             intensity: 0.09,
-             low_frequency_boost: 0.7,
-             low_frequency_boost_curvature: 0.95,
-             high_pass_frequency: 1.0,
-             prefilter_settings: BloomPrefilterSettings {
-                 threshold: 0.1,
-                 threshold_softness: 0.4,
-             },
-             composite_mode: BloomCompositeMode::Additive,
-         }
-        ),
-    );
+        BloomSettings {
+            intensity: 0.09,
+            low_frequency_boost: 0.7,
+            low_frequency_boost_curvature: 0.95,
+            high_pass_frequency: 1.0,
+            prefilter_settings: BloomPrefilterSettings {
+                threshold: 0.1,
+                threshold_softness: 0.4,
+            },
+            composite_mode: BloomCompositeMode::Additive,
+        },
+    ));
 
     let handle = assets.load("images/nannou.png");
     commands.insert_resource(MyTexture(handle));
@@ -134,5 +133,8 @@ fn update_draw(
         .x(100.0 + time.elapsed().as_millis() as f32 / 100.0)
         .w_h(100.0, 100.0)
         .color(Color::SEA_GREEN);
-    draw.ellipse().x(-100.0).w_h(100.0, 100.0).color(Color::BISQUE);
+    draw.ellipse()
+        .x(-100.0)
+        .w_h(100.0, 100.0)
+        .color(Color::BISQUE);
 }

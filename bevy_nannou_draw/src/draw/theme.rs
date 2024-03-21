@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use bevy::prelude::Color;
+use std::collections::HashMap;
 
 /// A set of styling defaults used for coloring texturing geometric primitives that have no entry
 /// within the **Draw**'s inner **ColorMap**.
@@ -46,7 +46,6 @@ impl Theme {
             .map(|&c| c)
             .unwrap_or(self.fill_color.default)
     }
-
 
     /// Retrieve the  stroke color representation for the given primitive.
     pub fn stroke(&self, prim: &Primitive) -> Color {

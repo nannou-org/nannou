@@ -8,12 +8,12 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
+use crate::draw::mesh::MeshExt;
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
 use lyon::path::PathEvent;
 use nannou_core::geom;
 use nannou_mesh::Clear;
-use crate::draw::mesh::MeshExt;
 
 pub use self::background::Background;
 pub use self::drawing::{Drawing, DrawingContext};
