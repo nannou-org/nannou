@@ -17,12 +17,3 @@ pub use self::spatial::dimension::SetDimensions;
 pub use self::spatial::orientation::SetOrientation;
 pub use self::spatial::position::SetPosition;
 pub use self::stroke::SetStroke;
-
-/// The scalar type used for the color channel values.
-pub type ColorScalar = nannou_core::color::DefaultScalar;
-
-/// The RGBA type used by the `Common` params.
-pub type Srgba = color::DefaultSrgba;
-
-/// The RGBA type used by the `Common` params.
-pub type LinSrgba = color::DefaultLinSrgba;

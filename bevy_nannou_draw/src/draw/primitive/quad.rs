@@ -2,12 +2,11 @@ use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPoly
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
-    spatial, ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
+    spatial, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Drawing};
 use bevy::prelude::*;
 use lyon::tessellation::StrokeOptions;
-use nannou_core::color::conv::IntoLinSrgba;
 use nannou_core::geom;
 
 /// Properties related to drawing a **Quad**.
@@ -27,7 +26,7 @@ impl Quad {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
         self.stroke_color(color)
     }
@@ -51,7 +50,7 @@ impl draw::render::RenderPrimitive for Quad {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
-        mesh: &mut draw::Mesh,
+        mesh: &mut Mesh,
     ) -> draw::render::PrimitiveRender {
         let Quad {
             mut quad,
@@ -135,9 +134,9 @@ impl SetDimensions for Quad {
     }
 }
 
-impl SetColor<ColorScalar> for Quad {
-    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
-        SetColor::rgba_mut(&mut self.polygon)
+impl SetColor for Quad {
+    fn color_mut(&mut self) -> &mut Option<Color> {
+        SetColor::color_mut(&mut self.polygon)
     }
 }
 

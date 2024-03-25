@@ -1,13 +1,10 @@
 use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
-use crate::draw::properties::{
-    ColorScalar, LinSrgba, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
-};
+use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
 use bevy::prelude::*;
 use lyon::tessellation::StrokeOptions;
-use nannou_core::color::conv::IntoLinSrgba;
 use nannou_core::geom;
 
 /// Properties related to drawing a **Rect**.
@@ -26,7 +23,7 @@ impl Rect {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
         self.stroke_color(color)
     }
@@ -36,7 +33,7 @@ impl<'a> DrawingRect<'a> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
-        C: IntoLinSrgba<ColorScalar>,
+        C: Into<Color>,
     {
         self.map_ty(|ty| ty.stroke(color))
     }
@@ -46,7 +43,7 @@ impl draw::render::RenderPrimitive for Rect {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
-        mesh: &mut draw::Mesh,
+        mesh: &mut Mesh,
     ) -> draw::render::PrimitiveRender {
         let Rect {
             polygon,
@@ -111,9 +108,9 @@ impl SetDimensions for Rect {
     }
 }
 
-impl SetColor<ColorScalar> for Rect {
-    fn rgba_mut(&mut self) -> &mut Option<LinSrgba> {
-        SetColor::rgba_mut(&mut self.polygon)
+impl SetColor for Rect {
+    fn color_mut(&mut self) -> &mut Option<Color> {
+        SetColor::color_mut(&mut self.polygon)
     }
 }
 

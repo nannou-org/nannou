@@ -1,4 +1,3 @@
-use crate::draw::mesh::vertex::{Color, TexCoords};
 use crate::{draw, text};
 use bevy::prelude::*;
 use lyon::path::PathEvent;
@@ -10,7 +9,7 @@ use std::ops::{Deref, DerefMut};
 /// Draw API primitives that may be rendered via the **Renderer** type.
 pub trait RenderPrimitive {
     /// Render self into the given mesh.
-    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender;
+    fn render_primitive(self, ctxt: RenderContext, mesh: &mut Mesh) -> PrimitiveRender;
 }
 
 /// Information about the way in which a primitive was rendered.
@@ -28,10 +27,10 @@ pub struct PrimitiveRender {
 /// The context provided to primitives to assist with the rendering process.
 pub struct RenderContext<'a> {
     pub transform: &'a Mat4,
-    pub intermediary_mesh: &'a draw::Mesh,
+    pub intermediary_mesh: &'a Mesh,
     pub path_event_buffer: &'a [PathEvent],
     pub path_points_colored_buffer: &'a [(Vec2, Color)],
-    pub path_points_textured_buffer: &'a [(Vec2, TexCoords)],
+    pub path_points_textured_buffer: &'a [(Vec2, Vec2)],
     pub text_buffer: &'a str,
     pub theme: &'a draw::Theme,
     pub glyph_cache: &'a mut GlyphCache,
@@ -93,7 +92,7 @@ impl Default for PrimitiveRender {
 }
 
 impl RenderPrimitive for draw::Primitive {
-    fn render_primitive(self, ctxt: RenderContext, mesh: &mut draw::Mesh) -> PrimitiveRender {
+    fn render_primitive(self, ctxt: RenderContext, mesh: &mut Mesh) -> PrimitiveRender {
         match self {
             draw::Primitive::Arrow(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Mesh(prim) => prim.render_primitive(ctxt, mesh),
