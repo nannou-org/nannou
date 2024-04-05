@@ -5,8 +5,14 @@ we want to begin by creating a new project. A new nannou project lets us build a
 nannou application the way that *we* want to use it.
 
 Eventually, the aim for Nannou is to provide a project generator tool which will
-allow us to do the following and much more in just a few clicks. For now, we can
-create a new project with just a few small steps:
+allow us to do the following and much more in just a few clicks.
+
+You can leverage [cargo-generate](https://github.com/cargo-generate/cargo-generate)
+```bash
+cargo generate --git https://github.com/tpltnt/nannou-app-template
+```
+
+You can always create a new project with just a few small steps:
 
 1. Create the Rust project with the name of our project:
 
