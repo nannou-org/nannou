@@ -41,5 +41,5 @@ fn view(app: &App) {
     draw.rect()
         .x_y(app.mouse().y, app.mouse().x)
         .w(app.mouse().x * 0.25)
-        .hsv(t, 1.0, 1.0);
+        .hsl(t, 1.0, 0.5);
 }

@@ -7,16 +7,17 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
-use std::cell::RefCell;
-use std::future::Future;
-use std::path::Path;
-use std::time::Duration;
-use std::{self, future};
-use std::ops::DerefMut;
 use bevy::app::AppExit;
 use bevy::core::FrameCount;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
+use std::cell::RefCell;
+use std::future::Future;
+use std::ops::DerefMut;
+use std::path::Path;
+use std::time::Duration;
+use std::{self, future};
+use std::rc::Rc;
 
 use bevy::prelude::*;
 use bevy::render::view::screenshot::ScreenshotManager;
@@ -46,7 +47,6 @@ pub type SketchViewFn = fn(&App);
 /// The user function type allowing them to consume the `model` when the application exits.
 pub type ExitFn<Model> = fn(&App, Model);
 
-
 /// The **App**'s view function.
 enum View<Model = ()> {
     /// A view function allows for viewing the user's model.
@@ -55,7 +55,7 @@ enum View<Model = ()> {
     Sketch(SketchViewFn),
 }
 
-impl <M> Clone for View<M> {
+impl<M> Clone for View<M> {
     fn clone(&self) -> Self {
         match self {
             View::WithModel(view) => View::WithModel(*view),
@@ -110,7 +110,7 @@ fn default_model(_: &App) -> () {
 /// - A map of channels for submitting user input updates to active **Ui**s.
 pub struct App<'w> {
     current_view: Option<Entity>,
-    world: UnsafeWorldCell<'w>,
+    world: Rc<RefCell<UnsafeWorldCell<'w>>>,
 }
 
 #[derive(Resource, Deref, DerefMut)]
@@ -299,7 +299,9 @@ where
                 let views_entities = views_q.iter(world).collect::<Vec<_>>();
 
                 // Extract the model from the world.
-                let mut model = world.remove_non_send_resource::<M>().expect("Model not found");
+                let mut model = world
+                    .remove_non_send_resource::<M>()
+                    .expect("Model not found");
 
                 // Create a new app instance for each frame that wraps the world.
                 let mut app = App::new(world);
@@ -338,7 +340,9 @@ where
                 }
 
                 let exit_fn = world.resource::<ExitFnRes<M>>().0.clone();
-                let model = world.remove_non_send_resource::<M>().expect("Model not found");
+                let model = world
+                    .remove_non_send_resource::<M>()
+                    .expect("Model not found");
                 let app = App::new(world);
                 if let Some(exit_fn) = exit_fn {
                     exit_fn(&app, model);
@@ -392,7 +396,7 @@ impl<'w> App<'w> {
     pub const DEFAULT_EXIT_ON_ESCAPE: bool = true;
     pub const DEFAULT_FULLSCREEN_ON_SHORTCUT: bool = true;
 
-    pub fn mouse(&mut self) -> Vec2 {
+    pub fn mouse(&self) -> Vec2 {
         let window = self.window_id();
         let window = self
             .world()
@@ -410,22 +414,20 @@ impl<'w> App<'w> {
     }
 
     // Create a new `App`.
-    fn new(
-        world: &'w mut World,
-    ) -> Self {
+    fn new(world: &'w mut World) -> Self {
         let app = App {
             current_view: None,
-            world: world.as_unsafe_world_cell(),
+            world: Rc::new(RefCell::new(world.as_unsafe_world_cell())),
         };
         app
     }
 
     pub fn world(&self) -> &World {
-        unsafe { self.world.world() }
+        unsafe { self.world.borrow().world() }
     }
 
-    pub fn world_mut(&mut self) -> &mut World {
-        unsafe { self.world.world_mut() }
+    pub fn world_mut(&self) -> &mut World {
+        unsafe { self.world.borrow_mut().world_mut() }
     }
 
     /// Returns the list of all the monitors available on the system.
@@ -456,7 +458,7 @@ impl<'w> App<'w> {
     /// Return the [Entity] of the currently focused window.
     ///
     /// **Panics** if there are no windows or if no window is in focus.
-    pub fn window_id(&mut self) -> Entity {
+    pub fn window_id(&self) -> Entity {
         let mut window_q = self.world_mut().query::<(Entity, &Window)>();
         for (entity, window) in window_q.iter(self.world()) {
             if window.focused {
@@ -469,7 +471,7 @@ impl<'w> App<'w> {
 
     /// Return a [Vec] containing a unique [Entity] for each currently open window managed by
     /// the [App].
-    pub fn window_ids(&mut self) -> Vec<Entity> {
+    pub fn window_ids(&self) -> Vec<Entity> {
         let mut window_q = self.world_mut().query::<(Entity, &Window)>();
         window_q
             .iter(self.world())
@@ -482,7 +484,7 @@ impl<'w> App<'w> {
     /// The **Rect** coords are described in "points" (pixels divided by the hidpi factor).
     ///
     /// **Panics** if there are no windows or if no window is in focus.
-    pub fn window_rect(&mut self) -> geom::Rect<f32> {
+    pub fn window_rect(&self) -> geom::Rect<f32> {
         let window = self.window_id();
         let window = self
             .world()
@@ -495,7 +497,7 @@ impl<'w> App<'w> {
     /// A reference to the window currently in focus.
     ///
     /// **Panics** if their are no windows open in the **App**.
-    pub fn main_window(&mut self) -> Entity {
+    pub fn main_window(&self) -> Entity {
         let mut window_q = self.world_mut().query_filtered::<Entity, With<PrimaryWindow>>();
         let main_window = window_q
             .get_single(self.world())
@@ -550,7 +552,7 @@ impl<'w> App<'w> {
     }
 
     /// Produce the [App]'s [Draw] API for drawing geometry and text with colors and textures.
-    pub fn draw(&mut self) -> Draw {
+    pub fn draw(&self) -> Draw {
         let window = self.current_view.unwrap_or_else(|| self.main_window());
         let draw = self
             .world()
