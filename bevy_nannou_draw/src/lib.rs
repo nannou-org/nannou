@@ -10,7 +10,7 @@ pub struct NannouDrawPlugin;
 
 impl Plugin for NannouDrawPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, spawn_draw);
+        app.add_systems(First, spawn_draw);
     }
 }
 

@@ -10,3 +10,4 @@ pub use crate::wgpu::blend::{
 };
 pub use crate::wgpu::util::{BufferInitDescriptor, DeviceExt};
 pub use nannou_core::prelude::*;
+pub use bevy_nannou::prelude::*;

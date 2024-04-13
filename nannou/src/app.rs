@@ -18,6 +18,8 @@ use std::path::Path;
 use std::time::Duration;
 use std::{self, future};
 use std::rc::Rc;
+use bevy::core_pipeline::clear_color::ClearColorConfig;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 
 use bevy::prelude::*;
 use bevy::render::view::screenshot::ScreenshotManager;
@@ -286,6 +288,27 @@ where
                 // implement `Send`. Bevy will ensure that the model is only accessed on the main
                 // thread.
                 world.insert_non_send_resource(model);
+
+                // Initialize our default camera.
+                // TODO: handle multiple windows
+                world.spawn(Camera3dBundle {
+                    camera: Camera {
+                        hdr: true,
+                        ..Default::default()
+                    },
+                    camera_3d: Camera3d {
+                        // TODO: update in main update loop
+                        clear_color: ClearColorConfig::None,
+                        ..Default::default()
+                    },
+                    transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Z),
+                    projection: OrthographicProjection {
+                        scale: 1.0,
+                        ..Default::default()
+                    }
+                        .into(),
+                    ..Default::default()
+                });
             })
             .add_systems(Update, |world: &mut World| {
                 // Get our update and view functions. These are just function pointers, so we can
@@ -295,7 +318,7 @@ where
                 let view_fn = world.resource::<ViewFnRes<M>>().0.clone();
 
                 // Get all windows with a draw component.
-                let mut views_q = world.query_filtered::<Entity, (With<Window>, With<Draw>)>();
+                let mut views_q = world.query_filtered::<Entity, (With<Camera>, With<Draw>)>();
                 let views_entities = views_q.iter(world).collect::<Vec<_>>();
 
                 // Extract the model from the world.
@@ -405,7 +428,7 @@ impl<'w> App<'w> {
             .expect("Entity is not a window");
         window
             .cursor_position()
-            .expect("Window does not have a cursor position")
+            .unwrap_or(Vec2::ZERO)
     }
 
     pub fn time(&self) -> Time {
@@ -466,7 +489,10 @@ impl<'w> App<'w> {
             }
         }
 
-        panic!("No window is in focus");
+        let mut primary_window = self.world_mut().query_filtered::<Entity, With<PrimaryWindow>>();
+        primary_window
+            .get_single(self.world())
+            .expect("No windows are open in the App")
     }
 
     /// Return a [Vec] containing a unique [Entity] for each currently open window managed by

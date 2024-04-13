@@ -1,5 +1,9 @@
 use bevy::prelude::*;
 
+pub mod prelude {
+    pub use bevy::prelude::*;
+}
+
 pub struct NannouPlugin;
 
 pub use bevy_nannou_draw::Draw;

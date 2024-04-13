@@ -75,7 +75,7 @@ fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<
             },
             camera_3d: Camera3d {
                 // TODO: we should manage this in the nannou plugin as function of backgrond color
-                clear_color: ClearColorConfig::None,
+                clear_color: ClearColorConfig::Custom(Color::BLACK),
                 ..Default::default()
             },
             transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Z),
