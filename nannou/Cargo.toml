@@ -11,6 +11,8 @@ homepage = "https://github.com/nannou-org/nannou"
 edition = "2018"
 
 [dependencies]
+bevy = { workspace = true }
+bevy_nannou = { version = "0.1.0", path = "../bevy_nannou" }
 futures = "0.3"
 find_folder = "0.3"
 getrandom = "0.2.3"

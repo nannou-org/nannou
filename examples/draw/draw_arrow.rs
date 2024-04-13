@@ -4,7 +4,7 @@ fn main() {
     nannou::sketch(view).run()
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     let draw = app.draw();
     let r = app.window_rect();
     draw.background().color(BLACK);
@@ -21,6 +21,4 @@ fn view(app: &App, frame: Frame) {
             }
         }
     }
-
-    draw.to_frame(app, &frame).unwrap();
 }

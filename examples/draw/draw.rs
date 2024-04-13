@@ -4,7 +4,7 @@ fn main() {
     nannou::sketch(view).run()
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // Begin drawing
     let draw = app.draw();
 
@@ -18,9 +18,9 @@ fn view(app: &App, frame: Frame) {
         .color(VIOLET);
 
     // Draw an ellipse to follow the mouse.
-    let t = app.time;
+    let t = app.time().elapsed_seconds();
     draw.ellipse()
-        .x_y(app.mouse.x * t.cos(), app.mouse.y)
+        .x_y(app.mouse().x * t.cos(), app.mouse().y)
         .radius(win.w() * 0.125 * t.sin())
         .color(RED);
 
@@ -33,16 +33,13 @@ fn view(app: &App, frame: Frame) {
 
     // Draw a quad that follows the inverse of the ellipse.
     draw.quad()
-        .x_y(-app.mouse.x, app.mouse.y)
+        .x_y(-app.mouse().x, app.mouse().y)
         .color(DARKGREEN)
         .rotate(t);
 
     // Draw a rect that follows a different inverse of the ellipse.
     draw.rect()
-        .x_y(app.mouse.y, app.mouse.x)
-        .w(app.mouse.x * 0.25)
+        .x_y(app.mouse().y, app.mouse().x)
+        .w(app.mouse().x * 0.25)
         .hsv(t, 1.0, 1.0);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
