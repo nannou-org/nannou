@@ -5,7 +5,7 @@ members = [
     "bevy_nannou_render",
     "bevy_nannou_wgpu",
     "examples",
-#    "generative_design",
+    "generative_design",
 #    "guide/book_tests",
     "nannou",
 #    "nannou_audio",

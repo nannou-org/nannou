@@ -1,45 +1,18 @@
-use std::collections::HashMap;
-use std::ops::{Deref, Range};
+use std::ops::Deref;
 
-use bevy::asset::load_internal_asset;
-use bevy::core::cast_slice;
-use bevy::core_pipeline::core_3d;
-use bevy::core_pipeline::core_3d::{Transparent3d, CORE_3D};
-use bevy::ecs::system::lifetimeless::SRes;
-use bevy::ecs::system::SystemParamItem;
-use bevy::prelude::shape::Cube;
 use bevy::prelude::*;
-use bevy::render::camera::{ExtractedCamera, NormalizedRenderTarget, RenderTarget};
 use bevy::render::extract_component::{
-    ComponentUniforms, ExtractComponent, ExtractComponentPlugin, UniformComponentPlugin,
+    ExtractComponent, ExtractComponentPlugin,
 };
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
-use bevy::render::mesh::Indices;
-use bevy::render::primitives::Sphere;
-use bevy::render::render_asset::{PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets};
-use bevy::render::render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner};
-use bevy::render::render_phase::{AddRenderCommand, DrawFunctions, RenderPhase};
-use bevy::render::render_resource::{
-    BindGroupLayout, BufferInitDescriptor, CachedRenderPipelineId, PipelineCache, ShaderType,
-    SpecializedRenderPipeline, SpecializedRenderPipelines,
-};
-use bevy::render::renderer::RenderDevice;
-use bevy::render::texture::BevyDefault;
-use bevy::render::view::{
-    ExtractedView, ExtractedWindow, ExtractedWindows, ViewDepthTexture, ViewTarget, ViewUniforms,
-};
-use bevy::render::{render_resource as wgpu, Extract, RenderSet};
-use bevy::render::{Render, RenderApp};
-use bevy::window::{PrimaryWindow, WindowRef};
+use bevy::render::render_resource as wgpu;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
-use wgpu_types::PrimitiveTopology;
 
+use bevy_nannou_draw::{draw, Draw};
 use bevy_nannou_draw::draw::mesh::MeshExt;
 use bevy_nannou_draw::draw::render::{
-    GlyphCache, RenderContext, RenderPrimitive, Scissor, VertexMode,
+    GlyphCache, RenderContext, RenderPrimitive,
 };
-use bevy_nannou_draw::{draw, Draw};
-use nannou_core::geom;
 use nannou_core::math::map_range;
 
 pub struct NannouRenderPlugin;
@@ -54,7 +27,7 @@ impl Plugin for NannouRenderPlugin {
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
             .insert_resource(GlyphCache::new([1024; 2], 0.1, 0.1))
             .add_systems(Update, texture_event_handler)
-            .add_systems(Last, update_draw_mesh.chain());
+            .add_systems(Last, update_draw_mesh);
     }
 }
 
@@ -101,39 +74,12 @@ fn setup_default_texture(mut commands: Commands, mut images: ResMut<Assets<Image
 fn update_draw_mesh(
     mut commands: Commands,
     mut glyph_cache: ResMut<GlyphCache>,
-    windows: Query<(&Window, Has<PrimaryWindow>)>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    draw: Query<(&Draw, &Camera)>,
+    draw_q: Query<(&Draw, &Window)>,
     mesh_q: Query<(&Handle<Mesh>, &Handle<StandardMaterial>), With<NannouMesh>>,
 ) {
-    for (draw, camera) in &draw {
-        let window = if let RenderTarget::Window(window_ref) = camera.target {
-            match window_ref {
-                WindowRef::Primary => {
-                    let mut primary_window = None;
-                    for (window, is_primary) in windows.iter() {
-                        if is_primary {
-                            primary_window = Some(window);
-                            break;
-                        }
-                    }
-                    if let Some(primary_window) = primary_window {
-                        primary_window
-                    } else {
-                        warn!("No primary window found");
-                        continue;
-                    }
-                }
-                WindowRef::Entity(entity) => windows.get(entity).unwrap().0,
-            }
-        } else {
-            // TODO: handle other render targets
-            // For now, we only support rendering to a window
-            warn!("Unsupported render target");
-            continue;
-        };
-
+    for (draw, window) in &draw_q {
         // TODO: Unclear if we need to track this, or if the physical size is enough.
         let scale_factor = 1.0;
         let [w_px, h_px] = [window.physical_width(), window.physical_height()];
@@ -158,8 +104,6 @@ fn update_draw_mesh(
 
         // Collect all draw commands to avoid borrow errors.
         let draw_cmds: Vec<_> = draw.drain_commands().collect();
-
-        info!("draw_len {}", draw_cmds.len());
 
         let draw_state = draw.state.write().expect("failed to lock draw state");
         let intermediary_state = draw_state

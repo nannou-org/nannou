@@ -3,24 +3,30 @@
 //! Create a new window via `app.new_window()`. This produces a [**Builder**](./struct.Builder.html)
 //! which can be used to build a [**Window**](./struct.Window.html).
 
+use bevy::core_pipeline::clear_color::ClearColorConfig;
 use std::fmt;
 use std::path::PathBuf;
 
 use bevy::input::mouse::MouseWheel;
-use bevy::prelude::{Color, Component, Entity, KeyCode, MouseButton, TouchInput, Window, WindowPosition};
-use bevy::window::WindowLevel;
+use bevy::prelude::*;
+use bevy::render::camera::RenderTarget;
+use bevy::window::{PrimaryWindow, WindowLevel, WindowRef};
 
 use bevy_nannou::prelude::MonitorSelection;
 
-use crate::App;
 use crate::geom::Point2;
 use crate::glam::Vec2;
 use crate::prelude::WindowResizeConstraints;
+use crate::App;
+
+#[derive(Component)]
+pub struct NannouCamera;
 
 /// A context for building a window.
 pub struct Builder<'a, 'w, M = ()> {
     app: &'a App<'w>,
     window: Window,
+    primary: bool,
     title_was_set: bool,
     user_functions: UserFunctions<M>,
     clear_color: Option<Color>,
@@ -51,7 +57,7 @@ pub(crate) struct UserFunctions<M> {
     pub(crate) closed: Option<ClosedFn<M>>,
 }
 
-impl <M> Default for UserFunctions<M> {
+impl<M> Default for UserFunctions<M> {
     fn default() -> Self {
         UserFunctions {
             view: None,
@@ -78,8 +84,35 @@ impl <M> Default for UserFunctions<M> {
     }
 }
 
-#[derive(Component)]
-pub struct WindowUserFunctions<M>(UserFunctions<M>);
+impl <M> Clone for UserFunctions<M> {
+    fn clone(&self) -> Self {
+        UserFunctions {
+            view: self.view.clone(),
+            key_pressed: self.key_pressed.clone(),
+            key_released: self.key_released.clone(),
+            received_character: self.received_character.clone(),
+            mouse_moved: self.mouse_moved.clone(),
+            mouse_pressed: self.mouse_pressed.clone(),
+            mouse_released: self.mouse_released.clone(),
+            mouse_entered: self.mouse_entered.clone(),
+            mouse_exited: self.mouse_exited.clone(),
+            mouse_wheel: self.mouse_wheel.clone(),
+            moved: self.moved.clone(),
+            resized: self.resized.clone(),
+            touch: self.touch.clone(),
+            // touchpad_pressure: self.touchpad_pressure,
+            hovered_file: self.hovered_file.clone(),
+            hovered_file_cancelled: self.hovered_file_cancelled.clone(),
+            dropped_file: self.dropped_file.clone(),
+            focused: self.focused.clone(),
+            unfocused: self.unfocused.clone(),
+            closed: self.closed.clone(),
+        }
+    }
+}
+
+#[derive(Component, Deref, DerefMut)]
+pub(crate) struct WindowUserFunctions<M>(pub(crate) UserFunctions<M>);
 
 /// The user function type for drawing their model to the surface of a single window.
 pub type ViewFn<Model> = fn(&App, &Model);
@@ -90,10 +123,18 @@ pub type ViewFn<Model> = fn(&App, &Model);
 pub type SketchFn = fn(&App);
 
 /// The user's view function, whether with a model or without one.
-#[derive(Clone)]
 pub(crate) enum View<M> {
     WithModel(ViewFn<M>),
     Sketch(SketchFn),
+}
+
+impl <M> Clone for View<M> {
+    fn clone(&self) -> Self {
+        match self {
+            View::WithModel(f) => View::WithModel(*f),
+            View::Sketch(f) => View::Sketch(*f),
+        }
+    }
 }
 
 /// A function for processing key press events.
@@ -154,15 +195,16 @@ pub type UnfocusedFn<Model> = fn(&App, &mut Model);
 /// A function for processing window closed events.
 pub type ClosedFn<Model> = fn(&App, &mut Model);
 
-
 impl<'a, 'w, M> Builder<'a, 'w, M>
-    where M: 'static
+where
+    M: 'static,
 {
     /// Begin building a new window.
     pub fn new(app: &'a App<'w>) -> Self {
         Builder {
             app,
             window: Window::default(),
+            primary: false,
             title_was_set: false,
             user_functions: UserFunctions::<M>::default(),
             clear_color: None,
@@ -174,7 +216,6 @@ impl<'a, 'w, M> Builder<'a, 'w, M>
         self.window = window;
         self
     }
-
 
     /// Provide a simple function for drawing to the window.
     ///
@@ -204,70 +245,60 @@ impl<'a, 'w, M> Builder<'a, 'w, M>
     }
 
     /// A function for processing key press events associated with this window.
-    pub fn key_pressed(mut self, f: KeyPressedFn<M>) -> Self
-    {
+    pub fn key_pressed(mut self, f: KeyPressedFn<M>) -> Self {
         self.user_functions.key_pressed = Some(f);
         self
     }
 
     /// A function for processing key release events associated with this window.
-    pub fn key_released(mut self, f: KeyReleasedFn<M>) -> Self
-    {
+    pub fn key_released(mut self, f: KeyReleasedFn<M>) -> Self {
         self.user_functions.key_released = Some(f);
         self
     }
 
-    pub fn received_character(mut self, f: ReceivedCharacterFn<M>) -> Self
-    {
+    pub fn received_character(mut self, f: ReceivedCharacterFn<M>) -> Self {
         self.user_functions.received_character = Some(f);
         self
     }
 
     /// A function for processing mouse moved events associated with this window.
-    pub fn mouse_moved(mut self, f: MouseMovedFn<M>) -> Self
-    {
+    pub fn mouse_moved(mut self, f: MouseMovedFn<M>) -> Self {
         self.user_functions.mouse_moved = Some(f);
         self
     }
 
     /// A function for processing mouse pressed events associated with this window.
-    pub fn mouse_pressed(mut self, f: MousePressedFn<M>) -> Self
-    {
+    pub fn mouse_pressed(mut self, f: MousePressedFn<M>) -> Self {
         self.user_functions.mouse_pressed = Some(f);
         self
     }
 
     /// A function for processing mouse released events associated with this window.
-    pub fn mouse_released(mut self, f: MouseReleasedFn<M>) -> Self
-    {
+    pub fn mouse_released(mut self, f: MouseReleasedFn<M>) -> Self {
         self.user_functions.mouse_released = Some(f);
         self
     }
 
     /// A function for processing mouse wheel events associated with this window.
-    pub fn mouse_wheel(mut self, f: MouseWheelFn<M>) -> Self
-    {
+    pub fn mouse_wheel(mut self, f: MouseWheelFn<M>) -> Self {
         self.user_functions.mouse_wheel = Some(f);
         self
     }
 
     /// A function for processing mouse entered events associated with this window.
-    pub fn mouse_entered(mut self, f: MouseEnteredFn<M>) -> Self
-    {
+    pub fn mouse_entered(mut self, f: MouseEnteredFn<M>) -> Self {
         self.user_functions.mouse_entered = Some(f);
         self
     }
 
     /// A function for processing mouse exited events associated with this window.
-    pub fn mouse_exited(mut self, f: MouseExitedFn<M>) -> Self
-    {
+    pub fn mouse_exited(mut self, f: MouseExitedFn<M>) -> Self {
         self.user_functions.mouse_exited = Some(f);
         self
     }
 
     /// A function for processing touch events associated with this window.
-    pub fn touch(mut self, f: TouchFn<M>) -> Self
-    {
+    pub fn touch(mut self, f: TouchFn<M>) -> Self {
         self.user_functions.touch = Some(f);
         self
     }
@@ -282,58 +313,49 @@ impl<'a, 'w, M> Builder<'a, 'w, M>
     // }
 
     /// A function for processing window moved events associated with this window.
-    pub fn moved(mut self, f: MovedFn<M>) -> Self
-    {
+    pub fn moved(mut self, f: MovedFn<M>) -> Self {
         self.user_functions.moved = Some(f);
         self
     }
 
     /// A function for processing window resized events associated with this window.
-    pub fn resized(mut self, f: ResizedFn<M>) -> Self
-    {
+    pub fn resized(mut self, f: ResizedFn<M>) -> Self {
         self.user_functions.resized = Some(f);
         self
     }
 
     /// A function for processing hovered file events associated with this window.
-    pub fn hovered_file(mut self, f: HoveredFileFn<M>) -> Self
-    {
+    pub fn hovered_file(mut self, f: HoveredFileFn<M>) -> Self {
         self.user_functions.hovered_file = Some(f);
         self
     }
 
     /// A function for processing hovered file cancelled events associated with this window.
-    pub fn hovered_file_cancelled(mut self, f: HoveredFileCancelledFn<M>) -> Self
-    {
-        self.user_functions.hovered_file_cancelled =
-            Some(f);
+    pub fn hovered_file_cancelled(mut self, f: HoveredFileCancelledFn<M>) -> Self {
+        self.user_functions.hovered_file_cancelled = Some(f);
         self
     }
 
     /// A function for processing dropped file events associated with this window.
-    pub fn dropped_file(mut self, f: DroppedFileFn<M>) -> Self
-    {
+    pub fn dropped_file(mut self, f: DroppedFileFn<M>) -> Self {
         self.user_functions.dropped_file = Some(f);
         self
     }
 
     /// A function for processing the focused event associated with this window.
-    pub fn focused(mut self, f: FocusedFn<M>) -> Self
-    {
+    pub fn focused(mut self, f: FocusedFn<M>) -> Self {
         self.user_functions.focused = Some(f);
         self
     }
 
     /// A function for processing the unfocused event associated with this window.
-    pub fn unfocused(mut self, f: UnfocusedFn<M>) -> Self
-    {
+    pub fn unfocused(mut self, f: UnfocusedFn<M>) -> Self {
         self.user_functions.unfocused = Some(f);
         self
     }
 
     /// A function for processing the window closed event associated with this window.
-    pub fn closed(mut self, f: ClosedFn<M>) -> Self
-    {
+    pub fn closed(mut self, f: ClosedFn<M>) -> Self {
         self.user_functions.closed = Some(f);
         self
     }
@@ -341,11 +363,48 @@ impl<'a, 'w, M> Builder<'a, 'w, M>
     #[cfg(not(target_os = "unknown"))]
     /// Builds the window, inserts it into the `App`'s display map and returns the unique ID.
     pub fn build(self) -> Entity {
-        let entity = self.app.world_mut()
-            .spawn((self.window, WindowUserFunctions(self.user_functions)));
-        entity.id()
-    }
+        let entity = self
+            .app
+            .world_mut()
+            .spawn((self.window, WindowUserFunctions(self.user_functions)))
+            .id();
 
+        if self.primary {
+            let mut q = self.app.world_mut().query::<&PrimaryWindow>();
+            if let Ok(_) = q.get_single(self.app.world_mut()) {
+                panic!("Only one primary window can be created");
+            }
+
+            self.app.world_mut().entity_mut(entity).insert(PrimaryWindow);
+        }
+
+        self.app.world_mut().spawn((
+            Camera3dBundle {
+                camera: Camera {
+                    // TODO: configure in builder
+                    hdr: true,
+                    target: RenderTarget::Window(WindowRef::Entity(entity)),
+                    ..Default::default()
+                },
+                camera_3d: Camera3d {
+                    clear_color: self
+                        .clear_color
+                        .map(|c| ClearColorConfig::Custom(c))
+                        .unwrap_or(ClearColorConfig::None),
+                    ..Default::default()
+                },
+                transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Z),
+                projection: OrthographicProjection {
+                    scale: 1.0,
+                    ..Default::default()
+                }
+                .into(),
+                ..Default::default()
+            },
+            NannouCamera,
+        ));
+        entity
+    }
 
     fn map_window<F>(self, map: F) -> Self
     where
@@ -354,6 +413,7 @@ impl<'a, 'w, M> Builder<'a, 'w, M>
         let Builder {
             app,
             window,
+            primary,
             title_was_set,
             user_functions,
             clear_color,
@@ -362,6 +422,7 @@ impl<'a, 'w, M> Builder<'a, 'w, M>
         Builder {
             app,
             window,
+            primary,
             title_was_set,
             user_functions,
             clear_color,
@@ -434,6 +495,11 @@ impl<'a, 'w, M> Builder<'a, 'w, M>
         })
     }
 
+    pub fn primary(mut self) -> Self {
+        self.primary = true;
+        self
+    }
+
     /// Create the window fullscreened on the current monitor.
     pub fn fullscreen(self) -> Self {
         self.map_window(|mut w| {
@@ -487,7 +553,7 @@ impl<'a, 'w, M> Builder<'a, 'w, M>
     }
 }
 
-impl <M> fmt::Debug for View<M> {
+impl<M> fmt::Debug for View<M> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let variant = match *self {
             View::WithModel(ref v) => format!("WithModel({:?})", v),

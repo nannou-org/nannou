@@ -18,7 +18,7 @@ fn reset_draw(mut draw_q: Query<&mut Draw>) {
     }
 }
 
-fn spawn_draw(mut commands: Commands, query: Query<Entity, Added<Camera>>) {
+fn spawn_draw(mut commands: Commands, query: Query<Entity, Added<Window>>) {
     for entity in query.iter() {
         commands.entity(entity).insert(Draw(draw::Draw::new()));
     }

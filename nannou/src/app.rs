@@ -28,6 +28,7 @@ use bevy_nannou::{Draw, NannouPlugin};
 use find_folder;
 
 use crate::{geom, window};
+use crate::window::WindowUserFunctions;
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -72,7 +73,6 @@ pub struct Builder<M = ()> {
     default_view: Option<View<M>>,
     exit: Option<ExitFn<M>>,
     create_default_window: bool,
-    default_window_size: Option<DefaultWindowSize>,
 }
 
 /// A nannou `Sketch` builder.
@@ -80,7 +80,7 @@ pub struct SketchBuilder {
     builder: Builder<()>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum DefaultWindowSize {
     /// Default window size in logical coordinates.
     Logical([f32; 2]),
@@ -125,7 +125,7 @@ struct ViewFnRes<M>(Option<View<M>>);
 struct ExitFnRes<M>(Option<ExitFn<M>>);
 
 /// Miscellaneous app configuration parameters.
-#[derive(Resource, Debug)]
+#[derive(Resource, Debug, Clone)]
 struct Config {
     exit_on_escape: bool,
     fullscreen_on_shortcut: bool,
@@ -155,7 +155,6 @@ where
             default_view: None,
             exit: None,
             create_default_window: false,
-            default_window_size: None,
         }
     }
 }
@@ -227,13 +226,13 @@ where
     ///
     /// If a window is created and its size is not specified, this size will be used.
     pub fn size(mut self, width: f32, height: f32) -> Self {
-        self.default_window_size = Some(DefaultWindowSize::Logical([width, height]));
+        self.config.default_window_size = Some(DefaultWindowSize::Logical([width, height]));
         self
     }
 
     /// Specify that windows should be created on the primary monitor by default.
     pub fn fullscreen(mut self) -> Self {
-        self.default_window_size = Some(DefaultWindowSize::Fullscreen);
+        self.config.default_window_size = Some(DefaultWindowSize::Fullscreen);
         self
     }
 
@@ -245,45 +244,53 @@ where
     /// thread as some platforms require that their application event loop and windows are
     /// initialised on the main thread.
     pub fn run(self) {
+        let create_default_window = self.create_default_window;
+
         bevy::app::App::new()
+            // This ensures that color materials are rendered correctly.
             .insert_resource(AmbientLight {
                 color: Color::WHITE,
                 brightness: 1.0,
             })
-            .init_resource::<Config>()
-            .insert_resource(ClearColor(Color::rgb(0.9, 0.3, 0.6)))
+            .insert_resource(self.config.clone())
             .insert_resource(ModelFnRes(self.model))
             .insert_resource(UpdateFnRes(self.update))
             .insert_resource(ViewFnRes(self.default_view))
             .insert_resource(ExitFnRes(self.exit))
             .add_plugins((
                 DefaultPlugins.set(WindowPlugin {
-                    primary_window: Some(match self.default_window_size {
-                        None => Window {
-                            title: "Nannou".to_string(),
-                            ..Default::default()
-                        },
-                        Some(default_window) => match default_window {
-                            DefaultWindowSize::Logical([w, h]) => Window {
-                                title: "Nannou".to_string(),
-                                resolution: WindowResolution::new(w as f32, h as f32),
-                                ..Default::default()
-                            },
-                            DefaultWindowSize::Fullscreen => Window {
-                                title: "Nannou".to_string(),
-                                mode: WindowMode::Fullscreen,
-                                ..Default::default()
-                            },
-                        },
-                    }),
+                    // Don't spawn a  window by default, we'll handle this ourselves
+                    primary_window: None,
                     ..default()
                 }),
                 NannouPlugin,
             ))
-            .add_systems(Startup, |world: &mut World| {
-                // Initialise the model.
+            .add_systems(Startup, move |world: &mut World| {
+                let default_window_size = world.resource::<Config>().default_window_size.clone();
                 let model_fn = world.resource::<ModelFnRes<M>>().0.clone();
+
                 let mut app = App::new(world);
+                // Create our default window if necessary
+
+                if create_default_window {
+                    let mut window: window::Builder<'_, '_, M> = app.new_window();
+                    match default_window_size {
+                        None => {}
+                        Some(default_window) => {
+                            match default_window {
+                                DefaultWindowSize::Logical([w, h]) => {
+                                    window = window.size(w, h);
+                                }
+                                DefaultWindowSize::Fullscreen => {
+                                    window = window.fullscreen();
+                                }
+                            };
+                        }
+                    };
+                    let _ = window.primary().build();
+                }
+
+                // Initialise the model.
                 let model = model_fn(&mut app);
                 // Insert the model into the world. We use a non-send resource here to allow
                 // maximum flexibility for the user to provide their own model type that doesn't
@@ -291,26 +298,6 @@ where
                 // thread.
                 world.insert_non_send_resource(model);
 
-                // Initialize our default camera.
-                // TODO: handle multiple windows
-                world.spawn(Camera3dBundle {
-                    camera: Camera {
-                        hdr: true,
-                        ..Default::default()
-                    },
-                    camera_3d: Camera3d {
-                        // TODO: update in main update loop
-                        clear_color: ClearColorConfig::Custom(Color::RED),
-                        ..Default::default()
-                    },
-                    transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Z),
-                    projection: OrthographicProjection {
-                        scale: 1.0,
-                        ..Default::default()
-                    }
-                    .into(),
-                    ..Default::default()
-                });
             })
             .add_systems(Update, |world: &mut World| {
                 // Get our update and view functions. These are just function pointers, so we can
@@ -319,11 +306,15 @@ where
                 let update_fn = world.resource::<UpdateFnRes<M>>().0.clone();
                 let view_fn = world.resource::<ViewFnRes<M>>().0.clone();
 
-                // Get all windows with a draw component.
-                let mut views_q = world.query_filtered::<Entity, (With<Camera>, With<Draw>)>();
-                let views_entities = views_q.iter(world).collect::<Vec<_>>();
+                let mut window_q = world.query_filtered::<(Entity, Option<&WindowUserFunctions<M>>), With<Draw>>();
+                let windows = window_q.iter(world)
+                    .map(|(entity, user_fns)| (entity, user_fns.map(|fns| {
+                        let fns = fns.0.clone();
+                        fns
+                    })))
+                    .collect::<Vec<_>>();
 
-                // Extract the model from the world.
+                // Extract the model from the world, this avoids borrowing issues.
                 let mut model = world
                     .remove_non_send_resource::<M>()
                     .expect("Model not found");
@@ -337,15 +328,32 @@ where
                 }
 
                 // Run the view function for each window's draw.
-                for view_entity in views_entities {
-                    app.current_view = Some(view_entity);
-                    let view = view_fn.as_ref().expect("No view function found");
-                    match view {
-                        View::WithModel(view_fn) => {
-                            view_fn(&app, &mut model, view_entity);
-                        }
-                        View::Sketch(view_fn) => {
-                            view_fn(&app);
+                for (entity, user_fns) in windows {
+                    // Makes sure we return the correct draw component
+                    app.current_view = Some(entity);
+
+                    // Run user fns
+                    if let Some(user_fns) = user_fns {
+                        if let Some(view) = &user_fns.view {
+                            match view {
+                                window::View::WithModel(view_fn) => {
+                                    view_fn(&app, &model);
+                                }
+                                window::View::Sketch(view_fn) => {
+                                    view_fn(&app);
+                                }
+                            }
+                        } else {
+                            if let Some(view) = view_fn.as_ref() {
+                                match view {
+                                    View::WithModel(view_fn) => {
+                                        view_fn(&app, &mut model, entity);
+                                    }
+                                    View::Sketch(view_fn) => {
+                                        view_fn(&app);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -379,8 +387,8 @@ where
 
 impl SketchBuilder {
     /// The size of the sketch window.
-    pub fn size(mut self, width: f32, height: f32) -> Self {
-        self.builder = self.builder.size(width, height);
+    pub fn size(mut self, width: u32, height: u32) -> Self {
+        self.builder = self.builder.size(width as f32, height as f32);
         self
     }
 
@@ -429,7 +437,8 @@ impl<'w> App<'w> {
             .entity(window)
             .get::<Window>()
             .expect("Entity is not a window");
-        window.cursor_position().unwrap_or(Vec2::ZERO)
+        let screen_position = window.cursor_position().unwrap_or(Vec2::ZERO);
+        screen_position - geom::pt2(window.width() / 2.0, window.height() / 2.0)
     }
 
     pub fn time(&self) -> Time {
@@ -471,7 +480,8 @@ impl<'w> App<'w> {
     /// Begin building a new window.
     pub fn new_window<'a, M>(&'a self) -> window::Builder<'a, 'w, M>
     where
-        M: 'static, {
+        M: 'static,
+    {
         let builder = window::Builder::new(&self);
         let config = self.world().resource::<Config>();
         let builder = match config.default_window_size {

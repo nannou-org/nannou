@@ -78,7 +78,7 @@ fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<
                 clear_color: ClearColorConfig::Custom(Color::BLACK),
                 ..Default::default()
             },
-            transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Z),
+            transform: Transform::from_xyz(0.0, 0.0, -10.0),
             tonemapping: Tonemapping::TonyMcMapface, // 2. Using a tonemapper that desaturates to white is recommended
             projection: OrthographicProjection {
                 scale: 1.0,

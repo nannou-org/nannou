@@ -32,7 +32,9 @@ fn model(app: &App) -> Model {
     Model { a, b, c }
 }
 
-fn update(_app: &App, _model: &mut Model, _update: Update) {}
+fn update(_app: &App, _model: &mut Model) {
+
+}
 
 fn event_a(_app: &App, _model: &mut Model, event: WindowEvent) {
     println!("window a: {:?}", event);

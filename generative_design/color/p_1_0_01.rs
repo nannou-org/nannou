@@ -34,22 +34,16 @@ fn main() {
     nannou::sketch(view).size(720, 720).run();
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // Prepare to draw.
     let draw = app.draw();
 
-    let norm_mouse_y = (app.mouse.y / app.window_rect().h()) + 0.5;
+    let norm_mouse_y = (app.mouse().y / app.window_rect().h()) + 0.5;
     draw.background().hsl(norm_mouse_y, 1.0, 0.5);
 
+    info!("norm_mouse_y: {}", norm_mouse_y);
+
     draw.rect()
-        .w_h(app.mouse.x * 2.0, app.mouse.x * 2.0)
-        .hsv(1.0 - (norm_mouse_y), 1.0, 0.5);
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
-
-    if app.keys.down.contains(&Key::S) {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
-    }
+        .w_h(app.mouse().x * 2.0, app.mouse().x * 2.0)
+        .hsl(1.0 - (norm_mouse_y), 1.0, 0.5);
 }
