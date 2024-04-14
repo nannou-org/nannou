@@ -248,7 +248,7 @@ where
             // This ensures that color materials are rendered correctly.
             .insert_resource(AmbientLight {
                 color: Color::WHITE,
-                brightness: 1.0,
+                brightness: 1000.0,
             })
             .insert_resource(self.config.clone())
             .insert_resource(ModelFnRes(self.model))
