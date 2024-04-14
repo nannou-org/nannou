@@ -119,6 +119,7 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
         self.mesh.points_mut().push(point.to_array());
         self.mesh.colors_mut().push(color.as_linear_rgba_f32());
         self.mesh.tex_coords_mut().push(tex_coords.to_array());
+        self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
         // Return the index.
         Ok(id)
@@ -144,6 +145,7 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, SingleColor> {
         self.mesh.points_mut().push(point.to_array());
         self.mesh.colors_mut().push(color.as_linear_rgba_f32());
         self.mesh.tex_coords_mut().push(tex_coords.to_array());
+        self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
         // Return the index.
         Ok(id)
@@ -170,6 +172,7 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
         self.mesh.points_mut().push(point.to_array());
         self.mesh.colors_mut().push(color.to_array());
         self.mesh.tex_coords_mut().push(tex_coords.to_array());
+        self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
         // Return the index.
         Ok(id)
@@ -196,6 +199,7 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
         self.mesh.points_mut().push(point.to_array());
         self.mesh.colors_mut().push(color.to_array());
         self.mesh.tex_coords_mut().push(tex_coords.to_array());
+        self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
         // Return the index.
         Ok(id)
@@ -222,6 +226,7 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
         self.mesh.points_mut().push(point.to_array());
         self.mesh.colors_mut().push(color.as_linear_rgba_f32());
         self.mesh.tex_coords_mut().push(tex_coords.to_array());
+        self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
         // Return the index.
         Ok(id)
@@ -248,6 +253,7 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
         self.mesh.points_mut().push(point.to_array());
         self.mesh.colors_mut().push(color.as_linear_rgba_f32());
         self.mesh.tex_coords_mut().push(tex_coords.to_array());
+        self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
         // Return the index.
         Ok(id)

@@ -126,6 +126,7 @@ impl Vertexless {
             inner_mesh.points_mut().push(point.to_array());
             inner_mesh.colors_mut().push(color.as_linear_rgba_f32());
             inner_mesh.tex_coords_mut().push(tex_coords.to_array());
+            inner_mesh.normals_mut().push([0.0, 0.0, 1.0]);
             inner_mesh.push_index(i as u32);
         }
         let v_end = inner_mesh.count_vertices();
@@ -303,6 +304,7 @@ impl Vertexless {
             inner_mesh.points_mut().push(point.to_array());
             inner_mesh.colors_mut().push(color.as_linear_rgba_f32());
             inner_mesh.tex_coords_mut().push(tex_coords.to_array());
+            inner_mesh.normals_mut().push([0.0, 0.0, 1.0]);
         }
         for index in indices {
             inner_mesh.push_index(index as u32);
@@ -534,6 +536,7 @@ impl draw::render::RenderPrimitive for PrimitiveMesh {
                     mesh.points_mut().push(point.to_array());
                     mesh.colors_mut().push(color.as_linear_rgba_f32());
                     mesh.tex_coords_mut().push(tex_coords.to_array());
+                    mesh.normals_mut().push([0.0, 0.0, 1.0]);
                 }
                 for index in indices {
                     mesh.push_index(index);
@@ -551,6 +554,7 @@ impl draw::render::RenderPrimitive for PrimitiveMesh {
                     mesh.points_mut().push(point.to_array());
                     mesh.colors_mut().push(color.into());
                     mesh.tex_coords_mut().push(tex_coords.to_array());
+                    mesh.normals_mut().push([0.0, 0.0, 1.0]);
                 }
                 for index in indices {
                     mesh.push_index(index);

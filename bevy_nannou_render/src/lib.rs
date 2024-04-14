@@ -1,18 +1,18 @@
+use bevy::core::FrameCount;
+use bevy::core_pipeline::clear_color::ClearColorConfig;
 use std::ops::Deref;
 
 use bevy::prelude::*;
-use bevy::render::extract_component::{
-    ExtractComponent, ExtractComponentPlugin,
-};
+use bevy::render::camera::RenderTarget;
+use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::render_resource as wgpu;
+use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
-use bevy_nannou_draw::{draw, Draw};
 use bevy_nannou_draw::draw::mesh::MeshExt;
-use bevy_nannou_draw::draw::render::{
-    GlyphCache, RenderContext, RenderPrimitive,
-};
+use bevy_nannou_draw::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
+use bevy_nannou_draw::{draw, Draw};
 use nannou_core::math::map_range;
 
 pub struct NannouRenderPlugin;
@@ -27,7 +27,10 @@ impl Plugin for NannouRenderPlugin {
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
             .insert_resource(GlyphCache::new([1024; 2], 0.1, 0.1))
             .add_systems(Update, texture_event_handler)
-            .add_systems(Last, update_draw_mesh);
+            .add_systems(
+                Last,
+                (update_background_color, update_draw_mesh),
+            );
     }
 }
 
@@ -70,6 +73,24 @@ fn setup_default_texture(mut commands: Commands, mut images: ResMut<Assets<Image
     commands.insert_resource(DefaultTextureHandle(texture));
 }
 
+fn update_background_color(
+    mut cameras_q: Query<(&Camera, &mut Camera3d)>,
+    draw_q: Query<(Entity, &Draw)>,
+) {
+    for (entity, draw) in draw_q.iter() {
+        let bg_color = draw.state.read().unwrap().background_color;
+        if let Some(bg_color) = bg_color {
+            for (camera, mut camera3d) in cameras_q.iter_mut() {
+                if let RenderTarget::Window(WindowRef::Entity(window_target)) = camera.target {
+                    if window_target == entity {
+                        camera3d.clear_color = ClearColorConfig::Custom(bg_color);
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Prepare our mesh for rendering
 fn update_draw_mesh(
     mut commands: Commands,
@@ -77,7 +98,7 @@ fn update_draw_mesh(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     draw_q: Query<(&Draw, &Window)>,
-    mesh_q: Query<(&Handle<Mesh>, &Handle<StandardMaterial>), With<NannouMesh>>,
+    mut mesh_q: Query<(&Handle<Mesh>, &Handle<StandardMaterial>, &mut Transform), With<NannouMesh>>,
 ) {
     for (draw, window) in &draw_q {
         // TODO: Unclear if we need to track this, or if the physical size is enough.
@@ -110,7 +131,9 @@ fn update_draw_mesh(
             .intermediary_state
             .read()
             .expect("failed to lock intermediary state");
-        for (i, cmd) in draw_cmds.into_iter().enumerate() {
+
+        let mut prim_idx = 0;
+        for cmd in draw_cmds.into_iter() {
             match cmd {
                 draw::DrawCommand::Context(ctxt) => curr_ctxt = ctxt,
                 draw::DrawCommand::Primitive(prim) => {
@@ -132,9 +155,12 @@ fn update_draw_mesh(
                     };
 
                     // Get or spawn the mesh and material.
-                    let (mesh, material) = match mesh_q.iter().nth(i) {
+                    let (mesh, material) = match mesh_q.iter_mut().nth(prim_idx) {
                         // We already have a mesh and material for this index.
-                        Some((mesh, material)) => (mesh.clone(), material.clone()),
+                        Some((mesh, material, mut transform)) => {
+                            transform.translation = Vec3::new(0.0, 0.0, prim_idx as f32 * 0.0001);
+                            (mesh.clone(), material.clone())
+                        }
                         // We need to spawn a new mesh and material for this index.
                         None => {
                             let mesh = Mesh::init_with_topology(curr_ctxt.topology);
@@ -146,6 +172,11 @@ fn update_draw_mesh(
                                 PbrBundle {
                                     mesh: mesh.clone(),
                                     material: material.clone(),
+                                    transform: Transform::from_translation(Vec3::new(
+                                        0.0,
+                                        0.0,
+                                        prim_idx as f32 * 0.0001,
+                                    )),
                                     ..default()
                                 },
                             ));
@@ -161,8 +192,10 @@ fn update_draw_mesh(
                     );
 
                     // Render the primitive.
+                    mesh.clear();
                     let render = prim.render_primitive(ctxt, mesh);
                     material.base_color_texture = render.texture_handle;
+                    prim_idx += 1;
                 }
             }
         }

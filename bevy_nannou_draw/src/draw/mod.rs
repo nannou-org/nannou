@@ -103,7 +103,7 @@ pub struct State {
     /// The last context used to draw an image, used to detect changes and emit commands for them.
     last_draw_context: Option<Context>,
     /// If `Some`, the **Draw** should first clear the frame's texture with the given color.
-    background_color: Option<Color>,
+    pub background_color: Option<Color>,
     /// Primitives that are in the process of being drawn.
     ///
     /// Keys are indices into the `draw_commands` Vec.

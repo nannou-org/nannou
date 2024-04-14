@@ -393,6 +393,7 @@ impl draw::render::RenderPrimitive for Text {
                     mesh.points_mut().push(point.to_array());
                     mesh.colors_mut().push(color.as_linear_rgba_f32());
                     mesh.tex_coords_mut().push(uv.to_array());
+                    mesh.normals_mut().push([0.0, 0.0, 1.0]);
                 }
 
                 // Now the indices.

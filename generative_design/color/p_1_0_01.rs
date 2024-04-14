@@ -41,8 +41,6 @@ fn view(app: &App) {
     let norm_mouse_y = (app.mouse().y / app.window_rect().h()) + 0.5;
     draw.background().hsl(norm_mouse_y, 1.0, 0.5);
 
-    info!("norm_mouse_y: {}", norm_mouse_y);
-
     draw.rect()
         .w_h(app.mouse().x * 2.0, app.mouse().x * 2.0)
         .hsl(1.0 - (norm_mouse_y), 1.0, 0.5);
