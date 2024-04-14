@@ -3,7 +3,6 @@
 //! Create a new window via `app.new_window()`. This produces a [**Builder**](./struct.Builder.html)
 //! which can be used to build a [**Window**](./struct.Window.html).
 
-use bevy::core_pipeline::clear_color::ClearColorConfig;
 use std::fmt;
 use std::path::PathBuf;
 
@@ -384,9 +383,6 @@ where
                     // TODO: configure in builder
                     hdr: true,
                     target: RenderTarget::Window(WindowRef::Entity(entity)),
-                    ..Default::default()
-                },
-                camera_3d: Camera3d {
                     clear_color: self
                         .clear_color
                         .map(|c| ClearColorConfig::Custom(c))

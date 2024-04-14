@@ -596,12 +596,12 @@ where
     let mut iter = points_colored.into_iter();
     let (first_point, first_color) = iter.next()?;
     let p = first_point.to_array().into();
-    path_builder.begin(p, &first_color.as_linear_rgba_f32());
+    path_builder.begin(p, &first_color.linear().to_f32_array());
 
     // Add the lines, keeping track of the last
     for (point, color) in iter {
         let p = point.to_array().into();
-        path_builder.line_to(p, &color.as_linear_rgba_f32());
+        path_builder.line_to(p, &color.linear().to_f32_array());
     }
 
     // End the path, closing if necessary.

@@ -9,8 +9,6 @@
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
 use bevy::app::AppExit;
 use bevy::core::FrameCount;
-use bevy::core_pipeline::clear_color::ClearColorConfig;
-use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use std::cell::RefCell;
@@ -637,7 +635,7 @@ impl<'w> App<'w> {
     pub fn fps(&self) -> f64 {
         let diagnostics = self.world().resource::<DiagnosticsStore>();
         diagnostics
-            .get(FrameTimeDiagnosticsPlugin::FPS)
+            .get(&FrameTimeDiagnosticsPlugin::FPS)
             .expect("FrameTime diagnostics not found")
             .smoothed()
             .expect("Could not get smoothed fps")

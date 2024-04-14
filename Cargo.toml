@@ -3,7 +3,6 @@ members = [
     "bevy_nannou",
     "bevy_nannou_draw",
     "bevy_nannou_render",
-    "bevy_nannou_wgpu",
     "examples",
     "generative_design",
 #    "guide/book_tests",
@@ -28,4 +27,4 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-bevy = "0.12"
+bevy = { git = "https://github.com/bevyengine/bevy" }

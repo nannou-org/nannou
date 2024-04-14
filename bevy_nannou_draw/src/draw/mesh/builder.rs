@@ -117,7 +117,7 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
         let tex_coords = Vec2::ZERO;
 
         self.mesh.points_mut().push(point.to_array());
-        self.mesh.colors_mut().push(color.as_linear_rgba_f32());
+        self.mesh.colors_mut().push(color.linear().to_f32_array());
         self.mesh.tex_coords_mut().push(tex_coords.to_array());
         self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
@@ -143,7 +143,7 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, SingleColor> {
         let tex_coords = Vec2::ZERO;
 
         self.mesh.points_mut().push(point.to_array());
-        self.mesh.colors_mut().push(color.as_linear_rgba_f32());
+        self.mesh.colors_mut().push(color.linear().to_f32_array());
         self.mesh.tex_coords_mut().push(tex_coords.to_array());
         self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
@@ -224,7 +224,7 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
         let color = Color::default();
 
         self.mesh.points_mut().push(point.to_array());
-        self.mesh.colors_mut().push(color.as_linear_rgba_f32());
+        self.mesh.colors_mut().push(color.linear().to_f32_array());
         self.mesh.tex_coords_mut().push(tex_coords.to_array());
         self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
@@ -251,7 +251,7 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
         let color = Color::default();
 
         self.mesh.points_mut().push(point.to_array());
-        self.mesh.colors_mut().push(color.as_linear_rgba_f32());
+        self.mesh.colors_mut().push(color.linear().to_f32_array());
         self.mesh.tex_coords_mut().push(tex_coords.to_array());
         self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 

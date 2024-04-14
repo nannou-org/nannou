@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
 use std::ops::{Deref, DerefMut};
+use bevy::render::render_asset::RenderAssetUsages;
 
 pub mod builder;
 
@@ -31,12 +32,12 @@ impl MeshExt for Mesh {
     }
 
     fn init_with_topology(topology: PrimitiveTopology) -> Mesh {
-        let mesh = Mesh::new(topology);
+        let mesh = Mesh::new(topology, RenderAssetUsages::default());
         mesh.with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, Vec::<[f32; 3]>::new())
             .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, Vec::<[f32; 4]>::new())
             .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, Vec::<[f32; 2]>::new())
             .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, Vec::<[f32; 3]>::new())
-            .with_indices(Some(Indices::U32(vec![])))
+            .with_inserted_indices(Indices::U32(vec![]))
     }
 
     fn clear(&mut self) {

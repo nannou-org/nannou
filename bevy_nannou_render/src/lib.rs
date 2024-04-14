@@ -1,5 +1,4 @@
 use bevy::core::FrameCount;
-use bevy::core_pipeline::clear_color::ClearColorConfig;
 use std::ops::Deref;
 
 use bevy::prelude::*;
@@ -74,16 +73,16 @@ fn setup_default_texture(mut commands: Commands, mut images: ResMut<Assets<Image
 }
 
 fn update_background_color(
-    mut cameras_q: Query<(&Camera, &mut Camera3d)>,
+    mut cameras_q: Query<(&mut Camera)>,
     draw_q: Query<(Entity, &Draw)>,
 ) {
     for (entity, draw) in draw_q.iter() {
         let bg_color = draw.state.read().unwrap().background_color;
         if let Some(bg_color) = bg_color {
-            for (camera, mut camera3d) in cameras_q.iter_mut() {
+            for (mut camera) in cameras_q.iter_mut() {
                 if let RenderTarget::Window(WindowRef::Entity(window_target)) = camera.target {
                     if window_target == entity {
-                        camera3d.clear_color = ClearColorConfig::Custom(bg_color);
+                        camera.clear_color = ClearColorConfig::Custom(bg_color);
                     }
                 }
             }

@@ -391,7 +391,7 @@ impl draw::render::RenderPrimitive for Text {
 
                 for (point, color, uv) in [top_left, bottom_left, bottom_right, top_right] {
                     mesh.points_mut().push(point.to_array());
-                    mesh.colors_mut().push(color.as_linear_rgba_f32());
+                    mesh.colors_mut().push(color.linear().to_f32_array());
                     mesh.tex_coords_mut().push(uv.to_array());
                     mesh.normals_mut().push([0.0, 0.0, 1.0]);
                 }
