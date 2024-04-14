@@ -1,13 +1,5 @@
 //! A collection of commonly used items that are generally useful to have in scope.
 
-pub use crate::color::named::*;
-pub use crate::color::{
-    gray, hsl, hsla, hsv, hsva, lin_srgb, lin_srgba, rgb, rgb8, rgba, rgba8, srgb, srgb8, srgba,
-    srgba8,
-};
-pub use crate::color::{
-    Gray, Hsl, Hsla, Hsv, Hsva, LinSrgb, LinSrgba, Rgb, Rgb8, Rgba, Rgba8, Srgb, Srgba,
-};
 pub use crate::geom::{self, pt2, pt3, Cuboid, Point2, Point3, Rect};
 #[allow(deprecated)]
 pub use crate::geom::{Vector2, Vector3, Vector4};

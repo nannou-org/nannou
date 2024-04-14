@@ -2,7 +2,6 @@
 
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
-use nannou_mesh::{ClearIndices, ClearVertices};
 use std::ops::{Deref, DerefMut};
 
 pub mod builder;

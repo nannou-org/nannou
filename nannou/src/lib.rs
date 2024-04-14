@@ -15,15 +15,10 @@
 
 pub use find_folder;
 pub use lyon;
-pub use winit;
 
 pub use self::app::App;
 #[doc(inline)]
-pub use nannou_core::{color, glam, math, rand};
-#[doc(inline)]
-pub use nannou_mesh as mesh;
-#[doc(inline)]
-pub use nannou_wgpu as wgpu;
+pub use nannou_core::{glam, math, rand};
 
 pub mod app;
 pub mod event;
@@ -33,6 +28,7 @@ pub mod io;
 pub mod noise;
 pub mod prelude;
 pub mod time;
+mod window;
 
 /// Begin building the `App`.
 ///

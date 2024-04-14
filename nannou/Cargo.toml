@@ -20,8 +20,6 @@ image = "0.23"
 instant = "0.1.9"
 lyon = "0.17"
 nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std", "serde"] }
-nannou_mesh = { version ="0.19.0", path = "../nannou_mesh", features = ["serde1"] }
-nannou_wgpu = { version ="0.19.0", path = "../nannou_wgpu", features = ["capturer"] }
 noise = "0.7"
 notosans = { version = "0.1", optional = true }
 num_cpus = "1"
@@ -33,8 +31,6 @@ serde_json = "1"
 toml = "0.5"
 walkdir = "2"
 web-sys = { version = "0.3.64", optional = true }
-wgpu_upstream = { version = "0.17.1", package = "wgpu" }
-winit = "0.28"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["full"]}
@@ -43,7 +39,5 @@ tokio = { version = "1", features = ["rt"]}
 
 [features]
 default = ["notosans"]
-# Enables SPIR-V support in the `wgpu` module.
-spirv = ["nannou_wgpu/spirv"]
 # Enables experimental WASM compilation for CI-use only
-wasm-experimental = ["getrandom/js", "web-sys", "wgpu_upstream/webgl", "wgpu_upstream/fragile-send-sync-non-atomic-wasm"]
+wasm-experimental = ["getrandom/js", "web-sys"]

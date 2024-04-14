@@ -1,8 +1,6 @@
 use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponent;
 
-pub use nannou_core::color;
-
 pub mod draw;
 pub mod text;
 
@@ -10,7 +8,13 @@ pub struct NannouDrawPlugin;
 
 impl Plugin for NannouDrawPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(First, spawn_draw);
+        app.add_systems(First, (spawn_draw, reset_draw).chain());
+    }
+}
+
+fn reset_draw(mut draw_q: Query<&mut Draw>) {
+    for mut draw in draw_q.iter_mut() {
+        draw.reset();
     }
 }
 

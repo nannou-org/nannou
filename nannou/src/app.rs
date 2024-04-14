@@ -9,27 +9,25 @@
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
 use bevy::app::AppExit;
 use bevy::core::FrameCount;
+use bevy::core_pipeline::clear_color::ClearColorConfig;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use std::cell::RefCell;
 use std::future::Future;
 use std::ops::DerefMut;
 use std::path::Path;
+use std::rc::Rc;
 use std::time::Duration;
 use std::{self, future};
-use std::rc::Rc;
-use bevy::core_pipeline::clear_color::ClearColorConfig;
-use bevy::core_pipeline::tonemapping::Tonemapping;
 
 use bevy::prelude::*;
 use bevy::render::view::screenshot::ScreenshotManager;
 use bevy::window::{PrimaryWindow, WindowMode, WindowResolution};
 use bevy_nannou::{Draw, NannouPlugin};
 use find_folder;
-use winit;
 
-use crate::geom;
-use crate::wgpu;
+use crate::{geom, window};
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -75,8 +73,6 @@ pub struct Builder<M = ()> {
     exit: Option<ExitFn<M>>,
     create_default_window: bool,
     default_window_size: Option<DefaultWindowSize>,
-    capture_frame_timeout: Option<Option<Duration>>,
-    max_capture_frame_jobs: Option<u32>,
 }
 
 /// A nannou `Sketch` builder.
@@ -84,9 +80,10 @@ pub struct SketchBuilder {
     builder: Builder<()>,
 }
 
+#[derive(Debug)]
 enum DefaultWindowSize {
     /// Default window size in logical coordinates.
-    Logical([u32; 2]),
+    Logical([f32; 2]),
     /// Fullscreen on whatever the primary monitor is at the time of window creation.
     Fullscreen,
 }
@@ -132,6 +129,7 @@ struct ExitFnRes<M>(Option<ExitFn<M>>);
 struct Config {
     exit_on_escape: bool,
     fullscreen_on_shortcut: bool,
+    default_window_size: Option<DefaultWindowSize>,
 }
 
 impl<M> Builder<M>
@@ -158,8 +156,6 @@ where
             exit: None,
             create_default_window: false,
             default_window_size: None,
-            max_capture_frame_jobs: None,
-            capture_frame_timeout: None,
         }
     }
 }
@@ -230,7 +226,7 @@ where
     /// Specify the default window size in points.
     ///
     /// If a window is created and its size is not specified, this size will be used.
-    pub fn size(mut self, width: u32, height: u32) -> Self {
+    pub fn size(mut self, width: f32, height: f32) -> Self {
         self.default_window_size = Some(DefaultWindowSize::Logical([width, height]));
         self
     }
@@ -250,6 +246,12 @@ where
     /// initialised on the main thread.
     pub fn run(self) {
         bevy::app::App::new()
+            .insert_resource(AmbientLight {
+                color: Color::WHITE,
+                brightness: 1.0,
+            })
+            .init_resource::<Config>()
+            .insert_resource(ClearColor(Color::rgb(0.9, 0.3, 0.6)))
             .insert_resource(ModelFnRes(self.model))
             .insert_resource(UpdateFnRes(self.update))
             .insert_resource(ViewFnRes(self.default_view))
@@ -298,7 +300,7 @@ where
                     },
                     camera_3d: Camera3d {
                         // TODO: update in main update loop
-                        clear_color: ClearColorConfig::None,
+                        clear_color: ClearColorConfig::Custom(Color::RED),
                         ..Default::default()
                     },
                     transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Z),
@@ -306,7 +308,7 @@ where
                         scale: 1.0,
                         ..Default::default()
                     }
-                        .into(),
+                    .into(),
                     ..Default::default()
                 });
             })
@@ -377,7 +379,7 @@ where
 
 impl SketchBuilder {
     /// The size of the sketch window.
-    pub fn size(mut self, width: u32, height: u32) -> Self {
+    pub fn size(mut self, width: f32, height: f32) -> Self {
         self.builder = self.builder.size(width, height);
         self
     }
@@ -411,6 +413,7 @@ impl Default for Config {
         Config {
             exit_on_escape,
             fullscreen_on_shortcut,
+            default_window_size: None,
         }
     }
 }
@@ -426,9 +429,7 @@ impl<'w> App<'w> {
             .entity(window)
             .get::<Window>()
             .expect("Entity is not a window");
-        window
-            .cursor_position()
-            .unwrap_or(Vec2::ZERO)
+        window.cursor_position().unwrap_or(Vec2::ZERO)
     }
 
     pub fn time(&self) -> Time {
@@ -467,6 +468,20 @@ impl<'w> App<'w> {
         todo!()
     }
 
+    /// Begin building a new window.
+    pub fn new_window<'a, M>(&'a self) -> window::Builder<'a, 'w, M>
+    where
+        M: 'static, {
+        let builder = window::Builder::new(&self);
+        let config = self.world().resource::<Config>();
+        let builder = match config.default_window_size {
+            Some(DefaultWindowSize::Fullscreen) => builder.fullscreen(),
+            Some(DefaultWindowSize::Logical([w, h])) => builder.size(w, h),
+            None => builder,
+        };
+        builder
+    }
+
     /// The number of windows currently in the application.
     pub fn window_count(&mut self) -> usize {
         let mut window_q = self.world_mut().query::<&Window>();
@@ -489,7 +504,9 @@ impl<'w> App<'w> {
             }
         }
 
-        let mut primary_window = self.world_mut().query_filtered::<Entity, With<PrimaryWindow>>();
+        let mut primary_window = self
+            .world_mut()
+            .query_filtered::<Entity, With<PrimaryWindow>>();
         primary_window
             .get_single(self.world())
             .expect("No windows are open in the App")
@@ -524,7 +541,9 @@ impl<'w> App<'w> {
     ///
     /// **Panics** if their are no windows open in the **App**.
     pub fn main_window(&self) -> Entity {
-        let mut window_q = self.world_mut().query_filtered::<Entity, With<PrimaryWindow>>();
+        let mut window_q = self
+            .world_mut()
+            .query_filtered::<Entity, With<PrimaryWindow>>();
         let main_window = window_q
             .get_single(self.world())
             .expect("No windows are open in the App");

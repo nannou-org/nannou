@@ -32,7 +32,6 @@
 
 #![no_std]
 
-pub mod color;
 pub mod geom;
 pub mod math;
 pub mod prelude;

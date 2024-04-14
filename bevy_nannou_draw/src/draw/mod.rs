@@ -13,7 +13,6 @@ use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
 use lyon::path::PathEvent;
 use nannou_core::geom;
-use nannou_mesh::Clear;
 
 pub use self::background::Background;
 pub use self::drawing::{Drawing, DrawingContext};

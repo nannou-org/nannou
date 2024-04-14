@@ -6,7 +6,6 @@ use crate::draw::{self, Draw};
 use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
-use nannou_core::color::IntoColor;
 use std::marker::PhantomData;
 
 /// A **Drawing** in progress.

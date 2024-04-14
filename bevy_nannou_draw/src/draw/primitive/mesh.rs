@@ -5,8 +5,9 @@ use crate::draw::properties::{SetColor, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
 use bevy::prelude::*;
 use bevy::render::mesh::Indices;
-use nannou_core::{color, geom};
 use std::ops;
+use nannou_core::geom;
+
 /// The mesh type prior to being initialised with vertices or indices.
 #[derive(Clone, Debug, Default)]
 pub struct Vertexless;

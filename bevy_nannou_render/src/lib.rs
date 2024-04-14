@@ -44,17 +44,8 @@ use nannou_core::math::map_range;
 
 pub struct NannouRenderPlugin;
 
-pub const NANNOU_SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(43700360588854283521);
-
 impl Plugin for NannouRenderPlugin {
     fn build(&self, app: &mut App) {
-        load_internal_asset!(
-            app,
-            NANNOU_SHADER_HANDLE,
-            "shaders/nannou.wgsl",
-            Shader::from_wgsl
-        );
-
         app.add_systems(Startup, setup_default_texture)
             .add_plugins((
                 ExtractComponentPlugin::<Draw>::default(),
@@ -167,6 +158,9 @@ fn update_draw_mesh(
 
         // Collect all draw commands to avoid borrow errors.
         let draw_cmds: Vec<_> = draw.drain_commands().collect();
+
+        info!("draw_len {}", draw_cmds.len());
+
         let draw_state = draw.state.write().expect("failed to lock draw state");
         let intermediary_state = draw_state
             .intermediary_state
