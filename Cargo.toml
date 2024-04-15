@@ -2,7 +2,6 @@
 members = [
     "bevy_nannou",
     "bevy_nannou_draw",
-    "bevy_nannou_render",
     "examples",
     "generative_design",
 #    "guide/book_tests",

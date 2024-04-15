@@ -9,9 +9,9 @@ use bevy::render::render_resource as wgpu;
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
-use bevy_nannou_draw::draw::mesh::MeshExt;
-use bevy_nannou_draw::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
-use bevy_nannou_draw::{draw, Draw};
+use crate::draw::mesh::MeshExt;
+use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
+use crate::{draw, Draw};
 use nannou_core::math::map_range;
 
 pub struct NannouRenderPlugin;

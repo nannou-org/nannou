@@ -1,14 +1,18 @@
 use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponent;
+use crate::render::NannouRenderPlugin;
 
 pub mod draw;
 pub mod text;
+pub mod render;
 
 pub struct NannouDrawPlugin;
 
 impl Plugin for NannouDrawPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(First, (spawn_draw, reset_draw).chain());
+        app
+            .add_plugins(NannouRenderPlugin)
+            .add_systems(First, (spawn_draw, reset_draw).chain());
     }
 }
 
