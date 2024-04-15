@@ -421,7 +421,6 @@ impl Polygon {
             None => draw::render::PrimitiveRender::default(),
             Some(texture_handle) => draw::render::PrimitiveRender {
                 texture_handle: Some(texture_handle),
-                vertex_mode: draw::render::VertexMode::Texture,
             },
         }
     }

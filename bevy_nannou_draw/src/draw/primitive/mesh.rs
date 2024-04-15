@@ -19,7 +19,6 @@ pub struct PrimitiveMesh {
     orientation: orientation::Properties,
     vertex_range: ops::Range<usize>,
     index_range: ops::Range<usize>,
-    vertex_mode: draw::render::VertexMode,
     fill_color: Option<FillColor>,
     texture_handle: Option<Handle<Image>>,
 }
@@ -61,8 +60,7 @@ impl Vertexless {
             let tex_coords = t.into();
             (point, color, tex_coords)
         });
-        let vertex_mode = draw::render::VertexMode::Texture;
-        self.points_inner(inner_mesh, points, vertex_mode, Some(texture_handle))
+        self.points_inner(inner_mesh, points, Some(texture_handle))
     }
 
     /// Describe the mesh with a sequence of colored points.
@@ -82,8 +80,7 @@ impl Vertexless {
             let tex_coords = Vec2::ZERO;
             (point, color, tex_coords)
         });
-        let vertex_mode = draw::render::VertexMode::Color;
-        self.points_inner(inner_mesh, vertices, vertex_mode, None)
+        self.points_inner(inner_mesh, vertices, None)
     }
 
     /// Describe the mesh with a sequence of points.
@@ -104,8 +101,7 @@ impl Vertexless {
             let tex_coords = Vec2::ZERO;
             (point, color, tex_coords)
         });
-        let vertex_mode = draw::render::VertexMode::Color;
-        let mut mesh = self.points_inner(inner_mesh, vertices, vertex_mode, None);
+        let mut mesh = self.points_inner(inner_mesh, vertices, None);
         mesh.fill_color = Some(FillColor(None));
         mesh
     }
@@ -114,7 +110,6 @@ impl Vertexless {
         self,
         inner_mesh: &mut Mesh,
         vertices: I,
-        vertex_mode: draw::render::VertexMode,
         texture_handle: Option<Handle<Image>>,
     ) -> PrimitiveMesh
     where
@@ -131,7 +126,7 @@ impl Vertexless {
         }
         let v_end = inner_mesh.count_vertices();
         let i_end = inner_mesh.count_indices();
-        PrimitiveMesh::new(v_start..v_end, i_start..i_end, vertex_mode, texture_handle)
+        PrimitiveMesh::new(v_start..v_end, i_start..i_end, texture_handle)
     }
 
     /// Describe the mesh with a sequence of textured triangles.
@@ -223,12 +218,10 @@ impl Vertexless {
             let tex_coords = t.into();
             (point, color, tex_coords)
         });
-        let vertex_mode = draw::render::VertexMode::Texture;
         self.indexed_inner(
             inner_mesh,
             vertices,
             indices,
-            vertex_mode,
             Some(texture_handle),
         )
     }
@@ -258,8 +251,7 @@ impl Vertexless {
             let tex_coords = Vec2::ZERO;
             (point, color, tex_coords)
         });
-        let vertex_mode = draw::render::VertexMode::Color;
-        self.indexed_inner(inner_mesh, vertices, indices, vertex_mode, None)
+        self.indexed_inner(inner_mesh, vertices, indices, None)
     }
 
     /// Describe the mesh with the given indexed points.
@@ -279,8 +271,7 @@ impl Vertexless {
             let tex_coords = Vec2::ZERO;
             (point, color, tex_coords)
         });
-        let vertex_mode = draw::render::VertexMode::Color;
-        let mut mesh = self.indexed_inner(inner_mesh, vertices, indices, vertex_mode, None);
+        let mut mesh = self.indexed_inner(inner_mesh, vertices, indices, None);
         mesh.fill_color = Some(FillColor(None));
         mesh
     }
@@ -290,7 +281,6 @@ impl Vertexless {
         inner_mesh: &mut Mesh,
         vertices: V,
         indices: I,
-        vertex_mode: draw::render::VertexMode,
         texture_handle: Option<Handle<Image>>,
     ) -> PrimitiveMesh
     where
@@ -312,7 +302,7 @@ impl Vertexless {
 
         let v_end = inner_mesh.count_vertices();
         let i_end = inner_mesh.count_indices();
-        PrimitiveMesh::new(v_start..v_end, i_start..i_end, vertex_mode, texture_handle)
+        PrimitiveMesh::new(v_start..v_end, i_start..i_end, texture_handle)
     }
 }
 
@@ -321,7 +311,6 @@ impl PrimitiveMesh {
     fn new(
         vertex_range: ops::Range<usize>,
         index_range: ops::Range<usize>,
-        vertex_mode: draw::render::VertexMode,
         texture_handle: Option<Handle<Image>>,
     ) -> Self {
         let orientation = Default::default();
@@ -332,7 +321,6 @@ impl PrimitiveMesh {
             position,
             vertex_range,
             index_range,
-            vertex_mode,
             fill_color,
             texture_handle: texture_handle,
         }
@@ -501,7 +489,6 @@ impl draw::render::RenderPrimitive for PrimitiveMesh {
             position,
             vertex_range,
             index_range,
-            vertex_mode,
             fill_color,
             texture_handle: texture_handle,
         } = self;
@@ -565,7 +552,6 @@ impl draw::render::RenderPrimitive for PrimitiveMesh {
 
         draw::render::PrimitiveRender {
             texture_handle,
-            vertex_mode,
         }
     }
 }

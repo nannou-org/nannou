@@ -410,7 +410,7 @@ impl draw::render::RenderPrimitive for Text {
             }
         }
 
-        draw::render::PrimitiveRender::text()
+        draw::render::PrimitiveRender::default()
     }
 }
 

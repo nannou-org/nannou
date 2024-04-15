@@ -20,8 +20,6 @@ pub struct PrimitiveRender {
     /// command will be encoded that switches from the previous texture's bind group to the new
     /// one.
     pub texture_handle: Option<Handle<Image>>,
-    /// The way in which vertices should be coloured in the fragment shader.
-    pub vertex_mode: VertexMode,
 }
 
 /// The context provided to primitives to assist with the rendering process.
@@ -63,19 +61,6 @@ impl DerefMut for GlyphCache {
     }
 }
 
-/// A top-level indicator of whether or not
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-#[repr(u32)]
-pub enum VertexMode {
-    /// Use the color values and ignore the texture coordinates.
-    Color = 0,
-    /// Use the texture color and ignore the color values.
-    Texture = 1,
-    /// A special mode used by the text primitive.
-    ///
-    /// Uses the color values, but multiplies the alpha by the glyph cache texture's red value.
-    Text = 2,
-}
 /// The position and dimensions of the scissor.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Scissor {
@@ -87,7 +72,7 @@ pub struct Scissor {
 
 impl Default for PrimitiveRender {
     fn default() -> Self {
-        Self::color()
+        PrimitiveRender { texture_handle: None }
     }
 }
 
@@ -121,27 +106,10 @@ impl fmt::Debug for GlyphCache {
 }
 
 impl PrimitiveRender {
-    /// Specify a vertex mode for the primitive render.
-    pub fn vertex_mode(vertex_mode: VertexMode) -> Self {
-        PrimitiveRender {
-            texture_handle: None,
-            vertex_mode,
-        }
-    }
-
-    pub fn color() -> Self {
-        Self::vertex_mode(VertexMode::Color)
-    }
-
     pub fn texture(texture_handle: Handle<Image>) -> Self {
         PrimitiveRender {
-            vertex_mode: VertexMode::Texture,
             texture_handle: Some(texture_handle),
         }
-    }
-
-    pub fn text() -> Self {
-        Self::vertex_mode(VertexMode::Text)
     }
 }
 

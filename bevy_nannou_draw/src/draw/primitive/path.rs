@@ -76,7 +76,6 @@ pub struct Path {
     orientation: orientation::Properties,
     path_event_src: PathEventSource,
     options: Options,
-    vertex_mode: draw::render::VertexMode,
     texture_handle: Option<Handle<Image>>,
 }
 
@@ -186,7 +185,6 @@ where
             self.color,
             PathEventSource::Buffered(start..end),
             self.opts.into_options(),
-            draw::render::VertexMode::Color,
             None,
         )
     }
@@ -302,7 +300,6 @@ where
             self.color,
             path_event_src,
             self.opts.into_options(),
-            draw::render::VertexMode::Color,
             None,
         )
     }
@@ -338,7 +335,6 @@ where
             self.color,
             path_event_src,
             self.opts.into_options(),
-            draw::render::VertexMode::Texture,
             Some(texture_handle),
         )
     }
@@ -509,7 +505,6 @@ impl draw::render::RenderPrimitive for Path {
             orientation,
             path_event_src,
             options,
-            vertex_mode,
             texture_handle,
         } = self;
 
@@ -578,7 +573,6 @@ impl draw::render::RenderPrimitive for Path {
 
         draw::render::PrimitiveRender {
             texture_handle,
-            vertex_mode,
         }
     }
 }
@@ -649,7 +643,6 @@ impl Path {
         color: Option<Color>,
         path_event_src: PathEventSource,
         options: Options,
-        vertex_mode: draw::render::VertexMode,
         texture_handle: Option<Handle<Image>>,
     ) -> Self {
         Path {
@@ -658,7 +651,6 @@ impl Path {
             position,
             path_event_src,
             options,
-            vertex_mode,
             texture_handle,
         }
     }
