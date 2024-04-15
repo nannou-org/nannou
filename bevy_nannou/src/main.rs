@@ -22,7 +22,9 @@ struct MyTexture(Handle<Image>);
 fn startup(mut commands: Commands, assets: Res<AssetServer>, mut meshes: ResMut<Assets<Mesh>>) {
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
-        brightness: 1000.0,
+        // This isn't randomly chosen
+        // See:  https://discord.com/channels/691052431525675048/866787577687310356/1229248273735487560
+        brightness: 998.096,
     });
 
     commands.spawn(PointLightBundle {
