@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 pub mod prelude {
     pub use bevy::prelude::*;
+    pub use bevy::color::palettes::css::*;
 }
 
 pub struct NannouPlugin;

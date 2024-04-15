@@ -81,21 +81,10 @@ impl<'a, A> GeometryBuilder for MeshBuilder<'a, A> {
     }
 
     fn add_triangle(&mut self, a: VertexId, b: VertexId, c: VertexId) {
-        let indices = self.mesh.indices_mut();
-        if let Some(indices) = indices {
-            match indices {
-                Indices::U16(indices) => {
-                    indices.push(a.to_usize() as u16);
-                    indices.push(b.to_usize() as u16);
-                    indices.push(c.to_usize() as u16);
-                }
-                Indices::U32(indices) => {
-                    indices.push(a.to_usize() as u32);
-                    indices.push(b.to_usize() as u32);
-                    indices.push(c.to_usize() as u32);
-                }
-            }
-        }
+        // Wind the indices in the opposite order to ensure the normals are facing outwards.
+        self.mesh.push_index(c.to_usize() as u32);
+        self.mesh.push_index(b.to_usize() as u32);
+        self.mesh.push_index(a.to_usize() as u32);
     }
 
     fn abort_geometry(&mut self) {

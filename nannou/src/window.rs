@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
-use bevy::render::camera::RenderTarget;
+use bevy::render::camera::{RenderTarget, ScalingMode};
 use bevy::window::{PrimaryWindow, WindowLevel, WindowRef};
 
 use bevy_nannou::prelude::MonitorSelection;
@@ -389,9 +389,9 @@ where
                         .unwrap_or(ClearColorConfig::None),
                     ..Default::default()
                 },
-                transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Z),
+                transform: Transform::from_xyz(0.0, 0.0, 10.0)
+                    .looking_at(Vec3::ZERO, Vec3::Y),
                 projection: OrthographicProjection {
-                    scale: 1.0,
                     ..Default::default()
                 }
                 .into(),

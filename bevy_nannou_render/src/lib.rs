@@ -1,5 +1,5 @@
 use bevy::core::FrameCount;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
@@ -98,6 +98,7 @@ fn update_draw_mesh(
     mut materials: ResMut<Assets<StandardMaterial>>,
     draw_q: Query<(&Draw, &Window)>,
     mut mesh_q: Query<(&Handle<Mesh>, &Handle<StandardMaterial>, &mut Transform), With<NannouMesh>>,
+    mut gizmos: Gizmos,
 ) {
     for (draw, window) in &draw_q {
         // TODO: Unclear if we need to track this, or if the physical size is enough.
