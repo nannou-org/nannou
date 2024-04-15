@@ -67,36 +67,33 @@ pub trait SetColor: Sized {
         self.color(Color::hsla(hue, s, l, a))
     }
 
-    // /// Specify the color via hue, saturation and *value* (brightness).
-    // ///
-    // /// This is sometimes also known as "hsb".
-    // ///
-    // /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
-    // /// 360 degrees (or 2 PI radians).
-    // ///
-    // /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
-    // /// this color space.
-    // fn hsv(self, h: f32, s: f32, v: f32) -> Self {
-    //     let hue = h * 360.0;
-    //     self.color(Color:: (hue, s, v))
-    // }
+    /// Specify the color via hue, saturation and *value* (brightness).
+    ///
+    /// This is sometimes also known as "hsb".
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    fn hsv(self, h: f32, s: f32, v: f32) -> Self {
+        let hue = h * 360.0;
+        self.color(Color::hsv(hue, s, v))
+    }
 
-    // /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
-    // ///
-    // /// This is sometimes also known as "hsba".
-    // ///
-    // /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
-    // /// 360 degrees (or 2 PI radians).
-    // ///
-    // /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
-    // /// this color space.
-    // fn hsva(self, h: S, s: S, v: S, a: S) -> Self
-    // where
-    //     S: Float,
-    // {
-    //     let hue = color::RgbHue::from_degrees(h * S::from(360.0).unwrap());
-    //     self.color(color::Hsva::new(hue, s, v, a))
-    // }
+    /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
+    ///
+    /// This is sometimes also known as "hsba".
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    fn hsva(self, h: f32, s: f32, v: f32, a: f32) -> Self {
+        let hue = h * 360.0;
+        self.color(Color::hsva(hue, s, v, a))
+    }
 
     /// Specify the color as gray scale
     ///

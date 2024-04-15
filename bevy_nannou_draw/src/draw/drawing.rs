@@ -264,31 +264,31 @@ where
         self.map_ty(|ty| SetColor::hsla(ty, h, s, l, a))
     }
 
-    // /// Specify the color via hue, saturation and *value* (brightness).
-    // ///
-    // /// This is sometimes also known as "hsb".
-    // ///
-    // /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
-    // /// 360 degrees (or 2 PI radians).
-    // ///
-    // /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
-    // /// this color space.
-    // pub fn hsv(self, h: f32, s: f32, v: f32) -> Self {
-    //     self.map_ty(|ty| SetColor::hsv(ty, h, s, v))
-    // }
-    //
-    // /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
-    // ///
-    // /// This is sometimes also known as "hsba".
-    // ///
-    // /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
-    // /// 360 degrees (or 2 PI radians).
-    // ///
-    // /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
-    // /// this color space.
-    // pub fn hsva(self, h: f32, s: f32, v: f32, a: f32) -> Self {
-    //     self.map_ty(|ty| SetColor::hsva(ty, h, s, v, a))
-    // }
+    /// Specify the color via hue, saturation and *value* (brightness).
+    ///
+    /// This is sometimes also known as "hsb".
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    pub fn hsv(self, h: f32, s: f32, v: f32) -> Self {
+        self.map_ty(|ty| SetColor::hsv(ty, h, s, v))
+    }
+
+    /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
+    ///
+    /// This is sometimes also known as "hsba".
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    pub fn hsva(self, h: f32, s: f32, v: f32, a: f32) -> Self {
+        self.map_ty(|ty| SetColor::hsva(ty, h, s, v, a))
+    }
 
     /// Specify the color as gray scale
     ///
