@@ -29,7 +29,9 @@ impl Plugin for NannouRenderPlugin {
             .add_systems(Update, texture_event_handler)
             .add_systems(
                 Last,
-                (update_background_color, update_draw_mesh::<"default.wgsl">),
+                (update_background_color,
+                 // update_draw_mesh::<M>
+                ),
             );
     }
 }
@@ -107,20 +109,13 @@ fn update_background_color(
 }
 
 // Prepare our mesh for rendering
-fn update_draw_mesh<const SHADER: &'static str>(
+fn update_draw_mesh<M: Material>(
     mut commands: Commands,
     mut glyph_cache: ResMut<GlyphCache>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, NannouMaterial<SHADER>>>>,
+    mut materials: ResMut<Assets<M>>,
     draw_q: Query<(&Draw, &Window)>,
-<<<<<<< Updated upstream
-    mut mesh_q: Query<(&Handle<Mesh>, &Handle<ExtendedMaterial<StandardMaterial, NannouMaterial<SHADER>>>, &mut Transform), With<NannouMesh>>,
-||||||| Stash base
-    mut mesh_q: Query<(&Handle<Mesh>, &Handle<StandardMaterial>, &mut Transform), With<NannouMesh>>,
-    mut gizmos: Gizmos,
-=======
-    mut mesh_q: Query<(&Handle<Mesh>, &Handle<StandardMaterial>, &mut Transform), With<NannouMesh>>,
->>>>>>> Stashed changes
+    mut mesh_q: Query<(&Handle<Mesh>, &Handle<M>, &mut Transform), With<NannouMesh>>,
 ) {
     for (draw, window) in &draw_q {
         // TODO: Unclear if we need to track this, or if the physical size is enough.
@@ -216,7 +211,7 @@ fn update_draw_mesh<const SHADER: &'static str>(
                     // Render the primitive.
                     mesh.clear();
                     let render = prim.render_primitive(ctxt, mesh);
-                    material.base_color_texture = render.texture_handle;
+                    // material.base_color_texture = render.texture_handle;
                     prim_idx += 1;
                 }
             }

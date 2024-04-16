@@ -266,6 +266,7 @@ impl <M: Material> draw::render::RenderPrimitive for Text<M> {
             spatial,
             style,
             text,
+            material,
         } = self;
         let Style {
             color,

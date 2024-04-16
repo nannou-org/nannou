@@ -13,20 +13,14 @@ use crate::render::NannouMaterialOptions;
 #[derive(Clone, Debug)]
 pub struct Rect<M :Material> {
     dimensions: dimension::Properties,
-<<<<<<< Updated upstream
-    polygon: PolygonInit,
-    material: NannouMaterialOptions,
+    polygon: PolygonInit<M>,
+    material: M
 }
 
-impl SetMaterial for Rect {
-    fn material_mut(&mut self) -> &mut NannouMaterialOptions {
+impl <M: Material> SetMaterial<M> for Rect<M> {
+    fn material_mut(&mut self) -> &mut M {
         &mut self.material
     }
-||||||| Stash base
-    polygon: PolygonInit,
-=======
-    polygon: PolygonInit<M>,
->>>>>>> Stashed changes
 }
 
 /// The drawing context for a Rect.

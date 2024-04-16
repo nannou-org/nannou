@@ -515,7 +515,7 @@ impl Draw {
     }
 
     /// Begin drawing an **Ellipse**.
-    pub fn ellipse<M : Material>(&self) -> Drawing<primitive::Ellipse<M>> {
+    pub fn ellipse<M: Material>(&self) -> Drawing<primitive::Ellipse<M>> {
         self.a(Default::default())
     }
 
@@ -557,7 +557,7 @@ impl Draw {
     /// Begin drawing a **Polyline**.
     ///
     /// Note that this is simply short-hand for `draw.path().stroke()`
-    pub fn polyline<M : Material>(&self) -> Drawing<primitive::PathStroke<M>> {
+    pub fn polyline<M: Material>(&self) -> Drawing<primitive::PathStroke<M>> {
         self.path().stroke()
     }
 
