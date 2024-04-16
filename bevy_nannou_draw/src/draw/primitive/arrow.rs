@@ -11,16 +11,17 @@ use lyon::tessellation::StrokeOptions;
 ///
 /// A triangle is drawn on the end to indicate direction.
 #[derive(Clone, Debug)]
-pub struct Arrow {
-    line: Line,
+pub struct Arrow<M: Material> {
+    line: Line<M>,
     head_length: Option<f32>,
     head_width: Option<f32>,
+    material: M
 }
 
 /// The drawing context for a line.
-pub type DrawingArrow<'a> = Drawing<'a, Arrow>;
+pub type DrawingArrow<'a, M: Material> = Drawing<'a, Arrow<M>>;
 
-impl Arrow {
+impl <M: Material> Arrow<M> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.map_line(|l| l.weight(weight))
@@ -67,23 +68,25 @@ impl Arrow {
     // Map the inner `PathStroke<S>` using the given function.
     fn map_line<F>(self, map: F) -> Self
     where
-        F: FnOnce(Line) -> Line,
+        F: FnOnce(Line<M>) -> Line<M>,
     {
         let Arrow {
             line,
             head_length,
             head_width,
+            material,
         } = self;
         let line = map(line);
         Arrow {
             line,
             head_length,
             head_width,
+            material,
         }
     }
 }
 
-impl<'a> DrawingArrow<'a> {
+impl<'a, M: Material> DrawingArrow<'a, M> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.map_ty(|ty| ty.weight(weight))
@@ -126,46 +129,46 @@ impl<'a> DrawingArrow<'a> {
     }
 }
 
-impl SetStroke for Arrow {
+impl <M: Material> SetStroke for Arrow<M> {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.line)
     }
 }
 
-impl SetOrientation for Arrow {
+impl <M: Material> SetOrientation for Arrow<M> {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.line)
     }
 }
 
-impl SetPosition for Arrow {
+impl <M: Material> SetPosition for Arrow<M> {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.line)
     }
 }
 
-impl SetColor for Arrow {
+impl <M: Material> SetColor for Arrow<M> {
     fn color_mut(&mut self) -> &mut Option<Color> {
         SetColor::color_mut(&mut self.line)
     }
 }
 
-impl From<Arrow> for Primitive {
-    fn from(prim: Arrow) -> Self {
-        Primitive::Arrow(prim)
+impl <M: Material> From<Arrow<M>> for Primitive<M> {
+    fn from(prim: Arrow<M>) -> Self {
+        Primitive::<M>::Arrow(prim)
     }
 }
 
-impl Into<Option<Arrow>> for Primitive {
-    fn into(self) -> Option<Arrow> {
+impl <M: Material> Into<Option<Arrow<M>>> for Primitive<M> {
+    fn into(self) -> Option<Arrow<M>> {
         match self {
-            Primitive::Arrow(prim) => Some(prim),
+            Primitive::<M>::Arrow(prim) => Some(prim),
             _ => None,
         }
     }
 }
 
-impl draw::render::RenderPrimitive for Arrow {
+impl <M: Material> draw::render::RenderPrimitive for Arrow<M> {
     fn render_primitive(
         self,
         mut ctxt: draw::render::RenderContext,
@@ -247,7 +250,7 @@ impl draw::render::RenderPrimitive for Arrow {
     }
 }
 
-impl Default for Arrow {
+impl <M: Material> Default for Arrow<M> {
     fn default() -> Self {
         let line = Default::default();
         let head_length = Default::default();

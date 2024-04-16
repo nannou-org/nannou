@@ -48,6 +48,15 @@ pub type SketchViewFn = fn(&App);
 /// The user function type allowing them to consume the `model` when the application exits.
 pub type ExitFn<Model> = fn(&App, Model);
 
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
+struct NannouMaterial<const SHADER: &'static str> {}
+
+impl<const SHADER: &'static str> MaterialExtension for NannouMaterial<SHADER> {
+    fn fragment_shader() -> ShaderRef {
+        SHADER.into()
+    }
+}
+
 /// The **App**'s view function.
 enum View<Model = ()> {
     /// A view function allows for viewing the user's model.

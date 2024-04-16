@@ -11,16 +11,17 @@ use lyon::tessellation::StrokeOptions;
 /// The usage of this type is almost identical to `PathStroke` but provides `start`, `end` and
 /// `points(a, b)` methods.
 #[derive(Clone, Debug, Default)]
-pub struct Line {
-    pub path: PathStroke,
+pub struct Line<M: Material> {
+    pub path: PathStroke<M>,
     pub start: Option<Vec2>,
     pub end: Option<Vec2>,
+    pub material: M,
 }
 
 /// The drawing context for a line.
-pub type DrawingLine<'a> = Drawing<'a, Line>;
+pub type DrawingLine<'a, M: Material> = Drawing<'a, Line<M>>;
 
-impl Line {
+impl <M: Material> Line<M> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.map_path(|p| p.stroke_weight(weight))
@@ -51,15 +52,15 @@ impl Line {
     // Map the inner `PathStroke<S>` using the given function.
     fn map_path<F>(self, map: F) -> Self
     where
-        F: FnOnce(PathStroke) -> PathStroke,
+        F: FnOnce(PathStroke<M>) -> PathStroke<M>,
     {
-        let Line { path, start, end } = self;
+        let Line { path, start, end, material } = self;
         let path = map(path);
-        Line { path, start, end }
+        Line { path, start, end, material }
     }
 }
 
-impl<'a> DrawingLine<'a> {
+impl<'a, M: Material> DrawingLine<'a, M> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.map_ty(|ty| ty.weight(weight))
@@ -86,38 +87,38 @@ impl<'a> DrawingLine<'a> {
     }
 }
 
-impl SetStroke for Line {
+impl <M: Material> SetStroke for Line<M> {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.path)
     }
 }
 
-impl SetOrientation for Line {
+impl <M: Material> SetOrientation for Line<M> {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.path)
     }
 }
 
-impl SetPosition for Line {
+impl <M: Material> SetPosition for Line<M> {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.path)
     }
 }
 
-impl SetColor for Line {
+impl <M: Material> SetColor for Line<M> {
     fn color_mut(&mut self) -> &mut Option<Color> {
         SetColor::color_mut(&mut self.path)
     }
 }
 
-impl From<Line> for Primitive {
-    fn from(prim: Line) -> Self {
+impl <M: Material> From<Line<M>> for Primitive {
+    fn from(prim: Line<M>) -> Self {
         Primitive::Line(prim)
     }
 }
 
-impl Into<Option<Line>> for Primitive {
-    fn into(self) -> Option<Line> {
+impl <M: Material> Into<Option<Line<M>>> for Primitive {
+    fn into(self) -> Option<Line<M>> {
         match self {
             Primitive::Line(prim) => Some(prim),
             _ => None,
@@ -125,7 +126,7 @@ impl Into<Option<Line>> for Primitive {
     }
 }
 
-impl draw::render::RenderPrimitive for Line {
+impl <M: Material> draw::render::RenderPrimitive for Line<M> {
     fn render_primitive(
         self,
         mut ctxt: draw::render::RenderContext,

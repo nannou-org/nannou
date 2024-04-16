@@ -12,18 +12,18 @@ use nannou_core::geom;
 
 /// Properties related to drawing an **Ellipse**.
 #[derive(Clone, Debug, Default)]
-pub struct Ellipse {
+pub struct Ellipse<M: Material> {
     dimensions: spatial::dimension::Properties,
     resolution: Option<f32>,
-    polygon: PolygonInit,
+    polygon: PolygonInit<M>,
 }
 
 /// The drawing context for an ellipse.
-pub type DrawingEllipse<'a> = Drawing<'a, Ellipse>;
+pub type DrawingEllipse<'a, M:Material> = Drawing<'a, Ellipse<M>>;
 
 // Ellipse-specific methods.
 
-impl Ellipse {
+impl <M:Material> Ellipse<M> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -50,7 +50,7 @@ impl Ellipse {
 
 // Trait implementations.
 
-impl draw::render::RenderPrimitive for Ellipse {
+impl <M: Material> draw::render::RenderPrimitive for Ellipse<M> {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
@@ -111,37 +111,37 @@ impl draw::render::RenderPrimitive for Ellipse {
     }
 }
 
-impl SetOrientation for Ellipse {
+impl <M: Material> SetOrientation for Ellipse<M> {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.polygon)
     }
 }
 
-impl SetPosition for Ellipse {
+impl <M: Material> SetPosition for Ellipse<M> {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.polygon)
     }
 }
 
-impl SetDimensions for Ellipse {
+impl <M: Material> SetDimensions for Ellipse<M> {
     fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.dimensions)
     }
 }
 
-impl SetColor for Ellipse {
+impl <M: Material> SetColor for Ellipse<M> {
     fn color_mut(&mut self) -> &mut Option<Color> {
         SetColor::color_mut(&mut self.polygon)
     }
 }
 
-impl SetStroke for Ellipse {
+impl <M: Material> SetStroke for Ellipse<M> {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.polygon)
     }
 }
 
-impl SetPolygon for Ellipse {
+impl <M: Material> SetPolygon for Ellipse<M> {
     fn polygon_options_mut(&mut self) -> &mut PolygonOptions {
         SetPolygon::polygon_options_mut(&mut self.polygon)
     }
@@ -149,14 +149,14 @@ impl SetPolygon for Ellipse {
 
 // Primitive conversion.
 
-impl From<Ellipse> for Primitive {
-    fn from(prim: Ellipse) -> Self {
+impl <M: Material> From<Ellipse<M>> for Primitive {
+    fn from(prim: Ellipse<M>) -> Self {
         Primitive::Ellipse(prim)
     }
 }
 
-impl Into<Option<Ellipse>> for Primitive {
-    fn into(self) -> Option<Ellipse> {
+impl <M: Material> Into<Option<Ellipse<M>>> for Primitive {
+    fn into(self) -> Option<Ellipse<M>> {
         match self {
             Primitive::Ellipse(prim) => Some(prim),
             _ => None,
@@ -166,7 +166,7 @@ impl Into<Option<Ellipse>> for Primitive {
 
 // Drawing methods.
 
-impl<'a> DrawingEllipse<'a> {
+impl<'a, M:Material> DrawingEllipse<'a, M> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where

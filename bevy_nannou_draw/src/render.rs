@@ -1,4 +1,3 @@
-use bevy::core::FrameCount;
 use std::ops::{Deref, DerefMut};
 use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 
@@ -114,7 +113,14 @@ fn update_draw_mesh<const SHADER: &'static str>(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, NannouMaterial<SHADER>>>>,
     draw_q: Query<(&Draw, &Window)>,
+<<<<<<< Updated upstream
     mut mesh_q: Query<(&Handle<Mesh>, &Handle<ExtendedMaterial<StandardMaterial, NannouMaterial<SHADER>>>, &mut Transform), With<NannouMesh>>,
+||||||| Stash base
+    mut mesh_q: Query<(&Handle<Mesh>, &Handle<StandardMaterial>, &mut Transform), With<NannouMesh>>,
+    mut gizmos: Gizmos,
+=======
+    mut mesh_q: Query<(&Handle<Mesh>, &Handle<StandardMaterial>, &mut Transform), With<NannouMesh>>,
+>>>>>>> Stashed changes
 ) {
     for (draw, window) in &draw_q {
         // TODO: Unclear if we need to track this, or if the physical size is enough.

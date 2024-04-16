@@ -510,59 +510,59 @@ impl Draw {
     }
 
     /// Begin drawing a **Path**.
-    pub fn path(&self) -> Drawing<primitive::PathInit> {
+    pub fn path<M: Material>(&self) -> Drawing<primitive::PathInit<M>> {
         self.a(Default::default())
     }
 
     /// Begin drawing an **Ellipse**.
-    pub fn ellipse(&self) -> Drawing<primitive::Ellipse> {
+    pub fn ellipse<M : Material>(&self) -> Drawing<primitive::Ellipse<M>> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Line**.
-    pub fn line(&self) -> Drawing<primitive::Line> {
+    pub fn line<M: Material>(&self) -> Drawing<primitive::Line<M>> {
         self.a(Default::default())
     }
 
     /// Begin drawing an **Arrow**.
-    pub fn arrow(&self) -> Drawing<primitive::Arrow> {
+    pub fn arrow<M: Material>(&self) -> Drawing<primitive::Arrow<M>> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Quad**.
-    pub fn quad(&self) -> Drawing<primitive::Quad> {
+    pub fn quad<M: Material>(&self) -> Drawing<primitive::Quad<M>> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Rect**.
-    pub fn rect(&self) -> Drawing<primitive::Rect> {
+    pub fn rect<M: Material>(&self) -> Drawing<primitive::Rect<M>> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Triangle**.
-    pub fn tri(&self) -> Drawing<primitive::Tri> {
+    pub fn tri<M: Material>(&self) -> Drawing<primitive::Tri<M>> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polygon**.
-    pub fn polygon(&self) -> Drawing<primitive::PolygonInit> {
+    pub fn polygon<M: Material>(&self) -> Drawing<primitive::PolygonInit<M>> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Mesh**.
-    pub fn mesh(&self) -> Drawing<primitive::mesh::Vertexless> {
+    pub fn mesh<M: Material>(&self) -> Drawing<primitive::mesh::Vertexless<M>> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polyline**.
     ///
     /// Note that this is simply short-hand for `draw.path().stroke()`
-    pub fn polyline(&self) -> Drawing<primitive::PathStroke> {
+    pub fn polyline<M : Material>(&self) -> Drawing<primitive::PathStroke<M>> {
         self.path().stroke()
     }
 
     /// Begin drawing a **Text**.
-    pub fn text(&self, s: &str) -> Drawing<primitive::Text> {
+    pub fn text<M: Material>(&self, s: &str) -> Drawing<primitive::Text<M>> {
         let text = {
             let state = self.state.read().expect("lock poisoned");
             let mut intermediary_state = state.intermediary_state.write().expect("lock poisoned");
@@ -576,11 +576,11 @@ impl Draw {
     // TODO: this api sucks, because it requires the user to wait for the texture to load before
     // they can draw it. We should provide a way to draw a texture without waiting for it to load.
     // This is mostly due to the image size being unknown until the texture is loaded.
-    pub fn texture(
+    pub fn texture<M: Material>(
         &self,
         texture_handle: Handle<Image>,
         texture: Image,
-    ) -> Drawing<primitive::Texture> {
+    ) -> Drawing<primitive::Texture<M>> {
         self.a(primitive::Texture::new(texture_handle, texture))
     }
 

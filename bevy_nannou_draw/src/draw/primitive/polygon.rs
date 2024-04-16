@@ -40,8 +40,9 @@ pub trait SetPolygon: Sized {
 
 /// State related to drawing a **Polygon**.
 #[derive(Clone, Debug, Default)]
-pub struct PolygonInit {
+pub struct PolygonInit<M: Material> {
     pub(crate) opts: PolygonOptions,
+    pub(crate) material: M,
 }
 
 /// The set of options shared by all polygon types.
@@ -57,19 +58,20 @@ pub struct PolygonOptions {
 
 /// A polygon with vertices already submitted.
 #[derive(Clone, Debug)]
-pub struct Polygon {
+pub struct Polygon<M :Material> {
     opts: PolygonOptions,
+    material: M,
     path_event_src: PathEventSource,
     texture_handle: Option<Handle<Image>>,
 }
 
 /// Initialised drawing state for a polygon.
-pub type DrawingPolygonInit<'a> = Drawing<'a, PolygonInit>;
+pub type DrawingPolygonInit<'a, M: Material> = Drawing<'a, PolygonInit<M>>;
 
 /// Initialised drawing state for a polygon.
-pub type DrawingPolygon<'a> = Drawing<'a, Polygon>;
+pub type DrawingPolygon<'a,M :Material> = Drawing<'a, Polygon<M>>;
 
-impl PolygonInit {
+impl <M: Material> PolygonInit<M> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -79,7 +81,7 @@ impl PolygonInit {
     }
 
     /// Submit the path events to be tessellated.
-    pub(crate) fn events<I>(self, ctxt: DrawingContext, events: I) -> Polygon
+    pub(crate) fn events<I>(self, ctxt: DrawingContext, events: I) -> Polygon<M>
     where
         I: IntoIterator<Item = PathEvent>,
     {
@@ -97,7 +99,7 @@ impl PolygonInit {
     }
 
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
-    pub fn points<I>(self, ctxt: DrawingContext, points: I) -> Polygon
+    pub fn points<I>(self, ctxt: DrawingContext, points: I) -> Polygon<M>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -112,7 +114,7 @@ impl PolygonInit {
     }
 
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
-    pub fn points_colored<I, P, C>(self, ctxt: DrawingContext, points: I) -> Polygon
+    pub fn points_colored<I, P, C>(self, ctxt: DrawingContext, points: I) -> Polygon<M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -143,7 +145,7 @@ impl PolygonInit {
         ctxt: DrawingContext,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> Polygon
+    ) -> Polygon<M>
     where
         I: IntoIterator<Item = (P, T)>,
         P: Into<Vec2>,
@@ -185,6 +187,7 @@ pub fn render_events_themed<F, I>(
         stroke_color,
         color,
         stroke,
+        material
     } = opts;
 
     // Determine the transform to apply to all points.
@@ -256,7 +259,7 @@ pub fn render_points_themed<I>(
     );
 }
 
-impl Polygon {
+impl <M : Material> Polygon<M> {
     pub(crate) fn render_themed(
         self,
         ctxt: draw::render::RenderContext,
@@ -273,6 +276,7 @@ impl Polygon {
                     stroke_color,
                     color,
                     stroke,
+                    material,
                 },
             texture_handle,
         } = self;
@@ -426,7 +430,7 @@ impl Polygon {
     }
 }
 
-impl draw::render::RenderPrimitive for Polygon {
+impl <M: Material> draw::render::RenderPrimitive for Polygon<M> {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
@@ -463,7 +467,7 @@ where
     }
 }
 
-impl<'a> DrawingPolygonInit<'a> {
+impl<'a, M: Material> DrawingPolygonInit<'a, M> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -473,7 +477,7 @@ impl<'a> DrawingPolygonInit<'a> {
     }
 
     /// Describe the polygon with a sequence of path events.
-    pub fn events<I>(self, events: I) -> DrawingPolygon<'a>
+    pub fn events<I>(self, events: I) -> DrawingPolygon<'a,M>
     where
         I: IntoIterator<Item = PathEvent>,
     {
@@ -481,7 +485,7 @@ impl<'a> DrawingPolygonInit<'a> {
     }
 
     /// Describe the polygon with a sequence of points.
-    pub fn points<I>(self, points: I) -> DrawingPolygon<'a>
+    pub fn points<I>(self, points: I) -> DrawingPolygon<'a,M>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -490,7 +494,7 @@ impl<'a> DrawingPolygonInit<'a> {
     }
 
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPolygon<'a>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPolygon<'a,M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -504,7 +508,7 @@ impl<'a> DrawingPolygonInit<'a> {
         self,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> DrawingPolygon<'a>
+    ) -> DrawingPolygon<'a, M>
     where
         I: IntoIterator<Item = (P, T)>,
         P: Into<Vec2>,
@@ -520,68 +524,68 @@ impl SetPolygon for PolygonOptions {
     }
 }
 
-impl SetOrientation for PolygonInit {
+impl <M: Material> SetOrientation for PolygonInit<M> {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.opts.orientation)
     }
 }
 
-impl SetPosition for PolygonInit {
+impl <M: Material> SetPosition for PolygonInit<M> {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.opts.position)
     }
 }
 
-impl SetColor for PolygonInit {
+impl <M: Material> SetColor for PolygonInit<M> {
     fn color_mut(&mut self) -> &mut Option<Color> {
         SetColor::color_mut(&mut self.opts.color)
     }
 }
 
-impl SetPolygon for PolygonInit {
+impl <M: Material> SetPolygon for PolygonInit<M> {
     fn polygon_options_mut(&mut self) -> &mut PolygonOptions {
         SetPolygon::polygon_options_mut(&mut self.opts)
     }
 }
 
-impl SetStroke for PolygonInit {
+impl <M: Material> SetStroke for PolygonInit<M> {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.opts.stroke)
     }
 }
 
-impl SetOrientation for Polygon {
+impl <M: Material> SetOrientation for Polygon<M> {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.opts.orientation)
     }
 }
 
-impl SetPosition for Polygon {
+impl <M: Material> SetPosition for Polygon<M> {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.opts.position)
     }
 }
 
-impl SetColor for Polygon {
+impl <M: Material> SetColor for Polygon<M> {
     fn color_mut(&mut self) -> &mut Option<Color> {
         SetColor::color_mut(&mut self.opts.color)
     }
 }
 
-impl From<PolygonInit> for Primitive {
-    fn from(prim: PolygonInit) -> Self {
+impl <M:Material> From<PolygonInit<M>> for Primitive {
+    fn from(prim: PolygonInit<M>) -> Self {
         Primitive::PolygonInit(prim)
     }
 }
 
-impl From<Polygon> for Primitive {
-    fn from(prim: Polygon) -> Self {
+impl<M: Material> From<Polygon<M>> for Primitive {
+    fn from(prim: Polygon<M>) -> Self {
         Primitive::Polygon(prim)
     }
 }
 
-impl Into<Option<PolygonInit>> for Primitive {
-    fn into(self) -> Option<PolygonInit> {
+impl <M:Material> Into<Option<PolygonInit<M>>> for Primitive {
+    fn into(self) -> Option<PolygonInit<M>> {
         match self {
             Primitive::PolygonInit(prim) => Some(prim),
             _ => None,
@@ -589,8 +593,8 @@ impl Into<Option<PolygonInit>> for Primitive {
     }
 }
 
-impl Into<Option<Polygon>> for Primitive {
-    fn into(self) -> Option<Polygon> {
+impl<M: Material> Into<Option<Polygon<M>>> for Primitive {
+    fn into(self) -> Option<Polygon<M>> {
         match self {
             Primitive::Polygon(prim) => Some(prim),
             _ => None,

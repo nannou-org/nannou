@@ -45,15 +45,18 @@ pub(crate) enum PathEventSourceIter<'a> {
 /// The beginning of the path building process, prior to choosing the tessellation mode (fill or
 /// stroke).
 #[derive(Clone, Debug, Default)]
-pub struct PathInit;
+pub struct PathInit<M : Material> {
+    _marker: std::marker::PhantomData<M>,
+}
 
 /// A path drawing context ready to specify tessellation options.
 #[derive(Clone, Debug, Default)]
-pub struct PathOptions<T> {
+pub struct PathOptions<T, M: Material> {
     pub(crate) opts: T,
     pub(crate) color: Option<Color>,
     pub(crate) position: position::Properties,
     pub(crate) orientation: orientation::Properties,
+    pub(crate) material: M,
 }
 
 /// Mutable access to stroke and fill tessellators.
@@ -63,36 +66,37 @@ pub struct Tessellators<'a> {
 }
 
 /// A filled path drawing context.
-pub type PathFill = PathOptions<FillOptions>;
+pub type PathFill<M: Material> = PathOptions<FillOptions, M>;
 
 /// A stroked path drawing context.
-pub type PathStroke = PathOptions<StrokeOptions>;
+pub type PathStroke<M: Material> = PathOptions<StrokeOptions, M>;
 
 /// Properties related to drawing a **Path**.
 #[derive(Clone, Debug)]
-pub struct Path {
+pub struct Path<M :Material> {
     color: Option<Color>,
     position: position::Properties,
     orientation: orientation::Properties,
     path_event_src: PathEventSource,
     options: Options,
     texture_handle: Option<Handle<Image>>,
+    material: M,
 }
 
 /// The initial drawing context for a path.
-pub type DrawingPathInit<'a> = Drawing<'a, PathInit>;
+pub type DrawingPathInit<'a, M: Material> = Drawing<'a, PathInit<M>>;
 
 /// The drawing context for a path in the tessellation options state.
-pub type DrawingPathOptions<'a, T> = Drawing<'a, PathOptions<T>>;
+pub type DrawingPathOptions<'a, T, M : Material> = Drawing<'a, PathOptions<T, M>>;
 
 /// The drawing context for a stroked path, prior to path event submission.
-pub type DrawingPathStroke<'a> = Drawing<'a, PathStroke>;
+pub type DrawingPathStroke<'a, M : Material> = Drawing<'a, PathStroke<M>>;
 
 /// The drawing context for a filled path, prior to path event submission.
-pub type DrawingPathFill<'a> = Drawing<'a, PathFill>;
+pub type DrawingPathFill<'a, M : Material> = Drawing<'a, PathFill<M>>;
 
 /// The drawing context for a polyline whose vertices have been specified.
-pub type DrawingPath<'a> = Drawing<'a, Path>;
+pub type DrawingPath<'a, M : Material> = Drawing<'a, Path<M>>;
 
 /// Dynamically distinguish between fill and stroke tessellation options.
 #[derive(Clone, Debug)]
@@ -101,11 +105,11 @@ pub enum Options {
     Stroke(StrokeOptions),
 }
 
-impl PathInit {
+impl <M: Material> PathInit<M> {
     /// Specify that we want to use fill tessellation for the path.
     ///
     /// The returned building context allows for specifying the fill tessellation options.
-    pub fn fill(self) -> PathFill {
+    pub fn fill(self) -> PathFill<M> {
         let opts = FillOptions::default();
         PathFill::new(opts)
     }
@@ -113,13 +117,13 @@ impl PathInit {
     /// Specify that we want to use stroke tessellation for the path.
     ///
     /// The returned building context allows for specifying the stroke tessellation options.
-    pub fn stroke(self) -> PathStroke {
+    pub fn stroke(self) -> PathStroke<M> {
         let opts = Default::default();
         PathStroke::new(opts)
     }
 }
 
-impl<T> PathOptions<T> {
+impl<T, M : Material> PathOptions<T,M > {
     /// Initialise the `PathOptions` builder.
     pub fn new(opts: T) -> Self {
         let orientation = Default::default();
@@ -134,7 +138,7 @@ impl<T> PathOptions<T> {
     }
 }
 
-impl PathFill {
+impl <M : Material> PathFill<M> {
     /// Maximum allowed distance to the path when building an approximation.
     ///
     /// This method is shorthand for the `fill_tolerance` method.
@@ -152,7 +156,7 @@ impl PathFill {
     }
 }
 
-impl PathStroke {
+impl <M:Material> PathStroke<M> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.stroke_weight(weight)
@@ -164,12 +168,12 @@ impl PathStroke {
     }
 }
 
-impl<T> PathOptions<T>
+impl<T, M : Material> PathOptions<T, M>
 where
     T: TessellationOptions,
 {
     /// Submit the path events to be tessellated.
-    pub(crate) fn events<I>(self, ctxt: DrawingContext, events: I) -> Path
+    pub(crate) fn events<I>(self, ctxt: DrawingContext, events: I) -> Path<M>
     where
         I: IntoIterator<Item = PathEvent>,
     {
@@ -190,7 +194,7 @@ where
     }
 
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
-    pub fn points<I>(self, ctxt: DrawingContext, points: I) -> Path
+    pub fn points<I>(self, ctxt: DrawingContext, points: I) -> Path<M>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -201,7 +205,7 @@ where
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
     ///
     /// Closes the start and end points.
-    pub fn points_closed<I>(self, ctxt: DrawingContext, points: I) -> Path
+    pub fn points_closed<I>(self, ctxt: DrawingContext, points: I) -> Path<M>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -210,7 +214,7 @@ where
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn points_colored<I, P, C>(self, ctxt: DrawingContext, points: I) -> Path
+    pub fn points_colored<I, P, C>(self, ctxt: DrawingContext, points: I) -> Path<M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -220,7 +224,7 @@ where
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn points_colored_closed<I, P, C>(self, ctxt: DrawingContext, points: I) -> Path
+    pub fn points_colored_closed<I, P, C>(self, ctxt: DrawingContext, points: I) -> Path<M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -235,7 +239,7 @@ where
         ctxt: DrawingContext,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> Path
+    ) -> Path<M>
     where
         I: IntoIterator<Item = (P, TC)>,
         P: Into<Vec2>,
@@ -250,7 +254,7 @@ where
         ctxt: DrawingContext,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> Path
+    ) -> Path<M>
     where
         I: IntoIterator<Item = (P, TC)>,
         P: Into<Vec2>,
@@ -260,7 +264,7 @@ where
     }
 
     // Consumes an iterator of points and converts them to an iterator yielding events.
-    fn points_inner<I>(self, ctxt: DrawingContext, close: bool, points: I) -> Path
+    fn points_inner<I>(self, ctxt: DrawingContext, close: bool, points: I) -> Path<M>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -274,7 +278,7 @@ where
     }
 
     // Consumes an iterator of points and converts them to an iterator yielding events.
-    fn points_colored_inner<I, P, C>(self, ctxt: DrawingContext, close: bool, points: I) -> Path
+    fn points_colored_inner<I, P, C>(self, ctxt: DrawingContext, close: bool, points: I) -> Path<M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -311,7 +315,7 @@ where
         texture_handle: Handle<Image>,
         close: bool,
         points: I,
-    ) -> Path
+    ) -> Path<M>
     where
         I: IntoIterator<Item = (P, TC)>,
         P: Into<Vec2>,
@@ -493,7 +497,7 @@ pub(crate) fn render_path_source(
     }
 }
 
-impl draw::render::RenderPrimitive for Path {
+impl <M: Material> draw::render::RenderPrimitive for Path<M>  {
     fn render_primitive(
         self,
         mut ctxt: draw::render::RenderContext,
@@ -635,7 +639,7 @@ where
     Some(path_builder.build())
 }
 
-impl Path {
+impl <M : Material> Path<M> {
     // Initialise a new `Path` with its ranges into the intermediary mesh, ready for drawing.
     fn new(
         position: position::Properties,
@@ -656,23 +660,23 @@ impl Path {
     }
 }
 
-impl<'a> DrawingPathInit<'a> {
+impl<'a, M : Material> DrawingPathInit<'a, M> {
     /// Specify that we want to use fill tessellation for the path.
     ///
     /// The returned building context allows for specifying the fill tessellation options.
-    pub fn fill(self) -> DrawingPathFill<'a> {
+    pub fn fill(self) -> DrawingPathFill<'a, M> {
         self.map_ty(|ty| ty.fill())
     }
 
     /// Specify that we want to use stroke tessellation for the path.
     ///
     /// The returned building context allows for specifying the stroke tessellation options.
-    pub fn stroke(self) -> DrawingPathStroke<'a> {
+    pub fn stroke(self) -> DrawingPathStroke<'a, M> {
         self.map_ty(|ty| ty.stroke())
     }
 }
 
-impl<'a> DrawingPathFill<'a> {
+impl<'a, M : Material> DrawingPathFill<'a, M> {
     /// Maximum allowed distance to the path when building an approximation.
     pub fn tolerance(self, tolerance: f32) -> Self {
         self.map_ty(|ty| ty.tolerance(tolerance))
@@ -686,7 +690,7 @@ impl<'a> DrawingPathFill<'a> {
     }
 }
 
-impl<'a> DrawingPathStroke<'a> {
+impl<'a, M : Material> DrawingPathStroke<'a, M> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.map_ty(|ty| ty.stroke_weight(weight))
@@ -698,14 +702,14 @@ impl<'a> DrawingPathStroke<'a> {
     }
 }
 
-impl<'a, T> DrawingPathOptions<'a, T>
+impl<'a, T, M : Material> DrawingPathOptions<'a, T, M>
 where
     T: TessellationOptions,
-    PathOptions<T>: Into<Primitive>,
-    Primitive: Into<Option<PathOptions<T>>>,
+    PathOptions<T, M>: Into<Primitive>,
+    Primitive: Into<Option<PathOptions<T, M>>>,
 {
     /// Submit the path events to be tessellated.
-    pub fn events<I>(self, events: I) -> DrawingPath<'a>
+    pub fn events<I>(self, events: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = lyon::path::PathEvent>,
     {
@@ -713,7 +717,7 @@ where
     }
 
     /// Submit the path events as a polyline of points.
-    pub fn points<I>(self, points: I) -> DrawingPath<'a>
+    pub fn points<I>(self, points: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -724,7 +728,7 @@ where
     /// Submit the path events as a polyline of points.
     ///
     /// An event will be generated that closes the start and end points.
-    pub fn points_closed<I>(self, points: I) -> DrawingPath<'a>
+    pub fn points_closed<I>(self, points: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -733,7 +737,7 @@ where
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPath<'a>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -745,7 +749,7 @@ where
     /// Submit path events as a polyline of colored points.
     ///
     /// The path with automatically close from the end point to the start point.
-    pub fn points_colored_closed<I, P, C>(self, points: I) -> DrawingPath<'a>
+    pub fn points_colored_closed<I, P, C>(self, points: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -759,7 +763,7 @@ where
         self,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> DrawingPath<'a>
+    ) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = (P, TC)>,
         P: Into<Vec2>,
@@ -775,7 +779,7 @@ where
         self,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> DrawingPath<'a>
+    ) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = (P, TC)>,
         P: Into<Vec2>,
@@ -785,13 +789,13 @@ where
     }
 }
 
-impl SetFill for PathFill {
+impl <M: Material> SetFill for PathFill<M> {
     fn fill_options_mut(&mut self) -> &mut FillOptions {
         &mut self.opts
     }
 }
 
-impl SetStroke for PathStroke {
+impl <M: Material> SetStroke for PathStroke<M> {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         &mut self.opts
     }
@@ -811,68 +815,68 @@ impl TessellationOptions for StrokeOptions {
     }
 }
 
-impl<T> SetOrientation for PathOptions<T> {
+impl<T, M:Material> SetOrientation for PathOptions<T, M> {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.orientation)
     }
 }
 
-impl<T> SetPosition for PathOptions<T> {
+impl<T, M: Material> SetPosition for PathOptions<T, M> {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.position)
     }
 }
 
-impl<T> SetColor for PathOptions<T> {
+impl<T, M: Material> SetColor for PathOptions<T, M> {
     fn color_mut(&mut self) -> &mut Option<Color> {
         SetColor::color_mut(&mut self.color)
     }
 }
 
-impl SetOrientation for Path {
+impl <M: Material> SetOrientation for Path<M>  {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.orientation)
     }
 }
 
-impl SetPosition for Path {
+impl <M: Material> SetPosition for Path<M>  {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.position)
     }
 }
 
-impl SetColor for Path {
+impl <M: Material> SetColor for Path<M>  {
     fn color_mut(&mut self) -> &mut Option<Color> {
         SetColor::color_mut(&mut self.color)
     }
 }
 
-impl From<PathInit> for Primitive {
-    fn from(prim: PathInit) -> Self {
+impl <M: Material> From<PathInit<M>> for Primitive {
+    fn from(prim: PathInit<M>) -> Self {
         Primitive::PathInit(prim)
     }
 }
 
-impl From<PathStroke> for Primitive {
-    fn from(prim: PathStroke) -> Self {
+impl <M: Material> From<PathStroke<M>> for Primitive {
+    fn from(prim: PathStroke<M>) -> Self {
         Primitive::PathStroke(prim)
     }
 }
 
-impl From<PathFill> for Primitive {
-    fn from(prim: PathFill) -> Self {
+impl  <M: Material> From<PathFill<M>> for Primitive {
+    fn from(prim: PathFill<M>) -> Self {
         Primitive::PathFill(prim)
     }
 }
 
-impl From<Path> for Primitive {
-    fn from(prim: Path) -> Self {
+impl  <M: Material> From<Path<M>> for Primitive {
+    fn from(prim: Path<M>) -> Self {
         Primitive::Path(prim)
     }
 }
 
-impl Into<Option<PathInit>> for Primitive {
-    fn into(self) -> Option<PathInit> {
+impl <M: Material> Into<Option<PathInit<M>>> for Primitive {
+    fn into(self) -> Option<PathInit<M>> {
         match self {
             Primitive::PathInit(prim) => Some(prim),
             _ => None,
@@ -880,8 +884,8 @@ impl Into<Option<PathInit>> for Primitive {
     }
 }
 
-impl Into<Option<PathFill>> for Primitive {
-    fn into(self) -> Option<PathFill> {
+impl <M: Material> Into<Option<PathFill<M>>> for Primitive {
+    fn into(self) -> Option<PathFill<M>> {
         match self {
             Primitive::PathFill(prim) => Some(prim),
             _ => None,
@@ -889,8 +893,8 @@ impl Into<Option<PathFill>> for Primitive {
     }
 }
 
-impl Into<Option<PathStroke>> for Primitive {
-    fn into(self) -> Option<PathStroke> {
+impl <M : Material> Into<Option<PathStroke<M>>> for Primitive {
+    fn into(self) -> Option<PathStroke<M>> {
         match self {
             Primitive::PathStroke(prim) => Some(prim),
             _ => None,
@@ -898,8 +902,8 @@ impl Into<Option<PathStroke>> for Primitive {
     }
 }
 
-impl Into<Option<Path>> for Primitive {
-    fn into(self) -> Option<Path> {
+impl <M: Material> Into<Option<Path<M>>> for Primitive {
+    fn into(self) -> Option<Path<M>> {
         match self {
             Primitive::Path(prim) => Some(prim),
             _ => None,

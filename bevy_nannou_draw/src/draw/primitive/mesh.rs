@@ -10,17 +10,20 @@ use nannou_core::geom;
 
 /// The mesh type prior to being initialised with vertices or indices.
 #[derive(Clone, Debug, Default)]
-pub struct Vertexless;
+pub struct Vertexless<M> {
+    _marker: std::marker::PhantomData<M>,
+}
 
 /// Properties related to drawing an arbitrary mesh of colours, geometry and texture.
 #[derive(Clone, Debug)]
-pub struct PrimitiveMesh {
+pub struct PrimitiveMesh<M: Material> {
     position: position::Properties,
     orientation: orientation::Properties,
     vertex_range: ops::Range<usize>,
     index_range: ops::Range<usize>,
     fill_color: Option<FillColor>,
     texture_handle: Option<Handle<Image>>,
+    material: M,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -34,9 +37,9 @@ struct FlattenIndices<I> {
     current: [usize; 3],
 }
 
-pub type DrawingMesh<'a> = Drawing<'a, PrimitiveMesh>;
+pub type DrawingMesh<'a, M: Material> = Drawing<'a, PrimitiveMesh<M>>;
 
-impl Vertexless {
+impl <M:Material> Vertexless<M> {
     /// Describe the mesh with a sequence of textured points.
     ///
     /// Each of the vertices must be represented as a tuple containing the point and tex
@@ -48,7 +51,7 @@ impl Vertexless {
         inner_mesh: &mut Mesh,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> PrimitiveMesh
+    ) -> PrimitiveMesh<M>
     where
         I: IntoIterator<Item = (P, T)>,
         P: Into<Vec3>,
@@ -68,7 +71,7 @@ impl Vertexless {
     /// Each of the points must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements
     /// `Into<Vec3>` and `color` may be of any type that implements `IntoColor`.
-    pub fn points_colored<I, P, C>(self, inner_mesh: &mut Mesh, points: I) -> PrimitiveMesh
+    pub fn points_colored<I, P, C>(self, inner_mesh: &mut Mesh, points: I) -> PrimitiveMesh<M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec3>,
@@ -90,7 +93,7 @@ impl Vertexless {
     /// This method assumes that the entire mesh should be coloured with a single colour. If a
     /// colour is not specified via one of the builder methods, a default colour will be retrieved
     /// from the inner `Theme`.
-    pub fn points<I>(self, inner_mesh: &mut Mesh, points: I) -> PrimitiveMesh
+    pub fn points<I>(self, inner_mesh: &mut Mesh, points: I) -> PrimitiveMesh<M>
     where
         I: IntoIterator,
         I::Item: Into<Vec3>,
@@ -111,7 +114,7 @@ impl Vertexless {
         inner_mesh: &mut Mesh,
         vertices: I,
         texture_handle: Option<Handle<Image>>,
-    ) -> PrimitiveMesh
+    ) -> PrimitiveMesh<M>
     where
         I: Iterator<Item = Vertex>,
     {
@@ -140,7 +143,7 @@ impl Vertexless {
         inner_mesh: &mut Mesh,
         texture_handle: Handle<Image>,
         tris: I,
-    ) -> PrimitiveMesh
+    ) -> PrimitiveMesh<M>
     where
         I: IntoIterator<Item = geom::Tri<(P, T)>>,
         P: Into<Vec3>,
@@ -158,7 +161,7 @@ impl Vertexless {
     /// Each of the vertices must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements `Into<Vec3>`
     /// and `color` may be of any type that implements `IntoColor`.
-    pub fn tris_colored<I, P, C>(self, inner_mesh: &mut Mesh, tris: I) -> PrimitiveMesh
+    pub fn tris_colored<I, P, C>(self, inner_mesh: &mut Mesh, tris: I) -> PrimitiveMesh<M>
     where
         I: IntoIterator<Item = geom::Tri<(P, C)>>,
         P: Into<Vec3>,
@@ -179,7 +182,7 @@ impl Vertexless {
     /// This method assumes that the entire mesh should be coloured with a single colour. If a
     /// colour is not specified via one of the builder methods, a default colour will be retrieved
     /// from the inner `Theme`.
-    pub fn tris<I, V>(self, inner_mesh: &mut Mesh, tris: I) -> PrimitiveMesh
+    pub fn tris<I, V>(self, inner_mesh: &mut Mesh, tris: I) -> PrimitiveMesh<M>
     where
         I: IntoIterator<Item = geom::Tri<V>>,
         V: Into<Vec3>,
@@ -205,7 +208,7 @@ impl Vertexless {
         texture_handle: Handle<Image>,
         points: V,
         indices: I,
-    ) -> PrimitiveMesh
+    ) -> PrimitiveMesh<M>
     where
         V: IntoIterator<Item = (P, T)>,
         I: IntoIterator<Item = usize>,
@@ -238,7 +241,7 @@ impl Vertexless {
         inner_mesh: &mut Mesh,
         points: V,
         indices: I,
-    ) -> PrimitiveMesh
+    ) -> PrimitiveMesh<M>
     where
         V: IntoIterator<Item = (P, C)>,
         I: IntoIterator<Item = usize>,
@@ -259,7 +262,7 @@ impl Vertexless {
     /// Each trio of `indices` describes a single triangle made up of `points`.
     ///
     /// Each point may be any type that may be converted directly into the `Vec3` type.
-    pub fn indexed<V, I>(self, inner_mesh: &mut Mesh, points: V, indices: I) -> PrimitiveMesh
+    pub fn indexed<V, I>(self, inner_mesh: &mut Mesh, points: V, indices: I) -> PrimitiveMesh<M>
     where
         V: IntoIterator,
         V::Item: Into<Vec3>,
@@ -282,7 +285,7 @@ impl Vertexless {
         vertices: V,
         indices: I,
         texture_handle: Option<Handle<Image>>,
-    ) -> PrimitiveMesh
+    ) -> PrimitiveMesh<M>
     where
         V: IntoIterator<Item = Vertex>,
         I: IntoIterator<Item = usize>,
@@ -306,7 +309,7 @@ impl Vertexless {
     }
 }
 
-impl PrimitiveMesh {
+impl <M:Material> PrimitiveMesh<M> {
     // Initialise a new `Mesh` with its ranges into the intermediary mesh, ready for drawing.
     fn new(
         vertex_range: ops::Range<usize>,
@@ -327,7 +330,7 @@ impl PrimitiveMesh {
     }
 }
 
-impl<'a> Drawing<'a, Vertexless> {
+impl<'a, M: Material> Drawing<'a, Vertexless<M>> {
     /// Describe the mesh with a sequence of points.
     ///
     /// The given iterator may yield any type that can be converted directly into `Vec3`s.
@@ -335,7 +338,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// This method assumes that the entire mesh should be coloured with a single colour. If a
     /// colour is not specified via one of the builder methods, a default colour will be retrieved
     /// from the inner `Theme`.
-    pub fn points<I>(self, points: I) -> DrawingMesh<'a>
+    pub fn points<I>(self, points: I) -> DrawingMesh<'a, M>
     where
         I: IntoIterator,
         I::Item: Into<Vec3>,
@@ -348,7 +351,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// Each of the points must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements
     /// `Into<Vec3>` and `color` may be of any type that implements `IntoColor`.
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingMesh<'a>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingMesh<'a, M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec3>,
@@ -367,7 +370,7 @@ impl<'a> Drawing<'a, Vertexless> {
         self,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> DrawingMesh<'a>
+    ) -> DrawingMesh<'a, M>
     where
         I: IntoIterator<Item = (P, T)>,
         P: Into<Vec3>,
@@ -384,7 +387,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// This method assumes that the entire mesh should be coloured with a single colour. If a
     /// colour is not specified via one of the builder methods, a default colour will be retrieved
     /// from the inner `Theme`.
-    pub fn tris<I, V>(self, tris: I) -> DrawingMesh<'a>
+    pub fn tris<I, V>(self, tris: I) -> DrawingMesh<'a, M>
     where
         I: IntoIterator<Item = geom::Tri<V>>,
         V: Into<Vec3>,
@@ -397,7 +400,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// Each of the vertices must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements `Into<Vec3>`
     /// and `color` may be of any type that implements `IntoColor`.
-    pub fn tris_colored<I, P, C>(self, tris: I) -> DrawingMesh<'a>
+    pub fn tris_colored<I, P, C>(self, tris: I) -> DrawingMesh<'a, M>
     where
         I: IntoIterator<Item = geom::Tri<(P, C)>>,
         P: Into<Vec3>,
@@ -412,7 +415,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// coordinates in that order, e.g. `(point, tex_coords)`. `point` may be of any type that
     /// implements `Into<Vec3>` and `tex_coords` may be of any type that implements
     /// `Into<Vec2>`.
-    pub fn tris_textured<I, P, T>(self, texture_handle: Handle<Image>, tris: I) -> DrawingMesh<'a>
+    pub fn tris_textured<I, P, T>(self, texture_handle: Handle<Image>, tris: I) -> DrawingMesh<'a, M>
     where
         I: IntoIterator<Item = geom::Tri<(P, T)>>,
         P: Into<Vec3>,
@@ -426,7 +429,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// Each trio of `indices` describes a single triangle made up of `points`.
     ///
     /// Each point may be any type that may be converted directly into the `Vec3` type.
-    pub fn indexed<V, I>(self, points: V, indices: I) -> DrawingMesh<'a>
+    pub fn indexed<V, I>(self, points: V, indices: I) -> DrawingMesh<'a, M>
     where
         V: IntoIterator,
         V::Item: Into<Vec3>,
@@ -442,7 +445,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// Each of the `points` must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements
     /// `Into<Vec3>` and `color` may be of any type that implements `IntoColor`.
-    pub fn indexed_colored<V, I, P, C>(self, points: V, indices: I) -> DrawingMesh<'a>
+    pub fn indexed_colored<V, I, P, C>(self, points: V, indices: I) -> DrawingMesh<'a, M>
     where
         V: IntoIterator<Item = (P, C)>,
         I: IntoIterator<Item = usize>,
@@ -465,7 +468,7 @@ impl<'a> Drawing<'a, Vertexless> {
         texture_handle: Handle<Image>,
         points: V,
         indices: I,
-    ) -> DrawingMesh<'a>
+    ) -> DrawingMesh<'a, M>
     where
         V: IntoIterator<Item = (P, T)>,
         I: IntoIterator<Item = usize>,
@@ -478,7 +481,7 @@ impl<'a> Drawing<'a, Vertexless> {
     }
 }
 
-impl draw::render::RenderPrimitive for PrimitiveMesh {
+impl <M: Material> draw::render::RenderPrimitive for PrimitiveMesh<M> {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
@@ -579,38 +582,38 @@ where
     }
 }
 
-impl SetOrientation for PrimitiveMesh {
+impl <M: Material> SetOrientation for PrimitiveMesh<M> {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.orientation)
     }
 }
 
-impl SetPosition for PrimitiveMesh {
+impl <M: Material> SetPosition for PrimitiveMesh<M> {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.position)
     }
 }
 
-impl SetColor for PrimitiveMesh {
+impl <M: Material> SetColor for PrimitiveMesh<M> {
     fn color_mut(&mut self) -> &mut Option<Color> {
         &mut self.fill_color.get_or_insert_with(Default::default).0
     }
 }
 
-impl From<Vertexless> for Primitive {
-    fn from(prim: Vertexless) -> Self {
+impl <M: Material> From<Vertexless<M>> for Primitive {
+    fn from(prim: Vertexless<M>) -> Self {
         Primitive::MeshVertexless(prim)
     }
 }
 
-impl From<PrimitiveMesh> for Primitive {
-    fn from(prim: PrimitiveMesh) -> Self {
+impl <M: Material> From<PrimitiveMesh<M>> for Primitive {
+    fn from(prim: PrimitiveMesh<M>) -> Self {
         Primitive::Mesh(prim)
     }
 }
 
-impl Into<Option<Vertexless>> for Primitive {
-    fn into(self) -> Option<Vertexless> {
+impl <M: Material> Into<Option<Vertexless<M>>> for Primitive {
+    fn into(self) -> Option<Vertexless<M>> {
         match self {
             Primitive::MeshVertexless(prim) => Some(prim),
             _ => None,
@@ -618,8 +621,8 @@ impl Into<Option<Vertexless>> for Primitive {
     }
 }
 
-impl Into<Option<PrimitiveMesh>> for Primitive {
-    fn into(self) -> Option<PrimitiveMesh> {
+impl <M: Material> Into<Option<PrimitiveMesh<M>>> for Primitive {
+    fn into(self) -> Option<PrimitiveMesh<M>> {
         match self {
             Primitive::Mesh(prim) => Some(prim),
             _ => None,

@@ -26,6 +26,7 @@ fn view(app: &App) {
 
     // Draw a line!
     draw.line()
+        .shader("my_line.wgsl")
         .weight(10.0 + (t.sin() * 0.5 + 0.5) * 90.0)
         .caps_round()
         .color(PALE_GOLDENROD)

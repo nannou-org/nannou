@@ -10,7 +10,12 @@ pub mod color;
 pub mod fill;
 pub mod spatial;
 pub mod stroke;
+<<<<<<< Updated upstream
 pub mod material;
+||||||| Stash base
+=======
+mod material;
+>>>>>>> Stashed changes
 
 pub use self::color::SetColor;
 pub use self::fill::SetFill;

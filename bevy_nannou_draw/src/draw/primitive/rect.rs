@@ -11,8 +11,9 @@ use crate::render::NannouMaterialOptions;
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]
-pub struct Rect {
+pub struct Rect<M :Material> {
     dimensions: dimension::Properties,
+<<<<<<< Updated upstream
     polygon: PolygonInit,
     material: NannouMaterialOptions,
 }
@@ -21,14 +22,19 @@ impl SetMaterial for Rect {
     fn material_mut(&mut self) -> &mut NannouMaterialOptions {
         &mut self.material
     }
+||||||| Stash base
+    polygon: PolygonInit,
+=======
+    polygon: PolygonInit<M>,
+>>>>>>> Stashed changes
 }
 
 /// The drawing context for a Rect.
-pub type DrawingRect<'a> = Drawing<'a, Rect>;
+pub type DrawingRect<'a,M : Material> = Drawing<'a, Rect<M>>;
 
 // Trait implementations.
 
-impl Rect {
+impl <M: Material> Rect<M> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -38,7 +44,7 @@ impl Rect {
     }
 }
 
-impl<'a> DrawingRect<'a> {
+impl<'a, M : Material> DrawingRect<'a, M> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -48,7 +54,7 @@ impl<'a> DrawingRect<'a> {
     }
 }
 
-impl draw::render::RenderPrimitive for Rect {
+impl <M: Material> draw::render::RenderPrimitive for Rect<M> {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
@@ -82,14 +88,14 @@ impl draw::render::RenderPrimitive for Rect {
     }
 }
 
-impl From<geom::Rect<f32>> for Rect {
+impl <M: Material> From<geom::Rect<f32>> for Rect<M> {
     fn from(r: geom::Rect<f32>) -> Self {
         let (x, y, w, h) = r.x_y_w_h();
         Self::default().x_y(x, y).w_h(w, h)
     }
 }
 
-impl Default for Rect {
+impl <M: Material> Default for Rect<M> {
     fn default() -> Self {
         let dimensions = <_>::default();
         let polygon = <_>::default();
@@ -101,37 +107,37 @@ impl Default for Rect {
     }
 }
 
-impl SetOrientation for Rect {
+impl <M: Material> SetOrientation for Rect<M> {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.polygon)
     }
 }
 
-impl SetPosition for Rect {
+impl <M: Material> SetPosition for Rect<M> {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.polygon)
     }
 }
 
-impl SetDimensions for Rect {
+impl <M: Material> SetDimensions for Rect<M> {
     fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.dimensions)
     }
 }
 
-impl SetColor for Rect {
+impl <M: Material> SetColor for Rect<M> {
     fn color_mut(&mut self) -> &mut Option<Color> {
         SetColor::color_mut(&mut self.polygon)
     }
 }
 
-impl SetStroke for Rect {
+impl <M: Material> SetStroke for Rect<M> {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.polygon)
     }
 }
 
-impl SetPolygon for Rect {
+impl <M: Material> SetPolygon for Rect<M> {
     fn polygon_options_mut(&mut self) -> &mut PolygonOptions {
         SetPolygon::polygon_options_mut(&mut self.polygon)
     }
@@ -139,14 +145,14 @@ impl SetPolygon for Rect {
 
 // Primitive conversions.
 
-impl From<Rect> for Primitive {
-    fn from(prim: Rect) -> Self {
+impl <M: Material> From<Rect<M>> for Primitive {
+    fn from(prim: Rect<M>) -> Self {
         Primitive::Rect(prim)
     }
 }
 
-impl Into<Option<Rect>> for Primitive {
-    fn into(self) -> Option<Rect> {
+impl <M: Material> Into<Option<Rect<M>>> for Primitive {
+    fn into(self) -> Option<Rect<M>> {
         match self {
             Primitive::Rect(prim) => Some(prim),
             _ => None,

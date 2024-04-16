@@ -108,10 +108,10 @@ impl<'a, T> Drawing<'a, T> {
     // Map the given function onto the primitive stored within **Draw** at `index`.
     //
     // The functionn is only applied if the node has not yet been **Drawn**.
-    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2>
+    fn map_primitive<F, T2, M : Material>(mut self, map: F) -> Drawing<'a, T2>
     where
-        F: FnOnce(Primitive) -> Primitive,
-        T2: Into<Primitive>,
+        F: FnOnce(Primitive<M>) -> Primitive<M>,
+        T2: Into<Primitive<M>>,
     {
         if let Ok(mut state) = self.draw.state.try_write() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
@@ -165,10 +165,10 @@ impl<'a, T> Drawing<'a, T> {
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2>
+    pub fn map_ty<F, T2, M: Material>(self, map: F) -> Drawing<'a, T2>
     where
         F: FnOnce(T) -> T2,
-        T2: Into<Primitive>,
+        T2: Into<Primitive<M>>,
         Primitive: Into<Option<T>>,
     {
         self.map_primitive(|prim| {
