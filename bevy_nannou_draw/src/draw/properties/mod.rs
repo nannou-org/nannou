@@ -10,6 +10,7 @@ pub mod color;
 pub mod fill;
 pub mod spatial;
 pub mod stroke;
+pub mod material;
 
 pub use self::color::SetColor;
 pub use self::fill::SetFill;

@@ -1,11 +1,13 @@
 use bevy::core::FrameCount;
 use std::ops::{Deref, DerefMut};
+use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::render_resource as wgpu;
+use bevy::render::render_resource::{AsBindGroup, ShaderRef};
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
@@ -28,7 +30,7 @@ impl Plugin for NannouRenderPlugin {
             .add_systems(Update, texture_event_handler)
             .add_systems(
                 Last,
-                (update_background_color, update_draw_mesh),
+                (update_background_color, update_draw_mesh::<"default.wgsl">),
             );
     }
 }
@@ -36,6 +38,21 @@ impl Plugin for NannouRenderPlugin {
 // ----------------------------------------------------------------------------
 // Components and Resources
 // ----------------------------------------------------------------------------
+
+#[derive(Clone, Debug, Default)]
+pub struct NannouMaterialOptions {
+    pub shader: String,
+}
+
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
+pub struct NannouMaterial<const SHADER: &'static str> {}
+
+impl<const SHADER: &'static str> MaterialExtension for NannouMaterial<SHADER> {
+    fn fragment_shader() -> ShaderRef {
+        SHADER.into()
+    }
+}
+
 
 #[derive(Resource, Deref, DerefMut, ExtractResource, Clone)]
 pub struct DefaultTextureHandle(Handle<Image>);
@@ -91,14 +108,13 @@ fn update_background_color(
 }
 
 // Prepare our mesh for rendering
-fn update_draw_mesh(
+fn update_draw_mesh<const SHADER: &'static str>(
     mut commands: Commands,
     mut glyph_cache: ResMut<GlyphCache>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, NannouMaterial<SHADER>>>>,
     draw_q: Query<(&Draw, &Window)>,
-    mut mesh_q: Query<(&Handle<Mesh>, &Handle<StandardMaterial>, &mut Transform), With<NannouMesh>>,
-    mut gizmos: Gizmos,
+    mut mesh_q: Query<(&Handle<Mesh>, &Handle<ExtendedMaterial<StandardMaterial, NannouMaterial<SHADER>>>, &mut Transform), With<NannouMesh>>,
 ) {
     for (draw, window) in &draw_q {
         // TODO: Unclear if we need to track this, or if the physical size is enough.

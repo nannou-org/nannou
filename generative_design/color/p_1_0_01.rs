@@ -31,10 +31,14 @@
 use nannou::prelude::*;
 
 fn main() {
-    nannou::sketch(view).size(720, 720).run();
+    nannou::app(|app| ())
+        .simple_window(view)
+        .init_fragment_shader::<"dissolve.wgsl">()
+        .size(720, 720)
+        .run();
 }
 
-fn view(app: &App) {
+fn view(app: &App, _model: &(), entity: Entity){
     // Prepare to draw.
     let draw = app.draw();
 
@@ -42,6 +46,7 @@ fn view(app: &App) {
     draw.background().hsl(norm_mouse_y, 1.0, 0.5);
 
     draw.rect()
+        .fragment_shader::<"dissolve.wgsl">()
         .w_h(app.mouse().x * 2.0, app.mouse().x * 2.0)
         .hsl(1.0 - (norm_mouse_y), 1.0, 0.5);
 }

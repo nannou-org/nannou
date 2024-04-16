@@ -6,12 +6,21 @@ use crate::draw::{self, Drawing};
 use bevy::prelude::*;
 use lyon::tessellation::StrokeOptions;
 use nannou_core::geom;
+use crate::draw::properties::material::SetMaterial;
+use crate::render::NannouMaterialOptions;
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]
 pub struct Rect {
     dimensions: dimension::Properties,
     polygon: PolygonInit,
+    material: NannouMaterialOptions,
+}
+
+impl SetMaterial for Rect {
+    fn material_mut(&mut self) -> &mut NannouMaterialOptions {
+        &mut self.material
+    }
 }
 
 /// The drawing context for a Rect.
@@ -48,6 +57,7 @@ impl draw::render::RenderPrimitive for Rect {
         let Rect {
             polygon,
             dimensions,
+            material,
         } = self;
 
         // If dimensions were specified, scale the points to those dimensions.
@@ -86,6 +96,7 @@ impl Default for Rect {
         Rect {
             dimensions,
             polygon,
+            material: NannouMaterialOptions::default(),
         }
     }
 }

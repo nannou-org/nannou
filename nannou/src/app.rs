@@ -11,6 +11,7 @@ use bevy::app::AppExit;
 use bevy::core::FrameCount;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
+use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 use std::cell::RefCell;
 use std::future::Future;
 use std::ops::DerefMut;
@@ -20,13 +21,14 @@ use std::time::Duration;
 use std::{self, future};
 
 use bevy::prelude::*;
+use bevy::render::render_resource::{AsBindGroup, ShaderRef};
 use bevy::render::view::screenshot::ScreenshotManager;
 use bevy::window::{PrimaryWindow, WindowMode, WindowResolution};
 use bevy_nannou::{Draw, NannouPlugin};
 use find_folder;
 
-use crate::{geom, window};
 use crate::window::WindowUserFunctions;
+use crate::{geom, window};
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -65,6 +67,7 @@ impl<M> Clone for View<M> {
 
 /// A nannou `App` builder.
 pub struct Builder<M = ()> {
+    app: bevy::app::App,
     model: ModelFn<M>,
     config: Config,
     update: Option<UpdateFn<M>>,
@@ -147,6 +150,7 @@ where
     /// given event and view functions.
     pub fn new(model: ModelFn<M>) -> Self {
         Builder {
+            app: bevy::app::App::new(),
             model,
             config: Config::default(),
             update: None,
@@ -220,11 +224,19 @@ where
         self
     }
 
+    pub fn init_fragment_shader<const SHADER: &'static str>(mut self) -> Self {
+        self.app.add_plugins(MaterialPlugin::<
+            ExtendedMaterial<StandardMaterial, NannouMaterial<SHADER>>,
+        >::default());
+        self
+    }
+
     /// Specify the default window size in points.
     ///
     /// If a window is created and its size is not specified, this size will be used.
-    pub fn size(mut self, width: f32, height: f32) -> Self {
-        self.config.default_window_size = Some(DefaultWindowSize::Logical([width, height]));
+    pub fn size(mut self, width: u32, height: u32) -> Self {
+        self.config.default_window_size =
+            Some(DefaultWindowSize::Logical([width as f32, height as f32]));
         self
     }
 
@@ -241,10 +253,10 @@ where
     /// If you wish to remain cross-platform friendly, we recommend that you call this on the main
     /// thread as some platforms require that their application event loop and windows are
     /// initialised on the main thread.
-    pub fn run(self) {
+    pub fn run(mut self) {
         let create_default_window = self.create_default_window;
 
-        bevy::app::App::new()
+        self.app
             // This ensures that color materials are rendered correctly.
             .insert_resource(AmbientLight {
                 color: Color::WHITE,
@@ -295,7 +307,6 @@ where
                 // implement `Send`. Bevy will ensure that the model is only accessed on the main
                 // thread.
                 world.insert_non_send_resource(model);
-
             })
             .add_systems(Update, |world: &mut World| {
                 // Get our update and view functions. These are just function pointers, so we can
@@ -304,12 +315,19 @@ where
                 let update_fn = world.resource::<UpdateFnRes<M>>().0.clone();
                 let view_fn = world.resource::<ViewFnRes<M>>().0.clone();
 
-                let mut window_q = world.query_filtered::<(Entity, Option<&WindowUserFunctions<M>>), With<Draw>>();
-                let windows = window_q.iter(world)
-                    .map(|(entity, user_fns)| (entity, user_fns.map(|fns| {
-                        let fns = fns.0.clone();
-                        fns
-                    })))
+                let mut window_q =
+                    world.query_filtered::<(Entity, Option<&WindowUserFunctions<M>>), With<Draw>>();
+                let windows = window_q
+                    .iter(world)
+                    .map(|(entity, user_fns)| {
+                        (
+                            entity,
+                            user_fns.map(|fns| {
+                                let fns = fns.0.clone();
+                                fns
+                            }),
+                        )
+                    })
                     .collect::<Vec<_>>();
 
                 // Extract the model from the world, this avoids borrowing issues.
@@ -386,7 +404,7 @@ where
 impl SketchBuilder {
     /// The size of the sketch window.
     pub fn size(mut self, width: u32, height: u32) -> Self {
-        self.builder = self.builder.size(width as f32, height as f32);
+        self.builder = self.builder.size(width, height);
         self
     }
 
