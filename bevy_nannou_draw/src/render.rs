@@ -1,5 +1,5 @@
-use std::ops::{Deref, DerefMut};
 use bevy::pbr::{ExtendedMaterial, MaterialExtension};
+use std::ops::{Deref, DerefMut};
 
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
@@ -11,10 +11,10 @@ use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
 use crate::draw::mesh::MeshExt;
-use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
-use nannou_core::math::map_range;
-use crate::draw::Context;
 use crate::draw::primitive::Primitive;
+use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
+use crate::draw::Context;
+use nannou_core::math::map_range;
 
 pub struct NannouRenderPlugin;
 
@@ -30,8 +30,9 @@ impl Plugin for NannouRenderPlugin {
             .add_systems(Update, texture_event_handler)
             .add_systems(
                 Last,
-                (update_background_color,
-                 // update_draw_mesh::<M>
+                (
+                    update_background_color,
+                    // update_draw_mesh::<M>
                 ),
             );
     }
@@ -63,7 +64,6 @@ impl<const VS: &'static str, const FS: &'static str> MaterialExtension for Nanno
         }
     }
 }
-
 
 #[derive(Resource, Deref, DerefMut, ExtractResource, Clone)]
 pub struct DefaultTextureHandle(Handle<Image>);
@@ -102,16 +102,16 @@ fn setup_default_texture(mut commands: Commands, mut images: ResMut<Assets<Image
 
 fn update_background_color(
     mut cameras_q: Query<(&mut Camera)>,
-    draw_q: Query<(Entity, &BackgroundColor)>,
+    draw_q: Query<(Entity, &crate::draw::BackgroundColor)>,
 ) {
     for (entity, bg_color) in draw_q.iter() {
-            for (mut camera) in cameras_q.iter_mut() {
-                if let RenderTarget::Window(WindowRef::Entity(window_target)) = camera.target {
-                    if window_target == entity {
-                        camera.clear_color = ClearColorConfig::Custom(bg_color.0);
-                    }
+        for (mut camera) in cameras_q.iter_mut() {
+            if let RenderTarget::Window(WindowRef::Entity(window_target)) = camera.target {
+                if window_target == entity {
+                    camera.clear_color = ClearColorConfig::Custom(bg_color.0);
                 }
             }
+        }
     }
 }
 
@@ -220,3 +220,6 @@ fn update_draw_mesh<M: Material>(
 
 #[derive(Component)]
 pub struct NannouMesh;
+
+#[derive(Component)]
+pub struct NannouPersistantMesh;

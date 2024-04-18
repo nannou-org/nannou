@@ -2,13 +2,13 @@ use crate::draw::primitive::Primitive;
 use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
-use crate::draw::{self, Draw};
+use crate::draw::{self, Draw, DrawIndex};
 use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
 use std::marker::PhantomData;
 use bevy::color::palettes::basic::RED;
-use bevy::pbr::{ExtendedMaterial, OpaqueRendererMethod};
+use bevy::pbr::{ExtendedMaterial, MaterialExtension, OpaqueRendererMethod};
 use bevy::render::render_resource::PrimitiveTopology::TriangleList;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 use crate::draw::mesh::MeshExt;
@@ -129,6 +129,10 @@ where
                 .resource_mut::<Assets<Mesh>>()
                 .add(mesh);
 
+            let draw_index = self.draw.world()
+                .entity(self.entity)
+                .get::<DrawIndex>()
+                .unwrap().0;
 
             self.draw.world_mut()
                 .entity_mut(self.entity)
@@ -140,7 +144,7 @@ where
                         transform: Transform::from_translation(Vec3::new(
                             0.0,
                             0.0,
-                            0.0,
+                            0.01 * draw_index as f32
                         )),
                         ..default()
                     },
@@ -184,6 +188,11 @@ where
         //     Err(err) => eprintln!("drawing failed to borrow state and finish: {}", err),
         //     Ok(mut state) => state.finish_drawing(self.entity),
         // }
+    }
+
+    pub fn entity(mut self, entity: Entity) -> Self {
+        self.entity = entity;
+        self
     }
 
     /// Complete the drawing and insert it into the parent **Draw** instance.
@@ -842,4 +851,30 @@ impl<'a, 'w, T, M> Drawing<'a, 'w, T, M>
         Primitive: Into<Option<T>>,
 {
 
+}
+
+impl<'a, 'w, T, M> Drawing<'a, 'w, T, ExtendedMaterial<StandardMaterial, M>>
+    where
+        T: Into<Primitive> + Clone,
+        M: MaterialExtension + Default,
+{
+    pub fn roughness(mut self, roughness: f32) -> Self {
+        self.material.base.perceptual_roughness = roughness;
+        self
+    }
+
+    pub fn metallic(mut self, metallic: f32) -> Self {
+        self.material.base.metallic = metallic;
+        self
+    }
+
+    pub fn base_color(mut self, color: Color) -> Self {
+        self.material.base.base_color = color;
+        self
+    }
+
+    pub fn emissive(mut self, color: Color) -> Self {
+        self.material.base.emissive = color;
+        self
+    }
 }

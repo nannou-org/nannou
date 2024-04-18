@@ -5,7 +5,9 @@
 
 use std::fmt;
 use std::path::PathBuf;
+use bevy::core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings};
 use bevy::core_pipeline::prepass::NormalPrepass;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
@@ -379,7 +381,6 @@ where
         }
 
         self.app.world_mut().spawn((
-            NormalPrepass,
             Camera3dBundle {
                 camera: Camera {
                     // TODO: configure in builder
@@ -401,6 +402,31 @@ where
             },
             NannouCamera,
         ));
+
+        self.app.world_mut().spawn((
+            Camera3dBundle {
+                camera: Camera {
+                    // TODO: configure in builder
+                    hdr: true,
+                    target: RenderTarget::Window(WindowRef::Entity(entity)),
+                    clear_color: ClearColorConfig::None,
+                    order: 2,
+                    ..Default::default()
+                },
+                tonemapping: Tonemapping::TonyMcMapface, // 2. Using a tonemapper that desaturates to white is recommended
+                transform: Transform::from_xyz(0.0, 0.0, 10.0)
+                    .looking_at(Vec3::ZERO, Vec3::Y),
+                projection: OrthographicProjection {
+                    ..Default::default()
+                }
+                    .into(),
+                ..Default::default()
+            },
+
+            BloomSettings::OLD_SCHOOL,
+            NannouCamera,
+        ));
+
         entity
     }
 

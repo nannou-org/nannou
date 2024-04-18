@@ -30,7 +30,7 @@ use bevy_nannou::prelude::draw::Draw;
 
 use crate::window::WindowUserFunctions;
 use crate::{geom, window};
-use crate::prelude::render::{NannouMaterial, NannouMesh};
+use crate::prelude::render::{NannouMaterial, NannouMesh, NannouPersistantMesh};
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -282,6 +282,12 @@ where
             .add_systems(Startup, move |world: &mut World| {
                 let default_window_size = world.resource::<Config>().default_window_size.clone();
                 let model_fn = world.resource::<ModelFnRes<M>>().0.clone();
+                world.spawn(
+                    DirectionalLightBundle {
+                        transform: Transform::from_xyz(1.0, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+                        ..Default::default()
+                    }
+                );
 
                 let mut app = App::new(world);
                 // Create our default window if necessary
@@ -315,7 +321,7 @@ where
             .add_systems(First, |
                 mut commands: Commands,
                 bg_color_q: Query<Entity, With<BackgroundColor>>,
-                meshes_q: Query<Entity, With<NannouMesh>>| {
+                meshes_q: Query<Entity, (With<NannouMesh>, Without<NannouPersistantMesh>)>| {
                 for entity in meshes_q.iter() {
                     commands.entity(entity).despawn_recursive();
                 }
@@ -323,78 +329,7 @@ where
                     commands.entity(entity).despawn_recursive();
                 }
             })
-            .add_systems(Update, |world: &mut World| {
-                // Get our update and view functions. These are just function pointers, so we can
-                // clone them to avoid borrowing issues with app which contains a mutable reference
-                // to the world.
-                let update_fn = world.resource::<UpdateFnRes<M>>().0.clone();
-                let view_fn = world.resource::<ViewFnRes<M>>().0.clone();
-
-                let mut window_q =
-                    world.query::<(Entity, Option<&WindowUserFunctions<M>>)>();
-                let windows = window_q
-                    .iter(world)
-                    .map(|(entity, user_fns)| {
-                        (
-                            entity,
-                            user_fns.map(|fns| {
-                                let fns = fns.0.clone();
-                                fns
-                            }),
-                        )
-                    })
-                    .collect::<Vec<_>>();
-
-                // Extract the model from the world, this avoids borrowing issues.
-                let mut model = world
-                    .remove_non_send_resource::<M>()
-                    .expect("Model not found");
-
-                // Create a new app instance for each frame that wraps the world.
-                let mut app = App::new(world);
-
-                // Run the model update function.
-                if let Some(update_fn) = update_fn {
-                    update_fn(&app, &mut model);
-                }
-
-                // Run the view function for each window's draw.
-                for (entity, user_fns) in windows {
-                    // Makes sure we return the correct draw component
-                    app.current_view = Some(entity);
-
-                    // Run user fns
-                    if let Some(user_fns) = user_fns {
-                        if let Some(view) = &user_fns.view {
-                            match view {
-                                window::View::WithModel(view_fn) => {
-                                    view_fn(&app, &model);
-                                }
-                                window::View::Sketch(view_fn) => {
-                                    view_fn(&app);
-                                }
-                            }
-                        } else {
-                            if let Some(view) = view_fn.as_ref() {
-                                match view {
-                                    View::WithModel(view_fn) => {
-                                        view_fn(&app, &mut model, entity);
-                                    }
-                                    View::Sketch(view_fn) => {
-                                        view_fn(&app);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Don't use `app` after this point.
-                drop(app);
-
-                // Re-insert the model for the next frame.
-                world.insert_non_send_resource(model);
-            })
+            .add_systems(Update, update::<M>)
             .add_systems(Last, |world: &mut World| {
                 let exit_events = world.resource::<Events<AppExit>>();
                 let reader = exit_events.get_reader();
@@ -414,6 +349,80 @@ where
             })
             .run()
     }
+}
+
+fn update<M: 'static>(world: &mut World) {
+        // Get our update and view functions. These are just function pointers, so we can
+        // clone them to avoid borrowing issues with app which contains a mutable reference
+        // to the world.
+
+        let update_fn = world.resource::<UpdateFnRes<M>>().0.clone();
+        let view_fn = world.resource::<ViewFnRes<M>>().0.clone();
+
+        let mut window_q =
+            world.query::<(Entity, Option<&WindowUserFunctions<M>>)>();
+        let windows = window_q
+            .iter(world)
+            .map(|(entity, user_fns)| {
+                (
+                    entity,
+                    user_fns.map(|fns| {
+                        let fns = fns.0.clone();
+                        fns
+                    }),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        // Extract the model from the world, this avoids borrowing issues.
+        let mut model = world
+            .remove_non_send_resource::<M>()
+            .expect("Model not found");
+
+        // Create a new app instance for each frame that wraps the world.
+        let mut app = App::new(world);
+
+        // Run the model update function.
+        if let Some(update_fn) = update_fn {
+            update_fn(&app, &mut model);
+        }
+
+        // Run the view function for each window's draw.
+        for (entity, user_fns) in windows {
+            // Makes sure we return the correct draw component
+            app.current_view = Some(entity);
+
+            // Run user fns
+            if let Some(user_fns) = user_fns {
+                if let Some(view) = &user_fns.view {
+                    match view {
+                        window::View::WithModel(view_fn) => {
+                            view_fn(&app, &model);
+                        }
+                        window::View::Sketch(view_fn) => {
+                            view_fn(&app);
+                        }
+                    }
+                } else {
+                    if let Some(view) = view_fn.as_ref() {
+                        match view {
+                            View::WithModel(view_fn) => {
+                                view_fn(&app, &mut model, entity);
+                            }
+                            View::Sketch(view_fn) => {
+                                view_fn(&app);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Don't use `app` after this point.
+        drop(app);
+
+        // Re-insert the model for the next frame.
+        world.insert_non_send_resource(model);
 }
 
 impl SketchBuilder {
@@ -460,6 +469,12 @@ impl Default for Config {
 impl<'w> App<'w> {
     pub const DEFAULT_EXIT_ON_ESCAPE: bool = true;
     pub const DEFAULT_FULLSCREEN_ON_SHORTCUT: bool = true;
+
+    // Allocate a persistent entity
+    pub fn entity(&self) -> Entity {
+        let mut world = self.world_mut();
+        world.spawn((NannouPersistantMesh,)).id()
+    }
 
     pub fn mouse(&self) -> Vec2 {
         let window = self.window_id();

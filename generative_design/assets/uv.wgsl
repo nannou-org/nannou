@@ -15,10 +15,7 @@ STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    let r = perlinNoise2(in.uv * globals.time + vec2f(globals.time, globals.time), 1.0, 2.0);
-    let g = perlinNoise2(in.uv * globals.time + vec2f(globals.time, 2.0), 3.0, 2.0);
-    let b = perlinNoise2(in.uv * globals.time + vec2f(3.0, globals.time / 10.0), 5.0, 2.0);
-    return vec4<f32>(r, g, b, 1.0) * in.color;
+    return vec4<f32>(in.uv, 0.0, 1.0) * in.color;
 }
 
 

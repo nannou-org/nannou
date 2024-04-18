@@ -408,6 +408,7 @@ where
             context,
             world: self.world.clone(),
             _material: PhantomData,
+            window: self.window,
         }
     }
 
