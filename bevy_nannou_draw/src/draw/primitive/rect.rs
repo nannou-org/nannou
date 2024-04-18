@@ -6,29 +6,20 @@ use crate::draw::{self, Drawing};
 use bevy::prelude::*;
 use lyon::tessellation::StrokeOptions;
 use nannou_core::geom;
-use crate::draw::properties::material::SetMaterial;
-use crate::render::NannouMaterialOptions;
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]
-pub struct Rect<M :Material> {
+pub struct Rect {
     dimensions: dimension::Properties,
-    polygon: PolygonInit<M>,
-    material: M
-}
-
-impl <M: Material> SetMaterial<M> for Rect<M> {
-    fn material_mut(&mut self) -> &mut M {
-        &mut self.material
-    }
+    polygon: PolygonInit,
 }
 
 /// The drawing context for a Rect.
-pub type DrawingRect<'a,M : Material> = Drawing<'a, Rect<M>>;
+pub type DrawingRect<'a, 'w, M> = Drawing<'a, 'w, Rect, M>;
 
 // Trait implementations.
 
-impl <M: Material> Rect<M> {
+impl Rect {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -38,7 +29,9 @@ impl <M: Material> Rect<M> {
     }
 }
 
-impl<'a, M : Material> DrawingRect<'a, M> {
+impl<'a, 'w, M> DrawingRect<'a, 'w, M>
+    where M: Material + Default
+{
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -48,7 +41,7 @@ impl<'a, M : Material> DrawingRect<'a, M> {
     }
 }
 
-impl <M: Material> draw::render::RenderPrimitive for Rect<M> {
+impl draw::render::RenderPrimitive for Rect {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
@@ -57,7 +50,6 @@ impl <M: Material> draw::render::RenderPrimitive for Rect<M> {
         let Rect {
             polygon,
             dimensions,
-            material,
         } = self;
 
         // If dimensions were specified, scale the points to those dimensions.
@@ -82,56 +74,55 @@ impl <M: Material> draw::render::RenderPrimitive for Rect<M> {
     }
 }
 
-impl <M: Material> From<geom::Rect<f32>> for Rect<M> {
+impl From<geom::Rect<f32>> for Rect {
     fn from(r: geom::Rect<f32>) -> Self {
         let (x, y, w, h) = r.x_y_w_h();
         Self::default().x_y(x, y).w_h(w, h)
     }
 }
 
-impl <M: Material> Default for Rect<M> {
+impl Default for Rect {
     fn default() -> Self {
         let dimensions = <_>::default();
         let polygon = <_>::default();
         Rect {
             dimensions,
             polygon,
-            material: NannouMaterialOptions::default(),
         }
     }
 }
 
-impl <M: Material> SetOrientation for Rect<M> {
+impl SetOrientation for Rect {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.polygon)
     }
 }
 
-impl <M: Material> SetPosition for Rect<M> {
+impl SetPosition for Rect {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.polygon)
     }
 }
 
-impl <M: Material> SetDimensions for Rect<M> {
+impl SetDimensions for Rect {
     fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.dimensions)
     }
 }
 
-impl <M: Material> SetColor for Rect<M> {
+impl SetColor for Rect {
     fn color_mut(&mut self) -> &mut Option<Color> {
         SetColor::color_mut(&mut self.polygon)
     }
 }
 
-impl <M: Material> SetStroke for Rect<M> {
+impl SetStroke for Rect {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.polygon)
     }
 }
 
-impl <M: Material> SetPolygon for Rect<M> {
+impl SetPolygon for Rect {
     fn polygon_options_mut(&mut self) -> &mut PolygonOptions {
         SetPolygon::polygon_options_mut(&mut self.polygon)
     }
@@ -139,14 +130,14 @@ impl <M: Material> SetPolygon for Rect<M> {
 
 // Primitive conversions.
 
-impl <M: Material> From<Rect<M>> for Primitive {
-    fn from(prim: Rect<M>) -> Self {
+impl From<Rect> for Primitive {
+    fn from(prim: Rect) -> Self {
         Primitive::Rect(prim)
     }
 }
 
-impl <M: Material> Into<Option<Rect<M>>> for Primitive {
-    fn into(self) -> Option<Rect<M>> {
+impl Into<Option<Rect>> for Primitive {
+    fn into(self) -> Option<Rect> {
         match self {
             Primitive::Rect(prim) => Some(prim),
             _ => None,

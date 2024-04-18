@@ -33,20 +33,24 @@ use nannou::prelude::*;
 fn main() {
     nannou::app(|app| ())
         .simple_window(view)
-        .init_fragment_shader::<"dissolve.wgsl">()
+        .init_fragment_shader::<"noise.wgsl">()
         .size(720, 720)
         .run();
 }
 
 fn view(app: &App, _model: &(), entity: Entity){
-    // Prepare to draw.
     let draw = app.draw();
 
     let norm_mouse_y = (app.mouse().y / app.window_rect().h()) + 0.5;
     draw.background().hsl(norm_mouse_y, 1.0, 0.5);
 
     draw.rect()
-        .fragment_shader::<"dissolve.wgsl">()
+        .fragment_shader::<"noise.wgsl">()
+        .w_h(app.mouse().x * 2.5, app.mouse().x * 2.5)
+        .hsl(1.0 - (norm_mouse_y), 1.0, 0.5);
+
+    draw.rect()
+        .fragment_shader::<"noise.wgsl">()
         .w_h(app.mouse().x * 2.0, app.mouse().x * 2.0)
         .hsl(1.0 - (norm_mouse_y), 1.0, 0.5);
 }

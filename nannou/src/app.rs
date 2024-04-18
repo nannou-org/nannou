@@ -24,11 +24,13 @@ use bevy::prelude::*;
 use bevy::render::render_resource::{AsBindGroup, ShaderRef};
 use bevy::render::view::screenshot::ScreenshotManager;
 use bevy::window::{PrimaryWindow, WindowMode, WindowResolution};
-use bevy_nannou::{Draw, NannouPlugin};
+use bevy_nannou::{NannouPlugin};
 use find_folder;
+use bevy_nannou::prelude::draw::Draw;
 
 use crate::window::WindowUserFunctions;
 use crate::{geom, window};
+use crate::prelude::render::{NannouMaterial, NannouMesh};
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -47,15 +49,6 @@ pub type SketchViewFn = fn(&App);
 
 /// The user function type allowing them to consume the `model` when the application exits.
 pub type ExitFn<Model> = fn(&App, Model);
-
-#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
-struct NannouMaterial<const SHADER: &'static str> {}
-
-impl<const SHADER: &'static str> MaterialExtension for NannouMaterial<SHADER> {
-    fn fragment_shader() -> ShaderRef {
-        SHADER.into()
-    }
-}
 
 /// The **App**'s view function.
 enum View<Model = ()> {
@@ -158,8 +151,18 @@ where
     /// The Model that is returned by the function is the same model that will be passed to the
     /// given event and view functions.
     pub fn new(model: ModelFn<M>) -> Self {
+        let mut app = bevy::app::App::new();
+        app.add_plugins((
+            DefaultPlugins.set(WindowPlugin {
+                // Don't spawn a  window by default, we'll handle this ourselves
+                primary_window: None,
+                ..default()
+            }),
+            NannouPlugin,
+        ));
+
         Builder {
-            app: bevy::app::App::new(),
+            app,
             model,
             config: Config::default(),
             update: None,
@@ -235,7 +238,7 @@ where
 
     pub fn init_fragment_shader<const SHADER: &'static str>(mut self) -> Self {
         self.app.add_plugins(MaterialPlugin::<
-            ExtendedMaterial<StandardMaterial, NannouMaterial<SHADER>>,
+            ExtendedMaterial<StandardMaterial, NannouMaterial<"", SHADER>>,
         >::default());
         self
     }
@@ -276,14 +279,6 @@ where
             .insert_resource(UpdateFnRes(self.update))
             .insert_resource(ViewFnRes(self.default_view))
             .insert_resource(ExitFnRes(self.exit))
-            .add_plugins((
-                DefaultPlugins.set(WindowPlugin {
-                    // Don't spawn a  window by default, we'll handle this ourselves
-                    primary_window: None,
-                    ..default()
-                }),
-                NannouPlugin,
-            ))
             .add_systems(Startup, move |world: &mut World| {
                 let default_window_size = world.resource::<Config>().default_window_size.clone();
                 let model_fn = world.resource::<ModelFnRes<M>>().0.clone();
@@ -317,6 +312,17 @@ where
                 // thread.
                 world.insert_non_send_resource(model);
             })
+            .add_systems(First, |
+                mut commands: Commands,
+                bg_color_q: Query<Entity, With<BackgroundColor>>,
+                meshes_q: Query<Entity, With<NannouMesh>>| {
+                for entity in meshes_q.iter() {
+                    commands.entity(entity).despawn_recursive();
+                }
+                for entity in bg_color_q.iter() {
+                    commands.entity(entity).despawn_recursive();
+                }
+            })
             .add_systems(Update, |world: &mut World| {
                 // Get our update and view functions. These are just function pointers, so we can
                 // clone them to avoid borrowing issues with app which contains a mutable reference
@@ -325,7 +331,7 @@ where
                 let view_fn = world.resource::<ViewFnRes<M>>().0.clone();
 
                 let mut window_q =
-                    world.query_filtered::<(Entity, Option<&WindowUserFunctions<M>>), With<Draw>>();
+                    world.query::<(Entity, Option<&WindowUserFunctions<M>>)>();
                 let windows = window_q
                     .iter(world)
                     .map(|(entity, user_fns)| {
@@ -632,23 +638,12 @@ impl<'w> App<'w> {
     }
 
     /// Produce the [App]'s [Draw] API for drawing geometry and text with colors and textures.
-    pub fn draw(&self) -> Draw {
-        let window = self.current_view.unwrap_or_else(|| self.main_window());
-        let draw = self
-            .world()
-            .entity(window)
-            .get::<Draw>()
-            .expect("Window does not contain Draw");
-        draw.clone()
+    pub fn draw(&self) -> Draw<'w> {
+        Draw::new(self.world.clone(), self.current_view.unwrap())
     }
 
-    pub fn draw_for_window(&self, window: Entity) -> Draw {
-        let draw = self
-            .world()
-            .entity(window)
-            .get::<Draw>()
-            .expect("Window does not contain Draw");
-        draw.clone()
+    pub fn draw_for_window(&self, window: Entity) -> Draw<'w> {
+        Draw::new(self.world.clone(), self.current_view.unwrap())
     }
 
     /// The number of times the focused window's **view** function has been called since the start

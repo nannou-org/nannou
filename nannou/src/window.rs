@@ -5,6 +5,7 @@
 
 use std::fmt;
 use std::path::PathBuf;
+use bevy::core_pipeline::prepass::NormalPrepass;
 
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
@@ -378,6 +379,7 @@ where
         }
 
         self.app.world_mut().spawn((
+            NormalPrepass,
             Camera3dBundle {
                 camera: Camera {
                     // TODO: configure in builder

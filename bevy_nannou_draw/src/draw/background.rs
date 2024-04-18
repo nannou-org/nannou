@@ -1,17 +1,23 @@
 use crate::draw::Draw;
-use bevy::prelude::Color;
+use bevy::prelude::{Color, Material};
 
 /// A type used to update the background colour.
-pub struct Background<'a> {
-    draw: &'a Draw,
+pub struct Background<'a, 'w, M>
+    where M: Material + Default
+{
+    draw: &'a Draw<'w, M>,
 }
 
 /// Begin coloring the background.
-pub fn new<'a>(draw: &'a Draw) -> Background<'a> {
+pub fn new<'a, 'w, M>(draw: &'a Draw<'w, M>) -> Background<'a, 'w, M>
+    where M: Material + Default
+{
     Background { draw }
 }
 
-impl<'a> Background<'a> {
+impl<'a, 'w, M> Background<'a, 'w, M>
+    where M: Material + Default
+{
     /// Clear the background with the given color.
     ///
     /// This method supports any color type that can be converted into RGBA.

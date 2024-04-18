@@ -10,7 +10,6 @@ pub mod text;
 pub mod texture;
 pub mod tri;
 
-use bevy::pbr::Material;
 pub use self::arrow::Arrow;
 pub use self::ellipse::Ellipse;
 pub use self::line::Line;
@@ -22,7 +21,7 @@ pub use self::rect::Rect;
 pub use self::text::Text;
 pub use self::texture::Texture;
 pub use self::tri::Tri;
-use bevy::prelude::{Color, StandardMaterial};
+use bevy::prelude::{Color, Component};
 use nannou_core::geom::{Vec2, Vec3};
 
 type Vertex = (Vec3, Color, Vec2);
@@ -32,22 +31,22 @@ type Vertex = (Vec3, Color, Vec2);
 ///
 /// This also allows us to flush all pending drawings to the mesh if `Draw::to_frame` is called
 /// before their respective **Drawing** types are dropped.
-#[derive(Clone, Debug)]
-pub enum Primitive<M: Material = StandardMaterial> {
-    Arrow(Arrow<M>),
-    Ellipse(Ellipse<M>),
-    Line(Line<M>),
-    MeshVertexless(mesh::Vertexless<M>),
-    Mesh(PrimitiveMesh<M>),
-    PathInit(PathInit<M>),
-    PathFill(PathFill<M>),
-    PathStroke(PathStroke<M>),
-    Path(Path<M>),
-    PolygonInit(PolygonInit<M>),
-    Polygon(Polygon<M>),
-    Quad(Quad<M>),
-    Rect(Rect<M>),
-    Text(Text<M>),
-    Texture(Texture<M>),
-    Tri(Tri<M>),
+#[derive(Component, Clone, Debug)]
+pub enum Primitive {
+    Arrow(Arrow),
+    Ellipse(Ellipse),
+    Line(Line),
+    MeshVertexless(mesh::Vertexless),
+    Mesh(PrimitiveMesh),
+    PathInit(PathInit),
+    PathFill(PathFill),
+    PathStroke(PathStroke),
+    Path(Path),
+    PolygonInit(PolygonInit),
+    Polygon(Polygon),
+    Quad(Quad),
+    Rect(Rect),
+    Text(Text),
+    Texture(Texture),
+    Tri(Tri),
 }

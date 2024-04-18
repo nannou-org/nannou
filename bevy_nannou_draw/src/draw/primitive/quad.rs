@@ -11,18 +11,18 @@ use nannou_core::geom;
 
 /// Properties related to drawing a **Quad**.
 #[derive(Clone, Debug)]
-pub struct Quad<M : Material> {
+pub struct Quad {
     quad: geom::Quad<Vec2>,
-    polygon: PolygonInit<M>,
+    polygon: PolygonInit,
     dimensions: spatial::dimension::Properties,
 }
 
 /// The drawing context for a `Quad`.
-pub type DrawingQuad<'a, M: Material> = Drawing<'a, Quad<M>>;
+pub type DrawingQuad<'a, 'w, M> = Drawing<'a, 'w, Quad, M>;
 
 // Quad-specific methods.
 
-impl <M : Material> Quad<M> {
+impl Quad {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -46,7 +46,7 @@ impl <M : Material> Quad<M> {
 }
 
 // Trait implementations.
-impl <M: Material> draw::render::RenderPrimitive for Quad<M> {
+impl draw::render::RenderPrimitive for Quad {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
@@ -88,7 +88,7 @@ impl <M: Material> draw::render::RenderPrimitive for Quad<M> {
     }
 }
 
-impl <M: Material> From<geom::Quad<Vec2>> for Quad<M> {
+impl From<geom::Quad<Vec2>> for Quad {
     fn from(quad: geom::Quad<Vec2>) -> Self {
         let polygon = Default::default();
         let dimensions = Default::default();
@@ -100,7 +100,7 @@ impl <M: Material> From<geom::Quad<Vec2>> for Quad<M> {
     }
 }
 
-impl <M: Material> Default for Quad<M> {
+impl Default for Quad {
     fn default() -> Self {
         // Create a quad pointing towards 0.0 radians.
         let fifty = 50.0;
@@ -116,37 +116,37 @@ impl <M: Material> Default for Quad<M> {
     }
 }
 
-impl <M: Material> SetOrientation for Quad<M> {
+impl SetOrientation for Quad {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.polygon)
     }
 }
 
-impl <M: Material> SetPosition for Quad<M> {
+impl SetPosition for Quad {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.polygon)
     }
 }
 
-impl <M: Material> SetDimensions for Quad<M> {
+impl SetDimensions for Quad {
     fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.dimensions)
     }
 }
 
-impl <M: Material> SetColor for Quad<M> {
+impl SetColor for Quad {
     fn color_mut(&mut self) -> &mut Option<Color> {
         SetColor::color_mut(&mut self.polygon)
     }
 }
 
-impl <M: Material> SetStroke for Quad<M> {
+impl SetStroke for Quad {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.polygon)
     }
 }
 
-impl <M: Material> SetPolygon for Quad<M> {
+impl SetPolygon for Quad {
     fn polygon_options_mut(&mut self) -> &mut PolygonOptions {
         SetPolygon::polygon_options_mut(&mut self.polygon)
     }
@@ -154,14 +154,14 @@ impl <M: Material> SetPolygon for Quad<M> {
 
 // Primitive conversions.
 
-impl <M : Material> From<Quad<M>> for Primitive {
-    fn from(prim: Quad<M>) -> Self {
+impl From<Quad> for Primitive {
+    fn from(prim: Quad) -> Self {
         Primitive::Quad(prim)
     }
 }
 
-impl <M: Material> Into<Option<Quad<M>>> for Primitive {
-    fn into(self) -> Option<Quad<M>> {
+impl Into<Option<Quad>> for Primitive {
+    fn into(self) -> Option<Quad> {
         match self {
             Primitive::Quad(prim) => Some(prim),
             _ => None,
@@ -171,7 +171,9 @@ impl <M: Material> Into<Option<Quad<M>>> for Primitive {
 
 // Drawing methods.
 
-impl<'a, M: Material> DrawingQuad<'a, M> {
+impl<'a, 'w, M> DrawingQuad<'a, 'w, M>
+    where M: Material + Default
+{
     /// Use the given points as the vertices (corners) of the quad.
     pub fn points<P>(self, a: P, b: P, c: P, d: P) -> Self
     where

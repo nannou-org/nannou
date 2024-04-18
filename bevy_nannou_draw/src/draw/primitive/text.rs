@@ -10,12 +10,11 @@ use nannou_core::geom;
 
 /// Properties related to drawing the **Text** primitive.
 #[derive(Clone, Debug)]
-pub struct Text<M: Material> {
+pub struct Text {
     spatial: spatial::Properties,
     style: Style,
     // The byte range into the `Draw` context's text buffer.
     text: std::ops::Range<usize>,
-    material: M,
 }
 
 /// Styling properties for the **Text** primitive.
@@ -27,9 +26,9 @@ pub struct Style {
 }
 
 /// The drawing context for the **Text** primitive.
-pub type DrawingText<'a,M :Material> = Drawing<'a, Text<M>>;
+pub type DrawingText<'a, 'w, M> = Drawing<'a, 'w, Text, M>;
 
-impl <M: Material> Text<M> {
+impl Text {
     /// Begin drawing some text.
     pub fn new(ctxt: DrawingContext, text: &str) -> Self {
         let start = ctxt.text_buffer.len();
@@ -158,7 +157,9 @@ impl <M: Material> Text<M> {
     }
 }
 
-impl<'a, M: Material> DrawingText<'a, M> {
+impl<'a, 'w, M> DrawingText<'a, 'w, M>
+    where M: Material + Default
+{
     /// The font size to use for the text.
     pub fn font_size(self, size: text::FontSize) -> Self {
         self.map_ty(|ty| ty.font_size(size))
@@ -256,7 +257,7 @@ impl<'a, M: Material> DrawingText<'a, M> {
     }
 }
 
-impl <M: Material> draw::render::RenderPrimitive for Text<M> {
+impl draw::render::RenderPrimitive for Text {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
@@ -266,7 +267,6 @@ impl <M: Material> draw::render::RenderPrimitive for Text<M> {
             spatial,
             style,
             text,
-            material,
         } = self;
         let Style {
             color,
@@ -416,25 +416,25 @@ impl <M: Material> draw::render::RenderPrimitive for Text<M> {
     }
 }
 
-impl <M: Material> SetOrientation for Text<M> {
+impl SetOrientation for Text {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.spatial)
     }
 }
 
-impl <M: Material> SetPosition for Text<M> {
+impl SetPosition for Text {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.spatial)
     }
 }
 
-impl <M: Material> SetDimensions for Text<M> {
+impl SetDimensions for Text {
     fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.spatial)
     }
 }
 
-impl <M: Material> SetColor for Text<M> {
+impl SetColor for Text {
     fn color_mut(&mut self) -> &mut Option<Color> {
         SetColor::color_mut(&mut self.style.color)
     }
@@ -442,14 +442,14 @@ impl <M: Material> SetColor for Text<M> {
 
 // Primitive conversions.
 
-impl <M: Material> From<Text<M>> for Primitive {
-    fn from(prim: Text<M>) -> Self {
+impl From<Text> for Primitive {
+    fn from(prim: Text) -> Self {
         Primitive::Text(prim)
     }
 }
 
-impl <M: Material> Into<Option<Text<M>>> for Primitive {
-    fn into(self) -> Option<Text<M>> {
+impl Into<Option<Text>> for Primitive {
+    fn into(self) -> Option<Text> {
         match self {
             Primitive::Text(prim) => Some(prim),
             _ => None,

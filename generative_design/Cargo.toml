@@ -240,3 +240,6 @@ path = "dynamic_data_structure/m_6_1_03.rs"
 [[example]]
 name = "m_6_2_01"
 path = "dynamic_data_structure/m_6_2_01.rs"
+
+[dependencies]
+bevy_shader_utils = "0.7.0"

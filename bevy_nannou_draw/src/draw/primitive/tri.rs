@@ -9,18 +9,18 @@ use nannou_core::geom;
 
 /// Properties related to drawing a **Tri**.
 #[derive(Clone, Debug)]
-pub struct Tri<M: Material> {
+pub struct Tri {
     tri: geom::Tri<Vec2>,
     dimensions: dimension::Properties,
-    polygon: PolygonInit<M>,
+    polygon: PolygonInit,
 }
 
 /// The drawing context for a `Tri`.
-pub type DrawingTri<'a, M: Material> = Drawing<'a, Tri<M>>;
+pub type DrawingTri<'a, 'w, M> = Drawing<'a, 'w, Tri, M>;
 
 // Tri-specific methods.
 
-impl <M: Material> Tri<M> {
+impl Tri {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -44,7 +44,9 @@ impl <M: Material> Tri<M> {
 
 // Drawing methods.
 
-impl<'a, M: Material> DrawingTri<'a, M> {
+impl<'a, 'w, M> DrawingTri<'a, 'w, M>
+    where M: Material + Default
+{
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -64,7 +66,7 @@ impl<'a, M: Material> DrawingTri<'a, M> {
 
 // Trait implementations.
 
-impl <M: Material> draw::render::RenderPrimitive for Tri<M> {
+impl draw::render::RenderPrimitive for Tri {
     fn render_primitive(
         self,
         ctxt: draw::render::RenderContext,
@@ -103,7 +105,7 @@ impl <M: Material> draw::render::RenderPrimitive for Tri<M> {
     }
 }
 
-impl <M: Material> From<geom::Tri<Vec2>> for Tri<M> {
+impl From<geom::Tri<Vec2>> for Tri {
     fn from(tri: geom::Tri<Vec2>) -> Self {
         let dimensions = <_>::default();
         let polygon = <_>::default();
@@ -115,7 +117,7 @@ impl <M: Material> From<geom::Tri<Vec2>> for Tri<M> {
     }
 }
 
-impl <M: Material> Default for Tri<M> {
+impl Default for Tri {
     fn default() -> Self {
         // Create a triangle pointing towards 0.0 radians.
         let fifty = 50.0;
@@ -127,37 +129,37 @@ impl <M: Material> Default for Tri<M> {
     }
 }
 
-impl <M: Material> SetOrientation for Tri<M> {
+impl SetOrientation for Tri {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.polygon)
     }
 }
 
-impl <M: Material> SetPosition for Tri<M> {
+impl SetPosition for Tri {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.polygon)
     }
 }
 
-impl <M: Material> SetDimensions for Tri<M> {
+impl SetDimensions for Tri {
     fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.dimensions)
     }
 }
 
-impl <M: Material> SetColor for Tri<M> {
+impl SetColor for Tri {
     fn color_mut(&mut self) -> &mut Option<Color> {
         SetColor::color_mut(&mut self.polygon)
     }
 }
 
-impl <M: Material> SetStroke for Tri<M> {
+impl SetStroke for Tri {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         SetStroke::stroke_options_mut(&mut self.polygon)
     }
 }
 
-impl <M: Material> SetPolygon for Tri<M> {
+impl SetPolygon for Tri {
     fn polygon_options_mut(&mut self) -> &mut PolygonOptions {
         SetPolygon::polygon_options_mut(&mut self.polygon)
     }
@@ -165,14 +167,14 @@ impl <M: Material> SetPolygon for Tri<M> {
 
 // Primitive conversions.
 
-impl <M: Material> From<Tri<M>> for Primitive {
-    fn from(prim: Tri<M>) -> Self {
+impl From<Tri> for Primitive {
+    fn from(prim: Tri) -> Self {
         Primitive::Tri(prim)
     }
 }
 
-impl <M: Material> Into<Option<Tri<M>>> for Primitive {
-    fn into(self) -> Option<Tri<M>> {
+impl Into<Option<Tri>> for Primitive {
+    fn into(self) -> Option<Tri> {
         match self {
             Primitive::Tri(prim) => Some(prim),
             _ => None,

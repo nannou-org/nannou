@@ -3,11 +3,10 @@ use bevy::prelude::*;
 pub mod prelude {
     pub use bevy::prelude::*;
     pub use bevy::color::palettes::css::*;
+    pub use bevy_nannou_draw::*;
 }
 
 pub struct NannouPlugin;
-
-pub use bevy_nannou_draw::Draw;
 
 impl Plugin for NannouPlugin {
     fn build(&self, app: &mut App) {

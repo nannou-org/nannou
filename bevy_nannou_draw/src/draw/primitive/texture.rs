@@ -8,19 +8,18 @@ use nannou_core::geom;
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]
-pub struct Texture<M :Material> {
+pub struct Texture {
     texture_handle: Handle<Image>,
     spatial: spatial::Properties,
     area: geom::Rect,
-    material: M,
 }
 
 /// The drawing context for a Rect.
-pub type DrawingTexture<'a, M: Material> = Drawing<'a, Texture<M>>;
+pub type DrawingTexture<'a, 'w, M> = Drawing<'a, 'w, Texture, M>;
 
 // Trait implementations.
 
-impl <M: Material> Texture<M> {
+impl Texture {
     pub(crate) fn new(texture_handle: Handle<Image>, texture: Image) -> Self {
         let w = texture.width() as f32;
         let h = texture.height() as f32;
@@ -42,7 +41,7 @@ impl <M: Material> Texture<M> {
     }
 }
 
-impl <M: Material> Texture<M> {
+impl Texture {
     /// Specify the area of the texture to draw.
     ///
     /// The bounds of the rectangle should represent the desired area as texture coordinates of the
@@ -58,7 +57,9 @@ impl <M: Material> Texture<M> {
     }
 }
 
-impl<'a, M: Material> DrawingTexture<'a, M> {
+impl<'a, 'w, M> DrawingTexture<'a, 'w, M>
+    where M: Material + Default
+{
     /// Specify the area of the texture to draw.
     ///
     /// The bounds of the rectangle should represent the desired area as texture coordinates of the
@@ -73,7 +74,7 @@ impl<'a, M: Material> DrawingTexture<'a, M> {
     }
 }
 
-impl <M: Material> draw::render::RenderPrimitive for Texture<M> {
+impl draw::render::RenderPrimitive for Texture {
     fn render_primitive(
         self,
         mut ctxt: draw::render::RenderContext,
@@ -126,19 +127,19 @@ impl <M: Material> draw::render::RenderPrimitive for Texture<M> {
     }
 }
 
-impl <M: Material> SetOrientation for Texture<M> {
+impl SetOrientation for Texture {
     fn properties(&mut self) -> &mut orientation::Properties {
         SetOrientation::properties(&mut self.spatial)
     }
 }
 
-impl <M: Material> SetPosition for Texture<M> {
+impl SetPosition for Texture {
     fn properties(&mut self) -> &mut position::Properties {
         SetPosition::properties(&mut self.spatial)
     }
 }
 
-impl <M: Material> SetDimensions for Texture<M> {
+impl SetDimensions for Texture {
     fn properties(&mut self) -> &mut dimension::Properties {
         SetDimensions::properties(&mut self.spatial)
     }
@@ -146,14 +147,14 @@ impl <M: Material> SetDimensions for Texture<M> {
 
 // Primitive conversions.
 
-impl <M: Material> From<Texture<M>> for Primitive {
-    fn from(prim: Texture<M>) -> Self {
+impl From<Texture> for Primitive {
+    fn from(prim: Texture) -> Self {
         Primitive::Texture(prim)
     }
 }
 
-impl <M: Material> Into<Option<Texture<M>>> for Primitive {
-    fn into(self) -> Option<Texture<M>> {
+impl Into<Option<Texture>> for Primitive {
+    fn into(self) -> Option<Texture> {
         match self {
             Primitive::Texture(prim) => Some(prim),
             _ => None,
