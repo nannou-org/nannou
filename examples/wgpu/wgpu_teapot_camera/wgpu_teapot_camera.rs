@@ -91,7 +91,9 @@ fn model(app: &App) -> Model {
 
     let window = app.window(w_id).unwrap();
     let camera_is_active = true;
-    window.set_cursor_grab(true).unwrap();
+    if let Err(e) = window.set_cursor_grab(true) {
+        eprintln!("warning: cursor grabbing not supported: {e}");
+    }
     window.set_cursor_visible(false);
     let device = window.device();
     let format = Frame::TEXTURE_FORMAT;
@@ -100,8 +102,8 @@ fn model(app: &App) -> Model {
 
     let vs_desc = wgpu::include_wgsl!("shaders/vs.wgsl");
     let fs_desc = wgpu::include_wgsl!("shaders/fs.wgsl");
-    let vs_mod = device.create_shader_module(&vs_desc);
-    let fs_mod = device.create_shader_module(&fs_desc);
+    let vs_mod = device.create_shader_module(vs_desc);
+    let fs_mod = device.create_shader_module(fs_desc);
 
     // Create the vertex, normal and index buffers.
     let vertices_bytes = vertices_as_bytes(&data::VERTICES);

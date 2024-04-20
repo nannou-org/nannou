@@ -848,7 +848,7 @@ pub unsafe extern "C" fn raw_string_ref(msg: *const RawString) -> *const raw::c_
 #[no_mangle]
 pub unsafe extern "C" fn raw_string_drop(msg: RawString) {
     if msg.inner != std::ptr::null_mut() {
-        CString::from_raw(msg.inner);
+        std::mem::drop(CString::from_raw(msg.inner));
     }
 }
 
@@ -856,7 +856,7 @@ pub unsafe extern "C" fn raw_string_drop(msg: RawString) {
 #[no_mangle]
 pub unsafe extern "C" fn frame_stream_drop(stream: FrameStream) {
     if stream.inner != std::ptr::null_mut() {
-        Box::from_raw(stream.inner);
+        std::mem::drop(Box::from_raw(stream.inner));
     }
 }
 
@@ -864,7 +864,7 @@ pub unsafe extern "C" fn frame_stream_drop(stream: FrameStream) {
 #[no_mangle]
 pub unsafe extern "C" fn raw_stream_drop(stream: RawStream) {
     if stream.inner != std::ptr::null_mut() {
-        Box::from_raw(stream.inner);
+        std::mem::drop(Box::from_raw(stream.inner));
     }
 }
 
@@ -872,7 +872,7 @@ pub unsafe extern "C" fn raw_stream_drop(stream: RawStream) {
 #[no_mangle]
 pub unsafe extern "C" fn detect_dacs_async_drop(detect: DetectDacsAsync) {
     if detect.inner != std::ptr::null_mut() {
-        Box::from_raw(detect.inner);
+        std::mem::drop(Box::from_raw(detect.inner));
     }
 }
 
@@ -880,7 +880,7 @@ pub unsafe extern "C" fn detect_dacs_async_drop(detect: DetectDacsAsync) {
 #[no_mangle]
 pub unsafe extern "C" fn api_drop(api: Api) {
     if api.inner != std::ptr::null_mut() {
-        Box::from_raw(api.inner);
+        std::mem::drop(Box::from_raw(api.inner));
     }
 }
 

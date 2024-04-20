@@ -1,5 +1,6 @@
 use nannou::prelude::*;
-use nannou_egui::{egui_wgpu_backend::epi::App as EguiApp, Egui};
+use nannou_egui::Egui;
+use std::sync::{Arc, Mutex};
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -7,7 +8,7 @@ fn main() {
 
 struct Model {
     egui: Egui,
-    egui_demo_app: egui_demo_lib::WrapApp,
+    egui_demo_app: egui_demo_lib::DemoWindows,
 }
 
 fn model(app: &App) -> Model {
@@ -19,11 +20,12 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
     let window = app.window(w_id).unwrap();
-    let mut egui = Egui::from_window(&window);
-    let mut egui_demo_app = egui_demo_lib::WrapApp::default();
-    let proxy = app.create_proxy();
-    egui.do_frame_with_epi_frame(proxy, |ctx, epi_frame| {
-        egui_demo_app.setup(&ctx, epi_frame, None);
+    let egui = Egui::from_window(&window);
+    let egui_demo_app = egui_demo_lib::DemoWindows::default();
+
+    let proxy = Arc::new(Mutex::new(app.create_proxy()));
+    egui.ctx().set_request_repaint_callback(move |_| {
+        proxy.lock().unwrap().wakeup().unwrap();
     });
     Model {
         egui,
@@ -35,19 +37,19 @@ fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event:
     model.egui.handle_raw_event(event);
 }
 
-fn update(app: &App, model: &mut Model, update: Update) {
+fn update(_app: &App, model: &mut Model, update: Update) {
     let Model {
         ref mut egui,
         ref mut egui_demo_app,
         ..
     } = *model;
     egui.set_elapsed_time(update.since_start);
-    let proxy = app.create_proxy();
-    egui.do_frame_with_epi_frame(proxy, |ctx, frame| {
-        egui_demo_app.update(&ctx, frame);
-    });
+    let ctx = egui.begin_frame();
+    egui_demo_app.ui(&ctx.context());
+    let _ = ctx.end();
 }
 
 fn view(_app: &App, model: &Model, frame: Frame) {
+    frame.clear(BLACK);
     model.egui.draw_to_frame(&frame).unwrap();
 }

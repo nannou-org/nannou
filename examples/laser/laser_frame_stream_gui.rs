@@ -3,6 +3,7 @@
 
 use nannou::geom::Rect;
 use nannou::prelude::*;
+use nannou_egui::egui::FontId;
 use nannou_egui::{self, egui, Egui};
 use nannou_laser as laser;
 use std::sync::{mpsc, Arc};
@@ -155,7 +156,6 @@ fn model(app: &App) -> Model {
     // A user-interface to tweak the settings.
     let window = app.window(w_id).unwrap();
     let egui = Egui::from_window(&window);
-    egui.ctx().set_fonts(fonts());
     egui.ctx().set_style(style());
 
     Model {
@@ -278,7 +278,7 @@ fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event:
 
 fn update(_app: &App, model: &mut Model, update: Update) {
     // First, check for new laser DACs.
-    for dac in model.dac_rx.try_recv() {
+    for dac in model.dac_rx.try_iter() {
         println!("Detected DAC {:?}!", dac.id());
         let stream = model
             .laser_api
@@ -510,39 +510,16 @@ fn view(_app: &App, model: &Model, frame: Frame) {
 // The following functions are some custom styling preferences in an attempt to improve on the
 // default egui theming.
 
-fn fonts() -> egui::FontDefinitions {
-    let mut fonts = egui::FontDefinitions::default();
-    let entries = [
-        (
-            egui::TextStyle::Small,
-            (egui::FontFamily::Proportional, 13.0),
-        ),
-        (
-            egui::TextStyle::Body,
-            (egui::FontFamily::Proportional, 16.0),
-        ),
-        (
-            egui::TextStyle::Button,
-            (egui::FontFamily::Proportional, 16.0),
-        ),
-        (
-            egui::TextStyle::Heading,
-            (egui::FontFamily::Proportional, 20.0),
-        ),
-        (
-            egui::TextStyle::Monospace,
-            (egui::FontFamily::Monospace, 14.0),
-        ),
-    ];
-    fonts.family_and_size.extend(entries.iter().cloned());
-    fonts
-}
-
 fn style() -> egui::Style {
     let mut style = egui::Style::default();
     style.spacing = egui::style::Spacing {
         item_spacing: egui::Vec2::splat(8.0),
-        window_padding: egui::Vec2::new(6.0, 6.0),
+        window_margin: egui::Margin {
+            left: 6.0,
+            right: 6.0,
+            top: 6.0,
+            bottom: 6.0,
+        },
         button_padding: egui::Vec2::new(4.0, 2.0),
         interact_size: egui::Vec2::new(56.0, 24.0),
         indent: 10.0,
@@ -556,5 +533,28 @@ fn style() -> egui::Style {
     style.visuals.widgets.noninteractive.bg_fill = egui::Color32::from_gray(36);
     style.visuals.widgets.noninteractive.bg_stroke.color = egui::Color32::BLACK;
     style.visuals.widgets.noninteractive.fg_stroke.color = egui::Color32::WHITE;
+    style.text_styles = [
+        (
+            egui::TextStyle::Small,
+            FontId::new(13.0, egui::FontFamily::Proportional),
+        ),
+        (
+            egui::TextStyle::Body,
+            FontId::new(16.0, egui::FontFamily::Proportional),
+        ),
+        (
+            egui::TextStyle::Button,
+            FontId::new(16.0, egui::FontFamily::Proportional),
+        ),
+        (
+            egui::TextStyle::Heading,
+            FontId::new(20.0, egui::FontFamily::Proportional),
+        ),
+        (
+            egui::TextStyle::Monospace,
+            FontId::new(14.0, egui::FontFamily::Monospace),
+        ),
+    ]
+    .into();
     style
 }

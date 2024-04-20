@@ -1,6 +1,6 @@
 [package]
 name = "nannou_core"
-version ="0.18.0"
+version ="0.19.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "The core components of nannou - a creative coding framework for Rust. Ideal for libraries and headless/embedded applications that use nannou."
 readme = "README.md"

@@ -45,7 +45,7 @@ impl Mover {
         // Computer a vector that points from position to mouse
         self.acceleration = mouse - self.position;
         // Set magnitude of acceleration
-        self.acceleration = self.acceleration.normalize() * 0.2;
+        self.acceleration = self.acceleration.normalize_or_zero() * 0.2;
         // Velocity chages according to acceleration
         self.velocity += self.acceleration;
         // Limit the velocity by top_speed
