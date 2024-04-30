@@ -167,7 +167,7 @@ pub type MouseExitedFn<Model> = fn(&App, &mut Model);
 pub type MouseWheelFn<Model> = fn(&App, &mut Model, MouseWheel);
 
 /// A function for processing window moved events.
-pub type MovedFn<Model> = fn(&App, &mut Model, Vec2);
+pub type MovedFn<Model> = fn(&App, &mut Model, IVec2);
 
 /// A function for processing window resized events.
 pub type ResizedFn<Model> = fn(&App, &mut Model, Vec2);
@@ -377,6 +377,7 @@ where
                 panic!("Only one primary window can be created");
             }
 
+            info!("Setting window {:?} as primary", entity);
             self.app.world_mut().entity_mut(entity).insert(PrimaryWindow);
         }
 

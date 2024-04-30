@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,

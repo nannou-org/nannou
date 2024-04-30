@@ -7,30 +7,35 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
+use std::{self};
+use std::any::Any;
+use std::cell::RefCell;
+use std::path::Path;
+use std::rc::Rc;
+
 use bevy::app::AppExit;
 use bevy::core::FrameCount;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
-use bevy::pbr::{ExtendedMaterial, MaterialExtension};
-use std::cell::RefCell;
-use std::future::Future;
-use std::ops::DerefMut;
-use std::path::Path;
-use std::rc::Rc;
-use std::time::Duration;
-use std::{self, future};
-
+use bevy::input::ButtonState;
+use bevy::input::keyboard::KeyboardInput;
+use bevy::input::mouse::{MouseButtonInput, MouseWheel};
+use bevy::pbr::ExtendedMaterial;
 use bevy::prelude::*;
-use bevy::render::render_resource::{AsBindGroup, ShaderRef};
+use bevy::reflect::{DynamicTypePath, GetTypeRegistration};
 use bevy::render::view::screenshot::ScreenshotManager;
-use bevy::window::{PrimaryWindow, WindowMode, WindowResolution};
-use bevy_nannou::{NannouPlugin};
+use bevy::window::{PrimaryWindow, WindowClosed, WindowFocused, WindowResized};
+use bevy_inspector_egui::DefaultInspectorConfigPlugin;
+use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use find_folder;
+
+use bevy_nannou::NannouPlugin;
 use bevy_nannou::prelude::draw::Draw;
 
-use crate::window::WindowUserFunctions;
 use crate::{geom, window};
+use crate::prelude::bevy_reflect::{ReflectMut, ReflectOwned, ReflectRef, TypeInfo};
 use crate::prelude::render::{NannouMaterial, NannouMesh, NannouPersistantMesh};
+use crate::window::WindowUserFunctions;
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -75,7 +80,6 @@ pub struct Builder<M = ()> {
     update: Option<UpdateFn<M>>,
     default_view: Option<View<M>>,
     exit: Option<ExitFn<M>>,
-    create_default_window: bool,
 }
 
 /// A nannou `Sketch` builder.
@@ -135,6 +139,12 @@ struct Config {
     default_window_size: Option<DefaultWindowSize>,
 }
 
+#[derive(Resource)]
+struct ModelHolder<M>(M);
+
+#[derive(Resource)]
+struct CreateDefaultWindow;
+
 impl<M> Builder<M>
 where
     M: 'static,
@@ -168,20 +178,14 @@ where
             update: None,
             default_view: None,
             exit: None,
-            create_default_window: false,
         }
     }
 }
 
 impl<M> Builder<M>
 where
-    M: 'static,
+    M: 'static + Send + Sync,
 {
-    /// By default, we timeout if waiting for a frame capture job takes longer than 5 seconds. This
-    /// is to avoid hanging forever in the case the frame writing process encounters an
-    /// unrecoverable error.
-    pub const DEFAULT_CAPTURE_FRAME_TIMEOUT: Duration = Duration::from_secs(10);
-
     /// The default `view` function that the app will call to allow you to present your Model to
     /// the surface of a window on your display.
     ///
@@ -223,7 +227,7 @@ where
     /// small single-window applications and examples.
     pub fn simple_window(mut self, view: ViewFn<M>) -> Self {
         self.default_view = Some(View::WithModel(view));
-        self.create_default_window = true;
+        self.app.insert_resource(CreateDefaultWindow);
         self
     }
 
@@ -266,8 +270,6 @@ where
     /// thread as some platforms require that their application event loop and windows are
     /// initialised on the main thread.
     pub fn run(mut self) {
-        let create_default_window = self.create_default_window;
-
         self.app
             // This ensures that color materials are rendered correctly.
             .insert_resource(AmbientLight {
@@ -279,150 +281,25 @@ where
             .insert_resource(UpdateFnRes(self.update))
             .insert_resource(ViewFnRes(self.default_view))
             .insert_resource(ExitFnRes(self.exit))
-            .add_systems(Startup, move |world: &mut World| {
-                let default_window_size = world.resource::<Config>().default_window_size.clone();
-                let model_fn = world.resource::<ModelFnRes<M>>().0.clone();
-                world.spawn(
-                    DirectionalLightBundle {
-                        transform: Transform::from_xyz(1.0, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                        ..Default::default()
-                    }
-                );
-
-                let mut app = App::new(world);
-                // Create our default window if necessary
-
-                if create_default_window {
-                    let mut window: window::Builder<'_, '_, M> = app.new_window();
-                    match default_window_size {
-                        None => {}
-                        Some(default_window) => {
-                            match default_window {
-                                DefaultWindowSize::Logical([w, h]) => {
-                                    window = window.size(w, h);
-                                }
-                                DefaultWindowSize::Fullscreen => {
-                                    window = window.fullscreen();
-                                }
-                            };
-                        }
-                    };
-                    let _ = window.primary().build();
-                }
-
-                // Initialise the model.
-                let model = model_fn(&mut app);
-                // Insert the model into the world. We use a non-send resource here to allow
-                // maximum flexibility for the user to provide their own model type that doesn't
-                // implement `Send`. Bevy will ensure that the model is only accessed on the main
-                // thread.
-                world.insert_non_send_resource(model);
-            })
-            .add_systems(First, |
-                mut commands: Commands,
-                bg_color_q: Query<Entity, With<BackgroundColor>>,
-                meshes_q: Query<Entity, (With<NannouMesh>, Without<NannouPersistantMesh>)>| {
-                for entity in meshes_q.iter() {
-                    commands.entity(entity).despawn_recursive();
-                }
-                for entity in bg_color_q.iter() {
-                    commands.entity(entity).despawn_recursive();
-                }
-            })
+            .add_systems(Startup, startup::<M>)
+            .add_systems(First, first::<M>)
             .add_systems(Update, update::<M>)
-            .add_systems(Last, |world: &mut World| {
-                let exit_events = world.resource::<Events<AppExit>>();
-                let reader = exit_events.get_reader();
-                let should_exit = !reader.is_empty(exit_events);
-                if !should_exit {
-                    return;
-                }
-
-                let exit_fn = world.resource::<ExitFnRes<M>>().0.clone();
-                let model = world
-                    .remove_non_send_resource::<M>()
-                    .expect("Model not found");
-                let app = App::new(world);
-                if let Some(exit_fn) = exit_fn {
-                    exit_fn(&app, model);
-                }
-            })
-            .run()
+            .add_systems(Last, last::<M>)
+            .run();
     }
 }
 
-fn update<M: 'static>(world: &mut World) {
-        // Get our update and view functions. These are just function pointers, so we can
-        // clone them to avoid borrowing issues with app which contains a mutable reference
-        // to the world.
-
-        let update_fn = world.resource::<UpdateFnRes<M>>().0.clone();
-        let view_fn = world.resource::<ViewFnRes<M>>().0.clone();
-
-        let mut window_q =
-            world.query::<(Entity, Option<&WindowUserFunctions<M>>)>();
-        let windows = window_q
-            .iter(world)
-            .map(|(entity, user_fns)| {
-                (
-                    entity,
-                    user_fns.map(|fns| {
-                        let fns = fns.0.clone();
-                        fns
-                    }),
-                )
-            })
-            .collect::<Vec<_>>();
-
-        // Extract the model from the world, this avoids borrowing issues.
-        let mut model = world
-            .remove_non_send_resource::<M>()
-            .expect("Model not found");
-
-        // Create a new app instance for each frame that wraps the world.
-        let mut app = App::new(world);
-
-        // Run the model update function.
-        if let Some(update_fn) = update_fn {
-            update_fn(&app, &mut model);
-        }
-
-        // Run the view function for each window's draw.
-        for (entity, user_fns) in windows {
-            // Makes sure we return the correct draw component
-            app.current_view = Some(entity);
-
-            // Run user fns
-            if let Some(user_fns) = user_fns {
-                if let Some(view) = &user_fns.view {
-                    match view {
-                        window::View::WithModel(view_fn) => {
-                            view_fn(&app, &model);
-                        }
-                        window::View::Sketch(view_fn) => {
-                            view_fn(&app);
-                        }
-                    }
-                } else {
-                    if let Some(view) = view_fn.as_ref() {
-                        match view {
-                            View::WithModel(view_fn) => {
-                                view_fn(&app, &mut model, entity);
-                            }
-                            View::Sketch(view_fn) => {
-                                view_fn(&app);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Don't use `app` after this point.
-        drop(app);
-
-        // Re-insert the model for the next frame.
-        world.insert_non_send_resource(model);
+impl<M> Builder<M>
+where
+    M: Reflect + GetTypeRegistration + 'static,
+{
+    pub fn model_ui(mut self) -> Self {
+        self.app
+            .register_type::<ModelHolder<M>>()
+            .add_plugins(DefaultInspectorConfigPlugin)
+            .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
+        self
+    }
 }
 
 impl SketchBuilder {
@@ -449,7 +326,7 @@ impl Builder<()> {
     pub fn sketch(view: SketchViewFn) -> SketchBuilder {
         let mut builder = Builder::new(default_model);
         builder.default_view = Some(View::Sketch(view));
-        builder.create_default_window = true;
+        builder.app.insert_resource(CreateDefaultWindow);
         SketchBuilder { builder }
     }
 }
@@ -463,6 +340,97 @@ impl Default for Config {
             fullscreen_on_shortcut,
             default_window_size: None,
         }
+    }
+}
+
+impl<M> GetTypeRegistration for ModelHolder<M>
+where
+    M: GetTypeRegistration,
+{
+    fn get_type_registration() -> bevy::reflect::TypeRegistration {
+        M::get_type_registration()
+    }
+}
+
+impl<M> DynamicTypePath for ModelHolder<M>
+where
+    M: DynamicTypePath,
+{
+    fn reflect_type_path(&self) -> &str {
+        self.0.reflect_type_path()
+    }
+
+    fn reflect_short_type_path(&self) -> &str {
+        self.0.reflect_short_type_path()
+    }
+
+    fn reflect_type_ident(&self) -> Option<&str> {
+        self.0.reflect_type_ident()
+    }
+
+    fn reflect_crate_name(&self) -> Option<&str> {
+        self.0.reflect_crate_name()
+    }
+
+    fn reflect_module_path(&self) -> Option<&str> {
+        self.0.reflect_module_path()
+    }
+}
+
+impl<M> Reflect for ModelHolder<M>
+where
+    M: Reflect + DynamicTypePath + Any + GetTypeRegistration + 'static,
+{
+    fn get_represented_type_info(&self) -> Option<&'static TypeInfo> {
+        self.0.get_represented_type_info()
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        Box::new(self.0).into_any()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self.0.as_any()
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self.0.as_any_mut()
+    }
+
+    fn into_reflect(self: Box<Self>) -> Box<dyn Reflect> {
+        Box::new(self.0).into_reflect()
+    }
+
+    fn as_reflect(&self) -> &dyn Reflect {
+        self.0.as_reflect()
+    }
+
+    fn as_reflect_mut(&mut self) -> &mut dyn Reflect {
+        self.0.as_reflect_mut()
+    }
+
+    fn apply(&mut self, value: &dyn Reflect) {
+        self.0.apply(value)
+    }
+
+    fn set(&mut self, value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {
+        self.0.set(value)
+    }
+
+    fn reflect_ref(&self) -> ReflectRef {
+        self.0.reflect_ref()
+    }
+
+    fn reflect_mut(&mut self) -> ReflectMut {
+        self.0.reflect_mut()
+    }
+
+    fn reflect_owned(self: Box<Self>) -> ReflectOwned {
+        Box::new(self.0).reflect_owned()
+    }
+
+    fn clone_value(&self) -> Box<dyn Reflect> {
+        self.0.clone_value()
     }
 }
 
@@ -690,6 +658,429 @@ impl<'w> App<'w> {
 
     /// Quits the currently running application.
     pub fn quit(&mut self) {
-        self.world_mut().send_event(AppExit);
+        self.world_mut().send_event(AppExit::Success);
+    }
+}
+
+fn startup<M>(world: &mut World)
+where
+    M: 'static + Send + Sync,
+{
+    let default_window_size = world.resource::<Config>().default_window_size.clone();
+    let model_fn = world.resource::<ModelFnRes<M>>().0.clone();
+    world.spawn(DirectionalLightBundle {
+        transform: Transform::from_xyz(1.0, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..Default::default()
+    });
+
+    let mut app = App::new(world);
+    // Create our default window if necessary
+
+    if let Some(_) = app.world().get_resource::<CreateDefaultWindow>() {
+        let mut window: window::Builder<'_, '_, M> = app.new_window();
+        match default_window_size {
+            None => {}
+            Some(default_window) => {
+                match default_window {
+                    DefaultWindowSize::Logical([w, h]) => {
+                        window = window.size(w, h);
+                    }
+                    DefaultWindowSize::Fullscreen => {
+                        window = window.fullscreen();
+                    }
+                };
+            }
+        };
+        let _ = window.primary().build();
+    }
+
+    // Initialise the model.
+    let model = model_fn(&mut app);
+    // Insert the model into the world. We use a non-send resource here to allow
+    // maximum flexibility for the user to provide their own model type that doesn't
+    // implement `Send`. Bevy will ensure that the model is only accessed on the main
+    // thread.
+    world.insert_resource(ModelHolder(model));
+}
+
+fn first<M>(
+    mut commands: Commands,
+    bg_color_q: Query<Entity, With<BackgroundColor>>,
+    meshes_q: Query<Entity, (With<NannouMesh>, Without<NannouPersistantMesh>)>,
+) where
+    M: 'static + Send + Sync,
+{
+    for entity in meshes_q.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    for entity in bg_color_q.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+fn update<M>(world: &mut World)
+where
+    M: 'static + Send + Sync,
+{
+    // We can clone these since they are just function pointers
+    let update_fn = world.resource::<UpdateFnRes<M>>().0.clone();
+    let view_fn = world.resource::<ViewFnRes<M>>().0.clone();
+
+    let mut window_q = world.query::<(Entity, Option<&WindowUserFunctions<M>>)>();
+    let windows = window_q
+        .iter(world)
+        .map(|(entity, user_fns)| {
+            (
+                entity,
+                user_fns.map(|fns| {
+                    let fns = fns.0.clone();
+                    fns
+                }),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    // Extract the model from the world, this avoids borrowing issues.
+    let mut model = world
+        .remove_resource::<ModelHolder<M>>()
+        .expect("Model not found")
+        .0;
+
+    let mut key_events = world.resource_mut::<Events<KeyboardInput>>();
+    let mut key_events_reader = key_events.get_reader();
+    let key_events = key_events_reader.read(&key_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<KeyboardInput>>();
+
+    let received_char_events = world.resource::<Events<ReceivedCharacter>>();
+    let mut received_char_events_reader = received_char_events.get_reader();
+    let received_char_events = received_char_events_reader.read(&received_char_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<ReceivedCharacter>>();
+
+    let cursor_moved_events = world.resource::<Events<CursorMoved>>();
+    let mut cursor_moved_events_reader = cursor_moved_events.get_reader();
+    let cursor_moved_events = cursor_moved_events_reader.read(&cursor_moved_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<CursorMoved>>();
+
+    let mouse_button_events = world.resource::<Events<MouseButtonInput>>();
+    let mut mouse_button_events_reader = mouse_button_events.get_reader();
+    let mouse_button_events = mouse_button_events_reader.read(&mouse_button_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<MouseButtonInput>>();
+
+    let cursor_entered_events = world.resource::<Events<CursorEntered>>();
+    let mut cursor_entered_events_reader = cursor_entered_events.get_reader();
+    let cursor_entered_events = cursor_entered_events_reader.read(&cursor_entered_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<CursorEntered>>();
+
+    let cursor_left_events = world.resource::<Events<CursorLeft>>();
+    let mut cursor_left_events_reader = cursor_left_events.get_reader();
+    let cursor_left_events = cursor_left_events_reader.read(&cursor_left_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<CursorLeft>>();
+
+    let mouse_wheel_events = world.resource::<Events<MouseWheel>>();
+    let mut mouse_wheel_events_reader = mouse_wheel_events.get_reader();
+    let mouse_wheel_events = mouse_wheel_events_reader.read(&mouse_wheel_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<MouseWheel>>();
+
+    let window_moved_events = world.resource::<Events<WindowMoved>>();
+    let mut window_moved_events_reader = window_moved_events.get_reader();
+    let window_moved_events = window_moved_events_reader.read(&window_moved_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<WindowMoved>>();
+
+    let window_resized_events = world.resource::<Events<WindowResized>>();
+    let mut window_resized_events_reader = window_resized_events.get_reader();
+    let window_resized_events = window_resized_events_reader.read(&window_resized_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<WindowResized>>();
+
+    let touch_events = world.resource::<Events<TouchInput>>();
+    let mut touch_events_reader = touch_events.get_reader();
+    let touch_events = touch_events_reader.read(&touch_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<TouchInput>>();
+
+    let file_drop_events = world.resource::<Events<FileDragAndDrop>>();
+    let mut file_drop_events_reader = file_drop_events.get_reader();
+    let file_drop_events = file_drop_events_reader.read(&file_drop_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<FileDragAndDrop>>();
+
+    let window_focus_events = world.resource::<Events<WindowFocused>>();
+    let mut window_focus_events_reader = window_focus_events.get_reader();
+    let window_focus_events = window_focus_events_reader.read(&window_focus_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<WindowFocused>>();
+
+    let window_closed_events = world.resource::<Events<WindowClosed>>();
+    let mut window_closed_events_reader = window_closed_events.get_reader();
+    let window_closed_events = window_closed_events_reader.read(&window_closed_events)
+        .into_iter()
+        .map(|event| event.clone())
+        .collect::<Vec<WindowClosed>>();
+
+    // Create a new app instance for each frame that wraps the world.
+    let mut app = App::new(world);
+
+    // Run the model update function.
+    if let Some(update_fn) = update_fn {
+        update_fn(&app, &mut model);
+    }
+
+    // Run the view function for each window's draw.
+    for (entity, user_fns) in windows {
+        // Makes sure we return the correct draw component
+        app.current_view = Some(entity);
+
+        // Run user fns
+        if let Some(user_fns) = user_fns {
+            if let Some(view) = &user_fns.view {
+                match view {
+                    window::View::WithModel(view_fn) => {
+                        view_fn(&app, &model);
+                    }
+                    window::View::Sketch(view_fn) => {
+                        view_fn(&app);
+                    }
+                }
+            } else {
+                if let Some(view) = view_fn.as_ref() {
+                    match view {
+                        View::WithModel(view_fn) => {
+                            view_fn(&app, &mut model, entity);
+                        }
+                        View::Sketch(view_fn) => {
+                            view_fn(&app);
+                        }
+                    }
+                }
+            }
+
+            for evt in &key_events {
+                if evt.window != entity {
+                    continue;
+                }
+
+                match evt.state {
+                    ButtonState::Pressed => {
+                        if let Some(f) = user_fns.key_pressed {
+                            f(&app, &mut model, evt.key_code);
+                        }
+                    }
+                    ButtonState::Released => {
+                        if let Some(f) = user_fns.key_released {
+                            f(&app, &mut model, evt.key_code);
+                        }
+                    }
+                }
+            }
+
+            for evt in &received_char_events {
+                if evt.window != entity {
+                    continue;
+                }
+
+                if let Some(f) = user_fns.received_character {
+                    let char = evt.char.chars().into_iter().next().unwrap();
+                    f(&app, &mut model, char);
+                }
+            }
+
+            for evt in &cursor_moved_events {
+                if evt.window != entity {
+                    continue;
+                }
+
+                if let Some(f) = user_fns.mouse_moved {
+                    f(&app, &mut model, evt.position);
+                }
+            }
+
+            for evt in &mouse_button_events {
+                if evt.window != entity {
+                    continue;
+                }
+
+                match evt.state {
+                    ButtonState::Pressed => {
+                        if let Some(f) = user_fns.mouse_pressed {
+                            f(&app, &mut model, evt.button);
+                        }
+                    }
+                    ButtonState::Released => {
+                        if let Some(f) = user_fns.mouse_released {
+                            f(&app, &mut model, evt.button);
+                        }
+                    }
+                }
+            }
+
+            for evt in &cursor_entered_events {
+                if evt.window != entity {
+                    continue;
+                }
+
+                if let Some(f) = user_fns.mouse_entered {
+                    f(&app, &mut model);
+                }
+            }
+
+            for evt in &cursor_left_events {
+                if evt.window != entity {
+                    continue;
+                }
+
+                if let Some(f) = user_fns.mouse_exited {
+                    f(&app, &mut model);
+                }
+            }
+
+            for evt in &mouse_wheel_events {
+                if evt.window != entity {
+                    continue;
+                }
+
+                if let Some(f) = user_fns.mouse_wheel {
+                    f(&app, &mut model, evt.clone());
+                }
+            }
+
+            for evt in &window_moved_events {
+                if evt.window != entity {
+                    continue;
+                }
+
+                if let Some(f) = user_fns.moved {
+                    f(&app, &mut model, evt.position);
+                }
+            }
+
+            for evt in &window_resized_events {
+                if evt.window != entity {
+                    continue;
+                }
+
+                if let Some(f) = user_fns.resized {
+                    f(&app, &mut model, Vec2::new(evt.width, evt.height));
+                }
+            }
+
+            for evt in &touch_events {
+                if evt.window != entity {
+                    continue;
+                }
+
+                if let Some(f) = user_fns.touch {
+                    f(&app, &mut model, evt.clone());
+                }
+            }
+
+            for evt in &file_drop_events {
+                match evt {
+                    FileDragAndDrop::DroppedFile { window, path_buf } => {
+                        if *window != entity {
+                            continue;
+                        }
+
+                        if let Some(f) = user_fns.dropped_file {
+                            f(&app, &mut model, path_buf.clone());
+                        }
+                    }
+                    FileDragAndDrop::HoveredFile { window, path_buf } => {
+                        if *window != entity {
+                            continue;
+                        }
+
+                        if let Some(f) = user_fns.hovered_file {
+                            f(&app, &mut model, path_buf.clone());
+                        }
+                    }
+                    FileDragAndDrop::HoveredFileCanceled { window } => {
+                        if *window != entity {
+                            continue;
+                        }
+
+                        if let Some(f) = user_fns.hovered_file_cancelled {
+                            f(&app, &mut model);
+                        }
+                    }
+                }
+            }
+
+            for evt in &window_focus_events {
+                if evt.window != entity {
+                    continue;
+                }
+
+                if evt.focused {
+                    if let Some(f) = user_fns.focused {
+                        f(&app, &mut model);
+                    }
+                } else {
+                    if let Some(f) = user_fns.unfocused {
+                        f(&app, &mut model);
+                    }
+                }
+
+            }
+
+            for evt in &window_closed_events {
+                if evt.window != entity {
+                    continue;
+                }
+
+                if let Some(f) = user_fns.closed {
+                    f(&app, &mut model);
+                }
+            }
+
+        }
+    }
+
+    // Don't use `app` after this point.
+    drop(app);
+
+    // Re-insert the model for the next frame.
+    world.insert_resource(ModelHolder(model));
+}
+
+fn last<M>(world: &mut World)
+where
+    M: 'static + Send + Sync,
+{
+    let exit_events = world.resource::<Events<AppExit>>();
+    let reader = exit_events.get_reader();
+
+    let should_exit = !reader.is_empty(exit_events);
+    if !should_exit {
+        return;
+    }
+
+    let exit_fn = world.resource::<ExitFnRes<M>>().0.clone();
+    let model = world
+        .remove_resource::<ModelHolder<M>>()
+        .expect("Model not found")
+        .0;
+    let app = App::new(world);
+    if let Some(exit_fn) = exit_fn {
+        exit_fn(&app, model);
     }
 }

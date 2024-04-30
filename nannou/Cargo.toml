@@ -12,6 +12,7 @@ edition = "2018"
 
 [dependencies]
 bevy = { workspace = true }
+bevy-inspector-egui = { path = "../../../jakobhellermann/bevy-inspector-egui/crates/bevy-inspector-egui" }
 bevy_nannou = { version = "0.1.0", path = "../bevy_nannou" }
 futures = "0.3"
 find_folder = "0.3"

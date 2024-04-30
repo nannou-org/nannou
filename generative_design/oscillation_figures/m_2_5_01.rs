@@ -32,12 +32,15 @@ use nannou::prelude::*;
 
 fn main() {
     nannou::app(model)
-        .init_fragment_shader::<"uv.wgsl">()
-        .update(update).run();
+        .model_ui()
+        .update(update)
+        .run();
 }
 
+#[derive(Reflect)]
 struct Model {
     point_count: usize,
+    #[reflect(ignore)]
     lissajous_points: Vec<Point2>,
     freq_x: f32,
     freq_y: f32,
@@ -45,16 +48,15 @@ struct Model {
     mod_freq_x: f32,
     mod_freq_y: f32,
     line_weight: f32,
-    line_color: Color,
+    line_color: Srgba,
     line_alpha: f32,
     connection_radius: f32,
-    should_draw: bool,
-    should_draw_frame: u32,
 }
 
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
+        .primary()
         .size(800.0, 800.0)
         .view(view)
         .build();
@@ -63,7 +65,7 @@ fn model(app: &App) -> Model {
     let line_alpha = 1.0;
 
     let mut model = Model {
-        point_count: 500,
+        point_count: 200,
         lissajous_points,
         freq_x: 4.0,
         freq_y: 7.0,
@@ -71,11 +73,9 @@ fn model(app: &App) -> Model {
         mod_freq_x: 3.0,
         mod_freq_y: 2.0,
         line_weight: 1.5,
-        line_color: Color::srgba(0.0, 0.0, 0.0, line_alpha),
+        line_color: Srgba::new(0.0, 0.0, 0.0, line_alpha),
         line_alpha,
-        connection_radius: 200.0,
-        should_draw: true,
-        should_draw_frame: 0
+        connection_radius: 20.0,
     };
 
     calculate_lissajous_points(app, &mut model);
@@ -129,13 +129,10 @@ fn view(app: &App, model: &Model) {
 
                     let emissive_c = Color::srgba(p1.x, p2.y, p2.y, 1.0);
 
-
                     line
                         .stroke_weight(model.line_weight)
-                        // .emissive(emissive_c)
+                        .emissive(emissive_c)
                         .color(c);
-
-
                 }
             }
         }

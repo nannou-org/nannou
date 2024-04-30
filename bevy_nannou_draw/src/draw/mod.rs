@@ -57,6 +57,7 @@ pub struct Draw<'w, M = DefaultNannouMaterial>
     pub(crate) world: Rc<RefCell<UnsafeWorldCell<'w>>>,
     /// The current context of this **Draw** instance.
     context: Context,
+    /// The window entity to which this **Draw** instance is associated.
     window: Entity,
     /// The material to use for drawing.
     _material: PhantomData<M>,
