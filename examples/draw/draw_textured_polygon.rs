@@ -33,8 +33,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let ellipse = geom::Ellipse::new(rect, resolution).circumference();
 
     // The wave's frequency and amplitude are derived from the mouse position.
-    let freq = map_range(app.mouse.x, win_rect.left(), win_rect.right(), 1.0, 20.0);
-    let amp = map_range(app.mouse.y, win_rect.bottom(), win_rect.top(), 0.0, 0.5);
+    let freq = map_range(app.mouse().x, win_rect.left(), win_rect.right(), 1.0, 20.0);
+    let amp = map_range(app.mouse().y, win_rect.bottom(), win_rect.top(), 0.0, 0.5);
     let wave = (0..resolution as usize).map(|i| {
         let phase = i as f32 / resolution;
         (phase * freq * PI * 2.0).sin() * amp

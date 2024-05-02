@@ -4,12 +4,12 @@ fn main() {
     nannou::sketch(view).run()
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // Change the background luminance based on mouse x.
     let w = app.window_rect();
-    let lum = map_range(app.mouse.x, w.left(), w.right(), 0.0, 1.0);
+    let lum = map_range(app.mouse().x, w.left(), w.right(), 0.0, 1.0);
     let clear = gray(lum);
-    frame.clear(clear);
+    // frame.clear(clear);
 
     // Put all the provided blend modes in a list.
     let blends = [
@@ -22,37 +22,40 @@ fn view(app: &App, frame: Frame) {
     ];
 
     // Select a color blend descriptor based on mouse y.
-    let ix = map_range(app.mouse.y, w.top(), w.bottom(), 0, blends.len());
+    let ix = map_range(app.mouse().y, w.top(), w.bottom(), 0, blends.len());
     let ix = std::cmp::min(ix, blends.len() - 1);
     let (blend_name, desc) = &blends[ix];
 
     // Draw the name of the blend mode and its descriptor.
-    let draw = app.draw();
-    let color = gray(1.0 - lum.round());
-    draw.text(blend_name)
-        .color(color)
-        .font_size(48)
-        .wh(w.wh() * 0.7)
-        .align_text_top();
-    let text = format!("{:?}", desc);
-    draw.text(&text)
-        .color(color)
-        .wh(w.wh() * 0.8)
-        .align_text_bottom();
+    let mut draw = app.draw();
+    draw.background()
+        .color(clear);
+    let color = gray(1.0f32 - lum.round());
+    // draw.text(blend_name)
+    //     .color(color)
+    //     .font_size(48)
+    //     .wh(w.wh() * 0.7)
+    //     .align_text_top();
+    // let text = format!("{:?}", desc);
+    // draw.text(&text)
+    //     .color(color)
+    //     .wh(w.wh() * 0.8)
+    //     .align_text_bottom();
 
     // Assign the blend mode.
-    let mut draw = draw.color_blend(desc.clone());
+    // let mut draw = draw.color_blend(desc.clone());
 
     // Draw RGB circles.
-    let t = app.time;
+    let t = app.time().elapsed_seconds();
     let n_circles = 3;
     let radius = w.right().min(w.top()) * 0.5 / n_circles as f32;
     let animate_radius = -((t.sin() * 0.5 + 0.5) * radius * 0.5);
     draw = draw.x(w.left() * 0.5);
     for i in 0..n_circles {
         let hue = i as f32 / n_circles as f32;
-        let color = hsl(hue, 1.0, 0.5);
+        let color = Color::hsl(hue, 1.0, 0.5);
         draw.ellipse()
+            // .color_blend(desc.clone())
             .radius(radius)
             .color(color)
             .x(radius + animate_radius);
@@ -63,8 +66,9 @@ fn view(app: &App, frame: Frame) {
     draw = draw.x(w.right() * 0.5);
     for i in 0..n_circles {
         let hue = i as f32 / n_circles as f32;
-        let color = hsl(hue + 0.5, 1.0, 0.5);
+        let color = Color::hsl(hue + 0.5, 1.0, 0.5);
         draw.ellipse()
+            // .color_blend(desc.clone())
             .radius(radius)
             .color(color)
             .x(radius + animate_radius);
@@ -77,11 +81,14 @@ fn view(app: &App, frame: Frame) {
         let lum = (0.5 + i as f32) / n_circles as f32;
         let color = gray(lum);
         draw.ellipse()
+            // .color_blend(desc.clone())
             .radius(radius)
             .color(color)
             .x(radius + animate_radius);
         draw = draw.rotate(PI * 2.0 / n_circles as f32);
     }
+}
 
-    draw.to_frame(app, &frame).unwrap();
+fn gray(lum: f32) -> Color {
+    Color::srgb(lum, lum, lum)
 }

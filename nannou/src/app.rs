@@ -668,14 +668,10 @@ where
 {
     let default_window_size = world.resource::<Config>().default_window_size.clone();
     let model_fn = world.resource::<ModelFnRes<M>>().0.clone();
-    world.spawn(DirectionalLightBundle {
-        transform: Transform::from_xyz(1.0, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..Default::default()
-    });
 
     let mut app = App::new(world);
-    // Create our default window if necessary
 
+    // Create our default window if necessary
     if let Some(_) = app.world().get_resource::<CreateDefaultWindow>() {
         let mut window: window::Builder<'_, '_, M> = app.new_window();
         match default_window_size {

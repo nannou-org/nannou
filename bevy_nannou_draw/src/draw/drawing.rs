@@ -1,21 +1,22 @@
-use std::borrow::Cow;
+use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::Primitive;
+use crate::draw::properties::material::SetMaterial;
 use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
+use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
 use crate::draw::{self, Draw, DrawIndex};
-use bevy::prelude::*;
-use lyon::path::PathEvent;
-use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
-use std::marker::PhantomData;
+use crate::render::{NannouMaterial, NannouMesh};
 use bevy::color::palettes::basic::RED;
 use bevy::pbr::{ExtendedMaterial, MaterialExtension, OpaqueRendererMethod};
+use bevy::prelude::*;
 use bevy::render::render_resource::PrimitiveTopology::TriangleList;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
-use crate::draw::mesh::MeshExt;
-use crate::draw::properties::material::SetMaterial;
-use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
-use crate::render::{NannouMaterial, NannouMesh};
+use lyon::path::PathEvent;
+use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
+use std::borrow::Cow;
+use std::marker::PhantomData;
+use bevy::render::render_resource::BlendComponent;
 
 /// A **Drawing** in progress.
 ///
@@ -102,8 +103,7 @@ where
                 intermediary_mesh: &intermediary_state.intermediary_mesh,
                 path_event_buffer: &intermediary_state.path_event_buffer,
                 path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
-                path_points_textured_buffer: &intermediary_state
-                    .path_points_textured_buffer,
+                path_points_textured_buffer: &intermediary_state.path_points_textured_buffer,
                 text_buffer: &intermediary_state.text_buffer,
                 theme: &draw_state.theme,
                 transform: &self.draw.context.transform,
@@ -119,23 +119,26 @@ where
             let primitive = self.primitive.clone().into();
             primitive.render_primitive(ctxt, &mut mesh);
 
-            let material = self.draw.world_mut()
+            let material = self
+                .draw
+                .world_mut()
                 .resource_mut::<Assets<M>>()
                 .add(self.material.clone());
 
-            mesh = mesh.with_inserted_attribute(Mesh::ATTRIBUTE_UV_0,
-                vec![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]
-            );
             let mesh = self.draw.world_mut()
                 .resource_mut::<Assets<Mesh>>()
                 .add(mesh);
 
-            let draw_index = self.draw.world()
+            let draw_index = self
+                .draw
+                .world()
                 .entity(self.entity)
                 .get::<DrawIndex>()
-                .unwrap().0;
+                .unwrap()
+                .0;
 
-            self.draw.world_mut()
+            self.draw
+                .world_mut()
                 .entity_mut(self.entity)
                 .insert((
                     NannouMesh,
@@ -145,11 +148,12 @@ where
                         transform: Transform::from_translation(Vec3::new(
                             0.0,
                             0.0,
-                            0.01 * draw_index as f32
+                            // Prevent z-fighting by offsetting the z position slightly.
+                            0.01 * draw_index as f32,
                         )),
                         ..default()
                     },
-                    ))
+                ))
                 .insert(self.draw.context.clone());
         }
     }
@@ -175,7 +179,7 @@ impl<'a> DrawingContext<'a> {
     }
 }
 
-impl <'a, 'w, T, M> Drawing<'a, 'w, T, M>
+impl<'a, 'w, T, M> Drawing<'a, 'w, T, M>
 where
     T: Into<Primitive> + Clone,
     M: Material + Default,
@@ -203,7 +207,9 @@ where
         self.finish_inner()
     }
 
-    pub fn fragment_shader<const FS: &'static str>(self) -> Drawing<'a, 'w, T, ExtendedMaterial<StandardMaterial, NannouMaterial<"", FS>>> {
+    pub fn fragment_shader<const FS: &'static str>(
+        self,
+    ) -> Drawing<'a, 'w, T, ExtendedMaterial<StandardMaterial, NannouMaterial<"", FS>>> {
         let Self {
             draw,
             entity,
@@ -844,20 +850,18 @@ where
     }
 }
 
-
 impl<'a, 'w, T, M> Drawing<'a, 'w, T, M>
-    where
-        T: SetMaterial<M> + Into<Primitive> + Clone,
-        M: Material + Default,
-        Primitive: Into<Option<T>>,
+where
+    T: SetMaterial<M> + Into<Primitive> + Clone,
+    M: Material + Default,
+    Primitive: Into<Option<T>>,
 {
-
 }
 
 impl<'a, 'w, T, M> Drawing<'a, 'w, T, ExtendedMaterial<StandardMaterial, M>>
-    where
-        T: Into<Primitive> + Clone,
-        M: MaterialExtension + Default,
+where
+    T: Into<Primitive> + Clone,
+    M: MaterialExtension + Default,
 {
     pub fn roughness(mut self, roughness: f32) -> Self {
         self.material.base.perceptual_roughness = roughness;
@@ -876,6 +880,27 @@ impl<'a, 'w, T, M> Drawing<'a, 'w, T, ExtendedMaterial<StandardMaterial, M>>
 
     pub fn emissive(mut self, color: Color) -> Self {
         self.material.base.emissive = color;
+        self
+    }
+
+    pub fn clearcoat(mut self, clearcoat: f32) -> Self {
+        self.material.base.clearcoat = clearcoat;
+        self
+    }
+
+    pub fn clearcoat_roughness(mut self, clearcoat_roughness: f32) -> Self {
+        self.material.base.clearcoat_perceptual_roughness = clearcoat_roughness;
+        self
+    }
+}
+
+impl<'a, 'w, T, const VS: &'static str, const FS: &'static str>
+    Drawing<'a, 'w, T, ExtendedMaterial<StandardMaterial, NannouMaterial<VS, FS>>>
+where
+    T: Into<Primitive> + Clone,
+{
+    pub fn color_blend(mut self, blend: BlendComponent) -> Self {
+        self.material.extension.blend = Some(blend);
         self
     }
 }

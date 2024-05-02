@@ -1,12 +1,15 @@
-use bevy::pbr::{ExtendedMaterial, MaterialExtension};
+use bevy::pbr::{
+    ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline,
+};
 use std::ops::{Deref, DerefMut};
 
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
+use bevy::render::mesh::MeshVertexBufferLayoutRef;
 use bevy::render::render_resource as wgpu;
-use bevy::render::render_resource::{AsBindGroup, ShaderRef};
+use bevy::render::render_resource::{AsBindGroup, BlendComponent, BlendState, PolygonMode, RenderPipelineDescriptor, ShaderRef, SpecializedMeshPipelineError};
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
@@ -28,13 +31,7 @@ impl Plugin for NannouRenderPlugin {
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
             .insert_resource(GlyphCache::new([1024; 2], 0.1, 0.1))
             .add_systems(Update, texture_event_handler)
-            .add_systems(
-                Last,
-                (
-                    update_background_color,
-                    // update_draw_mesh::<M>
-                ),
-            );
+            .add_systems(Last, (update_background_color,));
     }
 }
 
@@ -44,8 +41,29 @@ impl Plugin for NannouRenderPlugin {
 
 pub type DefaultNannouMaterial = ExtendedMaterial<StandardMaterial, NannouMaterial<"", "">>;
 
-#[derive(Asset, TypePath, AsBindGroup, Debug, Clone, Default)]
-pub struct NannouMaterial<const VS: &'static str, const FS: &'static str> {}
+#[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
+#[bind_group_data(NannouMaterialKey)]
+pub struct NannouMaterial<const VS: &'static str, const FS: &'static str> {
+    pub polygon_mode: Option<PolygonMode>,
+    pub blend: Option<BlendComponent>,
+}
+
+#[derive(Eq, PartialEq, Hash, Clone)]
+pub struct NannouMaterialKey {
+    polygon_mode: Option<PolygonMode>,
+    blend_component: Option<BlendComponent>,
+}
+
+impl<const VS: &'static str, const FS: &'static str> From<&NannouMaterial<VS, FS>>
+    for NannouMaterialKey
+{
+    fn from(material: &NannouMaterial<VS, FS>) -> Self {
+        Self {
+            polygon_mode: material.polygon_mode,
+            blend_component: material.blend,
+        }
+    }
+}
 
 impl<const VS: &'static str, const FS: &'static str> MaterialExtension for NannouMaterial<VS, FS> {
     fn vertex_shader() -> ShaderRef {
@@ -62,6 +80,31 @@ impl<const VS: &'static str, const FS: &'static str> MaterialExtension for Nanno
         } else {
             ShaderRef::Default
         }
+    }
+
+    fn specialize(
+        _pipeline: &MaterialExtensionPipeline,
+        descriptor: &mut RenderPipelineDescriptor,
+        _layout: &MeshVertexBufferLayoutRef,
+        key: MaterialExtensionKey<Self>,
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        if let Some(blend_component) = key.bind_group_data.blend_component {
+            let fragment = descriptor.fragment.as_mut().unwrap();
+            fragment.targets.iter_mut().for_each(|target| {
+                if let Some(target) = target {
+                    target.blend = Some(BlendState {
+                        color: blend_component.clone(),
+                        alpha: BlendComponent::OVER,
+                    });
+                }
+            });
+        }
+
+        if let Some(polygon_mode) = key.bind_group_data.polygon_mode {
+            descriptor.primitive.polygon_mode = polygon_mode;
+        }
+
+        Ok(())
     }
 }
 
@@ -115,111 +158,49 @@ fn update_background_color(
     }
 }
 
-// Prepare our mesh for rendering
-fn update_draw_mesh<M: Material>(
-    mut commands: Commands,
-    mut glyph_cache: ResMut<GlyphCache>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<M>>,
-    draw_q: Query<(&Primitive, &Handle<M>, &Context)>,
-    windows_q: Query<&Window>,
-    mut mesh_q: Query<(&Handle<Mesh>, &mut Transform), With<NannouMesh>>,
-) {
-    // for window in windows_q.iter() {
-    //     for (primitive, material, context) in &draw_q {
-    //         // TODO: Unclear if we need to track this, or if the physical size is enough.
-    //         let scale_factor = 1.0;
-    //         let [w_px, h_px] = [window.physical_width(), window.physical_height()];
-    //
-    //         // Converting between pixels and points.
-    //         let px_to_pt = |s: u32| s as f32 / scale_factor;
-    //
-    //         // TODO: Store these in `Renderer`.
-    //         let mut fill_tessellator = FillTessellator::new();
-    //         let mut stroke_tessellator = StrokeTessellator::new();
-    //
-    //         // Collect all draw commands to avoid borrow errors.
-    //         let draw_cmds: Vec<_> = draw.drain_commands().collect();
-    //
-    //         let draw_state = draw.state.write().expect("failed to lock draw state");
-    //         let intermediary_state = draw_state
-    //             .intermediary_state
-    //             .read()
-    //             .expect("failed to lock intermediary state");
-    //
-    //         let mut prim_idx = 0;
-    //         for cmd in draw_cmds.into_iter() {
-    //             match cmd {
-    //                 draw::DrawCommand::Context(ctxt) => curr_ctxt = ctxt,
-    //                 draw::DrawCommand::Primitive(prim) => {
-    //                     // Info required during rendering.
-    //                     let ctxt = RenderContext {
-    //                         intermediary_mesh: &intermediary_state.intermediary_mesh,
-    //                         path_event_buffer: &intermediary_state.path_event_buffer,
-    //                         path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
-    //                         path_points_textured_buffer: &intermediary_state
-    //                             .path_points_textured_buffer,
-    //                         text_buffer: &intermediary_state.text_buffer,
-    //                         theme: &draw_state.theme,
-    //                         transform: &curr_ctxt.transform,
-    //                         fill_tessellator: &mut fill_tessellator,
-    //                         stroke_tessellator: &mut stroke_tessellator,
-    //                         glyph_cache: &mut glyph_cache,
-    //                         output_attachment_size: Vec2::new(px_to_pt(w_px), px_to_pt(h_px)),
-    //                         output_attachment_scale_factor: scale_factor,
-    //                     };
-    //
-    //                     // Get or spawn the mesh and material.
-    //                     let (mesh, material) = match mesh_q.iter_mut().nth(prim_idx) {
-    //                         // We already have a mesh and material for this index.
-    //                         Some((mesh, material, mut transform)) => {
-    //                             transform.translation = Vec3::new(0.0, 0.0, prim_idx as f32 * 0.0001);
-    //                             (mesh.clone(), material.clone())
-    //                         }
-    //                         // We need to spawn a new mesh and material for this index.
-    //                         None => {
-    //                             let mesh = Mesh::init_with_topology(curr_ctxt.topology);
-    //                             let mesh = meshes.add(mesh);
-    //                             let material = materials.add(StandardMaterial::default());
-    //
-    //                             commands.spawn((
-    //                                 NannouMesh,
-    //                                 PbrBundle {
-    //                                     mesh: mesh.clone(),
-    //                                     material: material.clone(),
-    //                                     transform: Transform::from_translation(Vec3::new(
-    //                                         0.0,
-    //                                         0.0,
-    //                                         prim_idx as f32 * 0.0001,
-    //                                     )),
-    //                                     ..default()
-    //                                 },
-    //                             ));
-    //
-    //                             (mesh, material)
-    //                         }
-    //                     };
-    //
-    //                     // Fetch the mesh and material.
-    //                     let (mesh, material) = (
-    //                         meshes.get_mut(&mesh).unwrap(),
-    //                         materials.get_mut(&material).unwrap(),
-    //                     );
-    //
-    //                     // Render the primitive.
-    //                     mesh.clear();
-    //                     let render = prim.render_primitive(ctxt, mesh);
-    //                     // material.base_color_texture = render.texture_handle;
-    //                     prim_idx += 1;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-}
-
 #[derive(Component)]
 pub struct NannouMesh;
 
 #[derive(Component)]
 pub struct NannouPersistantMesh;
+
+// BLEND
+pub mod blend {
+    use bevy::render::render_resource as wgpu;
+
+    pub const BLEND_NORMAL: wgpu::BlendComponent = wgpu::BlendComponent {
+        src_factor: wgpu::BlendFactor::SrcAlpha,
+        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+        operation: wgpu::BlendOperation::Add,
+    };
+
+    pub const BLEND_ADD: wgpu::BlendComponent = wgpu::BlendComponent {
+        src_factor: wgpu::BlendFactor::Src,
+        dst_factor: wgpu::BlendFactor::Dst,
+        operation: wgpu::BlendOperation::Add,
+    };
+
+    pub const BLEND_SUBTRACT: wgpu::BlendComponent = wgpu::BlendComponent {
+        src_factor: wgpu::BlendFactor::Src,
+        dst_factor: wgpu::BlendFactor::Dst,
+        operation: wgpu::BlendOperation::Subtract,
+    };
+
+    pub const BLEND_REVERSE_SUBTRACT: wgpu::BlendComponent = wgpu::BlendComponent {
+        src_factor: wgpu::BlendFactor::Src,
+        dst_factor: wgpu::BlendFactor::Dst,
+        operation: wgpu::BlendOperation::ReverseSubtract,
+    };
+
+    pub const BLEND_DARKEST: wgpu::BlendComponent = wgpu::BlendComponent {
+        src_factor: wgpu::BlendFactor::One,
+        dst_factor: wgpu::BlendFactor::One,
+        operation: wgpu::BlendOperation::Min,
+    };
+
+    pub const BLEND_LIGHTEST: wgpu::BlendComponent = wgpu::BlendComponent {
+        src_factor: wgpu::BlendFactor::One,
+        dst_factor: wgpu::BlendFactor::One,
+        operation: wgpu::BlendOperation::Max,
+    };
+}

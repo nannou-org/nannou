@@ -377,7 +377,6 @@ where
                 panic!("Only one primary window can be created");
             }
 
-            info!("Setting window {:?} as primary", entity);
             self.app.world_mut().entity_mut(entity).insert(PrimaryWindow);
         }
 
@@ -404,29 +403,30 @@ where
             NannouCamera,
         ));
 
-        self.app.world_mut().spawn((
-            Camera3dBundle {
-                camera: Camera {
-                    // TODO: configure in builder
-                    hdr: true,
-                    target: RenderTarget::Window(WindowRef::Entity(entity)),
-                    clear_color: ClearColorConfig::None,
-                    order: 2,
-                    ..Default::default()
-                },
-                tonemapping: Tonemapping::TonyMcMapface, // 2. Using a tonemapper that desaturates to white is recommended
-                transform: Transform::from_xyz(0.0, 0.0, 10.0)
-                    .looking_at(Vec3::ZERO, Vec3::Y),
-                projection: OrthographicProjection {
-                    ..Default::default()
-                }
-                    .into(),
-                ..Default::default()
-            },
-
-            BloomSettings::OLD_SCHOOL,
-            NannouCamera,
-        ));
+        // TODO: set dynamically
+        // self.app.world_mut().spawn((
+        //     Camera3dBundle {
+        //         camera: Camera {
+        //             // TODO: configure in builder
+        //             hdr: true,
+        //             target: RenderTarget::Window(WindowRef::Entity(entity)),
+        //             clear_color: ClearColorConfig::None,
+        //             order: 2,
+        //             ..Default::default()
+        //         },
+        //         tonemapping: Tonemapping::TonyMcMapface, // 2. Using a tonemapper that desaturates to white is recommended
+        //         transform: Transform::from_xyz(0.0, 0.0, 10.0)
+        //             .looking_at(Vec3::ZERO, Vec3::Y),
+        //         projection: OrthographicProjection {
+        //             ..Default::default()
+        //         }
+        //             .into(),
+        //         ..Default::default()
+        //     },
+        //
+        //     BloomSettings::OLD_SCHOOL,
+        //     NannouCamera,
+        // ));
 
         entity
     }

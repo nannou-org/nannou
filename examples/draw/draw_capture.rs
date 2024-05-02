@@ -19,7 +19,7 @@ fn view(app: &App, frame: Frame) {
 
     let t = frame.nth() as f32 / 60.0;
     draw.ellipse()
-        .x_y(app.mouse.x * t.cos(), app.mouse.y)
+        .x_y(app.mouse().x * t.cos(), app.mouse().y)
         .radius(win.w() * 0.125 * t.sin())
         .color(RED);
 
@@ -30,13 +30,13 @@ fn view(app: &App, frame: Frame) {
         .points(win.top_left() * t.sin(), win.bottom_right() * t.cos());
 
     draw.quad()
-        .x_y(-app.mouse.x, app.mouse.y)
+        .x_y(-app.mouse().x, app.mouse().y)
         .color(DARKGREEN)
         .rotate(t);
 
     draw.rect()
-        .x_y(app.mouse.y, app.mouse.x)
-        .w(app.mouse.x * 0.25)
+        .x_y(app.mouse().y, app.mouse().x)
+        .w(app.mouse().x * 0.25)
         .hsv(t, 1.0, 1.0);
 
     draw.to_frame(app, &frame).unwrap();

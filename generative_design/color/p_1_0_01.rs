@@ -31,32 +31,25 @@
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(|app| ())
-        .simple_window(view)
-        .init_fragment_shader::<"noise.wgsl">()
-        .size(720, 720)
-        .run();
+    nannou::sketch(view).size(720, 720).run();
 }
 
-fn view(app: &App, _model: &(), entity: Entity) {
+fn view(app: &App, frame: Frame) {
+    // Prepare to draw.
     let draw = app.draw();
 
-    let norm_mouse_y = (app.mouse().y / app.window_rect().h()) + 0.5;
-    let norm_mouse_x = (app.mouse().x / app.window_rect().w()) + 0.5;
+    let norm_mouse_y = (app.mouse.y / app.window_rect().h()) + 0.5;
     draw.background().hsl(norm_mouse_y, 1.0, 0.5);
 
-    // This rect is drawn with the "default" material and sets an emissive.
     draw.rect()
-        .w_h(app.mouse().x * 2.5, app.mouse().x * 2.5)
-        .hsl(1.0 - (norm_mouse_y), 1.0, 0.5)
-        .emissive(Color::hsl(1.0 - norm_mouse_x, 1.0, 0.5));
+        .w_h(app.mouse.x * 2.0, app.mouse.x * 2.0)
+        .hsv(1.0 - (norm_mouse_y), 1.0, 0.5);
 
-    // This rect is drawn with a different fragment shader, which multiplies
-    // its color by a noise value.
-    draw.rect()
-        .fragment_shader::<"noise.wgsl">()
-        .w_h(app.mouse().x * 2.0, app.mouse().x * 2.0)
-        .hsl(1.0 - (norm_mouse_y), 1.0, 0.5);
+    // Write to the window frame.
+    draw.to_frame(app, &frame).unwrap();
+
+    if app.keys.down.contains(&Key::S) {
+        app.main_window()
+            .capture_frame(app.exe_name().unwrap() + ".png");
+    }
 }
-
-

@@ -48,8 +48,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .mesh()
         .points_textured(&model.texture, points)
         .z_radians(app.time * 0.33)
-        .x_radians(app.time * 0.166 + -app.mouse.y / 100.0)
-        .y_radians(app.time * 0.25 + app.mouse.x / 100.0);
+        .x_radians(app.time * 0.166 + -app.mouse().y / 100.0)
+        .y_radians(app.time * 0.25 + app.mouse().x / 100.0);
 
     // Draw to the frame!
     draw.to_frame(app, &frame).unwrap();

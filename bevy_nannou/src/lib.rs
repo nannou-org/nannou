@@ -4,6 +4,7 @@ pub mod prelude {
     pub use bevy::prelude::*;
     pub use bevy::color::palettes::css::*;
     pub use bevy_nannou_draw::*;
+    pub use bevy_nannou_draw::render::blend::*;
 }
 
 pub struct NannouPlugin;

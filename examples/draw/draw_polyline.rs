@@ -17,7 +17,7 @@ fn view(app: &App, frame: Frame) {
     // Decide on a number of points and a weight.
     let n_points = 10;
     let weight = 8.0;
-    let hz = ((app.mouse().x + win.right()) / win.w()).powi(4) * 1000.0;
+    let hz = ((app.mouse()().x + win.right()) / win.w()).powi(4) * 1000.0;
     let vertices = (0..n_points)
         // A sine wave mapped to the range of the window.
         .map(|i| {

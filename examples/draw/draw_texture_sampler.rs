@@ -27,7 +27,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let win_r = win.rect();
 
     // Let's choose the address mode based on the mouse position.
-    let address_mode = match map_range(app.mouse.y, win_r.top(), win_r.bottom(), 0.0, 3.0) as i8 {
+    let address_mode = match map_range(app.mouse().y, win_r.top(), win_r.bottom(), 0.0, 3.0) as i8 {
         0 => wgpu::AddressMode::ClampToEdge,
         1 => wgpu::AddressMode::Repeat,
         _ => wgpu::AddressMode::MirrorRepeat,
