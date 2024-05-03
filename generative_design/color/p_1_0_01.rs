@@ -42,6 +42,7 @@ fn view(app: &App) {
     draw.background().hsl(norm_mouse_y, 1.0, 0.5);
 
     draw.rect()
+        .base_color(Color::WHITE)
         .w_h(app.mouse().x * 2.0, app.mouse().x * 2.0)
         .hsv(1.0 - (norm_mouse_y), 1.0, 0.5);
 

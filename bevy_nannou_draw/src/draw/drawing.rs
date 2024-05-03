@@ -1,10 +1,13 @@
 use std::marker::PhantomData;
+use std::sync::{Arc, RwLock};
+use bevy::asset::AsyncWriteExt;
 
 use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 use bevy::prelude::*;
 use bevy::render::render_resource::BlendComponent;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
+use crate::changed::Cd;
 
 use crate::draw::{Draw, DrawContext, DrawRef};
 use crate::draw::mesh::MeshExt;
@@ -114,6 +117,8 @@ where
             Err(err) => eprintln!("drawing failed to borrow state and finish: {}", err),
             Ok(mut state) => {
                 match &self.draw {
+                    // If we are "Owned", that means we mutated our material and so need to
+                    // spawn a new entity just for this primitive.
                     DrawRef::Owned(draw) => {
                         let material = draw.material.read().unwrap().clone();
                         state.draw_commands.push(Some(Box::new(move |world: &mut World| {
@@ -137,6 +142,9 @@ where
                             });
                             render.mesh = mesh;
                             render.entity = entity;
+
+                            // TODO: reset parent?? How does change detection work here?
+                            // We should probably keep rendering into the same parent material.
                         })));
                     },
                     DrawRef::Borrowed(_) => (),
@@ -167,6 +175,27 @@ where
             index,
             finish_on_drop: true,
             _ty: Default::default(),
+        }
+    }
+
+    fn map_material<F>(mut self, map: F) -> Drawing<'a, T, M>
+    where
+        F: FnOnce(M) -> M,
+    {
+        self.finish_on_drop = false;
+        let Drawing { ref draw, index,  .. } = self;
+        let material = map(self.draw.material.read().unwrap().clone());
+        let draw = Draw {
+            state: draw.state.clone(),
+            context: draw.context.clone(),
+            material: Arc::new(RwLock::new(Cd::new(material))),
+            window: draw.window,
+        };
+        Drawing {
+            draw: DrawRef::Owned(draw),
+            index,
+            finish_on_drop: true,
+            _ty: PhantomData,
         }
     }
 
@@ -799,8 +828,10 @@ where
     }
 
     pub fn base_color(mut self, color: Color) -> Self {
-        // self.draw.material.base.base_color = color;
-        self
+        self.map_material(|mut material| {
+            material.base.base_color = color;
+            material
+        })
     }
 
     pub fn emissive(mut self, color: Color) -> Self {

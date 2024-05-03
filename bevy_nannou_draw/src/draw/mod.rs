@@ -498,6 +498,15 @@ where
                         render.mesh = mesh;
                         render.entity = entity;
                     })));
+
+                // Reset the material changed flag so that we will re-use the same mesh
+                // until the material is changed again.
+                self.material.write().unwrap().reset();
+            } else {
+                // Our material wasn't changed, but we need to check our mesh to see if it was
+                // changed, as this would indicate that a primitive spawned by this draw instance
+                // has been drawn with a different material.
+                // TODO :(
             }
 
             // If drawing with a different context, insert the necessary command to update it.

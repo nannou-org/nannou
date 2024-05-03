@@ -61,7 +61,7 @@ fn model(app: &App) -> Model {
     let line_alpha = 0.2;
 
     let mut model = Model {
-        point_count: 500,
+        point_count: 1000,
         lissajous_points,
         freq_x: 4.0,
         freq_y: 7.0,
