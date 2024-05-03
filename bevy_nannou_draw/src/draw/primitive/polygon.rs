@@ -64,10 +64,10 @@ pub struct Polygon {
 }
 
 /// Initialised drawing state for a polygon.
-pub type DrawingPolygonInit<'a, 'w, M> = Drawing<'a,'w,  PolygonInit, M>;
+pub type DrawingPolygonInit<'a, M> = Drawing<'a,  PolygonInit, M>;
 
 /// Initialised drawing state for a polygon.
-pub type DrawingPolygon<'a, 'w, M> = Drawing<'a, 'w, Polygon, M>;
+pub type DrawingPolygon<'a, M> = Drawing<'a, Polygon, M>;
 
 impl PolygonInit {
     /// Stroke the outline with the given color.
@@ -436,7 +436,7 @@ impl draw::render::RenderPrimitive for Polygon {
     }
 }
 
-impl <'a, 'w, T, M> Drawing<'a, 'w, T, M>
+impl <'a, T, M> Drawing<'a, T, M>
 where
     T: SetPolygon + Into<Primitive> + Clone,
     M: Material + Default,
@@ -464,7 +464,7 @@ where
     }
 }
 
-impl<'a, 'w, M> DrawingPolygonInit<'a,'w,  M>
+impl<'a, M> DrawingPolygonInit<'a,  M>
     where M: Material + Default
 {
     /// Stroke the outline with the given color.
@@ -476,7 +476,7 @@ impl<'a, 'w, M> DrawingPolygonInit<'a,'w,  M>
     }
 
     /// Describe the polygon with a sequence of path events.
-    pub fn events<I>(self, events: I) -> DrawingPolygon<'a, 'w, M>
+    pub fn events<I>(self, events: I) -> DrawingPolygon<'a, M>
     where
         I: IntoIterator<Item = PathEvent>,
     {
@@ -484,7 +484,7 @@ impl<'a, 'w, M> DrawingPolygonInit<'a,'w,  M>
     }
 
     /// Describe the polygon with a sequence of points.
-    pub fn points<I>(self, points: I) -> DrawingPolygon<'a, 'w, M>
+    pub fn points<I>(self, points: I) -> DrawingPolygon<'a, M>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -493,7 +493,7 @@ impl<'a, 'w, M> DrawingPolygonInit<'a,'w,  M>
     }
 
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPolygon<'a, 'w, M>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPolygon<'a, M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -507,7 +507,7 @@ impl<'a, 'w, M> DrawingPolygonInit<'a,'w,  M>
         self,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> DrawingPolygon<'a, 'w, M>
+    ) -> DrawingPolygon<'a, M>
     where
         I: IntoIterator<Item = (P, T)>,
         P: Into<Vec2>,

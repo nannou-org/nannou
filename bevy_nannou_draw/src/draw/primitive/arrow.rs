@@ -18,7 +18,7 @@ pub struct Arrow {
 }
 
 /// The drawing context for a line.
-pub type DrawingArrow<'a, 'w, M> = Drawing<'a, 'w, Arrow, M>;
+pub type DrawingArrow<'a, M> = Drawing<'a, Arrow, M>;
 
 impl Arrow {
     /// Short-hand for the `stroke_weight` method.
@@ -83,7 +83,7 @@ impl Arrow {
     }
 }
 
-impl<'a, 'w, M> DrawingArrow<'a, 'w, M>
+impl<'a, M> DrawingArrow<'a, M>
     where M: Material + Default
 {
     /// Short-hand for the `stroke_weight` method.

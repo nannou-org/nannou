@@ -16,7 +16,7 @@ pub struct Tri {
 }
 
 /// The drawing context for a `Tri`.
-pub type DrawingTri<'a, 'w, M> = Drawing<'a, 'w, Tri, M>;
+pub type DrawingTri<'a, M> = Drawing<'a, Tri, M>;
 
 // Tri-specific methods.
 
@@ -44,7 +44,7 @@ impl Tri {
 
 // Drawing methods.
 
-impl<'a, 'w, M> DrawingTri<'a, 'w, M>
+impl<'a, M> DrawingTri<'a, M>
     where M: Material + Default
 {
     /// Stroke the outline with the given color.

@@ -18,7 +18,7 @@ pub struct Quad {
 }
 
 /// The drawing context for a `Quad`.
-pub type DrawingQuad<'a, 'w, M> = Drawing<'a, 'w, Quad, M>;
+pub type DrawingQuad<'a, M> = Drawing<'a, Quad, M>;
 
 // Quad-specific methods.
 
@@ -171,7 +171,7 @@ impl Into<Option<Quad>> for Primitive {
 
 // Drawing methods.
 
-impl<'a, 'w, M> DrawingQuad<'a, 'w, M>
+impl<'a, M> DrawingQuad<'a, M>
     where M: Material + Default
 {
     /// Use the given points as the vertices (corners) of the quad.

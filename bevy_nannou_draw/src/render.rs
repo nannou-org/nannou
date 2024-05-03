@@ -30,8 +30,7 @@ impl Plugin for NannouRenderPlugin {
             ))
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
             .insert_resource(GlyphCache::new([1024; 2], 0.1, 0.1))
-            .add_systems(Update, texture_event_handler)
-            .add_systems(Last, (update_background_color,));
+            .add_systems(Update, texture_event_handler);
     }
 }
 
@@ -41,17 +40,20 @@ impl Plugin for NannouRenderPlugin {
 
 pub type DefaultNannouMaterial = ExtendedMaterial<StandardMaterial, NannouMaterial<"", "">>;
 
+pub type ExtendedNannouMaterial<const VS: &'static str, const FS: &'static str> =
+    ExtendedMaterial<StandardMaterial, NannouMaterial<VS, FS>>;
+
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
 #[bind_group_data(NannouMaterialKey)]
 pub struct NannouMaterial<const VS: &'static str, const FS: &'static str> {
     pub polygon_mode: Option<PolygonMode>,
-    pub blend: Option<BlendComponent>,
+    pub blend: Option<BlendState>
 }
 
 #[derive(Eq, PartialEq, Hash, Clone)]
 pub struct NannouMaterialKey {
     polygon_mode: Option<PolygonMode>,
-    blend_component: Option<BlendComponent>,
+    blend: Option<BlendState>,
 }
 
 impl<const VS: &'static str, const FS: &'static str> From<&NannouMaterial<VS, FS>>
@@ -60,7 +62,7 @@ impl<const VS: &'static str, const FS: &'static str> From<&NannouMaterial<VS, FS
     fn from(material: &NannouMaterial<VS, FS>) -> Self {
         Self {
             polygon_mode: material.polygon_mode,
-            blend_component: material.blend,
+            blend:  material.blend
         }
     }
 }
@@ -88,14 +90,11 @@ impl<const VS: &'static str, const FS: &'static str> MaterialExtension for Nanno
         _layout: &MeshVertexBufferLayoutRef,
         key: MaterialExtensionKey<Self>,
     ) -> Result<(), SpecializedMeshPipelineError> {
-        if let Some(blend_component) = key.bind_group_data.blend_component {
+        if let Some(blend) = key.bind_group_data.blend {
             let fragment = descriptor.fragment.as_mut().unwrap();
             fragment.targets.iter_mut().for_each(|target| {
                 if let Some(target) = target {
-                    target.blend = Some(BlendState {
-                        color: blend_component.clone(),
-                        alpha: BlendComponent::OVER,
-                    });
+                    target.blend = Some(blend);
                 }
             });
         }
@@ -143,26 +142,33 @@ fn setup_default_texture(mut commands: Commands, mut images: ResMut<Assets<Image
     commands.insert_resource(DefaultTextureHandle(texture));
 }
 
-fn update_background_color(
-    mut cameras_q: Query<(&mut Camera)>,
-    draw_q: Query<(Entity, &crate::draw::BackgroundColor)>,
-) {
-    for (entity, bg_color) in draw_q.iter() {
-        for (mut camera) in cameras_q.iter_mut() {
-            if let RenderTarget::Window(WindowRef::Entity(window_target)) = camera.target {
-                if window_target == entity {
-                    camera.clear_color = ClearColorConfig::Custom(bg_color.0);
-                }
-            }
-        }
-    }
-}
+// fn update_background_color(
+//     mut cameras_q: Query<(&mut Camera)>,
+//     draw_q: Query<(Entity, &crate::draw::BackgroundColor)>,
+// ) {
+//     for (entity, bg_color) in draw_q.iter() {
+//         for (mut camera) in cameras_q.iter_mut() {
+//             if let RenderTarget::Window(WindowRef::Entity(window_target)) = camera.target {
+//                 if window_target == entity {
+//                     camera.clear_color = ClearColorConfig::Custom(bg_color.0);
+//                 }
+//             }
+//         }
+//     }
+// }
 
 #[derive(Component)]
 pub struct NannouMesh;
 
 #[derive(Component)]
 pub struct NannouPersistantMesh;
+
+#[derive(Resource)]
+pub struct NannouRenderContext {
+    pub mesh: Mesh,
+    pub entity: Entity,
+    pub context: Context,
+}
 
 // BLEND
 pub mod blend {

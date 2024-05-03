@@ -1,22 +1,19 @@
+use std::marker::PhantomData;
+
+use bevy::pbr::{ExtendedMaterial, MaterialExtension};
+use bevy::prelude::*;
+use bevy::render::render_resource::BlendComponent;
+use lyon::path::PathEvent;
+use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
+
+use crate::draw::{Draw, DrawRef};
 use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::Primitive;
-use crate::draw::properties::material::SetMaterial;
 use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
-use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
-use crate::draw::{self, Draw, DrawIndex};
-use crate::render::{NannouMaterial, NannouMesh};
-use bevy::color::palettes::basic::RED;
-use bevy::pbr::{ExtendedMaterial, MaterialExtension, OpaqueRendererMethod};
-use bevy::prelude::*;
-use bevy::render::render_resource::PrimitiveTopology::TriangleList;
-use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
-use lyon::path::PathEvent;
-use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
-use std::borrow::Cow;
-use std::marker::PhantomData;
-use bevy::render::render_resource::BlendComponent;
+use crate::draw::properties::material::SetMaterial;
+use crate::render::{ExtendedNannouMaterial, NannouMaterial, NannouRenderContext};
 
 /// A **Drawing** in progress.
 ///
@@ -28,20 +25,17 @@ use bevy::render::render_resource::BlendComponent;
 /// inner **geom::Graph**. This ensures the correct instantiation order is maintained within the
 /// graph. As a result, each **Drawing** is associated with a single, unique node. Thus a
 /// **Drawing** can be thought of as a way of specifying properties for a node.
-pub struct Drawing<'a, 'w, T: Clone, M>
-where
-    T: Into<Primitive> + Clone,
-    M: Material + Default,
+pub struct Drawing<'a, T, M>
+    where M: Material + Default
 {
     // The `Draw` instance used to create this drawing.
-    draw: &'a Draw<'w, M>,
-    // The entity for this drawing.
-    entity: Entity,
-    // The primitive for this drawing.
-    primitive: T,
-    material: M,
+    draw: DrawRef<'a, M>,
+    // The draw command index of the primitive being drawn.
+    index: usize,
     // Whether or not the **Drawing** should attempt to finish the drawing on drop.
     finish_on_drop: bool,
+    // The node type currently being drawn.
+    _ty: PhantomData<T>,
 }
 
 /// Some context that may be optionally provided to primitives in the drawing implementation.
@@ -61,100 +55,28 @@ pub struct DrawingContext<'a> {
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<'a, 'w, T: Clone, M: Material>(
-    draw: &'a Draw<'w, M>,
-    entity: Entity,
-    primitive: T,
-    material: M,
-) -> Drawing<'a, 'w, T, M>
+pub fn new<'a, T, M: Material>(draw: &'a Draw<M>, index: usize) -> Drawing<'a, T, M>
 where
-    T: Into<Primitive> + Clone,
+    T: Into<Primitive>,
     M: Material + Default,
 {
+    let _ty = PhantomData;
     let finish_on_drop = true;
     Drawing {
-        draw,
-        entity,
+        draw: DrawRef::Borrowed(draw),
+        index,
         finish_on_drop,
-        primitive,
-        material,
+        _ty,
     }
 }
 
-impl<'a, 'w, T, M> Drop for Drawing<'a, 'w, T, M>
+impl<'a, T, M> Drop for Drawing<'a, T, M>
 where
-    T: Into<Primitive> + Clone,
     M: Material + Default,
 {
     fn drop(&mut self) {
         if self.finish_on_drop {
-            let draw_state = self.draw.state.write().expect("failed to lock draw state");
-            let intermediary_state = draw_state
-                .intermediary_state
-                .read()
-                .expect("failed to lock intermediary state");
-
-            let mut fill_tessellator = FillTessellator::new();
-            let mut stroke_tessellator = StrokeTessellator::new();
-
-            let mut glyph_cache = self.draw.world_mut().resource_mut::<GlyphCache>();
-
-            let ctxt = RenderContext {
-                intermediary_mesh: &intermediary_state.intermediary_mesh,
-                path_event_buffer: &intermediary_state.path_event_buffer,
-                path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
-                path_points_textured_buffer: &intermediary_state.path_points_textured_buffer,
-                text_buffer: &intermediary_state.text_buffer,
-                theme: &draw_state.theme,
-                transform: &self.draw.context.transform,
-                fill_tessellator: &mut fill_tessellator,
-                stroke_tessellator: &mut stroke_tessellator,
-                glyph_cache: &mut glyph_cache,
-                // TODO: read from window
-                output_attachment_size: Vec2::new(100.0, 100.0),
-                output_attachment_scale_factor: 1.0,
-            };
-
-            let mut mesh = Mesh::init_with_topology(TriangleList);
-            let primitive = self.primitive.clone().into();
-            primitive.render_primitive(ctxt, &mut mesh);
-
-            let material = self
-                .draw
-                .world_mut()
-                .resource_mut::<Assets<M>>()
-                .add(self.material.clone());
-
-            let mesh = self.draw.world_mut()
-                .resource_mut::<Assets<Mesh>>()
-                .add(mesh);
-
-            let draw_index = self
-                .draw
-                .world()
-                .entity(self.entity)
-                .get::<DrawIndex>()
-                .unwrap()
-                .0;
-
-            self.draw
-                .world_mut()
-                .entity_mut(self.entity)
-                .insert((
-                    NannouMesh,
-                    MaterialMeshBundle::<M> {
-                        mesh: mesh.clone(),
-                        material: material.clone(),
-                        transform: Transform::from_translation(Vec3::new(
-                            0.0,
-                            0.0,
-                            // Prevent z-fighting by offsetting the z position slightly.
-                            0.01 * draw_index as f32,
-                        )),
-                        ..default()
-                    },
-                ))
-                .insert(self.draw.context.clone());
+            self.finish_inner()
         }
     }
 }
@@ -179,9 +101,8 @@ impl<'a> DrawingContext<'a> {
     }
 }
 
-impl<'a, 'w, T, M> Drawing<'a, 'w, T, M>
+impl<'a, T, M> Drawing<'a, T, M>
 where
-    T: Into<Primitive> + Clone,
     M: Material + Default,
 {
     // Shared between the **finish** method and the **Drawing**'s **Drop** implementation.
@@ -189,15 +110,30 @@ where
     // 1. Create vertices based on node-specific position, points, etc.
     // 2. Insert edges into geom graph based on
     fn finish_inner(&mut self) {
-        // match self.draw.state.try_write() {
-        //     Err(err) => eprintln!("drawing failed to borrow state and finish: {}", err),
-        //     Ok(mut state) => state.finish_drawing(self.entity),
-        // }
-    }
+        match (*self.draw).state.try_write() {
+            Err(err) => eprintln!("drawing failed to borrow state and finish: {}", err),
+            Ok(mut state) => {
+                match &self.draw {
+                    DrawRef::Owned(draw) => {
+                        let material = draw.material.read().unwrap().clone();
+                        state.draw_commands.push(Some(Box::new(move |world: &mut World| {
+                            let mut materials = world.resource_mut::<Assets<M>>();
+                            let material = materials.add(material);
 
-    pub fn entity(mut self, entity: Entity) -> Self {
-        self.entity = entity;
-        self
+                            let mut entity = world.spawn_empty();
+                            entity.insert(material);
+                            let entity = entity.id();
+
+                            let mut render = world.get_resource_mut::<NannouRenderContext>().unwrap();
+                            render.mesh = Mesh::init();
+                            render.entity = entity;
+                        })));
+                    },
+                    DrawRef::Borrowed(_) => (),
+                }
+                state.finish_drawing(self.index);
+            }
+        }
     }
 
     /// Complete the drawing and insert it into the parent **Draw** instance.
@@ -209,91 +145,70 @@ where
 
     pub fn fragment_shader<const FS: &'static str>(
         self,
-    ) -> Drawing<'a, 'w, T, ExtendedMaterial<StandardMaterial, NannouMaterial<"", FS>>> {
+    ) -> Drawing<'a, T, ExtendedNannouMaterial<"", FS>> {
         let Self {
-            draw,
-            entity,
-            ref primitive,
-            ref material,
+            ref draw,
+            index,
             ..
         } = self;
-        let material = ExtendedMaterial {
-            base: StandardMaterial {
-                // can be used in forward or deferred mode.
-                opaque_render_method: OpaqueRendererMethod::Auto,
-                // see the fragment shader `extended_material.wgsl` for more info.
-                // Note: to run in deferred mode, you must also add a `DeferredPrepass` component to the camera and either
-                // change the above to `OpaqueRendererMethod::Deferred` or add the `DefaultOpaqueRendererMethod` resource.
-                // base_color: RED.into(),
-                ..Default::default()
-            },
-            extension: NannouMaterial::<"", FS>::default(),
-        };
 
-        Drawing::<'a, 'w, T, ExtendedMaterial<StandardMaterial, NannouMaterial<"", FS>>> {
-            draw: draw.material(),
-            entity,
-            primitive: primitive.clone(),
-            material,
+        Drawing::<'a, T, ExtendedMaterial<StandardMaterial, NannouMaterial<"", FS>>> {
+            draw: DrawRef::Owned(draw.material()),
+            index,
             finish_on_drop: true,
+            _ty: Default::default(),
         }
     }
 
     // Map the given function onto the primitive stored within **Draw** at `index`.
     //
     // The functionn is only applied if the node has not yet been **Drawn**.
-    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, 'w, T2, M>
+    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2, M>
     where
-        F: FnOnce(Primitive) -> T2,
+        F: FnOnce(Primitive) -> Primitive,
         T2: Into<Primitive> + Clone,
     {
-        let Drawing {
-            draw,
-            entity,
-            ref material,
-            ref primitive,
-            ..
-        } = self;
-        let primitive = map(primitive.clone().into());
+        if let Ok(mut state) = self.draw.state.try_write() {
+            if let Some(mut primitive) = state.drawing.remove(&self.index) {
+                primitive = map(primitive);
+                state.drawing.insert(self.index, primitive);
+            }
+        }
         self.finish_on_drop = false;
-
+        let Drawing { ref draw, index, .. } = self;
         Drawing {
-            draw,
-            entity,
-            primitive,
-            material: material.clone(),
+            draw: draw.clone(),
+            index,
             finish_on_drop: true,
+            _ty: PhantomData,
         }
     }
 
     // The same as `map_primitive` but also passes a mutable reference to the vertex data to the
     // map function. This is useful for types that may have an unknown number of arbitrary
     // vertices.
-    fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, 'w, T2, M>
+    fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2, M>
     where
-        F: FnOnce(Primitive, DrawingContext) -> T2,
+        F: FnOnce(Primitive, DrawingContext) -> Primitive,
         T2: Into<Primitive> + Clone,
     {
-        let mut state = self.draw.state.write().unwrap();
-        let mut intermediary_state = state
-            .intermediary_state
-            .write()
-            .expect("intermediary state lock poisoned");
-        let ctxt = DrawingContext::from_intermediary_state(&mut intermediary_state);
-        let primitive = map(self.primitive.clone().into(), ctxt);
+        if let Ok(mut state) = self.draw.state.try_write() {
+            if let Some(mut primitive) = state.drawing.remove(&self.index) {
+                {
+                    let mut intermediary_state = state.intermediary_state.write().unwrap();
+                    let ctxt = DrawingContext::from_intermediary_state(&mut *intermediary_state);
+                    primitive = map(primitive, ctxt);
+                }
+                state.drawing.insert(self.index, primitive);
+            }
+        }
         self.finish_on_drop = false;
-        let Drawing {
-            draw,
-            entity,
-            ref material,
-            ..
-        } = self;
+        let Drawing { ref draw, index, .. } = self;
         Drawing {
-            draw,
-            entity,
-            primitive,
-            material: material.clone(),
+            draw: draw.clone(),
+            index,
             finish_on_drop: true,
+            _ty: PhantomData,
         }
     }
 
@@ -302,7 +217,7 @@ where
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, 'w, T2, M>
+    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2, M>
     where
         F: FnOnce(T) -> T2,
         T2: Into<Primitive> + Clone,
@@ -312,7 +227,7 @@ where
             let maybe_ty: Option<T> = prim.into();
             let ty = maybe_ty.expect("expected `T` but primitive contained different type");
             let ty2 = map(ty);
-            ty2
+            ty2.into()
         })
     }
 
@@ -321,7 +236,7 @@ where
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, 'w, T2, M>
+    pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2, M>
     where
         F: FnOnce(T, DrawingContext) -> T2,
         T2: Into<Primitive> + Clone,
@@ -331,14 +246,14 @@ where
             let maybe_ty: Option<T> = prim.into();
             let ty = maybe_ty.expect("expected `T` but primitive contained different type");
             let ty2 = map(ty, ctxt);
-            ty2
+            ty2.into()
         })
     }
 }
 
 // SetColor implementations.
 
-impl<'a, 'w, T, M> Drawing<'a, 'w, T, M>
+impl<'a, T, M> Drawing<'a, T, M>
 where
     T: SetColor + Into<Primitive> + Clone,
     M: Material + Default,
@@ -438,7 +353,7 @@ where
 
 // SetDimensions implementations.
 
-impl<'a, 'w, T, M> Drawing<'a, 'w, T, M>
+impl<'a, T, M> Drawing<'a, T, M>
 where
     T: SetDimensions + Into<Primitive> + Clone,
     M: Material + Default,
@@ -497,7 +412,7 @@ where
 
 // SetPosition methods.
 
-impl<'a, 'w, T, M> Drawing<'a, 'w, T, M>
+impl<'a, T, M> Drawing<'a, T, M>
 where
     T: SetPosition + Into<Primitive> + Clone,
     M: Material + Default,
@@ -541,7 +456,7 @@ where
 
 // SetOrientation methods.
 
-impl<'a, 'w, T, M> Drawing<'a, 'w, T, M>
+impl<'a, T, M> Drawing<'a, T, M>
 where
     T: SetOrientation + Into<Primitive> + Clone,
     M: Material + Default,
@@ -664,7 +579,7 @@ where
 
 // SetFill methods
 
-impl<'a, 'w, T, M> Drawing<'a, 'w, T, M>
+impl<'a, T, M> Drawing<'a, T, M>
 where
     T: SetFill + Into<Primitive> + Clone,
     M: Material + Default,
@@ -708,7 +623,7 @@ where
 
 // SetStroke methods
 
-impl<'a, 'w, T, M> Drawing<'a, 'w, T, M>
+impl<'a, T, M> Drawing<'a, T, M>
 where
     T: SetStroke + Into<Primitive> + Clone,
     M: Material + Default,
@@ -850,7 +765,7 @@ where
     }
 }
 
-impl<'a, 'w, T, M> Drawing<'a, 'w, T, M>
+impl<'a, T, M> Drawing<'a, T, M>
 where
     T: SetMaterial<M> + Into<Primitive> + Clone,
     M: Material + Default,
@@ -858,49 +773,28 @@ where
 {
 }
 
-impl<'a, 'w, T, M> Drawing<'a, 'w, T, ExtendedMaterial<StandardMaterial, M>>
+impl<'a, T, M> Drawing<'a, T, ExtendedMaterial<StandardMaterial, M>>
 where
-    T: Into<Primitive> + Clone,
+    T: Into<Primitive>,
     M: MaterialExtension + Default,
 {
     pub fn roughness(mut self, roughness: f32) -> Self {
-        self.material.base.perceptual_roughness = roughness;
+        // self.draw.material.base.perceptual_roughness = roughness;
         self
     }
 
     pub fn metallic(mut self, metallic: f32) -> Self {
-        self.material.base.metallic = metallic;
+        // self.draw.material.base.metallic = metallic;
         self
     }
 
     pub fn base_color(mut self, color: Color) -> Self {
-        self.material.base.base_color = color;
+        // self.draw.material.base.base_color = color;
         self
     }
 
     pub fn emissive(mut self, color: Color) -> Self {
-        self.material.base.emissive = color;
-        self
-    }
-
-    pub fn clearcoat(mut self, clearcoat: f32) -> Self {
-        self.material.base.clearcoat = clearcoat;
-        self
-    }
-
-    pub fn clearcoat_roughness(mut self, clearcoat_roughness: f32) -> Self {
-        self.material.base.clearcoat_perceptual_roughness = clearcoat_roughness;
-        self
-    }
-}
-
-impl<'a, 'w, T, const VS: &'static str, const FS: &'static str>
-    Drawing<'a, 'w, T, ExtendedMaterial<StandardMaterial, NannouMaterial<VS, FS>>>
-where
-    T: Into<Primitive> + Clone,
-{
-    pub fn color_blend(mut self, blend: BlendComponent) -> Self {
-        self.material.extension.blend = Some(blend);
+        // self.draw.material.base.emissive = color;
         self
     }
 }

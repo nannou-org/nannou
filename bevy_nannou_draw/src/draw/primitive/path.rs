@@ -80,19 +80,19 @@ pub struct Path {
 }
 
 /// The initial drawing context for a path.
-pub type DrawingPathInit<'a, 'w, M> = Drawing<'a, 'w, PathInit, M>;
+pub type DrawingPathInit<'a, M> = Drawing<'a, PathInit, M>;
 
 /// The drawing context for a path in the tessellation options state.
-pub type DrawingPathOptions<'a, 'w, T, M> = Drawing<'a, 'w, PathOptions<T>, M>;
+pub type DrawingPathOptions<'a, T, M> = Drawing<'a, PathOptions<T>, M>;
 
 /// The drawing context for a stroked path, prior to path event submission.
-pub type DrawingPathStroke<'a, 'w, M> = Drawing<'a, 'w, PathStroke, M>;
+pub type DrawingPathStroke<'a, M> = Drawing<'a, PathStroke, M>;
 
 /// The drawing context for a filled path, prior to path event submission.
-pub type DrawingPathFill<'a, 'w, M> = Drawing<'a, 'w, PathFill, M>;
+pub type DrawingPathFill<'a, M> = Drawing<'a, PathFill, M>;
 
 /// The drawing context for a polyline whose vertices have been specified.
-pub type DrawingPath<'a, 'w, M> = Drawing<'a, 'w, Path, M>;
+pub type DrawingPath<'a, M> = Drawing<'a, Path, M>;
 
 /// Dynamically distinguish between fill and stroke tessellation options.
 #[derive(Clone, Debug)]
@@ -656,25 +656,25 @@ impl Path {
     }
 }
 
-impl<'a, 'w, M> DrawingPathInit<'a, 'w, M>
+impl<'a, M> DrawingPathInit<'a, M>
     where M: Material + Default
 {
     /// Specify that we want to use fill tessellation for the path.
     ///
     /// The returned building context allows for specifying the fill tessellation options.
-    pub fn fill(self) -> DrawingPathFill<'a, 'w, M> {
+    pub fn fill(self) -> DrawingPathFill<'a, M> {
         self.map_ty(|ty| ty.fill())
     }
 
     /// Specify that we want to use stroke tessellation for the path.
     ///
     /// The returned building context allows for specifying the stroke tessellation options.
-    pub fn stroke(self) -> DrawingPathStroke<'a, 'w, M> {
+    pub fn stroke(self) -> DrawingPathStroke<'a, M> {
         self.map_ty(|ty| ty.stroke())
     }
 }
 
-impl<'a, 'w, M> DrawingPathFill<'a, 'w, M>
+impl<'a, M> DrawingPathFill<'a, M>
     where M: Material + Default
 {
     /// Maximum allowed distance to the path when building an approximation.
@@ -690,7 +690,7 @@ impl<'a, 'w, M> DrawingPathFill<'a, 'w, M>
     }
 }
 
-impl<'a, 'w, M> DrawingPathStroke<'a, 'w, M>
+impl<'a, M> DrawingPathStroke<'a, M>
     where M: Material + Default
 {
     /// Short-hand for the `stroke_weight` method.
@@ -704,7 +704,7 @@ impl<'a, 'w, M> DrawingPathStroke<'a, 'w, M>
     }
 }
 
-impl<'a, 'w, T, M> DrawingPathOptions<'a, 'w, T, M>
+impl<'a, T, M> DrawingPathOptions<'a, T, M>
 where
     T: TessellationOptions,
     M: Material + Default,
@@ -712,7 +712,7 @@ where
     Primitive: Into<Option<PathOptions<T>>>,
 {
     /// Submit the path events to be tessellated.
-    pub fn events<I>(self, events: I) -> DrawingPath<'a, 'w, M>
+    pub fn events<I>(self, events: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = lyon::path::PathEvent>,
     {
@@ -720,7 +720,7 @@ where
     }
 
     /// Submit the path events as a polyline of points.
-    pub fn points<I>(self, points: I) -> DrawingPath<'a, 'w, M>
+    pub fn points<I>(self, points: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -731,7 +731,7 @@ where
     /// Submit the path events as a polyline of points.
     ///
     /// An event will be generated that closes the start and end points.
-    pub fn points_closed<I>(self, points: I) -> DrawingPath<'a, 'w, M>
+    pub fn points_closed<I>(self, points: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -740,7 +740,7 @@ where
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPath<'a, 'w, M>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -752,7 +752,7 @@ where
     /// Submit path events as a polyline of colored points.
     ///
     /// The path with automatically close from the end point to the start point.
-    pub fn points_colored_closed<I, P, C>(self, points: I) -> DrawingPath<'a, 'w, M>
+    pub fn points_colored_closed<I, P, C>(self, points: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -766,7 +766,7 @@ where
         self,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> DrawingPath<'a, 'w, M>
+    ) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = (P, TC)>,
         P: Into<Vec2>,
@@ -782,7 +782,7 @@ where
         self,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> DrawingPath<'a, 'w, M>
+    ) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = (P, TC)>,
         P: Into<Vec2>,

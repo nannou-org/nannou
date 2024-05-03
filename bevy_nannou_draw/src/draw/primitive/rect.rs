@@ -15,7 +15,7 @@ pub struct Rect {
 }
 
 /// The drawing context for a Rect.
-pub type DrawingRect<'a, 'w, M> = Drawing<'a, 'w, Rect, M>;
+pub type DrawingRect<'a, M> = Drawing<'a, Rect, M>;
 
 // Trait implementations.
 
@@ -29,7 +29,7 @@ impl Rect {
     }
 }
 
-impl<'a, 'w, M> DrawingRect<'a, 'w, M>
+impl<'a, M> DrawingRect<'a, M>
     where M: Material + Default
 {
     /// Stroke the outline with the given color.

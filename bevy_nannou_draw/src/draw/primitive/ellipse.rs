@@ -19,7 +19,7 @@ pub struct Ellipse {
 }
 
 /// The drawing context for an ellipse.
-pub type DrawingEllipse<'a, 'w, M> = Drawing<'a, 'w, Ellipse, M>;
+pub type DrawingEllipse<'a, M> = Drawing<'a, Ellipse, M>;
 
 // Ellipse-specific methods.
 
@@ -166,7 +166,7 @@ impl Into<Option<Ellipse>> for Primitive {
 
 // Drawing methods.
 
-impl<'a, 'w, M> DrawingEllipse<'a, 'w, M>
+impl<'a, M> DrawingEllipse<'a, M>
     where M: Material + Default {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self

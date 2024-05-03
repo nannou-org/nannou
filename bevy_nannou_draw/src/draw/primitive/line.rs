@@ -18,7 +18,7 @@ pub struct Line {
 }
 
 /// The drawing context for a line.
-pub type DrawingLine<'a, 'w, M> = Drawing<'a, 'w, Line, M>;
+pub type DrawingLine<'a, M> = Drawing<'a, Line, M>;
 
 impl Line {
     /// Short-hand for the `stroke_weight` method.
@@ -59,7 +59,7 @@ impl Line {
     }
 }
 
-impl<'a, 'w, M> DrawingLine<'a, 'w, M>
+impl<'a, M> DrawingLine<'a, M>
     where M: Material + Default,
 {
     /// Short-hand for the `stroke_weight` method.

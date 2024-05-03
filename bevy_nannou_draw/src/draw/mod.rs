@@ -2,10 +2,8 @@
 //!
 //! See the [**Draw** type](./struct.Draw.html) for more details.
 
-use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
-use std::cell::RefCell;
-use std::marker::PhantomData;
-use std::rc::Rc;
+use bevy::ecs::world::Command;
+use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, RwLock};
 
 pub use self::background::Background;
@@ -13,10 +11,12 @@ pub use self::drawing::{Drawing, DrawingContext};
 use self::primitive::Primitive;
 pub use self::theme::Theme;
 use crate::draw::mesh::MeshExt;
-use crate::render::DefaultNannouMaterial;
+use crate::render::{DefaultNannouMaterial, NannouRenderContext};
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
+use bevy::utils::HashMap;
 use lyon::path::PathEvent;
+use crate::changed::Cd;
 
 pub mod background;
 mod drawing;
@@ -40,9 +40,10 @@ pub mod theme;
 ///
 /// See the [draw](https://github.com/nannou-org/nannou/blob/master/examples) examples for a
 /// variety of demonstrations of how the **Draw** type can be used!
-#[derive(Clone, Debug)]
-pub struct Draw<'w, M = DefaultNannouMaterial>
-    where M: Material + Default
+#[derive(Clone)]
+pub struct Draw<M = DefaultNannouMaterial>
+where
+    M: Material + Default,
 {
     /// The state of the **Draw**.
     ///
@@ -54,57 +55,50 @@ pub struct Draw<'w, M = DefaultNannouMaterial>
     /// order to be friendlier to new users, we want to avoid them having to think about mutability
     /// and focus on creativity. Rust-lang nuances can come later.
     pub state: Arc<RwLock<State>>,
-    pub(crate) world: Rc<RefCell<UnsafeWorldCell<'w>>>,
+
     /// The current context of this **Draw** instance.
     context: Context,
-    /// The window entity to which this **Draw** instance is associated.
-    window: Entity,
-    /// The material to use for drawing.
-    _material: PhantomData<M>,
+    /// The current material of this **Draw** instance.
+    material: Arc<RwLock<Cd<M>>>,
 }
 
-#[derive(Component)]
-pub struct BackgroundColor(pub Color);
 
-impl <'w, M> Drop for Draw<'w, M>
-    where M: Material + Default
+
+
+#[derive(Clone)]
+pub enum DrawRef<'a, M>
+where
+    M: Material + Default,
 {
-    fn drop(&mut self) {
-        let state = self.state.read().expect("lock poisoned");
-        if let Some(background_color)  = state.background_color {
-            self.world_mut()
-                .entity_mut(self.window)
-                .insert(BackgroundColor(background_color));
+    Borrowed(&'a Draw<M>),
+    Owned(Draw<M>),
+}
+
+impl<'a, M> Deref for DrawRef<'a, M>
+where
+    M: Material + Default,
+{
+    type Target = Draw<M>;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            DrawRef::Borrowed(draw) => *draw,
+            DrawRef::Owned(draw) => draw,
         }
     }
 }
 
 /// The current **Transform**, alpha **BlendState** and **Scissor** of a **Draw** instance.
-#[derive(Component, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Context {
     // TODO: figure out how to fixup camera via transform
     pub transform: Mat4,
-    pub blend: wgpu::BlendState,
-    pub polygon_mode: wgpu::PolygonMode,
 }
 
 impl Default for Context {
     fn default() -> Self {
         Self {
             transform: Mat4::IDENTITY,
-            blend: wgpu::BlendState {
-                color: wgpu::BlendComponent {
-                    src_factor: wgpu::BlendFactor::SrcAlpha,
-                    dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                    operation: wgpu::BlendOperation::Add,
-                },
-                alpha: wgpu::BlendComponent {
-                    src_factor: wgpu::BlendFactor::SrcAlpha,
-                    dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                    operation: wgpu::BlendOperation::Add,
-                },
-            },
-            polygon_mode: wgpu::PolygonMode::Fill,
         }
     }
 }
@@ -116,16 +110,23 @@ impl Default for Context {
 /// `draw`. The primary purpose of a **Draw** is to be an easy-as-possible, high-level API for
 /// drawing stuff. In order to be friendlier to new users, we want to avoid requiring them to think
 /// about mutability and instead focus on creativity. Rust-lang nuances can come later.
-#[derive(Clone, Debug)]
 pub struct State {
+    /// The last context used to draw an image, used to detect changes and emit commands for them.
+    last_draw_context: Option<Context>,
     /// If `Some`, the **Draw** should first clear the frame's texture with the given color.
-    pub background_color: Option<Color>,
+    background_color: Option<Color>,
+    /// Primitives that are in the process of being drawn.
+    ///
+    /// Keys are indices into the `draw_commands` Vec.
+    drawing: HashMap<usize, Primitive>,
+    /// The list of recorded draw commands.
+    ///
+    /// An element may be `None` if it is a primitive in the process of being drawn.
+    draw_commands: Vec<Option<Box<dyn FnOnce(&mut World)>>>,
     /// State made accessible via the `DrawingContext`.
-    pub intermediary_state: Arc<RwLock<IntermediaryState>>,
+    intermediary_state: Arc<RwLock<IntermediaryState>>,
     /// The theme containing default values.
-    pub theme: Theme,
-    /// The current count of drawings.
-    pub count: usize,
+    theme: Theme,
 }
 
 /// State made accessible via the `DrawingContext`.
@@ -143,9 +144,6 @@ pub struct IntermediaryState {
     pub text_buffer: String,
 }
 
-#[derive(Component, Debug)]
-pub struct DrawIndex(pub usize);
-
 impl IntermediaryState {
     pub fn reset(&mut self) {
         self.intermediary_mesh.clear();
@@ -160,30 +158,53 @@ impl State {
     // Resets all state within the `Draw` instance.
     fn reset(&mut self) {
         self.background_color = None;
-        self.intermediary_state
-            .write()
-            .expect("lock poisoned")
-            .reset();
+        self.drawing.clear();
+        self.draw_commands.clear();
+        self.intermediary_state.write().unwrap().reset();
+    }
+
+    // Drain any remaining `drawing`s and insert them as draw commands.
+    fn finish_remaining_drawings(&mut self) {
+        let mut drawing = std::mem::replace(&mut self.drawing, Default::default());
+        for (index, primitive) in drawing.drain() {
+            self.insert_draw_command(index, primitive);
+        }
+        std::mem::swap(&mut self.drawing, &mut drawing);
+    }
+
+    // Finish the drawing at the given node index if it is not yet complete.
+    pub(crate) fn finish_drawing(&mut self, index: usize) {
+        if let Some(primitive) = self.drawing.remove(&index) {
+            self.insert_draw_command(index, primitive);
+        }
+    }
+
+    // Insert the draw primitive command at the given index.
+    fn insert_draw_command(&mut self, index: usize, prim: Primitive) {
+        if let Some(elem) = self.draw_commands.get_mut(index) {
+            *elem = Some(Box::new(|world: &mut World| {
+
+            }));
+        }
     }
 }
 
-impl<'w, M> Draw<'w, M>
+impl<M> Draw<M>
 where
     M: Material + Default,
 {
-    pub fn new(world: Rc<RefCell<UnsafeWorldCell<'w>>>, window: Entity) -> Self {
+    pub fn new() -> Self {
         Draw {
             state: Default::default(),
-            world,
             context: Default::default(),
-            window,
-            _material: Default::default(),
+            material: Default::default(),
         }
     }
 
     /// Resets all state within the `Draw` instance.
-    pub fn reset(&self) {
-        self.state.write().expect("lock poisoned").reset();
+    pub fn reset(&mut self) {
+        self.material.write().unwrap().reset();
+        self.state.write().unwrap().reset();
     }
 
     // Context changes.
@@ -375,123 +396,138 @@ where
         self.z_radians(radians)
     }
 
-    /// Produce a new **Draw** instance that will draw with the given alpha blend descriptor.
-    pub fn alpha_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
-        let mut context = self.context.clone();
-        context.blend.alpha = blend_descriptor;
-        self.context(context)
-    }
-
-    /// Produce a new **Draw** instance that will draw with the given color blend descriptor.
-    pub fn color_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
-        let mut context = self.context.clone();
-        context.blend.color = blend_descriptor;
-        self.context(context)
-    }
-
-    /// Short-hand for `color_blend`, the common use-case.
-    pub fn blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
-        self.color_blend(blend_descriptor)
-    }
-
-    /// Produce a new **Draw** instance that will use the given polygon mode.
-    pub fn polygon_mode(&self, polygon_mode: wgpu::PolygonMode) -> Self {
-        let mut context = self.context.clone();
-        context.polygon_mode = polygon_mode;
-        self.context(context)
-    }
-
     /// Produce a new **Draw** instance with the given context.
-    fn context(&self, context: Context) -> Self {
+    fn context(&self, context: Context) -> Draw<M> {
         let state = self.state.clone();
+        let material = self.material.clone();
         Draw {
             state,
             context,
-            world: self.world.clone(),
-            _material: PhantomData,
-            window: self.window,
+            material,
         }
     }
 
     /// Produce a new **Draw** instance with a new material type.
-    fn material<M2: Material + Default>(&self) -> &Draw<'w, M2> {
-        unsafe { std::mem::transmute(self) }
+    fn material<M2: Material + Default>(&self) -> Draw<M2> {
+        let mut context = self.context.clone();
+        let Context {
+            transform,
+            ..
+        } = context;
+        let context = Context {
+            transform,
+        };
+        let state = self.state.clone();
+        Draw {
+            state,
+            context,
+            material: Arc::new(RwLock::new(Cd::new(M2::default()))),
+        }
     }
 
     // Primitives.
 
     /// Specify a color with which the background should be cleared.
-    pub fn background<'a>(&'a self) -> Background<'a, 'w, M> {
+    pub fn background<'a>(&'a self) -> Background<'a, M> {
         background::new(self)
     }
 
     /// Add the given type to be drawn.
-    pub fn a<'a, T>(&'a self, primitive: T) -> Drawing<'a, 'w, T, M>
+    pub fn a<T>(&self, primitive: T) -> Drawing<T, M>
     where
-        T: Into<Primitive> + Clone,
+        T: Into<Primitive>,
         Primitive: Into<Option<T>>,
     {
-        let mut state = self.state.write().expect("lock poisoned");
-        state.count += 1;
-        let index = state.count;
-        let entity = self.world_mut().spawn(DrawIndex(index)).id();
-        drawing::new(self, entity, primitive, M::default())
+        let index = {
+            let mut state = self.state.write().unwrap();
+            if self.material.read().unwrap().changed() {
+                let material = self.material.read().unwrap().clone();
+                state.draw_commands.push(Some(Box::new(move |world: &mut World| {
+                    let mut materials = world.resource_mut::<Assets<M>>();
+                    let material = materials.add(material);
+
+                    let mut entity = world.spawn_empty();
+                    entity.insert(material);
+                    let entity = entity.id();
+
+                    let mut render = world.get_resource_mut::<NannouRenderContext>().unwrap();
+                    render.mesh = Mesh::init();
+                    render.entity = entity;
+                })));
+            }
+
+            // If drawing with a different context, insert the necessary command to update it.
+            if state.last_draw_context.as_ref() != Some(&self.context) {
+                let context = self.context.clone();
+                state.draw_commands.push(Some(Box::new(move |world: &mut World| {
+                    let mut render = world.resource_mut::<NannouRenderContext>();
+                    render.context = context;
+                })));
+            }
+            // The primitive will be inserted in the next element.
+            let index = state.draw_commands.len();
+            let primitive: Primitive = primitive.into();
+            state.draw_commands.push(None);
+            state.drawing.insert(index, primitive);
+            index
+        };
+        drawing::new(self, index)
     }
 
     /// Begin drawing a **Path**.
-    pub fn path<'a>(&'a self) -> Drawing<'a, 'w, primitive::PathInit, M> {
+    pub fn path<'a>(&'a self) -> Drawing<'a, primitive::PathInit, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing an **Ellipse**.
-    pub fn ellipse<'a>(&'a self) -> Drawing<'a, 'w, primitive::Ellipse, M> {
+    pub fn ellipse<'a>(&'a self) -> Drawing<'a, primitive::Ellipse, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Line**.
-    pub fn line<'a>(&'a self) -> Drawing<'a, 'w, primitive::Line, M> {
+    pub fn line<'a>(&'a self) -> Drawing<'a, primitive::Line, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing an **Arrow**.
-    pub fn arrow<'a>(&'a self) -> Drawing<'a, 'w, primitive::Arrow, M> {
+    pub fn arrow<'a>(&'a self) -> Drawing<'a, primitive::Arrow, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Quad**.
-    pub fn quad<'a>(&'a self) -> Drawing<'a, 'w, primitive::Quad, M> {
+    pub fn quad<'a>(&'a self) -> Drawing<'a, primitive::Quad, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Rect**.
-    pub fn rect<'a>(&'a self) -> Drawing<'a, 'w, primitive::Rect, M> {
+    pub fn rect<'a>(&'a self) -> Drawing<'a, primitive::Rect, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Triangle**.
-    pub fn tri<'a>(&'a self) -> Drawing<'a, 'w, primitive::Tri, M> {
+    pub fn tri<'a>(&'a self) -> Drawing<'a, primitive::Tri, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polygon**.
-    pub fn polygon<'a>(&'a self) -> Drawing<'a, 'w, primitive::PolygonInit, M> {
+    pub fn polygon<'a>(&'a self) -> Drawing<'a, primitive::PolygonInit, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Mesh**.
-    pub fn mesh<'a>(&'a self) -> Drawing<'a, 'w, primitive::mesh::Vertexless, M> {
+    pub fn mesh<'a>(&'a self) -> Drawing<'a, primitive::mesh::Vertexless, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polyline**.
     ///
     /// Note that this is simply short-hand for `draw.path().stroke()`
-    pub fn polyline<'a>(&'a self) -> Drawing<'a, 'w, primitive::PathStroke, M> {
+    pub fn polyline<'a>(&'a self) -> Drawing<'a, primitive::PathStroke, M> {
         self.path().stroke()
     }
 
     /// Begin drawing a **Text**.
-    pub fn text<'a>(&'a self, s: &str) -> Drawing<'a, 'w, primitive::Text, M> {
+    pub fn text<'a>(&'a self, s: &str) -> Drawing<'a, primitive::Text, M> {
         let text = {
             let state = self.state.read().expect("lock poisoned");
             let mut intermediary_state = state.intermediary_state.write().expect("lock poisoned");
@@ -509,16 +545,31 @@ where
         &'a self,
         texture_handle: Handle<Image>,
         texture: Image,
-    ) -> Drawing<'a, 'w, primitive::Texture, M> {
+    ) -> Drawing<'a, primitive::Texture, M> {
         self.a(primitive::Texture::new(texture_handle, texture))
     }
+}
 
-    pub(crate) fn world(&self) -> &World {
-        unsafe { self.world.borrow().world() }
+impl Draw<DefaultNannouMaterial> {
+    /// Produce a new **Draw** instance that will draw with the given alpha blend descriptor.
+    pub fn alpha_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
+        // self.material.extension.
+        todo!()
     }
 
-    pub(crate) fn world_mut(&self) -> &mut World {
-        unsafe { self.world.borrow_mut().world_mut() }
+    /// Produce a new **Draw** instance that will draw with the given color blend descriptor.
+    pub fn color_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
+        todo!()
+    }
+
+    /// Short-hand for `color_blend`, the common use-case.
+    pub fn blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
+        self.color_blend(blend_descriptor)
+    }
+
+    /// Produce a new **Draw** instance that will use the given polygon mode.
+    pub fn polygon_mode(&self, polygon_mode: wgpu::PolygonMode) -> Self {
+        todo!()
     }
 }
 
@@ -541,14 +592,19 @@ impl Default for IntermediaryState {
 
 impl Default for State {
     fn default() -> Self {
+        let last_draw_context = None;
         let background_color = Default::default();
-        let intermediary_state = Arc::new(RwLock::new(Default::default()));
+        let draw_commands = Default::default();
+        let drawing = Default::default();
+        let intermediary_state = Arc::new(Default::default());
         let theme = Default::default();
         State {
+            last_draw_context,
+            draw_commands,
+            drawing,
             intermediary_state,
             theme,
             background_color,
-            count: 0,
         }
     }
 }

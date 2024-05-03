@@ -26,7 +26,7 @@ pub struct Style {
 }
 
 /// The drawing context for the **Text** primitive.
-pub type DrawingText<'a, 'w, M> = Drawing<'a, 'w, Text, M>;
+pub type DrawingText<'a, M> = Drawing<'a, Text, M>;
 
 impl Text {
     /// Begin drawing some text.
@@ -157,7 +157,7 @@ impl Text {
     }
 }
 
-impl<'a, 'w, M> DrawingText<'a, 'w, M>
+impl<'a, M> DrawingText<'a, M>
     where M: Material + Default
 {
     /// The font size to use for the text.

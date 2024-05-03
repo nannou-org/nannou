@@ -7,6 +7,7 @@ use crate::render::NannouRenderPlugin;
 pub mod draw;
 pub mod text;
 pub mod render;
+mod changed;
 
 pub struct NannouDrawPlugin;
 

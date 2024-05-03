@@ -15,7 +15,7 @@ pub struct Texture {
 }
 
 /// The drawing context for a Rect.
-pub type DrawingTexture<'a, 'w, M> = Drawing<'a, 'w, Texture, M>;
+pub type DrawingTexture<'a, M> = Drawing<'a, Texture, M>;
 
 // Trait implementations.
 
@@ -57,7 +57,7 @@ impl Texture {
     }
 }
 
-impl<'a, 'w, M> DrawingTexture<'a, 'w, M>
+impl<'a, M> DrawingTexture<'a, M>
     where M: Material + Default
 {
     /// Specify the area of the texture to draw.

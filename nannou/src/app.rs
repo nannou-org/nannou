@@ -295,9 +295,9 @@ where
 {
     pub fn model_ui(mut self) -> Self {
         self.app
-            .register_type::<ModelHolder<M>>()
-            .add_plugins(DefaultInspectorConfigPlugin)
-            .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
+            .register_type::<ModelHolder<M>>();
+            // .add_plugins(DefaultInspectorConfigPlugin)
+            // .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
         self
     }
 }
@@ -621,12 +621,12 @@ impl<'w> App<'w> {
     }
 
     /// Produce the [App]'s [Draw] API for drawing geometry and text with colors and textures.
-    pub fn draw(&self) -> Draw<'w> {
-        Draw::new(self.world.clone(), self.current_view.unwrap())
+    pub fn draw(&self) -> Draw {
+        Draw::new()
     }
 
-    pub fn draw_for_window(&self, window: Entity) -> Draw<'w> {
-        Draw::new(self.world.clone(), self.current_view.unwrap())
+    pub fn draw_for_window(&self, window: Entity) -> Draw {
+        Draw::new()
     }
 
     /// The number of times the focused window's **view** function has been called since the start

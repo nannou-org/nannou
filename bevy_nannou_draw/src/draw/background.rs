@@ -2,20 +2,20 @@ use crate::draw::Draw;
 use bevy::prelude::{Color, Material};
 
 /// A type used to update the background colour.
-pub struct Background<'a, 'w, M>
+pub struct Background<'a, M>
     where M: Material + Default
 {
-    draw: &'a Draw<'w, M>,
+    draw: &'a Draw<M>,
 }
 
 /// Begin coloring the background.
-pub fn new<'a, 'w, M>(draw: &'a Draw<'w, M>) -> Background<'a, 'w, M>
+pub fn new<M>(draw: &Draw<M>) -> Background<M>
     where M: Material + Default
 {
     Background { draw }
 }
 
-impl<'a, 'w, M> Background<'a, 'w, M>
+impl<'a, M> Background<'a, M>
     where M: Material + Default
 {
     /// Clear the background with the given color.
