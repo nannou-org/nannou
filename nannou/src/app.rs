@@ -7,35 +7,35 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
-use std::{self};
 use std::any::Any;
 use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
+use std::{self};
 
 use bevy::app::AppExit;
 use bevy::core::FrameCount;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
-use bevy::input::ButtonState;
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::{MouseButtonInput, MouseWheel};
+use bevy::input::ButtonState;
 use bevy::pbr::ExtendedMaterial;
 use bevy::prelude::*;
 use bevy::reflect::{DynamicTypePath, GetTypeRegistration};
 use bevy::render::view::screenshot::ScreenshotManager;
 use bevy::window::{PrimaryWindow, WindowClosed, WindowFocused, WindowResized};
-use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use find_folder;
 
+use bevy_nannou::prelude::{draw, Draw};
 use bevy_nannou::NannouPlugin;
-use bevy_nannou::prelude::draw::Draw;
 
-use crate::{geom, window};
 use crate::prelude::bevy_reflect::{ReflectMut, ReflectOwned, ReflectRef, TypeInfo};
-use crate::prelude::render::{NannouMaterial, NannouMesh, NannouPersistantMesh};
+use crate::prelude::render::{NannouMaterial, NannouMesh, NannouPersistentMesh};
 use crate::window::WindowUserFunctions;
+use crate::{geom, window};
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -274,7 +274,9 @@ where
             // This ensures that color materials are rendered correctly.
             .insert_resource(AmbientLight {
                 color: Color::WHITE,
-                brightness: 1000.0,
+                // This isn't randomly chosen
+                // See:  https://discord.com/channels/691052431525675048/866787577687310356/1229248273735487560
+                brightness: 998.096,
             })
             .insert_resource(self.config.clone())
             .insert_resource(ModelFnRes(self.model))
@@ -294,10 +296,9 @@ where
     M: Reflect + GetTypeRegistration + 'static,
 {
     pub fn model_ui(mut self) -> Self {
-        self.app
-            .register_type::<ModelHolder<M>>();
-            // .add_plugins(DefaultInspectorConfigPlugin)
-            // .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
+        self.app.register_type::<ModelHolder<M>>();
+        // .add_plugins(DefaultInspectorConfigPlugin)
+        // .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
         self
     }
 }
@@ -441,7 +442,7 @@ impl<'w> App<'w> {
     // Allocate a persistent entity
     pub fn entity(&self) -> Entity {
         let mut world = self.world_mut();
-        world.spawn((NannouPersistantMesh,)).id()
+        world.spawn((NannouPersistentMesh,)).id()
     }
 
     pub fn mouse(&self) -> Vec2 {
@@ -621,12 +622,32 @@ impl<'w> App<'w> {
     }
 
     /// Produce the [App]'s [Draw] API for drawing geometry and text with colors and textures.
-    pub fn draw(&self) -> Draw {
-        Draw::new()
+    pub fn draw(&self) -> draw::Draw {
+        let mut draw = self.world_mut().entity(self.window_id()).get::<Draw>();
+
+        if draw.is_none() {
+            self.world_mut()
+                .entity_mut(self.window_id())
+                .insert(Draw(draw::Draw::new(self.window_id())));
+
+            draw = self.world_mut().entity(self.window_id()).get::<Draw>();
+        }
+
+        draw.unwrap().0.clone()
     }
 
-    pub fn draw_for_window(&self, window: Entity) -> Draw {
-        Draw::new()
+    pub fn draw_for_window(&self, window: Entity) -> draw::Draw {
+        let mut draw = self.world_mut().entity(window).get::<Draw>();
+
+        if draw.is_none() {
+            self.world_mut()
+                .entity_mut(window)
+                .insert(Draw(draw::Draw::new(window)));
+
+            draw = self.world_mut().entity(window).get::<Draw>();
+        }
+
+        draw.unwrap().0.clone()
     }
 
     /// The number of times the focused window's **view** function has been called since the start
@@ -702,7 +723,7 @@ where
 fn first<M>(
     mut commands: Commands,
     bg_color_q: Query<Entity, With<BackgroundColor>>,
-    meshes_q: Query<Entity, (With<NannouMesh>, Without<NannouPersistantMesh>)>,
+    meshes_q: Query<Entity, (With<NannouMesh>, Without<NannouPersistentMesh>)>,
 ) where
     M: 'static + Send + Sync,
 {
@@ -744,91 +765,104 @@ where
 
     let mut key_events = world.resource_mut::<Events<KeyboardInput>>();
     let mut key_events_reader = key_events.get_reader();
-    let key_events = key_events_reader.read(&key_events)
+    let key_events = key_events_reader
+        .read(&key_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<KeyboardInput>>();
 
     let received_char_events = world.resource::<Events<ReceivedCharacter>>();
     let mut received_char_events_reader = received_char_events.get_reader();
-    let received_char_events = received_char_events_reader.read(&received_char_events)
+    let received_char_events = received_char_events_reader
+        .read(&received_char_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<ReceivedCharacter>>();
 
     let cursor_moved_events = world.resource::<Events<CursorMoved>>();
     let mut cursor_moved_events_reader = cursor_moved_events.get_reader();
-    let cursor_moved_events = cursor_moved_events_reader.read(&cursor_moved_events)
+    let cursor_moved_events = cursor_moved_events_reader
+        .read(&cursor_moved_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<CursorMoved>>();
 
     let mouse_button_events = world.resource::<Events<MouseButtonInput>>();
     let mut mouse_button_events_reader = mouse_button_events.get_reader();
-    let mouse_button_events = mouse_button_events_reader.read(&mouse_button_events)
+    let mouse_button_events = mouse_button_events_reader
+        .read(&mouse_button_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<MouseButtonInput>>();
 
     let cursor_entered_events = world.resource::<Events<CursorEntered>>();
     let mut cursor_entered_events_reader = cursor_entered_events.get_reader();
-    let cursor_entered_events = cursor_entered_events_reader.read(&cursor_entered_events)
+    let cursor_entered_events = cursor_entered_events_reader
+        .read(&cursor_entered_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<CursorEntered>>();
 
     let cursor_left_events = world.resource::<Events<CursorLeft>>();
     let mut cursor_left_events_reader = cursor_left_events.get_reader();
-    let cursor_left_events = cursor_left_events_reader.read(&cursor_left_events)
+    let cursor_left_events = cursor_left_events_reader
+        .read(&cursor_left_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<CursorLeft>>();
 
     let mouse_wheel_events = world.resource::<Events<MouseWheel>>();
     let mut mouse_wheel_events_reader = mouse_wheel_events.get_reader();
-    let mouse_wheel_events = mouse_wheel_events_reader.read(&mouse_wheel_events)
+    let mouse_wheel_events = mouse_wheel_events_reader
+        .read(&mouse_wheel_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<MouseWheel>>();
 
     let window_moved_events = world.resource::<Events<WindowMoved>>();
     let mut window_moved_events_reader = window_moved_events.get_reader();
-    let window_moved_events = window_moved_events_reader.read(&window_moved_events)
+    let window_moved_events = window_moved_events_reader
+        .read(&window_moved_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<WindowMoved>>();
 
     let window_resized_events = world.resource::<Events<WindowResized>>();
     let mut window_resized_events_reader = window_resized_events.get_reader();
-    let window_resized_events = window_resized_events_reader.read(&window_resized_events)
+    let window_resized_events = window_resized_events_reader
+        .read(&window_resized_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<WindowResized>>();
 
     let touch_events = world.resource::<Events<TouchInput>>();
     let mut touch_events_reader = touch_events.get_reader();
-    let touch_events = touch_events_reader.read(&touch_events)
+    let touch_events = touch_events_reader
+        .read(&touch_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<TouchInput>>();
 
     let file_drop_events = world.resource::<Events<FileDragAndDrop>>();
     let mut file_drop_events_reader = file_drop_events.get_reader();
-    let file_drop_events = file_drop_events_reader.read(&file_drop_events)
+    let file_drop_events = file_drop_events_reader
+        .read(&file_drop_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<FileDragAndDrop>>();
 
     let window_focus_events = world.resource::<Events<WindowFocused>>();
     let mut window_focus_events_reader = window_focus_events.get_reader();
-    let window_focus_events = window_focus_events_reader.read(&window_focus_events)
+    let window_focus_events = window_focus_events_reader
+        .read(&window_focus_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<WindowFocused>>();
 
     let window_closed_events = world.resource::<Events<WindowClosed>>();
     let mut window_closed_events_reader = window_closed_events.get_reader();
-    let window_closed_events = window_closed_events_reader.read(&window_closed_events)
+    let window_closed_events = window_closed_events_reader
+        .read(&window_closed_events)
         .into_iter()
         .map(|event| event.clone())
         .collect::<Vec<WindowClosed>>();
@@ -1035,7 +1069,6 @@ where
                         f(&app, &mut model);
                     }
                 }
-
             }
 
             for evt in &window_closed_events {
@@ -1047,7 +1080,6 @@ where
                     f(&app, &mut model);
                 }
             }
-
         }
     }
 

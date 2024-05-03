@@ -6,14 +6,14 @@ use bevy::render::render_resource::BlendComponent;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
 
-use crate::draw::{Draw, DrawRef};
+use crate::draw::{Draw, DrawContext, DrawRef};
 use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::properties::material::SetMaterial;
-use crate::render::{ExtendedNannouMaterial, NannouMaterial, NannouRenderContext};
+use crate::render::{ExtendedNannouMaterial, NannouMaterial, NannouMesh, NannouRender};
 
 /// A **Drawing** in progress.
 ///
@@ -119,13 +119,23 @@ where
                         state.draw_commands.push(Some(Box::new(move |world: &mut World| {
                             let mut materials = world.resource_mut::<Assets<M>>();
                             let material = materials.add(material);
+                            let mut meshes = world.resource_mut::<Assets<Mesh>>();
+                            let mesh = meshes.add(Mesh::init());
 
-                            let mut entity = world.spawn_empty();
-                            entity.insert(material);
-                            let entity = entity.id();
+                            let entity = world.spawn((MaterialMeshBundle {
+                                mesh: mesh.clone(),
+                                material: material.clone(),
+                                ..Default::default()
+                            }, NannouMesh)).id();
 
-                            let mut render = world.get_resource_mut::<NannouRenderContext>().unwrap();
-                            render.mesh = Mesh::init();
+                            let mut render = world.get_resource_or_insert_with::<NannouRender>(|| {
+                                NannouRender {
+                                    mesh: mesh.clone(),
+                                    entity: entity,
+                                    draw_context: DrawContext::default(),
+                                }
+                            });
+                            render.mesh = mesh;
                             render.entity = entity;
                         })));
                     },

@@ -10,13 +10,15 @@ pub use self::background::Background;
 pub use self::drawing::{Drawing, DrawingContext};
 use self::primitive::Primitive;
 pub use self::theme::Theme;
+use crate::changed::Cd;
 use crate::draw::mesh::MeshExt;
-use crate::render::{DefaultNannouMaterial, NannouRenderContext};
+use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
+use crate::render::{DefaultNannouMaterial, NannouMesh, NannouRender};
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
 use bevy::utils::HashMap;
 use lyon::path::PathEvent;
-use crate::changed::Cd;
+use lyon::tessellation::{FillTessellator, StrokeTessellator};
 
 pub mod background;
 mod drawing;
@@ -57,13 +59,12 @@ where
     pub state: Arc<RwLock<State>>,
 
     /// The current context of this **Draw** instance.
-    context: Context,
+    context: DrawContext,
     /// The current material of this **Draw** instance.
     material: Arc<RwLock<Cd<M>>>,
+    /// The window to which this **Draw** instance is associated.
+    window: Entity
 }
-
-
-
 
 #[derive(Clone)]
 pub enum DrawRef<'a, M>
@@ -90,12 +91,12 @@ where
 
 /// The current **Transform**, alpha **BlendState** and **Scissor** of a **Draw** instance.
 #[derive(Clone, Debug, PartialEq)]
-pub struct Context {
+pub struct DrawContext {
     // TODO: figure out how to fixup camera via transform
     pub transform: Mat4,
 }
 
-impl Default for Context {
+impl Default for DrawContext {
     fn default() -> Self {
         Self {
             transform: Mat4::IDENTITY,
@@ -112,7 +113,7 @@ impl Default for Context {
 /// about mutability and instead focus on creativity. Rust-lang nuances can come later.
 pub struct State {
     /// The last context used to draw an image, used to detect changes and emit commands for them.
-    last_draw_context: Option<Context>,
+    last_draw_context: Option<DrawContext>,
     /// If `Some`, the **Draw** should first clear the frame's texture with the given color.
     background_color: Option<Color>,
     /// Primitives that are in the process of being drawn.
@@ -122,7 +123,7 @@ pub struct State {
     /// The list of recorded draw commands.
     ///
     /// An element may be `None` if it is a primitive in the process of being drawn.
-    draw_commands: Vec<Option<Box<dyn FnOnce(&mut World)>>>,
+    pub(crate) draw_commands: Vec<Option<Box<dyn FnOnce(&mut World) + Sync + Send + 'static>>>,
     /// State made accessible via the `DrawingContext`.
     intermediary_state: Arc<RwLock<IntermediaryState>>,
     /// The theme containing default values.
@@ -182,8 +183,39 @@ impl State {
     // Insert the draw primitive command at the given index.
     fn insert_draw_command(&mut self, index: usize, prim: Primitive) {
         if let Some(elem) = self.draw_commands.get_mut(index) {
-            *elem = Some(Box::new(|world: &mut World| {
+            let intermediary_state = self.intermediary_state.clone();
+            let theme = self.theme.clone();
+            *elem = Some(Box::new(move |world: &mut World| {
+                let mut fill_tessellator = FillTessellator::new();
+                let mut stroke_tessellator = StrokeTessellator::new();
+                let intermediary_state = intermediary_state.read().unwrap();
 
+                world.resource_scope(|world, mut render: Mut<NannouRender>| {
+                    world.resource_scope(|world, mut meshes: Mut<Assets<Mesh>>| {
+                        let mesh = &render.mesh;
+                        let mesh = meshes.get_mut(mesh).unwrap();
+                        world.resource_scope(|world, mut glyph_cache: Mut<GlyphCache>| {
+                            let ctxt = RenderContext {
+                                intermediary_mesh: &intermediary_state.intermediary_mesh,
+                                path_event_buffer: &intermediary_state.path_event_buffer,
+                                path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
+                                path_points_textured_buffer: &intermediary_state.path_points_textured_buffer,
+                                text_buffer: &intermediary_state.text_buffer,
+                                theme: &theme,
+                                transform: &render.draw_context.transform,
+                                fill_tessellator: &mut fill_tessellator,
+                                stroke_tessellator: &mut stroke_tessellator,
+                                glyph_cache: &mut glyph_cache,
+                                // TODO: read from window
+                                output_attachment_size: Vec2::new(100.0, 100.0),
+                                output_attachment_scale_factor: 1.0,
+                            };
+
+                            let primitive: Primitive = prim.into();
+                            primitive.render_primitive(ctxt, mesh);
+                        })
+                    });
+                });
             }));
         }
     }
@@ -193,17 +225,18 @@ impl<M> Draw<M>
 where
     M: Material + Default,
 {
-    pub fn new() -> Self {
+    pub fn new(window: Entity) -> Self {
         Draw {
             state: Default::default(),
             context: Default::default(),
-            material: Default::default(),
+            material: Arc::new(RwLock::new(Cd::new_true(M::default()))),
+            window
         }
     }
 
     /// Resets all state within the `Draw` instance.
     pub fn reset(&mut self) {
-        self.material.write().unwrap().reset();
+        self.material = Arc::new(RwLock::new(Cd::new_true(M::default())));
         self.state.write().unwrap().reset();
     }
 
@@ -397,31 +430,30 @@ where
     }
 
     /// Produce a new **Draw** instance with the given context.
-    fn context(&self, context: Context) -> Draw<M> {
+    fn context(&self, context: DrawContext) -> Draw<M> {
         let state = self.state.clone();
         let material = self.material.clone();
+        let window = self.window;
         Draw {
             state,
             context,
             material,
+            window,
         }
     }
 
     /// Produce a new **Draw** instance with a new material type.
     fn material<M2: Material + Default>(&self) -> Draw<M2> {
         let mut context = self.context.clone();
-        let Context {
-            transform,
-            ..
-        } = context;
-        let context = Context {
-            transform,
-        };
+        let DrawContext { transform, .. } = context;
+        let context = DrawContext { transform };
         let state = self.state.clone();
+        let window = self.window;
         Draw {
             state,
             context,
-            material: Arc::new(RwLock::new(Cd::new(M2::default()))),
+            material: Arc::new(RwLock::new(Cd::new_true(M2::default()))),
+            window,
         }
     }
 
@@ -442,27 +474,41 @@ where
             let mut state = self.state.write().unwrap();
             if self.material.read().unwrap().changed() {
                 let material = self.material.read().unwrap().clone();
-                state.draw_commands.push(Some(Box::new(move |world: &mut World| {
-                    let mut materials = world.resource_mut::<Assets<M>>();
-                    let material = materials.add(material);
+                state
+                    .draw_commands
+                    .push(Some(Box::new(move |world: &mut World| {
+                        let mut materials = world.resource_mut::<Assets<M>>();
+                        let material = materials.add(material);
+                        let mut meshes = world.resource_mut::<Assets<Mesh>>();
+                        let mesh = meshes.add(Mesh::init());
 
-                    let mut entity = world.spawn_empty();
-                    entity.insert(material);
-                    let entity = entity.id();
+                        let entity = world.spawn((MaterialMeshBundle {
+                            mesh: mesh.clone(),
+                            material: material.clone(),
+                            ..Default::default()
+                        }, NannouMesh)).id();
 
-                    let mut render = world.get_resource_mut::<NannouRenderContext>().unwrap();
-                    render.mesh = Mesh::init();
-                    render.entity = entity;
-                })));
+                        let mut render = world.get_resource_or_insert_with::<NannouRender>(|| {
+                            NannouRender {
+                                mesh: mesh.clone(),
+                                entity: entity,
+                                draw_context: DrawContext::default(),
+                            }
+                        });
+                        render.mesh = mesh;
+                        render.entity = entity;
+                    })));
             }
 
             // If drawing with a different context, insert the necessary command to update it.
             if state.last_draw_context.as_ref() != Some(&self.context) {
                 let context = self.context.clone();
-                state.draw_commands.push(Some(Box::new(move |world: &mut World| {
-                    let mut render = world.resource_mut::<NannouRenderContext>();
-                    render.context = context;
-                })));
+                state
+                    .draw_commands
+                    .push(Some(Box::new(move |world: &mut World| {
+                        let mut render = world.resource_mut::<NannouRender>();
+                        render.draw_context = context;
+                    })));
             }
             // The primitive will be inserted in the next element.
             let index = state.draw_commands.len();

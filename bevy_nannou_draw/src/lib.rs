@@ -20,15 +20,18 @@ impl Plugin for NannouDrawPlugin {
 }
 
 fn reset_draw(
-    // mut draw_q: Query<&mut Draw>
+    mut draw_q: Query<&mut Draw>
 ) {
-    // for mut draw in draw_q.iter_mut() {
-    //     draw.reset();
-    // }
+    for mut draw in draw_q.iter_mut() {
+        draw.reset();
+    }
 }
 
 fn spawn_draw(mut commands: Commands, query: Query<Entity, Added<Window>>) {
-    // for entity in query.iter() {
-    //     commands.entity(entity).insert(Draw(draw::Draw::new()));
-    // }
+    for entity in query.iter() {
+        commands.entity(entity).insert(Draw(draw::Draw::new(entity)));
+    }
 }
+
+#[derive(Component, Clone, Deref, DerefMut)]
+pub struct Draw(pub draw::Draw);
