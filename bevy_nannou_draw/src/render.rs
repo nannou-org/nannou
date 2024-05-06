@@ -19,6 +19,7 @@ use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
 use crate::draw::{DrawContext};
 use nannou_core::math::map_range;
 use crate::{draw, Draw};
+use crate::draw::instanced::InstancingPlugin;
 
 pub struct NannouRenderPlugin;
 
@@ -28,6 +29,7 @@ impl Plugin for NannouRenderPlugin {
             .add_plugins((
                 ExtractComponentPlugin::<NannouTextureHandle>::default(),
                 MaterialPlugin::<DefaultNannouMaterial>::default(),
+                InstancingPlugin
             ))
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
             .insert_resource(GlyphCache::new([1024; 2], 0.1, 0.1))
@@ -48,13 +50,13 @@ pub type ExtendedNannouMaterial<const VS: &'static str, const FS: &'static str> 
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
 #[bind_group_data(NannouMaterialKey)]
 pub struct NannouMaterial<const VS: &'static str, const FS: &'static str> {
-    pub polygon_mode: Option<PolygonMode>,
-    pub blend: Option<BlendState>
+    pub polygon_mode: PolygonMode,
+    pub blend: Option<BlendState>,
 }
 
 #[derive(Eq, PartialEq, Hash, Clone)]
 pub struct NannouMaterialKey {
-    polygon_mode: Option<PolygonMode>,
+    polygon_mode: PolygonMode,
     blend: Option<BlendState>,
 }
 
@@ -101,10 +103,7 @@ impl<const VS: &'static str, const FS: &'static str> MaterialExtension for Nanno
             });
         }
 
-        if let Some(polygon_mode) = key.bind_group_data.polygon_mode {
-            descriptor.primitive.polygon_mode = polygon_mode;
-        }
-
+        descriptor.primitive.polygon_mode = key.bind_group_data.polygon_mode;
         Ok(())
     }
 }

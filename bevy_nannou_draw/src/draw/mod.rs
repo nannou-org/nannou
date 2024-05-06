@@ -16,9 +16,11 @@ use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
 use crate::render::{DefaultNannouMaterial, NannouMesh, NannouRender};
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
-use bevy::utils::HashMap;
+use bevy::render::render_resource::BlendState;
+use bevy::utils::{HashMap, HashSet};
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillTessellator, StrokeTessellator};
+use crate::draw::instanced::Instanced;
 
 pub mod background;
 mod drawing;
@@ -27,6 +29,7 @@ pub mod primitive;
 pub mod properties;
 pub mod render;
 pub mod theme;
+pub mod instanced;
 
 /// A simple API for drawing 2D and 3D graphics.
 ///
@@ -61,7 +64,7 @@ where
     /// The current context of this **Draw** instance.
     context: DrawContext,
     /// The current material of this **Draw** instance.
-    material: Arc<RwLock<Cd<M>>>,
+    material: M,
     /// The window to which this **Draw** instance is associated.
     window: Entity
 }
@@ -120,14 +123,16 @@ pub struct State {
     ///
     /// Keys are indices into the `draw_commands` Vec.
     drawing: HashMap<usize, Primitive>,
+    instanced: HashSet<usize>,
     /// The list of recorded draw commands.
     ///
     /// An element may be `None` if it is a primitive in the process of being drawn.
     pub(crate) draw_commands: Vec<Option<Box<dyn FnOnce(&mut World) + Sync + Send + 'static>>>,
     /// State made accessible via the `DrawingContext`.
-    intermediary_state: Arc<RwLock<IntermediaryState>>,
+    pub(crate) intermediary_state: Arc<RwLock<IntermediaryState>>,
     /// The theme containing default values.
-    theme: Theme,
+    pub(crate) theme: Theme,
+    material_changed: bool,
 }
 
 /// State made accessible via the `DrawingContext`.
@@ -175,6 +180,10 @@ impl State {
 
     // Finish the drawing at the given node index if it is not yet complete.
     pub(crate) fn finish_drawing(&mut self, index: usize) {
+        if self.instanced.contains(&index) {
+            return;
+        }
+
         if let Some(primitive) = self.drawing.remove(&index) {
             self.insert_draw_command(index, primitive);
         }
@@ -229,14 +238,14 @@ where
         Draw {
             state: Default::default(),
             context: Default::default(),
-            material: Arc::new(RwLock::new(Cd::new_true(M::default()))),
+            material: M::default(),
             window
         }
     }
 
     /// Resets all state within the `Draw` instance.
     pub fn reset(&mut self) {
-        self.material = Arc::new(RwLock::new(Cd::new_true(M::default())));
+        self.material = M::default();
         self.state.write().unwrap().reset();
     }
 
@@ -443,7 +452,7 @@ where
     }
 
     /// Produce a new **Draw** instance with a new material type.
-    fn material<M2: Material + Default>(&self) -> Draw<M2> {
+    pub fn material<M2: Material + Default>(&self, material: M2) -> Draw<M2> {
         let mut context = self.context.clone();
         let DrawContext { transform, .. } = context;
         let context = DrawContext { transform };
@@ -452,7 +461,7 @@ where
         Draw {
             state,
             context,
-            material: Arc::new(RwLock::new(Cd::new_true(M2::default()))),
+            material,
             window,
         }
     }
@@ -464,6 +473,11 @@ where
         background::new(self)
     }
 
+    /// Draw an instanced drawing
+    pub fn instanced<'a>(&'a self) -> Instanced<'a, M> {
+        instanced::new(self)
+    }
+
     /// Add the given type to be drawn.
     pub fn a<T>(&self, primitive: T) -> Drawing<T, M>
     where
@@ -472,8 +486,8 @@ where
     {
         let index = {
             let mut state = self.state.write().unwrap();
-            if self.material.read().unwrap().changed() {
-                let material = self.material.read().unwrap().clone();
+            if state.material_changed {
+                let material = self.material.clone();
                 state
                     .draw_commands
                     .push(Some(Box::new(move |world: &mut World| {
@@ -501,7 +515,7 @@ where
 
                 // Reset the material changed flag so that we will re-use the same mesh
                 // until the material is changed again.
-                self.material.write().unwrap().reset();
+                state.material_changed = false;
             } else {
                 // Our material wasn't changed, but we need to check our mesh to see if it was
                 // changed, as this would indicate that a primitive spawned by this draw instance
@@ -518,6 +532,7 @@ where
                         let mut render = world.resource_mut::<NannouRender>();
                         render.draw_context = context;
                     })));
+                state.last_draw_context = Some(self.context.clone());
             }
             // The primitive will be inserted in the next element.
             let index = state.draw_commands.len();
@@ -614,7 +629,12 @@ impl Draw<DefaultNannouMaterial> {
 
     /// Produce a new **Draw** instance that will draw with the given color blend descriptor.
     pub fn color_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
-        todo!()
+        let mut mat = self.material.clone();
+        mat.extension.blend = Some(BlendState {
+            color: blend_descriptor,
+            alpha: blend_descriptor,
+        });
+        self.material(mat)
     }
 
     /// Short-hand for `color_blend`, the common use-case.
@@ -624,7 +644,9 @@ impl Draw<DefaultNannouMaterial> {
 
     /// Produce a new **Draw** instance that will use the given polygon mode.
     pub fn polygon_mode(&self, polygon_mode: wgpu::PolygonMode) -> Self {
-        todo!()
+        let mut mat = self.material.clone();
+        mat.extension.polygon_mode = polygon_mode;
+        self.material(mat)
     }
 }
 
@@ -660,6 +682,8 @@ impl Default for State {
             intermediary_state,
             theme,
             background_color,
+            material_changed: true,
+            instanced: Default::default(),
         }
     }
 }

@@ -50,7 +50,8 @@ fn view(app: &App) {
     let n_circles = 3;
     let radius = w.right().min(w.top()) * 0.5 / n_circles as f32;
     let animate_radius = -((t.sin() * 0.5 + 0.5) * radius * 0.5);
-    draw = draw.x(w.left() * 0.5);
+    draw = draw.x(w.left() * 0.5)
+        .color_blend(desc.clone());
     for i in 0..n_circles {
         let hue = i as f32 / n_circles as f32;
         let color = Color::hsl(hue, 1.0, 0.5);
@@ -63,12 +64,12 @@ fn view(app: &App) {
     }
 
     // Draw CMY.
-    draw = draw.x(w.right() * 0.5);
+    draw = draw.x(w.right() * 0.5)
+        .color_blend(desc.clone());
     for i in 0..n_circles {
         let hue = i as f32 / n_circles as f32;
         let color = Color::hsl(hue + 0.5, 1.0, 0.5);
         draw.ellipse()
-            // .color_blend(desc.clone())
             .radius(radius)
             .color(color)
             .x(radius + animate_radius);
@@ -76,12 +77,12 @@ fn view(app: &App) {
     }
 
     // Draw ascending luminance.
-    draw = draw.x(w.right() * 0.5);
+    draw = draw.x(w.right() * 0.5)
+        .color_blend(desc.clone());
     for i in 0..n_circles {
         let lum = (0.5 + i as f32) / n_circles as f32;
         let color = gray(lum);
         draw.ellipse()
-            // .color_blend(desc.clone())
             .radius(radius)
             .color(color)
             .x(radius + animate_radius);

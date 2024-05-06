@@ -6,7 +6,7 @@ members = [
     "generative_design",
 #    "guide/book_tests",
     "nannou",
-#    "nannou_audio",
+    "nannou_audio",
     "nannou_core",
 #    "nannou_egui",
 #    "nannou_egui_demo_app",

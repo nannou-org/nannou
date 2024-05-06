@@ -34,7 +34,7 @@ pub struct Drawing<'a, T, M>
     // The `Draw` instance used to create this drawing.
     draw: DrawRef<'a, M>,
     // The draw command index of the primitive being drawn.
-    index: usize,
+    pub(crate) index: usize,
     // Whether or not the **Drawing** should attempt to finish the drawing on drop.
     finish_on_drop: bool,
     // The node type currently being drawn.
@@ -120,7 +120,7 @@ where
                     // If we are "Owned", that means we mutated our material and so need to
                     // spawn a new entity just for this primitive.
                     DrawRef::Owned(draw) => {
-                        let material = draw.material.read().unwrap().clone();
+                        let material = draw.material.clone();
                         state.draw_commands.push(Some(Box::new(move |world: &mut World| {
                             let mut materials = world.resource_mut::<Assets<M>>();
                             let material = materials.add(material);
@@ -171,7 +171,7 @@ where
         } = self;
 
         Drawing::<'a, T, ExtendedMaterial<StandardMaterial, NannouMaterial<"", FS>>> {
-            draw: DrawRef::Owned(draw.material()),
+            draw: DrawRef::Owned(draw.material(Default::default())),
             index,
             finish_on_drop: true,
             _ty: Default::default(),
@@ -184,11 +184,11 @@ where
     {
         self.finish_on_drop = false;
         let Drawing { ref draw, index,  .. } = self;
-        let material = map(self.draw.material.read().unwrap().clone());
+        let material = map(self.draw.material.clone());
         let draw = Draw {
             state: draw.state.clone(),
             context: draw.context.clone(),
-            material: Arc::new(RwLock::new(Cd::new(material))),
+            material,
             window: draw.window,
         };
         Drawing {
