@@ -1,6 +1,5 @@
-use crate::draw::Draw;
+use crate::draw::{Draw, DrawCommand};
 use bevy::prelude::{Color, Material, World};
-use crate::render::BackgroundColor;
 
 /// A type used to update the background colour.
 pub struct Background<'a, M>
@@ -32,10 +31,7 @@ impl<'a, M> Background<'a, M>
             state.background_color = Some(color.into());
             let color = state.background_color.unwrap();
             let window = self.draw.window;
-            state.draw_commands.push(Some(Box::new(move |world: &mut World| {
-                world.entity_mut(window)
-                    .insert(BackgroundColor(color));
-            })));
+            state.draw_commands.push(Some(DrawCommand::BackgroundColor(window, color)));
         }
         self
     }

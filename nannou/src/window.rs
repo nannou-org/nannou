@@ -12,6 +12,7 @@ use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::render::camera::{RenderTarget, ScalingMode};
+use bevy::render::view::RenderLayers;
 use bevy::window::{PrimaryWindow, WindowLevel, WindowRef};
 
 use bevy_nannou::prelude::MonitorSelection;
@@ -400,6 +401,8 @@ where
                 .into(),
                 ..Default::default()
             },
+            // TODO: unique RL per camera
+            RenderLayers::layer(5),
             NannouCamera,
         ));
 

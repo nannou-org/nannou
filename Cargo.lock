@@ -1217,6 +1217,7 @@ dependencies = [
  "num-traits",
  "rayon",
  "rusttype",
+ "uuid 1.8.0",
 ]
 
 [[package]]

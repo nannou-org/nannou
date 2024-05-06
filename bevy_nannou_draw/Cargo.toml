@@ -11,3 +11,4 @@ rusttype = { version = "0.8", features = ["gpu_cache"] }
 num-traits = "0.2"
 bytemuck = "1.15.0"
 rayon = "1.10"
+uuid = "1.8"

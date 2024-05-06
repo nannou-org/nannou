@@ -3,7 +3,7 @@
 use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::Primitive;
 use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
-use crate::draw::{Background, Draw, primitive};
+use crate::draw::{Background, Draw, DrawCommand, primitive};
 use crate::render::{NannouMesh, NannouRender};
 use bevy::{
     core_pipeline::core_3d::Transparent3d,
@@ -77,59 +77,14 @@ where
 
     fn insert_instanced_draw_command(&self, index: usize, data: InstanceMaterialData) {
         let mut state = self.draw.state.write().unwrap();
-        let intermediary_state = state.intermediary_state.clone();
-        let theme = state.theme.clone();
-        let window = self.draw.window;
+        let primitive = state.drawing.remove(&index).unwrap();
         state
             .draw_commands
-            .push(Some(Box::new(move |world: &mut World| {
-                let mut fill_tessellator = FillTessellator::new();
-                let mut stroke_tessellator = StrokeTessellator::new();
-                let intermediary_state = intermediary_state.read().unwrap();
-                let mut q = world.query::<&crate::Draw>();
-                let draw = q.get(world, window).unwrap();
-                let primitive = draw.state.write().unwrap().drawing.remove(&index).unwrap();
-
-                world.resource_scope(|world, mut render: Mut<NannouRender>| {
-                    world.resource_scope(|world, mut meshes: Mut<Assets<Mesh>>| {
-                        world.resource_scope(|world, mut glyph_cache: Mut<GlyphCache>| {
-                            let mut mesh = Mesh::init();
-                            let ctxt = RenderContext {
-                                intermediary_mesh: &intermediary_state.intermediary_mesh,
-                                path_event_buffer: &intermediary_state.path_event_buffer,
-                                path_points_colored_buffer: &intermediary_state
-                                    .path_points_colored_buffer,
-                                path_points_textured_buffer: &intermediary_state
-                                    .path_points_textured_buffer,
-                                text_buffer: &intermediary_state.text_buffer,
-                                theme: &theme,
-                                transform: &render.draw_context.transform,
-                                fill_tessellator: &mut fill_tessellator,
-                                stroke_tessellator: &mut stroke_tessellator,
-                                glyph_cache: &mut glyph_cache,
-                                // TODO: read from window
-                                output_attachment_size: Vec2::new(100.0, 100.0),
-                                output_attachment_scale_factor: 1.0,
-                            };
-
-                            primitive.render_primitive(ctxt, &mut mesh);
-                            let mesh = mesh.with_removed_attribute(Mesh::ATTRIBUTE_COLOR);
-                            let mesh = meshes.add(mesh);
-                            world.spawn((
-                                NannouMesh,
-                                mesh,
-                                SpatialBundle::INHERITED_IDENTITY,
-                                data,
-                                NoFrustumCulling,
-                            ));
-                        });
-                    });
-                });
-            })));
+            .push(Some(DrawCommand::Instanced(primitive, data)));
     }
 }
 
-#[derive(Component, Deref)]
+#[derive(Component, Deref, Clone, Debug)]
 pub struct InstanceMaterialData(pub Vec<InstanceData>);
 
 impl ExtractComponent for InstanceMaterialData {
@@ -165,7 +120,7 @@ impl Plugin for InstancingPlugin {
     }
 }
 
-#[derive(Clone, Copy, Pod, Zeroable)]
+#[derive(Debug, Clone, Copy, Pod, Zeroable)]
 #[repr(C)]
 pub struct InstanceData {
     pub position: Vec3,

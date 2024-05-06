@@ -1,6 +1,8 @@
+use bevy::asset::UntypedAssetId;
 use bevy::pbr::{
     ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline,
 };
+use std::any::TypeId;
 use std::ops::{Deref, DerefMut};
 
 use bevy::prelude::*;
@@ -9,17 +11,21 @@ use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::mesh::MeshVertexBufferLayoutRef;
 use bevy::render::render_resource as wgpu;
-use bevy::render::render_resource::{AsBindGroup, BlendComponent, BlendState, PolygonMode, RenderPipelineDescriptor, ShaderRef, SpecializedMeshPipelineError};
+use bevy::render::render_resource::{
+    AsBindGroup, BlendComponent, BlendState, PolygonMode, RenderPipelineDescriptor, ShaderRef,
+    SpecializedMeshPipelineError,
+};
+use bevy::render::view::RenderLayers;
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
+use crate::draw::instanced::InstancingPlugin;
 use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::Primitive;
 use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
-use crate::draw::{DrawContext};
-use nannou_core::math::map_range;
+use crate::draw::{DrawCommand, DrawContext};
 use crate::{draw, Draw};
-use crate::draw::instanced::InstancingPlugin;
+use nannou_core::math::map_range;
 
 pub struct NannouRenderPlugin;
 
@@ -29,12 +35,27 @@ impl Plugin for NannouRenderPlugin {
             .add_plugins((
                 ExtractComponentPlugin::<NannouTextureHandle>::default(),
                 MaterialPlugin::<DefaultNannouMaterial>::default(),
-                InstancingPlugin
+                // InstancingPlugin,
             ))
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
             .insert_resource(GlyphCache::new([1024; 2], 0.1, 0.1))
-            .add_systems(Update, (texture_event_handler, update_background_color))
-            .add_systems(PostUpdate, update_draw_mesh);
+            .add_systems(Update, (texture_event_handler))
+            .add_systems(
+                PostUpdate,
+                (
+                    update_draw_mesh,
+                    update_material::<DefaultNannouMaterial>,
+                    print_all_components,
+                )
+                    .chain(),
+            );
+    }
+}
+
+fn print_all_components(world: &mut World) {
+    let mut mesh_query = world.query::<(Entity, &NannouMesh)>();
+    for (entity, _) in mesh_query.iter(world) {
+        // info!("Found a mesh! {:#?}", world.inspect_entity(entity));
     }
 }
 
@@ -66,7 +87,7 @@ impl<const VS: &'static str, const FS: &'static str> From<&NannouMaterial<VS, FS
     fn from(material: &NannouMaterial<VS, FS>) -> Self {
         Self {
             polygon_mode: material.polygon_mode,
-            blend:  material.blend
+            blend: material.blend,
         }
     }
 }
@@ -108,9 +129,6 @@ impl<const VS: &'static str, const FS: &'static str> MaterialExtension for Nanno
     }
 }
 
-#[derive(Component)]
-pub struct BackgroundColor(pub Color);
-
 #[derive(Resource, Deref, DerefMut, ExtractResource, Clone)]
 pub struct DefaultTextureHandle(Handle<Image>);
 
@@ -146,36 +164,117 @@ fn setup_default_texture(mut commands: Commands, mut images: ResMut<Assets<Image
     commands.insert_resource(DefaultTextureHandle(texture));
 }
 
-fn update_background_color(
-    mut cameras_q: Query<(&mut Camera)>,
-    draw_q: Query<(Entity, &BackgroundColor)>,
-) {
-    for (entity, bg_color) in draw_q.iter() {
-        for (mut camera) in cameras_q.iter_mut() {
-            if let RenderTarget::Window(WindowRef::Entity(window_target)) = camera.target {
-                if window_target == entity {
-                    camera.clear_color = ClearColorConfig::Custom(bg_color.0);
-                }
+#[derive(Component, Deref)]
+pub struct UntypedMaterialId(UntypedAssetId);
+
+fn update_material<M>(
+    draw_q: Query<&Draw>,
+    mut commands: Commands,
+    mut materials: ResMut<Assets<M>>,
+    mut materials_q: Query<(Entity, &UntypedMaterialId)>,
+) where
+    M: Material,
+{
+    for draw in draw_q.iter() {
+        let state = draw.state.write().unwrap();
+        state.materials.iter().for_each(|(id, material)| {
+            if id.type_id() == TypeId::of::<M>() {
+                let material = material.downcast_ref::<M>().unwrap();
+                materials.insert(id.typed(), material.clone());
             }
+        });
+    }
+
+    for (entity, UntypedMaterialId(id)) in materials_q.iter() {
+        if id.type_id() == TypeId::of::<M>() {
+            commands
+                .entity(entity)
+                .insert(Handle::Weak(id.typed::<M>()));
         }
     }
 }
 
-
 fn update_draw_mesh(
-    world: &mut World,
+    mut commands: Commands,
+    draw_q: Query<&Draw>,
+    mut cameras_q: Query<(&mut Camera, &RenderLayers)>,
+    windows: Query<&Window>,
+    mut glyph_cache: ResMut<GlyphCache>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let mut draw_q = world.query::<&Draw>();
-    let draw_commands = draw_q.iter(world).map(|draw| {
-        let mut state = draw.state.write().unwrap();
-        std::mem::take(&mut state.draw_commands)
-    })
-        .collect::<Vec<_>>();
+    for draw in draw_q.iter() {
+        let (mut window_camera, window_layers) = cameras_q
+            .iter_mut()
+            .find(|(camera, _)| {
+                if let RenderTarget::Window(WindowRef::Entity(window)) = camera.target {
+                    if window == draw.window {
+                        return true;
+                    }
+                }
 
-    for cmds in draw_commands {
-        for cmd in cmds {
-            if let Some(cmd) = cmd {
-                cmd(world);
+                false
+            })
+            .unwrap();
+        let window = windows.get(draw.window).unwrap();
+
+        let mut fill_tessellator = FillTessellator::new();
+        let mut stroke_tessellator = StrokeTessellator::new();
+
+        let mut mesh = meshes.add(Mesh::init());
+        let mut curr_ctx: DrawContext = Default::default();
+
+        let draw_cmds = draw.drain_commands();
+        let mut draw_state = draw.state.read().unwrap();
+        let intermediary_state = draw_state.intermediary_state.read().unwrap();
+
+        for cmd in draw_cmds {
+            match cmd {
+                DrawCommand::Primitive(prim) => {
+                    // Info required during rendering.
+                    let ctxt = RenderContext {
+                        intermediary_mesh: &intermediary_state.intermediary_mesh,
+                        path_event_buffer: &intermediary_state.path_event_buffer,
+                        path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
+                        path_points_textured_buffer: &intermediary_state
+                            .path_points_textured_buffer,
+                        text_buffer: &intermediary_state.text_buffer,
+                        theme: &draw_state.theme,
+                        transform: &curr_ctx.transform,
+                        fill_tessellator: &mut fill_tessellator,
+                        stroke_tessellator: &mut stroke_tessellator,
+                        glyph_cache: &mut glyph_cache,
+                        output_attachment_size: Vec2::new(window.width(), window.height()),
+                        output_attachment_scale_factor: window.scale_factor(),
+                    };
+
+                    // Render the primitive.
+                    let mut mesh = meshes.get_mut(&mesh).unwrap();
+                    let render = prim.render_primitive(ctxt, &mut mesh);
+                    // TODO ignore return value and set textures on the material directly
+                }
+                DrawCommand::Instanced(prim, instance_data) => {}
+                DrawCommand::Context(ctx) => {
+                    curr_ctx = ctx;
+                }
+                DrawCommand::Material(mat_id) => {
+                    info!("Material: {:#?}", mat_id);
+                    // We switched materials, so start rendering into a new mesh
+                    mesh = meshes.add(Mesh::init());
+                    commands.spawn((
+                        UntypedMaterialId(mat_id),
+                        mesh.clone(),
+                        Transform::default(),
+                        GlobalTransform::default(),
+                        Visibility::default(),
+                        InheritedVisibility::default(),
+                        ViewVisibility::default(),
+                        NannouMesh,
+                        window_layers.clone(),
+                    ));
+                }
+                DrawCommand::BackgroundColor(window, color) => {
+                    window_camera.clear_color = ClearColorConfig::Custom(color);
+                }
             }
         }
     }

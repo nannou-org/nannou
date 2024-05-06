@@ -1,15 +1,17 @@
+use std::any::TypeId;
 use std::marker::PhantomData;
 use std::sync::{Arc, RwLock};
-use bevy::asset::AsyncWriteExt;
+use bevy::asset::{AsyncWriteExt, UntypedAssetId};
 
 use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 use bevy::prelude::*;
 use bevy::render::render_resource::BlendComponent;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
+use uuid::Uuid;
 use crate::changed::Cd;
 
-use crate::draw::{Draw, DrawContext, DrawRef};
+use crate::draw::{Draw, DrawCommand, DrawContext, DrawRef};
 use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::{
@@ -120,32 +122,8 @@ where
                     // If we are "Owned", that means we mutated our material and so need to
                     // spawn a new entity just for this primitive.
                     DrawRef::Owned(draw) => {
-                        let material = draw.material.clone();
-                        state.draw_commands.push(Some(Box::new(move |world: &mut World| {
-                            let mut materials = world.resource_mut::<Assets<M>>();
-                            let material = materials.add(material);
-                            let mut meshes = world.resource_mut::<Assets<Mesh>>();
-                            let mesh = meshes.add(Mesh::init());
-
-                            let entity = world.spawn((MaterialMeshBundle {
-                                mesh: mesh.clone(),
-                                material: material.clone(),
-                                ..Default::default()
-                            }, NannouMesh)).id();
-
-                            let mut render = world.get_resource_or_insert_with::<NannouRender>(|| {
-                                NannouRender {
-                                    mesh: mesh.clone(),
-                                    entity: entity,
-                                    draw_context: DrawContext::default(),
-                                }
-                            });
-                            render.mesh = mesh;
-                            render.entity = entity;
-
-                            // TODO: reset parent?? How does change detection work here?
-                            // We should probably keep rendering into the same parent material.
-                        })));
+                        let id = draw.material.clone();
+                        state.draw_commands.push(Some(DrawCommand::Material(id)));
                     },
                     DrawRef::Borrowed(_) => (),
                 }
@@ -184,13 +162,29 @@ where
     {
         self.finish_on_drop = false;
         let Drawing { ref draw, index,  .. } = self;
-        let material = map(self.draw.material.clone());
+
+        let state = draw.state.clone();
+        let material = state.read().unwrap().materials[&self.draw.material]
+            .downcast_ref::<M>()
+            .unwrap()
+            .clone();
+        let new_id = UntypedAssetId::Uuid {
+            type_id: TypeId::of::<M>(),
+            uuid: Uuid::new_v4(),
+        };
+
+        let material = map(material.clone());
+        let mut state = state.write().unwrap();
+        state.materials.insert(new_id.clone(), Box::new(material));
+
         let draw = Draw {
             state: draw.state.clone(),
             context: draw.context.clone(),
-            material,
+            material: new_id.clone(),
             window: draw.window,
+            _material: Default::default(),
         };
+
         Drawing {
             draw: DrawRef::Owned(draw),
             index,
