@@ -126,7 +126,7 @@ pub enum DrawCommand {
     /// A change in the material occurred.
     Material(UntypedAssetId),
     /// A change in the background color occurred.
-    BackgroundColor(Entity, Color),
+    BackgroundColor(Color),
 }
 
 /// The inner state of the [Draw] type.

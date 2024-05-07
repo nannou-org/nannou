@@ -305,7 +305,7 @@ fn update_draw_mesh(
                         window_layers.clone(),
                     ));
                 }
-                DrawCommand::BackgroundColor(window, color) => {
+                DrawCommand::BackgroundColor(color) => {
                     window_camera.clear_color = ClearColorConfig::Custom(color);
                 }
             }

@@ -34,10 +34,9 @@ where
         if let Ok(mut state) = self.draw.state.try_write() {
             state.background_color = Some(color.into());
             let color = state.background_color.unwrap();
-            let window = self.draw.window;
             state
                 .draw_commands
-                .push(Some(DrawCommand::BackgroundColor(window, color)));
+                .push(Some(DrawCommand::BackgroundColor(color)));
         }
         self
     }

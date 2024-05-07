@@ -159,7 +159,7 @@ where
     {
         self.finish_on_drop = false;
 
-        Draw let Drawing {
+        let Drawing {
             ref draw, index, ..
         } = self;
 
