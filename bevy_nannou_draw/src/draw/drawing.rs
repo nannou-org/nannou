@@ -151,12 +151,15 @@ where
         }
     }
 
+    // Map the the parent's material to a new material type, taking ownership over the
+    // draw instance clone.
     fn map_material<F>(mut self, map: F) -> Drawing<'a, T, M>
     where
         F: FnOnce(M) -> M,
     {
         self.finish_on_drop = false;
-        let Drawing {
+
+        Draw let Drawing {
             ref draw, index, ..
         } = self;
 
