@@ -1,12 +1,13 @@
+use bevy::prelude::*;
+use lyon::path::PathEvent;
+use lyon::tessellation::StrokeOptions;
+
 use crate::draw::drawing::DrawingContext;
 use crate::draw::primitive::path::{self, PathEventSource};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use bevy::prelude::*;
-use lyon::path::PathEvent;
-use lyon::tessellation::StrokeOptions;
 
 /// A trait implemented for all polygon draw primitives.
 pub trait SetPolygon: Sized {
@@ -64,7 +65,7 @@ pub struct Polygon {
 }
 
 /// Initialised drawing state for a polygon.
-pub type DrawingPolygonInit<'a, M> = Drawing<'a,  PolygonInit, M>;
+pub type DrawingPolygonInit<'a, M> = Drawing<'a, PolygonInit, M>;
 
 /// Initialised drawing state for a polygon.
 pub type DrawingPolygon<'a, M> = Drawing<'a, Polygon, M>;
@@ -436,7 +437,7 @@ impl draw::render::RenderPrimitive for Polygon {
     }
 }
 
-impl <'a, T, M> Drawing<'a, T, M>
+impl<'a, T, M> Drawing<'a, T, M>
 where
     T: SetPolygon + Into<Primitive> + Clone,
     M: Material + Default,
@@ -464,8 +465,9 @@ where
     }
 }
 
-impl<'a, M> DrawingPolygonInit<'a,  M>
-    where M: Material + Default
+impl<'a, M> DrawingPolygonInit<'a, M>
+where
+    M: Material + Default,
 {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self

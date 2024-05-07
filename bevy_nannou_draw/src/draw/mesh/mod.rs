@@ -1,13 +1,14 @@
 //! Items related to the custom mesh type used by the `Draw` API.
 
+use std::ops::{Deref, DerefMut};
+
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
-use std::ops::{Deref, DerefMut};
 use bevy::render::render_asset::RenderAssetUsages;
 
-pub mod builder;
-
 pub use self::builder::MeshBuilder;
+
+pub mod builder;
 
 pub trait MeshExt {
     fn init() -> Mesh;
@@ -50,11 +51,9 @@ impl MeshExt for Mesh {
             }
         }
 
-        self.indices_mut().map(|indices| {
-            match indices {
-                Indices::U32(indices) => indices.clear(),
-                _ => panic!("Unsupported indices type"),
-            }
+        self.indices_mut().map(|indices| match indices {
+            Indices::U32(indices) => indices.clear(),
+            _ => panic!("Unsupported indices type"),
         });
     }
 

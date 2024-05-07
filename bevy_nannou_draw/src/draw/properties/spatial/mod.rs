@@ -1,10 +1,10 @@
-pub mod dimension;
-pub mod orientation;
-pub mod position;
-
 pub use self::dimension::SetDimensions;
 pub use self::orientation::SetOrientation;
 pub use self::position::SetPosition;
+
+pub mod dimension;
+pub mod orientation;
+pub mod position;
 
 /// Types that may be positioned, sized and oriented within 3D space.
 pub trait SetSpatial: SetDimensions + SetPosition + SetOrientation {}

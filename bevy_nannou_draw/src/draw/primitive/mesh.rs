@@ -1,12 +1,14 @@
+use std::ops;
+
+use bevy::prelude::*;
+
+use nannou_core::geom;
+
 use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::{Primitive, Vertex};
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
-use bevy::prelude::*;
-use bevy::render::mesh::Indices;
-use std::ops;
-use nannou_core::geom;
 
 /// The mesh type prior to being initialised with vertices or indices.
 #[derive(Clone, Debug, Default)]
@@ -218,12 +220,7 @@ impl Vertexless {
             let tex_coords = t.into();
             (point, color, tex_coords)
         });
-        self.indexed_inner(
-            inner_mesh,
-            vertices,
-            indices,
-            Some(texture_handle),
-        )
+        self.indexed_inner(inner_mesh, vertices, indices, Some(texture_handle))
     }
 
     /// Describe the mesh with the given indexed, colored points.
@@ -328,7 +325,9 @@ impl PrimitiveMesh {
 }
 
 impl<'a, M> Drawing<'a, Vertexless, M>
-    where M: Material + Default {
+where
+    M: Material + Default,
+{
     /// Describe the mesh with a sequence of points.
     ///
     /// The given iterator may yield any type that can be converted directly into `Vec3`s.
@@ -413,7 +412,11 @@ impl<'a, M> Drawing<'a, Vertexless, M>
     /// coordinates in that order, e.g. `(point, tex_coords)`. `point` may be of any type that
     /// implements `Into<Vec3>` and `tex_coords` may be of any type that implements
     /// `Into<Vec2>`.
-    pub fn tris_textured<I, P, T>(self, texture_handle: Handle<Image>, tris: I) -> DrawingMesh<'a, M>
+    pub fn tris_textured<I, P, T>(
+        self,
+        texture_handle: Handle<Image>,
+        tris: I,
+    ) -> DrawingMesh<'a, M>
     where
         I: IntoIterator<Item = geom::Tri<(P, T)>>,
         P: Into<Vec3>,
@@ -551,9 +554,7 @@ impl draw::render::RenderPrimitive for PrimitiveMesh {
             }
         }
 
-        draw::render::PrimitiveRender {
-            texture_handle,
-        }
+        draw::render::PrimitiveRender { texture_handle }
     }
 }
 

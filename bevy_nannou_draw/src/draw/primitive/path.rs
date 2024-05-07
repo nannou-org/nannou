@@ -1,10 +1,11 @@
+use bevy::prelude::*;
+use lyon::path::PathEvent;
+use lyon::tessellation::{FillOptions, FillTessellator, StrokeOptions, StrokeTessellator};
+
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetFill, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing, DrawingContext};
-use bevy::prelude::*;
-use lyon::path::PathEvent;
-use lyon::tessellation::{FillOptions, FillTessellator, StrokeOptions, StrokeTessellator};
 
 /// A set of path tessellation options (FillOptions or StrokeOptions).
 pub trait TessellationOptions {
@@ -571,9 +572,7 @@ impl draw::render::RenderPrimitive for Path {
             }
         }
 
-        draw::render::PrimitiveRender {
-            texture_handle,
-        }
+        draw::render::PrimitiveRender { texture_handle }
     }
 }
 
@@ -657,7 +656,8 @@ impl Path {
 }
 
 impl<'a, M> DrawingPathInit<'a, M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
     /// Specify that we want to use fill tessellation for the path.
     ///
@@ -675,7 +675,8 @@ impl<'a, M> DrawingPathInit<'a, M>
 }
 
 impl<'a, M> DrawingPathFill<'a, M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
     /// Maximum allowed distance to the path when building an approximation.
     pub fn tolerance(self, tolerance: f32) -> Self {
@@ -691,7 +692,8 @@ impl<'a, M> DrawingPathFill<'a, M>
 }
 
 impl<'a, M> DrawingPathStroke<'a, M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {

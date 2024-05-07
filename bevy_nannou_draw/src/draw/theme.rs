@@ -1,5 +1,6 @@
-use bevy::prelude::Color;
 use std::collections::HashMap;
+
+use bevy::prelude::Color;
 
 /// A set of styling defaults used for coloring texturing geometric primitives that have no entry
 /// within the **Draw**'s inner **ColorMap**.

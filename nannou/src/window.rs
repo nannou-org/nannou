@@ -3,11 +3,11 @@
 //! Create a new window via `app.new_window()`. This produces a [**Builder**](./struct.Builder.html)
 //! which can be used to build a [**Window**](./struct.Window.html).
 
-use std::fmt;
-use std::path::PathBuf;
 use bevy::core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings};
 use bevy::core_pipeline::prepass::NormalPrepass;
 use bevy::core_pipeline::tonemapping::Tonemapping;
+use std::fmt;
+use std::path::PathBuf;
 
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
@@ -87,7 +87,7 @@ impl<M> Default for UserFunctions<M> {
     }
 }
 
-impl <M> Clone for UserFunctions<M> {
+impl<M> Clone for UserFunctions<M> {
     fn clone(&self) -> Self {
         UserFunctions {
             view: self.view.clone(),
@@ -131,7 +131,7 @@ pub(crate) enum View<M> {
     Sketch(SketchFn),
 }
 
-impl <M> Clone for View<M> {
+impl<M> Clone for View<M> {
     fn clone(&self) -> Self {
         match self {
             View::WithModel(f) => View::WithModel(*f),
@@ -378,7 +378,10 @@ where
                 panic!("Only one primary window can be created");
             }
 
-            self.app.world_mut().entity_mut(entity).insert(PrimaryWindow);
+            self.app
+                .world_mut()
+                .entity_mut(entity)
+                .insert(PrimaryWindow);
         }
 
         self.app.world_mut().spawn((
@@ -393,12 +396,11 @@ where
                         .unwrap_or(ClearColorConfig::None),
                     ..Default::default()
                 },
-                transform: Transform::from_xyz(0.0, 0.0, 10.0)
-                    .looking_at(Vec3::ZERO, Vec3::Y),
-                projection: OrthographicProjection {
-                    ..Default::default()
-                }
-                .into(),
+                transform: Transform::from_xyz(10.0, 100.0, 1500.0).looking_at(Vec3::ZERO, Vec3::Y),
+                // projection: OrthographicProjection {
+                //     ..Default::default()
+                // }
+                // .into(),
                 ..Default::default()
             },
             // TODO: unique RL per camera

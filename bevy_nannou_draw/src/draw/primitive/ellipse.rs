@@ -1,3 +1,8 @@
+use bevy::prelude::*;
+use lyon::tessellation::StrokeOptions;
+
+use nannou_core::geom;
+
 use crate::draw;
 use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
@@ -6,9 +11,6 @@ use crate::draw::properties::{
     spatial, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::Drawing;
-use bevy::prelude::*;
-use lyon::tessellation::StrokeOptions;
-use nannou_core::geom;
 
 /// Properties related to drawing an **Ellipse**.
 #[derive(Clone, Debug, Default)]
@@ -167,7 +169,9 @@ impl Into<Option<Ellipse>> for Primitive {
 // Drawing methods.
 
 impl<'a, M> DrawingEllipse<'a, M>
-    where M: Material + Default {
+where
+    M: Material + Default,
+{
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where

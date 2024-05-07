@@ -1,9 +1,10 @@
 //! The `font::Id` and `font::Map` types.
 
-use crate::text::{Font, FontCollection};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
+
+use crate::text::{Font, FontCollection};
 
 /// A type-safe wrapper around the `FontId`.
 ///

@@ -1,10 +1,12 @@
-use crate::{draw, text};
-use bevy::prelude::*;
-use lyon::path::PathEvent;
-use lyon::tessellation::{FillTessellator, StrokeTessellator};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
+
+use bevy::prelude::*;
+use lyon::path::PathEvent;
+use lyon::tessellation::{FillTessellator, StrokeTessellator};
+
+use crate::{draw, text};
 
 /// Draw API primitives that may be rendered via the **Renderer** type.
 pub trait RenderPrimitive {
@@ -72,7 +74,9 @@ pub struct Scissor {
 
 impl Default for PrimitiveRender {
     fn default() -> Self {
-        PrimitiveRender { texture_handle: None }
+        PrimitiveRender {
+            texture_handle: None,
+        }
     }
 }
 

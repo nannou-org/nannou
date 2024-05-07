@@ -1,3 +1,7 @@
+use bevy::prelude::*;
+
+use nannou_core::geom;
+
 use crate::draw::drawing::DrawingContext;
 use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::{Primitive, Vertex};
@@ -5,8 +9,6 @@ use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition};
 use crate::draw::{self, theme, Drawing};
 use crate::text::{self, Align, Font, FontSize, Justify, Layout, Scalar, Wrap};
-use bevy::prelude::*;
-use nannou_core::geom;
 
 /// Properties related to drawing the **Text** primitive.
 #[derive(Clone, Debug)]
@@ -158,7 +160,8 @@ impl Text {
 }
 
 impl<'a, M> DrawingText<'a, M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
     /// The font size to use for the text.
     pub fn font_size(self, size: text::FontSize) -> Self {

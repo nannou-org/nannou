@@ -5,16 +5,14 @@
 //!
 //! Lyon tessellators assume `f32` data, so we do the same in the following implementations.
 
+use bevy::prelude::*;
+use lyon::tessellation::{FillVertex, GeometryBuilderError, StrokeVertex, VertexId};
 // use lyon::tessellation::{FillVertex, GeometryBuilderError, StrokeVertex, VertexId};
 use lyon::tessellation::geometry_builder::{
     self, FillGeometryBuilder, GeometryBuilder, StrokeGeometryBuilder,
 };
-use lyon::tessellation::{FillVertex, GeometryBuilderError, StrokeVertex, VertexId};
 
 use crate::draw::mesh::MeshExt;
-use bevy::prelude::*;
-use bevy::render::mesh::Indices;
-use bevy::render::render_resource::encase::private::RuntimeSizedArray;
 
 pub struct MeshBuilder<'a, A> {
     /// The mesh that is to be extended.

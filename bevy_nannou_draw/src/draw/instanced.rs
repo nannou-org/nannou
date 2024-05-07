@@ -1,10 +1,5 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
-use crate::draw::mesh::MeshExt;
-use crate::draw::primitive::Primitive;
-use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
-use crate::draw::{Background, Draw, DrawCommand, primitive};
-use crate::render::{NannouMesh, NannouRender};
 use bevy::{
     core_pipeline::core_3d::Transparent3d,
     ecs::{
@@ -25,25 +20,32 @@ use bevy::{
         },
         render_resource::*,
         renderer::RenderDevice,
-        view::{ExtractedView, NoFrustumCulling},
+        view::ExtractedView,
         Render, RenderApp, RenderSet,
     },
 };
-use bevy::tasks::{ComputeTaskPool, ParallelSlice};
 use bytemuck::{Pod, Zeroable};
-use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 use rayon::prelude::*;
+
 use crate::draw::drawing::Drawing;
+use crate::draw::primitive::Primitive;
+use crate::draw::{Draw, DrawCommand};
+
+static INSTANCING_RENDER: &str = include_str!("render/instancing.wgsl");
+
+const SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(24560125337912185962);
 
 pub struct Instanced<'a, M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
     draw: &'a Draw<M>,
-    data: Option<(usize, InstanceMaterialData)>
+    data: Option<(usize, InstanceMaterialData)>,
 }
 
-impl <'a, M> Drop for Instanced<'a, M>
-    where M: Material + Default
+impl<'a, M> Drop for Instanced<'a, M>
+where
+    M: Material + Default,
 {
     fn drop(&mut self) {
         if let Some((index, data)) = self.data.take() {
@@ -53,24 +55,38 @@ impl <'a, M> Drop for Instanced<'a, M>
 }
 
 pub fn new<M>(draw: &Draw<M>) -> Instanced<M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
-     Instanced { draw, data: None }
+    Instanced { draw, data: None }
 }
 
 impl<'a, M> Instanced<'a, M>
 where
     M: Material + Default,
 {
-    pub fn with<T, I, F>(mut self, drawing: Drawing<T, M>, input: Vec<I>, func: F) -> Instanced<'a, M>
-        where
-            I: Send + Sync,
-            T: Into<Primitive>,
-            F: Fn(&I) -> InstanceData + Sync,
+    pub fn with<T, I, F>(
+        mut self,
+        drawing: Drawing<T, M>,
+        input: Vec<I>,
+        func: F,
+    ) -> Instanced<'a, M>
+    where
+        I: Send + Sync,
+        T: Into<Primitive>,
+        F: Fn(&I) -> InstanceData + Sync,
     {
-        let data = input.par_iter().map(|i| func(i)).collect::<Vec<InstanceData>>();
+        let data = input
+            .par_iter()
+            .map(|i| func(i))
+            .collect::<Vec<InstanceData>>();
         let data = InstanceMaterialData(data);
-        self.draw.state.write().unwrap().instanced.insert(drawing.index);
+        self.draw
+            .state
+            .write()
+            .unwrap()
+            .instanced
+            .insert(drawing.index);
         self.data = Some((drawing.index, data));
         self
     }
@@ -115,6 +131,12 @@ impl Plugin for InstancingPlugin {
     }
 
     fn finish(&self, app: &mut App) {
+        app.world_mut()
+            .resource_mut::<Assets<Shader>>()
+            .get_or_insert_with(&SHADER_HANDLE, || {
+                Shader::from_wgsl(INSTANCING_RENDER, file!())
+            });
+
         app.sub_app_mut(RenderApp)
             .init_resource::<InstancedDataPipeline>();
     }
@@ -206,7 +228,7 @@ impl FromWorld for InstancedDataPipeline {
         let mesh_pipeline = world.resource::<MeshPipeline>();
 
         InstancedDataPipeline {
-            shader: world.load_asset("shaders/instancing.wgsl"),
+            shader: SHADER_HANDLE,
             mesh_pipeline: mesh_pipeline.clone(),
         }
     }

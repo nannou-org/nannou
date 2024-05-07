@@ -1,10 +1,12 @@
+use bevy::prelude::*;
+
+use nannou_core::geom;
+
 use crate::draw::primitive::path;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{SetDimensions, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
-use bevy::prelude::*;
-use nannou_core::geom;
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]
@@ -58,7 +60,8 @@ impl Texture {
 }
 
 impl<'a, M> DrawingTexture<'a, M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
     /// Specify the area of the texture to draw.
     ///

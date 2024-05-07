@@ -1,10 +1,10 @@
+use std::any::TypeId;
+use std::ops::{Deref, DerefMut};
+
 use bevy::asset::UntypedAssetId;
 use bevy::pbr::{
     ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline,
 };
-use std::any::TypeId;
-use std::ops::{Deref, DerefMut};
-
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
@@ -19,13 +19,14 @@ use bevy::render::view::{NoFrustumCulling, RenderLayers};
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
+use nannou_core::math::map_range;
+
 use crate::draw::instanced::InstancingPlugin;
 use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::Primitive;
 use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
 use crate::draw::{DrawCommand, DrawContext};
 use crate::{draw, Draw};
-use nannou_core::math::map_range;
 
 pub struct NannouRenderPlugin;
 
@@ -66,7 +67,7 @@ fn print_all_components(world: &mut World) {
 pub type DefaultNannouMaterial = ExtendedMaterial<StandardMaterial, NannouMaterial<"", "">>;
 
 pub type ExtendedNannouMaterial<const VS: &'static str, const FS: &'static str> =
-ExtendedMaterial<StandardMaterial, NannouMaterial<VS, FS>>;
+    ExtendedMaterial<StandardMaterial, NannouMaterial<VS, FS>>;
 
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
 #[bind_group_data(NannouMaterialKey)]
@@ -82,7 +83,7 @@ pub struct NannouMaterialKey {
 }
 
 impl<const VS: &'static str, const FS: &'static str> From<&NannouMaterial<VS, FS>>
-for NannouMaterialKey
+    for NannouMaterialKey
 {
     fn from(material: &NannouMaterial<VS, FS>) -> Self {
         Self {
@@ -215,6 +216,9 @@ fn update_draw_mesh(
                 false
             })
             .unwrap();
+        // Reset the clear color each frame.
+        window_camera.clear_color = ClearColorConfig::None;
+        // The window we are rendering to.
         let window = windows.get(draw.window).unwrap();
 
         let mut fill_tessellator = FillTessellator::new();

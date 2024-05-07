@@ -1,3 +1,8 @@
+use bevy::prelude::*;
+use lyon::tessellation::StrokeOptions;
+
+use nannou_core::geom;
+
 use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
@@ -5,9 +10,6 @@ use crate::draw::properties::{
     spatial, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Drawing};
-use bevy::prelude::*;
-use lyon::tessellation::StrokeOptions;
-use nannou_core::geom;
 
 /// Properties related to drawing a **Quad**.
 #[derive(Clone, Debug)]
@@ -172,7 +174,8 @@ impl Into<Option<Quad>> for Primitive {
 // Drawing methods.
 
 impl<'a, M> DrawingQuad<'a, M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
     /// Use the given points as the vertices (corners) of the quad.
     pub fn points<P>(self, a: P, b: P, c: P, d: P) -> Self

@@ -1,14 +1,6 @@
-pub mod arrow;
-pub mod ellipse;
-pub mod line;
-pub mod mesh;
-pub mod path;
-pub mod polygon;
-pub mod quad;
-pub mod rect;
-pub mod text;
-pub mod texture;
-pub mod tri;
+use bevy::prelude::{Color, Component};
+
+use nannou_core::geom::{Vec2, Vec3};
 
 pub use self::arrow::Arrow;
 pub use self::ellipse::Ellipse;
@@ -21,8 +13,18 @@ pub use self::rect::Rect;
 pub use self::text::Text;
 pub use self::texture::Texture;
 pub use self::tri::Tri;
-use bevy::prelude::{Color, Component};
-use nannou_core::geom::{Vec2, Vec3};
+
+pub mod arrow;
+pub mod ellipse;
+pub mod line;
+pub mod mesh;
+pub mod path;
+pub mod polygon;
+pub mod quad;
+pub mod rect;
+pub mod text;
+pub mod texture;
+pub mod tri;
 
 type Vertex = (Vec3, Color, Vec2);
 

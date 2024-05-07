@@ -1,24 +1,20 @@
 use std::any::TypeId;
 use std::marker::PhantomData;
-use std::sync::{Arc, RwLock};
-use bevy::asset::{AsyncWriteExt, UntypedAssetId};
 
+use bevy::asset::{AsyncWriteExt, UntypedAssetId};
 use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 use bevy::prelude::*;
-use bevy::render::render_resource::BlendComponent;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
 use uuid::Uuid;
-use crate::changed::Cd;
 
-use crate::draw::{Draw, DrawCommand, DrawContext, DrawRef};
-use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::Primitive;
+use crate::draw::properties::material::SetMaterial;
 use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
-use crate::draw::properties::material::SetMaterial;
-use crate::render::{ExtendedNannouMaterial, NannouMaterial, NannouMesh, NannouRender};
+use crate::draw::{Draw, DrawCommand, DrawRef};
+use crate::render::{ExtendedNannouMaterial, NannouMaterial};
 
 /// A **Drawing** in progress.
 ///
@@ -31,7 +27,8 @@ use crate::render::{ExtendedNannouMaterial, NannouMaterial, NannouMesh, NannouRe
 /// graph. As a result, each **Drawing** is associated with a single, unique node. Thus a
 /// **Drawing** can be thought of as a way of specifying properties for a node.
 pub struct Drawing<'a, T, M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
     // The `Draw` instance used to create this drawing.
     draw: DrawRef<'a, M>,
@@ -124,7 +121,7 @@ where
                     DrawRef::Owned(draw) => {
                         let id = draw.material.clone();
                         state.draw_commands.push(Some(DrawCommand::Material(id)));
-                    },
+                    }
                     DrawRef::Borrowed(_) => (),
                 }
                 state.finish_drawing(self.index);
@@ -143,9 +140,7 @@ where
         self,
     ) -> Drawing<'a, T, ExtendedNannouMaterial<"", FS>> {
         let Self {
-            ref draw,
-            index,
-            ..
+            ref draw, index, ..
         } = self;
 
         Drawing::<'a, T, ExtendedMaterial<StandardMaterial, NannouMaterial<"", FS>>> {
@@ -161,7 +156,9 @@ where
         F: FnOnce(M) -> M,
     {
         self.finish_on_drop = false;
-        let Drawing { ref draw, index,  .. } = self;
+        let Drawing {
+            ref draw, index, ..
+        } = self;
 
         let state = draw.state.clone();
         let material = state.read().unwrap().materials[&self.draw.material]
@@ -208,7 +205,9 @@ where
             }
         }
         self.finish_on_drop = false;
-        let Drawing { ref draw, index, .. } = self;
+        let Drawing {
+            ref draw, index, ..
+        } = self;
         Drawing {
             draw: draw.clone(),
             index,
@@ -236,7 +235,9 @@ where
             }
         }
         self.finish_on_drop = false;
-        let Drawing { ref draw, index, .. } = self;
+        let Drawing {
+            ref draw, index, ..
+        } = self;
         Drawing {
             draw: draw.clone(),
             index,

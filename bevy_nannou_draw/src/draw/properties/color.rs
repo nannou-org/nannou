@@ -1,5 +1,4 @@
 use bevy::prelude::Color;
-use num_traits::Float;
 
 /// Nodes that support setting colors.
 pub trait SetColor: Sized {

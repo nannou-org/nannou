@@ -1,22 +1,26 @@
+use bevy::prelude::{Color, Material};
+
 use crate::draw::{Draw, DrawCommand};
-use bevy::prelude::{Color, Material, World};
 
 /// A type used to update the background colour.
 pub struct Background<'a, M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
     draw: &'a Draw<M>,
 }
 
 /// Begin coloring the background.
 pub fn new<M>(draw: &Draw<M>) -> Background<M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
     Background { draw }
 }
 
 impl<'a, M> Background<'a, M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
     /// Clear the background with the given color.
     ///
@@ -31,7 +35,9 @@ impl<'a, M> Background<'a, M>
             state.background_color = Some(color.into());
             let color = state.background_color.unwrap();
             let window = self.draw.window;
-            state.draw_commands.push(Some(DrawCommand::BackgroundColor(window, color)));
+            state
+                .draw_commands
+                .push(Some(DrawCommand::BackgroundColor(window, color)));
         }
         self
     }

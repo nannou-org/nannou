@@ -1,10 +1,11 @@
+use bevy::prelude::*;
+use lyon::tessellation::StrokeOptions;
+
 use crate::draw::primitive::path;
 use crate::draw::primitive::{PathStroke, Primitive};
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use bevy::prelude::*;
-use lyon::tessellation::StrokeOptions;
 
 /// A path containing only two points - a start and end.
 ///
@@ -60,7 +61,8 @@ impl Line {
 }
 
 impl<'a, M> DrawingLine<'a, M>
-    where M: Material + Default,
+where
+    M: Material + Default,
 {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {

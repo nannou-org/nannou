@@ -1,11 +1,13 @@
+use bevy::prelude::*;
+use lyon::tessellation::StrokeOptions;
+
+use nannou_core::geom;
+
 use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use bevy::prelude::*;
-use lyon::tessellation::StrokeOptions;
-use nannou_core::geom;
 
 /// Properties related to drawing a **Tri**.
 #[derive(Clone, Debug)]
@@ -45,7 +47,8 @@ impl Tri {
 // Drawing methods.
 
 impl<'a, M> DrawingTri<'a, M>
-    where M: Material + Default
+where
+    M: Material + Default,
 {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
