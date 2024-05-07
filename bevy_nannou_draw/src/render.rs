@@ -15,7 +15,7 @@ use bevy::render::render_resource::{
     AsBindGroup, BlendComponent, BlendState, PolygonMode, RenderPipelineDescriptor, ShaderRef,
     SpecializedMeshPipelineError,
 };
-use bevy::render::view::RenderLayers;
+use bevy::render::view::{NoFrustumCulling, RenderLayers};
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
@@ -35,7 +35,7 @@ impl Plugin for NannouRenderPlugin {
             .add_plugins((
                 ExtractComponentPlugin::<NannouTextureHandle>::default(),
                 MaterialPlugin::<DefaultNannouMaterial>::default(),
-                // InstancingPlugin,
+                InstancingPlugin,
             ))
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
             .insert_resource(GlyphCache::new([1024; 2], 0.1, 0.1))
@@ -66,7 +66,7 @@ fn print_all_components(world: &mut World) {
 pub type DefaultNannouMaterial = ExtendedMaterial<StandardMaterial, NannouMaterial<"", "">>;
 
 pub type ExtendedNannouMaterial<const VS: &'static str, const FS: &'static str> =
-    ExtendedMaterial<StandardMaterial, NannouMaterial<VS, FS>>;
+ExtendedMaterial<StandardMaterial, NannouMaterial<VS, FS>>;
 
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
 #[bind_group_data(NannouMaterialKey)]
@@ -82,7 +82,7 @@ pub struct NannouMaterialKey {
 }
 
 impl<const VS: &'static str, const FS: &'static str> From<&NannouMaterial<VS, FS>>
-    for NannouMaterialKey
+for NannouMaterialKey
 {
     fn from(material: &NannouMaterial<VS, FS>) -> Self {
         Self {
@@ -252,12 +252,41 @@ fn update_draw_mesh(
                     let render = prim.render_primitive(ctxt, &mut mesh);
                     // TODO ignore return value and set textures on the material directly
                 }
-                DrawCommand::Instanced(prim, instance_data) => {}
+                DrawCommand::Instanced(prim, instance_data) => {
+                    let ctxt = RenderContext {
+                        intermediary_mesh: &intermediary_state.intermediary_mesh,
+                        path_event_buffer: &intermediary_state.path_event_buffer,
+                        path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
+                        path_points_textured_buffer: &intermediary_state
+                            .path_points_textured_buffer,
+                        text_buffer: &intermediary_state.text_buffer,
+                        theme: &draw_state.theme,
+                        transform: &curr_ctx.transform,
+                        fill_tessellator: &mut fill_tessellator,
+                        stroke_tessellator: &mut stroke_tessellator,
+                        glyph_cache: &mut glyph_cache,
+                        output_attachment_size: Vec2::new(window.width(), window.height()),
+                        output_attachment_scale_factor: window.scale_factor(),
+                    };
+
+                    // Render the primitive.
+                    let mut mesh = Mesh::init();
+                    let render = prim.render_primitive(ctxt, &mut mesh);
+                    mesh = mesh.with_removed_attribute(Mesh::ATTRIBUTE_COLOR);
+                    let mesh = meshes.add(mesh);
+                    commands.spawn((
+                        NannouMesh,
+                        mesh,
+                        SpatialBundle::INHERITED_IDENTITY,
+                        instance_data,
+                        NoFrustumCulling,
+                        window_layers.clone(),
+                    ));
+                }
                 DrawCommand::Context(ctx) => {
                     curr_ctx = ctx;
                 }
                 DrawCommand::Material(mat_id) => {
-                    info!("Material: {:#?}", mat_id);
                     // We switched materials, so start rendering into a new mesh
                     mesh = meshes.add(Mesh::init());
                     commands.spawn((

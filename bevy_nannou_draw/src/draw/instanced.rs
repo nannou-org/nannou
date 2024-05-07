@@ -124,7 +124,7 @@ impl Plugin for InstancingPlugin {
 #[repr(C)]
 pub struct InstanceData {
     pub position: Vec3,
-    pub scale: [f32; 4],
+    pub scale: f32,
     pub color: [f32; 4],
 }
 
@@ -228,19 +228,14 @@ impl SpecializedMeshPipeline for InstancedDataPipeline {
             step_mode: VertexStepMode::Instance,
             attributes: vec![
                 VertexAttribute {
-                    format: VertexFormat::Float32x3,
+                    format: VertexFormat::Float32x4,
                     offset: 0,
                     shader_location: 3, // shader locations 0-2 are taken up by Position, Normal and UV attributes
                 },
                 VertexAttribute {
                     format: VertexFormat::Float32x4,
-                    offset: VertexFormat::Float32x3.size(),
+                    offset: VertexFormat::Float32x4.size(),
                     shader_location: 4,
-                },
-                VertexAttribute {
-                    format: VertexFormat::Float32x4,
-                    offset: VertexFormat::Float32x3.size() + VertexFormat::Float32x4.size(),
-                    shader_location: 5,
                 },
             ],
         });
