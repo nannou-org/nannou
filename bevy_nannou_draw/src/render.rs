@@ -198,7 +198,7 @@ fn update_material<M>(
 fn update_draw_mesh(
     mut commands: Commands,
     draw_q: Query<&Draw>,
-    mut cameras_q: Query<(&mut Camera, &RenderLayers)>,
+    mut cameras_q: Query<(&mut Camera, &RenderLayers), With<NannouCamera>>,
     windows: Query<&Window>,
     mut glyph_cache: ResMut<GlyphCache>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -215,9 +215,11 @@ fn update_draw_mesh(
 
                 false
             })
-            .unwrap();
+            .expect("No camera found for window");
+
         // Reset the clear color each frame.
         window_camera.clear_color = ClearColorConfig::None;
+
         // The window we are rendering to.
         let window = windows.get(draw.window).unwrap();
 
@@ -366,3 +368,6 @@ pub mod blend {
         operation: wgpu::BlendOperation::Max,
     };
 }
+
+#[derive(Component)]
+pub struct NannouCamera;

@@ -16,6 +16,8 @@ use std::{self};
 use bevy::app::AppExit;
 use bevy::core::FrameCount;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
+use bevy::ecs::system::lifetimeless::{SQuery, SRes, SResMut};
+use bevy::ecs::system::SystemParam;
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::{MouseButtonInput, MouseWheel};
@@ -24,6 +26,7 @@ use bevy::pbr::ExtendedMaterial;
 use bevy::prelude::*;
 use bevy::reflect::{DynamicTypePath, GetTypeRegistration};
 use bevy::render::view::screenshot::ScreenshotManager;
+use bevy::utils::tracing::instrument::WithSubscriber;
 use bevy::window::{PrimaryWindow, WindowClosed, WindowFocused, WindowResized};
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
@@ -32,6 +35,8 @@ use find_folder;
 use bevy_nannou::prelude::{draw, Draw};
 use bevy_nannou::NannouPlugin;
 
+use crate::prelude::bevy_ecs::system::lifetimeless::Read;
+use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::bevy_reflect::{ReflectMut, ReflectOwned, ReflectRef, TypeInfo};
 use crate::prelude::render::{NannouMaterial, NannouMesh, NannouPersistentMesh};
 use crate::window::WindowUserFunctions;
@@ -139,7 +144,7 @@ struct Config {
     default_window_size: Option<DefaultWindowSize>,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 struct ModelHolder<M>(M);
 
 #[derive(Resource)]
@@ -285,7 +290,25 @@ where
             .insert_resource(ExitFnRes(self.exit))
             .add_systems(Startup, startup::<M>)
             .add_systems(First, first::<M>)
-            .add_systems(Update, update::<M>)
+            .add_systems(
+                Update,
+                (
+                    update::<M>,
+                    key_events::<M>,
+                    received_char_events::<M>,
+                    cursor_moved_events::<M>,
+                    mouse_button_events::<M>,
+                    cursor_entered_events::<M>,
+                    cursor_left_events::<M>,
+                    mouse_wheel_events::<M>,
+                    window_moved_events::<M>,
+                    window_resized_events::<M>,
+                    touch_events::<M>,
+                    file_drop_events::<M>,
+                    window_focus_events::<M>,
+                    window_closed_events::<M>,
+                ),
+            )
             .add_systems(Last, last::<M>)
             .run();
     }
@@ -508,7 +531,7 @@ impl<'w> App<'w> {
     }
 
     /// The number of windows currently in the application.
-    pub fn window_count(&mut self) -> usize {
+    pub fn window_count(&self) -> usize {
         let mut window_q = self.world_mut().query::<&Window>();
         window_q.iter(self.world()).count()
     }
@@ -683,6 +706,16 @@ impl<'w> App<'w> {
     }
 }
 
+fn get_app_and_state<'w, 's, S: SystemParam + 'static>(
+    world: &'w mut World,
+    state: &'s mut SystemState<S>,
+) -> (App<'w>, <S as SystemParam>::Item<'w, 's>) {
+    state.update_archetypes(world);
+    let mut app = App::new(world);
+    let param = unsafe { state.get_unchecked_manual(*app.world.borrow_mut()) };
+    (app, param)
+}
+
 fn startup<M>(world: &mut World)
 where
     M: 'static + Send + Sync,
@@ -713,10 +746,6 @@ where
 
     // Initialise the model.
     let model = model_fn(&mut app);
-    // Insert the model into the world. We use a non-send resource here to allow
-    // maximum flexibility for the user to provide their own model type that doesn't
-    // implement `Send`. Bevy will ensure that the model is only accessed on the main
-    // thread.
     world.insert_resource(ModelHolder(model));
 }
 
@@ -735,380 +764,410 @@ fn first<M>(
     }
 }
 
-fn update<M>(world: &mut World)
-where
+fn update<M>(
+    world: &mut World,
+    mut state: &mut SystemState<(
+        Res<UpdateFnRes<M>>,
+        Res<ViewFnRes<M>>,
+        ResMut<ModelHolder<M>>,
+        Query<(Entity, &WindowUserFunctions<M>)>,
+    )>,
+) where
     M: 'static + Send + Sync,
 {
-    // We can clone these since they are just function pointers
-    let update_fn = world.resource::<UpdateFnRes<M>>().0.clone();
-    let view_fn = world.resource::<ViewFnRes<M>>().0.clone();
-
-    let mut window_q = world.query::<(Entity, Option<&WindowUserFunctions<M>>)>();
-    let windows = window_q
-        .iter(world)
-        .map(|(entity, user_fns)| {
-            (
-                entity,
-                user_fns.map(|fns| {
-                    let fns = fns.0.clone();
-                    fns
-                }),
-            )
-        })
-        .collect::<Vec<_>>();
-
-    // Extract the model from the world, this avoids borrowing issues.
-    let mut model = world
-        .remove_resource::<ModelHolder<M>>()
-        .expect("Model not found")
-        .0;
-
-    let mut key_events = world.resource_mut::<Events<KeyboardInput>>();
-    let mut key_events_reader = key_events.get_reader();
-    let key_events = key_events_reader
-        .read(&key_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<KeyboardInput>>();
-
-    let received_char_events = world.resource::<Events<ReceivedCharacter>>();
-    let mut received_char_events_reader = received_char_events.get_reader();
-    let received_char_events = received_char_events_reader
-        .read(&received_char_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<ReceivedCharacter>>();
-
-    let cursor_moved_events = world.resource::<Events<CursorMoved>>();
-    let mut cursor_moved_events_reader = cursor_moved_events.get_reader();
-    let cursor_moved_events = cursor_moved_events_reader
-        .read(&cursor_moved_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<CursorMoved>>();
-
-    let mouse_button_events = world.resource::<Events<MouseButtonInput>>();
-    let mut mouse_button_events_reader = mouse_button_events.get_reader();
-    let mouse_button_events = mouse_button_events_reader
-        .read(&mouse_button_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<MouseButtonInput>>();
-
-    let cursor_entered_events = world.resource::<Events<CursorEntered>>();
-    let mut cursor_entered_events_reader = cursor_entered_events.get_reader();
-    let cursor_entered_events = cursor_entered_events_reader
-        .read(&cursor_entered_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<CursorEntered>>();
-
-    let cursor_left_events = world.resource::<Events<CursorLeft>>();
-    let mut cursor_left_events_reader = cursor_left_events.get_reader();
-    let cursor_left_events = cursor_left_events_reader
-        .read(&cursor_left_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<CursorLeft>>();
-
-    let mouse_wheel_events = world.resource::<Events<MouseWheel>>();
-    let mut mouse_wheel_events_reader = mouse_wheel_events.get_reader();
-    let mouse_wheel_events = mouse_wheel_events_reader
-        .read(&mouse_wheel_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<MouseWheel>>();
-
-    let window_moved_events = world.resource::<Events<WindowMoved>>();
-    let mut window_moved_events_reader = window_moved_events.get_reader();
-    let window_moved_events = window_moved_events_reader
-        .read(&window_moved_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<WindowMoved>>();
-
-    let window_resized_events = world.resource::<Events<WindowResized>>();
-    let mut window_resized_events_reader = window_resized_events.get_reader();
-    let window_resized_events = window_resized_events_reader
-        .read(&window_resized_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<WindowResized>>();
-
-    let touch_events = world.resource::<Events<TouchInput>>();
-    let mut touch_events_reader = touch_events.get_reader();
-    let touch_events = touch_events_reader
-        .read(&touch_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<TouchInput>>();
-
-    let file_drop_events = world.resource::<Events<FileDragAndDrop>>();
-    let mut file_drop_events_reader = file_drop_events.get_reader();
-    let file_drop_events = file_drop_events_reader
-        .read(&file_drop_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<FileDragAndDrop>>();
-
-    let window_focus_events = world.resource::<Events<WindowFocused>>();
-    let mut window_focus_events_reader = window_focus_events.get_reader();
-    let window_focus_events = window_focus_events_reader
-        .read(&window_focus_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<WindowFocused>>();
-
-    let window_closed_events = world.resource::<Events<WindowClosed>>();
-    let mut window_closed_events_reader = window_closed_events.get_reader();
-    let window_closed_events = window_closed_events_reader
-        .read(&window_closed_events)
-        .into_iter()
-        .map(|event| event.clone())
-        .collect::<Vec<WindowClosed>>();
-
-    // Create a new app instance for each frame that wraps the world.
-    let mut app = App::new(world);
+    let (mut app, (update_fn, view_fn, mut model, windows)) = get_app_and_state(world, state);
 
     // Run the model update function.
-    if let Some(update_fn) = update_fn {
+    if let Some(update_fn) = update_fn.0 {
         update_fn(&app, &mut model);
     }
 
     // Run the view function for each window's draw.
-    for (entity, user_fns) in windows {
+    for (entity, user_fns) in windows.iter() {
         // Makes sure we return the correct draw component
         app.current_view = Some(entity);
 
         // Run user fns
-        if let Some(user_fns) = user_fns {
-            if let Some(view) = &user_fns.view {
+        if let Some(view) = &user_fns.view {
+            match view {
+                window::View::WithModel(view_fn) => {
+                    view_fn(&app, &model);
+                }
+                window::View::Sketch(view_fn) => {
+                    view_fn(&app);
+                }
+            }
+        } else {
+            if let Some(view) = view_fn.0.as_ref() {
                 match view {
-                    window::View::WithModel(view_fn) => {
-                        view_fn(&app, &model);
+                    View::WithModel(view_fn) => {
+                        view_fn(&app, &mut model, entity);
                     }
-                    window::View::Sketch(view_fn) => {
+                    View::Sketch(view_fn) => {
                         view_fn(&app);
                     }
                 }
+            }
+        }
+    }
+}
+
+fn key_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<KeyboardInput>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut key_events, user_fns, mut model)) = get_app_and_state(world, state);
+
+    for evt in key_events.read() {
+        if let Ok(user_fns) = user_fns.get(evt.window) {
+            match evt.state {
+                ButtonState::Pressed => {
+                    if let Some(f) = user_fns.key_pressed {
+                        app.current_view = Some(evt.window);
+                        f(&app, &mut model, evt.key_code);
+                    }
+                }
+                ButtonState::Released => {
+                    if let Some(f) = user_fns.key_released {
+                        app.current_view = Some(evt.window);
+                        f(&app, &mut model, evt.key_code);
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn received_char_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<ReceivedCharacter>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut received_char_events, user_fns, mut model)) =
+        get_app_and_state(world, state);
+
+    for evt in received_char_events.read() {
+        if let Ok(user_fns) = user_fns.get(evt.window) {
+            if let Some(f) = user_fns.received_character {
+                app.current_view = Some(evt.window);
+                let char = evt.char.chars().into_iter().next().unwrap();
+                f(&app, &mut model, char);
+            }
+        }
+    }
+}
+
+fn cursor_moved_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<CursorMoved>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut cursor_moved_events, user_fns, mut model)) = get_app_and_state(world, state);
+
+    for evt in cursor_moved_events.read() {
+        if let Ok(user_fns) = user_fns.get(evt.window) {
+            if let Some(f) = user_fns.mouse_moved {
+                app.current_view = Some(evt.window);
+                f(&app, &mut model, evt.position);
+            }
+        }
+    }
+}
+
+fn mouse_button_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<MouseButtonInput>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut mouse_button_events, user_fns, mut model)) = get_app_and_state(world, state);
+
+    for evt in mouse_button_events.read() {
+        if let Ok(user_fns) = user_fns.get(evt.window) {
+            match evt.state {
+                ButtonState::Pressed => {
+                    if let Some(f) = user_fns.mouse_pressed {
+                        app.current_view = Some(evt.window);
+                        f(&app, &mut model, evt.button);
+                    }
+                }
+                ButtonState::Released => {
+                    if let Some(f) = user_fns.mouse_released {
+                        app.current_view = Some(evt.window);
+                        f(&app, &mut model, evt.button);
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn cursor_entered_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<CursorEntered>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut cursor_entered_events, user_fns, mut model)) =
+        get_app_and_state(world, state);
+
+    for evt in cursor_entered_events.read() {
+        if let Ok(user_fns) = user_fns.get(evt.window) {
+            if let Some(f) = user_fns.mouse_entered {
+                app.current_view = Some(evt.window);
+                f(&app, &mut model);
+            }
+        }
+    }
+}
+
+fn cursor_left_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<CursorLeft>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut cursor_left_events, user_fns, mut model)) = get_app_and_state(world, state);
+
+    for evt in cursor_left_events.read() {
+        if let Ok(user_fns) = user_fns.get(evt.window) {
+            if let Some(f) = user_fns.mouse_exited {
+                app.current_view = Some(evt.window);
+                f(&app, &mut model);
+            }
+        }
+    }
+}
+
+fn mouse_wheel_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<MouseWheel>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut mouse_wheel_events, user_fns, mut model)) = get_app_and_state(world, state);
+
+    for evt in mouse_wheel_events.read() {
+        if let Ok(user_fns) = user_fns.get(evt.window) {
+            if let Some(f) = user_fns.mouse_wheel {
+                app.current_view = Some(evt.window);
+                f(&app, &mut model, evt.clone());
+            }
+        }
+    }
+}
+
+fn window_moved_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<WindowMoved>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut window_moved_events, user_fns, mut model)) = get_app_and_state(world, state);
+
+    for evt in window_moved_events.read() {
+        if let Ok(user_fns) = user_fns.get(evt.window) {
+            if let Some(f) = user_fns.moved {
+                app.current_view = Some(evt.window);
+                f(&app, &mut model, evt.position);
+            }
+        }
+    }
+}
+
+fn window_resized_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<WindowResized>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut window_resized_events, user_fns, mut model)) =
+        get_app_and_state(world, state);
+
+    for evt in window_resized_events.read() {
+        if let Ok(user_fns) = user_fns.get(evt.window) {
+            if let Some(f) = user_fns.resized {
+                app.current_view = Some(evt.window);
+                f(&app, &mut model, Vec2::new(evt.width, evt.height));
+            }
+        }
+    }
+}
+
+fn touch_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<TouchInput>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut touch_events, user_fns, mut model)) = get_app_and_state(world, state);
+
+    for evt in touch_events.read() {
+        if let Ok(user_fns) = user_fns.get(evt.window) {
+            if let Some(f) = user_fns.touch {
+                app.current_view = Some(evt.window);
+                f(&app, &mut model, evt.clone());
+            }
+        }
+    }
+}
+
+fn file_drop_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<FileDragAndDrop>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut file_drop_events, user_fns, mut model)) = get_app_and_state(world, state);
+
+    for evt in file_drop_events.read() {
+        match evt {
+            FileDragAndDrop::DroppedFile { window, path_buf } => {
+                if let Ok(user_fns) = user_fns.get(*window) {
+                    if let Some(f) = user_fns.dropped_file {
+                        app.current_view = Some(*window);
+                        f(&app, &mut model, path_buf.clone());
+                    }
+                }
+            }
+            FileDragAndDrop::HoveredFile { window, path_buf } => {
+                if let Ok(user_fns) = user_fns.get(*window) {
+                    if let Some(f) = user_fns.hovered_file {
+                        app.current_view = Some(*window);
+                        f(&app, &mut model, path_buf.clone());
+                    }
+                }
+            }
+            FileDragAndDrop::HoveredFileCanceled { window } => {
+                if let Ok(user_fns) = user_fns.get(*window) {
+                    if let Some(f) = user_fns.hovered_file_cancelled {
+                        app.current_view = Some(*window);
+                        f(&app, &mut model);
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn window_focus_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<WindowFocused>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut window_focus_events, user_fns, mut model)) = get_app_and_state(world, state);
+
+    for evt in window_focus_events.read() {
+        if let Ok(user_fns) = user_fns.get(evt.window) {
+            if evt.focused {
+                if let Some(f) = user_fns.focused {
+                    app.current_view = Some(evt.window);
+                    f(&app, &mut model);
+                }
             } else {
-                if let Some(view) = view_fn.as_ref() {
-                    match view {
-                        View::WithModel(view_fn) => {
-                            view_fn(&app, &mut model, entity);
-                        }
-                        View::Sketch(view_fn) => {
-                            view_fn(&app);
-                        }
-                    }
-                }
-            }
-
-            for evt in &key_events {
-                if evt.window != entity {
-                    continue;
-                }
-
-                match evt.state {
-                    ButtonState::Pressed => {
-                        if let Some(f) = user_fns.key_pressed {
-                            f(&app, &mut model, evt.key_code);
-                        }
-                    }
-                    ButtonState::Released => {
-                        if let Some(f) = user_fns.key_released {
-                            f(&app, &mut model, evt.key_code);
-                        }
-                    }
-                }
-            }
-
-            for evt in &received_char_events {
-                if evt.window != entity {
-                    continue;
-                }
-
-                if let Some(f) = user_fns.received_character {
-                    let char = evt.char.chars().into_iter().next().unwrap();
-                    f(&app, &mut model, char);
-                }
-            }
-
-            for evt in &cursor_moved_events {
-                if evt.window != entity {
-                    continue;
-                }
-
-                if let Some(f) = user_fns.mouse_moved {
-                    f(&app, &mut model, evt.position);
-                }
-            }
-
-            for evt in &mouse_button_events {
-                if evt.window != entity {
-                    continue;
-                }
-
-                match evt.state {
-                    ButtonState::Pressed => {
-                        if let Some(f) = user_fns.mouse_pressed {
-                            f(&app, &mut model, evt.button);
-                        }
-                    }
-                    ButtonState::Released => {
-                        if let Some(f) = user_fns.mouse_released {
-                            f(&app, &mut model, evt.button);
-                        }
-                    }
-                }
-            }
-
-            for evt in &cursor_entered_events {
-                if evt.window != entity {
-                    continue;
-                }
-
-                if let Some(f) = user_fns.mouse_entered {
-                    f(&app, &mut model);
-                }
-            }
-
-            for evt in &cursor_left_events {
-                if evt.window != entity {
-                    continue;
-                }
-
-                if let Some(f) = user_fns.mouse_exited {
-                    f(&app, &mut model);
-                }
-            }
-
-            for evt in &mouse_wheel_events {
-                if evt.window != entity {
-                    continue;
-                }
-
-                if let Some(f) = user_fns.mouse_wheel {
-                    f(&app, &mut model, evt.clone());
-                }
-            }
-
-            for evt in &window_moved_events {
-                if evt.window != entity {
-                    continue;
-                }
-
-                if let Some(f) = user_fns.moved {
-                    f(&app, &mut model, evt.position);
-                }
-            }
-
-            for evt in &window_resized_events {
-                if evt.window != entity {
-                    continue;
-                }
-
-                if let Some(f) = user_fns.resized {
-                    f(&app, &mut model, Vec2::new(evt.width, evt.height));
-                }
-            }
-
-            for evt in &touch_events {
-                if evt.window != entity {
-                    continue;
-                }
-
-                if let Some(f) = user_fns.touch {
-                    f(&app, &mut model, evt.clone());
-                }
-            }
-
-            for evt in &file_drop_events {
-                match evt {
-                    FileDragAndDrop::DroppedFile { window, path_buf } => {
-                        if *window != entity {
-                            continue;
-                        }
-
-                        if let Some(f) = user_fns.dropped_file {
-                            f(&app, &mut model, path_buf.clone());
-                        }
-                    }
-                    FileDragAndDrop::HoveredFile { window, path_buf } => {
-                        if *window != entity {
-                            continue;
-                        }
-
-                        if let Some(f) = user_fns.hovered_file {
-                            f(&app, &mut model, path_buf.clone());
-                        }
-                    }
-                    FileDragAndDrop::HoveredFileCanceled { window } => {
-                        if *window != entity {
-                            continue;
-                        }
-
-                        if let Some(f) = user_fns.hovered_file_cancelled {
-                            f(&app, &mut model);
-                        }
-                    }
-                }
-            }
-
-            for evt in &window_focus_events {
-                if evt.window != entity {
-                    continue;
-                }
-
-                if evt.focused {
-                    if let Some(f) = user_fns.focused {
-                        f(&app, &mut model);
-                    }
-                } else {
-                    if let Some(f) = user_fns.unfocused {
-                        f(&app, &mut model);
-                    }
-                }
-            }
-
-            for evt in &window_closed_events {
-                if evt.window != entity {
-                    continue;
-                }
-
-                if let Some(f) = user_fns.closed {
+                if let Some(f) = user_fns.unfocused {
+                    app.current_view = Some(evt.window);
                     f(&app, &mut model);
                 }
             }
         }
     }
-
-    // Don't use `app` after this point.
-    drop(app);
-
-    // Re-insert the model for the next frame.
-    world.insert_resource(ModelHolder(model));
 }
 
-fn last<M>(world: &mut World)
+fn window_closed_events<M>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<WindowClosed>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+{
+    let (mut app, (mut window_closed_events, user_fns, mut model)) =
+        get_app_and_state(world, state);
+
+    for evt in window_closed_events.read() {
+        if let Ok(user_fns) = user_fns.get(evt.window) {
+            if let Some(f) = user_fns.closed {
+                app.current_view = Some(evt.window);
+                f(&app, &mut model);
+            }
+        }
+    }
+}
+
+fn last<M>(world: &mut World, state: &mut SystemState<(EventReader<AppExit>, Res<ExitFnRes<M>>)>)
 where
     M: 'static + Send + Sync,
 {
-    let exit_events = world.resource::<Events<AppExit>>();
-    let reader = exit_events.get_reader();
+    let (mut app, (mut exit_events, exit_fn)) = get_app_and_state(world, state);
 
-    let should_exit = !reader.is_empty(exit_events);
+    let should_exit = !exit_events.is_empty();
     if !should_exit {
         return;
     }
 
-    let exit_fn = world.resource::<ExitFnRes<M>>().0.clone();
-    let model = world
+    let model = app
+        .world_mut()
         .remove_resource::<ModelHolder<M>>()
-        .expect("Model not found")
+        .expect("ModelHolder resource not found")
         .0;
-    let app = App::new(world);
-    if let Some(exit_fn) = exit_fn {
+
+    if let Some(exit_fn) = exit_fn.0 {
         exit_fn(&app, model);
     }
 }

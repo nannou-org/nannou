@@ -3,27 +3,24 @@
 //! Create a new window via `app.new_window()`. This produces a [**Builder**](./struct.Builder.html)
 //! which can be used to build a [**Window**](./struct.Window.html).
 
-use bevy::core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings};
-use bevy::core_pipeline::prepass::NormalPrepass;
-use bevy::core_pipeline::tonemapping::Tonemapping;
 use std::fmt;
 use std::path::PathBuf;
+use bevy::core_pipeline::bloom::BloomSettings;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
-use bevy::render::camera::{RenderTarget, ScalingMode};
+use bevy::render::camera::RenderTarget;
 use bevy::render::view::RenderLayers;
 use bevy::window::{PrimaryWindow, WindowLevel, WindowRef};
 
+use bevy_nannou::prelude::render::NannouCamera;
 use bevy_nannou::prelude::MonitorSelection;
 
 use crate::geom::Point2;
 use crate::glam::Vec2;
 use crate::prelude::WindowResizeConstraints;
 use crate::App;
-
-#[derive(Component)]
-pub struct NannouCamera;
 
 /// A context for building a window.
 pub struct Builder<'a, 'w, M = ()> {
@@ -33,6 +30,7 @@ pub struct Builder<'a, 'w, M = ()> {
     title_was_set: bool,
     user_functions: UserFunctions<M>,
     clear_color: Option<Color>,
+    hdr: bool,
 }
 
 /// For storing all user functions within the window.
@@ -211,6 +209,7 @@ where
             title_was_set: false,
             user_functions: UserFunctions::<M>::default(),
             clear_color: None,
+            hdr: false,
         }
     }
 
@@ -363,6 +362,11 @@ where
         self
     }
 
+    pub fn hdr(mut self, hdr: bool) -> Self {
+        self.hdr = hdr;
+        self
+    }
+
     #[cfg(not(target_os = "unknown"))]
     /// Builds the window, inserts it into the `App`'s display map and returns the unique ID.
     pub fn build(self) -> Entity {
@@ -387,51 +391,43 @@ where
         self.app.world_mut().spawn((
             Camera3dBundle {
                 camera: Camera {
-                    // TODO: configure in builder
-                    hdr: true,
+                    hdr: self.hdr,
                     target: RenderTarget::Window(WindowRef::Entity(entity)),
                     clear_color: self
                         .clear_color
                         .map(|c| ClearColorConfig::Custom(c))
                         .unwrap_or(ClearColorConfig::None),
-                    ..Default::default()
+                    ..default()
                 },
-                transform: Transform::from_xyz(10.0, 100.0, 1500.0).looking_at(Vec3::ZERO, Vec3::Y),
-                // projection: OrthographicProjection {
-                //     ..Default::default()
-                // }
-                // .into(),
-                ..Default::default()
+                transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+                projection: OrthographicProjection::default().into(),
+                ..default()
             },
-            // TODO: unique RL per camera
-            RenderLayers::layer(5),
+            RenderLayers::layer((self.app.window_count() * 2) as u8),
             NannouCamera,
         ));
 
-        // TODO: set dynamically
-        // self.app.world_mut().spawn((
-        //     Camera3dBundle {
-        //         camera: Camera {
-        //             // TODO: configure in builder
-        //             hdr: true,
-        //             target: RenderTarget::Window(WindowRef::Entity(entity)),
-        //             clear_color: ClearColorConfig::None,
-        //             order: 2,
-        //             ..Default::default()
-        //         },
-        //         tonemapping: Tonemapping::TonyMcMapface, // 2. Using a tonemapper that desaturates to white is recommended
-        //         transform: Transform::from_xyz(0.0, 0.0, 10.0)
-        //             .looking_at(Vec3::ZERO, Vec3::Y),
-        //         projection: OrthographicProjection {
-        //             ..Default::default()
-        //         }
-        //             .into(),
-        //         ..Default::default()
-        //     },
-        //
-        //     BloomSettings::OLD_SCHOOL,
-        //     NannouCamera,
-        // ));
+        self.app.world_mut().spawn((
+            Camera3dBundle {
+                camera: Camera {
+                    hdr: self.hdr,
+                    target: RenderTarget::Window(WindowRef::Entity(entity)),
+                    clear_color: ClearColorConfig::None, // We render on top of the previous camera
+                    order: 2,
+                    ..default()
+                },
+                tonemapping: Tonemapping::TonyMcMapface,
+                transform: Transform::from_xyz(0.0, 0.0, 10.0)
+                    .looking_at(Vec3::ZERO, Vec3::Y),
+                projection: OrthographicProjection::default().into(),
+                ..default()
+            },
+            BloomSettings::OLD_SCHOOL,
+            // The emissive layer is N*2+1, this helps to ensure that bloom effect is only
+            // applied to meshes that are rendered on the emissive layer.
+            RenderLayers::layer((self.app.window_count() * 2 + 1) as u8),
+            NannouCamera,
+        ));
 
         entity
     }
@@ -447,6 +443,7 @@ where
             title_was_set,
             user_functions,
             clear_color,
+            hdr,
         } = self;
         let window = map(window);
         Builder {
@@ -456,6 +453,7 @@ where
             title_was_set,
             user_functions,
             clear_color,
+            hdr,
         }
     }
 
@@ -589,6 +587,7 @@ impl<M> fmt::Debug for View<M> {
             View::WithModel(ref v) => format!("WithModel({:?})", v),
             View::Sketch(_) => "Sketch".to_string(),
         };
+
         write!(f, "View::{}", variant)
     }
 }
