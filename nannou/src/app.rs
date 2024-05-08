@@ -37,7 +37,7 @@ use bevy_nannou::NannouPlugin;
 
 use crate::prelude::bevy_ecs::system::lifetimeless::Read;
 use crate::prelude::bevy_ecs::system::SystemState;
-use crate::prelude::bevy_reflect::{ReflectMut, ReflectOwned, ReflectRef, TypeInfo};
+use crate::prelude::bevy_reflect::{ApplyError, ReflectMut, ReflectOwned, ReflectRef, TypeInfo};
 use crate::prelude::render::{NannouMaterial, NannouMesh, NannouPersistentMesh};
 use crate::window::WindowUserFunctions;
 use crate::{geom, window};
@@ -95,7 +95,7 @@ pub struct SketchBuilder {
 #[derive(Debug, Clone)]
 enum DefaultWindowSize {
     /// Default window size in logical coordinates.
-    Logical([f32; 2]),
+    Logical([u32; 2]),
     /// Fullscreen on whatever the primary monitor is at the time of window creation.
     Fullscreen,
 }
@@ -257,7 +257,7 @@ where
     /// If a window is created and its size is not specified, this size will be used.
     pub fn size(mut self, width: u32, height: u32) -> Self {
         self.config.default_window_size =
-            Some(DefaultWindowSize::Logical([width as f32, height as f32]));
+            Some(DefaultWindowSize::Logical([width, height]));
         self
     }
 
@@ -435,6 +435,10 @@ where
 
     fn apply(&mut self, value: &dyn Reflect) {
         self.0.apply(value)
+    }
+
+    fn try_apply(&mut self, value: &dyn Reflect) -> Result<(), ApplyError> {
+        self.0.try_apply(value)
     }
 
     fn set(&mut self, value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {

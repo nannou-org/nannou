@@ -193,7 +193,7 @@ impl State {
         self.last_draw_context = None;
         self.background_color = None;
         self.drawing.clear();
-        // self.materials.clear();
+        self.materials.clear();
         self.draw_commands.clear();
         self.intermediary_state.write().unwrap().reset();
     }
@@ -253,9 +253,10 @@ where
     /// Resets all state within the `Draw` instance.
     pub fn reset(&mut self) {
         self.state.write().unwrap().reset();
+        self.insert_default_material();
     }
 
-    fn insert_default_material(&self) {
+    fn insert_default_material(&mut self) {
         let mut state = self.state.write().unwrap();
         let material = M::default();
         let material_id = UntypedAssetId::Uuid {
@@ -263,6 +264,7 @@ where
             uuid: Uuid::new_v4(),
         };
         state.materials.insert(material_id, Box::new(material));
+        self.material = material_id;
     }
 
     // Context changes.

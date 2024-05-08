@@ -461,9 +461,9 @@ where
     ///
     /// This describes to the "inner" part of the window, not including desktop decorations like the
     /// title bar.
-    pub fn size(self, width: f32, height: f32) -> Self {
+    pub fn size(self, width: u32, height: u32) -> Self {
         self.map_window(|mut w| {
-            w.resolution.set(width, height);
+            w.resolution.set(width as f32, height as f32);
             w
         })
     }
