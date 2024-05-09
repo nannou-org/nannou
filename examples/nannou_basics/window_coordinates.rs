@@ -4,7 +4,7 @@ fn main() {
     nannou::sketch(view).run()
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     let draw = app.draw();
     let window = app.main_window();
     let win = window.rect();
@@ -115,10 +115,10 @@ fn view(app: &App, frame: Frame) {
             .color(WHITE);
     }
 
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
-fn draw_grid(draw: &Draw, win: &Rect, step: f32, weight: f32) {
+fn draw_grid(draw: &DrawHolder, win: &Rect, step: f32, weight: f32) {
     let step_by = || (0..).map(|i| i as f32 * step);
     let r_iter = step_by().take_while(|&f| f < win.right());
     let l_iter = step_by().map(|f| -f).take_while(|&f| f > win.left());

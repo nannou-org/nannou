@@ -159,7 +159,7 @@ fn audio(audio: &mut Audio, output: &mut Buffer) {
 
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     // Pause or unpause the audio when Space is pressed.
-    if let Key::Space = key {
+    if let KeyCode::Space = key {
         if model.stream.is_playing() {
             model.stream.pause().unwrap();
         } else {
@@ -179,8 +179,8 @@ fn mouse_moved(_app: &App, model: &mut Model, p: Point2) {
         .ok();
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(rgb(0.1, 0.12, 0.13));
+fn view(app: &App, model: &Model) {
+    draw.background().color(rgb(0.1, 0.12, 0.13));
     let draw = app.draw();
 
     // Listenable area.
@@ -199,7 +199,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let text = format!("Noise Source:\n[{:.2}, {:.2}, {:.2}]", x, y, z);
     draw.text(&text).xy(app.mouse.position() + vec2(0.0, 20.0));
 
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 // Simple function for determining a gain based on the distance from the listener.

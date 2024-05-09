@@ -25,7 +25,7 @@ impl Repeller {
         }
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         draw.ellipse()
             .xy(self.position)
             .radius(24.0)
@@ -85,7 +85,7 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         draw.ellipse()
             .xy(self.position)
             .radius(6.0)
@@ -143,7 +143,7 @@ impl ParticleSystem {
         }
     }
 
-    fn draw(&self, draw: &Draw) {
+    fn draw(&self, draw: &DrawHolder) {
         for p in self.particles.iter() {
             p.display(&draw);
         }
@@ -181,6 +181,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
     m.repeller.display(&draw);
     m.ps.draw(&draw);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

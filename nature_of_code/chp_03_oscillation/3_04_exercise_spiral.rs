@@ -22,14 +22,14 @@ fn model(app: &App) -> Model {
     Model { r, theta }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     // Increment the angle
     model.theta += 0.01;
     // Increment the radius
     model.r += 0.05;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
 
@@ -47,6 +47,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .w_h(16.0, 16.0)
         .rgba(0.0, 0.0, 0.0, 1.0);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

@@ -12,6 +12,7 @@ use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::render::view::RenderLayers;
+use bevy::render::view::screenshot::ScreenshotManager;
 use bevy::window::{Cursor, CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef};
 
 use bevy_nannou::prelude::render::NannouCamera;
@@ -887,5 +888,17 @@ impl <'a, 'w> Window<'a, 'w> {
         let size = self.size_points();
         geom::Rect::from_x_y_w_h(0.0, 0.0, size.x, size.y)
     }
+
+    /// Saves a screenshot of the window to the given path.
+    pub fn save_screenshot<P: AsRef<Path>>(&mut self, path: P) {
+        let mut screenshot_manager = self
+            .app.world_mut()
+            .get_resource_mut::<ScreenshotManager>()
+            .expect("ScreenshotManager resource not found");
+        screenshot_manager
+            .save_screenshot_to_disk(self.entity, path)
+            .expect("Failed to save screenshot");
+    }
+
 }
 

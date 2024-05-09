@@ -48,7 +48,7 @@ fn event_c(_app: &App, _model: &mut Model, event: WindowEvent) {
     println!("window c: {:?}", event);
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     match frame.window_id() {
         id if id == model.a => {
@@ -66,5 +66,5 @@ fn view(app: &App, model: &Model, frame: Frame) {
         _ => (),
     }
 
-    draw.to_frame(app, &frame).unwrap();
+
 }

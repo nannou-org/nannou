@@ -59,7 +59,7 @@ impl Ca {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &DrawHolder, rect: &Rect) {
         for i in 0..self.cells.len() {
             let mut fill = 1.0;
             if self.cells[i] == 1 {
@@ -135,6 +135,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
 
     m.ca.display(&draw, &app.window_rect());
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

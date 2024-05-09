@@ -21,11 +21,11 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
+fn view(app: &App, model: &Model) {
+    draw.background().color(BLACK);
 
     let draw = app.draw();
     draw.texture(&model.texture);
 
-    draw.to_frame(app, &frame).unwrap();
+
 }

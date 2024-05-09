@@ -4,7 +4,7 @@ fn main() {
     nannou::sketch(view).run()
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // Begin drawing
     let win = app.window_rect();
     let t = app.time;
@@ -49,6 +49,6 @@ fn view(app: &App, frame: Frame) {
         .rotate(t * 0.2)
         .points_colored(points_colored);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

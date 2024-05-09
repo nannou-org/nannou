@@ -87,6 +87,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
             .rgba(1.0, 1.0, 1.0, 0.25);
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

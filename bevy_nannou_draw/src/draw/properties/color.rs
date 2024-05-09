@@ -30,12 +30,12 @@ pub trait SetColor: Sized {
 
     /// Specify the color via red, green, blue and alpha channels.
     fn rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
-        self.color(Color::rgba(r, g, b, a))
+        self.color(Color::srgba(r, g, b, a))
     }
 
     /// Specify the color via red, green, blue and alpha channels as bytes
     fn rgba8(self, r: u8, g: u8, b: u8, a: u8) -> Self {
-        self.color(Color::rgba_u8(r, g, b, a))
+        self.color(Color::srgba_u8(r, g, b, a))
     }
 
     /// Specify the color via hue, saturation and luminance.

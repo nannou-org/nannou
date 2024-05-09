@@ -26,7 +26,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let win = app.window_rect();
     model.vertices.clear();
 
@@ -37,7 +37,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -47,6 +47,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .points(model.vertices.clone())
         .color(BLACK);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

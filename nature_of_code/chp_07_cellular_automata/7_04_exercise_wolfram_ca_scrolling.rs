@@ -82,7 +82,7 @@ impl Ca {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &DrawHolder, rect: &Rect) {
         let offset = self.generation % self.rows as i32;
         for col in 0..self.columns {
             for row in 0..self.rows {
@@ -183,6 +183,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
 
     m.ca.display(&draw, &app.window_rect());
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

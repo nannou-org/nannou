@@ -7,40 +7,39 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
+use std::{self};
 use std::any::Any;
 use std::cell::RefCell;
-use std::path::Path;
 use std::rc::Rc;
-use std::{self};
 
 use bevy::app::AppExit;
 use bevy::core::FrameCount;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
-use bevy::ecs::system::lifetimeless::{SQuery, SRes, SResMut};
 use bevy::ecs::system::SystemParam;
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
+use bevy::input::ButtonState;
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::{MouseButtonInput, MouseWheel};
-use bevy::input::ButtonState;
 use bevy::pbr::ExtendedMaterial;
 use bevy::prelude::*;
 use bevy::reflect::{DynamicTypePath, GetTypeRegistration};
-use bevy::render::view::screenshot::ScreenshotManager;
-use bevy::utils::tracing::instrument::WithSubscriber;
 use bevy::window::{PrimaryWindow, WindowClosed, WindowFocused, WindowResized};
-use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+#[cfg(feature = "egui")]
+use bevy_egui::EguiContext;
+#[cfg(feature = "egui")]
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
+#[cfg(feature = "egui")]
+use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use find_folder;
 
-use bevy_nannou::prelude::{draw, Draw};
 use bevy_nannou::NannouPlugin;
+use bevy_nannou::prelude::{draw, DrawHolder};
 
-use crate::prelude::bevy_ecs::system::lifetimeless::Read;
+use crate::{geom, window};
 use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::bevy_reflect::{ApplyError, ReflectMut, ReflectOwned, ReflectRef, TypeInfo};
 use crate::prelude::render::{NannouMaterial, NannouMesh, NannouPersistentMesh};
 use crate::window::WindowUserFunctions;
-use crate::{geom, window};
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -173,6 +172,8 @@ where
                 primary_window: None,
                 ..default()
             }),
+            #[cfg(feature = "egui")]
+            bevy_egui::EguiPlugin,
             NannouPlugin,
         ));
 
@@ -256,8 +257,7 @@ where
     ///
     /// If a window is created and its size is not specified, this size will be used.
     pub fn size(mut self, width: u32, height: u32) -> Self {
-        self.config.default_window_size =
-            Some(DefaultWindowSize::Logical([width, height]));
+        self.config.default_window_size = Some(DefaultWindowSize::Logical([width, height]));
         self
     }
 
@@ -318,10 +318,12 @@ impl<M> Builder<M>
 where
     M: Reflect + GetTypeRegistration + 'static,
 {
+    #[cfg(feature = "egui")]
     pub fn model_ui(mut self) -> Self {
-        self.app.register_type::<ModelHolder<M>>();
-        // .add_plugins(DefaultInspectorConfigPlugin)
-        // .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
+        self.app
+            .register_type::<ModelHolder<M>>()
+            .add_plugins(DefaultInspectorConfigPlugin)
+            .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
         self
     }
 }
@@ -472,6 +474,16 @@ impl<'w> App<'w> {
         world.spawn((NannouPersistentMesh,)).id()
     }
 
+    #[cfg(feature = "egui")]
+    pub fn egui_for_window(&self, window: Entity) -> Mut<EguiContext> {
+        self.world_mut().get_mut::<EguiContext>(window).expect("No egui context")
+    }
+
+    #[cfg(feature = "egui")]
+    pub fn egui(&self) -> Mut<EguiContext> {
+        self.egui_for_window(self.window_id())
+    }
+
     pub fn mouse(&self) -> Vec2 {
         let window = self.window_id();
         let window = self
@@ -481,6 +493,11 @@ impl<'w> App<'w> {
             .expect("Entity is not a window");
         let screen_position = window.cursor_position().unwrap_or(Vec2::ZERO);
         screen_position - geom::pt2(window.width() / 2.0, window.height() / 2.0)
+    }
+
+    pub fn keys(&self) -> &ButtonInput<KeyCode> {
+        let mut keyboard_input = self.world_mut().resource::<ButtonInput<KeyCode>>();
+        keyboard_input
     }
 
     pub fn time(&self) -> Time {
@@ -542,7 +559,8 @@ impl<'w> App<'w> {
 
     /// A reference to the window with the given `Id`.
     pub fn window<'a>(&'a self, id: Entity) -> window::Window<'a, 'w>
-        where 'a: 'w
+    where
+        'a: 'w,
     {
         window::Window::new(&self, id)
     }
@@ -594,24 +612,14 @@ impl<'w> App<'w> {
     /// A reference to the window currently in focus.
     ///
     /// **Panics** if their are no windows open in the **App**.
-    pub fn main_window(&self) -> Entity {
+    pub fn main_window<'a>(&'a self) -> crate::window::Window<'a, 'w> {
         let mut window_q = self
             .world_mut()
             .query_filtered::<Entity, With<PrimaryWindow>>();
         let main_window = window_q
             .get_single(self.world())
             .expect("No windows are open in the App");
-        main_window
-    }
-
-    fn save_screenshot<P: AsRef<Path>>(&mut self, window: Entity, path: P) {
-        let mut screenshot_manager = self
-            .world_mut()
-            .get_resource_mut::<ScreenshotManager>()
-            .expect("ScreenshotManager resource not found");
-        screenshot_manager
-            .save_screenshot_to_disk(window, path)
-            .expect("Failed to save screenshot");
+        window::Window::new(self, main_window)
     }
 
     /// Return whether or not the `App` is currently set to exit when the `Escape` key is pressed.
@@ -650,30 +658,36 @@ impl<'w> App<'w> {
         config.fullscreen_on_shortcut = b;
     }
 
-    /// Produce the [App]'s [Draw] API for drawing geometry and text with colors and textures.
+    /// Produce the [App]'s [DrawHolder] API for drawing geometry and text with colors and textures.
     pub fn draw(&self) -> draw::Draw {
-        let mut draw = self.world_mut().entity(self.window_id()).get::<Draw>();
+        let mut draw = self
+            .world_mut()
+            .entity(self.window_id())
+            .get::<DrawHolder>();
 
         if draw.is_none() {
             self.world_mut()
                 .entity_mut(self.window_id())
-                .insert(Draw(draw::Draw::new(self.window_id())));
+                .insert(DrawHolder(draw::Draw::new(self.window_id())));
 
-            draw = self.world_mut().entity(self.window_id()).get::<Draw>();
+            draw = self
+                .world_mut()
+                .entity(self.window_id())
+                .get::<DrawHolder>();
         }
 
         draw.unwrap().0.clone()
     }
 
     pub fn draw_for_window(&self, window: Entity) -> draw::Draw {
-        let mut draw = self.world_mut().entity(window).get::<Draw>();
+        let mut draw = self.world_mut().entity(window).get::<DrawHolder>();
 
         if draw.is_none() {
             self.world_mut()
                 .entity_mut(window)
-                .insert(Draw(draw::Draw::new(window)));
+                .insert(DrawHolder(draw::Draw::new(window)));
 
-            draw = self.world_mut().entity(window).get::<Draw>();
+            draw = self.world_mut().entity(window).get::<DrawHolder>();
         }
 
         draw.unwrap().0.clone()
@@ -681,9 +695,9 @@ impl<'w> App<'w> {
 
     /// The number of times the focused window's **view** function has been called since the start
     /// of the program.
-    pub fn elapsed_frames(&self) -> u32 {
+    pub fn elapsed_frames(&self) -> u64 {
         let frame_count = self.world().resource::<FrameCount>();
-        frame_count.0
+        frame_count.0 as u64
     }
 
     /// The number of frames that can currently be displayed a second

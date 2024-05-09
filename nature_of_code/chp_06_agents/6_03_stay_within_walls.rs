@@ -125,11 +125,11 @@ fn view(app: &App, m: &Model, frame: Frame) {
 
     display(&m.vehicle, &draw);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
-fn display(vehicle: &Vehicle, draw: &Draw) {
+fn display(vehicle: &Vehicle, draw: &DrawHolder) {
     let Vehicle {
         position,
         velocity,

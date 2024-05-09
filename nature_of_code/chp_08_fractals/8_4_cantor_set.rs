@@ -18,7 +18,7 @@ fn model(app: &App) -> Model {
     Model
 }
 
-fn view(app: &App, _model: &Model, frame: Frame) {
+fn view(app: &App, _model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -26,12 +26,12 @@ fn view(app: &App, _model: &Model, frame: Frame) {
     let win = app.window_rect();
     cantor(&draw, 0.0, win.top(), 730.0);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 // Recursive function
-fn cantor(draw: &Draw, x: f32, mut y: f32, len: f32) {
+fn cantor(draw: &DrawHolder, x: f32, mut y: f32, len: f32) {
     let h = 30.0;
 
     // recursive exit condition

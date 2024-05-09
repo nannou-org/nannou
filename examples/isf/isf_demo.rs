@@ -74,8 +74,8 @@ fn update(app: &App, model: &mut Model, update: Update) {
     model.isf_time.time_delta = update.since_last.secs() as _;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
+fn view(app: &App, model: &Model) {
+    draw.background().color(BLACK);
 
     // Encode a command to draw the render pipeline to the frame's texture.
     model.isf_pipeline.encode_to_frame(&frame, model.isf_time);
@@ -108,5 +108,5 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .align_text_top()
         .left_justify()
         .color(fs_color);
-    draw.to_frame(app, &frame).unwrap();
+
 }

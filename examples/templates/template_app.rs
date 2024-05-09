@@ -15,9 +15,9 @@ fn model(app: &App) -> Model {
 
 fn update(_app: &App, _model: &mut Model, _update: Update) {}
 
-fn view(app: &App, _model: &Model, frame: Frame) {
+fn view(app: &App, _model: &Model) {
     let draw = app.draw();
     draw.background().color(PLUM);
     draw.ellipse().color(STEELBLUE);
-    draw.to_frame(app, &frame).unwrap();
+
 }

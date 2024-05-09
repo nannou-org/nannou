@@ -41,7 +41,7 @@ impl Mover {
         self.acceleration *= 0.0;
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 16.0, self.mass * 16.0)
@@ -128,6 +128,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
         mover.display(&draw);
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

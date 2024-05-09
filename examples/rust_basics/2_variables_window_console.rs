@@ -28,5 +28,5 @@ fn model(app: &App) -> Model {
 }
 
 fn view(_app: &App, _model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
+    draw.background().color(DIMGRAY);
 }

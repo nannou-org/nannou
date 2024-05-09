@@ -41,7 +41,7 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         draw.rect().xy(self.position).w_h(self.r, self.r).rgba(
             0.0,
             0.0,
@@ -99,7 +99,7 @@ impl ParticleSystem {
         }
     }
 
-    fn draw(&self, draw: &Draw) {
+    fn draw(&self, draw: &DrawHolder) {
         for p in self.particles.iter() {
             p.display(&draw);
         }
@@ -133,8 +133,8 @@ fn view(app: &App, m: &Model, frame: Frame) {
 
     m.ps.draw(&draw);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {

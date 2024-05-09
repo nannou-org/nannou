@@ -59,5 +59,5 @@ fn event(_app: &App, _model: &mut Model, event: WindowEvent) {
 
 // Put your drawing code, called once per frame, per window.
 fn view(_app: &App, _model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
+    draw.background().color(DIMGRAY);
 }

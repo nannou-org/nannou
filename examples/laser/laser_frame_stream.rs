@@ -139,12 +139,12 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     // Send a new pattern to the laser on keys 1, 2, 3 and 4.
     let new_pattern = match key {
-        Key::Key1 => TestPattern::Rectangle,
-        Key::Key2 => TestPattern::Triangle,
-        Key::Key3 => TestPattern::Crosshair,
-        Key::Key4 => TestPattern::ThreeVerticalLines,
-        Key::Key5 => TestPattern::Circle,
-        Key::Key6 => TestPattern::Spiral,
+        KeyCode::Digit1 => TestPattern::Rectangle,
+        KeyCode::Digit2 => TestPattern::Triangle,
+        KeyCode::Digit3 => TestPattern::Crosshair,
+        KeyCode::Digit4 => TestPattern::ThreeVerticalLines,
+        KeyCode::Digit5 => TestPattern::Circle,
+        KeyCode::Digit6 => TestPattern::Spiral,
         _ => return,
     };
     model
@@ -156,5 +156,5 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
 }
 
 fn view(_app: &App, _model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
+    draw.background().color(DIMGRAY);
 }

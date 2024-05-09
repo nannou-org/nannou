@@ -59,7 +59,7 @@ impl Mover {
         }
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         // Display circle at x position
         draw.ellipse()
             .xy(self.position)
@@ -97,6 +97,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
 
     m.mover.display(&draw);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

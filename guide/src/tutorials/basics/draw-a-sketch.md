@@ -22,7 +22,7 @@ fn main() {
     nannou::sketch(view).run();
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // get canvas to draw on
     let draw = app.draw();
 
@@ -30,7 +30,7 @@ fn view(app: &App, frame: Frame) {
     draw.background().color(BLUE);
 
     // put everything on the frame
-    draw.to_frame(app, &frame).unwrap();
+    
 }
 ```
 
@@ -71,12 +71,12 @@ Within the view() function, what we draw to the Frame will be presented in our w
 # fn main() {
 #    nannou::sketch(view).run();
 # }
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     let draw = app.draw();
 
     draw.background().color(BLUE);
 
-    draw.to_frame(app, &frame).unwrap();
+    
 }
 ```
 
@@ -117,9 +117,9 @@ create a computer graphics frame from it to display in the main window.
 # fn main() {
 #    nannou::sketch(view).run();
 # }
-# fn view(app: &App, frame: Frame) {
+# fn view(app: &App) {
 # let draw = app.draw();
-draw.to_frame(app, &frame).unwrap();
+
 # }
 ```
 

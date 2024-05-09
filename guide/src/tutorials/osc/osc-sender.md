@@ -178,7 +178,7 @@ fn model(_app: &App) -> Model {
     Model { sender }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Use app time to progress through a sine wave
     let sine = app.time.sin();
     let slowersine = (app.time / 2.0).sin();
@@ -206,7 +206,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     // Draw a blue ellipse at the x/y coordinates 0.0, 0.0
     draw.ellipse().color(STEELBLUE).x_y(x, y);
 
-    draw.to_frame(app, &frame).unwrap();
+    
 }
 ```
 

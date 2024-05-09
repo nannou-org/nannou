@@ -82,7 +82,7 @@ fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event:
     model.egui.handle_raw_event(event);
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
 
     draw.background().color(BLACK);
@@ -94,7 +94,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .color(circle.color);
     }
 
-    draw.to_frame(app, &frame).unwrap();
+
 
     model.egui.draw_to_frame(&frame).unwrap();
 }

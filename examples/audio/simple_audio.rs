@@ -62,7 +62,7 @@ fn audio(audio: &mut Audio, buffer: &mut Buffer) {
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     match key {
         // Pause or unpause the audio when Space is pressed.
-        Key::Space => {
+        KeyCode::Space => {
             if model.stream.is_playing() {
                 model.stream.pause().unwrap();
             } else {
@@ -70,7 +70,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
             }
         }
         // Raise the frequency when the up key is pressed.
-        Key::Up => {
+        KeyCode::Up => {
             model
                 .stream
                 .send(|audio| {
@@ -79,7 +79,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
                 .unwrap();
         }
         // Lower the frequency when the down key is pressed.
-        Key::Down => {
+        KeyCode::Down => {
             model
                 .stream
                 .send(|audio| {
@@ -92,5 +92,5 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
 }
 
 fn view(_app: &App, _model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
+    draw.background().color(DIMGRAY);
 }

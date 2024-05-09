@@ -9,7 +9,7 @@ fn view(app: &App) {
     let w = app.window_rect();
     let lum = map_range(app.mouse().x, w.left(), w.right(), 0.0, 1.0);
     let clear = gray(lum);
-    // frame.clear(clear);
+    // draw.background().color(clear);
 
     // Put all the provided blend modes in a list.
     let blends = [

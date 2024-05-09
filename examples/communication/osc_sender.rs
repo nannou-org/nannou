@@ -62,7 +62,7 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
     }
 }
 
-fn view(app: &App, _model: &Model, frame: Frame) {
+fn view(app: &App, _model: &Model) {
     let draw = app.draw();
     draw.background().color(DARKRED);
 
@@ -77,5 +77,5 @@ fn view(app: &App, _model: &Model, frame: Frame) {
         .line_spacing(10.0)
         .wh(rect.wh());
 
-    draw.to_frame(app, &frame).unwrap();
+
 }

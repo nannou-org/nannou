@@ -39,11 +39,11 @@ fn main() {
     nannou::sketch(view).run()
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     let draw = app.draw();
     draw.background().color(PLUM);
     draw.ellipse().color(STEELBLUE);
-    draw.to_frame(app, &frame).unwrap();
+    
 }
 ```
 
@@ -78,11 +78,11 @@ fn model(app: &App) -> Model {
 
 fn update(_app: &App, _model: &mut Model, _update: Update) {}
 
-fn view(app: &App, _model: &Model, frame: Frame) {
+fn view(app: &App, _model: &Model) {
     let draw = app.draw();
     draw.background().color(PLUM);
     draw.ellipse().color(STEELBLUE);
-    draw.to_frame(app, &frame).unwrap();
+    
 }
 ```
 
@@ -161,7 +161,7 @@ flexibility, you can turn it into an app by following these steps:
    # #![allow(dead_code, unused_variables)]
    # use nannou::prelude::*;
    # fn main() {}
-   fn view(app: &App, frame: Frame) {
+   fn view(app: &App) {
    # }
    ```
 
@@ -172,7 +172,7 @@ flexibility, you can turn it into an app by following these steps:
    # use nannou::prelude::*;
    # fn main() {}
    # struct Model {}
-   fn view(app: &App, _model: &Model, frame: Frame) {
+   fn view(app: &App, _model: &Model) {
    # }
    ```
 

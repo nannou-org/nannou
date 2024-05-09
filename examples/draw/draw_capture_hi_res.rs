@@ -86,7 +86,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     // First, reset the `draw` state.
     let draw = &model.draw;
     draw.reset();

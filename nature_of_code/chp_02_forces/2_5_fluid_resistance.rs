@@ -61,7 +61,7 @@ impl Liquid {
         drag_force
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         draw.rect().xy(self.rect.xy()).wh(self.rect.wh()).gray(0.1);
     }
 }
@@ -108,7 +108,7 @@ impl Mover {
     }
 
     // Draw Mover
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 16.0, self.mass * 16.0)
@@ -186,6 +186,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
         mover.display(&draw);
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

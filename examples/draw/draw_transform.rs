@@ -11,8 +11,8 @@ fn main() {
     nannou::sketch(view).run()
 }
 
-fn view(app: &App, frame: Frame) {
-    frame.clear(BLACK);
+fn view(app: &App) {
+    draw.background().color(BLACK);
 
     // Begin drawing
     let draw = app.draw();
@@ -54,6 +54,6 @@ fn view(app: &App, frame: Frame) {
             .font_size(96);
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

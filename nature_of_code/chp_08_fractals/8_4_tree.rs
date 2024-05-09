@@ -22,24 +22,24 @@ fn model(app: &App) -> Model {
     Model { theta: 0.0 }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let win = app.window_rect();
     model.theta = map_range(app.mouse.x, win.left(), win.right(), 0.0, PI / 2.0);
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(WHITE);
+fn view(app: &App, model: &Model) {
+    draw.background().color(WHITE);
 
     let win = app.window_rect();
     let draw = app.draw().x_y(0.0, win.bottom());
 
     branch(&draw, 60.0, model.theta);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
-fn branch(draw: &Draw, len: f32, theta: f32) {
+fn branch(draw: &DrawHolder, len: f32, theta: f32) {
     let mut length = len;
     // Each branch will be 2/3rds the size of the previous one
     let sw = map_range(length, 2.0, 120.0, 1.0, 10.0);

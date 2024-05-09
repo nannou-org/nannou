@@ -39,7 +39,7 @@ impl Oscillator {
         self.angle += self.velocity;
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         let x = self.angle.x.sin() * self.amplitude.x;
         let y = self.angle.y.sin() * self.amplitude.y;
 
@@ -85,6 +85,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
         osc.display(&draw);
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

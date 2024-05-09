@@ -65,7 +65,7 @@ impl Pendulum {
         );
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         // Draw the arm
         draw.line()
             .start(self.origin)
@@ -106,6 +106,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
 
     m.pendulum.display(&draw);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

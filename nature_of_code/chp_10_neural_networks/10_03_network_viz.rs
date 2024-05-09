@@ -31,7 +31,7 @@ impl Neuron {
     }
 
     // Draw a neuron as a circle
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         draw.ellipse()
             .xy(self.position)
             .radius(8.0)
@@ -62,7 +62,7 @@ impl Connection {
     }
 
     // Draw as a line
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         draw.line()
             .start(self.a.position)
             .end(self.b.position)
@@ -94,7 +94,7 @@ impl Network {
     }
 
     // We can draw the network
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         for n in &self.neurons {
             n.display(&draw);
         }
@@ -132,13 +132,13 @@ fn model(app: &App) -> Model {
     Model { network }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     model.network.display(&draw);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

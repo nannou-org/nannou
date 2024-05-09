@@ -21,8 +21,8 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
+fn view(app: &App, model: &Model) {
+    draw.background().color(BLACK);
     let win = app.main_window();
     let win_r = win.rect();
 
@@ -58,5 +58,5 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .left_justify()
         .align_text_bottom();
 
-    draw.to_frame(app, &frame).unwrap();
+
 }

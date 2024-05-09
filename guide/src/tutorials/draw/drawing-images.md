@@ -129,13 +129,13 @@ Finally, in our `view` function, we can draw the texture stored in our model wit
 #   let texture = wgpu::Texture::from_path(app, img_path).unwrap();
 #   Model { texture }
 # }
-fn view(app: &App, model: &Model, frame: Frame) {
-  frame.clear(BLACK);
+fn view(app: &App, model: &Model) {
+  draw.background().color(BLACK);
 
   let draw = app.draw();
   draw.texture(&model.texture);
 
-  draw.to_frame(app, &frame).unwrap();
+  
 }
 ```
 ![A texture](./images/drawing-images-0.png)
@@ -163,8 +163,8 @@ A texture can be drawn at any location and any size desired within the frame. Le
 #   let texture = wgpu::Texture::from_path(app, img_path).unwrap();
 #   Model { texture }
 # }
-fn view(app: &App, model: &Model, frame: Frame) {
-  frame.clear(BLACK);
+fn view(app: &App, model: &Model) {
+  draw.background().color(BLACK);
 
   let win = app.window_rect();
   let r = Rect::from_w_h(100.0, 100.0).top_left_of(win);
@@ -174,7 +174,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     .xy(r.xy())
     .wh(r.wh());
 
-  draw.to_frame(app, &frame).unwrap();
+  
 }
 ```
 ![A translated and scaled texture](./images/drawing-images-1.png)

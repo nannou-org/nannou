@@ -39,7 +39,7 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         draw.ellipse()
             .xy(self.position)
             .w_h(12.0, 12.0)
@@ -102,8 +102,8 @@ fn view(app: &App, m: &Model, frame: Frame) {
         m.p.display(&draw);
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {

@@ -32,7 +32,7 @@ pub mod instanced;
 pub mod mesh;
 pub mod primitive;
 pub mod properties;
-pub mod render;
+pub(crate) mod render;
 pub mod theme;
 
 /// A simple API for drawing 2D and 3D graphics.

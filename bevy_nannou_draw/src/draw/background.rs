@@ -48,7 +48,7 @@ where
 
     /// Specify the color via red, green, blue and alpha channels.
     pub fn rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
-        self.color(Color::rgba(r, g, b, a))
+        self.color(Color::srgba(r, g, b, a))
     }
 
     /// Specify the color via hue, saturation and luminance.

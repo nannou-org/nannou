@@ -4,7 +4,7 @@ fn main() {
     nannou::sketch(view).run()
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // Begin drawing
     let draw = app.draw();
 
@@ -44,6 +44,6 @@ fn view(app: &App, frame: Frame) {
         .join_round()
         .points_colored(vertices);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

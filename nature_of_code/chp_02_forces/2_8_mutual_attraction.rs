@@ -55,7 +55,7 @@ impl Mover {
         force * strength // Get force vector --> magnitude * direction
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 24.0, self.mass * 24.0)
@@ -108,6 +108,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
         mover.display(&draw);
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

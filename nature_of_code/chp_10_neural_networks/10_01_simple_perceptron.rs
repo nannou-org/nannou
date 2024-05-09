@@ -170,6 +170,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
         }
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

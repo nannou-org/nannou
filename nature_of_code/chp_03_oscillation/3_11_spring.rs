@@ -66,7 +66,7 @@ impl Spring {
         }
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         draw.rect()
             .xy(self.anchor)
             .w_h(10.0, 10.0)
@@ -75,7 +75,7 @@ impl Spring {
             .stroke_weight(2.0);
     }
 
-    fn display_line(&self, draw: &Draw, bob: &Bob) {
+    fn display_line(&self, draw: &DrawHolder, bob: &Bob) {
         draw.line()
             .start(bob.position)
             .end(self.anchor)
@@ -121,7 +121,7 @@ impl Bob {
         self.acceleration += f;
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         let c = if self.dragging { GREY } else { DARKGREY };
         draw.ellipse()
             .xy(self.position)
@@ -203,8 +203,8 @@ fn view(app: &App, m: &Model, frame: Frame) {
     m.bob.display(&draw);
     m.spring.display(&draw);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {

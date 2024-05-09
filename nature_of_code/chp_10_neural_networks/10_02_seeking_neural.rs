@@ -123,7 +123,7 @@ impl Vehicle {
         steer
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         // Draw a triangle rotated in the direction of velocity
         // This calculation is wrong
         let theta = (self.velocity.angle() + PI / 2.0) * -1.0;
@@ -237,8 +237,8 @@ fn view(app: &App, m: &Model, frame: Frame) {
     }
     m.v.display(&draw);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {

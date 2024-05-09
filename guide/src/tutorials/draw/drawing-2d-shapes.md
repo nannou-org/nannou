@@ -24,7 +24,7 @@ fn main() {
     nannou::sketch(view).run();
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // Prepare to draw.
     let draw = app.draw();
 
@@ -35,7 +35,7 @@ fn view(app: &App, frame: Frame) {
     draw.ellipse().color(STEELBLUE);
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+    
 }
 ```
 

@@ -451,7 +451,7 @@ changelog entry
   ```
   the `view` function signature now must look like:
   ```rust,ignore
-  fn view(app: &App, model: &Model, frame: Frame) {}
+  fn view(app: &App, model: &Model) {}
   ```
   This was necessary to enable ergonomic texture capturing.
 - `frame.submit()` can now be used to submit the frame to the GPU before the end

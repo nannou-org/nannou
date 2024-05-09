@@ -232,7 +232,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     // Generate mating pool
     model.population.natural_selection();
     // Create next generation
@@ -243,8 +243,8 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     model.answer = model.population.get_best();
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(WHITE);
+fn view(app: &App, model: &Model) {
+    draw.background().color(WHITE);
 
     let win = app.window_rect();
     let draw = app.draw();
@@ -316,8 +316,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .y(-10.0)
         .wh(win.wh());
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 
     if model.population.finished {
         app.set_loop_mode(LoopMode::loop_once());

@@ -58,17 +58,17 @@ fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event:
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
 
-    frame.clear(BLACK);
+    draw.background().color(BLACK);
 
     draw.ellipse()
         .x_y(100.0, 100.0)
         .radius(model.radius)
         .color(model.color);
 
-    draw.to_frame(app, &frame).unwrap();
+
 
     // Do this as the last operation on your frame.
     model.egui.draw_to_frame(&frame).unwrap();

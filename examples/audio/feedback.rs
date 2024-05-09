@@ -91,7 +91,7 @@ fn pass_out(model: &mut OutputModel, buffer: &mut Buffer) {
 
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     match key {
-        Key::Space => {
+        KeyCode::Space => {
             if model.in_stream.is_paused() {
                 model.in_stream.play().unwrap();
                 model.out_stream.play().unwrap();
@@ -105,5 +105,5 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
 }
 
 fn view(_app: &App, _model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
+    draw.background().color(DIMGRAY);
 }

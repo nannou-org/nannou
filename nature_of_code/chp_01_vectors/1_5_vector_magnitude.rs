@@ -9,7 +9,7 @@ fn main() {
     nannou::sketch(view).size(640, 360).run();
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // Begin drawing
     let draw = app.draw();
     let win = app.window_rect();
@@ -27,6 +27,6 @@ fn view(app: &App, frame: Frame) {
 
     draw.line().weight(2.0).color(BLACK).points(center, mouse);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

@@ -21,8 +21,8 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
+fn view(app: &App, model: &Model) {
+    draw.background().color(DIMGRAY);
     let window = app.window(model.window_id).unwrap();
     let win_rect = window.rect();
     let draw = app.draw();
@@ -59,5 +59,5 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .rotate(app.time * 0.25);
 
     // Draw to the frame!
-    draw.to_frame(app, &frame).unwrap();
+
 }

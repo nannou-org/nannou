@@ -22,11 +22,11 @@ fn model(app: &App) -> Model {
     Model { angle, a_velocity }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     model.angle += model.a_velocity;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -45,6 +45,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .rgba(0.68, 0.68, 0.68, 1.0)
         .stroke(BLACK);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

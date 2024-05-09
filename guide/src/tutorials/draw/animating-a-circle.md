@@ -38,7 +38,7 @@ Update the view function of your nannou-app to look like this:
 # }
 # fn event(_app: &App, _model: &mut Model, _event: Event) {
 # }
-fn view(app: &App, _model: &Model, frame: Frame) {
+fn view(app: &App, _model: &Model) {
 	// Prepare to draw.
     let draw = app.draw();
 
@@ -48,7 +48,7 @@ fn view(app: &App, _model: &Model, frame: Frame) {
 	// Draw a blue ellipse with a radius of 10 at the (x,y) coordinates of (0.0, 0.0)
     draw.ellipse().color(STEELBLUE).x_y(0.0,0.0);
 
-    draw.to_frame(app, &frame).unwrap();
+    
 }
 ```
 
@@ -196,7 +196,7 @@ Your updated `view` function should now look something like this:
 # use nannou::prelude::*;
 # struct Model{}
 # fn main() {}
-fn view(app: &App, _model: &Model, frame: Frame) {
+fn view(app: &App, _model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
 
@@ -217,6 +217,6 @@ fn view(app: &App, _model: &Model, frame: Frame) {
     // Draw a blue ellipse at the x/y coordinates 0.0, 0.0
     draw.ellipse().color(STEELBLUE).x_y(x, y);
 
-    draw.to_frame(app, &frame).unwrap();
+    
 }
 ```

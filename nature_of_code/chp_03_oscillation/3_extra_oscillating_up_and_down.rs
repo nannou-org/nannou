@@ -19,11 +19,11 @@ fn model(app: &App) -> Model {
     Model { angle }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     model.angle += 0.02;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -40,6 +40,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .gray(0.4)
         .stroke(BLACK);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

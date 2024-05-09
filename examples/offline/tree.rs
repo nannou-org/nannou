@@ -125,7 +125,7 @@ fn window_event(_app: &App, _model: &mut Model, event: WindowEvent) {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     //try to grow each circle until it hits another one
 
     //recreate the tree
@@ -251,7 +251,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
 
@@ -264,7 +264,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let mut frac_end = (((app.elapsed_frames() + 120) as i32 - LENGTH_FRAME as i32) as f32) / 100.0;
     frac_end = frac_end.max(0.0).min(1.0);
 
-    let c: Rgba = rgba(1.0, 1.0, 1.0, 1.0 - frac_end);
+    let c: Rgba = Color::srgba(1.0, 1.0, 1.0, 1.0 - frac_end);
 
     //draw ALL THE THINGS
     for k in 0..model.things.len() {
@@ -272,7 +272,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         let mut c2: Rgba = model.palette.somecolor_frac(model.things[k].frac).into();
         // make it fade
         c2.alpha = 1.0 - frac_end;
-        let c3 = rgba(0.0, 0.0, 0.0, 1.0 - frac_end);
+        let c3 = Color::srgba(0.0, 0.0, 0.0, 1.0 - frac_end);
 
         //draw in three steps
         draw.ellipse()
@@ -311,7 +311,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 
     //TODO add screenshot
 }

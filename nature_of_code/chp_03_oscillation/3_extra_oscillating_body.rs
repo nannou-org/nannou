@@ -39,7 +39,7 @@ impl Attractor {
     }
 
     // Method to display
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         let c = if self.dragging {
             rgba(0.2, 0.2, 0.2, 1.0)
         } else if self.rollover {
@@ -113,7 +113,7 @@ impl Mover {
         self.acceleration *= 0.0;
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         let heading = (self.velocity.angle() + PI / 2.0) * -1.0;
         draw.ellipse()
             .xy(self.position)
@@ -170,8 +170,8 @@ fn view(app: &App, m: &Model, frame: Frame) {
     m.attractor.display(&draw);
     m.mover.display(&draw);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {

@@ -40,7 +40,7 @@ impl Spring {
         b.apply_force(force);
     }
 
-    fn display(&self, draw: &Draw, a: &Bob, b: &Bob) {
+    fn display(&self, draw: &DrawHolder, a: &Bob, b: &Bob) {
         draw.line()
             .start(a.position)
             .end(b.position)
@@ -86,7 +86,7 @@ impl Bob {
         self.acceleration += f;
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         let c = if self.dragging { GREY } else { DARKGREY };
         draw.ellipse()
             .xy(self.position)
@@ -176,8 +176,8 @@ fn view(app: &App, m: &Model, frame: Frame) {
     m.b2.display(&draw);
     m.b3.display(&draw);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {

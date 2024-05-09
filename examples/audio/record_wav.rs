@@ -65,7 +65,7 @@ fn capture_fn(audio: &mut CaptureModel, buffer: &Buffer) {
 
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     match key {
-        Key::Space => {
+        KeyCode::Space => {
             if model.stream.is_paused() {
                 model.stream.play().unwrap();
             } else if model.stream.is_playing() {
@@ -76,14 +76,14 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
+fn view(app: &App, model: &Model) {
+    draw.background().color(DIMGRAY);
 
     if model.stream.is_playing() && app.elapsed_frames() % 30 < 20 {
         let draw = app.draw();
         draw.ellipse().w_h(100.0, 100.0).color(RED);
 
-        draw.to_frame(app, &frame).unwrap();
+
     }
 }
 

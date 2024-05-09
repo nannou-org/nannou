@@ -34,7 +34,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     // Receive any pending osc packets.
     for (packet, addr) in model.receiver.try_iter() {
         model.received_packets.push((addr, packet));
@@ -48,7 +48,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(DARKBLUE);
 
@@ -65,5 +65,5 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .left_justify()
         .wh(rect.wh());
 
-    draw.to_frame(app, &frame).unwrap();
+
 }

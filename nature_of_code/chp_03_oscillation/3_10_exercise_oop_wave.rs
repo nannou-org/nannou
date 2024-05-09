@@ -59,7 +59,7 @@ impl Wave {
         }
     }
 
-    fn display(&self, draw: &Draw) {
+    fn display(&self, draw: &DrawHolder) {
         // A simple way to draw the wave with an ellipse at each position
         for x in 0..self.y_values.len() {
             draw.ellipse()
@@ -96,6 +96,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
     m.wave0.display(&draw);
     m.wave1.display(&draw);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

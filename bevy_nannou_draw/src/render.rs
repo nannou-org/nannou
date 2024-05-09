@@ -26,7 +26,7 @@ use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::Primitive;
 use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
 use crate::draw::{DrawCommand, DrawContext};
-use crate::{draw, Draw};
+use crate::{draw, DrawHolder};
 
 pub struct NannouRenderPlugin;
 
@@ -169,7 +169,7 @@ fn setup_default_texture(mut commands: Commands, mut images: ResMut<Assets<Image
 pub struct UntypedMaterialId(UntypedAssetId);
 
 fn update_material<M>(
-    draw_q: Query<&Draw>,
+    draw_q: Query<&DrawHolder>,
     mut commands: Commands,
     mut materials: ResMut<Assets<M>>,
     mut materials_q: Query<(Entity, &UntypedMaterialId)>,
@@ -197,7 +197,7 @@ fn update_material<M>(
 
 fn update_draw_mesh(
     mut commands: Commands,
-    draw_q: Query<&Draw>,
+    draw_q: Query<&DrawHolder>,
     mut cameras_q: Query<(&mut Camera, &RenderLayers), With<NannouCamera>>,
     windows: Query<&Window>,
     mut glyph_cache: ResMut<GlyphCache>,
