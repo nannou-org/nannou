@@ -55,7 +55,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let win = app.window_rect();
 
     // create a random set of parameters
@@ -88,7 +88,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(WHITE);
 
@@ -99,12 +99,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .gray(0.2);
     }
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

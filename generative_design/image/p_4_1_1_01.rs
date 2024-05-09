@@ -97,12 +97,12 @@ fn crop_tiles(app: &App, model: &mut Model, win: Rect) {
         for _ in 0..model.tile_count_x {
             if model.random_mode {
                 model.crop_x = random_range(
-                    app.mouse.x - model.tile_width / 2.0,
-                    app.mouse.x + model.tile_width / 2.0,
+                    app.mouse().x - model.tile_width / 2.0,
+                    app.mouse().x + model.tile_width / 2.0,
                 );
                 model.crop_y = random_range(
-                    app.mouse.y - model.tile_height / 2.0,
-                    app.mouse.y + model.tile_height / 2.0,
+                    app.mouse().y - model.tile_height / 2.0,
+                    app.mouse().y + model.tile_height / 2.0,
                 );
             }
             model.crop_x = clamp(
@@ -129,8 +129,8 @@ fn crop_tiles(app: &App, model: &mut Model, win: Rect) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
+fn view(app: &App, model: &Model) {
+    draw.background().color(BLACK);
 
     let draw = app.draw();
     let win = app.window_rect();
@@ -163,7 +163,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
     }
 
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
@@ -181,31 +181,31 @@ fn mouse_moved(app: &App, model: &mut Model, pos: Point2) {
 
     let htw = model.tile_width / 2.0;
     let hth = model.tile_height / 2.0;
-    model.crop_x = clamp(app.mouse.x, win.left() + htw, win.right() - htw);
-    model.crop_y = clamp(app.mouse.y, win.top() - hth, win.bottom() + hth);
+    model.crop_x = clamp(app.mouse().x, win.left() + htw, win.right() - htw);
+    model.crop_y = clamp(app.mouse().y, win.top() - hth, win.bottom() + hth);
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.tile_count_x = 4;
             model.tile_count_y = 4;
             crop_tiles(app, model, app.window_rect());
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.tile_count_x = 10;
             model.tile_count_y = 10;
             crop_tiles(app, model, app.window_rect());
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.tile_count_x = 20;
             model.tile_count_y = 20;
             crop_tiles(app, model, app.window_rect());
         }
-        Key::R => {
+        KeyCode::KeyR => {
             model.random_mode = !model.random_mode;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }

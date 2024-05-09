@@ -91,7 +91,7 @@ fn start_drawing(model: &mut Model) {
     model.speed = 8.0 / 1.75.powf(model.joints as f32 - 1.0) / 2.0.powf(model.speed_relation - 1.0);
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     model.angle += model.speed;
 
     // each frame, create new positions for each joint
@@ -119,7 +119,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(WHITE);
 
@@ -161,51 +161,51 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
-        Key::Up => {
+        KeyCode::Up => {
             model.line_length += 2.0;
             start_drawing(model);
         }
-        Key::Down => {
+        KeyCode::Down => {
             model.line_length -= 2.0;
             start_drawing(model);
         }
-        Key::Left => {
+        KeyCode::ArrowLeft=> {
             if model.joints > 1 {
                 model.joints -= 1;
                 start_drawing(model);
             }
         }
-        Key::Right => {
+        KeyCode::ArrowRight => {
             if model.joints < 10 {
                 model.joints += 1;
                 start_drawing(model);
             }
         }
-        Key::Equals => {
+        KeyCode::Equals => {
             if model.speed_relation < 5.0 {
                 model.speed_relation += 0.5;
                 start_drawing(model);
             }
         }
-        Key::Minus => {
+        KeyCode::Minus => {
             if model.speed_relation > 2.0 {
                 model.speed_relation -= 0.5;
                 start_drawing(model);
             }
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.show_pendulum = !model.show_pendulum;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.show_pendulum_path = !model.show_pendulum_path;
         }
         _other_key => {}

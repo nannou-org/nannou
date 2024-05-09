@@ -82,12 +82,12 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(WHITE);
     let win = app.window_rect();
     let tile_count = clamp(
-        map_range(app.mouse.x, win.left(), win.right(), 120, 1),
+        map_range(app.mouse().x, win.left(), win.right(), 120, 1),
         120,
         1,
     );
@@ -106,7 +106,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let blue = c[2] as f32 / 255.0;
             let alpha = c[3] as f32 / 255.0;
 
-            colors.push(rgba(red, green, blue, alpha));
+            colors.push(Color::srgba(red, green, blue, alpha));
         }
     }
 
@@ -127,54 +127,54 @@ fn view(app: &App, model: &Model, frame: Frame) {
             i += 1;
         }
     }
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     let assets = app.assets_path().unwrap();
     let img_path = assets.join("images").join("generative_examples");
 
     match key {
-        Key::Q => {
+        KeyCode::Q => {
             model.image = image::open(img_path.join("pic1.jpg")).unwrap();
         }
-        Key::W => {
+        KeyCode::W => {
             model.image = image::open(img_path.join("pic2.jpg")).unwrap();
         }
-        Key::E => {
+        KeyCode::E => {
             model.image = image::open(img_path.join("pic3.jpg")).unwrap();
         }
-        Key::R => {
+        KeyCode::KeyR => {
             model.image = image::open(img_path.join("pic4.jpg")).unwrap();
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.sort_mode = None;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.sort_mode = Some(SortMode::Hue);
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.sort_mode = Some(SortMode::Saturation);
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.sort_mode = Some(SortMode::Brightness);
         }
-        Key::Key5 => {
+        KeyCode::Digit5 => {
             model.sort_mode = Some(SortMode::Grayscale);
         }
-        Key::Key6 => {
+        KeyCode::Digit6 => {
             model.sort_mode = Some(SortMode::Red);
         }
-        Key::Key7 => {
+        KeyCode::Digit7 => {
             model.sort_mode = Some(SortMode::Green);
         }
-        Key::Key8 => {
+        KeyCode::Digit8 => {
             model.sort_mode = Some(SortMode::Blue);
         }
-        Key::Key9 => {
+        KeyCode::Digit9 => {
             model.sort_mode = Some(SortMode::Alpha);
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }

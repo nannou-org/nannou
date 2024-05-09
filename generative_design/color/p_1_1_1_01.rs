@@ -29,15 +29,15 @@ fn main() {
     nannou::sketch(view).size(800, 400).run();
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // Begin drawing
     let draw = app.draw();
 
     draw.background().color(BLACK);
     let win_rect = app.window_rect();
 
-    let step_x = (app.mouse.x - win_rect.left()).max(5.0);
-    let step_y = (win_rect.top() - app.mouse.y).max(5.0);
+    let step_x = (app.mouse().x - win_rect.left()).max(5.0);
+    let step_y = (win_rect.top() - app.mouse().y).max(5.0);
 
     let size = vec2(step_x, step_y);
     let r = nannou::geom::Rect::from_wh(size)
@@ -55,7 +55,4 @@ fn view(app: &App, frame: Frame) {
         }
         grid_y += step_y;
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

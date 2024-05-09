@@ -73,8 +73,8 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
+fn view(app: &App, model: &Model) {
+    draw.background().color(BLACK);
 
     let win = app.window_rect();
     let noise = nannou::noise::Fbm::new()
@@ -82,8 +82,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .set_octaves(model.octaves)
         .set_persistence(model.falloff as f64);
 
-    let noise_x_range = map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w() / 10.0);
-    let noise_y_range = map_range(app.mouse.y, win.top(), win.bottom(), 0.0, win.h() / 10.0);
+    let noise_x_range = map_range(app.mouse().x, win.left(), win.right(), 0.0, win.w() / 10.0);
+    let noise_y_range = map_range(app.mouse().y, win.top(), win.bottom(), 0.0, win.h() / 10.0);
 
     let image = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |x, y| {
         let noise_x = map_range(x, 0, win.w() as u32, 0.0, noise_x_range) as f64;
@@ -123,22 +123,22 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.texture(&model.texture);
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
-        Key::Space => {
+        KeyCode::Space => {
             model.noise_random_seed = (random_f32() * 100000.0) as u32;
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.noise_mode = 1;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.noise_mode = 2;
         }
         _otherkey => (),
@@ -147,16 +147,16 @@ fn key_released(app: &App, model: &mut Model, key: Key) {
 
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     match key {
-        Key::Up => {
+        KeyCode::Up => {
             model.falloff += 0.05;
         }
-        Key::Down => {
+        KeyCode::Down => {
             model.falloff -= 0.05;
         }
-        Key::Left => {
+        KeyCode::ArrowLeft=> {
             model.octaves -= 1;
         }
-        Key::Right => {
+        KeyCode::ArrowRight => {
             model.octaves += 1;
         }
         _otherkey => (),

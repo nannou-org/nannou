@@ -138,7 +138,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     let noise = Perlin::new().set_seed(model.noise_seed);
 
     for agent in &mut model.agents {
@@ -151,11 +151,11 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
 
-    if frame.nth() == 0 || app.keys.down.contains(&Key::Delete) {
+    if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
         draw.background().color(WHITE);
     } else {
         draw.rect()
@@ -167,18 +167,18 @@ fn view(app: &App, model: &Model, frame: Frame) {
         agent.display(&draw, model.stroke_width, model.agent_alpha);
     });
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => model.draw_mode = 1,
-        Key::Key2 => model.draw_mode = 2,
-        Key::Space => {
+        KeyCode::Digit1 => model.draw_mode = 1,
+        KeyCode::Digit2 => model.draw_mode = 2,
+        KeyCode::Space => {
             model.noise_seed = (random_f32() * 10000.0).floor() as u32;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }

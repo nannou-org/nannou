@@ -34,7 +34,7 @@ fn main() {
 
 struct Model {
     tile_count: u32,
-    module_color: Rgba,
+    module_color: Srgba,
     max_distance: f32,
 }
 
@@ -56,7 +56,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
 
@@ -69,7 +69,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let pos_x = (win.left() + (tile_w / 2.0)) + tile_w * grid_x as f32;
             let pos_y = (win.top() - (tile_h / 2.0)) - tile_h * grid_y as f32;
 
-            let mut diameter = pt2(app.mouse.x, app.mouse.y).distance(pt2(pos_x, pos_y));
+            let mut diameter = pt2(app.mouse().x, app.mouse().y).distance(pt2(pos_x, pos_y));
             diameter = diameter / model.max_distance * 40.0;
 
             draw.rect()
@@ -82,12 +82,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

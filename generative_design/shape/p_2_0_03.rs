@@ -56,16 +56,16 @@ fn model(app: &App) -> Model {
     Model {
         clicked: false,
         clear_background: false,
-        stroke_color: hsva(0.0, 0.0, 0.0, 0.1),
+        stroke_color:Color::hsva(0.0, 0.0, 0.0, 0.1),
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
     let win = app.window_rect();
-    let circle_resolution = map_range(app.mouse.y, win.top(), win.bottom(), 3, 10);
-    let radius = app.mouse.x - win.left();
+    let circle_resolution = map_range(app.mouse().y, win.top(), win.bottom(), 3, 10);
+    let radius = app.mouse().x - win.left();
     let angle = TAU / circle_resolution as f32;
 
     if app.elapsed_frames() == 1 || model.clear_background {
@@ -87,7 +87,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .points(points);
     }
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
@@ -96,12 +96,12 @@ fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
 fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
     model.clicked = false;
 }
-fn key_pressed(app: &App, model: &mut Model, key: Key) {
+fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Space => {
+        KeyCode::Space => {
             model.clear_background = true;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
@@ -109,16 +109,16 @@ fn key_pressed(app: &App, model: &mut Model, key: Key) {
     }
 }
 fn key_released(_app: &App, model: &mut Model, key: Key) {
-    if key == Key::Space {
+    if key == KeyCode::Space {
         model.clear_background = false;
     }
-    if key == Key::Key1 {
-        model.stroke_color = hsva(0.0, 0.0, 0.0, 0.1);
+    if key == KeyCode::Digit1 {
+        model.stroke_color =Color::hsva(0.0, 0.0, 0.0, 0.1);
     }
-    if key == Key::Key2 {
-        model.stroke_color = hsva(0.53, 1.0, 0.64, 0.1);
+    if key == KeyCode::Digit2 {
+        model.stroke_color =Color::hsva(0.53, 1.0, 0.64, 0.1);
     }
-    if key == Key::Key3 {
-        model.stroke_color = hsva(0.147, 1.0, 0.71, 0.1);
+    if key == KeyCode::Digit3 {
+        model.stroke_color =Color::hsva(0.147, 1.0, 0.71, 0.1);
     }
 }

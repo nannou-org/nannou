@@ -70,9 +70,9 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let win = app.window_rect();
-    let mx = map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w()) as usize;
+    let mx = map_range(app.mouse().x, win.left(), win.right(), 0.0, win.w()) as usize;
     model.positions.resize(mx + 1, pt2(0.0, 0.0));
     for i in 0..=mx {
         let r = random_range(0, 8);
@@ -131,10 +131,10 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
 
-    if frame.nth() == 0 || app.keys.down.contains(&Key::R) {
+    if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::KeyR) {
         draw.background().color(WHITE);
     }
     model.positions.iter().for_each(|pos| {
@@ -144,12 +144,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .rgba(0.0, 0.0, 0.0, 0.15);
     });
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

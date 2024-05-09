@@ -57,12 +57,12 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
     let win = app.window_rect();
-    let circle_resolution = map_range(app.mouse.y, win.top(), win.bottom(), 3, 10);
-    let radius = app.mouse.x - win.left();
+    let circle_resolution = map_range(app.mouse().y, win.top(), win.bottom(), 3, 10);
+    let radius = app.mouse().x - win.left();
     let angle = TAU / circle_resolution as f32;
 
     if app.elapsed_frames() == 1 || model.clear_background {
@@ -84,7 +84,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .points(points);
     }
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
@@ -93,12 +93,12 @@ fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
 fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
     model.clicked = false;
 }
-fn key_pressed(app: &App, model: &mut Model, key: Key) {
+fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Space => {
+        KeyCode::Space => {
             model.clear_background = true;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
@@ -106,7 +106,7 @@ fn key_pressed(app: &App, model: &mut Model, key: Key) {
     }
 }
 fn key_released(_app: &App, model: &mut Model, key: Key) {
-    if key == Key::Space {
+    if key == KeyCode::Space {
         model.clear_background = false;
     }
 }

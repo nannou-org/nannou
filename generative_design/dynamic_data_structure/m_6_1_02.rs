@@ -143,7 +143,7 @@ fn spring(to_node: &mut Node, from_node: &mut Node) {
     from_node.velocity += force;
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     // update spring
     spring(&mut model.node_a, &mut model.node_b);
 
@@ -152,12 +152,12 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model.node_b.update();
 
     if app.mouse.buttons.pressed().next().is_some() {
-        model.node_a.x = app.mouse.x;
-        model.node_a.y = app.mouse.y;
+        model.node_a.x = app.mouse().x;
+        model.node_a.y = app.mouse().y;
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -179,13 +179,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .radius(10.0)
         .color(BLACK);
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

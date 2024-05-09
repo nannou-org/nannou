@@ -58,7 +58,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(BLACK);
     let win_rect = app.main_window().rect().pad_left(20.0);
@@ -104,17 +104,16 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
     });
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn key_pressed(_app: &App, _model: &mut Model, _key: Key) {
     //model.letter = key.into();
 }
 fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::LControl || key == Key::RControl {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+    if key == KeyCode::LControl || key == KeyCode::KeyRControl {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }
 

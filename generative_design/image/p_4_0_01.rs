@@ -57,13 +57,13 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
+fn view(app: &App, model: &Model) {
+    draw.background().color(BLACK);
 
     let draw = app.draw();
     let win = app.window_rect();
-    let tile_count_x = map_range(app.mouse.x, win.left(), win.right(), 1.0, win.w() / 3.0);
-    let tile_count_y = map_range(app.mouse.y, win.top(), win.bottom(), 1.0, win.h() / 3.0);
+    let tile_count_x = map_range(app.mouse().x, win.left(), win.right(), 1.0, win.w() / 3.0);
+    let tile_count_y = map_range(app.mouse().y, win.top(), win.bottom(), 1.0, win.h() / 3.0);
     let step_x = win.w() / tile_count_x;
     let step_y = win.h() / tile_count_y;
 
@@ -75,12 +75,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
     }
 
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

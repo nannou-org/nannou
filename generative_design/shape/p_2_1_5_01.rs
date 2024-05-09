@@ -55,7 +55,7 @@ fn model(app: &App) -> Model {
     Model { draw_mode: 1 }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let mut draw = app.draw();
     draw.background().color(WHITE);
@@ -65,9 +65,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
     overlay(&draw, &model, win, 3.0);
 
     // second shape (dynamically translated/rotated and scaled)
-    let x = map_range(app.mouse.x, win.left(), win.right(), -50.0, 50.0);
-    let a = map_range(app.mouse.x, win.left(), win.right(), -0.5, 0.5);
-    let s = map_range(app.mouse.y, win.top(), win.bottom(), 0.7, 1.0);
+    let x = map_range(app.mouse().x, win.left(), win.right(), -50.0, 50.0);
+    let a = map_range(app.mouse().x, win.left(), win.right(), -0.5, 0.5);
+    let s = map_range(app.mouse().y, win.top(), win.bottom(), 0.7, 1.0);
 
     match model.draw_mode {
         1 => draw = draw.rotate(a),
@@ -79,7 +79,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     overlay(&draw, &model, win, 2.0);
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn overlay(draw: &Draw, model: &Model, rect: Rect, stroke_weight: f32) {
@@ -107,16 +107,16 @@ fn overlay(draw: &Draw, model: &Model, rect: Rect, stroke_weight: f32) {
     }
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.draw_mode = 1;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.draw_mode = 2;
         }
         _other_key => (),

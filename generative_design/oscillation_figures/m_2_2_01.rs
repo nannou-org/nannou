@@ -67,7 +67,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let t = fmod(app.elapsed_frames() as f32 / model.point_count as f32, 1.0);
     model.angle = map_range(t, 0.0, 1.0, 0.0, TAU);
     model.x = (model.angle * model.freq_x + deg_to_rad(model.phi)).sin();
@@ -76,7 +76,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model.y *= app.window_rect().h() / 4.0 - model.margin;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     let win = app.window_rect();
@@ -110,7 +110,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         })
         .enumerate()
         .map(|(_i, p)| {
-            let rgba = rgba(0.0, 0.0, 0.0, 1.0);
+            let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
             (p, rgba)
         });
 
@@ -130,7 +130,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             })
             .enumerate()
             .map(|(_i, p)| {
-                let rgba = rgba(0.0, 0.0, 0.0, 1.0);
+                let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
 
@@ -148,7 +148,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             })
             .enumerate()
             .map(|(_i, p)| {
-                let rgba = rgba(0.0, 0.0, 0.0, 1.0);
+                let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
         draw.polyline().weight(2.0).points_colored(vertices);
@@ -158,7 +158,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         let osc_xy = -win.h() * 2.0 / 3.0 - model.margin
             + fmod(model.angle / TAU, 1.0) * (win.h() / 2.0 - 2.0 * model.margin);
 
-        let c = rgba(0.0, 0.0, 0.0, 0.5);
+        let c = Color::srgba(0.0, 0.0, 0.0, 0.5);
         draw.line()
             .start(pt2(xs + model.x, ys - osc_xy))
             .end(pt2(xs + model.x, ys - model.y))
@@ -168,7 +168,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .end(pt2(xs + model.x, ys - model.y))
             .color(c);
 
-        let c = rgba(0.0, 0.0, 0.0, 1.0);
+        let c = Color::srgba(0.0, 0.0, 0.0, 1.0);
         draw.ellipse()
             .x_y(xs + model.x, ys - osc_xy)
             .radius(4.0)
@@ -190,34 +190,34 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .color(c);
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
-fn key_pressed(app: &App, model: &mut Model, key: Key) {
+fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.freq_x -= 1.0;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.freq_x += 1.0;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.freq_y -= 1.0;
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.freq_y += 1.0;
         }
-        Key::A => {
+        KeyCode::KeyA=> {
             model.do_draw_animation = !model.do_draw_animation;
         }
-        Key::Left => {
+        KeyCode::ArrowLeft=> {
             model.phi -= 15.0;
         }
-        Key::Right => {
+        KeyCode::ArrowRight => {
             model.phi += 15.0;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }

@@ -43,11 +43,11 @@ struct Model {
 struct SvgPath {
     events: Vec<PathEvent>,
     weight: f32,
-    color: Rgba,
+    color: Srgba,
 }
 
 impl SvgPath {
-    fn new(events: Vec<PathEvent>, weight: f32, color: Rgba) -> Self {
+    fn new(events: Vec<PathEvent>, weight: f32, color: Srgba) -> Self {
         SvgPath {
             events,
             weight,
@@ -96,13 +96,13 @@ fn model(app: &App) -> Model {
             if let usvg::NodeKind::Path(ref p) = *node.borrow() {
                 if let Some(ref stroke) = p.stroke {
                     let color = match stroke.paint {
-                        usvg::Paint::Color(c) => rgba(
+                        usvg::Paint::Color(c) => Color::srgba(
                             c.red as f32 / 255.0,
                             c.green as f32 / 255.0,
                             c.blue as f32 / 255.0,
                             1.0,
                         ),
-                        _ => rgba(0.0, 0.0, 0.0, 1.0),
+                        _ => Color::srgba(0.0, 0.0, 0.0, 1.0),
                     };
 
                     let path_events = convert_path(p);
@@ -130,8 +130,8 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(WHITE);
+fn view(app: &App, model: &Model) {
+    draw.background().color(WHITE);
 
     let draw = app.draw();
     let win = app.window_rect();
@@ -167,13 +167,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 .x_y(pos_x, pos_y);
         }
     }
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }
 

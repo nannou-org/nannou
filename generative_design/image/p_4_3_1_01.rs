@@ -63,14 +63,14 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(WHITE);
+fn view(app: &App, model: &Model) {
+    draw.background().color(WHITE);
 
     let draw = app.draw();
     let win = app.window_rect();
 
-    let mouse_x_factor = map_range(app.mouse.x, win.left(), win.right(), 0.01, 1.0);
-    let mouse_y_factor = map_range(app.mouse.y, win.bottom(), win.top(), 0.01, 1.0);
+    let mouse_x_factor = map_range(app.mouse().x, win.left(), win.right(), 0.01, 1.0);
+    let mouse_y_factor = map_range(app.mouse().y, win.bottom(), win.top(), 0.01, 1.0);
 
     let (w, h) = model.image.dimensions();
     for grid_x in 0..w {
@@ -204,39 +204,39 @@ fn view(app: &App, model: &Model, frame: Frame) {
             }
         }
     }
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.draw_mode = 1;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.draw_mode = 2;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.draw_mode = 3;
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.draw_mode = 4;
         }
-        Key::Key5 => {
+        KeyCode::Digit5 => {
             model.draw_mode = 5;
         }
-        Key::Key6 => {
+        KeyCode::Digit6 => {
             model.draw_mode = 6;
         }
-        Key::Key7 => {
+        KeyCode::Digit7 => {
             model.draw_mode = 7;
         }
-        Key::Key8 => {
+        KeyCode::Digit8 => {
             model.draw_mode = 8;
         }
-        Key::Key9 => {
+        KeyCode::Digit9 => {
             model.draw_mode = 9;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }

@@ -72,7 +72,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 
     let draw = app.draw();
@@ -111,13 +111,13 @@ fn view(app: &App, model: &Model, frame: Frame) {
                     //.color(BLACK);
                     .no_fill()
                     .stroke_weight(1.0 / scale)
-                    .stroke(rgba(0.0, 0.0, 0.0, 0.5));
+                    .stroke(Color::srgba(0.0, 0.0, 0.0, 0.5));
             }
         }
     }
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
@@ -139,8 +139,7 @@ fn mouse_moved(app: &App, model: &mut Model, pos: Point2) {
 }
 
 fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

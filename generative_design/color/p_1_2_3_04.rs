@@ -75,7 +75,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 
     // Create palette
@@ -96,13 +96,13 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 
     if model.clicked {
-        frame.clear(BLACK);
+        draw.background().color(BLACK);
         // ------ area tiling ------
         // count tiles
         let mut counter = 0;
@@ -158,7 +158,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                     let points_colored = rect.corners_iter().map(|[x, y]| {
                         let lum = map_range(y, h / 2.0, -h / 2.0, 0.0, 1.0);
 
-                        let col = hsva(
+                        let col =Color::hsva(
                             model.hue_values[index as usize],
                             model.saturation_values[index as usize],
                             model.brightness_values[index as usize],
@@ -176,8 +176,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
@@ -186,9 +186,8 @@ fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
     model.clicked_frame = app.elapsed_frames();
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

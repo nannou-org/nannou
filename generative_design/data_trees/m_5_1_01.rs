@@ -49,7 +49,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -60,12 +60,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
         0.0,
         model.start_radius,
         model.recursion_level,
-        app.mouse.x,
-        app.mouse.y,
+        app.mouse().x,
+        app.mouse().y,
     );
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 // Recursive function
@@ -120,19 +117,19 @@ fn draw_branch(draw: &Draw, x: f32, y: f32, radius: f32, level: u8, mx: f32, my:
     }
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => model.recursion_level = 1,
-        Key::Key2 => model.recursion_level = 2,
-        Key::Key3 => model.recursion_level = 3,
-        Key::Key4 => model.recursion_level = 4,
-        Key::Key5 => model.recursion_level = 5,
-        Key::Key6 => model.recursion_level = 6,
-        Key::Key7 => model.recursion_level = 7,
-        Key::Key8 => model.recursion_level = 8,
-        Key::Key9 => model.recursion_level = 9,
-        Key::Key0 => model.recursion_level = 0,
-        Key::S => {
+        KeyCode::Digit1 => model.recursion_level = 1,
+        KeyCode::Digit2 => model.recursion_level = 2,
+        KeyCode::Digit3 => model.recursion_level = 3,
+        KeyCode::Digit4 => model.recursion_level = 4,
+        KeyCode::Digit5 => model.recursion_level = 5,
+        KeyCode::Digit6 => model.recursion_level = 6,
+        KeyCode::Digit7 => model.recursion_level = 7,
+        KeyCode::Digit8 => model.recursion_level = 8,
+        KeyCode::Digit9 => model.recursion_level = 9,
+        KeyCode::Digit0 => model.recursion_level = 0,
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }

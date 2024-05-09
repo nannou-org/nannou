@@ -53,7 +53,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
-        .size(800.0, 800.0)
+        .size(800, 800)
         .view(view)
         .build();
 
@@ -116,9 +116,14 @@ fn view(app: &App, model: &Model) {
                 let mut c = model.line_color;
                 c.alpha = a * model.line_alpha;
 
+                let p1 = model.lissajous_points[i1];
+                let p2 = model.lissajous_points[i2];
+                let emissive_c = Color::srgba(p1.x, p2.x, p1.y, 1.0);
+
                 draw.line()
-                    .start(model.lissajous_points[i1])
-                    .end(model.lissajous_points[i2])
+                    // .emissive(emissive_c)
+                    .start(p1)
+                    .end(p2)
                     .stroke_weight(model.line_weight)
                     .color(c);
             }

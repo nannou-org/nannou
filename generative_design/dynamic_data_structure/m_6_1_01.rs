@@ -152,7 +152,7 @@ fn attract(current_node: &Node, other_node: &Node) -> Vec2 {
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     for i in 0..model.nodes.len() {
         // Let all nodes repel each other
         attract_nodes(&mut model.nodes, i);
@@ -161,11 +161,11 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
 
-    if frame.nth() == 0 || app.keys.down.contains(&Key::R) {
+    if app.elapsed_frames() == 0 || app.keys()() .contains(&KeyCode::KeyR) {
         draw.background().color(WHITE);
     } else {
         draw.rect()
@@ -177,14 +177,14 @@ fn view(app: &App, model: &Model, frame: Frame) {
         draw.ellipse().x_y(node.x, node.y).radius(5.0).color(BLACK);
     });
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::R => model.nodes = create_nodes(model.node_count, app.window_rect()),
-        Key::S => {
+        KeyCode::KeyR => model.nodes = create_nodes(model.node_count, app.window_rect()),
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }

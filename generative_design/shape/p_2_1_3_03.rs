@@ -57,13 +57,13 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(WHITE);
 
     let win = app.window_rect();
-    let count = map_range(app.mouse.x, win.left(), win.right(), 5, 35);
-    let para = map_range(app.mouse.y, win.top(), win.bottom(), -0.5, 0.5);
+    let count = map_range(app.mouse().x, win.left(), win.right(), 5, 35);
+    let para = map_range(app.mouse().y, win.top(), win.bottom(), -0.5, 0.5);
     let tile_width = win.w() / model.tile_count_x as f32;
     let tile_height = win.h() / model.tile_count_y as f32;
 
@@ -158,33 +158,33 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.draw_mode = 1;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.draw_mode = 2;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.draw_mode = 3;
         }
-        Key::Down => {
+        KeyCode::Down => {
             model.tile_count_y = (model.tile_count_y - 1).max(1);
         }
-        Key::Up => {
+        KeyCode::Up => {
             model.tile_count_y += 1;
         }
-        Key::Left => {
+        KeyCode::ArrowLeft=> {
             model.tile_count_x = (model.tile_count_x - 1).max(1);
         }
-        Key::Right => {
+        KeyCode::ArrowRight => {
             model.tile_count_x += 1;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }

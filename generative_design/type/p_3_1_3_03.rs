@@ -85,7 +85,7 @@ fn model(app: &App) -> Model {
     model
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
     draw.background().color(WHITE);
@@ -111,14 +111,14 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
 
         let my = clamp(
-            map_range(app.mouse.y, win.top() - 50.0, win.bottom() + 50.0, 0.0, 1.0),
+            map_range(app.mouse().y, win.top() - 50.0, win.bottom() + 50.0, 0.0, 1.0),
             0.0,
             1.0,
         );
         let char_size = model.counters[index.unwrap()] as f32 * my * 3.0;
 
         let mx = clamp(
-            map_range(app.mouse.x, win.left() + 50.0, win.right() - 50.0, 0.0, 1.0),
+            map_range(app.mouse().x, win.left() + 50.0, win.right() - 50.0, 0.0, 1.0),
             0.0,
             1.0,
         );
@@ -159,8 +159,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn count_characters(model: &mut Model) {
@@ -179,22 +179,22 @@ fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.act_random_seed = (random_f32() * 100000.0) as u64;
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::LControl | Key::RControl => {
+        KeyCode::LControl | KeyCode::KeyRControl => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.draw_alpha = !model.draw_alpha;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.draw_lines = !model.draw_lines;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.draw_ellipses = !model.draw_ellipses;
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.draw_text = !model.draw_text;
         }
         _other_key => {}

@@ -39,7 +39,7 @@ fn main() {
 
 struct Model {
     draw_mode: u8,
-    col: Rgba,
+    col: Srgba,
     x: f32,
     y: f32,
     step_size: f32,
@@ -70,27 +70,27 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     if app.mouse.buttons.left().is_down() {
-        model.dist = pt2(model.x, model.y).distance(pt2(app.mouse.x, app.mouse.y));
+        model.dist = pt2(model.x, model.y).distance(pt2(app.mouse().x, app.mouse().y));
 
         if model.dist > model.step_size {
-            model.angle = (app.mouse.y - model.y).atan2(app.mouse.x - model.x);
+            model.angle = (app.mouse().y - model.y).atan2(app.mouse().x - model.x);
             if model.draw_mode == 1 {
                 model.x = model.x + model.angle.cos() * model.step_size;
                 model.y = model.y + model.angle.sin() * model.step_size;
             } else {
-                model.x = app.mouse.x;
-                model.y = app.mouse.y;
+                model.x = app.mouse().x;
+                model.y = app.mouse().y;
             }
         }
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let mut draw = app.draw();
-    if frame.nth() == 0 || app.keys.down.contains(&Key::Delete) {
-        frame.clear(WHITE);
+    if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
+        draw.background().color(WHITE);
     }
 
     if model.dist > model.step_size {
@@ -110,38 +110,38 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
-    model.x = app.mouse.x;
-    model.y = app.mouse.y;
-    model.col = rgba(random_f32(), random_f32(), random_f32(), random_f32() * 0.4);
+    model.x = app.mouse().x;
+    model.y = app.mouse().y;
+    model.col = Color::srgba(random_f32(), random_f32(), random_f32(), random_f32() * 0.4);
 }
 
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     match key {
-        Key::Up => {
+        KeyCode::Up => {
             model.line_length += 5.0;
         }
-        Key::Down => {
+        KeyCode::Down => {
             model.line_length -= 5.0;
         }
         _otherkey => (),
     }
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
         // default colors from 1 to 4
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.draw_mode = 1;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.draw_mode = 2;
         }
         _otherkey => (),

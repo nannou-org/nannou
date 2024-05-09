@@ -80,10 +80,10 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let win = app.window_rect();
     let mx = clamp(
-        map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w()),
+        map_range(app.mouse().x, win.left(), win.right(), 0.0, win.w()),
         0.0,
         win.w(),
     ) as usize;
@@ -161,10 +161,10 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
 
-    if frame.nth() == 0 || app.keys.down.contains(&Key::R) {
+    if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::KeyR) {
         draw.background().color(WHITE);
     }
 
@@ -181,26 +181,26 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .rgba(0.0, 0.0, 0.0, 0.15);
     });
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.draw_mode = 1;
             model.step_size = 1.0;
             model.radius = 1.0;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.draw_mode = 2;
             model.step_size = 1.0;
             model.radius = 1.0;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.draw_mode = 3;
             model.step_size = 10.0;
             model.radius = 2.5;

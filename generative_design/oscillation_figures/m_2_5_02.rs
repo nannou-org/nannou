@@ -95,7 +95,7 @@ fn model(app: &App) -> Model {
     model
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     model.point_index += 1;
 
     if model.point_index >= model.point_count - 1 {
@@ -103,7 +103,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
 
     if app.elapsed_frames() == 1 {
@@ -134,8 +134,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
             }
         }
     }
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn draw_line(draw: &Draw, model: &Model, p1: Point2, p2: Point2) {
@@ -151,7 +151,7 @@ fn draw_line(draw: &Draw, model: &Model, p1: Point2, p2: Point2) {
         } else {
             model.brightness_value
         };
-        let c = hsva(
+        let c =Color::hsva(
             hue,
             model.saturation_value,
             b,
@@ -192,9 +192,8 @@ fn calculate_lissajous_points(app: &App, model: &mut Model) {
     }
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

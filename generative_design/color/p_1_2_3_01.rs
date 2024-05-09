@@ -66,65 +66,65 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn key_pressed(app: &App, model: &mut Model, key: Key) {
+fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             for i in 0..model.tile_count_x {
                 model.hue_values[i] = random();
                 model.saturation_values[i] = random();
                 model.brightness_values[i] = random();
             }
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             for i in 0..model.tile_count_x {
                 model.hue_values[i] = random();
                 model.saturation_values[i] = random();
                 model.brightness_values[i] = 1.0;
             }
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             for i in 0..model.tile_count_x {
                 model.hue_values[i] = random();
                 model.saturation_values[i] = 1.0;
                 model.brightness_values[i] = random();
             }
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             for i in 0..model.tile_count_x {
                 model.hue_values[i] = 0.0;
                 model.saturation_values[i] = 0.0;
                 model.brightness_values[i] = random();
             }
         }
-        Key::Key5 => {
+        KeyCode::Digit5 => {
             for i in 0..model.tile_count_x {
                 model.hue_values[i] = 0.54;
                 model.saturation_values[i] = 1.0;
                 model.brightness_values[i] = random();
             }
         }
-        Key::Key6 => {
+        KeyCode::Digit6 => {
             for i in 0..model.tile_count_x {
                 model.hue_values[i] = 0.54;
                 model.saturation_values[i] = random();
                 model.brightness_values[i] = 1.0;
             }
         }
-        Key::Key7 => {
+        KeyCode::Digit7 => {
             for i in 0..model.tile_count_x {
                 model.hue_values[i] = random_f32() * 0.5;
                 model.saturation_values[i] = random_f32() * 0.2 + 0.8;
                 model.brightness_values[i] = random_f32() * 0.4 + 0.5;
             }
         }
-        Key::Key8 => {
+        KeyCode::Digit8 => {
             for i in 0..model.tile_count_x {
                 model.hue_values[i] = random_f32() * 0.5 + 0.5;
                 model.saturation_values[i] = random_f32() * 0.2 + 0.8;
                 model.brightness_values[i] = random_f32() * 0.4 + 0.5;
             }
         }
-        Key::Key9 => {
+        KeyCode::Digit9 => {
             for i in 0..model.tile_count_x {
                 if i % 2 == 0 {
                     model.hue_values[i] = random();
@@ -137,7 +137,7 @@ fn key_pressed(app: &App, model: &mut Model, key: Key) {
                 }
             }
         }
-        Key::Key0 => {
+        KeyCode::Digit0 => {
             for i in 0..model.tile_count_x {
                 if i % 2 == 0 {
                     model.hue_values[i] = 0.38;
@@ -150,7 +150,7 @@ fn key_pressed(app: &App, model: &mut Model, key: Key) {
                 }
             }
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
@@ -158,7 +158,7 @@ fn key_pressed(app: &App, model: &mut Model, key: Key) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
 
@@ -167,8 +167,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let win_rect = app.window_rect();
 
     // limit mouse coordintes to canvas
-    let mx = (app.mouse.x - win_rect.left()).max(1.0).min(win_rect.w());
-    let my = (win_rect.top() - app.mouse.y).max(1.0).min(win_rect.h());
+    let mx = (app.mouse().x - win_rect.left()).max(1.0).min(win_rect.w());
+    let my = (win_rect.top() - app.mouse().y).max(1.0).min(win_rect.h());
 
     // tile counter
     let mut counter = 0;
@@ -204,6 +204,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
         grid_y += 1;
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }

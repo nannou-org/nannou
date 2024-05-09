@@ -58,7 +58,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
 
@@ -68,12 +68,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let tile_width = win.w() / model.tile_count_x as f32;
     let tile_height = win.h() / model.tile_count_y as f32;
     let step_size = clamp(
-        map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w()),
+        map_range(app.mouse().x, win.left(), win.right(), 0.0, win.w()),
         0.0,
         win.w(),
     ) / 10.0;
     let end_size = clamp(
-        map_range(app.mouse.y, win.top(), win.bottom(), 0.0, win.h()),
+        map_range(app.mouse().y, win.top(), win.bottom(), 0.0, win.h()),
         0.0,
         win.h(),
     ) / 10.0;
@@ -107,7 +107,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {

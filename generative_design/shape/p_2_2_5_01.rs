@@ -87,7 +87,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let win = app.window_rect();
 
     // Choose a random or the current mouse position
@@ -102,12 +102,12 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 
     if app.mouse.buttons.left().is_down() {
         new_x = random_range(
-            app.mouse.x - model.mouse_rect,
-            app.mouse.x + model.mouse_rect,
+            app.mouse().x - model.mouse_rect,
+            app.mouse().x + model.mouse_rect,
         );
         new_y = random_range(
-            app.mouse.y - model.mouse_rect,
-            app.mouse.y + model.mouse_rect,
+            app.mouse().y - model.mouse_rect,
+            app.mouse().y + model.mouse_rect,
         );
     }
 
@@ -128,7 +128,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(WHITE);
 
@@ -161,7 +161,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     if app.mouse.buttons.left().is_down() {
         draw.rect()
-            .x_y(app.mouse.x, app.mouse.y)
+            .x_y(app.mouse().x, app.mouse().y)
             .w_h(model.mouse_rect * 2.0, model.mouse_rect * 2.0)
             .no_fill()
             .stroke_weight(2.0)
@@ -169,22 +169,22 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
-        Key::Up => {
+        KeyCode::Up => {
             model.mouse_rect += 4.0;
         }
-        Key::Down => {
+        KeyCode::Down => {
             model.mouse_rect -= 4.0;
         }
-        Key::F => {
+        KeyCode::F => {
             model.freeze = !model.freeze;
             if model.freeze {
                 app.set_loop_mode(LoopMode::loop_once());
@@ -192,10 +192,10 @@ fn key_released(app: &App, model: &mut Model, key: Key) {
                 app.set_loop_mode(LoopMode::RefreshSync);
             }
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.show_circle = !model.show_circle;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.show_line = !model.show_line;
         }
         _other_key => {}

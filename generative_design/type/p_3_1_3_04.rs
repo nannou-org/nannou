@@ -82,7 +82,7 @@ fn model(app: &App) -> Model {
     model
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let win = app.window_rect();
     let draw = app.draw().x_y(win.left() + 50.0, 0.0);
     draw.background().color(WHITE);
@@ -96,7 +96,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let mut old_positions_y = vec![0.0; model.joined_text.len()];
 
     // draw counters
-    if app.mouse.x >= win.right() - 50.0 {
+    if app.mouse().x >= win.right() - 50.0 {
         for (i, c) in model.alphabet.chars().enumerate() {
             let character = &c.to_string();
             let size = 10;
@@ -133,7 +133,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
 
         let m = clamp(
-            map_range(app.mouse.x, win.left() + 50.0, win.right() - 50.0, 0.0, 1.0),
+            map_range(app.mouse().x, win.left() + 50.0, win.right() - 50.0, 0.0, 1.0),
             0.0,
             1.0,
         );
@@ -195,8 +195,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn count_characters(model: &mut Model) {
@@ -211,27 +211,27 @@ fn count_characters(model: &mut Model) {
     }
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::LControl | Key::RControl => {
+        KeyCode::LControl | KeyCode::KeyRControl => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.draw_grey_lines = !model.draw_grey_lines;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.draw_colored_lines = !model.draw_colored_lines;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.draw_text = !model.draw_text;
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             for i in 0..model.alphabet.len() {
                 model.draw_letters[i] = false;
             }
         }
-        Key::Key5 => {
+        KeyCode::Digit5 => {
             for i in 0..model.alphabet.len() {
                 model.draw_letters[i] = true;
             }

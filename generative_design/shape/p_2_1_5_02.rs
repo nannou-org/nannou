@@ -87,7 +87,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -97,20 +97,19 @@ fn view(app: &App, model: &Model, frame: Frame) {
     });
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
     model.shapes.push(Shape::new(
-        app.mouse.x,
-        app.mouse.y,
+        app.mouse().x,
+        app.mouse().y,
         random_range(model.min_radius, model.max_radius),
     ));
 }
 
 fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

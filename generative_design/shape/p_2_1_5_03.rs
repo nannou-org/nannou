@@ -109,16 +109,16 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     if let Some(ref mut s) = model.new_shape {
-        s.x2 = app.mouse.x;
-        s.y2 = app.mouse.y;
+        s.x2 = app.mouse().x;
+        s.y2 = app.mouse().y;
         s.h = model.shape_height;
         s.c = model.shape_color;
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -132,7 +132,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
@@ -145,8 +145,8 @@ fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.new_shape = Some(Shape::new(
         model.p_mouse.x,
         model.p_mouse.y,
-        app.mouse.x,
-        app.mouse.y,
+        app.mouse().x,
+        app.mouse().y,
         model.shape_height,
         model.shape_color,
     ));
@@ -161,28 +161,28 @@ fn mouse_released(_app: &App, model: &mut Model, button: MouseButton) {
     }
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.shape_color = vec3(1.0, 0.0, 0.0);
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.shape_color = vec3(0.0, 1.0, 0.0);
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.shape_color = vec3(0.0, 0.0, 1.0);
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.shape_color = vec3(0.0, 0.0, 0.0);
         }
-        Key::Up => {
+        KeyCode::Up => {
             model.shape_height += model.density as f32;
         }
-        Key::Down => {
+        KeyCode::Down => {
             model.shape_height -= model.density as f32;
         }
         _other_key => (),

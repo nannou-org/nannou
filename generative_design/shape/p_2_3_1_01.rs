@@ -41,7 +41,7 @@ fn main() {
 }
 
 struct Model {
-    c: Rgba,
+    c: Srgba,
     line_length: f32,
     angle: f32,
     angle_speed: f32,
@@ -65,21 +65,21 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     if app.mouse.buttons.left().is_down() {
         model.angle += model.angle_speed;
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let mut draw = app.draw();
-    if frame.nth() == 0 || app.keys.down.contains(&Key::Delete) {
-        frame.clear(WHITE);
+    if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
+        draw.background().color(WHITE);
     }
 
     if app.mouse.buttons.left().is_down() {
         draw = draw
-            .x_y(app.mouse.x, app.mouse.y)
+            .x_y(app.mouse().x, app.mouse().y)
             .rotate(model.angle.to_radians());
         draw.line()
             .start(pt2(0.0, 0.0))
@@ -88,7 +88,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
@@ -97,36 +97,36 @@ fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
 
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     match key {
-        Key::Up => {
+        KeyCode::Up => {
             model.line_length += 5.0;
         }
-        Key::Down => {
+        KeyCode::Down => {
             model.line_length -= 5.0;
         }
-        Key::Left => {
+        KeyCode::ArrowLeft=> {
             model.angle_speed -= 0.5;
         }
-        Key::Right => {
+        KeyCode::ArrowRight => {
             model.angle_speed += 0.5;
         }
         _otherkey => (),
     }
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
         // reverse direction and mirror angle
-        Key::D => {
+        KeyCode::KeyD=> {
             model.angle += 180.0;
             model.angle_speed *= -1.0;
         }
         // change color
-        Key::Space => {
-            model.c = rgba(
+        KeyCode::Space => {
+            model.c = Color::srgba(
                 random_f32(),
                 random_f32(),
                 random_f32(),
@@ -134,17 +134,17 @@ fn key_released(app: &App, model: &mut Model, key: Key) {
             );
         }
         // default colors from 1 to 4
-        Key::Key1 => {
-            model.c = rgba(0.7, 0.61, 0.0, 1.0);
+        KeyCode::Digit1 => {
+            model.c = Color::srgba(0.7, 0.61, 0.0, 1.0);
         }
-        Key::Key2 => {
-            model.c = rgba(0.0, 0.5, 0.64, 1.0);
+        KeyCode::Digit2 => {
+            model.c = Color::srgba(0.0, 0.5, 0.64, 1.0);
         }
-        Key::Key3 => {
-            model.c = rgba(0.34, 0.13, 0.5, 1.0);
+        KeyCode::Digit3 => {
+            model.c = Color::srgba(0.34, 0.13, 0.5, 1.0);
         }
-        Key::Key4 => {
-            model.c = rgba(0.77, 0.0, 0.48, 1.0);
+        KeyCode::Digit4 => {
+            model.c = Color::srgba(0.77, 0.0, 0.48, 1.0);
         }
         _otherkey => (),
     }

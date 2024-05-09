@@ -73,9 +73,9 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     if app.mouse.buttons.left().is_down() {
-        model.distance = pt2(model.x, model.y).distance(pt2(app.mouse.x, app.mouse.y));
+        model.distance = pt2(model.x, model.y).distance(pt2(app.mouse().x, app.mouse().y));
         model.font_size = model.font_size_min + model.distance as u32 / 2;
 
         let win_rect = app.main_window().rect();
@@ -92,7 +92,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
             .w();
 
         if model.distance > model.step_size {
-            model.angle = (app.mouse.y - model.y).atan2(app.mouse.x - model.x);
+            model.angle = (app.mouse().y - model.y).atan2(app.mouse().x - model.x);
             model.counter += 1;
             if model.counter >= model.letters.len() {
                 model.counter = 0;
@@ -104,9 +104,9 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    if frame.nth() == 0 {
-        frame.clear(WHITE);
+fn view(app: &App, model: &Model) {
+    if app.elapsed_frames() == 0 {
+        draw.background().color(WHITE);
     }
 
     let draw = app.draw();
@@ -130,26 +130,25 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
-    model.x = app.mouse.x;
-    model.y = app.mouse.y;
+    model.x = app.mouse().x;
+    model.y = app.mouse().y;
 }
 
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
-    if key == Key::Up {
+    if key == KeyCode::Up {
         model.angle_distortion += 0.1;
     }
-    if key == Key::Down {
+    if key == KeyCode::Down {
         model.angle_distortion -= 0.1;
     }
 }
 
 fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

@@ -54,7 +54,7 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let win = app.window_rect();
 
     let x1 = random_range(win.left(), win.right());
@@ -78,8 +78,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .into_descriptor();
     let draw = app.draw().sampler(sampler);
 
-    if frame.nth() == 0 || app.keys.down.contains(&Key::Delete) {
-        frame.clear(WHITE);
+    if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
+        draw.background().color(WHITE);
         draw.texture(&model.texture);
     } else {
         draw.texture(&frame.resolve_target().unwrap_or(frame.texture_view()))
@@ -87,12 +87,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .w_h(w, h)
             .area(area);
     }
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

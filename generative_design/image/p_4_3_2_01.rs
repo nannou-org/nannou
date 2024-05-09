@@ -80,8 +80,8 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(WHITE);
+fn view(app: &App, model: &Model) {
+    draw.background().color(WHITE);
 
     let draw = app.draw();
     let win = app.window_rect();
@@ -151,41 +151,41 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
     }
 
-    draw.to_frame(app, &frame).unwrap();
+
 }
 
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     match key {
         // change fontSizeMax with arrow keys up/down
-        Key::Up => {
+        KeyCode::Up => {
             model.font_size_max += 2;
         }
-        Key::Down => {
+        KeyCode::Down => {
             model.font_size_max -= 2;
         }
         // change fontSizeMin with arrow keys left/right
-        Key::Right => {
+        KeyCode::ArrowRight => {
             model.font_size_min += 2;
         }
-        Key::Left => {
+        KeyCode::ArrowLeft=> {
             model.font_size_min -= 2;
         }
         _otherkey => (),
     }
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
                 .capture_frame(app.exe_name().unwrap() + ".png");
         }
         // change render mode
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.font_size_static = !model.font_size_static;
         }
         // change color style
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.black_and_white = !model.black_and_white;
         }
         _otherkey => (),

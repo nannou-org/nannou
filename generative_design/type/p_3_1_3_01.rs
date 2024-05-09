@@ -70,7 +70,7 @@ fn model(app: &App) -> Model {
     model
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
     draw.background().color(WHITE);
@@ -100,7 +100,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
         let sort_y = win.top() - (index.unwrap() * 20 + 40) as f32;
         let m = clamp(
-            map_range(app.mouse.x, win.left() + 50.0, win.right() - 50.0, 0.0, 1.0),
+            map_range(app.mouse().x, win.left() + 50.0, win.right() - 50.0, 0.0, 1.0),
             0.0,
             1.0,
         );
@@ -121,8 +121,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
     }
 
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+
+
 }
 
 fn count_characters(model: &mut Model) {
@@ -137,12 +137,11 @@ fn count_characters(model: &mut Model) {
     }
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
-    if key == Key::S {
-        app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
+        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
-    if key == Key::A {
+    if key == KeyCode::KeyA{
         model.draw_alpha = !model.draw_alpha;
     }
 }
