@@ -70,7 +70,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, m: &mut Model, _update: Update) {
-    arrive(&mut m.vehicle, app.mouse.position());
+    arrive(&mut m.vehicle, app.mouse()());
     m.vehicle.update();
 }
 

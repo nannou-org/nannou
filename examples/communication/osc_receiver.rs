@@ -19,8 +19,7 @@ fn model(app: &App) -> Model {
         .title("OSC Receiver")
         .size(1400, 480)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // Bind an `osc::Receiver` to a port.
     let receiver = osc::receiver(PORT).unwrap();

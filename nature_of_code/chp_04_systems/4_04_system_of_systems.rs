@@ -112,8 +112,7 @@ fn model(app: &App) -> Model {
         .size(640, 360)
         .mouse_pressed(mouse_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
     let systems = Vec::new();
     Model { systems }
 }

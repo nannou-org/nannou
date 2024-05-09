@@ -47,8 +47,7 @@ fn model(app: &App) -> Model {
         .size(900, 900)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         draw_mode: 1,
@@ -144,10 +143,10 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::Digit3 => {
             model.draw_mode = 3;
         }
-        KeyCode::Down => {
+        KeyCode::ArrowDown => {
             model.tile_count_y = (model.tile_count_y - 1).max(1);
         }
-        KeyCode::Up => {
+        KeyCode::ArrowUp => {
             model.tile_count_y += 1;
         }
         KeyCode::ArrowLeft=> {
@@ -158,7 +157,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         }
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

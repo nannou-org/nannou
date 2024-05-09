@@ -70,14 +70,13 @@ fn model(app: &App) -> Model {
         .key_pressed(key_pressed)
         .mouse_moved(mouse_moved)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // Initialise the audio API so we can spawn an audio stream.
     let audio_host = audio::Host::new();
 
     // Load a HRIR sphere and initialise the processor.
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let hrir_sphere_path = assets.join("hrir").join("IRC_1002_C").with_extension("bin");
     let hrir_sphere = HrirSphere::from_file(hrir_sphere_path, SAMPLE_RATE)
         .expect("failed to load HRIR sphere from file");
@@ -99,8 +98,7 @@ fn model(app: &App) -> Model {
         .channels(2)
         .sample_rate(SAMPLE_RATE)
         .frames_per_buffer(BUFFER_LEN_FRAMES)
-        .build()
-        .unwrap();
+        .build();
 
     stream.play().unwrap();
 
@@ -157,7 +155,7 @@ fn audio(audio: &mut Audio, output: &mut Buffer) {
     }
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     // Pause or unpause the audio when Space is pressed.
     if let KeyCode::Space = key {
         if model.stream.is_playing() {
@@ -197,7 +195,7 @@ fn view(app: &App, model: &Model) {
     // Draw the source.
     let (x, y, z) = model.source_position.into();
     let text = format!("Noise Source:\n[{:.2}, {:.2}, {:.2}]", x, y, z);
-    draw.text(&text).xy(app.mouse.position() + vec2(0.0, 20.0));
+    draw.text(&text).xy(app.mouse()() + vec2(0.0, 20.0));
 
 
 }

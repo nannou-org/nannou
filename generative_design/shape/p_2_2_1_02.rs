@@ -64,8 +64,7 @@ fn model(app: &App) -> Model {
         .size(600, 600)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         pos_x: 0.0,
@@ -188,7 +187,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         KeyCode::Digit1 => {
             model.draw_mode = 1;

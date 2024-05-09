@@ -48,8 +48,7 @@ fn model(app: &App) -> Model {
         .size(600, 600)
         .view(view)
         .mouse_pressed(mouse_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         tile_count_x: 10,

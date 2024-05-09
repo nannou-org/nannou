@@ -29,6 +29,7 @@
  * s                   : save png
  */
 use nannou::prelude::*;
+use nannou::prelude::text::text;
 
 fn main() {
     nannou::app(model).run();
@@ -47,8 +48,7 @@ fn model(app: &App) -> Model {
         .size(550, 650)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let text_path = app
         .assets_path()
@@ -88,14 +88,14 @@ fn view(app: &App, model: &Model) {
         }
 
         let col = if model.draw_alpha {
-            rgba(
+            Color::srgba(
                 0.34,
                 0.14,
                 0.5,
                 (model.counters[index.unwrap()] * 3) as f32 / 255.0,
             )
         } else {
-            rgba(0.34, 0.14, 0.5, 1.0)
+            Color::srgba(0.34, 0.14, 0.5, 1.0)
         };
 
         let sort_y = win.top() - (index.unwrap() * 20 + 40) as f32;

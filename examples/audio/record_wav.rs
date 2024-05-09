@@ -27,8 +27,7 @@ fn model(app: &App) -> Model {
     app.new_window()
         .key_pressed(key_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // Initialise the audio host so we can spawn an audio stream.
     let audio_host = audio::Host::new();
@@ -41,8 +40,7 @@ fn model(app: &App) -> Model {
     let stream = audio_host
         .new_input_stream(capture_model)
         .capture(capture_fn)
-        .build()
-        .unwrap();
+        .build();
 
     stream.play().unwrap();
 
@@ -63,7 +61,7 @@ fn capture_fn(audio: &mut CaptureModel, buffer: &Buffer) {
     }
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::Space => {
             if model.stream.is_paused() {

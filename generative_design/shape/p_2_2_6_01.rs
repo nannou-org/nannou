@@ -61,8 +61,7 @@ fn model(app: &App) -> Model {
         .size(1280, 720)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let joints = 5;
     Model {
@@ -168,13 +167,13 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
-        KeyCode::Up => {
+        KeyCode::ArrowUp => {
             model.line_length += 2.0;
             start_drawing(model);
         }
-        KeyCode::Down => {
+        KeyCode::ArrowDown => {
             model.line_length -= 2.0;
             start_drawing(model);
         }

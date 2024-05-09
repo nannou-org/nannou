@@ -19,8 +19,7 @@ fn model(app: &App) -> Model {
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let r = rect.h() * 0.45;
     let theta = 0.0;

@@ -76,8 +76,9 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) {
-    draw.background().color(DIMGRAY);
+fn view(app: &App, _model: &Model) {
+    let draw = app.draw();
+    draw.background().color(DIM_GRAY);
 }
 
 fn laser(laser: &mut Laser, frame: &mut laser::Frame) {

@@ -24,8 +24,7 @@ fn model(app: &App) -> Model {
         .size(680, 480)
         .event(event)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // The address to which the `Sender` will send messages.
     let target_addr = target_address_string();

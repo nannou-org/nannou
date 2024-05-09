@@ -101,8 +101,7 @@ fn model(app: &App) -> Model {
         .size(1280, 720)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let node_count = 200;
     let nodes = create_nodes(node_count, app.window_rect());
@@ -186,7 +185,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::KeyR => model.nodes = create_nodes(model.node_count, app.window_rect()),
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

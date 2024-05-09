@@ -148,8 +148,7 @@ fn model(app: &App) -> Model {
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let rule_set = vec![0, 1, 1, 1, 1, 0, 1, 1];
     let ca = Ca::new(rule_set, rect);

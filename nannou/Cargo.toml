@@ -18,7 +18,6 @@ bevy_nannou = { version = "0.1.0", path = "../bevy_nannou" }
 futures = "0.3"
 find_folder = "0.3"
 getrandom = "0.2.3"
-image = "0.23"
 instant = "0.1.9"
 lyon = "0.17"
 nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std", "serde"] }

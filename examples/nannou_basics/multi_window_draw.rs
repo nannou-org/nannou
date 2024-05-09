@@ -5,30 +5,27 @@ fn main() {
 }
 
 struct Model {
-    a: WindowId,
-    b: WindowId,
-    c: WindowId,
+    a: Entity,
+    b: Entity,
+    c: Entity,
 }
 
 fn model(app: &App) -> Model {
     let a = app
         .new_window()
         .title("window a")
-        .event(event_a)
-        .build()
-        .unwrap();
+        .focused(event_a)
+        .build();
     let b = app
         .new_window()
         .title("window b")
-        .event(event_b)
-        .build()
-        .unwrap();
+        .focused(event_b)
+        .build();
     let c = app
         .new_window()
         .title("window c")
-        .event(event_c)
-        .build()
-        .unwrap();
+        .focused(event_c)
+        .build();
     Model { a, b, c }
 }
 
@@ -36,32 +33,32 @@ fn update(_app: &App, _model: &mut Model) {
 
 }
 
-fn event_a(_app: &App, _model: &mut Model, event: WindowEvent) {
-    println!("window a: {:?}", event);
+fn event_a(_app: &App, _model: &mut Model) {
+    println!("window a");
 }
 
-fn event_b(_app: &App, _model: &mut Model, event: WindowEvent) {
-    println!("window b: {:?}", event);
+fn event_b(_app: &App, _model: &mut Model) {
+    println!("window b");
 }
 
-fn event_c(_app: &App, _model: &mut Model, event: WindowEvent) {
-    println!("window c: {:?}", event);
+fn event_c(_app: &App, _model: &mut Model) {
+    println!("window c");
 }
 
-fn view(app: &App, model: &Model) {
+fn view(app: &App, model: &Model, window: Entity) {
     let draw = app.draw();
-    match frame.window_id() {
+    match window {
         id if id == model.a => {
-            draw.background().color(INDIANRED);
-            draw.ellipse().color(LIGHTGREEN);
+            draw.background().color(INDIAN_RED);
+            draw.ellipse().color(LIGHT_GREEN);
         }
         id if id == model.b => {
-            draw.background().color(LIGHTGREEN);
-            draw.tri().color(CORNFLOWERBLUE);
+            draw.background().color(LIGHT_GREEN);
+            draw.tri().color(CORNFLOWER_BLUE);
         }
         id if id == model.c => {
-            draw.background().color(CORNFLOWERBLUE);
-            draw.rect().color(INDIANRED);
+            draw.background().color(CORNFLOWER_BLUE);
+            draw.rect().color(INDIAN_RED);
         }
         _ => (),
     }

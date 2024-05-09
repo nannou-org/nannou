@@ -111,7 +111,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         KeyCode::Digit1 => {
             model.draw_mode = 1;

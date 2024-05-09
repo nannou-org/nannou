@@ -191,7 +191,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         }
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

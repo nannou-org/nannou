@@ -50,8 +50,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .key_pressed(key_pressed)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         text_typed: "Nannou is Amazing!".to_string(),
@@ -111,8 +110,8 @@ fn view(app: &App, model: &Model) {
 fn key_pressed(_app: &App, _model: &mut Model, _key: Key) {
     //model.letter = key.into();
 }
-fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == KeyCode::LControl || key == KeyCode::KeyRControl {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::ControlLeft || key == KeyCode::ControlRight {
         app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

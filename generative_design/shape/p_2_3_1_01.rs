@@ -54,8 +54,7 @@ fn model(app: &App) -> Model {
         .mouse_pressed(mouse_pressed)
         .key_pressed(key_pressed)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         c: rgba(0.7, 0.6, 0.0, 1.0),
@@ -66,7 +65,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model) {
-    if app.mouse.buttons.left().is_down() {
+    if app.mouse_buttons().just_pressed(MouseButton::Left) {
         model.angle += model.angle_speed;
     }
 }
@@ -77,7 +76,7 @@ fn view(app: &App, model: &Model) {
         draw.background().color(WHITE);
     }
 
-    if app.mouse.buttons.left().is_down() {
+    if app.mouse_buttons().just_pressed(MouseButton::Left) {
         draw = draw
             .x_y(app.mouse().x, app.mouse().y)
             .rotate(model.angle.to_radians());
@@ -95,12 +94,12 @@ fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.line_length = random_range(70.0, 200.0);
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        KeyCode::Up => {
+        KeyCode::ArrowUp => {
             model.line_length += 5.0;
         }
-        KeyCode::Down => {
+        KeyCode::ArrowDown => {
             model.line_length -= 5.0;
         }
         KeyCode::ArrowLeft=> {
@@ -117,7 +116,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         // reverse direction and mirror angle
         KeyCode::KeyD=> {

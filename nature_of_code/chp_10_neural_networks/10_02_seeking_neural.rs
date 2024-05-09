@@ -153,8 +153,7 @@ fn model(app: &App) -> Model {
         .size(640, 360)
         .view(view)
         .mouse_pressed(mouse_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let num_targets = 8;
 

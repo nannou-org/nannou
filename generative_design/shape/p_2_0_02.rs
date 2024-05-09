@@ -49,8 +49,7 @@ fn model(app: &App) -> Model {
         .mouse_released(mouse_released)
         .key_pressed(key_pressed)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
     Model {
         clicked: false,
         clear_background: false,
@@ -100,7 +99,7 @@ fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
         }
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

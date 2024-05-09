@@ -19,8 +19,7 @@ fn model(app: &App) -> Model {
     app.new_window()
         .key_pressed(key_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // Initialise the audio host so we can spawn an audio stream.
     let audio_host = audio::Host::new();
@@ -86,6 +85,7 @@ fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     }
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) {
-    draw.background().color(DIMGRAY);
+fn view(app: &App, _model: &Model) {
+    let draw = app.draw();
+    draw.background().color(DIM_GRAY);
 }

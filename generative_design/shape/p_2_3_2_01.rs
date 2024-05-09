@@ -71,7 +71,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model) {
-    if app.mouse.buttons.left().is_down() {
+    if app.mouse_buttons().just_pressed(MouseButton::Left) {
         model.dist = pt2(model.x, model.y).distance(pt2(app.mouse().x, app.mouse().y));
 
         if model.dist > model.step_size {
@@ -119,12 +119,12 @@ fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.col = Color::srgba(random_f32(), random_f32(), random_f32(), random_f32() * 0.4);
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        KeyCode::Up => {
+        KeyCode::ArrowUp => {
             model.line_length += 5.0;
         }
-        KeyCode::Down => {
+        KeyCode::ArrowDown => {
             model.line_length -= 5.0;
         }
         _otherkey => (),
@@ -135,7 +135,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         // default colors from 1 to 4
         KeyCode::Digit1 => {

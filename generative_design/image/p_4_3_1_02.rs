@@ -25,8 +25,6 @@
  */
 use nannou::prelude::*;
 
-use nannou::image;
-use nannou::image::GenericImageView;
 use nannou::lyon::math::Point;
 use nannou::lyon::path::PathEvent;
 
@@ -35,7 +33,7 @@ fn main() {
 }
 
 struct Model {
-    image: image::DynamicImage,
+    image: Handle<Image>,
     shapes: Vec<SvgPath>,
 }
 
@@ -62,12 +60,10 @@ fn model(app: &App) -> Model {
         .size(600, 900)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let svg_assets_path = app
         .assets_path()
-        .unwrap()
         .join("svg")
         .join("generative_examples");
 
@@ -90,6 +86,7 @@ fn model(app: &App) -> Model {
 
     for asset in assets {
         let opt = usvg::Options::default();
+        info!("Loading svg file: {:?}", asset);
         let rtree = usvg::Tree::from_file(&asset, &opt).unwrap();
 
         for node in rtree.root().descendants() {
@@ -110,37 +107,35 @@ fn model(app: &App) -> Model {
                     for e in path_events {
                         v.push(e);
                     }
-                    let path = SvgPath::new(v, stroke.width.value() as f32, color);
+                    let path = SvgPath::new(v, stroke.width.value() as f32, color.into());
                     shapes.push(path);
                 }
             }
         }
     }
 
-    let img_path = app
-        .assets_path()
-        .unwrap()
-        .join("images")
-        .join("generative_examples")
-        .join("p_4_3_1_01.png");
-
-    let image = image::open(img_path).unwrap();
+    let image = app.assets().load("images/generative_examples/p_4_3_1_01.png");
 
     Model { image, shapes }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model) {
+    let draw = app.draw();
     draw.background().color(WHITE);
 
     let draw = app.draw();
     let win = app.window_rect();
 
-    let (w, h) = model.image.dimensions();
+    let Some(image) = app.image(&model.image) else {
+        return;
+    };
+
+    let (w, h) = image.dimensions();
     for grid_x in 0..w {
         for grid_y in 0..h {
             // get current color
-            let c = model.image.get_pixel(grid_x, grid_y);
+            let c = image.get_pixel(grid_x, grid_y);
             // greyscale conversion
             let red = c[0] as f32 / 255.0;
             let green = c[1] as f32 / 255.0;
@@ -170,7 +165,7 @@ fn view(app: &App, model: &Model) {
 
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
         app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }

@@ -44,8 +44,7 @@ fn model(app: &App) -> Model {
         .size(720, 720)
         .key_pressed(key_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         segment_count: 360,
@@ -72,7 +71,7 @@ fn key_pressed(app: &App, model: &mut Model, key:KeyCode) {
         }
         KeyCode::KeyS => {
             app.main_window()
-                .sa(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

@@ -131,7 +131,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::Digit0 => model.recursion_level = 0,
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

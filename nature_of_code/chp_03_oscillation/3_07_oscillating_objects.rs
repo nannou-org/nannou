@@ -63,8 +63,7 @@ fn model(app: &App) -> Model {
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
     //let oscillators = vec![Oscillator::new(app.window_rect()); 10];
     let oscillators = (0..10).map(|_| Oscillator::new(rect)).collect();
     Model { oscillators }

@@ -55,8 +55,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .key_released(key_released)
         .mouse_pressed(mouse_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let form_resolution = 150;
     let angle = (360.0 / form_resolution as f32).to_radians();
@@ -146,7 +145,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         KeyCode::Digit1 => {
             model.filled = false;

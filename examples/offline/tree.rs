@@ -4,7 +4,6 @@
 mod colors;
 mod quadtree;
 use crate::colors::Palette;
-use nannou::prelude::Frame;
 use nannou::prelude::*;
 
 const LENGTH_FRAME: u64 = 700;
@@ -76,9 +75,7 @@ fn model(app: &App) -> Model {
         .new_window()
         .size(1024, 1024)
         .view(view)
-        .event(window_event)
-        .build()
-        .unwrap();
+        .build();
 
     //create the random values we will need each frame
 
@@ -97,31 +94,6 @@ fn model(app: &App) -> Model {
     Model {
         palette: palette,
         things,
-    }
-}
-
-//nothing to do here
-fn window_event(_app: &App, _model: &mut Model, event: WindowEvent) {
-    match event {
-        KeyPressed(_key) => {}
-        KeyReleased(_key) => {}
-        ReceivedCharacter(_char) => {}
-        MouseMoved(_pos) => {}
-        MousePressed(_button) => {}
-        MouseReleased(_button) => {}
-        MouseEntered => {}
-        MouseExited => {}
-        MouseWheel(_amount, _phase) => {}
-        Moved(_pos) => {}
-        Resized(_size) => {}
-        Touch(_touch) => {}
-        TouchPressure(_pressure) => {}
-        HoveredFile(_path) => {}
-        DroppedFile(_path) => {}
-        HoveredFileCancelled => {}
-        Focused => {}
-        Unfocused => {}
-        Closed => {}
     }
 }
 
@@ -264,12 +236,12 @@ fn view(app: &App, model: &Model) {
     let mut frac_end = (((app.elapsed_frames() + 120) as i32 - LENGTH_FRAME as i32) as f32) / 100.0;
     frac_end = frac_end.max(0.0).min(1.0);
 
-    let c: Rgba = Color::srgba(1.0, 1.0, 1.0, 1.0 - frac_end);
+    let c: Srgba = Color::srgba(1.0, 1.0, 1.0, 1.0 - frac_end).into();
 
     //draw ALL THE THINGS
     for k in 0..model.things.len() {
         //get a color from the palette indexed by frac
-        let mut c2: Rgba = model.palette.somecolor_frac(model.things[k].frac).into();
+        let mut c2: Srgba  = model.palette.somecolor_frac(model.things[k].frac).into();
         // make it fade
         c2.alpha = 1.0 - frac_end;
         let c3 = Color::srgba(0.0, 0.0, 0.0, 1.0 - frac_end);

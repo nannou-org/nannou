@@ -28,8 +28,7 @@ fn model(app: &App) -> Model {
     app.new_window()
         .key_pressed(key_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // Initialise the audio host so we can spawn an audio stream.
     let audio_host = audio::Host::new();
@@ -49,8 +48,7 @@ fn model(app: &App) -> Model {
     let in_stream = audio_host
         .new_input_stream(in_model)
         .capture(pass_in)
-        .build()
-        .unwrap();
+        .build();
 
     // Create output model and output stream using that model
     let out_model = OutputModel { consumer: cons };
@@ -89,7 +87,7 @@ fn pass_out(model: &mut OutputModel, buffer: &mut Buffer) {
     }
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::Space => {
             if model.in_stream.is_paused() {
@@ -104,6 +102,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     }
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) {
-    draw.background().color(DIMGRAY);
+fn view(app: &App, _model: &Model) {
+    let draw = app.draw();
+    draw.background().color(DIM_GRAY);
 }

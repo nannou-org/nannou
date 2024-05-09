@@ -146,8 +146,7 @@ fn model(app: &App) -> Model {
         .size(rect.w() as u32, rect.h() as u32)
         .event(event)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let movers = (0..90)
         .map(|_| {

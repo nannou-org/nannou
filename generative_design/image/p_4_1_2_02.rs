@@ -41,11 +41,10 @@ fn model(app: &App) -> Model {
         .size(1024, 580)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     // Load the image from disk and upload it to a GPU texture.
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets
         .join("images")
         .join("generative_examples")
@@ -91,7 +90,7 @@ fn view(app: &App, model: &Model) {
 
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
         app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }

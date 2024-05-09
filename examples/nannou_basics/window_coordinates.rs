@@ -104,10 +104,10 @@ fn view(app: &App) {
             .left_justify();
 
         // Ellipse at mouse.
-        draw.ellipse().wh([5.0; 2].into()).xy(app.mouse.position());
+        draw.ellipse().wh([5.0; 2].into()).xy(app.mouse()());
 
         // Mouse position text.
-        let mouse = app.mouse.position();
+        let mouse = app.mouse()();
         let pos = format!("[{:.1}, {:.1}]", mouse.x, mouse.y);
         draw.text(&pos)
             .xy(mouse + vec2(0.0, 20.0))

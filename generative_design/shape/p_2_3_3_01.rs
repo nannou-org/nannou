@@ -55,8 +55,7 @@ fn model(app: &App) -> Model {
         .mouse_pressed(mouse_pressed)
         .key_pressed(key_pressed)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let letters = "All the world's a stage, and all the men and women merely players. They have their exits and their entrances.".to_string();
     Model {
@@ -74,7 +73,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model) {
-    if app.mouse.buttons.left().is_down() {
+    if app.mouse_buttons().just_pressed(MouseButton::Left) {
         model.distance = pt2(model.x, model.y).distance(pt2(app.mouse().x, app.mouse().y));
         model.font_size = model.font_size_min + model.distance as u32 / 2;
 
@@ -138,16 +137,16 @@ fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.y = app.mouse().y;
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
-    if key == KeyCode::Up {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
+    if key == KeyCode::ArrowUp {
         model.angle_distortion += 0.1;
     }
-    if key == KeyCode::Down {
+    if key == KeyCode::ArrowDown {
         model.angle_distortion -= 0.1;
     }
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
         app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }

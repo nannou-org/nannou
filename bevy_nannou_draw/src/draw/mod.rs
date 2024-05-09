@@ -621,9 +621,9 @@ where
     pub fn texture<'a>(
         &'a self,
         texture_handle: Handle<Image>,
-        texture: Image,
+        (w, h): (u32, u32),
     ) -> Drawing<'a, primitive::Texture, M> {
-        self.a(primitive::Texture::new(texture_handle, texture))
+        self.a(primitive::Texture::new(texture_handle, (w as f32, h as f32)))
     }
 
     /// Finish any drawings-in-progress and produce an iterator draining the inner draw commands

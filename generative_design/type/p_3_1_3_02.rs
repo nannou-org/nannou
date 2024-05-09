@@ -53,8 +53,7 @@ fn model(app: &App) -> Model {
         .size(1200, 800)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let text_path = app
         .assets_path()
@@ -157,9 +156,9 @@ fn count_characters(model: &mut Model) {
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        KeyCode::LControl | KeyCode::KeyRControl => {
+        KeyCode::ControlLeft | KeyCode::ControlRight => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         KeyCode::Digit1 => {
             model.draw_lines = !model.draw_lines;

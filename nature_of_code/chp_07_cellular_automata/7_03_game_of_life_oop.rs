@@ -158,8 +158,7 @@ fn model(app: &App) -> Model {
         .size(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let gol = Gol::new(rect);
     Model { gol }

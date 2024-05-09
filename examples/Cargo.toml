@@ -130,6 +130,7 @@ path = "laser/laser_frame_stream.rs"
 [[example]]
 name = "laser_frame_stream_gui"
 path = "laser/laser_frame_stream_gui.rs"
+required-features = ["egui"]
 [[example]]
 name = "laser_raw_stream"
 path = "laser/laser_raw_stream.rs"
@@ -197,9 +198,11 @@ path = "templates/template_sketch.rs"
 [[example]]
 name = "circle_packing"
 path = "ui/egui/circle_packing.rs"
+required-features = ["egui"]
 [[example]]
 name = "tune_color"
 path = "ui/egui/tune_color.rs"
+required-features = ["egui"]
 [[example]]
 name = "simple_ui"
 path = "ui/egui/simple_ui.rs"

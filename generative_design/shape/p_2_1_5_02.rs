@@ -75,8 +75,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_released(mouse_released)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let shapes = vec![Shape::new(0.0, 0.0, app.window_rect().w()); 1];
     Model {
@@ -108,7 +107,7 @@ fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
     ));
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
         app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }

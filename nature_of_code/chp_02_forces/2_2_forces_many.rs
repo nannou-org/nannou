@@ -75,8 +75,7 @@ fn model(app: &App) -> Model {
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let movers = (0..20)
         .map(|_| Mover::new(random_range(0.01f32, 4.0), rect.left(), rect.top()))

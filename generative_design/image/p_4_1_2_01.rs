@@ -32,7 +32,7 @@ fn main() {
 
 struct Model {
     // Store the window ID so we can refer to this specific window later if needed.
-    texture: wgpu::Texture,
+    image: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
@@ -41,20 +41,24 @@ fn model(app: &App) -> Model {
         .size(1024, 780)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
     // Load the image from disk and upload it to a GPU texture.
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets
         .join("images")
         .join("generative_examples")
         .join("p_4_1_2_01.png");
-    let texture = wgpu::Texture::from_path(app, img_path).unwrap();
-    Model { texture }
+    let image = app.assets().load(img_path);
+    Model { image }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model) {
+    let Some(image) = app.image(&model.image) else {
+        return;
+    };
+
+    let draw = app.draw();
     let win = app.window_rect();
 
     let x1 = random_range(win.left(), win.right());
@@ -71,26 +75,20 @@ fn view(app: &App, model: &Model) {
         map_range(h, 0.0, win.h(), 0.0, 1.0),
     );
 
-    // Don't interpolate between pixels.model
-    let sampler = wgpu::SamplerBuilder::new()
-        .min_filter(wgpu::FilterMode::Nearest)
-        .mag_filter(wgpu::FilterMode::Nearest)
-        .into_descriptor();
-    let draw = app.draw().sampler(sampler);
-
+    let dim = image.dimensions();
+    let image = model.image.clone();
     if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
         draw.background().color(WHITE);
-        draw.texture(&model.texture);
+        draw.texture(image, dim);
     } else {
-        draw.texture(&frame.resolve_target().unwrap_or(frame.texture_view()))
+        draw.texture(image, dim)
             .x_y(x2, y2)
             .w_h(w, h)
             .area(area);
     }
-
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
         app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }

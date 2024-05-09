@@ -9,40 +9,36 @@ fn main() {
 }
 
 struct Model {
-    egui: Egui,
+    window: Entity,
     radius: f32,
-    color: Hsv,
+    color: Hsva,
 }
 
 fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
-    let window_id = app
+    let window = app
         .new_window()
         .title("Nannou + Egui")
         .size(WIDTH as u32, HEIGHT as u32)
-        .raw_event(raw_window_event) // This is where we forward all raw events for egui to process them
         .view(view) // The function that will be called for presenting graphics to a frame.
-        .build()
-        .unwrap();
-
-    let window = app.window(window_id).unwrap();
+        .build();
 
     Model {
-        egui: Egui::from_window(&window),
+        window,
         radius: 40.0,
-        color: hsv(10.0, 0.5, 1.0),
+        color: Color::hsv(10.0, 0.5, 1.0),
     }
 }
 
-fn update(_app: &App, model: &mut Model, update: Update) {
+fn update(app: &App, model: &mut Model, update: Update) {
     let Model {
-        ref mut egui,
+        window,
         ref mut radius,
         ref mut color,
     } = *model;
 
-    egui.set_elapsed_time(update.since_start);
-    let ctx = egui.begin_frame();
+    let mut egui_ctx = app.egui_for_window(window);
+    let ctx = &egui_ctx.get_mut();
     egui::Window::new("EGUI window")
         .default_size(egui::vec2(0.0, 200.0))
         .show(&ctx, |ui| {
@@ -51,10 +47,6 @@ fn update(_app: &App, model: &mut Model, update: Update) {
             ui.add(egui::Slider::new(radius, 10.0..=100.0).text("Radius"));
             edit_hsv(ui, color);
         });
-}
-
-fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event::WindowEvent) {
-    model.egui.handle_raw_event(event);
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
@@ -67,14 +59,9 @@ fn view(app: &App, model: &Model) {
         .x_y(100.0, 100.0)
         .radius(model.radius)
         .color(model.color);
-
-
-
-    // Do this as the last operation on your frame.
-    model.egui.draw_to_frame(&frame).unwrap();
 }
 
-fn edit_hsv(ui: &mut egui::Ui, color: &mut Hsv) {
+fn edit_hsv(ui: &mut egui::Ui, color: &mut Hsva) {
     let mut egui_hsv = egui::ecolor::Hsva::new(
         color.hue.to_positive_radians() as f32 / (std::f32::consts::PI * 2.0),
         color.saturation,
@@ -89,6 +76,6 @@ fn edit_hsv(ui: &mut egui::Ui, color: &mut Hsv) {
     )
     .changed()
     {
-        *color = nannou::color::hsv(egui_hsv.h, egui_hsv.s, egui_hsv.v);
+        *color = Color::hsv(egui_hsv.h, egui_hsv.s, egui_hsv.v).into();
     }
 }

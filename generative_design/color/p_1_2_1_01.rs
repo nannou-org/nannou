@@ -51,8 +51,7 @@ fn model(app: &App) -> Model {
         .key_pressed(key_pressed)
         .mouse_released(mouse_released)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let tile_count_x = 2;
     let tile_count_y = 10;
@@ -146,7 +145,7 @@ fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
         }
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

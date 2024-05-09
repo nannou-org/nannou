@@ -3,10 +3,9 @@
 
 use nannou::geom::Rect;
 use nannou::prelude::*;
-use nannou_egui::egui::FontId;
-use nannou_egui::{self, egui, Egui};
 use nannou_laser as laser;
 use std::sync::{mpsc, Arc};
+use nannou::prelude::egui::FontId;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -23,8 +22,8 @@ struct Model {
     laser_settings: LaserSettings,
     // For receiving newly detected DACs.
     dac_rx: mpsc::Receiver<laser::DetectedDac>,
-    // The UI for control over laser parameters and settings.
-    egui: Egui,
+    // The egui window.
+    window: Entity,
 }
 
 #[derive(Clone)]
@@ -113,14 +112,12 @@ impl Default for RgbProfile {
 
 fn model(app: &App) -> Model {
     // Create a window to receive keyboard events.
-    let w_id = app
+    let window = app
         .new_window()
         .size(312, 530)
         .key_pressed(key_pressed)
-        .raw_event(raw_window_event)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // Initialise the state that we want to live on the laser thread and spawn the stream.
     let laser_settings = LaserSettings::default();
@@ -154,9 +151,9 @@ fn model(app: &App) -> Model {
     let laser_streams = vec![];
 
     // A user-interface to tweak the settings.
-    let window = app.window(w_id).unwrap();
-    let egui = Egui::from_window(&window);
-    egui.ctx().set_style(style());
+    let mut egui_ctx = app.egui();
+    let ctx = egui_ctx.get_mut();
+    ctx.set_style(style());
 
     Model {
         laser_api,
@@ -164,7 +161,7 @@ fn model(app: &App) -> Model {
         laser_model,
         laser_streams,
         dac_rx,
-        egui,
+        window,
     }
 }
 
@@ -272,11 +269,7 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
     }
 }
 
-fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event::WindowEvent) {
-    model.egui.handle_raw_event(event);
-}
-
-fn update(_app: &App, model: &mut Model, update: Update) {
+fn update(app: &App, model: &mut Model) {
     // First, check for new laser DACs.
     for dac in model.dac_rx.try_iter() {
         println!("Detected DAC {:?}!", dac.id());
@@ -323,15 +316,15 @@ fn update(_app: &App, model: &mut Model, update: Update) {
 
     // Update the GUI.
     let Model {
-        ref mut egui,
+        window,
         ref laser_streams,
         ref mut laser_model,
         ref mut laser_settings,
         ..
     } = *model;
 
-    egui.set_elapsed_time(update.since_start);
-    let ctx = egui.begin_frame();
+    let mut egui_ctx = app.egui();
+    let ctx = egui_ctx.get_mut();
 
     // The timeline area.
     egui::containers::CentralPanel::default().show(&ctx, |ui| {
@@ -485,7 +478,7 @@ fn update(_app: &App, model: &mut Model, update: Update) {
     });
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     // Send a new pattern to the laser on keys 1, 2, 3 and 4.
     let new_pattern = match key {
         KeyCode::Digit1 => TestPattern::Rectangle,
@@ -503,8 +496,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     }
 }
 
-fn view(_app: &App, model: &Model, frame: Frame) {
-    model.egui.draw_to_frame(&frame).unwrap();
+fn view(_app: &App, model: &Model) {
 }
 
 // The following functions are some custom styling preferences in an attempt to improve on the

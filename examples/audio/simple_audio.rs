@@ -21,8 +21,7 @@ fn model(app: &App) -> Model {
     app.new_window()
         .key_pressed(key_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // Initialise the audio API so we can spawn an audio stream.
     let audio_host = audio::Host::new();
@@ -36,8 +35,7 @@ fn model(app: &App) -> Model {
     let stream = audio_host
         .new_output_stream(model)
         .render(audio)
-        .build()
-        .unwrap();
+        .build();
 
     stream.play().unwrap();
 
@@ -59,7 +57,7 @@ fn audio(audio: &mut Audio, buffer: &mut Buffer) {
     }
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
         // Pause or unpause the audio when Space is pressed.
         KeyCode::Space => {
@@ -70,7 +68,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
             }
         }
         // Raise the frequency when the up key is pressed.
-        KeyCode::Up => {
+        KeyCode::ArrowUp => {
             model
                 .stream
                 .send(|audio| {
@@ -79,7 +77,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
                 .unwrap();
         }
         // Lower the frequency when the down key is pressed.
-        KeyCode::Down => {
+        KeyCode::ArrowDown => {
             model
                 .stream
                 .send(|audio| {

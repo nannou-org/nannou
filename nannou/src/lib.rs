@@ -23,12 +23,12 @@ pub use nannou_core::{glam, math, rand};
 pub mod app;
 pub mod event;
 pub mod geom;
-pub mod image;
 pub mod io;
 pub mod noise;
 pub mod prelude;
 pub mod time;
 mod window;
+mod image;
 
 /// Begin building the `App`.
 ///

@@ -94,8 +94,7 @@ fn model(app: &App) -> Model {
         .size(640, 360)
         .view(view)
         .mouse_pressed(mouse_pressed)
-        .build()
-        .unwrap();
+        .build();
     let middle = app.window_rect().xy();
     let vehicle = Vehicle::new(middle.x, middle.y);
     let debug = true;

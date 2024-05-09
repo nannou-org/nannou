@@ -294,7 +294,7 @@ changelog entry
 - Fixes the issue where `TextureCapturer` could spawn more user callbacks than
   there where worker threads to process them.
 - Fixes the issue where an application might exit before all
-  `window.capture_frames(path)` snapshots have completed.
+  `window.save_screenshots(path)` snapshots have completed.
 - Provides a `TextureCapturer::await_active_snapshots(device)` method that
   allows to properly await the completion of all snapshot read futures by
   polling the device as necessary.
@@ -303,10 +303,10 @@ changelog entry
 - `Snapshot::read_threaded` has been removed in favour of a single
   `Snapshot::read` method that is threaded by default. The old synchronous
   behaviour can be emulated by creating the `TextureCapturer` with a single
-  worker. Likewise, `window.capture_frame_threaded` has been removed in favour
-  of `window.capture_frame` for the same reason.
-- New `app::Builder` and `window::Builder` `max_capture_frame_jobs` and
-  `capture_frame_timeout` methods have been added to allow for specifying the
+  worker. Likewise, `window.save_screenshot_threaded` has been removed in favour
+  of `window.save_screenshot` for the same reason.
+- New `app::Builder` and `window::Builder` `max_save_screenshot_jobs` and
+  `save_screenshot_timeout` methods have been added to allow for specifying the
   number of worker threads and optional timeout duration for the windows' inner
   `TextureCapturer`s.
 
@@ -352,7 +352,7 @@ changelog entry
   crates.
 - Add a `random_ascii()` function.
 - Add many more "Generative Design" and "Nature of Code" examples.
-- Fix bug where `capture_frame_threaded` was not actually threaded.
+- Fix bug where `save_screenshot_threaded` was not actually threaded.
 
 **The Great Repository Refactor**
 
@@ -461,7 +461,7 @@ changelog entry
   won't do anything!).
 - A `.size(w, h)` builder has been added to the `app::Builder` type that allows
   for specifying a default window size.
-- Add `window.capture_frame(path)` method for capturing the next frame to an
+- Add `window.save_screenshot(path)` method for capturing the next frame to an
   image file at the given file path.
 - Add a `simple_capture.rs` example.
 - Add a `capture_hi_res.rs` example.
@@ -651,7 +651,7 @@ changelog entry
 - Add `App::elapsed_frames` method.
 - Remove `app.window.id` field in favour of more reliable `app.window_id`
   method.
-- Change `ui::Builder` so that it no longer requires `window::Id`. Now defaults
+- Change `ui::Builder` so that it no longer requires `Entity`. Now defaults
   to focused window.
 - Fix several HiDPI related bugs introduced in the last winit update.
 - Add support for rotation and orientation to `draw` API.

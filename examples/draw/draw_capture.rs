@@ -43,7 +43,7 @@ fn view(app: &App) {
 
     // Capture the frame!
     let file_path = captured_frame_path(app, &frame);
-    app.main_window().capture_frame(file_path);
+    app.main_window().save_screenshot(file_path);
 }
 
 fn captured_frame_path(app: &App, frame: &Frame) -> std::path::PathBuf {

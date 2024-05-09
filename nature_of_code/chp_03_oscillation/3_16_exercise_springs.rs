@@ -135,8 +135,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
-        .build()
-        .unwrap();
+        .build();
 
     // Create objects at starting position
     // Note third argument in Spring constructor is "rest length"

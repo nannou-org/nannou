@@ -141,7 +141,7 @@ fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
         .buttons
         .left()
         .if_down()
-        .unwrap_or(app.mouse.position());
+        .unwrap_or(app.mouse()());
     model.new_shape = Some(Shape::new(
         model.p_mouse.x,
         model.p_mouse.y,
@@ -165,7 +165,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         KeyCode::Digit1 => {
             model.shape_color = vec3(1.0, 0.0, 0.0);
@@ -179,10 +179,10 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::Digit4 => {
             model.shape_color = vec3(0.0, 0.0, 0.0);
         }
-        KeyCode::Up => {
+        KeyCode::ArrowUp => {
             model.shape_height += model.density as f32;
         }
-        KeyCode::Down => {
+        KeyCode::ArrowDown => {
             model.shape_height -= model.density as f32;
         }
         _other_key => (),

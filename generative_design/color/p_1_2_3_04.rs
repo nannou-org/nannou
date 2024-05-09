@@ -53,8 +53,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_released(mouse_released)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let color_count = 20;
 

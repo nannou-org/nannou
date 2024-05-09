@@ -44,8 +44,7 @@ fn model(app: &App) -> Model {
         .size(600, 600)
         .key_pressed(key_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let module_alpha = 0.7;
 

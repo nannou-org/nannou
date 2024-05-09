@@ -44,8 +44,7 @@ fn model(app: &App) -> Model {
         .size(600, 600)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         background_color: 0.0,
@@ -166,7 +165,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         }
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

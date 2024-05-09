@@ -66,10 +66,9 @@ fn model(app: &App) -> Model {
         .size(600, 600)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets
         .join("images")
         .join("generative_examples")
@@ -131,7 +130,7 @@ fn view(app: &App, model: &Model) {
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets.join("images").join("generative_examples");
 
     match key {
@@ -176,7 +175,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         }
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _otherkey => (),
     }

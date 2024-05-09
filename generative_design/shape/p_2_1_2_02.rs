@@ -133,28 +133,28 @@ fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
     }
 }
 
-fn key_released(_app: &App, model: &mut Model, key: Key) {
+fn key_released(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::Digit1 => {
             if model
                 .module_color_background
-                .eq(&hsva(0.0, 0.0, 0.0, model.module_alpha_background))
+                .eq(&Color::hsva(0.0, 0.0, 0.0, model.module_alpha_background))
             {
                 model.module_color_background =
-                   Color::hsva(0.758, 0.73, 0.51, model.module_alpha_background);
+                   Color::hsva(0.758, 0.73, 0.51, model.module_alpha_background).into();
             } else {
-                model.module_color_background =Color::hsva(0.0, 0.0, 0.0, model.module_alpha_background);
+                model.module_color_background =Color::hsva(0.0, 0.0, 0.0, model.module_alpha_background).into();
             }
         }
         KeyCode::Digit2 => {
             if model
                 .module_color_foreground
-                .eq(&hsva(1.0, 1.0, 1.0, model.module_alpha_foreground))
+                .eq(&Color::hsva(1.0, 1.0, 1.0, model.module_alpha_foreground))
             {
                 model.module_color_foreground =
-                   Color::hsva(0.89, 1.0, 0.77, model.module_alpha_foreground);
+                   Color::hsva(0.89, 1.0, 0.77, model.module_alpha_foreground).into();
             } else {
-                model.module_color_foreground =Color::hsva(1.0, 1.0, 1.0, model.module_alpha_foreground);
+                model.module_color_foreground =Color::hsva(1.0, 1.0, 1.0, model.module_alpha_foreground).into();
             }
         }
         KeyCode::Digit3 => {
@@ -173,13 +173,13 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
             model.module_radius_foreground = 7.5;
             model.module_alpha_background = 1.0;
             model.module_alpha_foreground = 1.0;
-            model.module_color_background =Color::hsva(0.0, 0.0, 0.0, model.module_alpha_background);
-            model.module_color_foreground =Color::hsva(0.0, 0.0, 1.0, model.module_alpha_foreground);
+            model.module_color_background =Color::hsva(0.0, 0.0, 0.0, model.module_alpha_background).into();
+            model.module_color_foreground =Color::hsva(0.0, 0.0, 1.0, model.module_alpha_foreground).into();
         }
-        KeyCode::Up => {
+        KeyCode::ArrowUp => {
             model.module_radius_background += 2.0;
         }
-        KeyCode::Down => {
+        KeyCode::ArrowDown => {
             model.module_radius_background = 5.0.max(model.module_radius_background - 2.0);
         }
         KeyCode::ArrowLeft=> {

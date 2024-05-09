@@ -38,11 +38,11 @@ struct Agent {
     step_size: f32,
     angle: f32,
     is_outside: bool,
-    win_rect: Rect,
+    win_rect: geom::Rect,
 }
 
 impl Agent {
-    fn new(win_rect: Rect) -> Self {
+    fn new(win_rect: geom::Rect) -> Self {
         let vector = vec2(
             random_range(win_rect.left(), win_rect.right()),
             random_range(win_rect.top(), win_rect.bottom()),
@@ -118,8 +118,7 @@ fn model(app: &App) -> Model {
         .size(720, 720)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let agent_count = 4000;
     let agents = (0..agent_count)
@@ -180,7 +179,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         }
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

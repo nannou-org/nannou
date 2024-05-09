@@ -131,8 +131,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
-        .build()
-        .unwrap();
+        .build();
     let pendulum = Pendulum::new(pt2(0.0, app.window_rect().top()), 175.0);
 
     Model { pendulum }

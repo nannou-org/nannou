@@ -5,31 +5,31 @@ fn main() {
 }
 
 struct Model {
-    window_id: window::Id,
-    texture: wgpu::Texture,
+    window_id: Entity,
+    texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
     let window_id = app.new_window().size(512, 512).view(view).build().unwrap();
 
     // Load the image from disk and upload it to a GPU texture.
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets.join("images").join("nature").join("nature_1.jpg");
-    let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+    let texture = app.assets().load(img_path);
 
     Model { window_id, texture }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model) {
-    draw.background().color(DIMGRAY);
     let window = app.window(model.window_id).unwrap();
     let win_rect = window.rect();
     let draw = app.draw();
+    draw.background().color(DIM_GRAY);
 
     // Generate a spiral for the path to follow.
     // Modulate the frequency of the spiral with a wave over time.
-    let wave = (app.time * 0.125).cos();
+    let wave = (app.time() * 0.125).cos();
     let freq = map_range(wave, -1.0, 1.0, 2.0, 20.0);
     let spiral_side = win_rect.w().min(win_rect.h()) * 0.5;
     let points = (0..spiral_side as u32).map(|i| {
@@ -48,8 +48,8 @@ fn view(app: &App, model: &Model) {
         .path()
         .stroke()
         .weight(0.9 / freq)
-        .points_textured(&model.texture, points)
-        .rotate(app.time * 0.25);
+        .points_textured(model.texture.clone(), points)
+        .rotate(app.time().elapsed() * 0.25);
 
     // Draw to the frame!
 

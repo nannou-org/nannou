@@ -54,8 +54,7 @@ fn model(app: &App) -> Model {
         .key_released(key_released)
         .mouse_pressed(mouse_pressed)
         .mouse_moved(mouse_moved)
-        .build()
-        .unwrap();
+        .build();
 
     let tile_count_x = 10;
     let tile_count_y = 10;
@@ -138,7 +137,7 @@ fn mouse_moved(app: &App, model: &mut Model, pos: Point2) {
     );
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
         app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }

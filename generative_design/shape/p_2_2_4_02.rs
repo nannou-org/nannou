@@ -46,8 +46,7 @@ fn model(app: &App) -> Model {
         .size(800, 800)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let max_count = 5000; // max count of the circles
     Model {

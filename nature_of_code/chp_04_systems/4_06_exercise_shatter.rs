@@ -115,8 +115,7 @@ fn model(app: &App) -> Model {
         .size(640, 360)
         .view(view)
         .mouse_pressed(mouse_pressed)
-        .build()
-        .unwrap();
+        .build();
     let win = app.window_rect();
     let ps = ParticleSystem::new(win.left() + 100.0, win.top() - 100.0, 5.0);
     Model { ps }

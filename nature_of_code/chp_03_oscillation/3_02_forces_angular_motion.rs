@@ -111,8 +111,7 @@ fn model(app: &App) -> Model {
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let movers = (0..20)
         .map(|_| {

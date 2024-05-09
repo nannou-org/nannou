@@ -69,8 +69,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
-        .build()
-        .unwrap();
+        .build();
     let p = Particle::new(pt2(0.0, app.window_rect().top() - 20.0));
     Model {
         p,

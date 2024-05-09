@@ -116,8 +116,7 @@ fn model(app: &App) -> Model {
         .new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let ca = Ca::new(rect);
     Model { ca }

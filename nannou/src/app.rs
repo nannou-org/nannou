@@ -12,8 +12,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{self};
+use std::path::{Path, PathBuf};
 
 use bevy::app::AppExit;
+use bevy::asset::io::file::FileAssetReader;
 use bevy::core::FrameCount;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::system::SystemParam;
@@ -123,6 +125,7 @@ pub struct App<'w> {
     current_view: Option<Entity>,
     world: Rc<RefCell<UnsafeWorldCell<'w>>>,
     window_count: AtomicUsize,
+    images: Mut<'w, Assets<Image>>,
 }
 
 #[derive(Resource, Deref, DerefMut)]
@@ -476,6 +479,24 @@ impl<'w> App<'w> {
         world.spawn((NannouPersistentMesh,)).id()
     }
 
+    pub fn assets(&self) -> Mut<AssetServer> {
+        self.world_mut().resource_mut::<AssetServer>()
+    }
+
+    pub fn assets_path(&self) -> PathBuf {
+        FileAssetReader::get_base_path().join("assets")
+    }
+
+    pub fn image(&self, handle: &Handle<Image>) -> Option<&Image> {
+        self.images
+            .get(handle)
+    }
+
+    pub fn image_mut(&mut self, handle: &Handle<Image>) -> Option<&mut Image> {
+        self.images
+            .get_mut(handle)
+    }
+
     #[cfg(feature = "egui")]
     pub fn egui_for_window(&self, window: Entity) -> Mut<EguiContext> {
         self.world_mut()
@@ -499,6 +520,11 @@ impl<'w> App<'w> {
         screen_position - geom::pt2(window.width() / 2.0, window.height() / 2.0)
     }
 
+    pub fn mouse_buttons(&self) -> &ButtonInput<MouseButton> {
+        let mut mouse_input = self.world_mut().resource::<ButtonInput<MouseButton>>();
+        mouse_input
+    }
+
     pub fn keys(&self) -> &ButtonInput<KeyCode> {
         let mut keyboard_input = self.world_mut().resource::<ButtonInput<KeyCode>>();
         keyboard_input
@@ -511,11 +537,14 @@ impl<'w> App<'w> {
 
     // Create a new `App`.
     fn new(world: &'w mut World) -> Self {
-        let window_count = world.query::<&Window>().iter(world).count();
+        let world =world.as_unsafe_world_cell();
+        let window_count = unsafe { world.world_mut() }.query::<&Window>().iter(unsafe { world.world_mut() }).count();
+        let images = unsafe { world.world_mut() }.resource_mut::<Assets<Image>>();
         let app = App {
             current_view: None,
-            world: Rc::new(RefCell::new(world.as_unsafe_world_cell())),
+            world: Rc::new(RefCell::new(world)),
             window_count: window_count.into(),
+            images,
         };
         app
     }

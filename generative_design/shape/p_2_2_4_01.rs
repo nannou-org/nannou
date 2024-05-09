@@ -42,8 +42,7 @@ fn model(app: &App) -> Model {
         .size(800, 800)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let max_count = 5000; // max count of the circles
     Model {
@@ -102,7 +101,7 @@ fn view(app: &App, model: &Model) {
 
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
         app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }

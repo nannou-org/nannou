@@ -48,8 +48,7 @@ fn model(app: &App) -> Model {
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         letter: '8',
@@ -80,8 +79,8 @@ fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
 fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
     model.mouse_drag = false;
 }
-fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == KeyCode::LControl || key == KeyCode::KeyRControl {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::ControlLeft || key == KeyCode::ControlRight {
         app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

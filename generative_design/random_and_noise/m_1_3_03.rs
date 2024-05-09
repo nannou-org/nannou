@@ -44,7 +44,7 @@ struct Model {
     falloff: f32,
     noise_mode: u8,
     noise_random_seed: u32,
-    texture: wgpu::Texture,
+    texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
@@ -130,7 +130,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         KeyCode::Space => {
             model.noise_random_seed = (random_f32() * 100000.0) as u32;
@@ -145,12 +145,12 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     }
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        KeyCode::Up => {
+        KeyCode::ArrowUp => {
             model.falloff += 0.05;
         }
-        KeyCode::Down => {
+        KeyCode::ArrowDown => {
             model.falloff -= 0.05;
         }
         KeyCode::ArrowLeft=> {

@@ -5,7 +5,7 @@ fn main() {
 }
 
 struct Model {
-    window_id: window::Id,
+    window_id: Entity,
     texture: wgpu::Texture,
 }
 
@@ -13,7 +13,7 @@ fn model(app: &App) -> Model {
     let window_id = app.new_window().size(512, 512).view(view).build().unwrap();
 
     // Load the image from disk and upload it to a GPU texture.
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets.join("images").join("nature").join("nature_1.jpg");
     let texture = wgpu::Texture::from_path(app, img_path).unwrap();
 

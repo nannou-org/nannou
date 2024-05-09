@@ -23,8 +23,7 @@ fn model(app: &App) -> Model {
     app.new_window()
         .mouse_moved(mouse_moved)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // Initialise the state that we want to live on the laser thread and spawn the stream.
     let laser_model = Laser {
@@ -79,7 +78,7 @@ fn mouse_moved(app: &App, model: &mut Model, pos: Point2) {
 fn view(app: &App, _model: &Model) {
     // Visualise the point in the window.
     let draw = app.draw();
-    draw.background().color(DIMGRAY);
-    draw.ellipse().w_h(5.0, 5.0).xy(app.mouse.position());
+    draw.background().color(DIM_GRAY);
+    draw.ellipse().w_h(5.0, 5.0).xy(app.mouse());
 
 }

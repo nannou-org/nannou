@@ -5,7 +5,7 @@ fn main() {
 }
 
 struct Model {
-    _window: window::Id,
+    _window: Entity,
 }
 
 fn model(app: &App) -> Model {

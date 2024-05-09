@@ -37,8 +37,7 @@ fn model(app: &App) -> Model {
     app.new_window()
         .key_pressed(key_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // Initialise the state that we want to live on the laser thread and spawn the stream.
     let laser_model = Laser {
@@ -47,8 +46,7 @@ fn model(app: &App) -> Model {
     let _laser_api = laser::Api::new();
     let laser_stream = _laser_api
         .new_frame_stream(laser_model, laser)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         _laser_api,
@@ -136,7 +134,7 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
     }
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     // Send a new pattern to the laser on keys 1, 2, 3 and 4.
     let new_pattern = match key {
         KeyCode::Digit1 => TestPattern::Rectangle,
