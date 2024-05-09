@@ -7,4 +7,5 @@ pub use bevy::ecs as bevy_ecs;
 pub use bevy::reflect as bevy_reflect;
 pub use bevy_nannou::prelude::*;
 pub use nannou_core::prelude::*;
+#[cfg(feature = "egui")]
 pub use bevy_egui::egui;
