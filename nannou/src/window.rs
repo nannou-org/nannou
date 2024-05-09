@@ -4,7 +4,7 @@
 //! which can be used to build a [**Window**](./struct.Window.html).
 
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 
@@ -12,20 +12,30 @@ use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::render::view::RenderLayers;
-use bevy::window::{PrimaryWindow, WindowLevel, WindowRef};
+use bevy::window::{Cursor, CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef};
 
 use bevy_nannou::prelude::render::NannouCamera;
 use bevy_nannou::prelude::MonitorSelection;
+use nannou_core::geom;
 
 use crate::geom::Point2;
 use crate::glam::Vec2;
 use crate::prelude::WindowResizeConstraints;
 use crate::App;
 
+/// A nannou window.
+///
+/// The **Window** acts as a wrapper around the `winit::window::Window` and the `wgpu::Surface`
+/// types.
+pub struct Window<'a, 'w> {
+    entity: Entity,
+    app: &'a App<'w>,
+}
+
 /// A context for building a window.
 pub struct Builder<'a, 'w, M = ()> {
     app: &'a App<'w>,
-    window: Window,
+    window: bevy::window::Window,
     primary: bool,
     title_was_set: bool,
     user_functions: UserFunctions<M>,
@@ -57,6 +67,21 @@ pub(crate) struct UserFunctions<M> {
     pub(crate) unfocused: Option<UnfocusedFn<M>>,
     pub(crate) closed: Option<ClosedFn<M>>,
 }
+
+impl <'a, 'w> Window<'a, 'w> {
+    pub fn new(app: &'a App<'w>, entity: Entity) -> Self {
+        Window { app, entity }
+    }
+
+    fn window(&self) -> &bevy::window::Window {
+        self.app.world().get::<bevy::window::Window>(self.entity).unwrap()
+    }
+
+    fn window_mut(&self) -> Mut<'a, bevy_nannou::prelude::Window> {
+        self.app.world_mut().get_mut::<bevy::window::Window>(self.entity).unwrap()
+    }
+}
+
 
 impl<M> Default for UserFunctions<M> {
     fn default() -> Self {
@@ -204,7 +229,7 @@ where
     pub fn new(app: &'a App<'w>) -> Self {
         Builder {
             app,
-            window: Window::default(),
+            window: bevy::window::Window::default(),
             primary: false,
             title_was_set: false,
             user_functions: UserFunctions::<M>::default(),
@@ -214,7 +239,7 @@ where
     }
 
     /// Build the window with some custom window parameters.
-    pub fn window(mut self, window: Window) -> Self {
+    pub fn window(mut self, window: bevy::window::Window) -> Self {
         self.window = window;
         self
     }
@@ -434,7 +459,7 @@ where
 
     fn map_window<F>(self, map: F) -> Self
     where
-        F: FnOnce(Window) -> Window,
+        F: FnOnce(bevy::window::Window) -> bevy::window::Window,
     {
         let Builder {
             app,
@@ -581,6 +606,7 @@ where
     }
 }
 
+
 impl<M> fmt::Debug for View<M> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let variant = match *self {
@@ -591,3 +617,275 @@ impl<M> fmt::Debug for View<M> {
         write!(f, "View::{}", variant)
     }
 }
+
+impl <'a, 'w> Window<'a, 'w> {
+    /// A unique identifier associated with this window.
+    pub fn id(&self) -> Entity {
+        self.entity
+    }
+
+    /// Returns the scale factor that can be used to map logical pixels to physical pixels and vice
+    /// versa.
+    ///
+    /// Throughout nannou, you will see "logical pixels" referred to as "points", and "physical
+    /// pixels" referred to as "pixels".
+    ///
+    /// This is typically `1.0` for a normal display, `2.0` for a retina display and higher on more
+    /// modern displays.
+    ///
+    /// You can read more about what this scale factor means within winit's [dpi module
+    /// documentation](https://docs.rs/winit/latest/winit/dpi/index.html).
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **X11:** This respects Xft.dpi, and can be overridden using the `WINIT_X11_SCALE_FACTOR`
+    ///   environment variable.
+    /// - **Android:** Always returns 1.0.
+    /// - **iOS:** Can only be called on the main thread. Returns the underlying `UiView`'s
+    ///   `contentScaleFactor`.
+    pub fn scale_factor(&self) -> f32 {
+        self.window_mut().scale_factor()
+    }
+
+    /// The width and height in pixels of the client area of the window.
+    ///
+    /// The client area is the content of the window, excluding the title bar and borders.
+    pub fn size_pixels(&self) -> UVec2 {
+        self.window_mut().physical_size()
+    }
+
+    /// The width and height in points of the client area of the window.
+    ///
+    /// The client area is the content of the window, excluding the title bar and borders.
+    ///
+    /// This is the same as dividing the result  of `size_pixels()` by `scale_factor()`.
+    pub fn size_points(&self) -> Vec2 {
+        self.window_mut()
+            .size()
+    }
+
+    /// Modifies the inner size of the window.
+    ///
+    /// See the `size` methods for more informations about the values.
+    pub fn set_size_pixels(&self, width: u32, height: u32) {
+        self.window_mut().resolution.set_physical_resolution(width, height)
+    }
+
+    /// Modifies the inner size of the window using point values.
+    ///
+    /// See the `size` methods for more informations about the values.
+    pub fn set_size_points(&self, width: f32, height: f32) {
+        self.window_mut().resolution.set(width, height)
+    }
+
+    /// Sets a minimum size for the window.
+    pub fn set_min_size_points(&self, size: Option<Vec2>) {
+        if let Some(size) = size {
+            self.window_mut().resize_constraints.min_width = size.x;
+            self.window_mut().resize_constraints.min_height = size.y;
+        } else {
+            self.window_mut().resize_constraints.min_width = f32::INFINITY;
+            self.window_mut().resize_constraints.min_height = f32::INFINITY;
+        }
+    }
+
+    /// Sets a maximum size for the window.
+    pub fn set_max_size_points(&self, size: Option<Vec2>) {
+        if let Some(size) = size {
+            self.window_mut().resize_constraints.max_width = size.x;
+            self.window_mut().resize_constraints.max_height = size.y;
+        } else {
+            self.window_mut().resize_constraints.max_width = f32::INFINITY;
+            self.window_mut().resize_constraints.max_height = f32::INFINITY;
+        }
+    }
+
+    /// Modifies the title of the window.
+    ///
+    /// This is a no-op if the window has already been closed.
+    pub fn set_title(&self, title: String) {
+        self.window_mut().title = title;
+    }
+
+    /// Set the visibility of the window.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - Android: Has no effect.
+    /// - iOS: Can only be called on the main thread.
+    /// - Web: Has no effect.
+    pub fn set_visible(&self, visible: bool) {
+        self.window_mut().visible = visible;
+    }
+
+    /// Sets whether the window is resizable or not.
+    ///
+    /// Note that making the window unresizable doesn't exempt you from handling **Resized**, as
+    /// that event can still be triggered by DPI scaling, entering fullscreen mode, etc.
+    pub fn set_resizable(&self, resizable: bool) {
+        self.window_mut().resizable = resizable
+    }
+
+    /// Sets the window to minimized or back.
+    pub fn set_minimized(&self, minimized: bool) {
+        self.window_mut().set_minimized(minimized)
+    }
+
+    /// Sets the window to maximized or back.
+    pub fn set_maximized(&self, maximized: bool) {
+        self.window_mut().set_maximized(maximized)
+    }
+
+    /// Set the window to fullscreen on the primary monitor.
+    ///
+    /// `true` enables fullscreen, `false` disables fullscreen.
+    ///
+    /// See the `set_fullscreen_with` method for more options and details about behaviour related
+    /// to fullscreen.
+    pub fn set_fullscreen(&self, fullscreen: bool) {
+        if fullscreen {
+            self.window_mut().mode = WindowMode::BorderlessFullscreen;
+        } else {
+            self.window_mut().mode = WindowMode::Windowed;
+        }
+    }
+
+    /// Sets the window mode
+    pub fn set_mode(&self, mode: WindowMode) {
+        self.window_mut().mode = mode;
+    }
+
+    /// Gets the window's current fullscreen state.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Can only be called on the main thread.
+    pub fn mode(&self) -> WindowMode {
+        self.window_mut().mode
+    }
+
+    /// Turn window decorations on or off.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Can only be called on the main thread. Controls whether the status bar is hidden
+    ///   via `setPrefersStatusBarHidden`.
+    /// - **Web:** Has no effect.
+    pub fn set_decorations(&self, decorations: bool) {
+        self.window_mut().decorations = decorations;
+    }
+
+    /// Change whether or not the window will always be on top of other windows.
+    pub fn set_always_on_top(&self, always_on_top: bool) {
+        self.window_mut().window_level = if always_on_top {
+            WindowLevel::AlwaysOnTop
+        } else {
+            WindowLevel::Normal
+        }
+    }
+
+    /// Sets the window icon. On Windows and X11, this is typically the small icon in the top-left
+    /// corner of the titlebar.
+    ///
+    /// ## Platform-specific
+    ///
+    /// This only has effect on Windows and X11.
+    ///
+    /// On Windows, this sets ICON_SMALL. The base size for a window icon is 16x16, but it's
+    /// recommended to account for screen scaling and pick a multiple of that, i.e. 32x32.
+    ///
+    /// X11 has no universal guidelines for icon sizes, so you're at the whims of the WM. That
+    /// said, it's usually in the same ballpark as on Windows.
+    pub fn set_window_icon(&self, window_icon: Option<()>) {
+        todo!("https://github.com/bevyengine/bevy/issues/1031")
+    }
+
+    /// Sets the location of IME candidate box in client area coordinates relative to the top left.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Has no effect.
+    /// - **Web:** Has no effect.
+    pub fn set_ime_position_points(&self, x: f32, y: f32) {
+        self.window_mut()
+            .ime_position = Vec2::new(x, y);
+    }
+
+    /// Modifies the mouse cursor of the window.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Has no effect.
+    /// - **Android:** Has no effect.
+    pub fn set_cursor_icon(&self, cursor: Cursor) {
+        self.window_mut().cursor = cursor;
+    }
+
+    /// Changes the position of the cursor in logical window coordinates.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS:** Always returns an `Err`.
+    /// - **Web:** Has no effect.
+    pub fn set_cursor_position_points(
+        &self,
+        x: f32,
+        y: f32,
+    ) {
+        self.window_mut().set_cursor_position(Some(Vec2::new(x, y)));
+    }
+
+    /// Grabs the cursor, preventing it from leaving the window.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **macOS:** Locks the cursor in a fixed location.
+    /// - **Wayland:** Locks the cursor in a fixed location.
+    /// - **Android:** Has no effect.
+    /// - **iOS:** Always returns an Err.
+    /// - **Web:** Has no effect.
+    pub fn set_cursor_grab(&self, grab: bool) {
+        self.window_mut().cursor.grab_mode = if grab {
+            CursorGrabMode::Locked
+        } else {
+            CursorGrabMode::None
+        };
+    }
+
+    /// Set the cursor's visibility.
+    ///
+    /// If `false`, hides the cursor. If `true`, shows the cursor.
+    ///
+    /// ## Platform-specific
+    ///
+    /// On **Windows**, **X11** and **Wayland**, the cursor is only hidden within the confines of
+    /// the window.
+    ///
+    /// On **macOS**, the cursor is hidden as long as the window has input focus, even if the
+    /// cursor is outside of the window.
+    ///
+    /// This has no effect on **Android** or **iOS**.
+    pub fn set_cursor_visible(&self, visible: bool) {
+        self.window_mut().cursor.visible = visible;
+    }
+
+
+    /// Attempts to determine whether or not the window is currently fullscreen.
+    pub fn is_fullscreen(&self) -> bool {
+        self.window_mut().mode == WindowMode::Fullscreen
+    }
+
+    /// The rectangle representing the position and dimensions of the window.
+    ///
+    /// The window's position will always be `[0.0, 0.0]`, as positions are generally described
+    /// relative to the centre of the window itself.
+    ///
+    /// The dimensions will be equal to the result of `size_points`. This represents the area
+    /// of the that we can draw to in a DPI-agnostic manner, typically useful for drawing and UI
+    /// positioning.
+    pub fn rect(&self) -> geom::Rect {
+        let size = self.size_points();
+        geom::Rect::from_x_y_w_h(0.0, 0.0, size.x, size.y)
+    }
+}
+

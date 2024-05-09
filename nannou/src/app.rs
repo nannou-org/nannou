@@ -541,8 +541,10 @@ impl<'w> App<'w> {
     }
 
     /// A reference to the window with the given `Id`.
-    pub fn window(&self, id: Entity) -> Option<&Window> {
-        self.world().entity(id).get::<Window>()
+    pub fn window<'a>(&'a self, id: Entity) -> window::Window<'a, 'w>
+        where 'a: 'w
+    {
+        window::Window::new(&self, id)
     }
 
     /// Return the [Entity] of the currently focused window.
