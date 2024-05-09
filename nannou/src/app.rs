@@ -7,19 +7,20 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
-use std::{self};
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{self};
 
 use bevy::app::AppExit;
 use bevy::core::FrameCount;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::system::SystemParam;
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
-use bevy::input::ButtonState;
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::{MouseButtonInput, MouseWheel};
+use bevy::input::ButtonState;
 use bevy::pbr::ExtendedMaterial;
 use bevy::prelude::*;
 use bevy::reflect::{DynamicTypePath, GetTypeRegistration};
@@ -27,19 +28,19 @@ use bevy::window::{PrimaryWindow, WindowClosed, WindowFocused, WindowResized};
 #[cfg(feature = "egui")]
 use bevy_egui::EguiContext;
 #[cfg(feature = "egui")]
-use bevy_inspector_egui::DefaultInspectorConfigPlugin;
-#[cfg(feature = "egui")]
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+#[cfg(feature = "egui")]
+use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use find_folder;
 
-use bevy_nannou::NannouPlugin;
 use bevy_nannou::prelude::{draw, DrawHolder};
+use bevy_nannou::NannouPlugin;
 
-use crate::{geom, window};
 use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::bevy_reflect::{ApplyError, ReflectMut, ReflectOwned, ReflectRef, TypeInfo};
 use crate::prelude::render::{NannouMaterial, NannouMesh, NannouPersistentMesh};
 use crate::window::WindowUserFunctions;
+use crate::{geom, window};
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -121,6 +122,7 @@ fn default_model(_: &App) -> () {
 pub struct App<'w> {
     current_view: Option<Entity>,
     world: Rc<RefCell<UnsafeWorldCell<'w>>>,
+    window_count: AtomicUsize,
 }
 
 #[derive(Resource, Deref, DerefMut)]
@@ -476,7 +478,9 @@ impl<'w> App<'w> {
 
     #[cfg(feature = "egui")]
     pub fn egui_for_window(&self, window: Entity) -> Mut<EguiContext> {
-        self.world_mut().get_mut::<EguiContext>(window).expect("No egui context")
+        self.world_mut()
+            .get_mut::<EguiContext>(window)
+            .expect("No egui context")
     }
 
     #[cfg(feature = "egui")]
@@ -507,9 +511,11 @@ impl<'w> App<'w> {
 
     // Create a new `App`.
     fn new(world: &'w mut World) -> Self {
+        let window_count = world.query::<&Window>().iter(world).count();
         let app = App {
             current_view: None,
             world: Rc::new(RefCell::new(world.as_unsafe_world_cell())),
+            window_count: window_count.into(),
         };
         app
     }
@@ -541,6 +547,7 @@ impl<'w> App<'w> {
     where
         M: 'static,
     {
+        self.window_count.fetch_add(1usize, Ordering::SeqCst);
         let builder = window::Builder::new(&self);
         let config = self.world().resource::<Config>();
         let builder = match config.default_window_size {
@@ -553,8 +560,7 @@ impl<'w> App<'w> {
 
     /// The number of windows currently in the application.
     pub fn window_count(&self) -> usize {
-        let mut window_q = self.world_mut().query::<&Window>();
-        window_q.iter(self.world()).count()
+        self.window_count.load(Ordering::SeqCst)
     }
 
     /// A reference to the window with the given `Id`.
@@ -664,32 +670,11 @@ impl<'w> App<'w> {
             .world_mut()
             .entity(self.window_id())
             .get::<DrawHolder>();
-
-        if draw.is_none() {
-            self.world_mut()
-                .entity_mut(self.window_id())
-                .insert(DrawHolder(draw::Draw::new(self.window_id())));
-
-            draw = self
-                .world_mut()
-                .entity(self.window_id())
-                .get::<DrawHolder>();
-        }
-
         draw.unwrap().0.clone()
     }
 
     pub fn draw_for_window(&self, window: Entity) -> draw::Draw {
         let mut draw = self.world_mut().entity(window).get::<DrawHolder>();
-
-        if draw.is_none() {
-            self.world_mut()
-                .entity_mut(window)
-                .insert(DrawHolder(draw::Draw::new(window)));
-
-            draw = self.world_mut().entity(window).get::<DrawHolder>();
-        }
-
         draw.unwrap().0.clone()
     }
 

@@ -46,17 +46,9 @@ impl Plugin for NannouRenderPlugin {
                 (
                     update_draw_mesh,
                     update_material::<DefaultNannouMaterial>,
-                    print_all_components,
                 )
                     .chain(),
             );
-    }
-}
-
-fn print_all_components(world: &mut World) {
-    let mut mesh_query = world.query::<(Entity, &NannouMesh)>();
-    for (entity, _) in mesh_query.iter(world) {
-        // info!("Found a mesh! {:#?}", world.inspect_entity(entity));
     }
 }
 
