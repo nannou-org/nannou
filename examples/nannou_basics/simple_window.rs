@@ -16,7 +16,7 @@ fn model(app: &App) -> Model {
         .size(512, 512)
         .title("nannou")
         .view(view) // The function that will be called for presenting graphics to a frame.
-        .focus(focus) // The function that will be called when the window receives events.
+        .focused(focus) // The function that will be called when the window receives events.
         .build();
     Model { _window }
 }

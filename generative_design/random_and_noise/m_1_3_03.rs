@@ -59,11 +59,21 @@ fn model(app: &App) -> Model {
 
     let window = app.main_window();
     let win = window.rect();
-    let texture = wgpu::TextureBuilder::new()
-        .size([win.w() as u32, win.h() as u32])
-        .format(wgpu::TextureFormat::Rgba8Unorm)
-        .usage(wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING)
-        .build(window.device());
+    Image::new_fill(
+        Extent3d {
+            width: size.x,
+            height: size.y,
+            depth_or_array_layers: 1,
+        },
+        TextureDimension::D2,
+        &[0, 0, 0, 0],
+        TextureFormat::Rgba8Unorm,
+        // Need to keep this image CPU persistent in order to add additional glyphs later on
+        RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
+    );
+    let texture = app.assets().add(Image::new(
+
+    ));
     Model {
         octaves: 4,
         falloff: 0.5,
@@ -74,8 +84,6 @@ fn model(app: &App) -> Model {
 }
 
 fn view(app: &App, model: &Model) {
-    draw.background().color(BLACK);
-
     let win = app.window_rect();
     let noise = nannou::noise::Fbm::new()
         .set_seed(model.noise_random_seed)
@@ -121,9 +129,7 @@ fn view(app: &App, model: &Model) {
 
     let draw = app.draw();
     draw.texture(&model.texture);
-
-    // Write to the window frame.
-
+    draw.background().color(BLACK);
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {

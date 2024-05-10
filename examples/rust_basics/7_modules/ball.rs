@@ -11,7 +11,7 @@ impl Ball {
         Ball { position, color }
     }
 
-    pub fn display(&self, draw: &DrawHolder) {
+    pub fn display(&self, draw: &Draw) {
         draw.ellipse()
             .xy(self.position)
             .radius(100.0)

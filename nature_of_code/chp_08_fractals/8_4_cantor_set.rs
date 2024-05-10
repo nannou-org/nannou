@@ -13,7 +13,7 @@ fn main() {
 struct Model;
 
 fn model(app: &App) -> Model {
-    app.set_loop_mode(LoopMode::loop_once());
+    // app.set_loop_mode(LoopMode::loop_once());
     let _window = app.new_window().size(800, 200).view(view).build().unwrap();
     Model
 }

@@ -71,7 +71,7 @@ fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     match key {
         // Start playing another instance of the sound.
         KeyCode::Space => {
-            let assets = app.assets_path().expect("could not find assets directory");
+            let assets = app.assets_path();
             let path = assets.join("sounds").join("thumbpiano.wav");
             let sound = audrey::open(path).expect("failed to load sound");
             model

@@ -38,11 +38,11 @@ struct Agent {
     step_size: f32,
     angle: f32,
     noise_z: f64,
-    win_rect: Rect,
+    win_rect: geom::Rect,
 }
 
 impl Agent {
-    fn new(win_rect: Rect, noise_z: f64) -> Self {
+    fn new(win_rect: geom::Rect, noise_z: f64) -> Self {
         let vector = vec2(
             random_range(win_rect.left(), win_rect.right()),
             random_range(win_rect.top(), win_rect.bottom()),

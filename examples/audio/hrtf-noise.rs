@@ -178,8 +178,8 @@ fn mouse_moved(_app: &App, model: &mut Model, p: Point2) {
 }
 
 fn view(app: &App, model: &Model) {
-    draw.background().color(rgb(0.1, 0.12, 0.13));
     let draw = app.draw();
+    draw.background().color(Color::srgb(0.1, 0.12, 0.13));
 
     // Listenable area.
     draw.ellipse().radius(LISTENING_RADIUS).rgb(0.1, 0.1, 0.1);
@@ -195,8 +195,7 @@ fn view(app: &App, model: &Model) {
     // Draw the source.
     let (x, y, z) = model.source_position.into();
     let text = format!("Noise Source:\n[{:.2}, {:.2}, {:.2}]", x, y, z);
-    draw.text(&text).xy(app.mouse()() + vec2(0.0, 20.0));
-
+    draw.text(&text).xy(app.mouse() + vec2(0.0, 20.0));
 
 }
 

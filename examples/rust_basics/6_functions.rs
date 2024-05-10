@@ -7,7 +7,10 @@ fn main() {
 struct Model;
 
 fn model(app: &App) -> Model {
-    app.new_window().event(event).view(view).build().unwrap();
+    app.new_window()
+        .key_pressed(key_pressed)
+        .mouse_pressed(mouse_pressed)
+        .view(view).build().unwrap();
     Model
 }
 
@@ -36,22 +39,20 @@ fn random() -> f32 {
     nannou::rand::random()
 }
 
-fn event(_app: &App, _model: &mut Model, event: WindowEvent) {
-    match event {
-        KeyPressed(_key) => {
-            println!("add 10 + 2 = {}", add(10, 2));
-            println!("subtract 100 - 30 = {}", subtract(100, 30));
-            println!("multiply 3.5 * 10.2 = {}", multiply(3.5, 10.2));
-            println!("random = {}", random());
-            println!("remaped value = {}", random_range(0.0f32, 100.0));
-        }
-        MousePressed(_button) => {
-            do_something();
-        }
-        _other => {}
-    }
+fn key_pressed(_app: &App, _model: &mut Model, key: KeyCode) {
+    println!("add 10 + 2 = {}", add(10, 2));
+    println!("subtract 100 - 30 = {}", subtract(100, 30));
+    println!("multiply 3.5 * 10.2 = {}", multiply(3.5, 10.2));
+    println!("random = {}", random());
+    println!("remaped value = {}", random_range(0.0f32, 100.0));
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) {
-    draw.background().color(DIMGRAY);
+fn mouse_pressed(_app: &App, _model: &mut Model, _button: MouseButton) {
+    do_something();
+}
+
+
+fn view(app: &App, _model: &Model) {
+    let draw = app.draw();
+    draw.background().color(DIM_GRAY);
 }

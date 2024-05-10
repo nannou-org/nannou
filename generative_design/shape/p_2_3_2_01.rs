@@ -60,7 +60,7 @@ fn model(app: &App) -> Model {
 
     Model {
         draw_mode: 1,
-        col: rgba(random_f32(), random_f32(), random_f32(), random_f32() * 0.4),
+        col: Color::srgba(random_f32(), random_f32(), random_f32(), random_f32() * 0.4).into(),
         x: 0.0,
         y: 0.0,
         step_size: 5.0,
@@ -96,7 +96,7 @@ fn view(app: &App, model: &Model) {
     if model.dist > model.step_size {
         draw = draw.x_y(model.x, model.y).rotate(model.angle);
         let c = if app.elapsed_frames() % 2 == 0 {
-            rgba(0.6, 0.6, 0.6, 1.0)
+            Color::srgba(0.6, 0.6, 0.6, 1.0).into()
         } else {
             model.col
         };
@@ -116,7 +116,7 @@ fn view(app: &App, model: &Model) {
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.x = app.mouse().x;
     model.y = app.mouse().y;
-    model.col = Color::srgba(random_f32(), random_f32(), random_f32(), random_f32() * 0.4);
+    model.col = Color::srgba(random_f32(), random_f32(), random_f32(), random_f32() * 0.4).into();
 }
 
 fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {

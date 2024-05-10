@@ -56,8 +56,5 @@ fn view(app: &App, model: &Model) {
     draw.scale(ellipse_side)
         .polygon()
         .points_textured(model.texture.clone(), points)
-        .rotate(app.time().elapsed() * 0.25);
-
-    // Draw to the frame!
-
+        .rotate(app.time().elapsed_seconds() * 0.25);
 }

@@ -104,10 +104,10 @@ fn view(app: &App) {
             .left_justify();
 
         // Ellipse at mouse.
-        draw.ellipse().wh([5.0; 2].into()).xy(app.mouse()());
+        draw.ellipse().wh([5.0; 2].into()).xy(app.mouse());
 
         // Mouse position text.
-        let mouse = app.mouse()();
+        let mouse = app.mouse();
         let pos = format!("[{:.1}, {:.1}]", mouse.x, mouse.y);
         draw.text(&pos)
             .xy(mouse + vec2(0.0, 20.0))
@@ -118,7 +118,7 @@ fn view(app: &App) {
 
 }
 
-fn draw_grid(draw: &DrawHolder, win: &Rect, step: f32, weight: f32) {
+fn draw_grid(draw: &Draw, win: &Rect, step: f32, weight: f32) {
     let step_by = || (0..).map(|i| i as f32 * step);
     let r_iter = step_by().take_while(|&f| f < win.right());
     let l_iter = step_by().map(|f| -f).take_while(|&f| f > win.left());

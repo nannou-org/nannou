@@ -40,7 +40,8 @@ fn model(app: &App) -> Model {
     let stream = audio_host
         .new_input_stream(capture_model)
         .capture(capture_fn)
-        .build();
+        .build()
+        .unwrap();
 
     stream.play().unwrap();
 
@@ -75,6 +76,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
 }
 
 fn view(app: &App, model: &Model) {
+    let draw = app.draw();
     draw.background().color(DIMGRAY);
 
     if model.stream.is_playing() && app.elapsed_frames() % 30 < 20 {

@@ -32,7 +32,7 @@ fn main() {
 
 struct Model {
     // Store the window ID so we can refer to this specific window later if needed.
-    texture: wgpu::Texture,
+    texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
@@ -49,12 +49,17 @@ fn model(app: &App) -> Model {
         .join("images")
         .join("generative_examples")
         .join("p_4_1_2_01.png");
-    let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+    let texture = app.assets().load(img_path);
     Model { texture }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model) {
+    let draw  = app.draw();
+    let Some(texture) = app.image(&model.texture) else {
+        return;
+    };
+
     let win = app.window_rect();
 
     let w = 150.0;
@@ -72,22 +77,18 @@ fn view(app: &App, model: &Model) {
     );
 
     // Don't interpolate between pixels.model
-    let sampler = wgpu::SamplerBuilder::new()
-        .min_filter(wgpu::FilterMode::Nearest)
-        .mag_filter(wgpu::FilterMode::Nearest)
-        .into_descriptor();
-    let draw = app.draw().sampler(sampler);
 
+    let dim = texture.dimensions();
+    let texture = model.texture.clone();
     if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
         draw.background().color(WHITE);
-        draw.texture(&model.texture);
+        draw.texture(texture, dim);
     } else {
-        draw.texture(&frame.resolve_target().unwrap_or(frame.texture_view()))
+        draw.texture(texture, dim)
             .x_y(x2, y2)
             .w_h(w, h)
             .area(area);
     }
-
 }
 
 fn key_released(app: &App, _model: &mut Model, key: KeyCode) {

@@ -15,7 +15,13 @@ struct Model {
 
 fn model(app: &App) -> Model {
     // Make a window.
-    app.new_window().event(event).view(view).build().unwrap();
+    app.new_window()
+        .key_pressed(key_pressed)
+        .key_released(key_released)
+        .mouse_pressed(mouse_pressed)
+        .view(view)
+        .build()
+        .unwrap();
     // Initialise our model's fields.
     let foo = 80;
     let bar = 3.14;
@@ -23,23 +29,21 @@ fn model(app: &App) -> Model {
     Model { foo, bar }
 }
 
-fn event(_app: &App, model: &mut Model, event: WindowEvent) {
-    match event {
-        KeyPressed(_key) => {
-            println!("foo = {}", model.foo);
-            println!("bar = {}", model.bar);
-        }
-        KeyReleased(_key) => {
-            let local_var = 94;
-            println!("local_variable to KeyReleased = {}", local_var);
-        }
-        MousePressed(_button) => {
-            println!("global scope: GLOBAL = {}", GLOBAL);
-        }
-        _other => (),
-    }
+fn key_pressed(_app: &App, model: &mut Model, _key: KeyCode) {
+    println!("foo = {}", model.foo);
+    println!("bar = {}", model.bar);
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) {
-    draw.background().color(DIMGRAY);
+fn key_released(_app: &App, _model: &mut Model, _key: KeyCode) {
+    let local_var = 94;
+    println!("local_variable to KeyReleased = {}", local_var);
+}
+
+fn mouse_pressed(_app: &App, _model: &mut Model, _button: MouseButton) {
+    println!("global scope: GLOBAL = {}", GLOBAL);
+}
+
+fn view(app: &App, _model: &Model) {
+    let draw = app.draw();
+    draw.background().color(DIM_GRAY);
 }

@@ -2,7 +2,6 @@ use nannou::prelude::*;
 
 fn main() {
     nannou::app(model)
-        .event(event)
         .update(update)
         .view(view)
         .run();

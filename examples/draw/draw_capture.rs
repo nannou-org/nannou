@@ -10,7 +10,7 @@ fn main() {
 fn view(app: &App) {
     let draw = app.draw();
 
-    draw.background().color(CORNFLOWERBLUE);
+    draw.background().color(CORNFLOWER_BLUE);
 
     let win = app.window_rect();
     draw.tri()
@@ -26,12 +26,12 @@ fn view(app: &App) {
     draw.line()
         .weight(10.0 + (t.sin() * 0.5 + 0.5) * 90.0)
         .caps_round()
-        .color(PALEGOLDENROD)
+        .color(PALE_GOLDENROD)
         .points(win.top_left() * t.sin(), win.bottom_right() * t.cos());
 
     draw.quad()
         .x_y(-app.mouse().x, app.mouse().y)
-        .color(DARKGREEN)
+        .color(DARK_GREEN)
         .rotate(t);
 
     draw.rect()
@@ -42,11 +42,11 @@ fn view(app: &App) {
 
 
     // Capture the frame!
-    let file_path = captured_frame_path(app, &frame);
+    let file_path = captured_frame_path(app);
     app.main_window().save_screenshot(file_path);
 }
 
-fn captured_frame_path(app: &App, frame: &Frame) -> std::path::PathBuf {
+fn captured_frame_path(app: &App) -> std::path::PathBuf {
     // Create a path that we want to save this frame to.
     app.project_path()
         .expect("failed to locate `project_path`")

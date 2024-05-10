@@ -153,12 +153,12 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::Digit2 => {
             model.filled = true;
         }
-        KeyCode::F => {
+        KeyCode::KeyF => {
             model.freeze = !model.freeze;
             if model.freeze {
-                app.set_loop_mode(LoopMode::loop_once());
+                // app.set_loop_mode(LoopMode::loop_once());
             } else {
-                app.set_loop_mode(LoopMode::RefreshSync);
+                // app.set_loop_mode(LoopMode::RefreshSync);
             }
         }
         _ => (),

@@ -16,7 +16,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.set_loop_mode(LoopMode::loop_once());
+    // app.set_loop_mode(LoopMode::loop_once());
     app.new_window().size(640, 360).view(view).build().unwrap();
 
     Model {

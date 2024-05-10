@@ -48,7 +48,8 @@ fn model(app: &App) -> Model {
     let in_stream = audio_host
         .new_input_stream(in_model)
         .capture(pass_in)
-        .build();
+        .build()
+        .unwrap();
 
     // Create output model and output stream using that model
     let out_model = OutputModel { consumer: cons };

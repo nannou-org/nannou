@@ -137,11 +137,9 @@ fn view(app: &App, model: &Model) {
 
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.p_mouse = app
-        .mouse
-        .buttons
-        .left()
-        .if_down()
-        .unwrap_or(app.mouse()());
+        .mouse_buttons()
+        .just_pressed(MouseButton::Left)
+        .ok(app.mouse());
     model.new_shape = Some(Shape::new(
         model.p_mouse.x,
         model.p_mouse.y,

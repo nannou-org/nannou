@@ -35,7 +35,8 @@ fn model(app: &App) -> Model {
     let stream = audio_host
         .new_output_stream(model)
         .render(audio)
-        .build();
+        .build()
+        .unwrap();
 
     stream.play().unwrap();
 
@@ -89,6 +90,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     }
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) {
-    draw.background().color(DIMGRAY);
+fn view(app: &App, _model: &Model) {
+    let draw = app.draw();
+    draw.background().color(DIM_GRAY);
 }

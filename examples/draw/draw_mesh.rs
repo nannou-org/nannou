@@ -7,7 +7,7 @@ fn main() {
 fn view(app: &App) {
     // Begin drawing
     let win = app.window_rect();
-    let t = app.time;
+    let t = app.time().elapsed_seconds();
     let draw = app.draw();
 
     // Clear the background to black.
@@ -40,7 +40,7 @@ fn view(app: &App) {
             // Color the vertices based on their amplitude.
             tri.map_vertices(|v| {
                 let y_fract = map_range(v.y.abs(), 0.0, win.top(), 0.0, 1.0);
-                let color = srgba(y_fract, 1.0 - y_fract, 1.0 - y_fract, 1.0);
+                let color = Color::srgba(y_fract, 1.0 - y_fract, 1.0 - y_fract, 1.0);
                 (v.extend(0.0), color)
             })
         });

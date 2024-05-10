@@ -32,7 +32,7 @@ fn main() {
 
 struct Model {
     // Store the window ID so we can refer to this specific window later if needed.
-    image: Handle<Image>,
+    texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
@@ -49,12 +49,12 @@ fn model(app: &App) -> Model {
         .join("generative_examples")
         .join("p_4_1_2_01.png");
     let image = app.assets().load(img_path);
-    Model { image }
+    Model { texture: image }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model) {
-    let Some(image) = app.image(&model.image) else {
+    let Some(texture) = app.image(&model.texture) else {
         return;
     };
 
@@ -75,13 +75,13 @@ fn view(app: &App, model: &Model) {
         map_range(h, 0.0, win.h(), 0.0, 1.0),
     );
 
-    let dim = image.dimensions();
-    let image = model.image.clone();
+    let dim = texture.dimensions();
+    let texture = model.texture.clone();
     if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
         draw.background().color(WHITE);
-        draw.texture(image, dim);
+        draw.texture(texture, dim);
     } else {
-        draw.texture(image, dim)
+        draw.texture(texture, dim)
             .x_y(x2, y2)
             .w_h(w, h)
             .area(area);

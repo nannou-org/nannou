@@ -44,8 +44,8 @@ fn main() {
 struct Model {
     tile_count: u32,
     act_random_seed: u64,
-    color_left: Hsv,
-    color_right: Hsv,
+    color_left: Hsva,
+    color_right: Hsva,
     transparent_left: bool,
     transparent_right: bool,
 }
@@ -64,8 +64,8 @@ fn model(app: &App) -> Model {
     Model {
         tile_count: 1,
         act_random_seed: 0,
-        color_left: hsv(0.88, 1.0, 0.77),
-        color_right: hsv(0.0, 0.0, 0.0),
+        color_left: Color::hsv(0.88, 1.0, 0.77).into(),
+        color_right: Color::hsv(0.0, 0.0, 0.0).into(),
         transparent_left: false,
         transparent_right: false,
     }
@@ -193,20 +193,20 @@ fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
     }
 }
 
-fn key_released(_app: &App, model: &mut Model, key: Key) {
+fn key_released(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::Digit1 => {
-            if model.color_left.eq(&hsv(0.75, 0.73, 0.51)) {
-                model.color_left = hsv(0.89, 1.0, 0.77);
+            if model.color_left.eq(&Color::hsv(0.75, 0.73, 0.51)) {
+                model.color_left = Color::hsv(0.89, 1.0, 0.77).into();
             } else {
-                model.color_left = hsv(0.75, 0.73, 0.51);
+                model.color_left = Color::hsv(0.75, 0.73, 0.51).into();
             }
         }
         KeyCode::Digit2 => {
-            if model.color_right.eq(&hsv(0.0, 0.0, 0.0)) {
-                model.color_right = hsv(0.53, 1.0, 0.64);
+            if model.color_right.eq(&Color::hsv(0.0, 0.0, 0.0)) {
+                model.color_right = Color::hsv(0.53, 1.0, 0.64).into()
             } else {
-                model.color_right = hsv(0.0, 0.0, 0.0);
+                model.color_right = Color::hsv(0.0, 0.0, 0.0).into();
             }
         }
         KeyCode::Digit3 => {
@@ -218,8 +218,8 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
         KeyCode::Digit0 => {
             model.transparent_left = false;
             model.transparent_right = false;
-            model.color_left = hsv(0.89, 1.0, 0.77);
-            model.color_right = hsv(0.0, 0.0, 0.0);
+            model.color_left = Color::hsv(0.89, 1.0, 0.77).into();
+            model.color_right = Color::hsv(0.0, 0.0, 0.0).into();
         }
         _other_key => {}
     }

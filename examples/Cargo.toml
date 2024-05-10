@@ -76,9 +76,6 @@ path = "draw/draw_blend.rs"
 name = "draw_capture"
 path = "draw/draw_capture.rs"
 [[example]]
-name = "draw_capture_hi_res"
-path = "draw/draw_capture_hi_res.rs"
-[[example]]
 name = "draw_loop"
 path = "draw/draw_loop.rs"
 [[example]]
@@ -115,11 +112,6 @@ path = "draw/draw_textured_polygon.rs"
 name = "draw_transform"
 path = "draw/draw_transform.rs"
 
-# Interactive Shader Format
-[[example]]
-name = "isf_demo"
-path = "isf/isf_demo.rs"
-
 # Laser
 [[example]]
 name = "laser_ffi"
@@ -145,9 +137,6 @@ path = "nannou_basics/all_functions.rs"
 [[example]]
 name = "window_coordinates"
 path = "nannou_basics/window_coordinates.rs"
-[[example]]
-name = "loop_mode"
-path = "nannou_basics/loop_mode.rs"
 [[example]]
 name = "multi_window"
 path = "nannou_basics/multi_window.rs"
@@ -207,29 +196,3 @@ required-features = ["egui"]
 name = "simple_ui"
 path = "ui/egui/simple_ui.rs"
 required-features = ["egui"]
-
-# WebGPU
-[[example]]
-name = "wgpu_compute_shader"
-path = "wgpu/wgpu_compute_shader/wgpu_compute_shader.rs"
-[[example]]
-name = "wgpu_image"
-path = "wgpu/wgpu_image/wgpu_image.rs"
-[[example]]
-name = "wgpu_image_sequence"
-path = "wgpu/wgpu_image_sequence/wgpu_image_sequence.rs"
-[[example]]
-name = "wgpu_instancing"
-path = "wgpu/wgpu_instancing/wgpu_instancing.rs"
-[[example]]
-name = "wgpu_teapot"
-path = "wgpu/wgpu_teapot/wgpu_teapot.rs"
-[[example]]
-name = "wgpu_teapot_camera"
-path = "wgpu/wgpu_teapot_camera/wgpu_teapot_camera.rs"
-[[example]]
-name = "wgpu_triangle"
-path = "wgpu/wgpu_triangle/wgpu_triangle.rs"
-[[example]]
-name = "wgpu_triangle_raw_frame"
-path = "wgpu/wgpu_triangle_raw_frame/wgpu_triangle_raw_frame.rs"
