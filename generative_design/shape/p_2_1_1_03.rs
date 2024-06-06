@@ -72,7 +72,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model) {
-    model.tile_count = (app.mouse().y + app.window_rect().top()) as u32 / 15;
+    model.tile_count = (app.mouse().x + app.window_rect().top()) as u32 / 15;
 }
 
 fn view(app: &App, model: &Model) {
@@ -121,7 +121,7 @@ fn view(app: &App, model: &Model) {
                     );
             }
             if toggle == true {
-                let (h, s, v) = model.color_right.into_components();
+                let [h, s, v] = model.color_right.to_f32_array_no_alpha();
                 let a = calculate_alpha_right(grid_y, model.transparent_right);
 
                 draw.line()
@@ -194,14 +194,14 @@ fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
 fn key_released(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::Digit1 => {
-            if model.color_left.eq(&Color::hsv(0.75, 0.73, 0.51)) {
+            if model.color_left.eq(&Color::hsv(0.75, 0.73, 0.51).into()) {
                 model.color_left = Color::hsv(0.89, 1.0, 0.77).into();
             } else {
                 model.color_left = Color::hsv(0.75, 0.73, 0.51).into();
             }
         }
         KeyCode::Digit2 => {
-            if model.color_right.eq(&Color::hsv(0.0, 0.0, 0.0)) {
+            if model.color_right.eq(&Color::hsv(0.0, 0.0, 0.0).into()) {
                 model.color_right = Color::hsv(0.53, 1.0, 0.64).into()
             } else {
                 model.color_right = Color::hsv(0.0, 0.0, 0.0).into();

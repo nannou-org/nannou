@@ -54,7 +54,7 @@ impl Mover {
         self.position += self.velocity;
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         // Display circle at x position
         draw.ellipse()
             .xy(self.position)
@@ -77,13 +77,13 @@ fn model(app: &App) -> Model {
 }
 
 // update gets called just before view every frame
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     for mover in &mut m.movers {
-        mover.update(pt2(app.mouse.x, app.mouse.y));
+        mover.update(pt2(app.mouse().x, app.mouse().y));
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

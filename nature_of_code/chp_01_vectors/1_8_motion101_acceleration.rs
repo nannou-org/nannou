@@ -56,7 +56,7 @@ impl Mover {
         }
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         // Display circle at x position
         draw.ellipse()
             .xy(self.position)
@@ -73,12 +73,12 @@ fn model(app: &App) -> Model {
     Model { mover }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     m.mover.update();
     m.mover.check_edges(app.window_rect());
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.rect()

@@ -39,7 +39,7 @@ impl Particle {
         self.position.y = y;
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         let random_color = random();
         draw.ellipse()
             .xy(self.position)
@@ -86,7 +86,7 @@ impl Wave {
         }
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         // A simple way to draw the wave with an ellipse at each position
         for x in 0..self.particles.len() {
             self.particles[x].display(&draw);
@@ -101,13 +101,13 @@ fn model(app: &App) -> Model {
     Model { wave0, wave1 }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     // Update waves
     m.wave0.calculate();
     m.wave1.calculate();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

@@ -36,7 +36,7 @@ fn view(app: &App) {
 
     // Draw rects behind the glyphs.
     for (_glyph, rect) in text.glyphs() {
-        let a = map_range(app.mouse().y, win_rect.bottom(), win_rect.top(), 0.0, 1.0);
+        let a = map_range(app.mouse().x, win_rect.bottom(), win_rect.top(), 0.0, 1.0);
         draw.rect().xy(rect.xy()).wh(rect.wh()).hsla(
             (rect.x() + rect.y()) / win_rect.w(),
             1.0,

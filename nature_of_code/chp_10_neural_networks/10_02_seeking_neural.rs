@@ -123,7 +123,7 @@ impl Vehicle {
         steer
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         // Draw a triangle rotated in the direction of velocity
         // This calculation is wrong
         let theta = (self.velocity.angle() + PI / 2.0) * -1.0;
@@ -194,13 +194,13 @@ fn make_targets(m: &mut Model, win: &Rect) {
         .collect();
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     // Update the Vehicle
     m.v.steer(&m.targets, &m.desired);
     m.v.update(app.window_rect());
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

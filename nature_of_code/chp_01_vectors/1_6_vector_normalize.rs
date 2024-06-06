@@ -15,7 +15,7 @@ fn view(app: &App) {
     draw.background().color(WHITE);
 
     // A vector that points to the mouse position
-    let mut mouse = vec2(app.mouse.x, app.mouse.y);
+    let mut mouse = vec2(app.mouse().x, app.mouse().y);
     // A vector that points to the center of the window
     let center = vec2(0.0, 0.0);
     // Subtract center from mouse which results in a vector that points from center to mouse

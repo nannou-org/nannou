@@ -34,7 +34,7 @@ impl Attractor {
     }
 
     // Method to display
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         draw.ellipse()
             .x_y(self.location.x, self.location.y)
             .w_h(48.0, 48.0)
@@ -91,7 +91,7 @@ impl Mover {
         self.acceleration *= 0.0;
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         draw.rect()
             .x_y(self.location.x, self.location.y)
             .w_h(self.mass * 16.0, self.mass * 16.0)
@@ -128,7 +128,7 @@ fn model(app: &App) -> Model {
     Model { movers, attractor }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     for i in 0..m.movers.len() {
         let force = m.attractor.attract(&m.movers[i]);
         m.movers[i].apply_force(force);
@@ -136,7 +136,7 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

@@ -45,8 +45,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .key_pressed(key_pressed)
         .mouse_pressed(mouse_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         act_random_seed: 42,

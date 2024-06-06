@@ -75,7 +75,7 @@ fn update(app: &App, model: &mut Model) {
         100,
     ) as usize;
     model.tile_count_y = clamp(
-        map_range(app.mouse().y, win.top(), win.bottom(), 2, 10),
+        map_range(app.mouse().x, win.top(), win.bottom(), 2, 10),
         2,
         10,
     ) as usize;

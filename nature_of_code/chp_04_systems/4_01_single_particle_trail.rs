@@ -39,12 +39,12 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         draw.ellipse()
             .xy(self.position)
             .w_h(12.0, 12.0)
             .rgba(0.5, 0.5, 0.5, self.life_span / 255.0)
-            .stroke(rgba(0.0, 0.0, 0.0, self.life_span / 255.0))
+            .stroke(Color::srgba(0.0, 0.0, 0.0, self.life_span / 255.0))
             .stroke_weight(2.0);
     }
 
@@ -77,7 +77,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     if m.mouse_down {
         m.p.update();
         if m.p.is_dead() {
@@ -86,7 +86,7 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
 

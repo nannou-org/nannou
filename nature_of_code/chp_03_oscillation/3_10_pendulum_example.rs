@@ -72,7 +72,7 @@ impl Pendulum {
         );
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         // Draw the arm
         draw.line()
             .start(self.origin)
@@ -137,12 +137,12 @@ fn model(app: &App) -> Model {
     Model { pendulum }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     m.pendulum.update(app.window_rect());
-    m.pendulum.drag(app.mouse.x, app.mouse.y);
+    m.pendulum.drag(app.mouse().x, app.mouse().y);
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -154,7 +154,7 @@ fn view(app: &App, m: &Model, frame: Frame) {
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
-    m.pendulum.clicked(app.mouse.x, app.mouse.y);
+    m.pendulum.clicked(app.mouse().x, app.mouse().y);
 }
 
 fn mouse_released(_app: &App, m: &mut Model, _button: MouseButton) {

@@ -105,8 +105,8 @@ fn update(app: &App, model: &mut Model) {
             app.mouse().x + model.mouse_rect,
         );
         new_y = random_range(
-            app.mouse().y - model.mouse_rect,
-            app.mouse().y + model.mouse_rect,
+            app.mouse().x - model.mouse_rect,
+            app.mouse().x + model.mouse_rect,
         );
     }
 
@@ -160,7 +160,7 @@ fn view(app: &App, model: &Model) {
 
     if app.mouse_buttons().just_pressed(MouseButton::Left) {
         draw.rect()
-            .x_y(app.mouse().x, app.mouse().y)
+            .x_y(app.mouse().x, app.mouse().x)
             .w_h(model.mouse_rect * 2.0, model.mouse_rect * 2.0)
             .no_fill()
             .stroke_weight(2.0)

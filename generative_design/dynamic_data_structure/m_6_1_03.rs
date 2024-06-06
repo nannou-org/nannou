@@ -217,7 +217,7 @@ fn update(app: &App, model: &mut Model) {
         // Ignore anything greater than this distance
         let mut max_dist = 20.0;
         for i in 0..model.nodes.len() {
-            let d = pt2(app.mouse().x, app.mouse().y).distance(pt2(model.nodes[i].x, model.nodes[i].y));
+            let d = pt2(app.mouse().x, app.mouse().x).distance(pt2(model.nodes[i].x, model.nodes[i].y));
             if d < max_dist && model.selected_node.is_none() {
                 model.selected_node = Some(i);
                 max_dist = d;
@@ -227,7 +227,7 @@ fn update(app: &App, model: &mut Model) {
 
     if model.selected_node.is_some() {
         model.nodes[model.selected_node.unwrap()].x = app.mouse().x;
-        model.nodes[model.selected_node.unwrap()].y = app.mouse().y;
+        model.nodes[model.selected_node.unwrap()].y = app.mouse().x;
     }
 }
 

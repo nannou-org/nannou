@@ -66,7 +66,7 @@ impl Spring {
         }
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         draw.rect()
             .xy(self.anchor)
             .w_h(10.0, 10.0)
@@ -75,7 +75,7 @@ impl Spring {
             .stroke_weight(2.0);
     }
 
-    fn display_line(&self, draw: &DrawHolder, bob: &Bob) {
+    fn display_line(&self, draw: &Draw, bob: &Bob) {
         draw.line()
             .start(bob.position)
             .end(self.anchor)
@@ -121,7 +121,7 @@ impl Bob {
         self.acceleration += f;
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         let c = if self.dragging { GREY } else { DARKGREY };
         draw.ellipse()
             .xy(self.position)
@@ -177,7 +177,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     // Apply a gravity force to the bob
     let gravity = pt2(0.0, -2.0);
     m.bob.apply_force(gravity);
@@ -190,10 +190,10 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     // Update bob
     m.bob.update();
     // if it's being dragged
-    m.bob.drag(app.mouse.x, app.mouse.y);
+    m.bob.drag(app.mouse().x, app.mouse().y);
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -207,7 +207,7 @@ fn view(app: &App, m: &Model, frame: Frame) {
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
-    m.bob.clicked(app.mouse.x, app.mouse.y);
+    m.bob.clicked(app.mouse().x, app.mouse().y);
 }
 
 fn mouse_released(_app: &App, m: &mut Model, _button: MouseButton) {

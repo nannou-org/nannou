@@ -36,8 +36,7 @@ fn main() {
 }
 
 struct Model {
-    // Store the window ID so we can refer to this specific window later if needed.
-    texture: wgpu::Texture,
+    texture: Handle<Image>,
     tile_count_x: usize,
     tile_count_y: usize,
     tile_count: usize,
@@ -66,7 +65,7 @@ fn model(app: &App) -> Model {
         .join("images")
         .join("generative_examples")
         .join("p_4_1_1_01.jpg");
-    let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+    let texture = app.assets().load(img_path);
 
     let win = app.window_rect();
     let tile_count_x = 4;
@@ -100,8 +99,8 @@ fn crop_tiles(app: &App, model: &mut Model, win: Rect) {
                     app.mouse().x + model.tile_width / 2.0,
                 );
                 model.crop_y = random_range(
-                    app.mouse().y - model.tile_height / 2.0,
-                    app.mouse().y + model.tile_height / 2.0,
+                    app.mouse().x - model.tile_height / 2.0,
+                    app.mouse().x + model.tile_height / 2.0,
                 );
             }
             model.crop_x = clamp(
@@ -129,10 +128,10 @@ fn crop_tiles(app: &App, model: &mut Model, win: Rect) {
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model) {
-    draw.background().color(BLACK);
-
     let draw = app.draw();
     let win = app.window_rect();
+
+    draw.background().color(BLACK);
 
     if model.select_mode {
         // in selection mode, a white selection rectangle is drawn over the image
@@ -181,7 +180,7 @@ fn mouse_moved(app: &App, model: &mut Model, pos: Point2) {
     let htw = model.tile_width / 2.0;
     let hth = model.tile_height / 2.0;
     model.crop_x = clamp(app.mouse().x, win.left() + htw, win.right() - htw);
-    model.crop_y = clamp(app.mouse().y, win.top() - hth, win.bottom() + hth);
+    model.crop_y = clamp(app.mouse().x, win.top() - hth, win.bottom() + hth);
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {

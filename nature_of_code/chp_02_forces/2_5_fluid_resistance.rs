@@ -61,7 +61,7 @@ impl Liquid {
         drag_force
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         draw.rect().xy(self.rect.xy()).wh(self.rect.wh()).gray(0.1);
     }
 }
@@ -108,7 +108,7 @@ impl Mover {
     }
 
     // Draw Mover
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 16.0, self.mass * 16.0)
@@ -153,7 +153,7 @@ fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
     }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     for i in 0..m.movers.len() {
         // Is the Mover in the liquid?
         if m.liquid.contains(&m.movers[i]) {
@@ -172,7 +172,7 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

@@ -15,7 +15,7 @@ fn view(app: &App) {
 
     // Use the mouse position to affect the frequency and amplitude.
     let hz = map_range(app.mouse().x, win.left(), win.right(), 0.0, 100.0);
-    let amp = app.mouse().y;
+    let amp = app.mouse().x;
 
     // Create an iterator yielding triangles for drawing a sine wave.
     let tris = (1..win.w() as usize)

@@ -64,7 +64,7 @@ fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
     let win = app.window_rect();
-    let circle_resolution = map_range(app.mouse().y, win.top(), win.bottom(), 3, 10);
+    let circle_resolution = map_range(app.mouse().x, win.top(), win.bottom(), 3, 10);
     let radius = app.mouse().x - win.left();
     let angle = TAU / circle_resolution as f32;
 

@@ -82,7 +82,7 @@ impl Ca {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &DrawHolder, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &Rect) {
         for i in 0..self.cells.len() {
             let mut fill = 1.0;
             if self.cells[i] == 1 {
@@ -155,7 +155,7 @@ fn model(app: &App) -> Model {
     Model { ca }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     if m.ca.finished(&app.window_rect()) == false {
         m.ca.generate();
     } else {
@@ -164,7 +164,7 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
 

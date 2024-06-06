@@ -10,7 +10,7 @@ fn view(app: &App) {
 
     let win = app.window_rect();
 
-    let color_select = map_range(app.mouse().y, win.top(), win.bottom(), 0.0, 5.0) as i32;
+    let color_select = map_range(app.mouse().x, win.top(), win.bottom(), 0.0, 5.0) as i32;
 
     let bg_color = match color_select {
         0 => RED,

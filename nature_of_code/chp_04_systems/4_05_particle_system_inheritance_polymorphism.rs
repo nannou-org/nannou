@@ -46,14 +46,14 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &DrawHolder, win: Rect) {
+    fn display(&self, draw: &Draw, win: Rect) {
         match &self.particle_type {
             ParticleType::Ellipse => {
                 draw.ellipse()
                     .xy(self.position)
                     .radius(6.0)
                     .rgba(0.5, 0.5, 0.5, self.life_span / 255.0)
-                    .stroke(rgba(0.0, 0.0, 0.0, self.life_span / 255.0))
+                    .stroke(Color::srgba(0.0, 0.0, 0.0, self.life_span / 255.0))
                     .stroke_weight(2.0);
             }
             ParticleType::Confetti => {
@@ -62,7 +62,7 @@ impl Particle {
                     .xy(self.position)
                     .w_h(12.0, 12.0)
                     .rgba(0.5, 0.5, 0.5, self.life_span / 255.0)
-                    .stroke(rgba(0.0, 0.0, 0.0, self.life_span / 255.0))
+                    .stroke(Color::srgba(0.0, 0.0, 0.0, self.life_span / 255.0))
                     .stroke_weight(2.0)
                     .rotate(theta);
             }
@@ -110,7 +110,7 @@ impl ParticleSystem {
         }
     }
 
-    fn draw(&self, draw: &DrawHolder, win: Rect) {
+    fn draw(&self, draw: &Draw, win: Rect) {
         for i in (0..self.particles.len()).rev() {
             self.particles[i].display(&draw, win);
         }
@@ -128,12 +128,12 @@ fn model(app: &App) -> Model {
     Model { ps }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     m.ps.add_particle();
     m.ps.update();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

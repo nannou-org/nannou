@@ -104,7 +104,7 @@ impl Gol {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &DrawHolder, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &Rect) {
         for i in 0..self.columns {
             for j in 0..self.rows {
                 let mut fill = 1.0;
@@ -146,11 +146,11 @@ fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {
     m.gol.init();
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     m.gol.generate();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

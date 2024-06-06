@@ -110,12 +110,12 @@ fn model(app: &App) -> Model {
     Model { vehicle, debug, d }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     m.vehicle.boundaries(m.d, &app.window_rect());
     m.vehicle.update();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -136,7 +136,7 @@ fn view(app: &App, m: &Model, frame: Frame) {
 
 }
 
-fn display(vehicle: &Vehicle, draw: &DrawHolder) {
+fn display(vehicle: &Vehicle, draw: &Draw) {
     let Vehicle {
         history,
         position,

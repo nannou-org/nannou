@@ -49,7 +49,7 @@ fn model(app: &App) -> Model {
     Model
 }
 
-fn update(_app: &App, _model: &mut Model, _update: Update) {}
+fn update(_app: &App, _model: &mut Model) {}
 
 fn view(app: &App, _model: &Model) {
     // Begin drawing

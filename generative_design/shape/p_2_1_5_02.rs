@@ -100,7 +100,7 @@ fn view(app: &App, model: &Model) {
 fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
     model.shapes.push(Shape::new(
         app.mouse().x,
-        app.mouse().y,
+        app.mouse().x,
         random_range(model.min_radius, model.max_radius),
     ));
 }

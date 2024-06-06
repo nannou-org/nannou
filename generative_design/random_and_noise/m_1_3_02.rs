@@ -37,7 +37,7 @@ fn main() {
 
 struct Model {
     act_random_seed: u64,
-    texture: wgpu::Texture,
+    texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
@@ -52,11 +52,22 @@ fn model(app: &App) -> Model {
 
     let window = app.main_window();
     let win = window.rect();
-    let texture = wgpu::TextureBuilder::new()
-        .size([win.w() as u32, win.h() as u32])
-        .format(wgpu::TextureFormat::Rgba8Unorm)
-        .usage(wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING)
-        .build(window.device());
+    let texture = Image {
+        texture_descriptor: TextureDescriptor {
+            label: None,
+            size: [win.w() as u32, win.h() as u32],
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Rgba8Unorm,
+            usage: TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING,
+            ..default()
+        },
+        ..default()
+    };
+
+    let texture = app.assets().add(texture);
+
     Model {
         act_random_seed: 42,
         texture,

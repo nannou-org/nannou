@@ -83,7 +83,7 @@ fn model(app: &App) -> Model {
 fn update(app: &App, model: &mut Model) {
     // floating towards mouse position
     model.center_x += (app.mouse().x - model.center_x) * 0.01;
-    model.center_y += (app.mouse().y - model.center_y) * 0.01;
+    model.center_y += (app.mouse().x - model.center_y) * 0.01;
 
     // calculate new points
     for i in 0..model.form_resolution {
@@ -167,7 +167,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     // init shape on mouse position
     model.center_x = app.mouse().x;
-    model.center_y = app.mouse().y;
+    model.center_y = app.mouse().x;
     let angle = (360.0 / model.form_resolution as f32).to_radians();
     let _radius = model.init_radius * random_range(0.5, 1.0);
     for i in 0..model.form_resolution {

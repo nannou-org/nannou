@@ -61,7 +61,7 @@ fn view(app: &App, model: &Model) {
         model.start_radius,
         model.recursion_level,
         app.mouse().x,
-        app.mouse().y,
+        app.mouse().x,
     );
 }
 

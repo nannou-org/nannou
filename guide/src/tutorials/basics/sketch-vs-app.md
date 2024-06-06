@@ -76,7 +76,7 @@ fn model(app: &App) -> Model {
     Model { _window }
 }
 
-fn update(_app: &App, _model: &mut Model, _update: Update) {}
+fn update(_app: &App, _model: &mut Model) {}
 
 fn view(app: &App, _model: &Model) {
     let draw = app.draw();

@@ -57,7 +57,7 @@ impl Attractor {
     }
 
     // Method to display
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         let gray = if self.dragging {
             0.2
         } else if self.roll_over {
@@ -129,7 +129,7 @@ impl Mover {
         self.acceleration *= 0.0;
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 16.0, self.mass * 16.0)
@@ -166,7 +166,7 @@ fn model(app: &App) -> Model {
 fn event(app: &App, m: &mut Model, event: WindowEvent) {
     match event {
         MousePressed(_button) => {
-            m.attractor.clicked(app.mouse.x, app.mouse.y);
+            m.attractor.clicked(app.mouse().x, app.mouse().y);
         }
         MouseReleased(_buttom) => {
             m.attractor.stop_dragging();
@@ -175,9 +175,9 @@ fn event(app: &App, m: &mut Model, event: WindowEvent) {
     }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
-    m.attractor.drag(app.mouse.x, app.mouse.y);
-    m.attractor.hover(app.mouse.x, app.mouse.y);
+fn update(app: &App, m: &mut Model) {
+    m.attractor.drag(app.mouse().x, app.mouse().y);
+    m.attractor.hover(app.mouse().x, app.mouse().y);
     for i in 0..m.movers.len() {
         let force = m.attractor.attract(&m.movers[i]);
         m.movers[i].apply_force(force);
@@ -185,7 +185,7 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

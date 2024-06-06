@@ -899,6 +899,5 @@ impl <'a, 'w> Window<'a, 'w> {
             .save_screenshot_to_disk(self.entity, path)
             .expect("Failed to save screenshot");
     }
-
 }
 

@@ -69,7 +69,7 @@ fn view(app: &App, model: &Model) {
     let win = app.window_rect();
 
     let mouse_x_factor = map_range(app.mouse().x, win.left(), win.right(), 0.01, 1.0);
-    let mouse_y_factor = map_range(app.mouse().y, win.bottom(), win.top(), 0.01, 1.0);
+    let mouse_y_factor = map_range(app.mouse().x, win.bottom(), win.top(), 0.01, 1.0);
 
     let (w, h) = model.image.dimensions();
     for grid_x in 0..w {

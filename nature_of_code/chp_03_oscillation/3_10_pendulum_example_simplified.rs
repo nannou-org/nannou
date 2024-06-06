@@ -65,7 +65,7 @@ impl Pendulum {
         );
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         // Draw the arm
         draw.line()
             .start(self.origin)
@@ -95,11 +95,11 @@ fn model(app: &App) -> Model {
     Model { pendulum }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     m.pendulum.update(app.window_rect());
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

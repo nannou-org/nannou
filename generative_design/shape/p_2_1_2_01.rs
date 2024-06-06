@@ -77,7 +77,7 @@ fn view(app: &App, model: &Model) {
             let pos_y = (win.top() - (tile_h / 2.0)) - tile_h * grid_y as f32;
 
             let mx = clamp(win.right() + app.mouse().x, 0.0, win.w());
-            let my = clamp(win.top() - app.mouse().y, 0.0, win.h());
+            let my = clamp(win.top() - app.mouse().x, 0.0, win.h());
 
             let shift_x = rng.gen_range(-mx..mx + 1.0) / 20.0;
             let shift_y = rng.gen_range(-mx..mx + 1.0) / 20.0;

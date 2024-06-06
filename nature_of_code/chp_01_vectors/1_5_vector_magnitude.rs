@@ -16,7 +16,7 @@ fn view(app: &App) {
 
     draw.background().color(WHITE);
 
-    let mut mouse = vec2(app.mouse.x, app.mouse.y);
+    let mut mouse = vec2(app.mouse().x, app.mouse().y);
     let center = vec2(0.0, 0.0);
     mouse -= center;
 

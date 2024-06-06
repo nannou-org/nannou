@@ -78,7 +78,7 @@ fn view(app: &App, model: &Model) {
             let pos_x = win.left() + tile_w * grid_x as f32;
             let pos_y = (win.top() - tile_h) - tile_h * grid_y as f32;
             let mx = clamp(win.right() + app.mouse().x, 0.0, win.w());
-            let my = clamp(win.top() - app.mouse().y, 0.0, win.h());
+            let my = clamp(win.top() - app.mouse().x, 0.0, win.h());
 
             let toggle = rng.gen::<bool>();
 

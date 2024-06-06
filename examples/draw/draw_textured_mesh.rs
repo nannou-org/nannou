@@ -49,7 +49,7 @@ fn view(app: &App, model: &Model) {
         .mesh()
         .points_textured(model.texture.clone(), points)
         .z_radians(t * 0.33)
-        .x_radians(t * 0.166 + -app.mouse().y / 100.0)
+        .x_radians(t * 0.166 + -app.mouse().x / 100.0)
         .y_radians(t * 0.25 + app.mouse().x / 100.0);
 
     // Draw to the frame!

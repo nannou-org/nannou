@@ -78,17 +78,17 @@ fn model(app: &App) -> Model {
     Model { vehicle }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     seek(&mut m.vehicle, app.mouse()());
     m.vehicle.update();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
-    let mouse = vec2(app.mouse.x, app.mouse.y);
+    let mouse = vec2(app.mouse().x, app.mouse().y);
 
     draw.ellipse()
         // Missing Stroke
@@ -124,7 +124,7 @@ fn seek(vehicle: &mut Vehicle, target: Vec2) {
     vehicle.apply_force(steer);
 }
 
-fn display(vehicle: &Vehicle, draw: &DrawHolder) {
+fn display(vehicle: &Vehicle, draw: &Draw) {
     let Vehicle {
         history,
         position,

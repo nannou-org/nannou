@@ -41,7 +41,7 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         draw.rect().xy(self.position).w_h(self.r, self.r).rgba(
             0.0,
             0.0,
@@ -99,7 +99,7 @@ impl ParticleSystem {
         }
     }
 
-    fn draw(&self, draw: &DrawHolder) {
+    fn draw(&self, draw: &Draw) {
         for p in self.particles.iter() {
             p.display(&draw);
         }
@@ -121,11 +121,11 @@ fn model(app: &App) -> Model {
     Model { ps }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     m.ps.update();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

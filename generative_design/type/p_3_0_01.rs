@@ -67,7 +67,7 @@ fn view(app: &App, model: &Model) {
     draw.text(&model.letter.to_string())
         .color(BLACK)
         .font_size(size)
-        .x_y(0.0, app.mouse().y);
+        .x_y(0.0, app.mouse().x);
 
 
 

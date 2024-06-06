@@ -43,13 +43,13 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         let size = 12.0;
         draw.ellipse()
             .xy(self.position)
             .w_h(size, size)
             .rgba(0.5, 0.5, 0.5, self.life_span / 255.0)
-            .stroke(rgba(0.0, 0.0, 0.0, self.life_span / 255.0))
+            .stroke(Color::srgba(0.0, 0.0, 0.0, self.life_span / 255.0))
             .stroke_weight(2.0);
     }
 
@@ -91,7 +91,7 @@ impl ParticleSystem {
         }
     }
 
-    fn draw(&self, draw: &DrawHolder) {
+    fn draw(&self, draw: &Draw) {
         for p in self.particles.iter() {
             p.display(&draw);
         }
@@ -119,17 +119,17 @@ fn model(app: &App) -> Model {
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
     m.systems
-        .push(ParticleSystem::new(1, pt2(app.mouse.x, app.mouse.y)));
+        .push(ParticleSystem::new(1, pt2(app.mouse().x, app.mouse().y)));
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     for ps in m.systems.iter_mut() {
         ps.add_particle();
         ps.update();
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

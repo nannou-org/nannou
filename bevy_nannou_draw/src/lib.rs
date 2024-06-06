@@ -9,6 +9,7 @@ mod changed;
 pub mod draw;
 pub mod render;
 pub mod text;
+pub mod color;
 
 pub struct NannouDrawPlugin;
 

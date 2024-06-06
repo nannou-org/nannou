@@ -39,7 +39,7 @@ impl Oscillator {
         self.angle += self.velocity;
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         let x = self.angle.x.sin() * self.amplitude.x;
         let y = self.angle.y.sin() * self.amplitude.y;
 
@@ -69,13 +69,13 @@ fn model(app: &App) -> Model {
     Model { oscillators }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     for osc in &mut m.oscillators {
         osc.oscillate();
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().rgba(1.0, 1.0, 1.0, 1.0);

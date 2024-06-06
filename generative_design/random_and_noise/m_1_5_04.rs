@@ -47,12 +47,12 @@ struct Agent {
     agent_width_min: f32,
     agent_width_max: f32,
     noise_z_velocity: f64,
-    win_rect: Rect,
+    win_rect: geom::Rect,
 }
 
 impl Agent {
     fn new(
-        win_rect: Rect,
+        win_rect: geom::Rect,
         noise_sticking_range: f32,
         agent_alpha: f32,
         noise_scale: f64,
@@ -78,7 +78,7 @@ impl Agent {
             step_size: 1.0 + randomizer * 4.0,
             z_noise: random_f32() * noise_sticking_range,
             angle: 0.0,
-            color,
+            color: color.into(),
             noise_scale,
             noise_strength,
             agent_width: agent_width_min,
@@ -170,8 +170,7 @@ fn model(app: &App) -> Model {
         .size(1280, 720)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let agent_count = 2000;
     let noise_scale = 100.0;

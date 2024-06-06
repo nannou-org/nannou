@@ -153,7 +153,7 @@ fn update(app: &App, model: &mut Model) {
 
     if app.mouse.buttons.pressed().next().is_some() {
         model.node_a.x = app.mouse().x;
-        model.node_a.y = app.mouse().y;
+        model.node_a.y = app.mouse().x;
     }
 }
 

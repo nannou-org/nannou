@@ -37,7 +37,7 @@ impl Cell {
         self.state = s;
     }
 
-    fn display(&self, draw: &DrawHolder, x: f32, y: f32) {
+    fn display(&self, draw: &Draw, x: f32, y: f32) {
         let fill = if self.previous == 0 && self.state == 1 {
             rgb(0.0, 0.0, 1.0)
         } else if self.state == 1 {
@@ -136,7 +136,7 @@ impl Gol {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &DrawHolder, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &Rect) {
         for i in 0..self.columns {
             for j in 0..self.rows {
                 let x = (i * self.w) as f32 - rect.right() as f32;
@@ -169,11 +169,11 @@ fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {
     m.gol.init();
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     m.gol.generate();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

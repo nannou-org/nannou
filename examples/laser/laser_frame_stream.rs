@@ -46,7 +46,8 @@ fn model(app: &App) -> Model {
     let _laser_api = laser::Api::new();
     let laser_stream = _laser_api
         .new_frame_stream(laser_model, laser)
-        .build();
+        .build()
+        .unwrap();
 
     Model {
         _laser_api,
@@ -153,6 +154,6 @@ fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
         .unwrap();
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) {
+fn view(_app: &App, _model: &Model) {
     draw.background().color(DIMGRAY);
 }

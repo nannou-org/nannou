@@ -86,7 +86,7 @@ fn view(app: &App, model: &Model) {
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 
     let mx = clamp(win.right() + app.mouse().x, 0.0, win.w());
-    let my = clamp(win.top() - app.mouse().y, 0.0, win.h());
+    let my = clamp(win.top() - app.mouse().x, 0.0, win.h());
 
     for grid_y in 0..model.tile_count {
         for grid_x in 0..model.tile_count {

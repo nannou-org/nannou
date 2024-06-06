@@ -112,7 +112,7 @@ fn model(app: &App) -> Model {
 fn update(app: &App, model: &mut Model) {
     if let Some(ref mut s) = model.new_shape {
         s.x2 = app.mouse().x;
-        s.y2 = app.mouse().y;
+        s.y2 = app.mouse().x;
         s.h = model.shape_height;
         s.c = model.shape_color;
     }
@@ -137,12 +137,13 @@ fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.p_mouse = app
         .mouse_buttons()
         .just_pressed(MouseButton::Left)
-        .ok(app.mouse());
+        .then_some(app.mouse())
+        .unwrap();
     model.new_shape = Some(Shape::new(
         model.p_mouse.x,
         model.p_mouse.y,
         app.mouse().x,
-        app.mouse().y,
+        app.mouse().x,
         model.shape_height,
         model.shape_color,
     ));

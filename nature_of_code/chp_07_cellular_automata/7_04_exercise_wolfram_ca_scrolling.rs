@@ -82,7 +82,7 @@ impl Ca {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &DrawHolder, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &Rect) {
         let offset = self.generation % self.rows as i32;
         for col in 0..self.columns {
             for row in 0..self.rows {
@@ -170,11 +170,11 @@ fn model(app: &App) -> Model {
     Model { ca }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     m.ca.generate();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
 

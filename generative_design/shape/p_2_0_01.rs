@@ -39,7 +39,7 @@ fn view(app: &App) {
     // Prepare to draw.
     let draw = app.draw();
     let win = app.window_rect();
-    let circle_resolution = map_range(app.mouse().y, win.top(), win.bottom(), 2, 80);
+    let circle_resolution = map_range(app.mouse().x, win.top(), win.bottom(), 2, 80);
     let radius = app.mouse().x - win.left();
     let angle = TAU / circle_resolution as f32;
 
@@ -51,7 +51,7 @@ fn view(app: &App) {
         draw.line()
             .start(pt2(0.0, 0.0))
             .end(pt2(x, y))
-            .stroke_weight(app.mouse().y / 20.0)
+            .stroke_weight(app.mouse().x / 20.0)
             .caps_round()
             .color(WHITE);
     }

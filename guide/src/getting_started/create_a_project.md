@@ -58,10 +58,10 @@ create a new project with just a few small steps:
        Model {}
    }
 
-   fn update(_app: &App, _model: &mut Model, _update: Update) {
+   fn update(_app: &App, _model: &mut Model) {
    }
 
-   fn view(_app: &App, _model: &Model, frame: Frame) {
+   fn view(_app: &App, _model: &Model) {
        draw.background().color(PURPLE);
    }
    ```

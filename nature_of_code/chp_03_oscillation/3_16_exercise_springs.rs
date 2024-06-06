@@ -40,7 +40,7 @@ impl Spring {
         b.apply_force(force);
     }
 
-    fn display(&self, draw: &DrawHolder, a: &Bob, b: &Bob) {
+    fn display(&self, draw: &Draw, a: &Bob, b: &Bob) {
         draw.line()
             .start(a.position)
             .end(b.position)
@@ -86,7 +86,7 @@ impl Bob {
         self.acceleration += f;
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         let c = if self.dragging { GREY } else { DARKGREY };
         draw.ellipse()
             .xy(self.position)
@@ -151,7 +151,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     m.s1.update(&mut m.b1, &mut m.b2);
     m.s2.update(&mut m.b2, &mut m.b3);
     m.s3.update(&mut m.b1, &mut m.b3);
@@ -159,10 +159,10 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     m.b1.update();
     m.b2.update();
     m.b3.update();
-    m.b1.drag(app.mouse.x, app.mouse.y);
+    m.b1.drag(app.mouse().x, app.mouse().y);
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -180,7 +180,7 @@ fn view(app: &App, m: &Model, frame: Frame) {
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
-    m.b1.clicked(app.mouse.x, app.mouse.y);
+    m.b1.clicked(app.mouse().x, app.mouse().y);
 }
 
 fn mouse_released(_app: &App, m: &mut Model, _button: MouseButton) {

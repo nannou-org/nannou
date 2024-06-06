@@ -167,7 +167,7 @@ fn view(app: &App, model: &Model) {
 
     // limit mouse coordintes to canvas
     let mx = (app.mouse().x - win_rect.left()).max(1.0).min(win_rect.w());
-    let my = (win_rect.top() - app.mouse().y).max(1.0).min(win_rect.h());
+    let my = (win_rect.top() - app.mouse().x).max(1.0).min(win_rect.h());
 
     // tile counter
     let mut counter = 0;

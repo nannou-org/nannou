@@ -40,7 +40,7 @@ impl Spring {
         bobs[idx + 1].apply_force(force);
     }
 
-    fn display(&self, draw: &DrawHolder, a: &Bob, b: &Bob) {
+    fn display(&self, draw: &Draw, a: &Bob, b: &Bob) {
         draw.line()
             .start(a.position)
             .end(b.position)
@@ -86,7 +86,7 @@ impl Bob {
         self.acceleration += f;
     }
 
-    fn display(&self, draw: &DrawHolder) {
+    fn display(&self, draw: &Draw) {
         let c = if self.dragging { GREY } else { DARKGREY };
         draw.ellipse()
             .xy(self.position)
@@ -153,18 +153,18 @@ fn model(app: &App) -> Model {
     Model { bobs, springs }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     for (i, s) in m.springs.iter().enumerate() {
         s.update(&mut m.bobs, i);
     }
 
     for b in &mut m.bobs {
         b.update();
-        b.drag(app.mouse.x, app.mouse.y);
+        b.drag(app.mouse().x, app.mouse().y);
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -183,7 +183,7 @@ fn view(app: &App, m: &Model, frame: Frame) {
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
     for b in &mut m.bobs {
-        b.clicked(app.mouse.x, app.mouse.y);
+        b.clicked(app.mouse().x, app.mouse().y);
     }
 }
 

@@ -29,7 +29,7 @@ fn view(app: &App, _model: &Model) {
 }
 
 // Recursive function
-fn draw_circle(draw: &DrawHolder, x: f32, y: f32, r: f32) {
+fn draw_circle(draw: &Draw, x: f32, y: f32, r: f32) {
     draw.ellipse()
         .x_y(x, y)
         .radius(r)

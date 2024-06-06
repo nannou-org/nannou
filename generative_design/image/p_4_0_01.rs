@@ -35,7 +35,7 @@ fn main() {
 
 struct Model {
     // Store the window ID so we can refer to this specific window later if needed.
-    texture: wgpu::Texture,
+    texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
@@ -51,7 +51,7 @@ fn model(app: &App) -> Model {
         .join("images")
         .join("generative_examples")
         .join("p_4_0_01.jpg");
-    let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+    let texture = app.assets().load(img_path);
     Model { texture }
 }
 
@@ -62,7 +62,7 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
     let tile_count_x = map_range(app.mouse().x, win.left(), win.right(), 1.0, win.w() / 3.0);
-    let tile_count_y = map_range(app.mouse().y, win.top(), win.bottom(), 1.0, win.h() / 3.0);
+    let tile_count_y = map_range(app.mouse().x, win.top(), win.bottom(), 1.0, win.h() / 3.0);
     let step_x = win.w() / tile_count_x;
     let step_y = win.h() / tile_count_y;
 

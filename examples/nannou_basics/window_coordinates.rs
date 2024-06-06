@@ -15,7 +15,7 @@ fn view(app: &App) {
     draw_grid(&draw, &win, 25.0, 0.5);
 
     // Crosshair.
-    let crosshair_color = gray(0.5);
+    let crosshair_color = Color::gray(0.5);
     let ends = [
         win.mid_top(),
         win.mid_right(),
@@ -68,54 +68,52 @@ fn view(app: &App) {
         .y(y_off);
 
     // Window and monitor details.
-    if let Some(monitor) = window.current_monitor() {
-        let w_scale_factor = window.scale_factor();
-        let m_scale_factor = monitor.scale_factor();
-        let mon_phys = monitor.size();
-        let mon = mon_phys.to_logical(w_scale_factor as f64);
-        let mon_w: f32 = mon.width;
-        let mon_h: f32 = mon.height;
-        let text = format!(
-            "
-        Window size: [{:.0}, {:.0}]
-        Window ratio: {:.2}
-        Window scale factor: {:.2}
-        Monitor size: [{:.0}, {:.0}]
-        Monitor ratio: {:.2}
-        Monitor scale factor: {:.2}
-        ",
-            win.w(),
-            win.h(),
-            win.w() / win.h(),
-            w_scale_factor,
-            mon_w,
-            mon_h,
-            mon_w / mon_h,
-            m_scale_factor
-        );
-        let pad = 6.0;
-        draw.text(&text)
-            .h(win.pad(pad).h())
-            .w(win.pad(pad).w())
-            .line_spacing(pad)
-            .font_size(14)
-            .align_text_bottom()
-            .color(crosshair_color)
-            .left_justify();
-
-        // Ellipse at mouse.
-        draw.ellipse().wh([5.0; 2].into()).xy(app.mouse());
-
-        // Mouse position text.
-        let mouse = app.mouse();
-        let pos = format!("[{:.1}, {:.1}]", mouse.x, mouse.y);
-        draw.text(&pos)
-            .xy(mouse + vec2(0.0, 20.0))
-            .font_size(14)
-            .color(WHITE);
-    }
-
-
+    // if let Some(monitor) = window.current_monitor() {
+    //     let w_scale_factor = window.scale_factor();
+    //     let m_scale_factor = monitor.scale_factor();
+    //     let mon_phys = monitor.size();
+    //     let mon = mon_phys.to_logical(w_scale_factor as f64);
+    //     let mon_w: f32 = mon.width;
+    //     let mon_h: f32 = mon.height;
+    //     let text = format!(
+    //         "
+    //     Window size: [{:.0}, {:.0}]
+    //     Window ratio: {:.2}
+    //     Window scale factor: {:.2}
+    //     Monitor size: [{:.0}, {:.0}]
+    //     Monitor ratio: {:.2}
+    //     Monitor scale factor: {:.2}
+    //     ",
+    //         win.w(),
+    //         win.h(),
+    //         win.w() / win.h(),
+    //         w_scale_factor,
+    //         mon_w,
+    //         mon_h,
+    //         mon_w / mon_h,
+    //         m_scale_factor
+    //     );
+    //     let pad = 6.0;
+    //     draw.text(&text)
+    //         .h(win.pad(pad).h())
+    //         .w(win.pad(pad).w())
+    //         .line_spacing(pad)
+    //         .font_size(14)
+    //         .align_text_bottom()
+    //         .color(crosshair_color)
+    //         .left_justify();
+    //
+    //     // Ellipse at mouse.
+    //     draw.ellipse().wh([5.0; 2].into()).xy(app.mouse());
+    //
+    //     // Mouse position text.
+    //     let mouse = app.mouse();
+    //     let pos = format!("[{:.1}, {:.1}]", mouse.x, mouse.y);
+    //     draw.text(&pos)
+    //         .xy(mouse + vec2(0.0, 20.0))
+    //         .font_size(14)
+    //         .color(WHITE);
+    // }
 }
 
 fn draw_grid(draw: &Draw, win: &Rect, step: f32, weight: f32) {

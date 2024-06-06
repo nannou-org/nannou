@@ -110,7 +110,7 @@ fn view(app: &App, model: &Model) {
         }
 
         let my = clamp(
-            map_range(app.mouse().y, win.top() - 50.0, win.bottom() + 50.0, 0.0, 1.0),
+            map_range(app.mouse().x, win.top() - 50.0, win.bottom() + 50.0, 0.0, 1.0),
             0.0,
             1.0,
         );

@@ -24,7 +24,7 @@ fn model(app: &App) -> Model {
 
 fn update(app: &App, model: &mut Model) {
     let win = app.window_rect();
-    model.theta = map_range(app.mouse.x, win.left(), win.right(), 0.0, PI / 2.0);
+    model.theta = map_range(app.mouse().x, win.left(), win.right(), 0.0, PI / 2.0);
 }
 
 fn view(app: &App, model: &Model) {
@@ -39,7 +39,7 @@ fn view(app: &App, model: &Model) {
 
 }
 
-fn branch(draw: &DrawHolder, len: f32, theta: f32) {
+fn branch(draw: &Draw, len: f32, theta: f32) {
     let mut length = len;
     // Each branch will be 2/3rds the size of the previous one
     let sw = map_range(length, 2.0, 120.0, 1.0, 10.0);

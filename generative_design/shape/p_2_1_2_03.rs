@@ -68,7 +68,7 @@ fn view(app: &App, model: &Model) {
             let pos_x = (win.left() + (tile_w / 2.0)) + tile_w * grid_x as f32;
             let pos_y = (win.top() - (tile_h / 2.0)) - tile_h * grid_y as f32;
 
-            let mut diameter = pt2(app.mouse().x, app.mouse().y).distance(pt2(pos_x, pos_y));
+            let mut diameter = pt2(app.mouse().x, app.mouse().x).distance(pt2(pos_x, pos_y));
             diameter = diameter / model.max_distance * 40.0;
 
             draw.rect()

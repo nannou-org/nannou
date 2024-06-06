@@ -72,7 +72,7 @@ fn view(app: &App, model: &Model) {
         win.w(),
     ) / 10.0;
     let end_size = clamp(
-        map_range(app.mouse().y, win.top(), win.bottom(), 0.0, win.h()),
+        map_range(app.mouse().x, win.top(), win.bottom(), 0.0, win.h()),
         0.0,
         win.h(),
     ) / 10.0;

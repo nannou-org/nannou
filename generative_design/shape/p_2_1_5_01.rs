@@ -67,7 +67,7 @@ fn view(app: &App, model: &Model) {
     // second shape (dynamically translated/rotated and scaled)
     let x = map_range(app.mouse().x, win.left(), win.right(), -50.0, 50.0);
     let a = map_range(app.mouse().x, win.left(), win.right(), -0.5, 0.5);
-    let s = map_range(app.mouse().y, win.top(), win.bottom(), 0.7, 1.0);
+    let s = map_range(app.mouse().x, win.top(), win.bottom(), 0.7, 1.0);
 
     match model.draw_mode {
         1 => draw = draw.rotate(a),

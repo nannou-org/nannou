@@ -20,7 +20,7 @@ fn model(_app: &App) -> Model {
 
 // By default, `update` is called right before `view` is called each frame.
 fn update(app: &App, model: &mut Model) {
-    model.ball.position = pt2(app.mouse.x, app.mouse.y);
+    model.ball.position = pt2(app.mouse().x, app.mouse().y);
 }
 
 fn view(app: &App, model: &Model) {

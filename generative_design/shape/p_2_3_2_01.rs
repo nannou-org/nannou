@@ -72,16 +72,16 @@ fn model(app: &App) -> Model {
 
 fn update(app: &App, model: &mut Model) {
     if app.mouse_buttons().just_pressed(MouseButton::Left) {
-        model.dist = pt2(model.x, model.y).distance(pt2(app.mouse().x, app.mouse().y));
+        model.dist = pt2(model.x, model.y).distance(pt2(app.mouse().x, app.mouse().x));
 
         if model.dist > model.step_size {
-            model.angle = (app.mouse().y - model.y).atan2(app.mouse().x - model.x);
+            model.angle = (app.mouse().x - model.y).atan2(app.mouse().x - model.x);
             if model.draw_mode == 1 {
                 model.x = model.x + model.angle.cos() * model.step_size;
                 model.y = model.y + model.angle.sin() * model.step_size;
             } else {
                 model.x = app.mouse().x;
-                model.y = app.mouse().y;
+                model.y = app.mouse().x;
             }
         }
     }
@@ -113,7 +113,7 @@ fn view(app: &App, model: &Model) {
 
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.x = app.mouse().x;
-    model.y = app.mouse().y;
+    model.y = app.mouse().x;
     model.col = Color::srgba(random_f32(), random_f32(), random_f32(), random_f32() * 0.4).into();
 }
 

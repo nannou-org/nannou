@@ -22,7 +22,7 @@ fn model(app: &App) -> Model {
     Model { position, velocity }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     // Add the current speed to the position.
     m.position += m.velocity;
 

@@ -172,20 +172,20 @@ fn view(app: &App, model: &Model) {
         draw.ellipse()
             .x_y(xs + model.x, ys - osc_xy)
             .radius(4.0)
-            .stroke(gray(1.0))
+            .stroke(Color::gray(1.0))
             .stroke_weight(2.0)
             .color(c);
         draw.ellipse()
             .x_y(xs + osc_yx, ys - model.y)
             .radius(4.0)
-            .stroke(gray(1.0))
+            .stroke(Color::gray(1.0))
             .stroke_weight(2.0)
             .color(c);
 
         draw.ellipse()
             .x_y(xs + model.x, ys - model.y)
             .radius(5.0)
-            .stroke(gray(1.0))
+            .stroke(Color::gray(1.0))
             .stroke_weight(2.0)
             .color(c);
     }

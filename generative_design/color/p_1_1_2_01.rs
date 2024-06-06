@@ -98,7 +98,7 @@ fn view(app: &App, model: &Model) {
         points.push(pt2(next_vx, next_vy));
 
         let mx = (app.mouse().x / app.window_rect().w()) + 0.5;
-        let my = (app.mouse().y / app.window_rect().h()) + 0.5;
+        let my = (app.mouse().x / app.window_rect().h()) + 0.5;
 
         draw.polygon()
             .stroke(Color::hsv(angle as f32 / 360.0, my, mx))

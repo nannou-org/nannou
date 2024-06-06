@@ -69,23 +69,23 @@ fn model(app: &App) -> Model {
     Model { vehicle }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     arrive(&mut m.vehicle, app.mouse()());
     m.vehicle.update();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
-    let mouse = vec2(app.mouse.x, app.mouse.y);
+    let mouse = vec2(app.mouse().x, app.mouse().y);
 
     draw.ellipse()
         .x_y(mouse.x, mouse.y)
         .radius(24.0)
         .rgb(0.78, 0.78, 0.78)
-        .stroke(gray(0.0))
+        .stroke(Color::gray(0.0))
         .stroke_weight(2.0);
 
     display(&m.vehicle, &draw);
@@ -124,7 +124,7 @@ fn arrive(vehicle: &mut Vehicle, target: Vec2) {
     vehicle.apply_force(steer);
 }
 
-fn display(vehicle: &Vehicle, draw: &DrawHolder) {
+fn display(vehicle: &Vehicle, draw: &Draw) {
     let Vehicle {
         position,
         velocity,

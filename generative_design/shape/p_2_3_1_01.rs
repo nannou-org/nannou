@@ -35,6 +35,7 @@
  * s                   : save png
  */
 use nannou::prelude::*;
+use nannou::prelude::Color::Srgba;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -57,7 +58,7 @@ fn model(app: &App) -> Model {
         .build();
 
     Model {
-        c: rgba(0.7, 0.6, 0.0, 1.0),
+        c: Srgba::new(0.7, 0.6, 0.0, 1.0),
         line_length: 0.0,
         angle: 0.0,
         angle_speed: 1.0,
@@ -78,7 +79,7 @@ fn view(app: &App, model: &Model) {
 
     if app.mouse_buttons().just_pressed(MouseButton::Left) {
         draw = draw
-            .x_y(app.mouse().x, app.mouse().y)
+            .x_y(app.mouse().x, app.mouse().x)
             .rotate(model.angle.to_radians());
         draw.line()
             .start(pt2(0.0, 0.0))
@@ -123,7 +124,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         }
         // change color
         KeyCode::Space => {
-            model.c = Color::srgba(
+            model.c = Srgba::new(
                 random_f32(),
                 random_f32(),
                 random_f32(),
@@ -132,16 +133,16 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         }
         // default colors from 1 to 4
         KeyCode::Digit1 => {
-            model.c = Color::srgba(0.7, 0.61, 0.0, 1.0);
+            model.c = Srgba::new(0.7, 0.61, 0.0, 1.0);
         }
         KeyCode::Digit2 => {
-            model.c = Color::srgba(0.0, 0.5, 0.64, 1.0);
+            model.c = Srgba::new(0.0, 0.5, 0.64, 1.0);
         }
         KeyCode::Digit3 => {
-            model.c = Color::srgba(0.34, 0.13, 0.5, 1.0);
+            model.c = Srgba::new(0.34, 0.13, 0.5, 1.0);
         }
         KeyCode::Digit4 => {
-            model.c = Color::srgba(0.77, 0.0, 0.48, 1.0);
+            model.c = Srgba::new(0.77, 0.0, 0.48, 1.0);
         }
         _otherkey => (),
     }

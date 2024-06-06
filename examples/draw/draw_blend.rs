@@ -8,7 +8,7 @@ fn view(app: &App) {
     // Change the background luminance based on mouse x.
     let w = app.window_rect();
     let lum = map_range(app.mouse().x, w.left(), w.right(), 0.0, 1.0);
-    let clear = gray(lum);
+    let clear = Color::gray(lum);
     // draw.background().color(clear);
 
     // Put all the provided blend modes in a list.
@@ -22,7 +22,7 @@ fn view(app: &App) {
     ];
 
     // Select a color blend descriptor based on mouse y.
-    let ix = map_range(app.mouse().y, w.top(), w.bottom(), 0, blends.len());
+    let ix = map_range(app.mouse().x, w.top(), w.bottom(), 0, blends.len());
     let ix = std::cmp::min(ix, blends.len() - 1);
     let (blend_name, desc) = &blends[ix];
 
@@ -30,7 +30,7 @@ fn view(app: &App) {
     let mut draw = app.draw();
     draw.background()
         .color(clear);
-    let color = gray(1.0f32 - lum.round());
+    let color = Color::gray(1.0f32 - lum.round());
     // draw.text(blend_name)
     //     .color(color)
     //     .font_size(48)
@@ -81,15 +81,11 @@ fn view(app: &App) {
         .color_blend(desc.clone());
     for i in 0..n_circles {
         let lum = (0.5 + i as f32) / n_circles as f32;
-        let color = gray(lum);
+        let color = Color::gray(lum);
         draw.ellipse()
             .radius(radius)
             .color(color)
             .x(radius + animate_radius);
         draw = draw.rotate(PI * 2.0 / n_circles as f32);
     }
-}
-
-fn gray(lum: f32) -> Color {
-    Color::srgb(lum, lum, lum)
 }

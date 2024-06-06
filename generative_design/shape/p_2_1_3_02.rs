@@ -70,7 +70,7 @@ fn view(app: &App, model: &Model) {
     let count = 10;
 
     let tile_count_x = map_range(app.mouse().x, win.left(), win.right(), 1, 30);
-    let tile_count_y = map_range(app.mouse().y, win.top(), win.bottom(), 1, 30);
+    let tile_count_y = map_range(app.mouse().x, win.top(), win.bottom(), 1, 30);
     let tile_width = win.w() / tile_count_x as f32;
     let tile_height = win.h() / tile_count_y as f32;
 

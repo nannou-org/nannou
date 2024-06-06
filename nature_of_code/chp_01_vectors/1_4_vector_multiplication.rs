@@ -14,7 +14,7 @@ fn view(app: &App) {
     let draw = app.draw();
     draw.background().color(WHITE);
 
-    let mut mouse = vec2(app.mouse.x, app.mouse.y);
+    let mut mouse = vec2(app.mouse().x, app.mouse().y);
     let center = vec2(0.0, 0.0);
 
     // Multiplying a vector! The vector is now half its original size (multilies by 0.5)

@@ -122,14 +122,14 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     // Train the Perceptron with one "training" point at a time
     m.ptron
         .train(&m.training[m.count].inputs, m.training[m.count].answer);
     m.count = (m.count + 1) % m.training.len();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);

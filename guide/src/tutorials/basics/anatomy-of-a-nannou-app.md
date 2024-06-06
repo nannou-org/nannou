@@ -232,7 +232,7 @@ fn main() {
 # fn model(_app: &App) -> Model {
 #     Model {}
 # }
-# fn update(_app: &App, _model: &mut Model, _update: Update) {
+# fn update(_app: &App, _model: &mut Model) {
 # }
 # fn view(_app: &App, _model: &Model, _frame: Frame) {
 # }
@@ -244,7 +244,7 @@ And remove our `event` function in favour of an `update` function:
 # #![allow(dead_code)]
 # use nannou::prelude::*;
 # struct Model {}
-fn update(_app: &App, _model: &mut Model, _update: Update) {
+fn update(_app: &App, _model: &mut Model) {
 }
 # fn main() {}
 ```
