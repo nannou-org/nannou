@@ -116,6 +116,7 @@ fn model(app: &App) -> Model {
 
     let image = app.assets().load("images/generative_examples/p_4_3_1_01.png");
 
+
     Model { image, shapes }
 }
 
@@ -127,9 +128,7 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
 
-    let Some(image) = app.image(&model.image) else {
-        return;
-    };
+    let image = app.image(&model.image).unwrap();
 
     let (w, h) = image.dimensions();
     for grid_x in 0..w {

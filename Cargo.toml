@@ -21,4 +21,4 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy" }
+bevy = { path = "../../bevyengine/bevy" }

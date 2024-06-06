@@ -1,0 +1,7 @@
+# ----
+# Automatically Generated .dropboxignore file at Tue Apr 23 13:35:38 PDT 2024
+# ----
+/target
+**/*.rs.bk
+Cargo.lock
+# ----

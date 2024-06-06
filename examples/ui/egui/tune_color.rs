@@ -1,5 +1,4 @@
 use nannou::prelude::*;
-use nannou_egui::{egui, Egui};
 
 const WIDTH: f32 = 640.0;
 const HEIGHT: f32 = 360.0;
@@ -26,11 +25,11 @@ fn model(app: &App) -> Model {
     Model {
         window,
         radius: 40.0,
-        color: Color::hsv(10.0, 0.5, 1.0),
+        color: Color::hsv(10.0, 0.5, 1.0).into(),
     }
 }
 
-fn update(app: &App, model: &mut Model, update: Update) {
+fn update(app: &App, model: &mut Model) {
     let Model {
         window,
         ref mut radius,

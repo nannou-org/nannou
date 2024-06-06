@@ -9,13 +9,14 @@
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
 use std::any::Any;
 use std::cell::RefCell;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{self};
-use std::path::{Path, PathBuf};
 
 use bevy::app::AppExit;
 use bevy::asset::io::file::FileAssetReader;
+use bevy::asset::LoadState;
 use bevy::core::FrameCount;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::system::SystemParam;
@@ -26,7 +27,8 @@ use bevy::input::ButtonState;
 use bevy::pbr::ExtendedMaterial;
 use bevy::prelude::*;
 use bevy::reflect::{DynamicTypePath, GetTypeRegistration};
-use bevy::window::{PrimaryWindow, WindowClosed, WindowFocused, WindowResized};
+use bevy::window::{ExitCondition, PrimaryWindow, WindowClosed, WindowFocused, WindowResized};
+use bevy::winit::{UpdateMode, WinitSettings};
 #[cfg(feature = "egui")]
 use bevy_egui::EguiContext;
 #[cfg(feature = "egui")]
@@ -175,6 +177,7 @@ where
             DefaultPlugins.set(WindowPlugin {
                 // Don't spawn a  window by default, we'll handle this ourselves
                 primary_window: None,
+                exit_condition: ExitCondition::DontExit,
                 ..default()
             }),
             #[cfg(feature = "egui")]
@@ -488,13 +491,11 @@ impl<'w> App<'w> {
     }
 
     pub fn image(&self, handle: &Handle<Image>) -> Option<&Image> {
-        self.images
-            .get(handle)
+        self.images.get(handle)
     }
 
     pub fn image_mut(&mut self, handle: &Handle<Image>) -> Option<&mut Image> {
-        self.images
-            .get_mut(handle)
+        self.images.get_mut(handle)
     }
 
     #[cfg(feature = "egui")]
@@ -537,8 +538,11 @@ impl<'w> App<'w> {
 
     // Create a new `App`.
     fn new(world: &'w mut World) -> Self {
-        let world =world.as_unsafe_world_cell();
-        let window_count = unsafe { world.world_mut() }.query::<&Window>().iter(unsafe { world.world_mut() }).count();
+        let world = world.as_unsafe_world_cell();
+        let window_count = unsafe { world.world_mut() }
+            .query::<&Window>()
+            .iter(unsafe { world.world_mut() })
+            .count();
         let images = unsafe { world.world_mut() }.resource_mut::<Assets<Image>>();
         let app = App {
             current_view: None,
@@ -737,6 +741,22 @@ impl<'w> App<'w> {
     /// Quits the currently running application.
     pub fn quit(&mut self) {
         self.world_mut().send_event(AppExit::Success);
+    }
+
+    pub fn set_update_mode(&mut self, mode: UpdateMode) {
+        let mut winit_settings = self.world_mut().resource_mut::<WinitSettings>();
+        winit_settings.unfocused_mode = mode;
+        winit_settings.focused_mode = mode;
+    }
+
+    pub fn set_unfocused_update_mode(&mut self, mode: UpdateMode) {
+        let mut winit_settings = self.world_mut().resource_mut::<WinitSettings>();
+        winit_settings.unfocused_mode = mode;
+    }
+
+    pub fn set_focused_update_mode(&mut self, mode: UpdateMode) {
+        let mut winit_settings = self.world_mut().resource_mut::<WinitSettings>();
+        winit_settings.focused_mode = mode;
     }
 }
 
