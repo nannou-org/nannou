@@ -17,6 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::time::Duration;
 /**
  * pixel mapping. each pixel is translated into a new element (letter)
  *
@@ -48,7 +49,10 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_mode(UpdateMode::wait());
+
     app.new_window()
+
         .size(533, 796)
         .view(view)
         .key_pressed(key_pressed)

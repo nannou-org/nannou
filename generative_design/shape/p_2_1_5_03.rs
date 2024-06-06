@@ -131,8 +131,6 @@ fn view(app: &App, model: &Model) {
         s.display(&draw, &model);
     }
 
-    // Write to the window frame.
-
 }
 
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {

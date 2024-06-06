@@ -95,8 +95,6 @@ fn view(app: &App, model: &Model) {
         shape.display(&draw, &model);
     });
 
-    // Write to the window frame.
-
 }
 
 fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {

@@ -12,8 +12,8 @@ fn main() {
 struct Model;
 
 fn model(app: &App) -> Model {
-    // app.set_loop_mode(LoopMode::loop_once());
-    let _window = app.new_window().size(640, 360).view(view).build().unwrap();
+    app.set_update_mode(UpdateMode::freeze());
+    let _window = app.new_window().size(640, 360).view(view).build();
     Model
 }
 
@@ -23,13 +23,10 @@ fn view(app: &App, _model: &Model) {
     draw.background().color(WHITE);
 
     draw_circle(&draw, 0.0, 0.0, 200.0);
-
-
-
 }
 
 // Recursive function
-fn draw_circle(draw: &DrawHolder, x: f32, y: f32, r: f32) {
+fn draw_circle(draw: &Draw, x: f32, y: f32, r: f32) {
     let norm_radius = map_range(r, 2.0, 360.0, 0.0, 1.0);
     draw.ellipse()
         .x_y(x, y)

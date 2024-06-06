@@ -80,8 +80,6 @@ fn view(app: &App, model: &Model) {
         draw.ellipse().x_y(x, y).w_h(11.0, 11.0).rgb8(0, 130, 163);
     }
 
-    // Write to the window frame.
-
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {

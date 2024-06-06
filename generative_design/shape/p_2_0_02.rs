@@ -82,8 +82,6 @@ fn view(app: &App, model: &Model) {
             .no_fill()
             .points(points);
     }
-    // Write to the window frame.
-
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {

@@ -12,7 +12,7 @@ fn main() {
 struct Model;
 
 fn model(app: &App) -> Model {
-    // app.set_loop_mode(LoopMode::loop_once());
+    app.set_update_mode(UpdateMode::freeze());
     let _window = app.new_window().size(640, 360).view(view).build().unwrap();
     Model
 }

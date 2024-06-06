@@ -282,8 +282,6 @@ fn view(app: &App, model: &Model) {
         }
     }
 
-    // Write to the window frame.
-
 
     //TODO add screenshot
 }

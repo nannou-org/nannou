@@ -83,8 +83,6 @@ fn view(app: &App, model: &Model) {
             .w_h(3.0, 3.0)
             .color(BLACK);
     }
-    // Write to the window frame.
-
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {

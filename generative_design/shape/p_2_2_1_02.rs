@@ -179,8 +179,6 @@ fn view(app: &App, model: &Model) {
             .radius(model.radius)
             .rgba(0.0, 0.0, 0.0, 0.15);
     });
-    // Write to the window frame.
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {

@@ -55,8 +55,6 @@ fn view(app: &App) {
             .caps_round()
             .color(WHITE);
     }
-    // Write to the window frame.
-
 
     if app.keys().just_pressed(KeyCode::KeyS) {
         app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");

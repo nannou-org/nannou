@@ -147,8 +147,6 @@ fn view(app: &App, model: &Model) {
         }
     }
 
-    // Write to the window frame.
-
 }
 
 fn calculate_alpha_left(grid_y: u32, transparent_left: bool) -> f32 {

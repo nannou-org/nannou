@@ -12,7 +12,7 @@ fn main() {
 struct Model;
 
 fn model(app: &App) -> Model {
-    // app.set_loop_mode(LoopMode::loop_once());
+    app.set_update_mode(UpdateMode::freeze());
     let _window = app.new_window().size(640, 360).view(view).build().unwrap();
     Model
 }
@@ -23,9 +23,6 @@ fn view(app: &App, _model: &Model) {
     draw.background().color(WHITE);
 
     draw_circle(&draw, 0.0, 0.0, app.window_rect().w());
-
-
-
 }
 
 fn draw_circle(draw: &DrawHolder, x: f32, y: f32, mut r: f32) {

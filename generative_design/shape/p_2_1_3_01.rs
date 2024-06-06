@@ -115,8 +115,6 @@ fn view(app: &App, model: &Model) {
         }
     }
 
-    // Write to the window frame.
-
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {

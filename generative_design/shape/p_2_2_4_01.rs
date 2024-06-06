@@ -83,7 +83,7 @@ fn update(app: &App, model: &mut Model) {
     model.current_count += 1;
 
     if model.current_count >= model.max_count {
-        // app.set_loop_mode(LoopMode::loop_once());
+        app.set_update_mode(UpdateMode::freeze());
     }
 }
 
@@ -97,8 +97,6 @@ fn view(app: &App, model: &Model) {
             .radius(model.r[i])
             .gray(0.2);
     }
-    // Write to the window frame.
-
 }
 
 fn key_released(app: &App, _model: &mut Model, key: KeyCode) {

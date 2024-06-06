@@ -78,8 +78,6 @@ fn view(app: &App, model: &Model) {
 
     overlay(&draw, &model, win, 2.0);
 
-    // Write to the window frame.
-
 }
 
 fn overlay(draw: &Draw, model: &Model, rect: Rect, stroke_weight: f32) {

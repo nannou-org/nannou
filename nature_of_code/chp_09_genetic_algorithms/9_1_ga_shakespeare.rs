@@ -320,6 +320,6 @@ fn view(app: &App, model: &Model) {
 
 
     if model.population.finished {
-        // app.set_loop_mode(LoopMode::loop_once());
+        app.set_update_mode(UpdateMode::freeze());
     }
 }

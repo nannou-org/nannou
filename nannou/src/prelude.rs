@@ -1,6 +1,6 @@
 //! A collection of commonly used items that we recommend importing for ease of use.
 
-pub use crate::app::{self, App};
+pub use crate::app::{self, App, RunMode, UpdateModeExt};
 pub use crate::io::{load_from_json, load_from_toml, safe_file_save, save_to_json, save_to_toml};
 pub use crate::time::DurationF64;
 pub use crate::image::ImageExt;

@@ -17,6 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::time::Duration;
 /**
  * form morphing process by connected random agents
  *
@@ -137,8 +138,6 @@ fn view(app: &App, model: &Model) {
             .events(path.iter());
     }
 
-    // Write to the window frame.
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {
@@ -156,9 +155,9 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::KeyF => {
             model.freeze = !model.freeze;
             if model.freeze {
-                // app.set_loop_mode(LoopMode::loop_once());
+                app.set_update_mode(UpdateMode::freeze());
             } else {
-                // app.set_loop_mode(LoopMode::RefreshSync);
+                app.set_update_mode(UpdateMode::Continuous);
             }
         }
         _ => (),

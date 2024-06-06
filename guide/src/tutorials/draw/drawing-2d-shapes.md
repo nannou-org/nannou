@@ -34,7 +34,6 @@ fn view(app: &App) {
     // Draw a blue ellipse with default size and position.
     draw.ellipse().color(STEELBLUE);
 
-    // Write to the window frame.
     
 }
 ```

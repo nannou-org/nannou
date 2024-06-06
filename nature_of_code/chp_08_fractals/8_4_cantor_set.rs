@@ -13,7 +13,7 @@ fn main() {
 struct Model;
 
 fn model(app: &App) -> Model {
-    // app.set_loop_mode(LoopMode::loop_once());
+    app.set_update_mode(UpdateMode::freeze());
     let _window = app.new_window().size(800, 200).view(view).build().unwrap();
     Model
 }
@@ -25,13 +25,10 @@ fn view(app: &App, _model: &Model) {
 
     let win = app.window_rect();
     cantor(&draw, 0.0, win.top(), 730.0);
-
-
-
 }
 
 // Recursive function
-fn cantor(draw: &DrawHolder, x: f32, mut y: f32, len: f32) {
+fn cantor(draw: &Draw, x: f32, mut y: f32, len: f32) {
     let h = 30.0;
 
     // recursive exit condition

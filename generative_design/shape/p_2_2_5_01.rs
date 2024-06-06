@@ -167,8 +167,6 @@ fn view(app: &App, model: &Model) {
             .stroke(Color::srgb(0.4, 0.9, 0.4));
     }
 
-    // Write to the window frame.
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {
@@ -177,14 +175,19 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
             app.main_window()
                 .save_screenshot(app.exe_name().unwrap() + ".png");
         }
-        KeyCode::AoorwUp => {
+        KeyCode::ArrowUp => {
             model.mouse_rect += 4.0;
         }
         KeyCode::ArrowDown => {
             model.mouse_rect -= 4.0;
         }
         KeyCode::KeyF => {
-            todo!();
+            model.freeze = !model.freeze;
+            if model.freeze {
+                app.set_update_mode(UpdateMode::freeze());;
+            } else {
+                app.set_update_mode(UpdateMode::Continuous);
+            }
         }
         KeyCode::Digit1 => {
             model.show_circle = !model.show_circle;

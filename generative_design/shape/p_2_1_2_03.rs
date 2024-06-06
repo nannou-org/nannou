@@ -80,8 +80,6 @@ fn view(app: &App, model: &Model) {
         }
     }
 
-    // Write to the window frame.
-
 }
 
 fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {

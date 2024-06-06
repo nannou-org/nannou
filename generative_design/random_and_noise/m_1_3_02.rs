@@ -84,8 +84,6 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.texture(&model.texture);
 
-    // Write to the window frame.
-
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {

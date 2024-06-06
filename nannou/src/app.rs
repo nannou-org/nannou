@@ -169,6 +169,13 @@ pub enum RunMode {
     Duration(Duration),
 }
 
+impl RunMode {
+    /// Run the main update loop once.
+    pub fn once() -> Self {
+        RunMode::Ticks(1)
+    }
+}
+
 impl<M> Builder<M>
 where
     M: 'static,
@@ -763,18 +770,18 @@ impl<'w> App<'w> {
         self.world_mut().send_event(AppExit::Success);
     }
 
-    pub fn set_update_mode(&mut self, mode: UpdateMode) {
+    pub fn set_update_mode(&self, mode: UpdateMode) {
         let mut winit_settings = self.world_mut().resource_mut::<WinitSettings>();
         winit_settings.unfocused_mode = mode;
         winit_settings.focused_mode = mode;
     }
 
-    pub fn set_unfocused_update_mode(&mut self, mode: UpdateMode) {
+    pub fn set_unfocused_update_mode(&self, mode: UpdateMode) {
         let mut winit_settings = self.world_mut().resource_mut::<WinitSettings>();
         winit_settings.unfocused_mode = mode;
     }
 
-    pub fn set_focused_update_mode(&mut self, mode: UpdateMode) {
+    pub fn set_focused_update_mode(&self, mode: UpdateMode) {
         let mut winit_settings = self.world_mut().resource_mut::<WinitSettings>();
         winit_settings.focused_mode = mode;
     }
@@ -1267,5 +1274,32 @@ where
 
     if let Some(exit_fn) = exit_fn.0 {
         exit_fn(&app, model);
+    }
+}
+
+pub trait UpdateModeExt {
+    /// Wait indefinitely for the next update.
+    fn wait() -> UpdateMode;
+    /// Freeze the application, sending no further updates.
+    fn freeze() -> UpdateMode;
+}
+
+impl UpdateModeExt for UpdateMode {
+    fn wait() -> UpdateMode {
+        UpdateMode::Reactive {
+            wait: Duration::MAX,
+            react_to_device_events: true,
+            react_to_user_events: true,
+            react_to_window_events: true,
+        }
+    }
+
+    fn freeze() -> UpdateMode {
+        UpdateMode::Reactive {
+            wait: Duration::MAX,
+            react_to_device_events: false,
+            react_to_user_events: false,
+            react_to_window_events: false,
+        }
     }
 }

@@ -148,8 +148,6 @@ fn view(app: &App, model: &Model) {
         }
     }
 
-    // Write to the window frame.
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {
