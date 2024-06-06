@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{self};
+use std::time::Duration;
 
 use bevy::app::AppExit;
 use bevy::asset::io::file::FileAssetReader;
@@ -156,6 +157,18 @@ struct ModelHolder<M>(M);
 #[derive(Resource)]
 struct CreateDefaultWindow;
 
+/// Controls the behaviour of the application loop.
+#[derive(Resource, Default)]
+pub enum RunMode {
+    /// Run until the user exits the application.
+    #[default]
+    UntilExit,
+    /// Run for a fixed number of frames.
+    Ticks(u64),
+    /// Run for a fixed duration (best effort).
+    Duration(Duration),
+}
+
 impl<M> Builder<M>
 where
     M: 'static,
@@ -183,7 +196,8 @@ where
             #[cfg(feature = "egui")]
             bevy_egui::EguiPlugin,
             NannouPlugin,
-        ));
+        ))
+            .init_resource::<RunMode>();
 
         Builder {
             app,
@@ -251,6 +265,12 @@ where
     /// necessary.
     pub fn exit(mut self, exit: ExitFn<M>) -> Self {
         self.exit = Some(exit);
+        self
+    }
+
+    /// Specify the behaviour of the application loop.
+    pub fn set_run_mode(mut self, run_mode: RunMode) -> Self {
+        self.app.insert_resource(run_mode);
         self
     }
 
@@ -824,12 +844,33 @@ fn update<M>(
         Res<UpdateFnRes<M>>,
         Res<ViewFnRes<M>>,
         ResMut<ModelHolder<M>>,
+        Res<RunMode>,
+        Res<Time>,
+        Local<u64>,
         Query<(Entity, &WindowUserFunctions<M>)>,
     )>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (update_fn, view_fn, mut model, windows)) = get_app_and_state(world, state);
+    let (mut app, (update_fn, view_fn, mut model, run_mode, time, ticks, windows)) = get_app_and_state(world, state);
+
+    match *run_mode {
+        RunMode::UntilExit => {
+            // Do nothing, we'll quit when the user closes the window.
+        }
+        RunMode::Ticks(run_ticks) => {
+            if *ticks >= run_ticks {
+                app.quit();
+                return;
+            }
+        }
+        RunMode::Duration(ref mut duration) => {
+            if time.elapsed() >= *duration {
+                app.quit();
+                return;
+            }
+        }
+    };
 
     // Run the model update function.
     if let Some(update_fn) = update_fn.0 {
@@ -864,6 +905,9 @@ fn update<M>(
             }
         }
     }
+
+    // Increment the frame count.
+    *ticks += 1;
 }
 
 fn key_events<M>(
