@@ -563,6 +563,11 @@ impl<'w> App<'w> {
         time.clone()
     }
 
+    pub fn elapsed_seconds(&self) -> f32 {
+        let time = self.world().get_resource::<Time>().unwrap();
+        time.elapsed_seconds()
+    }
+
     // Create a new `App`.
     fn new(world: &'w mut World) -> Self {
         let world = world.as_unsafe_world_cell();

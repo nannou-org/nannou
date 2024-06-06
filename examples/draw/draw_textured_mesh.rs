@@ -44,7 +44,7 @@ fn view(app: &App, model: &Model) {
 
     // Scale the points up to half the window size.
     let cube_side = win_rect.w().min(win_rect.h()) * 0.5;
-    let t = app.time().elapsed_seconds();
+    let t = app.elapsed_seconds();
     draw.scale(cube_side)
         .mesh()
         .points_textured(model.texture.clone(), points)

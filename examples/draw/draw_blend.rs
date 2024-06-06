@@ -46,7 +46,7 @@ fn view(app: &App) {
     // let mut draw = draw.color_blend(desc.clone());
 
     // Draw RGB circles.
-    let t = app.time().elapsed_seconds();
+    let t = app.elapsed_seconds();
     let n_circles = 3;
     let radius = w.right().min(w.top()) * 0.5 / n_circles as f32;
     let animate_radius = -((t.sin() * 0.5 + 0.5) * radius * 0.5);

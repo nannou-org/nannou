@@ -49,7 +49,7 @@ fn view(app: &App, model: &Model) {
         .stroke()
         .weight(0.9 / freq)
         .points_textured(model.texture.clone(), points)
-        .rotate(app.time().elapsed_seconds() * 0.25);
+        .rotate(app.elapsed_seconds() * 0.25);
 
     // Draw to the frame!
 
