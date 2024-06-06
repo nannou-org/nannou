@@ -151,7 +151,7 @@ fn update(app: &App, model: &mut Model) {
     model.node_a.update();
     model.node_b.update();
 
-    if app.mouse.buttons.pressed().next().is_some() {
+    if app.mouse_buttons().get_just_pressed().count() > 0 {
         model.node_a.x = app.mouse().x;
         model.node_a.y = app.mouse().x;
     }

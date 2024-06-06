@@ -94,7 +94,7 @@ fn view(app: &App, model: &Model) {
             let toggle = rng.gen::<bool>();
 
             if toggle == false {
-                let (h, s, v) = model.color_left.into_components();
+                let [h, s, v] = model.color_left.to_f32_array_no_alpha();
                 let a = calculate_alpha_left(grid_y, model.transparent_left);
 
                 draw.line()

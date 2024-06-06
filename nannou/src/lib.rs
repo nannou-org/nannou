@@ -28,7 +28,7 @@ pub mod noise;
 pub mod prelude;
 pub mod time;
 mod window;
-mod image;
+pub mod image;
 
 /// Begin building the `App`.
 ///

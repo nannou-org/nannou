@@ -48,8 +48,7 @@ fn model(app: &App) -> Model {
         .size(800, 400)
         .view(view)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         point_count: 20,

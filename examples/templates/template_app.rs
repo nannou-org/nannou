@@ -9,7 +9,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().view(view).build().unwrap();
+    let _window = app.new_window().view(view).build();
     Model { _window }
 }
 

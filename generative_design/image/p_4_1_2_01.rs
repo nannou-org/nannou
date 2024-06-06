@@ -75,13 +75,12 @@ fn view(app: &App, model: &Model) {
         map_range(h, 0.0, win.h(), 0.0, 1.0),
     );
 
-    let dim = texture.dimensions();
     let texture = model.texture.clone();
     if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
         draw.background().color(WHITE);
-        draw.texture(texture, dim);
+        draw.texture(texture);
     } else {
-        draw.texture(texture, dim)
+        draw.texture(texture)
             .x_y(x2, y2)
             .w_h(w, h)
             .area(area);

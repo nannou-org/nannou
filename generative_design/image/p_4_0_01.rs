@@ -57,9 +57,8 @@ fn model(app: &App) -> Model {
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model) {
-    draw.background().color(BLACK);
-
     let draw = app.draw();
+    draw.background().color(BLACK);
     let win = app.window_rect();
     let tile_count_x = map_range(app.mouse().x, win.left(), win.right(), 1.0, win.w() / 3.0);
     let tile_count_y = map_range(app.mouse().x, win.top(), win.bottom(), 1.0, win.h() / 3.0);

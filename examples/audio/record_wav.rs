@@ -77,7 +77,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
 
 fn view(app: &App, model: &Model) {
     let draw = app.draw();
-    draw.background().color(DIMGRAY);
+    draw.background().color(DIM_GRAY);
 
     if model.stream.is_playing() && app.elapsed_frames() % 30 < 20 {
         let draw = app.draw();

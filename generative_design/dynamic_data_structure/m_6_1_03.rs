@@ -105,8 +105,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_released(mouse_released)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let node_radius = 8.0;
     let node_count = 100;
@@ -132,7 +131,7 @@ fn create_connections(node_count: usize) -> Vec<(usize, usize)> {
         .collect()
 }
 
-fn create_nodes(node_count: usize, node_radius: f32, win: Rect) -> Vec<Node> {
+fn create_nodes(node_count: usize, node_radius: f32, win: geom::Rect) -> Vec<Node> {
     (0..node_count)
         .map(|_| {
             Node::new(
@@ -213,7 +212,7 @@ fn update(app: &App, model: &mut Model) {
         model.nodes[i].update();
     }
 
-    if app.mouse.buttons.pressed().next().is_some() {
+    if app.mouse_buttons().get_just_pressed().count() > 0 {
         // Ignore anything greater than this distance
         let mut max_dist = 20.0;
         for i in 0..model.nodes.len() {

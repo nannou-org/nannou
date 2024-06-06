@@ -27,7 +27,7 @@ fn view(app: &App, model: &Model) {
     // Begin drawing.
     let draw = app.draw();
     // Draw dark gray for the background
-    draw.background().color(DIMGRAY);
+    draw.background().color(DIM_GRAY);
     // Draw our ball
     model.ball.display(&draw);
 

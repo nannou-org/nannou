@@ -41,6 +41,7 @@ fn main() {
 
 struct Model {
     text_typed: String,
+    letter: KeyCode,
 }
 
 fn model(app: &App) -> Model {
@@ -107,8 +108,8 @@ fn view(app: &App, model: &Model) {
 
 }
 
-fn key_pressed(_app: &App, _model: &mut Model, _key: Key) {
-    //model.letter = key.into();
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
+    model.letter = key.into();
 }
 fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::ControlLeft || key == KeyCode::ControlRight {
