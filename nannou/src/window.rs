@@ -429,7 +429,7 @@ where
                 projection: OrthographicProjection::default().into(),
                 ..default()
             },
-            RenderLayers::layer((self.app.window_count() * 2) as u8),
+            RenderLayers::layer(self.app.window_count() * 2usize),
             NannouCamera,
         ));
 
@@ -451,7 +451,7 @@ where
             BloomSettings::OLD_SCHOOL,
             // The emissive layer is N*2+1, this helps to ensure that bloom effect is only
             // applied to meshes that are rendered on the emissive layer.
-            RenderLayers::layer((self.app.window_count() * 2 + 1) as u8),
+            RenderLayers::layer(self.app.window_count() * 2usize + 1),
             NannouCamera,
         ));
 

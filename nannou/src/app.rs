@@ -852,7 +852,7 @@ fn update<M>(
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (update_fn, view_fn, mut model, run_mode, time, ticks, windows)) = get_app_and_state(world, state);
+    let (mut app, (update_fn, view_fn, mut model, run_mode, time, mut ticks, windows)) = get_app_and_state(world, state);
 
     match *run_mode {
         RunMode::UntilExit => {
@@ -864,8 +864,8 @@ fn update<M>(
                 return;
             }
         }
-        RunMode::Duration(ref mut duration) => {
-            if time.elapsed() >= *duration {
+        RunMode::Duration(duration) => {
+            if time.elapsed() >= duration {
                 app.quit();
                 return;
             }
