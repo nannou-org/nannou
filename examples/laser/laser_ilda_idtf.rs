@@ -31,7 +31,7 @@ struct Laser {
 
 fn model(app: &App) -> Model {
     // Create a window to receive keyboard events.
-    app.new_window().view(view).build().unwrap();
+    app.new_window().view(view).build();
 
     // Test file directory from the command line.
     let test_files = match std::env::args().nth(1) {

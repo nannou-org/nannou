@@ -21,4 +21,4 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-bevy = { path = "../../bevyengine/bevy" }
+bevy = "0.14.0-rc.2"
