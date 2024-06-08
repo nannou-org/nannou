@@ -136,6 +136,9 @@ where
         self.finish_inner()
     }
 
+    /// Set the material's fragment shader for the drawing. Note: this shader must have
+    /// been initialized during application setup.
+    #[cfg(feature = "nightly")]
     pub fn fragment_shader<const FS: &'static str>(
         self,
     ) -> Drawing<'a, T, ExtendedNannouMaterial<"", FS>> {

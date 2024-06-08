@@ -281,6 +281,8 @@ where
         self
     }
 
+    /// Load a fragment shader asset from the given path for use with the nannou `Draw` API.
+    #[cfg(feature = "nightly")]
     pub fn init_fragment_shader<const SHADER: &'static str>(mut self) -> Self {
         self.app.add_plugins(MaterialPlugin::<
             ExtendedMaterial<StandardMaterial, NannouMaterial<"", SHADER>>,

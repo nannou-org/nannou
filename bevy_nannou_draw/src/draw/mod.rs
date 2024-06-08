@@ -620,9 +620,9 @@ where
     // This is mostly due to the image size being unknown until the texture is loaded.
     pub fn texture<'a>(
         &'a self,
-        texture_handle: Handle<Image>,
+        texture_handle: &Handle<Image>,
     ) -> Drawing<'a, primitive::Texture, M> {
-        self.a(primitive::Texture::new(texture_handle))
+        self.a(primitive::Texture::new(texture_handle.clone()))
     }
 
     /// Finish any drawings-in-progress and produce an iterator draining the inner draw commands

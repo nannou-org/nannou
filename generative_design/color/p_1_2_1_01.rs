@@ -58,8 +58,8 @@ fn model(app: &App) -> Model {
     let mut model = Model {
         tile_count_x,
         tile_count_y,
-        colours_left: vec![Color::hsv(0.0, 0.0, 0.0); tile_count_y],
-        colours_right: vec![Color::hsv(0.0, 0.0, 0.0); tile_count_y],
+        colours_left: vec![Hsva::default(); tile_count_y],
+        colours_right: vec![Hsva::default(); tile_count_y],
         interpolate_shortest: true,
     };
     shake_colors(&mut model);

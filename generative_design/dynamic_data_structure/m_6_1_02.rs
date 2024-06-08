@@ -98,8 +98,7 @@ fn model(app: &App) -> Model {
         .size(1280, 720)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let win = app.window_rect();
     let node_a = Node::new(
