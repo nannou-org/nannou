@@ -71,13 +71,6 @@ impl<'a, A> GeometryBuilder for MeshBuilder<'a, A> {
         self.begin_index_count = self.mesh.count_indices() as u32;
     }
 
-    fn end_geometry(&mut self) -> geometry_builder::Count {
-        geometry_builder::Count {
-            vertices: self.mesh.count_vertices() as u32 - self.begin_vertex_count,
-            indices: self.mesh.count_indices() as u32 - self.begin_index_count,
-        }
-    }
-
     fn add_triangle(&mut self, a: VertexId, b: VertexId, c: VertexId) {
         // Wind the indices in the opposite order to ensure the normals are facing outwards.
         self.mesh.push_index(c.to_usize() as u32);

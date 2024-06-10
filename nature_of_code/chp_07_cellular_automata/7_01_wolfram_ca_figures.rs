@@ -23,7 +23,7 @@ struct Ca {
 }
 
 impl Ca {
-    fn new(r: Vec<i32>, rect: Rect) -> Self {
+    fn new(r: Vec<i32>, rect: geom::Rect) -> Self {
         let rule_set = r;
         let scl = 20;
         let cells = vec![0; (rect.w() as i32 / scl) as usize];

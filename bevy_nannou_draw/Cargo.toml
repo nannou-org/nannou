@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 bevy = { workspace = true }
-lyon = "0.17"
+lyon = "1.0"
 nannou_core = { path = "../nannou_core" }
 rusttype = { version = "0.8", features = ["gpu_cache"] }
 num-traits = "0.2"

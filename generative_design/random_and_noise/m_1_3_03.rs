@@ -54,15 +54,14 @@ fn model(app: &App) -> Model {
         .view(view)
         .key_pressed(key_pressed)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let window = app.main_window();
     let win = window.rect();
-    Image::new_fill(
+    let image = Image::new_fill(
         Extent3d {
-            width: size.x,
-            height: size.y,
+            width: win.x().to_u32().unwrap(),
+            height: win.y().to_u32().unwrap(),
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -71,9 +70,7 @@ fn model(app: &App) -> Model {
         // Need to keep this image CPU persistent in order to add additional glyphs later on
         RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
     );
-    let texture = app.assets().add(Image::new(
-
-    ));
+    let texture = app.assets().add(image);
     Model {
         octaves: 4,
         falloff: 0.5,
@@ -121,11 +118,7 @@ fn view(app: &App, model: &Model) {
     });
 
     let flat_samples = image.as_flat_samples();
-    model.texture.upload_data(
-        app.main_window().device(),
-        &mut *frame.command_encoder(),
-        &flat_samples.as_slice(),
-    );
+
 
     let draw = app.draw();
     draw.texture(&model.texture);
