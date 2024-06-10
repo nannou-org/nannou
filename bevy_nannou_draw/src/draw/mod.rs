@@ -523,7 +523,7 @@ where
         T: Into<Primitive>,
         Primitive: Into<Option<T>>,
     {
-        let index = {
+        let (index , material_index) = {
             let mut state = self.state.write().unwrap();
             // If drawing with a different context, insert the necessary command to update it.
             if state.last_draw_context.as_ref() != Some(&self.context) {
@@ -541,14 +541,18 @@ where
                 state.last_material = Some(id.clone());
             }
 
+            // Insert a material slot to be used if the drawing switches materials.
+            let material_index = state.draw_commands.len();
+            state.draw_commands.push(None);
+
             // The primitive will be inserted in the next element.
             let index = state.draw_commands.len();
             let primitive: Primitive = primitive.into();
             state.draw_commands.push(None);
             state.drawing.insert(index, primitive);
-            index
+            (index, material_index)
         };
-        drawing::new(self, index)
+        drawing::new(self, index, material_index)
     }
 
     /// Begin drawing a **Path**.

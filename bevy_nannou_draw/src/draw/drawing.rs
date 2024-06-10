@@ -34,6 +34,8 @@ where
     draw: DrawRef<'a, M>,
     // The draw command index of the primitive being drawn.
     pub(crate) index: usize,
+    // The draw command index of the material being used.
+    pub(crate) material_index: usize,
     // Whether or not the **Drawing** should attempt to finish the drawing on drop.
     finish_on_drop: bool,
     // The node type currently being drawn.
@@ -57,7 +59,7 @@ pub struct DrawingContext<'a> {
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<'a, T, M: Material>(draw: &'a Draw<M>, index: usize) -> Drawing<'a, T, M>
+pub fn new<'a, T, M: Material>(draw: &'a Draw<M>, index: usize, material_index: usize) -> Drawing<'a, T, M>
 where
     T: Into<Primitive>,
     M: Material + Default,
@@ -67,6 +69,7 @@ where
     Drawing {
         draw: DrawRef::Borrowed(draw),
         index,
+        material_index,
         finish_on_drop,
         _ty,
     }
@@ -120,7 +123,10 @@ where
                     // spawn a new entity just for this primitive.
                     DrawRef::Owned(draw) => {
                         let id = draw.material.clone();
-                        state.draw_commands.push(Some(DrawCommand::Material(id)));
+                        let material_cmd = state.draw_commands.get_mut(self.material_index).expect("Expected a valid material index");
+                        if let None = material_cmd {
+                            *material_cmd = Some(DrawCommand::Material(id));
+                        }
                     }
                     DrawRef::Borrowed(_) => (),
                 }
@@ -140,17 +146,38 @@ where
     /// been initialized during application setup.
     #[cfg(feature = "nightly")]
     pub fn fragment_shader<const FS: &'static str>(
-        self,
+        mut self,
     ) -> Drawing<'a, T, ExtendedNannouMaterial<"", FS>> {
-        let Self {
-            ref draw, index, ..
+        self.finish_on_drop = false;
+
+        let Drawing {
+            ref draw, index, material_index, ..
         } = self;
 
+        let state = draw.state.clone();
+        let new_id = UntypedAssetId::Uuid {
+            type_id: TypeId::of::<ExtendedNannouMaterial<"", FS>>(),
+            uuid: Uuid::new_v4(),
+        };
+
+        let material: ExtendedNannouMaterial<"", FS> = Default::default();
+        let mut state = state.write().unwrap();
+        state.materials.insert(new_id.clone(), Box::new(material));
+
+        let draw = Draw {
+            state: draw.state.clone(),
+            context: draw.context.clone(),
+            material: new_id.clone(),
+            window: draw.window,
+            _material: Default::default(),
+        };
+
         Drawing::<'a, T, ExtendedMaterial<StandardMaterial, NannouMaterial<"", FS>>> {
-            draw: DrawRef::Owned(draw.material(Default::default())),
+            draw: DrawRef::Owned(draw),
             index,
+            material_index,
             finish_on_drop: true,
-            _ty: Default::default(),
+            _ty: PhantomData,
         }
     }
 
@@ -163,7 +190,7 @@ where
         self.finish_on_drop = false;
 
         let Drawing {
-            ref draw, index, ..
+            ref draw, index, material_index, ..
         } = self;
 
         let state = draw.state.clone();
@@ -191,6 +218,7 @@ where
         Drawing {
             draw: DrawRef::Owned(draw),
             index,
+            material_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
@@ -212,11 +240,12 @@ where
         }
         self.finish_on_drop = false;
         let Drawing {
-            ref draw, index, ..
+            ref draw, index, material_index, ..
         } = self;
         Drawing {
             draw: draw.clone(),
             index,
+            material_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
@@ -242,11 +271,12 @@ where
         }
         self.finish_on_drop = false;
         let Drawing {
-            ref draw, index, ..
+            ref draw, index, material_index, ..
         } = self;
         Drawing {
             draw: draw.clone(),
             index,
+            material_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }

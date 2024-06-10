@@ -1,4 +1,5 @@
 use std::any::TypeId;
+use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 
 use bevy::asset::UntypedAssetId;
@@ -8,10 +9,7 @@ use bevy::render::camera::RenderTarget;
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::render_resource as wgpu;
-use bevy::render::render_resource::{
-    AsBindGroup, BlendState, PolygonMode
-    ,
-};
+use bevy::render::render_resource::{AsBindGroup, BlendState, PolygonMode};
 use bevy::render::view::{NoFrustumCulling, RenderLayers};
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
@@ -21,10 +19,10 @@ pub use nightly::*;
 #[cfg(not(feature = "nightly"))]
 pub use stable::*;
 
-use crate::draw::{DrawCommand, DrawContext};
 use crate::draw::instanced::InstancingPlugin;
 use crate::draw::mesh::MeshExt;
 use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
+use crate::draw::{DrawCommand, DrawContext};
 use crate::DrawHolder;
 
 pub struct NannouRenderPlugin;
@@ -34,16 +32,26 @@ impl Plugin for NannouRenderPlugin {
         app.add_systems(Startup, setup_default_texture)
             .add_plugins((
                 ExtractComponentPlugin::<NannouTextureHandle>::default(),
-                MaterialPlugin::<DefaultNannouMaterial>::default(),
+                NannouMaterialPlugin::<DefaultNannouMaterial>::default(),
                 InstancingPlugin,
             ))
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
             .insert_resource(GlyphCache::new([1024; 2], 0.1, 0.1))
-            .add_systems(Update, (texture_event_handler))
-            .add_systems(
-                PostUpdate,
-                (update_draw_mesh, update_material::<DefaultNannouMaterial>).chain(),
-            );
+            .add_systems(Update, texture_event_handler)
+            .add_systems(PostUpdate, update_draw_mesh);
+    }
+}
+
+#[derive(Default)]
+pub struct NannouMaterialPlugin<M: Material>(std::marker::PhantomData<M>);
+
+impl<M: Material> Plugin for NannouMaterialPlugin<M>
+where
+    M::Data: PartialEq + Eq + Hash + Clone,
+{
+    fn build(&self, app: &mut App) {
+        app.add_plugins(MaterialPlugin::<M>::default())
+            .add_systems(PostUpdate, update_material::<M>.after(update_draw_mesh));
     }
 }
 
@@ -383,6 +391,7 @@ fn update_draw_mesh(
                         InheritedVisibility::default(),
                         ViewVisibility::default(),
                         NannouMesh,
+                        NoFrustumCulling,
                         window_layers.clone(),
                     ));
                 }

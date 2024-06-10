@@ -1,7 +1,8 @@
 use nannou::prelude::*;
 
 fn main() {
-    nannou::sketch(view).run()
+    nannou::sketch(view)
+        .run()
 }
 
 fn view(app: &App) {

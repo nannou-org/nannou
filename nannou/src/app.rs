@@ -12,8 +12,8 @@ use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::{self};
 use std::time::Duration;
+use std::{self};
 
 use bevy::app::AppExit;
 use bevy::asset::io::file::FileAssetReader;
@@ -38,12 +38,14 @@ use bevy_egui::EguiContext;
 // use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use find_folder;
 
+use bevy_nannou::prelude::render::{DefaultNannouMaterial, ExtendedNannouMaterial};
 use bevy_nannou::prelude::{draw, DrawHolder};
 use bevy_nannou::NannouPlugin;
 
 use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::bevy_reflect::{ApplyError, ReflectMut, ReflectOwned, ReflectRef, TypeInfo};
 use crate::prelude::render::{NannouMaterial, NannouMesh, NannouPersistentMesh};
+use crate::prelude::NannouMaterialPlugin;
 use crate::window::WindowUserFunctions;
 use crate::{geom, window};
 
@@ -204,7 +206,7 @@ where
             bevy_egui::EguiPlugin,
             NannouPlugin,
         ))
-            .init_resource::<RunMode>();
+        .init_resource::<RunMode>();
 
         Builder {
             app,
@@ -284,9 +286,8 @@ where
     /// Load a fragment shader asset from the given path for use with the nannou `Draw` API.
     #[cfg(feature = "nightly")]
     pub fn init_fragment_shader<const SHADER: &'static str>(mut self) -> Self {
-        self.app.add_plugins(MaterialPlugin::<
-            ExtendedMaterial<StandardMaterial, NannouMaterial<"", SHADER>>,
-        >::default());
+        self.app
+            .add_plugins(NannouMaterialPlugin::<ExtendedNannouMaterial<"", SHADER>>::default());
         self
     }
 
@@ -357,10 +358,9 @@ where
 {
     #[cfg(feature = "egui")]
     pub fn model_ui(mut self) -> Self {
-        self.app
-            .register_type::<ModelHolder<M>>();
-            // .add_plugins(DefaultInspectorConfigPlugin)
-            // .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
+        self.app.register_type::<ModelHolder<M>>();
+        // .add_plugins(DefaultInspectorConfigPlugin)
+        // .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
         self
     }
 }
@@ -866,7 +866,8 @@ fn update<M>(
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (update_fn, view_fn, mut model, run_mode, time, mut ticks, windows)) = get_app_and_state(world, state);
+    let (mut app, (update_fn, view_fn, mut model, run_mode, time, mut ticks, windows)) =
+        get_app_and_state(world, state);
 
     match *run_mode {
         RunMode::UntilExit => {

@@ -76,6 +76,10 @@ path = "draw/draw_blend.rs"
 name = "draw_capture"
 path = "draw/draw_capture.rs"
 [[example]]
+name = "draw_fragment_shader"
+path = "draw/draw_fragment_shader.rs"
+required-features = ["nannou/nightly", "nannou/hot_reload"]
+[[example]]
 name = "draw_loop"
 path = "draw/draw_loop.rs"
 [[example]]
