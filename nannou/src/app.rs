@@ -9,6 +9,7 @@
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
 use std::any::Any;
 use std::cell::RefCell;
+use std::hash::Hash;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -280,6 +281,15 @@ where
     /// Specify the behaviour of the application loop.
     pub fn set_run_mode(mut self, run_mode: RunMode) -> Self {
         self.app.insert_resource(run_mode);
+        self
+    }
+
+    pub fn init_custom_material<T>(mut self) -> Self
+    where
+        T: Material + Default,
+        T::Data: PartialEq + Eq + Hash + Clone,
+    {
+        self.app.add_plugins(NannouMaterialPlugin::<T>::default());
         self
     }
 

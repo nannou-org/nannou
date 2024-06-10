@@ -490,6 +490,7 @@ where
             type_id: TypeId::of::<M2>(),
             uuid: Uuid::new_v4(),
         };
+
         state
             .write()
             .unwrap()
@@ -644,13 +645,6 @@ where
     /// Drain any remaining `drawing`s and convert them to draw commands.
     pub fn finish_remaining_drawings(&self) {
         let mut state = self.state.write().unwrap();
-        let id = &self.material;
-        if state.last_material.as_ref() != Some(id) {
-            state
-                .draw_commands
-                .push(Some(DrawCommand::Material(id.clone())));
-            state.last_material = Some(id.clone());
-        }
         state.finish_remaining_drawings()
     }
 }

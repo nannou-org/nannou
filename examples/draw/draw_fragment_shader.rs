@@ -1,7 +1,5 @@
 use nannou::prelude::*;
 
-struct Model {}
-
 fn main() {
     nannou::app(model)
         .simple_window(view)
@@ -10,6 +8,8 @@ fn main() {
         .init_fragment_shader::<"draw_fragment_shader.wgsl">()
         .run()
 }
+
+struct Model {}
 
 fn model(app: &App) -> Model {
     Model {}

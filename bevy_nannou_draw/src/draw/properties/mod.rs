@@ -15,6 +15,5 @@ pub use self::stroke::SetStroke;
 
 pub mod color;
 pub mod fill;
-pub mod material;
 pub mod spatial;
 pub mod stroke;

@@ -9,7 +9,6 @@ use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
 use uuid::Uuid;
 
 use crate::draw::primitive::Primitive;
-use crate::draw::properties::material::SetMaterial;
 use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
@@ -183,7 +182,7 @@ where
 
     // Map the the parent's material to a new material type, taking ownership over the
     // draw instance clone.
-    fn map_material<F>(mut self, map: F) -> Drawing<'a, T, M>
+    pub fn map_material<F>(mut self, map: F) -> Drawing<'a, T, M>
     where
         F: FnOnce(M) -> M,
     {
@@ -198,6 +197,7 @@ where
             .downcast_ref::<M>()
             .unwrap()
             .clone();
+
         let new_id = UntypedAssetId::Uuid {
             type_id: TypeId::of::<M>(),
             uuid: Uuid::new_v4(),
@@ -837,7 +837,7 @@ where
 
 impl<'a, T, M> Drawing<'a, T, M>
 where
-    T: SetMaterial<M> + Into<Primitive> + Clone,
+    T: Into<Primitive> + Clone,
     M: Material + Default,
     Primitive: Into<Option<T>>,
 {
@@ -849,13 +849,17 @@ where
     M: MaterialExtension + Default,
 {
     pub fn roughness(mut self, roughness: f32) -> Self {
-        // self.draw.material.base.perceptual_roughness = roughness;
-        self
+        self.map_material(|mut material| {
+            material.base.perceptual_roughness = roughness;
+            material
+        })
     }
 
     pub fn metallic(mut self, metallic: f32) -> Self {
-        // self.draw.material.base.metallic = metallic;
-        self
+        self.map_material(|mut material| {
+            material.base.metallic = metallic;
+            material
+        })
     }
 
     pub fn base_color(mut self, color: Color) -> Self {
@@ -866,7 +870,9 @@ where
     }
 
     pub fn emissive(mut self, color: Color) -> Self {
-        // self.draw.material.base.emissive = color;
-        self
+        self.map_material(|mut material| {
+            material.base.emissive = color.linear();
+            material
+        })
     }
 }
