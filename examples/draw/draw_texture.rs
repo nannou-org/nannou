@@ -24,6 +24,8 @@ fn model(app: &App) -> Model {
 fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(BLACK);
-
-    draw.rect().w_h(512.0, 512.0).texture(&model.texture);
+    let win = app.window_rect();
+    draw.rect()
+        .x_y(win.x(), win.y())
+        .texture(&model.texture);
 }

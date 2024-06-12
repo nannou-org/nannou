@@ -202,7 +202,7 @@ where
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn points_vertex<I, P, C, U>(self, ctxt: DrawingContext, points: I) -> Path
+    pub fn vertices<I, P, C, U>(self, ctxt: DrawingContext, points: I) -> Path
     where
         I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
@@ -213,7 +213,7 @@ where
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn points_vertex_closed<I, P, C, U>(self, ctxt: DrawingContext, points: I) -> Path
+    pub fn vertices_closed<I, P, C, U>(self, ctxt: DrawingContext, points: I) -> Path
     where
         I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
@@ -655,28 +655,28 @@ where
         self.map_ty_with_context(|ty, ctxt| ty.points_closed(ctxt, points))
     }
 
-    /// Submit path events as a polyline of colored points.
-    pub fn points_vertex<I, P, C, U>(self, points: I) -> DrawingPath<'a, M>
+    /// Submit path events as a polyline of vertex points.
+    pub fn vertices<I, P, C, U>(self, points: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
         C: Into<Color>,
         U: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points_vertex(ctxt, points))
+        self.map_ty_with_context(|ty, ctxt| ty.vertices(ctxt, points))
     }
 
-    /// Submit path events as a polyline of colored points.
+    /// Submit path events as a polyline of vertex points.
     ///
     /// The path with automatically close from the end point to the start point.
-    pub fn points_vertex_closed<I, P, C, U>(self, points: I) -> DrawingPath<'a, M>
+    pub fn vertices_closed<I, P, C, U>(self, points: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
         C: Into<Color>,
         U: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points_vertex_closed(ctxt, points))
+        self.map_ty_with_context(|ty, ctxt| ty.vertices_closed(ctxt, points))
     }
 }
 

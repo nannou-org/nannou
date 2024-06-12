@@ -151,7 +151,7 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
                 let rgba = srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
-        draw.polyline().weight(1.0).points_vertex(vertices);
+        draw.polyline().weight(1.0).vertices(vertices);
     }
 
     // Draw a triangle rotated in the direction of velocity

@@ -101,7 +101,7 @@ fn view(app: &App, model: &Model) {
         });
 
     // Draw the sine wave.
-    draw.polyline().weight(2.0).points_vertex(vertices);
+    draw.polyline().weight(2.0).vertices(vertices);
 
     if model.do_draw_animation {
         // Circle

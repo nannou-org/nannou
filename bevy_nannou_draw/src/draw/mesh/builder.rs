@@ -6,6 +6,7 @@
 //! Lyon tessellators assume `f32` data, so we do the same in the following implementations.
 
 use bevy::prelude::*;
+use bevy::render::render_resource::encase::private::RuntimeSizedArray;
 use lyon::tessellation::{FillVertex, GeometryBuilderError, StrokeVertex, VertexId};
 // use lyon::tessellation::{FillVertex, GeometryBuilderError, StrokeVertex, VertexId};
 use lyon::tessellation::geometry_builder::{
@@ -87,7 +88,12 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
         let point = self.transform.transform_point3(p);
         let SingleColor(color) = self.attributes;
         let attr = vertex.interpolated_attributes();
-        let tex_coords = [attr[0], attr[1]];
+        let tex_coords = if attr.is_empty() {
+            // TODO: we should add dummy uv's at a higher level.
+            [0.0, 0.0]
+        }else {
+            [attr[0], attr[1]]
+        };
 
         self.mesh.points_mut().push(point.to_array());
         self.mesh.colors_mut().push(color.linear().to_f32_array());

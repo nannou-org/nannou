@@ -55,7 +55,7 @@ impl Mover {
             .stroke_weight(2.0);
     }
 
-    fn check_edges(&mut self, rect: Rect) {
+    fn check_edges(&mut self, rect: geom::Rect) {
         if self.position.x > rect.right() {
             self.position.x = rect.right();
             self.velocity.x *= -1.0;
