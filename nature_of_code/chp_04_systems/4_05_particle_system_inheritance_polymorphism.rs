@@ -46,7 +46,7 @@ impl Particle {
     }
 
     // Method to display
-    fn display(&self, draw: &Draw, win: Rect) {
+    fn display(&self, draw: &Draw, win: geom::Rect) {
         match &self.particle_type {
             ParticleType::Ellipse => {
                 draw.ellipse()

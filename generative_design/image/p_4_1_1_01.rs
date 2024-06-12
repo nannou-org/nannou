@@ -40,7 +40,7 @@ struct Model {
     tile_count_x: usize,
     tile_count_y: usize,
     tile_count: usize,
-    img_tiles: Vec<Rect>,
+    img_tiles: Vec<geom::Rect>,
     tile_width: f32,
     tile_height: f32,
     crop_x: f32,
