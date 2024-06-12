@@ -94,7 +94,6 @@ fn view(app: &App, model: &Model) {
     model.shapes.iter().for_each(|shape| {
         shape.display(&draw, &model);
     });
-
 }
 
 fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
@@ -107,6 +106,7 @@ fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
 
 fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

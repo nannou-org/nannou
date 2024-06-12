@@ -6,6 +6,4 @@ pub trait ColorExt {
     }
 }
 
-impl ColorExt for Color {
-
-}
+impl ColorExt for Color {}

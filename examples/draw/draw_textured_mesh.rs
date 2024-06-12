@@ -53,5 +53,4 @@ fn view(app: &App, model: &Model) {
         .y_radians(t * 0.25 + app.mouse().x / 100.0);
 
     // Draw to the frame!
-
 }

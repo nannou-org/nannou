@@ -137,7 +137,4 @@ fn view(app: &App, m: &Model) {
     for i in 0..m.systems.len() {
         m.systems[i].draw(&draw);
     }
-
-
-
 }

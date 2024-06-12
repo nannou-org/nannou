@@ -21,7 +21,4 @@ fn view(app: &App) {
     mouse *= 0.5;
 
     draw.line().weight(2.0).color(BLACK).points(center, mouse);
-
-
-
 }

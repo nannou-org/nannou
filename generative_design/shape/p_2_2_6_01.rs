@@ -158,7 +158,6 @@ fn view(app: &App, model: &Model) {
                 .points_colored(vertices);
         }
     }
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {
@@ -175,7 +174,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
             model.line_length -= 2.0;
             start_drawing(model);
         }
-        KeyCode::ArrowLeft=> {
+        KeyCode::ArrowLeft => {
             if model.joints > 1 {
                 model.joints -= 1;
                 start_drawing(model);

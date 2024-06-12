@@ -17,7 +17,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::time::Duration;
 /**
  * form morphing process by connected random agents
  *
@@ -33,6 +32,7 @@ use std::time::Duration;
  */
 use nannou::lyon;
 use nannou::prelude::*;
+use std::time::Duration;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -137,7 +137,6 @@ fn view(app: &App, model: &Model) {
             .rgba(0.0, 0.0, 0.0, 0.4)
             .events(path.iter());
     }
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {

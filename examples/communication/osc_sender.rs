@@ -71,6 +71,4 @@ fn view(app: &App, _model: &Model) {
         .font_size(16)
         .line_spacing(10.0)
         .wh(rect.wh());
-
-
 }

@@ -17,6 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use nannou::prelude::text::text;
 /**
  * analysing and sorting the letters of a text
  * changing the letters alpha value in relation to frequency
@@ -29,7 +30,6 @@
  * s                   : save png
  */
 use nannou::prelude::*;
-use nannou::prelude::text::text;
 
 fn main() {
     nannou::app(model).run();
@@ -100,7 +100,13 @@ fn view(app: &App, model: &Model) {
 
         let sort_y = win.top() - (index.unwrap() * 20 + 40) as f32;
         let m = clamp(
-            map_range(app.mouse().x, win.left() + 50.0, win.right() - 50.0, 0.0, 1.0),
+            map_range(
+                app.mouse().x,
+                win.left() + 50.0,
+                win.right() - 50.0,
+                0.0,
+                1.0,
+            ),
             0.0,
             1.0,
         );
@@ -120,9 +126,6 @@ fn view(app: &App, model: &Model) {
             pos_x = win.left() + 20.0;
         }
     }
-
-
-
 }
 
 fn count_characters(model: &mut Model) {
@@ -139,9 +142,10 @@ fn count_characters(model: &mut Model) {
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
-    if key == KeyCode::KeyA{
+    if key == KeyCode::KeyA {
         model.draw_alpha = !model.draw_alpha;
     }
 }

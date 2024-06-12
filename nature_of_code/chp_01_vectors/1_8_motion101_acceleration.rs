@@ -86,7 +86,4 @@ fn view(app: &App, m: &Model) {
         .rgba(1.0, 1.0, 1.0, 0.03);
 
     m.mover.display(&draw);
-
-
-
 }

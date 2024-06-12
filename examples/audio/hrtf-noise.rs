@@ -196,7 +196,6 @@ fn view(app: &App, model: &Model) {
     let (x, y, z) = model.source_position.into();
     let text = format!("Noise Source:\n[{:.2}, {:.2}, {:.2}]", x, y, z);
     draw.text(&text).xy(app.mouse() + vec2(0.0, 20.0));
-
 }
 
 // Simple function for determining a gain based on the distance from the listener.

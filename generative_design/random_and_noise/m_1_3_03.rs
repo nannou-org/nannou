@@ -119,7 +119,6 @@ fn view(app: &App, model: &Model) {
 
     let flat_samples = image.as_flat_samples();
 
-
     let draw = app.draw();
     draw.texture(&model.texture);
     draw.background().color(BLACK);
@@ -152,7 +151,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::ArrowDown => {
             model.falloff -= 0.05;
         }
-        KeyCode::ArrowLeft=> {
+        KeyCode::ArrowLeft => {
             model.octaves -= 1;
         }
         KeyCode::ArrowRight => {

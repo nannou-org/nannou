@@ -132,7 +132,13 @@ fn view(app: &App, model: &Model) {
         }
 
         let m = clamp(
-            map_range(app.mouse().x, win.left() + 50.0, win.right() - 50.0, 0.0, 1.0),
+            map_range(
+                app.mouse().x,
+                win.left() + 50.0,
+                win.right() - 50.0,
+                0.0,
+                1.0,
+            ),
             0.0,
             1.0,
         );
@@ -193,9 +199,6 @@ fn view(app: &App, model: &Model) {
             pos_x = 0.0;
         }
     }
-
-
-
 }
 
 fn count_characters(model: &mut Model) {

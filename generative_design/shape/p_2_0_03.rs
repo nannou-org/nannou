@@ -56,7 +56,7 @@ fn model(app: &App) -> Model {
     Model {
         clicked: false,
         clear_background: false,
-        stroke_color:Color::hsva(0.0, 0.0, 0.0, 0.1),
+        stroke_color: Color::hsva(0.0, 0.0, 0.0, 0.1),
     }
 }
 
@@ -111,12 +111,12 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
         model.clear_background = false;
     }
     if key == KeyCode::Digit1 {
-        model.stroke_color =Color::hsva(0.0, 0.0, 0.0, 0.1).into();
+        model.stroke_color = Color::hsva(0.0, 0.0, 0.0, 0.1).into();
     }
     if key == KeyCode::Digit2 {
-        model.stroke_color =Color::hsva(0.53, 1.0, 0.64, 0.1).into();
+        model.stroke_color = Color::hsva(0.53, 1.0, 0.64, 0.1).into();
     }
     if key == KeyCode::Digit3 {
-        model.stroke_color =Color::hsva(0.147, 1.0, 0.71, 0.1).into();
+        model.stroke_color = Color::hsva(0.147, 1.0, 0.71, 0.1).into();
     }
 }

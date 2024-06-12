@@ -105,7 +105,4 @@ fn view(app: &App, m: &Model) {
     draw.background().color(WHITE);
 
     m.pendulum.display(&draw);
-
-
-
 }

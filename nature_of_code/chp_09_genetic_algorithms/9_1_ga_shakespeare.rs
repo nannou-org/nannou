@@ -316,9 +316,6 @@ fn view(app: &App, model: &Model) {
         .y(-10.0)
         .wh(win.wh());
 
-
-
-
     if model.population.finished {
         app.set_update_mode(UpdateMode::freeze());
     }

@@ -203,7 +203,6 @@ fn view(app: &App, model: &Model) {
             }
         }
     }
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {

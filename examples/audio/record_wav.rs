@@ -24,10 +24,7 @@ struct CaptureModel {
 
 fn model(app: &App) -> Model {
     // Create a window to receive key pressed events.
-    app.new_window()
-        .key_pressed(key_pressed)
-        .view(view)
-        .build();
+    app.new_window().key_pressed(key_pressed).view(view).build();
 
     // Initialise the audio host so we can spawn an audio stream.
     let audio_host = audio::Host::new();
@@ -82,8 +79,6 @@ fn view(app: &App, model: &Model) {
     if model.stream.is_playing() && app.elapsed_frames() % 30 < 20 {
         let draw = app.draw();
         draw.ellipse().w_h(100.0, 100.0).color(RED);
-
-
     }
 }
 

@@ -48,7 +48,4 @@ fn view(app: &App) {
         .x(win.w() * 0.25)
         .rotate(t * 0.2)
         .points_colored(points_colored);
-
-
-
 }

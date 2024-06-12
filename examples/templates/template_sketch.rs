@@ -8,5 +8,4 @@ fn view(app: &App) {
     let draw = app.draw();
     draw.background().color(PLUM);
     draw.ellipse().color(STEELBLUE);
-
 }

@@ -11,27 +11,13 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let a = app
-        .new_window()
-        .title("window a")
-        .focused(event_a)
-        .build();
-    let b = app
-        .new_window()
-        .title("window b")
-        .focused(event_b)
-        .build();
-    let c = app
-        .new_window()
-        .title("window c")
-        .focused(event_c)
-        .build();
+    let a = app.new_window().title("window a").focused(event_a).build();
+    let b = app.new_window().title("window b").focused(event_b).build();
+    let c = app.new_window().title("window c").focused(event_c).build();
     Model { a, b, c }
 }
 
-fn update(_app: &App, _model: &mut Model) {
-
-}
+fn update(_app: &App, _model: &mut Model) {}
 
 fn event_a(_app: &App, _model: &mut Model) {
     println!("window a");
@@ -62,6 +48,4 @@ fn view(app: &App, model: &Model, window: Entity) {
         }
         _ => (),
     }
-
-
 }

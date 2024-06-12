@@ -57,6 +57,7 @@ fn view(app: &App) {
     }
 
     if app.keys().just_pressed(KeyCode::KeyS) {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

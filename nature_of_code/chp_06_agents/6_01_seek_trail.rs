@@ -98,7 +98,6 @@ fn view(app: &App, m: &Model) {
     display(&m.vehicle, &draw);
 
     // Write the result of our drawing to the window's OpenGL frame.
-
 }
 
 // A method that calculates a steering force towards a target

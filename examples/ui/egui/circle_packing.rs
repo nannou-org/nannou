@@ -1,4 +1,4 @@
-use nannou::{rand::thread_rng};
+use nannou::rand::thread_rng;
 use nannou::{prelude::*, rand::prelude::SliceRandom};
 
 const WIDTH: f32 = 640.0;

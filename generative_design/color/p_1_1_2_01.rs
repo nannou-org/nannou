@@ -52,7 +52,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn key_pressed(app: &App, model: &mut Model, key:KeyCode) {
+fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::Digit1 => {
             model.segment_count = 360;

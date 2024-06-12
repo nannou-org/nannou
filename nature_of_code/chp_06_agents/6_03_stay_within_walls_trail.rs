@@ -131,9 +131,6 @@ fn view(app: &App, m: &Model) {
     }
 
     display(&m.vehicle, &draw);
-
-
-
 }
 
 fn display(vehicle: &Vehicle, draw: &Draw) {

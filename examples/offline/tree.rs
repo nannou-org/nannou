@@ -71,11 +71,7 @@ impl Thing {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app
-        .new_window()
-        .size(1024, 1024)
-        .view(view)
-        .build();
+    let _window = app.new_window().size(1024, 1024).view(view).build();
 
     //create the random values we will need each frame
 
@@ -241,7 +237,7 @@ fn view(app: &App, model: &Model) {
     //draw ALL THE THINGS
     for k in 0..model.things.len() {
         //get a color from the palette indexed by frac
-        let mut c2: Srgba  = model.palette.somecolor_frac(model.things[k].frac).into();
+        let mut c2: Srgba = model.palette.somecolor_frac(model.things[k].frac).into();
         // make it fade
         c2.alpha = 1.0 - frac_end;
         let c3 = Color::srgba(0.0, 0.0, 0.0, 1.0 - frac_end);
@@ -281,7 +277,6 @@ fn view(app: &App, model: &Model) {
                 .weight((model.things[model.things[k].children[l]].size * 0.5).min(5.0));
         }
     }
-
 
     //TODO add screenshot
 }

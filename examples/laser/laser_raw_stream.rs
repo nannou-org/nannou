@@ -20,10 +20,7 @@ struct Laser {
 
 fn model(app: &App) -> Model {
     // Create a window to receive mouse events.
-    app.new_window()
-        .mouse_moved(mouse_moved)
-        .view(view)
-        .build();
+    app.new_window().mouse_moved(mouse_moved).view(view).build();
 
     // Initialise the state that we want to live on the laser thread and spawn the stream.
     let laser_model = Laser {
@@ -80,5 +77,4 @@ fn view(app: &App, _model: &Model) {
     let draw = app.draw();
     draw.background().color(DIM_GRAY);
     draw.ellipse().w_h(5.0, 5.0).xy(app.mouse());
-
 }

@@ -26,6 +26,4 @@ fn view(app: &App, model: &Model) {
 
     let draw = app.draw();
     draw.texture(&model.texture);
-
-
 }

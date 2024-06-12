@@ -77,7 +77,6 @@ fn view(app: &App, model: &Model) {
     draw = draw.scale(s);
 
     overlay(&draw, &model, win, 2.0);
-
 }
 
 fn overlay(draw: &Draw, model: &Model, rect: Rect, stroke_weight: f32) {

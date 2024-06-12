@@ -62,10 +62,7 @@ fn model(app: &App) -> Model {
         .key_released(key_released)
         .build();
 
-    let svg_assets_path = app
-        .assets_path()
-        .join("svg")
-        .join("generative_examples");
+    let svg_assets_path = app.assets_path().join("svg").join("generative_examples");
 
     let mut assets = Vec::new();
     assets.push(svg_assets_path.join("056.svg"));
@@ -114,8 +111,9 @@ fn model(app: &App) -> Model {
         }
     }
 
-    let image = app.assets().load("images/generative_examples/p_4_3_1_01.png");
-
+    let image = app
+        .assets()
+        .load("images/generative_examples/p_4_3_1_01.png");
 
     Model { image, shapes }
 }
@@ -161,12 +159,12 @@ fn view(app: &App, model: &Model) {
                 .x_y(pos_x, pos_y);
         }
     }
-
 }
 
 fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }
 

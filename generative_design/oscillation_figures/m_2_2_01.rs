@@ -189,9 +189,6 @@ fn view(app: &App, model: &Model) {
             .stroke_weight(2.0)
             .color(c);
     }
-
-
-
 }
 
 fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
@@ -208,10 +205,10 @@ fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::Digit4 => {
             model.freq_y += 1.0;
         }
-        KeyCode::KeyA=> {
+        KeyCode::KeyA => {
             model.do_draw_animation = !model.do_draw_animation;
         }
-        KeyCode::ArrowLeft=> {
+        KeyCode::ArrowLeft => {
             model.phi -= 15.0;
         }
         KeyCode::ArrowRight => {

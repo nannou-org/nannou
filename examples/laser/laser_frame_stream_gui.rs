@@ -2,10 +2,10 @@
 //! UI.
 
 use nannou::geom::Rect;
+use nannou::prelude::egui::FontId;
 use nannou::prelude::*;
 use nannou_laser as laser;
 use std::sync::{mpsc, Arc};
-use nannou::prelude::egui::FontId;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -496,8 +496,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     }
 }
 
-fn view(_app: &App, model: &Model) {
-}
+fn view(_app: &App, model: &Model) {}
 
 // The following functions are some custom styling preferences in an attempt to improve on the
 // default egui theming.

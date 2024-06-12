@@ -129,12 +129,12 @@ fn view(app: &App, model: &Model) {
                 .gray(0.2);
         }
     }
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
     if key == KeyCode::Digit1 {
         model.draw_ghosts = !model.draw_ghosts;

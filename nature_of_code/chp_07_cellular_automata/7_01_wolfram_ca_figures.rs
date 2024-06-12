@@ -169,7 +169,4 @@ fn view(app: &App, m: &Model) {
     let draw = app.draw();
 
     m.ca.display(&draw, &app.window_rect());
-
-
-
 }

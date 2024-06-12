@@ -177,13 +177,11 @@ fn view(app: &App, model: &Model) {
         .x_y(model.node_b.x, model.node_b.y)
         .radius(10.0)
         .color(BLACK);
-
-
-
 }
 
 fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

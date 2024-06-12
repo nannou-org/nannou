@@ -17,7 +17,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::time::Duration;
 /**
  * pixel mapping. each pixel is translated into a new element (letter)
  *
@@ -29,6 +28,7 @@ use std::time::Duration;
  * s                 : save png
  */
 use nannou::prelude::*;
+use std::time::Duration;
 
 use nannou::image;
 use nannou::image::GenericImageView;
@@ -52,7 +52,6 @@ fn model(app: &App) -> Model {
     app.set_update_mode(UpdateMode::wait());
 
     app.new_window()
-
         .size(533, 796)
         .view(view)
         .key_pressed(key_pressed)
@@ -150,8 +149,6 @@ fn view(app: &App, model: &Model) {
             counter = 0;
         }
     }
-
-
 }
 
 fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
@@ -167,7 +164,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::ArrowRight => {
             model.font_size_min += 2;
         }
-        KeyCode::ArrowLeft=> {
+        KeyCode::ArrowLeft => {
             model.font_size_min -= 2;
         }
         _otherkey => (),

@@ -104,7 +104,6 @@ fn view(app: &App, model: &Model) {
             }
         }
     }
-
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {

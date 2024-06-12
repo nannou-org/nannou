@@ -47,7 +47,4 @@ fn view(app: &App) {
 
     // Draw the mesh!
     draw.mesh().tris_colored(tris);
-
-
-
 }

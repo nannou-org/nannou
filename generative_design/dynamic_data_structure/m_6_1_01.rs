@@ -164,7 +164,7 @@ fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
 
-    if app.elapsed_frames() == 0 || app.keys()() .contains(&KeyCode::KeyR) {
+    if app.elapsed_frames() == 0 || app.keys()().contains(&KeyCode::KeyR) {
         draw.background().color(WHITE);
     } else {
         draw.rect()
@@ -175,9 +175,6 @@ fn view(app: &App, model: &Model) {
     model.nodes.iter().for_each(|node| {
         draw.ellipse().x_y(node.x, node.y).radius(5.0).color(BLACK);
     });
-
-
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {

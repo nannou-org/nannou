@@ -103,9 +103,6 @@ fn view(app: &App, model: &Model) {
                 .hsv(q, 1.0, 0.5);
         }
     });
-
-
-
 }
 
 fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
@@ -113,7 +110,8 @@ fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
 }
 fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::ControlLeft || key == KeyCode::ControlRight {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }
 

@@ -63,6 +63,4 @@ fn view(app: &App, model: &Model) {
         .line_spacing(10.0)
         .left_justify()
         .wh(rect.wh());
-
-
 }

@@ -148,9 +148,6 @@ fn view(app: &App, m: &Model) {
     draw.background().color(WHITE);
 
     m.pendulum.display(&draw);
-
-
-
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {

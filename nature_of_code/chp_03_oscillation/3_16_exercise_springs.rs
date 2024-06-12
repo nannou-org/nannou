@@ -174,9 +174,6 @@ fn view(app: &App, m: &Model) {
     m.b1.display(&draw);
     m.b2.display(&draw);
     m.b3.display(&draw);
-
-
-
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {

@@ -39,8 +39,6 @@ fn view(app: &App) {
         .w(app.mouse().x * 0.25)
         .hsv(t, 1.0, 1.0);
 
-
-
     // Capture the frame!
     let file_path = captured_frame_path(app);
     app.main_window().save_screenshot(file_path);

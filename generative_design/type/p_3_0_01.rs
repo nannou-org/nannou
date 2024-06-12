@@ -68,9 +68,6 @@ fn view(app: &App, model: &Model) {
         .color(BLACK)
         .font_size(size)
         .x_y(0.0, app.mouse().x);
-
-
-
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
@@ -81,6 +78,7 @@ fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
 }
 fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::ControlLeft || key == KeyCode::ControlRight {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

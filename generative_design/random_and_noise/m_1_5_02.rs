@@ -165,9 +165,6 @@ fn view(app: &App, model: &Model) {
     model.agents.iter().for_each(|agent| {
         agent.display(&draw, model.stroke_width, model.agent_alpha);
     });
-
-
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {

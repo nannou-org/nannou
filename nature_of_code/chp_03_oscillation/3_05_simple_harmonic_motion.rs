@@ -32,7 +32,4 @@ fn view(app: &App) {
         .rgba(0.5, 0.5, 0.5, 1.0)
         .stroke(BLACK)
         .stroke_weight(2.0);
-
-
-
 }

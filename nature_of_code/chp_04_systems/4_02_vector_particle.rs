@@ -87,7 +87,4 @@ fn view(app: &App, m: &Model) {
     for p in m.particles.iter() {
         p.display(&draw);
     }
-
-
-
 }

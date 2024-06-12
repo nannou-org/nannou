@@ -110,14 +110,26 @@ fn view(app: &App, model: &Model) {
         }
 
         let my = clamp(
-            map_range(app.mouse().x, win.top() - 50.0, win.bottom() + 50.0, 0.0, 1.0),
+            map_range(
+                app.mouse().x,
+                win.top() - 50.0,
+                win.bottom() + 50.0,
+                0.0,
+                1.0,
+            ),
             0.0,
             1.0,
         );
         let char_size = model.counters[index.unwrap()] as f32 * my * 3.0;
 
         let mx = clamp(
-            map_range(app.mouse().x, win.left() + 50.0, win.right() - 50.0, 0.0, 1.0),
+            map_range(
+                app.mouse().x,
+                win.left() + 50.0,
+                win.right() - 50.0,
+                0.0,
+                1.0,
+            ),
             0.0,
             1.0,
         );
@@ -157,9 +169,6 @@ fn view(app: &App, model: &Model) {
             pos_x = win.left() + 80.0;
         }
     }
-
-
-
 }
 
 fn count_characters(model: &mut Model) {

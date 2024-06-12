@@ -58,7 +58,11 @@ pub struct DrawingContext<'a> {
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<'a, T, M: Material>(draw: &'a Draw<M>, index: usize, material_index: usize) -> Drawing<'a, T, M>
+pub fn new<'a, T, M: Material>(
+    draw: &'a Draw<M>,
+    index: usize,
+    material_index: usize,
+) -> Drawing<'a, T, M>
 where
     T: Into<Primitive>,
     M: Material + Default,
@@ -122,7 +126,10 @@ where
                     // spawn a new entity just for this primitive.
                     DrawRef::Owned(draw) => {
                         let id = draw.material.clone();
-                        let material_cmd = state.draw_commands.get_mut(self.material_index).expect("Expected a valid material index");
+                        let material_cmd = state
+                            .draw_commands
+                            .get_mut(self.material_index)
+                            .expect("Expected a valid material index");
                         if let None = material_cmd {
                             *material_cmd = Some(DrawCommand::Material(id));
                         }
@@ -150,7 +157,10 @@ where
         self.finish_on_drop = false;
 
         let Drawing {
-            ref draw, index, material_index, ..
+            ref draw,
+            index,
+            material_index,
+            ..
         } = self;
 
         let state = draw.state.clone();
@@ -189,7 +199,10 @@ where
         self.finish_on_drop = false;
 
         let Drawing {
-            ref draw, index, material_index, ..
+            ref draw,
+            index,
+            material_index,
+            ..
         } = self;
 
         let state = draw.state.clone();
@@ -240,7 +253,10 @@ where
         }
         self.finish_on_drop = false;
         let Drawing {
-            ref draw, index, material_index, ..
+            ref draw,
+            index,
+            material_index,
+            ..
         } = self;
         Drawing {
             draw: draw.clone(),
@@ -271,7 +287,10 @@ where
         }
         self.finish_on_drop = false;
         let Drawing {
-            ref draw, index, material_index, ..
+            ref draw,
+            index,
+            material_index,
+            ..
         } = self;
         Drawing {
             draw: draw.clone(),

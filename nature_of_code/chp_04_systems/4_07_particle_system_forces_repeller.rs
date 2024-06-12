@@ -180,7 +180,4 @@ fn view(app: &App, m: &Model) {
 
     m.repeller.display(&draw);
     m.ps.draw(&draw);
-
-
-
 }

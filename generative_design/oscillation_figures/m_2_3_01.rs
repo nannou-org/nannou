@@ -125,9 +125,6 @@ fn view(app: &App, model: &Model) {
             });
         draw.polyline().weight(3.0).points_colored(vertices);
     }
-
-
-
 }
 
 fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
@@ -144,13 +141,13 @@ fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::Digit8 => {
             model.mod_freq += 1.0;
         }
-        KeyCode::KeyA=> {
+        KeyCode::KeyA => {
             model.draw_frequency = !model.draw_frequency;
         }
         KeyCode::C => {
             model.draw_modulation = !model.draw_modulation;
         }
-        KeyCode::ArrowLeft=> {
+        KeyCode::ArrowLeft => {
             model.phi -= 15.0;
         }
         KeyCode::ArrowRight => {

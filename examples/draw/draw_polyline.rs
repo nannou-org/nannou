@@ -43,7 +43,4 @@ fn view(app: &App) {
         .weight(weight)
         .join_round()
         .points_colored(vertices);
-
-
-
 }

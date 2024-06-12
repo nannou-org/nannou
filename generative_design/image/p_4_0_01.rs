@@ -72,12 +72,11 @@ fn view(app: &App, model: &Model) {
             draw.texture(&model.texture).x_y(x, y).w_h(step_x, step_y);
         }
     }
-
-
 }
 
 fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

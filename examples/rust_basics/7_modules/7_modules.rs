@@ -30,6 +30,4 @@ fn view(app: &App, model: &Model) {
     draw.background().color(DIM_GRAY);
     // Draw our ball
     model.ball.display(&draw);
-
-
 }

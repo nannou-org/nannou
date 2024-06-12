@@ -156,7 +156,6 @@ fn view(app: &App, model: &Model) {
             }
         }
     }
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {
@@ -176,7 +175,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::ArrowUp => {
             model.tile_count_y += 1;
         }
-        KeyCode::ArrowLeft=> {
+        KeyCode::ArrowLeft => {
             model.tile_count_x = (model.tile_count_x - 1).max(1);
         }
         KeyCode::ArrowRight => {

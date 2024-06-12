@@ -89,9 +89,6 @@ fn view(app: &App, m: &Model) {
         .stroke_weight(2.0);
 
     display(&m.vehicle, &draw);
-
-
-
 }
 
 // A method that calculates a steering force towards a target

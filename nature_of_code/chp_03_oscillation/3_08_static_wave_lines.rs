@@ -46,7 +46,4 @@ fn view(app: &App, model: &Model) {
         .weight(2.0)
         .points(model.vertices.clone())
         .color(BLACK);
-
-
-
 }

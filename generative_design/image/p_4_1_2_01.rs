@@ -80,15 +80,13 @@ fn view(app: &App, model: &Model) {
         draw.background().color(WHITE);
         draw.texture(texture);
     } else {
-        draw.texture(texture)
-            .x_y(x2, y2)
-            .w_h(w, h)
-            .area(area);
+        draw.texture(texture).x_y(x2, y2).w_h(w, h).area(area);
     }
 }
 
 fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

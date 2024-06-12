@@ -16,10 +16,7 @@ struct Audio {
 
 fn model(app: &App) -> Model {
     // Create a window to receive key pressed events.
-    app.new_window()
-        .key_pressed(key_pressed)
-        .view(view)
-        .build();
+    app.new_window().key_pressed(key_pressed).view(view).build();
 
     // Initialise the audio host so we can spawn an audio stream.
     let audio_host = audio::Host::new();

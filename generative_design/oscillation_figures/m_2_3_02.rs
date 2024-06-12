@@ -136,14 +136,11 @@ fn view(app: &App, model: &Model) {
             }
         }
     }
-
-
-
 }
 
 fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        KeyCode::KeyD=> {
+        KeyCode::KeyD => {
             if model.draw_mode == 1 {
                 model.draw_mode = 2;
             } else {
@@ -174,7 +171,7 @@ fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::Digit0 => {
             model.mod_freq_y += 1.0;
         }
-        KeyCode::ArrowLeft=> {
+        KeyCode::ArrowLeft => {
             model.phi -= 15.0;
         }
         KeyCode::ArrowRight => {

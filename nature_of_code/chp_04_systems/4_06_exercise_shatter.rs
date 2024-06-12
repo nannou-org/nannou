@@ -131,9 +131,6 @@ fn view(app: &App, m: &Model) {
     draw.background().color(WHITE);
 
     m.ps.draw(&draw);
-
-
-
 }
 
 fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {

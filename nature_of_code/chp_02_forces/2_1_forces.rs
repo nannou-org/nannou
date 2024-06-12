@@ -95,7 +95,4 @@ fn view(app: &App, m: &Model) {
     draw.background().color(WHITE);
 
     m.mover.display(&draw);
-
-
-
 }

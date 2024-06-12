@@ -19,5 +19,4 @@ fn view(app: &App, _model: &Model) {
     let draw = app.draw();
     draw.background().color(PLUM);
     draw.ellipse().color(STEEL_BLUE);
-
 }

@@ -32,7 +32,6 @@
  */
 use nannou::prelude::*;
 
-
 fn main() {
     nannou::app(model).update(update).run();
 }
@@ -112,9 +111,6 @@ fn view(app: &App, model: &Model) {
                 .color(col);
         }
     }
-
-
-
 }
 
 fn cast_to_rgb(col: Hsva) -> LinearRgba {

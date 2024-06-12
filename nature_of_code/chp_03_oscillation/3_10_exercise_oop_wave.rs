@@ -95,7 +95,4 @@ fn view(app: &App, m: &Model) {
     // display waves
     m.wave0.display(&draw);
     m.wave1.display(&draw);
-
-
-
 }

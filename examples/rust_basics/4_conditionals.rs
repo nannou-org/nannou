@@ -30,5 +30,4 @@ fn view(app: &App) {
     }
 
     // Draw to the window frame.
-
 }

@@ -108,7 +108,6 @@ fn view(app: &App, model: &Model) {
             ))
             .color(c);
     }
-
 }
 
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {

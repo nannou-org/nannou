@@ -192,7 +192,4 @@ fn view(app: &App, m: &Model) {
 
     m.attractor.display(&draw);
     m.mover.display(&draw);
-
-
-
 }

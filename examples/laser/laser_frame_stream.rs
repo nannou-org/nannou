@@ -34,10 +34,7 @@ pub enum TestPattern {
 
 fn model(app: &App) -> Model {
     // Create a window to receive keyboard events.
-    app.new_window()
-        .key_pressed(key_pressed)
-        .view(view)
-        .build();
+    app.new_window().key_pressed(key_pressed).view(view).build();
 
     // Initialise the state that we want to live on the laser thread and spawn the stream.
     let laser_model = Laser {

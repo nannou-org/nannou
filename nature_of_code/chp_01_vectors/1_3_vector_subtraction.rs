@@ -19,7 +19,4 @@ fn view(app: &App) {
     mouse -= center;
 
     draw.line().weight(2.0).color(BLACK).points(center, mouse);
-
-
-
 }

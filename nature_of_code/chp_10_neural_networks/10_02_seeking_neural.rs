@@ -235,9 +235,6 @@ fn view(app: &App, m: &Model) {
             .stroke_weight(2.0);
     }
     m.v.display(&draw);
-
-
-
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {

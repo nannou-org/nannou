@@ -147,7 +147,4 @@ fn view(app: &App, m: &Model) {
     for mover in &m.movers {
         mover.display(&draw);
     }
-
-
-
 }

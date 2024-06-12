@@ -54,5 +54,4 @@ fn update(_app: &App, _model: &mut Model) {}
 fn view(app: &App, _model: &Model) {
     // Begin drawing
     let draw = app.draw();
-
 }

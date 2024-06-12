@@ -134,8 +134,6 @@ fn view(app: &App, model: &Model) {
             }
         }
     }
-
-
 }
 
 fn draw_line(draw: &Draw, model: &Model, p1: Point2, p2: Point2) {
@@ -151,7 +149,7 @@ fn draw_line(draw: &Draw, model: &Model, p1: Point2, p2: Point2) {
         } else {
             model.brightness_value
         };
-        let c =Color::hsva(
+        let c = Color::hsva(
             hue,
             model.saturation_value,
             b,
@@ -194,6 +192,7 @@ fn calculate_lissajous_points(app: &App, model: &mut Model) {
 
 fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

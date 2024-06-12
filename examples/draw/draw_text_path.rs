@@ -46,7 +46,4 @@ fn view(app: &App) {
     }
 
     draw.path().fill().color(BLACK).events(text.path_events());
-
-
-
 }

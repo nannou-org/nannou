@@ -139,7 +139,4 @@ fn view(app: &App, m: &Model) {
     draw.background().color(WHITE);
 
     m.ps.draw(&draw, app.window_rect());
-
-
-
 }

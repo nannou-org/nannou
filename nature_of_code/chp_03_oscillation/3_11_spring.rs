@@ -201,9 +201,6 @@ fn view(app: &App, m: &Model) {
     m.spring.display_line(&draw, &m.bob); // Draw a line between spring and bob
     m.bob.display(&draw);
     m.spring.display(&draw);
-
-
-
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {

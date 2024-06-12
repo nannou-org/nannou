@@ -62,7 +62,4 @@ fn view(app: &App, model: &Model) {
         .w_h(20.0, 20.0)
         .rgba(0.7, 0.7, 0.7, 1.0)
         .stroke(BLACK);
-
-
-
 }

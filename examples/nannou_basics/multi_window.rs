@@ -11,21 +11,9 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let a = app
-        .new_window()
-        .focused(focus_a)
-        .title("window a")
-        .build();
-    let b = app
-        .new_window()
-        .focused(focus_b)
-        .title("window b")
-        .build();
-    let c = app
-        .new_window()
-        .focused(focus_c)
-        .title("window c")
-        .build();
+    let a = app.new_window().focused(focus_a).title("window a").build();
+    let b = app.new_window().focused(focus_b).title("window b").build();
+    let c = app.new_window().focused(focus_c).title("window c").build();
     Model { a, b, c }
 }
 
@@ -49,15 +37,15 @@ fn view(app: &App, model: &Model, window: Entity) {
         id if id == model.a => {
             draw.tri().color(RED);
             draw.background().color(INDIAN_RED)
-        },
+        }
         id if id == model.b => {
             draw.tri().color(GREEN);
             draw.background().color(LIGHT_GREEN)
-        },
+        }
         id if id == model.c => {
             draw.tri().color(BLUE);
             draw.background().color(CORNFLOWER_BLUE)
-        },
+        }
         _ => panic!("unexpected window entity"),
     };
 }

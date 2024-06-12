@@ -3,16 +3,16 @@
 //! Create a new window via `app.new_window()`. This produces a [**Builder**](./struct.Builder.html)
 //! which can be used to build a [**Window**](./struct.Window.html).
 
-use std::fmt;
-use std::path::{Path, PathBuf};
 use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::core_pipeline::tonemapping::Tonemapping;
+use std::fmt;
+use std::path::{Path, PathBuf};
 
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
-use bevy::render::view::RenderLayers;
 use bevy::render::view::screenshot::ScreenshotManager;
+use bevy::render::view::RenderLayers;
 use bevy::window::{Cursor, CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef};
 
 use bevy_nannou::prelude::render::NannouCamera;
@@ -69,20 +69,25 @@ pub(crate) struct UserFunctions<M> {
     pub(crate) closed: Option<ClosedFn<M>>,
 }
 
-impl <'a, 'w> Window<'a, 'w> {
+impl<'a, 'w> Window<'a, 'w> {
     pub fn new(app: &'a App<'w>, entity: Entity) -> Self {
         Window { app, entity }
     }
 
     fn window(&self) -> &bevy::window::Window {
-        self.app.world().get::<bevy::window::Window>(self.entity).unwrap()
+        self.app
+            .world()
+            .get::<bevy::window::Window>(self.entity)
+            .unwrap()
     }
 
     fn window_mut(&self) -> Mut<'a, bevy_nannou::prelude::Window> {
-        self.app.world_mut().get_mut::<bevy::window::Window>(self.entity).unwrap()
+        self.app
+            .world_mut()
+            .get_mut::<bevy::window::Window>(self.entity)
+            .unwrap()
     }
 }
-
 
 impl<M> Default for UserFunctions<M> {
     fn default() -> Self {
@@ -443,8 +448,7 @@ where
                     ..default()
                 },
                 tonemapping: Tonemapping::TonyMcMapface,
-                transform: Transform::from_xyz(0.0, 0.0, 10.0)
-                    .looking_at(Vec3::ZERO, Vec3::Y),
+                transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
                 projection: OrthographicProjection::default().into(),
                 ..default()
             },
@@ -607,7 +611,6 @@ where
     }
 }
 
-
 impl<M> fmt::Debug for View<M> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let variant = match *self {
@@ -619,7 +622,7 @@ impl<M> fmt::Debug for View<M> {
     }
 }
 
-impl <'a, 'w> Window<'a, 'w> {
+impl<'a, 'w> Window<'a, 'w> {
     /// A unique identifier associated with this window.
     pub fn id(&self) -> Entity {
         self.entity
@@ -661,15 +664,16 @@ impl <'a, 'w> Window<'a, 'w> {
     ///
     /// This is the same as dividing the result  of `size_pixels()` by `scale_factor()`.
     pub fn size_points(&self) -> Vec2 {
-        self.window_mut()
-            .size()
+        self.window_mut().size()
     }
 
     /// Modifies the inner size of the window.
     ///
     /// See the `size` methods for more informations about the values.
     pub fn set_size_pixels(&self, width: u32, height: u32) {
-        self.window_mut().resolution.set_physical_resolution(width, height)
+        self.window_mut()
+            .resolution
+            .set_physical_resolution(width, height)
     }
 
     /// Modifies the inner size of the window using point values.
@@ -808,8 +812,7 @@ impl <'a, 'w> Window<'a, 'w> {
     /// - **iOS:** Has no effect.
     /// - **Web:** Has no effect.
     pub fn set_ime_position_points(&self, x: f32, y: f32) {
-        self.window_mut()
-            .ime_position = Vec2::new(x, y);
+        self.window_mut().ime_position = Vec2::new(x, y);
     }
 
     /// Modifies the mouse cursor of the window.
@@ -828,11 +831,7 @@ impl <'a, 'w> Window<'a, 'w> {
     ///
     /// - **iOS:** Always returns an `Err`.
     /// - **Web:** Has no effect.
-    pub fn set_cursor_position_points(
-        &self,
-        x: f32,
-        y: f32,
-    ) {
+    pub fn set_cursor_position_points(&self, x: f32, y: f32) {
         self.window_mut().set_cursor_position(Some(Vec2::new(x, y)));
     }
 
@@ -870,7 +869,6 @@ impl <'a, 'w> Window<'a, 'w> {
         self.window_mut().cursor.visible = visible;
     }
 
-
     /// Attempts to determine whether or not the window is currently fullscreen.
     pub fn is_fullscreen(&self) -> bool {
         self.window_mut().mode == WindowMode::Fullscreen
@@ -892,7 +890,8 @@ impl <'a, 'w> Window<'a, 'w> {
     /// Saves a screenshot of the window to the given path.
     pub fn save_screenshot<P: AsRef<Path>>(&mut self, path: P) {
         let mut screenshot_manager = self
-            .app.world_mut()
+            .app
+            .world_mut()
             .get_resource_mut::<ScreenshotManager>()
             .expect("ScreenshotManager resource not found");
         screenshot_manager
@@ -900,4 +899,3 @@ impl <'a, 'w> Window<'a, 'w> {
             .expect("Failed to save screenshot");
     }
 }
-

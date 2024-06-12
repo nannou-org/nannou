@@ -48,7 +48,4 @@ fn view(app: &App, model: &Model) {
         .radius(10.0)
         .color(LIGHTGREY)
         .stroke(BLACK);
-
-
-
 }

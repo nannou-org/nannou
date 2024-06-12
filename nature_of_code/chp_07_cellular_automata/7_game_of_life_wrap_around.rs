@@ -143,7 +143,4 @@ fn view(app: &App, m: &Model) {
     draw.background().color(WHITE);
 
     m.gol.display(&draw, &app.window_rect());
-
-
-
 }

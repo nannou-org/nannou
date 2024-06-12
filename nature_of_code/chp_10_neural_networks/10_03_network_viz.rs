@@ -138,7 +138,4 @@ fn view(app: &App, model: &Model) {
     draw.background().color(WHITE);
 
     model.network.display(&draw);
-
-
-
 }

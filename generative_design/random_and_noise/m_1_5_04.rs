@@ -227,9 +227,6 @@ fn view(app: &App, model: &Model) {
     model.agents.iter().for_each(|agent| {
         agent.display(&draw, model.draw_mode, model.stroke_width);
     });
-
-
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {

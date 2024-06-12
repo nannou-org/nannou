@@ -130,7 +130,6 @@ fn view(app: &App, model: &Model) {
     if let Some(ref s) = model.new_shape {
         s.display(&draw, &model);
     }
-
 }
 
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {

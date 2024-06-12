@@ -126,7 +126,6 @@ fn view(app: &App, model: &Model) {
             i += 1;
         }
     }
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {

@@ -83,7 +83,4 @@ fn view(app: &App, m: &Model) {
     for osc in &m.oscillators {
         osc.display(&draw);
     }
-
-
-
 }

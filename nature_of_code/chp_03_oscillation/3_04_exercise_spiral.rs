@@ -46,7 +46,4 @@ fn view(app: &App, model: &Model) {
         .x_y(x, y)
         .w_h(16.0, 16.0)
         .rgba(0.0, 0.0, 0.0, 1.0);
-
-
-
 }

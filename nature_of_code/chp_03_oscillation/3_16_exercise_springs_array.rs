@@ -176,9 +176,6 @@ fn view(app: &App, m: &Model) {
     for b in &m.bobs {
         b.display(&draw);
     }
-
-
-
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {

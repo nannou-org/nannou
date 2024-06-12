@@ -52,5 +52,4 @@ fn view(app: &App, model: &Model) {
         .rotate(app.elapsed_seconds() * 0.25);
 
     // Draw to the frame!
-
 }

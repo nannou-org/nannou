@@ -131,7 +131,8 @@ fn view(app: &App, model: &Model) {
                             stroke_color = 0.0;
                         }
                         3 => {
-                            line_weight = map_range(app.mouse().x, win.left(), win.right(), 1.0, 8.0);
+                            line_weight =
+                                map_range(app.mouse().x, win.left(), win.right(), 1.0, 8.0);
                         }
                         _ => unreachable!(),
                     }
@@ -147,7 +148,6 @@ fn view(app: &App, model: &Model) {
             }
         }
     }
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {

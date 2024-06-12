@@ -29,7 +29,8 @@ fn view(app: &App) {
 
         // Return a new rotated draw instance.
         // This will rotate both the rect and text around the origin.
-        let rotate = (app.ellapsed_seconds() * 0.5).sin() * (app.ellapsed_seconds() * 0.25 + f * PI * 2.0).cos();
+        let rotate = (app.ellapsed_seconds() * 0.5).sin()
+            * (app.ellapsed_seconds() * 0.25 + f * PI * 2.0).cos();
         let draw = draw.rotate(rotate);
 
         let hue = app.ellapsed_seconds() + f * 2.0 * PI;
@@ -52,7 +53,4 @@ fn view(app: &App) {
             .color(color)
             .font_size(96);
     }
-
-
-
 }

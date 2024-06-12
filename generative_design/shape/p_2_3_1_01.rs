@@ -17,6 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use nannou::prelude::Color::Srgba;
 /**
  * draw tool. draw with a rotating line.
  *
@@ -35,7 +36,6 @@
  * s                   : save png
  */
 use nannou::prelude::*;
-use nannou::prelude::Color::Srgba;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -86,7 +86,6 @@ fn view(app: &App, model: &Model) {
             .end(pt2(model.line_length, 0.0))
             .color(model.c);
     }
-
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
@@ -101,7 +100,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::ArrowDown => {
             model.line_length -= 5.0;
         }
-        KeyCode::ArrowLeft=> {
+        KeyCode::ArrowLeft => {
             model.angle_speed -= 0.5;
         }
         KeyCode::ArrowRight => {
@@ -118,7 +117,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
                 .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         // reverse direction and mirror angle
-        KeyCode::KeyD=> {
+        KeyCode::KeyD => {
             model.angle += 180.0;
             model.angle_speed *= -1.0;
         }

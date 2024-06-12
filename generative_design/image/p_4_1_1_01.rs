@@ -160,8 +160,6 @@ fn view(app: &App, model: &Model) {
             }
         }
     }
-
-
 }
 
 fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {

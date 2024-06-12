@@ -58,7 +58,4 @@ fn view(app: &App, model: &Model) {
         .gray(0.5)
         .stroke_weight(2.0)
         .stroke_color(BLACK);
-
-
-
 }

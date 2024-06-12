@@ -524,7 +524,7 @@ where
         T: Into<Primitive>,
         Primitive: Into<Option<T>>,
     {
-        let (index , material_index) = {
+        let (index, material_index) = {
             let mut state = self.state.write().unwrap();
             // If drawing with a different context, insert the necessary command to update it.
             if state.last_draw_context.as_ref() != Some(&self.context) {

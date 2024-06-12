@@ -1,5 +1,6 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
+use bevy::render::render_phase::ViewSortedRenderPhases;
 use bevy::{
     core_pipeline::core_3d::Transparent3d,
     ecs::{
@@ -24,7 +25,6 @@ use bevy::{
         Render, RenderApp, RenderSet,
     },
 };
-use bevy::render::render_phase::ViewSortedRenderPhases;
 use bytemuck::{Pod, Zeroable};
 use rayon::prelude::*;
 

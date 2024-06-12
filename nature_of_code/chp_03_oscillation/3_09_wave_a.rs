@@ -48,7 +48,4 @@ fn view(app: &App, model: &Model) {
         angle += model.angle_vel;
         x += 24.0;
     }
-
-
-
 }

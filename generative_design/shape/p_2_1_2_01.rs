@@ -90,7 +90,6 @@ fn view(app: &App, model: &Model) {
                 .stroke_weight(my / 50.0);
         }
     }
-
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
@@ -99,6 +98,7 @@ fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
 
 fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

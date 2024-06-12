@@ -55,7 +55,7 @@ fn model(app: &App) -> Model {
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model) {
-    let draw  = app.draw();
+    let draw = app.draw();
     let Some(texture) = app.image(&model.texture) else {
         return;
     };
@@ -84,15 +84,13 @@ fn view(app: &App, model: &Model) {
         draw.background().color(WHITE);
         draw.texture(texture, dim);
     } else {
-        draw.texture(texture, dim)
-            .x_y(x2, y2)
-            .w_h(w, h)
-            .area(area);
+        draw.texture(texture, dim).x_y(x2, y2).w_h(w, h).area(area);
     }
 }
 
 fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

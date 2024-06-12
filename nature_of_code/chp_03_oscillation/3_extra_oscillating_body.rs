@@ -168,9 +168,6 @@ fn view(app: &App, m: &Model) {
 
     m.attractor.display(&draw);
     m.mover.display(&draw);
-
-
-
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {

@@ -169,7 +169,4 @@ fn view(app: &App, m: &Model) {
             draw.ellipse().x_y(x, y).radius(4.0).color(BLACK);
         }
     }
-
-
-
 }

@@ -202,7 +202,4 @@ fn view(app: &App, model: &Model) {
         }
         grid_y += 1;
     }
-
-
-
 }

@@ -26,7 +26,4 @@ fn view(app: &App) {
     draw.rect().xy(r.xy()).wh(r.wh()).color(BLACK);
 
     draw.line().weight(2.0).color(BLACK).points(center, mouse);
-
-
-
 }

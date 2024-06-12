@@ -34,9 +34,6 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw().x_y(0.0, win.bottom());
 
     branch(&draw, 60.0, model.theta);
-
-
-
 }
 
 fn branch(draw: &Draw, len: f32, theta: f32) {

@@ -19,11 +19,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     // Create window
-    let window = app
-        .new_window()
-        .primary()
-        .view(view)
-        .build();
+    let window = app.new_window().primary().view(view).build();
 
     Model {
         window,

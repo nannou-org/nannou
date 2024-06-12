@@ -216,7 +216,8 @@ fn update(app: &App, model: &mut Model) {
         // Ignore anything greater than this distance
         let mut max_dist = 20.0;
         for i in 0..model.nodes.len() {
-            let d = pt2(app.mouse().x, app.mouse().x).distance(pt2(model.nodes[i].x, model.nodes[i].y));
+            let d =
+                pt2(app.mouse().x, app.mouse().x).distance(pt2(model.nodes[i].x, model.nodes[i].y));
             if d < max_dist && model.selected_node.is_none() {
                 model.selected_node = Some(i);
                 max_dist = d;
@@ -253,14 +254,12 @@ fn view(app: &App, model: &Model) {
             .stroke(WHITE)
             .stroke_weight(2.0);
     });
-
-
-
 }
 
 fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     if key == KeyCode::KeyS {
-        app.main_window().save_screenshot(app.exe_name().unwrap() + ".png");
+        app.main_window()
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
     if key == KeyCode::KeyR {
         model.nodes = create_nodes(model.node_count, model.node_radius, app.window_rect());

@@ -18,11 +18,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app
-        .new_window()
-        .size_pixels(1024, 1024)
-        .view(view)
-        .build();
+    let _window = app.new_window().size_pixels(1024, 1024).view(view).build();
     let mut noise = Perlin::new();
     noise = noise.set_seed(1);
     Model { noise }
@@ -68,6 +64,9 @@ fn view(app: &App, model: &Model) {
         //fill the line with black
         draw.polygon().color(Color::BLACK).points(pts);
         //draw the white outline on top
-        draw.polyline().color(Color::WHITE).stroke_weight(5.0).points(pts2);
+        draw.polyline()
+            .color(Color::WHITE)
+            .stroke_weight(5.0)
+            .points(pts2);
     }
 }

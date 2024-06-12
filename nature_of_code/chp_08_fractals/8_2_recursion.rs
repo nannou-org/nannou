@@ -23,9 +23,6 @@ fn view(app: &App, _model: &Model) {
     draw.background().color(WHITE);
 
     draw_circle(&draw, 0.0, 0.0, 200.0);
-
-
-
 }
 
 // Recursive function

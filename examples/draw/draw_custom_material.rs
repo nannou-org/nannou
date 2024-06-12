@@ -1,5 +1,5 @@
-use nannou::prelude::*;
 use nannou::prelude::primitive::Primitive;
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model)
@@ -24,21 +24,18 @@ impl Material for CustomMaterial {
     }
 }
 
-
 fn model(app: &App) -> Model {
     Model {}
 }
 
 fn view(app: &App, model: &Model, window: Entity) {
     // Begin drawing
-    let draw = app.draw()
+    let draw = app
+        .draw()
         // Initialize our draw instance with our custom material
-        .material(CustomMaterial {
-            color: RED.into(),
-        });
+        .material(CustomMaterial { color: RED.into() });
 
-    draw.ellipse()
-        .x(-200.0);
+    draw.ellipse().x(-200.0);
 
     // We can also map the material manually
     draw.ellipse()

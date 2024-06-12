@@ -10,7 +10,9 @@ fn model(app: &App) -> Model {
     app.new_window()
         .key_pressed(key_pressed)
         .mouse_pressed(mouse_pressed)
-        .view(view).build().unwrap();
+        .view(view)
+        .build()
+        .unwrap();
     Model
 }
 
@@ -50,7 +52,6 @@ fn key_pressed(_app: &App, _model: &mut Model, key: KeyCode) {
 fn mouse_pressed(_app: &App, _model: &mut Model, _button: MouseButton) {
     do_something();
 }
-
 
 fn view(app: &App, _model: &Model) {
     let draw = app.draw();

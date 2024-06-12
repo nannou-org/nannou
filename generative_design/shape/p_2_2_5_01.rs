@@ -166,7 +166,6 @@ fn view(app: &App, model: &Model) {
             .stroke_weight(2.0)
             .stroke(Color::srgb(0.4, 0.9, 0.4));
     }
-
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {
@@ -184,7 +183,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::KeyF => {
             model.freeze = !model.freeze;
             if model.freeze {
-                app.set_update_mode(UpdateMode::freeze());;
+                app.set_update_mode(UpdateMode::freeze());
             } else {
                 app.set_update_mode(UpdateMode::Continuous);
             }

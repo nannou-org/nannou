@@ -6,10 +6,10 @@ use bevy::render::extract_component::ExtractComponent;
 use crate::render::NannouRenderPlugin;
 
 mod changed;
+pub mod color;
 pub mod draw;
 pub mod render;
 pub mod text;
-pub mod color;
 
 pub struct NannouDrawPlugin;
 
