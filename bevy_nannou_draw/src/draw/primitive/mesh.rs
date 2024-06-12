@@ -22,7 +22,6 @@ pub struct PrimitiveMesh {
     vertex_range: ops::Range<usize>,
     index_range: ops::Range<usize>,
     fill_color: Option<FillColor>,
-    texture_handle: Option<Handle<Image>>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -319,7 +318,6 @@ impl PrimitiveMesh {
             vertex_range,
             index_range,
             fill_color,
-            texture_handle: texture_handle,
         }
     }
 }
@@ -483,18 +481,13 @@ where
 }
 
 impl draw::render::RenderPrimitive for PrimitiveMesh {
-    fn render_primitive(
-        self,
-        ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         let PrimitiveMesh {
             orientation,
             position,
             vertex_range,
             index_range,
             fill_color,
-            texture_handle: texture_handle,
         } = self;
 
         // Determine the transform to apply to vertices.
@@ -553,8 +546,6 @@ impl draw::render::RenderPrimitive for PrimitiveMesh {
                 }
             }
         }
-
-        draw::render::PrimitiveRender { texture_handle }
     }
 }
 

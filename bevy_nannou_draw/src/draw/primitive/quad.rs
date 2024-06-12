@@ -49,11 +49,7 @@ impl Quad {
 
 // Trait implementations.
 impl draw::render::RenderPrimitive for Quad {
-    fn render_primitive(
-        self,
-        ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         let Quad {
             mut quad,
             polygon,
@@ -77,16 +73,22 @@ impl draw::render::RenderPrimitive for Quad {
             quad = geom::Quad([new_a, new_b, new_c, new_d]);
         }
 
-        let points = quad.vertices();
+        let tex_coords = [
+            Vec2::new(0.0, 0.0), // Bottom-left
+            Vec2::new(1.0, 0.0), // Bottom-right
+            Vec2::new(1.0, 1.0), // Top-right
+            Vec2::new(0.0, 1.0), // Top-left
+        ];
+
+        let points = quad.vertices().zip(tex_coords.iter().copied());
         polygon::render_points_themed(
             polygon.opts,
+            true,
             points,
             ctxt,
             &draw::theme::Primitive::Quad,
             mesh,
         );
-
-        draw::render::PrimitiveRender::default()
     }
 }
 

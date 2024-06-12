@@ -130,29 +130,26 @@ impl Into<Option<Line>> for Primitive {
 }
 
 impl draw::render::RenderPrimitive for Line {
-    fn render_primitive(
-        self,
-        mut ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, mut ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         let Line { path, start, end } = self;
         let start = start.unwrap_or(Vec2::new(0.0, 0.0));
         let end = end.unwrap_or(Vec2::new(0.0, 0.0));
         if start == end {
-            return draw::render::PrimitiveRender::default();
+            return;
         }
         let close = false;
         let points = [start, end];
-        let points = points.iter().cloned().map(|p| p.to_array().into());
-        let events = lyon::path::iterator::FromPolyline::new(close, points);
+        let tex_coords = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
+        let points = points.iter().cloned().zip(tex_coords.iter().copied());
 
         // Determine the transform to apply to all points.
         let global_transform = *ctxt.transform;
         let local_transform = path.position.transform() * path.orientation.transform();
         let transform = global_transform * local_transform;
 
-        path::render_path_events(
-            events,
+        path::render_path_points_themed(
+            points,
+            close,
             path.color,
             transform,
             path::Options::Stroke(path.opts),
@@ -162,7 +159,5 @@ impl draw::render::RenderPrimitive for Line {
             &mut ctxt.stroke_tessellator,
             mesh,
         );
-
-        draw::render::PrimitiveRender::default()
     }
 }

@@ -11,7 +11,7 @@ use bevy::asset::UntypedAssetId;
 use bevy::ecs::world::Command;
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
-use bevy::render::render_resource::BlendState;
+use bevy::render::render_resource::{BlendComponent, BlendState};
 use bevy::utils::{HashMap, HashSet};
 use lyon::path::PathEvent;
 use uuid::Uuid;
@@ -168,10 +168,8 @@ pub struct IntermediaryState {
     pub intermediary_mesh: Mesh,
     /// A re-usable buffer for collecting path events.
     pub path_event_buffer: Vec<PathEvent>,
-    /// A re-usable buffer for collecting colored polyline points.
-    pub path_points_colored_buffer: Vec<(Vec2, Color)>,
-    /// A re-usable buffer for collecting textured polyline points.
-    pub path_points_textured_buffer: Vec<(Vec2, Vec2)>,
+    /// A re-usable buffer for collecting polyline points vertex data.
+    pub path_points_vertex_buffer: Vec<(Vec2, Color, Vec2)>,
     /// A buffer containing all text.
     pub text_buffer: String,
 }
@@ -180,8 +178,7 @@ impl IntermediaryState {
     pub fn reset(&mut self) {
         self.intermediary_mesh.clear();
         self.path_event_buffer.clear();
-        self.path_points_colored_buffer.clear();
-        self.path_points_textured_buffer.clear();
+        self.path_points_vertex_buffer.clear();
         self.text_buffer.clear();
     }
 }
@@ -557,59 +554,59 @@ where
     }
 
     /// Begin drawing a **Path**.
-    pub fn path<'a>(&'a self) -> Drawing<'a, primitive::PathInit, M> {
+    pub fn path(&self) -> Drawing<primitive::PathInit, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing an **Ellipse**.
-    pub fn ellipse<'a>(&'a self) -> Drawing<'a, primitive::Ellipse, M> {
+    pub fn ellipse(&self) -> Drawing<primitive::Ellipse, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Line**.
-    pub fn line<'a>(&'a self) -> Drawing<'a, primitive::Line, M> {
+    pub fn line(&self) -> Drawing<primitive::Line, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing an **Arrow**.
-    pub fn arrow<'a>(&'a self) -> Drawing<'a, primitive::Arrow, M> {
+    pub fn arrow(&self) -> Drawing<primitive::Arrow, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Quad**.
-    pub fn quad<'a>(&'a self) -> Drawing<'a, primitive::Quad, M> {
+    pub fn quad(&self) -> Drawing<primitive::Quad, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Rect**.
-    pub fn rect<'a>(&'a self) -> Drawing<'a, primitive::Rect, M> {
+    pub fn rect(&self) -> Drawing<primitive::Rect, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Triangle**.
-    pub fn tri<'a>(&'a self) -> Drawing<'a, primitive::Tri, M> {
+    pub fn tri(&self) -> Drawing<primitive::Tri, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polygon**.
-    pub fn polygon<'a>(&'a self) -> Drawing<'a, primitive::PolygonInit, M> {
+    pub fn polygon(&self) -> Drawing<primitive::PolygonInit, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Mesh**.
-    pub fn mesh<'a>(&'a self) -> Drawing<'a, primitive::mesh::Vertexless, M> {
+    pub fn mesh(&self) -> Drawing<primitive::mesh::Vertexless, M> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polyline**.
     ///
     /// Note that this is simply short-hand for `draw.path().stroke()`
-    pub fn polyline<'a>(&'a self) -> Drawing<'a, primitive::PathStroke, M> {
+    pub fn polyline(&self) -> Drawing<primitive::PathStroke, M> {
         self.path().stroke()
     }
 
     /// Begin drawing a **Text**.
-    pub fn text<'a>(&'a self, s: &str) -> Drawing<'a, primitive::Text, M> {
+    pub fn text(&self, s: &str) -> Drawing<primitive::Text, M> {
         let text = {
             let state = self.state.read().expect("lock poisoned");
             let mut intermediary_state = state.intermediary_state.write().expect("lock poisoned");
@@ -617,17 +614,6 @@ where
             primitive::text::Text::new(ctxt, s)
         };
         self.a(text)
-    }
-
-    /// Begin drawing a **Texture**.
-    // TODO: this api sucks, because it requires the user to wait for the texture to load before
-    // they can draw it. We should provide a way to draw a texture without waiting for it to load.
-    // This is mostly due to the image size being unknown until the texture is loaded.
-    pub fn texture<'a>(
-        &'a self,
-        texture_handle: &Handle<Image>,
-    ) -> Drawing<'a, primitive::Texture, M> {
-        self.a(primitive::Texture::new(texture_handle.clone()))
     }
 
     /// Finish any drawings-in-progress and produce an iterator draining the inner draw commands
@@ -652,16 +638,22 @@ where
 impl Draw<DefaultNannouMaterial> {
     /// Produce a new [Draw] instance that will draw with the given alpha blend descriptor.
     pub fn alpha_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
-        // self.material.extension.
-        todo!()
+        // TODO: check if blend is already set and only update if necessary
+        let mut mat = self.clone_material().clone();
+        mat.extension.blend = Some(BlendState {
+            color: BlendComponent::REPLACE,
+            alpha: blend_descriptor,
+        });
+        self.material(mat)
     }
 
     /// Produce a new [Draw] instance that will draw with the given color blend descriptor.
     pub fn color_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
+        // TODO: check if blend is already set and only update if necessary
         let mut mat = self.clone_material().clone();
         mat.extension.blend = Some(BlendState {
             color: blend_descriptor,
-            alpha: blend_descriptor,
+            alpha: BlendComponent::REPLACE,
         });
         self.material(mat)
     }
@@ -683,14 +675,12 @@ impl Default for IntermediaryState {
     fn default() -> Self {
         let intermediary_mesh = Mesh::init();
         let path_event_buffer = Default::default();
-        let path_points_colored_buffer = Default::default();
-        let path_points_textured_buffer = Default::default();
+        let path_points_vertex_buffer = Default::default();
         let text_buffer = Default::default();
         IntermediaryState {
             intermediary_mesh,
             path_event_buffer,
-            path_points_colored_buffer,
-            path_points_textured_buffer,
+            path_points_vertex_buffer,
             text_buffer,
         }
     }

@@ -11,7 +11,6 @@ pub use self::polygon::{Polygon, PolygonInit};
 pub use self::quad::Quad;
 pub use self::rect::Rect;
 pub use self::text::Text;
-pub use self::texture::Texture;
 pub use self::tri::Tri;
 
 pub mod arrow;
@@ -23,7 +22,6 @@ pub mod polygon;
 pub mod quad;
 pub mod rect;
 pub mod text;
-pub mod texture;
 pub mod tri;
 
 type Vertex = (Vec3, Color, Vec2);
@@ -49,6 +47,5 @@ pub enum Primitive {
     Quad(Quad),
     Rect(Rect),
     Text(Text),
-    Texture(Texture),
     Tri(Tri),
 }

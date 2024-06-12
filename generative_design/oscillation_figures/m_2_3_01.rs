@@ -87,7 +87,7 @@ fn view(app: &App, model: &Model) {
                 let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
-        draw.polyline().weight(1.0).points_colored(vertices);
+        draw.polyline().weight(1.0).points_vertex(vertices);
     }
 
     // draw oscillator with mod_freq
@@ -104,7 +104,7 @@ fn view(app: &App, model: &Model) {
                 let rgba = Color::srgba(0.0, 0.5, 0.64, 0.5);
                 (p, rgba)
             });
-        draw.polyline().weight(1.0).points_colored(vertices);
+        draw.polyline().weight(1.0).points_vertex(vertices);
     }
 
     // draw both combined
@@ -123,7 +123,7 @@ fn view(app: &App, model: &Model) {
                 let rgba = Color::srgba(0.30, 1.0, 0.64, 0.75);
                 (p, rgba)
             });
-        draw.polyline().weight(3.0).points_colored(vertices);
+        draw.polyline().weight(3.0).points_vertex(vertices);
     }
 }
 

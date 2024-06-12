@@ -11,17 +11,7 @@ use crate::{draw, text};
 /// Draw API primitives that may be rendered via the **Renderer** type.
 pub trait RenderPrimitive {
     /// Render self into the given mesh.
-    fn render_primitive(self, ctxt: RenderContext, mesh: &mut Mesh) -> PrimitiveRender;
-}
-
-/// Information about the way in which a primitive was rendered.
-pub struct PrimitiveRender {
-    /// Whether or not a specific texture must be available when this primitive is drawn.
-    ///
-    /// If `Some` and the given texture is different than the currently set texture, a render
-    /// command will be encoded that switches from the previous texture's bind group to the new
-    /// one.
-    pub texture_handle: Option<Handle<Image>>,
+    fn render_primitive(self, ctxt: RenderContext, mesh: &mut Mesh);
 }
 
 /// The context provided to primitives to assist with the rendering process.
@@ -29,8 +19,7 @@ pub struct RenderContext<'a> {
     pub transform: &'a Mat4,
     pub intermediary_mesh: &'a Mesh,
     pub path_event_buffer: &'a [PathEvent],
-    pub path_points_colored_buffer: &'a [(Vec2, Color)],
-    pub path_points_textured_buffer: &'a [(Vec2, Vec2)],
+    pub path_points_vertex_buffer: &'a [(Vec2, Color, Vec2)],
     pub text_buffer: &'a str,
     pub theme: &'a draw::Theme,
     pub glyph_cache: &'a mut GlyphCache,
@@ -72,16 +61,8 @@ pub struct Scissor {
     pub height: u32,
 }
 
-impl Default for PrimitiveRender {
-    fn default() -> Self {
-        PrimitiveRender {
-            texture_handle: None,
-        }
-    }
-}
-
 impl RenderPrimitive for draw::Primitive {
-    fn render_primitive(self, ctxt: RenderContext, mesh: &mut Mesh) -> PrimitiveRender {
+    fn render_primitive(self, ctxt: RenderContext, mesh: &mut Mesh) {
         match self {
             draw::Primitive::Arrow(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Mesh(prim) => prim.render_primitive(ctxt, mesh),
@@ -93,8 +74,7 @@ impl RenderPrimitive for draw::Primitive {
             draw::Primitive::Rect(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Line(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Text(prim) => prim.render_primitive(ctxt, mesh),
-            draw::Primitive::Texture(prim) => prim.render_primitive(ctxt, mesh),
-            _ => PrimitiveRender::default(),
+            _ => {}
         }
     }
 }
@@ -106,14 +86,6 @@ impl fmt::Debug for GlyphCache {
             .field("pixel_buffer", &self.pixel_buffer.len())
             .field("requires_upload", &self.requires_upload)
             .finish()
-    }
-}
-
-impl PrimitiveRender {
-    pub fn texture(texture_handle: Handle<Image>) -> Self {
-        PrimitiveRender {
-            texture_handle: Some(texture_handle),
-        }
     }
 }
 

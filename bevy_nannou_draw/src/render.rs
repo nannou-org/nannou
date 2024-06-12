@@ -327,9 +327,7 @@ fn update_draw_mesh(
                     let ctxt = RenderContext {
                         intermediary_mesh: &intermediary_state.intermediary_mesh,
                         path_event_buffer: &intermediary_state.path_event_buffer,
-                        path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
-                        path_points_textured_buffer: &intermediary_state
-                            .path_points_textured_buffer,
+                        path_points_vertex_buffer: &intermediary_state.path_points_vertex_buffer,
                         text_buffer: &intermediary_state.text_buffer,
                         theme: &draw_state.theme,
                         transform: &curr_ctx.transform,
@@ -342,16 +340,13 @@ fn update_draw_mesh(
 
                     // Render the primitive.
                     let mut mesh = meshes.get_mut(&mesh).unwrap();
-                    let render = prim.render_primitive(ctxt, &mut mesh);
-                    // TODO ignore return value and set textures on the material directly
+                    prim.render_primitive(ctxt, &mut mesh);
                 }
                 DrawCommand::Instanced(prim, instance_data) => {
                     let ctxt = RenderContext {
                         intermediary_mesh: &intermediary_state.intermediary_mesh,
                         path_event_buffer: &intermediary_state.path_event_buffer,
-                        path_points_colored_buffer: &intermediary_state.path_points_colored_buffer,
-                        path_points_textured_buffer: &intermediary_state
-                            .path_points_textured_buffer,
+                        path_points_vertex_buffer: &intermediary_state.path_points_vertex_buffer,
                         text_buffer: &intermediary_state.text_buffer,
                         theme: &draw_state.theme,
                         transform: &curr_ctx.transform,

@@ -42,5 +42,5 @@ fn view(app: &App) {
     draw.polyline()
         .weight(weight)
         .join_round()
-        .points_colored(vertices);
+        .points_vertex(vertices);
 }

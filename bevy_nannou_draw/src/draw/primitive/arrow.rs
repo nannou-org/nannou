@@ -170,11 +170,7 @@ impl Into<Option<Arrow>> for Primitive {
 }
 
 impl draw::render::RenderPrimitive for Arrow {
-    fn render_primitive(
-        self,
-        mut ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, mut ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         let Arrow {
             line,
             head_length,
@@ -183,7 +179,7 @@ impl draw::render::RenderPrimitive for Arrow {
         let start = line.start.unwrap_or(Vec2::new(0.0, 0.0));
         let end = line.end.unwrap_or(Vec2::new(0.0, 0.0));
         if start == end {
-            return draw::render::PrimitiveRender::default();
+            return;
         }
 
         // Calculate the arrow head points.
@@ -213,11 +209,16 @@ impl draw::render::RenderPrimitive for Arrow {
 
         // Draw the tri.
         let tri_points = [tri_a, tri_b, tri_c];
-        let tri_points = tri_points.iter().cloned().map(|p| p.to_array().into());
+        let tri_tex_coords = [
+            Vec2::new(0.5, 1.0), // Tip of the arrowhead
+            Vec2::new(0.0, 0.0), // Left corner
+            Vec2::new(1.0, 0.0), // Right corner
+        ];
+        let tri_points = tri_points.iter().cloned().zip(tri_tex_coords.iter().copied());
         let close_tri = true;
-        let tri_events = lyon::path::iterator::FromPolyline::new(close_tri, tri_points);
-        path::render_path_events(
-            tri_events,
+        path::render_path_points_themed(
+            tri_points,
+            close_tri,
             line.path.color,
             transform,
             path::Options::Fill(Default::default()),
@@ -231,11 +232,12 @@ impl draw::render::RenderPrimitive for Arrow {
         // Draw the line.
         if draw_line {
             let line_points = [line_start, line_end];
-            let line_points = line_points.iter().cloned().map(|p| p.to_array().into());
+            let line_tex_coords = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
+            let line_points = line_points.iter().cloned().zip(line_tex_coords.iter().copied());
             let close_line = false;
-            let line_events = lyon::path::iterator::FromPolyline::new(close_line, line_points);
-            path::render_path_events(
-                line_events,
+            path::render_path_points_themed(
+                line_points,
+                close_line,
                 line.path.color,
                 transform,
                 path::Options::Stroke(line.path.opts),
@@ -246,8 +248,6 @@ impl draw::render::RenderPrimitive for Arrow {
                 mesh,
             );
         }
-
-        draw::render::PrimitiveRender::default()
     }
 }
 

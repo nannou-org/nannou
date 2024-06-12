@@ -19,26 +19,17 @@ pub trait TessellationOptions {
 pub(crate) enum PathEventSource {
     /// Fetch events from `path_events_buffer`.
     Buffered(std::ops::Range<usize>),
-    /// Generate events from the `path_points_colored_buffer`.
-    ColoredPoints {
-        range: std::ops::Range<usize>,
-        close: bool,
-    },
-    /// Generate events from the `path_points_textured_buffer`.
-    TexturedPoints {
+    /// Generate events from the `path_points_vertex_buffer`.
+    Vertex {
         range: std::ops::Range<usize>,
         close: bool,
     },
 }
 
 pub(crate) enum PathEventSourceIter<'a> {
-    Events(&'a mut dyn Iterator<Item = lyon::path::PathEvent>),
-    ColoredPoints {
-        points: &'a mut dyn Iterator<Item = (Vec2, Color)>,
-        close: bool,
-    },
-    TexturedPoints {
-        points: &'a mut dyn Iterator<Item = (Vec2, Vec2)>,
+    Events(&'a mut dyn Iterator<Item = PathEvent>),
+    Vertex {
+        points: &'a mut dyn Iterator<Item = (Vec2, Color, Vec2)>,
         close: bool,
     },
 }
@@ -211,53 +202,25 @@ where
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn points_colored<I, P, C>(self, ctxt: DrawingContext, points: I) -> Path
+    pub fn points_vertex<I, P, C, U>(self, ctxt: DrawingContext, points: I) -> Path
     where
-        I: IntoIterator<Item = (P, C)>,
+        I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
         C: Into<Color>,
+        U: Into<Vec2>,
     {
-        self.points_colored_inner(ctxt, false, points)
+        self.points_vertex_inner(ctxt, false, points)
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn points_colored_closed<I, P, C>(self, ctxt: DrawingContext, points: I) -> Path
+    pub fn points_vertex_closed<I, P, C, U>(self, ctxt: DrawingContext, points: I) -> Path
     where
-        I: IntoIterator<Item = (P, C)>,
+        I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
         C: Into<Color>,
+        U: Into<Vec2>,
     {
-        self.points_colored_inner(ctxt, true, points)
-    }
-
-    /// Submit path events as a polyline of textured points.
-    pub fn points_textured<I, P, TC>(
-        self,
-        ctxt: DrawingContext,
-        texture_handle: Handle<Image>,
-        points: I,
-    ) -> Path
-    where
-        I: IntoIterator<Item = (P, TC)>,
-        P: Into<Vec2>,
-        TC: Into<Vec2>,
-    {
-        self.points_textured_inner(ctxt, texture_handle, false, points)
-    }
-
-    /// Submit path events as a polyline of textured points.
-    pub fn points_textured_closed<I, P, TC>(
-        self,
-        ctxt: DrawingContext,
-        texture_handle: Handle<Image>,
-        points: I,
-    ) -> Path
-    where
-        I: IntoIterator<Item = (P, TC)>,
-        P: Into<Vec2>,
-        TC: Into<Vec2>,
-    {
-        self.points_textured_inner(ctxt, texture_handle, true, points)
+        self.points_vertex_inner(ctxt, true, points)
     }
 
     // Consumes an iterator of points and converts them to an iterator yielding events.
@@ -275,23 +238,24 @@ where
     }
 
     // Consumes an iterator of points and converts them to an iterator yielding events.
-    fn points_colored_inner<I, P, C>(self, ctxt: DrawingContext, close: bool, points: I) -> Path
+    fn points_vertex_inner<I, P, C, U>(self, ctxt: DrawingContext, close: bool, points: I) -> Path
     where
-        I: IntoIterator<Item = (P, C)>,
+        I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
         C: Into<Color>,
+        U: Into<Vec2>,
     {
         let DrawingContext {
-            path_points_colored_buffer,
+            path_points_vertex_buffer: path_points_colored_buffer,
             ..
         } = ctxt;
         let start = path_points_colored_buffer.len();
-        let points = points.into_iter().map(|(p, c)| (p.into(), c.into()));
+        let points = points.into_iter().map(|(p, c, u)| (p.into(), c.into(), u.into()));
 
         path_points_colored_buffer.extend(points);
 
         let end = path_points_colored_buffer.len();
-        let path_event_src = PathEventSource::ColoredPoints {
+        let path_event_src = PathEventSource::Vertex {
             range: start..end,
             close,
         };
@@ -302,41 +266,6 @@ where
             path_event_src,
             self.opts.into_options(),
             None,
-        )
-    }
-
-    // Consumes an iterator of textured points and buffers them for rendering.
-    fn points_textured_inner<I, P, TC>(
-        self,
-        ctxt: DrawingContext,
-        texture_handle: Handle<Image>,
-        close: bool,
-        points: I,
-    ) -> Path
-    where
-        I: IntoIterator<Item = (P, TC)>,
-        P: Into<Vec2>,
-        TC: Into<Vec2>,
-    {
-        let DrawingContext {
-            path_points_textured_buffer,
-            ..
-        } = ctxt;
-        let start = path_points_textured_buffer.len();
-        let points = points.into_iter().map(|(p, tc)| (p.into(), tc.into()));
-        path_points_textured_buffer.extend(points);
-        let end = path_points_textured_buffer.len();
-        let path_event_src = PathEventSource::TexturedPoints {
-            range: start..end,
-            close,
-        };
-        Path::new(
-            self.position,
-            self.orientation,
-            self.color,
-            path_event_src,
-            self.opts.into_options(),
-            Some(texture_handle),
         )
     }
 }
@@ -371,63 +300,73 @@ pub(crate) fn render_path_events<I>(
     }
 }
 
-pub(crate) fn render_path_points_colored<I>(
-    points_colored: I,
+pub(crate) fn render_path_points_themed<I>(
+    points_themed: I,
     close: bool,
+    color: Option<Color>,
     transform: Mat4,
     options: Options,
-    fill_tessellator: &mut lyon::tessellation::FillTessellator,
-    stroke_tessellator: &mut lyon::tessellation::StrokeTessellator,
-    mesh: &mut Mesh,
-) where
-    I: IntoIterator<Item = (Vec2, Color)>,
-{
-    let path = match points_colored_to_lyon_path(points_colored, close) {
-        None => return,
-        Some(p) => p,
-    };
-
-    // Extend the mesh with the built path.
-    let mut mesh_builder = draw::mesh::MeshBuilder::color_per_point(mesh, transform);
-    let res = match options {
-        Options::Fill(options) => fill_tessellator.tessellate_with_ids(
-            path.id_iter(),
-            &path,
-            Some(&path),
-            &options,
-            &mut mesh_builder,
-        ),
-        Options::Stroke(options) => stroke_tessellator.tessellate_with_ids(
-            path.id_iter(),
-            &path,
-            Some(&path),
-            &options,
-            &mut mesh_builder,
-        ),
-    };
-    if let Err(err) = res {
-        eprintln!("failed to tessellate path: {:?}", err);
-    }
-}
-
-pub(crate) fn render_path_points_textured<I>(
-    points_textured: I,
-    close: bool,
-    transform: Mat4,
-    options: Options,
+    theme: &draw::Theme,
+    theme_prim: &draw::theme::Primitive,
     fill_tessellator: &mut lyon::tessellation::FillTessellator,
     stroke_tessellator: &mut lyon::tessellation::StrokeTessellator,
     mesh: &mut Mesh,
 ) where
     I: IntoIterator<Item = (Vec2, Vec2)>,
 {
-    let path = match points_textured_to_lyon_path(points_textured, close) {
+    let path = match points_themed_to_lyon_path(points_themed, close) {
         None => return,
         Some(p) => p,
     };
 
     // Extend the mesh with the built path.
-    let mut mesh_builder = draw::mesh::MeshBuilder::tex_coords_per_point(mesh, transform);
+    let res = match options {
+        Options::Fill(options) => {
+            let color = color.unwrap_or_else(|| theme.fill(theme_prim));
+            let mut mesh_builder = draw::mesh::MeshBuilder::single_color(mesh, transform, color);
+            fill_tessellator.tessellate_with_ids(
+                path.id_iter(),
+                &path,
+                Some(&path),
+                &options,
+                &mut mesh_builder,
+            )
+        },
+        Options::Stroke(options) => {
+            let color = color.unwrap_or_else(|| theme.fill(theme_prim));
+            let mut mesh_builder = draw::mesh::MeshBuilder::single_color(mesh, transform, color);
+            stroke_tessellator.tessellate_with_ids(
+                path.id_iter(),
+                &path,
+                Some(&path),
+                &options,
+                &mut mesh_builder,
+            )
+        },
+    };
+    if let Err(err) = res {
+        eprintln!("failed to tessellate path: {:?}", err);
+    }
+}
+
+pub(crate) fn render_path_vertex<I>(
+    points_vertex: I,
+    close: bool,
+    transform: Mat4,
+    options: Options,
+    fill_tessellator: &mut FillTessellator,
+    stroke_tessellator: &mut StrokeTessellator,
+    mesh: &mut Mesh,
+) where
+    I: IntoIterator<Item = (Vec2, Color, Vec2)>,
+{
+    let path = match points_vertex_to_lyon_path(points_vertex, close) {
+        None => return,
+        Some(p) => p,
+    };
+
+    // Extend the mesh with the built path.
+    let mut mesh_builder = draw::mesh::MeshBuilder::vertex_per_point(mesh, transform);
     let res = match options {
         Options::Fill(options) => fill_tessellator.tessellate_with_ids(
             path.id_iter(),
@@ -450,15 +389,14 @@ pub(crate) fn render_path_points_textured<I>(
 }
 
 pub(crate) fn render_path_source(
-    // TODO:
     path_src: PathEventSourceIter,
     color: Option<Color>,
     transform: Mat4,
     options: Options,
     theme: &draw::Theme,
     theme_prim: &draw::theme::Primitive,
-    fill_tessellator: &mut lyon::tessellation::FillTessellator,
-    stroke_tessellator: &mut lyon::tessellation::StrokeTessellator,
+    fill_tessellator: &mut FillTessellator,
+    stroke_tessellator: &mut StrokeTessellator,
     mesh: &mut Mesh,
 ) {
     match path_src {
@@ -473,16 +411,7 @@ pub(crate) fn render_path_source(
             stroke_tessellator,
             mesh,
         ),
-        PathEventSourceIter::ColoredPoints { points, close } => render_path_points_colored(
-            points,
-            close,
-            transform,
-            options,
-            fill_tessellator,
-            stroke_tessellator,
-            mesh,
-        ),
-        PathEventSourceIter::TexturedPoints { points, close } => render_path_points_textured(
+        PathEventSourceIter::Vertex { points, close } => render_path_vertex(
             points,
             close,
             transform,
@@ -495,11 +424,7 @@ pub(crate) fn render_path_source(
 }
 
 impl draw::render::RenderPrimitive for Path {
-    fn render_primitive(
-        self,
-        mut ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, mut ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         let Path {
             color,
             position,
@@ -544,9 +469,9 @@ impl draw::render::RenderPrimitive for Path {
                     &mut ctxt.stroke_tessellator,
                 );
             }
-            PathEventSource::ColoredPoints { range, close } => {
-                let mut points_colored = ctxt.path_points_colored_buffer[range].iter().cloned();
-                let src = PathEventSourceIter::ColoredPoints {
+            PathEventSource::Vertex { range, close } => {
+                let mut points_colored = ctxt.path_points_vertex_buffer[range].iter().cloned();
+                let src = PathEventSourceIter::Vertex {
                     points: &mut points_colored,
                     close,
                 };
@@ -557,44 +482,30 @@ impl draw::render::RenderPrimitive for Path {
                     &mut ctxt.stroke_tessellator,
                 );
             }
-            PathEventSource::TexturedPoints { range, close } => {
-                let mut points_textured = ctxt.path_points_textured_buffer[range].iter().cloned();
-                let src = PathEventSourceIter::TexturedPoints {
-                    points: &mut points_textured,
-                    close,
-                };
-                render(
-                    src,
-                    &ctxt.theme,
-                    &mut ctxt.fill_tessellator,
-                    &mut ctxt.stroke_tessellator,
-                );
-            }
         }
-
-        draw::render::PrimitiveRender { texture_handle }
     }
 }
 
-/// Create a lyon path for the given iterator of colored points.
-pub fn points_colored_to_lyon_path<I>(points_colored: I, close: bool) -> Option<lyon::path::Path>
-where
-    I: IntoIterator<Item = (Vec2, Color)>,
+pub fn points_themed_to_lyon_path<I>(points: I, close: bool) -> Option<lyon::path::Path>
+    where
+        I: IntoIterator<Item = (Vec2, Vec2)>,
 {
-    // Build a path with a color attribute for each channel.
-    let channels = 4;
+    // Build a path with a uv attribute for each channel.
+    let channels = 2;
     let mut path_builder = lyon::path::Path::builder_with_attributes(channels);
 
     // Begin the path.
-    let mut iter = points_colored.into_iter();
-    let (first_point, first_color) = iter.next()?;
+    let mut iter = points.into_iter();
+    let (first_point, first_tex_coord) = iter.next()?;
     let p = first_point.to_array().into();
-    path_builder.begin(p, &first_color.linear().to_f32_array());
+    let [u, v] = first_tex_coord.to_array();
+    path_builder.begin(p, &[u, v]);
 
     // Add the lines, keeping track of the last
-    for (point, color) in iter {
+    for (point, text_coord) in iter {
         let p = point.to_array().into();
-        path_builder.line_to(p, &color.linear().to_f32_array());
+        let [u, v] = text_coord.to_array();
+        path_builder.line_to(p, &[u, v]);
     }
 
     // End the path, closing if necessary.
@@ -604,28 +515,31 @@ where
     Some(path_builder.build())
 }
 
-/// Create a lyon path for the given iterator of textured points.
-pub fn points_textured_to_lyon_path<I>(points_textured: I, close: bool) -> Option<lyon::path::Path>
+/// Create a lyon path for the given iterator of colored points.
+pub fn points_vertex_to_lyon_path<I>(points: I, close: bool) -> Option<lyon::path::Path>
 where
-    I: IntoIterator<Item = (Vec2, Vec2)>,
+    I: IntoIterator<Item = (Vec2, Color, Vec2)>,
 {
-    // Build a path with a texture coords attribute for each channel.
-    let channels = 2;
+    // Build a path with a color and uv attribute for each channel.
+    let channels = 4;
     let mut path_builder = lyon::path::Path::builder_with_attributes(channels);
 
     // Begin the path.
-    let mut iter = points_textured.into_iter();
-    let (first_point, first_tex_coords) = iter.next()?;
+    let mut iter = points.into_iter();
+    let (first_point, first_color, first_tex_coord) = iter.next()?;
     let p = first_point.to_array().into();
-    let (tc_x, tc_y) = first_tex_coords.into();
-    path_builder.begin(p, &[tc_x, tc_y]);
+    let [r, g, b, a] = first_color.linear().to_f32_array();
+    let [u, v] = first_tex_coord.to_array();
+    path_builder.begin(p, &[r, g, b, a, u, v]);
 
     // Add the lines, keeping track of the last
-    for (point, tex_coords) in iter {
+    for (point, color, text_coord) in iter {
         let p = point.to_array().into();
-        let (tc_x, tc_y) = tex_coords.into();
-        path_builder.line_to(p, &[tc_x, tc_y]);
+        let [r, g, b, a] = color.linear().to_f32_array();
+        let [u, v] = text_coord.to_array();
+        path_builder.line_to(p, &[r, g, b, a, u, v]);
     }
+
 
     // End the path, closing if necessary.
     path_builder.end(close);
@@ -742,55 +656,27 @@ where
     }
 
     /// Submit path events as a polyline of colored points.
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPath<'a, M>
+    pub fn points_vertex<I, P, C, U>(self, points: I) -> DrawingPath<'a, M>
     where
-        I: IntoIterator<Item = (P, C)>,
+        I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
         C: Into<Color>,
+        U: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points_colored(ctxt, points))
+        self.map_ty_with_context(|ty, ctxt| ty.points_vertex(ctxt, points))
     }
 
     /// Submit path events as a polyline of colored points.
     ///
     /// The path with automatically close from the end point to the start point.
-    pub fn points_colored_closed<I, P, C>(self, points: I) -> DrawingPath<'a, M>
+    pub fn points_vertex_closed<I, P, C, U>(self, points: I) -> DrawingPath<'a, M>
     where
-        I: IntoIterator<Item = (P, C)>,
+        I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
         C: Into<Color>,
+        U: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points_colored_closed(ctxt, points))
-    }
-
-    /// Submit path events as a polyline of textured points.
-    pub fn points_textured<I, P, TC>(
-        self,
-        texture_handle: Handle<Image>,
-        points: I,
-    ) -> DrawingPath<'a, M>
-    where
-        I: IntoIterator<Item = (P, TC)>,
-        P: Into<Vec2>,
-        TC: Into<Vec2>,
-    {
-        self.map_ty_with_context(|ty, ctxt| ty.points_textured(ctxt, texture_handle, points))
-    }
-
-    /// Submit path events as a polyline of textured points.
-    ///
-    /// The path with automatically close from the end point to the start point.
-    pub fn points_textured_closed<I, P, TC>(
-        self,
-        texture_handle: Handle<Image>,
-        points: I,
-    ) -> DrawingPath<'a, M>
-    where
-        I: IntoIterator<Item = (P, TC)>,
-        P: Into<Vec2>,
-        TC: Into<Vec2>,
-    {
-        self.map_ty_with_context(|ty, ctxt| ty.points_textured_closed(ctxt, texture_handle, points))
+        self.map_ty_with_context(|ty, ctxt| ty.points_vertex_closed(ctxt, points))
     }
 }
 

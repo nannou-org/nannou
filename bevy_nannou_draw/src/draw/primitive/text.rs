@@ -261,11 +261,7 @@ where
 }
 
 impl draw::render::RenderPrimitive for Text {
-    fn render_primitive(
-        self,
-        ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         let Text {
             spatial,
             style,
@@ -414,8 +410,6 @@ impl draw::render::RenderPrimitive for Text {
                 mesh.push_index(tr_ix);
             }
         }
-
-        draw::render::PrimitiveRender::default()
     }
 }
 

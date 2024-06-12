@@ -35,7 +35,7 @@ where
     pub(crate) index: usize,
     // The draw command index of the material being used.
     pub(crate) material_index: usize,
-    // Whether or not the **Drawing** should attempt to finish the drawing on drop.
+    // Whether the **Drawing** should attempt to finish the drawing on drop.
     finish_on_drop: bool,
     // The node type currently being drawn.
     _ty: PhantomData<T>,
@@ -49,20 +49,14 @@ pub struct DrawingContext<'a> {
     pub mesh: &'a mut Mesh,
     /// A re-usable buffer for collecting path events.
     pub path_event_buffer: &'a mut Vec<PathEvent>,
-    /// A re-usable buffer for collecting colored polyline points.
-    pub path_points_colored_buffer: &'a mut Vec<(Vec2, Color)>,
-    /// A re-usable buffer for collecting textured polyline points.
-    pub path_points_textured_buffer: &'a mut Vec<(Vec2, Vec2)>,
+    /// A re-usable buffer for collecting polyline points vertex data.
+    pub path_points_vertex_buffer: &'a mut Vec<(Vec2, Color, Vec2)>,
     /// A re-usable buffer for collecting text.
     pub text_buffer: &'a mut String,
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<'a, T, M: Material>(
-    draw: &'a Draw<M>,
-    index: usize,
-    material_index: usize,
-) -> Drawing<'a, T, M>
+pub fn new<T, M: Material>(draw: &Draw<M>, index: usize, material_index: usize) -> Drawing<T, M>
 where
     T: Into<Primitive>,
     M: Material + Default,
@@ -95,16 +89,14 @@ impl<'a> DrawingContext<'a> {
         let super::IntermediaryState {
             ref mut intermediary_mesh,
             ref mut path_event_buffer,
-            ref mut path_points_colored_buffer,
-            ref mut path_points_textured_buffer,
+            ref mut path_points_vertex_buffer,
             ref mut text_buffer,
         } = *state;
         DrawingContext {
             mesh: intermediary_mesh,
-            path_event_buffer: path_event_buffer,
-            path_points_colored_buffer: path_points_colored_buffer,
-            path_points_textured_buffer: path_points_textured_buffer,
-            text_buffer: text_buffer,
+            path_event_buffer,
+            path_points_vertex_buffer,
+            text_buffer,
         }
     }
 }
@@ -891,6 +883,13 @@ where
     pub fn emissive(mut self, color: Color) -> Self {
         self.map_material(|mut material| {
             material.base.emissive = color.linear();
+            material
+        })
+    }
+
+    pub fn texture(mut self, texture: &Handle<Image>) -> Self {
+        self.map_material(|mut material| {
+            material.base.base_color_texture = Some(texture.clone());
             material
         })
     }

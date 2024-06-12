@@ -168,7 +168,7 @@ fn view(app: &App, model: &Model) {
 
                     draw.polygon()
                         .x_y(x + (w / 2.0), y - (h / 2.0))
-                        .points_colored(points_colored);
+                        .points_vertex(points_colored);
                 }
                 counter += 1;
             }

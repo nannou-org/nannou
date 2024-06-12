@@ -45,11 +45,7 @@ where
 }
 
 impl draw::render::RenderPrimitive for Rect {
-    fn render_primitive(
-        self,
-        ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         let Rect {
             polygon,
             dimensions,
@@ -64,16 +60,24 @@ impl draw::render::RenderPrimitive for Rect {
         let w = maybe_x.unwrap_or(100.0);
         let h = maybe_y.unwrap_or(100.0);
         let rect = geom::Rect::from_wh([w, h].into());
-        let points = rect.corners().vertices().map(Vec2::from);
+
+        let tex_coords = [
+            Vec2::new(0.0, 0.0), // Bottom-left
+            Vec2::new(1.0, 0.0), // Bottom-right
+            Vec2::new(1.0, 1.0), // Top-right
+            Vec2::new(0.0, 1.0), // Top-left
+        ];
+
+        let points = rect.corners().vertices().map(Vec2::from).zip(tex_coords.iter().copied());
+
         polygon::render_points_themed(
             polygon.opts,
+            true,
             points,
             ctxt,
             &draw::theme::Primitive::Rect,
             mesh,
         );
-
-        draw::render::PrimitiveRender::default()
     }
 }
 

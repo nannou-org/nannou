@@ -28,8 +28,7 @@ pub struct MeshBuilder<'a, A> {
 }
 
 pub struct SingleColor(Color);
-pub struct ColorPerPoint;
-pub struct TexCoordsPerPoint;
+pub struct Vertex;
 
 impl<'a, A> MeshBuilder<'a, A> {
     /// Begin extending the mesh.
@@ -51,17 +50,10 @@ impl<'a> MeshBuilder<'a, SingleColor> {
     }
 }
 
-impl<'a> MeshBuilder<'a, ColorPerPoint> {
+impl<'a> MeshBuilder<'a, Vertex> {
     /// Begin extending a mesh where the path interpolates a unique color per point.
-    pub fn color_per_point(mesh: &'a mut Mesh, transform: Mat4) -> Self {
-        Self::new(mesh, transform, ColorPerPoint)
-    }
-}
-
-impl<'a> MeshBuilder<'a, TexCoordsPerPoint> {
-    /// Begin extending a mesh where the path interpolates a unique texture coordinates per point.
-    pub fn tex_coords_per_point(mesh: &'a mut Mesh, transform: Mat4) -> Self {
-        Self::new(mesh, transform, TexCoordsPerPoint)
+    pub fn vertex_per_point(mesh: &'a mut Mesh, transform: Mat4) -> Self {
+        Self::new(mesh, transform, Vertex)
     }
 }
 
@@ -84,7 +76,7 @@ impl<'a, A> GeometryBuilder for MeshBuilder<'a, A> {
 }
 
 impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
-    fn add_fill_vertex(&mut self, vertex: FillVertex) -> Result<VertexId, GeometryBuilderError> {
+    fn add_fill_vertex(&mut self, mut vertex: FillVertex) -> Result<VertexId, GeometryBuilderError> {
         // Retrieve the index.
         let id = VertexId::from_usize(self.mesh.count_vertices());
 
@@ -94,11 +86,12 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
         let p = Vec2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
         let SingleColor(color) = self.attributes;
-        let tex_coords = Vec2::ZERO;
+        let attr = vertex.interpolated_attributes();
+        let tex_coords = [attr[0], attr[1]];
 
         self.mesh.points_mut().push(point.to_array());
         self.mesh.colors_mut().push(color.linear().to_f32_array());
-        self.mesh.tex_coords_mut().push(tex_coords.to_array());
+        self.mesh.tex_coords_mut().push(tex_coords);
         self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
         // Return the index.
@@ -109,7 +102,7 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
 impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, SingleColor> {
     fn add_stroke_vertex(
         &mut self,
-        vertex: StrokeVertex,
+        mut vertex: StrokeVertex,
     ) -> Result<VertexId, GeometryBuilderError> {
         // Retrieve the index.
         let id = VertexId::from_usize(self.mesh.count_vertices());
@@ -120,11 +113,12 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, SingleColor> {
         let p = Vec2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
         let SingleColor(color) = self.attributes;
-        let tex_coords = Vec2::ZERO;
+        let attr = vertex.interpolated_attributes();
+        let tex_coords = [attr[0], attr[1]];
 
         self.mesh.points_mut().push(point.to_array());
         self.mesh.colors_mut().push(color.linear().to_f32_array());
-        self.mesh.tex_coords_mut().push(tex_coords.to_array());
+        self.mesh.tex_coords_mut().push(tex_coords);
         self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
         // Return the index.
@@ -132,7 +126,7 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, SingleColor> {
     }
 }
 
-impl<'a> FillGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
+impl<'a> FillGeometryBuilder for MeshBuilder<'a, Vertex> {
     fn add_fill_vertex(
         &mut self,
         mut vertex: FillVertex,
@@ -145,9 +139,9 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
         // Construct and insert the point
         let p = Vec2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
-        let col = vertex.interpolated_attributes();
-        let color = Vec4::new(col[0], col[1], col[2], col[3]);
-        let tex_coords = Vec2::ZERO;
+        let attr = vertex.interpolated_attributes();
+        let color = Vec4::new(attr[0], attr[1], attr[2], attr[3]);
+        let tex_coords = Vec2::new(attr[4], attr[5]);
 
         self.mesh.points_mut().push(point.to_array());
         self.mesh.colors_mut().push(color.to_array());
@@ -159,7 +153,7 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
     }
 }
 
-impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
+impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, Vertex> {
     fn add_stroke_vertex(
         &mut self,
         mut vertex: StrokeVertex,
@@ -172,66 +166,12 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, ColorPerPoint> {
         // Construct and insert the point
         let p = Vec2::new(position.x, position.y).extend(0.0);
         let point = self.transform.transform_point3(p);
-        let col = vertex.interpolated_attributes();
-        let color = Vec4::new(col[0], col[1], col[2], col[3]);
-        let tex_coords = Vec2::ZERO;
+        let attr = vertex.interpolated_attributes();
+        let color = Vec4::new(attr[0], attr[1], attr[2], attr[3]);
+        let tex_coords = Vec2::new(attr[4], attr[5]);
 
         self.mesh.points_mut().push(point.to_array());
         self.mesh.colors_mut().push(color.to_array());
-        self.mesh.tex_coords_mut().push(tex_coords.to_array());
-        self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
-
-        // Return the index.
-        Ok(id)
-    }
-}
-
-impl<'a> FillGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
-    fn add_fill_vertex(
-        &mut self,
-        mut vertex: FillVertex,
-    ) -> Result<VertexId, GeometryBuilderError> {
-        // Retrieve the index.
-        let id = VertexId::from_usize(self.mesh.count_vertices());
-
-        let position = vertex.position();
-
-        // Construct and insert the point
-        let p = Vec2::new(position.x, position.y).extend(0.0);
-        let point = self.transform.transform_point3(p);
-        let tc = vertex.interpolated_attributes();
-        let tex_coords = Vec2::new(tc[0], tc[1]);
-        let color = Color::default();
-
-        self.mesh.points_mut().push(point.to_array());
-        self.mesh.colors_mut().push(color.linear().to_f32_array());
-        self.mesh.tex_coords_mut().push(tex_coords.to_array());
-        self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
-
-        // Return the index.
-        Ok(id)
-    }
-}
-
-impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, TexCoordsPerPoint> {
-    fn add_stroke_vertex(
-        &mut self,
-        mut vertex: StrokeVertex,
-    ) -> Result<VertexId, GeometryBuilderError> {
-        // Retrieve the index.
-        let id = VertexId::from_usize(self.mesh.count_vertices());
-
-        let position = vertex.position();
-
-        // Construct and insert the point
-        let p = Vec2::new(position.x, position.y).extend(0.0);
-        let point = self.transform.transform_point3(p);
-        let tc = vertex.interpolated_attributes();
-        let tex_coords = Vec2::new(tc[0], tc[1]);
-        let color = Color::default();
-
-        self.mesh.points_mut().push(point.to_array());
-        self.mesh.colors_mut().push(color.linear().to_f32_array());
         self.mesh.tex_coords_mut().push(tex_coords.to_array());
         self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 

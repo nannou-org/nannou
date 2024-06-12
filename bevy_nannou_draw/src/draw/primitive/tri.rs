@@ -70,11 +70,7 @@ where
 // Trait implementations.
 
 impl draw::render::RenderPrimitive for Tri {
-    fn render_primitive(
-        self,
-        ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         let Tri {
             mut tri,
             dimensions,
@@ -95,16 +91,23 @@ impl draw::render::RenderPrimitive for Tri {
             let new_c = translate(c);
             tri = geom::Tri([new_a, new_b, new_c]);
         }
-        let points = tri.vertices();
+
+        let tex_coords = [
+            Vec2::new(0.0, 0.0), // Vertex A
+            Vec2::new(1.0, 0.0), // Vertex B
+            Vec2::new(0.5, 1.0), // Vertex C
+        ];
+
+        let points = tri.vertices().zip(tex_coords.iter().copied());
+
         polygon::render_points_themed(
             polygon.opts,
+            true,
             points,
             ctxt,
             &draw::theme::Primitive::Tri,
             mesh,
         );
-
-        draw::render::PrimitiveRender::default()
     }
 }
 
