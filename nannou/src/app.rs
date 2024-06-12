@@ -557,7 +557,7 @@ impl<'w> App<'w> {
             .get::<Window>()
             .expect("Entity is not a window");
         let screen_position = window.cursor_position().unwrap_or(Vec2::ZERO);
-        screen_position - geom::pt2(window.width() / 2.0, window.height() / 2.0)
+        Vec2::new(screen_position.x - window.width() / 2.0, -(screen_position.y - window.height() / 2.0))
     }
 
     pub fn mouse_buttons(&self) -> &ButtonInput<MouseButton> {
