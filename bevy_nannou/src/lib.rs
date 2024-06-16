@@ -13,6 +13,7 @@ pub mod prelude {
     pub use bevy_nannou_draw::render::blend::*;
     pub use bevy_nannou_draw::render::NannouMaterialPlugin;
     pub use bevy_nannou_draw::*;
+    pub use bevy_nannou_draw::text::*;
 }
 
 pub struct NannouPlugin;

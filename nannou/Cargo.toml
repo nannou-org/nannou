@@ -14,6 +14,7 @@ edition = "2018"
 bevy = { workspace = true }
 #bevy-inspector-egui = { path = "../../../jakobhellermann/bevy-inspector-egui/crates/bevy-inspector-egui", optional = true }
 bevy_egui = { git = "https://github.com/Friz64/bevy_egui", branch = "bevy-0.14", optional = true }
+
 bevy_nannou = { version = "0.1.0", path = "../bevy_nannou" }
 futures = "0.3"
 find_folder = "0.3"

@@ -21,7 +21,7 @@ pub use stable::*;
 
 use crate::draw::instanced::InstancingPlugin;
 use crate::draw::mesh::MeshExt;
-use crate::draw::render::{GlyphCache, RenderContext, RenderPrimitive};
+use crate::draw::render::{RenderContext, RenderPrimitive};
 use crate::draw::{DrawCommand, DrawContext};
 use crate::DrawHolder;
 
@@ -36,7 +36,6 @@ impl Plugin for NannouRenderPlugin {
                 InstancingPlugin,
             ))
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
-            .insert_resource(GlyphCache::new([1024; 2], 0.1, 0.1))
             .add_systems(Update, texture_event_handler)
             .add_systems(PostUpdate, update_draw_mesh);
     }
@@ -287,7 +286,6 @@ fn update_draw_mesh(
     draw_q: Query<&DrawHolder>,
     mut cameras_q: Query<(&mut Camera, &RenderLayers), With<NannouCamera>>,
     windows: Query<&Window>,
-    mut glyph_cache: ResMut<GlyphCache>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     for draw in draw_q.iter() {
@@ -333,7 +331,6 @@ fn update_draw_mesh(
                         transform: &curr_ctx.transform,
                         fill_tessellator: &mut fill_tessellator,
                         stroke_tessellator: &mut stroke_tessellator,
-                        glyph_cache: &mut glyph_cache,
                         output_attachment_size: Vec2::new(window.width(), window.height()),
                         output_attachment_scale_factor: window.scale_factor(),
                     };
@@ -352,7 +349,6 @@ fn update_draw_mesh(
                         transform: &curr_ctx.transform,
                         fill_tessellator: &mut fill_tessellator,
                         stroke_tessellator: &mut stroke_tessellator,
-                        glyph_cache: &mut glyph_cache,
                         output_attachment_size: Vec2::new(window.width(), window.height()),
                         output_attachment_scale_factor: window.scale_factor(),
                     };
