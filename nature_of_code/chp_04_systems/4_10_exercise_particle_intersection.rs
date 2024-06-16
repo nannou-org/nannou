@@ -65,9 +65,9 @@ impl Particle {
     // Method to display
     fn display(&self, draw: &Draw) {
         let c = if self.highlight {
-            rgba(0.5, 0.0, 0.0, 1.0)
+            Color::srgba(0.5, 0.0, 0.0, 1.0)
         } else {
-            rgba(0.5, 0.5, 0.5, self.life_span / 255.0)
+            Color::srgba(0.5, 0.5, 0.5, self.life_span / 255.0)
         };
 
         draw.ellipse()

@@ -9,7 +9,6 @@
 // One vehicle "seeks"
 // See: http://www.red3d.com/cwr/
 use nannou::prelude::*;
-use nannou::Draw;
 use std::collections::VecDeque;
 
 fn main() {
@@ -143,15 +142,15 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
     } = vehicle;
 
     if history.len() > 1 {
-        let vertices = history
+        let points_colored = history
             .iter()
             .map(|v| pt2(v.x, v.y))
             .enumerate()
             .map(|(_, p)| {
-                let rgba = srgba(0.0, 0.0, 0.0, 1.0);
+                let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
-        draw.polyline().weight(1.0).points_vertex(vertices);
+        draw.polyline().weight(1.0).points_colored(points_colored);
     }
 
     // Draw a triangle rotated in the direction of velocity

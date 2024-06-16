@@ -18,7 +18,7 @@ fn view(app: &App) {
     let amplitude = 300.0;
     // Calculating horizontal position according to formula for simple harmonic motion
     let two_pi = std::f64::consts::PI * 2.0;
-    let x = amplitude * (two_pi * app.duration.since_start.secs() * period).sin() as f32;
+    let x = amplitude * (two_pi * app.elapsed_seconds() as f64 * period).sin() as f32;
 
     draw.line()
         .start(pt2(0.0, 0.0))

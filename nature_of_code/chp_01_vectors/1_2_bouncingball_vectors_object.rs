@@ -60,7 +60,7 @@ fn update(app: &App, m: &mut Model) {
     m.ball.update(app.window_rect());
 }
 
-fn view(app: &App, m: &Model) {
+fn view(app: &App, m: &Model, window: Entity) {
     // Begin drawing
     let draw = app.draw();
     draw.rect()

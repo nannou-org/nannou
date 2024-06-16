@@ -9,7 +9,6 @@
 // One vehicle "seeks"
 // See: http://www.red3d.com/cwr/
 use nannou::prelude::*;
-use nannou::Draw;
 
 fn main() {
     nannou::app(model).update(update).run();

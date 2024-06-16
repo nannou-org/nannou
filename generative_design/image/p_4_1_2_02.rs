@@ -79,13 +79,16 @@ fn view(app: &App, model: &Model) {
 
     // Don't interpolate between pixels.model
 
-    let dim = texture.dimensions();
     let texture = model.texture.clone();
     if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
         draw.background().color(WHITE);
-        draw.texture(texture, dim);
+        draw
+            .rect()
+            .texture(&texture);
     } else {
-        draw.texture(texture, dim).x_y(x2, y2).w_h(w, h).area(area);
+        draw
+            .rect()
+            .texture(&texture).x_y(x2, y2).w_h(w, h).area(area);
     }
 }
 

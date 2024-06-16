@@ -169,7 +169,8 @@ fn model(app: &App) -> Model {
     let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
-        .event(event)
+        .mouse_pressed(mouse_pressed)
+        .mouse_released(mouse_released)
         .view(view)
         .build();
 
@@ -188,16 +189,12 @@ fn model(app: &App) -> Model {
     Model { movers, attractor }
 }
 
-fn event(app: &App, m: &mut Model, event: WindowEvent) {
-    match event {
-        MousePressed(_button) => {
-            m.attractor.clicked(app.mouse().x, app.mouse().y);
-        }
-        MouseReleased(_buttom) => {
-            m.attractor.stop_dragging();
-        }
-        _other => (),
-    }
+fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
+    m.attractor.clicked(app.mouse().x, app.mouse().y);
+}
+
+fn mouse_released(_app: &App, m: &mut Model, _button: MouseButton) {
+    m.attractor.stop_dragging();
 }
 
 fn update(app: &App, m: &mut Model) {

@@ -244,6 +244,7 @@ fn update(_app: &App, model: &mut Model) {
 }
 
 fn view(app: &App, model: &Model) {
+    let draw = app.draw();
     draw.background().color(WHITE);
 
     let win = app.window_rect();

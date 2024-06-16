@@ -72,7 +72,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, m: &mut Model) {
-    seek(&mut m.vehicle, app.mouse()());
+    seek(&mut m.vehicle, app.mouse());
     m.vehicle.update();
 }
 

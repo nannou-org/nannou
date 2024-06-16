@@ -69,7 +69,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, m: &mut Model) {
-    arrive(&mut m.vehicle, app.mouse()());
+    arrive(&mut m.vehicle, app.mouse());
     m.vehicle.update();
 }
 
