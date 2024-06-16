@@ -154,9 +154,6 @@ struct Config {
     default_window_size: Option<DefaultWindowSize>,
 }
 
-#[derive(Resource, Deref, DerefMut)]
-struct ModelHolder<M>(M);
-
 #[derive(Resource)]
 struct CreateDefaultWindow;
 
@@ -222,7 +219,7 @@ where
 
 impl<M> Builder<M>
 where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     /// The default `view` function that the app will call to allow you to present your Model to
     /// the surface of a window on your display.
@@ -413,101 +410,6 @@ impl Default for Config {
             fullscreen_on_shortcut,
             default_window_size: None,
         }
-    }
-}
-
-impl<M> GetTypeRegistration for ModelHolder<M>
-where
-    M: GetTypeRegistration,
-{
-    fn get_type_registration() -> bevy::reflect::TypeRegistration {
-        M::get_type_registration()
-    }
-}
-
-impl<M> DynamicTypePath for ModelHolder<M>
-where
-    M: DynamicTypePath,
-{
-    fn reflect_type_path(&self) -> &str {
-        self.0.reflect_type_path()
-    }
-
-    fn reflect_short_type_path(&self) -> &str {
-        self.0.reflect_short_type_path()
-    }
-
-    fn reflect_type_ident(&self) -> Option<&str> {
-        self.0.reflect_type_ident()
-    }
-
-    fn reflect_crate_name(&self) -> Option<&str> {
-        self.0.reflect_crate_name()
-    }
-
-    fn reflect_module_path(&self) -> Option<&str> {
-        self.0.reflect_module_path()
-    }
-}
-
-impl<M> Reflect for ModelHolder<M>
-where
-    M: Reflect + DynamicTypePath + Any + GetTypeRegistration + 'static,
-{
-    fn get_represented_type_info(&self) -> Option<&'static TypeInfo> {
-        self.0.get_represented_type_info()
-    }
-
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        Box::new(self.0).into_any()
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self.0.as_any()
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self.0.as_any_mut()
-    }
-
-    fn into_reflect(self: Box<Self>) -> Box<dyn Reflect> {
-        Box::new(self.0).into_reflect()
-    }
-
-    fn as_reflect(&self) -> &dyn Reflect {
-        self.0.as_reflect()
-    }
-
-    fn as_reflect_mut(&mut self) -> &mut dyn Reflect {
-        self.0.as_reflect_mut()
-    }
-
-    fn apply(&mut self, value: &dyn Reflect) {
-        self.0.apply(value)
-    }
-
-    fn try_apply(&mut self, value: &dyn Reflect) -> Result<(), ApplyError> {
-        self.0.try_apply(value)
-    }
-
-    fn set(&mut self, value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {
-        self.0.set(value)
-    }
-
-    fn reflect_ref(&self) -> ReflectRef {
-        self.0.reflect_ref()
-    }
-
-    fn reflect_mut(&mut self) -> ReflectMut {
-        self.0.reflect_mut()
-    }
-
-    fn reflect_owned(self: Box<Self>) -> ReflectOwned {
-        Box::new(self.0).reflect_owned()
-    }
-
-    fn clone_value(&self) -> Box<dyn Reflect> {
-        self.0.clone_value()
     }
 }
 
@@ -816,7 +718,7 @@ fn get_app_and_state<'w, 's, S: SystemParam + 'static>(
 
 fn startup<M>(world: &mut World)
 where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let default_window_size = world.resource::<Config>().default_window_size.clone();
     let model_fn = world.resource::<ModelFnRes<M>>().0.clone();
@@ -844,7 +746,7 @@ where
 
     // Initialise the model.
     let model = model_fn(&mut app);
-    world.insert_resource(ModelHolder(model));
+    world.insert_non_send_resource(model);
 }
 
 fn first<M>(
@@ -852,7 +754,7 @@ fn first<M>(
     bg_color_q: Query<Entity, With<BackgroundColor>>,
     meshes_q: Query<Entity, (With<NannouMesh>, Without<NannouPersistentMesh>)>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     for entity in meshes_q.iter() {
         commands.entity(entity).despawn_recursive();
@@ -867,14 +769,14 @@ fn update<M>(
     mut state: &mut SystemState<(
         Res<UpdateFnRes<M>>,
         Res<ViewFnRes<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
         Res<RunMode>,
         Res<Time>,
         Local<u64>,
         Query<(Entity, &WindowUserFunctions<M>)>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (update_fn, view_fn, mut model, run_mode, time, mut ticks, windows)) =
         get_app_and_state(world, state);
@@ -940,10 +842,10 @@ fn key_events<M>(
     state: &mut SystemState<(
         EventReader<KeyboardInput>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut key_events, user_fns, mut model)) = get_app_and_state(world, state);
 
@@ -972,10 +874,10 @@ fn received_char_events<M>(
     state: &mut SystemState<(
         EventReader<ReceivedCharacter>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut received_char_events, user_fns, mut model)) =
         get_app_and_state(world, state);
@@ -996,10 +898,10 @@ fn cursor_moved_events<M>(
     state: &mut SystemState<(
         EventReader<CursorMoved>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut cursor_moved_events, user_fns, mut model)) = get_app_and_state(world, state);
 
@@ -1018,10 +920,10 @@ fn mouse_button_events<M>(
     state: &mut SystemState<(
         EventReader<MouseButtonInput>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut mouse_button_events, user_fns, mut model)) = get_app_and_state(world, state);
 
@@ -1050,10 +952,10 @@ fn cursor_entered_events<M>(
     state: &mut SystemState<(
         EventReader<CursorEntered>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut cursor_entered_events, user_fns, mut model)) =
         get_app_and_state(world, state);
@@ -1073,10 +975,10 @@ fn cursor_left_events<M>(
     state: &mut SystemState<(
         EventReader<CursorLeft>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut cursor_left_events, user_fns, mut model)) = get_app_and_state(world, state);
 
@@ -1095,10 +997,10 @@ fn mouse_wheel_events<M>(
     state: &mut SystemState<(
         EventReader<MouseWheel>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut mouse_wheel_events, user_fns, mut model)) = get_app_and_state(world, state);
 
@@ -1117,10 +1019,10 @@ fn window_moved_events<M>(
     state: &mut SystemState<(
         EventReader<WindowMoved>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut window_moved_events, user_fns, mut model)) = get_app_and_state(world, state);
 
@@ -1139,10 +1041,10 @@ fn window_resized_events<M>(
     state: &mut SystemState<(
         EventReader<WindowResized>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut window_resized_events, user_fns, mut model)) =
         get_app_and_state(world, state);
@@ -1162,10 +1064,10 @@ fn touch_events<M>(
     state: &mut SystemState<(
         EventReader<TouchInput>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut touch_events, user_fns, mut model)) = get_app_and_state(world, state);
 
@@ -1184,10 +1086,10 @@ fn file_drop_events<M>(
     state: &mut SystemState<(
         EventReader<FileDragAndDrop>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut file_drop_events, user_fns, mut model)) = get_app_and_state(world, state);
 
@@ -1226,10 +1128,10 @@ fn window_focus_events<M>(
     state: &mut SystemState<(
         EventReader<WindowFocused>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut window_focus_events, user_fns, mut model)) = get_app_and_state(world, state);
 
@@ -1255,10 +1157,10 @@ fn window_closed_events<M>(
     state: &mut SystemState<(
         EventReader<WindowClosed>,
         Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
+        NonSendMut<M>,
     )>,
 ) where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut window_closed_events, user_fns, mut model)) =
         get_app_and_state(world, state);
@@ -1275,7 +1177,7 @@ fn window_closed_events<M>(
 
 fn last<M>(world: &mut World, state: &mut SystemState<(EventReader<AppExit>, Res<ExitFnRes<M>>)>)
 where
-    M: 'static + Send + Sync,
+    M: 'static,
 {
     let (mut app, (mut exit_events, exit_fn)) = get_app_and_state(world, state);
 
@@ -1286,9 +1188,8 @@ where
 
     let model = app
         .world_mut()
-        .remove_resource::<ModelHolder<M>>()
-        .expect("ModelHolder resource not found")
-        .0;
+        .remove_non_send_resource::<M>()
+        .expect("ModelHolder resource not found");
 
     if let Some(exit_fn) = exit_fn.0 {
         exit_fn(&app, model);
