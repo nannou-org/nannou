@@ -213,6 +213,9 @@ where
         let material = map(material.clone());
         let mut state = state.write().unwrap();
         state.materials.insert(new_id.clone(), Box::new(material));
+        // Mark the last material as the new material so that further drawings use the same material
+        // as the parent draw ref.
+        state.last_material = Some(new_id.clone());
 
         let draw = Draw {
             state: draw.state.clone(),
