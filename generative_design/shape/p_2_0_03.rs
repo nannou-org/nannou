@@ -106,7 +106,7 @@ fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
         _other_key => {}
     }
 }
-fn key_released(_app: &App, model: &mut Model, key: Key) {
+fn key_released(_app: &App, model: &mut Model, key: KeyCode) {
     if key == KeyCode::Space {
         model.clear_background = false;
     }

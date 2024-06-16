@@ -471,6 +471,15 @@ where
         self.map_ty_with_context(|ty, ctxt| ty.points(ctxt, points))
     }
 
+    pub fn points_colored<I, P, C, U>(self, points: I) -> DrawingPolygon<'a, M>
+    where
+        I: IntoIterator<Item = (P, C)>,
+        P: Into<Vec2>,
+        C: Into<Color>,
+    {
+        self.map_ty_with_context(|ty, ctxt| ty.points_vertex(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO))))
+    }
+
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
     pub fn points_vertex<I, P, C, U>(self, points: I) -> DrawingPolygon<'a, M>
     where

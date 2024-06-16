@@ -6,6 +6,7 @@ pub mod prelude {
     pub use bevy::prelude::*;
     pub use bevy::render::render_asset::*;
     pub use bevy::render::render_resource::*;
+    pub use bevy::input::mouse::MouseWheel;
     pub use bevy::winit::UpdateMode;
     pub use bevy_nannou_draw::color::*;
     pub use bevy_nannou_draw::draw::*;

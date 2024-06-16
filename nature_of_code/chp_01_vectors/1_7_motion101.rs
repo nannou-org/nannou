@@ -19,7 +19,7 @@ struct Mover {
 }
 
 impl Mover {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let position = pt2(
             random_range(rect.left(), rect.right()),
             random_range(rect.top(), rect.bottom()),

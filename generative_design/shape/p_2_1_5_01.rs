@@ -79,7 +79,7 @@ fn view(app: &App, model: &Model) {
     overlay(&draw, &model, win, 2.0);
 }
 
-fn overlay(draw: &Draw, model: &Model, rect: Rect, stroke_weight: f32) {
+fn overlay(draw: &Draw, model: &Model, rect: geom::Rect, stroke_weight: f32) {
     let w = rect.w() - 100.0;
     let h = rect.h() - 100.0;
 

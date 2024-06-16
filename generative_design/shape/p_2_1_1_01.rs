@@ -110,7 +110,7 @@ fn view(app: &App, model: &Model) {
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.act_random_seed = (random_f32() * 100000.0) as u64;
 }
-fn key_released(_app: &App, model: &mut Model, key: Key) {
+fn key_released(_app: &App, model: &mut Model, key: KeyCode) {
     if key == KeyCode::Digit1 {
         model.act_stroke_cap = LineCap::Round;
     }

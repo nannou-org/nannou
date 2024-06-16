@@ -109,7 +109,7 @@ fn model(app: &App) -> Model {
     Model { nodes, node_count }
 }
 
-fn create_nodes(node_count: usize, win: Rect) -> Vec<Node> {
+fn create_nodes(node_count: usize, win: geom::Rect) -> Vec<Node> {
     (0..node_count)
         .map(|_| {
             Node::new(

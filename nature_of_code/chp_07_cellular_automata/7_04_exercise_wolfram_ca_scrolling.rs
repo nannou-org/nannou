@@ -29,7 +29,7 @@ struct Ca {
 }
 
 impl Ca {
-    fn new(r: Vec<i32>, rect: Rect) -> Self {
+    fn new(r: Vec<i32>, rect: geom::Rect) -> Self {
         let rule_set = r;
         let generation = 0;
         let w = 4;
