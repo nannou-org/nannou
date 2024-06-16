@@ -51,7 +51,7 @@ impl Pendulum {
         }
     }
 
-    fn update(&mut self, rect: Rect) {
+    fn update(&mut self, rect: geom::Rect) {
         let gravity = 0.4; // Arbitrary constant
         self.a_acceleration = (-1.0 * gravity / self.r) * self.angle.sin(); // Calculate acceleration (see: http://www.myphysicslab.com/pendulum1.html)
         self.a_velocity += self.a_acceleration; // Increment velocity
@@ -89,7 +89,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     let pendulum = Pendulum::new(pt2(0.0, app.window_rect().top()), 175.0);
 
     Model { pendulum }

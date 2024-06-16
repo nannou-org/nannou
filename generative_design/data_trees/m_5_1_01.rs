@@ -41,8 +41,7 @@ fn model(app: &App) -> Model {
         .size(800, 800)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
     Model {
         recursion_level: 6,
         start_radius: 200.0,

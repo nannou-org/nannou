@@ -7,12 +7,14 @@ use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
 use uuid::Uuid;
+use nannou_core::geom;
 
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{Draw, DrawCommand, DrawRef};
+use crate::draw::properties::tex_coords::SetTexCoords;
 use crate::render::{ExtendedNannouMaterial, NannouMaterial};
 
 /// A **Drawing** in progress.

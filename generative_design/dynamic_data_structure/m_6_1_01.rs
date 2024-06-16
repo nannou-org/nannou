@@ -164,7 +164,7 @@ fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
 
-    if app.elapsed_frames() == 0 || app.keys()().contains(&KeyCode::KeyR) {
+    if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::KeyR) {
         draw.background().color(WHITE);
     } else {
         draw.rect()

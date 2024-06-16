@@ -177,7 +177,7 @@ square and call it `r`.
 # #![allow(unused_variables)]
 # use nannou::prelude::*;
 # fn main() {
-let r = Rect::from_w_h(100.0, 100.0);
+let r = geom::Rect::from_w_h(100.0, 100.0);
 # }
 ```
 
@@ -190,7 +190,7 @@ like so:
 # use nannou::prelude::*;
 # fn main() {
 #     let draw: Draw = unimplemented!();
-let r = Rect::from_w_h(100.0f32, 100.0f32);
+let r = geom::Rect::from_w_h(100.0f32, 100.0f32);
 draw.rect()
     .xy(r.xy())
     .wh(r.wh())
@@ -208,7 +208,7 @@ We can align our plum square to the `top_left_of` the window like so:
 # fn main() {
 #     let draw: Draw = unimplemented!();
 #     let win: Rect = unimplemented!();
-let r = Rect::from_w_h(100.0, 100.0).top_left_of(win);
+let r = geom::Rect::from_w_h(100.0, 100.0).top_left_of(win);
 draw.rect()
     .xy(r.xy())
     .wh(r.wh())
@@ -260,7 +260,7 @@ square and achieve the desired look:
 #     let draw: Draw = unimplemented!();
 #     let win: Rect = unimplemented!();
 let win_p = win.pad(25.0);
-let r = Rect::from_w_h(100.0, 100.0).top_left_of(win_p);
+let r = geom::Rect::from_w_h(100.0, 100.0).top_left_of(win_p);
 draw.rect()
     .xy(r.xy())
     .wh(r.wh())

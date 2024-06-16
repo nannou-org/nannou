@@ -217,7 +217,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     let target = "To be or not to be.".to_string();
     let pop_max = 150;
     let mutation_rate = 0.01;

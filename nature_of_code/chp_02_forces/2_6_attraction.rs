@@ -32,7 +32,7 @@ struct Attractor {
 
 impl Attractor {
     const G: f32 = 1.0; // Gravitational Constant
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let position = rect.xy();
         let mass = 20.0;
         let drag_offset = vec2(0.0, 0.0);
@@ -138,7 +138,7 @@ impl Mover {
             .stroke_weight(2.0);
     }
 
-    fn _check_edges(&mut self, rect: Rect) {
+    fn _check_edges(&mut self, rect: geom::Rect) {
         if self.position.x > rect.right() {
             self.position.x = rect.left();
         } else if self.position.x < rect.left() {
@@ -152,10 +152,11 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 360.0);
+    let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
-        .event(event)
+        .mouse_pressed(mouse_pressed)
+        .mouse_released(mouse_release)
         .view(view)
         .build();
 
@@ -165,16 +166,12 @@ fn model(app: &App) -> Model {
     Model { mover, attractor }
 }
 
-fn event(app: &App, m: &mut Model, event: WindowEvent) {
-    match event {
-        MousePressed(_button) => {
-            m.attractor.clicked(app.mouse().x, app.mouse().y);
-        }
-        MouseReleased(_buttom) => {
-            m.attractor.stop_dragging();
-        }
-        _other => (),
-    }
+fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
+    m.attractor.clicked(app.mouse().x, app.mouse().y);
+}
+
+fn mouse_release(_app: &App, m: &mut Model, _button: MouseButton) {
+    m.attractor.stop_dragging();
 }
 
 fn update(app: &App, m: &mut Model) {

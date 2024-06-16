@@ -56,8 +56,7 @@ fn model(app: &App) -> Model {
         .size(800, 800)
         .view(view)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let lissajous_points = Vec::new();
     let line_alpha = 0.2;
@@ -71,7 +70,7 @@ fn model(app: &App) -> Model {
         mod_freq_x: 3.0,
         mod_freq_y: 2.0,
         line_weight: 1.5,
-        line_color: Color::srgba(0.0, 0.0, 0.0, line_alpha),
+        line_color: Srgba::new(0.0, 0.0, 0.0, line_alpha),
         line_alpha,
         connection_radius: 200.0,
         should_draw: true,
@@ -164,7 +163,7 @@ fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
         }
         KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

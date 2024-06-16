@@ -105,7 +105,7 @@ fn view(app: &App, model: &Model) {
             let blue = c[2] as f32 / 255.0;
             let alpha = c[3] as f32 / 255.0;
 
-            colors.push(Color::srgba(red, green, blue, alpha));
+            colors.push(Srgba::new(red, green, blue, alpha));
         }
     }
 
@@ -133,13 +133,13 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     let img_path = assets.join("images").join("generative_examples");
 
     match key {
-        KeyCode::Q => {
+        KeyCode::KeyQ => {
             model.image = image::open(img_path.join("pic1.jpg")).unwrap();
         }
-        KeyCode::W => {
+        KeyCode::KeyW => {
             model.image = image::open(img_path.join("pic2.jpg")).unwrap();
         }
-        KeyCode::E => {
+        KeyCode::KeyE => {
             model.image = image::open(img_path.join("pic3.jpg")).unwrap();
         }
         KeyCode::KeyR => {
@@ -180,7 +180,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     }
 }
 
-fn sort_colors(colors: &mut Vec<Rgba>, mode: &SortMode) {
+fn sort_colors(colors: &mut Vec<Srgba>, mode: &SortMode) {
     match mode {
         SortMode::Red => {
             colors.sort_by(|a, b| a.red.partial_cmp(&b.red).unwrap());
@@ -193,15 +193,15 @@ fn sort_colors(colors: &mut Vec<Rgba>, mode: &SortMode) {
         }
         SortMode::Hue => {
             colors.sort_by(|a, b| {
-                let a: Hsl = a.clone().into();
-                let b: Hsl = b.clone().into();
+                let a: Hsla = a.clone().into();
+                let b: Hsla = b.clone().into();
                 a.hue.to_radians().partial_cmp(&b.hue.to_radians()).unwrap()
             });
         }
         SortMode::Saturation => {
             colors.sort_by(|a, b| {
-                let a: Hsl = a.clone().into();
-                let b: Hsl = b.clone().into();
+                let a: Hsla = a.clone().into();
+                let b: Hsla = b.clone().into();
 
                 // temporary fix until conrod bug with saturation is resolved
                 if a.saturation.is_nan() && b.saturation.is_nan() {
@@ -217,14 +217,14 @@ fn sort_colors(colors: &mut Vec<Rgba>, mode: &SortMode) {
         }
         SortMode::Brightness => {
             colors.sort_by(|a, b| {
-                let a: Hsl = a.clone().into();
-                let b: Hsl = b.clone().into();
+                let a: Hsla = a.clone().into();
+                let b: Hsla = b.clone().into();
                 a.lightness.partial_cmp(&b.lightness).unwrap()
             });
         }
         SortMode::Grayscale => {
             colors.sort_by(|a, b| {
-                let gray = |c: &Rgba| c.red * 0.222 + c.green * 0.707 + c.blue * 0.071;
+                let gray = |c: &Srgba| c.red * 0.222 + c.green * 0.707 + c.blue * 0.071;
                 gray(a).partial_cmp(&gray(b)).unwrap()
             });
         }

@@ -104,11 +104,11 @@ fn update(app: &App, model: &mut Model) {
 }
 
 fn view(app: &App, model: &Model) {
+    let draw = app.draw();
+
     if app.elapsed_frames() == 0 {
         draw.background().color(WHITE);
     }
-
-    let draw = app.draw();
 
     if model.distance > model.step_size {
         let draw = app

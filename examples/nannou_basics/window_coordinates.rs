@@ -116,7 +116,7 @@ fn view(app: &App) {
     // }
 }
 
-fn draw_grid(draw: &Draw, win: &Rect, step: f32, weight: f32) {
+fn draw_grid(draw: &Draw, win: &geom::Rect, step: f32, weight: f32) {
     let step_by = || (0..).map(|i| i as f32 * step);
     let r_iter = step_by().take_while(|&f| f < win.right());
     let l_iter = step_by().map(|f| -f).take_while(|&f| f > win.left());

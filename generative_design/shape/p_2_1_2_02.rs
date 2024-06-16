@@ -59,8 +59,7 @@ fn model(app: &App) -> Model {
         .mouse_pressed(mouse_pressed)
         .key_pressed(key_pressed)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let module_alpha_background = 1.0;
     let module_alpha_foreground = 1.0;
@@ -68,8 +67,8 @@ fn model(app: &App) -> Model {
     Model {
         tile_count: 20,
         act_random_seed: 0,
-        module_color_background: Color::hsva(0.0, 0.0, 0.0, module_alpha_background),
-        module_color_foreground: Color::hsva(0.0, 0.0, 1.0, module_alpha_foreground),
+        module_color_background: Hsva::new(0.0, 0.0, 0.0, module_alpha_background),
+        module_color_foreground: Hsva::new(0.0, 0.0, 1.0, module_alpha_foreground),
         module_alpha_background,
         module_alpha_foreground,
         module_radius_background: 15.0,
@@ -134,31 +133,31 @@ fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
 fn key_released(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
         KeyCode::Digit1 => {
-            if model.module_color_background.eq(&Color::hsva(
+            if model.module_color_background.eq(&Hsva::new(
                 0.0,
                 0.0,
                 0.0,
                 model.module_alpha_background,
             )) {
                 model.module_color_background =
-                    Color::hsva(0.758, 0.73, 0.51, model.module_alpha_background).into();
+                    Hsva::new(0.758, 0.73, 0.51, model.module_alpha_background).into();
             } else {
                 model.module_color_background =
-                    Color::hsva(0.0, 0.0, 0.0, model.module_alpha_background).into();
+                    Hsva::new(0.0, 0.0, 0.0, model.module_alpha_background).into();
             }
         }
         KeyCode::Digit2 => {
-            if model.module_color_foreground.eq(&Color::hsva(
+            if model.module_color_foreground.eq(&Hsva::new(
                 1.0,
                 1.0,
                 1.0,
                 model.module_alpha_foreground,
             )) {
                 model.module_color_foreground =
-                    Color::hsva(0.89, 1.0, 0.77, model.module_alpha_foreground).into();
+                    Hsva::new(0.89, 1.0, 0.77, model.module_alpha_foreground).into();
             } else {
                 model.module_color_foreground =
-                    Color::hsva(1.0, 1.0, 1.0, model.module_alpha_foreground).into();
+                    Hsva::new(1.0, 1.0, 1.0, model.module_alpha_foreground).into();
             }
         }
         KeyCode::Digit3 => {

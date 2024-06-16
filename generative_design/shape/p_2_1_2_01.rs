@@ -49,8 +49,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let circle_alpha = 0.5;
 

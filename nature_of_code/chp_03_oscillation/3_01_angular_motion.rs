@@ -20,7 +20,7 @@ fn model(app: &App) -> Model {
     let angle = 0.0;
     let angle_velocity = 0.0;
     let angle_acceleration = -0.0001;
-    app.new_window().size(800, 200).view(view).build().unwrap();
+    app.new_window().size(800, 200).view(view).build();
     Model {
         angle,
         angle_velocity,

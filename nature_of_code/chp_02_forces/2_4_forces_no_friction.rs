@@ -71,7 +71,7 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(383.0, 200.0);
+    let rect = geom::Rect::from_w_h(383.0, 200.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)

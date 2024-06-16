@@ -110,7 +110,7 @@ impl ParticleSystem {
         }
     }
 
-    fn draw(&self, draw: &Draw, win: Rect) {
+    fn draw(&self, draw: &Draw, win: geom::Rect) {
         for i in (0..self.particles.len()).rev() {
             self.particles[i].display(&draw, win);
         }
@@ -122,7 +122,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     let (_w, h) = app.window_rect().w_h();
     let ps = ParticleSystem::new(pt2(0.0, (h as f32 / 2.0) - 50.0));
     Model { ps }

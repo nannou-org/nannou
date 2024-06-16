@@ -17,7 +17,7 @@ struct Attractor {
 }
 
 impl Attractor {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let location = rect.xy();
         let mass = 20.0;
         let g = 0.4;
@@ -107,7 +107,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(800.0, 200.0);
+    let rect = geom::Rect::from_w_h(800.0, 200.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)

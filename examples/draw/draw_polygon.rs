@@ -7,7 +7,7 @@ fn main() {
 fn view(app: &App) {
     // Begin drawing
     let win = app.window_rect();
-    let t = app.time;
+    let t = app.elapsed_seconds();
     let draw = app.draw();
 
     // Clear the background to black.
@@ -42,10 +42,10 @@ fn view(app: &App) {
         let r = fract;
         let g = 1.0 - fract;
         let b = (0.5 + fract) % 1.0;
-        (pt2(x, y), rgb(r, g, b))
+        (pt2(x, y), Color::srgb(r, g, b))
     });
     draw.polygon()
         .x(win.w() * 0.25)
         .rotate(t * 0.2)
-        .points_vertex(points_colored);
+        .points_colored(points_colored);
 }

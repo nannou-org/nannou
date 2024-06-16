@@ -89,13 +89,17 @@ fn view(app: &App, model: &Model) {
     let mut y = win.top();
     let mut counter = 0;
 
+    let images = app.images();
+    let image = images.get(&model.image).unwrap();
+    let image = image.clone().try_into_dynamic().unwrap();
+    let (w, h) = image.dimensions();
+
     while y > win.bottom() {
         // translate position (display) to position (image)
-        let (w, h) = model.image.dimensions();
         let img_x = map_range(x, win.left(), win.right(), 0, w);
         let img_y = map_range(y, win.top(), win.bottom(), 0, h);
         // get current color
-        let c = model.image.get_pixel(img_x, img_y);
+        let c = image.get_pixel(img_x, img_y);
         // greyscale conversion
         let red = c[0] as f32 / 255.0;
         let green = c[1] as f32 / 255.0;

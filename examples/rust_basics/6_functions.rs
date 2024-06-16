@@ -11,8 +11,7 @@ fn model(app: &App) -> Model {
         .key_pressed(key_pressed)
         .mouse_pressed(mouse_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
     Model
 }
 

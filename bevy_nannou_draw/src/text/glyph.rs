@@ -1,5 +1,6 @@
 //! Logic and types specific to individual glyph layout.
 
+use nannou_core::geom;
 use nannou_core::geom::{Range, Rect};
 
 use crate::text::{self, FontSize, Scalar, ScaledGlyph};
@@ -74,7 +75,7 @@ impl<'a, 'b> Iterator for Rects<'a, 'b> {
                 });
             let x = Range::new(left, right);
             let y = Range::new(y.start, y.start + height);
-            let r = Rect { x: x, y: y };
+            let r = geom::Rect { x: x, y: y };
             let g = g.into_unpositioned();
             (g, r)
         })

@@ -41,11 +41,11 @@ impl Attractor {
     // Method to display
     fn display(&self, draw: &Draw) {
         let c = if self.dragging {
-            rgba(0.2, 0.2, 0.2, 1.0)
+            Color::srgba(0.2, 0.2, 0.2, 1.0)
         } else if self.rollover {
-            rgba(0.4, 0.4, 0.4, 1.0)
+            Color::srgba(0.4, 0.4, 0.4, 1.0)
         } else {
-            rgba(0.7, 0.7, 0.7, 0.78)
+            Color::srgba(0.7, 0.7, 0.7, 0.78)
         };
         draw.ellipse()
             .xy(self.position)

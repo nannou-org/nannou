@@ -22,7 +22,7 @@ fn model(app: &App) -> Model {
     println!("message = {}", message);
 
     // Construct and define the size of our window using `.size(width, height)`.
-    app.new_window().size(640, 480).build().unwrap();
+    app.new_window::<Model>().size(640, 480).build();
 
     Model
 }

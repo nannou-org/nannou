@@ -55,7 +55,7 @@ impl Mover {
             .stroke_weight(2.0);
     }
 
-    fn check_edges(&mut self, rect: Rect) {
+    fn check_edges(&mut self, rect: geom::Rect) {
         if self.position.x > rect.right() {
             self.position.x = rect.right();
             self.velocity.x *= -1.0;
@@ -71,7 +71,7 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 360.0);
+    let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)

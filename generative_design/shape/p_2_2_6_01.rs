@@ -143,9 +143,9 @@ fn view(app: &App, model: &Model) {
         let weight = 2.5;
         for i in 0..model.pendulum_paths.len() {
             let hue = map_range(i, 0, model.joints, 0.0, 1.0);
-            let hsla = hsla(hue, 0.8, 0.6, 0.5);
+            let hsla = Color::hsla(hue, 0.8, 0.6, 0.5);
 
-            let vertices = model.pendulum_paths[i]
+            let points_colored = model.pendulum_paths[i]
                 .iter()
                 .map(|p| pt2(p.x, p.y))
                 // Colour each vertex uniquely based on its index.
@@ -155,7 +155,7 @@ fn view(app: &App, model: &Model) {
             draw.polyline()
                 .weight(weight)
                 .join_round()
-                .vertices(vertices);
+                .points_colored(points_colored);
         }
     }
 }
@@ -186,7 +186,7 @@ fn key_released(app: &App, model: &mut Model, key: KeyCode) {
                 start_drawing(model);
             }
         }
-        KeyCode::Equals => {
+        KeyCode::Equal => {
             if model.speed_relation < 5.0 {
                 model.speed_relation += 0.5;
                 start_drawing(model);

@@ -17,3 +17,4 @@ pub mod color;
 pub mod fill;
 pub mod spatial;
 pub mod stroke;
+pub mod tex_coords;

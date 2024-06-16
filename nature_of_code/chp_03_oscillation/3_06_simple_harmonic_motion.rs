@@ -18,7 +18,7 @@ fn model(app: &App) -> Model {
     let angle = 0.0;
     let a_velocity = 0.03;
 
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     Model { angle, a_velocity }
 }
 

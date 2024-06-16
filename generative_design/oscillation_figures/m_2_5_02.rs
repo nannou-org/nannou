@@ -61,8 +61,7 @@ fn model(app: &App) -> Model {
         .size(800, 800)
         .key_pressed(key_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let lissajous_points = Vec::new();
 

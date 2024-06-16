@@ -127,8 +127,7 @@ fn model(app: &App) -> Model {
         .size(720, 720)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let noise_z_range = 0.4;
     let agent_count = 4000;

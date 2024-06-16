@@ -31,7 +31,7 @@ fn main() {
 struct Model;
 
 fn model(app: &App) -> Model {
-    app.new_window().size(400, 400).view(view).build().unwrap();
+    app.new_window().size(400, 400).view(view).build();
 
     let wiki = wikipedia::Wikipedia {
         client: wikipedia::http::default::Client::default(),

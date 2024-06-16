@@ -50,7 +50,7 @@ fn model(app: &App) -> Model {
 
     Model {
         tile_count: 20,
-        module_color: rgba(0.0, 0.0, 0.0, module_alpha),
+        module_color: Srgba::new(0.0, 0.0, 0.0, module_alpha),
         max_distance: 500.0,
     }
 }

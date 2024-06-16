@@ -1,3 +1,4 @@
+use nannou::image::GenericImageView;
 // P_4_3_1_02
 //
 // Generative Gestaltung – Creative Coding im Web
@@ -126,8 +127,9 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
 
-    let image = app.image(&model.image).unwrap();
-
+    let images = app.images();
+    let image = images.get(&model.image).unwrap();
+    let image = image.clone().try_into_dynamic().unwrap();
     let (w, h) = image.dimensions();
     for grid_x in 0..w {
         for grid_y in 0..h {

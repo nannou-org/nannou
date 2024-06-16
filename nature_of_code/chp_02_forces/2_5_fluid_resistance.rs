@@ -28,13 +28,13 @@ struct Mover {
 // Liquid type
 struct Liquid {
     // Liquid is a rectangle
-    rect: Rect,
+    rect: geom::Rect,
     // Coefficient of drag
     c: f32,
 }
 
 impl Liquid {
-    fn new(rect: Rect, c: f32) -> Self {
+    fn new(rect: geom::Rect, c: f32) -> Self {
         let rect = rect;
         let c = c;
         Liquid { rect, c }
@@ -81,7 +81,7 @@ impl Mover {
         }
     }
 
-    fn new_random(rect: &Rect) -> Self {
+    fn new_random(rect: &geom::Rect) -> Self {
         Mover::new(
             random_range(0.5f32, 4.0),
             random_range(rect.left(), rect.right()),
@@ -118,7 +118,7 @@ impl Mover {
     }
 
     // Bounce off bottom of window
-    fn check_edges(&mut self, rect: Rect) {
+    fn check_edges(&mut self, rect: geom::Rect) {
         if self.position.y < rect.bottom() {
             self.velocity.y *= -0.9; // A little dampening when hitting the bottom
             self.position.y = rect.bottom();
@@ -127,7 +127,7 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 360.0);
+    let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)
@@ -140,7 +140,7 @@ fn model(app: &App) -> Model {
         .collect();
 
     // Create an instance of our Liquid type
-    let rect = Rect::from_w_h(rect.w(), rect.h() * 0.5).align_bottom_of(rect);
+    let rect = geom::Rect::from_w_h(rect.w(), rect.h() * 0.5).align_bottom_of(rect);
     let liquid = Liquid::new(rect, 0.1);
 
     Model { movers, liquid }

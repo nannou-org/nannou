@@ -25,7 +25,7 @@ impl Cell {
         Cell { x, y, w, state }
     }
 
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &geom::Rect) {
         let fill = if self.state == 1 {
             gray(0.0)
         } else {
@@ -60,7 +60,7 @@ struct Gol {
 }
 
 impl Gol {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let w = 20.0;
         let h = deg_to_rad(60.0).sin() * w;
         let columns = (rect.w() / (w * 3.0)) as usize;
@@ -99,7 +99,7 @@ impl Gol {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &geom::Rect) {
         for i in 0..self.columns {
             for j in 0..self.rows {
                 self.board[i][j].display(&draw, &rect);
@@ -113,7 +113,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(600.0, 600.0);
+    let rect = geom::Rect::from_w_h(600.0, 600.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)

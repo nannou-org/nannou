@@ -51,8 +51,7 @@ fn model(app: &App) -> Model {
         .size(600, 600)
         .view(view)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         point_count: 600,
@@ -99,7 +98,7 @@ fn view(app: &App, model: &Model) {
         )
     };
 
-    let vertices = (0..=model.point_count)
+    let points_colored = (0..=model.point_count)
         .map(|i| {
             let angle = map_range(i, 0, model.point_count, 0.0, TAU);
             let mut x = (angle * model.freq_x + deg_to_rad(model.phi)).sin();
@@ -115,11 +114,11 @@ fn view(app: &App, model: &Model) {
         });
 
     // Draw the sine wave.
-    draw.polyline().weight(2.0).vertices(vertices);
+    draw.polyline().weight(2.0).points_colored(points_colored);
 
     if model.do_draw_animation {
         // draw x oscillator
-        let vertices = (0..model.point_count)
+        let points_colored = (0..model.point_count)
             .map(|i| {
                 let angle = map_range(i, 0, model.point_count, 0.0, TAU);
                 let mut x = (angle * model.freq_x + deg_to_rad(model.phi)).sin();
@@ -134,10 +133,10 @@ fn view(app: &App, model: &Model) {
                 (p, rgba)
             });
 
-        draw.polyline().weight(2.0).vertices(vertices);
+        draw.polyline().weight(2.0).points_colored(points_colored);
 
         // draw y oscillator
-        let vertices = (0..model.point_count)
+        let points_colored = (0..model.point_count)
             .map(|i| {
                 let angle = map_range(i, 0, model.point_count, 0.0, TAU);
                 let mut y = (angle * model.freq_y).sin();
@@ -151,7 +150,7 @@ fn view(app: &App, model: &Model) {
                 let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
-        draw.polyline().weight(2.0).vertices(vertices);
+        draw.polyline().weight(2.0).points_colored(points_colored);
 
         let osc_yx = -win.w() * 2.0 / 3.0 - model.margin
             + fmod(model.angle / TAU, 1.0) * (win.w() / 2.0 - 2.0 * model.margin);

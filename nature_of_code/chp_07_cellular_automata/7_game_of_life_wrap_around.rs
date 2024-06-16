@@ -25,7 +25,7 @@ struct Gol {
 }
 
 impl Gol {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let w = 8;
         let columns = rect.w() as usize / w;
         let rows = rect.h() as usize / w;
@@ -91,7 +91,7 @@ impl Gol {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &geom::Rect) {
         for i in 0..self.columns {
             for j in 0..self.rows {
                 let mut fill = 1.0;
@@ -117,7 +117,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(400.0, 400.0);
+    let rect = geom::Rect::from_w_h(400.0, 400.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)

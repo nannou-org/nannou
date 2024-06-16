@@ -69,7 +69,7 @@ fn view(app: &App, model: &Model) {
         for grid_x in (0..win.w() as usize).step_by(step_x as usize) {
             let x = win.left() + grid_x as f32 + (step_x as f32 / 2.0);
             let y = win.top() - grid_y as f32 - (step_y as f32 / 2.0);
-            draw.texture(&model.texture).x_y(x, y).w_h(step_x, step_y);
+            draw.rect().texture(&model.texture).x_y(x, y).w_h(step_x, step_y);
         }
     }
 }

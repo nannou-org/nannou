@@ -20,8 +20,7 @@ fn model(app: &App) -> Model {
         .key_released(key_released)
         .mouse_pressed(mouse_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
     // Initialise our model's fields.
     let foo = 80;
     let bar = 3.14;

@@ -31,7 +31,7 @@
 use nannou::lyon;
 use nannou::lyon::algorithms::path::math::Point;
 use nannou::lyon::algorithms::path::PathSlice;
-use nannou::lyon::algorithms::walk::{walk_along_path, RepeatedPattern};
+use nannou::lyon::algorithms::walk::{walk_along_path, RepeatedPattern, WalkerEvent};
 use nannou::lyon::path::iterator::*;
 use nannou::prelude::*;
 
@@ -41,7 +41,7 @@ fn main() {
 
 struct Model {
     text_typed: String,
-    letter: KeyCode,
+    letter: Option<KeyCode>,
 }
 
 fn model(app: &App) -> Model {
@@ -55,6 +55,7 @@ fn model(app: &App) -> Model {
 
     Model {
         text_typed: "Nannou is Amazing!".to_string(),
+        letter: None,
     }
 }
 
@@ -119,7 +120,8 @@ fn dots_along_path(path: PathSlice, dots: &mut Vec<Point>, interval: f32, offset
     use std::ops::Rem;
     let dot_spacing = map_range(interval, 0.0, 1.0, 0.025, 1.0);
     let mut pattern = RepeatedPattern {
-        callback: &mut |position, _tangent, _distance| {
+        callback: &mut |evt: WalkerEvent| {
+            let position = evt.position;
             dots.push(position);
             true // Return true to continue walking the path.
         },
@@ -130,5 +132,5 @@ fn dots_along_path(path: PathSlice, dots: &mut Vec<Point>, interval: f32, offset
 
     let tolerance = 0.01; // The path flattening tolerance.
     let start_offset = offset.rem(12.0 + dot_spacing); // Start walking at the beginning of the path.
-    walk_along_path(path.iter().flattened(tolerance), start_offset, &mut pattern);
+    walk_along_path(path.iter().flattened(tolerance), start_offset, tolerance, &mut pattern);
 }

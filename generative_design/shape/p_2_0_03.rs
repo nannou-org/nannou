@@ -51,12 +51,11 @@ fn model(app: &App) -> Model {
         .mouse_released(mouse_released)
         .key_pressed(key_pressed)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
     Model {
         clicked: false,
         clear_background: false,
-        stroke_color: Color::hsva(0.0, 0.0, 0.0, 0.1),
+        stroke_color: Hsva::new(0.0, 0.0, 0.0, 0.1),
     }
 }
 

@@ -10,7 +10,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let window_id = app.new_window().size(512, 512).view(view).build().unwrap();
+    let window_id = app.new_window().size(512, 512).view(view).build();
 
     // Load the image from disk and upload it to a GPU texture.
     let assets = app.assets_path();
@@ -22,8 +22,7 @@ fn model(app: &App) -> Model {
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model) {
-    let window = app.window(model.window_id).unwrap();
-    let win_rect = window.rect();
+    let win_rect = app.window_rect();
     let draw = app.draw();
     draw.background().color(DIM_GRAY);
 
@@ -48,13 +47,14 @@ fn view(app: &App, model: &Model) {
         let tex_coords = [point.x + 0.5, 1.0 - (point.y + 0.5)];
         // Apply the wave to the points.
         let point = point + point * wave;
-        (point, tex_coords)
+        (point, Color::WHITE, tex_coords)
     });
 
     // Scale the points up to half the window size.
     let ellipse_side = win_rect.w().min(win_rect.h()) * 0.75;
     draw.scale(ellipse_side)
         .polygon()
-        .points_textured(model.texture.clone(), points)
+        .points_vertex(points)
+        .texture(&model.texture)
         .rotate(app.elapsed_seconds() * 0.25);
 }

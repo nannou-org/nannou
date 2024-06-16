@@ -87,7 +87,7 @@ impl Bob {
     }
 
     fn display(&self, draw: &Draw) {
-        let c = if self.dragging { GREY } else { DARKGREY };
+        let c = if self.dragging { GREY } else { DARK_GREY };
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 2.0, self.mass * 2.0)

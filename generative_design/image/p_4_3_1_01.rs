@@ -63,9 +63,8 @@ fn model(app: &App) -> Model {
 
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model) {
-    draw.background().color(WHITE);
-
     let draw = app.draw();
+    draw.background().color(WHITE);
     let win = app.window_rect();
 
     let mouse_x_factor = map_range(app.mouse().x, win.left(), win.right(), 0.01, 1.0);
@@ -170,11 +169,11 @@ fn view(app: &App, model: &Model) {
                         .x_y(0.0, 0.0)
                         .w_h(15.0, 15.0)
                         .stroke_weight(w7)
-                        .stroke(rgb(red, green, blue))
+                        .stroke(Color::srgb(red, green, blue))
                         .rgba(1.0, 1.0, 1.0, mouse_x_factor);
                 }
                 8 => {
-                    let col = rgb(greyscale, greyscale * mouse_x_factor, mouse_y_factor);
+                    let col = Color::srgb(greyscale, greyscale * mouse_x_factor, mouse_y_factor);
                     draw.rect().x_y(pos_x, pos_y).w_h(3.5, 3.5).color(col);
                     draw.rect().x_y(pos_x + 4.0, pos_y).w_h(3.5, 3.5).color(col);
                     draw.rect().x_y(pos_x, pos_y - 4.0).w_h(3.5, 3.5).color(col);
@@ -189,14 +188,14 @@ fn view(app: &App, model: &Model) {
                         .x_y(0.0, 0.0)
                         .w_h(15.0 * mouse_x_factor, 15.0 * mouse_y_factor)
                         .stroke_weight(1.0)
-                        .stroke(rgb(1.0, greyscale, 0.0))
+                        .stroke(Color::srgb(1.0, greyscale, 0.0))
                         .no_fill();
                     let w9 = map_range(greyscale, 0.0, 1.0, 15.0, 0.1);
                     draw.ellipse()
                         .x_y(0.0, 0.0)
                         .w_h(5.0, 2.5)
                         .stroke_weight(w9)
-                        .stroke(rgb(0.0, 0.0, 0.27))
+                        .stroke(Color::srgb(0.0, 0.0, 0.27))
                         .no_fill();
                 }
                 _ => (),

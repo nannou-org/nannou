@@ -23,7 +23,7 @@ struct Ca {
 }
 
 impl Ca {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let w = 10;
         let rule_set = vec![0, 1, 0, 1, 1, 0, 1, 0];
         let mut cells = vec![0; (rect.w() as i32 / w) as usize];
@@ -59,7 +59,7 @@ impl Ca {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &geom::Rect) {
         for i in 0..self.cells.len() {
             let mut fill = 1.0;
             if self.cells[i] == 1 {
@@ -111,7 +111,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(800.0, 400.0);
+    let rect = geom::Rect::from_w_h(800.0, 400.0);
     let _window = app
         .new_window()
         .size(rect.w() as u32, rect.h() as u32)

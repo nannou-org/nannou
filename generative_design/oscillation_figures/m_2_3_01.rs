@@ -49,8 +49,7 @@ fn model(app: &App) -> Model {
         .size(1000, 400)
         .view(view)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         point_count: 1000,
@@ -75,7 +74,7 @@ fn view(app: &App, model: &Model) {
 
     // draw oscillator with freq and phi
     if model.draw_frequency {
-        let vertices = (0..=model.point_count)
+        let points_colored = (0..=model.point_count)
             .map(|i| {
                 let angle = map_range(i, 0, model.point_count, 0.0, TAU);
                 let mut y = (angle * model.freq + deg_to_rad(model.phi)).sin();
@@ -87,12 +86,12 @@ fn view(app: &App, model: &Model) {
                 let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
-        draw.polyline().weight(1.0).vertices(vertices);
+        draw.polyline().weight(1.0).points_colored(points_colored);
     }
 
     // draw oscillator with mod_freq
     if model.draw_modulation {
-        let vertices = (0..=model.point_count)
+        let points_colored = (0..=model.point_count)
             .map(|i| {
                 let angle = map_range(i, 0, model.point_count, 0.0, TAU);
                 let mut y = (angle * model.mod_freq).cos();
@@ -104,12 +103,12 @@ fn view(app: &App, model: &Model) {
                 let rgba = Color::srgba(0.0, 0.5, 0.64, 0.5);
                 (p, rgba)
             });
-        draw.polyline().weight(1.0).vertices(vertices);
+        draw.polyline().weight(1.0).points_colored(points_colored);
     }
 
     // draw both combined
     if model.draw_modulation {
-        let vertices = (0..=model.point_count)
+        let points_colored = (0..=model.point_count)
             .map(|i| {
                 let angle = map_range(i, 0, model.point_count, 0.0, TAU);
                 let info = (angle * model.freq + deg_to_rad(model.phi)).sin();
@@ -123,7 +122,7 @@ fn view(app: &App, model: &Model) {
                 let rgba = Color::srgba(0.30, 1.0, 0.64, 0.75);
                 (p, rgba)
             });
-        draw.polyline().weight(3.0).vertices(vertices);
+        draw.polyline().weight(3.0).points_colored(points_colored);
     }
 }
 
@@ -144,7 +143,7 @@ fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
         KeyCode::KeyA => {
             model.draw_frequency = !model.draw_frequency;
         }
-        KeyCode::C => {
+        KeyCode::KeyC => {
             model.draw_modulation = !model.draw_modulation;
         }
         KeyCode::ArrowLeft => {

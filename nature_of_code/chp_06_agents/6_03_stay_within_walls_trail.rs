@@ -75,7 +75,7 @@ impl Vehicle {
         self.acceleration += force;
     }
 
-    fn boundaries(&mut self, d: f32, win: &Rect) {
+    fn boundaries(&mut self, d: f32, win: &geom::Rect) {
         let left = win.left() + d;
         let right = win.right() - d;
         let top = win.top() - d;
@@ -151,7 +151,7 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
                 let rgba = srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
-        draw.polyline().weight(1.0).vertices(vertices);
+        draw.polyline().weight(1.0).points_vertex(vertices);
     }
 
     // Draw a triangle rotated in the direction of velocity

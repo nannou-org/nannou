@@ -98,7 +98,8 @@ fn model(app: &App) -> Model {
         .channels(2)
         .sample_rate(SAMPLE_RATE)
         .frames_per_buffer(BUFFER_LEN_FRAMES)
-        .build();
+        .build()
+        .unwrap();
 
     stream.play().unwrap();
 

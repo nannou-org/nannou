@@ -22,7 +22,7 @@ struct Oscillator {
 }
 
 impl Oscillator {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let angle = vec2(0.0, 0.0);
         let velocity = vec2(random_f32() * 0.1 - 0.05, random_f32() * 0.1 - 0.05);
         let rand_amp_x = random_range(20.0, rect.right());
@@ -59,7 +59,7 @@ impl Oscillator {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 360.0);
+    let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)

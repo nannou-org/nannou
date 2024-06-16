@@ -17,6 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use nannou::image::GenericImageView;
 /**
  * cutting and multiplying an area of the image
  *
@@ -86,7 +87,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn crop_tiles(app: &App, model: &mut Model, win: Rect) {
+fn crop_tiles(app: &App, model: &mut Model, win: geom::Rect) {
     model.tile_width = win.w() / model.tile_count_y as f32;
     model.tile_height = win.h() / model.tile_count_x as f32;
     model.tile_count = model.tile_count_x * model.tile_count_y;
@@ -114,7 +115,10 @@ fn crop_tiles(app: &App, model: &mut Model, win: Rect) {
                 win.bottom() + (model.tile_height as f32 / 2.0),
             );
 
-            let [w, h] = model.texture.size();
+            let images = app.images();
+            let image = images.get(&model.texture).unwrap();
+            let image = image.clone().try_into_dynamic().unwrap();
+            let (w, h) = image.dimensions();
             let area = geom::Rect::from_x_y_w_h(
                 map_range(model.crop_x, win.left(), win.right(), 0.0, 1.0),
                 map_range(model.crop_y, win.top(), win.bottom(), 0.0, 1.0),
@@ -135,7 +139,10 @@ fn view(app: &App, model: &Model) {
 
     if model.select_mode {
         // in selection mode, a white selection rectangle is drawn over the image
-        draw.texture(&model.texture);
+        draw
+            .rect()
+            .w_h(win.w(), win.h())
+            .texture(&model.texture);
         draw.rect()
             .x_y(model.crop_x, model.crop_y)
             .w_h(model.tile_width, model.tile_height)
@@ -152,7 +159,8 @@ fn view(app: &App, model: &Model) {
                 let y = win.top()
                     - grid_y as f32 * model.tile_height
                     - (model.tile_height as f32 / 2.0);
-                draw.texture(&model.texture)
+                draw.rect()
+                    .texture(&model.texture)
                     .x_y(x, y)
                     .w_h(model.tile_width, model.tile_height)
                     .area(model.img_tiles[index]);

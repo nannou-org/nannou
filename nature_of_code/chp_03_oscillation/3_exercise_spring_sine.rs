@@ -14,7 +14,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     Model {
         angle: 0.0,
         a_velocity: 0.05,
@@ -46,6 +46,6 @@ fn view(app: &App, model: &Model) {
     draw.ellipse()
         .x_y(0.0, y)
         .radius(10.0)
-        .color(LIGHTGREY)
+        .color(LIGHT_GRAY)
         .stroke(BLACK);
 }

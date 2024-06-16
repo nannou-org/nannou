@@ -47,8 +47,7 @@ fn model(app: &App) -> Model {
         .size(900, 900)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         draw_mode: 1,

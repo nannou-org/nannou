@@ -18,7 +18,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().size(300, 200).view(view).build().unwrap();
+    let _window = app.new_window().size(300, 200).view(view).build();
     Model { theta: 0.0 }
 }
 
@@ -28,6 +28,7 @@ fn update(app: &App, model: &mut Model) {
 }
 
 fn view(app: &App, model: &Model) {
+    let draw = app.draw();
     draw.background().color(WHITE);
 
     let win = app.window_rect();

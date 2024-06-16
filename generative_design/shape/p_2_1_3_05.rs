@@ -88,7 +88,7 @@ fn view(app: &App, model: &Model) {
 
             for i in 0..step_size as usize {
                 let radius = map_range(i, 0, step_size as usize, tile_width, end_size) / 2.0;
-                let col = gray((255.0 - (i * color_step) as f32) / 255.0);
+                let col = Color::gray((255.0 - (i * color_step) as f32) / 255.0);
                 let (x, y) = match heading {
                     0 => (pos_x + i as f32, pos_y),
                     1 => (pos_x, pos_y + i as f32),

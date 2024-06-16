@@ -55,7 +55,7 @@ impl Pendulum {
         }
     }
 
-    fn update(&mut self, rect: Rect) {
+    fn update(&mut self, rect: geom::Rect) {
         // As long as we aren't dragging the pendulum, let it swing!
         if !self.dragging {
             let gravity = 0.4; // Arbitrary constant

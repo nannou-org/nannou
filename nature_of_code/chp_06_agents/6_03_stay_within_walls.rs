@@ -67,7 +67,7 @@ impl Vehicle {
         self.acceleration += force;
     }
 
-    fn boundaries(&mut self, d: f32, win: &Rect) {
+    fn boundaries(&mut self, d: f32, win: &geom::Rect) {
         let left = win.left() + d;
         let right = win.right() - d;
         let top = win.top() - d;

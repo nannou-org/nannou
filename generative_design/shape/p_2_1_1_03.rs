@@ -58,8 +58,7 @@ fn model(app: &App) -> Model {
         .mouse_pressed(mouse_pressed)
         .key_released(key_released)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         tile_count: 1,

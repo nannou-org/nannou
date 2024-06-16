@@ -13,7 +13,7 @@ struct Model;
 
 fn model(app: &App) -> Model {
     app.set_update_mode(UpdateMode::freeze());
-    let _window = app.new_window().size(640, 360).view(view).build().unwrap();
+    let _window = app.new_window().size(640, 360).view(view).build();
     Model
 }
 

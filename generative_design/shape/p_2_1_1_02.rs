@@ -63,8 +63,7 @@ fn model(app: &App) -> Model {
         .mouse_pressed(mouse_pressed)
         .key_released(key_released)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let alpha_left = 1.0;
     let alpha_right = 1.0;
@@ -73,8 +72,8 @@ fn model(app: &App) -> Model {
         tile_count: 20,
         act_random_seed: 0,
         act_stroke_cap: LineCap::Round,
-        color_left: Color::srgba(0.77, 0.0, 0.48, alpha_left),
-        color_right: Color::srgba(0.34, 0.137, 0.5, alpha_right),
+        color_left: Srgba::new(0.77, 0.0, 0.48, alpha_left),
+        color_right: Srgba::new(0.34, 0.137, 0.5, alpha_right),
         alpha_left,
         alpha_right,
     }
@@ -138,7 +137,7 @@ fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
 }
 
 fn key_released(_app: &App, model: &mut Model, key: KeyCode) {
-    let black = Color::srgba(0.0, 0.0, 0.0, 1.0);
+    let black = Srgba::new(0.0, 0.0, 0.0, 1.0);
 
     match key {
         KeyCode::Digit1 => {

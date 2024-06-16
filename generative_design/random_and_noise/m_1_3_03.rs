@@ -120,7 +120,7 @@ fn view(app: &App, model: &Model) {
     let flat_samples = image.as_flat_samples();
 
     let draw = app.draw();
-    draw.texture(&model.texture);
+    draw.rect().texture(&model.texture);
     draw.background().color(BLACK);
 }
 

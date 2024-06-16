@@ -101,7 +101,7 @@ fn view(app: &App, model: &Model) {
             let col = if model.interpolate_shortest {
                 let c1 = cast_to_rgb(col1);
                 let c2 = cast_to_rgb(col2);
-                Hsva::from_rgb(c1.mix(&c2, amount))
+                Hsva::from(c1.mix(&c2, amount))
             } else {
                 col1.mix(&col2, amount)
             };
@@ -122,8 +122,8 @@ fn cast_to_rgb(col: Hsva) -> LinearRgba {
 
 fn shake_colors(model: &mut Model) {
     for i in 0..model.tile_count_y {
-        model.colours_left[i] = Color::hsv(random_f32() * 0.166, random_f32(), 1.0);
-        model.colours_right[i] = Color::hsv(random_range(0.44, 0.52), 1.0, random_f32());
+        model.colours_left[i] = Hsva::new(random_f32() * 0.166, random_f32(), 1.0, 1.0);
+        model.colours_right[i] = Hsva::new(random_range(0.44, 0.52), 1.0, random_f32(), 1.0);
     }
 }
 

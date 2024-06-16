@@ -26,7 +26,7 @@ struct Mover {
 }
 
 impl Mover {
-    fn new(rect: Rect<f32>) -> Self {
+    fn new(rect: geom::Rect<f32>) -> Self {
         let rand_x = random_range(rect.left(), rect.right());
         let rand_y = random_range(rect.top(), rect.bottom());
         let position = pt2(rand_x, rand_y);
@@ -66,7 +66,7 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 360.0);
+    let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)

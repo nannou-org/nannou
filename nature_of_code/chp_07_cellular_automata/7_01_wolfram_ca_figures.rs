@@ -82,7 +82,7 @@ impl Ca {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &geom::Rect) {
         for i in 0..self.cells.len() {
             let mut fill = 1.0;
             if self.cells[i] == 1 {
@@ -130,7 +130,7 @@ impl Ca {
     }
 
     // The CA is done if it reaches the bottom of the screen
-    fn finished(&self, rect: &Rect) -> bool {
+    fn finished(&self, rect: &geom::Rect) -> bool {
         if self.generation > rect.h() as i32 / self.scl {
             true
         } else {
@@ -144,7 +144,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(1800.0, 600.0);
+    let rect = geom::Rect::from_w_h(1800.0, 600.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)

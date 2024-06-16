@@ -92,7 +92,7 @@ fn f(x: f32) -> f32 {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
 
     let x_min = -400.0;
     let y_min = -100.0;

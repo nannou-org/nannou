@@ -27,7 +27,7 @@ struct Attractor {
 }
 
 impl Attractor {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let position = rect.xy();
         let mass = 10.0;
         let radius = mass * 3.0;
@@ -142,7 +142,7 @@ impl Mover {
         force * (-1.0 * strength) // Get force vector --> magnitude * direction
     }
 
-    fn _check_edges(&mut self, rect: Rect) {
+    fn _check_edges(&mut self, rect: geom::Rect) {
         if self.position.x < rect.left() {
             self.position.x = rect.left();
             self.velocity.x *= -1.0;
@@ -166,7 +166,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 360.0);
+    let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .event(event)

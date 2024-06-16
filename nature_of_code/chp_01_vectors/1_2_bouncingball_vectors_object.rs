@@ -29,7 +29,7 @@ impl Ball {
         Ball { position, velocity }
     }
 
-    fn update(&mut self, rect: Rect<f32>) {
+    fn update(&mut self, rect: geom::Rect<f32>) {
         // Add the current speed to the position.
         self.position += self.velocity;
 

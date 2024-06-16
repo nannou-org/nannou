@@ -63,7 +63,7 @@ impl Particle {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     let particles = Vec::new();
     Model { particles }
 }

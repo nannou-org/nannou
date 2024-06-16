@@ -21,7 +21,7 @@ struct Mover {
 }
 
 impl Mover {
-    fn new(_rect: Rect) -> Self {
+    fn new(_rect: geom::Rect) -> Self {
         let position = pt2(0.0, 0.0);
         let velocity = vec2(0.0, 0.0);
         let acceleration = vec2(0.0, 0.0);
@@ -45,7 +45,7 @@ impl Mover {
         self.position += self.velocity;
     }
 
-    fn check_edges(&mut self, rect: Rect) {
+    fn check_edges(&mut self, rect: geom::Rect) {
         if self.position.x > rect.right() {
             self.position.x = rect.left();
         } else if self.position.x < rect.left() {
@@ -70,7 +70,7 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     let mover = Mover::new(app.window_rect());
     Model { mover }
 }

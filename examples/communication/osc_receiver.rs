@@ -49,14 +49,16 @@ fn update(_app: &App, model: &mut Model) {
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model) {
     let draw = app.draw();
-    draw.background().color(DARKBLUE);
+    draw.background().color(DARK_BLUE);
 
     // Create a string showing all the packets.
     let mut packets_text = format!("Listening on port {}\nReceived packets:\n", PORT);
     for &(addr, ref packet) in model.received_packets.iter().rev() {
         packets_text.push_str(&format!("{}: {:?}\n", addr, packet));
     }
-    let rect = frame.rect().pad(10.0);
+
+    let rect = app.window_rect().pad(10.0);
+
     draw.text(&packets_text)
         .font_size(16)
         .align_text_top()

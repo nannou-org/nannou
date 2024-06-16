@@ -131,7 +131,6 @@ pub struct App<'w> {
     current_view: Option<Entity>,
     world: Rc<RefCell<UnsafeWorldCell<'w>>>,
     window_count: AtomicUsize,
-    images: Mut<'w, Assets<Image>>,
 }
 
 #[derive(Resource, Deref, DerefMut)]
@@ -365,7 +364,6 @@ where
 {
     #[cfg(feature = "egui")]
     pub fn model_ui(mut self) -> Self {
-        self.app.register_type::<ModelHolder<M>>();
         // .add_plugins(DefaultInspectorConfigPlugin)
         // .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
         self
@@ -431,12 +429,12 @@ impl<'w> App<'w> {
         FileAssetReader::get_base_path().join("assets")
     }
 
-    pub fn image(&self, handle: &Handle<Image>) -> Option<&Image> {
-        self.images.get(handle)
+    pub fn images(&self) -> &Assets<Image> {
+        self.world().resource::<Assets<Image>>()
     }
 
-    pub fn image_mut(&mut self, handle: &Handle<Image>) -> Option<&mut Image> {
-        self.images.get_mut(handle)
+    pub fn images_mut(&self) -> Mut<'_, Assets<Image>> {
+        self.world_mut().resource_mut::<Assets<Image>>()
     }
 
     #[cfg(feature = "egui")]
@@ -489,12 +487,10 @@ impl<'w> App<'w> {
             .query::<&Window>()
             .iter(unsafe { world.world_mut() })
             .count();
-        let images = unsafe { world.world_mut() }.resource_mut::<Assets<Image>>();
         let app = App {
             current_view: None,
             world: Rc::new(RefCell::new(world)),
             window_count: window_count.into(),
-            images,
         };
         app
     }
@@ -682,6 +678,17 @@ impl<'w> App<'w> {
             .to_string_lossy()
             .to_string();
         Ok(string)
+    }
+
+    /// The path to the current project directory.
+    ///
+    /// The current project directory is considered to be the directory containing the cargo
+    /// manifest (aka the `Cargo.toml` file).
+    ///
+    /// **Note:** Be careful not to rely on this directory for apps or sketches that you wish to
+    /// distribute! This directory is mostly useful for local sketches, experiments and testing.
+    pub fn project_path(&self) -> Result<PathBuf, find_folder::Error> {
+        find_project_path()
     }
 
     /// Quits the currently running application.
@@ -1221,4 +1228,17 @@ impl UpdateModeExt for UpdateMode {
             react_to_window_events: false,
         }
     }
+}
+
+/// Attempt to find the assets directory path relative to the executable location.
+pub fn find_project_path() -> Result<PathBuf, find_folder::Error> {
+    let exe_path = std::env::current_exe()?;
+    let mut path = exe_path.parent().expect("exe has no parent directory");
+    while let Some(parent) = path.parent() {
+        path = parent;
+        if path.join("Cargo").with_extension("toml").exists() {
+            return Ok(path.to_path_buf());
+        }
+    }
+    Err(find_folder::Error::NotFound)
 }

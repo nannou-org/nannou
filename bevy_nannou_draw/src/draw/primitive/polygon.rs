@@ -471,7 +471,7 @@ where
         self.map_ty_with_context(|ty, ctxt| ty.points(ctxt, points))
     }
 
-    pub fn points_colored<I, P, C, U>(self, points: I) -> DrawingPolygon<'a, M>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPolygon<'a, M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,

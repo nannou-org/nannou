@@ -62,7 +62,6 @@ fn model(app: &App) -> Model {
 
     let text_path = app
         .assets_path()
-        .unwrap()
         .join("text")
         .join("faust_kurz.txt");
     let joined_text = std::fs::read_to_string(text_path).unwrap().parse().unwrap();

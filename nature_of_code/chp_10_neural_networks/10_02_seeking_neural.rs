@@ -6,7 +6,6 @@
 //
 // example 10-02: Seeking Neural
 use nannou::prelude::*;
-use nannou::Draw;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -71,7 +70,7 @@ impl Vehicle {
     }
 
     // Method to update position
-    fn update(&mut self, win: Rect) {
+    fn update(&mut self, win: geom::Rect) {
         // Update velocity
         self.velocity += self.acceleration;
         // Limit speed
@@ -183,7 +182,7 @@ fn model(app: &App) -> Model {
 }
 
 // Make a random ArrayList of targets to steer towards
-fn make_targets(m: &mut Model, win: &Rect) {
+fn make_targets(m: &mut Model, win: &geom::Rect) {
     m.targets = (0..m.num_targets)
         .map(|_| {
             vec2(

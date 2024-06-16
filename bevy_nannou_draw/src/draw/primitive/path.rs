@@ -521,7 +521,7 @@ where
     I: IntoIterator<Item = (Vec2, Color, Vec2)>,
 {
     // Build a path with a color and uv attribute for each channel.
-    let channels = 4;
+    let channels = 6;
     let mut path_builder = lyon::path::Path::builder_with_attributes(channels);
 
     // Begin the path.
@@ -655,8 +655,27 @@ where
         self.map_ty_with_context(|ty, ctxt| ty.points_closed(ctxt, points))
     }
 
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPath<'a, M>
+    where
+        I: IntoIterator<Item = (P, C)>,
+        P: Into<Vec2>,
+        C: Into<Color>,
+    {
+        self.map_ty_with_context(|ty, ctxt| ty.vertices(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO))))
+
+    }
+
+    pub fn points_colored_closed<I, P, C>(self, points: I) -> DrawingPath<'a, M>
+    where
+        I: IntoIterator<Item = (P, C)>,
+        P: Into<Vec2>,
+        C: Into<Color>,
+    {
+        self.map_ty_with_context(|ty, ctxt| ty.vertices_closed(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO))))
+    }
+
     /// Submit path events as a polyline of vertex points.
-    pub fn vertices<I, P, C, U>(self, points: I) -> DrawingPath<'a, M>
+    pub fn points_vertex<I, P, C, U>(self, points: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
@@ -669,7 +688,7 @@ where
     /// Submit path events as a polyline of vertex points.
     ///
     /// The path with automatically close from the end point to the start point.
-    pub fn vertices_closed<I, P, C, U>(self, points: I) -> DrawingPath<'a, M>
+    pub fn points_vertex_closed<I, P, C, U>(self, points: I) -> DrawingPath<'a, M>
     where
         I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,

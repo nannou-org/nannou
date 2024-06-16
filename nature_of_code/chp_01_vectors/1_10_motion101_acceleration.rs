@@ -21,7 +21,7 @@ struct Mover {
 }
 
 impl Mover {
-    fn new(rect: Rect<f32>) -> Self {
+    fn new(rect: geom::Rect<f32>) -> Self {
         let position = pt2(rect.x(), rect.y());
         let velocity = vec2(0.0, 0.0);
         let acceleration = vec2(0.0, 0.0);
@@ -59,7 +59,7 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().size(640, 360).view(view).build().unwrap();
+    let _window = app.new_window().size(640, 360).view(view).build();
     let mover = Mover::new(app.window_rect());
     Model { mover }
 }

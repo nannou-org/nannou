@@ -17,7 +17,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     app.set_update_mode(UpdateMode::freeze());
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
 
     Model {
         angle: 0.0,

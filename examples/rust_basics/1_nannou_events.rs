@@ -13,7 +13,7 @@ struct Model;
 // This function is where we setup the application and create the `Model` for the first time.
 fn model(app: &App) -> Model {
     // Create a window that can receive user input like mouse and keyboard events.
-    app.new_window().view(view).build().unwrap();
+    app.new_window().view(view).build();
     Model
 }
 

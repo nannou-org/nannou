@@ -48,7 +48,7 @@ fn main() {
 
 fn model(app: &App) -> Model {
   // Create a new window!
-  app.new_window().size(512, 512).view(view).build().unwrap();
+  app.new_window().size(512, 512).view(view).build();
   Model {}
 }
 
@@ -73,7 +73,7 @@ struct Model {
 # }
 # fn model(app: &App) -> Model {
 #   // Create a new window!
-#   app.new_window().size(512, 512).view(view).build().unwrap();
+#   app.new_window().size(512, 512).view(view).build();
 #   let texture: wgpu::Texture = unimplemented!();
 #   Model { texture }
 # }
@@ -94,7 +94,7 @@ Next, we'll need to create a GPU texture to initialize the struct with. We can a
 # }
 fn model(app: &App) -> Model {
   // Create a new window!
-  app.new_window().size(512, 512).view(view).build().unwrap();
+  app.new_window().size(512, 512).view(view).build();
   // Load the image from disk and upload it to a GPU texture.
   let assets = app.assets_path();
   let img_path = assets.join("images").join("nature").join("nature_1.jpg");
@@ -122,7 +122,7 @@ Finally, in our `view` function, we can draw the texture stored in our model wit
 # }
 # fn model(app: &App) -> Model {
 #   // Create a new window!
-#   app.new_window().size(512, 512).view(view).build().unwrap();
+#   app.new_window().size(512, 512).view(view).build();
 #   // Load the image from disk and upload it to a GPU texture.
 #   let assets = app.assets_path();
 #   let img_path = assets.join("images").join("nature").join("nature_1.jpg");
@@ -156,7 +156,7 @@ A texture can be drawn at any location and any size desired within the frame. Le
 # }
 # fn model(app: &App) -> Model {
 #   // Create a new window!
-#   app.new_window().size(512, 512).view(view).build().unwrap();
+#   app.new_window().size(512, 512).view(view).build();
 #   // Load the image from disk and upload it to a GPU texture.
 #   let assets = app.assets_path();
 #   let img_path = assets.join("images").join("nature").join("nature_1.jpg");
@@ -167,7 +167,7 @@ fn view(app: &App, model: &Model) {
   draw.background().color(BLACK);
 
   let win = app.window_rect();
-  let r = Rect::from_w_h(100.0, 100.0).top_left_of(win);
+  let r = geom::Rect::from_w_h(100.0, 100.0).top_left_of(win);
 
   let draw = app.draw();
   draw.texture(&model.texture)

@@ -55,8 +55,7 @@ fn model(app: &App) -> Model {
         .size(600, 600)
         .view(view)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let win = app.window_rect();
     let sq = |v: f32| -> f32 { v * v };
@@ -91,7 +90,7 @@ fn view(app: &App, model: &Model) {
     draw.background().color(WHITE);
 
     if model.draw_mode == 1 {
-        let vertices = (0..=model.point_count)
+        let points_colored = (0..=model.point_count)
             .map(|i| {
                 let angle = map_range(i, 0, model.point_count, 0.0, TAU);
                 let mut x = (angle * model.freq_x + deg_to_rad(model.phi)).sin()
@@ -106,7 +105,7 @@ fn view(app: &App, model: &Model) {
                 let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
-        draw.polyline().weight(1.0).vertices(vertices);
+        draw.polyline().weight(1.0).points_colored(points_colored);
     } else if model.draw_mode == 2 {
         for i in 0..=model.point_count {
             let angle = map_range(i, 0, model.point_count, 0.0, TAU);
