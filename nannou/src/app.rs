@@ -38,6 +38,7 @@ use find_folder;
 
 use bevy_nannou::prelude::{draw, DrawHolder};
 use bevy_nannou::NannouPlugin;
+use bevy_nannou::prelude::render::ExtendedNannouMaterial;
 
 use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::render::{NannouMesh, NannouPersistentMesh};
