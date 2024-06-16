@@ -1,4 +1,3 @@
-use nannou::prelude::primitive::Primitive;
 use nannou::prelude::*;
 
 fn main() {

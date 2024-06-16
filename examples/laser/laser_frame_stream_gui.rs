@@ -1,7 +1,6 @@
 //! A clone of the `laser_frame_stream.rs` example that allows for configuring laser settings via a
 //! UI.
 
-use nannou::geom::Rect;
 use nannou::prelude::egui::FontId;
 use nannou::prelude::*;
 use nannou_laser as laser;
@@ -172,7 +171,7 @@ where
     I::Item: AsRef<laser::Point>,
 {
     let points = points.into_iter().map(|p| {
-        let mut p = p.as_ref().clone();
+        let mut p = *p.as_ref();
         p.position[0] *= scale;
         p.position[1] *= scale;
         p
@@ -221,8 +220,8 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
             let yb = [0.0, 1.0];
             let x = [lit_p(xa), lit_p(xb)];
             let y = [lit_p(ya), lit_p(yb)];
-            add_points(&x, laser.draw_mode, laser.scale, frame);
-            add_points(&y, laser.draw_mode, laser.scale, frame);
+            add_points(x, laser.draw_mode, laser.scale, frame);
+            add_points(y, laser.draw_mode, laser.scale, frame);
         }
 
         TestPattern::ThreeVerticalLines => {
@@ -235,9 +234,9 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
             let l = [lit_p(la), lit_p(lb)];
             let m = [lit_p(ma), lit_p(mb)];
             let r = [lit_p(ra), lit_p(rb)];
-            add_points(&l, laser.draw_mode, laser.scale, frame);
-            add_points(&m, laser.draw_mode, laser.scale, frame);
-            add_points(&r, laser.draw_mode, laser.scale, frame);
+            add_points(l, laser.draw_mode, laser.scale, frame);
+            add_points(m, laser.draw_mode, laser.scale, frame);
+            add_points(r, laser.draw_mode, laser.scale, frame);
         }
 
         TestPattern::Circle => {
@@ -316,7 +315,7 @@ fn update(app: &App, model: &mut Model) {
 
     // Update the GUI.
     let Model {
-        window,
+        
         ref laser_streams,
         ref mut laser_model,
         ref mut laser_settings,
@@ -327,7 +326,7 @@ fn update(app: &App, model: &mut Model) {
     let ctx = egui_ctx.get_mut();
 
     // The timeline area.
-    egui::containers::CentralPanel::default().show(&ctx, |ui| {
+    egui::containers::CentralPanel::default().show(ctx, |ui| {
         fn grid_min_col_width(ui: &egui::Ui, n_options: usize) -> f32 {
             let gap_space = ui.spacing().item_spacing.x * (n_options as f32 - 1.0);
             let grid_w = ui.available_width();

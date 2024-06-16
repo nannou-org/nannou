@@ -359,7 +359,7 @@ where
     M: Reflect + GetTypeRegistration + 'static,
 {
     #[cfg(feature = "egui")]
-    pub fn model_ui(mut self) -> Self {
+    pub fn model_ui(self) -> Self {
         // .add_plugins(DefaultInspectorConfigPlugin)
         // .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
         self

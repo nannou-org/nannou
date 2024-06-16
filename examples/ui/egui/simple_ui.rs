@@ -39,7 +39,7 @@ fn update(app: &App, model: &mut Model) {
     let mut egui_ctx = app.egui_for_window(model.window);
     let ctx = egui_ctx.get_mut();
 
-    egui::Window::new("Settings").show(&ctx, |ui| {
+    egui::Window::new("Settings").show(ctx, |ui| {
         // Resolution slider
         ui.label("Resolution:");
         ui.add(egui::Slider::new(&mut settings.resolution, 1..=40));
