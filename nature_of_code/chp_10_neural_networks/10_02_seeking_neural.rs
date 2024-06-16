@@ -118,8 +118,8 @@ impl Vehicle {
         desired *= self.max_speed;
         // Steering = Desired minus velocity
         // Limit to maximum steering force
-        let steer = (desired - self.velocity).clamp_length_max(self.max_force);
-        steer
+        
+        (desired - self.velocity).clamp_length_max(self.max_force)
     }
 
     fn display(&self, draw: &Draw) {

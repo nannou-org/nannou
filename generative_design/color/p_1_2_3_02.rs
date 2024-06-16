@@ -127,7 +127,7 @@ fn view(app: &App, model: &Model) {
             // draw rects
             let mut sum_parts_now = 0;
             for ii in 0..parts.len() {
-                sum_parts_now += parts[ii as usize];
+                sum_parts_now += parts[ii];
 
                 let x = map_range(
                     sum_parts_now,
@@ -142,9 +142,9 @@ fn view(app: &App, model: &Model) {
 
                 let index = counter % model.color_count;
                 draw.rect().x_y(x + (w / 2.0), y - (h / 2.0)).w_h(w, h).hsv(
-                    model.hue_values[index as usize],
-                    model.saturation_values[index as usize],
-                    model.brightness_values[index as usize],
+                    model.hue_values[index],
+                    model.saturation_values[index],
+                    model.brightness_values[index],
                 );
 
                 counter += 1;

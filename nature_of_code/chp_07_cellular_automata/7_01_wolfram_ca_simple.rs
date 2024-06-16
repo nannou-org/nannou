@@ -28,7 +28,7 @@ impl Ca {
         let rule_set = vec![0, 1, 0, 1, 1, 0, 1, 0];
         let mut cells = vec![0; (rect.w() as i32 / w) as usize];
         let length = cells.len();
-        cells[length / 2 as usize] = 1; // We arbitrarily start with just the middle cell having a state of "1"
+        cells[length / 2_usize] = 1; // We arbitrarily start with just the middle cell having a state of "1"
         let generation = 0;
         let cells_range = 1..cells.len() - 1;
         Ca {
@@ -67,8 +67,8 @@ impl Ca {
             }
             draw.rect()
                 .x_y(
-                    ((self.w / 2) + i as i32 * self.w) as f32 - rect.right() as f32,
-                    rect.top() as f32 - (self.generation * self.w - (self.w / 2)) as f32,
+                    ((self.w / 2) + i as i32 * self.w) as f32 - rect.right(),
+                    rect.top() - (self.generation * self.w - (self.w / 2)) as f32,
                 )
                 .w_h(self.w as f32, self.w as f32)
                 .gray(fill);

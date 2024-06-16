@@ -43,7 +43,7 @@ fn cantor(draw: &Draw, x: f32, mut y: f32, len: f32) {
         y -= h;
         // Draw 2 more lines 1/3rd the length (without the middle section)
         let length = len / 3.0;
-        cantor(&draw, x - length, y, length);
-        cantor(&draw, (x + len * 2.0 / 3.0) - length, y, length);
+        cantor(draw, x - length, y, length);
+        cantor(draw, (x + len * 2.0 / 3.0) - length, y, length);
     }
 }

@@ -465,7 +465,7 @@ impl Frame {
                 self.points.push(*next);
             }
         }
-        self.points.extend(points.map(|p| p.as_ref().clone()));
+        self.points.extend(points.map(|p| *p.as_ref()));
     }
 }
 
@@ -596,14 +596,13 @@ impl Requester {
                     if interpolated.is_empty() {
                         let blank_point = self
                             .blank_points
-                            .last()
-                            .map(|&p| p)
+                            .last().copied()
                             .or_else(|| last_frame_point.map(|p| p.blanked()))
                             .unwrap_or_else(RawPoint::centered_blank);
                         interpolated.extend((0..target_points).map(|_| blank_point));
                     }
 
-                    self.raw_points.extend(self.blank_points.drain(..));
+                    self.raw_points.append(&mut self.blank_points);
                     self.raw_points.extend(interpolated);
                 }
 
@@ -626,12 +625,12 @@ impl Requester {
                     .iter()
                     .flat_map(|pt| Some(pt.to_raw()).into_iter().chain(pt.to_raw_weighted()));
 
-                self.raw_points.extend(self.blank_points.drain(..));
+                self.raw_points.append(&mut self.blank_points);
                 self.raw_points.extend(frame_points);
             }
 
             // Update the last frame point.
-            self.last_frame_point = self.raw_points.last().map(|&p| p);
+            self.last_frame_point = self.raw_points.last().copied();
 
             // Write the points to buffer.
             let end = start + std::cmp::min(num_points_to_fill, self.raw_points.len());

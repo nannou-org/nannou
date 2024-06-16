@@ -60,15 +60,12 @@ fn capture_fn(audio: &mut CaptureModel, buffer: &Buffer) {
 }
 
 fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
-    match key {
-        KeyCode::Space => {
-            if model.stream.is_paused() {
-                model.stream.play().unwrap();
-            } else if model.stream.is_playing() {
-                model.stream.pause().unwrap();
-            }
+    if key == KeyCode::Space {
+        if model.stream.is_paused() {
+            model.stream.play().unwrap();
+        } else if model.stream.is_playing() {
+            model.stream.pause().unwrap();
         }
-        _ => {}
     }
 }
 

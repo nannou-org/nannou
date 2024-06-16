@@ -32,7 +32,7 @@ fn view(app: &App, model: &Model) {
     draw.background().color(WHITE);
 
     let amplitude = 300.0;
-    let x = amplitude * model.angle.sin() as f32;
+    let x = amplitude * model.angle.sin();
 
     draw.line()
         .start(pt2(0.0, 0.0))

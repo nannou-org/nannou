@@ -32,7 +32,6 @@
  */
 use nannou::lyon;
 use nannou::prelude::*;
-use std::time::Duration;
 
 fn main() {
     nannou::app(model).update(update).run();

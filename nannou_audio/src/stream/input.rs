@@ -140,7 +140,7 @@ impl<M, FC, FE, S> Builder<M, FC, FE, S> {
         let num_channels = matching.config.channels as usize;
         let sample_rate = matching.config.sample_rate.0;
         let sample_format = matching.sample_format;
-        let stream_config = matching.config.into();
+        let stream_config = matching.config;
 
         // A buffer for collecting model updates.
         let mut pending_updates: Vec<Box<dyn FnMut(&mut M) + 'static + Send>> = Vec::new();
@@ -196,15 +196,15 @@ impl<M, FC, FE, S> Builder<M, FC, FE, S> {
             match sample_format {
                 cpal::SampleFormat::U16 => {
                     let input = data.as_slice::<u16>().expect("expected u16 data");
-                    fill_input(&mut samples, &input);
+                    fill_input(&mut samples, input);
                 }
                 cpal::SampleFormat::I16 => {
                     let input = data.as_slice::<i16>().expect("expected i16 data");
-                    fill_input(&mut samples, &input);
+                    fill_input(&mut samples, input);
                 }
                 cpal::SampleFormat::F32 => {
                     let input = data.as_slice::<f32>().expect("expected f32 data");
-                    fill_input(&mut samples, &input);
+                    fill_input(&mut samples, input);
                 }
             }
 

@@ -82,7 +82,7 @@ fn view(app: &App, model: &Model) {
 
             let toggle = rng.gen::<bool>();
 
-            if toggle == false {
+            if !toggle {
                 draw.line()
                     .weight(mx / 20.0)
                     .caps(model.act_stroke_cap)
@@ -94,7 +94,7 @@ fn view(app: &App, model: &Model) {
                         ),
                     );
             }
-            if toggle == true {
+            if toggle {
                 draw.line()
                     .weight(my / 20.0)
                     .caps(model.act_stroke_cap)

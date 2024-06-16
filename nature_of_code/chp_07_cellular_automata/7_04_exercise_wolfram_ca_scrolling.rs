@@ -88,7 +88,7 @@ impl Ca {
             for row in 0..self.rows {
                 let mut y = row as i32 - offset;
                 if y <= rect.top() as i32 {
-                    y = self.rows as i32 + y;
+                    y += self.rows as i32;
                 }
                 // Only draw if cell state is 1
                 let mut fill = 1.0;
@@ -96,7 +96,7 @@ impl Ca {
                     fill = 0.0;
                 }
                 let x =
-                    ((self.w as i32 / 2) + col as i32 * self.w as i32) as f32 - rect.right() as f32;
+                    ((self.w as i32 / 2) + col as i32 * self.w as i32) as f32 - rect.right();
                 let y = rect.top() - (self.w / 2) as f32 - ((y - 1) * self.w as i32) as f32;
                 draw.rect()
                     .x_y(x, y)
@@ -138,11 +138,7 @@ impl Ca {
 
     // The CA is done if it reaches the bottom of the screen
     fn _finished(&self, rect: &geom::Rect) -> bool {
-        if self.generation > rect.h() as i32 / self.w as i32 {
-            true
-        } else {
-            false
-        }
+        self.generation > rect.h() as i32 / self.w as i32
     }
 }
 

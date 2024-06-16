@@ -69,7 +69,7 @@ fn update(app: &App, model: &mut Model) {
         model.x = (model.angle * model.freq + deg_to_rad(model.phi)).cos();
         model.x *= 100.0 - 125.0;
         model.y = (model.angle * model.freq + deg_to_rad(model.phi)).sin();
-        model.y = model.y * 100.0;
+        model.y *= 100.0;
     } else {
         model.point_count = app.window_rect().w() as usize;
     }
@@ -94,8 +94,7 @@ fn view(app: &App, model: &Model) {
             y *= 100.0;
             pt2(x_start + i as f32, y)
         })
-        .enumerate()
-        .map(|(_i, p)| {
+        .map(|p| {
             let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
             (p, rgba)
         });

@@ -16,7 +16,6 @@ pub use self::rosc::{
 };
 pub use self::send::Sender;
 
-use std;
 use std::net::{Ipv4Addr, SocketAddr};
 
 pub mod recv;
@@ -69,9 +68,9 @@ where
     }
 }
 
-impl Into<rosc::OscPacket> for Packet {
-    fn into(self) -> rosc::OscPacket {
-        match self {
+impl From<Packet> for rosc::OscPacket {
+    fn from(val: Packet) -> Self {
+        match val {
             Packet::Message(msg) => rosc::OscPacket::Message(msg),
             Packet::Bundle(bundle) => rosc::OscPacket::Bundle(bundle),
         }

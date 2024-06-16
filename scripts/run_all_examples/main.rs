@@ -76,7 +76,7 @@ fn main() {
                 .arg("-p")
                 .arg(&package)
                 .arg("--example")
-                .arg(&name)
+                .arg(name)
                 .spawn()
                 .expect("failed to spawn `cargo run --example` process");
 

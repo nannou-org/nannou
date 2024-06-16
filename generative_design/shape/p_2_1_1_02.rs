@@ -98,7 +98,7 @@ fn view(app: &App, model: &Model) {
 
             let toggle = rng.gen::<bool>();
 
-            if toggle == false {
+            if !toggle {
                 draw.line()
                     .color(model.color_left)
                     .weight(mx / 10.0)
@@ -111,7 +111,7 @@ fn view(app: &App, model: &Model) {
                         ),
                     );
             }
-            if toggle == true {
+            if toggle {
                 draw.line()
                     .color(model.color_right)
                     .weight(my / 10.0)

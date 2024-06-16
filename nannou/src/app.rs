@@ -7,10 +7,9 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
-use std::any::Any;
 use std::cell::RefCell;
 use std::hash::Hash;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
@@ -18,7 +17,6 @@ use std::{self};
 
 use bevy::app::AppExit;
 use bevy::asset::io::file::FileAssetReader;
-use bevy::asset::LoadState;
 use bevy::core::FrameCount;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::system::SystemParam;
@@ -26,9 +24,8 @@ use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::{MouseButtonInput, MouseWheel};
 use bevy::input::ButtonState;
-use bevy::pbr::ExtendedMaterial;
 use bevy::prelude::*;
-use bevy::reflect::{DynamicTypePath, GetTypeRegistration};
+use bevy::reflect::GetTypeRegistration;
 use bevy::window::{ExitCondition, PrimaryWindow, WindowClosed, WindowFocused, WindowResized};
 use bevy::winit::{UpdateMode, WinitSettings};
 #[cfg(feature = "egui")]
@@ -39,13 +36,11 @@ use bevy_egui::EguiContext;
 // use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use find_folder;
 
-use bevy_nannou::prelude::render::{DefaultNannouMaterial, ExtendedNannouMaterial};
 use bevy_nannou::prelude::{draw, DrawHolder};
 use bevy_nannou::NannouPlugin;
 
 use crate::prelude::bevy_ecs::system::SystemState;
-use crate::prelude::bevy_reflect::{ApplyError, ReflectMut, ReflectOwned, ReflectRef, TypeInfo};
-use crate::prelude::render::{NannouMaterial, NannouMesh, NannouPersistentMesh};
+use crate::prelude::render::{NannouMesh, NannouPersistentMesh};
 use crate::prelude::NannouMaterialPlugin;
 use crate::window::WindowUserFunctions;
 use crate::{geom, window};
@@ -109,8 +104,8 @@ enum DefaultWindowSize {
 }
 
 /// The default `model` function used when none is specified by the user.
-fn default_model(_: &App) -> () {
-    ()
+fn default_model(_: &App) {
+    
 }
 
 /// Each nannou application has a single **App** instance. This **App** represents the entire
@@ -417,7 +412,7 @@ impl<'w> App<'w> {
 
     // Allocate a persistent entity
     pub fn entity(&self) -> Entity {
-        let mut world = self.world_mut();
+        let world = self.world_mut();
         world.spawn((NannouPersistentMesh,)).id()
     }
 
@@ -464,18 +459,18 @@ impl<'w> App<'w> {
     }
 
     pub fn mouse_buttons(&self) -> &ButtonInput<MouseButton> {
-        let mut mouse_input = self.world_mut().resource::<ButtonInput<MouseButton>>();
+        let mouse_input = self.world_mut().resource::<ButtonInput<MouseButton>>();
         mouse_input
     }
 
     pub fn keys(&self) -> &ButtonInput<KeyCode> {
-        let mut keyboard_input = self.world_mut().resource::<ButtonInput<KeyCode>>();
+        let keyboard_input = self.world_mut().resource::<ButtonInput<KeyCode>>();
         keyboard_input
     }
 
     pub fn time(&self) -> Time {
         let time = self.world().get_resource::<Time>().unwrap();
-        time.clone()
+        *time
     }
 
     pub fn elapsed_seconds(&self) -> f32 {
@@ -490,12 +485,12 @@ impl<'w> App<'w> {
             .query::<&Window>()
             .iter(unsafe { world.world_mut() })
             .count();
-        let app = App {
+        
+        App {
             current_view: None,
             world: Rc::new(RefCell::new(world)),
             window_count: window_count.into(),
-        };
-        app
+        }
     }
 
     pub fn world(&self) -> &World {
@@ -526,7 +521,7 @@ impl<'w> App<'w> {
         M: 'static,
     {
         self.window_count.fetch_add(1usize, Ordering::SeqCst);
-        let builder = window::Builder::new(&self);
+        let builder = window::Builder::new(self);
         let config = self.world().resource::<Config>();
         let builder = match config.default_window_size {
             Some(DefaultWindowSize::Fullscreen) => builder.fullscreen(),
@@ -546,7 +541,7 @@ impl<'w> App<'w> {
     where
         'a: 'w,
     {
-        window::Window::new(&self, id)
+        window::Window::new(self, id)
     }
 
     /// Return the [Entity] of the currently focused window.
@@ -627,7 +622,7 @@ impl<'w> App<'w> {
     /// - macOS uses apple key + f.
     /// - Windows uses windows key + f.
     pub fn fullscreen_on_shortcut(&mut self) -> bool {
-        let mut config = self.world_mut().resource_mut::<Config>();
+        let config = self.world_mut().resource_mut::<Config>();
         config.fullscreen_on_shortcut
     }
 
@@ -644,7 +639,7 @@ impl<'w> App<'w> {
 
     /// Produce the [App]'s [DrawHolder] API for drawing geometry and text with colors and textures.
     pub fn draw(&self) -> draw::Draw {
-        let mut draw = self
+        let draw = self
             .world_mut()
             .entity(self.window_id())
             .get::<DrawHolder>();
@@ -652,7 +647,7 @@ impl<'w> App<'w> {
     }
 
     pub fn draw_for_window(&self, window: Entity) -> draw::Draw {
-        let mut draw = self.world_mut().entity(window).get::<DrawHolder>();
+        let draw = self.world_mut().entity(window).get::<DrawHolder>();
         draw.unwrap().0.clone()
     }
 
@@ -721,7 +716,7 @@ fn get_app_and_state<'w, 's, S: SystemParam + 'static>(
     state: &'s mut SystemState<S>,
 ) -> (App<'w>, <S as SystemParam>::Item<'w, 's>) {
     state.update_archetypes(world);
-    let mut app = App::new(world);
+    let app = App::new(world);
     let param = unsafe { state.get_unchecked_manual(*app.world.borrow_mut()) };
     (app, param)
 }
@@ -731,12 +726,12 @@ where
     M: 'static,
 {
     let default_window_size = world.resource::<Config>().default_window_size.clone();
-    let model_fn = world.resource::<ModelFnRes<M>>().0.clone();
+    let model_fn = world.resource::<ModelFnRes<M>>().0;
 
     let mut app = App::new(world);
 
     // Create our default window if necessary
-    if let Some(_) = app.world().get_resource::<CreateDefaultWindow>() {
+    if app.world().get_resource::<CreateDefaultWindow>().is_some() {
         let mut window: window::Builder<'_, '_, M> = app.new_window();
         match default_window_size {
             None => {}
@@ -776,7 +771,7 @@ fn first<M>(
 
 fn update<M>(
     world: &mut World,
-    mut state: &mut SystemState<(
+    state: &mut SystemState<(
         Res<UpdateFnRes<M>>,
         Res<ViewFnRes<M>>,
         NonSendMut<M>,
@@ -829,15 +824,13 @@ fn update<M>(
                     view_fn(&app);
                 }
             }
-        } else {
-            if let Some(view) = view_fn.0.as_ref() {
-                match view {
-                    View::WithModel(view_fn) => {
-                        view_fn(&app, &mut model, entity);
-                    }
-                    View::Sketch(view_fn) => {
-                        view_fn(&app);
-                    }
+        } else if let Some(view) = view_fn.0.as_ref() {
+            match view {
+                View::WithModel(view_fn) => {
+                    view_fn(&app, &mut model, entity);
+                }
+                View::Sketch(view_fn) => {
+                    view_fn(&app);
                 }
             }
         }
@@ -896,7 +889,7 @@ fn received_char_events<M>(
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.received_character {
                 app.current_view = Some(evt.window);
-                let char = evt.char.chars().into_iter().next().unwrap();
+                let char = evt.char.chars().next().unwrap();
                 f(&app, &mut model, char);
             }
         }
@@ -1018,7 +1011,7 @@ fn mouse_wheel_events<M>(
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.mouse_wheel {
                 app.current_view = Some(evt.window);
-                f(&app, &mut model, evt.clone());
+                f(&app, &mut model, *evt);
             }
         }
     }
@@ -1085,7 +1078,7 @@ fn touch_events<M>(
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.touch {
                 app.current_view = Some(evt.window);
-                f(&app, &mut model, evt.clone());
+                f(&app, &mut model, *evt);
             }
         }
     }
@@ -1152,11 +1145,9 @@ fn window_focus_events<M>(
                     app.current_view = Some(evt.window);
                     f(&app, &mut model);
                 }
-            } else {
-                if let Some(f) = user_fns.unfocused {
-                    app.current_view = Some(evt.window);
-                    f(&app, &mut model);
-                }
+            } else if let Some(f) = user_fns.unfocused {
+                app.current_view = Some(evt.window);
+                f(&app, &mut model);
             }
         }
     }
@@ -1189,7 +1180,7 @@ fn last<M>(world: &mut World, state: &mut SystemState<(EventReader<AppExit>, Res
 where
     M: 'static,
 {
-    let (mut app, (mut exit_events, exit_fn)) = get_app_and_state(world, state);
+    let (app, (exit_events, exit_fn)) = get_app_and_state(world, state);
 
     let should_exit = !exit_events.is_empty();
     if !should_exit {

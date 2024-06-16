@@ -139,6 +139,7 @@ pub enum EtherDreamStreamError {
 
 /// An action to perform in response to a `StreamError` occurring.
 #[derive(Clone, Debug)]
+#[derive(Default)]
 pub enum StreamErrorAction {
     /// Attempts to reconnect to the specified DAC in the case that one was provided, or any DAC in
     /// the case that `None` was provided.
@@ -153,6 +154,7 @@ pub enum StreamErrorAction {
         timeout: Option<Duration>,
     },
     /// Close the TCP communication thread and return the error responsible.
+    #[default]
     CloseThread,
 }
 
@@ -459,11 +461,6 @@ impl<M, F, E> Builder<M, F, E> {
     }
 }
 
-impl Default for StreamErrorAction {
-    fn default() -> Self {
-        StreamErrorAction::CloseThread
-    }
-}
 
 impl Deref for Buffer {
     type Target = [RawPoint];
@@ -606,12 +603,12 @@ where
         match run_laser_stream_tcp_loop(
             &dac,
             tcp_timeout,
-            &state,
-            &model,
+            state,
+            model,
             &render,
-            &state_update_rx,
-            &model_update_rx,
-            &is_closed,
+            state_update_rx,
+            model_update_rx,
+            is_closed,
             &mut connect_attempts,
         ) {
             Ok(()) => break,
@@ -663,10 +660,10 @@ where
     let mut pending_model_updates: Vec<ModelUpdate<M>> = Vec::new();
 
     // Establish the TCP connection.
-    let ip = src_addr.ip().clone();
+    let ip = src_addr.ip();
     let result = match tcp_timeout {
-        None => ether_dream::dac::stream::connect(&broadcast, ip),
-        Some(timeout) => ether_dream::dac::stream::connect_timeout(&broadcast, ip, timeout)
+        None => ether_dream::dac::stream::connect(broadcast, ip),
+        Some(timeout) => ether_dream::dac::stream::connect_timeout(broadcast, ip, timeout)
             .and_then(|stream| {
                 stream.set_timeout(Some(timeout))?;
                 Ok(stream)

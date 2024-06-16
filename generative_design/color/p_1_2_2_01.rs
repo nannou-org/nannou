@@ -193,15 +193,15 @@ fn sort_colors(colors: &mut Vec<Srgba>, mode: &SortMode) {
         }
         SortMode::Hue => {
             colors.sort_by(|a, b| {
-                let a: Hsla = a.clone().into();
-                let b: Hsla = b.clone().into();
+                let a: Hsla = (*a).into();
+                let b: Hsla = (*b).into();
                 a.hue.to_radians().partial_cmp(&b.hue.to_radians()).unwrap()
             });
         }
         SortMode::Saturation => {
             colors.sort_by(|a, b| {
-                let a: Hsla = a.clone().into();
-                let b: Hsla = b.clone().into();
+                let a: Hsla = (*a).into();
+                let b: Hsla = (*b).into();
 
                 // temporary fix until conrod bug with saturation is resolved
                 if a.saturation.is_nan() && b.saturation.is_nan() {
@@ -217,8 +217,8 @@ fn sort_colors(colors: &mut Vec<Srgba>, mode: &SortMode) {
         }
         SortMode::Brightness => {
             colors.sort_by(|a, b| {
-                let a: Hsla = a.clone().into();
-                let b: Hsla = b.clone().into();
+                let a: Hsla = (*a).into();
+                let b: Hsla = (*b).into();
                 a.lightness.partial_cmp(&b.lightness).unwrap()
             });
         }

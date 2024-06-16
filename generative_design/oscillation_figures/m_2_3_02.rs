@@ -100,8 +100,7 @@ fn view(app: &App, model: &Model) {
                 y *= win.h() / 2.0 - 50.0;
                 pt2(x, y)
             })
-            .enumerate()
-            .map(|(_i, p)| {
+            .map(|p| {
                 let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });

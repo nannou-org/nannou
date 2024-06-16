@@ -84,8 +84,8 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
             let yb = [0.0, 1.0];
             let x = [lit_p(xa), lit_p(xb)];
             let y = [lit_p(ya), lit_p(yb)];
-            frame.add_lines(&x);
-            frame.add_lines(&y);
+            frame.add_lines(x);
+            frame.add_lines(y);
         }
 
         TestPattern::ThreeVerticalLines => {
@@ -98,9 +98,9 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
             let l = [lit_p(la), lit_p(lb)];
             let m = [lit_p(ma), lit_p(mb)];
             let r = [lit_p(ra), lit_p(rb)];
-            frame.add_lines(&l);
-            frame.add_lines(&m);
-            frame.add_lines(&r);
+            frame.add_lines(l);
+            frame.add_lines(m);
+            frame.add_lines(r);
         }
 
         TestPattern::Circle => {

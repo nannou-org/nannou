@@ -28,10 +28,10 @@ fn update(app: &App, m: &mut Model) {
 
     let rect = app.window_rect();
     if (m.position.x > rect.right()) || (m.position.x < rect.left()) {
-        m.velocity.x = m.velocity.x * -1.0;
+        m.velocity.x *= -1.0;
     }
     if (m.position.y > rect.top()) || (m.position.y < rect.bottom()) {
-        m.velocity.y = m.velocity.y * -1.0;
+        m.velocity.y *= -1.0;
     }
 }
 

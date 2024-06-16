@@ -33,16 +33,16 @@ fn model(app: &App) -> Model {
 
 fn update(app: &App, model: &mut Model) {
     // Add the current speed to the position
-    model.x = model.x + model.x_speed;
-    model.y = model.y + model.y_speed;
+    model.x += model.x_speed;
+    model.y += model.y_speed;
 
     let win_rect = app.window_rect();
 
     if (model.x > win_rect.right()) || (model.x < win_rect.left()) {
-        model.x_speed = model.x_speed * -1.0;
+        model.x_speed *= -1.0;
     }
     if (model.y > win_rect.top()) || (model.y < win_rect.bottom()) {
-        model.y_speed = model.y_speed * -1.0;
+        model.y_speed *= -1.0;
     }
 }
 

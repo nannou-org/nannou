@@ -88,7 +88,7 @@ fn model(app: &App) -> Model {
     things.push(candidate);
 
     Model {
-        palette: palette,
+        palette,
         things,
     }
 }
@@ -107,12 +107,10 @@ fn update(app: &App, model: &mut Model) {
         tree.insert(&model.things, i);
     }
     for i in 0..max_count {
-        if model.things[i].parent == None {
-            if app.elapsed_frames() < 1000 {
-                model.things[i].energy += 10000.0;
-                if model.things[i].alive == true {
-                    model.things[i].grown = true;
-                }
+        if model.things[i].parent.is_none() && app.elapsed_frames() < 1000 {
+            model.things[i].energy += 10000.0;
+            if model.things[i].alive {
+                model.things[i].grown = true;
             }
         }
         //move the size to the children
@@ -159,14 +157,12 @@ fn update(app: &App, model: &mut Model) {
                     model.things[i].children.push(s);
                 }
             }
-            if model.things[i].energy > 10.0 {
-                if model.things[i].children.len() > 0 {
-                    model.things[i].energy -= 1.0;
-                    for k in 0..model.things[i].children.len() {
-                        let other = model.things[i].children[k];
-                        model.things[other].energy += 3.0;
-                        model.things[other].grown = true;
-                    }
+            if model.things[i].energy > 10.0 && !model.things[i].children.is_empty() {
+                model.things[i].energy -= 1.0;
+                for k in 0..model.things[i].children.len() {
+                    let other = model.things[i].children[k];
+                    model.things[other].energy += 3.0;
+                    model.things[other].grown = true;
                 }
             }
         }
@@ -174,7 +170,7 @@ fn update(app: &App, model: &mut Model) {
 
     //check if the grown things are free
     for i in 0..model.things.len() {
-        if model.things[i].grown == true {
+        if model.things[i].grown {
             let indices = tree.get_elements(
                 &model.things,
                 model.things[i].position.x,
@@ -199,7 +195,7 @@ fn update(app: &App, model: &mut Model) {
                     }
                 }
             }
-            if model.things[i].alive == true {
+            if model.things[i].alive {
                 if model.things[i].size > 29.0 {
                     model.things[i].alive = false;
                 } else {
@@ -237,7 +233,7 @@ fn view(app: &App, model: &Model) {
     //draw ALL THE THINGS
     for k in 0..model.things.len() {
         //get a color from the palette indexed by frac
-        let mut c2: Srgba = model.palette.somecolor_frac(model.things[k].frac).into();
+        let mut c2: Srgba = model.palette.somecolor_frac(model.things[k].frac);
         // make it fade
         c2.alpha = 1.0 - frac_end;
         let c3 = Color::srgba(0.0, 0.0, 0.0, 1.0 - frac_end);

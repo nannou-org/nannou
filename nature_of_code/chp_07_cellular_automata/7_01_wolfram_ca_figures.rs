@@ -90,8 +90,8 @@ impl Ca {
             }
             draw.rect()
                 .x_y(
-                    ((self.scl / 2) + i as i32 * self.scl) as f32 - rect.right() as f32,
-                    rect.top() as f32 - (self.generation * self.scl - (self.scl / 2)) as f32,
+                    ((self.scl / 2) + i as i32 * self.scl) as f32 - rect.right(),
+                    rect.top() - (self.generation * self.scl - (self.scl / 2)) as f32,
                 )
                 .w_h(self.scl as f32, self.scl as f32)
                 .gray(fill)
@@ -131,11 +131,7 @@ impl Ca {
 
     // The CA is done if it reaches the bottom of the screen
     fn finished(&self, rect: &geom::Rect) -> bool {
-        if self.generation > rect.h() as i32 / self.scl {
-            true
-        } else {
-            false
-        }
+        self.generation > rect.h() as i32 / self.scl
     }
 }
 
@@ -156,7 +152,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, m: &mut Model) {
-    if m.ca.finished(&app.window_rect()) == false {
+    if !m.ca.finished(&app.window_rect()) {
         m.ca.generate();
     } else {
         m.ca.randomize();

@@ -50,7 +50,7 @@ fn model(app: &App) -> Model {
     let current_path = 0;
     let path = &ilda_paths[current_path];
     let last_change = Instant::now();
-    let frame_reader = BufFileFrameReader::open(&path).unwrap();
+    let frame_reader = BufFileFrameReader::open(path).unwrap();
     let laser_model = Laser {
         ilda_paths,
         last_change,
@@ -104,7 +104,7 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
         laser.current_path %= laser.ilda_paths.len();
         let path = &laser.ilda_paths[laser.current_path];
         println!("{}", path.display());
-        laser.frame_reader = BufFileFrameReader::open(&path).unwrap();
+        laser.frame_reader = BufFileFrameReader::open(path).unwrap();
     }
 }
 

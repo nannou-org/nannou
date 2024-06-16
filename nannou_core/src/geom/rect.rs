@@ -289,7 +289,7 @@ where
     pub fn overlap(self, other: Self) -> Option<Self> {
         self.x
             .overlap(other.x)
-            .and_then(|x| self.y.overlap(other.y).map(|y| Rect { x: x, y: y }))
+            .and_then(|x| self.y.overlap(other.y).map(|y| Rect { x, y }))
     }
 
     /// The Rect that encompass the two given sets of Rect.

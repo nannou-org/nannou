@@ -120,25 +120,25 @@ impl<M> Clone for UserFunctions<M> {
     fn clone(&self) -> Self {
         UserFunctions {
             view: self.view.clone(),
-            key_pressed: self.key_pressed.clone(),
-            key_released: self.key_released.clone(),
-            received_character: self.received_character.clone(),
-            mouse_moved: self.mouse_moved.clone(),
-            mouse_pressed: self.mouse_pressed.clone(),
-            mouse_released: self.mouse_released.clone(),
-            mouse_entered: self.mouse_entered.clone(),
-            mouse_exited: self.mouse_exited.clone(),
-            mouse_wheel: self.mouse_wheel.clone(),
-            moved: self.moved.clone(),
-            resized: self.resized.clone(),
-            touch: self.touch.clone(),
+            key_pressed: self.key_pressed,
+            key_released: self.key_released,
+            received_character: self.received_character,
+            mouse_moved: self.mouse_moved,
+            mouse_pressed: self.mouse_pressed,
+            mouse_released: self.mouse_released,
+            mouse_entered: self.mouse_entered,
+            mouse_exited: self.mouse_exited,
+            mouse_wheel: self.mouse_wheel,
+            moved: self.moved,
+            resized: self.resized,
+            touch: self.touch,
             // touchpad_pressure: self.touchpad_pressure,
-            hovered_file: self.hovered_file.clone(),
-            hovered_file_cancelled: self.hovered_file_cancelled.clone(),
-            dropped_file: self.dropped_file.clone(),
-            focused: self.focused.clone(),
-            unfocused: self.unfocused.clone(),
-            closed: self.closed.clone(),
+            hovered_file: self.hovered_file,
+            hovered_file_cancelled: self.hovered_file_cancelled,
+            dropped_file: self.dropped_file,
+            focused: self.focused,
+            unfocused: self.unfocused,
+            closed: self.closed,
         }
     }
 }
@@ -409,7 +409,7 @@ where
 
         if self.primary {
             let mut q = self.app.world_mut().query::<&PrimaryWindow>();
-            if let Ok(_) = q.get_single(self.app.world_mut()) {
+            if q.get_single(self.app.world_mut()).is_ok() {
                 panic!("Only one primary window can be created");
             }
 
@@ -426,7 +426,7 @@ where
                     target: RenderTarget::Window(WindowRef::Entity(entity)),
                     clear_color: self
                         .clear_color
-                        .map(|c| ClearColorConfig::Custom(c))
+                        .map(ClearColorConfig::Custom)
                         .unwrap_or(ClearColorConfig::None),
                     ..default()
                 },

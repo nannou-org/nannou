@@ -243,15 +243,15 @@ impl<V> From<(V, V, V)> for Tri<V> {
     }
 }
 
-impl<V> Into<[V; 3]> for Tri<V> {
-    fn into(self) -> [V; 3] {
-        self.0
+impl<V> From<Tri<V>> for [V; 3] {
+    fn from(val: Tri<V>) -> Self {
+        val.0
     }
 }
 
-impl<V> Into<(V, V, V)> for Tri<V> {
-    fn into(self) -> (V, V, V) {
-        let Tri([a, b, c]) = self;
+impl<V> From<Tri<V>> for (V, V, V) {
+    fn from(val: Tri<V>) -> Self {
+        let Tri([a, b, c]) = val;
         (a, b, c)
     }
 }

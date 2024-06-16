@@ -22,7 +22,6 @@
  * and prints them to the console
  */
 use nannou::prelude::*;
-use wikipedia;
 
 fn main() {
     nannou::app(model).update(update).run();

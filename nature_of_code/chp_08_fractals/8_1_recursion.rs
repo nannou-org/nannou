@@ -36,6 +36,6 @@ fn draw_circle(draw: &Draw, x: f32, y: f32, mut r: f32) {
     if r > 2.0 {
         r *= 0.75;
         // Call the function insie the function! (recursion!)
-        draw_circle(&draw, x, y, r);
+        draw_circle(draw, x, y, r);
     }
 }

@@ -97,8 +97,8 @@ fn update(app: &App, model: &mut Model) {
                 model.counter = 0;
             }
 
-            model.x = model.x + model.angle.cos() * model.step_size;
-            model.y = model.y + model.angle.sin() * model.step_size;
+            model.x += model.angle.cos() * model.step_size;
+            model.y += model.angle.sin() * model.step_size;
         }
     }
 }

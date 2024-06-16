@@ -76,27 +76,21 @@ fn pass_in(model: &mut InputModel, buffer: &Buffer) {
 fn pass_out(model: &mut OutputModel, buffer: &mut Buffer) {
     for frame in buffer.frames_mut() {
         for sample in frame {
-            let recorded_sample = match model.consumer.pop() {
-                Some(f) => f,
-                None => 0.0,
-            };
+            let recorded_sample = model.consumer.pop().unwrap_or(0.0);
             *sample = recorded_sample;
         }
     }
 }
 
 fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
-    match key {
-        KeyCode::Space => {
-            if model.in_stream.is_paused() {
-                model.in_stream.play().unwrap();
-                model.out_stream.play().unwrap();
-            } else {
-                model.in_stream.pause().unwrap();
-                model.out_stream.pause().unwrap();
-            }
+    if key == KeyCode::Space {
+        if model.in_stream.is_paused() {
+            model.in_stream.play().unwrap();
+            model.out_stream.play().unwrap();
+        } else {
+            model.in_stream.pause().unwrap();
+            model.out_stream.pause().unwrap();
         }
-        _ => {}
     }
 }
 

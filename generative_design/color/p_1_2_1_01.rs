@@ -114,7 +114,7 @@ fn view(app: &App, model: &Model) {
 }
 
 fn cast_to_rgb(col: Hsva) -> LinearRgba {
-    let red: f32 = col.hue.into();
+    let red: f32 = col.hue;
     let green = col.saturation;
     let blue = col.value;
     LinearRgba::new(red / 360.0, green, blue, 1.0)

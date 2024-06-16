@@ -61,7 +61,7 @@ fn view(app: &App, model: &Model) {
 
     let win = app.window_rect();
     // first shape (fixed)
-    overlay(&draw, &model, win, 3.0);
+    overlay(&draw, model, win, 3.0);
 
     // second shape (dynamically translated/rotated and scaled)
     let x = map_range(app.mouse().x, win.left(), win.right(), -50.0, 50.0);
@@ -75,7 +75,7 @@ fn view(app: &App, model: &Model) {
     }
     draw = draw.scale(s);
 
-    overlay(&draw, &model, win, 2.0);
+    overlay(&draw, model, win, 2.0);
 }
 
 fn overlay(draw: &Draw, model: &Model, rect: geom::Rect, stroke_weight: f32) {

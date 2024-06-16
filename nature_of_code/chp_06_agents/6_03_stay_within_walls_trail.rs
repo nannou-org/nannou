@@ -145,8 +145,7 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
         let points_colored = history
             .iter()
             .map(|v| pt2(v.x, v.y))
-            .enumerate()
-            .map(|(_, p)| {
+            .map(|p| {
                 let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });

@@ -28,12 +28,12 @@ struct Wave {
 impl Wave {
     fn new(o: Point2, w: f32, a: f32, p: f32) -> Self {
         let origin = o;
-        let x_spacing = 8.0 as f32;
-        let theta = 0.0 as f32;
+        let x_spacing = 8.0_f32;
+        let theta = 0.0_f32;
         let _w = w;
         let _period = p;
         let amplitude = a;
-        let dx = (((PI * 2.0) / _period) * x_spacing) as f32;
+        let dx = (((PI * 2.0) / _period) * x_spacing);
         let y_values = (0..(w / x_spacing) as i32).map(|_| 0.0).collect();
         Wave {
             origin,

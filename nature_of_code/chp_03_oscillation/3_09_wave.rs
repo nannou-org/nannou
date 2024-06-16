@@ -39,7 +39,7 @@ fn view(app: &App, model: &Model) {
     while x <= rect.right() {
         let y = map_range(angle.sin(), -1.0, 1.0, rect.top(), rect.bottom());
         draw.ellipse()
-            .x_y(x as f32, y)
+            .x_y(x, y)
             .w_h(48.0, 48.0)
             .rgba(0.0, 0.0, 0.0, 0.5)
             .stroke(BLACK)

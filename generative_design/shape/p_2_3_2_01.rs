@@ -76,8 +76,8 @@ fn update(app: &App, model: &mut Model) {
         if model.dist > model.step_size {
             model.angle = (app.mouse().x - model.y).atan2(app.mouse().x - model.x);
             if model.draw_mode == 1 {
-                model.x = model.x + model.angle.cos() * model.step_size;
-                model.y = model.y + model.angle.sin() * model.step_size;
+                model.x += model.angle.cos() * model.step_size;
+                model.y += model.angle.sin() * model.step_size;
             } else {
                 model.x = app.mouse().x;
                 model.y = app.mouse().x;

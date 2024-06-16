@@ -265,7 +265,7 @@ impl<'l> Iterator for PathConvIter<'l> {
     }
 }
 
-pub fn convert_path<'a>(p: &'a usvg::Path) -> PathConvIter<'a> {
+pub fn convert_path(p: &usvg::Path) -> PathConvIter<'_> {
     PathConvIter {
         iter: p.segments.iter(),
         first: Point::new(0.0, 0.0),

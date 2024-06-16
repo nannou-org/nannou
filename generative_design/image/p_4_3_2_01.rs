@@ -28,9 +28,7 @@
  * s                 : save png
  */
 use nannou::prelude::*;
-use std::time::Duration;
 
-use nannou::image;
 use nannou::image::GenericImageView;
 
 fn main() {

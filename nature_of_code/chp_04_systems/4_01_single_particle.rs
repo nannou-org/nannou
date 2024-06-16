@@ -54,11 +54,7 @@ impl Particle {
 
     // Is the poarticel still useful?
     fn is_dead(&self) -> bool {
-        if self.life_span < 0.0 {
-            true
-        } else {
-            false
-        }
+        self.life_span < 0.0
     }
 }
 

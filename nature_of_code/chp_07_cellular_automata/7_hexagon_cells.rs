@@ -102,7 +102,7 @@ impl Gol {
     fn display(&self, draw: &Draw, rect: &geom::Rect) {
         for i in 0..self.columns {
             for j in 0..self.rows {
-                self.board[i][j].display(&draw, &rect);
+                self.board[i][j].display(draw, rect);
             }
         }
     }

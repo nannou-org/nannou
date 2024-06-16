@@ -122,12 +122,12 @@ where
     }
 }
 
-impl<R> Into<SectionReader<R>> for FrameReader<R>
+impl<R> From<FrameReader<R>> for SectionReader<R>
 where
     R: io::Read,
 {
-    fn into(self) -> SectionReader<R> {
-        self.into_section_reader()
+    fn from(val: FrameReader<R>) -> Self {
+        val.into_section_reader()
     }
 }
 

@@ -50,11 +50,7 @@ impl Particle {
 
     // Is the particle still useful?
     fn is_dead(&self) -> bool {
-        if self.life_span < 0.0 {
-            true
-        } else {
-            false
-        }
+        self.life_span < 0.0
     }
 }
 
@@ -85,7 +81,7 @@ impl ParticleSystem {
 
     fn draw(&self, draw: &Draw) {
         for p in self.particles.iter() {
-            p.display(&draw);
+            p.display(draw);
         }
     }
 }
@@ -97,7 +93,7 @@ struct Model {
 fn model(app: &App) -> Model {
     app.new_window().size(640, 360).view(view).build();
     let (_w, h) = app.window_rect().w_h();
-    let ps = ParticleSystem::new(pt2(0.0, (h as f32 / 2.0) - 50.0));
+    let ps = ParticleSystem::new(pt2(0.0, (h / 2.0) - 50.0));
     Model { ps }
 }
 

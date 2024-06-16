@@ -81,8 +81,7 @@ fn view(app: &App, model: &Model) {
                 y *= win.h() / 4.0;
                 pt2(win.left() + i as f32, y)
             })
-            .enumerate()
-            .map(|(_i, p)| {
+            .map(|p| {
                 let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
@@ -98,8 +97,7 @@ fn view(app: &App, model: &Model) {
                 y *= win.h() / 4.0;
                 pt2(win.left() + i as f32, y)
             })
-            .enumerate()
-            .map(|(_i, p)| {
+            .map(|p| {
                 let rgba = Color::srgba(0.0, 0.5, 0.64, 0.5);
                 (p, rgba)
             });
@@ -117,8 +115,7 @@ fn view(app: &App, model: &Model) {
                 y *= win.h() / 4.0;
                 pt2(win.left() + i as f32, y)
             })
-            .enumerate()
-            .map(|(_i, p)| {
+            .map(|p| {
                 let rgba = Color::srgba(0.30, 1.0, 0.64, 0.75);
                 (p, rgba)
             });

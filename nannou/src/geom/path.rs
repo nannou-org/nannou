@@ -18,6 +18,12 @@ pub struct Builder {
     builder: NoAttributes<lyon::path::Builder>,
 }
 
+impl Default for Path {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Path {
     /// Begin building a new path.
     pub fn builder() -> Builder {
@@ -74,6 +80,12 @@ impl Path {
         Self {
             path: self.path.iter().chain(other.iter()).collect(),
         }
+    }
+}
+
+impl Default for Builder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -250,21 +262,21 @@ impl From<lyon::path::Builder> for Builder {
     }
 }
 
-impl Into<lyon::path::Path> for Path {
-    fn into(self) -> lyon::path::Path {
-        self.path
+impl From<Path> for lyon::path::Path {
+    fn from(val: Path) -> Self {
+        val.path
     }
 }
 
-impl Into<lyon::path::Builder> for Builder {
-    fn into(self) -> lyon::path::Builder {
-        self.builder.into_inner()
+impl From<Builder> for lyon::path::Builder {
+    fn from(val: Builder) -> Self {
+        val.builder.into_inner()
     }
 }
 
-impl<'a> Into<lyon::path::PathSlice<'a>> for &'a Path {
-    fn into(self) -> lyon::path::PathSlice<'a> {
-        self.as_slice()
+impl<'a> From<&'a Path> for lyon::path::PathSlice<'a> {
+    fn from(val: &'a Path) -> Self {
+        val.as_slice()
     }
 }
 

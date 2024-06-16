@@ -51,12 +51,12 @@ impl Particle {
 impl Wave {
     fn new(o: Point2, w: f32, a: f32, p: f32) -> Self {
         let origin = o;
-        let x_spacing = 8.0 as f32;
-        let theta = 0.0 as f32;
+        let x_spacing = 8.0_f32;
+        let theta = 0.0_f32;
         let w = w; // Width of entire wave
         let period = p; // How many pixels before the wave repeats
         let amplitude = a;
-        let dx = (((std::f32::consts::PI * 2.0) / period) * x_spacing) as f32;
+        let dx = (((std::f32::consts::PI * 2.0) / period) * x_spacing);
         let range = (w / x_spacing) as i32;
         let _y_values = (0..range).map(|_| 0.0).collect();
         let particles = (0..range).map(|_| Particle::new()).collect();
@@ -89,7 +89,7 @@ impl Wave {
     fn display(&self, draw: &Draw) {
         // A simple way to draw the wave with an ellipse at each position
         for x in 0..self.particles.len() {
-            self.particles[x].display(&draw);
+            self.particles[x].display(draw);
         }
     }
 }

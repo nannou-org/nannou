@@ -184,14 +184,12 @@ where
         } else {
             n
         }
+    } else if n < end {
+        end
+    } else if n > start {
+        start
     } else {
-        if n < end {
-            end
-        } else if n > start {
-            start
-        } else {
-            n
-        }
+        n
     }
 }
 

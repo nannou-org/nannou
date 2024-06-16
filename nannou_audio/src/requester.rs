@@ -27,7 +27,7 @@ where
         let num_samples = num_frames + num_channels;
         Requester {
             samples: vec![S::EQUILIBRIUM; num_samples],
-            num_frames: num_frames,
+            num_frames,
             pending_range: None,
         }
     }
@@ -122,7 +122,7 @@ where
             silence(samples);
 
             // Render the state of the model to the samples buffer.
-            let interleaved_samples = std::mem::replace(samples, Vec::new()).into_boxed_slice();
+            let interleaved_samples = std::mem::take(samples).into_boxed_slice();
             let mut buffer = Buffer {
                 interleaved_samples,
                 channels,

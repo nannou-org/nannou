@@ -61,7 +61,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let IterFromIndices {
             ref mut indices,
-            ref vertices,
+            vertices,
         } = *self;
         indices.next().map(|i| &vertices[i])
     }
@@ -78,7 +78,7 @@ where
     fn next_back(&mut self) -> Option<Self::Item> {
         let IterFromIndices {
             ref mut indices,
-            ref vertices,
+            vertices,
         } = *self;
         indices.next_back().map(|i| &vertices[i])
     }

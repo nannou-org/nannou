@@ -85,11 +85,7 @@ impl Attractor {
 
     fn hover(&mut self, mx: f32, my: f32) {
         let d = self.position.distance(pt2(mx, my));
-        if d < self.mass {
-            self.roll_over = true;
-        } else {
-            self.roll_over = false;
-        }
+        self.roll_over = d < self.mass;
     }
 
     fn stop_dragging(&mut self) {

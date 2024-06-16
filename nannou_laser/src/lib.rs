@@ -34,6 +34,12 @@ pub struct Api {
 // drops out for some reason.
 pub(crate) struct Inner;
 
+impl Default for Api {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Api {
     /// Instantiate the laser API.
     pub fn new() -> Self {

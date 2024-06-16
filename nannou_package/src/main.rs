@@ -48,7 +48,7 @@ where
             zip.start_file(name, options)?;
             let mut f = fs::File::open(path)?;
             f.read_to_end(&mut buffer)?;
-            zip.write_all(&*buffer)?;
+            zip.write_all(&buffer)?;
             buffer.clear();
         }
     }
@@ -142,7 +142,7 @@ fn main() {
             release_path.display()
         );
     }
-    let exe_path = release_path.join(&name);
+    let exe_path = release_path.join(name);
     if !exe_path.exists() || !exe_path.is_file() {
         panic!("The file \"{}\" does not exist.", release_path.display());
     }
@@ -174,7 +174,7 @@ fn main() {
         .file_name()
         .and_then(|s| s.to_str())
         .expect("could not get exe name");
-    let build_exe_path = build_path.join(&exe_name);
+    let build_exe_path = build_path.join(exe_name);
     println!(
         "Copying \"{}\" to \"{}\"",
         exe_path.display(),

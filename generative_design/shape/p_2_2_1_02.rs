@@ -168,7 +168,7 @@ fn view(app: &App, model: &Model) {
     }
 
     model.positions.iter().enumerate().for_each(|(i, pos)| {
-        if model.draw_mode == 3 && model.counter_triggers[i] == true {
+        if model.draw_mode == 3 && model.counter_triggers[i] {
             draw.ellipse()
                 .x_y(pos.x + model.step_size / 2.0, pos.y + model.step_size / 2.0)
                 .radius(model.radius + 3.5)

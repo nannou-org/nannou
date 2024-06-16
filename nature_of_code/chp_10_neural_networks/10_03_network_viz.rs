@@ -39,7 +39,7 @@ impl Neuron {
             .stroke(BLACK);
 
         for c in &self.connections {
-            c.display(&draw);
+            c.display(draw);
         }
     }
 }
@@ -96,7 +96,7 @@ impl Network {
     // We can draw the network
     fn display(&self, draw: &Draw) {
         for n in &self.neurons {
-            n.display(&draw);
+            n.display(draw);
         }
     }
 }

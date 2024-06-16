@@ -92,7 +92,7 @@ fn view(app: &App, model: &Model) {
     draw.background().color(WHITE);
 
     model.shapes.iter().for_each(|shape| {
-        shape.display(&draw, &model);
+        shape.display(&draw, model);
     });
 }
 

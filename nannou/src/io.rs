@@ -124,7 +124,7 @@ where
         if backup_path.exists() {
             fs::remove_file(&backup_path)?;
         }
-        fs::rename(&path, &backup_path)?;
+        fs::rename(path, &backup_path)?;
     }
 
     // Rename the temp file to the original path name.

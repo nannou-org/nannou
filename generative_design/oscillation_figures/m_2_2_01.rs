@@ -107,8 +107,7 @@ fn view(app: &App, model: &Model) {
             y *= factor_y;
             pt2(xs + x, ys - y)
         })
-        .enumerate()
-        .map(|(_i, p)| {
+        .map(|p| {
             let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
             (p, rgba)
         });
@@ -127,8 +126,7 @@ fn view(app: &App, model: &Model) {
                     + i as f32 / model.point_count as f32 * (win.h() / 2.0 - 2.0 * model.margin);
                 pt2(xs + x, ys - y)
             })
-            .enumerate()
-            .map(|(_i, p)| {
+            .map(|p| {
                 let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
@@ -145,8 +143,7 @@ fn view(app: &App, model: &Model) {
                     + i as f32 / model.point_count as f32 * (win.w() / 2.0 - 2.0 * model.margin);
                 pt2(xs + x, ys - y)
             })
-            .enumerate()
-            .map(|(_i, p)| {
+            .map(|p| {
                 let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });

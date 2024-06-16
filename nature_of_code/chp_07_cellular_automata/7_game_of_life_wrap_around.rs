@@ -101,8 +101,8 @@ impl Gol {
                 let offset = self.w as f32 / 2.0;
                 draw.rect()
                     .x_y(
-                        offset + (i * self.w) as f32 - rect.right() as f32,
-                        offset + (j * self.w) as f32 - rect.top() as f32,
+                        offset + (i * self.w) as f32 - rect.right(),
+                        offset + (j * self.w) as f32 - rect.top(),
                     )
                     .w_h(self.w as f32, self.w as f32)
                     .gray(fill)

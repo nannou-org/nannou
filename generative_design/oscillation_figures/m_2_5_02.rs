@@ -117,7 +117,7 @@ fn view(app: &App, model: &Model) {
             for i in 0..(model.point_count - 1) {
                 draw_line(
                     &draw,
-                    &model,
+                    model,
                     model.lissajous_points[i],
                     model.lissajous_points[i + 1],
                 );
@@ -126,7 +126,7 @@ fn view(app: &App, model: &Model) {
             for i2 in 0..model.point_index {
                 draw_line(
                     &draw,
-                    &model,
+                    model,
                     model.lissajous_points[model.point_index],
                     model.lissajous_points[i2],
                 );

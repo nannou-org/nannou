@@ -16,7 +16,7 @@ fn model(app: &App) -> Model {
 }
 
 // Void functions that do not return anything
-fn do_something() -> () {
+fn do_something() {
     println!("DO IT!!!!");
 }
 

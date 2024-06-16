@@ -78,8 +78,8 @@ impl Gol {
                 let mut neighbors = 0;
                 for i in 0..3 {
                     for j in 0..3 {
-                        neighbors += self.board[(x as i32 + (i as i32 - 1)) as usize]
-                            [(y as i32 + (j as i32 - 1)) as usize];
+                        neighbors += self.board[(x as i32 + (i - 1)) as usize]
+                            [(y as i32 + (j - 1)) as usize];
                     }
                 }
 
@@ -114,8 +114,8 @@ impl Gol {
                 let offset = self.w as f32 / 2.0;
                 draw.rect()
                     .x_y(
-                        offset + (i * self.w) as f32 - rect.right() as f32,
-                        offset + (j * self.w) as f32 - rect.top() as f32,
+                        offset + (i * self.w) as f32 - rect.right(),
+                        offset + (j * self.w) as f32 - rect.top(),
                     )
                     .w_h(self.w as f32, self.w as f32)
                     .gray(fill)

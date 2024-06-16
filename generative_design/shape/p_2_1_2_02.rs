@@ -140,10 +140,10 @@ fn key_released(_app: &App, model: &mut Model, key: KeyCode) {
                 model.module_alpha_background,
             )) {
                 model.module_color_background =
-                    Hsva::new(0.758, 0.73, 0.51, model.module_alpha_background).into();
+                    Hsva::new(0.758, 0.73, 0.51, model.module_alpha_background);
             } else {
                 model.module_color_background =
-                    Hsva::new(0.0, 0.0, 0.0, model.module_alpha_background).into();
+                    Hsva::new(0.0, 0.0, 0.0, model.module_alpha_background);
             }
         }
         KeyCode::Digit2 => {
@@ -154,10 +154,10 @@ fn key_released(_app: &App, model: &mut Model, key: KeyCode) {
                 model.module_alpha_foreground,
             )) {
                 model.module_color_foreground =
-                    Hsva::new(0.89, 1.0, 0.77, model.module_alpha_foreground).into();
+                    Hsva::new(0.89, 1.0, 0.77, model.module_alpha_foreground);
             } else {
                 model.module_color_foreground =
-                    Hsva::new(1.0, 1.0, 1.0, model.module_alpha_foreground).into();
+                    Hsva::new(1.0, 1.0, 1.0, model.module_alpha_foreground);
             }
         }
         KeyCode::Digit3 => {

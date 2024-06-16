@@ -139,7 +139,7 @@ impl<M, FR, FE, S> Builder<M, FR, FE, S> {
         let num_channels = matching.config.channels as usize;
         let sample_rate = matching.config.sample_rate.0;
         let sample_format = matching.sample_format;
-        let stream_config = matching.config.into();
+        let stream_config = matching.config;
 
         // A buffer for collecting model updates.
         let mut pending_updates: Vec<Box<dyn FnMut(&mut M) + 'static + Send>> = Vec::new();

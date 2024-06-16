@@ -65,20 +65,16 @@ fn audio(audio: &mut Audio, buffer: &mut Buffer) {
 }
 
 fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
-    match key {
-        // Start playing another instance of the sound.
-        KeyCode::Space => {
-            let assets = app.assets_path();
-            let path = assets.join("sounds").join("thumbpiano.wav");
-            let sound = audrey::open(path).expect("failed to load sound");
-            model
-                .stream
-                .send(move |audio| {
-                    audio.sounds.push(sound);
-                })
-                .ok();
-        }
-        _ => {}
+    if key == KeyCode::Space {
+        let assets = app.assets_path();
+        let path = assets.join("sounds").join("thumbpiano.wav");
+        let sound = audrey::open(path).expect("failed to load sound");
+        model
+            .stream
+            .send(move |audio| {
+                audio.sounds.push(sound);
+            })
+            .ok();
     }
 }
 

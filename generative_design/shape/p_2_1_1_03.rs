@@ -92,12 +92,12 @@ fn view(app: &App, model: &Model) {
 
             let toggle = rng.gen::<bool>();
 
-            if toggle == false {
+            if !toggle {
                 let [h, s, v] = model.color_left.to_f32_array_no_alpha();
                 let a = calculate_alpha_left(grid_y, model.transparent_left);
 
                 draw.line()
-                    .hsva(h.into(), s, v, a)
+                    .hsva(h, s, v, a)
                     .caps_round()
                     .weight(mx / 15.0)
                     .points(
@@ -108,7 +108,7 @@ fn view(app: &App, model: &Model) {
                         ),
                     );
                 draw.line()
-                    .hsva(h.into(), s, v, a)
+                    .hsva(h, s, v, a)
                     .caps_round()
                     .weight(mx / 15.0)
                     .points(
@@ -119,12 +119,12 @@ fn view(app: &App, model: &Model) {
                         ),
                     );
             }
-            if toggle == true {
+            if toggle {
                 let [h, s, v] = model.color_right.to_f32_array_no_alpha();
                 let a = calculate_alpha_right(grid_y, model.transparent_right);
 
                 draw.line()
-                    .hsva(h.into(), s, v, a)
+                    .hsva(h, s, v, a)
                     .caps_round()
                     .weight(mx / 15.0)
                     .points(
@@ -132,7 +132,7 @@ fn view(app: &App, model: &Model) {
                         pt2(pos_x + (win.h() / model.tile_count as f32) / 2.0, pos_y),
                     );
                 draw.line()
-                    .hsva(h.into(), s, v, a)
+                    .hsva(h, s, v, a)
                     .caps_round()
                     .weight(mx / 15.0)
                     .points(
@@ -149,7 +149,9 @@ fn view(app: &App, model: &Model) {
 
 fn calculate_alpha_left(grid_y: u32, transparent_left: bool) -> f32 {
     let max_alpha = 100.0;
-    let alpha_left = if transparent_left {
+    
+
+    if transparent_left {
         let a = grid_y as f32 * 10.0;
         match a {
             _ if a > max_alpha => 1.0,
@@ -158,14 +160,14 @@ fn calculate_alpha_left(grid_y: u32, transparent_left: bool) -> f32 {
         }
     } else {
         1.0
-    };
-
-    alpha_left
+    }
 }
 
 fn calculate_alpha_right(grid_y: u32, transparent_right: bool) -> f32 {
     let max_alpha = 100.0;
-    let alpha_right = if transparent_right {
+    
+
+    if transparent_right {
         let a = max_alpha - (grid_y as f32 * 10.0);
         match a {
             _ if a > max_alpha => 1.0,
@@ -174,9 +176,7 @@ fn calculate_alpha_right(grid_y: u32, transparent_right: bool) -> f32 {
         }
     } else {
         1.0
-    };
-
-    alpha_right
+    }
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {

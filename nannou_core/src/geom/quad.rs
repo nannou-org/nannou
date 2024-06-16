@@ -317,21 +317,21 @@ where
     }
 }
 
-impl<V> Into<[V; NUM_VERTICES as usize]> for Quad<V>
+impl<V> From<Quad<V>> for [V; NUM_VERTICES as usize]
 where
     V: Vertex,
 {
-    fn into(self) -> [V; NUM_VERTICES as usize] {
-        self.0
+    fn from(val: Quad<V>) -> Self {
+        val.0
     }
 }
 
-impl<V> Into<(V, V, V, V)> for Quad<V>
+impl<V> From<Quad<V>> for (V, V, V, V)
 where
     V: Vertex,
 {
-    fn into(self) -> (V, V, V, V) {
-        (self[0], self[1], self[2], self[3])
+    fn from(val: Quad<V>) -> Self {
+        (val[0], val[1], val[2], val[3])
     }
 }
 

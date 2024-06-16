@@ -59,11 +59,7 @@ impl Particle {
 
     // Is the particle still useful?
     fn is_dead(&self) -> bool {
-        if self.life_span < 0.0 {
-            true
-        } else {
-            false
-        }
+        self.life_span < 0.0
     }
 }
 
@@ -101,7 +97,7 @@ impl ParticleSystem {
 
     fn draw(&self, draw: &Draw) {
         for p in self.particles.iter() {
-            p.display(&draw);
+            p.display(draw);
         }
     }
 }

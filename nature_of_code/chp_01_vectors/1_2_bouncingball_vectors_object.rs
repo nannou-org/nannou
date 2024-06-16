@@ -34,10 +34,10 @@ impl Ball {
         self.position += self.velocity;
 
         if self.position.x > rect.right() || self.position.x < rect.left() {
-            self.velocity.x = self.velocity.x * -1.0;
+            self.velocity.x *= -1.0;
         }
         if self.position.y > rect.top() || self.position.y < rect.bottom() {
-            self.velocity.y = self.velocity.y * -1.0;
+            self.velocity.y *= -1.0;
         }
     }
 

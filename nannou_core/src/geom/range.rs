@@ -50,8 +50,8 @@ where
     /// ```
     pub fn new(start: S, end: S) -> Self {
         Range {
-            start: start,
-            end: end,
+            start,
+            end,
         }
     }
 
@@ -566,30 +566,28 @@ where
             if value < start {
                 Range {
                     start: value,
-                    end: end,
+                    end,
                 }
             } else if value > end {
                 Range {
-                    start: start,
+                    start,
                     end: value,
                 }
             } else {
                 self
+            }
+        } else if value < end {
+            Range {
+                start,
+                end: value,
+            }
+        } else if value > start {
+            Range {
+                start: value,
+                end,
             }
         } else {
-            if value < end {
-                Range {
-                    start: start,
-                    end: value,
-                }
-            } else if value > start {
-                Range {
-                    start: value,
-                    end: end,
-                }
-            } else {
-                self
-            }
+            self
         }
     }
 
