@@ -56,7 +56,7 @@ impl Wave {
         let w = w; // Width of entire wave
         let period = p; // How many pixels before the wave repeats
         let amplitude = a;
-        let dx = (((std::f32::consts::PI * 2.0) / period) * x_spacing);
+        let dx = ((std::f32::consts::PI * 2.0) / period) * x_spacing;
         let range = (w / x_spacing) as i32;
         let _y_values = (0..range).map(|_| 0.0).collect();
         let particles = (0..range).map(|_| Particle::new()).collect();

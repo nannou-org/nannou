@@ -33,7 +33,7 @@ impl Wave {
         let _w = w;
         let _period = p;
         let amplitude = a;
-        let dx = (((PI * 2.0) / _period) * x_spacing);
+        let dx = ((PI * 2.0) / _period) * x_spacing;
         let y_values = (0..(w / x_spacing) as i32).map(|_| 0.0).collect();
         Wave {
             origin,
