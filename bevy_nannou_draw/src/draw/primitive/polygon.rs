@@ -123,7 +123,9 @@ impl PolygonInit {
             ..
         } = ctxt;
         let start = path_points_colored_buffer.len();
-        let points = points.into_iter().map(|(p, c, u)| (p.into(), c.into(), u.into()));
+        let points = points
+            .into_iter()
+            .map(|(p, c, u)| (p.into(), c.into(), u.into()));
         path_points_colored_buffer.extend(points);
 
         let end = path_points_colored_buffer.len();
@@ -477,7 +479,9 @@ where
         P: Into<Vec2>,
         C: Into<Color>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points_vertex(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO))))
+        self.map_ty_with_context(|ty, ctxt| {
+            ty.points_vertex(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO)))
+        })
     }
 
     /// Consumes an iterator of points and converts them to an iterator yielding path events.

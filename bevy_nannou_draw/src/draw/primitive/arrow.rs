@@ -214,7 +214,10 @@ impl draw::render::RenderPrimitive for Arrow {
             Vec2::new(0.0, 0.0), // Left corner
             Vec2::new(1.0, 0.0), // Right corner
         ];
-        let tri_points = tri_points.iter().cloned().zip(tri_tex_coords.iter().copied());
+        let tri_points = tri_points
+            .iter()
+            .cloned()
+            .zip(tri_tex_coords.iter().copied());
         let close_tri = true;
         path::render_path_points_themed(
             tri_points,
@@ -233,7 +236,10 @@ impl draw::render::RenderPrimitive for Arrow {
         if draw_line {
             let line_points = [line_start, line_end];
             let line_tex_coords = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
-            let line_points = line_points.iter().cloned().zip(line_tex_coords.iter().copied());
+            let line_points = line_points
+                .iter()
+                .cloned()
+                .zip(line_tex_coords.iter().copied());
             let close_line = false;
             path::render_path_points_themed(
                 line_points,

@@ -77,7 +77,10 @@ impl<'a, A> GeometryBuilder for MeshBuilder<'a, A> {
 }
 
 impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
-    fn add_fill_vertex(&mut self, mut vertex: FillVertex) -> Result<VertexId, GeometryBuilderError> {
+    fn add_fill_vertex(
+        &mut self,
+        mut vertex: FillVertex,
+    ) -> Result<VertexId, GeometryBuilderError> {
         // Retrieve the index.
         let id = VertexId::from_usize(self.mesh.count_vertices());
 
@@ -91,7 +94,7 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
         let tex_coords = if attr.is_empty() {
             // TODO: we should add dummy uv's at a higher level.
             [0.0, 0.0]
-        }else {
+        } else {
             [attr[0], attr[1]]
         };
 
@@ -123,7 +126,7 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, SingleColor> {
         let tex_coords = if attr.is_empty() {
             // TODO: we should add dummy uv's at a higher level.
             [0.0, 0.0]
-        }else {
+        } else {
             [attr[0], attr[1]]
         };
 

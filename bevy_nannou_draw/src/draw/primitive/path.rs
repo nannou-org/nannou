@@ -250,7 +250,9 @@ where
             ..
         } = ctxt;
         let start = path_points_colored_buffer.len();
-        let points = points.into_iter().map(|(p, c, u)| (p.into(), c.into(), u.into()));
+        let points = points
+            .into_iter()
+            .map(|(p, c, u)| (p.into(), c.into(), u.into()));
 
         path_points_colored_buffer.extend(points);
 
@@ -331,7 +333,7 @@ pub(crate) fn render_path_points_themed<I>(
                 &options,
                 &mut mesh_builder,
             )
-        },
+        }
         Options::Stroke(options) => {
             let color = color.unwrap_or_else(|| theme.fill(theme_prim));
             let mut mesh_builder = draw::mesh::MeshBuilder::single_color(mesh, transform, color);
@@ -342,7 +344,7 @@ pub(crate) fn render_path_points_themed<I>(
                 &options,
                 &mut mesh_builder,
             )
-        },
+        }
     };
     if let Err(err) = res {
         eprintln!("failed to tessellate path: {:?}", err);
@@ -487,8 +489,8 @@ impl draw::render::RenderPrimitive for Path {
 }
 
 pub fn points_themed_to_lyon_path<I>(points: I, close: bool) -> Option<lyon::path::Path>
-    where
-        I: IntoIterator<Item = (Vec2, Vec2)>,
+where
+    I: IntoIterator<Item = (Vec2, Vec2)>,
 {
     // Build a path with a uv attribute for each channel.
     let channels = 2;
@@ -539,7 +541,6 @@ where
         let [u, v] = text_coord.to_array();
         path_builder.line_to(p, &[r, g, b, a, u, v]);
     }
-
 
     // End the path, closing if necessary.
     path_builder.end(close);
@@ -661,8 +662,9 @@ where
         P: Into<Vec2>,
         C: Into<Color>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.vertices(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO))))
-
+        self.map_ty_with_context(|ty, ctxt| {
+            ty.vertices(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO)))
+        })
     }
 
     pub fn points_colored_closed<I, P, C>(self, points: I) -> DrawingPath<'a, M>
@@ -671,7 +673,9 @@ where
         P: Into<Vec2>,
         C: Into<Color>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.vertices_closed(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO))))
+        self.map_ty_with_context(|ty, ctxt| {
+            ty.vertices_closed(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO)))
+        })
     }
 
     /// Submit path events as a polyline of vertex points.

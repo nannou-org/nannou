@@ -1,12 +1,12 @@
 //! A simple as possible example demonstrating how to use the `draw` API to display a texture.
 
+use nannou::prelude::bevy_render::texture::{
+    ImageAddressMode, ImageSampler, ImageSamplerDescriptor,
+};
 use nannou::prelude::*;
-use nannou::prelude::bevy_render::texture::{ImageAddressMode, ImageSampler, ImageSamplerDescriptor};
 
 fn main() {
-    nannou::app(model)
-        .update(update)
-        .run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -15,14 +15,11 @@ struct Model {
 
 fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
-    app.new_window().size(512, 512).view(view)
-        .primary()
-        .build();
+    app.new_window().size(512, 512).view(view).primary().build();
     // Load the image from disk and upload it to a GPU texture.
     let texture = app.assets().load("images/nature/nature_1.jpg");
     Model { texture }
 }
-
 
 fn update(app: &App, model: &mut Model) {
     let mut images = app.images_mut();
@@ -47,7 +44,6 @@ fn update(app: &App, model: &mut Model) {
     };
 
     image.sampler = ImageSampler::Descriptor(descriptor);
-
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
@@ -59,7 +55,12 @@ fn view(app: &App, model: &Model) {
     // sampler behaves when sampling beyond the bounds of the texture in each of the different
     // address modes. By default, the bounds of the texture coordinates are 0.0 to 1.0. We will
     // triple the size.
-    let area = geom::Rect::from_x_y_w_h(0.5, 0.5, app.elapsed_seconds().sin() * 10.0, app.elapsed_seconds().sin() * 10.0);
+    let area = geom::Rect::from_x_y_w_h(
+        0.5,
+        0.5,
+        app.elapsed_seconds().sin() * 10.0,
+        app.elapsed_seconds().sin() * 10.0,
+    );
     let window_rect = app.main_window().rect();
 
     draw.rect()

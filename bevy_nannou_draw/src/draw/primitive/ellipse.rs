@@ -116,7 +116,7 @@ impl draw::render::RenderPrimitive for Ellipse {
 
                 polygon::render_points_themed(
                     polygon.opts,
-                   true,
+                    true,
                     points,
                     ctxt,
                     &draw::theme::Primitive::Ellipse,
@@ -134,7 +134,6 @@ fn calculate_tex_coords(position: &Vec2, center: &Vec2, radius: &Vec2) -> Vec2 {
         (position.y - center.y) / (2.0 * radius.y) + 0.5,
     )
 }
-
 
 impl SetOrientation for Ellipse {
     fn properties(&mut self) -> &mut orientation::Properties {

@@ -6,9 +6,9 @@ use nannou_core::geom;
 use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
+use crate::draw::properties::tex_coords::SetTexCoords;
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use crate::draw::properties::tex_coords::SetTexCoords;
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]
@@ -68,19 +68,21 @@ impl draw::render::RenderPrimitive for Rect {
         let h = maybe_y.unwrap_or(100.0);
         let rect = geom::Rect::from_wh([w, h].into());
 
-        let tex_coords = tex_coords.map(|area| {
-            [
-                area.bottom_left(),
-                area.bottom_right(),
-                area.top_right(),
-                area.top_left(),
-            ]
-        }).unwrap_or([
-            Vec2::new(0.0, 0.0), // Bottom-left
-            Vec2::new(1.0, 0.0), // Bottom-right
-            Vec2::new(1.0, 1.0), // Top-right
-            Vec2::new(0.0, 1.0), // Top-left
-        ]);
+        let tex_coords = tex_coords
+            .map(|area| {
+                [
+                    area.bottom_left(),
+                    area.bottom_right(),
+                    area.top_right(),
+                    area.top_left(),
+                ]
+            })
+            .unwrap_or([
+                Vec2::new(0.0, 0.0), // Bottom-left
+                Vec2::new(1.0, 0.0), // Bottom-right
+                Vec2::new(1.0, 1.0), // Top-right
+                Vec2::new(0.0, 1.0), // Top-left
+            ]);
 
         let points = rect
             .corners()

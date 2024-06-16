@@ -1,6 +1,6 @@
 use nannou_core::geom;
 
-pub trait SetTexCoords : Sized {
+pub trait SetTexCoords: Sized {
     fn tex_coords_mut(&mut self) -> &mut Option<geom::Rect>;
 
     fn area(mut self, area: geom::Rect) -> Self {

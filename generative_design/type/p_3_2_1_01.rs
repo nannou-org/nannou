@@ -132,5 +132,10 @@ fn dots_along_path(path: PathSlice, dots: &mut Vec<Point>, interval: f32, offset
 
     let tolerance = 0.01; // The path flattening tolerance.
     let start_offset = offset.rem(12.0 + dot_spacing); // Start walking at the beginning of the path.
-    walk_along_path(path.iter().flattened(tolerance), start_offset, tolerance, &mut pattern);
+    walk_along_path(
+        path.iter().flattened(tolerance),
+        start_offset,
+        tolerance,
+        &mut pattern,
+    );
 }

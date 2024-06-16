@@ -82,13 +82,13 @@ fn view(app: &App, model: &Model) {
     let texture = model.texture.clone();
     if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
         draw.background().color(WHITE);
-        draw
-            .rect()
-            .texture(&texture);
+        draw.rect().texture(&texture);
     } else {
-        draw
-            .rect()
-            .texture(&texture).x_y(x2, y2).w_h(w, h).area(area);
+        draw.rect()
+            .texture(&texture)
+            .x_y(x2, y2)
+            .w_h(w, h)
+            .area(area);
     }
 }
 

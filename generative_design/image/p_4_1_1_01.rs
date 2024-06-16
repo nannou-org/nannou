@@ -139,10 +139,7 @@ fn view(app: &App, model: &Model) {
 
     if model.select_mode {
         // in selection mode, a white selection rectangle is drawn over the image
-        draw
-            .rect()
-            .w_h(win.w(), win.h())
-            .texture(&model.texture);
+        draw.rect().w_h(win.w(), win.h()).texture(&model.texture);
         draw.rect()
             .x_y(model.crop_x, model.crop_y)
             .w_h(model.tile_width, model.tile_height)

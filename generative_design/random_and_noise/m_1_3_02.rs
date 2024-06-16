@@ -61,19 +61,19 @@ fn view(app: &App, model: &Model) {
     let win = app.window_rect();
     let mut rng = SmallRng::seed_from_u64(model.act_random_seed);
 
-    let image: DynamicImage = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |_x, _y| {
-        let r: u8 = rng.gen_range(0..std::u8::MAX);
-        nannou::image::Rgba([r, r, r, std::u8::MAX])
-    }).into();
+    let image: DynamicImage =
+        image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |_x, _y| {
+            let r: u8 = rng.gen_range(0..std::u8::MAX);
+            nannou::image::Rgba([r, r, r, std::u8::MAX])
+        })
+        .into();
 
     let image = Image::from_dynamic(image, true, default());
     let mut images = app.images_mut();
     let image = images.add(image);
 
     let draw = app.draw();
-    draw.rect()
-        .w_h(win.w(), win.h())
-        .texture(&image);
+    draw.rect().w_h(win.w(), win.h()).texture(&image);
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {

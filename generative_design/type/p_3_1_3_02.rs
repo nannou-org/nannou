@@ -55,10 +55,7 @@ fn model(app: &App) -> Model {
         .key_released(key_released)
         .build();
 
-    let text_path = app
-        .assets_path()
-        .join("text")
-        .join("faust_kurz.txt");
+    let text_path = app.assets_path().join("text").join("faust_kurz.txt");
     let joined_text = std::fs::read_to_string(text_path).unwrap().parse().unwrap();
     let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜß,.;:!? ".to_string();
     let counters = vec![0; alphabet.len()];
