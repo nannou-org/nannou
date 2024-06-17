@@ -1,7 +1,6 @@
-#![feature(adt_const_params)]
+#![cfg_attr(feature = "nightly", feature(adt_const_params))]
 
 use bevy::prelude::*;
-use bevy::render::extract_component::ExtractComponent;
 
 use crate::render::NannouRenderPlugin;
 

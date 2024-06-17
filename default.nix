@@ -22,7 +22,7 @@ rustPlatform.buildRustPackage rec {
   cargoLock = {
     lockFile = ./Cargo.lock;
     outputHashes = {
-      "isf-0.1.0" = "sha256-utexaXpZZgpRunVAQyD2JAwvabhZGzeorC4pRFIumAc=";
+      "bevy_egui-0.27.0" = "sha256-dckih82INk+bC8HA0UrUYdR4zg29fiqT9kGi7JrNr7A=";
       "skeptic-0.13.4" = "sha256-EZFtWIPfsfbpGBD8NwsVtMzRM10kVdg+djoV00dhT4Y=";
     };
   };
