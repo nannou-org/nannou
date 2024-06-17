@@ -1676,6 +1676,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "camino"
+version = "1.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0ec6b951b160caa93cc0c7b209e5a3bff7aae9062213451ac99493cd844c239"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "cargo"
 version = "0.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1720,7 +1729,7 @@ dependencies = [
  "rustc-workspace-hack",
  "rustfix",
  "same-file",
- "semver",
+ "semver 0.9.0",
  "serde",
  "serde_ignored",
  "serde_json",
@@ -1747,14 +1756,16 @@ dependencies = [
 
 [[package]]
 name = "cargo_metadata"
-version = "0.10.0"
+version = "0.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8de60b887edf6d74370fc8eb177040da4847d971d6234c7b13a6da324ef0caf"
+checksum = "eee4243f1f26fc7a42710e7439c149e2b10b05472f88090acce52632f231a73a"
 dependencies = [
- "semver",
+ "camino",
+ "cargo-platform",
+ "semver 1.0.23",
  "serde",
- "serde_derive",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]
@@ -4142,7 +4153,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if 1.0.0",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -4992,7 +5003,7 @@ checksum = "e63899ad0da84ce718c14936262a41cee2c79c981fc0a0e7c7beb47d5a07e8c1"
 dependencies = [
  "num-integer",
  "num-traits",
- "rand 0.4.6",
+ "rand 0.3.23",
  "rustc-serialize",
 ]
 
@@ -5764,11 +5775,13 @@ dependencies = [
 
 [[package]]
 name = "pulldown-cmark"
-version = "0.2.0"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eef52fac62d0ea7b9b4dc7da092aa64ea7ec3d90af6679422d3d7e0e14b6ee15"
+checksum = "57206b407293d2bcd3af849ce869d52068623f19e1b5ff8e8778e3309439682b"
 dependencies = [
- "bitflags 1.3.2",
+ "bitflags 2.5.0",
+ "memchr",
+ "unicase",
 ]
 
 [[package]]
@@ -6416,7 +6429,7 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 dependencies = [
- "semver",
+ "semver 0.9.0",
 ]
 
 [[package]]
@@ -6472,6 +6485,12 @@ dependencies = [
  "rustc-hash",
  "stb_truetype",
 ]
+
+[[package]]
+name = "rustversion"
+version = "1.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "955d28af4278de8121b7ebeb796b6a45735dc01436d898801014aced2773a3d6"
 
 [[package]]
 name = "ruzstd"
@@ -6578,6 +6597,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "semver"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "semver-parser"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6654,7 +6682,7 @@ dependencies = [
 name = "set_version"
 version = "0.1.0"
 dependencies = [
- "semver",
+ "semver 0.9.0",
  "toml_edit 0.1.5",
 ]
 
@@ -6727,15 +6755,16 @@ dependencies = [
 
 [[package]]
 name = "skeptic"
-version = "0.13.4"
-source = "git+https://github.com/mitchmindtree/rust-skeptic?branch=1.45-extern#52ac60f48a26659523ccb45bf75c8cfa7dbc3c19"
+version = "0.13.8"
+source = "git+https://github.com/Erk-/rust-skeptic?branch=fix-rust-1-77#3e6ce6a2ac3313f13723dfa2483042c6bcd812f2"
 dependencies = [
  "bytecount",
  "cargo_metadata",
  "error-chain",
  "glob",
  "pulldown-cmark",
- "tempdir",
+ "rustversion",
+ "tempfile",
  "walkdir",
 ]
 
@@ -7042,16 +7071,6 @@ name = "target-lexicon"
 version = "0.12.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1fc403891a21bcfb7c37834ba66a547a8f402146eba7265b5a6d88059c9ff2f"
-
-[[package]]
-name = "tempdir"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15f2b5fb00ccdf689e0149d1b1b3c03fead81c2b37735d812fa8bddbbf41b6d8"
-dependencies = [
- "rand 0.4.6",
- "remove_dir_all",
-]
 
 [[package]]
 name = "tempfile"
