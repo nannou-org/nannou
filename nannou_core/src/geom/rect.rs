@@ -1,7 +1,8 @@
+use core::ops::Neg;
+
 use crate::geom::{quad, scalar, Align, Edge, Point2, Quad, Range, Scalar, Tri};
 use crate::glam::{DVec2, Vec2};
 use crate::math::{self, num_traits::Float};
-use core::ops::Neg;
 
 /// Defines a Rectangle's bounds across the x and y axes.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]

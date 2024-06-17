@@ -1,10 +1,11 @@
 //! A clone of the `laser_frame_stream.rs` example that allows for configuring laser settings via a
 //! UI.
 
+use std::sync::{mpsc, Arc};
+
 use nannou::prelude::egui::FontId;
 use nannou::prelude::*;
 use nannou_laser as laser;
-use std::sync::{mpsc, Arc};
 
 fn main() {
     nannou::app(model).update(update).run();

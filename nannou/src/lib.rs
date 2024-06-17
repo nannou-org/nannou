@@ -13,12 +13,14 @@
 //! examples](https://github.com/nannou-org/nannou/tree/master/examples) to get an idea of how
 //! nannou applications are structured and how the API works.
 #![cfg_attr(feature = "nightly", feature(adt_const_params))]
+
 pub use find_folder;
 pub use lyon;
 
-pub use self::app::App;
 #[doc(inline)]
 pub use nannou_core::{glam, math, rand};
+
+pub use self::app::App;
 
 pub mod app;
 pub mod geom;

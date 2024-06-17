@@ -1,12 +1,13 @@
 //! An extension of the `std::io` module. Includes functions for safely saving and loading files
 //! from any serializable types, along with functions specifically for working with JSON and TOML.
 
-use serde;
-use serde_json;
 use std::error::Error;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::{fmt, fs, io};
+
+use serde;
+use serde_json;
 use toml;
 
 /// Errors that might occur when saving a file.

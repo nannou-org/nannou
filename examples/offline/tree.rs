@@ -1,10 +1,12 @@
 // Daily Sketch 2019-04-22
 // Alexis Andre (@mactuitui)
 
+use nannou::prelude::*;
+
+use crate::colors::Palette;
+
 mod colors;
 mod quadtree;
-use crate::colors::Palette;
-use nannou::prelude::*;
 
 const LENGTH_FRAME: u64 = 700;
 //const START_FRAME: u64 = 0;

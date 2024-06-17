@@ -1,9 +1,10 @@
 //! A type for working with one-dimensional ranges.
 
+use core::ops::{Add, Neg, Sub};
+
 use crate::geom::scalar;
 use crate::math::num_traits::{Float, NumCast, One, Zero};
 use crate::math::{self, two};
-use core::ops::{Add, Neg, Sub};
 
 /// Some start and end position along a single axis.
 ///

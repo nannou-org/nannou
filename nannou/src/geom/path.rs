@@ -4,9 +4,10 @@
 //! offerred by `lyon` in a way that interoperates a little more fluidly and consistently with the
 //! rest of nannou's API.
 
-use crate::geom::Point2;
 use lyon::lyon_tessellation::Attributes;
 use lyon::path::builder::NoAttributes;
+
+use crate::geom::Point2;
 
 /// A wrapper around a 2D lyon path exposing a nannou-friendly API.
 pub struct Path {

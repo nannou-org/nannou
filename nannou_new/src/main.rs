@@ -6,7 +6,6 @@
 //! 4. Adds the latest nannou version as a dep to the `Cargo.toml`.
 //! 5. Builds the project with optimisations. Suggests getting a beverage.
 
-use cargo::CargoResult;
 use std::env;
 use std::fs::{self, File};
 use std::io::{self, BufRead, Write};
@@ -14,6 +13,8 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
+
+use cargo::CargoResult;
 
 enum Project {
     Sketch,

@@ -1,10 +1,11 @@
 //! Items related to the `osc::Receiver` implementation.
 
-use super::{decode, rosc, CommunicationError, Connected, Packet, Unconnected};
 use std;
 use std::net::{SocketAddr, SocketAddrV4, ToSocketAddrs, UdpSocket};
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::Mutex;
+
+use super::{decode, rosc, CommunicationError, Connected, Packet, Unconnected};
 
 /// The default "maximum transmission unit" size as a number of bytes.
 ///

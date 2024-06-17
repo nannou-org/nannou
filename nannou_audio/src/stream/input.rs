@@ -1,12 +1,14 @@
+use std::sync::atomic::AtomicBool;
+use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
+
+use cpal::traits::{DeviceTrait, HostTrait};
+use dasp_sample::{FromSample, Sample, ToSample};
+
 use crate::{
     stream::{self, DefaultErrorFn, ErrorFn},
     Buffer, Device, Receiver, Stream,
 };
-use cpal::traits::{DeviceTrait, HostTrait};
-use dasp_sample::{FromSample, Sample, ToSample};
-use std::sync::atomic::AtomicBool;
-use std::sync::mpsc;
-use std::sync::{Arc, Mutex};
 
 /// The function that will be called when a captured `Buffer` is ready to be read.
 pub trait CaptureFn<M, S>: Fn(&mut M, &Buffer<S>) {}

@@ -3,11 +3,11 @@
 //! Create a new window via `app.new_window()`. This produces a [**Builder**](./struct.Builder.html)
 //! which can be used to build a [**Window**](./struct.Window.html).
 
-use bevy::core_pipeline::bloom::BloomSettings;
-use bevy::core_pipeline::tonemapping::Tonemapping;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
+use bevy::core_pipeline::bloom::BloomSettings;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;

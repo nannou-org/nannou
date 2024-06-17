@@ -7,11 +7,12 @@
 //! cargo run --release -p examples --example laser_ilda_idtf -- /path/to/ilda/files
 //! ```
 
+use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
+
 use nannou::prelude::*;
 use nannou_laser as laser;
 use nannou_laser::ilda_idtf::BufFileFrameReader;
-use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
 
 fn main() {
     nannou::app(model).run();

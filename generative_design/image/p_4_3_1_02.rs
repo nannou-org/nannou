@@ -1,4 +1,6 @@
 use nannou::image::GenericImageView;
+use nannou::lyon::math::Point;
+use nannou::lyon::path::PathEvent;
 // P_4_3_1_02
 //
 // Generative Gestaltung – Creative Coding im Web
@@ -25,9 +27,6 @@ use nannou::image::GenericImageView;
  * s                   : save png
  */
 use nannou::prelude::*;
-
-use nannou::lyon::math::Point;
-use nannou::lyon::path::PathEvent;
 
 fn main() {
     nannou::app(model).run();

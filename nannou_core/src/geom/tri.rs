@@ -1,6 +1,7 @@
+use core::ops::Deref;
+
 use crate::geom::{vertex, Cuboid, Range, Rect, Scalar, Vertex, Vertex2d, Vertex3d};
 use crate::math::num_traits::Zero;
-use core::ops::Deref;
 
 /// The number of vertices in a triangle.
 pub const NUM_VERTICES: u8 = 3;

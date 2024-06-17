@@ -10,8 +10,9 @@
 // to describe each individual cell and a "cellular automata" class
 // to describe a collection of cells
 
-use nannou::prelude::*;
 use std::ops::Range;
+
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();

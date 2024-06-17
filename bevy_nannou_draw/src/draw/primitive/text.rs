@@ -1,13 +1,10 @@
 use bevy::prelude::*;
 
-use nannou_core::geom;
-
 use crate::draw::drawing::DrawingContext;
-use crate::draw::mesh::MeshExt;
-use crate::draw::primitive::{Primitive, Vertex};
+use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition};
-use crate::draw::{self, theme, Drawing};
+use crate::draw::{self, Drawing};
 use crate::text::{self, Align, Font, FontSize, Justify, Layout, Scalar, Wrap};
 
 /// Properties related to drawing the **Text** primitive.

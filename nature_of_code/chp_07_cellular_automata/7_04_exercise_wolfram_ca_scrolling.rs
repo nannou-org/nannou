@@ -8,8 +8,9 @@
 // with the system scrolling by
 // Also implements wrap around
 
-use nannou::prelude::*;
 use std::ops::Range;
+
+use nannou::prelude::*;
 
 const RULE: i32 = 5;
 

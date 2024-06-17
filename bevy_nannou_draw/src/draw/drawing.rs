@@ -6,11 +6,9 @@ use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
-use nannou_core::geom;
 use uuid::Uuid;
 
 use crate::draw::primitive::Primitive;
-use crate::draw::properties::tex_coords::SetTexCoords;
 use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };

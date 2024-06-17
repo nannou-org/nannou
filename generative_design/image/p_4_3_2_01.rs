@@ -17,6 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use nannou::image::GenericImageView;
 /**
  * pixel mapping. each pixel is translated into a new element (letter)
  *
@@ -28,8 +29,6 @@
  * s                 : save png
  */
 use nannou::prelude::*;
-
-use nannou::image::GenericImageView;
 
 fn main() {
     nannou::app(model).run();

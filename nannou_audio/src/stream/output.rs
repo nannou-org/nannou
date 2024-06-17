@@ -1,12 +1,14 @@
+use std::sync::atomic::AtomicBool;
+use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
+
+use cpal::traits::{DeviceTrait, HostTrait};
+use dasp_sample::{Sample, ToSample};
+
 use crate::{
     stream::{self, DefaultErrorFn, ErrorFn},
     Buffer, Device, Requester, Stream,
 };
-use cpal::traits::{DeviceTrait, HostTrait};
-use dasp_sample::{Sample, ToSample};
-use std::sync::atomic::AtomicBool;
-use std::sync::mpsc;
-use std::sync::{Arc, Mutex};
 
 /// The function that will be called when a `Buffer` is ready to be rendered.
 pub trait RenderFn<M, S>: Fn(&mut M, &mut Buffer<S>) {}

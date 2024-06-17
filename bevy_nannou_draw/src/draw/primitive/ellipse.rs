@@ -1,13 +1,11 @@
 use bevy::prelude::*;
-use lyon::path::builder::WithSvg;
-use lyon::path::BuilderWithAttributes;
 use lyon::tessellation::StrokeOptions;
 
 use nannou_core::geom;
 
 use crate::draw;
 use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
-use crate::draw::primitive::{path, Primitive};
+use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{
     spatial, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,

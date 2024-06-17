@@ -6,8 +6,9 @@
 
 // Simple demonstration of a Wolfram 1-dimensional cellular automata
 
-use nannou::prelude::*;
 use std::ops::Range;
+
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();

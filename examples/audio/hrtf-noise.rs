@@ -10,6 +10,7 @@
 //! This effect is best experienced with headphones!
 
 use hrtf::{HrirSphere, HrtfContext, HrtfProcessor};
+
 use nannou::prelude::*;
 use nannou::rand::{rngs::SmallRng, Rng, SeedableRng};
 use nannou_audio as audio;

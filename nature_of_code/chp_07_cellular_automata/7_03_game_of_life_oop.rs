@@ -7,8 +7,9 @@
 // A basic implementation of John Conway's Game of Life CA
 // Each cell is now an object!
 
-use nannou::prelude::*;
 use std::ops::Range;
+
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();

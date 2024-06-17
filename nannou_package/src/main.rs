@@ -1,10 +1,11 @@
 //! A small rust script for packaging a nannou project.
 
-use copy_dir::copy_dir;
 use std::env;
 use std::fs;
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
+
+use copy_dir::copy_dir;
 use walkdir::WalkDir;
 
 // Check the given path and `depth` number of parent directories for a folder with the given name.

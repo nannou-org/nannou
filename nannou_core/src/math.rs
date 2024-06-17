@@ -2,9 +2,9 @@
 //! helper/utility functions.
 
 use core::ops::Add;
-use num_traits::{Float, NumCast, One};
 
 pub use num_traits;
+use num_traits::{Float, NumCast, One};
 
 const ONE_TURN_DEGREES_F32: f32 = 360.0;
 const ONE_TURN_DEGREES_F64: f64 = 360.0;

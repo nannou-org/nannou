@@ -1,7 +1,8 @@
+use std::f64::consts::PI;
+
 use nannou::prelude::*;
 use nannou_audio as audio;
 use nannou_audio::Buffer;
-use std::f64::consts::PI;
 
 fn main() {
     nannou::app(model).run();

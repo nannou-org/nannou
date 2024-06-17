@@ -1,10 +1,11 @@
 //! Feeds back the input stream directly into the output stream
 //!
 //! You can play and pause the streams by pressing space key
+use ringbuf::{Consumer, Producer, RingBuffer};
+
 use nannou::prelude::*;
 use nannou_audio as audio;
 use nannou_audio::Buffer;
-use ringbuf::{Consumer, Producer, RingBuffer};
 
 fn main() {
     nannou::app(model).run();

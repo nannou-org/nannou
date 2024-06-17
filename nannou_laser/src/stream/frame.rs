@@ -1,12 +1,13 @@
-use crate::stream;
-use crate::stream::raw::{self, Buffer, StreamError};
-use crate::{Point, RawPoint};
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 
 pub use lasy::InterpolationConfig;
+
+use crate::stream;
+use crate::stream::raw::{self, Buffer, StreamError};
+use crate::{Point, RawPoint};
 
 /// The function that will be called each time a new `Frame` is requested.
 pub trait RenderFn<M>: Fn(&mut M, &mut Frame) {}

@@ -6,11 +6,10 @@
 //! Lyon tessellators assume `f32` data, so we do the same in the following implementations.
 
 use bevy::prelude::*;
-use bevy::render::render_resource::encase::private::RuntimeSizedArray;
 use lyon::tessellation::{FillVertex, GeometryBuilderError, StrokeVertex, VertexId};
 // use lyon::tessellation::{FillVertex, GeometryBuilderError, StrokeVertex, VertexId};
 use lyon::tessellation::geometry_builder::{
-    self, FillGeometryBuilder, GeometryBuilder, StrokeGeometryBuilder,
+    FillGeometryBuilder, GeometryBuilder, StrokeGeometryBuilder,
 };
 
 use crate::draw::mesh::MeshExt;

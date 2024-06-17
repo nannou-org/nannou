@@ -1,6 +1,8 @@
-use crate::{stream, Buffer};
-use dasp_sample::Sample;
 use std;
+
+use dasp_sample::Sample;
+
+use crate::{stream, Buffer};
 
 /// A `Receiver` for converting audio delivered by the backend at varying buffer sizes into buffers
 /// of a fixed size.

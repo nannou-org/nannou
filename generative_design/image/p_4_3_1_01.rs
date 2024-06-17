@@ -1,3 +1,5 @@
+use nannou::image;
+use nannou::image::GenericImageView;
 // P_4_3_1_01
 //
 // Generative Gestaltung – Creative Coding im Web
@@ -27,9 +29,6 @@
  * s                   : save png
  */
 use nannou::prelude::*;
-
-use nannou::image;
-use nannou::image::GenericImageView;
 
 fn main() {
     nannou::app(model).run();

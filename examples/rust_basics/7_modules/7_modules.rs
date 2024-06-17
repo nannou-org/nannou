@@ -1,7 +1,8 @@
 use nannou::prelude::*;
 
-mod ball;
 use crate::ball::Ball;
+
+mod ball;
 
 fn main() {
     nannou::app(model).update(update).simple_window(view).run();

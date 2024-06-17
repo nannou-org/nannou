@@ -1,12 +1,14 @@
 //! Records a WAV file using the default input device and default input format.
 //!
 //! The input data is recorded to "$CARGO_MANIFEST_DIR/recorded.wav".
+extern crate hound;
+
+use std::fs::File;
+use std::io::BufWriter;
+
 use nannou::prelude::*;
 use nannou_audio as audio;
 use nannou_audio::Buffer;
-use std::fs::File;
-use std::io::BufWriter;
-extern crate hound;
 
 type WavWriter = hound::WavWriter<BufWriter<File>>;
 

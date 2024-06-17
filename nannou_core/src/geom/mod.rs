@@ -9,17 +9,10 @@
 //! - Functions for determining the bounding rectangle or cuboid.
 //! - A function for finding the centroid.
 
-pub mod cuboid;
-pub mod ellipse;
-pub mod point;
-pub mod polygon;
-pub mod quad;
-pub mod range;
-pub mod rect;
-pub mod scalar;
-pub mod tri;
-pub mod vector;
-pub mod vertex;
+pub use glam::{
+    dvec2, dvec3, dvec4, ivec2, ivec3, ivec4, vec2, vec3, vec4, DVec2, DVec3, DVec4, IVec2, IVec3,
+    IVec4, Vec2, Vec3, Vec4,
+};
 
 pub use self::cuboid::Cuboid;
 pub use self::ellipse::Ellipse;
@@ -33,10 +26,18 @@ pub use self::tri::Tri;
 #[allow(deprecated)]
 pub use self::vector::{Vector2, Vector3, Vector4};
 pub use self::vertex::{Vertex, Vertex2d, Vertex3d};
-pub use glam::{
-    dvec2, dvec3, dvec4, ivec2, ivec3, ivec4, vec2, vec3, vec4, DVec2, DVec3, DVec4, IVec2, IVec3,
-    IVec4, Vec2, Vec3, Vec4,
-};
+
+pub mod cuboid;
+pub mod ellipse;
+pub mod point;
+pub mod polygon;
+pub mod quad;
+pub mod range;
+pub mod rect;
+pub mod scalar;
+pub mod tri;
+pub mod vector;
+pub mod vertex;
 
 // General geometry utility functions
 

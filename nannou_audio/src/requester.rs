@@ -1,6 +1,8 @@
-use crate::{stream, Buffer};
-use dasp_sample::Sample;
 use std;
+
+use dasp_sample::Sample;
+
+use crate::{stream, Buffer};
 
 /// A `sound::Requester` for converting backend audio requests into requests for buffers of a fixed
 /// size called from a separate thread.

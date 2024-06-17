@@ -1,12 +1,14 @@
-use crate::util::{clamp, map_range};
-use crate::Inner as ApiInner;
-use crate::{DetectedDac, RawPoint};
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
+
 use thiserror::Error;
+
+use crate::util::{clamp, map_range};
+use crate::Inner as ApiInner;
+use crate::{DetectedDac, RawPoint};
 
 /// The function that will be called when a `Buffer` of points is requested.
 pub trait RenderFn<M>: Fn(&mut M, &mut Buffer) {}
