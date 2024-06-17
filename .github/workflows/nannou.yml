@@ -34,7 +34,7 @@ jobs:
           - command: cargo test --locked --lib --bins --all-features --workspace
           - command: cargo doc --locked --all-features --workspace
           - command: cargo test --locked -p nannou_core --no-default-features --features "libm serde"
-          - command: cargo build --locked -p nannou --features "wasm-experimental" --target wasm32-unknown-unknown
+          - command: cargo build --locked -p nannou --target wasm32-unknown-unknown
           - command: mdbook build guide/
           - command: cargo test --locked -p book_tests
     steps:
