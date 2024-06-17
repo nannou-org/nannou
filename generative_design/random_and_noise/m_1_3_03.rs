@@ -117,8 +117,6 @@ fn view(app: &App, model: &Model) {
         nannou::image::Rgba([n, n, n, std::u8::MAX])
     });
 
-    let flat_samples = image.as_flat_samples();
-
     let draw = app.draw();
     draw.rect().texture(&model.texture);
     draw.background().color(BLACK);

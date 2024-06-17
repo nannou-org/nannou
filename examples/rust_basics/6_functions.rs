@@ -40,7 +40,7 @@ fn random() -> f32 {
     nannou::rand::random()
 }
 
-fn key_pressed(_app: &App, _model: &mut Model, key: KeyCode) {
+fn key_pressed(_app: &App, _model: &mut Model, _key: KeyCode) {
     println!("add 10 + 2 = {}", add(10, 2));
     println!("subtract 100 - 30 = {}", subtract(100, 30));
     println!("multiply 3.5 * 10.2 = {}", multiply(3.5, 10.2));

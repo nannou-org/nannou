@@ -258,7 +258,7 @@ fn update_material<M>(
     draw_q: Query<&DrawHolder>,
     mut commands: Commands,
     mut materials: ResMut<Assets<M>>,
-    mut materials_q: Query<(Entity, &UntypedMaterialId)>,
+    materials_q: Query<(Entity, &UntypedMaterialId)>,
 ) where
     M: Material,
 {
@@ -355,7 +355,7 @@ fn update_draw_mesh(
 
                     // Render the primitive.
                     let mut mesh = Mesh::init();
-                    let render = prim.render_primitive(ctxt, &mut mesh);
+                    prim.render_primitive(ctxt, &mut mesh);
                     mesh = mesh.with_removed_attribute(Mesh::ATTRIBUTE_COLOR);
                     let mesh = meshes.add(mesh);
                     commands.spawn((

@@ -801,7 +801,7 @@ impl<'a, 'w> Window<'a, 'w> {
     ///
     /// X11 has no universal guidelines for icon sizes, so you're at the whims of the WM. That
     /// said, it's usually in the same ballpark as on Windows.
-    pub fn set_window_icon(&self, window_icon: Option<()>) {
+    pub fn set_window_icon(&self, _window_icon: Option<()>) {
         todo!("https://github.com/bevyengine/bevy/issues/1031")
     }
 

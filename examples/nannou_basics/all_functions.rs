@@ -32,7 +32,7 @@ fn model(app: &App) -> Model {
 
 fn update(_app: &App, _model: &mut Model) {}
 
-fn view(app: &App, _model: &Model, entity: Entity) {
+fn view(app: &App, _model: &Model, _entity: Entity) {
     let draw = app.draw();
     draw.background().color(SKY_BLUE);
 }
@@ -47,7 +47,7 @@ fn mouse_pressed(_app: &App, _model: &mut Model, _button: MouseButton) {}
 
 fn mouse_released(_app: &App, _model: &mut Model, _button: MouseButton) {}
 
-fn mouse_wheel(_app: &App, _model: &mut Model, wheel: MouseWheel) {}
+fn mouse_wheel(_app: &App, _model: &mut Model, _wheel: MouseWheel) {}
 
 fn mouse_entered(_app: &App, _model: &mut Model) {}
 

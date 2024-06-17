@@ -27,7 +27,7 @@ fn model(app: &App) -> Model {
     Model
 }
 
-fn view(app: &App, _model: &Model, entity: Entity) {
+fn view(app: &App, _model: &Model, _entity: Entity) {
     let draw = app.draw();
     draw.background().color(DIM_GRAY);
 }

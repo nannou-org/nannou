@@ -175,29 +175,14 @@ impl lyon::path::builder::Build for Builder {
 }
 
 impl lyon::path::builder::PathBuilder for Builder {
-    fn quadratic_bezier_to(
-        &mut self,
-        ctrl: lyon::math::Point,
-        to: lyon::math::Point,
-        custom_attributes: Attributes,
-    ) -> lyon::path::EndpointId {
-        self.builder.quadratic_bezier_to(ctrl, to)
-    }
-
-    fn cubic_bezier_to(
-        &mut self,
-        ctrl1: lyon::math::Point,
-        ctrl2: lyon::math::Point,
-        to: lyon::math::Point,
-        custom_attributes: Attributes,
-    ) -> lyon::path::EndpointId {
-        self.builder.cubic_bezier_to(ctrl1, ctrl2, to)
+    fn num_attributes(&self) -> usize {
+        0
     }
 
     fn begin(
         &mut self,
         at: lyon::math::Point,
-        custom_attributes: Attributes,
+        _custom_attributes: Attributes,
     ) -> lyon::path::EndpointId {
         self.builder.begin(at)
     }
@@ -209,13 +194,28 @@ impl lyon::path::builder::PathBuilder for Builder {
     fn line_to(
         &mut self,
         to: lyon::math::Point,
-        custom_attributes: Attributes,
+        _custom_attributes: Attributes,
     ) -> lyon::path::EndpointId {
         self.builder.line_to(to)
     }
 
-    fn num_attributes(&self) -> usize {
-        0
+    fn quadratic_bezier_to(
+        &mut self,
+        ctrl: lyon::math::Point,
+        to: lyon::math::Point,
+        _custom_attributes: Attributes,
+    ) -> lyon::path::EndpointId {
+        self.builder.quadratic_bezier_to(ctrl, to)
+    }
+
+    fn cubic_bezier_to(
+        &mut self,
+        ctrl1: lyon::math::Point,
+        ctrl2: lyon::math::Point,
+        to: lyon::math::Point,
+        _custom_attributes: Attributes,
+    ) -> lyon::path::EndpointId {
+        self.builder.cubic_bezier_to(ctrl1, ctrl2, to)
     }
 }
 

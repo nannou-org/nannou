@@ -433,7 +433,7 @@ impl draw::render::RenderPrimitive for Path {
             orientation,
             path_event_src,
             options,
-            texture_handle,
+            ..
         } = self;
 
         // Determine the transform to apply to all points.

@@ -21,7 +21,6 @@ pub use self::app::App;
 pub use nannou_core::{glam, math, rand};
 
 pub mod app;
-pub mod event;
 pub mod geom;
 pub mod image;
 pub mod io;

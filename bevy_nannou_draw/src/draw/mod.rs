@@ -478,7 +478,7 @@ where
 
     /// Produce a new [Draw] instance with a new material type.
     pub fn material<M2: Material + Default>(&self, material: M2) -> Draw<M2> {
-        let mut context = self.context.clone();
+        let context = self.context.clone();
         let DrawContext { transform, .. } = context;
         let context = DrawContext { transform };
         let state = self.state.clone();

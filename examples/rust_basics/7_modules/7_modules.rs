@@ -23,7 +23,7 @@ fn update(app: &App, model: &mut Model) {
     model.ball.position = pt2(app.mouse().x, app.mouse().y);
 }
 
-fn view(app: &App, model: &Model, window: Entity) {
+fn view(app: &App, model: &Model, _window: Entity) {
     // Begin drawing.
     let draw = app.draw();
     // Draw dark gray for the background

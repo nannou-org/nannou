@@ -261,7 +261,9 @@ where
 }
 
 impl draw::render::RenderPrimitive for Text {
-    fn render_primitive(self, ctxt: draw::render::RenderContext, mesh: &mut Mesh) {}
+    fn render_primitive(self, _ctxt: draw::render::RenderContext, _mesh: &mut Mesh) {
+        todo!()
+    }
 }
 
 impl SetOrientation for Text {

@@ -164,7 +164,7 @@ fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
     m.attractor.clicked(app.mouse().x, app.mouse().y);
 }
 
-fn mouse_released(app: &App, m: &mut Model, _button: MouseButton) {
+fn mouse_released(_app: &App, m: &mut Model, _button: MouseButton) {
     m.attractor.stop_dragging();
 }
 
