@@ -142,13 +142,10 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
     } = vehicle;
 
     if history.len() > 1 {
-        let points_colored = history
-            .iter()
-            .map(|v| pt2(v.x, v.y))
-            .map(|p| {
-                let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
-                (p, rgba)
-            });
+        let points_colored = history.iter().map(|v| pt2(v.x, v.y)).map(|p| {
+            let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
+            (p, rgba)
+        });
         draw.polyline().weight(1.0).points_colored(points_colored);
     }
 

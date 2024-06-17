@@ -138,8 +138,7 @@ pub enum EtherDreamStreamError {
 }
 
 /// An action to perform in response to a `StreamError` occurring.
-#[derive(Clone, Debug)]
-#[derive(Default)]
+#[derive(Clone, Debug, Default)]
 pub enum StreamErrorAction {
     /// Attempts to reconnect to the specified DAC in the case that one was provided, or any DAC in
     /// the case that `None` was provided.
@@ -460,7 +459,6 @@ impl<M, F, E> Builder<M, F, E> {
         Ok(stream)
     }
 }
-
 
 impl Deref for Buffer {
     type Target = [RawPoint];

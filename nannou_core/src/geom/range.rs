@@ -49,10 +49,7 @@ where
     /// assert_eq!(Range { start: 0.0, end: 10.0 }, Range::new(0.0, 10.0));
     /// ```
     pub fn new(start: S, end: S) -> Self {
-        Range {
-            start,
-            end,
-        }
+        Range { start, end }
     }
 
     /// Construct a new `Range` from a given length and its centered position.
@@ -564,28 +561,16 @@ where
         let Range { start, end } = self;
         if start <= end {
             if value < start {
-                Range {
-                    start: value,
-                    end,
-                }
+                Range { start: value, end }
             } else if value > end {
-                Range {
-                    start,
-                    end: value,
-                }
+                Range { start, end: value }
             } else {
                 self
             }
         } else if value < end {
-            Range {
-                start,
-                end: value,
-            }
+            Range { start, end: value }
         } else if value > start {
-            Range {
-                start: value,
-                end,
-            }
+            Range { start: value, end }
         } else {
             self
         }

@@ -118,7 +118,7 @@ impl Vehicle {
         desired *= self.max_speed;
         // Steering = Desired minus velocity
         // Limit to maximum steering force
-        
+
         (desired - self.velocity).clamp_length_max(self.max_force)
     }
 

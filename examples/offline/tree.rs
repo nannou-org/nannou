@@ -87,10 +87,7 @@ fn model(app: &App) -> Model {
     let candidate = Thing::new(x, y, size, frac, None);
     things.push(candidate);
 
-    Model {
-        palette,
-        things,
-    }
+    Model { palette, things }
 }
 
 fn update(app: &App, model: &mut Model) {

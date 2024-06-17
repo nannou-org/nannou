@@ -149,7 +149,6 @@ fn view(app: &App, model: &Model) {
 
 fn calculate_alpha_left(grid_y: u32, transparent_left: bool) -> f32 {
     let max_alpha = 100.0;
-    
 
     if transparent_left {
         let a = grid_y as f32 * 10.0;
@@ -165,7 +164,6 @@ fn calculate_alpha_left(grid_y: u32, transparent_left: bool) -> f32 {
 
 fn calculate_alpha_right(grid_y: u32, transparent_right: bool) -> f32 {
     let max_alpha = 100.0;
-    
 
     if transparent_right {
         let a = max_alpha - (grid_y as f32 * 10.0);

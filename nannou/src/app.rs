@@ -36,9 +36,9 @@ use bevy_egui::EguiContext;
 // use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use find_folder;
 
+use bevy_nannou::prelude::render::ExtendedNannouMaterial;
 use bevy_nannou::prelude::{draw, DrawHolder};
 use bevy_nannou::NannouPlugin;
-use bevy_nannou::prelude::render::ExtendedNannouMaterial;
 
 use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::render::{NannouMesh, NannouPersistentMesh};
@@ -105,9 +105,7 @@ enum DefaultWindowSize {
 }
 
 /// The default `model` function used when none is specified by the user.
-fn default_model(_: &App) {
-    
-}
+fn default_model(_: &App) {}
 
 /// Each nannou application has a single **App** instance. This **App** represents the entire
 /// context of the application.
@@ -486,7 +484,7 @@ impl<'w> App<'w> {
             .query::<&Window>()
             .iter(unsafe { world.world_mut() })
             .count();
-        
+
         App {
             current_view: None,
             world: Rc::new(RefCell::new(world)),

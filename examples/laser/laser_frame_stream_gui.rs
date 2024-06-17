@@ -315,7 +315,6 @@ fn update(app: &App, model: &mut Model) {
 
     // Update the GUI.
     let Model {
-        
         ref laser_streams,
         ref mut laser_model,
         ref mut laser_settings,

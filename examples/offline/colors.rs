@@ -29,7 +29,7 @@ impl Palette {
                 let blue: u8 = (c & 0xFF) as u8;
                 let green: u8 = ((c >> 8) & 0xFF) as u8;
                 let red: u8 = ((c >> 16) & 0xFF) as u8;
-                
+
                 Srgba::new(
                     red as f32 / 255.0,
                     green as f32 / 255.0,

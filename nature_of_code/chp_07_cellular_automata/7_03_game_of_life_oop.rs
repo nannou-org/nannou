@@ -113,8 +113,7 @@ impl Gol {
                     for j in 0..3 {
                         let i_idx =
                             (x as i32 + (i - 1) + self.columns as i32) % self.columns as i32;
-                        let j_idx =
-                            (y as i32 + (j - 1) + self.rows as i32) % self.rows as i32;
+                        let j_idx = (y as i32 + (j - 1) + self.rows as i32) % self.rows as i32;
                         neighbors += self.board[i_idx as usize][j_idx as usize].previous;
                     }
                 }

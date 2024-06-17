@@ -596,7 +596,8 @@ impl Requester {
                     if interpolated.is_empty() {
                         let blank_point = self
                             .blank_points
-                            .last().copied()
+                            .last()
+                            .copied()
                             .or_else(|| last_frame_point.map(|p| p.blanked()))
                             .unwrap_or_else(RawPoint::centered_blank);
                         interpolated.extend((0..target_points).map(|_| blank_point));

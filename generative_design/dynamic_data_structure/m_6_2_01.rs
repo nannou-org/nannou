@@ -50,5 +50,4 @@ fn model(app: &App) -> Model {
 
 fn update(_app: &App, _model: &mut Model) {}
 
-fn view(app: &App, _model: &Model) {
-}
+fn view(app: &App, _model: &Model) {}

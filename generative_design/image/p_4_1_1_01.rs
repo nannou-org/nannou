@@ -151,11 +151,8 @@ fn view(app: &App, model: &Model) {
         let mut index = 0;
         for grid_y in 0..model.tile_count_y {
             for grid_x in 0..model.tile_count_x {
-                let x =
-                    win.left() + grid_x as f32 * model.tile_width + (model.tile_width / 2.0);
-                let y = win.top()
-                    - grid_y as f32 * model.tile_height
-                    - (model.tile_height / 2.0);
+                let x = win.left() + grid_x as f32 * model.tile_width + (model.tile_width / 2.0);
+                let y = win.top() - grid_y as f32 * model.tile_height - (model.tile_height / 2.0);
                 draw.rect()
                     .texture(&model.texture)
                     .x_y(x, y)
