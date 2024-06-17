@@ -37,8 +37,10 @@ web-sys = { version = "0.3.64", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["full"]}
+image = { version = "0.25", features = ["default"] }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { version = "1", features = ["rt"]}
+image = { version = "0.25", features = [], default-features = false }
 
 [features]
 default = ["notosans"]
