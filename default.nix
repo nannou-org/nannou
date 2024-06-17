@@ -2,7 +2,6 @@
 , darwin
 , jq
 , lib
-, lld
 , llvmPackages
 , libiconv
 , makeWrapper
@@ -45,7 +44,6 @@ rustPlatform.buildRustPackage rec {
   ] ++ lib.optionals stdenv.isLinux [
     alsaLib
     udev
-    lld
     llvmPackages.bintools
     vulkan-loader
     vulkan-validation-layers
