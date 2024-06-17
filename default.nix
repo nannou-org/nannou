@@ -43,6 +43,7 @@ rustPlatform.buildRustPackage rec {
   ] ++ lib.optionals stdenv.isLinux [
     alsaLib
     udev
+    lld
     vulkan-loader
     vulkan-validation-layers
     xorg.libX11
