@@ -16,6 +16,7 @@ use std::time::Duration;
 use std::{self};
 
 use bevy::app::AppExit;
+#[cfg(not(target_arch = "wasm32"))]
 use bevy::asset::io::file::FileAssetReader;
 use bevy::core::FrameCount;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
@@ -419,6 +420,7 @@ impl<'w> App<'w> {
         self.world_mut().resource_mut::<AssetServer>()
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn assets_path(&self) -> PathBuf {
         FileAssetReader::get_base_path().join("assets")
     }
@@ -496,7 +498,8 @@ impl<'w> App<'w> {
         unsafe { self.world.borrow().world() }
     }
 
-    pub fn world_mut(&self) -> &mut World {
+    #[allow(clippy::mut_from_ref)]
+    pub(crate) fn world_mut(&self) -> &mut World {
         unsafe { self.world.borrow_mut().world_mut() }
     }
 
@@ -745,7 +748,10 @@ where
                 };
             }
         };
-        let _ = window.primary().build();
+        #[cfg(not(target_os = "unknown"))]
+        {
+            let _ = window.primary().build();
+        }
     }
 
     // Initialise the model.
@@ -768,6 +774,7 @@ fn first<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn update<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -839,6 +846,7 @@ fn update<M>(
     *ticks += 1;
 }
 
+#[allow(clippy::type_complexity)]
 fn key_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -871,6 +879,7 @@ fn key_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn received_char_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -895,6 +904,7 @@ fn received_char_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn cursor_moved_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -917,6 +927,7 @@ fn cursor_moved_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn mouse_button_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -949,6 +960,7 @@ fn mouse_button_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn cursor_entered_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -972,6 +984,7 @@ fn cursor_entered_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn cursor_left_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -994,6 +1007,7 @@ fn cursor_left_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn mouse_wheel_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -1016,6 +1030,7 @@ fn mouse_wheel_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn window_moved_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -1038,6 +1053,7 @@ fn window_moved_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn window_resized_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -1061,6 +1077,7 @@ fn window_resized_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn touch_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -1083,6 +1100,7 @@ fn touch_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn file_drop_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -1125,6 +1143,7 @@ fn file_drop_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn window_focus_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -1152,6 +1171,7 @@ fn window_focus_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn window_closed_events<M>(
     world: &mut World,
     state: &mut SystemState<(
@@ -1175,6 +1195,7 @@ fn window_closed_events<M>(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn last<M>(world: &mut World, state: &mut SystemState<(EventReader<AppExit>, Res<ExitFnRes<M>>)>)
 where
     M: 'static,
