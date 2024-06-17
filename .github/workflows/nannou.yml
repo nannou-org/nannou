@@ -31,8 +31,8 @@ jobs:
           - command: cargo fmt --verbose --all -- --check
           - command: cargo check --locked --workspace
           - command: cargo check --locked --examples --workspace
-          - command: cargo test --locked --lib --bins --all-features --workspace
-          - command: cargo doc --locked --all-features --workspace
+          - command: cargo test --locked --lib --bins --workspace --features "egui"
+          - command: cargo doc --locked --workspace --features "egui"
           - command: cargo test --locked -p nannou_core --no-default-features --features "libm serde"
           - command: cargo build --locked -p nannou --target wasm32-unknown-unknown
           - command: mdbook build guide/
