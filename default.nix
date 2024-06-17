@@ -3,6 +3,7 @@
 , jq
 , lib
 , lld
+, llvmPackages
 , libiconv
 , makeWrapper
 , pkg-config
@@ -45,6 +46,7 @@ rustPlatform.buildRustPackage rec {
     alsaLib
     udev
     lld
+    llvmPackages.bintools
     vulkan-loader
     vulkan-validation-layers
     xorg.libX11

@@ -24,6 +24,8 @@ jobs:
   # A colleciton of cargo verifications that should pass before landing PRs.
   cargo:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER: "lld"
     strategy:
       fail-fast: false
       matrix:
