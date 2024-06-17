@@ -2,6 +2,7 @@
 , darwin
 , jq
 , lib
+, lld
 , libiconv
 , makeWrapper
 , pkg-config
