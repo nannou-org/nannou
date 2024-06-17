@@ -4,7 +4,6 @@ use bevy::prelude::*;
 
 use crate::render::NannouRenderPlugin;
 
-mod changed;
 pub mod color;
 pub mod draw;
 pub mod render;

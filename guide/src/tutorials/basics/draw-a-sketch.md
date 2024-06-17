@@ -55,7 +55,7 @@ After this import the actual sketching code starts. The `main()` functions is wh
 # fn main() {
     nannou::sketch(view).run();
 # }
-# fn view(_app: &App, _frame: Frame) {}
+# fn view(_app: &App) {}
 ```
 
 calls a function to draw on the single window (`view()` in this case). This
@@ -88,7 +88,7 @@ This function follows the same scheme. First some setup is done. The line
 # fn main() {
 #    nannou::sketch(view).run();
 # }
-# fn view(app: &App, _frame: Frame) {
+# fn view(app: &App) {
 let draw = app.draw();
 # }
 ```
@@ -102,7 +102,7 @@ We can now paint on the this canvas by setting the background to blue.
 # fn main() {
 #    nannou::sketch(view).run();
 # }
-# fn view(app: &App, _frame: Frame) {
+# fn view(app: &App) {
 # let draw = app.draw();
 draw.background().color(BLUE);
 # }

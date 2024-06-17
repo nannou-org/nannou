@@ -207,7 +207,7 @@ We can align our plum square to the `top_left_of` the window like so:
 # use nannou::prelude::*;
 # fn main() {
 #     let draw: Draw = unimplemented!();
-#     let win: Rect = unimplemented!();
+#     let win: geom::Rect = unimplemented!();
 let r = geom::Rect::from_w_h(100.0, 100.0).top_left_of(win);
 draw.rect()
     .xy(r.xy())
@@ -239,12 +239,12 @@ semi-transparent blue color:
 # use nannou::prelude::*;
 # fn main() {
 #     let draw: Draw = unimplemented!();
-#     let win: Rect = unimplemented!();
+#     let win: geom::Rect = unimplemented!();
 let win_p = win.pad(25.0);
 draw.rect()
     .xy(win_p.xy())
     .wh(win_p.wh())
-    .color(rgba(0.3, 0.4, 0.7, 0.5));
+    .color(Color::srgba(0.3, 0.4, 0.7, 0.5));
 # }
 ```
 
@@ -258,7 +258,7 @@ square and achieve the desired look:
 # use nannou::prelude::*;
 # fn main() {
 #     let draw: Draw = unimplemented!();
-#     let win: Rect = unimplemented!();
+#     let win: geom::Rect = unimplemented!();
 let win_p = win.pad(25.0);
 let r = geom::Rect::from_w_h(100.0, 100.0).top_left_of(win_p);
 draw.rect()
@@ -286,9 +286,9 @@ circle:
 # use nannou::prelude::*;
 # fn main() {
 #     let draw: Draw = unimplemented!();
-#     let win: Rect = unimplemented!();
+#     let win: geom::Rect = unimplemented!();
 let win_p = win.pad(25.0);
-let square = Rect::from_w_h(100.0, 100.0).top_left_of(win_p);
+let square = geom::Rect::from_w_h(100.0, 100.0).top_left_of(win_p);
 draw.rect()
     .xy(square.xy())
     .wh(square.wh())
@@ -315,10 +315,10 @@ square:
 # use nannou::prelude::*;
 # fn main() {
 #     let draw: Draw = unimplemented!();
-#     let win: Rect = unimplemented!();
+#     let win: geom::Rect = unimplemented!();
 let pad = 25.0;
 let win_p = win.pad(pad);
-let square = Rect::from_w_h(100.0, 100.0).top_left_of(win_p);
+let square = geom::Rect::from_w_h(100.0, 100.0).top_left_of(win_p);
 draw.rect()
     .xy(square.xy())
     .wh(square.wh())

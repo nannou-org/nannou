@@ -42,7 +42,7 @@ fn main() {
 fn view(app: &App) {
     let draw = app.draw();
     draw.background().color(PLUM);
-    draw.ellipse().color(STEELBLUE);
+    draw.ellipse().color(STEEL_BLUE);
     
 }
 ```
@@ -81,7 +81,7 @@ fn update(_app: &App, _model: &mut Model) {}
 fn view(app: &App, _model: &Model) {
     let draw = app.draw();
     draw.background().color(PLUM);
-    draw.ellipse().color(STEELBLUE);
+    draw.ellipse().color(STEEL_BLUE);
     
 }
 ```
@@ -119,7 +119,7 @@ flexibility, you can turn it into an app by following these steps:
    # fn main() {
    nannou::sketch(view).run()
    # }
-   # fn view(_: &App, _: Frame) {}
+   # fn view(_: &App) {}
    ```
 
    to
@@ -132,7 +132,7 @@ flexibility, you can turn it into an app by following these steps:
    # }
    # struct Model {}
    # fn model(_: &App) -> Model { Model {} }
-   # fn view(_: &App, _: &Model, _: Frame) {}
+   # fn view(_: &App, _: &Model, _: Entity) {}
    ```
 
 2. Add a `Model` for tracking state:
@@ -172,7 +172,7 @@ flexibility, you can turn it into an app by following these steps:
    # use nannou::prelude::*;
    # fn main() {}
    # struct Model {}
-   fn view(app: &App, _model: &Model) {
+   fn view(app: &App, _model: &Model, _window: Entity) {
    # }
    ```
 

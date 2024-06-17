@@ -61,7 +61,8 @@ create a new project with just a few small steps:
    fn update(_app: &App, _model: &mut Model) {
    }
 
-   fn view(_app: &App, _model: &Model) {
+   fn view(app: &App, _model: &Model, _window: Entity) {
+       let draw = app.draw();
        draw.background().color(PURPLE);
    }
    ```

@@ -178,10 +178,10 @@ fn model(_app: &App) -> Model {
     Model { sender }
 }
 
-fn view(app: &App, model: &Model) {
+fn view(app: &App, model: &Model, _window: Entity) {
     // Use app time to progress through a sine wave
-    let sine = app.time.sin();
-    let slowersine = (app.time / 2.0).sin();
+    let sine = app.elapsed_seconds().sin();
+    let slowersine = (app.elapsed_seconds() / 2.0).sin();
 
     // Get boundary of the window (to constrain the movements of our circle)
     let boundary = app.window_rect();
@@ -204,7 +204,7 @@ fn view(app: &App, model: &Model) {
     draw.background().color(PLUM);
 
     // Draw a blue ellipse at the x/y coordinates 0.0, 0.0
-    draw.ellipse().color(STEELBLUE).x_y(x, y);
+    draw.ellipse().color(STEEL_BLUE).x_y(x, y);
 
     
 }

@@ -52,7 +52,7 @@ fn model(app: &App) -> Model {
   Model {}
 }
 
-fn view(_app: &App, _model: &Model, _frame: Frame) {
+fn view(_app: &App, _model: &Model) {
 }
 ```
 
@@ -66,7 +66,7 @@ Now, at the top of your `main.rs` file, add a [WGPU Texture](https://docs.rs/nan
 # #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 struct Model {
-  texture: wgpu::Texture,
+  texture: Handle<Image>,
 }
 # fn main() {
 #   nannou::app(model).run();
@@ -74,10 +74,10 @@ struct Model {
 # fn model(app: &App) -> Model {
 #   // Create a new window!
 #   app.new_window().size(512, 512).view(view).build();
-#   let texture: wgpu::Texture = unimplemented!();
+#   let texture: Handle<Image> = unimplemented!();
 #   Model { texture }
 # }
-# fn view(_app: &App, _model: &Model, _frame: Frame) {
+# fn view(_app: &App, _model: &Model) {
 # }
 ```
 
@@ -87,7 +87,7 @@ Next, we'll need to create a GPU texture to initialize the struct with. We can a
 # #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 # struct Model {
-#   texture: wgpu::Texture,
+#   texture: Handle<Image>,
 # }
 # fn main() {
 #   nannou::app(model).run();
@@ -95,13 +95,11 @@ Next, we'll need to create a GPU texture to initialize the struct with. We can a
 fn model(app: &App) -> Model {
   // Create a new window!
   app.new_window().size(512, 512).view(view).build();
-  // Load the image from disk and upload it to a GPU texture.
-  let assets = app.assets_path();
-  let img_path = assets.join("images").join("nature").join("nature_1.jpg");
-  let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+  // Load the image from disk and upload it to a GPU texture
+  let texture = app.assets().load("images/nature/nature_1.jpg");
   Model { texture }
 }
-# fn view(_app: &App, _model: &Model, _frame: Frame) {
+# fn view(_app: &App, _model: &Model) {
 # }
 ```
 
@@ -115,7 +113,7 @@ Finally, in our `view` function, we can draw the texture stored in our model wit
 # #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 # struct Model {
-#   texture: wgpu::Texture,
+#   texture: Handle<Image>, 
 # }
 # fn main() {
 #   nannou::app(model).run();
@@ -124,18 +122,17 @@ Finally, in our `view` function, we can draw the texture stored in our model wit
 #   // Create a new window!
 #   app.new_window().size(512, 512).view(view).build();
 #   // Load the image from disk and upload it to a GPU texture.
-#   let assets = app.assets_path();
-#   let img_path = assets.join("images").join("nature").join("nature_1.jpg");
-#   let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+#   let texture = app.assets().load("images/nature/nature_1.jpg");
 #   Model { texture }
 # }
 fn view(app: &App, model: &Model) {
+  let draw = app.draw();
   draw.background().color(BLACK);
 
   let draw = app.draw();
-  draw.texture(&model.texture);
-
-  
+  draw
+    .rect()
+    .texture(&model.texture);
 }
 ```
 ![A texture](./images/drawing-images-0.png)
@@ -149,7 +146,7 @@ A texture can be drawn at any location and any size desired within the frame. Le
 # #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 # struct Model {
-#   texture: wgpu::Texture,
+#   texture: Handle<Image>, 
 # }
 # fn main() {
 #   nannou::app(model).run();
@@ -158,23 +155,22 @@ A texture can be drawn at any location and any size desired within the frame. Le
 #   // Create a new window!
 #   app.new_window().size(512, 512).view(view).build();
 #   // Load the image from disk and upload it to a GPU texture.
-#   let assets = app.assets_path();
-#   let img_path = assets.join("images").join("nature").join("nature_1.jpg");
-#   let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+#   let texture = app.assets().load("images/nature/nature_1.jpg");
 #   Model { texture }
 # }
 fn view(app: &App, model: &Model) {
+  let draw = app.draw();
   draw.background().color(BLACK);
 
   let win = app.window_rect();
   let r = geom::Rect::from_w_h(100.0, 100.0).top_left_of(win);
 
   let draw = app.draw();
-  draw.texture(&model.texture)
+  draw
+    .rect()
+    .texture(&model.texture)
     .xy(r.xy())
     .wh(r.wh());
-
-  
 }
 ```
 ![A translated and scaled texture](./images/drawing-images-1.png)
