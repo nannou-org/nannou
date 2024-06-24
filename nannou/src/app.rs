@@ -416,24 +416,29 @@ impl<'w> App<'w> {
         world.spawn((NannouPersistentMesh,)).id()
     }
 
-    pub fn assets(&self) -> Mut<AssetServer> {
+    /// Retrieve a mutable reference to the [`AssetServer`] resource.
+    pub fn assets_mut(&self) -> Mut<AssetServer> {
         self.world_mut().resource_mut::<AssetServer>()
     }
 
+    /// Retrieve the path to the assets directory.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn assets_path(&self) -> PathBuf {
         FileAssetReader::get_base_path().join("assets")
     }
 
+    /// Retrieve a reference to the [`Assets<Image>`] resource.
     pub fn images(&self) -> &Assets<Image> {
         self.world().resource::<Assets<Image>>()
     }
 
+    /// Retrieve a mutable reference to the [`Assets<Image>`] resource.
     pub fn images_mut(&self) -> Mut<'_, Assets<Image>> {
         self.world_mut().resource_mut::<Assets<Image>>()
     }
 
     #[cfg(feature = "egui")]
+    /// Get the egui context for the provided window.
     pub fn egui_for_window(&self, window: Entity) -> Mut<EguiContext> {
         self.world_mut()
             .get_mut::<EguiContext>(window)
@@ -441,10 +446,12 @@ impl<'w> App<'w> {
     }
 
     #[cfg(feature = "egui")]
+    /// Get the egui context for the currently focused window.
     pub fn egui(&self) -> Mut<EguiContext> {
         self.egui_for_window(self.window_id())
     }
 
+    /// Get the current mouse position in points.
     pub fn mouse(&self) -> Vec2 {
         let window = self.window_id();
         let window = self
@@ -459,21 +466,25 @@ impl<'w> App<'w> {
         )
     }
 
+    /// Get the current input state for the mouse.
     pub fn mouse_buttons(&self) -> &ButtonInput<MouseButton> {
         let mouse_input = self.world_mut().resource::<ButtonInput<MouseButton>>();
         mouse_input
     }
 
+    /// Get the current input state for the keyboard.
     pub fn keys(&self) -> &ButtonInput<KeyCode> {
         let keyboard_input = self.world_mut().resource::<ButtonInput<KeyCode>>();
         keyboard_input
     }
 
+    /// Get the [`Time`] resource.
     pub fn time(&self) -> Time {
         let time = self.world().get_resource::<Time>().unwrap();
         *time
     }
 
+    /// Get the time since the app started.
     pub fn elapsed_seconds(&self) -> f32 {
         let time = self.world().get_resource::<Time>().unwrap();
         time.elapsed_seconds()
@@ -494,13 +505,29 @@ impl<'w> App<'w> {
         }
     }
 
-    pub fn world(&self) -> &World {
+    /// Retrieve a read-only reference to the `App`'s world.
+    ///
+    /// This is exposed only as an escape hatch; users should prefer to use the Bevy ECS API
+    /// directly when possible.
+    pub fn world(&self) -> &'w World {
         unsafe { self.world.borrow().world() }
     }
 
     #[allow(clippy::mut_from_ref)]
-    pub(crate) fn world_mut(&self) -> &mut World {
+    pub(crate) fn world_mut(&self) -> &'w mut World {
         unsafe { self.world.borrow_mut().world_mut() }
+    }
+
+    /// Retreive a mutable reference to the `App`'s world.
+    ///
+    /// WARNING: This should be used with extreme caution as it can lead to undefined behavior.
+    /// This is only safe to use if you are certain that the world is not being accessed by any
+    /// other part of the application.
+    ///
+    /// Applications that wish to make greater use of the ECS should consider using the Bevy ECS
+    /// API directly.
+    pub unsafe fn unsafe_world_mut(&self) -> &'w mut World {
+        self.world.borrow_mut().world_mut()
     }
 
     /// Returns the list of all the monitors available on the system.

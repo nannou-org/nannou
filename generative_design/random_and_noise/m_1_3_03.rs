@@ -70,7 +70,7 @@ fn model(app: &App) -> Model {
         // Need to keep this image CPU persistent in order to add additional glyphs later on
         RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
     );
-    let texture = app.assets().add(image);
+    let texture = app.assets_mut().add(image);
     Model {
         octaves: 4,
         falloff: 0.5,
@@ -158,12 +158,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
         _otherkey => (),
     }
 
-    if model.falloff > 1.0 {
-        model.falloff = 1.0;
-    }
-    if model.falloff <= 0.0 {
-        model.falloff = 0.0;
-    }
+    model.falloff = model.falloff.clamp(0.0, 1.0);
     if model.octaves <= 1 {
         model.octaves = 1;
     }

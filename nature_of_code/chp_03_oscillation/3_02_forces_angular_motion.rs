@@ -27,7 +27,7 @@ impl Attractor {
     fn attract(&self, m: &Mover) -> Vec2 {
         let mut force = self.location - m.location; // Calculate direction of force
         let mut distance = force.length(); // Distance between objects
-        distance = distance.max(5.0).min(25.0); // Limiting the distance to eliminate "extreme" results for very cose or very far object
+        distance = distance.clamp(5.0, 25.0); // Limiting the distance to eliminate "extreme" results for very cose or very far object
         force = force.normalize(); // Normalize vector (distance doesn't matter, we just want this vector for direction)
         let strength = (self.g * self.mass * m.mass) / (distance * distance); // Calculate gravitational force magnitude
         force * strength // Get force vector --> magnitude * direction

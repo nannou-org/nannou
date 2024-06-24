@@ -106,7 +106,13 @@ where
     {
         let file = fs::File::create(&temp_path)?;
         let mut buffered = io::BufWriter::new(file);
-        buffered.write(content)?;
+        let written = buffered.write(content)?;
+        if written != content.len() {
+            return Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "failed to write entire buffer to file",
+            ));
+        }
         match buffered.into_inner() {
             Err(err) => {
                 let io_err = err.error();
