@@ -42,7 +42,7 @@ mod window;
 ///
 /// The Model that is returned by the function is the same model that will be passed to the
 /// given event and view functions.
-pub fn app<M: 'static>(model: app::ModelFn<M>) -> app::Builder<M> {
+pub fn app<M: 'static + Send>(model: app::ModelFn<M>) -> app::Builder<M> {
     app::Builder::new(model)
 }
 
