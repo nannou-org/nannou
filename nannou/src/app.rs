@@ -7,6 +7,7 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
+use std::any::Any;
 use std::cell::RefCell;
 use std::hash::Hash;
 use std::path::PathBuf;
@@ -26,9 +27,12 @@ use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::{MouseButtonInput, MouseWheel};
 use bevy::input::ButtonState;
 use bevy::prelude::*;
-use bevy::reflect::GetTypeRegistration;
+use bevy::reflect::{
+    ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
+    TypeInfo,
+};
 use bevy::window::{ExitCondition, PrimaryWindow, WindowClosed, WindowFocused, WindowResized};
-use bevy::winit::{UpdateMode, WinitSettings};
+use bevy::winit::{UpdateMode, WinitEvent, WinitSettings};
 #[cfg(feature = "egui")]
 use bevy_egui::EguiContext;
 // #[cfg(feature = "egui")]
@@ -51,7 +55,7 @@ use crate::{geom, window};
 pub type ModelFn<Model> = fn(&App) -> Model;
 
 /// The user function type for updating their model in accordance with some event.
-pub type EventFn<Model, Event> = fn(&App, &mut Model, Event);
+pub type EventFn<Model, Event> = fn(&App, &mut Model, &Event);
 
 /// The user function type for updating the user model within the application loop.
 pub type UpdateFn<Model> = fn(&App, &mut Model);
@@ -83,18 +87,19 @@ impl<M> Clone for View<M> {
 }
 
 /// A nannou `App` builder.
-pub struct Builder<M = ()> {
+pub struct Builder<M = (), E = WinitEvent> {
     app: bevy::app::App,
     model: ModelFn<M>,
     config: Config,
+    event: Option<EventFn<M, E>>,
     update: Option<UpdateFn<M>>,
     default_view: Option<View<M>>,
     exit: Option<ExitFn<M>>,
 }
 
 /// A nannou `Sketch` builder.
-pub struct SketchBuilder {
-    builder: Builder<()>,
+pub struct SketchBuilder<E = WinitEvent> {
+    builder: Builder<(), E>,
 }
 
 #[derive(Debug, Clone)]
@@ -130,6 +135,9 @@ pub struct App<'w> {
 
 #[derive(Resource, Deref, DerefMut)]
 struct ModelFnRes<M>(ModelFn<M>);
+
+#[derive(Resource, Deref, DerefMut)]
+struct EventFnRes<M, E>(Option<EventFn<M, E>>);
 
 #[derive(Resource, Deref, DerefMut)]
 struct UpdateFnRes<M>(Option<UpdateFn<M>>);
@@ -207,6 +215,7 @@ where
             app,
             model,
             config: Config::default(),
+            event: None,
             update: None,
             default_view: None,
             exit: None,
@@ -214,9 +223,10 @@ where
     }
 }
 
-impl<M> Builder<M>
+impl<M, E> Builder<M, E>
 where
     M: 'static + Send + Sync,
+    E: Event,
 {
     /// The default `view` function that the app will call to allow you to present your Model to
     /// the surface of a window on your display.
@@ -327,6 +337,7 @@ where
             })
             .insert_resource(self.config.clone())
             .insert_resource(ModelFnRes(self.model))
+            .insert_resource(EventFnRes(self.event))
             .insert_resource(UpdateFnRes(self.update))
             .insert_resource(ViewFnRes(self.default_view))
             .insert_resource(ExitFnRes(self.exit))
@@ -336,6 +347,7 @@ where
                 Update,
                 (
                     update::<M>,
+                    events::<M, E>,
                     key_events::<M>,
                     received_char_events::<M>,
                     cursor_moved_events::<M>,
@@ -969,6 +981,26 @@ fn update<M>(
 
     // Increment the frame count.
     *ticks += 1;
+}
+
+fn events<M, E>(
+    world: &mut World,
+    state: &mut SystemState<(
+        EventReader<E>,
+        Res<EventFnRes<M, E>>,
+        Query<&WindowUserFunctions<M>>,
+        ResMut<ModelHolder<M>>,
+    )>,
+) where
+    M: Send + Sync + 'static,
+    E: Event,
+{
+    let (app, (mut events, event_fn, user_fns, mut model)) = get_app_and_state(world, state);
+    for evt in events.read() {
+        if let Some(f) = event_fn.0.as_ref() {
+            f(&app, &mut model, evt);
+        }
+    }
 }
 
 #[allow(clippy::type_complexity)]
