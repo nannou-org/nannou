@@ -10,6 +10,9 @@
 //! This effect is best experienced with headphones!
 
 use hrtf::{HrirSphere, HrtfContext, HrtfProcessor};
+use std::sync::mpsc::Sender;
+use std::thread;
+use std::thread::JoinHandle;
 
 use nannou::prelude::*;
 use nannou::rand::{rngs::SmallRng, Rng, SeedableRng};
@@ -17,12 +20,21 @@ use nannou_audio as audio;
 use nannou_audio::Buffer;
 
 fn main() {
-    nannou::app(model).run();
+    nannou::app(model).exit(exit).run();
+}
+
+pub enum AudioCommand {
+    Play,
+    Pause,
+    SourcePosition(Point3),
+    Exit,
 }
 
 struct Model {
-    stream: audio::Stream<Audio>,
+    audio_thread: JoinHandle<()>,
+    audio_tx: Sender<AudioCommand>,
     source_position: Point3,
+    is_paused: bool,
 }
 
 // HRTF requires a fixed sample rate and "block length" (i.e. buffer length in frames).
@@ -93,20 +105,49 @@ fn model(app: &App) -> Model {
         prev_source_position: [0.0; 3].into(),
     };
 
-    let stream = audio_host
-        .new_output_stream(audio_model)
-        .render(audio)
-        .channels(2)
-        .sample_rate(SAMPLE_RATE)
-        .frames_per_buffer(BUFFER_LEN_FRAMES)
-        .build()
-        .unwrap();
+    // Kick off the audio thread.
+    let (audio_tx, audio_rx) = std::sync::mpsc::channel();
+    let audio_thread = thread::spawn(move || {
+        let stream = audio_host
+            .new_output_stream(audio_model)
+            .render(audio)
+            .channels(2)
+            .sample_rate(SAMPLE_RATE)
+            .frames_per_buffer(BUFFER_LEN_FRAMES)
+            .build()
+            .unwrap();
 
-    stream.play().unwrap();
+        stream.play().unwrap();
+
+        loop {
+            match audio_rx.recv() {
+                Ok(AudioCommand::Play) => {
+                    stream.play().unwrap();
+                }
+                Ok(AudioCommand::Pause) => {
+                    stream.pause().unwrap();
+                }
+                Ok(AudioCommand::Exit) => {
+                    stream.pause().ok();
+                    break;
+                }
+                Ok(AudioCommand::SourcePosition(new_source_position)) => {
+                    stream
+                        .send(move |audio| {
+                            audio.source_position = new_source_position;
+                        })
+                        .unwrap();
+                }
+                Err(_) => break,
+            }
+        }
+    });
 
     Model {
-        stream,
+        audio_thread,
+        audio_tx,
         source_position,
+        is_paused: false,
     }
 }
 
@@ -158,12 +199,13 @@ fn audio(audio: &mut Audio, output: &mut Buffer) {
 }
 
 fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
-    // Pause or unpause the audio when Space is pressed.
-    if let KeyCode::Space = key {
-        if model.stream.is_playing() {
-            model.stream.pause().unwrap();
+    if key == KeyCode::Space {
+        if model.is_paused {
+            model.audio_tx.send(AudioCommand::Play).ok();
+            model.is_paused = false;
         } else {
-            model.stream.play().unwrap();
+            model.audio_tx.send(AudioCommand::Pause).ok();
+            model.is_paused = true;
         }
     }
 }
@@ -174,9 +216,14 @@ fn mouse_moved(_app: &App, model: &mut Model, p: Point2) {
     let new_source_position = pt3(x, 0.0, y) / LISTENING_RADIUS;
     model.source_position = new_source_position;
     model
-        .stream
-        .send(move |audio| audio.source_position = new_source_position)
+        .audio_tx
+        .send(AudioCommand::SourcePosition(new_source_position))
         .ok();
+}
+
+fn exit(_app: &App, model: Model) {
+    model.audio_tx.send(AudioCommand::Exit).ok();
+    model.audio_thread.join().ok();
 }
 
 fn view(app: &App, model: &Model) {

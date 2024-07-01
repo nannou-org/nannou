@@ -3,11 +3,18 @@ use nannou_audio as audio;
 use nannou_audio::Buffer;
 
 fn main() {
-    nannou::app(model).run();
+    nannou::app(model).exit(exit).run();
 }
 
 struct Model {
-    stream: audio::Stream<Audio>,
+    audio_thread: std::thread::JoinHandle<()>,
+    audio_tx: std::sync::mpsc::Sender<AudioCommand>,
+    is_paused: bool,
+}
+
+pub enum AudioCommand {
+    PlaySound(audrey::read::BufFileReader),
+    Exit,
 }
 
 struct Audio {
@@ -24,15 +31,41 @@ fn model(app: &App) -> Model {
     // Initialise the state that we want to live on the audio thread.
     let sounds = vec![];
     let model = Audio { sounds };
-    let stream = audio_host
-        .new_output_stream(model)
-        .render(audio)
-        .build()
-        .unwrap();
 
-    stream.play().unwrap();
+    // Kick off the audio thread.
+    let (audio_tx, audio_rx) = std::sync::mpsc::channel();
+    let audio_thread = std::thread::spawn(move || {
+        let stream = audio_host
+            .new_output_stream(model)
+            .render(audio)
+            .build()
+            .unwrap();
 
-    Model { stream }
+        stream.play().unwrap();
+
+        loop {
+            match audio_rx.recv() {
+                Ok(AudioCommand::PlaySound(sound)) => {
+                    stream
+                        .send(move |audio| {
+                            audio.sounds.push(sound);
+                        })
+                        .unwrap();
+                }
+                Ok(AudioCommand::Exit) => {
+                    stream.pause().ok();
+                    break;
+                }
+                Err(_) => break,
+            }
+        }
+    });
+
+    Model {
+        audio_thread,
+        audio_tx,
+        is_paused: false,
+    }
 }
 
 // A function that renders the given `Audio` to the given `Buffer`.
@@ -69,13 +102,13 @@ fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
         let assets = app.assets_path();
         let path = assets.join("sounds").join("thumbpiano.wav");
         let sound = audrey::open(path).expect("failed to load sound");
-        model
-            .stream
-            .send(move |audio| {
-                audio.sounds.push(sound);
-            })
-            .ok();
+        model.audio_tx.send(AudioCommand::PlaySound(sound)).ok();
     }
+}
+
+fn exit(_app: &App, model: Model) {
+    model.audio_tx.send(AudioCommand::Exit).ok();
+    model.audio_thread.join().ok();
 }
 
 fn view(app: &App, _model: &Model) {

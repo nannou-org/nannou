@@ -1,15 +1,27 @@
 use std::f64::consts::PI;
+use std::sync::mpsc::Sender;
+use std::thread::JoinHandle;
 
 use nannou::prelude::*;
 use nannou_audio as audio;
 use nannou_audio::Buffer;
 
 fn main() {
-    nannou::app(model).run();
+    nannou::app(model).exit(exit).run();
+}
+
+enum AudioCommand {
+    Play,
+    Pause,
+    IncreaseFrequency(f64),
+    DecreaseFrequency(f64),
+    Exit,
 }
 
 struct Model {
-    stream: audio::Stream<Audio>,
+    audio_thread: JoinHandle<()>,
+    audio_tx: Sender<AudioCommand>,
+    is_paused: bool,
 }
 
 struct Audio {
@@ -30,15 +42,53 @@ fn model(app: &App) -> Model {
         hz: 440.0,
     };
 
-    let stream = audio_host
-        .new_output_stream(model)
-        .render(audio)
-        .build()
-        .unwrap();
+    // Kick off the audio thread.
+    let (audio_tx, audio_rx) = std::sync::mpsc::channel();
+    let audio_thread = std::thread::spawn(move || {
+        let stream = audio_host
+            .new_output_stream(model)
+            .render(audio)
+            .build()
+            .unwrap();
 
-    stream.play().unwrap();
+        stream.play().unwrap();
 
-    Model { stream }
+        loop {
+            match audio_rx.recv() {
+                Ok(AudioCommand::Play) => {
+                    stream.play().unwrap();
+                }
+                Ok(AudioCommand::Pause) => {
+                    stream.pause().unwrap();
+                }
+                Ok(AudioCommand::IncreaseFrequency(hz)) => {
+                    stream
+                        .send(move |audio| {
+                            audio.hz += hz;
+                        })
+                        .unwrap();
+                }
+                Ok(AudioCommand::DecreaseFrequency(hz)) => {
+                    stream
+                        .send(move |audio| {
+                            audio.hz -= hz;
+                        })
+                        .unwrap();
+                }
+                Ok(AudioCommand::Exit) => {
+                    stream.pause().ok();
+                    break;
+                }
+                _ => (),
+            }
+        }
+    });
+
+    Model {
+        audio_thread,
+        audio_tx,
+        is_paused: false,
+    }
 }
 
 // A function that renders the given `Audio` to the given `Buffer`.
@@ -60,32 +110,35 @@ fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
         // Pause or unpause the audio when Space is pressed.
         KeyCode::Space => {
-            if model.stream.is_playing() {
-                model.stream.pause().unwrap();
+            if model.is_paused {
+                model.audio_tx.send(AudioCommand::Play).ok();
+                model.is_paused = false;
             } else {
-                model.stream.play().unwrap();
+                model.audio_tx.send(AudioCommand::Pause).ok();
+                model.is_paused = true;
             }
         }
         // Raise the frequency when the up key is pressed.
         KeyCode::ArrowUp => {
             model
-                .stream
-                .send(|audio| {
-                    audio.hz += 10.0;
-                })
-                .unwrap();
+                .audio_tx
+                .send(AudioCommand::IncreaseFrequency(10.0))
+                .ok();
         }
         // Lower the frequency when the down key is pressed.
         KeyCode::ArrowDown => {
             model
-                .stream
-                .send(|audio| {
-                    audio.hz -= 10.0;
-                })
-                .unwrap();
+                .audio_tx
+                .send(AudioCommand::DecreaseFrequency(10.0))
+                .ok();
         }
         _ => {}
     }
+}
+
+fn exit(_app: &App, model: Model) {
+    model.audio_tx.send(AudioCommand::Exit).ok();
+    model.audio_thread.join().ok();
 }
 
 fn view(app: &App, _model: &Model) {
