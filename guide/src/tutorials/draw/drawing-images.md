@@ -96,7 +96,7 @@ fn model(app: &App) -> Model {
   // Create a new window!
   app.new_window().size(512, 512).view(view).build();
   // Load the image from disk and upload it to a GPU texture
-  let texture = app.assets().load("images/nature/nature_1.jpg");
+  let texture = app.assets_mut().load("images/nature/nature_1.jpg");
   Model { texture }
 }
 # fn view(_app: &App, _model: &Model) {
@@ -122,7 +122,7 @@ Finally, in our `view` function, we can draw the texture stored in our model wit
 #   // Create a new window!
 #   app.new_window().size(512, 512).view(view).build();
 #   // Load the image from disk and upload it to a GPU texture.
-#   let texture = app.assets().load("images/nature/nature_1.jpg");
+#   let texture = app.assets_mut().load("images/nature/nature_1.jpg");
 #   Model { texture }
 # }
 fn view(app: &App, model: &Model) {
@@ -155,7 +155,7 @@ A texture can be drawn at any location and any size desired within the frame. Le
 #   // Create a new window!
 #   app.new_window().size(512, 512).view(view).build();
 #   // Load the image from disk and upload it to a GPU texture.
-#   let texture = app.assets().load("images/nature/nature_1.jpg");
+#   let texture = app.assets_mut().load("images/nature/nature_1.jpg");
 #   Model { texture }
 # }
 fn view(app: &App, model: &Model) {
