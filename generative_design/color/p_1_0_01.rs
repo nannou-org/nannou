@@ -38,7 +38,7 @@ fn view(app: &App) {
     // Prepare to draw.
     let draw = app.draw();
 
-    let norm_mouse_y = (app.mouse().x / app.window_rect().h()) + 0.5;
+    let norm_mouse_y = (app.mouse().y / app.window_rect().h()) + 0.5;
     draw.background().hsl(norm_mouse_y, 1.0, 0.5);
 
     draw.rect()

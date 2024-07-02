@@ -478,12 +478,12 @@ where
         self.map_ty(|ty| SetColor::oklcha(ty, l, c, h, alpha))
     }
 
-    pub fn xyz(self, x: f32, y: f32, z: f32) -> Self {
-        self.map_ty(|ty| SetColor::xyz(ty, x, y, z))
+    pub fn cie_xyz(self, x: f32, y: f32, z: f32) -> Self {
+        self.map_ty(|ty| SetColor::cie_xyz(ty, x, y, z))
     }
 
-    pub fn xyza(self, x: f32, y: f32, z: f32, alpha: f32) -> Self {
-        self.map_ty(|ty| SetColor::xyza(ty, x, y, z, alpha))
+    pub fn cie_xyza(self, x: f32, y: f32, z: f32, alpha: f32) -> Self {
+        self.map_ty(|ty| SetColor::cie_xyza(ty, x, y, z, alpha))
     }
 
     /// Specify the color as gray scale

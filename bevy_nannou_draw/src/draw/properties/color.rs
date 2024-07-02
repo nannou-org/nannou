@@ -144,11 +144,11 @@ pub trait SetColor: Sized {
         self.color(Color::oklcha(l, c, h, alpha))
     }
 
-    fn xyz(self, x: f32, y: f32, z: f32) -> Self {
+    fn cie_xyz(self, x: f32, y: f32, z: f32) -> Self {
         self.color(Color::xyz(x, y, z))
     }
 
-    fn xyza(self, x: f32, y: f32, z: f32, alpha: f32) -> Self {
+    fn cie_xyza(self, x: f32, y: f32, z: f32, alpha: f32) -> Self {
         self.color(Color::xyza(x, y, z, alpha))
     }
 

@@ -289,18 +289,18 @@ fn update_draw_mesh(
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     for draw in draw_q.iter() {
-        let (mut window_camera, window_layers) = cameras_q
-            .iter_mut()
-            .find(|(camera, _)| {
-                if let RenderTarget::Window(WindowRef::Entity(window)) = camera.target {
-                    if window == draw.window {
-                        return true;
-                    }
+        let Some((mut window_camera, window_layers)) = cameras_q.iter_mut().find(|(camera, _)| {
+            if let RenderTarget::Window(WindowRef::Entity(window)) = camera.target {
+                if window == draw.window {
+                    return true;
                 }
+            }
 
-                false
-            })
-            .expect("No camera found for window");
+            false
+        }) else {
+            warn!("No camera found for window {:?}", draw.window);
+            continue;
+        };
 
         // Reset the clear color each frame.
         window_camera.clear_color = ClearColorConfig::None;

@@ -157,11 +157,11 @@ where
         self.color(Color::oklcha(l, c, h, alpha))
     }
 
-    pub fn xyz(self, x: f32, y: f32, z: f32) -> Self {
+    pub fn cie_xyz(self, x: f32, y: f32, z: f32) -> Self {
         self.color(Color::xyz(x, y, z))
     }
 
-    pub fn xyza(self, x: f32, y: f32, z: f32, w: f32) -> Self {
+    pub fn cie_xyza(self, x: f32, y: f32, z: f32, w: f32) -> Self {
         self.color(Color::xyza(x, y, z, w))
     }
 }

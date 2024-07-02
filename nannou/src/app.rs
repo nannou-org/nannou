@@ -49,7 +49,7 @@ use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::render::{NannouMesh, NannouPersistentMesh};
 use crate::prelude::NannouMaterialPlugin;
 use crate::window::WindowUserFunctions;
-use crate::{geom, window};
+use crate::{camera, geom, window};
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -654,6 +654,11 @@ impl<'w> App<'w> {
         todo!()
     }
 
+    /// Begin building a new camera.
+    pub fn new_camera<'a>(&'a self) -> camera::Builder<'a, 'w> {
+        camera::Builder::new(self)
+    }
+
     /// Begin building a new window.
     pub fn new_window<'a, M>(&'a self) -> window::Builder<'a, 'w, M>
     where
@@ -681,6 +686,10 @@ impl<'w> App<'w> {
         'a: 'w,
     {
         window::Window::new(self, id)
+    }
+
+    pub fn camera<'a>(&'a self, id: Entity) -> camera::Camera<'a, 'w> {
+        camera::Camera::new(self, id)
     }
 
     /// Return the [Entity] of the currently focused window.

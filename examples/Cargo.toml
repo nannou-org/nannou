@@ -119,6 +119,9 @@ path = "draw/draw_textured_polygon.rs"
 [[example]]
 name = "draw_transform"
 path = "draw/draw_transform.rs"
+[[example]]
+name = "draw_material_bloom"
+path = "draw/draw_material_bloom.rs"
 
 # Laser
 [[example]]

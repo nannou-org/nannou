@@ -6,8 +6,6 @@
 use std::fmt;
 use std::path::{Path, PathBuf};
 
-use bevy::core_pipeline::bloom::BloomSettings;
-use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
@@ -37,6 +35,7 @@ pub struct Window<'a, 'w> {
 pub struct Builder<'a, 'w, M = ()> {
     app: &'a App<'w>,
     window: bevy::window::Window,
+    camera: Option<Entity>,
     primary: bool,
     title_was_set: bool,
     user_functions: UserFunctions<M>,
@@ -236,6 +235,7 @@ where
         Builder {
             app,
             window: bevy::window::Window::default(),
+            camera: None,
             primary: false,
             title_was_set: false,
             user_functions: UserFunctions::<M>::default(),
@@ -419,45 +419,39 @@ where
                 .insert(PrimaryWindow);
         }
 
-        self.app.world_mut().spawn((
-            Camera3dBundle {
-                camera: Camera {
-                    hdr: self.hdr,
-                    target: RenderTarget::Window(WindowRef::Entity(entity)),
-                    clear_color: self
-                        .clear_color
-                        .map(ClearColorConfig::Custom)
-                        .unwrap_or(ClearColorConfig::None),
+        if let Some(camera) = self.camera {
+            // Update the camera's render target to be the window.
+            let mut q = self.app.world_mut().query::<(&mut Camera, Option<&mut RenderLayers>)>();
+            if let Ok((mut camera, layers)) = q.get_mut(self.app.world_mut(), camera) {
+                camera.target = RenderTarget::Window(WindowRef::Entity(entity));
+                if let None = layers {
+                    self.app
+                        .world_mut()
+                        .entity_mut(self.camera.unwrap())
+                        .insert(RenderLayers::layer(self.app.window_count() * 2usize));
+                }
+            }
+        } else {
+            info!("No camera provided for window, creating a default camera");
+            self.app.world_mut().spawn((
+                Camera3dBundle {
+                    camera: Camera {
+                        hdr: self.hdr,
+                        target: RenderTarget::Window(WindowRef::Entity(entity)),
+                        clear_color: self
+                            .clear_color
+                            .map(ClearColorConfig::Custom)
+                            .unwrap_or(ClearColorConfig::None),
+                        ..default()
+                    },
+                    transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+                    projection: OrthographicProjection::default().into(),
                     ..default()
                 },
-                transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                projection: OrthographicProjection::default().into(),
-                ..default()
-            },
-            RenderLayers::layer(self.app.window_count() * 2usize),
-            NannouCamera,
-        ));
-
-        self.app.world_mut().spawn((
-            Camera3dBundle {
-                camera: Camera {
-                    hdr: self.hdr,
-                    target: RenderTarget::Window(WindowRef::Entity(entity)),
-                    clear_color: ClearColorConfig::None, // We render on top of the previous camera
-                    order: 2,
-                    ..default()
-                },
-                tonemapping: Tonemapping::TonyMcMapface,
-                transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                projection: OrthographicProjection::default().into(),
-                ..default()
-            },
-            BloomSettings::OLD_SCHOOL,
-            // The emissive layer is N*2+1, this helps to ensure that bloom effect is only
-            // applied to meshes that are rendered on the emissive layer.
-            RenderLayers::layer(self.app.window_count() * 2usize + 1),
-            NannouCamera,
-        ));
+                RenderLayers::layer(self.app.window_count() * 2usize),
+                NannouCamera,
+            ));
+        }
 
         entity
     }
@@ -466,25 +460,18 @@ where
     where
         F: FnOnce(bevy::window::Window) -> bevy::window::Window,
     {
-        let Builder {
-            app,
-            window,
-            primary,
-            title_was_set,
-            user_functions,
-            clear_color,
-            hdr,
-        } = self;
-        let window = map(window);
         Builder {
-            app,
-            window,
-            primary,
-            title_was_set,
-            user_functions,
-            clear_color,
-            hdr,
+            window: map(self.window),
+            ..self
         }
+    }
+
+    /// The camera to use for rendering to this window. Setting the camera will override the
+    /// default camera that would be created for this window. The camera's render target
+    /// will be set to the window when the window is built.
+    pub fn camera(mut self, camera: Entity) -> Self {
+        self.camera = Some(camera);
+        self
     }
 
     /// Requests the window to be a specific size in points.

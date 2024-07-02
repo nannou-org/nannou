@@ -23,9 +23,11 @@ pub use nannou_core::{glam, math, rand};
 pub use self::app::App;
 
 pub mod app;
+mod camera;
 pub mod geom;
 pub mod image;
 pub mod io;
+mod light;
 pub mod noise;
 pub mod prelude;
 pub mod time;
