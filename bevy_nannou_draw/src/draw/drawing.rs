@@ -359,23 +359,31 @@ where
     }
 
     /// Specify the color via red, green and blue channels.
-    pub fn rgb(self, r: f32, g: f32, b: f32) -> Self {
-        self.map_ty(|ty| SetColor::rgb(ty, r, g, b))
+    pub fn srgb(self, r: f32, g: f32, b: f32) -> Self {
+        self.map_ty(|ty| SetColor::srgb(ty, r, g, b))
     }
 
     /// Specify the color via red, green and blue channels as bytes
-    pub fn rgb8(self, r: u8, g: u8, b: u8) -> Self {
-        self.map_ty(|ty| SetColor::rgb8(ty, r, g, b))
+    pub fn srgb_u8(self, r: u8, g: u8, b: u8) -> Self {
+        self.map_ty(|ty| SetColor::srgb_u8(ty, r, g, b))
     }
 
     /// Specify the color via red, green, blue and alpha channels.
-    pub fn rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
-        self.map_ty(|ty| SetColor::rgba(ty, r, g, b, a))
+    pub fn srgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
+        self.map_ty(|ty| SetColor::srgba(ty, r, g, b, a))
     }
 
     /// Specify the color via red, green, blue and alpha channels as bytes.
-    pub fn rgba8(self, r: u8, g: u8, b: u8, a: u8) -> Self {
-        self.map_ty(|ty| SetColor::rgba8(ty, r, g, b, a))
+    pub fn srgba_u8(self, r: u8, g: u8, b: u8, a: u8) -> Self {
+        self.map_ty(|ty| SetColor::srgba_u8(ty, r, g, b, a))
+    }
+
+    pub fn linear_rgb(self, r: f32, g: f32, b: f32) -> Self {
+        self.map_ty(|ty| SetColor::linear_rgb(ty, r, g, b))
+    }
+
+    pub fn linear_rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
+        self.map_ty(|ty| SetColor::linear_rgba(ty, r, g, b, a))
     }
 
     /// Specify the color via hue, saturation and luminance.
@@ -428,6 +436,54 @@ where
     /// this color space.
     pub fn hsva(self, h: f32, s: f32, v: f32, a: f32) -> Self {
         self.map_ty(|ty| SetColor::hsva(ty, h, s, v, a))
+    }
+
+    pub fn hwb(self, h: f32, w: f32, b: f32) -> Self {
+        self.map_ty(|ty| SetColor::hwb(ty, h, w, b))
+    }
+
+    pub fn hwba(self, h: f32, w: f32, b: f32, a: f32) -> Self {
+        self.map_ty(|ty| SetColor::hwba(ty, h, w, b, a))
+    }
+
+    pub fn lab(self, l: f32, a: f32, b: f32) -> Self {
+        self.map_ty(|ty| SetColor::lab(ty, l, a, b))
+    }
+
+    pub fn laba(self, l: f32, a: f32, b: f32, alpha: f32) -> Self {
+        self.map_ty(|ty| SetColor::laba(ty, l, a, b, alpha))
+    }
+
+    pub fn lch(self, l: f32, c: f32, h: f32) -> Self {
+        self.map_ty(|ty| SetColor::lch(ty, l, c, h))
+    }
+
+    pub fn lcha(self, l: f32, c: f32, h: f32, alpha: f32) -> Self {
+        self.map_ty(|ty| SetColor::lcha(ty, l, c, h, alpha))
+    }
+
+    pub fn oklab(self, l: f32, a: f32, b: f32) -> Self {
+        self.map_ty(|ty| SetColor::oklab(ty, l, a, b))
+    }
+
+    pub fn oklaba(self, l: f32, a: f32, b: f32, alpha: f32) -> Self {
+        self.map_ty(|ty| SetColor::oklaba(ty, l, a, b, alpha))
+    }
+
+    pub fn oklch(self, l: f32, c: f32, h: f32) -> Self {
+        self.map_ty(|ty| SetColor::oklch(ty, l, c, h))
+    }
+
+    pub fn oklcha(self, l: f32, c: f32, h: f32, alpha: f32) -> Self {
+        self.map_ty(|ty| SetColor::oklcha(ty, l, c, h, alpha))
+    }
+
+    pub fn xyz(self, x: f32, y: f32, z: f32) -> Self {
+        self.map_ty(|ty| SetColor::xyz(ty, x, y, z))
+    }
+
+    pub fn xyza(self, x: f32, y: f32, z: f32, alpha: f32) -> Self {
+        self.map_ty(|ty| SetColor::xyza(ty, x, y, z, alpha))
     }
 
     /// Specify the color as gray scale

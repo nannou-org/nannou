@@ -130,11 +130,11 @@ fn view(app: &App, model: &Model) {
                 draw.ellipse()
                     .x_y(pos.x, pos.y)
                     .radius(3.0)
-                    .rgba(0.0, 0.0, 0.0, 0.5);
+                    .srgba(0.0, 0.0, 0.0, 0.5);
                 draw.line()
                     .start(pt2(pos.x, pos.y))
                     .end(pt2(next_pos.x, next_pos.y))
-                    .rgba(0.0, 0.0, 0.0, 0.5);
+                    .srgba(0.0, 0.0, 0.0, 0.5);
             }
         }
     }

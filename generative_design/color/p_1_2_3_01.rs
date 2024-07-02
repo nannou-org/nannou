@@ -162,7 +162,7 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw();
 
     // white black
-    draw.background().rgb(0.0, 0.0, 0.2);
+    draw.background().srgb(0.0, 0.0, 0.2);
     let win_rect = app.window_rect();
 
     // limit mouse coordintes to canvas

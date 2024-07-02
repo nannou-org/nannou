@@ -231,7 +231,7 @@ fn view(app: &App, model: &Model) {
     draw.background().color(Color::srgb(0.1, 0.12, 0.13));
 
     // Listenable area.
-    draw.ellipse().radius(LISTENING_RADIUS).rgb(0.1, 0.1, 0.1);
+    draw.ellipse().radius(LISTENING_RADIUS).srgb(0.1, 0.1, 0.1);
 
     // Draw the head.
     draw.ellipse().color(BLUE);

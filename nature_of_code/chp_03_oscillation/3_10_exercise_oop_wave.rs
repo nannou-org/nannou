@@ -68,7 +68,7 @@ impl Wave {
                     self.origin.y + self.y_values[x],
                 )
                 .w_h(48.0, 48.0)
-                .rgba(0.0, 0.0, 0.0, 0.2)
+                .srgba(0.0, 0.0, 0.0, 0.2)
                 .stroke(BLACK);
         }
     }

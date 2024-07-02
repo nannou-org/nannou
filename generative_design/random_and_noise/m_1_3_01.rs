@@ -72,7 +72,7 @@ fn view(app: &App, model: &Model) {
     draw.polyline()
         .weight(1.0)
         .points(vertices)
-        .rgb(0.0, 0.5, 0.64);
+        .srgb(0.0, 0.5, 0.64);
 
     for x in (0..win.w() as usize).step_by(10) {
         let noise_x = map_range(x as f32 / 10.0, 0.0, win.w(), 0.0, noise_x_range) as f64;

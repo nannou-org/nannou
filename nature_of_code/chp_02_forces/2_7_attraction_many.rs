@@ -68,7 +68,7 @@ impl Attractor {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 2.0, self.mass * 2.0)
-            .rgba(gray, gray, gray, 0.8)
+            .srgba(gray, gray, gray, 0.8)
             .stroke(BLACK)
             .stroke_weight(4.0);
     }
@@ -129,7 +129,7 @@ impl Mover {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 16.0, self.mass * 16.0)
-            .rgba(0.0, 0.0, 0.0, 0.5)
+            .srgba(0.0, 0.0, 0.0, 0.5)
             .stroke(BLACK)
             .stroke_weight(2.0);
     }

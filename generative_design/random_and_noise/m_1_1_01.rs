@@ -68,7 +68,7 @@ fn view(app: &App, model: &Model) {
     draw.polyline()
         .weight(1.0)
         .points(vertices)
-        .rgb(0.0, 0.5, 0.64);
+        .srgb(0.0, 0.5, 0.64);
 
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 

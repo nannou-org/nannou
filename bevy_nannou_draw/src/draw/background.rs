@@ -42,13 +42,21 @@ where
     }
 
     /// Specify the color via red, green and blue channels.
-    pub fn rgb(self, r: f32, g: f32, b: f32) -> Self {
+    pub fn srgb(self, r: f32, g: f32, b: f32) -> Self {
         self.color(Color::rgb(r, g, b))
     }
 
     /// Specify the color via red, green, blue and alpha channels.
-    pub fn rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
+    pub fn srgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
         self.color(Color::srgba(r, g, b, a))
+    }
+
+    pub fn linear_rgb(self, r: f32, g: f32, b: f32) -> Self {
+        self.color(Color::linear_rgb(r, g, b))
+    }
+
+    pub fn linear_rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
+        self.color(Color::linear_rgba(r, g, b, a))
     }
 
     /// Specify the color via hue, saturation and luminance.
@@ -105,5 +113,55 @@ where
     pub fn hsva(self, h: f32, s: f32, v: f32, a: f32) -> Self {
         let hue = h * 360.0;
         self.color(Color::hsva(hue, s, v, a))
+    }
+
+    pub fn hwb(self, h: f32, w: f32, b: f32) -> Self {
+        let hue = h * 360.0;
+        self.color(Color::hwb(hue, w, b))
+    }
+
+    pub fn hwba(self, h: f32, w: f32, b: f32, a: f32) -> Self {
+        let hue = h * 360.0;
+        self.color(Color::hwba(hue, w, b, a))
+    }
+
+    pub fn lab(self, l: f32, a: f32, b: f32) -> Self {
+        self.color(Color::lab(l, a, b))
+    }
+
+    pub fn laba(self, l: f32, a: f32, b: f32, alpha: f32) -> Self {
+        self.color(Color::laba(l, a, b, alpha))
+    }
+
+    pub fn lch(self, l: f32, c: f32, h: f32) -> Self {
+        self.color(Color::lch(l, c, h))
+    }
+
+    pub fn lcha(self, l: f32, c: f32, h: f32, alpha: f32) -> Self {
+        self.color(Color::lcha(l, c, h, alpha))
+    }
+
+    pub fn oklab(self, l: f32, a: f32, b: f32) -> Self {
+        self.color(Color::oklab(l, a, b))
+    }
+
+    pub fn oklaba(self, l: f32, a: f32, b: f32, alpha: f32) -> Self {
+        self.color(Color::oklaba(l, a, b, alpha))
+    }
+
+    pub fn oklch(self, l: f32, c: f32, h: f32) -> Self {
+        self.color(Color::oklch(l, c, h))
+    }
+
+    pub fn oklcha(self, l: f32, c: f32, h: f32, alpha: f32) -> Self {
+        self.color(Color::oklcha(l, c, h, alpha))
+    }
+
+    pub fn xyz(self, x: f32, y: f32, z: f32) -> Self {
+        self.color(Color::xyz(x, y, z))
+    }
+
+    pub fn xyza(self, x: f32, y: f32, z: f32, w: f32) -> Self {
+        self.color(Color::xyza(x, y, z, w))
     }
 }

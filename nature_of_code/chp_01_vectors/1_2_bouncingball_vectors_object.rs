@@ -65,7 +65,7 @@ fn view(app: &App, m: &Model, _window: Entity) {
     let draw = app.draw();
     draw.rect()
         .wh(app.window_rect().wh())
-        .rgba(1.0, 1.0, 1.0, 0.03);
+        .srgba(1.0, 1.0, 1.0, 0.03);
 
     m.ball.display(&draw);
 }

@@ -149,7 +149,7 @@ fn view(app: &App, model: &Model) {
                         .start(pt2(pos_x - d1, pos_y - d1))
                         .end(pt2(pos_x + tile_width - d2, pos_y - d2))
                         .weight(w5 * mouse_y_factor + 0.1)
-                        .rgb(red, green, blue);
+                        .srgb(red, green, blue);
                 }
                 6 => {
                     // pixel color to fill, greyscale to ellipse size
@@ -157,7 +157,7 @@ fn view(app: &App, model: &Model) {
                     draw.ellipse()
                         .x_y(pos_x, pos_y)
                         .w_h(w6 * mouse_x_factor, w6 * mouse_x_factor)
-                        .rgb(red, green, blue);
+                        .srgb(red, green, blue);
                 }
                 7 => {
                     let w7 = map_range(greyscale, 0.0, 1.0, 5.0, 0.1);
@@ -169,7 +169,7 @@ fn view(app: &App, model: &Model) {
                         .w_h(15.0, 15.0)
                         .stroke_weight(w7)
                         .stroke(Color::srgb(red, green, blue))
-                        .rgba(1.0, 1.0, 1.0, mouse_x_factor);
+                        .srgba(1.0, 1.0, 1.0, mouse_x_factor);
                 }
                 8 => {
                     let col = Color::srgb(greyscale, greyscale * mouse_x_factor, mouse_y_factor);

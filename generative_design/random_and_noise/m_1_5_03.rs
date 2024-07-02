@@ -105,7 +105,7 @@ impl Agent {
         draw.line()
             .start(self.vector_old)
             .end(self.vector)
-            .rgba(0.0, 0.0, 0.0, agent_alpha)
+            .srgba(0.0, 0.0, 0.0, agent_alpha)
             .stroke_weight(stroke_weight * self.step_size);
     }
 }
@@ -170,7 +170,7 @@ fn view(app: &App, model: &Model) {
     } else {
         draw.rect()
             .wh(app.window_rect().wh())
-            .rgba(1.0, 1.0, 1.0, model.overlay_alpha);
+            .srgba(1.0, 1.0, 1.0, model.overlay_alpha);
     }
 
     model.agents.iter().for_each(|agent| {

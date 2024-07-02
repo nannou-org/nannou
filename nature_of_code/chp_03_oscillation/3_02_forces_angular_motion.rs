@@ -95,7 +95,7 @@ impl Mover {
         draw.rect()
             .x_y(self.location.x, self.location.y)
             .w_h(self.mass * 16.0, self.mass * 16.0)
-            .rgba(0.6, 0.6, 0.6, 0.78)
+            .srgba(0.6, 0.6, 0.6, 0.78)
             .stroke(BLACK)
             .rotate(self.angle);
     }

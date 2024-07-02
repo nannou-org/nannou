@@ -114,7 +114,7 @@ fn view(app: &App, model: &Model) {
                         .start(pt2(old_x, old_y))
                         .end(pt2(pos_x, inter_y))
                         .weight(1.5)
-                        .rgba(0.7, 0.6, 0.0, 0.6);
+                        .srgba(0.7, 0.6, 0.0, 0.6);
                 }
                 old_x = pos_x;
                 old_y = inter_y;
@@ -125,7 +125,7 @@ fn view(app: &App, model: &Model) {
                 draw.path()
                     .fill()
                     .x_y(pos_x, inter_y)
-                    .rgb(0.34, 0.13, 0.5)
+                    .srgb(0.34, 0.13, 0.5)
                     .events(text.path_events());
             }
         } else {

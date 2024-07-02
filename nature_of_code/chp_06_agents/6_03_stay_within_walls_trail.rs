@@ -158,7 +158,7 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
         .stroke_weight(1.0)
         .points(points)
         .xy(*position)
-        .rgb(0.5, 0.5, 0.5)
+        .srgb(0.5, 0.5, 0.5)
         .rotate(-theta);
 }
 

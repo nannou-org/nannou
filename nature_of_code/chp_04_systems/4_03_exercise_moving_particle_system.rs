@@ -43,7 +43,7 @@ impl Particle {
         draw.ellipse()
             .xy(self.position)
             .w_h(12.0, 12.0)
-            .rgba(0.5, 0.5, 0.5, self.life_span / 255.0)
+            .srgba(0.5, 0.5, 0.5, self.life_span / 255.0)
             .stroke(Color::srgba(0.0, 0.0, 0.0, self.life_span / 255.0))
             .stroke_weight(2.0);
     }

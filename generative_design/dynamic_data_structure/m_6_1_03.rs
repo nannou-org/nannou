@@ -243,7 +243,7 @@ fn view(app: &App, model: &Model) {
             .start(pt2(model.nodes[from].x, model.nodes[from].y))
             .end(pt2(model.nodes[to].x, model.nodes[to].y))
             .stroke_weight(2.0)
-            .rgb(0.0, 0.5, 0.64);
+            .srgb(0.0, 0.5, 0.64);
     });
 
     model.nodes.iter().for_each(|node| {

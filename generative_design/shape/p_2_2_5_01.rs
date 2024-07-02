@@ -148,7 +148,7 @@ fn view(app: &App, model: &Model) {
                 draw.line()
                     .start(pt2(model.circles[i].x, model.circles[i].y))
                     .end(pt2(closest.x, closest.y))
-                    .rgb(0.4, 0.9, 0.4);
+                    .srgb(0.4, 0.9, 0.4);
             }
         }
 

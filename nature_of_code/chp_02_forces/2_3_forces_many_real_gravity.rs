@@ -50,7 +50,7 @@ impl Mover {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 16.0, self.mass * 16.0)
-            .rgba(0.0, 0.0, 0.0, 0.5)
+            .srgba(0.0, 0.0, 0.0, 0.5)
             .stroke(BLACK)
             .stroke_weight(2.0);
     }

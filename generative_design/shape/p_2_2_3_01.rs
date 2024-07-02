@@ -128,12 +128,12 @@ fn view(app: &App, model: &Model) {
         let gray = random_f32();
         draw.path()
             .fill()
-            .rgba(gray, gray, gray, 0.4)
+            .srgba(gray, gray, gray, 0.4)
             .events(path.iter());
     } else {
         draw.path()
             .stroke()
-            .rgba(0.0, 0.0, 0.0, 0.4)
+            .srgba(0.0, 0.0, 0.0, 0.4)
             .events(path.iter());
     }
 }

@@ -41,7 +41,7 @@ fn view(app: &App, model: &Model) {
 
     draw.rect()
         .wh(app.window_rect().wh())
-        .rgba(1.0, 1.0, 1.0, 0.03);
+        .srgba(1.0, 1.0, 1.0, 0.03);
 
     // Display circle at x position
     draw.ellipse()

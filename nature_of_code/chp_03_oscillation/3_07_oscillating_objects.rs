@@ -46,13 +46,13 @@ impl Oscillator {
         draw.line()
             .start(pt2(0.0, 0.0))
             .end(pt2(x, y))
-            .rgb(0.0, 0.0, 0.0)
+            .srgb(0.0, 0.0, 0.0)
             .stroke_weight(2.0);
 
         draw.ellipse()
             .x_y(x, y)
             .w_h(32.0, 32.0)
-            .rgba(0.5, 0.5, 0.5, 0.5)
+            .srgba(0.5, 0.5, 0.5, 0.5)
             .stroke(BLACK)
             .stroke_weight(2.0);
     }
@@ -78,7 +78,7 @@ fn update(_app: &App, m: &mut Model) {
 fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgba(1.0, 1.0, 1.0, 1.0);
+    draw.background().srgba(1.0, 1.0, 1.0, 1.0);
 
     for osc in &m.oscillators {
         osc.display(&draw);

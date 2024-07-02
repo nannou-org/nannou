@@ -81,7 +81,7 @@ fn draw_branch(draw: &Draw, x: f32, y: f32, radius: f32, level: u8, mx: f32, my:
     draw.path()
         .stroke()
         .stroke_weight(level as f32 * 2.0)
-        .rgba(0.0, 0.5, 0.69, 0.6)
+        .srgba(0.0, 0.5, 0.69, 0.6)
         .caps_round()
         .events(arc_path.iter());
 

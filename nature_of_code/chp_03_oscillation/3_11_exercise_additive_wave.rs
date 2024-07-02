@@ -81,7 +81,7 @@ fn view(app: &App, m: &Model) {
                 m.y_values[x],
             )
             .w_h(48.0, 48.0)
-            .rgba(0.0, 0.0, 0.0, 0.2)
+            .srgba(0.0, 0.0, 0.0, 0.2)
             .stroke(BLACK);
     }
 }

@@ -169,7 +169,7 @@ fn view(app: &App, model: &Model) {
     } else {
         draw.rect()
             .wh(app.window_rect().wh())
-            .rgba(1.0, 1.0, 1.0, 0.07);
+            .srgba(1.0, 1.0, 1.0, 0.07);
     }
 
     model.nodes.iter().for_each(|node| {

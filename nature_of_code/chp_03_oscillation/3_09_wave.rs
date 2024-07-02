@@ -41,7 +41,7 @@ fn view(app: &App, model: &Model) {
         draw.ellipse()
             .x_y(x, y)
             .w_h(48.0, 48.0)
-            .rgba(0.0, 0.0, 0.0, 0.5)
+            .srgba(0.0, 0.0, 0.0, 0.5)
             .stroke(BLACK)
             .stroke_weight(2.0);
 

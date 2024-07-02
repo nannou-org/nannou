@@ -154,7 +154,7 @@ fn view(app: &App, model: &Model) {
             draw.path()
                 .fill()
                 .x_y(new_pos_x, new_pos_y)
-                .rgba(0.0, 0.0, 0.0, char_alpha)
+                .srgba(0.0, 0.0, 0.0, char_alpha)
                 .events(text.path_events());
         }
 

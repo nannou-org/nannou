@@ -155,7 +155,7 @@ fn view(app: &App, model: &Model) {
             draw.path()
                 .stroke()
                 .stroke_weight(weight)
-                .rgb(red, green, blue)
+                .srgb(red, green, blue)
                 .events(e)
                 .x_y(pos_x, pos_y);
         }

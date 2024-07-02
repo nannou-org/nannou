@@ -88,7 +88,7 @@ fn view(app: &App, model: &Model) {
         draw.line()
             .start(pt2(p.x + l, p.y - l))
             .end(pt2(p.x - l, p.y + l))
-            .rgb(0.7, 0.61, 0.0);
+            .srgb(0.7, 0.61, 0.0);
         // Dots
         let q = map_range(i, 0, path_points.len(), 0.0, 1.0);
         if i % 2 == 0 {

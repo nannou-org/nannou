@@ -43,7 +43,7 @@ impl Particle {
         draw.ellipse()
             .xy(self.position)
             .w_h(12.0, 12.0)
-            .rgba(0.5, 0.5, 0.5, self.life_span / 255.0)
+            .srgba(0.5, 0.5, 0.5, self.life_span / 255.0)
             .stroke(Color::srgba(0.0, 0.0, 0.0, self.life_span / 255.0))
             .stroke_weight(2.0);
     }
@@ -93,7 +93,7 @@ fn view(app: &App, m: &Model) {
     if m.mouse_down {
         draw.rect()
             .wh(app.window_rect().wh())
-            .rgba(1.0, 1.0, 1.0, 0.03);
+            .srgba(1.0, 1.0, 1.0, 0.03);
         m.p.display(&draw);
     }
 }

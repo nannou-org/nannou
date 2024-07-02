@@ -74,7 +74,7 @@ impl Shape {
             draw.line()
                 .start(pt2(0.0, i as f32))
                 .end(pt2(w, i as f32))
-                .rgb(self.c.x, self.c.y, self.c.z);
+                .srgb(self.c.x, self.c.y, self.c.z);
         }
     }
 }

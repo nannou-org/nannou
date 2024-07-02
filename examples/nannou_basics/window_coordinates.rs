@@ -8,7 +8,7 @@ fn view(app: &App) {
     let draw = app.draw();
     let window = app.main_window();
     let win = window.rect();
-    draw.background().rgb(0.11, 0.12, 0.13);
+    draw.background().srgb(0.11, 0.12, 0.13);
 
     // 100-step and 10-step grids.
     draw_grid(&draw, &win, 100.0, 1.0);

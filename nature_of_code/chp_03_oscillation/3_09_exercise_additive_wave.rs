@@ -84,6 +84,6 @@ fn view(app: &App, m: &Model) {
                 m.y_values[x],
             )
             .w_h(16.0, 16.0)
-            .rgba(1.0, 1.0, 1.0, 0.25);
+            .srgba(1.0, 1.0, 1.0, 0.25);
     }
 }

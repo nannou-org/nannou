@@ -38,7 +38,7 @@ fn view(app: &App, model: &Model) {
 
     draw.rect()
         .wh(app.window_rect().wh())
-        .rgba(1.0, 1.0, 1.0, 0.03);
+        .srgba(1.0, 1.0, 1.0, 0.03);
 
     let x = model.r * model.theta.cos();
     let y = model.r * -model.theta.sin();
@@ -46,7 +46,7 @@ fn view(app: &App, model: &Model) {
     draw.line()
         .start(pt2(0.0, 0.0))
         .end(pt2(x, y))
-        .rgb(0.0, 0.0, 0.0)
+        .srgb(0.0, 0.0, 0.0)
         .stroke_weight(2.0);
 
     // Draw an ellipse at cartesian coordinate

@@ -42,7 +42,7 @@ impl Particle {
 
     // Method to display
     fn display(&self, draw: &Draw) {
-        draw.rect().xy(self.position).w_h(self.r, self.r).rgba(
+        draw.rect().xy(self.position).w_h(self.r, self.r).srgba(
             0.0,
             0.0,
             0.0,

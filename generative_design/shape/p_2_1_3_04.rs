@@ -110,7 +110,7 @@ fn view(app: &App, model: &Model) {
                             .x_y(0.0, 0.0)
                             .w_h(tile_width / 4.0, tile_height / 4.0)
                             .resolution(12.0)
-                            .rgba(gradient.x, gradient.y, gradient.z, 0.66);
+                            .srgba(gradient.x, gradient.y, gradient.z, 0.66);
 
                         let draw3 = draw.x_y(-4.0 * i as f32, 0.0);
                         draw3
@@ -118,7 +118,7 @@ fn view(app: &App, model: &Model) {
                             .x_y(0.0, 0.0)
                             .w_h(tile_width / 4.0, tile_height / 4.0)
                             .resolution(12.0)
-                            .rgba(gradient.x, gradient.y, gradient.z, 0.66);
+                            .srgba(gradient.x, gradient.y, gradient.z, 0.66);
 
                         draw = draw.scale(1.0 - 1.5 / count as f32).rotate(para * 1.5);
                     }

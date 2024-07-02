@@ -33,7 +33,7 @@ fn view(app: &App, model: &Model) {
     draw.line()
         .start(pt2(0.0, 0.0))
         .end(pt2(0.0, y))
-        .rgb(0.4, 0.4, 0.4);
+        .srgb(0.4, 0.4, 0.4);
     draw.ellipse()
         .x_y(0.0, y)
         .w_h(16.0, 16.0)

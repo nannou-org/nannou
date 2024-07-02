@@ -93,7 +93,7 @@ fn view(app: &App, m: &Model) {
         // Missing Stroke
         .x_y(mouse.x, mouse.y)
         .radius(48.0)
-        .rgb(0.78, 0.78, 0.78);
+        .srgb(0.78, 0.78, 0.78);
     display(&m.vehicle, &draw);
 
     // Write the result of our drawing to the window's OpenGL frame.
@@ -148,6 +148,6 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
         .stroke_weight(1.0)
         .points(points)
         .xy(*position)
-        .rgb(0.5, 0.5, 0.5)
+        .srgb(0.5, 0.5, 0.5)
         .rotate(-theta);
 }

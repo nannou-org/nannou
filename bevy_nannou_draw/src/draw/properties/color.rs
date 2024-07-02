@@ -19,23 +19,31 @@ pub trait SetColor: Sized {
     }
 
     /// Specify the color via red, green and blue channels.
-    fn rgb(self, r: f32, g: f32, b: f32) -> Self {
-        self.color(Color::rgb(r, g, b))
+    fn srgb(self, r: f32, g: f32, b: f32) -> Self {
+        self.color(Color::srgb(r, g, b))
     }
 
     /// Specify the color via red, green and blue channels as bytes
-    fn rgb8(self, r: u8, g: u8, b: u8) -> Self {
-        self.color(Color::rgb_u8(r, g, b))
+    fn srgb_u8(self, r: u8, g: u8, b: u8) -> Self {
+        self.color(Color::srgb_u8(r, g, b))
     }
 
     /// Specify the color via red, green, blue and alpha channels.
-    fn rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
+    fn srgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
         self.color(Color::srgba(r, g, b, a))
     }
 
     /// Specify the color via red, green, blue and alpha channels as bytes
-    fn rgba8(self, r: u8, g: u8, b: u8, a: u8) -> Self {
+    fn srgba_u8(self, r: u8, g: u8, b: u8, a: u8) -> Self {
         self.color(Color::srgba_u8(r, g, b, a))
+    }
+
+    fn linear_rgb(self, r: f32, g: f32, b: f32) -> Self {
+        self.color(Color::linear_rgb(r, g, b))
+    }
+
+    fn linear_rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
+        self.color(Color::linear_rgba(r, g, b, a))
     }
 
     /// Specify the color via hue, saturation and luminance.
@@ -92,6 +100,57 @@ pub trait SetColor: Sized {
     fn hsva(self, h: f32, s: f32, v: f32, a: f32) -> Self {
         let hue = h * 360.0;
         self.color(Color::hsva(hue, s, v, a))
+    }
+
+    fn hwb(self, h: f32, w: f32, b: f32) -> Self {
+        let hue = h * 360.0;
+        self.color(Color::hwb(hue, w, b))
+    }
+
+    fn hwba(self, h: f32, w: f32, b: f32, a: f32) -> Self {
+        let hue = h * 360.0;
+        self.color(Color::hwba(hue, w, b, a))
+    }
+
+
+    fn lab(self, l: f32, a: f32, b: f32) -> Self {
+        self.color(Color::lab(l, a, b))
+    }
+
+    fn laba(self, l: f32, a: f32, b: f32, alpha: f32) -> Self {
+        self.color(Color::laba(l, a, b, alpha))
+    }
+
+    fn lch(self, l: f32, c: f32, h: f32) -> Self {
+        self.color(Color::lch(l, c, h))
+    }
+
+    fn lcha(self, l: f32, c: f32, h: f32, alpha: f32) -> Self {
+        self.color(Color::lcha(l, c, h, alpha))
+    }
+
+    fn oklab(self, l: f32, a: f32, b: f32) -> Self {
+        self.color(Color::oklab(l, a, b))
+    }
+
+    fn oklaba(self, l: f32, a: f32, b: f32, alpha: f32) -> Self {
+        self.color(Color::oklaba(l, a, b, alpha))
+    }
+
+    fn oklch(self, l: f32, c: f32, h: f32) -> Self {
+        self.color(Color::oklch(l, c, h))
+    }
+
+    fn oklcha(self, l: f32, c: f32, h: f32, alpha: f32) -> Self {
+        self.color(Color::oklcha(l, c, h, alpha))
+    }
+
+    fn xyz(self, x: f32, y: f32, z: f32) -> Self {
+        self.color(Color::xyz(x, y, z))
+    }
+
+    fn xyza(self, x: f32, y: f32, z: f32, alpha: f32) -> Self {
+        self.color(Color::xyza(x, y, z, alpha))
     }
 
     /// Specify the color as gray scale

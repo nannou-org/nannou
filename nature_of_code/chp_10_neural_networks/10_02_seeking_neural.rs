@@ -135,7 +135,7 @@ impl Vehicle {
             .stroke(BLACK)
             .points(points)
             .xy(self.position)
-            .rgb(0.5, 0.5, 0.5)
+            .srgb(0.5, 0.5, 0.5)
             .rotate(theta);
     }
 }
@@ -208,7 +208,7 @@ fn view(app: &App, m: &Model) {
     draw.ellipse()
         .xy(m.desired)
         .radius(18.0)
-        .rgba(0.0, 0.0, 0.0, 0.4)
+        .srgba(0.0, 0.0, 0.0, 0.4)
         .stroke(BLACK)
         .stroke_weight(2.0);
 

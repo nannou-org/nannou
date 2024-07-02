@@ -166,7 +166,7 @@ fn view(app: &App, model: &Model) {
         .start(pt2(model.node_a.x, model.node_a.y))
         .end(pt2(model.node_b.x, model.node_b.y))
         .stroke_weight(4.0)
-        .rgb(0.0, 0.5, 0.64);
+        .srgb(0.0, 0.5, 0.64);
 
     // draw nodes
     draw.ellipse()

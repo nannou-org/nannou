@@ -64,7 +64,7 @@ fn update(_app: &App, model: &mut Model) {
 fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let g = model.background_color;
-    draw.background().rgb(g, g, g);
+    draw.background().srgb(g, g, g);
 
     let win = app.window_rect();
     let count = 10;

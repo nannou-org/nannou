@@ -140,7 +140,7 @@ fn view(app: &App, model: &Model) {
         draw.ellipse()
             .x_y(pos.x + model.step_size / 2.0, pos.y + model.step_size / 2.0)
             .radius(1.0)
-            .rgba(0.0, 0.0, 0.0, 0.15);
+            .srgba(0.0, 0.0, 0.0, 0.15);
     });
 }
 
