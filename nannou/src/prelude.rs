@@ -13,4 +13,5 @@ pub use nannou_core::prelude::*;
 pub use crate::app::{self, App, RunMode, UpdateModeExt};
 pub use crate::camera::SetCamera;
 pub use crate::io::{load_from_json, load_from_toml, safe_file_save, save_to_json, save_to_toml};
+pub use crate::light::SetLight;
 pub use crate::time::DurationF64;

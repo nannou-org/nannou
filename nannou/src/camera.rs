@@ -4,7 +4,7 @@ use crate::App;
 use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::math::UVec2;
-use bevy::prelude::{Camera3d, Projection, Transform};
+use bevy::prelude::{Camera3d, Projection, Transform, Vec2};
 use bevy::render::camera;
 use bevy::render::view::RenderLayers;
 use bevy::window::WindowRef;
@@ -35,9 +35,31 @@ pub trait SetCamera: Sized {
         })
     }
 
-    fn translation(mut self, x: f32, y: f32) -> Self {
+    fn x_y(mut self, x: f32, y: f32) -> Self {
         self.map_camera(|mut camera| {
-            camera.transform.translation = bevy::math::Vec3::new(x, y, 10.0);
+            camera.transform.translation =
+                bevy::math::Vec3::new(x, y, camera.transform.translation.z);
+            camera
+        })
+    }
+
+    fn xy(mut self, p: Vec2) -> Self {
+        self.map_camera(|mut camera| {
+            camera.transform.translation = p.extend(camera.transform.translation.z);
+            camera
+        })
+    }
+
+    fn x_y_z(mut self, x: f32, y: f32, z: f32) -> Self {
+        self.map_camera(|mut camera| {
+            camera.transform.translation = bevy::math::Vec3::new(x, y, z);
+            camera
+        })
+    }
+
+    fn xyz(mut self, p: Vec3) -> Self {
+        self.map_camera(|mut camera| {
+            camera.transform.translation = p;
             camera
         })
     }

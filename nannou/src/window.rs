@@ -35,7 +35,9 @@ pub struct Window<'a, 'w> {
 pub struct Builder<'a, 'w, M = ()> {
     app: &'a App<'w>,
     window: bevy::window::Window,
+    // TODO: make cameras and lights an array
     camera: Option<Entity>,
+    light: Option<Entity>,
     primary: bool,
     title_was_set: bool,
     user_functions: UserFunctions<M>,
@@ -236,6 +238,7 @@ where
             app,
             window: bevy::window::Window::default(),
             camera: None,
+            light: None,
             primary: false,
             title_was_set: false,
             user_functions: UserFunctions::<M>::default(),
@@ -419,6 +422,8 @@ where
                 .insert(PrimaryWindow);
         }
 
+        let layer = RenderLayers::layer(self.app.window_count());
+
         if let Some(camera) = self.camera {
             // Update the camera's render target to be the window.
             let mut q = self
@@ -431,7 +436,7 @@ where
                     self.app
                         .world_mut()
                         .entity_mut(self.camera.unwrap())
-                        .insert(RenderLayers::layer(self.app.window_count() * 2usize));
+                        .insert(layer.clone());
                 }
             }
         } else {
@@ -451,9 +456,13 @@ where
                     projection: OrthographicProjection::default().into(),
                     ..default()
                 },
-                RenderLayers::layer(self.app.window_count() * 2usize),
+                layer.clone(),
                 NannouCamera,
             ));
+        }
+
+        if let Some(light) = self.light {
+            self.app.world_mut().entity_mut(light).insert(layer.clone());
         }
 
         entity
@@ -474,6 +483,11 @@ where
     /// will be set to the window when the window is built.
     pub fn camera(mut self, camera: Entity) -> Self {
         self.camera = Some(camera);
+        self
+    }
+
+    pub fn light(mut self, light: Entity) -> Self {
+        self.light = Some(light);
         self
     }
 
@@ -616,6 +630,10 @@ impl<'a, 'w> Window<'a, 'w> {
     /// A unique identifier associated with this window.
     pub fn id(&self) -> Entity {
         self.entity
+    }
+
+    pub fn layer(&self) -> Option<&RenderLayers> {
+        self.app.world().get::<RenderLayers>(self.entity)
     }
 
     /// Returns the scale factor that can be used to map logical pixels to physical pixels and vice
