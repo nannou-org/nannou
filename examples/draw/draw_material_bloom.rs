@@ -53,6 +53,6 @@ fn view(app: &App, model: &Model) {
 
     draw.tri()
         .width(100.0)
-        .emissive(color_linear_rgb.into())
+        .emissive(color_linear_rgb)
         .color(WHITE);
 }

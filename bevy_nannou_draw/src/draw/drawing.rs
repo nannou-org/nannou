@@ -935,16 +935,16 @@ where
         })
     }
 
-    pub fn base_color(mut self, color: Color) -> Self {
+    pub fn base_color<C: Into<Color>>(mut self, color: C) -> Self {
         self.map_material(|mut material| {
-            material.base.base_color = color;
+            material.base.base_color = color.into();
             material
         })
     }
 
-    pub fn emissive(mut self, color: Color) -> Self {
+    pub fn emissive<C: Into<Color>>(mut self, color: C) -> Self {
         self.map_material(|mut material| {
-            material.base.emissive = color.linear();
+            material.base.emissive = color.into().linear();
             material
         })
     }
