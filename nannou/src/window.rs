@@ -421,7 +421,10 @@ where
 
         if let Some(camera) = self.camera {
             // Update the camera's render target to be the window.
-            let mut q = self.app.world_mut().query::<(&mut Camera, Option<&mut RenderLayers>)>();
+            let mut q = self
+                .app
+                .world_mut()
+                .query::<(&mut Camera, Option<&mut RenderLayers>)>();
             if let Ok((mut camera, layers)) = q.get_mut(self.app.world_mut(), camera) {
                 camera.target = RenderTarget::Window(WindowRef::Entity(entity));
                 if let None = layers {

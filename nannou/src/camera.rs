@@ -8,8 +8,8 @@ use bevy::prelude::{Camera3d, Projection, Transform};
 use bevy::render::camera;
 use bevy::render::view::RenderLayers;
 use bevy::window::WindowRef;
-use bevy_nannou::prelude::{default, ClearColorConfig, Entity, OrthographicProjection, Vec3};
 use bevy_nannou::prelude::render::NannouCamera;
+use bevy_nannou::prelude::{default, ClearColorConfig, Entity, OrthographicProjection, Vec3};
 
 pub struct Camera<'a, 'w> {
     entity: Entity,
@@ -165,7 +165,10 @@ impl<'a, 'w> Builder<'a, 'w> {
         if let Some(layer) = self.layer {
             self.app.world_mut().entity_mut(entity).insert(layer);
         } else {
-            self.app.world_mut().entity_mut(entity).insert(RenderLayers::default());
+            self.app
+                .world_mut()
+                .entity_mut(entity)
+                .insert(RenderLayers::default());
         }
         entity
     }
@@ -205,10 +208,7 @@ impl<'a, 'w> SetCamera for Builder<'a, 'w> {
 
 impl<'a, 'w> Camera<'a, 'w> {
     pub fn new(app: &'a App<'w>, entity: Entity) -> Self {
-        Self {
-            entity,
-            app,
-        }
+        Self { entity, app }
     }
 }
 

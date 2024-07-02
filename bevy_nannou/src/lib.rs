@@ -3,12 +3,12 @@ use bevy::prelude::*;
 pub mod prelude {
     pub use bevy::color::palettes::css::*;
     pub use bevy::color::*;
+    pub use bevy::core_pipeline::bloom::*;
     pub use bevy::input::mouse::MouseWheel;
     pub use bevy::prelude::*;
     pub use bevy::render::render_asset::*;
     pub use bevy::render::render_resource::*;
     pub use bevy::winit::UpdateMode;
-    pub use bevy::core_pipeline::bloom::*;
 
     pub use bevy_nannou_draw::color::*;
     pub use bevy_nannou_draw::draw::*;
