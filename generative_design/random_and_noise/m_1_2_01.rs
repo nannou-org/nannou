@@ -76,7 +76,10 @@ fn view(app: &App, model: &Model) {
         let x = nannou::geom::Range::new(random_x, circle_x).lerp(fader_x);
         let y = nannou::geom::Range::new(random_y, circle_y).lerp(fader_x);
 
-        draw.ellipse().x_y(x, y).w_h(11.0, 11.0).srgb_u8(0, 130, 163);
+        draw.ellipse()
+            .x_y(x, y)
+            .w_h(11.0, 11.0)
+            .srgb_u8(0, 130, 163);
     }
 }
 

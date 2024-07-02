@@ -112,7 +112,6 @@ pub trait SetColor: Sized {
         self.color(Color::hwba(hue, w, b, a))
     }
 
-
     fn lab(self, l: f32, a: f32, b: f32) -> Self {
         self.color(Color::lab(l, a, b))
     }

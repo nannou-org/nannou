@@ -43,7 +43,7 @@ where
 
     /// Specify the color via red, green and blue channels.
     pub fn srgb(self, r: f32, g: f32, b: f32) -> Self {
-        self.color(Color::rgb(r, g, b))
+        self.color(Color::srgb(r, g, b))
     }
 
     /// Specify the color via red, green, blue and alpha channels.
