@@ -530,14 +530,14 @@ where
     let mut iter = points.into_iter();
     let (first_point, first_color, first_tex_coord) = iter.next()?;
     let p = first_point.to_array().into();
-    let [r, g, b, a] = first_color.linear().to_f32_array();
+    let [r, g, b, a] = first_color.to_linear().to_f32_array();
     let [u, v] = first_tex_coord.to_array();
     path_builder.begin(p, &[r, g, b, a, u, v]);
 
     // Add the lines, keeping track of the last
     for (point, color, text_coord) in iter {
         let p = point.to_array().into();
-        let [r, g, b, a] = color.linear().to_f32_array();
+        let [r, g, b, a] = color.to_linear().to_f32_array();
         let [u, v] = text_coord.to_array();
         path_builder.line_to(p, &[r, g, b, a, u, v]);
     }

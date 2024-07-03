@@ -21,4 +21,4 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-bevy = "0.14.0-rc.2"
+bevy = "0.14.0-rc.4"

@@ -944,7 +944,7 @@ where
 
     pub fn emissive<C: Into<Color>>(mut self, color: C) -> Self {
         self.map_material(|mut material| {
-            material.base.emissive = color.into().linear();
+            material.base.emissive = color.into().to_linear();
             material
         })
     }

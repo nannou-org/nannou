@@ -98,7 +98,7 @@ impl<'a> FillGeometryBuilder for MeshBuilder<'a, SingleColor> {
         };
 
         self.mesh.points_mut().push(point.to_array());
-        self.mesh.colors_mut().push(color.linear().to_f32_array());
+        self.mesh.colors_mut().push(color.to_linear().to_f32_array());
         self.mesh.tex_coords_mut().push(tex_coords);
         self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
@@ -130,7 +130,7 @@ impl<'a> StrokeGeometryBuilder for MeshBuilder<'a, SingleColor> {
         };
 
         self.mesh.points_mut().push(point.to_array());
-        self.mesh.colors_mut().push(color.linear().to_f32_array());
+        self.mesh.colors_mut().push(color.to_linear().to_f32_array());
         self.mesh.tex_coords_mut().push(tex_coords);
         self.mesh.normals_mut().push([0.0, 0.0, 1.0]);
 
