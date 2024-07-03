@@ -305,6 +305,14 @@ where
         self
     }
 
+    pub fn add_plugin<P>(mut self, plugin: P) -> Self
+    where
+        P: Plugin,
+    {
+        self.app.add_plugins(plugin);
+        self
+    }
+
     /// Specify the default window size in points.
     ///
     /// If a window is created and its size is not specified, this size will be used.
