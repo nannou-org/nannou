@@ -6,8 +6,8 @@ use bevy::render::view::RenderLayers;
 
 use bevy_nannou::prelude::{default, Entity, Vec3};
 
-use crate::App;
 use crate::prelude::DirectionalLightBundle;
+use crate::App;
 
 pub struct Light<'a, 'w> {
     entity: Entity,
@@ -51,7 +51,8 @@ pub trait SetLight: Sized {
 
     fn look_at(mut self, target: Vec2) -> Self {
         self.map_light(|mut light| {
-            light.transform = Transform::from_translation(light.transform.translation).looking_at(target.extend(0.0), Vec3::Y);
+            light.transform = Transform::from_translation(light.transform.translation)
+                .looking_at(target.extend(0.0), Vec3::Y);
             light
         })
     }
@@ -161,12 +162,8 @@ impl<'a, 'w> SetLight for Light<'a, 'w> {
         F: FnOnce(DirectionalLightBundle) -> DirectionalLightBundle,
     {
         let world = self.app.world_mut();
-        let mut camera_q = world.query::<(
-            &mut Transform,
-            &mut DirectionalLight,
-        )>();
-        let (transform, light) =
-            camera_q.get_mut(world, self.entity).unwrap();
+        let mut camera_q = world.query::<(&mut Transform, &mut DirectionalLight)>();
+        let (transform, light) = camera_q.get_mut(world, self.entity).unwrap();
         let bundle = DirectionalLightBundle {
             transform: transform.clone(),
             directional_light: light.clone(),

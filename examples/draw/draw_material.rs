@@ -1,5 +1,5 @@
-use nannou::prelude::*;
 use nannou::prelude::light_consts::lux::DIRECT_SUNLIGHT;
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();

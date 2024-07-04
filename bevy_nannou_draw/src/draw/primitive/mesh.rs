@@ -120,7 +120,9 @@ impl Vertexless {
         let i_start = inner_mesh.count_indices();
         for (i, (point, color, tex_coords)) in vertices.enumerate() {
             inner_mesh.points_mut().push(point.to_array());
-            inner_mesh.colors_mut().push(color.to_linear().to_f32_array());
+            inner_mesh
+                .colors_mut()
+                .push(color.to_linear().to_f32_array());
             inner_mesh.tex_coords_mut().push(tex_coords.to_array());
             inner_mesh.normals_mut().push([0.0, 0.0, 1.0]);
             inner_mesh.push_index(i as u32);
@@ -288,7 +290,9 @@ impl Vertexless {
 
         for (point, color, tex_coords) in vertices.into_iter() {
             inner_mesh.points_mut().push(point.to_array());
-            inner_mesh.colors_mut().push(color.to_linear().to_f32_array());
+            inner_mesh
+                .colors_mut()
+                .push(color.to_linear().to_f32_array());
             inner_mesh.tex_coords_mut().push(tex_coords.to_array());
             inner_mesh.normals_mut().push([0.0, 0.0, 1.0]);
         }
