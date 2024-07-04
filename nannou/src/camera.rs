@@ -4,7 +4,7 @@ use crate::App;
 use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::math::UVec2;
-use bevy::prelude::{Camera3d, Projection, Transform, Vec2};
+use bevy::prelude::{Camera3d, PerspectiveProjection, Projection, Transform, Vec2};
 use bevy::render::camera;
 use bevy::render::view::RenderLayers;
 use bevy::window::WindowRef;
@@ -155,6 +155,13 @@ pub trait SetCamera: Sized {
         })
     }
 
+    fn projection(self, projection: impl Into<Projection>) -> Self {
+        self.map_camera(|mut camera| {
+            camera.projection = projection.into();
+            camera
+        })
+    }
+
     fn map_layer<F>(self, f: F) -> Self
     where
         F: FnOnce(RenderLayers) -> RenderLayers;
@@ -191,6 +198,12 @@ impl<'a, 'w> Builder<'a, 'w> {
                 .world_mut()
                 .entity_mut(entity)
                 .insert(RenderLayers::default());
+        }
+        if let Some(bloom_settings) = self.bloom_settings {
+            self.app
+                .world_mut()
+                .entity_mut(entity)
+                .insert(bloom_settings);
         }
         entity
     }
