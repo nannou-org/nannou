@@ -211,3 +211,7 @@ required-features = ["egui"]
 name = "simple_ui"
 path = "ui/egui/simple_ui.rs"
 required-features = ["egui"]
+[[example]]
+name = "inspector_ui"
+path = "ui/egui/inspector_ui.rs"
+required-features = ["egui"]

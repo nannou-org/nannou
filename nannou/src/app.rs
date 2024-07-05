@@ -35,10 +35,10 @@ use bevy::window::{ExitCondition, PrimaryWindow, WindowClosed, WindowFocused, Wi
 use bevy::winit::{UpdateMode, WinitEvent, WinitSettings};
 #[cfg(feature = "egui")]
 use bevy_egui::EguiContext;
-// #[cfg(feature = "egui")]
-// use bevy_inspector_egui::quick::ResourceInspectorPlugin;
-// #[cfg(feature = "egui")]
-// use bevy_inspector_egui::DefaultInspectorConfigPlugin;
+#[cfg(feature = "egui")]
+use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+#[cfg(feature = "egui")]
+use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use find_folder;
 
 use bevy_nannou::prelude::render::ExtendedNannouMaterial;
@@ -157,7 +157,7 @@ struct Config {
 }
 
 #[derive(Resource, Deref, DerefMut)]
-struct ModelHolder<M>(M);
+pub struct ModelHolder<M>(pub M);
 
 #[derive(Resource)]
 struct CreateDefaultWindow;
@@ -382,8 +382,9 @@ where
 {
     #[cfg(feature = "egui")]
     pub fn model_ui(self) -> Self {
-        // .add_plugins(DefaultInspectorConfigPlugin)
-        // .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
+        self.app
+            .add_plugins(DefaultInspectorConfigPlugin)
+            .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
         self
     }
 }
