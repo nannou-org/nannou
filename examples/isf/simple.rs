@@ -41,7 +41,10 @@ fn update(app: &App, model: &mut Model) {
     };
 
     let mut inputs = app.resource_mut::<IsfInputs>();
-    inputs.insert("inputImage".to_string(), IsfInputValue::Image(model.texture_1.clone()));
+    inputs.insert(
+        "inputImage".to_string(),
+        IsfInputValue::Image(model.texture_1.clone()),
+    );
 }
 
 fn view(app: &App, model: &Model) {

@@ -182,14 +182,17 @@ fn update_render_targets(
         let dummy = images.add(resolve.clone());
         let resolve = images.add(resolve);
 
-        render_targets.insert(pass_idx, Some(IsfPass {
-            size: UVec2::new(width, height),
-            target,
-            resolve,
-            dummy,
-            format,
-            clear: !pass.persistent,
-        }));
+        render_targets.insert(
+            pass_idx,
+            Some(IsfPass {
+                size: UVec2::new(width, height),
+                target,
+                resolve,
+                dummy,
+                format,
+                clear: !pass.persistent,
+            }),
+        );
     }
     if render_targets.is_empty() {
         render_targets.push(None);
@@ -258,12 +261,15 @@ fn queue_isf(
         let mut pipeline_ids = IsfPipelineIds::default();
 
         for pass in isf_render_targets.iter() {
-            let (format , samples) = match pass {
-                None => (if extracted_view.hdr {
-                    TextureFormat::Rgba32Float
-                } else {
-                    TextureFormat::Rgba8UnormSrgb
-                }, msaa.samples()),
+            let (format, samples) = match pass {
+                None => (
+                    if extracted_view.hdr {
+                        TextureFormat::Rgba32Float
+                    } else {
+                        TextureFormat::Rgba8UnormSrgb
+                    },
+                    msaa.samples(),
+                ),
                 Some(pass) => (pass.format, 1),
             };
 
@@ -282,12 +288,8 @@ fn queue_isf(
             pipeline_ids.push(pipeline_id);
         }
 
-
-        commands
-            .entity(view_entity)
-            .insert(pipeline_ids);
+        commands.entity(view_entity).insert(pipeline_ids);
     }
-
 }
 
 #[derive(Component)]
@@ -352,9 +354,7 @@ fn prepare_isf_bind_groups(
                     let input_value = &isf_inputs[&input.name];
                     match input_value {
                         IsfInputValue::Image(image) => {
-                            let gpu_image = gpu_images
-                                .get(image)
-                                .unwrap();
+                            let gpu_image = gpu_images.get(image).unwrap();
                             bindings.push(BindGroupEntry {
                                 binding,
                                 resource: gpu_image.texture_view.into_binding(),
@@ -467,7 +467,8 @@ impl ViewNode for IsfNode {
             );
 
             let pipeline_cache = world.resource::<PipelineCache>();
-            let Some(pipeline) = pipeline_cache.get_render_pipeline(pipeline_ids[pass_index]) else {
+            let Some(pipeline) = pipeline_cache.get_render_pipeline(pipeline_ids[pass_index])
+            else {
                 warn!("Failed to get render pipeline");
                 return Ok(());
             };
@@ -478,7 +479,7 @@ impl ViewNode for IsfNode {
                     resolve_target: None,
                     ops: if pass.clear {
                         Operations {
-                            load: LoadOp::Clear(Color::srgb(0.1,0.1,1.0).to_linear().into()),
+                            load: LoadOp::Clear(Color::srgb(0.1, 0.1, 1.0).to_linear().into()),
                             store: StoreOp::Store,
                         }
                     } else {
@@ -503,7 +504,6 @@ impl ViewNode for IsfNode {
             render_pass.set_bind_group(1, &bind_groups.isf_inputs_bind_group, &[]);
             render_pass.set_bind_group(2, &bind_groups.isf_textures_bind_groups[pass_index], &[]);
             render_pass.draw(0..3, 0..1);
-
         }
 
         Ok(())

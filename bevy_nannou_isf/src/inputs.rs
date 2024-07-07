@@ -7,18 +7,18 @@ use bevy::reflect::{
     TypeRegistration, Typed,
 };
 use bevy::render::extract_component::ExtractComponent;
+use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_resource::encase::private::Metadata;
 use bevy::render::render_resource::encase::UniformBuffer;
 use bevy::render::render_resource::{AsBindGroupShaderType, ShaderType};
+use bevy_inspector_egui::inspector_options::InspectorOptionsType;
+use bevy_inspector_egui::prelude::ReflectInspectorOptions;
+use bevy_inspector_egui::InspectorOptions;
 use bytemuck::{Pod, Zeroable};
 use std::any::Any;
 use std::collections::BTreeMap;
 use std::fmt::Formatter;
 use std::ops::Deref;
-use bevy::render::extract_resource::ExtractResource;
-use bevy_inspector_egui::inspector_options::InspectorOptionsType;
-use bevy_inspector_egui::InspectorOptions;
-use bevy_inspector_egui::prelude::ReflectInspectorOptions;
 
 #[derive(Resource, ExtractResource, TypePath, Deref, DerefMut, Debug, Clone, Default)]
 pub struct IsfInputs(BTreeMap<String, IsfInputValue>);
@@ -154,9 +154,7 @@ impl IsfInputs {
         let mut values = BTreeMap::new();
         for input in &isf.inputs {
             let value = match &input.ty {
-                isf::InputType::Event => {
-                    IsfInputValue::Event(false)
-                },
+                isf::InputType::Event => IsfInputValue::Event(false),
                 isf::InputType::Bool(b) => IsfInputValue::Bool(b.default.unwrap_or_default()),
                 isf::InputType::Long(l) => IsfInputValue::Long(l.default.unwrap_or_default()),
                 isf::InputType::Float(f) => IsfInputValue::Float(f.default.unwrap_or_default()),

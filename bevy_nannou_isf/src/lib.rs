@@ -1,4 +1,3 @@
-use std::any::TypeId;
 use crate::asset::{Isf, IsfAssetPlugin};
 use crate::inputs::{IsfInputValue, IsfInputs};
 use crate::render::{IsfRenderPlugin, IsfRenderTargets};
@@ -10,9 +9,10 @@ use bevy::render::view;
 use bevy::render::view::{NoFrustumCulling, VisibilitySystems};
 use bevy::window::PrimaryWindow;
 use bevy_egui::{egui, EguiContext};
-use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use bevy_inspector_egui::inspector_egui_impls::InspectorEguiImpl;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+use bevy_inspector_egui::DefaultInspectorConfigPlugin;
+use std::any::TypeId;
 
 mod asset;
 mod inputs;
@@ -64,9 +64,7 @@ fn asset_event_handler(
                 let isf = assets.get(&handle).unwrap();
                 *isf_inputs = IsfInputs::from_isf(&isf.isf);
                 for camera in cameras.iter() {
-                    commands
-                        .entity(camera)
-                        .insert(handle.clone());
+                    commands.entity(camera).insert(handle.clone());
                 }
             }
             _ => {}
