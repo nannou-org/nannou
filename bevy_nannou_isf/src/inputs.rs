@@ -15,8 +15,12 @@ use std::any::Any;
 use std::collections::BTreeMap;
 use std::fmt::Formatter;
 use std::ops::Deref;
+use bevy::render::extract_resource::ExtractResource;
+use bevy_inspector_egui::inspector_options::InspectorOptionsType;
+use bevy_inspector_egui::InspectorOptions;
+use bevy_inspector_egui::prelude::ReflectInspectorOptions;
 
-#[derive(Component, ExtractComponent, TypePath, Deref, DerefMut, Debug, Clone, Default)]
+#[derive(Resource, ExtractResource, TypePath, Deref, DerefMut, Debug, Clone, Default)]
 pub struct IsfInputs(BTreeMap<String, IsfInputValue>);
 
 #[repr(C)]
@@ -150,7 +154,9 @@ impl IsfInputs {
         let mut values = BTreeMap::new();
         for input in &isf.inputs {
             let value = match &input.ty {
-                isf::InputType::Event => IsfInputValue::Event(false),
+                isf::InputType::Event => {
+                    IsfInputValue::Event(false)
+                },
                 isf::InputType::Bool(b) => IsfInputValue::Bool(b.default.unwrap_or_default()),
                 isf::InputType::Long(l) => IsfInputValue::Long(l.default.unwrap_or_default()),
                 isf::InputType::Float(f) => IsfInputValue::Float(f.default.unwrap_or_default()),
@@ -195,6 +201,7 @@ impl GetTypeRegistration for IsfInputs {
     fn get_type_registration() -> TypeRegistration {
         let mut type_registration = TypeRegistration::of::<IsfInputs>();
         type_registration.insert::<ReflectFromPtr>(FromType::<IsfInputs>::from_type());
+        // type_registration.insert::<ReflectInspectorOptions>(FromType::<IsfInputs>::from_type());
         type_registration
     }
 }

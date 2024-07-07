@@ -1,11 +1,18 @@
+use std::any::TypeId;
 use crate::asset::{Isf, IsfAssetPlugin};
 use crate::inputs::{IsfInputValue, IsfInputs};
-use crate::render::IsfRenderPlugin;
+use crate::render::{IsfRenderPlugin, IsfRenderTargets};
 use bevy::asset::embedded_asset;
 use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponentPlugin;
+use bevy::render::extract_resource::ExtractResourcePlugin;
 use bevy::render::view;
 use bevy::render::view::{NoFrustumCulling, VisibilitySystems};
+use bevy::window::PrimaryWindow;
+use bevy_egui::{egui, EguiContext};
+use bevy_inspector_egui::DefaultInspectorConfigPlugin;
+use bevy_inspector_egui::inspector_egui_impls::InspectorEguiImpl;
+use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 
 mod asset;
 mod inputs;
@@ -14,36 +21,36 @@ mod render;
 pub mod prelude {
     pub use crate::asset::Isf;
     pub use crate::inputs::{IsfInputValue, IsfInputs};
-    pub use crate::IsfBundle;
 }
 
 pub struct NannouIsfPlugin;
-
-type WithIsfInputs = With<IsfInputs>;
-
 impl Plugin for NannouIsfPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(First, asset_event_handler)
-            .add_systems(
-                PostUpdate,
-                view::check_visibility::<WithIsfInputs>.in_set(VisibilitySystems::CheckVisibility),
-            )
             .add_plugins((
                 IsfRenderPlugin,
                 IsfAssetPlugin,
+                ResourceInspectorPlugin::<IsfInputs>::default(),
                 ExtractComponentPlugin::<Handle<Isf>>::default(),
-                ExtractComponentPlugin::<IsfInputs>::default(),
+                ExtractResourcePlugin::<IsfInputs>::default(),
+                ExtractResourcePlugin::<IsfRenderTargets>::default(),
             ))
+            .init_resource::<IsfRenderTargets>()
+            .init_resource::<IsfInputs>()
             .register_type::<IsfInputs>()
-            .register_type::<IsfInputValue>();
+            .register_type::<IsfInputValue>()
+            .register_asset_reflect::<Image>();
+
+        let type_registry = app.world().resource::<AppTypeRegistry>();
+        let mut type_registry = type_registry.write();
+        type_registry.register_type_data::<Handle<Image>, InspectorEguiImpl>();
     }
 }
 
 fn asset_event_handler(
     mut commands: Commands,
     mut ev_asset: EventReader<AssetEvent<Isf>>,
-    mut event_writer: EventWriter<AssetEvent<Shader>>,
-    shaders: Res<Assets<Shader>>,
+    mut isf_inputs: ResMut<IsfInputs>,
     mut cameras: Query<Entity, With<Camera>>,
     assets: Res<Assets<Isf>>,
 ) {
@@ -55,34 +62,14 @@ fn asset_event_handler(
             AssetEvent::LoadedWithDependencies { id } => {
                 let handle = Handle::Weak(*id);
                 let isf = assets.get(&handle).unwrap();
-                let isf_inputs = IsfInputs::from_isf(&isf.isf);
+                *isf_inputs = IsfInputs::from_isf(&isf.isf);
                 for camera in cameras.iter() {
                     commands
                         .entity(camera)
-                        .insert((handle.clone(), isf_inputs.clone()));
+                        .insert(handle.clone());
                 }
             }
             _ => {}
         }
     }
-}
-
-#[derive(Bundle, Default)]
-pub struct IsfBundle {
-    /// The ISF asset.
-    pub isf: Handle<Isf>,
-    /// The inputs of the entity.
-    pub inputs: IsfInputs,
-    /// The visibility of the entity.
-    pub visibility: Visibility,
-    /// The inherited visibility of the entity.
-    pub inherited_visibility: InheritedVisibility,
-    /// The view visibility of the entity.
-    pub view_visibility: ViewVisibility,
-    /// The transform of the entity.
-    pub transform: Transform,
-    /// The global transform of the entity.
-    pub global_transform: GlobalTransform,
-    /// No frustum culling.
-    pub no_frustum_culling: NoFrustumCulling,
 }

@@ -1,4 +1,5 @@
 use nannou::prelude::light_consts::lux::DIRECT_SUNLIGHT;
+use nannou::prelude::primitive::polygon::PolygonOptions;
 use nannou::prelude::*;
 
 fn main() {

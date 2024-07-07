@@ -18,6 +18,7 @@ fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
     let window = app
         .new_window()
+        .primary()
         .title("Nannou")
         .size(WIDTH as u32, HEIGHT as u32)
         .view(view) // The function that will be called for presenting graphics to a frame.

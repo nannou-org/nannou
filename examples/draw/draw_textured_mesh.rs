@@ -14,7 +14,7 @@ fn model(app: &App) -> Model {
     // Load the image from disk and upload it to a GPU texture.
     let assets = app.assets_path();
     let img_path = assets.join("images").join("nature").join("nature_1.jpg");
-    let texture = app.assets_mut().load(img_path);
+    let texture = app.asset_server().load(img_path);
 
     Model { texture }
 }

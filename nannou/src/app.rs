@@ -38,6 +38,8 @@ use bevy_egui::EguiContext;
 #[cfg(feature = "egui")]
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 #[cfg(feature = "egui")]
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
+#[cfg(feature = "egui")]
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use find_folder;
 
@@ -381,10 +383,9 @@ where
     M: Reflect + GetTypeRegistration + 'static,
 {
     #[cfg(feature = "egui")]
-    pub fn model_ui(self) -> Self {
+    pub fn model_ui(mut self) -> Self {
         self.app
-            .add_plugins(DefaultInspectorConfigPlugin)
-            .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
+            .add_plugins((ResourceInspectorPlugin::<ModelHolder<M>>::default(),));
         self
     }
 }
@@ -536,8 +537,32 @@ impl<'w> App<'w> {
     }
 
     /// Retrieve a mutable reference to the [`AssetServer`] resource.
-    pub fn assets_mut(&self) -> Mut<AssetServer> {
+    pub fn asset_server(&self) -> Mut<AssetServer> {
         self.world_mut().resource_mut::<AssetServer>()
+    }
+
+    pub fn assets_mut<T: Asset>(&self) -> Mut<'_, Assets<T>> {
+        self.world_mut().resource_mut::<Assets<T>>()
+    }
+
+    pub fn assets<T: Asset>(&self) -> &Assets<T> {
+        self.world().resource::<Assets<T>>()
+    }
+
+    pub fn get<C: Component>(&self, entity: Entity) -> Option<&C> {
+        self.world().get::<C>(entity)
+    }
+
+    pub fn get_mut<C: Component>(&self, entity: Entity) -> Option<Mut<C>> {
+        self.world_mut().get_mut::<C>(entity)
+    }
+
+    pub fn resource<T: Resource>(&self) -> &T {
+        self.world().resource::<T>()
+    }
+
+    pub fn resource_mut<T: Resource>(&self) -> Mut<'_, T> {
+        self.world_mut().resource_mut::<T>()
     }
 
     /// Retrieve the path to the assets directory.
@@ -554,6 +579,14 @@ impl<'w> App<'w> {
     /// Retrieve a mutable reference to the [`Assets<Image>`] resource.
     pub fn images_mut(&self) -> Mut<'_, Assets<Image>> {
         self.world_mut().resource_mut::<Assets<Image>>()
+    }
+
+    pub fn shaders(&self) -> &Assets<Shader> {
+        self.world().resource::<Assets<Shader>>()
+    }
+
+    pub fn events_mut<T: Event>(&self) -> Mut<'_, Events<T>> {
+        self.world_mut().resource_mut::<Events<T>>()
     }
 
     #[cfg(feature = "egui")]

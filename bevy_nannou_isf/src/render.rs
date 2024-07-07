@@ -9,7 +9,9 @@ use bevy::ecs::query::{QueryItem, ROQueryItem};
 use bevy::ecs::system::lifetimeless::SRes;
 use bevy::ecs::system::SystemParamItem;
 use bevy::prelude::*;
+use bevy::render::camera::RenderTarget;
 use bevy::render::extract_component::DynamicUniformIndex;
+use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_asset::{PrepareAssetError, RenderAsset, RenderAssets};
 use bevy::render::render_graph::{
     NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
@@ -27,17 +29,19 @@ use bevy::render::texture::{BevyDefault, DefaultImageSampler, GpuImage};
 use bevy::render::view::{ExtractedView, ViewTarget, VisibleEntities};
 use bevy::render::{Extract, Render, RenderApp, RenderSet};
 use bevy::utils::HashMap;
+use bevy::window::{PrimaryWindow, WindowRef};
 use std::num::{NonZero, NonZeroU64};
+use std::ops::Deref;
 
 use crate::asset::{GpuIsf, Isf};
 use crate::inputs::{IsfInputValue, IsfInputs};
-use crate::WithIsfInputs;
 
 pub struct IsfRenderPlugin;
 
 impl Plugin for IsfRenderPlugin {
     fn build(&self, app: &mut App) {
         embedded_asset!(app, "src/", "fullscreen.vert");
+        app.add_systems(Update, update_render_targets);
         let Some(render_app) = app.get_sub_app_mut(RenderApp) else {
             return;
         };
@@ -67,8 +71,133 @@ impl Plugin for IsfRenderPlugin {
     }
 }
 
-#[derive(Component)]
-pub struct IsfPipelineId(CachedRenderPipelineId);
+#[derive(Resource, ExtractResource, Deref, DerefMut, Clone, Debug, Default)]
+pub struct IsfRenderTargets(Vec<Option<IsfPass>>);
+
+#[derive(Clone, Debug)]
+pub struct IsfPass {
+    size: UVec2,
+    target: Handle<Image>,
+    resolve: Handle<Image>,
+    dummy: Handle<Image>,
+    format: TextureFormat,
+    clear: bool,
+}
+
+fn update_render_targets(
+    cameras_q: Query<(&Camera, &Handle<Isf>)>,
+    windows_q: Query<(&Window, Option<&PrimaryWindow>)>,
+    mut render_targets: ResMut<IsfRenderTargets>,
+    mut images: ResMut<Assets<Image>>,
+    isfs: Res<Assets<Isf>>,
+    msaa: Res<Msaa>,
+) {
+    let Ok((camera, isf)) = cameras_q.get_single() else {
+        return;
+    };
+    let resolution = match &camera.target {
+        RenderTarget::Window(window) => match window {
+            WindowRef::Primary => windows_q
+                .iter()
+                .filter(|(_, primary)| primary.is_some())
+                .map(|(window, _)| window.resolution.physical_size())
+                .next()
+                .expect("Primary window not found"),
+            WindowRef::Entity(window) => windows_q
+                .get(*window)
+                .map(|(window, _)| window.resolution.physical_size())
+                .expect(&format!("Window not found: {:?}", window)),
+        },
+        RenderTarget::Image(image) => images
+            .get(image)
+            .map(|image| image.size())
+            .expect(&format!("Image not found: {:?}", image)),
+        RenderTarget::TextureView(_) => {
+            todo!("implement texture view")
+        }
+    };
+
+    let isf = isfs.get(isf).expect("Isf not found");
+    render_targets.resize(isf.isf.passes.len(), None);
+    for (pass_idx, pass) in isf.isf.passes.iter().enumerate() {
+        if let None = pass.target {
+            render_targets.insert(pass_idx, None);
+            continue;
+        }
+
+        let UVec2 { x, y } = resolution;
+        let width = pass
+            .width
+            .as_ref()
+            .map(|expr| {
+                let result = meval::eval_str(
+                    expr.replace("$WIDTH", &x.to_string())
+                        .replace("$HEIGHT", &y.to_string()),
+                )
+                .expect(&format!("Failed to evaluate expression: {:?}", expr));
+                result as u32
+            })
+            .unwrap_or(x);
+        let height = pass
+            .height
+            .as_ref()
+            .map(|expr| {
+                let result = meval::eval_str(
+                    expr.replace("$WIDTH", &x.to_string())
+                        .replace("$HEIGHT", &y.to_string()),
+                )
+                .expect(&format!("Failed to evaluate expression: {:?}", expr));
+                result as u32
+            })
+            .unwrap_or(y);
+
+        if let Some(Some(IsfPass { size, .. })) = render_targets.get(pass_idx) {
+            if size.x == width && size.y == height {
+                info!("Skipping resize of render target");
+                continue;
+            }
+        }
+
+        let mut resolve = Image::default();
+        let format = if pass.float {
+            TextureFormat::Rgba32Float
+        } else {
+            TextureFormat::Rgba8UnormSrgb
+        };
+        resolve.texture_descriptor.format = format;
+        resolve.texture_descriptor.usage = TextureUsages::RENDER_ATTACHMENT
+            | TextureUsages::TEXTURE_BINDING
+            | TextureUsages::COPY_DST;
+        let size = Extent3d {
+            width,
+            height,
+            ..default()
+        };
+        resolve.resize(size);
+        let mut target = resolve.clone();
+        // target.texture_descriptor.sample_count = msaa.samples();
+        target.texture_descriptor.usage =
+            TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_DST;
+        let target = images.add(target);
+        let dummy = images.add(resolve.clone());
+        let resolve = images.add(resolve);
+
+        render_targets.insert(pass_idx, Some(IsfPass {
+            size: UVec2::new(width, height),
+            target,
+            resolve,
+            dummy,
+            format,
+            clear: !pass.persistent,
+        }));
+    }
+    if render_targets.is_empty() {
+        render_targets.push(None);
+    }
+}
+
+#[derive(Component, Deref, DerefMut, Default)]
+pub struct IsfPipelineIds(Vec<CachedRenderPipelineId>);
 
 fn queue_isf(
     mut commands: Commands,
@@ -77,10 +206,12 @@ fn queue_isf(
     mut isf_pipeline: ResMut<IsfPipeline>,
     isf_assets: Res<RenderAssets<GpuIsf>>,
     msaa: Res<Msaa>,
+    isf_inputs: Res<IsfInputs>,
+    isf_render_targets: Res<IsfRenderTargets>,
     mut specialized_render_pipelines: ResMut<SpecializedRenderPipelines<IsfPipeline>>,
-    views: Query<(Entity, &Handle<Isf>, &IsfInputs), With<ExtractedView>>,
+    views: Query<(Entity, &ExtractedView, &Handle<Isf>)>,
 ) {
-    for (view_entity, isf, isf_inputs) in views.iter() {
+    for (view_entity, extracted_view, isf) in views.iter() {
         let isf = isf_assets.get(isf).unwrap();
 
         // Prepare any new layouts
@@ -119,45 +250,64 @@ fn queue_isf(
                         );
                     }
 
-                    info!("isf_textures_bind_group_layouts: {:?}", entries);
                     render_device
                         .create_bind_group_layout("isf_textures_bind_group_layout", &entries)
                 });
         }
 
-        let pipeline_id = specialized_render_pipelines.specialize(
-            &pipeline_cache,
-            &isf_pipeline,
-            IsfPipelineKey {
-                shader: isf.isf.shader.clone(),
-                size: isf_inputs.uniform_size(),
-                textures: isf.isf.num_images(),
-                msaa: *msaa,
-            },
-        );
+        let mut pipeline_ids = IsfPipelineIds::default();
+
+        for pass in isf_render_targets.iter() {
+            let (format , samples) = match pass {
+                None => (if extracted_view.hdr {
+                    TextureFormat::Rgba32Float
+                } else {
+                    TextureFormat::Rgba8UnormSrgb
+                }, msaa.samples()),
+                Some(pass) => (pass.format, 1),
+            };
+
+            let pipeline_id = specialized_render_pipelines.specialize(
+                &pipeline_cache,
+                &isf_pipeline,
+                IsfPipelineKey {
+                    shader: isf.isf.shader.clone(),
+                    format,
+                    size: isf_inputs.uniform_size(),
+                    textures: isf.isf.num_images(),
+                    samples,
+                },
+            );
+
+            pipeline_ids.push(pipeline_id);
+        }
+
 
         commands
             .entity(view_entity)
-            .insert(IsfPipelineId(pipeline_id));
+            .insert(pipeline_ids);
     }
+
 }
 
 #[derive(Component)]
 pub struct IsfBindGroups {
     isf_inputs_bind_group: BindGroup,
-    isf_textures_bind_group: BindGroup,
+    isf_textures_bind_groups: Vec<BindGroup>,
 }
 
 fn prepare_isf_bind_groups(
     mut commands: Commands,
     pipeline: Res<IsfPipeline>,
     sampler: Res<DefaultImageSampler>,
-    views: Query<(Entity, &ExtractedView, &Handle<Isf>, &IsfInputs)>,
+    isf_inputs: Res<IsfInputs>,
+    views: Query<(Entity, &Handle<Isf>)>,
     render_device: Res<RenderDevice>,
+    isf_render_targets: Res<IsfRenderTargets>,
     isf_assets: Res<RenderAssets<GpuIsf>>,
     gpu_images: Res<RenderAssets<GpuImage>>,
 ) {
-    for (entity, extracted_view, isf, isf_inputs) in views.iter() {
+    for (entity, isf) in views.iter() {
         let gpu_isf = isf_assets.get(isf).unwrap();
 
         let isf_inputs_uniform_buffer =
@@ -176,7 +326,6 @@ fn prepare_isf_bind_groups(
             }],
         );
 
-        let image_count = gpu_isf.isf.num_images();
         let mut bindings = vec![BindGroupEntry {
             binding: 0,
             resource: sampler.into_binding(),
@@ -184,6 +333,7 @@ fn prepare_isf_bind_groups(
 
         let mut binding = 1;
 
+        // Imported images
         for (_name, image) in gpu_isf.isf.imported_images.iter() {
             let gpu_image = gpu_images.get(image).unwrap();
             bindings.push(BindGroupEntry {
@@ -192,6 +342,8 @@ fn prepare_isf_bind_groups(
             });
             binding += 1;
         }
+
+        // Inputs
         for input in &gpu_isf.isf.isf.inputs {
             match input.ty {
                 isf::InputType::Image { .. }
@@ -202,7 +354,6 @@ fn prepare_isf_bind_groups(
                         IsfInputValue::Image(image) => {
                             let gpu_image = gpu_images
                                 .get(image)
-                                .or_else(|| gpu_images.get(&Handle::<Image>::default()))
                                 .unwrap();
                             bindings.push(BindGroupEntry {
                                 binding,
@@ -210,6 +361,8 @@ fn prepare_isf_bind_groups(
                             });
                             binding += 1;
                         }
+                        IsfInputValue::Audio(_) => todo!("implement audio"),
+                        IsfInputValue::AudioFft(_) => todo!("implement audio fft"),
                         _ => {}
                     }
                 }
@@ -217,15 +370,45 @@ fn prepare_isf_bind_groups(
             }
         }
 
-        let textures_bind_group = render_device.create_bind_group(
-            "isf_textures_bind_group",
-            &pipeline.isf_textures_bind_group_layouts[&image_count],
-            &bindings,
-        );
+        let num_images = gpu_isf.isf.num_images();
+        let mut textures_bind_groups = vec![];
+        // Passes
+        for pass in isf_render_targets.iter() {
+            let mut pass_bindings = bindings.clone();
+            let Some(pass) = pass else {
+                let textures_bind_group = render_device.create_bind_group(
+                    "isf_textures_bind_group",
+                    &pipeline.isf_textures_bind_group_layouts[&num_images],
+                    &pass_bindings,
+                );
+                textures_bind_groups.push(textures_bind_group);
+                continue;
+            };
+            let Some(gpu_image) = gpu_images.get(&pass.resolve) else {
+                return;
+            };
+            let dummy_image = gpu_images.get(&pass.dummy).unwrap();
+            pass_bindings.push(BindGroupEntry {
+                binding,
+                resource: dummy_image.texture_view.into_binding(),
+            });
+            let textures_bind_group = render_device.create_bind_group(
+                "isf_textures_bind_group",
+                &pipeline.isf_textures_bind_group_layouts[&num_images],
+                &pass_bindings,
+            );
+            textures_bind_groups.push(textures_bind_group);
+            // Make our texture available for the next pass
+            bindings.push(BindGroupEntry {
+                binding,
+                resource: gpu_image.texture_view.into_binding(),
+            });
+            binding += 1;
+        }
 
         commands.entity(entity).insert(IsfBindGroups {
             isf_inputs_bind_group: inputs_bind_group,
-            isf_textures_bind_group: textures_bind_group,
+            isf_textures_bind_groups: textures_bind_groups,
         });
     }
 }
@@ -240,63 +423,88 @@ impl ViewNode for IsfNode {
     type ViewQuery = (
         &'static ViewTarget,
         &'static IsfBindGroups,
-        &'static IsfPipelineId,
+        &'static IsfPipelineIds,
     );
 
     fn run(
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        (view_target, bind_groups, pipeline_id): QueryItem<Self::ViewQuery>,
+        (view_target, bind_groups, pipeline_ids): QueryItem<Self::ViewQuery>,
         world: &World,
     ) -> Result<(), NodeRunError> {
         let pipeline = world.resource::<IsfPipeline>();
-        let uniform = IsfUniform {
-            pass_index: 0,
-            render_size: [0.0; 2],
-            time: 0.0,
-            time_delta: 0.0,
-            date: [0.0; 4],
-            frame_index: 0,
-        };
+        let gpu_images = world.resource::<RenderAssets<GpuImage>>();
 
-        let isf_uniform_buffer =
-            render_context
-                .render_device()
-                .create_buffer_with_data(&BufferInitDescriptor {
-                    label: None,
-                    contents: &bytemuck::cast_slice(&[0; 10]),
-                    usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-                });
+        let isf_render_targets = world.resource::<IsfRenderTargets>();
+        for (pass_index, pass) in isf_render_targets.iter().enumerate() {
+            let uniform = IsfUniform {
+                pass_index: pass_index as i32,
+                render_size: [0.0; 2],
+                time: 0.0,
+                time_delta: 0.0,
+                date: [0.0; 4],
+                frame_index: 0,
+                ..default()
+            };
 
-        let uniform_bind_group = render_context.render_device().create_bind_group(
-            "isf_inputs_bind_group",
-            &pipeline.isf_uniforms_layout,
-            &[BindGroupEntry {
-                binding: 0,
-                resource: isf_uniform_buffer.as_entire_binding(),
-            }],
-        );
+            let isf_uniform_buffer =
+                render_context
+                    .render_device()
+                    .create_buffer_with_data(&BufferInitDescriptor {
+                        label: None,
+                        contents: &bytemuck::cast_slice(&[uniform]),
+                        usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+                    });
 
-        let pipeline_cache = world.resource::<PipelineCache>();
-        let Some(pipeline) = pipeline_cache.get_render_pipeline(pipeline_id.0) else {
-            warn!("Failed to get render pipeline");
-            return Ok(());
-        };
+            let uniform_bind_group = render_context.render_device().create_bind_group(
+                "isf_inputs_bind_group",
+                &pipeline.isf_uniforms_layout,
+                &[BindGroupEntry {
+                    binding: 0,
+                    resource: isf_uniform_buffer.as_entire_binding(),
+                }],
+            );
 
-        let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
-            label: Some("isf_pass"),
-            color_attachments: &[Some(view_target.get_color_attachment())],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
+            let pipeline_cache = world.resource::<PipelineCache>();
+            let Some(pipeline) = pipeline_cache.get_render_pipeline(pipeline_ids[pass_index]) else {
+                warn!("Failed to get render pipeline");
+                return Ok(());
+            };
 
-        render_pass.set_render_pipeline(pipeline);
-        render_pass.set_bind_group(0, &uniform_bind_group, &[]);
-        render_pass.set_bind_group(1, &bind_groups.isf_inputs_bind_group, &[]);
-        render_pass.set_bind_group(2, &bind_groups.isf_textures_bind_group, &[]);
-        render_pass.draw(0..3, 0..1);
+            let color_attachment = match pass {
+                Some(pass) => RenderPassColorAttachment {
+                    view: &gpu_images.get(&pass.target).unwrap().texture_view,
+                    resolve_target: None,
+                    ops: if pass.clear {
+                        Operations {
+                            load: LoadOp::Clear(Color::srgb(0.1,0.1,1.0).to_linear().into()),
+                            store: StoreOp::Store,
+                        }
+                    } else {
+                        Operations {
+                            load: LoadOp::Load,
+                            store: StoreOp::Store,
+                        }
+                    },
+                },
+                None => view_target.get_color_attachment(),
+            };
+            let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
+                label: Some("isf_pass"),
+                color_attachments: &[Some(color_attachment)],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+
+            render_pass.set_render_pipeline(pipeline);
+            render_pass.set_bind_group(0, &uniform_bind_group, &[]);
+            render_pass.set_bind_group(1, &bind_groups.isf_inputs_bind_group, &[]);
+            render_pass.set_bind_group(2, &bind_groups.isf_textures_bind_groups[pass_index], &[]);
+            render_pass.draw(0..3, 0..1);
+
+        }
 
         Ok(())
     }
@@ -339,15 +547,6 @@ pub struct ExtractedIsf {
     images: Vec<Handle<Image>>,
 }
 
-struct IsfPass {
-    pub texture: Texture,
-    pub texture_view: TextureView,
-    pub texture_format: TextureFormat,
-    pub sampler: Sampler,
-    pub size: UVec2,
-    pub mip_level_count: u32,
-}
-
 #[derive(Resource)]
 pub struct IsfPipeline {
     isf_uniforms_layout: BindGroupLayout,
@@ -381,9 +580,10 @@ impl FromWorld for IsfPipeline {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct IsfPipelineKey {
     shader: Handle<Shader>,
+    format: TextureFormat,
     size: usize,
     textures: usize,
-    msaa: Msaa,
+    samples: u32,
 }
 
 impl SpecializedRenderPipeline for IsfPipeline {
@@ -409,7 +609,7 @@ impl SpecializedRenderPipeline for IsfPipeline {
                 shader_defs: vec![],
                 entry_point: "main".into(),
                 targets: vec![Some(ColorTargetState {
-                    format: TextureFormat::bevy_default(),
+                    format: key.format,
                     blend: None,
                     write_mask: ColorWrites::ALL,
                 })],
@@ -417,7 +617,7 @@ impl SpecializedRenderPipeline for IsfPipeline {
             primitive: PrimitiveState::default(),
             depth_stencil: None,
             multisample: MultisampleState {
-                count: key.msaa.samples(),
+                count: key.samples,
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },
@@ -425,14 +625,29 @@ impl SpecializedRenderPipeline for IsfPipeline {
     }
 }
 
-#[derive(ShaderType, Clone)]
+#[repr(C)]
+#[derive(ShaderType, Copy, Clone, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
 struct IsfUniform {
     pass_index: i32,
+    _pad0: i32,
+    _pad1: i32,
+    _pad2: i32,
     render_size: [f32; 2],
+    _pad4: i32,
+    _pad5: i32,
     time: f32,
+    _pad6: i32,
+    _pad7: i32,
+    _pad8: i32,
     time_delta: f32,
+    _pad9: i32,
+    _pad10: i32,
+    _pad11: i32,
     date: [f32; 4],
     frame_index: i32,
+    _pad12: i32,
+    _pad13: i32,
+    _pad14: i32,
 }
 
 #[derive(Component, Deref, DerefMut)]

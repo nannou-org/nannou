@@ -35,7 +35,7 @@ tokio = { version = "1", features = ["rt"]}
 
 [features]
 egui = ["nannou/egui"]
-
+isf = ["nannou/isf"]
 
 # Audio
 [[example]]
@@ -126,6 +126,11 @@ path = "draw/draw_textured_polygon.rs"
 name = "draw_transform"
 path = "draw/draw_transform.rs"
 
+# Isf
+[[example]]
+name = "isf_simple"
+path = "isf/simple.rs"
+required-features = ["isf", "egui"]
 
 # Laser
 [[example]]

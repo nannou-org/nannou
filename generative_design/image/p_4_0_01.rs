@@ -51,7 +51,7 @@ fn model(app: &App) -> Model {
         .join("images")
         .join("generative_examples")
         .join("p_4_0_01.jpg");
-    let texture = app.assets_mut().load(img_path);
+    let texture = app.asset_server().load(img_path);
     Model { texture }
 }
 

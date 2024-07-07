@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 bevy = { workspace = true }
 bevy_nannou_draw = { path = "../bevy_nannou_draw" }
+bevy_nannou_isf = { path = "../bevy_nannou_isf", optional = true }
 
 [features]
 nightly = ["bevy_nannou_draw/nightly"]
+isf = ["bevy_nannou_isf"]

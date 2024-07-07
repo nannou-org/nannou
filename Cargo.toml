@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "bevy_nannou",
-    "bevy_nannou_draw",
+    "bevy_nannou_draw", "bevy_nannou_isf",
     "examples",
     "generative_design",
     "guide/book_tests",
@@ -22,3 +22,5 @@ resolver = "2"
 
 [workspace.dependencies]
 bevy = "0.14.0"
+bevy_egui = "0.28.0"
+bevy-inspector-egui = "0.25.0"

@@ -112,7 +112,7 @@ fn model(app: &App) -> Model {
     }
 
     let image = app
-        .assets_mut()
+        .asset_server()
         .load("images/generative_examples/p_4_3_1_01.png");
 
     Model { image, shapes }

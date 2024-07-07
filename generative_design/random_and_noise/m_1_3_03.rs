@@ -70,7 +70,7 @@ fn model(app: &App) -> Model {
         // Need to keep this image CPU persistent in order to add additional glyphs later on
         RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
     );
-    let texture = app.assets_mut().add(image);
+    let texture = app.asset_server().add(image);
     Model {
         octaves: 4,
         falloff: 0.5,

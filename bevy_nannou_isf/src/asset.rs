@@ -31,6 +31,11 @@ impl Isf {
                 _ => {}
             }
         }
+        for pass in &self.isf.passes {
+            if let Some(ref target) = pass.target {
+                image_count += 1;
+            }
+        }
         image_count
     }
 }
@@ -116,11 +121,25 @@ pub fn glsl_string_from_isf(isf: &isf::Isf) -> String {
     let isf_data_str = "
         layout(set = 0, binding = 0) uniform IsfData {
             int PASSINDEX;
+            int _pad0;
+            int _pad1;
+            int _pad2;
             vec2 RENDERSIZE;
+            int _pad3;
+            int _pad4;
             float TIME;
+            int _pad5;
+            int _pad6;
+            int _pad7;
             float TIMEDELTA;
+            int _pad8;
+            int _pad9;
+            int _pad10;
             vec4 DATE;
             int FRAMEINDEX;
+            int _pad11;
+            int _pad12;
+            int _pad13;
         };
     ";
 

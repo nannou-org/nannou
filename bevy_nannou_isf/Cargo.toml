@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 bevy = { workspace = true, features = ["shader_format_glsl"] }
+bevy_egui = { workspace = true }
+bevy-inspector-egui = { workspace = true, features = ["bevy_render"] }
 isf = "0.1.0"
 thiserror = "1"
 bytemuck = "1"

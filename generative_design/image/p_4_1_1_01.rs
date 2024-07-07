@@ -66,7 +66,7 @@ fn model(app: &App) -> Model {
         .join("images")
         .join("generative_examples")
         .join("p_4_1_1_01.jpg");
-    let texture = app.assets_mut().load(img_path);
+    let texture = app.asset_server().load(img_path);
 
     let win = app.window_rect();
     let tile_count_x = 4;

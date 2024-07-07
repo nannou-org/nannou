@@ -16,6 +16,9 @@ pub mod prelude {
     pub use bevy_nannou_draw::render::NannouMaterialPlugin;
     pub use bevy_nannou_draw::text::*;
     pub use bevy_nannou_draw::*;
+
+    #[cfg(feature = "isf")]
+    pub use bevy_nannou_isf::prelude::*;
 }
 
 pub struct NannouPlugin;
@@ -23,5 +26,9 @@ pub struct NannouPlugin;
 impl Plugin for NannouPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((bevy_nannou_draw::NannouDrawPlugin,));
+        #[cfg(feature = "isf")]
+        {
+            app.add_plugins(bevy_nannou_isf::NannouIsfPlugin);
+        }
     }
 }

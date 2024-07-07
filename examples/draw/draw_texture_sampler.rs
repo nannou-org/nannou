@@ -17,7 +17,7 @@ fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
     app.new_window().size(512, 512).view(view).primary().build();
     // Load the image from disk and upload it to a GPU texture.
-    let texture = app.assets_mut().load("images/nature/nature_1.jpg");
+    let texture = app.asset_server().load("images/nature/nature_1.jpg");
     Model { texture }
 }
 
