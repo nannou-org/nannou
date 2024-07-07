@@ -1,0 +1,11 @@
+[package]
+name = "bevy_nannou_isf"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { workspace = true, features = ["shader_format_glsl"] }
+isf = "0.1.0"
+thiserror = "1"
+bytemuck = "1"
+meval = "0.2"
