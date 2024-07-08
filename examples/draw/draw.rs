@@ -1,3 +1,4 @@
+use std::any::Any;
 use nannou::prelude::*;
 
 fn main() {
@@ -7,9 +8,6 @@ fn main() {
 fn view(app: &App) {
     let draw = app.draw();
     draw.background().color(WHITE);
-
-    let time = app.resource_mut::<Time>();
-    let type_registry = app.resource_mut::<AppTypeRegistry>();
 
     let win = app.window_rect();
     let num_bars = 20;
