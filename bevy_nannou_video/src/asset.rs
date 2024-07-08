@@ -25,21 +25,18 @@ impl Plugin for VideoAssetPlugin {
 }
 
 fn load_next_frame(
-    video_q: Query<&Handle<Video>>,
     mut videos: ResMut<Assets<Video>>,
     mut images: ResMut<Assets<Image>>,
     time: Res<Time>,
 ) {
-    for handle in video_q.iter() {
-        let video = videos.get_mut(handle).unwrap();
+    for (_, video) in videos.iter_mut() {
         let current_time = time.elapsed_seconds_f64();
         if current_time - video.last_update < video.frame_duration {
             continue; // Not time for next frame yet
         }
         video.last_update = current_time;
         if let Some(next_texture) = video.next_texture() {
-            let texture = images.get_mut(&video.texture).unwrap();
-            *texture = next_texture;
+            video.texture = images.add(next_texture);
         }
     }
 }

@@ -2,7 +2,7 @@ use nannou::noise::NoiseFn;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).update(update).run();
+    nannou::app(model).run();
 }
 
 #[derive(Reflect)]
@@ -22,28 +22,21 @@ fn model(app: &App) -> Model {
         .view(view)
         .build();
 
-    let video = app.asset_server().load_with_settings(
-        "video/file_example_MP4_640_3MG.mp4",
-        |settings: &mut VideoLoaderSettings| {
-            settings
-                .options
-                .insert("sws_flags".to_string(), "fast_bilinear".to_string());
-        },
-    );
+    let video = app
+        .asset_server()
+        .load("video/file_example_MP4_640_3MG.mp4");
     Model {
         window,
         camera,
         video,
     }
 }
-
-fn update(app: &App, model: &mut Model) {}
-
 fn view(app: &App, model: &Model) {
     let Some(video) = app.assets().get(&model.video) else {
         return;
     };
 
     let draw = app.draw();
-    draw.rect().w_h(100.0, 100.0).texture(&video.texture);
+    draw.rect()
+        .w_h(640.0, 400.0).texture(&video.texture);
 }

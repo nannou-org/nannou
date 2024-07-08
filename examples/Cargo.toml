@@ -227,3 +227,7 @@ required-features = ["egui"]
 name = "simple_video"
 path = "video/simple_video.rs"
 required-features = ["video"]
+[[example]]
+name = "video_material"
+path = "video/video_material.rs"
+required-features = ["video"]
