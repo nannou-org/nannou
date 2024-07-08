@@ -23,7 +23,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .build();
 
-    let isf = app.asset_server().load("isf/Test-MultiPassRendering.fs");
+    let isf = app.asset_server().load("isf/Test-Color.fs");
     let texture_1 = app.asset_server().load("images/nature/nature_1.jpg");
     let texture_2 = app.asset_server().load("images/nature/nature_2.jpg");
     Model {
