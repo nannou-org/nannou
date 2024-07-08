@@ -19,6 +19,8 @@ pub mod prelude {
 
     #[cfg(feature = "isf")]
     pub use bevy_nannou_isf::prelude::*;
+    #[cfg(feature = "video")]
+    pub use bevy_nannou_video::prelude::*;
 }
 
 pub struct NannouPlugin;
@@ -29,6 +31,11 @@ impl Plugin for NannouPlugin {
         #[cfg(feature = "isf")]
         {
             app.add_plugins(bevy_nannou_isf::NannouIsfPlugin);
+        }
+        #[cfg(feature = "video")]
+        {
+            info!("Adding video plugin");
+            app.add_plugins(bevy_nannou_video::NannouVideoPlugin);
         }
     }
 }

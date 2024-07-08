@@ -1,7 +1,9 @@
 [workspace]
 members = [
     "bevy_nannou",
-    "bevy_nannou_draw", "bevy_nannou_isf",
+    "bevy_nannou_draw",
+    "bevy_nannou_isf",
+    "bevy_nannou_video",
     "examples",
     "generative_design",
     "guide/book_tests",
@@ -24,3 +26,4 @@ resolver = "2"
 bevy = "0.14.0"
 bevy_egui = "0.28.0"
 bevy-inspector-egui = "0.25.0"
+rayon = "1.10"

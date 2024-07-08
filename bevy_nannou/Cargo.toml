@@ -7,7 +7,9 @@ edition = "2021"
 bevy = { workspace = true }
 bevy_nannou_draw = { path = "../bevy_nannou_draw" }
 bevy_nannou_isf = { path = "../bevy_nannou_isf", optional = true }
+bevy_nannou_video = { path = "../bevy_nannou_video", optional = true }
 
 [features]
 nightly = ["bevy_nannou_draw/nightly"]
 isf = ["bevy_nannou_isf"]
+video = ["bevy_nannou_video"]

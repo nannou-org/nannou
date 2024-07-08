@@ -36,6 +36,7 @@ tokio = { version = "1", features = ["rt"]}
 [features]
 egui = ["nannou/egui"]
 isf = ["nannou/isf"]
+video = ["nannou/video"]
 
 # Audio
 [[example]]
@@ -220,3 +221,9 @@ required-features = ["egui"]
 name = "inspector_ui"
 path = "ui/egui/inspector_ui.rs"
 required-features = ["egui"]
+
+# Video
+[[example]]
+name = "simple_video"
+path = "video/simple_video.rs"
+required-features = ["video"]

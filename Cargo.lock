@@ -1064,6 +1064,7 @@ dependencies = [
  "bevy",
  "bevy_nannou_draw",
  "bevy_nannou_isf",
+ "bevy_nannou_video",
 ]
 
 [[package]]
@@ -1091,6 +1092,17 @@ dependencies = [
  "isf",
  "meval",
  "thiserror",
+]
+
+[[package]]
+name = "bevy_nannou_video"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "rayon",
+ "serde",
+ "thiserror",
+ "video-rs",
 ]
 
 [[package]]
@@ -2838,6 +2850,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f9bfee30e4dedf0ab8b422f03af778d9612b63f502710fc500a334ebe2de645"
 dependencies = [
  "simd-adler32",
+]
+
+[[package]]
+name = "ffmpeg-next"
+version = "7.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ddfce5242643c8a57b5a44b7e933ccbde85f9508d1379e578e97eee4a9d4334b"
+dependencies = [
+ "bitflags 2.6.0",
+ "ffmpeg-sys-next",
+ "libc",
+]
+
+[[package]]
+name = "ffmpeg-sys-next"
+version = "7.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "972a460dd8e901b737ce0482bf71a837e1751e3dd7c8f8b0a4ead808e7f174a5"
+dependencies = [
+ "bindgen",
+ "cc",
+ "libc",
+ "num_cpus",
+ "pkg-config",
+ "vcpkg",
 ]
 
 [[package]]
@@ -7992,6 +8029,17 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "video-rs"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5d8155306a18fbe217e0d019018311fd4e82bcfe9ceff39638244dffcb0e411"
+dependencies = [
+ "ffmpeg-next",
+ "tracing",
+ "url 2.5.2",
+]
 
 [[package]]
 name = "void"

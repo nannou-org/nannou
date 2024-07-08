@@ -47,6 +47,7 @@ use bevy_nannou::prelude::render::ExtendedNannouMaterial;
 use bevy_nannou::prelude::{draw, DrawHolder};
 use bevy_nannou::NannouPlugin;
 
+use crate::prelude::bevy_asset::io::AssetSource;
 use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::render::{NannouMesh, NannouPersistentMesh};
 use crate::prelude::NannouMaterialPlugin;
