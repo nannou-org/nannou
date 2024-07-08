@@ -33,5 +33,7 @@ void main()
 	//	second pass: read from "bufferVariableNameA".  output looks chunky and low-res.
 	else if (PASSINDEX == 1)	{
 		gl_FragColor = IMG_THIS_NORM_PIXEL(bufferVariableNameA);
+	} else {
+	    gl_FragColor = vec4(0.5);
 	}
 }

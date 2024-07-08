@@ -1,7 +1,7 @@
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).model_ui().update(update).run();
+    nannou::app(model).update(update).run();
 }
 
 #[derive(Reflect)]

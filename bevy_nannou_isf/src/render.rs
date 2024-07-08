@@ -78,8 +78,6 @@ pub struct IsfRenderTargets(Vec<Option<IsfPass>>);
 pub struct IsfPass {
     size: UVec2,
     target: Handle<Image>,
-    resolve: Handle<Image>,
-    dummy: Handle<Image>,
     format: TextureFormat,
     clear: bool,
 }
@@ -90,7 +88,6 @@ fn update_render_targets(
     mut render_targets: ResMut<IsfRenderTargets>,
     mut images: ResMut<Assets<Image>>,
     isfs: Res<Assets<Isf>>,
-    msaa: Res<Msaa>,
 ) {
     let Ok((camera, isf)) = cameras_q.get_single() else {
         return;
@@ -121,7 +118,7 @@ fn update_render_targets(
     render_targets.resize(isf.isf.passes.len(), None);
     for (pass_idx, pass) in isf.isf.passes.iter().enumerate() {
         if let None = pass.target {
-            render_targets.insert(pass_idx, None);
+            render_targets[pass_idx] = None;
             continue;
         }
 
@@ -153,19 +150,18 @@ fn update_render_targets(
 
         if let Some(Some(IsfPass { size, .. })) = render_targets.get(pass_idx) {
             if size.x == width && size.y == height {
-                info!("Skipping resize of render target");
                 continue;
             }
         }
 
-        let mut resolve = Image::default();
+        let mut target = Image::default();
         let format = if pass.float {
             TextureFormat::Rgba32Float
         } else {
             TextureFormat::Rgba8UnormSrgb
         };
-        resolve.texture_descriptor.format = format;
-        resolve.texture_descriptor.usage = TextureUsages::RENDER_ATTACHMENT
+        target.texture_descriptor.format = format;
+        target.texture_descriptor.usage = TextureUsages::RENDER_ATTACHMENT
             | TextureUsages::TEXTURE_BINDING
             | TextureUsages::COPY_DST;
         let size = Extent3d {
@@ -173,27 +169,17 @@ fn update_render_targets(
             height,
             ..default()
         };
-        resolve.resize(size);
-        let mut target = resolve.clone();
-        // target.texture_descriptor.sample_count = msaa.samples();
-        target.texture_descriptor.usage =
-            TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_DST;
+        target.resize(size);
         let target = images.add(target);
-        let dummy = images.add(resolve.clone());
-        let resolve = images.add(resolve);
 
-        render_targets.insert(
-            pass_idx,
-            Some(IsfPass {
-                size: UVec2::new(width, height),
-                target,
-                resolve,
-                dummy,
-                format,
-                clear: !pass.persistent,
-            }),
-        );
+        render_targets[pass_idx] = Some(IsfPass {
+            size: UVec2::new(width, height),
+            target,
+            format,
+            clear: !pass.persistent,
+        });
     }
+
     if render_targets.is_empty() {
         render_targets.push(None);
     }
@@ -372,6 +358,7 @@ fn prepare_isf_bind_groups(
 
         let num_images = gpu_isf.isf.num_images();
         let mut textures_bind_groups = vec![];
+        let dummy_image = gpu_images.get(&Handle::<Image>::default()).unwrap();
         // Passes
         for pass in isf_render_targets.iter() {
             let mut pass_bindings = bindings.clone();
@@ -384,10 +371,9 @@ fn prepare_isf_bind_groups(
                 textures_bind_groups.push(textures_bind_group);
                 continue;
             };
-            let Some(gpu_image) = gpu_images.get(&pass.resolve) else {
+            let Some(gpu_image) = gpu_images.get(&pass.target) else {
                 return;
             };
-            let dummy_image = gpu_images.get(&pass.dummy).unwrap();
             pass_bindings.push(BindGroupEntry {
                 binding,
                 resource: dummy_image.texture_view.into_binding(),
@@ -479,7 +465,7 @@ impl ViewNode for IsfNode {
                     resolve_target: None,
                     ops: if pass.clear {
                         Operations {
-                            load: LoadOp::Clear(Color::srgb(0.1, 0.1, 1.0).to_linear().into()),
+                            load: LoadOp::Load,
                             store: StoreOp::Store,
                         }
                     } else {
