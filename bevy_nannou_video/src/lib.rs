@@ -1,5 +1,5 @@
-use bevy::app::{App, Plugin};
 use crate::asset::VideoAssetPlugin;
+use bevy::app::{App, Plugin};
 
 mod asset;
 
@@ -11,8 +11,6 @@ pub struct NannouVideoPlugin;
 
 impl Plugin for NannouVideoPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(
-            VideoAssetPlugin
-        );
+        app.add_plugins(VideoAssetPlugin);
     }
 }

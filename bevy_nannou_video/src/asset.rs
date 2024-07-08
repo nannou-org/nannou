@@ -1,24 +1,25 @@
+use bevy::asset::io::file::FileAssetReader;
 use bevy::asset::io::{AssetReader, AssetReaderError, AssetSource, PathStream, Reader};
 use bevy::asset::{AssetLoader, LoadContext};
 use bevy::prelude::*;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{Extent3d, TextureFormat};
+use bevy::utils::HashMap;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
-use bevy::asset::io::file::FileAssetReader;
-use bevy::utils::HashMap;
 use thiserror::Error;
-use video_rs::{Decoder, DecoderBuilder};
 use video_rs::hwaccel::HardwareAccelerationDeviceType;
-use serde::{Deserialize, Serialize};
+use video_rs::{Decoder, DecoderBuilder};
 
 pub struct VideoAssetPlugin;
 
 impl Plugin for VideoAssetPlugin {
     fn build(&self, app: &mut App) {
         info!("Adding video asset plugin");
-        app.init_asset::<Video>().init_asset_loader::<VideoLoader>()
+        app.init_asset::<Video>()
+            .init_asset_loader::<VideoLoader>()
             .add_systems(Update, load_next_frame);
     }
 }
