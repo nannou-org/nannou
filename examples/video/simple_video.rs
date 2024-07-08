@@ -37,6 +37,5 @@ fn view(app: &App, model: &Model) {
     };
 
     let draw = app.draw();
-    draw.rect()
-        .w_h(640.0, 400.0).texture(&video.texture);
+    draw.rect().w_h(640.0, 400.0).texture(&video.texture);
 }

@@ -39,14 +39,9 @@ fn model(app: &App) -> Model {
         .view(view)
         .build();
 
-    let video = app.asset_server().load_with_settings(
-        "video/file_example_MP4_640_3MG.mp4",
-        |settings: &mut VideoLoaderSettings| {
-            settings
-                .options
-                .insert("hwaccel".to_string(), "sasfd".to_string());
-        },
-    );
+    let video = app
+        .asset_server()
+        .load("video/file_example_MP4_640_3MG.mp4");
     Model {
         window,
         camera,
@@ -62,8 +57,9 @@ fn view(app: &App, model: &Model) {
     let draw = app
         .draw()
         // Initialize our draw instance with our custom material
-        .material(VideoMaterial { texture: video.texture.clone() });
+        .material(VideoMaterial {
+            texture: video.texture.clone(),
+        });
 
-    draw.rect()
-        .w_h(640.0, 400.0);
+    draw.rect().w_h(640.0, 400.0);
 }

@@ -1,5 +1,5 @@
-use std::any::Any;
 use nannou::prelude::*;
+use std::any::Any;
 
 fn main() {
     nannou::sketch(view).run()
