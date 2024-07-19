@@ -126,7 +126,7 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
 
-    let images = app.images();
+    let images = app.assets::<Image>();
     let image = images.get(&model.image).unwrap();
     let image = image.clone().try_into_dynamic().unwrap();
     let (w, h) = image.dimensions();

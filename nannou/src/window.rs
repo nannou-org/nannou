@@ -3,6 +3,7 @@
 //! Create a new window via `app.new_window()`. This produces a [**Builder**](./struct.Builder.html)
 //! which can be used to build a [**Window**](./struct.Window.html).
 
+use std::cell::RefMut;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
@@ -75,18 +76,23 @@ impl<'a, 'w> Window<'a, 'w> {
         Window { app, entity }
     }
 
-    fn window(&self) -> &bevy::window::Window {
-        self.app
-            .world()
+    fn window(&self) -> bevy_nannou::prelude::Window {
+        let world = self.app.world();
+        world
             .get::<bevy::window::Window>(self.entity)
             .unwrap()
+            .clone()
     }
 
-    fn window_mut(&self) -> Mut<'a, bevy_nannou::prelude::Window> {
-        self.app
-            .world_mut()
-            .get_mut::<bevy::window::Window>(self.entity)
-            .unwrap()
+    fn window_mut(&self) -> RefMut<'_, bevy_nannou::prelude::Window> {
+        let world = self.app.world_mut();
+
+        RefMut::map(world, |world| {
+            world
+                .get_mut::<bevy::window::Window>(self.entity)
+                .unwrap()
+                .into_inner()
+        })
     }
 }
 
@@ -412,7 +418,7 @@ where
 
         if self.primary {
             let mut q = self.app.world_mut().query::<&PrimaryWindow>();
-            if q.get_single(self.app.world_mut()).is_ok() {
+            if q.get_single(&mut self.app.world_mut()).is_ok() {
                 panic!("Only one primary window can be created");
             }
 
@@ -430,7 +436,7 @@ where
                 .app
                 .world_mut()
                 .query::<(&mut Camera, Option<&mut RenderLayers>)>();
-            if let Ok((mut camera, layers)) = q.get_mut(self.app.world_mut(), camera) {
+            if let Ok((mut camera, layers)) = q.get_mut(&mut self.app.world_mut(), camera) {
                 camera.target = RenderTarget::Window(WindowRef::Entity(entity));
                 if let None = layers {
                     self.app
@@ -632,8 +638,9 @@ impl<'a, 'w> Window<'a, 'w> {
         self.entity
     }
 
-    pub fn layer(&self) -> Option<&RenderLayers> {
-        self.app.world().get::<RenderLayers>(self.entity)
+    pub fn layer(&self) -> Option<RenderLayers> {
+        let world = self.app.world();
+        world.get::<RenderLayers>(self.entity).cloned()
     }
 
     /// Returns the scale factor that can be used to map logical pixels to physical pixels and vice
@@ -897,9 +904,10 @@ impl<'a, 'w> Window<'a, 'w> {
 
     /// Saves a screenshot of the window to the given path.
     pub fn save_screenshot<P: AsRef<Path>>(&mut self, path: P) {
-        let mut screenshot_manager = self
+        let mut world = self
             .app
-            .world_mut()
+            .world_mut();
+        let mut screenshot_manager = world
             .get_resource_mut::<ScreenshotManager>()
             .expect("ScreenshotManager resource not found");
         screenshot_manager

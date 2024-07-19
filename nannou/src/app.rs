@@ -8,7 +8,7 @@
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
 use std::any::Any;
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 use std::hash::Hash;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -531,63 +531,40 @@ impl<'w> App<'w> {
     pub const DEFAULT_EXIT_ON_ESCAPE: bool = true;
     pub const DEFAULT_FULLSCREEN_ON_SHORTCUT: bool = true;
 
-    // Allocate a persistent entity
-    pub fn entity(&self) -> Entity {
-        let world = self.world_mut();
-        world.spawn((NannouPersistentMesh,)).id()
-    }
-
     /// Retrieve a mutable reference to the [`AssetServer`] resource.
-    pub fn asset_server(&self) -> Mut<AssetServer> {
-        self.world_mut().resource_mut::<AssetServer>()
+    pub fn asset_server(&self) -> RefMut<AssetServer> {
+        let world = self.world_mut();
+        RefMut::map(world, |world| {
+            world.resource_mut::<AssetServer>().into_inner()
+        })
     }
 
-    pub fn assets_mut<T: Asset>(&self) -> Mut<'_, Assets<T>> {
-        self.world_mut().resource_mut::<Assets<T>>()
+    pub fn assets_mut<T: Asset>(&self) -> RefMut<'_, Assets<T>> {
+        let world = self.world_mut();
+        RefMut::map(world, |world| {
+            world.resource_mut::<Assets<T>>().into_inner()
+        })
     }
 
-    pub fn assets<T: Asset>(&self) -> &Assets<T> {
-        self.world().resource::<Assets<T>>()
+    pub fn assets<T: Asset>(&self) -> std::cell::Ref<'_, Assets<T>> {
+        let world = self.world();
+        std::cell::Ref::map(world, |world| world.resource::<Assets<T>>())
     }
 
-    pub fn get<C: Component>(&self, entity: Entity) -> Option<&C> {
-        self.world().get::<C>(entity)
+    pub fn resource<T: Resource>(&self) -> std::cell::Ref<'_, T> {
+        let world = self.world();
+        std::cell::Ref::map(world, |world| world.resource::<T>())
     }
 
-    pub fn get_mut<C: Component>(&self, entity: Entity) -> Option<Mut<C>> {
-        self.world_mut().get_mut::<C>(entity)
-    }
-
-    pub fn resource<T: Resource>(&self) -> &T {
-        self.world().resource::<T>()
-    }
-
-    pub fn resource_mut<T: Resource>(&self) -> Mut<'_, T> {
-        self.world_mut().resource_mut::<T>()
+    pub fn resource_mut<T: Resource>(&self) -> std::cell::RefMut<'_, T> {
+        let world = self.world_mut();
+        std::cell::RefMut::map(world, |world| world.resource_mut::<T>().into_inner())
     }
 
     /// Retrieve the path to the assets directory.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn assets_path(&self) -> PathBuf {
         FileAssetReader::get_base_path().join("assets")
-    }
-
-    /// Retrieve a reference to the [`Assets<Image>`] resource.
-    pub fn images(&self) -> &Assets<Image> {
-        self.world().resource::<Assets<Image>>()
-    }
-
-    /// Retrieve a mutable reference to the [`Assets<Image>`] resource.
-    pub fn images_mut(&self) -> Mut<'_, Assets<Image>> {
-        self.world_mut().resource_mut::<Assets<Image>>()
-    }
-
-    pub fn shaders(&self) -> &Assets<Shader> {
-        self.world().resource::<Assets<Shader>>()
-    }
-
-    pub fn events_mut<T: Event>(&self) -> Mut<'_, Events<T>> {
-        self.world_mut().resource_mut::<Events<T>>()
     }
 
     #[cfg(feature = "egui")]
@@ -607,8 +584,9 @@ impl<'w> App<'w> {
     /// Get the current mouse position in points.
     pub fn mouse(&self) -> Vec2 {
         let window = self.window_id();
-        let window = self
-            .world()
+        let world = self.world();
+
+        let window = world
             .entity(window)
             .get::<Window>()
             .expect("Entity is not a window");
@@ -620,26 +598,26 @@ impl<'w> App<'w> {
     }
 
     /// Get the current input state for the mouse.
-    pub fn mouse_buttons(&self) -> &ButtonInput<MouseButton> {
-        let mouse_input = self.world_mut().resource::<ButtonInput<MouseButton>>();
-        mouse_input
+    pub fn mouse_buttons(&self) -> ButtonInput<MouseButton> {
+        let mouse_input = self.resource::<ButtonInput<MouseButton>>();
+        mouse_input.clone()
     }
 
     /// Get the current input state for the keyboard.
-    pub fn keys(&self) -> &ButtonInput<KeyCode> {
-        let keyboard_input = self.world_mut().resource::<ButtonInput<KeyCode>>();
-        keyboard_input
+    pub fn keys(&self) -> ButtonInput<KeyCode> {
+        let keyboard_input = self.resource::<ButtonInput<KeyCode>>();
+        keyboard_input.clone()
     }
 
     /// Get the [`Time`] resource.
     pub fn time(&self) -> Time {
-        let time = self.world().get_resource::<Time>().unwrap();
+        let time = self.resource::<Time>();
         *time
     }
 
     /// Get the time since the app started.
     pub fn elapsed_seconds(&self) -> f32 {
-        let time = self.world().get_resource::<Time>().unwrap();
+        let time = self.resource::<Time>();
         time.elapsed_seconds()
     }
 
@@ -662,13 +640,15 @@ impl<'w> App<'w> {
     ///
     /// This is exposed only as an escape hatch; users should prefer to use the Bevy ECS API
     /// directly when possible.
-    pub fn world(&self) -> &'w World {
-        unsafe { self.world.borrow().world() }
+    pub fn world(&self) -> std::cell::Ref<'_, World> {
+        let world = self.world.borrow();
+        std::cell::Ref::map(world, |world| unsafe { world.world() })
     }
 
     #[allow(clippy::mut_from_ref)]
-    pub(crate) fn world_mut(&self) -> &'w mut World {
-        unsafe { self.world.borrow_mut().world_mut() }
+    pub(crate) fn world_mut(&self) -> RefMut<'_, World> {
+        let world = unsafe { self.world.borrow_mut() };
+        RefMut::map(world, |world| unsafe { world.world_mut() })
     }
 
     /// Retreive a mutable reference to the `App`'s world.
@@ -713,7 +693,8 @@ impl<'w> App<'w> {
     {
         self.window_count.fetch_add(1usize, Ordering::SeqCst);
         let builder = window::Builder::new(self);
-        let config = self.world().resource::<Config>();
+        let world = self.world();
+        let config = world.resource::<Config>();
         let builder = match config.default_window_size {
             Some(DefaultWindowSize::Fullscreen) => builder.fullscreen(),
             Some(DefaultWindowSize::Logical([w, h])) => builder.size(w, h),
@@ -745,7 +726,7 @@ impl<'w> App<'w> {
     /// **Panics** if there are no windows or if no window is in focus.
     pub fn window_id(&self) -> Entity {
         let mut window_q = self.world_mut().query::<(Entity, &Window)>();
-        for (entity, window) in window_q.iter(self.world()) {
+        for (entity, window) in window_q.iter(&self.world()) {
             if window.focused {
                 return entity;
             }
@@ -755,7 +736,7 @@ impl<'w> App<'w> {
             .world_mut()
             .query_filtered::<Entity, With<PrimaryWindow>>();
         primary_window
-            .get_single(self.world())
+            .get_single(&self.world())
             .expect("No windows are open in the App")
     }
 
@@ -764,7 +745,7 @@ impl<'w> App<'w> {
     pub fn window_ids(&self) -> Vec<Entity> {
         let mut window_q = self.world_mut().query::<(Entity, &Window)>();
         window_q
-            .iter(self.world())
+            .iter(&self.world())
             .map(|(entity, _)| entity)
             .collect()
     }
@@ -776,8 +757,9 @@ impl<'w> App<'w> {
     /// **Panics** if there are no windows or if no window is in focus.
     pub fn window_rect(&self) -> geom::Rect<f32> {
         let window = self.window_id();
-        let window = self
-            .world()
+        let world = self.world();
+
+        let window = world
             .entity(window)
             .get::<Window>()
             .expect("Entity is not a window");
@@ -792,14 +774,15 @@ impl<'w> App<'w> {
             .world_mut()
             .query_filtered::<Entity, With<PrimaryWindow>>();
         let main_window = window_q
-            .get_single(self.world())
+            .get_single(&self.world())
             .expect("No windows are open in the App");
         window::Window::new(self, main_window)
     }
 
     /// Return whether or not the `App` is currently set to exit when the `Escape` key is pressed.
     pub fn exit_on_escape(&self) -> bool {
-        let config = self.world().resource::<Config>();
+        let world = self.world();
+        let config = world.resource::<Config>();
         config.exit_on_escape
     }
 
@@ -807,7 +790,8 @@ impl<'w> App<'w> {
     ///
     /// By default this is `true`.
     pub fn set_exit_on_escape(&mut self, b: bool) {
-        let mut config = self.world_mut().resource_mut::<Config>();
+        let mut world = self.world_mut();
+        let mut config = world.resource_mut::<Config>();
         config.exit_on_escape = b;
     }
 
@@ -818,7 +802,8 @@ impl<'w> App<'w> {
     /// - macOS uses apple key + f.
     /// - Windows uses windows key + f.
     pub fn fullscreen_on_shortcut(&mut self) -> bool {
-        let config = self.world_mut().resource_mut::<Config>();
+        let world = self.world();
+        let config = world.resource::<Config>();
         config.fullscreen_on_shortcut
     }
 
@@ -829,34 +814,37 @@ impl<'w> App<'w> {
     /// - macOS uses apple key + f.
     /// - Windows uses windows key + f.
     pub fn set_fullscreen_on_shortcut(&mut self, b: bool) {
-        let mut config = self.world_mut().resource_mut::<Config>();
+        let mut world = self.world_mut();
+        let mut config = world.resource_mut::<Config>();
         config.fullscreen_on_shortcut = b;
     }
 
     /// Produce the [App]'s [DrawHolder] API for drawing geometry and text with colors and textures.
     pub fn draw(&self) -> draw::Draw {
-        let draw = self
-            .world_mut()
-            .entity(self.window_id())
-            .get::<DrawHolder>();
+        let window_id = self.window_id();
+        let world = self.world();
+        let draw = world.entity(window_id).get::<DrawHolder>();
         draw.unwrap().0.clone()
     }
 
     pub fn draw_for_window(&self, window: Entity) -> draw::Draw {
-        let draw = self.world_mut().entity(window).get::<DrawHolder>();
+        let world = self.world();
+        let draw = world.entity(window).get::<DrawHolder>();
         draw.unwrap().0.clone()
     }
 
     /// The number of times the focused window's **view** function has been called since the start
     /// of the program.
     pub fn elapsed_frames(&self) -> u64 {
-        let frame_count = self.world().resource::<FrameCount>();
+        let world = self.world();
+        let frame_count = world.resource::<FrameCount>();
         frame_count.0 as u64
     }
 
     /// The number of frames that can currently be displayed a second
     pub fn fps(&self) -> f64 {
-        let diagnostics = self.world().resource::<DiagnosticsStore>();
+        let world = self.world();
+        let diagnostics = world.resource::<DiagnosticsStore>();
         diagnostics
             .get(&FrameTimeDiagnosticsPlugin::FPS)
             .expect("FrameTime diagnostics not found")
@@ -891,18 +879,21 @@ impl<'w> App<'w> {
     }
 
     pub fn set_update_mode(&self, mode: UpdateMode) {
-        let mut winit_settings = self.world_mut().resource_mut::<WinitSettings>();
+        let mut world = self.world_mut();
+        let mut winit_settings = world.resource_mut::<WinitSettings>();
         winit_settings.unfocused_mode = mode;
         winit_settings.focused_mode = mode;
     }
 
     pub fn set_unfocused_update_mode(&self, mode: UpdateMode) {
-        let mut winit_settings = self.world_mut().resource_mut::<WinitSettings>();
+        let mut world = self.world_mut();
+        let mut winit_settings = world.resource_mut::<WinitSettings>();
         winit_settings.unfocused_mode = mode;
     }
 
     pub fn set_focused_update_mode(&self, mode: UpdateMode) {
-        let mut winit_settings = self.world_mut().resource_mut::<WinitSettings>();
+        let mut world = self.world_mut();
+        let mut winit_settings = world.resource_mut::<WinitSettings>();
         winit_settings.focused_mode = mode;
     }
 }

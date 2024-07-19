@@ -252,9 +252,9 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
     where
         F: FnOnce(RenderLayers) -> RenderLayers,
     {
-        let world = self.app.world_mut();
+        let mut world = self.app.world_mut();
         let mut layer_q = world.query::<Option<&mut RenderLayers>>();
-        if let Ok(mut layer) = layer_q.get_mut(world, self.entity) {
+        if let Ok(mut layer) = layer_q.get_mut(&mut world, self.entity) {
             if let Some(mut layer) = layer {
                 *layer = f(layer.clone());
             } else {
@@ -270,9 +270,9 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
     where
         F: FnOnce(BloomSettings) -> BloomSettings,
     {
-        let world = self.app.world_mut();
+        let mut world = self.app.world_mut();
         let mut bloom_q = world.query::<Option<&mut BloomSettings>>();
-        if let Ok(mut bloom) = bloom_q.get_mut(world, self.entity) {
+        if let Ok(mut bloom) = bloom_q.get_mut(&mut world, self.entity) {
             if let Some(mut bloom) = bloom {
                 *bloom = f(bloom.clone());
             } else {
@@ -288,7 +288,7 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
     where
         F: FnOnce(Camera3dBundle) -> Camera3dBundle,
     {
-        let world = self.app.world_mut();
+        let mut world = self.app.world_mut();
         let mut camera_q = world.query::<(
             &mut Transform,
             &mut camera::Camera,
@@ -296,7 +296,7 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
             &mut Projection,
         )>();
         let (transform, camera, camera_3d, projection) =
-            camera_q.get_mut(world, self.entity).unwrap();
+            camera_q.get_mut(&mut world, self.entity).unwrap();
         let bundle = Camera3dBundle {
             transform: transform.clone(),
             camera: camera.clone(),

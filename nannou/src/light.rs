@@ -143,9 +143,9 @@ impl<'a, 'w> SetLight for Light<'a, 'w> {
     where
         F: FnOnce(RenderLayers) -> RenderLayers,
     {
-        let world = self.app.world_mut();
+        let mut world = self.app.world_mut();
         let mut layer_q = world.query::<Option<&mut RenderLayers>>();
-        if let Ok(mut layer) = layer_q.get_mut(world, self.entity) {
+        if let Ok(mut layer) = layer_q.get_mut(&mut world, self.entity) {
             if let Some(mut layer) = layer {
                 *layer = f(layer.clone());
             } else {
@@ -161,9 +161,9 @@ impl<'a, 'w> SetLight for Light<'a, 'w> {
     where
         F: FnOnce(DirectionalLightBundle) -> DirectionalLightBundle,
     {
-        let world = self.app.world_mut();
+        let mut world = self.app.world_mut();
         let mut camera_q = world.query::<(&mut Transform, &mut DirectionalLight)>();
-        let (transform, light) = camera_q.get_mut(world, self.entity).unwrap();
+        let (transform, light) = camera_q.get_mut(&mut world, self.entity).unwrap();
         let bundle = DirectionalLightBundle {
             transform: transform.clone(),
             directional_light: light.clone(),

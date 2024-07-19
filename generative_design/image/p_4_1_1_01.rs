@@ -115,7 +115,7 @@ fn crop_tiles(app: &App, model: &mut Model, win: geom::Rect) {
                 win.bottom() + (model.tile_height / 2.0),
             );
 
-            let images = app.images();
+            let images = app.assets::<Image>();
             let image = images.get(&model.texture).unwrap();
             let image = image.clone().try_into_dynamic().unwrap();
             let (w, h) = image.dimensions();
