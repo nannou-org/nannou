@@ -49,7 +49,7 @@ use bevy_nannou::NannouPlugin;
 
 use crate::prelude::bevy_asset::io::AssetSource;
 use crate::prelude::bevy_ecs::system::SystemState;
-use crate::prelude::render::{NannouMesh, NannouPersistentMesh};
+use crate::prelude::render::NannouMesh;
 use crate::prelude::NannouMaterialPlugin;
 use crate::window::WindowUserFunctions;
 use crate::{camera, geom, light, window};
@@ -945,7 +945,7 @@ where
 fn first<M>(
     mut commands: Commands,
     bg_color_q: Query<Entity, With<BackgroundColor>>,
-    meshes_q: Query<Entity, (With<NannouMesh>, Without<NannouPersistentMesh>)>,
+    meshes_q: Query<Entity, With<NannouMesh>>,
 ) where
     M: 'static + Send + Sync,
 {

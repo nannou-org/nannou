@@ -397,9 +397,6 @@ fn update_draw_mesh(
 #[derive(Component)]
 pub struct NannouMesh;
 
-#[derive(Component)]
-pub struct NannouPersistentMesh;
-
 #[derive(Resource)]
 pub struct NannouRender {
     pub mesh: Handle<Mesh>,
