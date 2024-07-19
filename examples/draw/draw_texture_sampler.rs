@@ -55,12 +55,7 @@ fn view(app: &App, model: &Model) {
     // sampler behaves when sampling beyond the bounds of the texture in each of the different
     // address modes. By default, the bounds of the texture coordinates are 0.0 to 1.0. We will
     // triple the size.
-    let area = geom::Rect::from_x_y_w_h(
-        0.5,
-        0.5,
-        app.time().sin() * 10.0,
-        app.time().sin() * 10.0,
-    );
+    let area = geom::Rect::from_x_y_w_h(0.5, 0.5, app.time().sin() * 10.0, app.time().sin() * 10.0);
     let window_rect = app.main_window().rect();
 
     draw.rect()

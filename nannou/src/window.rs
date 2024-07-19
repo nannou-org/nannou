@@ -904,9 +904,7 @@ impl<'a, 'w> Window<'a, 'w> {
 
     /// Saves a screenshot of the window to the given path.
     pub fn save_screenshot<P: AsRef<Path>>(&mut self, path: P) {
-        let mut world = self
-            .app
-            .world_mut();
+        let mut world = self.app.world_mut();
         let mut screenshot_manager = world
             .get_resource_mut::<ScreenshotManager>()
             .expect("ScreenshotManager resource not found");

@@ -569,15 +569,19 @@ impl<'w> App<'w> {
 
     #[cfg(feature = "egui")]
     /// Get the egui context for the provided window.
-    pub fn egui_for_window(&self, window: Entity) -> Mut<EguiContext> {
-        self.world_mut()
-            .get_mut::<EguiContext>(window)
-            .expect("No egui context")
+    pub fn egui_for_window(&self, window: Entity) -> RefMut<EguiContext> {
+        let world = self.world_mut();
+        RefMut::map(world, |world| {
+            world
+                .get_mut::<EguiContext>(window)
+                .expect("No egui context")
+                .into_inner()
+        })
     }
 
     #[cfg(feature = "egui")]
     /// Get the egui context for the currently focused window.
-    pub fn egui(&self) -> Mut<EguiContext> {
+    pub fn egui(&self) -> RefMut<EguiContext> {
         self.egui_for_window(self.window_id())
     }
 
