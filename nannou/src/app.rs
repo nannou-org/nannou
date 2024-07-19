@@ -309,6 +309,19 @@ where
         self
     }
 
+    #[cfg(feature = "serde")]
+    pub fn init_config<T>(mut self) -> Self
+    where
+        for<'de> T: serde::Deserialize<'de> + Asset,
+    {
+        self.app.add_plugins((
+            bevy_common_assets::json::JsonAssetPlugin::<T>::new(&[".json"]),
+            bevy_common_assets::toml::TomlAssetPlugin::<T>::new(&[".toml"]),
+            bevy_common_assets::yaml::YamlAssetPlugin::<T>::new(&[".yaml", ".yml"]),
+        ));
+        self
+    }
+
     pub fn add_plugin<P>(mut self, plugin: P) -> Self
     where
         P: Plugin,
@@ -571,7 +584,7 @@ impl<'w> App<'w> {
     #[cfg(feature = "egui")]
     /// Get the egui context for the provided window.
     pub fn egui_for_window(&self, window: Entity) -> RefMut<EguiContext> {
-        let world = self.resource_world_mut();
+        let world = self.component_world_mut();
         RefMut::map(world, |world| {
             world
                 .get_mut::<EguiContext>(window)
@@ -614,10 +627,16 @@ impl<'w> App<'w> {
         keyboard_input.clone()
     }
 
-    /// Get the [`Time`] resource.
+    /// Get the elapsed seconds since startup.
     pub fn time(&self) -> f32 {
         let time = self.resource::<Time>();
         time.elapsed_seconds()
+    }
+
+    /// Get the elapsed seconds since the last frame.
+    pub fn time_delta(&self) -> f32 {
+        let time = self.resource::<Time>();
+        time.delta_seconds()
     }
 
     // Create a new `App`.
@@ -923,7 +942,11 @@ where
     let mut app = App::new(world);
 
     // Create our default window if necessary
-    if app.resource_world().get_resource::<CreateDefaultWindow>().is_some() {
+    if app
+        .resource_world()
+        .get_resource::<CreateDefaultWindow>()
+        .is_some()
+    {
         let mut window: window::Builder<'_, '_, M> = app.new_window();
         match default_window_size {
             None => {}

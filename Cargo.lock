@@ -727,6 +727,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_common_assets"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f631ce2863f3b6f1af3fa24143363b9fbd21c44218caad495a17b83e6968256"
+dependencies = [
+ "anyhow",
+ "bevy",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror",
+ "toml 0.8.14",
+]
+
+[[package]]
 name = "bevy_core"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4773,6 +4788,7 @@ version = "0.19.0"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
+ "bevy_common_assets",
  "bevy_egui",
  "bevy_nannou",
  "find_folder",
@@ -4788,10 +4804,10 @@ dependencies = [
  "pennereq",
  "rusttype",
  "serde",
- "serde_derive",
  "serde_json",
+ "serde_yaml",
  "tokio 1.38.0",
- "toml 0.5.11",
+ "toml 0.8.14",
  "walkdir",
  "web-sys",
 ]
@@ -6963,6 +6979,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml"
+version = "0.9.34+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
+dependencies = [
+ "indexmap 2.2.6",
+ "itoa 1.0.11",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
+]
+
+[[package]]
 name = "set_version"
 version = "0.1.0"
 dependencies = [
@@ -7926,6 +7955,12 @@ checksum = "382810877fe448991dfc7f0dd6e3ae5d58088fd0ea5e35189655f84e6814fa56"
 dependencies = [
  "void",
 ]
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "url"

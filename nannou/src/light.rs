@@ -99,7 +99,10 @@ impl<'a, 'w> Builder<'a, 'w> {
     pub fn build(self) -> Entity {
         let entity = self.app.component_world_mut().spawn(self.light).id();
         if let Some(layer) = self.layer {
-            self.app.component_world_mut().entity_mut(entity).insert(layer);
+            self.app
+                .component_world_mut()
+                .entity_mut(entity)
+                .insert(layer);
         } else {
             self.app
                 .component_world_mut()

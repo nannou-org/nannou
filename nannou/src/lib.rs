@@ -26,6 +26,7 @@ pub mod app;
 mod camera;
 pub mod geom;
 pub mod image;
+#[cfg(feature = "serde")]
 pub mod io;
 mod light;
 pub mod noise;

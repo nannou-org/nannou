@@ -436,7 +436,8 @@ where
                 .app
                 .component_world_mut()
                 .query::<(&mut Camera, Option<&mut RenderLayers>)>();
-            if let Ok((mut camera, layers)) = q.get_mut(&mut self.app.component_world_mut(), camera) {
+            if let Ok((mut camera, layers)) = q.get_mut(&mut self.app.component_world_mut(), camera)
+            {
                 camera.target = RenderTarget::Window(WindowRef::Entity(entity));
                 if let None = layers {
                     self.app
@@ -468,7 +469,10 @@ where
         }
 
         if let Some(light) = self.light {
-            self.app.component_world_mut().entity_mut(light).insert(layer.clone());
+            self.app
+                .component_world_mut()
+                .entity_mut(light)
+                .insert(layer.clone());
         }
 
         entity

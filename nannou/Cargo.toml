@@ -14,23 +14,23 @@ edition = "2018"
 bevy = { workspace = true }
 bevy-inspector-egui = { workspace = true, optional = true }
 bevy_egui = { workspace = true, optional = true }
-
+bevy_common_assets = { workspace = true, optional = true }
 bevy_nannou = { version = "0.1.0", path = "../bevy_nannou" }
 futures = "0.3"
 find_folder = "0.3"
 getrandom = "0.2.3"
 instant = "0.1.9"
 lyon = "1.0"
-nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std", "serde"] }
+nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std"] }
 noise = "0.7"
 notosans = { version = "0.1", optional = true }
 num_cpus = "1"
 pennereq = "0.3"
 rusttype = { version = "0.8", features = ["gpu_cache"] }
-serde = "1"
-serde_derive = "1"
-serde_json = "1"
-toml = "0.5"
+serde = { workspace = true, features = ["derive"], optional = true}
+serde_json = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
+serde_yaml = { workspace = true, optional = true }
 walkdir = "2"
 web-sys = { version = "0.3.64", optional = true }
 
@@ -48,3 +48,4 @@ nightly = ["bevy_nannou/nightly"]
 hot_reload = ["bevy/file_watcher"]
 isf = ["bevy_nannou/isf"]
 video = ["bevy_nannou/video"]
+serde = ["dep:serde", "toml", "serde_json", "serde_yaml", "nannou_core/serde", "bevy_common_assets/json", "bevy_common_assets/toml", "bevy_common_assets/yaml"]
