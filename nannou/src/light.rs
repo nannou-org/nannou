@@ -97,12 +97,12 @@ impl<'a, 'w> Builder<'a, 'w> {
     }
 
     pub fn build(self) -> Entity {
-        let entity = self.app.world_mut().spawn(self.light).id();
+        let entity = self.app.component_world_mut().spawn(self.light).id();
         if let Some(layer) = self.layer {
-            self.app.world_mut().entity_mut(entity).insert(layer);
+            self.app.component_world_mut().entity_mut(entity).insert(layer);
         } else {
             self.app
-                .world_mut()
+                .component_world_mut()
                 .entity_mut(entity)
                 .insert(RenderLayers::default());
         }
@@ -143,7 +143,7 @@ impl<'a, 'w> SetLight for Light<'a, 'w> {
     where
         F: FnOnce(RenderLayers) -> RenderLayers,
     {
-        let mut world = self.app.world_mut();
+        let mut world = self.app.component_world_mut();
         let mut layer_q = world.query::<Option<&mut RenderLayers>>();
         if let Ok(mut layer) = layer_q.get_mut(&mut world, self.entity) {
             if let Some(mut layer) = layer {
@@ -161,7 +161,7 @@ impl<'a, 'w> SetLight for Light<'a, 'w> {
     where
         F: FnOnce(DirectionalLightBundle) -> DirectionalLightBundle,
     {
-        let mut world = self.app.world_mut();
+        let mut world = self.app.component_world_mut();
         let mut camera_q = world.query::<(&mut Transform, &mut DirectionalLight)>();
         let (transform, light) = camera_q.get_mut(&mut world, self.entity).unwrap();
         let bundle = DirectionalLightBundle {

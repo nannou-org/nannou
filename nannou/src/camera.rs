@@ -190,18 +190,18 @@ impl<'a, 'w> Builder<'a, 'w> {
     }
 
     pub fn build(self) -> Entity {
-        let entity = self.app.world_mut().spawn((self.camera, NannouCamera)).id();
+        let entity = self.app.component_world_mut().spawn((self.camera, NannouCamera)).id();
         if let Some(layer) = self.layer {
-            self.app.world_mut().entity_mut(entity).insert(layer);
+            self.app.component_world_mut().entity_mut(entity).insert(layer);
         } else {
             self.app
-                .world_mut()
+                .component_world_mut()
                 .entity_mut(entity)
                 .insert(RenderLayers::default());
         }
         if let Some(bloom_settings) = self.bloom_settings {
             self.app
-                .world_mut()
+                .component_world_mut()
                 .entity_mut(entity)
                 .insert(bloom_settings);
         }
@@ -252,7 +252,7 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
     where
         F: FnOnce(RenderLayers) -> RenderLayers,
     {
-        let mut world = self.app.world_mut();
+        let mut world = self.app.component_world_mut();
         let mut layer_q = world.query::<Option<&mut RenderLayers>>();
         if let Ok(mut layer) = layer_q.get_mut(&mut world, self.entity) {
             if let Some(mut layer) = layer {
@@ -270,7 +270,7 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
     where
         F: FnOnce(BloomSettings) -> BloomSettings,
     {
-        let mut world = self.app.world_mut();
+        let mut world = self.app.component_world_mut();
         let mut bloom_q = world.query::<Option<&mut BloomSettings>>();
         if let Ok(mut bloom) = bloom_q.get_mut(&mut world, self.entity) {
             if let Some(mut bloom) = bloom {
@@ -288,7 +288,7 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
     where
         F: FnOnce(Camera3dBundle) -> Camera3dBundle,
     {
-        let mut world = self.app.world_mut();
+        let mut world = self.app.component_world_mut();
         let mut camera_q = world.query::<(
             &mut Transform,
             &mut camera::Camera,

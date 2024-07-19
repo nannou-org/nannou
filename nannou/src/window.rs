@@ -77,7 +77,7 @@ impl<'a, 'w> Window<'a, 'w> {
     }
 
     fn window(&self) -> bevy_nannou::prelude::Window {
-        let world = self.app.world();
+        let world = self.app.component_world();
         world
             .get::<bevy::window::Window>(self.entity)
             .unwrap()
@@ -85,7 +85,7 @@ impl<'a, 'w> Window<'a, 'w> {
     }
 
     fn window_mut(&self) -> RefMut<'_, bevy_nannou::prelude::Window> {
-        let world = self.app.world_mut();
+        let world = self.app.component_world_mut();
 
         RefMut::map(world, |world| {
             world
@@ -412,18 +412,18 @@ where
     pub fn build(self) -> Entity {
         let entity = self
             .app
-            .world_mut()
+            .component_world_mut()
             .spawn((self.window, WindowUserFunctions(self.user_functions)))
             .id();
 
         if self.primary {
-            let mut q = self.app.world_mut().query::<&PrimaryWindow>();
-            if q.get_single(&mut self.app.world_mut()).is_ok() {
+            let mut q = self.app.component_world_mut().query::<&PrimaryWindow>();
+            if q.get_single(&mut self.app.component_world_mut()).is_ok() {
                 panic!("Only one primary window can be created");
             }
 
             self.app
-                .world_mut()
+                .component_world_mut()
                 .entity_mut(entity)
                 .insert(PrimaryWindow);
         }
@@ -434,20 +434,20 @@ where
             // Update the camera's render target to be the window.
             let mut q = self
                 .app
-                .world_mut()
+                .component_world_mut()
                 .query::<(&mut Camera, Option<&mut RenderLayers>)>();
-            if let Ok((mut camera, layers)) = q.get_mut(&mut self.app.world_mut(), camera) {
+            if let Ok((mut camera, layers)) = q.get_mut(&mut self.app.component_world_mut(), camera) {
                 camera.target = RenderTarget::Window(WindowRef::Entity(entity));
                 if let None = layers {
                     self.app
-                        .world_mut()
+                        .component_world_mut()
                         .entity_mut(self.camera.unwrap())
                         .insert(layer.clone());
                 }
             }
         } else {
             info!("No camera provided for window, creating a default camera");
-            self.app.world_mut().spawn((
+            self.app.component_world_mut().spawn((
                 Camera3dBundle {
                     camera: Camera {
                         hdr: self.hdr,
@@ -468,7 +468,7 @@ where
         }
 
         if let Some(light) = self.light {
-            self.app.world_mut().entity_mut(light).insert(layer.clone());
+            self.app.component_world_mut().entity_mut(light).insert(layer.clone());
         }
 
         entity
@@ -639,7 +639,7 @@ impl<'a, 'w> Window<'a, 'w> {
     }
 
     pub fn layer(&self) -> Option<RenderLayers> {
-        let world = self.app.world();
+        let world = self.app.component_world();
         world.get::<RenderLayers>(self.entity).cloned()
     }
 
@@ -904,7 +904,7 @@ impl<'a, 'w> Window<'a, 'w> {
 
     /// Saves a screenshot of the window to the given path.
     pub fn save_screenshot<P: AsRef<Path>>(&mut self, path: P) {
-        let mut world = self.app.world_mut();
+        let mut world = self.app.resource_world_mut();
         let mut screenshot_manager = world
             .get_resource_mut::<ScreenshotManager>()
             .expect("ScreenshotManager resource not found");
