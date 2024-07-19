@@ -56,5 +56,5 @@ fn view(app: &App, model: &Model) {
         .polygon()
         .points_vertex(points)
         .texture(&model.texture)
-        .rotate(app.elapsed_seconds() * 0.25);
+        .rotate(app.time() * 0.25);
 }

@@ -610,13 +610,7 @@ impl<'w> App<'w> {
     }
 
     /// Get the [`Time`] resource.
-    pub fn time(&self) -> Time {
-        let time = self.resource::<Time>();
-        *time
-    }
-
-    /// Get the time since the app started.
-    pub fn elapsed_seconds(&self) -> f32 {
+    pub fn time(&self) -> f32 {
         let time = self.resource::<Time>();
         time.elapsed_seconds()
     }

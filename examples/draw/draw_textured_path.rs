@@ -28,7 +28,7 @@ fn view(app: &App, model: &Model) {
 
     // Generate a spiral for the path to follow.
     // Modulate the frequency of the spiral with a wave over time.
-    let wave = (app.elapsed_seconds() * 0.125).cos();
+    let wave = (app.time() * 0.125).cos();
     let freq = map_range(wave, -1.0, 1.0, 2.0, 20.0);
     let spiral_side = win_rect.w().min(win_rect.h()) * 0.5;
     let points = (0..spiral_side as u32).map(|i| {
@@ -49,7 +49,7 @@ fn view(app: &App, model: &Model) {
         .weight(0.9 / freq)
         .points_vertex(points)
         .texture(&model.texture)
-        .rotate(app.elapsed_seconds() * 0.25);
+        .rotate(app.time() * 0.25);
 
     // Draw to the frame!
 }

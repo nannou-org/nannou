@@ -95,7 +95,7 @@ fn view(app: &App, model: &Model) {
             draw.ellipse()
                 .x_y(p.x, p.y)
                 .radius(map_range(
-                    (i as f32 * 0.05 + app.elapsed_seconds() * 4.3).sin(),
+                    (i as f32 * 0.05 + app.time() * 4.3).sin(),
                     -1.0,
                     1.0,
                     3.0,

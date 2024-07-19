@@ -7,7 +7,7 @@ fn main() {
 fn view(app: &App) {
     // Begin drawing
     let win = app.window_rect();
-    let t = app.elapsed_seconds();
+    let t = app.time();
     let draw = app.draw();
 
     // Clear the background to black.

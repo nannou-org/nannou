@@ -12,7 +12,7 @@ fn view(app: &App) {
     draw.background().color(BLACK);
 
     let win = app.window_rect();
-    let t = app.elapsed_seconds();
+    let t = app.time();
 
     // Decide on a number of points and a weight.
     let n_points = 10;

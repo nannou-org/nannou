@@ -62,7 +62,7 @@ These can be generated in nannou by taking the progressed time of the applicatio
 # use nannou::prelude::*;
 # fn main() {
 #     let app: App = unimplemented!();
-let sine = app.elapsed_seconds().sin();
+let sine = app.time().sin();
 # }
 ```
 
@@ -73,7 +73,7 @@ Let's make another one but at half the speed by dividing the time value by two
 # use nannou::prelude::*;
 # fn main() {
 #     let app: App = unimplemented!();
-let slowersine = (app.elapsed_seconds() / 2.0).sin();
+let slowersine = (app.time() / 2.0).sin();
 # }
 ```
 
@@ -149,7 +149,7 @@ The `map_range` function takes 5 arguments: `val`, `in_min`, `in_max`, `out_min`
 # use nannou::prelude::*;
 # fn main() {
 #     let app: App = unimplemented!();
-#     let sine = app.elapsed_seconds().sin();
+#     let sine = app.time().sin();
 #     let boundary = app.window_rect();
 let x = map_range(sine, -1.0, 1.0, boundary.left(), boundary.right());
 # }
@@ -162,8 +162,8 @@ And then the same for the y value but using the `slowersine` variable.
 # use nannou::prelude::*;
 # fn main() {
 #     let app: App = unimplemented!();
-#     let sine = app.elapsed_seconds().sin();
-#     let slowersine = (app.elapsed_seconds() / 2.0).sin();
+#     let sine = app.time().sin();
+#     let slowersine = (app.time() / 2.0).sin();
 #     let boundary = app.window_rect();
 let y = map_range(slowersine, -1.0, 1.0, boundary.bottom(), boundary.top());
 # }
@@ -177,8 +177,8 @@ The only thing left to do now is to put this into the arguments of our circle-dr
 # fn main() {
 #     let app: App = unimplemented!();
 #     let draw = app.draw();
-#     let sine = app.elapsed_seconds().sin();
-#     let slowersine = (app.elapsed_seconds() / 2.0).sin();
+#     let sine = app.time().sin();
+#     let slowersine = (app.time() / 2.0).sin();
 #     let boundary = app.window_rect();
 #     let x = map_range(sine, -1.0, 1.0, boundary.left(), boundary.right());
 #     let y = map_range(slowersine, -1.0, 1.0, boundary.bottom(), boundary.top());
@@ -198,8 +198,8 @@ fn view(app: &App, _model: &Model, _window: Entity) {
     let draw = app.draw();
 
     // Generate sine wave data based on the time of the app
-    let sine = app.elapsed_seconds().sin();
-    let slowersine = (app.elapsed_seconds() / 2.0).sin();
+    let sine = app.time().sin();
+    let slowersine = (app.time() / 2.0).sin();
 
     // Get boundary of the window (to constrain the movements of our circle)
     let boundary = app.window_rect();

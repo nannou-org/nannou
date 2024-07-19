@@ -18,7 +18,7 @@ fn view(app: &App) {
     let w = app.window_rect();
 
     // Slowly turn the whole drawing inside out.
-    let draw = draw.scale((app.elapsed_seconds() * 0.1).cos());
+    let draw = draw.scale((app.time() * 0.1).cos());
 
     // Draw a tunnel of rectangles.
     let max_side = w.right().max(w.top());
@@ -29,12 +29,12 @@ fn view(app: &App) {
 
         // Return a new rotated draw instance.
         // This will rotate both the rect and text around the origin.
-        let rotate = (app.elapsed_seconds() * 0.5).sin()
-            * (app.elapsed_seconds() * 0.25 + f * PI * 2.0).cos();
+        let rotate = (app.time() * 0.5).sin()
+            * (app.time() * 0.25 + f * PI * 2.0).cos();
         let draw = draw.rotate(rotate);
 
-        let hue = app.elapsed_seconds() + f * 2.0 * PI;
-        let dive = (f + app.elapsed_seconds() * 0.1) % 1.0;
+        let hue = app.time() + f * 2.0 * PI;
+        let dive = (f + app.time() * 0.1) % 1.0;
         let color = Color::hsla(hue, 0.5, 0.5, 1.0 - dive.powi(3));
         let rect_scale = dive.powi(2) * max_side * 2.0;
         draw.scale(rect_scale)

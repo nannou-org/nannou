@@ -33,7 +33,7 @@ fn update(app: &App, model: &mut Model) {
     let norm_mouse_y = (mouse_y / window_rect.h()) + 0.5;
 
     // Calculate the light's position based on time t
-    let time = app.elapsed_seconds();
+    let time = app.time();
     let radius = window_rect.w().min(window_rect.h()) * 0.4;
     let light_x = window_center.x + radius * (time * 2.0 * PI).cos();
     let light_y = window_center.y + radius * (time * 2.0 * PI).sin();

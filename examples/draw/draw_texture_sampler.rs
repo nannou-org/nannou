@@ -58,8 +58,8 @@ fn view(app: &App, model: &Model) {
     let area = geom::Rect::from_x_y_w_h(
         0.5,
         0.5,
-        app.elapsed_seconds().sin() * 10.0,
-        app.elapsed_seconds().sin() * 10.0,
+        app.time().sin() * 10.0,
+        app.time().sin() * 10.0,
     );
     let window_rect = app.main_window().rect();
 

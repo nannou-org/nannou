@@ -49,7 +49,7 @@ fn view(app: &App, model: &Model) {
     let mut color_linear_rgb: LinearRgba = color_hsl.into();
     color_linear_rgb = color_linear_rgb * 5.0;
 
-    let t = app.elapsed_seconds();
+    let t = app.time();
 
     draw.tri()
         .width(100.0)
