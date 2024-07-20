@@ -30,7 +30,6 @@ rusttype = { version = "0.8", features = ["gpu_cache"] }
 serde = { workspace = true, features = ["derive"], optional = true}
 serde_json = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
-serde_yaml = { workspace = true, optional = true }
 walkdir = "2"
 web-sys = { version = "0.3.64", optional = true }
 
@@ -48,4 +47,6 @@ nightly = ["bevy_nannou/nightly"]
 hot_reload = ["bevy/file_watcher"]
 isf = ["bevy_nannou/isf"]
 video = ["bevy_nannou/video"]
-serde = ["dep:serde", "toml", "serde_json", "serde_yaml", "nannou_core/serde", "bevy_common_assets/json", "bevy_common_assets/toml", "bevy_common_assets/yaml"]
+serde = ["dep:serde", "toml", "serde_json", "nannou_core/serde"]
+config_json = ["bevy_common_assets/json"]
+config_toml = ["bevy_common_assets/toml"]

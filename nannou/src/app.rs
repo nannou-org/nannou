@@ -309,16 +309,27 @@ where
         self
     }
 
-    #[cfg(feature = "serde")]
+    #[cfg(feature = "config_json")]
     pub fn init_config<T>(mut self) -> Self
     where
         for<'de> T: serde::Deserialize<'de> + Asset,
     {
-        self.app.add_plugins((
-            bevy_common_assets::json::JsonAssetPlugin::<T>::new(&[".json"]),
-            bevy_common_assets::toml::TomlAssetPlugin::<T>::new(&[".toml"]),
-            bevy_common_assets::yaml::YamlAssetPlugin::<T>::new(&[".yaml", ".yml"]),
-        ));
+        self.app
+            .add_plugins((bevy_common_assets::json::JsonAssetPlugin::<T>::new(&[
+                ".json",
+            ]),));
+        self
+    }
+
+    #[cfg(feature = "config_toml")]
+    pub fn init_config<T>(mut self) -> Self
+    where
+        for<'de> T: serde::Deserialize<'de> + Asset,
+    {
+        self.app
+            .add_plugins((bevy_common_assets::toml::TomlAssetPlugin::<T>::new(&[
+                ".toml",
+            ]),));
         self
     }
 
