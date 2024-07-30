@@ -46,6 +46,7 @@ rustPlatform.buildRustPackage rec {
     alsaLib
     udev
     llvmPackages.bintools
+    llvmPackages.libclang
     vulkan-loader
     vulkan-validation-layers
     xorg.libX11
