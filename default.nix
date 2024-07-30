@@ -66,6 +66,7 @@ rustPlatform.buildRustPackage rec {
       inherit XCURSOR_THEME;
       LD_LIBRARY_PATH = "${lib.makeLibraryPath buildInputs}";
       ALSA_LIB_DEV = "${alsaLib.dev}";
+      LIBCLANG_PATH = "${llvmPackages.libclang.lib}/lib";
     } // lib.optionalAttrs stdenv.isDarwin {
     COREAUDIO_SDK_PATH = "${darwin.apple_sdk.frameworks.CoreAudio}/Library/Frameworks/CoreAudio.framework";
   });
