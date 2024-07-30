@@ -33,6 +33,7 @@ rustPlatform.buildRustPackage rec {
 
   nativeBuildInputs = [
     makeWrapper
+    llvmPackages.clang
     pkg-config
   ];
 
@@ -47,7 +48,6 @@ rustPlatform.buildRustPackage rec {
     udev
     llvmPackages.bintools
     llvmPackages.libclang
-    llvmPackages.clang
     vulkan-loader
     vulkan-validation-layers
     xorg.libX11
