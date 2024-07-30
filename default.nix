@@ -1,5 +1,6 @@
 { alsaLib
 , darwin
+, ffmpeg
 , jq
 , lib
 , llvmPackages
@@ -40,6 +41,7 @@ rustPlatform.buildRustPackage rec {
     jq
     # `nannou-new` needs this because of `cargo` dep. See #606.
     openssl
+    ffmpeg
   ] ++ lib.optionals stdenv.isLinux [
     alsaLib
     udev
