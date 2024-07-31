@@ -4,12 +4,13 @@
 //!
 //! See the extensive, top-level `ilda-idtf` API docs [here](https://docs.rs/ilda-idtf).
 
-use crate::{point, Point};
 use std::io;
 use std::path::Path;
 
 #[doc(inline)]
 pub use ilda_idtf::*;
+
+use crate::{point, Point};
 
 /// A type that simplifies the process of reading laser frames from the ILDA IDTF format in a
 /// manner that is compatible with the `nannou_laser` stream APIs.
@@ -122,12 +123,12 @@ where
     }
 }
 
-impl<R> Into<SectionReader<R>> for FrameReader<R>
+impl<R> From<FrameReader<R>> for SectionReader<R>
 where
     R: io::Read,
 {
-    fn into(self) -> SectionReader<R> {
-        self.into_section_reader()
+    fn from(val: FrameReader<R>) -> Self {
+        val.into_section_reader()
     }
 }
 

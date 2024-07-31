@@ -49,25 +49,24 @@ fn model(app: &App) -> Model {
         .size(800, 800)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model { draw_mode: 1 }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let mut draw = app.draw();
     draw.background().color(WHITE);
 
     let win = app.window_rect();
     // first shape (fixed)
-    overlay(&draw, &model, win, 3.0);
+    overlay(&draw, model, win, 3.0);
 
     // second shape (dynamically translated/rotated and scaled)
-    let x = map_range(app.mouse.x, win.left(), win.right(), -50.0, 50.0);
-    let a = map_range(app.mouse.x, win.left(), win.right(), -0.5, 0.5);
-    let s = map_range(app.mouse.y, win.top(), win.bottom(), 0.7, 1.0);
+    let x = map_range(app.mouse().x, win.left(), win.right(), -50.0, 50.0);
+    let a = map_range(app.mouse().x, win.left(), win.right(), -0.5, 0.5);
+    let s = map_range(app.mouse().x, win.top(), win.bottom(), 0.7, 1.0);
 
     match model.draw_mode {
         1 => draw = draw.rotate(a),
@@ -76,13 +75,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
     draw = draw.scale(s);
 
-    overlay(&draw, &model, win, 2.0);
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+    overlay(&draw, model, win, 2.0);
 }
 
-fn overlay(draw: &Draw, model: &Model, rect: Rect, stroke_weight: f32) {
+fn overlay(draw: &Draw, model: &Model, rect: geom::Rect, stroke_weight: f32) {
     let w = rect.w() - 100.0;
     let h = rect.h() - 100.0;
 
@@ -107,16 +103,16 @@ fn overlay(draw: &Draw, model: &Model, rect: Rect, stroke_weight: f32) {
     }
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.draw_mode = 1;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.draw_mode = 2;
         }
         _other_key => (),

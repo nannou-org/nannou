@@ -20,7 +20,7 @@ fn model(app: &App) -> Model {
     let angle = 0.0;
     let angle_velocity = 0.0;
     let angle_acceleration = -0.0001;
-    app.new_window().size(800, 200).view(view).build().unwrap();
+    app.new_window().size(800, 200).view(view).build();
     Model {
         angle,
         angle_velocity,
@@ -28,12 +28,12 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     model.angle += model.angle_velocity;
     model.angle_velocity += model.angle_acceleration;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.rect().wh(app.window_rect().wh()).color(WHITE);
@@ -58,7 +58,4 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .gray(0.5)
         .stroke_weight(2.0)
         .stroke_color(BLACK);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

@@ -7,25 +7,23 @@ fn main() {
 }
 
 struct Model {
-    texture: wgpu::Texture,
+    texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
     // Create a new window!
-    app.new_window().size(512, 512).view(view).build().unwrap();
+    app.new_window().size(512, 512).view(view).build();
     // Load the image from disk and upload it to a GPU texture.
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets.join("images").join("nature").join("nature_1.jpg");
-    let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+    let texture = app.asset_server().load(img_path);
     Model { texture }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
-
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
-    draw.texture(&model.texture);
-
-    draw.to_frame(app, &frame).unwrap();
+    draw.background().color(BLACK);
+    let win = app.window_rect();
+    draw.rect().x_y(win.x(), win.y()).texture(&model.texture);
 }

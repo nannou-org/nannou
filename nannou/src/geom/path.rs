@@ -4,6 +4,9 @@
 //! offerred by `lyon` in a way that interoperates a little more fluidly and consistently with the
 //! rest of nannou's API.
 
+use lyon::lyon_tessellation::Attributes;
+use lyon::path::builder::NoAttributes;
+
 use crate::geom::Point2;
 
 /// A wrapper around a 2D lyon path exposing a nannou-friendly API.
@@ -13,7 +16,13 @@ pub struct Path {
 
 /// A type used for building a 2D lyon path.
 pub struct Builder {
-    builder: lyon::path::path::Builder,
+    builder: NoAttributes<lyon::path::Builder>,
+}
+
+impl Default for Path {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Path {
@@ -38,17 +47,17 @@ impl Path {
     }
 
     /// Iterates over the entire **Path** yielding **PathEvent**s.
-    pub fn iter(&self) -> lyon::path::path::Iter {
+    pub fn iter(&self) -> lyon::path::Iter {
         self.path.iter()
     }
 
     /// Iterates over the endpoint and control point ids of the **Path**.
-    pub fn id_iter(&self) -> lyon::path::path::IdIter {
+    pub fn id_iter(&self) -> lyon::path::IdIter {
         self.path.id_iter()
     }
 
     /// Iterate over points alongside their attributes.
-    pub fn iter_with_attributes(&self) -> lyon::path::path::IterWithAttributes {
+    pub fn iter_with_attributes(&self) -> lyon::path::IterWithAttributes {
         self.path.iter_with_attributes()
     }
 
@@ -63,7 +72,8 @@ impl Path {
 
     /// Reversed version of this path with edge loops specified in the opposite order.
     pub fn reversed(&self) -> Self {
-        self.path.reversed().into()
+        let path = self.path.reversed().collect();
+        Path { path }
     }
 
     /// Concatenate two paths.
@@ -74,15 +84,21 @@ impl Path {
     }
 }
 
+impl Default for Builder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Builder {
     /// Begin building a new path.
     pub fn new() -> Self {
-        lyon::path::path::Builder::new().into()
+        lyon::path::Builder::new().into()
     }
 
     /// Build a path with the given capacity for the inner path event storage.
     pub fn with_capacity(points: usize, edges: usize) -> Self {
-        lyon::path::path::Builder::with_capacity(points, edges).into()
+        lyon::path::Builder::with_capacity(points, edges).into()
     }
 
     /// Returns a lyon builder that supports SVG commands.
@@ -139,13 +155,13 @@ impl Builder {
     }
 
     /// Access to the inner `lyon::path::Builder`.
-    pub fn inner(&self) -> &lyon::path::path::Builder {
-        &self.builder
+    pub fn inner(&self) -> &lyon::path::Builder {
+        self.builder.inner()
     }
 
     /// Mutable access to the inner `lyon::path::Builder`.
-    pub fn inner_mut(&mut self) -> &mut lyon::path::path::Builder {
-        &mut self.builder
+    pub fn inner_mut(&mut self) -> &mut lyon::path::Builder {
+        self.builder.inner_mut()
     }
 }
 
@@ -160,10 +176,35 @@ impl lyon::path::builder::Build for Builder {
 }
 
 impl lyon::path::builder::PathBuilder for Builder {
+    fn num_attributes(&self) -> usize {
+        0
+    }
+
+    fn begin(
+        &mut self,
+        at: lyon::math::Point,
+        _custom_attributes: Attributes,
+    ) -> lyon::path::EndpointId {
+        self.builder.begin(at)
+    }
+
+    fn end(&mut self, close: bool) {
+        self.builder.end(close)
+    }
+
+    fn line_to(
+        &mut self,
+        to: lyon::math::Point,
+        _custom_attributes: Attributes,
+    ) -> lyon::path::EndpointId {
+        self.builder.line_to(to)
+    }
+
     fn quadratic_bezier_to(
         &mut self,
         ctrl: lyon::math::Point,
         to: lyon::math::Point,
+        _custom_attributes: Attributes,
     ) -> lyon::path::EndpointId {
         self.builder.quadratic_bezier_to(ctrl, to)
     }
@@ -173,20 +214,9 @@ impl lyon::path::builder::PathBuilder for Builder {
         ctrl1: lyon::math::Point,
         ctrl2: lyon::math::Point,
         to: lyon::math::Point,
+        _custom_attributes: Attributes,
     ) -> lyon::path::EndpointId {
         self.builder.cubic_bezier_to(ctrl1, ctrl2, to)
-    }
-
-    fn begin(&mut self, at: lyon::math::Point) -> lyon::path::EndpointId {
-        self.builder.begin(at)
-    }
-
-    fn end(&mut self, close: bool) {
-        self.builder.end(close)
-    }
-
-    fn line_to(&mut self, to: lyon::math::Point) -> lyon::path::EndpointId {
-        self.builder.line_to(to)
     }
 }
 
@@ -210,7 +240,7 @@ impl std::ops::Index<lyon::path::EndpointId> for Path {
 
 impl<'a> IntoIterator for &'a Path {
     type Item = lyon::path::PathEvent;
-    type IntoIter = lyon::path::path::Iter<'a>;
+    type IntoIter = lyon::path::Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -225,27 +255,29 @@ impl From<lyon::path::Path> for Path {
     }
 }
 
-impl From<lyon::path::path::Builder> for Builder {
-    fn from(builder: lyon::path::path::Builder) -> Self {
-        Builder { builder }
+impl From<lyon::path::Builder> for Builder {
+    fn from(builder: lyon::path::Builder) -> Self {
+        Builder {
+            builder: NoAttributes::wrap(builder),
+        }
     }
 }
 
-impl Into<lyon::path::Path> for Path {
-    fn into(self) -> lyon::path::Path {
-        self.path
+impl From<Path> for lyon::path::Path {
+    fn from(val: Path) -> Self {
+        val.path
     }
 }
 
-impl Into<lyon::path::path::Builder> for Builder {
-    fn into(self) -> lyon::path::path::Builder {
-        self.builder
+impl From<Builder> for lyon::path::Builder {
+    fn from(val: Builder) -> Self {
+        val.builder.into_inner()
     }
 }
 
-impl<'a> Into<lyon::path::PathSlice<'a>> for &'a Path {
-    fn into(self) -> lyon::path::PathSlice<'a> {
-        self.as_slice()
+impl<'a> From<&'a Path> for lyon::path::PathSlice<'a> {
+    fn from(val: &'a Path) -> Self {
+        val.as_slice()
     }
 }
 

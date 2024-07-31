@@ -296,7 +296,7 @@ pub unsafe extern "C" fn available_dacs(
         if !dacs.is_empty() {
             let mut dacs: Box<[_]> = dacs
                 .values()
-                .map(|&(_, ref dac)| detected_dac_to_ffi(dac.clone()))
+                .map(|(_, dac)| detected_dac_to_ffi(dac.clone()))
                 .collect();
             *len = dacs.len() as _;
             *first_dac = dacs.as_mut_ptr();
@@ -317,15 +317,15 @@ pub unsafe extern "C" fn detect_dac(api: *mut Api, detected_dac: *mut DetectedDa
         Ok(iter) => iter,
     };
     match iter.next() {
-        None => return Result::DetectDacFailed,
+        None => Result::DetectDacFailed,
         Some(res) => match res {
             Ok(dac) => {
                 *detected_dac = detected_dac_to_ffi(dac);
-                return Result::Success;
+                Result::Success
             }
             Err(err) => {
                 api.last_error = Some(err_to_cstring(&err));
-                return Result::DetectDacFailed;
+                Result::DetectDacFailed
             }
         },
     }
@@ -433,7 +433,7 @@ pub unsafe extern "C" fn new_frame_stream(
         .stream_error(stream_error_fn);
 
     if (*config).stream_conf.detected_dac != std::ptr::null() {
-        let ffi_dac = (*(*config).stream_conf.detected_dac).clone();
+        let ffi_dac = *(*config).stream_conf.detected_dac;
         let detected_dac = detected_dac_from_ffi(ffi_dac);
         builder = builder.detected_dac(detected_dac);
     }
@@ -501,7 +501,7 @@ pub unsafe extern "C" fn new_raw_stream(
         .stream_error(stream_error_fn);
 
     if (*config).detected_dac != std::ptr::null() {
-        let ffi_dac = (*(*config).detected_dac).clone();
+        let ffi_dac = *(*config).detected_dac;
         let detected_dac = detected_dac_from_ffi(ffi_dac);
         builder = builder.detected_dac(detected_dac);
     }
@@ -693,12 +693,12 @@ pub unsafe extern "C" fn frame_stream_close(api: *mut Api, stream: FrameStream) 
             Some(Ok(Ok(()))) => Result::Success,
             Some(Ok(Err(err))) => {
                 (*(*api).inner).last_error = Some(err_to_cstring(&err));
-                return Result::CloseStreamFailed;
+                Result::CloseStreamFailed
             }
             Some(Err(_err)) => {
-                let string = format!("failed to join stream thread");
+                let string = "failed to join stream thread".to_string();
                 (*(*api).inner).last_error = Some(string_to_cstring(string));
-                return Result::CloseStreamFailed;
+                Result::CloseStreamFailed
             }
             None => Result::Success,
         }
@@ -763,12 +763,12 @@ pub unsafe extern "C" fn raw_stream_close(api: *mut Api, stream: RawStream) -> R
             Some(Ok(Ok(()))) => Result::Success,
             Some(Ok(Err(err))) => {
                 (*(*api).inner).last_error = Some(err_to_cstring(&err));
-                return Result::CloseStreamFailed;
+                Result::CloseStreamFailed
             }
             Some(Err(_err)) => {
-                let string = format!("failed to join stream thread");
+                let string = "failed to join stream thread".to_string();
                 (*(*api).inner).last_error = Some(string_to_cstring(string));
-                return Result::CloseStreamFailed;
+                Result::CloseStreamFailed
             }
             None => Result::Success,
         }
@@ -1026,7 +1026,7 @@ unsafe fn stream_error_action_set(
 }
 
 fn raw_string_from_str(s: &str) -> RawString {
-    let cstring = CString::new(&s[..]).unwrap();
+    let cstring = CString::new(s).unwrap();
     let inner = cstring.into_raw();
     RawString { inner }
 }
@@ -1110,7 +1110,7 @@ fn detected_dac_to_ffi(dac: crate::DetectedDac) -> DetectedDac {
 
 fn detected_dac_from_ffi(ffi_dac: DetectedDac) -> crate::DetectedDac {
     unsafe {
-        let broadcast = ffi_dac.kind.ether_dream.broadcast.clone();
+        let broadcast = ffi_dac.kind.ether_dream.broadcast;
         let source_addr = socket_addr_from_ffi(ffi_dac.kind.ether_dream.source_addr);
         crate::DetectedDac::EtherDream {
             broadcast,

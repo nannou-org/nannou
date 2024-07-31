@@ -1,7 +1,8 @@
 use nannou::prelude::*;
 
-mod ball;
 use crate::ball::Ball;
+
+mod ball;
 
 fn main() {
     nannou::app(model).update(update).simple_window(view).run();
@@ -19,17 +20,15 @@ fn model(_app: &App) -> Model {
 }
 
 // By default, `update` is called right before `view` is called each frame.
-fn update(app: &App, model: &mut Model, _update: Update) {
-    model.ball.position = pt2(app.mouse.x, app.mouse.y);
+fn update(app: &App, model: &mut Model) {
+    model.ball.position = pt2(app.mouse().x, app.mouse().y);
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model, _window: Entity) {
     // Begin drawing.
     let draw = app.draw();
     // Draw dark gray for the background
-    draw.background().color(DIMGRAY);
+    draw.background().color(DIM_GRAY);
     // Draw our ball
     model.ball.display(&draw);
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

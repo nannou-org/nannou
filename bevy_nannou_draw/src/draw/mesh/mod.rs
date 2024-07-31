@@ -1,13 +1,14 @@
 //! Items related to the custom mesh type used by the `Draw` API.
 
-use bevy::prelude::*;
-use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
-use nannou_mesh::{ClearIndices, ClearVertices};
 use std::ops::{Deref, DerefMut};
 
-pub mod builder;
+use bevy::prelude::*;
+use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
+use bevy::render::render_asset::RenderAssetUsages;
 
 pub use self::builder::MeshBuilder;
+
+pub mod builder;
 
 pub trait MeshExt {
     fn init() -> Mesh;
@@ -19,6 +20,8 @@ pub trait MeshExt {
     fn colors_mut(&mut self) -> &mut Vec<[f32; 4]>;
     fn tex_coords(&self) -> &[[f32; 2]];
     fn tex_coords_mut(&mut self) -> &mut Vec<[f32; 2]>;
+    fn normals(&self) -> &[[f32; 3]];
+    fn normals_mut(&mut self) -> &mut Vec<[f32; 3]>;
     fn get_index(&self, index: usize) -> u32;
     fn count_indices(&self) -> usize;
     fn push_index(&mut self, index: u32);
@@ -30,15 +33,28 @@ impl MeshExt for Mesh {
     }
 
     fn init_with_topology(topology: PrimitiveTopology) -> Mesh {
-        let mesh = Mesh::new(topology);
+        let mesh = Mesh::new(topology, RenderAssetUsages::default());
         mesh.with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, Vec::<[f32; 3]>::new())
             .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, Vec::<[f32; 4]>::new())
             .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, Vec::<[f32; 2]>::new())
-            .with_indices(Some(Indices::U32(vec![])))
+            .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, Vec::<[f32; 3]>::new())
+            .with_inserted_indices(Indices::U32(vec![]))
     }
 
     fn clear(&mut self) {
-        *self = Self::init();
+        for (_, attribute) in self.attributes_mut().into_iter() {
+            match attribute {
+                VertexAttributeValues::Float32x2(attr) => attr.clear(),
+                VertexAttributeValues::Float32x3(attr) => attr.clear(),
+                VertexAttributeValues::Float32x4(attr) => attr.clear(),
+                _ => panic!("Unsupported attribute type"),
+            }
+        }
+
+        self.indices_mut().map(|indices| match indices {
+            Indices::U32(indices) => indices.clear(),
+            _ => panic!("Unsupported indices type"),
+        });
     }
 
     fn points(&self) -> &[[f32; 3]] {
@@ -104,6 +120,28 @@ impl MeshExt for Mesh {
         match tex_coords {
             VertexAttributeValues::Float32x2(tex_coords) => tex_coords,
             _ => panic!("Mesh ATTRIBUTE_UV_0 attribute must be of type Float32x2"),
+        }
+    }
+
+    fn normals(&self) -> &[[f32; 3]] {
+        let normals = self
+            .attribute(Mesh::ATTRIBUTE_NORMAL)
+            .expect("Mesh must have ATTRIBUTE_NORMAL attribute");
+
+        match normals {
+            VertexAttributeValues::Float32x3(normals) => normals,
+            _ => panic!("Mesh ATTRIBUTE_NORMAL attribute must be of type Float32x3"),
+        }
+    }
+
+    fn normals_mut(&mut self) -> &mut Vec<[f32; 3]> {
+        let normals = self
+            .attribute_mut(Mesh::ATTRIBUTE_NORMAL)
+            .expect("Mesh must have ATTRIBUTE_NORMAL attribute");
+
+        match normals {
+            VertexAttributeValues::Float32x3(normals) => normals,
+            _ => panic!("Mesh ATTRIBUTE_NORMAL attribute must be of type Float32x3"),
         }
     }
 

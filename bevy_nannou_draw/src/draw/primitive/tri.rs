@@ -1,11 +1,13 @@
+use bevy::prelude::*;
+use lyon::tessellation::StrokeOptions;
+
+use nannou_core::geom;
+
 use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use bevy::prelude::*;
-use lyon::tessellation::StrokeOptions;
-use nannou_core::geom;
 
 /// Properties related to drawing a **Tri**.
 #[derive(Clone, Debug)]
@@ -16,7 +18,7 @@ pub struct Tri {
 }
 
 /// The drawing context for a `Tri`.
-pub type DrawingTri<'a> = Drawing<'a, Tri>;
+pub type DrawingTri<'a, M> = Drawing<'a, Tri, M>;
 
 // Tri-specific methods.
 
@@ -44,7 +46,10 @@ impl Tri {
 
 // Drawing methods.
 
-impl<'a> DrawingTri<'a> {
+impl<'a, M> DrawingTri<'a, M>
+where
+    M: Material + Default,
+{
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -65,11 +70,7 @@ impl<'a> DrawingTri<'a> {
 // Trait implementations.
 
 impl draw::render::RenderPrimitive for Tri {
-    fn render_primitive(
-        self,
-        ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         let Tri {
             mut tri,
             dimensions,
@@ -90,16 +91,23 @@ impl draw::render::RenderPrimitive for Tri {
             let new_c = translate(c);
             tri = geom::Tri([new_a, new_b, new_c]);
         }
-        let points = tri.vertices();
+
+        let tex_coords = [
+            Vec2::new(0.0, 0.0), // Vertex A
+            Vec2::new(1.0, 0.0), // Vertex B
+            Vec2::new(0.5, 1.0), // Vertex C
+        ];
+
+        let points = tri.vertices().zip(tex_coords.iter().copied());
+
         polygon::render_points_themed(
             polygon.opts,
+            true,
             points,
             ctxt,
             &draw::theme::Primitive::Tri,
             mesh,
         );
-
-        draw::render::PrimitiveRender::default()
     }
 }
 

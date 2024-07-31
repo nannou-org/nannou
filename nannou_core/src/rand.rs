@@ -5,8 +5,9 @@
 //! [**random_f64()**](./fn.random_f64.html) and [**random_range(min,
 //! max)**](./fn.random_range.html).
 
-pub use self::rand::*;
 pub use rand;
+
+pub use self::rand::*;
 
 /// A wrapper function around the `random` function that avoids the need for specifying a type in
 /// the case that it cannot be inferred. The primary purpose for this is to simplify the random API

@@ -2,14 +2,9 @@
 
 pub extern crate ether_dream;
 
-pub mod dac;
-#[cfg(feature = "ffi")]
-pub mod ffi;
-#[cfg(feature = "ilda-idtf")]
-pub mod ilda_idtf;
-pub mod point;
-pub mod stream;
-pub mod util;
+use std::io;
+use std::sync::Arc;
+use std::time::Duration;
 
 pub use dac::{DetectDacs, DetectDacsAsync, DetectedDac, DetectedDacCallback, Id as DacId};
 pub use point::{Point, RawPoint};
@@ -18,9 +13,14 @@ pub use stream::frame::Stream as FrameStream;
 pub use stream::raw::Stream as RawStream;
 pub use stream::raw::{Buffer, StreamError, StreamErrorAction};
 
-use std::io;
-use std::sync::Arc;
-use std::time::Duration;
+pub mod dac;
+#[cfg(feature = "ffi")]
+pub mod ffi;
+#[cfg(feature = "ilda-idtf")]
+pub mod ilda_idtf;
+pub mod point;
+pub mod stream;
+pub mod util;
 
 /// A general API that allows for detecting and enumerating laser DACs on a network and
 /// establishing new streams of communication with them.
@@ -33,6 +33,12 @@ pub struct Api {
 // This is useful for allowing streams to re-scan and find their associated DAC in the case it
 // drops out for some reason.
 pub(crate) struct Inner;
+
+impl Default for Api {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Api {
     /// Instantiate the laser API.

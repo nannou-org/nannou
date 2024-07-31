@@ -17,7 +17,7 @@ struct Attractor {
 }
 
 impl Attractor {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let location = rect.xy();
         let mass = 20.0;
         let g = 0.4;
@@ -27,7 +27,7 @@ impl Attractor {
     fn attract(&self, m: &Mover) -> Vec2 {
         let mut force = self.location - m.location; // Calculate direction of force
         let mut distance = force.length(); // Distance between objects
-        distance = distance.max(5.0).min(25.0); // Limiting the distance to eliminate "extreme" results for very cose or very far object
+        distance = distance.clamp(5.0, 25.0); // Limiting the distance to eliminate "extreme" results for very cose or very far object
         force = force.normalize(); // Normalize vector (distance doesn't matter, we just want this vector for direction)
         let strength = (self.g * self.mass * m.mass) / (distance * distance); // Calculate gravitational force magnitude
         force * strength // Get force vector --> magnitude * direction
@@ -95,7 +95,7 @@ impl Mover {
         draw.rect()
             .x_y(self.location.x, self.location.y)
             .w_h(self.mass * 16.0, self.mass * 16.0)
-            .rgba(0.6, 0.6, 0.6, 0.78)
+            .srgba(0.6, 0.6, 0.6, 0.78)
             .stroke(BLACK)
             .rotate(self.angle);
     }
@@ -107,12 +107,11 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(800.0, 200.0);
+    let rect = geom::Rect::from_w_h(800.0, 200.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let movers = (0..20)
         .map(|_| {
@@ -129,7 +128,7 @@ fn model(app: &App) -> Model {
     Model { movers, attractor }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     for i in 0..m.movers.len() {
         let force = m.attractor.attract(&m.movers[i]);
         m.movers[i].apply_force(force);
@@ -137,7 +136,7 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -148,7 +147,4 @@ fn view(app: &App, m: &Model, frame: Frame) {
     for mover in &m.movers {
         mover.display(&draw);
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

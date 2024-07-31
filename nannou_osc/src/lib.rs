@@ -1,6 +1,8 @@
 //! Tools for working with OSC. [**sender()**](./fn.sender.html) creates an OSC sender,
 //! [**receiver(port)**](./fn.receiver.html) creates an OSC receiver.
 
+use std::net::{Ipv4Addr, SocketAddr};
+
 pub use rosc;
 
 // Re-export rosc items.
@@ -15,9 +17,6 @@ pub use self::rosc::{
     OscTimeError as TimeError, OscType as Type,
 };
 pub use self::send::Sender;
-
-use std;
-use std::net::{Ipv4Addr, SocketAddr};
 
 pub mod recv;
 pub mod send;
@@ -69,9 +68,9 @@ where
     }
 }
 
-impl Into<rosc::OscPacket> for Packet {
-    fn into(self) -> rosc::OscPacket {
-        match self {
+impl From<Packet> for rosc::OscPacket {
+    fn from(val: Packet) -> Self {
+        match val {
             Packet::Message(msg) => rosc::OscPacket::Message(msg),
             Packet::Bundle(bundle) => rosc::OscPacket::Bundle(bundle),
         }

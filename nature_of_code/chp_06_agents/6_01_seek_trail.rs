@@ -8,7 +8,6 @@
 // One vehicle "seeks"
 // See: http://www.red3d.com/cwr/
 use nannou::prelude::*;
-use nannou::Draw;
 use std::collections::VecDeque;
 
 fn main() {
@@ -72,33 +71,32 @@ impl Vehicle {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     let middle = app.window_rect().xy();
     let vehicle = Vehicle::new(middle.x, middle.y);
     Model { vehicle }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
-    seek(&mut m.vehicle, app.mouse.position());
+fn update(app: &App, m: &mut Model) {
+    seek(&mut m.vehicle, app.mouse());
     m.vehicle.update();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
-    let mouse = vec2(app.mouse.x, app.mouse.y);
+    let mouse = vec2(app.mouse().x, app.mouse().y);
 
     draw.ellipse()
         // Missing Stroke
         .x_y(mouse.x, mouse.y)
         .radius(48.0)
-        .rgb(0.78, 0.78, 0.78);
+        .srgb(0.78, 0.78, 0.78);
     display(&m.vehicle, &draw);
 
     // Write the result of our drawing to the window's OpenGL frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 // A method that calculates a steering force towards a target
@@ -134,15 +132,11 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
     } = vehicle;
 
     if history.len() > 1 {
-        let vertices = history
-            .iter()
-            .map(|v| pt2(v.x, v.y))
-            .enumerate()
-            .map(|(_, p)| {
-                let rgba = srgba(0.0, 0.0, 0.0, 1.0);
-                (p, rgba)
-            });
-        draw.polyline().weight(1.0).points_colored(vertices);
+        let points_colored = history.iter().map(|v| pt2(v.x, v.y)).map(|p| {
+            let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
+            (p, rgba)
+        });
+        draw.polyline().weight(1.0).points_colored(points_colored);
     }
 
     // Draw a triangle rotated in the direction of velocity
@@ -154,6 +148,6 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
         .stroke_weight(1.0)
         .points(points)
         .xy(*position)
-        .rgb(0.5, 0.5, 0.5)
+        .srgb(0.5, 0.5, 0.5)
         .rotate(-theta);
 }

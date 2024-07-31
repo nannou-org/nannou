@@ -1,6 +1,7 @@
-use skeptic::*;
 use std::path::{Path, PathBuf};
 use std::{env, fs, io};
+
+use skeptic::*;
 
 // Check the given path and parent directories for a path with the given name.
 fn check_parents(name: &str, path: &Path) -> io::Result<Option<PathBuf>> {

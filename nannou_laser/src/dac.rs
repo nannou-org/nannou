@@ -174,7 +174,7 @@ fn detect_dacs_async_inner(
                     is_closed.store(true, atomic::Ordering::Relaxed);
                     break;
                 }
-                while let Some(res) = detect_dacs.next() {
+                for res in detect_dacs.by_ref() {
                     if let Err(ref e) = res {
                         match e.kind() {
                             io::ErrorKind::TimedOut | io::ErrorKind::WouldBlock => continue 'msgs,

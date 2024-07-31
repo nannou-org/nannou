@@ -1,12 +1,11 @@
 //! A clone of the `laser_frame_stream.rs` example that allows for configuring laser settings via a
 //! UI.
 
-use nannou::geom::Rect;
-use nannou::prelude::*;
-use nannou_egui::egui::FontId;
-use nannou_egui::{self, egui, Egui};
-use nannou_laser as laser;
 use std::sync::{mpsc, Arc};
+
+use nannou::prelude::egui::FontId;
+use nannou::prelude::*;
+use nannou_laser as laser;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -23,8 +22,8 @@ struct Model {
     laser_settings: LaserSettings,
     // For receiving newly detected DACs.
     dac_rx: mpsc::Receiver<laser::DetectedDac>,
-    // The UI for control over laser parameters and settings.
-    egui: Egui,
+    // The egui window.
+    window: Entity,
 }
 
 #[derive(Clone)]
@@ -113,14 +112,12 @@ impl Default for RgbProfile {
 
 fn model(app: &App) -> Model {
     // Create a window to receive keyboard events.
-    let w_id = app
+    let window = app
         .new_window()
         .size(312, 530)
         .key_pressed(key_pressed)
-        .raw_event(raw_window_event)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // Initialise the state that we want to live on the laser thread and spawn the stream.
     let laser_settings = LaserSettings::default();
@@ -154,9 +151,9 @@ fn model(app: &App) -> Model {
     let laser_streams = vec![];
 
     // A user-interface to tweak the settings.
-    let window = app.window(w_id).unwrap();
-    let egui = Egui::from_window(&window);
-    egui.ctx().set_style(style());
+    let mut egui_ctx = app.egui();
+    let ctx = egui_ctx.get_mut();
+    ctx.set_style(style());
 
     Model {
         laser_api,
@@ -164,7 +161,7 @@ fn model(app: &App) -> Model {
         laser_model,
         laser_streams,
         dac_rx,
-        egui,
+        window,
     }
 }
 
@@ -175,7 +172,7 @@ where
     I::Item: AsRef<laser::Point>,
 {
     let points = points.into_iter().map(|p| {
-        let mut p = p.as_ref().clone();
+        let mut p = *p.as_ref();
         p.position[0] *= scale;
         p.position[1] *= scale;
         p
@@ -224,8 +221,8 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
             let yb = [0.0, 1.0];
             let x = [lit_p(xa), lit_p(xb)];
             let y = [lit_p(ya), lit_p(yb)];
-            add_points(&x, laser.draw_mode, laser.scale, frame);
-            add_points(&y, laser.draw_mode, laser.scale, frame);
+            add_points(x, laser.draw_mode, laser.scale, frame);
+            add_points(y, laser.draw_mode, laser.scale, frame);
         }
 
         TestPattern::ThreeVerticalLines => {
@@ -238,14 +235,14 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
             let l = [lit_p(la), lit_p(lb)];
             let m = [lit_p(ma), lit_p(mb)];
             let r = [lit_p(ra), lit_p(rb)];
-            add_points(&l, laser.draw_mode, laser.scale, frame);
-            add_points(&m, laser.draw_mode, laser.scale, frame);
-            add_points(&r, laser.draw_mode, laser.scale, frame);
+            add_points(l, laser.draw_mode, laser.scale, frame);
+            add_points(m, laser.draw_mode, laser.scale, frame);
+            add_points(r, laser.draw_mode, laser.scale, frame);
         }
 
         TestPattern::Circle => {
             let n_points = frame.points_per_frame() as usize / 4;
-            let rect = Rect::from_w_h(2.0, 2.0);
+            let rect = geom::Rect::from_w_h(2.0, 2.0);
             let ellipse: Vec<_> = geom::ellipse::Circumference::new(rect, n_points as f32)
                 .map(|[x, y]| lit_p([x, y]))
                 .collect();
@@ -272,11 +269,7 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
     }
 }
 
-fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event::WindowEvent) {
-    model.egui.handle_raw_event(event);
-}
-
-fn update(_app: &App, model: &mut Model, update: Update) {
+fn update(app: &App, model: &mut Model) {
     // First, check for new laser DACs.
     for dac in model.dac_rx.try_iter() {
         println!("Detected DAC {:?}!", dac.id());
@@ -323,18 +316,17 @@ fn update(_app: &App, model: &mut Model, update: Update) {
 
     // Update the GUI.
     let Model {
-        ref mut egui,
         ref laser_streams,
         ref mut laser_model,
         ref mut laser_settings,
         ..
     } = *model;
 
-    egui.set_elapsed_time(update.since_start);
-    let ctx = egui.begin_frame();
+    let mut egui_ctx = app.egui();
+    let ctx = egui_ctx.get_mut();
 
     // The timeline area.
-    egui::containers::CentralPanel::default().show(&ctx, |ui| {
+    egui::containers::CentralPanel::default().show(ctx, |ui| {
         fn grid_min_col_width(ui: &egui::Ui, n_options: usize) -> f32 {
             let gap_space = ui.spacing().item_spacing.x * (n_options as f32 - 1.0);
             let grid_w = ui.available_width();
@@ -485,15 +477,15 @@ fn update(_app: &App, model: &mut Model, update: Update) {
     });
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     // Send a new pattern to the laser on keys 1, 2, 3 and 4.
     let new_pattern = match key {
-        Key::Key1 => TestPattern::Rectangle,
-        Key::Key2 => TestPattern::Triangle,
-        Key::Key3 => TestPattern::Crosshair,
-        Key::Key4 => TestPattern::ThreeVerticalLines,
-        Key::Key5 => TestPattern::Circle,
-        Key::Key6 => TestPattern::Spiral,
+        KeyCode::Digit1 => TestPattern::Rectangle,
+        KeyCode::Digit2 => TestPattern::Triangle,
+        KeyCode::Digit3 => TestPattern::Crosshair,
+        KeyCode::Digit4 => TestPattern::ThreeVerticalLines,
+        KeyCode::Digit5 => TestPattern::Circle,
+        KeyCode::Digit6 => TestPattern::Spiral,
         _ => return,
     };
     for stream in &model.laser_streams {
@@ -503,9 +495,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     }
 }
 
-fn view(_app: &App, model: &Model, frame: Frame) {
-    model.egui.draw_to_frame(&frame).unwrap();
-}
+fn view(_app: &App, model: &Model) {}
 
 // The following functions are some custom styling preferences in an attempt to improve on the
 // default egui theming.

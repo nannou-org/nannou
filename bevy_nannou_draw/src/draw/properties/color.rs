@@ -1,5 +1,4 @@
 use bevy::prelude::Color;
-use num_traits::Float;
 
 /// Nodes that support setting colors.
 pub trait SetColor: Sized {
@@ -20,23 +19,31 @@ pub trait SetColor: Sized {
     }
 
     /// Specify the color via red, green and blue channels.
-    fn rgb(self, r: f32, g: f32, b: f32) -> Self {
-        self.color(Color::rgb(r, g, b))
+    fn srgb(self, r: f32, g: f32, b: f32) -> Self {
+        self.color(Color::srgb(r, g, b))
     }
 
     /// Specify the color via red, green and blue channels as bytes
-    fn rgb8(self, r: u8, g: u8, b: u8) -> Self {
-        self.color(Color::rgb_u8(r, g, b))
+    fn srgb_u8(self, r: u8, g: u8, b: u8) -> Self {
+        self.color(Color::srgb_u8(r, g, b))
     }
 
     /// Specify the color via red, green, blue and alpha channels.
-    fn rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
-        self.color(Color::rgba(r, g, b, a))
+    fn srgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
+        self.color(Color::srgba(r, g, b, a))
     }
 
     /// Specify the color via red, green, blue and alpha channels as bytes
-    fn rgba8(self, r: u8, g: u8, b: u8, a: u8) -> Self {
-        self.color(Color::rgba_u8(r, g, b, a))
+    fn srgba_u8(self, r: u8, g: u8, b: u8, a: u8) -> Self {
+        self.color(Color::srgba_u8(r, g, b, a))
+    }
+
+    fn linear_rgb(self, r: f32, g: f32, b: f32) -> Self {
+        self.color(Color::linear_rgb(r, g, b))
+    }
+
+    fn linear_rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
+        self.color(Color::linear_rgba(r, g, b, a))
     }
 
     /// Specify the color via hue, saturation and luminance.
@@ -67,36 +74,83 @@ pub trait SetColor: Sized {
         self.color(Color::hsla(hue, s, l, a))
     }
 
-    // /// Specify the color via hue, saturation and *value* (brightness).
-    // ///
-    // /// This is sometimes also known as "hsb".
-    // ///
-    // /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
-    // /// 360 degrees (or 2 PI radians).
-    // ///
-    // /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
-    // /// this color space.
-    // fn hsv(self, h: f32, s: f32, v: f32) -> Self {
-    //     let hue = h * 360.0;
-    //     self.color(Color:: (hue, s, v))
-    // }
+    /// Specify the color via hue, saturation and *value* (brightness).
+    ///
+    /// This is sometimes also known as "hsb".
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    fn hsv(self, h: f32, s: f32, v: f32) -> Self {
+        let hue = h * 360.0;
+        self.color(Color::hsv(hue, s, v))
+    }
 
-    // /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
-    // ///
-    // /// This is sometimes also known as "hsba".
-    // ///
-    // /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
-    // /// 360 degrees (or 2 PI radians).
-    // ///
-    // /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
-    // /// this color space.
-    // fn hsva(self, h: S, s: S, v: S, a: S) -> Self
-    // where
-    //     S: Float,
-    // {
-    //     let hue = color::RgbHue::from_degrees(h * S::from(360.0).unwrap());
-    //     self.color(color::Hsva::new(hue, s, v, a))
-    // }
+    /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
+    ///
+    /// This is sometimes also known as "hsba".
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    fn hsva(self, h: f32, s: f32, v: f32, a: f32) -> Self {
+        let hue = h * 360.0;
+        self.color(Color::hsva(hue, s, v, a))
+    }
+
+    fn hwb(self, h: f32, w: f32, b: f32) -> Self {
+        let hue = h * 360.0;
+        self.color(Color::hwb(hue, w, b))
+    }
+
+    fn hwba(self, h: f32, w: f32, b: f32, a: f32) -> Self {
+        let hue = h * 360.0;
+        self.color(Color::hwba(hue, w, b, a))
+    }
+
+    fn lab(self, l: f32, a: f32, b: f32) -> Self {
+        self.color(Color::lab(l, a, b))
+    }
+
+    fn laba(self, l: f32, a: f32, b: f32, alpha: f32) -> Self {
+        self.color(Color::laba(l, a, b, alpha))
+    }
+
+    fn lch(self, l: f32, c: f32, h: f32) -> Self {
+        self.color(Color::lch(l, c, h))
+    }
+
+    fn lcha(self, l: f32, c: f32, h: f32, alpha: f32) -> Self {
+        self.color(Color::lcha(l, c, h, alpha))
+    }
+
+    fn oklab(self, l: f32, a: f32, b: f32) -> Self {
+        self.color(Color::oklab(l, a, b))
+    }
+
+    fn oklaba(self, l: f32, a: f32, b: f32, alpha: f32) -> Self {
+        self.color(Color::oklaba(l, a, b, alpha))
+    }
+
+    fn oklch(self, l: f32, c: f32, h: f32) -> Self {
+        self.color(Color::oklch(l, c, h))
+    }
+
+    fn oklcha(self, l: f32, c: f32, h: f32, alpha: f32) -> Self {
+        self.color(Color::oklcha(l, c, h, alpha))
+    }
+
+    fn cie_xyz(self, x: f32, y: f32, z: f32) -> Self {
+        self.color(Color::xyz(x, y, z))
+    }
+
+    fn cie_xyza(self, x: f32, y: f32, z: f32, alpha: f32) -> Self {
+        self.color(Color::xyza(x, y, z, alpha))
+    }
 
     /// Specify the color as gray scale
     ///

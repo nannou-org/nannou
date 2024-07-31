@@ -42,6 +42,7 @@ fn model(_app: &App) -> Model {
     Model
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
+fn view(app: &App, _model: &Model, window: Entity) {
+    let draw = app.draw();
+    draw.background().color(DIM_GRAY);
 }

@@ -17,6 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use nannou::image::GenericImageView;
 /**
  * pixel mapping. each pixel is translated into a new element (letter)
  *
@@ -29,15 +30,12 @@
  */
 use nannou::prelude::*;
 
-use nannou::image;
-use nannou::image::GenericImageView;
-
 fn main() {
     nannou::app(model).run();
 }
 
 struct Model {
-    image: image::DynamicImage,
+    image: Handle<Image>,
     input_text: String,
     font_size_min: u32,
     font_size_max: u32,
@@ -48,17 +46,16 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.set_loop_mode(LoopMode::Wait);
+    app.set_update_mode(UpdateMode::wait());
 
     app.new_window()
         .size(533, 796)
         .view(view)
         .key_pressed(key_pressed)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets
         .join("images")
         .join("generative_examples")
@@ -66,7 +63,7 @@ fn model(app: &App) -> Model {
 
     let input_text = "All the world's a stage, And all the men and women merely players; They have their exits and their entrances; And one man in his time plays many parts, His acts being seven ages. At first the infant, Mewling and puking in the nurse\'s arms; Then the whining school-boy, with his satchel And shining morning face, creeping like snail Unwillingly to school. And then the lover, Sighing like furnace, with a woeful ballad Made to his mistress\' eyebrow. Then a soldier, Full of strange oaths, and bearded like the pard, Jealous in honour, sudden and quick in quarrel, Seeking the bubble reputation Even in the cannon\'s mouth. And then the justice, In fair round belly with good capon lin\'d, With eyes severe and beard of formal cut, Full of wise saws and modern instances; And so he plays his part. The sixth age shifts Into the lean and slipper\'d pantaloon, With spectacles on nose and pouch on side, His youthful hose, well sav\'d, a world too wide For his shrunk shank; and his big manly voice, Turning again toward childish treble, pipes And whistles in his sound. Last scene of all, That ends this strange eventful history, Is second childishness and mere oblivion; Sans teeth, sans eyes, sans taste, sans every thing.".to_string();
 
-    let image = image::open(img_path).unwrap();
+    let image = app.asset_server().load(img_path);
     Model {
         image,
         input_text,
@@ -80,23 +77,26 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(WHITE);
-
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
+    draw.background().color(WHITE);
     let win = app.window_rect();
 
     let mut x = win.left();
     let mut y = win.top();
     let mut counter = 0;
 
+    let images = app.assets::<Image>();
+    let image = images.get(&model.image).unwrap();
+    let image = image.clone().try_into_dynamic().unwrap();
+    let (w, h) = image.dimensions();
+
     while y > win.bottom() {
         // translate position (display) to position (image)
-        let (w, h) = model.image.dimensions();
         let img_x = map_range(x, win.left(), win.right(), 0, w);
         let img_y = map_range(y, win.top(), win.bottom(), 0, h);
         // get current color
-        let c = model.image.get_pixel(img_x, img_y);
+        let c = image.get_pixel(img_x, img_y);
         // greyscale conversion
         let red = c[0] as f32 / 255.0;
         let green = c[1] as f32 / 255.0;
@@ -107,9 +107,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
         let (font_size, col) = if model.font_size_static {
             let col = if model.black_and_white {
-                rgb(greyscale, greyscale, greyscale)
+                Color::srgb(greyscale, greyscale, greyscale)
             } else {
-                rgb(red, green, blue)
+                Color::srgb(red, green, blue)
             };
             (model.font_size_max, col)
         } else {
@@ -123,9 +123,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
             )
             .max(1);
             let col = if model.black_and_white {
-                rgb(0.0, 0.0, 0.0)
+                Color::srgb(0.0, 0.0, 0.0)
             } else {
-                rgb(red, green, blue)
+                Color::srgb(red, green, blue)
             };
             (font_size, col)
         };
@@ -150,42 +150,40 @@ fn view(app: &App, model: &Model, frame: Frame) {
             counter = 0;
         }
     }
-
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
         // change fontSizeMax with arrow keys up/down
-        Key::Up => {
+        KeyCode::ArrowUp => {
             model.font_size_max += 2;
         }
-        Key::Down => {
+        KeyCode::ArrowDown => {
             model.font_size_max -= 2;
         }
         // change fontSizeMin with arrow keys left/right
-        Key::Right => {
+        KeyCode::ArrowRight => {
             model.font_size_min += 2;
         }
-        Key::Left => {
+        KeyCode::ArrowLeft => {
             model.font_size_min -= 2;
         }
         _otherkey => (),
     }
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         // change render mode
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.font_size_static = !model.font_size_static;
         }
         // change color style
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.black_and_white = !model.black_and_white;
         }
         _otherkey => (),

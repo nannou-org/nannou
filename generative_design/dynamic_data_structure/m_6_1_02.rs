@@ -98,8 +98,7 @@ fn model(app: &App) -> Model {
         .size(1280, 720)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let win = app.window_rect();
     let node_a = Node::new(
@@ -143,7 +142,7 @@ fn spring(to_node: &mut Node, from_node: &mut Node) {
     from_node.velocity += force;
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     // update spring
     spring(&mut model.node_a, &mut model.node_b);
 
@@ -151,13 +150,13 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model.node_a.update();
     model.node_b.update();
 
-    if app.mouse.buttons.pressed().next().is_some() {
-        model.node_a.x = app.mouse.x;
-        model.node_a.y = app.mouse.y;
+    if app.mouse_buttons().get_just_pressed().count() > 0 {
+        model.node_a.x = app.mouse().x;
+        model.node_a.y = app.mouse().x;
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -167,7 +166,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .start(pt2(model.node_a.x, model.node_a.y))
         .end(pt2(model.node_b.x, model.node_b.y))
         .stroke_weight(4.0)
-        .rgb(0.0, 0.5, 0.64);
+        .srgb(0.0, 0.5, 0.64);
 
     // draw nodes
     draw.ellipse()
@@ -178,14 +177,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .x_y(model.node_b.x, model.node_b.y)
         .radius(10.0)
         .color(BLACK);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

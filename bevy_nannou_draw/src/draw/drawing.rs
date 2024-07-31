@@ -1,13 +1,19 @@
+use std::any::TypeId;
+use std::marker::PhantomData;
+
+use bevy::asset::{AsyncWriteExt, UntypedAssetId};
+use bevy::pbr::{ExtendedMaterial, MaterialExtension};
+use bevy::prelude::*;
+use lyon::path::PathEvent;
+use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
+use uuid::Uuid;
+
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
-use crate::draw::{self, Draw};
-use bevy::prelude::*;
-use lyon::path::PathEvent;
-use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
-use nannou_core::color::IntoColor;
-use std::marker::PhantomData;
+use crate::draw::{Draw, DrawCommand, DrawRef};
+use crate::render::{ExtendedNannouMaterial, NannouMaterial};
 
 /// A **Drawing** in progress.
 ///
@@ -19,13 +25,17 @@ use std::marker::PhantomData;
 /// inner **geom::Graph**. This ensures the correct instantiation order is maintained within the
 /// graph. As a result, each **Drawing** is associated with a single, unique node. Thus a
 /// **Drawing** can be thought of as a way of specifying properties for a node.
-#[derive(Debug)]
-pub struct Drawing<'a, T> {
+pub struct Drawing<'a, T, M>
+where
+    M: Material + Default,
+{
     // The `Draw` instance used to create this drawing.
-    draw: &'a Draw,
+    draw: DrawRef<'a, M>,
     // The draw command index of the primitive being drawn.
-    index: usize,
-    // Whether or not the **Drawing** should attempt to finish the drawing on drop.
+    pub(crate) index: usize,
+    // The draw command index of the material being used.
+    pub(crate) material_index: usize,
+    // Whether the **Drawing** should attempt to finish the drawing on drop.
     finish_on_drop: bool,
     // The node type currently being drawn.
     _ty: PhantomData<T>,
@@ -39,30 +49,36 @@ pub struct DrawingContext<'a> {
     pub mesh: &'a mut Mesh,
     /// A re-usable buffer for collecting path events.
     pub path_event_buffer: &'a mut Vec<PathEvent>,
-    /// A re-usable buffer for collecting colored polyline points.
-    pub path_points_colored_buffer: &'a mut Vec<(Vec2, Color)>,
-    /// A re-usable buffer for collecting textured polyline points.
-    pub path_points_textured_buffer: &'a mut Vec<(Vec2, Vec2)>,
+    /// A re-usable buffer for collecting polyline points vertex data.
+    pub path_points_vertex_buffer: &'a mut Vec<(Vec2, Color, Vec2)>,
     /// A re-usable buffer for collecting text.
     pub text_buffer: &'a mut String,
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<'a, T>(draw: &'a Draw, index: usize) -> Drawing<'a, T> {
+pub fn new<T, M: Material>(draw: &Draw<M>, index: usize, material_index: usize) -> Drawing<T, M>
+where
+    T: Into<Primitive>,
+    M: Material + Default,
+{
     let _ty = PhantomData;
     let finish_on_drop = true;
     Drawing {
-        draw,
+        draw: DrawRef::Borrowed(draw),
         index,
+        material_index,
         finish_on_drop,
         _ty,
     }
 }
 
-impl<'a, T> Drop for Drawing<'a, T> {
+impl<'a, T, M> Drop for Drawing<'a, T, M>
+where
+    M: Material + Default,
+{
     fn drop(&mut self) {
         if self.finish_on_drop {
-            self.finish_inner();
+            self.finish_inner()
         }
     }
 }
@@ -73,29 +89,47 @@ impl<'a> DrawingContext<'a> {
         let super::IntermediaryState {
             ref mut intermediary_mesh,
             ref mut path_event_buffer,
-            ref mut path_points_colored_buffer,
-            ref mut path_points_textured_buffer,
+            ref mut path_points_vertex_buffer,
             ref mut text_buffer,
         } = *state;
         DrawingContext {
             mesh: intermediary_mesh,
-            path_event_buffer: path_event_buffer,
-            path_points_colored_buffer: path_points_colored_buffer,
-            path_points_textured_buffer: path_points_textured_buffer,
-            text_buffer: text_buffer,
+            path_event_buffer,
+            path_points_vertex_buffer,
+            text_buffer,
         }
     }
 }
 
-impl<'a, T> Drawing<'a, T> {
+impl<'a, T, M> Drawing<'a, T, M>
+where
+    M: Material + Default,
+{
     // Shared between the **finish** method and the **Drawing**'s **Drop** implementation.
     //
     // 1. Create vertices based on node-specific position, points, etc.
     // 2. Insert edges into geom graph based on
     fn finish_inner(&mut self) {
-        match self.draw.state.try_write() {
+        match (*self.draw).state.try_write() {
             Err(err) => eprintln!("drawing failed to borrow state and finish: {}", err),
-            Ok(mut state) => state.finish_drawing(self.index),
+            Ok(mut state) => {
+                match &self.draw {
+                    // If we are "Owned", that means we mutated our material and so need to
+                    // spawn a new entity just for this primitive.
+                    DrawRef::Owned(draw) => {
+                        let id = draw.material.clone();
+                        let material_cmd = state
+                            .draw_commands
+                            .get_mut(self.material_index)
+                            .expect("Expected a valid material index");
+                        if let None = material_cmd {
+                            *material_cmd = Some(DrawCommand::Material(id));
+                        }
+                    }
+                    DrawRef::Borrowed(_) => (),
+                }
+                state.finish_drawing(self.index);
+            }
         }
     }
 
@@ -106,13 +140,108 @@ impl<'a, T> Drawing<'a, T> {
         self.finish_inner()
     }
 
+    /// Set the material's fragment shader for the drawing. Note: this shader must have
+    /// been initialized during application setup.
+    #[cfg(feature = "nightly")]
+    pub fn fragment_shader<const FS: &'static str>(
+        mut self,
+    ) -> Drawing<'a, T, ExtendedNannouMaterial<"", FS>> {
+        self.finish_on_drop = false;
+
+        let Drawing {
+            ref draw,
+            index,
+            material_index,
+            ..
+        } = self;
+
+        let state = draw.state.clone();
+        let new_id = UntypedAssetId::Uuid {
+            type_id: TypeId::of::<ExtendedNannouMaterial<"", FS>>(),
+            uuid: Uuid::new_v4(),
+        };
+
+        let material: ExtendedNannouMaterial<"", FS> = Default::default();
+        let mut state = state.write().unwrap();
+        state.materials.insert(new_id.clone(), Box::new(material));
+        // Mark the last material as the new material so that further drawings use the same material
+        // as the parent draw ref.
+        state.last_material = Some(new_id.clone());
+
+        let draw = Draw {
+            state: draw.state.clone(),
+            context: draw.context.clone(),
+            material: new_id.clone(),
+            window: draw.window,
+            _material: Default::default(),
+        };
+
+        Drawing::<'a, T, ExtendedMaterial<StandardMaterial, NannouMaterial<"", FS>>> {
+            draw: DrawRef::Owned(draw),
+            index,
+            material_index,
+            finish_on_drop: true,
+            _ty: PhantomData,
+        }
+    }
+
+    // Map the the parent's material to a new material type, taking ownership over the
+    // draw instance clone.
+    pub fn map_material<F>(mut self, map: F) -> Drawing<'a, T, M>
+    where
+        F: FnOnce(M) -> M,
+    {
+        self.finish_on_drop = false;
+
+        let Drawing {
+            ref draw,
+            index,
+            material_index,
+            ..
+        } = self;
+
+        let state = draw.state.clone();
+        let material = state.read().unwrap().materials[&self.draw.material]
+            .downcast_ref::<M>()
+            .unwrap()
+            .clone();
+
+        let new_id = UntypedAssetId::Uuid {
+            type_id: TypeId::of::<M>(),
+            uuid: Uuid::new_v4(),
+        };
+
+        let material = map(material.clone());
+        let mut state = state.write().unwrap();
+        state.materials.insert(new_id.clone(), Box::new(material));
+        // Mark the last material as the new material so that further drawings use the same material
+        // as the parent draw ref.
+        state.last_material = Some(new_id.clone());
+
+        let draw = Draw {
+            state: draw.state.clone(),
+            context: draw.context.clone(),
+            material: new_id.clone(),
+            window: draw.window,
+            _material: Default::default(),
+        };
+
+        Drawing {
+            draw: DrawRef::Owned(draw),
+            index,
+            material_index,
+            finish_on_drop: true,
+            _ty: PhantomData,
+        }
+    }
+
     // Map the given function onto the primitive stored within **Draw** at `index`.
     //
     // The functionn is only applied if the node has not yet been **Drawn**.
-    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2>
+    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2, M>
     where
         F: FnOnce(Primitive) -> Primitive,
-        T2: Into<Primitive>,
+        T2: Into<Primitive> + Clone,
     {
         if let Ok(mut state) = self.draw.state.try_write() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
@@ -121,10 +250,16 @@ impl<'a, T> Drawing<'a, T> {
             }
         }
         self.finish_on_drop = false;
-        let Drawing { draw, index, .. } = self;
-        Drawing {
-            draw,
+        let Drawing {
+            ref draw,
             index,
+            material_index,
+            ..
+        } = self;
+        Drawing {
+            draw: draw.clone(),
+            index,
+            material_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
@@ -133,18 +268,15 @@ impl<'a, T> Drawing<'a, T> {
     // The same as `map_primitive` but also passes a mutable reference to the vertex data to the
     // map function. This is useful for types that may have an unknown number of arbitrary
     // vertices.
-    fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2>
+    fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2, M>
     where
         F: FnOnce(Primitive, DrawingContext) -> Primitive,
-        T2: Into<Primitive>,
+        T2: Into<Primitive> + Clone,
     {
         if let Ok(mut state) = self.draw.state.try_write() {
             if let Some(mut primitive) = state.drawing.remove(&self.index) {
                 {
-                    let mut intermediary_state = state
-                        .intermediary_state
-                        .write()
-                        .expect("intermediary state lock poisoned");
+                    let mut intermediary_state = state.intermediary_state.write().unwrap();
                     let ctxt = DrawingContext::from_intermediary_state(&mut *intermediary_state);
                     primitive = map(primitive, ctxt);
                 }
@@ -152,10 +284,16 @@ impl<'a, T> Drawing<'a, T> {
             }
         }
         self.finish_on_drop = false;
-        let Drawing { draw, index, .. } = self;
-        Drawing {
-            draw,
+        let Drawing {
+            ref draw,
             index,
+            material_index,
+            ..
+        } = self;
+        Drawing {
+            draw: draw.clone(),
+            index,
+            material_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
@@ -166,10 +304,10 @@ impl<'a, T> Drawing<'a, T> {
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2>
+    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2, M>
     where
         F: FnOnce(T) -> T2,
-        T2: Into<Primitive>,
+        T2: Into<Primitive> + Clone,
         Primitive: Into<Option<T>>,
     {
         self.map_primitive(|prim| {
@@ -185,10 +323,10 @@ impl<'a, T> Drawing<'a, T> {
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2>
+    pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2, M>
     where
         F: FnOnce(T, DrawingContext) -> T2,
-        T2: Into<Primitive>,
+        T2: Into<Primitive> + Clone,
         Primitive: Into<Option<T>>,
     {
         self.map_primitive_with_context(|prim, ctxt| {
@@ -202,9 +340,10 @@ impl<'a, T> Drawing<'a, T> {
 
 // SetColor implementations.
 
-impl<'a, T> Drawing<'a, T>
+impl<'a, T, M> Drawing<'a, T, M>
 where
-    T: SetColor + Into<Primitive>,
+    T: SetColor + Into<Primitive> + Clone,
+    M: Material + Default,
     Primitive: Into<Option<T>>,
 {
     /// Specify a color.
@@ -220,23 +359,31 @@ where
     }
 
     /// Specify the color via red, green and blue channels.
-    pub fn rgb(self, r: f32, g: f32, b: f32) -> Self {
-        self.map_ty(|ty| SetColor::rgb(ty, r, g, b))
+    pub fn srgb(self, r: f32, g: f32, b: f32) -> Self {
+        self.map_ty(|ty| SetColor::srgb(ty, r, g, b))
     }
 
     /// Specify the color via red, green and blue channels as bytes
-    pub fn rgb8(self, r: u8, g: u8, b: u8) -> Self {
-        self.map_ty(|ty| SetColor::rgb8(ty, r, g, b))
+    pub fn srgb_u8(self, r: u8, g: u8, b: u8) -> Self {
+        self.map_ty(|ty| SetColor::srgb_u8(ty, r, g, b))
     }
 
     /// Specify the color via red, green, blue and alpha channels.
-    pub fn rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
-        self.map_ty(|ty| SetColor::rgba(ty, r, g, b, a))
+    pub fn srgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
+        self.map_ty(|ty| SetColor::srgba(ty, r, g, b, a))
     }
 
     /// Specify the color via red, green, blue and alpha channels as bytes.
-    pub fn rgba8(self, r: u8, g: u8, b: u8, a: u8) -> Self {
-        self.map_ty(|ty| SetColor::rgba8(ty, r, g, b, a))
+    pub fn srgba_u8(self, r: u8, g: u8, b: u8, a: u8) -> Self {
+        self.map_ty(|ty| SetColor::srgba_u8(ty, r, g, b, a))
+    }
+
+    pub fn linear_rgb(self, r: f32, g: f32, b: f32) -> Self {
+        self.map_ty(|ty| SetColor::linear_rgb(ty, r, g, b))
+    }
+
+    pub fn linear_rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
+        self.map_ty(|ty| SetColor::linear_rgba(ty, r, g, b, a))
     }
 
     /// Specify the color via hue, saturation and luminance.
@@ -265,31 +412,79 @@ where
         self.map_ty(|ty| SetColor::hsla(ty, h, s, l, a))
     }
 
-    // /// Specify the color via hue, saturation and *value* (brightness).
-    // ///
-    // /// This is sometimes also known as "hsb".
-    // ///
-    // /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
-    // /// 360 degrees (or 2 PI radians).
-    // ///
-    // /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
-    // /// this color space.
-    // pub fn hsv(self, h: f32, s: f32, v: f32) -> Self {
-    //     self.map_ty(|ty| SetColor::hsv(ty, h, s, v))
-    // }
-    //
-    // /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
-    // ///
-    // /// This is sometimes also known as "hsba".
-    // ///
-    // /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
-    // /// 360 degrees (or 2 PI radians).
-    // ///
-    // /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
-    // /// this color space.
-    // pub fn hsva(self, h: f32, s: f32, v: f32, a: f32) -> Self {
-    //     self.map_ty(|ty| SetColor::hsva(ty, h, s, v, a))
-    // }
+    /// Specify the color via hue, saturation and *value* (brightness).
+    ///
+    /// This is sometimes also known as "hsb".
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    pub fn hsv(self, h: f32, s: f32, v: f32) -> Self {
+        self.map_ty(|ty| SetColor::hsv(ty, h, s, v))
+    }
+
+    /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
+    ///
+    /// This is sometimes also known as "hsba".
+    ///
+    /// The given hue expects a value between `0.0` and `1.0` where `0.0` is 0 degress and `1.0` is
+    /// 360 degrees (or 2 PI radians).
+    ///
+    /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
+    /// this color space.
+    pub fn hsva(self, h: f32, s: f32, v: f32, a: f32) -> Self {
+        self.map_ty(|ty| SetColor::hsva(ty, h, s, v, a))
+    }
+
+    pub fn hwb(self, h: f32, w: f32, b: f32) -> Self {
+        self.map_ty(|ty| SetColor::hwb(ty, h, w, b))
+    }
+
+    pub fn hwba(self, h: f32, w: f32, b: f32, a: f32) -> Self {
+        self.map_ty(|ty| SetColor::hwba(ty, h, w, b, a))
+    }
+
+    pub fn lab(self, l: f32, a: f32, b: f32) -> Self {
+        self.map_ty(|ty| SetColor::lab(ty, l, a, b))
+    }
+
+    pub fn laba(self, l: f32, a: f32, b: f32, alpha: f32) -> Self {
+        self.map_ty(|ty| SetColor::laba(ty, l, a, b, alpha))
+    }
+
+    pub fn lch(self, l: f32, c: f32, h: f32) -> Self {
+        self.map_ty(|ty| SetColor::lch(ty, l, c, h))
+    }
+
+    pub fn lcha(self, l: f32, c: f32, h: f32, alpha: f32) -> Self {
+        self.map_ty(|ty| SetColor::lcha(ty, l, c, h, alpha))
+    }
+
+    pub fn oklab(self, l: f32, a: f32, b: f32) -> Self {
+        self.map_ty(|ty| SetColor::oklab(ty, l, a, b))
+    }
+
+    pub fn oklaba(self, l: f32, a: f32, b: f32, alpha: f32) -> Self {
+        self.map_ty(|ty| SetColor::oklaba(ty, l, a, b, alpha))
+    }
+
+    pub fn oklch(self, l: f32, c: f32, h: f32) -> Self {
+        self.map_ty(|ty| SetColor::oklch(ty, l, c, h))
+    }
+
+    pub fn oklcha(self, l: f32, c: f32, h: f32, alpha: f32) -> Self {
+        self.map_ty(|ty| SetColor::oklcha(ty, l, c, h, alpha))
+    }
+
+    pub fn cie_xyz(self, x: f32, y: f32, z: f32) -> Self {
+        self.map_ty(|ty| SetColor::cie_xyz(ty, x, y, z))
+    }
+
+    pub fn cie_xyza(self, x: f32, y: f32, z: f32, alpha: f32) -> Self {
+        self.map_ty(|ty| SetColor::cie_xyza(ty, x, y, z, alpha))
+    }
 
     /// Specify the color as gray scale
     ///
@@ -301,9 +496,10 @@ where
 
 // SetDimensions implementations.
 
-impl<'a, T> Drawing<'a, T>
+impl<'a, T, M> Drawing<'a, T, M>
 where
-    T: SetDimensions + Into<Primitive>,
+    T: SetDimensions + Into<Primitive> + Clone,
+    M: Material + Default,
     Primitive: Into<Option<T>>,
 {
     /// Set the absolute width for the node.
@@ -359,9 +555,10 @@ where
 
 // SetPosition methods.
 
-impl<'a, T> Drawing<'a, T>
+impl<'a, T, M> Drawing<'a, T, M>
 where
-    T: SetPosition + Into<Primitive>,
+    T: SetPosition + Into<Primitive> + Clone,
+    M: Material + Default,
     Primitive: Into<Option<T>>,
 {
     /// Build with the given **Absolute** **Position** along the *x* axis.
@@ -402,9 +599,10 @@ where
 
 // SetOrientation methods.
 
-impl<'a, T> Drawing<'a, T>
+impl<'a, T, M> Drawing<'a, T, M>
 where
-    T: SetOrientation + Into<Primitive>,
+    T: SetOrientation + Into<Primitive> + Clone,
+    M: Material + Default,
     Primitive: Into<Option<T>>,
 {
     /// Describe orientation via the vector that points to the given target.
@@ -524,9 +722,10 @@ where
 
 // SetFill methods
 
-impl<'a, T> Drawing<'a, T>
+impl<'a, T, M> Drawing<'a, T, M>
 where
-    T: SetFill + Into<Primitive>,
+    T: SetFill + Into<Primitive> + Clone,
+    M: Material + Default,
     Primitive: Into<Option<T>>,
 {
     /// Specify the whole set of fill tessellation options.
@@ -567,9 +766,10 @@ where
 
 // SetStroke methods
 
-impl<'a, T> Drawing<'a, T>
+impl<'a, T, M> Drawing<'a, T, M>
 where
-    T: SetStroke + Into<Primitive>,
+    T: SetStroke + Into<Primitive> + Clone,
+    M: Material + Default,
     Primitive: Into<Option<T>>,
 {
     /// The start line cap as specified by the SVG spec.
@@ -705,5 +905,54 @@ where
     /// Specify the full set of stroke options for the path tessellation.
     pub fn stroke_opts(self, opts: StrokeOptions) -> Self {
         self.map_ty(|ty| ty.stroke_opts(opts))
+    }
+}
+
+impl<'a, T, M> Drawing<'a, T, M>
+where
+    T: Into<Primitive> + Clone,
+    M: Material + Default,
+    Primitive: Into<Option<T>>,
+{
+}
+
+impl<'a, T, M> Drawing<'a, T, ExtendedMaterial<StandardMaterial, M>>
+where
+    T: Into<Primitive>,
+    M: MaterialExtension + Default,
+{
+    pub fn roughness(mut self, roughness: f32) -> Self {
+        self.map_material(|mut material| {
+            material.base.perceptual_roughness = roughness;
+            material
+        })
+    }
+
+    pub fn metallic(mut self, metallic: f32) -> Self {
+        self.map_material(|mut material| {
+            material.base.metallic = metallic;
+            material
+        })
+    }
+
+    pub fn base_color<C: Into<Color>>(mut self, color: C) -> Self {
+        self.map_material(|mut material| {
+            material.base.base_color = color.into();
+            material
+        })
+    }
+
+    pub fn emissive<C: Into<Color>>(mut self, color: C) -> Self {
+        self.map_material(|mut material| {
+            material.base.emissive = color.into().to_linear();
+            material
+        })
+    }
+
+    pub fn texture(mut self, texture: &Handle<Image>) -> Self {
+        self.map_material(|mut material| {
+            material.base.base_color_texture = Some(texture.clone());
+            material
+        })
     }
 }

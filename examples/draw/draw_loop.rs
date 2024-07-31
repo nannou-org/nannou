@@ -18,21 +18,16 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app
-        .new_window()
-        .size(1024, 1024)
-        .view(view)
-        .build()
-        .unwrap();
+    let _window = app.new_window().size_pixels(1024, 1024).view(view).build();
     let mut noise = Perlin::new();
     noise = noise.set_seed(1);
     Model { noise }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
-    draw.background().color(BLACK);
+    draw.background().color(Color::BLACK);
 
     //the loop is going to be 200 frames long
     let frac = (app.elapsed_frames() % 200) as f32 / (200.0);
@@ -67,10 +62,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
             ));
         }
         //fill the line with black
-        draw.polygon().color(BLACK).points(pts);
+        draw.polygon().color(Color::BLACK).points(pts);
         //draw the white outline on top
-        draw.polyline().color(WHITE).stroke_weight(5.0).points(pts2);
+        draw.polyline()
+            .color(Color::WHITE)
+            .stroke_weight(5.0)
+            .points(pts2);
     }
-
-    draw.to_frame(app, &frame).unwrap();
 }

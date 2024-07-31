@@ -51,7 +51,7 @@ impl Pendulum {
         }
     }
 
-    fn update(&mut self, rect: Rect) {
+    fn update(&mut self, rect: geom::Rect) {
         let gravity = 0.4; // Arbitrary constant
         self.a_acceleration = (-1.0 * gravity / self.r) * self.angle.sin(); // Calculate acceleration (see: http://www.myphysicslab.com/pendulum1.html)
         self.a_velocity += self.a_acceleration; // Increment velocity
@@ -89,23 +89,20 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     let pendulum = Pendulum::new(pt2(0.0, app.window_rect().top()), 175.0);
 
     Model { pendulum }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     m.pendulum.update(app.window_rect());
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     m.pendulum.display(&draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

@@ -58,14 +58,9 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
-    let text_path = app
-        .assets_path()
-        .unwrap()
-        .join("text")
-        .join("faust_kurz.txt");
+    let text_path = app.assets_path().join("text").join("faust_kurz.txt");
     let joined_text = std::fs::read_to_string(text_path).unwrap().parse().unwrap();
     let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜß,.;:!? ".to_string();
     let counters = vec![0; alphabet.len()];
@@ -85,7 +80,7 @@ fn model(app: &App) -> Model {
     model
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
     draw.background().color(WHITE);
@@ -111,14 +106,26 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
 
         let my = clamp(
-            map_range(app.mouse.y, win.top() - 50.0, win.bottom() + 50.0, 0.0, 1.0),
+            map_range(
+                app.mouse().x,
+                win.top() - 50.0,
+                win.bottom() + 50.0,
+                0.0,
+                1.0,
+            ),
             0.0,
             1.0,
         );
         let char_size = model.counters[index.unwrap()] as f32 * my * 3.0;
 
         let mx = clamp(
-            map_range(app.mouse.x, win.left() + 50.0, win.right() - 50.0, 0.0, 1.0),
+            map_range(
+                app.mouse().x,
+                win.left() + 50.0,
+                win.right() - 50.0,
+                0.0,
+                1.0,
+            ),
             0.0,
             1.0,
         );
@@ -147,7 +154,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             draw.path()
                 .fill()
                 .x_y(new_pos_x, new_pos_y)
-                .rgba(0.0, 0.0, 0.0, char_alpha)
+                .srgba(0.0, 0.0, 0.0, char_alpha)
                 .events(text.path_events());
         }
 
@@ -158,9 +165,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
             pos_x = win.left() + 80.0;
         }
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn count_characters(model: &mut Model) {
@@ -179,22 +183,22 @@ fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.act_random_seed = (random_f32() * 100000.0) as u64;
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::LControl | Key::RControl => {
+        KeyCode::ControlLeft | KeyCode::ControlRight => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.draw_alpha = !model.draw_alpha;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.draw_lines = !model.draw_lines;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.draw_ellipses = !model.draw_ellipses;
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.draw_text = !model.draw_text;
         }
         _other_key => {}

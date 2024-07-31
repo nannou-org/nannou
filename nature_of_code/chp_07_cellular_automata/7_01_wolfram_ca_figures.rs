@@ -6,8 +6,9 @@
 
 // Simple demonstration of a Wolfram 1-dimensional cellular automata
 
-use nannou::prelude::*;
 use std::ops::Range;
+
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -23,7 +24,7 @@ struct Ca {
 }
 
 impl Ca {
-    fn new(r: Vec<i32>, rect: Rect) -> Self {
+    fn new(r: Vec<i32>, rect: geom::Rect) -> Self {
         let rule_set = r;
         let scl = 20;
         let cells = vec![0; (rect.w() as i32 / scl) as usize];
@@ -82,7 +83,7 @@ impl Ca {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &geom::Rect) {
         for i in 0..self.cells.len() {
             let mut fill = 1.0;
             if self.cells[i] == 1 {
@@ -90,8 +91,8 @@ impl Ca {
             }
             draw.rect()
                 .x_y(
-                    ((self.scl / 2) + i as i32 * self.scl) as f32 - rect.right() as f32,
-                    rect.top() as f32 - (self.generation * self.scl - (self.scl / 2)) as f32,
+                    ((self.scl / 2) + i as i32 * self.scl) as f32 - rect.right(),
+                    rect.top() - (self.generation * self.scl - (self.scl / 2)) as f32,
                 )
                 .w_h(self.scl as f32, self.scl as f32)
                 .gray(fill)
@@ -130,12 +131,8 @@ impl Ca {
     }
 
     // The CA is done if it reaches the bottom of the screen
-    fn finished(&self, rect: &Rect) -> bool {
-        if self.generation > rect.h() as i32 / self.scl {
-            true
-        } else {
-            false
-        }
+    fn finished(&self, rect: &geom::Rect) -> bool {
+        self.generation > rect.h() as i32 / self.scl
     }
 }
 
@@ -144,20 +141,19 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(1800.0, 600.0);
+    let rect = geom::Rect::from_w_h(1800.0, 600.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let rule_set = vec![0, 1, 1, 1, 1, 0, 1, 1];
     let ca = Ca::new(rule_set, rect);
     Model { ca }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
-    if m.ca.finished(&app.window_rect()) == false {
+fn update(app: &App, m: &mut Model) {
+    if !m.ca.finished(&app.window_rect()) {
         m.ca.generate();
     } else {
         m.ca.randomize();
@@ -165,12 +161,9 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
 
     m.ca.display(&draw, &app.window_rect());
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

@@ -47,8 +47,7 @@ fn model(app: &App) -> Model {
         .size(900, 900)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         draw_mode: 1,
@@ -57,13 +56,13 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(WHITE);
 
     let win = app.window_rect();
-    let count = map_range(app.mouse.x, win.left(), win.right(), 10, 60);
-    let para = map_range(app.mouse.y, win.top(), win.bottom(), 0.0, 1.0);
+    let count = map_range(app.mouse().x, win.left(), win.right(), 10, 60);
+    let para = map_range(app.mouse().x, win.top(), win.bottom(), 0.0, 1.0);
     let tile_width = win.w() / model.tile_count_x as f32;
     let tile_height = win.h() / model.tile_count_y as f32;
 
@@ -111,7 +110,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                             .x_y(0.0, 0.0)
                             .w_h(tile_width / 4.0, tile_height / 4.0)
                             .resolution(12.0)
-                            .rgba(gradient.x, gradient.y, gradient.z, 0.66);
+                            .srgba(gradient.x, gradient.y, gradient.z, 0.66);
 
                         let draw3 = draw.x_y(-4.0 * i as f32, 0.0);
                         draw3
@@ -119,7 +118,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                             .x_y(0.0, 0.0)
                             .w_h(tile_width / 4.0, tile_height / 4.0)
                             .resolution(12.0)
-                            .rgba(gradient.x, gradient.y, gradient.z, 0.66);
+                            .srgba(gradient.x, gradient.y, gradient.z, 0.66);
 
                         draw = draw.scale(1.0 - 1.5 / count as f32).rotate(para * 1.5);
                     }
@@ -128,37 +127,34 @@ fn view(app: &App, model: &Model, frame: Frame) {
             }
         }
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.draw_mode = 1;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.draw_mode = 2;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.draw_mode = 3;
         }
-        Key::Down => {
+        KeyCode::ArrowDown => {
             model.tile_count_y = (model.tile_count_y - 1).max(1);
         }
-        Key::Up => {
+        KeyCode::ArrowUp => {
             model.tile_count_y += 1;
         }
-        Key::Left => {
+        KeyCode::ArrowLeft => {
             model.tile_count_x = (model.tile_count_x - 1).max(1);
         }
-        Key::Right => {
+        KeyCode::ArrowRight => {
             model.tile_count_x += 1;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

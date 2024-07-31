@@ -3,6 +3,17 @@
 //! Currently, this crate is used primarily by the `draw.text()` API but will also play an
 //! important role in future GUI work.
 
+use std::borrow::Cow;
+
+use bevy::prelude::*;
+pub use rusttype::gpu_cache::Cache as GlyphCache;
+pub use rusttype::{Glyph, GlyphId, GlyphIter, LayoutIter, Scale, ScaledGlyph};
+
+use nannou_core::geom;
+
+// Re-export all relevant rusttype types here.
+pub use self::layout::Layout;
+
 pub mod cursor;
 pub mod font;
 pub mod glyph;
@@ -12,15 +23,6 @@ pub mod rt {
     //! Re-exported RustType geometric types.
     pub use rusttype::{gpu_cache, point, vector, Point, Rect, Vector};
 }
-
-// Re-export all relevant rusttype types here.
-pub use self::layout::Layout;
-pub use rusttype::gpu_cache::Cache as GlyphCache;
-pub use rusttype::{Glyph, GlyphId, GlyphIter, LayoutIter, Scale, ScaledGlyph};
-
-use bevy::prelude::*;
-use nannou_core::geom;
-use std::borrow::Cow;
 
 /// The RustType `FontCollection` type used by nannou.
 pub type FontCollection = rusttype::FontCollection<'static>;

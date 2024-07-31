@@ -44,7 +44,7 @@ fn main() {
     let mut manifest_updates = vec![];
     for relative_path in &package_relative_paths {
         // Read the manifest for each crate into a toml document.
-        let dir_path = workspace_manifest_dir.join(&relative_path);
+        let dir_path = workspace_manifest_dir.join(relative_path);
         let manifest_path = dir_path.join("Cargo.toml");
         let manifest_string =
             std::fs::read_to_string(&manifest_path).expect("failed to read the manifest");
@@ -137,7 +137,7 @@ pub fn safe_file_save(path: &std::path::Path, content: &[u8]) -> std::io::Result
 
     // If there's already a file at `path`, remove it.
     if path.exists() {
-        std::fs::remove_file(&path)?;
+        std::fs::remove_file(path)?;
     }
 
     // Rename the temp file to the original path name.

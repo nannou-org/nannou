@@ -1,11 +1,12 @@
+use bevy::prelude::*;
+use lyon::tessellation::StrokeOptions;
+
 use crate::draw::primitive::path;
 use crate::draw::primitive::Line;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use bevy::prelude::*;
-use lyon::tessellation::StrokeOptions;
 
 /// A path containing only two points - a start and end.
 ///
@@ -18,7 +19,7 @@ pub struct Arrow {
 }
 
 /// The drawing context for a line.
-pub type DrawingArrow<'a> = Drawing<'a, Arrow>;
+pub type DrawingArrow<'a, M> = Drawing<'a, Arrow, M>;
 
 impl Arrow {
     /// Short-hand for the `stroke_weight` method.
@@ -83,7 +84,10 @@ impl Arrow {
     }
 }
 
-impl<'a> DrawingArrow<'a> {
+impl<'a, M> DrawingArrow<'a, M>
+where
+    M: Material + Default,
+{
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.map_ty(|ty| ty.weight(weight))
@@ -166,11 +170,7 @@ impl Into<Option<Arrow>> for Primitive {
 }
 
 impl draw::render::RenderPrimitive for Arrow {
-    fn render_primitive(
-        self,
-        mut ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, mut ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         let Arrow {
             line,
             head_length,
@@ -179,7 +179,7 @@ impl draw::render::RenderPrimitive for Arrow {
         let start = line.start.unwrap_or(Vec2::new(0.0, 0.0));
         let end = line.end.unwrap_or(Vec2::new(0.0, 0.0));
         if start == end {
-            return draw::render::PrimitiveRender::default();
+            return;
         }
 
         // Calculate the arrow head points.
@@ -209,11 +209,19 @@ impl draw::render::RenderPrimitive for Arrow {
 
         // Draw the tri.
         let tri_points = [tri_a, tri_b, tri_c];
-        let tri_points = tri_points.iter().cloned().map(|p| p.to_array().into());
+        let tri_tex_coords = [
+            Vec2::new(0.5, 1.0), // Tip of the arrowhead
+            Vec2::new(0.0, 0.0), // Left corner
+            Vec2::new(1.0, 0.0), // Right corner
+        ];
+        let tri_points = tri_points
+            .iter()
+            .cloned()
+            .zip(tri_tex_coords.iter().copied());
         let close_tri = true;
-        let tri_events = lyon::path::iterator::FromPolyline::new(close_tri, tri_points);
-        path::render_path_events(
-            tri_events,
+        path::render_path_points_themed(
+            tri_points,
+            close_tri,
             line.path.color,
             transform,
             path::Options::Fill(Default::default()),
@@ -227,11 +235,15 @@ impl draw::render::RenderPrimitive for Arrow {
         // Draw the line.
         if draw_line {
             let line_points = [line_start, line_end];
-            let line_points = line_points.iter().cloned().map(|p| p.to_array().into());
+            let line_tex_coords = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
+            let line_points = line_points
+                .iter()
+                .cloned()
+                .zip(line_tex_coords.iter().copied());
             let close_line = false;
-            let line_events = lyon::path::iterator::FromPolyline::new(close_line, line_points);
-            path::render_path_events(
-                line_events,
+            path::render_path_points_themed(
+                line_points,
+                close_line,
                 line.path.color,
                 transform,
                 path::Options::Stroke(line.path.opts),
@@ -242,8 +254,6 @@ impl draw::render::RenderPrimitive for Arrow {
                 mesh,
             );
         }
-
-        draw::render::PrimitiveRender::default()
     }
 }
 

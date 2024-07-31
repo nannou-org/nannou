@@ -92,7 +92,7 @@ fn f(x: f32) -> f32 {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
 
     let x_min = -400.0;
     let y_min = -100.0;
@@ -122,14 +122,14 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     // Train the Perceptron with one "training" point at a time
     m.ptron
         .train(&m.training[m.count].inputs, m.training[m.count].answer);
     m.count = (m.count + 1) % m.training.len();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -169,7 +169,4 @@ fn view(app: &App, m: &Model, frame: Frame) {
             draw.ellipse().x_y(x, y).radius(4.0).color(BLACK);
         }
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

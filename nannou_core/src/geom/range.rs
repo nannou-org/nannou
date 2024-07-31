@@ -1,9 +1,10 @@
 //! A type for working with one-dimensional ranges.
 
+use core::ops::{Add, Neg, Sub};
+
 use crate::geom::scalar;
 use crate::math::num_traits::{Float, NumCast, One, Zero};
 use crate::math::{self, two};
-use core::ops::{Add, Neg, Sub};
 
 /// Some start and end position along a single axis.
 ///
@@ -49,10 +50,7 @@ where
     /// assert_eq!(Range { start: 0.0, end: 10.0 }, Range::new(0.0, 10.0));
     /// ```
     pub fn new(start: S, end: S) -> Self {
-        Range {
-            start: start,
-            end: end,
-        }
+        Range { start, end }
     }
 
     /// Construct a new `Range` from a given length and its centered position.
@@ -564,32 +562,18 @@ where
         let Range { start, end } = self;
         if start <= end {
             if value < start {
-                Range {
-                    start: value,
-                    end: end,
-                }
+                Range { start: value, end }
             } else if value > end {
-                Range {
-                    start: start,
-                    end: value,
-                }
+                Range { start, end: value }
             } else {
                 self
             }
+        } else if value < end {
+            Range { start, end: value }
+        } else if value > start {
+            Range { start: value, end }
         } else {
-            if value < end {
-                Range {
-                    start: start,
-                    end: value,
-                }
-            } else if value > start {
-                Range {
-                    start: value,
-                    end: end,
-                }
-            } else {
-                self
-            }
+            self
         }
     }
 

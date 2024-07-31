@@ -2,8 +2,9 @@
 //!
 //! This module is the core of multi-line text handling.
 
-use crate::text::{self, FontSize, Scalar, Wrap};
 use nannou_core::geom::{Range, Rect};
+
+use crate::text::{self, FontSize, Scalar, Wrap};
 
 /// The two types of **Break** indices returned by the **WrapIndicesBy** iterators.
 #[derive(Copy, Clone, Debug, PartialEq)]

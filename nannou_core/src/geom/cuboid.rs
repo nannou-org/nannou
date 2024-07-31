@@ -467,14 +467,14 @@ where
     /// 0---1
     /// ```
     pub fn corners(&self) -> [[S; 3]; NUM_CORNERS as usize] {
-        let a = [self.x.start, self.y.start, self.z.start].into();
-        let b = [self.x.end, self.y.start, self.z.start].into();
-        let c = [self.x.start, self.y.end, self.z.start].into();
-        let d = [self.x.end, self.y.end, self.z.start].into();
-        let e = [self.x.start, self.y.start, self.z.end].into();
-        let f = [self.x.end, self.y.start, self.z.end].into();
-        let g = [self.x.start, self.y.end, self.z.end].into();
-        let h = [self.x.end, self.y.end, self.z.end].into();
+        let a = [self.x.start, self.y.start, self.z.start];
+        let b = [self.x.end, self.y.start, self.z.start];
+        let c = [self.x.start, self.y.end, self.z.start];
+        let d = [self.x.end, self.y.end, self.z.start];
+        let e = [self.x.start, self.y.start, self.z.end];
+        let f = [self.x.end, self.y.start, self.z.end];
+        let g = [self.x.start, self.y.end, self.z.end];
+        let h = [self.x.end, self.y.end, self.z.end];
         [a, b, c, d, e, f, g, h]
     }
 
@@ -753,7 +753,7 @@ where
         7 => corner_from_index!(7, c),
         _ => return None,
     };
-    Some(p.into())
+    Some(p)
 }
 
 impl<'a, S> Iterator for Corners<'a, S>

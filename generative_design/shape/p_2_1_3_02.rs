@@ -44,8 +44,7 @@ fn model(app: &App) -> Model {
         .size(600, 600)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         background_color: 0.0,
@@ -53,7 +52,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     match model.draw_mode {
         1 => model.background_color = 1.0,
         2 => model.background_color = 1.0,
@@ -62,16 +61,16 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let g = model.background_color;
-    draw.background().rgb(g, g, g);
+    draw.background().srgb(g, g, g);
 
     let win = app.window_rect();
     let count = 10;
 
-    let tile_count_x = map_range(app.mouse.x, win.left(), win.right(), 1, 30);
-    let tile_count_y = map_range(app.mouse.y, win.top(), win.bottom(), 1, 30);
+    let tile_count_x = map_range(app.mouse().x, win.left(), win.right(), 1, 30);
+    let tile_count_y = map_range(app.mouse().x, win.top(), win.bottom(), 1, 30);
     let tile_width = win.w() / tile_count_x as f32;
     let tile_height = win.h() / tile_count_y as f32;
 
@@ -132,7 +131,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
                             stroke_color = 0.0;
                         }
                         3 => {
-                            line_weight = map_range(app.mouse.x, win.left(), win.right(), 1.0, 8.0);
+                            line_weight =
+                                map_range(app.mouse().x, win.left(), win.right(), 1.0, 8.0);
                         }
                         _ => unreachable!(),
                     }
@@ -148,25 +148,22 @@ fn view(app: &App, model: &Model, frame: Frame) {
             }
         }
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.draw_mode = 1;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.draw_mode = 2;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.draw_mode = 3;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

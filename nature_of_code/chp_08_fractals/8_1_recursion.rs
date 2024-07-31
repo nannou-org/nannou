@@ -12,20 +12,17 @@ fn main() {
 struct Model;
 
 fn model(app: &App) -> Model {
-    app.set_loop_mode(LoopMode::loop_once());
-    let _window = app.new_window().size(640, 360).view(view).build().unwrap();
+    app.set_update_mode(UpdateMode::freeze());
+    let _window = app.new_window().size(640, 360).view(view).build();
     Model
 }
 
-fn view(app: &App, _model: &Model, frame: Frame) {
+fn view(app: &App, _model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     draw_circle(&draw, 0.0, 0.0, app.window_rect().w());
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn draw_circle(draw: &Draw, x: f32, y: f32, mut r: f32) {
@@ -39,6 +36,6 @@ fn draw_circle(draw: &Draw, x: f32, y: f32, mut r: f32) {
     if r > 2.0 {
         r *= 0.75;
         // Call the function insie the function! (recursion!)
-        draw_circle(&draw, x, y, r);
+        draw_circle(draw, x, y, r);
     }
 }

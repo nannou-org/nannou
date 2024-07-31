@@ -4,10 +4,10 @@ fn main() {
     nannou::sketch(view).run()
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // Begin drawing
     let win = app.window_rect();
-    let t = app.time;
+    let t = app.time();
     let draw = app.draw();
 
     // Clear the background to black.
@@ -42,13 +42,10 @@ fn view(app: &App, frame: Frame) {
         let r = fract;
         let g = 1.0 - fract;
         let b = (0.5 + fract) % 1.0;
-        (pt2(x, y), rgb(r, g, b))
+        (pt2(x, y), Color::srgb(r, g, b))
     });
     draw.polygon()
         .x(win.w() * 0.25)
         .rotate(t * 0.2)
         .points_colored(points_colored);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

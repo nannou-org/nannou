@@ -49,8 +49,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .key_pressed(key_pressed)
         .mouse_pressed(mouse_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         tile_count: 20,
@@ -59,7 +58,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
 
@@ -74,8 +73,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let pos_x = win.left() + tile_w * grid_x as f32;
             let pos_y = (win.top() - tile_h) - tile_h * grid_y as f32;
 
-            let mx = clamp(win.right() + app.mouse.x, 0.0, win.w());
-            let my = clamp(win.top() - app.mouse.y, 0.0, win.h());
+            let mx = clamp(win.right() + app.mouse().x, 0.0, win.w());
+            let my = clamp(win.top() - app.mouse().x, 0.0, win.h());
 
             let shift_x1 = mx / 20.0 * rng.gen_range(-1.0..1.0);
             let shift_y1 = my / 20.0 * rng.gen_range(-1.0..1.0);
@@ -97,18 +96,15 @@ fn view(app: &App, model: &Model, frame: Frame) {
             draw.polygon().hsva(0.53, 1.0, 0.64, 0.7).points(points);
         }
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.act_random_seed = (random_f32() * 100000.0) as u64;
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

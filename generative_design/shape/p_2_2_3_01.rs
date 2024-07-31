@@ -55,8 +55,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .key_released(key_released)
         .mouse_pressed(mouse_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let form_resolution = 150;
     let angle = (360.0 / form_resolution as f32).to_radians();
@@ -80,10 +79,10 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     // floating towards mouse position
-    model.center_x += (app.mouse.x - model.center_x) * 0.01;
-    model.center_y += (app.mouse.y - model.center_y) * 0.01;
+    model.center_x += (app.mouse().x - model.center_x) * 0.01;
+    model.center_y += (app.mouse().x - model.center_y) * 0.01;
 
     // calculate new points
     for i in 0..model.form_resolution {
@@ -92,9 +91,9 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
-    if frame.nth() == 0 || app.keys.down.contains(&Key::Delete) {
+    if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
         draw.background().color(WHITE);
     }
 
@@ -129,37 +128,34 @@ fn view(app: &App, model: &Model, frame: Frame) {
         let gray = random_f32();
         draw.path()
             .fill()
-            .rgba(gray, gray, gray, 0.4)
+            .srgba(gray, gray, gray, 0.4)
             .events(path.iter());
     } else {
         draw.path()
             .stroke()
-            .rgba(0.0, 0.0, 0.0, 0.4)
+            .srgba(0.0, 0.0, 0.0, 0.4)
             .events(path.iter());
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.filled = false;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.filled = true;
         }
-        Key::F => {
+        KeyCode::KeyF => {
             model.freeze = !model.freeze;
             if model.freeze {
-                app.set_loop_mode(LoopMode::loop_once());
+                app.set_update_mode(UpdateMode::freeze());
             } else {
-                app.set_loop_mode(LoopMode::RefreshSync);
+                app.set_update_mode(UpdateMode::Continuous);
             }
         }
         _ => (),
@@ -168,8 +164,8 @@ fn key_released(app: &App, model: &mut Model, key: Key) {
 
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     // init shape on mouse position
-    model.center_x = app.mouse.x;
-    model.center_y = app.mouse.y;
+    model.center_x = app.mouse().x;
+    model.center_y = app.mouse().x;
     let angle = (360.0 / model.form_resolution as f32).to_radians();
     let _radius = model.init_radius * random_range(0.5, 1.0);
     for i in 0..model.form_resolution {

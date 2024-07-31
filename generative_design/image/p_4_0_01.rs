@@ -35,7 +35,7 @@ fn main() {
 
 struct Model {
     // Store the window ID so we can refer to this specific window later if needed.
-    texture: wgpu::Texture,
+    texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
@@ -44,26 +44,24 @@ fn model(app: &App) -> Model {
         .size(650, 450)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
     // Load the image from disk and upload it to a GPU texture.
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets
         .join("images")
         .join("generative_examples")
         .join("p_4_0_01.jpg");
-    let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+    let texture = app.asset_server().load(img_path);
     Model { texture }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
-
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
+    draw.background().color(BLACK);
     let win = app.window_rect();
-    let tile_count_x = map_range(app.mouse.x, win.left(), win.right(), 1.0, win.w() / 3.0);
-    let tile_count_y = map_range(app.mouse.y, win.top(), win.bottom(), 1.0, win.h() / 3.0);
+    let tile_count_x = map_range(app.mouse().x, win.left(), win.right(), 1.0, win.w() / 3.0);
+    let tile_count_y = map_range(app.mouse().x, win.top(), win.bottom(), 1.0, win.h() / 3.0);
     let step_x = win.w() / tile_count_x;
     let step_y = win.h() / tile_count_y;
 
@@ -71,16 +69,17 @@ fn view(app: &App, model: &Model, frame: Frame) {
         for grid_x in (0..win.w() as usize).step_by(step_x as usize) {
             let x = win.left() + grid_x as f32 + (step_x as f32 / 2.0);
             let y = win.top() - grid_y as f32 - (step_y as f32 / 2.0);
-            draw.texture(&model.texture).x_y(x, y).w_h(step_x, step_y);
+            draw.rect()
+                .texture(&model.texture)
+                .x_y(x, y)
+                .w_h(step_x, step_y);
         }
     }
-
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

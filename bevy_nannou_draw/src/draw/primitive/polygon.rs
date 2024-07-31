@@ -1,12 +1,13 @@
+use bevy::prelude::*;
+use lyon::path::PathEvent;
+use lyon::tessellation::StrokeOptions;
+
 use crate::draw::drawing::DrawingContext;
 use crate::draw::primitive::path::{self, PathEventSource};
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use bevy::prelude::*;
-use lyon::path::PathEvent;
-use lyon::tessellation::StrokeOptions;
 
 /// A trait implemented for all polygon draw primitives.
 pub trait SetPolygon: Sized {
@@ -60,14 +61,13 @@ pub struct PolygonOptions {
 pub struct Polygon {
     opts: PolygonOptions,
     path_event_src: PathEventSource,
-    texture_handle: Option<Handle<Image>>,
 }
 
 /// Initialised drawing state for a polygon.
-pub type DrawingPolygonInit<'a> = Drawing<'a, PolygonInit>;
+pub type DrawingPolygonInit<'a, M> = Drawing<'a, PolygonInit, M>;
 
 /// Initialised drawing state for a polygon.
-pub type DrawingPolygon<'a> = Drawing<'a, Polygon>;
+pub type DrawingPolygon<'a, M> = Drawing<'a, Polygon, M>;
 
 impl PolygonInit {
     /// Stroke the outline with the given color.
@@ -92,7 +92,6 @@ impl PolygonInit {
         Polygon {
             opts: self.opts,
             path_event_src: PathEventSource::Buffered(start..end),
-            texture_handle: None,
         }
     }
 
@@ -112,58 +111,30 @@ impl PolygonInit {
     }
 
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
-    pub fn points_colored<I, P, C>(self, ctxt: DrawingContext, points: I) -> Polygon
+    pub fn points_vertex<I, P, C, U>(self, ctxt: DrawingContext, points: I) -> Polygon
     where
-        I: IntoIterator<Item = (P, C)>,
+        I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
         C: Into<Color>,
+        U: Into<Vec2>,
     {
         let DrawingContext {
-            path_points_colored_buffer,
+            path_points_vertex_buffer: path_points_colored_buffer,
             ..
         } = ctxt;
         let start = path_points_colored_buffer.len();
-        let points = points.into_iter().map(|(p, c)| (p.into(), c.into()));
+        let points = points
+            .into_iter()
+            .map(|(p, c, u)| (p.into(), c.into(), u.into()));
         path_points_colored_buffer.extend(points);
 
         let end = path_points_colored_buffer.len();
         Polygon {
             opts: self.opts,
-            path_event_src: PathEventSource::ColoredPoints {
+            path_event_src: PathEventSource::Vertex {
                 range: start..end,
                 close: true,
             },
-            texture_handle: None,
-        }
-    }
-
-    /// Consumes an iterator of points and converts them to an iterator yielding path events.
-    pub fn points_textured<I, P, T>(
-        self,
-        ctxt: DrawingContext,
-        texture_handle: Handle<Image>,
-        points: I,
-    ) -> Polygon
-    where
-        I: IntoIterator<Item = (P, T)>,
-        P: Into<Vec2>,
-        T: Into<Vec2>,
-    {
-        let DrawingContext {
-            path_points_textured_buffer,
-            ..
-        } = ctxt;
-        let start = path_points_textured_buffer.len();
-        let points = points.into_iter().map(|(p, c)| (p.into(), c.into()));
-        path_points_textured_buffer.extend(points);
-        let end = path_points_textured_buffer.len();
-        Polygon {
-            opts: self.opts,
-            path_event_src: PathEventSource::TexturedPoints {
-                range: start..end,
-                close: true,
-            },
-            texture_handle: Some(texture_handle),
         }
     }
 }
@@ -240,20 +211,73 @@ pub fn render_events_themed<F, I>(
 
 pub fn render_points_themed<I>(
     opts: PolygonOptions,
+    close: bool,
     points: I,
-    ctxt: draw::render::RenderContext,
+    mut ctxt: draw::render::RenderContext,
     theme_primitive: &draw::theme::Primitive,
     mesh: &mut Mesh,
 ) where
-    I: Clone + Iterator<Item = Vec2>,
+    I: Clone + Iterator<Item = (Vec2, Vec2)>,
 {
-    render_events_themed(
-        opts,
-        || lyon::path::iterator::FromPolyline::closed(points.clone().map(|p| p.to_array().into())),
-        ctxt,
-        theme_primitive,
-        mesh,
-    );
+    let PolygonOptions {
+        position,
+        orientation,
+        no_fill,
+        stroke_color,
+        color,
+        stroke,
+    } = opts;
+
+    // Determine the transform to apply to all points.
+    let global_transform = *ctxt.transform;
+    let local_transform = position.transform() * orientation.transform();
+    let transform = global_transform * local_transform;
+
+    // A function for rendering the path.
+    let mut render =
+        |opts: path::Options,
+         color: Option<Color>,
+         theme: &draw::Theme,
+         fill_tessellator: &mut lyon::tessellation::FillTessellator,
+         stroke_tessellator: &mut lyon::tessellation::StrokeTessellator| {
+            path::render_path_points_themed(
+                points.clone(),
+                close,
+                color,
+                transform,
+                opts,
+                theme,
+                theme_primitive,
+                fill_tessellator,
+                stroke_tessellator,
+                mesh,
+            )
+        };
+
+    // Do the fill tessellation first.
+    if !no_fill {
+        let opts = path::Options::Fill(lyon::tessellation::FillOptions::default());
+        render(
+            opts,
+            color,
+            &ctxt.theme,
+            &mut ctxt.fill_tessellator,
+            &mut ctxt.stroke_tessellator,
+        );
+    }
+
+    // Do the stroke tessellation on top.
+    if let Some(stroke_opts) = stroke {
+        let opts = path::Options::Stroke(stroke_opts);
+        let color = stroke_color;
+        render(
+            opts,
+            color,
+            &ctxt.theme,
+            &mut ctxt.fill_tessellator,
+            &mut ctxt.stroke_tessellator,
+        );
+    }
 }
 
 impl Polygon {
@@ -262,7 +286,7 @@ impl Polygon {
         ctxt: draw::render::RenderContext,
         mesh: &mut Mesh,
         theme_primitive: &draw::theme::Primitive,
-    ) -> draw::render::PrimitiveRender {
+    ) {
         let Polygon {
             path_event_src,
             opts:
@@ -274,14 +298,12 @@ impl Polygon {
                     color,
                     stroke,
                 },
-            texture_handle,
         } = self;
         let draw::render::RenderContext {
             fill_tessellator,
             stroke_tessellator,
             path_event_buffer,
-            path_points_colored_buffer,
-            path_points_textured_buffer,
+            path_points_vertex_buffer,
             transform,
             theme,
             ..
@@ -329,27 +351,11 @@ impl Polygon {
                         stroke_tessellator,
                     );
                 }
-                PathEventSource::ColoredPoints { ref range, close } => {
+                PathEventSource::Vertex { ref range, close } => {
                     let mut points_colored =
-                        path_points_colored_buffer[range.clone()].iter().cloned();
-                    let src = path::PathEventSourceIter::ColoredPoints {
+                        path_points_vertex_buffer[range.clone()].iter().cloned();
+                    let src = path::PathEventSourceIter::Vertex {
                         points: &mut points_colored,
-                        close,
-                    };
-                    render(
-                        src,
-                        opts,
-                        color,
-                        theme,
-                        fill_tessellator,
-                        stroke_tessellator,
-                    );
-                }
-                PathEventSource::TexturedPoints { ref range, close } => {
-                    let mut textured_points =
-                        path_points_textured_buffer[range.clone()].iter().cloned();
-                    let src = path::PathEventSourceIter::TexturedPoints {
-                        points: &mut textured_points,
                         close,
                     };
                     render(
@@ -380,29 +386,14 @@ impl Polygon {
                         stroke_tessellator,
                     );
                 }
-                PathEventSource::ColoredPoints { range, close } => {
+                PathEventSource::Vertex { range, close } => {
                     let color = stroke_color.unwrap_or_else(|| theme.stroke(theme_primitive));
-                    let mut points_colored = path_points_colored_buffer[range]
+                    let mut points_vertex = path_points_vertex_buffer[range]
                         .iter()
                         .cloned()
-                        .map(|(point, _)| (point, color));
-                    let src = path::PathEventSourceIter::ColoredPoints {
-                        points: &mut points_colored,
-                        close,
-                    };
-                    render(
-                        src,
-                        opts,
-                        stroke_color,
-                        theme,
-                        fill_tessellator,
-                        stroke_tessellator,
-                    );
-                }
-                PathEventSource::TexturedPoints { range, close } => {
-                    let mut textured_points = path_points_textured_buffer[range].iter().cloned();
-                    let src = path::PathEventSourceIter::TexturedPoints {
-                        points: &mut textured_points,
+                        .map(|(point, _, tex_coord)| (point, color, tex_coord));
+                    let src = path::PathEventSourceIter::Vertex {
+                        points: &mut points_vertex,
                         close,
                     };
                     render(
@@ -416,30 +407,19 @@ impl Polygon {
                 }
             }
         }
-
-        match texture_handle {
-            None => draw::render::PrimitiveRender::default(),
-            Some(texture_handle) => draw::render::PrimitiveRender {
-                texture_handle: Some(texture_handle),
-                vertex_mode: draw::render::VertexMode::Texture,
-            },
-        }
     }
 }
 
 impl draw::render::RenderPrimitive for Polygon {
-    fn render_primitive(
-        self,
-        ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         self.render_themed(ctxt, mesh, &draw::theme::Primitive::Polygon)
     }
 }
 
-impl<'a, T> Drawing<'a, T>
+impl<'a, T, M> Drawing<'a, T, M>
 where
-    T: SetPolygon + Into<Primitive>,
+    T: SetPolygon + Into<Primitive> + Clone,
+    M: Material + Default,
     Primitive: Into<Option<T>>,
 {
     /// Specify no fill color and in turn no fill tessellation for the polygon.
@@ -464,7 +444,10 @@ where
     }
 }
 
-impl<'a> DrawingPolygonInit<'a> {
+impl<'a, M> DrawingPolygonInit<'a, M>
+where
+    M: Material + Default,
+{
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -474,7 +457,7 @@ impl<'a> DrawingPolygonInit<'a> {
     }
 
     /// Describe the polygon with a sequence of path events.
-    pub fn events<I>(self, events: I) -> DrawingPolygon<'a>
+    pub fn events<I>(self, events: I) -> DrawingPolygon<'a, M>
     where
         I: IntoIterator<Item = PathEvent>,
     {
@@ -482,7 +465,7 @@ impl<'a> DrawingPolygonInit<'a> {
     }
 
     /// Describe the polygon with a sequence of points.
-    pub fn points<I>(self, points: I) -> DrawingPolygon<'a>
+    pub fn points<I>(self, points: I) -> DrawingPolygon<'a, M>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -490,28 +473,26 @@ impl<'a> DrawingPolygonInit<'a> {
         self.map_ty_with_context(|ty, ctxt| ty.points(ctxt, points))
     }
 
-    /// Consumes an iterator of points and converts them to an iterator yielding path events.
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPolygon<'a>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPolygon<'a, M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
         C: Into<Color>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points_colored(ctxt, points))
+        self.map_ty_with_context(|ty, ctxt| {
+            ty.points_vertex(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO)))
+        })
     }
 
-    /// Describe the polygon with an iterator yielding textured poings.
-    pub fn points_textured<I, P, T>(
-        self,
-        texture_handle: Handle<Image>,
-        points: I,
-    ) -> DrawingPolygon<'a>
+    /// Consumes an iterator of points and converts them to an iterator yielding path events.
+    pub fn points_vertex<I, P, C, U>(self, points: I) -> DrawingPolygon<'a, M>
     where
-        I: IntoIterator<Item = (P, T)>,
+        I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
-        T: Into<Vec2>,
+        C: Into<Color>,
+        U: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points_textured(ctxt, texture_handle, points))
+        self.map_ty_with_context(|ty, ctxt| ty.points_vertex(ctxt, points))
     }
 }
 

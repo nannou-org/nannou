@@ -1,3 +1,8 @@
+use bevy::prelude::*;
+use lyon::tessellation::StrokeOptions;
+
+use nannou_core::geom;
+
 use crate::draw;
 use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
@@ -6,9 +11,6 @@ use crate::draw::properties::{
     spatial, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::Drawing;
-use bevy::prelude::*;
-use lyon::tessellation::StrokeOptions;
-use nannou_core::geom;
 
 /// Properties related to drawing an **Ellipse**.
 #[derive(Clone, Debug, Default)]
@@ -19,7 +21,7 @@ pub struct Ellipse {
 }
 
 /// The drawing context for an ellipse.
-pub type DrawingEllipse<'a> = Drawing<'a, Ellipse>;
+pub type DrawingEllipse<'a, M> = Drawing<'a, Ellipse, M>;
 
 // Ellipse-specific methods.
 
@@ -51,11 +53,7 @@ impl Ellipse {
 // Trait implementations.
 
 impl draw::render::RenderPrimitive for Ellipse {
-    fn render_primitive(
-        self,
-        ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         let Ellipse {
             dimensions,
             polygon,
@@ -96,9 +94,27 @@ impl draw::render::RenderPrimitive for Ellipse {
             Some(resolution) => {
                 let rect = geom::Rect::from_w_h(w, h);
                 let ellipse = geom::Ellipse::new(rect, resolution);
-                let points = ellipse.circumference().map(Vec2::from);
+                let top_left = rect.top_left();
+                let bottom_right = rect.bottom_right();
+
+                let center = Vec2::new(
+                    (top_left.x + bottom_right.x) / 2.0,
+                    (top_left.y + bottom_right.y) / 2.0,
+                );
+                let radii = Vec2::new(
+                    (bottom_right.x - top_left.x) / 2.0,
+                    (bottom_right.y - top_left.y) / 2.0,
+                );
+
+                let points = ellipse.circumference().map(|p| {
+                    let p = Vec2::from(p);
+                    let tex_coords = calculate_tex_coords(&p, &center, &radii);
+                    (p, tex_coords)
+                });
+
                 polygon::render_points_themed(
                     polygon.opts,
+                    true,
                     points,
                     ctxt,
                     &draw::theme::Primitive::Ellipse,
@@ -106,9 +122,15 @@ impl draw::render::RenderPrimitive for Ellipse {
                 );
             }
         }
-
-        draw::render::PrimitiveRender::default()
     }
+}
+
+fn calculate_tex_coords(position: &Vec2, center: &Vec2, radius: &Vec2) -> Vec2 {
+    // Normalize the position to UV space (0, 1)
+    Vec2::new(
+        (position.x - center.x) / (2.0 * radius.x) + 0.5,
+        (position.y - center.y) / (2.0 * radius.y) + 0.5,
+    )
 }
 
 impl SetOrientation for Ellipse {
@@ -166,7 +188,10 @@ impl Into<Option<Ellipse>> for Primitive {
 
 // Drawing methods.
 
-impl<'a> DrawingEllipse<'a> {
+impl<'a, M> DrawingEllipse<'a, M>
+where
+    M: Material + Default,
+{
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where

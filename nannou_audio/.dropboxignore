@@ -1,0 +1,16 @@
+# ----
+# Automatically Generated .dropboxignore file at Tue Apr 23 13:35:38 PDT 2024
+# ----
+<<<<<<< HEAD
+capture_hi_res/
+simple_capture/
+target/
+**/*.rs.bk
+Cargo.lock
+.DS_Store
+=======
+/target
+**/*.rs.bk
+Cargo.lock
+>>>>>>> nannou_audio/master
+# ----

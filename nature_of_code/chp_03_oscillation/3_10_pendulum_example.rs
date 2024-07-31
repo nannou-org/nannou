@@ -55,7 +55,7 @@ impl Pendulum {
         }
     }
 
-    fn update(&mut self, rect: Rect) {
+    fn update(&mut self, rect: geom::Rect) {
         // As long as we aren't dragging the pendulum, let it swing!
         if !self.dragging {
             let gravity = 0.4; // Arbitrary constant
@@ -131,31 +131,27 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
-        .build()
-        .unwrap();
+        .build();
     let pendulum = Pendulum::new(pt2(0.0, app.window_rect().top()), 175.0);
 
     Model { pendulum }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     m.pendulum.update(app.window_rect());
-    m.pendulum.drag(app.mouse.x, app.mouse.y);
+    m.pendulum.drag(app.mouse().x, app.mouse().y);
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     m.pendulum.display(&draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
-    m.pendulum.clicked(app.mouse.x, app.mouse.y);
+    m.pendulum.clicked(app.mouse().x, app.mouse().y);
 }
 
 fn mouse_released(_app: &App, m: &mut Model, _button: MouseButton) {

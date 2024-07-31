@@ -1,5 +1,6 @@
-use crate::math::num_traits::{Num, NumOps};
 use core::ops;
+
+use crate::math::num_traits::{Num, NumOps};
 
 /// Implemented for all numeric scalar types used within `geom`.
 ///

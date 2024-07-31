@@ -44,7 +44,7 @@ struct Model {
     falloff: f32,
     noise_mode: u8,
     noise_random_seed: u32,
-    texture: wgpu::Texture,
+    texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
@@ -54,16 +54,23 @@ fn model(app: &App) -> Model {
         .view(view)
         .key_pressed(key_pressed)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let window = app.main_window();
     let win = window.rect();
-    let texture = wgpu::TextureBuilder::new()
-        .size([win.w() as u32, win.h() as u32])
-        .format(wgpu::TextureFormat::Rgba8Unorm)
-        .usage(wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING)
-        .build(window.device());
+    let image = Image::new_fill(
+        Extent3d {
+            width: win.x().to_u32().unwrap(),
+            height: win.y().to_u32().unwrap(),
+            depth_or_array_layers: 1,
+        },
+        TextureDimension::D2,
+        &[0, 0, 0, 0],
+        TextureFormat::Rgba8Unorm,
+        // Need to keep this image CPU persistent in order to add additional glyphs later on
+        RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
+    );
+    let texture = app.asset_server().add(image);
     Model {
         octaves: 4,
         falloff: 0.5,
@@ -73,17 +80,15 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
-
+fn view(app: &App, model: &Model) {
     let win = app.window_rect();
     let noise = nannou::noise::Fbm::new()
         .set_seed(model.noise_random_seed)
         .set_octaves(model.octaves)
         .set_persistence(model.falloff as f64);
 
-    let noise_x_range = map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w() / 10.0);
-    let noise_y_range = map_range(app.mouse.y, win.top(), win.bottom(), 0.0, win.h() / 10.0);
+    let noise_x_range = map_range(app.mouse().x, win.left(), win.right(), 0.0, win.w() / 10.0);
+    let noise_y_range = map_range(app.mouse().x, win.top(), win.bottom(), 0.0, win.h() / 10.0);
 
     let image = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |x, y| {
         let noise_x = map_range(x, 0, win.w() as u32, 0.0, noise_x_range) as f64;
@@ -112,62 +117,48 @@ fn view(app: &App, model: &Model, frame: Frame) {
         nannou::image::Rgba([n, n, n, std::u8::MAX])
     });
 
-    let flat_samples = image.as_flat_samples();
-    model.texture.upload_data(
-        app.main_window().device(),
-        &mut *frame.command_encoder(),
-        &flat_samples.as_slice(),
-    );
-
     let draw = app.draw();
-    draw.texture(&model.texture);
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+    draw.rect().texture(&model.texture);
+    draw.background().color(BLACK);
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
-        Key::Space => {
+        KeyCode::Space => {
             model.noise_random_seed = (random_f32() * 100000.0) as u32;
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.noise_mode = 1;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.noise_mode = 2;
         }
         _otherkey => (),
     }
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Up => {
+        KeyCode::ArrowUp => {
             model.falloff += 0.05;
         }
-        Key::Down => {
+        KeyCode::ArrowDown => {
             model.falloff -= 0.05;
         }
-        Key::Left => {
+        KeyCode::ArrowLeft => {
             model.octaves -= 1;
         }
-        Key::Right => {
+        KeyCode::ArrowRight => {
             model.octaves += 1;
         }
         _otherkey => (),
     }
 
-    if model.falloff > 1.0 {
-        model.falloff = 1.0;
-    }
-    if model.falloff <= 0.0 {
-        model.falloff = 0.0;
-    }
+    model.falloff = model.falloff.clamp(0.0, 1.0);
     if model.octaves <= 1 {
         model.octaves = 1;
     }

@@ -22,7 +22,6 @@
  * and prints them to the console
  */
 use nannou::prelude::*;
-use wikipedia;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -31,7 +30,7 @@ fn main() {
 struct Model;
 
 fn model(app: &App) -> Model {
-    app.new_window().size(400, 400).view(view).build().unwrap();
+    app.new_window().size(400, 400).view(view).build();
 
     let wiki = wikipedia::Wikipedia {
         client: wikipedia::http::default::Client::default(),
@@ -49,12 +48,6 @@ fn model(app: &App) -> Model {
     Model
 }
 
-fn update(_app: &App, _model: &mut Model, _update: Update) {}
+fn update(_app: &App, _model: &mut Model) {}
 
-fn view(app: &App, _model: &Model, frame: Frame) {
-    // Begin drawing
-    let draw = app.draw();
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
-}
+fn view(app: &App, _model: &Model) {}

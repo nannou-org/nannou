@@ -49,8 +49,8 @@ struct Model {
     tile_count: u32,
     act_random_seed: u64,
     act_stroke_cap: LineCap,
-    color_left: Rgba,
-    color_right: Rgba,
+    color_left: Srgba,
+    color_right: Srgba,
     alpha_left: f32,
     alpha_right: f32,
 }
@@ -63,8 +63,7 @@ fn model(app: &App) -> Model {
         .mouse_pressed(mouse_pressed)
         .key_released(key_released)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let alpha_left = 1.0;
     let alpha_right = 1.0;
@@ -73,14 +72,14 @@ fn model(app: &App) -> Model {
         tile_count: 20,
         act_random_seed: 0,
         act_stroke_cap: LineCap::Round,
-        color_left: rgba(0.77, 0.0, 0.48, alpha_left),
-        color_right: rgba(0.34, 0.137, 0.5, alpha_right),
+        color_left: Srgba::new(0.77, 0.0, 0.48, alpha_left),
+        color_right: Srgba::new(0.34, 0.137, 0.5, alpha_right),
         alpha_left,
         alpha_right,
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -94,12 +93,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let tile_h = win.h() / model.tile_count as f32;
             let pos_x = win.left() + tile_w * grid_x as f32;
             let pos_y = (win.top() - tile_h) - tile_h * grid_y as f32;
-            let mx = clamp(win.right() + app.mouse.x, 0.0, win.w());
-            let my = clamp(win.top() - app.mouse.y, 0.0, win.h());
+            let mx = clamp(win.right() + app.mouse().x, 0.0, win.w());
+            let my = clamp(win.top() - app.mouse().x, 0.0, win.h());
 
             let toggle = rng.gen::<bool>();
 
-            if toggle == false {
+            if !toggle {
                 draw.line()
                     .color(model.color_left)
                     .weight(mx / 10.0)
@@ -112,7 +111,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                         ),
                     );
             }
-            if toggle == true {
+            if toggle {
                 draw.line()
                     .color(model.color_right)
                     .weight(my / 10.0)
@@ -124,50 +123,47 @@ fn view(app: &App, model: &Model, frame: Frame) {
             }
         }
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.act_random_seed = (random_f32() * 100000.0) as u64;
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }
 
-fn key_released(_app: &App, model: &mut Model, key: Key) {
-    let black = rgba(0.0, 0.0, 0.0, 1.0);
+fn key_released(_app: &App, model: &mut Model, key: KeyCode) {
+    let black = Srgba::new(0.0, 0.0, 0.0, 1.0);
 
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.act_stroke_cap = LineCap::Round;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.act_stroke_cap = LineCap::Square;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.act_stroke_cap = LineCap::Butt;
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             if model.color_left.eq(&black) {
-                model.color_left = rgba(0.77, 0.0, 0.48, model.alpha_left);
+                model.color_left = Color::srgba(0.77, 0.0, 0.48, model.alpha_left).into();
             } else {
-                model.color_left = rgba(0.0, 0.0, 0.0, model.alpha_left);
+                model.color_left = Color::srgba(0.0, 0.0, 0.0, model.alpha_left).into();
             }
         }
-        Key::Key5 => {
+        KeyCode::Digit5 => {
             if model.color_right.eq(&black) {
-                model.color_right = rgba(0.34, 0.13, 0.5, model.alpha_right);
+                model.color_right = Color::srgba(0.34, 0.13, 0.5, model.alpha_right).into();
             } else {
-                model.color_right = rgba(0.0, 0.0, 0.0, model.alpha_right);
+                model.color_right = Color::srgba(0.0, 0.0, 0.0, model.alpha_right).into();
             }
         }
-        Key::Key6 => {
+        KeyCode::Digit6 => {
             if model.alpha_left == 1.0 {
                 model.alpha_left = 0.5;
             } else {
@@ -175,7 +171,7 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
             }
             model.color_left.alpha = model.alpha_left;
         }
-        Key::Key7 => {
+        KeyCode::Digit7 => {
             if model.alpha_right == 1.0 {
                 model.alpha_right = 0.5;
             } else {
@@ -183,12 +179,12 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
             }
             model.color_right.alpha = model.alpha_right;
         }
-        Key::Key0 => {
+        KeyCode::Digit0 => {
             model.act_stroke_cap = LineCap::Round;
             model.alpha_left = 1.0;
             model.alpha_right = 1.0;
-            model.color_left = rgba(0.0, 0.0, 0.0, model.alpha_left);
-            model.color_right = rgba(0.0, 0.0, 0.0, model.alpha_right);
+            model.color_left = Color::srgba(0.0, 0.0, 0.0, model.alpha_left).into();
+            model.color_right = Color::srgba(0.0, 0.0, 0.0, model.alpha_right).into();
         }
         _other_key => {}
     }

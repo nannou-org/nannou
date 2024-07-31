@@ -96,9 +96,9 @@ where
         None => return None,
     };
     Some(Triangles {
-        first: first,
-        prev: prev,
-        points: points,
+        first,
+        prev,
+        points,
     })
 }
 
@@ -117,7 +117,7 @@ where
     I: IntoIterator,
     I::Item: Vertex2d,
 {
-    triangles(points).and_then(|ts| tri::iter_contains(ts, &point))
+    triangles(points).and_then(|ts| tri::iter_contains(ts, point))
 }
 
 impl<I> Iterator for Triangles<I>

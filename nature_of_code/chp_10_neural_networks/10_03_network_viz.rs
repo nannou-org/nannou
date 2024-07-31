@@ -39,7 +39,7 @@ impl Neuron {
             .stroke(BLACK);
 
         for c in &self.connections {
-            c.display(&draw);
+            c.display(draw);
         }
     }
 }
@@ -96,7 +96,7 @@ impl Network {
     // We can draw the network
     fn display(&self, draw: &Draw) {
         for n in &self.neurons {
-            n.display(&draw);
+            n.display(draw);
         }
     }
 }
@@ -106,7 +106,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
 
     // Create an empty network
     let mut network = Network::new();
@@ -132,13 +132,10 @@ fn model(app: &App) -> Model {
     Model { network }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     model.network.display(&draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

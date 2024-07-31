@@ -1,5 +1,6 @@
-use bevy::prelude::Color;
 use std::collections::HashMap;
+
+use bevy::prelude::Color;
 
 /// A set of styling defaults used for coloring texturing geometric primitives that have no entry
 /// within the **Draw**'s inner **ColorMap**.
@@ -60,8 +61,8 @@ impl Theme {
 impl Default for Theme {
     fn default() -> Self {
         // TODO: This should be pub const.
-        let default_fill = Color::rgba(1.0, 1.0, 1.0, 1.0);
-        let default_stroke = Color::rgba(0.0, 0.0, 0.0, 1.0);
+        let default_fill = Color::srgba(1.0, 1.0, 1.0, 1.0);
+        let default_stroke = Color::srgba(0.0, 0.0, 0.0, 1.0);
 
         let fill_color = ThemeColor {
             default: default_fill,

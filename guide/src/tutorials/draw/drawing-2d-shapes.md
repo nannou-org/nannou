@@ -24,7 +24,7 @@ fn main() {
     nannou::sketch(view).run();
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // Prepare to draw.
     let draw = app.draw();
 
@@ -32,10 +32,9 @@ fn view(app: &App, frame: Frame) {
     draw.background().color(PLUM);
 
     // Draw a blue ellipse with default size and position.
-    draw.ellipse().color(STEELBLUE);
+    draw.ellipse().color(STEEL_BLUE);
 
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+    
 }
 ```
 
@@ -57,7 +56,7 @@ Already we are rendering a circle to our canvas.  As you may have guessed, the l
 # fn main() {
 #     let draw: Draw = unimplemented!();
 draw.ellipse()
-    .color(STEELBLUE);
+    .color(STEEL_BLUE);
 # }
 ```
 
@@ -69,7 +68,7 @@ There are many ways we can alter our circle here.  Let's start with changing the
 # fn main() {
 #     let draw: Draw = unimplemented!();
 draw.ellipse()
-    .color(STEELBLUE)
+    .color(STEEL_BLUE)
     .w(300.0)
     .h(200.0);
 # }
@@ -85,7 +84,7 @@ We can also change the position of our ellipse with the `x_y` method:
 # fn main() {
 #     let draw: Draw = unimplemented!();
 draw.ellipse()
-    .color(STEELBLUE)
+    .color(STEEL_BLUE)
     .w(300.0)
     .h(200.0)
     .x_y(200.0, -100.0);
@@ -107,7 +106,7 @@ Drawing a square or rectangle uses the same builder pattern that drawing an elli
 # fn main() {
 #     let draw: Draw = unimplemented!();
 draw.rect()
-    .color(STEELBLUE)
+    .color(STEEL_BLUE)
     .w(300.0)
     .h(200.0);
 # }
@@ -130,7 +129,7 @@ let point3 = pt2(15.0, 40.0);
 let point4 = pt2(-20.0, 35.0);
 
 draw.quad()
-    .color(STEELBLUE)
+    .color(STEEL_BLUE)
     .w(300.0)
     .h(200.0)
     .points(point1, point2, point3, point4);
@@ -167,7 +166,7 @@ draw.line()
     .start(start_point)
     .end(end_point)
     .weight(4.0)
-    .color(STEELBLUE);
+    .color(STEEL_BLUE);
 # }
 ```
 
@@ -187,7 +186,7 @@ To draw our sine wave, we will use the `polyline` function.  To use this functio
 let points = (0..50).map(|i| {
   let x = i as f32 - 25.0;          //subtract 25 to center the sine wave
   let point = pt2(x, x.sin()) * 20.0; //scale sine wave by 20.0
-  (point, STEELBLUE)
+  (point, STEEL_BLUE)
 });
 draw.polyline()
     .weight(3.0)
@@ -221,7 +220,7 @@ let points = (0..=360).map(|i| {
     // Do the same with cosine to find the y co-ordinate.
     let y = radian.cos() * radius;
     // Construct and return a point object with a color.
-    (pt2(x,y), STEELBLUE)
+    (pt2(x,y), STEEL_BLUE)
 });
 // Create a polyline builder. Hot-tip: polyline is short-hand for a path that is
 // drawn via "stroke" tessellation rather than "fill" tessellation.
@@ -280,7 +279,7 @@ let points = (0..=360).step_by(45).map(|i| {
     let radian = deg_to_rad(i as f32);
     let x = radian.sin() * radius;
     let y = radian.cos() * radius;
-    (pt2(x,y), STEELBLUE)
+    (pt2(x,y), STEEL_BLUE)
 });
 draw.polygon()
     .points_colored(points);

@@ -31,7 +31,7 @@
 use nannou::lyon;
 use nannou::lyon::algorithms::path::math::Point;
 use nannou::lyon::algorithms::path::PathSlice;
-use nannou::lyon::algorithms::walk::{walk_along_path, RepeatedPattern};
+use nannou::lyon::algorithms::walk::{walk_along_path, RepeatedPattern, WalkerEvent};
 use nannou::lyon::path::iterator::*;
 use nannou::prelude::*;
 
@@ -41,6 +41,7 @@ fn main() {
 
 struct Model {
     text_typed: String,
+    letter: Option<KeyCode>,
 }
 
 fn model(app: &App) -> Model {
@@ -50,15 +51,15 @@ fn model(app: &App) -> Model {
         .view(view)
         .key_pressed(key_pressed)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         text_typed: "Nannou is Amazing!".to_string(),
+        letter: None,
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(BLACK);
     let win_rect = app.main_window().rect().pad_left(20.0);
@@ -87,14 +88,14 @@ fn view(app: &App, model: &Model, frame: Frame) {
         draw.line()
             .start(pt2(p.x + l, p.y - l))
             .end(pt2(p.x - l, p.y + l))
-            .rgb(0.7, 0.61, 0.0);
+            .srgb(0.7, 0.61, 0.0);
         // Dots
         let q = map_range(i, 0, path_points.len(), 0.0, 1.0);
         if i % 2 == 0 {
             draw.ellipse()
                 .x_y(p.x, p.y)
                 .radius(map_range(
-                    (i as f32 * 0.05 + app.time * 4.3).sin(),
+                    (i as f32 * 0.05 + app.time() * 4.3).sin(),
                     -1.0,
                     1.0,
                     3.0,
@@ -103,18 +104,15 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 .hsv(q, 1.0, 0.5);
         }
     });
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_pressed(_app: &App, _model: &mut Model, _key: Key) {
-    //model.letter = key.into();
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
+    model.letter = key.into();
 }
-fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::LControl || key == Key::RControl {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::ControlLeft || key == KeyCode::ControlRight {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }
 
@@ -122,7 +120,8 @@ fn dots_along_path(path: PathSlice, dots: &mut Vec<Point>, interval: f32, offset
     use std::ops::Rem;
     let dot_spacing = map_range(interval, 0.0, 1.0, 0.025, 1.0);
     let mut pattern = RepeatedPattern {
-        callback: &mut |position, _tangent, _distance| {
+        callback: &mut |evt: WalkerEvent| {
+            let position = evt.position;
             dots.push(position);
             true // Return true to continue walking the path.
         },
@@ -133,5 +132,10 @@ fn dots_along_path(path: PathSlice, dots: &mut Vec<Point>, interval: f32, offset
 
     let tolerance = 0.01; // The path flattening tolerance.
     let start_offset = offset.rem(12.0 + dot_spacing); // Start walking at the beginning of the path.
-    walk_along_path(path.iter().flattened(tolerance), start_offset, &mut pattern);
+    walk_along_path(
+        path.iter().flattened(tolerance),
+        start_offset,
+        tolerance,
+        &mut pattern,
+    );
 }

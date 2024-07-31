@@ -39,7 +39,7 @@ fn main() {
 struct Model {
     tile_count: u32,
     act_random_seed: u64,
-    circle_color: Rgba,
+    circle_color: Srgba,
 }
 
 fn model(app: &App) -> Model {
@@ -49,19 +49,18 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let circle_alpha = 0.5;
 
     Model {
         tile_count: 20,
         act_random_seed: 0,
-        circle_color: rgba(0.0, 0.0, 0.0, circle_alpha),
+        circle_color: Color::srgba(0.0, 0.0, 0.0, circle_alpha).into(),
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
 
@@ -76,8 +75,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let pos_x = (win.left() + (tile_w / 2.0)) + tile_w * grid_x as f32;
             let pos_y = (win.top() - (tile_h / 2.0)) - tile_h * grid_y as f32;
 
-            let mx = clamp(win.right() + app.mouse.x, 0.0, win.w());
-            let my = clamp(win.top() - app.mouse.y, 0.0, win.h());
+            let mx = clamp(win.right() + app.mouse().x, 0.0, win.w());
+            let my = clamp(win.top() - app.mouse().x, 0.0, win.h());
 
             let shift_x = rng.gen_range(-mx..mx + 1.0) / 20.0;
             let shift_y = rng.gen_range(-mx..mx + 1.0) / 20.0;
@@ -90,18 +89,15 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 .stroke_weight(my / 50.0);
         }
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.act_random_seed = (random_f32() * 100000.0) as u64;
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

@@ -6,7 +6,6 @@
 //! 4. Adds the latest nannou version as a dep to the `Cargo.toml`.
 //! 5. Builds the project with optimisations. Suggests getting a beverage.
 
-use cargo::CargoResult;
 use std::env;
 use std::fs::{self, File};
 use std::io::{self, BufRead, Write};
@@ -14,6 +13,8 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
+
+use cargo::CargoResult;
 
 enum Project {
     Sketch,
@@ -145,11 +146,13 @@ fn main() {
         let template_path = nannou_package
             .root()
             .join("examples")
-            .join(&project.template_file_name());
-        std::fs::read(&template_path).expect(&format!(
-            "failed to read template bytes from {}",
-            template_path.display()
-        ))
+            .join(project.template_file_name());
+        std::fs::read(&template_path).unwrap_or_else(|_| {
+            panic!(
+                "failed to read template bytes from {}",
+                template_path.display()
+            )
+        })
     };
 
     // Get the current directory.
@@ -187,7 +190,6 @@ fn main() {
         println!("Adding nannou dependency `{}`", nannou_dependency);
         let cargo_toml_path = project_path.join("Cargo").with_extension("toml");
         let mut file = fs::OpenOptions::new()
-            .write(true)
             .append(true)
             .open(&cargo_toml_path)
             .expect("failed to open \"Cargo.toml\" to add nannou dependency");

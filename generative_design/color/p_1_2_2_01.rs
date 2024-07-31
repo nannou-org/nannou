@@ -66,10 +66,9 @@ fn model(app: &App) -> Model {
         .size(600, 600)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets
         .join("images")
         .join("generative_examples")
@@ -82,12 +81,12 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(WHITE);
     let win = app.window_rect();
     let tile_count = clamp(
-        map_range(app.mouse.x, win.left(), win.right(), 120, 1),
+        map_range(app.mouse().x, win.left(), win.right(), 120, 1),
         120,
         1,
     );
@@ -106,7 +105,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let blue = c[2] as f32 / 255.0;
             let alpha = c[3] as f32 / 255.0;
 
-            colors.push(rgba(red, green, blue, alpha));
+            colors.push(Srgba::new(red, green, blue, alpha));
         }
     }
 
@@ -127,62 +126,61 @@ fn view(app: &App, model: &Model, frame: Frame) {
             i += 1;
         }
     }
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
-    let assets = app.assets_path().unwrap();
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
+    let assets = app.assets_path();
     let img_path = assets.join("images").join("generative_examples");
 
     match key {
-        Key::Q => {
+        KeyCode::KeyQ => {
             model.image = image::open(img_path.join("pic1.jpg")).unwrap();
         }
-        Key::W => {
+        KeyCode::KeyW => {
             model.image = image::open(img_path.join("pic2.jpg")).unwrap();
         }
-        Key::E => {
+        KeyCode::KeyE => {
             model.image = image::open(img_path.join("pic3.jpg")).unwrap();
         }
-        Key::R => {
+        KeyCode::KeyR => {
             model.image = image::open(img_path.join("pic4.jpg")).unwrap();
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.sort_mode = None;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.sort_mode = Some(SortMode::Hue);
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.sort_mode = Some(SortMode::Saturation);
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.sort_mode = Some(SortMode::Brightness);
         }
-        Key::Key5 => {
+        KeyCode::Digit5 => {
             model.sort_mode = Some(SortMode::Grayscale);
         }
-        Key::Key6 => {
+        KeyCode::Digit6 => {
             model.sort_mode = Some(SortMode::Red);
         }
-        Key::Key7 => {
+        KeyCode::Digit7 => {
             model.sort_mode = Some(SortMode::Green);
         }
-        Key::Key8 => {
+        KeyCode::Digit8 => {
             model.sort_mode = Some(SortMode::Blue);
         }
-        Key::Key9 => {
+        KeyCode::Digit9 => {
             model.sort_mode = Some(SortMode::Alpha);
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _otherkey => (),
     }
 }
 
-fn sort_colors(colors: &mut Vec<Rgba>, mode: &SortMode) {
+fn sort_colors(colors: &mut Vec<Srgba>, mode: &SortMode) {
     match mode {
         SortMode::Red => {
             colors.sort_by(|a, b| a.red.partial_cmp(&b.red).unwrap());
@@ -195,15 +193,15 @@ fn sort_colors(colors: &mut Vec<Rgba>, mode: &SortMode) {
         }
         SortMode::Hue => {
             colors.sort_by(|a, b| {
-                let a: Hsl = a.clone().into();
-                let b: Hsl = b.clone().into();
+                let a: Hsla = (*a).into();
+                let b: Hsla = (*b).into();
                 a.hue.to_radians().partial_cmp(&b.hue.to_radians()).unwrap()
             });
         }
         SortMode::Saturation => {
             colors.sort_by(|a, b| {
-                let a: Hsl = a.clone().into();
-                let b: Hsl = b.clone().into();
+                let a: Hsla = (*a).into();
+                let b: Hsla = (*b).into();
 
                 // temporary fix until conrod bug with saturation is resolved
                 if a.saturation.is_nan() && b.saturation.is_nan() {
@@ -219,14 +217,14 @@ fn sort_colors(colors: &mut Vec<Rgba>, mode: &SortMode) {
         }
         SortMode::Brightness => {
             colors.sort_by(|a, b| {
-                let a: Hsl = a.clone().into();
-                let b: Hsl = b.clone().into();
+                let a: Hsla = (*a).into();
+                let b: Hsla = (*b).into();
                 a.lightness.partial_cmp(&b.lightness).unwrap()
             });
         }
         SortMode::Grayscale => {
             colors.sort_by(|a, b| {
-                let gray = |c: &Rgba| c.red * 0.222 + c.green * 0.707 + c.blue * 0.071;
+                let gray = |c: &Srgba| c.red * 0.222 + c.green * 0.707 + c.blue * 0.071;
                 gray(a).partial_cmp(&gray(b)).unwrap()
             });
         }

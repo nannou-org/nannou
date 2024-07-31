@@ -1,18 +1,28 @@
 //! Feeds back the input stream directly into the output stream
 //!
 //! You can play and pause the streams by pressing space key
+use ringbuf::{Consumer, Producer, RingBuffer};
+use std::sync::mpsc::{RecvError, Sender};
+use std::thread::JoinHandle;
+
 use nannou::prelude::*;
 use nannou_audio as audio;
 use nannou_audio::Buffer;
-use ringbuf::{Consumer, Producer, RingBuffer};
 
 fn main() {
-    nannou::app(model).run();
+    nannou::app(model).exit(exit).run();
+}
+
+pub enum AudioCommand {
+    Play,
+    Pause,
+    Exit,
 }
 
 struct Model {
-    in_stream: audio::Stream<InputModel>,
-    out_stream: audio::Stream<OutputModel>,
+    audio_thread: JoinHandle<()>,
+    audio_tx: Sender<AudioCommand>,
+    is_paused: bool,
 }
 
 struct InputModel {
@@ -25,11 +35,7 @@ struct OutputModel {
 
 fn model(app: &App) -> Model {
     // Create a window to receive key pressed events.
-    app.new_window()
-        .key_pressed(key_pressed)
-        .view(view)
-        .build()
-        .unwrap();
+    app.new_window().key_pressed(key_pressed).view(view).build();
 
     // Initialise the audio host so we can spawn an audio stream.
     let audio_host = audio::Host::new();
@@ -44,28 +50,54 @@ fn model(app: &App) -> Model {
         prod.push(0.0).unwrap();
     }
 
-    // Create input model and input stream using that model
-    let in_model = InputModel { producer: prod };
-    let in_stream = audio_host
-        .new_input_stream(in_model)
-        .capture(pass_in)
-        .build()
-        .unwrap();
+    // Kick off the audio thread
+    let (audio_tx, audio_rx) = std::sync::mpsc::channel();
+    let audio_thread = std::thread::spawn(move || {
+        // Create input model and input stream using that model
+        let in_model = InputModel { producer: prod };
+        let in_stream = audio_host
+            .new_input_stream(in_model)
+            .capture(pass_in)
+            .build()
+            .unwrap();
 
-    // Create output model and output stream using that model
-    let out_model = OutputModel { consumer: cons };
-    let out_stream = audio_host
-        .new_output_stream(out_model)
-        .render(pass_out)
-        .build()
-        .unwrap();
+        // Create output model and output stream using that model
+        let out_model = OutputModel { consumer: cons };
+        let out_stream = audio_host
+            .new_output_stream(out_model)
+            .render(pass_out)
+            .build()
+            .unwrap();
 
-    in_stream.play().unwrap();
-    out_stream.play().unwrap();
+        in_stream.play().unwrap();
+        out_stream.play().unwrap();
+
+        let mut in_stream = in_stream;
+        let mut out_stream = out_stream;
+        loop {
+            match audio_rx.recv() {
+                Ok(AudioCommand::Play) => {
+                    in_stream.play().unwrap();
+                    out_stream.play().unwrap();
+                }
+                Ok(AudioCommand::Pause) => {
+                    in_stream.pause().unwrap();
+                    out_stream.pause().unwrap();
+                }
+                Ok(AudioCommand::Exit) => {
+                    in_stream.pause().ok();
+                    out_stream.pause().ok();
+                    break;
+                }
+                Err(_) => break,
+            }
+        }
+    });
 
     Model {
-        in_stream,
-        out_stream,
+        audio_thread,
+        audio_tx,
+        is_paused: false,
     }
 }
 
@@ -80,30 +112,30 @@ fn pass_in(model: &mut InputModel, buffer: &Buffer) {
 fn pass_out(model: &mut OutputModel, buffer: &mut Buffer) {
     for frame in buffer.frames_mut() {
         for sample in frame {
-            let recorded_sample = match model.consumer.pop() {
-                Some(f) => f,
-                None => 0.0,
-            };
+            let recorded_sample = model.consumer.pop().unwrap_or(0.0);
             *sample = recorded_sample;
         }
     }
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
-    match key {
-        Key::Space => {
-            if model.in_stream.is_paused() {
-                model.in_stream.play().unwrap();
-                model.out_stream.play().unwrap();
-            } else {
-                model.in_stream.pause().unwrap();
-                model.out_stream.pause().unwrap();
-            }
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
+    if key == KeyCode::Space {
+        if model.is_paused {
+            model.audio_tx.send(AudioCommand::Play).ok();
+            model.is_paused = false;
+        } else {
+            model.audio_tx.send(AudioCommand::Pause).ok();
+            model.is_paused = true;
         }
-        _ => {}
     }
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
+fn exit(_app: &App, model: Model) {
+    model.audio_tx.send(AudioCommand::Exit).ok();
+    model.audio_thread.join().ok();
+}
+
+fn view(app: &App, _model: &Model) {
+    let draw = app.draw();
+    draw.background().color(DIM_GRAY);
 }

@@ -49,8 +49,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_released(mouse_released)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let color_count = 20;
 
@@ -69,7 +68,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     // Create palette
     for i in 0..model.color_count {
         if i % 2 == 0 {
@@ -88,7 +87,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
 
     if model.clicked {
@@ -128,7 +127,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             // draw rects
             let mut sum_parts_now = 0;
             for ii in 0..parts.len() {
-                sum_parts_now += parts[ii as usize];
+                sum_parts_now += parts[ii];
 
                 let x = map_range(
                     sum_parts_now,
@@ -143,18 +142,15 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
                 let index = counter % model.color_count;
                 draw.rect().x_y(x + (w / 2.0), y - (h / 2.0)).w_h(w, h).hsv(
-                    model.hue_values[index as usize],
-                    model.saturation_values[index as usize],
-                    model.brightness_values[index as usize],
+                    model.hue_values[index],
+                    model.saturation_values[index],
+                    model.brightness_values[index],
                 );
 
                 counter += 1;
             }
         }
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
@@ -162,9 +158,9 @@ fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
     model.clicked_frame = app.elapsed_frames();
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

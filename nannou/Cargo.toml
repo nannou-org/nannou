@@ -11,37 +11,42 @@ homepage = "https://github.com/nannou-org/nannou"
 edition = "2018"
 
 [dependencies]
+bevy = { workspace = true }
+bevy-inspector-egui = { workspace = true, optional = true }
+bevy_egui = { workspace = true, optional = true }
+bevy_common_assets = { workspace = true, optional = true }
+bevy_nannou = { version = "0.1.0", path = "../bevy_nannou" }
 futures = "0.3"
 find_folder = "0.3"
 getrandom = "0.2.3"
-image = "0.23"
 instant = "0.1.9"
-lyon = "0.17"
-nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std", "serde"] }
-nannou_mesh = { version ="0.19.0", path = "../nannou_mesh", features = ["serde1"] }
-nannou_wgpu = { version ="0.19.0", path = "../nannou_wgpu", features = ["capturer"] }
+lyon = "1.0"
+nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std"] }
 noise = "0.7"
 notosans = { version = "0.1", optional = true }
 num_cpus = "1"
 pennereq = "0.3"
 rusttype = { version = "0.8", features = ["gpu_cache"] }
-serde = "1"
-serde_derive = "1"
-serde_json = "1"
-toml = "0.5"
+serde = { workspace = true, features = ["derive"], optional = true}
+serde_json = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
 walkdir = "2"
 web-sys = { version = "0.3.64", optional = true }
-wgpu_upstream = { version = "0.17.1", package = "wgpu" }
-winit = "0.28"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["full"]}
+image = { version = "0.25", features = ["default"] }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { version = "1", features = ["rt"]}
+image = { version = "0.25", features = [], default-features = false }
 
 [features]
 default = ["notosans"]
-# Enables SPIR-V support in the `wgpu` module.
-spirv = ["nannou_wgpu/spirv"]
-# Enables experimental WASM compilation for CI-use only
-wasm-experimental = ["getrandom/js", "web-sys", "wgpu_upstream/webgl", "wgpu_upstream/fragile-send-sync-non-atomic-wasm"]
+egui = ["bevy_egui", "bevy-inspector-egui"]
+nightly = ["bevy_nannou/nightly"]
+hot_reload = ["bevy/file_watcher"]
+isf = ["bevy_nannou/isf"]
+video = ["bevy_nannou/video"]
+serde = ["dep:serde", "toml", "serde_json", "nannou_core/serde"]
+config_json = ["bevy_common_assets/json"]
+config_toml = ["bevy_common_assets/toml"]

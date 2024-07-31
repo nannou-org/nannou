@@ -7,11 +7,12 @@
 //! cargo run --release -p examples --example laser_ilda_idtf -- /path/to/ilda/files
 //! ```
 
+use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
+
 use nannou::prelude::*;
 use nannou_laser as laser;
 use nannou_laser::ilda_idtf::BufFileFrameReader;
-use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
 
 fn main() {
     nannou::app(model).run();
@@ -31,7 +32,7 @@ struct Laser {
 
 fn model(app: &App) -> Model {
     // Create a window to receive keyboard events.
-    app.new_window().view(view).build().unwrap();
+    app.new_window().view(view).build();
 
     // Test file directory from the command line.
     let test_files = match std::env::args().nth(1) {
@@ -50,7 +51,7 @@ fn model(app: &App) -> Model {
     let current_path = 0;
     let path = &ilda_paths[current_path];
     let last_change = Instant::now();
-    let frame_reader = BufFileFrameReader::open(&path).unwrap();
+    let frame_reader = BufFileFrameReader::open(path).unwrap();
     let laser_model = Laser {
         ilda_paths,
         last_change,
@@ -76,8 +77,9 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
+fn view(app: &App, _model: &Model) {
+    let draw = app.draw();
+    draw.background().color(DIM_GRAY);
 }
 
 fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
@@ -103,7 +105,7 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
         laser.current_path %= laser.ilda_paths.len();
         let path = &laser.ilda_paths[laser.current_path];
         println!("{}", path.display());
-        laser.frame_reader = BufFileFrameReader::open(&path).unwrap();
+        laser.frame_reader = BufFileFrameReader::open(path).unwrap();
     }
 }
 

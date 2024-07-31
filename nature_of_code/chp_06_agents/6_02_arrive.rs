@@ -5,7 +5,6 @@
 // One vehicle "arrives"
 // See: http://www.red3d.com/cwr/
 use nannou::prelude::*;
-use nannou::Draw;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -50,7 +49,7 @@ impl Vehicle {
         // Update velocity
         self.velocity += self.acceleration;
         // Limit speed
-        self.velocity.clamp_length_max(self.max_speed);
+        self.velocity = self.velocity.clamp_length_max(self.max_speed);
         self.position += self.velocity;
         // Reset accelerationelertion to 0 each cycle
         self.acceleration *= 0.0;
@@ -63,35 +62,32 @@ impl Vehicle {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     let middle = app.window_rect().xy();
     let vehicle = Vehicle::new(middle.x, middle.y);
     Model { vehicle }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
-    arrive(&mut m.vehicle, app.mouse.position());
+fn update(app: &App, m: &mut Model) {
+    arrive(&mut m.vehicle, app.mouse());
     m.vehicle.update();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
-    let mouse = vec2(app.mouse.x, app.mouse.y);
+    let mouse = vec2(app.mouse().x, app.mouse().y);
 
     draw.ellipse()
         .x_y(mouse.x, mouse.y)
         .radius(24.0)
-        .rgb(0.78, 0.78, 0.78)
-        .stroke(gray(0.0))
+        .srgb(0.78, 0.78, 0.78)
+        .stroke(Color::gray(0.0))
         .stroke_weight(2.0);
 
     display(&m.vehicle, &draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 // A method that calculates a steering force towards a target
@@ -140,6 +136,6 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
         .stroke_weight(1.0)
         .points(points)
         .xy(*position)
-        .rgb(0.5, 0.5, 0.5)
+        .srgb(0.5, 0.5, 0.5)
         .rotate(-theta);
 }

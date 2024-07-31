@@ -6,15 +6,15 @@ edition = '2018'
 description = 'For testing the nannou-guide, while including the nannou dependencies.'
 
 [build-dependencies]
-# Temporarily use git dependency until budziq/rust-skeptic#121 is merged and published.
-# https://github.com/budziq/rust-skeptic/pull/121
-skeptic = { git = "https://github.com/mitchmindtree/rust-skeptic", branch = "1.45-extern" }
+# Temporarily use git dependency until budziq/rust-skeptic#142 is merged and published.
+# https://github.com/budziq/rust-skeptic/pull/142
+skeptic = { git = "https://github.com/Erk-/rust-skeptic", branch = "fix-rust-1-77" }
 #skeptic = "0.13"
 
 [dev-dependencies]
-# Temporarily use git dependency until budziq/rust-skeptic#121 is merged and published.
-# https://github.com/budziq/rust-skeptic/pull/121
-skeptic = { git = "https://github.com/mitchmindtree/rust-skeptic", branch = "1.45-extern" }
+# Temporarily use git dependency until budziq/rust-skeptic#142 is merged and published.
+# https://github.com/budziq/rust-skeptic/pull/142
+skeptic = { git = "https://github.com/Erk-/rust-skeptic", branch = "fix-rust-1-77" }
 #skeptic = "0.13"
 nannou = { version ="0.19.0", path = "../../nannou" }
 nannou_osc = { version ="0.19.0", path = "../../nannou_osc" }

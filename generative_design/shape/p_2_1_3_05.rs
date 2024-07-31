@@ -48,8 +48,7 @@ fn model(app: &App) -> Model {
         .size(600, 600)
         .view(view)
         .mouse_pressed(mouse_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         tile_count_x: 10,
@@ -58,7 +57,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
 
@@ -68,12 +67,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let tile_width = win.w() / model.tile_count_x as f32;
     let tile_height = win.h() / model.tile_count_y as f32;
     let step_size = clamp(
-        map_range(app.mouse.x, win.left(), win.right(), 0.0, win.w()),
+        map_range(app.mouse().x, win.left(), win.right(), 0.0, win.w()),
         0.0,
         win.w(),
     ) / 10.0;
     let end_size = clamp(
-        map_range(app.mouse.y, win.top(), win.bottom(), 0.0, win.h()),
+        map_range(app.mouse().x, win.top(), win.bottom(), 0.0, win.h()),
         0.0,
         win.h(),
     ) / 10.0;
@@ -89,7 +88,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
             for i in 0..step_size as usize {
                 let radius = map_range(i, 0, step_size as usize, tile_width, end_size) / 2.0;
-                let col = gray((255.0 - (i * color_step) as f32) / 255.0);
+                let col = Color::gray((255.0 - (i * color_step) as f32) / 255.0);
                 let (x, y) = match heading {
                     0 => (pos_x + i as f32, pos_y),
                     1 => (pos_x, pos_y + i as f32),
@@ -105,9 +104,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
             }
         }
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {

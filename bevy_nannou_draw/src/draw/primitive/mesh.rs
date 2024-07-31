@@ -1,12 +1,15 @@
+use std::ops;
+
+use bevy::prelude::*;
+
+use nannou_core::geom;
+
 use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::{Primitive, Vertex};
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
-use bevy::prelude::*;
-use bevy::render::mesh::Indices;
-use nannou_core::{color, geom};
-use std::ops;
+
 /// The mesh type prior to being initialised with vertices or indices.
 #[derive(Clone, Debug, Default)]
 pub struct Vertexless;
@@ -18,9 +21,7 @@ pub struct PrimitiveMesh {
     orientation: orientation::Properties,
     vertex_range: ops::Range<usize>,
     index_range: ops::Range<usize>,
-    vertex_mode: draw::render::VertexMode,
     fill_color: Option<FillColor>,
-    texture_handle: Option<Handle<Image>>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -34,7 +35,7 @@ struct FlattenIndices<I> {
     current: [usize; 3],
 }
 
-pub type DrawingMesh<'a> = Drawing<'a, PrimitiveMesh>;
+pub type DrawingMesh<'a, M> = Drawing<'a, PrimitiveMesh, M>;
 
 impl Vertexless {
     /// Describe the mesh with a sequence of textured points.
@@ -60,8 +61,7 @@ impl Vertexless {
             let tex_coords = t.into();
             (point, color, tex_coords)
         });
-        let vertex_mode = draw::render::VertexMode::Texture;
-        self.points_inner(inner_mesh, points, vertex_mode, Some(texture_handle))
+        self.points_inner(inner_mesh, points, Some(texture_handle))
     }
 
     /// Describe the mesh with a sequence of colored points.
@@ -81,8 +81,7 @@ impl Vertexless {
             let tex_coords = Vec2::ZERO;
             (point, color, tex_coords)
         });
-        let vertex_mode = draw::render::VertexMode::Color;
-        self.points_inner(inner_mesh, vertices, vertex_mode, None)
+        self.points_inner(inner_mesh, vertices, None)
     }
 
     /// Describe the mesh with a sequence of points.
@@ -103,8 +102,7 @@ impl Vertexless {
             let tex_coords = Vec2::ZERO;
             (point, color, tex_coords)
         });
-        let vertex_mode = draw::render::VertexMode::Color;
-        let mut mesh = self.points_inner(inner_mesh, vertices, vertex_mode, None);
+        let mut mesh = self.points_inner(inner_mesh, vertices, None);
         mesh.fill_color = Some(FillColor(None));
         mesh
     }
@@ -113,7 +111,6 @@ impl Vertexless {
         self,
         inner_mesh: &mut Mesh,
         vertices: I,
-        vertex_mode: draw::render::VertexMode,
         texture_handle: Option<Handle<Image>>,
     ) -> PrimitiveMesh
     where
@@ -123,13 +120,16 @@ impl Vertexless {
         let i_start = inner_mesh.count_indices();
         for (i, (point, color, tex_coords)) in vertices.enumerate() {
             inner_mesh.points_mut().push(point.to_array());
-            inner_mesh.colors_mut().push(color.as_linear_rgba_f32());
+            inner_mesh
+                .colors_mut()
+                .push(color.to_linear().to_f32_array());
             inner_mesh.tex_coords_mut().push(tex_coords.to_array());
+            inner_mesh.normals_mut().push([0.0, 0.0, 1.0]);
             inner_mesh.push_index(i as u32);
         }
         let v_end = inner_mesh.count_vertices();
         let i_end = inner_mesh.count_indices();
-        PrimitiveMesh::new(v_start..v_end, i_start..i_end, vertex_mode, texture_handle)
+        PrimitiveMesh::new(v_start..v_end, i_start..i_end, texture_handle)
     }
 
     /// Describe the mesh with a sequence of textured triangles.
@@ -221,14 +221,7 @@ impl Vertexless {
             let tex_coords = t.into();
             (point, color, tex_coords)
         });
-        let vertex_mode = draw::render::VertexMode::Texture;
-        self.indexed_inner(
-            inner_mesh,
-            vertices,
-            indices,
-            vertex_mode,
-            Some(texture_handle),
-        )
+        self.indexed_inner(inner_mesh, vertices, indices, Some(texture_handle))
     }
 
     /// Describe the mesh with the given indexed, colored points.
@@ -256,8 +249,7 @@ impl Vertexless {
             let tex_coords = Vec2::ZERO;
             (point, color, tex_coords)
         });
-        let vertex_mode = draw::render::VertexMode::Color;
-        self.indexed_inner(inner_mesh, vertices, indices, vertex_mode, None)
+        self.indexed_inner(inner_mesh, vertices, indices, None)
     }
 
     /// Describe the mesh with the given indexed points.
@@ -277,8 +269,7 @@ impl Vertexless {
             let tex_coords = Vec2::ZERO;
             (point, color, tex_coords)
         });
-        let vertex_mode = draw::render::VertexMode::Color;
-        let mut mesh = self.indexed_inner(inner_mesh, vertices, indices, vertex_mode, None);
+        let mut mesh = self.indexed_inner(inner_mesh, vertices, indices, None);
         mesh.fill_color = Some(FillColor(None));
         mesh
     }
@@ -288,7 +279,6 @@ impl Vertexless {
         inner_mesh: &mut Mesh,
         vertices: V,
         indices: I,
-        vertex_mode: draw::render::VertexMode,
         texture_handle: Option<Handle<Image>>,
     ) -> PrimitiveMesh
     where
@@ -300,8 +290,11 @@ impl Vertexless {
 
         for (point, color, tex_coords) in vertices.into_iter() {
             inner_mesh.points_mut().push(point.to_array());
-            inner_mesh.colors_mut().push(color.as_linear_rgba_f32());
+            inner_mesh
+                .colors_mut()
+                .push(color.to_linear().to_f32_array());
             inner_mesh.tex_coords_mut().push(tex_coords.to_array());
+            inner_mesh.normals_mut().push([0.0, 0.0, 1.0]);
         }
         for index in indices {
             inner_mesh.push_index(index as u32);
@@ -309,7 +302,7 @@ impl Vertexless {
 
         let v_end = inner_mesh.count_vertices();
         let i_end = inner_mesh.count_indices();
-        PrimitiveMesh::new(v_start..v_end, i_start..i_end, vertex_mode, texture_handle)
+        PrimitiveMesh::new(v_start..v_end, i_start..i_end, texture_handle)
     }
 }
 
@@ -318,7 +311,6 @@ impl PrimitiveMesh {
     fn new(
         vertex_range: ops::Range<usize>,
         index_range: ops::Range<usize>,
-        vertex_mode: draw::render::VertexMode,
         texture_handle: Option<Handle<Image>>,
     ) -> Self {
         let orientation = Default::default();
@@ -329,14 +321,15 @@ impl PrimitiveMesh {
             position,
             vertex_range,
             index_range,
-            vertex_mode,
             fill_color,
-            texture_handle: texture_handle,
         }
     }
 }
 
-impl<'a> Drawing<'a, Vertexless> {
+impl<'a, M> Drawing<'a, Vertexless, M>
+where
+    M: Material + Default,
+{
     /// Describe the mesh with a sequence of points.
     ///
     /// The given iterator may yield any type that can be converted directly into `Vec3`s.
@@ -344,7 +337,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// This method assumes that the entire mesh should be coloured with a single colour. If a
     /// colour is not specified via one of the builder methods, a default colour will be retrieved
     /// from the inner `Theme`.
-    pub fn points<I>(self, points: I) -> DrawingMesh<'a>
+    pub fn points<I>(self, points: I) -> DrawingMesh<'a, M>
     where
         I: IntoIterator,
         I::Item: Into<Vec3>,
@@ -357,7 +350,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// Each of the points must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements
     /// `Into<Vec3>` and `color` may be of any type that implements `IntoColor`.
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingMesh<'a>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingMesh<'a, M>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec3>,
@@ -376,7 +369,7 @@ impl<'a> Drawing<'a, Vertexless> {
         self,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> DrawingMesh<'a>
+    ) -> DrawingMesh<'a, M>
     where
         I: IntoIterator<Item = (P, T)>,
         P: Into<Vec3>,
@@ -393,7 +386,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// This method assumes that the entire mesh should be coloured with a single colour. If a
     /// colour is not specified via one of the builder methods, a default colour will be retrieved
     /// from the inner `Theme`.
-    pub fn tris<I, V>(self, tris: I) -> DrawingMesh<'a>
+    pub fn tris<I, V>(self, tris: I) -> DrawingMesh<'a, M>
     where
         I: IntoIterator<Item = geom::Tri<V>>,
         V: Into<Vec3>,
@@ -406,7 +399,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// Each of the vertices must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements `Into<Vec3>`
     /// and `color` may be of any type that implements `IntoColor`.
-    pub fn tris_colored<I, P, C>(self, tris: I) -> DrawingMesh<'a>
+    pub fn tris_colored<I, P, C>(self, tris: I) -> DrawingMesh<'a, M>
     where
         I: IntoIterator<Item = geom::Tri<(P, C)>>,
         P: Into<Vec3>,
@@ -421,7 +414,11 @@ impl<'a> Drawing<'a, Vertexless> {
     /// coordinates in that order, e.g. `(point, tex_coords)`. `point` may be of any type that
     /// implements `Into<Vec3>` and `tex_coords` may be of any type that implements
     /// `Into<Vec2>`.
-    pub fn tris_textured<I, P, T>(self, texture_handle: Handle<Image>, tris: I) -> DrawingMesh<'a>
+    pub fn tris_textured<I, P, T>(
+        self,
+        texture_handle: Handle<Image>,
+        tris: I,
+    ) -> DrawingMesh<'a, M>
     where
         I: IntoIterator<Item = geom::Tri<(P, T)>>,
         P: Into<Vec3>,
@@ -435,7 +432,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// Each trio of `indices` describes a single triangle made up of `points`.
     ///
     /// Each point may be any type that may be converted directly into the `Vec3` type.
-    pub fn indexed<V, I>(self, points: V, indices: I) -> DrawingMesh<'a>
+    pub fn indexed<V, I>(self, points: V, indices: I) -> DrawingMesh<'a, M>
     where
         V: IntoIterator,
         V::Item: Into<Vec3>,
@@ -451,7 +448,7 @@ impl<'a> Drawing<'a, Vertexless> {
     /// Each of the `points` must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements
     /// `Into<Vec3>` and `color` may be of any type that implements `IntoColor`.
-    pub fn indexed_colored<V, I, P, C>(self, points: V, indices: I) -> DrawingMesh<'a>
+    pub fn indexed_colored<V, I, P, C>(self, points: V, indices: I) -> DrawingMesh<'a, M>
     where
         V: IntoIterator<Item = (P, C)>,
         I: IntoIterator<Item = usize>,
@@ -474,7 +471,7 @@ impl<'a> Drawing<'a, Vertexless> {
         texture_handle: Handle<Image>,
         points: V,
         indices: I,
-    ) -> DrawingMesh<'a>
+    ) -> DrawingMesh<'a, M>
     where
         V: IntoIterator<Item = (P, T)>,
         I: IntoIterator<Item = usize>,
@@ -488,19 +485,13 @@ impl<'a> Drawing<'a, Vertexless> {
 }
 
 impl draw::render::RenderPrimitive for PrimitiveMesh {
-    fn render_primitive(
-        self,
-        ctxt: draw::render::RenderContext,
-        mesh: &mut Mesh,
-    ) -> draw::render::PrimitiveRender {
+    fn render_primitive(self, ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
         let PrimitiveMesh {
             orientation,
             position,
             vertex_range,
             index_range,
-            vertex_mode,
             fill_color,
-            texture_handle: texture_handle,
         } = self;
 
         // Determine the transform to apply to vertices.
@@ -531,8 +522,9 @@ impl draw::render::RenderPrimitive for PrimitiveMesh {
 
                 for (point, color, tex_coords) in vertices {
                     mesh.points_mut().push(point.to_array());
-                    mesh.colors_mut().push(color.as_linear_rgba_f32());
+                    mesh.colors_mut().push(color.to_linear().to_f32_array());
                     mesh.tex_coords_mut().push(tex_coords.to_array());
+                    mesh.normals_mut().push([0.0, 0.0, 1.0]);
                 }
                 for index in indices {
                     mesh.push_index(index);
@@ -541,25 +533,22 @@ impl draw::render::RenderPrimitive for PrimitiveMesh {
             None => {
                 let vertices = vertex_range.map(|i| {
                     let point = transform_point(ctxt.intermediary_mesh.points()[i].into());
-                    let color: Color = ctxt.intermediary_mesh.colors()[i].into();
+                    let [r, g, b, a] = ctxt.intermediary_mesh.colors()[i];
+                    let color = Color::LinearRgba(LinearRgba::new(r, g, b, a));
                     let tex_coords: Vec2 = ctxt.intermediary_mesh.tex_coords()[i].into();
                     (point, color, tex_coords)
                 });
 
                 for (point, color, tex_coords) in vertices {
                     mesh.points_mut().push(point.to_array());
-                    mesh.colors_mut().push(color.into());
+                    mesh.colors_mut().push(color.to_linear().to_f32_array());
                     mesh.tex_coords_mut().push(tex_coords.to_array());
+                    mesh.normals_mut().push([0.0, 0.0, 1.0]);
                 }
                 for index in indices {
                     mesh.push_index(index);
                 }
             }
-        }
-
-        draw::render::PrimitiveRender {
-            texture_handle,
-            vertex_mode,
         }
     }
 }

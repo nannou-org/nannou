@@ -1,7 +1,9 @@
 { alsaLib
 , darwin
+, ffmpeg
 , jq
 , lib
+, llvmPackages
 , libiconv
 , makeWrapper
 , pkg-config
@@ -22,8 +24,7 @@ rustPlatform.buildRustPackage rec {
   cargoLock = {
     lockFile = ./Cargo.lock;
     outputHashes = {
-      "isf-0.1.0" = "sha256-utexaXpZZgpRunVAQyD2JAwvabhZGzeorC4pRFIumAc=";
-      "skeptic-0.13.4" = "sha256-EZFtWIPfsfbpGBD8NwsVtMzRM10kVdg+djoV00dhT4Y=";
+      "skeptic-0.13.8" = "sha256-LLVrpuyQsMdbp8OYcHN0nq+uKC8xgJzpNy+gyXxTYbo=";
     };
   };
 
@@ -32,6 +33,7 @@ rustPlatform.buildRustPackage rec {
 
   nativeBuildInputs = [
     makeWrapper
+    llvmPackages.clang
     pkg-config
   ];
 
@@ -40,9 +42,12 @@ rustPlatform.buildRustPackage rec {
     jq
     # `nannou-new` needs this because of `cargo` dep. See #606.
     openssl
+    ffmpeg
   ] ++ lib.optionals stdenv.isLinux [
     alsaLib
     udev
+    llvmPackages.bintools
+    llvmPackages.libclang
     vulkan-loader
     vulkan-validation-layers
     xorg.libX11
@@ -63,6 +68,7 @@ rustPlatform.buildRustPackage rec {
       inherit XCURSOR_THEME;
       LD_LIBRARY_PATH = "${lib.makeLibraryPath buildInputs}";
       ALSA_LIB_DEV = "${alsaLib.dev}";
+      LIBCLANG_PATH = "${llvmPackages.libclang.lib}/lib";
     } // lib.optionalAttrs stdenv.isDarwin {
     COREAUDIO_SDK_PATH = "${darwin.apple_sdk.frameworks.CoreAudio}/Library/Frameworks/CoreAudio.framework";
   });

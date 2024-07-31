@@ -59,8 +59,7 @@ fn model(app: &App) -> Model {
         .mouse_pressed(mouse_pressed)
         .key_pressed(key_pressed)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let module_alpha_background = 1.0;
     let module_alpha_foreground = 1.0;
@@ -68,8 +67,8 @@ fn model(app: &App) -> Model {
     Model {
         tile_count: 20,
         act_random_seed: 0,
-        module_color_background: hsva(0.0, 0.0, 0.0, module_alpha_background),
-        module_color_foreground: hsva(0.0, 0.0, 1.0, module_alpha_foreground),
+        module_color_background: Hsva::new(0.0, 0.0, 0.0, module_alpha_background),
+        module_color_foreground: Hsva::new(0.0, 0.0, 1.0, module_alpha_foreground),
         module_alpha_background,
         module_alpha_foreground,
         module_radius_background: 15.0,
@@ -77,7 +76,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
 
@@ -85,8 +84,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 
-    let mx = clamp(win.right() + app.mouse.x, 0.0, win.w());
-    let my = clamp(win.top() - app.mouse.y, 0.0, win.h());
+    let mx = clamp(win.right() + app.mouse().x, 0.0, win.w());
+    let my = clamp(win.top() - app.mouse().x, 0.0, win.h());
 
     for grid_y in 0..model.tile_count {
         for grid_x in 0..model.tile_count {
@@ -118,47 +117,50 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 .color(model.module_color_foreground);
         }
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.act_random_seed = (random_f32() * 100000.0) as u64;
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }
 
-fn key_released(_app: &App, model: &mut Model, key: Key) {
+fn key_released(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
-            if model
-                .module_color_background
-                .eq(&hsva(0.0, 0.0, 0.0, model.module_alpha_background))
-            {
+        KeyCode::Digit1 => {
+            if model.module_color_background.eq(&Hsva::new(
+                0.0,
+                0.0,
+                0.0,
+                model.module_alpha_background,
+            )) {
                 model.module_color_background =
-                    hsva(0.758, 0.73, 0.51, model.module_alpha_background);
+                    Hsva::new(0.758, 0.73, 0.51, model.module_alpha_background);
             } else {
-                model.module_color_background = hsva(0.0, 0.0, 0.0, model.module_alpha_background);
+                model.module_color_background =
+                    Hsva::new(0.0, 0.0, 0.0, model.module_alpha_background);
             }
         }
-        Key::Key2 => {
-            if model
-                .module_color_foreground
-                .eq(&hsva(1.0, 1.0, 1.0, model.module_alpha_foreground))
-            {
+        KeyCode::Digit2 => {
+            if model.module_color_foreground.eq(&Hsva::new(
+                1.0,
+                1.0,
+                1.0,
+                model.module_alpha_foreground,
+            )) {
                 model.module_color_foreground =
-                    hsva(0.89, 1.0, 0.77, model.module_alpha_foreground);
+                    Hsva::new(0.89, 1.0, 0.77, model.module_alpha_foreground);
             } else {
-                model.module_color_foreground = hsva(1.0, 1.0, 1.0, model.module_alpha_foreground);
+                model.module_color_foreground =
+                    Hsva::new(1.0, 1.0, 1.0, model.module_alpha_foreground);
             }
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             if model.module_alpha_background == 1.0 {
                 model.module_alpha_background = 0.5;
                 model.module_alpha_foreground = 0.5;
@@ -169,24 +171,26 @@ fn key_released(_app: &App, model: &mut Model, key: Key) {
             model.module_color_background.alpha = model.module_alpha_background;
             model.module_color_foreground.alpha = model.module_alpha_foreground;
         }
-        Key::Key0 => {
+        KeyCode::Digit0 => {
             model.module_radius_background = 15.0;
             model.module_radius_foreground = 7.5;
             model.module_alpha_background = 1.0;
             model.module_alpha_foreground = 1.0;
-            model.module_color_background = hsva(0.0, 0.0, 0.0, model.module_alpha_background);
-            model.module_color_foreground = hsva(0.0, 0.0, 1.0, model.module_alpha_foreground);
+            model.module_color_background =
+                Color::hsva(0.0, 0.0, 0.0, model.module_alpha_background).into();
+            model.module_color_foreground =
+                Color::hsva(0.0, 0.0, 1.0, model.module_alpha_foreground).into();
         }
-        Key::Up => {
+        KeyCode::ArrowUp => {
             model.module_radius_background += 2.0;
         }
-        Key::Down => {
+        KeyCode::ArrowDown => {
             model.module_radius_background = 5.0.max(model.module_radius_background - 2.0);
         }
-        Key::Left => {
+        KeyCode::ArrowLeft => {
             model.module_radius_foreground = 2.5.max(model.module_radius_foreground - 2.0);
         }
-        Key::Right => {
+        KeyCode::ArrowRight => {
             model.module_radius_foreground += 2.0;
         }
         _other_key => {}

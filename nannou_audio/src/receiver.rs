@@ -1,6 +1,8 @@
-use crate::{stream, Buffer};
-use dasp_sample::Sample;
 use std;
+
+use dasp_sample::Sample;
+
+use crate::{stream, Buffer};
 
 /// A `Receiver` for converting audio delivered by the backend at varying buffer sizes into buffers
 /// of a fixed size.
@@ -27,8 +29,8 @@ where
         let num_samples = num_frames + num_channels;
         Receiver {
             samples: Vec::with_capacity(num_samples),
-            num_frames: num_frames,
-            num_channels: num_channels,
+            num_frames,
+            num_channels,
         }
     }
 
@@ -86,7 +88,7 @@ where
             }
 
             // Capture the input data and update the model.
-            let interleaved_samples = std::mem::replace(samples, Vec::new()).into_boxed_slice();
+            let interleaved_samples = std::mem::take(samples).into_boxed_slice();
             let buffer = Buffer {
                 interleaved_samples,
                 channels,

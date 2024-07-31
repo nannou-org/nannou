@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+
 /// Dimension properties for **Drawing** a **Primitive**.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct Properties {

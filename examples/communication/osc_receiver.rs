@@ -19,8 +19,7 @@ fn model(app: &App) -> Model {
         .title("OSC Receiver")
         .size(1400, 480)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // Bind an `osc::Receiver` to a port.
     let receiver = osc::receiver(PORT).unwrap();
@@ -34,7 +33,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     // Receive any pending osc packets.
     for (packet, addr) in model.receiver.try_iter() {
         model.received_packets.push((addr, packet));
@@ -48,22 +47,22 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
-    draw.background().color(DARKBLUE);
+    draw.background().color(DARK_BLUE);
 
     // Create a string showing all the packets.
     let mut packets_text = format!("Listening on port {}\nReceived packets:\n", PORT);
     for &(addr, ref packet) in model.received_packets.iter().rev() {
         packets_text.push_str(&format!("{}: {:?}\n", addr, packet));
     }
-    let rect = frame.rect().pad(10.0);
+
+    let rect = app.window_rect().pad(10.0);
+
     draw.text(&packets_text)
         .font_size(16)
         .align_text_top()
         .line_spacing(10.0)
         .left_justify()
         .wh(rect.wh());
-
-    draw.to_frame(app, &frame).unwrap();
 }

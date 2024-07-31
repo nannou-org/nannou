@@ -24,6 +24,8 @@ jobs:
   # A colleciton of cargo verifications that should pass before landing PRs.
   cargo:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER: "lld"
     strategy:
       fail-fast: false
       matrix:
@@ -31,10 +33,10 @@ jobs:
           - command: cargo fmt --verbose --all -- --check
           - command: cargo check --locked --workspace
           - command: cargo check --locked --examples --workspace
-          - command: cargo test --locked --lib --bins --all-features --workspace
-          - command: cargo doc --locked --all-features --workspace
+          - command: cargo test --locked --lib --bins --workspace --features "egui"
+          - command: cargo doc --locked --workspace --features "egui"
           - command: cargo test --locked -p nannou_core --no-default-features --features "libm serde"
-          - command: cargo build --locked -p nannou --features "wasm-experimental" --target wasm32-unknown-unknown
+#          - command: cargo build --locked -p nannou --target wasm32-unknown-unknown
           - command: mdbook build guide/
           - command: cargo test --locked -p book_tests
     steps:

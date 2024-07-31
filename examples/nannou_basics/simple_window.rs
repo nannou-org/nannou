@@ -6,7 +6,7 @@ fn main() {
 
 struct Model {
     // Store the window ID so we can refer to this specific window later if needed.
-    _window: WindowId,
+    _window: Entity,
 }
 
 fn model(app: &App) -> Model {
@@ -16,18 +16,18 @@ fn model(app: &App) -> Model {
         .size(512, 512)
         .title("nannou")
         .view(view) // The function that will be called for presenting graphics to a frame.
-        .event(event) // The function that will be called when the window receives events.
-        .build()
-        .unwrap();
+        .focused(focus) // The function that will be called when the window receives events.
+        .build();
     Model { _window }
 }
 
 // Handle events related to the window and update the model if necessary
-fn event(_app: &App, _model: &mut Model, event: WindowEvent) {
-    println!("{:?}", event);
+fn focus(_app: &App, _model: &mut Model) {
+    println!("Focused");
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(_app: &App, _model: &Model, frame: Frame) {
-    frame.clear(CORNFLOWERBLUE);
+fn view(_app: &App, _model: &Model) {
+    let draw = _app.draw();
+    draw.background().color(CORNFLOWER_BLUE);
 }

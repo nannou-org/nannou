@@ -1,11 +1,13 @@
-use crate::Device;
-use cpal::traits::StreamTrait;
 use std;
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::{mpsc, Arc, Mutex};
+
+use cpal::traits::StreamTrait;
 use thiserror::Error;
+
+use crate::Device;
 
 /// Items related to input audio streams.
 pub mod input;
