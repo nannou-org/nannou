@@ -231,3 +231,29 @@ required-features = ["video"]
 name = "video_material"
 path = "video/video_material.rs"
 required-features = ["video"]
+
+# WebGPU
+[[example]]
+name = "wgpu_compute_shader"
+path = "wgpu/wgpu_compute_shader/wgpu_compute_shader.rs"
+[[example]]
+name = "wgpu_image"
+path = "wgpu/wgpu_image/wgpu_image.rs"
+[[example]]
+name = "wgpu_image_sequence"
+path = "wgpu/wgpu_image_sequence/wgpu_image_sequence.rs"
+[[example]]
+name = "wgpu_instancing"
+path = "wgpu/wgpu_instancing/wgpu_instancing.rs"
+[[example]]
+name = "wgpu_teapot"
+path = "wgpu/wgpu_teapot/wgpu_teapot.rs"
+[[example]]
+name = "wgpu_teapot_camera"
+path = "wgpu/wgpu_teapot_camera/wgpu_teapot_camera.rs"
+[[example]]
+name = "wgpu_triangle"
+path = "wgpu/wgpu_triangle/wgpu_triangle.rs"
+[[example]]
+name = "wgpu_triangle_raw_frame"
+path = "wgpu/wgpu_triangle_raw_frame/wgpu_triangle_raw_frame.rs"

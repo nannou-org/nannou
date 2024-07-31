@@ -5,11 +5,14 @@
 
 use std::cell::RefMut;
 use std::fmt;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
+use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
+use bevy::render::renderer::{RenderDevice, RenderQueue};
 use bevy::render::view::screenshot::ScreenshotManager;
 use bevy::render::view::RenderLayers;
 use bevy::window::{Cursor, CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef};
@@ -17,11 +20,13 @@ use bevy::window::{Cursor, CursorGrabMode, PrimaryWindow, WindowLevel, WindowMod
 use bevy_nannou::prelude::render::NannouCamera;
 use bevy_nannou::prelude::MonitorSelection;
 use nannou_core::geom;
-
+use crate::frame::{Frame, FramePlugin};
 use crate::geom::Point2;
 use crate::glam::Vec2;
 use crate::prelude::WindowResizeConstraints;
+use crate::render::{RenderApp, RenderPlugin};
 use crate::App;
+use crate::app::RenderFnRes;
 
 /// A nannou window.
 ///
@@ -150,8 +155,8 @@ impl<M> Clone for UserFunctions<M> {
     }
 }
 
-#[derive(Component, Deref, DerefMut)]
-pub(crate) struct WindowUserFunctions<M>(pub(crate) UserFunctions<M>);
+#[derive(Component, Deref, DerefMut, ExtractComponent)]
+pub(crate) struct WindowUserFunctions<M: 'static>(pub(crate) UserFunctions<M>);
 
 /// The user function type for drawing their model to the surface of a single window.
 pub type ViewFn<Model> = fn(&App, &Model);
@@ -915,5 +920,36 @@ impl<'a, 'w> Window<'a, 'w> {
         screenshot_manager
             .save_screenshot_to_disk(self.entity, path)
             .expect("Failed to save screenshot");
+    }
+
+    pub fn device(&self) -> std::cell::Ref<wgpu::Device> {
+        std::cell::Ref::map(self.app.resource_world(), |x| {
+            x.resource::<RenderDevice>()
+                .wgpu_device()
+        })
+    }
+
+    pub fn queue(&self) -> std::cell::Ref<wgpu::Queue> {
+        std::cell::Ref::map(self.app.resource_world(), |x| {
+            x.resource::<RenderQueue>()
+                .deref()
+                .deref()
+                .deref()
+        })
+    }
+
+    pub fn msaa_samples(&self) -> u32 {
+        self.app.resource_world().resource::<Msaa>().samples()
+    }
+}
+
+// Some WGPU helper implementations.
+
+impl<'a> nannou_wgpu::WithDeviceQueuePair for &'a Window<'_, '_> {
+    fn with_device_queue_pair<F, O>(self, f: F) -> O
+    where
+        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
+    {
+        f(&self.device(), &self.queue())
     }
 }
