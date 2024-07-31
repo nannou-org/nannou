@@ -1,12 +1,12 @@
-use std::cell::RefCell;
-use std::ops::Deref;
 use bevy::ecs::entity::EntityHashMap;
 use bevy::prelude::*;
-use bevy::render::renderer::{RenderContext};
+use bevy::render::render_resource::Extent3d;
+use bevy::render::renderer::RenderContext;
 use bevy::render::view::{ExtractedView, ExtractedWindows, ViewTarget};
 use bevy::render::{Extract, RenderApp};
-use bevy::render::render_resource::Extent3d;
 use nannou_core::geom;
+use std::cell::RefCell;
+use std::ops::Deref;
 
 pub struct FramePlugin;
 
@@ -45,7 +45,6 @@ pub struct Frame<'a, 'w> {
 impl<'a, 'w> Frame<'a, 'w> {
     pub const TEXTURE_FORMAT: wgpu::TextureFormat =
         nannou_wgpu::RenderPipelineBuilder::DEFAULT_COLOR_FORMAT;
-
 
     pub(crate) fn new(
         world: &'w World,
@@ -117,8 +116,9 @@ impl<'a, 'w> Frame<'a, 'w> {
     /// This refers to the same **DeviceQueuePair** as held by the window associated with this
     /// frame.
     pub fn device(&self) -> std::cell::Ref<wgpu::Device> {
-        std::cell::Ref::map(self.render_context.borrow(), |x| x.render_device()
-            .wgpu_device())
+        std::cell::Ref::map(self.render_context.borrow(), |x| {
+            x.render_device().wgpu_device()
+        })
     }
 
     /// The texture to which all graphics should be drawn this frame.
@@ -151,18 +151,19 @@ impl<'a, 'w> Frame<'a, 'w> {
 
     /// Returns the resolve target texture in the case that MSAA is enabled.
     pub fn resolve_target(&self) -> Option<&wgpu::Texture> {
-        self.view_target.sampled_main_texture()
-            .map(|x| x.deref())
+        self.view_target.sampled_main_texture().map(|x| x.deref())
     }
 
     /// Returns the resolve target texture view in the case that MSAA is enabled.
     pub fn resolve_target_view(&self) -> Option<&wgpu::TextureView> {
-        self.view_target.sampled_main_texture_view()
+        self.view_target
+            .sampled_main_texture_view()
             .map(|x| x.deref())
     }
 
     pub fn resolve_target_msaa_samples(&self) -> u32 {
-        self.view_target.sampled_main_texture()
+        self.view_target
+            .sampled_main_texture()
             .map(|x| x.sample_count())
             .unwrap_or(1)
     }
@@ -202,23 +203,20 @@ impl<'a, 'w> Frame<'a, 'w> {
     {
         let linear_color = color.into().to_linear();
         let view = self.view_target.main_texture_view();
-        let mut render_ctx = self
-            .render_context
-            .borrow_mut();
-        render_ctx
-            .begin_tracked_render_pass(wgpu::RenderPassDescriptor {
-                label: Some("nannou_frame_clear"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(linear_color.into()),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
+        let mut render_ctx = self.render_context.borrow_mut();
+        render_ctx.begin_tracked_render_pass(wgpu::RenderPassDescriptor {
+            label: Some("nannou_frame_clear"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(linear_color.into()),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
     }
 }

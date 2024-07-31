@@ -98,10 +98,7 @@ pub const DEFAULT_BACKENDS: Backends = Backends::PRIMARY.union(Backends::GL);
 
 /// Create a wgpu shader module from the given slice of SPIR-V bytes.
 #[cfg(feature = "spirv")]
-pub fn shader_from_spirv_bytes(
-    device: &wgpu::Device,
-    bytes: &[u8],
-) -> wgpu::ShaderModule {
+pub fn shader_from_spirv_bytes(device: &wgpu::Device, bytes: &[u8]) -> wgpu::ShaderModule {
     let source = util::make_spirv(bytes);
     let desc = ShaderModuleDescriptor {
         label: Some("nannou_shader_module"),

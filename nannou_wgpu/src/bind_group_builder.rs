@@ -105,7 +105,7 @@ impl LayoutBuilder {
     /// Note that if you wish to take a `Cube` or `CubeArray` view of the given texture, you will
     /// need to manually specify the `TextureViewDimension` via the `sampled_texture` method
     /// instead.
-    pub fn texture_from(self, visibility: wgpu::ShaderStages, texture: & crate::Texture) -> Self {
+    pub fn texture_from(self, visibility: wgpu::ShaderStages, texture: &crate::Texture) -> Self {
         self.texture(
             visibility,
             texture.sample_count() > 1,

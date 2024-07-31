@@ -51,17 +51,12 @@ const VERTICES: [Vertex; 4] = [
 ];
 
 fn main() {
-    nannou::app(model).update(update)
-        .render(render)
-        .run();
+    nannou::app(model).update(update).render(render).run();
 }
 
 fn model(app: &App) -> Model {
     // Load the images.
-    let sequence_path = app
-        .assets_path()
-        .join("images")
-        .join("spinning_dancer");
+    let sequence_path = app.assets_path().join("images").join("spinning_dancer");
 
     println!("Loading images...");
     let (images, (img_w, img_h)) = load_images(&sequence_path);

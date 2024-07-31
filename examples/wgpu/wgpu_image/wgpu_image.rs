@@ -1,7 +1,7 @@
-use std::sync::Arc;
 use nannou::image;
 use nannou::image::GenericImageView;
 use nannou::prelude::*;
+use std::sync::Arc;
 
 #[derive(Clone)]
 struct Model {
@@ -34,9 +34,7 @@ const VERTICES: [Vertex; 4] = [
 ];
 
 fn main() {
-    nannou::app(model)
-        .render(render)
-        .run();
+    nannou::app(model).render(render).run();
 }
 
 fn model(app: &App) -> Model {

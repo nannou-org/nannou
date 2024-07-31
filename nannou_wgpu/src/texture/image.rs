@@ -4,9 +4,9 @@
 //! This module can be enabled via the `image` feature.
 
 use crate as wgpu;
+use image::{DynamicImage, PixelWithColorType};
 use std::ops::Deref;
 use std::path::Path;
-use image::{DynamicImage, PixelWithColorType};
 
 /// The set of pixel types from the image crate that can be loaded directly into a texture.
 ///
@@ -426,8 +426,6 @@ impl Pixel for image::Rgba<i16> {
     const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Sint;
 }
 
-
-
 impl<'a, 'b, T> wgpu::WithDeviceQueuePair for &'a std::cell::Ref<'b, T>
 where
     &'a T: wgpu::WithDeviceQueuePair,
@@ -514,7 +512,7 @@ pub fn load_texture_from_image(
             let img = image.to_rgba16();
             load_texture_from_image_buffer(device, queue, usage, &img)
         }
-        _ => panic!("Unsupported image format: {:?}", image.color())
+        _ => panic!("Unsupported image format: {:?}", image.color()),
     }
 }
 
@@ -680,7 +678,7 @@ pub fn encode_load_texture_from_image(
             let img = image.to_rgba16();
             encode_load_texture_from_image_buffer(device, encoder, usage, &img)
         }
-        _ => panic!("Unsupported image format: {:?}", image.color())
+        _ => panic!("Unsupported image format: {:?}", image.color()),
     }
 }
 

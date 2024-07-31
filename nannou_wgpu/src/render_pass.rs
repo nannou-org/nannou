@@ -1,5 +1,5 @@
-use wgpu::StoreOp;
 use crate::{Color, LoadOp};
+use wgpu::StoreOp;
 
 /// A builder type to simplify the process of creating a render pass descriptor.
 #[derive(Debug, Default)]

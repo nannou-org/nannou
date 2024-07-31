@@ -5,10 +5,10 @@
 //! with a gray value equal to the amplitude. Real-time interaction is demonstrated by providing
 //! access to time, frequency (mouse `x`) and the number of oscillators via uniform data.
 
+use nannou::prelude::futures_lite::future;
 use nannou::prelude::*;
 use nannou::wgpu::BufferInitDescriptor;
 use std::sync::{Arc, Mutex};
-use nannou::prelude::futures_lite::future;
 
 struct Model {
     compute: Compute,
@@ -40,7 +40,12 @@ fn main() {
 }
 
 fn model(app: &App) -> Model {
-    let w_id = app.new_window().primary().size(1440, 512).view(view).build();
+    let w_id = app
+        .new_window()
+        .primary()
+        .size(1440, 512)
+        .view(view)
+        .build();
     let window = app.window(w_id);
     let device = window.device();
 
@@ -188,7 +193,7 @@ fn update(app: &App, model: &mut Model) {
             }
         }
     };
-    
+
     let thread_pool = AsyncComputeTaskPool::get();
     let task = thread_pool.spawn(future);
 

@@ -17,16 +17,16 @@ use bevy::render::view::screenshot::ScreenshotManager;
 use bevy::render::view::RenderLayers;
 use bevy::window::{Cursor, CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef};
 
-use bevy_nannou::prelude::render::NannouCamera;
-use bevy_nannou::prelude::MonitorSelection;
-use nannou_core::geom;
+use crate::app::RenderFnRes;
 use crate::frame::{Frame, FramePlugin};
 use crate::geom::Point2;
 use crate::glam::Vec2;
 use crate::prelude::WindowResizeConstraints;
 use crate::render::{RenderApp, RenderPlugin};
 use crate::App;
-use crate::app::RenderFnRes;
+use bevy_nannou::prelude::render::NannouCamera;
+use bevy_nannou::prelude::MonitorSelection;
+use nannou_core::geom;
 
 /// A nannou window.
 ///
@@ -924,17 +924,13 @@ impl<'a, 'w> Window<'a, 'w> {
 
     pub fn device(&self) -> std::cell::Ref<wgpu::Device> {
         std::cell::Ref::map(self.app.resource_world(), |x| {
-            x.resource::<RenderDevice>()
-                .wgpu_device()
+            x.resource::<RenderDevice>().wgpu_device()
         })
     }
 
     pub fn queue(&self) -> std::cell::Ref<wgpu::Queue> {
         std::cell::Ref::map(self.app.resource_world(), |x| {
-            x.resource::<RenderQueue>()
-                .deref()
-                .deref()
-                .deref()
+            x.resource::<RenderQueue>().deref().deref().deref()
         })
     }
 

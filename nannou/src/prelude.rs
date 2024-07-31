@@ -8,13 +8,12 @@ pub use bevy::tasks::*;
 #[cfg(feature = "egui")]
 pub use bevy_egui::egui;
 
-pub use bevy_nannou::prelude::*;
-pub use nannou_core::prelude::*;
-pub use crate::wgpu;
 pub use crate::frame::*;
 pub use crate::render::*;
+pub use crate::wgpu;
 pub use crate::wgpu::util::{BufferInitDescriptor, DeviceExt};
-
+pub use bevy_nannou::prelude::*;
+pub use nannou_core::prelude::*;
 
 pub use crate::app::{self, App, RunMode, UpdateModeExt};
 pub use crate::camera::SetCamera;

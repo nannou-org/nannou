@@ -6,8 +6,8 @@
 //! writing a custom pipeline that does only exactly what you need it to can sometimes result in
 //! better performance.
 
-use std::sync::Arc;
 use nannou::prelude::*;
+use std::sync::Arc;
 
 #[derive(Clone)]
 struct Model {
@@ -37,9 +37,7 @@ const VERTICES: [Vertex; 3] = [
 ];
 
 fn main() {
-    nannou::app(model)
-        .render(render)
-        .run();
+    nannou::app(model).render(render).run();
 }
 
 fn model(app: &App) -> Model {

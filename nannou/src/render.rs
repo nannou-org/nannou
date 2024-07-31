@@ -1,5 +1,6 @@
 use crate::app::{ModelHolder, RenderFnRes};
 use crate::frame::Frame;
+use crate::prelude::bevy_render::extract_resource::extract_resource;
 use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
 use bevy::ecs::query::QueryItem;
 pub use bevy::prelude::*;
@@ -9,13 +10,12 @@ use bevy::render::render_graph::{
 use bevy::render::renderer::RenderContext;
 use bevy::render::view::{ExtractedView, ExtractedWindows, ViewTarget};
 use std::ops::Deref;
-use crate::prelude::bevy_render::extract_resource::extract_resource;
 
 pub(crate) struct RenderPlugin<M>(std::marker::PhantomData<M>);
 
-impl <M> Default for RenderPlugin<M>
+impl<M> Default for RenderPlugin<M>
 where
-    M: Send + Sync + Clone + 'static
+    M: Send + Sync + Clone + 'static,
 {
     fn default() -> Self {
         Self(std::marker::PhantomData)
@@ -24,17 +24,20 @@ where
 
 impl<M> Plugin for RenderPlugin<M>
 where
-    M: Send + Sync + Clone + 'static
+    M: Send + Sync + Clone + 'static,
 {
     fn build(&self, app: &mut App) {
         let Some(render_app) = app.get_sub_app_mut(bevy::render::RenderApp) else {
             return;
         };
 
-        render_app.add_systems(ExtractSchedule, (
-            extract_resource::<RenderFnRes<M>>,
-            extract_resource::<ModelHolder<M>>
-        ));
+        render_app.add_systems(
+            ExtractSchedule,
+            (
+                extract_resource::<RenderFnRes<M>>,
+                extract_resource::<ModelHolder<M>>,
+            ),
+        );
     }
 
     fn finish(&self, app: &mut App) {
@@ -82,7 +85,6 @@ impl<'w> RenderApp<'w> {
         let time = self.world.resource::<Time>();
         time.delta_seconds()
     }
-
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
@@ -90,9 +92,9 @@ struct NannouRenderNodeLabel;
 
 pub(crate) struct NannouRenderNode<M>(std::marker::PhantomData<M>);
 
-impl <M> FromWorld for NannouRenderNode<M>
+impl<M> FromWorld for NannouRenderNode<M>
 where
-    M: Send + Sync + Clone + 'static
+    M: Send + Sync + Clone + 'static,
 {
     fn from_world(world: &mut World) -> Self {
         Self(std::marker::PhantomData)
