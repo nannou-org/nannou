@@ -1,7 +1,7 @@
 use bevy::ecs::entity::EntityHashMap;
 use bevy::prelude::*;
 use bevy::render::render_resource::Extent3d;
-use bevy::render::renderer::RenderContext;
+use bevy::render::renderer::{RenderContext, RenderDevice};
 use bevy::render::view::{ExtractedView, ExtractedWindows, ViewTarget};
 use bevy::render::{Extract, RenderApp};
 use nannou_core::geom;
@@ -39,6 +39,7 @@ pub struct Frame<'a, 'w> {
     view_target: &'w ViewTarget,
     extracted_windows: &'w ExtractedWindows,
     extracted_view: &'w ExtractedView,
+    render_device: &'w RenderDevice,
     render_context: RefCell<&'a mut RenderContext<'w>>,
 }
 
@@ -54,10 +55,12 @@ impl<'a, 'w> Frame<'a, 'w> {
         extracted_view: &'w ExtractedView,
         render_context: &'a mut RenderContext<'w>,
     ) -> Self {
+        let render_device = world.resource::<RenderDevice>();
         Frame {
             window_id: view_target_id,
             world,
             view_target,
+            render_device,
             render_context: RefCell::new(render_context),
             extracted_windows,
             extracted_view,
@@ -115,10 +118,8 @@ impl<'a, 'w> Frame<'a, 'w> {
     ///
     /// This refers to the same **DeviceQueuePair** as held by the window associated with this
     /// frame.
-    pub fn device(&self) -> std::cell::Ref<wgpu::Device> {
-        std::cell::Ref::map(self.render_context.borrow(), |x| {
-            x.render_device().wgpu_device()
-        })
+    pub fn device(&self) -> &wgpu::Device {
+        self.render_device.wgpu_device()
     }
 
     /// The texture to which all graphics should be drawn this frame.

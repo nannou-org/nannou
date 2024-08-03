@@ -278,7 +278,7 @@ fn special_color(index: usize) -> [f32; 3] {
     }
 }
 
-fn render(app: &RenderApp, model: &Model, frame: Frame) {
+fn render(app: &RenderApp, model: &Model, mut frame: Frame) {
     let mut g = model.graphics.lock().unwrap();
 
     // If the window has changed size, recreate our depth texture to match.
@@ -341,9 +341,6 @@ fn render(app: &RenderApp, model: &Model, frame: Frame) {
         contents: uniforms_bytes,
         usage,
     });
-
-    // Drop the device to avoid borrowing issues
-    drop(device);
 
     let mut encoder = frame.command_encoder();
     encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, &g.uniform_buffer, 0, uniforms_size);

@@ -152,9 +152,6 @@ fn render(app: &RenderApp, model: &Model, frame: Frame) {
         usage,
     });
 
-    // Avoid borrowing issues by dropping device when finished.
-    drop(device);
-
     let mut encoder = frame.command_encoder();
     encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, &g.uniform_buffer, 0, uniforms_size);
     let mut render_pass = wgpu::RenderPassBuilder::new()
