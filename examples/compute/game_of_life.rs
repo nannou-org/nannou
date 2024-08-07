@@ -15,7 +15,7 @@ fn main() {
 struct Model {
     texture_a: Handle<Image>,
     texture_b: Handle<Image>,
-    displayed: Handle<Image>,
+    display: Handle<Image>,
 }
 
 #[derive(Clone, Default)]
@@ -24,7 +24,6 @@ enum State {
     Init,
     Update(usize),
 }
-
 
 #[derive(AsBindGroup, Clone)]
 struct ComputeModel {
@@ -38,13 +37,13 @@ impl ComputeShader for ComputeModel {
     type State = State;
 
     fn compute_shader() -> ShaderRef {
-        ShaderRef::Path("shaders/game_of_life.wgsl".into())
+        "shaders/game_of_life.wgsl".into()
     }
 
-    fn shader_entry(state: &Self::State) -> String {
+    fn shader_entry(state: &Self::State) -> &'static str {
         match state {
-            State::Init => "init".into(),
-            State::Update(_) => "update".into(),
+            State::Init => "init",
+            State::Update(_) => "update",
         }
     }
 
@@ -54,7 +53,11 @@ impl ComputeShader for ComputeModel {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window::<Model>().size(SIZE.0 * DISPLAY_FACTOR, SIZE.1 * DISPLAY_FACTOR).build();
+    let _window = app
+        .new_window::<Model>()
+        .primary()
+        .size(SIZE.0 * DISPLAY_FACTOR, SIZE.1 * DISPLAY_FACTOR)
+        .build();
 
     let mut image = Image::new_fill(
         Extent3d {
@@ -63,64 +66,62 @@ fn model(app: &App) -> Model {
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
-        &[0, 0, 0, 255],
+        &[0, 0, 0, 0],
         TextureFormat::R32Float,
         RenderAssetUsages::RENDER_WORLD,
     );
     image.texture_descriptor.usage =
         TextureUsages::COPY_DST | TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING;
 
-    info!("Adding image to assets");
     let image0 = app.assets_mut().add(image.clone());
     let image1 = app.assets_mut().add(image);
-    info!("Added image to assets");
     Model {
         texture_a: image0.clone(),
         texture_b: image1,
-        displayed: image0.clone(),
+        display: image0.clone(),
     }
 }
 
 fn update(app: &App, model: &mut Model) {
-    if model.displayed == model.texture_a {
-        model.displayed = model.texture_b.clone();
+    if model.display == model.texture_a {
+        model.display = model.texture_b.clone();
     } else {
-        model.displayed = model.texture_a.clone();
+        model.display = model.texture_b.clone();
     }
 }
 
 fn compute(app: &App, model: &Model, state: &mut State, view: Entity) -> ComputeModel {
-    if let State::Init = state {
-        *state = State::Update(0);
-        return ComputeModel {
-            texture_read: model.texture_a.clone(),
-            texture_write: model.texture_b.clone(),
+    match state {
+        State::Init => {
+            *state = State::Update(1);
+            ComputeModel {
+                texture_read: model.texture_a.clone(),
+                texture_write: model.texture_b.clone(),
+            }
         }
-    }
-
-    if model.displayed == model.texture_a {
-        *state = State::Update(0);
-        ComputeModel {
-            texture_read: model.texture_a.clone(),
-            texture_write: model.texture_b.clone(),
+        State::Update(0) => {
+            *state = State::Update(1);
+            ComputeModel {
+                texture_read: model.texture_b.clone(),
+                texture_write: model.texture_a.clone(),
+            }
         }
-    } else {
-        *state = State::Update(1);
-        ComputeModel {
-            texture_read: model.texture_b.clone(),
-            texture_write: model.texture_a.clone(),
+        State::Update(1) => {
+            *state = State::Update(0);
+            ComputeModel {
+                texture_read: model.texture_b.clone(),
+                texture_write: model.texture_a.clone(),
+            }
         }
+        State::Update(_) => panic!("Invalid state"),
     }
 }
 
-fn view(
-    app: &App,
-    model: &Model,
-    view: Entity,
-) {
+fn view(app: &App, model: &Model, view: Entity) {
     let draw = app.draw();
+    draw.background().color(BLACK);
     let window_rect = app.window_rect();
     draw.rect()
         .w_h(window_rect.w(), window_rect.h())
-        .texture(&model.displayed);
+        .texture(&model.display);
 }

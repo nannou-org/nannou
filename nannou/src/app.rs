@@ -7,15 +7,6 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
-use std::any::Any;
-use std::cell::{RefCell, RefMut};
-use std::hash::Hash;
-use std::path::PathBuf;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::Duration;
-use std::{self};
-
 use bevy::app::AppExit;
 #[cfg(not(target_arch = "wasm32"))]
 use bevy::asset::io::file::FileAssetReader;
@@ -45,6 +36,7 @@ use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 #[cfg(feature = "egui")]
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
+<<<<<<< HEAD
 use find_folder;
 <<<<<<< HEAD
 
@@ -55,10 +47,26 @@ use bevy_nannou::prelude::render::ExtendedNannouMaterial;
 use bevy_nannou::prelude::{draw, DrawHolder};
 =======
 use wgpu::naga::ShaderStage::Compute;
+||||||| parent of 7c0eb69 (Start compute.)
+use find_folder;
+use wgpu::naga::ShaderStage::Compute;
+=======
+>>>>>>> 7c0eb69 (Start compute.)
 use bevy_nannou::prelude::render::{ExtendedNannouMaterial, NannouCamera};
 use bevy_nannou::prelude::{draw, DrawHolder, ShaderRef};
 >>>>>>> 2a48b61 (Start compute.)
 use bevy_nannou::NannouPlugin;
+use find_folder;
+use std::any::Any;
+use std::cell::{RefCell, RefMut};
+use std::hash::Hash;
+use std::path::PathBuf;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+use std::{self};
+use wgpu::naga::ShaderStage::Compute;
 
 use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
@@ -67,6 +75,7 @@ use crate::prelude::render::{NannouMesh, ShaderModel};
 ||||||| parent of 2a48b61 (Start compute.)
 use crate::prelude::bevy_render::extract_component::ExtractComponentPlugin;
 use crate::prelude::render::NannouMesh;
+<<<<<<< HEAD
 =======
 use crate::prelude::render::NannouMesh;
 >>>>>>> 2a48b61 (Start compute.)
@@ -76,6 +85,11 @@ use crate::render::{RenderApp, RenderPlugin};
 ||||||| parent of 2a48b61 (Start compute.)
 use crate::render::{NannouRenderNode, RenderApp, RenderPlugin};
 =======
+||||||| parent of 7c0eb69 (Start compute.)
+use crate::prelude::NannouMaterialPlugin;
+=======
+use crate::prelude::{ComputePipelineState, NannouMaterialPlugin};
+>>>>>>> 7c0eb69 (Start compute.)
 use crate::render::{
     ComputeModel, ComputePlugin, ComputeShader, ComputeShaderHandle, ComputeState,
     NannouRenderNode, RenderApp, RenderPlugin,
@@ -88,8 +102,8 @@ use crate::{camera, geom, light, window};
 pub type ModelFn<Model> = fn(&App) -> Model;
 
 /// The user function type for producing the compute model post-update.
-pub type ComputeUpdateFn<Model, ComputeModel: ComputeShader> =
-    fn(&App, &Model, &mut ComputeModel::State, Entity) -> ComputeModel;
+pub type ComputeUpdateFn<Model, ComputeModel> =
+    fn(&App, &Model, &mut <ComputeModel as ComputeShader>::State, Entity) -> ComputeModel;
 
 /// The user function type for updating their model in accordance with some event.
 pub type EventFn<Model, Event> = fn(&App, &mut Model, &Event);
@@ -272,7 +286,7 @@ where
             DefaultPlugins.set(WindowPlugin {
                 // Don't spawn a  window by default, we'll handle this ourselves
                 primary_window: None,
-                exit_condition: ExitCondition::DontExit,
+                exit_condition: ExitCondition::OnAllClosed,
                 ..default()
             }),
             #[cfg(feature = "egui")]
@@ -414,6 +428,7 @@ where
             )
             .insert_resource(ComputeUpdateFnRes(compute_fn))
             .add_systems(Update, compute::<M, CM>.after(update::<M>))
+            .add_systems(Last, |query: Query<&ComputeModel<CM>>| {})
             .add_plugins(ComputePlugin::<CM>::default());
         self
     }
@@ -1195,23 +1210,37 @@ fn update<M>(
 fn compute<M, CM>(
     world: &mut World,
     state: &mut SystemState<(
-        Commands,
         ResMut<ModelHolder<M>>,
         Res<ComputeUpdateFnRes<M, CM>>,
+        ResMut<ComputePipelineState>,
         Query<(Entity, &mut ComputeState<CM::State>)>,
+        Query<&ComputeModel<CM>>,
     )>,
-)
-where
+) where
     M: 'static + Send + Sync,
-    CM: ComputeShader
+    CM: ComputeShader,
 {
-    let (mut app, (mut commands, mut model, compute, mut views_q)) = get_app_and_state(world, state);
+    let (mut app, (mut model, compute, mut pipeline_state, mut views_q, query)) =
+        get_app_and_state(world, state);
     let compute = compute.0;
     for (view, mut state) in views_q.iter_mut() {
+        if !pipeline_state
+            .entry(view)
+            .or_insert_with(|| Arc::new(AtomicBool::new(true)))
+            .load(Ordering::SeqCst)
+        {
+            info!("Skipping compute for view {:?} {:?}", view, CM::shader_entry(&state.0));
+            continue;
+        }
+
         let compute_model = compute(&app, &model, &mut state.0, view);
-        info!("Updating compute model for view {:?}", view);
-        let id = commands.spawn(ComputeModel(compute_model)).id();
-        info!("Spawned compute model with id {:?}", id);
+        unsafe {
+            app.component_world
+                .borrow_mut()
+                .world_mut()
+                .entity_mut(view)
+                .insert(ComputeModel(compute_model));
+        }
     }
 }
 

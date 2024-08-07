@@ -4,10 +4,6 @@
 // Two textures are needed for the game of life as each pixel of step N depends on the state of its
 // neighbors at step N-1.
 
-struct GameOfLife {
-    index: u32,
-}
-
 @group(0) @binding(0) var input: texture_storage_2d<r32float, read>;
 @group(0) @binding(1) var output: texture_storage_2d<r32float, write>;
 
@@ -56,19 +52,6 @@ fn count_alive(location: vec2<i32>) -> i32 {
 @compute @workgroup_size(8, 8, 1)
 fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
-
-    let n_alive = count_alive(location);
-
-    var alive: bool;
-    if (n_alive == 3) {
-        alive = true;
-    } else if (n_alive == 2) {
-        let currently_alive = is_alive(location, 0, 0);
-        alive = bool(currently_alive);
-    } else {
-        alive = false;
-    }
-    let color = vec4<f32>(f32(alive));
-
+    var color = vec4<f32>(f32(is_alive(location, 0, 0)));
     textureStore(output, location, color);
 }
