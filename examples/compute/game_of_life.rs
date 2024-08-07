@@ -18,7 +18,7 @@ struct Model {
     display: Handle<Image>,
 }
 
-#[derive(Clone, Default)]
+#[derive(Eq, PartialEq, Hash, Clone, Default)]
 enum State {
     #[default]
     Init,
@@ -90,29 +90,29 @@ fn update(app: &App, model: &mut Model) {
     }
 }
 
-fn compute(app: &App, model: &Model, state: &mut State, view: Entity) -> ComputeModel {
+fn compute(app: &App, model: &Model, state: State, view: Entity) -> (State, ComputeModel) {
     match state {
-        State::Init => {
-            *state = State::Update(1);
+        State::Init => (
+            State::Update(1),
             ComputeModel {
                 texture_read: model.texture_a.clone(),
                 texture_write: model.texture_b.clone(),
-            }
-        }
-        State::Update(0) => {
-            *state = State::Update(1);
+            },
+        ),
+        State::Update(0) => (
+            State::Update(1),
+            ComputeModel {
+                texture_read: model.texture_a.clone(),
+                texture_write: model.texture_b.clone(),
+            },
+        ),
+        State::Update(1) => (
+            State::Update(0),
             ComputeModel {
                 texture_read: model.texture_b.clone(),
                 texture_write: model.texture_a.clone(),
-            }
-        }
-        State::Update(1) => {
-            *state = State::Update(0);
-            ComputeModel {
-                texture_read: model.texture_b.clone(),
-                texture_write: model.texture_a.clone(),
-            }
-        }
+            },
+        ),
         State::Update(_) => panic!("Invalid state"),
     }
 }

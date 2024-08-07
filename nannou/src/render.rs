@@ -4,7 +4,7 @@ use crate::prelude::bevy_render::extract_component::ExtractComponent;
 use crate::prelude::bevy_render::extract_resource::extract_resource;
 use crate::prelude::bevy_render::{Extract, MainWorld};
 use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
-use bevy::ecs::entity::EntityHashMap;
+use bevy::ecs::entity::{EntityHash, EntityHashMap};
 use bevy::ecs::query::QueryItem;
 use bevy::prelude::*;
 use bevy::render::render_graph::{
@@ -20,13 +20,16 @@ use bevy::render::texture::{FallbackImage, GpuImage};
 use bevy::render::view::{ExtractedView, ExtractedWindows, ViewTarget};
 use bevy::render::{Render, RenderSet};
 use bevy::utils::HashMap;
-use bevy_nannou::prelude::{AsBindGroup, ShaderStages, StorageTextureAccess, TextureFormat};
+use bevy_nannou::prelude::{
+    AsBindGroup, CachedPipelineState, ShaderStages, StorageTextureAccess, TextureFormat,
+};
+use noise::NoiseFn;
 use std::borrow::Cow;
+use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
-use noise::NoiseFn;
 use wgpu::ComputePassDescriptor;
 
 pub(crate) struct RenderPlugin<M>(std::marker::PhantomData<M>);
@@ -167,23 +170,24 @@ where
     CM: ComputeShader,
 {
     fn build(&self, app: &mut App) {
-        app.init_resource::<ComputePipelineState>().add_plugins((
+        app.add_plugins((
             ExtractComponentPlugin::<ComputeModel<CM>>::default(),
             ExtractComponentPlugin::<ComputeState<CM::State>>::default(),
-            ExtractResourcePlugin::<ComputePipelineState>::default(),
         ));
 
         let Some(render_app) = app.get_sub_app_mut(bevy::render::RenderApp) else {
             return;
         };
 
-        render_app.add_systems(
-            Render,
-            (
-                queue_pipeline::<CM>.in_set(RenderSet::Queue),
-                prepare_bind_group::<CM>.in_set(RenderSet::PrepareBindGroups),
-            ),
-        );
+        render_app
+            .add_systems(ExtractSchedule, sync_pipeline_cache::<CM>)
+            .add_systems(
+                Render,
+                (
+                    queue_pipeline::<CM>.in_set(RenderSet::Queue),
+                    prepare_bind_group::<CM>.in_set(RenderSet::PrepareBindGroups),
+                ),
+            );
     }
 
     fn finish(&self, app: &mut App) {
@@ -192,6 +196,7 @@ where
         };
 
         render_app
+            .insert_resource(ComputePipelineIds::<CM>(HashMap::default()))
             .init_resource::<NannouComputePipeline<CM>>()
             .init_resource::<SpecializedComputePipelines<NannouComputePipeline<CM>>>()
             .add_render_graph_node::<ViewNodeRunner<NannouComputeNode<CM>>>(
@@ -209,31 +214,67 @@ where
     }
 }
 
+fn sync_pipeline_cache<CM>(
+    mut main_world: ResMut<MainWorld>,
+    pipelines: Res<PipelineCache>,
+    pipeline_ids: Res<ComputePipelineIds<CM>>,
+) where
+    CM: ComputeShader,
+{
+    let mut states_q = main_world.query::<&mut ComputeState<CM::State>>();
+    for mut state in states_q.iter_mut(&mut main_world) {
+        if let Some(next_state) = &state.next {
+            if let Some(id) = pipeline_ids.get(next_state) {
+                match pipelines.get_compute_pipeline_state(*id) {
+                    CachedPipelineState::Queued => {}
+                    CachedPipelineState::Creating(_) => {}
+                    CachedPipelineState::Ok(_) => {
+                        state.current = next_state.clone();
+                        state.next = None;
+                    }
+                    CachedPipelineState::Err(e) => {
+                        error!("Failed to create pipeline {:?}", e);
+                    }
+                };
+            }
+        }
+    }
+}
+
 fn queue_pipeline<CM>(
     mut commands: Commands,
     pipeline: Res<NannouComputePipeline<CM>>,
     mut pipelines: ResMut<SpecializedComputePipelines<NannouComputePipeline<CM>>>,
     pipeline_cache: Res<PipelineCache>,
-    mut pipeline_states: ResMut<ComputePipelineState>,
+    mut pipeline_ids: ResMut<ComputePipelineIds<CM>>,
     views_q: Query<(Entity, &ComputeState<CM::State>)>,
 ) where
     CM: ComputeShader,
 {
     for (entity, state) in views_q.iter() {
-        let pipeline_id = pipelines.specialize(
-            &pipeline_cache,
-            &pipeline,
-            NannouComputePipelineKey {
-                shader_entry: CM::shader_entry(&state.0),
-            },
-        );
-        commands
-            .entity(entity)
-            .insert(ComputePipelineId(pipeline_id));
-        pipeline_states
-            .entry(entity)
-            .or_insert_with(|| Arc::new(AtomicBool::new(false)))
-            .store(false, std::sync::atomic::Ordering::SeqCst);
+        if !pipeline_ids.contains_key(&state.current) {
+            let pipeline_id = pipelines.specialize(
+                &pipeline_cache,
+                &pipeline,
+                NannouComputePipelineKey {
+                    shader_entry: CM::shader_entry(&state.current),
+                },
+            );
+            pipeline_ids.insert(state.current.clone(), pipeline_id);
+        }
+
+        if let Some(next) = &state.next {
+            if !pipeline_ids.contains_key(next) {
+                let pipeline_id = pipelines.specialize(
+                    &pipeline_cache,
+                    &pipeline,
+                    NannouComputePipelineKey {
+                        shader_entry: CM::shader_entry(next),
+                    },
+                );
+                pipeline_ids.insert(next.clone(), pipeline_id);
+            }
+        }
     }
 }
 
@@ -263,11 +304,14 @@ fn prepare_bind_group<CM>(
     }
 }
 
-#[derive(Component, ExtractComponent, Deref, DerefMut, Clone, Default)]
-pub struct ComputeState<S: Default + Clone + Send + Sync + 'static>(pub S);
+#[derive(Component, ExtractComponent, Clone, Default)]
+pub struct ComputeState<S: Default + Clone + Send + Sync + 'static> {
+    pub current: S,
+    pub next: Option<S>,
+}
 
-#[derive(Resource, ExtractResource, Deref, DerefMut, Default, Clone)]
-pub struct ComputePipelineState(EntityHashMap<Arc<AtomicBool>>);
+#[derive(Resource, Deref, DerefMut)]
+pub struct ComputePipelineIds<CM: ComputeShader>(HashMap<CM::State, CachedComputePipelineId>);
 
 #[derive(Component, ExtractComponent, Clone)]
 pub struct ComputeModel<CM: ComputeShader>(pub CM);
@@ -277,9 +321,6 @@ pub struct ComputeBindGroup(pub BindGroup);
 
 #[derive(Resource)]
 pub struct ComputeShaderHandle(pub ShaderRef);
-
-#[derive(Component)]
-pub struct ComputePipelineId(CachedComputePipelineId);
 
 #[derive(Resource)]
 struct NannouComputePipeline<CM>
@@ -325,7 +366,7 @@ where
 
     fn specialize(&self, key: Self::Key) -> ComputePipelineDescriptor {
         ComputePipelineDescriptor {
-            label: None,
+            label: Some("NannouComputePipeline".into()),
             layout: vec![self.layout.clone()],
             push_constant_ranges: Vec::new(),
             shader: self.shader.clone(),
@@ -356,7 +397,6 @@ where
     type ViewQuery = (
         Entity,
         &'static ComputeBindGroup,
-        &'static ComputePipelineId,
         &'static ComputeState<CM::State>,
     );
 
@@ -364,38 +404,35 @@ where
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext<'w>,
-        (view_entity, bind_group, pipeline_id, state): QueryItem<'w, Self::ViewQuery>,
+        (view_entity, bind_group, state): QueryItem<'w, Self::ViewQuery>,
         world: &'w World,
     ) -> Result<(), NodeRunError> {
         let pipeline_cache = world.resource::<PipelineCache>();
-        let mut pipeline_states = world.resource::<ComputePipelineState>();
-        let Some(pipeline) = pipeline_cache.get_compute_pipeline(pipeline_id.0) else {
+        let pipeline_ids = world.resource::<ComputePipelineIds<CM>>();
+        let pipeline_id = pipeline_ids
+            .get(&state.current)
+            .expect("Pipeline not found");
+        let Some(pipeline) = pipeline_cache.get_compute_pipeline(*pipeline_id) else {
             return Ok(());
         };
         let mut pass = render_context
             .command_encoder()
             .begin_compute_pass(&ComputePassDescriptor::default());
-
         pass.set_bind_group(0, &bind_group.0, &[]);
         pass.set_pipeline(pipeline);
-        let (x, y, z) = CM::workgroup_size(&state.0);
+        let (x, y, z) = CM::workgroup_size(&state.current);
         pass.dispatch_workgroups(x, y, z);
-
-        pipeline_states
-            .get(&view_entity)
-            .expect("Pipeline state not found")
-            .store(true, std::sync::atomic::Ordering::SeqCst);
         Ok(())
     }
 }
 
 pub trait ComputeShader: AsBindGroup + Clone + Send + Sync + 'static {
-    type State: Default + Clone + Send + Sync + 'static;
+    type State: Default + Eq + PartialEq + Hash + Clone + Send + Sync + 'static;
 
     fn compute_shader() -> ShaderRef;
 
     fn shader_entry(state: &Self::State) -> &'static str {
-        "compute"
+        "main"
     }
 
     fn workgroup_size(state: &Self::State) -> (u32, u32, u32) {
