@@ -157,9 +157,9 @@ where
         Ok(())
     }
 }
-pub(crate) struct ComputePlugin<CM: ComputeShader>(std::marker::PhantomData<CM>);
+pub(crate) struct ComputePlugin<CM: Compute>(std::marker::PhantomData<CM>);
 
-impl<CM: ComputeShader> Default for ComputePlugin<CM> {
+impl<CM: Compute> Default for ComputePlugin<CM> {
     fn default() -> Self {
         Self(std::marker::PhantomData)
     }
@@ -167,7 +167,7 @@ impl<CM: ComputeShader> Default for ComputePlugin<CM> {
 
 impl<CM> Plugin for ComputePlugin<CM>
 where
-    CM: ComputeShader,
+    CM: Compute,
 {
     fn build(&self, app: &mut App) {
         app.add_plugins((
@@ -219,7 +219,7 @@ fn sync_pipeline_cache<CM>(
     pipelines: Res<PipelineCache>,
     pipeline_ids: Res<ComputePipelineIds<CM>>,
 ) where
-    CM: ComputeShader,
+    CM: Compute,
 {
     let mut states_q = main_world.query::<&mut ComputeState<CM::State>>();
     for mut state in states_q.iter_mut(&mut main_world) {
@@ -249,7 +249,7 @@ fn queue_pipeline<CM>(
     mut pipeline_ids: ResMut<ComputePipelineIds<CM>>,
     views_q: Query<(Entity, &ComputeState<CM::State>)>,
 ) where
-    CM: ComputeShader,
+    CM: Compute,
 {
     for (entity, state) in views_q.iter() {
         if !pipeline_ids.contains_key(&state.current) {
@@ -286,7 +286,7 @@ fn prepare_bind_group<CM>(
     fallback_image: Res<FallbackImage>,
     views_q: Query<(Entity, &ComputeModel<CM>)>,
 ) where
-    CM: ComputeShader,
+    CM: Compute,
 {
     for (view, compute_model) in views_q.iter() {
         let bind_group = compute_model
@@ -311,10 +311,10 @@ pub struct ComputeState<S: Default + Clone + Send + Sync + 'static> {
 }
 
 #[derive(Resource, Deref, DerefMut)]
-pub struct ComputePipelineIds<CM: ComputeShader>(HashMap<CM::State, CachedComputePipelineId>);
+pub struct ComputePipelineIds<CM: Compute>(HashMap<CM::State, CachedComputePipelineId>);
 
 #[derive(Component, ExtractComponent, Clone)]
-pub struct ComputeModel<CM: ComputeShader>(pub CM);
+pub struct ComputeModel<CM: Compute>(pub CM);
 
 #[derive(Component)]
 pub struct ComputeBindGroup(pub BindGroup);
@@ -325,7 +325,7 @@ pub struct ComputeShaderHandle(pub ShaderRef);
 #[derive(Resource)]
 struct NannouComputePipeline<CM>
 where
-    CM: ComputeShader,
+    CM: Compute,
 {
     shader: Handle<Shader>,
     layout: BindGroupLayout,
@@ -334,7 +334,7 @@ where
 
 impl<CM> FromWorld for NannouComputePipeline<CM>
 where
-    CM: ComputeShader,
+    CM: Compute,
 {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
@@ -360,7 +360,7 @@ pub struct NannouComputePipelineKey {
 
 impl<CM> SpecializedComputePipeline for NannouComputePipeline<CM>
 where
-    CM: ComputeShader,
+    CM: Compute,
 {
     type Key = NannouComputePipelineKey;
 
@@ -383,7 +383,7 @@ pub(crate) struct NannouComputeNode<CM>(std::marker::PhantomData<CM>);
 
 impl<CM> FromWorld for NannouComputeNode<CM>
 where
-    CM: ComputeShader,
+    CM: Compute,
 {
     fn from_world(world: &mut World) -> Self {
         Self(std::marker::PhantomData)
@@ -392,7 +392,7 @@ where
 
 impl<CM> ViewNode for NannouComputeNode<CM>
 where
-    CM: ComputeShader,
+    CM: Compute,
 {
     type ViewQuery = (
         Entity,
@@ -426,10 +426,10 @@ where
     }
 }
 
-pub trait ComputeShader: AsBindGroup + Clone + Send + Sync + 'static {
+pub trait Compute: AsBindGroup + Clone + Send + Sync + 'static {
     type State: Default + Eq + PartialEq + Hash + Clone + Send + Sync + 'static;
 
-    fn compute_shader() -> ShaderRef;
+    fn shader() -> ShaderRef;
 
     fn shader_entry(state: &Self::State) -> &'static str {
         "main"

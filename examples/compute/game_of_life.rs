@@ -1,3 +1,5 @@
+mod particle_mouse;
+
 use nannou::prelude::*;
 
 const DISPLAY_FACTOR: u32 = 4;
@@ -33,10 +35,10 @@ struct ComputeModel {
     texture_write: Handle<Image>,
 }
 
-impl ComputeShader for ComputeModel {
+impl Compute for ComputeModel {
     type State = State;
 
-    fn compute_shader() -> ShaderRef {
+    fn shader() -> ShaderRef {
         "shaders/game_of_life.wgsl".into()
     }
 
@@ -119,7 +121,6 @@ fn compute(app: &App, model: &Model, state: State, view: Entity) -> (State, Comp
 
 fn view(app: &App, model: &Model, view: Entity) {
     let draw = app.draw();
-    draw.background().color(BLACK);
     let window_rect = app.window_rect();
     draw.rect()
         .w_h(window_rect.w(), window_rect.h())

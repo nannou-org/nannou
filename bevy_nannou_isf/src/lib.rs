@@ -6,13 +6,8 @@ use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::extract_resource::ExtractResourcePlugin;
 use bevy::render::view;
-use bevy::render::view::{NoFrustumCulling, VisibilitySystems};
-use bevy::window::PrimaryWindow;
-use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::inspector_egui_impls::InspectorEguiImpl;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
-use bevy_inspector_egui::DefaultInspectorConfigPlugin;
-use std::any::TypeId;
 
 mod asset;
 mod inputs;

@@ -66,7 +66,6 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{self};
-use wgpu::naga::ShaderStage::Compute;
 
 use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
@@ -97,8 +96,8 @@ use crate::prelude::{ComputePipelineState, NannouMaterialPlugin};
 use crate::prelude::NannouMaterialPlugin;
 >>>>>>> 7c1848e (Fix compute.)
 use crate::render::{
-    ComputeModel, ComputePlugin, ComputeShader, ComputeShaderHandle, ComputeState,
-    NannouRenderNode, RenderApp, RenderPlugin,
+    Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState, NannouRenderNode,
+    RenderApp, RenderPlugin,
 };
 >>>>>>> 2a48b61 (Start compute.)
 use crate::window::WindowUserFunctions;
@@ -112,9 +111,9 @@ pub type ComputeUpdateFn<Model, ComputeModel> =
     fn(
         &App,
         &Model,
-        <ComputeModel as ComputeShader>::State,
+        <ComputeModel as Compute>::State,
         Entity,
-    ) -> (<ComputeModel as ComputeShader>::State, ComputeModel);
+    ) -> (<ComputeModel as Compute>::State, ComputeModel);
 
 /// The user function type for updating their model in accordance with some event.
 pub type EventFn<Model, Event> = fn(&App, &mut Model, &Event);
@@ -210,7 +209,7 @@ struct EventFnRes<M, E>(Option<EventFn<M, E>>);
 struct UpdateFnRes<M>(Option<UpdateFn<M>>);
 
 #[derive(Resource, Deref, DerefMut)]
-struct ComputeUpdateFnRes<M, CM: ComputeShader>(ComputeUpdateFn<M, CM>);
+struct ComputeUpdateFnRes<M, CM: Compute>(ComputeUpdateFn<M, CM>);
 
 #[derive(Resource, Deref, DerefMut)]
 pub(crate) struct RenderFnRes<M>(Option<RenderFn<M>>);
@@ -294,12 +293,14 @@ where
     pub fn new(model: ModelFn<M>) -> Self {
         let mut app = bevy::app::App::new();
         app.add_plugins((
-            DefaultPlugins.set(WindowPlugin {
-                // Don't spawn a  window by default, we'll handle this ourselves
-                primary_window: None,
-                exit_condition: ExitCondition::OnAllClosed,
-                ..default()
-            }),
+            DefaultPlugins
+                .set(WindowPlugin {
+                    // Don't spawn a  window by default, we'll handle this ourselves
+                    primary_window: None,
+                    exit_condition: ExitCondition::OnAllClosed,
+                    ..default()
+                })
+                .set(ImagePlugin::default_nearest()),
             #[cfg(feature = "egui")]
             bevy_egui::EguiPlugin,
             NannouPlugin,
@@ -422,9 +423,9 @@ where
         self
     }
 
-    pub fn compute<CM: ComputeShader>(mut self, compute_fn: ComputeUpdateFn<M, CM>) -> Self {
+    pub fn compute<CM: Compute>(mut self, compute_fn: ComputeUpdateFn<M, CM>) -> Self {
         let render_app = self.app.sub_app_mut(bevy::render::RenderApp);
-        render_app.insert_resource(ComputeShaderHandle(CM::compute_shader()));
+        render_app.insert_resource(ComputeShaderHandle(CM::shader()));
         self.app
             .add_systems(
                 First,
@@ -1228,7 +1229,7 @@ fn compute<M, CM>(
     )>,
 ) where
     M: 'static + Send + Sync,
-    CM: ComputeShader,
+    CM: Compute,
 {
     let (mut app, (mut model, compute, mut views_q)) = get_app_and_state(world, state);
     let compute = compute.0;

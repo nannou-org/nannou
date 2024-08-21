@@ -27,6 +27,7 @@ walkdir = "2"
 hound = "3.4.0"
 ringbuf = "0.2.2"
 futures = "0.3"
+bytemuck = "1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["full"]}
@@ -63,6 +64,9 @@ path = "communication/osc_sender.rs"
 [[example]]
 name = "game_of_life"
 path = "compute/game_of_life.rs"
+[[example]]
+name = "particle_mouse"
+path = "compute/particle_mouse.rs"
 
 # Draw
 [[example]]

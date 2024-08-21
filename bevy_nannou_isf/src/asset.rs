@@ -82,6 +82,7 @@ impl AssetLoader for IsfLoader {
         for (name, import) in &isf.imported {
             let image = load_context.load::<Image>(import.path.clone());
             imported_images.insert(name.clone(), image);
+            
         }
         Ok(Isf {
             isf,
