@@ -11,11 +11,10 @@ use std::path::{Path, PathBuf};
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
-use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
-use bevy::render::renderer::{RenderDevice, RenderQueue};
-use bevy::render::view::screenshot::ScreenshotManager;
+use bevy::render::view::cursor::CursorIcon;
 use bevy::render::view::RenderLayers;
-use bevy::window::{Cursor, CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef};
+use bevy::render::view::screenshot::{save_to_disk, Screenshot};
+use bevy::window::{CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef};
 
 use crate::app::RenderFnRes;
 use crate::frame::{Frame, FramePlugin};
@@ -773,7 +772,7 @@ impl<'a, 'w> Window<'a, 'w> {
     /// to fullscreen.
     pub fn set_fullscreen(&self, fullscreen: bool) {
         if fullscreen {
-            self.window_mut().mode = WindowMode::BorderlessFullscreen;
+            self.window_mut().mode = WindowMode::BorderlessFullscreen(MonitorSelection::Current);
         } else {
             self.window_mut().mode = WindowMode::Windowed;
         }
@@ -845,8 +844,11 @@ impl<'a, 'w> Window<'a, 'w> {
     ///
     /// - **iOS:** Has no effect.
     /// - **Android:** Has no effect.
-    pub fn set_cursor_icon(&self, cursor: Cursor) {
-        self.window_mut().cursor = cursor;
+    pub fn set_cursor_icon(&self, cursor: CursorIcon) {
+        self.app
+            .component_world_mut()
+            .entity_mut(self.entity)
+            .insert(cursor);
     }
 
     /// Changes the position of the cursor in logical window coordinates.
@@ -869,7 +871,7 @@ impl<'a, 'w> Window<'a, 'w> {
     /// - **iOS:** Always returns an Err.
     /// - **Web:** Has no effect.
     pub fn set_cursor_grab(&self, grab: bool) {
-        self.window_mut().cursor.grab_mode = if grab {
+        self.window_mut().cursor_options.grab_mode = if grab {
             CursorGrabMode::Locked
         } else {
             CursorGrabMode::None
@@ -890,12 +892,12 @@ impl<'a, 'w> Window<'a, 'w> {
     ///
     /// This has no effect on **Android** or **iOS**.
     pub fn set_cursor_visible(&self, visible: bool) {
-        self.window_mut().cursor.visible = visible;
+        self.window_mut().cursor_options.visible = visible;
     }
 
     /// Attempts to determine whether or not the window is currently fullscreen.
     pub fn is_fullscreen(&self) -> bool {
-        self.window_mut().mode == WindowMode::Fullscreen
+        self.window_mut().mode == WindowMode::Fullscreen(MonitorSelection::Current)
     }
 
     /// The rectangle representing the position and dimensions of the window.
@@ -912,14 +914,11 @@ impl<'a, 'w> Window<'a, 'w> {
     }
 
     /// Saves a screenshot of the window to the given path.
-    pub fn save_screenshot<P: AsRef<Path>>(&mut self, path: P) {
-        let mut world = self.app.resource_world_mut();
-        let mut screenshot_manager = world
-            .get_resource_mut::<ScreenshotManager>()
-            .expect("ScreenshotManager resource not found");
-        screenshot_manager
-            .save_screenshot_to_disk(self.entity, path)
-            .expect("Failed to save screenshot");
+    pub fn save_screenshot<P: AsRef<Path> + 'static>(&mut self, path: P) {
+        let mut world = self.app.component_world_mut();
+        world.spawn(Screenshot::window(self.entity))
+            .observe(save_to_disk(path));
+
     }
 
     pub fn device(&self) -> std::cell::Ref<wgpu::Device> {

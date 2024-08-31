@@ -527,48 +527,40 @@ where
     }
 }
 
-impl<M> Reflect for ModelHolder<M>
+impl<M> PartialReflect for ModelHolder<M>
 where
-    M: Reflect + DynamicTypePath + Any + GetTypeRegistration + 'static,
+    M: PartialReflect + DynamicTypePath + Any + GetTypeRegistration + 'static,
 {
     fn get_represented_type_info(&self) -> Option<&'static TypeInfo> {
         self.0.get_represented_type_info()
     }
 
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        Box::new(self.0).into_any()
+    fn into_partial_reflect(self: Box<Self>) -> Box<dyn PartialReflect> {
+        Box::new(ModelHolder(self.0))
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self.0.as_any()
+    fn as_partial_reflect(&self) -> &dyn PartialReflect {
+        self.0.as_partial_reflect()
     }
 
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self.0.as_any_mut()
+    fn as_partial_reflect_mut(&mut self) -> &mut dyn PartialReflect {
+        self.0.as_partial_reflect_mut()
     }
 
-    fn into_reflect(self: Box<Self>) -> Box<dyn Reflect> {
-        Box::new(self.0).into_reflect()
+    fn try_into_reflect(self: Box<Self>) -> Result<Box<dyn Reflect>, Box<dyn PartialReflect>> {
+        Box::new(self.0).try_into_reflect()
     }
 
-    fn as_reflect(&self) -> &dyn Reflect {
-        self.0.as_reflect()
+    fn try_as_reflect(&self) -> Option<&dyn Reflect> {
+        self.0.try_as_reflect()
     }
 
-    fn as_reflect_mut(&mut self) -> &mut dyn Reflect {
-        self.0.as_reflect_mut()
+    fn try_as_reflect_mut(&mut self) -> Option<&mut dyn Reflect> {
+        self.0.try_as_reflect_mut()
     }
 
-    fn apply(&mut self, value: &dyn Reflect) {
-        self.0.apply(value)
-    }
-
-    fn try_apply(&mut self, value: &dyn Reflect) -> Result<(), ApplyError> {
+    fn try_apply(&mut self, value: &dyn PartialReflect) -> Result<(), ApplyError> {
         self.0.try_apply(value)
-    }
-
-    fn set(&mut self, value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {
-        self.0.set(value)
     }
 
     fn reflect_ref(&self) -> ReflectRef {
@@ -583,7 +575,7 @@ where
         Box::new(self.0).reflect_owned()
     }
 
-    fn clone_value(&self) -> Box<dyn Reflect> {
+    fn clone_value(&self) -> Box<dyn PartialReflect> {
         self.0.clone_value()
     }
 }
