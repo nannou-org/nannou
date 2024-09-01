@@ -1,5 +1,7 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
+use bevy::render::mesh::allocator::MeshAllocator;
+use bevy::render::mesh::RenderMeshBufferInfo;
 use bevy::render::render_phase::ViewSortedRenderPhases;
 use bevy::{
     core_pipeline::core_3d::Transparent3d,
@@ -13,7 +15,7 @@ use bevy::{
     prelude::*,
     render::{
         extract_component::{ExtractComponent, ExtractComponentPlugin},
-        mesh::{RenderMesh, MeshVertexBufferLayoutRef},
+        mesh::{MeshVertexBufferLayoutRef, RenderMesh},
         render_asset::RenderAssets,
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
@@ -25,8 +27,6 @@ use bevy::{
         Render, RenderApp, RenderSet,
     },
 };
-use bevy::render::mesh::allocator::MeshAllocator;
-use bevy::render::mesh::RenderMeshBufferInfo;
 use bytemuck::{Pod, Zeroable};
 use rayon::prelude::*;
 
@@ -166,7 +166,6 @@ fn queue_instanced(
     mut views: Query<(Entity, &ExtractedView, &Msaa)>,
 ) {
     let draw_custom = transparent_3d_draw_functions.read().id::<DrawInstanced>();
-
 
     for (view_entity, view, msaa) in &mut views {
         let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());

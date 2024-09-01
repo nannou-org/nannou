@@ -12,8 +12,8 @@ use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::render::view::cursor::CursorIcon;
-use bevy::render::view::RenderLayers;
 use bevy::render::view::screenshot::{save_to_disk, Screenshot};
+use bevy::render::view::RenderLayers;
 use bevy::window::{CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef};
 
 use crate::app::RenderFnRes;
@@ -916,9 +916,9 @@ impl<'a, 'w> Window<'a, 'w> {
     /// Saves a screenshot of the window to the given path.
     pub fn save_screenshot<P: AsRef<Path> + 'static>(&mut self, path: P) {
         let mut world = self.app.component_world_mut();
-        world.spawn(Screenshot::window(self.entity))
+        world
+            .spawn(Screenshot::window(self.entity))
             .observe(save_to_disk(path));
-
     }
 
     pub fn device(&self) -> std::cell::Ref<wgpu::Device> {
