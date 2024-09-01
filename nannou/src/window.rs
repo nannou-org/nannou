@@ -584,6 +584,14 @@ where
         })
     }
 
+    /// Move the window to the center of the given monitor.
+    pub fn monitor(mut self, monitor: MonitorSelection) -> Self {
+        self.map_window(|mut w| {
+            w.position = WindowPosition::Centered(monitor);
+            w
+        })
+    }
+
     /// Requests maximized mode.
     pub fn maximized(self, maximized: bool) -> Self {
         self.map_window(|mut w| {

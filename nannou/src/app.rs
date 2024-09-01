@@ -31,9 +31,10 @@ use bevy::reflect::{
     ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
     TypeInfo,
 };
-use bevy::render::extract_resource::{extract_resource, ExtractResource};
-use bevy::render::render_graph::ViewNodeRunner;
-use bevy::window::{ExitCondition, PrimaryWindow, WindowClosed, WindowFocused, WindowResized};
+use bevy::window::{
+    ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowFocused,
+    WindowResized,
+};
 use bevy::winit::{UpdateMode, WinitEvent, WinitSettings};
 #[cfg(feature = "egui")]
 use bevy_egui::EguiContext;
@@ -715,17 +716,21 @@ impl<'w> App<'w> {
     }
 
     /// Returns the list of all the monitors available on the system.
-    pub fn available_monitors(&self) -> Vec<()> {
-        // Bevy doesn't expose this right now but could be nice
-        todo!()
+    pub fn available_monitors(&self) -> Vec<(Entity, Monitor)> {
+        let mut monitor_q = self.component_world().query::<(Entity, &Monitor)>();
+        monitor_q
+            .iter(&self.component_world())
+            .collect()
     }
 
     /// Returns the primary monitor of the system.
     /// May return None if none can be detected. For example, this can happen when running on Linux
     /// with Wayland.
-    pub fn primary_monitor(&self) -> Option<()> {
-        // Bevy doesn't expose this right now but could be nice
-        todo!()
+    pub fn primary_monitor(&self) -> Option<Entity> {
+        let mut monitor_q = self
+            .component_world()
+            .query_filtered::<Entity, With<PrimaryMonitor>>();
+        monitor_q.get_single(&self.component_world()).ok()
     }
 
     pub fn new_light<'a>(&'a self) -> light::Builder<'a, 'w> {
