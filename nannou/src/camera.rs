@@ -1,10 +1,9 @@
 use crate::prelude::bevy_render::camera::RenderTarget;
-use crate::prelude::Camera3dBundle;
 use crate::App;
 use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::math::UVec2;
-use bevy::prelude::{Camera3d, PerspectiveProjection, Projection, Transform, Vec2};
+use bevy::prelude::{Camera3d, Camera3dBundle, Projection, Transform, Vec2};
 use bevy::render::camera;
 use bevy::render::view::RenderLayers;
 use bevy::window::WindowRef;

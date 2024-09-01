@@ -1,12 +1,11 @@
 use bevy::core_pipeline::bloom::BloomSettings;
-use bevy::pbr::DirectionalLight;
+use bevy::pbr::{DirectionalLight, DirectionalLightBundle};
 use bevy::prelude::{Color, Transform, Vec2};
 use bevy::render::camera;
 use bevy::render::view::RenderLayers;
 
 use bevy_nannou::prelude::{default, Entity, Vec3};
 
-use crate::prelude::DirectionalLightBundle;
 use crate::App;
 
 pub struct Light<'a, 'w> {

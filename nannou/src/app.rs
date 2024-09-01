@@ -717,9 +717,10 @@ impl<'w> App<'w> {
 
     /// Returns the list of all the monitors available on the system.
     pub fn available_monitors(&self) -> Vec<(Entity, Monitor)> {
-        let mut monitor_q = self.component_world().query::<(Entity, &Monitor)>();
+        let mut monitor_q = self.component_world_mut().query::<(Entity, &Monitor)>();
         monitor_q
             .iter(&self.component_world())
+            .map(|(entity, monitor)| (entity, monitor.clone()))
             .collect()
     }
 
@@ -728,7 +729,7 @@ impl<'w> App<'w> {
     /// with Wayland.
     pub fn primary_monitor(&self) -> Option<Entity> {
         let mut monitor_q = self
-            .component_world()
+            .component_world_mut()
             .query_filtered::<Entity, With<PrimaryMonitor>>();
         monitor_q.get_single(&self.component_world()).ok()
     }
