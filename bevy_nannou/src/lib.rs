@@ -6,9 +6,9 @@ pub mod prelude {
     pub use bevy::core_pipeline::bloom::*;
     pub use bevy::input::mouse::MouseWheel;
     pub use bevy::prelude::{
-        default, light_consts, ClearColorConfig, Entity, Handle, Image, KeyCode,
-        MonitorSelection, MouseButton, OrthographicProjection, TouchInput, Vec3, Window, WindowResizeConstraints,
-        info, warn, error, debug, trace,
+        debug, default, error, info, light_consts, trace, warn, ClearColorConfig, Entity, Handle,
+        Image, KeyCode, MonitorSelection, MouseButton, OrthographicProjection, TouchInput, Vec3,
+        Window, WindowResizeConstraints,
     };
     pub use bevy::render::render_asset::*;
     pub use bevy::render::render_resource::*;
