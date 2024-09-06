@@ -8,27 +8,6 @@ struct Particle {
 @group(0) @binding(1) var<uniform> mouse: vec2<f32>;
 @group(0) @binding(2) var<uniform> resolution: vec2<f32>;
 
-
-struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) color: vec4<f32>,
-};
-
-@vertex
-fn vertex(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
-    let particle = particles[vertex_index];
-
-    var out: VertexOutput;
-    out.clip_position = vec4<f32>(particle.position, 0.0, 1.0);
-    out.color = particle.color;
-    return out;
-}
-
-@fragment
-fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    return in.color;
-}
-
 fn random(seed: vec2<f32>) -> f32 {
     return fract(sin(dot(seed, vec2(12.9898, 78.233))) * 43758.5453);
 }

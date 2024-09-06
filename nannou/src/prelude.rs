@@ -12,6 +12,7 @@ pub use bevy_egui::egui;
 
 pub use crate::frame::*;
 pub use crate::render::*;
+pub use crate::render::compute::*;
 pub use crate::wgpu;
 pub use crate::wgpu::util::{BufferInitDescriptor, DeviceExt};
 pub use bevy_nannou::prelude::*;

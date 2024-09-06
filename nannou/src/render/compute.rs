@@ -32,131 +32,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use wgpu::ComputePassDescriptor;
 
-pub(crate) struct RenderPlugin<M>(std::marker::PhantomData<M>);
-
-impl<M> Default for RenderPlugin<M>
-where
-    M: Send + Sync + Clone + 'static,
-{
-    fn default() -> Self {
-        Self(std::marker::PhantomData)
-    }
-}
-
-impl<M> Plugin for RenderPlugin<M>
-where
-    M: Send + Sync + Clone + 'static,
-{
-    fn build(&self, app: &mut App) {
-        let Some(render_app) = app.get_sub_app_mut(bevy::render::RenderApp) else {
-            return;
-        };
-
-        render_app.add_systems(
-            ExtractSchedule,
-            (
-                extract_resource::<RenderFnRes<M>>,
-                extract_resource::<ModelHolder<M>>,
-            ),
-        );
-    }
-
-    fn finish(&self, app: &mut App) {
-        let Some(render_app) = app.get_sub_app_mut(bevy::render::RenderApp) else {
-            return;
-        };
-
-        render_app
-            .add_render_graph_node::<ViewNodeRunner<NannouRenderNode<M>>>(
-                Core3d,
-                NannouRenderNodeLabel,
-            )
-            .add_render_graph_edges(
-                Core3d,
-                (
-                    Node3d::MainTransparentPass,
-                    NannouRenderNodeLabel,
-                    Node3d::EndMainPass,
-                ),
-            );
-    }
-}
-
-pub struct RenderApp<'w> {
-    current_view: Option<Entity>,
-    world: &'w World,
-}
-
-impl<'w> RenderApp<'w> {
-    pub fn new(world: &'w World) -> Self {
-        Self {
-            current_view: None,
-            world,
-        }
-    }
-
-    /// Get the elapsed seconds since startup.
-    pub fn time(&self) -> f32 {
-        let time = self.world.resource::<Time>();
-        time.elapsed_seconds()
-    }
-
-    /// Get the elapsed seconds since the last frame.
-    pub fn time_delta(&self) -> f32 {
-        let time = self.world.resource::<Time>();
-        time.delta_seconds()
-    }
-}
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
-struct NannouRenderNodeLabel;
-
-pub(crate) struct NannouRenderNode<M>(std::marker::PhantomData<M>);
-
-impl<M> FromWorld for NannouRenderNode<M>
-where
-    M: Send + Sync + Clone + 'static,
-{
-    fn from_world(_world: &mut World) -> Self {
-        Self(std::marker::PhantomData)
-    }
-}
-
-impl<M> ViewNode for NannouRenderNode<M>
-where
-    M: Send + Sync + Clone + 'static,
-{
-    type ViewQuery = (Entity, &'static ViewTarget, &'static ExtractedView);
-
-    fn run<'w>(
-        &self,
-        _graph: &mut RenderGraphContext,
-        render_context: &mut RenderContext<'w>,
-        (view_entity, view_target, extracted_view): QueryItem<'w, Self::ViewQuery>,
-        world: &'w World,
-    ) -> Result<(), NodeRunError> {
-        let render_fn = world.resource::<RenderFnRes<M>>();
-        let Some(render_fn) = render_fn.as_ref() else {
-            return Ok(());
-        };
-
-        let extracted_windows = world.resource::<ExtractedWindows>();
-        let model = world.resource::<ModelHolder<M>>();
-        let render_app = RenderApp::new(world);
-        let frame = Frame::new(
-            world,
-            view_entity,
-            view_target,
-            extracted_windows,
-            extracted_view,
-            render_context,
-        );
-
-        render_fn(&render_app, &model.deref(), frame);
-
-        Ok(())
-    }
-}
 pub(crate) struct ComputePlugin<CM: Compute>(std::marker::PhantomData<CM>);
 
 impl<CM: Compute> Default for ComputePlugin<CM> {
@@ -257,7 +132,7 @@ fn queue_pipeline<CM>(
                 &pipeline_cache,
                 &pipeline,
                 NannouComputePipelineKey {
-                    shader_entry: CM::shader_entry(&state.current),
+                    shader_entry: CM::entry(&state.current),
                 },
             );
             pipeline_ids.insert(state.current.clone(), pipeline_id);
@@ -269,7 +144,7 @@ fn queue_pipeline<CM>(
                     &pipeline_cache,
                     &pipeline,
                     NannouComputePipelineKey {
-                        shader_entry: CM::shader_entry(next),
+                        shader_entry: CM::entry(next),
                     },
                 );
                 pipeline_ids.insert(next.clone(), pipeline_id);
@@ -283,8 +158,8 @@ fn prepare_bind_group<CM>(
     pipeline: Res<NannouComputePipeline<CM>>,
     gpu_images: Res<RenderAssets<GpuImage>>,
     render_device: Res<RenderDevice>,
-    fallback_image: Res<FallbackImage>,
     views_q: Query<(Entity, &ComputeModel<CM>)>,
+    mut params: StaticSystemParam<CM::Param>,
 ) where
     CM: Compute,
 {
@@ -294,8 +169,7 @@ fn prepare_bind_group<CM>(
             .as_bind_group(
                 &pipeline.layout,
                 &render_device,
-                &gpu_images,
-                &fallback_image,
+                &mut params,
             )
             .expect("Failed to create bind group");
         commands
@@ -305,19 +179,19 @@ fn prepare_bind_group<CM>(
 }
 
 #[derive(Component, ExtractComponent, Clone, Default)]
-pub struct ComputeState<S: Default + Clone + Send + Sync + 'static> {
+pub(crate) struct ComputeState<S: Default + Clone + Send + Sync + 'static> {
     pub current: S,
     pub next: Option<S>,
 }
 
 #[derive(Resource, Deref, DerefMut)]
-pub struct ComputePipelineIds<CM: Compute>(HashMap<CM::State, CachedComputePipelineId>);
+struct ComputePipelineIds<CM: Compute>(HashMap<CM::State, CachedComputePipelineId>);
 
 #[derive(Component, ExtractComponent, Clone)]
-pub struct ComputeModel<CM: Compute>(pub CM);
+pub(crate) struct ComputeModel<CM: Compute>(pub CM);
 
 #[derive(Component)]
-pub struct ComputeBindGroup(pub BindGroup);
+struct ComputeBindGroup(pub BindGroup);
 
 #[derive(Resource)]
 pub struct ComputeShaderHandle(pub ShaderRef);
@@ -354,7 +228,7 @@ where
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct NannouComputePipelineKey {
+struct NannouComputePipelineKey {
     pub shader_entry: &'static str,
 }
 
@@ -379,7 +253,7 @@ where
 #[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
 struct NannouComputeNodeLabel;
 
-pub(crate) struct NannouComputeNode<CM>(std::marker::PhantomData<CM>);
+struct NannouComputeNode<CM>(std::marker::PhantomData<CM>);
 
 impl<CM> FromWorld for NannouComputeNode<CM>
 where
@@ -429,13 +303,18 @@ where
 pub trait Compute: AsBindGroup + Clone + Send + Sync + 'static {
     type State: Default + Eq + PartialEq + Hash + Clone + Send + Sync + 'static;
 
+    /// The shader to use for this compute model.
     fn shader() -> ShaderRef;
 
-    fn shader_entry(state: &Self::State) -> &'static str {
+    /// The entry point for the compute shader as derived from the state. This can be
+    /// used in combination with state to advance a compute shader through a series of
+    /// stages.
+    fn entry(_state: &Self::State) -> &'static str {
         "main"
     }
 
-    fn workgroup_size(state: &Self::State) -> (u32, u32, u32) {
+    /// The workgroup size used to dispatch the compute pass.
+    fn workgroup_size(_state: &Self::State) -> (u32, u32, u32) {
         (1, 1, 1)
     }
 }

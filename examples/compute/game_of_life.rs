@@ -42,7 +42,7 @@ impl Compute for ComputeModel {
         "shaders/game_of_life.wgsl".into()
     }
 
-    fn shader_entry(state: &Self::State) -> &'static str {
+    fn entry(state: &Self::State) -> &'static str {
         match state {
             State::Init => "init",
             State::Update(_) => "update",

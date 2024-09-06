@@ -1,4 +1,4 @@
-#import bevy_pbr::mesh_functions::{get_model_matrix, mesh_position_local_to_clip}
+#import bevy_pbr::mesh_functions::{get_world_from_local, mesh_position_local_to_clip}
 
 struct Vertex {
     @location(0) position: vec3<f32>,
@@ -23,7 +23,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     // index in the Mesh array. This index could be passed in via another
     // uniform instead but it's unnecessary for the example.
     out.clip_position = mesh_position_local_to_clip(
-        get_model_matrix(0u),
+        get_world_from_local(0u),
         vec4<f32>(position, 1.0)
     );
     out.color = vec4(1.0, 0.0, 0.0, 1.0);

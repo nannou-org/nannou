@@ -96,8 +96,8 @@ use crate::prelude::{ComputePipelineState, NannouMaterialPlugin};
 use crate::prelude::NannouMaterialPlugin;
 >>>>>>> 7c1848e (Fix compute.)
 use crate::render::{
-    Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState, NannouRenderNode,
-    RenderApp, RenderPlugin,
+    compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
+    NannouRenderNode, RenderApp, RenderPlugin
 };
 >>>>>>> 2a48b61 (Start compute.)
 use crate::window::WindowUserFunctions;
@@ -299,8 +299,7 @@ where
                     primary_window: None,
                     exit_condition: ExitCondition::OnAllClosed,
                     ..default()
-                })
-                .set(ImagePlugin::default_nearest()),
+                }),
             #[cfg(feature = "egui")]
             bevy_egui::EguiPlugin,
             NannouPlugin,
