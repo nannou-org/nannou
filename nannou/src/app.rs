@@ -585,7 +585,8 @@ where
 
 impl<M> Reflect for ModelHolder<M>
 where
-    M: Reflect + DynamicTypePath + Any + GetTypeRegistration + 'static, {
+    M: Reflect + DynamicTypePath + Any + GetTypeRegistration + 'static,
+{
     fn into_any(self: Box<Self>) -> Box<dyn Any> {
         Box::new(self.0).into_any()
     }
