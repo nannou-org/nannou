@@ -33,9 +33,9 @@ use bevy::reflect::{
 };
 use bevy::window::{
     ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowFocused,
-    WindowResized,
+    WindowResized, WindowEvent
 };
-use bevy::winit::{UpdateMode, WinitEvent, WinitSettings};
+use bevy::winit::{UpdateMode, WinitSettings};
 #[cfg(feature = "egui")]
 use bevy_egui::EguiContext;
 #[cfg(feature = "egui")]
@@ -98,7 +98,7 @@ impl<M> Clone for View<M> {
 }
 
 /// A nannou `App` builder.
-pub struct Builder<M = (), E = WinitEvent> {
+pub struct Builder<M = (), E = WindowEvent> {
     app: bevy::app::App,
     model: ModelFn<M>,
     config: Config,
@@ -110,7 +110,7 @@ pub struct Builder<M = (), E = WinitEvent> {
 }
 
 /// A nannou `Sketch` builder.
-pub struct SketchBuilder<E = WinitEvent> {
+pub struct SketchBuilder<E = WindowEvent> {
     builder: Builder<(), E>,
 }
 
