@@ -292,6 +292,7 @@ fn create_compute_pipeline(
         module: &cs_mod,
         entry_point: "main",
         compilation_options: Default::default(),
+        cache: None,
     };
     device.create_compute_pipeline(&desc)
 }
