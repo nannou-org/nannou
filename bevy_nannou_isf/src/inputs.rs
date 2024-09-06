@@ -205,59 +205,59 @@ impl GetTypeRegistration for IsfInputs {
 }
 
 impl Struct for IsfInputs {
-    fn field(&self, name: &str) -> Option<&dyn Reflect> {
+    fn field(&self, name: &str) -> Option<&dyn PartialReflect> {
         self.get(name).map(|v| match v {
-            IsfInputValue::Event(b) => b as &dyn Reflect,
-            IsfInputValue::Bool(b) => b as &dyn Reflect,
-            IsfInputValue::Long(l) => l as &dyn Reflect,
-            IsfInputValue::Float(f) => f as &dyn Reflect,
-            IsfInputValue::Point2d(v) => v as &dyn Reflect,
-            IsfInputValue::Color(c) => c as &dyn Reflect,
-            IsfInputValue::Image(h) => h as &dyn Reflect,
-            IsfInputValue::Audio(a) => a as &dyn Reflect,
-            IsfInputValue::AudioFft(a) => a as &dyn Reflect,
+            IsfInputValue::Event(b) => b as &dyn PartialReflect,
+            IsfInputValue::Bool(b) => b as &dyn PartialReflect,
+            IsfInputValue::Long(l) => l as &dyn PartialReflect,
+            IsfInputValue::Float(f) => f as &dyn PartialReflect,
+            IsfInputValue::Point2d(v) => v as &dyn PartialReflect,
+            IsfInputValue::Color(c) => c as &dyn PartialReflect,
+            IsfInputValue::Image(h) => h as &dyn PartialReflect,
+            IsfInputValue::Audio(a) => a as &dyn PartialReflect,
+            IsfInputValue::AudioFft(a) => a as &dyn PartialReflect,
         })
     }
 
-    fn field_mut(&mut self, name: &str) -> Option<&mut dyn Reflect> {
+    fn field_mut(&mut self, name: &str) -> Option<&mut dyn PartialReflect> {
         self.get_mut(name).map(|v| match v {
-            IsfInputValue::Event(b) => b as &mut dyn Reflect,
-            IsfInputValue::Bool(b) => b as &mut dyn Reflect,
-            IsfInputValue::Long(l) => l as &mut dyn Reflect,
-            IsfInputValue::Float(f) => f as &mut dyn Reflect,
-            IsfInputValue::Point2d(v) => v as &mut dyn Reflect,
-            IsfInputValue::Color(c) => c as &mut dyn Reflect,
-            IsfInputValue::Image(h) => h as &mut dyn Reflect,
-            IsfInputValue::Audio(a) => a as &mut dyn Reflect,
-            IsfInputValue::AudioFft(a) => a as &mut dyn Reflect,
+            IsfInputValue::Event(b) => b as &mut dyn PartialReflect,
+            IsfInputValue::Bool(b) => b as &mut dyn PartialReflect,
+            IsfInputValue::Long(l) => l as &mut dyn PartialReflect,
+            IsfInputValue::Float(f) => f as &mut dyn PartialReflect,
+            IsfInputValue::Point2d(v) => v as &mut dyn PartialReflect,
+            IsfInputValue::Color(c) => c as &mut dyn PartialReflect,
+            IsfInputValue::Image(h) => h as &mut dyn PartialReflect,
+            IsfInputValue::Audio(a) => a as &mut dyn PartialReflect,
+            IsfInputValue::AudioFft(a) => a as &mut dyn PartialReflect,
         })
     }
 
-    fn field_at(&self, index: usize) -> Option<&dyn Reflect> {
+    fn field_at(&self, index: usize) -> Option<&dyn PartialReflect> {
         self.values().nth(index).map(|v| match v {
-            IsfInputValue::Event(b) => b as &dyn Reflect,
-            IsfInputValue::Bool(b) => b as &dyn Reflect,
-            IsfInputValue::Long(l) => l as &dyn Reflect,
-            IsfInputValue::Float(f) => f as &dyn Reflect,
-            IsfInputValue::Point2d(v) => v as &dyn Reflect,
-            IsfInputValue::Color(c) => c as &dyn Reflect,
-            IsfInputValue::Image(h) => h as &dyn Reflect,
-            IsfInputValue::Audio(a) => a as &dyn Reflect,
-            IsfInputValue::AudioFft(a) => a as &dyn Reflect,
+            IsfInputValue::Event(b) => b as &dyn PartialReflect,
+            IsfInputValue::Bool(b) => b as &dyn PartialReflect,
+            IsfInputValue::Long(l) => l as &dyn PartialReflect,
+            IsfInputValue::Float(f) => f as &dyn PartialReflect,
+            IsfInputValue::Point2d(v) => v as &dyn PartialReflect,
+            IsfInputValue::Color(c) => c as &dyn PartialReflect,
+            IsfInputValue::Image(h) => h as &dyn PartialReflect,
+            IsfInputValue::Audio(a) => a as &dyn PartialReflect,
+            IsfInputValue::AudioFft(a) => a as &dyn PartialReflect,
         })
     }
 
-    fn field_at_mut(&mut self, index: usize) -> Option<&mut dyn Reflect> {
+    fn field_at_mut(&mut self, index: usize) -> Option<&mut dyn PartialReflect> {
         self.values_mut().nth(index).map(|v| match v {
-            IsfInputValue::Event(b) => b as &mut dyn Reflect,
-            IsfInputValue::Bool(b) => b as &mut dyn Reflect,
-            IsfInputValue::Long(l) => l as &mut dyn Reflect,
-            IsfInputValue::Float(f) => f as &mut dyn Reflect,
-            IsfInputValue::Point2d(v) => v as &mut dyn Reflect,
-            IsfInputValue::Color(c) => c as &mut dyn Reflect,
-            IsfInputValue::Image(h) => h as &mut dyn Reflect,
-            IsfInputValue::Audio(a) => a as &mut dyn Reflect,
-            IsfInputValue::AudioFft(a) => a as &mut dyn Reflect,
+            IsfInputValue::Event(b) => b as &mut dyn PartialReflect,
+            IsfInputValue::Bool(b) => b as &mut dyn PartialReflect,
+            IsfInputValue::Long(l) => l as &mut dyn PartialReflect,
+            IsfInputValue::Float(f) => f as &mut dyn PartialReflect,
+            IsfInputValue::Point2d(v) => v as &mut dyn PartialReflect,
+            IsfInputValue::Color(c) => c as &mut dyn PartialReflect,
+            IsfInputValue::Image(h) => h as &mut dyn PartialReflect,
+            IsfInputValue::Audio(a) => a as &mut dyn PartialReflect,
+            IsfInputValue::AudioFft(a) => a as &mut dyn PartialReflect,
         })
     }
 
@@ -282,43 +282,13 @@ impl Struct for IsfInputs {
     }
 }
 
-impl Reflect for IsfInputs {
+impl PartialReflect for IsfInputs {
     #[inline]
     fn get_represented_type_info(&self) -> Option<&'static TypeInfo> {
         Some(Self::type_info())
     }
 
-    #[inline]
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-
-    #[inline]
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    #[inline]
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-
-    #[inline]
-    fn into_reflect(self: Box<Self>) -> Box<dyn Reflect> {
-        self
-    }
-
-    #[inline]
-    fn as_reflect(&self) -> &dyn Reflect {
-        self
-    }
-
-    #[inline]
-    fn as_reflect_mut(&mut self) -> &mut dyn Reflect {
-        self
-    }
-
-    fn try_apply(&mut self, value: &dyn Reflect) -> Result<(), ApplyError> {
+    fn try_apply(&mut self, value: &dyn PartialReflect) -> Result<(), ApplyError> {
         if let ReflectRef::Struct(struct_value) = value.reflect_ref() {
             for (i, value) in struct_value.iter_fields().enumerate() {
                 let name = struct_value.name_at(i).unwrap();
@@ -332,12 +302,6 @@ impl Reflect for IsfInputs {
                 to_kind: ReflectKind::Struct,
             });
         }
-        Ok(())
-    }
-
-    #[inline]
-    fn set(&mut self, value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {
-        *self = value.take()?;
         Ok(())
     }
 
@@ -362,11 +326,11 @@ impl Reflect for IsfInputs {
     }
 
     #[inline]
-    fn clone_value(&self) -> Box<dyn Reflect> {
+    fn clone_value(&self) -> Box<dyn PartialReflect> {
         Box::new(self.clone_dynamic())
     }
 
-    fn reflect_partial_eq(&self, value: &dyn Reflect) -> Option<bool> {
+    fn reflect_partial_eq(&self, value: &dyn PartialReflect) -> Option<bool> {
         struct_partial_eq(self, value)
     }
 
@@ -385,10 +349,65 @@ impl Reflect for IsfInputs {
     fn is_dynamic(&self) -> bool {
         true
     }
+
+    fn into_partial_reflect(self: Box<Self>) -> Box<dyn PartialReflect> {
+        self
+    }
+
+    fn as_partial_reflect(&self) -> &dyn PartialReflect {
+        self
+    }
+
+    fn as_partial_reflect_mut(&mut self) -> &mut dyn PartialReflect {
+        self
+    }
+
+    fn try_into_reflect(self: Box<Self>) -> Result<Box<dyn Reflect>, Box<dyn PartialReflect>> {
+        Ok(self)
+    }
+
+    fn try_as_reflect(&self) -> Option<&dyn Reflect> {
+        Some(self)
+    }
+
+    fn try_as_reflect_mut(&mut self) -> Option<&mut dyn Reflect> {
+        Some(self)
+    }
+}
+
+impl Reflect for IsfInputs {
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+
+    fn into_reflect(self: Box<Self>) -> Box<dyn Reflect> {
+        self
+    }
+
+    fn as_reflect(&self) -> &dyn Reflect {
+        self
+    }
+
+    fn as_reflect_mut(&mut self) -> &mut dyn Reflect {
+        self
+    }
+
+    fn set(&mut self, value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {
+        *self = value.take()?;
+        Ok(())
+    }
 }
 
 #[inline]
-pub fn struct_partial_eq(a: &IsfInputs, b: &dyn Reflect) -> Option<bool> {
+pub fn struct_partial_eq(a: &IsfInputs, b: &dyn PartialReflect) -> Option<bool> {
     let ReflectRef::Struct(struct_value) = b.reflect_ref() else {
         return Some(false);
     };

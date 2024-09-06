@@ -11,6 +11,8 @@ use std::path::{Path, PathBuf};
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
+use bevy::render::extract_component::ExtractComponent;
+use bevy::render::renderer::{RenderDevice, RenderQueue};
 use bevy::render::view::cursor::CursorIcon;
 use bevy::render::view::screenshot::{save_to_disk, Screenshot};
 use bevy::render::view::RenderLayers;
@@ -942,7 +944,19 @@ impl<'a, 'w> Window<'a, 'w> {
     }
 
     pub fn msaa_samples(&self) -> u32 {
-        self.app.resource_world().resource::<Msaa>().samples()
+        let mut msaa_q = self
+            .app
+            .component_world_mut()
+            .query_filtered::<(&Camera, &Msaa), With<NannouCamera>>();
+        for (camera, msaa) in msaa_q.iter(&*self.app.component_world()) {
+            if let RenderTarget::Window(WindowRef::Entity(entity)) = camera.target {
+                if entity == self.entity {
+                    return msaa.samples();
+                }
+            }
+        }
+
+        panic!("No camera found for window");
     }
 }
 

@@ -194,13 +194,12 @@ fn queue_isf(
     pipeline_cache: Res<PipelineCache>,
     mut isf_pipeline: ResMut<IsfPipeline>,
     isf_assets: Res<RenderAssets<GpuIsf>>,
-    msaa: Res<Msaa>,
     isf_inputs: Res<IsfInputs>,
     isf_render_targets: Res<IsfRenderTargets>,
     mut specialized_render_pipelines: ResMut<SpecializedRenderPipelines<IsfPipeline>>,
-    views: Query<(Entity, &ExtractedView, &Handle<Isf>)>,
+    views: Query<(Entity, &ExtractedView, &Handle<Isf>, &Msaa)>,
 ) {
-    for (view_entity, extracted_view, isf) in views.iter() {
+    for (view_entity, extracted_view, isf, msaa) in views.iter() {
         let isf = isf_assets.get(isf).unwrap();
 
         // Prepare any new layouts

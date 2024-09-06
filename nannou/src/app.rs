@@ -31,6 +31,8 @@ use bevy::reflect::{
     ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
     TypeInfo,
 };
+use bevy::render::extract_resource::ExtractResource;
+use bevy::render::render_graph::ViewNodeRunner;
 use bevy::window::{
     ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowEvent,
     WindowFocused, WindowResized,
@@ -448,7 +450,7 @@ where
     #[cfg(feature = "egui")]
     pub fn model_ui(mut self) -> Self {
         self.app
-            .add_plugins((ResourceInspectorPlugin::<ModelHolder<M>>::default(),));
+            .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
         self
     }
 }
@@ -578,6 +580,38 @@ where
 
     fn clone_value(&self) -> Box<dyn PartialReflect> {
         self.0.clone_value()
+    }
+}
+
+impl<M> Reflect for ModelHolder<M>
+where
+    M: Reflect + DynamicTypePath + Any + GetTypeRegistration + 'static, {
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        Box::new(self.0).into_any()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self.0.as_any()
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self.0.as_any_mut()
+    }
+
+    fn into_reflect(self: Box<Self>) -> Box<dyn Reflect> {
+        Box::new(self.0).into_reflect()
+    }
+
+    fn as_reflect(&self) -> &dyn Reflect {
+        self.0.as_reflect()
+    }
+
+    fn as_reflect_mut(&mut self) -> &mut dyn Reflect {
+        self.0.as_reflect_mut()
+    }
+
+    fn set(&mut self, value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {
+        self.0.set(value)
     }
 }
 

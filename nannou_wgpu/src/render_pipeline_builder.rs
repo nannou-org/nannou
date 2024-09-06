@@ -562,6 +562,7 @@ fn build(
         multisample,
         fragment,
         multiview: None,
+        cache: None,
     };
 
     device.create_render_pipeline(&pipeline_desc)

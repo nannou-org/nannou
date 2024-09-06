@@ -89,6 +89,7 @@ pub use wgpu::{
     PUSH_CONSTANT_ALIGNMENT, QUERY_RESOLVE_BUFFER_ALIGNMENT, QUERY_SET_MAX_QUERIES, QUERY_SIZE,
     VERTEX_STRIDE_ALIGNMENT,
 };
+use wgpu::MemoryHints;
 
 /// The default power preference used for requesting the WGPU adapter.
 pub const DEFAULT_POWER_PREFERENCE: PowerPreference = PowerPreference::HighPerformance;
@@ -131,6 +132,7 @@ pub fn default_device_descriptor() -> DeviceDescriptor<'static> {
         label: Some("nannou_device"),
         required_features,
         required_limits,
+        memory_hints: MemoryHints::default(),
     }
 }
 
