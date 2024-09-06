@@ -24,6 +24,7 @@ pub use self::app::App;
 
 pub mod app;
 mod camera;
+mod frame;
 pub mod geom;
 pub mod image;
 #[cfg(feature = "serde")]
@@ -31,8 +32,11 @@ pub mod io;
 mod light;
 pub mod noise;
 pub mod prelude;
+mod render;
 pub mod time;
 mod window;
+
+pub use nannou_wgpu as wgpu;
 
 /// Begin building the `App`.
 ///

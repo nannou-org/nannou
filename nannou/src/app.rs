@@ -31,6 +31,8 @@ use bevy::reflect::{
     ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
     TypeInfo,
 };
+use bevy::render::extract_resource::{extract_resource, ExtractResource};
+use bevy::render::render_graph::ViewNodeRunner;
 use bevy::window::{ExitCondition, PrimaryWindow, WindowClosed, WindowFocused, WindowResized};
 use bevy::winit::{UpdateMode, WinitEvent, WinitSettings};
 #[cfg(feature = "egui")]
@@ -47,10 +49,12 @@ use bevy_nannou::prelude::render::ExtendedNannouMaterial;
 use bevy_nannou::prelude::{draw, DrawHolder};
 use bevy_nannou::NannouPlugin;
 
-use crate::prelude::bevy_asset::io::AssetSource;
+use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
+use crate::prelude::bevy_render::extract_component::ExtractComponentPlugin;
 use crate::prelude::render::NannouMesh;
 use crate::prelude::NannouMaterialPlugin;
+use crate::render::{NannouRenderNode, RenderApp, RenderPlugin};
 use crate::window::WindowUserFunctions;
 use crate::{camera, geom, light, window};
 
@@ -71,6 +75,9 @@ pub type SketchViewFn = fn(&App);
 
 /// The user function type allowing them to consume the `model` when the application exits.
 pub type ExitFn<Model> = fn(&App, Model);
+
+/// The user function type for rendering their model to the surface of a single window.
+pub type RenderFn<Model> = fn(&RenderApp, &Model, Frame);
 
 /// The **App**'s view function.
 enum View<Model = ()> {
@@ -96,6 +103,7 @@ pub struct Builder<M = (), E = WinitEvent> {
     config: Config,
     event: Option<EventFn<M, E>>,
     update: Option<UpdateFn<M>>,
+    render: Option<RenderFn<M>>,
     default_view: Option<View<M>>,
     exit: Option<ExitFn<M>>,
 }
@@ -132,7 +140,7 @@ fn default_model(_: &App) {}
 /// - A map of channels for submitting user input updates to active **Ui**s.
 pub struct App<'w> {
     current_view: Option<Entity>,
-    resourece_world: Rc<RefCell<UnsafeWorldCell<'w>>>,
+    resource_world: Rc<RefCell<UnsafeWorldCell<'w>>>,
     component_world: Rc<RefCell<UnsafeWorldCell<'w>>>,
     window_count: AtomicUsize,
 }
@@ -145,6 +153,20 @@ struct EventFnRes<M, E>(Option<EventFn<M, E>>);
 
 #[derive(Resource, Deref, DerefMut)]
 struct UpdateFnRes<M>(Option<UpdateFn<M>>);
+
+#[derive(Resource, Deref, DerefMut)]
+pub(crate) struct RenderFnRes<M>(Option<RenderFn<M>>);
+
+impl<M> ExtractResource for RenderFnRes<M>
+where
+    M: Clone + Send + Sync + 'static,
+{
+    type Source = Self;
+
+    fn extract_resource(source: &Self::Source) -> Self {
+        RenderFnRes(source.0.clone())
+    }
+}
 
 #[derive(Resource, Deref, DerefMut)]
 struct ViewFnRes<M>(Option<View<M>>);
@@ -162,6 +184,17 @@ struct Config {
 
 #[derive(Resource, Deref, DerefMut)]
 pub struct ModelHolder<M>(pub M);
+
+impl<M> ExtractResource for ModelHolder<M>
+where
+    M: Clone + Send + Sync + 'static,
+{
+    type Source = Self;
+
+    fn extract_resource(source: &Self::Source) -> Self {
+        ModelHolder(source.0.clone())
+    }
+}
 
 #[derive(Resource)]
 struct CreateDefaultWindow;
@@ -221,6 +254,7 @@ where
             config: Config::default(),
             event: None,
             update: None,
+            render: None,
             default_view: None,
             exit: None,
         }
@@ -255,6 +289,17 @@ where
     /// be called with an update event prior to this `update` function.
     pub fn update(mut self, update: UpdateFn<M>) -> Self {
         self.update = Some(update);
+        self
+    }
+
+    pub fn render(mut self, render: RenderFn<M>) -> Self
+    where
+        M: Send + Sync + Clone + 'static,
+        ViewNodeRunner<NannouRenderNode<M>>: FromWorld,
+    {
+        self.render = Some(render);
+        self.app
+            .add_plugins((RenderPlugin::<M>::default(), FramePlugin));
         self
     }
 
@@ -365,6 +410,7 @@ where
             .insert_resource(ModelFnRes(self.model))
             .insert_resource(EventFnRes(self.event))
             .insert_resource(UpdateFnRes(self.update))
+            .insert_resource(RenderFnRes(self.render))
             .insert_resource(ViewFnRes(self.default_view))
             .insert_resource(ExitFnRes(self.exit))
             .add_systems(Startup, startup::<M>)
@@ -650,19 +696,19 @@ impl<'w> App<'w> {
 
         App {
             current_view: None,
-            resourece_world: Rc::new(RefCell::new(world)),
+            resource_world: Rc::new(RefCell::new(world)),
             component_world: Rc::new(RefCell::new(world)),
             window_count: window_count.into(),
         }
     }
 
     pub(crate) fn resource_world(&self) -> std::cell::Ref<'_, World> {
-        let world = self.resourece_world.borrow();
+        let world = self.resource_world.borrow();
         std::cell::Ref::map(world, |world| unsafe { world.world() })
     }
 
     pub(crate) fn resource_world_mut(&self) -> RefMut<'_, World> {
-        let world = unsafe { self.resourece_world.borrow_mut() };
+        let world = unsafe { self.resource_world.borrow_mut() };
         RefMut::map(world, |world| unsafe { world.world_mut() })
     }
 
@@ -674,18 +720,6 @@ impl<'w> App<'w> {
     pub(crate) fn component_world_mut(&self) -> RefMut<'_, World> {
         let world = unsafe { self.component_world.borrow_mut() };
         RefMut::map(world, |world| unsafe { world.world_mut() })
-    }
-
-    /// Retreive a mutable reference to the `App`'s world.
-    ///
-    /// WARNING: This should be used with extreme caution as it can lead to undefined behavior.
-    /// This is only safe to use if you are certain that the world is not being accessed by any
-    /// other part of the application.
-    ///
-    /// Applications that wish to make greater use of the ECS should consider using the Bevy ECS
-    /// API directly.
-    pub unsafe fn unsafe_world_mut(&self) -> &'w mut World {
-        self.resourece_world.borrow_mut().world_mut()
     }
 
     /// Returns the list of all the monitors available on the system.
@@ -846,7 +880,10 @@ impl<'w> App<'w> {
 
     /// Produce the [App]'s [DrawHolder] API for drawing geometry and text with colors and textures.
     pub fn draw(&self) -> draw::Draw {
-        let window_id = self.window_id();
+        let window_id = match self.current_view {
+            Some(window_id) => window_id,
+            None => self.window_id(),
+        };
         let world = self.component_world();
         let draw = world.entity(window_id).get::<DrawHolder>();
         draw.unwrap().0.clone()
@@ -929,7 +966,7 @@ fn get_app_and_state<'w, 's, S: SystemParam + 'static>(
 ) -> (App<'w>, <S as SystemParam>::Item<'w, 's>) {
     state.update_archetypes(world);
     let app = App::new(world);
-    let param = unsafe { state.get_unchecked_manual(*app.resourece_world.borrow_mut()) };
+    let param = unsafe { state.get_unchecked_manual(*app.resource_world.borrow_mut()) };
     (app, param)
 }
 
