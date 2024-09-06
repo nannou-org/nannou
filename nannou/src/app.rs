@@ -32,8 +32,8 @@ use bevy::reflect::{
     TypeInfo,
 };
 use bevy::window::{
-    ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowFocused,
-    WindowResized, WindowEvent
+    ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowEvent,
+    WindowFocused, WindowResized,
 };
 use bevy::winit::{UpdateMode, WinitSettings};
 #[cfg(feature = "egui")]
