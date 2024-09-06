@@ -55,6 +55,7 @@ pub use self::texture::{
     format_size_bytes as texture_format_size_bytes, Builder as TextureBuilder, Texture, TextureId,
     TextureView, TextureViewId, ToTextureView,
 };
+use wgpu::MemoryHints;
 #[doc(inline)]
 pub use wgpu::{
     include_wgsl,
@@ -131,6 +132,7 @@ pub fn default_device_descriptor() -> DeviceDescriptor<'static> {
         label: Some("nannou_device"),
         required_features,
         required_limits,
+        memory_hints: MemoryHints::default(),
     }
 }
 

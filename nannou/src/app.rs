@@ -31,10 +31,13 @@ use bevy::reflect::{
     ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
     TypeInfo,
 };
-use bevy::render::extract_resource::{extract_resource, ExtractResource};
+use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_graph::ViewNodeRunner;
-use bevy::window::{ExitCondition, PrimaryWindow, WindowClosed, WindowFocused, WindowResized};
-use bevy::winit::{UpdateMode, WinitEvent, WinitSettings};
+use bevy::window::{
+    ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowEvent,
+    WindowFocused, WindowResized,
+};
+use bevy::winit::{UpdateMode, WinitSettings};
 #[cfg(feature = "egui")]
 use bevy_egui::EguiContext;
 #[cfg(feature = "egui")]
@@ -97,7 +100,7 @@ impl<M> Clone for View<M> {
 }
 
 /// A nannou `App` builder.
-pub struct Builder<M = (), E = WinitEvent> {
+pub struct Builder<M = (), E = WindowEvent> {
     app: bevy::app::App,
     model: ModelFn<M>,
     config: Config,
@@ -109,7 +112,7 @@ pub struct Builder<M = (), E = WinitEvent> {
 }
 
 /// A nannou `Sketch` builder.
-pub struct SketchBuilder<E = WinitEvent> {
+pub struct SketchBuilder<E = WindowEvent> {
     builder: Builder<(), E>,
 }
 
@@ -447,7 +450,7 @@ where
     #[cfg(feature = "egui")]
     pub fn model_ui(mut self) -> Self {
         self.app
-            .add_plugins((ResourceInspectorPlugin::<ModelHolder<M>>::default(),));
+            .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
         self
     }
 }
@@ -527,14 +530,63 @@ where
     }
 }
 
-impl<M> Reflect for ModelHolder<M>
+impl<M> PartialReflect for ModelHolder<M>
 where
-    M: Reflect + DynamicTypePath + Any + GetTypeRegistration + 'static,
+    M: PartialReflect + DynamicTypePath + Any + GetTypeRegistration + 'static,
 {
     fn get_represented_type_info(&self) -> Option<&'static TypeInfo> {
         self.0.get_represented_type_info()
     }
 
+    fn into_partial_reflect(self: Box<Self>) -> Box<dyn PartialReflect> {
+        Box::new(ModelHolder(self.0))
+    }
+
+    fn as_partial_reflect(&self) -> &dyn PartialReflect {
+        self.0.as_partial_reflect()
+    }
+
+    fn as_partial_reflect_mut(&mut self) -> &mut dyn PartialReflect {
+        self.0.as_partial_reflect_mut()
+    }
+
+    fn try_into_reflect(self: Box<Self>) -> Result<Box<dyn Reflect>, Box<dyn PartialReflect>> {
+        Box::new(self.0).try_into_reflect()
+    }
+
+    fn try_as_reflect(&self) -> Option<&dyn Reflect> {
+        self.0.try_as_reflect()
+    }
+
+    fn try_as_reflect_mut(&mut self) -> Option<&mut dyn Reflect> {
+        self.0.try_as_reflect_mut()
+    }
+
+    fn try_apply(&mut self, value: &dyn PartialReflect) -> Result<(), ApplyError> {
+        self.0.try_apply(value)
+    }
+
+    fn reflect_ref(&self) -> ReflectRef {
+        self.0.reflect_ref()
+    }
+
+    fn reflect_mut(&mut self) -> ReflectMut {
+        self.0.reflect_mut()
+    }
+
+    fn reflect_owned(self: Box<Self>) -> ReflectOwned {
+        Box::new(self.0).reflect_owned()
+    }
+
+    fn clone_value(&self) -> Box<dyn PartialReflect> {
+        self.0.clone_value()
+    }
+}
+
+impl<M> Reflect for ModelHolder<M>
+where
+    M: Reflect + DynamicTypePath + Any + GetTypeRegistration + 'static,
+{
     fn into_any(self: Box<Self>) -> Box<dyn Any> {
         Box::new(self.0).into_any()
     }
@@ -559,32 +611,8 @@ where
         self.0.as_reflect_mut()
     }
 
-    fn apply(&mut self, value: &dyn Reflect) {
-        self.0.apply(value)
-    }
-
-    fn try_apply(&mut self, value: &dyn Reflect) -> Result<(), ApplyError> {
-        self.0.try_apply(value)
-    }
-
     fn set(&mut self, value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {
         self.0.set(value)
-    }
-
-    fn reflect_ref(&self) -> ReflectRef {
-        self.0.reflect_ref()
-    }
-
-    fn reflect_mut(&mut self) -> ReflectMut {
-        self.0.reflect_mut()
-    }
-
-    fn reflect_owned(self: Box<Self>) -> ReflectOwned {
-        Box::new(self.0).reflect_owned()
-    }
-
-    fn clone_value(&self) -> Box<dyn Reflect> {
-        self.0.clone_value()
     }
 }
 
@@ -723,17 +751,22 @@ impl<'w> App<'w> {
     }
 
     /// Returns the list of all the monitors available on the system.
-    pub fn available_monitors(&self) -> Vec<()> {
-        // Bevy doesn't expose this right now but could be nice
-        todo!()
+    pub fn available_monitors(&self) -> Vec<(Entity, Monitor)> {
+        let mut monitor_q = self.component_world_mut().query::<(Entity, &Monitor)>();
+        monitor_q
+            .iter(&self.component_world())
+            .map(|(entity, monitor)| (entity, monitor.clone()))
+            .collect()
     }
 
     /// Returns the primary monitor of the system.
     /// May return None if none can be detected. For example, this can happen when running on Linux
     /// with Wayland.
-    pub fn primary_monitor(&self) -> Option<()> {
-        // Bevy doesn't expose this right now but could be nice
-        todo!()
+    pub fn primary_monitor(&self) -> Option<Entity> {
+        let mut monitor_q = self
+            .component_world_mut()
+            .query_filtered::<Entity, With<PrimaryMonitor>>();
+        monitor_q.get_single(&self.component_world()).ok()
     }
 
     pub fn new_light<'a>(&'a self) -> light::Builder<'a, 'w> {

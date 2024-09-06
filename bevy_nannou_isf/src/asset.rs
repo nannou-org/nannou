@@ -59,7 +59,7 @@ impl AssetLoader for IsfLoader {
 
     async fn load<'a>(
         &'a self,
-        reader: &'a mut Reader<'_>,
+        reader: &'a mut dyn Reader,
         settings: &'a Self::Settings,
         load_context: &'a mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
@@ -75,7 +75,6 @@ impl AssetLoader for IsfLoader {
         let isf = isf::parse(glsl_src).map_err(|e| IsfAssetLoaderError::Parse(e))?;
         let glsl = glsl_string_from_isf(&isf);
         let glsl = prefix_isf_glsl_str(&glsl, glsl_src.to_string());
-        info!("GLSL: {}", glsl);
         let shader = Shader::from_glsl(glsl, ShaderStage::Fragment, file!());
         let shader = load_context.add_labeled_asset(String::from("shader"), shader);
 

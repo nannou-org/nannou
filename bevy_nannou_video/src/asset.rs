@@ -110,7 +110,7 @@ impl AssetLoader for VideoLoader {
 
     async fn load<'a>(
         &'a self,
-        _reader: &'a mut Reader<'_>,
+        _reader: &'a mut dyn Reader,
         settings: &'a Self::Settings,
         load_context: &'a mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {

@@ -10,7 +10,7 @@ homepage = "https://nannou.cc"
 edition = "2018"
 
 [dependencies]
-glam = { version = "0.27.0", default-features = false, features = ["rand"] }
+glam = { version = "0.28.0", default-features = false, features = ["rand"] }
 # TODO: Awaiting `no-std` to be published.
 # noise = 0.6
 num-traits = { version = "0.2.14", default-features = false }

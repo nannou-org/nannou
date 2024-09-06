@@ -5,7 +5,11 @@ pub mod prelude {
     pub use bevy::color::*;
     pub use bevy::core_pipeline::bloom::*;
     pub use bevy::input::mouse::MouseWheel;
-    pub use bevy::prelude::*;
+    pub use bevy::prelude::{
+        debug, default, error, info, light_consts, trace, warn, ClearColorConfig, Entity, Handle,
+        Image, KeyCode, MonitorSelection, MouseButton, OrthographicProjection, TouchInput, Vec3,
+        Window, WindowResizeConstraints,
+    };
     pub use bevy::render::render_asset::*;
     pub use bevy::render::render_resource::*;
     pub use bevy::winit::UpdateMode;
