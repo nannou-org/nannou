@@ -11,6 +11,7 @@ use bevy::prelude::TypePath;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
+use bevy::render::extract_instances::ExtractInstancesPlugin;
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::mesh::MeshVertexBufferLayoutRef;
 use bevy::render::render_resource as wgpu;
@@ -53,7 +54,6 @@ impl Plugin for NannouRenderPlugin {
             .add_plugins((
                 ExtractComponentPlugin::<NannouTextureHandle>::default(),
                 NannouMaterialPlugin::<DefaultNannouMaterial>::default(),
-                InstancingPlugin,
             ))
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
             .add_systems(Update, texture_event_handler)
@@ -64,12 +64,13 @@ impl Plugin for NannouRenderPlugin {
 #[derive(Default)]
 pub struct NannouMaterialPlugin<M: Material>(std::marker::PhantomData<M>);
 
-impl<M: Material> Plugin for NannouMaterialPlugin<M>
+impl<M> Plugin for NannouMaterialPlugin<M>
 where
+    M: Material + Default,
     M::Data: PartialEq + Eq + Hash + Clone,
 {
     fn build(&self, app: &mut App) {
-        app.add_plugins(MaterialPlugin::<M>::default())
+        app.add_plugins((MaterialPlugin::<M>::default(),))
             .add_systems(PostUpdate, update_material::<M>.after(update_draw_mesh));
     }
 }
@@ -220,6 +221,7 @@ fn update_draw_mesh(
         let mut fill_tessellator = FillTessellator::new();
         let mut stroke_tessellator = StrokeTessellator::new();
 
+        let mut last_mat = None;
         let mut mesh = meshes.add(Mesh::init());
         let mut curr_ctx: DrawContext = Default::default();
 
@@ -248,7 +250,7 @@ fn update_draw_mesh(
                     let mut mesh = meshes.get_mut(&mesh).unwrap();
                     prim.render_primitive(ctxt, &mut mesh);
                 }
-                DrawCommand::Instanced(prim, instance_data) => {
+                DrawCommand::Instanced(prim, range) => {
                     let ctxt = RenderContext {
                         intermediary_mesh: &intermediary_state.intermediary_mesh,
                         path_event_buffer: &intermediary_state.path_event_buffer,
@@ -265,22 +267,30 @@ fn update_draw_mesh(
                     // Render the primitive.
                     let mut mesh = Mesh::init();
                     prim.render_primitive(ctxt, &mut mesh);
-                    mesh = mesh.with_removed_attribute(Mesh::ATTRIBUTE_COLOR);
                     let mesh = meshes.add(mesh);
-                    commands.spawn((
-                        NannouMesh,
-                        mesh,
-                        SpatialBundle::INHERITED_IDENTITY,
-                        instance_data,
-                        NoFrustumCulling,
-                        window_layers.clone(),
-                    ));
+                    let mat_id = last_mat.expect("No material set for instanced draw command");
+                    // TODO: off by one???
+                    for _ in range.start..range.end-1 {
+                        commands.spawn((
+                            UntypedMaterialId(mat_id),
+                            mesh.clone(),
+                            Transform::default(),
+                            GlobalTransform::default(),
+                            Visibility::default(),
+                            InheritedVisibility::default(),
+                            ViewVisibility::default(),
+                            NannouMesh,
+                            NoFrustumCulling,
+                            window_layers.clone(),
+                        ));
+                    }
                 }
                 DrawCommand::Context(ctx) => {
                     curr_ctx = ctx;
                 }
                 DrawCommand::Material(mat_id) => {
                     // We switched materials, so start rendering into a new mesh
+                    last_mat = Some(mat_id.clone());
                     mesh = meshes.add(Mesh::init());
                     commands.spawn((
                         UntypedMaterialId(mat_id),

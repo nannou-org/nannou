@@ -81,9 +81,9 @@ where
             .add_render_graph_edges(
                 Core3d,
                 (
-                    Node3d::StartMainPass,
+                    Node3d::EndPrepasses,
                     NannouComputeNodeLabel,
-                    Node3d::MainOpaquePass,
+                    Node3d::StartMainPass,
                 ),
             );
     }
@@ -117,16 +117,15 @@ fn sync_pipeline_cache<CM>(
 }
 
 fn queue_pipeline<CM>(
-    mut commands: Commands,
     pipeline: Res<NannouComputePipeline<CM>>,
     mut pipelines: ResMut<SpecializedComputePipelines<NannouComputePipeline<CM>>>,
     pipeline_cache: Res<PipelineCache>,
     mut pipeline_ids: ResMut<ComputePipelineIds<CM>>,
-    views_q: Query<(Entity, &ComputeState<CM::State>)>,
+    views_q: Query<&ComputeState<CM::State>>,
 ) where
     CM: Compute,
 {
-    for (entity, state) in views_q.iter() {
+    for state in views_q.iter() {
         if !pipeline_ids.contains_key(&state.current) {
             let pipeline_id = pipelines.specialize(
                 &pipeline_cache,
@@ -156,21 +155,16 @@ fn queue_pipeline<CM>(
 fn prepare_bind_group<CM>(
     mut commands: Commands,
     pipeline: Res<NannouComputePipeline<CM>>,
-    gpu_images: Res<RenderAssets<GpuImage>>,
     render_device: Res<RenderDevice>,
     views_q: Query<(Entity, &ComputeModel<CM>)>,
-    mut params: StaticSystemParam<CM::Param>,
+    mut bind_group_param: StaticSystemParam<CM::Param>,
 ) where
     CM: Compute,
 {
     for (view, compute_model) in views_q.iter() {
         let bind_group = compute_model
             .0
-            .as_bind_group(
-                &pipeline.layout,
-                &render_device,
-                &mut params,
-            )
+            .as_bind_group(&pipeline.layout, &render_device, &mut bind_group_param)
             .expect("Failed to create bind group");
         commands
             .entity(view)
@@ -259,7 +253,7 @@ impl<CM> FromWorld for NannouComputeNode<CM>
 where
     CM: Compute,
 {
-    fn from_world(world: &mut World) -> Self {
+    fn from_world(_world: &mut World) -> Self {
         Self(std::marker::PhantomData)
     }
 }
@@ -268,24 +262,20 @@ impl<CM> ViewNode for NannouComputeNode<CM>
 where
     CM: Compute,
 {
-    type ViewQuery = (
-        Entity,
-        &'static ComputeBindGroup,
-        &'static ComputeState<CM::State>,
-    );
+    type ViewQuery = (&'static ComputeBindGroup, &'static ComputeState<CM::State>);
 
     fn run<'w>(
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext<'w>,
-        (view_entity, bind_group, state): QueryItem<'w, Self::ViewQuery>,
+        (bind_group, state): QueryItem<'w, Self::ViewQuery>,
         world: &'w World,
     ) -> Result<(), NodeRunError> {
         let pipeline_cache = world.resource::<PipelineCache>();
         let pipeline_ids = world.resource::<ComputePipelineIds<CM>>();
-        let pipeline_id = pipeline_ids
-            .get(&state.current)
-            .expect("Pipeline not found");
+        let Some(pipeline_id) = pipeline_ids.get(&state.current) else {
+            return Ok(());
+        };
         let Some(pipeline) = pipeline_cache.get_compute_pipeline(*pipeline_id) else {
             return Ok(());
         };
@@ -294,7 +284,7 @@ where
             .begin_compute_pass(&ComputePassDescriptor::default());
         pass.set_bind_group(0, &bind_group.0, &[]);
         pass.set_pipeline(pipeline);
-        let (x, y, z) = CM::workgroup_size(&state.current);
+        let (x, y, z) = CM::dispatch_size(&state.current);
         pass.dispatch_workgroups(x, y, z);
         Ok(())
     }
@@ -313,8 +303,8 @@ pub trait Compute: AsBindGroup + Clone + Send + Sync + 'static {
         "main"
     }
 
-    /// The workgroup size used to dispatch the compute pass.
-    fn workgroup_size(_state: &Self::State) -> (u32, u32, u32) {
+    /// The size used to dispatch the compute pass.
+    fn dispatch_size(_state: &Self::State) -> (u32, u32, u32) {
         (1, 1, 1)
     }
 }

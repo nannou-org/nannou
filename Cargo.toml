@@ -25,7 +25,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy", branch = "main" }
+bevy = { git = "https://github.com/tychedelia/bevy", branch = "as-bind-group-sampler" }
 bevy_egui = { git = "https://github.com/tychedelia/bevy_egui", branch = "main" }
 bevy-inspector-egui = { git = "https://github.com/tychedelia/bevy-inspector-egui", branch = "main" }
 image = "0.25"

@@ -35,7 +35,7 @@ where
     // The draw command index of the material being used.
     pub(crate) material_index: usize,
     // Whether the **Drawing** should attempt to finish the drawing on drop.
-    finish_on_drop: bool,
+    pub(crate) finish_on_drop: bool,
     // The node type currently being drawn.
     _ty: PhantomData<T>,
 }

@@ -117,7 +117,7 @@ pub enum DrawCommand {
     /// Draw a primitive.
     Primitive(Primitive),
     /// Draw an instanced primitive
-    Instanced(Primitive, InstanceMaterialData),
+    Instanced(Primitive, Range<u32>),
     /// A change in the rendering context occurred.
     Context(DrawContext),
     /// A change in the material occurred.

@@ -1,20 +1,23 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
+use crate::draw::drawing::Drawing;
+use crate::draw::primitive::Primitive;
+use crate::draw::{Draw, DrawCommand};
+use bevy::core_pipeline::core_3d::Opaque3dBinKey;
+use bevy::pbr::{MaterialPipeline, MaterialPipelineKey, PreparedMaterial, SetMaterialBindGroup};
 use bevy::render::mesh::allocator::MeshAllocator;
 use bevy::render::mesh::RenderMeshBufferInfo;
-use bevy::render::render_phase::ViewSortedRenderPhases;
+use bevy::render::render_asset::prepare_assets;
+use bevy::render::render_phase::{BinnedRenderPhaseType, ViewBinnedRenderPhases};
 use bevy::{
-    core_pipeline::core_3d::Transparent3d,
-    ecs::{
-        query::QueryItem,
-        system::{lifetimeless::*, SystemParamItem},
-    },
+    core_pipeline::core_3d::Opaque3d,
+    ecs::system::{lifetimeless::*, SystemParamItem},
     pbr::{
         MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
     },
     prelude::*,
     render::{
-        extract_component::{ExtractComponent, ExtractComponentPlugin},
+        extract_component::ExtractComponent,
         mesh::{MeshVertexBufferLayoutRef, RenderMesh},
         render_asset::RenderAssets,
         render_phase::{
@@ -27,23 +30,17 @@ use bevy::{
         Render, RenderApp, RenderSet,
     },
 };
-use bytemuck::{Pod, Zeroable};
 use rayon::prelude::*;
-
-use crate::draw::drawing::Drawing;
-use crate::draw::primitive::Primitive;
-use crate::draw::{Draw, DrawCommand};
-
-static INSTANCING_RENDER: &str = include_str!("render/instancing.wgsl");
-
-const SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(24560125337912185962);
+use std::hash::Hash;
+use std::marker::PhantomData;
+use std::ops::Range;
 
 pub struct Instanced<'a, M>
 where
     M: Material + Default,
 {
     draw: &'a Draw<M>,
-    data: Option<(usize, InstanceMaterialData)>,
+    data: Option<(usize, Range<u32>)>,
 }
 
 impl<'a, M> Drop for Instanced<'a, M>
@@ -68,214 +65,200 @@ impl<'a, M> Instanced<'a, M>
 where
     M: Material + Default,
 {
-    pub fn with<T, I, F>(
-        mut self,
-        drawing: Drawing<T, M>,
-        input: Vec<I>,
-        func: F,
-    ) -> Instanced<'a, M>
+    pub fn with<T>(mut self, drawing: Drawing<T, M>, instance_range: Range<u32>) -> Instanced<'a, M>
     where
-        I: Send + Sync,
         T: Into<Primitive>,
-        F: Fn(&I) -> InstanceData + Sync,
     {
-        let data = input
-            .par_iter()
-            .map(|i| func(i))
-            .collect::<Vec<InstanceData>>();
-        let data = InstanceMaterialData(data);
         self.draw
             .state
             .write()
             .unwrap()
             .instanced
             .insert(drawing.index);
-        self.data = Some((drawing.index, data));
+        self.data = Some((drawing.index, instance_range));
         self
     }
 
-    fn insert_instanced_draw_command(&self, index: usize, data: InstanceMaterialData) {
+    fn insert_instanced_draw_command(&self, index: usize, range: Range<u32>) {
         let mut state = self.draw.state.write().unwrap();
         let primitive = state.drawing.remove(&index).unwrap();
         state
             .draw_commands
-            .push(Some(DrawCommand::Instanced(primitive, data)));
+            .push(Some(DrawCommand::Instanced(primitive, range)));
     }
 }
 
-#[derive(Component, Deref, Clone, Debug)]
-pub struct InstanceMaterialData(pub Vec<InstanceData>);
+#[derive(Component)]
+pub struct InstancedEntity;
 
-impl ExtractComponent for InstanceMaterialData {
-    type QueryData = &'static InstanceMaterialData;
-    type QueryFilter = ();
-    type Out = Self;
+pub struct InstancedMaterialPlugin<M>(PhantomData<M>);
 
-    fn extract_component(item: QueryItem<'_, Self::QueryData>) -> Option<Self> {
-        Some(InstanceMaterialData(item.0.clone()))
+impl<M> Default for InstancedMaterialPlugin<M>
+where
+    M: Default,
+{
+    fn default() -> Self {
+        InstancedMaterialPlugin(PhantomData)
     }
 }
 
-pub struct InstancingPlugin;
-
-impl Plugin for InstancingPlugin {
+impl<M> Plugin for InstancedMaterialPlugin<M>
+where
+    M: Material + Default,
+    M::Data: PartialEq + Eq + Hash + Clone,
+{
     fn build(&self, app: &mut App) {
-        app.add_plugins(ExtractComponentPlugin::<InstanceMaterialData>::default());
         app.sub_app_mut(RenderApp)
-            .add_render_command::<Transparent3d, DrawInstanced>()
-            .init_resource::<SpecializedMeshPipelines<InstancedDataPipeline>>()
+            .add_render_command::<Opaque3d, DrawInstancedMaterial<M>>()
+            .init_resource::<SpecializedMeshPipelines<InstancedDataPipeline<M>>>()
             .add_systems(
                 Render,
-                (
-                    queue_instanced.in_set(RenderSet::QueueMeshes),
-                    prepare_instance_buffers.in_set(RenderSet::PrepareResources),
-                ),
+                (queue_instanced::<M>
+                    .after(prepare_assets::<PreparedMaterial<M>>)
+                    .in_set(RenderSet::QueueMeshes)),
             );
     }
 
     fn finish(&self, app: &mut App) {
-        app.world_mut()
-            .resource_mut::<Assets<Shader>>()
-            .get_or_insert_with(&SHADER_HANDLE, || {
-                Shader::from_wgsl(INSTANCING_RENDER, file!())
-            });
-
         app.sub_app_mut(RenderApp)
-            .init_resource::<InstancedDataPipeline>();
+            .init_resource::<InstancedDataPipeline<M>>();
     }
 }
 
-#[derive(Debug, Clone, Copy, Pod, Zeroable)]
-#[repr(C)]
-pub struct InstanceData {
-    pub position: Vec3,
-    pub scale: f32,
-    pub color: [f32; 4],
-}
-
 #[allow(clippy::too_many_arguments)]
-fn queue_instanced(
-    transparent_3d_draw_functions: Res<DrawFunctions<Transparent3d>>,
-    custom_pipeline: Res<InstancedDataPipeline>,
-    mut pipelines: ResMut<SpecializedMeshPipelines<InstancedDataPipeline>>,
+fn queue_instanced<M>(
+    draw_functions: Res<DrawFunctions<Opaque3d>>,
+    custom_pipeline: Res<InstancedDataPipeline<M>>,
+    mut pipelines: ResMut<SpecializedMeshPipelines<InstancedDataPipeline<M>>>,
     pipeline_cache: Res<PipelineCache>,
     meshes: Res<RenderAssets<RenderMesh>>,
-    render_mesh_instances: Res<RenderMeshInstances>,
-    material_meshes: Query<Entity, With<InstanceMaterialData>>,
-    mut transparent_render_phases: ResMut<ViewSortedRenderPhases<Transparent3d>>,
-    mut views: Query<(Entity, &ExtractedView, &Msaa)>,
-) {
-    let draw_custom = transparent_3d_draw_functions.read().id::<DrawInstanced>();
+    (render_mesh_instances, material_meshes, mut phases, mut views, materials): (
+        Res<RenderMeshInstances>,
+        Query<(Entity, &Handle<M>), With<InstancedEntity>>,
+        ResMut<ViewBinnedRenderPhases<Opaque3d>>,
+        Query<(Entity, &ExtractedView, &Msaa)>,
+        Res<RenderAssets<PreparedMaterial<M>>>,
+    ),
+) where
+    M: Material,
+    M::Data: PartialEq + Eq + Hash + Clone,
+{
+    let drawn_function = draw_functions.read().id::<DrawInstancedMaterial<M>>();
 
     for (view_entity, view, msaa) in &mut views {
         let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
-        let Some(transparent_phase) = transparent_render_phases.get_mut(&view_entity) else {
+        let Some(phase) = phases.get_mut(&view_entity) else {
             continue;
         };
 
         let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
-        let rangefinder = view.rangefinder3d();
-        for entity in &material_meshes {
+        for (entity, material) in &material_meshes {
+            let material = materials.get(material).unwrap();
             let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(entity) else {
                 continue;
             };
             let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
                 continue;
             };
-            let key =
+            let mesh_key =
                 view_key | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology());
+            let key = MaterialPipelineKey {
+                mesh_key,
+                bind_group_data: material.key.clone(),
+            };
             let pipeline = pipelines
                 .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
                 .unwrap();
-            transparent_phase.add(Transparent3d {
+            info!("Queueing instanced mesh {:?}", entity);
+            phase.add(
+                Opaque3dBinKey {
+                    draw_function: drawn_function,
+                    pipeline,
+                    asset_id: AssetId::<Mesh>::invalid().untyped(),
+                    material_bind_group_id: None,
+                    lightmap_image: None,
+                },
                 entity,
-                pipeline,
-                draw_function: draw_custom,
-                distance: rangefinder.distance_translation(&mesh_instance.translation),
-                batch_range: 0..1,
-                extra_index: PhaseItemExtraIndex::NONE,
-            });
+                BinnedRenderPhaseType::NonMesh,
+            );
         }
     }
 }
 
 #[derive(Component)]
-struct InstanceBuffer {
-    buffer: Buffer,
-    length: usize,
-}
-
-fn prepare_instance_buffers(
-    mut commands: Commands,
-    query: Query<(Entity, &InstanceMaterialData)>,
-    render_device: Res<RenderDevice>,
-) {
-    for (entity, instance_data) in &query {
-        let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-            label: Some("instance data buffer"),
-            contents: bytemuck::cast_slice(instance_data.as_slice()),
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
-        });
-        commands.entity(entity).insert(InstanceBuffer {
-            buffer,
-            length: instance_data.len(),
-        });
-    }
-}
+pub(crate) struct InstanceRange(pub Range<u32>);
 
 #[derive(Resource)]
-struct InstancedDataPipeline {
-    shader: Handle<Shader>,
+struct InstancedDataPipeline<M> {
     mesh_pipeline: MeshPipeline,
+    material_layout: BindGroupLayout,
+    vertex_shader: Option<Handle<Shader>>,
+    fragment_shader: Option<Handle<Shader>>,
+    marker: PhantomData<M>,
 }
 
-impl FromWorld for InstancedDataPipeline {
+impl<M: Material> FromWorld for InstancedDataPipeline<M> {
     fn from_world(world: &mut World) -> Self {
-        let mesh_pipeline = world.resource::<MeshPipeline>();
+        let asset_server = world.resource::<AssetServer>();
+        let render_device = world.resource::<RenderDevice>();
 
         InstancedDataPipeline {
-            shader: SHADER_HANDLE,
-            mesh_pipeline: mesh_pipeline.clone(),
+            mesh_pipeline: world.resource::<MeshPipeline>().clone(),
+            material_layout: M::bind_group_layout(render_device),
+            vertex_shader: match M::vertex_shader() {
+                ShaderRef::Default => None,
+                ShaderRef::Handle(handle) => Some(handle),
+                ShaderRef::Path(path) => Some(asset_server.load(path)),
+            },
+            fragment_shader: match M::fragment_shader() {
+                ShaderRef::Default => None,
+                ShaderRef::Handle(handle) => Some(handle),
+                ShaderRef::Path(path) => Some(asset_server.load(path)),
+            },
+            marker: PhantomData,
         }
     }
 }
 
-impl SpecializedMeshPipeline for InstancedDataPipeline {
-    type Key = MeshPipelineKey;
+impl<M: Material> SpecializedMeshPipeline for InstancedDataPipeline<M>
+where
+    M::Data: PartialEq + Eq + Hash + Clone,
+{
+    type Key = MaterialPipelineKey<M>;
 
     fn specialize(
         &self,
         key: Self::Key,
         layout: &MeshVertexBufferLayoutRef,
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
-        let mut descriptor = self.mesh_pipeline.specialize(key, layout)?;
+        let mut descriptor = self.mesh_pipeline.specialize(key.mesh_key, layout)?;
+        if let Some(vertex_shader) = &self.vertex_shader {
+            descriptor.vertex.shader = vertex_shader.clone();
+        }
 
-        descriptor.vertex.shader = self.shader.clone();
-        descriptor.vertex.buffers.push(VertexBufferLayout {
-            array_stride: std::mem::size_of::<InstanceData>() as u64,
-            step_mode: VertexStepMode::Instance,
-            attributes: vec![
-                VertexAttribute {
-                    format: VertexFormat::Float32x4,
-                    offset: 0,
-                    shader_location: 3, // shader locations 0-2 are taken up by Position, Normal and UV attributes
-                },
-                VertexAttribute {
-                    format: VertexFormat::Float32x4,
-                    offset: VertexFormat::Float32x4.size(),
-                    shader_location: 4,
-                },
-            ],
-        });
-        descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
+        if let Some(fragment_shader) = &self.fragment_shader {
+            descriptor.fragment.as_mut().unwrap().shader = fragment_shader.clone();
+        }
+
+        descriptor.layout.insert(2, self.material_layout.clone());
+
+        let pipeline = MaterialPipeline {
+            mesh_pipeline: self.mesh_pipeline.clone(),
+            material_layout: self.material_layout.clone(),
+            vertex_shader: self.vertex_shader.clone(),
+            fragment_shader: self.fragment_shader.clone(),
+            marker: Default::default(),
+        };
+        M::specialize(&pipeline, &mut descriptor, layout, key)?;
         Ok(descriptor)
     }
 }
 
-type DrawInstanced = (
+type DrawInstancedMaterial<M> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
     SetMeshBindGroup<1>,
+    SetMaterialBindGroup<M, 2>,
     DrawMeshInstanced,
 );
 
@@ -288,17 +271,16 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
         SRes<MeshAllocator>,
     );
     type ViewQuery = ();
-    type ItemQuery = Read<InstanceBuffer>;
+    type ItemQuery = Read<InstanceRange>;
 
     #[inline]
     fn render<'w>(
         item: &P,
         _view: (),
-        instance_buffer: Option<&'w InstanceBuffer>,
+        instance_range: Option<&'w InstanceRange>,
         (meshes, render_mesh_instances, mesh_allocator): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        // A borrow check workaround.
         let mesh_allocator = mesh_allocator.into_inner();
 
         let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.entity())
@@ -308,7 +290,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
         let Some(gpu_mesh) = meshes.into_inner().get(mesh_instance.mesh_asset_id) else {
             return RenderCommandResult::Skip;
         };
-        let Some(instance_buffer) = instance_buffer else {
+        let Some(instance_range) = instance_range else {
             return RenderCommandResult::Skip;
         };
         let Some(vertex_buffer_slice) =
@@ -318,7 +300,6 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
         };
 
         pass.set_vertex_buffer(0, vertex_buffer_slice.buffer.slice(..));
-        pass.set_vertex_buffer(1, instance_buffer.buffer.slice(..));
 
         match &gpu_mesh.buffer_info {
             RenderMeshBufferInfo::Indexed {
@@ -335,11 +316,11 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
                 pass.draw_indexed(
                     index_buffer_slice.range.start..(index_buffer_slice.range.start + count),
                     vertex_buffer_slice.range.start as i32,
-                    0..instance_buffer.length as u32,
+                    instance_range.0.clone(),
                 );
             }
             RenderMeshBufferInfo::NonIndexed => {
-                pass.draw(0..gpu_mesh.vertex_count, 0..instance_buffer.length as u32);
+                pass.draw(0..gpu_mesh.vertex_count, instance_range.0.clone());
             }
         }
         RenderCommandResult::Success

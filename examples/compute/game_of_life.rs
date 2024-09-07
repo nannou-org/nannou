@@ -1,6 +1,7 @@
 mod particle_mouse;
 
 use nannou::prelude::*;
+use nannou::prelude::bevy_render::texture::{ImageSampler, ImageSamplerDescriptor};
 
 const DISPLAY_FACTOR: u32 = 4;
 const SIZE: (u32, u32) = (1280 / DISPLAY_FACTOR, 720 / DISPLAY_FACTOR);
@@ -49,7 +50,7 @@ impl Compute for ComputeModel {
         }
     }
 
-    fn workgroup_size(state: &Self::State) -> (u32, u32, u32) {
+    fn dispatch_size(state: &Self::State) -> (u32, u32, u32) {
         (SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1)
     }
 }
@@ -74,7 +75,7 @@ fn model(app: &App) -> Model {
     );
     image.texture_descriptor.usage =
         TextureUsages::COPY_DST | TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING;
-
+    image.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor::nearest());
     let image0 = app.assets_mut().add(image.clone());
     let image1 = app.assets_mut().add(image);
     Model {
