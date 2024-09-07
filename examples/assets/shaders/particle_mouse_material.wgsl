@@ -21,22 +21,13 @@ struct VertexOutput {
 fn vertex(vertex: Vertex) -> VertexOutput {
     let particle = particles[vertex.instance_index];
     var out: VertexOutput;
-
-    if (vertex.instance_index == 100) {
-        out.clip_position = vec4(particle.position, 0.0, 1.0);
-        out.color = vec4(1.0, 0.0, 0.0, 1.0);  // Red color for visibility
-    } else {
-        out.clip_position = mesh_position_local_to_clip(
-            get_world_from_local(vertex.instance_index),
-            vec4(vertex.position, 1.0)
-        ) + vec4(particle.position, 0.0, 0.0);
-        out.color = particle.color;
-    }
-
+    out.clip_position = mesh_position_local_to_clip(
+        get_world_from_local(vertex.instance_index),
+        vec4(vertex.position, 1.0)
+    ) + vec4(particle.position, 0.0, 0.0);
+    out.color = particle.color;
     return out;
 }
-
-
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
