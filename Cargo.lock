@@ -618,9 +618,17 @@ dependencies = [
 [[package]]
 name = "bevy"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_internal 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+]
+
+[[package]]
+name = "bevy"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_internal 0.15.0-dev",
+ "bevy_internal 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
 ]
 
 [[package]]
@@ -629,23 +637,23 @@ version = "0.25.2"
 source = "git+https://github.com/tychedelia/bevy-inspector-egui?branch=main#1a4e9a31cb5f4a242697a19a2f03765e463edb66"
 dependencies = [
  "bevy-inspector-egui-derive",
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_color",
- "bevy_core 0.15.0-dev",
- "bevy_core_pipeline",
- "bevy_ecs 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_color 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_core 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_core_pipeline 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "bevy_egui 0.29.0 (git+https://github.com/tychedelia/bevy_egui)",
- "bevy_hierarchy 0.15.0-dev",
- "bevy_log 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_pbr",
- "bevy_reflect 0.15.0-dev",
- "bevy_render",
- "bevy_state",
- "bevy_time 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
- "bevy_window 0.15.0-dev",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_log 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_math 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_pbr 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_render 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_state 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_time 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_window 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "bytemuck",
  "egui",
  "fuzzy-matcher",
@@ -680,34 +688,46 @@ dependencies = [
 [[package]]
 name = "bevy_a11y"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "accesskit 0.16.0",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+]
+
+[[package]]
+name = "bevy_a11y"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
  "accesskit 0.16.0",
- "bevy_app 0.15.0-dev",
- "bevy_derive 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
 ]
 
 [[package]]
 name = "bevy_animation"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_color",
- "bevy_core 0.15.0-dev",
- "bevy_derive 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_hierarchy 0.15.0-dev",
- "bevy_log 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_render",
- "bevy_time 0.15.0-dev",
- "bevy_transform 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_color 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_log 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_render 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_time 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "blake3",
  "fixedbitset 0.5.7",
  "petgraph 0.6.5",
@@ -739,13 +759,31 @@ dependencies = [
 [[package]]
 name = "bevy_app"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "console_error_panic_hook",
+ "ctrlc",
+ "downcast-rs",
+ "thiserror",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "bevy_app"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_derive 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_tasks 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_derive 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "console_error_panic_hook",
  "ctrlc",
  "downcast-rs",
@@ -789,19 +827,19 @@ dependencies = [
 [[package]]
 name = "bevy_asset"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
  "async-broadcast",
  "async-fs",
  "async-lock",
  "atomicow",
- "bevy_app 0.15.0-dev",
- "bevy_asset_macros 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_tasks 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
- "bevy_winit 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset_macros 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_winit 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "blake3",
  "crossbeam-channel",
  "downcast-rs",
@@ -809,6 +847,39 @@ dependencies = [
  "futures-lite",
  "js-sys",
  "notify-debouncer-full",
+ "parking_lot 0.12.3",
+ "ron",
+ "serde",
+ "stackfuture",
+ "thiserror",
+ "uuid 1.10.0",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "bevy_asset"
+version = "0.15.0-dev"
+source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+dependencies = [
+ "async-broadcast",
+ "async-fs",
+ "async-lock",
+ "atomicow",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_asset_macros 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_winit 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "blake3",
+ "crossbeam-channel",
+ "downcast-rs",
+ "futures-io",
+ "futures-lite",
+ "js-sys",
  "parking_lot 0.12.3",
  "ron",
  "serde",
@@ -835,9 +906,20 @@ dependencies = [
 [[package]]
 name = "bevy_asset_macros"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "proc-macro2 1.0.86",
+ "quote 1.0.37",
+ "syn 2.0.77",
+]
+
+[[package]]
+name = "bevy_asset_macros"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_macro_utils 0.15.0-dev",
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "proc-macro2 1.0.86",
  "quote 1.0.37",
  "syn 2.0.77",
@@ -846,17 +928,17 @@ dependencies = [
 [[package]]
 name = "bevy_audio"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_derive 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_hierarchy 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_transform 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "cpal 0.15.3",
  "rodio",
 ]
@@ -864,10 +946,24 @@ dependencies = [
 [[package]]
 name = "bevy_color"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bytemuck",
+ "encase",
+ "serde",
+ "thiserror",
+ "wgpu-types",
+]
+
+[[package]]
+name = "bevy_color"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_math 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
+ "bevy_math 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "bytemuck",
  "encase",
  "serde",
@@ -906,14 +1002,51 @@ dependencies = [
 [[package]]
 name = "bevy_core"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "uuid 1.10.0",
+]
+
+[[package]]
+name = "bevy_core"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_tasks 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "uuid 1.10.0",
+]
+
+[[package]]
+name = "bevy_core_pipeline"
+version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_color 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_render 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bitflags 2.6.0",
+ "nonmax",
+ "radsort",
+ "serde",
+ "smallvec 1.13.2",
+ "thiserror",
 ]
 
 [[package]]
@@ -921,17 +1054,17 @@ name = "bevy_core_pipeline"
 version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_color",
- "bevy_core 0.15.0-dev",
- "bevy_derive 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_render",
- "bevy_transform 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_color 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_core 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_math 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_render 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "bitflags 2.6.0",
  "nonmax",
  "radsort",
@@ -954,9 +1087,19 @@ dependencies = [
 [[package]]
 name = "bevy_derive"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "quote 1.0.37",
+ "syn 2.0.77",
+]
+
+[[package]]
+name = "bevy_derive"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_macro_utils 0.15.0-dev",
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "quote 1.0.37",
  "syn 2.0.77",
 ]
@@ -979,16 +1122,30 @@ dependencies = [
 [[package]]
 name = "bevy_diagnostic"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_core 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_tasks 0.15.0-dev",
- "bevy_time 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_time 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "const-fnv1a-hash",
  "sysinfo",
+]
+
+[[package]]
+name = "bevy_diagnostic"
+version = "0.15.0-dev"
+source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+dependencies = [
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_core 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_time 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "const-fnv1a-hash",
 ]
 
 [[package]]
@@ -1014,14 +1171,33 @@ dependencies = [
 [[package]]
 name = "bevy_ecs"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
  "arrayvec 0.7.6",
- "bevy_ecs_macros 0.15.0-dev",
- "bevy_ptr 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_tasks 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_ecs_macros 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ptr 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bitflags 2.6.0",
+ "concurrent-queue",
+ "fixedbitset 0.5.7",
+ "nonmax",
+ "petgraph 0.6.5",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "bevy_ecs"
+version = "0.15.0-dev"
+source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+dependencies = [
+ "bevy_ecs_macros 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ptr 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "bitflags 2.6.0",
  "concurrent-queue",
  "fixedbitset 0.5.7",
@@ -1046,9 +1222,20 @@ dependencies = [
 [[package]]
 name = "bevy_ecs_macros"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "proc-macro2 1.0.86",
+ "quote 1.0.37",
+ "syn 2.0.77",
+]
+
+[[package]]
+name = "bevy_ecs_macros"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_macro_utils 0.15.0-dev",
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "proc-macro2 1.0.86",
  "quote 1.0.37",
  "syn 2.0.77",
@@ -1060,7 +1247,7 @@ version = "0.29.0"
 source = "git+https://github.com/tychedelia/bevy_egui?branch=main#5c7095cab99df8009dd41b3126acadab9f6099c9"
 dependencies = [
  "arboard",
- "bevy 0.15.0-dev",
+ "bevy 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "bytemuck",
  "console_log",
  "crossbeam-channel",
@@ -1082,7 +1269,7 @@ version = "0.29.0"
 source = "git+https://github.com/tychedelia/bevy_egui#5c7095cab99df8009dd41b3126acadab9f6099c9"
 dependencies = [
  "arboard",
- "bevy 0.15.0-dev",
+ "bevy 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "bytemuck",
  "console_log",
  "crossbeam-channel",
@@ -1101,22 +1288,31 @@ dependencies = [
 [[package]]
 name = "bevy_encase_derive"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "encase_derive_impl 0.8.0",
+]
+
+[[package]]
+name = "bevy_encase_derive"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_macro_utils 0.15.0-dev",
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "encase_derive_impl 0.8.0",
 ]
 
 [[package]]
 name = "bevy_gilrs"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_input 0.15.0-dev",
- "bevy_time 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_input 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_time 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "gilrs",
  "thiserror",
 ]
@@ -1124,23 +1320,54 @@ dependencies = [
 [[package]]
 name = "bevy_gizmos"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_color 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core_pipeline 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_gizmos_macros 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_pbr 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_render 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_sprite",
+ "bevy_time 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bytemuck",
+]
+
+[[package]]
+name = "bevy_gizmos"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_color",
- "bevy_core_pipeline",
- "bevy_ecs 0.15.0-dev",
- "bevy_gizmos_macros",
- "bevy_math 0.15.0-dev",
- "bevy_pbr",
- "bevy_reflect 0.15.0-dev",
- "bevy_render",
- "bevy_sprite",
- "bevy_time 0.15.0-dev",
- "bevy_transform 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_color 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_core_pipeline 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_gizmos_macros 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_math 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_render 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_time 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "bytemuck",
+]
+
+[[package]]
+name = "bevy_gizmos_macros"
+version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "proc-macro2 1.0.86",
+ "quote 1.0.37",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -1148,7 +1375,7 @@ name = "bevy_gizmos_macros"
 version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_macro_utils 0.15.0-dev",
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "proc-macro2 1.0.86",
  "quote 1.0.37",
  "syn 2.0.77",
@@ -1157,25 +1384,25 @@ dependencies = [
 [[package]]
 name = "bevy_gltf"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
  "base64 0.22.1",
  "bevy_animation",
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_color",
- "bevy_core 0.15.0-dev",
- "bevy_core_pipeline",
- "bevy_ecs 0.15.0-dev",
- "bevy_hierarchy 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_pbr",
- "bevy_reflect 0.15.0-dev",
- "bevy_render",
- "bevy_scene",
- "bevy_tasks 0.15.0-dev",
- "bevy_transform 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_color 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core_pipeline 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_pbr 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_render 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_scene 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "gltf",
  "percent-encoding 2.3.1",
  "serde",
@@ -1201,13 +1428,26 @@ dependencies = [
 [[package]]
 name = "bevy_hierarchy"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "smallvec 1.13.2",
+]
+
+[[package]]
+name = "bevy_hierarchy"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_core 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_core 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "smallvec 1.13.2",
 ]
 
@@ -1229,13 +1469,27 @@ dependencies = [
 [[package]]
 name = "bevy_input"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "smol_str",
+ "thiserror",
+]
+
+[[package]]
+name = "bevy_input"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_math 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "smol_str",
  "thiserror",
 ]
@@ -1269,42 +1523,72 @@ dependencies = [
 [[package]]
 name = "bevy_internal"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_a11y 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_animation",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_audio",
+ "bevy_color 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core_pipeline 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_diagnostic 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_gilrs",
+ "bevy_gizmos 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_gltf",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_input 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_log 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_pbr 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_picking",
+ "bevy_ptr 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_render 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_scene 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_sprite",
+ "bevy_state 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_text",
+ "bevy_time 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ui",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_window 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_winit 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+]
+
+[[package]]
+name = "bevy_internal"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_a11y 0.15.0-dev",
- "bevy_animation",
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_audio",
- "bevy_color",
- "bevy_core 0.15.0-dev",
- "bevy_core_pipeline",
- "bevy_derive 0.15.0-dev",
- "bevy_diagnostic 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_gilrs",
- "bevy_gizmos",
- "bevy_gltf",
- "bevy_hierarchy 0.15.0-dev",
- "bevy_input 0.15.0-dev",
- "bevy_log 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_pbr",
- "bevy_picking",
- "bevy_ptr 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_render",
- "bevy_scene",
- "bevy_sprite",
- "bevy_state",
- "bevy_tasks 0.15.0-dev",
- "bevy_text",
- "bevy_time 0.15.0-dev",
- "bevy_transform 0.15.0-dev",
- "bevy_ui",
- "bevy_utils 0.15.0-dev",
- "bevy_window 0.15.0-dev",
- "bevy_winit 0.15.0-dev",
+ "bevy_a11y 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_color 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_core 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_diagnostic 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_gizmos 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_input 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_log 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_math 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ptr 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_render 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_scene 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_time 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_window 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_winit 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
 ]
 
 [[package]]
@@ -1325,12 +1609,26 @@ dependencies = [
 [[package]]
 name = "bevy_log"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "android_log-sys",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "tracing-log",
+ "tracing-subscriber",
+ "tracing-wasm",
+]
+
+[[package]]
+name = "bevy_log"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
  "android_log-sys",
- "bevy_app 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "tracing-log",
  "tracing-subscriber",
  "tracing-wasm",
@@ -1341,6 +1639,17 @@ name = "bevy_macro_utils"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfc65e570012e64a21f3546df68591aaede8349e6174fb500071677f54f06630"
+dependencies = [
+ "proc-macro2 1.0.86",
+ "quote 1.0.37",
+ "syn 2.0.77",
+ "toml_edit 0.22.20",
+]
+
+[[package]]
+name = "bevy_macro_utils"
+version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
  "proc-macro2 1.0.86",
  "quote 1.0.37",
@@ -1376,9 +1685,9 @@ dependencies = [
 [[package]]
 name = "bevy_math"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
- "bevy_reflect 0.15.0-dev",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "glam 0.28.0",
  "itertools 0.13.0",
  "rand 0.8.5",
@@ -1386,6 +1695,29 @@ dependencies = [
  "serde",
  "smallvec 1.13.2",
  "thiserror",
+]
+
+[[package]]
+name = "bevy_math"
+version = "0.15.0-dev"
+source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+dependencies = [
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "glam 0.28.0",
+ "itertools 0.13.0",
+ "rand 0.8.5",
+ "rand_distr",
+ "serde",
+ "smallvec 1.13.2",
+ "thiserror",
+]
+
+[[package]]
+name = "bevy_mikktspace"
+version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "glam 0.28.0",
 ]
 
 [[package]]
@@ -1400,7 +1732,7 @@ dependencies = [
 name = "bevy_nannou"
 version = "0.1.0"
 dependencies = [
- "bevy 0.15.0-dev",
+ "bevy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "bevy_nannou_draw",
  "bevy_nannou_isf",
  "bevy_nannou_video",
@@ -1410,7 +1742,7 @@ dependencies = [
 name = "bevy_nannou_derive"
 version = "0.1.0"
 dependencies = [
- "bevy 0.15.0-dev",
+ "bevy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "bevy_nannou_draw",
  "proc-macro2 1.0.86",
  "quote 1.0.37",
@@ -1421,7 +1753,7 @@ dependencies = [
 name = "bevy_nannou_draw"
 version = "0.1.0"
 dependencies = [
- "bevy 0.15.0-dev",
+ "bevy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "bytemuck",
  "lyon",
  "nannou_core",
@@ -1435,7 +1767,7 @@ dependencies = [
 name = "bevy_nannou_isf"
 version = "0.1.0"
 dependencies = [
- "bevy 0.15.0-dev",
+ "bevy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "bevy-inspector-egui",
  "bevy_egui 0.29.0 (git+https://github.com/tychedelia/bevy_egui?branch=main)",
  "bytemuck",
@@ -1448,7 +1780,7 @@ dependencies = [
 name = "bevy_nannou_video"
 version = "0.1.0"
 dependencies = [
- "bevy 0.15.0-dev",
+ "bevy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "rayon",
  "serde",
  "thiserror",
@@ -1458,20 +1790,46 @@ dependencies = [
 [[package]]
 name = "bevy_pbr"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_color 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core_pipeline 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_render 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_window 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bitflags 2.6.0",
+ "bytemuck",
+ "fixedbitset 0.5.7",
+ "nonmax",
+ "radsort",
+ "smallvec 1.13.2",
+ "static_assertions",
+]
+
+[[package]]
+name = "bevy_pbr"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_color",
- "bevy_core_pipeline",
- "bevy_derive 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_render",
- "bevy_transform 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
- "bevy_window 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_color 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_core_pipeline 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_math 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_render 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_window 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "bitflags 2.6.0",
  "bytemuck",
  "fixedbitset 0.5.7",
@@ -1484,21 +1842,21 @@ dependencies = [
 [[package]]
 name = "bevy_picking"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_derive 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_hierarchy 0.15.0-dev",
- "bevy_input 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_render",
- "bevy_time 0.15.0-dev",
- "bevy_transform 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
- "bevy_window 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_input 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_render 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_time 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_window 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "uuid 1.10.0",
 ]
 
@@ -1507,6 +1865,11 @@ name = "bevy_ptr"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61baa1bdc1f4a7ac2c18217570a7cc04e1cd54d38456e91782f0371c79afe0a8"
+
+[[package]]
+name = "bevy_ptr"
+version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 
 [[package]]
 name = "bevy_ptr"
@@ -1535,15 +1898,33 @@ dependencies = [
 [[package]]
 name = "bevy_reflect"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
- "bevy_ptr 0.15.0-dev",
- "bevy_reflect_derive 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_ptr 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "downcast-rs",
  "erased-serde",
  "glam 0.28.0",
  "petgraph 0.6.5",
+ "serde",
+ "smallvec 1.13.2",
+ "smol_str",
+ "thiserror",
+ "uuid 1.10.0",
+]
+
+[[package]]
+name = "bevy_reflect"
+version = "0.15.0-dev"
+source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+dependencies = [
+ "bevy_ptr 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect_derive 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "downcast-rs",
+ "erased-serde",
+ "glam 0.28.0",
  "serde",
  "smallvec 1.13.2",
  "smol_str",
@@ -1567,9 +1948,21 @@ dependencies = [
 [[package]]
 name = "bevy_reflect_derive"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "proc-macro2 1.0.86",
+ "quote 1.0.37",
+ "syn 2.0.77",
+ "uuid 1.10.0",
+]
+
+[[package]]
+name = "bevy_reflect_derive"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_macro_utils 0.15.0-dev",
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "proc-macro2 1.0.86",
  "quote 1.0.37",
  "syn 2.0.77",
@@ -1579,28 +1972,28 @@ dependencies = [
 [[package]]
 name = "bevy_render"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
  "async-channel",
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_color",
- "bevy_core 0.15.0-dev",
- "bevy_derive 0.15.0-dev",
- "bevy_diagnostic 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_encase_derive",
- "bevy_hierarchy 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_mikktspace",
- "bevy_reflect 0.15.0-dev",
- "bevy_render_macros",
- "bevy_tasks 0.15.0-dev",
- "bevy_time 0.15.0-dev",
- "bevy_transform 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
- "bevy_window 0.15.0-dev",
- "bevy_winit 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_color 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_diagnostic 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_encase_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_mikktspace 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_render_macros 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_time 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_window 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_winit 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "bitflags 2.6.0",
  "bytemuck",
  "codespan-reporting",
@@ -1626,11 +2019,69 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_render"
+version = "0.15.0-dev"
+source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+dependencies = [
+ "async-channel",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_color 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_core 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_diagnostic 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_encase_derive 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_math 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_mikktspace 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_render_macros 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_time 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_window 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_winit 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bitflags 2.6.0",
+ "bytemuck",
+ "codespan-reporting",
+ "downcast-rs",
+ "encase",
+ "futures-lite",
+ "hexasphere",
+ "image 0.25.2",
+ "js-sys",
+ "naga 22.1.0",
+ "naga_oil",
+ "nonmax",
+ "offset-allocator",
+ "send_wrapper",
+ "serde",
+ "smallvec 1.13.2",
+ "thiserror",
+ "wasm-bindgen",
+ "web-sys",
+ "wgpu",
+]
+
+[[package]]
+name = "bevy_render_macros"
+version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "proc-macro2 1.0.86",
+ "quote 1.0.37",
+ "syn 2.0.77",
+]
+
+[[package]]
 name = "bevy_render_macros"
 version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_macro_utils 0.15.0-dev",
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "proc-macro2 1.0.86",
  "quote 1.0.37",
  "syn 2.0.77",
@@ -1639,17 +2090,36 @@ dependencies = [
 [[package]]
 name = "bevy_scene"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_render 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "serde",
+ "thiserror",
+ "uuid 1.10.0",
+]
+
+[[package]]
+name = "bevy_scene"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_derive 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_hierarchy 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_render",
- "bevy_transform 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_render 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "serde",
  "thiserror",
  "uuid 1.10.0",
@@ -1658,21 +2128,21 @@ dependencies = [
 [[package]]
 name = "bevy_sprite"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_color",
- "bevy_core_pipeline",
- "bevy_derive 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_math 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_color 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core_pipeline 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "bevy_picking",
- "bevy_reflect 0.15.0-dev",
- "bevy_render",
- "bevy_transform 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
- "bevy_window 0.15.0-dev",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_render 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_window 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "bitflags 2.6.0",
  "bytemuck",
  "fixedbitset 0.5.7",
@@ -1686,14 +2156,38 @@ dependencies = [
 [[package]]
 name = "bevy_state"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_state_macros 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+]
+
+[[package]]
+name = "bevy_state"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_hierarchy 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_state_macros",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_state_macros 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+]
+
+[[package]]
+name = "bevy_state_macros"
+version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "proc-macro2 1.0.86",
+ "quote 1.0.37",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -1701,7 +2195,7 @@ name = "bevy_state_macros"
 version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_macro_utils 0.15.0-dev",
+ "bevy_macro_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "proc-macro2 1.0.86",
  "quote 1.0.37",
  "syn 2.0.77",
@@ -1721,7 +2215,7 @@ dependencies = [
 [[package]]
 name = "bevy_tasks"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
  "async-channel",
  "async-executor",
@@ -1733,22 +2227,34 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_text"
+name = "bevy_tasks"
 version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_color",
- "bevy_derive 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_render",
+ "async-executor",
+ "futures-channel",
+ "futures-lite",
+ "pin-project",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "bevy_text"
+version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_color 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_render 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "bevy_sprite",
- "bevy_transform 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
- "bevy_window 0.15.0-dev",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_window 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "cosmic-text",
  "serde",
  "sys-locale",
@@ -1773,12 +2279,25 @@ dependencies = [
 [[package]]
 name = "bevy_time"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "crossbeam-channel",
+ "thiserror",
+]
+
+[[package]]
+name = "bevy_time"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "crossbeam-channel",
  "thiserror",
 ]
@@ -1800,39 +2319,52 @@ dependencies = [
 [[package]]
 name = "bevy_transform"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "thiserror",
+]
+
+[[package]]
+name = "bevy_transform"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_app 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_hierarchy 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_math 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "thiserror",
 ]
 
 [[package]]
 name = "bevy_ui"
 version = "0.15.0-dev"
-source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
- "bevy_a11y 0.15.0-dev",
- "bevy_app 0.15.0-dev",
- "bevy_asset 0.15.0-dev",
- "bevy_color",
- "bevy_core_pipeline",
- "bevy_derive 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_hierarchy 0.15.0-dev",
- "bevy_input 0.15.0-dev",
- "bevy_math 0.15.0-dev",
+ "bevy_a11y 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_asset 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_color 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_core_pipeline 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_input 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "bevy_picking",
- "bevy_reflect 0.15.0-dev",
- "bevy_render",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_render 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "bevy_sprite",
  "bevy_text",
- "bevy_transform 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
- "bevy_window 0.15.0-dev",
+ "bevy_transform 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_window 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "bytemuck",
  "nonmax",
  "smallvec 1.13.2",
@@ -1858,10 +2390,24 @@ dependencies = [
 [[package]]
 name = "bevy_utils"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "ahash",
+ "bevy_utils_proc_macros 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "getrandom 0.2.15",
+ "hashbrown 0.14.5",
+ "thread_local",
+ "tracing",
+ "web-time",
+]
+
+[[package]]
+name = "bevy_utils"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
  "ahash",
- "bevy_utils_proc_macros 0.15.0-dev",
+ "bevy_utils_proc_macros 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "getrandom 0.2.15",
  "hashbrown 0.14.5",
  "thread_local",
@@ -1874,6 +2420,16 @@ name = "bevy_utils_proc_macros"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38f1ab8f2f6f58439d260081d89a42b02690e5fdd64f814edc9417d33fcf2857"
+dependencies = [
+ "proc-macro2 1.0.86",
+ "quote 1.0.37",
+ "syn 2.0.77",
+]
+
+[[package]]
+name = "bevy_utils_proc_macros"
+version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
 dependencies = [
  "proc-macro2 1.0.86",
  "quote 1.0.37",
@@ -1909,15 +2465,31 @@ dependencies = [
 [[package]]
 name = "bevy_window"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "bevy_a11y 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_input 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "raw-window-handle",
+ "smol_str",
+]
+
+[[package]]
+name = "bevy_window"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
- "bevy_a11y 0.15.0-dev",
- "bevy_app 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_input 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
+ "bevy_a11y 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_input 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_math 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "raw-window-handle",
  "smol_str",
 ]
@@ -1953,22 +2525,49 @@ dependencies = [
 [[package]]
 name = "bevy_winit"
 version = "0.15.0-dev"
+source = "git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler#6c0bd3b5ee07ccd87e63811886368a5edd2d57a9"
+dependencies = [
+ "accesskit_winit 0.22.0",
+ "approx 0.5.1",
+ "bevy_a11y 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_app 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_input 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_log 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_math 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "bevy_window 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
+ "cfg-if 1.0.0",
+ "crossbeam-channel",
+ "raw-window-handle",
+ "wasm-bindgen",
+ "web-sys",
+ "winit",
+]
+
+[[package]]
+name = "bevy_winit"
+version = "0.15.0-dev"
 source = "git+https://github.com/bevyengine/bevy?branch=main#90bb1adeb28b82be96546e0c2cde81530241f7af"
 dependencies = [
  "accesskit_winit 0.22.0",
  "approx 0.5.1",
- "bevy_a11y 0.15.0-dev",
- "bevy_app 0.15.0-dev",
- "bevy_derive 0.15.0-dev",
- "bevy_ecs 0.15.0-dev",
- "bevy_hierarchy 0.15.0-dev",
- "bevy_input 0.15.0-dev",
- "bevy_log 0.15.0-dev",
- "bevy_math 0.15.0-dev",
- "bevy_reflect 0.15.0-dev",
- "bevy_tasks 0.15.0-dev",
- "bevy_utils 0.15.0-dev",
- "bevy_window 0.15.0-dev",
+ "bevy_a11y 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_app 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_derive 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_ecs 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_hierarchy 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_input 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_log 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_math 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_reflect 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_tasks 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_utils 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
+ "bevy_window 0.15.0-dev (git+https://github.com/bevyengine/bevy?branch=main)",
  "cfg-if 1.0.0",
  "crossbeam-channel",
  "raw-window-handle",
@@ -3353,6 +3952,7 @@ name = "examples"
 version = "0.1.0"
 dependencies = [
  "audrey",
+ "bytemuck",
  "futures 0.3.30",
  "hotglsl",
  "hound",
@@ -5405,7 +6005,7 @@ dependencies = [
 name = "nannou"
 version = "0.19.0"
 dependencies = [
- "bevy 0.15.0-dev",
+ "bevy 0.15.0-dev (git+https://github.com/tychedelia/bevy?branch=as-bind-group-sampler)",
  "bevy-inspector-egui",
  "bevy_common_assets",
  "bevy_egui 0.29.0 (git+https://github.com/tychedelia/bevy_egui?branch=main)",

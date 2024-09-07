@@ -7,8 +7,7 @@ use bevy::ecs::query::QueryItem;
 pub use bevy::prelude::*;
 use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_graph::{
-    NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode,
-    ViewNodeRunner,
+    NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
 };
 use bevy::render::render_resource::SpecializedComputePipeline;
 use bevy::render::renderer::RenderContext;

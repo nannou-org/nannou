@@ -97,7 +97,7 @@ use crate::prelude::NannouMaterialPlugin;
 >>>>>>> 7c1848e (Fix compute.)
 use crate::render::{
     compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
-    NannouRenderNode, RenderApp, RenderPlugin
+    NannouRenderNode, RenderApp, RenderPlugin,
 };
 >>>>>>> 2a48b61 (Start compute.)
 use crate::window::WindowUserFunctions;
@@ -293,13 +293,12 @@ where
     pub fn new(model: ModelFn<M>) -> Self {
         let mut app = bevy::app::App::new();
         app.add_plugins((
-            DefaultPlugins
-                .set(WindowPlugin {
-                    // Don't spawn a  window by default, we'll handle this ourselves
-                    primary_window: None,
-                    exit_condition: ExitCondition::OnAllClosed,
-                    ..default()
-                }),
+            DefaultPlugins.set(WindowPlugin {
+                // Don't spawn a  window by default, we'll handle this ourselves
+                primary_window: None,
+                exit_condition: ExitCondition::OnAllClosed,
+                ..default()
+            }),
             #[cfg(feature = "egui")]
             bevy_egui::EguiPlugin,
             NannouPlugin,

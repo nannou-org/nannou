@@ -1,7 +1,7 @@
 mod particle_mouse;
 
-use nannou::prelude::*;
 use nannou::prelude::bevy_render::texture::{ImageSampler, ImageSamplerDescriptor};
+use nannou::prelude::*;
 
 const DISPLAY_FACTOR: u32 = 4;
 const SIZE: (u32, u32) = (1280 / DISPLAY_FACTOR, 720 / DISPLAY_FACTOR);

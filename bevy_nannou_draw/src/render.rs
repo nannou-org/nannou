@@ -20,6 +20,7 @@ use bevy::render::render_resource::{
     SpecializedMeshPipelineError,
 };
 use bevy::render::view::{NoFrustumCulling, RenderLayers};
+use bevy::render::{render_resource as wgpu, RenderApp};
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
@@ -270,7 +271,7 @@ fn update_draw_mesh(
                     let mesh = meshes.add(mesh);
                     let mat_id = last_mat.expect("No material set for instanced draw command");
                     // TODO: off by one???
-                    for _ in range.start..range.end-1 {
+                    for _ in range.start..range.end - 1 {
                         commands.spawn((
                             UntypedMaterialId(mat_id),
                             mesh.clone(),
