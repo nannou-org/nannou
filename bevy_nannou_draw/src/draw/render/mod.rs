@@ -1,5 +1,3 @@
-use std::hash::Hash;
-
 use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillTessellator, StrokeTessellator};

@@ -4,7 +4,7 @@
 //! This module can be enabled via the `image` feature.
 
 use crate as wgpu;
-use image::{DynamicImage, PixelWithColorType};
+use image::PixelWithColorType;
 use std::ops::Deref;
 use std::path::Path;
 

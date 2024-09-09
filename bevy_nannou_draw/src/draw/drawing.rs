@@ -1,7 +1,7 @@
 use std::any::TypeId;
 use std::marker::PhantomData;
 
-use bevy::asset::{AsyncWriteExt, UntypedAssetId};
+use bevy::asset::UntypedAssetId;
 use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 use bevy::prelude::*;
 use lyon::path::PathEvent;
@@ -13,7 +13,6 @@ use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{Draw, DrawCommand, DrawRef};
-use crate::render::{ExtendedNannouMaterial, NannouMaterial};
 
 /// A **Drawing** in progress.
 ///
@@ -876,35 +875,35 @@ where
     T: Into<Primitive>,
     M: MaterialExtension + Default,
 {
-    pub fn roughness(mut self, roughness: f32) -> Self {
+    pub fn roughness(self, roughness: f32) -> Self {
         self.map_material(|mut material| {
             material.base.perceptual_roughness = roughness;
             material
         })
     }
 
-    pub fn metallic(mut self, metallic: f32) -> Self {
+    pub fn metallic(self, metallic: f32) -> Self {
         self.map_material(|mut material| {
             material.base.metallic = metallic;
             material
         })
     }
 
-    pub fn base_color<C: Into<Color>>(mut self, color: C) -> Self {
+    pub fn base_color<C: Into<Color>>(self, color: C) -> Self {
         self.map_material(|mut material| {
             material.base.base_color = color.into();
             material
         })
     }
 
-    pub fn emissive<C: Into<Color>>(mut self, color: C) -> Self {
+    pub fn emissive<C: Into<Color>>(self, color: C) -> Self {
         self.map_material(|mut material| {
             material.base.emissive = color.into().to_linear();
             material
         })
     }
 
-    pub fn texture(mut self, texture: &Handle<Image>) -> Self {
+    pub fn texture(self, texture: &Handle<Image>) -> Self {
         self.map_material(|mut material| {
             material.base.base_color_texture = Some(texture.clone());
             material

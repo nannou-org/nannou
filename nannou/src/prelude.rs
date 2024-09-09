@@ -4,7 +4,7 @@ pub use bevy::asset as bevy_asset;
 pub use bevy::ecs as bevy_ecs;
 pub use bevy::reflect as bevy_reflect;
 pub use bevy::render as bevy_render;
-pub use bevy::tasks::*;
+pub use bevy::tasks::prelude::*;
 #[cfg(feature = "egui")]
 pub use bevy_egui::egui;
 

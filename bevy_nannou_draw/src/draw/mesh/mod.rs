@@ -1,7 +1,5 @@
 //! Items related to the custom mesh type used by the `Draw` API.
 
-use std::ops::{Deref, DerefMut};
-
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
 use bevy::render::render_asset::RenderAssetUsages;

@@ -25,7 +25,7 @@ rustPlatform.buildRustPackage rec {
     lockFile = ./Cargo.lock;
     outputHashes = {
       "skeptic-0.13.8" = "sha256-LLVrpuyQsMdbp8OYcHN0nq+uKC8xgJzpNy+gyXxTYbo=";
-      "bevy-0.15.0-dev" = "sha256-hVXJdAZLxsmLGt7ZDPg7vmsimz5j8GZhW5lKR93+Kzs=";
+      "bevy-0.15.0-dev" = "sha256-68Jwn6QEt3F24j6WmPAZz6D5gN8BYE706TRx3FE/6qs=";
       "bevy-inspector-egui-0.25.2" = "sha256-yjzmnHAxkejNtW8+cOV85IiGRM0614D7WtiauE6KWMA=";
       "bevy_egui-0.29.0" = "sha256-3UiUBpDhpud42ZcDwPHhSzmnlXkd9rH14lqXeRHdLlU=";
     };

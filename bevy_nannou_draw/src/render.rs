@@ -1,6 +1,5 @@
 use std::any::TypeId;
 use std::hash::Hash;
-use std::ops::{Deref, DerefMut};
 
 use bevy::asset::Asset;
 use bevy::asset::UntypedAssetId;
@@ -225,7 +224,7 @@ fn update_draw_mesh(
         let mut curr_ctx: DrawContext = Default::default();
 
         let draw_cmds = draw.drain_commands();
-        let mut draw_state = draw.state.read().unwrap();
+        let draw_state = draw.state.read().unwrap();
         let intermediary_state = draw_state.intermediary_state.read().unwrap();
 
         for cmd in draw_cmds {

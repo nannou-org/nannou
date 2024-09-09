@@ -85,7 +85,7 @@ impl ConvertAngle for f64 {
 
 impl Vec2Angle for glam::Vec2 {
     fn angle(self) -> f32 {
-        glam::Vec2::X.angle_between(self)
+        glam::Vec2::X.angle_to(self)
     }
 }
 

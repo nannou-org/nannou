@@ -23,7 +23,7 @@ use bevy::core::FrameCount;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::system::SystemParam;
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
-use bevy::input::keyboard::KeyboardInput;
+use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::input::mouse::{MouseButtonInput, MouseWheel};
 use bevy::input::ButtonState;
 use bevy::prelude::*;
@@ -32,7 +32,6 @@ use bevy::reflect::{
     TypeInfo,
 };
 use bevy::render::extract_resource::ExtractResource;
-use bevy::render::render_graph::ViewNodeRunner;
 use bevy::window::{
     ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowEvent,
     WindowFocused, WindowResized,
@@ -48,7 +47,6 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use find_folder;
 
-use bevy_nannou::prelude::render::ExtendedNannouMaterial;
 use bevy_nannou::prelude::{draw, DrawHolder};
 use bevy_nannou::NannouPlugin;
 
@@ -56,7 +54,7 @@ use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::render::{NannouMesh, ShaderModel};
 use crate::prelude::NannouMaterialPlugin;
-use crate::render::{NannouRenderNode, RenderApp, RenderPlugin};
+use crate::render::{RenderApp, RenderPlugin};
 use crate::window::WindowUserFunctions;
 use crate::{camera, geom, light, window};
 
@@ -297,7 +295,6 @@ where
     pub fn render(mut self, render: RenderFn<M>) -> Self
     where
         M: Send + Sync + Clone + 'static,
-        ViewNodeRunner<NannouRenderNode<M>>: FromWorld,
     {
         self.render = Some(render);
         self.app
@@ -727,7 +724,7 @@ impl<'w> App<'w> {
     }
 
     pub(crate) fn resource_world_mut(&self) -> RefMut<'_, World> {
-        let world = unsafe { self.resource_world.borrow_mut() };
+        let world = self.resource_world.borrow_mut();
         RefMut::map(world, |world| unsafe { world.world_mut() })
     }
 
@@ -737,7 +734,7 @@ impl<'w> App<'w> {
     }
 
     pub(crate) fn component_world_mut(&self) -> RefMut<'_, World> {
-        let world = unsafe { self.component_world.borrow_mut() };
+        let world = self.component_world.borrow_mut();
         RefMut::map(world, |world| unsafe { world.world_mut() })
     }
 
@@ -1126,14 +1123,13 @@ fn events<M, E>(
     state: &mut SystemState<(
         EventReader<E>,
         Res<EventFnRes<M, E>>,
-        Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
 ) where
     M: Send + Sync + 'static,
     E: Event,
 {
-    let (app, (mut events, event_fn, user_fns, mut model)) = get_app_and_state(world, state);
+    let (app, (mut events, event_fn, mut model)) = get_app_and_state(world, state);
     for evt in events.read() {
         if let Some(f) = event_fn.0.as_ref() {
             f(&app, &mut model, evt);
@@ -1178,7 +1174,7 @@ fn key_events<M>(
 fn received_char_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<ReceivedCharacter>,
+        EventReader<KeyboardInput>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1192,8 +1188,12 @@ fn received_char_events<M>(
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.received_character {
                 app.current_view = Some(evt.window);
-                let char = evt.char.chars().next().unwrap();
-                f(&app, &mut model, char);
+                let key = &evt.logical_key;
+                if let Key::Character(char) = key {
+                    for char in char.chars() {
+                        f(&app, &mut model, char);
+                    }
+                }
             }
         }
     }

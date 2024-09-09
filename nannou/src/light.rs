@@ -1,7 +1,5 @@
-use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::pbr::{DirectionalLight, DirectionalLightBundle};
 use bevy::prelude::{Color, Transform, Vec2};
-use bevy::render::camera;
 use bevy::render::view::RenderLayers;
 
 use bevy_nannou::prelude::{default, Entity, Vec3};
@@ -20,35 +18,35 @@ pub struct Builder<'a, 'w> {
 }
 
 pub trait SetLight: Sized {
-    fn x_y(mut self, x: f32, y: f32) -> Self {
+    fn x_y(self, x: f32, y: f32) -> Self {
         self.map_light(|mut light| {
             light.transform.translation = Vec3::new(x, y, light.transform.translation.z);
             light
         })
     }
 
-    fn xy(mut self, p: Vec2) -> Self {
+    fn xy(self, p: Vec2) -> Self {
         self.map_light(|mut light| {
             light.transform.translation = p.extend(light.transform.translation.z);
             light
         })
     }
 
-    fn x_y_z(mut self, x: f32, y: f32, z: f32) -> Self {
+    fn x_y_z(self, x: f32, y: f32, z: f32) -> Self {
         self.map_light(|mut light| {
             light.transform.translation = Vec3::new(x, y, z);
             light
         })
     }
 
-    fn xyz(mut self, p: Vec3) -> Self {
+    fn xyz(self, p: Vec3) -> Self {
         self.map_light(|mut light| {
             light.transform.translation = p;
             light
         })
     }
 
-    fn look_at(mut self, target: Vec2) -> Self {
+    fn look_at(self, target: Vec2) -> Self {
         self.map_light(|mut light| {
             light.transform = Transform::from_translation(light.transform.translation)
                 .looking_at(target.extend(0.0), Vec3::Y);
@@ -56,21 +54,21 @@ pub trait SetLight: Sized {
         })
     }
 
-    fn color<C: Into<Color>>(mut self, color: C) -> Self {
+    fn color<C: Into<Color>>(self, color: C) -> Self {
         self.map_light(|mut light| {
             light.directional_light.color = color.into();
             light
         })
     }
 
-    fn illuminance(mut self, illuminance: f32) -> Self {
+    fn illuminance(self, illuminance: f32) -> Self {
         self.map_light(|mut light| {
             light.directional_light.illuminance = illuminance;
             light
         })
     }
 
-    fn layer(mut self, layer: RenderLayers) -> Self {
+    fn layer(self, layer: RenderLayers) -> Self {
         self.map_layer(|_| layer)
     }
 
@@ -147,7 +145,7 @@ impl<'a, 'w> SetLight for Light<'a, 'w> {
     {
         let mut world = self.app.component_world_mut();
         let mut layer_q = world.query::<Option<&mut RenderLayers>>();
-        if let Ok(mut layer) = layer_q.get_mut(&mut world, self.entity) {
+        if let Ok(layer) = layer_q.get_mut(&mut world, self.entity) {
             if let Some(mut layer) = layer {
                 *layer = f(layer.clone());
             } else {

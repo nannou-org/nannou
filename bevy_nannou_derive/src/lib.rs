@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
-use syn::{parse_macro_input, parse_quote, Attribute, ItemStruct, Lit, Meta, NestedMeta};
+use quote::quote;
+use syn::{parse_macro_input, parse_quote, ItemStruct, Lit, Meta, NestedMeta};
 
 #[proc_macro_attribute]
 pub fn shader_model(attr: TokenStream, item: TokenStream) -> TokenStream {

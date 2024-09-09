@@ -23,18 +23,18 @@ pub struct Builder<'a, 'w> {
 }
 
 pub trait SetCamera: Sized {
-    fn layer(mut self, layer: RenderLayers) -> Self {
+    fn layer(self, layer: RenderLayers) -> Self {
         self.map_layer(|_| layer)
     }
 
-    fn order(mut self, order: isize) -> Self {
+    fn order(self, order: isize) -> Self {
         self.map_camera(|mut camera| {
             camera.camera.order = order;
             camera
         })
     }
 
-    fn x_y(mut self, x: f32, y: f32) -> Self {
+    fn x_y(self, x: f32, y: f32) -> Self {
         self.map_camera(|mut camera| {
             camera.transform.translation =
                 bevy::math::Vec3::new(x, y, camera.transform.translation.z);
@@ -42,35 +42,35 @@ pub trait SetCamera: Sized {
         })
     }
 
-    fn xy(mut self, p: Vec2) -> Self {
+    fn xy(self, p: Vec2) -> Self {
         self.map_camera(|mut camera| {
             camera.transform.translation = p.extend(camera.transform.translation.z);
             camera
         })
     }
 
-    fn x_y_z(mut self, x: f32, y: f32, z: f32) -> Self {
+    fn x_y_z(self, x: f32, y: f32, z: f32) -> Self {
         self.map_camera(|mut camera| {
             camera.transform.translation = bevy::math::Vec3::new(x, y, z);
             camera
         })
     }
 
-    fn xyz(mut self, p: Vec3) -> Self {
+    fn xyz(self, p: Vec3) -> Self {
         self.map_camera(|mut camera| {
             camera.transform.translation = p;
             camera
         })
     }
 
-    fn hdr(mut self, hdr: bool) -> Self {
+    fn hdr(self, hdr: bool) -> Self {
         self.map_camera(|mut camera| {
             camera.camera.hdr = hdr;
             camera
         })
     }
 
-    fn viewport(mut self, position: UVec2, size: UVec2) -> Self {
+    fn viewport(self, position: UVec2, size: UVec2) -> Self {
         self.map_camera(|mut camera| {
             camera.camera.viewport = Some(camera::Viewport {
                 physical_position: position,
@@ -81,60 +81,60 @@ pub trait SetCamera: Sized {
         })
     }
 
-    fn window(mut self, window: Entity) -> Self {
+    fn window(self, window: Entity) -> Self {
         self.map_camera(|mut camera| {
             camera.camera.target = RenderTarget::Window(WindowRef::Entity(window));
             camera
         })
     }
 
-    fn tonemapping(mut self, tonemapping: Tonemapping) -> Self {
+    fn tonemapping(self, tonemapping: Tonemapping) -> Self {
         self.map_camera(|mut camera| {
             camera.tonemapping = tonemapping;
             camera
         })
     }
 
-    fn clear_color(mut self, color: ClearColorConfig) -> Self {
+    fn clear_color(self, color: ClearColorConfig) -> Self {
         self.map_camera(|mut camera| {
             camera.camera.clear_color = color;
             camera
         })
     }
 
-    fn bloom_settings(mut self, settings: BloomSettings) -> Self {
+    fn bloom_settings(self, settings: BloomSettings) -> Self {
         self.map_bloom_settings(|_| settings)
     }
 
-    fn bloom_intensity(mut self, intensity: f32) -> Self {
+    fn bloom_intensity(self, intensity: f32) -> Self {
         self.map_bloom_settings(|mut settings| {
             settings.intensity = intensity;
             settings
         })
     }
 
-    fn bloom_low_frequency_boost(mut self, low_frequency_boost: f32) -> Self {
+    fn bloom_low_frequency_boost(self, low_frequency_boost: f32) -> Self {
         self.map_bloom_settings(|mut settings| {
             settings.low_frequency_boost = low_frequency_boost;
             settings
         })
     }
 
-    fn bloom_low_frequency_boost_curvature(mut self, low_frequency_boost_curvature: f32) -> Self {
+    fn bloom_low_frequency_boost_curvature(self, low_frequency_boost_curvature: f32) -> Self {
         self.map_bloom_settings(|mut settings| {
             settings.low_frequency_boost_curvature = low_frequency_boost_curvature;
             settings
         })
     }
 
-    fn bloom_high_pass_frequency(mut self, high_pass_frequency: f32) -> Self {
+    fn bloom_high_pass_frequency(self, high_pass_frequency: f32) -> Self {
         self.map_bloom_settings(|mut settings| {
             settings.high_pass_frequency = high_pass_frequency;
             settings
         })
     }
 
-    fn bloom_prefilter_settings(mut self, threshold: f32, threshold_softness: f32) -> Self {
+    fn bloom_prefilter_settings(self, threshold: f32, threshold_softness: f32) -> Self {
         self.map_bloom_settings(|mut settings| {
             settings.prefilter_settings = bevy::core_pipeline::bloom::BloomPrefilterSettings {
                 threshold,
@@ -145,7 +145,7 @@ pub trait SetCamera: Sized {
     }
 
     fn bloom_composite_mode(
-        mut self,
+        self,
         composite_mode: bevy::core_pipeline::bloom::BloomCompositeMode,
     ) -> Self {
         self.map_bloom_settings(|mut settings| {
@@ -180,7 +180,7 @@ impl<'a, 'w> Builder<'a, 'w> {
             app,
             camera: Camera3dBundle {
                 transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                projection: OrthographicProjection::default().into(),
+                projection: OrthographicProjection::default_3d().into(),
                 ..default()
             },
             bloom_settings: None,
@@ -260,7 +260,7 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
     {
         let mut world = self.app.component_world_mut();
         let mut layer_q = world.query::<Option<&mut RenderLayers>>();
-        if let Ok(mut layer) = layer_q.get_mut(&mut world, self.entity) {
+        if let Ok(layer) = layer_q.get_mut(&mut world, self.entity) {
             if let Some(mut layer) = layer {
                 *layer = f(layer.clone());
             } else {
@@ -278,7 +278,7 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
     {
         let mut world = self.app.component_world_mut();
         let mut bloom_q = world.query::<Option<&mut BloomSettings>>();
-        if let Ok(mut bloom) = bloom_q.get_mut(&mut world, self.entity) {
+        if let Ok(bloom) = bloom_q.get_mut(&mut world, self.entity) {
             if let Some(mut bloom) = bloom {
                 *bloom = f(bloom.clone());
             } else {
