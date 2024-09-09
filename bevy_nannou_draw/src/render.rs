@@ -23,7 +23,6 @@ use bevy::render::view::{NoFrustumCulling, RenderLayers};
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
-
 use crate::draw::instanced::InstancingPlugin;
 use crate::draw::mesh::MeshExt;
 use crate::draw::render::{RenderContext, RenderPrimitive};
