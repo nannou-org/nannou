@@ -14,6 +14,7 @@ pub use crate::wgpu;
 pub use crate::wgpu::util::{BufferInitDescriptor, DeviceExt};
 pub use bevy_nannou::prelude::*;
 pub use nannou_core::prelude::*;
+pub use bevy_nannou_derive::shader_model;
 
 pub use crate::app::{self, App, RunMode, UpdateModeExt};
 pub use crate::camera::SetCamera;

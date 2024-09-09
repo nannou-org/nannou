@@ -54,8 +54,7 @@ use bevy_nannou::NannouPlugin;
 
 use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
-use crate::prelude::bevy_render::extract_component::ExtractComponentPlugin;
-use crate::prelude::render::NannouMesh;
+use crate::prelude::render::{NannouMesh, ShaderModel};
 use crate::prelude::NannouMaterialPlugin;
 use crate::render::{NannouRenderNode, RenderApp, RenderPlugin};
 use crate::window::WindowUserFunctions;
@@ -340,20 +339,12 @@ where
         self
     }
 
-    pub fn init_custom_material<T>(mut self) -> Self
+    pub fn shader_model<T>(mut self) -> Self
     where
-        T: Material + Default,
+        T: ShaderModel,
         T::Data: PartialEq + Eq + Hash + Clone,
     {
         self.app.add_plugins(NannouMaterialPlugin::<T>::default());
-        self
-    }
-
-    /// Load a fragment shader asset from the given path for use with the nannou `Draw` API.
-    #[cfg(feature = "nightly")]
-    pub fn init_fragment_shader<const SHADER: &'static str>(mut self) -> Self {
-        self.app
-            .add_plugins(NannouMaterialPlugin::<ExtendedNannouMaterial<"", SHADER>>::default());
         self
     }
 

@@ -4,23 +4,17 @@ fn main() {
     nannou::app(model)
         .simple_window(view)
         // Register our custom material to make it available for use in our drawing
-        .init_custom_material::<CustomMaterial>()
+        .shader_model::<ShaderModel>()
         .run()
 }
 
 struct Model {}
 
 // This struct defines the data that will be passed to your shader
-#[derive(Asset, TypePath, AsBindGroup, Debug, Clone, Default)]
-struct CustomMaterial {
+#[shader_model(fragment = "draw_custom_material.wgsl")]
+struct ShaderModel {
     #[uniform(0)]
     color: LinearRgba,
-}
-
-impl Material for CustomMaterial {
-    fn fragment_shader() -> ShaderRef {
-        "draw_custom_material.wgsl".into()
-    }
 }
 
 fn model(app: &App) -> Model {
@@ -32,7 +26,7 @@ fn view(app: &App, model: &Model, window: Entity) {
     let draw = app
         .draw()
         // Initialize our draw instance with our custom material
-        .material(CustomMaterial { color: RED.into() });
+        .material(ShaderModel { color: RED.into() });
 
     draw.ellipse().x(-200.0);
 

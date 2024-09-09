@@ -140,51 +140,6 @@ where
         self.finish_inner()
     }
 
-    /// Set the material's fragment shader for the drawing. Note: this shader must have
-    /// been initialized during application setup.
-    #[cfg(feature = "nightly")]
-    pub fn fragment_shader<const FS: &'static str>(
-        mut self,
-    ) -> Drawing<'a, T, ExtendedNannouMaterial<"", FS>> {
-        self.finish_on_drop = false;
-
-        let Drawing {
-            ref draw,
-            index,
-            material_index,
-            ..
-        } = self;
-
-        let state = draw.state.clone();
-        let new_id = UntypedAssetId::Uuid {
-            type_id: TypeId::of::<ExtendedNannouMaterial<"", FS>>(),
-            uuid: Uuid::new_v4(),
-        };
-
-        let material: ExtendedNannouMaterial<"", FS> = Default::default();
-        let mut state = state.write().unwrap();
-        state.materials.insert(new_id.clone(), Box::new(material));
-        // Mark the last material as the new material so that further drawings use the same material
-        // as the parent draw ref.
-        state.last_material = Some(new_id.clone());
-
-        let draw = Draw {
-            state: draw.state.clone(),
-            context: draw.context.clone(),
-            material: new_id.clone(),
-            window: draw.window,
-            _material: Default::default(),
-        };
-
-        Drawing::<'a, T, ExtendedMaterial<StandardMaterial, NannouMaterial<"", FS>>> {
-            draw: DrawRef::Owned(draw),
-            index,
-            material_index,
-            finish_on_drop: true,
-            _ty: PhantomData,
-        }
-    }
-
     // Map the the parent's material to a new material type, taking ownership over the
     // draw instance clone.
     pub fn map_material<F>(mut self, map: F) -> Drawing<'a, T, M>

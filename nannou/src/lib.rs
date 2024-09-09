@@ -12,8 +12,6 @@
 //! If you're new to nannou, we recommend checking out [the
 //! examples](https://github.com/nannou-org/nannou/tree/master/examples) to get an idea of how
 //! nannou applications are structured and how the API works.
-#![cfg_attr(feature = "nightly", feature(adt_const_params))]
-
 pub use find_folder;
 pub use lyon;
 
