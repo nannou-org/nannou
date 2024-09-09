@@ -5,7 +5,6 @@
 //! with a gray value equal to the amplitude. Real-time interaction is demonstrated by providing
 //! access to time, frequency (mouse `x`) and the number of oscillators via uniform data.
 
-use nannou::prelude::futures_lite::future;
 use nannou::prelude::*;
 use nannou::wgpu::BufferInitDescriptor;
 use std::sync::{Arc, Mutex};

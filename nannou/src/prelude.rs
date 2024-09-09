@@ -4,7 +4,9 @@ pub use bevy::asset as bevy_asset;
 pub use bevy::ecs as bevy_ecs;
 pub use bevy::reflect as bevy_reflect;
 pub use bevy::render as bevy_render;
-pub use bevy::tasks::prelude::*;
+pub use bevy::tasks::{Task, futures_lite::future};
+pub use bevy::tasks::prelude::{block_on, AsyncComputeTaskPool, IoTaskPool};
+
 #[cfg(feature = "egui")]
 pub use bevy_egui::egui;
 
