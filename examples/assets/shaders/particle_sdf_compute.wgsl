@@ -6,11 +6,20 @@ struct Particle {
     color: vec4<f32>,
 };
 
+struct DrawIndirectArgs {
+    index_count: u32,
+    instance_count: atomic<u32>,
+    first_index: u32,
+    base_vertex: i32,
+    first_instance: u32,
+}
+
 @group(0) @binding(0) var<storage, read_write> particles: array<Particle>;
 @group(0) @binding(1) var<uniform> sphere_center: vec4<f32>;
 @group(0) @binding(2) var<uniform> sphere_radius: f32;
-@group(0) @binding(3) var<uniform> particle_count: u32;
+@group(0) @binding(3) var<uniform> scaling_factor: u32;
 @group(0) @binding(4) var<uniform> resolution: vec2<u32>;
+@group(0) @binding(5) var<storage, read_write> indirect_args: array<DrawIndirectArgs>;
 
 fn sdf_sphere(point: vec3<f32>, center: vec3<f32>, radius: f32) -> f32 {
     return length(point - center) - radius;
@@ -48,6 +57,14 @@ fn closest_point_on_sphere(point: vec2<f32>) -> vec3<f32> {
 
 @compute @workgroup_size(64)
 fn update(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    let pixels = resolution.x * resolution.y;
+    let particle_count = pixels / scaling_factor;
+
+    /// Update our indirect params if we are thread 0
+    if (global_id.x == 0u && global_id.y == 0u && global_id.z == 0u) {
+        atomicStore(&indirect_args[0].instance_count, particle_count);
+    }
+
     let index = global_id.x;
     if (index >= particle_count) {
         return;
@@ -159,6 +176,14 @@ fn update(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 @compute @workgroup_size(64)
 fn init(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    let pixels = resolution.x * resolution.y;
+    let particle_count = pixels / scaling_factor;
+
+    /// Update our indirect params if we are thread 0
+    if (global_id.x == 0u && global_id.y == 0u && global_id.z == 0u) {
+        atomicStore(&indirect_args[0].instance_count, particle_count);
+    }
+
     let index = global_id.x;
     if (index >= particle_count) {
         return;
@@ -177,7 +202,7 @@ fn init(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let grid_x = f32(index % u32(grid_width)) / (grid_width - 1.0);
     let grid_y = floor(f32(index) / grid_width) / (grid_height - 1.0);
 
-    // Map grid position to screen space (-1 to 1 for both axes)
+    // Map grid position to screen space
     let screen_x = grid_x * 2.0 - 1.0;
     let screen_y = grid_y * 2.0 - 1.0;
 
