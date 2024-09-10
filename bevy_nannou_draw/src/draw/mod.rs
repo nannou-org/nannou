@@ -4,11 +4,10 @@
 
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
 use bevy::asset::UntypedAssetId;
-use bevy::ecs::world::Command;
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
 use bevy::render::render_resource::{BlendComponent, BlendState};
@@ -16,15 +15,13 @@ use bevy::utils::{HashMap, HashSet};
 use lyon::path::PathEvent;
 use uuid::Uuid;
 
-use crate::draw::instanced::{InstanceMaterialData, Instanced};
-use crate::draw::mesh::MeshExt;
-use crate::draw::render::RenderPrimitive;
-use crate::render::DefaultNannouMaterial;
-
 pub use self::background::Background;
 pub use self::drawing::{Drawing, DrawingContext};
 use self::primitive::Primitive;
 pub use self::theme::Theme;
+use crate::draw::instanced::{InstanceMaterialData, Instanced};
+use crate::draw::mesh::MeshExt;
+use crate::render::DefaultNannouMaterial;
 
 pub mod background;
 mod drawing;

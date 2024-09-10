@@ -1,29 +1,49 @@
 use std::any::TypeId;
 use std::hash::Hash;
-use std::ops::{Deref, DerefMut};
 
+use bevy::asset::Asset;
 use bevy::asset::UntypedAssetId;
-use bevy::pbr::MaterialExtension;
+use bevy::pbr::{
+    ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline,
+    StandardMaterial,
+};
+use bevy::prelude::TypePath;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
+use bevy::render::mesh::MeshVertexBufferLayoutRef;
 use bevy::render::render_resource as wgpu;
-use bevy::render::render_resource::{AsBindGroup, BlendState, PolygonMode};
+use bevy::render::render_resource::{
+    AsBindGroup, BlendState, PolygonMode, RenderPipelineDescriptor, ShaderRef,
+    SpecializedMeshPipelineError,
+};
 use bevy::render::view::{NoFrustumCulling, RenderLayers};
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
-
-#[cfg(feature = "nightly")]
-pub use nightly::*;
-#[cfg(not(feature = "nightly"))]
-pub use stable::*;
 
 use crate::draw::instanced::InstancingPlugin;
 use crate::draw::mesh::MeshExt;
 use crate::draw::render::{RenderContext, RenderPrimitive};
 use crate::draw::{DrawCommand, DrawContext};
 use crate::DrawHolder;
+
+pub trait ShaderModel:
+    Material + AsBindGroup + Clone + Default + Sized + Send + Sync + 'static
+{
+    /// Returns this material's vertex shader. If [`ShaderRef::Default`] is returned, the default mesh vertex shader
+    /// will be used.
+    fn vertex_shader() -> ShaderRef {
+        ShaderRef::Default
+    }
+
+    /// Returns this material's fragment shader. If [`ShaderRef::Default`] is returned, the default mesh fragment shader
+    /// will be used.
+    #[allow(unused_variables)]
+    fn fragment_shader() -> ShaderRef {
+        ShaderRef::Default
+    }
+}
 
 pub struct NannouRenderPlugin;
 
@@ -58,162 +78,51 @@ where
 // Components and Resources
 // ----------------------------------------------------------------------------
 
-#[cfg(feature = "nightly")]
-mod nightly {
-    use bevy::asset::Asset;
-    use bevy::pbr::{
-        ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline,
-        StandardMaterial,
-    };
-    use bevy::prelude::TypePath;
-    use bevy::render::mesh::MeshVertexBufferLayoutRef;
-    use bevy::render::render_resource::{
-        AsBindGroup, BlendState, PolygonMode, RenderPipelineDescriptor, ShaderRef,
-        SpecializedMeshPipelineError,
-    };
+pub type DefaultNannouMaterial = ExtendedMaterial<StandardMaterial, NannouMaterial>;
 
-    pub type DefaultNannouMaterial = ExtendedMaterial<StandardMaterial, NannouMaterial<"", "">>;
+pub type ExtendedNannouMaterial = ExtendedMaterial<StandardMaterial, NannouMaterial>;
 
-    pub type ExtendedNannouMaterial<const VS: &'static str, const FS: &'static str> =
-        ExtendedMaterial<StandardMaterial, NannouMaterial<VS, FS>>;
-
-    #[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
-    #[bind_group_data(NannouMaterialKey)]
-    pub struct NannouMaterial<const VS: &'static str, const FS: &'static str> {
-        pub polygon_mode: PolygonMode,
-        pub blend: Option<BlendState>,
-    }
-
-    #[derive(Eq, PartialEq, Hash, Clone)]
-    pub struct NannouMaterialKey {
-        polygon_mode: PolygonMode,
-        blend: Option<BlendState>,
-    }
-
-    impl<const VS: &'static str, const FS: &'static str> From<&NannouMaterial<VS, FS>>
-        for NannouMaterialKey
-    {
-        fn from(material: &NannouMaterial<VS, FS>) -> Self {
-            Self {
-                polygon_mode: material.polygon_mode,
-                blend: material.blend,
-            }
-        }
-    }
-
-    impl<const VS: &'static str, const FS: &'static str> MaterialExtension for NannouMaterial<VS, FS> {
-        fn vertex_shader() -> ShaderRef {
-            if !VS.is_empty() {
-                VS.into()
-            } else {
-                ShaderRef::Default
-            }
-        }
-
-        fn fragment_shader() -> ShaderRef {
-            if !FS.is_empty() {
-                FS.into()
-            } else {
-                ShaderRef::Default
-            }
-        }
-
-        fn specialize(
-            _pipeline: &MaterialExtensionPipeline,
-            descriptor: &mut RenderPipelineDescriptor,
-            _layout: &MeshVertexBufferLayoutRef,
-            key: MaterialExtensionKey<Self>,
-        ) -> Result<(), SpecializedMeshPipelineError> {
-            if let Some(blend) = key.bind_group_data.blend {
-                let fragment = descriptor.fragment.as_mut().unwrap();
-                fragment.targets.iter_mut().for_each(|target| {
-                    if let Some(target) = target {
-                        target.blend = Some(blend);
-                    }
-                });
-            }
-
-            descriptor.primitive.polygon_mode = key.bind_group_data.polygon_mode;
-            Ok(())
-        }
-    }
-}
-
-#[cfg(not(feature = "nightly"))]
-mod stable {
-    use bevy::asset::Asset;
-    use bevy::pbr::{
-        ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline,
-        StandardMaterial,
-    };
-    use bevy::prelude::TypePath;
-    use bevy::render::mesh::MeshVertexBufferLayoutRef;
-    use bevy::render::render_resource::{
-        AsBindGroup, BlendState, PolygonMode, RenderPipelineDescriptor, ShaderRef,
-        SpecializedMeshPipelineError,
-    };
-
-    pub type DefaultNannouMaterial = ExtendedMaterial<StandardMaterial, NannouMaterial>;
-
-    pub type ExtendedNannouMaterial = ExtendedMaterial<StandardMaterial, NannouMaterial>;
-
-    #[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
-    #[bind_group_data(NannouMaterialKey)]
-    pub struct NannouMaterial {
-        pub polygon_mode: PolygonMode,
-        pub blend: Option<BlendState>,
-    }
-
-    #[derive(Eq, PartialEq, Hash, Clone)]
-    pub struct NannouMaterialKey {
-        polygon_mode: PolygonMode,
-        blend: Option<BlendState>,
-    }
-
-    impl From<&NannouMaterial> for NannouMaterialKey {
-        fn from(material: &NannouMaterial) -> Self {
-            Self {
-                polygon_mode: material.polygon_mode,
-                blend: material.blend,
-            }
-        }
-    }
-
-    impl MaterialExtension for NannouMaterial {
-        fn specialize(
-            _pipeline: &MaterialExtensionPipeline,
-            descriptor: &mut RenderPipelineDescriptor,
-            _layout: &MeshVertexBufferLayoutRef,
-            key: MaterialExtensionKey<Self>,
-        ) -> Result<(), SpecializedMeshPipelineError> {
-            if let Some(blend) = key.bind_group_data.blend {
-                let fragment = descriptor.fragment.as_mut().unwrap();
-                fragment.targets.iter_mut().for_each(|target| {
-                    if let Some(target) = target {
-                        target.blend = Some(blend);
-                    }
-                });
-            }
-
-            descriptor.primitive.polygon_mode = key.bind_group_data.polygon_mode;
-            Ok(())
-        }
-    }
-
-    impl From<&NannouMaterial> for crate::render::NannouMaterialKey {
-        fn from(material: &NannouMaterial) -> Self {
-            Self {
-                polygon_mode: material.polygon_mode,
-                blend: material.blend,
-            }
-        }
-    }
+#[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
+#[bind_group_data(NannouMaterialKey)]
+pub struct NannouMaterial {
+    pub polygon_mode: PolygonMode,
+    pub blend: Option<BlendState>,
 }
 
 #[derive(Eq, PartialEq, Hash, Clone)]
 pub struct NannouMaterialKey {
     polygon_mode: PolygonMode,
     blend: Option<BlendState>,
+}
+
+impl From<&NannouMaterial> for NannouMaterialKey {
+    fn from(material: &NannouMaterial) -> Self {
+        Self {
+            polygon_mode: material.polygon_mode,
+            blend: material.blend,
+        }
+    }
+}
+
+impl MaterialExtension for NannouMaterial {
+    fn specialize(
+        _pipeline: &MaterialExtensionPipeline,
+        descriptor: &mut RenderPipelineDescriptor,
+        _layout: &MeshVertexBufferLayoutRef,
+        key: MaterialExtensionKey<Self>,
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        if let Some(blend) = key.bind_group_data.blend {
+            let fragment = descriptor.fragment.as_mut().unwrap();
+            fragment.targets.iter_mut().for_each(|target| {
+                if let Some(target) = target {
+                    target.blend = Some(blend);
+                }
+            });
+        }
+
+        descriptor.primitive.polygon_mode = key.bind_group_data.polygon_mode;
+        Ok(())
+    }
 }
 
 #[derive(Resource, Deref, DerefMut, ExtractResource, Clone)]
@@ -315,7 +224,7 @@ fn update_draw_mesh(
         let mut curr_ctx: DrawContext = Default::default();
 
         let draw_cmds = draw.drain_commands();
-        let mut draw_state = draw.state.read().unwrap();
+        let draw_state = draw.state.read().unwrap();
         let intermediary_state = draw_state.intermediary_state.read().unwrap();
 
         for cmd in draw_cmds {

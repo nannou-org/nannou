@@ -1,5 +1,3 @@
-#![cfg_attr(feature = "nightly", feature(adt_const_params))]
-
 use bevy::prelude::*;
 
 use crate::render::NannouRenderPlugin;

@@ -3,7 +3,7 @@ use crate::frame::Frame;
 use crate::prelude::bevy_render::extract_resource::extract_resource;
 use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
 use bevy::ecs::query::QueryItem;
-pub use bevy::prelude::*;
+use bevy::prelude::*;
 use bevy::render::render_graph::{
     NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
 };
@@ -96,7 +96,7 @@ impl<M> FromWorld for NannouRenderNode<M>
 where
     M: Send + Sync + Clone + 'static,
 {
-    fn from_world(world: &mut World) -> Self {
+    fn from_world(_world: &mut World) -> Self {
         Self(std::marker::PhantomData)
     }
 }

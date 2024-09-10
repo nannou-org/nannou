@@ -1,0 +1,16 @@
+[package]
+name = "bevy_nannou_derive"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = {  version = "1", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+[dev-dependencies]
+bevy = { workspace = true }
+bevy_nannou_draw = { path = "../bevy_nannou_draw" }

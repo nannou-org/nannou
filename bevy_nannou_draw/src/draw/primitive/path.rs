@@ -68,6 +68,7 @@ pub struct Path {
     orientation: orientation::Properties,
     path_event_src: PathEventSource,
     options: Options,
+    // TODO: remove this?
     texture_handle: Option<Handle<Image>>,
 }
 

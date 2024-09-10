@@ -18,12 +18,9 @@ use bevy::render::view::screenshot::{save_to_disk, Screenshot};
 use bevy::render::view::RenderLayers;
 use bevy::window::{CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef};
 
-use crate::app::RenderFnRes;
-use crate::frame::{Frame, FramePlugin};
 use crate::geom::Point2;
 use crate::glam::Vec2;
 use crate::prelude::WindowResizeConstraints;
-use crate::render::{RenderApp, RenderPlugin};
 use crate::App;
 use bevy_nannou::prelude::render::NannouCamera;
 use bevy_nannou::prelude::MonitorSelection;
@@ -82,6 +79,7 @@ impl<'a, 'w> Window<'a, 'w> {
         Window { app, entity }
     }
 
+    #[allow(dead_code)]
     fn window(&self) -> bevy_nannou::prelude::Window {
         let world = self.app.component_world();
         world
@@ -466,7 +464,7 @@ where
                         ..default()
                     },
                     transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                    projection: OrthographicProjection::default().into(),
+                    projection: OrthographicProjection::default_3d().into(),
                     ..default()
                 },
                 layer.clone(),
@@ -587,7 +585,7 @@ where
     }
 
     /// Move the window to the center of the given monitor.
-    pub fn monitor(mut self, monitor: MonitorSelection) -> Self {
+    pub fn monitor(self, monitor: MonitorSelection) -> Self {
         self.map_window(|mut w| {
             w.position = WindowPosition::Centered(monitor);
             w

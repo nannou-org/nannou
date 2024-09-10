@@ -27,14 +27,6 @@ pub struct PrimitiveMesh {
 #[derive(Clone, Debug, Default)]
 struct FillColor(Option<Color>);
 
-// A simple iterator for flattening a fixed-size array of indices.
-struct FlattenIndices<I> {
-    iter: I,
-    index: usize,
-    vertex_start_index: usize,
-    current: [usize; 3],
-}
-
 pub type DrawingMesh<'a, M> = Drawing<'a, PrimitiveMesh, M>;
 
 impl Vertexless {
@@ -311,7 +303,8 @@ impl PrimitiveMesh {
     fn new(
         vertex_range: ops::Range<usize>,
         index_range: ops::Range<usize>,
-        texture_handle: Option<Handle<Image>>,
+        // TODO: remove this?
+        _texture_handle: Option<Handle<Image>>,
     ) -> Self {
         let orientation = Default::default();
         let position = Default::default();
@@ -547,29 +540,6 @@ impl draw::render::RenderPrimitive for PrimitiveMesh {
                 }
                 for index in indices {
                     mesh.push_index(index);
-                }
-            }
-        }
-    }
-}
-
-impl<I> Iterator for FlattenIndices<I>
-where
-    I: Iterator<Item = [usize; 3]>,
-{
-    type Item = usize;
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if self.index < self.current.len() {
-                let ix = self.current[self.index];
-                self.index += 1;
-                return Some(self.vertex_start_index + ix);
-            }
-            match self.iter.next() {
-                None => return None,
-                Some(trio) => {
-                    self.current = trio;
-                    self.index = 0;
                 }
             }
         }

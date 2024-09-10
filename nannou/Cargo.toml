@@ -16,6 +16,7 @@ bevy-inspector-egui = { workspace = true, optional = true }
 bevy_egui = { workspace = true, optional = true }
 bevy_common_assets = { workspace = true, optional = true }
 bevy_nannou = { version = "0.1.0", path = "../bevy_nannou" }
+bevy_nannou_derive = { version = "0.1.0", path = "../bevy_nannou_derive" }
 futures = "0.3"
 find_folder = "0.3"
 getrandom = "0.2.3"
@@ -45,7 +46,6 @@ image = { workspace = true, features = [], default-features = false }
 [features]
 default = ["notosans"]
 egui = ["bevy_egui", "bevy-inspector-egui"]
-nightly = ["bevy_nannou/nightly"]
 hot_reload = ["bevy/file_watcher"]
 isf = ["bevy_nannou/isf"]
 video = ["bevy_nannou/video"]

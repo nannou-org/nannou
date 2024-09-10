@@ -760,7 +760,7 @@ pub fn data_size_bytes(desc: &wgpu::TextureDescriptor) -> usize {
 /// Return the size of the given texture format in bytes.
 pub fn format_size_bytes(format: wgpu::TextureFormat) -> u32 {
     format
-        .block_size(None)
+        .block_copy_size(None)
         .expect("Expected the format to have a block size") as u32
 }
 

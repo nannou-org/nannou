@@ -1,7 +1,7 @@
 use std::any::TypeId;
 use std::marker::PhantomData;
 
-use bevy::asset::{AsyncWriteExt, UntypedAssetId};
+use bevy::asset::UntypedAssetId;
 use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 use bevy::prelude::*;
 use lyon::path::PathEvent;
@@ -13,7 +13,6 @@ use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{Draw, DrawCommand, DrawRef};
-use crate::render::{ExtendedNannouMaterial, NannouMaterial};
 
 /// A **Drawing** in progress.
 ///
@@ -138,51 +137,6 @@ where
     /// This will be called when the **Drawing** is **Drop**ped if it has not yet been called.
     pub fn finish(mut self) {
         self.finish_inner()
-    }
-
-    /// Set the material's fragment shader for the drawing. Note: this shader must have
-    /// been initialized during application setup.
-    #[cfg(feature = "nightly")]
-    pub fn fragment_shader<const FS: &'static str>(
-        mut self,
-    ) -> Drawing<'a, T, ExtendedNannouMaterial<"", FS>> {
-        self.finish_on_drop = false;
-
-        let Drawing {
-            ref draw,
-            index,
-            material_index,
-            ..
-        } = self;
-
-        let state = draw.state.clone();
-        let new_id = UntypedAssetId::Uuid {
-            type_id: TypeId::of::<ExtendedNannouMaterial<"", FS>>(),
-            uuid: Uuid::new_v4(),
-        };
-
-        let material: ExtendedNannouMaterial<"", FS> = Default::default();
-        let mut state = state.write().unwrap();
-        state.materials.insert(new_id.clone(), Box::new(material));
-        // Mark the last material as the new material so that further drawings use the same material
-        // as the parent draw ref.
-        state.last_material = Some(new_id.clone());
-
-        let draw = Draw {
-            state: draw.state.clone(),
-            context: draw.context.clone(),
-            material: new_id.clone(),
-            window: draw.window,
-            _material: Default::default(),
-        };
-
-        Drawing::<'a, T, ExtendedMaterial<StandardMaterial, NannouMaterial<"", FS>>> {
-            draw: DrawRef::Owned(draw),
-            index,
-            material_index,
-            finish_on_drop: true,
-            _ty: PhantomData,
-        }
     }
 
     // Map the the parent's material to a new material type, taking ownership over the
@@ -921,35 +875,35 @@ where
     T: Into<Primitive>,
     M: MaterialExtension + Default,
 {
-    pub fn roughness(mut self, roughness: f32) -> Self {
+    pub fn roughness(self, roughness: f32) -> Self {
         self.map_material(|mut material| {
             material.base.perceptual_roughness = roughness;
             material
         })
     }
 
-    pub fn metallic(mut self, metallic: f32) -> Self {
+    pub fn metallic(self, metallic: f32) -> Self {
         self.map_material(|mut material| {
             material.base.metallic = metallic;
             material
         })
     }
 
-    pub fn base_color<C: Into<Color>>(mut self, color: C) -> Self {
+    pub fn base_color<C: Into<Color>>(self, color: C) -> Self {
         self.map_material(|mut material| {
             material.base.base_color = color.into();
             material
         })
     }
 
-    pub fn emissive<C: Into<Color>>(mut self, color: C) -> Self {
+    pub fn emissive<C: Into<Color>>(self, color: C) -> Self {
         self.map_material(|mut material| {
             material.base.emissive = color.into().to_linear();
             material
         })
     }
 
-    pub fn texture(mut self, texture: &Handle<Image>) -> Self {
+    pub fn texture(self, texture: &Handle<Image>) -> Self {
         self.map_material(|mut material| {
             material.base.base_color_texture = Some(texture.clone());
             material
