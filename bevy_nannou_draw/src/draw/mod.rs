@@ -4,22 +4,23 @@
 
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
-use std::ops::Deref;
+use std::ops::{Deref, Range};
 use std::sync::{Arc, RwLock};
 
 use bevy::asset::UntypedAssetId;
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
 use bevy::render::render_resource::{BlendComponent, BlendState};
+use bevy::render::storage::ShaderStorageBuffer;
 use bevy::utils::{HashMap, HashSet};
 use lyon::path::PathEvent;
 use uuid::Uuid;
-
+use crate::draw::indirect::Indirect;
 pub use self::background::Background;
 pub use self::drawing::{Drawing, DrawingContext};
 use self::primitive::Primitive;
 pub use self::theme::Theme;
-use crate::draw::instanced::{InstanceMaterialData, Instanced};
+use crate::draw::instanced::Instanced;
 use crate::draw::mesh::MeshExt;
 use crate::render::DefaultNannouMaterial;
 
@@ -31,6 +32,7 @@ pub mod primitive;
 pub mod properties;
 pub(crate) mod render;
 pub mod theme;
+pub mod indirect;
 
 /// A simple API for drawing 2D and 3D graphics.
 ///
@@ -118,6 +120,8 @@ pub enum DrawCommand {
     Primitive(Primitive),
     /// Draw an instanced primitive
     Instanced(Primitive, Range<u32>),
+    /// Draw a primitive using an indirect buffer.
+    Indirect(Primitive, Handle<ShaderStorageBuffer>),
     /// A change in the rendering context occurred.
     Context(DrawContext),
     /// A change in the material occurred.
@@ -146,8 +150,9 @@ pub struct State {
     drawing: HashMap<usize, Primitive>,
     /// A map of all type erased materials used by the draw.
     pub(crate) materials: HashMap<UntypedAssetId, Box<dyn Any + Send + Sync>>,
-    /// A list of indices of primitives that are being drawn as instances and should not be drawn
-    instanced: HashSet<usize>,
+    /// A list of indices of primitives that are being drawn via an alternate method and
+    /// should not be drawn
+    ignored_drawings: HashSet<usize>,
     /// The list of recorded draw commands.
     ///
     /// An element may be `None` if it is a primitive in the process of being drawn.
@@ -204,7 +209,7 @@ impl State {
     // Finish the drawing at the given node index if it is not yet complete.
     pub(crate) fn finish_drawing(&mut self, index: usize) {
         // Don't draw if the primitive is going to be instanced
-        if self.instanced.contains(&index) {
+        if self.ignored_drawings.contains(&index) {
             return;
         }
 
@@ -512,6 +517,10 @@ where
         instanced::new(self)
     }
 
+    pub fn indirect<'a>(&'a self) -> Indirect<'a, M> {
+        indirect::new(self)
+    }
+
     /// Add the given type to be drawn.
     pub fn a<T>(&self, primitive: T) -> Drawing<T, M>
     where
@@ -700,7 +709,7 @@ impl Default for State {
             intermediary_state,
             theme,
             background_color,
-            instanced: Default::default(),
+            ignored_drawings: Default::default(),
             materials: Default::default(),
         }
     }

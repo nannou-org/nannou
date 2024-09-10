@@ -3,9 +3,12 @@ use std::hash::Hash;
 
 use bevy::asset::Asset;
 use bevy::asset::UntypedAssetId;
+use bevy::ecs::system::lifetimeless::SRes;
+use bevy::ecs::system::SystemParamItem;
 use bevy::pbr::{
-    ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline,
-    StandardMaterial,
+    DefaultOpaqueRendererMethod, ExtendedMaterial, MaterialExtension, MaterialExtensionKey,
+    MaterialExtensionPipeline, MaterialPipeline, MaterialProperties, MeshPipelineKey,
+    OpaqueRendererMethod, PreparedMaterial, StandardMaterial,
 };
 use bevy::prelude::TypePath;
 use bevy::prelude::*;
@@ -14,20 +17,22 @@ use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::extract_instances::ExtractInstancesPlugin;
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::mesh::MeshVertexBufferLayoutRef;
-use bevy::render::render_resource as wgpu;
+use bevy::render::render_asset::{PrepareAssetError, RenderAsset, RenderAssetPlugin};
 use bevy::render::render_resource::{
-    AsBindGroup, BlendState, PolygonMode, RenderPipelineDescriptor, ShaderRef,
-    SpecializedMeshPipelineError,
+    AsBindGroup, AsBindGroupError, BindGroup, BlendState, OwnedBindingResource, PolygonMode,
+    RenderPipelineDescriptor, ShaderRef, SpecializedMeshPipelineError,
 };
+use bevy::render::renderer::RenderDevice;
 use bevy::render::view::{NoFrustumCulling, RenderLayers};
+use bevy::render::RenderSet::Render;
 use bevy::render::{render_resource as wgpu, RenderApp};
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
-use crate::draw::instanced::InstancingPlugin;
 use crate::draw::mesh::MeshExt;
 use crate::draw::render::{RenderContext, RenderPrimitive};
 use crate::draw::{DrawCommand, DrawContext};
+use crate::draw::indirect::{IndirectMaterialPlugin, IndirectMesh};
 use crate::DrawHolder;
 
 pub trait ShaderModel:
@@ -54,7 +59,6 @@ impl Plugin for NannouRenderPlugin {
         app.add_systems(Startup, setup_default_texture)
             .add_plugins((
                 ExtractComponentPlugin::<NannouTextureHandle>::default(),
-                NannouMaterialPlugin::<DefaultNannouMaterial>::default(),
             ))
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
             .add_systems(Update, texture_event_handler)
@@ -71,8 +75,56 @@ where
     M::Data: PartialEq + Eq + Hash + Clone,
 {
     fn build(&self, app: &mut App) {
-        app.add_plugins((MaterialPlugin::<M>::default(),))
-            .add_systems(PostUpdate, update_material::<M>.after(update_draw_mesh));
+        app.add_plugins((
+            MaterialPlugin::<M>::default(),
+        ))
+        .add_systems(PostUpdate, update_material::<M>.after(update_draw_mesh));
+    }
+}
+
+#[derive(Default)]
+pub struct NannouShaderModelPlugin<SM: ShaderModel>(std::marker::PhantomData<SM>);
+
+impl<SM> Plugin for NannouShaderModelPlugin<SM>
+where
+    SM: ShaderModel,
+    SM::Data: PartialEq + Eq + Hash + Clone,
+{
+    fn build(&self, app: &mut App) {
+        app.add_plugins((
+            RenderAssetPlugin::<PreparedShaderModel<SM>>::default(),
+            IndirectMaterialPlugin::<SM>::default(),
+        ))
+        .add_systems(PostUpdate, update_material::<SM>.after(update_draw_mesh));
+    }
+}
+
+pub struct PreparedShaderModel<T: ShaderModel> {
+    pub bindings: Vec<(u32, OwnedBindingResource)>,
+    pub bind_group: BindGroup,
+    pub key: T::Data,
+}
+
+impl<T: ShaderModel> RenderAsset for PreparedShaderModel<T> {
+    type SourceAsset = T;
+
+    type Param = (SRes<RenderDevice>, SRes<MaterialPipeline<T>>, T::Param);
+
+    fn prepare_asset(
+        material: Self::SourceAsset,
+        (render_device, pipeline, ref mut material_param): &mut SystemParamItem<Self::Param>,
+    ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
+        match material.as_bind_group(&pipeline.material_layout, render_device, material_param) {
+            Ok(prepared) => Ok(PreparedShaderModel {
+                bindings: prepared.bindings,
+                bind_group: prepared.bind_group,
+                key: prepared.data,
+            }),
+            Err(AsBindGroupError::RetryNextUpdate) => {
+                Err(PrepareAssetError::RetryNextUpdate(material))
+            }
+            Err(other) => Err(PrepareAssetError::AsBindGroupError(other)),
+        }
     }
 }
 
@@ -285,6 +337,34 @@ fn update_draw_mesh(
                             window_layers.clone(),
                         ));
                     }
+                }
+                DrawCommand::Indirect(prim, indirect_buffer) => {
+                    // Info required during rendering.
+                    let ctxt = RenderContext {
+                        intermediary_mesh: &intermediary_state.intermediary_mesh,
+                        path_event_buffer: &intermediary_state.path_event_buffer,
+                        path_points_vertex_buffer: &intermediary_state.path_points_vertex_buffer,
+                        text_buffer: &intermediary_state.text_buffer,
+                        theme: &draw_state.theme,
+                        transform: &curr_ctx.transform,
+                        fill_tessellator: &mut fill_tessellator,
+                        stroke_tessellator: &mut stroke_tessellator,
+                        output_attachment_size: Vec2::new(window.width(), window.height()),
+                        output_attachment_scale_factor: window.scale_factor(),
+                    };
+
+                    // Render the primitive.
+                    let mut mesh = Mesh::init();
+                    prim.render_primitive(ctxt, &mut mesh);
+                    let mesh = meshes.add(mesh);
+                    let mat_id = last_mat.expect("No material set for instanced draw command");
+                    commands.spawn((
+                        IndirectMesh,
+                        UntypedMaterialId(mat_id),
+                        mesh.clone(),
+                        NannouMesh,
+                        window_layers.clone(),
+                    ));
                 }
                 DrawCommand::Context(ctx) => {
                     curr_ctx = ctx;

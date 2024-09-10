@@ -10,7 +10,7 @@ fn main() {
     nannou::app(model)
         .compute(compute)
         .update(update)
-        .init_custom_material::<ParticleMaterial>()
+        .shader_model::<ShaderModel>()
         .run();
 }
 
@@ -22,13 +22,13 @@ pub enum Shape {
 
 struct Model {
     particles: Handle<ShaderStorageBuffer>,
-    shape: Shape,
+    indirect_params: Handle<ShaderStorageBuffer>,
     circle_radius: f32,
 }
 
 impl Model {
-    fn material(&self) -> ParticleMaterial {
-        ParticleMaterial {
+    fn material(&self) -> ShaderModel {
+        ShaderModel {
             particles: self.particles.clone(),
         }
     }
@@ -40,6 +40,23 @@ struct Particle {
     position: Vec2,
     velocity: Vec2,
     color: Vec4,
+}
+
+#[repr(C)]
+#[derive(ShaderType, Copy, Clone, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
+struct DrawIndirectArgs {
+    /// The number of indices to draw.
+    pub index_count: u32,
+    /// The number of instances to draw.
+    pub instance_count: u32,
+    /// The first index within the index buffer.
+    pub first_index: u32,
+    /// The value added to the vertex index before indexing into the vertex buffer.
+    pub base_vertex: i32,
+    /// The instance ID of the first instance to draw.
+    ///
+    /// Has to be 0, unless [`Features::INDIRECT_FIRST_INSTANCE`](crate::Features::INDIRECT_FIRST_INSTANCE) is enabled.
+    pub first_instance: u32,
 }
 
 #[derive(Default, Debug, Eq, PartialEq, Hash, Clone)]
@@ -82,20 +99,13 @@ impl Compute for ComputeModel {
     }
 }
 
-#[derive(AsBindGroup, Asset, TypePath, Clone, Default)]
-struct ParticleMaterial {
+#[shader_model(
+    fragment = "shaders/particle_sdf_material.wgsl",
+    vertex = "shaders/particle_sdf_material.wgsl"
+)]
+struct ShaderModel {
     #[storage(0, read_only, visibility(vertex))]
     particles: Handle<ShaderStorageBuffer>,
-}
-
-impl Material for ParticleMaterial {
-    fn vertex_shader() -> ShaderRef {
-        "shaders/particle_sdf_material.wgsl".into()
-    }
-
-    fn fragment_shader() -> ShaderRef {
-        "shaders/particle_sdf_material.wgsl".into()
-    }
 }
 
 fn model(app: &App) -> Model {
@@ -114,38 +124,28 @@ fn model(app: &App) -> Model {
     );
     particles.buffer_description.label = Some("particles");
     particles.buffer_description.usage |= BufferUsages::STORAGE | BufferUsages::VERTEX;
-
     let particles = app.assets_mut().add(particles);
+
+    // Create a buffer store our indirect draw params
+    let mut indirect_params = ShaderStorageBuffer::from(DrawIndirectArgs {
+        index_count: 3,
+        instance_count: NUM_PARTICLES,
+        first_index: 0,
+        base_vertex: 0,
+        first_instance: 0,
+    });
+    indirect_params.buffer_description.label = Some("indirect_params");
+    indirect_params.buffer_description.usage |= BufferUsages::STORAGE | BufferUsages::INDIRECT;
+    let indirect_params = app.assets_mut().add(indirect_params);
 
     Model {
         particles,
-        shape: Shape::Circle,
+        indirect_params,
         circle_radius: 0.5,
     }
 }
 
-fn update(app: &App, model: &mut Model) {
-    if app.keys().just_pressed(KeyCode::ArrowLeft) {
-        match model.shape {
-            Shape::Circle => model.shape = Shape::Square,
-            Shape::Square => model.shape = Shape::Triangle,
-            Shape::Triangle => model.shape = Shape::Circle,
-        }
-    }
-    if app.keys().just_pressed(KeyCode::ArrowRight) {
-        match model.shape {
-            Shape::Circle => model.shape = Shape::Triangle,
-            Shape::Square => model.shape = Shape::Circle,
-            Shape::Triangle => model.shape = Shape::Square,
-        }
-    }
-    if app.keys().pressed(KeyCode::ArrowUp) {
-        model.circle_radius += 0.01;
-    }
-    if app.keys().pressed(KeyCode::ArrowDown) {
-        model.circle_radius -= 0.01;
-    }
-}
+fn update(app: &App, model: &mut Model) {}
 
 fn compute(app: &App, model: &Model, state: State, view: Entity) -> (State, ComputeModel) {
     let window = app.main_window();
@@ -176,6 +176,7 @@ fn view(app: &App, model: &Model) {
     draw.background().color(GRAY);
 
     let draw = draw.material(model.material());
-    draw.instanced()
-        .with(draw.ellipse().w_h(2.0, 2.0), 0..NUM_PARTICLES);
+    draw.indirect()
+        .primitive(draw.ellipse().w_h(2.0, 2.0))
+        .buffer(model.indirect_params.clone());
 }

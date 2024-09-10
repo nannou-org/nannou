@@ -6,7 +6,9 @@ use crate::prelude::bevy_render::{Extract, MainWorld};
 use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
 use bevy::ecs::entity::{EntityHash, EntityHashMap};
 use bevy::ecs::query::QueryItem;
+use bevy::ecs::system::StaticSystemParam;
 use bevy::prelude::*;
+use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::render_graph::{
     NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
 };

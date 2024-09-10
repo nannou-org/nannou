@@ -10,7 +10,7 @@ fn main() {
     nannou::app(model)
         .compute(compute)
         .update(update)
-        .init_custom_material::<ParticleMaterial>()
+        .shader_model::<ShaderModel>()
         .run();
 }
 
@@ -27,8 +27,8 @@ struct Model {
 }
 
 impl Model {
-    fn material(&self) -> ParticleMaterial {
-        ParticleMaterial {
+    fn material(&self) -> ShaderModel {
+        ShaderModel {
             particles: self.particles.clone(),
         }
     }
@@ -80,20 +80,10 @@ impl Compute for ComputeModel {
     }
 }
 
-#[derive(AsBindGroup, Asset, TypePath, Clone, Default)]
-struct ParticleMaterial {
+#[shader_model(fragment = "shaders/particle_mouse_material.wgsl", vertex = "shaders/particle_mouse_material.wgsl")]
+struct ShaderModel {
     #[storage(0, read_only, visibility(vertex))]
     particles: Handle<ShaderStorageBuffer>,
-}
-
-impl Material for ParticleMaterial {
-    fn vertex_shader() -> ShaderRef {
-        "shaders/particle_mouse_material.wgsl".into()
-    }
-
-    fn fragment_shader() -> ShaderRef {
-        "shaders/particle_mouse_material.wgsl".into()
-    }
 }
 
 fn model(app: &App) -> Model {
@@ -186,17 +176,17 @@ fn view(app: &App, model: &Model) {
     }
 }
 
-fn draw_particles_circle(draw: &Draw<ParticleMaterial>) {
+fn draw_particles_circle(draw: &Draw<ShaderModel>) {
     draw.instanced()
         .with(draw.ellipse().w_h(5.0, 5.0), 0..NUM_PARTICLES);
 }
 
-fn draw_particles_square(draw: &Draw<ParticleMaterial>) {
+fn draw_particles_square(draw: &Draw<ShaderModel>) {
     draw.instanced()
         .with(draw.rect().w_h(5.0, 5.0), 0..NUM_PARTICLES);
 }
 
-fn draw_particles_triangle(draw: &Draw<ParticleMaterial>) {
+fn draw_particles_triangle(draw: &Draw<ShaderModel>) {
     draw.instanced()
         .with(draw.tri().w_h(5.0, 5.0), 0..NUM_PARTICLES);
 }

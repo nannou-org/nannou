@@ -36,25 +36,19 @@ use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 #[cfg(feature = "egui")]
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
-<<<<<<< HEAD
-use find_folder;
-<<<<<<< HEAD
 
+use crate::frame::{Frame, FramePlugin};
+use crate::prelude::bevy_ecs::system::SystemState;
+use crate::prelude::render::{NannouMaterialPlugin, NannouMesh, ShaderModel};
+use crate::prelude::NannouShaderModelPlugin;
+use crate::render::{
+    compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
+    NannouRenderNode, RenderApp, RenderPlugin,
+};
+use crate::window::WindowUserFunctions;
+use crate::{camera, geom, light, window};
+use bevy_nannou::prelude::render::NannouCamera;
 use bevy_nannou::prelude::{draw, DrawHolder};
-||||||| parent of 2a48b61 (Start compute.)
-
-use bevy_nannou::prelude::render::ExtendedNannouMaterial;
-use bevy_nannou::prelude::{draw, DrawHolder};
-=======
-use wgpu::naga::ShaderStage::Compute;
-||||||| parent of 7c0eb69 (Start compute.)
-use find_folder;
-use wgpu::naga::ShaderStage::Compute;
-=======
->>>>>>> 7c0eb69 (Start compute.)
-use bevy_nannou::prelude::render::{ExtendedNannouMaterial, NannouCamera};
-use bevy_nannou::prelude::{draw, DrawHolder, ShaderRef};
->>>>>>> 2a48b61 (Start compute.)
 use bevy_nannou::NannouPlugin;
 use find_folder;
 use std::any::Any;
@@ -66,42 +60,6 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{self};
-
-use crate::frame::{Frame, FramePlugin};
-use crate::prelude::bevy_ecs::system::SystemState;
-<<<<<<< HEAD
-use crate::prelude::render::{NannouMesh, ShaderModel};
-||||||| parent of 2a48b61 (Start compute.)
-use crate::prelude::bevy_render::extract_component::ExtractComponentPlugin;
-use crate::prelude::render::NannouMesh;
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-use crate::prelude::render::NannouMesh;
->>>>>>> 2a48b61 (Start compute.)
-use crate::prelude::NannouMaterialPlugin;
-<<<<<<< HEAD
-use crate::render::{RenderApp, RenderPlugin};
-||||||| parent of 2a48b61 (Start compute.)
-use crate::render::{NannouRenderNode, RenderApp, RenderPlugin};
-=======
-||||||| parent of 7c0eb69 (Start compute.)
-use crate::prelude::NannouMaterialPlugin;
-=======
-use crate::prelude::{ComputePipelineState, NannouMaterialPlugin};
->>>>>>> 7c0eb69 (Start compute.)
-||||||| parent of 7c1848e (Fix compute.)
-use crate::prelude::{ComputePipelineState, NannouMaterialPlugin};
-=======
-use crate::prelude::NannouMaterialPlugin;
->>>>>>> 7c1848e (Fix compute.)
-use crate::render::{
-    compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
-    NannouRenderNode, RenderApp, RenderPlugin,
-};
->>>>>>> 2a48b61 (Start compute.)
-use crate::window::WindowUserFunctions;
-use crate::{camera, geom, light, window};
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -393,31 +351,23 @@ where
         self
     }
 
-    pub fn shader_model<T>(mut self) -> Self
+    pub fn shader_model<SM>(mut self) -> Self
     where
-        T: ShaderModel,
-        T::Data: PartialEq + Eq + Hash + Clone,
+        SM: ShaderModel,
+        SM::Data: PartialEq + Eq + Hash + Clone,
     {
-        self.app.add_plugins(NannouMaterialPlugin::<T>::default());
+        self.app.add_plugins((
+            NannouMaterialPlugin::<SM>::default(),
+            NannouShaderModelPlugin::<SM>::default(),
+        ));
         self
     }
 
-<<<<<<< HEAD
-||||||| parent of 2a48b61 (Start compute.)
     /// Load a fragment shader asset from the given path for use with the nannou `Draw` API.
     #[cfg(feature = "nightly")]
     pub fn init_fragment_shader<const SHADER: &'static str>(mut self) -> Self {
         self.app
-            .add_plugins(NannouMaterialPlugin::<ExtendedNannouMaterial<"", SHADER>>::default());
-        self
-    }
-
-=======
-    /// Load a fragment shader asset from the given path for use with the nannou `Draw` API.
-    #[cfg(feature = "nightly")]
-    pub fn init_fragment_shader<const SHADER: &'static str>(mut self) -> Self {
-        self.app
-            .add_plugins(NannouMaterialPlugin::<ExtendedNannouMaterial<"", SHADER>>::default());
+            .add_plugins(NannouShaderModelPlugin::<ExtendedNannouMaterial<"", SHADER>>::default());
         self
     }
 
@@ -444,7 +394,6 @@ where
         self
     }
 
->>>>>>> 2a48b61 (Start compute.)
     #[cfg(any(feature = "config_json", feature = "config_toml"))]
     pub fn init_config<T>(mut self) -> Self
     where

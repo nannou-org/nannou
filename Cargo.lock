@@ -3353,6 +3353,7 @@ name = "examples"
 version = "0.1.0"
 dependencies = [
  "audrey",
+ "bytemuck",
  "futures 0.3.30",
  "hotglsl",
  "hound",

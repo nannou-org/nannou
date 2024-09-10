@@ -17,7 +17,7 @@ pub mod prelude {
     pub use bevy_nannou_draw::color::*;
     pub use bevy_nannou_draw::draw::*;
     pub use bevy_nannou_draw::render::blend::*;
-    pub use bevy_nannou_draw::render::NannouMaterialPlugin;
+    pub use bevy_nannou_draw::render::NannouShaderModelPlugin;
     pub use bevy_nannou_draw::text::*;
     pub use bevy_nannou_draw::*;
 
