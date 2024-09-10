@@ -12,7 +12,7 @@ use bevy::render::mesh::allocator::MeshAllocator;
 use bevy::render::mesh::RenderMeshBufferInfo;
 use bevy::render::render_asset::prepare_assets;
 use bevy::render::render_phase::{BinnedRenderPhaseType, ViewBinnedRenderPhases};
-use bevy::render::storage::{GpuShaderStorageBuffer, ShaderStorageBuffer};
+use bevy::render::storage::GpuShaderStorageBuffer;
 use bevy::render::view;
 use bevy::render::view::VisibilitySystems;
 use bevy::{
