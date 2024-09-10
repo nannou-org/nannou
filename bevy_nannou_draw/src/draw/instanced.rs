@@ -140,7 +140,7 @@ where
             .init_resource::<SpecializedMeshPipelines<InstancedPipeline<SM>>>()
             .add_systems(
                 Render,
-                (queue_indirect::<SM>
+                (queue_instanced::<SM>
                     .after(prepare_assets::<PreparedMaterial<SM>>)
                     .in_set(RenderSet::QueueMeshes),),
             );
@@ -153,7 +153,7 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-fn queue_indirect<SM>(
+fn queue_instanced<SM>(
     draw_functions: Res<DrawFunctions<Opaque3d>>,
     custom_pipeline: Res<InstancedPipeline<SM>>,
     mut pipelines: ResMut<SpecializedMeshPipelines<InstancedPipeline<SM>>>,
