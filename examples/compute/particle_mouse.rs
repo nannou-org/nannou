@@ -181,15 +181,18 @@ fn view(app: &App, model: &Model) {
 
 fn draw_particles_circle(draw: &Draw<ShaderModel>) {
     draw.instanced()
-        .with(draw.ellipse().w_h(5.0, 5.0), 0..NUM_PARTICLES);
+        .primitive(draw.ellipse().w_h(5.0, 5.0))
+        .range(0..NUM_PARTICLES);
 }
 
 fn draw_particles_square(draw: &Draw<ShaderModel>) {
     draw.instanced()
-        .with(draw.rect().w_h(5.0, 5.0), 0..NUM_PARTICLES);
+        .primitive(draw.rect().w_h(5.0, 5.0))
+        .range(0..NUM_PARTICLES);
 }
 
 fn draw_particles_triangle(draw: &Draw<ShaderModel>) {
     draw.instanced()
-        .with(draw.tri().w_h(5.0, 5.0), 0..NUM_PARTICLES);
+        .primitive(draw.tri().w_h(5.0, 5.0))
+        .range(0..NUM_PARTICLES);
 }
