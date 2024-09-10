@@ -170,7 +170,6 @@ fn update(app: &App, model: &mut Model) {
         model.scaling_factor = model.scaling_factor.saturating_sub(1).max(20);
     }
 
-
     let pixels = app.main_window().size_pixels().element_product();
     let new_size = pixels / model.scaling_factor.clamp(20, 1000);
 
