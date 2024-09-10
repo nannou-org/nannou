@@ -7,6 +7,14 @@ use std::marker::PhantomData;
 use std::ops::{Deref, Range};
 use std::sync::{Arc, RwLock};
 
+pub use self::background::Background;
+pub use self::drawing::{Drawing, DrawingContext};
+use self::primitive::Primitive;
+pub use self::theme::Theme;
+use crate::draw::indirect::Indirect;
+use crate::draw::instanced::Instanced;
+use crate::draw::mesh::MeshExt;
+use crate::render::DefaultNannouMaterial;
 use bevy::asset::UntypedAssetId;
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
@@ -15,24 +23,16 @@ use bevy::render::storage::ShaderStorageBuffer;
 use bevy::utils::{HashMap, HashSet};
 use lyon::path::PathEvent;
 use uuid::Uuid;
-use crate::draw::indirect::Indirect;
-pub use self::background::Background;
-pub use self::drawing::{Drawing, DrawingContext};
-use self::primitive::Primitive;
-pub use self::theme::Theme;
-use crate::draw::instanced::Instanced;
-use crate::draw::mesh::MeshExt;
-use crate::render::DefaultNannouMaterial;
 
 pub mod background;
 mod drawing;
+pub mod indirect;
 pub mod instanced;
 pub mod mesh;
 pub mod primitive;
 pub mod properties;
 pub(crate) mod render;
 pub mod theme;
-pub mod indirect;
 
 /// A simple API for drawing 2D and 3D graphics.
 ///

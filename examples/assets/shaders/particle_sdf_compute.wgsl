@@ -7,7 +7,7 @@ struct Particle {
 };
 
 @group(0) @binding(0) var<storage, read_write> particles: array<Particle>;
-@group(0) @binding(1) var<uniform> sphere_center: vec3<f32>;
+@group(0) @binding(1) var<uniform> sphere_center: vec4<f32>;
 @group(0) @binding(2) var<uniform> sphere_radius: f32;
 @group(0) @binding(3) var<uniform> particle_count: u32;
 @group(0) @binding(4) var<uniform> resolution: vec2<u32>;
@@ -25,7 +25,7 @@ fn raymarch(ro: vec3<f32>, rd: vec3<f32>, max_steps: u32, max_dist: f32) -> f32 
     var total_distance = 0.0;
     for (var i: u32 = 0u; i < max_steps; i++) {
         let p = ro + total_distance * rd;
-        let distance = sdf_sphere(p, sphere_center, sphere_radius);
+        let distance = sdf_sphere(p, sphere_center.xyz, sphere_radius);
         if distance < 0.001 {
             return total_distance;
         }
@@ -41,8 +41,8 @@ fn closest_point_on_sphere(point: vec2<f32>) -> vec3<f32> {
     let aspect = f32(resolution.x) / f32(resolution.y);
     // Adjust for the new coordinate system
     let point3d = vec3(point.x * aspect, point.y, 0.0);
-    let to_sphere = normalize(point3d - sphere_center);
-    let surface_point = sphere_center + to_sphere * sphere_radius;
+    let to_sphere = normalize(point3d - sphere_center.xyz);
+    let surface_point = sphere_center.xyz + to_sphere * sphere_radius;
     return vec3(surface_point.x / surface_point.z / aspect, surface_point.y / surface_point.z, surface_point.z);
 }
 
@@ -132,7 +132,7 @@ fn update(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let particle_3d = vec3(particle.position.x * aspect, particle.position.y, p.z);
 
     // Calculate the vector from sphere center to the particle on the sphere surface
-    let to_particle = particle_3d - sphere_center;
+    let to_particle = particle_3d - sphere_center.xyz;
 
     // Calculate the view direction (assuming camera is looking along negative z-axis)
     let view_direction = vec3(0.0, 0.0, -1.0);

@@ -80,7 +80,10 @@ impl Compute for ComputeModel {
     }
 }
 
-#[shader_model(fragment = "shaders/particle_mouse_material.wgsl", vertex = "shaders/particle_mouse_material.wgsl")]
+#[shader_model(
+    fragment = "shaders/particle_mouse_material.wgsl",
+    vertex = "shaders/particle_mouse_material.wgsl"
+)]
 struct ShaderModel {
     #[storage(0, read_only, visibility(vertex))]
     particles: Handle<ShaderStorageBuffer>,

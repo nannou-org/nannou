@@ -29,10 +29,10 @@ use bevy::render::{render_resource as wgpu, RenderApp};
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
+use crate::draw::indirect::{IndirectMaterialPlugin, IndirectMesh};
 use crate::draw::mesh::MeshExt;
 use crate::draw::render::{RenderContext, RenderPrimitive};
 use crate::draw::{DrawCommand, DrawContext};
-use crate::draw::indirect::{IndirectMaterialPlugin, IndirectMesh};
 use crate::DrawHolder;
 
 pub trait ShaderModel:
@@ -57,9 +57,7 @@ pub struct NannouRenderPlugin;
 impl Plugin for NannouRenderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_default_texture)
-            .add_plugins((
-                ExtractComponentPlugin::<NannouTextureHandle>::default(),
-            ))
+            .add_plugins((ExtractComponentPlugin::<NannouTextureHandle>::default(),))
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
             .add_systems(Update, texture_event_handler)
             .add_systems(PostUpdate, update_draw_mesh);
@@ -75,10 +73,8 @@ where
     M::Data: PartialEq + Eq + Hash + Clone,
 {
     fn build(&self, app: &mut App) {
-        app.add_plugins((
-            MaterialPlugin::<M>::default(),
-        ))
-        .add_systems(PostUpdate, update_material::<M>.after(update_draw_mesh));
+        app.add_plugins((MaterialPlugin::<M>::default(),))
+            .add_systems(PostUpdate, update_material::<M>.after(update_draw_mesh));
     }
 }
 
@@ -360,9 +356,16 @@ fn update_draw_mesh(
                     let mat_id = last_mat.expect("No material set for instanced draw command");
                     commands.spawn((
                         IndirectMesh,
+                        indirect_buffer,
                         UntypedMaterialId(mat_id),
                         mesh.clone(),
+                        Transform::default(),
+                        GlobalTransform::default(),
+                        Visibility::default(),
+                        InheritedVisibility::default(),
+                        ViewVisibility::default(),
                         NannouMesh,
+                        NoFrustumCulling,
                         window_layers.clone(),
                     ));
                 }

@@ -24,7 +24,12 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     let particle = particles[vertex.instance_index];
     var out: VertexOutput;
     out.clip_position = mesh_position_local_to_clip(
-        get_world_from_local(vertex.instance_index),
+        mat4x4<f32>(
+            vec4(1.0, 0.0, 0.0, 0.0),
+            vec4(0.0, 1.0, 0.0, 0.0),
+            vec4(0.0, 0.0, 1.0, 0.0),
+            vec4(0.0, 0.0, 0.0, 1.0)
+        ),
         vec4(vertex.position, 1.0)
     ) + vec4(particle.position, 0.0, 0.0);
     out.color = particle.color;

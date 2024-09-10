@@ -3,7 +3,7 @@ use nannou::prelude::bevy_render::storage::ShaderStorageBuffer;
 use nannou::prelude::*;
 use std::sync::Arc;
 
-const NUM_PARTICLES: u32 = 50000;
+const NUM_PARTICLES: u32 = 100000;
 const WORKGROUP_SIZE: u32 = 64;
 
 fn main() {
@@ -71,7 +71,7 @@ struct ComputeModel {
     #[storage(0, visibility(compute))]
     particles: Handle<ShaderStorageBuffer>,
     #[uniform(1)]
-    circle_center: Vec3,
+    circle_center: Vec4,
     #[uniform(2)]
     circle_radius: f32,
     #[uniform(3)]
@@ -128,7 +128,7 @@ fn model(app: &App) -> Model {
 
     // Create a buffer store our indirect draw params
     let mut indirect_params = ShaderStorageBuffer::from(DrawIndirectArgs {
-        index_count: 3,
+        index_count: 21,
         instance_count: NUM_PARTICLES,
         first_index: 0,
         base_vertex: 0,
@@ -145,7 +145,14 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model) {}
+fn update(app: &App, model: &mut Model) {
+    if app.keys().pressed(KeyCode::ArrowUp) {
+        model.circle_radius += 0.01;
+    }
+    if app.keys().pressed(KeyCode::ArrowDown) {
+        model.circle_radius -= 0.01;
+    }
+}
 
 fn compute(app: &App, model: &Model, state: State, view: Entity) -> (State, ComputeModel) {
     let window = app.main_window();
@@ -159,7 +166,7 @@ fn compute(app: &App, model: &Model, state: State, view: Entity) -> (State, Comp
 
     let compute_model = ComputeModel {
         particles: model.particles.clone(),
-        circle_center: mouse_norm.extend(1.0),
+        circle_center: mouse_norm.extend(1.0).extend(0.0),
         circle_radius: model.circle_radius,
         particle_count: NUM_PARTICLES,
         resolution: window.size_pixels(),
@@ -177,6 +184,6 @@ fn view(app: &App, model: &Model) {
 
     let draw = draw.material(model.material());
     draw.indirect()
-        .primitive(draw.ellipse().w_h(2.0, 2.0))
+        .primitive(draw.ellipse().w_h(5.0, 5.0))
         .buffer(model.indirect_params.clone());
 }
