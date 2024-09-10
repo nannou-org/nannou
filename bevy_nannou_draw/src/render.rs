@@ -30,6 +30,7 @@ use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
 use crate::draw::indirect::{IndirectMaterialPlugin, IndirectMesh};
+use crate::draw::instanced::{InstanceRange, InstancedMaterialPlugin, InstancedMesh};
 use crate::draw::mesh::MeshExt;
 use crate::draw::render::{RenderContext, RenderPrimitive};
 use crate::draw::{DrawCommand, DrawContext};
@@ -90,6 +91,7 @@ where
         app.add_plugins((
             RenderAssetPlugin::<PreparedShaderModel<SM>>::default(),
             IndirectMaterialPlugin::<SM>::default(),
+            InstancedMaterialPlugin::<SM>::default(),
         ))
         .add_systems(PostUpdate, update_material::<SM>.after(update_draw_mesh));
     }
@@ -318,21 +320,20 @@ fn update_draw_mesh(
                     prim.render_primitive(ctxt, &mut mesh);
                     let mesh = meshes.add(mesh);
                     let mat_id = last_mat.expect("No material set for instanced draw command");
-                    // TODO: off by one???
-                    for _ in range.start..range.end - 1 {
-                        commands.spawn((
-                            UntypedMaterialId(mat_id),
-                            mesh.clone(),
-                            Transform::default(),
-                            GlobalTransform::default(),
-                            Visibility::default(),
-                            InheritedVisibility::default(),
-                            ViewVisibility::default(),
-                            NannouMesh,
-                            NoFrustumCulling,
-                            window_layers.clone(),
-                        ));
-                    }
+                    commands.spawn((
+                        InstancedMesh,
+                        InstanceRange(range),
+                        UntypedMaterialId(mat_id),
+                        mesh.clone(),
+                        Transform::default(),
+                        GlobalTransform::default(),
+                        Visibility::default(),
+                        InheritedVisibility::default(),
+                        ViewVisibility::default(),
+                        NannouMesh,
+                        NoFrustumCulling,
+                        window_layers.clone(),
+                    ));
                 }
                 DrawCommand::Indirect(prim, indirect_buffer) => {
                     // Info required during rendering.

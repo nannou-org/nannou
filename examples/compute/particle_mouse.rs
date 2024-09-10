@@ -3,7 +3,7 @@ use nannou::prelude::bevy_render::storage::ShaderStorageBuffer;
 use nannou::prelude::*;
 use std::sync::Arc;
 
-const NUM_PARTICLES: u32 = 1000;
+const NUM_PARTICLES: u32 = 100000;
 const WORKGROUP_SIZE: u32 = 64;
 
 fn main() {
