@@ -18,10 +18,7 @@ use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::input::mouse::{MouseButtonInput, MouseWheel};
 use bevy::input::ButtonState;
 use bevy::prelude::*;
-use bevy::reflect::{
-    ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
-    TypeInfo,
-};
+use bevy::reflect::{ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef, TypeInfo, Typed};
 use bevy::render::extract_resource::ExtractResource;
 use bevy::window::{
     ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowEvent,
@@ -60,6 +57,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{self};
+use crate::prelude::bevy_reflect::DynamicTyped;
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -617,6 +615,15 @@ where
 
     fn clone_value(&self) -> Box<dyn PartialReflect> {
         self.0.clone_value()
+    }
+}
+
+impl<M> DynamicTyped for ModelHolder<M>
+where
+    M: 'static + Any + DynamicTypePath + GetTypeRegistration + Reflect,
+{
+    fn reflect_type_info(&self) -> &'static TypeInfo {
+        self.0.reflect_type_info()
     }
 }
 
