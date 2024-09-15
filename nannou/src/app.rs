@@ -18,7 +18,10 @@ use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::input::mouse::{MouseButtonInput, MouseWheel};
 use bevy::input::ButtonState;
 use bevy::prelude::*;
-use bevy::reflect::{ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef, TypeInfo, Typed};
+use bevy::reflect::{
+    ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
+    TypeInfo, Typed,
+};
 use bevy::render::extract_resource::ExtractResource;
 use bevy::window::{
     ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowEvent,
@@ -36,6 +39,7 @@ use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 
 use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
+use crate::prelude::bevy_reflect::DynamicTyped;
 use crate::prelude::render::{NannouMaterialPlugin, NannouMesh, ShaderModel};
 use crate::prelude::NannouShaderModelPlugin;
 use crate::render::{
@@ -57,7 +61,6 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{self};
-use crate::prelude::bevy_reflect::DynamicTyped;
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
