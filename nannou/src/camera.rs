@@ -134,9 +134,9 @@ pub trait SetCamera: Sized {
         })
     }
 
-    fn bloom_prefilter_settings(self, threshold: f32, threshold_softness: f32) -> Self {
+    fn bloom_prefilter(self, threshold: f32, threshold_softness: f32) -> Self {
         self.map_bloom_settings(|mut settings| {
-            settings.prefilter_settings = bevy::core_pipeline::bloom::BloomPrefilterSettings {
+            settings.prefilter = bevy::core_pipeline::bloom::BloomPrefilter {
                 threshold,
                 threshold_softness,
             };

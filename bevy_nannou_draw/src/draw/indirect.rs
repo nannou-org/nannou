@@ -5,28 +5,33 @@ use crate::draw::primitive::Primitive;
 use crate::draw::{Draw, DrawCommand};
 use crate::render::{PreparedShaderModel, ShaderModel};
 use bevy::core_pipeline::core_3d::Opaque3dBinKey;
-use bevy::pbr::{MaterialPipeline, MaterialPipelineKey, PreparedMaterial};
+use bevy::pbr::{
+    MaterialPipeline, MaterialPipelineKey, PreparedMaterial, RenderMaterialInstances,
+    SetMaterialBindGroup,
+};
 use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::extract_instances::ExtractedInstances;
 use bevy::render::mesh::allocator::MeshAllocator;
 use bevy::render::mesh::RenderMeshBufferInfo;
-use bevy::render::render_asset::prepare_assets;
+use bevy::render::render_asset::{prepare_assets, RenderAsset};
 use bevy::render::render_phase::{BinnedRenderPhaseType, ViewBinnedRenderPhases};
-use bevy::render::storage::GpuShaderStorageBuffer;
+use bevy::render::storage::{GpuShaderStorageBuffer, ShaderStorageBuffer};
 use bevy::render::view;
 use bevy::render::view::VisibilitySystems;
 use bevy::{
     core_pipeline::core_3d::Opaque3d,
     ecs::system::{lifetimeless::*, SystemParamItem},
-    pbr::{MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshViewBindGroup},
+    pbr::{
+        MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
+    },
     prelude::*,
     render::{
         extract_component::ExtractComponent,
         mesh::{MeshVertexBufferLayoutRef, RenderMesh},
         render_asset::RenderAssets,
         render_phase::{
-            AddRenderCommand, DrawFunctions, PhaseItem, RenderCommand, RenderCommandResult,
-            SetItemPipeline, TrackedRenderPass,
+            AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
+            RenderCommandResult, SetItemPipeline, TrackedRenderPass,
         },
         render_resource::*,
         renderer::RenderDevice,
@@ -39,42 +44,42 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 use std::ops::Range;
 
-pub struct Instanced<'a, M>
+pub struct Indirect<'a, M>
 where
     M: Material + Default,
 {
     draw: &'a Draw<M>,
     primitive_index: Option<usize>,
-    range: Option<Range<u32>>,
+    indirect_buffer: Option<Handle<ShaderStorageBuffer>>,
 }
 
-impl<'a, M> Drop for Instanced<'a, M>
+impl<'a, M> Drop for Indirect<'a, M>
 where
     M: Material + Default,
 {
     fn drop(&mut self) {
-        if let Some((index, data)) = self.primitive_index.take().zip(self.range.take()) {
-            self.insert_instanced_draw_command(index, data);
+        if let Some((index, ssbo)) = self.primitive_index.take().zip(self.indirect_buffer.take()) {
+            self.insert_indirect_draw_command(index, ssbo);
         }
     }
 }
 
-pub fn new<M>(draw: &Draw<M>) -> Instanced<M>
+pub fn new<M>(draw: &Draw<M>) -> Indirect<M>
 where
     M: Material + Default,
 {
-    Instanced {
+    Indirect {
         draw,
         primitive_index: None,
-        range: None,
+        indirect_buffer: None,
     }
 }
 
-impl<'a, M> Instanced<'a, M>
+impl<'a, M> Indirect<'a, M>
 where
     M: Material + Default,
 {
-    pub fn primitive<T>(mut self, drawing: Drawing<T, M>) -> Instanced<'a, M>
+    pub fn primitive<T>(mut self, drawing: Drawing<T, M>) -> Indirect<'a, M>
     where
         T: Into<Primitive>,
     {
@@ -88,59 +93,59 @@ where
         self
     }
 
-    pub fn range(mut self, range: Range<u32>) -> Instanced<'a, M> {
-        self.range = Some(range);
+    pub fn buffer(mut self, ssbo: Handle<ShaderStorageBuffer>) -> Indirect<'a, M> {
+        self.indirect_buffer = Some(ssbo);
         self
     }
 
-    fn insert_instanced_draw_command(&self, index: usize, range: Range<u32>) {
+    fn insert_indirect_draw_command(
+        &self,
+        index: usize,
+        indirect_buffer: Handle<ShaderStorageBuffer>,
+    ) {
         let mut state = self.draw.state.write().unwrap();
         let primitive = state.drawing.remove(&index).unwrap();
         state
             .draw_commands
-            .push(Some(DrawCommand::Instanced(primitive, range)));
+            .push(Some(DrawCommand::Indirect(primitive, indirect_buffer)));
     }
 }
 
 #[derive(Component, ExtractComponent, Clone)]
-pub struct InstancedMesh;
+pub struct IndirectMesh;
 
-#[derive(Component, ExtractComponent, Clone)]
-pub struct InstanceRange(pub Range<u32>);
+pub struct IndirectMaterialPlugin<M>(PhantomData<M>);
 
-pub struct InstancedMaterialPlugin<M>(PhantomData<M>);
-
-impl<M> Default for InstancedMaterialPlugin<M>
+impl<M> Default for IndirectMaterialPlugin<M>
 where
     M: Default,
 {
     fn default() -> Self {
-        InstancedMaterialPlugin(PhantomData)
+        IndirectMaterialPlugin(PhantomData)
     }
 }
 
-impl<SM> Plugin for InstancedMaterialPlugin<SM>
+impl<SM> Plugin for IndirectMaterialPlugin<SM>
 where
     SM: ShaderModel,
     SM::Data: PartialEq + Eq + Hash + Clone,
 {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            ExtractComponentPlugin::<InstancedMesh>::default(),
-            ExtractComponentPlugin::<InstanceRange>::default(),
+            ExtractComponentPlugin::<IndirectMesh>::default(),
+            ExtractComponentPlugin::<Handle<ShaderStorageBuffer>>::default(),
         ))
         .add_systems(
             PostUpdate,
-            view::check_visibility::<With<InstancedMesh>>
-                .in_set(VisibilitySystems::CheckVisibility),
+            view::check_visibility::<With<IndirectMesh>>.in_set(VisibilitySystems::CheckVisibility),
         );
 
         app.sub_app_mut(RenderApp)
-            .add_render_command::<Opaque3d, DrawInstancedMaterial<SM>>()
-            .init_resource::<SpecializedMeshPipelines<InstancedPipeline<SM>>>()
+            .add_render_command::<Opaque3d, DrawIndirectMaterial<SM>>()
+            .init_resource::<SpecializedMeshPipelines<IndirectPipeline<SM>>>()
             .add_systems(
                 Render,
-                (queue_instanced::<SM>
+                (queue_indirect::<SM>
                     .after(prepare_assets::<PreparedMaterial<SM>>)
                     .in_set(RenderSet::QueueMeshes),),
             );
@@ -148,27 +153,27 @@ where
 
     fn finish(&self, app: &mut App) {
         app.sub_app_mut(RenderApp)
-            .init_resource::<InstancedPipeline<SM>>();
+            .init_resource::<IndirectPipeline<SM>>();
     }
 }
 
 #[allow(clippy::too_many_arguments)]
-fn queue_instanced<SM>(
+fn queue_indirect<SM>(
     draw_functions: Res<DrawFunctions<Opaque3d>>,
-    custom_pipeline: Res<InstancedPipeline<SM>>,
-    mut pipelines: ResMut<SpecializedMeshPipelines<InstancedPipeline<SM>>>,
+    custom_pipeline: Res<IndirectPipeline<SM>>,
+    mut pipelines: ResMut<SpecializedMeshPipelines<IndirectPipeline<SM>>>,
     pipeline_cache: Res<PipelineCache>,
     meshes: Res<RenderAssets<RenderMesh>>,
     (
         render_mesh_instances,
-        instanced_meshes,
+        indirect_meshes,
         mut phases,
         mut views,
         shader_models,
         extracted_instances,
     ): (
         Res<RenderMeshInstances>,
-        Query<Entity, With<InstancedMesh>>,
+        Query<Entity, With<IndirectMesh>>,
         ResMut<ViewBinnedRenderPhases<Opaque3d>>,
         Query<(Entity, &ExtractedView, &Msaa)>,
         Res<RenderAssets<PreparedShaderModel<SM>>>,
@@ -178,7 +183,7 @@ fn queue_instanced<SM>(
     SM: ShaderModel,
     SM::Data: PartialEq + Eq + Hash + Clone,
 {
-    let drawn_function = draw_functions.read().id::<DrawInstancedMaterial<SM>>();
+    let drawn_function = draw_functions.read().id::<DrawIndirectMaterial<SM>>();
 
     for (view_entity, view, msaa) in &mut views {
         let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
@@ -187,7 +192,7 @@ fn queue_instanced<SM>(
         };
 
         let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
-        for (entity) in &instanced_meshes {
+        for (entity) in &indirect_meshes {
             let Some(shader_model) = extracted_instances.get(&entity) else {
                 continue;
             };
@@ -223,7 +228,7 @@ fn queue_instanced<SM>(
 }
 
 #[derive(Resource)]
-struct InstancedPipeline<M> {
+struct IndirectPipeline<M> {
     mesh_pipeline: MeshPipeline,
     shader_model_layout: BindGroupLayout,
     vertex_shader: Option<Handle<Shader>>,
@@ -231,12 +236,12 @@ struct InstancedPipeline<M> {
     marker: PhantomData<M>,
 }
 
-impl<SM: ShaderModel> FromWorld for InstancedPipeline<SM> {
+impl<SM: ShaderModel> FromWorld for IndirectPipeline<SM> {
     fn from_world(world: &mut World) -> Self {
         let asset_server = world.resource::<AssetServer>();
         let render_device = world.resource::<RenderDevice>();
 
-        InstancedPipeline {
+        IndirectPipeline {
             mesh_pipeline: world.resource::<MeshPipeline>().clone(),
             shader_model_layout: SM::bind_group_layout(render_device),
             vertex_shader: match <SM as ShaderModel>::vertex_shader() {
@@ -254,7 +259,7 @@ impl<SM: ShaderModel> FromWorld for InstancedPipeline<SM> {
     }
 }
 
-impl<SM: ShaderModel> SpecializedMeshPipeline for InstancedPipeline<SM>
+impl<SM: ShaderModel> SpecializedMeshPipeline for IndirectPipeline<SM>
 where
     SM::Data: PartialEq + Eq + Hash + Clone,
 {
@@ -290,11 +295,11 @@ where
     }
 }
 
-type DrawInstancedMaterial<SM> = (
+type DrawIndirectMaterial<SM> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
     SetShaderModelBindGroup<SM, 2>,
-    DrawMeshInstanced,
+    DrawMeshIndirect,
 );
 
 struct SetShaderModelBindGroup<M: ShaderModel, const I: usize>(PhantomData<M>);
@@ -330,8 +335,8 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
     }
 }
 
-struct DrawMeshInstanced;
-impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
+struct DrawMeshIndirect;
+impl<P: PhaseItem> RenderCommand<P> for DrawMeshIndirect {
     type Param = (
         SRes<RenderAssets<RenderMesh>>,
         SRes<RenderMeshInstances>,
@@ -339,13 +344,13 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
         SRes<RenderAssets<GpuShaderStorageBuffer>>,
     );
     type ViewQuery = ();
-    type ItemQuery = Read<InstanceRange>;
+    type ItemQuery = Read<Handle<ShaderStorageBuffer>>;
 
     #[inline]
     fn render<'w>(
         item: &P,
         _view: (),
-        instance_range: Option<&'w InstanceRange>,
+        indirect_buffer: Option<&'w Handle<ShaderStorageBuffer>>,
         (meshes, render_mesh_instances, mesh_allocator, ssbos): SystemParamItem<
             'w,
             '_,
@@ -362,7 +367,10 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
         let Some(gpu_mesh) = meshes.into_inner().get(mesh_instance.mesh_asset_id) else {
             return RenderCommandResult::Skip;
         };
-        let Some(instance_range) = instance_range else {
+        let Some(indirect_buffer) = indirect_buffer else {
+            return RenderCommandResult::Skip;
+        };
+        let Some(indirect_buffer) = ssbos.into_inner().get(indirect_buffer) else {
             return RenderCommandResult::Skip;
         };
         let Some(vertex_buffer_slice) =
@@ -382,14 +390,10 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
                 };
 
                 pass.set_index_buffer(index_buffer_slice.buffer.slice(..), 0, *index_format);
-                pass.draw_indexed(
-                    index_buffer_slice.range.clone(),
-                    0,
-                    instance_range.0.clone(),
-                );
+                pass.draw_indexed_indirect(&indirect_buffer.buffer, 0);
             }
             RenderMeshBufferInfo::NonIndexed => {
-                pass.draw(vertex_buffer_slice.range.clone(), instance_range.0.clone());
+                pass.draw_indirect(&indirect_buffer.buffer, 0);
             }
         }
         RenderCommandResult::Success

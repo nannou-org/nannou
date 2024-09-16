@@ -27,16 +27,13 @@ walkdir = "2"
 hound = "3.4.0"
 ringbuf = "0.2.2"
 futures = "0.3"
+bytemuck = "1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["full"]}
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { version = "1", features = ["rt"]}
 
-[features]
-egui = ["nannou/egui"]
-isf = ["nannou/isf"]
-video = ["nannou/video"]
 
 # Audio
 [[example]]
@@ -62,6 +59,17 @@ path = "communication/osc_receiver.rs"
 [[example]]
 name = "osc_sender"
 path = "communication/osc_sender.rs"
+
+# Compute
+[[example]]
+name = "game_of_life"
+path = "compute/game_of_life.rs"
+[[example]]
+name = "particle_mouse"
+path = "compute/particle_mouse.rs"
+[[example]]
+name = "particle_sdf"
+path = "compute/particle_sdf.rs"
 
 # Draw
 [[example]]
@@ -127,7 +135,7 @@ path = "draw/draw_transform.rs"
 [[example]]
 name = "isf_simple"
 path = "isf/simple.rs"
-required-features = ["isf", "egui"]
+required-features = ["nannou/isf", "nannou/egui"]
 
 # Laser
 [[example]]
@@ -139,7 +147,7 @@ path = "laser/laser_frame_stream.rs"
 [[example]]
 name = "laser_frame_stream_gui"
 path = "laser/laser_frame_stream_gui.rs"
-required-features = ["egui"]
+required-features = ["nannou/egui"]
 [[example]]
 name = "laser_raw_stream"
 path = "laser/laser_raw_stream.rs"
@@ -204,19 +212,19 @@ path = "templates/template_sketch.rs"
 [[example]]
 name = "circle_packing"
 path = "ui/egui/circle_packing.rs"
-required-features = ["egui"]
+required-features = ["nannou/egui"]
 [[example]]
 name = "tune_color"
 path = "ui/egui/tune_color.rs"
-required-features = ["egui"]
+required-features = ["nannou/egui"]
 [[example]]
 name = "simple_ui"
 path = "ui/egui/simple_ui.rs"
-required-features = ["egui"]
+required-features = ["nannou/egui"]
 [[example]]
 name = "inspector_ui"
 path = "ui/egui/inspector_ui.rs"
-required-features = ["egui"]
+required-features = ["nannou/egui"]
 
 # Video
 [[example]]

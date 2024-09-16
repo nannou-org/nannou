@@ -7,15 +7,6 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
-use std::any::Any;
-use std::cell::{RefCell, RefMut};
-use std::hash::Hash;
-use std::path::PathBuf;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::Duration;
-use std::{self};
-
 use bevy::app::AppExit;
 #[cfg(not(target_arch = "wasm32"))]
 use bevy::asset::io::file::FileAssetReader;
@@ -29,7 +20,7 @@ use bevy::input::ButtonState;
 use bevy::prelude::*;
 use bevy::reflect::{
     ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
-    TypeInfo,
+    TypeInfo, Typed,
 };
 use bevy::render::extract_resource::ExtractResource;
 use bevy::window::{
@@ -45,21 +36,43 @@ use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 #[cfg(feature = "egui")]
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
-use find_folder;
-
-use bevy_nannou::prelude::{draw, DrawHolder};
-use bevy_nannou::NannouPlugin;
 
 use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
-use crate::prelude::render::{NannouMesh, ShaderModel};
-use crate::prelude::NannouMaterialPlugin;
-use crate::render::{RenderApp, RenderPlugin};
+use crate::prelude::bevy_reflect::DynamicTyped;
+use crate::prelude::render::{NannouMaterialPlugin, NannouMesh, ShaderModel};
+use crate::prelude::NannouShaderModelPlugin;
+use crate::render::{
+    compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
+    NannouRenderNode, RenderApp, RenderPlugin,
+};
 use crate::window::WindowUserFunctions;
 use crate::{camera, geom, light, window};
+use bevy_nannou::prelude::render::NannouCamera;
+use bevy_nannou::prelude::{draw, DrawHolder};
+use bevy_nannou::NannouPlugin;
+use find_folder;
+use std::any::Any;
+use std::cell::{RefCell, RefMut};
+use std::hash::Hash;
+use std::path::PathBuf;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+use std::{self};
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
+
+/// The user function type for producing the compute model post-update.
+pub type ComputeUpdateFn<Model, ComputeModel> =
+    fn(
+        &App,
+        &Model,
+        <ComputeModel as Compute>::State,
+        Entity,
+    ) -> (<ComputeModel as Compute>::State, ComputeModel);
 
 /// The user function type for updating their model in accordance with some event.
 pub type EventFn<Model, Event> = fn(&App, &mut Model, &Event);
@@ -155,6 +168,9 @@ struct EventFnRes<M, E>(Option<EventFn<M, E>>);
 struct UpdateFnRes<M>(Option<UpdateFn<M>>);
 
 #[derive(Resource, Deref, DerefMut)]
+struct ComputeUpdateFnRes<M, CM: Compute>(ComputeUpdateFn<M, CM>);
+
+#[derive(Resource, Deref, DerefMut)]
 pub(crate) struct RenderFnRes<M>(Option<RenderFn<M>>);
 
 impl<M> ExtractResource for RenderFnRes<M>
@@ -239,7 +255,7 @@ where
             DefaultPlugins.set(WindowPlugin {
                 // Don't spawn a  window by default, we'll handle this ourselves
                 primary_window: None,
-                exit_condition: ExitCondition::DontExit,
+                exit_condition: ExitCondition::OnAllClosed,
                 ..default()
             }),
             #[cfg(feature = "egui")]
@@ -336,12 +352,46 @@ where
         self
     }
 
-    pub fn shader_model<T>(mut self) -> Self
+    pub fn shader_model<SM>(mut self) -> Self
     where
-        T: ShaderModel,
-        T::Data: PartialEq + Eq + Hash + Clone,
+        SM: ShaderModel,
+        SM::Data: PartialEq + Eq + Hash + Clone,
     {
-        self.app.add_plugins(NannouMaterialPlugin::<T>::default());
+        self.app.add_plugins((
+            NannouMaterialPlugin::<SM>::default(),
+            NannouShaderModelPlugin::<SM>::default(),
+        ));
+        self
+    }
+
+    /// Load a fragment shader asset from the given path for use with the nannou `Draw` API.
+    #[cfg(feature = "nightly")]
+    pub fn init_fragment_shader<const SHADER: &'static str>(mut self) -> Self {
+        self.app
+            .add_plugins(NannouShaderModelPlugin::<ExtendedNannouMaterial<"", SHADER>>::default());
+        self
+    }
+
+    pub fn compute<CM: Compute>(mut self, compute_fn: ComputeUpdateFn<M, CM>) -> Self {
+        let render_app = self.app.sub_app_mut(bevy::render::RenderApp);
+        render_app.insert_resource(ComputeShaderHandle(CM::shader()));
+        self.app
+            .add_systems(
+                First,
+                |mut commands: Commands, views_q: Query<Entity, Added<NannouCamera>>| {
+                    for view in views_q.iter() {
+                        info!("Adding compute state to view {:?}", view);
+                        commands.entity(view).insert(ComputeState {
+                            current: CM::State::default(),
+                            next: None,
+                        });
+                    }
+                },
+            )
+            .insert_resource(ComputeUpdateFnRes(compute_fn))
+            .add_systems(Update, compute::<M, CM>.after(update::<M>))
+            .add_systems(Last, |query: Query<&ComputeModel<CM>>| {})
+            .add_plugins(ComputePlugin::<CM>::default());
         self
     }
 
@@ -568,6 +618,15 @@ where
 
     fn clone_value(&self) -> Box<dyn PartialReflect> {
         self.0.clone_value()
+    }
+}
+
+impl<M> DynamicTyped for ModelHolder<M>
+where
+    M: 'static + Any + DynamicTypePath + GetTypeRegistration + Reflect,
+{
+    fn reflect_type_info(&self) -> &'static TypeInfo {
+        self.0.reflect_type_info()
     }
 }
 
@@ -1116,6 +1175,39 @@ fn update<M>(
 
     // Increment the frame count.
     *ticks += 1;
+}
+
+fn compute<M, CM>(
+    world: &mut World,
+    state: &mut SystemState<(
+        ResMut<ModelHolder<M>>,
+        Res<ComputeUpdateFnRes<M, CM>>,
+        Query<(Entity, &mut ComputeState<CM::State>)>,
+    )>,
+) where
+    M: 'static + Send + Sync,
+    CM: Compute,
+{
+    let (mut app, (mut model, compute, mut views_q)) = get_app_and_state(world, state);
+    let compute = compute.0;
+    for (view, mut state) in views_q.iter_mut() {
+        let (new_state, compute_model) = compute(&app, &model, state.current.clone(), view);
+        unsafe {
+            app.component_world
+                .borrow_mut()
+                .world_mut()
+                .entity_mut(view)
+                .insert(ComputeState {
+                    current: state.current.clone(),
+                    next: if new_state != state.current {
+                        Some(new_state)
+                    } else {
+                        None
+                    },
+                })
+                .insert(ComputeModel(compute_model));
+        }
+    }
 }
 
 fn events<M, E>(

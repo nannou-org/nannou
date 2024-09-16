@@ -1,17 +1,25 @@
 use crate::app::{ModelHolder, RenderFnRes};
 use crate::frame::Frame;
+use crate::prelude::bevy_render::extract_component::ExtractComponent;
 use crate::prelude::bevy_render::extract_resource::extract_resource;
 use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
 use bevy::ecs::query::QueryItem;
-use bevy::prelude::*;
+pub use bevy::prelude::*;
+use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_graph::{
     NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
 };
+use bevy::render::render_resource::SpecializedComputePipeline;
 use bevy::render::renderer::RenderContext;
 use bevy::render::view::{ExtractedView, ExtractedWindows, ViewTarget};
+use bevy_nannou::prelude::AsBindGroup;
+use noise::NoiseFn;
+use std::hash::Hash;
 use std::ops::Deref;
 
-pub(crate) struct RenderPlugin<M>(std::marker::PhantomData<M>);
+pub mod compute;
+
+pub struct RenderPlugin<M>(std::marker::PhantomData<M>);
 
 impl<M> Default for RenderPlugin<M>
 where
@@ -96,7 +104,7 @@ impl<M> FromWorld for NannouRenderNode<M>
 where
     M: Send + Sync + Clone + 'static,
 {
-    fn from_world(_world: &mut World) -> Self {
+    fn from_world(world: &mut World) -> Self {
         Self(std::marker::PhantomData)
     }
 }

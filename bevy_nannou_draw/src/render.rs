@@ -3,26 +3,34 @@ use std::hash::Hash;
 
 use bevy::asset::Asset;
 use bevy::asset::UntypedAssetId;
+use bevy::ecs::system::lifetimeless::SRes;
+use bevy::ecs::system::SystemParamItem;
 use bevy::pbr::{
-    ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline,
-    StandardMaterial,
+    DefaultOpaqueRendererMethod, ExtendedMaterial, MaterialExtension, MaterialExtensionKey,
+    MaterialExtensionPipeline, MaterialPipeline, MaterialProperties, MeshPipelineKey,
+    OpaqueRendererMethod, PreparedMaterial, StandardMaterial,
 };
 use bevy::prelude::TypePath;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
+use bevy::render::extract_instances::ExtractInstancesPlugin;
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::mesh::MeshVertexBufferLayoutRef;
-use bevy::render::render_resource as wgpu;
+use bevy::render::render_asset::{PrepareAssetError, RenderAsset, RenderAssetPlugin};
 use bevy::render::render_resource::{
-    AsBindGroup, BlendState, PolygonMode, RenderPipelineDescriptor, ShaderRef,
-    SpecializedMeshPipelineError,
+    AsBindGroup, AsBindGroupError, BindGroup, BlendState, OwnedBindingResource, PolygonMode,
+    RenderPipelineDescriptor, ShaderRef, SpecializedMeshPipelineError,
 };
+use bevy::render::renderer::RenderDevice;
 use bevy::render::view::{NoFrustumCulling, RenderLayers};
+use bevy::render::RenderSet::Render;
+use bevy::render::{render_resource as wgpu, RenderApp};
 use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 
-use crate::draw::instanced::InstancingPlugin;
+use crate::draw::indirect::{IndirectMaterialPlugin, IndirectMesh};
+use crate::draw::instanced::{InstanceRange, InstancedMaterialPlugin, InstancedMesh};
 use crate::draw::mesh::MeshExt;
 use crate::draw::render::{RenderContext, RenderPrimitive};
 use crate::draw::{DrawCommand, DrawContext};
@@ -50,11 +58,7 @@ pub struct NannouRenderPlugin;
 impl Plugin for NannouRenderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_default_texture)
-            .add_plugins((
-                ExtractComponentPlugin::<NannouTextureHandle>::default(),
-                NannouMaterialPlugin::<DefaultNannouMaterial>::default(),
-                InstancingPlugin,
-            ))
+            .add_plugins((ExtractComponentPlugin::<NannouTextureHandle>::default(),))
             .add_plugins(ExtractResourcePlugin::<DefaultTextureHandle>::default())
             .add_systems(Update, texture_event_handler)
             .add_systems(PostUpdate, update_draw_mesh);
@@ -64,13 +68,61 @@ impl Plugin for NannouRenderPlugin {
 #[derive(Default)]
 pub struct NannouMaterialPlugin<M: Material>(std::marker::PhantomData<M>);
 
-impl<M: Material> Plugin for NannouMaterialPlugin<M>
+impl<M> Plugin for NannouMaterialPlugin<M>
 where
+    M: Material + Default,
     M::Data: PartialEq + Eq + Hash + Clone,
 {
     fn build(&self, app: &mut App) {
-        app.add_plugins(MaterialPlugin::<M>::default())
+        app.add_plugins((MaterialPlugin::<M>::default(),))
             .add_systems(PostUpdate, update_material::<M>.after(update_draw_mesh));
+    }
+}
+
+#[derive(Default)]
+pub struct NannouShaderModelPlugin<SM: ShaderModel>(std::marker::PhantomData<SM>);
+
+impl<SM> Plugin for NannouShaderModelPlugin<SM>
+where
+    SM: ShaderModel,
+    SM::Data: PartialEq + Eq + Hash + Clone,
+{
+    fn build(&self, app: &mut App) {
+        app.add_plugins((
+            RenderAssetPlugin::<PreparedShaderModel<SM>>::default(),
+            IndirectMaterialPlugin::<SM>::default(),
+            InstancedMaterialPlugin::<SM>::default(),
+        ))
+        .add_systems(PostUpdate, update_material::<SM>.after(update_draw_mesh));
+    }
+}
+
+pub struct PreparedShaderModel<T: ShaderModel> {
+    pub bindings: Vec<(u32, OwnedBindingResource)>,
+    pub bind_group: BindGroup,
+    pub key: T::Data,
+}
+
+impl<T: ShaderModel> RenderAsset for PreparedShaderModel<T> {
+    type SourceAsset = T;
+
+    type Param = (SRes<RenderDevice>, SRes<MaterialPipeline<T>>, T::Param);
+
+    fn prepare_asset(
+        material: Self::SourceAsset,
+        (render_device, pipeline, ref mut material_param): &mut SystemParamItem<Self::Param>,
+    ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
+        match material.as_bind_group(&pipeline.material_layout, render_device, material_param) {
+            Ok(prepared) => Ok(PreparedShaderModel {
+                bindings: prepared.bindings,
+                bind_group: prepared.bind_group,
+                key: prepared.data,
+            }),
+            Err(AsBindGroupError::RetryNextUpdate) => {
+                Err(PrepareAssetError::RetryNextUpdate(material))
+            }
+            Err(other) => Err(PrepareAssetError::AsBindGroupError(other)),
+        }
     }
 }
 
@@ -220,6 +272,7 @@ fn update_draw_mesh(
         let mut fill_tessellator = FillTessellator::new();
         let mut stroke_tessellator = StrokeTessellator::new();
 
+        let mut last_mat = None;
         let mut mesh = meshes.add(Mesh::init());
         let mut curr_ctx: DrawContext = Default::default();
 
@@ -248,7 +301,7 @@ fn update_draw_mesh(
                     let mut mesh = meshes.get_mut(&mesh).unwrap();
                     prim.render_primitive(ctxt, &mut mesh);
                 }
-                DrawCommand::Instanced(prim, instance_data) => {
+                DrawCommand::Instanced(prim, range) => {
                     let ctxt = RenderContext {
                         intermediary_mesh: &intermediary_state.intermediary_mesh,
                         path_event_buffer: &intermediary_state.path_event_buffer,
@@ -265,13 +318,54 @@ fn update_draw_mesh(
                     // Render the primitive.
                     let mut mesh = Mesh::init();
                     prim.render_primitive(ctxt, &mut mesh);
-                    mesh = mesh.with_removed_attribute(Mesh::ATTRIBUTE_COLOR);
                     let mesh = meshes.add(mesh);
+                    let mat_id = last_mat.expect("No material set for instanced draw command");
                     commands.spawn((
+                        InstancedMesh,
+                        InstanceRange(range),
+                        UntypedMaterialId(mat_id),
+                        mesh.clone(),
+                        Transform::default(),
+                        GlobalTransform::default(),
+                        Visibility::default(),
+                        InheritedVisibility::default(),
+                        ViewVisibility::default(),
                         NannouMesh,
-                        mesh,
-                        SpatialBundle::INHERITED_IDENTITY,
-                        instance_data,
+                        NoFrustumCulling,
+                        window_layers.clone(),
+                    ));
+                }
+                DrawCommand::Indirect(prim, indirect_buffer) => {
+                    // Info required during rendering.
+                    let ctxt = RenderContext {
+                        intermediary_mesh: &intermediary_state.intermediary_mesh,
+                        path_event_buffer: &intermediary_state.path_event_buffer,
+                        path_points_vertex_buffer: &intermediary_state.path_points_vertex_buffer,
+                        text_buffer: &intermediary_state.text_buffer,
+                        theme: &draw_state.theme,
+                        transform: &curr_ctx.transform,
+                        fill_tessellator: &mut fill_tessellator,
+                        stroke_tessellator: &mut stroke_tessellator,
+                        output_attachment_size: Vec2::new(window.width(), window.height()),
+                        output_attachment_scale_factor: window.scale_factor(),
+                    };
+
+                    // Render the primitive.
+                    let mut mesh = Mesh::init();
+                    prim.render_primitive(ctxt, &mut mesh);
+                    let mesh = meshes.add(mesh);
+                    let mat_id = last_mat.expect("No material set for instanced draw command");
+                    commands.spawn((
+                        IndirectMesh,
+                        indirect_buffer,
+                        UntypedMaterialId(mat_id),
+                        mesh.clone(),
+                        Transform::default(),
+                        GlobalTransform::default(),
+                        Visibility::default(),
+                        InheritedVisibility::default(),
+                        ViewVisibility::default(),
+                        NannouMesh,
                         NoFrustumCulling,
                         window_layers.clone(),
                     ));
@@ -281,6 +375,7 @@ fn update_draw_mesh(
                 }
                 DrawCommand::Material(mat_id) => {
                     // We switched materials, so start rendering into a new mesh
+                    last_mat = Some(mat_id.clone());
                     mesh = meshes.add(Mesh::init());
                     commands.spawn((
                         UntypedMaterialId(mat_id),

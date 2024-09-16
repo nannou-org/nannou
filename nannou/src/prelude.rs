@@ -11,6 +11,7 @@ pub use bevy::tasks::{futures_lite::future, Task};
 pub use bevy_egui::egui;
 
 pub use crate::frame::*;
+pub use crate::render::compute::*;
 pub use crate::render::*;
 pub use crate::wgpu;
 pub use crate::wgpu::util::{BufferInitDescriptor, DeviceExt};
