@@ -24,7 +24,7 @@ pub fn default_sender_socket_addr_v4() -> SocketAddrV4 {
     SocketAddrV4::new(super::default_ipv4_addr(), DEFAULT_PORT)
 }
 
-impl<M> Sender<M> {
+impl<SM> Sender<SM> {
     /// The socket address that this `Sender`'s socket was created from.
     pub fn local_addr(&self) -> Result<SocketAddr, std::io::Error> {
         self.socket.local_addr()

@@ -8,6 +8,7 @@ use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
+use crate::render::ShaderModel;
 
 /// Properties related to drawing a **Tri**.
 #[derive(Clone, Debug)]
@@ -18,7 +19,7 @@ pub struct Tri {
 }
 
 /// The drawing context for a `Tri`.
-pub type DrawingTri<'a, M> = Drawing<'a, Tri, M>;
+pub type DrawingTri<'a, SM> = Drawing<'a, Tri, SM>;
 
 // Tri-specific methods.
 
@@ -46,9 +47,9 @@ impl Tri {
 
 // Drawing methods.
 
-impl<'a, M> DrawingTri<'a, M>
+impl<'a, SM> DrawingTri<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self

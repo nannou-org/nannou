@@ -165,7 +165,7 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(GRAY);
 
-    let draw = draw.material(model.material());
+    let draw = draw.shader_model(model.material());
     match model.shape {
         Shape::Circle => {
             draw_particles_circle(&draw);

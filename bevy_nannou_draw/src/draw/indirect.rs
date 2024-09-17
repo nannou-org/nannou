@@ -4,58 +4,48 @@ use crate::draw::drawing::Drawing;
 use crate::draw::primitive::Primitive;
 use crate::draw::{Draw, DrawCommand};
 use crate::render::{PreparedShaderModel, ShaderModel};
-use bevy::core_pipeline::core_3d::Opaque3dBinKey;
-use bevy::pbr::{
-    MaterialPipeline, MaterialPipelineKey, PreparedMaterial, RenderMaterialInstances,
-    SetMaterialBindGroup,
-};
-use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::extract_instances::ExtractedInstances;
 use bevy::render::mesh::allocator::MeshAllocator;
 use bevy::render::mesh::RenderMeshBufferInfo;
-use bevy::render::render_asset::{prepare_assets, RenderAsset};
-use bevy::render::render_phase::{BinnedRenderPhaseType, ViewBinnedRenderPhases};
+use bevy::render::render_asset::RenderAsset;
 use bevy::render::storage::{GpuShaderStorageBuffer, ShaderStorageBuffer};
-use bevy::render::view;
-use bevy::render::view::VisibilitySystems;
 use bevy::{
     core_pipeline::core_3d::Opaque3d,
     ecs::system::{lifetimeless::*, SystemParamItem},
     pbr::{
-        MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
+        RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
     },
     prelude::*,
     render::{
         extract_component::ExtractComponent,
-        mesh::{MeshVertexBufferLayoutRef, RenderMesh},
+        mesh::RenderMesh,
         render_asset::RenderAssets,
         render_phase::{
-            AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
+            AddRenderCommand, PhaseItem, RenderCommand,
             RenderCommandResult, SetItemPipeline, TrackedRenderPass,
         },
-        render_resource::*,
-        renderer::RenderDevice,
-        view::ExtractedView,
-        Render, RenderApp, RenderSet,
+        render_resource::*
+
+
+        , RenderApp,
     },
 };
 use rayon::prelude::*;
 use std::hash::Hash;
 use std::marker::PhantomData;
-use std::ops::Range;
 
-pub struct Indirect<'a, M>
+pub struct Indirect<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
-    draw: &'a Draw<M>,
+    draw: &'a Draw<SM>,
     primitive_index: Option<usize>,
     indirect_buffer: Option<Handle<ShaderStorageBuffer>>,
 }
 
-impl<'a, M> Drop for Indirect<'a, M>
+impl<'a, SM> Drop for Indirect<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     fn drop(&mut self) {
         if let Some((index, ssbo)) = self.primitive_index.take().zip(self.indirect_buffer.take()) {
@@ -64,9 +54,9 @@ where
     }
 }
 
-pub fn new<M>(draw: &Draw<M>) -> Indirect<M>
+pub fn new<SM>(draw: &Draw<SM>) -> Indirect<SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     Indirect {
         draw,
@@ -75,11 +65,11 @@ where
     }
 }
 
-impl<'a, M> Indirect<'a, M>
+impl<'a, SM> Indirect<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
-    pub fn primitive<T>(mut self, drawing: Drawing<T, M>) -> Indirect<'a, M>
+    pub fn primitive<T>(mut self, drawing: Drawing<T, SM>) -> Indirect<'a, SM>
     where
         T: Into<Primitive>,
     {
@@ -93,7 +83,7 @@ where
         self
     }
 
-    pub fn buffer(mut self, ssbo: Handle<ShaderStorageBuffer>) -> Indirect<'a, M> {
+    pub fn buffer(mut self, ssbo: Handle<ShaderStorageBuffer>) -> Indirect<'a, SM> {
         self.indirect_buffer = Some(ssbo);
         self
     }
@@ -114,11 +104,11 @@ where
 #[derive(Component, ExtractComponent, Clone)]
 pub struct IndirectMesh;
 
-pub struct IndirectMaterialPlugin<M>(PhantomData<M>);
+pub struct IndirectMaterialPlugin<SM>(PhantomData<SM>);
 
-impl<M> Default for IndirectMaterialPlugin<M>
+impl<SM> Default for IndirectMaterialPlugin<SM>
 where
-    M: Default,
+    SM: Default,
 {
     fn default() -> Self {
         IndirectMaterialPlugin(PhantomData)
@@ -131,178 +121,20 @@ where
     SM::Data: PartialEq + Eq + Hash + Clone,
 {
     fn build(&self, app: &mut App) {
-        app.add_plugins((
-            ExtractComponentPlugin::<IndirectMesh>::default(),
-            ExtractComponentPlugin::<Handle<ShaderStorageBuffer>>::default(),
-        ))
-        .add_systems(
-            PostUpdate,
-            view::check_visibility::<With<IndirectMesh>>.in_set(VisibilitySystems::CheckVisibility),
-        );
-
         app.sub_app_mut(RenderApp)
-            .add_render_command::<Opaque3d, DrawIndirectMaterial<SM>>()
-            .init_resource::<SpecializedMeshPipelines<IndirectPipeline<SM>>>()
-            .add_systems(
-                Render,
-                (queue_indirect::<SM>
-                    .after(prepare_assets::<PreparedMaterial<SM>>)
-                    .in_set(RenderSet::QueueMeshes),),
-            );
-    }
-
-    fn finish(&self, app: &mut App) {
-        app.sub_app_mut(RenderApp)
-            .init_resource::<IndirectPipeline<SM>>();
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn queue_indirect<SM>(
-    draw_functions: Res<DrawFunctions<Opaque3d>>,
-    custom_pipeline: Res<IndirectPipeline<SM>>,
-    mut pipelines: ResMut<SpecializedMeshPipelines<IndirectPipeline<SM>>>,
-    pipeline_cache: Res<PipelineCache>,
-    meshes: Res<RenderAssets<RenderMesh>>,
-    (
-        render_mesh_instances,
-        indirect_meshes,
-        mut phases,
-        mut views,
-        shader_models,
-        extracted_instances,
-    ): (
-        Res<RenderMeshInstances>,
-        Query<Entity, With<IndirectMesh>>,
-        ResMut<ViewBinnedRenderPhases<Opaque3d>>,
-        Query<(Entity, &ExtractedView, &Msaa)>,
-        Res<RenderAssets<PreparedShaderModel<SM>>>,
-        Res<ExtractedInstances<AssetId<SM>>>,
-    ),
-) where
-    SM: ShaderModel,
-    SM::Data: PartialEq + Eq + Hash + Clone,
-{
-    let drawn_function = draw_functions.read().id::<DrawIndirectMaterial<SM>>();
-
-    for (view_entity, view, msaa) in &mut views {
-        let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
-        let Some(phase) = phases.get_mut(&view_entity) else {
-            continue;
-        };
-
-        let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
-        for (entity) in &indirect_meshes {
-            let Some(shader_model) = extracted_instances.get(&entity) else {
-                continue;
-            };
-            let shader_model = shader_models.get(*shader_model).unwrap();
-            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(entity) else {
-                continue;
-            };
-            let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
-                continue;
-            };
-            let mesh_key =
-                view_key | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology());
-            let key = MaterialPipelineKey {
-                mesh_key,
-                bind_group_data: shader_model.key.clone(),
-            };
-            let pipeline = pipelines
-                .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
-                .unwrap();
-            phase.add(
-                Opaque3dBinKey {
-                    draw_function: drawn_function,
-                    pipeline,
-                    asset_id: AssetId::<Mesh>::invalid().untyped(),
-                    material_bind_group_id: None,
-                    lightmap_image: None,
-                },
-                entity,
-                BinnedRenderPhaseType::NonMesh,
-            );
-        }
-    }
-}
-
-#[derive(Resource)]
-struct IndirectPipeline<M> {
-    mesh_pipeline: MeshPipeline,
-    shader_model_layout: BindGroupLayout,
-    vertex_shader: Option<Handle<Shader>>,
-    fragment_shader: Option<Handle<Shader>>,
-    marker: PhantomData<M>,
-}
-
-impl<SM: ShaderModel> FromWorld for IndirectPipeline<SM> {
-    fn from_world(world: &mut World) -> Self {
-        let asset_server = world.resource::<AssetServer>();
-        let render_device = world.resource::<RenderDevice>();
-
-        IndirectPipeline {
-            mesh_pipeline: world.resource::<MeshPipeline>().clone(),
-            shader_model_layout: SM::bind_group_layout(render_device),
-            vertex_shader: match <SM as ShaderModel>::vertex_shader() {
-                ShaderRef::Default => None,
-                ShaderRef::Handle(handle) => Some(handle),
-                ShaderRef::Path(path) => Some(asset_server.load(path)),
-            },
-            fragment_shader: match <SM as ShaderModel>::fragment_shader() {
-                ShaderRef::Default => None,
-                ShaderRef::Handle(handle) => Some(handle),
-                ShaderRef::Path(path) => Some(asset_server.load(path)),
-            },
-            marker: PhantomData,
-        }
-    }
-}
-
-impl<SM: ShaderModel> SpecializedMeshPipeline for IndirectPipeline<SM>
-where
-    SM::Data: PartialEq + Eq + Hash + Clone,
-{
-    type Key = MaterialPipelineKey<SM>;
-
-    fn specialize(
-        &self,
-        key: Self::Key,
-        layout: &MeshVertexBufferLayoutRef,
-    ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
-        let mut descriptor = self.mesh_pipeline.specialize(key.mesh_key, layout)?;
-        if let Some(vertex_shader) = &self.vertex_shader {
-            descriptor.vertex.shader = vertex_shader.clone();
-        }
-
-        if let Some(fragment_shader) = &self.fragment_shader {
-            descriptor.fragment.as_mut().unwrap().shader = fragment_shader.clone();
-        }
-
-        descriptor
-            .layout
-            .insert(2, self.shader_model_layout.clone());
-
-        let pipeline = MaterialPipeline {
-            mesh_pipeline: self.mesh_pipeline.clone(),
-            material_layout: self.shader_model_layout.clone(),
-            vertex_shader: self.vertex_shader.clone(),
-            fragment_shader: self.fragment_shader.clone(),
-            marker: Default::default(),
-        };
-        SM::specialize(&pipeline, &mut descriptor, layout, key)?;
-        Ok(descriptor)
+            .add_render_command::<Opaque3d, DrawIndirectMaterial<SM>>();
     }
 }
 
 type DrawIndirectMaterial<SM> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
+    SetMeshBindGroup<1>,
     SetShaderModelBindGroup<SM, 2>,
     DrawMeshIndirect,
 );
 
-struct SetShaderModelBindGroup<M: ShaderModel, const I: usize>(PhantomData<M>);
+struct SetShaderModelBindGroup<SM: ShaderModel, const I: usize>(PhantomData<SM>);
 impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
     for SetShaderModelBindGroup<SM, I>
 {

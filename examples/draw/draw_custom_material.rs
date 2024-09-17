@@ -26,13 +26,13 @@ fn view(app: &App, model: &Model, window: Entity) {
     let draw = app
         .draw()
         // Initialize our draw instance with our custom material
-        .material(ShaderModel { color: RED.into() });
+        .shader_model(ShaderModel { color: RED.into() });
 
     draw.ellipse().x(-200.0);
 
     // We can also map the material manually
     draw.ellipse()
-        .map_material(|mut mat| {
+        .map_shader_model(|mut mat| {
             mat.color = BLUE.into();
             mat
         })

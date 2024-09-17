@@ -39,18 +39,18 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 use std::ops::Range;
 
-pub struct Instanced<'a, M>
+pub struct Instanced<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
-    draw: &'a Draw<M>,
+    draw: &'a Draw<SM>,
     primitive_index: Option<usize>,
     range: Option<Range<u32>>,
 }
 
-impl<'a, M> Drop for Instanced<'a, M>
+impl<'a, SM> Drop for Instanced<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     fn drop(&mut self) {
         if let Some((index, data)) = self.primitive_index.take().zip(self.range.take()) {
@@ -59,9 +59,9 @@ where
     }
 }
 
-pub fn new<M>(draw: &Draw<M>) -> Instanced<M>
+pub fn new<SM>(draw: &Draw<SM>) -> Instanced<SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     Instanced {
         draw,
@@ -70,11 +70,11 @@ where
     }
 }
 
-impl<'a, M> Instanced<'a, M>
+impl<'a, SM> Instanced<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
-    pub fn primitive<T>(mut self, drawing: Drawing<T, M>) -> Instanced<'a, M>
+    pub fn primitive<T>(mut self, drawing: Drawing<T, SM>) -> Instanced<'a, SM>
     where
         T: Into<Primitive>,
     {
@@ -88,7 +88,7 @@ where
         self
     }
 
-    pub fn range(mut self, range: Range<u32>) -> Instanced<'a, M> {
+    pub fn range(mut self, range: Range<u32>) -> Instanced<'a, SM> {
         self.range = Some(range);
         self
     }
@@ -108,11 +108,11 @@ pub struct InstancedMesh;
 #[derive(Component, ExtractComponent, Clone)]
 pub struct InstanceRange(pub Range<u32>);
 
-pub struct InstancedMaterialPlugin<M>(PhantomData<M>);
+pub struct InstancedMaterialPlugin<SM>(PhantomData<SM>);
 
-impl<M> Default for InstancedMaterialPlugin<M>
+impl<SM> Default for InstancedMaterialPlugin<SM>
 where
-    M: Default,
+    SM: Default,
 {
     fn default() -> Self {
         InstancedMaterialPlugin(PhantomData)
@@ -125,168 +125,8 @@ where
     SM::Data: PartialEq + Eq + Hash + Clone,
 {
     fn build(&self, app: &mut App) {
-        app.add_plugins((
-            ExtractComponentPlugin::<InstancedMesh>::default(),
-            ExtractComponentPlugin::<InstanceRange>::default(),
-        ))
-        .add_systems(
-            PostUpdate,
-            view::check_visibility::<With<InstancedMesh>>
-                .in_set(VisibilitySystems::CheckVisibility),
-        );
-
         app.sub_app_mut(RenderApp)
-            .add_render_command::<Opaque3d, DrawInstancedMaterial<SM>>()
-            .init_resource::<SpecializedMeshPipelines<InstancedPipeline<SM>>>()
-            .add_systems(
-                Render,
-                (queue_instanced::<SM>
-                    .after(prepare_assets::<PreparedMaterial<SM>>)
-                    .in_set(RenderSet::QueueMeshes),),
-            );
-    }
-
-    fn finish(&self, app: &mut App) {
-        app.sub_app_mut(RenderApp)
-            .init_resource::<InstancedPipeline<SM>>();
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn queue_instanced<SM>(
-    draw_functions: Res<DrawFunctions<Opaque3d>>,
-    custom_pipeline: Res<InstancedPipeline<SM>>,
-    mut pipelines: ResMut<SpecializedMeshPipelines<InstancedPipeline<SM>>>,
-    pipeline_cache: Res<PipelineCache>,
-    meshes: Res<RenderAssets<RenderMesh>>,
-    (
-        render_mesh_instances,
-        instanced_meshes,
-        mut phases,
-        mut views,
-        shader_models,
-        extracted_instances,
-    ): (
-        Res<RenderMeshInstances>,
-        Query<Entity, With<InstancedMesh>>,
-        ResMut<ViewBinnedRenderPhases<Opaque3d>>,
-        Query<(Entity, &ExtractedView, &Msaa)>,
-        Res<RenderAssets<PreparedShaderModel<SM>>>,
-        Res<ExtractedInstances<AssetId<SM>>>,
-    ),
-) where
-    SM: ShaderModel,
-    SM::Data: PartialEq + Eq + Hash + Clone,
-{
-    let drawn_function = draw_functions.read().id::<DrawInstancedMaterial<SM>>();
-
-    for (view_entity, view, msaa) in &mut views {
-        let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
-        let Some(phase) = phases.get_mut(&view_entity) else {
-            continue;
-        };
-
-        let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
-        for (entity) in &instanced_meshes {
-            let Some(shader_model) = extracted_instances.get(&entity) else {
-                continue;
-            };
-            let shader_model = shader_models.get(*shader_model).unwrap();
-            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(entity) else {
-                continue;
-            };
-            let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
-                continue;
-            };
-            let mesh_key =
-                view_key | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology());
-            let key = MaterialPipelineKey {
-                mesh_key,
-                bind_group_data: shader_model.key.clone(),
-            };
-            let pipeline = pipelines
-                .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
-                .unwrap();
-            phase.add(
-                Opaque3dBinKey {
-                    draw_function: drawn_function,
-                    pipeline,
-                    asset_id: AssetId::<Mesh>::invalid().untyped(),
-                    material_bind_group_id: None,
-                    lightmap_image: None,
-                },
-                entity,
-                BinnedRenderPhaseType::NonMesh,
-            );
-        }
-    }
-}
-
-#[derive(Resource)]
-struct InstancedPipeline<M> {
-    mesh_pipeline: MeshPipeline,
-    shader_model_layout: BindGroupLayout,
-    vertex_shader: Option<Handle<Shader>>,
-    fragment_shader: Option<Handle<Shader>>,
-    marker: PhantomData<M>,
-}
-
-impl<SM: ShaderModel> FromWorld for InstancedPipeline<SM> {
-    fn from_world(world: &mut World) -> Self {
-        let asset_server = world.resource::<AssetServer>();
-        let render_device = world.resource::<RenderDevice>();
-
-        InstancedPipeline {
-            mesh_pipeline: world.resource::<MeshPipeline>().clone(),
-            shader_model_layout: SM::bind_group_layout(render_device),
-            vertex_shader: match <SM as ShaderModel>::vertex_shader() {
-                ShaderRef::Default => None,
-                ShaderRef::Handle(handle) => Some(handle),
-                ShaderRef::Path(path) => Some(asset_server.load(path)),
-            },
-            fragment_shader: match <SM as ShaderModel>::fragment_shader() {
-                ShaderRef::Default => None,
-                ShaderRef::Handle(handle) => Some(handle),
-                ShaderRef::Path(path) => Some(asset_server.load(path)),
-            },
-            marker: PhantomData,
-        }
-    }
-}
-
-impl<SM: ShaderModel> SpecializedMeshPipeline for InstancedPipeline<SM>
-where
-    SM::Data: PartialEq + Eq + Hash + Clone,
-{
-    type Key = MaterialPipelineKey<SM>;
-
-    fn specialize(
-        &self,
-        key: Self::Key,
-        layout: &MeshVertexBufferLayoutRef,
-    ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
-        let mut descriptor = self.mesh_pipeline.specialize(key.mesh_key, layout)?;
-        if let Some(vertex_shader) = &self.vertex_shader {
-            descriptor.vertex.shader = vertex_shader.clone();
-        }
-
-        if let Some(fragment_shader) = &self.fragment_shader {
-            descriptor.fragment.as_mut().unwrap().shader = fragment_shader.clone();
-        }
-
-        descriptor
-            .layout
-            .insert(2, self.shader_model_layout.clone());
-
-        let pipeline = MaterialPipeline {
-            mesh_pipeline: self.mesh_pipeline.clone(),
-            material_layout: self.shader_model_layout.clone(),
-            vertex_shader: self.vertex_shader.clone(),
-            fragment_shader: self.fragment_shader.clone(),
-            marker: Default::default(),
-        };
-        SM::specialize(&pipeline, &mut descriptor, layout, key)?;
-        Ok(descriptor)
+            .add_render_command::<Opaque3d, DrawInstancedMaterial<SM>>();
     }
 }
 
@@ -297,7 +137,7 @@ type DrawInstancedMaterial<SM> = (
     DrawMeshInstanced,
 );
 
-struct SetShaderModelBindGroup<M: ShaderModel, const I: usize>(PhantomData<M>);
+struct SetShaderModelBindGroup<SM: ShaderModel, const I: usize>(PhantomData<SM>);
 impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
     for SetShaderModelBindGroup<SM, I>
 {

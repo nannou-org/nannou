@@ -40,8 +40,7 @@ use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::bevy_reflect::DynamicTyped;
-use crate::prelude::render::{NannouMaterialPlugin, NannouMesh, ShaderModel};
-use crate::prelude::NannouShaderModelPlugin;
+use crate::prelude::render::{NannouShaderModelPlugin, NannouMesh, ShaderModel};
 use crate::render::{
     compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
     NannouRenderNode, RenderApp, RenderPlugin,
@@ -358,7 +357,6 @@ where
         SM::Data: PartialEq + Eq + Hash + Clone,
     {
         self.app.add_plugins((
-            NannouMaterialPlugin::<SM>::default(),
             NannouShaderModelPlugin::<SM>::default(),
         ));
         self
@@ -440,13 +438,6 @@ where
     /// initialised on the main thread.
     pub fn run(mut self) {
         self.app
-            // This ensures that color materials are rendered correctly.
-            .insert_resource(AmbientLight {
-                color: Color::WHITE,
-                // This isn't randomly chosen
-                // See:  https://discord.com/channels/691052431525675048/866787577687310356/1229248273735487560
-                brightness: 998.096,
-            })
             .insert_resource(self.config.clone())
             .insert_resource(ModelFnRes(self.model))
             .insert_resource(EventFnRes(self.event))

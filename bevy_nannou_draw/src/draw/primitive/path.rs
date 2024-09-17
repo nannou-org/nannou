@@ -6,6 +6,7 @@ use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetFill, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing, DrawingContext};
+use crate::render::ShaderModel;
 
 /// A set of path tessellation options (FillOptions or StrokeOptions).
 pub trait TessellationOptions {
@@ -73,19 +74,19 @@ pub struct Path {
 }
 
 /// The initial drawing context for a path.
-pub type DrawingPathInit<'a, M> = Drawing<'a, PathInit, M>;
+pub type DrawingPathInit<'a, SM> = Drawing<'a, PathInit, SM>;
 
 /// The drawing context for a path in the tessellation options state.
-pub type DrawingPathOptions<'a, T, M> = Drawing<'a, PathOptions<T>, M>;
+pub type DrawingPathOptions<'a, T, SM> = Drawing<'a, PathOptions<T>, SM>;
 
 /// The drawing context for a stroked path, prior to path event submission.
-pub type DrawingPathStroke<'a, M> = Drawing<'a, PathStroke, M>;
+pub type DrawingPathStroke<'a, SM> = Drawing<'a, PathStroke, SM>;
 
 /// The drawing context for a filled path, prior to path event submission.
-pub type DrawingPathFill<'a, M> = Drawing<'a, PathFill, M>;
+pub type DrawingPathFill<'a, SM> = Drawing<'a, PathFill, SM>;
 
 /// The drawing context for a polyline whose vertices have been specified.
-pub type DrawingPath<'a, M> = Drawing<'a, Path, M>;
+pub type DrawingPath<'a, SM> = Drawing<'a, Path, SM>;
 
 /// Dynamically distinguish between fill and stroke tessellation options.
 #[derive(Clone, Debug)]
@@ -571,28 +572,28 @@ impl Path {
     }
 }
 
-impl<'a, M> DrawingPathInit<'a, M>
+impl<'a, SM> DrawingPathInit<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     /// Specify that we want to use fill tessellation for the path.
     ///
     /// The returned building context allows for specifying the fill tessellation options.
-    pub fn fill(self) -> DrawingPathFill<'a, M> {
+    pub fn fill(self) -> DrawingPathFill<'a, SM> {
         self.map_ty(|ty| ty.fill())
     }
 
     /// Specify that we want to use stroke tessellation for the path.
     ///
     /// The returned building context allows for specifying the stroke tessellation options.
-    pub fn stroke(self) -> DrawingPathStroke<'a, M> {
+    pub fn stroke(self) -> DrawingPathStroke<'a, SM> {
         self.map_ty(|ty| ty.stroke())
     }
 }
 
-impl<'a, M> DrawingPathFill<'a, M>
+impl<'a, SM> DrawingPathFill<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     /// Maximum allowed distance to the path when building an approximation.
     pub fn tolerance(self, tolerance: f32) -> Self {
@@ -607,9 +608,9 @@ where
     }
 }
 
-impl<'a, M> DrawingPathStroke<'a, M>
+impl<'a, SM> DrawingPathStroke<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
@@ -622,15 +623,15 @@ where
     }
 }
 
-impl<'a, T, M> DrawingPathOptions<'a, T, M>
+impl<'a, T, SM> DrawingPathOptions<'a, T, SM>
 where
     T: TessellationOptions,
-    M: Material + Default,
+    SM: ShaderModel + Default,
     PathOptions<T>: Into<Primitive> + Clone,
     Primitive: Into<Option<PathOptions<T>>>,
 {
     /// Submit the path events to be tessellated.
-    pub fn events<I>(self, events: I) -> DrawingPath<'a, M>
+    pub fn events<I>(self, events: I) -> DrawingPath<'a, SM>
     where
         I: IntoIterator<Item = lyon::path::PathEvent>,
     {
@@ -638,7 +639,7 @@ where
     }
 
     /// Submit the path events as a polyline of points.
-    pub fn points<I>(self, points: I) -> DrawingPath<'a, M>
+    pub fn points<I>(self, points: I) -> DrawingPath<'a, SM>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -649,7 +650,7 @@ where
     /// Submit the path events as a polyline of points.
     ///
     /// An event will be generated that closes the start and end points.
-    pub fn points_closed<I>(self, points: I) -> DrawingPath<'a, M>
+    pub fn points_closed<I>(self, points: I) -> DrawingPath<'a, SM>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -657,7 +658,7 @@ where
         self.map_ty_with_context(|ty, ctxt| ty.points_closed(ctxt, points))
     }
 
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPath<'a, M>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPath<'a, SM>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -668,7 +669,7 @@ where
         })
     }
 
-    pub fn points_colored_closed<I, P, C>(self, points: I) -> DrawingPath<'a, M>
+    pub fn points_colored_closed<I, P, C>(self, points: I) -> DrawingPath<'a, SM>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -680,7 +681,7 @@ where
     }
 
     /// Submit path events as a polyline of vertex points.
-    pub fn points_vertex<I, P, C, U>(self, points: I) -> DrawingPath<'a, M>
+    pub fn points_vertex<I, P, C, U>(self, points: I) -> DrawingPath<'a, SM>
     where
         I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
@@ -693,7 +694,7 @@ where
     /// Submit path events as a polyline of vertex points.
     ///
     /// The path with automatically close from the end point to the start point.
-    pub fn points_vertex_closed<I, P, C, U>(self, points: I) -> DrawingPath<'a, M>
+    pub fn points_vertex_closed<I, P, C, U>(self, points: I) -> DrawingPath<'a, SM>
     where
         I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,

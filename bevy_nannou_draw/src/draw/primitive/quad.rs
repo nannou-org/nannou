@@ -10,6 +10,7 @@ use crate::draw::properties::{
     spatial, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{self, Drawing};
+use crate::render::ShaderModel;
 
 /// Properties related to drawing a **Quad**.
 #[derive(Clone, Debug)]
@@ -20,7 +21,7 @@ pub struct Quad {
 }
 
 /// The drawing context for a `Quad`.
-pub type DrawingQuad<'a, M> = Drawing<'a, Quad, M>;
+pub type DrawingQuad<'a, SM> = Drawing<'a, Quad, SM>;
 
 // Quad-specific methods.
 
@@ -175,9 +176,9 @@ impl Into<Option<Quad>> for Primitive {
 
 // Drawing methods.
 
-impl<'a, M> DrawingQuad<'a, M>
+impl<'a, SM> DrawingQuad<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     /// Use the given points as the vertices (corners) of the quad.
     pub fn points<P>(self, a: P, b: P, c: P, d: P) -> Self

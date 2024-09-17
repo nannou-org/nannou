@@ -6,6 +6,7 @@ use crate::draw::primitive::{PathStroke, Primitive};
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
+use crate::render::ShaderModel;
 
 /// A path containing only two points - a start and end.
 ///
@@ -19,7 +20,7 @@ pub struct Line {
 }
 
 /// The drawing context for a line.
-pub type DrawingLine<'a, M> = Drawing<'a, Line, M>;
+pub type DrawingLine<'a, SM> = Drawing<'a, Line, SM>;
 
 impl Line {
     /// Short-hand for the `stroke_weight` method.
@@ -60,9 +61,9 @@ impl Line {
     }
 }
 
-impl<'a, M> DrawingLine<'a, M>
+impl<'a, SM> DrawingLine<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {

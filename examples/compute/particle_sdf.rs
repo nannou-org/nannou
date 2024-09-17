@@ -232,7 +232,7 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(GRAY);
 
-    let draw = draw.material(model.material());
+    let draw = draw.shader_model(model.material());
     draw.indirect()
         .primitive(draw.rect().w_h(2.0, 2.0))
         .buffer(model.indirect_params.clone());

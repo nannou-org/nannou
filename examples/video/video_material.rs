@@ -52,7 +52,7 @@ fn view(app: &App, model: &Model) {
     let draw = app
         .draw()
         // Initialize our draw instance with our custom material
-        .material(VideoShaderModel {
+        .shader_model(VideoShaderModel {
             texture: video.texture.clone(),
         });
 

@@ -14,7 +14,7 @@ pub use self::theme::Theme;
 use crate::draw::indirect::Indirect;
 use crate::draw::instanced::Instanced;
 use crate::draw::mesh::MeshExt;
-use crate::render::DefaultNannouMaterial;
+use crate::render::{DefaultNannouShaderModel, ShaderModel};
 use bevy::asset::UntypedAssetId;
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
@@ -49,9 +49,9 @@ pub mod theme;
 /// See the [draw](https://github.com/nannou-org/nannou/blob/master/examples) examples for a
 /// variety of demonstrations of how the [Draw] type can be used!
 #[derive(Clone)]
-pub struct Draw<M = DefaultNannouMaterial>
+pub struct Draw<SM = DefaultNannouShaderModel>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     /// The state of the [Draw].
     ///
@@ -70,24 +70,24 @@ where
     /// The window to which this [Draw] instance is associated.
     pub(crate) window: Entity,
     /// The type of material used by this [Draw] instance.
-    _material: PhantomData<M>,
+    _material: PhantomData<SM>,
 }
 
 /// A reference to a [Draw] instance that is either borrowed or owned.
 #[derive(Clone)]
-pub enum DrawRef<'a, M>
+pub enum DrawRef<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
-    Borrowed(&'a Draw<M>),
-    Owned(Draw<M>),
+    Borrowed(&'a Draw<SM>),
+    Owned(Draw<SM>),
 }
 
-impl<'a, M> Deref for DrawRef<'a, M>
+impl<'a, SM> Deref for DrawRef<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
-    type Target = Draw<M>;
+    type Target = Draw<SM>;
 
     fn deref(&self) -> &Self::Target {
         match self {
@@ -124,8 +124,8 @@ pub enum DrawCommand {
     Indirect(Primitive, Handle<ShaderStorageBuffer>),
     /// A change in the rendering context occurred.
     Context(DrawContext),
-    /// A change in the material occurred.
-    Material(UntypedAssetId),
+    /// A change in the shader model occurred.
+    ShaderModel(UntypedAssetId),
     /// A change in the background color occurred.
     BackgroundColor(Color),
 }
@@ -149,7 +149,7 @@ pub struct State {
     /// Keys are indices into the `draw_commands` Vec.
     drawing: HashMap<usize, Primitive>,
     /// A map of all type erased materials used by the draw.
-    pub(crate) materials: HashMap<UntypedAssetId, Box<dyn Any + Send + Sync>>,
+    pub(crate) shader_models: HashMap<UntypedAssetId, Box<dyn Any + Send + Sync>>,
     /// A list of indices of primitives that are being drawn via an alternate method and
     /// should not be drawn
     ignored_drawings: HashSet<usize>,
@@ -192,7 +192,7 @@ impl State {
         self.last_draw_context = None;
         self.background_color = None;
         self.drawing.clear();
-        self.materials.clear();
+        self.shader_models.clear();
         self.draw_commands.clear();
         self.intermediary_state.write().unwrap().reset();
     }
@@ -226,19 +226,19 @@ impl State {
     }
 }
 
-impl<M> Draw<M>
+impl<SM> Draw<SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     pub fn new(window: Entity) -> Self {
         let mut state = State::default();
         let context = DrawContext::default();
-        let material = M::default();
+        let material = SM::default();
         let material_id = UntypedAssetId::Uuid {
-            type_id: TypeId::of::<M>(),
+            type_id: TypeId::of::<SM>(),
             uuid: Uuid::new_v4(),
         };
-        state.materials.insert(material_id, Box::new(material));
+        state.shader_models.insert(material_id, Box::new(material));
 
         Draw {
             state: Arc::new(RwLock::new(state)),
@@ -257,12 +257,12 @@ where
 
     fn insert_default_material(&mut self) {
         let mut state = self.state.write().unwrap();
-        let material = M::default();
+        let material = SM::default();
         let material_id = UntypedAssetId::Uuid {
-            type_id: TypeId::of::<M>(),
+            type_id: TypeId::of::<SM>(),
             uuid: Uuid::new_v4(),
         };
-        state.materials.insert(material_id, Box::new(material));
+        state.shader_models.insert(material_id, Box::new(material));
         self.material = material_id;
     }
 
@@ -456,7 +456,7 @@ where
     }
 
     /// Produce a new [Draw] instance with the given context.
-    fn context(&self, context: DrawContext) -> Draw<M> {
+    fn context(&self, context: DrawContext) -> Draw<SM> {
         let state = self.state.clone();
         let material = self.material.clone();
         let window = self.window;
@@ -469,37 +469,37 @@ where
         }
     }
 
-    fn clone_material(&self) -> M {
+    fn clone_shader_model(&self) -> SM {
         let mut state = self.state.write().unwrap();
-        let material = state.materials.get_mut(&self.material).unwrap();
+        let material = state.shader_models.get_mut(&self.material).unwrap();
         material
-            .downcast_ref::<M>()
+            .downcast_ref::<SM>()
             .expect("Expected material to be of the correct type")
             .clone()
     }
 
     /// Produce a new [Draw] instance with a new material type.
-    pub fn material<M2: Material + Default>(&self, material: M2) -> Draw<M2> {
+    pub fn shader_model<SM2: ShaderModel + Default>(&self, model: SM2) -> Draw<SM2> {
         let context = self.context.clone();
         let DrawContext { transform, .. } = context;
         let context = DrawContext { transform };
         let state = self.state.clone();
         let window = self.window;
-        let material_id = UntypedAssetId::Uuid {
-            type_id: TypeId::of::<M2>(),
+        let model_id = UntypedAssetId::Uuid {
+            type_id: TypeId::of::<SM2>(),
             uuid: Uuid::new_v4(),
         };
 
         state
             .write()
             .unwrap()
-            .materials
-            .insert(material_id, Box::new(material));
+            .shader_models
+            .insert(model_id, Box::new(model));
 
         Draw {
             state,
             context,
-            material: material_id,
+            material: model_id,
             window,
             _material: PhantomData,
         }
@@ -508,21 +508,21 @@ where
     // Primitives.
 
     /// Specify a color with which the background should be cleared.
-    pub fn background<'a>(&'a self) -> Background<'a, M> {
+    pub fn background<'a>(&'a self) -> Background<'a, SM> {
         background::new(self)
     }
 
     /// Draw an instanced drawing
-    pub fn instanced<'a>(&'a self) -> Instanced<'a, M> {
+    pub fn instanced<'a>(&'a self) -> Instanced<'a, SM> {
         instanced::new(self)
     }
 
-    pub fn indirect<'a>(&'a self) -> Indirect<'a, M> {
+    pub fn indirect<'a>(&'a self) -> Indirect<'a, SM> {
         indirect::new(self)
     }
 
     /// Add the given type to be drawn.
-    pub fn a<T>(&self, primitive: T) -> Drawing<T, M>
+    pub fn a<T>(&self, primitive: T) -> Drawing<T, SM>
     where
         T: Into<Primitive>,
         Primitive: Into<Option<T>>,
@@ -541,7 +541,7 @@ where
             if state.last_material.as_ref() != Some(id) {
                 state
                     .draw_commands
-                    .push(Some(DrawCommand::Material(id.clone())));
+                    .push(Some(DrawCommand::ShaderModel(id.clone())));
                 state.last_material = Some(id.clone());
             }
 
@@ -560,59 +560,59 @@ where
     }
 
     /// Begin drawing a **Path**.
-    pub fn path(&self) -> Drawing<primitive::PathInit, M> {
+    pub fn path(&self) -> Drawing<primitive::PathInit, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing an **Ellipse**.
-    pub fn ellipse(&self) -> Drawing<primitive::Ellipse, M> {
+    pub fn ellipse(&self) -> Drawing<primitive::Ellipse, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Line**.
-    pub fn line(&self) -> Drawing<primitive::Line, M> {
+    pub fn line(&self) -> Drawing<primitive::Line, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing an **Arrow**.
-    pub fn arrow(&self) -> Drawing<primitive::Arrow, M> {
+    pub fn arrow(&self) -> Drawing<primitive::Arrow, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Quad**.
-    pub fn quad(&self) -> Drawing<primitive::Quad, M> {
+    pub fn quad(&self) -> Drawing<primitive::Quad, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Rect**.
-    pub fn rect(&self) -> Drawing<primitive::Rect, M> {
+    pub fn rect(&self) -> Drawing<primitive::Rect, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Triangle**.
-    pub fn tri(&self) -> Drawing<primitive::Tri, M> {
+    pub fn tri(&self) -> Drawing<primitive::Tri, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polygon**.
-    pub fn polygon(&self) -> Drawing<primitive::PolygonInit, M> {
+    pub fn polygon(&self) -> Drawing<primitive::PolygonInit, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Mesh**.
-    pub fn mesh(&self) -> Drawing<primitive::mesh::Vertexless, M> {
+    pub fn mesh(&self) -> Drawing<primitive::mesh::Vertexless, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polyline**.
     ///
     /// Note that this is simply short-hand for `draw.path().stroke()`
-    pub fn polyline(&self) -> Drawing<primitive::PathStroke, M> {
+    pub fn polyline(&self) -> Drawing<primitive::PathStroke, SM> {
         self.path().stroke()
     }
 
     /// Begin drawing a **Text**.
-    pub fn text(&self, s: &str) -> Drawing<primitive::Text, M> {
+    pub fn text(&self, s: &str) -> Drawing<primitive::Text, SM> {
         let text = {
             let state = self.state.read().expect("lock poisoned");
             let mut intermediary_state = state.intermediary_state.write().expect("lock poisoned");
@@ -641,27 +641,27 @@ where
     }
 }
 
-impl Draw<DefaultNannouMaterial> {
+impl Draw<DefaultNannouShaderModel> {
     /// Produce a new [Draw] instance that will draw with the given alpha blend descriptor.
     pub fn alpha_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
         // TODO: check if blend is already set and only update if necessary
-        let mut mat = self.clone_material().clone();
-        mat.extension.blend = Some(BlendState {
+        let mut model = self.clone_shader_model().clone();
+        model.blend = Some(BlendState {
             color: BlendComponent::REPLACE,
             alpha: blend_descriptor,
         });
-        self.material(mat)
+        self.shader_model(model)
     }
 
     /// Produce a new [Draw] instance that will draw with the given color blend descriptor.
     pub fn color_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
         // TODO: check if blend is already set and only update if necessary
-        let mut mat = self.clone_material().clone();
-        mat.extension.blend = Some(BlendState {
+        let mut model = self.clone_shader_model().clone();
+        model.blend = Some(BlendState {
             color: blend_descriptor,
             alpha: BlendComponent::REPLACE,
         });
-        self.material(mat)
+        self.shader_model(model)
     }
 
     /// Short-hand for `color_blend`, the common use-case.
@@ -671,9 +671,9 @@ impl Draw<DefaultNannouMaterial> {
 
     /// Produce a new [Draw] instance that will use the given polygon mode.
     pub fn polygon_mode(&self, polygon_mode: wgpu::PolygonMode) -> Self {
-        let mut mat = self.clone_material().clone();
-        mat.extension.polygon_mode = polygon_mode;
-        self.material(mat)
+        let mut model = self.clone_shader_model().clone();
+        model.polygon_mode = polygon_mode;
+        self.shader_model(model)
     }
 }
 
@@ -710,7 +710,7 @@ impl Default for State {
             theme,
             background_color,
             ignored_drawings: Default::default(),
-            materials: Default::default(),
+            shader_models: Default::default(),
         }
     }
 }
