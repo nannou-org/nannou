@@ -167,7 +167,9 @@ where
 
         let shader_model = map(shader_model.clone());
         let mut state = state.write().unwrap();
-        state.shader_models.insert(new_id.clone(), Box::new(shader_model));
+        state
+            .shader_models
+            .insert(new_id.clone(), Box::new(shader_model));
         // Mark the last shader model as the new model so that further drawings use the same model
         // as the parent draw ref.
         state.last_shader_model = Some(new_id.clone());

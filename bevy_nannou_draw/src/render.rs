@@ -1,13 +1,14 @@
 use crate::{
     draw::{
-        indirect::{IndirectShaderModelPlugin, IndirectMesh},
-        instanced::{InstanceRange, InstancedShaderModelPlugin, InstancedMesh},
+        indirect::{IndirectMesh, IndirectShaderModelPlugin},
+        instanced::{InstanceRange, InstancedMesh, InstancedShaderModelPlugin},
         mesh::MeshExt,
         render::{RenderContext, RenderPrimitive},
         DrawCommand, DrawContext,
     },
     DrawHolder,
 };
+use bevy::render::storage::ShaderStorageBuffer;
 use bevy::{
     asset::{load_internal_asset, Asset, UntypedAssetId},
     core_pipeline::core_3d::Transparent3d,
@@ -16,8 +17,7 @@ use bevy::{
         system::{lifetimeless::SRes, SystemParamItem},
     },
     pbr::{
-        DefaultOpaqueRendererMethod, DrawMesh,
-        MeshPipeline, MeshPipelineKey, OpaqueRendererMethod,
+        DefaultOpaqueRendererMethod, DrawMesh, MeshPipeline, MeshPipelineKey, OpaqueRendererMethod,
         RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
     },
     prelude::{TypePath, *},
@@ -53,7 +53,6 @@ use bevy::{
 };
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 use std::{any::TypeId, hash::Hash, marker::PhantomData};
-use bevy::render::storage::ShaderStorageBuffer;
 
 pub const DEFAULT_NANNOU_SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(3086880141013591);
 
@@ -136,7 +135,10 @@ where
                 IndirectShaderModelPlugin::<SM>::default(),
                 InstancedShaderModelPlugin::<SM>::default(),
             ))
-            .add_systems(PostUpdate, update_shader_model::<SM>.after(update_draw_mesh));
+            .add_systems(
+                PostUpdate,
+                update_shader_model::<SM>.after(update_draw_mesh),
+            );
 
         app.sub_app_mut(RenderApp)
             .add_render_command::<Transparent3d, DrawShaderModel<SM>>()
@@ -176,7 +178,11 @@ impl<SM: ShaderModel> RenderAsset for PreparedShaderModel<SM> {
         shader_model: Self::SourceAsset,
         (render_device, pipeline, ref mut shader_model_param): &mut SystemParamItem<Self::Param>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
-        match shader_model.as_bind_group(&pipeline.shader_model_layout, render_device, shader_model_param) {
+        match shader_model.as_bind_group(
+            &pipeline.shader_model_layout,
+            render_device,
+            shader_model_param,
+        ) {
             Ok(prepared) => Ok(PreparedShaderModel {
                 bindings: prepared.bindings,
                 bind_group: prepared.bind_group,
@@ -638,7 +644,8 @@ fn update_draw_mesh(
                     let mut mesh = Mesh::init();
                     prim.render_primitive(ctxt, &mut mesh);
                     let mesh = meshes.add(mesh);
-                    let model_id = last_shader_model.expect("No shader model set for instanced draw command");
+                    let model_id =
+                        last_shader_model.expect("No shader model set for instanced draw command");
                     commands.spawn((
                         InstancedMesh,
                         InstanceRange(range),
@@ -674,7 +681,8 @@ fn update_draw_mesh(
                     let mut mesh = Mesh::init();
                     prim.render_primitive(ctxt, &mut mesh);
                     let mesh = meshes.add(mesh);
-                    let model_id = last_shader_model.expect("No shader model set for instanced draw command");
+                    let model_id =
+                        last_shader_model.expect("No shader model set for instanced draw command");
                     commands.spawn((
                         IndirectMesh,
                         indirect_buffer,

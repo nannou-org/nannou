@@ -40,7 +40,7 @@ use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::bevy_reflect::DynamicTyped;
-use crate::prelude::render::{NannouShaderModelPlugin, NannouMesh, ShaderModel};
+use crate::prelude::render::{NannouMesh, NannouShaderModelPlugin, ShaderModel};
 use crate::render::{
     compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
     NannouRenderNode, RenderApp, RenderPlugin,
@@ -356,9 +356,8 @@ where
         SM: ShaderModel,
         SM::Data: PartialEq + Eq + Hash + Clone,
     {
-        self.app.add_plugins((
-            NannouShaderModelPlugin::<SM>::default(),
-        ));
+        self.app
+            .add_plugins((NannouShaderModelPlugin::<SM>::default(),));
         self
     }
 

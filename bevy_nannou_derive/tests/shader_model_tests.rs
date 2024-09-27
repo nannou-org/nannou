@@ -7,7 +7,10 @@ struct TestShaderModel {}
 
 #[test]
 fn test_default_shaders() {
-    assert!(matches!(TestShaderModel::vertex_shader(), ShaderRef::Default));
+    assert!(matches!(
+        TestShaderModel::vertex_shader(),
+        ShaderRef::Default
+    ));
     assert!(matches!(
         TestShaderModel::fragment_shader(),
         ShaderRef::Default

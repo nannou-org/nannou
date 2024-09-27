@@ -115,8 +115,7 @@ where
     SM::Data: PartialEq + Eq + Hash + Clone,
 {
     fn build(&self, app: &mut App) {
-        app
-            .sub_app_mut(RenderApp)
+        app.sub_app_mut(RenderApp)
             .add_render_command::<Transparent3d, DrawIndirectShaderModel<SM>>()
             .add_systems(
                 Render,

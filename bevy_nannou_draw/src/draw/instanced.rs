@@ -7,9 +7,7 @@ use crate::{
 use bevy::{
     core_pipeline::core_3d::Transparent3d,
     ecs::system::{lifetimeless::*, SystemParamItem},
-    pbr::{
-        RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
-    },
+    pbr::{RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup},
     prelude::*,
     render::{
         extract_component::{ExtractComponent, ExtractComponentPlugin},

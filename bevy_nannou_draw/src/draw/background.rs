@@ -1,4 +1,4 @@
-use bevy::prelude::{Color};
+use bevy::prelude::Color;
 
 use crate::draw::{Draw, DrawCommand};
 use crate::render::ShaderModel;
