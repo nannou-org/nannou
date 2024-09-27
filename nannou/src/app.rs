@@ -362,14 +362,6 @@ where
         self
     }
 
-    /// Load a fragment shader asset from the given path for use with the nannou `Draw` API.
-    #[cfg(feature = "nightly")]
-    pub fn init_fragment_shader<const SHADER: &'static str>(mut self) -> Self {
-        self.app
-            .add_plugins(NannouShaderModelPlugin::<ExtendedNannouMaterial<"", SHADER>>::default());
-        self
-    }
-
     pub fn compute<CM: Compute>(mut self, compute_fn: ComputeUpdateFn<M, CM>) -> Self {
         let render_app = self.app.sub_app_mut(bevy::render::RenderApp);
         render_app.insert_resource(ComputeShaderHandle(CM::shader()));

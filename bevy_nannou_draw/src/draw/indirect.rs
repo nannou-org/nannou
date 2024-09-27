@@ -98,18 +98,18 @@ where
 #[derive(Component, ExtractComponent, Clone)]
 pub struct IndirectMesh;
 
-pub struct IndirectMaterialPlugin<SM>(PhantomData<SM>);
+pub struct IndirectShaderModelPlugin<SM>(PhantomData<SM>);
 
-impl<SM> Default for IndirectMaterialPlugin<SM>
+impl<SM> Default for IndirectShaderModelPlugin<SM>
 where
     SM: Default,
 {
     fn default() -> Self {
-        IndirectMaterialPlugin(PhantomData)
+        IndirectShaderModelPlugin(PhantomData)
     }
 }
 
-impl<SM> Plugin for IndirectMaterialPlugin<SM>
+impl<SM> Plugin for IndirectShaderModelPlugin<SM>
 where
     SM: ShaderModel,
     SM::Data: PartialEq + Eq + Hash + Clone,
@@ -117,17 +117,17 @@ where
     fn build(&self, app: &mut App) {
         app
             .sub_app_mut(RenderApp)
-            .add_render_command::<Transparent3d, DrawIndirectMaterial<SM>>()
+            .add_render_command::<Transparent3d, DrawIndirectShaderModel<SM>>()
             .add_systems(
                 Render,
-                queue_shader_model::<SM, With<IndirectMesh>, DrawIndirectMaterial<SM>>
+                queue_shader_model::<SM, With<IndirectMesh>, DrawIndirectShaderModel<SM>>
                     .after(prepare_assets::<PreparedShaderModel<SM>>)
                     .in_set(RenderSet::QueueMeshes),
             );
     }
 }
 
-type DrawIndirectMaterial<SM> = (
+type DrawIndirectShaderModel<SM> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
     SetMeshBindGroup<1>,

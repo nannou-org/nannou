@@ -8,7 +8,6 @@ use bevy::{
     core_pipeline::core_3d::Transparent3d,
     ecs::system::{lifetimeless::*, SystemParamItem},
     pbr::{
-        MaterialPipeline, MaterialPipelineKey, MeshPipeline, MeshPipelineKey, PreparedMaterial,
         RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
     },
     prelude::*,
@@ -103,35 +102,35 @@ pub struct InstancedMesh;
 #[derive(Component, ExtractComponent, Clone)]
 pub struct InstanceRange(pub Range<u32>);
 
-pub struct InstancedMaterialPlugin<SM>(PhantomData<SM>);
+pub struct InstancedShaderModelPlugin<SM>(PhantomData<SM>);
 
-impl<SM> Default for InstancedMaterialPlugin<SM>
+impl<SM> Default for InstancedShaderModelPlugin<SM>
 where
     SM: Default,
 {
     fn default() -> Self {
-        InstancedMaterialPlugin(PhantomData)
+        InstancedShaderModelPlugin(PhantomData)
     }
 }
 
-impl<SM> Plugin for InstancedMaterialPlugin<SM>
+impl<SM> Plugin for InstancedShaderModelPlugin<SM>
 where
     SM: ShaderModel,
     SM::Data: PartialEq + Eq + Hash + Clone,
 {
     fn build(&self, app: &mut App) {
         app.sub_app_mut(RenderApp)
-            .add_render_command::<Transparent3d, DrawInstancedMaterial<SM>>()
+            .add_render_command::<Transparent3d, DrawInstancedShaderModel<SM>>()
             .add_systems(
                 Render,
-                queue_shader_model::<SM, With<InstancedMesh>, DrawInstancedMaterial<SM>>
+                queue_shader_model::<SM, With<InstancedMesh>, DrawInstancedShaderModel<SM>>
                     .after(prepare_assets::<PreparedShaderModel<SM>>)
                     .in_set(RenderSet::QueueMeshes),
             );
     }
 }
 
-type DrawInstancedMaterial<SM> = (
+type DrawInstancedShaderModel<SM> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
     SetMeshBindGroup<1>,

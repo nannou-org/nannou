@@ -2,7 +2,6 @@ use std::any::TypeId;
 use std::marker::PhantomData;
 
 use bevy::asset::UntypedAssetId;
-use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};

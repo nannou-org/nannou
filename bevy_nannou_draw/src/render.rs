@@ -1,7 +1,7 @@
 use crate::{
     draw::{
-        indirect::{IndirectMaterialPlugin, IndirectMesh},
-        instanced::{InstanceRange, InstancedMaterialPlugin, InstancedMesh},
+        indirect::{IndirectShaderModelPlugin, IndirectMesh},
+        instanced::{InstanceRange, InstancedShaderModelPlugin, InstancedMesh},
         mesh::MeshExt,
         render::{RenderContext, RenderPrimitive},
         DrawCommand, DrawContext,
@@ -16,10 +16,9 @@ use bevy::{
         system::{lifetimeless::SRes, SystemParamItem},
     },
     pbr::{
-        DefaultOpaqueRendererMethod, DrawMesh, ExtendedMaterial, MaterialBindGroupId,
-        MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline, MaterialPipeline,
-        MaterialProperties, MeshPipeline, MeshPipelineKey, OpaqueRendererMethod, PreparedMaterial,
-        RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup, StandardMaterial,
+        DefaultOpaqueRendererMethod, DrawMesh,
+        MeshPipeline, MeshPipelineKey, OpaqueRendererMethod,
+        RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
     },
     prelude::{TypePath, *},
     render::{
@@ -134,8 +133,8 @@ where
             .add_plugins((
                 ExtractInstancesPlugin::<AssetId<SM>>::extract_visible(),
                 RenderAssetPlugin::<PreparedShaderModel<SM>>::default(),
-                IndirectMaterialPlugin::<SM>::default(),
-                InstancedMaterialPlugin::<SM>::default(),
+                IndirectShaderModelPlugin::<SM>::default(),
+                InstancedShaderModelPlugin::<SM>::default(),
             ))
             .add_systems(PostUpdate, update_shader_model::<SM>.after(update_draw_mesh));
 
@@ -249,7 +248,7 @@ bitflags::bitflags! {
 }
 
 #[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
-#[bind_group_data(NannouMaterialKey)]
+#[bind_group_data(NannouBindGroupData)]
 #[uniform(0, NannouShaderModelUniform)]
 pub struct NannouShaderModel {
     pub color: Color,
@@ -284,12 +283,12 @@ impl AsBindGroupShaderType<NannouShaderModelUniform> for NannouShaderModel {
 }
 
 #[derive(Eq, PartialEq, Hash, Clone)]
-pub struct NannouMaterialKey {
+pub struct NannouBindGroupData {
     polygon_mode: PolygonMode,
     blend: Option<BlendState>,
 }
 
-impl From<&NannouShaderModel> for NannouMaterialKey {
+impl From<&NannouShaderModel> for NannouBindGroupData {
     fn from(shader_model: &NannouShaderModel) -> Self {
         Self {
             polygon_mode: shader_model.polygon_mode,
