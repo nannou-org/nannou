@@ -66,7 +66,7 @@ where
     /// The current context of this [Draw] instance.
     context: DrawContext,
     /// The current material of this [Draw] instance.
-    material: UntypedAssetId,
+    shader_model: UntypedAssetId,
     /// The window to which this [Draw] instance is associated.
     pub(crate) window: Entity,
     /// The type of material used by this [Draw] instance.
@@ -139,7 +139,7 @@ pub enum DrawCommand {
 /// about mutability and instead focus on creativity. Rust-lang nuances can come later.
 pub struct State {
     /// The last material used to draw an image, used to detect changes and emit commands for them.
-    last_material: Option<UntypedAssetId>,
+    last_shader_model: Option<UntypedAssetId>,
     /// The last context used to draw an image, used to detect changes and emit commands for them.
     last_draw_context: Option<DrawContext>,
     /// If `Some`, the [Draw] should first clear the frame's texture with the given color.
@@ -188,7 +188,7 @@ impl IntermediaryState {
 impl State {
     // Resets all state within the `Draw` instance.
     fn reset(&mut self) {
-        self.last_material = None;
+        self.last_shader_model = None;
         self.last_draw_context = None;
         self.background_color = None;
         self.drawing.clear();
@@ -233,17 +233,17 @@ where
     pub fn new(window: Entity) -> Self {
         let mut state = State::default();
         let context = DrawContext::default();
-        let material = SM::default();
-        let material_id = UntypedAssetId::Uuid {
+        let model = SM::default();
+        let model_id = UntypedAssetId::Uuid {
             type_id: TypeId::of::<SM>(),
             uuid: Uuid::new_v4(),
         };
-        state.shader_models.insert(material_id, Box::new(material));
+        state.shader_models.insert(model_id, Box::new(model));
 
         Draw {
             state: Arc::new(RwLock::new(state)),
             context,
-            material: material_id,
+            shader_model: model_id,
             window,
             _material: PhantomData,
         }
@@ -252,18 +252,18 @@ where
     /// Resets all state within the `Draw` instance.
     pub fn reset(&mut self) {
         self.state.write().unwrap().reset();
-        self.insert_default_material();
+        self.insert_default_shader_model();
     }
 
-    fn insert_default_material(&mut self) {
+    fn insert_default_shader_model(&mut self) {
         let mut state = self.state.write().unwrap();
-        let material = SM::default();
-        let material_id = UntypedAssetId::Uuid {
+        let model = SM::default();
+        let model_id = UntypedAssetId::Uuid {
             type_id: TypeId::of::<SM>(),
             uuid: Uuid::new_v4(),
         };
-        state.shader_models.insert(material_id, Box::new(material));
-        self.material = material_id;
+        state.shader_models.insert(model_id, Box::new(model));
+        self.shader_model = model_id;
     }
 
     // Context changes.
@@ -458,12 +458,12 @@ where
     /// Produce a new [Draw] instance with the given context.
     fn context(&self, context: DrawContext) -> Draw<SM> {
         let state = self.state.clone();
-        let material = self.material.clone();
+        let material = self.shader_model.clone();
         let window = self.window;
         Draw {
             state,
             context,
-            material,
+            shader_model: material,
             window,
             _material: PhantomData,
         }
@@ -471,7 +471,7 @@ where
 
     fn clone_shader_model(&self) -> SM {
         let mut state = self.state.write().unwrap();
-        let material = state.shader_models.get_mut(&self.material).unwrap();
+        let material = state.shader_models.get_mut(&self.shader_model).unwrap();
         material
             .downcast_ref::<SM>()
             .expect("Expected material to be of the correct type")
@@ -499,7 +499,7 @@ where
         Draw {
             state,
             context,
-            material: model_id,
+            shader_model: model_id,
             window,
             _material: PhantomData,
         }
@@ -527,7 +527,7 @@ where
         T: Into<Primitive>,
         Primitive: Into<Option<T>>,
     {
-        let (index, material_index) = {
+        let (index, model_index) = {
             let mut state = self.state.write().unwrap();
             // If drawing with a different context, insert the necessary command to update it.
             if state.last_draw_context.as_ref() != Some(&self.context) {
@@ -537,12 +537,12 @@ where
                 state.last_draw_context = Some(self.context.clone());
             }
 
-            let id = &self.material;
-            if state.last_material.as_ref() != Some(id) {
+            let id = &self.shader_model;
+            if state.last_shader_model.as_ref() != Some(id) {
                 state
                     .draw_commands
                     .push(Some(DrawCommand::ShaderModel(id.clone())));
-                state.last_material = Some(id.clone());
+                state.last_shader_model = Some(id.clone());
             }
 
             // Insert a material slot to be used if the drawing switches materials.
@@ -556,7 +556,7 @@ where
             state.drawing.insert(index, primitive);
             (index, material_index)
         };
-        drawing::new(self, index, material_index)
+        drawing::new(self, index, model_index)
     }
 
     /// Begin drawing a **Path**.
@@ -702,7 +702,7 @@ impl Default for State {
         let intermediary_state = Arc::new(Default::default());
         let theme = Default::default();
         State {
-            last_material,
+            last_shader_model: last_material,
             last_draw_context,
             draw_commands,
             drawing,

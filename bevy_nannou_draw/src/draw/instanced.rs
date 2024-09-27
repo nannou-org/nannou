@@ -1,43 +1,38 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
-use crate::draw::drawing::Drawing;
-use crate::draw::primitive::Primitive;
-use crate::draw::{Draw, DrawCommand};
-use crate::render::{PreparedShaderModel, ShaderModel};
-use bevy::core_pipeline::core_3d::Opaque3dBinKey;
-use bevy::pbr::{MaterialPipeline, MaterialPipelineKey, PreparedMaterial};
-use bevy::render::extract_component::ExtractComponentPlugin;
-use bevy::render::extract_instances::ExtractedInstances;
-use bevy::render::mesh::allocator::MeshAllocator;
-use bevy::render::mesh::RenderMeshBufferInfo;
-use bevy::render::render_asset::prepare_assets;
-use bevy::render::render_phase::{BinnedRenderPhaseType, ViewBinnedRenderPhases};
-use bevy::render::storage::GpuShaderStorageBuffer;
-use bevy::render::view;
-use bevy::render::view::VisibilitySystems;
+use crate::{
+    draw::{drawing::Drawing, primitive::Primitive, Draw, DrawCommand},
+    render::{queue_shader_model, PreparedShaderModel, ShaderModel},
+};
 use bevy::{
-    core_pipeline::core_3d::Opaque3d,
+    core_pipeline::core_3d::Transparent3d,
     ecs::system::{lifetimeless::*, SystemParamItem},
-    pbr::{MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshViewBindGroup},
+    pbr::{
+        MaterialPipeline, MaterialPipelineKey, MeshPipeline, MeshPipelineKey, PreparedMaterial,
+        RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
+    },
     prelude::*,
     render::{
-        extract_component::ExtractComponent,
-        mesh::{MeshVertexBufferLayoutRef, RenderMesh},
-        render_asset::RenderAssets,
+        extract_component::{ExtractComponent, ExtractComponentPlugin},
+        extract_instances::ExtractedInstances,
+        mesh::{
+            allocator::MeshAllocator, MeshVertexBufferLayoutRef, RenderMesh, RenderMeshBufferInfo,
+        },
+        render_asset::{prepare_assets, RenderAssets},
         render_phase::{
-            AddRenderCommand, DrawFunctions, PhaseItem, RenderCommand, RenderCommandResult,
-            SetItemPipeline, TrackedRenderPass,
+            AddRenderCommand, BinnedRenderPhaseType, DrawFunctions, PhaseItem, RenderCommand,
+            RenderCommandResult, SetItemPipeline, TrackedRenderPass, ViewBinnedRenderPhases,
         },
         render_resource::*,
         renderer::RenderDevice,
-        view::ExtractedView,
+        storage::GpuShaderStorageBuffer,
+        view,
+        view::{ExtractedView, VisibilitySystems},
         Render, RenderApp, RenderSet,
     },
 };
 use rayon::prelude::*;
-use std::hash::Hash;
-use std::marker::PhantomData;
-use std::ops::Range;
+use std::{hash::Hash, marker::PhantomData, ops::Range};
 
 pub struct Instanced<'a, SM>
 where
@@ -126,13 +121,20 @@ where
 {
     fn build(&self, app: &mut App) {
         app.sub_app_mut(RenderApp)
-            .add_render_command::<Opaque3d, DrawInstancedMaterial<SM>>();
+            .add_render_command::<Transparent3d, DrawInstancedMaterial<SM>>()
+            .add_systems(
+                Render,
+                queue_shader_model::<SM, With<InstancedMesh>, DrawInstancedMaterial<SM>>
+                    .after(prepare_assets::<PreparedShaderModel<SM>>)
+                    .in_set(RenderSet::QueueMeshes),
+            );
     }
 }
 
 type DrawInstancedMaterial<SM> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
+    SetMeshBindGroup<1>,
     SetShaderModelBindGroup<SM, 2>,
     DrawMeshInstanced,
 );

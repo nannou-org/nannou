@@ -1,6 +1,6 @@
 use bevy::asset::embedded_asset;
 use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
-use bevy::core_pipeline::core_3d::{Opaque3d, Opaque3dBinKey, CORE_3D_DEPTH_FORMAT};
+use bevy::core_pipeline::core_3d::{CORE_3D_DEPTH_FORMAT};
 use bevy::core_pipeline::fullscreen_vertex_shader::{
     fullscreen_shader_vertex_state, FULLSCREEN_SHADER_HANDLE,
 };

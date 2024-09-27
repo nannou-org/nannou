@@ -1,40 +1,60 @@
-use crate::draw::indirect::{IndirectMaterialPlugin, IndirectMesh};
-use crate::draw::instanced::{InstanceRange, InstancedMaterialPlugin, InstancedMesh};
-use crate::draw::mesh::MeshExt;
-use crate::draw::render::{RenderContext, RenderPrimitive};
-use crate::draw::{DrawCommand, DrawContext};
-use crate::DrawHolder;
-use bevy::asset::UntypedAssetId;
-use bevy::asset::{load_internal_asset, Asset};
-use bevy::core_pipeline::core_3d::{Opaque3d, Opaque3dBinKey};
-use bevy::ecs::system::lifetimeless::SRes;
-use bevy::ecs::system::SystemParamItem;
-use bevy::pbr::{DefaultOpaqueRendererMethod, DrawMesh, ExtendedMaterial, MaterialBindGroupId, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline, MaterialPipeline, MaterialProperties, MeshPipeline, MeshPipelineKey, OpaqueRendererMethod, PreparedMaterial, RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup, StandardMaterial};
-use bevy::prelude::TypePath;
-use bevy::prelude::*;
-use bevy::render::camera::RenderTarget;
-use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
-use bevy::render::extract_instances::{ExtractInstancesPlugin, ExtractedInstances};
-use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
-use bevy::render::mesh::{MeshVertexBufferLayoutRef, RenderMesh};
-use bevy::render::render_asset::{
-    prepare_assets, PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets,
+use crate::{
+    draw::{
+        indirect::{IndirectMaterialPlugin, IndirectMesh},
+        instanced::{InstanceRange, InstancedMaterialPlugin, InstancedMesh},
+        mesh::MeshExt,
+        render::{RenderContext, RenderPrimitive},
+        DrawCommand, DrawContext,
+    },
+    DrawHolder,
 };
-use bevy::render::render_phase::{
-    AddRenderCommand, BinnedRenderPhaseType, DrawFunctionId, DrawFunctions, PhaseItem,
-    RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass, ViewBinnedRenderPhases,
+use bevy::{
+    asset::{load_internal_asset, Asset, UntypedAssetId},
+    core_pipeline::core_3d::Transparent3d,
+    ecs::{
+        query::QueryFilter,
+        system::{lifetimeless::SRes, SystemParamItem},
+    },
+    pbr::{
+        DefaultOpaqueRendererMethod, DrawMesh, ExtendedMaterial, MaterialBindGroupId,
+        MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline, MaterialPipeline,
+        MaterialProperties, MeshPipeline, MeshPipelineKey, OpaqueRendererMethod, PreparedMaterial,
+        RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup, StandardMaterial,
+    },
+    prelude::{TypePath, *},
+    render::{
+        camera::RenderTarget,
+        extract_component::{ExtractComponent, ExtractComponentPlugin},
+        extract_instances::{ExtractInstancesPlugin, ExtractedInstances},
+        extract_resource::{ExtractResource, ExtractResourcePlugin},
+        mesh::{MeshVertexBufferLayoutRef, RenderMesh},
+        render_asset::{
+            prepare_assets, PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets,
+        },
+        render_phase::{
+            AddRenderCommand, BinnedRenderPhaseType, DrawFunctionId, DrawFunctions, PhaseItem,
+            PhaseItemExtraIndex, RenderCommand, RenderCommandResult, SetItemPipeline,
+            TrackedRenderPass, ViewBinnedRenderPhases, ViewSortedRenderPhases,
+        },
+        render_resource as wgpu,
+        render_resource::{
+            AsBindGroup, AsBindGroupError, AsBindGroupShaderType, BindGroup, BindGroupId,
+            BindGroupLayout, BlendState, OwnedBindingResource, PipelineCache, PolygonMode,
+            RenderPipelineDescriptor, ShaderRef, ShaderType, SpecializedMeshPipeline,
+            SpecializedMeshPipelineError, SpecializedMeshPipelines,
+        },
+        renderer::RenderDevice,
+        texture::GpuImage,
+        view,
+        view::{ExtractedView, NoFrustumCulling, RenderLayers, VisibilitySystems},
+        RenderApp, RenderSet,
+        RenderSet::Render,
+    },
+    window::WindowRef,
 };
-use bevy::render::render_resource::{AsBindGroup, AsBindGroupError, AsBindGroupShaderType, BindGroup, BindGroupId, BindGroupLayout, BlendState, OwnedBindingResource, PipelineCache, PolygonMode, RenderPipelineDescriptor, ShaderRef, ShaderType, SpecializedMeshPipeline, SpecializedMeshPipelineError, SpecializedMeshPipelines};
-use bevy::render::renderer::RenderDevice;
-use bevy::render::texture::GpuImage;
-use bevy::render::view::{ExtractedView, NoFrustumCulling, RenderLayers, VisibilitySystems};
-use bevy::render::RenderSet::Render;
-use bevy::render::{render_resource as wgpu, view, RenderApp, RenderSet};
-use bevy::window::WindowRef;
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
-use std::any::TypeId;
-use std::hash::Hash;
-use std::marker::PhantomData;
+use std::{any::TypeId, hash::Hash, marker::PhantomData};
+use bevy::render::storage::ShaderStorageBuffer;
 
 pub const DEFAULT_NANNOU_SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(3086880141013591);
 
@@ -63,10 +83,6 @@ pub trait ShaderModel:
     ) -> Result<(), SpecializedMeshPipelineError> {
         Ok(())
     }
-
-    fn draw_function<P: PhaseItem>(draw_functions: &DrawFunctions<P>) -> DrawFunctionId {
-        draw_functions.read().id::<DrawShaderModel<Self>>()
-    }
 }
 
 pub struct NannouRenderPlugin;
@@ -84,6 +100,12 @@ impl Plugin for NannouRenderPlugin {
             .add_plugins((
                 ExtractComponentPlugin::<NannouTextureHandle>::default(),
                 ExtractComponentPlugin::<NannouMesh>::default(),
+                ExtractComponentPlugin::<ShaderModelMesh>::default(),
+                ExtractComponentPlugin::<IndirectMesh>::default(),
+                ExtractComponentPlugin::<InstancedMesh>::default(),
+                ExtractComponentPlugin::<DrawIndex>::default(),
+                ExtractComponentPlugin::<Handle<ShaderStorageBuffer>>::default(),
+                ExtractComponentPlugin::<InstanceRange>::default(),
                 ExtractResourcePlugin::<DefaultTextureHandle>::default(),
                 NannouShaderModelPlugin::<DefaultNannouShaderModel>::default(),
             ))
@@ -92,7 +114,7 @@ impl Plugin for NannouRenderPlugin {
                 PostUpdate,
                 (
                     update_draw_mesh,
-                    view::check_visibility::<With<NannouMesh>>
+                    view::check_visibility::<With<ShaderModelMesh>>
                         .in_set(VisibilitySystems::CheckVisibility),
                 ),
             );
@@ -100,7 +122,7 @@ impl Plugin for NannouRenderPlugin {
 }
 
 #[derive(Default)]
-pub struct NannouShaderModelPlugin<SM: ShaderModel>(std::marker::PhantomData<SM>);
+pub struct NannouShaderModelPlugin<SM: ShaderModel>(PhantomData<SM>);
 
 impl<SM> Plugin for NannouShaderModelPlugin<SM>
 where
@@ -115,15 +137,14 @@ where
                 IndirectMaterialPlugin::<SM>::default(),
                 InstancedMaterialPlugin::<SM>::default(),
             ))
-            .add_systems(PostUpdate, update_material::<SM>.after(update_draw_mesh))
             .add_systems(PostUpdate, update_material::<SM>.after(update_draw_mesh));
 
         app.sub_app_mut(RenderApp)
-            .add_render_command::<Opaque3d, DrawShaderModel<SM>>()
+            .add_render_command::<Transparent3d, DrawShaderModel<SM>>()
             .init_resource::<SpecializedMeshPipelines<ShaderModelPipeline<SM>>>()
             .add_systems(
                 bevy::render::Render,
-                queue_shader_model::<SM>
+                queue_shader_model::<SM, With<ShaderModelMesh>, DrawShaderModel<SM>>
                     .after(prepare_assets::<PreparedShaderModel<SM>>)
                     .in_set(RenderSet::QueueMeshes),
             );
@@ -204,7 +225,7 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
     }
 }
 
-type DrawShaderModel<SM: ShaderModel> = (
+pub type DrawShaderModel<SM: ShaderModel> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
     SetMeshBindGroup<1>,
@@ -278,8 +299,8 @@ impl From<&NannouShaderModel> for NannouMaterialKey {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn queue_shader_model<SM>(
-    draw_functions: Res<DrawFunctions<Opaque3d>>,
+pub(crate) fn queue_shader_model<SM, QF, RC>(
+    draw_functions: Res<DrawFunctions<Transparent3d>>,
     custom_pipeline: Res<ShaderModelPipeline<SM>>,
     mut pipelines: ResMut<SpecializedMeshPipelines<ShaderModelPipeline<SM>>>,
     pipeline_cache: Res<PipelineCache>,
@@ -293,8 +314,8 @@ fn queue_shader_model<SM>(
         extracted_instances,
     ): (
         Res<RenderMeshInstances>,
-        Query<Entity, With<NannouMesh>>,
-        ResMut<ViewBinnedRenderPhases<Opaque3d>>,
+        Query<(Entity, &DrawIndex), QF>,
+        ResMut<ViewSortedRenderPhases<Transparent3d>>,
         Query<(Entity, &ExtractedView, &Msaa)>,
         Res<RenderAssets<PreparedShaderModel<SM>>>,
         Res<ExtractedInstances<AssetId<SM>>>,
@@ -302,8 +323,10 @@ fn queue_shader_model<SM>(
 ) where
     SM: ShaderModel,
     SM::Data: PartialEq + Eq + Hash + Clone,
+    QF: QueryFilter,
+    RC: 'static,
 {
-    let draw_function = SM::draw_function(&draw_functions);
+    let draw_function = draw_functions.read().id::<RC>();
 
     for (view_entity, view, msaa) in &mut views {
         let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
@@ -312,11 +335,13 @@ fn queue_shader_model<SM>(
         };
 
         let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
-        for (entity) in &nannou_meshes {
+        for (entity, draw_idx) in &nannou_meshes {
             let Some(shader_model) = extracted_instances.get(&entity) else {
                 continue;
             };
-            let shader_model = shader_models.get(*shader_model).unwrap();
+            let Some(shader_model) = shader_models.get(*shader_model) else {
+                continue;
+            };
             let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(entity) else {
                 continue;
             };
@@ -332,17 +357,15 @@ fn queue_shader_model<SM>(
             let pipeline = pipelines
                 .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
                 .unwrap();
-            phase.add(
-                Opaque3dBinKey {
-                    draw_function,
-                    pipeline,
-                    asset_id: mesh_instance.mesh_asset_id.into(),
-                    material_bind_group_id: shader_model.get_bind_group_id(),
-                    lightmap_image: None,
-                },
+
+            phase.add(Transparent3d {
+                distance: draw_idx.0 as f32,
+                pipeline,
                 entity,
-                BinnedRenderPhaseType::BatchableMesh,
-            );
+                draw_function,
+                batch_range: Default::default(),
+                extra_index: PhaseItemExtraIndex(0),
+            });
         }
     }
 }
@@ -577,7 +600,7 @@ fn update_draw_mesh(
         let draw_state = draw.state.read().unwrap();
         let intermediary_state = draw_state.intermediary_state.read().unwrap();
 
-        for cmd in draw_cmds {
+        for (idx, cmd) in draw_cmds.enumerate() {
             match cmd {
                 DrawCommand::Primitive(prim) => {
                     // Info required during rendering.
@@ -629,6 +652,7 @@ fn update_draw_mesh(
                         ViewVisibility::default(),
                         NannouMesh,
                         NoFrustumCulling,
+                        DrawIndex(idx),
                         window_layers.clone(),
                     ));
                 }
@@ -664,6 +688,7 @@ fn update_draw_mesh(
                         ViewVisibility::default(),
                         NannouMesh,
                         NoFrustumCulling,
+                        DrawIndex(idx),
                         window_layers.clone(),
                     ));
                 }
@@ -682,8 +707,10 @@ fn update_draw_mesh(
                         Visibility::default(),
                         InheritedVisibility::default(),
                         ViewVisibility::default(),
+                        ShaderModelMesh,
                         NannouMesh,
                         NoFrustumCulling,
+                        DrawIndex(idx),
                         window_layers.clone(),
                     ));
                 }
@@ -692,11 +719,28 @@ fn update_draw_mesh(
                 }
             }
         }
+
+        check_and_despawn_empty_mesh(&mut meshes, &mut mesh);
+    }
+}
+
+fn check_and_despawn_empty_mesh(meshes: &mut ResMut<Assets<Mesh>>, mesh: &mut Handle<Mesh>) {
+    if let Some(m) = meshes.get(&*mesh) {
+        // Remove the mesh if it has no vertices, which can happen if the user draws nothing
+        if !m.count_vertices() > 0 {
+            meshes.remove(&*mesh);
+        }
     }
 }
 
 #[derive(Component, ExtractComponent, Clone)]
+pub struct DrawIndex(pub usize);
+
+#[derive(Component, ExtractComponent, Clone)]
 pub struct NannouMesh;
+
+#[derive(Component, ExtractComponent, Clone)]
+pub struct ShaderModelMesh;
 
 #[derive(Resource)]
 pub struct NannouRender {

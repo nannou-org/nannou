@@ -1,38 +1,32 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
-use crate::draw::drawing::Drawing;
-use crate::draw::primitive::Primitive;
-use crate::draw::{Draw, DrawCommand};
-use crate::render::{PreparedShaderModel, ShaderModel};
-use bevy::render::extract_instances::ExtractedInstances;
-use bevy::render::mesh::allocator::MeshAllocator;
-use bevy::render::mesh::RenderMeshBufferInfo;
-use bevy::render::render_asset::RenderAsset;
-use bevy::render::storage::{GpuShaderStorageBuffer, ShaderStorageBuffer};
-use bevy::{
-    core_pipeline::core_3d::Opaque3d,
-    ecs::system::{lifetimeless::*, SystemParamItem},
-    pbr::{
-        RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
+use crate::{
+    draw::{drawing::Drawing, primitive::Primitive, Draw, DrawCommand},
+    render::{
+        queue_shader_model, DrawShaderModel, PreparedShaderModel, ShaderModel, ShaderModelMesh,
     },
+};
+use bevy::{
+    core_pipeline::core_3d::Transparent3d,
+    ecs::system::{lifetimeless::*, SystemParamItem},
+    pbr::{RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup},
     prelude::*,
     render::{
-        extract_component::ExtractComponent,
-        mesh::RenderMesh,
-        render_asset::RenderAssets,
+        extract_component::{ExtractComponent, ExtractComponentPlugin},
+        extract_instances::ExtractedInstances,
+        mesh::{allocator::MeshAllocator, RenderMesh, RenderMeshBufferInfo},
+        render_asset::{prepare_assets, RenderAsset, RenderAssets},
         render_phase::{
-            AddRenderCommand, PhaseItem, RenderCommand,
-            RenderCommandResult, SetItemPipeline, TrackedRenderPass,
+            AddRenderCommand, DrawFunctions, PhaseItem, RenderCommand, RenderCommandResult,
+            SetItemPipeline, TrackedRenderPass,
         },
-        render_resource::*
-
-
-        , RenderApp,
+        render_resource::*,
+        storage::{GpuShaderStorageBuffer, ShaderStorageBuffer},
+        Render, RenderApp, RenderSet,
     },
 };
 use rayon::prelude::*;
-use std::hash::Hash;
-use std::marker::PhantomData;
+use std::{hash::Hash, marker::PhantomData};
 
 pub struct Indirect<'a, SM>
 where
@@ -121,8 +115,15 @@ where
     SM::Data: PartialEq + Eq + Hash + Clone,
 {
     fn build(&self, app: &mut App) {
-        app.sub_app_mut(RenderApp)
-            .add_render_command::<Opaque3d, DrawIndirectMaterial<SM>>();
+        app
+            .sub_app_mut(RenderApp)
+            .add_render_command::<Transparent3d, DrawIndirectMaterial<SM>>()
+            .add_systems(
+                Render,
+                queue_shader_model::<SM, With<IndirectMesh>, DrawIndirectMaterial<SM>>
+                    .after(prepare_assets::<PreparedShaderModel<SM>>)
+                    .in_set(RenderSet::QueueMeshes),
+            );
     }
 }
 

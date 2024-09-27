@@ -33,8 +33,8 @@ where
     draw: DrawRef<'a, SM>,
     // The draw command index of the primitive being drawn.
     pub(crate) index: usize,
-    // The draw command index of the material being used.
-    pub(crate) material_index: usize,
+    // The draw command index of the shader model being used.
+    pub(crate) shader_model_index: usize,
     // Whether the **Drawing** should attempt to finish the drawing on drop.
     pub(crate) finish_on_drop: bool,
     // The node type currently being drawn.
@@ -56,7 +56,7 @@ pub struct DrawingContext<'a> {
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<T, SM: ShaderModel>(draw: &Draw<SM>, index: usize, material_index: usize) -> Drawing<T, SM>
+pub fn new<T, SM: ShaderModel>(draw: &Draw<SM>, index: usize, model_index: usize) -> Drawing<T, SM>
 where
     T: Into<Primitive>,
     SM: ShaderModel + Default,
@@ -66,7 +66,7 @@ where
     Drawing {
         draw: DrawRef::Borrowed(draw),
         index,
-        material_index,
+        shader_model_index: model_index,
         finish_on_drop,
         _ty,
     }
@@ -117,10 +117,10 @@ where
                     // If we are "Owned", that means we mutated our material and so need to
                     // spawn a new entity just for this primitive.
                     DrawRef::Owned(draw) => {
-                        let id = draw.material.clone();
+                        let id = draw.shader_model.clone();
                         let material_cmd = state
                             .draw_commands
-                            .get_mut(self.material_index)
+                            .get_mut(self.shader_model_index)
                             .expect("Expected a valid material index");
                         if let None = material_cmd {
                             *material_cmd = Some(DrawCommand::ShaderModel(id));
@@ -151,12 +151,12 @@ where
         let Drawing {
             ref draw,
             index,
-            material_index,
+            shader_model_index: material_index,
             ..
         } = self;
 
         let state = draw.state.clone();
-        let material = state.read().unwrap().shader_models[&self.draw.material]
+        let material = state.read().unwrap().shader_models[&self.draw.shader_model]
             .downcast_ref::<SM>()
             .unwrap()
             .clone();
@@ -171,12 +171,12 @@ where
         state.shader_models.insert(new_id.clone(), Box::new(material));
         // Mark the last material as the new material so that further drawings use the same material
         // as the parent draw ref.
-        state.last_material = Some(new_id.clone());
+        state.last_shader_model = Some(new_id.clone());
 
         let draw = Draw {
             state: draw.state.clone(),
             context: draw.context.clone(),
-            material: new_id.clone(),
+            shader_model: new_id.clone(),
             window: draw.window,
             _material: Default::default(),
         };
@@ -184,7 +184,7 @@ where
         Drawing {
             draw: DrawRef::Owned(draw),
             index,
-            material_index,
+            shader_model_index: material_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
@@ -208,13 +208,13 @@ where
         let Drawing {
             ref draw,
             index,
-            material_index,
+            shader_model_index: material_index,
             ..
         } = self;
         Drawing {
             draw: draw.clone(),
             index,
-            material_index,
+            shader_model_index: material_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
@@ -242,13 +242,13 @@ where
         let Drawing {
             ref draw,
             index,
-            material_index,
+            shader_model_index: material_index,
             ..
         } = self;
         Drawing {
             draw: draw.clone(),
             index,
-            material_index,
+            shader_model_index: material_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
