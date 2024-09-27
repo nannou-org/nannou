@@ -160,10 +160,10 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
         let Some(asset_id) = instances.get(&item.entity()) else {
             return RenderCommandResult::Skip;
         };
-        let Some(material) = models.get(*asset_id) else {
+        let Some(model) = models.get(*asset_id) else {
             return RenderCommandResult::Skip;
         };
-        pass.set_bind_group(I, &material.bind_group, &[]);
+        pass.set_bind_group(I, &model.bind_group, &[]);
         RenderCommandResult::Success
     }
 }

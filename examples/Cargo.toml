@@ -85,18 +85,12 @@ path = "draw/draw_blend.rs"
 name = "draw_capture"
 path = "draw/draw_capture.rs"
 [[example]]
-name = "draw_custom_material"
-path = "draw/draw_custom_material.rs"
+name = "draw_custom_shader_model"
+path = "draw/draw_custom_shader_model.rs"
 required-features = ["nannou/hot_reload"]
 [[example]]
 name = "draw_loop"
 path = "draw/draw_loop.rs"
-[[example]]
-name = "draw_material"
-path = "draw/draw_material.rs"
-[[example]]
-name = "draw_material_bloom"
-path = "draw/draw_material_bloom.rs"
 [[example]]
 name = "draw_mesh"
 path = "draw/draw_mesh.rs"
@@ -232,8 +226,8 @@ name = "simple_video"
 path = "video/simple_video.rs"
 required-features = ["video"]
 [[example]]
-name = "video_material"
-path = "video/video_material.rs"
+name = "video_shader_model"
+path = "video/video_shader_model.rs"
 required-features = ["video"]
 
 # WebGPU

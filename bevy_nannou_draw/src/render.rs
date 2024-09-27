@@ -61,13 +61,13 @@ pub const DEFAULT_NANNOU_SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(
 pub trait ShaderModel:
     Asset + AsBindGroup + Clone + Default + Sized + Send + Sync + 'static
 {
-    /// Returns this material's vertex shader. If [`ShaderRef::Default`] is returned, the default mesh vertex shader
+    /// Returns this shader model's vertex shader. If [`ShaderRef::Default`] is returned, the default mesh vertex shader
     /// will be used.
     fn vertex_shader() -> ShaderRef {
         ShaderRef::Default
     }
 
-    /// Returns this material's fragment shader. If [`ShaderRef::Default`] is returned, the default mesh fragment shader
+    /// Returns this shader model's fragment shader. If [`ShaderRef::Default`] is returned, the default mesh fragment shader
     /// will be used.
     #[allow(unused_variables)]
     fn fragment_shader() -> ShaderRef {
@@ -137,7 +137,7 @@ where
                 IndirectMaterialPlugin::<SM>::default(),
                 InstancedMaterialPlugin::<SM>::default(),
             ))
-            .add_systems(PostUpdate, update_material::<SM>.after(update_draw_mesh));
+            .add_systems(PostUpdate, update_shader_model::<SM>.after(update_draw_mesh));
 
         app.sub_app_mut(RenderApp)
             .add_render_command::<Transparent3d, DrawShaderModel<SM>>()
@@ -174,17 +174,17 @@ impl<SM: ShaderModel> RenderAsset for PreparedShaderModel<SM> {
     type Param = (SRes<RenderDevice>, SRes<ShaderModelPipeline<SM>>, SM::Param);
 
     fn prepare_asset(
-        material: Self::SourceAsset,
-        (render_device, pipeline, ref mut material_param): &mut SystemParamItem<Self::Param>,
+        shader_model: Self::SourceAsset,
+        (render_device, pipeline, ref mut shader_model_param): &mut SystemParamItem<Self::Param>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
-        match material.as_bind_group(&pipeline.shader_model_layout, render_device, material_param) {
+        match shader_model.as_bind_group(&pipeline.shader_model_layout, render_device, shader_model_param) {
             Ok(prepared) => Ok(PreparedShaderModel {
                 bindings: prepared.bindings,
                 bind_group: prepared.bind_group,
                 key: prepared.data,
             }),
             Err(AsBindGroupError::RetryNextUpdate) => {
-                Err(PrepareAssetError::RetryNextUpdate(material))
+                Err(PrepareAssetError::RetryNextUpdate(shader_model))
             }
             Err(other) => Err(PrepareAssetError::AsBindGroupError(other)),
         }
@@ -214,13 +214,13 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
         let models = models.into_inner();
         let model_instances = model_instances.into_inner();
 
-        let Some(material_asset_id) = model_instances.get(&item.entity()) else {
+        let Some(shader_model_asset_id) = model_instances.get(&item.entity()) else {
             return RenderCommandResult::Skip;
         };
-        let Some(material) = models.get(*material_asset_id) else {
+        let Some(model) = models.get(*shader_model_asset_id) else {
             return RenderCommandResult::Skip;
         };
-        pass.set_bind_group(I, &material.bind_group, &[]);
+        pass.set_bind_group(I, &model.bind_group, &[]);
         RenderCommandResult::Success
     }
 }
@@ -290,10 +290,10 @@ pub struct NannouMaterialKey {
 }
 
 impl From<&NannouShaderModel> for NannouMaterialKey {
-    fn from(material: &NannouShaderModel) -> Self {
+    fn from(shader_model: &NannouShaderModel) -> Self {
         Self {
-            polygon_mode: material.polygon_mode,
-            blend: material.blend,
+            polygon_mode: shader_model.polygon_mode,
+            blend: shader_model.blend,
         }
     }
 }
@@ -535,11 +535,11 @@ fn setup_default_texture(mut commands: Commands, mut images: ResMut<Assets<Image
 #[derive(Component, Deref)]
 pub struct UntypedShaderModelId(UntypedAssetId);
 
-fn update_material<SM>(
+fn update_shader_model<SM>(
     draw_q: Query<&DrawHolder>,
     mut commands: Commands,
-    mut materials: ResMut<Assets<SM>>,
-    materials_q: Query<(Entity, &UntypedShaderModelId)>,
+    mut models: ResMut<Assets<SM>>,
+    models_q: Query<(Entity, &UntypedShaderModelId)>,
 ) where
     SM: ShaderModel,
 {
@@ -548,12 +548,12 @@ fn update_material<SM>(
         state.shader_models.iter().for_each(|(id, model)| {
             if id.type_id() == TypeId::of::<SM>() {
                 let model = model.downcast_ref::<SM>().unwrap();
-                materials.insert(id.typed(), model.clone());
+                models.insert(id.typed(), model.clone());
             }
         });
     }
 
-    for (entity, UntypedShaderModelId(id)) in materials_q.iter() {
+    for (entity, UntypedShaderModelId(id)) in models_q.iter() {
         if id.type_id() == TypeId::of::<SM>() {
             commands
                 .entity(entity)
@@ -592,7 +592,7 @@ fn update_draw_mesh(
         let mut fill_tessellator = FillTessellator::new();
         let mut stroke_tessellator = StrokeTessellator::new();
 
-        let mut last_mat = None;
+        let mut last_shader_model = None;
         let mut mesh = meshes.add(Mesh::init());
         let mut curr_ctx: DrawContext = Default::default();
 
@@ -639,11 +639,11 @@ fn update_draw_mesh(
                     let mut mesh = Mesh::init();
                     prim.render_primitive(ctxt, &mut mesh);
                     let mesh = meshes.add(mesh);
-                    let mat_id = last_mat.expect("No material set for instanced draw command");
+                    let model_id = last_shader_model.expect("No shader model set for instanced draw command");
                     commands.spawn((
                         InstancedMesh,
                         InstanceRange(range),
-                        UntypedShaderModelId(mat_id),
+                        UntypedShaderModelId(model_id),
                         mesh.clone(),
                         Transform::default(),
                         GlobalTransform::default(),
@@ -675,11 +675,11 @@ fn update_draw_mesh(
                     let mut mesh = Mesh::init();
                     prim.render_primitive(ctxt, &mut mesh);
                     let mesh = meshes.add(mesh);
-                    let mat_id = last_mat.expect("No material set for instanced draw command");
+                    let model_id = last_shader_model.expect("No shader model set for instanced draw command");
                     commands.spawn((
                         IndirectMesh,
                         indirect_buffer,
-                        UntypedShaderModelId(mat_id),
+                        UntypedShaderModelId(model_id),
                         mesh.clone(),
                         Transform::default(),
                         GlobalTransform::default(),
@@ -696,8 +696,8 @@ fn update_draw_mesh(
                     curr_ctx = ctx;
                 }
                 DrawCommand::ShaderModel(model_id) => {
-                    // We switched materials, so start rendering into a new mesh
-                    last_mat = Some(model_id.clone());
+                    // We switched models, so start rendering into a new mesh
+                    last_shader_model = Some(model_id.clone());
                     mesh = meshes.add(Mesh::init());
                     commands.spawn((
                         UntypedShaderModelId(model_id),

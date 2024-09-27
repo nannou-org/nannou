@@ -3,7 +3,7 @@ use nannou::prelude::*;
 
 fn main() {
     nannou::app(model)
-        // Register our custom material to make it available for use in our drawing
+        // Register our custom shader model to make it available for use in our drawing
         .shader_model::<VideoShaderModel>()
         .run();
 }
@@ -16,7 +16,7 @@ struct Model {
 }
 
 // This struct defines the data that will be passed to your shader
-#[shader_model(fragment = "draw_video_material.wgsl")]
+#[shader_model(fragment = "video_model.wgsl")]
 struct VideoShaderModel {
     #[texture(0)]
     #[sampler(1)]
@@ -51,7 +51,7 @@ fn view(app: &App, model: &Model) {
 
     let draw = app
         .draw()
-        // Initialize our draw instance with our custom material
+        // Initialize our draw instance with our custom shader model
         .shader_model(VideoShaderModel {
             texture: video.texture.clone(),
         });

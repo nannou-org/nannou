@@ -114,16 +114,16 @@ where
             Err(err) => eprintln!("drawing failed to borrow state and finish: {}", err),
             Ok(mut state) => {
                 match &self.draw {
-                    // If we are "Owned", that means we mutated our material and so need to
+                    // If we are "Owned", that means we mutated our shader model and so need to
                     // spawn a new entity just for this primitive.
                     DrawRef::Owned(draw) => {
                         let id = draw.shader_model.clone();
-                        let material_cmd = state
+                        let shader_model_cmd = state
                             .draw_commands
                             .get_mut(self.shader_model_index)
-                            .expect("Expected a valid material index");
-                        if let None = material_cmd {
-                            *material_cmd = Some(DrawCommand::ShaderModel(id));
+                            .expect("Expected a valid shdaer model index");
+                        if let None = shader_model_cmd {
+                            *shader_model_cmd = Some(DrawCommand::ShaderModel(id));
                         }
                     }
                     DrawRef::Borrowed(_) => (),
@@ -140,7 +140,7 @@ where
         self.finish_inner()
     }
 
-    // Map the the parent's material to a new material type, taking ownership over the
+    // Map the the parent's shader model to a new shader model type, taking ownership over the
     // draw instance clone.
     pub fn map_shader_model<F>(mut self, map: F) -> Drawing<'a, T, SM>
     where
@@ -151,12 +151,12 @@ where
         let Drawing {
             ref draw,
             index,
-            shader_model_index: material_index,
+            shader_model_index: shader_model_index,
             ..
         } = self;
 
         let state = draw.state.clone();
-        let material = state.read().unwrap().shader_models[&self.draw.shader_model]
+        let shader_model = state.read().unwrap().shader_models[&self.draw.shader_model]
             .downcast_ref::<SM>()
             .unwrap()
             .clone();
@@ -166,10 +166,10 @@ where
             uuid: Uuid::new_v4(),
         };
 
-        let material = map(material.clone());
+        let shader_model = map(shader_model.clone());
         let mut state = state.write().unwrap();
-        state.shader_models.insert(new_id.clone(), Box::new(material));
-        // Mark the last material as the new material so that further drawings use the same material
+        state.shader_models.insert(new_id.clone(), Box::new(shader_model));
+        // Mark the last shader model as the new model so that further drawings use the same model
         // as the parent draw ref.
         state.last_shader_model = Some(new_id.clone());
 
@@ -178,13 +178,13 @@ where
             context: draw.context.clone(),
             shader_model: new_id.clone(),
             window: draw.window,
-            _material: Default::default(),
+            _shader_model: Default::default(),
         };
 
         Drawing {
             draw: DrawRef::Owned(draw),
             index,
-            shader_model_index: material_index,
+            shader_model_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
@@ -208,13 +208,13 @@ where
         let Drawing {
             ref draw,
             index,
-            shader_model_index: material_index,
+            shader_model_index,
             ..
         } = self;
         Drawing {
             draw: draw.clone(),
             index,
-            shader_model_index: material_index,
+            shader_model_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
@@ -242,13 +242,13 @@ where
         let Drawing {
             ref draw,
             index,
-            shader_model_index: material_index,
+            shader_model_index,
             ..
         } = self;
         Drawing {
             draw: draw.clone(),
             index,
-            shader_model_index: material_index,
+            shader_model_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
