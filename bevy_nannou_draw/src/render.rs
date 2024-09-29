@@ -726,17 +726,6 @@ fn update_draw_mesh(
                 }
             }
         }
-
-        check_and_despawn_empty_mesh(&mut meshes, &mut mesh);
-    }
-}
-
-fn check_and_despawn_empty_mesh(meshes: &mut ResMut<Assets<Mesh>>, mesh: &mut Handle<Mesh>) {
-    if let Some(m) = meshes.get(&*mesh) {
-        // Remove the mesh if it has no vertices, which can happen if the user draws nothing
-        if !m.count_vertices() > 0 {
-            meshes.remove(&*mesh);
-        }
     }
 }
 
