@@ -97,7 +97,7 @@ impl Plugin for NannouRenderPlugin {
         app.add_systems(Startup, setup_default_texture)
             .add_plugins((
                 ExtractComponentPlugin::<NannouTextureHandle>::default(),
-                ExtractComponentPlugin::<NannouMesh>::default(),
+                ExtractComponentPlugin::<NannouTransient>::default(),
                 ExtractComponentPlugin::<ShaderModelMesh>::default(),
                 ExtractComponentPlugin::<IndirectMesh>::default(),
                 ExtractComponentPlugin::<InstancedMesh>::default(),
@@ -656,7 +656,7 @@ fn update_draw_mesh(
                         Visibility::default(),
                         InheritedVisibility::default(),
                         ViewVisibility::default(),
-                        NannouMesh,
+                        NannouTransient,
                         NoFrustumCulling,
                         DrawIndex(idx),
                         window_layers.clone(),
@@ -693,7 +693,7 @@ fn update_draw_mesh(
                         Visibility::default(),
                         InheritedVisibility::default(),
                         ViewVisibility::default(),
-                        NannouMesh,
+                        NannouTransient,
                         NoFrustumCulling,
                         DrawIndex(idx),
                         window_layers.clone(),
@@ -715,7 +715,7 @@ fn update_draw_mesh(
                         InheritedVisibility::default(),
                         ViewVisibility::default(),
                         ShaderModelMesh,
-                        NannouMesh,
+                        NannouTransient,
                         NoFrustumCulling,
                         DrawIndex(idx),
                         window_layers.clone(),
@@ -744,7 +744,7 @@ fn check_and_despawn_empty_mesh(meshes: &mut ResMut<Assets<Mesh>>, mesh: &mut Ha
 pub struct DrawIndex(pub usize);
 
 #[derive(Component, ExtractComponent, Clone)]
-pub struct NannouMesh;
+pub struct NannouTransient;
 
 #[derive(Component, ExtractComponent, Clone)]
 pub struct ShaderModelMesh;

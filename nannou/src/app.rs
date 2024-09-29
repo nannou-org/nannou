@@ -40,7 +40,7 @@ use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::bevy_reflect::DynamicTyped;
-use crate::prelude::render::{NannouMesh, NannouShaderModelPlugin, ShaderModel};
+use crate::prelude::render::{NannouTransient, NannouShaderModelPlugin, ShaderModel};
 use crate::render::{
     compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
     NannouRenderNode, RenderApp, RenderPlugin,
@@ -1075,7 +1075,7 @@ where
 fn first<M>(
     mut commands: Commands,
     bg_color_q: Query<Entity, With<BackgroundColor>>,
-    meshes_q: Query<Entity, With<NannouMesh>>,
+    meshes_q: Query<Entity, With<NannouTransient>>,
 ) where
     M: 'static + Send + Sync,
 {
