@@ -40,7 +40,7 @@ use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::bevy_reflect::DynamicTyped;
-use crate::prelude::render::{NannouTransient, NannouShaderModelPlugin, ShaderModel};
+use crate::prelude::render::{NannouShaderModelPlugin, NannouTransient, ShaderModel};
 use crate::render::{
     compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
     NannouRenderNode, RenderApp, RenderPlugin,
