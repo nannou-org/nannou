@@ -29,7 +29,7 @@ struct Model {
 }
 
 impl Model {
-    fn material(&self) -> ShaderModel {
+    fn shader_model(&self) -> ShaderModel {
         ShaderModel {
             particles: self.particles.clone(),
         }
@@ -119,8 +119,8 @@ impl Compute for ComputeModel {
 
 // Our shader model that will be used to render the particles
 #[shader_model(
-    fragment = "shaders/particle_sdf_material.wgsl",
-    vertex = "shaders/particle_sdf_material.wgsl"
+    fragment = "shaders/particle_sdf_model.wgsl",
+    vertex = "shaders/particle_sdf_model.wgsl"
 )]
 struct ShaderModel {
     #[storage(0, read_only, visibility(vertex))]
@@ -232,7 +232,7 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(GRAY);
 
-    let draw = draw.material(model.material());
+    let draw = draw.shader_model(model.shader_model());
     draw.indirect()
         .primitive(draw.rect().w_h(2.0, 2.0))
         .buffer(model.indirect_params.clone());

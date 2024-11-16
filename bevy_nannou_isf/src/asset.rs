@@ -95,7 +95,7 @@ impl AssetLoader for IsfLoader {
     }
 }
 
-// 4. Plugin to register the asset loader and material
+// 4. Plugin to register the asset loader
 pub struct IsfAssetPlugin;
 
 impl Plugin for IsfAssetPlugin {

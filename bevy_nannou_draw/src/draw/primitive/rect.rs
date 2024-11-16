@@ -9,6 +9,7 @@ use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::tex_coords::SetTexCoords;
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
+use crate::render::ShaderModel;
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]
@@ -19,7 +20,7 @@ pub struct Rect {
 }
 
 /// The drawing context for a Rect.
-pub type DrawingRect<'a, M> = Drawing<'a, Rect, M>;
+pub type DrawingRect<'a, SM> = Drawing<'a, Rect, SM>;
 
 // Trait implementations.
 
@@ -33,9 +34,9 @@ impl Rect {
     }
 }
 
-impl<'a, M> DrawingRect<'a, M>
+impl<'a, SM> DrawingRect<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self

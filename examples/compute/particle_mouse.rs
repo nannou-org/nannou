@@ -27,7 +27,7 @@ struct Model {
 }
 
 impl Model {
-    fn material(&self) -> ShaderModel {
+    fn shader_model(&self) -> ShaderModel {
         ShaderModel {
             particles: self.particles.clone(),
         }
@@ -81,8 +81,8 @@ impl Compute for ComputeModel {
 }
 
 #[shader_model(
-    fragment = "shaders/particle_mouse_material.wgsl",
-    vertex = "shaders/particle_mouse_material.wgsl"
+    fragment = "shaders/particle_mouse_model.wgsl",
+    vertex = "shaders/particle_mouse_model.wgsl"
 )]
 struct ShaderModel {
     #[storage(0, read_only, visibility(vertex))]
@@ -165,7 +165,7 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(GRAY);
 
-    let draw = draw.material(model.material());
+    let draw = draw.shader_model(model.shader_model());
     match model.shape {
         Shape::Circle => {
             draw_particles_circle(&draw);

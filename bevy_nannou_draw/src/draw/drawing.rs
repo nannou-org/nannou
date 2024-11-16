@@ -2,7 +2,6 @@ use std::any::TypeId;
 use std::marker::PhantomData;
 
 use bevy::asset::UntypedAssetId;
-use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
@@ -13,6 +12,7 @@ use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{Draw, DrawCommand, DrawRef};
+use crate::render::{DefaultNannouShaderModel, ShaderModel};
 
 /// A **Drawing** in progress.
 ///
@@ -24,16 +24,16 @@ use crate::draw::{Draw, DrawCommand, DrawRef};
 /// inner **geom::Graph**. This ensures the correct instantiation order is maintained within the
 /// graph. As a result, each **Drawing** is associated with a single, unique node. Thus a
 /// **Drawing** can be thought of as a way of specifying properties for a node.
-pub struct Drawing<'a, T, M>
+pub struct Drawing<'a, T, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     // The `Draw` instance used to create this drawing.
-    draw: DrawRef<'a, M>,
+    draw: DrawRef<'a, SM>,
     // The draw command index of the primitive being drawn.
     pub(crate) index: usize,
-    // The draw command index of the material being used.
-    pub(crate) material_index: usize,
+    // The draw command index of the shader model being used.
+    pub(crate) shader_model_index: usize,
     // Whether the **Drawing** should attempt to finish the drawing on drop.
     pub(crate) finish_on_drop: bool,
     // The node type currently being drawn.
@@ -55,25 +55,25 @@ pub struct DrawingContext<'a> {
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<T, M: Material>(draw: &Draw<M>, index: usize, material_index: usize) -> Drawing<T, M>
+pub fn new<T, SM: ShaderModel>(draw: &Draw<SM>, index: usize, model_index: usize) -> Drawing<T, SM>
 where
     T: Into<Primitive>,
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     let _ty = PhantomData;
     let finish_on_drop = true;
     Drawing {
         draw: DrawRef::Borrowed(draw),
         index,
-        material_index,
+        shader_model_index: model_index,
         finish_on_drop,
         _ty,
     }
 }
 
-impl<'a, T, M> Drop for Drawing<'a, T, M>
+impl<'a, T, SM> Drop for Drawing<'a, T, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     fn drop(&mut self) {
         if self.finish_on_drop {
@@ -100,9 +100,9 @@ impl<'a> DrawingContext<'a> {
     }
 }
 
-impl<'a, T, M> Drawing<'a, T, M>
+impl<'a, T, SM> Drawing<'a, T, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     // Shared between the **finish** method and the **Drawing**'s **Drop** implementation.
     //
@@ -113,16 +113,16 @@ where
             Err(err) => eprintln!("drawing failed to borrow state and finish: {}", err),
             Ok(mut state) => {
                 match &self.draw {
-                    // If we are "Owned", that means we mutated our material and so need to
+                    // If we are "Owned", that means we mutated our shader model and so need to
                     // spawn a new entity just for this primitive.
                     DrawRef::Owned(draw) => {
-                        let id = draw.material.clone();
-                        let material_cmd = state
+                        let id = draw.shader_model.clone();
+                        let shader_model_cmd = state
                             .draw_commands
-                            .get_mut(self.material_index)
-                            .expect("Expected a valid material index");
-                        if let None = material_cmd {
-                            *material_cmd = Some(DrawCommand::Material(id));
+                            .get_mut(self.shader_model_index)
+                            .expect("Expected a valid shdaer model index");
+                        if let None = shader_model_cmd {
+                            *shader_model_cmd = Some(DrawCommand::ShaderModel(id));
                         }
                     }
                     DrawRef::Borrowed(_) => (),
@@ -139,51 +139,53 @@ where
         self.finish_inner()
     }
 
-    // Map the the parent's material to a new material type, taking ownership over the
+    // Map the the parent's shader model to a new shader model type, taking ownership over the
     // draw instance clone.
-    pub fn map_material<F>(mut self, map: F) -> Drawing<'a, T, M>
+    pub fn map_shader_model<F>(mut self, map: F) -> Drawing<'a, T, SM>
     where
-        F: FnOnce(M) -> M,
+        F: FnOnce(SM) -> SM,
     {
         self.finish_on_drop = false;
 
         let Drawing {
             ref draw,
             index,
-            material_index,
+            shader_model_index: shader_model_index,
             ..
         } = self;
 
         let state = draw.state.clone();
-        let material = state.read().unwrap().materials[&self.draw.material]
-            .downcast_ref::<M>()
+        let shader_model = state.read().unwrap().shader_models[&self.draw.shader_model]
+            .downcast_ref::<SM>()
             .unwrap()
             .clone();
 
         let new_id = UntypedAssetId::Uuid {
-            type_id: TypeId::of::<M>(),
+            type_id: TypeId::of::<SM>(),
             uuid: Uuid::new_v4(),
         };
 
-        let material = map(material.clone());
+        let shader_model = map(shader_model.clone());
         let mut state = state.write().unwrap();
-        state.materials.insert(new_id.clone(), Box::new(material));
-        // Mark the last material as the new material so that further drawings use the same material
+        state
+            .shader_models
+            .insert(new_id.clone(), Box::new(shader_model));
+        // Mark the last shader model as the new model so that further drawings use the same model
         // as the parent draw ref.
-        state.last_material = Some(new_id.clone());
+        state.last_shader_model = Some(new_id.clone());
 
         let draw = Draw {
             state: draw.state.clone(),
             context: draw.context.clone(),
-            material: new_id.clone(),
+            shader_model: new_id.clone(),
             window: draw.window,
-            _material: Default::default(),
+            _shader_model: Default::default(),
         };
 
         Drawing {
             draw: DrawRef::Owned(draw),
             index,
-            material_index,
+            shader_model_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
@@ -192,7 +194,7 @@ where
     // Map the given function onto the primitive stored within **Draw** at `index`.
     //
     // The functionn is only applied if the node has not yet been **Drawn**.
-    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2, M>
+    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2, SM>
     where
         F: FnOnce(Primitive) -> Primitive,
         T2: Into<Primitive> + Clone,
@@ -207,13 +209,13 @@ where
         let Drawing {
             ref draw,
             index,
-            material_index,
+            shader_model_index,
             ..
         } = self;
         Drawing {
             draw: draw.clone(),
             index,
-            material_index,
+            shader_model_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
@@ -222,7 +224,7 @@ where
     // The same as `map_primitive` but also passes a mutable reference to the vertex data to the
     // map function. This is useful for types that may have an unknown number of arbitrary
     // vertices.
-    fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2, M>
+    fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2, SM>
     where
         F: FnOnce(Primitive, DrawingContext) -> Primitive,
         T2: Into<Primitive> + Clone,
@@ -241,13 +243,13 @@ where
         let Drawing {
             ref draw,
             index,
-            material_index,
+            shader_model_index,
             ..
         } = self;
         Drawing {
             draw: draw.clone(),
             index,
-            material_index,
+            shader_model_index,
             finish_on_drop: true,
             _ty: PhantomData,
         }
@@ -258,7 +260,7 @@ where
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2, M>
+    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2, SM>
     where
         F: FnOnce(T) -> T2,
         T2: Into<Primitive> + Clone,
@@ -277,7 +279,7 @@ where
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2, M>
+    pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2, SM>
     where
         F: FnOnce(T, DrawingContext) -> T2,
         T2: Into<Primitive> + Clone,
@@ -294,10 +296,10 @@ where
 
 // SetColor implementations.
 
-impl<'a, T, M> Drawing<'a, T, M>
+impl<'a, T, SM> Drawing<'a, T, SM>
 where
     T: SetColor + Into<Primitive> + Clone,
-    M: Material + Default,
+    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// Specify a color.
@@ -450,10 +452,10 @@ where
 
 // SetDimensions implementations.
 
-impl<'a, T, M> Drawing<'a, T, M>
+impl<'a, T, SM> Drawing<'a, T, SM>
 where
     T: SetDimensions + Into<Primitive> + Clone,
-    M: Material + Default,
+    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// Set the absolute width for the node.
@@ -509,10 +511,10 @@ where
 
 // SetPosition methods.
 
-impl<'a, T, M> Drawing<'a, T, M>
+impl<'a, T, SM> Drawing<'a, T, SM>
 where
     T: SetPosition + Into<Primitive> + Clone,
-    M: Material + Default,
+    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// Build with the given **Absolute** **Position** along the *x* axis.
@@ -553,10 +555,10 @@ where
 
 // SetOrientation methods.
 
-impl<'a, T, M> Drawing<'a, T, M>
+impl<'a, T, SM> Drawing<'a, T, SM>
 where
     T: SetOrientation + Into<Primitive> + Clone,
-    M: Material + Default,
+    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// Describe orientation via the vector that points to the given target.
@@ -676,10 +678,10 @@ where
 
 // SetFill methods
 
-impl<'a, T, M> Drawing<'a, T, M>
+impl<'a, T, SM> Drawing<'a, T, SM>
 where
     T: SetFill + Into<Primitive> + Clone,
-    M: Material + Default,
+    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// Specify the whole set of fill tessellation options.
@@ -720,10 +722,10 @@ where
 
 // SetStroke methods
 
-impl<'a, T, M> Drawing<'a, T, M>
+impl<'a, T, SM> Drawing<'a, T, SM>
 where
     T: SetStroke + Into<Primitive> + Clone,
-    M: Material + Default,
+    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// The start line cap as specified by the SVG spec.
@@ -862,51 +864,29 @@ where
     }
 }
 
-impl<'a, T, M> Drawing<'a, T, M>
+impl<'a, T, SM> Drawing<'a, T, SM>
 where
     T: Into<Primitive> + Clone,
-    M: Material + Default,
+    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
 }
 
-impl<'a, T, M> Drawing<'a, T, ExtendedMaterial<StandardMaterial, M>>
+impl<'a, T> Drawing<'a, T, DefaultNannouShaderModel>
 where
     T: Into<Primitive>,
-    M: MaterialExtension + Default,
 {
-    pub fn roughness(self, roughness: f32) -> Self {
-        self.map_material(|mut material| {
-            material.base.perceptual_roughness = roughness;
-            material
-        })
-    }
-
-    pub fn metallic(self, metallic: f32) -> Self {
-        self.map_material(|mut material| {
-            material.base.metallic = metallic;
-            material
-        })
-    }
-
     pub fn base_color<C: Into<Color>>(self, color: C) -> Self {
-        self.map_material(|mut material| {
-            material.base.base_color = color.into();
-            material
-        })
-    }
-
-    pub fn emissive<C: Into<Color>>(self, color: C) -> Self {
-        self.map_material(|mut material| {
-            material.base.emissive = color.into().to_linear();
-            material
+        self.map_shader_model(|mut model| {
+            model.color = color.into();
+            model
         })
     }
 
     pub fn texture(self, texture: &Handle<Image>) -> Self {
-        self.map_material(|mut material| {
-            material.base.base_color_texture = Some(texture.clone());
-            material
+        self.map_shader_model(|mut model| {
+            model.texture = Some(texture.clone());
+            model
         })
     }
 }

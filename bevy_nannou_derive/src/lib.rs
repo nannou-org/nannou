@@ -38,16 +38,6 @@ pub fn shader_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #fragment_shader_impl
             }
         }
-
-        impl #impl_generics ::nannou::prelude::Material for #name #ty_generics #where_clause {
-            fn vertex_shader() -> ::nannou::prelude::ShaderRef {
-                <Self as ::nannou::prelude::render::ShaderModel>::vertex_shader()
-            }
-
-            fn fragment_shader() -> ::nannou::prelude::ShaderRef {
-                <Self as ::nannou::prelude::render::ShaderModel>::fragment_shader()
-            }
-        }
     };
 
     TokenStream::from(expanded)

@@ -5,6 +5,7 @@ use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
+use crate::render::ShaderModel;
 use crate::text::{self, Align, Font, FontSize, Justify, Layout, Scalar, Wrap};
 
 /// Properties related to drawing the **Text** primitive.
@@ -25,7 +26,7 @@ pub struct Style {
 }
 
 /// The drawing context for the **Text** primitive.
-pub type DrawingText<'a, M> = Drawing<'a, Text, M>;
+pub type DrawingText<'a, SM> = Drawing<'a, Text, SM>;
 
 impl Text {
     /// Begin drawing some text.
@@ -156,9 +157,9 @@ impl Text {
     }
 }
 
-impl<'a, M> DrawingText<'a, M>
+impl<'a, SM> DrawingText<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     /// The font size to use for the text.
     pub fn font_size(self, size: text::FontSize) -> Self {

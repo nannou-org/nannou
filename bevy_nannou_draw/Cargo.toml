@@ -12,6 +12,7 @@ num-traits = "0.2"
 bytemuck = "1.15.0"
 rayon = { workspace = true }
 uuid = "1.8"
+bitflags = "2.6.0"
 
 [features]
 nightly = []

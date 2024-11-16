@@ -11,6 +11,7 @@ use crate::draw::properties::{
     spatial, SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::Drawing;
+use crate::render::ShaderModel;
 
 /// Properties related to drawing an **Ellipse**.
 #[derive(Clone, Debug, Default)]
@@ -21,7 +22,7 @@ pub struct Ellipse {
 }
 
 /// The drawing context for an ellipse.
-pub type DrawingEllipse<'a, M> = Drawing<'a, Ellipse, M>;
+pub type DrawingEllipse<'a, SM> = Drawing<'a, Ellipse, SM>;
 
 // Ellipse-specific methods.
 
@@ -188,9 +189,9 @@ impl Into<Option<Ellipse>> for Primitive {
 
 // Drawing methods.
 
-impl<'a, M> DrawingEllipse<'a, M>
+impl<'a, SM> DrawingEllipse<'a, SM>
 where
-    M: Material + Default,
+    SM: ShaderModel + Default,
 {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self

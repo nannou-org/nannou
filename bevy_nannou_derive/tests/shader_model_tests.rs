@@ -3,58 +3,61 @@ use bevy_nannou_derive::shader_model;
 use bevy_nannou_draw::render::ShaderModel;
 
 #[shader_model]
-struct TestMaterial {}
+struct TestShaderModel {}
 
 #[test]
 fn test_default_shaders() {
-    assert!(matches!(TestMaterial::vertex_shader(), ShaderRef::Default));
     assert!(matches!(
-        TestMaterial::fragment_shader(),
+        TestShaderModel::vertex_shader(),
+        ShaderRef::Default
+    ));
+    assert!(matches!(
+        TestShaderModel::fragment_shader(),
         ShaderRef::Default
     ));
 }
 
 #[shader_model(vertex = "custom_vertex.wgsl")]
-struct TestVertexMaterial {}
+struct TestVertexShaderModel {}
 
 #[test]
 fn test_custom_vertex_shader() {
     assert!(matches!(
-        TestVertexMaterial::vertex_shader(),
+        TestVertexShaderModel::vertex_shader(),
         ShaderRef::Path(_)
     ));
     assert!(matches!(
-        TestVertexMaterial::fragment_shader(),
+        TestVertexShaderModel::fragment_shader(),
         ShaderRef::Default
     ));
 }
 
 #[shader_model(fragment = "custom_fragment.wgsl")]
-struct TestFragmentMaterial {}
+struct TestFragmentShaderModel {}
 
 #[test]
 fn test_custom_fragment_shader() {
     assert!(matches!(
-        TestFragmentMaterial::vertex_shader(),
+        TestFragmentShaderModel::vertex_shader(),
         ShaderRef::Default
     ));
     assert!(matches!(
-        TestFragmentMaterial::fragment_shader(),
+        TestFragmentShaderModel::fragment_shader(),
         ShaderRef::Path(_)
     ));
 }
 
 #[shader_model(vertex = "custom_vertex.wgsl", fragment = "custom_fragment.wgsl")]
-struct TestBothMaterial {}
+struct TestBothShaderModel {}
 
 #[test]
 fn test_both_custom_shaders() {
     assert!(matches!(
-        TestBothMaterial::vertex_shader(),
+        TestBothShaderModel::vertex_shader(),
         ShaderRef::Path(_)
     ));
     assert!(matches!(
-        TestBothMaterial::fragment_shader(),
+        TestBothShaderModel::fragment_shader(),
         ShaderRef::Path(_)
     ));
 }

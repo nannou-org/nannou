@@ -54,7 +54,6 @@ fn view(app: &App) {
         let hue = i as f32 / n_circles as f32;
         let color = Color::hsl(hue, 1.0, 0.5);
         draw.ellipse()
-            // .color_blend(desc.clone())
             .radius(radius)
             .color(color)
             .x(radius + animate_radius);
