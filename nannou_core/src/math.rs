@@ -208,7 +208,7 @@ pub fn fmod<F>(numer: F, denom: F) -> F
 where
     F: Float,
 {
-    let rquot: F = (numer / denom).floor();
+    let rquot: F = (numer / denom).trunc();
     numer - rquot * denom
 }
 
