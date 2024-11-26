@@ -1581,6 +1581,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "float_eq"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28a80e3145d8ad11ba0995949bbcf48b9df2be62772b3d351ef017dff6ecb853"
+
+[[package]]
 name = "float_next_after"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3015,6 +3021,7 @@ dependencies = [
 name = "nannou_core"
 version = "0.19.0"
 dependencies = [
+ "float_eq",
  "glam",
  "num-traits",
  "palette",
