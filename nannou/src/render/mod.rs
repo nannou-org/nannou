@@ -91,13 +91,13 @@ impl<'w> RenderApp<'w> {
     /// Get the elapsed seconds since startup.
     pub fn time(&self) -> f32 {
         let time = self.world.resource::<Time>();
-        time.elapsed_seconds()
+        time.elapsed_secs()
     }
 
     /// Get the elapsed seconds since the last frame.
     pub fn time_delta(&self) -> f32 {
         let time = self.world.resource::<Time>();
-        time.delta_seconds()
+        time.delta_secs()
     }
 }
 

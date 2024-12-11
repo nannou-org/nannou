@@ -25,14 +25,14 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy", branch = "main" }
-bevy_egui = { git = "https://github.com/tychedelia/bevy_egui", branch = "main" }
-bevy-inspector-egui = { git = "https://github.com/tychedelia/bevy-inspector-egui", branch = "main" }
+bevy = "0.15.0"
+bevy_egui = "0.31.1"
+bevy-inspector-egui = "0.28.0"
 image = "0.25"
 rayon = "1.10"
-bevy_common_assets = { git = "https://github.com/tychedelia/bevy_common_assets", branch = "main" }
+bevy_common_assets = "0.12.0"
 serde = "1"
 serde_json = "1"
 toml = "0.8"
 serde_yaml = "0.9"
-wgpu = "22.0"
+wgpu = "23.0.1"

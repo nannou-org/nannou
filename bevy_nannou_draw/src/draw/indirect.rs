@@ -1,19 +1,19 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
+use crate::render::{ShaderModelHandle, ShaderStorageBufferHandle};
 use crate::{
     draw::{drawing::Drawing, primitive::Primitive, Draw, DrawCommand},
-    render::{
-        queue_shader_model, DrawShaderModel, PreparedShaderModel, ShaderModel, ShaderModelMesh,
-    },
+    render::{queue_shader_model, PreparedShaderModel, ShaderModel},
 };
+use bevy::pbr::RenderMaterialInstances;
+use bevy::render::extract_instances::ExtractedInstances;
 use bevy::{
     core_pipeline::core_3d::Transparent3d,
     ecs::system::{lifetimeless::*, SystemParamItem},
     pbr::{RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup},
     prelude::*,
     render::{
-        extract_component::{ExtractComponent, ExtractComponentPlugin},
-        extract_instances::ExtractedInstances,
+        extract_component::ExtractComponent,
         mesh::{allocator::MeshAllocator, RenderMesh, RenderMeshBufferInfo},
         render_asset::{prepare_assets, RenderAsset, RenderAssets},
         render_phase::{
@@ -140,7 +140,7 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
 {
     type Param = (
         SRes<RenderAssets<PreparedShaderModel<SM>>>,
-        SRes<ExtractedInstances<AssetId<SM>>>,
+        SRes<ExtractedInstances<ShaderModelHandle<SM>>>,
     );
     type ViewQuery = ();
     type ItemQuery = ();
@@ -156,10 +156,10 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
         let models = models.into_inner();
         let instances = instances.into_inner();
 
-        let Some(asset_id) = instances.get(&item.entity()) else {
+        let Some(handle) = instances.get(&item.main_entity()) else {
             return RenderCommandResult::Skip;
         };
-        let Some(model) = models.get(*asset_id) else {
+        let Some(model) = models.get(handle.0.id()) else {
             return RenderCommandResult::Skip;
         };
         pass.set_bind_group(I, &model.bind_group, &[]);
@@ -176,13 +176,13 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshIndirect {
         SRes<RenderAssets<GpuShaderStorageBuffer>>,
     );
     type ViewQuery = ();
-    type ItemQuery = Read<Handle<ShaderStorageBuffer>>;
+    type ItemQuery = Read<ShaderStorageBufferHandle>;
 
     #[inline]
     fn render<'w>(
         item: &P,
         _view: (),
-        indirect_buffer: Option<&'w Handle<ShaderStorageBuffer>>,
+        indirect_buffer: Option<&'w ShaderStorageBufferHandle>,
         (meshes, render_mesh_instances, mesh_allocator, ssbos): SystemParamItem<
             'w,
             '_,
@@ -192,7 +192,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshIndirect {
     ) -> RenderCommandResult {
         let mesh_allocator = mesh_allocator.into_inner();
 
-        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.entity())
+        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.main_entity())
         else {
             return RenderCommandResult::Skip;
         };
@@ -202,7 +202,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshIndirect {
         let Some(indirect_buffer) = indirect_buffer else {
             return RenderCommandResult::Skip;
         };
-        let Some(indirect_buffer) = ssbos.into_inner().get(indirect_buffer) else {
+        let Some(indirect_buffer) = ssbos.into_inner().get(&indirect_buffer.0) else {
             return RenderCommandResult::Skip;
         };
         let Some(vertex_buffer_slice) =
