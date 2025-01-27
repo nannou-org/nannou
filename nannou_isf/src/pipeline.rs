@@ -416,7 +416,7 @@ pub fn compile_isf_shader(
         .and_then(|(old_str, isf)| {
             let isf_str = crate::glsl_string_from_isf(&isf);
             let new_str = crate::prefix_isf_glsl_str(&isf_str, old_str);
-            let ty = hotglsl::ShaderType::Fragment;
+            let ty = hotglsl::ShaderStage::Fragment;
             hotglsl::compile_str(&new_str, ty).map_err(From::from)
         });
     let (bytes, error) = split_result(res);
