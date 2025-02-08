@@ -25,7 +25,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-bevy = "0.15.0"
+bevy = "0.15"
 bevy_egui = "0.32.0"
 bevy-inspector-egui = "0.29.0"
 image = "0.25"
