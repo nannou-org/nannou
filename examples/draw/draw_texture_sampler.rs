@@ -1,8 +1,5 @@
 //! A simple as possible example demonstrating how to use the `draw` API to display a texture.
 
-use nannou::prelude::bevy_render::texture::{
-    ImageAddressMode, ImageSampler, ImageSamplerDescriptor,
-};
 use nannou::prelude::*;
 
 fn main() {

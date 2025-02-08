@@ -289,7 +289,7 @@ fn create_compute_pipeline(
         label: Some("nannou"),
         layout: Some(layout),
         module: &cs_mod,
-        entry_point: "main",
+        entry_point: Some("main"),
         compilation_options: Default::default(),
         cache: None,
     };
