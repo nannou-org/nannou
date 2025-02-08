@@ -110,7 +110,7 @@ impl<M> FromWorld for NannouRenderNode<M>
 where
     M: Send + Sync + Clone + 'static,
 {
-    fn from_world(world: &mut World) -> Self {
+    fn from_world(_: &mut World) -> Self {
         Self(std::marker::PhantomData)
     }
 }

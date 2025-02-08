@@ -1,11 +1,9 @@
 use crate::asset::{Isf, IsfAssetPlugin, IsfHandle};
 use crate::inputs::{IsfInputValue, IsfInputs};
 use crate::render::{IsfRenderPlugin, IsfRenderTargets};
-use bevy::asset::embedded_asset;
 use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::extract_resource::ExtractResourcePlugin;
-use bevy::render::view;
 use bevy_inspector_egui::inspector_egui_impls::InspectorEguiImpl;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 
