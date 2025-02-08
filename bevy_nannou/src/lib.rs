@@ -3,6 +3,7 @@ use bevy::prelude::*;
 pub mod prelude {
     pub use bevy::color::palettes::css::*;
     pub use bevy::color::*;
+    pub use bevy::image::*;
     pub use bevy::core_pipeline::bloom::*;
     pub use bevy::input::mouse::MouseWheel;
     pub use bevy::prelude::{
