@@ -26,8 +26,8 @@ resolver = "2"
 
 [workspace.dependencies]
 bevy = "0.15.0"
-bevy_egui = "0.31.1"
-bevy-inspector-egui = "0.28.0"
+bevy_egui = "0.32.0"
+bevy-inspector-egui = "0.29.0"
 image = "0.25"
 rayon = "1.10"
 bevy_common_assets = "0.12.0"

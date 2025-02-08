@@ -25,7 +25,7 @@ use bevy::render::render_resource::binding_types::{
 };
 use bevy::render::render_resource::*;
 use bevy::render::renderer::{RenderContext, RenderDevice, RenderQueue};
-use bevy::render::texture::{BevyDefault, DefaultImageSampler, GpuImage};
+use bevy::render::texture::{DefaultImageSampler, GpuImage};
 use bevy::render::view::{ExtractedView, ViewTarget, VisibleEntities};
 use bevy::render::{Extract, Render, RenderApp, RenderSet};
 use bevy::utils::HashMap;
@@ -33,7 +33,7 @@ use bevy::window::{PrimaryWindow, WindowRef};
 use std::num::{NonZero, NonZeroU64};
 use std::ops::Deref;
 
-use crate::asset::{GpuIsf, Isf};
+use crate::asset::{GpuIsf, Isf, IsfHandle};
 use crate::inputs::{IsfInputValue, IsfInputs};
 
 pub struct IsfRenderPlugin;
@@ -83,7 +83,7 @@ pub struct IsfPass {
 }
 
 fn update_render_targets(
-    cameras_q: Query<(&Camera, &Handle<Isf>)>,
+    cameras_q: Query<(&Camera, &IsfHandle)>,
     windows_q: Query<(&Window, Option<&PrimaryWindow>)>,
     mut render_targets: ResMut<IsfRenderTargets>,
     mut images: ResMut<Assets<Image>>,
@@ -114,7 +114,7 @@ fn update_render_targets(
         }
     };
 
-    let isf = isfs.get(isf).expect("Isf not found");
+    let isf = isfs.get(&**isf).expect("Isf not found");
     render_targets.resize(isf.isf.passes.len(), None);
     for (pass_idx, pass) in isf.isf.passes.iter().enumerate() {
         if let None = pass.target {
@@ -197,10 +197,10 @@ fn queue_isf(
     isf_inputs: Res<IsfInputs>,
     isf_render_targets: Res<IsfRenderTargets>,
     mut specialized_render_pipelines: ResMut<SpecializedRenderPipelines<IsfPipeline>>,
-    views: Query<(Entity, &ExtractedView, &Handle<Isf>, &Msaa)>,
+    views: Query<(Entity, &ExtractedView, &IsfHandle, &Msaa)>,
 ) {
     for (view_entity, extracted_view, isf, msaa) in views.iter() {
-        let isf = isf_assets.get(isf).unwrap();
+        let isf = isf_assets.get(&**isf).unwrap();
 
         // Prepare any new layouts
         if let None = isf_pipeline
@@ -288,14 +288,14 @@ fn prepare_isf_bind_groups(
     pipeline: Res<IsfPipeline>,
     sampler: Res<DefaultImageSampler>,
     isf_inputs: Res<IsfInputs>,
-    views: Query<(Entity, &Handle<Isf>)>,
+    views: Query<(Entity, &IsfHandle)>,
     render_device: Res<RenderDevice>,
     isf_render_targets: Res<IsfRenderTargets>,
     isf_assets: Res<RenderAssets<GpuIsf>>,
     gpu_images: Res<RenderAssets<GpuImage>>,
 ) {
     for (entity, isf) in views.iter() {
-        let gpu_isf = isf_assets.get(isf).unwrap();
+        let gpu_isf = isf_assets.get(&**isf).unwrap();
 
         let isf_inputs_uniform_buffer =
             render_device.create_buffer_with_data(&BufferInitDescriptor {
@@ -606,6 +606,7 @@ impl SpecializedRenderPipeline for IsfPipeline {
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },
+            zero_initialize_workgroup_memory: false,
         }
     }
 }

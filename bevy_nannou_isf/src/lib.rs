@@ -1,4 +1,4 @@
-use crate::asset::{Isf, IsfAssetPlugin};
+use crate::asset::{Isf, IsfAssetPlugin, IsfHandle};
 use crate::inputs::{IsfInputValue, IsfInputs};
 use crate::render::{IsfRenderPlugin, IsfRenderTargets};
 use bevy::asset::embedded_asset;
@@ -19,6 +19,7 @@ pub mod prelude {
 }
 
 pub struct NannouIsfPlugin;
+
 impl Plugin for NannouIsfPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(First, asset_event_handler)
@@ -26,7 +27,7 @@ impl Plugin for NannouIsfPlugin {
                 IsfRenderPlugin,
                 IsfAssetPlugin,
                 ResourceInspectorPlugin::<IsfInputs>::default(),
-                ExtractComponentPlugin::<Handle<Isf>>::default(),
+                ExtractComponentPlugin::<IsfHandle>::default(),
                 ExtractResourcePlugin::<IsfInputs>::default(),
                 ExtractResourcePlugin::<IsfRenderTargets>::default(),
             ))
@@ -59,7 +60,7 @@ fn asset_event_handler(
                 let isf = assets.get(&handle).unwrap();
                 *isf_inputs = IsfInputs::from_isf(&isf.isf);
                 for camera in cameras.iter() {
-                    commands.entity(camera).insert(handle.clone());
+                    commands.entity(camera).insert(IsfHandle(handle.clone()));
                 }
             }
             _ => {}

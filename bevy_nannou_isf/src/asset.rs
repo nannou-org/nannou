@@ -2,6 +2,7 @@ use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext, LoadedAsset};
 use bevy::ecs::system::SystemParamItem;
 use bevy::prelude::*;
+use bevy::render::extract_component::ExtractComponent;
 use bevy::render::render_asset::{
     PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssetUsages,
 };
@@ -18,6 +19,9 @@ pub struct Isf {
     pub shader: Handle<Shader>,
     pub imported_images: BTreeMap<String, Handle<Image>>,
 }
+
+#[derive(Component, ExtractComponent, Deref, DerefMut, Reflect, Debug, Default, Clone)]
+pub struct IsfHandle(pub Handle<Isf>);
 
 impl Isf {
     pub fn num_images(&self) -> usize {
@@ -57,11 +61,11 @@ impl AssetLoader for IsfLoader {
     type Settings = ();
     type Error = IsfAssetLoaderError;
 
-    async fn load<'a>(
-        &'a self,
-        reader: &'a mut dyn Reader,
-        settings: &'a Self::Settings,
-        load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        settings: &Self::Settings,
+        load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
