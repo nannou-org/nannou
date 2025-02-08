@@ -32,7 +32,8 @@ fn model(app: &App) -> Model {
     }
 }
 fn view(app: &App, model: &Model) {
-    let Some(video) = app.assets().get(&model.video) else {
+    let assets = app.assets();
+    let Some(video) = assets.get(&model.video) else {
         return;
     };
 

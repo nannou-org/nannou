@@ -30,7 +30,7 @@ fn load_next_frame(
     time: Res<Time>,
 ) {
     for (_, video) in videos.iter_mut() {
-        let current_time = time.elapsed_seconds_f64();
+        let current_time = time.elapsed_secs_f64();
         if current_time - video.last_update < video.frame_duration {
             continue; // Not time for next frame yet
         }
@@ -108,11 +108,11 @@ impl AssetLoader for VideoLoader {
     type Settings = VideoLoaderSettings;
     type Error = VideoAssetLoaderError;
 
-    async fn load<'a>(
-        &'a self,
-        _reader: &'a mut dyn Reader,
-        settings: &'a Self::Settings,
-        load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        _reader: &mut dyn Reader,
+        settings: & Self::Settings,
+        load_context: & mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let path = load_context.asset_path().path();
         // TODO: support web loading
