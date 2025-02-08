@@ -111,8 +111,8 @@ impl AssetLoader for VideoLoader {
     async fn load(
         &self,
         _reader: &mut dyn Reader,
-        settings: & Self::Settings,
-        load_context: & mut LoadContext<'_>,
+        settings: &Self::Settings,
+        load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let path = load_context.asset_path().path();
         // TODO: support web loading

@@ -501,7 +501,7 @@ impl<P> RenderCommand<P> for DrawIsf
 where
     P: PhaseItem,
 {
-    type Param = SRes<IsfBuffers>;
+    type Param = ();
 
     type ViewQuery = ();
 
@@ -511,20 +511,13 @@ where
         _: &P,
         _: ROQueryItem<'w, Self::ViewQuery>,
         _: Option<ROQueryItem<'w, Self::ItemQuery>>,
-        custom_phase_item_buffers: SystemParamItem<'w, '_, Self::Param>,
+        _: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        // Borrow check workaround.
-        let custom_phase_item_buffers = custom_phase_item_buffers.into_inner();
-
         pass.draw(0..3, 0..1);
-
         RenderCommandResult::Success
     }
 }
-
-#[derive(Resource)]
-struct IsfBuffers {}
 
 #[derive(Component)]
 pub struct ExtractedIsf {
