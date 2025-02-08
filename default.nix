@@ -1,10 +1,8 @@
 { alsa-lib
-, darwin
 , ffmpeg
 , jq
 , lib
 , llvmPackages
-, libiconv
 , makeWrapper
 , pkg-config
 , rustPlatform
@@ -55,11 +53,6 @@ rustPlatform.buildRustPackage rec {
     xorg.libXi
     xorg.libXrandr
   ] ++ lib.optionals stdenv.isDarwin [
-    darwin.apple_sdk.frameworks.AppKit
-    darwin.apple_sdk.frameworks.AudioToolbox
-    darwin.apple_sdk.frameworks.AudioUnit
-    darwin.apple_sdk.frameworks.CoreAudio
-    libiconv
     rustPlatform.bindgenHook
   ]);
 
@@ -69,9 +62,7 @@ rustPlatform.buildRustPackage rec {
       LD_LIBRARY_PATH = "${lib.makeLibraryPath buildInputs}";
       ALSA_LIB_DEV = "${alsa-lib.dev}";
       LIBCLANG_PATH = "${llvmPackages.libclang.lib}/lib";
-    } // lib.optionalAttrs stdenv.isDarwin {
-    COREAUDIO_SDK_PATH = "${darwin.apple_sdk.frameworks.CoreAudio}/Library/Frameworks/CoreAudio.framework";
-  });
+    });
 
 
   # Build and include example binaries in `$out/bin/examples`
@@ -92,15 +83,12 @@ rustPlatform.buildRustPackage rec {
       --set LD_LIBRARY_PATH "${env.LD_LIBRARY_PATH}" \
       --set ALSA_LIB_DEV "${env.ALSA_LIB_DEV}" \
       --set XCURSOR_THEME "${env.XCURSOR_THEME}"'';
-      macosWrapArgs = lib.optionalString stdenv.isDarwin ''\
-      --set COREAUDIO_SDK_PATH "${env.COREAUDIO_SDK_PATH}"'';
     in
     ''
       for prog in $out/bin/* $out/bin/examples/*; do
         if [ -f "$prog" -a -x "$prog" ]; then
           wrapProgram "$prog" \
-            ${linuxWrapArgs} \
-            ${macosWrapArgs}
+            ${linuxWrapArgs}
         fi
       done
     '';
