@@ -2,6 +2,7 @@
 
 pub use bevy::asset as bevy_asset;
 pub use bevy::ecs as bevy_ecs;
+pub use bevy::image as bevy_image;
 pub use bevy::reflect as bevy_reflect;
 pub use bevy::render as bevy_render;
 pub use bevy::tasks::prelude::{block_on, AsyncComputeTaskPool, IoTaskPool};

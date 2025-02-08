@@ -8,20 +8,19 @@ use std::fmt;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
+use crate::geom::Point2;
+use crate::glam::Vec2;
+use crate::prelude::WindowResizeConstraints;
+use crate::App;
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::render::extract_component::ExtractComponent;
 use bevy::render::renderer::{RenderDevice, RenderQueue};
-use bevy::render::view::cursor::CursorIcon;
 use bevy::render::view::screenshot::{save_to_disk, Screenshot};
 use bevy::render::view::RenderLayers;
 use bevy::window::{CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef};
-
-use crate::geom::Point2;
-use crate::glam::Vec2;
-use crate::prelude::WindowResizeConstraints;
-use crate::App;
+use bevy::winit::cursor::CursorIcon;
 use bevy_nannou::prelude::render::NannouCamera;
 use bevy_nannou::prelude::MonitorSelection;
 use nannou_core::geom;

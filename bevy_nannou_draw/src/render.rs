@@ -8,7 +8,11 @@ use crate::{
     },
     DrawHolder,
 };
+use bevy::ecs::query::QueryItem;
+use bevy::ecs::system::lifetimeless::Read;
+use bevy::render::extract_instances::ExtractInstance;
 use bevy::render::storage::ShaderStorageBuffer;
+use bevy::render::sync_world::MainEntity;
 use bevy::{
     asset::{load_internal_asset, Asset, UntypedAssetId},
     core_pipeline::core_3d::Transparent3d,
@@ -83,6 +87,21 @@ pub trait ShaderModel:
     }
 }
 
+#[derive(Component, Clone)]
+pub struct ShaderModelHandle<SM: ShaderModel>(pub(crate) Handle<SM>);
+
+impl<SM> ExtractInstance for ShaderModelHandle<SM>
+where
+    SM: ShaderModel,
+{
+    type QueryData = Read<ShaderModelHandle<SM>>;
+    type QueryFilter = ();
+
+    fn extract(item: QueryItem<'_, Self::QueryData>) -> Option<Self> {
+        Some(item.clone())
+    }
+}
+
 pub struct NannouRenderPlugin;
 
 impl Plugin for NannouRenderPlugin {
@@ -102,8 +121,8 @@ impl Plugin for NannouRenderPlugin {
                 ExtractComponentPlugin::<IndirectMesh>::default(),
                 ExtractComponentPlugin::<InstancedMesh>::default(),
                 ExtractComponentPlugin::<DrawIndex>::default(),
-                ExtractComponentPlugin::<Handle<ShaderStorageBuffer>>::default(),
                 ExtractComponentPlugin::<InstanceRange>::default(),
+                ExtractComponentPlugin::<ShaderStorageBufferHandle>::default(),
                 ExtractResourcePlugin::<DefaultTextureHandle>::default(),
                 NannouShaderModelPlugin::<DefaultNannouShaderModel>::default(),
             ))
@@ -130,7 +149,7 @@ where
     fn build(&self, app: &mut App) {
         app.init_asset::<SM>()
             .add_plugins((
-                ExtractInstancesPlugin::<AssetId<SM>>::extract_visible(),
+                ExtractInstancesPlugin::<ShaderModelHandle<SM>>::extract_visible(),
                 RenderAssetPlugin::<PreparedShaderModel<SM>>::default(),
                 IndirectShaderModelPlugin::<SM>::default(),
                 InstancedShaderModelPlugin::<SM>::default(),
@@ -203,7 +222,7 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
 {
     type Param = (
         SRes<RenderAssets<PreparedShaderModel<SM>>>,
-        SRes<ExtractedInstances<AssetId<SM>>>,
+        SRes<ExtractedInstances<ShaderModelHandle<SM>>>,
     );
     type ViewQuery = ();
     type ItemQuery = ();
@@ -219,10 +238,10 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
         let models = models.into_inner();
         let model_instances = model_instances.into_inner();
 
-        let Some(shader_model_asset_id) = model_instances.get(&item.entity()) else {
+        let Some(handle) = model_instances.get(&item.main_entity()) else {
             return RenderCommandResult::Skip;
         };
-        let Some(model) = models.get(*shader_model_asset_id) else {
+        let Some(model) = models.get(&handle.0) else {
             return RenderCommandResult::Skip;
         };
         pass.set_bind_group(I, &model.bind_group, &[]);
@@ -319,11 +338,11 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
         extracted_instances,
     ): (
         Res<RenderMeshInstances>,
-        Query<(Entity, &DrawIndex), QF>,
+        Query<(Entity, &MainEntity, &DrawIndex), QF>,
         ResMut<ViewSortedRenderPhases<Transparent3d>>,
         Query<(Entity, &ExtractedView, &Msaa)>,
         Res<RenderAssets<PreparedShaderModel<SM>>>,
-        Res<ExtractedInstances<AssetId<SM>>>,
+        Res<ExtractedInstances<ShaderModelHandle<SM>>>,
     ),
 ) where
     SM: ShaderModel,
@@ -340,14 +359,15 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
         };
 
         let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
-        for (entity, draw_idx) in &nannou_meshes {
-            let Some(shader_model) = extracted_instances.get(&entity) else {
+        for (entity, main_entity, draw_idx) in &nannou_meshes {
+            let Some(handle) = extracted_instances.get(main_entity) else {
                 continue;
             };
-            let Some(shader_model) = shader_models.get(*shader_model) else {
+            let Some(shader_model) = shader_models.get(&handle.0) else {
                 continue;
             };
-            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(entity) else {
+            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity)
+            else {
                 continue;
             };
             let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
@@ -366,7 +386,7 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
             phase.add(Transparent3d {
                 distance: draw_idx.0 as f32,
                 pipeline,
-                entity,
+                entity: (entity, *main_entity),
                 draw_function,
                 batch_range: Default::default(),
                 extra_index: PhaseItemExtraIndex(0),
@@ -562,7 +582,7 @@ fn update_shader_model<SM>(
         if id.type_id() == TypeId::of::<SM>() {
             commands
                 .entity(entity)
-                .insert(Handle::Weak(id.typed::<SM>()));
+                .insert(ShaderModelHandle(Handle::Weak(id.typed::<SM>())));
         }
     }
 }
@@ -650,7 +670,7 @@ fn update_draw_mesh(
                         InstancedMesh,
                         InstanceRange(range),
                         UntypedShaderModelId(model_id),
-                        mesh.clone(),
+                        Mesh3d(mesh.clone()),
                         Transform::default(),
                         GlobalTransform::default(),
                         Visibility::default(),
@@ -685,9 +705,9 @@ fn update_draw_mesh(
                         last_shader_model.expect("No shader model set for instanced draw command");
                     commands.spawn((
                         IndirectMesh,
-                        indirect_buffer,
+                        ShaderStorageBufferHandle(indirect_buffer),
                         UntypedShaderModelId(model_id),
-                        mesh.clone(),
+                        Mesh3d(mesh.clone()),
                         Transform::default(),
                         GlobalTransform::default(),
                         Visibility::default(),
@@ -708,7 +728,7 @@ fn update_draw_mesh(
                     mesh = meshes.add(Mesh::init());
                     commands.spawn((
                         UntypedShaderModelId(model_id),
-                        mesh.clone(),
+                        Mesh3d(mesh.clone()),
                         Transform::default(),
                         GlobalTransform::default(),
                         Visibility::default(),
@@ -788,3 +808,6 @@ pub mod blend {
 
 #[derive(Component)]
 pub struct NannouCamera;
+
+#[derive(Component, ExtractComponent, Clone)]
+pub struct ShaderStorageBufferHandle(pub Handle<ShaderStorageBuffer>);

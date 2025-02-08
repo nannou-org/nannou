@@ -62,7 +62,7 @@ fn view(app: &App, model: &Model) {
 
 fn edit_hsv(ui: &mut egui::Ui, color: &mut Hsva) {
     let mut egui_hsv = egui::ecolor::Hsva::new(
-        color.hue.to_positive_radians() as f32 / (std::f32::consts::PI * 2.0),
+        color.hue.to_radians() as f32 / (std::f32::consts::PI * 2.0),
         color.saturation,
         color.value,
         1.0,

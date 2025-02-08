@@ -242,6 +242,7 @@ where
             shader: self.shader.clone(),
             shader_defs: vec![],
             entry_point: Cow::from(key.shader_entry),
+            zero_initialize_workgroup_memory: false,
         }
     }
 }

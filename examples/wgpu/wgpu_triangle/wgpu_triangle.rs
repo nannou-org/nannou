@@ -93,7 +93,7 @@ fn render(_app: &RenderApp, model: &Model, frame: Frame) {
     let mut render_pass = wgpu::RenderPassBuilder::new()
         .color_attachment(frame.resolve_target_view().unwrap(), |color| color)
         .begin(&mut encoder);
-    render_pass.set_bind_group(0, &model.bind_group, &[]);
+    render_pass.set_bind_group(0, &*model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
     render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
 

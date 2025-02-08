@@ -224,11 +224,11 @@ required-features = ["nannou/egui"]
 [[example]]
 name = "simple_video"
 path = "video/simple_video.rs"
-required-features = ["video"]
+required-features = ["nannou/video"]
 [[example]]
 name = "video_shader_model"
 path = "video/video_shader_model.rs"
-required-features = ["video"]
+required-features = ["nannou/video"]
 
 # WebGPU
 [[example]]

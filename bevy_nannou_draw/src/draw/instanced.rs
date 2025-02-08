@@ -1,5 +1,6 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
+use crate::render::ShaderModelHandle;
 use crate::{
     draw::{drawing::Drawing, primitive::Primitive, Draw, DrawCommand},
     render::{queue_shader_model, PreparedShaderModel, ShaderModel},
@@ -142,7 +143,7 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
 {
     type Param = (
         SRes<RenderAssets<PreparedShaderModel<SM>>>,
-        SRes<ExtractedInstances<AssetId<SM>>>,
+        SRes<ExtractedInstances<ShaderModelHandle<SM>>>,
     );
     type ViewQuery = ();
     type ItemQuery = ();
@@ -158,10 +159,10 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
         let models = models.into_inner();
         let instances = instances.into_inner();
 
-        let Some(asset_id) = instances.get(&item.entity()) else {
+        let Some(handle) = instances.get(&item.main_entity()) else {
             return RenderCommandResult::Skip;
         };
-        let Some(shader_model) = models.get(*asset_id) else {
+        let Some(shader_model) = models.get(&handle.0) else {
             return RenderCommandResult::Skip;
         };
         pass.set_bind_group(I, &shader_model.bind_group, &[]);
@@ -194,7 +195,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
     ) -> RenderCommandResult {
         let mesh_allocator = mesh_allocator.into_inner();
 
-        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.entity())
+        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.main_entity())
         else {
             return RenderCommandResult::Skip;
         };
