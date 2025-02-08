@@ -16,7 +16,12 @@
 }:
 rustPlatform.buildRustPackage rec {
   pname = "nannou";
-  src = ./.;
+  src = lib.sourceFilesBySuffices ./. [
+    ".rs"
+    ".toml"
+    ".lock"
+    ".wgsl"
+  ];
   version = (builtins.fromTOML (builtins.readFile ./nannou/Cargo.toml)).package.version;
 
   cargoLock = {
