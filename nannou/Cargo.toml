@@ -17,34 +17,28 @@ bevy_egui = { workspace = true, optional = true }
 bevy_common_assets = { workspace = true, optional = true }
 bevy_nannou = { version = "0.1.0", path = "../bevy_nannou" }
 bevy_nannou_derive = { version = "0.1.0", path = "../bevy_nannou_derive" }
-futures = "0.3"
 find_folder = "0.3"
-getrandom = "0.2.3"
-instant = "0.1.9"
 lyon = "1.0"
 nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std"] }
 nannou_wgpu = { version = "0.19.0", path = "../nannou_wgpu", features = ["capturer"]}
 noise = "0.7"
-notosans = { version = "0.1", optional = true }
-num_cpus = "1"
 pennereq = "0.3"
-rusttype = { version = "0.8", features = ["gpu_cache"] }
 serde = { workspace = true, features = ["derive"], optional = true}
 serde_json = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 walkdir = "2"
-web-sys = { version = "0.3.64", optional = true }
 wgpu = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["full"]}
 image = { workspace = true, features = ["default"] }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+bevy = { workspace = true, features = ["webgpu"] }
 tokio = { version = "1", features = ["rt"]}
 image = { workspace = true, features = [], default-features = false }
 
 [features]
-default = ["notosans"]
+default = []
 egui = ["bevy_egui", "bevy-inspector-egui"]
 hot_reload = ["bevy/file_watcher"]
 isf = ["bevy_nannou/isf"]

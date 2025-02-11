@@ -8,8 +8,6 @@ bevy = { workspace = true }
 lyon = "1.0"
 nannou_core = { path = "../nannou_core" }
 rusttype = { version = "0.8", features = ["gpu_cache"] }
-num-traits = "0.2"
-bytemuck = "1.15.0"
 rayon = { workspace = true }
 uuid = "1.8"
 bitflags = "2.6.0"

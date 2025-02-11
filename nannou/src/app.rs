@@ -252,8 +252,17 @@ where
         let mut app = bevy::app::App::new();
         app.add_plugins((
             DefaultPlugins.set(WindowPlugin {
+                #[cfg(not(target_arch = "wasm32"))]
                 // Don't spawn a  window by default, we'll handle this ourselves
                 primary_window: None,
+                #[cfg(target_arch = "wasm32")]
+                // We create a default window on wasm to make sure that the render initialization
+                // has a canvas to attach to when configuring the surface.
+                primary_window: Some(Window {
+                    title: "Nannou".to_string(),
+                    resolution: (1024.0, 768.0).into(),
+                    ..default()
+                }),
                 exit_condition: ExitCondition::OnAllClosed,
                 ..default()
             }),
@@ -1061,10 +1070,8 @@ where
                 };
             }
         };
-        #[cfg(not(target_os = "unknown"))]
-        {
-            let _ = window.primary().build();
-        }
+
+        let _ = window.primary().build();
     }
 
     // Initialise the model.

@@ -15,14 +15,11 @@ edition = "2018"
 
 [dev-dependencies]
 audrey = "0.3"
-hotglsl = "0.2"
 hrtf = "0.2"
 nannou = { version ="0.19.0", path = "../nannou" }
 nannou_audio = { version ="0.19.0", path = "../nannou_audio" }
 nannou_laser = { version ="0.19.0", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
 nannou_osc = { version ="0.19.0", path = "../nannou_osc" }
-pitch_calc = { version = "0.12", features = ["serde"] }
-time_calc = { version= "0.13", features = ["serde"] }
 walkdir = "2"
 hound = "3.4.0"
 ringbuf = "0.2.2"
