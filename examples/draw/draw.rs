@@ -8,7 +8,6 @@ fn view(app: &App) {
     // Begin drawing
     let draw = app.draw();
 
-    info!("draw");
     // Clear the background to blue.
     draw.background().color(CORNFLOWER_BLUE);
 
