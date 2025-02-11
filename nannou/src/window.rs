@@ -410,26 +410,54 @@ where
         self
     }
 
-    #[cfg(not(target_os = "unknown"))]
     /// Builds the window, inserts it into the `App`'s display map and returns the unique ID.
     pub fn build(self) -> Entity {
-        let entity = self
-            .app
-            .component_world_mut()
-            .spawn((self.window, WindowUserFunctions(self.user_functions)))
-            .id();
+        if cfg!(target_arch = "wasm32") && !self.primary {
+            // TODO: figure out a way to dynamically attach to a canvas with new windows
+            panic!("Non-primary windows are not supported on wasm");
+        }
 
-        if self.primary {
-            let mut q = self.app.component_world_mut().query::<&PrimaryWindow>();
-            if q.get_single(&mut self.app.component_world_mut()).is_ok() {
-                panic!("Only one primary window can be created");
+        let entity = if !cfg!(target_arch = "wasm32") {
+            let entity = self
+                .app
+                .component_world_mut()
+                .spawn((self.window, WindowUserFunctions(self.user_functions)))
+                .id();
+
+            if self.primary {
+                let mut q = self.app.component_world_mut().query::<&PrimaryWindow>();
+                if q.get_single(&mut self.app.component_world_mut()).is_ok() {
+                    panic!("Only one primary window can be created");
+                }
+
+                self.app
+                    .component_world_mut()
+                    .entity_mut(entity)
+                    .insert(PrimaryWindow);
             }
+
+            entity
+        } else {
+            let mut q = self
+                .app
+                .component_world_mut()
+                .query_filtered::<(Entity, &mut bevy::window::Window), With<PrimaryWindow>>();
+            let entity = if let Ok((entity, mut window)) =
+                q.get_single_mut(&mut self.app.component_world_mut())
+            {
+                *window = self.window;
+                entity
+            } else {
+                panic!("No primary window found");
+            };
 
             self.app
                 .component_world_mut()
                 .entity_mut(entity)
-                .insert(PrimaryWindow);
-        }
+                .insert(WindowUserFunctions(self.user_functions));
+
+            entity
+        };
 
         let layer = RenderLayers::layer(self.app.window_count());
 

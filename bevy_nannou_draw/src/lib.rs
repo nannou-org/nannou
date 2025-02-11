@@ -22,7 +22,7 @@ fn reset_draw(mut draw_q: Query<&mut DrawHolder>) {
     }
 }
 
-fn spawn_draw(mut commands: Commands, query: Query<Entity, Added<Window>>) {
+fn spawn_draw(mut commands: Commands, query: Query<Entity, (Without<DrawHolder>, With<Window>)>) {
     for entity in query.iter() {
         commands
             .entity(entity)

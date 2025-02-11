@@ -9,7 +9,6 @@ proc-macro = true
 [dependencies]
 syn = {  version = "1", features = ["full"] }
 quote = "1.0"
-proc-macro2 = "1.0"
 
 [dev-dependencies]
 bevy = { workspace = true }
