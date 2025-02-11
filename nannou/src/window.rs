@@ -442,7 +442,9 @@ where
                 .app
                 .component_world_mut()
                 .query_filtered::<(Entity, &mut bevy::window::Window), With<PrimaryWindow>>();
-            let entity = if let Ok((entity, mut window)) = q.get_single_mut(&mut self.app.component_world_mut()) {
+            let entity = if let Ok((entity, mut window)) =
+                q.get_single_mut(&mut self.app.component_world_mut())
+            {
                 *window = self.window;
                 entity
             } else {
