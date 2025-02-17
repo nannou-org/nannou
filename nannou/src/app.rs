@@ -949,20 +949,20 @@ impl<'w> App<'w> {
         config.fullscreen_on_shortcut = b;
     }
 
-    /// Produce the [App]'s [DrawHolder] API for drawing geometry and text with colors and textures.
+    /// Produce the [App]'s [draw::Draw] API for drawing geometry and text with colors and textures.
     pub fn draw(&self) -> draw::Draw {
         let window_id = match self.current_view {
             Some(window_id) => window_id,
             None => self.window_id(),
         };
         let world = self.component_world();
-        let draw = world.entity(window_id).get::<DrawHolder>();
+        let draw = world.entity(window_id).get::<draw::Draw>();
         draw.unwrap().0.clone()
     }
 
     pub fn draw_for_window(&self, window: Entity) -> draw::Draw {
         let world = self.component_world();
-        let draw = world.entity(window).get::<DrawHolder>();
+        let draw = world.entity(window).get::<draw::Draw>();
         draw.unwrap().0.clone()
     }
 
