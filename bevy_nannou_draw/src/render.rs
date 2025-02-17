@@ -1,18 +1,17 @@
-use crate::{
-    draw::{
-        indirect::{IndirectMesh, IndirectShaderModelPlugin},
-        instanced::{InstanceRange, InstancedMesh, InstancedShaderModelPlugin},
-        mesh::MeshExt,
-        render::{RenderContext, RenderPrimitive},
-        DrawCommand, DrawContext,
-    },
-    DrawHolder,
+use crate::draw::Draw;
+use crate::draw::{
+    indirect::{IndirectMesh, IndirectShaderModelPlugin},
+    instanced::{InstanceRange, InstancedMesh, InstancedShaderModelPlugin},
+    mesh::MeshExt,
+    render::{RenderContext, RenderPrimitive},
+    DrawCommand, DrawContext,
 };
 use bevy::ecs::query::QueryItem;
 use bevy::ecs::system::lifetimeless::Read;
 use bevy::render::extract_instances::ExtractInstance;
 use bevy::render::storage::ShaderStorageBuffer;
 use bevy::render::sync_world::MainEntity;
+use bevy::window::PrimaryWindow;
 use bevy::{
     asset::{load_internal_asset, Asset, UntypedAssetId},
     core_pipeline::core_3d::Transparent3d,
@@ -113,28 +112,25 @@ impl Plugin for NannouRenderPlugin {
             Shader::from_wgsl
         );
 
-        app.add_systems(Startup, setup_default_texture)
-            .add_plugins((
-                ExtractComponentPlugin::<NannouTextureHandle>::default(),
-                ExtractComponentPlugin::<NannouTransient>::default(),
-                ExtractComponentPlugin::<ShaderModelMesh>::default(),
-                ExtractComponentPlugin::<IndirectMesh>::default(),
-                ExtractComponentPlugin::<InstancedMesh>::default(),
-                ExtractComponentPlugin::<DrawIndex>::default(),
-                ExtractComponentPlugin::<InstanceRange>::default(),
-                ExtractComponentPlugin::<ShaderStorageBufferHandle>::default(),
-                ExtractResourcePlugin::<DefaultTextureHandle>::default(),
-                NannouShaderModelPlugin::<DefaultNannouShaderModel>::default(),
-            ))
-            .add_systems(Update, texture_event_handler)
-            .add_systems(
-                PostUpdate,
-                (
-                    update_draw_mesh,
-                    view::check_visibility::<With<ShaderModelMesh>>
-                        .in_set(VisibilitySystems::CheckVisibility),
-                ),
-            );
+        app.add_plugins((
+            ExtractComponentPlugin::<NannouTransient>::default(),
+            ExtractComponentPlugin::<ShaderModelMesh>::default(),
+            ExtractComponentPlugin::<IndirectMesh>::default(),
+            ExtractComponentPlugin::<InstancedMesh>::default(),
+            ExtractComponentPlugin::<DrawIndex>::default(),
+            ExtractComponentPlugin::<InstanceRange>::default(),
+            ExtractComponentPlugin::<ShaderStorageBufferHandle>::default(),
+            NannouShaderModelPlugin::<DefaultNannouShaderModel>::default(),
+        ))
+        .add_systems(First, clear_previous_frame)
+        .add_systems(
+            PostUpdate,
+            (
+                update_draw_mesh,
+                view::check_visibility::<With<ShaderModelMesh>>
+                    .in_set(VisibilitySystems::CheckVisibility),
+            ),
+        );
     }
 }
 
@@ -522,46 +518,11 @@ impl ShaderModel for NannouShaderModel {
     }
 }
 
-#[derive(Resource, Deref, DerefMut, ExtractResource, Clone)]
-pub struct DefaultTextureHandle(Handle<Image>);
-
-#[derive(Component, Deref, DerefMut, ExtractComponent, Clone)]
-pub struct NannouTextureHandle(Handle<Image>);
-
-fn texture_event_handler(
-    mut commands: Commands,
-    mut ev_asset: EventReader<AssetEvent<Image>>,
-    assets: Res<Assets<Image>>,
-) {
-    for ev in ev_asset.read() {
-        match ev {
-            AssetEvent::Added { .. } | AssetEvent::Modified { .. } | AssetEvent::Removed { .. } => {
-                // TODO: handle these events
-            }
-            AssetEvent::LoadedWithDependencies { id } => {
-                let handle = Handle::Weak(*id);
-                let image = assets.get(&handle).unwrap();
-                // TODO hack to only handle 2D textures for now
-                // We should maybe require users to spawn a NannouTextureHandle themselves
-                if image.texture_descriptor.dimension == wgpu::TextureDimension::D2 {
-                    commands.spawn(NannouTextureHandle(handle));
-                }
-            }
-            _ => {}
-        }
-    }
-}
-
-fn setup_default_texture(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
-    let texture = images.add(Image::default());
-    commands.insert_resource(DefaultTextureHandle(texture));
-}
-
 #[derive(Component, Deref)]
 pub struct UntypedShaderModelId(UntypedAssetId);
 
 fn update_shader_model<SM>(
-    draw_q: Query<&DrawHolder>,
+    draw_q: Query<&Draw>,
     mut commands: Commands,
     mut models: ResMut<Assets<SM>>,
     models_q: Query<(Entity, &UntypedShaderModelId)>,
@@ -589,13 +550,21 @@ fn update_shader_model<SM>(
 
 fn update_draw_mesh(
     mut commands: Commands,
-    draw_q: Query<&DrawHolder>,
+    draw_q: Query<&Draw>,
     mut cameras_q: Query<(&mut Camera, &RenderLayers), With<NannouCamera>>,
-    windows: Query<&Window>,
+    windows: Query<(&Window, Has<PrimaryWindow>)>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     for draw in draw_q.iter() {
         let Some((mut window_camera, window_layers)) = cameras_q.iter_mut().find(|(camera, _)| {
+            if let RenderTarget::Window(WindowRef::Primary) = camera.target {
+                let Ok((_, is_primary)) = windows.get(draw.window) else {
+                    return false;
+                };
+                if is_primary {
+                    return true;
+                }
+            }
             if let RenderTarget::Window(WindowRef::Entity(window)) = camera.target {
                 if window == draw.window {
                     return true;
@@ -604,7 +573,7 @@ fn update_draw_mesh(
 
             false
         }) else {
-            warn!("No camera found for window {:?}", draw.window);
+            debug!("No camera found for window {:?}", draw.window);
             continue;
         };
 
@@ -612,8 +581,7 @@ fn update_draw_mesh(
         window_camera.clear_color = ClearColorConfig::None;
 
         // The window we are rendering to.
-        let window = windows.get(draw.window).unwrap();
-
+        let (window, _) = windows.get(draw.window).unwrap();
         let mut fill_tessellator = FillTessellator::new();
         let mut stroke_tessellator = StrokeTessellator::new();
 
@@ -755,6 +723,19 @@ pub struct DrawIndex(pub usize);
 #[derive(Component, ExtractComponent, Clone)]
 pub struct NannouTransient;
 
+fn clear_previous_frame(
+    mut commands: Commands,
+    bg_color_q: Query<Entity, With<BackgroundColor>>,
+    meshes_q: Query<Entity, With<NannouTransient>>,
+) {
+    for entity in meshes_q.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    for entity in bg_color_q.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
 #[derive(Component, ExtractComponent, Clone)]
 pub struct ShaderModelMesh;
 
@@ -807,7 +788,24 @@ pub mod blend {
 }
 
 #[derive(Component)]
+#[require(
+    Camera3d,
+    Projection(|| Projection::Orthographic(OrthographicProjection::default_3d())),
+    RenderLayers
+)]
 pub struct NannouCamera;
+
+impl NannouCamera {
+    pub fn for_window(window: Entity) -> impl Bundle {
+        (
+            Self,
+            Camera {
+                target: RenderTarget::Window(WindowRef::Entity(window)),
+                ..default()
+            },
+        )
+    }
+}
 
 #[derive(Component, ExtractComponent, Clone)]
 pub struct ShaderStorageBufferHandle(pub Handle<ShaderStorageBuffer>);

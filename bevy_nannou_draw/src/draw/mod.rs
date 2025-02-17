@@ -48,7 +48,7 @@ pub mod theme;
 ///
 /// See the [draw](https://github.com/nannou-org/nannou/blob/master/examples) examples for a
 /// variety of demonstrations of how the [Draw] type can be used!
-#[derive(Clone)]
+#[derive(Component, Clone)]
 pub struct Draw<SM = DefaultNannouShaderModel>
 where
     SM: ShaderModel + Default,

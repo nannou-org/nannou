@@ -16,7 +16,6 @@ bevy-inspector-egui = { workspace = true, optional = true }
 bevy_egui = { workspace = true, optional = true }
 bevy_common_assets = { workspace = true, optional = true }
 bevy_nannou = { version = "0.1.0", path = "../bevy_nannou" }
-bevy_nannou_derive = { version = "0.1.0", path = "../bevy_nannou_derive" }
 find_folder = "0.3"
 lyon = "1.0"
 nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std"] }

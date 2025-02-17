@@ -14,6 +14,7 @@ pub mod prelude {
     pub use bevy::render::render_asset::*;
     pub use bevy::render::render_resource::*;
     pub use bevy::winit::UpdateMode;
+    pub use bevy_nannou_derive::shader_model;
 
     pub use bevy_nannou_draw::color::*;
     pub use bevy_nannou_draw::draw::*;
@@ -32,7 +33,7 @@ pub struct NannouPlugin;
 
 impl Plugin for NannouPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((bevy_nannou_draw::NannouDrawPlugin,));
+        app.add_plugins(bevy_nannou_draw::NannouDrawPlugin);
         #[cfg(feature = "isf")]
         {
             app.add_plugins(bevy_nannou_isf::NannouIsfPlugin);

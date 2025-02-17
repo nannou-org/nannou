@@ -1191,6 +1191,7 @@ name = "bevy_nannou"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_nannou_derive",
  "bevy_nannou_draw",
  "bevy_nannou_isf",
  "bevy_nannou_video",
@@ -3061,6 +3062,8 @@ name = "examples"
 version = "0.1.0"
 dependencies = [
  "audrey",
+ "bevy",
+ "bevy_nannou",
  "bytemuck",
  "futures 0.3.31",
  "hound",
@@ -5171,7 +5174,6 @@ dependencies = [
  "bevy_common_assets",
  "bevy_egui",
  "bevy_nannou",
- "bevy_nannou_derive",
  "find_folder",
  "image 0.25.5",
  "lyon",
