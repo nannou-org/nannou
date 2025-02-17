@@ -957,13 +957,13 @@ impl<'w> App<'w> {
         };
         let world = self.component_world();
         let draw = world.entity(window_id).get::<draw::Draw>();
-        draw.unwrap().0.clone()
+        draw.unwrap().clone()
     }
 
     pub fn draw_for_window(&self, window: Entity) -> draw::Draw {
         let world = self.component_world();
         let draw = world.entity(window).get::<draw::Draw>();
-        draw.unwrap().0.clone()
+        draw.unwrap().clone()
     }
 
     /// The number of times the focused window's **view** function has been called since the start
