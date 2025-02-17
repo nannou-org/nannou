@@ -446,7 +446,6 @@ where
             .insert_resource(ViewFnRes(self.default_view))
             .insert_resource(ExitFnRes(self.exit))
             .add_systems(Startup, startup::<M>)
-            .add_systems(First, first::<M>)
             .add_systems(
                 Update,
                 (
@@ -1077,21 +1076,6 @@ where
     // Initialise the model.
     let model = model_fn(&mut app);
     world.insert_resource(ModelHolder(model));
-}
-
-fn first<M>(
-    mut commands: Commands,
-    bg_color_q: Query<Entity, With<BackgroundColor>>,
-    meshes_q: Query<Entity, With<NannouTransient>>,
-) where
-    M: 'static + Send + Sync,
-{
-    for entity in meshes_q.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
-    for entity in bg_color_q.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
 }
 
 #[allow(clippy::type_complexity)]

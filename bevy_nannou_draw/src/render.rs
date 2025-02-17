@@ -729,10 +729,10 @@ fn clear_previous_frame(
     meshes_q: Query<Entity, With<NannouTransient>>,
 ) {
     for entity in meshes_q.iter() {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
     for entity in bg_color_q.iter() {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }
 
