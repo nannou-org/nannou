@@ -48,7 +48,7 @@ use crate::render::{
 use crate::window::WindowUserFunctions;
 use crate::{camera, geom, light, window};
 use bevy_nannou::prelude::render::NannouCamera;
-use bevy_nannou::prelude::{draw, DrawHolder};
+use bevy_nannou::prelude::draw;
 use bevy_nannou::NannouPlugin;
 use find_folder;
 use std::any::Any;
