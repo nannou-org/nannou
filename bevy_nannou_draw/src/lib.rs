@@ -1,6 +1,6 @@
+use crate::render::{NannouRenderPlugin, NannouShaderModel};
 use bevy::prelude::*;
-
-use crate::render::NannouRenderPlugin;
+use draw::Draw;
 
 pub mod color;
 pub mod draw;
@@ -16,19 +16,16 @@ impl Plugin for NannouDrawPlugin {
     }
 }
 
-fn reset_draw(mut draw_q: Query<&mut DrawHolder>) {
+fn reset_draw(mut draw_q: Query<&mut Draw>) {
     for mut draw in draw_q.iter_mut() {
         draw.reset();
     }
 }
 
-fn spawn_draw(mut commands: Commands, query: Query<Entity, (Without<DrawHolder>, With<Window>)>) {
+fn spawn_draw(mut commands: Commands, query: Query<Entity, (Without<Draw>, With<Window>)>) {
     for entity in query.iter() {
         commands
             .entity(entity)
-            .insert(DrawHolder(draw::Draw::new(entity)));
+            .insert(Draw::<NannouShaderModel>::new(entity));
     }
 }
-
-#[derive(Component, Clone, Deref, DerefMut)]
-pub struct DrawHolder(pub draw::Draw);

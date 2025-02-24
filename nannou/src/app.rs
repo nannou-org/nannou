@@ -47,8 +47,8 @@ use crate::render::{
 };
 use crate::window::WindowUserFunctions;
 use crate::{camera, geom, light, window};
+use bevy_nannou::prelude::draw;
 use bevy_nannou::prelude::render::NannouCamera;
-use bevy_nannou::prelude::{draw, DrawHolder};
 use bevy_nannou::NannouPlugin;
 use find_folder;
 use std::any::Any;
@@ -446,7 +446,6 @@ where
             .insert_resource(ViewFnRes(self.default_view))
             .insert_resource(ExitFnRes(self.exit))
             .add_systems(Startup, startup::<M>)
-            .add_systems(First, first::<M>)
             .add_systems(
                 Update,
                 (
@@ -949,21 +948,21 @@ impl<'w> App<'w> {
         config.fullscreen_on_shortcut = b;
     }
 
-    /// Produce the [App]'s [DrawHolder] API for drawing geometry and text with colors and textures.
+    /// Produce the [App]'s [draw::Draw] API for drawing geometry and text with colors and textures.
     pub fn draw(&self) -> draw::Draw {
         let window_id = match self.current_view {
             Some(window_id) => window_id,
             None => self.window_id(),
         };
         let world = self.component_world();
-        let draw = world.entity(window_id).get::<DrawHolder>();
-        draw.unwrap().0.clone()
+        let draw = world.entity(window_id).get::<draw::Draw>();
+        draw.unwrap().clone()
     }
 
     pub fn draw_for_window(&self, window: Entity) -> draw::Draw {
         let world = self.component_world();
-        let draw = world.entity(window).get::<DrawHolder>();
-        draw.unwrap().0.clone()
+        let draw = world.entity(window).get::<draw::Draw>();
+        draw.unwrap().clone()
     }
 
     /// The number of times the focused window's **view** function has been called since the start
@@ -1077,21 +1076,6 @@ where
     // Initialise the model.
     let model = model_fn(&mut app);
     world.insert_resource(ModelHolder(model));
-}
-
-fn first<M>(
-    mut commands: Commands,
-    bg_color_q: Query<Entity, With<BackgroundColor>>,
-    meshes_q: Query<Entity, With<NannouTransient>>,
-) where
-    M: 'static + Send + Sync,
-{
-    for entity in meshes_q.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
-    for entity in bg_color_q.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
 }
 
 #[allow(clippy::type_complexity)]
