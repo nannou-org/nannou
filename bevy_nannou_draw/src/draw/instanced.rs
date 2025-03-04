@@ -19,7 +19,6 @@ use bevy::{
             AddRenderCommand, PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline,
             TrackedRenderPass,
         },
-        storage::GpuShaderStorageBuffer,
         Render, RenderApp, RenderSet,
     },
 };
@@ -169,7 +168,6 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
         SRes<RenderAssets<RenderMesh>>,
         SRes<RenderMeshInstances>,
         SRes<MeshAllocator>,
-        SRes<RenderAssets<GpuShaderStorageBuffer>>,
     );
     type ViewQuery = ();
     type ItemQuery = Read<InstanceRange>;
@@ -179,11 +177,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
         item: &P,
         _view: (),
         instance_range: Option<&'w InstanceRange>,
-        (meshes, render_mesh_instances, mesh_allocator, _ssbos): SystemParamItem<
-            'w,
-            '_,
-            Self::Param,
-        >,
+        (meshes, render_mesh_instances, mesh_allocator): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let mesh_allocator = mesh_allocator.into_inner();
