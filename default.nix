@@ -2,6 +2,7 @@
 , ffmpeg
 , jq
 , lib
+, libxkbcommon
 , llvmPackages
 , makeWrapper
 , pkg-config
@@ -49,6 +50,7 @@ rustPlatform.buildRustPackage rec {
   ] ++ lib.optionals stdenv.isLinux [
     alsa-lib
     udev
+    libxkbcommon
     llvmPackages.bintools
     llvmPackages.libclang
     vulkan-loader
