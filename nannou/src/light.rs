@@ -1,3 +1,6 @@
+// FIXME: Remove deprecated `DirectionalLightBundle`.
+#![allow(deprecated)]
+
 use bevy::pbr::{DirectionalLight, DirectionalLightBundle};
 use bevy::prelude::{Color, Transform, Vec2};
 use bevy::render::view::RenderLayers;

@@ -1,9 +1,9 @@
 //! A collection of commonly used items that we recommend importing for ease of use.
 
-pub use bevy::asset as bevy_asset;
+pub use bevy::asset::{self as bevy_asset, Asset};
 pub use bevy::ecs as bevy_ecs;
 pub use bevy::image as bevy_image;
-pub use bevy::reflect as bevy_reflect;
+pub use bevy::reflect::{self as bevy_reflect, TypePath};
 pub use bevy::render as bevy_render;
 pub use bevy::tasks::prelude::{block_on, AsyncComputeTaskPool, IoTaskPool};
 pub use bevy::tasks::{futures_lite::future, Task};
@@ -13,7 +13,7 @@ pub use bevy_egui::egui;
 
 pub use crate::frame::*;
 pub use crate::render::compute::*;
-pub use crate::render::*;
+pub use crate::render::RenderApp;
 pub use crate::wgpu;
 pub use crate::wgpu::util::{BufferInitDescriptor, DeviceExt};
 pub use bevy_nannou::prelude::*;

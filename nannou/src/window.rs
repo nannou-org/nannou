@@ -479,6 +479,8 @@ where
             }
         } else {
             info!("No camera provided for window, creating a default camera");
+            // FIXME: Remove deprecated `Camera3dBundle`
+            #[allow(deprecated)]
             self.app.component_world_mut().spawn((
                 Camera3dBundle {
                     camera: Camera {

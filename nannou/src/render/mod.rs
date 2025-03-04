@@ -1,26 +1,26 @@
 use crate::{
     app::{ModelHolder, RenderFnRes},
     frame::Frame,
-    prelude::bevy_render::{
-        extract_component::ExtractComponent, extract_resource::extract_resource,
-    },
+    prelude::bevy_render::extract_resource::extract_resource,
 };
-pub use bevy::prelude::*;
 use bevy::{
+    app::{App, Plugin},
     core_pipeline::core_3d::graph::{Core3d, Node3d},
-    ecs::query::QueryItem,
+    ecs::{
+        entity::Entity,
+        query::QueryItem,
+        world::{FromWorld, World},
+    },
     render::{
-        extract_resource::ExtractResource,
         render_graph::{
             NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
         },
-        render_resource::SpecializedComputePipeline,
         renderer::RenderContext,
         view::{ExtractedView, ExtractedWindows, ViewTarget},
+        ExtractSchedule,
     },
+    time::Time,
 };
-use bevy_nannou::prelude::AsBindGroup;
-use noise::NoiseFn;
 use std::{hash::Hash, ops::Deref};
 
 pub mod compute;
@@ -76,16 +76,12 @@ where
 }
 
 pub struct RenderApp<'w> {
-    current_view: Option<Entity>,
     world: &'w World,
 }
 
 impl<'w> RenderApp<'w> {
     pub fn new(world: &'w World) -> Self {
-        Self {
-            current_view: None,
-            world,
-        }
+        Self { world }
     }
 
     /// Get the elapsed seconds since startup.
@@ -125,7 +121,7 @@ where
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext<'w>,
-        (view_entity, view_target, extracted_view): QueryItem<'w, Self::ViewQuery>,
+        (view_entity, view_target, _extracted_view): QueryItem<'w, Self::ViewQuery>,
         world: &'w World,
     ) -> Result<(), NodeRunError> {
         let render_fn = world.resource::<RenderFnRes<M>>();
@@ -141,7 +137,6 @@ where
             view_entity,
             view_target,
             extracted_windows,
-            extracted_view,
             render_context,
         );
 
