@@ -80,16 +80,6 @@ The following nannou **libraries** are included within this repository.
 | [**`nannou_osc`**](./nannou_osc) | [![Crates.io](https://img.shields.io/crates/v/nannou_osc.svg)](https://crates.io/crates/nannou_osc) [![docs.rs](https://docs.rs/nannou_osc/badge.svg)](https://docs.rs/nannou_osc/) | Simple OSC sender and receiver. |
 | [**`nannou_wgpu`**](./nannou_wgpu) | [![Crates.io](https://img.shields.io/crates/v/nannou_wgpu.svg)](https://crates.io/crates/nannou_wgpu) [![docs.rs](https://docs.rs/nannou_wgpu/badge.svg)](https://docs.rs/nannou_wgpu/) | WGPU helpers and extensions. |
 
-## Tools
-
-A couple of tools are also included, though there some issues we would like to
-address before we can recommend using them just yet!
-
-| **Tool** | **Links** | **Description** |
-| --- | --- | --- |
-| [**`nannou_new`**](./nannou_new) | [![Crates.io](https://img.shields.io/crates/v/nannou_new.svg)](https://crates.io/crates/nannou_new) | A nannou project generator. |
-| [**`nannou_package`**](./nannou_package) | [![Crates.io](https://img.shields.io/crates/v/nannou_package.svg)](https://crates.io/crates/nannou_package) | For packaging nannou apps for distribution. |
-
 ## Links
 
 - [Website](https://www.nannou.cc/)

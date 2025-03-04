@@ -5,12 +5,12 @@
 , libxkbcommon
 , llvmPackages
 , makeWrapper
+, openssl
 , pkg-config
 , rustPlatform
 , vulkan-loader
 , vulkan-validation-layers
 , xorg
-, openssl
 , stdenv
 , udev
 , XCURSOR_THEME ? "Adwaita"
@@ -42,11 +42,11 @@ rustPlatform.buildRustPackage rec {
   ];
 
   buildInputs = ([
+    ffmpeg
     # For filtering `cargo metadata` to get example names.
     jq
-    # `nannou-new` needs this because of `cargo` dep. See #606.
+    # Needed by `reqwest`, used in `generative_design` wikipedia example.
     openssl
-    ffmpeg
   ] ++ lib.optionals stdenv.isLinux [
     alsa-lib
     udev
