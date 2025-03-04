@@ -1,8 +1,8 @@
 [package]
-name = "nannou_new"
-version ="0.19.0"
+name = "nannou-new"
+version ="0.2.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
-description = "A tool for easily starting Nannou projects."
+description = "(Deprecated) A tool for easily starting Nannou projects."
 readme = "README.md"
 keywords = ["tool", "build", "nannou", "creative", "sketch"]
 license = "MIT"

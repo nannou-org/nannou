@@ -5187,6 +5187,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "nannou-new"
+version = "0.2.0"
+dependencies = [
+ "cargo",
+ "names",
+ "rand 0.8.5",
+]
+
+[[package]]
+name = "nannou-package"
+version = "0.2.0"
+dependencies = [
+ "chrono",
+ "copy_dir",
+ "walkdir",
+ "zip",
+]
+
+[[package]]
 name = "nannou_audio"
 version = "0.19.0"
 dependencies = [
@@ -5215,29 +5234,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "nannou_new"
-version = "0.19.0"
-dependencies = [
- "cargo",
- "names",
- "rand 0.8.5",
-]
-
-[[package]]
 name = "nannou_osc"
 version = "0.19.0"
 dependencies = [
  "rosc",
-]
-
-[[package]]
-name = "nannou_package"
-version = "0.19.0"
-dependencies = [
- "chrono",
- "copy_dir",
- "walkdir",
- "zip",
 ]
 
 [[package]]

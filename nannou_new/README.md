@@ -1,5 +1,9 @@
 # nannou_new
 
+> ## Deprecated
+>
+> Use `cargo new` directly. See #1002.
+
 A simple interactive tool for generating projects.
 
 - Asks if the user is just sketching.

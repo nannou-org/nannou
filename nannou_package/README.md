@@ -1,5 +1,10 @@
 # nannou_package
 
+> ## Deprecated
+>
+> This crate just created a zip file of the target artifacts and assets
+> directory. See #1002.
+
 A simple tool for packaging nannou project builds.
 
 This tool is useful for packaging nannou projects into a named and dated

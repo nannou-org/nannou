@@ -1,8 +1,8 @@
 [package]
-name = "nannou_package"
-version ="0.19.0"
+name = "nannou-package"
+version ="0.2.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
-description = "The build packaging tool for the Nannou Creative Coding Framework."
+description = "(Deprecated) The build packaging tool for the Nannou Creative Coding Framework."
 readme = "README.md"
 keywords = ["package", "build", "creative", "sketch"]
 license = "MIT"
