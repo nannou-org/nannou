@@ -7,4 +7,4 @@ target/
 **/*.rs.bk
 .DS_Store
 .idea/
-result/
+result
