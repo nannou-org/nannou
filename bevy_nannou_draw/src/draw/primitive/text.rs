@@ -260,7 +260,10 @@ where
 
 impl draw::render::RenderPrimitive for Text {
     fn render_primitive(self, _ctxt: draw::render::RenderContext, _mesh: &mut Mesh) {
-        todo!()
+        todo!(
+            "Attempted to draw {:?}, but text rendering is unimplemented",
+            self.text // just using `text` to silence warning.
+        )
     }
 }
 

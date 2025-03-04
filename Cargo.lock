@@ -1215,6 +1215,7 @@ dependencies = [
  "bitflags 2.8.0",
  "lyon",
  "nannou_core",
+ "notosans",
  "rayon",
  "rusttype",
  "uuid 1.12.1",
@@ -5513,6 +5514,12 @@ checksum = "585d3cb5e12e01aed9e8a1f70d5c6b5e86fe2a6e48fc8cd0b3e0b8df6f6eb174"
 dependencies = [
  "instant",
 ]
+
+[[package]]
+name = "notosans"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "004d578bbfc8a6bdd4690576a8381af234ef051dd4cc358604e1784821e8205c"
 
 [[package]]
 name = "ntapi"

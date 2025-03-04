@@ -11,25 +11,18 @@ use bevy::{
     pbr::{RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup},
     prelude::*,
     render::{
-        extract_component::{ExtractComponent, ExtractComponentPlugin},
+        extract_component::ExtractComponent,
         extract_instances::ExtractedInstances,
-        mesh::{
-            allocator::MeshAllocator, MeshVertexBufferLayoutRef, RenderMesh, RenderMeshBufferInfo,
-        },
+        mesh::{allocator::MeshAllocator, RenderMesh, RenderMeshBufferInfo},
         render_asset::{prepare_assets, RenderAssets},
         render_phase::{
-            AddRenderCommand, BinnedRenderPhaseType, DrawFunctions, PhaseItem, RenderCommand,
-            RenderCommandResult, SetItemPipeline, TrackedRenderPass, ViewBinnedRenderPhases,
+            AddRenderCommand, PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline,
+            TrackedRenderPass,
         },
-        render_resource::*,
-        renderer::RenderDevice,
         storage::GpuShaderStorageBuffer,
-        view,
-        view::{ExtractedView, VisibilitySystems},
         Render, RenderApp, RenderSet,
     },
 };
-use rayon::prelude::*;
 use std::{hash::Hash, marker::PhantomData, ops::Range};
 
 pub struct Instanced<'a, SM>
@@ -186,7 +179,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
         item: &P,
         _view: (),
         instance_range: Option<&'w InstanceRange>,
-        (meshes, render_mesh_instances, mesh_allocator, ssbos): SystemParamItem<
+        (meshes, render_mesh_instances, mesh_allocator, _ssbos): SystemParamItem<
             'w,
             '_,
             Self::Param,

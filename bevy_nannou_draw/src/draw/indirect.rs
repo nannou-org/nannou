@@ -5,7 +5,6 @@ use crate::{
     draw::{drawing::Drawing, primitive::Primitive, Draw, DrawCommand},
     render::{queue_shader_model, PreparedShaderModel, ShaderModel},
 };
-use bevy::pbr::RenderMaterialInstances;
 use bevy::render::extract_instances::ExtractedInstances;
 use bevy::{
     core_pipeline::core_3d::Transparent3d,
@@ -15,17 +14,15 @@ use bevy::{
     render::{
         extract_component::ExtractComponent,
         mesh::{allocator::MeshAllocator, RenderMesh, RenderMeshBufferInfo},
-        render_asset::{prepare_assets, RenderAsset, RenderAssets},
+        render_asset::{prepare_assets, RenderAssets},
         render_phase::{
-            AddRenderCommand, DrawFunctions, PhaseItem, RenderCommand, RenderCommandResult,
-            SetItemPipeline, TrackedRenderPass,
+            AddRenderCommand, PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline,
+            TrackedRenderPass,
         },
-        render_resource::*,
         storage::{GpuShaderStorageBuffer, ShaderStorageBuffer},
         Render, RenderApp, RenderSet,
     },
 };
-use rayon::prelude::*;
 use std::{hash::Hash, marker::PhantomData};
 
 pub struct Indirect<'a, SM>

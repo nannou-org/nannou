@@ -156,7 +156,7 @@ pub trait SetColor: Sized {
     ///
     /// The given g expects a value between `0.0` and `1.0` where `0.0` is black and `1.0` is white
     fn gray(self, g: f32) -> Self {
-        self.color(Color::rgb(g, g, g))
+        self.color(Color::srgb(g, g, g))
     }
 }
 

@@ -69,8 +69,6 @@ pub struct Path {
     orientation: orientation::Properties,
     path_event_src: PathEventSource,
     options: Options,
-    // TODO: remove this?
-    texture_handle: Option<Handle<Image>>,
 }
 
 /// The initial drawing context for a path.
@@ -179,7 +177,6 @@ where
             self.color,
             PathEventSource::Buffered(start..end),
             self.opts.into_options(),
-            None,
         )
     }
 
@@ -269,7 +266,6 @@ where
             self.color,
             path_event_src,
             self.opts.into_options(),
-            None,
         )
     }
 }
@@ -559,7 +555,6 @@ impl Path {
         color: Option<Color>,
         path_event_src: PathEventSource,
         options: Options,
-        texture_handle: Option<Handle<Image>>,
     ) -> Self {
         Path {
             color,
@@ -567,7 +562,6 @@ impl Path {
             position,
             path_event_src,
             options,
-            texture_handle,
         }
     }
 }
