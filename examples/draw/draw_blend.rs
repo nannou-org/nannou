@@ -24,12 +24,13 @@ fn view(app: &App) {
     // Select a color blend descriptor based on mouse y.
     let ix = map_range(app.mouse().x, w.top(), w.bottom(), 0, blends.len());
     let ix = std::cmp::min(ix, blends.len() - 1);
-    let (blend_name, desc) = &blends[ix];
+    // FIXME: Re-add when text is working again.
+    let (_blend_name, desc) = &blends[ix];
 
     // Draw the name of the blend mode and its descriptor.
     let mut draw = app.draw();
     draw.background().color(clear);
-    let color = Color::gray(1.0f32 - lum.round());
+    // let color = Color::gray(1.0f32 - lum.round());
     // draw.text(blend_name)
     //     .color(color)
     //     .font_size(48)

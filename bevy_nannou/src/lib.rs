@@ -2,9 +2,9 @@ use bevy::prelude::*;
 
 pub mod prelude {
     pub use bevy::color::palettes::css::*;
-    pub use bevy::color::*;
+    pub use bevy::color::prelude::*;
     pub use bevy::core_pipeline::bloom::*;
-    pub use bevy::image::*;
+    pub use bevy::image::{prelude::*, ImageAddressMode, ImageSampler, ImageSamplerDescriptor};
     pub use bevy::input::mouse::MouseWheel;
     pub use bevy::prelude::{
         debug, default, error, info, light_consts, trace, warn, ClearColorConfig, Entity, Handle,

@@ -20,25 +20,22 @@ use bevy::{
         system::{lifetimeless::SRes, SystemParamItem},
     },
     pbr::{
-        DefaultOpaqueRendererMethod, DrawMesh, MeshPipeline, MeshPipelineKey, OpaqueRendererMethod,
-        RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
+        DrawMesh, MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshBindGroup,
+        SetMeshViewBindGroup,
     },
     prelude::{TypePath, *},
     render::{
         camera::RenderTarget,
         extract_component::{ExtractComponent, ExtractComponentPlugin},
         extract_instances::{ExtractInstancesPlugin, ExtractedInstances},
-        extract_resource::{ExtractResource, ExtractResourcePlugin},
         mesh::{MeshVertexBufferLayoutRef, RenderMesh},
         render_asset::{
             prepare_assets, PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets,
         },
         render_phase::{
-            AddRenderCommand, BinnedRenderPhaseType, DrawFunctionId, DrawFunctions, PhaseItem,
-            PhaseItemExtraIndex, RenderCommand, RenderCommandResult, SetItemPipeline,
-            TrackedRenderPass, ViewBinnedRenderPhases, ViewSortedRenderPhases,
+            AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
+            RenderCommandResult, SetItemPipeline, TrackedRenderPass, ViewSortedRenderPhases,
         },
-        render_resource as wgpu,
         render_resource::{
             AsBindGroup, AsBindGroupError, AsBindGroupShaderType, BindGroup, BindGroupId,
             BindGroupLayout, BlendState, OwnedBindingResource, PipelineCache, PolygonMode,
@@ -50,7 +47,6 @@ use bevy::{
         view,
         view::{ExtractedView, NoFrustumCulling, RenderLayers, VisibilitySystems},
         RenderApp, RenderSet,
-        RenderSet::Render,
     },
     window::WindowRef,
 };
@@ -62,14 +58,16 @@ pub const DEFAULT_NANNOU_SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(
 pub trait ShaderModel:
     Asset + AsBindGroup + Clone + Default + Sized + Send + Sync + 'static
 {
-    /// Returns this shader model's vertex shader. If [`ShaderRef::Default`] is returned, the default mesh vertex shader
-    /// will be used.
+    /// Returns this shader model's vertex shader.
+    ///
+    /// If [`ShaderRef::Default`] is returned, the default mesh vertex shader will be used.
     fn vertex_shader() -> ShaderRef {
         ShaderRef::Default
     }
 
-    /// Returns this shader model's fragment shader. If [`ShaderRef::Default`] is returned, the default mesh fragment shader
-    /// will be used.
+    /// Returns this shader model's fragment shader.
+    ///
+    /// If [`ShaderRef::Default`] is returned, the default mesh fragment shader will be used.
     #[allow(unused_variables)]
     fn fragment_shader() -> ShaderRef {
         ShaderRef::Default
@@ -77,10 +75,10 @@ pub trait ShaderModel:
 
     /// Specializes the render pipeline descriptor for this shader model.
     fn specialize(
-        pipeline: &ShaderModelPipeline<Self>,
-        descriptor: &mut RenderPipelineDescriptor,
-        layout: &MeshVertexBufferLayoutRef,
-        key: ShaderModelPipelineKey<Self>,
+        _pipeline: &ShaderModelPipeline<Self>,
+        _descriptor: &mut RenderPipelineDescriptor,
+        _layout: &MeshVertexBufferLayoutRef,
+        _key: ShaderModelPipelineKey<Self>,
     ) -> Result<(), SpecializedMeshPipelineError> {
         Ok(())
     }
@@ -245,7 +243,7 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
     }
 }
 
-pub type DrawShaderModel<SM: ShaderModel> = (
+pub type DrawShaderModel<SM> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
     SetMeshBindGroup<1>,
@@ -262,9 +260,9 @@ pub type DefaultNannouShaderModel = NannouShaderModel;
 bitflags::bitflags! {
     #[repr(transparent)]
     pub struct NannouShaderModelFlags: u32 {
-        const TEXTURE                    = 1 << 0;
-        const NONE                       = 0;
-        const UNINITIALIZED              = 0xFFFF;
+        const TEXTURE       = 1 << 0;
+        const NONE          = 0;
+        const UNINITIALIZED = 0xFFFF;
     }
 }
 

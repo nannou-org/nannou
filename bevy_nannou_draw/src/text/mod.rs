@@ -259,7 +259,7 @@ impl<'a> Builder<'a> {
     ///
     /// The given `rect` will be used for applying the layout including text alignment, positioning
     /// of text, multi-line wrapping, etc,
-    pub fn build(self, rect: geom::Rect) -> Text<'a> {
+    pub fn build(self, _rect: geom::Rect) -> Text<'a> {
         //     let text = self.text;
         //     let layout = self.layout_builder.build();
         //     #[allow(unreachable_code)]
@@ -283,7 +283,10 @@ impl<'a> Builder<'a> {
         //         line_infos,
         //         rect,
         //     }
-        todo!()
+        todo!(
+            "Attempted to build Text {:?}, but its not yet implemented",
+            self.text
+        )
     }
 }
 
@@ -649,7 +652,7 @@ where
                 trans_x(line_rect.left()) as f32,
                 trans_y(line_rect.bottom()) as f32,
             );
-            let point = rt::Point { x: x, y: y };
+            let point = rt::Point { x, y };
             font.layout(line, scale, point).map(|g| g.standalone())
         })
 }

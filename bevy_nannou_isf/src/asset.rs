@@ -1,15 +1,11 @@
 use bevy::asset::io::Reader;
-use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext, LoadedAsset};
+use bevy::asset::{AssetLoader, LoadContext};
 use bevy::ecs::system::SystemParamItem;
 use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponent;
-use bevy::render::render_asset::{
-    PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssetUsages,
-};
-use bevy::render::render_resource::{AsBindGroup, ShaderRef, ShaderStage};
-use bevy::utils::ConditionalSendFuture;
+use bevy::render::render_asset::{PrepareAssetError, RenderAsset, RenderAssetPlugin};
+use bevy::render::render_resource::ShaderStage;
 use std::collections::BTreeMap;
-use std::io::BufReader;
 use thiserror::Error;
 
 // 1. ISF Asset
@@ -36,7 +32,7 @@ impl Isf {
             }
         }
         for pass in &self.isf.passes {
-            if let Some(ref target) = pass.target {
+            if let Some(ref _target) = pass.target {
                 image_count += 1;
             }
         }
@@ -64,7 +60,7 @@ impl AssetLoader for IsfLoader {
     async fn load(
         &self,
         reader: &mut dyn Reader,
-        settings: &Self::Settings,
+        _settings: &Self::Settings,
         load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut bytes = Vec::new();
@@ -357,7 +353,7 @@ impl RenderAsset for GpuIsf {
 
     fn prepare_asset(
         isf: Self::SourceAsset,
-        param: &mut SystemParamItem<Self::Param>,
+        _param: &mut SystemParamItem<Self::Param>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
         Ok(GpuIsf { isf })
     }

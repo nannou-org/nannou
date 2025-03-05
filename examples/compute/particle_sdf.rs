@@ -1,7 +1,5 @@
-use nannou::prelude::bevy_render::renderer::RenderDevice;
 use nannou::prelude::bevy_render::storage::ShaderStorageBuffer;
 use nannou::prelude::*;
-use std::sync::Arc;
 
 const WORKGROUP_SIZE: u32 = 64;
 

@@ -5,7 +5,6 @@ use nannou::prelude::{Hsva, Srgba};
 
 pub struct Palette {
     pub colors: Vec<Srgba>,
-    pub len: usize,
 }
 
 impl Palette {
@@ -50,11 +49,7 @@ impl Palette {
             ahue.partial_cmp(&bhue).unwrap()
         });
 
-        let len = cols_rgb.len();
-        Palette {
-            colors: cols_rgb,
-            len,
-        }
+        Palette { colors: cols_rgb }
     }
 
     pub fn somecolor_frac(&self, mut frac: f32) -> Srgba {

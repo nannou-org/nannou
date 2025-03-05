@@ -1,16 +1,13 @@
 use bevy::asset::io::file::FileAssetReader;
-use bevy::asset::io::{AssetReader, AssetReaderError, AssetSource, PathStream, Reader};
+use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext};
 use bevy::prelude::*;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{Extent3d, TextureFormat};
-use bevy::utils::HashMap;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
-use std::path::Path;
 use thiserror::Error;
-use video_rs::hwaccel::HardwareAccelerationDeviceType;
 use video_rs::{Decoder, DecoderBuilder};
 
 pub struct VideoAssetPlugin;

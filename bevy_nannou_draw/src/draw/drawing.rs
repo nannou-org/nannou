@@ -150,7 +150,7 @@ where
         let Drawing {
             ref draw,
             index,
-            shader_model_index: shader_model_index,
+            shader_model_index,
             ..
         } = self;
 

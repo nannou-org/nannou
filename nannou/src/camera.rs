@@ -1,6 +1,9 @@
+// FIXME: Remove deprecatd `Camera3dBundle`.
+#![allow(deprecated)]
+
 use crate::prelude::bevy_render::camera::RenderTarget;
 use crate::App;
-use bevy::core_pipeline::bloom::BloomSettings;
+use bevy::core_pipeline::bloom::Bloom;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::math::UVec2;
 use bevy::prelude::{Camera3d, Camera3dBundle, Projection, Transform, Vec2};
@@ -18,7 +21,7 @@ pub struct Camera<'a, 'w> {
 pub struct Builder<'a, 'w> {
     app: &'a App<'w>,
     camera: Camera3dBundle,
-    bloom_settings: Option<BloomSettings>,
+    bloom_settings: Option<Bloom>,
     layer: Option<RenderLayers>,
 }
 
@@ -102,7 +105,7 @@ pub trait SetCamera: Sized {
         })
     }
 
-    fn bloom_settings(self, settings: BloomSettings) -> Self {
+    fn bloom_settings(self, settings: Bloom) -> Self {
         self.map_bloom_settings(|_| settings)
     }
 
@@ -167,7 +170,7 @@ pub trait SetCamera: Sized {
 
     fn map_bloom_settings<F>(self, f: F) -> Self
     where
-        F: FnOnce(BloomSettings) -> BloomSettings;
+        F: FnOnce(Bloom) -> Bloom;
 
     fn map_camera<F>(self, f: F) -> Self
     where
@@ -228,10 +231,10 @@ impl<'a, 'w> SetCamera for Builder<'a, 'w> {
 
     fn map_bloom_settings<F>(self, f: F) -> Self
     where
-        F: FnOnce(BloomSettings) -> BloomSettings,
+        F: FnOnce(Bloom) -> Bloom,
     {
         Self {
-            bloom_settings: Some(f(self.bloom_settings.unwrap_or(BloomSettings::default()))),
+            bloom_settings: Some(f(self.bloom_settings.unwrap_or(Bloom::default()))),
             ..self
         }
     }
@@ -274,17 +277,15 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
 
     fn map_bloom_settings<F>(self, f: F) -> Self
     where
-        F: FnOnce(BloomSettings) -> BloomSettings,
+        F: FnOnce(Bloom) -> Bloom,
     {
         let mut world = self.app.component_world_mut();
-        let mut bloom_q = world.query::<Option<&mut BloomSettings>>();
+        let mut bloom_q = world.query::<Option<&mut Bloom>>();
         if let Ok(bloom) = bloom_q.get_mut(&mut world, self.entity) {
             if let Some(mut bloom) = bloom {
                 *bloom = f(bloom.clone());
             } else {
-                world
-                    .entity_mut(self.entity)
-                    .insert(f(BloomSettings::default()));
+                world.entity_mut(self.entity).insert(f(Bloom::default()));
             }
         }
         self

@@ -1,10 +1,6 @@
-use crate::app::{ModelHolder, RenderFnRes};
-use crate::frame::Frame;
 use crate::prelude::bevy_render::extract_component::ExtractComponent;
-use crate::prelude::bevy_render::extract_resource::extract_resource;
-use crate::prelude::bevy_render::{Extract, MainWorld};
+use crate::prelude::bevy_render::MainWorld;
 use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
-use bevy::ecs::entity::{EntityHash, EntityHashMap};
 use bevy::ecs::query::QueryItem;
 use bevy::ecs::system::StaticSystemParam;
 use bevy::prelude::*;
@@ -13,25 +9,15 @@ use bevy::render::render_graph::{
     NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
 };
 use bevy::render::render_resource::{
-    BindGroup, BindGroupLayout, BindGroupLayoutEntries, CachedComputePipelineId,
-    ComputePipelineDescriptor, PipelineCache, ShaderRef, SpecializedComputePipeline,
-    SpecializedComputePipelines,
+    BindGroup, BindGroupLayout, CachedComputePipelineId, ComputePipelineDescriptor, PipelineCache,
+    ShaderRef, SpecializedComputePipeline, SpecializedComputePipelines,
 };
 use bevy::render::renderer::{RenderContext, RenderDevice};
-use bevy::render::texture::{FallbackImage, GpuImage};
-use bevy::render::view::{ExtractedView, ExtractedWindows, ViewTarget};
 use bevy::render::{Render, RenderSet};
 use bevy::utils::HashMap;
-use bevy_nannou::prelude::{
-    AsBindGroup, CachedPipelineState, ShaderStages, StorageTextureAccess, TextureFormat,
-};
-use noise::NoiseFn;
+use bevy_nannou::prelude::{AsBindGroup, CachedPipelineState};
 use std::borrow::Cow;
 use std::hash::Hash;
-use std::ops::Deref;
-use std::sync::atomic::AtomicBool;
-use std::sync::mpsc::{Receiver, Sender};
-use std::sync::Arc;
 use wgpu::ComputePassDescriptor;
 
 pub(crate) struct ComputePlugin<CM: Compute>(std::marker::PhantomData<CM>);

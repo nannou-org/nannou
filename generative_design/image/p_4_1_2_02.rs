@@ -57,7 +57,7 @@ fn model(app: &App) -> Model {
 fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let images = app.assets::<Image>();
-    let Some(texture) = images.get(&model.texture) else {
+    let Some(_texture) = images.get(&model.texture) else {
         return;
     };
 

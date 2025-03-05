@@ -6,14 +6,7 @@ use bevy::reflect::{
     ReflectFromPtr, ReflectKind, ReflectMut, ReflectOwned, ReflectRef, StructInfo, TypeInfo,
     TypeRegistration, Typed,
 };
-use bevy::render::extract_component::ExtractComponent;
 use bevy::render::extract_resource::ExtractResource;
-use bevy::render::render_resource::encase::private::Metadata;
-use bevy::render::render_resource::encase::UniformBuffer;
-use bevy::render::render_resource::{AsBindGroupShaderType, ShaderType};
-use bevy_inspector_egui::inspector_options::InspectorOptionsType;
-use bevy_inspector_egui::prelude::ReflectInspectorOptions;
-use bevy_inspector_egui::InspectorOptions;
 use bytemuck::{Pod, Zeroable};
 use std::any::Any;
 use std::collections::BTreeMap;
@@ -63,7 +56,7 @@ struct GpuColor {
 
 impl IsfInputs {
     pub(crate) fn to_uniform(&self) -> IsfInputsUniform {
-        let mut uniform = IsfInputsUniform(self.serialize_values());
+        let uniform = IsfInputsUniform(self.serialize_values());
         uniform
     }
 

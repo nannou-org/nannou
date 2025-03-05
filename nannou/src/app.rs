@@ -20,7 +20,7 @@ use bevy::input::ButtonState;
 use bevy::prelude::*;
 use bevy::reflect::{
     ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
-    TypeInfo, Typed,
+    TypeInfo,
 };
 use bevy::render::extract_resource::ExtractResource;
 use bevy::window::{
@@ -32,18 +32,14 @@ use bevy::winit::{UpdateMode, WinitSettings};
 use bevy_egui::EguiContext;
 #[cfg(feature = "egui")]
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
-#[cfg(feature = "egui")]
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
-#[cfg(feature = "egui")]
-use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 
 use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
 use crate::prelude::bevy_reflect::DynamicTyped;
-use crate::prelude::render::{NannouShaderModelPlugin, NannouTransient, ShaderModel};
+use crate::prelude::render::{NannouShaderModelPlugin, ShaderModel};
 use crate::render::{
     compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
-    NannouRenderNode, RenderApp, RenderPlugin,
+    RenderApp, RenderPlugin,
 };
 use crate::window::WindowUserFunctions;
 use crate::{camera, geom, light, window};
@@ -56,8 +52,7 @@ use std::cell::{RefCell, RefMut};
 use std::hash::Hash;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use std::{self};
 
@@ -388,7 +383,7 @@ where
             )
             .insert_resource(ComputeUpdateFnRes(compute_fn))
             .add_systems(Update, compute::<M, CM>.after(update::<M>))
-            .add_systems(Last, |query: Query<&ComputeModel<CM>>| {})
+            .add_systems(Last, |_query: Query<&ComputeModel<CM>>| {})
             .add_plugins(ComputePlugin::<CM>::default());
         self
     }
@@ -1161,9 +1156,9 @@ fn compute<M, CM>(
     M: 'static + Send + Sync,
     CM: Compute,
 {
-    let (mut app, (mut model, compute, mut views_q)) = get_app_and_state(world, state);
+    let (app, (model, compute, mut views_q)) = get_app_and_state(world, state);
     let compute = compute.0;
-    for (view, mut state) in views_q.iter_mut() {
+    for (view, state) in views_q.iter_mut() {
         let (new_state, compute_model) = compute(&app, &model, state.current.clone(), view);
         unsafe {
             app.component_world

@@ -90,7 +90,8 @@ fn view(app: &App, model: &Model) {
     let noise_x_range = map_range(app.mouse().x, win.left(), win.right(), 0.0, win.w() / 10.0);
     let noise_y_range = map_range(app.mouse().x, win.top(), win.bottom(), 0.0, win.h() / 10.0);
 
-    let image = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |x, y| {
+    // FIXME: Image is no longer used? Should we update texture somehow?
+    let _image = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |x, y| {
         let noise_x = map_range(x, 0, win.w() as u32, 0.0, noise_x_range) as f64;
         let noise_y = map_range(y, 0, win.h() as u32, 0.0, noise_y_range) as f64;
         let mut noise_value = 0.0;

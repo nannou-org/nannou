@@ -1,37 +1,28 @@
 use bevy::asset::embedded_asset;
 use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
-use bevy::core_pipeline::core_3d::CORE_3D_DEPTH_FORMAT;
-use bevy::core_pipeline::fullscreen_vertex_shader::{
-    fullscreen_shader_vertex_state, FULLSCREEN_SHADER_HANDLE,
-};
-use bevy::ecs::entity::EntityHashMap;
 use bevy::ecs::query::{QueryItem, ROQueryItem};
-use bevy::ecs::system::lifetimeless::SRes;
 use bevy::ecs::system::SystemParamItem;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
-use bevy::render::extract_component::DynamicUniformIndex;
 use bevy::render::extract_resource::ExtractResource;
-use bevy::render::render_asset::{PrepareAssetError, RenderAsset, RenderAssets};
+use bevy::render::render_asset::RenderAssets;
 use bevy::render::render_graph::{
     NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
 };
 use bevy::render::render_phase::{
-    BinnedRenderPhaseType, DrawFunctions, PhaseItem, RenderCommand, RenderCommandResult,
-    SetItemPipeline, TrackedRenderPass, ViewBinnedRenderPhases,
+    PhaseItem, RenderCommand, RenderCommandResult, TrackedRenderPass,
 };
 use bevy::render::render_resource::binding_types::{
     sampler, texture_2d, uniform_buffer, uniform_buffer_sized,
 };
 use bevy::render::render_resource::*;
-use bevy::render::renderer::{RenderContext, RenderDevice, RenderQueue};
+use bevy::render::renderer::{RenderContext, RenderDevice};
 use bevy::render::texture::{DefaultImageSampler, GpuImage};
-use bevy::render::view::{ExtractedView, ViewTarget, VisibleEntities};
-use bevy::render::{Extract, Render, RenderApp, RenderSet};
+use bevy::render::view::{ExtractedView, ViewTarget};
+use bevy::render::{Render, RenderApp, RenderSet};
 use bevy::utils::HashMap;
 use bevy::window::{PrimaryWindow, WindowRef};
-use std::num::{NonZero, NonZeroU64};
-use std::ops::Deref;
+use std::num::NonZero;
 
 use crate::asset::{GpuIsf, Isf, IsfHandle};
 use crate::inputs::{IsfInputValue, IsfInputs};
@@ -127,11 +118,11 @@ fn update_render_targets(
             .width
             .as_ref()
             .map(|expr| {
-                let result = meval::eval_str(
-                    expr.replace("$WIDTH", &x.to_string())
-                        .replace("$HEIGHT", &y.to_string()),
-                )
-                .expect(&format!("Failed to evaluate expression: {:?}", expr));
+                let expr_str = expr
+                    .replace("$WIDTH", &x.to_string())
+                    .replace("$HEIGHT", &y.to_string());
+                let result = evalexpr::eval_int(&expr_str)
+                    .expect(&format!("Failed to evaluate expression: {:?}", expr));
                 result as u32
             })
             .unwrap_or(x);
@@ -139,11 +130,11 @@ fn update_render_targets(
             .height
             .as_ref()
             .map(|expr| {
-                let result = meval::eval_str(
-                    expr.replace("$WIDTH", &x.to_string())
-                        .replace("$HEIGHT", &y.to_string()),
-                )
-                .expect(&format!("Failed to evaluate expression: {:?}", expr));
+                let expr_str = expr
+                    .replace("$WIDTH", &x.to_string())
+                    .replace("$HEIGHT", &y.to_string());
+                let result = evalexpr::eval_int(&expr_str)
+                    .expect(&format!("Failed to evaluate expression: {:?}", expr));
                 result as u32
             })
             .unwrap_or(y);
@@ -190,7 +181,7 @@ pub struct IsfPipelineIds(Vec<CachedRenderPipelineId>);
 
 fn queue_isf(
     mut commands: Commands,
-    mut render_device: ResMut<RenderDevice>,
+    render_device: Res<RenderDevice>,
     pipeline_cache: Res<PipelineCache>,
     mut isf_pipeline: ResMut<IsfPipeline>,
     isf_assets: Res<RenderAssets<GpuIsf>>,
@@ -519,6 +510,8 @@ where
     }
 }
 
+// FIXME: Currently unused - do we have plans for this?
+#[allow(dead_code)]
 #[derive(Component)]
 pub struct ExtractedIsf {
     inputs: IsfInputs,

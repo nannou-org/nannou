@@ -9,4 +9,4 @@ bevy-inspector-egui = { workspace = true }
 isf = "0.1.0"
 thiserror = "1"
 bytemuck = "1"
-meval = "0.2"
+evalexpr = "12"

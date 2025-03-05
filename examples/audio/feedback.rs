@@ -2,7 +2,7 @@
 //!
 //! You can play and pause the streams by pressing space key
 use ringbuf::{Consumer, Producer, RingBuffer};
-use std::sync::mpsc::{RecvError, Sender};
+use std::sync::mpsc::Sender;
 use std::thread::JoinHandle;
 
 use nannou::prelude::*;
@@ -72,8 +72,8 @@ fn model(app: &App) -> Model {
         in_stream.play().unwrap();
         out_stream.play().unwrap();
 
-        let mut in_stream = in_stream;
-        let mut out_stream = out_stream;
+        let in_stream = in_stream;
+        let out_stream = out_stream;
         loop {
             match audio_rx.recv() {
                 Ok(AudioCommand::Play) => {

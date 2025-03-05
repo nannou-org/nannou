@@ -36,7 +36,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model) {
-    let Some(isf) = app.assets_mut::<Isf>().get(&model.isf) else {
+    let Some(_isf) = app.assets_mut::<Isf>().get(&model.isf) else {
         return;
     };
 
@@ -47,6 +47,6 @@ fn update(app: &App, model: &mut Model) {
     );
 }
 
-fn view(app: &App, model: &Model) {
-    let draw = app.draw();
+fn view(app: &App, _model: &Model) {
+    let _draw = app.draw();
 }

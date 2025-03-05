@@ -2,7 +2,7 @@ use bevy::ecs::entity::EntityHashMap;
 use bevy::prelude::*;
 use bevy::render::render_resource::Extent3d;
 use bevy::render::renderer::{RenderContext, RenderDevice};
-use bevy::render::view::{ExtractedView, ExtractedWindows, ViewTarget};
+use bevy::render::view::{ExtractedWindows, ViewTarget};
 use bevy::render::{Extract, RenderApp};
 use nannou_core::geom;
 use std::cell::RefCell;
@@ -38,7 +38,6 @@ pub struct Frame<'a, 'w> {
     world: &'w World,
     view_target: &'w ViewTarget,
     extracted_windows: &'w ExtractedWindows,
-    extracted_view: &'w ExtractedView,
     render_device: &'w RenderDevice,
     render_context: RefCell<&'a mut RenderContext<'w>>,
 }
@@ -52,7 +51,6 @@ impl<'a, 'w> Frame<'a, 'w> {
         view_target_id: Entity,
         view_target: &'w ViewTarget,
         extracted_windows: &'w ExtractedWindows,
-        extracted_view: &'w ExtractedView,
         render_context: &'a mut RenderContext<'w>,
     ) -> Self {
         let render_device = world.resource::<RenderDevice>();
@@ -63,7 +61,6 @@ impl<'a, 'w> Frame<'a, 'w> {
             render_device,
             render_context: RefCell::new(render_context),
             extracted_windows,
-            extracted_view,
         }
     }
 

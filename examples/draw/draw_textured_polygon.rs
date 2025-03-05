@@ -5,19 +5,22 @@ fn main() {
 }
 
 struct Model {
-    window_id: Entity,
+    _window_id: Entity,
     texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
-    let window_id = app.new_window().size(512, 512).view(view).build();
+    let _window_id = app.new_window().size(512, 512).view(view).build();
 
     // Load the image from disk and upload it to a GPU texture.
     let assets = app.assets_path();
     let img_path = assets.join("images").join("nature").join("nature_1.jpg");
     let texture = app.asset_server().load(img_path);
 
-    Model { window_id, texture }
+    Model {
+        _window_id,
+        texture,
+    }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.

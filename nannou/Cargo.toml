@@ -34,7 +34,7 @@ image = { workspace = true, features = ["default"] }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 bevy = { workspace = true, features = ["webgpu"] }
 tokio = { version = "1", features = ["rt"]}
-image = { workspace = true, features = [], default-features = false }
+image = { workspace = true, features = [] }
 
 [features]
 default = []

@@ -99,8 +99,6 @@ fn target_os() -> Option<&'static str> {
         "freebsd"
     } else if cfg!(target_os = "dragonfly") {
         "dragonfly"
-    } else if cfg!(target_os = "bitrig") {
-        "bitrig"
     } else if cfg!(target_os = "openbsd") {
         "openbsd"
     } else if cfg!(target_os = "netbsd") {
