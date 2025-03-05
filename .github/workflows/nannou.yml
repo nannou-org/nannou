@@ -1,5 +1,7 @@
 name: nannou
 on: [push, pull_request]
+env:
+  RUSTFLAGS: "-D warnings"
 jobs:
   # Check the nix code is formatted.
   nix-fmt-check:
