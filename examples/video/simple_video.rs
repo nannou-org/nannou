@@ -1,4 +1,3 @@
-use nannou::noise::NoiseFn;
 use nannou::prelude::*;
 
 fn main() {

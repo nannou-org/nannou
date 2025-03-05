@@ -1,7 +1,7 @@
 //! A clone of the `laser_frame_stream.rs` example that allows for configuring laser settings via a
 //! UI.
 
-use std::sync::{mpsc, Arc};
+use std::sync::{mpsc, Arc, Mutex};
 
 use nannou::prelude::egui::FontId;
 use nannou::prelude::*;
@@ -21,9 +21,9 @@ struct Model {
     // A copy of the laser settings so that we can control them with the GUI.
     laser_settings: LaserSettings,
     // For receiving newly detected DACs.
-    dac_rx: mpsc::Receiver<laser::DetectedDac>,
+    dac_rx: Mutex<mpsc::Receiver<laser::DetectedDac>>,
     // The egui window.
-    window: Entity,
+    _window: Entity,
 }
 
 #[derive(Clone)]
@@ -112,7 +112,7 @@ impl Default for RgbProfile {
 
 fn model(app: &App) -> Model {
     // Create a window to receive keyboard events.
-    let window = app
+    let _window = app
         .new_window()
         .size(312, 530)
         .key_pressed(key_pressed)
@@ -160,8 +160,8 @@ fn model(app: &App) -> Model {
         laser_settings,
         laser_model,
         laser_streams,
-        dac_rx,
-        window,
+        dac_rx: Mutex::new(dac_rx),
+        _window,
     }
 }
 
@@ -271,7 +271,7 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
 
 fn update(app: &App, model: &mut Model) {
     // First, check for new laser DACs.
-    for dac in model.dac_rx.try_iter() {
+    for dac in model.dac_rx.lock().unwrap().try_iter() {
         println!("Detected DAC {:?}!", dac.id());
         let stream = model
             .laser_api
@@ -495,7 +495,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     }
 }
 
-fn view(_app: &App, model: &Model) {}
+fn view(_app: &App, _model: &Model) {}
 
 // The following functions are some custom styling preferences in an attempt to improve on the
 // default egui theming.

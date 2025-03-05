@@ -17,11 +17,11 @@ struct ShaderModel {
     color: LinearRgba,
 }
 
-fn model(app: &App) -> Model {
+fn model(_app: &App) -> Model {
     Model {}
 }
 
-fn view(app: &App, model: &Model, window: Entity) {
+fn view(app: &App, _model: &Model, _window: Entity) {
     // Begin drawing
     let draw = app
         .draw()
