@@ -32,10 +32,6 @@ use bevy::winit::{UpdateMode, WinitSettings};
 use bevy_egui::EguiContext;
 #[cfg(feature = "egui")]
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
-#[cfg(feature = "egui")]
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
-#[cfg(feature = "egui")]
-use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 
 use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
