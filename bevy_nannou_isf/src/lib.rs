@@ -45,7 +45,7 @@ fn asset_event_handler(
     mut commands: Commands,
     mut ev_asset: EventReader<AssetEvent<Isf>>,
     mut isf_inputs: ResMut<IsfInputs>,
-    mut cameras: Query<Entity, With<Camera>>,
+    cameras: Query<Entity, With<Camera>>,
     assets: Res<Assets<Isf>>,
 ) {
     for ev in ev_asset.read() {
