@@ -55,7 +55,7 @@ fn model(app: &App) -> Model {
 // Draw the state of your `Model` into the given `Frame` here.
 fn view(app: &App, model: &Model) {
     let images = app.assets::<Image>();
-    let Some(texture) = images.get(&model.texture) else {
+    let Some(_texture) = images.get(&model.texture) else {
         return;
     };
 

@@ -49,7 +49,7 @@ impl Compute for ComputeModel {
         }
     }
 
-    fn dispatch_size(state: &Self::State) -> (u32, u32, u32) {
+    fn dispatch_size(_state: &Self::State) -> (u32, u32, u32) {
         (SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1)
     }
 }
@@ -84,7 +84,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model) {
+fn update(_app: &App, model: &mut Model) {
     if model.display == model.texture_a {
         model.display = model.texture_b.clone();
     } else {
@@ -92,7 +92,7 @@ fn update(app: &App, model: &mut Model) {
     }
 }
 
-fn compute(app: &App, model: &Model, state: State, view: Entity) -> (State, ComputeModel) {
+fn compute(_app: &App, model: &Model, state: State, _view: Entity) -> (State, ComputeModel) {
     match state {
         State::Init => (
             State::Update(1),
@@ -119,7 +119,7 @@ fn compute(app: &App, model: &Model, state: State, view: Entity) -> (State, Comp
     }
 }
 
-fn view(app: &App, model: &Model, view: Entity) {
+fn view(app: &App, model: &Model, _view: Entity) {
     let draw = app.draw();
     let window_rect = app.window_rect();
     draw.rect()

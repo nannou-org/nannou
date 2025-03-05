@@ -1,5 +1,4 @@
 use nannou::prelude::*;
-use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
 mod data;
@@ -278,7 +277,7 @@ fn special_color(index: usize) -> [f32; 3] {
     }
 }
 
-fn render(app: &RenderApp, model: &Model, mut frame: Frame) {
+fn render(app: &RenderApp, model: &Model, frame: Frame) {
     let mut g = model.graphics.lock().unwrap();
 
     // If the window has changed size, recreate our depth texture to match.

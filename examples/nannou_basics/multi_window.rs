@@ -17,15 +17,15 @@ fn model(app: &App) -> Model {
     Model { a, b, c }
 }
 
-fn focus_a(app: &App, model: &mut Model) {
+fn focus_a(_app: &App, _model: &mut Model) {
     info!("focusing window a");
 }
 
-fn focus_b(app: &App, model: &mut Model) {
+fn focus_b(_app: &App, _model: &mut Model) {
     info!("focusing window b");
 }
 
-fn focus_c(app: &App, model: &mut Model) {
+fn focus_c(_app: &App, _model: &mut Model) {
     info!("focusing window c");
 }
 

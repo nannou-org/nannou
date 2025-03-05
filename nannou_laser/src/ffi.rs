@@ -209,8 +209,7 @@ struct FrameInner(*mut crate::stream::frame::Frame);
 
 struct BufferInner(
     // FIXME: Currently unused - should we be freeing this?
-    #[allow(dead_code)]
-    *mut crate::stream::raw::Buffer,
+    #[allow(dead_code)] *mut crate::stream::raw::Buffer,
 );
 
 struct ApiInner {

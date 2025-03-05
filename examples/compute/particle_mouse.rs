@@ -1,7 +1,8 @@
-use nannou::prelude::bevy_render::renderer::RenderDevice;
+// FIXME: Lots of code showing as never used including `main` - not sure why.
+#![allow(dead_code)]
+
 use nannou::prelude::bevy_render::storage::ShaderStorageBuffer;
 use nannou::prelude::*;
-use std::sync::Arc;
 
 const NUM_PARTICLES: u32 = 100000;
 const WORKGROUP_SIZE: u32 = 64;
@@ -138,7 +139,7 @@ fn update(app: &App, model: &mut Model) {
     }
 }
 
-fn compute(app: &App, model: &Model, state: State, view: Entity) -> (State, ComputeModel) {
+fn compute(app: &App, model: &Model, state: State, _view: Entity) -> (State, ComputeModel) {
     let window = app.main_window();
     let window_rect = window.rect();
 

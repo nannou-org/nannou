@@ -9,7 +9,6 @@ fn main() {
 struct Model {
     audio_thread: std::thread::JoinHandle<()>,
     audio_tx: std::sync::mpsc::Sender<AudioCommand>,
-    is_paused: bool,
 }
 
 pub enum AudioCommand {
@@ -64,7 +63,6 @@ fn model(app: &App) -> Model {
     Model {
         audio_thread,
         audio_tx,
-        is_paused: false,
     }
 }
 
