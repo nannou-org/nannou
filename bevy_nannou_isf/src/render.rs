@@ -118,11 +118,11 @@ fn update_render_targets(
             .width
             .as_ref()
             .map(|expr| {
-                let result = meval::eval_str(
-                    expr.replace("$WIDTH", &x.to_string())
-                        .replace("$HEIGHT", &y.to_string()),
-                )
-                .expect(&format!("Failed to evaluate expression: {:?}", expr));
+                let expr_str = expr
+                    .replace("$WIDTH", &x.to_string())
+                    .replace("$HEIGHT", &y.to_string());
+                let result = evalexpr::eval_int(&expr_str)
+                    .expect(&format!("Failed to evaluate expression: {:?}", expr));
                 result as u32
             })
             .unwrap_or(x);
@@ -130,11 +130,11 @@ fn update_render_targets(
             .height
             .as_ref()
             .map(|expr| {
-                let result = meval::eval_str(
-                    expr.replace("$WIDTH", &x.to_string())
-                        .replace("$HEIGHT", &y.to_string()),
-                )
-                .expect(&format!("Failed to evaluate expression: {:?}", expr));
+                let expr_str = expr
+                    .replace("$WIDTH", &x.to_string())
+                    .replace("$HEIGHT", &y.to_string());
+                let result = evalexpr::eval_int(&expr_str)
+                    .expect(&format!("Failed to evaluate expression: {:?}", expr));
                 result as u32
             })
             .unwrap_or(y);
