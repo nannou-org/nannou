@@ -1,7 +1,15 @@
 name: nannou
 on: [push, pull_request]
+
+# Deny warnings for all jobs.
 env:
   RUSTFLAGS: "-D warnings"
+
+# If a new commit is pushed to a PR, cancel any in-progress work on the same PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Check the nix code is formatted.
   nix-fmt-check:
