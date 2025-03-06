@@ -22,7 +22,7 @@ nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std"] }
 nannou_wgpu = { version = "0.19.0", path = "../nannou_wgpu", features = ["capturer"]}
 noise = "0.7"
 pennereq = "0.3"
-serde = { workspace = true, features = ["derive"], optional = true}
+serde = { workspace = true, features = ["derive"], optional = true }
 serde_json = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 walkdir = "2"
