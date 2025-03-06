@@ -19,9 +19,11 @@ default = [
     # FIXME: bevy defaults to x11 so we do.. but that seems oldschool?
     # We should use wayland instead no?
     "x11",
+    "webgl2",
 ]
 nightly = ["bevy_nannou_draw/nightly"]
 isf = ["bevy_nannou_isf"]
 video = ["bevy_nannou_video"]
 wayland = ["bevy/wayland"]
+webgl2 = ["bevy/webgl2"]
 x11 = ["bevy/x11"]
