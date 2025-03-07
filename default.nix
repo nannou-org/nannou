@@ -10,6 +10,7 @@
 , rustPlatform
 , vulkan-loader
 , vulkan-validation-layers
+, wayland
 , xorg
 , stdenv
 , udev
@@ -55,6 +56,7 @@ rustPlatform.buildRustPackage rec {
     llvmPackages.libclang
     vulkan-loader
     vulkan-validation-layers
+    wayland
     xorg.libX11
     xorg.libXcursor
     xorg.libXi
