@@ -43,6 +43,7 @@ jobs:
           - command: cargo fmt --verbose --all -- --check
           - command: cargo check --locked --workspace
           - command: cargo check --locked --examples --workspace
+          - command: cargo check --locked --examples --workspace --all-features
 #          - command: cargo test --locked --lib --bins --workspace --features "egui"
           - command: cargo doc --locked --workspace --features "egui"
           - command: cargo test --locked -p nannou_core --no-default-features --features "libm serde"

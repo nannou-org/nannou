@@ -4,13 +4,26 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { workspace = true, features = ["jpeg"]}
+bevy = { workspace = true, default-features = false, features = [
+    "bevy_window",
+    "bevy_winit",
+    "jpeg",
+]}
 bevy_nannou_derive = { path = "../bevy_nannou_derive" }
 bevy_nannou_draw = { path = "../bevy_nannou_draw" }
 bevy_nannou_isf = { path = "../bevy_nannou_isf", optional = true }
 bevy_nannou_video = { path = "../bevy_nannou_video", optional = true }
 
 [features]
+default = [
+    # FIXME: bevy defaults to x11 so we do.. but that seems oldschool?
+    # We should use wayland instead no?
+    "x11",
+    "webgl2",
+]
 nightly = ["bevy_nannou_draw/nightly"]
 isf = ["bevy_nannou_isf"]
 video = ["bevy_nannou_video"]
+wayland = ["bevy/wayland"]
+webgl2 = ["bevy/webgl2"]
+x11 = ["bevy/x11"]

@@ -23,7 +23,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-bevy = "0.15"
+bevy = { version = "0.15", default-features = false }
 bevy_egui = "0.32.0"
 bevy-inspector-egui = "0.29.0"
 image = { version = "0.25", default-features = false }

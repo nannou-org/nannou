@@ -4,7 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { workspace = true }
+bevy = { workspace = true, default-features = false, features = [
+    "bevy_asset",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_pbr",
+    "bevy_render",
+    "bevy_ui", # needed for `BackgroundColor`
+    "tonemapping_luts",
+]}
 lyon = "1.0"
 nannou_core = { path = "../nannou_core" }
 notosans = { version = "0.1", optional = true }
