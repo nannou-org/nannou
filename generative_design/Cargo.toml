@@ -14,9 +14,9 @@ license.workspace = true
 edition.workspace = true
 
 [dev-dependencies]
-nannou = { version ="0.19.0", path = "../nannou" }
-usvg = "0.4"
-wikipedia = "0.3"
+nannou = { version = "0.19.0", path = "../nannou" }
+usvg.workspace = true
+wikipedia.workspace = true
 
 # Color
 [[example]]

@@ -11,9 +11,9 @@ license.workspace = true
 edition.workspace = true
 
 [dependencies]
-cpal = "0.13.1"
-dasp_sample = "0.11.0"
-thiserror = "1"
+cpal.workspace = true
+dasp_sample.workspace = true
+thiserror.workspace = true
 
 [features]
 asio = ["cpal/asio"]

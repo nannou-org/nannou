@@ -16,16 +16,16 @@ bevy-inspector-egui = { workspace = true, optional = true }
 bevy_egui = { workspace = true, optional = true }
 bevy_common_assets = { workspace = true, optional = true }
 bevy_nannou = { version = "0.1.0", path = "../bevy_nannou" }
-find_folder = "0.3"
-lyon = "1.0"
+find_folder = { workspace = true }
+lyon = { workspace = true }
 nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std"] }
 nannou_wgpu = { version = "0.19.0", path = "../nannou_wgpu", features = ["capturer"]}
-noise = "0.7"
-pennereq = "0.3"
+noise = { workspace = true }
+pennereq = { workspace = true }
 serde = { workspace = true, features = ["derive"], optional = true }
 serde_json = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
-walkdir = "2"
+walkdir = { workspace = true }
 wgpu = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

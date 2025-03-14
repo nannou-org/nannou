@@ -14,19 +14,19 @@ license.workspace = true
 edition.workspace = true
 
 [dev-dependencies]
-audrey = "0.3"
-bevy = { workspace = true }
+audrey.workspace = true
+bevy.workspace = true
 bevy_nannou = { path = "../bevy_nannou" }
-hrtf = "0.2"
-nannou = { version ="0.19.0", path = "../nannou" }
-nannou_audio = { version ="0.19.0", path = "../nannou_audio" }
-nannou_laser = { version ="0.19.0", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
-nannou_osc = { version ="0.19.0", path = "../nannou_osc" }
-walkdir = "2"
-hound = "3.4.0"
-ringbuf = "0.2.2"
-futures = "0.3"
-bytemuck = "1"
+hrtf.workspace = true
+nannou = { version = "0.19.0", path = "../nannou" }
+nannou_audio = { version = "0.19.0", path = "../nannou_audio" }
+nannou_laser = { version = "0.19.0", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
+nannou_osc = { version = "0.19.0", path = "../nannou_osc" }
+walkdir.workspace = true
+hound.workspace = true
+ringbuf.workspace = true
+futures.workspace = true
+bytemuck.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["full"]}

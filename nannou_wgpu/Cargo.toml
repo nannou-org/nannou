@@ -10,14 +10,14 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-futures = "0.3"
+futures.workspace = true
 image = { workspace = true, optional = true }
-wgpu = { workspace = true }
+wgpu.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1", features = ["full"]}
+tokio = { workspace = true, features = ["full"]}
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-tokio = { version = "1", features = ["rt"]}
+tokio = { workspace = true, features = ["rt"]}
 
 [features]
 capturer = ["image"]

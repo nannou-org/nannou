@@ -10,5 +10,5 @@ name = "set_version"
 path = "main.rs"
 
 [dependencies]
-semver = "0.9"
-toml_edit = "0.1"
+semver.workspace = true
+toml_edit.workspace = true

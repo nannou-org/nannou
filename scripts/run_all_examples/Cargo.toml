@@ -11,4 +11,4 @@ name = "run_all_examples"
 path = "main.rs"
 
 [dependencies]
-toml = "0.5"
+toml.workspace = true

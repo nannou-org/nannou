@@ -4,8 +4,8 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
-bevy = { workspace = true }
-video-rs = "0.8.1"
-thiserror = "1"
-rayon = { workspace = true }
-serde = { version = "1.0.204", features = ["derive"] }
+bevy.workspace = true
+video-rs.workspace = true
+thiserror.workspace = true
+rayon.workspace = true
+serde = { workspace = true, features = ["derive"] }
