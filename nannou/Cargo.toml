@@ -1,12 +1,12 @@
 [package]
 name = "nannou"
-version ="0.19.0"
+version = "0.19.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A Creative Coding Framework for Rust."
 readme = "README.md"
 keywords = ["creative", "sketch", "graphics", "audio"]
-repository = "https://github.com/nannou-org/nannou.git"
-homepage = "https://github.com/nannou-org/nannou"
+repository.workspace = true
+homepage.workspace = true
 license.workspace = true
 edition.workspace = true
 

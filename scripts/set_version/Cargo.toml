@@ -1,6 +1,6 @@
 [package]
 name = "set_version"
-version = "0.1.0"
+version.workspace = true
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A small tool for setting a new version across all nannou crates."
 edition.workspace = true

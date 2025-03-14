@@ -22,6 +22,9 @@ members = [
 [workspace.package]
 edition = "2021"
 license = "MIT OR Apache-2.0"
+version = "0.1.0"
+homepage = "https://nannou.cc"
+repository = "https://github.com/nannou-org/nannou.git"
 
 # Required for wgpu v0.10 feature resolution.
 resolver = "2"

@@ -1,6 +1,6 @@
 [package]
 name = "nature_of_code"
-version = "0.1.0"
+version.workspace = true
 authors = [
     "JoshuaBatty <joshpbatty@gmail.com>",
     "mitchmindtree <mitchell.nordine@gmail.com>",
@@ -8,8 +8,8 @@ authors = [
 description = "An implementation of Dan Shiffman's The Nature of Code."
 readme = "README.md"
 keywords = ["creative", "sketch", "nature", "code", "processing"]
-repository = "https://github.com/nannou-org/nannou.git"
-homepage = "https://github.com/nannou-org/nannou"
+repository.workspace = true
+homepage.workspace = true
 edition.workspace = true
 license.workspace = true
 

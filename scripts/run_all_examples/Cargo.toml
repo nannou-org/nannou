@@ -1,6 +1,6 @@
 [package]
 name = "run_all_examples"
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 authors = [
     "mitchmindtree <mitchell.nordine@gmail.com>",

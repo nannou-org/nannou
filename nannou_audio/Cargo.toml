@@ -5,8 +5,8 @@ authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "The audio API for Nannou, the creative coding framework."
 readme = "README.md"
 keywords = ["audio", "stream", "cross-platform", "dsp", "pcm"]
-repository = "https://github.com/nannou-org/nannou_audio.git"
-homepage = "https://nannou.cc"
+repository.workspace = true
+homepage.workspace = true
 license.workspace = true
 edition.workspace = true
 

@@ -1,6 +1,6 @@
 [package]
 name = "examples"
-version = "0.1.0"
+version.workspace = true
 authors = [
     "mitchmindtree <mitchell.nordine@gmail.com>",
     "JoshuaBatty <joshpbatty@gmail.com>",
@@ -8,8 +8,8 @@ authors = [
 description = "A suite examples for nannou, the creative coding framework."
 readme = "README.md"
 keywords = ["creative", "sketch", "graphics", "audio", "example"]
-repository = "https://github.com/nannou-org/nannou.git"
-homepage = "https://github.com/nannou-org/nannou"
+repository.workspace = true
+homepage.workspace = true
 license.workspace = true
 edition.workspace = true
 

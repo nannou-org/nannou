@@ -4,8 +4,8 @@ version ="0.19.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "The core components of nannou - a creative coding framework for Rust. Ideal for libraries and headless/embedded applications that use nannou."
 readme = "README.md"
-repository = "https://github.com/nannou-org/nannou.git"
-homepage = "https://nannou.cc"
+repository.workspace = true
+homepage.workspace = true
 license.workspace = true
 edition.workspace = true
 
