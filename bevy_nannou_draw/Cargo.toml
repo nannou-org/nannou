@@ -1,7 +1,7 @@
 [package]
 name = "bevy_nannou_draw"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
 bevy = { workspace = true, default-features = false, features = [
@@ -13,13 +13,13 @@ bevy = { workspace = true, default-features = false, features = [
     "bevy_ui", # needed for `BackgroundColor`
     "tonemapping_luts",
 ]}
-lyon = "1.0"
+lyon.workspace = true
 nannou_core = { path = "../nannou_core" }
-notosans = { version = "0.1", optional = true }
-rusttype = { version = "0.8", features = ["gpu_cache"] }
-rayon = { workspace = true }
-uuid = "1.8"
-bitflags = "2.6.0"
+notosans = { workspace = true, optional = true }
+rusttype = { workspace = true, features = ["gpu_cache"] }
+rayon.workspace = true
+uuid.workspace = true
+bitflags.workspace = true
 
 [features]
 nightly = []

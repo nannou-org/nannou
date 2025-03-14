@@ -3,21 +3,21 @@ name = "nannou_laser"
 version ="0.19.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A cross-platform laser DAC detection and streaming API."
-edition = "2018"
 keywords = ["laser", "dac", "stream", "frame", "ether-dream"]
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/nannou-org/nannou_laser.git"
-homepage = "https://github.com/nannou-org/nannou_laser"
+repository.workspace = true
+homepage.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [lib]
 name = "nannou_laser"
 crate-type = ["rlib", "staticlib", "cdylib"]
 
 [dependencies]
-ether-dream = "~0.2.5"
-ilda-idtf = { version = "0.1", optional = true }
-lasy = "0.4.1"
-thiserror = "1"
+ether-dream.workspace = true
+ilda-idtf = { workspace = true, optional = true }
+lasy.workspace = true
+thiserror.workspace = true
 
 [features]
 ffi = []

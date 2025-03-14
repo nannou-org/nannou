@@ -1,6 +1,6 @@
 [package]
 name = "generative_design"
-version = "0.1.0"
+version.workspace = true
 authors = [
     "JoshuaBatty <joshpbatty@gmail.com>",
     "mitchmindtree <mitchell.nordine@gmail.com>",
@@ -8,15 +8,15 @@ authors = [
 description = "An implementation of the Generative Gestaltung examples."
 readme = "README.md"
 keywords = ["creative", "sketch", "generative", "design", "gestaltung"]
-license = "MIT"
-repository = "https://github.com/nannou-org/nannou.git"
-homepage = "https://github.com/nannou-org/nannou"
-edition = "2018"
+repository.workspace = true
+homepage.workspace = true
+license.workspace = true
+edition.workspace = true
 
 [dev-dependencies]
-nannou = { version ="0.19.0", path = "../nannou" }
-usvg = "0.4"
-wikipedia = "0.3"
+nannou = { version = "0.19.0", path = "../nannou" }
+usvg.workspace = true
+wikipedia.workspace = true
 
 # Color
 [[example]]

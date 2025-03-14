@@ -28,7 +28,7 @@ create a new project with just a few small steps:
    name = "my_project"
    version = "0.1.0"
    authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
-   edition = "2018"
+   edition = "2021"
 
    [dependencies]
    nannou = "0.17"

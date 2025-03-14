@@ -1,7 +1,7 @@
 [package]
 name = "run_all_examples"
-version = "0.1.0"
-edition = "2018"
+version.workspace = true
+edition.workspace = true
 authors = [
     "mitchmindtree <mitchell.nordine@gmail.com>",
 ]
@@ -11,4 +11,4 @@ name = "run_all_examples"
 path = "main.rs"
 
 [dependencies]
-toml = "0.5"
+toml.workspace = true
