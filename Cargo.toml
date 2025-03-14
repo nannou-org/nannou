@@ -45,7 +45,7 @@ find_folder = "0.3"
 futures = "0.3"
 glam = { version = "0.29",  default-features = false }
 hound = "3.4"
-hrtf = "0.2"
+hrtf = "0.8"
 ilda-idtf = "0.1"
 image = { version = "0.25", default-features = false }
 isf = "0.1.0"
