@@ -1,7 +1,8 @@
 //! Feeds back the input stream directly into the output stream
 //!
 //! You can play and pause the streams by pressing space key
-use ringbuf::{Consumer, Producer, RingBuffer};
+use ringbuf::traits::{Consumer, Producer, Split};
+use ringbuf::HeapRb;
 use std::sync::mpsc::Sender;
 use std::thread::JoinHandle;
 
@@ -26,11 +27,11 @@ struct Model {
 }
 
 struct InputModel {
-    pub producer: Producer<f32>,
+    pub producer: ringbuf::HeapProd<f32>,
 }
 
 struct OutputModel {
-    pub consumer: Consumer<f32>,
+    pub consumer: ringbuf::HeapCons<f32>,
 }
 
 fn model(app: &App) -> Model {
@@ -42,12 +43,14 @@ fn model(app: &App) -> Model {
 
     // Create a ring buffer and split it into producer and consumer
     let latency_samples = 1024;
-    let ring_buffer = RingBuffer::<f32>::new(latency_samples * 2); // Add some latency
+    let ring_buffer = HeapRb::<f32>::new(latency_samples * 2); // Add some latency
+
     let (mut prod, cons) = ring_buffer.split();
+
     for _ in 0..latency_samples {
         // The ring buffer has twice as much space as necessary to add latency here,
         // so this should never fail
-        prod.push(0.0).unwrap();
+        prod.try_push(0.0).unwrap();
     }
 
     // Kick off the audio thread
@@ -104,7 +107,7 @@ fn model(app: &App) -> Model {
 fn pass_in(model: &mut InputModel, buffer: &Buffer) {
     for frame in buffer.frames() {
         for sample in frame {
-            model.producer.push(*sample).ok();
+            model.producer.try_push(*sample).ok();
         }
     }
 }
@@ -112,7 +115,7 @@ fn pass_in(model: &mut InputModel, buffer: &Buffer) {
 fn pass_out(model: &mut OutputModel, buffer: &mut Buffer) {
     for frame in buffer.frames_mut() {
         for sample in frame {
-            let recorded_sample = model.consumer.pop().unwrap_or(0.0);
+            let recorded_sample = model.consumer.try_pop().unwrap_or(0.0);
             *sample = recorded_sample;
         }
     }

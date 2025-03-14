@@ -176,8 +176,8 @@ fn audio(audio: &mut Audio, output: &mut Buffer) {
     let hrtf_ctxt = HrtfContext {
         source: &audio.hrtf_data.source[..],
         output: &mut audio.hrtf_data.output[..],
-        new_sample_vector: (-audio.source_position).into(),
-        prev_sample_vector: (-audio.prev_source_position).into(),
+        new_sample_vector: to_hrtf_vec3(-audio.source_position),
+        prev_sample_vector: to_hrtf_vec3(-audio.prev_source_position),
         prev_left_samples: &mut audio.hrtf_data.prev_left_samples,
         prev_right_samples: &mut audio.hrtf_data.prev_right_samples,
         new_distance_gain,
@@ -259,4 +259,8 @@ fn dist_gain(p: &Point3) -> f32 {
     }
     .powf(1.6)
     .min(1.0)
+}
+
+fn to_hrtf_vec3(v: nannou::geom::Vec3) -> hrtf::Vec3 {
+    hrtf::Vec3::new(v.x, v.y, v.z)
 }

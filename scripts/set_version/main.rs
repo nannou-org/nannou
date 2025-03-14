@@ -26,7 +26,7 @@ fn main() {
     let workspace_manifest_string = std::fs::read_to_string(&workspace_manifest_path)
         .expect("failed to read the workspace manifest");
     let workspace_toml = workspace_manifest_string
-        .parse::<toml_edit::Document>()
+        .parse::<toml_edit::DocumentMut>()
         .expect("failed to parse workspace manifest as toml");
     let workspace_table = workspace_toml
         .as_table()
@@ -49,7 +49,7 @@ fn main() {
         let manifest_string =
             std::fs::read_to_string(&manifest_path).expect("failed to read the manifest");
         let mut manifest_toml = manifest_string
-            .parse::<toml_edit::Document>()
+            .parse::<toml_edit::DocumentMut>()
             .expect("failed to parse manifest as toml");
         let manifest_table = manifest_toml.as_table_mut();
 
@@ -57,15 +57,15 @@ fn main() {
         if is_nannou_member(relative_path) {
             set_package_version(manifest_table, &desired_version);
         }
-        if let Some(deps) = manifest_table.entry("dependencies").as_table_mut() {
+        if let Some(deps) = manifest_table["dependencies"].as_table_mut() {
             update_dependencies_table(deps, &desired_version);
         }
-        if let Some(deps) = manifest_table.entry("dev-dependencies").as_table_mut() {
+        if let Some(deps) = manifest_table["dev-dependencies"].as_table_mut() {
             update_dependencies_table(deps, &desired_version);
         }
 
         // Retrieve the updated string.
-        let toml_string = manifest_toml.to_string_in_original_order();
+        let toml_string = manifest_toml.to_string();
         manifest_updates.push((manifest_path, toml_string));
     }
 
@@ -80,12 +80,10 @@ fn main() {
 
 /// Set the version within the package entry of the given manifest table.
 fn set_package_version(manifest_table: &mut toml_edit::Table, desired_version: &semver::Version) {
-    let package_table = manifest_table
-        .entry("package")
+    let package_table = manifest_table["package"]
         .as_table_mut()
         .expect("failed to retrieve package table");
-    let version_value = package_table
-        .entry("version")
+    let version_value = package_table["version"]
         .as_value_mut()
         .expect("failed to retrieve value for version key");
     *version_value = format!("{}", desired_version).into();
@@ -99,8 +97,7 @@ fn update_dependencies_table(table: &mut toml_edit::Table, desired_version: &sem
         .filter(|s| is_nannou_member(s))
         .collect();
     for dep in nannou_deps {
-        let value = table
-            .entry(&dep)
+        let value = table[&dep]
             .as_value_mut()
             .expect("failed to retrieve toml value for dependency");
         let version_value = match *value {
