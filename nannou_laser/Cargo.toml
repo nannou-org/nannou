@@ -3,11 +3,11 @@ name = "nannou_laser"
 version ="0.19.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A cross-platform laser DAC detection and streaming API."
-edition.workspace = true
 keywords = ["laser", "dac", "stream", "frame", "ether-dream"]
-license = "MIT OR Apache-2.0"
 repository = "https://github.com/nannou-org/nannou_laser.git"
 homepage = "https://github.com/nannou-org/nannou_laser"
+edition.workspace = true
+license.workspace = true
 
 [lib]
 name = "nannou_laser"

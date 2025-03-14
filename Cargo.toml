@@ -21,6 +21,7 @@ members = [
 
 [workspace.package]
 edition = "2021"
+license = "MIT OR Apache-2.0"
 
 # Required for wgpu v0.10 feature resolution.
 resolver = "2"

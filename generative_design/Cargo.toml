@@ -8,9 +8,9 @@ authors = [
 description = "An implementation of the Generative Gestaltung examples."
 readme = "README.md"
 keywords = ["creative", "sketch", "generative", "design", "gestaltung"]
-license = "MIT"
 repository = "https://github.com/nannou-org/nannou.git"
 homepage = "https://github.com/nannou-org/nannou"
+license.workspace = true
 edition.workspace = true
 
 [dev-dependencies]
