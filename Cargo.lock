@@ -684,7 +684,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "toml 0.8.20",
+ "toml",
 ]
 
 [[package]]
@@ -4434,7 +4434,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio 1.43.0",
- "toml 0.8.20",
+ "toml",
  "walkdir",
  "wgpu",
 ]
@@ -6163,7 +6163,7 @@ dependencies = [
 name = "run_all_examples"
 version = "0.1.0"
 dependencies = [
- "toml 0.5.11",
+ "toml",
 ]
 
 [[package]]
@@ -6778,7 +6778,7 @@ dependencies = [
  "cfg-expr",
  "heck",
  "pkg-config",
- "toml 0.8.20",
+ "toml",
  "version-compare",
 ]
 
@@ -7112,15 +7112,6 @@ dependencies = [
  "futures 0.1.31",
  "slab",
  "tokio-executor",
-]
-
-[[package]]
-name = "toml"
-version = "0.5.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4f7f0dd8d50a853a531c426359045b1998f04219d88799810762cd4ad314234"
-dependencies = [
- "serde",
 ]
 
 [[package]]
