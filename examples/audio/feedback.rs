@@ -45,7 +45,6 @@ fn model(app: &App) -> Model {
     let latency_samples = 1024;
     let ring_buffer = HeapRb::<f32>::new(latency_samples * 2); // Add some latency
 
-    // Import Split trait and use split()
     let (mut prod, cons) = ring_buffer.split();
 
     for _ in 0..latency_samples {
