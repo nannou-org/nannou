@@ -1,7 +1,7 @@
 [package]
 name = "bevy_nannou_draw"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
 
 [dependencies]
 bevy = { workspace = true, default-features = false, features = [

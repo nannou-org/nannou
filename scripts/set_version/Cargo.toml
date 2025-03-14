@@ -3,7 +3,7 @@ name = "set_version"
 version = "0.1.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A small tool for setting a new version across all nannou crates."
-edition = "2018"
+edition.workspace = true
 
 [[bin]]
 name = "set_version"

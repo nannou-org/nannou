@@ -7,7 +7,7 @@ readme = "README.md"
 license = "MIT"
 repository = "https://github.com/nannou-org/nannou.git"
 homepage = "https://nannou.cc"
-edition = "2018"
+edition.workspace = true
 
 [dependencies]
 futures = "0.3"
