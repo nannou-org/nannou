@@ -584,7 +584,7 @@ fn update_draw_mesh(
         let mut stroke_tessellator = StrokeTessellator::new();
 
         let mut last_shader_model = None;
-        let mut mesh = meshes.add(Mesh::init());
+        let mut current_mesh = None;
         let mut curr_ctx: DrawContext = Default::default();
 
         let draw_cmds = draw.drain_commands();
@@ -608,8 +608,30 @@ fn update_draw_mesh(
                         output_attachment_scale_factor: window.scale_factor(),
                     };
 
+                    // If no mesh is currently set, initialise a new one.
+                    let mesh = current_mesh.get_or_insert_with(|| {
+                        let mesh = meshes.add(Mesh::init());
+                        let model_id =
+                            last_shader_model.expect("No shader model set for draw command");
+                        commands.spawn((
+                            UntypedShaderModelId(model_id),
+                            Mesh3d(mesh.clone()),
+                            Transform::default(),
+                            GlobalTransform::default(),
+                            Visibility::default(),
+                            InheritedVisibility::default(),
+                            ViewVisibility::default(),
+                            ShaderModelMesh,
+                            NannouTransient,
+                            NoFrustumCulling,
+                            DrawIndex(idx),
+                            window_layers.clone(),
+                        ));
+                        mesh
+                    });
+
                     // Render the primitive.
-                    let mut mesh = meshes.get_mut(&mesh).unwrap();
+                    let mut mesh = meshes.get_mut(mesh).unwrap();
                     prim.render_primitive(ctxt, &mut mesh);
                 }
                 DrawCommand::Instanced(prim, range) => {
@@ -689,23 +711,10 @@ fn update_draw_mesh(
                     curr_ctx = ctx;
                 }
                 DrawCommand::ShaderModel(model_id) => {
-                    // We switched models, so start rendering into a new mesh
+                    // Drop the mesh, we'll initialise a new one if something is
+                    // drawn with this shader model.
                     last_shader_model = Some(model_id.clone());
-                    mesh = meshes.add(Mesh::init());
-                    commands.spawn((
-                        UntypedShaderModelId(model_id),
-                        Mesh3d(mesh.clone()),
-                        Transform::default(),
-                        GlobalTransform::default(),
-                        Visibility::default(),
-                        InheritedVisibility::default(),
-                        ViewVisibility::default(),
-                        ShaderModelMesh,
-                        NannouTransient,
-                        NoFrustumCulling,
-                        DrawIndex(idx),
-                        window_layers.clone(),
-                    ));
+                    current_mesh.take();
                 }
                 DrawCommand::BackgroundColor(color) => {
                     window_camera.clear_color = ClearColorConfig::Custom(color);
