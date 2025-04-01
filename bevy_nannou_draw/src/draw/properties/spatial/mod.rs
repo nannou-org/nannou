@@ -1,6 +1,4 @@
-pub use self::dimension::SetDimensions;
-pub use self::orientation::SetOrientation;
-pub use self::position::SetPosition;
+pub use self::{dimension::SetDimensions, orientation::SetOrientation, position::SetPosition};
 
 pub mod dimension;
 pub mod orientation;

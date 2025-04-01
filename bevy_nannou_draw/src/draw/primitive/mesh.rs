@@ -4,12 +4,19 @@ use bevy::prelude::*;
 
 use nannou_core::geom;
 
-use crate::draw::mesh::MeshExt;
-use crate::draw::primitive::{Primitive, Vertex};
-use crate::draw::properties::spatial::{orientation, position};
-use crate::draw::properties::{SetColor, SetOrientation, SetPosition};
-use crate::draw::{self, Drawing};
-use crate::render::ShaderModel;
+use crate::{
+    draw::{
+        self,
+        mesh::MeshExt,
+        primitive::{Primitive, Vertex},
+        properties::{
+            spatial::{orientation, position},
+            SetColor, SetOrientation, SetPosition,
+        },
+        Drawing,
+    },
+    render::ShaderModel,
+};
 
 /// The mesh type prior to being initialised with vertices or indices.
 #[derive(Clone, Debug, Default)]
