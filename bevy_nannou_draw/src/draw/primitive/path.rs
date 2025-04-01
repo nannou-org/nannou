@@ -1,12 +1,21 @@
 use bevy::prelude::*;
-use lyon::path::PathEvent;
-use lyon::tessellation::{FillOptions, FillTessellator, StrokeOptions, StrokeTessellator};
+use lyon::{
+    path::PathEvent,
+    tessellation::{FillOptions, FillTessellator, StrokeOptions, StrokeTessellator},
+};
 
-use crate::draw::primitive::Primitive;
-use crate::draw::properties::spatial::{orientation, position};
-use crate::draw::properties::{SetColor, SetFill, SetOrientation, SetPosition, SetStroke};
-use crate::draw::{self, Drawing, DrawingContext};
-use crate::render::ShaderModel;
+use crate::{
+    draw::{
+        self,
+        primitive::Primitive,
+        properties::{
+            spatial::{orientation, position},
+            SetColor, SetFill, SetOrientation, SetPosition, SetStroke,
+        },
+        Drawing, DrawingContext,
+    },
+    render::ShaderModel,
+};
 
 /// A set of path tessellation options (FillOptions or StrokeOptions).
 pub trait TessellationOptions {

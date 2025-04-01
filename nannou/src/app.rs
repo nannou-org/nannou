@@ -7,53 +7,65 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
-use bevy::app::AppExit;
 #[cfg(not(target_arch = "wasm32"))]
 use bevy::asset::io::file::FileAssetReader;
-use bevy::diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin};
-use bevy::ecs::system::SystemParam;
-use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
-use bevy::input::keyboard::{Key, KeyboardInput};
-use bevy::input::mouse::{MouseButtonInput, MouseWheel};
-use bevy::input::ButtonState;
-use bevy::prelude::*;
-use bevy::reflect::{
-    ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
-    TypeInfo,
+use bevy::{
+    app::AppExit,
+    diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin},
+    ecs::{system::SystemParam, world::unsafe_world_cell::UnsafeWorldCell},
+    input::{
+        keyboard::{Key, KeyboardInput},
+        mouse::{MouseButtonInput, MouseWheel},
+        ButtonState,
+    },
+    prelude::*,
+    reflect::{
+        ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
+        TypeInfo,
+    },
+    render::extract_resource::ExtractResource,
+    window::{
+        ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowEvent,
+        WindowFocused, WindowResized,
+    },
+    winit::{UpdateMode, WinitSettings},
 };
-use bevy::render::extract_resource::ExtractResource;
-use bevy::window::{
-    ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowEvent,
-    WindowFocused, WindowResized,
-};
-use bevy::winit::{UpdateMode, WinitSettings};
 #[cfg(feature = "egui")]
 use bevy_egui::EguiContext;
 #[cfg(feature = "egui")]
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 
-use crate::frame::{Frame, FramePlugin};
-use crate::prelude::bevy_ecs::system::SystemState;
-use crate::prelude::bevy_reflect::{DynamicTyped, ReflectCloneError};
-use crate::prelude::render::{NannouShaderModelPlugin, ShaderModel};
-use crate::render::{
-    compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
-    RenderApp, RenderPlugin,
+use crate::{
+    camera,
+    frame::{Frame, FramePlugin},
+    geom, light,
+    prelude::{
+        bevy_ecs::system::SystemState,
+        bevy_reflect::{DynamicTyped, ReflectCloneError},
+        render::{NannouShaderModelPlugin, ShaderModel},
+    },
+    render::{
+        compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
+        RenderApp, RenderPlugin,
+    },
+    window,
+    window::WindowUserFunctions,
 };
-use crate::window::WindowUserFunctions;
-use crate::{camera, geom, light, window};
-use bevy_nannou::prelude::draw;
-use bevy_nannou::prelude::render::NannouCamera;
-use bevy_nannou::NannouPlugin;
+use bevy_nannou::{
+    prelude::{draw, render::NannouCamera},
+    NannouPlugin,
+};
 use find_folder;
-use std::any::Any;
-use std::cell::{RefCell, RefMut};
-use std::hash::Hash;
-use std::path::PathBuf;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::Duration;
-use std::{self};
+use std::{
+    any::Any,
+    cell::{RefCell, RefMut},
+    hash::Hash,
+    path::PathBuf,
+    rc::Rc,
+    sync::atomic::{AtomicUsize, Ordering},
+    time::Duration,
+    {self},
+};
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;

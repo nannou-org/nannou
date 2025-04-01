@@ -1,7 +1,9 @@
 use bevy::prelude::Color;
 
-use crate::draw::{Draw, DrawCommand};
-use crate::render::ShaderModel;
+use crate::{
+    draw::{Draw, DrawCommand},
+    render::ShaderModel,
+};
 
 /// A type used to update the background colour.
 pub struct Background<'a, SM>

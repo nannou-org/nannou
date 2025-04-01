@@ -1,9 +1,8 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
-use crate::render::ShaderModelHandle;
 use crate::{
     draw::{drawing::Drawing, primitive::Primitive, Draw, DrawCommand},
-    render::{queue_shader_model, PreparedShaderModel, ShaderModel},
+    render::{queue_shader_model, PreparedShaderModel, ShaderModel, ShaderModelHandle},
 };
 use bevy::{
     core_pipeline::core_3d::Transparent3d,

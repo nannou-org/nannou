@@ -2,16 +2,18 @@ use bevy::prelude::{Color, Component};
 
 use nannou_core::geom::{Vec2, Vec3};
 
-pub use self::arrow::Arrow;
-pub use self::ellipse::Ellipse;
-pub use self::line::Line;
-pub use self::mesh::PrimitiveMesh;
-pub use self::path::{Path, PathFill, PathInit, PathStroke};
-pub use self::polygon::{Polygon, PolygonInit};
-pub use self::quad::Quad;
-pub use self::rect::Rect;
-pub use self::text::Text;
-pub use self::tri::Tri;
+pub use self::{
+    arrow::Arrow,
+    ellipse::Ellipse,
+    line::Line,
+    mesh::PrimitiveMesh,
+    path::{Path, PathFill, PathInit, PathStroke},
+    polygon::{Polygon, PolygonInit},
+    quad::Quad,
+    rect::Rect,
+    text::Text,
+    tri::Tri,
+};
 
 pub mod arrow;
 pub mod ellipse;
