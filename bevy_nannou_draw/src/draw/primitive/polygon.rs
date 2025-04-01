@@ -1,22 +1,14 @@
 use bevy::prelude::*;
-use lyon::{path::PathEvent, tessellation::StrokeOptions};
+use lyon::path::PathEvent;
+use lyon::tessellation::StrokeOptions;
 
-use crate::{
-    draw::{
-        self,
-        drawing::DrawingContext,
-        primitive::{
-            path::{self, PathEventSource},
-            Primitive,
-        },
-        properties::{
-            spatial::{orientation, position},
-            SetColor, SetOrientation, SetPosition, SetStroke,
-        },
-        Drawing,
-    },
-    render::ShaderModel,
-};
+use crate::draw::drawing::DrawingContext;
+use crate::draw::primitive::path::{self, PathEventSource};
+use crate::draw::primitive::Primitive;
+use crate::draw::properties::spatial::{orientation, position};
+use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
+use crate::draw::{self, Drawing};
+use crate::render::ShaderModel;
 
 /// A trait implemented for all polygon draw primitives.
 pub trait SetPolygon: Sized {

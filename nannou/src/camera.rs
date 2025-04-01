@@ -1,20 +1,17 @@
 // FIXME: Remove deprecatd `Camera3dBundle`.
 #![allow(deprecated)]
 
-use crate::{prelude::bevy_render::camera::RenderTarget, App};
-use bevy::{
-    core_pipeline::{
-        bloom::{Bloom, BloomPrefilter},
-        tonemapping::Tonemapping,
-    },
-    math::UVec2,
-    prelude::{Projection, Transform, Vec2},
-    render::{camera, view::RenderLayers},
-    window::WindowRef,
-};
-use bevy_nannou::prelude::{
-    default, render::NannouCamera, ClearColorConfig, Entity, OrthographicProjection, Vec3,
-};
+use crate::prelude::bevy_render::camera::RenderTarget;
+use crate::App;
+use bevy::core_pipeline::bloom::{Bloom, BloomPrefilter};
+use bevy::core_pipeline::tonemapping::Tonemapping;
+use bevy::math::UVec2;
+use bevy::prelude::{Projection, Transform, Vec2};
+use bevy::render::camera;
+use bevy::render::view::RenderLayers;
+use bevy::window::WindowRef;
+use bevy_nannou::prelude::render::NannouCamera;
+use bevy_nannou::prelude::{default, ClearColorConfig, Entity, OrthographicProjection, Vec3};
 
 pub struct Camera<'a, 'w> {
     entity: Entity,

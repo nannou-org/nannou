@@ -1,12 +1,11 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
+use crate::render::{ShaderModelHandle, ShaderStorageBufferHandle};
 use crate::{
     draw::{drawing::Drawing, primitive::Primitive, Draw, DrawCommand},
-    render::{
-        queue_shader_model, PreparedShaderModel, ShaderModel, ShaderModelHandle,
-        ShaderStorageBufferHandle,
-    },
+    render::{queue_shader_model, PreparedShaderModel, ShaderModel},
 };
+use bevy::render::extract_instances::ExtractedInstances;
 use bevy::{
     core_pipeline::core_3d::Transparent3d,
     ecs::system::{lifetimeless::*, SystemParamItem},
@@ -14,7 +13,6 @@ use bevy::{
     prelude::*,
     render::{
         extract_component::ExtractComponent,
-        extract_instances::ExtractedInstances,
         mesh::{allocator::MeshAllocator, RenderMesh, RenderMeshBufferInfo},
         render_asset::{prepare_assets, RenderAssets},
         render_phase::{

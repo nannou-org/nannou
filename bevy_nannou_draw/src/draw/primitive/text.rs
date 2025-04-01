@@ -1,19 +1,12 @@
 use bevy::prelude::*;
 
-use crate::{
-    draw::{
-        self,
-        drawing::DrawingContext,
-        primitive::Primitive,
-        properties::{
-            spatial::{self, dimension, orientation, position},
-            SetColor, SetDimensions, SetOrientation, SetPosition,
-        },
-        Drawing,
-    },
-    render::ShaderModel,
-    text::{self, Align, Font, FontSize, Justify, Layout, Scalar, Wrap},
-};
+use crate::draw::drawing::DrawingContext;
+use crate::draw::primitive::Primitive;
+use crate::draw::properties::spatial::{self, dimension, orientation, position};
+use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition};
+use crate::draw::{self, Drawing};
+use crate::render::ShaderModel;
+use crate::text::{self, Align, Font, FontSize, Justify, Layout, Scalar, Wrap};
 
 /// Properties related to drawing the **Text** primitive.
 #[derive(Clone, Debug)]

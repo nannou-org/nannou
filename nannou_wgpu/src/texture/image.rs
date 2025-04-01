@@ -5,7 +5,8 @@
 
 use crate as wgpu;
 use image::PixelWithColorType;
-use std::{ops::Deref, path::Path};
+use std::ops::Deref;
+use std::path::Path;
 
 /// The set of pixel types from the image crate that can be loaded directly into a texture.
 ///

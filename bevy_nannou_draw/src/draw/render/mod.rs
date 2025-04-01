@@ -1,8 +1,6 @@
 use bevy::prelude::*;
-use lyon::{
-    path::PathEvent,
-    tessellation::{FillTessellator, StrokeTessellator},
-};
+use lyon::path::PathEvent;
+use lyon::tessellation::{FillTessellator, StrokeTessellator};
 
 use crate::draw;
 
