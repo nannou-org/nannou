@@ -802,6 +802,7 @@ fn view_info_to_view_descriptor(info: &TextureViewInfo) -> wgpu::TextureViewDesc
         label: Some(info.label),
         format: Some(info.format),
         dimension: Some(info.dimension),
+        usage: None,
         aspect: info.aspect,
         base_mip_level: info.base_mip_level,
         mip_level_count: info.level_count,

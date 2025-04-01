@@ -548,7 +548,7 @@ where
         .block_copy_size(None)
         .expect("Expected the format to have a block size");
     let bytes_per_row = extent.width * block_size as u32;
-    let image_data_layout = wgpu::ImageDataLayout {
+    let image_data_layout = wgpu::TexelCopyBufferLayout {
         offset: 0,
         bytes_per_row: Some(bytes_per_row),
         rows_per_image: None,
@@ -610,7 +610,7 @@ where
         .block_copy_size(None)
         .expect("Expected the format to have a block size");
     let bytes_per_row = extent.width * block_size as u32;
-    let image_data_layout = wgpu::ImageDataLayout {
+    let image_data_layout = wgpu::TexelCopyBufferLayout {
         offset: 0,
         bytes_per_row: Some(bytes_per_row),
         rows_per_image: Some(height),

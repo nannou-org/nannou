@@ -3,6 +3,7 @@ use crate::prelude::bevy_render::MainWorld;
 use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
 use bevy::ecs::query::QueryItem;
 use bevy::ecs::system::StaticSystemParam;
+use bevy::platform_support::collections::HashMap;
 use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::render_graph::{
@@ -14,7 +15,6 @@ use bevy::render::render_resource::{
 };
 use bevy::render::renderer::{RenderContext, RenderDevice};
 use bevy::render::{Render, RenderSet};
-use bevy::utils::HashMap;
 use bevy_nannou::prelude::{AsBindGroup, CachedPipelineState};
 use std::borrow::Cow;
 use std::hash::Hash;

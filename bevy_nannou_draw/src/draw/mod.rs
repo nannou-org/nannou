@@ -16,11 +16,11 @@ use crate::draw::instanced::Instanced;
 use crate::draw::mesh::MeshExt;
 use crate::render::{DefaultNannouShaderModel, ShaderModel};
 use bevy::asset::UntypedAssetId;
+use bevy::platform_support::collections::{HashMap, HashSet};
 use bevy::prelude::*;
 use bevy::render::render_resource as wgpu;
 use bevy::render::render_resource::{BlendComponent, BlendState};
 use bevy::render::storage::ShaderStorageBuffer;
-use bevy::utils::{HashMap, HashSet};
 use lyon::path::PathEvent;
 use uuid::Uuid;
 

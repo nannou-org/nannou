@@ -1,7 +1,7 @@
 // FIXME: Remove deprecated `DirectionalLightBundle`.
 #![allow(deprecated)]
 
-use bevy::pbr::{DirectionalLight, DirectionalLightBundle};
+use bevy::pbr::DirectionalLight;
 use bevy::prelude::{Color, Transform, Vec2};
 use bevy::render::view::RenderLayers;
 
@@ -14,10 +14,16 @@ pub struct Light<'a, 'w> {
     app: &'a App<'w>,
 }
 
+#[derive(Default)]
+pub struct LightComponents {
+    pub transform: Transform,
+    pub directional_light: DirectionalLight,
+    pub render_layers: RenderLayers,
+}
+
 pub struct Builder<'a, 'w> {
     app: &'a App<'w>,
-    light: DirectionalLightBundle,
-    layer: Option<RenderLayers>,
+    light: LightComponents,
 }
 
 pub trait SetLight: Sized {
@@ -72,61 +78,46 @@ pub trait SetLight: Sized {
     }
 
     fn layer(self, layer: RenderLayers) -> Self {
-        self.map_layer(|_| layer)
+        self.map_light(|mut light| {
+            light.render_layers = layer;
+            light
+        })
     }
-
-    fn map_layer<F>(self, f: F) -> Self
-    where
-        F: FnOnce(RenderLayers) -> RenderLayers;
 
     fn map_light<F>(self, f: F) -> Self
     where
-        F: FnOnce(DirectionalLightBundle) -> DirectionalLightBundle;
+        F: FnOnce(LightComponents) -> LightComponents;
 }
 
 impl<'a, 'w> Builder<'a, 'w> {
     pub fn new(app: &'a App<'w>) -> Self {
         Self {
             app,
-            light: DirectionalLightBundle {
+            light: LightComponents {
                 transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
                 ..default()
             },
-            layer: None,
         }
     }
 
     pub fn build(self) -> Entity {
-        let entity = self.app.component_world_mut().spawn(self.light).id();
-        if let Some(layer) = self.layer {
-            self.app
-                .component_world_mut()
-                .entity_mut(entity)
-                .insert(layer);
-        } else {
-            self.app
-                .component_world_mut()
-                .entity_mut(entity)
-                .insert(RenderLayers::default());
-        }
+        let entity = self
+            .app
+            .component_world_mut()
+            .spawn((
+                self.light.transform,
+                self.light.directional_light,
+                self.light.render_layers,
+            ))
+            .id();
         entity
     }
 }
 
 impl<'a, 'w> SetLight for Builder<'a, 'w> {
-    fn map_layer<F>(self, f: F) -> Self
-    where
-        F: FnOnce(RenderLayers) -> RenderLayers,
-    {
-        Self {
-            layer: Some(f(self.layer.unwrap_or(RenderLayers::default()))),
-            ..self
-        }
-    }
-
     fn map_light<F>(self, f: F) -> Self
     where
-        F: FnOnce(DirectionalLightBundle) -> DirectionalLightBundle,
+        F: FnOnce(LightComponents) -> LightComponents,
     {
         Self {
             light: f(self.light),
@@ -142,39 +133,28 @@ impl<'a, 'w> Light<'a, 'w> {
 }
 
 impl<'a, 'w> SetLight for Light<'a, 'w> {
-    fn map_layer<F>(self, f: F) -> Self
-    where
-        F: FnOnce(RenderLayers) -> RenderLayers,
-    {
-        let mut world = self.app.component_world_mut();
-        let mut layer_q = world.query::<Option<&mut RenderLayers>>();
-        if let Ok(layer) = layer_q.get_mut(&mut world, self.entity) {
-            if let Some(mut layer) = layer {
-                *layer = f(layer.clone());
-            } else {
-                world
-                    .entity_mut(self.entity)
-                    .insert(f(RenderLayers::default()));
-            }
-        }
-        self
-    }
-
     fn map_light<F>(self, f: F) -> Self
     where
-        F: FnOnce(DirectionalLightBundle) -> DirectionalLightBundle,
+        F: FnOnce(LightComponents) -> LightComponents,
     {
         let mut world = self.app.component_world_mut();
-        let mut camera_q = world.query::<(&mut Transform, &mut DirectionalLight)>();
-        let (transform, light) = camera_q.get_mut(&mut world, self.entity).unwrap();
-        let bundle = DirectionalLightBundle {
+        let mut camera_q = world.query::<(&Transform, &DirectionalLight, &RenderLayers)>();
+        let (transform, light, render_layers) = camera_q.get_mut(&mut world, self.entity).unwrap();
+        let bundle = LightComponents {
             transform: transform.clone(),
             directional_light: light.clone(),
-            ..default()
+            render_layers: render_layers.clone(),
         };
 
         let bundle = f(bundle);
-        world.entity_mut(self.entity).insert(bundle);
+        world.entity_mut(self.entity).insert({
+            let LightComponents {
+                transform,
+                directional_light,
+                render_layers,
+            } = bundle;
+            (transform, directional_light, render_layers)
+        });
         self
     }
 }

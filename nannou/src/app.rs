@@ -10,8 +10,7 @@
 use bevy::app::AppExit;
 #[cfg(not(target_arch = "wasm32"))]
 use bevy::asset::io::file::FileAssetReader;
-use bevy::core::FrameCount;
-use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
+use bevy::diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::system::SystemParam;
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use bevy::input::keyboard::{Key, KeyboardInput};
@@ -35,7 +34,7 @@ use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 
 use crate::frame::{Frame, FramePlugin};
 use crate::prelude::bevy_ecs::system::SystemState;
-use crate::prelude::bevy_reflect::DynamicTyped;
+use crate::prelude::bevy_reflect::{DynamicTyped, ReflectCloneError};
 use crate::prelude::render::{NannouShaderModelPlugin, ShaderModel};
 use crate::render::{
     compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
@@ -601,8 +600,8 @@ where
         Box::new(self.0).reflect_owned()
     }
 
-    fn clone_value(&self) -> Box<dyn PartialReflect> {
-        self.0.clone_value()
+    fn reflect_clone(&self) -> std::result::Result<Box<dyn Reflect>, ReflectCloneError> {
+        self.0.reflect_clone()
     }
 }
 
@@ -798,7 +797,7 @@ impl<'w> App<'w> {
         let mut monitor_q = self
             .component_world_mut()
             .query_filtered::<Entity, With<PrimaryMonitor>>();
-        monitor_q.get_single(&self.component_world()).ok()
+        monitor_q.single(&self.component_world()).ok()
     }
 
     pub fn new_light<'a>(&'a self) -> light::Builder<'a, 'w> {
@@ -860,7 +859,7 @@ impl<'w> App<'w> {
             .component_world_mut()
             .query_filtered::<Entity, With<PrimaryWindow>>();
         primary_window
-            .get_single(&self.component_world())
+            .single(&self.component_world())
             .expect("No windows are open in the App")
     }
 
@@ -898,7 +897,7 @@ impl<'w> App<'w> {
             .component_world_mut()
             .query_filtered::<Entity, With<PrimaryWindow>>();
         let main_window = window_q
-            .get_single(&self.component_world())
+            .single(&self.component_world())
             .expect("No windows are open in the App");
         window::Window::new(self, main_window)
     }

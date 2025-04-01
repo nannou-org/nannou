@@ -426,7 +426,7 @@ where
 
             if self.primary {
                 let mut q = self.app.component_world_mut().query::<&PrimaryWindow>();
-                if q.get_single(&mut self.app.component_world_mut()).is_ok() {
+                if q.single(&mut self.app.component_world_mut()).is_ok() {
                     panic!("Only one primary window can be created");
                 }
 
@@ -443,7 +443,7 @@ where
                 .component_world_mut()
                 .query_filtered::<(Entity, &mut bevy::window::Window), With<PrimaryWindow>>();
             let entity = if let Ok((entity, mut window)) =
-                q.get_single_mut(&mut self.app.component_world_mut())
+                q.single_mut(&mut self.app.component_world_mut())
             {
                 *window = self.window;
                 entity
@@ -482,20 +482,17 @@ where
             // FIXME: Remove deprecated `Camera3dBundle`
             #[allow(deprecated)]
             self.app.component_world_mut().spawn((
-                Camera3dBundle {
-                    camera: Camera {
-                        hdr: self.hdr,
-                        target: RenderTarget::Window(WindowRef::Entity(entity)),
-                        clear_color: self
-                            .clear_color
-                            .map(ClearColorConfig::Custom)
-                            .unwrap_or(ClearColorConfig::None),
-                        ..default()
-                    },
-                    transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                    projection: OrthographicProjection::default_3d().into(),
+                Camera {
+                    hdr: self.hdr,
+                    target: RenderTarget::Window(WindowRef::Entity(entity)),
+                    clear_color: self
+                        .clear_color
+                        .map(ClearColorConfig::Custom)
+                        .unwrap_or(ClearColorConfig::None),
                     ..default()
                 },
+                Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+                Projection::Orthographic(OrthographicProjection::default_3d()),
                 layer.clone(),
                 NannouCamera,
             ));
@@ -934,7 +931,8 @@ impl<'a, 'w> Window<'a, 'w> {
 
     /// Attempts to determine whether or not the window is currently fullscreen.
     pub fn is_fullscreen(&self) -> bool {
-        self.window_mut().mode == WindowMode::Fullscreen(MonitorSelection::Current)
+        self.window_mut().mode
+            == WindowMode::Fullscreen(MonitorSelection::Current, VideoModeSelection::Current)
     }
 
     /// The rectangle representing the position and dimensions of the window.
