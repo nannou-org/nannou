@@ -3,26 +3,30 @@
 //! Create a new window via `app.new_window()`. This produces a [**Builder**](./struct.Builder.html)
 //! which can be used to build a [**Window**](./struct.Window.html).
 
-use std::cell::RefMut;
-use std::fmt;
-use std::ops::Deref;
-use std::path::{Path, PathBuf};
+use std::{
+    cell::RefMut,
+    fmt,
+    ops::Deref,
+    path::{Path, PathBuf},
+};
 
-use crate::geom::Point2;
-use crate::glam::Vec2;
-use crate::prelude::WindowResizeConstraints;
-use crate::App;
-use bevy::input::mouse::MouseWheel;
-use bevy::prelude::*;
-use bevy::render::camera::RenderTarget;
-use bevy::render::extract_component::ExtractComponent;
-use bevy::render::renderer::{RenderDevice, RenderQueue};
-use bevy::render::view::screenshot::{save_to_disk, Screenshot};
-use bevy::render::view::RenderLayers;
-use bevy::window::{CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef};
-use bevy::winit::cursor::CursorIcon;
-use bevy_nannou::prelude::render::NannouCamera;
-use bevy_nannou::prelude::MonitorSelection;
+use crate::{geom::Point2, glam::Vec2, prelude::WindowResizeConstraints, App};
+use bevy::{
+    input::mouse::MouseWheel,
+    prelude::*,
+    render::{
+        camera::RenderTarget,
+        extract_component::ExtractComponent,
+        renderer::{RenderDevice, RenderQueue},
+        view::{
+            screenshot::{save_to_disk, Screenshot},
+            RenderLayers,
+        },
+    },
+    window::{CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef},
+    winit::cursor::CursorIcon,
+};
+use bevy_nannou::prelude::{render::NannouCamera, MonitorSelection};
 use nannou_core::geom;
 
 /// A nannou window.

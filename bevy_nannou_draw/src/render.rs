@@ -1,25 +1,19 @@
-use crate::draw::Draw;
 use crate::draw::{
     indirect::{IndirectMesh, IndirectShaderModelPlugin},
     instanced::{InstanceRange, InstancedMesh, InstancedShaderModelPlugin},
     mesh::MeshExt,
     render::{RenderContext, RenderPrimitive},
-    DrawCommand, DrawContext,
+    Draw, DrawCommand, DrawContext,
 };
-use bevy::asset::weak_handle;
-use bevy::ecs::query::QueryItem;
-use bevy::ecs::system::lifetimeless::Read;
-use bevy::render::extract_instances::ExtractInstance;
-use bevy::render::render_resource::BindingResources;
-use bevy::render::storage::ShaderStorageBuffer;
-use bevy::render::sync_world::MainEntity;
-use bevy::window::PrimaryWindow;
 use bevy::{
-    asset::{load_internal_asset, Asset, UntypedAssetId},
+    asset::{load_internal_asset, weak_handle, Asset, UntypedAssetId},
     core_pipeline::core_3d::Transparent3d,
     ecs::{
-        query::QueryFilter,
-        system::{lifetimeless::SRes, SystemParamItem},
+        query::{QueryFilter, QueryItem},
+        system::{
+            lifetimeless::{Read, SRes},
+            SystemParamItem,
+        },
     },
     pbr::{
         DrawMesh, MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshBindGroup,
@@ -29,7 +23,7 @@ use bevy::{
     render::{
         camera::RenderTarget,
         extract_component::{ExtractComponent, ExtractComponentPlugin},
-        extract_instances::{ExtractInstancesPlugin, ExtractedInstances},
+        extract_instances::{ExtractInstance, ExtractInstancesPlugin, ExtractedInstances},
         mesh::{MeshVertexBufferLayoutRef, RenderMesh},
         render_asset::{
             prepare_assets, PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets,
@@ -40,17 +34,19 @@ use bevy::{
         },
         render_resource::{
             AsBindGroup, AsBindGroupError, AsBindGroupShaderType, BindGroup, BindGroupId,
-            BindGroupLayout, BlendState, PipelineCache, PolygonMode, RenderPipelineDescriptor,
-            ShaderRef, ShaderType, SpecializedMeshPipeline, SpecializedMeshPipelineError,
-            SpecializedMeshPipelines,
+            BindGroupLayout, BindingResources, BlendState, PipelineCache, PolygonMode,
+            RenderPipelineDescriptor, ShaderRef, ShaderType, SpecializedMeshPipeline,
+            SpecializedMeshPipelineError, SpecializedMeshPipelines,
         },
         renderer::RenderDevice,
+        storage::ShaderStorageBuffer,
+        sync_world::MainEntity,
         texture::GpuImage,
         view,
         view::{ExtractedView, NoFrustumCulling, RenderLayers},
         RenderApp, RenderSet,
     },
-    window::WindowRef,
+    window::{PrimaryWindow, WindowRef},
 };
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 use std::{any::TypeId, hash::Hash, marker::PhantomData};
