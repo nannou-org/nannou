@@ -1,18 +1,12 @@
 use bevy::prelude::*;
 use lyon::tessellation::StrokeOptions;
 
-use crate::{
-    draw::{
-        self,
-        primitive::{path, PathStroke, Primitive},
-        properties::{
-            spatial::{orientation, position},
-            SetColor, SetOrientation, SetPosition, SetStroke,
-        },
-        Drawing,
-    },
-    render::ShaderModel,
-};
+use crate::draw::primitive::path;
+use crate::draw::primitive::{PathStroke, Primitive};
+use crate::draw::properties::spatial::{orientation, position};
+use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
+use crate::draw::{self, Drawing};
+use crate::render::ShaderModel;
 
 /// A path containing only two points - a start and end.
 ///

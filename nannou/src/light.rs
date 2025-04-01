@@ -1,11 +1,9 @@
 // FIXME: Remove deprecated `DirectionalLightBundle`.
 #![allow(deprecated)]
 
-use bevy::{
-    pbr::DirectionalLight,
-    prelude::{Color, Transform, Vec2},
-    render::view::RenderLayers,
-};
+use bevy::pbr::DirectionalLight;
+use bevy::prelude::{Color, Transform, Vec2};
+use bevy::render::view::RenderLayers;
 
 use bevy_nannou::prelude::{default, Entity, Vec3};
 

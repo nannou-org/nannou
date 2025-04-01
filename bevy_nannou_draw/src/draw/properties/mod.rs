@@ -6,12 +6,12 @@
 //! Each **Drawing** instance is associated with a specific **Node** in the geometry graph and has
 //! a unique **node::Index** to simplify this.
 
-pub use self::{
-    color::SetColor,
-    fill::SetFill,
-    spatial::{dimension::SetDimensions, orientation::SetOrientation, position::SetPosition},
-    stroke::SetStroke,
-};
+pub use self::color::SetColor;
+pub use self::fill::SetFill;
+pub use self::spatial::dimension::SetDimensions;
+pub use self::spatial::orientation::SetOrientation;
+pub use self::spatial::position::SetPosition;
+pub use self::stroke::SetStroke;
 
 pub mod color;
 pub mod fill;

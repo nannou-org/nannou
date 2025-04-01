@@ -1,20 +1,18 @@
-use std::{any::TypeId, marker::PhantomData};
+use std::any::TypeId;
+use std::marker::PhantomData;
 
-use bevy::{asset::UntypedAssetId, prelude::*};
-use lyon::{
-    path::PathEvent,
-    tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions},
-};
+use bevy::asset::UntypedAssetId;
+use bevy::prelude::*;
+use lyon::path::PathEvent;
+use lyon::tessellation::{FillOptions, LineCap, LineJoin, StrokeOptions};
 use uuid::Uuid;
 
-use crate::{
-    draw::{
-        primitive::Primitive,
-        properties::{SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke},
-        Draw, DrawCommand, DrawRef,
-    },
-    render::{DefaultNannouShaderModel, ShaderModel},
+use crate::draw::primitive::Primitive;
+use crate::draw::properties::{
+    SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
+use crate::draw::{Draw, DrawCommand, DrawRef};
+use crate::render::{DefaultNannouShaderModel, ShaderModel};
 
 /// A **Drawing** in progress.
 ///

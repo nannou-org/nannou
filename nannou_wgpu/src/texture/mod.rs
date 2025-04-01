@@ -1,5 +1,6 @@
 use crate::{self as wgpu, RowPaddedBuffer, TextureHandle, TextureViewHandle};
-use std::{ops::Deref, sync::Arc};
+use std::ops::Deref;
+use std::sync::Arc;
 
 #[cfg(feature = "image")]
 pub mod image;

@@ -3,22 +3,13 @@ use lyon::tessellation::StrokeOptions;
 
 use nannou_core::geom;
 
-use crate::{
-    draw::{
-        self,
-        primitive::{
-            polygon::{self, PolygonInit, PolygonOptions, SetPolygon},
-            Primitive,
-        },
-        properties::{
-            spatial::{dimension, orientation, position},
-            tex_coords::SetTexCoords,
-            SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke,
-        },
-        Drawing,
-    },
-    render::ShaderModel,
-};
+use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
+use crate::draw::primitive::Primitive;
+use crate::draw::properties::spatial::{dimension, orientation, position};
+use crate::draw::properties::tex_coords::SetTexCoords;
+use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke};
+use crate::draw::{self, Drawing};
+use crate::render::ShaderModel;
 
 /// Properties related to drawing a **Rect**.
 #[derive(Clone, Debug)]

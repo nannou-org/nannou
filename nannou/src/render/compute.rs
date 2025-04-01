@@ -1,24 +1,23 @@
-use crate::prelude::bevy_render::{extract_component::ExtractComponent, MainWorld};
-use bevy::{
-    core_pipeline::core_3d::graph::{Core3d, Node3d},
-    ecs::{query::QueryItem, system::StaticSystemParam},
-    platform_support::collections::HashMap,
-    prelude::*,
-    render::{
-        extract_component::ExtractComponentPlugin,
-        render_graph::{
-            NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
-        },
-        render_resource::{
-            BindGroup, BindGroupLayout, CachedComputePipelineId, ComputePipelineDescriptor,
-            PipelineCache, ShaderRef, SpecializedComputePipeline, SpecializedComputePipelines,
-        },
-        renderer::{RenderContext, RenderDevice},
-        Render, RenderSet,
-    },
+use crate::prelude::bevy_render::extract_component::ExtractComponent;
+use crate::prelude::bevy_render::MainWorld;
+use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
+use bevy::ecs::query::QueryItem;
+use bevy::ecs::system::StaticSystemParam;
+use bevy::platform_support::collections::HashMap;
+use bevy::prelude::*;
+use bevy::render::extract_component::ExtractComponentPlugin;
+use bevy::render::render_graph::{
+    NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
 };
+use bevy::render::render_resource::{
+    BindGroup, BindGroupLayout, CachedComputePipelineId, ComputePipelineDescriptor, PipelineCache,
+    ShaderRef, SpecializedComputePipeline, SpecializedComputePipelines,
+};
+use bevy::render::renderer::{RenderContext, RenderDevice};
+use bevy::render::{Render, RenderSet};
 use bevy_nannou::prelude::{AsBindGroup, CachedPipelineState};
-use std::{borrow::Cow, hash::Hash};
+use std::borrow::Cow;
+use std::hash::Hash;
 use wgpu::ComputePassDescriptor;
 
 pub(crate) struct ComputePlugin<CM: Compute>(std::marker::PhantomData<CM>);
