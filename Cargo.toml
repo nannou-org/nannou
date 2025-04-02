@@ -49,6 +49,7 @@ hrtf = "0.8"
 ilda-idtf = "0.1"
 image = { version = "0.25", default-features = false }
 isf = "0.1.0"
+lasercube = { path = "../lasercube/crates/lasercube" }
 lasy = "0.4"
 lyon = "1.0"
 noise = "0.7"

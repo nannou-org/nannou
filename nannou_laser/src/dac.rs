@@ -1,5 +1,6 @@
 //! Items related to DACs and DAC detection.
 
+use crate::protocol;
 use std::io;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::mpsc;
@@ -15,17 +16,16 @@ impl<F> DetectedDacCallback for F where F: FnMut(io::Result<DetectedDac>) {}
 /// It should be possible to use this to uniquely identify the same DAC on different occasions.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Id {
-    EtherDream { mac_address: [u8; 6] },
+    EtherDream(protocol::etherdream::Id),
+    LaserCube(protocol::lasercube::Id),
 }
 
 /// An available DAC detected on the system.
 #[derive(Clone, Debug)]
 pub enum DetectedDac {
     /// An ether dream laser DAC discovered via the ether dream protocol broadcast message.
-    EtherDream {
-        broadcast: ether_dream::protocol::DacBroadcast,
-        source_addr: std::net::SocketAddr,
-    },
+    EtherDream(protocol::etherdream::DetectedDac),
+    LaserCube(protocol::lasercube::DetectedDac),
 }
 
 /// An iterator yielding laser DACs available on the system as they are discovered.
@@ -51,25 +51,28 @@ impl DetectedDac {
     /// The maximum point rate allowed by the DAC.
     pub fn max_point_hz(&self) -> u32 {
         match self {
-            DetectedDac::EtherDream { ref broadcast, .. } => broadcast.max_point_rate as _,
+            DetectedDac::EtherDream(dac) => dac.max_point_hz(),
+            DetectedDac::LaserCube(dac) => dac.max_point_hz(),
         }
     }
 
     /// The number of points that can be stored within the buffer.
     pub fn buffer_capacity(&self) -> u32 {
         match self {
-            DetectedDac::EtherDream { ref broadcast, .. } => broadcast.buffer_capacity as _,
+            DetectedDac::EtherDream(dac) => dac.buffer_capacity(),
+            DetectedDac::LaserCube(dac) => dac.buffer_capacity(),
         }
     }
 
-    /// A persistent, unique identifier associated with the DAC (like a MAC address).
+    /// A persistent, unique identifier associated with the DAC (like a MAC
+    /// address).
     ///
-    /// It should be possible to use this to uniquely identify the same DAC on different occasions.
+    /// It should be possible to use this to uniquely identify the same DAC on
+    /// different occasions.
     pub fn id(&self) -> Id {
         match self {
-            DetectedDac::EtherDream { ref broadcast, .. } => Id::EtherDream {
-                mac_address: broadcast.mac_address,
-            },
+            DetectedDac::EtherDream(dac) => Id::EtherDream(dac.id()),
+            DetectedDac::LaserCube(dac) => Id::LaserCube(dac.id()),
         }
     }
 }
@@ -108,10 +111,12 @@ impl Iterator for DetectDacs {
         let res = self.dac_broadcasts.next()?;
         match res {
             Err(err) => Some(Err(err)),
-            Ok((broadcast, source_addr)) => Some(Ok(DetectedDac::EtherDream {
-                broadcast,
-                source_addr,
-            })),
+            Ok((broadcast, source_addr)) => Some(Ok(DetectedDac::EtherDream(
+                protocol::etherdream::DetectedDac {
+                    broadcast,
+                    source_addr,
+                },
+            ))),
         }
     }
 }

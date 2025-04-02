@@ -7,7 +7,7 @@ use std::time::Duration;
 use thiserror::Error;
 
 use crate::util::{clamp, map_range};
-use crate::Inner as ApiInner;
+use crate::{protocol, Inner as ApiInner};
 use crate::{DetectedDac, RawPoint};
 
 /// The function that will be called when a `Buffer` of points is requested.
@@ -649,11 +649,14 @@ where
     F: RenderFn<M>,
 {
     // Currently only ether dream is supported, so retrieve the broadcast and addr.
+    // TODO: Refactor this into the protocol/etherdream.rs submodule, add
+    // similar implementation for `lasercube` inspired by `circle.rs` example.
     let (broadcast, src_addr) = match dac {
-        DetectedDac::EtherDream {
+        DetectedDac::EtherDream(protocol::etherdream::DetectedDac {
             broadcast,
             source_addr,
-        } => (broadcast, source_addr),
+        }) => (broadcast, source_addr),
+        _ => todo!("Implement lasercube handling"),
     };
 
     // A buffer for collecting model updates.

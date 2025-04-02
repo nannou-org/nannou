@@ -19,6 +19,7 @@ pub mod ffi;
 #[cfg(feature = "ilda-idtf")]
 pub mod ilda_idtf;
 pub mod point;
+pub mod protocol;
 pub mod stream;
 pub mod util;
 
