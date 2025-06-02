@@ -72,11 +72,7 @@ impl IsfInputs {
                 _ => 0,
             })
             .sum();
-        if size < 40 {
-            40
-        } else {
-            size
-        }
+        if size < 40 { 40 } else { size }
     }
 
     fn serialize_values(&self) -> Vec<u8> {

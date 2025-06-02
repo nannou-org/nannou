@@ -1,7 +1,6 @@
 use crate::geom::{
-    self,
+    self, Rect, Tri,
     scalar::{self, Scalar},
-    Rect, Tri,
 };
 use crate::math::{
     self,

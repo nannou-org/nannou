@@ -112,11 +112,7 @@ where
     {
         let mag = self.magnitude();
         let zero = S::zero();
-        if mag < zero {
-            -mag
-        } else {
-            mag
-        }
+        if mag < zero { -mag } else { mag }
     }
 
     /// Return the value directly between the start and end values.

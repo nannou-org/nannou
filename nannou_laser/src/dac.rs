@@ -1,9 +1,9 @@
 //! Items related to DACs and DAC detection.
 
 use std::io;
+use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::mpsc;
-use std::sync::Arc;
 use std::time::Duration;
 
 /// Callback functions that may be passed to the `detect_dacs_async` function.

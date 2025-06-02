@@ -7,7 +7,7 @@ use bevy::{
     render::view::RenderLayers,
 };
 
-use bevy_nannou::prelude::{default, Entity, Vec3};
+use bevy_nannou::prelude::{Entity, Vec3, default};
 
 use crate::App;
 

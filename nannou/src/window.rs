@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{geom::Point2, glam::Vec2, prelude::WindowResizeConstraints, App};
+use crate::{App, geom::Point2, glam::Vec2, prelude::WindowResizeConstraints};
 use bevy::{
     input::mouse::MouseWheel,
     prelude::*,
@@ -19,14 +19,14 @@ use bevy::{
         extract_component::ExtractComponent,
         renderer::{RenderDevice, RenderQueue},
         view::{
-            screenshot::{save_to_disk, Screenshot},
             RenderLayers,
+            screenshot::{Screenshot, save_to_disk},
         },
     },
     window::{CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef},
     winit::cursor::CursorIcon,
 };
-use bevy_nannou::prelude::{render::NannouCamera, MonitorSelection};
+use bevy_nannou::prelude::{MonitorSelection, render::NannouCamera};
 use nannou_core::geom;
 
 /// A nannou window.

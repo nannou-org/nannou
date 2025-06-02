@@ -362,9 +362,7 @@ impl<'buffer> ImageReadMapping<'buffer> {
         // - buffer rows are the wrong size: checked above, panics
         // - buffer has not been initialized / has invalid data for primitive type:
         //   very possible. That's why this function is `unsafe`.
-        let container = unsafe {
-            wgpu::bytes::to_slice::<P::Subpixel>(&self.view[..])
-        };
+        let container = unsafe { wgpu::bytes::to_slice::<P::Subpixel>(&self.view[..]) };
 
         let full_image =
             image::ImageBuffer::from_raw(padded_width_pixels, self.buffer.height(), container)

@@ -1,5 +1,5 @@
-use bevy::asset::io::file::FileAssetReader;
 use bevy::asset::io::Reader;
+use bevy::asset::io::file::FileAssetReader;
 use bevy::asset::{AssetLoader, LoadContext};
 use bevy::prelude::*;
 use bevy::render::render_asset::RenderAssetUsages;

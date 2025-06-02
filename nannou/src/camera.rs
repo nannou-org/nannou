@@ -1,7 +1,7 @@
 // FIXME: Remove deprecatd `Camera3dBundle`.
 #![allow(deprecated)]
 
-use crate::{prelude::bevy_render::camera::RenderTarget, App};
+use crate::{App, prelude::bevy_render::camera::RenderTarget};
 use bevy::{
     core_pipeline::{
         bloom::{Bloom, BloomPrefilter},
@@ -13,7 +13,7 @@ use bevy::{
     window::WindowRef,
 };
 use bevy_nannou::prelude::{
-    default, render::NannouCamera, ClearColorConfig, Entity, OrthographicProjection, Vec3,
+    ClearColorConfig, Entity, OrthographicProjection, Vec3, default, render::NannouCamera,
 };
 
 pub struct Camera<'a, 'w> {

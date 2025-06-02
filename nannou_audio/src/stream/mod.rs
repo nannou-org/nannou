@@ -2,7 +2,7 @@ use std;
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
 use std::sync::atomic::{self, AtomicBool};
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 
 use cpal::traits::StreamTrait;
 use thiserror::Error;

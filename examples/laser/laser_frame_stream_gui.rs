@@ -1,7 +1,7 @@
 //! A clone of the `laser_frame_stream.rs` example that allows for configuring laser settings via a
 //! UI.
 
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 
 use nannou::prelude::egui::FontId;
 use nannou::prelude::*;

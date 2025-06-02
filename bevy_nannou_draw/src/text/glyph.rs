@@ -114,11 +114,7 @@ impl<'a, 'b> Iterator for SelectedRects<'a, 'b> {
         } = *self;
         enumerated_rects.next().and_then(
             |(i, rect)| {
-                if i < end_char_idx {
-                    Some(rect)
-                } else {
-                    None
-                }
+                if i < end_char_idx { Some(rect) } else { None }
             },
         )
     }

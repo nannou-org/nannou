@@ -1,18 +1,18 @@
 use crate::draw::{
+    Draw, DrawCommand, DrawContext,
     indirect::{IndirectMesh, IndirectShaderModelPlugin},
     instanced::{InstanceRange, InstancedMesh, InstancedShaderModelPlugin},
     mesh::MeshExt,
     render::{RenderContext, RenderPrimitive},
-    Draw, DrawCommand, DrawContext,
 };
 use bevy::{
-    asset::{load_internal_asset, weak_handle, Asset, UntypedAssetId},
+    asset::{Asset, UntypedAssetId, load_internal_asset, weak_handle},
     core_pipeline::core_3d::Transparent3d,
     ecs::{
         query::{QueryFilter, QueryItem},
         system::{
-            lifetimeless::{Read, SRes},
             SystemParamItem,
+            lifetimeless::{Read, SRes},
         },
     },
     pbr::{
@@ -21,12 +21,13 @@ use bevy::{
     },
     prelude::{TypePath, *},
     render::{
+        RenderApp, RenderSet,
         camera::RenderTarget,
         extract_component::{ExtractComponent, ExtractComponentPlugin},
         extract_instances::{ExtractInstance, ExtractInstancesPlugin, ExtractedInstances},
         mesh::{MeshVertexBufferLayoutRef, RenderMesh},
         render_asset::{
-            prepare_assets, PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets,
+            PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets, prepare_assets,
         },
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
@@ -44,7 +45,6 @@ use bevy::{
         texture::GpuImage,
         view,
         view::{ExtractedView, NoFrustumCulling, RenderLayers},
-        RenderApp, RenderSet,
     },
     window::{PrimaryWindow, WindowRef},
 };

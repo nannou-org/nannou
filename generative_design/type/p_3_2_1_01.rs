@@ -29,9 +29,9 @@
  * ctrl                 : save png
  */
 use nannou::lyon;
-use nannou::lyon::algorithms::path::math::Point;
 use nannou::lyon::algorithms::path::PathSlice;
-use nannou::lyon::algorithms::walk::{walk_along_path, RepeatedPattern, WalkerEvent};
+use nannou::lyon::algorithms::path::math::Point;
+use nannou::lyon::algorithms::walk::{RepeatedPattern, WalkerEvent, walk_along_path};
 use nannou::lyon::path::iterator::*;
 use nannou::prelude::*;
 

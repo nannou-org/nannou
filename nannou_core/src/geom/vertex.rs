@@ -1,7 +1,7 @@
 use core::ops::{Add, Div};
 
-use crate::geom::{scalar::Scalar, Point3};
-use crate::math::num_traits::{cast, NumCast};
+use crate::geom::{Point3, scalar::Scalar};
+use crate::math::num_traits::{NumCast, cast};
 
 /// Types used as vertices that can be used to describe geometric points in space.
 pub trait Vertex: Clone + Copy + PartialEq {

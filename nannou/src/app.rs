@@ -14,9 +14,9 @@ use bevy::{
     diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin},
     ecs::{system::SystemParam, world::unsafe_world_cell::UnsafeWorldCell},
     input::{
+        ButtonState,
         keyboard::{Key, KeyboardInput},
         mouse::{MouseButtonInput, MouseWheel},
-        ButtonState,
     },
     prelude::*,
     reflect::{
@@ -45,15 +45,15 @@ use crate::{
         render::{NannouShaderModelPlugin, ShaderModel},
     },
     render::{
-        compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
         RenderApp, RenderPlugin,
+        compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
     },
     window,
     window::WindowUserFunctions,
 };
 use bevy_nannou::{
-    prelude::{draw, render::NannouCamera},
     NannouPlugin,
+    prelude::{draw, render::NannouCamera},
 };
 use find_folder;
 use std::{

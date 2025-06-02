@@ -1,10 +1,11 @@
-use crate::prelude::bevy_render::{extract_component::ExtractComponent, MainWorld};
+use crate::prelude::bevy_render::{MainWorld, extract_component::ExtractComponent};
 use bevy::{
     core_pipeline::core_3d::graph::{Core3d, Node3d},
     ecs::{query::QueryItem, system::StaticSystemParam},
     platform::collections::HashMap,
     prelude::*,
     render::{
+        Render, RenderSet,
         extract_component::ExtractComponentPlugin,
         render_graph::{
             NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
@@ -14,7 +15,6 @@ use bevy::{
             PipelineCache, ShaderRef, SpecializedComputePipeline, SpecializedComputePipelines,
         },
         renderer::{RenderContext, RenderDevice},
-        Render, RenderSet,
     },
 };
 use bevy_nannou::prelude::{AsBindGroup, CachedPipelineState};

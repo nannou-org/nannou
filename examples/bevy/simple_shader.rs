@@ -1,6 +1,6 @@
 use bevy::prelude::*;
-use bevy_nannou::prelude::*;
 use bevy_nannou::NannouPlugin;
+use bevy_nannou::prelude::*;
 
 fn main() {
     let mut app = App::new();

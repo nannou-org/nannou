@@ -1,6 +1,6 @@
 use core::ops::Neg;
 
-use crate::geom::{quad, scalar, Align, Edge, Point2, Quad, Range, Scalar, Tri};
+use crate::geom::{Align, Edge, Point2, Quad, Range, Scalar, Tri, quad, scalar};
 use crate::glam::{DVec2, Vec2};
 use crate::math::{self, num_traits::Float};
 

@@ -70,11 +70,7 @@ impl Perceptron {
     }
 
     fn activate(&self, sum: f32) -> i32 {
-        if sum > 0.0 {
-            1
-        } else {
-            -1
-        }
+        if sum > 0.0 { 1 } else { -1 }
     }
 }
 

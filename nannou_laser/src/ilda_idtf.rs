@@ -10,7 +10,7 @@ use std::path::Path;
 #[doc(inline)]
 pub use ilda_idtf::*;
 
-use crate::{point, Point};
+use crate::{Point, point};
 
 /// A type that simplifies the process of reading laser frames from the ILDA IDTF format in a
 /// manner that is compatible with the `nannou_laser` stream APIs.

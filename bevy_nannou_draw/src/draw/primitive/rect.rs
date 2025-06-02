@@ -3,8 +3,8 @@ use lyon::tessellation::StrokeOptions;
 
 use nannou_core::geom;
 
-use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::primitive::Primitive;
+use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::tex_coords::SetTexCoords;
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke};

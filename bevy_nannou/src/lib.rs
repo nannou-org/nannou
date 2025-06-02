@@ -4,12 +4,12 @@ pub mod prelude {
     pub use bevy::color::palettes::css::*;
     pub use bevy::color::prelude::*;
     pub use bevy::core_pipeline::bloom::*;
-    pub use bevy::image::{prelude::*, ImageAddressMode, ImageSampler, ImageSamplerDescriptor};
+    pub use bevy::image::{ImageAddressMode, ImageSampler, ImageSamplerDescriptor, prelude::*};
     pub use bevy::input::mouse::MouseWheel;
     pub use bevy::prelude::{
-        debug, default, error, info, light_consts, trace, warn, ClearColorConfig, Entity, Handle,
-        Image, KeyCode, MonitorSelection, MouseButton, OrthographicProjection, TouchInput, Vec3,
-        Window, WindowResizeConstraints,
+        ClearColorConfig, Entity, Handle, Image, KeyCode, MonitorSelection, MouseButton,
+        OrthographicProjection, TouchInput, Vec3, Window, WindowResizeConstraints, debug, default,
+        error, info, light_consts, trace, warn,
     };
     pub use bevy::render::render_asset::*;
     pub use bevy::render::render_resource::*;
@@ -18,8 +18,8 @@ pub mod prelude {
 
     pub use bevy_nannou_draw::color::*;
     pub use bevy_nannou_draw::draw::*;
-    pub use bevy_nannou_draw::render::blend::*;
     pub use bevy_nannou_draw::render::NannouShaderModelPlugin;
+    pub use bevy_nannou_draw::render::blend::*;
     pub use bevy_nannou_draw::text::*;
     pub use bevy_nannou_draw::*;
 

@@ -11,6 +11,6 @@
 
 pub use nannou_core::geom::*;
 
-pub use self::path::{path, Path};
+pub use self::path::{Path, path};
 
 pub mod path;
