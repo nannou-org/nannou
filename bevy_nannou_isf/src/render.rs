@@ -1,7 +1,10 @@
+use crate::asset::{GpuIsf, Isf, IsfHandle};
+use crate::inputs::{IsfInputValue, IsfInputs};
 use bevy::asset::embedded_asset;
 use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
 use bevy::ecs::query::{QueryItem, ROQueryItem};
 use bevy::ecs::system::SystemParamItem;
+use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::render::extract_resource::ExtractResource;
@@ -22,9 +25,6 @@ use bevy::render::view::{ExtractedView, ViewTarget};
 use bevy::render::{Render, RenderApp, RenderSet};
 use bevy::window::{PrimaryWindow, WindowRef};
 use std::num::NonZero;
-use bevy::platform::collections::HashMap;
-use crate::asset::{GpuIsf, Isf, IsfHandle};
-use crate::inputs::{IsfInputValue, IsfInputs};
 
 pub struct IsfRenderPlugin;
 
