@@ -10,13 +10,13 @@
 //! - A function for finding the centroid.
 
 pub use glam::{
-    dvec2, dvec3, dvec4, ivec2, ivec3, ivec4, vec2, vec3, vec4, DVec2, DVec3, DVec4, IVec2, IVec3,
-    IVec4, Vec2, Vec3, Vec4,
+    DVec2, DVec3, DVec4, IVec2, IVec3, IVec4, Vec2, Vec3, Vec4, dvec2, dvec3, dvec4, ivec2, ivec3,
+    ivec4, vec2, vec3, vec4,
 };
 
 pub use self::cuboid::Cuboid;
 pub use self::ellipse::Ellipse;
-pub use self::point::{pt2, pt3, pt4, Point2, Point3, Point4};
+pub use self::point::{Point2, Point3, Point4, pt2, pt3, pt4};
 pub use self::polygon::Polygon;
 pub use self::quad::Quad;
 pub use self::range::{Align, Edge, Range};

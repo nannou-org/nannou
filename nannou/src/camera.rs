@@ -1,33 +1,47 @@
 // FIXME: Remove deprecatd `Camera3dBundle`.
 #![allow(deprecated)]
 
-use crate::prelude::bevy_render::camera::RenderTarget;
-use crate::App;
-use bevy::core_pipeline::bloom::Bloom;
-use bevy::core_pipeline::tonemapping::Tonemapping;
-use bevy::math::UVec2;
-use bevy::prelude::{Camera3d, Camera3dBundle, Projection, Transform, Vec2};
-use bevy::render::camera;
-use bevy::render::view::RenderLayers;
-use bevy::window::WindowRef;
-use bevy_nannou::prelude::render::NannouCamera;
-use bevy_nannou::prelude::{default, ClearColorConfig, Entity, OrthographicProjection, Vec3};
+use crate::{App, prelude::bevy_render::camera::RenderTarget};
+use bevy::{
+    core_pipeline::{
+        bloom::{Bloom, BloomPrefilter},
+        tonemapping::Tonemapping,
+    },
+    math::UVec2,
+    prelude::{Projection, Transform, Vec2},
+    render::{camera, view::RenderLayers},
+    window::WindowRef,
+};
+use bevy_nannou::prelude::{
+    ClearColorConfig, Entity, OrthographicProjection, Vec3, default, render::NannouCamera,
+};
 
 pub struct Camera<'a, 'w> {
     entity: Entity,
     app: &'a App<'w>,
 }
 
+#[derive(Default)]
+pub struct CameraComponents {
+    pub transform: Transform,
+    pub camera: camera::Camera,
+    pub projection: Projection,
+    pub tonemapping: Tonemapping,
+    pub bloom_settings: Option<Bloom>,
+    pub render_layers: RenderLayers,
+}
+
 pub struct Builder<'a, 'w> {
     app: &'a App<'w>,
-    camera: Camera3dBundle,
-    bloom_settings: Option<Bloom>,
-    layer: Option<RenderLayers>,
+    camera: CameraComponents,
 }
 
 pub trait SetCamera: Sized {
     fn layer(self, layer: RenderLayers) -> Self {
-        self.map_layer(|_| layer)
+        self.map_camera(|mut camera| {
+            camera.render_layers = layer;
+            camera
+        })
     }
 
     fn order(self, order: isize) -> Self {
@@ -106,44 +120,52 @@ pub trait SetCamera: Sized {
     }
 
     fn bloom_settings(self, settings: Bloom) -> Self {
-        self.map_bloom_settings(|_| settings)
+        self.map_camera(|mut camera| {
+            camera.bloom_settings = Some(settings);
+            camera
+        })
     }
 
     fn bloom_intensity(self, intensity: f32) -> Self {
-        self.map_bloom_settings(|mut settings| {
+        self.map_camera(|mut camera| {
+            let settings = camera.bloom_settings.get_or_insert_with(Bloom::default);
             settings.intensity = intensity;
-            settings
+            camera
         })
     }
 
     fn bloom_low_frequency_boost(self, low_frequency_boost: f32) -> Self {
-        self.map_bloom_settings(|mut settings| {
+        self.map_camera(|mut camera| {
+            let settings = camera.bloom_settings.get_or_insert_with(Bloom::default);
             settings.low_frequency_boost = low_frequency_boost;
-            settings
+            camera
         })
     }
 
     fn bloom_low_frequency_boost_curvature(self, low_frequency_boost_curvature: f32) -> Self {
-        self.map_bloom_settings(|mut settings| {
+        self.map_camera(|mut camera| {
+            let settings = camera.bloom_settings.get_or_insert_with(Bloom::default);
             settings.low_frequency_boost_curvature = low_frequency_boost_curvature;
-            settings
+            camera
         })
     }
 
     fn bloom_high_pass_frequency(self, high_pass_frequency: f32) -> Self {
-        self.map_bloom_settings(|mut settings| {
+        self.map_camera(|mut camera| {
+            let settings = camera.bloom_settings.get_or_insert_with(Bloom::default);
             settings.high_pass_frequency = high_pass_frequency;
-            settings
+            camera
         })
     }
 
     fn bloom_prefilter(self, threshold: f32, threshold_softness: f32) -> Self {
-        self.map_bloom_settings(|mut settings| {
-            settings.prefilter = bevy::core_pipeline::bloom::BloomPrefilter {
+        self.map_camera(|mut camera| {
+            let settings = camera.bloom_settings.get_or_insert_with(Bloom::default);
+            settings.prefilter = BloomPrefilter {
                 threshold,
                 threshold_softness,
             };
-            settings
+            camera
         })
     }
 
@@ -151,9 +173,10 @@ pub trait SetCamera: Sized {
         self,
         composite_mode: bevy::core_pipeline::bloom::BloomCompositeMode,
     ) -> Self {
-        self.map_bloom_settings(|mut settings| {
+        self.map_camera(|mut camera| {
+            let settings = camera.bloom_settings.get_or_insert_with(Bloom::default);
             settings.composite_mode = composite_mode;
-            settings
+            camera
         })
     }
 
@@ -164,30 +187,20 @@ pub trait SetCamera: Sized {
         })
     }
 
-    fn map_layer<F>(self, f: F) -> Self
-    where
-        F: FnOnce(RenderLayers) -> RenderLayers;
-
-    fn map_bloom_settings<F>(self, f: F) -> Self
-    where
-        F: FnOnce(Bloom) -> Bloom;
-
     fn map_camera<F>(self, f: F) -> Self
     where
-        F: FnOnce(Camera3dBundle) -> Camera3dBundle;
+        F: FnOnce(CameraComponents) -> CameraComponents;
 }
 
 impl<'a, 'w> Builder<'a, 'w> {
     pub fn new(app: &'a App<'w>) -> Self {
         Self {
             app,
-            camera: Camera3dBundle {
+            camera: CameraComponents {
                 transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
                 projection: OrthographicProjection::default_3d().into(),
                 ..default()
             },
-            bloom_settings: None,
-            layer: None,
         }
     }
 
@@ -195,20 +208,16 @@ impl<'a, 'w> Builder<'a, 'w> {
         let entity = self
             .app
             .component_world_mut()
-            .spawn((self.camera, NannouCamera))
+            .spawn((
+                self.camera.transform,
+                self.camera.camera,
+                self.camera.projection,
+                self.camera.tonemapping,
+                self.camera.render_layers,
+                NannouCamera,
+            ))
             .id();
-        if let Some(layer) = self.layer {
-            self.app
-                .component_world_mut()
-                .entity_mut(entity)
-                .insert(layer);
-        } else {
-            self.app
-                .component_world_mut()
-                .entity_mut(entity)
-                .insert(RenderLayers::default());
-        }
-        if let Some(bloom_settings) = self.bloom_settings {
+        if let Some(bloom_settings) = self.camera.bloom_settings {
             self.app
                 .component_world_mut()
                 .entity_mut(entity)
@@ -219,29 +228,9 @@ impl<'a, 'w> Builder<'a, 'w> {
 }
 
 impl<'a, 'w> SetCamera for Builder<'a, 'w> {
-    fn map_layer<F>(self, f: F) -> Self
-    where
-        F: FnOnce(RenderLayers) -> RenderLayers,
-    {
-        Self {
-            layer: Some(f(self.layer.unwrap_or(RenderLayers::default()))),
-            ..self
-        }
-    }
-
-    fn map_bloom_settings<F>(self, f: F) -> Self
-    where
-        F: FnOnce(Bloom) -> Bloom,
-    {
-        Self {
-            bloom_settings: Some(f(self.bloom_settings.unwrap_or(Bloom::default()))),
-            ..self
-        }
-    }
-
     fn map_camera<F>(self, f: F) -> Self
     where
-        F: FnOnce(Camera3dBundle) -> Camera3dBundle,
+        F: FnOnce(CameraComponents) -> CameraComponents,
     {
         Self {
             camera: f(self.camera),
@@ -257,63 +246,45 @@ impl<'a, 'w> Camera<'a, 'w> {
 }
 
 impl<'a, 'w> SetCamera for Camera<'a, 'w> {
-    fn map_layer<F>(self, f: F) -> Self
-    where
-        F: FnOnce(RenderLayers) -> RenderLayers,
-    {
-        let mut world = self.app.component_world_mut();
-        let mut layer_q = world.query::<Option<&mut RenderLayers>>();
-        if let Ok(layer) = layer_q.get_mut(&mut world, self.entity) {
-            if let Some(mut layer) = layer {
-                *layer = f(layer.clone());
-            } else {
-                world
-                    .entity_mut(self.entity)
-                    .insert(f(RenderLayers::default()));
-            }
-        }
-        self
-    }
-
-    fn map_bloom_settings<F>(self, f: F) -> Self
-    where
-        F: FnOnce(Bloom) -> Bloom,
-    {
-        let mut world = self.app.component_world_mut();
-        let mut bloom_q = world.query::<Option<&mut Bloom>>();
-        if let Ok(bloom) = bloom_q.get_mut(&mut world, self.entity) {
-            if let Some(mut bloom) = bloom {
-                *bloom = f(bloom.clone());
-            } else {
-                world.entity_mut(self.entity).insert(f(Bloom::default()));
-            }
-        }
-        self
-    }
-
     fn map_camera<F>(self, f: F) -> Self
     where
-        F: FnOnce(Camera3dBundle) -> Camera3dBundle,
+        F: FnOnce(CameraComponents) -> CameraComponents,
     {
         let mut world = self.app.component_world_mut();
         let mut camera_q = world.query::<(
-            &mut Transform,
-            &mut camera::Camera,
-            &mut Camera3d,
-            &mut Projection,
+            &Transform,
+            &camera::Camera,
+            &Projection,
+            &Tonemapping,
+            &RenderLayers,
+            Option<&Bloom>,
         )>();
-        let (transform, camera, camera_3d, projection) =
-            camera_q.get_mut(&mut world, self.entity).unwrap();
-        let bundle = Camera3dBundle {
+        let (transform, camera, projection, tonemapping, render_layers, bloom_settings) =
+            camera_q.get(&mut world, self.entity).unwrap();
+        let camera = CameraComponents {
             transform: transform.clone(),
             camera: camera.clone(),
-            camera_3d: camera_3d.clone(),
             projection: projection.clone(),
-            ..default()
+            tonemapping: tonemapping.clone(),
+            render_layers: render_layers.clone(),
+            bloom_settings: bloom_settings.cloned(),
         };
+        let mut camera = f(camera);
+        if let Some(bloom_settings) = camera.bloom_settings.take() {
+            world.entity_mut(self.entity).insert(bloom_settings);
+        }
 
-        let bundle = f(bundle);
-        world.entity_mut(self.entity).insert(bundle);
+        world.entity_mut(self.entity).insert({
+            let CameraComponents {
+                transform,
+                camera,
+                projection,
+                tonemapping,
+                render_layers,
+                ..
+            } = camera;
+            (transform, camera, projection, tonemapping, render_layers)
+        });
         self
     }
 }

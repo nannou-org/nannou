@@ -1,8 +1,8 @@
 //! Feeds back the input stream directly into the output stream
 //!
 //! You can play and pause the streams by pressing space key
-use ringbuf::traits::{Consumer, Producer, Split};
 use ringbuf::HeapRb;
+use ringbuf::traits::{Consumer, Producer, Split};
 use std::sync::mpsc::Sender;
 use std::thread::JoinHandle;
 

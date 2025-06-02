@@ -2,7 +2,7 @@
 //!
 //! The main type is the `Cuboid` type.
 
-use crate::geom::{quad, scalar, Point3, Quad, Range, Scalar, Tri};
+use crate::geom::{Point3, Quad, Range, Scalar, Tri, quad, scalar};
 use crate::glam::{DVec3, Vec3};
 use crate::math::num_traits::Float;
 

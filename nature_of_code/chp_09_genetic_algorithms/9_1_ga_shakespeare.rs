@@ -267,8 +267,8 @@ fn view(app: &App, model: &Model) {
         .y(-100.0)
         .wh(win.wh());
 
-    let gen = format!("total generations:     {}", model.population.generations);
-    draw.text(&gen)
+    let generations = format!("total generations:     {}", model.population.generations);
+    draw.text(&generations)
         .color(BLACK)
         .left_justify()
         .align_text_top()

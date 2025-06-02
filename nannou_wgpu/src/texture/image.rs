@@ -5,8 +5,7 @@
 
 use crate as wgpu;
 use image::PixelWithColorType;
-use std::ops::Deref;
-use std::path::Path;
+use std::{ops::Deref, path::Path};
 
 /// The set of pixel types from the image crate that can be loaded directly into a texture.
 ///
@@ -363,7 +362,7 @@ impl<'buffer> ImageReadMapping<'buffer> {
         // - buffer rows are the wrong size: checked above, panics
         // - buffer has not been initialized / has invalid data for primitive type:
         //   very possible. That's why this function is `unsafe`.
-        let container = wgpu::bytes::to_slice::<P::Subpixel>(&self.view[..]);
+        let container = unsafe { wgpu::bytes::to_slice::<P::Subpixel>(&self.view[..]) };
 
         let full_image =
             image::ImageBuffer::from_raw(padded_width_pixels, self.buffer.height(), container)
@@ -548,7 +547,7 @@ where
         .block_copy_size(None)
         .expect("Expected the format to have a block size");
     let bytes_per_row = extent.width * block_size as u32;
-    let image_data_layout = wgpu::ImageDataLayout {
+    let image_data_layout = wgpu::TexelCopyBufferLayout {
         offset: 0,
         bytes_per_row: Some(bytes_per_row),
         rows_per_image: None,
@@ -610,7 +609,7 @@ where
         .block_copy_size(None)
         .expect("Expected the format to have a block size");
     let bytes_per_row = extent.width * block_size as u32;
-    let image_data_layout = wgpu::ImageDataLayout {
+    let image_data_layout = wgpu::TexelCopyBufferLayout {
         offset: 0,
         bytes_per_row: Some(bytes_per_row),
         rows_per_image: Some(height),

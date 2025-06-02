@@ -2,25 +2,33 @@
 //!
 //! See the [Draw] for more details.
 
-use std::any::{Any, TypeId};
-use std::marker::PhantomData;
-use std::ops::{Deref, Range};
-use std::sync::{Arc, RwLock};
+use std::{
+    any::{Any, TypeId},
+    marker::PhantomData,
+    ops::{Deref, Range},
+    sync::{Arc, RwLock},
+};
 
-pub use self::background::Background;
-pub use self::drawing::{Drawing, DrawingContext};
 use self::primitive::Primitive;
-pub use self::theme::Theme;
-use crate::draw::indirect::Indirect;
-use crate::draw::instanced::Instanced;
-use crate::draw::mesh::MeshExt;
-use crate::render::{DefaultNannouShaderModel, ShaderModel};
-use bevy::asset::UntypedAssetId;
-use bevy::prelude::*;
-use bevy::render::render_resource as wgpu;
-use bevy::render::render_resource::{BlendComponent, BlendState};
-use bevy::render::storage::ShaderStorageBuffer;
-use bevy::utils::{HashMap, HashSet};
+pub use self::{
+    background::Background,
+    drawing::{Drawing, DrawingContext},
+    theme::Theme,
+};
+use crate::{
+    draw::{indirect::Indirect, instanced::Instanced, mesh::MeshExt},
+    render::{DefaultNannouShaderModel, ShaderModel},
+};
+use bevy::{
+    asset::UntypedAssetId,
+    platform::collections::{HashMap, HashSet},
+    prelude::*,
+    render::{
+        render_resource as wgpu,
+        render_resource::{BlendComponent, BlendState},
+        storage::ShaderStorageBuffer,
+    },
+};
 use lyon::path::PathEvent;
 use uuid::Uuid;
 

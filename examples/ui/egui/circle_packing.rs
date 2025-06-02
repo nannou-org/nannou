@@ -1,5 +1,6 @@
-use nannou::rand::thread_rng;
-use nannou::{prelude::*, rand::prelude::SliceRandom};
+use nannou::prelude::*;
+use nannou::rand::prelude::IndexedRandom;
+use nannou::rand::rng;
 
 const WIDTH: f32 = 640.0;
 const HEIGHT: f32 = 360.0;
@@ -109,7 +110,7 @@ fn generate_circles(settings: &mut Settings) -> Vec<Circle> {
 
     let mut circles = Vec::new();
 
-    let mut rng = thread_rng();
+    let mut rng = rng();
 
     let mut loops = 0;
     loop {

@@ -3,26 +3,30 @@
 //! Create a new window via `app.new_window()`. This produces a [**Builder**](./struct.Builder.html)
 //! which can be used to build a [**Window**](./struct.Window.html).
 
-use std::cell::RefMut;
-use std::fmt;
-use std::ops::Deref;
-use std::path::{Path, PathBuf};
+use std::{
+    cell::RefMut,
+    fmt,
+    ops::Deref,
+    path::{Path, PathBuf},
+};
 
-use crate::geom::Point2;
-use crate::glam::Vec2;
-use crate::prelude::WindowResizeConstraints;
-use crate::App;
-use bevy::input::mouse::MouseWheel;
-use bevy::prelude::*;
-use bevy::render::camera::RenderTarget;
-use bevy::render::extract_component::ExtractComponent;
-use bevy::render::renderer::{RenderDevice, RenderQueue};
-use bevy::render::view::screenshot::{save_to_disk, Screenshot};
-use bevy::render::view::RenderLayers;
-use bevy::window::{CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef};
-use bevy::winit::cursor::CursorIcon;
-use bevy_nannou::prelude::render::NannouCamera;
-use bevy_nannou::prelude::MonitorSelection;
+use crate::{App, geom::Point2, glam::Vec2, prelude::WindowResizeConstraints};
+use bevy::{
+    input::mouse::MouseWheel,
+    prelude::*,
+    render::{
+        camera::RenderTarget,
+        extract_component::ExtractComponent,
+        renderer::{RenderDevice, RenderQueue},
+        view::{
+            RenderLayers,
+            screenshot::{Screenshot, save_to_disk},
+        },
+    },
+    window::{CursorGrabMode, PrimaryWindow, WindowLevel, WindowMode, WindowRef},
+    winit::cursor::CursorIcon,
+};
+use bevy_nannou::prelude::{MonitorSelection, render::NannouCamera};
 use nannou_core::geom;
 
 /// A nannou window.
@@ -426,7 +430,7 @@ where
 
             if self.primary {
                 let mut q = self.app.component_world_mut().query::<&PrimaryWindow>();
-                if q.get_single(&mut self.app.component_world_mut()).is_ok() {
+                if q.single(&mut self.app.component_world_mut()).is_ok() {
                     panic!("Only one primary window can be created");
                 }
 
@@ -443,7 +447,7 @@ where
                 .component_world_mut()
                 .query_filtered::<(Entity, &mut bevy::window::Window), With<PrimaryWindow>>();
             let entity = if let Ok((entity, mut window)) =
-                q.get_single_mut(&mut self.app.component_world_mut())
+                q.single_mut(&mut self.app.component_world_mut())
             {
                 *window = self.window;
                 entity
@@ -482,20 +486,17 @@ where
             // FIXME: Remove deprecated `Camera3dBundle`
             #[allow(deprecated)]
             self.app.component_world_mut().spawn((
-                Camera3dBundle {
-                    camera: Camera {
-                        hdr: self.hdr,
-                        target: RenderTarget::Window(WindowRef::Entity(entity)),
-                        clear_color: self
-                            .clear_color
-                            .map(ClearColorConfig::Custom)
-                            .unwrap_or(ClearColorConfig::None),
-                        ..default()
-                    },
-                    transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                    projection: OrthographicProjection::default_3d().into(),
+                Camera {
+                    hdr: self.hdr,
+                    target: RenderTarget::Window(WindowRef::Entity(entity)),
+                    clear_color: self
+                        .clear_color
+                        .map(ClearColorConfig::Custom)
+                        .unwrap_or(ClearColorConfig::None),
                     ..default()
                 },
+                Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+                Projection::Orthographic(OrthographicProjection::default_3d()),
                 layer.clone(),
                 NannouCamera,
             ));
@@ -934,7 +935,8 @@ impl<'a, 'w> Window<'a, 'w> {
 
     /// Attempts to determine whether or not the window is currently fullscreen.
     pub fn is_fullscreen(&self) -> bool {
-        self.window_mut().mode == WindowMode::Fullscreen(MonitorSelection::Current)
+        self.window_mut().mode
+            == WindowMode::Fullscreen(MonitorSelection::Current, VideoModeSelection::Current)
     }
 
     /// The rectangle representing the position and dimensions of the window.

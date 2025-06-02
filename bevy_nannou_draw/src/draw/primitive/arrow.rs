@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use lyon::tessellation::StrokeOptions;
 
-use crate::draw::primitive::path;
 use crate::draw::primitive::Line;
 use crate::draw::primitive::Primitive;
+use crate::draw::primitive::path;
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};

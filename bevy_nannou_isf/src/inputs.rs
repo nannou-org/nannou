@@ -72,11 +72,7 @@ impl IsfInputs {
                 _ => 0,
             })
             .sum();
-        if size < 40 {
-            40
-        } else {
-            size
-        }
+        if size < 40 { 40 } else { size }
     }
 
     fn serialize_values(&self) -> Vec<u8> {
@@ -320,7 +316,7 @@ impl PartialReflect for IsfInputs {
 
     #[inline]
     fn clone_value(&self) -> Box<dyn PartialReflect> {
-        Box::new(self.clone_dynamic())
+        Box::new(self.to_dynamic_struct())
     }
 
     fn reflect_partial_eq(&self, value: &dyn PartialReflect) -> Option<bool> {

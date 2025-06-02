@@ -1,23 +1,19 @@
-use crate::draw::Draw;
 use crate::draw::{
+    Draw, DrawCommand, DrawContext,
     indirect::{IndirectMesh, IndirectShaderModelPlugin},
     instanced::{InstanceRange, InstancedMesh, InstancedShaderModelPlugin},
     mesh::MeshExt,
     render::{RenderContext, RenderPrimitive},
-    DrawCommand, DrawContext,
 };
-use bevy::ecs::query::QueryItem;
-use bevy::ecs::system::lifetimeless::Read;
-use bevy::render::extract_instances::ExtractInstance;
-use bevy::render::storage::ShaderStorageBuffer;
-use bevy::render::sync_world::MainEntity;
-use bevy::window::PrimaryWindow;
 use bevy::{
-    asset::{load_internal_asset, Asset, UntypedAssetId},
+    asset::{Asset, UntypedAssetId, load_internal_asset, weak_handle},
     core_pipeline::core_3d::Transparent3d,
     ecs::{
-        query::QueryFilter,
-        system::{lifetimeless::SRes, SystemParamItem},
+        query::{QueryFilter, QueryItem},
+        system::{
+            SystemParamItem,
+            lifetimeless::{Read, SRes},
+        },
     },
     pbr::{
         DrawMesh, MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshBindGroup,
@@ -25,12 +21,13 @@ use bevy::{
     },
     prelude::{TypePath, *},
     render::{
+        RenderApp, RenderSet,
         camera::RenderTarget,
         extract_component::{ExtractComponent, ExtractComponentPlugin},
-        extract_instances::{ExtractInstancesPlugin, ExtractedInstances},
+        extract_instances::{ExtractInstance, ExtractInstancesPlugin, ExtractedInstances},
         mesh::{MeshVertexBufferLayoutRef, RenderMesh},
         render_asset::{
-            prepare_assets, PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets,
+            PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets, prepare_assets,
         },
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
@@ -38,22 +35,24 @@ use bevy::{
         },
         render_resource::{
             AsBindGroup, AsBindGroupError, AsBindGroupShaderType, BindGroup, BindGroupId,
-            BindGroupLayout, BlendState, OwnedBindingResource, PipelineCache, PolygonMode,
+            BindGroupLayout, BindingResources, BlendState, PipelineCache, PolygonMode,
             RenderPipelineDescriptor, ShaderRef, ShaderType, SpecializedMeshPipeline,
             SpecializedMeshPipelineError, SpecializedMeshPipelines,
         },
         renderer::RenderDevice,
+        storage::ShaderStorageBuffer,
+        sync_world::MainEntity,
         texture::GpuImage,
         view,
-        view::{ExtractedView, NoFrustumCulling, RenderLayers, VisibilitySystems},
-        RenderApp, RenderSet,
+        view::{ExtractedView, NoFrustumCulling, RenderLayers},
     },
-    window::WindowRef,
+    window::{PrimaryWindow, WindowRef},
 };
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 use std::{any::TypeId, hash::Hash, marker::PhantomData};
 
-pub const DEFAULT_NANNOU_SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(3086880141013591);
+pub const DEFAULT_NANNOU_SHADER_HANDLE: Handle<Shader> =
+    weak_handle!("f2dbf06f-38d5-47f1-8ad4-3f188d888dd0");
 
 pub trait ShaderModel:
     Asset + AsBindGroup + Clone + Default + Sized + Send + Sync + 'static
@@ -121,14 +120,7 @@ impl Plugin for NannouRenderPlugin {
             NannouShaderModelPlugin::<DefaultNannouShaderModel>::default(),
         ))
         .add_systems(First, clear_previous_frame)
-        .add_systems(
-            PostUpdate,
-            (
-                update_draw_mesh,
-                view::check_visibility::<With<ShaderModelMesh>>
-                    .in_set(VisibilitySystems::CheckVisibility),
-            ),
-        );
+        .add_systems(PostUpdate, (update_draw_mesh,));
     }
 }
 
@@ -171,7 +163,7 @@ where
 }
 
 pub struct PreparedShaderModel<SM: ShaderModel> {
-    pub bindings: Vec<(u32, OwnedBindingResource)>,
+    pub bindings: BindingResources,
     pub bind_group: BindGroup,
     pub key: SM::Data,
 }
@@ -189,7 +181,8 @@ impl<SM: ShaderModel> RenderAsset for PreparedShaderModel<SM> {
 
     fn prepare_asset(
         shader_model: Self::SourceAsset,
-        (render_device, pipeline, ref mut shader_model_param): &mut SystemParamItem<Self::Param>,
+        _asset_id: AssetId<Self::SourceAsset>,
+        (render_device, pipeline, shader_model_param): &mut SystemParamItem<Self::Param>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
         match shader_model.as_bind_group(
             &pipeline.shader_model_layout,
@@ -334,7 +327,7 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
         Res<RenderMeshInstances>,
         Query<(Entity, &MainEntity, &DrawIndex), QF>,
         ResMut<ViewSortedRenderPhases<Transparent3d>>,
-        Query<(Entity, &ExtractedView, &Msaa)>,
+        Query<(&ExtractedView, &Msaa)>,
         Res<RenderAssets<PreparedShaderModel<SM>>>,
         Res<ExtractedInstances<ShaderModelHandle<SM>>>,
     ),
@@ -346,9 +339,9 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
 {
     let draw_function = draw_functions.read().id::<RC>();
 
-    for (view_entity, view, msaa) in &mut views {
+    for (view, msaa) in &mut views {
         let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
-        let Some(phase) = phases.get_mut(&view_entity) else {
+        let Some(phase) = phases.get_mut(&view.retained_view_entity) else {
             continue;
         };
 
@@ -383,7 +376,8 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
                 entity: (entity, *main_entity),
                 draw_function,
                 batch_range: Default::default(),
-                extra_index: PhaseItemExtraIndex(0),
+                extra_index: PhaseItemExtraIndex::None,
+                indexed: true,
             });
         }
     }
@@ -571,7 +565,7 @@ fn update_draw_mesh(
 
             false
         }) else {
-            debug!("No camera found for window {:?}", draw.window);
+            bevy::log::debug!("No camera found for window {:?}", draw.window);
             continue;
         };
 
@@ -744,6 +738,7 @@ fn clear_previous_frame(
 }
 
 #[derive(Component, ExtractComponent, Clone)]
+#[component(on_add = view::add_visibility_class::<ShaderModelMesh>)]
 pub struct ShaderModelMesh;
 
 #[derive(Resource)]
@@ -797,7 +792,7 @@ pub mod blend {
 #[derive(Component)]
 #[require(
     Camera3d,
-    Projection(|| Projection::Orthographic(OrthographicProjection::default_3d())),
+    Projection::Orthographic(OrthographicProjection::default_3d()),
     RenderLayers
 )]
 pub struct NannouCamera;

@@ -1,5 +1,5 @@
-use bevy::asset::io::file::FileAssetReader;
 use bevy::asset::io::Reader;
+use bevy::asset::io::file::FileAssetReader;
 use bevy::asset::{AssetLoader, LoadContext};
 use bevy::prelude::*;
 use bevy::render::render_asset::RenderAssetUsages;
@@ -70,7 +70,7 @@ impl Video {
                 height,
                 ..default()
             });
-            image.data = rgba;
+            image.data = Some(rgba);
             image.asset_usage = RenderAssetUsages::RENDER_WORLD;
             return Some(image);
         }

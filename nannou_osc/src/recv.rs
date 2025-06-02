@@ -2,10 +2,10 @@
 
 use std;
 use std::net::{SocketAddr, SocketAddrV4, ToSocketAddrs, UdpSocket};
-use std::sync::atomic::{self, AtomicBool};
 use std::sync::Mutex;
+use std::sync::atomic::{self, AtomicBool};
 
-use super::{decode, rosc, CommunicationError, Connected, Packet, Unconnected};
+use super::{CommunicationError, Connected, Packet, Unconnected, decode, rosc};
 
 /// The default "maximum transmission unit" size as a number of bytes.
 ///

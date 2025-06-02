@@ -76,14 +76,14 @@ fn view(app: &App, model: &Model) {
             let mx = clamp(win.right() + app.mouse().x, 0.0, win.w());
             let my = clamp(win.top() - app.mouse().x, 0.0, win.h());
 
-            let shift_x1 = mx / 20.0 * rng.gen_range(-1.0..1.0);
-            let shift_y1 = my / 20.0 * rng.gen_range(-1.0..1.0);
-            let shift_x2 = mx / 20.0 * rng.gen_range(-1.0..1.0);
-            let shift_y2 = my / 20.0 * rng.gen_range(-1.0..1.0);
-            let shift_x3 = mx / 20.0 * rng.gen_range(-1.0..1.0);
-            let shift_y3 = my / 20.0 * rng.gen_range(-1.0..1.0);
-            let shift_x4 = mx / 20.0 * rng.gen_range(-1.0..1.0);
-            let shift_y4 = my / 20.0 * rng.gen_range(-1.0..1.0);
+            let shift_x1 = mx / 20.0 * rng.random_range(-1.0..1.0);
+            let shift_y1 = my / 20.0 * rng.random_range(-1.0..1.0);
+            let shift_x2 = mx / 20.0 * rng.random_range(-1.0..1.0);
+            let shift_y2 = my / 20.0 * rng.random_range(-1.0..1.0);
+            let shift_x3 = mx / 20.0 * rng.random_range(-1.0..1.0);
+            let shift_y3 = my / 20.0 * rng.random_range(-1.0..1.0);
+            let shift_x4 = mx / 20.0 * rng.random_range(-1.0..1.0);
+            let shift_y4 = my / 20.0 * rng.random_range(-1.0..1.0);
             let mut points = Vec::new();
             points.push(pt2(pos_x + shift_x1, pos_y + shift_y1));
             points.push(pt2(pos_x + model.rect_size + shift_x2, pos_y + shift_y2));

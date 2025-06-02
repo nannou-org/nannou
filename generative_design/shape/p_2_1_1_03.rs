@@ -90,7 +90,7 @@ fn view(app: &App, model: &Model) {
             let pos_y = (win.top() - tile_h) - tile_h * grid_y as f32;
             let mx = clamp(win.right() + app.mouse().x, 0.0, win.w());
 
-            let toggle = rng.gen::<bool>();
+            let toggle = rng.random::<bool>();
 
             if !toggle {
                 let [h, s, v] = model.color_left.to_f32_array_no_alpha();

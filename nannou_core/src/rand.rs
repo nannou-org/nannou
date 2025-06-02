@@ -37,9 +37,9 @@ pub fn random_f64() -> f64 {
 /// `min`, but will never be `max`.
 ///
 /// If the given `min` is greater than the given `max`, they will be swapped before calling
-/// `gen_range` internally to avoid triggering a `panic!`.
+/// `random_range` internally to avoid triggering a `panic!`.
 ///
-/// This calls `rand::thread_rng().gen_range(min..max)` internally, in turn using the thread-local
+/// This calls `rand::rng().random_range(min..max)` internally, in turn using the thread-local
 /// default random number generator.
 ///
 /// NOTE: This helper function relies on a thread-local RNG and is currently only available with
@@ -47,10 +47,10 @@ pub fn random_f64() -> f64 {
 #[cfg(feature = "std")]
 pub fn random_range<T>(min: T, max: T) -> T
 where
-    T: PartialOrd + distributions::uniform::SampleUniform,
+    T: PartialOrd + distr::uniform::SampleUniform,
 {
     let (min, max) = if min <= max { (min, max) } else { (max, min) };
-    rand::thread_rng().gen_range(min..max)
+    rand::rng().random_range(min..max)
 }
 
 /// Generates and returns a random ascii character.
@@ -69,6 +69,6 @@ pub fn random_ascii() -> char {
                             abcdefghijklmnopqrstuvwxyz\
                             0123456789)(*&^%$#@!~. ";
 
-    let idx = rand::thread_rng().gen_range(0..ASCIISET.len());
+    let idx = rand::rng().random_range(0..ASCIISET.len());
     ASCIISET[idx] as char
 }

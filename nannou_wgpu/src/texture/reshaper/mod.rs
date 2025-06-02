@@ -1,4 +1,4 @@
-use crate::{self as wgpu, util::DeviceExt, BufferInitDescriptor};
+use crate::{self as wgpu, BufferInitDescriptor, util::DeviceExt};
 
 /// Reshapes a texture from its original size, sample_count and format to the destination size,
 /// sample_count and format.

@@ -18,23 +18,21 @@ members = [
     "scripts/run_all_examples",
     "scripts/set_version",
 ]
+resolver = "2"
 
 [workspace.package]
-edition = "2021"
+edition = "2024"
 license = "MIT OR Apache-2.0"
 version = "0.1.0"
 homepage = "https://nannou.cc"
 repository = "https://github.com/nannou-org/nannou.git"
 
-# Required for wgpu v0.10 feature resolution.
-resolver = "2"
-
 [workspace.dependencies]
 audrey = "0.3"
-bevy = { version = "0.15", default-features = false }
-bevy_common_assets = "0.12.0"
-bevy_egui = "0.33.0"
-bevy-inspector-egui = "0.30.0"
+bevy = { version = "0.16", default-features = false }
+bevy_common_assets = "0.13"
+bevy_egui = "0.34"
+bevy-inspector-egui = "0.31"
 bitflags = "2.9"
 bytemuck = "1.22"
 cpal = "0.13"
@@ -56,7 +54,7 @@ notosans = "0.1"
 num-traits = {version = "0.2", default-features = false }
 pennereq = "0.3"
 quote = "1"
-rand = {version = "0.8", default-features = false }
+rand = {version = "0.9.0", default-features = false }
 rayon = "1.10"
 ringbuf = "0.4"
 rosc = "0.11"
@@ -72,7 +70,7 @@ toml = "0.8"
 toml_edit = "0.22"
 usvg = "0.4"
 uuid = "1.8"
-video-rs = "0.8"
+video-rs = "0.10"
 walkdir = "2"
-wgpu = "23.0.1"
+wgpu = "24"
 wikipedia = "0.5"

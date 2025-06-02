@@ -7,54 +7,65 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
-use bevy::app::AppExit;
 #[cfg(not(target_arch = "wasm32"))]
 use bevy::asset::io::file::FileAssetReader;
-use bevy::core::FrameCount;
-use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
-use bevy::ecs::system::SystemParam;
-use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
-use bevy::input::keyboard::{Key, KeyboardInput};
-use bevy::input::mouse::{MouseButtonInput, MouseWheel};
-use bevy::input::ButtonState;
-use bevy::prelude::*;
-use bevy::reflect::{
-    ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
-    TypeInfo,
+use bevy::{
+    app::AppExit,
+    diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin},
+    ecs::{system::SystemParam, world::unsafe_world_cell::UnsafeWorldCell},
+    input::{
+        ButtonState,
+        keyboard::{Key, KeyboardInput},
+        mouse::{MouseButtonInput, MouseWheel},
+    },
+    prelude::*,
+    reflect::{
+        ApplyError, DynamicTypePath, GetTypeRegistration, ReflectMut, ReflectOwned, ReflectRef,
+        TypeInfo,
+    },
+    render::extract_resource::ExtractResource,
+    window::{
+        ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowEvent,
+        WindowFocused, WindowResized,
+    },
+    winit::{UpdateMode, WinitSettings},
 };
-use bevy::render::extract_resource::ExtractResource;
-use bevy::window::{
-    ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowEvent,
-    WindowFocused, WindowResized,
-};
-use bevy::winit::{UpdateMode, WinitSettings};
 #[cfg(feature = "egui")]
 use bevy_egui::EguiContext;
 #[cfg(feature = "egui")]
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 
-use crate::frame::{Frame, FramePlugin};
-use crate::prelude::bevy_ecs::system::SystemState;
-use crate::prelude::bevy_reflect::DynamicTyped;
-use crate::prelude::render::{NannouShaderModelPlugin, ShaderModel};
-use crate::render::{
-    compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
-    RenderApp, RenderPlugin,
+use crate::{
+    camera,
+    frame::{Frame, FramePlugin},
+    geom, light,
+    prelude::{
+        bevy_ecs::system::SystemState,
+        bevy_reflect::{DynamicTyped, ReflectCloneError},
+        render::{NannouShaderModelPlugin, ShaderModel},
+    },
+    render::{
+        RenderApp, RenderPlugin,
+        compute::{Compute, ComputeModel, ComputePlugin, ComputeShaderHandle, ComputeState},
+    },
+    window,
+    window::WindowUserFunctions,
 };
-use crate::window::WindowUserFunctions;
-use crate::{camera, geom, light, window};
-use bevy_nannou::prelude::draw;
-use bevy_nannou::prelude::render::NannouCamera;
-use bevy_nannou::NannouPlugin;
+use bevy_nannou::{
+    NannouPlugin,
+    prelude::{draw, render::NannouCamera},
+};
 use find_folder;
-use std::any::Any;
-use std::cell::{RefCell, RefMut};
-use std::hash::Hash;
-use std::path::PathBuf;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::Duration;
-use std::{self};
+use std::{
+    any::Any,
+    cell::{RefCell, RefMut},
+    hash::Hash,
+    path::PathBuf,
+    rc::Rc,
+    sync::atomic::{AtomicUsize, Ordering},
+    time::Duration,
+    {self},
+};
 
 /// The user function type for initialising their model.
 pub type ModelFn<Model> = fn(&App) -> Model;
@@ -262,7 +273,9 @@ where
                 ..default()
             }),
             #[cfg(feature = "egui")]
-            bevy_egui::EguiPlugin,
+            bevy_egui::EguiPlugin {
+                enable_multipass_for_primary_context: false,
+            }, // TODO: should we use this?
             NannouPlugin,
         ))
         .init_resource::<RunMode>();
@@ -601,8 +614,8 @@ where
         Box::new(self.0).reflect_owned()
     }
 
-    fn clone_value(&self) -> Box<dyn PartialReflect> {
-        self.0.clone_value()
+    fn reflect_clone(&self) -> std::result::Result<Box<dyn Reflect>, ReflectCloneError> {
+        self.0.reflect_clone()
     }
 }
 
@@ -798,7 +811,7 @@ impl<'w> App<'w> {
         let mut monitor_q = self
             .component_world_mut()
             .query_filtered::<Entity, With<PrimaryMonitor>>();
-        monitor_q.get_single(&self.component_world()).ok()
+        monitor_q.single(&self.component_world()).ok()
     }
 
     pub fn new_light<'a>(&'a self) -> light::Builder<'a, 'w> {
@@ -860,7 +873,7 @@ impl<'w> App<'w> {
             .component_world_mut()
             .query_filtered::<Entity, With<PrimaryWindow>>();
         primary_window
-            .get_single(&self.component_world())
+            .single(&self.component_world())
             .expect("No windows are open in the App")
     }
 
@@ -898,7 +911,7 @@ impl<'w> App<'w> {
             .component_world_mut()
             .query_filtered::<Entity, With<PrimaryWindow>>();
         let main_window = window_q
-            .get_single(&self.component_world())
+            .single(&self.component_world())
             .expect("No windows are open in the App");
         window::Window::new(self, main_window)
     }

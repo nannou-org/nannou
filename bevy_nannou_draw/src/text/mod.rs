@@ -21,7 +21,7 @@ pub mod layout;
 pub mod line;
 pub mod rt {
     //! Re-exported RustType geometric types.
-    pub use rusttype::{gpu_cache, point, vector, Point, Rect, Vector};
+    pub use rusttype::{Point, Rect, Vector, gpu_cache, point, vector};
 }
 
 /// The RustType `FontCollection` type used by nannou.

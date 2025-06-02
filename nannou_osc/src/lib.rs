@@ -12,9 +12,9 @@ pub use rosc;
 pub use self::recv::Receiver;
 #[doc(inline)]
 pub use self::rosc::{
-    address, decoder, encoder, OscArray as Array, OscBundle as Bundle, OscColor as Color,
-    OscError as Error, OscMessage as Message, OscMidiMessage as MidiMessage, OscTime as Time,
-    OscTimeError as TimeError, OscType as Type,
+    OscArray as Array, OscBundle as Bundle, OscColor as Color, OscError as Error,
+    OscMessage as Message, OscMidiMessage as MidiMessage, OscTime as Time,
+    OscTimeError as TimeError, OscType as Type, address, decoder, encoder,
 };
 pub use self::send::Sender;
 

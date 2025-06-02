@@ -3,8 +3,8 @@ use lyon::path::PathEvent;
 use lyon::tessellation::StrokeOptions;
 
 use crate::draw::drawing::DrawingContext;
-use crate::draw::primitive::path::{self, PathEventSource};
 use crate::draw::primitive::Primitive;
+use crate::draw::primitive::path::{self, PathEventSource};
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};

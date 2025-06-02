@@ -16,7 +16,7 @@ glam = { workspace = true, features = ["rand"] }
 num-traits.workspace = true
 # TODO: Need to check support for no-std.
 # pennereq.workspace = true
-rand = { workspace = true, features = ["small_rng"] }
+rand = { workspace = true, features = ["small_rng", "thread_rng"] }
 # TODO: Needs no-std support before we can add text logic to this core.
 # rusttype = "0.8"
 

@@ -1,6 +1,6 @@
 use core::ops::Deref;
 
-use crate::geom::{vertex, Cuboid, Range, Rect, Scalar, Vertex, Vertex2d, Vertex3d};
+use crate::geom::{Cuboid, Range, Rect, Scalar, Vertex, Vertex2d, Vertex3d, vertex};
 use crate::math::num_traits::Zero;
 
 /// The number of vertices in a triangle.

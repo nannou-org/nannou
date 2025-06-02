@@ -3,7 +3,7 @@
 use std;
 use std::net::{SocketAddr, SocketAddrV4, ToSocketAddrs, UdpSocket};
 
-use super::{encode, CommunicationError, Connected, Packet, Unconnected};
+use super::{CommunicationError, Connected, Packet, Unconnected, encode};
 
 /// The default port bound to by the `Sender`.
 ///

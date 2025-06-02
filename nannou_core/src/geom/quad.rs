@@ -1,6 +1,6 @@
 use core::ops::{Deref, Index};
 
-use crate::geom::{tri, vertex, Cuboid, Range, Rect, Tri, Vertex, Vertex2d, Vertex3d};
+use crate::geom::{Cuboid, Range, Rect, Tri, Vertex, Vertex2d, Vertex3d, tri, vertex};
 
 /// The number of vertices in a quad.
 pub const NUM_VERTICES: u8 = 4;

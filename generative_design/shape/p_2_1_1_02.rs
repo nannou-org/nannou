@@ -96,7 +96,7 @@ fn view(app: &App, model: &Model) {
             let mx = clamp(win.right() + app.mouse().x, 0.0, win.w());
             let my = clamp(win.top() - app.mouse().x, 0.0, win.h());
 
-            let toggle = rng.gen::<bool>();
+            let toggle = rng.random::<bool>();
 
             if !toggle {
                 draw.line()

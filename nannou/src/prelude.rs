@@ -5,15 +5,15 @@ pub use bevy::ecs::{self as bevy_ecs, prelude::*};
 pub use bevy::image as bevy_image;
 pub use bevy::reflect::{self as bevy_reflect, Reflect, TypePath};
 pub use bevy::render as bevy_render;
-pub use bevy::tasks::prelude::{block_on, AsyncComputeTaskPool, IoTaskPool};
-pub use bevy::tasks::{futures_lite::future, Task};
+pub use bevy::tasks::prelude::{AsyncComputeTaskPool, IoTaskPool, block_on};
+pub use bevy::tasks::{Task, futures_lite::future};
 
 #[cfg(feature = "egui")]
 pub use bevy_egui::egui;
 
 pub use crate::frame::*;
-pub use crate::render::compute::*;
 pub use crate::render::RenderApp;
+pub use crate::render::compute::*;
 pub use crate::wgpu;
 pub use crate::wgpu::util::{BufferInitDescriptor, DeviceExt};
 pub use bevy_nannou::prelude::*;

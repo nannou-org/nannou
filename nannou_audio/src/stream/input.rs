@@ -6,8 +6,8 @@ use cpal::traits::{DeviceTrait, HostTrait};
 use dasp_sample::{FromSample, Sample, ToSample};
 
 use crate::{
-    stream::{self, DefaultErrorFn, ErrorFn},
     Buffer, Device, Receiver, Stream,
+    stream::{self, DefaultErrorFn, ErrorFn},
 };
 
 /// The function that will be called when a captured `Buffer` is ready to be read.

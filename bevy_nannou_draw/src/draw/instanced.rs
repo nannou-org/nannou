@@ -2,24 +2,24 @@
 
 use crate::render::ShaderModelHandle;
 use crate::{
-    draw::{drawing::Drawing, primitive::Primitive, Draw, DrawCommand},
-    render::{queue_shader_model, PreparedShaderModel, ShaderModel},
+    draw::{Draw, DrawCommand, drawing::Drawing, primitive::Primitive},
+    render::{PreparedShaderModel, ShaderModel, queue_shader_model},
 };
 use bevy::{
     core_pipeline::core_3d::Transparent3d,
-    ecs::system::{lifetimeless::*, SystemParamItem},
+    ecs::system::{SystemParamItem, lifetimeless::*},
     pbr::{RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup},
     prelude::*,
     render::{
+        Render, RenderApp, RenderSet,
         extract_component::ExtractComponent,
         extract_instances::ExtractedInstances,
-        mesh::{allocator::MeshAllocator, RenderMesh, RenderMeshBufferInfo},
-        render_asset::{prepare_assets, RenderAssets},
+        mesh::{RenderMesh, RenderMeshBufferInfo, allocator::MeshAllocator},
+        render_asset::{RenderAssets, prepare_assets},
         render_phase::{
             AddRenderCommand, PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline,
             TrackedRenderPass,
         },
-        Render, RenderApp, RenderSet,
     },
 };
 use std::{hash::Hash, marker::PhantomData, ops::Range};

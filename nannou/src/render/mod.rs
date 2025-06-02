@@ -12,12 +12,12 @@ use bevy::{
         world::{FromWorld, World},
     },
     render::{
+        ExtractSchedule,
         render_graph::{
             NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
         },
         renderer::RenderContext,
         view::{ExtractedView, ExtractedWindows, ViewTarget},
-        ExtractSchedule,
     },
     time::Time,
 };

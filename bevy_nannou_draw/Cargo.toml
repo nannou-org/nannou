@@ -11,6 +11,7 @@ bevy = { workspace = true, default-features = false, features = [
     "bevy_pbr",
     "bevy_render",
     "bevy_ui", # needed for `BackgroundColor`
+    "bevy_log",
     "tonemapping_luts",
 ]}
 lyon.workspace = true
