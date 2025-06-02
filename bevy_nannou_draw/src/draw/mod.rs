@@ -21,7 +21,7 @@ use crate::{
 };
 use bevy::{
     asset::UntypedAssetId,
-    platform_support::collections::{HashMap, HashSet},
+    platform::collections::{HashMap, HashSet},
     prelude::*,
     render::{
         render_resource as wgpu,

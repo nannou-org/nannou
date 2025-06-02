@@ -182,7 +182,7 @@ impl<SM: ShaderModel> RenderAsset for PreparedShaderModel<SM> {
     fn prepare_asset(
         shader_model: Self::SourceAsset,
         _asset_id: AssetId<Self::SourceAsset>,
-        (render_device, pipeline, ref mut shader_model_param): &mut SystemParamItem<Self::Param>,
+        (render_device, pipeline, shader_model_param): &mut SystemParamItem<Self::Param>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
         match shader_model.as_bind_group(
             &pipeline.shader_model_layout,

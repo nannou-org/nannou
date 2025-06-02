@@ -70,7 +70,7 @@ impl Video {
                 height,
                 ..default()
             });
-            image.data = rgba;
+            image.data = Some(rgba);
             image.asset_usage = RenderAssetUsages::RENDER_WORLD;
             return Some(image);
         }

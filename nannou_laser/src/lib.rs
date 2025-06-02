@@ -1,5 +1,4 @@
 //! A cross-platform laser DAC detection and streaming API.
-
 pub extern crate ether_dream;
 
 use std::io;

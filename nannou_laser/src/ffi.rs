@@ -1,4 +1,5 @@
 //! Expose a C compatible interface.
+#![allow(unsafe_op_in_unsafe_fn)]
 
 use std::collections::HashMap;
 use std::ffi::CString;
@@ -247,7 +248,7 @@ pub type StreamErrorCallback =
     extern "C" fn(*mut raw::c_void, *const StreamError, *mut StreamErrorAction);
 
 /// Given some uninitialized pointer to an `Api` struct, fill it with a new Api instance.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn api_new(api: *mut Api) {
     let inner = crate::Api::new();
     let last_error = None;
@@ -259,7 +260,7 @@ pub unsafe extern "C" fn api_new(api: *mut Api) {
 ///
 /// If the given `timeout_secs` is `0`, DAC detection will never timeout and detected DACs that no
 /// longer broadcast will remain accessible in the device map.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn detect_dacs_async(
     api: *mut Api,
     timeout_secs: raw::c_float,
@@ -286,7 +287,7 @@ pub unsafe extern "C" fn detect_dacs_async(
 ///
 /// Calling this function should never block, and simply provide the list of DACs that have
 /// broadcast their availability within the last specified DAC timeout duration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn available_dacs(
     detect_dacs_async: *mut DetectDacsAsync,
     first_dac: *mut *mut DetectedDac,
@@ -309,7 +310,7 @@ pub unsafe extern "C" fn available_dacs(
 }
 
 /// Block the current thread until a new DAC is detected and return it.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn detect_dac(api: *mut Api, detected_dac: *mut DetectedDac) -> Result {
     let api: &mut ApiInner = &mut (*(*api).inner);
     let mut iter = match api.inner.detect_dacs() {
@@ -335,7 +336,7 @@ pub unsafe extern "C" fn detect_dac(api: *mut Api, detected_dac: *mut DetectedDa
 }
 
 /// Initialise the given frame stream configuration with default values.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_stream_config_default(conf: *mut FrameStreamConfig) {
     let stream_conf = default_stream_config();
     let frame_hz = crate::stream::DEFAULT_FRAME_HZ;
@@ -352,7 +353,7 @@ pub unsafe extern "C" fn frame_stream_config_default(conf: *mut FrameStreamConfi
 }
 
 /// Initialise the given raw stream configuration with default values.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn stream_config_default(conf: *mut StreamConfig) {
     *conf = default_stream_config();
 }
@@ -372,7 +373,7 @@ pub unsafe extern "C" fn stream_config_default(conf: *mut StreamConfig) {
 ///
 /// The given function will get called right before submission of the optimised, interpolated
 /// buffer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn new_frame_stream(
     api: *mut Api,
     stream: *mut FrameStream,
@@ -457,7 +458,7 @@ pub unsafe extern "C" fn new_frame_stream(
 /// A raw LASER stream requests the exact number of points that the DAC is awaiting in each call to
 /// the user's `process_raw_callback`. Keep in mind that no optimisation passes are applied. When
 /// using a raw stream, this is the responsibility of the user.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn new_raw_stream(
     api: *mut Api,
     stream: *mut RawStream,
@@ -530,7 +531,7 @@ pub unsafe extern "C" fn new_raw_stream(
 /// [**lasy**](https://docs.rs/lasy/0.3.0/lasy/) API documentation.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_stream_enable_optimisations(
     stream: *const FrameStream,
     enable: bool,
@@ -550,7 +551,7 @@ pub unsafe extern "C" fn frame_stream_enable_optimisations(
 /// `Frame`.
 ///
 /// By default, this value is `true`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_stream_enable_draw_reorder(
     stream: *const FrameStream,
     enable: bool,
@@ -566,7 +567,7 @@ pub unsafe extern "C" fn frame_stream_enable_draw_reorder(
 /// By default this value is `stream::DEFAULT_POINT_HZ`.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_stream_set_point_hz(
     stream: *const FrameStream,
     point_hz: u32,
@@ -583,7 +584,7 @@ pub unsafe extern "C" fn frame_stream_set_point_hz(
 /// This value should be no greaterthan the DAC's `buffer_capacity`.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_stream_set_latency_points(
     stream: *const FrameStream,
     points: u32,
@@ -599,7 +600,7 @@ pub unsafe extern "C" fn frame_stream_set_latency_points(
 /// The value will be updated on the laser thread prior to requesting the next frame.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_stream_set_distance_per_point(
     stream: *const FrameStream,
     distance_per_point: f32,
@@ -617,7 +618,7 @@ pub unsafe extern "C" fn frame_stream_set_distance_per_point(
 /// The value will be updated on the laser thread prior to requesting the next frame.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_stream_set_blank_delay_points(
     stream: *const FrameStream,
     points: u32,
@@ -632,7 +633,7 @@ pub unsafe extern "C" fn frame_stream_set_blank_delay_points(
 /// The value will be updated on the laser thread prior to requesting the next frame.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_stream_set_radians_per_point(
     stream: *const FrameStream,
     radians_per_point: f32,
@@ -661,7 +662,7 @@ pub unsafe extern "C" fn frame_stream_set_radians_per_point(
 /// The value will be updated on the laser thread prior to requesting the next frame.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_stream_set_frame_hz(
     stream: *const FrameStream,
     frame_hz: u32,
@@ -678,7 +679,7 @@ pub unsafe extern "C" fn frame_stream_set_frame_hz(
 ///
 /// In this case, the `Stream` should be closed or dropped and a new one should be created to
 /// replace it.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_stream_is_closed(stream: *const FrameStream) -> bool {
     let stream: &FrameStream = &*stream;
     (*stream.inner).0.is_closed()
@@ -689,7 +690,7 @@ pub unsafe extern "C" fn frame_stream_is_closed(stream: *const FrameStream) -> b
 /// This consumes and drops the `Stream`, returning the result produced by joining the thread.
 ///
 /// This method will block until the associated thread has been joined.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_stream_close(api: *mut Api, stream: FrameStream) -> Result {
     if stream.inner != std::ptr::null_mut() {
         match Box::from_raw(stream.inner).0.close() {
@@ -717,7 +718,7 @@ pub unsafe extern "C" fn frame_stream_close(api: *mut Api, stream: FrameStream) 
 /// By default this value is `stream::DEFAULT_POINT_HZ`.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn raw_stream_set_point_hz(stream: *const RawStream, point_hz: u32) -> bool {
     let stream: &RawStream = &*stream;
     (*stream.inner).0.set_point_hz(point_hz).is_ok()
@@ -731,7 +732,7 @@ pub unsafe extern "C" fn raw_stream_set_point_hz(stream: *const RawStream, point
 /// This value should be no greaterthan the DAC's `buffer_capacity`.
 ///
 /// Returns `true` on success or `false` if the communication channel was closed.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn raw_stream_set_latency_points(
     stream: *const RawStream,
     points: u32,
@@ -748,7 +749,7 @@ pub unsafe extern "C" fn raw_stream_set_latency_points(
 ///
 /// In this case, the `Stream` should be closed or dropped and a new one should be created to
 /// replace it.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn raw_stream_is_closed(stream: *const RawStream) -> bool {
     let stream: &RawStream = &*stream;
     (*stream.inner).0.is_closed()
@@ -759,7 +760,7 @@ pub unsafe extern "C" fn raw_stream_is_closed(stream: *const RawStream) -> bool 
 /// This consumes and drops the `Stream`, returning the result produced by joining the thread.
 ///
 /// This method will block until the associated thread has been joined.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn raw_stream_close(api: *mut Api, stream: RawStream) -> Result {
     if stream.inner != std::ptr::null_mut() {
         match Box::from_raw(stream.inner).0.close() {
@@ -784,7 +785,7 @@ pub unsafe extern "C" fn raw_stream_close(api: *mut Api, stream: RawStream) -> R
 ///
 /// If some points already exist in the frame, this method will create a blank segment between the
 /// previous point and the first point before appending this sequence.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_add_points(
     frame: *mut Frame,
     points: *const crate::Point,
@@ -799,7 +800,7 @@ pub unsafe extern "C" fn frame_add_points(
 ///
 /// If some points already exist in the frame, this method will create a blank segment between the
 /// previous point and the first point before appending this sequence.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_add_lines(
     frame: *mut Frame,
     points: *const crate::Point,
@@ -811,44 +812,44 @@ pub unsafe extern "C" fn frame_add_lines(
 }
 
 /// Retrieve the current `frame_hz` at the time of rendering this `Frame`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_hz(frame: *const Frame) -> u32 {
     (*(*(*frame).inner).0).frame_hz()
 }
 
 /// Retrieve the current `point_hz` at the time of rendering this `Frame`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_point_hz(frame: *const Frame) -> u32 {
     (*(*(*frame).inner).0).point_hz()
 }
 
 /// Retrieve the current `latency_points` at the time of rendering this `Frame`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_latency_points(frame: *const Frame) -> u32 {
     (*(*(*frame).inner).0).latency_points()
 }
 
 /// Retrieve the current ideal `points_per_frame` at the time of rendering this `Frame`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn points_per_frame(frame: *const Frame) -> u32 {
     (*(*(*frame).inner).0).latency_points()
 }
 
 /// Allocate a new C string containing the error message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn stream_error_message(err: *const StreamError) -> RawString {
     let string = format!("{}", *(*(*err).inner).0);
     raw_string_from_str(&string[..])
 }
 
 /// Returns the pointer to the beginning of the C string for reading.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn raw_string_ref(msg: *const RawString) -> *const raw::c_char {
     (*msg).inner as *const raw::c_char
 }
 
 /// Must be called in order to correctly clean up a raw string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn raw_string_drop(msg: RawString) {
     if msg.inner != std::ptr::null_mut() {
         std::mem::drop(CString::from_raw(msg.inner));
@@ -856,7 +857,7 @@ pub unsafe extern "C" fn raw_string_drop(msg: RawString) {
 }
 
 /// Must be called in order to correctly clean up the frame stream.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_stream_drop(stream: FrameStream) {
     if stream.inner != std::ptr::null_mut() {
         std::mem::drop(Box::from_raw(stream.inner));
@@ -864,7 +865,7 @@ pub unsafe extern "C" fn frame_stream_drop(stream: FrameStream) {
 }
 
 /// Must be called in order to correctly clean up the raw stream.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn raw_stream_drop(stream: RawStream) {
     if stream.inner != std::ptr::null_mut() {
         std::mem::drop(Box::from_raw(stream.inner));
@@ -872,7 +873,7 @@ pub unsafe extern "C" fn raw_stream_drop(stream: RawStream) {
 }
 
 /// Must be called in order to correctly clean up the `DetectDacsAsync` resources.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn detect_dacs_async_drop(detect: DetectDacsAsync) {
     if detect.inner != std::ptr::null_mut() {
         std::mem::drop(Box::from_raw(detect.inner));
@@ -880,7 +881,7 @@ pub unsafe extern "C" fn detect_dacs_async_drop(detect: DetectDacsAsync) {
 }
 
 /// Must be called in order to correctly clean up the API resources.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn api_drop(api: Api) {
     if api.inner != std::ptr::null_mut() {
         std::mem::drop(Box::from_raw(api.inner));
@@ -888,7 +889,7 @@ pub unsafe extern "C" fn api_drop(api: Api) {
 }
 
 /// Used for retrieving the last error that occurred from the API.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn api_last_error(api: *const Api) -> *const raw::c_char {
     let api: &ApiInner = &(*(*api).inner);
     match api.last_error {
@@ -898,7 +899,7 @@ pub unsafe extern "C" fn api_last_error(api: *const Api) -> *const raw::c_char {
 }
 
 /// Used for retrieving the last error that occurred from the API.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn detect_dacs_async_last_error(
     detect: *const DetectDacsAsync,
 ) -> *const raw::c_char {
@@ -913,7 +914,7 @@ pub unsafe extern "C" fn detect_dacs_async_last_error(
 }
 
 /// Retrieve the kind of the stream error.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn stream_error_kind(err: *const StreamError) -> StreamErrorKind {
     let err: &crate::StreamError = &*(*(*err).inner).0;
     stream_error_to_kind(err)
@@ -926,7 +927,7 @@ pub unsafe extern "C" fn stream_error_kind(err: *const StreamError) -> StreamErr
 ///
 /// If the error is `EtherDreamFailedToDetectDac`, this refers to the consecutive number of failed
 /// attempts to detect the requested DAC.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn stream_error_attempts(err: *const StreamError) -> u32 {
     let err: &crate::StreamError = &*(*(*err).inner).0;
     stream_error_to_attempts(err)
@@ -936,7 +937,7 @@ pub unsafe extern "C" fn stream_error_attempts(err: *const StreamError) -> u32 {
 ///
 /// This action attempts to reconnect to the specified DAC in the case that one was provided, or
 /// any DAC in the case that `None` was provided.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn stream_error_action_set_reattempt_connect(action: *mut StreamErrorAction) {
     let target = crate::StreamErrorAction::ReattemptConnect;
     stream_error_action_set(action, target);
@@ -949,7 +950,7 @@ pub unsafe extern "C" fn stream_error_action_set_reattempt_connect(action: *mut 
 ///
 /// This can be useful in the case where the DAC has dropped from the network and may have
 /// re-appeared broadcasting from a different IP address.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn stream_error_action_set_redetect_dacs(
     action: *mut StreamErrorAction,
     timeout_secs: f32,
@@ -964,7 +965,7 @@ pub unsafe extern "C" fn stream_error_action_set_redetect_dacs(
 }
 
 /// Set the error action to close the TCP communication thread.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn stream_error_action_set_close_thread(action: *mut StreamErrorAction) {
     let target = crate::StreamErrorAction::CloseThread;
     stream_error_action_set(action, target);
@@ -990,7 +991,7 @@ fn detect_dacs_async_inner(
                 let mut dacs = dacs2.lock().unwrap();
                 dacs.insert(dac.id(), (now, dac));
                 if let Some(timeout) = dac_timeout {
-                    dacs.retain(|_, (ref last_bc, _)| now.duration_since(*last_bc) < timeout);
+                    dacs.retain(|_, (last_bc, _)| now.duration_since(*last_bc) < timeout);
                 }
             }
             Err(err) => match err.kind() {
@@ -1024,7 +1025,7 @@ unsafe fn stream_error_action_set(
     action: *mut StreamErrorAction,
     target: crate::StreamErrorAction,
 ) {
-    let action: &mut crate::StreamErrorAction = &mut *(*(*action).inner).0;
+    let action: &mut crate::StreamErrorAction = unsafe { &mut *(*(*action).inner).0 };
     *action = target;
 }
 

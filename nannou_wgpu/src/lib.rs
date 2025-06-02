@@ -218,7 +218,7 @@ pub mod bytes {
     {
         let len = slice.len() * std::mem::size_of::<T>();
         let ptr = slice.as_ptr() as *const u8;
-        std::slice::from_raw_parts(ptr, len)
+        unsafe { std::slice::from_raw_parts(ptr, len) }
     }
 
     pub unsafe fn from<T>(t: &T) -> &[u8]
@@ -227,7 +227,7 @@ pub mod bytes {
     {
         let len = std::mem::size_of::<T>();
         let ptr = t as *const T as *const u8;
-        std::slice::from_raw_parts(ptr, len)
+        unsafe { std::slice::from_raw_parts(ptr, len) }
     }
 
     /// This is really an astonishingly unsafe function.
@@ -246,6 +246,6 @@ pub mod bytes {
         );
         let len = slice.len() / size;
         let ptr = slice.as_ptr() as *const T;
-        std::slice::from_raw_parts(ptr, len)
+        unsafe { std::slice::from_raw_parts(ptr, len) }
     }
 }

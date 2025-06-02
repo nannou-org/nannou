@@ -18,23 +18,21 @@ members = [
     "scripts/run_all_examples",
     "scripts/set_version",
 ]
+resolver = "2"
 
 [workspace.package]
-edition = "2021"
+edition = "2024"
 license = "MIT OR Apache-2.0"
 version = "0.1.0"
 homepage = "https://nannou.cc"
 repository = "https://github.com/nannou-org/nannou.git"
 
-# Required for wgpu v0.10 feature resolution.
-resolver = "2"
-
 [workspace.dependencies]
 audrey = "0.3"
-bevy = { version = "0.16.0-rc", default-features = false }
-bevy_common_assets = { git = "https://github.com/NiklasEi/bevy_common_assets", branch = "bevy_main" }
-bevy_egui = { git = "https://github.com/Friz64/bevy_egui", branch = "bevy-0.16" }
-bevy-inspector-egui = { git = "https://github.com/slyedoc/bevy-inspector-egui", branch = "bevy_0.16" }
+bevy = { version = "0.16", default-features = false }
+bevy_common_assets = "0.13"
+bevy_egui = "0.34"
+bevy-inspector-egui = "0.31"
 bitflags = "2.9"
 bytemuck = "1.22"
 cpal = "0.13"

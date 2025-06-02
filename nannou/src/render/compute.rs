@@ -2,7 +2,7 @@ use crate::prelude::bevy_render::{extract_component::ExtractComponent, MainWorld
 use bevy::{
     core_pipeline::core_3d::graph::{Core3d, Node3d},
     ecs::{query::QueryItem, system::StaticSystemParam},
-    platform_support::collections::HashMap,
+    platform::collections::HashMap,
     prelude::*,
     render::{
         extract_component::ExtractComponentPlugin,
