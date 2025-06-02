@@ -1,5 +1,6 @@
 use nannou::rand::rng;
-use nannou::{prelude::*, rand::prelude::SliceRandom};
+use nannou::prelude::*;
+use nannou::rand::prelude::IndexedRandom;
 
 const WIDTH: f32 = 640.0;
 const HEIGHT: f32 = 360.0;
