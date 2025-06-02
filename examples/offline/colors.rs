@@ -1,13 +1,10 @@
 // Colors tools
 // Alexis Andre (@mactuitui)
 
-use nannou::color::Hsv;
-use nannou::color::Rgb;
-use nannou::color::Srgb;
+use nannou::prelude::{Hsva, Srgba};
 
 pub struct Palette {
-    pub colors: Vec<Rgb>,
-    pub len: usize,
+    pub colors: Vec<Srgba>,
 }
 
 impl Palette {
@@ -25,40 +22,37 @@ impl Palette {
         let raw_colorsv = raw_colors.to_vec();
 
         //do the conversion myself
-        let mut cols_rgb: Vec<Rgb> = raw_colorsv
+        let mut cols_rgb: Vec<Srgba> = raw_colorsv
             .into_iter()
             .map(|c| {
                 let blue: u8 = (c & 0xFF) as u8;
                 let green: u8 = ((c >> 8) & 0xFF) as u8;
                 let red: u8 = ((c >> 16) & 0xFF) as u8;
-                let c = Srgb::new(
+
+                Srgba::new(
                     red as f32 / 255.0,
                     green as f32 / 255.0,
                     blue as f32 / 255.0,
-                );
-                c
+                    1.0,
+                )
             })
             .collect();
 
         //sort on sat/value/hue
         cols_rgb.sort_unstable_by(|&a, &b| {
-            let ahsv: Hsv = a.into();
-            let bhsv: Hsv = b.into();
+            let ahsv: Hsva = a.into();
+            let bhsv: Hsva = b.into();
             //colors are rgb
             //convert to hsv
-            let ahue = ahsv.hue.to_positive_radians();
-            let bhue = bhsv.hue.to_positive_radians();
+            let ahue = ahsv.hue.to_radians();
+            let bhue = bhsv.hue.to_radians();
             ahue.partial_cmp(&bhue).unwrap()
         });
 
-        let len = cols_rgb.len();
-        Palette {
-            colors: cols_rgb,
-            len: len,
-        }
+        Palette { colors: cols_rgb }
     }
 
-    pub fn somecolor_frac(&self, mut frac: f32) -> Rgb {
+    pub fn somecolor_frac(&self, mut frac: f32) -> Srgba {
         while frac < 0.0 {
             frac += 1.0;
         }

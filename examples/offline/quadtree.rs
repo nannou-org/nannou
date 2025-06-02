@@ -95,20 +95,17 @@ impl QuadTree {
     }
 
     pub fn insert_children<T: WithPos>(&mut self, elements: &[T], index: usize) {
-        match self.children.as_mut() {
-            Some(children) => {
-                //TODO faster sort
-                if children[0].contains(&elements[index]) {
-                    children[0].insert(elements, index);
-                } else if children[1].contains(&elements[index]) {
-                    children[1].insert(elements, index);
-                } else if children[2].contains(&elements[index]) {
-                    children[2].insert(elements, index);
-                } else if children[3].contains(&elements[index]) {
-                    children[3].insert(elements, index);
-                }
+        if let Some(children) = self.children.as_mut() {
+            //TODO faster sort
+            if children[0].contains(&elements[index]) {
+                children[0].insert(elements, index);
+            } else if children[1].contains(&elements[index]) {
+                children[1].insert(elements, index);
+            } else if children[2].contains(&elements[index]) {
+                children[2].insert(elements, index);
+            } else if children[3].contains(&elements[index]) {
+                children[3].insert(elements, index);
             }
-            None => {}
         }
     }
 
@@ -121,7 +118,7 @@ impl QuadTree {
             return false;
         }
 
-        return true;
+        true
     }
 
     pub fn get_elements<T: WithPos>(

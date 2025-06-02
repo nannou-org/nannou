@@ -18,18 +18,18 @@ fn model(app: &App) -> Model {
     let r = 0.0;
     let theta = 0.0;
 
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     Model { r, theta }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     // Increment the angle
     model.theta += 0.01;
     // Increment the radius
     model.r += 0.05;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
 
@@ -45,8 +45,5 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.ellipse()
         .x_y(x, y)
         .w_h(16.0, 16.0)
-        .rgba(0.0, 0.0, 0.0, 1.0);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+        .srgba(0.0, 0.0, 0.0, 1.0);
 }

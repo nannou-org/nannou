@@ -39,11 +39,11 @@ fn main() {
     nannou::sketch(view).run()
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     let draw = app.draw();
     draw.background().color(PLUM);
-    draw.ellipse().color(STEELBLUE);
-    draw.to_frame(app, &frame).unwrap();
+    draw.ellipse().color(STEEL_BLUE);
+    
 }
 ```
 
@@ -68,21 +68,21 @@ fn main() {
 }
 
 struct Model {
-    _window: window::Id,
+    _window: Entity,
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().view(view).build().unwrap();
+    let _window = app.new_window().view(view).build();
     Model { _window }
 }
 
-fn update(_app: &App, _model: &mut Model, _update: Update) {}
+fn update(_app: &App, _model: &mut Model) {}
 
-fn view(app: &App, _model: &Model, frame: Frame) {
+fn view(app: &App, _model: &Model) {
     let draw = app.draw();
     draw.background().color(PLUM);
-    draw.ellipse().color(STEELBLUE);
-    draw.to_frame(app, &frame).unwrap();
+    draw.ellipse().color(STEEL_BLUE);
+    
 }
 ```
 
@@ -119,7 +119,7 @@ flexibility, you can turn it into an app by following these steps:
    # fn main() {
    nannou::sketch(view).run()
    # }
-   # fn view(_: &App, _: Frame) {}
+   # fn view(_: &App) {}
    ```
 
    to
@@ -132,7 +132,7 @@ flexibility, you can turn it into an app by following these steps:
    # }
    # struct Model {}
    # fn model(_: &App) -> Model { Model {} }
-   # fn view(_: &App, _: &Model, _: Frame) {}
+   # fn view(_: &App, _: &Model, _: Entity) {}
    ```
 
 2. Add a `Model` for tracking state:
@@ -161,7 +161,7 @@ flexibility, you can turn it into an app by following these steps:
    # #![allow(dead_code, unused_variables)]
    # use nannou::prelude::*;
    # fn main() {}
-   fn view(app: &App, frame: Frame) {
+   fn view(app: &App) {
    # }
    ```
 
@@ -172,7 +172,7 @@ flexibility, you can turn it into an app by following these steps:
    # use nannou::prelude::*;
    # fn main() {}
    # struct Model {}
-   fn view(app: &App, _model: &Model, frame: Frame) {
+   fn view(app: &App, _model: &Model, _window: Entity) {
    # }
    ```
 

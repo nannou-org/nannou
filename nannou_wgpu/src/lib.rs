@@ -25,8 +25,6 @@
 //! - WebGPU [on wikipedia](https://en.wikipedia.org/wiki/WebGPU).
 
 mod bind_group_builder;
-pub mod blend;
-mod device_map;
 mod render_pass;
 mod render_pipeline_builder;
 mod sampler_builder;
@@ -36,54 +34,44 @@ mod texture;
 //
 // We do this manually rather than a glob-re-export in order to rename `Texture` to `TextureHandle`
 // and have it show up in the documentation properly.
-pub use self::bind_group_builder::{
-    Builder as BindGroupBuilder, LayoutBuilder as BindGroupLayoutBuilder,
-};
-pub use self::device_map::{
-    ActiveAdapter, AdapterMap, AdapterMapKey, DeviceMap, DeviceMapKey, DeviceQueuePair,
-};
-pub use self::render_pass::{
-    Builder as RenderPassBuilder,
-    ColorAttachmentDescriptorBuilder as RenderPassColorAttachmentDescriptorBuilder,
-};
-pub use self::render_pipeline_builder::RenderPipelineBuilder;
-pub use self::sampler_builder::SamplerBuilder;
-#[cfg(feature = "capturer")]
-pub use self::texture::capturer::{
-    AwaitWorkerTimeout as TextureCapturerAwaitWorkerTimeout, Capturer as TextureCapturer,
-    Snapshot as TextureSnapshot,
-};
 #[cfg(feature = "image")]
 pub use self::texture::image::{
-    format_from_image_color_type as texture_format_from_image_color_type, ImageHolder,
-    ImageReadMapping, WithDeviceQueuePair,
+    ImageHolder, ImageReadMapping, WithDeviceQueuePair,
+    format_from_image_color_type as texture_format_from_image_color_type,
 };
-pub use self::texture::reshaper::Reshaper as TextureReshaper;
-pub use self::texture::row_padded_buffer::RowPaddedBuffer;
-pub use self::texture::{
-    descriptor_eq as texture_descriptor_eq, extent_3d_eq,
-    format_size_bytes as texture_format_size_bytes, Builder as TextureBuilder, Texture, TextureId,
-    TextureView, TextureViewId, ToTextureView,
+pub use self::{
+    bind_group_builder::{Builder as BindGroupBuilder, LayoutBuilder as BindGroupLayoutBuilder},
+    render_pass::{
+        Builder as RenderPassBuilder,
+        ColorAttachmentDescriptorBuilder as RenderPassColorAttachmentDescriptorBuilder,
+    },
+    render_pipeline_builder::RenderPipelineBuilder,
+    sampler_builder::SamplerBuilder,
+    texture::{
+        Builder as TextureBuilder, Texture, TextureId, TextureView, TextureViewId, ToTextureView,
+        descriptor_eq as texture_descriptor_eq, extent_3d_eq,
+        format_size_bytes as texture_format_size_bytes, reshaper::Reshaper as TextureReshaper,
+        row_padded_buffer::RowPaddedBuffer,
+    },
 };
+use wgpu::MemoryHints;
 #[doc(inline)]
-pub use wgpu_upstream::{
-    include_wgsl,
-    util::{self, BufferInitDescriptor},
-    vertex_attr_array, Adapter, AdapterInfo, AddressMode, Backend, Backends, BindGroup,
-    BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-    BindGroupLayoutEntry, BindingResource, BindingType, BlendComponent, BlendFactor,
-    BlendOperation, BlendState, Buffer, BufferAddress, BufferAsyncError, BufferBinding,
-    BufferBindingType, BufferDescriptor, BufferSize, BufferSlice, BufferUsages, BufferView,
-    BufferViewMut, Color, ColorTargetState, ColorWrites, CommandBuffer, CommandBufferDescriptor,
-    CommandEncoder, CommandEncoderDescriptor, CompareFunction, ComputePass, ComputePassDescriptor,
-    ComputePipeline, ComputePipelineDescriptor, DepthBiasState, DepthStencilState, Device,
-    DeviceDescriptor, DeviceType, DownlevelCapabilities, DownlevelFlags, DynamicOffset, Error,
-    Extent3d, Face, Features, FilterMode, FragmentState, FrontFace, ImageCopyBuffer,
-    ImageCopyBufferBase, ImageCopyTexture, ImageCopyTextureBase, ImageDataLayout,
-    ImageSubresourceRange, IndexFormat, Instance, Label, Limits, LoadOp, Maintain, MapMode,
-    MultisampleState, Operations, Origin3d, PipelineLayout, PipelineLayoutDescriptor,
-    PipelineStatisticsTypes, PolygonMode, PowerPreference, PresentMode, PrimitiveState,
-    PrimitiveTopology, PushConstantRange, QuerySet, QuerySetDescriptor, QueryType, Queue,
+pub use wgpu::{
+    Adapter, AdapterInfo, AddressMode, Backend, Backends, BindGroup, BindGroupDescriptor,
+    BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
+    BindingResource, BindingType, BlendComponent, BlendFactor, BlendOperation, BlendState, Buffer,
+    BufferAddress, BufferAsyncError, BufferBinding, BufferBindingType, BufferDescriptor,
+    BufferSize, BufferSlice, BufferUsages, BufferView, BufferViewMut, COPY_BUFFER_ALIGNMENT,
+    COPY_BYTES_PER_ROW_ALIGNMENT, Color, ColorTargetState, ColorWrites, CommandBuffer,
+    CommandBufferDescriptor, CommandEncoder, CommandEncoderDescriptor, CompareFunction,
+    ComputePass, ComputePassDescriptor, ComputePipeline, ComputePipelineDescriptor, DepthBiasState,
+    DepthStencilState, Device, DeviceDescriptor, DeviceType, DownlevelCapabilities, DownlevelFlags,
+    DynamicOffset, Error, Extent3d, Face, Features, FilterMode, FragmentState, FrontFace,
+    ImageSubresourceRange, IndexFormat, Instance, Label, Limits, LoadOp, MAP_ALIGNMENT, Maintain,
+    MapMode, MultisampleState, Operations, Origin3d, PUSH_CONSTANT_ALIGNMENT, PipelineLayout,
+    PipelineLayoutDescriptor, PipelineStatisticsTypes, PolygonMode, PowerPreference, PresentMode,
+    PrimitiveState, PrimitiveTopology, PushConstantRange, QUERY_RESOLVE_BUFFER_ALIGNMENT,
+    QUERY_SET_MAX_QUERIES, QUERY_SIZE, QuerySet, QuerySetDescriptor, QueryType, Queue,
     RenderBundle, RenderBundleDepthStencil, RenderBundleDescriptor, RenderBundleEncoder,
     RenderBundleEncoderDescriptor, RenderPass, RenderPassColorAttachment,
     RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
@@ -91,13 +79,14 @@ pub use wgpu_upstream::{
     Sampler, SamplerBorderColor, SamplerDescriptor, ShaderLocation, ShaderModel, ShaderModule,
     ShaderModuleDescriptor, ShaderSource, ShaderStages, StencilFaceState, StencilOperation,
     StencilState, StorageTextureAccess, Surface, SurfaceConfiguration, SurfaceError, SurfaceStatus,
-    SurfaceTexture, Texture as TextureHandle, TextureAspect, TextureDescriptor, TextureDimension,
-    TextureFormat, TextureFormatFeatureFlags, TextureFormatFeatures, TextureSampleType,
-    TextureUsages, TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension,
-    UncapturedErrorHandler, VertexAttribute, VertexBufferLayout, VertexFormat, VertexState,
-    VertexStepMode, COPY_BUFFER_ALIGNMENT, COPY_BYTES_PER_ROW_ALIGNMENT, MAP_ALIGNMENT,
-    PUSH_CONSTANT_ALIGNMENT, QUERY_RESOLVE_BUFFER_ALIGNMENT, QUERY_SET_MAX_QUERIES, QUERY_SIZE,
-    VERTEX_STRIDE_ALIGNMENT,
+    SurfaceTexture, TexelCopyBufferInfo, TexelCopyBufferLayout, TexelCopyTextureInfo,
+    Texture as TextureHandle, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
+    TextureFormatFeatureFlags, TextureFormatFeatures, TextureSampleType, TextureUsages,
+    TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension,
+    UncapturedErrorHandler, VERTEX_STRIDE_ALIGNMENT, VertexAttribute, VertexBufferLayout,
+    VertexFormat, VertexState, VertexStepMode, include_wgsl,
+    util::{self, BufferInitDescriptor},
+    vertex_attr_array,
 };
 
 /// The default power preference used for requesting the WGPU adapter.
@@ -108,10 +97,7 @@ pub const DEFAULT_BACKENDS: Backends = Backends::PRIMARY.union(Backends::GL);
 
 /// Create a wgpu shader module from the given slice of SPIR-V bytes.
 #[cfg(feature = "spirv")]
-pub fn shader_from_spirv_bytes(
-    device: &wgpu_upstream::Device,
-    bytes: &[u8],
-) -> wgpu_upstream::ShaderModule {
+pub fn shader_from_spirv_bytes(device: &wgpu::Device, bytes: &[u8]) -> wgpu::ShaderModule {
     let source = util::make_spirv(bytes);
     let desc = ShaderModuleDescriptor {
         label: Some("nannou_shader_module"),
@@ -138,12 +124,13 @@ pub fn clear_texture(
 
 /// The default device descriptor used to instantiate a logical device when creating windows.
 pub fn default_device_descriptor() -> DeviceDescriptor<'static> {
-    let features = Features::default();
-    let limits = Limits::default();
+    let required_features = Features::default();
+    let required_limits = Limits::default();
     DeviceDescriptor {
         label: Some("nannou_device"),
-        features,
-        limits,
+        required_features,
+        required_limits,
+        memory_hints: MemoryHints::default(),
     }
 }
 
@@ -171,12 +158,12 @@ pub fn resolve_texture(
 
 /// Shorthand for creating the pipeline layout from a slice of bind group layouts.
 pub fn create_pipeline_layout<'p>(
-    device: &wgpu_upstream::Device,
+    device: &wgpu::Device,
     label: Option<&'p str>,
-    bind_group_layouts: &[&wgpu_upstream::BindGroupLayout],
-    push_constant_ranges: &'p [wgpu_upstream::PushConstantRange],
-) -> wgpu_upstream::PipelineLayout {
-    let descriptor = wgpu_upstream::PipelineLayoutDescriptor {
+    bind_group_layouts: &[&wgpu::BindGroupLayout],
+    push_constant_ranges: &'p [wgpu::PushConstantRange],
+) -> wgpu::PipelineLayout {
+    let descriptor = wgpu::PipelineLayoutDescriptor {
         label,
         bind_group_layouts,
         push_constant_ranges,
@@ -231,7 +218,7 @@ pub mod bytes {
     {
         let len = slice.len() * std::mem::size_of::<T>();
         let ptr = slice.as_ptr() as *const u8;
-        std::slice::from_raw_parts(ptr, len)
+        unsafe { std::slice::from_raw_parts(ptr, len) }
     }
 
     pub unsafe fn from<T>(t: &T) -> &[u8]
@@ -240,7 +227,7 @@ pub mod bytes {
     {
         let len = std::mem::size_of::<T>();
         let ptr = t as *const T as *const u8;
-        std::slice::from_raw_parts(ptr, len)
+        unsafe { std::slice::from_raw_parts(ptr, len) }
     }
 
     /// This is really an astonishingly unsafe function.
@@ -259,6 +246,6 @@ pub mod bytes {
         );
         let len = slice.len() / size;
         let ptr = slice.as_ptr() as *const T;
-        std::slice::from_raw_parts(ptr, len)
+        unsafe { std::slice::from_raw_parts(ptr, len) }
     }
 }

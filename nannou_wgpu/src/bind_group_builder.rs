@@ -1,6 +1,4 @@
-use wgpu_upstream::{BufferBinding, SamplerBindingType};
-
-use crate as wgpu;
+use wgpu::{BufferBinding, SamplerBindingType};
 
 /// A type aimed at simplifying the creation of a bind group layout.
 #[derive(Debug, Default)]
@@ -107,7 +105,7 @@ impl LayoutBuilder {
     /// Note that if you wish to take a `Cube` or `CubeArray` view of the given texture, you will
     /// need to manually specify the `TextureViewDimension` via the `sampled_texture` method
     /// instead.
-    pub fn texture_from(self, visibility: wgpu::ShaderStages, texture: &wgpu::Texture) -> Self {
+    pub fn texture_from(self, visibility: wgpu::ShaderStages, texture: &crate::Texture) -> Self {
         self.texture(
             visibility,
             texture.sample_count() > 1,
@@ -139,7 +137,7 @@ impl LayoutBuilder {
     pub fn storage_texture_from(
         self,
         visibility: wgpu::ShaderStages,
-        texture: &wgpu::Texture,
+        texture: &crate::Texture,
         access: wgpu::StorageTextureAccess,
     ) -> Self {
         self.storage_texture(
@@ -229,7 +227,7 @@ impl<'a> Builder<'a> {
     }
 
     /// Specify a texture view to be bound.
-    pub fn texture_view(self, view: &'a wgpu::TextureViewHandle) -> Self {
+    pub fn texture_view(self, view: &'a crate::TextureViewHandle) -> Self {
         let resource = wgpu::BindingResource::TextureView(view);
         self.binding(resource)
     }

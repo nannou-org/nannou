@@ -1,24 +1,76 @@
 [workspace]
 members = [
+    "bevy_nannou",
+    "bevy_nannou_derive",
+    "bevy_nannou_draw",
+    "bevy_nannou_isf",
+    "bevy_nannou_video",
     "examples",
     "generative_design",
     "guide/book_tests",
     "nannou",
     "nannou_audio",
     "nannou_core",
-    "nannou_egui",
-    "nannou_egui_demo_app",
-    "nannou_isf",
     "nannou_laser",
-    "nannou_mesh",
-    "nannou_new",
     "nannou_osc",
-    "nannou_package",
     "nannou_wgpu",
     "nature_of_code",
     "scripts/run_all_examples",
     "scripts/set_version",
 ]
-
-# Required for wgpu v0.10 feature resolution.
 resolver = "2"
+
+[workspace.package]
+edition = "2024"
+license = "MIT OR Apache-2.0"
+version = "0.1.0"
+homepage = "https://nannou.cc"
+repository = "https://github.com/nannou-org/nannou.git"
+
+[workspace.dependencies]
+audrey = "0.3"
+bevy = { version = "0.16", default-features = false }
+bevy_common_assets = "0.13"
+bevy_egui = "0.34"
+bevy-inspector-egui = "0.31"
+bitflags = "2.9"
+bytemuck = "1.22"
+cpal = "0.13"
+dasp_sample = "0.11"
+ether-dream = "~0.2.5"
+evalexpr = "12"
+find_folder = "0.3"
+futures = "0.3"
+glam = { version = "0.29",  default-features = false }
+hound = "3.4"
+hrtf = "0.8"
+ilda-idtf = "0.1"
+image = { version = "0.25", default-features = false }
+isf = "0.1.0"
+lasy = "0.4"
+lyon = "1.0"
+noise = "0.7"
+notosans = "0.1"
+num-traits = {version = "0.2", default-features = false }
+pennereq = "0.3"
+quote = "1"
+rand = {version = "0.9.0", default-features = false }
+rayon = "1.10"
+ringbuf = "0.4"
+rosc = "0.11"
+rusttype = "0.8"
+semver = "1"
+serde = "1"
+serde_json = "1"
+serde_yaml = "0.9"
+syn = "1"
+thiserror = "2"
+tokio = "1"
+toml = "0.8"
+toml_edit = "0.22"
+usvg = "0.4"
+uuid = "1.8"
+video-rs = "0.10"
+walkdir = "2"
+wgpu = "24"
+wikipedia = "0.5"

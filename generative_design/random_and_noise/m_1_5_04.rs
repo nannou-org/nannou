@@ -47,12 +47,12 @@ struct Agent {
     agent_width_min: f32,
     agent_width_max: f32,
     noise_z_velocity: f64,
-    win_rect: Rect,
+    win_rect: geom::Rect,
 }
 
 impl Agent {
     fn new(
-        win_rect: Rect,
+        win_rect: geom::Rect,
         noise_sticking_range: f32,
         agent_alpha: f32,
         noise_scale: f64,
@@ -67,9 +67,9 @@ impl Agent {
         );
         let randomizer = random_f32();
         let color = if randomizer < 0.5 {
-            hsla(random_range(0.47, 0.52), 0.7, random_f32(), agent_alpha)
+            Color::hsla(random_range(0.47, 0.52), 0.7, random_f32(), agent_alpha)
         } else {
-            hsla(random_range(0.11, 0.16), 0.7, random_f32(), agent_alpha)
+            Color::hsla(random_range(0.11, 0.16), 0.7, random_f32(), agent_alpha)
         };
         Agent {
             vector,
@@ -78,7 +78,7 @@ impl Agent {
             step_size: 1.0 + randomizer * 4.0,
             z_noise: random_f32() * noise_sticking_range,
             angle: 0.0,
-            color,
+            color: color.into(),
             noise_scale,
             noise_strength,
             agent_width: agent_width_min,
@@ -170,8 +170,7 @@ fn model(app: &App) -> Model {
         .size(1280, 720)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let agent_count = 2000;
     let noise_scale = 100.0;
@@ -205,7 +204,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     let noise = Perlin::new().set_seed(model.noise_seed);
 
     for agent in &mut model.agents {
@@ -213,11 +212,11 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
 
-    if frame.nth() == 0 || app.keys.down.contains(&Key::Delete) {
+    if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
         draw.background().color(WHITE);
     } else {
         draw.rect()
@@ -228,21 +227,18 @@ fn view(app: &App, model: &Model, frame: Frame) {
     model.agents.iter().for_each(|agent| {
         agent.display(&draw, model.draw_mode, model.stroke_width);
     });
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => model.draw_mode = 1,
-        Key::Key2 => model.draw_mode = 2,
-        Key::Space => {
+        KeyCode::Digit1 => model.draw_mode = 1,
+        KeyCode::Digit2 => model.draw_mode = 2,
+        KeyCode::Space => {
             model.noise_seed = (random_f32() * 10000.0).floor() as u32;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

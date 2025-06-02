@@ -1,12 +1,14 @@
-use crate::{
-    stream::{self, DefaultErrorFn, ErrorFn},
-    Buffer, Device, Requester, Stream,
-};
-use cpal::traits::{DeviceTrait, HostTrait};
-use dasp_sample::{Sample, ToSample};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
+
+use cpal::traits::{DeviceTrait, HostTrait};
+use dasp_sample::{Sample, ToSample};
+
+use crate::{
+    Buffer, Device, Requester, Stream,
+    stream::{self, DefaultErrorFn, ErrorFn},
+};
 
 /// The function that will be called when a `Buffer` is ready to be rendered.
 pub trait RenderFn<M, S>: Fn(&mut M, &mut Buffer<S>) {}
@@ -139,7 +141,7 @@ impl<M, FR, FE, S> Builder<M, FR, FE, S> {
         let num_channels = matching.config.channels as usize;
         let sample_rate = matching.config.sample_rate.0;
         let sample_format = matching.sample_format;
-        let stream_config = matching.config.into();
+        let stream_config = matching.config;
 
         // A buffer for collecting model updates.
         let mut pending_updates: Vec<Box<dyn FnMut(&mut M) + 'static + Send>> = Vec::new();

@@ -3,60 +3,60 @@
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
-    texture: wgpu::Texture,
+    texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
-    app.new_window().size(512, 512).view(view).build().unwrap();
+    app.new_window().size(512, 512).view(view).primary().build();
     // Load the image from disk and upload it to a GPU texture.
-    let assets = app.assets_path().unwrap();
-    let img_path = assets.join("images").join("nature").join("nature_1.jpg");
-    let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+    let texture = app.asset_server().load("images/nature/nature_1.jpg");
     Model { texture }
 }
 
-// Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
+fn update(app: &App, model: &mut Model) {
+    let mut images = app.assets_mut::<Image>();
+    let Some(image) = images.get_mut(&model.texture) else {
+        return;
+    };
+
     let win = app.main_window();
     let win_r = win.rect();
 
     // Let's choose the address mode based on the mouse position.
-    let address_mode = match map_range(app.mouse.y, win_r.top(), win_r.bottom(), 0.0, 3.0) as i8 {
-        0 => wgpu::AddressMode::ClampToEdge,
-        1 => wgpu::AddressMode::Repeat,
-        _ => wgpu::AddressMode::MirrorRepeat,
+    let address_mode = match map_range(app.mouse().y, win_r.top(), win_r.bottom(), 0.0, 3.0) as i8 {
+        0 => ImageAddressMode::ClampToEdge,
+        1 => ImageAddressMode::Repeat,
+        _ => ImageAddressMode::MirrorRepeat,
     };
 
-    // Create a sampler with the chosen address mode.
-    let sampler = wgpu::SamplerBuilder::new()
-        .address_mode(address_mode)
-        .into_descriptor();
+    let descriptor = ImageSamplerDescriptor {
+        address_mode_u: address_mode,
+        address_mode_v: address_mode,
+        ..default()
+    };
 
-    // At any point during drawing, we can create a new `draw` context that will let us use a
-    // different sampler.
+    image.sampler = ImageSampler::Descriptor(descriptor);
+}
+
+// Draw the state of your `Model` into the given `Frame` here.
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
-    let draw = draw.sampler(sampler);
+    draw.background().color(BLACK);
 
     // Change the texture coordinates to sample outside the texture. This will demonstrate how the
     // sampler behaves when sampling beyond the bounds of the texture in each of the different
     // address modes. By default, the bounds of the texture coordinates are 0.0 to 1.0. We will
     // triple the size.
-    let area = geom::Rect::from_x_y_w_h(0.5, 0.5, app.time.sin() * 10.0, app.time.sin() * 10.0);
+    let area = geom::Rect::from_x_y_w_h(0.5, 0.5, app.time().sin() * 10.0, app.time().sin() * 10.0);
+    let window_rect = app.main_window().rect();
 
-    draw.texture(&model.texture).area(area);
-
-    // Draw the current address mode in the bottom left corner.
-    let text = format!("Address mode: {:?}", address_mode);
-    draw.text(&text)
-        .wh(win_r.wh() * 0.95)
-        .left_justify()
-        .align_text_bottom();
-
-    draw.to_frame(app, &frame).unwrap();
+    draw.rect()
+        .w_h(window_rect.w(), window_rect.h())
+        .texture(&model.texture)
+        .area(area);
 }

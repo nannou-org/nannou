@@ -5,52 +5,47 @@ fn main() {
 }
 
 struct Model {
-    a: WindowId,
-    b: WindowId,
-    c: WindowId,
+    a: Entity,
+    b: Entity,
+    c: Entity,
 }
 
 fn model(app: &App) -> Model {
-    let a = app
-        .new_window()
-        .title("window a")
-        .event(event_a)
-        .build()
-        .unwrap();
-    let b = app
-        .new_window()
-        .title("window b")
-        .event(event_b)
-        .build()
-        .unwrap();
-    let c = app
-        .new_window()
-        .title("window c")
-        .event(event_c)
-        .build()
-        .unwrap();
+    let a = app.new_window().focused(focus_a).title("window a").build();
+    let b = app.new_window().focused(focus_b).title("window b").build();
+    let c = app.new_window().focused(focus_c).title("window c").build();
     Model { a, b, c }
 }
 
-fn update(_app: &App, _model: &mut Model, _update: Update) {}
-
-fn event_a(_app: &App, _model: &mut Model, event: WindowEvent) {
-    println!("window a: {:?}", event);
+fn focus_a(_app: &App, _model: &mut Model) {
+    info!("focusing window a");
 }
 
-fn event_b(_app: &App, _model: &mut Model, event: WindowEvent) {
-    println!("window b: {:?}", event);
+fn focus_b(_app: &App, _model: &mut Model) {
+    info!("focusing window b");
 }
 
-fn event_c(_app: &App, _model: &mut Model, event: WindowEvent) {
-    println!("window c: {:?}", event);
+fn focus_c(_app: &App, _model: &mut Model) {
+    info!("focusing window c");
 }
 
-fn view(_app: &App, model: &Model, frame: Frame) {
-    match frame.window_id() {
-        id if id == model.a => frame.clear(INDIANRED),
-        id if id == model.b => frame.clear(LIGHTGREEN),
-        id if id == model.c => frame.clear(CORNFLOWERBLUE),
-        _ => (),
-    }
+fn update(_app: &App, _model: &mut Model) {}
+
+fn view(app: &App, model: &Model, window: Entity) {
+    let draw = app.draw_for_window(window);
+    match window {
+        id if id == model.a => {
+            draw.tri().color(RED);
+            draw.background().color(INDIAN_RED)
+        }
+        id if id == model.b => {
+            draw.tri().color(GREEN);
+            draw.background().color(LIGHT_GREEN)
+        }
+        id if id == model.c => {
+            draw.tri().color(BLUE);
+            draw.background().color(CORNFLOWER_BLUE)
+        }
+        _ => panic!("unexpected window entity"),
+    };
 }

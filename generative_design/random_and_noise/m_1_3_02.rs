@@ -27,6 +27,7 @@
  * s                   : save png
  */
 use nannou::image;
+use nannou::image::DynamicImage;
 use nannou::prelude::*;
 use nannou::rand::rngs::SmallRng;
 use nannou::rand::{Rng, SeedableRng};
@@ -37,7 +38,6 @@ fn main() {
 
 struct Model {
     act_random_seed: u64,
-    texture: wgpu::Texture,
 }
 
 fn model(app: &App) -> Model {
@@ -47,54 +47,42 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
-    let window = app.main_window();
-    let win = window.rect();
-    let texture = wgpu::TextureBuilder::new()
-        .size([win.w() as u32, win.h() as u32])
-        .format(wgpu::TextureFormat::Rgba8Unorm)
-        .usage(wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING)
-        .build(window.device());
     Model {
         act_random_seed: 42,
-        texture,
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
+fn view(app: &App, model: &Model) {
+    let draw = app.draw();
+    draw.background().color(BLACK);
 
     let win = app.window_rect();
     let mut rng = SmallRng::seed_from_u64(model.act_random_seed);
 
-    let image = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |_x, _y| {
-        let r: u8 = rng.gen_range(0..std::u8::MAX);
-        nannou::image::Rgba([r, r, r, std::u8::MAX])
-    });
+    let image: DynamicImage =
+        image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |_x, _y| {
+            let r: u8 = rng.random_range(0..std::u8::MAX);
+            nannou::image::Rgba([r, r, r, std::u8::MAX])
+        })
+        .into();
 
-    let flat_samples = image.as_flat_samples();
-    model.texture.upload_data(
-        app.main_window().device(),
-        &mut *frame.command_encoder(),
-        &flat_samples.as_slice(),
-    );
+    let image = Image::from_dynamic(image, true, default());
+    let mut images = app.assets_mut::<Image>();
+    let image = images.add(image);
 
     let draw = app.draw();
-    draw.texture(&model.texture);
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
+    draw.rect().w_h(win.w(), win.h()).texture(&image);
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.act_random_seed = (random_f32() * 100000.0) as u64;
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

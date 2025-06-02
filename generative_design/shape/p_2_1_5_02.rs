@@ -75,8 +75,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_released(mouse_released)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let shapes = vec![Shape::new(0.0, 0.0, app.window_rect().w()); 1];
     Model {
@@ -87,30 +86,27 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
     draw.background().color(WHITE);
 
     model.shapes.iter().for_each(|shape| {
-        shape.display(&draw, &model);
+        shape.display(&draw, model);
     });
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
     model.shapes.push(Shape::new(
-        app.mouse.x,
-        app.mouse.y,
+        app.mouse().x,
+        app.mouse().x,
         random_range(model.min_radius, model.max_radius),
     ));
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

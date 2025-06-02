@@ -28,13 +28,13 @@ struct Mover {
 // Liquid type
 struct Liquid {
     // Liquid is a rectangle
-    rect: Rect,
+    rect: geom::Rect,
     // Coefficient of drag
     c: f32,
 }
 
 impl Liquid {
-    fn new(rect: Rect, c: f32) -> Self {
+    fn new(rect: geom::Rect, c: f32) -> Self {
         let rect = rect;
         let c = c;
         Liquid { rect, c }
@@ -81,7 +81,7 @@ impl Mover {
         }
     }
 
-    fn new_random(rect: &Rect) -> Self {
+    fn new_random(rect: &geom::Rect) -> Self {
         Mover::new(
             random_range(0.5f32, 4.0),
             random_range(rect.left(), rect.right()),
@@ -112,13 +112,13 @@ impl Mover {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 16.0, self.mass * 16.0)
-            .rgba(0.0, 0.0, 0.0, 0.5)
+            .srgba(0.0, 0.0, 0.0, 0.5)
             .stroke(BLACK)
             .stroke_weight(2.0);
     }
 
     // Bounce off bottom of window
-    fn check_edges(&mut self, rect: Rect) {
+    fn check_edges(&mut self, rect: geom::Rect) {
         if self.position.y < rect.bottom() {
             self.velocity.y *= -0.9; // A little dampening when hitting the bottom
             self.position.y = rect.bottom();
@@ -127,13 +127,12 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 360.0);
+    let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     // Nine moving bodies
     let movers = (0..9)
@@ -141,7 +140,7 @@ fn model(app: &App) -> Model {
         .collect();
 
     // Create an instance of our Liquid type
-    let rect = Rect::from_w_h(rect.w(), rect.h() * 0.5).align_bottom_of(rect);
+    let rect = geom::Rect::from_w_h(rect.w(), rect.h() * 0.5).align_bottom_of(rect);
     let liquid = Liquid::new(rect, 0.1);
 
     Model { movers, liquid }
@@ -154,7 +153,7 @@ fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
     }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     for i in 0..m.movers.len() {
         // Is the Mover in the liquid?
         if m.liquid.contains(&m.movers[i]) {
@@ -173,7 +172,7 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -185,7 +184,4 @@ fn view(app: &App, m: &Model, frame: Frame) {
     for mover in &m.movers {
         mover.display(&draw);
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

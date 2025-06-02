@@ -28,7 +28,7 @@ create a new project with just a few small steps:
    name = "my_project"
    version = "0.1.0"
    authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
-   edition = "2018"
+   edition = "2021"
 
    [dependencies]
    nannou = "0.17"
@@ -58,11 +58,12 @@ create a new project with just a few small steps:
        Model {}
    }
 
-   fn update(_app: &App, _model: &mut Model, _update: Update) {
+   fn update(_app: &App, _model: &mut Model) {
    }
 
-   fn view(_app: &App, _model: &Model, frame: Frame) {
-       frame.clear(PURPLE);
+   fn view(app: &App, _model: &Model, _window: Entity) {
+       let draw = app.draw();
+       draw.background().color(PURPLE);
    }
    ```
 

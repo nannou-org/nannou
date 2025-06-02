@@ -54,8 +54,7 @@ fn model(app: &App) -> Model {
         .key_released(key_released)
         .mouse_pressed(mouse_pressed)
         .mouse_moved(mouse_moved)
-        .build()
-        .unwrap();
+        .build();
 
     let tile_count_x = 10;
     let tile_count_y = 10;
@@ -72,7 +71,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 
     let draw = app.draw();
@@ -90,7 +89,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             //println!("x {} || y {}", win.left() + model.tile_width * grid_x as f32, win.top() - model.tile_height * grid_y as f32);
             let scale = model.tile_width / model.tile_height;
             draw = draw.scale(scale);
-            let toggle = rng.gen_range(0..4);
+            let toggle = rng.random_range(0..4);
             let rotation = match toggle {
                 0 => -(PI / 2.0),
                 1 => 0.0,
@@ -111,13 +110,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
                     //.color(BLACK);
                     .no_fill()
                     .stroke_weight(1.0 / scale)
-                    .stroke(rgba(0.0, 0.0, 0.0, 0.5));
+                    .stroke(Color::srgba(0.0, 0.0, 0.0, 0.5));
             }
         }
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
@@ -138,9 +134,9 @@ fn mouse_moved(app: &App, model: &mut Model, pos: Point2) {
     );
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

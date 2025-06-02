@@ -1,9 +1,6 @@
 use crate::{self as wgpu, RowPaddedBuffer, TextureHandle, TextureViewHandle};
-use std::ops::Deref;
-use std::sync::Arc;
+use std::{ops::Deref, sync::Arc};
 
-#[cfg(feature = "capturer")]
-pub mod capturer;
 #[cfg(feature = "image")]
 pub mod image;
 pub mod reshaper;
@@ -176,7 +173,7 @@ impl Texture {
     /// The component type associated with the texture's format.
     pub fn sample_type(&self) -> wgpu::TextureSampleType {
         self.format()
-            .sample_type(None)
+            .sample_type(None, None)
             .expect("Expected the format to have a sample type")
     }
 
@@ -375,7 +372,7 @@ impl TextureView {
 
     pub fn sample_type(&self) -> wgpu::TextureSampleType {
         self.format()
-            .sample_type(None)
+            .sample_type(None, None)
             .expect("Expected the format to have a sample type")
     }
 
@@ -762,7 +759,7 @@ pub fn data_size_bytes(desc: &wgpu::TextureDescriptor) -> usize {
 /// Return the size of the given texture format in bytes.
 pub fn format_size_bytes(format: wgpu::TextureFormat) -> u32 {
     format
-        .block_size(None)
+        .block_copy_size(None)
         .expect("Expected the format to have a block size") as u32
 }
 
@@ -804,6 +801,7 @@ fn view_info_to_view_descriptor(info: &TextureViewInfo) -> wgpu::TextureViewDesc
         label: Some(info.label),
         format: Some(info.format),
         dimension: Some(info.dimension),
+        usage: None,
         aspect: info.aspect,
         base_mip_level: info.base_mip_level,
         mip_level_count: info.level_count,

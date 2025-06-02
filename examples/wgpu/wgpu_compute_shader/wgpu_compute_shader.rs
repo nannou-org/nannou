@@ -11,7 +11,9 @@ use std::sync::{Arc, Mutex};
 
 struct Model {
     compute: Compute,
+    window: Entity,
     oscillators: Arc<Mutex<Vec<f32>>>,
+    task: Option<Task<()>>,
 }
 
 struct Compute {
@@ -37,8 +39,13 @@ fn main() {
 }
 
 fn model(app: &App) -> Model {
-    let w_id = app.new_window().size(1440, 512).view(view).build().unwrap();
-    let window = app.window(w_id).unwrap();
+    let w_id = app
+        .new_window()
+        .primary()
+        .size(1440, 512)
+        .view(view)
+        .build();
+    let window = app.window(w_id);
     let device = window.device();
 
     // Create the compute shader module.
@@ -58,7 +65,7 @@ fn model(app: &App) -> Model {
     });
 
     // Create the buffer that will store time.
-    let uniforms = create_uniforms(app.time, app.mouse.x, window.rect());
+    let uniforms = create_uniforms(app.time(), app.mouse().x, window.rect());
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
     let usage = wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST;
     let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
@@ -68,16 +75,16 @@ fn model(app: &App) -> Model {
     });
 
     // Create the bind group and pipeline.
-    let bind_group_layout = create_bind_group_layout(device);
+    let bind_group_layout = create_bind_group_layout(&device);
     let bind_group = create_bind_group(
-        device,
+        &device,
         &bind_group_layout,
         &oscillator_buffer,
         oscillator_buffer_size,
         &uniform_buffer,
     );
-    let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
-    let pipeline = create_compute_pipeline(device, &pipeline_layout, &cs_mod);
+    let pipeline_layout = create_pipeline_layout(&device, &bind_group_layout);
+    let pipeline = create_compute_pipeline(&device, &pipeline_layout, &cs_mod);
 
     let compute = Compute {
         oscillator_buffer,
@@ -92,15 +99,25 @@ fn model(app: &App) -> Model {
 
     Model {
         compute,
+        window: w_id,
         oscillators,
+        task: None,
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let window = app.main_window();
     let device = window.device();
     let win_rect = window.rect();
     let compute = &mut model.compute;
+
+    if let Some(task) = &mut model.task {
+        if let Some(_) = block_on(future::poll_once(task)) {
+            model.task = None;
+        } else {
+            return;
+        }
+    }
 
     // The buffer into which we'll read some data.
     let read_buffer = device.create_buffer(&wgpu::BufferDescriptor {
@@ -111,7 +128,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     });
 
     // An update for the uniform buffer with the current time.
-    let uniforms = create_uniforms(app.time, app.mouse.x, win_rect);
+    let uniforms = create_uniforms(app.time(), app.mouse().x, win_rect);
     let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
     let usage = wgpu::BufferUsages::COPY_SRC;
@@ -136,6 +153,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     {
         let pass_desc = wgpu::ComputePassDescriptor {
             label: Some("nannou-wgpu_compute_shader-compute_pass"),
+            timestamp_writes: None,
         };
         let mut cpass = encoder.begin_compute_pass(&pass_desc);
         cpass.set_pipeline(&compute.pipeline);
@@ -174,8 +192,11 @@ fn update(app: &App, model: &mut Model, _update: Update) {
             }
         }
     };
-    tokio::spawn(future);
 
+    let thread_pool = AsyncComputeTaskPool::get();
+    let task = thread_pool.spawn(future);
+
+    model.task = Some(task);
     // Check for resource cleanups and mapping callbacks.
     //
     // Note that this line is not necessary in our case, as the device we are using already gets
@@ -187,10 +208,10 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     // device.poll(false);
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
-    let window = app.window(frame.window_id()).unwrap();
+    draw.background().color(BLACK);
+    let window = app.window(model.window);
     let rect = window.rect();
 
     if let Ok(oscillators) = model.oscillators.lock() {
@@ -199,11 +220,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
         let half_w = w * 0.5;
         for (i, &osc) in oscillators.iter().enumerate() {
             let x = half_w + map_range(i as u32, 0, OSCILLATOR_COUNT, rect.left(), rect.right());
-            draw.rect().w_h(w, h).x(x).color(gray(osc));
+            draw.rect().w_h(w, h).x(x).color(Color::gray(osc));
         }
     }
-
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn create_uniforms(time: f32, mouse_x: f32, win_rect: geom::Rect) -> Uniforms {
@@ -270,7 +289,9 @@ fn create_compute_pipeline(
         label: Some("nannou"),
         layout: Some(layout),
         module: &cs_mod,
-        entry_point: "main",
+        entry_point: Some("main"),
+        compilation_options: Default::default(),
+        cache: None,
     };
     device.create_compute_pipeline(&desc)
 }

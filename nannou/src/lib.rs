@@ -12,36 +12,29 @@
 //! If you're new to nannou, we recommend checking out [the
 //! examples](https://github.com/nannou-org/nannou/tree/master/examples) to get an idea of how
 //! nannou applications are structured and how the API works.
-
 pub use find_folder;
 pub use lyon;
-pub use winit;
 
-pub use self::app::{App, LoopMode};
-pub use self::draw::Draw;
-pub use self::event::Event;
-pub use self::frame::Frame;
 #[doc(inline)]
-pub use nannou_core::{color, glam, math, rand};
-#[doc(inline)]
-pub use nannou_mesh as mesh;
-#[doc(inline)]
-pub use nannou_wgpu as wgpu;
+pub use nannou_core::{glam, math, rand};
+
+pub use self::app::App;
 
 pub mod app;
-pub mod draw;
-pub mod ease;
-pub mod event;
-pub mod frame;
+mod camera;
+mod frame;
 pub mod geom;
 pub mod image;
+#[cfg(feature = "serde")]
 pub mod io;
+mod light;
 pub mod noise;
 pub mod prelude;
-pub mod state;
-pub mod text;
+mod render;
 pub mod time;
-pub mod window;
+mod window;
+
+pub use nannou_wgpu as wgpu;
 
 /// Begin building the `App`.
 ///
@@ -54,7 +47,7 @@ pub mod window;
 ///
 /// The Model that is returned by the function is the same model that will be passed to the
 /// given event and view functions.
-pub fn app<M: 'static>(model: app::ModelFn<M>) -> app::Builder<M, Event> {
+pub fn app<M: 'static + Send>(model: app::ModelFn<M>) -> app::Builder<M> {
     app::Builder::new(model)
 }
 
@@ -63,6 +56,6 @@ pub fn app<M: 'static>(model: app::ModelFn<M>) -> app::Builder<M, Event> {
 ///
 /// This is useful for late night hack sessions where you just don't care about all that other
 /// stuff, you just want to play around with some ideas or make something pretty.
-pub fn sketch(view: app::SketchViewFn) -> app::SketchBuilder<Event> {
+pub fn sketch(view: app::SketchViewFn) -> app::SketchBuilder {
     app::Builder::sketch(view)
 }

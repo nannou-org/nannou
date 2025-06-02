@@ -1,0 +1,12 @@
+[package]
+name = "bevy_nannou_isf"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bevy = { workspace = true, features = ["shader_format_glsl"] }
+bevy-inspector-egui = { workspace = true }
+isf.workspace = true
+thiserror.workspace = true
+bytemuck.workspace = true
+evalexpr.workspace = true

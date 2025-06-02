@@ -15,7 +15,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(200, 200).view(view).build().unwrap();
+    app.new_window().size(200, 200).view(view).build();
     let start_angle = 0.0;
     let angle_vel = 0.4;
     Model {
@@ -24,11 +24,11 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     model.start_angle += 0.015;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -39,16 +39,13 @@ fn view(app: &App, model: &Model, frame: Frame) {
     while x <= rect.right() {
         let y = map_range(angle.sin(), -1.0, 1.0, rect.top(), rect.bottom());
         draw.ellipse()
-            .x_y(x as f32, y)
+            .x_y(x, y)
             .w_h(48.0, 48.0)
-            .rgba(0.0, 0.0, 0.0, 0.5)
+            .srgba(0.0, 0.0, 0.0, 0.5)
             .stroke(BLACK)
             .stroke_weight(2.0);
 
         angle += model.angle_vel;
         x += 24.0;
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

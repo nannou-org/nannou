@@ -1,11 +1,12 @@
 // Daily Sketch 2019-04-22
 // Alexis Andre (@mactuitui)
 
+use nannou::prelude::*;
+
+use crate::colors::Palette;
+
 mod colors;
 mod quadtree;
-use crate::colors::Palette;
-use nannou::prelude::Frame;
-use nannou::prelude::*;
 
 const LENGTH_FRAME: u64 = 700;
 //const START_FRAME: u64 = 0;
@@ -72,13 +73,7 @@ impl Thing {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app
-        .new_window()
-        .size(1024, 1024)
-        .view(view)
-        .event(window_event)
-        .build()
-        .unwrap();
+    let _window = app.new_window().size(1024, 1024).view(view).build();
 
     //create the random values we will need each frame
 
@@ -94,38 +89,10 @@ fn model(app: &App) -> Model {
     let candidate = Thing::new(x, y, size, frac, None);
     things.push(candidate);
 
-    Model {
-        palette: palette,
-        things,
-    }
+    Model { palette, things }
 }
 
-//nothing to do here
-fn window_event(_app: &App, _model: &mut Model, event: WindowEvent) {
-    match event {
-        KeyPressed(_key) => {}
-        KeyReleased(_key) => {}
-        ReceivedCharacter(_char) => {}
-        MouseMoved(_pos) => {}
-        MousePressed(_button) => {}
-        MouseReleased(_button) => {}
-        MouseEntered => {}
-        MouseExited => {}
-        MouseWheel(_amount, _phase) => {}
-        Moved(_pos) => {}
-        Resized(_size) => {}
-        Touch(_touch) => {}
-        TouchPressure(_pressure) => {}
-        HoveredFile(_path) => {}
-        DroppedFile(_path) => {}
-        HoveredFileCancelled => {}
-        Focused => {}
-        Unfocused => {}
-        Closed => {}
-    }
-}
-
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     //try to grow each circle until it hits another one
 
     //recreate the tree
@@ -139,12 +106,10 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         tree.insert(&model.things, i);
     }
     for i in 0..max_count {
-        if model.things[i].parent == None {
-            if app.elapsed_frames() < 1000 {
-                model.things[i].energy += 10000.0;
-                if model.things[i].alive == true {
-                    model.things[i].grown = true;
-                }
+        if model.things[i].parent.is_none() && app.elapsed_frames() < 1000 {
+            model.things[i].energy += 10000.0;
+            if model.things[i].alive {
+                model.things[i].grown = true;
             }
         }
         //move the size to the children
@@ -191,14 +156,12 @@ fn update(app: &App, model: &mut Model, _update: Update) {
                     model.things[i].children.push(s);
                 }
             }
-            if model.things[i].energy > 10.0 {
-                if model.things[i].children.len() > 0 {
-                    model.things[i].energy -= 1.0;
-                    for k in 0..model.things[i].children.len() {
-                        let other = model.things[i].children[k];
-                        model.things[other].energy += 3.0;
-                        model.things[other].grown = true;
-                    }
+            if model.things[i].energy > 10.0 && !model.things[i].children.is_empty() {
+                model.things[i].energy -= 1.0;
+                for k in 0..model.things[i].children.len() {
+                    let other = model.things[i].children[k];
+                    model.things[other].energy += 3.0;
+                    model.things[other].grown = true;
                 }
             }
         }
@@ -206,7 +169,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 
     //check if the grown things are free
     for i in 0..model.things.len() {
-        if model.things[i].grown == true {
+        if model.things[i].grown {
             let indices = tree.get_elements(
                 &model.things,
                 model.things[i].position.x,
@@ -231,7 +194,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
                     }
                 }
             }
-            if model.things[i].alive == true {
+            if model.things[i].alive {
                 if model.things[i].size > 29.0 {
                     model.things[i].alive = false;
                 } else {
@@ -251,7 +214,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
 
@@ -264,15 +227,15 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let mut frac_end = (((app.elapsed_frames() + 120) as i32 - LENGTH_FRAME as i32) as f32) / 100.0;
     frac_end = frac_end.max(0.0).min(1.0);
 
-    let c: Rgba = rgba(1.0, 1.0, 1.0, 1.0 - frac_end);
+    let c: Srgba = Color::srgba(1.0, 1.0, 1.0, 1.0 - frac_end).into();
 
     //draw ALL THE THINGS
     for k in 0..model.things.len() {
         //get a color from the palette indexed by frac
-        let mut c2: Rgba = model.palette.somecolor_frac(model.things[k].frac).into();
+        let mut c2: Srgba = model.palette.somecolor_frac(model.things[k].frac);
         // make it fade
         c2.alpha = 1.0 - frac_end;
-        let c3 = rgba(0.0, 0.0, 0.0, 1.0 - frac_end);
+        let c3 = Color::srgba(0.0, 0.0, 0.0, 1.0 - frac_end);
 
         //draw in three steps
         draw.ellipse()
@@ -309,9 +272,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 .weight((model.things[model.things[k].children[l]].size * 0.5).min(5.0));
         }
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 
     //TODO add screenshot
 }

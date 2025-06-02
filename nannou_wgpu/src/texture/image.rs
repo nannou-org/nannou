@@ -4,8 +4,8 @@
 //! This module can be enabled via the `image` feature.
 
 use crate as wgpu;
-use std::ops::Deref;
-use std::path::Path;
+use image::PixelWithColorType;
+use std::{ops::Deref, path::Path};
 
 /// The set of pixel types from the image crate that can be loaded directly into a texture.
 ///
@@ -245,7 +245,7 @@ impl wgpu::Texture {
         buffer: &image::ImageBuffer<P, Container>,
     ) -> Self
     where
-        P: 'static + Pixel,
+        P: 'static + Pixel + PixelWithColorType,
         Container: std::ops::Deref<Target = [P::Subpixel]>,
     {
         encode_load_texture_from_image_buffer(device, encoder, usage, buffer)
@@ -274,7 +274,7 @@ impl wgpu::Texture {
     where
         I: IntoIterator<Item = &'a image::ImageBuffer<P, Container>>,
         I::IntoIter: ExactSizeIterator,
-        P: 'static + Pixel,
+        P: 'static + Pixel + PixelWithColorType,
         Container: 'a + std::ops::Deref<Target = [P::Subpixel]>,
     {
         encode_load_texture_array_from_image_buffers(device, encoder, usage, buffers)
@@ -288,12 +288,12 @@ impl wgpu::RowPaddedBuffer {
         image_buffer: &image::ImageBuffer<P, Container>,
     ) -> Self
     where
-        P: 'static + Pixel,
+        P: 'static + Pixel + PixelWithColorType,
         Container: std::ops::Deref<Target = [P::Subpixel]>,
     {
         let result = Self::new(
             device,
-            image_buffer.width() * P::COLOR_TYPE.bytes_per_pixel() as u32,
+            image_buffer.width() * P::COLOR_TYPE.bits_per_pixel() as u32 * 8,
             image_buffer.height(),
             wgpu::BufferUsages::MAP_WRITE | wgpu::BufferUsages::COPY_SRC,
         );
@@ -336,11 +336,11 @@ impl<'buffer> ImageReadMapping<'buffer> {
     /// wrapped RowPaddedBuffer! If this is not the case, may result in undefined behavior!
     pub unsafe fn as_image<P>(&self) -> image::SubImage<ImageHolder<P>>
     where
-        P: Pixel + 'static,
+        P: Pixel + PixelWithColorType + 'static,
     {
         let subpixel_size = std::mem::size_of::<P::Subpixel>() as u32;
         let pixel_size = subpixel_size * P::CHANNEL_COUNT as u32;
-        assert_eq!(pixel_size, P::COLOR_TYPE.bytes_per_pixel() as u32);
+        assert_eq!(pixel_size, P::COLOR_TYPE.bits_per_pixel() as u32 * 8);
 
         assert_eq!(
             self.buffer.padded_width() % pixel_size,
@@ -362,7 +362,7 @@ impl<'buffer> ImageReadMapping<'buffer> {
         // - buffer rows are the wrong size: checked above, panics
         // - buffer has not been initialized / has invalid data for primitive type:
         //   very possible. That's why this function is `unsafe`.
-        let container = wgpu::bytes::to_slice::<P::Subpixel>(&self.view[..]);
+        let container = unsafe { wgpu::bytes::to_slice::<P::Subpixel>(&self.view[..]) };
 
         let full_image =
             image::ImageBuffer::from_raw(padded_width_pixels, self.buffer.height(), container)
@@ -375,10 +375,6 @@ impl<'buffer> ImageReadMapping<'buffer> {
             self.buffer.height(),
         )
     }
-}
-
-impl Pixel for image::Bgra<u8> {
-    const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 }
 
 impl Pixel for image::Luma<u8> {
@@ -429,27 +425,6 @@ impl Pixel for image::Rgba<i16> {
     const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Sint;
 }
 
-impl<'a> WithDeviceQueuePair for (&'a wgpu::Device, &'a wgpu::Queue) {
-    fn with_device_queue_pair<F, O>(self, f: F) -> O
-    where
-        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
-    {
-        let (device, queue) = self;
-        f(device, queue)
-    }
-}
-
-impl<'a> WithDeviceQueuePair for &'a wgpu::DeviceQueuePair {
-    fn with_device_queue_pair<F, O>(self, f: F) -> O
-    where
-        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
-    {
-        let device = self.device();
-        let queue = self.queue();
-        f(&*device, &*queue)
-    }
-}
-
 impl<'a, 'b, T> wgpu::WithDeviceQueuePair for &'a std::cell::Ref<'b, T>
 where
     &'a T: wgpu::WithDeviceQueuePair,
@@ -476,7 +451,6 @@ pub fn format_from_image_color_type(color_type: image::ColorType) -> Option<wgpu
         image::ColorType::L16 => wgpu::TextureFormat::R16Uint,
         image::ColorType::La16 => wgpu::TextureFormat::Rg16Uint,
         image::ColorType::Rgba16 => wgpu::TextureFormat::Rgba16Uint,
-        image::ColorType::Bgra8 => wgpu::TextureFormat::Bgra8UnormSrgb,
         _ => return None,
     };
     Some(format)
@@ -526,7 +500,6 @@ pub fn load_texture_from_image(
         ImageLuma8(img) => load_texture_from_image_buffer(device, queue, usage, img),
         ImageLumaA8(img) => load_texture_from_image_buffer(device, queue, usage, img),
         ImageRgba8(img) => load_texture_from_image_buffer(device, queue, usage, img),
-        ImageBgra8(img) => load_texture_from_image_buffer(device, queue, usage, img),
         ImageLuma16(img) => load_texture_from_image_buffer(device, queue, usage, img),
         ImageLumaA16(img) => load_texture_from_image_buffer(device, queue, usage, img),
         ImageRgba16(img) => load_texture_from_image_buffer(device, queue, usage, img),
@@ -534,14 +507,11 @@ pub fn load_texture_from_image(
             let img = image.to_rgba8();
             load_texture_from_image_buffer(device, queue, usage, &img)
         }
-        ImageBgr8(_img) => {
-            let img = image.to_bgra8();
-            load_texture_from_image_buffer(device, queue, usage, &img)
-        }
         ImageRgb16(_img) => {
             let img = image.to_rgba16();
             load_texture_from_image_buffer(device, queue, usage, &img)
         }
+        _ => panic!("Unsupported image format: {:?}", image.color()),
     }
 }
 
@@ -574,10 +544,10 @@ where
     let extent = texture.extent();
     let format = texture.format();
     let block_size = format
-        .block_size(None)
+        .block_copy_size(None)
         .expect("Expected the format to have a block size");
     let bytes_per_row = extent.width * block_size as u32;
-    let image_data_layout = wgpu::ImageDataLayout {
+    let image_data_layout = wgpu::TexelCopyBufferLayout {
         offset: 0,
         bytes_per_row: Some(bytes_per_row),
         rows_per_image: None,
@@ -636,10 +606,10 @@ where
     // Describe the layout of the data.
     let format = texture.format();
     let block_size = format
-        .block_size(None)
+        .block_copy_size(None)
         .expect("Expected the format to have a block size");
     let bytes_per_row = extent.width * block_size as u32;
-    let image_data_layout = wgpu::ImageDataLayout {
+    let image_data_layout = wgpu::TexelCopyBufferLayout {
         offset: 0,
         bytes_per_row: Some(bytes_per_row),
         rows_per_image: Some(height),
@@ -696,7 +666,6 @@ pub fn encode_load_texture_from_image(
         ImageLuma8(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
         ImageLumaA8(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
         ImageRgba8(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
-        ImageBgra8(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
         ImageLuma16(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
         ImageLumaA16(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
         ImageRgba16(img) => encode_load_texture_from_image_buffer(device, encoder, usage, img),
@@ -704,14 +673,11 @@ pub fn encode_load_texture_from_image(
             let img = image.to_rgba8();
             encode_load_texture_from_image_buffer(device, encoder, usage, &img)
         }
-        ImageBgr8(_img) => {
-            let img = image.to_bgra8();
-            encode_load_texture_from_image_buffer(device, encoder, usage, &img)
-        }
         ImageRgb16(_img) => {
             let img = image.to_rgba16();
             encode_load_texture_from_image_buffer(device, encoder, usage, &img)
         }
+        _ => panic!("Unsupported image format: {:?}", image.color()),
     }
 }
 
@@ -731,7 +697,7 @@ pub fn encode_load_texture_from_image_buffer<P, Container>(
     buffer: &image::ImageBuffer<P, Container>,
 ) -> wgpu::Texture
 where
-    P: 'static + Pixel,
+    P: 'static + Pixel + PixelWithColorType,
     Container: std::ops::Deref<Target = [P::Subpixel]>,
 {
     // Create the texture.
@@ -766,7 +732,7 @@ pub fn encode_load_texture_array_from_image_buffers<'a, I, P, Container>(
 where
     I: IntoIterator<Item = &'a image::ImageBuffer<P, Container>>,
     I::IntoIter: ExactSizeIterator,
-    P: 'static + Pixel,
+    P: 'static + Pixel + PixelWithColorType,
     Container: 'a + std::ops::Deref<Target = [P::Subpixel]>,
 {
     let mut buffers = buffers.into_iter();

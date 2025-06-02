@@ -1,11 +1,13 @@
 use nannou::image;
 use nannou::image::GenericImageView;
 use nannou::prelude::*;
+use std::sync::Arc;
 
+#[derive(Clone)]
 struct Model {
-    bind_group: wgpu::BindGroup,
-    render_pipeline: wgpu::RenderPipeline,
-    vertex_buffer: wgpu::Buffer,
+    bind_group: Arc<wgpu::BindGroup>,
+    render_pipeline: Arc<wgpu::RenderPipeline>,
+    vertex_buffer: Arc<wgpu::Buffer>,
 }
 
 // The vertex type that we will use to represent a point on our triangle.
@@ -32,22 +34,21 @@ const VERTICES: [Vertex; 4] = [
 ];
 
 fn main() {
-    nannou::app(model).run();
+    nannou::app(model).render(render).run();
 }
 
 fn model(app: &App) -> Model {
     // Load the image.
-    let logo_path = app.assets_path().unwrap().join("images").join("nannou.png");
+    let logo_path = app.assets_path().join("images").join("nannou.png");
     let image = image::open(logo_path).unwrap();
     let (img_w, img_h) = image.dimensions();
 
     let w_id = app
-        .new_window()
+        .new_window::<Model>()
+        .hdr(true)
         .size(img_w, img_h)
-        .view(view)
-        .build()
-        .unwrap();
-    let window = app.window(w_id).unwrap();
+        .build();
+    let window = app.window(w_id);
     let device = window.device();
     let format = Frame::TEXTURE_FORMAT;
     let msaa_samples = window.msaa_samples();
@@ -67,11 +68,11 @@ fn model(app: &App) -> Model {
     let sampler = device.create_sampler(&sampler_desc);
 
     let bind_group_layout =
-        create_bind_group_layout(device, texture_view.sample_type(), sampler_filtering);
-    let bind_group = create_bind_group(device, &bind_group_layout, &texture_view, &sampler);
-    let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
+        create_bind_group_layout(&device, texture_view.sample_type(), sampler_filtering);
+    let bind_group = create_bind_group(&device, &bind_group_layout, &texture_view, &sampler);
+    let pipeline_layout = create_pipeline_layout(&device, &bind_group_layout);
     let render_pipeline = create_render_pipeline(
-        device,
+        &device,
         &pipeline_layout,
         &vs_mod,
         &fs_mod,
@@ -88,18 +89,18 @@ fn model(app: &App) -> Model {
     });
 
     Model {
-        bind_group,
-        vertex_buffer,
-        render_pipeline,
+        bind_group: Arc::new(bind_group),
+        vertex_buffer: Arc::new(vertex_buffer),
+        render_pipeline: Arc::new(render_pipeline),
     }
 }
 
-fn view(_app: &App, model: &Model, frame: Frame) {
+fn render(_app: &RenderApp, model: &Model, frame: Frame) {
     let mut encoder = frame.command_encoder();
     let mut render_pass = wgpu::RenderPassBuilder::new()
-        .color_attachment(frame.texture_view(), |color| color)
+        .color_attachment(frame.resolve_target_view().unwrap(), |color| color)
         .begin(&mut encoder);
-    render_pass.set_bind_group(0, &model.bind_group, &[]);
+    render_pass.set_bind_group(0, &*model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
     render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
     let vertex_range = 0..VERTICES.len() as u32;

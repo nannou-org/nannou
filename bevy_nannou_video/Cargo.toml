@@ -1,0 +1,11 @@
+[package]
+name = "bevy_nannou_video"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bevy.workspace = true
+video-rs.workspace = true
+thiserror.workspace = true
+rayon.workspace = true
+serde = { workspace = true, features = ["derive"] }

@@ -1,9 +1,9 @@
 //! Items related to DACs and DAC detection.
 
 use std::io;
+use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::mpsc;
-use std::sync::Arc;
 use std::time::Duration;
 
 /// Callback functions that may be passed to the `detect_dacs_async` function.
@@ -51,14 +51,14 @@ impl DetectedDac {
     /// The maximum point rate allowed by the DAC.
     pub fn max_point_hz(&self) -> u32 {
         match self {
-            DetectedDac::EtherDream { ref broadcast, .. } => broadcast.max_point_rate as _,
+            DetectedDac::EtherDream { broadcast, .. } => broadcast.max_point_rate as _,
         }
     }
 
     /// The number of points that can be stored within the buffer.
     pub fn buffer_capacity(&self) -> u32 {
         match self {
-            DetectedDac::EtherDream { ref broadcast, .. } => broadcast.buffer_capacity as _,
+            DetectedDac::EtherDream { broadcast, .. } => broadcast.buffer_capacity as _,
         }
     }
 
@@ -67,7 +67,7 @@ impl DetectedDac {
     /// It should be possible to use this to uniquely identify the same DAC on different occasions.
     pub fn id(&self) -> Id {
         match self {
-            DetectedDac::EtherDream { ref broadcast, .. } => Id::EtherDream {
+            DetectedDac::EtherDream { broadcast, .. } => Id::EtherDream {
                 mac_address: broadcast.mac_address,
             },
         }
@@ -174,7 +174,7 @@ fn detect_dacs_async_inner(
                     is_closed.store(true, atomic::Ordering::Relaxed);
                     break;
                 }
-                while let Some(res) = detect_dacs.next() {
+                for res in detect_dacs.by_ref() {
                     if let Err(ref e) = res {
                         match e.kind() {
                             io::ErrorKind::TimedOut | io::ErrorKind::WouldBlock => continue 'msgs,

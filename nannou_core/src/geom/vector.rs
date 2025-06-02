@@ -1,4 +1,4 @@
-pub use glam::{vec2, vec3, vec4, Vec2, Vec3, Vec4};
+pub use glam::{Vec2, Vec3, Vec4, vec2, vec3, vec4};
 
 /// A common alias for the `glam::Vec2` type.
 #[deprecated(

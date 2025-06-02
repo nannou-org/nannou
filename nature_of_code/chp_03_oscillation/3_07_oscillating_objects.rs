@@ -22,7 +22,7 @@ struct Oscillator {
 }
 
 impl Oscillator {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let angle = vec2(0.0, 0.0);
         let velocity = vec2(random_f32() * 0.1 - 0.05, random_f32() * 0.1 - 0.05);
         let rand_amp_x = random_range(20.0, rect.right());
@@ -46,45 +46,41 @@ impl Oscillator {
         draw.line()
             .start(pt2(0.0, 0.0))
             .end(pt2(x, y))
-            .rgb(0.0, 0.0, 0.0)
+            .srgb(0.0, 0.0, 0.0)
             .stroke_weight(2.0);
 
         draw.ellipse()
             .x_y(x, y)
             .w_h(32.0, 32.0)
-            .rgba(0.5, 0.5, 0.5, 0.5)
+            .srgba(0.5, 0.5, 0.5, 0.5)
             .stroke(BLACK)
             .stroke_weight(2.0);
     }
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 360.0);
+    let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
     //let oscillators = vec![Oscillator::new(app.window_rect()); 10];
     let oscillators = (0..10).map(|_| Oscillator::new(rect)).collect();
     Model { oscillators }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     for osc in &mut m.oscillators {
         osc.oscillate();
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
-    draw.background().rgba(1.0, 1.0, 1.0, 1.0);
+    draw.background().srgba(1.0, 1.0, 1.0, 1.0);
 
     for osc in &m.oscillators {
         osc.display(&draw);
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

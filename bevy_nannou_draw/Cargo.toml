@@ -1,0 +1,27 @@
+[package]
+name = "bevy_nannou_draw"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bevy = { workspace = true, default-features = false, features = [
+    "bevy_asset",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_pbr",
+    "bevy_render",
+    "bevy_ui", # needed for `BackgroundColor`
+    "bevy_log",
+    "tonemapping_luts",
+]}
+lyon.workspace = true
+nannou_core = { path = "../nannou_core" }
+notosans = { workspace = true, optional = true }
+rusttype = { workspace = true, features = ["gpu_cache"] }
+rayon.workspace = true
+uuid.workspace = true
+bitflags.workspace = true
+
+[features]
+nightly = []
+notosans = ["dep:notosans"]

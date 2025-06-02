@@ -47,8 +47,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         act_random_seed: 0,
@@ -56,12 +55,12 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
 
     draw.background().color(WHITE);
-    let fader_x = map_range(app.mouse.x, win.left(), win.right(), 0.0, 1.0);
+    let fader_x = map_range(app.mouse().x, win.left(), win.right(), 0.0, 1.0);
 
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 
@@ -69,28 +68,28 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     for i in 0..model.count {
         // positions
-        let random_x = rng.gen_range(win.left()..win.right() + 1.0);
-        let random_y = rng.gen_range(win.bottom()..win.top() + 1.0);
+        let random_x = rng.random_range(win.left()..win.right() + 1.0);
+        let random_y = rng.random_range(win.bottom()..win.top() + 1.0);
         let circle_x = (angle * i as f32).cos() * 300.0;
         let circle_y = (angle * i as f32).sin() * 300.0;
 
         let x = nannou::geom::Range::new(random_x, circle_x).lerp(fader_x);
         let y = nannou::geom::Range::new(random_y, circle_y).lerp(fader_x);
 
-        draw.ellipse().x_y(x, y).w_h(11.0, 11.0).rgb8(0, 130, 163);
+        draw.ellipse()
+            .x_y(x, y)
+            .w_h(11.0, 11.0)
+            .srgb_u8(0, 130, 163);
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.act_random_seed = (random_f32() * 100000.0) as u64;
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

@@ -183,8 +183,8 @@ impl RowPaddedBuffer {
         texture: &'t wgpu::Texture,
         depth: u32,
     ) -> (
-        wgpu::ImageCopyBuffer<'s>,
-        wgpu::ImageCopyTexture<'t>,
+        wgpu::TexelCopyBufferInfo<'s>,
+        wgpu::TexelCopyTextureInfo<'t>,
         wgpu::Extent3d,
     ) {
         let format_size_bytes = wgpu::texture_format_size_bytes(texture.format());
@@ -212,10 +212,10 @@ impl RowPaddedBuffer {
         let mut copy_size = texture.extent();
         copy_size.depth_or_array_layers = 1;
 
-        let buffer_view = wgpu::ImageCopyBuffer {
+        let buffer_view = wgpu::TexelCopyBufferInfo {
             buffer: &self.buffer,
             // note: this is the layout of *this buffer*.
-            layout: wgpu::ImageDataLayout {
+            layout: wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(self.padded_width()),
                 rows_per_image: Some(self.height),

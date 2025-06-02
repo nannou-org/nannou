@@ -1,10 +1,11 @@
 use nannou::prelude::*;
-use std::cell::RefCell;
+use std::sync::{Arc, Mutex};
 
 mod data;
 
+#[derive(Clone)]
 struct Model {
-    graphics: RefCell<Graphics>,
+    graphics: Arc<Mutex<Graphics>>,
 }
 
 struct Graphics {
@@ -42,18 +43,18 @@ pub struct Uniforms {
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
 fn main() {
-    nannou::app(model).run();
+    nannou::app(model).render(render).run();
 }
 
 fn model(app: &App) -> Model {
-    let w_id = app.new_window().size(1024, 576).view(view).build().unwrap();
+    let w_id = app.new_window::<Model>().hdr(true).size(1024, 576).build();
 
     // The gpu device associated with the window's swapchain
-    let window = app.window(w_id).unwrap();
+    let window = app.window(w_id);
     let device = window.device();
     let format = Frame::TEXTURE_FORMAT;
     let msaa_samples = window.msaa_samples();
-    let (win_w, win_h) = window.inner_size_pixels();
+    let UVec2 { x: win_w, y: win_h } = window.size_pixels();
 
     // Load shader modules.
     let vs_desc = wgpu::include_wgsl!("shaders/vs.wgsl");
@@ -84,7 +85,7 @@ fn model(app: &App) -> Model {
     });
 
     // Create the depth texture.
-    let depth_texture = create_depth_texture(device, [win_w, win_h], DEPTH_FORMAT, msaa_samples);
+    let depth_texture = create_depth_texture(&device, [win_w, win_h], DEPTH_FORMAT, msaa_samples);
     let depth_texture_view = depth_texture.view().build();
 
     // Create the uniform buffer.
@@ -98,11 +99,11 @@ fn model(app: &App) -> Model {
     });
 
     // Create the render pipeline.
-    let bind_group_layout = create_bind_group_layout(device);
-    let bind_group = create_bind_group(device, &bind_group_layout, &uniform_buffer);
-    let pipeline_layout = create_pipeline_layout(device, &bind_group_layout);
+    let bind_group_layout = create_bind_group_layout(&device);
+    let bind_group = create_bind_group(&device, &bind_group_layout, &uniform_buffer);
+    let pipeline_layout = create_pipeline_layout(&device, &bind_group_layout);
     let render_pipeline = create_render_pipeline(
-        device,
+        &device,
         &pipeline_layout,
         &vs_mod,
         &fs_mod,
@@ -111,7 +112,7 @@ fn model(app: &App) -> Model {
         msaa_samples,
     );
 
-    let graphics = RefCell::new(Graphics {
+    let graphics = Arc::new(Mutex::new(Graphics {
         vertex_buffer,
         normal_buffer,
         index_buffer,
@@ -120,27 +121,27 @@ fn model(app: &App) -> Model {
         depth_texture_view,
         bind_group,
         render_pipeline,
-    });
+    }));
 
     Model { graphics }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    let mut g = model.graphics.borrow_mut();
+fn render(app: &RenderApp, model: &Model, frame: Frame) {
+    let mut g = model.graphics.lock().unwrap();
 
     // If the window has changed size, recreate our depth texture to match.
     let depth_size = g.depth_texture.size();
     let frame_size = frame.texture_size();
-    let device = frame.device_queue_pair().device();
+    let device = frame.device();
     if frame_size != depth_size {
         let depth_format = g.depth_texture.format();
-        let sample_count = frame.texture_msaa_samples();
-        g.depth_texture = create_depth_texture(device, frame_size, depth_format, sample_count);
+        let sample_count = frame.resolve_target_msaa_samples();
+        g.depth_texture = create_depth_texture(&device, frame_size, depth_format, sample_count);
         g.depth_texture_view = g.depth_texture.view().build();
     }
 
     // Update the uniforms (rotate around the teapot).
-    let rotation = app.time;
+    let rotation = app.time();
     let uniforms = create_uniforms(rotation, frame_size);
     let uniforms_size = std::mem::size_of::<Uniforms>() as wgpu::BufferAddress;
     let uniforms_bytes = uniforms_as_bytes(&uniforms);
@@ -154,7 +155,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let mut encoder = frame.command_encoder();
     encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, &g.uniform_buffer, 0, uniforms_size);
     let mut render_pass = wgpu::RenderPassBuilder::new()
-        .color_attachment(frame.texture_view(), |color| color)
+        .color_attachment(frame.resolve_target_view().unwrap(), |color| color)
         // We'll use a depth texture to assist with the order of rendering fragments based on depth.
         .depth_stencil_attachment(&g.depth_texture_view, |depth| depth)
         .begin(&mut encoder);

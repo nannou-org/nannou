@@ -101,8 +101,7 @@ fn model(app: &App) -> Model {
         .size(1280, 720)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let node_count = 200;
     let nodes = create_nodes(node_count, app.window_rect());
@@ -110,7 +109,7 @@ fn model(app: &App) -> Model {
     Model { nodes, node_count }
 }
 
-fn create_nodes(node_count: usize, win: Rect) -> Vec<Node> {
+fn create_nodes(node_count: usize, win: geom::Rect) -> Vec<Node> {
     (0..node_count)
         .map(|_| {
             Node::new(
@@ -152,7 +151,7 @@ fn attract(current_node: &Node, other_node: &Node) -> Vec2 {
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     for i in 0..model.nodes.len() {
         // Let all nodes repel each other
         attract_nodes(&mut model.nodes, i);
@@ -161,32 +160,29 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
 
-    if frame.nth() == 0 || app.keys.down.contains(&Key::R) {
+    if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::KeyR) {
         draw.background().color(WHITE);
     } else {
         draw.rect()
             .wh(app.window_rect().wh())
-            .rgba(1.0, 1.0, 1.0, 0.07);
+            .srgba(1.0, 1.0, 1.0, 0.07);
     }
 
     model.nodes.iter().for_each(|node| {
         draw.ellipse().x_y(node.x, node.y).radius(5.0).color(BLACK);
     });
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::R => model.nodes = create_nodes(model.node_count, app.window_rect()),
-        Key::S => {
+        KeyCode::KeyR => model.nodes = create_nodes(model.node_count, app.window_rect()),
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

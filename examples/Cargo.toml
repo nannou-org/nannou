@@ -1,6 +1,6 @@
 [package]
 name = "examples"
-version = "0.1.0"
+version.workspace = true
 authors = [
     "mitchmindtree <mitchell.nordine@gmail.com>",
     "JoshuaBatty <joshpbatty@gmail.com>",
@@ -8,32 +8,31 @@ authors = [
 description = "A suite examples for nannou, the creative coding framework."
 readme = "README.md"
 keywords = ["creative", "sketch", "graphics", "audio", "example"]
-license = "MIT"
-repository = "https://github.com/nannou-org/nannou.git"
-homepage = "https://github.com/nannou-org/nannou"
-edition = "2018"
+repository.workspace = true
+homepage.workspace = true
+license.workspace = true
+edition.workspace = true
 
 [dev-dependencies]
-audrey = "0.3"
-hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
-hrtf = "0.2"
-nannou = { version ="0.19.0", path = "../nannou" }
-nannou_audio = { version ="0.19.0", path = "../nannou_audio" }
-nannou_egui = { version ="0.19.0", path = "../nannou_egui" }
-nannou_isf = { version ="0.1.0", path = "../nannou_isf" }
-nannou_laser = { version ="0.19.0", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
-nannou_osc = { version ="0.19.0", path = "../nannou_osc" }
-pitch_calc = { version = "0.12", features = ["serde"] }
-time_calc = { version= "0.13", features = ["serde"] }
-walkdir = "2"
-hound = "3.4.0"
-ringbuf = "0.2.2"
-futures = "0.3"
+audrey.workspace = true
+bevy.workspace = true
+bevy_nannou = { path = "../bevy_nannou" }
+hrtf.workspace = true
+nannou = { version = "0.19.0", path = "../nannou" }
+nannou_audio = { version = "0.19.0", path = "../nannou_audio" }
+nannou_laser = { version = "0.19.0", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
+nannou_osc = { version = "0.19.0", path = "../nannou_osc" }
+walkdir.workspace = true
+hound.workspace = true
+ringbuf.workspace = true
+futures.workspace = true
+bytemuck.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["full"]}
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { version = "1", features = ["rt"]}
+
 
 # Audio
 [[example]]
@@ -52,6 +51,17 @@ path = "audio/record_wav.rs"
 name = "feedback"
 path = "audio/feedback.rs"
 
+# Bevy
+[[example]]
+name = "simple"
+path = "bevy/simple.rs"
+[[example]]
+name = "simple_shader"
+path = "bevy/simple_shader.rs"
+[[example]]
+name = "windows"
+path = "bevy/windows.rs"
+
 # Communication
 [[example]]
 name = "osc_receiver"
@@ -59,6 +69,17 @@ path = "communication/osc_receiver.rs"
 [[example]]
 name = "osc_sender"
 path = "communication/osc_sender.rs"
+
+# Compute
+[[example]]
+name = "game_of_life"
+path = "compute/game_of_life.rs"
+[[example]]
+name = "particle_mouse"
+path = "compute/particle_mouse.rs"
+[[example]]
+name = "particle_sdf"
+path = "compute/particle_sdf.rs"
 
 # Draw
 [[example]]
@@ -74,8 +95,9 @@ path = "draw/draw_blend.rs"
 name = "draw_capture"
 path = "draw/draw_capture.rs"
 [[example]]
-name = "draw_capture_hi_res"
-path = "draw/draw_capture_hi_res.rs"
+name = "draw_custom_shader_model"
+path = "draw/draw_custom_shader_model.rs"
+required-features = ["nannou/hot_reload"]
 [[example]]
 name = "draw_loop"
 path = "draw/draw_loop.rs"
@@ -113,10 +135,11 @@ path = "draw/draw_textured_polygon.rs"
 name = "draw_transform"
 path = "draw/draw_transform.rs"
 
-# Interactive Shader Format
+# Isf
 [[example]]
-name = "isf_demo"
-path = "isf/isf_demo.rs"
+name = "isf_simple"
+path = "isf/simple.rs"
+required-features = ["nannou/isf", "nannou/egui"]
 
 # Laser
 [[example]]
@@ -128,6 +151,7 @@ path = "laser/laser_frame_stream.rs"
 [[example]]
 name = "laser_frame_stream_gui"
 path = "laser/laser_frame_stream_gui.rs"
+required-features = ["nannou/egui"]
 [[example]]
 name = "laser_raw_stream"
 path = "laser/laser_raw_stream.rs"
@@ -142,9 +166,6 @@ path = "nannou_basics/all_functions.rs"
 [[example]]
 name = "window_coordinates"
 path = "nannou_basics/window_coordinates.rs"
-[[example]]
-name = "loop_mode"
-path = "nannou_basics/loop_mode.rs"
 [[example]]
 name = "multi_window"
 path = "nannou_basics/multi_window.rs"
@@ -195,12 +216,29 @@ path = "templates/template_sketch.rs"
 [[example]]
 name = "circle_packing"
 path = "ui/egui/circle_packing.rs"
+required-features = ["nannou/egui"]
 [[example]]
 name = "tune_color"
 path = "ui/egui/tune_color.rs"
+required-features = ["nannou/egui"]
 [[example]]
 name = "simple_ui"
 path = "ui/egui/simple_ui.rs"
+required-features = ["nannou/egui"]
+[[example]]
+name = "inspector_ui"
+path = "ui/egui/inspector_ui.rs"
+required-features = ["nannou/egui"]
+
+# Video
+[[example]]
+name = "simple_video"
+path = "video/simple_video.rs"
+required-features = ["nannou/video"]
+[[example]]
+name = "video_shader_model"
+path = "video/video_shader_model.rs"
+required-features = ["nannou/video"]
 
 # WebGPU
 [[example]]
@@ -219,11 +257,5 @@ path = "wgpu/wgpu_instancing/wgpu_instancing.rs"
 name = "wgpu_teapot"
 path = "wgpu/wgpu_teapot/wgpu_teapot.rs"
 [[example]]
-name = "wgpu_teapot_camera"
-path = "wgpu/wgpu_teapot_camera/wgpu_teapot_camera.rs"
-[[example]]
 name = "wgpu_triangle"
 path = "wgpu/wgpu_triangle/wgpu_triangle.rs"
-[[example]]
-name = "wgpu_triangle_raw_frame"
-path = "wgpu/wgpu_triangle_raw_frame/wgpu_triangle_raw_frame.rs"

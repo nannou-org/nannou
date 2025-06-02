@@ -7,11 +7,13 @@
 //! better performance.
 
 use nannou::prelude::*;
+use std::sync::Arc;
 
+#[derive(Clone)]
 struct Model {
-    bind_group: wgpu::BindGroup,
-    render_pipeline: wgpu::RenderPipeline,
-    vertex_buffer: wgpu::Buffer,
+    bind_group: Arc<wgpu::BindGroup>,
+    render_pipeline: Arc<wgpu::RenderPipeline>,
+    vertex_buffer: Arc<wgpu::Buffer>,
 }
 
 // The vertex type that we will use to represent a point on our triangle.
@@ -35,14 +37,14 @@ const VERTICES: [Vertex; 3] = [
 ];
 
 fn main() {
-    nannou::app(model).run();
+    nannou::app(model).render(render).run();
 }
 
 fn model(app: &App) -> Model {
-    let w_id = app.new_window().size(512, 512).view(view).build().unwrap();
+    let w_id = app.new_window::<Model>().hdr(true).size(512, 512).build();
 
     // The gpu device associated with the window's swapchain
-    let window = app.window(w_id).unwrap();
+    let window = app.window(w_id);
     let device = window.device();
     let format = Frame::TEXTURE_FORMAT;
     let sample_count = window.msaa_samples();
@@ -63,25 +65,25 @@ fn model(app: &App) -> Model {
     });
 
     // Create the render pipeline.
-    let bind_group_layout = wgpu::BindGroupLayoutBuilder::new().build(device);
-    let bind_group = wgpu::BindGroupBuilder::new().build(device, &bind_group_layout);
-    let pipeline_layout = wgpu::create_pipeline_layout(device, None, &[&bind_group_layout], &[]);
+    let bind_group_layout = wgpu::BindGroupLayoutBuilder::new().build(&device);
+    let bind_group = wgpu::BindGroupBuilder::new().build(&device, &bind_group_layout);
+    let pipeline_layout = wgpu::create_pipeline_layout(&device, None, &[&bind_group_layout], &[]);
     let render_pipeline = wgpu::RenderPipelineBuilder::from_layout(&pipeline_layout, &vs_mod)
         .fragment_shader(&fs_mod)
         .color_format(format)
         .add_vertex_buffer::<Vertex>(&wgpu::vertex_attr_array![0 => Float32x2])
         .sample_count(sample_count)
-        .build(device);
+        .build(&device);
 
     Model {
-        bind_group,
-        vertex_buffer,
-        render_pipeline,
+        bind_group: Arc::new(bind_group),
+        vertex_buffer: Arc::new(vertex_buffer),
+        render_pipeline: Arc::new(render_pipeline),
     }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(_app: &App, model: &Model, frame: Frame) {
+fn render(_app: &RenderApp, model: &Model, frame: Frame) {
     // Using this we will encode commands that will be submitted to the GPU.
     let mut encoder = frame.command_encoder();
 
@@ -89,9 +91,9 @@ fn view(_app: &App, model: &Model, frame: Frame) {
     // begin a render pass that outputs to the frame's texture. Then we add sub-commands for
     // setting the bind group, render pipeline, vertex buffers and then finally drawing.
     let mut render_pass = wgpu::RenderPassBuilder::new()
-        .color_attachment(frame.texture_view(), |color| color)
+        .color_attachment(frame.resolve_target_view().unwrap(), |color| color)
         .begin(&mut encoder);
-    render_pass.set_bind_group(0, &model.bind_group, &[]);
+    render_pass.set_bind_group(0, &*model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);
     render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
 

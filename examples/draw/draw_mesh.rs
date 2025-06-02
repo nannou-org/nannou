@@ -4,18 +4,18 @@ fn main() {
     nannou::sketch(view).run()
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // Begin drawing
     let win = app.window_rect();
-    let t = app.time;
+    let t = app.time();
     let draw = app.draw();
 
     // Clear the background to black.
     draw.background().color(BLACK);
 
     // Use the mouse position to affect the frequency and amplitude.
-    let hz = map_range(app.mouse.x, win.left(), win.right(), 0.0, 100.0);
-    let amp = app.mouse.y;
+    let hz = map_range(app.mouse().x, win.left(), win.right(), 0.0, 100.0);
+    let amp = app.mouse().x;
 
     // Create an iterator yielding triangles for drawing a sine wave.
     let tris = (1..win.w() as usize)
@@ -40,14 +40,11 @@ fn view(app: &App, frame: Frame) {
             // Color the vertices based on their amplitude.
             tri.map_vertices(|v| {
                 let y_fract = map_range(v.y.abs(), 0.0, win.top(), 0.0, 1.0);
-                let color = srgba(y_fract, 1.0 - y_fract, 1.0 - y_fract, 1.0);
+                let color = Color::srgba(y_fract, 1.0 - y_fract, 1.0 - y_fract, 1.0);
                 (v.extend(0.0), color)
             })
         });
 
     // Draw the mesh!
     draw.mesh().tris_colored(tris);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

@@ -51,8 +51,7 @@ fn model(app: &App) -> Model {
         .size(600, 600)
         .view(view)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         point_count: 600,
@@ -67,7 +66,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let t = fmod(app.elapsed_frames() as f32 / model.point_count as f32, 1.0);
     model.angle = map_range(t, 0.0, 1.0, 0.0, TAU);
     model.x = (model.angle * model.freq_x + deg_to_rad(model.phi)).sin();
@@ -76,7 +75,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model.y *= app.window_rect().h() / 4.0 - model.margin;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     let win = app.window_rect();
@@ -99,7 +98,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         )
     };
 
-    let vertices = (0..=model.point_count)
+    let points_colored = (0..=model.point_count)
         .map(|i| {
             let angle = map_range(i, 0, model.point_count, 0.0, TAU);
             let mut x = (angle * model.freq_x + deg_to_rad(model.phi)).sin();
@@ -108,18 +107,17 @@ fn view(app: &App, model: &Model, frame: Frame) {
             y *= factor_y;
             pt2(xs + x, ys - y)
         })
-        .enumerate()
-        .map(|(_i, p)| {
-            let rgba = rgba(0.0, 0.0, 0.0, 1.0);
+        .map(|p| {
+            let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
             (p, rgba)
         });
 
     // Draw the sine wave.
-    draw.polyline().weight(2.0).points_colored(vertices);
+    draw.polyline().weight(2.0).points_colored(points_colored);
 
     if model.do_draw_animation {
         // draw x oscillator
-        let vertices = (0..model.point_count)
+        let points_colored = (0..model.point_count)
             .map(|i| {
                 let angle = map_range(i, 0, model.point_count, 0.0, TAU);
                 let mut x = (angle * model.freq_x + deg_to_rad(model.phi)).sin();
@@ -128,16 +126,15 @@ fn view(app: &App, model: &Model, frame: Frame) {
                     + i as f32 / model.point_count as f32 * (win.h() / 2.0 - 2.0 * model.margin);
                 pt2(xs + x, ys - y)
             })
-            .enumerate()
-            .map(|(_i, p)| {
-                let rgba = rgba(0.0, 0.0, 0.0, 1.0);
+            .map(|p| {
+                let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
 
-        draw.polyline().weight(2.0).points_colored(vertices);
+        draw.polyline().weight(2.0).points_colored(points_colored);
 
         // draw y oscillator
-        let vertices = (0..model.point_count)
+        let points_colored = (0..model.point_count)
             .map(|i| {
                 let angle = map_range(i, 0, model.point_count, 0.0, TAU);
                 let mut y = (angle * model.freq_y).sin();
@@ -146,19 +143,18 @@ fn view(app: &App, model: &Model, frame: Frame) {
                     + i as f32 / model.point_count as f32 * (win.w() / 2.0 - 2.0 * model.margin);
                 pt2(xs + x, ys - y)
             })
-            .enumerate()
-            .map(|(_i, p)| {
-                let rgba = rgba(0.0, 0.0, 0.0, 1.0);
+            .map(|p| {
+                let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
                 (p, rgba)
             });
-        draw.polyline().weight(2.0).points_colored(vertices);
+        draw.polyline().weight(2.0).points_colored(points_colored);
 
         let osc_yx = -win.w() * 2.0 / 3.0 - model.margin
             + fmod(model.angle / TAU, 1.0) * (win.w() / 2.0 - 2.0 * model.margin);
         let osc_xy = -win.h() * 2.0 / 3.0 - model.margin
             + fmod(model.angle / TAU, 1.0) * (win.h() / 2.0 - 2.0 * model.margin);
 
-        let c = rgba(0.0, 0.0, 0.0, 0.5);
+        let c = Color::srgba(0.0, 0.0, 0.0, 0.5);
         draw.line()
             .start(pt2(xs + model.x, ys - osc_xy))
             .end(pt2(xs + model.x, ys - model.y))
@@ -168,58 +164,55 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .end(pt2(xs + model.x, ys - model.y))
             .color(c);
 
-        let c = rgba(0.0, 0.0, 0.0, 1.0);
+        let c = Color::srgba(0.0, 0.0, 0.0, 1.0);
         draw.ellipse()
             .x_y(xs + model.x, ys - osc_xy)
             .radius(4.0)
-            .stroke(gray(1.0))
+            .stroke(Color::gray(1.0))
             .stroke_weight(2.0)
             .color(c);
         draw.ellipse()
             .x_y(xs + osc_yx, ys - model.y)
             .radius(4.0)
-            .stroke(gray(1.0))
+            .stroke(Color::gray(1.0))
             .stroke_weight(2.0)
             .color(c);
 
         draw.ellipse()
             .x_y(xs + model.x, ys - model.y)
             .radius(5.0)
-            .stroke(gray(1.0))
+            .stroke(Color::gray(1.0))
             .stroke_weight(2.0)
             .color(c);
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_pressed(app: &App, model: &mut Model, key: Key) {
+fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.freq_x -= 1.0;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.freq_x += 1.0;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.freq_y -= 1.0;
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.freq_y += 1.0;
         }
-        Key::A => {
+        KeyCode::KeyA => {
             model.do_draw_animation = !model.do_draw_animation;
         }
-        Key::Left => {
+        KeyCode::ArrowLeft => {
             model.phi -= 15.0;
         }
-        Key::Right => {
+        KeyCode::ArrowRight => {
             model.phi += 15.0;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }
