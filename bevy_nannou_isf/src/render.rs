@@ -20,10 +20,9 @@ use bevy::render::renderer::{RenderContext, RenderDevice};
 use bevy::render::texture::{DefaultImageSampler, GpuImage};
 use bevy::render::view::{ExtractedView, ViewTarget};
 use bevy::render::{Render, RenderApp, RenderSet};
-use bevy::utils::HashMap;
 use bevy::window::{PrimaryWindow, WindowRef};
 use std::num::NonZero;
-
+use bevy::platform::collections::HashMap;
 use crate::asset::{GpuIsf, Isf, IsfHandle};
 use crate::inputs::{IsfInputValue, IsfInputs};
 
@@ -74,15 +73,13 @@ pub struct IsfPass {
 }
 
 fn update_render_targets(
-    cameras_q: Query<(&Camera, &IsfHandle)>,
+    camera_q: Single<(&Camera, &IsfHandle)>,
     windows_q: Query<(&Window, Option<&PrimaryWindow>)>,
     mut render_targets: ResMut<IsfRenderTargets>,
     mut images: ResMut<Assets<Image>>,
     isfs: Res<Assets<Isf>>,
 ) {
-    let Ok((camera, isf)) = cameras_q.get_single() else {
-        return;
-    };
+    let (camera, isf) = *camera_q;
     let resolution = match &camera.target {
         RenderTarget::Window(window) => match window {
             WindowRef::Primary => windows_q
@@ -97,7 +94,7 @@ fn update_render_targets(
                 .expect(&format!("Window not found: {:?}", window)),
         },
         RenderTarget::Image(image) => images
-            .get(image)
+            .get(&image.handle)
             .map(|image| image.size())
             .expect(&format!("Image not found: {:?}", image)),
         RenderTarget::TextureView(_) => {

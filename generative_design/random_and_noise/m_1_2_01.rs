@@ -68,8 +68,8 @@ fn view(app: &App, model: &Model) {
 
     for i in 0..model.count {
         // positions
-        let random_x = rng.gen_range(win.left()..win.right() + 1.0);
-        let random_y = rng.gen_range(win.bottom()..win.top() + 1.0);
+        let random_x = rng.random_range(win.left()..win.right() + 1.0);
+        let random_y = rng.random_range(win.bottom()..win.top() + 1.0);
         let circle_x = (angle * i as f32).cos() * 300.0;
         let circle_y = (angle * i as f32).sin() * 300.0;
 

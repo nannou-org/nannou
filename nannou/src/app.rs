@@ -273,7 +273,9 @@ where
                 ..default()
             }),
             #[cfg(feature = "egui")]
-            bevy_egui::EguiPlugin,
+            bevy_egui::EguiPlugin {
+                enable_multipass_for_primary_context: false,
+            }, // TODO: should we use this?
             NannouPlugin,
         ))
         .init_resource::<RunMode>();

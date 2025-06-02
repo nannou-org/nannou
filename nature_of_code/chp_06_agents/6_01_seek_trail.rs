@@ -104,10 +104,10 @@ fn view(app: &App, m: &Model) {
 fn seek(vehicle: &mut Vehicle, target: Vec2) {
     let steer = {
         let Vehicle {
-            ref position,
-            ref velocity,
-            ref max_speed,
-            ref max_force,
+            position,
+            velocity,
+            max_speed,
+            max_force,
             ..
         } = vehicle;
         // A vector pointing from the position to the target

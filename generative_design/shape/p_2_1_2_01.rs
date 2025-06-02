@@ -78,8 +78,8 @@ fn view(app: &App, model: &Model) {
             let mx = clamp(win.right() + app.mouse().x, 0.0, win.w());
             let my = clamp(win.top() - app.mouse().x, 0.0, win.h());
 
-            let shift_x = rng.gen_range(-mx..mx + 1.0) / 20.0;
-            let shift_y = rng.gen_range(-mx..mx + 1.0) / 20.0;
+            let shift_x = rng.random_range(-mx..mx + 1.0) / 20.0;
+            let shift_y = rng.random_range(-mx..mx + 1.0) / 20.0;
 
             draw.ellipse()
                 .x_y(pos_x + shift_x, pos_y + shift_y)

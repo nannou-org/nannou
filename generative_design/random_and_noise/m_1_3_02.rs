@@ -63,7 +63,7 @@ fn view(app: &App, model: &Model) {
 
     let image: DynamicImage =
         image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |_x, _y| {
-            let r: u8 = rng.gen_range(0..std::u8::MAX);
+            let r: u8 = rng.random_range(0..std::u8::MAX);
             nannou::image::Rgba([r, r, r, std::u8::MAX])
         })
         .into();

@@ -130,7 +130,7 @@ fn view(app: &App, model: &Model) {
             1.0,
         );
         let line_length = char_size;
-        let line_angle = rng.gen_range(-PI..PI) * mx * (PI / 2.0);
+        let line_angle = rng.random_range(-PI..PI) * mx * (PI / 2.0);
         let new_pos_x = line_length * line_angle.cos();
         let new_pos_y = line_length * line_angle.sin();
 

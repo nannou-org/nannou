@@ -80,12 +80,12 @@ fn update(app: &App, model: &mut Model) {
     // Create palette
     for i in 0..model.color_count {
         if i % 2 == 0 {
-            model.hue_values[i] = rng.gen::<f32>();
+            model.hue_values[i] = rng.random::<f32>();
             model.saturation_values[i] = 1.0;
-            model.brightness_values[i] = rng.gen::<f32>();
+            model.brightness_values[i] = rng.random::<f32>();
         } else {
             model.hue_values[i] = 0.54;
-            model.saturation_values[i] = rng.gen::<f32>();
+            model.saturation_values[i] = rng.random::<f32>();
             model.brightness_values[i] = 1.0;
         }
     }
@@ -106,7 +106,7 @@ fn view(app: &App, model: &Model) {
         // count tiles
         let mut counter = 0;
         // row count and row height
-        let row_count = rng.gen_range(5..30);
+        let row_count = rng.random_range(5..30);
         let row_height = app.window_rect().h() as i32 / row_count;
 
         // seperate each line in parts
@@ -117,15 +117,15 @@ fn view(app: &App, model: &Model) {
 
             for _ in 0..part_count {
                 // sub fragment of not?
-                if rng.gen::<f32>() < 0.075 {
+                if rng.random::<f32>() < 0.075 {
                     // take care of big values
-                    let fragments = rng.gen_range(2..20);
+                    let fragments = rng.random_range(2..20);
                     part_count = part_count + fragments - 1;
                     for _ in 0..fragments {
-                        parts.push(rng.gen_range(0..2));
+                        parts.push(rng.random_range(0..2));
                     }
                 } else {
-                    parts.push(rng.gen_range(2..20));
+                    parts.push(rng.random_range(2..20));
                 }
             }
 

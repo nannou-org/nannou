@@ -164,7 +164,7 @@ fn audio(audio: &mut Audio, output: &mut Buffer) {
     // Fill the source buffer with new noise.
     audio.hrtf_data.source.drain(..BUFFER_LEN_FRAMES);
     for _ in 0..BUFFER_LEN_FRAMES {
-        let sample = audio.rng.gen::<f32>() * 2.0 - 1.0;
+        let sample = audio.rng.random::<f32>() * 2.0 - 1.0;
         audio.hrtf_data.source.push(sample);
     }
 

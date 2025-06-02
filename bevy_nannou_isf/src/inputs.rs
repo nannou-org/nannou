@@ -316,7 +316,7 @@ impl PartialReflect for IsfInputs {
 
     #[inline]
     fn clone_value(&self) -> Box<dyn PartialReflect> {
-        Box::new(self.clone_dynamic())
+        Box::new(self.to_dynamic_struct())
     }
 
     fn reflect_partial_eq(&self, value: &dyn PartialReflect) -> Option<bool> {
