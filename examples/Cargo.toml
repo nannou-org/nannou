@@ -204,6 +204,11 @@ path = "rust_basics/6_functions.rs"
 name = "7_modules"
 path = "rust_basics/7_modules/7_modules.rs"
 
+# Shader
+[[example]]
+name = "fullscreen"
+path = "shader/fullscreen.rs"
+
 # Template
 [[example]]
 name = "template_app"
